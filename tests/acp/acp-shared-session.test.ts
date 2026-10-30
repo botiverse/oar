@@ -1,45 +1,14 @@
 /* oxlint-disable eslint/max-statements, import/max-dependencies -- Real two-session lifecycle scenarios retain related assertions and process/record helpers together. */
-import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
-import os from "node:os";
+import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
-import { afterEach, expect, test, vi } from "vitest";
-import type { Session, SessionOptions } from "../../packages/oar/src/contracts/session.js";
+import { expect, test, vi } from "vitest";
 import { SessionUnavailableError } from "../../packages/oar/src/contracts/session-unavailable-error.js";
 import { promptAndWait, awaitTurnEnd } from "../../packages/oar/src/observe/turns.js";
-import { closeAcpSession, type AcpSessionProfile } from "../../packages/oar/src/shared/acp/profile.js";
-import { sharedAcpSession, cleanupAcpOwner, type AcpSharedOptions } from "../../packages/oar/src/shared/acp/shared-session.js";
-import type { AcpUnattributed } from "../../packages/oar/src/shared/acp/routing.js";
+import { cleanupAcpOwner } from "../../packages/oar/src/shared/acp/shared-session.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 
-const sessions: Session[] = [];
-const directories: string[] = [];
-const fixturePath = fileURLToPath(new URL("../fixtures/fake-acp-shared.mjs", import.meta.url));
-const installation = { kind: "available", via: "executable", command: process.execPath } as const;
+import { fixture, opening, text } from "../fixtures/acp-shared-support.js";
 
-afterEach(async () => {
-  await Promise.allSettled(sessions.splice(0).map(async (session) => { await session.dispose(); }));
-  await Promise.all(directories.splice(0).map(async (directory) => { await rm(directory, { recursive: true, force: true }); }));
-});
-
-async function fixture(overrides: Partial<AcpSharedOptions> = {}, profile: Partial<AcpSessionProfile> = {}) {
-  const cwd = await mkdtemp(path.join(os.tmpdir(), "oar-acp-shared-")); directories.push(cwd);
-  const diagnostics: AcpUnattributed[] = [];
-  const open = sharedAcpSession({ args: [fixturePath], capabilities: { queue: { durable: false }, attribution: "nested" }, abortTimeoutMs: 40,
-    extensionNotifications: ["fixture/lineage", "fixture/usage"], ...profile,
-  }, { processCwd: () => cwd, cleanup: closeAcpSession, diagnostic: (entry) => { diagnostics.push(entry); }, pending: { waitMs: 100 },
-    associations: (_method, params) => typeof params.sessionId === "string" && typeof params.child === "string" ? [{ parent: params.sessionId, child: params.child }] : [], ...overrides });
-  return { cwd, diagnostics, open: async (name: string, options: Partial<SessionOptions> = {}, requested: "auto" | "shared" = "auto") => {
-    const directory = path.join(cwd, name); await mkdir(directory, { recursive: true });
-    const session = await open(installation, { cwd: directory, ...options }, { requested, placement: "shared" }); sessions.push(session); return session;
-  } };
-}
-
-function opening(session: Session, method = "session/new") {
-  const frame = session.records().find(record => record.kind === "frame" && record.body.type === method);
-  return frame?.kind === "frame" ? asRecord(frame.body.native) : null;
-}
-function text(session: Session): string { return session.records().flatMap(record => record.kind === "frame" ? record.body.events.flatMap(event => event.kind === "text_delta" ? [event.text] : []) : []).join("|"); }
 function alive(pid: number): boolean { try { process.kill(pid, 0); return true; } catch { return false; } }
 
 test("two simultaneous opens initialize once, keep cwd and MCP isolated, and route crossed answers", async () => {

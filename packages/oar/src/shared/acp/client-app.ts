@@ -99,10 +99,10 @@ export function createRoutedAcpClientApp(routing: {
   ) => async (context: { readonly params: Params; readonly requestId: JsonRpcId; readonly signal: AbortSignal }): Promise<Reply> => {
     const id = requestIdOf(context);
     const { terminal, hooks, receivedAt, active } = await routing.target(method, context.params, context.requestId);
-    context.signal.throwIfAborted();
-    if (active?.() === false) { throw RequestError.invalidParams(undefined, "ACP native session no longer accepts host requests"); }
     hooks.requested(id, method, context.params, receivedAt);
     try {
+      context.signal.throwIfAborted();
+      if (active?.() === false) { throw RequestError.invalidParams(undefined, "ACP native session no longer accepts host requests"); }
       const reply = await handle(context.params, terminal);
       hooks.answered(id, reply);
       return reply;

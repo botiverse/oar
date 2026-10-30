@@ -251,5 +251,5 @@ export function finishAcpSession(
       await runtime.exited;
       await terminalHost.dispose();
     }),
-  });
+  }, shared?.redact);
 }

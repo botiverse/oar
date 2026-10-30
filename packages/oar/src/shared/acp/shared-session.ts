@@ -47,7 +47,7 @@ export async function cleanupAcpOwner(native: () => Promise<void>, terminals: ()
 /** A fresh factory owns a fresh pool. Native runtime definitions opt in only in their own admission PR. */
 export function sharedAcpSession(profile: AcpSessionProfile, shared: AcpSharedOptions): StartSession {
   const isolated = acpSession(profile);
-  const pool = createProcessPool((configuration: ProcessConfiguration) => {
+  const pool = createProcessPool((configuration: ProcessConfiguration, retire) => {
     const routing = createAcpRouting<AcpClientTarget>({
       associations: shared.associations, diagnostic: shared.diagnostic,
       ...(shared.sessionId === undefined ? {} : { sessionId: shared.sessionId }), ...shared.pending,
@@ -61,7 +61,16 @@ export function sharedAcpSession(profile: AcpSessionProfile, shared: AcpSharedOp
       extension: (method, params) => { routing.notify(method, params, (target, ingress) => { target.hooks.extension(method, params, ingress.receivedAt, ingress.afterOpen); }); },
       extensionNotifications: profile.extensionNotifications ?? [],
     });
-    const wire = sharedAcpWire(routing, profile.extensionNotifications ?? []);
+    const wire = sharedAcpWire(routing, profile.extensionNotifications ?? [], (id) => {
+      void (async (): Promise<void> => {
+        try {
+          await cleanupAcpOwner(async () => { if (!runtime.closed) { await shared.cleanup(runtime, id); } }, async () => {});
+          routing.diagnostic("cancelled_session_new_cleanup", { sessionId: id, result: { kind: "completed" } }, "retired");
+        } catch (error) {
+          routing.diagnostic("cancelled_session_new_cleanup", { sessionId: id, result: { kind: "failed", reason: error instanceof Error ? error.message : String(error) } }, "retired");
+        }
+      })();
+    });
     const runtime = startAcpProcess(configuration.command, configuration.args, app, {
       ...(configuration.cwd === undefined ? {} : { cwd: configuration.cwd }),
       env: Object.fromEntries(Object.entries(configuration.env).filter((entry): entry is [string, string] => entry[1] !== null)),
@@ -71,7 +80,13 @@ export function sharedAcpSession(profile: AcpSessionProfile, shared: AcpSharedOp
       ...wire,
     });
     // A broken transport cannot leave a pool of live controllers awaiting an exit forever.
-    void (async (): Promise<void> => { await runtime.connection.closed; runtime.kill(); })();
+    let stopping = false;
+    const stop = (): void => {
+      if (stopping) { return; }
+      stopping = true; retire(); runtime.kill();
+    };
+    runtime.connection.signal.addEventListener("abort", stop, { once: true });
+    if (runtime.connection.signal.aborted) { stop(); }
     const meta: unknown = JSON.parse(configuration.protocol ?? "null");
     let initialized: Promise<JsonRecord> | null = null;
     const initialize = async (): Promise<JsonRecord> => {
@@ -79,7 +94,7 @@ export function sharedAcpSession(profile: AcpSessionProfile, shared: AcpSharedOp
         try {
           return await acpOpenStep(initializeAcpConnection(runtime, { ...profile, initializeMeta: () => asRecord(meta) ?? undefined },
             { cwd: configuration.cwd ?? process.cwd() }, () => {}), "open");
-        } catch (error) { runtime.kill(); await runtime.exited; throw routing.redactValue(error); }
+        } catch (error) { stop(); await runtime.exited; throw routing.redactValue(error); }
       })();
       const response = await initialized;
       return response;
@@ -88,7 +103,7 @@ export function sharedAcpSession(profile: AcpSessionProfile, shared: AcpSharedOp
 
     return {
       runtime, routing, initialize, exited: runtime.exited, resources: runtime.resources,
-      stop: async (): Promise<void> => { runtime.kill(); await runtime.exited; },
+      stop: async (): Promise<void> => { stop(); await runtime.exited; },
       exitReason: (): string | undefined => cleanupFailureReason(runtime.diagnostics().cleanup),
     };
   });
@@ -120,7 +135,7 @@ export function sharedAcpSession(profile: AcpSessionProfile, shared: AcpSharedOp
       }, async () => { await state.terminalHost.dispose(); }); } catch (error) { throw routing.redactValue(error); }
     };
     try {
-      if (options.resume !== undefined) { owner.bind(options.resume); nativeId = options.resume; }
+      if (options.resume !== undefined) { owner.reserve(options.resume); nativeId = options.resume; }
       const ready = await initialize();
       const opened = await openInitializedAcpSession(runtime, profile, options, ready,
         (step) => { state.recorder.step(step.method, step.response); },

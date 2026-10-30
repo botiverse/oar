@@ -23,6 +23,8 @@ function urlCredentials(value: string | null | undefined): readonly string[] {
 }
 
 export interface CredentialRedactor {
+  /** Private connection redaction input. Never put these values in records or diagnostics. */
+  values(this: void): readonly string[];
   add(this: void, value: string | undefined): void;
   redact(this: void, text: string): string;
   redactValue<T>(this: void, value: T): T;
@@ -52,6 +54,7 @@ export function sessionCredentialRedactor(options: Partial<SessionOptions>): Cre
   let values = [...known].toSorted((left, right) => right.length - left.length);
   const redact = (text: string): string => values.reduce((result, value) => result.replaceAll(value, "[redacted]"), text);
   return {
+    values: () => values,
     add(value) {
       if (credentialValue(value) && !known.has(value)) {
         known.add(value);

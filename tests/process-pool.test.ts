@@ -148,3 +148,21 @@ test("exit observers can release their reference without waiting for process dea
   expect(removed).not.toHaveBeenCalled();
   expect(retained).toHaveBeenCalledExactlyOnceWith(0);
 });
+
+
+// oxlint-disable-next-line eslint/max-statements -- Observe both generations before and after explicit retirement.
+test("a failed connection retires before shutdown finishes and cannot acquire new leases", async () => {
+  const retirements: (() => void)[] = [];
+  const pool = createProcessPool((_configuration, retire) => { retirements.push(retire); return processFixture(); });
+  const a = await pool.acquire(config, "shared"); const peer = await pool.acquire(config, "shared");
+  const [retire] = retirements;
+  if (retire === undefined) { throw new Error("process did not register retirement"); }
+  retire();
+  const fresh = await pool.acquire(config, "shared");
+  expect(fresh.process).not.toBe(a.process);
+  expect(a.process.stop).not.toHaveBeenCalled();
+  expect(peer.process).toBe(a.process);
+  retire();
+  const joined = await pool.acquire(config, "shared"); expect(joined.process).toBe(fresh.process);
+  await Promise.all([a.dispose(), peer.dispose(), fresh.dispose(), joined.dispose()]);
+});

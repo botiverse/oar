@@ -100,7 +100,7 @@ function leaseOf<T extends PooledProcess>(process: T, owned: Entry<T>, placement
 }
 
 /** One runtime instance's pool. Nothing is global, restarted, or keyed by a runtime name. */
-export function createProcessPool<T extends PooledProcess>(start: (configuration: ProcessConfiguration) => T | Promise<T>): {
+export function createProcessPool<T extends PooledProcess>(start: (configuration: ProcessConfiguration, retire: () => void) => T | Promise<T>): {
   acquire(configuration: ProcessConfiguration, placement: "shared" | "isolated"): Promise<ProcessLease<T>>;
 } {
   const entries = new Map<string, Entry<T>>();
@@ -113,10 +113,14 @@ export function createProcessPool<T extends PooledProcess>(start: (configuration
       const captured: ProcessConfiguration = { ...configuration, args: [...configuration.args], env: { ...configuration.env },
         ...(configuration.configDirectories === undefined ? {} : { configDirectories: [...configuration.configDirectories] }) };
       const key = configurationKey(captured);
+      const retire = (owned: Entry<T>): void => {
+        if (entries.get(key) === owned) { entries.delete(key); }
+        if (!owned.exited) { retiring.add(owned); }
+      };
       let entry = placement === "shared" ? entries.get(key) : undefined;
       if (entry === undefined) {
         // Reserve before asynchronous start so concurrent opens join one promise.
-        entry = { ready: (async (): Promise<T> => { await Promise.resolve(); return start(captured); })(), leases: 0, exited: false, code: null, listeners: new Set() };
+        entry = { ready: (async (): Promise<T> => { await Promise.resolve(); return start(captured, () => { retire(created); }); })(), leases: 0, exited: false, code: null, listeners: new Set() };
         if (placement === "shared") { entries.set(key, entry); }
         const created = entry;
         void observeExit(created, () => { if (entries.get(key) === created) { entries.delete(key); } retiring.delete(created); });
@@ -124,10 +128,7 @@ export function createProcessPool<T extends PooledProcess>(start: (configuration
       entry.leases += 1;
       const owned = entry;
       const process = await owned.ready;
-      return leaseOf(process, owned, placement, () => {
-        if (entries.get(key) === owned) { entries.delete(key); }
-        retiring.add(owned);
-      });
+      return leaseOf(process, owned, placement, () => { retire(owned); });
     },
   };
 }
