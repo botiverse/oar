@@ -6,6 +6,7 @@ import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { hasAcpCapability } from "../../packages/oar/src/shared/acp/profile.js";
 import { asRecord, type JsonRecord } from "../../packages/oar/src/shared/json.js";
+import { providerRequestsFor } from "./directory-hooks.js";
 import { probeFixture } from "./fixture-lifetime.js";
 import { acpFixture, acpId } from "./acp-fixture.js";
 import { codexFixture } from "./codex-fixture.js";
@@ -36,7 +37,7 @@ async function acpDirectoryFixture(runtime: string, mode: ConnectionMode, timing
     const fixture = await acpFixture(acpId(runtime), timing);
     defer(async () => { await fixture.stop(); });
     const [cwd] = fixture.cwds; assert.ok(cwd !== undefined);
-    const configuration = await directoryConfiguration({ runtime, cwd, home: fixture.home, kimiHome: fixture.provider.env.KIMI_CODE_HOME });
+    const configuration = await directoryConfiguration({ runtime, cwd, home: fixture.home, env: fixture.provider.env });
     let shared: Awaited<ReturnType<typeof fixture.connect>> | null = null;
     const opened: { connection: Awaited<ReturnType<typeof fixture.connect>>; id: string }[] = [];
     return { installation: fixture.installation, cwd, configuration, calls: fixture.mcpCalls,
@@ -46,11 +47,11 @@ async function acpDirectoryFixture(runtime: string, mode: ConnectionMode, timing
         const session = await fixture.open(connection, label, { cwd });
         opened.push({ connection, id: session.id });
         return { id: session.id, invoke: async (input): Promise<{ response: JsonRecord; output: string }> => {
-          const offset = fixture.seen.length;
+          const offset = fixture.seen.length; const rawOffset = fixture.provider.raw.length;
           const response = await fixture.prompt(connection.child, session.id, input);
-          return { response, output: JSON.stringify(fixture.seen.slice(offset).filter((entry) => entry.key === input)) };
+          return { response, output: JSON.stringify({ normalized: fixture.seen.slice(offset).filter((entry) => entry.key === input), raw: providerRequestsFor(fixture.provider.raw.slice(rawOffset), input) }) };
         } };
-      }, evidence: (): unknown => ({ calls: fixture.calls, events: fixture.events, normalized: fixture.seen }),
+      }, evidence: (): unknown => ({ calls: fixture.calls, events: fixture.events, normalized: fixture.seen, raw: fixture.provider.raw }),
       releasedDirectory: async (): Promise<JsonRecord> => {
         const [a, b] = opened; assert.ok(a && b);
         const release = async (session: (typeof opened)[number]): Promise<JsonRecord> => {
@@ -100,14 +101,14 @@ async function codexDirectoryFixture(mode: ConnectionMode, timing: ProbeTiming):
     const fixture = await codexFixture(timing);
     defer(async () => { await fixture.stop(); });
     const [cwd] = fixture.cwds; assert.ok(cwd !== undefined);
-    const configuration = await directoryConfiguration({ runtime: "codex", cwd, home: fixture.home });
+    const configuration = await directoryConfiguration({ runtime: "codex", cwd, home: fixture.home, env: fixture.provider.env });
     let shared: Awaited<ReturnType<typeof fixture.connect>> | null = null;
     const opened: { connection: Awaited<ReturnType<typeof fixture.connect>>; id: string }[] = [];
     return { installation: fixture.installation, cwd, configuration, calls: fixture.mcpCalls,
       open: async (label): Promise<DirectorySession> => {
         const connection = mode === "shared" && shared !== null ? shared : await fixture.connect();
         shared ??= connection;
-        const id = await fixture.open(connection, label, { cwd });
+        const id = await fixture.open(connection, label, { cwd, bypassHookTrust: true });
         opened.push({ connection, id });
         return { id, invoke: async (input): Promise<{ response: JsonRecord; output: string }> => {
           const offset = fixture.seen.length;
@@ -127,7 +128,7 @@ async function codexDirectoryFixture(mode: ConnectionMode, timing: ProbeTiming):
         const releasedB = { method: "thread/unsubscribe", nativeClose: true,
           result: await fixture.request(b.connection, "thread/unsubscribe", { threadId: b.id }) };
         const connection = mode === "shared" ? shared : await fixture.connect();
-        const id = await fixture.open(connection, "A", { cwd, withMcp: false });
+        const id = await fixture.open(connection, "A", { cwd, withMcp: false, bypassHookTrust: true });
         await timing.measure("catalog settling after empty-MCP reopen", 3000, async () => { await delay(3000); });
         const emptyOffset = fixture.seen.length;
         const response = await fixture.turn(connection, id, "A_mcpempty");

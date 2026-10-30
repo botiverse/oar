@@ -4,6 +4,7 @@ These probes exercise native multi-session transports with scripted local
 model responses. They do not enable OAR process sharing. The admission rule
 is [system.md, Shared runtime processes](../../docs/design/system.md#shared-runtime-processes).
 
+- [Configuration coverage and complete failure diagnostics](configuration-coverage-2026-10-30.md).
 - [Same-directory MCP and configuration freshness](same-directory-2026-10-30.md).
 - [Completed Codex/Qoder resource follow-up](followup-2026-10-30.md).
 - [Updated versions and probe follow-up](updated-versions-2026-10-30.md).
@@ -29,8 +30,9 @@ Other versions do not inherit these results.
 
 **Under the revised admission requirements, no runtime version on any
 platform currently meets the complete gate.**
-The new Linux five-turn same-directory comparison observes correct MCP
-routing for Codex, Kimi, Grok and Antigravity. Release controls and missing
+The original five-turn same-directory comparison, now repeated on all
+three platforms in run 41132390241, observes correct MCP routing for Codex,
+Kimi, Grok and Antigravity. Release controls and missing
 configuration coverage are recorded separately; this is not a complete pass.
 OpenCode and Qoder overwrite A's same-name MCP configuration when B joins. OpenCode also retains the tool after closing
 both sessions and opening with an empty MCP list. Qoder did not retain it in
@@ -44,8 +46,11 @@ Kimi 2.4.1 separately fails configuration freshness: a later shared session
 uses old hook settings that a newly opened isolated process reads afresh.
 The instruction observation is timing-dependent: immediate opening saw old
 text, while opening after three seconds saw new text, with A live or closed. It remains isolated; its future shared adapter is on
-hold. Same-directory Windows/macOS comparisons and the remaining freshness
-coverage are missing. The [new report](same-directory-2026-10-30.md) records
+hold. Same-directory Windows/macOS MCP, release and Kimi comparisons are
+now retained in the report. The revised configuration probe adds native
+hooks and explicit trust conditions on Linux; its Windows/macOS coverage,
+remaining instruction observations and changes to persisted trust remain
+missing. The [new report](same-directory-2026-10-30.md) records
 exactly what each configuration observation does and does not establish.
 
 Run from the repository root with Node 24 and the pinned executable installed:

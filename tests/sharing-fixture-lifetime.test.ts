@@ -1,4 +1,5 @@
 /* oxlint-disable max-statements -- Exercise setup, observation failure and actual resource cleanup in one guarded regression. */
+import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { once } from "node:events";
 import { mkdtemp, rm, stat } from "node:fs/promises";
@@ -6,7 +7,7 @@ import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { expect, it } from "vitest";
-import { probeFixture, usingProbeFixture } from "../experiments/sharing/fixture-lifetime.js";
+import { preservingProbeEvidence, probeErrorText, probeFixture, usingProbeFixture } from "../experiments/sharing/fixture-lifetime.js";
 
 it.each(["setup", "configuration evidence", "MCP journal"])("cleans native process, mock server and HOME when %s throws", async (stage) => {
   const home = await mkdtemp(path.join(tmpdir(), "oar-sharing-lifetime-"));
@@ -47,4 +48,45 @@ it("continues cleaning earlier resources when a later cleanup fails", async () =
   expect(released).toEqual(["process", "mock", "home"]);
   await expect(fixture.stop()).rejects.toThrow("Probe cleanup failed");
   expect(released).toHaveLength(3);
+});
+
+it("retains observation, every evidence failure and cleanup failure together", async () => {
+  const attempted: string[] = [];
+  const observation = new Error("native observation failed");
+  const evidence = new Error("configuration evidence failed");
+  const journal = new Error("MCP journal failed");
+  const cleanup = new Error("native stop failed");
+  const result = usingProbeFixture(async () => ({ stop: async () => { attempted.push("stop"); throw cleanup; } }), async () => {
+    await preservingProbeEvidence(async () => { throw observation; }, [
+      () => { attempted.push("configuration"); throw evidence; },
+      () => { attempted.push("journal"); throw journal; },
+      () => { attempted.push("native frames"); },
+    ]);
+  });
+  const caught: unknown = await result.catch((error: unknown) => error);
+  expect(caught).toBeInstanceOf(AggregateError);
+  assert.ok(caught instanceof AggregateError);
+  expect(caught.errors[1]).toBe(cleanup);
+  const nested: unknown = caught.errors[0];
+  assert.ok(nested instanceof AggregateError);
+  expect(nested.errors).toEqual([observation, evidence, journal]);
+  expect(probeErrorText(caught)).toContain(observation.message);
+  expect(probeErrorText(caught)).toContain(evidence.message);
+  expect(probeErrorText(caught)).toContain(journal.message);
+  expect(probeErrorText(caught)).toContain(cleanup.message);
+  expect(attempted).toEqual(["configuration", "journal", "native frames", "stop"]);
+});
+
+it("preserves the original error when observation alone fails", async () => {
+  const error = new Error("original observation");
+  let collected = false;
+  await expect(preservingProbeEvidence(async () => { throw error; }, [() => { collected = true; }])).rejects.toBe(error);
+  expect(collected).toBe(true);
+});
+
+it("also stops when an observer throws before returning a promise", async () => {
+  const error = new Error("synchronous observer failure");
+  let stopped = false;
+  await expect(usingProbeFixture(async () => ({ stop: async () => { stopped = true; } }), () => { throw error; })).rejects.toBe(error);
+  expect(stopped).toBe(true);
 });

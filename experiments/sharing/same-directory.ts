@@ -6,13 +6,15 @@ import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { asRecord, type JsonRecord } from "../../packages/oar/src/shared/json.js";
 import { prepareWindowsProcessTable } from "../../sea-trial/windows-process-table.js";
-import { usingProbeFixture } from "./fixture-lifetime.js";
+import { preservingProbeEvidence, probeErrorText, usingProbeFixture } from "./fixture-lifetime.js";
 import { auditFinalInvocations, invocationEvidence } from "./mcp-scope.js";
 import { ProbeTiming } from "./observation.js";
 import { recordProcessTableReads } from "./process-table.js";
 import { directoryFixture, type DirectorySession, type Label, type ConnectionMode } from "./same-directory-fixture.js";
 import { compareDirectoryConfiguration, directoryRuleMarkers } from "./directory-configuration.js";
+import { codexHookTrustObservations } from "./codex-hook-trust.js";
 import { kimiConfigurationObservations } from "./kimi-configuration.js";
+import { directoryFailureReasons } from "./directory-failures.js";
 
 const runtime = process.argv[2] ?? "opencode";
 assert.ok(["codex", "kimi", "grok", "opencode", "antigravity", "qoder"].includes(runtime));
@@ -40,10 +42,10 @@ async function observe(mode: ConnectionMode): Promise<void> {
         const invocation = invocationEvidence(await fixture.calls(), input, label);
         const nativeOutputRetained = invocation.calls.length === 1 && output.includes(invocation.calls[0]?.output ?? "");
         Object.assign(turn, { response, output, invocation, nativeOutputRetained, directoryRuleMarkers: directoryRuleMarkers(output), isolated: invocation.isolated && nativeOutputRetained });
-      } catch (error) { turn.error = String(error); turn.isolated = false; }
+      } catch (error) { turn.error = probeErrorText(error); turn.isolated = false; }
       process.stdout.write(`${runtime}/${mode}/${input}: ${JSON.stringify({ isolated: turn.isolated, error: turn.error, invocation: turn.invocation })}\n`);
     };
-    try {
+    await preservingProbeEvidence(async () => {
       await fixture.configuration.setRevision("A");
       const a = await fixture.open("A"); row.a = a.id;
       // A fixed, recorded settling period is not a retry or proof of catalog readiness.
@@ -63,21 +65,20 @@ async function observe(mode: ConnectionMode): Promise<void> {
         if (released.observed !== true || released.retainedMcpInvoked === true || asRecord(released.afterARelease)?.isolated !== true) { row.isolated = false; }
         process.stdout.write(`${runtime}/${mode}/released-directory: ${JSON.stringify({ retainedMcpInvoked: released.retainedMcpInvoked, calls: released.calls })}\n`);
       }
-    } finally {
-      row.directoryConfiguration = await fixture.configuration.evidence();
-      const allCalls = await fixture.calls(); row.mcpInvocations = allCalls; row.native = fixture.evidence();
-      auditFinalInvocations(row, allCalls);
-    }
+    }, [
+      async (): Promise<void> => { row.directoryConfiguration = await fixture.configuration.evidence(); },
+      async (): Promise<void> => { const allCalls = await fixture.calls(); row.mcpInvocations = allCalls; auditFinalInvocations(row, allCalls); },
+      (): void => { row.native = fixture.evidence(); },
+    ]);
   });
 }
 
 for (const mode of ["shared", "separate"] as const) {
   // oxlint-disable-next-line no-await-in-loop -- The control uses a fresh fixture after the shared cohort has stopped.
-  try { await observe(mode); } catch (error) { const row = cohorts.at(-1); assert.ok(row); row.error = String(error); row.observed = false; row.isolated = false; }
+  try { await observe(mode); } catch (error) { const row = cohorts.at(-1); assert.ok(row); row.error = probeErrorText(error); row.observed = false; row.isolated = false; }
   // oxlint-disable-next-line no-await-in-loop -- Retain partial evidence even if the next cohort fails.
   await writeFile(path.join(out, "evidence.json"), `${JSON.stringify(report, null, 2)}\n`, { mode: 0o600 });
 }
-let configurationFollowupPasses = true;
 if (runtime === "kimi") {
   const followup = await kimiConfigurationObservations();
   report.configurationFollowup = followup;
@@ -90,16 +91,19 @@ if (runtime === "kimi") {
     return comparison;
   });
   report.configurationFollowupComparison = comparisons;
-  configurationFollowupPasses = followup.length === 6 && followup.every((row) => row.observed === true)
-    && comparisons.every((comparison) => comparison.passed === true);
   await writeFile(path.join(out, "evidence.json"), `${JSON.stringify(report, null, 2)}\n`, { mode: 0o600 });
+}
+if (runtime === "codex") {
+  const trust = await codexHookTrustObservations(); report.trustFollowup = trust;
+  const [sharedTrust, separateTrust] = trust; assert.ok(sharedTrust && separateTrust);
+  report.trustFollowupComparison = compareDirectoryConfiguration(sharedTrust, separateTrust);
 }
 const [shared, separate] = cohorts;
 assert.ok(shared !== undefined && separate !== undefined);
 const comparison = compareDirectoryConfiguration(shared, separate);
 report.configurationComparison = comparison;
-report.missingEvidence = comparison.missingEvidence === true || (Array.isArray(report.configurationFollowupComparison)
+report.missingEvidence = comparison.missingEvidence === true || asRecord(report.trustFollowupComparison)?.missingEvidence === true || (Array.isArray(report.configurationFollowupComparison)
   && report.configurationFollowupComparison.some((entry) => asRecord(entry)?.missingEvidence === true));
+const failures = directoryFailureReasons(report); report.failureReasons = failures;
 await writeFile(path.join(out, "evidence.json"), `${JSON.stringify(report, null, 2)}\n`, { mode: 0o600 });
-assert.ok(cohorts.length === 2 && cohorts.every((row) => row.observed === true && row.isolated === true)
-  && comparison.passed === true && configurationFollowupPasses, report.missingEvidence === true ? "missing evidence: project markers or hooks were not observed; inspect evidence.json" : "native MCP isolation or configuration comparison failed; inspect evidence.json");
+assert.equal(failures.length, 0, `${failures.join("\n")}; inspect evidence.json`);

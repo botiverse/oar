@@ -1,0 +1,3569 @@
+[
+  {
+    "runtime": "codex",
+    "at": "2026-10-30T23:45:48.313Z",
+    "platform": "linux",
+    "architecture": "x64",
+    "settlingMs": 3000,
+    "configurationComparison": {
+      "projectMarkersMatch": true,
+      "hookRevisionsMatch": true,
+      "missingEvidence": false,
+      "passed": true,
+      "differenceObserved": false,
+      "limitation": "Only the later B session's observed project instruction markers and exercised hook revisions are compared. Null means missing evidence, not fresh configuration."
+    },
+    "missingEvidence": false,
+    "trustFollowupComparison": {
+      "projectMarkersMatch": true,
+      "hookRevisionsMatch": true,
+      "missingEvidence": false,
+      "passed": true,
+      "differenceObserved": false,
+      "limitation": "Only the later B session's observed project instruction markers and exercised hook revisions are compared. Null means missing evidence, not fresh configuration."
+    },
+    "source": {
+      "scope": "local Linux x64 host, revised task127 probe",
+      "base": "81deba1f753c4c83e9b9e0aeef454b7c5e503abd"
+    },
+    "requestedVersion": "0.166.0",
+    "reportedVersion": "codex-cli 0.166.0",
+    "cohorts": [
+      {
+        "mode": "shared",
+        "observed": true,
+        "isolated": true,
+        "errorRecorded": false,
+        "turns": [
+          {
+            "input": "A_mcpbefore",
+            "invocation": {
+              "input": "A_mcpbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpbefore",
+                  "output": "MCP_RESULT=A input=A_mcpbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcpbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpbefore",
+                  "output": "MCP_RESULT=A input=A_mcpbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            },
+            "isolated": true
+          },
+          {
+            "input": "B_mcpafter",
+            "invocation": {
+              "input": "B_mcpafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpafter",
+                  "output": "MCP_RESULT=B input=B_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "B_mcpafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpafter",
+                  "output": "MCP_RESULT=B input=B_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": true
+            },
+            "isolated": true
+          },
+          {
+            "input": "A_mcpafter",
+            "invocation": {
+              "input": "A_mcpafter",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpafter",
+                  "output": "MCP_RESULT=A input=A_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcpafter",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpafter",
+                  "output": "MCP_RESULT=A input=A_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            },
+            "isolated": true
+          },
+          {
+            "input": "A_mcptogether",
+            "invocation": {
+              "input": "A_mcptogether",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcptogether",
+                  "output": "MCP_RESULT=A input=A_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcptogether",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcptogether",
+                  "output": "MCP_RESULT=A input=A_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            },
+            "isolated": true
+          },
+          {
+            "input": "B_mcptogether",
+            "invocation": {
+              "input": "B_mcptogether",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcptogether",
+                  "output": "MCP_RESULT=B input=B_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "B_mcptogether",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcptogether",
+                  "output": "MCP_RESULT=B input=B_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": true
+            },
+            "isolated": true
+          }
+        ],
+        "hooks": [
+          {
+            "revision": "A",
+            "input": "A_mcpbefore"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcpafter"
+          },
+          {
+            "revision": "A",
+            "input": "A_mcpafter"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcptogether"
+          },
+          {
+            "revision": "A",
+            "input": "A_mcptogether"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcppeerclosed"
+          }
+        ],
+        "hookScope": "disposable CODEX_HOME/hooks.json",
+        "trustCondition": "Per-session bypass_hook_trust is supplied by the experiment, not persisted hook trust",
+        "projectRuleFiles": [
+          "AGENTS.md"
+        ],
+        "releasedDirectory": {
+          "observed": true,
+          "sentMcpServers": {},
+          "calls": [],
+          "retainedMcpInvoked": false,
+          "nativeOutputRetained": false,
+          "finalSurvivorInvocation": {
+            "input": "B_mcppeerclosed",
+            "expectedServer": "B",
+            "calls": [
+              {
+                "server": "B",
+                "input": "B_mcppeerclosed",
+                "output": "MCP_RESULT=B input=B_mcppeerclosed"
+              }
+            ],
+            "isolated": true
+          },
+          "releasedA": {
+            "method": "thread/unsubscribe",
+            "nativeClose": true
+          },
+          "releasedB": {
+            "method": "thread/unsubscribe",
+            "nativeClose": true
+          },
+          "afterARelease": {
+            "invocation": {
+              "input": "B_mcppeerclosed",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcppeerclosed",
+                  "output": "MCP_RESULT=B input=B_mcppeerclosed"
+                }
+              ],
+              "isolated": true
+            },
+            "isolated": true
+          }
+        }
+      },
+      {
+        "mode": "separate",
+        "observed": true,
+        "isolated": true,
+        "errorRecorded": false,
+        "turns": [
+          {
+            "input": "A_mcpbefore",
+            "invocation": {
+              "input": "A_mcpbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpbefore",
+                  "output": "MCP_RESULT=A input=A_mcpbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcpbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpbefore",
+                  "output": "MCP_RESULT=A input=A_mcpbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            },
+            "isolated": true
+          },
+          {
+            "input": "B_mcpafter",
+            "invocation": {
+              "input": "B_mcpafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpafter",
+                  "output": "MCP_RESULT=B input=B_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "B_mcpafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpafter",
+                  "output": "MCP_RESULT=B input=B_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": true
+            },
+            "isolated": true
+          },
+          {
+            "input": "A_mcpafter",
+            "invocation": {
+              "input": "A_mcpafter",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpafter",
+                  "output": "MCP_RESULT=A input=A_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcpafter",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpafter",
+                  "output": "MCP_RESULT=A input=A_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            },
+            "isolated": true
+          },
+          {
+            "input": "A_mcptogether",
+            "invocation": {
+              "input": "A_mcptogether",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcptogether",
+                  "output": "MCP_RESULT=A input=A_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcptogether",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcptogether",
+                  "output": "MCP_RESULT=A input=A_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            },
+            "isolated": true
+          },
+          {
+            "input": "B_mcptogether",
+            "invocation": {
+              "input": "B_mcptogether",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcptogether",
+                  "output": "MCP_RESULT=B input=B_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "B_mcptogether",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcptogether",
+                  "output": "MCP_RESULT=B input=B_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": true
+            },
+            "isolated": true
+          }
+        ],
+        "hooks": [
+          {
+            "revision": "A",
+            "input": "A_mcpbefore"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcpafter"
+          },
+          {
+            "revision": "A",
+            "input": "A_mcpafter"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcptogether"
+          },
+          {
+            "revision": "A",
+            "input": "A_mcptogether"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcppeerclosed"
+          }
+        ],
+        "hookScope": "disposable CODEX_HOME/hooks.json",
+        "trustCondition": "Per-session bypass_hook_trust is supplied by the experiment, not persisted hook trust",
+        "projectRuleFiles": [
+          "AGENTS.md"
+        ],
+        "releasedDirectory": {
+          "observed": true,
+          "sentMcpServers": {},
+          "calls": [],
+          "retainedMcpInvoked": false,
+          "nativeOutputRetained": false,
+          "finalSurvivorInvocation": {
+            "input": "B_mcppeerclosed",
+            "expectedServer": "B",
+            "calls": [
+              {
+                "server": "B",
+                "input": "B_mcppeerclosed",
+                "output": "MCP_RESULT=B input=B_mcppeerclosed"
+              }
+            ],
+            "isolated": true
+          },
+          "releasedA": {
+            "method": "thread/unsubscribe",
+            "nativeClose": true
+          },
+          "releasedB": {
+            "method": "thread/unsubscribe",
+            "nativeClose": true
+          },
+          "afterARelease": {
+            "invocation": {
+              "input": "B_mcppeerclosed",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcppeerclosed",
+                  "output": "MCP_RESULT=B input=B_mcppeerclosed"
+                }
+              ],
+              "isolated": true
+            },
+            "isolated": true
+          }
+        }
+      }
+    ],
+    "trustFollowup": [
+      {
+        "mode": "shared",
+        "observed": true,
+        "bInvocation": {
+          "input": "B_mcpafter",
+          "expectedServer": "B",
+          "calls": [
+            {
+              "server": "B",
+              "input": "B_mcpafter",
+              "output": "MCP_RESULT=B input=B_mcpafter"
+            }
+          ],
+          "isolated": true
+        },
+        "aInvocation": {
+          "input": "A_mcpbefore",
+          "expectedServer": "A",
+          "calls": [
+            {
+              "server": "A",
+              "input": "A_mcpbefore",
+              "output": "MCP_RESULT=A input=A_mcpbefore"
+            }
+          ],
+          "isolated": true
+        },
+        "aHookObserved": false,
+        "bHookObserved": true,
+        "bNativeOutputRetained": true,
+        "aBypassHookTrust": false,
+        "bBypassHookTrust": true,
+        "scope": "Per-session bypass_hook_trust false for A, true only when opening B; persisted trust-store changes are not exercised",
+        "newSessionMarkers": {
+          "initial": false,
+          "changed": true
+        },
+        "hooks": [
+          {
+            "revision": "B",
+            "input": "B_mcpafter"
+          }
+        ],
+        "errorRecorded": false
+      },
+      {
+        "mode": "separate",
+        "observed": true,
+        "bInvocation": {
+          "input": "B_mcpafter",
+          "expectedServer": "B",
+          "calls": [
+            {
+              "server": "B",
+              "input": "B_mcpafter",
+              "output": "MCP_RESULT=B input=B_mcpafter"
+            }
+          ],
+          "isolated": true
+        },
+        "aInvocation": {
+          "input": "A_mcpbefore",
+          "expectedServer": "A",
+          "calls": [
+            {
+              "server": "A",
+              "input": "A_mcpbefore",
+              "output": "MCP_RESULT=A input=A_mcpbefore"
+            }
+          ],
+          "isolated": true
+        },
+        "aHookObserved": false,
+        "bHookObserved": true,
+        "bNativeOutputRetained": true,
+        "aBypassHookTrust": false,
+        "bBypassHookTrust": true,
+        "scope": "Per-session bypass_hook_trust false for A, true only when opening B; persisted trust-store changes are not exercised",
+        "newSessionMarkers": {
+          "initial": false,
+          "changed": true
+        },
+        "hooks": [
+          {
+            "revision": "B",
+            "input": "B_mcpafter"
+          }
+        ],
+        "errorRecorded": false
+      }
+    ],
+    "exitCode": 0,
+    "failureReasons": []
+  },
+  {
+    "runtime": "kimi",
+    "at": "2026-10-30T23:42:46.729Z",
+    "platform": "linux",
+    "architecture": "x64",
+    "settlingMs": 3000,
+    "configurationComparison": {
+      "projectMarkersMatch": false,
+      "hookRevisionsMatch": false,
+      "missingEvidence": false,
+      "passed": false,
+      "differenceObserved": true,
+      "limitation": "Only the later B session's observed project instruction markers and exercised hook revisions are compared. Null means missing evidence, not fresh configuration."
+    },
+    "missingEvidence": false,
+    "configurationFollowupComparison": [
+      {
+        "projectMarkersMatch": true,
+        "hookRevisionsMatch": false,
+        "missingEvidence": false,
+        "passed": false,
+        "differenceObserved": true,
+        "limitation": "Only the later B session's observed project instruction markers and exercised hook revisions are compared. Null means missing evidence, not fresh configuration.",
+        "scenario": "alive_same_directory"
+      },
+      {
+        "projectMarkersMatch": true,
+        "hookRevisionsMatch": false,
+        "missingEvidence": false,
+        "passed": false,
+        "differenceObserved": true,
+        "limitation": "Only the later B session's observed project instruction markers and exercised hook revisions are compared. Null means missing evidence, not fresh configuration.",
+        "scenario": "different_directory"
+      },
+      {
+        "projectMarkersMatch": true,
+        "hookRevisionsMatch": false,
+        "missingEvidence": false,
+        "passed": false,
+        "differenceObserved": true,
+        "limitation": "Only the later B session's observed project instruction markers and exercised hook revisions are compared. Null means missing evidence, not fresh configuration.",
+        "scenario": "closed_same_directory"
+      }
+    ],
+    "source": {
+      "scope": "local Linux x64 host, revised task127 probe",
+      "base": "e4c78bdb6499016517aa209bc305510e60f44a1d"
+    },
+    "requestedVersion": "2.4.1",
+    "reportedVersion": "2.4.1",
+    "cohorts": [
+      {
+        "mode": "shared",
+        "observed": true,
+        "isolated": true,
+        "errorRecorded": false,
+        "turns": [
+          {
+            "input": "A_mcpbefore",
+            "invocation": {
+              "input": "A_mcpbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpbefore",
+                  "output": "MCP_RESULT=A input=A_mcpbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcpbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpbefore",
+                  "output": "MCP_RESULT=A input=A_mcpbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            },
+            "isolated": true
+          },
+          {
+            "input": "B_mcpafter",
+            "invocation": {
+              "input": "B_mcpafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpafter",
+                  "output": "MCP_RESULT=B input=B_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "B_mcpafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpafter",
+                  "output": "MCP_RESULT=B input=B_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            },
+            "isolated": true
+          },
+          {
+            "input": "A_mcpafter",
+            "invocation": {
+              "input": "A_mcpafter",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpafter",
+                  "output": "MCP_RESULT=A input=A_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcpafter",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpafter",
+                  "output": "MCP_RESULT=A input=A_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            },
+            "isolated": true
+          },
+          {
+            "input": "A_mcptogether",
+            "invocation": {
+              "input": "A_mcptogether",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcptogether",
+                  "output": "MCP_RESULT=A input=A_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcptogether",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcptogether",
+                  "output": "MCP_RESULT=A input=A_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            },
+            "isolated": true
+          },
+          {
+            "input": "B_mcptogether",
+            "invocation": {
+              "input": "B_mcptogether",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcptogether",
+                  "output": "MCP_RESULT=B input=B_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "B_mcptogether",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcptogether",
+                  "output": "MCP_RESULT=B input=B_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            },
+            "isolated": true
+          }
+        ],
+        "hooks": [
+          {
+            "revision": "A",
+            "input": "A_mcpbefore"
+          },
+          {
+            "revision": "A",
+            "input": "B_mcpafter"
+          },
+          {
+            "revision": "A",
+            "input": "A_mcpafter"
+          },
+          {
+            "revision": "A",
+            "input": "B_mcptogether"
+          },
+          {
+            "revision": "A",
+            "input": "A_mcptogether"
+          },
+          {
+            "revision": "A",
+            "input": "B_mcppeerclosed"
+          }
+        ],
+        "hookScope": "disposable KIMI_CODE_HOME/config.toml",
+        "trustCondition": "No additional trust override installed by this experiment",
+        "projectRuleFiles": [
+          "AGENTS.md"
+        ],
+        "releasedDirectory": {
+          "observed": true,
+          "sentMcpServers": [],
+          "calls": [],
+          "retainedMcpInvoked": false,
+          "nativeOutputRetained": false,
+          "finalSurvivorInvocation": {
+            "input": "B_mcppeerclosed",
+            "expectedServer": "B",
+            "calls": [
+              {
+                "server": "B",
+                "input": "B_mcppeerclosed",
+                "output": "MCP_RESULT=B input=B_mcppeerclosed"
+              }
+            ],
+            "isolated": true
+          },
+          "releasedA": {
+            "method": "session/close",
+            "nativeClose": true,
+            "closeAdvertised": true,
+            "scope": "Native close and OAR terminal-owner release"
+          },
+          "releasedB": {
+            "method": "session/close",
+            "nativeClose": true,
+            "closeAdvertised": true,
+            "scope": "Native close and OAR terminal-owner release"
+          },
+          "afterARelease": {
+            "invocation": {
+              "input": "B_mcppeerclosed",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcppeerclosed",
+                  "output": "MCP_RESULT=B input=B_mcppeerclosed"
+                }
+              ],
+              "isolated": true
+            },
+            "isolated": true
+          }
+        }
+      },
+      {
+        "mode": "separate",
+        "observed": true,
+        "isolated": true,
+        "errorRecorded": false,
+        "turns": [
+          {
+            "input": "A_mcpbefore",
+            "invocation": {
+              "input": "A_mcpbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpbefore",
+                  "output": "MCP_RESULT=A input=A_mcpbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcpbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpbefore",
+                  "output": "MCP_RESULT=A input=A_mcpbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            },
+            "isolated": true
+          },
+          {
+            "input": "B_mcpafter",
+            "invocation": {
+              "input": "B_mcpafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpafter",
+                  "output": "MCP_RESULT=B input=B_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "B_mcpafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpafter",
+                  "output": "MCP_RESULT=B input=B_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": true
+            },
+            "isolated": true
+          },
+          {
+            "input": "A_mcpafter",
+            "invocation": {
+              "input": "A_mcpafter",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpafter",
+                  "output": "MCP_RESULT=A input=A_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcpafter",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpafter",
+                  "output": "MCP_RESULT=A input=A_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            },
+            "isolated": true
+          },
+          {
+            "input": "A_mcptogether",
+            "invocation": {
+              "input": "A_mcptogether",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcptogether",
+                  "output": "MCP_RESULT=A input=A_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcptogether",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcptogether",
+                  "output": "MCP_RESULT=A input=A_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            },
+            "isolated": true
+          },
+          {
+            "input": "B_mcptogether",
+            "invocation": {
+              "input": "B_mcptogether",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcptogether",
+                  "output": "MCP_RESULT=B input=B_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "B_mcptogether",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcptogether",
+                  "output": "MCP_RESULT=B input=B_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": true
+            },
+            "isolated": true
+          }
+        ],
+        "hooks": [
+          {
+            "revision": "A",
+            "input": "A_mcpbefore"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcpafter"
+          },
+          {
+            "revision": "A",
+            "input": "A_mcpafter"
+          },
+          {
+            "revision": "A",
+            "input": "A_mcptogether"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcptogether"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcppeerclosed"
+          }
+        ],
+        "hookScope": "disposable KIMI_CODE_HOME/config.toml",
+        "trustCondition": "No additional trust override installed by this experiment",
+        "projectRuleFiles": [
+          "AGENTS.md"
+        ],
+        "releasedDirectory": {
+          "observed": true,
+          "sentMcpServers": [],
+          "calls": [],
+          "retainedMcpInvoked": false,
+          "nativeOutputRetained": false,
+          "finalSurvivorInvocation": {
+            "input": "B_mcppeerclosed",
+            "expectedServer": "B",
+            "calls": [
+              {
+                "server": "B",
+                "input": "B_mcppeerclosed",
+                "output": "MCP_RESULT=B input=B_mcppeerclosed"
+              }
+            ],
+            "isolated": true
+          },
+          "releasedA": {
+            "method": "session/close",
+            "nativeClose": true,
+            "closeAdvertised": true,
+            "scope": "Native close and OAR terminal-owner release"
+          },
+          "releasedB": {
+            "method": "session/close",
+            "nativeClose": true,
+            "closeAdvertised": true,
+            "scope": "Native close and OAR terminal-owner release"
+          },
+          "afterARelease": {
+            "invocation": {
+              "input": "B_mcppeerclosed",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcppeerclosed",
+                  "output": "MCP_RESULT=B input=B_mcppeerclosed"
+                }
+              ],
+              "isolated": true
+            },
+            "isolated": true
+          }
+        }
+      }
+    ],
+    "configurationFollowup": [
+      {
+        "scenario": "alive_same_directory",
+        "mode": "shared",
+        "observed": true,
+        "bInvocation": {
+          "input": "B_mcpfreshafter",
+          "expectedServer": "B",
+          "calls": [
+            {
+              "server": "B",
+              "input": "B_mcpfreshafter",
+              "output": "MCP_RESULT=B input=B_mcpfreshafter"
+            }
+          ],
+          "isolated": true
+        },
+        "bHookObserved": true,
+        "newSessionMarkers": {
+          "initial": false,
+          "changed": true
+        },
+        "hooks": [
+          {
+            "revision": "A",
+            "input": "A_mcpfreshbefore"
+          },
+          {
+            "revision": "A",
+            "input": "B_mcpfreshafter"
+          }
+        ],
+        "errorRecorded": false,
+        "beforeBOpenDelayMs": 3000
+      },
+      {
+        "scenario": "alive_same_directory",
+        "mode": "separate",
+        "observed": true,
+        "bInvocation": {
+          "input": "B_mcpfreshafter",
+          "expectedServer": "B",
+          "calls": [
+            {
+              "server": "B",
+              "input": "B_mcpfreshafter",
+              "output": "MCP_RESULT=B input=B_mcpfreshafter"
+            }
+          ],
+          "isolated": true
+        },
+        "bHookObserved": true,
+        "newSessionMarkers": {
+          "initial": false,
+          "changed": true
+        },
+        "hooks": [
+          {
+            "revision": "A",
+            "input": "A_mcpfreshbefore"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcpfreshafter"
+          }
+        ],
+        "errorRecorded": false,
+        "beforeBOpenDelayMs": 3000
+      },
+      {
+        "scenario": "different_directory",
+        "mode": "shared",
+        "observed": true,
+        "bInvocation": {
+          "input": "B_mcpfreshafter",
+          "expectedServer": "B",
+          "calls": [
+            {
+              "server": "B",
+              "input": "B_mcpfreshafter",
+              "output": "MCP_RESULT=B input=B_mcpfreshafter"
+            }
+          ],
+          "isolated": true
+        },
+        "bHookObserved": true,
+        "newSessionMarkers": {
+          "initial": false,
+          "changed": true
+        },
+        "hooks": [
+          {
+            "revision": "A",
+            "input": "A_mcpfreshbefore"
+          },
+          {
+            "revision": "A",
+            "input": "B_mcpfreshafter"
+          }
+        ],
+        "errorRecorded": false,
+        "beforeBOpenDelayMs": 3000
+      },
+      {
+        "scenario": "different_directory",
+        "mode": "separate",
+        "observed": true,
+        "bInvocation": {
+          "input": "B_mcpfreshafter",
+          "expectedServer": "B",
+          "calls": [
+            {
+              "server": "B",
+              "input": "B_mcpfreshafter",
+              "output": "MCP_RESULT=B input=B_mcpfreshafter"
+            }
+          ],
+          "isolated": true
+        },
+        "bHookObserved": true,
+        "newSessionMarkers": {
+          "initial": false,
+          "changed": true
+        },
+        "hooks": [
+          {
+            "revision": "A",
+            "input": "A_mcpfreshbefore"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcpfreshafter"
+          }
+        ],
+        "errorRecorded": false,
+        "beforeBOpenDelayMs": 3000
+      },
+      {
+        "scenario": "closed_same_directory",
+        "mode": "shared",
+        "observed": true,
+        "bInvocation": {
+          "input": "B_mcpfreshafter",
+          "expectedServer": "B",
+          "calls": [
+            {
+              "server": "B",
+              "input": "B_mcpfreshafter",
+              "output": "MCP_RESULT=B input=B_mcpfreshafter"
+            }
+          ],
+          "isolated": true
+        },
+        "bHookObserved": true,
+        "newSessionMarkers": {
+          "initial": false,
+          "changed": true
+        },
+        "hooks": [
+          {
+            "revision": "A",
+            "input": "A_mcpfreshbefore"
+          },
+          {
+            "revision": "A",
+            "input": "B_mcpfreshafter"
+          }
+        ],
+        "errorRecorded": false,
+        "beforeBOpenDelayMs": 3000
+      },
+      {
+        "scenario": "closed_same_directory",
+        "mode": "separate",
+        "observed": true,
+        "bInvocation": {
+          "input": "B_mcpfreshafter",
+          "expectedServer": "B",
+          "calls": [
+            {
+              "server": "B",
+              "input": "B_mcpfreshafter",
+              "output": "MCP_RESULT=B input=B_mcpfreshafter"
+            }
+          ],
+          "isolated": true
+        },
+        "bHookObserved": true,
+        "newSessionMarkers": {
+          "initial": false,
+          "changed": true
+        },
+        "hooks": [
+          {
+            "revision": "A",
+            "input": "A_mcpfreshbefore"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcpfreshafter"
+          }
+        ],
+        "errorRecorded": false,
+        "beforeBOpenDelayMs": 3000
+      }
+    ],
+    "exitCode": 1,
+    "failureReasons": [
+      "configuration: project instruction markers differ between shared and fresh processes",
+      "configuration: hook revisions differ between shared and fresh processes",
+      "alive_same_directory: hook revisions differ between shared and fresh processes",
+      "different_directory: hook revisions differ between shared and fresh processes",
+      "closed_same_directory: hook revisions differ between shared and fresh processes"
+    ]
+  },
+  {
+    "runtime": "grok",
+    "at": "2026-10-30T23:39:58.534Z",
+    "platform": "linux",
+    "architecture": "x64",
+    "settlingMs": 3000,
+    "configurationComparison": {
+      "projectMarkersMatch": true,
+      "hookRevisionsMatch": true,
+      "missingEvidence": false,
+      "passed": true,
+      "differenceObserved": false,
+      "limitation": "Only the later B session's observed project instruction markers and exercised hook revisions are compared. Null means missing evidence, not fresh configuration."
+    },
+    "missingEvidence": false,
+    "source": {
+      "scope": "local Linux x64 host, revised task127 probe",
+      "base": "e4c78bdb6499016517aa209bc305510e60f44a1d"
+    },
+    "requestedVersion": "1.0.70",
+    "reportedVersion": "grok 1.0.70 (f50904eaee6c) [stable]",
+    "cohorts": [
+      {
+        "mode": "shared",
+        "observed": true,
+        "isolated": true,
+        "errorRecorded": false,
+        "turns": [
+          {
+            "input": "A_mcpbefore",
+            "invocation": {
+              "input": "A_mcpbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpbefore",
+                  "output": "MCP_RESULT=A input=A_mcpbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcpbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpbefore",
+                  "output": "MCP_RESULT=A input=A_mcpbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            },
+            "isolated": true
+          },
+          {
+            "input": "B_mcpafter",
+            "invocation": {
+              "input": "B_mcpafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpafter",
+                  "output": "MCP_RESULT=B input=B_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "B_mcpafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpafter",
+                  "output": "MCP_RESULT=B input=B_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": true
+            },
+            "isolated": true
+          },
+          {
+            "input": "A_mcpafter",
+            "invocation": {
+              "input": "A_mcpafter",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpafter",
+                  "output": "MCP_RESULT=A input=A_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcpafter",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpafter",
+                  "output": "MCP_RESULT=A input=A_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            },
+            "isolated": true
+          },
+          {
+            "input": "A_mcptogether",
+            "invocation": {
+              "input": "A_mcptogether",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcptogether",
+                  "output": "MCP_RESULT=A input=A_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcptogether",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcptogether",
+                  "output": "MCP_RESULT=A input=A_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            },
+            "isolated": true
+          },
+          {
+            "input": "B_mcptogether",
+            "invocation": {
+              "input": "B_mcptogether",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcptogether",
+                  "output": "MCP_RESULT=B input=B_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "B_mcptogether",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcptogether",
+                  "output": "MCP_RESULT=B input=B_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": true
+            },
+            "isolated": true
+          }
+        ],
+        "hooks": [
+          {
+            "revision": "A",
+            "input": "A_mcpbefore"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcpafter"
+          },
+          {
+            "revision": "A",
+            "input": "A_mcpafter"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcptogether"
+          },
+          {
+            "revision": "A",
+            "input": "A_mcptogether"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcppeerclosed"
+          },
+          {
+            "revision": "B",
+            "input": "A_mcpempty"
+          }
+        ],
+        "hookScope": "disposable GROK_HOME/hooks/directory.json",
+        "trustCondition": "Disposable folder_trust.enabled=false before either native process starts; no persisted folder grant is tested",
+        "projectRuleFiles": [
+          "AGENTS.md"
+        ],
+        "releasedDirectory": {
+          "observed": true,
+          "sentMcpServers": [],
+          "calls": [],
+          "retainedMcpInvoked": false,
+          "nativeOutputRetained": false,
+          "finalSurvivorInvocation": {
+            "input": "B_mcppeerclosed",
+            "expectedServer": "B",
+            "calls": [
+              {
+                "server": "B",
+                "input": "B_mcppeerclosed",
+                "output": "MCP_RESULT=B input=B_mcppeerclosed"
+              }
+            ],
+            "isolated": true
+          },
+          "releasedA": {
+            "method": "session/close",
+            "nativeClose": true,
+            "closeAdvertised": true,
+            "scope": "Native close and OAR terminal-owner release"
+          },
+          "releasedB": {
+            "method": "session/close",
+            "nativeClose": true,
+            "closeAdvertised": true,
+            "scope": "Native close and OAR terminal-owner release"
+          },
+          "afterARelease": {
+            "invocation": {
+              "input": "B_mcppeerclosed",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcppeerclosed",
+                  "output": "MCP_RESULT=B input=B_mcppeerclosed"
+                }
+              ],
+              "isolated": true
+            },
+            "isolated": true
+          }
+        }
+      },
+      {
+        "mode": "separate",
+        "observed": true,
+        "isolated": true,
+        "errorRecorded": false,
+        "turns": [
+          {
+            "input": "A_mcpbefore",
+            "invocation": {
+              "input": "A_mcpbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpbefore",
+                  "output": "MCP_RESULT=A input=A_mcpbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcpbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpbefore",
+                  "output": "MCP_RESULT=A input=A_mcpbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            },
+            "isolated": true
+          },
+          {
+            "input": "B_mcpafter",
+            "invocation": {
+              "input": "B_mcpafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpafter",
+                  "output": "MCP_RESULT=B input=B_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "B_mcpafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpafter",
+                  "output": "MCP_RESULT=B input=B_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": true
+            },
+            "isolated": true
+          },
+          {
+            "input": "A_mcpafter",
+            "invocation": {
+              "input": "A_mcpafter",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpafter",
+                  "output": "MCP_RESULT=A input=A_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcpafter",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpafter",
+                  "output": "MCP_RESULT=A input=A_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            },
+            "isolated": true
+          },
+          {
+            "input": "A_mcptogether",
+            "invocation": {
+              "input": "A_mcptogether",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcptogether",
+                  "output": "MCP_RESULT=A input=A_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcptogether",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcptogether",
+                  "output": "MCP_RESULT=A input=A_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            },
+            "isolated": true
+          },
+          {
+            "input": "B_mcptogether",
+            "invocation": {
+              "input": "B_mcptogether",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcptogether",
+                  "output": "MCP_RESULT=B input=B_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "B_mcptogether",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcptogether",
+                  "output": "MCP_RESULT=B input=B_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": true
+            },
+            "isolated": true
+          }
+        ],
+        "hooks": [
+          {
+            "revision": "A",
+            "input": "A_mcpbefore"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcpafter"
+          },
+          {
+            "revision": "A",
+            "input": "A_mcpafter"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcptogether"
+          },
+          {
+            "revision": "A",
+            "input": "A_mcptogether"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcppeerclosed"
+          },
+          {
+            "revision": "B",
+            "input": "A_mcpempty"
+          }
+        ],
+        "hookScope": "disposable GROK_HOME/hooks/directory.json",
+        "trustCondition": "Disposable folder_trust.enabled=false before either native process starts; no persisted folder grant is tested",
+        "projectRuleFiles": [
+          "AGENTS.md"
+        ],
+        "releasedDirectory": {
+          "observed": true,
+          "sentMcpServers": [],
+          "calls": [],
+          "retainedMcpInvoked": false,
+          "nativeOutputRetained": false,
+          "finalSurvivorInvocation": {
+            "input": "B_mcppeerclosed",
+            "expectedServer": "B",
+            "calls": [
+              {
+                "server": "B",
+                "input": "B_mcppeerclosed",
+                "output": "MCP_RESULT=B input=B_mcppeerclosed"
+              }
+            ],
+            "isolated": true
+          },
+          "releasedA": {
+            "method": "session/close",
+            "nativeClose": true,
+            "closeAdvertised": true,
+            "scope": "Native close and OAR terminal-owner release"
+          },
+          "releasedB": {
+            "method": "session/close",
+            "nativeClose": true,
+            "closeAdvertised": true,
+            "scope": "Native close and OAR terminal-owner release"
+          },
+          "afterARelease": {
+            "invocation": {
+              "input": "B_mcppeerclosed",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcppeerclosed",
+                  "output": "MCP_RESULT=B input=B_mcppeerclosed"
+                }
+              ],
+              "isolated": true
+            },
+            "isolated": true
+          }
+        }
+      }
+    ],
+    "exitCode": 0,
+    "failureReasons": []
+  },
+  {
+    "runtime": "opencode",
+    "at": "2026-10-30T23:40:28.839Z",
+    "platform": "linux",
+    "architecture": "x64",
+    "settlingMs": 3000,
+    "configurationComparison": {
+      "projectMarkersMatch": true,
+      "hookRevisionsMatch": true,
+      "missingEvidence": false,
+      "passed": true,
+      "differenceObserved": false,
+      "limitation": "Only the later B session's observed project instruction markers and exercised hook revisions are compared. Null means missing evidence, not fresh configuration."
+    },
+    "missingEvidence": false,
+    "source": {
+      "scope": "local Linux x64 host, revised task127 probe",
+      "base": "e4c78bdb6499016517aa209bc305510e60f44a1d"
+    },
+    "requestedVersion": "2.2.3",
+    "reportedVersion": "opencode v2.2.3",
+    "cohorts": [
+      {
+        "mode": "shared",
+        "observed": true,
+        "isolated": false,
+        "errorRecorded": false,
+        "turns": [
+          {
+            "input": "A_mcpbefore",
+            "invocation": {
+              "input": "A_mcpbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpbefore",
+                  "output": "MCP_RESULT=A input=A_mcpbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcpbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpbefore",
+                  "output": "MCP_RESULT=A input=A_mcpbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            },
+            "isolated": true
+          },
+          {
+            "input": "B_mcpafter",
+            "invocation": {
+              "input": "B_mcpafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpafter",
+                  "output": "MCP_RESULT=B input=B_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "B_mcpafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpafter",
+                  "output": "MCP_RESULT=B input=B_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": true
+            },
+            "isolated": true
+          },
+          {
+            "input": "A_mcpafter",
+            "invocation": {
+              "input": "A_mcpafter",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "A_mcpafter",
+                  "output": "MCP_RESULT=B input=A_mcpafter"
+                }
+              ],
+              "isolated": false
+            },
+            "finalInvocation": {
+              "input": "A_mcpafter",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "A_mcpafter",
+                  "output": "MCP_RESULT=B input=A_mcpafter"
+                }
+              ],
+              "isolated": false
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": true
+            },
+            "isolated": false
+          },
+          {
+            "input": "A_mcptogether",
+            "invocation": {
+              "input": "A_mcptogether",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "A_mcptogether",
+                  "output": "MCP_RESULT=B input=A_mcptogether"
+                }
+              ],
+              "isolated": false
+            },
+            "finalInvocation": {
+              "input": "A_mcptogether",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "A_mcptogether",
+                  "output": "MCP_RESULT=B input=A_mcptogether"
+                }
+              ],
+              "isolated": false
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": true
+            },
+            "isolated": false
+          },
+          {
+            "input": "B_mcptogether",
+            "invocation": {
+              "input": "B_mcptogether",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcptogether",
+                  "output": "MCP_RESULT=B input=B_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "B_mcptogether",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcptogether",
+                  "output": "MCP_RESULT=B input=B_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": true
+            },
+            "isolated": true
+          }
+        ],
+        "hooks": [
+          {
+            "revision": "A",
+            "input": "A_mcpbefore"
+          },
+          {
+            "revision": "A",
+            "input": "A_mcpbefore"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcpafter"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcpafter"
+          },
+          {
+            "revision": "B",
+            "input": "A_mcpafter"
+          },
+          {
+            "revision": "B",
+            "input": "A_mcpafter"
+          },
+          {
+            "revision": "B",
+            "input": "A_mcptogether"
+          },
+          {
+            "revision": "B",
+            "input": "A_mcptogether"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcptogether"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcptogether"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcppeerclosed"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcppeerclosed"
+          },
+          {
+            "revision": "B",
+            "input": "A_mcpempty"
+          },
+          {
+            "revision": "B",
+            "input": "A_mcpempty"
+          }
+        ],
+        "hookScope": "project .opencode/plugins/directory-observer/index.ts (V2 execute.before)",
+        "trustCondition": "No additional trust override installed by this experiment",
+        "projectRuleFiles": [
+          "AGENTS.md"
+        ],
+        "releasedDirectory": {
+          "observed": true,
+          "sentMcpServers": [],
+          "calls": [
+            {
+              "server": "B",
+              "input": "A_mcpempty",
+              "output": "MCP_RESULT=B input=A_mcpempty"
+            }
+          ],
+          "retainedMcpInvoked": true,
+          "nativeOutputRetained": true,
+          "finalSurvivorInvocation": {
+            "input": "B_mcppeerclosed",
+            "expectedServer": "B",
+            "calls": [
+              {
+                "server": "B",
+                "input": "B_mcppeerclosed",
+                "output": "MCP_RESULT=B input=B_mcppeerclosed"
+              }
+            ],
+            "isolated": true
+          },
+          "releasedA": {
+            "method": "session/close",
+            "nativeClose": true,
+            "closeAdvertised": true,
+            "scope": "Native close and OAR terminal-owner release"
+          },
+          "releasedB": {
+            "method": "session/close",
+            "nativeClose": true,
+            "closeAdvertised": true,
+            "scope": "Native close and OAR terminal-owner release"
+          },
+          "afterARelease": {
+            "invocation": {
+              "input": "B_mcppeerclosed",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcppeerclosed",
+                  "output": "MCP_RESULT=B input=B_mcppeerclosed"
+                }
+              ],
+              "isolated": true
+            },
+            "isolated": true
+          }
+        }
+      },
+      {
+        "mode": "separate",
+        "observed": true,
+        "isolated": true,
+        "errorRecorded": false,
+        "turns": [
+          {
+            "input": "A_mcpbefore",
+            "invocation": {
+              "input": "A_mcpbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpbefore",
+                  "output": "MCP_RESULT=A input=A_mcpbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcpbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpbefore",
+                  "output": "MCP_RESULT=A input=A_mcpbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            },
+            "isolated": true
+          },
+          {
+            "input": "B_mcpafter",
+            "invocation": {
+              "input": "B_mcpafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpafter",
+                  "output": "MCP_RESULT=B input=B_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "B_mcpafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpafter",
+                  "output": "MCP_RESULT=B input=B_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": true
+            },
+            "isolated": true
+          },
+          {
+            "input": "A_mcpafter",
+            "invocation": {
+              "input": "A_mcpafter",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpafter",
+                  "output": "MCP_RESULT=A input=A_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcpafter",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpafter",
+                  "output": "MCP_RESULT=A input=A_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": true
+            },
+            "isolated": true
+          },
+          {
+            "input": "A_mcptogether",
+            "invocation": {
+              "input": "A_mcptogether",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcptogether",
+                  "output": "MCP_RESULT=A input=A_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcptogether",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcptogether",
+                  "output": "MCP_RESULT=A input=A_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": true
+            },
+            "isolated": true
+          },
+          {
+            "input": "B_mcptogether",
+            "invocation": {
+              "input": "B_mcptogether",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcptogether",
+                  "output": "MCP_RESULT=B input=B_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "B_mcptogether",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcptogether",
+                  "output": "MCP_RESULT=B input=B_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": true
+            },
+            "isolated": true
+          }
+        ],
+        "hooks": [
+          {
+            "revision": "A",
+            "input": "A_mcpbefore"
+          },
+          {
+            "revision": "A",
+            "input": "A_mcpbefore"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcpafter"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcpafter"
+          },
+          {
+            "revision": "B",
+            "input": "A_mcpafter"
+          },
+          {
+            "revision": "B",
+            "input": "A_mcpafter"
+          },
+          {
+            "revision": "B",
+            "input": "A_mcptogether"
+          },
+          {
+            "revision": "B",
+            "input": "A_mcptogether"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcptogether"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcptogether"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcppeerclosed"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcppeerclosed"
+          },
+          {
+            "revision": "B",
+            "input": "A_mcpempty"
+          }
+        ],
+        "hookScope": "project .opencode/plugins/directory-observer/index.ts (V2 execute.before)",
+        "trustCondition": "No additional trust override installed by this experiment",
+        "projectRuleFiles": [
+          "AGENTS.md"
+        ],
+        "releasedDirectory": {
+          "observed": true,
+          "sentMcpServers": [],
+          "calls": [],
+          "retainedMcpInvoked": false,
+          "nativeOutputRetained": false,
+          "finalSurvivorInvocation": {
+            "input": "B_mcppeerclosed",
+            "expectedServer": "B",
+            "calls": [
+              {
+                "server": "B",
+                "input": "B_mcppeerclosed",
+                "output": "MCP_RESULT=B input=B_mcppeerclosed"
+              }
+            ],
+            "isolated": true
+          },
+          "releasedA": {
+            "method": "session/close",
+            "nativeClose": true,
+            "closeAdvertised": true,
+            "scope": "Native close and OAR terminal-owner release"
+          },
+          "releasedB": {
+            "method": "session/close",
+            "nativeClose": true,
+            "closeAdvertised": true,
+            "scope": "Native close and OAR terminal-owner release"
+          },
+          "afterARelease": {
+            "invocation": {
+              "input": "B_mcppeerclosed",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcppeerclosed",
+                  "output": "MCP_RESULT=B input=B_mcppeerclosed"
+                }
+              ],
+              "isolated": true
+            },
+            "isolated": true
+          }
+        }
+      }
+    ],
+    "exitCode": 1,
+    "failureReasons": [
+      "shared: native MCP isolation failed or was not established",
+      "shared/A_mcpafter: MCP invocation or native result mismatch",
+      "shared/A_mcptogether: MCP invocation or native result mismatch",
+      "shared: old MCP server invoked after release and empty-MCP reopen"
+    ]
+  },
+  {
+    "runtime": "antigravity",
+    "at": "2026-10-30T23:40:59.350Z",
+    "platform": "linux",
+    "architecture": "x64",
+    "settlingMs": 3000,
+    "configurationComparison": {
+      "projectMarkersMatch": null,
+      "hookRevisionsMatch": true,
+      "missingEvidence": true,
+      "passed": false,
+      "differenceObserved": false,
+      "limitation": "Only the later B session's observed project instruction markers and exercised hook revisions are compared. Null means missing evidence, not fresh configuration."
+    },
+    "missingEvidence": true,
+    "source": {
+      "scope": "local Linux x64 host, revised task127 probe",
+      "base": "e4c78bdb6499016517aa209bc305510e60f44a1d"
+    },
+    "requestedVersion": "1.4.5",
+    "reportedVersion": "1.4.5",
+    "cohorts": [
+      {
+        "mode": "shared",
+        "observed": true,
+        "isolated": true,
+        "errorRecorded": false,
+        "turns": [
+          {
+            "input": "A_mcpbefore",
+            "invocation": {
+              "input": "A_mcpbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpbefore",
+                  "output": "MCP_RESULT=A input=A_mcpbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcpbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpbefore",
+                  "output": "MCP_RESULT=A input=A_mcpbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": false
+            },
+            "isolated": true
+          },
+          {
+            "input": "B_mcpafter",
+            "invocation": {
+              "input": "B_mcpafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpafter",
+                  "output": "MCP_RESULT=B input=B_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "B_mcpafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpafter",
+                  "output": "MCP_RESULT=B input=B_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": false
+            },
+            "isolated": true
+          },
+          {
+            "input": "A_mcpafter",
+            "invocation": {
+              "input": "A_mcpafter",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpafter",
+                  "output": "MCP_RESULT=A input=A_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcpafter",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpafter",
+                  "output": "MCP_RESULT=A input=A_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": false
+            },
+            "isolated": true
+          },
+          {
+            "input": "A_mcptogether",
+            "invocation": {
+              "input": "A_mcptogether",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcptogether",
+                  "output": "MCP_RESULT=A input=A_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcptogether",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcptogether",
+                  "output": "MCP_RESULT=A input=A_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": false
+            },
+            "isolated": true
+          },
+          {
+            "input": "B_mcptogether",
+            "invocation": {
+              "input": "B_mcptogether",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcptogether",
+                  "output": "MCP_RESULT=B input=B_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "B_mcptogether",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcptogether",
+                  "output": "MCP_RESULT=B input=B_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": false
+            },
+            "isolated": true
+          }
+        ],
+        "hooks": [
+          {
+            "revision": "A",
+            "input": "A_mcpbefore"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcpafter"
+          },
+          {
+            "revision": "B",
+            "input": "A_mcpafter"
+          },
+          {
+            "revision": "B",
+            "input": "A_mcptogether"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcptogether"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcppeerclosed"
+          }
+        ],
+        "hookScope": "project .agents/hooks.json",
+        "trustCondition": "No additional trust override installed by this experiment",
+        "projectRuleFiles": [
+          "GEMINI.md"
+        ],
+        "releasedDirectory": {
+          "observed": true,
+          "sentMcpServers": [],
+          "calls": [],
+          "retainedMcpInvoked": false,
+          "nativeOutputRetained": false,
+          "finalSurvivorInvocation": {
+            "input": "B_mcppeerclosed",
+            "expectedServer": "B",
+            "calls": [
+              {
+                "server": "B",
+                "input": "B_mcppeerclosed",
+                "output": "MCP_RESULT=B input=B_mcppeerclosed"
+              }
+            ],
+            "isolated": true
+          },
+          "releasedA": {
+            "method": "session/close",
+            "nativeClose": true,
+            "closeAdvertised": false,
+            "scope": "Native close and OAR terminal-owner release"
+          },
+          "releasedB": {
+            "method": "session/close",
+            "nativeClose": true,
+            "closeAdvertised": false,
+            "scope": "Native close and OAR terminal-owner release"
+          },
+          "afterARelease": {
+            "invocation": {
+              "input": "B_mcppeerclosed",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcppeerclosed",
+                  "output": "MCP_RESULT=B input=B_mcppeerclosed"
+                }
+              ],
+              "isolated": true
+            },
+            "isolated": true
+          }
+        }
+      },
+      {
+        "mode": "separate",
+        "observed": true,
+        "isolated": true,
+        "errorRecorded": false,
+        "turns": [
+          {
+            "input": "A_mcpbefore",
+            "invocation": {
+              "input": "A_mcpbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpbefore",
+                  "output": "MCP_RESULT=A input=A_mcpbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcpbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpbefore",
+                  "output": "MCP_RESULT=A input=A_mcpbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": false
+            },
+            "isolated": true
+          },
+          {
+            "input": "B_mcpafter",
+            "invocation": {
+              "input": "B_mcpafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpafter",
+                  "output": "MCP_RESULT=B input=B_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "B_mcpafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpafter",
+                  "output": "MCP_RESULT=B input=B_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": false
+            },
+            "isolated": true
+          },
+          {
+            "input": "A_mcpafter",
+            "invocation": {
+              "input": "A_mcpafter",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpafter",
+                  "output": "MCP_RESULT=A input=A_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcpafter",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpafter",
+                  "output": "MCP_RESULT=A input=A_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": false
+            },
+            "isolated": true
+          },
+          {
+            "input": "A_mcptogether",
+            "invocation": {
+              "input": "A_mcptogether",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcptogether",
+                  "output": "MCP_RESULT=A input=A_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcptogether",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcptogether",
+                  "output": "MCP_RESULT=A input=A_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": false
+            },
+            "isolated": true
+          },
+          {
+            "input": "B_mcptogether",
+            "invocation": {
+              "input": "B_mcptogether",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcptogether",
+                  "output": "MCP_RESULT=B input=B_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "B_mcptogether",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcptogether",
+                  "output": "MCP_RESULT=B input=B_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": false
+            },
+            "isolated": true
+          }
+        ],
+        "hooks": [
+          {
+            "revision": "A",
+            "input": "A_mcpbefore"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcpafter"
+          },
+          {
+            "revision": "B",
+            "input": "A_mcpafter"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcptogether"
+          },
+          {
+            "revision": "B",
+            "input": "A_mcptogether"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcppeerclosed"
+          }
+        ],
+        "hookScope": "project .agents/hooks.json",
+        "trustCondition": "No additional trust override installed by this experiment",
+        "projectRuleFiles": [
+          "GEMINI.md"
+        ],
+        "releasedDirectory": {
+          "observed": true,
+          "sentMcpServers": [],
+          "calls": [],
+          "retainedMcpInvoked": false,
+          "nativeOutputRetained": false,
+          "finalSurvivorInvocation": {
+            "input": "B_mcppeerclosed",
+            "expectedServer": "B",
+            "calls": [
+              {
+                "server": "B",
+                "input": "B_mcppeerclosed",
+                "output": "MCP_RESULT=B input=B_mcppeerclosed"
+              }
+            ],
+            "isolated": true
+          },
+          "releasedA": {
+            "method": "session/close",
+            "nativeClose": true,
+            "closeAdvertised": false,
+            "scope": "Native close and OAR terminal-owner release"
+          },
+          "releasedB": {
+            "method": "session/close",
+            "nativeClose": true,
+            "closeAdvertised": false,
+            "scope": "Native close and OAR terminal-owner release"
+          },
+          "afterARelease": {
+            "invocation": {
+              "input": "B_mcppeerclosed",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcppeerclosed",
+                  "output": "MCP_RESULT=B input=B_mcppeerclosed"
+                }
+              ],
+              "isolated": true
+            },
+            "isolated": true
+          }
+        }
+      }
+    ],
+    "exitCode": 1,
+    "failureReasons": [
+      "configuration: missing evidence for project instruction markers"
+    ]
+  },
+  {
+    "runtime": "qoder",
+    "at": "2026-10-30T23:41:42.201Z",
+    "platform": "linux",
+    "architecture": "x64",
+    "settlingMs": 3000,
+    "configurationComparison": {
+      "projectMarkersMatch": null,
+      "hookRevisionsMatch": true,
+      "missingEvidence": true,
+      "passed": false,
+      "differenceObserved": false,
+      "limitation": "Only the later B session's observed project instruction markers and exercised hook revisions are compared. Null means missing evidence, not fresh configuration."
+    },
+    "missingEvidence": true,
+    "source": {
+      "scope": "local Linux x64 host, revised task127 probe",
+      "base": "e4c78bdb6499016517aa209bc305510e60f44a1d"
+    },
+    "requestedVersion": "1.1.81",
+    "reportedVersion": "1.1.81",
+    "cohorts": [
+      {
+        "mode": "shared",
+        "observed": true,
+        "isolated": false,
+        "errorRecorded": false,
+        "turns": [
+          {
+            "input": "A_mcpbefore",
+            "invocation": {
+              "input": "A_mcpbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpbefore",
+                  "output": "MCP_RESULT=A input=A_mcpbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcpbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpbefore",
+                  "output": "MCP_RESULT=A input=A_mcpbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": false
+            },
+            "isolated": true
+          },
+          {
+            "input": "B_mcpafter",
+            "invocation": {
+              "input": "B_mcpafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpafter",
+                  "output": "MCP_RESULT=B input=B_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "B_mcpafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpafter",
+                  "output": "MCP_RESULT=B input=B_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": false
+            },
+            "isolated": true
+          },
+          {
+            "input": "A_mcpafter",
+            "invocation": {
+              "input": "A_mcpafter",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "A_mcpafter",
+                  "output": "MCP_RESULT=B input=A_mcpafter"
+                }
+              ],
+              "isolated": false
+            },
+            "finalInvocation": {
+              "input": "A_mcpafter",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "A_mcpafter",
+                  "output": "MCP_RESULT=B input=A_mcpafter"
+                }
+              ],
+              "isolated": false
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": false
+            },
+            "isolated": false
+          },
+          {
+            "input": "A_mcptogether",
+            "invocation": {
+              "input": "A_mcptogether",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "A_mcptogether",
+                  "output": "MCP_RESULT=B input=A_mcptogether"
+                }
+              ],
+              "isolated": false
+            },
+            "finalInvocation": {
+              "input": "A_mcptogether",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "A_mcptogether",
+                  "output": "MCP_RESULT=B input=A_mcptogether"
+                }
+              ],
+              "isolated": false
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": false
+            },
+            "isolated": false
+          },
+          {
+            "input": "B_mcptogether",
+            "invocation": {
+              "input": "B_mcptogether",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcptogether",
+                  "output": "MCP_RESULT=B input=B_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "B_mcptogether",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcptogether",
+                  "output": "MCP_RESULT=B input=B_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": false
+            },
+            "isolated": true
+          }
+        ],
+        "hooks": [
+          {
+            "revision": "A",
+            "input": "A_mcpbefore"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcpafter"
+          },
+          {
+            "revision": "B",
+            "input": "A_mcpafter"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcptogether"
+          },
+          {
+            "revision": "B",
+            "input": "A_mcptogether"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcppeerclosed"
+          }
+        ],
+        "hookScope": "project .qoder/settings.json",
+        "trustCondition": "No additional trust override installed by this experiment",
+        "projectRuleFiles": [
+          "AGENTS.md"
+        ],
+        "releasedDirectory": {
+          "observed": true,
+          "sentMcpServers": {},
+          "calls": [],
+          "retainedMcpInvoked": false,
+          "nativeOutputRetained": false,
+          "finalSurvivorInvocation": {
+            "input": "B_mcppeerclosed",
+            "expectedServer": "B",
+            "calls": [
+              {
+                "server": "B",
+                "input": "B_mcppeerclosed",
+                "output": "MCP_RESULT=B input=B_mcppeerclosed"
+              }
+            ],
+            "isolated": true
+          },
+          "releasedA": {
+            "method": "daemon.close_session",
+            "nativeClose": true
+          },
+          "releasedB": {
+            "method": "daemon.close_session",
+            "nativeClose": true
+          },
+          "afterARelease": {
+            "invocation": {
+              "input": "B_mcppeerclosed",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcppeerclosed",
+                  "output": "MCP_RESULT=B input=B_mcppeerclosed"
+                }
+              ],
+              "isolated": true
+            },
+            "isolated": true
+          }
+        }
+      },
+      {
+        "mode": "separate",
+        "observed": true,
+        "isolated": true,
+        "errorRecorded": false,
+        "turns": [
+          {
+            "input": "A_mcpbefore",
+            "invocation": {
+              "input": "A_mcpbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpbefore",
+                  "output": "MCP_RESULT=A input=A_mcpbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcpbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpbefore",
+                  "output": "MCP_RESULT=A input=A_mcpbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": false
+            },
+            "isolated": true
+          },
+          {
+            "input": "B_mcpafter",
+            "invocation": {
+              "input": "B_mcpafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpafter",
+                  "output": "MCP_RESULT=B input=B_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "B_mcpafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpafter",
+                  "output": "MCP_RESULT=B input=B_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": false
+            },
+            "isolated": true
+          },
+          {
+            "input": "A_mcpafter",
+            "invocation": {
+              "input": "A_mcpafter",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpafter",
+                  "output": "MCP_RESULT=A input=A_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcpafter",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpafter",
+                  "output": "MCP_RESULT=A input=A_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": false
+            },
+            "isolated": true
+          },
+          {
+            "input": "A_mcptogether",
+            "invocation": {
+              "input": "A_mcptogether",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcptogether",
+                  "output": "MCP_RESULT=A input=A_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcptogether",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcptogether",
+                  "output": "MCP_RESULT=A input=A_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": false
+            },
+            "isolated": true
+          },
+          {
+            "input": "B_mcptogether",
+            "invocation": {
+              "input": "B_mcptogether",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcptogether",
+                  "output": "MCP_RESULT=B input=B_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "B_mcptogether",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcptogether",
+                  "output": "MCP_RESULT=B input=B_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": false
+            },
+            "isolated": true
+          }
+        ],
+        "hooks": [
+          {
+            "revision": "A",
+            "input": "A_mcpbefore"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcpafter"
+          },
+          {
+            "revision": "B",
+            "input": "A_mcpafter"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcptogether"
+          },
+          {
+            "revision": "B",
+            "input": "A_mcptogether"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcppeerclosed"
+          }
+        ],
+        "hookScope": "project .qoder/settings.json",
+        "trustCondition": "No additional trust override installed by this experiment",
+        "projectRuleFiles": [
+          "AGENTS.md"
+        ],
+        "releasedDirectory": {
+          "observed": true,
+          "sentMcpServers": {},
+          "calls": [],
+          "retainedMcpInvoked": false,
+          "nativeOutputRetained": false,
+          "finalSurvivorInvocation": {
+            "input": "B_mcppeerclosed",
+            "expectedServer": "B",
+            "calls": [
+              {
+                "server": "B",
+                "input": "B_mcppeerclosed",
+                "output": "MCP_RESULT=B input=B_mcppeerclosed"
+              }
+            ],
+            "isolated": true
+          },
+          "releasedA": {
+            "method": "daemon.close_session",
+            "nativeClose": true
+          },
+          "releasedB": {
+            "method": "daemon.close_session",
+            "nativeClose": true
+          },
+          "afterARelease": {
+            "invocation": {
+              "input": "B_mcppeerclosed",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcppeerclosed",
+                  "output": "MCP_RESULT=B input=B_mcppeerclosed"
+                }
+              ],
+              "isolated": true
+            },
+            "isolated": true
+          }
+        }
+      }
+    ],
+    "exitCode": 1,
+    "failureReasons": [
+      "shared: native MCP isolation failed or was not established",
+      "shared/A_mcpafter: MCP invocation or native result mismatch",
+      "shared/A_mcptogether: MCP invocation or native result mismatch",
+      "configuration: missing evidence for project instruction markers"
+    ]
+  }
+]

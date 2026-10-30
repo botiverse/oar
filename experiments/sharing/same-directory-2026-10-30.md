@@ -4,9 +4,11 @@ Runtime version check: 2026-10-30.
 
 The earlier sharing reports used different directories for A and B. They do
 not establish same-directory MCP isolation or fresh configuration for later
-sessions. This Linux x64 follow-up finds same-directory MCP crossover in
-OpenCode 2.2.3 and Qoder 1.1.81, and stale configuration in Kimi 2.4.1.
-Windows/macOS counterparts remain missing. No native adapter is enabled.
+sessions. The original Linux x64 follow-up found same-directory MCP crossover
+in OpenCode 2.2.3 and Qoder 1.1.81, and stale configuration in Kimi 2.4.1.
+The subsequent three-platform run below reproduced those results. New
+configuration coverage is reported separately in the
+[coverage follow-up](configuration-coverage-2026-10-30.md). No native adapter is enabled.
 
 ## Method and retained evidence
 
@@ -48,6 +50,37 @@ One revised run per runtime is selected, including the release controls and
 Kimi timing controls. The source base was `8858813`; these are measurements
 of this probe change on a local Linux x64 host, not results from a dispatched
 workflow.
+
+## Three-platform confirmation
+
+[Run 41132390241](https://github.com/botiverse/oar/actions/runs/41132390241)
+ran the merged probe at `0a8c5e982235ee59de0cd494b02b99ed415fe375` with
+`same_directory_only=true`: six pinned runtimes on Linux x64, Windows x64
+and macOS arm64. All 18 installations completed; all 18 same-directory
+steps failed on the expected measured difference or missing configuration
+coverage. Failure alone is not a regression verdict. The
+[selected platform evidence](selected-directory-platforms-2026-10-30.json)
+retains every artifact ID, actual five-turn invocation, final journal check,
+release result and configuration comparison. Antigravity's Windows native
+installation did not report a version string; 1.4.5 is its workflow package
+pin, retained separately from the null reported version.
+
+All three platforms match the original Linux tables below: Codex, Kimi,
+Grok and Antigravity route all five inputs correctly in both cohorts;
+OpenCode and Qoder cross-route A to B only in the shared cohort. Every
+runtime's B survives A's release. Only OpenCode still invokes the old B
+server after both sessions close and an empty-MCP session reopens on that
+process. Qoder's close control does not retain it. Antigravity accepts
+`session/close` without advertising it on all three platforms.
+
+Kimi's immediate later B sees the old instruction and hook in shared mode;
+a three-second wait before B makes the instruction current whether A is
+live, closed or in another directory, but the old hook persists in all
+three controls on all platforms. The other five runtimes' configuration
+coverage gaps also match the original Linux run. The OpenCode/Qoder
+process-lifetime directory restriction and Kimi isolation conclusion
+therefore have three-platform evidence. These historical runs do not
+inherit the subsequently added hooks or trust conditions.
 
 ## Linux MCP comparison
 
@@ -209,14 +242,15 @@ The report compares only observed instruction markers and exercised hook
 revisions for B; an unobserved field is null, not a freshness pass. MCP
 crossover, an observed configuration difference, or **missing instruction or
 hook evidence** exits nonzero after saving evidence. Missing observations
-explicitly report "missing evidence". Thus all six current Linux runs fail
+explicitly report "missing evidence". Thus all six original Linux runs and the 18 platform runs fail
 the complete revised gate: measured defects and missing coverage both remain
 visible in the manual workflow. No runtime version on any platform currently
 meets that complete gate. The
 ordinary PR gate does not run this native evidence experiment.
 
-After merge, run the full six-runtime, three-platform manual workflow with
-both scope flags false. It retains old different-directory observations,
+The original three-platform same-directory run above is complete. After
+the coverage follow-up merges, rerun the revised six-runtime probe on all
+three platforms; use both scope flags false when also collecting resources. It retains old different-directory observations,
 new same-directory/configuration observations, and resource groups even if
 the new comparison fails. No automatic retries. Missing instruction/hook
 coverage, exact platform results and any required admission restrictions
