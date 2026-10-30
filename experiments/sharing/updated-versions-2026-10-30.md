@@ -2,11 +2,14 @@
 
 Runtime version check: 2026-10-30.
 
-Kimi 2.4.1, OpenCode 2.2.3 and Antigravity 1.4.5 meet the evidence gate on
-Linux x64, macOS arm64 and Windows x64. Codex 0.166.0 still needs corrected
-cross-platform fault observations and a complete Windows resource comparison.
-Qoder 1.1.81 still needs its Windows resource comparison. These findings do
-not enable an adapter or inherit evidence across runtime versions.
+The original run below completed different-directory observations and
+resource comparisons for Kimi 2.4.1, OpenCode 2.2.3 and Antigravity 1.4.5 on
+Linux x64, macOS arm64 and Windows x64. Its Codex 0.166.0 and Qoder Windows
+gaps were filled by the [later follow-up](followup-2026-10-30.md), without
+erasing the failed attempts below. These are scoped findings, not admission:
+[same-directory and configuration-freshness evidence](same-directory-2026-10-30.md)
+adds requirements and exposes limitations. No adapter is enabled, and
+versions do not inherit one another's evidence.
 
 ## Sources and complete matrix
 
@@ -133,7 +136,8 @@ structural validation without imposing a subprocess deadline. Cleanup errors
 are saved alongside the last resource cohort before the probe exits nonzero;
 it does not start another cohort after cleanup fails.
 
-The next evidence run must rerun Codex 0.166.0 observations/resources on all
-three platforms and Qoder 1.1.81 Windows resources. Until those results exist,
-both gaps remain missing. Wider experiment budgets provide timing evidence;
-they do not change product guarantees or justify a product deadline increase.
+The [later follow-up](followup-2026-10-30.md) reran Codex 0.166.0
+observations/resources on all three platforms and Qoder 1.1.81 Windows
+resources. It filled those cells and retained read timings. Wider experiment
+budgets provide evidence; they do not change product guarantees or justify a
+product deadline increase. The failures above remain part of the history.

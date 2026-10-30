@@ -63,6 +63,27 @@ Unknown daemon frames without a session id remain verbatim in records. A frame
 for another session stops the owned daemon with an explanatory `exited.reason`;
 its foreign content is not attributed to the current conversation.
 
+## Shared-process admission boundary
+
+OAR still owns one daemon per session. On Linux x64, native 1.1.81 sessions
+sharing a daemon and directory with the same MCP server name but different
+arguments cross configurations: after B opens, A's later and concurrent
+calls invoke B's server. Separate daemons with the same directory preserve
+the two configurations. In a separate close control, closing A/B and opening
+with an empty MCP list did not invoke a retained tool. No native source for
+the exact sharing/retention scope has been established; this is an observation,
+not a claim about how Qoder implements its cache.
+
+A future shared adapter must allow one session per canonical directory for
+the entire process lifetime. A used directory remains unavailable after
+release: another open uses a fresh isolated process for `auto` and refuses
+explicit `shared` with `UnsupportedOptionError("placement")`, regardless of
+whether the MCP list is identical or empty. The close result does not relax
+this conservative rule. Configuration freshness and the three-platform
+same-directory controls remain part of admission. Reproduce with
+`pnpm tsx experiments/sharing/same-directory.ts qoder` and 1.1.81;
+[report](../../experiments/sharing/same-directory-2026-10-30.md).
+
 ## Native interface
 
 `initialize` establishes the control channel. User messages carry a UUID;

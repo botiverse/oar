@@ -190,7 +190,14 @@ Sharing follows five rules:
    identical: executable and arguments, environment overlay, home and
    configuration directories. What the protocol carries per session (cwd, model, effort,
    instructions, MCP servers) does not split the pool, where evidence shows
-   it stays per session.
+   it stays per session. Per session means the runtime's actual scope.
+   OpenCode retains client MCP servers by directory for the process lifetime;
+   Qoder also shows same-directory crossover. Its close control did not
+   retain the MCP tool, but safe directory reuse is not established.
+   Both therefore conservatively require one session per canonical
+   directory per process lifetime, including after release. Reusing a used
+   directory opens a fresh isolated process in automatic placement and is
+   refused for explicit shared placement, regardless of the MCP list.
 2. **The fallback releases the session; it does not kill.** `abort` stays
    the runtime's own interrupt. If the turn has not ended within the fallback
    interval, OAR accepts the pending abort and records a release for that
@@ -229,8 +236,11 @@ Sharing follows five rules:
 5. **Shared only with evidence.** A runtime version shares only after these
    have been observed on it, on each platform where sharing is offered:
    concurrent sessions; isolation of messages, cwd, MCP servers and child
-   session attribution on the shared connection; cancellation that leaves
-   peers running; per-session cleanup; resuming a session already loaded in
+   session attribution on the shared connection; MCP isolation between
+   sessions in the same directory, including after one has closed;
+   configuration freshness, so a later session reads the project and user
+   configuration that an isolated process opened at that moment would read;
+   cancellation that leaves peers running; per-session cleanup; resuming a session already loaded in
    the process; and the process's failure cases (exit with sessions running,
    close and resume at the same time); and lower memory without higher CPU
    than isolated, measured on that version and platform. Until then it runs one process per

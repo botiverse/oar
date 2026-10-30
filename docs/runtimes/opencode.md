@@ -55,6 +55,31 @@ investigation):
 
 ## OpenCode v2
 
+### Shared-process admission boundary
+
+OAR currently opens an isolated native process for each session. In native
+2.2.3 ACP, two sessions in the same directory with the same MCP server name
+and different command arguments share the later registration: after B opens,
+A invokes B's server. Closing A/B and opening the directory with no client
+MCP servers still invokes B's server. Separate-process controls do not cross.
+The [official ACP documentation](https://opencode.ai/v2/docs/cli/acp#MCP-servers)
+explicitly describes directory-scoped registration, same-name replacement
+and retention until the ACP process exits. This is documented native scope,
+not an unreported upstream defect. Reproduce with
+`pnpm tsx experiments/sharing/same-directory.ts opencode` and the exact
+2.2.3 executable; [results and limits](../../experiments/sharing/same-directory-2026-10-30.md).
+
+A future shared adapter must give each canonical directory to only one
+session during the entire process lifetime. After that session releases,
+the directory remains used. A subsequent same-directory open, even with an
+identical or empty MCP list, uses a fresh isolated process for `auto` and
+refuses explicit `shared` with `UnsupportedOptionError("placement")`.
+The old different-directory MCP evidence cannot establish unrestricted
+same-directory sharing. Later-session configuration freshness is also an
+admission requirement; [ACP ownership spec](../spec/acp-shared-connection.md).
+
+### Startup and compatibility
+
 **Known limitation, reproduced in 2.2.1 and 2.2.3** (2026-10-29/30):
 concurrent first starts over a fresh native database can fail before
 readiness, confirmed by native SQLite errors. On 2.2.3, an OAR-free probe

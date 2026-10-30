@@ -1,0 +1,581 @@
+[
+  {
+    "runtime": "codex",
+    "version": "0.166.0",
+    "platform": "Linux-X64",
+    "run": 41117466222,
+    "cohorts": [
+      {
+        "mode": "isolated",
+        "count": 10,
+        "afterTurn": [
+          {
+            "elapsedMs": 5007.581013000001,
+            "cpuPercentOneCore": 0.7987888742320383,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 1595187200,
+            "processes": 10
+          },
+          {
+            "elapsedMs": 5006.652872000002,
+            "cpuPercentOneCore": 0.5992027162054063,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 1595846656,
+            "processes": 10
+          },
+          {
+            "elapsedMs": 5008.967821000002,
+            "cpuPercentOneCore": 0.1996419293826403,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 1595846656,
+            "processes": 10
+          }
+        ],
+        "outcome": "completed"
+      },
+      {
+        "mode": "shared",
+        "count": 10,
+        "afterTurn": [
+          {
+            "elapsedMs": 5007.710921999998,
+            "cpuPercentOneCore": 0,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 189247488,
+            "processes": 1
+          },
+          {
+            "elapsedMs": 5008.727423000004,
+            "cpuPercentOneCore": 0.19965151136155154,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 189157376,
+            "processes": 1
+          },
+          {
+            "elapsedMs": 5011.129477000002,
+            "cpuPercentOneCore": 0,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 189157376,
+            "processes": 1
+          }
+        ],
+        "outcome": "completed"
+      },
+      {
+        "mode": "shared",
+        "count": 10,
+        "afterTurn": [
+          {
+            "elapsedMs": 5007.495468000001,
+            "cpuPercentOneCore": 0.1997006300635557,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 189874176,
+            "processes": 1
+          },
+          {
+            "elapsedMs": 5007.326843000003,
+            "cpuPercentOneCore": 0.1997073551126288,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 189874176,
+            "processes": 1
+          },
+          {
+            "elapsedMs": 5005.789183000001,
+            "cpuPercentOneCore": 0,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 189874176,
+            "processes": 1
+          }
+        ],
+        "outcome": "completed"
+      },
+      {
+        "mode": "isolated",
+        "count": 10,
+        "afterTurn": [
+          {
+            "elapsedMs": 5007.924543000001,
+            "cpuPercentOneCore": 0.19968351987207644,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 1592561664,
+            "processes": 10
+          },
+          {
+            "elapsedMs": 5009.600584999993,
+            "cpuPercentOneCore": 0.598850137670208,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 1593184256,
+            "processes": 10
+          },
+          {
+            "elapsedMs": 5010.587058999998,
+            "cpuPercentOneCore": 0.1995774124319033,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 1593184256,
+            "processes": 10
+          }
+        ],
+        "outcome": "completed"
+      }
+    ],
+    "observations": {
+      "cwdIsolation": true,
+      "mcpIsolation": true,
+      "childAttribution": true,
+      "loadedResumeOverride": true,
+      "unsubscribeAndResume": true,
+      "scopedCleanup": true,
+      "cancelDoesNotStopPeer": true,
+      "concurrentUnsubscribeResume": true,
+      "processExitWithTwoActiveThreads": true
+    },
+    "readTiming": {
+      "procfs": {
+        "maximumTotalMs": 3.358867000002647,
+        "maximumQueryMs": 0,
+        "count": 132
+      }
+    }
+  },
+  {
+    "runtime": "codex",
+    "version": "0.166.0",
+    "platform": "Windows-X64",
+    "run": 41117466222,
+    "cohorts": [
+      {
+        "mode": "isolated",
+        "count": 10,
+        "afterTurn": [
+          {
+            "elapsedMs": 6087.105199999998,
+            "cpuPercentOneCore": 40.557045079490344,
+            "cpuIsLowerBound": true,
+            "exitedDuringWindow": 4,
+            "rssBytes": 1307344896,
+            "processes": 23
+          },
+          {
+            "elapsedMs": 6107.210700000003,
+            "cpuPercentOneCore": 24.049440442590253,
+            "cpuIsLowerBound": true,
+            "exitedDuringWindow": 3,
+            "rssBytes": 1292238848,
+            "processes": 25
+          },
+          {
+            "elapsedMs": 5965.609200000006,
+            "cpuPercentOneCore": 2.357261350609421,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 1285951488,
+            "processes": 25
+          }
+        ],
+        "outcome": "completed"
+      },
+      {
+        "mode": "shared",
+        "count": 10,
+        "afterTurn": [
+          {
+            "elapsedMs": 6013.785499999998,
+            "cpuPercentOneCore": 37.93367754802696,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 180989952,
+            "processes": 2
+          },
+          {
+            "elapsedMs": 6036.204199999993,
+            "cpuPercentOneCore": 11.389608058653828,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 146063360,
+            "processes": 2
+          },
+          {
+            "elapsedMs": 5952.239400000006,
+            "cpuPercentOneCore": 0,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 146067456,
+            "processes": 2
+          }
+        ],
+        "outcome": "completed"
+      },
+      {
+        "mode": "shared",
+        "count": 10,
+        "afterTurn": [
+          {
+            "elapsedMs": 6139.068100000004,
+            "cpuPercentOneCore": 26.97885042193943,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 146194432,
+            "processes": 2
+          },
+          {
+            "elapsedMs": 5963.076700000005,
+            "cpuPercentOneCore": 0,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 146407424,
+            "processes": 2
+          },
+          {
+            "elapsedMs": 5962.043399999995,
+            "cpuPercentOneCore": 0.26207457664598705,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 146321408,
+            "processes": 2
+          }
+        ],
+        "outcome": "completed"
+      },
+      {
+        "mode": "isolated",
+        "count": 10,
+        "afterTurn": [
+          {
+            "elapsedMs": 6306.0713000000105,
+            "cpuPercentOneCore": 22.54771524705085,
+            "cpuIsLowerBound": true,
+            "exitedDuringWindow": 3,
+            "rssBytes": 1266671616,
+            "processes": 20
+          },
+          {
+            "elapsedMs": 6080.103000000003,
+            "cpuPercentOneCore": 36.748966259288686,
+            "cpuIsLowerBound": true,
+            "exitedDuringWindow": 6,
+            "rssBytes": 1316495360,
+            "processes": 23
+          },
+          {
+            "elapsedMs": 6092.419899999979,
+            "cpuPercentOneCore": 23.85135994976323,
+            "cpuIsLowerBound": true,
+            "exitedDuringWindow": 3,
+            "rssBytes": 1263124480,
+            "processes": 20
+          }
+        ],
+        "outcome": "completed"
+      }
+    ],
+    "observations": {
+      "cwdIsolation": true,
+      "mcpIsolation": true,
+      "childAttribution": true,
+      "loadedResumeOverride": true,
+      "unsubscribeAndResume": true,
+      "scopedCleanup": true,
+      "cancelDoesNotStopPeer": true,
+      "concurrentUnsubscribeResume": true,
+      "processExitWithTwoActiveThreads": true
+    },
+    "readTiming": {
+      "windows": {
+        "maximumTotalMs": 2226.6559000000016,
+        "maximumQueryMs": 533.9224,
+        "count": 132
+      },
+      "windows-resources": {
+        "maximumTotalMs": 1851.4851999999955,
+        "maximumQueryMs": 0,
+        "count": 32
+      }
+    },
+    "preparation": {
+      "kind": "windows_process_table_preparation",
+      "at": "2026-10-30T19:44:12.205Z",
+      "timeoutMs": 60000,
+      "elapsedMs": 478.42280000000005,
+      "exitCode": 0,
+      "signal": null,
+      "errorCode": null,
+      "error": null,
+      "stderr": "",
+      "outcome": "completed",
+      "queryMs": 246.85080000000002,
+      "processes": 146
+    },
+    "observationPreparation": {
+      "kind": "windows_process_table_preparation",
+      "at": "2026-10-30T19:43:38.530Z",
+      "timeoutMs": 60000,
+      "elapsedMs": 7830.7246,
+      "exitCode": 0,
+      "signal": null,
+      "errorCode": null,
+      "error": null,
+      "stderr": "",
+      "outcome": "completed",
+      "queryMs": 1102.4243000000001,
+      "processes": 147
+    }
+  },
+  {
+    "runtime": "codex",
+    "version": "0.166.0",
+    "platform": "macOS-ARM64",
+    "run": 41117466222,
+    "cohorts": [
+      {
+        "mode": "isolated",
+        "count": 10,
+        "afterTurn": [
+          {
+            "elapsedMs": 5059.480250000002,
+            "cpuPercentOneCore": 0.39529752092618586,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 1018019840,
+            "processes": 10
+          },
+          {
+            "elapsedMs": 5025.919540999999,
+            "cpuPercentOneCore": 0.3979371304463945,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 1018363904,
+            "processes": 10
+          },
+          {
+            "elapsedMs": 5024.6474579999995,
+            "cpuPercentOneCore": 0.3980378756355726,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 1018363904,
+            "processes": 10
+          }
+        ],
+        "outcome": "completed"
+      },
+      {
+        "mode": "shared",
+        "count": 10,
+        "afterTurn": [
+          {
+            "elapsedMs": 5073.758667000002,
+            "cpuPercentOneCore": 0,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 123961344,
+            "processes": 1
+          },
+          {
+            "elapsedMs": 5047.291209000003,
+            "cpuPercentOneCore": 0.1981260756694333,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 124010496,
+            "processes": 1
+          },
+          {
+            "elapsedMs": 5037.290583000002,
+            "cpuPercentOneCore": 0.19851941902554315,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 124010496,
+            "processes": 1
+          }
+        ],
+        "outcome": "completed"
+      },
+      {
+        "mode": "shared",
+        "count": 10,
+        "afterTurn": [
+          {
+            "elapsedMs": 5069.174417000002,
+            "cpuPercentOneCore": 0.19727078173644932,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 124420096,
+            "processes": 1
+          },
+          {
+            "elapsedMs": 5040.669666999995,
+            "cpuPercentOneCore": 0.1983863387332739,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 124534784,
+            "processes": 1
+          },
+          {
+            "elapsedMs": 5075.197249999997,
+            "cpuPercentOneCore": 0,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 124534784,
+            "processes": 1
+          }
+        ],
+        "outcome": "completed"
+      },
+      {
+        "mode": "isolated",
+        "count": 10,
+        "afterTurn": [
+          {
+            "elapsedMs": 5042.481708000007,
+            "cpuPercentOneCore": 0.5949451428332273,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 1018052608,
+            "processes": 10
+          },
+          {
+            "elapsedMs": 5092.182457999996,
+            "cpuPercentOneCore": 1.963794518849114,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 1018413056,
+            "processes": 10
+          },
+          {
+            "elapsedMs": 5061.205583000003,
+            "cpuPercentOneCore": 0.592744149748955,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 1018413056,
+            "processes": 10
+          }
+        ],
+        "outcome": "completed"
+      }
+    ],
+    "observations": {
+      "cwdIsolation": true,
+      "mcpIsolation": true,
+      "childAttribution": true,
+      "loadedResumeOverride": true,
+      "unsubscribeAndResume": true,
+      "scopedCleanup": true,
+      "cancelDoesNotStopPeer": true,
+      "concurrentUnsubscribeResume": true,
+      "processExitWithTwoActiveThreads": true
+    },
+    "readTiming": {
+      "ps": {
+        "maximumTotalMs": 70.99575000000186,
+        "maximumQueryMs": 0,
+        "count": 132
+      }
+    }
+  },
+  {
+    "runtime": "qoder",
+    "version": "1.1.81",
+    "platform": "Windows-X64",
+    "run": 41117475018,
+    "cohorts": [
+      {
+        "mode": "isolated",
+        "count": 10,
+        "afterTurn": [
+          {
+            "elapsedMs": 6185.2265999999945,
+            "cpuPercentOneCore": 158.1389111920331,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 4693241856,
+            "processes": 10
+          },
+          {
+            "elapsedMs": 6341.589399999997,
+            "cpuPercentOneCore": 148.32638013429258,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 4620435456,
+            "processes": 10
+          },
+          {
+            "elapsedMs": 7850.603499999997,
+            "cpuPercentOneCore": 177.53412205825964,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 4555264000,
+            "processes": 10
+          }
+        ],
+        "outcome": "completed"
+      },
+      {
+        "mode": "shared",
+        "count": 10,
+        "afterTurn": [
+          {
+            "elapsedMs": 6018.5576,
+            "cpuPercentOneCore": 8.30763836172308,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 456556544,
+            "processes": 1
+          },
+          {
+            "elapsedMs": 6013.716600000014,
+            "cpuPercentOneCore": 10.912552813014143,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 462393344,
+            "processes": 1
+          },
+          {
+            "elapsedMs": 6031.920899999997,
+            "cpuPercentOneCore": 4.662693769740915,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 465920000,
+            "processes": 1
+          }
+        ],
+        "outcome": "completed"
+      }
+    ],
+    "readTiming": {
+      "windows": {
+        "maximumTotalMs": 2893.6437999999907,
+        "maximumQueryMs": 1270.0114,
+        "count": 44
+      },
+      "windows-resources": {
+        "maximumTotalMs": 7362.2353,
+        "maximumQueryMs": 0,
+        "count": 16
+      }
+    },
+    "preparation": {
+      "kind": "windows_process_table_preparation",
+      "at": "2026-10-30T19:43:51.647Z",
+      "timeoutMs": 60000,
+      "elapsedMs": 6287.6893,
+      "exitCode": 0,
+      "signal": null,
+      "errorCode": null,
+      "error": null,
+      "stderr": "",
+      "outcome": "completed",
+      "queryMs": 907.3458,
+      "processes": 159
+    }
+  }
+]
