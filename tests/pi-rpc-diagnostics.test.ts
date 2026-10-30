@@ -31,6 +31,30 @@ test("named pending fixture", async () => { await new Promise(() => {}); });`);
   } finally { await rm(directory, { recursive: true, force: true }); }
 }, 30_000);
 
+// oxlint-disable-next-line max-statements -- Hold a real Windows file handle across the child test runner.
+test.skipIf(process.platform !== "win32").each([true, false])("a locked snapshot preserves the child test result (passes=%s)", async (passes) => {
+  const directory = await mkdtemp(path.join(tmpdir(), "oar-pi-progress-file-lock-"));
+  const snapshot = path.join(directory, "active-tests.json");
+  const config = path.join(directory, "vitest.config.mjs");
+  try {
+    await writeFile(snapshot, "[]");
+    await writeFile(path.join(directory, "probe.test.ts"), `import { expect, test } from ${JSON.stringify(vitestEntry)};
+test("result under file lock", () => { expect(${String(passes)}).toBe(true); });`);
+    await writeFile(config, `export default { root: ${JSON.stringify(directory)}, test: { include: ["probe.test.ts"], reporters: ["default", ${JSON.stringify(path.resolve("sea-trial/pi-rpc-progress.ts"))}] } };`);
+    const command = `$ErrorActionPreference = 'Stop'; $file = [System.IO.File]::Open(${quote(snapshot)}, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite); try { & ${quote(process.execPath)} ${quote(path.resolve("node_modules/vitest/vitest.mjs"))} run --config ${quote(config)}; $code = $LASTEXITCODE } finally { $file.Dispose() }; exit $code`;
+    const result = await runExecutable("pwsh.exe", ["-NoProfile", "-NonInteractive", "-Command", command], {
+      timeoutMs: 25_000, env: { ...process.env, OAR_PI_RPC_DIAGNOSTICS: directory },
+    });
+    const output = `${result.stdout}\n${result.stderr}`;
+    expect(result.exitCode, output).toBe(passes ? 0 : 1);
+    expect(output).not.toContain("Unhandled Rejection");
+    const contents = await readFile(path.join(directory, "tests.jsonl"), "utf8");
+    const records = contents.trim().split("\n").map((line) => asRecord(JSON.parse(line)));
+    expect(records, output).toContainEqual(expect.objectContaining({ kind: "diagnostic_write_failed", operation: "rename", code: "EPERM", attempts: 3 }));
+    expect(records).toContainEqual(expect.objectContaining({ kind: "case_end", name: "result under file lock", state: passes ? "passed" : "failed" }));
+  } finally { await rm(directory, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 }); }
+}, 35_000);
+
 // oxlint-disable-next-line max-statements -- Verify a real blocked worker is stopped without losing its name.
 test.skipIf(process.platform !== "win32")("the external Windows deadline kills a blocked worker and retains its test name", async () => {
   const directory = await mkdtemp(path.join(tmpdir(), "oar-pi-watchdog-"));
