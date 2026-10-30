@@ -28,3 +28,27 @@ export function drainingAcpInput(input: ReadableStream<Uint8Array>): ReadableStr
     },
   });
 }
+
+/** Preserve normal EOF's identity when the SDK closes its connection. */
+export function acpEofInput<T>(input: ReadableStream<T>): { readonly readable: ReadableStream<T>; readonly eof: Error } {
+  const reader = input.getReader();
+  // The SDK otherwise constructs an indistinguishable generic close error.
+  // This private marker has the same message but is compared by identity.
+  const eof = new Error("ACP connection closed");
+  const readable = new ReadableStream<T>({
+    async pull(controller): Promise<void> {
+      try {
+        const item = await reader.read();
+        if (item.done) { reader.releaseLock(); controller.error(eof); }
+        else { controller.enqueue(item.value); }
+      } catch (error) { reader.releaseLock(); controller.error(error); }
+    },
+    async cancel(reason: unknown): Promise<void> {
+      try { await reader.cancel(reason); }
+      finally { reader.releaseLock(); }
+    },
+  // Do not prefetch EOF past a frame the SDK has not processed yet. A native
+  // batch or another protocol failure must retain its own close reason.
+  }, { highWaterMark: 0 });
+  return { readable, eof };
+}

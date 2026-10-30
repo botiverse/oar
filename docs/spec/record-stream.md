@@ -307,6 +307,11 @@ Further rules:
   not close that pipe during capture and cause the agent to exit on EPIPE
   before EOF or its shutdown hook. After final cleanup it closes that input,
   even if a surviving, unobserved descendant still holds the writer.
+  Protocol or stream errors that close the SDK also start process shutdown,
+  so an isolated session records an exit without waiting for host disposal.
+  Normal stdout EOF is identified at the transport boundary and does not
+  start cleanup: the agent can finish native shutdown after closing stdout.
+  If it stays alive, host disposal still performs the normal cleanup.
   The final `exited` notification is still emitted exactly once after cleanup;
   it may follow the native exit by an asynchronous cleanup phase. Failed
   asynchronous observations settle as cleanup diagnostics, not unhandled
