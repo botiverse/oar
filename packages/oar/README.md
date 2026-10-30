@@ -436,8 +436,9 @@ This is discovery, not execution or a live session's command state.
 Custom runtimes should use `defineRuntime`, which fills missing inventory
 methods with explicit unsupported results and supplies `execution`, `placement`
 and `withPlacement`. Its second argument's `execution` controls both the public
-declaration and placement selection; omission gives `null`. A manually
-constructed `Runtime` must implement the four inventory methods, including
+declaration and placement selection; omission gives `null`. Supplying `shared`
+hooks requires `execution: "process"`, checked by the type and at runtime.
+A manually constructed `Runtime` must implement the four inventory methods, including
 `commands`, and these placement members.
 
 ### Orientation

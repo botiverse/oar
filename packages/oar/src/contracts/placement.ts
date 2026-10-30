@@ -14,14 +14,14 @@ export interface SessionOpenContext {
 }
 
 /** Runtime-author evidence and construction hooks. Every shared factory owns a fresh pool. */
-export interface RuntimePlacementOptions {
-  readonly execution?: "process" | "in_process";
+export type RuntimePlacementOptions = {
+  readonly execution: "process";
   readonly shared?: {
     /** Null only for versions/platforms whose complete sharing gate was observed. */
     refusal(installation: AvailableInstallation): string | null;
     session(): StartSession;
   };
-}
+} | { readonly execution?: "in_process"; readonly shared?: never };
 
 /** One bounded native cleanup attempt; completed does not promise against future work. */
 export type SessionCleanup = { readonly kind: "completed" } | { readonly kind: "failed"; readonly reason: string };
@@ -53,7 +53,7 @@ export function placementSession(isolated: StartSession, requested: PlacementReq
 }
 
 function selectPlacement(installation: AvailableInstallation, requested: PlacementRequest, options: RuntimePlacementOptions): SessionPlacement | null {
-  if (options.execution === undefined && options.shared === undefined) {
+  if (options.execution === undefined) {
     return fixedPlacement(requested, null, "This adapter does not declare process placement");
   }
   if (options.execution === "in_process") {

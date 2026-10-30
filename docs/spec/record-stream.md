@@ -80,7 +80,9 @@ An open that rejects before returning a Session exposes no session stream.
 Runtime definitions include `execution`, `placement` and `withPlacement`; custom runtime
 objects can use `defineRuntime` to obtain these members. Its second argument's
 `execution` declaration controls both the public field and placement selection;
-omitting it yields `null`. Manually constructed `Runtime` objects must supply
+omitting it yields `null`. Supplying `shared` hooks requires `execution: "process"`;
+`defineRuntime` rejects a missing or incompatible declaration, including for
+JavaScript callers. Manually constructed `Runtime` objects must supply
 all three members. The new request/response
 body kinds and the `released` event extend the public TypeScript unions. Exhaustive consumers must handle them. Hosts must not assume
 the first record is a native frame or a prompt. `events()` omits open, opened

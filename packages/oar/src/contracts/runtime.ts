@@ -114,6 +114,8 @@ type RuntimeDefinition = Omit<Runtime, keyof RuntimeInventories | "brand" | "exe
 type DefinedRuntime<T> = Omit<T, "session" | "execution" | "placement" | "withPlacement"> & Runtime;
 
 export function defineRuntime<const T extends RuntimeDefinition>(runtime: T, options: RuntimePlacementOptions = {}): DefinedRuntime<T> {
+  // oxlint-disable-next-line typescript/no-unnecessary-condition -- JavaScript callers can bypass the discriminated options.
+  if (options.shared !== undefined && options.execution !== "process") { throw new Error("Shared placement requires execution: process"); }
   const create = (requested: PlacementRequest): DefinedRuntime<T> => (
     {
       skills: unsupported, commands: unsupported, mcpServers: unsupported, tools: unsupported,

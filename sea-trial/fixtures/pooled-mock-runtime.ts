@@ -33,5 +33,5 @@ export function pooledMockRuntime(): Runtime {
     session: sessionFactory("isolated"),
     installation: async () => { await Promise.resolve(); return { kind: "available", via: "bundled" }; },
     listModels: async () => { await Promise.resolve(); return { kind: "ok", models: [{ id: "mock-1", effortLevels: MOCK_EFFORT_LEVELS, defaultEffort: MOCK_DEFAULT_EFFORT }] }; },
-  }, { shared: { refusal: () => null, session: () => sessionFactory("shared") } });
+  }, { execution: "process", shared: { refusal: () => null, session: () => sessionFactory("shared") } });
 }

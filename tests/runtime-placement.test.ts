@@ -10,6 +10,15 @@ import { runtimeUnderTest } from "../sea-trial/harness/subject.js";
 const installation: AvailableInstallation = { kind: "available", via: "executable", command: "/mock", version: "unverified" };
 const bundled: AvailableInstallation = { kind: "available", via: "bundled" };
 
+test("sharing requires an explicit process declaration, including for JavaScript callers", () => {
+  const definition = { id: "custom", session: startMockSession };
+  const shared = { refusal: () => null, session: () => startMockSession };
+  // @ts-expect-error Shared hooks cannot imply an undeclared process mode.
+  expect(() => defineRuntime(definition, { shared })).toThrow("Shared placement requires execution: process");
+  // @ts-expect-error In-process SDK execution cannot have shared process hooks.
+  expect(() => defineRuntime(definition, { execution: "in_process", shared })).toThrow("Shared placement requires execution: process");
+});
+
 // oxlint-disable-next-line eslint/max-statements -- Keep the ownership transitions and their observations in one chronological regression.
 test("version gates decide at open; auto falls back and explicit shared refuses before starting", async () => {
   const isolated = vi.fn(startMockSession);

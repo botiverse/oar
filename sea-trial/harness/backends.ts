@@ -48,7 +48,7 @@ export interface Backend {
 }
 
 /** Keep the native declaration when a fixture exposes only session capabilities. */
-function executionOptions(runtime: Runtime): Pick<RuntimePlacementOptions, "execution"> {
+function executionOptions(runtime: Runtime): RuntimePlacementOptions {
   return runtime.execution === null ? {} : { execution: runtime.execution };
 }
 
