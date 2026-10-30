@@ -235,13 +235,10 @@ Sharing follows five rules:
    close and resume at the same time); and lower memory without higher CPU
    than isolated, measured on that version and platform. Until then it runs one process per
    session, and an explicit request for shared placement is refused with a
-   typed reason. The [2026-10-30 evidence report](../../experiments/sharing/admission-2026-10-30.md)
-   meets this gate for Antigravity 1.4.4, Grok 1.0.70, Kimi 2.4.0 and
-   OpenCode 2.2.1 on Linux x64, macOS arm64 and Windows x64, and for
-   Codex 0.165.0 and Qoder 1.1.81 on Linux x64 and macOS arm64. Codex and
-   Qoder still lack complete Windows resource comparisons. These are exact
-   version and platform/architecture decisions; other combinations remain
-   unverified. No native adapter enables sharing yet. Claude, Qwen and Pi RPC
+   typed reason. The exact versions and platforms that meet this gate are
+   recorded in the [evidence index](../../experiments/sharing/README.md)
+   (currently the 2026-10-30 report). Until adapters enable sharing, all native
+   sessions still run in isolation. Claude, Qwen and Pi RPC
    run one session per native process and are always isolated. Qoder 1.1.80
    and earlier are also isolated. From 1.1.81, Qoder's native SDK daemon can
    run multiple sessions ([probe](../../experiments/qoder-native/daemon-2026-10-29.md));

@@ -10,6 +10,13 @@ is [system.md, Shared runtime processes](../../docs/design/system.md#shared-runt
 - [Selected measurements](selected-2026-10-29.json), with no account data or raw transcripts.
 - [First three-platform run and probe corrections](portability-2026-10-30.md).
 
+As of the [2026-10-30 report](admission-2026-10-30.md), the evidence gate is met
+for Antigravity 1.4.4, Grok 1.0.70, Kimi 2.4.0 and OpenCode 2.2.1 on Linux x64,
+macOS arm64 and Windows x64, and for Codex 0.165.0 and Qoder 1.1.81 on Linux
+x64 and macOS arm64. Codex/Qoder Windows resource comparisons remain
+incomplete. Other versions or platform/architecture pairs are unverified.
+These entries record evidence; no native adapter enables sharing yet.
+
 Run from the repository root with Node 24 and the pinned executable installed:
 
 ```sh
