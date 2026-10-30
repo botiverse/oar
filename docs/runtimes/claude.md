@@ -9,12 +9,12 @@ their version inline. The `basic`, `tool-detail` and `resume` live scenarios
 last passed on **2.1.296** (Linux x64, `claude-haiku-5-5`,
 [2026-10-10 report](../../experiments/runtime-version-checks/2026-10-10.md))
 with no adapter change.
-The 61 native vendor tests (MCP attachment and resume, tool search and list changes,
+The 68 native vendor tests (MCP attachment and resume, tool search and list changes,
 tool denial, streamed input, child attribution, structured output, service
 tiers, effort, additional directories, error redaction, opening hooks) and
-the shared behavior cases (17 passed, 2 skipped) last passed on **2.1.312** against a
+the shared behavior cases (17 passed, 2 skipped) last passed on **2.1.314** against a
 local scripted provider
-([2026-10-28 report](../../experiments/runtime-version-checks/2026-10-28.md#claude-21312)).
+([2026-10-30 report](../../experiments/runtime-version-checks/2026-10-30.md#claude-21314)).
 Versions are evidence baselines, not a support range.
 Tags follow the [spec conventions](../spec/README.md): `[src]` vendor source,
 `[sym]` binary symbols, `[env]` observed. See the [runtime index](README.md)

@@ -1,0 +1,187 @@
+{
+  "checkedAt": "2026-10-30T11:11:37.433Z",
+  "oarBase": "774753fed7cc76fd292e72e69fff7d80df3d651c",
+  "platform": "linux-x64",
+  "node": "v24.19.0",
+  "versions": [
+    {
+      "runtime": "antigravity",
+      "source": "https://raw.githubusercontent.com/agentclientprotocol/registry/main/antigravity-acp/agent.json",
+      "latest": "1.4.5"
+    },
+    {
+      "runtime": "claude",
+      "source": "https://registry.npmjs.org/@anthropic-ai/claude-code/latest",
+      "latest": "2.1.314"
+    },
+    {
+      "runtime": "codex",
+      "source": "https://registry.npmjs.org/@openai/codex/latest",
+      "latest": "0.166.0"
+    },
+    {
+      "runtime": "cursor",
+      "source": "https://registry.npmjs.org/@cursor/sdk/latest",
+      "latest": "1.2.0"
+    },
+    {
+      "runtime": "grok",
+      "source": "https://x.ai/cli/stable",
+      "latest": "1.0.70"
+    },
+    {
+      "runtime": "kimi",
+      "source": "https://registry.npmjs.org/@moonshot-ai/kimi-code/latest",
+      "latest": "2.4.1"
+    },
+    {
+      "runtime": "opencode",
+      "line": "v1",
+      "source": "https://registry.npmjs.org/opencode-ai/latest",
+      "latest": "1.19.5"
+    },
+    {
+      "runtime": "opencode",
+      "line": "v2",
+      "source": "https://registry.npmjs.org/@opencode/cli/latest",
+      "latest": "2.2.3"
+    },
+    {
+      "runtime": "codebuddy",
+      "source": "https://registry.npmjs.org/@tencent-ai/codebuddy-code/latest",
+      "latest": "2.178.1"
+    },
+    {
+      "runtime": "qoder",
+      "source": "https://registry.npmjs.org/@qoder-ai/qodercli/latest",
+      "latest": "1.1.81"
+    },
+    {
+      "runtime": "qwen",
+      "source": "https://registry.npmjs.org/@qwen-code/qwen-code/latest",
+      "latest": "0.26.4"
+    },
+    {
+      "runtime": "pi",
+      "source": "https://registry.npmjs.org/@earendil-works/pi-coding-agent/latest",
+      "latest": "1.4.0"
+    },
+    {
+      "runtime": "pi-durable",
+      "source": "https://registry.npmjs.org/@earendil-works/pi-durable/latest",
+      "latest": "1.4.0"
+    }
+  ],
+  "behavior": {
+    "claude": {
+      "passed": 17,
+      "skipped": 2
+    },
+    "codex": {
+      "passed": 16,
+      "skipped": 3
+    },
+    "kimi": {
+      "passed": 15,
+      "skipped": 4
+    },
+    "antigravity": {
+      "passed": 15,
+      "skipped": 4
+    },
+    "opencodeV2": {
+      "passed": 15,
+      "skipped": 4
+    }
+  },
+  "vendor": {
+    "claude": 68,
+    "codex": 52,
+    "kimi": 11,
+    "antigravity": 9
+  },
+  "kimiLogin": {
+    "passed": 4
+  },
+  "claudeLoginBrowser": {
+    "ordinary": 1,
+    "suppressed": 0,
+    "failingOpener": 1,
+    "fallbackAfterFailure": 0,
+    "verifiedModes": 3
+  },
+  "opencodeV2": {
+    "version": "2.2.3",
+    "startup": {
+      "sequentialReady": 2,
+      "sequentialTotal": 2,
+      "coldReady": 2,
+      "coldTotal": 4,
+      "warmReady": 4,
+      "warmTotal": 4,
+      "failedExitCodes": [
+        1,
+        1
+      ],
+      "failedElapsedMs": [
+        1247,
+        1432
+      ],
+      "nativeErrors": [
+        "database is locked",
+        "table account_state already exists"
+      ]
+    },
+    "boundaries": {
+      "passed": 9,
+      "failed": [
+        "mcp"
+      ],
+      "catalogModels": 8
+    },
+    "nativeMcp": {
+      "newSessionCalled": true,
+      "resumesCalled": 0,
+      "resumesTotal": 6,
+      "allEndTurn": true,
+      "allConnectionsLogged": true
+    },
+    "warmTools": {
+      "executed": [
+        "alpha",
+        "beta"
+      ],
+      "removedAlphaHandlerCalls": 0
+    }
+  },
+  "codexNativeStartup": {
+    "version": "0.166.0",
+    "width": 8,
+    "rounds": 1,
+    "sharedFreshReady": 2,
+    "isolatedFreshReady": 8,
+    "sharedWarmReady": 8,
+    "sharedSequentialReady": 8,
+    "failedExitCode": 1,
+    "nativeError": "failed to initialize sqlite state runtime"
+  },
+  "antigravity": {
+    "version": "1.4.5",
+    "archiveSha256": "923923a0d7dc8073f66cc6f78647a3107e3a7ee2b7e1a24df8b3927b5188013b",
+    "sequentialClean": 1,
+    "busyConflicts": 3,
+    "busyTotal": 3,
+    "persistedMcpSentinels": [
+      "database",
+      "wal"
+    ],
+    "nativeFileMode": "0644",
+    "umask": "0022",
+    "acpServerUnchangedFrom": "1.4.4"
+  },
+  "dsh": {
+    "base": "f3803c96974ad4a94195fb97e5c637e9c2a3afe3",
+    "head": "ce7073d51254c26cd63b22a60835b8f948deb447",
+    "watchedTreeHashesUnchanged": true
+  }
+}

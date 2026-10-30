@@ -55,19 +55,22 @@ investigation):
 
 ## OpenCode v2
 
-**Known limitation, 2.2.1** (2026-10-29): concurrent first starts over a
-fresh native database can fail before readiness. Cold MCP resume also
-retains the failure described below. Three shared-suite runs each lost at
-least one process before readiness. A direct, OAR-free startup probe reproduced
-`account_state already exists` in one of four simultaneous starts over a
-fresh database, then in three of four starts in the final probe run.
-Sequential and warm-database controls succeeded in both runs. The inspected
-native bootstrap semaphore is process-local. The observations are tracked in
-[upstream issue 53879](https://github.com/anomalyco/opencode/issues/53879#issuecomment-6503527526).
-This evidence does not establish that every earlier startup failure has
-this cause, nor that warmup is a general fix. Hosts can serialize the first
-startup and wait for readiness before opening more sessions against the
-same data directory, as in the passing controls. OAR adds no retry or lock.
+**Known limitation, reproduced in 2.2.1 and 2.2.3** (2026-10-29/30):
+concurrent first starts over a fresh native database can fail before
+readiness, confirmed by native SQLite errors. On 2.2.3, an OAR-free probe
+started four native servers simultaneously against a fresh database:
+two became ready, one exited 1 with `database is locked`, and one exited 1
+with `table account_state already exists`. Both sequential starts and all
+four concurrent starts over an initialized database succeeded. The earlier
+2.2.1 batches failed one of four and three of four cold starts with the
+account-state error. Version 2.2.2 was not tested. See the
+[October 30 report](../../experiments/runtime-version-checks/2026-10-30.md#native-startup)
+and [upstream issue 53879](https://github.com/anomalyco/opencode/issues/53879).
+The inspected 2.2.1 bootstrap semaphore is process-local. These observations
+do not establish that every earlier startup failure has this cause, or that
+warmup is a general fix. Hosts can serialize the first startup and wait for
+readiness before opening more sessions against the same data directory,
+as in the passing controls. OAR adds no retry or lock.
 
 Further startup observations on **2026-10-30** also cover v1. A local Linux
 x64 run on xxwork with **1.19.5**, a fresh isolated HOME/XDG data directory
@@ -96,14 +99,18 @@ session opened (exit 1; 16 passed, two skipped, one failed). That older run
 did not retain native stderr, so its database cause remains unconfirmed.
 These observations do not establish that every startup exit has one cause.
 
-The boundary probe passed eight checks, including queueing, native steer
-refusal, child attribution, abort, disposal and ordinary resume. Its first
-model catalog failed plugin activation; separate cold/warm catalog controls
-returned eight models. Its MCP cold resume omitted the tool call. An
-independent native reproduction called echo on only two of six resumes,
-with removal/re-addition notices spanning multiple prompts. The existing
+On **2.2.3**, all 15 applicable shared behavior cases passed, but the cold
+MCP-resume failure persists. The boundary probe passed nine of ten checks:
+its cold catalog returned eight models; queueing, child attribution,
+ordinary resume, prompt-option refusal, abort, disposal and native steer
+refusal passed. The MCP cold resume omitted the tool call. An independent
+native ACP reproduction called echo in the new session and on none of six
+cold resumes, although every process logged an MCP connection and every
+turn reported `end_turn`. Native transcript notices removed the tool after
+the first turn without a later re-addition. The warm-connection tool-list
+replacement control passed. The existing
 [cold-resume issue](https://github.com/anomalyco/opencode/issues/54794)
-remains open. [Full evidence and controls](../../experiments/runtime-version-checks/2026-10-29.md#opencode-221).
+remains open. [Full evidence](../../experiments/runtime-version-checks/2026-10-30.md#existing-boundaries-and-mcp).
 
 The v2 adapter's ACP subprocess owns a standalone native server; OAR does
 not connect to or leave a persistent daemon. Verified on `@opencode/cli`

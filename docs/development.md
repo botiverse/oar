@@ -183,7 +183,7 @@ or pull request whose changes are all Markdown files or under `docs/` or
   The same jobs verify CodeBuddy's official npm installation in an isolated
   HOME and global prefix, with its bin directory off PATH, and check the
   installed package's version and an idempotent second install. They then
-  install Kimi 2.4.0 and run its native login tests against a
+  install Kimi 2.4.1 and run its native login tests against a
   local OAuth/model server, including browser suppression and credential writes.
   The browser-entry unit test bundles the complete portable entry for a
   browser and refuses Node imports or unresolved externals.
@@ -209,7 +209,7 @@ or pull request whose changes are all Markdown files or under `docs/` or
   active cases, combined Vitest output and redacted Pi RPC stderr tails.
   These observations change no assertion, concurrency or native deadline and
   do not establish the cause of the intermittent Windows hangs.
-- `acp-behavior`: Kimi 2.4.0, Grok 1.0.70, OpenCode v1 1.19.5 and CodeBuddy 2.178.1 on
+- `acp-behavior`: Kimi 2.4.1, Grok 1.0.70, OpenCode v1 1.19.5 and CodeBuddy 2.178.1 on
   Linux and macOS, with npm download caches. Shared behavior and
   vendor tests use native programs with local scripted providers, isolated
   configuration and synthetic keys. Shared-case concurrency and Vitest

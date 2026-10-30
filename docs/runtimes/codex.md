@@ -15,11 +15,15 @@ later observations name their own version. Versions are evidence baselines,
 not a support range; a claim that holds only on a named binary is marked
 [env]. See the [runtime index](README.md) for evidence and status conventions.
 
-Newest release checked: **0.165.0** (Linux x64, 2026-10-28): 48 native
-vendor cases passed against a local scripted provider in
-[PR #503](https://github.com/botiverse/oar/pull/503), which maps the native
-`modelNotFound` code to `model_unavailable`. The Windows unknown-model case
-passed in the final CI run; an earlier timeout's cause remains unconfirmed.
+Newest release checked: **0.166.0** (Linux x64, 2026-10-30): all 52 native
+vendor cases and 16 shared cases passed against a local scripted provider.
+Independent concurrent starts still failed over one fresh database, while
+isolated, warm and sequential controls passed; OAR's initialization
+serialization remains necessary. See the
+[October 30 report](../../experiments/runtime-version-checks/2026-10-30.md#codex-01660).
+The earlier 0.165.0 [PR #503](https://github.com/botiverse/oar/pull/503)
+maps native `modelNotFound` to `model_unavailable`; its Windows regression
+passed after an earlier timeout whose cause remains unconfirmed.
 The saved-tier resume behavior was established on 0.164.0
 ([report](../../experiments/runtime-version-checks/2026-10-23.md#codex-01640-resume-preserves-the-saved-tier)).
 The newest run on a real login is **0.162.1** (Linux x64, 2026-10-10, `gpt-6-luna`):

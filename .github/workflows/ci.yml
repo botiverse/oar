@@ -33,7 +33,7 @@ jobs:
         env:
           OAR_TEST: codebuddy-install
       # Real Kimi device login, local OAuth/model server, no account or browser.
-      - run: npm install -g @moonshot-ai/kimi-code@2.4.0
+      - run: npm install -g @moonshot-ai/kimi-code@2.4.1
       - run: pnpm vitest run sea-trial/vendor/kimi-login.vendor.test.ts
         env:
           OAR_TEST: kimi-login
@@ -187,7 +187,7 @@ jobs:
         backend: [kimi-aimock, grok-aimock, opencode-aimock, codebuddy-aimock]
         include:
           - backend: kimi-aimock
-            package: '@moonshot-ai/kimi-code@2.4.0'
+            package: '@moonshot-ai/kimi-code@2.4.1'
             command: kimi
           - backend: grok-aimock
             package: '@xai-official/grok@1.0.70'

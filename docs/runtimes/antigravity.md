@@ -12,7 +12,7 @@ from the ACP registry zip, linux x64, model `gemini-3.8-flash-low`) on
 same binary for cancel timing and the model and mode methods. The
 personal-login scenarios below remain this 1.2.1 evidence.
 
-Current check: **1.4.4** (2026-10-29), with its matching companion
+Current check: **1.4.5** (2026-10-30), with its matching companion
 `localharness_external`, passed nine native tests and all 15 applicable
 shared cases against a local scripted Gemini provider. Temporary homes and
 dummy keys covered instruction/effort settings, MCP, tool denials,
@@ -21,7 +21,7 @@ finds MCP credentials in `0644` database and WAL files under umask `0022`.
 Concurrent prompts still expose the stream-consumer race documented in the
 [steering investigation](../../experiments/antigravity-steering-2026-10-29.md);
 OAR keeps its queue and absent steer member. See the
-[October 29 report](../../experiments/runtime-version-checks/2026-10-29.md#antigravity-144).
+[October 30 report](../../experiments/runtime-version-checks/2026-10-30.md#antigravity-145).
 These checks do not extend the personal-login evidence.
 
 The server ships as a packaged Python archive without a public source

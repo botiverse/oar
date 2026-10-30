@@ -16,14 +16,13 @@ darwin arm64, default model `kimi-code/k3`, no `--model`), 2026-09-11, through
 `kimi-usage-update-order.ts live`, `kimi-steer-or-queue.ts`. All of them pass
 on **kimi 2.0.0** (2026-09-18, live-contract 13/13; its `thinking` values are
 under [Effort](#models-instructions-and-context)). The newest checked release
-is **kimi 2.4.0** (2026-10-29, Linux): 15 shared behavior cases passed,
-with four capability skips; all 11 native vendor cases passed with the CI
-worker count of two. The first vendor run hit the hook fixture's shortened
-2,000 ms initialization deadline; the unchanged focused control passed.
-The four local OAuth/login regressions also passed, without a real login.
-See the [version check](../../experiments/runtime-version-checks/2026-10-29.md#kimi-240)
-for the initial failure and cross-platform validation boundary. OAR's
-30-second Kimi request default is unchanged.
+is **kimi 2.4.1** (2026-10-30, Linux): all 15 shared behavior cases and
+11 native vendor cases passed, with four existing capability skips and
+two vendor workers. The four local OAuth/login regressions also passed,
+without a real login. See the
+[version check](../../experiments/runtime-version-checks/2026-10-30.md#kimi-241)
+for the cross-platform validation boundary. OAR's 30-second Kimi request
+default and verified login minimum of 2.3.3 are unchanged.
 Facts from later binaries name their version. Versions are
 evidence baselines, not a support range. The [spec](../spec/README.md) is the
 contract the adapter implements, not evidence of this adapter's behavior; see
@@ -719,7 +718,7 @@ held before the turn end).
 completion, the Agent report) and the dispose-after-death answer.
 [Snapshot tests](../../tests/acp/acp-vendor-snapshot.test.ts) bind login and
 yolo selection to the recorded 0.38.0 schema. The
-[session behavior CI matrix](../../.github/workflows/ci.yml) pins Kimi 2.4.0
+[session behavior CI matrix](../../.github/workflows/ci.yml) pins Kimi 2.4.1
 on Linux and macOS, using a local scripted provider. Windows runs the same
 suites after main pushes in the separate
 [ACP observation workflow](../../.github/workflows/acp-windows.yml), because
