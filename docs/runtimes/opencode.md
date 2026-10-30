@@ -69,6 +69,33 @@ this cause, nor that warmup is a general fix. Hosts can serialize the first
 startup and wait for readiness before opening more sessions against the
 same data directory, as in the passing controls. OAR adds no retry or lock.
 
+Further startup observations on **2026-10-30** also cover v1. A local Linux
+x64 run on xxwork with **1.19.5**, a fresh isolated HOME/XDG data directory
+and the scripted provider scheduled 17 applicable behavior cases concurrently
+(16 session cases and one installation probe). `session.queue-runs-after-turn`
+lost its native process before opening a session. The bounded stderr captured
+by OAR's ACP opening diagnostics contained this excerpt, with ANSI formatting
+removed and the remaining schema omitted:
+
+```text
+Error: Unexpected error
+Failed query:
+        CREATE TABLE `workspace` (
+```
+
+The process exited with code 1 and no signal. This identifies a failed schema
+creation statement, consistent with the startup problem tracked in
+[upstream issue 53879](https://github.com/anomalyco/opencode/issues/53879);
+the excerpt does not identify `already exists` or `database is locked` as
+that run's precise SQLite cause.
+
+OAR's own CI also encounters native startup failures: the
+[Linux 1.19.5 job](https://github.com/botiverse/oar/actions/runs/40983609942/job/123829294049)
+ran two cases concurrently and lost `session.dispose-is-recorded` before a
+session opened (exit 1; 16 passed, two skipped, one failed). That older run
+did not retain native stderr, so its database cause remains unconfirmed.
+These observations do not establish that every startup exit has one cause.
+
 The boundary probe passed eight checks, including queueing, native steer
 refusal, child attribution, abort, disposal and ordinary resume. Its first
 model catalog failed plugin activation; separate cold/warm catalog controls
