@@ -4,6 +4,8 @@ These probes exercise native multi-session transports with scripted local
 model responses. They do not enable OAR process sharing. The admission rule
 is [system.md, Shared runtime processes](../../docs/design/system.md#shared-runtime-processes).
 
+- [Same-directory MCP and configuration freshness](same-directory-2026-10-30.md).
+- [Completed Codex/Qoder resource follow-up](followup-2026-10-30.md).
 - [Updated versions and probe follow-up](updated-versions-2026-10-30.md).
 - [Platform admission and resource comparisons](admission-2026-10-30.md).
 - [Codex 0.165.0 observations](codex-2026-10-29.md).
@@ -11,15 +13,35 @@ is [system.md, Shared runtime processes](../../docs/design/system.md#shared-runt
 - [Selected measurements](selected-2026-10-29.json), with no account data or raw transcripts.
 - [First three-platform run and probe corrections](portability-2026-10-30.md).
 
-The [updated-version report](updated-versions-2026-10-30.md) meets the evidence
-gate for Antigravity 1.4.5, Kimi 2.4.1 and OpenCode 2.2.3 on Linux x64,
-macOS arm64 and Windows x64. The [earlier report](admission-2026-10-30.md)
-retains the admitted earlier versions, Grok 1.0.70 and Codex 0.165.0 on those
-three platforms. Codex 0.166.0 has probe/resource gaps pending a corrected
-cross-platform run. Qoder 1.1.81 meets the gate on Linux x64 and macOS arm64;
-its Windows resource comparison remains incomplete. Other versions and
-platform/architecture pairs remain unverified.
-These entries record evidence; no native adapter enables sharing yet.
+The older native MCP comparisons used **different directories**. They do not
+prove same-directory isolation or that later sessions see freshly changed
+project/user configuration. No adapter is admitted by those observations
+alone, and no native adapter enables sharing yet.
+
+The [updated-version report](updated-versions-2026-10-30.md) and
+[completed follow-up](followup-2026-10-30.md) cover different-directory
+observations and resources for Codex 0.166.0, Antigravity 1.4.5, Kimi 2.4.1,
+OpenCode 2.2.3 and Qoder 1.1.81 on Linux x64, macOS arm64 and Windows x64.
+Grok 1.0.70 has the same earlier scope in the
+[admission report](admission-2026-10-30.md). Other versions do not inherit
+these results.
+
+The new Linux same-directory comparison passes the MCP check for Codex,
+Kimi, Grok and Antigravity, but OpenCode and Qoder overwrite A's same-name
+MCP configuration when B joins. OpenCode also retains the tool after closing
+both sessions and opening with an empty MCP list. Qoder did not retain it in
+that close control; its underlying configuration lifetime remains unproven.
+Both require one session per canonical directory **per process lifetime**
+in any future adapter. A used directory cannot be reused on that process,
+even after release or with an identical/empty MCP list: automatic placement
+opens a fresh isolated process; explicit shared placement refuses.
+
+Kimi 2.4.1 separately fails configuration freshness: a later shared session
+uses old project instructions and hook settings that a newly opened isolated
+process reads afresh. It remains isolated; its future shared adapter is on
+hold. Same-directory Windows/macOS comparisons and the remaining freshness
+coverage are missing. The [new report](same-directory-2026-10-30.md) records
+exactly what each configuration observation does and does not establish.
 
 Run from the repository root with Node 24 and the pinned executable installed:
 
@@ -30,6 +52,7 @@ OAR_KIMI_BIN=/absolute/kimi pnpm tsx experiments/sharing/acp.ts kimi
 OAR_KIMI_BIN=/absolute/kimi pnpm tsx experiments/sharing/acp-resources.ts kimi
 OAR_QODER_BIN=/absolute/qodercli pnpm tsx experiments/sharing/qoder.ts
 OAR_QODER_BIN=/absolute/qodercli pnpm tsx experiments/sharing/qoder-resources.ts
+OAR_OPENCODE_BIN=/absolute/opencode pnpm tsx experiments/sharing/same-directory.ts opencode
 ```
 
 ACP also accepts `grok`, `opencode` and `antigravity`, with the corresponding
@@ -57,12 +80,17 @@ collects the same observations on Linux, macOS and Windows at explicit versions.
 It is outside the ordinary pull-request gate and is not an admission switch.
 It must first exist on the default branch before dispatch. A failed or missing
 platform run remains missing evidence, even if another platform passes.
-Resource steps run after a successful native installation even when an
-observation fails. Both steps retain their own failure status and evidence;
+The same-directory and resource steps run after a successful native
+installation even when an earlier observation fails. Each step retains its
+own failure status and evidence;
 there are no automatic retries. Each step has a 12-minute limit inside a
 40-minute job limit. To fill only missing Windows resource cells, dispatch with
 `runtimes=["codex","qoder"]`, `platforms=["windows-latest"]` and
-`resources_only=true`. This does not replace the earlier native observations.
+`resources_only=true`. Alternatively, `same_directory_only=true` runs only
+the same-directory MCP and project/hook observations plus their separate-process
+controls. The two flags are mutually exclusive. The default runs all three
+steps, including resources after a known same-directory failure. These options
+do not replace earlier native observations.
 
 Each Windows probe first prepares PowerShell and CIM with one real query,
 bounded to 60 seconds, before creating a runtime fixture or measuring resources.
@@ -89,8 +117,15 @@ native process tree. CPU is CPU-time delta divided by wall time, expressed as
 percent of one core. Windows uses working set and process CPU time; macOS uses
 RSS/CPU time from `ps`; Linux uses `/proc`. Windows/macOS process-table sampling
 adds overhead. Compare only the same version and platform. Exited processes
-make a CPU interval a lower bound and that interval must not establish a
-no-higher-CPU conclusion. These short idle samples do not prove long-running
+make a CPU interval a lower bound. For a no-higher-CPU comparison, an isolated
+cohort's lower-bound windows may be included as a conservative reference:
+its true CPU can only be higher. A shared cohort's lower-bound windows must
+be excluded, since its true CPU might exceed the reference. Report the exact
+window count separately on both sides, the medians/ranges actually compared,
+and whether the isolated reference includes lower bounds. An absent exact
+shared sample cannot establish the gate. This refines the original rule that
+excluded lower-bound windows on both sides; earlier selected values remain
+unchanged. See the [Codex Windows calculation](followup-2026-10-30.md#cpu-comparison-rule). These short idle samples do not prove long-running
 memory stability, active-workload CPU parity, or a universal threshold.
 
 The Windows resource reader enumerates processes, then selects requested PIDs.

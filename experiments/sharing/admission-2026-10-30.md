@@ -3,13 +3,17 @@
 Runtime version check: 2026-10-30.
 
 The native observations passed for all six pinned runtimes on Linux x64,
-macOS arm64 and Windows x64 in the second run. The evidence gate is met for
-Antigravity 1.4.4, Grok 1.0.70, Kimi 2.4.0 and OpenCode 2.2.1 on those
-platforms, and for Codex 0.165.0 on all three after the Windows resource
-follow-up below. Qoder 1.1.81 meets the gate on Linux x64 and macOS arm64; its
-Windows resource comparison remains incomplete. These are
-evidence decisions, not implementation: no native adapter enables sharing yet.
-Other versions and unmeasured platform/architecture pairs remain unverified.
+macOS arm64 and Windows x64 in the second run. The original comparisons used
+**different directories**. Resource evidence was complete for Antigravity
+1.4.4, Grok 1.0.70, Kimi 2.4.0, OpenCode 2.2.1 and Codex 0.165.0 on those
+platforms after the follow-up below; Qoder Windows was incomplete in these
+runs and is completed in the [later report](followup-2026-10-30.md).
+
+The admission conclusion is now restricted by the
+[same-directory and configuration-freshness findings](same-directory-2026-10-30.md).
+These older results do not cover those requirements and do not enable an
+adapter. Exact versions and unmeasured platform/architecture pairs remain
+separate evidence cells; no newer version inherits an earlier result.
 
 ## Provenance and method
 
@@ -173,7 +177,7 @@ and reported `ETIMEDOUT`, `SIGTERM`, and zero stdout/stderr bytes. This proves
 that the follow-up query exceeded the existing five-second deadline. It does
 not recover the suppressed first exception or prove whether CPU load, CIM
 execution, or PowerShell startup caused that deadline to be exceeded.
-Qoder Windows therefore remains a missing resource comparison, not a passing
+In this run Qoder Windows therefore remained a missing resource comparison, not a passing
 result inferred from the other platforms.
 
 ## Windows resource gaps and cleanup boundary
@@ -192,8 +196,8 @@ missing host still fails the measurement. An additional CIM observation keeps
 status, signal, error code, elapsed time and structural counts, without raw
 process data. This separate observation cannot retroactively identify the
 original failure. The completed Codex follow-up above now fills that gap;
-Qoder still requires a complete isolated/shared comparison after the query
-failure has been investigated.
+Qoder's complete isolated/shared comparison is retained in the
+[later follow-up](followup-2026-10-30.md); these earlier failures are not erased.
 
 This is also a product cleanup concern, tracked separately before Phase 2:
 an empty process table cannot distinguish unreadable descendants from none.
@@ -219,7 +223,9 @@ numbers in this report are experiment readings, not public API output.
   cannot be advertised as a guaranteed stop of every native future action.
 - OpenCode's cold database startup race remains an independent known limit.
   Wider manual probe deadlines do not change product startup guarantees.
-- First implementation proposal is ACP connection sharing for the four
-  admitted versions, with explicit refusal elsewhere. Codex and Qoder follow
+- The initial implementation proposal covered four ACP adapters. That proposal
+  is now subject to the [same-directory and configuration freshness
+  findings](same-directory-2026-10-30.md), including deferred Kimi admission
+  and the OpenCode lifetime directory restriction. Codex and Qoder follow
   separately. Current hosts that force isolated placement keep that behavior.
   No sharing is enabled by this report.

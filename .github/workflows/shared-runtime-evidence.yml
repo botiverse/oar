@@ -15,6 +15,10 @@ on:
         description: 'Collect resources only; retain earlier observation results separately'
         type: boolean
         default: false
+      same_directory_only:
+        description: 'Run only the same-directory MCP comparison and its separate-process control'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -35,6 +39,15 @@ jobs:
       run:
         shell: bash
     steps:
+      - name: Validate requested evidence scope
+        env:
+          RESOURCES_ONLY: ${{ inputs.resources_only }}
+          SAME_DIRECTORY_ONLY: ${{ inputs.same_directory_only }}
+        run: |
+          if [[ "$RESOURCES_ONLY" == true && "$SAME_DIRECTORY_ONLY" == true ]]; then
+            echo 'resources_only and same_directory_only are mutually exclusive' >&2
+            exit 1
+          fi
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
@@ -72,27 +85,31 @@ jobs:
           }
           "OAR_ANTIGRAVITY_BIN=$($binaries[0].FullName)" >> $env:GITHUB_ENV
       - name: Codex native observations
-        if: ${{ !inputs.resources_only && matrix.runtime == 'codex' }}
+        if: ${{ !inputs.resources_only && !inputs.same_directory_only && matrix.runtime == 'codex' }}
         run: pnpm tsx experiments/sharing/codex.ts
         timeout-minutes: 12
       - name: ACP native observations
-        if: ${{ !inputs.resources_only && contains(fromJSON('["kimi","grok","opencode","antigravity"]'), matrix.runtime) }}
+        if: ${{ !inputs.resources_only && !inputs.same_directory_only && contains(fromJSON('["kimi","grok","opencode","antigravity"]'), matrix.runtime) }}
         run: pnpm tsx experiments/sharing/acp.ts "$EVIDENCE_RUNTIME"
         timeout-minutes: 12
       - name: Qoder native observations
-        if: ${{ !inputs.resources_only && matrix.runtime == 'qoder' }}
+        if: ${{ !inputs.resources_only && !inputs.same_directory_only && matrix.runtime == 'qoder' }}
         run: pnpm tsx experiments/sharing/qoder.ts
         timeout-minutes: 12
+      - name: Same-directory MCP and separate-process control
+        if: ${{ !cancelled() && !inputs.resources_only && (steps.native-install.outcome == 'success' || steps.antigravity-install.outcome == 'success') }}
+        run: pnpm tsx experiments/sharing/same-directory.ts "$EVIDENCE_RUNTIME"
+        timeout-minutes: 12
       - name: Codex resources
-        if: ${{ !cancelled() && (steps.native-install.outcome == 'success' || steps.antigravity-install.outcome == 'success') && matrix.runtime == 'codex' }}
+        if: ${{ !cancelled() && !inputs.same_directory_only && (steps.native-install.outcome == 'success' || steps.antigravity-install.outcome == 'success') && matrix.runtime == 'codex' }}
         run: pnpm tsx experiments/sharing/codex-resources.ts
         timeout-minutes: 12
       - name: ACP resources
-        if: ${{ !cancelled() && (steps.native-install.outcome == 'success' || steps.antigravity-install.outcome == 'success') && contains(fromJSON('["kimi","grok","opencode","antigravity"]'), matrix.runtime) }}
+        if: ${{ !cancelled() && !inputs.same_directory_only && (steps.native-install.outcome == 'success' || steps.antigravity-install.outcome == 'success') && contains(fromJSON('["kimi","grok","opencode","antigravity"]'), matrix.runtime) }}
         run: pnpm tsx experiments/sharing/acp-resources.ts "$EVIDENCE_RUNTIME"
         timeout-minutes: 12
       - name: Qoder resources
-        if: ${{ !cancelled() && (steps.native-install.outcome == 'success' || steps.antigravity-install.outcome == 'success') && matrix.runtime == 'qoder' }}
+        if: ${{ !cancelled() && !inputs.same_directory_only && (steps.native-install.outcome == 'success' || steps.antigravity-install.outcome == 'success') && matrix.runtime == 'qoder' }}
         run: pnpm tsx experiments/sharing/qoder-resources.ts
         timeout-minutes: 12
       - uses: actions/upload-artifact@v4

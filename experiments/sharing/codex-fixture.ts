@@ -14,6 +14,7 @@ import { rootsSince } from "./resources.js";
 import { codexInstallation } from "../../packages/oar/src/runtimes/codex/installation.js";
 import { executableInstallation } from "../../packages/oar/src/shared/installation.js";
 import { ProbeTiming, probeTimeout } from "./observation.js";
+import { scopedMcp } from "./mcp-scope.js";
 
 
 function quote(value: string): string {
@@ -38,15 +39,7 @@ export async function codexFixture(timing = new ProbeTiming()) {
     "writeFileSync(process.argv[3],JSON.stringify({parent:process.pid,child:child.pid}));",
     "console.log('OWNED_COMMAND_STARTED');setTimeout(()=>{},300000);}",
   ].join("\n"));
-  const mcp = path.join(home, "mcp.mjs");
-  await writeFile(mcp, [
-    "import { createInterface } from 'node:readline';",
-    "createInterface({input:process.stdin}).on('line',line=>{const q=JSON.parse(line);if(q.id===undefined)return;let result={};",
-    "if(q.method==='initialize')result={protocolVersion:'2024-11-05',capabilities:{tools:{}},serverInfo:{name:'scope',version:'1'}};",
-    "if(q.method==='tools/list')result={tools:[{name:'echo',description:'Read the per-session marker',inputSchema:{type:'object',properties:{text:{type:'string'}},required:['text']}}]};",
-    "if(q.method==='tools/call')result={content:[{type:'text',text:'MCP_RESULT='+process.argv[2]+' input='+q.params.arguments.text}]};",
-    String.raw`process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:q.id,result})+'\n');});`,
-  ].join("\n"));
+  const mcp = await scopedMcp(home);
   const stages = new Map<string, number>();
   const gates = new Map<string, ReturnType<typeof Promise.withResolvers<void>>>();
   const seen: { key: string; stage: number; request: unknown }[] = [];
@@ -62,8 +55,8 @@ export async function codexFixture(timing = new ProbeTiming()) {
         const cmd = `${process.platform === "win32" ? "& " : ""}${args.map((arg) => quote(arg)).join(" ")}`;
         return { toolCalls: [{ name: "exec_command", arguments: JSON.stringify({ cmd, yield_time_ms: 1000, max_output_tokens: 500 }), id: `tool-${key}` }] };
       }
-      if (stage === 0 && phase === "mcp") {
-        return { toolCalls: [{ name: "mcp__scope__echo", arguments: JSON.stringify({ text: label }), id: `tool-${key}` }] };
+      if (stage === 0 && phase?.startsWith("mcp") === true) {
+        return { toolCalls: [{ name: "mcp__scope__echo", arguments: JSON.stringify({ text: phase === "mcp" ? label : key }), id: `tool-${key}` }] };
       }
       if (stage === 0 && phase === "spawn") {
         return { toolCalls: [{ name: "spawn_agent", arguments: JSON.stringify({ message: "OAR_SHARE_CHILD_echo", task_name: "evidence_child", fork_turns: "none" }), id: `tool-${key}` }] };
@@ -104,9 +97,9 @@ export async function codexFixture(timing = new ProbeTiming()) {
     nativeProcesses.set(client, native); processIdentities.push(native);
     client.notify("initialized", {}); return client;
   };
-  const open = async (client: AppServerClient, label: "A" | "B"): Promise<string> => {
-    const result = await request(client, "thread/start", { cwd: cwds[label === "A" ? 0 : 1], model: "gpt-5.1", approvalPolicy: "never",
-      config: { mcp_servers: { scope: { command: process.execPath, args: [mcp, label], enabled: true } } } });
+  const open = async (client: AppServerClient, label: "A" | "B", directory?: string): Promise<string> => {
+    const result = await request(client, "thread/start", { cwd: directory ?? cwds[label === "A" ? 0 : 1], model: "gpt-5.1", approvalPolicy: "never",
+      config: { mcp_servers: { scope: { command: process.execPath, args: [mcp.script, label], enabled: true } } } });
     const id = asRecord(result.thread)?.id; assert.equal(typeof id, "string"); return String(id);
   };
   const start = async (client: AppServerClient, threadId: string, key: string): Promise<string> => {
@@ -119,7 +112,7 @@ export async function codexFixture(timing = new ProbeTiming()) {
     const id = await start(client, threadId, key); await timing.until(() => ended(threadId, id) !== null, `${key} completed`);
     const result = ended(threadId, id); assert.ok(result); return result;
   };
-  return { timing, installation, home, cwds, seen, stages, gates, provider, clients, events, calls, processIdentities, connect, request, open, start, ended, turn,
+  return { timing, installation, home, cwds, seen, stages, gates, provider, clients, events, calls, processIdentities, connect, request, open, start, ended, turn, mcpCalls: mcp.calls,
     crash(client: AppServerClient): { identity: ProcessEntry; at: string } {
       const identity = nativeProcesses.get(client)?.selected; assert.ok(identity);
       const table = checkedProcessTable("codex-before-crash");

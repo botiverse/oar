@@ -18,6 +18,7 @@ import { startAntigravityAimock, startGrokAimock, startKimiAimock, startOpencode
 import { descendantsOf, killEntries, type ProcessEntry } from "../../packages/oar/src/shared/executable/process-tree.js";
 import { rootsSince } from "./resources.js";
 import { ProbeTiming, powershellCommand, probeTimeout } from "./observation.js";
+import { scopedMcp } from "./mcp-scope.js";
 
 export type AcpId = "kimi" | "grok" | "opencode" | "antigravity";
 export function acpId(value: string): AcpId {
@@ -39,14 +40,7 @@ export async function acpFixture(id: AcpId, timing = new ProbeTiming()) {
     "else{const child=spawn(process.execPath,['-e','setTimeout(()=>{},300000)'],{stdio:'ignore'});",
     "writeFileSync(process.argv[3],JSON.stringify({parent:process.pid,child:child.pid}));console.log('TOOL_READY');setTimeout(()=>{},300000);}",
   ].join("\n"));
-  const mcp = path.join(home, "mcp.cjs");
-  await writeFile(mcp, [
-    "require('node:readline').createInterface({input:process.stdin}).on('line',line=>{const q=JSON.parse(line);if(q.id===undefined)return;let result={};",
-    "if(q.method==='initialize')result={protocolVersion:'2024-11-05',capabilities:{tools:{}},serverInfo:{name:'scope',version:'1'}};",
-    "if(q.method==='tools/list')result={tools:[{name:'echo',description:'Return session marker',inputSchema:{type:'object',properties:{text:{type:'string'}},required:['text']}}]};",
-    "if(q.method==='tools/call')result={content:[{type:'text',text:'MCP_RESULT='+process.argv[2]+' input='+q.params.arguments.text}]};",
-    String.raw`process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:q.id,result})+'\n');});`,
-  ].join("\n"));
+  const mcp = await scopedMcp(home);
   const seen: { key: string; stage: number; request: unknown }[] = [];
   const stages = new Map<string, number>(); const gates = new Map<string, ReturnType<typeof Promise.withResolvers<void>>>();
   const provider = await factories[id]((mock) => {
@@ -65,11 +59,12 @@ export async function acpFixture(id: AcpId, timing = new ProbeTiming()) {
         if (id === "opencode") { call = { name: codeMode ? "shell" : "bash", arguments: { command, description: "Owned test command" } }; }
         if (id === "antigravity") { call = { name: "run_command", arguments: { CommandLine: command, Cwd: cwds[label === "A" ? 0 : 1], WaitMsBeforeAsync: 1000, toolSummary: "Check isolation", toolAction: "Checking" } }; }
       }
-      if (stage === 0 && phase === "mcp") {
-        if (id === "kimi") { call = { name: "mcp__scope__echo", arguments: { text: label } }; }
-        if (id === "grok") { call = { name: "use_tool", arguments: { tool_name: "scope__echo", tool_input: { text: label } } }; }
-        if (id === "opencode") { call = codeMode ? { name: "execute", arguments: { code: `return await tools.scope.echo(${JSON.stringify({ text: label })});` } } : { name: "scope_echo", arguments: { text: label } }; }
-        if (id === "antigravity") { call = { name: "call_mcp_tool", arguments: { ServerName: "scope", ToolName: "echo", Arguments: { text: label }, toolSummary: "Check isolation", toolAction: "Checking" } }; }
+      if (stage === 0 && phase?.startsWith("mcp") === true) {
+        const text = phase === "mcp" ? label : key;
+        if (id === "kimi") { call = { name: "mcp__scope__echo", arguments: { text } }; }
+        if (id === "grok") { call = { name: "use_tool", arguments: { tool_name: "scope__echo", tool_input: { text } } }; }
+        if (id === "opencode") { call = codeMode ? { name: "execute", arguments: { code: `return await tools.scope.echo(${JSON.stringify({ text })});` } } : { name: "scope_echo", arguments: { text } }; }
+        if (id === "antigravity") { call = { name: "call_mcp_tool", arguments: { ServerName: "scope", ToolName: "echo", Arguments: { text }, toolSummary: "Check isolation", toolAction: "Checking" } }; }
       }
       if (phase === "child") {
         const prompt = `ACP_SHARE_${label}_childreply`;
@@ -130,10 +125,10 @@ export async function acpFixture(id: AcpId, timing = new ProbeTiming()) {
     nativePids.set(child, root.pid);
     return { child, initialized };
   };
-  const mcpServers = (label: "A" | "B"): JsonRecord[] => [{ name: "scope", command: process.execPath, args: [mcp, label], env: [] }];
-  const open = async (connection: Awaited<ReturnType<typeof connect>>, label: "A" | "B", withMcp = true): Promise<{ id: string; cwd: string; response: JsonRecord; label: "A" | "B" }> => {
-    const cwd = cwds[label === "A" ? 0 : 1]; assert.ok(cwd !== undefined);
-    const response = await request(connection.child, "session/new", { cwd, mcpServers: withMcp ? mcpServers(label) : [], _meta: profile.sessionMeta?.({ cwd }, connection.initialized) ?? {} });
+  const mcpServers = (label: "A" | "B"): JsonRecord[] => [{ name: "scope", command: process.execPath, args: [mcp.script, label], env: [] }];
+  const open = async (connection: Awaited<ReturnType<typeof connect>>, label: "A" | "B", options: { withMcp?: boolean; cwd?: string } = {}): Promise<{ id: string; cwd: string; response: JsonRecord; label: "A" | "B" }> => {
+    const cwd = options.cwd ?? cwds[label === "A" ? 0 : 1]; assert.ok(cwd !== undefined);
+    const response = await request(connection.child, "session/new", { cwd, mcpServers: options.withMcp === false ? [] : mcpServers(label), _meta: profile.sessionMeta?.({ cwd }, connection.initialized) ?? {} });
     assert.equal(typeof response.sessionId, "string"); const sessionId = String(response.sessionId);
     terminals.set(sessionId, createAcpTerminalHost(cwd, env, { shellCommand: id === "grok" }));
     await profile.configureSession?.({ request: async (method, params) => { const result = await request(connection.child, method, params); return result; }, sessionId, response, options: { cwd } });
@@ -143,7 +138,7 @@ export async function acpFixture(id: AcpId, timing = new ProbeTiming()) {
     const result = await request(child, "session/prompt", { sessionId, prompt: [{ type: "text", text: `ACP_SHARE_${key}` }] }); return result;
   };
   return { timing, id, home, cwds, installation, provider, profile, stages, seen, gates, children, terminals, terminalFor, calls, events,
-    connect, request, open, prompt, mcpServers,
+    connect, request, open, prompt, mcpServers, mcpCalls: mcp.calls,
     crash(child: (typeof children)[number]): void { const pid = nativePids.get(child); assert.ok(pid !== undefined); crashDescendants.push(...descendantsOf(checkedProcessTable(), pid)); process.kill(pid, "SIGKILL"); },
     async stop(): Promise<void> {
       try { killEntries(crashDescendants, checkedProcessTable("acp-cleanup")); }

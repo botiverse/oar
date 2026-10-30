@@ -17,6 +17,23 @@ servers, model and effort still travel in its native session operations.
 A vendor must explicitly choose the process cwd; session cwd cannot silently
 replace configuration that the executable reads during startup.
 
+Admission also checks same-directory MCP isolation and configuration
+freshness: a later shared session must observe the project/user configuration
+that a new isolated process would observe then. The generic factory's
+per-session arguments alone do not prove that a vendor scopes them that way.
+For a future OpenCode adapter, one canonical directory serves at most one
+session for the entire process lifetime. Release does not clear that used
+directory. Another open in that directory, including an identical or empty
+MCP list, uses a fresh isolated process for `auto` and throws
+`UnsupportedOptionError("placement")` for explicit `shared`, before any
+native open is sent on the old connection. Peers remain untouched.
+Kimi 2.4.1 fails the configuration-freshness requirement and remains isolated;
+explicit shared placement is refused. See the
+[native comparison](../../experiments/sharing/same-directory-2026-10-30.md).
+These are admission constraints for later adapters, not runtime enablement
+by this foundation. Qoder's daemon has the same directory lifetime
+restriction, documented on its [runtime page](../runtimes/qoder.md).
+
 The official SDK registers a unique outgoing request id before writing it.
 Replies resolve that operation, never the most recently opened session.
 Initialization failures and transport closure remove the pool entry from

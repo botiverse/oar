@@ -1,0 +1,101 @@
+/* oxlint-disable import/max-dependencies -- Manual probe composes lifecycle, native protocol and evidence writers. */
+/** Same cwd, same MCP name, different configuration. No runtime is enabled. */
+import assert from "node:assert/strict";
+import { mkdir, writeFile } from "node:fs/promises";
+import path from "node:path";
+import { setTimeout as delay } from "node:timers/promises";
+import { type JsonRecord } from "../../packages/oar/src/shared/json.js";
+import { prepareWindowsProcessTable } from "../../sea-trial/windows-process-table.js";
+import { invocationEvidence } from "./mcp-scope.js";
+import { ProbeTiming } from "./observation.js";
+import { recordProcessTableReads } from "./process-table.js";
+import { directoryFixture, type DirectorySession, type Label, type ConnectionMode } from "./same-directory-fixture.js";
+import { compareDirectoryConfiguration, directoryRuleMarkers } from "./directory-configuration.js";
+import { kimiConfigurationObservations } from "./kimi-configuration.js";
+
+const runtime = process.argv[2] ?? "opencode";
+assert.ok(["codex", "kimi", "grok", "opencode", "antigravity", "qoder"].includes(runtime));
+const out = path.resolve(process.argv[3] ?? `oar-trial-run/same-directory-${runtime}`);
+await mkdir(out, { recursive: true });
+recordProcessTableReads(path.join(out, "process-table-reads.jsonl"));
+prepareWindowsProcessTable(path.join(out, "windows-process-table-preparation.jsonl"));
+const report: JsonRecord = { runtime, at: new Date().toISOString(), platform: process.platform, architecture: process.arch,
+  scope: "Same canonical directory, same MCP server name scope, different command arguments; sequential then concurrent invocation",
+  settlingMs: 3000, cohorts: [] };
+const cohorts: JsonRecord[] = []; report.cohorts = cohorts;
+
+async function observe(mode: ConnectionMode): Promise<void> {
+  const timing = new ProbeTiming();
+  const row: JsonRecord = { mode, waits: timing.waits, observed: false, isolated: false };
+  cohorts.push(row);
+  const fixture = await directoryFixture(runtime, mode, timing);
+  row.installation = fixture.installation; row.cwd = fixture.cwd;
+  const turns: JsonRecord[] = []; row.turns = turns;
+  const invoke = async (session: DirectorySession, label: Label, phase: string): Promise<void> => {
+    const input = `${label}_mcp${phase}`;
+    const turn: JsonRecord = { input, sessionId: session.id }; turns.push(turn);
+    try {
+      const { response, output } = await session.invoke(input);
+      const invocation = invocationEvidence(await fixture.calls(), input, label);
+      const nativeOutputRetained = invocation.calls.length === 1 && output.includes(invocation.calls[0]?.output ?? "");
+      Object.assign(turn, { response, output, invocation, nativeOutputRetained, directoryRuleMarkers: directoryRuleMarkers(output), isolated: invocation.isolated && nativeOutputRetained });
+    } catch (error) { turn.error = String(error); turn.isolated = false; }
+    process.stdout.write(`${runtime}/${mode}/${input}: ${JSON.stringify({ isolated: turn.isolated, error: turn.error, invocation: turn.invocation })}\n`);
+  };
+  try {
+    await fixture.configuration.setRevision("A");
+    const a = await fixture.open("A"); row.a = a.id;
+    // A fixed, recorded settling period is not a retry or proof of catalog readiness.
+    // A missing tool still fails; B's first invocation precedes A's second invocation.
+    await timing.measure("catalog settling before A baseline", 3000, async () => { await delay(3000); });
+    await invoke(a, "A", "before");
+    await fixture.configuration.setRevision("B");
+    const b = await fixture.open("B"); row.b = b.id; assert.notEqual(a.id, b.id);
+    await timing.measure("catalog settling after B open", 3000, async () => { await delay(3000); });
+    await invoke(b, "B", "after");
+    await invoke(a, "A", "after");
+    await Promise.all([invoke(a, "A", "together"), invoke(b, "B", "together")]);
+    row.observed = true;
+    row.isolated = turns.length === 5 && turns.every((turn) => turn.isolated === true);
+    if (fixture.releasedDirectory !== null) {
+      const released = await fixture.releasedDirectory(); row.releasedDirectory = released;
+      if (released.retainedMcpInvoked === true) { row.isolated = false; }
+      process.stdout.write(`${runtime}/${mode}/released-directory: ${JSON.stringify({ retainedMcpInvoked: released.retainedMcpInvoked, calls: released.calls })}\n`);
+    }
+  } finally {
+    row.directoryConfiguration = await fixture.configuration.evidence();
+    row.mcpInvocations = await fixture.calls(); row.native = fixture.evidence();
+    try { await fixture.stop(); } catch (error) { row.cleanupError = String(error); row.isolated = false; }
+  }
+}
+
+for (const mode of ["shared", "separate"] as const) {
+  // oxlint-disable-next-line no-await-in-loop -- The control uses a fresh fixture after the shared cohort has stopped.
+  try { await observe(mode); } catch (error) { const row = cohorts.at(-1); assert.ok(row); row.error = String(error); row.observed = false; row.isolated = false; }
+  // oxlint-disable-next-line no-await-in-loop -- Retain partial evidence even if the next cohort fails.
+  await writeFile(path.join(out, "evidence.json"), `${JSON.stringify(report, null, 2)}\n`, { mode: 0o600 });
+}
+let configurationFollowupPasses = true;
+if (runtime === "kimi") {
+  const followup = await kimiConfigurationObservations();
+  report.configurationFollowup = followup;
+  const comparisons = ["different_directory", "closed_same_directory"].map((scenario): JsonRecord => {
+    const shared = followup.find((row) => row.scenario === scenario && row.mode === "shared");
+    const separate = followup.find((row) => row.scenario === scenario && row.mode === "separate");
+    assert.ok(shared !== undefined && separate !== undefined);
+    const comparison = compareDirectoryConfiguration(shared, separate, "B_mcpfreshafter");
+    comparison.scenario = scenario;
+    return comparison;
+  });
+  report.configurationFollowupComparison = comparisons;
+  configurationFollowupPasses = followup.length === 4 && followup.every((row) => row.observed === true)
+    && comparisons.every((comparison) => comparison.differenceObserved === false);
+  await writeFile(path.join(out, "evidence.json"), `${JSON.stringify(report, null, 2)}\n`, { mode: 0o600 });
+}
+const [shared, separate] = cohorts;
+assert.ok(shared !== undefined && separate !== undefined);
+const comparison = compareDirectoryConfiguration(shared, separate);
+report.configurationComparison = comparison;
+await writeFile(path.join(out, "evidence.json"), `${JSON.stringify(report, null, 2)}\n`, { mode: 0o600 });
+assert.ok(cohorts.length === 2 && cohorts.every((row) => row.observed === true && row.isolated === true)
+  && comparison.differenceObserved === false && configurationFollowupPasses, "native MCP isolation or configuration comparison failed; inspect evidence.json; absent configuration observations remain missing");

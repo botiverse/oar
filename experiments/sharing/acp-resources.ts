@@ -28,7 +28,7 @@ for (const mode of ["isolated", "shared"]) {
     const first = await fixture.connect(); const sessions = [];
     for (let index = 0; index < count; index += 1) {
       const connection = index === 0 || mode === "shared" ? first : await fixture.connect();
-      sessions.push({ connection, session: await fixture.open(connection, index % 2 === 0 ? "A" : "B", false) });
+      sessions.push({ connection, session: await fixture.open(connection, index % 2 === 0 ? "A" : "B", { withMcp: false }) });
     }
     const roots = rootsSince(before); assert.equal(roots.length, mode === "shared" ? 1 : count);
     report.opened = await resourceSample(roots);
