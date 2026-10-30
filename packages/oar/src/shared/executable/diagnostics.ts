@@ -1,12 +1,29 @@
 import type { ExecutableResult } from "./run.js";
 import { cleanupFailureReason, type ProcessCleanupDiagnostics } from "./process-cleanup.js";
 
+export interface ProcessExitObservation {
+  readonly at: string;
+  readonly elapsedMs: number;
+  readonly exitCode: number | null;
+  readonly signal: NodeJS.Signals | null;
+}
+
+/** Facts captured when the deadline fires, before timeout cleanup begins. */
+export interface ProcessTimeoutObservation {
+  readonly at: string;
+  readonly elapsedMs: number;
+  /** Null means Node had not emitted exit at the deadline, not that no descendant exited. */
+  readonly exit: ProcessExitObservation | null;
+  readonly closeObserved: boolean;
+}
+
 /** A bounded observation of native process failure, not a retry policy. */
 export interface ProcessDiagnostics {
   readonly exitCode: number | null;
   readonly signal: NodeJS.Signals | null;
   readonly stderr: string;
   readonly timeoutMs?: number;
+  readonly timeoutObservation?: ProcessTimeoutObservation;
   readonly error?: { readonly code?: string; readonly message: string };
   readonly cleanup?: ProcessCleanupDiagnostics;
 }
@@ -93,6 +110,13 @@ export function processFailure(context: string, diagnostics: ProcessDiagnostics)
   ];
   if (diagnostics.timeoutMs !== undefined) {
     reasons.push(`timeout after ${String(diagnostics.timeoutMs)} ms`);
+  }
+  if (diagnostics.timeoutObservation !== undefined) {
+    const observation = diagnostics.timeoutObservation;
+    const exit = observation.exit;
+    reasons.push(exit === null ? "root exit not observed at timeout"
+      : `root exit observed at ${exit.at} (${String(exit.elapsedMs)} ms, code ${exit.exitCode === null ? "unavailable" : String(exit.exitCode)}, signal ${exit.signal ?? "none"})`,
+      `close observed at timeout: ${String(observation.closeObserved)}`);
   }
   if (diagnostics.error !== undefined) {
     reasons.push(`${diagnostics.error.code ?? "native error"}: ${diagnostics.error.message}`);

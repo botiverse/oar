@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { killGraceMs, killProcessTree, OWN_PROCESS_GROUP, signalProcessGroup, trackOwnedProcess } from "./process.js";
-import { nativeError, stderrTail, type ProcessDiagnostics } from "./diagnostics.js";
+import { nativeError, stderrTail, type ProcessDiagnostics, type ProcessExitObservation, type ProcessTimeoutObservation } from "./diagnostics.js";
 import { windowsSpawnTarget } from "./windows-shim.js";
 
 export interface ExecutableResult {
@@ -32,10 +32,14 @@ export const runExecutable: ExecutableRunner = async (executable, args, options 
   // execFile does not forward `detached` to spawn. Own the actual process
   // group here too, so a hung probe's tools cannot outlive the host.
   const result = await new Promise<ExecutableResult>((resolve) => {
+    const startedAt = performance.now();
     let stdout: Buffer = Buffer.alloc(0);
     let stderr: Buffer = Buffer.alloc(0);
     let failure: ReturnType<typeof nativeError> | null = null;
     let timedOut = false;
+    let exitObservation: ProcessExitObservation | null = null;
+    let closeObserved = false;
+    let timeoutObservation: ProcessTimeoutObservation | null = null;
     let stopped = false;
     let timer: NodeJS.Timeout | null = null;
     let escalation: NodeJS.Timeout | null = null;
@@ -50,6 +54,7 @@ export const runExecutable: ExecutableRunner = async (executable, args, options 
         ...(ok ? {} : { diagnostics: {
           exitCode, signal, stderr: stderrTail(stderr.toString("utf8")),
           ...(timedOut ? { timeoutMs } : {}),
+          ...(timeoutObservation === null ? {} : { timeoutObservation }),
           ...(failure === null ? {} : { error: failure }),
         } }),
       });
@@ -99,9 +104,18 @@ export const runExecutable: ExecutableRunner = async (executable, args, options 
       child.stdout.on("data", (chunk: Buffer) => { stdout = append(stdout, chunk, "stdout"); });
       child.stderr.on("data", (chunk: Buffer) => { stderr = append(stderr, chunk, "stderr"); });
       child.once("error", (error) => { failure ??= nativeError(error); });
-      child.once("close", complete);
+      child.once("exit", (exitCode, signal) => {
+        exitObservation = { at: new Date().toISOString(), elapsedMs: performance.now() - startedAt, exitCode, signal };
+      });
+      child.once("close", (code, signal) => { closeObserved = true; complete(code, signal); });
       if (timeoutMs > 0) {
-        timer = setTimeout(() => { timedOut = true; stop?.(); }, timeoutMs);
+        timer = setTimeout(() => {
+          timedOut = true;
+          // Preserve the deadline's facts even when cleanup later produces exit and close.
+          timeoutObservation = { at: new Date().toISOString(), elapsedMs: performance.now() - startedAt,
+            exit: exitObservation, closeObserved };
+          stop?.();
+        }, timeoutMs);
         timer.unref();
       }
       options.signal?.addEventListener("abort", onAbort, { once: true });

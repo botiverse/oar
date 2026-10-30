@@ -72,6 +72,35 @@ test("a version probe terminated by a signal preserves that signal", async () =>
   `);
 });
 
+test("a version timeout distinguishes an exited root from pipes still awaiting close", async () => {
+  expect(await versionFailure({
+    exitCode: 0, signal: null, stderr: "", timeoutMs: 5000,
+    timeoutObservation: { at: "2026-10-30T09:00:05.000Z", elapsedMs: 5001, closeObserved: false,
+      exit: { at: "2026-10-30T09:00:00.010Z", elapsedMs: 11, exitCode: 0, signal: null } },
+  })).toMatchInlineSnapshot(`
+    {
+      "cause": {
+        "exitCode": 0,
+        "signal": null,
+        "stderr": "",
+        "timeoutMs": 5000,
+        "timeoutObservation": {
+          "at": "2026-10-30T09:00:05.000Z",
+          "closeObserved": false,
+          "elapsedMs": 5001,
+          "exit": {
+            "at": "2026-10-30T09:00:00.010Z",
+            "elapsedMs": 11,
+            "exitCode": 0,
+            "signal": null,
+          },
+        },
+      },
+      "message": "Failed to run runtime --version: exit code 0; signal none; timeout after 5000 ms; root exit observed at 2026-10-30T09:00:00.010Z (11 ms, code 0, signal none); close observed at timeout: false",
+    }
+  `);
+});
+
 test("an ordinary nonzero version exit still means unavailable version, with the same deadline", async () => {
   runExecutable.mockResolvedValue({ ok: false, exitCode: 2, stdout: "", stderr: "unsupported flag" });
   expect(await readExecutableVersion("runtime", 321, undefined, {})).toBeUndefined();

@@ -243,6 +243,12 @@ bounded stderr tail without this setting, so use that evidence before
 changing a timeout or assertion to address an intermittent startup failure.
 Installation readiness and `--version` execution failures retain the native
 error, signal, timeout, exit code and stderr tail in their exception too.
+On a one-shot command timeout, diagnostics also snapshot whether Node had
+observed the root process's `exit` and the output streams' `close`, with the
+root's exit time, elapsed duration, code and signal when available. The
+snapshot is taken before cleanup; a later cleanup-induced exit cannot replace
+it. This distinguishes an exited root with open pipes from an exit not yet
+observed without changing deadlines, pipe draining or process cleanup.
 
 ## How to add a new runtime
 

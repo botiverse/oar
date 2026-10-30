@@ -31,6 +31,8 @@ test("one-shot timeout retains the unchanged caller deadline", async () => {
   const result = await runExecutable(process.execPath, ["-e", "setInterval(() => {}, 1000)"], { timeoutMs: 100 });
   expect(result.ok).toBe(false);
   expect(result.diagnostics?.timeoutMs).toBe(100);
+  expect(result.diagnostics?.timeoutObservation).toMatchObject({ exit: null, closeObserved: false });
+  expect(result.diagnostics?.timeoutObservation?.elapsedMs).toBeGreaterThan(0);
 });
 
 test.skipIf(process.platform === "win32")("an external signal is not reported as a timeout", async () => {
