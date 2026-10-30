@@ -5,8 +5,9 @@ Runtime version check: 2026-10-30.
 The native observations passed for all six pinned runtimes on Linux x64,
 macOS arm64 and Windows x64 in the second run. The evidence gate is met for
 Antigravity 1.4.4, Grok 1.0.70, Kimi 2.4.0 and OpenCode 2.2.1 on those
-platforms, and for Codex 0.165.0 and Qoder 1.1.81 on Linux x64 and macOS arm64.
-Codex and Qoder still lack complete Windows resource comparisons. These are
+platforms, and for Codex 0.165.0 on all three after the Windows resource
+follow-up below. Qoder 1.1.81 meets the gate on Linux x64 and macOS arm64; its
+Windows resource comparison remains incomplete. These are
 evidence decisions, not implementation: no native adapter enables sharing yet.
 Other versions and unmeasured platform/architecture pairs remain unverified.
 
@@ -16,13 +17,15 @@ Other versions and unmeasured platform/architecture pairs remain unverified.
 | --- | --- | --- | --- |
 | [40977768820](https://github.com/botiverse/oar/actions/runs/40977768820) | `70229b48a42e8688eb911d4985cf0bf3ce58d927` | Failed | Linux complete; Windows/macOS probe defects and setup failures left gaps. |
 | [40994376921](https://github.com/botiverse/oar/actions/runs/40994376921) | `189c9c712f0738b0b636df7a2f6fd76f7270f8d8` | Failed | All native observations passed; Windows Codex/Qoder resource probes failed. |
+| [41063229973](https://github.com/botiverse/oar/actions/runs/41063229973) | `2764bf58e37cf727ae6bd1a89d6484e1da3df9cd` | Failed | Windows resources only: Codex complete; Qoder isolated complete, shared query timed out. |
 
 Each matrix cell used a separate GitHub runner, Node 24, the pinned native
 executable and disposable configuration. Models were scripted local providers;
 protocol handling, persistence, tools, MCP and child sessions were native.
 No real account or paid-model capacity was used. Artifacts are named
 `shared-evidence-<runtime>-<runner OS>-<architecture>`; each contains separate
-observation and resource `evidence.json` files. The workflow retains them for
+observation and resource `evidence.json` files, except the resources-only
+follow-up, which contains resource evidence only. The workflow retains them for
 14 days; the tables below preserve the selected results independently.
 
 An observation passing means its assertions held, including expected native
@@ -76,7 +79,9 @@ whole native process tree (Windows working set, POSIX RSS). CPU is accumulated
 process CPU time divided by elapsed wall time, as percent of one core.
 
 Only intervals without exited processes support CPU comparisons. All complete
-post-turn cells below have that property. Initial `opened` windows are not
+post-turn cells in the first two runs have that property. The follow-up below
+explicitly excludes three Codex isolated windows from CPU comparison because
+processes exited during them; their working-set readings remain usable. Initial `opened` windows are not
 used; some include transient processes. Missing readings are never zeroes.
 
 ### First run: Linux x64 baseline
@@ -121,6 +126,56 @@ and Kimi have visibly varying early post-turn memory; no stability claim is
 made. The single completed Codex Windows shared cohort is retained as partial
 evidence only: its isolated comparison and other shared cohort failed.
 
+## Windows resource follow-up
+
+Run 41063229973 kept Codex 0.165.0 and Qoder 1.1.81 and reran only their
+Windows x64 resources after the probe correction in PR #546. It did not
+rerun native observation groups or verify any newer runtime version.
+
+| Runtime | Completed cohorts | Isolated MiB | Shared MiB | Isolated CPU % | Shared CPU % |
+| --- | --- | --- | --- | --- | --- |
+| codex | 4/4, six windows per mode | 1209.33 (1173.81 to 1223.66) | 138.19 (137.48 to 169.57) | 19.31 (8.58 to 34.66), 3 valid windows | 11.26 (0.00 to 30.64), 6 valid windows |
+| qoder | 1/2, three isolated windows | 4878.98 (4865.22 to 4887.72) | missing | 124.62 (119.51 to 130.23), 3 valid windows | missing |
+
+Codex's shared median working set is about 89% lower. Its shared median CPU
+is lower when compared only with isolated windows that have no exited
+processes. This completes the scoped Codex Windows resource gate together
+with the second run's 9/9 native observation groups. It does not promise that
+every shared CPU sample is lower than every isolated sample.
+
+The selected post-turn windows are retained here so the CPU exclusions and
+medians remain reviewable after the uploaded artifacts expire. CPU values in
+rows with exited processes are lower bounds and are excluded from the CPU
+comparison above. Memory uses every listed window.
+
+| Runtime/cohort | Window | Working set MiB | CPU % | Processes exited during window |
+| --- | --- | --- | --- | --- |
+| codex 1 isolated | 1 | 1211.05 | 27.18 | 3 |
+| codex 1 isolated | 2 | 1223.66 | 47.72 | 4 |
+| codex 1 isolated | 3 | 1207.61 | 34.66 | 0 |
+| codex 2 shared | 1 | 138.25 | 28.07 | 0 |
+| codex 2 shared | 2 | 138.14 | 0.00 | 0 |
+| codex 2 shared | 3 | 138.23 | 0.00 | 0 |
+| codex 3 shared | 1 | 169.57 | 30.64 | 0 |
+| codex 3 shared | 2 | 137.48 | 22.53 | 0 |
+| codex 3 shared | 3 | 137.48 | 0.00 | 0 |
+| codex 4 isolated | 1 | 1176.94 | 8.58 | 0 |
+| codex 4 isolated | 2 | 1216.64 | 19.31 | 0 |
+| codex 4 isolated | 3 | 1173.81 | 23.79 | 3 |
+| qoder 1 isolated | 1 | 4887.72 | 124.62 | 0 |
+| qoder 1 isolated | 2 | 4878.98 | 119.51 | 0 |
+| qoder 1 isolated | 3 | 4865.22 | 130.23 | 0 |
+
+Qoder's shared measurement failed before producing a resource window. Its
+product process-table read took 5277 ms and returned an empty table missing
+the probe host. The independent immediate CIM observation then took 5483 ms
+and reported `ETIMEDOUT`, `SIGTERM`, and zero stdout/stderr bytes. This proves
+that the follow-up query exceeded the existing five-second deadline. It does
+not recover the suppressed first exception or prove whether CPU load, CIM
+execution, or PowerShell startup caused that deadline to be exceeded.
+Qoder Windows therefore remains a missing resource comparison, not a passing
+result inferred from the other platforms.
+
 ## Windows resource gaps and cleanup boundary
 
 The second run's Windows Codex isolated cohorts and one shared cohort, and
@@ -136,8 +191,9 @@ empty-array result for exited PIDs, and still rejects real read errors. A
 missing host still fails the measurement. An additional CIM observation keeps
 status, signal, error code, elapsed time and structural counts, without raw
 process data. This separate observation cannot retroactively identify the
-original failure. Codex/Qoder Windows need a completed resource rerun before
-their Windows gate changes.
+original failure. The completed Codex follow-up above now fills that gap;
+Qoder still requires a complete isolated/shared comparison after the query
+failure has been investigated.
 
 This is also a product cleanup concern, tracked separately before Phase 2:
 an empty process table cannot distinguish unreadable descendants from none.
