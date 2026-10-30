@@ -37,7 +37,7 @@ test("concurrent shared acquisition waits for one startup; last disposal stops i
 
 test.each([
   { command: "/another" }, { args: ["serve", "--flag"] }, { env: { HOME: "/one", TOKEN: "different" } },
-  { home: "/two" }, { configDirectories: ["/two/.config"] }, { cwd: "/process-cwd" },
+  { protocol: '{"capability":"different"}' }, { home: "/two" }, { configDirectories: ["/two/.config"] }, { cwd: "/process-cwd" },
 ])("a changed process input starts a distinct process: %j", async (different) => {
   const start = vi.fn(async () => { await Promise.resolve(); return processFixture(); });
   const pool = createProcessPool(start);

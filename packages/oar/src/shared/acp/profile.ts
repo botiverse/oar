@@ -1,7 +1,8 @@
 /* oxlint-disable typescript/promise-function-async -- Deadline callbacks deliberately return the SDK's native promises. */
-import { methods, PROTOCOL_VERSION } from "@agentclientprotocol/sdk";
+import { methods } from "@agentclientprotocol/sdk";
 import type { ContextUsage, SessionCapabilities, SessionOptions, TokenTotals, TurnOutcome } from "../../contracts/session.js";
 import { asRecord, type JsonRecord } from "../json.js";
+import { initializeAcpConnection } from "./initialize.js";
 import { acpAdditionalDirectories } from "./additional-directories.js";
 import { applyAcpEffort, applyAcpModel } from "./effort.js";
 import { acpResumeFailure, acpOpenStep, type AcpFailureReader } from "./failure.js";
@@ -152,47 +153,6 @@ export async function closeAcpSession(process: AcpProcess, sessionId: string): P
   );
 }
 
-async function initialize(
-  process: AcpProcess,
-  profile: AcpSessionProfile,
-  options: SessionOptions,
-  observe: AcpOpenObserver,
-): Promise<JsonRecord> {
-  const meta = profile.initializeMeta?.(options);
-  const method = methods.agent.initialize;
-  const initialized = await withAcpDeadline(
-    process,
-    method,
-    profile.requestTimeoutMs ?? 15_000,
-    (requestOptions) => process.connection.agent.request(method, {
-      protocolVersion: PROTOCOL_VERSION,
-      clientCapabilities: {
-        fs: { readTextFile: false, writeTextFile: false },
-        terminal: true,
-      },
-      clientInfo: { name: "oar", version: "0.0.0" },
-      ...(meta === undefined ? {} : { _meta: meta }),
-    }, requestOptions),
-  );
-  const response = responseRecord(method, initialized);
-  observe({ method, response });
-  const authMethod = profile.selectAuthMethod?.(response);
-  if (authMethod !== undefined) {
-    const authenticate = methods.agent.authenticate;
-    const authenticated = await withAcpDeadline(
-      process,
-      authenticate,
-      profile.requestTimeoutMs ?? 15_000,
-      (requestOptions) => process.connection.agent.request(
-        authenticate,
-        { methodId: authMethod },
-        requestOptions,
-      ),
-    );
-    observe({ method: authenticate, response: asRecord(authenticated) ?? {} });
-  }
-  return response;
-}
 
 async function createOrResume(
   process: AcpProcess,
@@ -257,8 +217,21 @@ export async function openAcpSession(
   observe: AcpOpenObserver = () => {},
 ): Promise<OpenedAcpSession> {
   // A refused login or model rejects the open as a RuntimeFailureError (failure.ts).
-  const initialized = await acpOpenStep(initialize(process, profile, options, observe), "open");
+  const initialized = await acpOpenStep(initializeAcpConnection(process, profile, options, observe), "open");
+  return openInitializedAcpSession(process, profile, options, initialized, observe);
+}
+
+/** Open/configure one session on an already initialized connection. */
+export async function openInitializedAcpSession(
+  process: AcpProcess,
+  profile: AcpSessionProfile,
+  options: SessionOptions,
+  initialized: JsonRecord,
+  observe: AcpOpenObserver = () => {},
+  bind: (sessionId: string) => void = () => {},
+): Promise<OpenedAcpSession> {
   const opened = await acpOpenStep(createOrResume(process, profile, initialized, options, profile.sessionMeta?.(options, initialized)), "open");
+  bind(opened.sessionId);
   observe({ method: opened.openMethod, response: opened.response });
   const setModelResponse = options.model === undefined
     ? undefined

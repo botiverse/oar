@@ -6,7 +6,7 @@ import { sealSession } from "./seal-session.js";
 import { createSessionKernel, type SessionKernel } from "./session-kernel.js";
 
 export interface SessionCredentials extends CredentialRedactor {
-  kernel(id: string): SessionKernel;
+  kernel(id: string, extraRedact?: <T>(value: T) => T): SessionKernel;
   seal(adapter: AdapterSession): Session;
 }
 
@@ -21,7 +21,7 @@ function sessionCredentials(options: SessionOptions, context: SessionOpenContext
     add,
     redact,
     redactValue,
-    kernel: (id) => { const kernel = createSessionKernel(id, redactValue); kernel.opened(context); return kernel; },
+    kernel: (id, extraRedact) => { const kernel = createSessionKernel(id, extraRedact === undefined ? redactValue : <T>(value: T): T => extraRedact(redactValue(value))); kernel.opened(context); return kernel; },
     seal: (adapter) => sealSession({
       ...adapter,
       ...(adapter.goal === undefined ? {} : { goal: {

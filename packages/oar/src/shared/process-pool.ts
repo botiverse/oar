@@ -11,6 +11,8 @@ export interface ProcessConfiguration {
   readonly configDirectories?: readonly string[];
   /** Set only for a process-level cwd, not a protocol's session-level cwd. */
   readonly cwd?: string;
+  /** Serialized connection-level handshake inputs; compared privately, never logged. */
+  readonly protocol?: string;
 }
 
 export interface PooledProcess {
@@ -19,6 +21,8 @@ export interface PooledProcess {
   /** Bounded native/process shutdown. Called only after the last lease is disposed. May be retried after failure. */
   stop(this: void): void | Promise<void>;
   resources(this: void): Promise<SessionResources | null>;
+  /** Native/process cleanup observations accompanying actual exit. */
+  exitReason?(this: void): string | undefined;
 }
 
 export interface ProcessLease<T extends PooledProcess> {
@@ -33,7 +37,7 @@ export interface ProcessLease<T extends PooledProcess> {
 
 function configurationKey(config: ProcessConfiguration): string {
   const values = JSON.stringify([config.command, config.args, Object.entries(config.env).toSorted(([a], [b]) => a < b ? -1 : (a > b ? 1 : 0)),
-    config.home, config.configDirectories, config.cwd]);
+    config.home, config.configDirectories, config.cwd, config.protocol]);
   return createHash("sha256").update(values).digest("hex");
 }
 
@@ -96,7 +100,7 @@ function leaseOf<T extends PooledProcess>(process: T, owned: Entry<T>, placement
 }
 
 /** One runtime instance's pool. Nothing is global, restarted, or keyed by a runtime name. */
-export function createProcessPool<T extends PooledProcess>(start: (configuration: ProcessConfiguration) => Promise<T>): {
+export function createProcessPool<T extends PooledProcess>(start: (configuration: ProcessConfiguration) => T | Promise<T>): {
   acquire(configuration: ProcessConfiguration, placement: "shared" | "isolated"): Promise<ProcessLease<T>>;
 } {
   const entries = new Map<string, Entry<T>>();

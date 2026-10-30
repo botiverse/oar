@@ -21,6 +21,8 @@ import type {
 
 /** Where a record sits: another session id for derived children, a sub-agent path, a runtime-native span id. */
 export interface RecordAt {
+  /** Original adapter ingress time for frames buffered until native ownership is known. */
+  readonly receivedAt?: number;
   readonly sessionId?: string;
   readonly agentPath?: readonly string[];
   readonly spanId?: string;
@@ -150,7 +152,7 @@ export function createSessionKernel(sessionId: string = globalThis.crypto.random
       agentPath: at?.agentPath ?? [],
       ...(spanId === undefined ? {} : { spanId }),
       seq,
-      receivedAt: Date.now(),
+      receivedAt: at?.receivedAt ?? Date.now(),
     });
     seq += 1;
     const retained = redact === undefined ? record : redact(record);

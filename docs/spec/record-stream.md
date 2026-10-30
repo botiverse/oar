@@ -127,6 +127,9 @@ A failed process stop answers dispose with `rejected`, retains shutdown
 ownership and permits a later dispose to retry. New opens never join a
 process whose shutdown began. A process fault records its exit for every
 still-attached session. Sessions and processes are never silently restarted.
+The internal [ACP connection ownership](acp-shared-connection.md) mechanism
+implements these boundaries with explicit native id routing; adding the
+mechanism does not admit any native runtime to sharing.
 
 **frame**: the runtime's own words. Expects no reply; append-only;
 monotonic seq. oar never synthesizes a frame. The turn's start *is* the
