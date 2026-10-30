@@ -17,17 +17,27 @@ $sampleFile = Join-Path $OutputDirectory "$Stage.jsonl"
 $writer = [System.IO.StreamWriter]::new($sampleFile, $true, [System.Text.UTF8Encoding]::new($false))
 $writer.AutoFlush = $true
 
-function Write-Record([hashtable]$Record) {
+function Write-Record([hashtable]$Record, [switch]$ToLog) {
     $Record.at = [DateTime]::UtcNow.ToString('o')
     $Record.stage = $Stage
-    $writer.WriteLine(($Record | ConvertTo-Json -Depth 5 -Compress))
+    $json = $Record | ConvertTo-Json -Depth 5 -Compress
+    if ($ToLog) {
+        try {
+            [Console]::Out.WriteLine("resources $json")
+            [Console]::Out.Flush()
+        } catch { } # A closed log pipe must not prevent termination.
+    }
+    try { $writer.WriteLine($json) } catch {
+        # Timeout/termination checkpoints must not prevent the action they describe.
+        if (-not $ToLog) { throw }
+    }
 }
 
 function Write-Sample {
     $timer = [System.Diagnostics.Stopwatch]::StartNew()
     try {
         $memory = Get-CimInstance Win32_OperatingSystem -Property TotalVisibleMemorySize,FreePhysicalMemory -OperationTimeoutSec 3
-        $native = @(Get-CimInstance Win32_Process -Property ProcessId,ParentProcessId,Name,CreationDate,WorkingSetSize,PrivatePageCount,KernelModeTime,UserModeTime -OperationTimeoutSec 3)
+        $native = @(Get-CimInstance Win32_Process -Property ProcessId,ParentProcessId,Name,CreationDate,WorkingSetSize,PrivatePageCount,KernelModeTime,UserModeTime,HandleCount -OperationTimeoutSec 3)
         $processes = @($native | ForEach-Object {
             @{
                 pid = [long]$_.ProcessId
@@ -37,19 +47,25 @@ function Write-Sample {
                 workingSetBytes = [long]$_.WorkingSetSize
                 privateBytes = [long]$_.PrivatePageCount
                 cpu100ns = [long]$_.KernelModeTime + [long]$_.UserModeTime
+                handleCount = if ($null -eq $_.HandleCount) { $null } else { [long]$_.HandleCount }
             }
         })
         $nodeCount = @($processes | Where-Object { $_.name -eq 'node.exe' }).Count
         $shellCount = @($processes | Where-Object { $_.name -in @('powershell.exe', 'pwsh.exe') }).Count
+        $handleCount = if (@($processes | Where-Object { $null -eq $_.handleCount }).Count -eq 0) {
+            [long]($processes | Measure-Object -Property handleCount -Sum).Sum
+        } else { $null }
         Write-Record @{
             kind = 'sample'; samplerPid = $PID; queryMs = $timer.ElapsedMilliseconds
             totalPhysicalBytes = [long]$memory.TotalVisibleMemorySize * 1024
             freePhysicalBytes = [long]$memory.FreePhysicalMemory * 1024
             processCount = $processes.Count; nodeCount = $nodeCount; shellCount = $shellCount
+            handleCount = $handleCount
             processes = $processes
         }
         # Emit small checkpoints while the runner is alive, even if final artifact upload cannot run.
-        Write-Host "resources stage=$Stage freeMiB=$([math]::Round($memory.FreePhysicalMemory / 1024)) processes=$($processes.Count) node=$nodeCount shells=$shellCount queryMs=$($timer.ElapsedMilliseconds)"
+        $handles = if ($null -eq $handleCount) { 'unknown' } else { $handleCount }
+        Write-Host "resources stage=$Stage freeMiB=$([math]::Round($memory.FreePhysicalMemory / 1024)) processes=$($processes.Count) node=$nodeCount shells=$shellCount handles=$handles queryMs=$($timer.ElapsedMilliseconds)"
     } catch {
         # Diagnostic failure must neither hide a native failure nor stop the original test command.
         Write-Record @{ kind = 'sample_error'; errorType = $_.Exception.GetType().Name; queryMs = $timer.ElapsedMilliseconds }
@@ -89,12 +105,21 @@ try {
         if ($expired.Count -gt 0 -or ($CommandTimeoutSeconds -gt 0 -and $commandTimer.Elapsed.TotalSeconds -ge $CommandTimeoutSeconds)) {
             $timedOut = $true
             foreach ($test in $expired) {
-                Write-Record @{ kind = 'case_timeout'; name = $test.name; file = $test.file; timeoutSeconds = $CaseTimeoutSeconds }
+                Write-Record @{ kind = 'case_timeout'; name = $test.name; file = $test.file; timeoutSeconds = $CaseTimeoutSeconds } -ToLog
                 Write-Host "FAILED: $($test.file) > $($test.name) exceeded the external $CaseTimeoutSeconds second case deadline."
             }
-            if ($expired.Count -eq 0) { Write-Record @{ kind = 'command_timeout'; timeoutSeconds = $CommandTimeoutSeconds } }
+            if ($expired.Count -eq 0) { Write-Record @{ kind = 'command_timeout'; timeoutSeconds = $CommandTimeoutSeconds } -ToLog }
             # Own only the launched test command and its descendants. Keep the sampler alive to upload evidence.
-            $child.Kill($true)
+            Write-Record @{ kind = 'termination_start'; pid = $child.Id } -ToLog
+            $terminationTimer = [System.Diagnostics.Stopwatch]::StartNew()
+            try {
+                $child.Kill($true)
+            } catch {
+                Write-Record @{ kind = 'termination_error'; pid = $child.Id; errorType = $_.Exception.GetType().Name; elapsedMs = $terminationTimer.ElapsedMilliseconds } -ToLog
+                throw
+            }
+            # Kill returning does not establish that the root or all descendants have exited.
+            Write-Record @{ kind = 'termination_returned'; pid = $child.Id; elapsedMs = $terminationTimer.ElapsedMilliseconds } -ToLog
             break
         }
         $samples += 1
@@ -103,7 +128,8 @@ try {
     if (-not $child.HasExited) { Write-Record @{ kind = 'sampling_limit'; samples = $samples } }
     # The sampling limit bounds diagnostic volume, not the test's existing deadline.
     if ($timedOut) {
-        [void]$child.WaitForExit(5000)
+        $rootExited = $child.WaitForExit(5000)
+        Write-Record @{ kind = 'termination_wait_returned'; pid = $child.Id; rootExited = $rootExited; timeoutMs = 5000 } -ToLog
         $code = 124
     } else {
         $child.WaitForExit()

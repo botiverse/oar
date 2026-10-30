@@ -48,6 +48,19 @@ test("blocked native worker", async () => { await new Promise(r => setTimeout(r,
     });
     expect(result.exitCode, `${result.stdout}\n${result.stderr}`).toBe(124);
     expect(result.stdout).toContain("blocked native worker exceeded the external 2 second case deadline");
-    expect(await readFile(path.join(directory, "blocked.jsonl"), "utf8")).toContain('"kind":"case_timeout"');
+    const contents = await readFile(path.join(directory, "blocked.jsonl"), "utf8");
+    const records = contents.trim().split("\n").map((line) => asRecord(JSON.parse(line)));
+    const pid = records.find((record) => record?.kind === "command_start")?.pid;
+    expect(pid).toEqual(expect.any(Number));
+    const checkpoints = records.filter((record) => record?.kind === "case_timeout" || String(record?.kind).startsWith("termination_"));
+    expect(checkpoints).toEqual([
+      expect.objectContaining({ kind: "case_timeout", name: "blocked native worker", timeoutSeconds: 2 }),
+      expect.objectContaining({ kind: "termination_start", pid }),
+      expect.objectContaining({ kind: "termination_returned", pid }),
+      expect.objectContaining({ kind: "termination_wait_returned", pid, rootExited: true, timeoutMs: 5000 }),
+    ]);
+    expect(checkpoints[2]?.elapsedMs).toEqual(expect.any(Number));
+    const logged = result.stdout.split(/\r?\n/u).filter((line) => line.startsWith("resources {")).map((line) => asRecord(JSON.parse(line.slice("resources ".length))));
+    expect(logged).toEqual(checkpoints);
   } finally { await rm(directory, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 }); }
 }, 45_000);

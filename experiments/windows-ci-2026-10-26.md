@@ -56,7 +56,8 @@ duration in each sample. It records:
 
 - total/free physical memory and process, Node and PowerShell counts;
 - PID, parent PID, name and creation time;
-- working set, private memory and cumulative CPU time per process.
+- working set, private memory, cumulative CPU time and open handle count per process;
+- the sum of those handle counts, or unknown if any process count is unavailable.
 
 It collects no command lines, executable paths or environment. JSONL records
 are flushed immediately under `oar-trial-run/windows-resources/`, including
@@ -65,10 +66,21 @@ The existing upload preserves partial samples if the runner survives. A lost
 runner may prevent both log retention and upload; flushing cannot guarantee
 recovery from a destroyed VM.
 
+Timeouts also print timestamped checkpoints to the job log and JSONL: the
+expired case or command, the PID before `Kill(true)`, the call's return or
+error type, and the result of the existing five-second root-process exit
+wait. A returned call is not proof that the process tree exited; `rootExited`
+describes only the launched root process. These markers locate the last
+observed action without changing timeout values or the termination operation.
+A stopped checkpoint stream can also mean the sampler or its CIM query
+blocked; it does not by itself prove that the entire VM stopped responding.
+
 After 720 periodic samples, sampling stops without changing the command's
 deadline. Sampling errors are separate records and never replace the command's
 exit status. Windows unit tests run harmless commands exiting 0 and 37,
-checking exit propagation, inherited output and sample contents. They skip on
+checking exit propagation, inherited output and sample contents. Separate
+command and blocked-test fixtures check timeout and termination checkpoints
+in both the live log and JSONL. They skip on
 non-Windows hosts; native sampler execution must be checked in Windows CI.
 
 ### Successful main samples
@@ -141,4 +153,6 @@ weaker assertion or longer native timeout is introduced.
 
 Sampling uses the documented Windows
 [Get-CimInstance](https://learn.microsoft.com/en-us/powershell/module/cimcmdlets/get-ciminstance)
-API with a property allowlist.
+API with a property allowlist, including the documented
+[Win32_Process.HandleCount](https://learn.microsoft.com/en-us/windows/win32/cimwin32prov/win32-process)
+property.
