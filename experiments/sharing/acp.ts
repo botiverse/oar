@@ -1,3 +1,4 @@
+import { recordProcessTableReads } from "./process-table.js";
 /** ACP rule-5 evidence with local model substitutes. No OAR pool is enabled.
  * pnpm tsx experiments/sharing/acp.ts kimi|grok|opencode|antigravity [output-dir]
  */
@@ -20,6 +21,7 @@ function toolOutput(fixture: AcpFixture, key: string): string {
 }
 const id = acpId(process.argv[2] ?? "kimi");
 const out = path.resolve(process.argv[3] ?? `oar-trial-run/shared-${id}`); await mkdir(out, { recursive: true });
+recordProcessTableReads(path.join(out, "process-table-reads.jsonl"));
 prepareWindowsProcessTable(path.join(out, "windows-process-table-preparation.jsonl"));
 const timing = new ProbeTiming();
 const report: JsonRecord = { id, at: new Date().toISOString(), platform: process.platform, waits: timing.waits };

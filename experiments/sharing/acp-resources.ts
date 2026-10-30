@@ -7,7 +7,7 @@ import { prepareWindowsProcessTable } from "../../sea-trial/windows-process-tabl
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
-import { checkedProcessTable } from "./process-table.js";
+import { checkedProcessTable, recordProcessTableReads } from "./process-table.js";
 import { acpFixture, acpId } from "./acp-fixture.js";
 import { resourceSample, rootsSince } from "./resources.js";
 import { ProbeTiming, prepareFixture } from "./observation.js";
@@ -16,6 +16,7 @@ const id = acpId(process.argv[2] ?? "kimi");
 const out = path.resolve(process.argv[3] ?? `oar-trial-run/${id}-sharing-resources`);
 const count = Number(process.argv[4] ?? 10); assert.ok(count > 0 && count <= 26);
 await mkdir(out, { recursive: true });
+recordProcessTableReads(path.join(out, "process-table-reads.jsonl"));
 prepareWindowsProcessTable(path.join(out, "windows-process-table-preparation.jsonl"));
 const reports: Record<string, unknown>[] = [];
 for (const mode of ["isolated", "shared"]) {
@@ -36,9 +37,13 @@ for (const mode of ["isolated", "shared"]) {
     for (let i = 0; i < 3; i += 1) { windows.push(await resourceSample(roots)); }
     report.afterTurn = windows; report.outcome = "completed";
   } catch (error) { report.outcome = "failed"; report.error = String(error); }
-  finally { await fixture.stop(); }
+  finally {
+    try { await fixture.stop(); }
+    catch (error) { report.outcome = "failed"; report.cleanupError = String(error); }
+  }
   reports.push(report);
   await writeFile(path.join(out, "evidence.json"), `${JSON.stringify(reports, null, 2)}\n`, { mode: 0o600 });
   process.stdout.write(`${JSON.stringify(report)}\n`);
+  assert.equal(report.cleanupError, undefined, "fixture cleanup failed; cohort evidence retained");
 }
 assert.ok(reports.every((report) => report.outcome === "completed"));

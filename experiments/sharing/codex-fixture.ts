@@ -1,5 +1,7 @@
 /** Native shared-thread observations against a local scripted provider only. */
 /* oxlint-disable import/max-dependencies -- Combine native transport, isolated provider and probe evidence. */
+import { checkedProcessTable } from "./process-table.js";
+import { identifyNativeProcess, type NativeProcessSelection } from "./native-process.js";
 import assert from "node:assert/strict";
 import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -7,7 +9,7 @@ import path from "node:path";
 import { startCodexAimock, namespaceMcpToolCalls } from "../../sea-trial/harness/aimock.js";
 import { startAppServerClient, type AppServerClient } from "../../packages/oar/src/runtimes/codex/app-server-client.js";
 import { asRecord, type JsonRecord } from "../../packages/oar/src/shared/json.js";
-import { readProcessTable, descendantsOf, killEntries, type ProcessEntry } from "../../packages/oar/src/shared/executable/process-tree.js";
+import { descendantsOf, killEntries, type ProcessEntry } from "../../packages/oar/src/shared/executable/process-tree.js";
 import { rootsSince } from "./resources.js";
 import { codexInstallation } from "../../packages/oar/src/runtimes/codex/installation.js";
 import { executableInstallation } from "../../packages/oar/src/shared/installation.js";
@@ -77,7 +79,8 @@ export async function codexFixture(timing = new ProbeTiming()) {
     PATH: process.env.PATH ?? "", ...Object.fromEntries(Object.entries(process.env).filter(([key]) => ["systemroot", "windir", "comspec", "pathext", "temp", "tmp"].includes(key.toLowerCase()))), NO_PROXY: "*", ...provider.env };
   const clients: AppServerClient[] = [];
   const crashDescendants: ProcessEntry[] = [];
-  const nativePids = new Map<AppServerClient, number>();
+  const nativeProcesses = new Map<AppServerClient, NativeProcessSelection>();
+  const processIdentities: NativeProcessSelection[] = [];
   const events: { client: number; method: string; params: JsonRecord }[] = [];
   const calls: { client: number; method: string; params: JsonRecord; result?: JsonRecord; error?: string }[] = [];
   const request = async (client: AppServerClient, method: string, params: JsonRecord): Promise<JsonRecord> => {
@@ -89,7 +92,7 @@ export async function codexFixture(timing = new ProbeTiming()) {
     finally { clearTimeout(timer); }
   };
   const connect = async (): Promise<AppServerClient> => {
-    const before = readProcessTable();
+    const before = checkedProcessTable();
     const client = startAppServerClient(process.env.OAR_CODEX_BIN ?? "codex", environment,
       { sandbox_mode: '"danger-full-access"', "features.code_mode": "false", "features.multi_agent_v2": "true" }, home);
     const index = clients.length; clients.push(client);
@@ -97,8 +100,8 @@ export async function codexFixture(timing = new ProbeTiming()) {
       onServerRequest: (_id, method, params) => { events.push({ client: index, method, params }); } });
     await request(client, "initialize", { clientInfo: { name: "oar-sharing-evidence", version: "1" }, capabilities: { experimentalApi: true } });
     const roots = rootsSince(before); assert.equal(roots.length, 1); const [root] = roots; assert.ok(root);
-    const native = [...readProcessTable().values()].find((entry) => entry.ppid === root.pid) ?? root;
-    nativePids.set(client, native.pid);
+    const native = identifyNativeProcess(root, "codex");
+    nativeProcesses.set(client, native); processIdentities.push(native);
     client.notify("initialized", {}); return client;
   };
   const open = async (client: AppServerClient, label: "A" | "B"): Promise<string> => {
@@ -116,13 +119,22 @@ export async function codexFixture(timing = new ProbeTiming()) {
     const id = await start(client, threadId, key); await timing.until(() => ended(threadId, id) !== null, `${key} completed`);
     const result = ended(threadId, id); assert.ok(result); return result;
   };
-  return { timing, installation, home, cwds, seen, stages, gates, provider, clients, events, calls, connect, request, open, start, ended, turn,
-    crash(client: AppServerClient): void { const pid = nativePids.get(client); assert.ok(pid !== undefined); crashDescendants.push(...descendantsOf(readProcessTable(), pid)); process.kill(pid, "SIGKILL"); },
+  return { timing, installation, home, cwds, seen, stages, gates, provider, clients, events, calls, processIdentities, connect, request, open, start, ended, turn,
+    crash(client: AppServerClient): { identity: ProcessEntry; at: string } {
+      const identity = nativeProcesses.get(client)?.selected; assert.ok(identity);
+      const table = checkedProcessTable("codex-before-crash");
+      assert.equal(table.get(identity.pid)?.start, identity.start, "native identity changed before crash injection");
+      crashDescendants.push(...descendantsOf(table, identity.pid));
+      const fault = { identity, at: new Date().toISOString() };
+      process.kill(identity.pid, "SIGKILL"); return fault;
+    },
     async stop(): Promise<void> {
-      killEntries(crashDescendants, readProcessTable());
-      for (const gate of gates.values()) { gate.resolve(); }
-      await Promise.all(clients.map(async (client) => { client.kill(); await client.exited; }));
-      await provider.stop(); await rm(home, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
+      try { killEntries(crashDescendants, checkedProcessTable("codex-cleanup")); }
+      finally {
+        for (const gate of gates.values()) { gate.resolve(); }
+        await Promise.all(clients.map(async (client) => { client.kill(); await client.exited; }));
+        await provider.stop(); await rm(home, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
+      }
     },
   };
 }

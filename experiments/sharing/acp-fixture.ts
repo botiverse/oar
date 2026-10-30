@@ -1,5 +1,6 @@
 /** One native ACP connection, several sessions, scripted local model only. */
 /* oxlint-disable import/max-dependencies -- Compose native profiles, local providers and the host terminal implementation. */
+import { checkedProcessTable } from "./process-table.js";
 import assert from "node:assert/strict";
 import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -14,7 +15,7 @@ import { grokAcpProfile } from "../../packages/oar/src/runtimes/grok/session.js"
 import { opencodeAcpProfile } from "../../packages/oar/src/runtimes/opencode/session.js";
 import { antigravityAcpProfile } from "../../packages/oar/src/runtimes/antigravity/session.js";
 import { startAntigravityAimock, startGrokAimock, startKimiAimock, startOpencodeAimock } from "../../sea-trial/harness/aimock-acp.js";
-import { readProcessTable, descendantsOf, killEntries, type ProcessEntry } from "../../packages/oar/src/shared/executable/process-tree.js";
+import { descendantsOf, killEntries, type ProcessEntry } from "../../packages/oar/src/shared/executable/process-tree.js";
 import { rootsSince } from "./resources.js";
 import { ProbeTiming, powershellCommand, probeTimeout } from "./observation.js";
 
@@ -119,7 +120,7 @@ export async function acpFixture(id: AcpId, timing = new ProbeTiming()) {
     } catch (error) { calls.push({ method, params, error: String(error) }); throw error; }
   };
   const connect = async (): Promise<{ child: ReturnType<typeof startAcpProcess>; initialized: JsonRecord }> => {
-    const before = readProcessTable();
+    const before = checkedProcessTable();
     const child = startAcpProcess(installation.command, typeof profile.args === "function" ? profile.args({ cwd: home }) : profile.args, app, { cwd: home, env });
     children.push(child);
     const initialized = await request(child, "initialize", { protocolVersion: 1, clientCapabilities: { fs: {}, terminal: true },
@@ -143,12 +144,14 @@ export async function acpFixture(id: AcpId, timing = new ProbeTiming()) {
   };
   return { timing, id, home, cwds, installation, provider, profile, stages, seen, gates, children, terminals, terminalFor, calls, events,
     connect, request, open, prompt, mcpServers,
-    crash(child: (typeof children)[number]): void { const pid = nativePids.get(child); assert.ok(pid !== undefined); crashDescendants.push(...descendantsOf(readProcessTable(), pid)); process.kill(pid, "SIGKILL"); },
+    crash(child: (typeof children)[number]): void { const pid = nativePids.get(child); assert.ok(pid !== undefined); crashDescendants.push(...descendantsOf(checkedProcessTable(), pid)); process.kill(pid, "SIGKILL"); },
     async stop(): Promise<void> {
-      killEntries(crashDescendants, readProcessTable());
-      for (const gate of gates.values()) { gate.resolve(); }
-      await Promise.all(children.map(async (child) => { child.kill(); await child.exited; }));
-      await terminal.dispose(); await provider.stop(); await rm(home, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
+      try { killEntries(crashDescendants, checkedProcessTable("acp-cleanup")); }
+      finally {
+        for (const gate of gates.values()) { gate.resolve(); }
+        await Promise.all(children.map(async (child) => { child.kill(); await child.exited; }));
+        await terminal.dispose(); await provider.stop(); await rm(home, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
+      }
     },
   };
 }

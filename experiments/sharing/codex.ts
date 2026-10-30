@@ -1,3 +1,4 @@
+import { recordProcessTableReads } from "./process-table.js";
 /** Codex shared-process gates, native protocol with a local model substitute.
  * OAR_CODEX_BIN=/absolute/codex pnpm tsx experiments/sharing/codex.ts [output-dir]
  * Does not archive threads or enable OAR sharing. Detailed output stays private.
@@ -21,6 +22,7 @@ function tools(fixture: CodexFixture, key: string): string {
 }
 const out = path.resolve(process.argv[2] ?? "oar-trial-run/codex-sharing");
 await mkdir(out, { recursive: true });
+recordProcessTableReads(path.join(out, "process-table-reads.jsonl"));
 prepareWindowsProcessTable(path.join(out, "windows-process-table-preparation.jsonl"));
 const timing = new ProbeTiming();
 const report: JsonRecord = { at: new Date().toISOString(), platform: process.platform, waits: timing.waits };
@@ -141,12 +143,13 @@ try {
     const [targetTurn, peerTurn] = await Promise.all([fixture.start(client, a, "A_hold"), fixture.start(client, b, "B_hold")]);
     await timing.until(() => fixture.gates.has("A_hold") && fixture.gates.has("B_hold"), "both turns active before exit");
     const endOffset = fixture.events.length;
-    fixture.crash(client); const exit = await timing.wait(client.exited, "app-server exit after fault");
+    const fault = fixture.crash(client); const exit = await timing.wait(client.exited, "app-server exit after fault");
     const reads = await Promise.allSettled([fixture.request(client, "thread/read", { threadId: a }), fixture.request(client, "thread/read", { threadId: b })]);
-    return { exit, reads: reads.map((entry) => entry.status), targetTurn, peerTurn,
+    return { fault, exit, reads: reads.map((entry) => entry.status), targetTurn, peerTurn,
       completionsAfterExit: fixture.events.slice(endOffset).filter((event) => event.method === "turn/completed") };
   });
 } finally {
+  report.processIdentities = fixture.processIdentities;
   report.calls = fixture.calls; report.events = fixture.events; report.provider = fixture.provider.raw; report.normalized = fixture.seen;
   await writeFile(path.join(out, "evidence.json"), `${JSON.stringify(report, null, 2)}\n`, { mode: 0o600 });
   await fixture.stop();

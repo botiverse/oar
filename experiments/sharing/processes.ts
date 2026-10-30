@@ -1,16 +1,17 @@
 /** Observe native command ownership without using the process tree to stop it. */
+import { checkedProcessTable } from "./process-table.js";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { readProcessTable, type ProcessEntry } from "../../packages/oar/src/shared/executable/process-tree.js";
+import { type ProcessEntry } from "../../packages/oar/src/shared/executable/process-tree.js";
 
 export function identities(pids: readonly number[]): ProcessEntry[] {
-  const table = readProcessTable();
+  const table = checkedProcessTable();
   assert.ok(table.has(process.pid), "process table observation failed");
   return pids.map((pid) => { const entry = table.get(pid); assert.ok(entry, `missing process ${String(pid)}`); return entry; });
 }
 
 export function running(entries: readonly ProcessEntry[]): number[] {
-  const table = readProcessTable();
+  const table = checkedProcessTable();
   assert.ok(table.has(process.pid), "process table observation failed");
   return entries.filter((entry) => {
     if (table.get(entry.pid)?.start !== entry.start) { return false; }
