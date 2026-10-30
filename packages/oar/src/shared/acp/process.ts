@@ -8,6 +8,7 @@ import {
 } from "@agentclientprotocol/sdk";
 import { Readable, Writable } from "node:stream";
 import { spawnLineProcess } from "../executable/index.js";
+import type { ProcessDiagnostics } from "../executable/diagnostics.js";
 import { AcpError, acpProcessExitedError, acpRequestTimeoutError } from "./errors.js";
 import { nativeErrorCause } from "../native-error.js";
 import type { SessionResources } from "../../contracts/session.js";
@@ -59,6 +60,8 @@ export interface AcpProcess {
   readonly exitCode: number | null;
   readonly redact?: (text: string) => string;
   kill(): void;
+  /** Bounded native diagnostics for the session-opening error boundary only. */
+  diagnostics(): ProcessDiagnostics;
   /** The agent's memory with everything it started (`LineProcess.resources`). */
   readonly resources: () => Promise<SessionResources | null>;
 }
@@ -169,5 +172,6 @@ export function startAcpProcess(
       }
     },
     resources: child.resources,
+    diagnostics: () => child.diagnostics(),
   };
 }

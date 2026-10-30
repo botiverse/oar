@@ -23,6 +23,7 @@ import {
 } from "./profile.js";
 import { acpLaunchArgs } from "./launch-args.js";
 import { startAcpProcess } from "./process.js";
+import { AcpError, acpProcessExitedError } from "./errors.js";
 import { createAcpRecorder } from "./records.js";
 import { createAcpTerminalHost } from "./terminal.js";
 import { acpTakesImages, createAcpTurns } from "./turns.js";
@@ -86,7 +87,9 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
       runtime.kill();
       await runtime.exited;
       await terminalHost.dispose();
-      throw withoutCredentials(error);
+      throw withoutCredentials(error instanceof AcpError && error.kind === "process_exited"
+        ? acpProcessExitedError(error.exitCode, runtime.diagnostics(), credentials.redact)
+        : error);
     });
     const kernel = credentials.kernel(opened.sessionId);
     recorder.bind(kernel);

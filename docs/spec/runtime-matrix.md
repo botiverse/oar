@@ -650,6 +650,16 @@ writes, and no record holds the bearer token.
 [`tests/mcp-serve-tools.test.ts`](../../tests/mcp-serve-tools.test.ts) pins
 the protocol, authorization, cancellation, `setTools` and `close()`.
 
+## ACP opening process failures
+
+If an ACP child exits before opening completes, the error retains its transport
+error type and exit code and includes the native signal and a bounded stderr
+tail (at most 8 KiB before redaction), also available as its diagnostic cause.
+Explicit session and MCP credentials and recognizable key/JWT shapes are
+redacted in both the message and cause. Authentication queries continue to hide
+all native diagnostics. Request timeouts and native RPC refusals retain their
+existing error classification.
+
 ## Missing resume targets
 
 `session({ resume })` rejects with the exported `SessionNotFoundError` only

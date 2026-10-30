@@ -6,6 +6,7 @@ import type { LoginResult, LoginUnsupportedReason } from "../contracts/login.js"
 import { killGraceMs, killProcessTree, OWN_PROCESS_GROUP, signalProcessGroup, trackOwnedProcess, windowsSpawnTarget } from "./executable/index.js";
 import { locateExecutable } from "./installation.js";
 import { releaseVersion, versionAtLeast } from "./update.js";
+import { redactTokenShapes } from "./token-redaction.js";
 
 /*
  * Mechanisms every login driver shares: running a vendor login command over
@@ -28,10 +29,6 @@ export function stripTerminalEscapes(text: string): string {
   return text.replace(TERMINAL_ESCAPES, "");
 }
 
-const TOKEN_SHAPES = [
-  /\bsk-[\w-]{16,}/gu, // Anthropic and OpenAI keys and OAuth tokens
-  /\beyJ[\w-]+\.[\w-]+\.[\w-]+/gu, // JWTs
-];
 const SECRET_MIN_LENGTH = 6;
 const DETAIL_LIMIT = 500;
 
@@ -56,9 +53,7 @@ export class LoginSecrets {
     for (const value of [...this.#values].toSorted((left, right) => right.length - left.length)) {
       redacted = redacted.replaceAll(value, "[redacted]");
     }
-    for (const shape of TOKEN_SHAPES) {
-      redacted = redacted.replace(shape, "[redacted]");
-    }
+    redacted = redactTokenShapes(redacted);
     return redacted.length > DETAIL_LIMIT ? `${redacted.slice(0, DETAIL_LIMIT)}...` : redacted;
   }
 

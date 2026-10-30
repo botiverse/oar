@@ -113,6 +113,19 @@ test("ACP process exit rejects in-flight SDK work with the exit code", async () 
   assert.equal(runtime.closed, true);
 });
 
+test("authentication transport exit keeps native diagnostics private", async () => {
+  const runtime = startAcpProcess(process.execPath, [fileURLToPath(new URL("../fixtures/fake-acp-open-error.mjs", import.meta.url))], createAcpClient({ name: "auth-test" }), {
+    inheritStderr: false,
+    env: { ...process.env, OAR_CHILD_STDERR: "inherit", FAKE_EXIT_METHOD: "initialize", FAKE_STDERR: "private authentication diagnostic sk-private-auth-token-1234567890" },
+    redact: () => "authentication query failed",
+  });
+  runtimes.push(runtime);
+  const failure: unknown = await request(runtime, "initialize", {}).catch((error: unknown) => error);
+  expect(failure).toBeInstanceOf(AcpError);
+  expect(failure).toMatchObject({ kind: "process_exited", exitCode: 1, message: "ACP process exited with code 1" });
+  expect(failure instanceof Error && failure.cause).toBeUndefined();
+});
+
 test("the SDK recovers after an invalid NDJSON frame", async () => {
   const runtime = start();
   assert.deepEqual(await request(runtime, "test/invalid", {}), { recovered: true });

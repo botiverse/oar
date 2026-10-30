@@ -4,10 +4,16 @@ import { createInterface } from "node:readline";
 createInterface({ input: process.stdin }).on("line", (line) => {
   const request = JSON.parse(line);
   if (request.id === undefined) { return; }
+  if (request.method === process.env.FAKE_EXIT_METHOD) {
+    process.stderr.write(process.env.FAKE_STDERR ?? "", () => { process.exit(1); });
+    return;
+  }
   const reply = request.method === process.env.FAKE_ERROR_METHOD
     ? { error: JSON.parse(process.env.FAKE_ERROR) }
     : { result: request.method === "initialize"
-        ? { protocolVersion: 1, agentCapabilities: { sessionCapabilities: { resume: {} } } }
+        ? { protocolVersion: 1, agentCapabilities: process.env.FAKE_EXIT_METHOD === "session/load"
+            ? { loadSession: true }
+            : { sessionCapabilities: { resume: {} } } }
         : { sessionId: "saved-session" } };
   process.stdout.write(`${JSON.stringify({ jsonrpc: "2.0", id: request.id, ...reply })}\n`);
 });
