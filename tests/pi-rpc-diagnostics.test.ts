@@ -45,8 +45,10 @@ test("result under file lock", () => { expect(${String(passes)}).toBe(true); });
     const result = await runExecutable("pwsh.exe", ["-NoProfile", "-NonInteractive", "-Command", command], {
       timeoutMs: 25_000, env: { ...process.env, OAR_PI_RPC_DIAGNOSTICS: directory },
     });
-    const output = `${result.stdout}\n${result.stderr}`;
-    expect(result.exitCode, output).toBe(passes ? 0 : 1);
+    const output = `${result.stdout}\n${result.stderr}\n${JSON.stringify(result.diagnostics)}`;
+    expect(result.ok, output).toBe(passes);
+    expect(result.exitCode, output).toBe(passes ? null : 1);
+    if (passes) { expect(result.diagnostics, output).toBeUndefined(); }
     expect(output).not.toContain("Unhandled Rejection");
     const contents = await readFile(path.join(directory, "tests.jsonl"), "utf8");
     const records = contents.trim().split("\n").map((line) => asRecord(JSON.parse(line)));
