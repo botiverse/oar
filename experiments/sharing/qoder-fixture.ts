@@ -1,11 +1,12 @@
 /** Native daemon only, isolated synthetic identity and native fake model replies. */
 /* oxlint-disable import/max-dependencies -- Compose native transport, synthetic fixture and process observations. */
+import { checkedProcessTable } from "./process-table.js";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
 import { spawnLineProcess } from "../../packages/oar/src/shared/executable/index.js";
-import { readProcessTable, descendantsOf, killEntries, type ProcessEntry } from "../../packages/oar/src/shared/executable/process-tree.js";
+import { descendantsOf, killEntries, type ProcessEntry } from "../../packages/oar/src/shared/executable/process-tree.js";
 import { asRecord, parseJson, type JsonRecord } from "../../packages/oar/src/shared/json.js";
 import { qoderInstallation } from "../../packages/oar/src/runtimes/qoder/installation.js";
 import { qoderControl } from "../../packages/oar/src/runtimes/qoder/control.js";
@@ -48,7 +49,7 @@ export async function qoderFixture(timing = new ProbeTiming()) {
       const value = await timing.measure(String(request.type ?? request.subtype), ms, async () => { const reply = await control.request(request, ms); return reply; }); return value; } };
   };
   const connect = async (): Promise<Connection> => {
-    const before = readProcessTable();
+    const before = checkedProcessTable();
     const child = spawnLineProcess(installation.command, ["--sdk"], { cwd: fixture.options.cwd, env, killTree: true }); children.push(child);
     const control = createControl(child); const controls = [control];
     const turns = new Map<string, ReturnType<typeof Promise.withResolvers<JsonRecord>>>();
@@ -84,14 +85,14 @@ export async function qoderFixture(timing = new ProbeTiming()) {
   };
   return { timing, home: fixture.home, installation, frames, connect, open, turn,
     crash(connection: Connection): { identity: ProcessEntry; at: string; monotonicMs: number } {
-      const table = readProcessTable(); assert.equal(table.get(connection.root.pid)?.start, connection.root.start, "daemon PID identity changed before fault injection");
+      const table = checkedProcessTable(); assert.equal(table.get(connection.root.pid)?.start, connection.root.start, "daemon PID identity changed before fault injection");
       crashDescendants.push(...descendantsOf(table, connection.root.pid));
       const fault = { identity: connection.root, at: new Date().toISOString(), monotonicMs: performance.now() };
       process.kill(connection.root.pid, "SIGKILL"); return fault;
     },
     async stop(): Promise<void> {
-      killEntries(crashDescendants, readProcessTable());
-      await Promise.all(children.map(async (child) => { child.kill(); await child.exited; })); await fixture.stop();
+      try { killEntries(crashDescendants, checkedProcessTable("qoder-cleanup")); }
+      finally { await Promise.all(children.map(async (child) => { child.kill(); await child.exited; })); await fixture.stop(); }
     },
   };
 }

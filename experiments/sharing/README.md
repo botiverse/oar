@@ -4,18 +4,21 @@ These probes exercise native multi-session transports with scripted local
 model responses. They do not enable OAR process sharing. The admission rule
 is [system.md, Shared runtime processes](../../docs/design/system.md#shared-runtime-processes).
 
+- [Updated versions and probe follow-up](updated-versions-2026-10-30.md).
 - [Platform admission and resource comparisons](admission-2026-10-30.md).
 - [Codex 0.165.0 observations](codex-2026-10-29.md).
 - [ACP and Qoder observations](acp-qoder-2026-10-29.md).
 - [Selected measurements](selected-2026-10-29.json), with no account data or raw transcripts.
 - [First three-platform run and probe corrections](portability-2026-10-30.md).
 
-As of the [2026-10-30 report](admission-2026-10-30.md), the evidence gate is met
-for Antigravity 1.4.4, Grok 1.0.70, Kimi 2.4.0 and OpenCode 2.2.1 on Linux x64,
-macOS arm64 and Windows x64, and for Codex 0.165.0 on all three platforms.
-Qoder 1.1.81 meets the gate on Linux x64 and macOS arm64; its Windows resource
-comparison remains incomplete. Other versions or platform/architecture pairs
-are unverified.
+The [updated-version report](updated-versions-2026-10-30.md) meets the evidence
+gate for Antigravity 1.4.5, Kimi 2.4.1 and OpenCode 2.2.3 on Linux x64,
+macOS arm64 and Windows x64. The [earlier report](admission-2026-10-30.md)
+retains the admitted earlier versions, Grok 1.0.70 and Codex 0.165.0 on those
+three platforms. Codex 0.166.0 has probe/resource gaps pending a corrected
+cross-platform run. Qoder 1.1.81 meets the gate on Linux x64 and macOS arm64;
+its Windows resource comparison remains incomplete. Other versions and
+platform/architecture pairs remain unverified.
 These entries record evidence; no native adapter enables sharing yet.
 
 Run from the repository root with Node 24 and the pinned executable installed:
@@ -96,12 +99,20 @@ exited. A genuine enumeration/property failure or malformed output still fails
 the measurement. This avoids `Get-Process -Id` discarding valid rows because a
 different requested PID already exited.
 
-An unreadable product process table still fails the experiment. The failure
-records elapsed time, entry count and missing host identity. On Windows it also
-runs a separate five-second CIM read and records only structural diagnostics
-(status, signal, error code, byte/row counts and host presence). That follow-up
-does not replace the failed reading or establish its cause. No command lines,
-environment values or raw CIM output are saved by this diagnostic. Product
-Windows `resources()` currently returns null; these resource numbers come from
-the experiment, not that public method. Product process-tree cleanup's empty
-table handling is a separate follow-up.
+Process-table and Windows resource reads use experiment-owned 60-second
+subprocess limits and retain actual wall time in `process-table-reads.jsonl`
+and stdout. CIM includes its internal query duration. Errors, malformed rows
+and missing observer identity remain failed evidence, with no fallback to an
+empty table. Linux procfs retains the product reader's structural validation,
+without a subprocess deadline. No command lines, environment values or raw
+CIM output are saved in these diagnostics. Cleanup failure is retained beside
+the cohort before exiting nonzero; no further cohort then starts. Product
+query limits are unchanged. Windows public `resources()` still returns null;
+these numbers come from the experiment.
+
+Codex crash injection identifies the actual executable in the owned launch
+root or its direct children, then rechecks PID/start identity before signaling.
+It records candidate names and the selected identity. This supports both
+POSIX exec-replaced roots and Windows child binaries; a missing or ambiguous
+match fails rather than guessing a PID. See the updated-version report for
+the original failed observations and local product cleanup validation.

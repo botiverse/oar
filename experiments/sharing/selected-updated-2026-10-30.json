@@ -1,0 +1,1195 @@
+[
+  {
+    "runtime": "antigravity",
+    "version": "1.4.5",
+    "platform": "Linux-X64",
+    "run": 41090160323,
+    "commit": "5e756fa4cb4d1dee2aea7e0a9c9423f25dfbb2f1",
+    "artifactId": 12993012795,
+    "observations": {
+      "cwdAndMessageIsolation": true,
+      "mcpIsolation": true,
+      "childAttribution": true,
+      "loadedResume": true,
+      "scopedCleanup": true,
+      "closeResumeRace": true,
+      "exitWithActiveSessions": true
+    },
+    "cohorts": [
+      {
+        "mode": "isolated",
+        "outcome": "completed",
+        "count": 10,
+        "windows": [
+          {
+            "elapsedMs": 5013.931715999999,
+            "cpuPercentOneCore": 1.196665678723416,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 5091938304,
+            "processes": 20
+          },
+          {
+            "elapsedMs": 5009.512231999997,
+            "cpuPercentOneCore": 0.798480932823881,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 5086949376,
+            "processes": 20
+          },
+          {
+            "elapsedMs": 5007.614171000001,
+            "cpuPercentOneCore": 0.7987835850383049,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 5086949376,
+            "processes": 20
+          }
+        ]
+      },
+      {
+        "mode": "shared",
+        "outcome": "completed",
+        "count": 10,
+        "windows": [
+          {
+            "elapsedMs": 5012.796562000003,
+            "cpuPercentOneCore": 0,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 1987514368,
+            "processes": 11
+          },
+          {
+            "elapsedMs": 5008.204804000001,
+            "cpuPercentOneCore": 0.19967234550817697,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 1985613824,
+            "processes": 11
+          },
+          {
+            "elapsedMs": 5008.747466999994,
+            "cpuPercentOneCore": 0.19965071239635754,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 1985613824,
+            "processes": 11
+          }
+        ]
+      }
+    ],
+    "reportedVersion": "1.4.5"
+  },
+  {
+    "runtime": "antigravity",
+    "version": "1.4.5",
+    "platform": "Windows-X64",
+    "run": 41090160323,
+    "commit": "5e756fa4cb4d1dee2aea7e0a9c9423f25dfbb2f1",
+    "artifactId": 12993956872,
+    "observations": {
+      "cwdAndMessageIsolation": true,
+      "mcpIsolation": true,
+      "childAttribution": true,
+      "loadedResume": true,
+      "scopedCleanup": true,
+      "closeResumeRace": true,
+      "exitWithActiveSessions": true
+    },
+    "cohorts": [
+      {
+        "mode": "isolated",
+        "outcome": "completed",
+        "count": 10,
+        "windows": [
+          {
+            "elapsedMs": 5988.383600000001,
+            "cpuPercentOneCore": 0.26092182872186076,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 3222065152,
+            "processes": 30
+          },
+          {
+            "elapsedMs": 5970.526699999988,
+            "cpuPercentOneCore": 0.5234044091955918,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 3217375232,
+            "processes": 30
+          },
+          {
+            "elapsedMs": 5986.188999999984,
+            "cpuPercentOneCore": 0.5220349708303578,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 3202584576,
+            "processes": 30
+          }
+        ]
+      },
+      {
+        "mode": "shared",
+        "outcome": "completed",
+        "count": 10,
+        "windows": [
+          {
+            "elapsedMs": 6014.114800000039,
+            "cpuPercentOneCore": 0,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 1552101376,
+            "processes": 12
+          },
+          {
+            "elapsedMs": 5969.676500000001,
+            "cpuPercentOneCore": 0,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 1551810560,
+            "processes": 12
+          },
+          {
+            "elapsedMs": 5985.700199999963,
+            "cpuPercentOneCore": 0,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 1551499264,
+            "processes": 12
+          }
+        ]
+      }
+    ],
+    "reportedVersion": null
+  },
+  {
+    "runtime": "antigravity",
+    "version": "1.4.5",
+    "platform": "macOS-ARM64",
+    "run": 41090160323,
+    "commit": "5e756fa4cb4d1dee2aea7e0a9c9423f25dfbb2f1",
+    "artifactId": 12994048978,
+    "observations": {
+      "cwdAndMessageIsolation": true,
+      "mcpIsolation": true,
+      "childAttribution": true,
+      "loadedResume": true,
+      "scopedCleanup": true,
+      "closeResumeRace": true,
+      "exitWithActiveSessions": true
+    },
+    "cohorts": [
+      {
+        "mode": "isolated",
+        "outcome": "completed",
+        "count": 10,
+        "windows": [
+          {
+            "elapsedMs": 5075.899707999997,
+            "cpuPercentOneCore": 0.9850470434078172,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 3682648064,
+            "processes": 20
+          },
+          {
+            "elapsedMs": 5041.010666999995,
+            "cpuPercentOneCore": 1.1902375131395373,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 3638132736,
+            "processes": 20
+          },
+          {
+            "elapsedMs": 5068.822584000009,
+            "cpuPercentOneCore": 0.7891378981435039,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 3618455552,
+            "processes": 20
+          }
+        ]
+      },
+      {
+        "mode": "shared",
+        "outcome": "completed",
+        "count": 10,
+        "windows": [
+          {
+            "elapsedMs": 5096.023958000005,
+            "cpuPercentOneCore": 0.3924628330799535,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 1861550080,
+            "processes": 11
+          },
+          {
+            "elapsedMs": 5083.044416999997,
+            "cpuPercentOneCore": 0.19673249296338,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 1861582848,
+            "processes": 11
+          },
+          {
+            "elapsedMs": 5051.287583000012,
+            "cpuPercentOneCore": 0,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 1861582848,
+            "processes": 11
+          }
+        ]
+      }
+    ],
+    "reportedVersion": "1.4.5"
+  },
+  {
+    "runtime": "codex",
+    "version": "0.166.0",
+    "platform": "Linux-X64",
+    "run": 41090160323,
+    "commit": "5e756fa4cb4d1dee2aea7e0a9c9423f25dfbb2f1",
+    "artifactId": 12994780095,
+    "observations": {
+      "cwdIsolation": true,
+      "mcpIsolation": true,
+      "childAttribution": true,
+      "loadedResumeOverride": true,
+      "unsubscribeAndResume": true,
+      "scopedCleanup": true,
+      "cancelDoesNotStopPeer": true,
+      "concurrentUnsubscribeResume": true,
+      "processExitWithTwoActiveThreads": false
+    },
+    "cohorts": [
+      {
+        "mode": "isolated",
+        "outcome": "completed",
+        "count": 10,
+        "windows": [
+          {
+            "elapsedMs": 5011.6896460000025,
+            "cpuPercentOneCore": 1.7958015431348988,
+            "cpuIsLowerBound": true,
+            "exitedDuringWindow": 3,
+            "rssBytes": 1613807616,
+            "processes": 13
+          },
+          {
+            "elapsedMs": 5015.632855,
+            "cpuPercentOneCore": 2.1931429827512767,
+            "cpuIsLowerBound": true,
+            "exitedDuringWindow": 3,
+            "rssBytes": 1592389632,
+            "processes": 10
+          },
+          {
+            "elapsedMs": 5011.742087999999,
+            "cpuPercentOneCore": 0,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 1592258560,
+            "processes": 10
+          }
+        ]
+      },
+      {
+        "mode": "shared",
+        "outcome": "completed",
+        "count": 10,
+        "windows": [
+          {
+            "elapsedMs": 5011.150960999999,
+            "cpuPercentOneCore": 0,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 187256832,
+            "processes": 1
+          },
+          {
+            "elapsedMs": 5009.532089,
+            "cpuPercentOneCore": 0,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 186990592,
+            "processes": 1
+          },
+          {
+            "elapsedMs": 5014.613161000001,
+            "cpuPercentOneCore": 0,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 186990592,
+            "processes": 1
+          }
+        ]
+      },
+      {
+        "mode": "shared",
+        "outcome": "completed",
+        "count": 10,
+        "windows": [
+          {
+            "elapsedMs": 5010.321370999998,
+            "cpuPercentOneCore": 0,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 187502592,
+            "processes": 1
+          },
+          {
+            "elapsedMs": 5010.564310000002,
+            "cpuPercentOneCore": 0.3991566371094036,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 187404288,
+            "processes": 1
+          },
+          {
+            "elapsedMs": 5009.390692000001,
+            "cpuPercentOneCore": 0,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 187404288,
+            "processes": 1
+          }
+        ]
+      },
+      {
+        "mode": "isolated",
+        "outcome": "completed",
+        "count": 10,
+        "windows": [
+          {
+            "elapsedMs": 5013.898344999994,
+            "cpuPercentOneCore": 0,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 1589616640,
+            "processes": 10
+          },
+          {
+            "elapsedMs": 5014.482365999997,
+            "cpuPercentOneCore": 0.9971118921270533,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 1590665216,
+            "processes": 10
+          },
+          {
+            "elapsedMs": 5010.261127999998,
+            "cpuPercentOneCore": 0.1995903954808801,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 1590665216,
+            "processes": 10
+          }
+        ]
+      }
+    ],
+    "reportedVersion": "codex-cli 0.166.0"
+  },
+  {
+    "runtime": "codex",
+    "version": "0.166.0",
+    "platform": "Windows-X64",
+    "run": 41090160323,
+    "commit": "5e756fa4cb4d1dee2aea7e0a9c9423f25dfbb2f1",
+    "artifactId": 12993976713,
+    "observations": {
+      "cwdIsolation": true,
+      "mcpIsolation": true,
+      "childAttribution": true,
+      "loadedResumeOverride": true,
+      "unsubscribeAndResume": true,
+      "scopedCleanup": true,
+      "cancelDoesNotStopPeer": true,
+      "concurrentUnsubscribeResume": true,
+      "processExitWithTwoActiveThreads": true
+    },
+    "cohorts": [
+      {
+        "mode": "isolated",
+        "outcome": "completed",
+        "count": 10,
+        "windows": [
+          {
+            "elapsedMs": 6534.517800000001,
+            "cpuPercentOneCore": 17.216266516253114,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 1296297984,
+            "processes": 25
+          },
+          {
+            "elapsedMs": 6113.6708,
+            "cpuPercentOneCore": 0.7667243057967726,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 1294815232,
+            "processes": 25
+          },
+          {
+            "elapsedMs": 6277.765799999994,
+            "cpuPercentOneCore": 1.7422599613384766,
+            "cpuIsLowerBound": true,
+            "exitedDuringWindow": 5,
+            "rssBytes": 1285758976,
+            "processes": 25
+          }
+        ]
+      },
+      {
+        "mode": "shared",
+        "outcome": "failed",
+        "count": 10,
+        "windows": []
+      },
+      {
+        "mode": "shared",
+        "outcome": "completed",
+        "count": 10,
+        "windows": [
+          {
+            "elapsedMs": 7325.289300000004,
+            "cpuPercentOneCore": 39.88750314612145,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 180350976,
+            "processes": 2
+          },
+          {
+            "elapsedMs": 6286.4110999999975,
+            "cpuPercentOneCore": 24.35809519361533,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 147120128,
+            "processes": 2
+          },
+          {
+            "elapsedMs": 6167.010999999999,
+            "cpuPercentOneCore": 0,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 147001344,
+            "processes": 2
+          }
+        ]
+      },
+      {
+        "mode": "isolated",
+        "outcome": "completed",
+        "count": 10,
+        "windows": [
+          {
+            "elapsedMs": 6628.046000000002,
+            "cpuPercentOneCore": 40.783135783909756,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 1306710016,
+            "processes": 23
+          },
+          {
+            "elapsedMs": 6417.647700000001,
+            "cpuPercentOneCore": 29.703250927906176,
+            "cpuIsLowerBound": true,
+            "exitedDuringWindow": 3,
+            "rssBytes": 1259896832,
+            "processes": 20
+          },
+          {
+            "elapsedMs": 6853.466799999995,
+            "cpuPercentOneCore": 37.617822851348784,
+            "cpuIsLowerBound": true,
+            "exitedDuringWindow": 4,
+            "rssBytes": 1303085056,
+            "processes": 23
+          }
+        ]
+      }
+    ],
+    "reportedVersion": "codex-cli 0.166.0"
+  },
+  {
+    "runtime": "codex",
+    "version": "0.166.0",
+    "platform": "macOS-ARM64",
+    "run": 41090160323,
+    "commit": "5e756fa4cb4d1dee2aea7e0a9c9423f25dfbb2f1",
+    "artifactId": 12993039434,
+    "observations": {
+      "cwdIsolation": true,
+      "mcpIsolation": true,
+      "childAttribution": true,
+      "loadedResumeOverride": true,
+      "unsubscribeAndResume": true,
+      "scopedCleanup": true,
+      "cancelDoesNotStopPeer": true,
+      "concurrentUnsubscribeResume": true,
+      "processExitWithTwoActiveThreads": false
+    },
+    "cohorts": [
+      {
+        "mode": "isolated",
+        "outcome": "completed",
+        "count": 10,
+        "windows": [
+          {
+            "elapsedMs": 5030.066249999998,
+            "cpuPercentOneCore": 0,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 1018413056,
+            "processes": 10
+          },
+          {
+            "elapsedMs": 5023.981292,
+            "cpuPercentOneCore": 0.7961813087101758,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 1018855424,
+            "processes": 10
+          },
+          {
+            "elapsedMs": 5027.464749999999,
+            "cpuPercentOneCore": 0.19890741153381536,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 1018855424,
+            "processes": 10
+          }
+        ]
+      },
+      {
+        "mode": "shared",
+        "outcome": "completed",
+        "count": 10,
+        "windows": [
+          {
+            "elapsedMs": 5031.862125,
+            "cpuPercentOneCore": 0.19873358513375405,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 124747776,
+            "processes": 1
+          },
+          {
+            "elapsedMs": 5032.559999999998,
+            "cpuPercentOneCore": 0,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 124944384,
+            "processes": 1
+          },
+          {
+            "elapsedMs": 5038.9100830000025,
+            "cpuPercentOneCore": 0,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 124944384,
+            "processes": 1
+          }
+        ]
+      },
+      {
+        "mode": "shared",
+        "outcome": "completed",
+        "count": 10,
+        "windows": [
+          {
+            "elapsedMs": 5027.180125000006,
+            "cpuPercentOneCore": 0.19891867311995284,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 123879424,
+            "processes": 1
+          },
+          {
+            "elapsedMs": 5021.416499999992,
+            "cpuPercentOneCore": 0,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 123994112,
+            "processes": 1
+          },
+          {
+            "elapsedMs": 5027.874374999999,
+            "cpuPercentOneCore": 0.1988912063858,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 123994112,
+            "processes": 1
+          }
+        ]
+      },
+      {
+        "mode": "isolated",
+        "outcome": "completed",
+        "count": 10,
+        "windows": [
+          {
+            "elapsedMs": 5042.216750000007,
+            "cpuPercentOneCore": 0.19832546865423797,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 1019166720,
+            "processes": 10
+          },
+          {
+            "elapsedMs": 5023.846290999994,
+            "cpuPercentOneCore": 0.5971520277947937,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 1019494400,
+            "processes": 10
+          },
+          {
+            "elapsedMs": 5043.6706669999985,
+            "cpuPercentOneCore": 0.39653659646846257,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 1019494400,
+            "processes": 10
+          }
+        ]
+      }
+    ],
+    "reportedVersion": "codex-cli 0.166.0"
+  },
+  {
+    "runtime": "kimi",
+    "version": "2.4.1",
+    "platform": "Linux-X64",
+    "run": 41090160323,
+    "commit": "5e756fa4cb4d1dee2aea7e0a9c9423f25dfbb2f1",
+    "artifactId": 12993557017,
+    "observations": {
+      "cwdAndMessageIsolation": true,
+      "mcpIsolation": true,
+      "childAttribution": true,
+      "loadedResume": true,
+      "scopedCleanup": true,
+      "closeResumeRace": true,
+      "exitWithActiveSessions": true
+    },
+    "cohorts": [
+      {
+        "mode": "isolated",
+        "outcome": "completed",
+        "count": 10,
+        "windows": [
+          {
+            "elapsedMs": 5013.536136999999,
+            "cpuPercentOneCore": 72.60344596175791,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 3496640512,
+            "processes": 10
+          },
+          {
+            "elapsedMs": 5009.250282000001,
+            "cpuPercentOneCore": 3.194090751962151,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 3501096960,
+            "processes": 10
+          },
+          {
+            "elapsedMs": 5011.560171999998,
+            "cpuPercentOneCore": 3.5916958755813195,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 3501752320,
+            "processes": 10
+          }
+        ]
+      },
+      {
+        "mode": "shared",
+        "outcome": "completed",
+        "count": 10,
+        "windows": [
+          {
+            "elapsedMs": 5011.083194999999,
+            "cpuPercentOneCore": 13.370362732522945,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 400420864,
+            "processes": 1
+          },
+          {
+            "elapsedMs": 5011.748296999998,
+            "cpuPercentOneCore": 0.39906233942298897,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 401731584,
+            "processes": 1
+          },
+          {
+            "elapsedMs": 5009.902956999998,
+            "cpuPercentOneCore": 0.3992093294353208,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 401731584,
+            "processes": 1
+          }
+        ]
+      }
+    ],
+    "reportedVersion": "2.4.1"
+  },
+  {
+    "runtime": "kimi",
+    "version": "2.4.1",
+    "platform": "Windows-X64",
+    "run": 41090160323,
+    "commit": "5e756fa4cb4d1dee2aea7e0a9c9423f25dfbb2f1",
+    "artifactId": 12994001302,
+    "observations": {
+      "cwdAndMessageIsolation": true,
+      "mcpIsolation": true,
+      "childAttribution": true,
+      "loadedResume": true,
+      "scopedCleanup": true,
+      "closeResumeRace": true,
+      "exitWithActiveSessions": true
+    },
+    "cohorts": [
+      {
+        "mode": "isolated",
+        "outcome": "completed",
+        "count": 10,
+        "windows": [
+          {
+            "elapsedMs": 6100.019099999998,
+            "cpuPercentOneCore": 23.053206505533737,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 2893205504,
+            "processes": 10
+          },
+          {
+            "elapsedMs": 6078.544999999998,
+            "cpuPercentOneCore": 15.423098784330794,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 2881617920,
+            "processes": 10
+          },
+          {
+            "elapsedMs": 6067.4955000000045,
+            "cpuPercentOneCore": 7.983112636836726,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 2881441792,
+            "processes": 10
+          }
+        ]
+      },
+      {
+        "mode": "shared",
+        "outcome": "completed",
+        "count": 10,
+        "windows": [
+          {
+            "elapsedMs": 6067.347999999998,
+            "cpuPercentOneCore": 9.013410801556136,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 301879296,
+            "processes": 1
+          },
+          {
+            "elapsedMs": 6058.238900000011,
+            "cpuPercentOneCore": 2.063305889109123,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 301481984,
+            "processes": 1
+          },
+          {
+            "elapsedMs": 6059.895000000004,
+            "cpuPercentOneCore": 1.2892137570040396,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 301531136,
+            "processes": 1
+          }
+        ]
+      }
+    ],
+    "reportedVersion": "2.4.1"
+  },
+  {
+    "runtime": "kimi",
+    "version": "2.4.1",
+    "platform": "macOS-ARM64",
+    "run": 41090160323,
+    "commit": "5e756fa4cb4d1dee2aea7e0a9c9423f25dfbb2f1",
+    "artifactId": 12997591744,
+    "observations": {
+      "cwdAndMessageIsolation": true,
+      "mcpIsolation": true,
+      "childAttribution": true,
+      "loadedResume": true,
+      "scopedCleanup": true,
+      "closeResumeRace": true,
+      "exitWithActiveSessions": true
+    },
+    "cohorts": [
+      {
+        "mode": "isolated",
+        "outcome": "completed",
+        "count": 10,
+        "windows": [
+          {
+            "elapsedMs": 5079.156292,
+            "cpuPercentOneCore": 31.107528675355045,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 2856058880,
+            "processes": 10
+          },
+          {
+            "elapsedMs": 5096.740583999999,
+            "cpuPercentOneCore": 38.259745966305594,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 2853666816,
+            "processes": 10
+          },
+          {
+            "elapsedMs": 5069.861708000004,
+            "cpuPercentOneCore": 8.481493673120909,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 2855305216,
+            "processes": 10
+          }
+        ]
+      },
+      {
+        "mode": "shared",
+        "outcome": "completed",
+        "count": 10,
+        "windows": [
+          {
+            "elapsedMs": 5088.968917000006,
+            "cpuPercentOneCore": 13.951745659679753,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 451821568,
+            "processes": 1
+          },
+          {
+            "elapsedMs": 5057.024207999988,
+            "cpuPercentOneCore": 1.3842132669498222,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 453656576,
+            "processes": 1
+          },
+          {
+            "elapsedMs": 5040.682083000007,
+            "cpuPercentOneCore": 13.093466105031467,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 446185472,
+            "processes": 1
+          }
+        ]
+      }
+    ],
+    "reportedVersion": "2.4.1"
+  },
+  {
+    "runtime": "opencode",
+    "version": "2.2.3",
+    "platform": "Linux-X64",
+    "run": 41090160323,
+    "commit": "5e756fa4cb4d1dee2aea7e0a9c9423f25dfbb2f1",
+    "artifactId": 12994545541,
+    "observations": {
+      "cwdAndMessageIsolation": true,
+      "mcpIsolation": true,
+      "childAttribution": true,
+      "loadedResume": true,
+      "scopedCleanup": true,
+      "closeResumeRace": true,
+      "exitWithActiveSessions": true
+    },
+    "cohorts": [
+      {
+        "mode": "isolated",
+        "outcome": "completed",
+        "count": 10,
+        "windows": [
+          {
+            "elapsedMs": 5013.490651,
+            "cpuPercentOneCore": 7.380087562867982,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 3822030848,
+            "processes": 20
+          },
+          {
+            "elapsedMs": 5015.271636999998,
+            "cpuPercentOneCore": 16.150670564366887,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 3754106880,
+            "processes": 20
+          },
+          {
+            "elapsedMs": 5010.434334999998,
+            "cpuPercentOneCore": 6.586255361033489,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 3748208640,
+            "processes": 20
+          }
+        ]
+      },
+      {
+        "mode": "shared",
+        "outcome": "completed",
+        "count": 10,
+        "windows": [
+          {
+            "elapsedMs": 5013.615245000001,
+            "cpuPercentOneCore": 2.9918530375778762,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 414265344,
+            "processes": 2
+          },
+          {
+            "elapsedMs": 5011.321681000001,
+            "cpuPercentOneCore": 1.995481558869818,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 412168192,
+            "processes": 2
+          },
+          {
+            "elapsedMs": 5012.453023000002,
+            "cpuPercentOneCore": 2.7930436326804444,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 408412160,
+            "processes": 2
+          }
+        ]
+      }
+    ],
+    "reportedVersion": "opencode v2.2.3"
+  },
+  {
+    "runtime": "opencode",
+    "version": "2.2.3",
+    "platform": "Windows-X64",
+    "run": 41090160323,
+    "commit": "5e756fa4cb4d1dee2aea7e0a9c9423f25dfbb2f1",
+    "artifactId": 12993392548,
+    "observations": {
+      "cwdAndMessageIsolation": true,
+      "mcpIsolation": true,
+      "childAttribution": true,
+      "loadedResume": true,
+      "scopedCleanup": true,
+      "closeResumeRace": true,
+      "exitWithActiveSessions": true
+    },
+    "cohorts": [
+      {
+        "mode": "isolated",
+        "outcome": "completed",
+        "count": 10,
+        "windows": [
+          {
+            "elapsedMs": 6122.2105999999985,
+            "cpuPercentOneCore": 12.505695246746335,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 3887951872,
+            "processes": 30
+          },
+          {
+            "elapsedMs": 6088.6705,
+            "cpuPercentOneCore": 10.778215047110859,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 3884855296,
+            "processes": 30
+          },
+          {
+            "elapsedMs": 6160.416799999999,
+            "cpuPercentOneCore": 9.384511125935505,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 3880222720,
+            "processes": 30
+          }
+        ]
+      },
+      {
+        "mode": "shared",
+        "outcome": "completed",
+        "count": 10,
+        "windows": [
+          {
+            "elapsedMs": 6049.844400000002,
+            "cpuPercentOneCore": 3.61579547401252,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 398442496,
+            "processes": 3
+          },
+          {
+            "elapsedMs": 6051.288199999995,
+            "cpuPercentOneCore": 1.8074663837693283,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 397844480,
+            "processes": 3
+          },
+          {
+            "elapsedMs": 6020.208299999998,
+            "cpuPercentOneCore": 2.5954251450070265,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 397737984,
+            "processes": 3
+          }
+        ]
+      }
+    ],
+    "reportedVersion": "opencode v2.2.3"
+  },
+  {
+    "runtime": "opencode",
+    "version": "2.2.3",
+    "platform": "macOS-ARM64",
+    "run": 41090160323,
+    "commit": "5e756fa4cb4d1dee2aea7e0a9c9423f25dfbb2f1",
+    "artifactId": 12997335467,
+    "observations": {
+      "cwdAndMessageIsolation": true,
+      "mcpIsolation": true,
+      "childAttribution": true,
+      "loadedResume": true,
+      "scopedCleanup": true,
+      "closeResumeRace": true,
+      "exitWithActiveSessions": true
+    },
+    "cohorts": [
+      {
+        "mode": "isolated",
+        "outcome": "completed",
+        "count": 10,
+        "windows": [
+          {
+            "elapsedMs": 5028.204041000001,
+            "cpuPercentOneCore": 7.756248489916838,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 4027613184,
+            "processes": 20
+          },
+          {
+            "elapsedMs": 5044.646416999996,
+            "cpuPercentOneCore": 21.0123745527119,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 4033331200,
+            "processes": 20
+          },
+          {
+            "elapsedMs": 5027.938374999998,
+            "cpuPercentOneCore": 7.7566583142539045,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 4035133440,
+            "processes": 20
+          }
+        ]
+      },
+      {
+        "mode": "shared",
+        "outcome": "completed",
+        "count": 10,
+        "windows": [
+          {
+            "elapsedMs": 5079.083291000003,
+            "cpuPercentOneCore": 4.331490298452755,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 500334592,
+            "processes": 2
+          },
+          {
+            "elapsedMs": 5062.791792000004,
+            "cpuPercentOneCore": 2.1727142754283726,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 500465664,
+            "processes": 2
+          },
+          {
+            "elapsedMs": 5036.551666999992,
+            "cpuPercentOneCore": 1.1912912636859503,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 500400128,
+            "processes": 2
+          }
+        ]
+      }
+    ],
+    "reportedVersion": "opencode v2.2.3"
+  },
+  {
+    "runtime": "qoder",
+    "version": "1.1.81",
+    "platform": "Windows-X64",
+    "run": 41090168754,
+    "commit": "5e756fa4cb4d1dee2aea7e0a9c9423f25dfbb2f1",
+    "artifactId": 12994825384,
+    "observations": {},
+    "cohorts": [
+      {
+        "mode": "isolated",
+        "outcome": "completed",
+        "count": 10,
+        "windows": [
+          {
+            "elapsedMs": 7284.47159999999,
+            "cpuPercentOneCore": 224.79324375428993,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 5189255168,
+            "processes": 10
+          },
+          {
+            "elapsedMs": 7286.490699999995,
+            "cpuPercentOneCore": 214.22349444568715,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 5154762752,
+            "processes": 10
+          },
+          {
+            "elapsedMs": 8407.086100000015,
+            "cpuPercentOneCore": 223.39785481678325,
+            "cpuIsLowerBound": false,
+            "exitedDuringWindow": 0,
+            "rssBytes": 4766937088,
+            "processes": 10
+          }
+        ]
+      }
+    ]
+  }
+]
