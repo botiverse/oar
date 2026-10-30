@@ -14,4 +14,5 @@ tool.once("disconnect", () => {
   console.log(tool.pid);
 });
 process.stdin.resume();
-process.stdin.on("end", () => { console.log("hook-complete"); process.exit(0); });
+if (process.env.OAR_TREE_IGNORE_EOF === "1") { setInterval(() => {}, 1000); }
+process.stdin.on("end", () => { if (process.env.OAR_TREE_IGNORE_EOF !== "1") { console.log("hook-complete"); process.exit(0); } });

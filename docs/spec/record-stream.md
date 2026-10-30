@@ -302,6 +302,10 @@ Further rules:
   the transport as stopping immediately; subsequent `write()` calls are
   silently ignored, including before EOF while capture is pending. Capture,
   force revalidation and final descendant cleanup are ordered for each root.
+  ACP cancellation stops protocol delivery immediately but drains the raw
+  stdout bytes until native exit, without parsing or recording them. It must
+  not close that pipe during capture and cause the agent to exit on EPIPE
+  before EOF or its shutdown hook.
   The final `exited` notification is still emitted exactly once after cleanup;
   it may follow the native exit by an asynchronous cleanup phase. Failed
   asynchronous observations settle as cleanup diagnostics, not unhandled
@@ -312,6 +316,9 @@ Further rules:
   query; completed results are never cached for subsequent cleanup phases.
   Query subprocesses belong to the host's ownership registry, and their
   timeout includes pipe drain without recursively observing their own trees.
+  A failed spawn without stdout settles as a read failure without leaving a
+  deadline callback that can throw. The host-exit hook combines duplicate
+  table-read warnings into one stderr report.
   Windows keeps its existing `taskkill` path for ordinary termination and
   asynchronous CIM observations for EOF shutdown.
 - **An exit after a host stop ends the running turn as aborted.** `status()`,

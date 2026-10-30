@@ -54,7 +54,7 @@ export function processTreeCleanup(pid: number, alive: () => boolean = () => tru
       stopRoot();
       if (table === undefined) { unverified = true; return; }
       const current = table.get(pid);
-      const now = alive() && root !== undefined && current?.start === root.start ? descendantsOf(table, pid) : [];
+      const now = root !== undefined && current?.start === root.start ? descendantsOf(table, pid) : [];
       killEntries([...descendants, ...now], table);
       descendants = [];
     },
@@ -76,7 +76,7 @@ export function processTreeCleanup(pid: number, alive: () => boolean = () => tru
         observations.push({ ok: false, phase: "before_eof", source: processTableSource(), elapsedMs: 0, reason: "missing_root" });
       }
       const current = table.get(pid);
-      const now = alive() && current !== undefined && (root === undefined || current.start === root.start) ? descendantsOf(table, pid) : [];
+      const now = current !== undefined && (root === undefined ? alive() : current.start === root.start) ? descendantsOf(table, pid) : [];
       killEntries([...descendants, ...now], table);
       descendants = [];
       return diagnostics();

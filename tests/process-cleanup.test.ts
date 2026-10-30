@@ -73,6 +73,27 @@ test("native tree termination does not act on a root already reported exited", a
   expect(direct).not.toHaveBeenCalled();
 });
 
+// oxlint-disable-next-line eslint/max-statements -- A root may exit after the fresh snapshot was taken but before it is delivered.
+test.each([false, true])("force uses new descendant identities after root exit (root PID reused: %s)", async (reused) => {
+  const host = { pid: process.pid, ppid: process.ppid, pgid: 99, start: "host" };
+  const root = { pid: 123, ppid: process.pid, pgid: 123, start: "root" };
+  const tool = { pid: 456, ppid: 123, pgid: 456, start: "new-tool" };
+  const gate = Promise.withResolvers<tree.ProcessTableObservation>();
+  vi.spyOn(asyncTree, "observeProcessTableAsync")
+    .mockResolvedValueOnce({ ok: true, source: "ps", elapsedMs: 1, skipped: 0, table: new Map([host, root].map((entry) => [entry.pid, entry])) })
+    .mockReturnValueOnce(gate.promise);
+  const signal = vi.spyOn(process, "kill").mockReturnValue(true);
+  let alive = true;
+  const cleanup = processTreeCleanup(root.pid, () => alive);
+  await cleanup.capture();
+  const force = cleanup.force(() => {});
+  alive = false;
+  gate.resolve({ ok: true, source: "ps", elapsedMs: 1, skipped: 0, table: new Map([host, { ...root, start: reused ? "reused" : root.start }, tool].map((entry) => [entry.pid, entry])) });
+  await force; await cleanup.finish();
+  if (reused) { expect(signal).not.toHaveBeenCalled(); }
+  else { expect(signal).toHaveBeenCalledWith(tool.pid, "SIGKILL"); }
+});
+
 // Give the tool an independent console on Windows too, and wait for its
 // own readiness plus IPC disconnection before the root may be closed.
 const nativeTree = String.raw`

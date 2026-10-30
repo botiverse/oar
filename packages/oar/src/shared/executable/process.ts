@@ -51,6 +51,8 @@ export interface LineProcess {
   readonly extraPipe?: Duplex;
   /** Native status and the last 8 KiB of stderr observed so far. */
   diagnostics(): ProcessDiagnostics;
+  /** True immediately when kill begins, before asynchronous capture or EOF. */
+  stopping(): boolean;
   write(text: string): void;
   /** Complete UTF-8 lines, independent of stdout byte-chunk boundaries. */
   onLine(handler: (line: string) => void): void;
@@ -159,6 +161,7 @@ export function spawnLineProcess(
     exited,
     stdin,
     stdout,
+    stopping: () => shutdown.stopping(),
     ...(child.stdio[3] instanceof Duplex ? { extraPipe: child.stdio[3] } : {}),
     diagnostics: () => {
       const cleanup = shutdown.diagnostics();

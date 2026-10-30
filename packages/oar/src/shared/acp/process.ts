@@ -13,6 +13,7 @@ import { AcpError, acpProcessExitedError, acpRequestTimeoutError } from "./error
 import { nativeErrorCause } from "../native-error.js";
 import type { SessionResources } from "../../contracts/session.js";
 import { observeAcpOpening, type AcpOpening } from "./opening.js";
+import { drainingAcpInput } from "./input.js";
 
 export { client as createAcpClient, methods } from "@agentclientprotocol/sdk";
 export type { ClientApp, SessionNotification } from "@agentclientprotocol/sdk";
@@ -130,7 +131,7 @@ export function startAcpProcess(
   const output = Writable.toWeb(child.stdin) as Parameters<typeof ndJsonStream>[0];
   // oxlint-disable-next-line typescript/consistent-type-assertions, typescript/no-unsafe-type-assertion -- Native WHATWG stream expected by the SDK.
   const input = Readable.toWeb(child.stdout) as Parameters<typeof ndJsonStream>[1];
-  const nativeStream = ndJsonStream(output, input);
+  const nativeStream = ndJsonStream(output, drainingAcpInput(input));
   const incoming = options.incoming;
   const writer = options.outgoing === undefined ? undefined : nativeStream.writable.getWriter();
   const stream = incoming === undefined && writer === undefined ? nativeStream : {

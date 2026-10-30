@@ -70,14 +70,17 @@ export function trackOwnedProcess(child: ChildProcess): void {
         observation ??= observeProcessTable();
         return observation;
       };
-      for (const finish of pendingCleanups) { warn(cleanupFailureReason(finish(observe))); }
+      const warnings = new Set<string>();
+      const remember = (reason: string | undefined): void => { if (reason !== undefined) { warnings.add(reason); } };
+      for (const finish of pendingCleanups) { remember(cleanupFailureReason(finish(observe))); }
       const read = (): ProcessTable | undefined => {
         const result = observe();
         if (result.ok) { return result.table; }
-        warn(cleanupFailureReason({ status: "unverified", observations: [{ ...result, phase: "before_force" }] }));
+        remember(cleanupFailureReason({ status: "unverified", observations: [{ ...result, phase: "before_force" }] }));
         return undefined;
       };
       for (const owned of ownedChildren) { killOwnedProcess(owned, read); }
+      if (warnings.size > 0) { warn([...warnings].join("; ")); }
     });
   }
 }

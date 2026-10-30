@@ -17,6 +17,8 @@ test("simultaneous callers share a query; requests during that query wait for a 
   await Promise.resolve();
   expect(query).toHaveBeenCalledOnce();
   const late = read("windows");
+  await nextTurn();
+  expect(query).toHaveBeenCalledOnce();
   gate.resolve(first);
   expect(await a).toBe(first);
   expect(await b).toBe(first);
