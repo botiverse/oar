@@ -136,7 +136,7 @@ jobs:
           if-no-files-found: warn
 
   # Separate VMs retain each phase's outcome if the other loses its runner.
-  # Commands, sampler, assertions and native deadlines are unchanged.
+  # Vendor groups expose progress through jobs API step names and timestamps.
   # CI ceilings may preserve a hung step's logs while its runner is alive.
   pi-rpc-windows:
     strategy:
@@ -160,15 +160,26 @@ jobs:
         if: matrix.phase == 'behavior'
         shell: pwsh
         run: ./sea-trial/windows-resources.ps1 -Stage behavior -Command 'pnpm run sea-trial'
-      - name: Pi RPC vendor tests with Windows resource samples
-        if: matrix.phase == 'vendor'
-        timeout-minutes: 12
+      - name: Pi RPC vendor - RPC protocol, files, readers and bundled host
+        if: ${{ !cancelled() && matrix.phase == 'vendor' }}
+        timeout-minutes: 6
         shell: pwsh
-        env:
-          OAR_PI_RPC_DIAGNOSTICS: ${{ github.workspace }}/oar-trial-run/pi-rpc-diagnostics
-        run: |
-          New-Item -ItemType Directory -Force $env:OAR_PI_RPC_DIAGNOSTICS | Out-Null
-          ./sea-trial/windows-resources.ps1 -Stage vendor -ActiveTestsPath "$env:OAR_PI_RPC_DIAGNOSTICS/active-tests.json" -CaseTimeoutSeconds 180 -CommandTimeoutSeconds 600 -Command 'pnpm vitest run sea-trial/vendor 2>&1 | Tee-Object -FilePath "$env:OAR_PI_RPC_DIAGNOSTICS/vitest.log"'
+        run: ./sea-trial/windows-pi-vendor.ps1 -Group rpc
+      - name: Pi RPC vendor - native Pi extensions, projects and errors
+        if: ${{ !cancelled() && matrix.phase == 'vendor' }}
+        timeout-minutes: 6
+        shell: pwsh
+        run: ./sea-trial/windows-pi-vendor.ps1 -Group pi
+      - name: Pi RPC vendor - MCP tools and servers
+        if: ${{ !cancelled() && matrix.phase == 'vendor' }}
+        timeout-minutes: 6
+        shell: pwsh
+        run: ./sea-trial/windows-pi-vendor.ps1 -Group mcp
+      - name: Pi RPC vendor - shared runtime contracts
+        if: ${{ !cancelled() && matrix.phase == 'vendor' }}
+        timeout-minutes: 6
+        shell: pwsh
+        run: ./sea-trial/windows-pi-vendor.ps1 -Group shared
       - uses: actions/upload-artifact@v4
         if: always()
         with:

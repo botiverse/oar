@@ -190,13 +190,21 @@ or pull request whose changes are all Markdown files or under `docs/` or
 - `behavior`: per aimock backend on the same three systems,
   `pnpm run sea-trial` plus that backend's vendor tests. Windows Pi RPC is
   excluded from this combined job and runs as `pi-rpc-windows (behavior)`
-  and `pi-rpc-windows (vendor)` on separate VMs. Both retain the original
-  commands and resource sampler; their artifacts have phase suffixes. Vendor
+  and `pi-rpc-windows (vendor)` on separate VMs. The vendor job has four named
+  steps: RPC-specific files, native Pi files, MCP files and remaining shared
+  files. Together they cover every vendor file exactly once, including new
+  files. Each step starts Vitest separately with its existing worker settings;
+  groups run sequentially and an ordinary failure does not skip later groups.
+  The job names and required check count stay unchanged. Step names and start/end
+  times remain available through the GitHub jobs API when logs are unavailable;
+  they identify a group, not an individual test or the reason it stopped.
+  Both jobs retain the resource sampler; artifacts have phase suffixes, with
+  separate vendor group directories and resource files. Vendor
   cases retain their existing 30 to 120 second Vitest limits. An external
   monitor also stops the test process tree if a case (including hooks) stays
-  active for three minutes, naming it in the resource log. A ten-minute
-  command ceiling also covers collection or shutdown hangs; the CI step and
-  job ceilings remain 12 and 20 minutes. Exit 124 means this diagnostic
+  active for three minutes, naming it in the resource log. Each vendor group's
+  command ceiling is five minutes and its CI step ceiling is six minutes;
+  the overall job ceiling remains 20 minutes. Exit 124 means this diagnostic
   monitor reached its deadline, not a native test result. Tree termination
   runs in the background with a ten-second wait: a nonreturning call records
   `termination_unreturned`; a thrown call records `termination_error`.

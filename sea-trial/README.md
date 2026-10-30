@@ -32,18 +32,28 @@ codes and output while flushing memory and process identity samples to
 collected. Sampling failures are recorded separately; they do not mask test
 failures. The vendor job also enables `OAR_PI_RPC_DIAGNOSTICS` in its isolated aimock
 fixtures. `pi-rpc-progress.ts` persists case names and results from Vitest's
-parent process; `windows-resources.ps1` enforces a separate three-minute case
-ceiling and ten-minute command ceiling. Existing shorter Vitest timeouts stay
-unchanged. An external timeout returns 124 and stops only the launched test
-process tree, leaving the CI step able to upload evidence.
+parent process. The vendor job uses [`windows-pi-vendor.ps1`](windows-pi-vendor.ps1)
+to partition every vendor file into four sequential steps: RPC-specific,
+native Pi, MCP and remaining shared files. Each group uses a separate Vitest
+process with the existing worker settings. An ordinary failed group does not
+skip the rest. `-ListOnly` prints a group's files without running it.
+`windows-resources.ps1` retains the three-minute case ceiling and gives each
+group a five-minute command ceiling, inside a six-minute CI step and the
+existing 20-minute job. Existing shorter Vitest timeouts stay unchanged.
+An external timeout returns 124 and attempts to stop only the launched test
+process tree. Artifact upload still depends on the runner being available.
 
 `pi-rpc-stderr.ts` observes the real Pi RPC launch in test workers without
 changing its inputs or process implementation. It periodically saves the last
 8 KiB of stderr with the active case name, applying the session's credential
 redactor and inherited credential environment redaction. Native sessions keep
 stderr private in production. These files and the combined Vitest output are
-under `oar-trial-run/pi-rpc-diagnostics/`, included in the existing `always()`
-artifact upload. The bundled-host subprocess is outside this test observer;
+under `oar-trial-run/pi-rpc-diagnostics/<group>/`, included in the existing
+`always()` artifact upload. Resource files use `vendor-<group>.jsonl`.
+The jobs API retains each named step's status and timestamps even when the
+log API returns 404. That locates the last group the runner reported, without
+proving which test or infrastructure component failed.
+The bundled-host subprocess is outside this test observer;
 its reported errors remain in the combined test output.
 
 The investigation and remaining uncertainties are recorded in
