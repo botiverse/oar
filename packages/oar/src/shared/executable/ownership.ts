@@ -1,10 +1,22 @@
 import { execFileSync, type ChildProcess } from "node:child_process";
 import { writeSync } from "node:fs";
 import { descendantsOf, killEntries, observeProcessTable, type ProcessTable, type ProcessTableObservation } from "./process-tree.js";
-import { cleanupFailureReason } from "./process-cleanup.js";
+import { cleanupFailureReason, type ProcessCleanupDiagnostics } from "./process-cleanup-diagnostics.js";
 
 const ownedChildren = new Set<ChildProcess>();
 let exitHookInstalled = false;
+const pendingCleanups = new Set<(read: () => ProcessTableObservation) => ProcessCleanupDiagnostics>();
+
+/** Keep captured identities owned after the root and its pipes have closed. */
+export function trackPendingCleanup(finish: (read: () => ProcessTableObservation) => ProcessCleanupDiagnostics): () => void {
+  pendingCleanups.add(finish);
+  return () => { pendingCleanups.delete(finish); };
+}
+
+function warn(reason: string | undefined): void {
+  if (reason === undefined) { return; }
+  try { writeSync(2, `[oar] ${reason}\n`); } catch { /* Stderr may already be closed. */ }
+}
 
 function killOwnedProcess(child: ChildProcess, table: () => ProcessTable | undefined): void {
   try {
@@ -54,17 +66,16 @@ export function trackOwnedProcess(child: ChildProcess): void {
     process.once("exit", () => {
       // One read of the process table serves every child.
       let observation: ProcessTableObservation | null = null;
+      const observe = (): ProcessTableObservation => {
+        observation ??= observeProcessTable();
+        return observation;
+      };
+      for (const finish of pendingCleanups) { warn(cleanupFailureReason(finish(observe))); }
       const read = (): ProcessTable | undefined => {
-        if (observation === null) {
-          observation = observeProcessTable();
-          if (!observation.ok) {
-            // Host exit cannot publish session records or await a retry.
-            // Keep the failure visible without blocking other owned roots.
-            const reason = cleanupFailureReason({ status: "unverified", observations: [{ ...observation, phase: "before_force" }] });
-            try { writeSync(2, `[oar] ${reason ?? "Descendant cleanup could not be verified"}\n`); } catch { /* Stderr may already be closed. */ }
-          }
-        }
-        return observation.ok ? observation.table : undefined;
+        const result = observe();
+        if (result.ok) { return result.table; }
+        warn(cleanupFailureReason({ status: "unverified", observations: [{ ...result, phase: "before_force" }] }));
+        return undefined;
       };
       for (const owned of ownedChildren) { killOwnedProcess(owned, read); }
     });

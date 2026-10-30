@@ -96,8 +96,8 @@ test.skipIf(process.platform === "win32").each(runtimes)("%s records unverified 
   await withTreeProbe({ ignoreSigterm: false, detachTool: true }, async (probe) => {
     const session = await open(probe.dir, { cwd: probe.dir, env: probe.env });
     const processes = await probe.tree();
-    const table = await import("../packages/oar/src/shared/executable/process-tree.js");
-    const read = vi.spyOn(table, "observeProcessTable").mockReturnValue({ ok: false, source: "ps", elapsedMs: 12, reason: "command_failed", exitCode: 2 });
+    const table = await import("../packages/oar/src/shared/executable/process-table-async.js");
+    const read = vi.spyOn(table, "observeProcessTableAsync").mockResolvedValue({ ok: false, source: "ps", elapsedMs: 12, reason: "command_failed", exitCode: 2 });
     try {
       await session.dispose();
       const exit = session.records().at(-1);

@@ -1,4 +1,5 @@
 import { fileURLToPath } from "node:url";
+import { setTimeout as delay } from "node:timers/promises";
 import { inspect } from "node:util";
 import { expect, test, vi } from "vitest";
 import { RuntimeFailureError } from "../../packages/oar/src/contracts/runtime-failure-error.js";
@@ -58,8 +59,8 @@ test.each(["initialize", "session/new", "session/resume", "session/set_mode"])("
 });
 
 test.skipIf(process.platform === "win32")("a startup refusal preserves its class and redacted cause when cleanup cannot be verified", async () => {
-  const table = await import("../../packages/oar/src/shared/executable/process-tree.js");
-  const read = vi.spyOn(table, "observeProcessTable").mockReturnValue({ ok: false, source: "ps", elapsedMs: 5001, reason: "timeout", code: "ETIMEDOUT", timeoutMs: 5000 });
+  const table = await import("../../packages/oar/src/shared/executable/process-table-async.js");
+  const read = vi.spyOn(table, "observeProcessTableAsync").mockResolvedValue({ ok: false, source: "ps", elapsedMs: 5001, reason: "timeout", code: "ETIMEDOUT", timeoutMs: 5000 });
   try {
     const failure: unknown = await session(installation, { cwd: process.cwd(),
       env: { FAKE_ERROR_METHOD: "session/new", FAKE_ERROR: JSON.stringify({ code: -32_000, message: `denied ${secret}`, data: { status: 401 } }), TEST_API_KEY: secret },
@@ -69,4 +70,30 @@ test.skipIf(process.platform === "win32")("a startup refusal preserves its class
     expect(failure instanceof Error && failure.message).toContain("Descendant cleanup could not be verified");
     expect(inspect(failure, { depth: null })).not.toContain(secret);
   } finally { read.mockRestore(); }
+});
+
+// oxlint-disable-next-line eslint/max-statements -- A refused open must await asynchronous cleanup while allowing the host to run.
+test.skipIf(process.platform === "win32")("startup failure cleanup yields and retains the original refusal", async () => {
+  const table = await import("../../packages/oar/src/shared/executable/process-table-async.js");
+  const entered = Promise.withResolvers<void>(), release = Promise.withResolvers<void>();
+  const rejected: unknown[] = [];
+  const onRejected = (error: unknown): void => { rejected.push(error); };
+  process.on("unhandledRejection", onRejected);
+  const read = vi.spyOn(table, "observeProcessTableAsync").mockImplementation(async () => {
+    entered.resolve(); await release.promise;
+    return { ok: false, source: "ps", elapsedMs: 5001, reason: "timeout", code: "ETIMEDOUT", timeoutMs: 5000 };
+  });
+  let settled = false;
+  const opened = (async (): Promise<unknown> => {
+    try { return await session(installation, { cwd: process.cwd(), env: { FAKE_ERROR_METHOD: "session/new", FAKE_ERROR: JSON.stringify({ code: -32_000, message: "denied", data: { status: 401 } }) } }); }
+    catch (error) { settled = true; return error; }
+  })();
+  try {
+    await entered.promise;
+    await delay(10);
+    expect(settled).toBe(false);
+    release.resolve();
+    expect(await opened).toMatchObject({ failure: "auth", cause: { method: "session/new", native: { code: -32_000, message: "denied", data: { status: 401 } } } });
+    expect(rejected).toEqual([]);
+  } finally { release.resolve(); await opened; read.mockRestore(); process.off("unhandledRejection", onRejected); }
 });
