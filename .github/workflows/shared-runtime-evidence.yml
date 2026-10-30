@@ -19,7 +19,7 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
         runtime: ${{ fromJSON(inputs.runtimes) }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 20
+    timeout-minutes: 30
     env:
       EVIDENCE_RUNTIME: ${{ matrix.runtime }}
       EVIDENCE_PACKAGE: ${{ fromJSON('{"codex":"@openai/codex@0.165.0","kimi":"@moonshot-ai/kimi-code@2.4.0","grok":"@xai-official/grok@1.0.70","opencode":"@opencode/cli@2.2.1","qoder":"@qoder-ai/qodercli@1.1.81"}')[matrix.runtime] }}
@@ -34,9 +34,11 @@ jobs:
           node-version: '24'
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - if: matrix.runtime != 'antigravity'
+      - id: native-install
+        if: matrix.runtime != 'antigravity'
         run: npm install -g "$EVIDENCE_PACKAGE"
       - name: Install pinned Antigravity ACP archive
+        id: antigravity-install
         if: matrix.runtime == 'antigravity'
         shell: pwsh
         run: |
@@ -64,27 +66,27 @@ jobs:
       - name: Codex native observations
         if: matrix.runtime == 'codex'
         run: pnpm tsx experiments/sharing/codex.ts
-        timeout-minutes: 5
+        timeout-minutes: 12
       - name: ACP native observations
         if: contains(fromJSON('["kimi","grok","opencode","antigravity"]'), matrix.runtime)
         run: pnpm tsx experiments/sharing/acp.ts "$EVIDENCE_RUNTIME"
-        timeout-minutes: 7
+        timeout-minutes: 12
       - name: Qoder native observations
         if: matrix.runtime == 'qoder'
         run: pnpm tsx experiments/sharing/qoder.ts
-        timeout-minutes: 7
+        timeout-minutes: 12
       - name: Codex resources
-        if: success() && matrix.runtime == 'codex'
+        if: ${{ !cancelled() && (steps.native-install.outcome == 'success' || steps.antigravity-install.outcome == 'success') && matrix.runtime == 'codex' }}
         run: pnpm tsx experiments/sharing/codex-resources.ts
-        timeout-minutes: 8
+        timeout-minutes: 12
       - name: ACP resources
-        if: success() && contains(fromJSON('["kimi","grok","opencode","antigravity"]'), matrix.runtime)
+        if: ${{ !cancelled() && (steps.native-install.outcome == 'success' || steps.antigravity-install.outcome == 'success') && contains(fromJSON('["kimi","grok","opencode","antigravity"]'), matrix.runtime) }}
         run: pnpm tsx experiments/sharing/acp-resources.ts "$EVIDENCE_RUNTIME"
-        timeout-minutes: 8
+        timeout-minutes: 12
       - name: Qoder resources
-        if: success() && matrix.runtime == 'qoder'
+        if: ${{ !cancelled() && (steps.native-install.outcome == 'success' || steps.antigravity-install.outcome == 'success') && matrix.runtime == 'qoder' }}
         run: pnpm tsx experiments/sharing/qoder-resources.ts
-        timeout-minutes: 8
+        timeout-minutes: 12
       - uses: actions/upload-artifact@v4
         if: always()
         with:

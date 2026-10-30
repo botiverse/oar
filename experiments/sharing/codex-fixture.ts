@@ -1,31 +1,30 @@
 /** Native shared-thread observations against a local scripted provider only. */
+/* oxlint-disable import/max-dependencies -- Combine native transport, isolated provider and probe evidence. */
 import assert from "node:assert/strict";
 import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { setTimeout as delay } from "node:timers/promises";
 import { startCodexAimock, namespaceMcpToolCalls } from "../../sea-trial/harness/aimock.js";
 import { startAppServerClient, type AppServerClient } from "../../packages/oar/src/runtimes/codex/app-server-client.js";
 import { asRecord, type JsonRecord } from "../../packages/oar/src/shared/json.js";
 import { readProcessTable, descendantsOf, killEntries, type ProcessEntry } from "../../packages/oar/src/shared/executable/process-tree.js";
 import { rootsSince } from "./resources.js";
+import { codexInstallation } from "../../packages/oar/src/runtimes/codex/installation.js";
+import { executableInstallation } from "../../packages/oar/src/shared/installation.js";
+import { ProbeTiming, probeTimeout } from "./observation.js";
 
-export async function until(check: () => boolean | Promise<boolean>, description: string, ms = 30_000): Promise<void> {
-  const end = performance.now() + ms;
-  // oxlint-disable-next-line no-await-in-loop -- Each poll observes the preceding native state.
-  while (!await check()) {
-    assert.ok(performance.now() < end, `Timed out: ${description}`);
-    // oxlint-disable-next-line no-await-in-loop -- Observing a bounded native condition.
-    await delay(20);
-  }
-}
 
 function quote(value: string): string {
   return `'${value.replaceAll("'", process.platform === "win32" ? "''" : String.raw`'\''`)}'`;
 }
 
 // oxlint-disable-next-line typescript/explicit-function-return-type -- The exported fixture alias derives the complete native helper types.
-export async function codexFixture() {
+export async function codexFixture(timing = new ProbeTiming()) {
+  // The manual probe may wait longer on Windows; the host's installation limit stays unchanged.
+  const installation = await timing.measure("installation", null, async () => { const value = process.platform === "win32"
+    ? await executableInstallation("OAR_CODEX_BIN", "codex", [], ["app-server", "--help"], { readinessTimeoutMs: 60_000, versionTimeoutMs: 60_000 })()
+    : await codexInstallation(); return value; });
+  assert.ok(installation.kind === "available" && installation.via === "executable");
   const home = await mkdtemp(path.join(tmpdir(), "oar-codex-sharing-"));
   const cwds = [path.join(home, "a"), path.join(home, "b")];
   await Promise.all(cwds.map(async (cwd) => { await mkdir(cwd); }));
@@ -33,9 +32,9 @@ export async function codexFixture() {
   await writeFile(tool, [
     "import { spawn } from 'node:child_process'; import { writeFileSync } from 'node:fs';",
     "if(process.argv[2]==='cwd')console.log('CWD_RESULT='+process.cwd());",
-    "else { const child=spawn(process.execPath,['-e','setTimeout(()=>{},60000)'],{stdio:'ignore'});",
+    "else { const child=spawn(process.execPath,['-e','setTimeout(()=>{},300000)'],{stdio:'ignore'});",
     "writeFileSync(process.argv[3],JSON.stringify({parent:process.pid,child:child.pid}));",
-    "console.log('OWNED_COMMAND_STARTED');setTimeout(()=>{},60000);}",
+    "console.log('OWNED_COMMAND_STARTED');setTimeout(()=>{},300000);}",
   ].join("\n"));
   const mcp = path.join(home, "mcp.mjs");
   await writeFile(mcp, [
@@ -83,8 +82,9 @@ export async function codexFixture() {
   const calls: { client: number; method: string; params: JsonRecord; result?: JsonRecord; error?: string }[] = [];
   const request = async (client: AppServerClient, method: string, params: JsonRecord): Promise<JsonRecord> => {
     const row: (typeof calls)[number] = { client: clients.indexOf(client), method, params }; calls.push(row);
-    const timer = setTimeout(() => { client.kill(); }, 30_000);
-    try { const result = await client.request(method, params); row.result = result; return result; }
+    const limit = probeTimeout(30_000);
+    const timer = setTimeout(() => { client.kill(); }, limit);
+    try { const result = await timing.measure(method, limit, async () => { const value = await client.request(method, params); return value; }); row.result = result; return result; }
     catch (error) { row.error = String(error); throw error; }
     finally { clearTimeout(timer); }
   };
@@ -113,10 +113,10 @@ export async function codexFixture() {
   const ended = (threadId: string, turnId: string): JsonRecord | null => asRecord(events.find((event) => event.method === "turn/completed"
     && event.params.threadId === threadId && asRecord(event.params.turn)?.id === turnId)?.params.turn);
   const turn = async (client: AppServerClient, threadId: string, key: string): Promise<JsonRecord> => {
-    const id = await start(client, threadId, key); await until(() => ended(threadId, id) !== null, `${key} completed`);
+    const id = await start(client, threadId, key); await timing.until(() => ended(threadId, id) !== null, `${key} completed`);
     const result = ended(threadId, id); assert.ok(result); return result;
   };
-  return { home, cwds, seen, stages, gates, provider, clients, events, calls, connect, request, open, start, ended, turn,
+  return { timing, installation, home, cwds, seen, stages, gates, provider, clients, events, calls, connect, request, open, start, ended, turn,
     crash(client: AppServerClient): void { const pid = nativePids.get(client); assert.ok(pid !== undefined); crashDescendants.push(...descendantsOf(readProcessTable(), pid)); process.kill(pid, "SIGKILL"); },
     async stop(): Promise<void> {
       killEntries(crashDescendants, readProcessTable());

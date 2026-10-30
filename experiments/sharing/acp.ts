@@ -7,7 +7,7 @@ import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { asRecord, type JsonRecord } from "../../packages/oar/src/shared/json.js";
 import { acpId, acpFixture, type AcpFixture } from "./acp-fixture.js";
-import { until } from "./codex-fixture.js";
+import { ProbeTiming, cwdEvidence, prepareFixture } from "./observation.js";
 import { identities, running } from "./processes.js";
 
 function toolOutput(fixture: AcpFixture, key: string): string {
@@ -19,8 +19,9 @@ function toolOutput(fixture: AcpFixture, key: string): string {
 }
 const id = acpId(process.argv[2] ?? "kimi");
 const out = path.resolve(process.argv[3] ?? `oar-trial-run/shared-${id}`); await mkdir(out, { recursive: true });
-const fixture = await acpFixture(id);
-const report: JsonRecord = { id, at: new Date().toISOString(), platform: process.platform, installation: fixture.installation };
+const timing = new ProbeTiming();
+const report: JsonRecord = { id, at: new Date().toISOString(), platform: process.platform, waits: timing.waits };
+const fixture = await prepareFixture(out, report, async () => { const value = await acpFixture(id, timing); return value; }); report.installation = fixture.installation;
 const observe = async (name: string, work: () => Promise<unknown>): Promise<void> => {
   try { report[name] = { observed: true, value: await work() }; } catch (error) { report[name] = { observed: false, error: String(error) }; }
   process.stdout.write(`${name}: ${JSON.stringify(report[name])}\n`);
@@ -36,12 +37,12 @@ try {
   };
   await observe("cwdAndMessageIsolation", async () => {
     const responses = await Promise.all([prompt(a, "cwd"), prompt(b, "cwd")]);
-    assert.ok([a, b].every((session) => toolOutput(fixture, `${session.label}_cwd`).includes(`CWD_RESULT=${session.cwd}`)));
+    const directories = [a, b].map((session) => cwdEvidence(session.cwd, toolOutput(fixture, `${session.label}_cwd`)));
     const texts = [a, b].map((session) => fixture.events.filter((event) => event.params.sessionId === session.id)
       .map((event) => asRecord(asRecord(event.params.update)?.content)?.text).filter((text) => typeof text === "string").join(""));
     assert.ok(texts[0]?.includes("ANSWER_A_cwd") === true && !texts[0].includes("ANSWER_B_cwd"));
     assert.ok(texts[1]?.includes("ANSWER_B_cwd") === true && !texts[1].includes("ANSWER_A_cwd"));
-    return { responses, texts, cwdFromExplicitToolArgument: id === "antigravity" };
+    return { responses, texts, directories, cwdFromExplicitToolArgument: id === "antigravity" };
   });
   await observe("mcpIsolation", async () => {
     const responses = await Promise.all([prompt(a, "mcp"), prompt(b, "mcp")]);
@@ -52,7 +53,7 @@ try {
   await observe("childAttribution", async () => {
     const offset = fixture.events.length;
     const responses = await Promise.all([prompt(a, "child"), prompt(b, "childpeer")]);
-    await until(() => fixture.seen.some((entry) => entry.key === "A_childreply"), "child reached the local provider");
+    await timing.until(() => fixture.seen.some((entry) => entry.key === "A_childreply"), "child reached the local provider");
     await delay(500);
     const events = fixture.events.slice(offset);
     const rootPeer = events.filter((event) => event.params.sessionId === b.id);
@@ -84,7 +85,7 @@ try {
     const target = held(a); const peer = held(b); pending.push(target, peer);
     const markers = await Promise.all([a, b].map(async (session) => {
       const file = path.join(fixture.home, `${session.label}.json`);
-      await until(async () => { try { await readFile(file); return true; } catch { return false; } }, `${session.label} tool starts`);
+      await timing.until(async () => { try { await readFile(file); return true; } catch { return false; } }, `${session.label} tool starts`);
       const values = asRecord(JSON.parse(await readFile(file, "utf8"))); assert.ok(values);
       return identities([Number(values.parent), Number(values.child)]);
     }));
@@ -99,7 +100,7 @@ try {
     const peerClosed = await fixture.request(child, "session/close", { sessionId: b.id }).then((value) => ({ value }), (error: unknown) => ({ error: String(error) }));
     await fixture.terminalFor(b.id).dispose();
     fixture.gates.get("A_tool")?.resolve(); fixture.gates.get("B_tool")?.resolve();
-    await Promise.all([target, peer]);
+    await timing.wait(Promise.all([target, peer]), "tool turns settle after cleanup");
     return { targetEnd, peerEndedBeforeRelease, markers, afterCancel, closed, afterNativeClose, afterHostCleanup, peerClosed };
   });
   await observe("closeResumeRace", async () => {
@@ -116,9 +117,9 @@ try {
       catch (error) { ends.push({ session: session.id, error: String(error) }); }
     });
     pending.push(...active);
-    await until(() => fixture.gates.has("A_exit") && fixture.gates.has("B_exit"), "both model requests active");
+    await timing.until(() => fixture.gates.has("A_exit") && fixture.gates.has("B_exit"), "both model requests active");
     const endedBeforeExit = ends.length;
-    fixture.crash(child); const exit = await child.exited; await Promise.all(active);
+    fixture.crash(child); const exit = await timing.wait(child.exited, "ACP exit after fault"); await timing.wait(Promise.all(active), "active ACP prompts settle after fault");
     return { endedBeforeExit, exit, ends };
   });
 } finally {

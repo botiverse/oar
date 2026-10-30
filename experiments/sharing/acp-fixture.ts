@@ -16,6 +16,7 @@ import { antigravityAcpProfile } from "../../packages/oar/src/runtimes/antigravi
 import { startAntigravityAimock, startGrokAimock, startKimiAimock, startOpencodeAimock } from "../../sea-trial/harness/aimock-acp.js";
 import { readProcessTable, descendantsOf, killEntries, type ProcessEntry } from "../../packages/oar/src/shared/executable/process-tree.js";
 import { rootsSince } from "./resources.js";
+import { ProbeTiming, powershellCommand, probeTimeout } from "./observation.js";
 
 export type AcpId = "kimi" | "grok" | "opencode" | "antigravity";
 export function acpId(value: string): AcpId {
@@ -26,15 +27,16 @@ const factories = { kimi: startKimiAimock, grok: startGrokAimock, opencode: star
 function quoted(value: string): string { return process.platform === "win32" ? `"${value.replaceAll('"', String.raw`\"`)}"` : `'${value.replaceAll("'", String.raw`'\''`)}'`; }
 
 // oxlint-disable-next-line typescript/explicit-function-return-type -- The exported alias retains the inferred native fixture shape without duplicating it.
-export async function acpFixture(id: AcpId) {
+export async function acpFixture(id: AcpId, timing = new ProbeTiming()) {
+  const installation = await timing.measure("installation", null, async () => { const value = await defaultRuntimes.require(id).installation?.(); return value; }); assert.ok(installation?.kind === "available" && installation.via === "executable");
   const home = await mkdtemp(path.join(tmpdir(), "oar-acp-sharing-"));
   const cwds = [path.join(home, "a"), path.join(home, "b")]; await Promise.all(cwds.map(async (cwd) => { await mkdir(cwd); }));
   const script = path.join(home, "tool.cjs");
   await writeFile(script, [
     "const {spawn}=require('node:child_process');const {writeFileSync}=require('node:fs');",
     "if(process.argv[2]==='cwd')console.log('CWD_RESULT='+process.cwd());",
-    "else{const child=spawn(process.execPath,['-e','setTimeout(()=>{},60000)'],{stdio:'ignore'});",
-    "writeFileSync(process.argv[3],JSON.stringify({parent:process.pid,child:child.pid}));console.log('TOOL_READY');setTimeout(()=>{},60000);}",
+    "else{const child=spawn(process.execPath,['-e','setTimeout(()=>{},300000)'],{stdio:'ignore'});",
+    "writeFileSync(process.argv[3],JSON.stringify({parent:process.pid,child:child.pid}));console.log('TOOL_READY');setTimeout(()=>{},300000);}",
   ].join("\n"));
   const mcp = path.join(home, "mcp.cjs");
   await writeFile(mcp, [
@@ -54,7 +56,9 @@ export async function acpFixture(id: AcpId) {
       const [label, phase] = key.split("_"); const codeMode = request.tools?.some((tool) => tool.function.name === "execute") ?? false;
       let call: { name: string; arguments: JsonRecord } | null = null;
       if (stage === 0 && (phase === "cwd" || phase === "tool")) {
-        const command = [process.execPath, script, phase === "cwd" ? "cwd" : "background", path.join(home, `${label}.json`)].map((arg) => quoted(arg)).join(" ");
+        const args = [process.execPath, script, phase === "cwd" ? "cwd" : "background", path.join(home, `${label}.json`)];
+        const command = process.platform === "win32" && (id === "opencode" || id === "antigravity")
+          ? powershellCommand(args) : args.map((arg) => quoted(arg)).join(" ");
         if (id === "kimi") { call = { name: "Bash", arguments: { command } }; }
         if (id === "grok") { call = { name: "run_terminal_command", arguments: { command, description: "Owned test command", block_until_ms: 1000 } }; }
         if (id === "opencode") { call = { name: codeMode ? "shell" : "bash", arguments: { command, description: "Owned test command" } }; }
@@ -89,7 +93,6 @@ export async function acpFixture(id: AcpId) {
     PATH: process.env.PATH ?? "", ...hostEnvironment, HOME: home, USERPROFILE: home, XDG_CONFIG_HOME: path.join(home, "config"),
     XDG_DATA_HOME: path.join(home, "data"), XDG_STATE_HOME: path.join(home, "state"), XDG_CACHE_HOME: path.join(home, "cache"), NO_PROXY: "*", ...provider.env })
     .filter((entry): entry is [string, string] => typeof entry[1] === "string"));
-  const installation = await defaultRuntimes.require(id).installation?.(); assert.ok(installation?.kind === "available" && installation.via === "executable");
   const profile = profiles[id]; const terminals = new Map<string, AcpTerminalHost>();
   const terminalFor = (sessionId: string): AcpTerminalHost => { const host = terminals.get(sessionId); assert.ok(host, "known terminal owner"); return host; };
   const terminal: AcpTerminalHost = {
@@ -109,8 +112,9 @@ export async function acpFixture(id: AcpId) {
   const nativePids = new Map<(typeof children)[number], number>();
   const request = async (child: (typeof children)[number], method: string, params: JsonRecord): Promise<JsonRecord> => {
     try {
-      const result = await withAcpDeadline(child, method, method === "session/prompt" ? 60_000 : 30_000,
-        async (opts) => { const reply = await child.connection.agent.request(method, params, opts); return reply; });
+      const limit = probeTimeout(method === "session/prompt" ? 60_000 : 30_000);
+      const result = await timing.measure(method, limit, async () => { const value = await withAcpDeadline(child, method, limit,
+        async (opts) => { const reply = await child.connection.agent.request(method, params, opts); return reply; }); return value; });
       calls.push({ method, params, result }); return asRecord(result) ?? {};
     } catch (error) { calls.push({ method, params, error: String(error) }); throw error; }
   };
@@ -137,7 +141,7 @@ export async function acpFixture(id: AcpId) {
   const prompt = async (child: (typeof children)[number], sessionId: string, key: string): Promise<JsonRecord> => {
     const result = await request(child, "session/prompt", { sessionId, prompt: [{ type: "text", text: `ACP_SHARE_${key}` }] }); return result;
   };
-  return { id, home, cwds, installation, provider, profile, stages, seen, gates, children, terminals, terminalFor, calls, events,
+  return { timing, id, home, cwds, installation, provider, profile, stages, seen, gates, children, terminals, terminalFor, calls, events,
     connect, request, open, prompt, mcpServers,
     crash(child: (typeof children)[number]): void { const pid = nativePids.get(child); assert.ok(pid !== undefined); crashDescendants.push(...descendantsOf(readProcessTable(), pid)); process.kill(pid, "SIGKILL"); },
     async stop(): Promise<void> {

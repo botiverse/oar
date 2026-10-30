@@ -7,20 +7,20 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { readProcessTable } from "../../packages/oar/src/shared/executable/process-tree.js";
-import { codexInstallation } from "../../packages/oar/src/runtimes/codex/installation.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { codexFixture } from "./codex-fixture.js";
 import { resourceSample, rootsSince } from "./resources.js";
+import { ProbeTiming, prepareFixture } from "./observation.js";
 
 const out = path.resolve(process.argv[2] ?? "oar-trial-run/codex-sharing-resources");
 const count = Number(process.argv[3] ?? 10); assert.ok(count > 0 && count <= 26);
 await mkdir(out, { recursive: true });
 const reports: Record<string, unknown>[] = [];
 for (const mode of ["isolated", "shared", "shared", "isolated"]) {
-  const fixture = await codexFixture();
+  const timing = new ProbeTiming();
+  const report: Record<string, unknown> = { mode, count, at: new Date().toISOString(), platform: process.platform, waits: timing.waits };
+  const fixture = await prepareFixture(out, report, async () => { const value = await codexFixture(timing); return value; }); report.installation = fixture.installation;
   const before = readProcessTable();
-  const report: Record<string, unknown> = { mode, count, at: new Date().toISOString(), platform: process.platform,
-    installation: await codexInstallation() };
   try {
     const first = await fixture.connect();
     const sessions = [];

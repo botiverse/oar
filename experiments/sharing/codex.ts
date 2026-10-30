@@ -6,10 +6,10 @@ import assert from "node:assert/strict";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
-import { codexInstallation } from "../../packages/oar/src/runtimes/codex/installation.js";
 import { asRecord, type JsonRecord } from "../../packages/oar/src/shared/json.js";
-import { codexFixture, until, type CodexFixture } from "./codex-fixture.js";
+import { codexFixture, type CodexFixture } from "./codex-fixture.js";
 import { identities, running } from "./processes.js";
+import { ProbeTiming, cwdEvidence, prepareFixture } from "./observation.js";
 
 function tools(fixture: CodexFixture, key: string): string {
   return fixture.seen.filter((entry) => entry.key === key).flatMap((entry) => {
@@ -20,8 +20,9 @@ function tools(fixture: CodexFixture, key: string): string {
 }
 const out = path.resolve(process.argv[2] ?? "oar-trial-run/codex-sharing");
 await mkdir(out, { recursive: true });
-const fixture = await codexFixture();
-const report: JsonRecord = { at: new Date().toISOString(), platform: process.platform, installation: await codexInstallation() };
+const timing = new ProbeTiming();
+const report: JsonRecord = { at: new Date().toISOString(), platform: process.platform, waits: timing.waits };
+const fixture = await prepareFixture(out, report, async () => { const value = await codexFixture(timing); return value; }); report.installation = fixture.installation;
 const check = async (name: string, work: () => Promise<unknown>): Promise<void> => {
   try { report[name] = { observed: true, value: await work() }; }
   catch (error) { report[name] = { observed: false, error: String(error) }; }
@@ -34,12 +35,12 @@ try {
   await check("cwdIsolation", async () => {
     const results = await Promise.all([fixture.turn(client, a, "A_cwd"), fixture.turn(client, b, "B_cwd")]);
     assert.ok(results.every((result) => result.status === "completed"));
-    assert.ok(fixture.cwds.every((cwd, index) => tools(fixture, `${index === 0 ? "A" : "B"}_cwd`).includes(`CWD_RESULT=${cwd}`)));
+    const directories = fixture.cwds.map((cwd, index) => cwdEvidence(cwd, tools(fixture, `${index === 0 ? "A" : "B"}_cwd`)));
     const texts = [a, b].map((id) => fixture.events.filter((event) => event.params.threadId === id && event.method === "item/completed")
       .map((event) => asRecord(event.params.item)).filter((item) => item?.type === "agentMessage").map((item) => item?.text).join(""));
     assert.ok(texts[0]?.includes("ANSWER_A_cwd") === true && !texts[0].includes("ANSWER_B_cwd"));
     assert.ok(texts[1]?.includes("ANSWER_B_cwd") === true && !texts[1].includes("ANSWER_A_cwd"));
-    return { bothCompleted: true, toolsUseOwnDirectory: true, texts };
+    return { bothCompleted: true, toolsUseOwnDirectory: true, directories, texts };
   });
   await check("mcpIsolation", async () => {
     const results = await Promise.all([fixture.turn(client, a, "A_mcp"), fixture.turn(client, b, "B_mcp")]);
@@ -56,7 +57,7 @@ try {
     const activity = fixture.events.slice(offset).filter((event) => asRecord(event.params.item)?.type === "subAgentActivity");
     const childId = asRecord(activity[0]?.params.item)?.agentThreadId;
     assert.equal(typeof childId, "string", "native subagent activity names its child");
-    await until(() => fixture.events.some((event) => event.params.threadId === childId && event.method === "turn/completed"), "child completed");
+    await timing.until(() => fixture.events.some((event) => event.params.threadId === childId && event.method === "turn/completed"), "child completed");
     const nativeChild = await fixture.request(client, "thread/read", { threadId: childId, includeTurns: false });
     assert.equal(asRecord(nativeChild.thread)?.parentThreadId, a);
     assert.ok(activity.every((event) => event.params.threadId === a));
@@ -115,12 +116,12 @@ try {
   await check("cancelDoesNotStopPeer", async () => {
     const [targetTurn, peerTurn] = await Promise.all([fixture.start(client, a, "A_hold"), fixture.start(client, b, "B_hold")]);
     assert.ok(targetTurn && peerTurn);
-    await until(() => fixture.gates.has("A_hold") && fixture.gates.has("B_hold"), "both providers held");
+    await timing.until(() => fixture.gates.has("A_hold") && fixture.gates.has("B_hold"), "both providers held");
     await fixture.request(client, "turn/interrupt", { threadId: a, turnId: targetTurn });
-    await until(() => fixture.ended(a, targetTurn) !== null, "target interrupted");
+    await timing.until(() => fixture.ended(a, targetTurn) !== null, "target interrupted");
     const peerStillRunning = fixture.ended(b, peerTurn) === null;
     fixture.gates.get("A_hold")?.resolve(); fixture.gates.get("B_hold")?.resolve();
-    await until(() => fixture.ended(b, peerTurn) !== null, "peer completed");
+    await timing.until(() => fixture.ended(b, peerTurn) !== null, "peer completed");
     return { target: fixture.ended(a, targetTurn)?.status, peerStillRunning, peer: fixture.ended(b, peerTurn)?.status };
   });
   await check("concurrentUnsubscribeResume", async () => {
@@ -136,9 +137,9 @@ try {
   await check("processExitWithTwoActiveThreads", async () => {
     fixture.gates.delete("A_hold"); fixture.gates.delete("B_hold");
     const [targetTurn, peerTurn] = await Promise.all([fixture.start(client, a, "A_hold"), fixture.start(client, b, "B_hold")]);
-    await until(() => fixture.gates.has("A_hold") && fixture.gates.has("B_hold"), "both turns active before exit");
+    await timing.until(() => fixture.gates.has("A_hold") && fixture.gates.has("B_hold"), "both turns active before exit");
     const endOffset = fixture.events.length;
-    fixture.crash(client); const exit = await client.exited;
+    fixture.crash(client); const exit = await timing.wait(client.exited, "app-server exit after fault");
     const reads = await Promise.allSettled([fixture.request(client, "thread/read", { threadId: a }), fixture.request(client, "thread/read", { threadId: b })]);
     return { exit, reads: reads.map((entry) => entry.status), targetTurn, peerTurn,
       completionsAfterExit: fixture.events.slice(endOffset).filter((event) => event.method === "turn/completed") };

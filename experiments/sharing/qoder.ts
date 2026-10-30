@@ -5,12 +5,13 @@ import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { asRecord, type JsonRecord } from "../../packages/oar/src/shared/json.js";
 import { qoderFixture } from "./qoder-fixture.js";
-import { until } from "./codex-fixture.js";
+import { ProbeTiming, cwdEvidence, prepareFixture } from "./observation.js";
 import { identities, running } from "./processes.js";
 
-const fixture = await qoderFixture();
 const out = path.resolve(process.argv[2] ?? "oar-trial-run/qoder-sharing"); await mkdir(out, { recursive: true });
-const report: JsonRecord = { at: new Date().toISOString(), platform: process.platform, installation: fixture.installation };
+const timing = new ProbeTiming();
+const report: JsonRecord = { at: new Date().toISOString(), platform: process.platform, waits: timing.waits };
+const fixture = await prepareFixture(out, report, async () => { const value = await qoderFixture(timing); return value; }); report.installation = fixture.installation;
 const observe = async (name: string, work: () => Promise<unknown>): Promise<void> => {
   try { report[name] = { observed: true, value: await work() }; } catch (error) { report[name] = { observed: false, error: String(error) }; }
   process.stdout.write(`${name}: ${JSON.stringify(report[name])}\n`);
@@ -20,7 +21,7 @@ try {
   const connection = await fixture.connect();
   const dirs = [path.join(fixture.home, "a"), path.join(fixture.home, "b")]; await Promise.all(dirs.map(async (cwd) => { await mkdir(cwd); }));
   const script = path.join(fixture.home, "command.cjs");
-  await writeFile(script, "const {spawn}=require('node:child_process'),{writeFileSync}=require('node:fs');if(process.argv[2]==='cwd')console.log('CWD_RESULT='+process.cwd());else{const c=spawn(process.execPath,['-e','setTimeout(()=>{},60000)'],{stdio:'ignore'});writeFileSync(process.argv[3],JSON.stringify({parent:process.pid,child:c.pid}));console.log('READY');setTimeout(()=>{},60000)}");
+  await writeFile(script, "const {spawn}=require('node:child_process'),{writeFileSync}=require('node:fs');if(process.argv[2]==='cwd')console.log('CWD_RESULT='+process.cwd());else{const c=spawn(process.execPath,['-e','setTimeout(()=>{},300000)'],{stdio:'ignore'});writeFileSync(process.argv[3],JSON.stringify({parent:process.pid,child:c.pid}));console.log('READY');setTimeout(()=>{},300000)}");
   const mcp = path.join(fixture.home, "mcp.cjs");
   await writeFile(mcp, String.raw`require('node:readline').createInterface({input:process.stdin}).on('line',line=>{const q=JSON.parse(line);if(q.id===undefined)return;let result={};if(q.method==='initialize')result={protocolVersion:'2024-11-05',capabilities:{tools:{}},serverInfo:{name:'scope',version:'1'}};if(q.method==='tools/list')result={tools:[{name:'echo',description:'Return marker',inputSchema:{type:'object',properties:{text:{type:'string'}},required:['text']}}]};if(q.method==='tools/call')result={content:[{type:'text',text:'MCP_RESULT='+process.argv[2]+' input='+q.params.arguments.text}]};process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:q.id,result})+'\n');});`);
   const sessions = await Promise.all(dirs.map(async (cwd, index) => {
@@ -35,9 +36,11 @@ try {
   const [a, b] = sessions; assert.ok(a && b && a.id !== b.id); report.sessions = sessions.map(({ id, cwd, label }) => ({ id, cwd, label }));
   await observe("cwdAndMessageIsolation", async () => {
     const results = await Promise.all(sessions.map(async (session) => { const result = await fixture.turn(connection, session.id); return result; }));
-    sessions.forEach((session, index) => { assert.equal(results[index]?.result, `ANSWER_${session.label}_cwd`); assert.equal(results[index].session_id, session.id);
-      assert.ok(JSON.stringify(fixture.frames.filter((frame) => frame.session_id === session.id)).includes(JSON.stringify(`CWD_RESULT=${session.cwd}`).slice(1, -1))); });
-    return { results };
+    const directories = sessions.map((session, index) => {
+      assert.equal(results[index]?.result, `ANSWER_${session.label}_cwd`); assert.equal(results[index].session_id, session.id);
+      return cwdEvidence(session.cwd, fixture.frames.filter((frame) => frame.session_id === session.id));
+    });
+    return { results, directories };
   });
   await observe("mcpIsolation", async () => {
     const results = await Promise.all(sessions.map(async (session) => { const result = await fixture.turn(connection, session.id); return result; }));
@@ -64,7 +67,7 @@ try {
     const [target, peer] = workers; assert.ok(target && peer);
     const ends: unknown[] = []; const turns = workers.map(async (worker) => { try { ends.push({ id: worker.id, value: await fixture.turn(connection, worker.id) }); } catch (error) { ends.push({ id: worker.id, error: String(error) }); } });
     const markers = await Promise.all(workers.map(async (worker) => {
-      await until(async () => { try { await readFile(worker.marker); return true; } catch { return false; } }, "owned command starts");
+      await timing.until(async () => { try { await readFile(worker.marker); return true; } catch { return false; } }, "owned command starts");
       const marker = asRecord(JSON.parse(await readFile(worker.marker, "utf8"))); assert.ok(marker); return identities([Number(marker.parent), Number(marker.child)]);
     }));
     const interrupted = await target.control.request({ subtype: "interrupt" }); await delay(1000);
@@ -92,12 +95,20 @@ try {
     return { rootId: worker.id, peerId: peer.id, result, peerResult, nestedFrames: children, childLifecycle };
   });
   await observe("exitWithActiveSessions", async () => {
-    const workers = await Promise.all(dirs.map(async (cwd) => { const worker = await fixture.open(connection, { cwd, replies: [{ chunks: Array.from({ length: 500 }, () => "held ") }] }); return worker; }));
-    const offset = fixture.frames.length; const ends: unknown[] = [];
-    const turns = workers.map(async (worker) => { try { ends.push({ id: worker.id, value: await fixture.turn(connection, worker.id) }); } catch (error) { ends.push({ id: worker.id, error: String(error) }); } });
-    await until(() => workers.every((worker) => fixture.frames.slice(offset).some((frame) => frame.session_id === worker.id && frame.type === "stream_event")), "both streams started");
-    const endedBeforeExit = ends.length; fixture.crash(connection); const exit = await connection.child.exited; await Promise.all(turns);
-    return { endedBeforeExit, exit, ends };
+    const workers = await Promise.all(dirs.map(async (cwd) => { const worker = await fixture.open(connection, { cwd, replies: [{ chunks: Array.from({ length: process.platform === "win32" ? 3000 : 500 }, () => "held ") }] }); return worker; }));
+    const offset = fixture.frames.length; const ends: JsonRecord[] = []; let faultAt: number | null = null;
+    const turns = workers.map(async (worker) => {
+      const end: JsonRecord = { id: worker.id };
+      try { end.value = await fixture.turn(connection, worker.id); } catch (error) { end.error = String(error); }
+      end.at = new Date().toISOString(); end.msAfterFault = faultAt === null ? null : performance.now() - faultAt; ends.push(end);
+    });
+    await timing.until(() => workers.every((worker) => fixture.frames.slice(offset).some((frame) => frame.session_id === worker.id && frame.type === "stream_event")), "both streams started");
+    const endedBeforeExit = ends.length; assert.equal(endedBeforeExit, 0, "both sessions are still active before fault injection");
+    const fault = fixture.crash(connection); faultAt = fault.monotonicMs;
+    const exit = await timing.wait(connection.child.exited, "Qoder daemon exit after fault");
+    const exitedAfterMs = performance.now() - fault.monotonicMs;
+    await timing.wait(Promise.all(turns), "both Qoder turns settle after fault");
+    return { endedBeforeExit, fault, exitedAfterMs, exit, ends };
   });
 } finally {
   report.frames = fixture.frames;

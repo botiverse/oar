@@ -7,13 +7,16 @@ import { setTimeout as delay } from "node:timers/promises";
 import { readProcessTable } from "../../packages/oar/src/shared/executable/process-tree.js";
 import { qoderFixture } from "./qoder-fixture.js";
 import { resourceSample, rootsSince } from "./resources.js";
+import { ProbeTiming, prepareFixture } from "./observation.js";
 
 const out = path.resolve(process.argv[2] ?? "oar-trial-run/qoder-sharing-resources");
 const count = Number(process.argv[3] ?? 10); assert.ok(count > 0 && count <= 26); await mkdir(out, { recursive: true });
 const reports: Record<string, unknown>[] = [];
 for (const mode of ["isolated", "shared"]) {
-  const fixture = await qoderFixture(); const before = readProcessTable();
-  const report: Record<string, unknown> = { mode, count, at: new Date().toISOString(), platform: process.platform, installation: fixture.installation };
+  const timing = new ProbeTiming();
+  const report: Record<string, unknown> = { mode, count, at: new Date().toISOString(), platform: process.platform, waits: timing.waits };
+  const fixture = await prepareFixture(out, report, async () => { const value = await qoderFixture(timing); return value; }); report.installation = fixture.installation;
+  const before = readProcessTable();
   try {
     const first = await fixture.connect(); const sessions = [];
     for (let index = 0; index < count; index += 1) {

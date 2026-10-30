@@ -7,6 +7,7 @@ is [system.md, Shared runtime processes](../../docs/design/system.md#shared-runt
 - [Codex 0.165.0 observations](codex-2026-10-29.md).
 - [ACP and Qoder observations](acp-qoder-2026-10-29.md).
 - [Selected measurements](selected-2026-10-29.json), with no account data or raw transcripts.
+- [First three-platform run and probe corrections](portability-2026-10-30.md).
 
 Run from the repository root with Node 24 and the pinned executable installed:
 
@@ -44,6 +45,20 @@ collects the same observations on Linux, macOS and Windows at explicit versions.
 It is outside the ordinary pull-request gate and is not an admission switch.
 It must first exist on the default branch before dispatch. A failed or missing
 platform run remains missing evidence, even if another platform passes.
+Resource steps run after a successful native installation even when an
+observation fails. Both steps retain their own failure status and evidence;
+there are no automatic retries. Each step has a 12-minute limit inside a
+30-minute job limit.
+
+The reports retain raw cwd markers and compare both paths after
+`realpathSync.native`, ignoring case on Windows. Native request and condition
+waits record their start, limit, elapsed time and outcome under `waits`;
+installation failures also save an evidence file. Windows probe waits are
+three times the Linux/macOS limits. Codex readiness/version and Qoder version
+probes allow 60 seconds on Windows. These are manual evidence budgets, not
+changes to OAR's installation or session defaults. The scoped-cleanup tools
+have a five-minute lifetime so the probe can inspect native cleanup before
+the fixture's own timer expires.
 
 Resource runs open ten sessions, execute one local-model turn in each, wait
 five seconds, then sample three five-second idle windows. RSS includes each
