@@ -1,0 +1,6 @@
+{
+  "type": "module",
+  "imports": {
+    "#probe-support": "./support.ts"
+  }
+}

@@ -12,6 +12,7 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 if (-not $IsWindows) { throw 'Windows resource sampling requires Windows.' }
+. (Join-Path $PSScriptRoot 'windows-termination.ps1')
 [void][System.IO.Directory]::CreateDirectory($OutputDirectory)
 $sampleFile = Join-Path $OutputDirectory "$Stage.jsonl"
 $writer = [System.IO.StreamWriter]::new($sampleFile, $true, [System.Text.UTF8Encoding]::new($false))
@@ -74,7 +75,6 @@ function Write-Sample {
 }
 
 $child = $null
-$timedOut = $false
 try {
     Write-Record @{ kind = 'stage_start'; samplerPid = $PID }
     Write-Sample
@@ -103,38 +103,21 @@ try {
             }
         }
         if ($expired.Count -gt 0 -or ($CommandTimeoutSeconds -gt 0 -and $commandTimer.Elapsed.TotalSeconds -ge $CommandTimeoutSeconds)) {
-            $timedOut = $true
             foreach ($test in $expired) {
                 Write-Record @{ kind = 'case_timeout'; name = $test.name; file = $test.file; timeoutSeconds = $CaseTimeoutSeconds } -ToLog
                 Write-Host "FAILED: $($test.file) > $($test.name) exceeded the external $CaseTimeoutSeconds second case deadline."
             }
             if ($expired.Count -eq 0) { Write-Record @{ kind = 'command_timeout'; timeoutSeconds = $CommandTimeoutSeconds } -ToLog }
-            # Own only the launched test command and its descendants. Keep the sampler alive to upload evidence.
-            Write-Record @{ kind = 'termination_start'; pid = $child.Id } -ToLog
-            $terminationTimer = [System.Diagnostics.Stopwatch]::StartNew()
-            try {
-                $child.Kill($true)
-            } catch {
-                Write-Record @{ kind = 'termination_error'; pid = $child.Id; errorType = $_.Exception.GetType().Name; elapsedMs = $terminationTimer.ElapsedMilliseconds } -ToLog
-                throw
-            }
-            # Kill returning does not establish that the root or all descendants have exited.
-            Write-Record @{ kind = 'termination_returned'; pid = $child.Id; elapsedMs = $terminationTimer.ElapsedMilliseconds } -ToLog
-            break
+            # This exits 124 even if native tree termination does not return.
+            Exit-TimedOutCommand -Child $child -Record { param($record) Write-Record $record -ToLog }
         }
         $samples += 1
         [void]$child.WaitForExit($IntervalMs)
     }
     if (-not $child.HasExited) { Write-Record @{ kind = 'sampling_limit'; samples = $samples } }
     # The sampling limit bounds diagnostic volume, not the test's existing deadline.
-    if ($timedOut) {
-        $rootExited = $child.WaitForExit(5000)
-        Write-Record @{ kind = 'termination_wait_returned'; pid = $child.Id; rootExited = $rootExited; timeoutMs = 5000 } -ToLog
-        $code = 124
-    } else {
-        $child.WaitForExit()
-        $code = $child.ExitCode
-    }
+    $child.WaitForExit()
+    $code = $child.ExitCode
     Write-Sample
     Write-Record @{ kind = 'stage_exit'; pid = $child.Id; exitCode = $code }
 } finally {

@@ -71,7 +71,7 @@ test.skipIf(process.platform !== "win32")("the Windows command deadline logs ter
     ]);
     expect(checkpoints[2]?.elapsedMs).toEqual(expect.any(Number));
     const logged = result.stdout.split(/\r?\n/u).filter((line) => line.startsWith("resources {")).map((line) => asRecord(JSON.parse(line.slice("resources ".length))));
-    expect(logged).toEqual(checkpoints);
+    expect(logged).toEqual([...checkpoints, expect.objectContaining({ kind: "stage_exit", pid, exitCode: 124 })]);
     expect(records.at(-1)).toMatchObject({ kind: "stage_exit", exitCode: 124 });
     expect(contents).not.toContain("Start-Sleep");
   } finally { await rm(directory, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 }); }

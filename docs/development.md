@@ -189,7 +189,14 @@ or pull request whose changes are all Markdown files or under `docs/` or
   active for three minutes, naming it in the resource log. A ten-minute
   command ceiling also covers collection or shutdown hangs; the CI step and
   job ceilings remain 12 and 20 minutes. Exit 124 means this diagnostic
-  monitor stopped the command, not a native test result.
+  monitor reached its deadline, not a native test result. Tree termination
+  runs in the background with a ten-second wait: a nonreturning call records
+  `termination_unreturned`; a thrown call records `termination_error`.
+  Either path records `stage_exit` and exits 124 without joining the worker
+  or taking another resource sample. A returned call waits up to five
+  seconds for root exit, within the same ten-second budget. Exit 124 does not prove descendant
+  cleanup; residual processes remain the runner's responsibility. Output
+  handles remain inherited so native test output still reaches the job log.
   The always-uploaded artifact includes incremental case events, the last
   active cases, combined Vitest output and redacted Pi RPC stderr tails.
   These observations change no assertion, concurrency or native deadline and

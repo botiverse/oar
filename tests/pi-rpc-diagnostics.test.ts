@@ -61,6 +61,6 @@ test("blocked native worker", async () => { await new Promise(r => setTimeout(r,
     ]);
     expect(checkpoints[2]?.elapsedMs).toEqual(expect.any(Number));
     const logged = result.stdout.split(/\r?\n/u).filter((line) => line.startsWith("resources {")).map((line) => asRecord(JSON.parse(line.slice("resources ".length))));
-    expect(logged).toEqual(checkpoints);
+    expect(logged).toEqual([...checkpoints, expect.objectContaining({ kind: "stage_exit", pid, exitCode: 124 })]);
   } finally { await rm(directory, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 }); }
 }, 45_000);
