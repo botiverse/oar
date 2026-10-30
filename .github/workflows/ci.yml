@@ -1,236 +1,39 @@
-name: ci
+name: Windows output handle investigation
 
 on:
-  push:
-    branches: [main]
-    paths-ignore: ["**/*.md", "docs/**", "assets/**"]
-  pull_request:
-    paths-ignore: ["**/*.md", "docs/**", "assets/**"]
-  # A release commit whose push run flaked gets a fresh run with
-  # `stamp workflow run ci.yml --repo botiverse/oar` (agents cannot rerun push runs).
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
-  check:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "24"
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm run check
-      - run: pnpm run build
-      - name: CodeBuddy npm installer in an isolated HOME and global prefix
-        run: pnpm tsx tests/codebuddy/install-smoke.ts
-        timeout-minutes: 5
-        env:
-          OAR_TEST: codebuddy-install
-      # Real Kimi device login, local OAuth/model server, no account or browser.
-      - run: npm install -g @moonshot-ai/kimi-code@2.4.0
-      - run: pnpm vitest run sea-trial/vendor/kimi-login.vendor.test.ts
-        env:
-          OAR_TEST: kimi-login
-          OAR_TRIAL_RUN_DIR: ${{ github.workspace }}/oar-trial-run
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: kimi-login-${{ matrix.os }}
-          path: ${{ github.workspace }}/oar-trial-run/kimi-login
-          if-no-files-found: warn
-
-  # The packed packages installed into an empty project the way a host
-  # installs them: OAR without its optional peer @cursor/sdk must load,
-  # type-check and probe every other runtime (tests/clean-install.ts).
-  clean-install:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "24"
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm run clean-install
-
-  # Real browser and SDK, with provider HTTP routed to a local scripted server.
-  browser-demo:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "24"
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm exec playwright install --with-deps chromium
-      - run: pnpm run durable-demo:smoke
-
-  # OpenDAL-style behavior jobs: the shared behavior suite instantiated per
-  # backend. aimock backends run the REAL claude/codex binaries against a
-  # scripted local provider (no login, no tokens), so they can run on every
-  # OS in CI. OAR_TEST selects the backend; an unavailable one skips.
-  behavior:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        backend: [claude-aimock, codex-aimock, pi-aimock, pi-rpc-aimock, pi-durable-aimock, qwen-aimock, qoder-native]
-        exclude:
-          - os: windows-latest
-            backend: pi-rpc-aimock
-    runs-on: ${{ matrix.os }}
-    env:
-      OAR_TEST: ${{ matrix.backend }}
-      # Bound native Qoder cold starts on all platforms without changing per-call deadlines.
-      OAR_TEST_CONCURRENCY: ${{ matrix.backend == 'qoder-native' && '2' || '' }}
-      OAR_CHILD_STDERR: ${{ ((matrix.os == 'windows-latest' && matrix.backend == 'codex-aimock') || matrix.backend == 'qoder-native') && 'inherit' || '' }}
-      # runner context is not allowed in job-level env; workspace-relative works everywhere
-      OAR_TRIAL_RUN_DIR: ${{ github.workspace }}/oar-trial-run
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "24"
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      # npm's download cache for the CLI installs below (content-addressed,
-      # so a stale restore never pins an old CLI version: latest still
-      # resolves, only unchanged tarballs are reused). pi needs no install:
-      # it is the bundled SDK already in node_modules.
-      - uses: actions/cache@v4
-        if: matrix.backend == 'claude-aimock' || matrix.backend == 'codex-aimock' || matrix.backend == 'qwen-aimock' || matrix.backend == 'qoder-native'
-        with:
-          path: |
-            ~/.npm
-            ~/AppData/Local/npm-cache
-          key: npm-dl-${{ runner.os }}-${{ matrix.backend }}-${{ github.run_id }}
-          restore-keys: npm-dl-${{ runner.os }}-${{ matrix.backend }}-
-      - run: npm install -g @anthropic-ai/claude-code
-        if: matrix.backend == 'claude-aimock'
-      - run: npm install -g @openai/codex
-        if: matrix.backend == 'codex-aimock'
-      - run: npm install -g @qwen-code/qwen-code
-        if: matrix.backend == 'qwen-aimock'
-      - run: npm install -g @qoder-ai/qodercli
-        if: matrix.backend == 'qoder-native'
-      - run: pnpm run sea-trial
-      # Vendor error-edge snapshots for this backend (vitest, OAR_TEST-gated).
-      - run: pnpm vitest run sea-trial/vendor
-      # The run directory is a test artifact: traces + logs, uploaded even
-      # (especially) when the run failed.
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: sea-trial-${{ matrix.backend }}-${{ matrix.os }}
-          path: ${{ github.workspace }}/oar-trial-run
-          if-no-files-found: warn
-
-  # Separate VMs retain each phase's outcome if the other loses its runner.
-  # Commands, sampler, assertions and native deadlines are unchanged.
-  # CI ceilings may preserve a hung step's logs while its runner is alive.
-  pi-rpc-windows:
-    strategy:
-      fail-fast: false
-      matrix:
-        phase: [behavior, vendor]
+  investigate:
     runs-on: windows-latest
-    timeout-minutes: 20
-    env:
-      OAR_TEST: pi-rpc-aimock
-      OAR_TRIAL_RUN_DIR: ${{ github.workspace }}/oar-trial-run
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - name: Pi RPC behavior with Windows resource samples
-        if: matrix.phase == 'behavior'
+      - name: Descendant inherits step output handles
         shell: pwsh
-        run: ./sea-trial/windows-resources.ps1 -Stage behavior -Command 'pnpm run sea-trial'
-      - name: Pi RPC vendor tests with Windows resource samples
-        if: matrix.phase == 'vendor'
-        timeout-minutes: 12
+        run: ./experiments/windows-handles/step.ps1 -Mode inherited -OutputDirectory "$env:GITHUB_WORKSPACE/oar-trial-run/windows-handles/inherited"
+      - name: Observe following step and clean up inherited child
+        if: always()
+        run: node experiments/windows-handles/fixture.ts observe "$env:GITHUB_WORKSPACE/oar-trial-run/windows-handles/inherited"
+      - name: Descendant writes to files
         shell: pwsh
-        env:
-          OAR_PI_RPC_DIAGNOSTICS: ${{ github.workspace }}/oar-trial-run/pi-rpc-diagnostics
-        run: |
-          New-Item -ItemType Directory -Force $env:OAR_PI_RPC_DIAGNOSTICS | Out-Null
-          ./sea-trial/windows-resources.ps1 -Stage vendor -ActiveTestsPath "$env:OAR_PI_RPC_DIAGNOSTICS/active-tests.json" -CaseTimeoutSeconds 180 -CommandTimeoutSeconds 600 -Command 'pnpm vitest run sea-trial/vendor 2>&1 | Tee-Object -FilePath "$env:OAR_PI_RPC_DIAGNOSTICS/vitest.log"'
+        run: ./experiments/windows-handles/step.ps1 -Mode file -OutputDirectory "$env:GITHUB_WORKSPACE/oar-trial-run/windows-handles/file"
+      - name: Observe following step and clean up file child
+        if: always()
+        run: node experiments/windows-handles/fixture.ts observe "$env:GITHUB_WORKSPACE/oar-trial-run/windows-handles/file"
+      - name: Bounded termination prototype and injected unreturned Kill
+        run: node experiments/windows-handles/check-termination.ts "$env:GITHUB_WORKSPACE/oar-trial-run/windows-handles/termination"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: sea-trial-pi-rpc-aimock-windows-latest-${{ matrix.phase }}
-          path: ${{ github.workspace }}/oar-trial-run
-          if-no-files-found: warn
-
-  # Native ACP agents with a local scripted provider; no account credentials.
-  # Pin these versions with the daily compatibility evidence, including the v1
-  # OpenCode package. Its v2 protocol needs separate vendor fixtures.
-  acp-behavior:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest]
-        backend: [kimi-aimock, grok-aimock, opencode-aimock, codebuddy-aimock]
-        include:
-          - backend: kimi-aimock
-            package: '@moonshot-ai/kimi-code@2.4.0'
-            command: kimi
-          - backend: grok-aimock
-            package: '@xai-official/grok@1.0.70'
-            command: grok
-          - backend: codebuddy-aimock
-            package: '@tencent-ai/codebuddy-code@2.178.1'
-            command: codebuddy
-          - backend: opencode-aimock
-            package: opencode-ai@1.19.5
-            command: opencode
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 20
-    env:
-      OAR_TEST: ${{ matrix.backend }}
-      OAR_TEST_REQUIRE_AVAILABLE: '1'
-      OAR_TEST_CONCURRENCY: '2'
-      OAR_TRIAL_RUN_DIR: ${{ github.workspace }}/oar-trial-run
-      OAR_TEST_MCP_PROGRESS: '1'
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      # These packages carry native dependencies in npm tarballs. Cache
-      # downloads, not a mutable global installation or runtime HOME.
-      - uses: actions/cache@v4
-        with:
-          path: |
-            ~/.npm
-            ~/AppData/Local/npm-cache
-          key: npm-acp-${{ runner.os }}-${{ runner.arch }}-${{ matrix.package }}
-      - run: npm install -g ${{ matrix.package }}
-      - run: ${{ matrix.command }} --version
-      - run: pnpm run sea-trial
-        timeout-minutes: 12
-      - run: pnpm vitest run sea-trial/vendor --maxWorkers 2
-        timeout-minutes: 12
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: sea-trial-${{ matrix.backend }}-${{ matrix.os }}
-          path: ${{ github.workspace }}/oar-trial-run
-          if-no-files-found: warn
+          name: windows-output-handles
+          path: oar-trial-run/windows-handles
+          if-no-files-found: error
