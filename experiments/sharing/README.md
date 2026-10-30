@@ -4,6 +4,7 @@ These probes exercise native multi-session transports with scripted local
 model responses. They do not enable OAR process sharing. The admission rule
 is [system.md, Shared runtime processes](../../docs/design/system.md#shared-runtime-processes).
 
+- [Two-run platform admission and resource comparisons](admission-2026-10-30.md).
 - [Codex 0.165.0 observations](codex-2026-10-29.md).
 - [ACP and Qoder observations](acp-qoder-2026-10-29.md).
 - [Selected measurements](selected-2026-10-29.json), with no account data or raw transcripts.
