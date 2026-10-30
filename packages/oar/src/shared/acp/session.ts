@@ -1,4 +1,5 @@
 /* oxlint-disable import/max-dependencies -- Session assembly wires the environment, process, terminal host, recorder and control machinery. */
+import { appendCleanupFailure, cleanupFailureReason } from "../executable/process-cleanup.js";
 import { sessionEnvironment } from "../environment.js";
 /* oxlint-disable typescript/promise-function-async -- SDK callbacks deliberately return the SDK's native promises. */
 import type { AvailableInstallation } from "../../contracts/installation.js";
@@ -87,9 +88,10 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
       runtime.kill();
       await runtime.exited;
       await terminalHost.dispose();
-      throw withoutCredentials(error instanceof AcpError && error.kind === "process_exited"
-        ? acpProcessExitedError(error.exitCode, runtime.diagnostics(), credentials.redact)
-        : error);
+      const failure = error instanceof AcpError && error.kind === "process_exited"
+        ? acpProcessExitedError(error.exitCode, runtime.diagnostics(), credentials.redact) : error;
+      const reason = cleanupFailureReason(runtime.diagnostics().cleanup);
+      throw withoutCredentials(appendCleanupFailure(failure, reason));
     });
     const kernel = credentials.kernel(opened.sessionId);
     recorder.bind(kernel);
@@ -102,7 +104,8 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
       void terminalHost.dispose();
       // An outcome only oar observes: answers our dispose when we caused the
       // exit, stands alone (requestId "") when the runtime died on its own.
-      kernel.respond(disposeRequest?.id ?? "", { kind: "exited", code });
+      const reason = cleanupFailureReason(runtime.diagnostics().cleanup);
+      kernel.respond(disposeRequest?.id ?? "", { kind: "exited", code, ...(reason === undefined ? {} : { reason }) });
       turns.onExit();
     });
 

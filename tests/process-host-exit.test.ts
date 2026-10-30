@@ -97,7 +97,7 @@ test.skipIf(process.platform === "win32")("host exit kills a live session's tool
 
 // Direct native children must be reclaimed too, without needing a launcher.
 // oxlint-disable-next-line eslint/max-statements -- Spawn, observe and reclaim the same host and its two children.
-test("host exit kills its live transport and one-shot child on every platform", async () => {
+test.each(process.platform === "win32" ? [false] : [false, true])("host exit kills its live transport and one-shot child (table unavailable: %s)", async (unavailable) => {
   const dir = mkdtempSync(path.join(tmpdir(), "oar-host-exit-"));
   const files = [path.join(dir, "session.pid"), path.join(dir, "probe.pid")];
   const children: number[] = [];
@@ -106,6 +106,16 @@ test("host exit kills its live transport and one-shot child on every platform", 
       import { existsSync } from "node:fs";
       import { setTimeout as delay } from "node:timers/promises";
       import { runExecutable, spawnLineProcess } from ${JSON.stringify(executableModule)};
+      import fs from "node:fs";
+      import cp from "node:child_process";
+      import { syncBuiltinESMExports } from "node:module";
+      if (${String(unavailable)}) {
+        const readdir = fs.readdirSync, exec = cp.execFileSync;
+        const denied = () => { throw Object.assign(new Error("private-process-output"), { code: "EACCES" }); };
+        fs.readdirSync = (directory, ...args) => directory === "/proc" ? denied() : readdir(directory, ...args);
+        cp.execFileSync = (command, ...args) => command === "ps" ? denied() : exec(command, ...args);
+        syncBuiltinESMExports();
+      }
       const files = ${JSON.stringify(files)};
       const child = "const fs = require('node:fs'); const file = process.argv[1]; fs.writeFileSync(file + '.tmp', String(process.pid)); fs.renameSync(file + '.tmp', file); setInterval(() => {}, 1000)";
       await spawnLineProcess(process.execPath, ["-e", child, files[0]]).spawned;
@@ -120,7 +130,11 @@ test("host exit kills its live transport and one-shot child on every platform", 
     const host = spawnSync(process.execPath, ["--import", "tsx", "--input-type=module", "-e", source], { encoding: "utf8", timeout: 20_000 });
     children.push(...files.map((file) => Number(readFileSync(file, "utf8"))));
     expect(host.error).toBeUndefined();
-    expect(host.stderr).toBe("");
+    if (unavailable) {
+      expect(host.stderr).toContain("Descendant cleanup could not be verified");
+      expect(host.stderr).toContain("EACCES");
+      expect(host.stderr).not.toContain("private-process-output");
+    } else { expect(host.stderr).toBe(""); }
     expect(host.status).toBe(23);
     expect(await Promise.all(children.map(async (pid) => gone(pid)))).toEqual([true, true]);
   } finally {

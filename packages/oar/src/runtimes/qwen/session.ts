@@ -1,3 +1,5 @@
+/* oxlint-disable import/max-dependencies -- Session assembly wires protocol, process lifetime and private readbacks. */
+import { appendCleanupFailure, cleanupFailureReason } from "../../shared/executable/process-cleanup.js";
 import { randomUUID } from "node:crypto";
 import type { McpServer, RuntimeEventBody, StartSession } from "../../contracts/session.js";
 import { withSessionCredentials } from "../../shared/session-credentials.js";
@@ -56,5 +58,5 @@ export const qwenSession: StartSession = withSessionCredentials(async (installat
       permissionResponse: qwenPermissionResponse,
       close: async (active) => { if (active) { child.kill(); await child.exited; } else { await closeQwen(child); } },
     });
-  } catch (error) { await closeQwen(child); throw error; }
+  } catch (error) { await closeQwen(child); throw appendCleanupFailure(error, cleanupFailureReason(child.diagnostics().cleanup)); }
 });

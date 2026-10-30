@@ -1,4 +1,5 @@
 import type { ExecutableResult } from "./run.js";
+import { cleanupFailureReason, type ProcessCleanupDiagnostics } from "./process-cleanup.js";
 
 /** A bounded observation of native process failure, not a retry policy. */
 export interface ProcessDiagnostics {
@@ -7,6 +8,7 @@ export interface ProcessDiagnostics {
   readonly stderr: string;
   readonly timeoutMs?: number;
   readonly error?: { readonly code?: string; readonly message: string };
+  readonly cleanup?: ProcessCleanupDiagnostics;
 }
 
 export const STDERR_TAIL_BYTES = 8192;
@@ -95,6 +97,8 @@ export function processFailure(context: string, diagnostics: ProcessDiagnostics)
   if (diagnostics.error !== undefined) {
     reasons.push(`${diagnostics.error.code ?? "native error"}: ${diagnostics.error.message}`);
   }
+  const cleanup = cleanupFailureReason(diagnostics.cleanup);
+  if (cleanup !== undefined) { reasons.push(cleanup); }
   const stderr = diagnostics.stderr === "" ? "" : `\nstderr (tail):\n${diagnostics.stderr}`;
   return new Error(`${context}: ${reasons.join("; ")}${stderr}`, { cause: diagnostics });
 }

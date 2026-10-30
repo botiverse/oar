@@ -1,6 +1,6 @@
 import { fileURLToPath } from "node:url";
 import { inspect } from "node:util";
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 import { RuntimeFailureError } from "../../packages/oar/src/contracts/runtime-failure-error.js";
 import { acpSession } from "../../packages/oar/src/shared/acp/session.js";
 import { AcpError } from "../../packages/oar/src/shared/acp/errors.js";
@@ -55,4 +55,18 @@ test.each(["initialize", "session/new", "session/resume", "session/set_mode"])("
   for (const output of [inspect(failure, { depth: null }), JSON.stringify(failure), JSON.stringify(nativeCause)]) {
     expect(output).not.toContain(secret);
   }
+});
+
+test.skipIf(process.platform === "win32")("a startup refusal preserves its class and redacted cause when cleanup cannot be verified", async () => {
+  const table = await import("../../packages/oar/src/shared/executable/process-tree.js");
+  const read = vi.spyOn(table, "observeProcessTable").mockReturnValue({ ok: false, source: "ps", elapsedMs: 5001, reason: "timeout", code: "ETIMEDOUT", timeoutMs: 5000 });
+  try {
+    const failure: unknown = await session(installation, { cwd: process.cwd(),
+      env: { FAKE_ERROR_METHOD: "session/new", FAKE_ERROR: JSON.stringify({ code: -32_000, message: `denied ${secret}`, data: { status: 401 } }), TEST_API_KEY: secret },
+    }).catch((error: unknown) => error);
+    expect(failure).toBeInstanceOf(RuntimeFailureError);
+    expect(failure).toMatchObject({ failure: "auth", cause: { method: "session/new", native: { code: -32_000, message: "denied [redacted]", data: { status: 401 } } } });
+    expect(failure instanceof Error && failure.message).toContain("Descendant cleanup could not be verified");
+    expect(inspect(failure, { depth: null })).not.toContain(secret);
+  } finally { read.mockRestore(); }
 });

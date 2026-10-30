@@ -1,12 +1,13 @@
 import type { LineProcess } from "../../packages/oar/src/shared/executable/index.js";
 import { PassThrough } from "node:stream";
 import { StderrTail, type ProcessDiagnostics } from "../../packages/oar/src/shared/executable/diagnostics.js";
+import { cleanupFailureReason, type ProcessCleanupDiagnostics } from "../../packages/oar/src/shared/executable/process-cleanup.js";
 
 export interface FakeLineProcess extends LineProcess {
   /** Emit a raw chunk on stdout; `onLine` handlers see complete lines. */
   emit(chunk: string): void;
   /** End the process with the given code; resolves `exited` and fires `onExit`. */
-  end(code: number | null, signal?: NodeJS.Signals | null): void;
+  end(code: number | null, signal?: NodeJS.Signals | null, cleanup?: ProcessCleanupDiagnostics): void;
   emitStderr(chunk: string): void;
   readonly written: string[];
   killed(): boolean;
@@ -21,7 +22,7 @@ class ScriptedLineProcess implements FakeLineProcess {
   readonly stdout = new PassThrough();
   readonly written: string[] = [];
   private readonly lineHandlers: ((line: string) => void)[] = [];
-  private readonly exitHandlers: ((code: number | null) => void)[] = [];
+  private readonly exitHandlers: ((code: number | null, reason?: string) => void)[] = [];
   private readonly resolveExit: (code: number | null) => void;
   private readonly onWrite: WriteHook | undefined;
   private pending = "";
@@ -29,6 +30,7 @@ class ScriptedLineProcess implements FakeLineProcess {
   private wasKilled = false;
   private exitCode: number | null = null;
   private exitSignal: NodeJS.Signals | null = null;
+  private cleanup: ProcessCleanupDiagnostics | undefined;
   private readonly stderr = new StderrTail();
 
   constructor(onWrite: WriteHook | undefined) {
@@ -46,7 +48,7 @@ class ScriptedLineProcess implements FakeLineProcess {
   }
 
   diagnostics(): ProcessDiagnostics {
-    return { exitCode: this.exitCode, signal: this.exitSignal, stderr: this.stderr.text() };
+    return { exitCode: this.exitCode, signal: this.exitSignal, stderr: this.stderr.text(), ...(this.cleanup === undefined ? {} : { cleanup: this.cleanup }) };
   }
 
   emitStderr(chunk: string): void {
@@ -62,7 +64,7 @@ class ScriptedLineProcess implements FakeLineProcess {
     this.lineHandlers.push(handler);
   }
 
-  onExit(handler: (code: number | null) => void): void {
+  onExit(handler: (code: number | null, reason?: string) => void): void {
     this.exitHandlers.push(handler);
   }
 
@@ -78,17 +80,18 @@ class ScriptedLineProcess implements FakeLineProcess {
     this.stdout.write(chunk);
   }
 
-  end(code: number | null, signal: NodeJS.Signals | null = null): void {
+  end(code: number | null, signal: NodeJS.Signals | null = null, cleanup?: ProcessCleanupDiagnostics): void {
     if (this.ended) {
       return;
     }
     this.ended = true;
     this.exitCode = code;
     this.exitSignal = signal;
+    this.cleanup = cleanup;
     this.stdout.end();
     this.resolveExit(code);
     for (const handler of this.exitHandlers) {
-      handler(code);
+      handler(code, cleanupFailureReason(cleanup));
     }
   }
 

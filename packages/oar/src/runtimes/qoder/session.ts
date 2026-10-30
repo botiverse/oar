@@ -1,3 +1,4 @@
+import { appendCleanupFailure, cleanupFailureReason } from "../../shared/executable/process-cleanup.js";
 /* oxlint-disable import/max-dependencies -- Native transport, controls, projection and credential boundary. */
 import { randomUUID } from "node:crypto";
 import type { StartSession } from "../../contracts/session.js";
@@ -70,6 +71,6 @@ export const qoderSession: StartSession = withSessionCredentials(async (installa
     });
   } catch (error) {
     control.end(); await closeQoder(child);
-    throw error;
+    throw appendCleanupFailure(error, cleanupFailureReason(child.diagnostics().cleanup));
   }
 });

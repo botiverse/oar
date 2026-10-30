@@ -5,7 +5,7 @@ import { StringDecoder } from "node:string_decoder";
 import { nativeError, spawnChecked, spawnFailure, StderrTail, type ProcessDiagnostics } from "./diagnostics.js";
 import { trackOwnedProcess } from "./ownership.js";
 import { treeResourcesReader } from "./process-resources.js";
-import { descendantsOf, killEntries, readProcessTable, type ProcessEntry } from "./process-tree.js";
+import { cleanupFailureReason, processTreeCleanup } from "./process-cleanup.js";
 import { windowsSpawnTarget } from "./windows-shim.js";
 
 export { trackOwnedProcess } from "./ownership.js";
@@ -104,7 +104,7 @@ export interface LineProcess {
   /** Complete UTF-8 lines, independent of stdout byte-chunk boundaries. */
   onLine(handler: (line: string) => void): void;
   /** Fires exactly once, for exit or spawn-level error alike. */
-  onExit(handler: (code: number | null) => void): void;
+  onExit(handler: (code: number | null, reason?: string) => void): void;
   /**
    * Stop the process and everything it started: close stdin, SIGTERM its
    * process group (unless shutdown is stdin), and SIGKILL the group if the child is still running once
@@ -169,7 +169,7 @@ export function spawnLineProcess(
   }
   stdin.on("error", () => {}); // EPIPE from a child already gone: its exit is what gets recorded.
   const lineHandlers: ((line: string) => void)[] = [];
-  const exitHandlers: ((code: number | null) => void)[] = [];
+  const exitHandlers: ((code: number | null, reason?: string) => void)[] = [];
   let buffer = "";
   let readingLines = false;
   let ended = false;
@@ -177,9 +177,7 @@ export function spawnLineProcess(
   let exitSignal: NodeJS.Signals | null = null;
   let spawnError: ProcessDiagnostics["error"] = undefined;
   let escalation: NodeJS.Timeout | null = null;
-  // `killTree`: the child's descendants when kill() began, until they
-  // have had their SIGKILL.
-  let descendants: readonly ProcessEntry[] = [];
+  let cleanup: ReturnType<typeof processTreeCleanup> | undefined = undefined;
   const { promise: spawned, resolve: spawnOk, reject: spawnFailed } = Promise.withResolvers<void>();
   const { promise: exited, resolve: exitDone } = Promise.withResolvers<number | null>();
   child.once("spawn", spawnOk);
@@ -193,14 +191,10 @@ export function spawnLineProcess(
     if (escalation !== null) {
       clearTimeout(escalation);
     }
-    if (descendants.length > 0) {
-      // The child stopped before its SIGKILL: what it left running of its
-      // tree now belongs to nobody, and goes before the exit is reported.
-      killEntries(descendants, readProcessTable());
-      descendants = [];
-    }
+    cleanup?.finish();
+    const reason = cleanupFailureReason(cleanup?.diagnostics());
     for (const handler of exitHandlers) {
-      handler(code);
+      handler(code, reason);
     }
     exitDone(code);
   };
@@ -238,6 +232,7 @@ export function spawnLineProcess(
     diagnostics: () => ({
       exitCode, signal: exitSignal, stderr: stderr.text(),
       ...(spawnError === undefined ? {} : { error: spawnError }),
+      ...(cleanup === undefined ? {} : { cleanup: cleanup.diagnostics() }),
     }),
     // Never once kill() ended stdin: a write after end is an unhandled 'error'.
     write: (text) => { if (!stdin.writableEnded && !stdin.destroyed) { stdin.write(text); } },
@@ -251,7 +246,7 @@ export function spawnLineProcess(
     onExit(handler) {
       if (ended) {
         queueMicrotask(() => {
-          handler(exitCode);
+          handler(exitCode, cleanupFailureReason(cleanup?.diagnostics()));
         });
       } else {
         exitHandlers.push(handler);
@@ -275,7 +270,8 @@ export function spawnLineProcess(
       if (tree) {
         // Read while the child runs: once it is gone, what left its group is
         // re-parented and no longer found below it.
-        descendants = descendantsOf(readProcessTable(), pid);
+        cleanup = processTreeCleanup(pid);
+        cleanup.capture();
       }
       stdin.end();
       // Pi RPC reenters shutdown on EOF plus SIGTERM and skips its hooks.
@@ -287,13 +283,11 @@ export function spawnLineProcess(
           signalProcessGroup(child, "SIGKILL");
           return;
         }
-        // Read again first: the child may have started more since.
-        const table = readProcessTable();
-        const now = descendantsOf(table, pid);
-        if (process.platform === "win32") { killProcessTree(child); }
-        else { signalProcessGroup(child, "SIGKILL"); }
-        killEntries([...descendants, ...now], table);
-        descendants = [];
+        cleanup?.force(() => {
+          if (child.exitCode !== null || child.signalCode !== null) { return; }
+          if (process.platform === "win32") { killProcessTree(child); }
+          else { signalProcessGroup(child, "SIGKILL"); }
+        });
       }, killGraceMs());
     },
   };

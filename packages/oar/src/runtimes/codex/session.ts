@@ -1,3 +1,4 @@
+import { appendCleanupFailure } from "../../shared/executable/process-cleanup.js";
 import { codexGoalControl, confirmCodexGoals } from "./goal.js";
 /* oxlint-disable import/max-dependencies -- The adapter composes protocol, input and process-lifetime mechanisms. */
 import { randomUUID } from "node:crypto";
@@ -46,9 +47,10 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
   // skip the override entirely.
   const sandboxMode = process.env.OAR_CODEX_SANDBOX ?? "danger-full-access";
   const configOverrides = { ...(sandboxMode === "inherit" ? {} : { sandbox_mode: `"${sandboxMode}"` }), ...(options.goals === true ? { "features.goals": "true" } : {}) };
-  // Every error the client reports goes through the redactor first: the
-  // open's config carries the session's MCP credentials to codex.
+  // Client errors redact the MCP credentials carried by the open config.
   const client = startAppServerClient(installation.command, options.env, configOverrides, undefined, { redact, ...(options.launchArgs === undefined ? {} : { launchArgs: options.launchArgs }) });
+  const cleanup: { reason?: string } = {};
+  client.onExit((_code, reason) => { if (reason !== undefined) { cleanup.reason = reason; } });
   try {
     await client.request("initialize", {
       clientInfo: { name: "oar", version: "0.0.0" },
@@ -138,9 +140,7 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
         settingsWaiter?.(params);
       }
     };
-    // Approvals, user input, dynamic tools: recorded verbatim, never answered
-    // (approvalPolicy never means none are expected; a dangling request is
-    // the honest record when one arrives anyway).
+    // Approvals, user input and dynamic tools remain verbatim unanswered requests.
     const onServerRequest = (id: string, method: string, params: JsonRecord): void => {
       kernel.request("toApp", { kind: "native", type: method, native: params }, { id });
     };
@@ -148,11 +148,11 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
     // from before the thread existed, then the open event (the mark placed at
     // the reply), then whatever codex wrote after the reply.
     client.handle({ onNotification, onServerRequest });
-    client.onExit((code) => {
+    client.onExit((code, reason) => {
       abortFallback.clear();
       // The exit is an outcome only oar observes: it answers our dispose when
       // we caused it, and stands alone when the app-server died on its own.
-      kernel.respond(disposeRequest?.id ?? "", { kind: "exited", code });
+      kernel.respond(disposeRequest?.id ?? "", { kind: "exited", code, ...(reason === undefined ? {} : { reason }) });
       state.active = null;
       state.spontaneous = false;
       state.codexTurnId = null;
@@ -291,10 +291,9 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
     });
     return session;
   } catch (error) {
-    // Until a Session is returned, the caller cannot dispose this process.
-    // Release it before rejecting, including on an already initialized home.
+    // No Session can dispose a failed open; wait for its process before rejecting.
     client.kill();
     await client.exited;
-    throw error;
+    throw appendCleanupFailure(error, cleanup.reason);
   }
 });

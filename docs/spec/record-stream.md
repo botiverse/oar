@@ -151,10 +151,12 @@ frames, and oar adds no echoing response (it would be a synthesized
 record: the action was initiated and the outcome was not observed (crash,
 oar itself killed). Backfilling a guessed response is forbidden.
 
-An `exited` response can carry an optional `reason` only when OAR itself
-terminated the owned process. It explains OAR's decision, such as receiving a
-frame for another session. An independent native exit has no `reason`; OAR
-never guesses its cause. The derived `exited` event preserves the same field,
+An `exited` response can carry an optional `reason` when OAR itself
+terminated the owned process or could not verify descendant cleanup during
+that shutdown. It explains OAR's decision, such as receiving a frame for
+another session, and any observed cleanup limitation. Root exit does not
+prove every descendant stopped. An independent native exit has no `reason`;
+OAR never guesses its cause. The derived `exited` event preserves the same field,
 and an unfinished turn's `runtime_exited` outcome uses it as its explanation.
 This is an OAR control outcome, not a synthesized native frame or `turn_ended`.
 
@@ -274,6 +276,20 @@ Further rules:
   does. A native refusal cancels only that abort attempt; it must not kill
   work the runtime refused to interrupt. Hosts resume the native session to
   continue after this fallback.
+- **A failed process-table read is not an empty tree.** Cleanup records the
+  source, duration and bounded failure fields internally, without process
+  names, command lines or environment values. Before EOF it retries a failed
+  read once, preserving both observations and the five-second ps/CIM budget.
+  A successful retry uses the normal snapshot path. If both reads fail, or a
+  later identity check fails, `exited.reason` explicitly says descendant
+  cleanup could not be verified; startup errors retain their native class
+  and cause with the same explanation. EOF and native shutdown hooks still
+  run, and normal bounded escalation still stops the owned root. Remembered
+  PIDs are signalled only after their start identities match a fresh table.
+  OAR never issues a PID tree kill for a root already reported exited. The
+  synchronous host-exit hook reports an unavailable table to stderr and
+  continues stopping other owned roots. These observations do not change
+  installation deadlines or Windows `resources()` (which remains `null`).
 - **An exit after a host stop ends the running turn as aborted.** `status()`,
   `turnEndAfter` / `awaitTurnEnd`, and the record-based session view read an
   exit after that turn's accepted abort (by the runtime or OAR), or its

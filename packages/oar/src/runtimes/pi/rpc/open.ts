@@ -1,3 +1,4 @@
+import { appendCleanupFailure, cleanupFailureReason } from "../../../shared/executable/process-cleanup.js";
 /* oxlint-disable import/max-dependencies -- Native startup composes existing session, model, credential and process helpers. */
 import { existsSync, readFileSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
@@ -129,7 +130,8 @@ export async function openPiRpc(options: SessionOptions, credentials: Credential
     } catch (error) {
       child.kill();
       await child.exited;
-      throw credentials.redactValue(error);
+      const reason = cleanupFailureReason(child.diagnostics().cleanup);
+      throw credentials.redactValue(appendCleanupFailure(error, reason));
     }
   } catch (error) { directory.remove(); throw error; }
 }

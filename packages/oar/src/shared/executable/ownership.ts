@@ -1,10 +1,12 @@
 import { execFileSync, type ChildProcess } from "node:child_process";
-import { descendantsOf, killEntries, readProcessTable, type ProcessTable } from "./process-tree.js";
+import { writeSync } from "node:fs";
+import { descendantsOf, killEntries, observeProcessTable, type ProcessTable, type ProcessTableObservation } from "./process-tree.js";
+import { cleanupFailureReason } from "./process-cleanup.js";
 
 const ownedChildren = new Set<ChildProcess>();
 let exitHookInstalled = false;
 
-function killOwnedProcess(child: ChildProcess, table: () => ProcessTable): void {
+function killOwnedProcess(child: ChildProcess, table: () => ProcessTable | undefined): void {
   try {
     if (child.pid !== undefined) {
       if (process.platform === "win32") {
@@ -18,9 +20,8 @@ function killOwnedProcess(child: ChildProcess, table: () => ProcessTable): void 
       } else {
         // Its descendants outside its group too, found below it only while
         // it runs: a reaped pid may already be someone else's.
-        if (child.exitCode === null && child.signalCode === null) {
-          killEntries(descendantsOf(table(), child.pid), table());
-        }
+        const current = child.exitCode === null && child.signalCode === null ? table() : undefined;
+        if (current !== undefined) { killEntries(descendantsOf(current, child.pid), current); }
         process.kill(-child.pid, "SIGKILL");
       }
       return;
@@ -52,8 +53,19 @@ export function trackOwnedProcess(child: ChildProcess): void {
     exitHookInstalled = true;
     process.once("exit", () => {
       // One read of the process table serves every child.
-      let table: ProcessTable | null = null;
-      const read = (): ProcessTable => { table ??= readProcessTable(); return table; };
+      let observation: ProcessTableObservation | null = null;
+      const read = (): ProcessTable | undefined => {
+        if (observation === null) {
+          observation = observeProcessTable();
+          if (!observation.ok) {
+            // Host exit cannot publish session records or await a retry.
+            // Keep the failure visible without blocking other owned roots.
+            const reason = cleanupFailureReason({ status: "unverified", observations: [{ ...observation, phase: "before_force" }] });
+            try { writeSync(2, `[oar] ${reason ?? "Descendant cleanup could not be verified"}\n`); } catch { /* Stderr may already be closed. */ }
+          }
+        }
+        return observation.ok ? observation.table : undefined;
+      };
       for (const owned of ownedChildren) { killOwnedProcess(owned, read); }
     });
   }

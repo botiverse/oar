@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { afterAll, beforeAll, describe, test, vi } from "vitest";
+import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
 import type { Session, SessionOptions } from "../packages/oar/src/contracts/session.js";
 import { claudeSession } from "../packages/oar/src/runtimes/claude/session.js";
 import { codexSession } from "../packages/oar/src/runtimes/codex/session.js";
@@ -88,3 +88,23 @@ test.skipIf(process.platform !== "win32").each(runtimes)(
     });
   },
 );
+
+// Windows uses taskkill directly for these non-EOF adapters; EOF failure is
+// covered on all platforms in process-cleanup.test.ts.
+test.skipIf(process.platform === "win32").each(runtimes)("%s records unverified descendant cleanup on dispose", async (_runtime, open) => {
+  // oxlint-disable-next-line eslint/max-statements -- Failure injection, root exit, descendant liveness and cleanup are one lifecycle.
+  await withTreeProbe({ ignoreSigterm: false, detachTool: true }, async (probe) => {
+    const session = await open(probe.dir, { cwd: probe.dir, env: probe.env });
+    const processes = await probe.tree();
+    const table = await import("../packages/oar/src/shared/executable/process-tree.js");
+    const read = vi.spyOn(table, "observeProcessTable").mockReturnValue({ ok: false, source: "ps", elapsedMs: 12, reason: "command_failed", exitCode: 2 });
+    try {
+      await session.dispose();
+      const exit = session.records().at(-1);
+      assert.ok(exit?.kind === "response" && exit.body.kind === "exited");
+      expect(exit.body.reason).toContain("Descendant cleanup could not be verified");
+      expect(await gone(processes.agent)).toBe(true);
+      expect(await gone(processes.grandchild, 50)).toBe(false);
+    } finally { read.mockRestore(); await session.dispose(); }
+  });
+});

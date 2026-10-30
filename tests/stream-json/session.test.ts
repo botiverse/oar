@@ -58,3 +58,12 @@ test("frames arriving during private startup keep their projection state", async
     expect(session.records().flatMap((record) => record.kind === "frame" ? record.body.events : [])).toContainEqual({ kind: "tool_call_input_delta", callId: "call", delta: "{}" });
   } finally { await session.dispose(); }
 });
+
+test("exit preserves the native protocol reason and unverified descendant cleanup separately", async () => {
+  const child = fakeLineProcess();
+  const session = await open(child, { exitReason: () => "unrecognized native frame" });
+  child.end(0, null, { status: "unverified", observations: [{ ok: false, phase: "after_exit", source: "windows", reason: "timeout", elapsedMs: 5002, code: "ETIMEDOUT", timeoutMs: 5000 }] });
+  expect(session.records().at(-1)).toMatchObject({ kind: "response", body: { kind: "exited", code: 0,
+    reason: "unrecognized native frame; Descendant cleanup could not be verified: after_exit windows: timeout (5002 ms, ETIMEDOUT)" } });
+  await session.dispose();
+});

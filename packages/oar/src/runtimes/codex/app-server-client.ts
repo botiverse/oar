@@ -51,7 +51,7 @@ export interface AppServerClient {
    * record exactly where the reply sat on the wire.
    */
   mark(callback: () => void): void;
-  onExit(handler: (code: number | null) => void): void;
+  onExit(handler: (code: number | null, reason?: string) => void): void;
   kill(): void;
   /** The app-server's memory with everything it started (`LineProcess.resources`). */
   readonly resources: () => Promise<SessionResources | null>;

@@ -130,13 +130,13 @@ export const createPiRpcSession = (runtime: PiRuntimeOptions): StartSession => w
     })();
   };
   for (const message of buffered) { receive(message); }
-  rpc.child.onExit((code) => {
+  rpc.child.onExit((code, reason) => {
     fallback.clear();
     running = false;
     held.splice(0);
     void (async (): Promise<void> => {
       await pump;
-      kernel.respond(disposeRequest?.id ?? "", { kind: "exited", code });
+      kernel.respond(disposeRequest?.id ?? "", { kind: "exited", code, ...(reason === undefined ? {} : { reason }) });
       rpc.directory.remove();
     })();
   });

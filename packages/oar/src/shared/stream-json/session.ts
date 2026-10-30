@@ -5,6 +5,7 @@ import { withInputImages, type LoadedImage } from "../input-images.js";
 import { withdrawControl } from "../held-input.js";
 import { asRecord, parseJson } from "../json.js";
 import type { SessionCredentials } from "../session-credentials.js";
+import { appendCleanupFailure, cleanupFailureReason } from "../executable/process-cleanup.js";
 import type { LineProcess } from "../executable/index.js";
 import { streamJsonUserMessage, streamJsonPrompted } from "./input-lifecycle.js";
 import { foldStreamJsonStdout } from "./projection.js";
@@ -132,10 +133,11 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
       }
     }
   });
-  child.onExit((code) => {
+  child.onExit((code, cleanupReason) => {
     abortFallback.clear();
     // An exit before fallback still precedes the rejected pending controls.
-    const reason = profile.exitReason?.();
+    const reasons = [profile.exitReason?.(), cleanupReason].filter((value) => value !== undefined);
+    const reason = reasons.length === 0 ? undefined : reasons.join("; ");
     kernel.respond(disposeRequest?.id ?? "", { kind: "exited", code, ...(reason === undefined ? {} : { reason }) });
     state.active = null;
     state.spontaneous = false;
@@ -146,7 +148,9 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
     profile.exited(code);
   });
 
-  await profile.open({ current: () => state.projection, replace: (projection) => { state.projection = projection; }, report: (body) => { kernel.frame(body); } });
+  try {
+    await profile.open({ current: () => state.projection, replace: (projection) => { state.projection = projection; }, report: (body) => { kernel.frame(body); } });
+  } catch (error) { throw appendCleanupFailure(error, cleanupFailureReason(child.diagnostics().cleanup)); }
 
   let interruptCounter = 0;
   const capabilities = profile.capabilities;
