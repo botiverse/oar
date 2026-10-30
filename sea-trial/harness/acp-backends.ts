@@ -1,11 +1,11 @@
-import { antigravityInstallation, antigravitySession, defineRuntime, grokInstallation, grokSession, kimiInstallation, kimiSession, opencodeInstallation, opencodeSession, type Runtime } from "../../packages/oar/src/index.js";
+import { antigravityRuntime, defineRuntime, grokRuntime, kimiRuntime, opencodeRuntime, type Runtime } from "../../packages/oar/src/index.js";
 import { startAntigravityAimock, startGrokAimock, startKimiAimock, startOpencodeAimock, type AcpAimockEnv } from "./aimock-acp.js";
 
 const backends = {
-  antigravity: { installation: antigravityInstallation, session: antigravitySession, start: startAntigravityAimock },
-  grok: { installation: grokInstallation, session: grokSession, start: startGrokAimock },
-  kimi: { installation: kimiInstallation, session: kimiSession, start: startKimiAimock },
-  opencode: { installation: opencodeInstallation, session: opencodeSession, start: startOpencodeAimock },
+  antigravity: { runtime: antigravityRuntime, start: startAntigravityAimock },
+  grok: { runtime: grokRuntime, start: startGrokAimock },
+  kimi: { runtime: kimiRuntime, start: startKimiAimock },
+  opencode: { runtime: opencodeRuntime, start: startOpencodeAimock },
 };
 
 /** The daily probe and CI share the same local provider and native session composition. */
@@ -16,5 +16,6 @@ export async function acpBackend(id: keyof typeof backends): Promise<{ runtime: 
     mock.onMessage(/^(?![\s\S]*slow)[\s\S]*$/u, { content: "ok" }, { latency: 80 });
   });
   // No account or catalog reads: those cases skip by capability, as in the daily probe.
-  return { runtime: defineRuntime({ id: `${id}-aimock`, installation: backend.installation, session: backend.session }), aimock };
+  const { installation, session, execution } = backend.runtime;
+  return { runtime: defineRuntime({ id: `${id}-aimock`, installation, session }, execution === null ? {} : { execution }), aimock };
 }

@@ -1,5 +1,5 @@
 import { expect, test, vi } from "vitest";
-import { defineRuntime, UnsupportedOptionError, claudeRuntime, qwenRuntime, qoderRuntime, codexRuntime, codebuddyRuntime, opencodeRuntime, type AvailableInstallation } from "../packages/oar/src/index.js";
+import { defineRuntime, UnsupportedOptionError, defaultRuntimes, createCursorRuntime, type AvailableInstallation } from "../packages/oar/src/index.js";
 import { createPiRuntime } from "../packages/oar/src/runtimes/pi/index.js";
 import { startMockSession } from "../sea-trial/fixtures/mock-session.js";
 import { pooledMockRuntime } from "../sea-trial/fixtures/pooled-mock-runtime.js";
@@ -20,6 +20,7 @@ test("version gates decide at open; auto falls back and explicit shared refuses 
     session: factory,
   } });
   const explicit = runtime.withPlacement("shared");
+  expect([runtime.execution, explicit.execution]).toEqual(["process", "process"]);
   expect(runtime.placement).toBe("auto"); expect(explicit.placement).toBe("shared");
   expect(factory).not.toHaveBeenCalled();
   await expect(explicit.session(installation, { cwd: "." })).rejects.toBeInstanceOf(UnsupportedOptionError);
@@ -37,13 +38,16 @@ test("version gates decide at open; auto falls back and explicit shared refuses 
   expect(d.records()[0]?.body).toEqual({ kind: "open", placement: "shared" });
   const e = await runtime.withPlacement("isolated").session(verified, { cwd: "." });
   expect(e.placement).toBe("isolated");
+  expect([runtime.execution, explicit.execution]).toEqual(["process", "process"]);
   await Promise.all([a, b, c, d, e].map(async (session) => { await session.dispose(); }));
 });
 
 test("in-process runtimes report their actual placement and refuse a separate process", async () => {
   const open = vi.fn(startMockSession);
   const runtime = defineRuntime({ id: "sdk", session: open }, { execution: "in_process" });
-  const session = await runtime.session(bundled, { cwd: "." });
+  const selected = runtime.execution === "process" ? runtime.withPlacement("isolated") : runtime;
+  const session = await selected.session(bundled, { cwd: "." });
+  expect(runtime.execution).toBe("in_process");
   expect(session.placement).toBe("in_process");
   await expect(runtime.withPlacement("isolated").session(bundled, { cwd: "." })).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "placement" });
   await expect(runtime.withPlacement("shared").session(bundled, { cwd: "." })).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "placement" });
@@ -55,21 +59,48 @@ test("explicit isolation does not consult the shared version gate", async () => 
   const refusal = vi.fn(() => { throw new Error("shared gate must not run"); });
   const factory = vi.fn(() => startMockSession);
   const runtime = defineRuntime({ id: "gated", session: startMockSession }, { execution: "process", shared: { refusal, session: factory } });
-  const session = await runtime.withPlacement("isolated").session(installation, { cwd: "." });
+  const selected = runtime.execution === "process" ? runtime.withPlacement("isolated") : runtime;
+  const session = await selected.session(installation, { cwd: "." });
   expect(session.placement).toBe("isolated");
   expect(refusal).not.toHaveBeenCalled(); expect(factory).not.toHaveBeenCalled();
   await session.dispose();
 });
 
-test.each([claudeRuntime, qwenRuntime, qoderRuntime, codexRuntime, codebuddyRuntime, opencodeRuntime, createPiRuntime({ execution: "subprocess" })])("native $id sharing remains disabled in Phase 1", async (runtime) => {
+test.each([...defaultRuntimes.list().filter((runtime) => runtime.id !== "pi"), createPiRuntime({ execution: "subprocess" })])("native $id declares process execution and sharing remains disabled in Phase 1", async (runtime) => {
+  expect(runtime.execution).toBe("process");
+  for (const placement of ["auto", "shared", "isolated"] as const) {
+    expect(runtime.withPlacement(placement).execution).toBe("process");
+  }
   await expect(runtime.withPlacement("shared").session(installation, { cwd: "." })).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "placement" });
 });
 
+test("Pi and Cursor declare SDK execution before loading or opening it", () => {
+  const sdk = vi.fn(() => { throw new Error("SDK must stay unloaded"); });
+  for (const runtime of [createPiRuntime(), createCursorRuntime({ sdk })]) {
+    expect(runtime.execution).toBe("in_process");
+    for (const placement of ["auto", "shared", "isolated"] as const) {
+      expect(runtime.withPlacement(placement).execution).toBe("in_process");
+    }
+  }
+  expect(sdk).not.toHaveBeenCalled();
+});
+
+// oxlint-disable-next-line eslint/max-statements -- Check both refused requests and the unchanged auto path against the same adapter.
 test("an undeclared custom adapter cannot silently accept a placement it cannot prove", async () => {
   const open = vi.fn(startMockSession);
   const runtime = defineRuntime({ id: "custom", session: open });
-  await expect(runtime.withPlacement("isolated").session(bundled, { cwd: "." })).rejects.toBeInstanceOf(UnsupportedOptionError);
+  expect(runtime.execution).toBeNull();
+  await Promise.all((["shared", "isolated"] as const).map(async (placement) => {
+    const selected = runtime.withPlacement(placement);
+    expect(selected.execution).toBeNull();
+    await expect(selected.session(bundled, { cwd: "." })).rejects.toBeInstanceOf(UnsupportedOptionError);
+  }));
   expect(open).not.toHaveBeenCalled();
+  const selected = runtime.execution === "process" ? runtime.withPlacement("isolated") : runtime;
+  expect(selected).toBe(runtime);
+  const session = await selected.session(bundled, { cwd: "." });
+  expect(open.mock.calls[0]?.[2]).toBeUndefined();
+  await session.dispose();
 });
 
 test.each(["shared", "isolated"] as const)("the complete behavior suite passes with the %s mock", async (placement) => {

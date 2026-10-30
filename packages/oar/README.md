@@ -143,6 +143,22 @@ dependency range includes this upstream update. See the
 
 The command-line interface is a separate package: `@botiverse/oar-cli`.
 
+`Runtime.execution` is a readonly declaration available before installation or
+session open: `"process"`, `"in_process"` or `null` when undeclared (including
+Morph). It is independent of the installed version and stays the same after
+`withPlacement()`. Pi's subprocess mode declares `"process"`; Pi's SDK, Cursor
+and Pi Durable declare `"in_process"`. A host that wants no process sharing uses:
+
+```ts
+const selected = runtime.execution === "process" ? runtime.withPlacement("isolated") : runtime;
+```
+
+This preserves SDK and undeclared runtime instances. `null` does not promise
+isolation; explicit process placement is still refused for those adapters.
+`Runtime.placement` is the requested policy, while `Session.placement` reports
+the opened session's actual placement. See the
+[placement contract](https://github.com/botiverse/oar/blob/main/docs/spec/record-stream.md#placement-and-release).
+
 What a runtime cannot honor is refused, never dropped: `runtime.session()`
 rejects with an `UnsupportedOptionError` (`option` names the refused
 `SessionOptions` key, the message is the reason), so a host can try and fall
@@ -418,8 +434,11 @@ This is discovery, not execution or a live session's command state.
 [Command scope and limits](https://github.com/botiverse/oar/blob/main/docs/spec/inventory.md#commands).
 
 Custom runtimes should use `defineRuntime`, which fills missing inventory
-methods with explicit unsupported results. A manually constructed `Runtime`
-must implement the four methods, including `commands`.
+methods with explicit unsupported results and supplies `execution`, `placement`
+and `withPlacement`. Its second argument's `execution` controls both the public
+declaration and placement selection; omission gives `null`. A manually
+constructed `Runtime` must implement the four inventory methods, including
+`commands`, and these placement members.
 
 ### Orientation
 

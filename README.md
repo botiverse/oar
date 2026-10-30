@@ -209,6 +209,19 @@ over: `createRuntimeRegistry([...defaultRuntimes.list(), createCursorRuntime({ s
 `createPiDurableRuntime({ harness, models })` with the host's already-open Harness
 and its Models.
 
+`Runtime.execution` declares `"process"`, `"in_process"` or `null` (undeclared)
+before opening a session. The declaration is independent of the installed
+version and remains the same after `withPlacement()`. A host that wants no
+process sharing can select without keeping runtime-name lists:
+
+```ts
+const selected = runtime.execution === "process" ? runtime.withPlacement("isolated") : runtime;
+```
+
+SDK runtimes keep their existing instance; `null` makes no isolation promise.
+The opened `Session.placement` reports what ran
+([placement contract](docs/spec/record-stream.md#placement-and-release)).
+
 ## Handy utilities, no session needed
 
 OAR also offers a set of handy utilities you can use without running an

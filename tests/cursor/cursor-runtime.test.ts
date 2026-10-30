@@ -1,9 +1,17 @@
 import assert from "node:assert/strict";
 import { afterEach, expect, test, vi } from "vitest";
 import { createCursorRuntime, defaultRuntimes, type CursorSdk } from "../../packages/oar/src/index.js";
+import { openFakeCursor } from "../fixtures/fake-cursor-sdk.js";
 
 const bundled = { kind: "available", via: "bundled" } as const;
 afterEach(() => { vi.unstubAllEnvs(); });
+
+test("Cursor execution agrees with the session opened through the public runtime", async () => {
+  const { runtime, session } = await openFakeCursor();
+  expect(runtime.execution).toBe("in_process");
+  expect(session.placement).toBe(runtime.execution);
+  await session.dispose();
+});
 
 const unused = (): never => assert.fail("only the model catalog is read");
 

@@ -43,6 +43,8 @@ export type McpToolsListChanged = "full" | "additions" | "none";
 
 /** One provider-independent runtime adoption unit. */
 export interface Runtime extends RuntimeInventories {
+  /** Static adapter declaration, independent of installation version. Null means undeclared. */
+  readonly execution: "process" | "in_process" | null;
   /** Requested policy. The opened Session reports what actually ran. */
   readonly placement: PlacementRequest;
   /** A new runtime instance, with its own pool. Refusals are checked at session open. */
@@ -108,14 +110,15 @@ async function unsupported(): Promise<InventoryResult<never>> {
   };
 }
 
-type RuntimeDefinition = Omit<Runtime, keyof RuntimeInventories | "brand" | "placement" | "withPlacement"> & Partial<RuntimeInventories> & { readonly brand?: RuntimeBrand };
-type DefinedRuntime<T> = Omit<T, "session" | "placement" | "withPlacement"> & Runtime;
+type RuntimeDefinition = Omit<Runtime, keyof RuntimeInventories | "brand" | "execution" | "placement" | "withPlacement"> & Partial<RuntimeInventories> & { readonly brand?: RuntimeBrand };
+type DefinedRuntime<T> = Omit<T, "session" | "execution" | "placement" | "withPlacement"> & Runtime;
 
 export function defineRuntime<const T extends RuntimeDefinition>(runtime: T, options: RuntimePlacementOptions = {}): DefinedRuntime<T> {
   const create = (requested: PlacementRequest): DefinedRuntime<T> => (
     {
       skills: unsupported, commands: unsupported, mcpServers: unsupported, tools: unsupported,
       ...runtime, brand: runtime.brand ?? { name: runtime.id, icon: null }, placement: requested,
+      execution: options.execution ?? null,
       withPlacement: create,
       session: placementSession(runtime.session, requested, options),
     }

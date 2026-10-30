@@ -57,6 +57,11 @@ front:
 
 - `Runtime.refusedSessionOptions`: the options a runtime refuses at open,
   each with its reason.
+- `Runtime.execution`: whether the adapter runs a native process or an
+  in-process SDK, so a host can request isolation only for process runtimes
+  without keeping a list of runtime names. Undeclared execution stays unknown;
+  sharing support is checked separately at open
+  ([placement contract](../spec/record-stream.md#placement-and-release)).
 - `Runtime.installLines`: the parallel release lines a runtime installs
   (opencode `v1`, `v2`), so a host offers the choice OAR does not make
   before it plans an install; `install` answers `line_required` from the

@@ -1,7 +1,7 @@
 /* oxlint-disable eslint/max-classes-per-file -- the agent and its run are one stand-in. */
 import assert from "node:assert/strict";
 import type { ControlOutcome, Session, SessionOptions } from "../../packages/oar/src/contracts/session.js";
-import { cursorSessionWith } from "../../packages/oar/src/runtimes/cursor/session.js";
+import { createCursorRuntime, type CursorRuntime } from "../../packages/oar/src/runtimes/cursor/index.js";
 import type {
   CursorAgent,
   CursorAgentOptions,
@@ -124,6 +124,7 @@ function steers(session: Session): session is SteeringSession {
 }
 
 export interface FakeCursorHarness {
+  readonly runtime: CursorRuntime;
   readonly session: SteeringSession;
   readonly agent: FakeCursorAgent;
   readonly opened: readonly { readonly how: "create" | "resume"; readonly id?: string; readonly options: CursorAgentOptions }[];
@@ -161,13 +162,13 @@ export async function openFakeCursor(options?: Omit<SessionOptions, "cwd">): Pro
       },
     },
   };
-  const start = cursorSessionWith(async () => {
+  const runtime = createCursorRuntime({ sdk: async () => {
     await Promise.resolve();
     return sdk;
-  });
-  const session = await start({ kind: "available", via: "bundled" }, { cwd: "/w", ...(options ?? { model: "composer" }) });
+  } });
+  const session = await runtime.session({ kind: "available", via: "bundled" }, { cwd: "/w", ...(options ?? { model: "composer" }) });
   assert.ok(steers(session), "a cursor session has steer");
-  return { session, agent: holder.agent ?? assert.fail("no agent"), opened };
+  return { runtime, session, agent: holder.agent ?? assert.fail("no agent"), opened };
 }
 
 /** The rejection code of a control outcome, or null when it was accepted. */

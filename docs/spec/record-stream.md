@@ -25,6 +25,24 @@ evidence is in the
 
 ### Placement and release
 
+`Runtime.execution` is a readonly, static adapter declaration: `process` for
+native process execution, `in_process` for an SDK running inside the host, or
+`null` when the adapter has not declared it. It is available before installation
+or session open, does not vary by installed version, and keeps the same value
+on every instance returned by `withPlacement()`. It does not declare sharing
+support; the adapter checks that separately at open. Pi's subprocess runtime
+declares `process`; Pi's SDK, Cursor and Pi Durable declare `in_process`.
+Morph and undeclared custom adapters report `null`.
+
+A host that wants no process sharing chooses by this declaration:
+
+```ts
+const selected = runtime.execution === "process" ? runtime.withPlacement("isolated") : runtime;
+```
+
+This leaves SDK and undeclared adapters on the host's existing runtime instance.
+`null` is not evidence of either execution mode or isolation.
+
 `Runtime.placement` is the host's request: `auto`, `shared` or `isolated`.
 `withPlacement()` returns a new instance with its own process pool. Module-level
 default instances request `auto`. At session open, the adapter checks the
@@ -59,8 +77,11 @@ Native initialization frames and requests follow them in their original wire
 order, including frames that arrived before the native session's opening reply.
 An open that rejects before returning a Session exposes no session stream.
 
-Runtime definitions now include `placement` and `withPlacement`; custom runtime
-objects can use `defineRuntime` to obtain these members. The new request/response
+Runtime definitions include `execution`, `placement` and `withPlacement`; custom runtime
+objects can use `defineRuntime` to obtain these members. Its second argument's
+`execution` declaration controls both the public field and placement selection;
+omitting it yields `null`. Manually constructed `Runtime` objects must supply
+all three members. The new request/response
 body kinds and the `released` event extend the public TypeScript unions. Exhaustive consumers must handle them. Hosts must not assume
 the first record is a native frame or a prompt. `events()` omits open, opened
 and cleanup; it projects released as an OAR event. Voyage records retain all

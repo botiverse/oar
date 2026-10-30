@@ -59,7 +59,7 @@ export const sessionCases: readonly TrialCase[] = [
     requires: ["installation", "session"],
     async run(subject) {
       const session = await subject.startSession();
-      assertPlacement(session);
+      assertPlacement(subject.runtime, session);
       const live: RawEvent[] = [];
       session.rawEvents((record) => {
         live.push(record);
@@ -286,7 +286,7 @@ export const sessionCases: readonly TrialCase[] = [
         return;
       }
       const resumed = attempt.session;
-      assertPlacement(resumed);
+      assertPlacement(subject.runtime, resumed);
       assert.equal(resumed.id, sessionId, "a resumed session keeps the runtime-native id");
       assert.deepEqual(await runTurn(resumed, "hello again"), { kind: "completed" });
       await resumed.dispose();

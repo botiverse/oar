@@ -44,6 +44,17 @@ test.each(["not-a-number", "01", "0"])("invalid resume id %s is refused before a
   expect(lookup).not.toHaveBeenCalled();
 });
 
+test("Pi Durable execution agrees with its opened session and survives placement requests", async () => {
+  const { runtime } = await setup();
+  expect(runtime.execution).toBe("in_process");
+  for (const placement of ["auto", "shared", "isolated"] as const) {
+    expect(runtime.withPlacement(placement).execution).toBe("in_process");
+  }
+  const session = await runtime.session({ kind: "available", via: "bundled" }, { cwd: "/virtual", model: "faux/plain" });
+  expect(session.placement).toBe(runtime.execution);
+  await session.dispose();
+});
+
 test("model catalog, effort and native readback agree", async () => {
   const { runtime } = await setup();
   const installation = { kind: "available", via: "bundled" } as const;

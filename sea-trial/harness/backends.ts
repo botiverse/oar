@@ -1,15 +1,19 @@
 import { codebuddyRuntime } from "../../packages/oar/src/runtimes/codebuddy/index.js";
 import { startCodebuddyAimock } from "./codebuddy-aimock.js";
 import { pooledMockRuntime } from "../fixtures/pooled-mock-runtime.js";
+import type { RuntimePlacementOptions } from "../../packages/oar/src/contracts/placement.js";
 /* oxlint-disable import/max-dependencies -- This composition root selects the shared suite's native backends. */
 import { measureQoderStartup } from "./qoder-startup.js";
 import {
   claudeInstallation,
+  claudeRuntime,
   claudeSession,
   codexInstallation,
+  codexRuntime,
   codexSession,
   defineRuntime,
   piInstallation,
+  piRuntime,
   piSession,
   type AvailableInstallation,
   createPiRuntime,
@@ -41,6 +45,11 @@ export interface Backend {
   readonly beforeSuite?: (installation: AvailableInstallation) => Promise<void>;
   /** Cleanup for native replay fixtures that need no model HTTP server. */
   readonly close?: () => Promise<void>;
+}
+
+/** Keep the native declaration when a fixture exposes only session capabilities. */
+function executionOptions(runtime: Runtime): Pick<RuntimePlacementOptions, "execution"> {
+  return runtime.execution === null ? {} : { execution: runtime.execution };
 }
 
 async function qwenBackend(): Promise<Backend> {
@@ -115,7 +124,7 @@ export async function selectBackend(target: string): Promise<Backend> {
     case "claude-aimock": {
       // Real binary + real adapter; only the model provider is scripted.
       const aimock = await startClaudeAimock();
-      return { runtime: defineRuntime({ id: target, session: claudeSession, installation: claudeInstallation }), aimock };
+      return { runtime: defineRuntime({ id: target, session: claudeSession, installation: claudeInstallation }, executionOptions(claudeRuntime)), aimock };
     }
     case "qwen-aimock": return qwenBackend();
     case "codebuddy-aimock": {
@@ -135,6 +144,7 @@ export async function selectBackend(target: string): Promise<Backend> {
         },
       } };
     }
+    case "antigravity-aimock": return acpBackend("antigravity");
     case "kimi-aimock": return acpBackend("kimi");
     case "grok-aimock": return acpBackend("grok");
     case "opencode-aimock": return acpBackend("opencode");
@@ -146,12 +156,12 @@ export async function selectBackend(target: string): Promise<Backend> {
           const session = await qoderRuntime.session(installation, { ...options, ...fixture.options, model: options.model ?? "efficient" });
           return session;
         },
-      });
+      }, executionOptions(qoderRuntime));
       return { aimock: null, close: fixture.stop, runtime, ...(process.env.OAR_QODER_STARTUP_PROBE === "1" ? { beforeSuite: measureQoderStartup } : {}) };
     }
     case "codex-aimock": {
       const aimock = await startCodexAimock();
-      return { runtime: defineRuntime({ id: target, session: codexSession, installation: codexInstallation }), aimock };
+      return { runtime: defineRuntime({ id: target, session: codexSession, installation: codexInstallation }, executionOptions(codexRuntime)), aimock };
     }
     case "pi-durable-aimock": {
       const fixture = await startDurableFixture();
@@ -163,7 +173,8 @@ export async function selectBackend(target: string): Promise<Backend> {
     case "pi-rpc-aimock":
     case "pi-aimock": {
       const aimock = await startPiAimock(undefined, { imageInput: true });
-      return { runtime: defineRuntime({ id: target, session: target === "pi-rpc-aimock" ? createPiRuntime({ execution: "subprocess" }).session : piSession, installation: piInstallation }), aimock };
+      const native = target === "pi-rpc-aimock" ? createPiRuntime({ execution: "subprocess" }) : piRuntime;
+      return { runtime: defineRuntime({ id: target, session: target === "pi-rpc-aimock" ? native.session : piSession, installation: piInstallation }, executionOptions(native)), aimock };
     }
     default:
       return { runtime: allRuntimes.require(target), aimock: null };
