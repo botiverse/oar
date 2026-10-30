@@ -41,7 +41,8 @@ export function processSessionLifecycle(kernel: SessionKernel, lease: ProcessLea
   const recordExit = (code: number | null): void => {
     if (exitObserved) { return; }
     exitObserved = true;
-    kernel.respond(disposeRequest?.id ?? "", { kind: "exited", code });
+    const reason = lease.process.exitReason?.();
+    kernel.respond(disposeRequest?.id ?? "", { kind: "exited", code, ...(reason === undefined ? {} : { reason }) });
   };
   const unsubscribe = lease.onExit(recordExit);
   const clean = cleanupQueue(kernel, cleanup, cleanupTimeoutMs);

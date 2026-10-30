@@ -127,6 +127,9 @@ A failed process stop answers dispose with `rejected`, retains shutdown
 ownership and permits a later dispose to retry. New opens never join a
 process whose shutdown began. A process fault records its exit for every
 still-attached session. Sessions and processes are never silently restarted.
+The internal [ACP connection ownership](acp-shared-connection.md) mechanism
+implements these boundaries with explicit native id routing; adding the
+mechanism does not admit any native runtime to sharing.
 
 **frame**: the runtime's own words. Expects no reply; append-only;
 monotonic seq. oar never synthesizes a frame. The turn's start *is* the
@@ -882,3 +885,17 @@ seq=57  ◆ request   root  id=rq-30  abort
           was not observed. Writing a guessed response after recovery is
           forbidden
 ```
+
+
+### ACP raw parameters and child host requests
+
+ACP `session/update` frames retain the validated wire parameters, including
+vendor extra fields and omitted optional fields, rather than the SDK's
+schema-parsed copy with defaults. Projection does not add defaults to the
+retained native data. Native child permission and terminal requests, plus
+their answers, carry the child's session id. A request cancelled before
+dispatch is still recorded and answered without starting host work. If
+hosted-terminal cleanup after process exit fails, a failed `cleanup` response
+with empty request id reports that failure separately from `exited`. See
+[ACP connection ownership](acp-shared-connection.md#record-changes-on-both-acp-paths)
+for these intentional record changes and the shared-path rules.

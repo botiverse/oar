@@ -13,17 +13,20 @@ import type {
   SessionOptions,
   StartSession,
 } from "../../contracts/session.js";
-import { withSessionCredentials } from "../session-credentials.js";
-import { createAcpClientApp } from "./client-app.js";
+import { processSessionLifecycle } from "../process-session.js";
+import type { ProcessLease, PooledProcess } from "../process-pool.js";
+import { withSessionCredentials, type SessionCredentials } from "../session-credentials.js";
+import { createAcpClientApp, type AcpClientHooks } from "./client-app.js";
 import {
   acpMcpOpenGuard,
   closeAcpSession,
   createUsageUpdateGate,
   openAcpSession,
   type AcpSessionProfile,
+  type OpenedAcpSession,
 } from "./profile.js";
 import { acpLaunchArgs } from "./launch-args.js";
-import { startAcpProcess } from "./process.js";
+import { startAcpProcess, type AcpProcess } from "./process.js";
 import { AcpError, acpProcessExitedError } from "./errors.js";
 import { createAcpRecorder } from "./records.js";
 import { createAcpTerminalHost } from "./terminal.js";
@@ -34,9 +37,9 @@ import { createAcpOpening } from "./opening.js";
 export type { AcpSessionProfile } from "./profile.js";
 
 /*
- * ACP mapping onto the record stream (shared by grok and kimi; profiles carry the vendor bits):
- * - every `session/update` is ONE event record, native verbatim, for WHATEVER
- *   session id it names: a foreign id is a derived child session (records.ts).
+ * ACP mapping onto the record stream (profiles carry the vendor bits):
+ * - every routed `session/update` is ONE event record under its native session
+ *   id. Shared connections first require explicit native ownership proof.
  * - listed vendor notifications are recorded verbatim except credential redaction.
  * - runtime→app requests (permission, terminal) are toApp request records;
  *   oar's automatic answer is the matching `answered` response (client-app.ts).
@@ -57,30 +60,9 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
     const withoutCredentials = acpMcpOpenGuard(options.mcpServers, credentials.redact);
     const args = acpLaunchArgs(profile, options);
     const environment = sessionEnvironment(options.env);
-    const terminalHost = createAcpTerminalHost(options.cwd, environment, {
-      shellCommand: profile.terminalShellCommand === true,
-    });
-    // The recorder queues everything until the handshake reveals the session
-    // id and the kernel can be bound (records.ts).
-    const usageGate = createUsageUpdateGate();
-    const tokenUsage = createAcpTokenUsage(profile);
-    const opening = createAcpOpening();
-    const recorder = createAcpRecorder(usageGate, profile.attributeUpdate, tokenUsage);
-    const client = createAcpClientApp(terminalHost, {
-      update: (notification) => {
-        recorder.update(notification);
-      },
-      extension: (method, params) => {
-        recorder.extension(method, profile.redactExtensionNotification?.(method, params) ?? params, opening.afterOpen(params));
-      },
-      requested: (id, method, params) => {
-        recorder.requested(id, method, params);
-      },
-      answered: (id, reply) => {
-        recorder.answered(id, reply);
-      },
-      extensionNotifications: profile.extensionNotifications ?? [],
-    });
+    const state = createAcpSessionState(profile, options, environment);
+    const { terminalHost, recorder, opening } = state;
+    const client = createAcpClientApp(terminalHost, state.hooks);
     const runtime = startAcpProcess(installation.command, args, client, { cwd: options.cwd, env: environment, redact: credentials.redact, opening });
     const opened = await openAcpSession(runtime, profile, options, (step) => {
       recorder.step(step.method, step.response);
@@ -93,97 +75,181 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
       const reason = cleanupFailureReason(runtime.diagnostics().cleanup);
       throw withoutCredentials(appendCleanupFailure(failure, reason));
     });
-    const kernel = credentials.kernel(opened.sessionId);
-    recorder.bind(kernel);
+    return finishAcpSession(profile, options, credentials, runtime, opened, state);
+  });
+}
 
-    let disposeRequest: RequestRecord | null = null;
-    const capabilities = { ...profile.capabilities, images: profile.capabilities.images ?? acpTakesImages(opened.initialized) };
-    const turns = createAcpTurns({ kernel, runtime, profile, usageGate, capabilities, promptMeta: profile.promptMeta?.(options), promptUsage: (result) => tokenUsage.prompt(result) });
-    // oxlint-disable-next-line promise/prefer-await-to-then, promise/always-return -- Exit observation outlives session creation.
-    void runtime.exited.then((code) => {
-      void terminalHost.dispose();
-      // An outcome only oar observes: answers our dispose when we caused the
-      // exit, stands alone (requestId "") when the runtime died on its own.
-      const reason = cleanupFailureReason(runtime.diagnostics().cleanup);
-      kernel.respond(disposeRequest?.id ?? "", { kind: "exited", code, ...(reason === undefined ? {} : { reason }) });
-      turns.onExit();
-    });
+export interface AcpSessionState {
+  readonly terminalHost: ReturnType<typeof createAcpTerminalHost>;
+  readonly usageGate: ReturnType<typeof createUsageUpdateGate>;
+  readonly tokenUsage: ReturnType<typeof createAcpTokenUsage>;
+  readonly opening: ReturnType<typeof createAcpOpening>;
+  readonly recorder: ReturnType<typeof createAcpRecorder>;
+  readonly hooks: AcpClientHooks;
+}
 
-    // Reachability (exited, disposed) is the kernel's gate, read off the
-    // stream; the adapter decides only the runtime-specific answers (busy,
-    // not_steerable). `runtime.closed` flips synchronously on the process's
-    // exit, one microtask before the observer above records the `exited`
-    // response: a control landing in that window would otherwise be decided
-    // here (rejected "ACP process exited") instead of by the gate, so the
-    // exit is let land first.
-    const control = async (
-      body: RequestBody,
-      decide: (request: RequestRecord) => ResponseBody | Promise<ResponseBody>,
-    ): Promise<ControlResult> => {
-      if (runtime.closed && kernel.unreachable() === null) {
-        await runtime.exited;
-      }
-      return kernel.control(body, decide);
+export function createAcpSessionState(profile: AcpSessionProfile, options: SessionOptions, environment: NodeJS.ProcessEnv, associations?: Parameters<typeof createAcpRecorder>[3]): AcpSessionState {
+  const terminalHost = createAcpTerminalHost(options.cwd, environment, {
+    shellCommand: profile.terminalShellCommand === true,
+  });
+  // The recorder queues everything until the handshake reveals the session
+  // id and the kernel can be bound (records.ts).
+  const usageGate = createUsageUpdateGate();
+  const tokenUsage = createAcpTokenUsage(profile);
+  const opening = createAcpOpening();
+  const recorder = createAcpRecorder(usageGate, profile.attributeUpdate, tokenUsage, associations);
+  const hooks: AcpClientHooks = {
+    update: (notification, receivedAt) => {
+      recorder.update(notification, receivedAt);
+    },
+    extension: (method, params, receivedAt, afterOpen) => {
+      recorder.extension(method, profile.redactExtensionNotification?.(method, params) ?? params, afterOpen ?? opening.afterOpen(params), receivedAt);
+    },
+    requested: (id, method, params, receivedAt) => {
+      recorder.requested(id, method, params, receivedAt);
+    },
+    answered: (id, reply) => {
+      recorder.answered(id, reply);
+    },
+    extensionNotifications: profile.extensionNotifications ?? [],
+  };
+  return { terminalHost, usageGate, tokenUsage, opening, recorder, hooks };
+}
+
+export interface SharedAcpSessionOwnership {
+  readonly lease: ProcessLease<PooledProcess>;
+  readonly cleanup: () => Promise<void>;
+  readonly detach: () => void;
+  readonly stopRequests: () => void;
+  readonly redact: <T>(value: T) => T;
+}
+
+/** One session layer, irrespective of whether its connection has peers. */
+export function finishAcpSession(
+  profile: AcpSessionProfile,
+  options: SessionOptions,
+  credentials: SessionCredentials,
+  runtime: AcpProcess,
+  opened: OpenedAcpSession,
+  sessionState: AcpSessionState,
+  shared?: SharedAcpSessionOwnership,
+): Session {
+  const { terminalHost, recorder, usageGate, tokenUsage } = sessionState;
+  const kernel = credentials.kernel(opened.sessionId, shared?.redact);
+  recorder.bind(kernel);
+
+  let disposeRequest: RequestRecord | null = null;
+  const capabilities = { ...profile.capabilities, images: profile.capabilities.images ?? acpTakesImages(opened.initialized) };
+  const ownership = shared;
+  const turns = createAcpTurns({ kernel, runtime, profile, usageGate, capabilities, promptMeta: profile.promptMeta?.(options), promptUsage: (result) => tokenUsage.prompt(result),
+    ...(ownership === undefined ? {} : { fallback: async (request: RequestRecord): Promise<void> => { ownership.stopRequests(); await lifecycle?.abortFallback(request); } }),
+  });
+  const disposeTerminals = async (): Promise<void> => {
+    try { await terminalHost.dispose(); }
+    catch (error) { kernel.respond("", { kind: "cleanup", result: { kind: "failed", reason: error instanceof Error ? error.message : String(error) } }); }
+  };
+  const observedLease = ownership === undefined ? undefined : { ...ownership.lease, onExit: (listener: (code: number | null) => void): (() => void) => ownership.lease.onExit((code) => {
+    listener(code); turns.onExit(); void disposeTerminals();
+  }) };
+  const lifecycle = observedLease === undefined || ownership === undefined ? undefined : processSessionLifecycle(kernel, observedLease, ownership.cleanup, 5000);
+  // oxlint-disable-next-line promise/prefer-await-to-then, promise/always-return -- Exit observation outlives session creation.
+  if (ownership === undefined) { void runtime.exited.then((code) => {
+    void disposeTerminals();
+    // An outcome only oar observes: answers our dispose when we caused the
+    // exit, stands alone (requestId "") when the runtime died on its own.
+    const reason = cleanupFailureReason(runtime.diagnostics().cleanup);
+    kernel.respond(disposeRequest?.id ?? "", { kind: "exited", code, ...(reason === undefined ? {} : { reason }) });
+    turns.onExit();
+  }); }
+
+  // Reachability (exited, disposed) is the kernel's gate, read off the
+  // stream; the adapter decides only the runtime-specific answers (busy,
+  // not_steerable). `runtime.closed` flips synchronously on the process's
+  // exit, one microtask before the observer above records the `exited`
+  // response: a control landing in that window would otherwise be decided
+  // here (rejected "ACP process exited") instead of by the gate, so the
+  // exit is let land first.
+  let controls = Promise.resolve();
+  const serial = async <T>(run: () => Promise<T>): Promise<T> => {
+    if (ownership === undefined) { const value = await run(); return value; }
+    const previous = controls;
+    const result = (async (): Promise<T> => { await previous; const value = await run(); return value; })();
+    controls = (async (): Promise<void> => { try { await result; } catch { /* One refusal does not poison the next control. */ } })();
+    const value = await result; return value;
+  };
+  const control = (
+    body: RequestBody,
+    decide: (request: RequestRecord) => ResponseBody | Promise<ResponseBody>,
+  ): Promise<ControlResult> => serial(async () => {
+    if (runtime.closed && kernel.unreachable() === null) { await runtime.exited; }
+    return kernel.control(body, decide);
+  });
+
+  // A profile without steer params cannot inject, so the session has no `steer`.
+  const { steerParams } = profile;
+  const steer = steerParams === undefined
+    ? {}
+    : {
+      steer: (input: string, inputOptions?: InputOptions): Promise<ControlResult> => control({ kind: "steer", input, ...inputOptions }, (): ResponseBody | Promise<ResponseBody> => {
+        const state = turns.active();
+        return state === null
+          ? { kind: "rejected", code: "no_active_turn", reason: "not_steerable: no active turn" }
+          : turns.steer(state, input, inputOptions, steerParams(input));
+      }),
     };
 
-    // A profile without steer params cannot inject, so the session has no `steer`.
-    const { steerParams } = profile;
-    const steer = steerParams === undefined
-      ? {}
-      : {
-        steer: (input: string, inputOptions?: InputOptions): Promise<ControlResult> => control({ kind: "steer", input, ...inputOptions }, (): ResponseBody | Promise<ResponseBody> => {
-          const state = turns.active();
-          return state === null
-            ? { kind: "rejected", code: "no_active_turn", reason: "not_steerable: no active turn" }
-            : turns.steer(state, input, inputOptions, steerParams(input));
-        }),
-      };
-
-    return credentials.seal({
-      id: kernel.sessionId,
-      capabilities,
-      prompt: (input, inputOptions?: InputOptions): Promise<ControlResult> => control({ kind: "prompt", input, ...inputOptions }, (request): ResponseBody =>
-        (turns.active() === null ? turns.begin(request, input, inputOptions?.images) : { kind: "rejected", code: "busy", reason: "busy" })),
-      ...steer,
-      queue: (input, inputOptions?: InputOptions): Promise<ControlResult> => control({ kind: "queue", input, ...inputOptions }, () => turns.hold(input, inputOptions?.images, inputOptions?.inputId)),
-      // The queue is held here (turns.ts), not by the vendor: an entry can be taken back until the drain sends it.
-      withdraw: (inputId: string): Promise<ControlResult> => control({ kind: "withdraw", inputId }, () => turns.withdraw(inputId)),
-      abort: (): Promise<ControlResult> => control({ kind: "abort" }, (): ResponseBody | Promise<ResponseBody> => {
-        const state = turns.active();
-        return state === null ? { kind: "rejected", code: "no_active_turn", reason: "no active turn" } : turns.abort(state);
-      }),
-      rawEvents: (observer, cursor) => kernel.rawEvents(observer, cursor),
-      records: () => kernel.records(),
-      graph: () => kernel.graph(),
-      resources: runtime.resources,
-      dispose: async () => {
-        if (disposeRequest !== null) {
-          return; // already released: the stream holds our dispose request
-        }
-        // Read BEFORE this dispose is recorded: only an observed exit can say
-        // so here, and it is the stream's word, not an adapter flag.
-        const gone = kernel.unreachable() !== null;
-        disposeRequest = kernel.request("toRuntime", { kind: "dispose" });
-        if (gone) {
-          // The exit is already recorded (an unrequested `exited` response, requestId "");
-          // nothing is left to release, so the dispose is answered here, as
-          // the claude and codex adapters do (kimi 0.42.0 kill-runtime run,
-          // 2026-09-11: the dispose request stood unanswered before this).
-          kernel.respond(disposeRequest.id, { kind: "accepted" });
-          await terminalHost.dispose();
-          return;
-        }
-        const state = turns.active();
-        if (state !== null && !runtime.closed) {
-          await turns.abort(state);
-        }
-        if (opened.supportsClose && !runtime.closed) {
-          await closeAcpSession(runtime, kernel.sessionId).catch(() => {});
-        }
-        runtime.kill();
-        await runtime.exited;
+  return credentials.seal({
+    id: kernel.sessionId,
+    capabilities,
+    prompt: (input, inputOptions?: InputOptions): Promise<ControlResult> => control({ kind: "prompt", input, ...inputOptions }, (request): ResponseBody =>
+      (turns.active() === null ? turns.begin(request, input, inputOptions?.images) : { kind: "rejected", code: "busy", reason: "busy" })),
+    ...steer,
+    queue: (input, inputOptions?: InputOptions): Promise<ControlResult> => control({ kind: "queue", input, ...inputOptions }, () => turns.hold(input, inputOptions?.images, inputOptions?.inputId)),
+    // The queue is held here (turns.ts), not by the vendor: an entry can be taken back until the drain sends it.
+    withdraw: (inputId: string): Promise<ControlResult> => control({ kind: "withdraw", inputId }, () => turns.withdraw(inputId)),
+    abort: (): Promise<ControlResult> => control({ kind: "abort" }, (request): ResponseBody | Promise<ResponseBody> => {
+      const state = turns.active();
+      return state === null ? { kind: "rejected", code: "no_active_turn", reason: "no active turn" } : turns.abort(state, request);
+    }),
+    rawEvents: (observer, cursor) => kernel.rawEvents(observer, cursor),
+    records: () => kernel.records(),
+    graph: () => kernel.graph(),
+    resources: ownership?.lease.resources ?? runtime.resources,
+    dispose: (): Promise<void> => serial(async () => {
+      if (lifecycle !== undefined && ownership !== undefined) {
+        ownership.stopRequests();
+        const disposal = lifecycle.dispose();
+        turns.onExit();
+        await disposal;
+        ownership.detach();
+        return;
+      }
+      if (disposeRequest !== null) {
+        return; // already released: the stream holds our dispose request
+      }
+      // Read BEFORE this dispose is recorded: only an observed exit can say
+      // so here, and it is the stream's word, not an adapter flag.
+      const gone = kernel.unreachable() !== null;
+      disposeRequest = kernel.request("toRuntime", { kind: "dispose" });
+      if (gone) {
+        // The exit is already recorded (an unrequested `exited` response, requestId "");
+        // nothing is left to release, so the dispose is answered here, as
+        // the claude and codex adapters do (kimi 0.42.0 kill-runtime run,
+        // 2026-09-11: the dispose request stood unanswered before this).
+        kernel.respond(disposeRequest.id, { kind: "accepted" });
         await terminalHost.dispose();
-      },
-    });
-  });
+        return;
+      }
+      const state = turns.active();
+      if (state !== null && !runtime.closed) {
+        await turns.abort(state);
+      }
+      if (opened.supportsClose && !runtime.closed) {
+        await closeAcpSession(runtime, kernel.sessionId).catch(() => {});
+      }
+      runtime.kill();
+      await runtime.exited;
+      await terminalHost.dispose();
+    }),
+  }, shared?.redact);
 }

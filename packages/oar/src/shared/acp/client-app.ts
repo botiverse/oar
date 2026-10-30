@@ -2,6 +2,7 @@
 import {
   client as createClient,
   methods,
+  RequestError,
   type ClientApp,
   type CreateTerminalRequest,
   type JsonRpcId,
@@ -23,12 +24,12 @@ import type { AcpTerminalHost } from "./terminal.js";
  * notification the profile subscribed to. The terminal host stays pure.
  */
 export interface AcpClientHooks {
-  readonly update: (notification: SessionNotification) => void;
+  readonly update: (notification: SessionNotification, receivedAt?: number) => void;
   /** A runtime→app request arrived. */
-  readonly requested: (id: string, method: string, params: unknown) => void;
+  readonly requested: (id: string, method: string, params: unknown, receivedAt?: number) => void;
   /** oar answered (or failed) a runtime→app request. */
   readonly answered: (id: string, reply: unknown) => void;
-  readonly extension: (method: string, params: JsonRecord) => void;
+  readonly extension: (method: string, params: JsonRecord, receivedAt?: number, afterOpen?: boolean) => void;
   readonly extensionNotifications: readonly string[];
 }
 
@@ -58,21 +59,51 @@ function isParamsRecord(params: unknown): params is JsonRecord {
 }
 const passthrough = (params: unknown): JsonRecord => isParamsRecord(params) ? params : {};
 
+// The SDK's built-in session router has already validated this notification.
+// Its second schema parse would clone params and lose private wire metadata.
+function originalNotification(params: unknown): SessionNotification {
+  if (!isParamsRecord(params) || typeof params.sessionId !== "string" || !isParamsRecord(params.update)) {
+    throw new TypeError("Invalid ACP session notification");
+  }
+  // oxlint-disable-next-line typescript/consistent-type-assertions, typescript/no-unsafe-type-assertion -- SDK SessionUpdateRouter validated the complete schema before this handler.
+  return params as SessionNotification;
+}
+
 /** Compose OAR's typed ACP client handlers directly on the official SDK app. */
 export function createAcpClientApp(
   terminal: AcpTerminalHost,
   hooks: AcpClientHooks,
 ): ClientApp {
+  return createRoutedAcpClientApp({
+    target: () => Promise.resolve({ terminal, hooks }),
+    update: hooks.update,
+    extension: hooks.extension,
+    extensionNotifications: hooks.extensionNotifications,
+  });
+}
+
+export interface AcpClientTarget { readonly terminal: AcpTerminalHost; readonly hooks: AcpClientHooks; readonly receivedAt?: number; readonly active?: () => boolean }
+
+/** Shared and isolated connections use the same permission and terminal handlers. */
+export function createRoutedAcpClientApp(routing: {
+  readonly target: (method: string, params: unknown, requestId: JsonRpcId) => Promise<AcpClientTarget>;
+  readonly update: AcpClientHooks["update"];
+  readonly extension: AcpClientHooks["extension"];
+  readonly extensionNotifications: readonly string[];
+}): ClientApp {
   // Every client request is a toApp request record; the reply (or thrown
   // error) is the answered response.
   const observed = <Params, Reply>(
     method: string,
-    handle: (params: Params) => Reply | Promise<Reply>,
-  ) => async (context: { readonly params: Params; readonly requestId: JsonRpcId }): Promise<Reply> => {
+    handle: (params: Params, terminal: AcpTerminalHost) => Reply | Promise<Reply>,
+  ) => async (context: { readonly params: Params; readonly requestId: JsonRpcId; readonly signal: AbortSignal }): Promise<Reply> => {
     const id = requestIdOf(context);
-    hooks.requested(id, method, context.params);
+    const { terminal, hooks, receivedAt, active } = await routing.target(method, context.params, context.requestId);
+    hooks.requested(id, method, context.params, receivedAt);
     try {
-      const reply = await handle(context.params);
+      context.signal.throwIfAborted();
+      if (active?.() === false) { throw RequestError.invalidParams(undefined, "ACP native session no longer accepts host requests"); }
+      const reply = await handle(context.params, terminal);
       hooks.answered(id, reply);
       return reply;
     } catch (error) {
@@ -82,17 +113,17 @@ export function createAcpClientApp(
   };
   let app = createClient({ name: "oar" })
     .onRequest(methods.client.session.requestPermission, observed(methods.client.session.requestPermission, allowPermission))
-    .onRequest(methods.client.terminal.create, observed(methods.client.terminal.create, (params: CreateTerminalRequest) => terminal.create(params)))
-    .onRequest(methods.client.terminal.output, observed(methods.client.terminal.output, (params: TerminalOutputRequest) => terminal.output(params)))
-    .onRequest(methods.client.terminal.waitForExit, observed(methods.client.terminal.waitForExit, (params: WaitForTerminalExitRequest) => terminal.waitForExit(params)))
-    .onRequest(methods.client.terminal.kill, observed(methods.client.terminal.kill, (params: KillTerminalRequest) => terminal.kill(params)))
-    .onRequest(methods.client.terminal.release, observed(methods.client.terminal.release, (params: ReleaseTerminalRequest) => terminal.release(params)))
-    .onNotification(methods.client.session.update, ({ params }) => {
-      hooks.update(params);
+    .onRequest(methods.client.terminal.create, observed(methods.client.terminal.create, (params: CreateTerminalRequest, terminal) => terminal.create(params)))
+    .onRequest(methods.client.terminal.output, observed(methods.client.terminal.output, (params: TerminalOutputRequest, terminal) => terminal.output(params)))
+    .onRequest(methods.client.terminal.waitForExit, observed(methods.client.terminal.waitForExit, (params: WaitForTerminalExitRequest, terminal) => terminal.waitForExit(params)))
+    .onRequest(methods.client.terminal.kill, observed(methods.client.terminal.kill, (params: KillTerminalRequest, terminal) => terminal.kill(params)))
+    .onRequest(methods.client.terminal.release, observed(methods.client.terminal.release, (params: ReleaseTerminalRequest, terminal) => terminal.release(params)))
+    .onNotification(methods.client.session.update, originalNotification, ({ params }) => {
+      routing.update(params);
     });
-  for (const method of hooks.extensionNotifications) {
+  for (const method of routing.extensionNotifications) {
     app = app.onNotification(method, passthrough, ({ params }) => {
-      hooks.extension(method, params);
+      routing.extension(method, params);
     });
   }
   return app;

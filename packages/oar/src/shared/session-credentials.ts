@@ -6,37 +6,40 @@ import { sealSession } from "./seal-session.js";
 import { createSessionKernel, type SessionKernel } from "./session-kernel.js";
 
 export interface SessionCredentials extends CredentialRedactor {
-  kernel(id: string): SessionKernel;
-  seal(adapter: AdapterSession): Session;
+  kernel(id: string, extraRedact?: <T>(value: T) => T): SessionKernel;
+  seal(adapter: AdapterSession, extraRedact?: <T>(value: T) => T): Session;
+}
+
+function guard<Args extends unknown[], Result>(method: (...args: Args) => Promise<Result>, clean: <T>(value: T) => T): (...args: Args) => Promise<Result> {
+  return async (...args) => {
+    try { return await method(...args); } catch (error) { throw clean(error); }
+  };
 }
 
 /** Credentials supplied for this session, plus native keys the adapter resolves. No inherited environment or credential-file scan. */
 function sessionCredentials(options: SessionOptions, context: SessionOpenContext): SessionCredentials {
-  const { add, redact, redactValue } = sessionCredentialRedactor(options);
-  const guard = <Args extends unknown[], Result>(method: (...args: Args) => Promise<Result>): ((...args: Args) => Promise<Result>) =>
-    async (...args) => {
-      try { return await method(...args); } catch (error) { throw redactValue(error); }
-    };
+  const { add, redact, redactValue, values } = sessionCredentialRedactor(options);
   return {
     add,
+    values,
     redact,
     redactValue,
-    kernel: (id) => { const kernel = createSessionKernel(id, redactValue); kernel.opened(context); return kernel; },
-    seal: (adapter) => sealSession({
+    kernel: (id, extraRedact) => { const kernel = createSessionKernel(id, extraRedact ?? redactValue); kernel.opened(context); return kernel; },
+    seal: (adapter, clean = redactValue) => sealSession({
       ...adapter,
       ...(adapter.goal === undefined ? {} : { goal: {
-        set: guard(adapter.goal.set.bind(adapter.goal)),
-        read: guard(adapter.goal.read.bind(adapter.goal)),
-        clear: guard(adapter.goal.clear.bind(adapter.goal)),
+        set: guard(adapter.goal.set.bind(adapter.goal), clean),
+        read: guard(adapter.goal.read.bind(adapter.goal), clean),
+        clear: guard(adapter.goal.clear.bind(adapter.goal), clean),
       } }),
-      prompt: guard(adapter.prompt.bind(adapter)),
-      queue: guard(adapter.queue.bind(adapter)),
-      ...(adapter.steer === undefined ? {} : { steer: guard(adapter.steer.bind(adapter)) }),
-      ...(adapter.withdraw === undefined ? {} : { withdraw: guard(adapter.withdraw.bind(adapter)) }),
-      abort: guard(adapter.abort.bind(adapter)),
-      dispose: guard(adapter.dispose.bind(adapter)),
-      ...(adapter.contextBreakdown === undefined ? {} : { contextBreakdown: guard(adapter.contextBreakdown.bind(adapter)) }),
-      ...(adapter.resources === undefined ? {} : { resources: guard(adapter.resources.bind(adapter)) }),
+      prompt: guard(adapter.prompt.bind(adapter), clean),
+      queue: guard(adapter.queue.bind(adapter), clean),
+      ...(adapter.steer === undefined ? {} : { steer: guard(adapter.steer.bind(adapter), clean) }),
+      ...(adapter.withdraw === undefined ? {} : { withdraw: guard(adapter.withdraw.bind(adapter), clean) }),
+      abort: guard(adapter.abort.bind(adapter), clean),
+      dispose: guard(adapter.dispose.bind(adapter), clean),
+      ...(adapter.contextBreakdown === undefined ? {} : { contextBreakdown: guard(adapter.contextBreakdown.bind(adapter), clean) }),
+      ...(adapter.resources === undefined ? {} : { resources: guard(adapter.resources.bind(adapter), clean) }),
     }),
   };
 }

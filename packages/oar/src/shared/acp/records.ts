@@ -12,10 +12,9 @@ import type { AcpTokenUsage } from "./token-usage.js";
 /**
  * How ACP wire traffic lands in the record stream. Every frame is recorded
  * verbatim; this module only decides the envelope (which session id) and the
- * events. Nothing is filtered: an update for a session id other than the root
- * is a derived child session, recorded under ITS id and added to the graph
- * (filtering by session id is the adapter red line in
- * docs/spec/runtime-matrix.md).
+ * events. Every routed update retains its native session id. Shared
+ * connections prove ownership before this layer and provide only accepted
+ * parent/child links. Isolated profiles retain their existing attribution.
  */
 export interface AcpRecorder {
   /**
@@ -25,13 +24,13 @@ export interface AcpRecorder {
    * session/set_model is answered, i.e. while still opening).
    */
   bind(kernel: SessionKernel): void;
-  update(notification: SessionNotification): void;
+  update(notification: SessionNotification, receivedAt?: number): void;
   /** A vendor extension notification, verbatim; a parent/child session pair links the graph. afterOpen is captured on the wire, before SDK routing or recorder buffering. */
-  extension(method: string, params: JsonRecord, afterOpen?: boolean): void;
+  extension(method: string, params: JsonRecord, afterOpen?: boolean, receivedAt?: number): void;
   /** A handshake answer (initialize, session/new|resume|load, session/set_model, session/set_config_option): the runtime's word, with its model and effort reports as events. */
   step(method: string, response: JsonRecord): void;
   /** A runtime→app request, verbatim, under the runtime's own request id. */
-  requested(id: string, method: string, params: unknown): void;
+  requested(id: string, method: string, params: unknown, receivedAt?: number): void;
   /** oar's answer to a runtime→app request. */
   answered(id: string, reply: unknown): void;
 }
@@ -74,7 +73,8 @@ export function acpLineageOf(params: JsonRecord): { readonly parent: string; rea
   return null;
 }
 
-export function createAcpRecorder(usageGate: UsageUpdateGate, attributeUpdate?: AcpSessionProfile["attributeUpdate"], tokenUsage?: AcpTokenUsage): AcpRecorder {
+export function createAcpRecorder(usageGate: UsageUpdateGate, attributeUpdate?: AcpSessionProfile["attributeUpdate"], tokenUsage?: AcpTokenUsage, associations?: (method: string, params: JsonRecord) => readonly { readonly parent: string; readonly child: string }[]): AcpRecorder {
+  const hostRequests = new Map<string, string>();
   const projections = new Map<string, AcpProjectionState>();
   const projectionFor = (sessionId: string): AcpProjectionState => {
     let state = projections.get(sessionId);
@@ -100,24 +100,26 @@ export function createAcpRecorder(usageGate: UsageUpdateGate, attributeUpdate?: 
         append(kernel);
       }
     },
-    update(notification) {
+    update(notification, receivedAt) {
       write((kernel) => {
         const source = attributeUpdate?.(notification);
         const update = asRecord(notification.update);
         const sessionId = source?.sessionId ?? notification.sessionId;
         const foreign = sessionId !== kernel.sessionId;
         const events: RuntimeEventBody[] = update === null ? [] : projectAcpUpdate(projectionFor(sessionId), update);
-        if (source?.parent !== undefined) {
+        const ownedLinks = associations?.(methods.client.session.update, asRecord(notification) ?? {});
+        if (ownedLinks !== undefined) { events.push(...newSessionLinks(kernel, ownedLinks.map(({ parent, child }) => ({ parent, child, via: "tool_call" })))); }
+        else if (source?.parent !== undefined) {
           events.push(...newSessionLinks(kernel, [{ parent: source.parent, child: sessionId, via: "tool_call" }]));
         }
         const type = typeof update?.sessionUpdate === "string" ? update.sessionUpdate : methods.client.session.update;
-        const record = kernel.frame({ type, native: notification, events }, foreign ? { sessionId } : undefined);
+        const record = kernel.frame({ type, native: notification, events }, { ...(foreign ? { sessionId } : {}), ...(receivedAt === undefined ? {} : { receivedAt }) });
         if (!foreign) {
           usageGate.observe(events.some((event) => event.kind === "usage") ? record.seq : undefined);
         }
       });
     },
-    extension(method, params, afterOpen = false) {
+    extension(method, params, afterOpen, receivedAt) {
       write((kernel) => {
         // The envelope says whose frame this is: a child session pushes its
         // own `response_completed` / `turn_completed` on grok's vendor method
@@ -128,10 +130,11 @@ export function createAcpRecorder(usageGate: UsageUpdateGate, attributeUpdate?: 
         const sessionId = stringField(params, ["sessionId"]);
         const foreign = sessionId !== null && sessionId !== kernel.sessionId;
         const lineage = acpLineageOf(params);
-        const events: RuntimeEventBody[] = lineage === null ? [] : newSessionLinks(kernel, [{ ...lineage, via: "tool_call" }]);
-        const usage = sessionId === kernel.sessionId ? tokenUsage?.extension(method, params, afterOpen) : null;
+        const links = associations?.(method, params) ?? (lineage === null ? [] : [lineage]);
+        const events: RuntimeEventBody[] = newSessionLinks(kernel, links.map(({ parent, child }) => ({ parent, child, via: "tool_call" })));
+        const usage = sessionId === kernel.sessionId ? tokenUsage?.extension(method, params, afterOpen ?? false) : null;
         if (usage !== null && usage !== undefined) { events.push(usage); }
-        kernel.frame({ type: method, native: params, events }, foreign ? { sessionId } : undefined);
+        kernel.frame({ type: method, native: params, events }, { ...(foreign ? { sessionId } : {}), ...(receivedAt === undefined ? {} : { receivedAt }) });
       });
     },
     step(method, response) {
@@ -144,14 +147,19 @@ export function createAcpRecorder(usageGate: UsageUpdateGate, attributeUpdate?: 
         ] });
       });
     },
-    requested(id, method, params) {
+    requested(id, method, params, receivedAt) {
       write((kernel) => {
-        kernel.request("toApp", { kind: "native", type: method, native: params }, { id });
+        const sessionId = asRecord(params)?.sessionId;
+        const foreign = typeof sessionId === "string" && sessionId !== kernel.sessionId;
+        if (foreign) { hostRequests.set(id, sessionId); }
+        kernel.request("toApp", { kind: "native", type: method, native: params }, { id, ...(foreign ? { sessionId } : {}), ...(receivedAt === undefined ? {} : { receivedAt }) });
       });
     },
     answered(id, reply) {
       write((kernel) => {
-        kernel.respond(id, { kind: "answered", native: reply ?? null });
+        const sessionId = hostRequests.get(id);
+        hostRequests.delete(id);
+        kernel.respond(id, { kind: "answered", native: reply ?? null }, sessionId === undefined ? undefined : { sessionId });
       });
     },
   };

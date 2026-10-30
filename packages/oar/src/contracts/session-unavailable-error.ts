@@ -4,15 +4,17 @@
  * - `archived`: the user archived it in the runtime's own app; the host
  *   decides whether to unarchive it (OAR never does, since that reverses the
  *   user's own action).
- * - `in_use`: another process (for example the user's app) holds it; retry
- *   once that process lets go.
+ * - `in_use`: another controller (for example the user's app or another
+ *   OAR session on a shared connection) holds it; retry once it lets go.
  */
 export type SessionUnavailableReason = "archived" | "in_use";
 
 /**
  * `session({ resume })` found the native conversation but the runtime will
- * not open it now. Only the documented runtime signals produce this error;
- * `message` keeps the runtime's own words. No turn exists yet: this is not a
+ * not open it now. Documented runtime signals keep the runtime's own words.
+ * An OAR shared-connection ownership conflict instead identifies `oar/open`
+ * as its cause method and carries only the observed native session id.
+ * No turn exists yet: this is not a
  * FailureClass. See docs/spec/runtime-matrix.md#unavailable-resume-targets.
  */
 export class SessionUnavailableError extends Error {

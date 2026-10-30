@@ -23,7 +23,7 @@ import {
 
 /**
  * The turn machinery: ≤1 active turn, each `session/prompt` RPC of it, the
- * host-held queue, cancel with a kill fallback. The RPC ANSWER is the
+ * host-held queue, cancel with an isolated-stop or shared-release fallback. The RPC ANSWER is the
  * runtime's own turn end and is recorded as an event with a turn_ended event;
  * a rejected prompt RPC is likewise the runtime's word. A refused steer
  * instead drops that input and preserves the active turn's outcome. The
@@ -63,8 +63,8 @@ export interface AcpTurns {
   begin(request: RequestRecord | null, input: string, images?: readonly InputImage[]): ResponseBody;
   /** Another prompt RPC inside the active turn (the profile's steer params); rejected like `begin`. */
   steer(state: ActiveTurn, input: string, options: InputOptions | undefined, extraParams: JsonRecord): Promise<ResponseBody>;
-  /** session/cancel, then a bounded wait after which the process is killed. */
-  abort(state: ActiveTurn): Promise<ResponseBody>;
+  /** session/cancel, then a bounded fallback: release this shared root or stop its isolated process. */
+  abort(state: ActiveTurn, request?: RequestRecord): Promise<ResponseBody>;
   /** Hold input for the next turn, drained when the active one closes; rejected like `begin`. */
   hold(input: string, images: readonly InputImage[] | undefined, inputId: string | undefined): Promise<ResponseBody>;
   /** Take a held input back by its `inputId` before the drain sends it (`withdrawHeld`). */
@@ -81,6 +81,7 @@ export function createAcpTurns(deps: {
   readonly capabilities: Pick<SessionCapabilities, "images">;
   readonly promptMeta?: JsonRecord | undefined;
   readonly promptUsage: (response: JsonRecord) => RuntimeEventBody | null;
+  readonly fallback?: (request: RequestRecord) => Promise<void>;
 }): AcpTurns {
   const { kernel, runtime, profile, usageGate, capabilities, promptUsage, promptMeta } = deps;
   const rootId = kernel.sessionId;
@@ -212,7 +213,7 @@ export function createAcpTurns(deps: {
         return { kind: "accepted" };
       });
     },
-    async abort(state) {
+    async abort(state, request) {
       if (!state.abortRequested) {
         state.abortRequested = true;
         try {
@@ -220,11 +221,14 @@ export function createAcpTurns(deps: {
         } catch (error) {
           return { kind: "rejected", code: "error", reason: error instanceof Error ? error.message : String(error) };
         }
-        // A runtime that never answers the cancelled prompt is killed; the
-        // exit then shows up as the `exited` response, the turn's end.
+        // A stalled shared prompt releases only this root; isolated fallback
+        // stops its own process and records the observed exit.
         state.fallback = setTimeout(() => {
           if (active === state) {
-            runtime.kill();
+            if (deps.fallback !== undefined && request !== undefined) {
+              closeTurn(state); held.splice(0);
+              void deps.fallback(request);
+            } else { runtime.kill(); }
           }
         }, profile.abortTimeoutMs ?? 10_000);
         state.fallback.unref();

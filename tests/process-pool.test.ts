@@ -37,7 +37,7 @@ test("concurrent shared acquisition waits for one startup; last disposal stops i
 
 test.each([
   { command: "/another" }, { args: ["serve", "--flag"] }, { env: { HOME: "/one", TOKEN: "different" } },
-  { home: "/two" }, { configDirectories: ["/two/.config"] }, { cwd: "/process-cwd" },
+  { protocol: '{"capability":"different"}' }, { home: "/two" }, { configDirectories: ["/two/.config"] }, { cwd: "/process-cwd" },
 ])("a changed process input starts a distinct process: %j", async (different) => {
   const start = vi.fn(async () => { await Promise.resolve(); return processFixture(); });
   const pool = createProcessPool(start);
@@ -147,4 +147,22 @@ test("exit observers can release their reference without waiting for process dea
   await lease.dispose();
   expect(removed).not.toHaveBeenCalled();
   expect(retained).toHaveBeenCalledExactlyOnceWith(0);
+});
+
+
+// oxlint-disable-next-line eslint/max-statements -- Observe both generations before and after explicit retirement.
+test("a failed connection retires before shutdown finishes and cannot acquire new leases", async () => {
+  const retirements: (() => void)[] = [];
+  const pool = createProcessPool((_configuration, retire) => { retirements.push(retire); return processFixture(); });
+  const a = await pool.acquire(config, "shared"); const peer = await pool.acquire(config, "shared");
+  const [retire] = retirements;
+  if (retire === undefined) { throw new Error("process did not register retirement"); }
+  retire();
+  const fresh = await pool.acquire(config, "shared");
+  expect(fresh.process).not.toBe(a.process);
+  expect(a.process.stop).not.toHaveBeenCalled();
+  expect(peer.process).toBe(a.process);
+  retire();
+  const joined = await pool.acquire(config, "shared"); expect(joined.process).toBe(fresh.process);
+  await Promise.all([a.dispose(), peer.dispose(), fresh.dispose(), joined.dispose()]);
 });
