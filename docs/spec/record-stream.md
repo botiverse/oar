@@ -325,8 +325,14 @@ Further rules:
   A failed spawn without stdout settles as a read failure without leaving a
   deadline callback that can throw. The host-exit hook combines duplicate
   table-read warnings into one stderr report.
-  Windows keeps its existing `taskkill` path for ordinary termination and
-  asynchronous CIM observations for EOF shutdown.
+  Windows captures descendant start identities asynchronously before EOF or
+  `taskkill`, then revalidates remembered descendants after native exit. An
+  intermediate parent's exit cannot hide those observed tools from cleanup.
+  Isolated ACP disposal captures before sending native cancel/close too:
+  those operations can end a tool's shell before the runtime exits. Shared
+  session release does not capture or terminate the whole pooled process.
+  The same bounded read failures and unverified-cleanup reporting apply;
+  an unavailable table never authorizes signalling a remembered PID.
 - **An exit after a host stop ends the running turn as aborted.** `status()`,
   `turnEndAfter` / `awaitTurnEnd`, and the record-based session view read an
   exit after that turn's accepted abort (by the runtime or OAR), or its

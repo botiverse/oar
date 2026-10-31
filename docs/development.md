@@ -189,6 +189,9 @@ or pull request whose changes are all Markdown files or under `docs/` or
 `assets/`. Otherwise it runs these jobs:
 
 - `check`: `pnpm run check` and `pnpm run build` on Linux, macOS and Windows.
+  The same jobs run OpenCode 2.2.3 isolated native tool cleanup, including
+  readiness, surviving-peer and final residual-process assertions, with
+  diagnostic artifacts retained on failure.
   The same jobs verify CodeBuddy's official npm installation in an isolated
   HOME and global prefix, with its bin directory off PATH, and check the
   installed package's version and an idempotent second install. They then

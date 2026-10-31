@@ -61,6 +61,8 @@ export interface AcpProcess {
   readonly exitCode: number | null;
   readonly redact?: (text: string) => string;
   kill(): void;
+  /** Observe descendants before native cancel/close can orphan them on Windows. */
+  prepareShutdown(): Promise<void>;
   /** Bounded native diagnostics for the session-opening error boundary only. */
   diagnostics(): ProcessDiagnostics;
   /** The agent's memory with everything it started (`LineProcess.resources`). */
@@ -184,6 +186,7 @@ export function startAcpProcess(
         child.kill();
       }
     },
+    prepareShutdown: async () => { await child.prepareShutdown(); },
     resources: child.resources,
     diagnostics: () => child.diagnostics(),
   };

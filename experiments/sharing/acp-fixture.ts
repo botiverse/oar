@@ -153,7 +153,7 @@ export async function acpFixture(id: AcpId, timing = new ProbeTiming()) {
     const prompt = async (child: (typeof children)[number], sessionId: string, key: string): Promise<JsonRecord> => {
       const result = await request(child, "session/prompt", { sessionId, prompt: [{ type: "text", text: `ACP_SHARE_${key}` }] }); return result;
     };
-    return { timing, id, home, cwds, installation, provider, profile, stages, seen, gates, children, terminals, terminalFor, calls, events,
+    return { timing, id, home, cwds, env, mcp, installation, provider, profile, stages, seen, gates, children, terminals, terminalFor, calls, events,
       connect, request, open, prompt, mcpServers, mcpCalls: mcp.calls,
       crash(child: (typeof children)[number]): void { const pid = nativePids.get(child); assert.ok(pid !== undefined); crashDescendants.push(...descendantsOf(checkedProcessTable(), pid)); process.kill(pid, "SIGKILL"); },
     };
