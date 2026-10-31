@@ -1,0 +1,430 @@
+{
+  "checkedAt": "2026-10-31T11:59:49.089Z",
+  "oarBase": "1d22fd747751378b2c8ad500988043340fcfab41",
+  "platform": "linux-x64",
+  "node": "v24.19.0",
+  "versions": [
+    {
+      "runtime": "antigravity",
+      "source": "https://raw.githubusercontent.com/agentclientprotocol/registry/main/antigravity-acp/agent.json",
+      "latest": "1.4.5"
+    },
+    {
+      "runtime": "claude",
+      "source": "https://registry.npmjs.org/@anthropic-ai/claude-code/latest",
+      "latest": "2.1.316"
+    },
+    {
+      "runtime": "codex",
+      "source": "https://registry.npmjs.org/@openai/codex/latest",
+      "latest": "0.166.0"
+    },
+    {
+      "runtime": "cursor",
+      "source": "https://registry.npmjs.org/@cursor/sdk/latest",
+      "latest": "1.2.0"
+    },
+    {
+      "runtime": "grok",
+      "source": "https://x.ai/cli/stable",
+      "latest": "1.0.70"
+    },
+    {
+      "runtime": "kimi",
+      "source": "https://registry.npmjs.org/@moonshot-ai/kimi-code/latest",
+      "latest": "2.4.1"
+    },
+    {
+      "runtime": "opencode",
+      "line": "v1",
+      "source": "https://registry.npmjs.org/opencode-ai/latest",
+      "latest": "1.19.5"
+    },
+    {
+      "runtime": "opencode",
+      "line": "v2",
+      "source": "https://registry.npmjs.org/@opencode/cli/latest",
+      "latest": "2.2.5"
+    },
+    {
+      "runtime": "codebuddy",
+      "source": "https://registry.npmjs.org/@tencent-ai/codebuddy-code/latest",
+      "latest": "2.179.0"
+    },
+    {
+      "runtime": "qoder",
+      "source": "https://registry.npmjs.org/@qoder-ai/qodercli/latest",
+      "latest": "1.1.81"
+    },
+    {
+      "runtime": "qwen",
+      "source": "https://registry.npmjs.org/@qwen-code/qwen-code/latest",
+      "latest": "0.26.4"
+    },
+    {
+      "runtime": "pi",
+      "source": "https://registry.npmjs.org/@earendil-works/pi-coding-agent/latest",
+      "latest": "1.4.0"
+    },
+    {
+      "runtime": "pi-durable",
+      "source": "https://registry.npmjs.org/@earendil-works/pi-durable/latest",
+      "latest": "1.4.0"
+    }
+  ],
+  "behavior": {
+    "claude": {
+      "passed": 17,
+      "skipped": 2
+    },
+    "codebuddy": {
+      "passed": 16,
+      "skipped": 3
+    },
+    "opencodeV2": {
+      "passed": 15,
+      "skipped": 4
+    }
+  },
+  "vendor": {
+    "claude": 68,
+    "codebuddy": 5
+  },
+  "claudeLoginBrowser": [
+    {
+      "mode": "default",
+      "exit": 0,
+      "browserOpens": 1,
+      "exchanges": 1,
+      "verified": true
+    },
+    {
+      "mode": "suppressed",
+      "exit": 0,
+      "browserOpens": 0,
+      "exchanges": 1,
+      "verified": true
+    },
+    {
+      "mode": "failing-browser",
+      "exit": 0,
+      "browserOpens": 1,
+      "exchanges": 1,
+      "verified": true
+    }
+  ],
+  "claudeReservedMcpNames": [
+    {
+      "name": "plainname",
+      "servers": [
+        {
+          "name": "plainname",
+          "status": "connected"
+        }
+      ],
+      "tools": [
+        "mcp__plainname__ping"
+      ],
+      "result": "success"
+    },
+    {
+      "name": "__proto__",
+      "servers": [],
+      "tools": [],
+      "result": "success"
+    },
+    {
+      "name": "__defineGetter__",
+      "servers": [],
+      "tools": [],
+      "result": "success"
+    },
+    {
+      "name": "__defineSetter__",
+      "servers": [],
+      "tools": [],
+      "result": "success"
+    },
+    {
+      "name": "__lookupGetter__",
+      "servers": [],
+      "tools": [],
+      "result": "success"
+    },
+    {
+      "name": "__lookupSetter__",
+      "servers": [],
+      "tools": [],
+      "result": "success"
+    }
+  ],
+  "codebuddy": {
+    "version": "2.179.0",
+    "nativeInstallation": {
+      "version": "2.179.0",
+      "source": "https://acc-1258344699.cos.accelerate.myqcloud.com/@tencent-ai/codebuddy-code/releases/download/2.179.0/codebuddy-code_Linux_x86_64.tar.gz",
+      "sha256": "0eec5007dd131656f452270663a2a204ce5f1b4549655423336c499cc263aa88"
+    },
+    "streamJson": [
+      {
+        "delayMs": 0,
+        "attempt": 1,
+        "initialized": true,
+        "results": 2,
+        "requests": [
+          {
+            "number": 1,
+            "prompt": "first"
+          },
+          {
+            "number": 2,
+            "prompt": "second"
+          },
+          {
+            "number": 3,
+            "prompt": "second"
+          }
+        ],
+        "timedOut": false,
+        "exitCode": 0,
+        "signal": null
+      },
+      {
+        "delayMs": 0,
+        "attempt": 2,
+        "initialized": true,
+        "results": 2,
+        "requests": [
+          {
+            "number": 1,
+            "prompt": "first"
+          },
+          {
+            "number": 2,
+            "prompt": "second"
+          },
+          {
+            "number": 3,
+            "prompt": "second"
+          }
+        ],
+        "timedOut": false,
+        "exitCode": 0,
+        "signal": null
+      },
+      {
+        "delayMs": 0,
+        "attempt": 3,
+        "initialized": true,
+        "results": 2,
+        "requests": [
+          {
+            "number": 1,
+            "prompt": "first"
+          },
+          {
+            "number": 2,
+            "prompt": "second"
+          },
+          {
+            "number": 3,
+            "prompt": "second"
+          }
+        ],
+        "timedOut": false,
+        "exitCode": 0,
+        "signal": null
+      },
+      {
+        "delayMs": 1000,
+        "attempt": 1,
+        "initialized": true,
+        "results": 2,
+        "requests": [
+          {
+            "number": 1,
+            "prompt": "first"
+          },
+          {
+            "number": 2,
+            "prompt": "second"
+          }
+        ],
+        "timedOut": false,
+        "exitCode": 0,
+        "signal": null
+      },
+      {
+        "delayMs": 1000,
+        "attempt": 2,
+        "initialized": true,
+        "results": 2,
+        "requests": [
+          {
+            "number": 1,
+            "prompt": "first"
+          },
+          {
+            "number": 2,
+            "prompt": "second"
+          }
+        ],
+        "timedOut": false,
+        "exitCode": 0,
+        "signal": null
+      },
+      {
+        "delayMs": 1000,
+        "attempt": 3,
+        "initialized": true,
+        "results": 2,
+        "requests": [
+          {
+            "number": 1,
+            "prompt": "first"
+          },
+          {
+            "number": 2,
+            "prompt": "second"
+          }
+        ],
+        "timedOut": false,
+        "exitCode": 0,
+        "signal": null
+      }
+    ],
+    "acp": {
+      "pass": true,
+      "delayMs": 0,
+      "results": 2,
+      "stopReasons": [
+        "end_turn",
+        "end_turn"
+      ],
+      "timedOut": false,
+      "exitCode": null,
+      "signal": "SIGTERM",
+      "conversationPrompts": [
+        "first",
+        "second"
+      ],
+      "titleRequests": 2,
+      "errorCount": 0
+    }
+  },
+  "opencodeV2": {
+    "version": "2.2.5",
+    "startup": [
+      {
+        "name": "sequential-0",
+        "ready": true,
+        "elapsedMs": 408
+      },
+      {
+        "name": "sequential-1",
+        "ready": true,
+        "elapsedMs": 400
+      },
+      {
+        "name": "cold-0",
+        "ready": true,
+        "elapsedMs": 398
+      },
+      {
+        "name": "cold-1",
+        "ready": false,
+        "elapsedMs": 376,
+        "exitCode": 1,
+        "signal": null
+      },
+      {
+        "name": "cold-2",
+        "ready": false,
+        "elapsedMs": 382,
+        "exitCode": 1,
+        "signal": null
+      },
+      {
+        "name": "cold-3",
+        "ready": true,
+        "elapsedMs": 419
+      },
+      {
+        "name": "warm-0",
+        "ready": true,
+        "elapsedMs": 372
+      },
+      {
+        "name": "warm-1",
+        "ready": true,
+        "elapsedMs": 393
+      },
+      {
+        "name": "warm-2",
+        "ready": true,
+        "elapsedMs": 436
+      },
+      {
+        "name": "warm-3",
+        "ready": true,
+        "elapsedMs": 354
+      }
+    ],
+    "failedNativeError": "table account_state already exists",
+    "boundaries": {
+      "passed": 9,
+      "failed": [
+        "mcp"
+      ],
+      "catalogModels": 8
+    },
+    "nativeMcp": {
+      "newSessionCalled": true,
+      "resumesCalled": 0,
+      "resumesTotal": 6,
+      "allEndTurn": true,
+      "connectionsLogged": 7,
+      "catalogChanges": [
+        {
+          "seq": 17,
+          "text": "The Code Mode tool catalog has changed.\n\nNew tools are available in addition to those previously listed:\n  - tools.echo.echo({\n  text: string,\n}): Promise<unknown> // Echo text with a native marker"
+        },
+        {
+          "seq": 35,
+          "text": "The Code Mode tool catalog has changed.\n\nThe following tools are no longer available and must not be called: tools.echo.echo."
+        }
+      ]
+    },
+    "warmTools": {
+      "executed": [
+        "oar_probe_alpha",
+        "oar_probe_beta"
+      ],
+      "removedAlphaHandlerCalls": 0
+    }
+  },
+  "sharing": {
+    "enabledOpenCodeVersion": "2.2.3",
+    "nextEvidenceOpenCodeVersion": "2.2.5",
+    "admissionExpanded": false
+  },
+  "watches": {
+    "codebuddyIssue": {
+      "url": "https://cnb.cool/codebuddy/codebuddy-code/-/issues/1847",
+      "state": "open",
+      "commentCount": 0,
+      "updatedAt": "2026-10-28T06:32:16Z"
+    },
+    "dsh": {
+      "head": "ce7073d51254c26cd63b22a60835b8f948deb447",
+      "changedSincePreviousInventory": false,
+      "newConsumerRequest": "https://github.com/deepseek-ai/deepseek-harness/discussions/593#discussioncomment-19311708",
+      "implementationObserved": false
+    },
+    "antigravityCli": {
+      "version": "1.4.12",
+      "sourceCommit": "841f45db2226ce15f5d1f52c580e35181e74ff68",
+      "publicImmediateSendInterfaceFound": false
+    }
+  }
+}
