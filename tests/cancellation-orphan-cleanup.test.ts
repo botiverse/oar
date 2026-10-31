@@ -15,6 +15,9 @@ import { asRecord } from "../packages/oar/src/shared/json.js";
 // oxlint-disable-next-line import/no-namespace -- Hold one observation while native protocol events continue.
 import * as tables from "../packages/oar/src/shared/executable/process-table-async.js";
 import type { ProcessTableObservation } from "../packages/oar/src/shared/executable/process-tree.js";
+// oxlint-disable-next-line import/no-namespace -- Retain each real cancellation observation in failure diagnostics.
+import * as cancellation from "../packages/oar/src/shared/executable/process-cancellation.js";
+import { processTablePreparation } from "../packages/oar/src/shared/executable/process-table-preparation.js";
 import { gone } from "./fixtures/process-tree.js";
 
 const fixture = fileURLToPath(new URL("fixtures/cancellation-orphan-agent.mjs", import.meta.url));
@@ -37,11 +40,30 @@ function messages(session: Session, since: number): readonly Record<string, unkn
     ? record.body.events.flatMap(event => event.kind === "text_delta" ? [asRecord(JSON.parse(event.text)) ?? {}] : []) : []);
 }
 
+function cancellationDiagnostics(): Record<string, unknown>[] {
+  const observations: Record<string, unknown>[] = [];
+  const observe = cancellation.observeBeforeCancellation;
+  vi.spyOn(cancellation, "observeBeforeCancellation").mockImplementation(async () => {
+    const preparation = processTablePreparation(), started = performance.now();
+    const result = await observe();
+    const { table: _table, ...metadata } = result.ok ? result : { ...result, table: undefined };
+    observations.push({ preparationAtRequest: preparation, preparationAtReturn: processTablePreparation(), waitMs: performance.now() - started, ...metadata });
+    return result;
+  });
+  return observations;
+}
+
 // oxlint-disable-next-line eslint/max-statements -- Two native turns must leave different orphaned tools before one final disposal.
 test.each(["acp", "stream"])("%s cancellation retains orphan identities across two resumed turns", async protocol => {
+  const observations = cancellationDiagnostics();
   const session = await open(protocol, true);
   const owned: number[] = [];
   try {
+    // This case requires successful capture. Cold/queued expiry has its own
+    // unverified-cleanup control; preparation never supplies identity evidence.
+    if (process.platform === "win32") {
+      await expect.poll(() => processTablePreparation(), { timeout: 6000 }).toMatchObject({ ok: true });
+    }
     for (const round of [1, 2]) {
       // eslint-disable-next-line no-await-in-loop -- The second turn must start after the first cancellation completed.
       const prompt = await session.prompt(`round-${round}`);
@@ -62,7 +84,10 @@ test.each(["acp", "stream"])("%s cancellation retains orphan identities across t
       expect(await gone(tool, 50)).toBe(false);
     }
     await session.dispose();
-    expect(await Promise.all(owned.map(async pid => gone(pid)))).toEqual(owned.map(() => true));
+    const exit = session.records().findLast(record => record.kind === "response" && record.body.kind === "exited");
+    const diagnostic = JSON.stringify({ observations, exited: exit?.kind === "response" ? exit.body : null });
+    expect(observations.map(entry => entry.ok), diagnostic).toEqual([true, true]);
+    expect(await Promise.all(owned.map(async pid => gone(pid))), diagnostic).toEqual(owned.map(() => true));
     expect(session.records().filter(record => record.kind === "response" && record.body.kind === "exited")).toHaveLength(1);
   } finally {
     await session.dispose();
