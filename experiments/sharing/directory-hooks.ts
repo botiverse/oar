@@ -4,7 +4,7 @@ import path from "node:path";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 
 export async function installDirectoryHook(options: { runtime: string; cwd: string; env: Readonly<Record<string, string>>;
-  revision: "A" | "B"; command: string; journal: string }): Promise<string> {
+  revision: "A" | "B"; command: string; journal: string; grokHookScope?: "user" | "project"; opencodeHookScope?: "user" | "project" }): Promise<string> {
   const { runtime, cwd, env, revision, command, journal } = options;
   const hooks = { PreToolUse: [{ matcher: "", hooks: [{ type: "command", command, timeout: 10 }] }] };
   let file: string | undefined = undefined;
@@ -13,6 +13,7 @@ export async function installDirectoryHook(options: { runtime: string; cwd: stri
   if (runtime === "qoder") { file = path.join(cwd, ".qoder/settings.json"); scope = "project .qoder/settings.json"; }
   if (runtime === "codex" && env.CODEX_HOME !== undefined) { file = path.join(env.CODEX_HOME, "hooks.json"); scope = "disposable CODEX_HOME/hooks.json"; }
   if (runtime === "grok" && env.GROK_HOME !== undefined) { file = path.join(env.GROK_HOME, "hooks/directory.json"); scope = "disposable GROK_HOME/hooks/directory.json"; }
+  if (runtime === "grok" && options.grokHookScope === "project") { file = path.join(cwd, ".grok/hooks/directory.json"); scope = "project .grok/hooks/directory.json"; }
   if (runtime === "antigravity") { file = path.join(cwd, ".agents/hooks.json"); contents = { directory: hooks }; scope = "project .agents/hooks.json"; }
   if (runtime === "kimi" && env.KIMI_CODE_HOME !== undefined) {
     await writeFile(path.join(env.KIMI_CODE_HOME, "config.toml"), `[[hooks]]\nevent = "PreToolUse"\nmatcher = "mcp__scope__echo"\ncommand = ${JSON.stringify(command)}\ntimeout = 10\n`, { mode: 0o600 });
@@ -20,7 +21,10 @@ export async function installDirectoryHook(options: { runtime: string; cwd: stri
   }
   if (runtime === "opencode") {
     // V2 loads a plain object with id/setup; no package download is needed.
-    const directory = path.join(cwd, ".opencode/plugins/directory-observer");
+    const user = options.opencodeHookScope === "user";
+    if (user && env.XDG_CONFIG_HOME === undefined) { throw new Error("OpenCode user plugin requires an isolated XDG_CONFIG_HOME"); }
+    const root = user ? path.join(env.XDG_CONFIG_HOME ?? "", "opencode") : path.join(cwd, ".opencode");
+    const directory = path.join(root, "plugins/directory-observer");
     await mkdir(directory, { recursive: true });
     await writeFile(path.join(directory, "index.ts"), [
       'import {appendFileSync} from "node:fs";',
@@ -29,7 +33,7 @@ export async function installDirectoryHook(options: { runtime: string; cwd: stri
       `appendFileSync(${JSON.stringify(journal)},JSON.stringify({revision:${JSON.stringify(revision)},event})+'\\n');`,
       '});}};',
     ].join("\n"), { mode: 0o600 });
-    return "project .opencode/plugins/directory-observer/index.ts (V2 execute.before)";
+    return `${user ? "disposable XDG_CONFIG_HOME/opencode" : "project .opencode"}/plugins/directory-observer/index.ts (V2 execute.before)`;
   }
   if (file !== undefined) {
     await mkdir(path.dirname(file), { recursive: true });

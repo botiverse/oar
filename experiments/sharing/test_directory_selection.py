@@ -31,6 +31,21 @@ class PartialEvidenceTests(unittest.TestCase):
         self.assertIsNone(MODULE.hook_input({"toolCall": None}))
         self.assertIsNone(MODULE.hook_input({"tool_input": {"tool_input": None}}))
 
+    def test_native_failure_and_exit_source_are_kept_without_identity(self):
+        cohort = {"native": {"events": [{"method": "hook/completed", "params": {
+            "threadId": "private", "run": {"id": "private", "sourcePath": "/private/hooks.json",
+            "status": "failed", "entries": [{"kind": "error", "text": "hook exited with code 1"}]}}}]}}
+        result = MODULE.native_hooks(cohort)
+        self.assertEqual(result[0]["exitCode"], 1)
+        self.assertEqual(result[0]["exitCodeSource"], "native completion message")
+        self.assertNotIn("private", str(result))
+
+    def test_missing_native_completion_is_not_success(self):
+        self.assertEqual(MODULE.native_hooks({}), [])
+        result = MODULE.native_hooks({"native": {"events": [{"method": "hook/completed", "params": {"run": {"status": "failed"}}}]}})
+        self.assertIsNone(result[0]["exitCode"])
+        self.assertEqual(result[0]["status"], "failed")
+
 
 if __name__ == "__main__":
     unittest.main()

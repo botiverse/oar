@@ -1,6 +1,13 @@
 # Configuration coverage and complete probe failures
 
-Runtime version check: 2026-10-30.
+Runtime version check: 2026-10-31.
+
+The October 31 [platform and trust follow-up](trust-freshness-2026-10-31.md)
+supersedes the platform gaps below. Run 41149607090 confirms Grok under the
+trust-disabled condition on all three platforms and Codex on Linux/macOS.
+Codex Windows has native hook command failures with exit 1; it remains
+incomplete. New Linux external Grok trust grants and cross-directory Grok/
+OpenCode controls pass, with Windows/macOS still pending.
 
 This follow-up changes experiments only. It preserves simultaneous failures,
 adds native configuration observations, and records the earlier
@@ -109,12 +116,14 @@ retained its own MCP result. This is evidence for the exercised per-session
 parameters, not a persisted trust-store change.
 
 This control tests a changed **per-session parameter**. It does not test a
-persisted Codex hook-trust grant made after process startup. Nor does the
-Grok run test a persisted folder grant or a change to its trust policy after
-startup. Those remain separate configuration-freshness gaps. Existing
-results must not be extrapolated to them. The new hook coverage has only
-been run locally on Linux; Windows and macOS still need the revised probe.
-No runtime version is admitted by this follow-up.
+persisted Codex hook-trust grant made after process startup. The original
+Grok run did not test a persisted folder grant or a change to
+its trust policy after startup. The follow-up now tests external native
+folder grants, user-hook refresh and project-hook discovery across directories
+on Linux; those new controls still need Windows/macOS. The earlier statement
+that all revised hook coverage awaited Windows/macOS described the state
+before run 41149607090. Its exact platform results and Codex command failures
+are retained in the linked follow-up. No runtime version is admitted yet.
 
 ## Reproduction
 

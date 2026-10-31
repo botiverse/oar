@@ -14,6 +14,7 @@ import { directoryFixture, type DirectorySession, type Label, type ConnectionMod
 import { compareDirectoryConfiguration, directoryRuleMarkers } from "./directory-configuration.js";
 import { codexHookTrustObservations, compareCodexHookTrust, trustScenarios } from "./codex-hook-trust.js";
 import { kimiConfigurationObservations } from "./kimi-configuration.js";
+import { nativeHookCompletions, nativeContextShells } from "./hook-completions.js";
 import { directoryFailureReasons } from "./directory-failures.js";
 
 const runtime = process.argv[2] ?? "opencode";
@@ -68,7 +69,7 @@ async function observe(mode: ConnectionMode): Promise<void> {
     }, [
       async (): Promise<void> => { row.directoryConfiguration = await fixture.configuration.evidence(); },
       async (): Promise<void> => { const allCalls = await fixture.calls(); row.mcpInvocations = allCalls; auditFinalInvocations(row, allCalls); },
-      (): void => { row.native = fixture.evidence(); },
+      (): void => { row.native = fixture.evidence(); row.nativeHookCompletions = nativeHookCompletions(row.native); row.nativeContextShells = nativeContextShells(row.native); },
     ]);
   });
 }

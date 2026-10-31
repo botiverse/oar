@@ -1,0 +1,38 @@
+[
+  {
+    "evidencePath": "configuration-freshness-grok/evidence.json",
+    "requestedVersion": "1.0.70",
+    "includeNativeHooks": true,
+    "exitCode": 0,
+    "source": {
+      "kind": "local Linux x64 probe",
+      "baseCommit": "41cb8254441bd0ef666d3e753fbba4b9683bb07c",
+      "probeRevision": "task 129 changes in this pull request",
+      "rawSha256": "4b46ebd115bfdc86adc667d3a67254a00e75d98867760d3361ed755e780b02e9"
+    }
+  },
+  {
+    "evidencePath": "configuration-freshness-opencode/evidence.json",
+    "requestedVersion": "2.2.3",
+    "includeNativeHooks": true,
+    "exitCode": 0,
+    "source": {
+      "kind": "local Linux x64 probe",
+      "baseCommit": "41cb8254441bd0ef666d3e753fbba4b9683bb07c",
+      "probeRevision": "task 129 changes in this pull request",
+      "rawSha256": "7b33a6b289e5c1c00c98d2179e7e212a847e7c5d7b790d79b47a2711830e3219"
+    }
+  },
+  {
+    "evidencePath": "same-directory-codex/evidence.json",
+    "requestedVersion": "0.166.0",
+    "includeNativeHooks": true,
+    "exitCode": 0,
+    "source": {
+      "kind": "local Linux x64 probe",
+      "baseCommit": "41cb8254441bd0ef666d3e753fbba4b9683bb07c",
+      "probeRevision": "task 129 changes in this pull request",
+      "rawSha256": "1f75cb0965342f3c245d39540467291a6406a03893615100e651198093bbaf81"
+    }
+  }
+]

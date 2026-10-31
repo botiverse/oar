@@ -49,3 +49,9 @@ it("does not turn an unexecuted tool into denial evidence", () => {
   expect(() => { assertCodexHookTrustEvidence(unexecuted); }).toThrow("actual MCP invocation required");
   expect(compareCodexHookTrust(unexecuted, evidence(false)).passed).toBe(false);
 });
+
+it("does not accept a hook that wrote its journal but then failed natively", () => {
+  const row = evidence(false); row.nativeHookCompletions = [{ status: "failed", exitCode: 1 }];
+  expect(() => { assertCodexHookTrustEvidence(row); }).toThrow("native hook commands must complete successfully");
+  expect(compareCodexHookTrust(row, evidence(false)).passed).toBe(false);
+});

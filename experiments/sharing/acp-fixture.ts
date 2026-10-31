@@ -126,16 +126,20 @@ export async function acpFixture(id: AcpId, timing = new ProbeTiming()) {
         calls.push({ method, params, result }); return asRecord(result) ?? {};
       } catch (error) { calls.push({ method, params, error: String(error) }); throw error; }
     };
-    const connect = async (): Promise<{ child: ReturnType<typeof startAcpProcess>; initialized: JsonRecord }> => {
+    const connect = async (options: { cwd?: string; grantGrokTrust?: boolean } = {}): Promise<{ child: ReturnType<typeof startAcpProcess>; initialized: JsonRecord; args: readonly string[] }> => {
       const before = checkedProcessTable();
-      const child = startAcpProcess(installation.command, typeof profile.args === "function" ? profile.args({ cwd: home }) : profile.args, app, { cwd: home, env });
+      const cwd = options.cwd ?? home;
+      const args = typeof profile.args === "function" ? profile.args({ cwd }) : profile.args;
+      assert.ok(options.grantGrokTrust !== true || id === "grok", "native --trust grant is Grok-specific");
+      const nativeArgs = options.grantGrokTrust === true ? ["--trust", ...args] : args;
+      const child = startAcpProcess(installation.command, nativeArgs, app, { cwd, env });
       children.push(child);
       const initialized = await request(child, "initialize", { protocolVersion: 1, clientCapabilities: { fs: {}, terminal: true },
-        clientInfo: { name: "oar-sharing-evidence", version: "1" }, _meta: profile.initializeMeta?.({ cwd: home }) ?? {} });
+        clientInfo: { name: "oar-sharing-evidence", version: "1" }, _meta: profile.initializeMeta?.({ cwd }) ?? {} });
       const auth = profile.selectAuthMethod?.(initialized); if (auth !== undefined) { await request(child, "authenticate", { methodId: auth }); }
       const [root, extra] = rootsSince(before); assert.ok(root && extra === undefined);
       nativePids.set(child, root.pid);
-      return { child, initialized };
+      return { child, initialized, args: nativeArgs };
     };
     const mcpServers = (label: "A" | "B"): JsonRecord[] => [{ name: "scope", command: process.execPath, args: [mcp.script, label], env: [] }];
     const open = async (connection: Awaited<ReturnType<typeof connect>>, label: "A" | "B", options: { withMcp?: boolean; cwd?: string } = {}): Promise<{ id: string; cwd: string; response: JsonRecord; label: "A" | "B" }> => {
