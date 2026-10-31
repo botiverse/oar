@@ -82,3 +82,12 @@ runs in Linux/macOS pull-request CI; Windows support is not yet verified.
 The backend exposes its native model catalog and serializes shared cases.
 Title-generation requests receive a separate fixture, so they cannot consume
 conversation replies or be counted as duplicated turns.
+
+`OAR_TEST=opencode-shared` runs the session behavior suite through the real
+OpenCode 2.2.3 auto-sharing adapter with a local provider. Each fresh session
+gets a distinct temporary project; resume keeps the observed original cwd.
+Fresh sessions must report shared placement, while directory reuse follows
+the adapter's isolated fallback. The three admitted platforms run it in CI,
+then `sea-trial/vendor/opencode-sharing.vendor.test.ts` checks shared and
+isolated lifecycle controls. The fixture PATH excludes relative entries;
+custom startup inputs retain their separately tested isolation policy.

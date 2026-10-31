@@ -38,6 +38,7 @@ export interface AcpRouting<T> {
   newStarted(requestId: JsonRpcId): void;
   newFinished(requestId: JsonRpcId): void;
   retired(id: string): boolean;
+  inUse(id: string): boolean;
   retireUnowned(id: string): boolean;
   attach(target: T, credentials: CredentialRedactor): AcpOwner<T>;
   notify(method: string, params: unknown, deliver: (target: T, ingress: AcpIngress) => void): void;
@@ -250,6 +251,7 @@ export function createAcpRouting<T>(options: {
       for (const entry of pending) { arm(entry); }
     },
     retired(id): boolean { return ids.get(id) === null; },
+    inUse(id): boolean { const owner = ids.get(id); return owner !== undefined && owner !== null; },
     retireUnowned(id): boolean {
       const owner = ids.get(id);
       if (owner !== undefined) { return false; }

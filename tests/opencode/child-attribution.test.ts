@@ -279,3 +279,18 @@ test("tool classification retains v1 bash and recognizes v2 shell without preten
     ]
   `);
 });
+
+test("shared projection cannot use child metadata rejected by the connection owner", () => {
+  const kernel = createSessionKernel("root");
+  const capture = createAcpRecorder(createUsageUpdateGate(), opencodeChildAttribution, undefined, () => []);
+  capture.bind(kernel);
+  const native = {
+    sessionId: "root",
+    update: { sessionUpdate: "agent_message_chunk" as const, content: { type: "text" as const, text: "foreign child text" },
+      _meta: { "opencode/child-session": { id: "peer-child", parentID: "peer" } } },
+  };
+  capture.update(native);
+  expect(kernel.records()).toHaveLength(1);
+  expect(kernel.records()[0]).toMatchObject({ sessionId: "root", kind: "frame", body: { native, events: [] } });
+  expect(graphOf(kernel.records()).edges).toEqual([]);
+});

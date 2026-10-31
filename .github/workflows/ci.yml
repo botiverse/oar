@@ -61,6 +61,27 @@ jobs:
           name: kimi-login-${{ matrix.os }}
           path: ${{ github.workspace }}/oar-trial-run/kimi-login
           if-no-files-found: warn
+      # First native auto-sharing adapter: real 2.2.3, local model only, all admitted platforms.
+      - run: npm install -g @opencode/cli@2.2.3
+        timeout-minutes: 5
+      - name: OpenCode shared session behavior
+        run: pnpm sea-trial
+        timeout-minutes: 10
+        env:
+          OAR_TEST: opencode-shared
+          OAR_TEST_REQUIRE_AVAILABLE: "1"
+      - name: OpenCode shared and isolated lifecycle controls
+        if: ${{ !cancelled() }}
+        run: pnpm vitest run sea-trial/vendor/opencode-sharing.vendor.test.ts --maxWorkers 1
+        timeout-minutes: 10
+        env:
+          OAR_TEST: opencode-shared
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: opencode-sharing-${{ matrix.os }}
+          path: ${{ github.workspace }}/oar-trial-run
+          if-no-files-found: warn
 
   # The packed packages installed into an empty project the way a host
   # installs them: OAR without its optional peer @cursor/sdk must load,

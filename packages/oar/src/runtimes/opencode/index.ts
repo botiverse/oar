@@ -5,6 +5,7 @@ import { opencodeInstallation } from "./installation.js";
 import { opencodeInstall, opencodeInstallLines, opencodeInstallPlan } from "./install.js";
 import { opencodeListModels } from "./list-models.js";
 import { opencodeRefusedSessionOptions } from "./options.js";
+import { opencodeSharedRefusal } from "./sharing-admission.js";
 
 export const opencodeRuntime = defineRuntime({
   id: "opencode",
@@ -20,4 +21,10 @@ export const opencodeRuntime = defineRuntime({
     return opencodeSession;
   }),
   listModels: opencodeListModels,
-}, { execution: "process" });
+}, { execution: "process", shared: {
+  refusal: opencodeSharedRefusal,
+  session: () => onFirstCall(async () => {
+    const { createOpenCodeSharedSession } = await import("./shared-session.js");
+    return createOpenCodeSharedSession();
+  }),
+} });

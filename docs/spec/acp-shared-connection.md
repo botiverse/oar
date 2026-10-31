@@ -21,7 +21,7 @@ Admission also checks same-directory MCP isolation and configuration
 freshness: a later shared session must observe the project/user configuration
 that a new isolated process would observe then. The generic factory's
 per-session arguments alone do not prove that a vendor scopes them that way.
-For a future OpenCode adapter, one canonical directory serves at most one
+For OpenCode 2.2.3, one canonical directory serves at most one
 session for the entire process lifetime. Release does not clear that used
 directory. Another open in that directory, including an identical or empty
 MCP list, uses a fresh isolated process for `auto` and throws
@@ -30,8 +30,14 @@ native open is sent on the old connection. Peers remain untouched.
 Kimi 2.4.1 fails the configuration-freshness requirement and remains isolated;
 explicit shared placement is refused. See the
 [native comparison](../../experiments/sharing/same-directory-2026-10-30.md).
-These are admission constraints for later adapters, not runtime enablement
-by this foundation. Qoder's daemon has the same directory lifetime
+OpenCode enforces this on Linux x64, macOS arm64 and Windows x64; other
+versions/platforms remain isolated or refuse explicit sharing. Its
+[runtime audit](../runtimes/opencode.md#shared-launch-ownership-and-cleanup)
+defines the stable home launch, process inputs, atomic real-path/file-identity
+reservation and native close plus hosted-terminal cleanup. A reservation
+refusal precedes any native open, retains peers, and reports actual isolated
+placement for auto fallback. Failed native opens retain the reservation.
+Qoder's daemon has the same directory lifetime
 restriction, documented on its [runtime page](../runtimes/qoder.md).
 
 The official SDK registers a unique outgoing request id before writing it.
@@ -189,3 +195,11 @@ actual `exited` response. This reports an OAR cleanup observation, not a new
 native frame or a successful stop. A host request cancelled before handler
 dispatch remains a `toApp` request and an answered failure; no terminal or
 other host work starts for the cancelled request.
+
+For OpenCode 2.2.3, the running process must confirm the exact admitted version
+in its initialize reply before any session/new or resume. A stale installation
+snapshot cannot admit a newer binary. Version refusal retires the pool entry
+and stops its process before auto opens independently or shared is refused.
+Directory canonicalization is ownership-only; native and isolated fallback
+opens retain the caller's cwd spelling. A directory-refused auto open waits
+for shared initialization to settle, but does not inherit its failure.
