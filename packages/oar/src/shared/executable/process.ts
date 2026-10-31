@@ -1,3 +1,4 @@
+/* oxlint-disable import/max-dependencies -- This process owner composes spawn, streams, diagnostics, observation and shutdown. */
 import spawn from "cross-spawn";
 import { Duplex, type Readable, type Writable } from "node:stream";
 import { StringDecoder } from "node:string_decoder";
@@ -8,6 +9,7 @@ import type { CancellationObservation } from "./process-cancellation.js";
 import { processShutdown } from "./process-shutdown.js";
 import { OWN_PROCESS_GROUP } from "./process-signals.js";
 import { windowsSpawnTarget } from "./windows-shim.js";
+import { prepareProcessTable, processTablePreparation } from "./process-table-preparation.js";
 
 export { trackOwnedProcess } from "./ownership.js";
 export { killGraceMs, KILL_GRACE_MS, killProcessTree, signalProcessGroup, OWN_PROCESS_GROUP } from "./process-signals.js";
@@ -129,7 +131,10 @@ export function spawnLineProcess(
     for (const handler of exitHandlers) { handler(exitCode, shutdown.reason()); }
     return exitCode;
   })();
-  child.once("spawn", spawnOk);
+  child.once("spawn", () => {
+    spawnOk();
+    if (options.killTree === true) { prepareProcessTable(); }
+  });
   const end = (code: number | null, signal: NodeJS.Signals | null = null): void => {
     if (ended) {
       return;
@@ -176,9 +181,11 @@ export function spawnLineProcess(
     ...(child.stdio[3] instanceof Duplex ? { extraPipe: child.stdio[3] } : {}),
     diagnostics: () => {
       const cleanup = shutdown.diagnostics();
+      const preparation = options.killTree === true ? processTablePreparation() : undefined;
       return { exitCode, signal: exitSignal, stderr: stderr.text(),
         ...(spawnError === undefined ? {} : { error: spawnError }),
         ...(cleanup === undefined ? {} : { cleanup }),
+        ...(preparation === undefined ? {} : { processTablePreparation: preparation }),
       };
     },
     // Stop accepting writes immediately, including while capture awaits EOF.

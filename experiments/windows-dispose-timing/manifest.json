@@ -1,0 +1,25 @@
+{
+  "run": 41193731535,
+  "head": "62bfde73ff0ee441353293b6bdd50e01c6e3c191",
+  "product_base": "3e47590f5063fc763774eb42a4e898503c7d3003",
+  "artifacts": [
+    {
+      "id": 13039078823,
+      "name": "windows-dispose-prepared-false",
+      "digest": "sha256:687804f051dbf142472edf4f7c873db0854a2c07c3210721d0301883c280e6d6",
+      "selected_inputs_sha256": {
+        "timing.jsonl": "129dcec1e311131de85620e7f7e5094cc0caf9482b4ab86dd9a629846bde9ee4",
+        "powershell-stages.tsv": "059a297a08dc7ddce5e5e2b4cba747cfa63e10bc31c53dc782f2ac435361f6ab"
+      }
+    },
+    {
+      "id": 13039933007,
+      "name": "windows-dispose-prepared-true",
+      "digest": "sha256:f5602228e65ed24399755e6bc9e4fec4eefb6c7586e8b15087f848a087d610e0",
+      "selected_inputs_sha256": {
+        "timing.jsonl": "a907efa394ca1e389895e22f80b555f558bf46de66fed876620d8e90c4a9ad0e",
+        "powershell-stages.tsv": "ad6c18326e65c4c4cb719b5a4bc7dc4e1cd63f6aae32fef0c1f36c246909be72"
+      }
+    }
+  ]
+}

@@ -320,13 +320,14 @@ Further rules:
 - **A failed process-table read is not an empty tree.** Cleanup records the
   source, duration and bounded failure fields internally, without process
   names, command lines or environment values. Before EOF it retries a failed
-  read once (at most two reads), preserving both observations and the
-  five-second ps/CIM budget for each query.
+  read at most once while the root remains alive, preserving both observations.
+  Windows does not retry a timeout; its queue and any retry share one
+  five-second caller budget. Other platforms retain the per-read budget.
   Successful observations count skipped permission-denied procfs entries and
   Windows entries without creation times; these identities are never signalled.
   Malformed rows or a missing host identity still fail the observation.
   A successful retry uses the normal snapshot path. If OAR takes a stop action
-  but both reads fail, or a later identity check fails, `exited.reason` explicitly says descendant
+  but capture remains unverified, or a later identity check fails, `exited.reason` explicitly says descendant
   cleanup could not be verified; startup errors retain their native class
   and cause with the same explanation. EOF and native shutdown hooks still
   run, and normal bounded escalation still stops the owned root. Remembered
@@ -378,14 +379,32 @@ Further rules:
   Whole-process disposal capture completes before its first native
   cancellation, EOF or signal; the per-turn user abort budget is separate
   as described above.
-  Each ps/CIM query retains its five-second limit; a failed capture retries
-  once only while the owned root is still alive. The cold observation budget
-  is therefore up to 2 x 5 seconds before the first stop action, plus up to
-  5 seconds for post-exit revalidation if captured descendants remain. Force
-  escalation can require its own five-second query. Fresh-batch queueing can
-  add waiting for the currently running query. These costs also apply to
-  auxiliary commands that terminate their owned process trees. Reads are
+  Each ps/CIM query retains its five-second limit. On Windows, before-EOF
+  capture has one five-second total waiting budget including the current
+  batch's queue and any retry. A timeout is not retried; another failure can
+  retry once using only the remaining time while the root is alive. Late
+  results never enter this capture's identity set, even if a shared query
+  remains useful to another caller. Timer delivery depends on the host event
+  loop; this is not a five-second bound on complete disposal. Windows
+  post-exit revalidation and force revalidation each also have a five-second
+  total budget including queueing. Expiry reports unverified cleanup and
+  discards late identity evidence; force still stops the owned root.
+  The ordinary Windows sequence is capture (at most five seconds), native
+  stop and exit, then revalidation (at most five seconds if needed). Force
+  escalation adds the existing grace and at most five seconds of force
+  revalidation. Neither taskkill nor native exit has a hard deadline, so
+  there is no promised worst-case duration for complete disposal. Other
+  platforms retain up to two capture reads and per-query limits. Reads are
   asynchronous and do not block the host event loop.
+  After the first successful Windows `killTree` long-lived spawn, OAR starts
+  one background CIM preparation using the same serial reader. It has a
+  five-second total caller budget, never delays `spawned`, and is not retried.
+  Only bounded success/failure metadata is retained as
+  `diagnostics().processTablePreparation`; no process table is cached or used
+  as cleanup evidence. Preparation failure does not fail opening or claim
+  cleanup failure. Short help/version commands do not trigger preparation.
+  The synchronous host-exit hook neither waits for it nor uses its result.
+  EOF-driven runtimes retain their native shutdown-hook grace unchanged.
   A root that exits before OAR sends any stop action (EOF, a native cancel or
   close, or a signal/taskkill) is a natural exit, even if preparation or its
   observation is already pending. It keeps the native exit/error without an

@@ -16,12 +16,12 @@ afterEach(() => { vi.restoreAllMocks(); vi.unstubAllEnvs(); });
 
 test("two failed reads before EOF are both retained, and never represented as no descendants", async () => {
   const retry: tree.ProcessTableFailure = { ok: false, source: "windows", reason: "command_failed", exitCode: 3, elapsedMs: 17 };
-  const read = vi.spyOn(asyncTree, "observeProcessTableAsync").mockResolvedValueOnce(failure).mockResolvedValueOnce(retry);
+  const read = vi.spyOn(asyncTree, "observeProcessTableAsync").mockResolvedValueOnce(retry).mockResolvedValueOnce(failure);
   const cleanup = processTreeCleanup(123);
   await cleanup.capture(); await cleanup.finish();
   expect(read).toHaveBeenCalledTimes(2);
-  expect(cleanup.diagnostics()).toEqual({ status: "unverified", observations: [{ ...failure, phase: "before_eof" }, { ...retry, phase: "before_eof" }] });
-  expect(cleanupFailureReason(cleanup.diagnostics())).toMatch(/timeout.*command_failed/u);
+  expect(cleanup.diagnostics()).toEqual({ status: "unverified", observations: [{ ...retry, phase: "before_eof" }, { ...failure, phase: "before_eof" }] });
+  expect(cleanupFailureReason(cleanup.diagnostics())).toMatch(/command_failed.*timeout/u);
 });
 
 // oxlint-disable-next-line eslint/max-statements -- One failed force observation must still stop its root.
@@ -33,7 +33,7 @@ test("force escalation still stops the owned root when the revalidation read fai
   const stopRoot = vi.fn<() => void>();
   await cleanup.force(stopRoot); await cleanup.finish();
   expect(stopRoot).toHaveBeenCalledOnce();
-  expect(read).toHaveBeenCalledTimes(3);
+  expect(read).toHaveBeenCalledTimes(process.platform === "win32" ? 2 : 3);
   expect(kill).not.toHaveBeenCalled();
   expect(cleanup.diagnostics().status).toBe("unverified");
 });
@@ -129,7 +129,7 @@ test.each(["capture-fails", "retry-recovers", "revalidation-fails"])("native gra
     const nativeRead = asyncTree.observeProcessTableAsync;
     const read = vi.spyOn(asyncTree, "observeProcessTableAsync");
     if (scenario === "capture-fails") { read.mockResolvedValue(failure); }
-    else if (scenario === "retry-recovers") { read.mockResolvedValueOnce(failure).mockImplementation(nativeRead); }
+    else if (scenario === "retry-recovers") { read.mockResolvedValueOnce({ ...failure, reason: "command_failed", code: "EIO" }).mockImplementation(nativeRead); }
     else { read.mockImplementationOnce(nativeRead).mockResolvedValue(failure); }
     child.kill(); child.kill();
     expect(await child.exited).toBe(0);
@@ -141,7 +141,7 @@ test.each(["capture-fails", "retry-recovers", "revalidation-fails"])("native gra
     expect(await gone(tool, recovered ? 5000 : 50)).toBe(recovered);
     expect(sentinelExited).toBe(false);
     const observations = child.diagnostics().cleanup?.observations ?? [];
-    expect(observations.some((entry) => !entry.ok && entry.code === "ETIMEDOUT")).toBe(true);
+    expect(observations.some((entry) => !entry.ok && entry.code === (recovered ? "EIO" : "ETIMEDOUT"))).toBe(true);
     const readsBeforeLateKill = read.mock.calls.length;
     child.kill();
     expect(read.mock.calls).toHaveLength(readsBeforeLateKill);

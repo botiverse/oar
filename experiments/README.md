@@ -1,5 +1,7 @@
 # experiments
 
+- [Windows dispose timing](windows-dispose-timing/README.md): Claude 2.1.316 cold/prepared Windows phases, batched-query waiting, and separate bounded cleanup observations.
+
 Manual experiment records against real runtimes, the analogue of OpenDAL's
 `core/edge/`. Each is a standalone script that may burn real tokens, never
 runs in the normal CI change-validation gate, and deliberately avoids repo

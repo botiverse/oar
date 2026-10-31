@@ -16,8 +16,11 @@ import { selectBackend } from "./harness/backends.js";
 import { runSuite } from "./harness/runner.js";
 import { openTrace } from "./harness/trace.js";
 import { runtimeUnderTest } from "./harness/subject.js";
+import path from "node:path";
+import { prepareWindowsProcessTable } from "./windows-process-table.js";
 
 const target = process.env.OAR_TEST ?? "mock";
+prepareWindowsProcessTable(path.join(process.env.OAR_TRIAL_RUN_DIR ?? "oar-trial-run", "windows-process-table-preparation.jsonl"));
 const { runtime, aimock: aimockEnv, concurrency, beforeSuite, close } = await selectBackend(target);
 
 const installation = await runtime.installation?.();

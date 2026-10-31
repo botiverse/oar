@@ -198,7 +198,11 @@ Resume differences are explicit:
   exclusions still block the tool in RPC. These locations are not equivalent
   for extension-tool restoration.
 
-Dispose closes stdin first, letting native EOF run extension shutdown hooks.
+Dispose captures descendant identities before closing stdin, then lets native
+EOF run extension shutdown hooks. On Windows, capture's five-second total
+budget includes queueing and any non-timeout retry; a timeout is not retried.
+The first tree-owning spawn also starts a nonblocking CIM preparation whose
+result is diagnostic only. Neither change shortens the native hook grace.
 The shared process owner then bounds the wait by `OAR_KILL_GRACE_MS` and kills
 remaining descendants, including detached ones captured when disposal began.
 Abort has the same bounded process fallback as other process runtimes. Native

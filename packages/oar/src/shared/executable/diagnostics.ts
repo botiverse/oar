@@ -1,5 +1,6 @@
 import type { ExecutableResult } from "./run.js";
 import { cleanupFailureReason, type ProcessCleanupDiagnostics } from "./process-cleanup.js";
+import type { ProcessTablePreparation } from "./process-table-preparation.js";
 
 export interface ProcessExitObservation {
   readonly at: string;
@@ -26,6 +27,7 @@ export interface ProcessDiagnostics {
   readonly timeoutObservation?: ProcessTimeoutObservation;
   readonly error?: { readonly code?: string; readonly message: string };
   readonly cleanup?: ProcessCleanupDiagnostics;
+  readonly processTablePreparation?: ProcessTablePreparation;
 }
 
 export const STDERR_TAIL_BYTES = 8192;
