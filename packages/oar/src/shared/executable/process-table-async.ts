@@ -1,7 +1,7 @@
 import { readdir, readFile } from "node:fs/promises";
 import { asRecord } from "../json.js";
 import { InvalidProcessTableError, parseProcessPs, parseProcessStat, parseProcessWindows, processTableFailure, type ProcessEntry, type ProcessTableObservation, type ProcessTableRead, type ProcessTableSource } from "./process-tree.js";
-import { processTableCommand } from "./process-table-command.js";
+import { processTableCommand, type ProcessTableReadOptions } from "./process-table-command.js";
 
 const BATCH = 64;
 export const processTableSource = (): ProcessTableSource => process.platform === "linux" ? "procfs" : (process.platform === "win32" ? "windows" : "ps");
@@ -28,34 +28,40 @@ async function readProcfs(): Promise<ProcessTableRead> {
 }
 
 /** One actual read, distinct from the callers waiting to join a new batch. */
-export async function observeProcessTableOnce(source: ProcessTableSource): Promise<ProcessTableObservation> {
+export async function observeProcessTableOnce(source: ProcessTableSource, options?: ProcessTableReadOptions): Promise<ProcessTableObservation> {
   const started = performance.now();
   try {
     let result: ProcessTableRead = { table: new Map(), skipped: 0 };
     if (source === "procfs") { result = await readProcfs(); }
     else if (source === "ps") {
-      result = parseProcessPs(await processTableCommand("ps", ["-A", "-o", "pid=,ppid=,pgid=,lstart="], { ...process.env, LC_ALL: "C" }));
+      result = parseProcessPs(await processTableCommand("ps", ["-A", "-o", "pid=,ppid=,pgid=,lstart="], { ...process.env, LC_ALL: "C" }, options));
     } else {
       result = parseProcessWindows(await processTableCommand("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command",
-        "$ErrorActionPreference='Stop'; Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId,@{Name='Started';Expression={if ($null -ne $_.CreationDate) { $_.CreationDate.ToUniversalTime().ToString('o') }}} | ConvertTo-Json -Compress"]));
+        "$ErrorActionPreference='Stop'; Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId,@{Name='Started';Expression={if ($null -ne $_.CreationDate) { $_.CreationDate.ToUniversalTime().ToString('o') }}} | ConvertTo-Json -Compress"], undefined, options));
     }
     if (!result.table.has(process.pid)) { throw new InvalidProcessTableError("missing_host"); }
     return { ok: true, source, elapsedMs: performance.now() - started, ...result };
   } catch (error) { return processTableFailure(error, source, performance.now() - started); }
 }
 
-type Reader = (source: ProcessTableSource) => Promise<ProcessTableObservation>;
+type Reader = (source: ProcessTableSource, options?: ProcessTableReadOptions) => Promise<ProcessTableObservation>;
 interface WaitingBatch {
   started: boolean;
+  background: boolean;
   readonly result: Promise<ProcessTableObservation>;
 }
 
 /** Only requests made before a read starts may use it. No result is cached. */
 export function batchProcessTableReads(read: Reader): Reader {
   const batches = new Map<ProcessTableSource, WaitingBatch>();
-  return async (source) => {
+  return async (source, options) => {
     const previous = batches.get(source);
-    if (previous !== undefined && !previous.started) { return previous.result; }
+    if (previous !== undefined && !previous.started) {
+      // A foreground caller promotes the whole not-yet-started batch. A
+      // background preparation can never remove a cleanup caller's handles.
+      if (options?.background !== true) { previous.background = false; }
+      return previous.result;
+    }
     const observe = async (): Promise<ProcessTableObservation> => {
       // A pending generation waits for its predecessor, then admits every
       // caller that arrived before this query actually begins.
@@ -63,13 +69,13 @@ export function batchProcessTableReads(read: Reader): Reader {
       await Promise.resolve();
       batch.started = true;
       const started = performance.now();
-      try { return await read(source); }
+      try { return await read(source, batch.background ? { background: true } : undefined); }
       catch (error) { return processTableFailure(error, source, performance.now() - started); }
       finally { if (batches.get(source) === batch) { batches.delete(source); } }
     };
     // The observed promise is the same one callers await, with every read
     // failure converted into metadata. There is no detached worker promise.
-    const batch: WaitingBatch = { started: false, result: observe() };
+    const batch: WaitingBatch = { started: false, background: options?.background === true, result: observe() };
     batches.set(source, batch);
     const result = await batch.result;
     return result;
@@ -77,7 +83,7 @@ export function batchProcessTableReads(read: Reader): Reader {
 }
 
 const observeBatched = batchProcessTableReads(observeProcessTableOnce);
-export async function observeProcessTableAsync(source: ProcessTableSource = processTableSource()): Promise<ProcessTableObservation> {
-  const result = await observeBatched(source);
+export async function observeProcessTableAsync(source: ProcessTableSource = processTableSource(), options?: ProcessTableReadOptions): Promise<ProcessTableObservation> {
+  const result = await observeBatched(source, options);
   return result;
 }

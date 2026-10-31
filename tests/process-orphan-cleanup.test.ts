@@ -28,7 +28,7 @@ test.each([false, true])("prepared cleanup follows a tool after its intermediate
     const read = vi.spyOn(tables, "observeProcessTableAsync");
     if (unreadable) { read.mockResolvedValue({ ok: false, source: "windows", reason: "timeout", elapsedMs: 5000, timeoutMs: 5000 }); }
     await Promise.all([child.prepareShutdown(), child.prepareShutdown()]);
-    expect(read).toHaveBeenCalledTimes(unreadable ? 2 : 1);
+    expect(read).toHaveBeenCalledTimes(unreadable && process.platform !== "win32" ? 2 : 1);
     child.write("orphan\n"); await orphaned.promise;
     expect(await gone(owned.middle)).toBe(true); expect(await gone(owned.tool, 50)).toBe(false);
     child.kill(); await child.exited;

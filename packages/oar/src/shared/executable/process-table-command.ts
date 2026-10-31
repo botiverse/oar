@@ -1,11 +1,13 @@
 import { spawn, type ChildProcess } from "node:child_process";
+import { Socket } from "node:net";
 import { trackOwnedProcess } from "./ownership.js";
 
 export const PROCESS_TABLE_TIMEOUT_MS = 5000;
 const MAX_OUTPUT = 16 * 1024 * 1024;
+export interface ProcessTableReadOptions { readonly background?: boolean; }
 
 /** A query deadline includes pipe drain; a dead root cannot leave this read waiting on close. */
-export async function processTableCommand(command: string, args: readonly string[], env?: NodeJS.ProcessEnv): Promise<string> {
+export async function processTableCommand(command: string, args: readonly string[], env?: NodeJS.ProcessEnv, options?: ProcessTableReadOptions): Promise<string> {
   const output = await new Promise<string>((resolve, reject) => {
     // Node's piped-stdio overload excludes the missing pipes of a failed spawn.
     const child: ChildProcess = spawn(command, [...args], { env, windowsHide: true, stdio: ["ignore", "pipe", "ignore"] });
@@ -35,11 +37,13 @@ export async function processTableCommand(command: string, args: readonly string
       if (code === 0 && signal === null) { finish(); }
       else { finish(Object.assign(new Error("Process table command failed"), { status: code, signal })); }
     });
+    if (options?.background === true) { child.unref(); }
     const stdout = child.stdout;
     if (!stdout) {
       // The native spawn error is queued first; retain its metadata when it
       // arrives, while also settling a malformed spawn with no error event.
-      setImmediate(() => { finish(new Error("Process table query has no stdout")); });
+      const fallback = setImmediate(() => { finish(new Error("Process table query has no stdout")); });
+      if (options?.background === true) { fallback.unref(); }
       return;
     }
     stdout.on("data", (chunk: Buffer) => {
@@ -49,6 +53,10 @@ export async function processTableCommand(command: string, args: readonly string
     });
     stdout.once("error", finish);
     deadline.timer = setTimeout(() => { finish(Object.assign(new Error("Process table query timed out"), { code: "ETIMEDOUT" })); }, PROCESS_TABLE_TIMEOUT_MS);
+    if (options?.background === true) {
+      deadline.timer.unref();
+      if (stdout instanceof Socket) { stdout.unref(); }
+    }
   });
   return output;
 }

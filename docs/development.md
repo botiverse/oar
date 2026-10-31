@@ -97,8 +97,12 @@ On Windows, Vitest global setup first runs one real CIM process-table query
 with a 60-second preparation limit. It records total/query duration in the job
 log and `oar-trial-run/windows-process-table-preparation.jsonl`; a failed read
 or missing observer identity fails setup. This keeps first-use work outside
-the existing tests' timing windows. Product deadlines and test assertions
-are unchanged. Cold first-use timing remains covered by the separate
+the unit tests' timing windows. The standalone behavior entry does not
+prewarm CIM: it exercises product preparation and the cold cleanup path,
+with the existing 15-second disposal assertion unchanged.
+Product preparation and its separate capture budget
+are described in the [record contract](spec/record-stream.md#the-rules).
+Cold first-use timing remains covered by the separate
 [Windows CIM experiment](../experiments/windows-cim/README.md).
 
 ### Behavior: does the public contract still hold?

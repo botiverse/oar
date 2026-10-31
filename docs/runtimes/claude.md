@@ -1051,6 +1051,13 @@ cancel can end a shell without hiding its already observed tool from later
 fallback or disposal. A root exit while that cancellation is active cleans
 those observed tools. Completing or refusing that turn clears the active
 marker; a subsequent unrelated natural exit leaves tools untouched.
+On Windows, the first tree-owning spawn starts a nonblocking CIM preparation.
+Before disposal's EOF and immediate `taskkill`, capture waits at most five
+seconds total including queueing and any non-timeout retry. A timeout is not
+retried. Preparation never supplies cleanup identities; failed capture stays
+unverified. Later force and post-exit revalidation each have a separate
+five-second budget including queueing. This does not bound native exit, and the
+Windows path does not wait the POSIX SIGTERM grace before its first taskkill.
 A tool already outside claude's tree before observation remains unknown.
 Later cleanup follows new descendants of identity-matched observed tools,
 but cannot infer an unobserved tool whose parent already exited.

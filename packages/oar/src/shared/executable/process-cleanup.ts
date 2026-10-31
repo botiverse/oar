@@ -1,5 +1,6 @@
 import { descendantsOf, killEntries, processTableFailure, type ProcessEntry, type ProcessTable, type ProcessTableObservation, type ProcessTableSource } from "./process-tree.js";
 import { observeProcessTableAsync, processTableSource } from "./process-table-async.js";
+import { observeProcessTableWithin } from "./process-table-budget.js";
 import type { Observation, Phase, ProcessCleanupDiagnostics } from "./process-cleanup-diagnostics.js";
 
 export { appendCleanupFailure, cleanupFailureReason, type ProcessCleanupDiagnostics } from "./process-cleanup-diagnostics.js";
@@ -36,7 +37,11 @@ export function processTreeCleanup(pid: number, alive: () => boolean = () => tru
     return { table: result.table, source: result.source };
   };
   const read = async (phase: Phase): Promise<Snapshot | undefined> => {
-    try { return accept(await observeProcessTableAsync(), phase); }
+    try {
+      const result = processTableSource() === "windows"
+        ? await observeProcessTableWithin(5000) : await observeProcessTableAsync();
+      return accept(result, phase);
+    }
     catch (error) { failed(error, phase); return undefined; }
   };
   const ownedEntries = ({ table, source }: Snapshot, includeLiveRoot = false): ProcessEntry[] => {
@@ -72,6 +77,19 @@ export function processTreeCleanup(pid: number, alive: () => boolean = () => tru
     async capture() {
       // At most two reads (one retry), both before EOF. A root that exited
       // during a read cannot lend its possibly reused PID to a retry.
+      if (processTableSource() === "windows") {
+        const deadline = performance.now() + 5000;
+        let result = await observeProcessTableWithin(5000);
+        let table = accept(result, "before_eof");
+        const remaining = deadline - performance.now();
+        if (table === undefined && alive() && remaining > 0 && (result.ok || result.reason !== "timeout")) {
+          result = await observeProcessTableWithin(remaining);
+          table = accept(result, "before_eof");
+        }
+        if (table === undefined) { unverified = true; return; }
+        remember(table);
+        return;
+      }
       let table = await read("before_eof");
       if (table === undefined && alive()) { table = await read("before_eof"); }
       if (table === undefined) { unverified = true; return; }
