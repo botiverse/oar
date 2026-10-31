@@ -122,9 +122,18 @@ runtimes may legitimately differ.
   catches real-process integration mistakes the mock cannot.
 - `OAR_TEST=scripted pnpm sea-trial`: the public `scriptedRuntime`
   (`@botiverse/oar/testing`) held to the same contract.
-- `pnpm tsx sea-trial/all.ts [backend...]`: several backends concurrently,
-  by default mock plus the ten aimock backends and Qoder native replay. Use it before pushing a
-  change to shared runtime machinery.
+- `pnpm tsx sea-trial/all.ts [backend...]`: several backends with bounded
+  concurrency, by default mock plus the ten aimock backends and Qoder native
+  replay. It runs at most `max(1, min(4, floor(availableParallelism() / 2)))`
+  backends at once, leaving room for native CLIs' own threads and children.
+  Every selected backend still runs, including after another backend fails.
+  Pin local native binaries to the versions in CI (for example,
+  `OAR_CODEBUDDY_BIN=/absolute/path/to/2.178.1/codebuddy`) before comparing
+  results; an old installation discovered on PATH is not evidence about the
+  pinned version. Use this command before pushing a change to shared runtime
+  machinery. CI already runs backends on separate VMs and is unchanged;
+  product and individual test deadlines are unchanged. See the
+  [local overload evidence](../experiments/codebuddy-probe-cost/README.md).
 - `OAR_TEST=<real id>` (`antigravity`, `claude`, `codebuddy`, `codex`, `cursor`, `grok`,
   `kimi`, `opencode`, `pi`): your local installation and login. The final word when
   vendor reality is in doubt; it costs quota, so never run it by default.
