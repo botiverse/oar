@@ -6,8 +6,9 @@ import { promisify } from "node:util";
 import { checkedProcessTable } from "../../../experiments/sharing/process-table.js";
 import { descendantsOf, killEntries, type ProcessEntry } from "../../../packages/oar/src/shared/executable/process-tree.js";
 import { asRecord } from "../../../packages/oar/src/shared/json.js";
+import { linuxProcessState, settleObservedProcesses } from "./process-reclamation.js";
 
-export function cleanupObserver(home: string): { observations: unknown[]; sample(stage: string): Promise<void>; reclaim(): void } {
+export function cleanupObserver(home: string): { observations: unknown[]; sample(stage: string): Promise<void>; reclaim(): Promise<void> } {
   const owned = new Map<number, ProcessEntry>();
   const observations: unknown[] = [];
   const failures: unknown[] = [];
@@ -38,7 +39,7 @@ export function cleanupObserver(home: string): { observations: unknown[]; sample
           if (process.platform !== "linux") { return row; }
           const cwd = await readlink(`/proc/${entry.pid}/cwd`).catch(() => null);
           const executable = await readlink(`/proc/${entry.pid}/exe`).catch(() => null);
-          return { pid: row.pid, ppid: row.ppid, start: row.start, cwd, executable };
+          return { pid: row.pid, ppid: row.ppid, start: row.start, cwd, executable, state: linuxProcessState(entry) };
         }));
         const observation = { stage, at: new Date().toISOString(), processes, windows, tool, child };
         observations.push(observation); process.stdout.write(`${JSON.stringify({ kind: "opencode_cleanup", ...observation })}\n`);
@@ -47,18 +48,15 @@ export function cleanupObserver(home: string): { observations: unknown[]; sample
         failures.push(error); observations.push({ stage, error: String(error) });
       }
     },
-    reclaim(): void {
+    async reclaim(): Promise<void> {
       const table = checkedProcessTable("opencode-fixture-reclaim", process.platform, true);
-      const candidates = [...owned.values(), ...descendantsOf(table, process.pid)].filter(entry => {
-        if (table.get(entry.pid)?.start !== entry.start) { return false; }
-        try { process.kill(entry.pid, 0); return true; } catch { return false; }
-      });
-      // Liveness by PID alone is insufficient: a PID may have changed owners
-      // since sampling. Revalidate after the liveness check, before any signal.
-      const fresh = candidates.length === 0 ? table : checkedProcessTable("opencode-fixture-revalidate", process.platform, true);
-      const remaining = candidates.filter(entry => fresh.get(entry.pid)?.start === entry.start);
+      const candidates = [...owned.values(), ...descendantsOf(table, process.pid)].filter(entry => table.get(entry.pid)?.start === entry.start);
+      const settled = await settleObservedProcesses([...new Map(candidates.map(entry => [entry.pid, entry])).values()], table);
+      const { remaining, zombies, snapshots, elapsedMs, waitMs } = settled;
+      const observation = { stage: "fixture-reclaim", at: new Date().toISOString(), elapsedMs, waitMs, processes: remaining, zombies, snapshots };
+      observations.push(observation); process.stdout.write(`${JSON.stringify({ kind: "opencode_cleanup", ...observation })}\n`);
       // Reclaim for runner hygiene, but never turn a leaked MCP/tool/conhost into a passing test.
-      killEntries(remaining, fresh);
+      killEntries(remaining, settled.table);
       const pids = [...new Set(remaining.map(entry => entry.pid))].join(", ");
       if (remaining.length > 0) { failures.push(new Error(`Fixture reclaimed leaked processes: ${pids}`)); }
       if (failures.length > 0) { throw new AggregateError(failures, "Native cleanup evidence or final tree assertion failed"); }
