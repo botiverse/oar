@@ -1,0 +1,1204 @@
+{
+  "node": "v24.19.0",
+  "uv": "1.52.1",
+  "platform": "win32",
+  "samples": [
+    {
+      "label": "normal-0",
+      "rootPid": 8260,
+      "beforeSpawn": {
+        "wallMs": 1793424729790,
+        "monotonicMs": 108.8377,
+        "offsetMs": 1793424729681.1624
+      },
+      "alive": {
+        "label": "normal-0/alive",
+        "before": {
+          "wallMs": 1793424729909,
+          "monotonicMs": 227.7575,
+          "offsetMs": 1793424729681.2424
+        },
+        "after": {
+          "wallMs": 1793424736309,
+          "monotonicMs": 6626.9449,
+          "offsetMs": 1793424729682.0552
+        },
+        "totalMs": 6399.187400000001,
+        "status": 0,
+        "signal": null,
+        "error": null,
+        "stderr": "",
+        "parsed": {
+          "cimStartedUtc": "2026-10-31T05:32:14.6124628Z",
+          "native": [
+            {
+              "pid": 8260,
+              "ok": true,
+              "error": 0,
+              "stage": "complete",
+              "creationFileTime": "134378983297960827",
+              "exitFileTime": "0",
+              "exitCode": 259,
+              "handleClosed": true,
+              "closeError": 0
+            }
+          ],
+          "readerPid": 8000,
+          "observerCpuMs": 937.5,
+          "cimFinishedUtc": "2026-10-31T05:32:14.9967274Z",
+          "nativeMs": 1840.2815,
+          "cim": {
+            "ok": true,
+            "rows": [
+              {
+                "pid": 8260,
+                "parentPid": 7316,
+                "creationFileTime": "134378983297960820",
+                "creationUtc": "2026-10-31T05:32:09.7960820Z"
+              },
+              {
+                "pid": 8352,
+                "parentPid": 8260,
+                "creationFileTime": "134378983297994490",
+                "creationUtc": "2026-10-31T05:32:09.7994490Z"
+              }
+            ],
+            "observedCount": 147
+          },
+          "totalMs": 2225.8716,
+          "observerHandleCount": 624,
+          "observerWorkingSetBytes": 101965824
+        },
+        "parseError": null
+      },
+      "exit": {
+        "code": 0,
+        "signal": null,
+        "atExit": {
+          "wallMs": 1793424736320,
+          "monotonicMs": 6638.0149,
+          "offsetMs": 1793424729681.985
+        },
+        "inside": {
+          "label": "normal-0/synchronous-exit",
+          "before": {
+            "wallMs": 1793424736320,
+            "monotonicMs": 6638.025,
+            "offsetMs": 1793424729681.975
+          },
+          "after": {
+            "wallMs": 1793424736844,
+            "monotonicMs": 7162.5503,
+            "offsetMs": 1793424729681.4497
+          },
+          "totalMs": 524.5253000000002,
+          "status": 0,
+          "signal": null,
+          "error": null,
+          "stderr": "",
+          "parsed": {
+            "cimStartedUtc": "2026-10-31T05:32:16.7001081Z",
+            "native": [
+              {
+                "pid": 8260,
+                "ok": true,
+                "error": 0,
+                "stage": "complete",
+                "creationFileTime": "134378983297960827",
+                "exitFileTime": "134378983363153512",
+                "exitCode": 0,
+                "handleClosed": true,
+                "closeError": 0
+              }
+            ],
+            "readerPid": 696,
+            "observerCpuMs": 484.375,
+            "cimFinishedUtc": "2026-10-31T05:32:16.7986527Z",
+            "nativeMs": 174.28830000000002,
+            "cim": {
+              "ok": true,
+              "rows": [],
+              "observedCount": 145
+            },
+            "totalMs": 273.6582,
+            "observerHandleCount": 622,
+            "observerWorkingSetBytes": 101896192
+          },
+          "parseError": null
+        },
+        "childrenInInterval": []
+      },
+      "after": {
+        "label": "normal-0/after-callback",
+        "before": {
+          "wallMs": 1793424736872,
+          "monotonicMs": 7190.0558,
+          "offsetMs": 1793424729681.944
+        },
+        "after": {
+          "wallMs": 1793424737390,
+          "monotonicMs": 7708.2642,
+          "offsetMs": 1793424729681.7358
+        },
+        "totalMs": 518.2083999999995,
+        "status": 0,
+        "signal": null,
+        "error": null,
+        "stderr": "",
+        "parsed": {
+          "cimStartedUtc": "2026-10-31T05:32:17.2491877Z",
+          "native": [
+            {
+              "pid": 8260,
+              "ok": false,
+              "error": 87,
+              "stage": "OpenProcess",
+              "creationFileTime": null,
+              "exitFileTime": null,
+              "exitCode": 0,
+              "handleClosed": false,
+              "closeError": 0
+            }
+          ],
+          "readerPid": 940,
+          "observerCpuMs": 484.375,
+          "cimFinishedUtc": "2026-10-31T05:32:17.3470151Z",
+          "nativeMs": 167.4128,
+          "cim": {
+            "ok": true,
+            "rows": [],
+            "observedCount": 145
+          },
+          "totalMs": 265.3127,
+          "observerHandleCount": 622,
+          "observerWorkingSetBytes": 101867520
+        },
+        "parseError": null
+      },
+      "expectedExitObserved": true,
+      "inputErrors": [],
+      "nativeIdentityAtExitObserved": true,
+      "cimReadSucceeded": true,
+      "toolObserved": true,
+      "sameNativeIdentityStillReadable": false,
+      "differentIdentityAtSamePid": false,
+      "tool": null
+    },
+    {
+      "label": "normal-1",
+      "rootPid": 8176,
+      "beforeSpawn": {
+        "wallMs": 1793424737392,
+        "monotonicMs": 7709.9378,
+        "offsetMs": 1793424729682.0623
+      },
+      "alive": {
+        "label": "normal-1/alive",
+        "before": {
+          "wallMs": 1793424737512,
+          "monotonicMs": 7830.5634,
+          "offsetMs": 1793424729681.4365
+        },
+        "after": {
+          "wallMs": 1793424738071,
+          "monotonicMs": 8389.3011,
+          "offsetMs": 1793424729681.699
+        },
+        "totalMs": 558.7377000000006,
+        "status": 0,
+        "signal": null,
+        "error": null,
+        "stderr": "",
+        "parsed": {
+          "cimStartedUtc": "2026-10-31T05:32:17.9135406Z",
+          "native": [
+            {
+              "pid": 8176,
+              "ok": true,
+              "error": 0,
+              "stage": "complete",
+              "creationFileTime": "134378983373945820",
+              "exitFileTime": "0",
+              "exitCode": 259,
+              "handleClosed": true,
+              "closeError": 0
+            }
+          ],
+          "readerPid": 7660,
+          "observerCpuMs": 484.375,
+          "cimFinishedUtc": "2026-10-31T05:32:18.0247604Z",
+          "nativeMs": 197.6262,
+          "cim": {
+            "ok": true,
+            "rows": [
+              {
+                "pid": 8176,
+                "parentPid": 7316,
+                "creationFileTime": "134378983373945820",
+                "creationUtc": "2026-10-31T05:32:17.3945820Z"
+              },
+              {
+                "pid": 8308,
+                "parentPid": 8176,
+                "creationFileTime": "134378983373977610",
+                "creationUtc": "2026-10-31T05:32:17.3977610Z"
+              }
+            ],
+            "observedCount": 147
+          },
+          "totalMs": 310.18600000000004,
+          "observerHandleCount": 630,
+          "observerWorkingSetBytes": 102432768
+        },
+        "parseError": null
+      },
+      "exit": {
+        "code": 0,
+        "signal": null,
+        "atExit": {
+          "wallMs": 1793424738083,
+          "monotonicMs": 8401.0984,
+          "offsetMs": 1793424729681.9016
+        },
+        "inside": {
+          "label": "normal-1/synchronous-exit",
+          "before": {
+            "wallMs": 1793424738083,
+            "monotonicMs": 8401.106,
+            "offsetMs": 1793424729681.894
+          },
+          "after": {
+            "wallMs": 1793424738616,
+            "monotonicMs": 8934.2659,
+            "offsetMs": 1793424729681.7341
+          },
+          "totalMs": 533.1599000000006,
+          "status": 0,
+          "signal": null,
+          "error": null,
+          "stderr": "",
+          "parsed": {
+            "cimStartedUtc": "2026-10-31T05:32:18.4776905Z",
+            "native": [
+              {
+                "pid": 8176,
+                "ok": true,
+                "error": 0,
+                "stage": "complete",
+                "creationFileTime": "134378983373945820",
+                "exitFileTime": "134378983380790867",
+                "exitCode": 0,
+                "handleClosed": true,
+                "closeError": 0
+              }
+            ],
+            "readerPid": 8624,
+            "observerCpuMs": 500,
+            "cimFinishedUtc": "2026-10-31T05:32:18.5735778Z",
+            "nativeMs": 174.3831,
+            "cim": {
+              "ok": true,
+              "rows": [],
+              "observedCount": 144
+            },
+            "totalMs": 271.3795,
+            "observerHandleCount": 621,
+            "observerWorkingSetBytes": 101711872
+          },
+          "parseError": null
+        },
+        "childrenInInterval": []
+      },
+      "after": {
+        "label": "normal-1/after-callback",
+        "before": {
+          "wallMs": 1793424738642,
+          "monotonicMs": 8959.9929,
+          "offsetMs": 1793424729682.007
+        },
+        "after": {
+          "wallMs": 1793424739154,
+          "monotonicMs": 9472.7516,
+          "offsetMs": 1793424729681.2483
+        },
+        "totalMs": 512.7587000000003,
+        "status": 0,
+        "signal": null,
+        "error": null,
+        "stderr": "",
+        "parsed": {
+          "cimStartedUtc": "2026-10-31T05:32:19.0042274Z",
+          "native": [
+            {
+              "pid": 8176,
+              "ok": false,
+              "error": 87,
+              "stage": "OpenProcess",
+              "creationFileTime": null,
+              "exitFileTime": null,
+              "exitCode": 0,
+              "handleClosed": false,
+              "closeError": 0
+            }
+          ],
+          "readerPid": 1708,
+          "observerCpuMs": 468.75,
+          "cimFinishedUtc": "2026-10-31T05:32:19.1078087Z",
+          "nativeMs": 163.18290000000002,
+          "cim": {
+            "ok": true,
+            "rows": [],
+            "observedCount": 144
+          },
+          "totalMs": 267.00690000000003,
+          "observerHandleCount": 622,
+          "observerWorkingSetBytes": 101613568
+        },
+        "parseError": null
+      },
+      "expectedExitObserved": true,
+      "inputErrors": [],
+      "nativeIdentityAtExitObserved": true,
+      "cimReadSucceeded": true,
+      "toolObserved": true,
+      "sameNativeIdentityStillReadable": false,
+      "differentIdentityAtSamePid": false,
+      "tool": null
+    },
+    {
+      "label": "immediate-0",
+      "rootPid": 6240,
+      "beforeSpawn": {
+        "wallMs": 1793424739156,
+        "monotonicMs": 9474.3198,
+        "offsetMs": 1793424729681.6802
+      },
+      "alive": null,
+      "exit": {
+        "code": 7,
+        "signal": null,
+        "atExit": {
+          "wallMs": 1793424739265,
+          "monotonicMs": 9582.9767,
+          "offsetMs": 1793424729682.0232
+        },
+        "inside": {
+          "label": "immediate-0/synchronous-exit",
+          "before": {
+            "wallMs": 1793424739265,
+            "monotonicMs": 9582.9809,
+            "offsetMs": 1793424729682.019
+          },
+          "after": {
+            "wallMs": 1793424739778,
+            "monotonicMs": 10096.8837,
+            "offsetMs": 1793424729681.1162
+          },
+          "totalMs": 513.9027999999998,
+          "status": 0,
+          "signal": null,
+          "error": null,
+          "stderr": "",
+          "parsed": {
+            "cimStartedUtc": "2026-10-31T05:32:19.6396800Z",
+            "native": [
+              {
+                "pid": 6240,
+                "ok": true,
+                "error": 0,
+                "stage": "complete",
+                "creationFileTime": "134378983391590079",
+                "exitFileTime": "134378983392613636",
+                "exitCode": 7,
+                "handleClosed": true,
+                "closeError": 0
+              }
+            ],
+            "readerPid": 7132,
+            "observerCpuMs": 500,
+            "cimFinishedUtc": "2026-10-31T05:32:19.7371136Z",
+            "nativeMs": 169.26160000000002,
+            "cim": {
+              "ok": true,
+              "rows": [],
+              "observedCount": 144
+            },
+            "totalMs": 267.2219,
+            "observerHandleCount": 626,
+            "observerWorkingSetBytes": 101900288
+          },
+          "parseError": null
+        },
+        "childrenInInterval": []
+      },
+      "after": {
+        "label": "immediate-0/after-callback",
+        "before": {
+          "wallMs": 1793424739805,
+          "monotonicMs": 10123.7854,
+          "offsetMs": 1793424729681.2146
+        },
+        "after": {
+          "wallMs": 1793424740317,
+          "monotonicMs": 10635.6124,
+          "offsetMs": 1793424729681.3877
+        },
+        "totalMs": 511.8269999999993,
+        "status": 0,
+        "signal": null,
+        "error": null,
+        "stderr": "",
+        "parsed": {
+          "cimStartedUtc": "2026-10-31T05:32:20.1733608Z",
+          "native": [
+            {
+              "pid": 6240,
+              "ok": false,
+              "error": 87,
+              "stage": "OpenProcess",
+              "creationFileTime": null,
+              "exitFileTime": null,
+              "exitCode": 0,
+              "handleClosed": false,
+              "closeError": 0
+            }
+          ],
+          "readerPid": 7636,
+          "observerCpuMs": 484.375,
+          "cimFinishedUtc": "2026-10-31T05:32:20.2746263Z",
+          "nativeMs": 163.377,
+          "cim": {
+            "ok": true,
+            "rows": [],
+            "observedCount": 143
+          },
+          "totalMs": 265.2205,
+          "observerHandleCount": 622,
+          "observerWorkingSetBytes": 102158336
+        },
+        "parseError": null
+      },
+      "expectedExitObserved": true,
+      "inputErrors": [],
+      "nativeIdentityAtExitObserved": true,
+      "cimReadSucceeded": true,
+      "toolObserved": true,
+      "sameNativeIdentityStillReadable": false,
+      "differentIdentityAtSamePid": false,
+      "tool": null
+    },
+    {
+      "label": "immediate-1",
+      "rootPid": 8224,
+      "beforeSpawn": {
+        "wallMs": 1793424740319,
+        "monotonicMs": 10637.6121,
+        "offsetMs": 1793424729681.388
+      },
+      "alive": null,
+      "exit": {
+        "code": 7,
+        "signal": null,
+        "atExit": {
+          "wallMs": 1793424740425,
+          "monotonicMs": 10742.9559,
+          "offsetMs": 1793424729682.0442
+        },
+        "inside": {
+          "label": "immediate-1/synchronous-exit",
+          "before": {
+            "wallMs": 1793424740425,
+            "monotonicMs": 10742.9608,
+            "offsetMs": 1793424729682.0393
+          },
+          "after": {
+            "wallMs": 1793424740940,
+            "monotonicMs": 11258.8931,
+            "offsetMs": 1793424729681.107
+          },
+          "totalMs": 515.9322999999986,
+          "status": 0,
+          "signal": null,
+          "error": null,
+          "stderr": "",
+          "parsed": {
+            "cimStartedUtc": "2026-10-31T05:32:20.8006773Z",
+            "native": [
+              {
+                "pid": 8224,
+                "ok": true,
+                "error": 0,
+                "stage": "complete",
+                "creationFileTime": "134378983403222252",
+                "exitFileTime": "134378983404211419",
+                "exitCode": 7,
+                "handleClosed": true,
+                "closeError": 0
+              }
+            ],
+            "readerPid": 1612,
+            "observerCpuMs": 468.75,
+            "cimFinishedUtc": "2026-10-31T05:32:20.8963556Z",
+            "nativeMs": 168.3264,
+            "cim": {
+              "ok": true,
+              "rows": [],
+              "observedCount": 143
+            },
+            "totalMs": 263.545,
+            "observerHandleCount": 622,
+            "observerWorkingSetBytes": 101613568
+          },
+          "parseError": null
+        },
+        "childrenInInterval": []
+      },
+      "after": {
+        "label": "immediate-1/after-callback",
+        "before": {
+          "wallMs": 1793424740970,
+          "monotonicMs": 11288.7618,
+          "offsetMs": 1793424729681.2383
+        },
+        "after": {
+          "wallMs": 1793424741486,
+          "monotonicMs": 11804.4296,
+          "offsetMs": 1793424729681.5703
+        },
+        "totalMs": 515.6677999999993,
+        "status": 0,
+        "signal": null,
+        "error": null,
+        "stderr": "",
+        "parsed": {
+          "cimStartedUtc": "2026-10-31T05:32:21.3476508Z",
+          "native": [
+            {
+              "pid": 8224,
+              "ok": false,
+              "error": 87,
+              "stage": "OpenProcess",
+              "creationFileTime": null,
+              "exitFileTime": null,
+              "exitCode": 0,
+              "handleClosed": false,
+              "closeError": 0
+            }
+          ],
+          "readerPid": 2420,
+          "observerCpuMs": 453.125,
+          "cimFinishedUtc": "2026-10-31T05:32:21.4434359Z",
+          "nativeMs": 175.98610000000002,
+          "cim": {
+            "ok": true,
+            "rows": [],
+            "observedCount": 143
+          },
+          "totalMs": 272.18670000000003,
+          "observerHandleCount": 622,
+          "observerWorkingSetBytes": 101765120
+        },
+        "parseError": null
+      },
+      "expectedExitObserved": true,
+      "inputErrors": [],
+      "nativeIdentityAtExitObserved": true,
+      "cimReadSucceeded": true,
+      "toolObserved": true,
+      "sameNativeIdentityStillReadable": false,
+      "differentIdentityAtSamePid": false,
+      "tool": null
+    },
+    {
+      "label": "orphan-0",
+      "rootPid": 6876,
+      "beforeSpawn": {
+        "wallMs": 1793424741488,
+        "monotonicMs": 11805.9901,
+        "offsetMs": 1793424729682.01
+      },
+      "alive": {
+        "label": "orphan-0/alive",
+        "before": {
+          "wallMs": 1793424741689,
+          "monotonicMs": 12007.7213,
+          "offsetMs": 1793424729681.2788
+        },
+        "after": {
+          "wallMs": 1793424742211,
+          "monotonicMs": 12529.8826,
+          "offsetMs": 1793424729681.1174
+        },
+        "totalMs": 522.1613000000016,
+        "status": 0,
+        "signal": null,
+        "error": null,
+        "stderr": "",
+        "parsed": {
+          "cimStartedUtc": "2026-10-31T05:32:22.0684465Z",
+          "native": [
+            {
+              "pid": 6876,
+              "ok": true,
+              "error": 0,
+              "stage": "complete",
+              "creationFileTime": "134378983414908381",
+              "exitFileTime": "0",
+              "exitCode": 259,
+              "handleClosed": true,
+              "closeError": 0
+            }
+          ],
+          "readerPid": 7380,
+          "observerCpuMs": 500,
+          "cimFinishedUtc": "2026-10-31T05:32:22.1690656Z",
+          "nativeMs": 160.18810000000002,
+          "cim": {
+            "ok": true,
+            "rows": [
+              {
+                "pid": 6876,
+                "parentPid": 7316,
+                "creationFileTime": "134378983414908380",
+                "creationUtc": "2026-10-31T05:32:21.4908380Z"
+              },
+              {
+                "pid": 4084,
+                "parentPid": 6876,
+                "creationFileTime": "134378983414941930",
+                "creationUtc": "2026-10-31T05:32:21.4941930Z"
+              },
+              {
+                "pid": 2136,
+                "parentPid": 6876,
+                "creationFileTime": "134378983415926080",
+                "creationUtc": "2026-10-31T05:32:21.5926080Z"
+              }
+            ],
+            "observedCount": 146
+          },
+          "totalMs": 263.21340000000004,
+          "observerHandleCount": 622,
+          "observerWorkingSetBytes": 102346752
+        },
+        "parseError": null
+      },
+      "exit": {
+        "code": 0,
+        "signal": null,
+        "atExit": {
+          "wallMs": 1793424742219,
+          "monotonicMs": 12537.8721,
+          "offsetMs": 1793424729681.128
+        },
+        "inside": {
+          "label": "orphan-0/synchronous-exit",
+          "before": {
+            "wallMs": 1793424742219,
+            "monotonicMs": 12537.8761,
+            "offsetMs": 1793424729681.1238
+          },
+          "after": {
+            "wallMs": 1793424742769,
+            "monotonicMs": 13087.3146,
+            "offsetMs": 1793424729681.6853
+          },
+          "totalMs": 549.4385000000002,
+          "status": 0,
+          "signal": null,
+          "error": null,
+          "stderr": "",
+          "parsed": {
+            "cimStartedUtc": "2026-10-31T05:32:22.6153529Z",
+            "native": [
+              {
+                "pid": 6876,
+                "ok": true,
+                "error": 0,
+                "stage": "complete",
+                "creationFileTime": "134378983414908381",
+                "exitFileTime": "134378983422159984",
+                "exitCode": 0,
+                "handleClosed": true,
+                "closeError": 0
+              }
+            ],
+            "readerPid": 6960,
+            "observerCpuMs": 562.5,
+            "cimFinishedUtc": "2026-10-31T05:32:22.7266440Z",
+            "nativeMs": 162.5367,
+            "cim": {
+              "ok": true,
+              "rows": [
+                {
+                  "pid": 2136,
+                  "parentPid": 6876,
+                  "creationFileTime": "134378983415926080",
+                  "creationUtc": "2026-10-31T05:32:21.5926080Z"
+                }
+              ],
+              "observedCount": 144
+            },
+            "totalMs": 275.3107,
+            "observerHandleCount": 622,
+            "observerWorkingSetBytes": 102223872
+          },
+          "parseError": null
+        },
+        "childrenInInterval": [
+          {
+            "row": {
+              "pid": 2136,
+              "parentPid": 6876,
+              "creationFileTime": "134378983415926080",
+              "creationUtc": "2026-10-31T05:32:21.5926080Z"
+            },
+            "floorLowerFileTime": "134378983414880000",
+            "tightenedLowerFileTime": "134378983414890000",
+            "upperFileTime": "134378983422190000",
+            "floorCandidate": true,
+            "tightenedCandidate": true
+          }
+        ]
+      },
+      "after": {
+        "label": "orphan-0/after-callback",
+        "before": {
+          "wallMs": 1793424742795,
+          "monotonicMs": 13113.7484,
+          "offsetMs": 1793424729681.2517
+        },
+        "after": {
+          "wallMs": 1793424743318,
+          "monotonicMs": 13636.1872,
+          "offsetMs": 1793424729681.8127
+        },
+        "totalMs": 522.4387999999999,
+        "status": 0,
+        "signal": null,
+        "error": null,
+        "stderr": "",
+        "parsed": {
+          "cimStartedUtc": "2026-10-31T05:32:23.1684812Z",
+          "native": [
+            {
+              "pid": 6876,
+              "ok": false,
+              "error": 87,
+              "stage": "OpenProcess",
+              "creationFileTime": null,
+              "exitFileTime": null,
+              "exitCode": 0,
+              "handleClosed": false,
+              "closeError": 0
+            }
+          ],
+          "readerPid": 8056,
+          "observerCpuMs": 468.75,
+          "cimFinishedUtc": "2026-10-31T05:32:23.2737093Z",
+          "nativeMs": 162.0413,
+          "cim": {
+            "ok": true,
+            "rows": [
+              {
+                "pid": 2136,
+                "parentPid": 6876,
+                "creationFileTime": "134378983415926080",
+                "creationUtc": "2026-10-31T05:32:21.5926080Z"
+              }
+            ],
+            "observedCount": 144
+          },
+          "totalMs": 268.696,
+          "observerHandleCount": 622,
+          "observerWorkingSetBytes": 102281216
+        },
+        "parseError": null
+      },
+      "expectedExitObserved": true,
+      "inputErrors": [],
+      "nativeIdentityAtExitObserved": true,
+      "cimReadSucceeded": true,
+      "toolObserved": true,
+      "sameNativeIdentityStillReadable": false,
+      "differentIdentityAtSamePid": false,
+      "tool": {
+        "pid": 2136,
+        "parentPid": 6876,
+        "clock": {
+          "wallMs": 1793424741677,
+          "monotonicMs": 71.8274,
+          "offsetMs": 1793424741605.1726
+        }
+      }
+    },
+    {
+      "label": "orphan-1",
+      "rootPid": 2464,
+      "beforeSpawn": {
+        "wallMs": 1793424743320,
+        "monotonicMs": 13638.326,
+        "offsetMs": 1793424729681.674
+      },
+      "alive": {
+        "label": "orphan-1/alive",
+        "before": {
+          "wallMs": 1793424743535,
+          "monotonicMs": 13853.0689,
+          "offsetMs": 1793424729681.9312
+        },
+        "after": {
+          "wallMs": 1793424744053,
+          "monotonicMs": 14371.113,
+          "offsetMs": 1793424729681.887
+        },
+        "totalMs": 518.0440999999992,
+        "status": 0,
+        "signal": null,
+        "error": null,
+        "stderr": "",
+        "parsed": {
+          "cimStartedUtc": "2026-10-31T05:32:23.9010281Z",
+          "native": [
+            {
+              "pid": 2464,
+              "ok": true,
+              "error": 0,
+              "stage": "complete",
+              "creationFileTime": "134378983433230787",
+              "exitFileTime": "0",
+              "exitCode": 259,
+              "handleClosed": true,
+              "closeError": 0
+            }
+          ],
+          "readerPid": 7620,
+          "observerCpuMs": 500,
+          "cimFinishedUtc": "2026-10-31T05:32:24.0082184Z",
+          "nativeMs": 157.49630000000002,
+          "cim": {
+            "ok": true,
+            "rows": [
+              {
+                "pid": 2464,
+                "parentPid": 7316,
+                "creationFileTime": "134378983433230780",
+                "creationUtc": "2026-10-31T05:32:23.3230780Z"
+              },
+              {
+                "pid": 7632,
+                "parentPid": 2464,
+                "creationFileTime": "134378983433265600",
+                "creationUtc": "2026-10-31T05:32:23.3265600Z"
+              },
+              {
+                "pid": 3660,
+                "parentPid": 2464,
+                "creationFileTime": "134378983434274810",
+                "creationUtc": "2026-10-31T05:32:23.4274810Z"
+              }
+            ],
+            "observedCount": 146
+          },
+          "totalMs": 266.9733,
+          "observerHandleCount": 622,
+          "observerWorkingSetBytes": 102461440
+        },
+        "parseError": null
+      },
+      "exit": {
+        "code": 0,
+        "signal": null,
+        "atExit": {
+          "wallMs": 1793424744061,
+          "monotonicMs": 14379.2528,
+          "offsetMs": 1793424729681.7473
+        },
+        "inside": {
+          "label": "orphan-1/synchronous-exit",
+          "before": {
+            "wallMs": 1793424744061,
+            "monotonicMs": 14379.2593,
+            "offsetMs": 1793424729681.7407
+          },
+          "after": {
+            "wallMs": 1793424744593,
+            "monotonicMs": 14911.5282,
+            "offsetMs": 1793424729681.4717
+          },
+          "totalMs": 532.2689000000009,
+          "status": 0,
+          "signal": null,
+          "error": null,
+          "stderr": "",
+          "parsed": {
+            "cimStartedUtc": "2026-10-31T05:32:24.4447866Z",
+            "native": [
+              {
+                "pid": 2464,
+                "ok": true,
+                "error": 0,
+                "stage": "complete",
+                "creationFileTime": "134378983433230787",
+                "exitFileTime": "134378983440575220",
+                "exitCode": 0,
+                "handleClosed": true,
+                "closeError": 0
+              }
+            ],
+            "readerPid": 6796,
+            "observerCpuMs": 515.625,
+            "cimFinishedUtc": "2026-10-31T05:32:24.5492497Z",
+            "nativeMs": 160.6291,
+            "cim": {
+              "ok": true,
+              "rows": [
+                {
+                  "pid": 3660,
+                  "parentPid": 2464,
+                  "creationFileTime": "134378983434274810",
+                  "creationUtc": "2026-10-31T05:32:23.4274810Z"
+                }
+              ],
+              "observedCount": 144
+            },
+            "totalMs": 266.82890000000003,
+            "observerHandleCount": 620,
+            "observerWorkingSetBytes": 102567936
+          },
+          "parseError": null
+        },
+        "childrenInInterval": [
+          {
+            "row": {
+              "pid": 3660,
+              "parentPid": 2464,
+              "creationFileTime": "134378983434274810",
+              "creationUtc": "2026-10-31T05:32:23.4274810Z"
+            },
+            "floorLowerFileTime": "134378983433200000",
+            "tightenedLowerFileTime": "134378983433210000",
+            "upperFileTime": "134378983440610000",
+            "floorCandidate": true,
+            "tightenedCandidate": true
+          }
+        ]
+      },
+      "after": {
+        "label": "orphan-1/after-callback",
+        "before": {
+          "wallMs": 1793424744630,
+          "monotonicMs": 14948.1392,
+          "offsetMs": 1793424729681.8608
+        },
+        "after": {
+          "wallMs": 1793424745164,
+          "monotonicMs": 15482.0984,
+          "offsetMs": 1793424729681.9016
+        },
+        "totalMs": 533.9592000000011,
+        "status": 0,
+        "signal": null,
+        "error": null,
+        "stderr": "",
+        "parsed": {
+          "cimStartedUtc": "2026-10-31T05:32:25.0089965Z",
+          "native": [
+            {
+              "pid": 2464,
+              "ok": false,
+              "error": 87,
+              "stage": "OpenProcess",
+              "creationFileTime": null,
+              "exitFileTime": null,
+              "exitCode": 0,
+              "handleClosed": false,
+              "closeError": 0
+            }
+          ],
+          "readerPid": 812,
+          "observerCpuMs": 500,
+          "cimFinishedUtc": "2026-10-31T05:32:25.1209273Z",
+          "nativeMs": 170.2871,
+          "cim": {
+            "ok": true,
+            "rows": [
+              {
+                "pid": 3660,
+                "parentPid": 2464,
+                "creationFileTime": "134378983434274810",
+                "creationUtc": "2026-10-31T05:32:23.4274810Z"
+              }
+            ],
+            "observedCount": 144
+          },
+          "totalMs": 286.1068,
+          "observerHandleCount": 622,
+          "observerWorkingSetBytes": 102273024
+        },
+        "parseError": null
+      },
+      "expectedExitObserved": true,
+      "inputErrors": [],
+      "nativeIdentityAtExitObserved": true,
+      "cimReadSucceeded": true,
+      "toolObserved": true,
+      "sameNativeIdentityStillReadable": false,
+      "differentIdentityAtSamePid": false,
+      "tool": {
+        "pid": 3660,
+        "parentPid": 2464,
+        "clock": {
+          "wallMs": 1793424743514,
+          "monotonicMs": 73.4536,
+          "offsetMs": 1793424743440.5464
+        }
+      }
+    }
+  ],
+  "failures": {
+    "label": "injected-cim-failure-and-invalid-pid",
+    "before": {
+      "wallMs": 1793424745165,
+      "monotonicMs": 15483.5818,
+      "offsetMs": 1793424729681.4182
+    },
+    "after": {
+      "wallMs": 1793424745705,
+      "monotonicMs": 16023.6291,
+      "offsetMs": 1793424729681.3708
+    },
+    "totalMs": 540.0473000000002,
+    "status": 0,
+    "signal": null,
+    "error": null,
+    "stderr": "",
+    "parsed": {
+      "cimStartedUtc": "2026-10-31T05:32:25.5333216Z",
+      "native": [
+        {
+          "pid": 0,
+          "ok": false,
+          "error": 87,
+          "stage": "OpenProcess",
+          "creationFileTime": null,
+          "exitFileTime": null,
+          "exitCode": 0,
+          "handleClosed": false,
+          "closeError": 0
+        },
+        {
+          "pid": 7316,
+          "ok": true,
+          "error": 0,
+          "stage": "complete",
+          "creationFileTime": "134378983296641700",
+          "exitFileTime": "0",
+          "exitCode": 259,
+          "handleClosed": true,
+          "closeError": 0
+        }
+      ],
+      "readerPid": 8904,
+      "observerCpuMs": 359.375,
+      "cimFinishedUtc": "2026-10-31T05:32:25.6582873Z",
+      "nativeMs": 163.738,
+      "cim": {
+        "ok": false,
+        "error": "Deliberately injected CIM reader failure; no operating-system failure claimed.",
+        "injected": true
+      },
+      "totalMs": 289.45840000000004,
+      "observerHandleCount": 569,
+      "observerWorkingSetBytes": 89497600
+    },
+    "parseError": null
+  },
+  "failureEvidenceObserved": true,
+  "pidReuse": {
+    "attempts": [
+      3732,
+      6740,
+      6880,
+      8288,
+      3208,
+      7684,
+      8572,
+      1624,
+      7536,
+      2136,
+      7376,
+      1972,
+      9212,
+      7560,
+      2700,
+      8908,
+      7728,
+      3652,
+      3500,
+      6460,
+      9012,
+      2432,
+      8444,
+      5520,
+      8492,
+      8196,
+      5132,
+      3208,
+      7684,
+      8572,
+      1624,
+      7572
+    ],
+    "matchedPreviousRootPids": [],
+    "status": "missing"
+  },
+  "syntheticCounterexamples": {
+    "kind": "synthetic_counterexamples_not_native_observations",
+    "floorAdmitsEarlierSameMillisecondChild": true,
+    "tightenedExcludesEarlierChild": true,
+    "tightenedAlsoExcludesHypotheticalEarlyRealChild": true,
+    "heldNewRootDoesNotExcludeOldOwnerChildren": {
+      "oldOwnerChild": {
+        "parentPid": 1234,
+        "creationWall": 1500,
+        "creationMonotonic": 100
+      },
+      "newRoot": {
+        "pid": 1234,
+        "creationWall": 1000,
+        "creationMonotonic": 1000,
+        "handleRetained": true
+      },
+      "explanation": "After a rollback before the new root, an old owner's surviving child can look newer by wall time. Holding the new root prevents later PID reuse, not this earlier reuse."
+    },
+    "unsampledClockRollback": {
+      "samples": [
+        {
+          "wall": 1000,
+          "mono": 0
+        },
+        {
+          "wall": 1500,
+          "mono": 500
+        },
+        {
+          "wall": 2000,
+          "mono": 1000
+        },
+        {
+          "wall": 2500,
+          "mono": 1500
+        }
+      ],
+      "maximumObservedOffsetChangeMs": 0,
+      "hiddenSample": {
+        "wall": 1500,
+        "mono": 1011,
+        "event": "after original root exit, a reused PID spawns a child during a rollback"
+      },
+      "laterChildPassesTimeFilter": true
+    }
+  },
+  "productAuthorization": "none; interval candidates and native queries are observations only"
+}

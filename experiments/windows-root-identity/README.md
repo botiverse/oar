@@ -67,7 +67,9 @@ creation defeats timestamp ordering even though future PID reuse is prevented.
 `events.jsonl` is printed as well as saved. Per-case results are written as
 soon as available; `report.json` combines completed cases. Missing native
 identity at the exit boundary makes the step fail. Missing PID reuse remains
-an explicit research gap. No Windows result exists until the manual run.
+an explicit research gap. Windows results are only claimed for the completed manual run linked below.
+The [completed Windows observation and decision](results-2026-10-31.md) preserve
+the measured callback window and the decision not to implement a prototype.
 The native exit code and completed exit timestamp must also match the observed
 root exit, normal cases must match the identity read while alive, and the
 orphan's recorded tool must appear in a successful CIM read.

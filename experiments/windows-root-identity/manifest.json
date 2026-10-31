@@ -1,0 +1,17 @@
+{
+  "repository": "botiverse/oar",
+  "runId": 41172947472,
+  "jobId": 124454578883,
+  "head": "7fd1e3a9804ac015b60d0a912702e4fffea8129e",
+  "artifact": {
+    "id": 13032236050,
+    "name": "windows-root-identity",
+    "sha256": "cfe7e259dae51d28a01135abd67fd05f85091c0856ed8f9d9dd926ee281067a2"
+  },
+  "selection": {
+    "source": "report.json",
+    "destination": "selected-report.json",
+    "transformation": "byte-for-byte copy",
+    "sha256": "0e0366b4ff036284c9c269c33fb2a75f7b4a37793bba98f00c54caa9d160133e"
+  }
+}
