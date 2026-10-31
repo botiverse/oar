@@ -5,7 +5,7 @@ Runtime version check: 2026-10-31.
 **No native runtime currently meets the complete sharing gate.** The earlier
 OpenCode 2.2.3/2.2.5 admission is withdrawn after the
 [configured plugin child counterexample](opencode-plugin-environment-2026-10-31.md).
-Grok 1.0.70 is also unadmitted: configured stdio MCP children inherit HOME
+Grok 1.0.70 is also unadmitted: [configured stdio MCP children](execution-environment-2026-10-31.md) inherit HOME
 when shared instead of the session cwd. The observations below retain their
 historical scope; passing them does not establish child-environment equivalence.
 OpenCode production `auto` is isolated and explicit `shared` is refused.

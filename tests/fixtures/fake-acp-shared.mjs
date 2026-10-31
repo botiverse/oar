@@ -56,7 +56,7 @@ async function handle(message) {
   } else if (method === 'session/close') {
     const session = sessions.get(params.sessionId);
     if (session?.pending) { result(session.pending, { stopReason: 'cancelled' }); }
-    if (session?.mcpServers?.length) { const values = session.mcpServers.flatMap(s => s.env ?? []); for (const value of values) { if (value.name === 'API_KEY') { sessions.retiredSecret = value.value; } } }
+    if (session?.mcpServers?.length) { const values = session.mcpServers.flatMap(s => s.env ?? s.headers ?? []); for (const value of values) { if (value.name === 'API_KEY' || value.name === 'X-API-Key') { sessions.retiredSecret = value.value; } } }
     sessions.delete(params.sessionId); result(id, {});
   } else if (method === 'session/cancel') {
     const session = sessions.get(params.sessionId);
@@ -132,7 +132,7 @@ async function handle(message) {
       try { await host('terminal/create', { sessionId: 'unowned', command: process.execPath, args: ['-e', 'throw new Error("must not run")'] }); update(params.sessionId, 'unexpected-allowed'); }
       catch { update(params.sessionId, 'unowned-refused'); }
     } else if (text.startsWith('peer-secret')) {
-      const secret = [...sessions.values()].flatMap(s => s.mcpServers ?? []).flatMap(s => s.env ?? []).filter(e => e.name === 'API_KEY').toSorted((a, b) => b.value.length - a.value.length)[0]?.value ?? sessions.retiredSecret ?? '';
+      const secret = [...sessions.values()].flatMap(s => s.mcpServers ?? []).flatMap(s => s.env ?? s.headers ?? []).filter(e => e.name === 'API_KEY' || e.name === 'X-API-Key').toSorted((a, b) => b.value.length - a.value.length)[0]?.value ?? sessions.retiredSecret ?? '';
       if (text === 'peer-secret-error') { send({ id, error: { code: -32_000, message: `native error ${secret}`, data: { reason: secret } } }); return; }
       if (text === 'peer-secret-malformed') { send({ method: 'session/update', params: { sessionId: params.sessionId, update: null, secret } }); }
       else { update(params.sessionId, secret); send({ method: 'unrecognized', params: { secret } }); }

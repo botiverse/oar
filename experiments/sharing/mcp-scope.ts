@@ -10,18 +10,24 @@ export interface McpInvocation {
   readonly output: string;
 }
 
+export interface McpStartup { readonly server: string; readonly cwd: string; readonly environmentMarker: string | null }
+
 export interface ScopedMcp {
   readonly script: string;
   readonly calls: () => Promise<McpInvocation[]>;
+  readonly starts: () => Promise<McpStartup[]>;
 }
 
 export async function scopedMcp(home: string): Promise<ScopedMcp> {
   const script = path.join(home, "scope-mcp.cjs");
   const journal = path.join(home, "scope-mcp-calls.jsonl");
+  const startups = path.join(home, "scope-mcp-starts.jsonl");
+  await writeFile(startups, "", { mode: 0o600 });
   await writeFile(journal, "", { mode: 0o600 });
   await writeFile(script, [
     "const {appendFileSync}=require('node:fs');",
     `const journal=${JSON.stringify(journal)};`,
+    `require('node:fs').appendFileSync(${JSON.stringify(startups)},JSON.stringify({server:process.argv[2],cwd:process.cwd(),environmentMarker:process.env.OAR_EXECUTION_ENV_MARKER??null})+'\\n');`,
     "require('node:readline').createInterface({input:process.stdin}).on('line',line=>{const q=JSON.parse(line);if(q.id===undefined)return;let result={};",
     "if(q.method==='initialize')result={protocolVersion:'2024-11-05',capabilities:{tools:{}},serverInfo:{name:'scope',version:'1'}};",
     "if(q.method==='tools/list')result={tools:[{name:'echo',description:'Return the configured marker',inputSchema:{type:'object',properties:{text:{type:'string'}},required:['text']}}]};",
@@ -29,7 +35,14 @@ export async function scopedMcp(home: string): Promise<ScopedMcp> {
     String.raw`appendFileSync(journal,JSON.stringify({server,input,output})+'\n');result={content:[{type:'text',text:output}]};}`,
     String.raw`process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:q.id,result})+'\n');});`,
   ].join("\n"), { mode: 0o600 });
-  return { script, calls: async () => { const text = await readFile(journal, "utf8"); return text.split("\n").filter(Boolean).map((line) => {
+  return { script, starts: async () => {
+    const text = await readFile(startups, "utf8"); return text.split("\n").filter(Boolean).map(line => {
+      const row = asRecord(JSON.parse(line));
+      assert.ok(typeof row?.server === "string" && typeof row.cwd === "string", "malformed MCP startup evidence");
+      assert.ok(row.environmentMarker === null || typeof row.environmentMarker === "string");
+      return { server: row.server, cwd: row.cwd, environmentMarker: row.environmentMarker };
+    });
+  }, calls: async () => { const text = await readFile(journal, "utf8"); return text.split("\n").filter(Boolean).map((line) => {
     const row = asRecord(JSON.parse(line));
     assert.ok(typeof row?.server === "string" && typeof row.input === "string" && typeof row.output === "string", "malformed MCP invocation evidence");
     return { server: row.server, input: row.input, output: row.output };

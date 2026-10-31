@@ -95,6 +95,7 @@ export function createAcpRouting<T>(options: {
   };
   const check = (entry: Pending<T>): void => {
     for (const { parent, child } of entry.checks) {
+      // Grok always names its carrier as parent; other profiles must also prove the carrier root.
       if (ids.get(parent) !== ids.get(entry.id) || parents.get(child)?.has(parent) !== true) { conflict(entry); }
     }
   };
@@ -257,7 +258,7 @@ export function createAcpRouting<T>(options: {
         dispose() {
           if (owner.disposed) { return; }
           owner.disposed = true;
-          for (const id of owner.ids) { ids.set(id, null); opened.delete(id); reserved.delete(id); }
+          for (const id of owner.ids) { ids.set(id, null); parents.delete(id); opened.delete(id); reserved.delete(id); }
           flush(); owners.delete(owner);
         },
       };

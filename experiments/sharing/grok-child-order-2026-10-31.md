@@ -1,4 +1,6 @@
-# Grok shared adapter and child arrival timing
+# Grok experimental adapter and child arrival timing
+
+Grok sharing is not enabled. The later [stdio MCP cwd counterexample](execution-environment-2026-10-31.md) supersedes its earlier admission.
 
 Runtime version check: 2026-10-31.
 
@@ -42,7 +44,7 @@ which concurrent sibling tool call produced a particular spawn.
 
 The 1-second, 256-frame, 1-MiB buffer allows reordering, not tool completion.
 These timing measurements are Linux-only. The native shared/isolated
-lifecycle regression on each admitted platform asserts that the association
+manual lifecycle control asserts that the association
 already existed when child frames arrived, or arrived within 1 second. It
 also requires a child text projection, excludes that child from the peer's
 records, and compares completed ancestry. Synthetic regressions deliberately
@@ -56,7 +58,7 @@ The Linux shared behavior suite passed 17 cases, with two capability skips
 shared and isolated lifecycle controls both passed. They cover:
 
 - Concurrent same-directory roots with distinct native models and scoped MCP
-  registrations, plus project cwd reported by an actual command.
+  HTTP registrations, plus project cwd reported by an actual command.
 - Native child execution and arrival timing, cancellation with a surviving
   peer, and same-directory reuse after releasing the first root.
 - Two live hosted terminal trees before disposal. Disposing A cleans A's
@@ -66,7 +68,7 @@ shared and isolated lifecycle controls both passed. They cover:
 - New-directory MCP ownership, complete MCP call-log duplicate checks, and
   resume after native exit.
 
-Synthetic public-adapter tests additionally cover exact installation and
+Synthetic experimental-adapter tests additionally cover exact installation and
 running-version refusal, simultaneous refused opens, executable version
 changes between pool lifetimes, initialization/environment pool separation,
 fixed allow permission policy with child request ids, unknown-request refusal,
@@ -74,10 +76,11 @@ occupied/retired resume, abort fallback, and one exit per attached root.
 The shared connection records late ancestry conflicts through its existing
 credential-union redactor. Connection diagnostic summaries retain counts only.
 
-Windows/macOS adapter lifecycle results come from this change's PR CI; this
-report does not replace them with the Linux result. Native admission on those
-platforms remains supported by the separate reviewed runs in the admission
-report. The new jobs use the same exact Grok version and retain failure data.
+These are Linux experimental results. At earlier head `13a757a`, Windows
+shared behavior passed 17 cases but both lifecycle controls failed at the
+unchanged 15-second initialize deadline. They are not successful lifecycle
+evidence. Native controls now live in a manual workflow, not default PR CI.
+The public gate refuses sharing irrespective of these experimental outcomes.
 
 Reproduce:
 
@@ -95,9 +98,9 @@ process diagnostics, child timing and cleanup observations under
 
 ## Release behavior
 
-Grok is the first native adapter whose default `auto` placement shares without
-a lifetime directory restriction. Only stable 1.0.70 on Linux x64, macOS
-arm64 and Windows x64 is enabled. Hosts choosing `withPlacement("isolated")`
-retain independent processes. Grok's per-session fixed allow policy is
-unchanged. Other versions, unsupported platforms and unaudited startup inputs
-remain isolated under auto; explicit sharing receives a typed placement refusal.
+No Grok sharing is enabled. Default `auto` continues to open independent
+processes; explicit `shared` rejects with a typed placement refusal. The
+routing improvements, diagnostic assertions and candidate adapter remain for
+manual controls. No configuration scan or test-only switch can enable the
+candidate through the public runtime. Hosts already choosing `isolated`
+retain that behavior.

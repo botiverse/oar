@@ -205,10 +205,12 @@ or pull request whose changes are all Markdown files or under `docs/` or
   suite, native shared/isolated controls and plugin child-environment
   comparison run only in the manual `opencode-sharing-experiment.yml`
   workflow, against an experimental adapter outside the package.
-  Grok 1.0.70 then runs same-directory shared behavior and native shared/isolated
-  lifecycle controls, including early child association, per-session MCP,
-  surviving peer terminals and final-lease cleanup. It runs on all three
-  platforms within the same required check jobs.
+  Grok production sharing is also refused. Its candidate adapter and native
+  shared/isolated controls run only in `grok-sharing-experiment.yml`.
+  Synthetic routing and public placement-refusal regressions remain in the
+  required check jobs. The manual shared-runtime evidence workflow also
+  compares actual MCP, hook/plugin and tool child cwd and environment,
+  retaining differences as failures rather than admission.
   The browser-entry unit test bundles the complete portable entry for a
   browser and refuses Node imports or unresolved externals.
 - `behavior`: per aimock backend on the same three systems,

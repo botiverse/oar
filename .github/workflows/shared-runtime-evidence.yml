@@ -11,6 +11,15 @@ on:
         description: 'JSON array of runner platforms'
         required: true
         default: '["ubuntu-latest","windows-latest","macos-latest"]'
+      opencode_version:
+        description: 'Exact OpenCode version for native controls, not production admission'
+        type: choice
+        options: ['2.2.3', '2.2.5']
+        default: '2.2.5'
+      execution_environment_only:
+        description: 'Run child cwd/environment controls only (grok/opencode)'
+        type: boolean
+        default: false
       resources_only:
         description: 'Collect resources only; retain earlier observation results separately'
         type: boolean
@@ -31,10 +40,10 @@ jobs:
         os: ${{ fromJSON(inputs.platforms) }}
         runtime: ${{ fromJSON(inputs.runtimes) }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 65
+    timeout-minutes: 80
     env:
       EVIDENCE_RUNTIME: ${{ matrix.runtime }}
-      EVIDENCE_PACKAGE: ${{ fromJSON('{"codex":"@openai/codex@0.166.0","kimi":"@moonshot-ai/kimi-code@2.4.1","grok":"@xai-official/grok@1.0.70","opencode":"@opencode/cli@2.2.5","qoder":"@qoder-ai/qodercli@1.1.81"}')[matrix.runtime] }}
+      EVIDENCE_PACKAGE: ${{ matrix.runtime == 'opencode' && format('@opencode/cli@{0}', inputs.opencode_version) || fromJSON('{"codex":"@openai/codex@0.166.0","kimi":"@moonshot-ai/kimi-code@2.4.1","grok":"@xai-official/grok@1.0.70","opencode":"@opencode/cli@2.2.5","qoder":"@qoder-ai/qodercli@1.1.81"}')[matrix.runtime] }}
     defaults:
       run:
         shell: bash
@@ -43,12 +52,21 @@ jobs:
         env:
           RESOURCES_ONLY: ${{ inputs.resources_only }}
           SAME_DIRECTORY_ONLY: ${{ inputs.same_directory_only }}
+          EXECUTION_ENVIRONMENT_ONLY: ${{ inputs.execution_environment_only }}
         run: |
           if [[ "$RESOURCES_ONLY" == true && "$SAME_DIRECTORY_ONLY" == true ]]; then
             echo 'resources_only and same_directory_only are mutually exclusive' >&2
             exit 1
           fi
+          if [[ "$EXECUTION_ENVIRONMENT_ONLY" == true ]]; then
+            if [[ "$RESOURCES_ONLY" == true || "$SAME_DIRECTORY_ONLY" == true || ( "$EVIDENCE_RUNTIME" != grok && "$EVIDENCE_RUNTIME" != opencode ) ]]; then
+              echo 'execution_environment_only requires grok/opencode and no other scope restriction' >&2
+              exit 1
+            fi
+          fi
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
@@ -85,35 +103,39 @@ jobs:
           }
           "OAR_ANTIGRAVITY_BIN=$($binaries[0].FullName)" >> $env:GITHUB_ENV
       - name: Codex native observations
-        if: ${{ !inputs.resources_only && !inputs.same_directory_only && matrix.runtime == 'codex' }}
+        if: ${{ !inputs.execution_environment_only && !inputs.resources_only && !inputs.same_directory_only && matrix.runtime == 'codex' }}
         run: pnpm tsx experiments/sharing/codex.ts
         timeout-minutes: 12
       - name: ACP native observations
-        if: ${{ !inputs.resources_only && !inputs.same_directory_only && contains(fromJSON('["kimi","grok","opencode","antigravity"]'), matrix.runtime) }}
+        if: ${{ !inputs.execution_environment_only && !inputs.resources_only && !inputs.same_directory_only && contains(fromJSON('["kimi","grok","opencode","antigravity"]'), matrix.runtime) }}
         run: pnpm tsx experiments/sharing/acp.ts "$EVIDENCE_RUNTIME"
         timeout-minutes: 12
       - name: Qoder native observations
-        if: ${{ !inputs.resources_only && !inputs.same_directory_only && matrix.runtime == 'qoder' }}
+        if: ${{ !inputs.execution_environment_only && !inputs.resources_only && !inputs.same_directory_only && matrix.runtime == 'qoder' }}
         run: pnpm tsx experiments/sharing/qoder.ts
         timeout-minutes: 12
       - name: Same-directory MCP and separate-process control
-        if: ${{ !cancelled() && !inputs.resources_only && (steps.native-install.outcome == 'success' || steps.antigravity-install.outcome == 'success') }}
+        if: ${{ !cancelled() && !inputs.execution_environment_only && !inputs.resources_only && (steps.native-install.outcome == 'success' || steps.antigravity-install.outcome == 'success') }}
         run: pnpm tsx experiments/sharing/same-directory.ts "$EVIDENCE_RUNTIME"
         timeout-minutes: 12
       - name: Native trust and cross-directory configuration controls
-        if: ${{ !cancelled() && !inputs.resources_only && steps.native-install.outcome == 'success' && contains(fromJSON('["grok","opencode"]'), matrix.runtime) }}
+        if: ${{ !cancelled() && !inputs.execution_environment_only && !inputs.resources_only && steps.native-install.outcome == 'success' && contains(fromJSON('["grok","opencode"]'), matrix.runtime) }}
         run: pnpm tsx experiments/sharing/configuration-freshness.ts "$EVIDENCE_RUNTIME"
         timeout-minutes: 12
+      - name: Native child working directory and environment controls
+        if: ${{ !cancelled() && !inputs.resources_only && steps.native-install.outcome == 'success' && contains(fromJSON('["grok","opencode"]'), matrix.runtime) }}
+        run: pnpm tsx experiments/sharing/execution-environment.ts "$EVIDENCE_RUNTIME"
+        timeout-minutes: 12
       - name: Codex resources
-        if: ${{ !cancelled() && !inputs.same_directory_only && (steps.native-install.outcome == 'success' || steps.antigravity-install.outcome == 'success') && matrix.runtime == 'codex' }}
+        if: ${{ !cancelled() && !inputs.execution_environment_only && !inputs.same_directory_only && (steps.native-install.outcome == 'success' || steps.antigravity-install.outcome == 'success') && matrix.runtime == 'codex' }}
         run: pnpm tsx experiments/sharing/codex-resources.ts
         timeout-minutes: 12
       - name: ACP resources
-        if: ${{ !cancelled() && !inputs.same_directory_only && (steps.native-install.outcome == 'success' || steps.antigravity-install.outcome == 'success') && contains(fromJSON('["kimi","grok","opencode","antigravity"]'), matrix.runtime) }}
+        if: ${{ !cancelled() && !inputs.execution_environment_only && !inputs.same_directory_only && (steps.native-install.outcome == 'success' || steps.antigravity-install.outcome == 'success') && contains(fromJSON('["kimi","grok","opencode","antigravity"]'), matrix.runtime) }}
         run: pnpm tsx experiments/sharing/acp-resources.ts "$EVIDENCE_RUNTIME"
         timeout-minutes: 12
       - name: Qoder resources
-        if: ${{ !cancelled() && !inputs.same_directory_only && (steps.native-install.outcome == 'success' || steps.antigravity-install.outcome == 'success') && matrix.runtime == 'qoder' }}
+        if: ${{ !cancelled() && !inputs.execution_environment_only && !inputs.same_directory_only && (steps.native-install.outcome == 'success' || steps.antigravity-install.outcome == 'success') && matrix.runtime == 'qoder' }}
         run: pnpm tsx experiments/sharing/qoder-resources.ts
         timeout-minutes: 12
       - uses: actions/upload-artifact@v4

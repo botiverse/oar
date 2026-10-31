@@ -62,30 +62,6 @@ jobs:
           path: ${{ github.workspace }}/oar-trial-run/kimi-login
           if-no-files-found: warn
 
-
-      # First adapter with unrestricted same-directory sharing, exact admitted version.
-      - name: Install pinned Grok for native shared behavior
-        run: npm install -g @xai-official/grok@1.0.70
-        timeout-minutes: 5
-      - name: Grok shared session behavior
-        run: pnpm sea-trial
-        timeout-minutes: 10
-        env:
-          OAR_TEST: grok-shared
-          OAR_TEST_REQUIRE_AVAILABLE: "1"
-      - name: Grok shared and isolated lifecycle controls
-        if: ${{ !cancelled() }}
-        run: pnpm vitest run sea-trial/vendor/grok-sharing.vendor.test.ts --maxWorkers 1
-        timeout-minutes: 10
-        env:
-          OAR_TEST: grok-shared
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: grok-sharing-${{ matrix.os }}
-          path: ${{ github.workspace }}/oar-trial-run
-          if-no-files-found: warn
-
   # The packed packages installed into an empty project the way a host
   # installs them: OAR without its optional peer @cursor/sdk must load,
   # type-check and probe every other runtime (tests/clean-install.ts).

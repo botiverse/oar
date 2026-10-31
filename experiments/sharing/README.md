@@ -5,7 +5,8 @@ model responses. They do not enable OAR process sharing. The admission rule
 is [system.md, Shared runtime processes](../../docs/design/system.md#shared-runtime-processes).
 
 - [OpenCode plugin child cwd counterexample and admission withdrawal](opencode-plugin-environment-2026-10-31.md).
-- [Grok child arrival timing and adapter verification](grok-child-order-2026-10-31.md).
+- [Grok stdio MCP and native child execution-environment controls](execution-environment-2026-10-31.md).
+- [Grok experimental adapter and child arrival timing](grok-child-order-2026-10-31.md).
 - [Current version/platform admission decisions](admission-2026-10-31.md).
 - [OpenCode 2.2.5 historical three-platform evidence](opencode-2.2.5-2026-10-31.md).
 - [Native trust refresh, cross-directory controls and latest platform results](trust-freshness-2026-10-31.md).
@@ -104,14 +105,18 @@ The same-directory and resource steps run after a successful native
 installation even when an earlier observation fails. Each step retains its
 own failure status and evidence;
 there are no automatic retries. Each step has a 12-minute limit inside a
-65-minute job limit. To fill only missing Windows resource cells, dispatch with
+80-minute job limit. To fill only missing Windows resource cells, dispatch with
 `runtimes=["codex","qoder"]`, `platforms=["windows-latest"]` and
 `resources_only=true`. Alternatively, `same_directory_only=true` runs only
 the same-directory MCP and project/hook observations, Grok native trust grants,
-and Grok/OpenCode cross-directory controls, each with separate-process
-controls. The two flags are mutually exclusive. The default runs up to four
-observation steps, including resources after a known same-directory failure. These options
-do not replace earlier native observations.
+and Grok/OpenCode cross-directory and child-environment controls, each with
+separate-process controls. `execution_environment_only=true` restricts
+Grok/OpenCode to actual MCP, hooks/plugins and tool cwd/environment controls.
+All three scope flags are mutually exclusive. `opencode_version` selects
+exact 2.2.3 or 2.2.5 for the native experiment, without changing production
+admission. The default runs up to five observation steps, including resources
+after a known same-directory or child-environment failure. These options do
+not replace earlier native observations.
 
 Each Windows probe first prepares PowerShell and CIM with one real query,
 bounded to 60 seconds, before creating a runtime fixture or measuring resources.

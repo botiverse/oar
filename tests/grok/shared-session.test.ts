@@ -2,12 +2,10 @@
 import { mkdtemp, mkdir, rm, writeFile, readFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { afterEach, expect, test, vi } from "vitest";
 import type { AvailableInstallation } from "../../packages/oar/src/contracts/installation.js";
 import type { Session, SessionOptions } from "../../packages/oar/src/contracts/session.js";
-import { grokRuntime } from "../../packages/oar/src/runtimes/grok/index.js";
-import { acpSession } from "../../packages/oar/src/shared/acp/session.js";
+import { experimentalGrokRuntime } from "../../experiments/sharing/grok-candidate.js";
 import { promptAndWait, awaitTurnEnd } from "../../packages/oar/src/observe/turns.js";
 import { opening, text } from "../fixtures/acp-shared-support.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
@@ -16,13 +14,11 @@ import type * as GrokSessionModule from "../../packages/oar/src/runtimes/grok/se
 
 vi.mock("../../packages/oar/src/runtimes/grok/session.js", async importOriginal => {
   const actual = await importOriginal<typeof GrokSessionModule>();
+  const { fileURLToPath } = await import("node:url");
+  const { acpSession } = await import("../../packages/oar/src/shared/acp/session.js");
   const profile = { ...actual.grokAcpProfile, args: [fileURLToPath(new URL("../fixtures/fake-acp-shared.mjs", import.meta.url))],
     withLaunchArgs: (args: readonly string[], extra: readonly string[]) => [...args, ...extra], terminalShellCommand: false, abortTimeoutMs: 60 };
   return { ...actual, grokAcpProfile: profile, grokSession: acpSession(profile) };
-});
-vi.mock("../../packages/oar/src/runtimes/grok/sharing-admission.js", async importOriginal => {
-  const actual = await importOriginal<{ grokSharedRefusal: (i: AvailableInstallation, p: NodeJS.Platform, a: string) => string | null }>();
-  return { ...actual, grokSharedRefusal: (i: AvailableInstallation) => actual.grokSharedRefusal(i, "linux", "x64") };
 });
 const sessions: Session[] = []; const roots: string[] = [];
 afterEach(async () => {
@@ -34,10 +30,10 @@ const exits = (session: Session) => session.records().filter(r => r.kind === "re
 async function fixture() {
   const root = await mkdtemp(path.join(os.tmpdir(), "oar-grok-sharing-")); roots.push(root);
   await mkdir(path.join(root, "a")); await mkdir(path.join(root, "b"));
-  const runtime = grokRuntime.withPlacement("auto");
+  const runtime = experimentalGrokRuntime().withPlacement("auto");
   const env = { ...Object.fromEntries(Object.keys(process.env).map(key => [key, null])), HOME: root, USERPROFILE: root,
     ...Object.fromEntries(Object.entries(process.env).filter(([key]) => ["systemroot", "windir", "comspec", "pathext", "temp", "tmp"].includes(key.toLowerCase()))),
-    PATH: path.dirname(process.execPath), FIXTURE_GROK: "1", FIXTURE_AGENT_VERSION: "1.0.70" };
+    PATH: path.dirname(process.execPath), FIXTURE_GROK: "1", FIXTURE_HTTP_MCP: "1", FIXTURE_AGENT_VERSION: "1.0.70" };
   return { root, runtime, env, open: async (name: string, options: Partial<SessionOptions> = {}, selected = runtime, i: AvailableInstallation = installation) => {
     const session = await selected.session(i, { cwd: path.join(root, name), env, ...options }); sessions.push(session); return session;
   } };
@@ -56,7 +52,7 @@ test.each(["grok 1.0.70 (f50904eaee6c)", "grok 1.0.70 (f50904eaee6c) [stable]"])
 });
 
 test("cwd and MCP vary within a pool; environment and initialization system prompts split it", async () => {
-  const f = await fixture(); const [a, b] = await Promise.all([f.open("a", { mcpServers: [{ name: "a", command: "node" }] }), f.open("b", { mcpServers: [{ name: "b", command: "node" }] })]);
+  const f = await fixture(); const [a, b] = await Promise.all([f.open("a", { mcpServers: [{ name: "a", type: "http", url: "http://127.0.0.1/a" }] }), f.open("b", { mcpServers: [{ name: "b", type: "http", url: "http://127.0.0.1/b" }] })]);
   expect(opening(a)).toMatchObject({ cwd: path.join(f.root, "a"), servers: ["a"] });
   expect(opening(b)).toMatchObject({ cwd: path.join(f.root, "b"), servers: ["b"] }); expect(opening(a)?.pid).toBe(opening(b)?.pid);
   const env = await f.open("a", { env: { ...f.env, GROK_DISABLE_AUTOUPDATER: "1" } });
@@ -125,11 +121,26 @@ test("shared crash emits one final exit per root after cleanup, within the Windo
 
 test("Grok records and native errors use the union of overlapping and retired peer credentials", async () => {
   const f = await fixture(); const secret = "fixture-grok-private-credential";
-  const a = await f.open("a", { mcpServers: [{ name: "a", command: "node", env: { API_KEY: secret } }] });
-  const b = await f.open("a", { mcpServers: [{ name: "b", command: "node", env: { API_KEY: `${secret}-long-tail` } }] });
+  const a = await f.open("a", { mcpServers: [{ name: "a", type: "http", url: "http://127.0.0.1/echo", headers: { "X-API-Key": secret } }] });
+  const b = await f.open("a", { mcpServers: [{ name: "b", type: "http", url: "http://127.0.0.1/echo", headers: { "X-API-Key": `${secret}-long-tail` } }] });
   await promptAndWait(a, "peer-secret"); await b.dispose();
   await promptAndWait(a, "peer-secret");
   const outcome = await promptAndWait(a, "peer-secret-error");
   const retained = JSON.stringify({ records: a.records(), outcome });
   expect(retained).toContain("[redacted]"); expect(retained).not.toContain(secret); expect(retained).not.toContain("long-tail");
+});
+
+
+test.each([
+  { name: "relative-command", command: "./server" },
+  { name: "relative-script", command: process.execPath, args: ["./server.js"] },
+  { name: "absolute-script", command: process.execPath, args: [path.join(os.tmpdir(), "server.js")] },
+])("stdio MCP $name falls back before shared startup; explicit shared refuses placement", async server => {
+  const f = await fixture();
+  const peer = await f.open("a");
+  const session = await f.open("b", { mcpServers: [server] });
+  expect(session.placement).toBe("isolated"); expect(opening(session)?.pid).not.toBe(opening(peer)?.pid);
+  expect(opening(session)).toMatchObject({ cwd: path.join(f.root, "b"), servers: [server.name] });
+  await expect(f.open("b", { mcpServers: [server] }, f.runtime.withPlacement("shared"))).rejects.toMatchObject({ option: "placement" });
+  expect(await promptAndWait(peer, "peer-after-refusal")).toMatchObject({ kind: "ended" });
 });

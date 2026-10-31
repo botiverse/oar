@@ -3,7 +3,11 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { expect, test, vi } from "vitest";
 import type { Session, SessionOptions } from "../../packages/oar/src/contracts/session.js";
-import { grokRuntime } from "../../packages/oar/src/runtimes/grok/index.js";
+import { experimentalGrokRuntime } from "../../experiments/sharing/grok-candidate.js";
+import { scopedHttpMcp } from "../../experiments/sharing/mcp-http-scope.js";
+// oxlint-disable-next-line import/no-namespace -- Inject the real router's observer, not a substitute transport.
+import * as shared from "../../packages/oar/src/runtimes/grok/shared-session.js";
+import type { AcpUnattributed } from "../../packages/oar/src/shared/acp/routing.js";
 // oxlint-disable-next-line import/no-namespace -- Observe actual native processes and wire ingress before SDK dispatch.
 import * as acp from "../../packages/oar/src/shared/acp/process.js";
 import { asRecord, type JsonRecord } from "../../packages/oar/src/shared/json.js";
@@ -38,6 +42,10 @@ function childTiming(session: Session, peer: Session, wire: readonly Wire[]) {
 for (const placement of ["auto", "isolated"] as const) {
   test.skipIf(!enabled)(`Grok 1.0.70 ${placement}: same-directory roots, child timing, cancel, terminals and final lease`, async () => {
     const f = await acpFixture("grok"); const sessions: Session[] = []; const runtimes: acp.AcpProcess[] = []; const wire: Wire[] = [];
+    const mcp = await scopedHttpMcp().catch(async (error: unknown) => { await f.stop(); throw error; });
+    const diagnostics: AcpUnattributed[] = [];
+    const createShared = shared.createGrokSharedSession;
+    const observe = vi.spyOn(shared, "createGrokSharedSession").mockImplementation(() => createShared(entry => { diagnostics.push(entry); }));
     const original = acp.startAcpProcess;
     const spy = vi.spyOn(acp, "startAcpProcess").mockImplementation((command, args, app, options = {}) => {
       const runtime = original(command, args, app, { ...options, incoming: message => {
@@ -45,12 +53,12 @@ for (const placement of ["auto", "isolated"] as const) {
         return options.incoming === undefined ? message : options.incoming(message);
       } }); runtimes.push(runtime); return runtime;
     });
-    const runtime = grokRuntime.withPlacement(placement);
+    const runtime = experimentalGrokRuntime().withPlacement(placement);
     const env = { ...Object.fromEntries(Object.keys(process.env).map(key => [key, null])), ...f.env,
       PATH: (f.env.PATH ?? "").split(path.delimiter).filter(entry => path.isAbsolute(entry)).join(path.delimiter) };
     const open = async (label: "A" | "B", extra: Partial<SessionOptions> = {}): Promise<Session> => {
       const session = await runtime.session(f.installation, { cwd: f.cwds[0] ?? f.home, env,
-        mcpServers: [{ name: "scope", command: process.execPath, args: [f.mcp.script, label] }], ...extra }); sessions.push(session); return session;
+        mcpServers: [{ name: "scope", type: "http", url: mcp.url(label) }], ...extra }); sessions.push(session); return session;
     };
     const cleanup = cleanupObserver(f.home, "grok"); const errors: unknown[] = []; let timing: unknown = null;
     try {
@@ -87,7 +95,7 @@ for (const placement of ["auto", "isolated"] as const) {
         expect(models.length).toBeGreaterThanOrEqual(2); expect([...new Set(models)]).toEqual([expected]);
       }
       await Promise.all([promptAndWait(a, "ACP_SHARE_A_mcp"), promptAndWait(b, "ACP_SHARE_B_mcp")]);
-      expect(await f.mcp.calls()).toEqual(expect.arrayContaining([{ server: "A", input: "A", output: "MCP_RESULT=A input=A" }, { server: "B", input: "B", output: "MCP_RESULT=B input=B" }]));
+      expect(mcp.calls()).toEqual(expect.arrayContaining([{ server: "A", input: "A", output: "MCP_RESULT=A input=A" }, { server: "B", input: "B", output: "MCP_RESULT=B input=B" }]));
       await Promise.all([promptAndWait(a, "ACP_SHARE_A_child"), promptAndWait(b, "ACP_SHARE_B_peer")]);
       timing = childTiming(a, b, wire);
       const pending = await a.prompt("ACP_SHARE_A_hold");
@@ -121,8 +129,8 @@ for (const placement of ["auto", "isolated"] as const) {
       expect(b.records().filter(r => r.kind === "response" && r.body.kind === "exited")).toHaveLength(1);
       expect(runtimes.every(r => r.closed)).toBe(true);
       // Recheck the complete log after every turn to catch delayed duplicate or misrouted calls.
-      expect(await f.mcp.calls()).toHaveLength(4);
-      expect(await f.mcp.calls()).toEqual(expect.arrayContaining([
+      expect(mcp.calls()).toHaveLength(4);
+      expect(mcp.calls()).toEqual(expect.arrayContaining([
         { server: "A", input: "A_mcpafter", output: "MCP_RESULT=A input=A_mcpafter" },
         { server: "B", input: "B_mcpother", output: "MCP_RESULT=B input=B_mcpother" },
       ]));
@@ -132,15 +140,21 @@ for (const placement of ["auto", "isolated"] as const) {
     await preservingProbeEvidence(async () => { if (errors.length > 0) { throw errors[0]; } }, [
       async () => { const results = await Promise.allSettled(sessions.map(async s => { await s.dispose(); })); const failures = results.filter(r => r.status === "rejected");
         if (failures.length > 0) { const error = new AggregateError(failures.map((r): unknown => r.reason), "Session disposal failed"); errors.push(error); throw error; } },
+      async () => {
+        try {
+          expect(observe).toHaveBeenCalledTimes(placement === "auto" ? 1 : 0);
+          expect(diagnostics.filter(entry => entry.reason === "conflict" || entry.reason === "expired")).toEqual([]);
+        } catch (error) { errors.push(error); throw error; }
+      },
       async () => { await cleanup.sample("before-directory-removal"); },
       async () => { try { await cleanup.reclaim(); } catch (error) { errors.push(error); throw error; } },
       async () => {
         const out = path.resolve(process.env.OAR_TRIAL_RUN_DIR ?? "oar-trial-run", "grok-sharing"); await mkdir(out, { recursive: true });
-        await writeFile(path.join(out, `${placement}.json`), JSON.stringify({ version: f.installation.version, errors: errors.map(error => probeErrorText(error)), timing,
+        await writeFile(path.join(out, `${placement}.json`), JSON.stringify({ version: f.installation.version, errors: errors.map(error => probeErrorText(error)), timing, routingDiagnostics: diagnostics,
           cleanup: cleanup.observations, runtimes: runtimes.map(r => ({ closed: r.closed, diagnostics: r.diagnostics() })),
           sessions: sessions.map(s => ({ placement: s.placement, records: s.records() })) }, null, 2));
       },
-      () => { spy.mockRestore(); }, async () => { await f.stop(); },
+      () => { spy.mockRestore(); observe.mockRestore(); }, async () => { await mcp.stop(); }, async () => { await f.stop(); },
     ]);
   }, 240_000);
 }

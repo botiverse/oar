@@ -107,9 +107,11 @@ custom startup inputs retain their separately tested isolation policy.
 the configured-plugin child environment comparison. They are outside default
 `check`; the public isolated cleanup regression remains in ordinary CI.
 
-`OAR_TEST=grok-shared` runs real Grok 1.0.70 with all behavior roots in
-one project directory. Fresh roots must actually share. The three `check`
-jobs also run `grok-sharing.vendor.test.ts` in shared and isolated placement,
-checking models, same-directory MCP, child arrival/association timing, live
-terminal trees for both roots, directory reuse and final-lease shutdown.
-Artifacts go under `oar-trial-run/grok-sharing`.
+`OAR_TEST=grok-shared` selects an **experimental** Grok 1.0.70 adapter with
+all roots in one project directory. The public Grok runtime refuses sharing.
+Manual `grok-sharing-experiment.yml` runs this suite, the shared/isolated
+lifecycle control, and native MCP/hook cwd comparisons. Lifecycle asserts
+models, HTTP MCP routing, child timing with no conflict/expiry diagnostics,
+live terminal cleanup, reuse and final shutdown. Synthetic routing and public
+refusal regressions remain in default CI; native experimental runs do not.
+Artifacts are confined to `oar-trial-run/grok-sharing`.

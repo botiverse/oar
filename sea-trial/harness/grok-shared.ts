@@ -1,16 +1,17 @@
 import assert from "node:assert/strict";
 import path from "node:path";
 import { defineRuntime, grokRuntime } from "../../packages/oar/src/index.js";
+import { experimentalGrokRuntime } from "../../experiments/sharing/grok-candidate.js";
 import { startGrokAimock } from "./aimock-acp.js";
 import type { Backend } from "./backends.js";
 
-/** Every root uses the same project; fresh and concurrent sessions must remain shared. */
+/** Experimental only, without configured MCP. Every root uses the same project; fresh and concurrent sessions must remain shared. */
 export async function grokSharedBackend(): Promise<Backend> {
   const aimock = await startGrokAimock(mock => {
     mock.onMessage(/slow/u, { content: "ok" }, { latency: 900 });
     mock.onMessage(/^(?![\s\S]*slow)[\s\S]*$/u, { content: "ok" }, { latency: 80 });
   });
-  const runtime = grokRuntime.withPlacement("auto");
+  const runtime = experimentalGrokRuntime().withPlacement("auto");
   return {
     concurrency: 2, aimock,
     runtime: defineRuntime({ id: "grok-shared", installation: grokRuntime.installation,

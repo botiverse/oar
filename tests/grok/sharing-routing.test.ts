@@ -107,3 +107,28 @@ test("host-request association budget uses elapsed time even if the wall clock c
   await vi.advanceTimersByTimeAsync(1000); await denied;
   expect(f.diagnostics).toMatchObject([{ reason: "expired", receivedAt: 100_000 }]); f.routing.close();
 });
+
+test("a forged spawn targeting another root's child cannot authorize the forger's later completion", () => {
+  const f = fixture(); f.spawn("A", "A", "child");
+  f.spawn("B", "B", "child"); f.completed("B", "child");
+  expect(f.diagnostics.map(d => d.reason)).toEqual(["conflict", "conflict"]);
+  f.notify("session/update", { sessionId: "child", text: "still-owned-by-A" });
+  expect(f.deliveries.at(-1)).toMatchObject({ owner: "A", params: { text: "still-owned-by-A" } });
+  f.completed("A", "child"); expect(f.diagnostics).toHaveLength(2); f.routing.close();
+});
+
+test("a child's spawn and completed result establish and check its grandchild within the same root", () => {
+  const f = fixture(); f.spawn("A", "A", "child"); f.spawn("child", "child", "grandchild");
+  f.completed("child", "grandchild"); f.notify("session/update", { sessionId: "grandchild", text: "nested" });
+  expect(f.deliveries.at(-1)).toMatchObject({ owner: "A", params: { text: "nested" } });
+  expect(f.diagnostics).toEqual([]); f.routing.close();
+});
+
+test("completion before spawn diagnoses missing evidence but cannot prevent the later native spawn binding", () => {
+  const f = fixture(); f.completed("A", "child");
+  expect(f.diagnostics.map(d => d.reason)).toEqual(["conflict"]); expect(f.routing.inUse("child")).toBe(false);
+  f.notify("session/update", { sessionId: "child", text: "buffered" });
+  f.spawn("A", "A", "child"); f.completed("A", "child");
+  expect(f.deliveries.some(d => d.owner === "A" && typeof d.params === "object" && d.params !== null && "text" in d.params && d.params.text === "buffered")).toBe(true);
+  expect(f.routing.inUse("child")).toBe(true); expect(f.diagnostics).toHaveLength(1); f.routing.close();
+});

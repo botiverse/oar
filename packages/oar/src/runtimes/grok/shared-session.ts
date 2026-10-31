@@ -15,25 +15,34 @@ import { grokAcpProfile, grokSession } from "./session.js";
 import { isGrokSharedVersion } from "./sharing-admission.js";
 import { grokSharedAssociations, grokSharedAssociationChecks } from "./sharing-attribution.js";
 
-function processHome(options: SessionOptions): string {
-  const env = sessionEnvironment(options.env);
-  return environmentValue(env, process.platform === "win32" ? "USERPROFILE" : "HOME") ?? os.homedir();
+function processHome(options: SessionOptions, platform = process.platform): string {
+  const env = sessionEnvironment(options.env, process.env, platform);
+  return environmentValue(env, platform === "win32" ? "USERPROFILE" : "HOME", platform) ?? os.homedir();
+}
+
+/** Windows rooted or drive-relative paths depend on the neutral process's drive. */
+function fullyQualified(value: string, platform: NodeJS.Platform): boolean {
+  return platform === "win32" ? /^[A-Za-z]:[\\/]/u.test(value) || /^\\\\[^\\/]+[\\/][^\\/]+/u.test(value)
+    : path.posix.isAbsolute(value);
 }
 
 /** Relative startup inputs have no evidence for a process launched from neutral HOME. */
-export function grokSharedLaunchRefusal(command: string, options: SessionOptions): string | null {
+export function grokSharedLaunchRefusal(command: string, options: SessionOptions, platform = process.platform): string | null {
   if ((options.launchArgs?.length ?? 0) > 0) { return "Grok shared placement has no startup-directory evidence for custom launchArgs"; }
-  if (!path.isAbsolute(command) && /[/\\]/u.test(command)) { return "Grok shared placement requires an absolute executable path or a PATH command"; }
-  if (!path.isAbsolute(options.cwd)) { return "Grok shared placement requires an absolute session cwd"; }
-  const env = sessionEnvironment(options.env);
+  if (!fullyQualified(command, platform) && (/[/\\]/u.test(command) || (platform === "win32" && /^[A-Za-z]:/u.test(command)))) { return "Grok shared placement requires an absolute executable path or a PATH command"; }
+  if (!fullyQualified(options.cwd, platform)) { return "Grok shared placement requires an absolute session cwd"; }
+  const env = sessionEnvironment(options.env, process.env, platform);
   for (const key of ["HOME", "USERPROFILE", "GROK_HOME", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_STATE_HOME", "XDG_CACHE_HOME"]) {
-    const value = environmentValue(env, key);
-    if (value !== undefined && value !== "" && !path.isAbsolute(value)) { return "Grok shared placement has no startup-directory evidence for relative home or configuration paths"; }
+    const value = environmentValue(env, key, platform);
+    if (value !== undefined && value !== "" && !fullyQualified(value, platform)) { return "Grok shared placement has no startup-directory evidence for relative home or configuration paths"; }
   }
-  if (!path.isAbsolute(processHome(options))) { return "Grok shared placement requires an absolute process home"; }
-  const search = environmentValue(env, "PATH");
-  if (search !== undefined && search.split(path.delimiter).some(entry => !path.isAbsolute(entry))) {
+  if (!fullyQualified(processHome(options, platform), platform)) { return "Grok shared placement requires an absolute process home"; }
+  const search = environmentValue(env, "PATH", platform);
+  if (search !== undefined && search.split(platform === "win32" ? ";" : ":").some(entry => !fullyQualified(entry, platform))) {
     return "Grok shared placement has no startup-directory evidence for relative PATH entries";
+  }
+  if (options.mcpServers?.some(server => "command" in server) === true) {
+    return "Grok shared placement cannot preserve stdio MCP working directories; use isolated placement or HTTP MCP";
   }
   return null;
 }

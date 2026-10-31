@@ -24,7 +24,7 @@ Pi Durable SDKs before selecting live probes.
 | [Codex](codex.md) | App-server v2 over stdio | Thread/turn/item identity, bidirectional requests, native queue, collaboration threads |
 | [CodeBuddy Code](codebuddy.md) | Native CLI ACP sessions; private stream-json account controls | Consecutive turns, model/effort readback, native context 0/0 and token-ledger limits |
 | [Cursor](cursor.md) | Embedded `@cursor/sdk` (local agent) | Agent versus run, steer acknowledgement, subagent updates inside the task call, per-family effort parameters, the SDK's own credential |
-| [Grok](grok.md) | `grok agent stdio`, ACP plus vendor extensions | Exact-version shared placement, independent child sessions, client execution, context versus billing |
+| [Grok](grok.md) | `grok agent stdio`, ACP plus vendor extensions | Shared-placement refusal, independent child sessions, client execution, context versus billing |
 | [Kimi](kimi.md) | TypeScript kimi-code's `kimi acp` | Session/agent/turn distinctions, native KAP versus ACP visibility, completion and compaction |
 | [OpenCode](opencode.md) | `opencode acp`, ACP | Installed v1/v2 line selection, native steering differences, child attribution, model queries and prompt-option limits |
 | [Mister Morph](morph.md) | **Community runtime** (`@botiverse/oar/community`); Console Runtime API over loopback HTTP + WebSocket | Topic as session, snapshot stream versus authoritative task query, steer by submission, attached versus started Console |
