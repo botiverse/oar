@@ -247,7 +247,7 @@ Sharing follows five rules:
    session, and an explicit request for shared placement is refused with a
    typed reason. The exact versions and platforms that meet this gate are
    recorded in the [evidence index](../../experiments/sharing/README.md)
-   (currently the 2026-10-30 report). Until adapters enable sharing, all native
+   (see the [2026-10-31 admission decisions](../../experiments/sharing/admission-2026-10-31.md)). Until adapters enable sharing, all native
    sessions still run in isolation. Claude, Qwen and Pi RPC
    run one session per native process and are always isolated. Qoder 1.1.80
    and earlier are also isolated. From 1.1.81, Qoder's native SDK daemon can
