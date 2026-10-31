@@ -34,7 +34,7 @@ jobs:
     timeout-minutes: 65
     env:
       EVIDENCE_RUNTIME: ${{ matrix.runtime }}
-      EVIDENCE_PACKAGE: ${{ fromJSON('{"codex":"@openai/codex@0.166.0","kimi":"@moonshot-ai/kimi-code@2.4.1","grok":"@xai-official/grok@1.0.70","opencode":"@opencode/cli@2.2.3","qoder":"@qoder-ai/qodercli@1.1.81"}')[matrix.runtime] }}
+      EVIDENCE_PACKAGE: ${{ fromJSON('{"codex":"@openai/codex@0.166.0","kimi":"@moonshot-ai/kimi-code@2.4.1","grok":"@xai-official/grok@1.0.70","opencode":"@opencode/cli@2.2.5","qoder":"@qoder-ai/qodercli@1.1.81"}')[matrix.runtime] }}
     defaults:
       run:
         shell: bash

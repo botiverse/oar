@@ -184,6 +184,17 @@ The model provider is local and scripted; the CLI and its processes are real.
 
 ### Startup and compatibility
 
+**2.2.5** was rechecked on Linux x64 on 2026-10-31. All 15 applicable
+behavior cases passed, while the boundary probe again passed nine of ten:
+cold MCP resume omitted its tool. The independent native probe called echo
+on creation and on none of six cold resumes, despite seven successful MCP
+connections. Warm tool replacement still passed. Two of four concurrent
+first server starts exited 1 with `table account_state already exists`;
+two sequential starts and four concurrent starts over an initialized
+database passed. These results do not expand the 2.2.3 sharing table;
+2.2.5 still uses isolated placement in `auto`, pending separate full platform
+evidence. [Daily report](../../experiments/runtime-version-checks/2026-10-31.md#opencode-225).
+
 **Known limitation, reproduced in 2.2.1 and 2.2.3** (2026-10-29/30):
 concurrent first starts over a fresh native database can fail before
 readiness, confirmed by native SQLite errors. On 2.2.3, an OAR-free probe

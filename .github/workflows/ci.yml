@@ -242,7 +242,7 @@ jobs:
             package: '@xai-official/grok@1.0.70'
             command: grok
           - backend: codebuddy-aimock
-            package: '@tencent-ai/codebuddy-code@2.178.1'
+            package: '@tencent-ai/codebuddy-code@2.179.0'
             command: codebuddy
           - backend: opencode-aimock
             package: opencode-ai@1.19.5

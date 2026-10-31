@@ -20,6 +20,13 @@ Evidence below identifies CodeBuddy 2.178.1, Linux x64 local-provider tests and
 Linux arm64 international-account tests on 2026-10-29. These are observation
 baselines, not a compatibility range.
 
+On **2.179.0** (Linux x64, 2026-10-31), all 16 applicable behavior cases
+and five native vendor cases passed against local providers. Independent
+controls still duplicated the second stream-json input in three immediate
+runs, while all three one-second controls and the immediate ACP control
+kept one conversation request per input. Historical account observations
+below remain on 2.178.1. [Daily evidence](../../experiments/runtime-version-checks/2026-10-31.md#codebuddy-21790).
+
 ## OAR mapping
 
 `codebuddyRuntime` is in `defaultRuntimes` and has the dedicated

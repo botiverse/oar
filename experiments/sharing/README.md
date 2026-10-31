@@ -30,6 +30,12 @@ and all three platforms' different-directory observations, along with Grok
 1.0.70, are in the [admission report](admission-2026-10-30.md).
 Other versions do not inherit these results.
 
+The workflow now collects OpenCode **2.2.5**, whose ordinary Linux checks
+are in the [October 31 daily report](../runtime-version-checks/2026-10-31.md#opencode-225).
+Its complete three-platform sharing evidence is pending. This collection pin
+does not change the admitted version below or OAR's shared-placement CI,
+which both remain 2.2.3.
+
 **Grok 1.0.70 meets the complete evidence gate on Linux x64, macOS arm64
 and Windows x64. OpenCode 2.2.3 meets it on the same platforms only with one
 session per canonical directory for the entire process lifetime.**
