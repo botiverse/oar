@@ -291,9 +291,14 @@ Further rules:
   predating this cancellation. An underlying query shared with other callers
   may continue within its own budget, without extending the abort's wait.
   The existing ten-second fallback starts when cancel is sent.
+  The first abort on a cold Windows host is likely to exceed this observation
+  limit while PowerShell or CIM initializes; cancellation still proceeds at
+  the same one-second limit.
   The observation belongs to the current turn, including a resumed turn.
-  OAR holds its queued input only during this observation window. If the turn
-  ends in that window, the abort is rejected `no_active_turn`, no cancellation
+  OAR holds its queued input only during this observation window. New prompt
+  and steer calls wait for this window, then use the existing post-cancel
+  acceptance rules instead of adding an observation-specific busy refusal. If
+  the turn ends in that window, the abort is rejected `no_active_turn`, no cancellation
   is sent, and queued input can proceed. Repeated aborts share that turn's
   observation; the next turn takes a new one. Identities are committed only
   immediately before sending native cancellation. Completed turns do not kill
@@ -302,6 +307,10 @@ Further rules:
   before any signal. A failed or timed-out cancellation observation leaves
   cleanup explicitly unverified even if a later disposal snapshot succeeds:
   the first cancellation may already have detached an unobserved tool.
+  This unverified observation is retained for the later dispose or host-exit
+  cleanup report.
+  An exit after cancellation was sent but before that turn's cancellation
+  completes is attributed to that cancellation for cleanup and diagnostics.
   A refusal or turn end clears the active cancellation marker. A later,
   unrelated natural exit does not become a host stop because of an old abort.
   Shared ACP never claims the pooled process's descendants on a session abort;

@@ -62,6 +62,8 @@ function acpPrompt(input: string, images: readonly LoadedImage[]): JsonRecord[] 
 
 export interface AcpTurns {
   active(): ActiveTurn | null;
+  /** Null outside observation so ordinary input keeps its synchronous dispatch. */
+  pendingCancellation(): Promise<CancellationObservation> | null;
   /** Open a turn with one prompt RPC; rejected when the process is gone or its images can't go (`inputImagesRefusal`). */
   begin(request: RequestRecord | null, input: string, images?: readonly InputImage[]): ResponseBody;
   /** Another prompt RPC inside the active turn (the profile's steer params); rejected like `begin`. */
@@ -91,7 +93,7 @@ export function createAcpTurns(deps: {
   const held: { readonly inputId: string | undefined; readonly prompt: JsonRecord[] }[] = [];
   let active: ActiveTurn | null = null;
   let nextRequest = 0;
-  let observingCancellation = false;
+  let observingCancellation: Promise<CancellationObservation> | null = null;
 
   const closeTurn = (state: ActiveTurn): void => {
     state.cancellation?.complete();
@@ -195,7 +197,7 @@ export function createAcpTurns(deps: {
   function drainHeld(): void {
     // Held input is dropped once the stream says the runtime is unreachable
     // (an `exited` response or a `dispose` request), not by an adapter flag.
-    if (kernel.unreachable() !== null || active !== null || runtime.closed || observingCancellation) {
+    if (kernel.unreachable() !== null || active !== null || runtime.closed || observingCancellation !== null) {
       return;
     }
     // Taken off `held` in the same step it is sent: a withdraw after this finds it gone.
@@ -207,6 +209,7 @@ export function createAcpTurns(deps: {
 
   return {
     active: () => active,
+    pendingCancellation: (): Promise<CancellationObservation> | null => observingCancellation,
     begin,
     async steer(state, input, options, extraParams) {
       await runtime.spawned;
@@ -224,14 +227,19 @@ export function createAcpTurns(deps: {
         // reusable. Dispose already prepared its whole-process cleanup;
         // shared cancellation must never claim the pool's descendants.
         if (request !== undefined && deps.fallback === undefined) {
-          observingCancellation = true;
-          try { state.cancellation = await runtime.observeCancellation(); }
-          finally { observingCancellation = false; queueMicrotask(drainHeld); }
+          observingCancellation ??= runtime.observeCancellation();
+          const window = observingCancellation;
+          try { state.cancellation = await window; }
+          finally {
+            if (observingCancellation === window) { observingCancellation = null; queueMicrotask(drainHeld); }
+          }
           if (active !== state || runtime.closed || kernel.unreachable() !== null) {
             state.cancellation.complete();
             return runtime.closed ? gone() : { kind: "rejected", code: "no_active_turn", reason: "turn ended before cancellation was sent" };
           }
         }
+        // Another abort can dispatch while this one awaits the shared observation.
+        if (active?.abortRequested === true) { return { kind: "accepted" }; }
         state.abortRequested = true;
         try {
           state.cancellation?.commit();

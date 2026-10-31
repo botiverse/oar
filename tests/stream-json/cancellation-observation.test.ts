@@ -26,6 +26,51 @@ function answer(text: string, child: FakeLineProcess, refusal = false): void {
 }
 function endTurn(child: FakeLineProcess): void { child.emit(`${JSON.stringify({ type: "result", subtype: "success", is_error: false })}\n`); }
 
+// oxlint-disable-next-line max-statements -- The input must remain pending, then follow the actual interrupt write.
+test.each(["prompt", "steer"] as const)("%s waits through the observation window and uses existing post-cancel rules", async input => {
+  const child = fakeLineProcess(answer);
+  const gate = Promise.withResolvers<CancellationObservation>();
+  vi.spyOn(child, "observeCancellation").mockReturnValue(gate.promise);
+  const session = await open(child);
+  try {
+    await session.prompt("A");
+    const abort = session.abort();
+    let settled = false;
+    const send = async () => { const result = input === "prompt" ? await session.prompt("B") : await session.steer?.("B"); settled = true; return result; };
+    const sent = send();
+    await Promise.resolve(); await Promise.resolve();
+    expect(settled).toBe(false); expect(child.written).toHaveLength(1);
+    gate.resolve({ commit() {}, complete() {} });
+    const aborted = await abort;
+    expect(aborted.kind).toBe("accepted");
+    const result = await sent;
+    expect(result?.response.body).toEqual(input === "prompt" ? { kind: "rejected", code: "busy", reason: "busy" } : { kind: "accepted" });
+    expect(child.written[1]).toContain('"subtype":"interrupt"');
+    if (input === "steer") { expect(child.written[2]).toContain("B"); }
+  } finally { gate.resolve({ commit() {}, complete() {} }); await session.dispose(); }
+});
+
+// oxlint-disable-next-line max-statements -- An observation failure must release the queue and permit future cancellations.
+test("rejected observation releases the window instead of permanently blocking input", async () => {
+  const child = fakeLineProcess(answer);
+  const gate = Promise.withResolvers<CancellationObservation>();
+  const observe = vi.spyOn(child, "observeCancellation").mockReturnValueOnce(gate.promise).mockResolvedValue({ commit() {}, complete() {} });
+  const session = await open(child);
+  try {
+    await session.prompt("A"); await session.queue("B");
+    const abort = session.abort(); endTurn(child);
+    gate.reject(new Error("observation unavailable"));
+    const aborted = await abort;
+    expect(aborted.response.body).toEqual({ kind: "rejected", code: "error", reason: "observation unavailable" });
+    await Promise.resolve();
+    expect(child.written).toHaveLength(2); expect(child.written[1]).toContain("B");
+    endTurn(child); await session.prompt("C");
+    const nextAbort = await session.abort();
+    expect(nextAbort.kind).toBe("accepted");
+    expect(observe).toHaveBeenCalledTimes(2);
+  } finally { gate.resolve({ commit() {}, complete() {} }); await session.dispose(); }
+});
+
 // oxlint-disable-next-line eslint/max-statements -- The exact 999/1000ms boundary and late result share one observation.
 test("one-second timeout dispatches interrupt without waiting for a shared query's late result", async () => {
   vi.useFakeTimers();

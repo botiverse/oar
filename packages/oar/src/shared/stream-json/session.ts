@@ -33,9 +33,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
   const kernel = credentials.kernel(sessionId);
   const userMessage = profile.userMessage ?? streamJsonUserMessage;
   const state: StreamJsonSessionState<S> = {
-    child,
-    active: null,
-    spontaneous: false,
+    child, active: null, spontaneous: false,
     projection: profile.initial,
     disposed: false,
   };
@@ -52,6 +50,10 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
   let turnRevision = 0;
   let observingCancellation: { readonly revision: number; readonly result: Promise<CancellationObservation> } | null = null;
   let cancellation: CancellationObservation | null = null;
+  const waitForCancellation = async (): Promise<void> => {
+    try { await observingCancellation?.result; }
+    catch { /* The abort reports its observation failure; later input still proceeds. */ }
+  };
   const sentInterrupts = new Set<string>();
   const completeCancellation = (): void => {
     cancellation?.complete(); cancellation = null; sentInterrupts.clear();
@@ -76,9 +78,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
   // and the control decisions (busy, queue drain).
   child.onLine((line) => {
     const message = asRecord(parseJson(line));
-    if (message === null) {
-      return;
-    }
+    if (message === null) { return; }
     if (message.type === "system" && message.subtype === "init" && typeof message.parent_tool_use_id !== "string" && Array.isArray(message.capabilities)) {
       canCancelQueued = profile.cancelQueuedCapability !== undefined && message.capabilities.includes(profile.cancelQueuedCapability);
     }
@@ -177,9 +177,10 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
     id: kernel.sessionId,
     capabilities,
     prompt: async (input, inputOptions?: InputOptions): Promise<ControlResult> => {
+      if (observingCancellation !== null) { await waitForCancellation(); }
       const body = { kind: "prompt" as const, input, ...inputOptions };
-      const result = await kernel.control(body, (request) => {
-        if (busy() || observingCancellation !== null) { return { kind: "rejected", code: "busy", reason: "busy" }; }
+      return kernel.control(body, (request) => {
+        if (busy()) { return { kind: "rejected", code: "busy", reason: "busy" }; }
         return withInputImages(capabilities, inputOptions?.images, (images) => {
           turnRevision += 1;
           state.active = request;
@@ -188,19 +189,17 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
           return { kind: "accepted" };
         });
       });
-      return result;
     },
     ...(profile.steer ? {
       steer: async (input: string, inputOptions?: InputOptions): Promise<ControlResult> => {
-        const result = await kernel.control({ kind: "steer", input, ...inputOptions }, () => {
+        if (observingCancellation !== null) { await waitForCancellation(); }
+        return kernel.control({ kind: "steer", input, ...inputOptions }, () => {
           if (!busy()) { return { kind: "rejected", code: "no_active_turn", reason: "not_steerable: no active turn" }; }
-          if (observingCancellation !== null) { return { kind: "rejected", code: "busy", reason: "cancellation observation in progress" }; }
           return withInputImages(capabilities, inputOptions?.images, (images) => {
             child.write(userMessage(input, inputOptions?.inputId, images));
             return { kind: "accepted" };
           });
         });
-        return result;
       },
     } : {}),
     queue: async (input, inputOptions?: InputOptions): Promise<ControlResult> => {
@@ -236,8 +235,13 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
       const revision = turnRevision;
       observingCancellation ??= { revision, result: cancellation === null ? child.observeCancellation() : Promise.resolve(cancellation) };
       const window = observingCancellation;
-      const observation = await window.result;
-      if (observingCancellation === window) { observingCancellation = null; queueMicrotask(drainHeld); }
+      let observation: CancellationObservation | null = null;
+      try { observation = await window.result; }
+      catch (error) {
+        return { request, response: kernel.respond(request.id, { kind: "rejected", code: "error", reason: error instanceof Error ? error.message : String(error) }) };
+      } finally {
+        if (observingCancellation === window) { observingCancellation = null; queueMicrotask(drainHeld); }
+      }
       const afterObservation = kernel.unreachable();
       if (turnRevision !== revision || window.revision !== revision || afterObservation !== null || state.disposed) {
         observation.complete();
@@ -275,9 +279,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
     resources: child.resources,
     ...(profile.contextBreakdown === undefined ? {} : { contextBreakdown: profile.contextBreakdown }),
     dispose: async () => {
-      if (state.disposed) {
-        return;
-      }
+      if (state.disposed) { return; }
       state.disposed = true;
       // stdin ends now: no query may write to it any more.
       profile.disposing();

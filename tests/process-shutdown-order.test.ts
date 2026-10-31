@@ -10,6 +10,20 @@ import { gone } from "./fixtures/process-tree.js";
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllEnvs(); });
 const failure: ProcessTableObservation = { ok: false, source: "windows", reason: "timeout", elapsedMs: 5000, timeoutMs: 5000 };
 
+// oxlint-disable-next-line max-statements -- Both preconditions must return without querying or recording cleanup.
+test.each(["tree-disabled", "already-exited"])("cancellation reads no table when %s", async mode => {
+  const child = spawnLineProcess(process.execPath, ["-e", mode === "already-exited" ? "process.exit(0)" : "process.stdin.resume(); console.log('ready');"], { killTree: mode !== "tree-disabled" });
+  const ready = Promise.withResolvers<void>();
+  child.onLine(() => { ready.resolve(); });
+  try {
+    await (mode === "already-exited" ? child.exited : ready.promise);
+    const read = vi.spyOn(tables, "observeProcessTableAsync");
+    const observation = await child.observeCancellation();
+    observation.commit(); observation.complete();
+    expect(read).not.toHaveBeenCalled(); expect(child.diagnostics().cleanup).toBeUndefined();
+  } finally { vi.restoreAllMocks(); child.kill(); await child.exited; }
+});
+
 // oxlint-disable-next-line eslint/max-statements -- Native exit is deliberately placed inside each asynchronous cleanup phase.
 test.each(["capture", "force"])("LineProcess waits for pending %s after native exit and retains its diagnostics", async (phase) => {
   vi.stubEnv("OAR_KILL_GRACE_MS", "10");

@@ -97,6 +97,7 @@ export function processShutdown(child: ChildProcess, options: ShutdownOptions): 
     prepare,
     markNativeStop() { if (alive()) { stopAction = true; } },
     async observeCancellation() {
+      if (options.killTree !== true || !alive() || child.pid === undefined) { return { commit() {}, complete() {} }; }
       const result = await observeBeforeCancellation();
       const attempt = Symbol("native cancellation");
       let committed = false, completed = false;
