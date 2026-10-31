@@ -7,6 +7,7 @@ import { asRecord, parseJson } from "../json.js";
 import type { SessionCredentials } from "../session-credentials.js";
 import { appendCleanupFailure, cleanupFailureReason } from "../executable/process-cleanup.js";
 import type { LineProcess } from "../executable/index.js";
+import type { CancellationObservation } from "../executable/process-cancellation.js";
 import { streamJsonUserMessage, streamJsonPrompted } from "./input-lifecycle.js";
 import { foldStreamJsonStdout } from "./projection.js";
 import { streamJsonAbortRequested, type StreamJsonProjectionState } from "./state.js";
@@ -48,6 +49,27 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
   const abortFallback = createAbortFallback(() => { child.kill(); });
   const pendingInterrupts = new Map<string, () => void>();
   let disposeRequest: RequestRecord | null = null;
+  let turnRevision = 0;
+  let observingCancellation: { readonly revision: number; readonly result: Promise<CancellationObservation> } | null = null;
+  let cancellation: CancellationObservation | null = null;
+  const sentInterrupts = new Set<string>();
+  const completeCancellation = (): void => {
+    cancellation?.complete(); cancellation = null; sentInterrupts.clear();
+  };
+  const refuseCancellation = (requestId: string): void => {
+    sentInterrupts.delete(requestId);
+    if (sentInterrupts.size === 0) { completeCancellation(); }
+  };
+  function drainHeld(): void {
+    if (state.disposed || busy() || observingCancellation !== null) { return; }
+    const next = heldQueue.shift();
+    if (next === undefined) { return; }
+    turnRevision += 1;
+    if (commandLifecycle && next.inputId !== undefined) { writtenQueues.set(next.inputId, next.request); }
+    state.projection = streamJsonPrompted(state.projection, next.inputId, false, commandLifecycle);
+    if (!commandLifecycle) { state.spontaneous = true; }
+    child.write(userMessage(next.input, next.inputId, next.images));
+  }
 
   // Drive the pure projection fold, applying its commands to the kernel. The
   // fold owns event translation and attribution; this owns only transport
@@ -81,7 +103,10 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
         case "frame": {
           // Projection can establish a spontaneous start at init, or at a
           // later queued receipt that proves the init did not own our prompt.
-          if (command.agentPath.length === 0 && command.body.events.some((event) => event.kind === "turn_active" && event.inputId === undefined)) { state.spontaneous = true; }
+          if (command.agentPath.length === 0 && command.body.events.some((event) => event.kind === "turn_active" && event.inputId === undefined)) {
+            if (!busy()) { turnRevision += 1; }
+            state.spontaneous = true;
+          }
           const record = kernel.frame(command.body, { agentPath: command.agentPath });
           if (record.agentPath.length > 0) { break; }
           ended ||= command.body.events.some((event) => event.kind === "turn_ended");
@@ -95,7 +120,9 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
           const refused = pendingInterrupts.get(command.requestId);
           if (refused !== undefined) {
             pendingInterrupts.delete(command.requestId);
-            if (command.body.kind === "rejected") { refused(); }
+            if (command.body.kind === "rejected") {
+              refused(); refuseCancellation(command.requestId);
+            }
             kernel.respond(command.requestId, command.body);
           } else {
             // Exit may precede the last stdout bytes. Preserve a late or
@@ -119,22 +146,14 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
       }
     }
     if (ended || (dropped && !busy())) {
-      abortFallback.clear();
+      abortFallback.clear(); completeCancellation(); turnRevision += 1;
       if (state.projection.pendingInputId === null) { state.active = null; }
       state.spontaneous = false;
-      if (!state.disposed && !busy()) {
-        const next = heldQueue.shift();
-        if (next !== undefined) {
-          if (commandLifecycle && next.inputId !== undefined) { writtenQueues.set(next.inputId, next.request); }
-          state.projection = streamJsonPrompted(state.projection, next.inputId, false, commandLifecycle);
-          if (!commandLifecycle) { state.spontaneous = true; }
-          child.write(userMessage(next.input, next.inputId, next.images));
-        }
-      }
+      drainHeld();
     }
   });
   child.onExit((code, cleanupReason) => {
-    abortFallback.clear();
+    abortFallback.clear(); completeCancellation(); turnRevision += 1;
     // An exit before fallback still precedes the rejected pending controls.
     const reasons = [profile.exitReason?.(), cleanupReason].filter((value) => value !== undefined);
     const reason = reasons.length === 0 ? undefined : reasons.join("; ");
@@ -160,8 +179,9 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
     prompt: async (input, inputOptions?: InputOptions): Promise<ControlResult> => {
       const body = { kind: "prompt" as const, input, ...inputOptions };
       const result = await kernel.control(body, (request) => {
-        if (busy()) { return { kind: "rejected", code: "busy", reason: "busy" }; }
+        if (busy() || observingCancellation !== null) { return { kind: "rejected", code: "busy", reason: "busy" }; }
         return withInputImages(capabilities, inputOptions?.images, (images) => {
+          turnRevision += 1;
           state.active = request;
           state.projection = streamJsonPrompted(state.projection, inputOptions?.inputId, true, commandLifecycle);
           child.write(userMessage(input, inputOptions?.inputId, images));
@@ -174,6 +194,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
       steer: async (input: string, inputOptions?: InputOptions): Promise<ControlResult> => {
         const result = await kernel.control({ kind: "steer", input, ...inputOptions }, () => {
           if (!busy()) { return { kind: "rejected", code: "no_active_turn", reason: "not_steerable: no active turn" }; }
+          if (observingCancellation !== null) { return { kind: "rejected", code: "busy", reason: "cancellation observation in progress" }; }
           return withInputImages(capabilities, inputOptions?.images, (images) => {
             child.write(userMessage(input, inputOptions?.inputId, images));
             return { kind: "accepted" };
@@ -185,9 +206,10 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
     queue: async (input, inputOptions?: InputOptions): Promise<ControlResult> => {
       const result = await kernel.control({ kind: "queue", input, ...inputOptions }, (request) =>
         withInputImages(capabilities, inputOptions?.images, (images) => {
-          if (busy()) {
+          if (busy() || observingCancellation !== null) {
             heldQueue.push({ request, input, ...(inputOptions?.inputId === undefined ? {} : { inputId: inputOptions.inputId }), images });
           } else {
+            turnRevision += 1;
             if (commandLifecycle && inputOptions?.inputId !== undefined) { writtenQueues.set(inputOptions.inputId, request); }
             state.projection = streamJsonPrompted(state.projection, inputOptions?.inputId, false, commandLifecycle);
             if (!commandLifecycle) { state.spontaneous = true; }
@@ -211,6 +233,17 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
       if (blocked !== null || (!busy() && !(canCancelQueued && state.projection.unstartedInputs.size > 0))) {
         return { request, response: kernel.respond(request.id, blocked ?? { kind: "rejected", code: "no_active_turn", reason: "no active turn" }) };
       }
+      const revision = turnRevision;
+      observingCancellation ??= { revision, result: cancellation === null ? child.observeCancellation() : Promise.resolve(cancellation) };
+      const window = observingCancellation;
+      const observation = await window.result;
+      if (observingCancellation === window) { observingCancellation = null; queueMicrotask(drainHeld); }
+      const afterObservation = kernel.unreachable();
+      if (turnRevision !== revision || window.revision !== revision || afterObservation !== null || state.disposed) {
+        observation.complete();
+        return { request, response: kernel.respond(request.id, afterObservation ?? { kind: "rejected", code: "no_active_turn", reason: "turn ended before cancellation was sent" }) };
+      }
+      cancellation = observation;
       state.projection = streamJsonAbortRequested(state.projection);
       const { promise, resolve } = Promise.withResolvers<ControlResult>();
       const unsubscribe = kernel.rawEvents((record) => {
@@ -226,6 +259,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
         }
       });
       if (pendingInterrupts.has(requestId)) { pendingInterrupts.set(requestId, refuse); }
+      observation.commit(); sentInterrupts.add(requestId);
       child.write(`${JSON.stringify({
         type: "control_request",
         request_id: requestId,

@@ -4,6 +4,7 @@ import { StringDecoder } from "node:string_decoder";
 import { nativeError, spawnChecked, spawnFailure, StderrTail, type ProcessDiagnostics } from "./diagnostics.js";
 import { trackOwnedProcess } from "./ownership.js";
 import { treeResourcesReader } from "./process-resources.js";
+import type { CancellationObservation } from "./process-cancellation.js";
 import { processShutdown } from "./process-shutdown.js";
 import { OWN_PROCESS_GROUP } from "./process-signals.js";
 import { windowsSpawnTarget } from "./windows-shim.js";
@@ -58,6 +59,8 @@ export interface LineProcess {
   prepareShutdown(): Promise<void>;
   /** Record the actual native stop attempt, immediately before sending cancel/close. */
   markNativeStop(): void;
+  /** Stage one fresh, bounded observation before a reusable turn cancellation. */
+  observeCancellation(): Promise<CancellationObservation>;
   write(text: string): void;
   /** Complete UTF-8 lines, independent of stdout byte-chunk boundaries. */
   onLine(handler: (line: string) => void): void;
@@ -169,6 +172,7 @@ export function spawnLineProcess(
     stopping: () => shutdown.stopping(),
     prepareShutdown: async () => { await shutdown.prepare(); },
     markNativeStop: () => { shutdown.markNativeStop(); },
+    observeCancellation: async () => { const observation = await shutdown.observeCancellation(); return observation; },
     ...(child.stdio[3] instanceof Duplex ? { extraPipe: child.stdio[3] } : {}),
     diagnostics: () => {
       const cleanup = shutdown.diagnostics();

@@ -90,3 +90,25 @@ test.each(["prepare", "kill"])("natural exit during %s keeps the native result w
     gate.resolve(failure); vi.restoreAllMocks(); child.kill(); await child.exited;
   }
 });
+
+// oxlint-disable-next-line eslint/max-statements -- Only an actual, still-active turn cancellation owns this native exit.
+test.each(["staged", "active", "completed"])("%s cancellation observation scopes failure diagnostics to its own turn", async stage => {
+  const child = spawnLineProcess(process.execPath, ["-e", "process.stdin.once('data', () => process.exit(7)); console.log('ready');"], { killTree: true });
+  const ready = Promise.withResolvers<void>();
+  child.onLine(() => { ready.resolve(); });
+  const exits: { code: number | null; reason: string | undefined }[] = [];
+  child.onExit((code, reason) => { exits.push({ code, reason }); });
+  try {
+    await ready.promise;
+    const read = vi.spyOn(tables, "observeProcessTableAsync").mockRejectedValue(Object.assign(new Error("process table unavailable"), { code: "EIO" }));
+    const observation = await child.observeCancellation();
+    if (stage !== "staged") { observation.commit(); }
+    if (stage === "completed") { observation.complete(); }
+    child.write("fixture-native-exit");
+    expect(await child.exited).toBe(7);
+    expect(read).toHaveBeenCalledOnce();
+    expect(exits).toHaveLength(1);
+    if (stage === "active") { expect(exits[0]?.reason).toContain("before_cancel"); }
+    else { expect(exits[0]?.reason).toBeUndefined(); expect(child.diagnostics().cleanup).toBeUndefined(); }
+  } finally { vi.restoreAllMocks(); child.kill(); await child.exited; }
+});

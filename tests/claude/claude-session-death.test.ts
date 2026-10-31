@@ -69,6 +69,7 @@ test("exit settles every unanswered interrupt once; a late control_response is o
   const session = await claudeSession(installation, { cwd: "/work" });
   const prompt = await session.prompt("hold");
   const aborts = [session.abort(), session.abort()];
+  await vi.waitFor(() => { expect(fake.written).toHaveLength(3); });
   const ids = session.records().flatMap((record) => record.kind === "request" && record.body.kind === "abort" ? [record.id] : []);
   fake.end(9);
   for (const id of ids) {
@@ -136,6 +137,8 @@ test("a completed turn cancels the abort deadline before another turn starts", a
   const session = await claudeSession(installation, { cwd: "/work" });
   await session.prompt("first");
   const abort = session.abort();
+  await vi.advanceTimersByTimeAsync(0);
+  expect(fake.written).toHaveLength(2);
   fake.emit(`${JSON.stringify({ type: "control_response", response: { subtype: "success", request_id: "interrupt-1" } })}\n`);
   await abort;
   fake.emit(`${JSON.stringify({ type: "result", subtype: "success", is_error: false })}\n`);
@@ -155,11 +158,15 @@ test.each([false, true])("a refused interrupt cancels only its own deadline atte
   const session = await claudeSession(installation, { cwd: "/work" });
   await session.prompt("hold");
   const first = session.abort();
+  await vi.advanceTimersByTimeAsync(0);
+  expect(fake.written).toHaveLength(2);
   fake.emit(`${JSON.stringify({ type: "control_response", response: {
     subtype: earlierAccepted ? "success" : "error", request_id: "interrupt-1",
   } })}\n`);
   await first;
   const second = session.abort();
+  await vi.advanceTimersByTimeAsync(0);
+  expect(fake.written).toHaveLength(3);
   fake.emit(`${JSON.stringify({ type: "control_response", response: { subtype: "error", request_id: "interrupt-2" } })}\n`);
   await second;
   await vi.advanceTimersByTimeAsync(10_000);

@@ -359,11 +359,17 @@ this is independent of the native bulk cancellation used for a pending prompt
 `control_response` (`still_queued: []`) is that request's `accepted`
 response, and the turn ends on claude's own `result/error_during_execution`,
 which the fold classifies `aborted` because OAR's interrupt was outstanding.
-A late abort is rejected `no active turn`.
+A late abort is rejected `no active turn`. Before dispatch, OAR takes one
+asynchronous descendant-identity observation with a one-second wait limit.
+A timeout still sends the interrupt and leaves cleanup unverified. If the
+turn ends during that wait, no interrupt is sent and held input resumes.
+Repeated aborts reuse that turn's observation; a later or resumed turn gets
+fresh evidence. See the [cancellation ownership contract](../spec/record-stream.md)
+for queue, refusal and cleanup boundaries.
 
 If claude exits before replying and before OAR's fallback, each pending
 interrupt is answered once with `rejected: runtime_exited`. If the turn is
-still running ten seconds after the first abort, OAR accepts its pending
+still running ten seconds after the first interrupt was sent, OAR accepts its pending
 interrupts before terminating the process using the cleanup described below.
 A late `control_response` remains a frame only. The timer follows the turn,
 even after an interrupt acknowledgement, and is cleared when the turn ends
@@ -1040,11 +1046,14 @@ descendant kill is what ends them when claude cannot (stuck, or stopped) and
 only the SIGKILL ends it, as in the abort fallback that left a command
 running in [oar#210](https://github.com/botiverse/oar/issues/210)
 ([vendor test](../../sea-trial/vendor/stuck-runtime-tools.vendor.test.ts)).
-Only an end OAR starts (disposal, the abort fallback, host exit) does this:
-when claude exits by itself, what it left running is not touched. Not
-reached either: a process that had already left claude's tree when the kill
-began (re-parented, e.g. a `nohup … &` whose shell has exited), and one
-started after the first read that outlives claude's own exit.
+OAR also remembers identities before sending a user interrupt, so a native
+cancel can end a shell without hiding its already observed tool from later
+fallback or disposal. A root exit while that cancellation is active cleans
+those observed tools. Completing or refusing that turn clears the active
+marker; a subsequent unrelated natural exit leaves tools untouched.
+A tool already outside claude's tree before observation remains unknown.
+Later cleanup follows new descendants of identity-matched observed tools,
+but cannot infer an unobserved tool whose parent already exited.
 
 The grace period's default is sized to claude's own SIGTERM handling
 [sym 2.1.283]: it runs its SessionEnd hooks (a 1.5 s budget unless a hook

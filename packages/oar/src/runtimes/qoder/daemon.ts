@@ -68,6 +68,7 @@ export async function qoderDaemonSession(child: LineProcess, sessionId: string, 
     return {
       spawned: child.spawned, exited: child.exited, stdin, stdout, write, stopping: () => child.stopping(), prepareShutdown: async () => { await child.prepareShutdown(); },
       markNativeStop: () => { child.markNativeStop(); },
+      observeCancellation: async () => { const observation = await child.observeCancellation(); return observation; },
       diagnostics: () => ({ ...child.diagnostics(), ...(failure.error === undefined ? {} : {
         error: { code: "QODER_PROTOCOL_ERROR", message: failure.error.message },
       }) }), resources: child.resources,

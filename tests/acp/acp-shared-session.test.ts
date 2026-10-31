@@ -9,6 +9,8 @@ import { asRecord } from "../../packages/oar/src/shared/json.js";
 
 import { fixture, opening, text } from "../fixtures/acp-shared-support.js";
 import relayAcpOutput from "../fixtures/acp-output-relay.js";
+// oxlint-disable-next-line import/no-namespace -- A shared abort must never collect ownership for the entire pool.
+import * as cancellation from "../../packages/oar/src/shared/executable/process-cancellation.js";
 
 function alive(pid: number): boolean { try { process.kill(pid, 0); return true; } catch { return false; } }
 
@@ -86,12 +88,21 @@ test("abort fallback releases one root; disposal cleans again, leaving peer usab
   let cleanups = 0;
   const f = await fixture({ cleanup: async () => { cleanups += 1; } });
   const [a, b] = await Promise.all([f.open("a"), f.open("b")]);
+  await promptAndWait(b, "terminal");
+  const pidFile = path.join(f.cwd, "b", `terminal-${b.id}.pid`);
+  await expect.poll(async () => readFile(pidFile, "utf8").catch(() => "")).not.toBe("");
+  const pid = Number(await readFile(pidFile, "utf8")); expect(alive(pid)).toBe(true);
+  const observe = vi.spyOn(cancellation, "observeBeforeCancellation");
   const prompt = await a.prompt("ignore-cancel"); await a.abort();
   expect(await awaitTurnEnd(a, prompt.request.seq)).toEqual({ kind: "aborted" });
+  expect(observe).not.toHaveBeenCalled(); observe.mockRestore();
+  expect(alive(pid)).toBe(true);
   expect(cleanups).toBe(1); const result2 = await a.prompt("refused"); expect(result2.response.body).toMatchObject({ kind: "rejected", code: "session_released" });
   const result3 = await promptAndWait(b, "peer"); expect(result3.kind).toBe("ended");
   await a.dispose(); expect(cleanups).toBe(2);
+  expect(alive(pid)).toBe(true);
   await b.dispose();
+  await expect.poll(() => alive(pid)).toBe(false);
   expect(a.records().filter(record => record.kind === "response" && record.body.kind === "exited")).toHaveLength(0);
   expect(b.records().filter(record => record.kind === "response" && record.body.kind === "exited")).toHaveLength(1);
 });

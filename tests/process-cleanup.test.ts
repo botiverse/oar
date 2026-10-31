@@ -152,3 +152,21 @@ test.each(["capture-fails", "retry-recovers", "revalidation-fails"])("native gra
     await Promise.all([child.exited, sentinel.exited]);
   }
 });
+
+// oxlint-disable-next-line eslint/max-statements -- Cancellation remembers a tool whose own new child appears after the old parent disappears.
+test.each(["force", "finish"])("%s follows new children of a tool orphaned by cancellation", async phase => {
+  const host = { pid: process.pid, ppid: process.ppid, pgid: 99, start: "host" };
+  const root = { pid: 123, ppid: process.pid, pgid: 123, start: "root" };
+  const tool = { pid: 456, ppid: 123, pgid: 456, start: "tool" };
+  const child = { pid: 789, ppid: 456, pgid: 789, start: "new-child" };
+  const initial: tree.ProcessTableObservation = { ok: true, source: "ps", elapsedMs: 1, skipped: 0, table: new Map([host, root, tool].map(entry => [entry.pid, entry])) };
+  const cleanup = processTreeCleanup(root.pid);
+  cleanup.rememberCancellation(initial);
+  vi.spyOn(asyncTree, "observeProcessTableAsync").mockResolvedValue({ ok: true, source: "ps", elapsedMs: 1, skipped: 0,
+    table: new Map([host, { ...tool, ppid: 1 }, child, { ...root, start: "unrelated-reused-pid" }].map(entry => [entry.pid, entry])) });
+  const signal = vi.spyOn(process, "kill").mockReturnValue(true);
+  await (phase === "force" ? cleanup.force(() => {}) : cleanup.finish());
+  expect(signal).toHaveBeenCalledWith(tool.pid, "SIGKILL");
+  expect(signal).toHaveBeenCalledWith(child.pid, "SIGKILL");
+  expect(signal.mock.calls.some(([pid]) => Math.abs(pid) === root.pid)).toBe(false);
+});

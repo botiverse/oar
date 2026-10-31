@@ -1,6 +1,6 @@
 import type { ProcessTableObservation } from "./process-tree.js";
 
-export type Phase = "before_eof" | "before_force" | "after_exit";
+export type Phase = "before_eof" | "before_cancel" | "before_force" | "after_exit";
 export type Observation = (Exclude<ProcessTableObservation, { ok: true }> | {
   readonly ok: true;
   readonly source: ProcessTableObservation["source"];
