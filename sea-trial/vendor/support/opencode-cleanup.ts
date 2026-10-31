@@ -15,7 +15,7 @@ export function cleanupObserver(home: string): { observations: unknown[]; sample
     observations,
     async sample(stage: string): Promise<void> {
       try {
-        const table = checkedProcessTable(`opencode-${stage}`);
+        const table = checkedProcessTable(`opencode-${stage}`, process.platform, true);
         const current = descendantsOf(table, process.pid);
         for (const entry of current) { owned.set(entry.pid, entry); }
         const retained = [...owned.values()].flatMap(entry => {
@@ -48,13 +48,17 @@ export function cleanupObserver(home: string): { observations: unknown[]; sample
       }
     },
     reclaim(): void {
-      const table = checkedProcessTable("opencode-fixture-reclaim");
-      const remaining = [...owned.values(), ...descendantsOf(table, process.pid)].filter(entry => {
+      const table = checkedProcessTable("opencode-fixture-reclaim", process.platform, true);
+      const candidates = [...owned.values(), ...descendantsOf(table, process.pid)].filter(entry => {
         if (table.get(entry.pid)?.start !== entry.start) { return false; }
         try { process.kill(entry.pid, 0); return true; } catch { return false; }
       });
+      // Liveness by PID alone is insufficient: a PID may have changed owners
+      // since sampling. Revalidate after the liveness check, before any signal.
+      const fresh = candidates.length === 0 ? table : checkedProcessTable("opencode-fixture-revalidate", process.platform, true);
+      const remaining = candidates.filter(entry => fresh.get(entry.pid)?.start === entry.start);
       // Reclaim for runner hygiene, but never turn a leaked MCP/tool/conhost into a passing test.
-      killEntries(remaining, table);
+      killEntries(remaining, fresh);
       const pids = [...new Set(remaining.map(entry => entry.pid))].join(", ");
       if (remaining.length > 0) { failures.push(new Error(`Fixture reclaimed leaked processes: ${pids}`)); }
       if (failures.length > 0) { throw new AggregateError(failures, "Native cleanup evidence or final tree assertion failed"); }

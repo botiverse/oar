@@ -10,6 +10,7 @@ export function processShutdown(child: ChildProcess, options: ShutdownOptions): 
   readonly finished: Promise<void>;
   stop(): void;
   prepare(): Promise<void>;
+  markNativeStop(): void;
   nativeExited(): void;
   stopping(): boolean;
   diagnostics(): ProcessCleanupDiagnostics | undefined;
@@ -17,6 +18,7 @@ export function processShutdown(child: ChildProcess, options: ShutdownOptions): 
 } {
   let stopping = false;
   let ended = false;
+  let stopAction = false;
   let phase: Promise<void> = Promise.resolve();
   let escalation: NodeJS.Timeout | undefined = undefined;
   let cleanup: ReturnType<typeof processTreeCleanup> | undefined = undefined;
@@ -26,6 +28,7 @@ export function processShutdown(child: ChildProcess, options: ShutdownOptions): 
   const alive = (): boolean => !ended && child.exitCode === null && child.signalCode === null;
   const stopRoot = (): void => {
     if (!alive()) { return; }
+    stopAction = true;
     if (process.platform === "win32" && options.killTree === true) { killProcessTree(child); }
     else { signalProcessGroup(child, "SIGKILL"); }
   };
@@ -40,6 +43,7 @@ export function processShutdown(child: ChildProcess, options: ShutdownOptions): 
   };
   const close = (): void => {
     if (!alive()) { return; }
+    stopAction = true;
     child.stdin?.end();
     // Pi reenters shutdown on EOF plus SIGTERM and skips its native hooks.
     if (options.shutdown !== "stdin") {
@@ -48,6 +52,8 @@ export function processShutdown(child: ChildProcess, options: ShutdownOptions): 
     }
     escalation = setTimeout(() => { phase = force(); }, killGraceMs());
   };
+  // Only call immediately before an intended stop: the snapshot is memoized
+  // and its cleanup stays registered until exit, even before stop() is called.
   const prepare = async (): Promise<void> => {
     if (capture !== undefined) { await capture; return; }
     if (!alive() || options.killTree !== true || child.pid === undefined) { return; }
@@ -79,10 +85,21 @@ export function processShutdown(child: ChildProcess, options: ShutdownOptions): 
   return {
     finished,
     prepare,
+    markNativeStop() { if (alive()) { stopAction = true; } },
     stopping: () => stopping,
     diagnostics: () => cleanup?.diagnostics(),
     reason: () => cleanupFailureReason(cleanup?.diagnostics()),
-    nativeExited() { ended = true; clearTimeout(escalation); nativeExit.resolve(); },
+    nativeExited() {
+      ended = true;
+      clearTimeout(escalation);
+      if (!stopAction) {
+        // A pending observation does not turn a spontaneous exit into an OAR
+        // stop. Its orphan descendants remain the natural-exit limitation.
+        cleanup = undefined;
+        releaseCleanup?.();
+      }
+      nativeExit.resolve();
+    },
     stop() {
       if (!alive() || stopping) { return; }
       stopping = true;

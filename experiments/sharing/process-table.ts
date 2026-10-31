@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { appendFileSync } from "node:fs";
-import { observeProcessTable, type ProcessEntry, type ProcessTable } from "../../packages/oar/src/shared/executable/process-tree.js";
+import { descendantsOf, observeProcessTable, type ProcessEntry, type ProcessTable } from "../../packages/oar/src/shared/executable/process-tree.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 
 export const processReadTimeoutMs = 60_000;
@@ -23,12 +23,12 @@ export function processReadFailure(error: unknown): Record<string, unknown> {
     signal: typeof native?.signal === "string" && /^SIG[A-Z0-9]{1,16}$/u.test(native.signal) ? native.signal : null };
 }
 
-function windowsTable(): { table: ProcessTable; skipped: number; queryMs: number } {
+function windowsTable(excludeReader: boolean): { table: ProcessTable; skipped: number; queryMs: number } {
   const command = [
     "$ErrorActionPreference='Stop'", "$readClock=[Diagnostics.Stopwatch]::StartNew()",
     "$readRows=@(Get-CimInstance Win32_Process)", "$queryMs=$readClock.Elapsed.TotalMilliseconds",
     "$identities=@($readRows | Select-Object ProcessId,ParentProcessId,@{Name='Started';Expression={if ($null -ne $_.CreationDate) { $_.CreationDate.ToUniversalTime().ToString('o') }}})",
-    "@{queryMs=$queryMs;rows=$identities} | ConvertTo-Json -Depth 4 -Compress",
+    "@{queryMs=$queryMs;readerPid=$PID;rows=$identities} | ConvertTo-Json -Depth 4 -Compress",
   ].join("; ");
   const raw: unknown = JSON.parse(execFileSync("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", command], {
     encoding: "utf8", timeout: processReadTimeoutMs, windowsHide: true, maxBuffer: 16 * 1024 * 1024, stdio: ["ignore", "pipe", "pipe"],
@@ -46,23 +46,38 @@ function windowsTable(): { table: ProcessTable; skipped: number; queryMs: number
       table.set(row.ProcessId, { pid: row.ProcessId, ppid: row.ParentProcessId, pgid: 0, start: row.Started });
     }
   }
+  if (excludeReader) {
+    assert.ok(typeof value.readerPid === "number" && Number.isSafeInteger(value.readerPid), "missing reader identity");
+    for (const child of descendantsOf(table, value.readerPid, "windows")) { table.delete(child.pid); }
+    table.delete(value.readerPid);
+  }
   return { table, skipped, queryMs: value.queryMs };
 }
 
-function posixTable(): { table: ProcessTable; skipped: number } {
-  const output = execFileSync("ps", ["-A", "-o", "pid=,ppid=,pgid=,lstart="], {
+function posixTable(excludeReader: boolean): { table: ProcessTable; skipped: number } {
+  // exec retains the shell PID, identifying this read's ps without using names.
+  const output = execFileSync(excludeReader ? "sh" : "ps", excludeReader
+    ? ["-c", 'echo $$; exec ps -A -o "pid=,ppid=,pgid=,lstart="']
+    : ["-A", "-o", "pid=,ppid=,pgid=,lstart="], {
     encoding: "utf8", env: { ...process.env, LC_ALL: "C" }, timeout: processReadTimeoutMs, maxBuffer: 16 * 1024 * 1024, stdio: ["ignore", "pipe", "pipe"],
   });
+  const lines = output.split("\n");
+  const readerPid = excludeReader ? Number(lines.shift()) : undefined;
+  if (excludeReader) { assert.ok(Number.isSafeInteger(readerPid), "missing reader identity"); }
   const table = new Map<number, ProcessEntry>();
-  for (const line of output.split("\n").filter(row => row.trim() !== "")) {
+  for (const line of lines.filter(row => row.trim() !== "")) {
     const match = /^\s*(?<pid>\d+)\s+(?<ppid>\d+)\s+(?<pgid>\d+)\s+(?<start>\S.*?)\s*$/u.exec(line)?.groups;
     assert.ok(match, "invalid process identity");
     const pid = Number(match.pid); table.set(pid, { pid, ppid: Number(match.ppid), pgid: Number(match.pgid), start: match.start ?? "" });
   }
+  if (readerPid !== undefined) {
+    for (const child of descendantsOf(table, readerPid, "ps")) { table.delete(child.pid); }
+    table.delete(readerPid);
+  }
   return { table, skipped: 0 };
 }
 
-export function checkedProcessTable(label = "process-table", platform: NodeJS.Platform = process.platform): ProcessTable {
+export function checkedProcessTable(label = "process-table", platform: NodeJS.Platform = process.platform, excludeReader = false): ProcessTable {
   const start = performance.now();
   let source: "procfs" | "windows" | "ps" = "ps";
   if (platform === "linux") { source = "procfs"; } else if (platform === "win32") { source = "windows"; }
@@ -71,8 +86,8 @@ export function checkedProcessTable(label = "process-table", platform: NodeJS.Pl
     // procfs has no subprocess deadline. Reuse its structural validation only.
     let result: ReturnType<typeof observeProcessTable> | { table: ProcessTable; skipped: number; queryMs?: number } = { table: new Map(), skipped: 0 };
     if (source === "procfs") { result = observeProcessTable("procfs"); }
-    else if (source === "windows") { result = windowsTable(); }
-    else { result = posixTable(); }
+    else if (source === "windows") { result = windowsTable(excludeReader); }
+    else { result = posixTable(excludeReader); }
     if ("ok" in result && !result.ok) { failureObservation = result; throw new Error("procfs read failed"); }
     assert.ok(result.table.has(process.pid), "process table missing observer identity");
     processReadObservation({ label, source, outcome: "completed", timeoutMs: source === "procfs" ? null : processReadTimeoutMs,

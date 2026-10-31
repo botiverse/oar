@@ -40,7 +40,7 @@ test.each(["capture", "force"])("LineProcess waits for pending %s after native e
     }).mockImplementation(async () => { if (active) { overlap = true; } return nativeRead(); });
     child.kill();
     await entered.promise;
-    if (phase === "capture") { child.stdin.end(); }
+    if (phase === "capture") { child.markNativeStop(); child.stdin.end(); }
     else { process.kill(root, "SIGTERM"); }
     await vi.waitFor(() => { const { exitCode, signal } = child.diagnostics(); expect(exitCode !== null || signal !== null).toBe(true); }, { timeout: 5000 });
     await nextTurn();
@@ -59,5 +59,34 @@ test.each(["capture", "force"])("LineProcess waits for pending %s after native e
     if (root !== undefined && child.diagnostics().exitCode === null && child.diagnostics().signal === null) { try { process.kill(root, "SIGKILL"); } catch { /* Already gone. */ } }
     child.kill(); await child.exited;
     if (tool !== undefined) { try { process.kill(tool, "SIGKILL"); } catch { /* Already reclaimed. */ } }
+  }
+});
+
+// oxlint-disable-next-line eslint/max-statements -- A pending failed query must not reclassify a spontaneous native exit as OAR cleanup.
+test.each(["prepare", "kill"])("natural exit during %s keeps the native result without a cleanup suffix", async (method) => {
+  const child = spawnLineProcess(process.execPath, ["-e", "process.stdin.once('data', () => process.exit(7)); console.log('ready');"], { killTree: true });
+  const ready = Promise.withResolvers<void>();
+  child.onLine(() => { ready.resolve(); });
+  const gate = Promise.withResolvers<ProcessTableObservation>();
+  const exits: { code: number | null; reason: string | undefined }[] = [];
+  child.onExit((code, reason) => { exits.push({ code, reason }); });
+  try {
+    await ready.promise;
+    const read = vi.spyOn(tables, "observeProcessTableAsync").mockReturnValue(gate.promise);
+    const prepared = method === "prepare" ? child.prepareShutdown() : undefined;
+    if (method === "kill") { child.kill(); }
+    expect(read).toHaveBeenCalledOnce();
+    // This fixture exits itself while OAR has not sent EOF or a signal.
+    child.stdin.write("fixture-exit");
+    await vi.waitFor(() => { expect(child.diagnostics().exitCode).toBe(7); });
+    expect(exits).toEqual([]);
+    gate.resolve(failure);
+    await prepared;
+    expect(await child.exited).toBe(7);
+    expect(exits).toEqual([{ code: 7, reason: undefined }]);
+    expect(child.diagnostics().cleanup).toBeUndefined();
+    expect(read).toHaveBeenCalledOnce();
+  } finally {
+    gate.resolve(failure); vi.restoreAllMocks(); child.kill(); await child.exited;
   }
 });

@@ -54,8 +54,10 @@ export interface LineProcess {
   diagnostics(): ProcessDiagnostics;
   /** True immediately when kill begins, before asynchronous capture or EOF. */
   stopping(): boolean;
-  /** Capture owned descendants before a native shutdown request can sever their parent chain. */
+  /** Only immediately before stopping: memoizes descendant capture and registers exit cleanup. */
   prepareShutdown(): Promise<void>;
+  /** Record the actual native stop attempt, immediately before sending cancel/close. */
+  markNativeStop(): void;
   write(text: string): void;
   /** Complete UTF-8 lines, independent of stdout byte-chunk boundaries. */
   onLine(handler: (line: string) => void): void;
@@ -166,6 +168,7 @@ export function spawnLineProcess(
     stdout,
     stopping: () => shutdown.stopping(),
     prepareShutdown: async () => { await shutdown.prepare(); },
+    markNativeStop: () => { shutdown.markNativeStop(); },
     ...(child.stdio[3] instanceof Duplex ? { extraPipe: child.stdio[3] } : {}),
     diagnostics: () => {
       const cleanup = shutdown.diagnostics();

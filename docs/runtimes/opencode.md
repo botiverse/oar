@@ -58,8 +58,9 @@ investigation):
 Disposing an active tool can stop OpenCode's shell before its tool and child
 exit. OAR captures descendant start identities before the existing native
 cancel/close operations, then revalidates and cleans remembered descendants
-after the root exits. A process-table read failure is reported as unverified
-cleanup, not success. This uses the common Windows process-tree fallback;
+after the root exits. After an OAR stop action, a process-table read failure
+is reported as unverified cleanup. A prior natural exit keeps its native error without a
+cleanup suffix. This uses the common Windows process-tree fallback;
 it does not add a native close operation or enable sharing.
 
 The [Windows baseline and regression](../../experiments/windows-orphan-cleanup.md)

@@ -48,7 +48,10 @@ jobs:
           if-no-files-found: warn
       # Real Kimi device login, local OAuth/model server, no account or browser.
       - run: npm install -g @moonshot-ai/kimi-code@2.4.1
+        id: kimi-login-install
+        if: always() && !cancelled()
       - run: pnpm vitest run sea-trial/vendor/kimi-login.vendor.test.ts
+        if: always() && !cancelled() && steps.kimi-login-install.outcome == 'success'
         env:
           OAR_TEST: kimi-login
           OAR_TRIAL_RUN_DIR: ${{ github.workspace }}/oar-trial-run

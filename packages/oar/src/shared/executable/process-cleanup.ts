@@ -1,8 +1,10 @@
-import { descendantsOf, killEntries, processTableFailure, type ProcessEntry, type ProcessTable, type ProcessTableObservation } from "./process-tree.js";
+import { descendantsOf, killEntries, processTableFailure, type ProcessEntry, type ProcessTable, type ProcessTableObservation, type ProcessTableSource } from "./process-tree.js";
 import { observeProcessTableAsync, processTableSource } from "./process-table-async.js";
 import type { Observation, Phase, ProcessCleanupDiagnostics } from "./process-cleanup-diagnostics.js";
 
 export { appendCleanupFailure, cleanupFailureReason, type ProcessCleanupDiagnostics } from "./process-cleanup-diagnostics.js";
+
+interface Snapshot { readonly table: ProcessTable; readonly source: ProcessTableSource; }
 
 /** Capture before EOF, then revalidate identities before signalling descendants. */
 export function processTreeCleanup(pid: number, alive: () => boolean = () => true): {
@@ -23,18 +25,32 @@ export function processTreeCleanup(pid: number, alive: () => boolean = () => tru
     unverified = true;
     observations.push({ ...processTableFailure(error, processTableSource(), 0), phase });
   };
-  const accept = (result: ProcessTableObservation, phase: Phase): ProcessTable | undefined => {
+  const accept = (result: ProcessTableObservation, phase: Phase): Snapshot | undefined => {
     if (!result.ok) { observations.push({ ...result, phase }); return undefined; }
     if (phase === "before_eof" && (!alive() || !result.table.has(pid))) {
       observations.push({ ok: false, phase, source: result.source, elapsedMs: result.elapsedMs, reason: "missing_root" });
       return undefined;
     }
     observations.push({ ok: true, phase, source: result.source, elapsedMs: result.elapsedMs, skipped: result.skipped });
-    return result.table;
+    return { table: result.table, source: result.source };
   };
-  const read = async (phase: Phase): Promise<ProcessTable | undefined> => {
+  const read = async (phase: Phase): Promise<Snapshot | undefined> => {
     try { return accept(await observeProcessTableAsync(), phase); }
     catch (error) { failed(error, phase); return undefined; }
+  };
+  const ownedEntries = ({ table, source }: Snapshot, includeLiveRoot = false): ProcessEntry[] => {
+    const entries = new Map<number, ProcessEntry>();
+    const currentRoot = table.get(pid);
+    const roots = [...descendants];
+    if (currentRoot !== undefined && (root === undefined ? includeLiveRoot && alive() : currentRoot.start === root.start)) { roots.push(currentRoot); }
+    for (const entry of roots) {
+      if (table.get(entry.pid)?.start !== entry.start) { continue; }
+      // Only the owned root's caller may stop the root itself. Captured tools
+      // can acquire new children after capture, even after root exit.
+      if (entry.pid !== pid) { entries.set(entry.pid, entry); }
+      for (const child of descendantsOf(table, entry.pid, source)) { entries.set(child.pid, child); }
+    }
+    return [...entries.values()];
   };
   return {
     async capture() {
@@ -44,8 +60,8 @@ export function processTreeCleanup(pid: number, alive: () => boolean = () => tru
       if (table === undefined && alive()) { table = await read("before_eof"); }
       if (table === undefined) { unverified = true; return; }
       captured = true;
-      root = table.get(pid);
-      descendants = descendantsOf(table, pid);
+      root = table.table.get(pid);
+      descendants = descendantsOf(table.table, pid, table.source);
     },
     async force(stopRoot) {
       const table = await read("before_force");
@@ -53,16 +69,14 @@ export function processTreeCleanup(pid: number, alive: () => boolean = () => tru
       // signalling a remembered descendant without matching its identity.
       stopRoot();
       if (table === undefined) { unverified = true; return; }
-      const current = table.get(pid);
-      const now = root !== undefined && current?.start === root.start ? descendantsOf(table, pid) : [];
-      killEntries([...descendants, ...now], table);
+      killEntries(ownedEntries(table), table.table);
       descendants = [];
     },
     async finish() {
       if (descendants.length === 0) { return; }
       const table = await read("after_exit");
       if (table === undefined) { unverified = true; }
-      else { killEntries(descendants, table); }
+      else { killEntries(ownedEntries(table), table.table); }
       descendants = [];
     },
     finishSync(readNow) {
@@ -75,9 +89,7 @@ export function processTreeCleanup(pid: number, alive: () => boolean = () => tru
         unverified = true;
         observations.push({ ok: false, phase: "before_eof", source: processTableSource(), elapsedMs: 0, reason: "missing_root" });
       }
-      const current = table.get(pid);
-      const now = current !== undefined && (root === undefined ? alive() : current.start === root.start) ? descendantsOf(table, pid) : [];
-      killEntries([...descendants, ...now], table);
+      killEntries(ownedEntries(table, true), table.table);
       descendants = [];
       return diagnostics();
     },

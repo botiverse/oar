@@ -287,12 +287,16 @@ Further rules:
   Successful observations count skipped permission-denied procfs entries and
   Windows entries without creation times; these identities are never signalled.
   Malformed rows or a missing host identity still fail the observation.
-  A successful retry uses the normal snapshot path. If both reads fail, or a
-  later identity check fails, `exited.reason` explicitly says descendant
+  A successful retry uses the normal snapshot path. If OAR takes a stop action
+  but both reads fail, or a later identity check fails, `exited.reason` explicitly says descendant
   cleanup could not be verified; startup errors retain their native class
   and cause with the same explanation. EOF and native shutdown hooks still
   run, and normal bounded escalation still stops the owned root. Remembered
   PIDs are signalled only after their start identities match a fresh table.
+  Force and post-exit cleanup also follow new descendants of those matched
+  entries. Windows parent links are usable only when each child's creation
+  time is no earlier than its parent's: a stale ParentProcessId from an older
+  owner of that PID cannot authorize cleanup.
   OAR never issues a PID tree kill for a root already reported exited. The
   synchronous host-exit hook reports an unavailable table to stderr and
   continues stopping other owned roots. These observations do not change
@@ -331,20 +335,28 @@ Further rules:
   Isolated ACP disposal captures before sending native cancel/close too:
   those operations can end a tool's shell before the runtime exits. Shared
   session release does not capture or terminate the whole pooled process.
-  Windows stop/dispose therefore waits for an asynchronous CIM capture before
-  native cancellation or EOF, then a fresh read if remembered descendants need
-  cleanup after exit. Each query retains its five-second limit; a failed
-  capture retries once only while the owned root is still alive. This adds
-  shutdown latency without blocking the host event loop. Concurrent queries
-  retain the batch freshness rule above, rather than using a cached table.
-  On Windows, a CIM read can take hundreds of milliseconds. Runtimes that
-  fail immediately at startup often exit before capture completes, so their
-  startup error messages may frequently include `before_eof windows:
-  missing_root`. The native error type and cause remain unchanged; this
-  appended diagnostic reports unverified descendants, not a different reason
-  for the startup failure.
-  The same bounded read failures and unverified-cleanup reporting apply;
-  an unavailable table never authorizes signalling a remembered PID.
+  Capture completes before the first native cancellation, EOF or signal.
+  Each ps/CIM query retains its five-second limit; a failed capture retries
+  once only while the owned root is still alive. The cold observation budget
+  is therefore up to 2 x 5 seconds before the first stop action, plus up to
+  5 seconds for post-exit revalidation if captured descendants remain. Force
+  escalation can require its own five-second query. Fresh-batch queueing can
+  add waiting for the currently running query. These costs also apply to
+  auxiliary commands that terminate their owned process trees. Reads are
+  asynchronous and do not block the host event loop.
+  A root that exits before OAR sends any stop action (EOF, a native cancel or
+  close, or a signal/taskkill) is a natural exit, even if preparation or its
+  observation is already pending. It keeps the native exit/error without an
+  unverified-cleanup suffix; pending observation still settles before the exit
+  notification. This corrects the 0.80.1 release note about more `missing_root`
+  reports around disposal. After an actual stop action, failure to capture the
+  root still reports unverified cleanup. A table read failure never authorizes
+  signalling a remembered PID.
+  Natural exits can leave orphan descendants that were not owned by an OAR
+  stop sequence. Another known gap is user abort in ACP and stream-json:
+  native cancel/interrupt precedes capture by the fallback kill, so a tool
+  whose parent exits during cancellation can already be outside that later
+  snapshot. Disposal's earlier capture does not close that abort-path gap.
 - **An exit after a host stop ends the running turn as aborted.** `status()`,
   `turnEndAfter` / `awaitTurnEnd`, and the record-based session view read an
   exit after that turn's accepted abort (by the runtime or OAR), or its

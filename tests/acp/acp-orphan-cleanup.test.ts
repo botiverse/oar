@@ -4,9 +4,9 @@ import { acpSession } from "../../packages/oar/src/shared/acp/session.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { gone } from "../fixtures/process-tree.js";
 
-// Windows needs capture before protocol cancellation; POSIX disposal uses its own process groups.
+// Cancellation can orphan tools outside the process group on every platform.
 // oxlint-disable-next-line eslint/max-statements -- Drive the public isolated session through a cancel that orphans a real tool.
-test.skipIf(process.platform !== "win32")("ACP disposal captures tools before native cancellation severs their parent chain", async () => {
+test("ACP disposal captures tools before native cancellation severs their parent chain", async () => {
   const session = await acpSession({ args: [fileURLToPath(new URL("../fixtures/shutdown-orphan-tree.mjs", import.meta.url)), "acp"], capabilities: { queue: { durable: false }, attribution: "opaque" } })(
     { kind: "available", via: "executable", command: process.execPath }, { cwd: process.cwd() },
   );

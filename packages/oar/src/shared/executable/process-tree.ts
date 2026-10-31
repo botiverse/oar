@@ -191,8 +191,11 @@ export function readProcessTable(source?: ProcessTableSource): ProcessTable {
   throw new Error(`Process table ${result.source}: ${result.reason}${result.code === undefined ? "" : ` (${result.code})`} after ${result.elapsedMs.toFixed(0)} ms`, { cause: result });
 }
 
-/** Every process below `pid` in `table`: its children, theirs, and so on. */
-export function descendantsOf(table: ProcessTable, pid: number): ProcessEntry[] {
+/**
+ * Every process below `pid`. Windows preserves a dead parent's PID, so an
+ * edge is usable only if the child was created no earlier than this parent.
+ */
+export function descendantsOf(table: ProcessTable, pid: number, source: ProcessTableSource = process.platform === "win32" ? "windows" : "procfs"): ProcessEntry[] {
   const children = new Map<number, ProcessEntry[]>();
   for (const entry of table.values()) {
     const siblings = children.get(entry.ppid);
@@ -207,7 +210,9 @@ export function descendantsOf(table: ProcessTable, pid: number): ProcessEntry[] 
   const pending = [pid];
   for (let parent = pending.pop(); parent !== undefined; parent = pending.pop()) {
     for (const child of children.get(parent) ?? []) {
-      if (!seen.has(child.pid)) {
+      const parentEntry = table.get(parent);
+      const validParent = source !== "windows" || parentEntry !== undefined && child.start >= parentEntry.start;
+      if (!seen.has(child.pid) && validParent) {
         seen.add(child.pid);
         found.push(child);
         pending.push(child.pid);

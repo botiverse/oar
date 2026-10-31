@@ -31,27 +31,38 @@ Fresh identity matching, bounded read retries and unverified-cleanup reporting
 reuse the existing cleanup mechanism. Failed reads never authorize signalling
 an unverified remembered PID.
 
-This adds Windows shutdown latency: capture completes before cancellation or
-EOF, and remembered descendants require a fresh read after native exit. Each
-CIM query keeps its five-second deadline; capture retries once only while the
-owned root remains alive. Concurrent reads follow the existing fresh-batch
-rule. They are asynchronous and do not block the host event loop. A native
-startup failure can exit during capture and report `missing_root`; the original
-native error remains intact, with the cleanup diagnostic appended.
+Capture adds shutdown latency on all platforms, most noticeably Windows:
+up to two five-second ps/CIM reads precede the first cancellation, EOF or
+signal, and a post-exit read can take another five seconds. Force escalation
+has its own bounded revalidation; waiting for an earlier batch can add delay.
+Auxiliary commands using tree shutdown share these costs. The reads do not
+block the host event loop.
 
-Release-note impact: Windows CIM reads can take hundreds of milliseconds,
-so runtimes that fail immediately at startup often exit before the first
-capture completes. Their original startup error type and native cause remain
-unchanged, but the error message may frequently append `before_eof windows:
-missing_root` to report that descendant cleanup could not be verified. This
-is an intentional diagnostic change as well as the isolated tool cleanup fix.
+Release-note correction for 0.80.2: a root that exits before OAR takes any
+actual stop action is a natural exit, including during pending capture. Its
+native error has no cleanup suffix; this corrects the 0.80.1 note about
+`missing_root` near disposal. Once a stop action has occurred, failed capture
+still reports unverified cleanup. Natural-exit orphan ownership remains a
+separate limitation under investigation in task #132. User abort in ACP and
+stream-json can also orphan tools before fallback capture; task #133 tracks
+that separate design. This patch fixes isolated disposal, not those gaps.
+
+Windows tree traversal now rejects any child created earlier than the current
+parent, including stale ParentProcessId values left by a previous PID owner.
+Force, post-exit and host-exit revalidation follow new descendants of captured
+tools only while those tools still match their captured start identity. ACP
+captures before native disposal operations on POSIX too, because tools can
+leave the original process group there.
 
 `tests/process-orphan-cleanup.test.ts` covers a real orphan, duplicate
 preparation, an unreadable table, and ordinary tree shutdown.
-`tests/acp/acp-orphan-cleanup.test.ts` exercises the Windows public ACP disposal
-path against the real cancellation fixture. Existing process-cleanup and
+`tests/acp/acp-orphan-cleanup.test.ts` exercises the public ACP disposal
+path on every platform against the real cancellation fixture. Existing process-cleanup and
 shutdown-order tests cover PID reuse, root exit during capture/force, and
-non-overlapping cleanup phases.
+non-overlapping cleanup phases. Windows-shaped table regressions also reject
+stale parent IDs and reused tool identities while finding children born after
+capture. Native exit during preparation keeps its exact error and no cleanup
+suffix; exit after an actual stop action retains failed-observation diagnostics.
 
 The original native isolated scenario runs with:
 
@@ -65,6 +76,8 @@ an account. Two independent sessions test tool cleanup and the surviving
 peer, then resume the disposed session. Both tool processes must be ready and
 alive before disposal. The final fixture fallback fails the test if it has to
 kill any unasserted residual process, including MCP or conhost processes.
+The sampler excludes its own query process and its descendants. Final
+reclamation matches fresh creation identities after its PID liveness check.
 Secondary sampling errors are retained separately and cannot bypass the
 original lifecycle assertion. The check matrix runs this scenario on Linux,
 macOS and Windows and uploads its evidence even on failure.
@@ -85,3 +98,18 @@ reported exit code 0 and observed cleanup; capture took 388 to 441 ms and
 post-exit revalidation took 415 to 434 ms. Both tool-liveness assertions and
 the final residual-process check passed. This is evidence for that isolated
 scenario, not for the proposed shared adapter or every native shutdown path.
+
+The review revision passed 2,744 unit tests, 18 mock behaviors and both package
+builds on Linux. Four independent fault injections each failed their intended
+regression: removing the Windows parent-creation check, omitting newly born
+descendants, retaining cleanup diagnostics on a natural exit, and limiting ACP
+preparation to Windows. All injected changes were restored. The native 2.2.3
+isolated scenario and both Claude resume cases passed; the latter retain the
+exact missing-session error and zero model requests.
+
+The bounded 14-backend behavior run passed 13 backends. OpenCode v1 1.19.5
+failed once during `CREATE TABLE workspace`, the previously recorded startup
+failure also seen in the main comparison. Its unchanged focused run then
+passed all 17 supported cases, with two capability skips. No deadline or
+assertion was changed. The final revision still requires its own Windows and
+macOS CI results; the earlier three-platform result above is not a substitute.

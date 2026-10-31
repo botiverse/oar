@@ -240,14 +240,16 @@ export function finishAcpSession(
         await terminalHost.dispose();
         return;
       }
-      // Native cancel can stop a tool's shell before the runtime exits. On
-      // Windows that breaks taskkill's parent chain, so retain identities first.
-      if (process.platform === "win32") { await runtime.prepareShutdown(); }
+      // Native cancel can sever a tool's parent chain before runtime exit,
+      // including POSIX tools that have left the original process group.
+      await runtime.prepareShutdown();
       const state = turns.active();
       if (state !== null && !runtime.closed) {
+        if (!state.abortRequested) { runtime.markNativeStop(); }
         await turns.abort(state);
       }
       if (opened.supportsClose && !runtime.closed) {
+        runtime.markNativeStop();
         await closeAcpSession(runtime, kernel.sessionId).catch(() => {});
       }
       runtime.kill();

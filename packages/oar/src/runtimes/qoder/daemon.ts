@@ -66,6 +66,7 @@ export async function qoderDaemonSession(child: LineProcess, sessionId: string, 
     if (opened.session_id !== sessionId) { throw new Error("Qoder daemon did not confirm the requested session identity"); }
     return {
       spawned: child.spawned, exited: child.exited, stdin, stdout, write, stopping: () => child.stopping(), prepareShutdown: async () => { await child.prepareShutdown(); },
+      markNativeStop: () => { child.markNativeStop(); },
       diagnostics: () => ({ ...child.diagnostics(), ...(failure.error === undefined ? {} : {
         error: { code: "QODER_PROTOCOL_ERROR", message: failure.error.message },
       }) }), resources: child.resources,

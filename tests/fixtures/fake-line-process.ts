@@ -47,6 +47,7 @@ class ScriptedLineProcess implements FakeLineProcess {
     return this.wasKilled;
   }
   stopping(): boolean { return this.wasKilled; }
+  markNativeStop(): void { /* No native lifecycle in this scripted fixture. */ }
   async prepareShutdown(): Promise<void> { /* No native descendants in this scripted fixture. */ }
 
   diagnostics(): ProcessDiagnostics {
