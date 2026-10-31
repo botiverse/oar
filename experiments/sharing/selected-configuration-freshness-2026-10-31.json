@@ -916,19 +916,29 @@
   },
   {
     "runtime": "opencode",
-    "at": "2026-10-31T01:21:43.393Z",
+    "at": "2026-10-31T01:40:49.590Z",
     "platform": "linux",
     "architecture": "x64",
     "settlingMs": 3000,
     "comparisons": [
       {
-        "scenario": "different_directory",
         "projectMarkersMatch": true,
         "hookRevisionsMatch": true,
         "missingEvidence": false,
         "passed": true,
         "differenceObserved": false,
-        "limitation": "Only the later B session's observed project instruction markers and exercised hook revisions are compared. Null means missing evidence, not fresh configuration.",
+        "limitation": "Only the later B session's observed instruction markers and exercised hook revisions are compared; each cohort records the project or user scope. Null means missing evidence, not fresh configuration.",
+        "scenario": "different_directory",
+        "failures": []
+      },
+      {
+        "projectMarkersMatch": true,
+        "hookRevisionsMatch": true,
+        "missingEvidence": false,
+        "passed": true,
+        "differenceObserved": false,
+        "limitation": "Only the later B session's observed instruction markers and exercised hook revisions are compared; each cohort records the project or user scope. Null means missing evidence, not fresh configuration.",
+        "scenario": "different_directory_user_configuration",
         "failures": []
       }
     ],
@@ -936,7 +946,7 @@
       "kind": "local Linux x64 probe",
       "baseCommit": "41cb8254441bd0ef666d3e753fbba4b9683bb07c",
       "probeRevision": "task 129 changes in this pull request",
-      "rawSha256": "6dc6c7288c8c3773b39f5d758bf5e5ffde6cb9641dec03771b208070ec34c8ef"
+      "rawSha256": "7b33a6b289e5c1c00c98d2179e7e212a847e7c5d7b790d79b47a2711830e3219"
     },
     "requestedVersion": "2.2.3",
     "reportedVersion": "opencode v2.2.3",
@@ -1076,6 +1086,7 @@
           }
         ],
         "hookScope": "project .opencode/plugins/directory-observer/index.ts (V2 execute.before)",
+        "instructionScope": "project",
         "trustCondition": "No additional trust override installed by this experiment",
         "projectRuleFiles": [
           "AGENTS.md"
@@ -1221,6 +1232,299 @@
           }
         ],
         "hookScope": "project .opencode/plugins/directory-observer/index.ts (V2 execute.before)",
+        "instructionScope": "project",
+        "trustCondition": "No additional trust override installed by this experiment",
+        "projectRuleFiles": [
+          "AGENTS.md"
+        ],
+        "releasedDirectory": {
+          "releasedA": {},
+          "releasedB": {},
+          "afterARelease": {}
+        }
+      },
+      {
+        "mode": "shared",
+        "observed": true,
+        "scenario": "different_directory_user_configuration",
+        "distinctCanonicalDirectories": true,
+        "failureReasons": [],
+        "trustGrants": [],
+        "nativeHookCompletions": [],
+        "nativeContextShells": [],
+        "errorRecorded": false,
+        "turns": [
+          {
+            "input": "A_mcpfreshbefore",
+            "invocation": {
+              "input": "A_mcpfreshbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpfreshbefore",
+                  "output": "MCP_RESULT=A input=A_mcpfreshbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcpfreshbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpfreshbefore",
+                  "output": "MCP_RESULT=A input=A_mcpfreshbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            }
+          },
+          {
+            "input": "B_mcpfreshafter",
+            "invocation": {
+              "input": "B_mcpfreshafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpfreshafter",
+                  "output": "MCP_RESULT=B input=B_mcpfreshafter"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "B_mcpfreshafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpfreshafter",
+                  "output": "MCP_RESULT=B input=B_mcpfreshafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": true
+            }
+          },
+          {
+            "input": "A_mcpfreshlater",
+            "invocation": {
+              "input": "A_mcpfreshlater",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpfreshlater",
+                  "output": "MCP_RESULT=A input=A_mcpfreshlater"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcpfreshlater",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpfreshlater",
+                  "output": "MCP_RESULT=A input=A_mcpfreshlater"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": true
+            }
+          }
+        ],
+        "hooks": [
+          {
+            "revision": "A",
+            "input": "A_mcpfreshbefore"
+          },
+          {
+            "revision": "A",
+            "input": "A_mcpfreshbefore"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcpfreshafter"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcpfreshafter"
+          },
+          {
+            "revision": "B",
+            "input": "A_mcpfreshlater"
+          },
+          {
+            "revision": "B",
+            "input": "A_mcpfreshlater"
+          }
+        ],
+        "hookScope": "disposable XDG_CONFIG_HOME/opencode/plugins/directory-observer/index.ts (V2 execute.before)",
+        "instructionScope": "disposable XDG_CONFIG_HOME/opencode/AGENTS.md",
+        "trustCondition": "No additional trust override installed by this experiment",
+        "projectRuleFiles": [
+          "AGENTS.md"
+        ],
+        "releasedDirectory": {
+          "releasedA": {},
+          "releasedB": {},
+          "afterARelease": {}
+        }
+      },
+      {
+        "mode": "separate",
+        "observed": true,
+        "scenario": "different_directory_user_configuration",
+        "distinctCanonicalDirectories": true,
+        "failureReasons": [],
+        "trustGrants": [],
+        "nativeHookCompletions": [],
+        "nativeContextShells": [],
+        "errorRecorded": false,
+        "turns": [
+          {
+            "input": "A_mcpfreshbefore",
+            "invocation": {
+              "input": "A_mcpfreshbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpfreshbefore",
+                  "output": "MCP_RESULT=A input=A_mcpfreshbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcpfreshbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpfreshbefore",
+                  "output": "MCP_RESULT=A input=A_mcpfreshbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            }
+          },
+          {
+            "input": "B_mcpfreshafter",
+            "invocation": {
+              "input": "B_mcpfreshafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpfreshafter",
+                  "output": "MCP_RESULT=B input=B_mcpfreshafter"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "B_mcpfreshafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpfreshafter",
+                  "output": "MCP_RESULT=B input=B_mcpfreshafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": true
+            }
+          },
+          {
+            "input": "A_mcpfreshlater",
+            "invocation": {
+              "input": "A_mcpfreshlater",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpfreshlater",
+                  "output": "MCP_RESULT=A input=A_mcpfreshlater"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcpfreshlater",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpfreshlater",
+                  "output": "MCP_RESULT=A input=A_mcpfreshlater"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": true
+            }
+          }
+        ],
+        "hooks": [
+          {
+            "revision": "A",
+            "input": "A_mcpfreshbefore"
+          },
+          {
+            "revision": "A",
+            "input": "A_mcpfreshbefore"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcpfreshafter"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcpfreshafter"
+          },
+          {
+            "revision": "B",
+            "input": "A_mcpfreshlater"
+          },
+          {
+            "revision": "B",
+            "input": "A_mcpfreshlater"
+          }
+        ],
+        "hookScope": "disposable XDG_CONFIG_HOME/opencode/plugins/directory-observer/index.ts (V2 execute.before)",
+        "instructionScope": "disposable XDG_CONFIG_HOME/opencode/AGENTS.md",
         "trustCondition": "No additional trust override installed by this experiment",
         "projectRuleFiles": [
           "AGENTS.md"

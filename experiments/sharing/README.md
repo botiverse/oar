@@ -52,8 +52,10 @@ hold. Same-directory Windows/macOS MCP, release and Kimi comparisons are
 now retained in the reports. The latest run confirms Grok's configuration
 coverage on all three platforms under the trust-disabled condition. New
 Linux Grok external trust-grant and cross-directory controls pass; their
-Windows/macOS observations remain pending. OpenCode's cross-directory control
-passes locally too. Codex Windows command execution, its persisted trust
+Windows/macOS observations remain pending. OpenCode's cross-directory project
+discovery and changed user-level instructions/plugin controls pass locally;
+both still need Windows/macOS evidence before its adapter can proceed.
+Codex Windows command execution, its persisted trust
 changes, and the Qoder/Antigravity instruction markers remain gaps. See the
 [latest report](trust-freshness-2026-10-31.md) for scope and source artifacts.
 

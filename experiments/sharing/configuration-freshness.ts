@@ -4,7 +4,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { type JsonRecord } from "../../packages/oar/src/shared/json.js";
 import { prepareWindowsProcessTable } from "../../sea-trial/windows-process-table.js";
-import { freshnessComparisons, freshnessScenarios } from "./configuration-freshness-checks.js";
+import { freshnessComparisons, freshnessFailureReasons, freshnessScenarios } from "./configuration-freshness-checks.js";
 import { observeConfigurationFreshness } from "./configuration-freshness-observe.js";
 import { recordProcessTableReads } from "./process-table.js";
 
@@ -26,5 +26,7 @@ for (const scenario of freshnessScenarios(runtime)) {
   }
 }
 const comparisons = freshnessComparisons(runtime, cohorts); report.comparisons = comparisons;
+report.failureReasons = freshnessFailureReasons(comparisons);
 await writeFile(path.join(out, "evidence.json"), `${JSON.stringify(report, null, 2)}\n`, { mode: 0o600 });
-assert.ok(comparisons.every((comparison) => comparison.passed === true), `configuration freshness incomplete or different; inspect ${out}/evidence.json`);
+assert.ok(comparisons.every((comparison) => comparison.passed === true),
+  `configuration freshness incomplete or different: ${freshnessFailureReasons(comparisons).join("; ")}; inspect ${out}/evidence.json`);

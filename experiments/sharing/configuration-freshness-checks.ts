@@ -4,7 +4,7 @@ import { compareDirectoryConfiguration } from "./directory-configuration.js";
 import { hookInputMatches } from "./directory-hooks.js";
 
 export const freshnessScenarios = (runtime: string): readonly string[] => runtime === "grok"
-  ? ["native_trust_grant", "different_directory_user_hooks", "different_directory_project_hooks"] : ["different_directory"];
+  ? ["native_trust_grant", "different_directory_user_hooks", "different_directory_project_hooks"] : ["different_directory", "different_directory_user_configuration"];
 
 export function freshnessCohortFailures(row: JsonRecord): string[] {
   const failures: string[] = [];
@@ -57,11 +57,17 @@ export function freshnessComparisons(runtime: string, rows: readonly JsonRecord[
     const comparison = compareDirectoryConfiguration(shared ?? {}, separate ?? {}, "B_mcpfreshafter");
     const failures = [shared, separate].flatMap((row, index) => row === undefined
       ? [`missing evidence: ${index === 0 ? "shared" : "separate"} cohort`]
-      : cohortComparisonFailures(row));
+      : cohortComparisonFailures(row).map((failure) => `${index === 0 ? "shared" : "separate"}: ${failure}`));
     for (const mode of ["shared", "separate"]) {
       if (rows.filter((row) => row.scenario === scenario && row.mode === mode).length !== 1) { failures.push(`missing evidence: expected exactly one ${mode} cohort`); }
     }
-    if (comparison.passed !== true) { failures.push(comparison.missingEvidence === true ? "missing evidence: configuration comparison" : "shared and fresh-process configuration differs"); }
+    if (comparison.passed !== true) { failures.push(comparison.missingEvidence === true ? "missing evidence: configuration comparison"
+      : `shared and fresh-process configuration differs (instruction markers match: ${String(comparison.projectMarkersMatch)}, hook revisions match: ${String(comparison.hookRevisionsMatch)})`); }
     return Object.assign(comparison, { scenario, passed: failures.length === 0, failures });
   });
+}
+
+export function freshnessFailureReasons(comparisons: readonly JsonRecord[]): string[] {
+  return comparisons.flatMap((comparison) => Array.isArray(comparison.failures)
+    ? comparison.failures.map((failure) => `${String(comparison.scenario)}: ${String(failure)}`) : []);
 }

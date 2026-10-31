@@ -7,7 +7,8 @@ same-directory observations on all three platforms under the earlier
 **trust-disabled** condition. New Linux controls also observe external native
 trust grants and cross-directory freshness. The new Windows/macOS controls
 remain pending. OpenCode still requires a new canonical directory for each
-session in a process lifetime; its new cross-directory control passes on Linux.
+session in a process lifetime. Its new cross-directory project discovery and
+user-configuration refresh controls pass on Linux.
 
 ## Reviewed three-platform run
 
@@ -62,10 +63,28 @@ three-second settling periods; no difference is attributed to closing A.
    project's own `.grok/hooks/directory.json`. This separately observes
    project-hook discovery under default trust.
 
-`configuration-freshness.ts opencode` runs the two different-directory
-cohorts using `AGENTS.md` and a local V2 `execute.before` plugin. Each
-process sees a directory at most once. It does not reuse a released directory
-or claim to fix the known same-directory MCP behavior.
+`configuration-freshness.ts opencode` runs two scenarios, each with shared
+and separate-process cohorts:
+
+1. **Project configuration discovery.** Each project has its own `AGENTS.md`
+   and local V2 `execute.before` plugin. B's files are created in a directory
+   the process has not opened before. This establishes discovery, not refresh
+   of previously loaded user configuration.
+2. **User configuration refresh across directories.** Both instruction and
+   plugin files live in the same disposable `XDG_CONFIG_HOME/opencode`:
+   `AGENTS.md` and `plugins/directory-observer/index.ts`. They contain A when
+   the native process starts and A runs its first turn. The probe rewrites
+   those same files to B while A remains open, then opens B in a distinct
+   project directory. Neither project contains the observation files in this
+   scenario. A new native process starts after the same file changes and
+   settling delay for the control. This exercises user configuration already
+   loaded by the shared process. The file locations follow OpenCode's
+   [global rules](https://opencode.ai/docs/rules/#global) and
+   [local plugin locations](https://opencode.ai/docs/plugins/#from-local-files);
+   positive native observations establish their use in 2.2.3.
+
+Each process sees a project directory at most once. Neither scenario reuses
+a released directory or claims to fix the known same-directory MCP behavior.
 
 Every cohort invokes A before B opens, invokes B, then invokes A again.
 The final MCP journal must contain exactly one correctly scoped call for
@@ -81,16 +100,20 @@ Evidence readers and teardown run even when observation fails.
 | Grok external native trust grant | pass | pass | marker B, project hook B |
 | Grok different directories, user hook | pass | pass | marker B, user hook B |
 | Grok different directories, project hook | pass | pass | marker B, project hook B |
-| OpenCode different directories | pass | pass | marker B, both outer/inner hook entries B |
+| OpenCode different directories, project discovery | pass | pass | project marker B, both outer/inner hook entries B |
+| OpenCode different directories, user refresh | pass | pass | user marker B, both outer/inner hook entries B |
 
 [Selected local observations](selected-configuration-freshness-2026-10-31.json)
 retain the positive and negative checks, native grant results, final MCP
 checks, and comparison failures. The raw trust-store paths are omitted from
-selection. All six Grok cohorts and both OpenCode cohorts pass. The Codex
+selection. All six Grok cohorts and all four OpenCode cohorts pass. The Codex
 Linux comparison and its four trust controls also pass after the diagnostic
 changes. These measurements cover the exercised files and hooks, not every
 possible configuration field, nor updates to an already-open session's
-configuration.
+configuration. In the Grok user-hook scenario, A's later turn still executes
+hook A after the user hook file changes to B, on both paths. This observed
+retention by an already-open session matches the separate-process control;
+the freshness requirement here concerns the newly opened B.
 
 The native Grok executable reports 1.0.70 (`f50904eaee6c`). Its hidden
 [`--trust` CLI entry](https://github.com/xai-org/grok-build/blob/77cd7eb675ba911c225c3aaeeece3a20cbccc426/crates/codegen/xai-grok-pager/src/app/cli.rs#L465)
@@ -168,6 +191,7 @@ Cindy will dispatch the new controls on all three platforms after this
 probe change merges. Grok 1.0.70 is the next candidate only if those checks
 complete on all three platforms; its existing resource/observation evidence
 then joins the new trust and freshness evidence for review. OpenCode needs
-its different-directory results before its constrained adapter can proceed.
+its different-directory project-discovery and user-refresh results on all
+three platforms before its constrained adapter can proceed.
 Codex remains in the later batch, with Windows command execution and
 persisted trust freshness still requiring native evidence.

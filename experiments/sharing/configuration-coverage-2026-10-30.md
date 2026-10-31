@@ -119,8 +119,8 @@ This control tests a changed **per-session parameter**. It does not test a
 persisted Codex hook-trust grant made after process startup. The original
 Grok run did not test a persisted folder grant or a change to
 its trust policy after startup. The follow-up now tests external native
-folder grants and both user/project hook refresh across directories on
-Linux; those new controls still need Windows/macOS. The earlier statement
+folder grants, user-hook refresh and project-hook discovery across directories
+on Linux; those new controls still need Windows/macOS. The earlier statement
 that all revised hook coverage awaited Windows/macOS described the state
 before run 41149607090. Its exact platform results and Codex command failures
 are retained in the linked follow-up. No runtime version is admitted yet.

@@ -46,7 +46,8 @@ export async function observeConfigurationFreshness(runtime: "grok" | "opencode"
       const canonical = await Promise.all([cwdA, cwdB].map(async (cwd) => { const value = await realpath(cwd); return process.platform === "win32" ? value.toLowerCase() : value; }));
       row.distinctCanonicalDirectories = canonical[0] !== canonical[1];
       const configuration = await directoryConfiguration({ runtime, cwd: cwdA, home: fixture.home, env: fixture.provider.env,
-        grokTrust: "default", grokHookScope: scenario === "different_directory_user_hooks" ? "user" : "project" });
+        grokTrust: "default", grokHookScope: scenario === "different_directory_user_hooks" ? "user" : "project",
+        opencodeConfigurationScope: scenario === "different_directory_user_configuration" ? "user" : "project" });
       row.installation = fixture.installation;
       const invoke = async (connection: Awaited<ReturnType<AcpFixture["connect"]>>, id: string, input: string): Promise<void> => {
         const response = await fixture.prompt(connection.child, id, input);

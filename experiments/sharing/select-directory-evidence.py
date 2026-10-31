@@ -118,7 +118,7 @@ def select(evidence, source, requested_version, include_native_hooks=False):
                              for turn in items(cohort.get("turns"))]
         selected["hooks"] = hooks(cohort)
         config = record(cohort.get("directoryConfiguration"))
-        selected.update(pick(config, ["hookScope", "trustCondition"]))
+        selected.update(pick(config, ["hookScope", "instructionScope", "trustCondition"]))
         selected["projectRuleFiles"] = sorted({revision["projectRuleFile"]
                                                for revision in items(config.get("revisions"))
                                                if isinstance(revision, dict) and isinstance(revision.get("projectRuleFile"), str)})

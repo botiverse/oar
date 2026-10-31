@@ -4,7 +4,7 @@ import path from "node:path";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 
 export async function installDirectoryHook(options: { runtime: string; cwd: string; env: Readonly<Record<string, string>>;
-  revision: "A" | "B"; command: string; journal: string; grokHookScope?: "user" | "project" }): Promise<string> {
+  revision: "A" | "B"; command: string; journal: string; grokHookScope?: "user" | "project"; opencodeHookScope?: "user" | "project" }): Promise<string> {
   const { runtime, cwd, env, revision, command, journal } = options;
   const hooks = { PreToolUse: [{ matcher: "", hooks: [{ type: "command", command, timeout: 10 }] }] };
   let file: string | undefined = undefined;
@@ -21,7 +21,10 @@ export async function installDirectoryHook(options: { runtime: string; cwd: stri
   }
   if (runtime === "opencode") {
     // V2 loads a plain object with id/setup; no package download is needed.
-    const directory = path.join(cwd, ".opencode/plugins/directory-observer");
+    const user = options.opencodeHookScope === "user";
+    if (user && env.XDG_CONFIG_HOME === undefined) { throw new Error("OpenCode user plugin requires an isolated XDG_CONFIG_HOME"); }
+    const root = user ? path.join(env.XDG_CONFIG_HOME ?? "", "opencode") : path.join(cwd, ".opencode");
+    const directory = path.join(root, "plugins/directory-observer");
     await mkdir(directory, { recursive: true });
     await writeFile(path.join(directory, "index.ts"), [
       'import {appendFileSync} from "node:fs";',
@@ -30,7 +33,7 @@ export async function installDirectoryHook(options: { runtime: string; cwd: stri
       `appendFileSync(${JSON.stringify(journal)},JSON.stringify({revision:${JSON.stringify(revision)},event})+'\\n');`,
       '});}};',
     ].join("\n"), { mode: 0o600 });
-    return "project .opencode/plugins/directory-observer/index.ts (V2 execute.before)";
+    return `${user ? "disposable XDG_CONFIG_HOME/opencode" : "project .opencode"}/plugins/directory-observer/index.ts (V2 execute.before)`;
   }
   if (file !== undefined) {
     await mkdir(path.dirname(file), { recursive: true });
