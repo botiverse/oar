@@ -4,6 +4,7 @@ These probes exercise native multi-session transports with scripted local
 model responses. They do not enable OAR process sharing. The admission rule
 is [system.md, Shared runtime processes](../../docs/design/system.md#shared-runtime-processes).
 
+- [Current version/platform admission decisions](admission-2026-10-31.md).
 - [Native trust refresh, cross-directory controls and latest platform results](trust-freshness-2026-10-31.md).
 - [Configuration coverage and complete failure diagnostics](configuration-coverage-2026-10-30.md).
 - [Same-directory MCP and configuration freshness](same-directory-2026-10-30.md).
@@ -29,35 +30,27 @@ and all three platforms' different-directory observations, along with Grok
 1.0.70, are in the [admission report](admission-2026-10-30.md).
 Other versions do not inherit these results.
 
-**Under the revised admission requirements, no runtime version on any
-platform currently meets the complete gate.**
-The revised same-directory comparison in run 41149607090 retains correct MCP
-routing for Codex, Kimi, Grok and Antigravity on all three platforms. Grok
-passes this step with folder trust disabled. Codex passes on Linux/macOS;
-Windows hook commands fail and leave its hook evidence incomplete.
-Release controls and missing configuration coverage are recorded separately; this is not a complete pass.
-OpenCode and Qoder overwrite A's same-name MCP configuration when B joins. OpenCode also retains the tool after closing
-both sessions and opening with an empty MCP list. Qoder did not retain it in
-that close control; its underlying configuration lifetime remains unproven.
-Both require one session per canonical directory **per process lifetime**
-in any future adapter. A used directory cannot be reused on that process,
-even after release or with an identical/empty MCP list: automatic placement
-opens a fresh isolated process; explicit shared placement refuses.
+**Grok 1.0.70 meets the complete evidence gate on Linux x64, macOS arm64
+and Windows x64. OpenCode 2.2.3 meets it on the same platforms only with one
+session per canonical directory for the entire process lifetime.**
+No native adapter enables sharing yet. The [current admission report](admission-2026-10-31.md)
+links each decision to its observation, resource and configuration evidence,
+including all 18 artifacts from run 41157633349.
 
-Kimi 2.4.1 separately fails configuration freshness: a later shared session
-uses old hook settings that a newly opened isolated process reads afresh.
-The instruction observation is timing-dependent: immediate opening saw old
-text, while opening after three seconds saw new text, with A live or closed. It remains isolated; its future shared adapter is on
-hold. Same-directory Windows/macOS MCP, release and Kimi comparisons are
-now retained in the reports. The latest run confirms Grok's configuration
-coverage on all three platforms under the trust-disabled condition. New
-Linux Grok external trust-grant and cross-directory controls pass; their
-Windows/macOS observations remain pending. OpenCode's cross-directory project
-discovery and changed user-level instructions/plugin controls pass locally;
-both still need Windows/macOS evidence before its adapter can proceed.
-Codex Windows command execution, its persisted trust
-changes, and the Qoder/Antigravity instruction markers remain gaps. See the
-[latest report](trust-freshness-2026-10-31.md) for scope and source artifacts.
+OpenCode still crosses same-directory MCP registrations and retains them
+after close. A directory already used on a shared process must select a
+fresh isolated process for `auto`, or refuse explicit `shared`, even with
+identical or empty MCP servers. The cross-directory project and user-level
+refresh controls now pass on all three platforms. Grok's external native
+trust grant and cross-directory user/project hook controls also pass there.
+
+Codex 0.166.0 now passes same-directory checks and all four per-session trust
+controls on all three platforms, including executed Windows hooks. It is
+still not admitted: persisted hook-trust mutation is untested and loaded
+resume model behavior needs an adapter rule. Kimi 2.4.1 retains stale hooks;
+Qoder 1.1.81 crosses same-directory MCP registrations and lacks instruction
+markers; Antigravity 1.4.5 lacks instruction markers. These gaps remain
+failures or missing evidence, never a complete pass.
 
 Run from the repository root with Node 24 and the pinned executable installed:
 

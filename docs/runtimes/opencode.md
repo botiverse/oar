@@ -75,8 +75,11 @@ the directory remains used. A subsequent same-directory open, even with an
 identical or empty MCP list, uses a fresh isolated process for `auto` and
 refuses explicit `shared` with `UnsupportedOptionError("placement")`.
 The old different-directory MCP evidence cannot establish unrestricted
-same-directory sharing. Later-session configuration freshness is also an
-admission requirement; [ACP ownership spec](../spec/acp-shared-connection.md).
+same-directory sharing. The [2026-10-31 admission report](../../experiments/sharing/admission-2026-10-31.md)
+now establishes cross-directory project discovery and user-configuration
+refresh for 2.2.3 on Linux x64, macOS arm64 and Windows x64. It meets the
+evidence gate with the lifetime directory restriction; adapter enablement
+is a separate change. See the [ACP ownership spec](../spec/acp-shared-connection.md).
 
 ### Startup and compatibility
 

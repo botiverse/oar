@@ -2,6 +2,10 @@
 
 Runtime version check: 2026-10-31.
 
+Historical probe-development results follow. The later
+[three-platform admission decisions](admission-2026-10-31.md) supersede the
+pending platform checks and admission status described here.
+
 No runtime is admitted to sharing by this change. Grok 1.0.70 now has complete
 same-directory observations on all three platforms under the earlier
 **trust-disabled** condition. New Linux controls also observe external native
