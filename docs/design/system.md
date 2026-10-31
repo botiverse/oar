@@ -198,6 +198,15 @@ Sharing follows five rules:
    directory per process lifetime, including after release. Reusing a used
    directory opens a fresh isolated process in automatic placement and is
    refused for explicit shared placement, regardless of the MCP list.
+   The same applies to what the runtime starts on a session's behalf: tools,
+   stdio MCP servers and hooks must start in the working directory and
+   environment they would have in an isolated process. Where the shared
+   process would start them differently, for example in its own home
+   directory instead of the session's, a session that uses them does not
+   share: automatic placement opens it its own process, and explicit shared
+   placement is refused. If the adapter cannot tell before opening whether a
+   session will use them, as with hooks read from configuration, that
+   runtime version does not share.
 2. **The fallback releases the session; it does not kill.** `abort` stays
    the runtime's own interrupt. If the turn has not ended within the fallback
    interval, OAR accepts the pending abort and records a release for that
@@ -240,6 +249,9 @@ Sharing follows five rules:
    sessions in the same directory, including after one has closed;
    configuration freshness, so a later session reads the project and user
    configuration that an isolated process opened at that moment would read;
+   the working directory and environment of the processes the runtime starts
+   for a session (tools, stdio MCP servers, hooks), compared with an
+   isolated process;
    cancellation that leaves peers running; per-session cleanup; resuming a session already loaded in
    the process; and the process's failure cases (exit with sessions running,
    close and resume at the same time); and lower memory without higher CPU
