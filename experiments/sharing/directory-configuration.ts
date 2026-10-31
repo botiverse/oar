@@ -4,9 +4,10 @@ import path from "node:path";
 import { asRecord, type JsonRecord } from "../../packages/oar/src/shared/json.js";
 
 import { hookInputMatches, installDirectoryHook } from "./directory-hooks.js";
+import { powershellCommand } from "./observation.js";
 
 export interface DirectoryConfiguration {
-  readonly setRevision: (revision: "A" | "B") => Promise<void>;
+  readonly setRevision: (revision: "A" | "B", directory?: string) => Promise<void>;
   readonly evidence: () => Promise<JsonRecord>;
 }
 
@@ -16,8 +17,18 @@ function trustCondition(runtime: string): string {
   return "No additional trust override installed by this experiment";
 }
 
-export async function directoryConfiguration({ runtime, cwd, home, env = {} }: { runtime: string; cwd: string; home: string; env?: Readonly<Record<string, string>> | undefined }): Promise<DirectoryConfiguration> {
-  if (runtime === "grok" && env.GROK_HOME !== undefined) {
+export function directoryHookCommand(runtime: string, args: readonly string[], platform = process.platform): string {
+  // Codex executes hooks through its session shell, PowerShell on Windows.
+  // Quoting a path alone is a string expression there, not an invocation.
+  return runtime === "codex" && platform === "win32" ? powershellCommand(args)
+    : args.map((part) => JSON.stringify(part.replaceAll("\\", "/"))).join(" ");
+}
+
+export async function directoryConfiguration({ runtime, cwd, home, env = {}, grokTrust = "disabled", grokHookScope = "user" }: {
+  runtime: string; cwd: string; home: string; env?: Readonly<Record<string, string>> | undefined;
+  grokTrust?: "disabled" | "default"; grokHookScope?: "user" | "project";
+}): Promise<DirectoryConfiguration> {
+  if (runtime === "grok" && grokTrust === "disabled" && env.GROK_HOME !== undefined) {
     // Only this disposable home trusts the synthetic project instructions.
     await appendFile(path.join(env.GROK_HOME, "config.toml"), "\n[folder_trust]\nenabled = false\n");
   }
@@ -33,18 +44,18 @@ export async function directoryConfiguration({ runtime, cwd, home, env = {} }: {
   const revisions: JsonRecord[] = [];
   let hookScope = "not exercised";
   return {
-    setRevision: async (revision) => {
+    setRevision: async (revision, directory = cwd) => {
       // The marker is never sent as a user prompt. Provider visibility therefore
       // shows a native project-file read, but an older marker can remain in history.
-      await writeFile(path.join(cwd, projectRuleFile), `Project configuration observation marker: OAR_DIRECTORY_RULE_${revision}.\n`, { mode: 0o600 });
-      const command = [process.execPath, script, revision, runtime].map((part) => JSON.stringify(part.replaceAll("\\", "/"))).join(" ");
-      hookScope = await installDirectoryHook({ runtime, cwd, env, revision, command, journal });
-      revisions.push({ revision, at: new Date().toISOString(), projectRuleFile });
+      await writeFile(path.join(directory, projectRuleFile), `Project configuration observation marker: OAR_DIRECTORY_RULE_${revision}.\n`, { mode: 0o600 });
+      const command = directoryHookCommand(runtime, [process.execPath, script, revision, runtime]);
+      hookScope = await installDirectoryHook({ runtime, cwd: directory, env, revision, command, journal, grokHookScope });
+      revisions.push({ revision, at: new Date().toISOString(), projectRuleFile, directory });
     },
     evidence: async () => {
       const text = await readFile(journal, "utf8");
       return { revisions, hookScope,
-      trustCondition: trustCondition(runtime),
+      trustCondition: runtime === "grok" && grokTrust === "default" ? "Default folder trust enabled; any grant uses the native --trust entry point" : trustCondition(runtime),
       hooks: text.split("\n").filter(Boolean).map((line: string): unknown => JSON.parse(line)),
       limitation: "Markers in provider history do not prove the currently effective policy; absent markers or hook invocations do not prove unsupported configuration. Files in the same directory are intentionally shared, including with separate processes." };
     },

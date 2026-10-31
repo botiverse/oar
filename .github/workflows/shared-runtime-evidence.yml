@@ -16,7 +16,7 @@ on:
         type: boolean
         default: false
       same_directory_only:
-        description: 'Run only the same-directory MCP comparison and its separate-process control'
+        description: 'Run directory, trust and configuration controls only'
         type: boolean
         default: false
 
@@ -31,7 +31,7 @@ jobs:
         os: ${{ fromJSON(inputs.platforms) }}
         runtime: ${{ fromJSON(inputs.runtimes) }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 50
+    timeout-minutes: 65
     env:
       EVIDENCE_RUNTIME: ${{ matrix.runtime }}
       EVIDENCE_PACKAGE: ${{ fromJSON('{"codex":"@openai/codex@0.166.0","kimi":"@moonshot-ai/kimi-code@2.4.1","grok":"@xai-official/grok@1.0.70","opencode":"@opencode/cli@2.2.3","qoder":"@qoder-ai/qodercli@1.1.81"}')[matrix.runtime] }}
@@ -99,6 +99,10 @@ jobs:
       - name: Same-directory MCP and separate-process control
         if: ${{ !cancelled() && !inputs.resources_only && (steps.native-install.outcome == 'success' || steps.antigravity-install.outcome == 'success') }}
         run: pnpm tsx experiments/sharing/same-directory.ts "$EVIDENCE_RUNTIME"
+        timeout-minutes: 12
+      - name: Native trust and cross-directory configuration controls
+        if: ${{ !cancelled() && !inputs.resources_only && steps.native-install.outcome == 'success' && contains(fromJSON('["grok","opencode"]'), matrix.runtime) }}
+        run: pnpm tsx experiments/sharing/configuration-freshness.ts "$EVIDENCE_RUNTIME"
         timeout-minutes: 12
       - name: Codex resources
         if: ${{ !cancelled() && !inputs.same_directory_only && (steps.native-install.outcome == 'success' || steps.antigravity-install.outcome == 'success') && matrix.runtime == 'codex' }}

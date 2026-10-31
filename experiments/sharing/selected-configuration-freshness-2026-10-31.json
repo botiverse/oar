@@ -1,0 +1,2346 @@
+[
+  {
+    "runtime": "grok",
+    "at": "2026-10-31T01:29:05.716Z",
+    "platform": "linux",
+    "architecture": "x64",
+    "settlingMs": 3000,
+    "comparisons": [
+      {
+        "projectMarkersMatch": true,
+        "hookRevisionsMatch": true,
+        "missingEvidence": false,
+        "passed": true,
+        "differenceObserved": false,
+        "limitation": "Only the later B session's observed project instruction markers and exercised hook revisions are compared. Null means missing evidence, not fresh configuration.",
+        "scenario": "native_trust_grant",
+        "failures": []
+      },
+      {
+        "projectMarkersMatch": true,
+        "hookRevisionsMatch": true,
+        "missingEvidence": false,
+        "passed": true,
+        "differenceObserved": false,
+        "limitation": "Only the later B session's observed project instruction markers and exercised hook revisions are compared. Null means missing evidence, not fresh configuration.",
+        "scenario": "different_directory_user_hooks",
+        "failures": []
+      },
+      {
+        "projectMarkersMatch": true,
+        "hookRevisionsMatch": true,
+        "missingEvidence": false,
+        "passed": true,
+        "differenceObserved": false,
+        "limitation": "Only the later B session's observed project instruction markers and exercised hook revisions are compared. Null means missing evidence, not fresh configuration.",
+        "scenario": "different_directory_project_hooks",
+        "failures": []
+      }
+    ],
+    "source": {
+      "kind": "local Linux x64 probe",
+      "baseCommit": "41cb8254441bd0ef666d3e753fbba4b9683bb07c",
+      "probeRevision": "task 129 changes in this pull request",
+      "rawSha256": "4b46ebd115bfdc86adc667d3a67254a00e75d98867760d3361ed755e780b02e9"
+    },
+    "requestedVersion": "1.0.70",
+    "reportedVersion": "grok 1.0.70 (f50904eaee6c) [stable]",
+    "cohorts": [
+      {
+        "mode": "shared",
+        "observed": true,
+        "scenario": "native_trust_grant",
+        "distinctCanonicalDirectories": false,
+        "observedProcessAliveDuringGrant": true,
+        "failureReasons": [],
+        "trustGrants": [
+          {
+            "method": "grok --trust agent --always-approve --no-leader stdio",
+            "initialized": true,
+            "exited": 143,
+            "storeChanged": true,
+            "trustedEntryPresent": true
+          }
+        ],
+        "nativeHookCompletions": [],
+        "nativeContextShells": [],
+        "errorRecorded": false,
+        "turns": [
+          {
+            "input": "A_mcpfreshbefore",
+            "invocation": {
+              "input": "A_mcpfreshbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpfreshbefore",
+                  "output": "MCP_RESULT=A input=A_mcpfreshbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcpfreshbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpfreshbefore",
+                  "output": "MCP_RESULT=A input=A_mcpfreshbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": false
+            }
+          },
+          {
+            "input": "B_mcpfreshafter",
+            "invocation": {
+              "input": "B_mcpfreshafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpfreshafter",
+                  "output": "MCP_RESULT=B input=B_mcpfreshafter"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "B_mcpfreshafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpfreshafter",
+                  "output": "MCP_RESULT=B input=B_mcpfreshafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": true
+            }
+          },
+          {
+            "input": "A_mcpfreshlater",
+            "invocation": {
+              "input": "A_mcpfreshlater",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpfreshlater",
+                  "output": "MCP_RESULT=A input=A_mcpfreshlater"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcpfreshlater",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpfreshlater",
+                  "output": "MCP_RESULT=A input=A_mcpfreshlater"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": false
+            }
+          }
+        ],
+        "hooks": [
+          {
+            "revision": "B",
+            "input": "B_mcpfreshafter"
+          }
+        ],
+        "hookScope": "project .grok/hooks/directory.json",
+        "trustCondition": "Default folder trust enabled; any grant uses the native --trust entry point",
+        "projectRuleFiles": [
+          "AGENTS.md"
+        ],
+        "releasedDirectory": {
+          "releasedA": {},
+          "releasedB": {},
+          "afterARelease": {}
+        }
+      },
+      {
+        "mode": "separate",
+        "observed": true,
+        "scenario": "native_trust_grant",
+        "distinctCanonicalDirectories": false,
+        "observedProcessAliveDuringGrant": true,
+        "failureReasons": [],
+        "trustGrants": [
+          {
+            "method": "grok --trust agent --always-approve --no-leader stdio",
+            "initialized": true,
+            "exited": 143,
+            "storeChanged": true,
+            "trustedEntryPresent": true
+          }
+        ],
+        "nativeHookCompletions": [],
+        "nativeContextShells": [],
+        "errorRecorded": false,
+        "turns": [
+          {
+            "input": "A_mcpfreshbefore",
+            "invocation": {
+              "input": "A_mcpfreshbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpfreshbefore",
+                  "output": "MCP_RESULT=A input=A_mcpfreshbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcpfreshbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpfreshbefore",
+                  "output": "MCP_RESULT=A input=A_mcpfreshbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": false
+            }
+          },
+          {
+            "input": "B_mcpfreshafter",
+            "invocation": {
+              "input": "B_mcpfreshafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpfreshafter",
+                  "output": "MCP_RESULT=B input=B_mcpfreshafter"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "B_mcpfreshafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpfreshafter",
+                  "output": "MCP_RESULT=B input=B_mcpfreshafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": true
+            }
+          },
+          {
+            "input": "A_mcpfreshlater",
+            "invocation": {
+              "input": "A_mcpfreshlater",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpfreshlater",
+                  "output": "MCP_RESULT=A input=A_mcpfreshlater"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcpfreshlater",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpfreshlater",
+                  "output": "MCP_RESULT=A input=A_mcpfreshlater"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": false
+            }
+          }
+        ],
+        "hooks": [
+          {
+            "revision": "B",
+            "input": "B_mcpfreshafter"
+          }
+        ],
+        "hookScope": "project .grok/hooks/directory.json",
+        "trustCondition": "Default folder trust enabled; any grant uses the native --trust entry point",
+        "projectRuleFiles": [
+          "AGENTS.md"
+        ],
+        "releasedDirectory": {
+          "releasedA": {},
+          "releasedB": {},
+          "afterARelease": {}
+        }
+      },
+      {
+        "mode": "shared",
+        "observed": true,
+        "scenario": "different_directory_user_hooks",
+        "distinctCanonicalDirectories": true,
+        "observedProcessAliveDuringGrant": true,
+        "failureReasons": [],
+        "trustGrants": [
+          {
+            "method": "grok --trust agent --always-approve --no-leader stdio",
+            "initialized": true,
+            "exited": 143,
+            "storeChanged": true,
+            "trustedEntryPresent": true
+          },
+          {
+            "method": "grok --trust agent --always-approve --no-leader stdio",
+            "initialized": true,
+            "exited": 143,
+            "storeChanged": true,
+            "trustedEntryPresent": true
+          }
+        ],
+        "nativeHookCompletions": [],
+        "nativeContextShells": [],
+        "errorRecorded": false,
+        "turns": [
+          {
+            "input": "A_mcpfreshbefore",
+            "invocation": {
+              "input": "A_mcpfreshbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpfreshbefore",
+                  "output": "MCP_RESULT=A input=A_mcpfreshbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcpfreshbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpfreshbefore",
+                  "output": "MCP_RESULT=A input=A_mcpfreshbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            }
+          },
+          {
+            "input": "B_mcpfreshafter",
+            "invocation": {
+              "input": "B_mcpfreshafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpfreshafter",
+                  "output": "MCP_RESULT=B input=B_mcpfreshafter"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "B_mcpfreshafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpfreshafter",
+                  "output": "MCP_RESULT=B input=B_mcpfreshafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": true
+            }
+          },
+          {
+            "input": "A_mcpfreshlater",
+            "invocation": {
+              "input": "A_mcpfreshlater",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpfreshlater",
+                  "output": "MCP_RESULT=A input=A_mcpfreshlater"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcpfreshlater",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpfreshlater",
+                  "output": "MCP_RESULT=A input=A_mcpfreshlater"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            }
+          }
+        ],
+        "hooks": [
+          {
+            "revision": "A",
+            "input": "A_mcpfreshbefore"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcpfreshafter"
+          },
+          {
+            "revision": "A",
+            "input": "A_mcpfreshlater"
+          }
+        ],
+        "hookScope": "disposable GROK_HOME/hooks/directory.json",
+        "trustCondition": "Default folder trust enabled; any grant uses the native --trust entry point",
+        "projectRuleFiles": [
+          "AGENTS.md"
+        ],
+        "releasedDirectory": {
+          "releasedA": {},
+          "releasedB": {},
+          "afterARelease": {}
+        }
+      },
+      {
+        "mode": "separate",
+        "observed": true,
+        "scenario": "different_directory_user_hooks",
+        "distinctCanonicalDirectories": true,
+        "observedProcessAliveDuringGrant": true,
+        "failureReasons": [],
+        "trustGrants": [
+          {
+            "method": "grok --trust agent --always-approve --no-leader stdio",
+            "initialized": true,
+            "exited": 143,
+            "storeChanged": true,
+            "trustedEntryPresent": true
+          },
+          {
+            "method": "grok --trust agent --always-approve --no-leader stdio",
+            "initialized": true,
+            "exited": 143,
+            "storeChanged": true,
+            "trustedEntryPresent": true
+          }
+        ],
+        "nativeHookCompletions": [],
+        "nativeContextShells": [],
+        "errorRecorded": false,
+        "turns": [
+          {
+            "input": "A_mcpfreshbefore",
+            "invocation": {
+              "input": "A_mcpfreshbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpfreshbefore",
+                  "output": "MCP_RESULT=A input=A_mcpfreshbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcpfreshbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpfreshbefore",
+                  "output": "MCP_RESULT=A input=A_mcpfreshbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            }
+          },
+          {
+            "input": "B_mcpfreshafter",
+            "invocation": {
+              "input": "B_mcpfreshafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpfreshafter",
+                  "output": "MCP_RESULT=B input=B_mcpfreshafter"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "B_mcpfreshafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpfreshafter",
+                  "output": "MCP_RESULT=B input=B_mcpfreshafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": true
+            }
+          },
+          {
+            "input": "A_mcpfreshlater",
+            "invocation": {
+              "input": "A_mcpfreshlater",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpfreshlater",
+                  "output": "MCP_RESULT=A input=A_mcpfreshlater"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcpfreshlater",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpfreshlater",
+                  "output": "MCP_RESULT=A input=A_mcpfreshlater"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            }
+          }
+        ],
+        "hooks": [
+          {
+            "revision": "A",
+            "input": "A_mcpfreshbefore"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcpfreshafter"
+          },
+          {
+            "revision": "A",
+            "input": "A_mcpfreshlater"
+          }
+        ],
+        "hookScope": "disposable GROK_HOME/hooks/directory.json",
+        "trustCondition": "Default folder trust enabled; any grant uses the native --trust entry point",
+        "projectRuleFiles": [
+          "AGENTS.md"
+        ],
+        "releasedDirectory": {
+          "releasedA": {},
+          "releasedB": {},
+          "afterARelease": {}
+        }
+      },
+      {
+        "mode": "shared",
+        "observed": true,
+        "scenario": "different_directory_project_hooks",
+        "distinctCanonicalDirectories": true,
+        "observedProcessAliveDuringGrant": true,
+        "failureReasons": [],
+        "trustGrants": [
+          {
+            "method": "grok --trust agent --always-approve --no-leader stdio",
+            "initialized": true,
+            "exited": 143,
+            "storeChanged": true,
+            "trustedEntryPresent": true
+          },
+          {
+            "method": "grok --trust agent --always-approve --no-leader stdio",
+            "initialized": true,
+            "exited": 143,
+            "storeChanged": true,
+            "trustedEntryPresent": true
+          }
+        ],
+        "nativeHookCompletions": [],
+        "nativeContextShells": [],
+        "errorRecorded": false,
+        "turns": [
+          {
+            "input": "A_mcpfreshbefore",
+            "invocation": {
+              "input": "A_mcpfreshbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpfreshbefore",
+                  "output": "MCP_RESULT=A input=A_mcpfreshbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcpfreshbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpfreshbefore",
+                  "output": "MCP_RESULT=A input=A_mcpfreshbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            }
+          },
+          {
+            "input": "B_mcpfreshafter",
+            "invocation": {
+              "input": "B_mcpfreshafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpfreshafter",
+                  "output": "MCP_RESULT=B input=B_mcpfreshafter"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "B_mcpfreshafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpfreshafter",
+                  "output": "MCP_RESULT=B input=B_mcpfreshafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": true
+            }
+          },
+          {
+            "input": "A_mcpfreshlater",
+            "invocation": {
+              "input": "A_mcpfreshlater",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpfreshlater",
+                  "output": "MCP_RESULT=A input=A_mcpfreshlater"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcpfreshlater",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpfreshlater",
+                  "output": "MCP_RESULT=A input=A_mcpfreshlater"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            }
+          }
+        ],
+        "hooks": [
+          {
+            "revision": "A",
+            "input": "A_mcpfreshbefore"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcpfreshafter"
+          },
+          {
+            "revision": "A",
+            "input": "A_mcpfreshlater"
+          }
+        ],
+        "hookScope": "project .grok/hooks/directory.json",
+        "trustCondition": "Default folder trust enabled; any grant uses the native --trust entry point",
+        "projectRuleFiles": [
+          "AGENTS.md"
+        ],
+        "releasedDirectory": {
+          "releasedA": {},
+          "releasedB": {},
+          "afterARelease": {}
+        }
+      },
+      {
+        "mode": "separate",
+        "observed": true,
+        "scenario": "different_directory_project_hooks",
+        "distinctCanonicalDirectories": true,
+        "observedProcessAliveDuringGrant": true,
+        "failureReasons": [],
+        "trustGrants": [
+          {
+            "method": "grok --trust agent --always-approve --no-leader stdio",
+            "initialized": true,
+            "exited": 143,
+            "storeChanged": true,
+            "trustedEntryPresent": true
+          },
+          {
+            "method": "grok --trust agent --always-approve --no-leader stdio",
+            "initialized": true,
+            "exited": 143,
+            "storeChanged": true,
+            "trustedEntryPresent": true
+          }
+        ],
+        "nativeHookCompletions": [],
+        "nativeContextShells": [],
+        "errorRecorded": false,
+        "turns": [
+          {
+            "input": "A_mcpfreshbefore",
+            "invocation": {
+              "input": "A_mcpfreshbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpfreshbefore",
+                  "output": "MCP_RESULT=A input=A_mcpfreshbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcpfreshbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpfreshbefore",
+                  "output": "MCP_RESULT=A input=A_mcpfreshbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            }
+          },
+          {
+            "input": "B_mcpfreshafter",
+            "invocation": {
+              "input": "B_mcpfreshafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpfreshafter",
+                  "output": "MCP_RESULT=B input=B_mcpfreshafter"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "B_mcpfreshafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpfreshafter",
+                  "output": "MCP_RESULT=B input=B_mcpfreshafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": true
+            }
+          },
+          {
+            "input": "A_mcpfreshlater",
+            "invocation": {
+              "input": "A_mcpfreshlater",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpfreshlater",
+                  "output": "MCP_RESULT=A input=A_mcpfreshlater"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcpfreshlater",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpfreshlater",
+                  "output": "MCP_RESULT=A input=A_mcpfreshlater"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            }
+          }
+        ],
+        "hooks": [
+          {
+            "revision": "A",
+            "input": "A_mcpfreshbefore"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcpfreshafter"
+          },
+          {
+            "revision": "A",
+            "input": "A_mcpfreshlater"
+          }
+        ],
+        "hookScope": "project .grok/hooks/directory.json",
+        "trustCondition": "Default folder trust enabled; any grant uses the native --trust entry point",
+        "projectRuleFiles": [
+          "AGENTS.md"
+        ],
+        "releasedDirectory": {
+          "releasedA": {},
+          "releasedB": {},
+          "afterARelease": {}
+        }
+      }
+    ],
+    "exitCode": 0,
+    "failureReasons": []
+  },
+  {
+    "runtime": "opencode",
+    "at": "2026-10-31T01:21:43.393Z",
+    "platform": "linux",
+    "architecture": "x64",
+    "settlingMs": 3000,
+    "comparisons": [
+      {
+        "scenario": "different_directory",
+        "projectMarkersMatch": true,
+        "hookRevisionsMatch": true,
+        "missingEvidence": false,
+        "passed": true,
+        "differenceObserved": false,
+        "limitation": "Only the later B session's observed project instruction markers and exercised hook revisions are compared. Null means missing evidence, not fresh configuration.",
+        "failures": []
+      }
+    ],
+    "source": {
+      "kind": "local Linux x64 probe",
+      "baseCommit": "41cb8254441bd0ef666d3e753fbba4b9683bb07c",
+      "probeRevision": "task 129 changes in this pull request",
+      "rawSha256": "6dc6c7288c8c3773b39f5d758bf5e5ffde6cb9641dec03771b208070ec34c8ef"
+    },
+    "requestedVersion": "2.2.3",
+    "reportedVersion": "opencode v2.2.3",
+    "cohorts": [
+      {
+        "mode": "shared",
+        "observed": true,
+        "scenario": "different_directory",
+        "distinctCanonicalDirectories": true,
+        "failureReasons": [],
+        "trustGrants": [],
+        "nativeHookCompletions": [],
+        "nativeContextShells": [],
+        "errorRecorded": false,
+        "turns": [
+          {
+            "input": "A_mcpfreshbefore",
+            "invocation": {
+              "input": "A_mcpfreshbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpfreshbefore",
+                  "output": "MCP_RESULT=A input=A_mcpfreshbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcpfreshbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpfreshbefore",
+                  "output": "MCP_RESULT=A input=A_mcpfreshbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            }
+          },
+          {
+            "input": "B_mcpfreshafter",
+            "invocation": {
+              "input": "B_mcpfreshafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpfreshafter",
+                  "output": "MCP_RESULT=B input=B_mcpfreshafter"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "B_mcpfreshafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpfreshafter",
+                  "output": "MCP_RESULT=B input=B_mcpfreshafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": true
+            }
+          },
+          {
+            "input": "A_mcpfreshlater",
+            "invocation": {
+              "input": "A_mcpfreshlater",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpfreshlater",
+                  "output": "MCP_RESULT=A input=A_mcpfreshlater"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcpfreshlater",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpfreshlater",
+                  "output": "MCP_RESULT=A input=A_mcpfreshlater"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            }
+          }
+        ],
+        "hooks": [
+          {
+            "revision": "A",
+            "input": "A_mcpfreshbefore"
+          },
+          {
+            "revision": "A",
+            "input": "A_mcpfreshbefore"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcpfreshafter"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcpfreshafter"
+          },
+          {
+            "revision": "A",
+            "input": "A_mcpfreshlater"
+          },
+          {
+            "revision": "A",
+            "input": "A_mcpfreshlater"
+          }
+        ],
+        "hookScope": "project .opencode/plugins/directory-observer/index.ts (V2 execute.before)",
+        "trustCondition": "No additional trust override installed by this experiment",
+        "projectRuleFiles": [
+          "AGENTS.md"
+        ],
+        "releasedDirectory": {
+          "releasedA": {},
+          "releasedB": {},
+          "afterARelease": {}
+        }
+      },
+      {
+        "mode": "separate",
+        "observed": true,
+        "scenario": "different_directory",
+        "distinctCanonicalDirectories": true,
+        "failureReasons": [],
+        "trustGrants": [],
+        "nativeHookCompletions": [],
+        "nativeContextShells": [],
+        "errorRecorded": false,
+        "turns": [
+          {
+            "input": "A_mcpfreshbefore",
+            "invocation": {
+              "input": "A_mcpfreshbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpfreshbefore",
+                  "output": "MCP_RESULT=A input=A_mcpfreshbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcpfreshbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpfreshbefore",
+                  "output": "MCP_RESULT=A input=A_mcpfreshbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            }
+          },
+          {
+            "input": "B_mcpfreshafter",
+            "invocation": {
+              "input": "B_mcpfreshafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpfreshafter",
+                  "output": "MCP_RESULT=B input=B_mcpfreshafter"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "B_mcpfreshafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpfreshafter",
+                  "output": "MCP_RESULT=B input=B_mcpfreshafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": true
+            }
+          },
+          {
+            "input": "A_mcpfreshlater",
+            "invocation": {
+              "input": "A_mcpfreshlater",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpfreshlater",
+                  "output": "MCP_RESULT=A input=A_mcpfreshlater"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcpfreshlater",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpfreshlater",
+                  "output": "MCP_RESULT=A input=A_mcpfreshlater"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            }
+          }
+        ],
+        "hooks": [
+          {
+            "revision": "A",
+            "input": "A_mcpfreshbefore"
+          },
+          {
+            "revision": "A",
+            "input": "A_mcpfreshbefore"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcpfreshafter"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcpfreshafter"
+          },
+          {
+            "revision": "A",
+            "input": "A_mcpfreshlater"
+          },
+          {
+            "revision": "A",
+            "input": "A_mcpfreshlater"
+          }
+        ],
+        "hookScope": "project .opencode/plugins/directory-observer/index.ts (V2 execute.before)",
+        "trustCondition": "No additional trust override installed by this experiment",
+        "projectRuleFiles": [
+          "AGENTS.md"
+        ],
+        "releasedDirectory": {
+          "releasedA": {},
+          "releasedB": {},
+          "afterARelease": {}
+        }
+      }
+    ],
+    "exitCode": 0,
+    "failureReasons": []
+  },
+  {
+    "runtime": "codex",
+    "at": "2026-10-31T01:23:30.295Z",
+    "platform": "linux",
+    "architecture": "x64",
+    "settlingMs": 3000,
+    "configurationComparison": {
+      "projectMarkersMatch": true,
+      "hookRevisionsMatch": true,
+      "missingEvidence": false,
+      "passed": true,
+      "differenceObserved": false,
+      "limitation": "Only the later B session's observed project instruction markers and exercised hook revisions are compared. Null means missing evidence, not fresh configuration."
+    },
+    "missingEvidence": false,
+    "trustFollowupComparison": [
+      {
+        "projectMarkersMatch": true,
+        "hookRevisionsMatch": true,
+        "missingEvidence": false,
+        "passed": true,
+        "differenceObserved": false,
+        "limitation": "Compares B's instruction markers and all three exercised hook outcomes; empty hooks count only for a verified untrusted session, with a positive trusted-peer control.",
+        "scenario": "untrusted_then_trusted"
+      },
+      {
+        "projectMarkersMatch": true,
+        "hookRevisionsMatch": true,
+        "missingEvidence": false,
+        "passed": true,
+        "differenceObserved": false,
+        "limitation": "Compares B's instruction markers and all three exercised hook outcomes; empty hooks count only for a verified untrusted session, with a positive trusted-peer control.",
+        "scenario": "trusted_then_untrusted"
+      }
+    ],
+    "source": {
+      "kind": "local Linux x64 probe",
+      "baseCommit": "41cb8254441bd0ef666d3e753fbba4b9683bb07c",
+      "probeRevision": "task 129 changes in this pull request",
+      "rawSha256": "1f75cb0965342f3c245d39540467291a6406a03893615100e651198093bbaf81"
+    },
+    "requestedVersion": "0.166.0",
+    "reportedVersion": "codex-cli 0.166.0",
+    "cohorts": [
+      {
+        "mode": "shared",
+        "observed": true,
+        "isolated": true,
+        "nativeHookCompletions": [
+          {
+            "eventName": "preToolUse",
+            "handlerType": "command",
+            "status": "completed",
+            "durationMs": 47,
+            "statusMessage": null,
+            "entries": [],
+            "exitCode": null,
+            "exitCodeSource": null
+          },
+          {
+            "eventName": "preToolUse",
+            "handlerType": "command",
+            "status": "completed",
+            "durationMs": 87,
+            "statusMessage": null,
+            "entries": [],
+            "exitCode": null,
+            "exitCodeSource": null
+          },
+          {
+            "eventName": "preToolUse",
+            "handlerType": "command",
+            "status": "completed",
+            "durationMs": 49,
+            "statusMessage": null,
+            "entries": [],
+            "exitCode": null,
+            "exitCodeSource": null
+          },
+          {
+            "eventName": "preToolUse",
+            "handlerType": "command",
+            "status": "completed",
+            "durationMs": 49,
+            "statusMessage": null,
+            "entries": [],
+            "exitCode": null,
+            "exitCodeSource": null
+          },
+          {
+            "eventName": "preToolUse",
+            "handlerType": "command",
+            "status": "completed",
+            "durationMs": 61,
+            "statusMessage": null,
+            "entries": [],
+            "exitCode": null,
+            "exitCodeSource": null
+          },
+          {
+            "eventName": "preToolUse",
+            "handlerType": "command",
+            "status": "completed",
+            "durationMs": 47,
+            "statusMessage": null,
+            "entries": [],
+            "exitCode": null,
+            "exitCodeSource": null
+          }
+        ],
+        "nativeContextShells": [
+          "bash"
+        ],
+        "errorRecorded": false,
+        "turns": [
+          {
+            "input": "A_mcpbefore",
+            "invocation": {
+              "input": "A_mcpbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpbefore",
+                  "output": "MCP_RESULT=A input=A_mcpbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcpbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpbefore",
+                  "output": "MCP_RESULT=A input=A_mcpbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            },
+            "isolated": true
+          },
+          {
+            "input": "B_mcpafter",
+            "invocation": {
+              "input": "B_mcpafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpafter",
+                  "output": "MCP_RESULT=B input=B_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "B_mcpafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpafter",
+                  "output": "MCP_RESULT=B input=B_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": true
+            },
+            "isolated": true
+          },
+          {
+            "input": "A_mcpafter",
+            "invocation": {
+              "input": "A_mcpafter",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpafter",
+                  "output": "MCP_RESULT=A input=A_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcpafter",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpafter",
+                  "output": "MCP_RESULT=A input=A_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            },
+            "isolated": true
+          },
+          {
+            "input": "A_mcptogether",
+            "invocation": {
+              "input": "A_mcptogether",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcptogether",
+                  "output": "MCP_RESULT=A input=A_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcptogether",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcptogether",
+                  "output": "MCP_RESULT=A input=A_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            },
+            "isolated": true
+          },
+          {
+            "input": "B_mcptogether",
+            "invocation": {
+              "input": "B_mcptogether",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcptogether",
+                  "output": "MCP_RESULT=B input=B_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "B_mcptogether",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcptogether",
+                  "output": "MCP_RESULT=B input=B_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": true
+            },
+            "isolated": true
+          }
+        ],
+        "hooks": [
+          {
+            "revision": "A",
+            "input": "A_mcpbefore"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcpafter"
+          },
+          {
+            "revision": "A",
+            "input": "A_mcpafter"
+          },
+          {
+            "revision": "A",
+            "input": "A_mcptogether"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcptogether"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcppeerclosed"
+          }
+        ],
+        "hookScope": "disposable CODEX_HOME/hooks.json",
+        "trustCondition": "Per-session bypass_hook_trust is supplied by the experiment, not persisted hook trust",
+        "projectRuleFiles": [
+          "AGENTS.md"
+        ],
+        "releasedDirectory": {
+          "observed": true,
+          "sentMcpServers": {},
+          "calls": [],
+          "retainedMcpInvoked": false,
+          "nativeOutputRetained": false,
+          "finalSurvivorInvocation": {
+            "input": "B_mcppeerclosed",
+            "expectedServer": "B",
+            "calls": [
+              {
+                "server": "B",
+                "input": "B_mcppeerclosed",
+                "output": "MCP_RESULT=B input=B_mcppeerclosed"
+              }
+            ],
+            "isolated": true
+          },
+          "releasedA": {
+            "method": "thread/unsubscribe",
+            "nativeClose": true
+          },
+          "releasedB": {
+            "method": "thread/unsubscribe",
+            "nativeClose": true
+          },
+          "afterARelease": {
+            "invocation": {
+              "input": "B_mcppeerclosed",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcppeerclosed",
+                  "output": "MCP_RESULT=B input=B_mcppeerclosed"
+                }
+              ],
+              "isolated": true
+            },
+            "isolated": true
+          }
+        }
+      },
+      {
+        "mode": "separate",
+        "observed": true,
+        "isolated": true,
+        "nativeHookCompletions": [
+          {
+            "eventName": "preToolUse",
+            "handlerType": "command",
+            "status": "completed",
+            "durationMs": 44,
+            "statusMessage": null,
+            "entries": [],
+            "exitCode": null,
+            "exitCodeSource": null
+          },
+          {
+            "eventName": "preToolUse",
+            "handlerType": "command",
+            "status": "completed",
+            "durationMs": 44,
+            "statusMessage": null,
+            "entries": [],
+            "exitCode": null,
+            "exitCodeSource": null
+          },
+          {
+            "eventName": "preToolUse",
+            "handlerType": "command",
+            "status": "completed",
+            "durationMs": 39,
+            "statusMessage": null,
+            "entries": [],
+            "exitCode": null,
+            "exitCodeSource": null
+          },
+          {
+            "eventName": "preToolUse",
+            "handlerType": "command",
+            "status": "completed",
+            "durationMs": 40,
+            "statusMessage": null,
+            "entries": [],
+            "exitCode": null,
+            "exitCodeSource": null
+          },
+          {
+            "eventName": "preToolUse",
+            "handlerType": "command",
+            "status": "completed",
+            "durationMs": 48,
+            "statusMessage": null,
+            "entries": [],
+            "exitCode": null,
+            "exitCodeSource": null
+          },
+          {
+            "eventName": "preToolUse",
+            "handlerType": "command",
+            "status": "completed",
+            "durationMs": 45,
+            "statusMessage": null,
+            "entries": [],
+            "exitCode": null,
+            "exitCodeSource": null
+          }
+        ],
+        "nativeContextShells": [
+          "bash"
+        ],
+        "errorRecorded": false,
+        "turns": [
+          {
+            "input": "A_mcpbefore",
+            "invocation": {
+              "input": "A_mcpbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpbefore",
+                  "output": "MCP_RESULT=A input=A_mcpbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcpbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpbefore",
+                  "output": "MCP_RESULT=A input=A_mcpbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            },
+            "isolated": true
+          },
+          {
+            "input": "B_mcpafter",
+            "invocation": {
+              "input": "B_mcpafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpafter",
+                  "output": "MCP_RESULT=B input=B_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "B_mcpafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpafter",
+                  "output": "MCP_RESULT=B input=B_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": true
+            },
+            "isolated": true
+          },
+          {
+            "input": "A_mcpafter",
+            "invocation": {
+              "input": "A_mcpafter",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpafter",
+                  "output": "MCP_RESULT=A input=A_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcpafter",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpafter",
+                  "output": "MCP_RESULT=A input=A_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            },
+            "isolated": true
+          },
+          {
+            "input": "A_mcptogether",
+            "invocation": {
+              "input": "A_mcptogether",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcptogether",
+                  "output": "MCP_RESULT=A input=A_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "A_mcptogether",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcptogether",
+                  "output": "MCP_RESULT=A input=A_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            },
+            "isolated": true
+          },
+          {
+            "input": "B_mcptogether",
+            "invocation": {
+              "input": "B_mcptogether",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcptogether",
+                  "output": "MCP_RESULT=B input=B_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "finalInvocation": {
+              "input": "B_mcptogether",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcptogether",
+                  "output": "MCP_RESULT=B input=B_mcptogether"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": true
+            },
+            "isolated": true
+          }
+        ],
+        "hooks": [
+          {
+            "revision": "A",
+            "input": "A_mcpbefore"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcpafter"
+          },
+          {
+            "revision": "A",
+            "input": "A_mcpafter"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcptogether"
+          },
+          {
+            "revision": "A",
+            "input": "A_mcptogether"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcppeerclosed"
+          }
+        ],
+        "hookScope": "disposable CODEX_HOME/hooks.json",
+        "trustCondition": "Per-session bypass_hook_trust is supplied by the experiment, not persisted hook trust",
+        "projectRuleFiles": [
+          "AGENTS.md"
+        ],
+        "releasedDirectory": {
+          "observed": true,
+          "sentMcpServers": {},
+          "calls": [],
+          "retainedMcpInvoked": false,
+          "nativeOutputRetained": false,
+          "finalSurvivorInvocation": {
+            "input": "B_mcppeerclosed",
+            "expectedServer": "B",
+            "calls": [
+              {
+                "server": "B",
+                "input": "B_mcppeerclosed",
+                "output": "MCP_RESULT=B input=B_mcppeerclosed"
+              }
+            ],
+            "isolated": true
+          },
+          "releasedA": {
+            "method": "thread/unsubscribe",
+            "nativeClose": true
+          },
+          "releasedB": {
+            "method": "thread/unsubscribe",
+            "nativeClose": true
+          },
+          "afterARelease": {
+            "invocation": {
+              "input": "B_mcppeerclosed",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcppeerclosed",
+                  "output": "MCP_RESULT=B input=B_mcppeerclosed"
+                }
+              ],
+              "isolated": true
+            },
+            "isolated": true
+          }
+        }
+      }
+    ],
+    "trustFollowup": [
+      {
+        "scenario": "untrusted_then_trusted",
+        "mode": "shared",
+        "observed": true,
+        "aBypassHookTrust": false,
+        "bBypassHookTrust": true,
+        "scope": "Opposite per-session bypass_hook_trust values, including A after B opens; persisted trust-store changes are not exercised",
+        "turns": [
+          {
+            "input": "A_mcpbefore",
+            "invocation": {
+              "input": "A_mcpbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpbefore",
+                  "output": "MCP_RESULT=A input=A_mcpbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "hookRevisions": [],
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            }
+          },
+          {
+            "input": "B_mcpafter",
+            "invocation": {
+              "input": "B_mcpafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpafter",
+                  "output": "MCP_RESULT=B input=B_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "hookRevisions": [
+              "B"
+            ],
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": true
+            }
+          },
+          {
+            "input": "A_mcpafter",
+            "invocation": {
+              "input": "A_mcpafter",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpafter",
+                  "output": "MCP_RESULT=A input=A_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "hookRevisions": [],
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            }
+          }
+        ],
+        "newSessionMarkers": {
+          "initial": false,
+          "changed": true
+        },
+        "hooks": [
+          {
+            "revision": "B",
+            "input": "B_mcpafter"
+          }
+        ],
+        "errorRecorded": false,
+        "nativeHookCompletions": [
+          {
+            "eventName": "preToolUse",
+            "handlerType": "command",
+            "status": "completed",
+            "durationMs": 38,
+            "statusMessage": null,
+            "entries": [],
+            "exitCode": null,
+            "exitCodeSource": null
+          }
+        ],
+        "nativeContextShells": [
+          "bash"
+        ]
+      },
+      {
+        "scenario": "untrusted_then_trusted",
+        "mode": "separate",
+        "observed": true,
+        "aBypassHookTrust": false,
+        "bBypassHookTrust": true,
+        "scope": "Opposite per-session bypass_hook_trust values, including A after B opens; persisted trust-store changes are not exercised",
+        "turns": [
+          {
+            "input": "A_mcpbefore",
+            "invocation": {
+              "input": "A_mcpbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpbefore",
+                  "output": "MCP_RESULT=A input=A_mcpbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "hookRevisions": [],
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            }
+          },
+          {
+            "input": "B_mcpafter",
+            "invocation": {
+              "input": "B_mcpafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpafter",
+                  "output": "MCP_RESULT=B input=B_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "hookRevisions": [
+              "B"
+            ],
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": true
+            }
+          },
+          {
+            "input": "A_mcpafter",
+            "invocation": {
+              "input": "A_mcpafter",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpafter",
+                  "output": "MCP_RESULT=A input=A_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "hookRevisions": [],
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            }
+          }
+        ],
+        "newSessionMarkers": {
+          "initial": false,
+          "changed": true
+        },
+        "hooks": [
+          {
+            "revision": "B",
+            "input": "B_mcpafter"
+          }
+        ],
+        "errorRecorded": false,
+        "nativeHookCompletions": [
+          {
+            "eventName": "preToolUse",
+            "handlerType": "command",
+            "status": "completed",
+            "durationMs": 43,
+            "statusMessage": null,
+            "entries": [],
+            "exitCode": null,
+            "exitCodeSource": null
+          }
+        ],
+        "nativeContextShells": [
+          "bash"
+        ]
+      },
+      {
+        "scenario": "trusted_then_untrusted",
+        "mode": "shared",
+        "observed": true,
+        "aBypassHookTrust": true,
+        "bBypassHookTrust": false,
+        "scope": "Opposite per-session bypass_hook_trust values, including A after B opens; persisted trust-store changes are not exercised",
+        "turns": [
+          {
+            "input": "A_mcpbefore",
+            "invocation": {
+              "input": "A_mcpbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpbefore",
+                  "output": "MCP_RESULT=A input=A_mcpbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "hookRevisions": [
+              "A"
+            ],
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            }
+          },
+          {
+            "input": "B_mcpafter",
+            "invocation": {
+              "input": "B_mcpafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpafter",
+                  "output": "MCP_RESULT=B input=B_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "hookRevisions": [],
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": true
+            }
+          },
+          {
+            "input": "A_mcpafter",
+            "invocation": {
+              "input": "A_mcpafter",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpafter",
+                  "output": "MCP_RESULT=A input=A_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "hookRevisions": [
+              "A"
+            ],
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            }
+          }
+        ],
+        "newSessionMarkers": {
+          "initial": false,
+          "changed": true
+        },
+        "hooks": [
+          {
+            "revision": "A",
+            "input": "A_mcpbefore"
+          },
+          {
+            "revision": "A",
+            "input": "A_mcpafter"
+          }
+        ],
+        "errorRecorded": false,
+        "nativeHookCompletions": [
+          {
+            "eventName": "preToolUse",
+            "handlerType": "command",
+            "status": "completed",
+            "durationMs": 63,
+            "statusMessage": null,
+            "entries": [],
+            "exitCode": null,
+            "exitCodeSource": null
+          },
+          {
+            "eventName": "preToolUse",
+            "handlerType": "command",
+            "status": "completed",
+            "durationMs": 57,
+            "statusMessage": null,
+            "entries": [],
+            "exitCode": null,
+            "exitCodeSource": null
+          }
+        ],
+        "nativeContextShells": [
+          "bash"
+        ]
+      },
+      {
+        "scenario": "trusted_then_untrusted",
+        "mode": "separate",
+        "observed": true,
+        "aBypassHookTrust": true,
+        "bBypassHookTrust": false,
+        "scope": "Opposite per-session bypass_hook_trust values, including A after B opens; persisted trust-store changes are not exercised",
+        "turns": [
+          {
+            "input": "A_mcpbefore",
+            "invocation": {
+              "input": "A_mcpbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpbefore",
+                  "output": "MCP_RESULT=A input=A_mcpbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "hookRevisions": [
+              "A"
+            ],
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            }
+          },
+          {
+            "input": "B_mcpafter",
+            "invocation": {
+              "input": "B_mcpafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpafter",
+                  "output": "MCP_RESULT=B input=B_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "hookRevisions": [],
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": true
+            }
+          },
+          {
+            "input": "A_mcpafter",
+            "invocation": {
+              "input": "A_mcpafter",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpafter",
+                  "output": "MCP_RESULT=A input=A_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "hookRevisions": [
+              "A"
+            ],
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            }
+          }
+        ],
+        "newSessionMarkers": {
+          "initial": false,
+          "changed": true
+        },
+        "hooks": [
+          {
+            "revision": "A",
+            "input": "A_mcpbefore"
+          },
+          {
+            "revision": "A",
+            "input": "A_mcpafter"
+          }
+        ],
+        "errorRecorded": false,
+        "nativeHookCompletions": [
+          {
+            "eventName": "preToolUse",
+            "handlerType": "command",
+            "status": "completed",
+            "durationMs": 42,
+            "statusMessage": null,
+            "entries": [],
+            "exitCode": null,
+            "exitCodeSource": null
+          },
+          {
+            "eventName": "preToolUse",
+            "handlerType": "command",
+            "status": "completed",
+            "durationMs": 43,
+            "statusMessage": null,
+            "entries": [],
+            "exitCode": null,
+            "exitCodeSource": null
+          }
+        ],
+        "nativeContextShells": [
+          "bash"
+        ]
+      }
+    ],
+    "exitCode": 0,
+    "failureReasons": []
+  }
+]

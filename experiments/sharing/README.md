@@ -4,6 +4,7 @@ These probes exercise native multi-session transports with scripted local
 model responses. They do not enable OAR process sharing. The admission rule
 is [system.md, Shared runtime processes](../../docs/design/system.md#shared-runtime-processes).
 
+- [Native trust refresh, cross-directory controls and latest platform results](trust-freshness-2026-10-31.md).
 - [Configuration coverage and complete failure diagnostics](configuration-coverage-2026-10-30.md).
 - [Same-directory MCP and configuration freshness](same-directory-2026-10-30.md).
 - [Completed Codex/Qoder resource follow-up](followup-2026-10-30.md).
@@ -30,10 +31,11 @@ Other versions do not inherit these results.
 
 **Under the revised admission requirements, no runtime version on any
 platform currently meets the complete gate.**
-The original five-turn same-directory comparison, now repeated on all
-three platforms in run 41132390241, observes correct MCP routing for Codex,
-Kimi, Grok and Antigravity. Release controls and missing
-configuration coverage are recorded separately; this is not a complete pass.
+The revised same-directory comparison in run 41149607090 retains correct MCP
+routing for Codex, Kimi, Grok and Antigravity on all three platforms. Grok
+passes this step with folder trust disabled. Codex passes on Linux/macOS;
+Windows hook commands fail and leave its hook evidence incomplete.
+Release controls and missing configuration coverage are recorded separately; this is not a complete pass.
 OpenCode and Qoder overwrite A's same-name MCP configuration when B joins. OpenCode also retains the tool after closing
 both sessions and opening with an empty MCP list. Qoder did not retain it in
 that close control; its underlying configuration lifetime remains unproven.
@@ -47,11 +49,13 @@ uses old hook settings that a newly opened isolated process reads afresh.
 The instruction observation is timing-dependent: immediate opening saw old
 text, while opening after three seconds saw new text, with A live or closed. It remains isolated; its future shared adapter is on
 hold. Same-directory Windows/macOS MCP, release and Kimi comparisons are
-now retained in the report. The revised configuration probe adds native
-hooks and explicit trust conditions on Linux; its Windows/macOS coverage,
-remaining instruction observations and changes to persisted trust remain
-missing. The [new report](same-directory-2026-10-30.md) records
-exactly what each configuration observation does and does not establish.
+now retained in the reports. The latest run confirms Grok's configuration
+coverage on all three platforms under the trust-disabled condition. New
+Linux Grok external trust-grant and cross-directory controls pass; their
+Windows/macOS observations remain pending. OpenCode's cross-directory control
+passes locally too. Codex Windows command execution, its persisted trust
+changes, and the Qoder/Antigravity instruction markers remain gaps. See the
+[latest report](trust-freshness-2026-10-31.md) for scope and source artifacts.
 
 Run from the repository root with Node 24 and the pinned executable installed:
 
@@ -63,6 +67,8 @@ OAR_KIMI_BIN=/absolute/kimi pnpm tsx experiments/sharing/acp-resources.ts kimi
 OAR_QODER_BIN=/absolute/qodercli pnpm tsx experiments/sharing/qoder.ts
 OAR_QODER_BIN=/absolute/qodercli pnpm tsx experiments/sharing/qoder-resources.ts
 OAR_OPENCODE_BIN=/absolute/opencode pnpm tsx experiments/sharing/same-directory.ts opencode
+OAR_GROK_BIN=/absolute/grok pnpm tsx experiments/sharing/configuration-freshness.ts grok
+OAR_OPENCODE_BIN=/absolute/opencode pnpm tsx experiments/sharing/configuration-freshness.ts opencode
 ```
 
 ACP also accepts `grok`, `opencode` and `antigravity`, with the corresponding
@@ -94,12 +100,13 @@ The same-directory and resource steps run after a successful native
 installation even when an earlier observation fails. Each step retains its
 own failure status and evidence;
 there are no automatic retries. Each step has a 12-minute limit inside a
-50-minute job limit. To fill only missing Windows resource cells, dispatch with
+65-minute job limit. To fill only missing Windows resource cells, dispatch with
 `runtimes=["codex","qoder"]`, `platforms=["windows-latest"]` and
 `resources_only=true`. Alternatively, `same_directory_only=true` runs only
-the same-directory MCP and project/hook observations plus their separate-process
-controls. The two flags are mutually exclusive. The default runs all three
-steps, including resources after a known same-directory failure. These options
+the same-directory MCP and project/hook observations, Grok native trust grants,
+and Grok/OpenCode cross-directory controls, each with separate-process
+controls. The two flags are mutually exclusive. The default runs up to four
+observation steps, including resources after a known same-directory failure. These options
 do not replace earlier native observations.
 
 Each Windows probe first prepares PowerShell and CIM with one real query,

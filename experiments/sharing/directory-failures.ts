@@ -1,6 +1,8 @@
 /** List every failed boundary; missing coverage must not conceal a native defect. */
 import { asRecord, type JsonRecord } from "../../packages/oar/src/shared/json.js";
 
+import { hookExecutionFailures } from "./hook-completions.js";
+
 const rows = (value: unknown): JsonRecord[] => Array.isArray(value) ? value.map((row) => asRecord(row)).filter((row) => row !== null) : [];
 
 function configurationFailures(comparison: JsonRecord | null, label: string): string[] {
@@ -15,7 +17,7 @@ function configurationFailures(comparison: JsonRecord | null, label: string): st
 
 function cohortFailures(row: JsonRecord): string[] {
   const label = String(row.mode);
-  const failures: string[] = [];
+  const failures: string[] = hookExecutionFailures(row, label);
   if (row.error !== undefined) { failures.push(`${label}: ${JSON.stringify(row.error)}`); }
   if (row.observed !== true) { failures.push(`${label}: observation incomplete`); }
   if (row.isolated !== true) { failures.push(`${label}: native MCP isolation failed or was not established`); }
@@ -61,6 +63,7 @@ export function directoryFailureReasons(report: JsonRecord): string[] {
     if (trust.length !== 4 || comparisons.length !== 2) { failures.push("missing evidence: expected both directions of Codex hook-trust controls"); }
     for (const row of trust) {
       const label = `hook trust/${String(row.scenario)}/${String(row.mode)}`;
+      failures.push(...hookExecutionFailures(row, label));
       if (row.error !== undefined) { failures.push(`${label}: ${JSON.stringify(row.error)}`); }
       if (row.observed !== true) { failures.push(`${label}: observation incomplete`); }
     }

@@ -1,0 +1,200 @@
+[
+  {
+    "evidencePath": "shared-evidence-antigravity-Linux-X64/same-directory-antigravity/evidence.json",
+    "requestedVersion": "1.4.5",
+    "includeNativeHooks": true,
+    "source": {
+      "run": 41149607090,
+      "commit": "41cb8254441bd0ef666d3e753fbba4b9683bb07c",
+      "artifactId": 13021848958,
+      "artifactName": "shared-evidence-antigravity-Linux-X64"
+    }
+  },
+  {
+    "evidencePath": "shared-evidence-antigravity-Windows-X64/same-directory-antigravity/evidence.json",
+    "requestedVersion": "1.4.5",
+    "includeNativeHooks": true,
+    "source": {
+      "run": 41149607090,
+      "commit": "41cb8254441bd0ef666d3e753fbba4b9683bb07c",
+      "artifactId": 13022696234,
+      "artifactName": "shared-evidence-antigravity-Windows-X64"
+    }
+  },
+  {
+    "evidencePath": "shared-evidence-antigravity-macOS-ARM64/same-directory-antigravity/evidence.json",
+    "requestedVersion": "1.4.5",
+    "includeNativeHooks": true,
+    "source": {
+      "run": 41149607090,
+      "commit": "41cb8254441bd0ef666d3e753fbba4b9683bb07c",
+      "artifactId": 13022776321,
+      "artifactName": "shared-evidence-antigravity-macOS-ARM64"
+    }
+  },
+  {
+    "evidencePath": "shared-evidence-codex-Linux-X64/same-directory-codex/evidence.json",
+    "requestedVersion": "0.166.0",
+    "includeNativeHooks": true,
+    "source": {
+      "run": 41149607090,
+      "commit": "41cb8254441bd0ef666d3e753fbba4b9683bb07c",
+      "artifactId": 13022013463,
+      "artifactName": "shared-evidence-codex-Linux-X64"
+    }
+  },
+  {
+    "evidencePath": "shared-evidence-codex-Windows-X64/same-directory-codex/evidence.json",
+    "requestedVersion": "0.166.0",
+    "includeNativeHooks": true,
+    "source": {
+      "run": 41149607090,
+      "commit": "41cb8254441bd0ef666d3e753fbba4b9683bb07c",
+      "artifactId": 13022118532,
+      "artifactName": "shared-evidence-codex-Windows-X64"
+    }
+  },
+  {
+    "evidencePath": "shared-evidence-codex-macOS-ARM64/same-directory-codex/evidence.json",
+    "requestedVersion": "0.166.0",
+    "includeNativeHooks": true,
+    "source": {
+      "run": 41149607090,
+      "commit": "41cb8254441bd0ef666d3e753fbba4b9683bb07c",
+      "artifactId": 13022348897,
+      "artifactName": "shared-evidence-codex-macOS-ARM64"
+    }
+  },
+  {
+    "evidencePath": "shared-evidence-grok-Linux-X64/same-directory-grok/evidence.json",
+    "requestedVersion": "1.0.70",
+    "includeNativeHooks": true,
+    "source": {
+      "run": 41149607090,
+      "commit": "41cb8254441bd0ef666d3e753fbba4b9683bb07c",
+      "artifactId": 13021839095,
+      "artifactName": "shared-evidence-grok-Linux-X64"
+    }
+  },
+  {
+    "evidencePath": "shared-evidence-grok-Windows-X64/same-directory-grok/evidence.json",
+    "requestedVersion": "1.0.70",
+    "includeNativeHooks": true,
+    "source": {
+      "run": 41149607090,
+      "commit": "41cb8254441bd0ef666d3e753fbba4b9683bb07c",
+      "artifactId": 13021789949,
+      "artifactName": "shared-evidence-grok-Windows-X64"
+    }
+  },
+  {
+    "evidencePath": "shared-evidence-grok-macOS-ARM64/same-directory-grok/evidence.json",
+    "requestedVersion": "1.0.70",
+    "includeNativeHooks": true,
+    "source": {
+      "run": 41149607090,
+      "commit": "41cb8254441bd0ef666d3e753fbba4b9683bb07c",
+      "artifactId": 13022273842,
+      "artifactName": "shared-evidence-grok-macOS-ARM64"
+    }
+  },
+  {
+    "evidencePath": "shared-evidence-kimi-Linux-X64/same-directory-kimi/evidence.json",
+    "requestedVersion": "2.4.1",
+    "includeNativeHooks": true,
+    "source": {
+      "run": 41149607090,
+      "commit": "41cb8254441bd0ef666d3e753fbba4b9683bb07c",
+      "artifactId": 13022008633,
+      "artifactName": "shared-evidence-kimi-Linux-X64"
+    }
+  },
+  {
+    "evidencePath": "shared-evidence-kimi-Windows-X64/same-directory-kimi/evidence.json",
+    "requestedVersion": "2.4.1",
+    "includeNativeHooks": true,
+    "source": {
+      "run": 41149607090,
+      "commit": "41cb8254441bd0ef666d3e753fbba4b9683bb07c",
+      "artifactId": 13022477668,
+      "artifactName": "shared-evidence-kimi-Windows-X64"
+    }
+  },
+  {
+    "evidencePath": "shared-evidence-kimi-macOS-ARM64/same-directory-kimi/evidence.json",
+    "requestedVersion": "2.4.1",
+    "includeNativeHooks": true,
+    "source": {
+      "run": 41149607090,
+      "commit": "41cb8254441bd0ef666d3e753fbba4b9683bb07c",
+      "artifactId": 13022403597,
+      "artifactName": "shared-evidence-kimi-macOS-ARM64"
+    }
+  },
+  {
+    "evidencePath": "shared-evidence-opencode-Linux-X64/same-directory-opencode/evidence.json",
+    "requestedVersion": "2.2.3",
+    "includeNativeHooks": true,
+    "source": {
+      "run": 41149607090,
+      "commit": "41cb8254441bd0ef666d3e753fbba4b9683bb07c",
+      "artifactId": 13021993522,
+      "artifactName": "shared-evidence-opencode-Linux-X64"
+    }
+  },
+  {
+    "evidencePath": "shared-evidence-opencode-Windows-X64/same-directory-opencode/evidence.json",
+    "requestedVersion": "2.2.3",
+    "includeNativeHooks": true,
+    "source": {
+      "run": 41149607090,
+      "commit": "41cb8254441bd0ef666d3e753fbba4b9683bb07c",
+      "artifactId": 13022342791,
+      "artifactName": "shared-evidence-opencode-Windows-X64"
+    }
+  },
+  {
+    "evidencePath": "shared-evidence-opencode-macOS-ARM64/same-directory-opencode/evidence.json",
+    "requestedVersion": "2.2.3",
+    "includeNativeHooks": true,
+    "source": {
+      "run": 41149607090,
+      "commit": "41cb8254441bd0ef666d3e753fbba4b9683bb07c",
+      "artifactId": 13021934624,
+      "artifactName": "shared-evidence-opencode-macOS-ARM64"
+    }
+  },
+  {
+    "evidencePath": "shared-evidence-qoder-Linux-X64/same-directory-qoder/evidence.json",
+    "requestedVersion": "1.1.81",
+    "includeNativeHooks": true,
+    "source": {
+      "run": 41149607090,
+      "commit": "41cb8254441bd0ef666d3e753fbba4b9683bb07c",
+      "artifactId": 13022407576,
+      "artifactName": "shared-evidence-qoder-Linux-X64"
+    }
+  },
+  {
+    "evidencePath": "shared-evidence-qoder-Windows-X64/same-directory-qoder/evidence.json",
+    "requestedVersion": "1.1.81",
+    "includeNativeHooks": true,
+    "source": {
+      "run": 41149607090,
+      "commit": "41cb8254441bd0ef666d3e753fbba4b9683bb07c",
+      "artifactId": 13021854079,
+      "artifactName": "shared-evidence-qoder-Windows-X64"
+    }
+  },
+  {
+    "evidencePath": "shared-evidence-qoder-macOS-ARM64/same-directory-qoder/evidence.json",
+    "requestedVersion": "1.1.81",
+    "includeNativeHooks": true,
+    "source": {
+      "run": 41149607090,
+      "commit": "41cb8254441bd0ef666d3e753fbba4b9683bb07c",
+      "artifactId": 13022378496,
+      "artifactName": "shared-evidence-qoder-macOS-ARM64"
+    }
+  }
+]

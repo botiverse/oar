@@ -7,6 +7,7 @@ import { compareDirectoryConfiguration, directoryConfiguration, directoryRuleMar
 import { hookInputMatches } from "./directory-hooks.js";
 import { preservingProbeEvidence, probeErrorText, usingProbeFixture } from "./fixture-lifetime.js";
 import { invocationEvidence } from "./mcp-scope.js";
+import { hookExecutionFailures, nativeHookCompletions, nativeContextShells } from "./hook-completions.js";
 import { ProbeTiming } from "./observation.js";
 
 export const trustScenarios = ["untrusted_then_trusted", "trusted_then_untrusted"] as const;
@@ -18,6 +19,7 @@ export function assertCodexHookTrustEvidence(row: JsonRecord): void {
   assert.equal(typeof row.aBypassHookTrust, "boolean");
   assert.equal(typeof row.bBypassHookTrust, "boolean");
   assert.notEqual(row.aBypassHookTrust, row.bBypassHookTrust);
+  assert.deepEqual(hookExecutionFailures(row, "hook trust"), [], "native hook commands must complete successfully");
   const turns = turnsOf(row); assert.equal(turns.length, inputs.length, "missing evidence: all three trust-control turns must finish");
   for (const input of inputs) {
     const matches = turns.filter((turn) => turn.input === input); assert.equal(matches.length, 1);
@@ -100,7 +102,7 @@ async function observeTrust(scenario: (typeof trustScenarios)[number], mode: "sh
               && invocation.calls.every((call) => output.includes(call.output));
           }
         },
-        (): void => { row.native = { calls: fixture.calls, events: fixture.events, normalized: fixture.seen }; },
+        (): void => { row.native = { calls: fixture.calls, events: fixture.events, normalized: fixture.seen }; row.nativeHookCompletions = nativeHookCompletions(row.native); row.nativeContextShells = nativeContextShells(row.native); },
         (): void => {
           const hooks = asRecord(row.directoryConfiguration)?.hooks; assert.ok(Array.isArray(hooks));
           for (const turn of turns) {
