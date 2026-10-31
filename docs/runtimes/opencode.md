@@ -177,11 +177,14 @@ process (`scope: "shared_process"`); Windows still returns null. Open request
 and observed placement, release, cleanup and actual exit use the
 [record-stream contract](../spec/record-stream.md#placement-and-release).
 
-The three-platform CI check jobs pin 2.2.5 and run the full session behavior suite with
-fresh, distinct directories through `opencode-shared`, plus real shared and
-isolated controls for concurrent roots, model/cwd/MCP, child attribution,
-cancel, tool cleanup, peer survival and isolated resume after release.
-The model provider is local and scripted; the CLI and its processes are real.
+The manual `opencode-sharing-experiment.yml` workflow runs this experimental
+adapter on real 2.2.5: the full session behavior suite with fresh, distinct
+directories through `opencode-shared`, real shared and isolated controls for
+concurrent roots, model/cwd/MCP, child attribution, cancel, tool cleanup, peer
+survival and isolated resume after release, and the plugin child-environment
+comparison. The model provider is local and scripted; the CLI and its
+processes are real. The default CI check jobs run only the real isolated
+tool-cleanup check.
 
 ### Startup and compatibility
 

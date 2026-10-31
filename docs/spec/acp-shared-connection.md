@@ -30,9 +30,10 @@ native open is sent on the old connection. Peers remain untouched.
 Kimi 2.4.1 fails the configuration-freshness requirement and remains isolated;
 explicit shared placement is refused. See the
 [native comparison](../../experiments/sharing/same-directory-2026-10-30.md).
-OpenCode enforces this on Linux x64, macOS arm64 and Windows x64; other
-versions/platforms remain isolated or refuse explicit sharing. Its
-[runtime audit](../runtimes/opencode.md#shared-launch-ownership-and-cleanup)
+The experimental OpenCode adapter enforces this on Linux x64, macOS arm64
+and Windows x64; production OpenCode sharing is withdrawn on every version
+and platform. Its
+[runtime audit](../runtimes/opencode.md#experimental-shared-launch-ownership-and-cleanup)
 defines the stable home launch, process inputs, atomic real-path/file-identity
 reservation and native close plus hosted-terminal cleanup. A reservation
 refusal precedes any native open, retains peers, and reports actual isolated

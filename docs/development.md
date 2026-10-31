@@ -193,7 +193,7 @@ or pull request whose changes are all Markdown files or under `docs/` or
 `assets/`. Otherwise it runs these jobs:
 
 - `check`: `pnpm run check` and `pnpm run build` on Linux, macOS and Windows.
-  The same jobs run OpenCode 2.2.3 isolated native tool cleanup, including
+  The same jobs run OpenCode 2.2.5 isolated native tool cleanup, including
   readiness, surviving-peer and final residual-process assertions, with
   diagnostic artifacts retained on failure.
   The same jobs verify CodeBuddy's official npm installation in an isolated
@@ -201,10 +201,10 @@ or pull request whose changes are all Markdown files or under `docs/` or
   installed package's version and an idempotent second install. They then
   install Kimi 2.4.1 and run its native login tests against a
   local OAuth/model server, including browser suppression and credential writes.
-  Finally, OpenCode 2.2.3 runs the session behavior suite with distinct
-  directories through `opencode-shared` and native shared/isolated controls
-  for model, cwd, MCP, child attribution, cancel, cleanup and resume. These
-  use a local scripted provider and retain records as CI artifacts.
+  OpenCode shared placement is not admitted, so its shared session behavior
+  suite, native shared/isolated controls and plugin child-environment
+  comparison run only in the manual `opencode-sharing-experiment.yml`
+  workflow, against an experimental adapter outside the package.
   The browser-entry unit test bundles the complete portable entry for a
   browser and refuses Node imports or unresolved externals.
 - `behavior`: per aimock backend on the same three systems,
