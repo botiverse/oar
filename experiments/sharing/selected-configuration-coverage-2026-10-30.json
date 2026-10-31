@@ -1,7 +1,7 @@
 [
   {
     "runtime": "codex",
-    "at": "2026-10-30T23:45:48.313Z",
+    "at": "2026-10-31T00:00:52.865Z",
     "platform": "linux",
     "architecture": "x64",
     "settlingMs": 3000,
@@ -14,17 +14,30 @@
       "limitation": "Only the later B session's observed project instruction markers and exercised hook revisions are compared. Null means missing evidence, not fresh configuration."
     },
     "missingEvidence": false,
-    "trustFollowupComparison": {
-      "projectMarkersMatch": true,
-      "hookRevisionsMatch": true,
-      "missingEvidence": false,
-      "passed": true,
-      "differenceObserved": false,
-      "limitation": "Only the later B session's observed project instruction markers and exercised hook revisions are compared. Null means missing evidence, not fresh configuration."
-    },
+    "trustFollowupComparison": [
+      {
+        "projectMarkersMatch": true,
+        "hookRevisionsMatch": true,
+        "missingEvidence": false,
+        "passed": true,
+        "differenceObserved": false,
+        "limitation": "Compares B's instruction markers and all three exercised hook outcomes; empty hooks count only for a verified untrusted session, with a positive trusted-peer control.",
+        "scenario": "untrusted_then_trusted"
+      },
+      {
+        "projectMarkersMatch": true,
+        "hookRevisionsMatch": true,
+        "missingEvidence": false,
+        "passed": true,
+        "differenceObserved": false,
+        "limitation": "Compares B's instruction markers and all three exercised hook outcomes; empty hooks count only for a verified untrusted session, with a positive trusted-peer control.",
+        "scenario": "trusted_then_untrusted"
+      }
+    ],
     "source": {
       "scope": "local Linux x64 host, revised task127 probe",
-      "base": "81deba1f753c4c83e9b9e0aeef454b7c5e503abd"
+      "base": "81deba1f753c4c83e9b9e0aeef454b7c5e503abd",
+      "probeRevision": "PR566 revision adding both trust directions and A follow-up turns"
     },
     "requestedVersion": "0.166.0",
     "reportedVersion": "codex-cli 0.166.0",
@@ -215,12 +228,12 @@
             "input": "A_mcpafter"
           },
           {
-            "revision": "B",
-            "input": "B_mcptogether"
-          },
-          {
             "revision": "A",
             "input": "A_mcptogether"
+          },
+          {
+            "revision": "B",
+            "input": "B_mcptogether"
           },
           {
             "revision": "B",
@@ -524,38 +537,79 @@
     ],
     "trustFollowup": [
       {
+        "scenario": "untrusted_then_trusted",
         "mode": "shared",
         "observed": true,
-        "bInvocation": {
-          "input": "B_mcpafter",
-          "expectedServer": "B",
-          "calls": [
-            {
-              "server": "B",
-              "input": "B_mcpafter",
-              "output": "MCP_RESULT=B input=B_mcpafter"
-            }
-          ],
-          "isolated": true
-        },
-        "aInvocation": {
-          "input": "A_mcpbefore",
-          "expectedServer": "A",
-          "calls": [
-            {
-              "server": "A",
-              "input": "A_mcpbefore",
-              "output": "MCP_RESULT=A input=A_mcpbefore"
-            }
-          ],
-          "isolated": true
-        },
-        "aHookObserved": false,
-        "bHookObserved": true,
-        "bNativeOutputRetained": true,
         "aBypassHookTrust": false,
         "bBypassHookTrust": true,
-        "scope": "Per-session bypass_hook_trust false for A, true only when opening B; persisted trust-store changes are not exercised",
+        "scope": "Opposite per-session bypass_hook_trust values, including A after B opens; persisted trust-store changes are not exercised",
+        "turns": [
+          {
+            "input": "A_mcpbefore",
+            "invocation": {
+              "input": "A_mcpbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpbefore",
+                  "output": "MCP_RESULT=A input=A_mcpbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "hookRevisions": [],
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            }
+          },
+          {
+            "input": "B_mcpafter",
+            "invocation": {
+              "input": "B_mcpafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpafter",
+                  "output": "MCP_RESULT=B input=B_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "hookRevisions": [
+              "B"
+            ],
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": true
+            }
+          },
+          {
+            "input": "A_mcpafter",
+            "invocation": {
+              "input": "A_mcpafter",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpafter",
+                  "output": "MCP_RESULT=A input=A_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "hookRevisions": [],
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            }
+          }
+        ],
         "newSessionMarkers": {
           "initial": false,
           "changed": true
@@ -569,38 +623,79 @@
         "errorRecorded": false
       },
       {
+        "scenario": "untrusted_then_trusted",
         "mode": "separate",
         "observed": true,
-        "bInvocation": {
-          "input": "B_mcpafter",
-          "expectedServer": "B",
-          "calls": [
-            {
-              "server": "B",
-              "input": "B_mcpafter",
-              "output": "MCP_RESULT=B input=B_mcpafter"
-            }
-          ],
-          "isolated": true
-        },
-        "aInvocation": {
-          "input": "A_mcpbefore",
-          "expectedServer": "A",
-          "calls": [
-            {
-              "server": "A",
-              "input": "A_mcpbefore",
-              "output": "MCP_RESULT=A input=A_mcpbefore"
-            }
-          ],
-          "isolated": true
-        },
-        "aHookObserved": false,
-        "bHookObserved": true,
-        "bNativeOutputRetained": true,
         "aBypassHookTrust": false,
         "bBypassHookTrust": true,
-        "scope": "Per-session bypass_hook_trust false for A, true only when opening B; persisted trust-store changes are not exercised",
+        "scope": "Opposite per-session bypass_hook_trust values, including A after B opens; persisted trust-store changes are not exercised",
+        "turns": [
+          {
+            "input": "A_mcpbefore",
+            "invocation": {
+              "input": "A_mcpbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpbefore",
+                  "output": "MCP_RESULT=A input=A_mcpbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "hookRevisions": [],
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            }
+          },
+          {
+            "input": "B_mcpafter",
+            "invocation": {
+              "input": "B_mcpafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpafter",
+                  "output": "MCP_RESULT=B input=B_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "hookRevisions": [
+              "B"
+            ],
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": true
+            }
+          },
+          {
+            "input": "A_mcpafter",
+            "invocation": {
+              "input": "A_mcpafter",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpafter",
+                  "output": "MCP_RESULT=A input=A_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "hookRevisions": [],
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            }
+          }
+        ],
         "newSessionMarkers": {
           "initial": false,
           "changed": true
@@ -609,6 +704,190 @@
           {
             "revision": "B",
             "input": "B_mcpafter"
+          }
+        ],
+        "errorRecorded": false
+      },
+      {
+        "scenario": "trusted_then_untrusted",
+        "mode": "shared",
+        "observed": true,
+        "aBypassHookTrust": true,
+        "bBypassHookTrust": false,
+        "scope": "Opposite per-session bypass_hook_trust values, including A after B opens; persisted trust-store changes are not exercised",
+        "turns": [
+          {
+            "input": "A_mcpbefore",
+            "invocation": {
+              "input": "A_mcpbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpbefore",
+                  "output": "MCP_RESULT=A input=A_mcpbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "hookRevisions": [
+              "A"
+            ],
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            }
+          },
+          {
+            "input": "B_mcpafter",
+            "invocation": {
+              "input": "B_mcpafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpafter",
+                  "output": "MCP_RESULT=B input=B_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "hookRevisions": [],
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": true
+            }
+          },
+          {
+            "input": "A_mcpafter",
+            "invocation": {
+              "input": "A_mcpafter",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpafter",
+                  "output": "MCP_RESULT=A input=A_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "hookRevisions": [
+              "A"
+            ],
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            }
+          }
+        ],
+        "newSessionMarkers": {
+          "initial": false,
+          "changed": true
+        },
+        "hooks": [
+          {
+            "revision": "A",
+            "input": "A_mcpbefore"
+          },
+          {
+            "revision": "A",
+            "input": "A_mcpafter"
+          }
+        ],
+        "errorRecorded": false
+      },
+      {
+        "scenario": "trusted_then_untrusted",
+        "mode": "separate",
+        "observed": true,
+        "aBypassHookTrust": true,
+        "bBypassHookTrust": false,
+        "scope": "Opposite per-session bypass_hook_trust values, including A after B opens; persisted trust-store changes are not exercised",
+        "turns": [
+          {
+            "input": "A_mcpbefore",
+            "invocation": {
+              "input": "A_mcpbefore",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpbefore",
+                  "output": "MCP_RESULT=A input=A_mcpbefore"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "hookRevisions": [
+              "A"
+            ],
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            }
+          },
+          {
+            "input": "B_mcpafter",
+            "invocation": {
+              "input": "B_mcpafter",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpafter",
+                  "output": "MCP_RESULT=B input=B_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "hookRevisions": [],
+            "directoryRuleMarkers": {
+              "initial": false,
+              "changed": true
+            }
+          },
+          {
+            "input": "A_mcpafter",
+            "invocation": {
+              "input": "A_mcpafter",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpafter",
+                  "output": "MCP_RESULT=A input=A_mcpafter"
+                }
+              ],
+              "isolated": true
+            },
+            "nativeOutputRetained": true,
+            "hookRevisions": [
+              "A"
+            ],
+            "directoryRuleMarkers": {
+              "initial": true,
+              "changed": false
+            }
+          }
+        ],
+        "newSessionMarkers": {
+          "initial": false,
+          "changed": true
+        },
+        "hooks": [
+          {
+            "revision": "A",
+            "input": "A_mcpbefore"
+          },
+          {
+            "revision": "A",
+            "input": "A_mcpafter"
           }
         ],
         "errorRecorded": false

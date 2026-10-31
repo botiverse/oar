@@ -57,12 +57,23 @@ export function directoryFailureReasons(report: JsonRecord): string[] {
   }
   if (report.runtime === "codex") {
     const trust = rows(report.trustFollowup);
-    if (trust.length !== 2) { failures.push("missing evidence: expected both Codex hook-trust controls"); }
+    const comparisons = rows(report.trustFollowupComparison);
+    if (trust.length !== 4 || comparisons.length !== 2) { failures.push("missing evidence: expected both directions of Codex hook-trust controls"); }
     for (const row of trust) {
-      if (row.error !== undefined) { failures.push(`hook trust/${String(row.mode)}: ${JSON.stringify(row.error)}`); }
-      if (row.observed !== true) { failures.push(`hook trust/${String(row.mode)}: observation incomplete`); }
+      const label = `hook trust/${String(row.scenario)}/${String(row.mode)}`;
+      if (row.error !== undefined) { failures.push(`${label}: ${JSON.stringify(row.error)}`); }
+      if (row.observed !== true) { failures.push(`${label}: observation incomplete`); }
     }
-    failures.push(...configurationFailures(asRecord(report.trustFollowupComparison), "hook trust"));
+    for (const scenario of ["untrusted_then_trusted", "trusted_then_untrusted"]) {
+      const matches = comparisons.filter((comparison) => comparison.scenario === scenario);
+      for (const mode of ["shared", "separate"]) {
+        if (trust.filter((row) => row.scenario === scenario && row.mode === mode).length !== 1) {
+          failures.push(`hook trust/${scenario}/${mode}: missing evidence for a unique control`);
+        }
+      }
+      if (matches.length !== 1) { failures.push(`hook trust/${scenario}: missing evidence for a unique comparison`); }
+      failures.push(...configurationFailures(matches[0] ?? null, `hook trust/${scenario}`));
+    }
   }
   return failures;
 }

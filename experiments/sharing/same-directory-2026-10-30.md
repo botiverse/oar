@@ -12,6 +12,14 @@ configuration coverage is reported separately in the
 
 ## Method and retained evidence
 
+This method and the tables below describe the original probe change on
+base `8858813` and its merged three-platform version `0a8c5e9`. The current
+reproduction command runs the extended probe: six native hook sources,
+Antigravity's `GEMINI.md` attempt, Grok's disposable folder-trust policy,
+and Codex's per-session trust parameters and controls. See the
+[coverage follow-up](configuration-coverage-2026-10-30.md) for those newer
+observations and their limitations.
+
 Run [same-directory.ts](same-directory.ts) with Node 24 and an exact native
 binary. Each runtime gets two disposable cohorts: one shared native
 connection, then separate processes with the same directory. Both sessions
@@ -33,12 +41,12 @@ mode 0600 where supported. Cleanup is registered as each resource is acquired
 and always attempted, even if fixture setup or evidence collection throws.
 No real credentials or paid model are used.
 
-The run also changes project `AGENTS.md` from marker A to marker B after
+The original run also changed project `AGENTS.md` from marker A to marker B after
 A's baseline and before opening B. Those markers are never prompted.
 Kimi's disposable `KIMI_CODE_HOME/config.toml` and Qoder's project
 `.qoder/settings.json` install a `PreToolUse` hook that journals revision,
 event and actual cwd. They are also changed from A to B. Other runtimes'
-hooks are **not exercised**. Presence in provider history shows a file was
+hooks were **not exercised by that version**. Presence in provider history shows a file was
 read, not which instruction wins; absent markers or hooks do not establish
 unsupported configuration or freshness. Qoder uses native fake responses,
 which do not expose the model's instruction input here.
@@ -147,7 +155,9 @@ keep implementation separate from evidence.
 A later session must read the configuration that an isolated process opened
 at that moment would read. Otherwise automatic sharing changes behavior
 silently. This is now an explicit admission requirement, not implied by MCP
-routing. The following results are from the same five-turn Linux cohorts.
+routing. The following results are historical observations from the original
+five-turn Linux cohorts on base `8858813`, repeated by `0a8c5e9` on three
+platforms. They do not describe the current probe's expanded coverage.
 
 | Runtime | Shared later B | Separate later B | Existing A after edit | Hook coverage |
 | --- | --- | --- | --- | --- |
@@ -160,7 +170,10 @@ routing. The following results are from the same five-turn Linux cohorts.
 
 Codex/OpenCode agree with their fresh-process controls for the observed
 instruction file; this does not establish all configuration or hook behavior.
-Grok/Antigravity instruction freshness is **unverified**, not a pass. Qoder
+Grok/Antigravity instruction freshness was **unverified in that probe**, not a pass.
+The [coverage follow-up](configuration-coverage-2026-10-30.md) subsequently
+observed Grok's markers with its explicit trust condition; Antigravity's
+markers remain missing. Qoder
 agrees with its control for the exercised project hook, but its instruction
 freshness is unverified. Qoder's normal project-file refresh affects existing
 sessions in both modes, so that refresh is not a sharing-only defect.

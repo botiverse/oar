@@ -41,6 +41,12 @@ rather than an older prompt in history.
 | Qoder 1.1.81 | `AGENTS.md`, but native fake replies expose no model input | project `.qoder/settings.json`, `PreToolUse` | hooks agree; instruction freshness is missing and MCP crossover still fails |
 | Kimi 2.4.1 | `AGENTS.md` | disposable `KIMI_CODE_HOME/config.toml`, `PreToolUse` | old shared hook versus new isolated hook; delayed controls retain the discrepancy |
 
+OpenCode's successful MCP turns record both the outer execute hook and the
+inner tool-call hook. Both paths therefore retain two hook entries for each
+of the five compared inputs; the comparison keeps both entries. The actual
+MCP journal still verifies one tool invocation per input. An empty-MCP
+reopen without the tool can record only the outer hook.
+
 These are observations of specific files and exercised tools, not claims
 that every configuration field is fresh. A missing instruction marker does
 not prove that native rules are unsupported. Antigravity's documented rule
@@ -73,21 +79,34 @@ Native entry-point sources:
 The main Codex comparison supplies `bypass_hook_trust: true` in each native
 `thread/start` request before that session opens. This is an explicit
 per-session invocation override, not a persisted trust-store approval.
-Without it, the initial control observed no hook invocations. The main Grok
+In the control where A explicitly receives `bypass_hook_trust: false`, A has
+no hook records. The main Grok
 comparison sets `folder_trust.enabled=false` in its disposable user config
 before either native process starts. It does not create a persisted folder
 grant or modify the real user's configuration. These conditions apply
 symmetrically to shared and separate cohorts.
 
-An additional Codex control opens A with `bypass_hook_trust: false`, runs its
-MCP turn, edits the hook, then opens B with `bypass_hook_trust: true`. The
-separate control opens B on a fresh process after the same sequence. It
-requires an actual A invocation with no hook, an actual B invocation with a
-hook, and compares B's instruction markers and hook revision. The selected
-JSON preserves the false/true parameters and the native observations.
-Both local controls passed: A invoked its MCP without a hook, while B invoked
-the new hook and retained its own MCP output, with matching B instruction
-markers and hook revisions on the shared and separate paths.
+The additional Codex controls exercise both directions: A untrusted then B
+trusted, and A trusted then B untrusted. Each direction has a shared and a
+separate-process cohort. Both open A and run its MCP turn, edit the hook,
+open and invoke B, then invoke A again after B's turn. Every turn must invoke
+its own MCP exactly once and retain that native output. Each trusted turn
+must have hook records, and each untrusted turn must have none, including
+A after B opens. This checks for inherited trust in a later untrusted B and
+for either direction of trust change leaking back to A.
+
+The comparison retains all three turns, their hook revisions, each explicit
+trust parameter, and B's instruction markers. Expected absence counts only
+after the native tool call, retained output and positive trusted-peer hook
+were verified. A missing journal or unexecuted tool remains missing
+evidence; two empty observations do not pass by themselves.
+
+The four Linux controls completed on 2026-10-31 and passed. With A untrusted
+and B trusted, A had no hook records before or after B, while B ran hook B.
+With A trusted and B untrusted, A ran hook A on both turns and B had no hook
+records. Shared and separate processes matched; each of the three turns
+retained its own MCP result. This is evidence for the exercised per-session
+parameters, not a persisted trust-store change.
 
 This control tests a changed **per-session parameter**. It does not test a
 persisted Codex hook-trust grant made after process startup. Nor does the
@@ -101,7 +120,7 @@ No runtime version is admitted by this follow-up.
 
 Run `same-directory.ts` exactly as described in the
 [same-directory report](same-directory-2026-10-30.md#reproduction-and-remaining-work).
-Codex now also runs the two per-session hook-trust controls. Kimi still runs
+Codex now also runs four per-session hook-trust controls. Kimi still runs
 its six delayed configuration controls. Every native process, mock provider,
 hook file and temporary home is owned by the fixture. Both controls retain
 all failures before exiting. The ordinary PR gate checks helper regressions;
@@ -115,3 +134,7 @@ artifact identifiers (or the local probe base). Optional `exitCode` retains
 the complete failure list. Selection omits raw requests, session IDs and
 hook payloads; review the supplied source metadata and failure text before
 publishing.
+Partial reports retain a null reported version when installation is missing;
+a missing hook event is retained with `eventMissing: true`. The selector's
+partial-evidence regressions run with
+`python3 -B -m unittest discover -s experiments/sharing -p test_directory_selection.py`.

@@ -15,17 +15,27 @@ INPUTS = ["A_mcpbefore", "B_mcpafter", "A_mcpafter", "A_mcptogether",
           "B_mcptogether", "B_mcppeerclosed", "A_mcpempty",
           "A_mcpfreshbefore", "B_mcpfreshafter"]
 
+def record(value):
+    return value if isinstance(value, dict) else {}
+
+
+def items(value):
+    return value if isinstance(value, list) else []
+
+
 def pick(row, keys):
+    row = record(row)
     return {key: row[key] for key in keys if key in row}
 
 
 def hook_input(event):
+    event = record(event)
     args = (event.get("tool_input") or event.get("toolInput") or event.get("input")
-            or event.get("toolCall", {}).get("args") or {})
+            or record(event.get("toolCall")).get("args") or {})
     if not isinstance(args, dict):
         return None
-    direct = (args.get("text") or args.get("tool_input", {}).get("text")
-              or args.get("Arguments", {}).get("text"))
+    direct = (args.get("text") or record(args.get("tool_input")).get("text")
+              or record(args.get("Arguments")).get("text"))
     if direct in INPUTS:
         return direct
     for input_text in INPUTS:
@@ -38,10 +48,14 @@ def hook_input(event):
 
 def hooks(cohort):
     selected = []
-    for hook in cohort.get("directoryConfiguration", {}).get("hooks", []):
-        input_text = hook_input(hook["event"])
+    for hook in items(record(cohort.get("directoryConfiguration")).get("hooks")):
+        hook = record(hook)
+        if not isinstance(hook.get("event"), dict):
+            selected.append({"revision": hook.get("revision"), "input": None, "eventMissing": True})
+            continue
+        input_text = hook_input(hook.get("event"))
         if input_text is not None:
-            selected.append({"revision": hook["revision"], "input": input_text})
+            selected.append({"revision": hook.get("revision"), "input": input_text})
     return selected
 
 
@@ -51,20 +65,24 @@ def select(evidence, source, requested_version):
                          "configurationFollowupComparison", "trustFollowupComparison"])
     row["source"] = source
     row["requestedVersion"] = requested_version
-    row["reportedVersion"] = evidence["cohorts"][0]["installation"].get("version")
+    cohorts = items(evidence.get("cohorts"))
+    first = record(cohorts[0]) if cohorts else {}
+    row["reportedVersion"] = record(first.get("installation")).get("version")
     row["cohorts"] = []
-    for cohort in evidence["cohorts"]:
+    for cohort in cohorts:
+        cohort = record(cohort)
         selected = pick(cohort, ["mode", "observed", "isolated"])
         selected["errorRecorded"] = "error" in cohort
         selected["turns"] = [pick(turn, ["input", "invocation", "finalInvocation",
                                        "nativeOutputRetained", "directoryRuleMarkers", "isolated"])
-                             for turn in cohort.get("turns", [])]
+                             for turn in items(cohort.get("turns"))]
         selected["hooks"] = hooks(cohort)
-        config = cohort.get("directoryConfiguration", {})
+        config = record(cohort.get("directoryConfiguration"))
         selected.update(pick(config, ["hookScope", "trustCondition"]))
         selected["projectRuleFiles"] = sorted({revision["projectRuleFile"]
-                                               for revision in config.get("revisions", [])})
-        release = cohort.get("releasedDirectory", {})
+                                               for revision in items(config.get("revisions"))
+                                               if isinstance(revision, dict) and isinstance(revision.get("projectRuleFile"), str)})
+        release = record(cohort.get("releasedDirectory"))
         selected["releasedDirectory"] = pick(release, ["observed", "sentMcpServers", "calls",
                                                        "retainedMcpInvoked", "nativeOutputRetained",
                                                        "finalSurvivorInvocation"])
@@ -78,16 +96,21 @@ def select(evidence, source, requested_version):
         if field not in evidence:
             continue
         row[field] = []
-        for cohort in evidence[field]:
+        for cohort in items(evidence[field]):
+            cohort = record(cohort)
             selected = pick(cohort, ["scenario", "mode", "observed", "bInvocation", "aInvocation",
                                      "aHookObserved", "bHookObserved", "bNativeOutputRetained",
                                      "aBypassHookTrust", "bBypassHookTrust", "scope"])
-            selected["newSessionMarkers"] = cohort.get("newSession", {}).get("directoryRuleMarkers")
+            if "turns" in cohort:
+                selected["turns"] = [pick(turn, ["input", "invocation", "nativeOutputRetained",
+                                                "hookRevisions", "directoryRuleMarkers"])
+                                     for turn in items(cohort.get("turns"))]
+            selected["newSessionMarkers"] = record(cohort.get("newSession")).get("directoryRuleMarkers")
             selected["hooks"] = hooks(cohort)
             selected["errorRecorded"] = "error" in cohort
             if field == "configurationFollowup":
-                wait = next((wait for wait in cohort.get("waits", [])
-                             if wait.get("label") == "configuration settling before B open"), {})
+                wait = next((wait for wait in items(cohort.get("waits"))
+                             if isinstance(wait, dict) and wait.get("label") == "configuration settling before B open"), {})
                 selected["beforeBOpenDelayMs"] = wait.get("limitMs")
             row[field].append(selected)
     return row

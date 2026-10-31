@@ -12,7 +12,7 @@ import { ProbeTiming } from "./observation.js";
 import { recordProcessTableReads } from "./process-table.js";
 import { directoryFixture, type DirectorySession, type Label, type ConnectionMode } from "./same-directory-fixture.js";
 import { compareDirectoryConfiguration, directoryRuleMarkers } from "./directory-configuration.js";
-import { codexHookTrustObservations } from "./codex-hook-trust.js";
+import { codexHookTrustObservations, compareCodexHookTrust, trustScenarios } from "./codex-hook-trust.js";
 import { kimiConfigurationObservations } from "./kimi-configuration.js";
 import { directoryFailureReasons } from "./directory-failures.js";
 
@@ -95,15 +95,19 @@ if (runtime === "kimi") {
 }
 if (runtime === "codex") {
   const trust = await codexHookTrustObservations(); report.trustFollowup = trust;
-  const [sharedTrust, separateTrust] = trust; assert.ok(sharedTrust && separateTrust);
-  report.trustFollowupComparison = compareDirectoryConfiguration(sharedTrust, separateTrust);
+  report.trustFollowupComparison = trustScenarios.map((scenario) => {
+    const sharedTrust = trust.find((row) => row.scenario === scenario && row.mode === "shared");
+    const separateTrust = trust.find((row) => row.scenario === scenario && row.mode === "separate");
+    assert.ok(sharedTrust && separateTrust);
+    return compareCodexHookTrust(sharedTrust, separateTrust);
+  });
 }
 const [shared, separate] = cohorts;
 assert.ok(shared !== undefined && separate !== undefined);
 const comparison = compareDirectoryConfiguration(shared, separate);
 report.configurationComparison = comparison;
-report.missingEvidence = comparison.missingEvidence === true || asRecord(report.trustFollowupComparison)?.missingEvidence === true || (Array.isArray(report.configurationFollowupComparison)
-  && report.configurationFollowupComparison.some((entry) => asRecord(entry)?.missingEvidence === true));
+report.missingEvidence = comparison.missingEvidence === true || [report.trustFollowupComparison, report.configurationFollowupComparison]
+  .some((comparisons) => Array.isArray(comparisons) && comparisons.some((entry) => asRecord(entry)?.missingEvidence === true));
 const failures = directoryFailureReasons(report); report.failureReasons = failures;
 await writeFile(path.join(out, "evidence.json"), `${JSON.stringify(report, null, 2)}\n`, { mode: 0o600 });
 assert.equal(failures.length, 0, `${failures.join("\n")}; inspect evidence.json`);

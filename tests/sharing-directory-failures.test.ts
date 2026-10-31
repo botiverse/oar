@@ -52,13 +52,14 @@ it("accepts only complete, matching evidence and includes all failed configurati
 it("does not accept missing or differing Codex hook-trust controls", () => {
   const report = completeReport(); report.runtime = "codex";
   expect(directoryFailureReasons(report)).toEqual(expect.arrayContaining([
-    "missing evidence: expected both Codex hook-trust controls",
-    "hook trust: missing evidence for project instruction markers",
-    "hook trust: missing evidence for hook revisions",
+    "missing evidence: expected both directions of Codex hook-trust controls",
+    "hook trust/trusted_then_untrusted: missing evidence for project instruction markers",
+    "hook trust/untrusted_then_trusted: missing evidence for hook revisions",
   ]));
-  report.trustFollowup = ["shared", "separate"].map((mode) => ({ mode, observed: true }));
-  report.trustFollowupComparison = { projectMarkersMatch: true, hookRevisionsMatch: true };
+  const scenarios = ["untrusted_then_trusted", "trusted_then_untrusted"];
+  report.trustFollowup = scenarios.flatMap((scenario) => ["shared", "separate"].map((mode) => ({ scenario, mode, observed: true })));
+  report.trustFollowupComparison = scenarios.map((scenario) => ({ scenario, projectMarkersMatch: true, hookRevisionsMatch: true }));
   expect(directoryFailureReasons(report)).toEqual([]);
-  report.trustFollowupComparison = { projectMarkersMatch: true, hookRevisionsMatch: false };
-  expect(directoryFailureReasons(report)).toEqual(["hook trust: hook revisions differ between shared and fresh processes"]);
+  report.trustFollowupComparison = scenarios.map((scenario) => ({ scenario, projectMarkersMatch: true, hookRevisionsMatch: scenario !== "trusted_then_untrusted" }));
+  expect(directoryFailureReasons(report)).toEqual(["hook trust/trusted_then_untrusted: hook revisions differ between shared and fresh processes"]);
 });
