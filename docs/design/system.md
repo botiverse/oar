@@ -259,9 +259,11 @@ Sharing follows five rules:
    session, and an explicit request for shared placement is refused with a
    typed reason. The exact versions and platforms that meet this gate are
    recorded in the [evidence index](../../experiments/sharing/README.md)
-   (see the [2026-10-31 admission decisions](../../experiments/sharing/admission-2026-10-31.md)). OpenCode 2.2.3 and 2.2.5 enable sharing on the three admitted
-   platforms with its lifetime directory restriction. Other native adapters
-   still run in isolation until separately enabled. Claude, Qwen and Pi RPC
+   (see the [2026-10-31 admission decisions](../../experiments/sharing/admission-2026-10-31.md)). OpenCode 2.2.3 and 2.2.5 are no longer admitted:
+   [configured plugin children inherit a different cwd](../../experiments/sharing/opencode-plugin-environment-2026-10-31.md).
+   Grok 1.0.70 also remains unadmitted because configured stdio MCP children
+   inherit the shared process HOME. No native runtime is currently enabled
+   for shared placement. Claude, Qwen and Pi RPC
    run one session per native process and are always isolated. Qoder 1.1.80
    and earlier are also isolated. From 1.1.81, Qoder's native SDK daemon can
    run multiple sessions ([probe](../../experiments/qoder-native/daemon-2026-10-29.md));

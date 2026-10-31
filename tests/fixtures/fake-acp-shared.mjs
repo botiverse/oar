@@ -28,7 +28,7 @@ async function handle(message) {
     initialized++;
     if (process.env.FAIL_INIT === '1') { send({ id, error: { code: -32_000, message: 'initialize refused' } }); return; }
     const version = process.env.FIXTURE_AGENT_VERSION_FILE ? readFileSync(process.env.FIXTURE_AGENT_VERSION_FILE, 'utf8') : process.env.FIXTURE_AGENT_VERSION;
-    result(id, { protocolVersion: 1, ...(version ? { agentInfo: { name: 'fixture', version } } : {}), agentCapabilities: { loadSession: true, sessionCapabilities: { resume: {}, close: {} } } });
+    result(id, { protocolVersion: 1, ...(version ? { agentInfo: { name: 'fixture', version } } : {}), agentCapabilities: { ...(process.env.FIXTURE_HTTP_MCP === "1" ? { mcpCapabilities: { http: true } } : {}), loadSession: true, sessionCapabilities: { resume: {}, close: {} } } });
   } else if (method === 'session/new') {
     const sessionId = `root-${++nextSession}`;
     const collision = /(?:late-)?collision-(?<id>root-\d+)$/u.exec(params.cwd)?.groups?.id;

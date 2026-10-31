@@ -4,8 +4,9 @@ These probes exercise native multi-session transports with scripted local
 model responses. They do not enable OAR process sharing. The admission rule
 is [system.md, Shared runtime processes](../../docs/design/system.md#shared-runtime-processes).
 
+- [OpenCode plugin child cwd counterexample and admission withdrawal](opencode-plugin-environment-2026-10-31.md).
 - [Current version/platform admission decisions](admission-2026-10-31.md).
-- [OpenCode 2.2.5 complete three-platform evidence and restricted admission](opencode-2.2.5-2026-10-31.md).
+- [OpenCode 2.2.5 historical three-platform evidence](opencode-2.2.5-2026-10-31.md).
 - [Native trust refresh, cross-directory controls and latest platform results](trust-freshness-2026-10-31.md).
 - [Configuration coverage and complete failure diagnostics](configuration-coverage-2026-10-30.md).
 - [Same-directory MCP and configuration freshness](same-directory-2026-10-30.md).
@@ -33,19 +34,13 @@ Other versions do not inherit these results.
 
 The workflow now collects OpenCode **2.2.5**, whose ordinary Linux checks
 are in the [October 31 daily report](../runtime-version-checks/2026-10-31.md#opencode-225).
-Its [complete three-platform sharing evidence](opencode-2.2.5-2026-10-31.md)
-is now recorded: native observations, project discovery, user-configuration
-refresh and resources complete on all three platforms, while same-directory
-MCP crossover and post-close retention remain. It is admitted on those
-platforms with the same lifetime directory restriction as 2.2.3. OAR's
-product table enables both versions; shared-placement and isolated-cleanup
-CI run 2.2.5. The earlier 2.2.3 native evidence remains recorded above.
-
-**Grok 1.0.70 meets the complete evidence gate on Linux x64, macOS arm64
-and Windows x64. OpenCode 2.2.3 and 2.2.5 meet it on the same platforms only with one
-session per canonical directory for the entire process lifetime.**
-OpenCode currently enables 2.2.3 and 2.2.5 with the lifetime directory
-restriction; Grok's admitted adapter cells are not enabled yet.
+Its [earlier three-platform evidence](opencode-2.2.5-2026-10-31.md) covered
+resources, routing, lifecycle and configuration, but not plugin child cwd.
+**OpenCode 2.2.3/2.2.5 and Grok 1.0.70 are not admitted on any platform.**
+OpenCode configured plugins and Grok configured stdio MCP can start children
+in shared HOME rather than the session directory; hidden configuration
+prevents an options-only guard. OpenCode `auto` is isolated and explicit
+`shared` is refused. Candidate adapters and manual controls are experiments.
 The [current admission report](admission-2026-10-31.md)
 links each decision to its observation, resource and configuration evidence,
 including all 18 artifacts from run 41157633349.

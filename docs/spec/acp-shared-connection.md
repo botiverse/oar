@@ -196,7 +196,15 @@ native frame or a successful stop. A host request cancelled before handler
 dispatch remains a `toApp` request and an answered failure; no terminal or
 other host work starts for the cancelled request.
 
-For OpenCode 2.2.3, the running process must confirm the exact admitted version
+OpenCode production admission is closed on every platform and version,
+including 2.2.3 and 2.2.5: configured plugins can start child processes in
+HOME when shared and in the session directory when isolated. Because these
+plugins cannot be determined from SessionOptions, `auto` must fall back to
+isolation before starting a shared process, and explicit `shared` must fail
+with `UnsupportedOptionError` for `placement`. See the
+[native evidence](../../experiments/sharing/opencode-plugin-environment-2026-10-31.md).
+
+The disabled candidate's running process must confirm exact 2.2.3 or 2.2.5
 in its initialize reply before any session/new or resume. A stale installation
 snapshot cannot admit a newer binary. Version refusal retires the pool entry
 and stops its process before auto opens independently or shared is refused.

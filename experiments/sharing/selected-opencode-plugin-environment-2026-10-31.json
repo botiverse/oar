@@ -1,0 +1,314 @@
+[
+  {
+    "runtime": "opencode",
+    "version": "opencode v2.2.3",
+    "platform": "linux",
+    "arch": "x64",
+    "scope": "user",
+    "placement": "shared",
+    "errors": [],
+    "hooks": [
+      {
+        "revision": "A",
+        "pluginCwd": "process_HOME",
+        "pluginLocation": "session_A",
+        "environmentMarker": "oar-execution-fixture",
+        "childCwd": "process_HOME",
+        "childEnvironmentMarker": "oar-execution-fixture"
+      },
+      {
+        "revision": "A",
+        "pluginCwd": "process_HOME",
+        "pluginLocation": "session_B",
+        "environmentMarker": "oar-execution-fixture",
+        "childCwd": "process_HOME",
+        "childEnvironmentMarker": "oar-execution-fixture"
+      }
+    ],
+    "tools": [
+      {
+        "label": "A",
+        "cwd": "session_A",
+        "environmentMarker": "oar-execution-fixture"
+      },
+      {
+        "label": "B",
+        "cwd": "session_B",
+        "environmentMarker": "oar-execution-fixture"
+      }
+    ]
+  },
+  {
+    "runtime": "opencode",
+    "version": "opencode v2.2.3",
+    "platform": "linux",
+    "arch": "x64",
+    "scope": "user",
+    "placement": "isolated",
+    "errors": [],
+    "hooks": [
+      {
+        "revision": "A",
+        "pluginCwd": "session_A",
+        "pluginLocation": "session_A",
+        "environmentMarker": "oar-execution-fixture",
+        "childCwd": "session_A",
+        "childEnvironmentMarker": "oar-execution-fixture"
+      },
+      {
+        "revision": "A",
+        "pluginCwd": "session_B",
+        "pluginLocation": "session_B",
+        "environmentMarker": "oar-execution-fixture",
+        "childCwd": "session_B",
+        "childEnvironmentMarker": "oar-execution-fixture"
+      }
+    ],
+    "tools": [
+      {
+        "label": "A",
+        "cwd": "session_A",
+        "environmentMarker": "oar-execution-fixture"
+      },
+      {
+        "label": "B",
+        "cwd": "session_B",
+        "environmentMarker": "oar-execution-fixture"
+      }
+    ]
+  },
+  {
+    "runtime": "opencode",
+    "version": "opencode v2.2.3",
+    "platform": "linux",
+    "arch": "x64",
+    "scope": "project",
+    "placement": "shared",
+    "errors": [],
+    "hooks": [
+      {
+        "revision": "A",
+        "pluginCwd": "process_HOME",
+        "pluginLocation": "session_A",
+        "environmentMarker": "oar-execution-fixture",
+        "childCwd": "process_HOME",
+        "childEnvironmentMarker": "oar-execution-fixture"
+      },
+      {
+        "revision": "B",
+        "pluginCwd": "process_HOME",
+        "pluginLocation": "session_B",
+        "environmentMarker": "oar-execution-fixture",
+        "childCwd": "process_HOME",
+        "childEnvironmentMarker": "oar-execution-fixture"
+      }
+    ],
+    "tools": [
+      {
+        "label": "A",
+        "cwd": "session_A",
+        "environmentMarker": "oar-execution-fixture"
+      },
+      {
+        "label": "B",
+        "cwd": "session_B",
+        "environmentMarker": "oar-execution-fixture"
+      }
+    ]
+  },
+  {
+    "runtime": "opencode",
+    "version": "opencode v2.2.3",
+    "platform": "linux",
+    "arch": "x64",
+    "scope": "project",
+    "placement": "isolated",
+    "errors": [],
+    "hooks": [
+      {
+        "revision": "A",
+        "pluginCwd": "session_A",
+        "pluginLocation": "session_A",
+        "environmentMarker": "oar-execution-fixture",
+        "childCwd": "session_A",
+        "childEnvironmentMarker": "oar-execution-fixture"
+      },
+      {
+        "revision": "B",
+        "pluginCwd": "session_B",
+        "pluginLocation": "session_B",
+        "environmentMarker": "oar-execution-fixture",
+        "childCwd": "session_B",
+        "childEnvironmentMarker": "oar-execution-fixture"
+      }
+    ],
+    "tools": [
+      {
+        "label": "A",
+        "cwd": "session_A",
+        "environmentMarker": "oar-execution-fixture"
+      },
+      {
+        "label": "B",
+        "cwd": "session_B",
+        "environmentMarker": "oar-execution-fixture"
+      }
+    ]
+  },
+  {
+    "runtime": "opencode",
+    "version": "opencode v2.2.5",
+    "platform": "linux",
+    "arch": "x64",
+    "scope": "user",
+    "placement": "shared",
+    "errors": [],
+    "hooks": [
+      {
+        "revision": "A",
+        "pluginCwd": "process_HOME",
+        "pluginLocation": "session_A",
+        "environmentMarker": "oar-execution-fixture",
+        "childCwd": "process_HOME",
+        "childEnvironmentMarker": "oar-execution-fixture"
+      },
+      {
+        "revision": "A",
+        "pluginCwd": "process_HOME",
+        "pluginLocation": "session_B",
+        "environmentMarker": "oar-execution-fixture",
+        "childCwd": "process_HOME",
+        "childEnvironmentMarker": "oar-execution-fixture"
+      }
+    ],
+    "tools": [
+      {
+        "label": "A",
+        "cwd": "session_A",
+        "environmentMarker": "oar-execution-fixture"
+      },
+      {
+        "label": "B",
+        "cwd": "session_B",
+        "environmentMarker": "oar-execution-fixture"
+      }
+    ]
+  },
+  {
+    "runtime": "opencode",
+    "version": "opencode v2.2.5",
+    "platform": "linux",
+    "arch": "x64",
+    "scope": "user",
+    "placement": "isolated",
+    "errors": [],
+    "hooks": [
+      {
+        "revision": "A",
+        "pluginCwd": "session_A",
+        "pluginLocation": "session_A",
+        "environmentMarker": "oar-execution-fixture",
+        "childCwd": "session_A",
+        "childEnvironmentMarker": "oar-execution-fixture"
+      },
+      {
+        "revision": "A",
+        "pluginCwd": "session_B",
+        "pluginLocation": "session_B",
+        "environmentMarker": "oar-execution-fixture",
+        "childCwd": "session_B",
+        "childEnvironmentMarker": "oar-execution-fixture"
+      }
+    ],
+    "tools": [
+      {
+        "label": "A",
+        "cwd": "session_A",
+        "environmentMarker": "oar-execution-fixture"
+      },
+      {
+        "label": "B",
+        "cwd": "session_B",
+        "environmentMarker": "oar-execution-fixture"
+      }
+    ]
+  },
+  {
+    "runtime": "opencode",
+    "version": "opencode v2.2.5",
+    "platform": "linux",
+    "arch": "x64",
+    "scope": "project",
+    "placement": "shared",
+    "errors": [],
+    "hooks": [
+      {
+        "revision": "A",
+        "pluginCwd": "process_HOME",
+        "pluginLocation": "session_A",
+        "environmentMarker": "oar-execution-fixture",
+        "childCwd": "process_HOME",
+        "childEnvironmentMarker": "oar-execution-fixture"
+      },
+      {
+        "revision": "B",
+        "pluginCwd": "process_HOME",
+        "pluginLocation": "session_B",
+        "environmentMarker": "oar-execution-fixture",
+        "childCwd": "process_HOME",
+        "childEnvironmentMarker": "oar-execution-fixture"
+      }
+    ],
+    "tools": [
+      {
+        "label": "A",
+        "cwd": "session_A",
+        "environmentMarker": "oar-execution-fixture"
+      },
+      {
+        "label": "B",
+        "cwd": "session_B",
+        "environmentMarker": "oar-execution-fixture"
+      }
+    ]
+  },
+  {
+    "runtime": "opencode",
+    "version": "opencode v2.2.5",
+    "platform": "linux",
+    "arch": "x64",
+    "scope": "project",
+    "placement": "isolated",
+    "errors": [],
+    "hooks": [
+      {
+        "revision": "A",
+        "pluginCwd": "session_A",
+        "pluginLocation": "session_A",
+        "environmentMarker": "oar-execution-fixture",
+        "childCwd": "session_A",
+        "childEnvironmentMarker": "oar-execution-fixture"
+      },
+      {
+        "revision": "B",
+        "pluginCwd": "session_B",
+        "pluginLocation": "session_B",
+        "environmentMarker": "oar-execution-fixture",
+        "childCwd": "session_B",
+        "childEnvironmentMarker": "oar-execution-fixture"
+      }
+    ],
+    "tools": [
+      {
+        "label": "A",
+        "cwd": "session_A",
+        "environmentMarker": "oar-execution-fixture"
+      },
+      {
+        "label": "B",
+        "cwd": "session_B",
+        "environmentMarker": "oar-execution-fixture"
+      }
+    ]
+  }
+]

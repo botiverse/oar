@@ -4,11 +4,10 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, expect, test, vi, type MockInstance } from "vitest";
-import type { AvailableInstallation } from "../../packages/oar/src/contracts/installation.js";
 // oxlint-disable-next-line import/no-namespace -- Observe real fixture process lifecycle.
 import * as acp from "../../packages/oar/src/shared/acp/process.js";
 import type { Session } from "../../packages/oar/src/contracts/session.js";
-import { opencodeRuntime } from "../../packages/oar/src/runtimes/opencode/index.js";
+import { experimentalOpenCodeRuntime, opencodeCandidateRefusal } from "../../experiments/sharing/opencode-candidate.js";
 import { acpSession } from "../../packages/oar/src/shared/acp/session.js";
 import { promptAndWait } from "../../packages/oar/src/observe/turns.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
@@ -19,11 +18,6 @@ vi.mock("../../packages/oar/src/runtimes/opencode/session.js", async (importOrig
   const actual = await importOriginal<typeof OpenCodeSessionModule>();
   const profile = { ...actual.opencodeV2AcpProfile, args: [fileURLToPath(new URL("../fixtures/fake-acp-shared.mjs", import.meta.url))], resumeKeepsSessionCwd: false };
   return { ...actual, opencodeV2AcpProfile: profile, opencodeSession: acpSession(profile) };
-});
-// Only admission is fixed. Filesystem and process behavior still run on the actual host OS.
-vi.mock("../../packages/oar/src/runtimes/opencode/sharing-admission.js", async importOriginal => {
-  const actual = await importOriginal<{ opencodeSharedRefusal: (installation: AvailableInstallation, platform: NodeJS.Platform, arch: string) => string | null }>();
-  return { ...actual, opencodeSharedRefusal: (value: AvailableInstallation) => actual.opencodeSharedRefusal(value, "linux", "x64") };
 });
 const sessions: Session[] = [];
 const roots: string[] = [];
@@ -45,7 +39,7 @@ function pid(session: Session): unknown {
 async function fixture(version = "2.2.5") {
   const root = await mkdtemp(path.join(os.tmpdir(), "oar-opencode-sharing-")); roots.push(root);
   await Promise.all(["a", "b", "c"].map(async name => { await mkdir(path.join(root, name)); }));
-  const runtime = opencodeRuntime.withPlacement("auto");
+  const runtime = experimentalOpenCodeRuntime(value => opencodeCandidateRefusal(value, "linux", "x64")).withPlacement("auto");
   const env = { HOME: root, USERPROFILE: root, PATH: path.dirname(process.execPath), FIXTURE_AGENT_VERSION: version };
   return { root, runtime, env, open: async (name: string, selected = runtime, resume?: string) => {
     const session = await selected.session({ ...installation, version: `opencode v${version}` }, { cwd: path.join(root, name), env, ...(resume === undefined ? {} : { resume }) }); sessions.push(session); return session;

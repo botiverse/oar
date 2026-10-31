@@ -2,6 +2,10 @@
 
 Runtime version check: 2026-10-31.
 
+Historical report: PR #581 subsequently enabled 2.2.5; that admission is now
+[withdrawn because configured plugin children inherit a different cwd](opencode-plugin-environment-2026-10-31.md).
+The original observations below keep their original scope.
+
 OpenCode **2.2.5** meets the native sharing evidence gate on **Linux x64,
 macOS arm64 and Windows x64**, with the lifetime directory restriction below.
 Each platform retains the same-directory MCP crossover and
