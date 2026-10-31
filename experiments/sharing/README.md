@@ -37,16 +37,16 @@ Its [complete three-platform sharing evidence](opencode-2.2.5-2026-10-31.md)
 is now recorded: native observations, project discovery, user-configuration
 refresh and resources complete on all three platforms, while same-directory
 MCP crossover and post-close retention remain. It is admitted on those
-platforms with the same lifetime directory restriction as 2.2.3. Product
-enablement is a separate change; OAR's product table and shared-placement CI
-still remain 2.2.3.
+platforms with the same lifetime directory restriction as 2.2.3. OAR's
+product table enables both versions; shared-placement and isolated-cleanup
+CI run 2.2.5. The earlier 2.2.3 native evidence remains recorded above.
 
 **Grok 1.0.70 meets the complete evidence gate on Linux x64, macOS arm64
 and Windows x64. OpenCode 2.2.3 and 2.2.5 meet it on the same platforms only with one
 session per canonical directory for the entire process lifetime.**
-OpenCode currently enables 2.2.3 with its lifetime directory restriction;
-2.2.5 and Grok admission are recorded, but those adapter cells are not enabled
-yet. The [current admission report](admission-2026-10-31.md)
+OpenCode currently enables 2.2.3 and 2.2.5 with the lifetime directory
+restriction; Grok's admitted adapter cells are not enabled yet.
+The [current admission report](admission-2026-10-31.md)
 links each decision to its observation, resource and configuration evidence,
 including all 18 artifacts from run 41157633349.
 

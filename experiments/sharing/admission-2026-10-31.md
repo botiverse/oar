@@ -6,8 +6,8 @@ Grok 1.0.70 and OpenCode 2.2.3 and 2.2.5 meet the native evidence gate on **Linu
 macOS arm64 and Windows x64**. OpenCode's admission requires **one session
 per canonical directory for the entire native process lifetime**, including
 after release. Other versions and architectures do not inherit admission.
-This report records native admission. OAR enables OpenCode 2.2.3; adding
-2.2.5 to these decisions does not enable that adapter version. Other native
+This report records native admission. OAR enables OpenCode 2.2.3 and 2.2.5
+on those platforms with the lifetime directory restriction. Other native
 adapters remain isolated until separately implemented.
 
 ## Decisions and evidence
@@ -15,8 +15,8 @@ adapters remain isolated until separately implemented.
 | Exact runtime | Linux x64 | macOS arm64 | Windows x64 | Required adapter boundary |
 | --- | --- | --- | --- | --- |
 | Grok 1.0.70 | admitted | admitted | admitted | Native per-session cleanup and explicit child attribution; configuration/trust controls below |
-| OpenCode 2.2.3 | admitted with directory restriction | admitted with directory restriction | admitted with directory restriction | Each canonical directory belongs to only one session per process lifetime |
-| OpenCode 2.2.5 | admitted with directory restriction | admitted with directory restriction | admitted with directory restriction | Same lifetime directory restriction; separate product enablement pending |
+| OpenCode 2.2.3 | admitted with directory restriction | admitted with directory restriction | admitted with directory restriction | Enabled; each canonical directory belongs to only one session per process lifetime |
+| OpenCode 2.2.5 | admitted with directory restriction | admitted with directory restriction | admitted with directory restriction | Enabled with the same lifetime directory restriction |
 | Codex 0.166.0 | not admitted | not admitted | not admitted | Persisted hook-trust changes untested; loaded-session resume model behavior needs an adapter rule |
 
 Grok's [original admission report](admission-2026-10-30.md) records seven of
@@ -117,10 +117,11 @@ remain failures in those files, including the expected non-admitted results.
 
 ## Implementation order
 
-OpenCode 2.2.3 is the first enabled adapter, with its directory restriction;
-Grok follows. OpenCode 2.2.5 admission requires a separate version-table and
-CI update. Kimi remains deferred for stale hooks. Codex remains in the
-second group. A separate adapter change must enforce exact version/platform
+OpenCode is the first enabled adapter, at exact versions 2.2.3 and 2.2.5
+with the lifetime directory restriction. Its shared-placement and
+isolated-cleanup CI run 2.2.5. Grok follows. Kimi remains deferred for stale
+hooks. Codex remains in the second group. A separate adapter change must
+enforce exact version/platform
 admission, retain an explicit isolated path, validate its OAR lifecycle and
 routing, and document its first default `auto` sharing release. This report
 is evidence admission, not a switch that enables sharing.

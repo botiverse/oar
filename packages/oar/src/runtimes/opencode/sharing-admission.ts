@@ -1,10 +1,11 @@
 import type { AvailableInstallation } from "../../contracts/installation.js";
 
-/** Exact cells in experiments/sharing/admission-2026-10-31.md; upgrades need new evidence. */
+/** Exact native versions with reviewed sharing evidence; no version ranges. */
 export function isOpenCodeSharedVersion(version: unknown): boolean {
   return version === "2.2.3" || version === "2.2.5";
 }
 
+/** Exact cells in experiments/sharing/admission-2026-10-31.md; upgrades need new evidence. */
 export function opencodeSharedRefusal(installation: AvailableInstallation, platform: NodeJS.Platform = process.platform, arch: string = process.arch): string | null {
   const version = installation.via === "executable"
     ? /^(?:opencode\s+)?v?(\d+\.\d+\.\d+)$/u.exec(installation.version?.trim() ?? "")?.[1] : undefined;
