@@ -23,7 +23,7 @@ vi.mock("../../packages/oar/src/runtimes/opencode/session.js", async (importOrig
 // Only admission is fixed. Filesystem and process behavior still run on the actual host OS.
 vi.mock("../../packages/oar/src/runtimes/opencode/sharing-admission.js", async importOriginal => {
   const actual = await importOriginal<{ opencodeSharedRefusal: (installation: AvailableInstallation, platform: NodeJS.Platform, arch: string) => string | null }>();
-  return { opencodeSharedRefusal: (value: AvailableInstallation) => actual.opencodeSharedRefusal(value, "linux", "x64") };
+  return { ...actual, opencodeSharedRefusal: (value: AvailableInstallation) => actual.opencodeSharedRefusal(value, "linux", "x64") };
 });
 const sessions: Session[] = [];
 const roots: string[] = [];
@@ -31,7 +31,7 @@ afterEach(async () => {
   await Promise.all(sessions.splice(0).map(async session => { await session.dispose(); }));
   await Promise.all(roots.splice(0).map(async root => { await rm(root, { recursive: true, force: true }); }));
 });
-const installation = { kind: "available", via: "executable", command: process.execPath, version: "opencode v2.2.3" } as const;
+const installation = { kind: "available", via: "executable", command: process.execPath, version: "opencode v2.2.5" } as const;
 function exits(session: Session) { return session.records().filter(r => r.kind === "response" && r.body.kind === "exited"); }
 function launched(spy: MockInstance<typeof acp.startAcpProcess>, index: number): acp.AcpProcess {
   const result = spy.mock.results[index];
@@ -42,18 +42,18 @@ function pid(session: Session): unknown {
   const record = session.records().find(r => r.kind === "frame" && ["session/new", "session/resume"].includes(r.body.type));
   return record?.kind === "frame" ? asRecord(record.body.native)?.pid : null;
 }
-async function fixture() {
+async function fixture(version = "2.2.5") {
   const root = await mkdtemp(path.join(os.tmpdir(), "oar-opencode-sharing-")); roots.push(root);
   await Promise.all(["a", "b", "c"].map(async name => { await mkdir(path.join(root, name)); }));
   const runtime = opencodeRuntime.withPlacement("auto");
-  const env = { HOME: root, USERPROFILE: root, PATH: path.dirname(process.execPath), FIXTURE_AGENT_VERSION: "2.2.3" };
+  const env = { HOME: root, USERPROFILE: root, PATH: path.dirname(process.execPath), FIXTURE_AGENT_VERSION: version };
   return { root, runtime, env, open: async (name: string, selected = runtime, resume?: string) => {
-    const session = await selected.session(installation, { cwd: path.join(root, name), env, ...(resume === undefined ? {} : { resume }) }); sessions.push(session); return session;
+    const session = await selected.session({ ...installation, version: `opencode v${version}` }, { cwd: path.join(root, name), env, ...(resume === undefined ? {} : { resume }) }); sessions.push(session); return session;
   } };
 }
 
-test("auto shares distinct directories; aliases and lifetime reuse fall back before native open", async () => {
-  const f = await fixture();
+test.each(["2.2.3", "2.2.5"])("%s auto shares distinct directories; aliases and lifetime reuse fall back before native open", async version => {
+  const f = await fixture(version);
   const [a, b] = await Promise.all([f.open("a"), f.open("b")]);
   expect(a.placement).toBe("shared"); expect(pid(a)).toEqual(pid(b));
   await symlink(path.join(f.root, "a"), path.join(f.root, "alias"), "junction");
@@ -68,8 +68,8 @@ test("auto shares distinct directories; aliases and lifetime reuse fall back bef
   const fresh = await f.open("a"); expect(fresh.placement).toBe("shared"); expect(pid(fresh)).not.toEqual(pid(b));
 });
 
-test("explicit shared refuses repeated directory even after release; each runtime has its own pool", async () => {
-  const f = await fixture(); const shared = f.runtime.withPlacement("shared");
+test.each(["2.2.3", "2.2.5"])("%s explicit shared refuses repeated directory even after release; each runtime has its own pool", async version => {
+  const f = await fixture(version); const shared = f.runtime.withPlacement("shared");
   const [a, b] = await Promise.all([f.open("a", shared), f.open("b", shared)]);
   await expect(f.open("a", shared)).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "placement" });
   await a.dispose();
@@ -129,7 +129,7 @@ test("custom startup arguments fall back under auto and are refused under explic
   await expect(f.runtime.withPlacement("shared").session(installation, { cwd: f.root, env: f.env, launchArgs: ["custom-startup"] })).rejects.toMatchObject({ option: "placement" });
 });
 
-test.each(["2.2.4", ""])("a stale installation cannot admit an actual version %j after the last lease exits", async version => {
+test.each(["2.2.4", "2.2.6", "2.2.5-dev", "opencode v2.2.5", ""])("a stale installation cannot admit an actual version %j after the last lease exits", async version => {
   const f = await fixture();
   const versionFile = path.join(f.root, "version.txt"); const traceFile = path.join(f.root, "trace.jsonl");
   const env = { ...f.env, FIXTURE_AGENT_VERSION_FILE: versionFile, FIXTURE_TRACE_FILE: traceFile };
@@ -138,7 +138,7 @@ test.each(["2.2.4", ""])("a stale installation cannot admit an actual version %j
   };
   // Keep the same Runtime, installation snapshot and environment across the executable upgrade.
   const selected = f.runtime.withPlacement("auto");
-  await writeFile(versionFile, "2.2.3");
+  await writeFile(versionFile, "2.2.5");
   const a = await selected.session(installation, { cwd: path.join(f.root, "a"), env }); sessions.push(a);
   expect(a.placement).toBe("shared"); await a.dispose();
   await writeFile(versionFile, version);
@@ -155,7 +155,7 @@ test.each(["2.2.4", ""])("a stale installation cannot admit an actual version %j
     for (const entry of trace) { const methods = processes.get(entry?.pid) ?? []; methods.push(entry?.method); processes.set(entry?.pid, methods); }
     // Both refused native processes initialized only. Neither received new/resume or MCP credentials.
     expect([...processes.values()].filter(methods => methods.length === 1 && methods[0] === "initialize")).toHaveLength(2);
-    await b.dispose(); await writeFile(versionFile, "2.2.3");
+    await b.dispose(); await writeFile(versionFile, "2.2.5");
     const recovered = await selected.session(installation, { cwd: path.join(f.root, "a"), env }); sessions.push(recovered);
     expect(recovered.placement).toBe("shared");
   } finally { launches.mockRestore(); }

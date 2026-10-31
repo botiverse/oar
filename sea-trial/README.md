@@ -94,7 +94,7 @@ Title-generation requests receive a separate fixture, so they cannot consume
 conversation replies or be counted as duplicated turns.
 
 `OAR_TEST=opencode-shared` runs the session behavior suite through the real
-OpenCode 2.2.3 auto-sharing adapter with a local provider. Each fresh session
+OpenCode 2.2.5 auto-sharing adapter with a local provider. Each fresh session
 gets a distinct temporary project; resume keeps the observed original cwd.
 Fresh sessions must report shared placement, while directory reuse follows
 the adapter's isolated fallback. The three admitted platforms run it in CI,
