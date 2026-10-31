@@ -1,0 +1,1034 @@
+[
+  {
+    "runtime": "opencode",
+    "version": "opencode v2.2.3",
+    "platform": "linux",
+    "arch": "x64",
+    "placement": "shared",
+    "errors": [],
+    "kind": "mcp",
+    "tools": [
+      {
+        "label": "A",
+        "cwd": "session_A",
+        "environmentMarker": "oar-execution-fixture"
+      },
+      {
+        "label": "B",
+        "cwd": "session_B",
+        "environmentMarker": "oar-execution-fixture"
+      }
+    ],
+    "source": "session",
+    "sessionDirectoriesObserved": [
+      true,
+      true
+    ],
+    "calls": [
+      {
+        "server": "A",
+        "input": "A",
+        "output": "MCP_RESULT=A input=A"
+      },
+      {
+        "server": "B",
+        "input": "B",
+        "output": "MCP_RESULT=B input=B"
+      }
+    ],
+    "observations": [
+      {
+        "server": "A",
+        "cwd": "session_A",
+        "environmentMarker": "oar-execution-fixture",
+        "matchesSession": true
+      },
+      {
+        "server": "B",
+        "cwd": "session_B",
+        "environmentMarker": "oar-execution-fixture",
+        "matchesSession": true
+      }
+    ]
+  },
+  {
+    "runtime": "opencode",
+    "version": "opencode v2.2.3",
+    "platform": "linux",
+    "arch": "x64",
+    "placement": "isolated",
+    "errors": [],
+    "kind": "mcp",
+    "tools": [
+      {
+        "label": "A",
+        "cwd": "session_A",
+        "environmentMarker": "oar-execution-fixture"
+      },
+      {
+        "label": "B",
+        "cwd": "session_B",
+        "environmentMarker": "oar-execution-fixture"
+      }
+    ],
+    "source": "session",
+    "sessionDirectoriesObserved": [
+      true,
+      true
+    ],
+    "calls": [
+      {
+        "server": "A",
+        "input": "A",
+        "output": "MCP_RESULT=A input=A"
+      },
+      {
+        "server": "B",
+        "input": "B",
+        "output": "MCP_RESULT=B input=B"
+      }
+    ],
+    "observations": [
+      {
+        "server": "A",
+        "cwd": "session_A",
+        "environmentMarker": "oar-execution-fixture",
+        "matchesSession": true
+      },
+      {
+        "server": "B",
+        "cwd": "session_B",
+        "environmentMarker": "oar-execution-fixture",
+        "matchesSession": true
+      }
+    ]
+  },
+  {
+    "runtime": "opencode",
+    "version": "opencode v2.2.3",
+    "platform": "linux",
+    "arch": "x64",
+    "placement": "shared",
+    "errors": [],
+    "kind": "mcp",
+    "tools": [
+      {
+        "label": "A",
+        "cwd": "session_A",
+        "environmentMarker": "oar-execution-fixture"
+      },
+      {
+        "label": "B",
+        "cwd": "session_B",
+        "environmentMarker": "oar-execution-fixture"
+      }
+    ],
+    "source": "user",
+    "sessionDirectoriesObserved": [
+      true,
+      true
+    ],
+    "calls": [
+      {
+        "server": "configured",
+        "input": "A",
+        "output": "MCP_RESULT=configured input=A"
+      },
+      {
+        "server": "configured",
+        "input": "B",
+        "output": "MCP_RESULT=configured input=B"
+      }
+    ],
+    "observations": [
+      {
+        "server": "configured",
+        "cwd": "session_A",
+        "environmentMarker": "oar-execution-fixture",
+        "matchesSession": true
+      },
+      {
+        "server": "configured",
+        "cwd": "session_B",
+        "environmentMarker": "oar-execution-fixture",
+        "matchesSession": true
+      }
+    ]
+  },
+  {
+    "runtime": "opencode",
+    "version": "opencode v2.2.3",
+    "platform": "linux",
+    "arch": "x64",
+    "placement": "isolated",
+    "errors": [],
+    "kind": "mcp",
+    "tools": [
+      {
+        "label": "A",
+        "cwd": "session_A",
+        "environmentMarker": "oar-execution-fixture"
+      },
+      {
+        "label": "B",
+        "cwd": "session_B",
+        "environmentMarker": "oar-execution-fixture"
+      }
+    ],
+    "source": "user",
+    "sessionDirectoriesObserved": [
+      true,
+      true
+    ],
+    "calls": [
+      {
+        "server": "configured",
+        "input": "A",
+        "output": "MCP_RESULT=configured input=A"
+      },
+      {
+        "server": "configured",
+        "input": "B",
+        "output": "MCP_RESULT=configured input=B"
+      }
+    ],
+    "observations": [
+      {
+        "server": "configured",
+        "cwd": "session_A",
+        "environmentMarker": "oar-execution-fixture",
+        "matchesSession": true
+      },
+      {
+        "server": "configured",
+        "cwd": "session_B",
+        "environmentMarker": "oar-execution-fixture",
+        "matchesSession": true
+      }
+    ]
+  },
+  {
+    "runtime": "opencode",
+    "version": "opencode v2.2.3",
+    "platform": "linux",
+    "arch": "x64",
+    "placement": "shared",
+    "errors": [],
+    "kind": "hooks",
+    "tools": [
+      {
+        "label": "A",
+        "cwd": "session_A",
+        "environmentMarker": "oar-execution-fixture"
+      },
+      {
+        "label": "B",
+        "cwd": "session_B",
+        "environmentMarker": "oar-execution-fixture"
+      }
+    ],
+    "scope": "user",
+    "hooks": [
+      {
+        "revision": "A",
+        "cwd": "process_HOME",
+        "environmentMarker": "oar-execution-fixture",
+        "location": "session_A",
+        "childCwd": "process_HOME",
+        "childEnvironmentMarker": "oar-execution-fixture"
+      },
+      {
+        "revision": "A",
+        "cwd": "process_HOME",
+        "environmentMarker": "oar-execution-fixture",
+        "location": "session_B",
+        "childCwd": "process_HOME",
+        "childEnvironmentMarker": "oar-execution-fixture"
+      }
+    ]
+  },
+  {
+    "runtime": "opencode",
+    "version": "opencode v2.2.3",
+    "platform": "linux",
+    "arch": "x64",
+    "placement": "isolated",
+    "errors": [],
+    "kind": "hooks",
+    "tools": [
+      {
+        "label": "A",
+        "cwd": "session_A",
+        "environmentMarker": "oar-execution-fixture"
+      },
+      {
+        "label": "B",
+        "cwd": "session_B",
+        "environmentMarker": "oar-execution-fixture"
+      }
+    ],
+    "scope": "user",
+    "hooks": [
+      {
+        "revision": "A",
+        "cwd": "session_A",
+        "environmentMarker": "oar-execution-fixture",
+        "location": "session_A",
+        "childCwd": "session_A",
+        "childEnvironmentMarker": "oar-execution-fixture"
+      },
+      {
+        "revision": "A",
+        "cwd": "session_B",
+        "environmentMarker": "oar-execution-fixture",
+        "location": "session_B",
+        "childCwd": "session_B",
+        "childEnvironmentMarker": "oar-execution-fixture"
+      }
+    ]
+  },
+  {
+    "runtime": "opencode",
+    "version": "opencode v2.2.3",
+    "platform": "linux",
+    "arch": "x64",
+    "placement": "shared",
+    "errors": [],
+    "kind": "hooks",
+    "tools": [
+      {
+        "label": "A",
+        "cwd": "session_A",
+        "environmentMarker": "oar-execution-fixture"
+      },
+      {
+        "label": "B",
+        "cwd": "session_B",
+        "environmentMarker": "oar-execution-fixture"
+      }
+    ],
+    "scope": "project",
+    "hooks": [
+      {
+        "revision": "A",
+        "cwd": "process_HOME",
+        "environmentMarker": "oar-execution-fixture",
+        "location": "session_A",
+        "childCwd": "process_HOME",
+        "childEnvironmentMarker": "oar-execution-fixture"
+      },
+      {
+        "revision": "B",
+        "cwd": "process_HOME",
+        "environmentMarker": "oar-execution-fixture",
+        "location": "session_B",
+        "childCwd": "process_HOME",
+        "childEnvironmentMarker": "oar-execution-fixture"
+      }
+    ]
+  },
+  {
+    "runtime": "opencode",
+    "version": "opencode v2.2.3",
+    "platform": "linux",
+    "arch": "x64",
+    "placement": "isolated",
+    "errors": [],
+    "kind": "hooks",
+    "tools": [
+      {
+        "label": "A",
+        "cwd": "session_A",
+        "environmentMarker": "oar-execution-fixture"
+      },
+      {
+        "label": "B",
+        "cwd": "session_B",
+        "environmentMarker": "oar-execution-fixture"
+      }
+    ],
+    "scope": "project",
+    "hooks": [
+      {
+        "revision": "A",
+        "cwd": "session_A",
+        "environmentMarker": "oar-execution-fixture",
+        "location": "session_A",
+        "childCwd": "session_A",
+        "childEnvironmentMarker": "oar-execution-fixture"
+      },
+      {
+        "revision": "B",
+        "cwd": "session_B",
+        "environmentMarker": "oar-execution-fixture",
+        "location": "session_B",
+        "childCwd": "session_B",
+        "childEnvironmentMarker": "oar-execution-fixture"
+      }
+    ]
+  },
+  {
+    "runtime": "opencode",
+    "version": "opencode v2.2.5",
+    "platform": "linux",
+    "arch": "x64",
+    "placement": "shared",
+    "errors": [],
+    "kind": "mcp",
+    "tools": [
+      {
+        "label": "A",
+        "cwd": "session_A",
+        "environmentMarker": "oar-execution-fixture"
+      },
+      {
+        "label": "B",
+        "cwd": "session_B",
+        "environmentMarker": "oar-execution-fixture"
+      }
+    ],
+    "source": "session",
+    "sessionDirectoriesObserved": [
+      true,
+      true
+    ],
+    "calls": [
+      {
+        "server": "A",
+        "input": "A",
+        "output": "MCP_RESULT=A input=A"
+      },
+      {
+        "server": "B",
+        "input": "B",
+        "output": "MCP_RESULT=B input=B"
+      }
+    ],
+    "observations": [
+      {
+        "server": "A",
+        "cwd": "session_A",
+        "environmentMarker": "oar-execution-fixture",
+        "matchesSession": true
+      },
+      {
+        "server": "B",
+        "cwd": "session_B",
+        "environmentMarker": "oar-execution-fixture",
+        "matchesSession": true
+      }
+    ]
+  },
+  {
+    "runtime": "opencode",
+    "version": "opencode v2.2.5",
+    "platform": "linux",
+    "arch": "x64",
+    "placement": "isolated",
+    "errors": [],
+    "kind": "mcp",
+    "tools": [
+      {
+        "label": "A",
+        "cwd": "session_A",
+        "environmentMarker": "oar-execution-fixture"
+      },
+      {
+        "label": "B",
+        "cwd": "session_B",
+        "environmentMarker": "oar-execution-fixture"
+      }
+    ],
+    "source": "session",
+    "sessionDirectoriesObserved": [
+      true,
+      true
+    ],
+    "calls": [
+      {
+        "server": "A",
+        "input": "A",
+        "output": "MCP_RESULT=A input=A"
+      },
+      {
+        "server": "B",
+        "input": "B",
+        "output": "MCP_RESULT=B input=B"
+      }
+    ],
+    "observations": [
+      {
+        "server": "A",
+        "cwd": "session_A",
+        "environmentMarker": "oar-execution-fixture",
+        "matchesSession": true
+      },
+      {
+        "server": "B",
+        "cwd": "session_B",
+        "environmentMarker": "oar-execution-fixture",
+        "matchesSession": true
+      }
+    ]
+  },
+  {
+    "runtime": "opencode",
+    "version": "opencode v2.2.5",
+    "platform": "linux",
+    "arch": "x64",
+    "placement": "shared",
+    "errors": [],
+    "kind": "mcp",
+    "tools": [
+      {
+        "label": "A",
+        "cwd": "session_A",
+        "environmentMarker": "oar-execution-fixture"
+      },
+      {
+        "label": "B",
+        "cwd": "session_B",
+        "environmentMarker": "oar-execution-fixture"
+      }
+    ],
+    "source": "user",
+    "sessionDirectoriesObserved": [
+      true,
+      true
+    ],
+    "calls": [
+      {
+        "server": "configured",
+        "input": "A",
+        "output": "MCP_RESULT=configured input=A"
+      },
+      {
+        "server": "configured",
+        "input": "B",
+        "output": "MCP_RESULT=configured input=B"
+      }
+    ],
+    "observations": [
+      {
+        "server": "configured",
+        "cwd": "session_A",
+        "environmentMarker": "oar-execution-fixture",
+        "matchesSession": true
+      },
+      {
+        "server": "configured",
+        "cwd": "session_B",
+        "environmentMarker": "oar-execution-fixture",
+        "matchesSession": true
+      }
+    ]
+  },
+  {
+    "runtime": "opencode",
+    "version": "opencode v2.2.5",
+    "platform": "linux",
+    "arch": "x64",
+    "placement": "isolated",
+    "errors": [],
+    "kind": "mcp",
+    "tools": [
+      {
+        "label": "A",
+        "cwd": "session_A",
+        "environmentMarker": "oar-execution-fixture"
+      },
+      {
+        "label": "B",
+        "cwd": "session_B",
+        "environmentMarker": "oar-execution-fixture"
+      }
+    ],
+    "source": "user",
+    "sessionDirectoriesObserved": [
+      true,
+      true
+    ],
+    "calls": [
+      {
+        "server": "configured",
+        "input": "A",
+        "output": "MCP_RESULT=configured input=A"
+      },
+      {
+        "server": "configured",
+        "input": "B",
+        "output": "MCP_RESULT=configured input=B"
+      }
+    ],
+    "observations": [
+      {
+        "server": "configured",
+        "cwd": "session_A",
+        "environmentMarker": "oar-execution-fixture",
+        "matchesSession": true
+      },
+      {
+        "server": "configured",
+        "cwd": "session_B",
+        "environmentMarker": "oar-execution-fixture",
+        "matchesSession": true
+      }
+    ]
+  },
+  {
+    "runtime": "opencode",
+    "version": "opencode v2.2.5",
+    "platform": "linux",
+    "arch": "x64",
+    "placement": "shared",
+    "errors": [],
+    "kind": "hooks",
+    "tools": [
+      {
+        "label": "A",
+        "cwd": "session_A",
+        "environmentMarker": "oar-execution-fixture"
+      },
+      {
+        "label": "B",
+        "cwd": "session_B",
+        "environmentMarker": "oar-execution-fixture"
+      }
+    ],
+    "scope": "user",
+    "hooks": [
+      {
+        "revision": "A",
+        "cwd": "process_HOME",
+        "environmentMarker": "oar-execution-fixture",
+        "location": "session_A",
+        "childCwd": "process_HOME",
+        "childEnvironmentMarker": "oar-execution-fixture"
+      },
+      {
+        "revision": "A",
+        "cwd": "process_HOME",
+        "environmentMarker": "oar-execution-fixture",
+        "location": "session_B",
+        "childCwd": "process_HOME",
+        "childEnvironmentMarker": "oar-execution-fixture"
+      }
+    ]
+  },
+  {
+    "runtime": "opencode",
+    "version": "opencode v2.2.5",
+    "platform": "linux",
+    "arch": "x64",
+    "placement": "isolated",
+    "errors": [],
+    "kind": "hooks",
+    "tools": [
+      {
+        "label": "A",
+        "cwd": "session_A",
+        "environmentMarker": "oar-execution-fixture"
+      },
+      {
+        "label": "B",
+        "cwd": "session_B",
+        "environmentMarker": "oar-execution-fixture"
+      }
+    ],
+    "scope": "user",
+    "hooks": [
+      {
+        "revision": "A",
+        "cwd": "session_A",
+        "environmentMarker": "oar-execution-fixture",
+        "location": "session_A",
+        "childCwd": "session_A",
+        "childEnvironmentMarker": "oar-execution-fixture"
+      },
+      {
+        "revision": "A",
+        "cwd": "session_B",
+        "environmentMarker": "oar-execution-fixture",
+        "location": "session_B",
+        "childCwd": "session_B",
+        "childEnvironmentMarker": "oar-execution-fixture"
+      }
+    ]
+  },
+  {
+    "runtime": "opencode",
+    "version": "opencode v2.2.5",
+    "platform": "linux",
+    "arch": "x64",
+    "placement": "shared",
+    "errors": [],
+    "kind": "hooks",
+    "tools": [
+      {
+        "label": "A",
+        "cwd": "session_A",
+        "environmentMarker": "oar-execution-fixture"
+      },
+      {
+        "label": "B",
+        "cwd": "session_B",
+        "environmentMarker": "oar-execution-fixture"
+      }
+    ],
+    "scope": "project",
+    "hooks": [
+      {
+        "revision": "A",
+        "cwd": "process_HOME",
+        "environmentMarker": "oar-execution-fixture",
+        "location": "session_A",
+        "childCwd": "process_HOME",
+        "childEnvironmentMarker": "oar-execution-fixture"
+      },
+      {
+        "revision": "B",
+        "cwd": "process_HOME",
+        "environmentMarker": "oar-execution-fixture",
+        "location": "session_B",
+        "childCwd": "process_HOME",
+        "childEnvironmentMarker": "oar-execution-fixture"
+      }
+    ]
+  },
+  {
+    "runtime": "opencode",
+    "version": "opencode v2.2.5",
+    "platform": "linux",
+    "arch": "x64",
+    "placement": "isolated",
+    "errors": [],
+    "kind": "hooks",
+    "tools": [
+      {
+        "label": "A",
+        "cwd": "session_A",
+        "environmentMarker": "oar-execution-fixture"
+      },
+      {
+        "label": "B",
+        "cwd": "session_B",
+        "environmentMarker": "oar-execution-fixture"
+      }
+    ],
+    "scope": "project",
+    "hooks": [
+      {
+        "revision": "A",
+        "cwd": "session_A",
+        "environmentMarker": "oar-execution-fixture",
+        "location": "session_A",
+        "childCwd": "session_A",
+        "childEnvironmentMarker": "oar-execution-fixture"
+      },
+      {
+        "revision": "B",
+        "cwd": "session_B",
+        "environmentMarker": "oar-execution-fixture",
+        "location": "session_B",
+        "childCwd": "session_B",
+        "childEnvironmentMarker": "oar-execution-fixture"
+      }
+    ]
+  },
+  {
+    "runtime": "grok",
+    "version": "grok 1.0.70 (f50904eaee6c)",
+    "platform": "linux",
+    "arch": "x64",
+    "placement": "shared",
+    "errors": [],
+    "kind": "mcp",
+    "tools": [
+      {
+        "label": "A",
+        "cwd": "session_A",
+        "environmentMarker": "oar-execution-fixture"
+      },
+      {
+        "label": "B",
+        "cwd": "session_B",
+        "environmentMarker": "oar-execution-fixture"
+      }
+    ],
+    "source": "session",
+    "sessionDirectoriesObserved": [
+      false,
+      false
+    ],
+    "calls": [
+      {
+        "server": "A",
+        "input": "A",
+        "output": "MCP_RESULT=A input=A"
+      },
+      {
+        "server": "B",
+        "input": "B",
+        "output": "MCP_RESULT=B input=B"
+      }
+    ],
+    "observations": [
+      {
+        "server": "A",
+        "cwd": "process_HOME",
+        "environmentMarker": "oar-execution-fixture",
+        "matchesSession": false
+      },
+      {
+        "server": "B",
+        "cwd": "process_HOME",
+        "environmentMarker": "oar-execution-fixture",
+        "matchesSession": false
+      }
+    ]
+  },
+  {
+    "runtime": "grok",
+    "version": "grok 1.0.70 (f50904eaee6c)",
+    "platform": "linux",
+    "arch": "x64",
+    "placement": "isolated",
+    "errors": [],
+    "kind": "mcp",
+    "tools": [
+      {
+        "label": "A",
+        "cwd": "session_A",
+        "environmentMarker": "oar-execution-fixture"
+      },
+      {
+        "label": "B",
+        "cwd": "session_B",
+        "environmentMarker": "oar-execution-fixture"
+      }
+    ],
+    "source": "session",
+    "sessionDirectoriesObserved": [
+      true,
+      true
+    ],
+    "calls": [
+      {
+        "server": "A",
+        "input": "A",
+        "output": "MCP_RESULT=A input=A"
+      },
+      {
+        "server": "B",
+        "input": "B",
+        "output": "MCP_RESULT=B input=B"
+      }
+    ],
+    "observations": [
+      {
+        "server": "A",
+        "cwd": "session_A",
+        "environmentMarker": "oar-execution-fixture",
+        "matchesSession": true
+      },
+      {
+        "server": "B",
+        "cwd": "session_B",
+        "environmentMarker": "oar-execution-fixture",
+        "matchesSession": true
+      }
+    ]
+  },
+  {
+    "runtime": "grok",
+    "version": "grok 1.0.70 (f50904eaee6c)",
+    "platform": "linux",
+    "arch": "x64",
+    "placement": "shared",
+    "errors": [],
+    "kind": "mcp",
+    "tools": [
+      {
+        "label": "A",
+        "cwd": "session_A",
+        "environmentMarker": "oar-execution-fixture"
+      },
+      {
+        "label": "B",
+        "cwd": "session_B",
+        "environmentMarker": "oar-execution-fixture"
+      }
+    ],
+    "source": "user",
+    "sessionDirectoriesObserved": [
+      false,
+      false
+    ],
+    "calls": [
+      {
+        "server": "configured",
+        "input": "A",
+        "output": "MCP_RESULT=configured input=A"
+      },
+      {
+        "server": "configured",
+        "input": "B",
+        "output": "MCP_RESULT=configured input=B"
+      }
+    ],
+    "observations": [
+      {
+        "server": "configured",
+        "cwd": "process_HOME",
+        "environmentMarker": "oar-execution-fixture",
+        "matchesSession": false
+      },
+      {
+        "server": "configured",
+        "cwd": "process_HOME",
+        "environmentMarker": "oar-execution-fixture",
+        "matchesSession": false
+      }
+    ]
+  },
+  {
+    "runtime": "grok",
+    "version": "grok 1.0.70 (f50904eaee6c)",
+    "platform": "linux",
+    "arch": "x64",
+    "placement": "isolated",
+    "errors": [],
+    "kind": "mcp",
+    "tools": [
+      {
+        "label": "A",
+        "cwd": "session_A",
+        "environmentMarker": "oar-execution-fixture"
+      },
+      {
+        "label": "B",
+        "cwd": "session_B",
+        "environmentMarker": "oar-execution-fixture"
+      }
+    ],
+    "source": "user",
+    "sessionDirectoriesObserved": [
+      true,
+      true
+    ],
+    "calls": [
+      {
+        "server": "configured",
+        "input": "A",
+        "output": "MCP_RESULT=configured input=A"
+      },
+      {
+        "server": "configured",
+        "input": "B",
+        "output": "MCP_RESULT=configured input=B"
+      }
+    ],
+    "observations": [
+      {
+        "server": "configured",
+        "cwd": "session_A",
+        "environmentMarker": "oar-execution-fixture",
+        "matchesSession": true
+      },
+      {
+        "server": "configured",
+        "cwd": "session_B",
+        "environmentMarker": "oar-execution-fixture",
+        "matchesSession": true
+      }
+    ]
+  },
+  {
+    "runtime": "grok",
+    "version": "grok 1.0.70 (f50904eaee6c)",
+    "platform": "linux",
+    "arch": "x64",
+    "placement": "shared",
+    "errors": [],
+    "kind": "hooks",
+    "scope": "user",
+    "hooks": [
+      {
+        "revision": "A",
+        "cwd": "session_A",
+        "environmentMarker": "oar-execution-fixture"
+      },
+      {
+        "revision": "A",
+        "cwd": "session_B",
+        "environmentMarker": "oar-execution-fixture"
+      }
+    ]
+  },
+  {
+    "runtime": "grok",
+    "version": "grok 1.0.70 (f50904eaee6c)",
+    "platform": "linux",
+    "arch": "x64",
+    "placement": "isolated",
+    "errors": [],
+    "kind": "hooks",
+    "scope": "user",
+    "hooks": [
+      {
+        "revision": "A",
+        "cwd": "session_A",
+        "environmentMarker": "oar-execution-fixture"
+      },
+      {
+        "revision": "A",
+        "cwd": "session_B",
+        "environmentMarker": "oar-execution-fixture"
+      }
+    ]
+  },
+  {
+    "runtime": "grok",
+    "version": "grok 1.0.70 (f50904eaee6c)",
+    "platform": "linux",
+    "arch": "x64",
+    "placement": "shared",
+    "errors": [],
+    "kind": "hooks",
+    "scope": "project",
+    "hooks": [
+      {
+        "revision": "A",
+        "cwd": "session_A",
+        "environmentMarker": "oar-execution-fixture"
+      },
+      {
+        "revision": "B",
+        "cwd": "session_B",
+        "environmentMarker": "oar-execution-fixture"
+      }
+    ]
+  },
+  {
+    "runtime": "grok",
+    "version": "grok 1.0.70 (f50904eaee6c)",
+    "platform": "linux",
+    "arch": "x64",
+    "placement": "isolated",
+    "errors": [],
+    "kind": "hooks",
+    "scope": "project",
+    "hooks": [
+      {
+        "revision": "A",
+        "cwd": "session_A",
+        "environmentMarker": "oar-execution-fixture"
+      },
+      {
+        "revision": "B",
+        "cwd": "session_B",
+        "environmentMarker": "oar-execution-fixture"
+      }
+    ]
+  }
+]

@@ -1,0 +1,1071 @@
+{
+  "at": "2026-10-31T19:38:35.521Z",
+  "platform": "linux",
+  "arch": "x64",
+  "timing": "Decoded native incoming message before SDK dispatch; monotonic elapsed milliseconds",
+  "rows": [
+    {
+      "round": 0,
+      "scriptedChildLatencyMs": 0,
+      "childFrames": 10,
+      "firstChildSequence": 64,
+      "firstChildMethod": "_x.ai/mcp_initialized",
+      "spawnSequence": 57,
+      "completedToolSequence": 79,
+      "earliestAssociationKind": "subagent_spawned",
+      "associationMinusFirstChildMs": -68.19276400000012,
+      "completedMinusFirstChildMs": 152.72566099999995,
+      "spawnAndToolAgree": true,
+      "links": [
+        {
+          "sequence": 57,
+          "kind": "subagent_spawned",
+          "relativeToFirstChildMs": -68.19276400000012
+        },
+        {
+          "sequence": 78,
+          "kind": "subagent_finished",
+          "relativeToFirstChildMs": 151.16346899999985
+        }
+      ],
+      "childTimeline": [
+        {
+          "sequence": 64,
+          "method": "_x.ai/mcp_initialized",
+          "kind": null,
+          "relativeToFirstChildMs": 0
+        },
+        {
+          "sequence": 65,
+          "method": "_x.ai/queue/changed",
+          "kind": null,
+          "relativeToFirstChildMs": 1.3108219999999164
+        },
+        {
+          "sequence": 66,
+          "method": "_x.ai/queue/changed",
+          "kind": null,
+          "relativeToFirstChildMs": 1.4277649999999085
+        },
+        {
+          "sequence": 67,
+          "method": "session/update",
+          "kind": "user_message_chunk",
+          "relativeToFirstChildMs": 2.133231999999907
+        },
+        {
+          "sequence": 70,
+          "method": "session/update",
+          "kind": "agent_message_chunk",
+          "relativeToFirstChildMs": 73.81535999999983
+        },
+        {
+          "sequence": 71,
+          "method": "session/update",
+          "kind": "agent_message_chunk",
+          "relativeToFirstChildMs": 74.21079499999996
+        },
+        {
+          "sequence": 72,
+          "method": "session/update",
+          "kind": "available_commands_update",
+          "relativeToFirstChildMs": 74.40154599999983
+        },
+        {
+          "sequence": 73,
+          "method": "_x.ai/session_notification",
+          "kind": "response_completed",
+          "relativeToFirstChildMs": 75.14853199999993
+        },
+        {
+          "sequence": 74,
+          "method": "_x.ai/queue/changed",
+          "kind": null,
+          "relativeToFirstChildMs": 112.68414800000005
+        },
+        {
+          "sequence": 75,
+          "method": "_x.ai/session_notification",
+          "kind": "turn_completed",
+          "relativeToFirstChildMs": 112.89228099999991
+        }
+      ]
+    },
+    {
+      "round": 1,
+      "scriptedChildLatencyMs": 0,
+      "childFrames": 10,
+      "firstChildSequence": 118,
+      "firstChildMethod": "_x.ai/mcp_initialized",
+      "spawnSequence": 111,
+      "completedToolSequence": 131,
+      "earliestAssociationKind": "subagent_spawned",
+      "associationMinusFirstChildMs": -68.67708100000004,
+      "completedMinusFirstChildMs": 140.29845699999987,
+      "spawnAndToolAgree": true,
+      "links": [
+        {
+          "sequence": 111,
+          "kind": "subagent_spawned",
+          "relativeToFirstChildMs": -68.67708100000004
+        },
+        {
+          "sequence": 130,
+          "kind": "subagent_finished",
+          "relativeToFirstChildMs": 140.08577699999978
+        }
+      ],
+      "childTimeline": [
+        {
+          "sequence": 118,
+          "method": "_x.ai/mcp_initialized",
+          "kind": null,
+          "relativeToFirstChildMs": 0
+        },
+        {
+          "sequence": 119,
+          "method": "_x.ai/queue/changed",
+          "kind": null,
+          "relativeToFirstChildMs": 0.7595110000002023
+        },
+        {
+          "sequence": 120,
+          "method": "_x.ai/queue/changed",
+          "kind": null,
+          "relativeToFirstChildMs": 0.8778950000000805
+        },
+        {
+          "sequence": 121,
+          "method": "session/update",
+          "kind": "user_message_chunk",
+          "relativeToFirstChildMs": 1.3077180000000226
+        },
+        {
+          "sequence": 124,
+          "method": "session/update",
+          "kind": "agent_message_chunk",
+          "relativeToFirstChildMs": 69.40684800000008
+        },
+        {
+          "sequence": 125,
+          "method": "session/update",
+          "kind": "agent_message_chunk",
+          "relativeToFirstChildMs": 69.74242800000002
+        },
+        {
+          "sequence": 126,
+          "method": "session/update",
+          "kind": "available_commands_update",
+          "relativeToFirstChildMs": 70.31125100000008
+        },
+        {
+          "sequence": 127,
+          "method": "_x.ai/session_notification",
+          "kind": "response_completed",
+          "relativeToFirstChildMs": 71.08213699999988
+        },
+        {
+          "sequence": 128,
+          "method": "_x.ai/queue/changed",
+          "kind": null,
+          "relativeToFirstChildMs": 108.02919100000008
+        },
+        {
+          "sequence": 129,
+          "method": "_x.ai/session_notification",
+          "kind": "turn_completed",
+          "relativeToFirstChildMs": 108.30330999999978
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "scriptedChildLatencyMs": 0,
+      "childFrames": 10,
+      "firstChildSequence": 172,
+      "firstChildMethod": "_x.ai/mcp_initialized",
+      "spawnSequence": 163,
+      "completedToolSequence": 183,
+      "earliestAssociationKind": "subagent_spawned",
+      "associationMinusFirstChildMs": -75.97504499999968,
+      "completedMinusFirstChildMs": 145.9644400000002,
+      "spawnAndToolAgree": true,
+      "links": [
+        {
+          "sequence": 163,
+          "kind": "subagent_spawned",
+          "relativeToFirstChildMs": -75.97504499999968
+        },
+        {
+          "sequence": 182,
+          "kind": "subagent_finished",
+          "relativeToFirstChildMs": 145.7537870000001
+        }
+      ],
+      "childTimeline": [
+        {
+          "sequence": 172,
+          "method": "_x.ai/mcp_initialized",
+          "kind": null,
+          "relativeToFirstChildMs": 0
+        },
+        {
+          "sequence": 173,
+          "method": "_x.ai/queue/changed",
+          "kind": null,
+          "relativeToFirstChildMs": 0.7918510000004062
+        },
+        {
+          "sequence": 174,
+          "method": "_x.ai/queue/changed",
+          "kind": null,
+          "relativeToFirstChildMs": 0.929363000000194
+        },
+        {
+          "sequence": 175,
+          "method": "session/update",
+          "kind": "user_message_chunk",
+          "relativeToFirstChildMs": 1.3278320000003987
+        },
+        {
+          "sequence": 176,
+          "method": "session/update",
+          "kind": "agent_message_chunk",
+          "relativeToFirstChildMs": 67.0240560000002
+        },
+        {
+          "sequence": 177,
+          "method": "session/update",
+          "kind": "agent_message_chunk",
+          "relativeToFirstChildMs": 67.36256300000014
+        },
+        {
+          "sequence": 178,
+          "method": "session/update",
+          "kind": "available_commands_update",
+          "relativeToFirstChildMs": 67.5976740000001
+        },
+        {
+          "sequence": 179,
+          "method": "_x.ai/session_notification",
+          "kind": "response_completed",
+          "relativeToFirstChildMs": 68.29850000000033
+        },
+        {
+          "sequence": 180,
+          "method": "_x.ai/queue/changed",
+          "kind": null,
+          "relativeToFirstChildMs": 112.71109700000034
+        },
+        {
+          "sequence": 181,
+          "method": "_x.ai/session_notification",
+          "kind": "turn_completed",
+          "relativeToFirstChildMs": 112.93108200000006
+        }
+      ]
+    },
+    {
+      "round": 0,
+      "scriptedChildLatencyMs": 250,
+      "childFrames": 10,
+      "firstChildSequence": 222,
+      "firstChildMethod": "_x.ai/mcp_initialized",
+      "spawnSequence": 215,
+      "completedToolSequence": 233,
+      "earliestAssociationKind": "subagent_spawned",
+      "associationMinusFirstChildMs": -69.78629300000011,
+      "completedMinusFirstChildMs": 394.03864499999963,
+      "spawnAndToolAgree": true,
+      "links": [
+        {
+          "sequence": 215,
+          "kind": "subagent_spawned",
+          "relativeToFirstChildMs": -69.78629300000011
+        },
+        {
+          "sequence": 232,
+          "kind": "subagent_finished",
+          "relativeToFirstChildMs": 393.8423469999998
+        }
+      ],
+      "childTimeline": [
+        {
+          "sequence": 222,
+          "method": "_x.ai/mcp_initialized",
+          "kind": null,
+          "relativeToFirstChildMs": 0
+        },
+        {
+          "sequence": 223,
+          "method": "_x.ai/queue/changed",
+          "kind": null,
+          "relativeToFirstChildMs": 0.819622999999865
+        },
+        {
+          "sequence": 224,
+          "method": "_x.ai/queue/changed",
+          "kind": null,
+          "relativeToFirstChildMs": 0.9860299999995732
+        },
+        {
+          "sequence": 225,
+          "method": "session/update",
+          "kind": "user_message_chunk",
+          "relativeToFirstChildMs": 1.23136199999999
+        },
+        {
+          "sequence": 226,
+          "method": "session/update",
+          "kind": "agent_message_chunk",
+          "relativeToFirstChildMs": 319.31831599999987
+        },
+        {
+          "sequence": 227,
+          "method": "session/update",
+          "kind": "agent_message_chunk",
+          "relativeToFirstChildMs": 319.6515109999996
+        },
+        {
+          "sequence": 228,
+          "method": "session/update",
+          "kind": "available_commands_update",
+          "relativeToFirstChildMs": 320.1720739999996
+        },
+        {
+          "sequence": 229,
+          "method": "_x.ai/session_notification",
+          "kind": "response_completed",
+          "relativeToFirstChildMs": 320.9431129999998
+        },
+        {
+          "sequence": 230,
+          "method": "_x.ai/queue/changed",
+          "kind": null,
+          "relativeToFirstChildMs": 360.6836119999998
+        },
+        {
+          "sequence": 231,
+          "method": "_x.ai/session_notification",
+          "kind": "turn_completed",
+          "relativeToFirstChildMs": 360.8767969999999
+        }
+      ]
+    },
+    {
+      "round": 1,
+      "scriptedChildLatencyMs": 250,
+      "childFrames": 10,
+      "firstChildSequence": 273,
+      "firstChildMethod": "_x.ai/mcp_initialized",
+      "spawnSequence": 266,
+      "completedToolSequence": 286,
+      "earliestAssociationKind": "subagent_spawned",
+      "associationMinusFirstChildMs": -71.619596,
+      "completedMinusFirstChildMs": 380.800604,
+      "spawnAndToolAgree": true,
+      "links": [
+        {
+          "sequence": 266,
+          "kind": "subagent_spawned",
+          "relativeToFirstChildMs": -71.619596
+        },
+        {
+          "sequence": 285,
+          "kind": "subagent_finished",
+          "relativeToFirstChildMs": 380.583897
+        }
+      ],
+      "childTimeline": [
+        {
+          "sequence": 273,
+          "method": "_x.ai/mcp_initialized",
+          "kind": null,
+          "relativeToFirstChildMs": 0
+        },
+        {
+          "sequence": 274,
+          "method": "_x.ai/queue/changed",
+          "kind": null,
+          "relativeToFirstChildMs": 0.6430849999997008
+        },
+        {
+          "sequence": 275,
+          "method": "_x.ai/queue/changed",
+          "kind": null,
+          "relativeToFirstChildMs": 0.8265109999997549
+        },
+        {
+          "sequence": 276,
+          "method": "session/update",
+          "kind": "user_message_chunk",
+          "relativeToFirstChildMs": 1.528737000000092
+        },
+        {
+          "sequence": 279,
+          "method": "session/update",
+          "kind": "agent_message_chunk",
+          "relativeToFirstChildMs": 306.2055519999999
+        },
+        {
+          "sequence": 280,
+          "method": "session/update",
+          "kind": "agent_message_chunk",
+          "relativeToFirstChildMs": 306.632529
+        },
+        {
+          "sequence": 281,
+          "method": "session/update",
+          "kind": "available_commands_update",
+          "relativeToFirstChildMs": 307.1668890000001
+        },
+        {
+          "sequence": 282,
+          "method": "_x.ai/session_notification",
+          "kind": "response_completed",
+          "relativeToFirstChildMs": 307.9880720000001
+        },
+        {
+          "sequence": 283,
+          "method": "_x.ai/queue/changed",
+          "kind": null,
+          "relativeToFirstChildMs": 345.3040780000001
+        },
+        {
+          "sequence": 284,
+          "method": "_x.ai/session_notification",
+          "kind": "turn_completed",
+          "relativeToFirstChildMs": 345.53242
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "scriptedChildLatencyMs": 250,
+      "childFrames": 10,
+      "firstChildSequence": 327,
+      "firstChildMethod": "_x.ai/mcp_initialized",
+      "spawnSequence": 320,
+      "completedToolSequence": 338,
+      "earliestAssociationKind": "subagent_spawned",
+      "associationMinusFirstChildMs": -83.42959000000019,
+      "completedMinusFirstChildMs": 395.0833169999996,
+      "spawnAndToolAgree": true,
+      "links": [
+        {
+          "sequence": 320,
+          "kind": "subagent_spawned",
+          "relativeToFirstChildMs": -83.42959000000019
+        },
+        {
+          "sequence": 337,
+          "kind": "subagent_finished",
+          "relativeToFirstChildMs": 394.82656700000007
+        }
+      ],
+      "childTimeline": [
+        {
+          "sequence": 327,
+          "method": "_x.ai/mcp_initialized",
+          "kind": null,
+          "relativeToFirstChildMs": 0
+        },
+        {
+          "sequence": 328,
+          "method": "_x.ai/queue/changed",
+          "kind": null,
+          "relativeToFirstChildMs": 0.8201139999996485
+        },
+        {
+          "sequence": 329,
+          "method": "_x.ai/queue/changed",
+          "kind": null,
+          "relativeToFirstChildMs": 0.9725249999996777
+        },
+        {
+          "sequence": 330,
+          "method": "session/update",
+          "kind": "user_message_chunk",
+          "relativeToFirstChildMs": 1.5633459999999104
+        },
+        {
+          "sequence": 331,
+          "method": "session/update",
+          "kind": "agent_message_chunk",
+          "relativeToFirstChildMs": 308.69163599999956
+        },
+        {
+          "sequence": 332,
+          "method": "session/update",
+          "kind": "agent_message_chunk",
+          "relativeToFirstChildMs": 309.0081970000001
+        },
+        {
+          "sequence": 333,
+          "method": "session/update",
+          "kind": "available_commands_update",
+          "relativeToFirstChildMs": 309.5006489999996
+        },
+        {
+          "sequence": 334,
+          "method": "_x.ai/session_notification",
+          "kind": "response_completed",
+          "relativeToFirstChildMs": 310.11332200000015
+        },
+        {
+          "sequence": 335,
+          "method": "_x.ai/queue/changed",
+          "kind": null,
+          "relativeToFirstChildMs": 359.62203299999965
+        },
+        {
+          "sequence": 336,
+          "method": "_x.ai/session_notification",
+          "kind": "turn_completed",
+          "relativeToFirstChildMs": 359.73453900000004
+        }
+      ]
+    },
+    {
+      "round": 0,
+      "scriptedChildLatencyMs": 1500,
+      "childFrames": 10,
+      "firstChildSequence": 377,
+      "firstChildMethod": "_x.ai/mcp_initialized",
+      "spawnSequence": 370,
+      "completedToolSequence": 388,
+      "earliestAssociationKind": "subagent_spawned",
+      "associationMinusFirstChildMs": -72.61637400000018,
+      "completedMinusFirstChildMs": 1627.0174379999999,
+      "spawnAndToolAgree": true,
+      "links": [
+        {
+          "sequence": 370,
+          "kind": "subagent_spawned",
+          "relativeToFirstChildMs": -72.61637400000018
+        },
+        {
+          "sequence": 387,
+          "kind": "subagent_finished",
+          "relativeToFirstChildMs": 1626.6324669999995
+        }
+      ],
+      "childTimeline": [
+        {
+          "sequence": 377,
+          "method": "_x.ai/mcp_initialized",
+          "kind": null,
+          "relativeToFirstChildMs": 0
+        },
+        {
+          "sequence": 378,
+          "method": "_x.ai/queue/changed",
+          "kind": null,
+          "relativeToFirstChildMs": 0.3975479999999152
+        },
+        {
+          "sequence": 379,
+          "method": "_x.ai/queue/changed",
+          "kind": null,
+          "relativeToFirstChildMs": 0.46341099999972357
+        },
+        {
+          "sequence": 380,
+          "method": "session/update",
+          "kind": "user_message_chunk",
+          "relativeToFirstChildMs": 1.0276770000000397
+        },
+        {
+          "sequence": 381,
+          "method": "session/update",
+          "kind": "agent_message_chunk",
+          "relativeToFirstChildMs": 1551.7413479999996
+        },
+        {
+          "sequence": 382,
+          "method": "session/update",
+          "kind": "agent_message_chunk",
+          "relativeToFirstChildMs": 1552.071199
+        },
+        {
+          "sequence": 383,
+          "method": "session/update",
+          "kind": "available_commands_update",
+          "relativeToFirstChildMs": 1552.6963329999999
+        },
+        {
+          "sequence": 384,
+          "method": "_x.ai/session_notification",
+          "kind": "response_completed",
+          "relativeToFirstChildMs": 1553.2198859999999
+        },
+        {
+          "sequence": 385,
+          "method": "_x.ai/queue/changed",
+          "kind": null,
+          "relativeToFirstChildMs": 1593.7193049999996
+        },
+        {
+          "sequence": 386,
+          "method": "_x.ai/session_notification",
+          "kind": "turn_completed",
+          "relativeToFirstChildMs": 1593.8940189999994
+        }
+      ]
+    },
+    {
+      "round": 1,
+      "scriptedChildLatencyMs": 1500,
+      "childFrames": 10,
+      "firstChildSequence": 427,
+      "firstChildMethod": "_x.ai/mcp_initialized",
+      "spawnSequence": 420,
+      "completedToolSequence": 438,
+      "earliestAssociationKind": "subagent_spawned",
+      "associationMinusFirstChildMs": -78.08747399999993,
+      "completedMinusFirstChildMs": 1627.860294,
+      "spawnAndToolAgree": true,
+      "links": [
+        {
+          "sequence": 420,
+          "kind": "subagent_spawned",
+          "relativeToFirstChildMs": -78.08747399999993
+        },
+        {
+          "sequence": 437,
+          "kind": "subagent_finished",
+          "relativeToFirstChildMs": 1627.463565
+        }
+      ],
+      "childTimeline": [
+        {
+          "sequence": 427,
+          "method": "_x.ai/mcp_initialized",
+          "kind": null,
+          "relativeToFirstChildMs": 0
+        },
+        {
+          "sequence": 428,
+          "method": "_x.ai/queue/changed",
+          "kind": null,
+          "relativeToFirstChildMs": 0.5760559999998804
+        },
+        {
+          "sequence": 429,
+          "method": "_x.ai/queue/changed",
+          "kind": null,
+          "relativeToFirstChildMs": 0.6468649999997069
+        },
+        {
+          "sequence": 430,
+          "method": "session/update",
+          "kind": "user_message_chunk",
+          "relativeToFirstChildMs": 1.201756999999816
+        },
+        {
+          "sequence": 431,
+          "method": "session/update",
+          "kind": "agent_message_chunk",
+          "relativeToFirstChildMs": 1555.531333
+        },
+        {
+          "sequence": 432,
+          "method": "session/update",
+          "kind": "agent_message_chunk",
+          "relativeToFirstChildMs": 1555.8371909999996
+        },
+        {
+          "sequence": 433,
+          "method": "session/update",
+          "kind": "available_commands_update",
+          "relativeToFirstChildMs": 1556.3732199999995
+        },
+        {
+          "sequence": 434,
+          "method": "_x.ai/session_notification",
+          "kind": "response_completed",
+          "relativeToFirstChildMs": 1556.9251809999996
+        },
+        {
+          "sequence": 435,
+          "method": "_x.ai/queue/changed",
+          "kind": null,
+          "relativeToFirstChildMs": 1594.8035250000003
+        },
+        {
+          "sequence": 436,
+          "method": "_x.ai/session_notification",
+          "kind": "turn_completed",
+          "relativeToFirstChildMs": 1594.9150559999998
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "scriptedChildLatencyMs": 1500,
+      "childFrames": 10,
+      "firstChildSequence": 477,
+      "firstChildMethod": "_x.ai/mcp_initialized",
+      "spawnSequence": 470,
+      "completedToolSequence": 488,
+      "earliestAssociationKind": "subagent_spawned",
+      "associationMinusFirstChildMs": -71.07594100000097,
+      "completedMinusFirstChildMs": 1617.9583539999994,
+      "spawnAndToolAgree": true,
+      "links": [
+        {
+          "sequence": 470,
+          "kind": "subagent_spawned",
+          "relativeToFirstChildMs": -71.07594100000097
+        },
+        {
+          "sequence": 487,
+          "kind": "subagent_finished",
+          "relativeToFirstChildMs": 1617.3421590000007
+        }
+      ],
+      "childTimeline": [
+        {
+          "sequence": 477,
+          "method": "_x.ai/mcp_initialized",
+          "kind": null,
+          "relativeToFirstChildMs": 0
+        },
+        {
+          "sequence": 478,
+          "method": "_x.ai/queue/changed",
+          "kind": null,
+          "relativeToFirstChildMs": 1.245441999999457
+        },
+        {
+          "sequence": 479,
+          "method": "_x.ai/queue/changed",
+          "kind": null,
+          "relativeToFirstChildMs": 1.3144379999994271
+        },
+        {
+          "sequence": 480,
+          "method": "session/update",
+          "kind": "user_message_chunk",
+          "relativeToFirstChildMs": 1.7608319999999367
+        },
+        {
+          "sequence": 481,
+          "method": "session/update",
+          "kind": "agent_message_chunk",
+          "relativeToFirstChildMs": 1546.463034999998
+        },
+        {
+          "sequence": 482,
+          "method": "session/update",
+          "kind": "agent_message_chunk",
+          "relativeToFirstChildMs": 1546.8874860000005
+        },
+        {
+          "sequence": 483,
+          "method": "session/update",
+          "kind": "available_commands_update",
+          "relativeToFirstChildMs": 1547.114011999999
+        },
+        {
+          "sequence": 484,
+          "method": "_x.ai/session_notification",
+          "kind": "response_completed",
+          "relativeToFirstChildMs": 1547.8057229999986
+        },
+        {
+          "sequence": 485,
+          "method": "_x.ai/queue/changed",
+          "kind": null,
+          "relativeToFirstChildMs": 1584.9464099999977
+        },
+        {
+          "sequence": 486,
+          "method": "_x.ai/session_notification",
+          "kind": "turn_completed",
+          "relativeToFirstChildMs": 1585.04583
+        }
+      ]
+    },
+    {
+      "round": 0,
+      "scriptedChildLatencyMs": 5000,
+      "childFrames": 10,
+      "firstChildSequence": 527,
+      "firstChildMethod": "_x.ai/mcp_initialized",
+      "spawnSequence": 520,
+      "completedToolSequence": 539,
+      "earliestAssociationKind": "subagent_spawned",
+      "associationMinusFirstChildMs": -76.80514399999811,
+      "completedMinusFirstChildMs": 5119.026245000001,
+      "spawnAndToolAgree": true,
+      "links": [
+        {
+          "sequence": 520,
+          "kind": "subagent_spawned",
+          "relativeToFirstChildMs": -76.80514399999811
+        },
+        {
+          "sequence": 531,
+          "kind": "subagent_progress",
+          "relativeToFirstChildMs": 2001.7884250000025
+        },
+        {
+          "sequence": 538,
+          "kind": "subagent_finished",
+          "relativeToFirstChildMs": 5118.646305000002
+        }
+      ],
+      "childTimeline": [
+        {
+          "sequence": 527,
+          "method": "_x.ai/mcp_initialized",
+          "kind": null,
+          "relativeToFirstChildMs": 0
+        },
+        {
+          "sequence": 528,
+          "method": "_x.ai/queue/changed",
+          "kind": null,
+          "relativeToFirstChildMs": 0.5179190000017115
+        },
+        {
+          "sequence": 529,
+          "method": "_x.ai/queue/changed",
+          "kind": null,
+          "relativeToFirstChildMs": 0.682927000001655
+        },
+        {
+          "sequence": 530,
+          "method": "session/update",
+          "kind": "user_message_chunk",
+          "relativeToFirstChildMs": 0.8441019999991113
+        },
+        {
+          "sequence": 532,
+          "method": "session/update",
+          "kind": "agent_message_chunk",
+          "relativeToFirstChildMs": 5048.118547000002
+        },
+        {
+          "sequence": 533,
+          "method": "session/update",
+          "kind": "agent_message_chunk",
+          "relativeToFirstChildMs": 5048.4431540000005
+        },
+        {
+          "sequence": 534,
+          "method": "session/update",
+          "kind": "available_commands_update",
+          "relativeToFirstChildMs": 5049.0188240000025
+        },
+        {
+          "sequence": 535,
+          "method": "_x.ai/session_notification",
+          "kind": "response_completed",
+          "relativeToFirstChildMs": 5049.684633000001
+        },
+        {
+          "sequence": 536,
+          "method": "_x.ai/queue/changed",
+          "kind": null,
+          "relativeToFirstChildMs": 5086.008194000002
+        },
+        {
+          "sequence": 537,
+          "method": "_x.ai/session_notification",
+          "kind": "turn_completed",
+          "relativeToFirstChildMs": 5086.113185000002
+        }
+      ]
+    },
+    {
+      "round": 1,
+      "scriptedChildLatencyMs": 5000,
+      "childFrames": 10,
+      "firstChildSequence": 578,
+      "firstChildMethod": "_x.ai/mcp_initialized",
+      "spawnSequence": 571,
+      "completedToolSequence": 590,
+      "earliestAssociationKind": "subagent_spawned",
+      "associationMinusFirstChildMs": -69.77244000000064,
+      "completedMinusFirstChildMs": 5121.990654000001,
+      "spawnAndToolAgree": true,
+      "links": [
+        {
+          "sequence": 571,
+          "kind": "subagent_spawned",
+          "relativeToFirstChildMs": -69.77244000000064
+        },
+        {
+          "sequence": 582,
+          "kind": "subagent_progress",
+          "relativeToFirstChildMs": 2002.432495000001
+        },
+        {
+          "sequence": 589,
+          "kind": "subagent_finished",
+          "relativeToFirstChildMs": 5121.799482999999
+        }
+      ],
+      "childTimeline": [
+        {
+          "sequence": 578,
+          "method": "_x.ai/mcp_initialized",
+          "kind": null,
+          "relativeToFirstChildMs": 0
+        },
+        {
+          "sequence": 579,
+          "method": "_x.ai/queue/changed",
+          "kind": null,
+          "relativeToFirstChildMs": 0.9247089999989839
+        },
+        {
+          "sequence": 580,
+          "method": "_x.ai/queue/changed",
+          "kind": null,
+          "relativeToFirstChildMs": 1.0034339999983786
+        },
+        {
+          "sequence": 581,
+          "method": "session/update",
+          "kind": "user_message_chunk",
+          "relativeToFirstChildMs": 1.3315939999993134
+        },
+        {
+          "sequence": 583,
+          "method": "session/update",
+          "kind": "agent_message_chunk",
+          "relativeToFirstChildMs": 5047.443955999999
+        },
+        {
+          "sequence": 584,
+          "method": "session/update",
+          "kind": "agent_message_chunk",
+          "relativeToFirstChildMs": 5047.852060000001
+        },
+        {
+          "sequence": 585,
+          "method": "session/update",
+          "kind": "available_commands_update",
+          "relativeToFirstChildMs": 5048.051276999999
+        },
+        {
+          "sequence": 586,
+          "method": "_x.ai/session_notification",
+          "kind": "response_completed",
+          "relativeToFirstChildMs": 5048.983743000001
+        },
+        {
+          "sequence": 587,
+          "method": "_x.ai/queue/changed",
+          "kind": null,
+          "relativeToFirstChildMs": 5088.265025000001
+        },
+        {
+          "sequence": 588,
+          "method": "_x.ai/session_notification",
+          "kind": "turn_completed",
+          "relativeToFirstChildMs": 5088.379136
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "scriptedChildLatencyMs": 5000,
+      "childFrames": 10,
+      "firstChildSequence": 629,
+      "firstChildMethod": "_x.ai/mcp_initialized",
+      "spawnSequence": 622,
+      "completedToolSequence": 641,
+      "earliestAssociationKind": "subagent_spawned",
+      "associationMinusFirstChildMs": -74.44914499999868,
+      "completedMinusFirstChildMs": 5123.845236000001,
+      "spawnAndToolAgree": true,
+      "links": [
+        {
+          "sequence": 622,
+          "kind": "subagent_spawned",
+          "relativeToFirstChildMs": -74.44914499999868
+        },
+        {
+          "sequence": 633,
+          "kind": "subagent_progress",
+          "relativeToFirstChildMs": 2002.7135710000002
+        },
+        {
+          "sequence": 640,
+          "kind": "subagent_finished",
+          "relativeToFirstChildMs": 5123.330336999999
+        }
+      ],
+      "childTimeline": [
+        {
+          "sequence": 629,
+          "method": "_x.ai/mcp_initialized",
+          "kind": null,
+          "relativeToFirstChildMs": 0
+        },
+        {
+          "sequence": 630,
+          "method": "_x.ai/queue/changed",
+          "kind": null,
+          "relativeToFirstChildMs": 0.5880890000007639
+        },
+        {
+          "sequence": 631,
+          "method": "_x.ai/queue/changed",
+          "kind": null,
+          "relativeToFirstChildMs": 0.7155449999991106
+        },
+        {
+          "sequence": 632,
+          "method": "session/update",
+          "kind": "user_message_chunk",
+          "relativeToFirstChildMs": 1.0012529999985418
+        },
+        {
+          "sequence": 634,
+          "method": "session/update",
+          "kind": "agent_message_chunk",
+          "relativeToFirstChildMs": 5051.834467000001
+        },
+        {
+          "sequence": 635,
+          "method": "session/update",
+          "kind": "agent_message_chunk",
+          "relativeToFirstChildMs": 5052.199473000001
+        },
+        {
+          "sequence": 636,
+          "method": "session/update",
+          "kind": "available_commands_update",
+          "relativeToFirstChildMs": 5052.549446000001
+        },
+        {
+          "sequence": 637,
+          "method": "_x.ai/session_notification",
+          "kind": "response_completed",
+          "relativeToFirstChildMs": 5053.117781000001
+        },
+        {
+          "sequence": 638,
+          "method": "_x.ai/queue/changed",
+          "kind": null,
+          "relativeToFirstChildMs": 5090.944438999999
+        },
+        {
+          "sequence": 639,
+          "method": "_x.ai/session_notification",
+          "kind": "turn_completed",
+          "relativeToFirstChildMs": 5091.094465999999
+        }
+      ]
+    }
+  ],
+  "installationVersion": "grok 1.0.70 (f50904eaee6c) [stable]",
+  "nativeVersion": "1.0.70",
+  "unexpectedHostRequests": 0,
+  "completed": true
+}

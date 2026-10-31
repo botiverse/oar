@@ -29,6 +29,101 @@ newest check, on **1.0.70**
 passed the native vendor tests, the shared session behavior suite and the
 prompt-options probe against local scripted providers, without a real login.
 
+## Shared launch, ownership and cleanup
+
+Grok **does not share**, including 1.0.70. `auto` always opens an independent
+process; explicit `shared` rejects with `UnsupportedOptionError`, option
+`placement`. [Native cwd controls](../../experiments/sharing/execution-environment-2026-10-31.md)
+show stdio MCP servers starting in the shared process HOME rather than the
+session directory. The user-configuration control also reproduces it with an empty
+`SessionOptions.mcpServers`; native configuration is not limited to those
+session entries. OAR does not try
+to predict that native configuration. HTTP-only session options therefore
+cannot establish eligibility either. Explicit `isolated` is unchanged.
+
+The following describes the **experimental adapter**, used only by manual
+controls. Its installation gate accepts exact stable 1.0.70, both npm's
+`grok 1.0.70 (<commit>)` and the installer's optional `[stable]` suffix. Other
+channel suffixes are refused. Each process independently reports
+`initialize._meta.agentVersion: "1.0.70"` before session open. Experimental
+platforms are Linux x64, macOS arm64 and Windows x64. These checks do not
+override the production refusal.
+
+The shared process starts in effective `HOME` (`USERPROFILE` on Windows,
+otherwise Node's home fallback) with `agent --always-approve --no-leader stdio`.
+Its pool key includes executable, complete captured environment, arguments,
+process cwd and initialize metadata. System prompt and appended rules are
+initialize metadata, so different values use different processes. Session cwd,
+MCP registrations, model and effort still travel in each native session's
+operations. The adapter adds no directory, trust, hook or MCP cache.
+
+Nonempty `launchArgs`, a relative executable containing a path separator,
+a relative session cwd, nonempty relative HOME/USERPROFILE/GROK_HOME or XDG
+config/data/state/cache paths, and relative or empty PATH entries lack this
+neutral-home launch evidence. They fall back under `auto` and refuse explicit
+`shared`. `GROK_BIN_DIR` only participates in executable discovery; the selected
+command still passes the executable-path guard. OpenCode-specific configuration
+variables and its lifetime directory reservation do not apply to Grok.
+On Windows, every absolute path must include a drive (`C:\...`) or a UNC
+server/share; root-relative `\tools\grok.exe`, drive-relative `C:grok.exe`
+and `HOME=\Users\x` are refused. A pnpm-injected `./node_modules/.bin`
+PATH entry also prevents sharing in the experimental adapter.
+All stdio MCP session entries are refused by that adapter under explicit
+`shared` and fall back under `auto`, even if command and arguments are
+absolute. Script behavior can depend on cwd without a relative argument.
+Its HTTP controls remain possible in disposable configuration only.
+
+Concurrent roots may use the **same directory**, including after another
+root releases it in the experimental controls. Earlier observations include same-directory MCP and release
+controls in runs 41149607090 and 41157633349, plus the latter's external
+`grok --trust` grant and cross-directory user/project hook controls. Later
+sessions match a new isolated process's configuration. Existing A retains its
+old user hook in both cohorts. These are exact-version/platform conclusions,
+not sufficient for admission after the stdio MCP cwd counterexample. See the
+[admission report](../../experiments/sharing/admission-2026-10-31.md).
+
+Only `_x.ai/session_notification` with `subagent_spawned` and explicit
+`parent_session_id`/`child_session_id` establishes a shared child. The parent
+must already belong to the root carrying that frame. Completion's
+`rawOutput.subagent_id` only checks the established parent/child pair; a
+mismatch produces a redacted conflict diagnostic and never changes ownership.
+There is no observed explicit spawn-to-tool-call-id link, so OAR does not
+invent a pairing between concurrent sibling tool calls. Connection-wide
+`_x.ai/sessions/changed` remains a diagnostic rather than being broadcast
+into every session's record stream.
+
+Unknown child notifications wait at most 1 second when no session/new is in
+flight, bounded to 256 frames and 1 MiB per connection. Opening-session
+buffering follows the [ACP ownership spec](../spec/acp-shared-connection.md).
+Permission and terminal requests have a separate absolute 1-second wait for
+ownership, unaffected by any in-flight `session/new`. Expiry sends ACP invalid
+params and a redacted diagnostic; no host handler runs. The existing fixed
+allow policy and `--always-approve` parameter are unchanged for owned
+requests. A terminal operation must match both its native session and terminal
+id. [Timing evidence](../../experiments/sharing/grok-child-order-2026-10-31.md)
+shows spawn preceding every first child frame in 12 Linux trials, including
+5-second child model delays. The window allows reordering, not task completion.
+
+`dispose()` stops accepting host requests, then attempts native
+`session/close` (2-second deadline) and that root's hosted-terminal cleanup
+independently, each within the shared cleanup bound of 4 seconds. Native
+close alone does not stop Grok's hosted tools. Failed cleanup is recorded.
+With peers present, disposal records `released` and relinquishes only its
+lease. Abort fallback records release before cleanup and retains its lease
+until disposal; ordinary successful native cancellation retains the session.
+The last lease stops the native process through the common asynchronous
+process-table preparation, fresh identity observations and shutdown budgets.
+It records one `exited` after cleanup; it does not claim unverified descendants
+were killed. A native crash reaches every attached session once.
+
+The manual `grok-sharing-experiment.yml` workflow exercises the candidate adapter with real 1.0.70 and a local model: same-directory
+behavior, shared/isolated lifecycle controls, model/MCP separation, child
+arrival timing, cancellation, both roots' live terminal trees, directory
+reuse, final-lease exit and resume. The native lifecycle control asserts that routing emits no `conflict` or
+`expired` diagnostics. Default pull-request CI retains synthetic regressions
+and public placement refusal tests; it does not exercise candidate sharing.
+`grokRuntime` always opens isolated sessions under `auto` and refuses `shared`.
+
 ## Native concepts and calling interfaces
 
 Grok is a coding-agent harness. Its process owns sessions; each session owns
@@ -676,7 +771,7 @@ HTTP credential shapes and notifications before and after session opening.
 ### Process ownership, release, installation, and account usage
 
 Native ACP advertises session close. **Mapped:** OAR owns the spawned
-process; disposal cancels active work, attempts `session/close` when
+process. In isolated placement, disposal cancels active work and attempts `session/close` when
 advertised (2-second deadline), kills its process, and disposes hosted
 terminals. On POSIX the process and each hosted terminal command lead their
 own process groups, so OAR's signals reach what they started (a shell line's

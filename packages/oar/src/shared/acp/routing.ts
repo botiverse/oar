@@ -6,51 +6,18 @@ import { asRecord, type JsonRecord } from "../json.js";
 import { redactText } from "../redact-text.js";
 import { redactTokenShapes } from "../token-redaction.js";
 import { AcpProtocolError } from "./protocol-error.js";
+import type { AcpAssociation, AcpIngress, AcpUnattributed, AcpOwner, AcpRouting } from "./routing-types.js";
 
-export interface AcpAssociation { readonly parent: string; readonly child: string }
-export interface AcpIngress { readonly receivedAt: number; readonly afterOpen: boolean }
-export interface AcpUnattributed {
-  readonly method: string;
-  readonly params: unknown;
-  readonly receivedAt: number;
-  readonly reason: "expired" | "capacity" | "retired" | "unowned" | "conflict" | "connection_closed" | "pre_reservation";
-}
-
-export interface AcpOwner<T> {
-  readonly target: T;
-  /** Bind only the id returned by session/new. Collisions are protocol violations. */
-  bind(id: string): void;
-  /** Reserve resume/load before sending; earlier buffered traffic has no proven generation. */
-  reserve(id: string): void;
-  opened(): void;
-  stopRequests(): void;
-  associations(method: string, params: JsonRecord): readonly AcpAssociation[];
-  /** Retire every root/descendant id for this connection's lifetime. No guessed generations. */
-  dispose(): void;
-}
-
-export interface AcpRouting<T> {
-  redact(this: void, text: string): string;
-  redactValue<V>(this: void, value: V): V;
-  ingress(params: object, requestId?: JsonRpcId): void;
-  answered(requestId: JsonRpcId): void;
-  opened(id: string, resumed: boolean): void;
-  newStarted(requestId: JsonRpcId): void;
-  newFinished(requestId: JsonRpcId): void;
-  retired(id: string): boolean;
-  inUse(id: string): boolean;
-  retireUnowned(id: string): boolean;
-  attach(target: T, credentials: CredentialRedactor): AcpOwner<T>;
-  notify(method: string, params: unknown, deliver: (target: T, ingress: AcpIngress) => void): void;
-  request(method: string, params: unknown, requestId?: JsonRpcId): Promise<{ readonly target: T; readonly ingress: AcpIngress; readonly active: () => boolean }>;
-  diagnostic(method: string, params: unknown, reason?: AcpUnattributed["reason"]): void;
-  close(): void;
-}
+export type { AcpAssociation, AcpIngress, AcpUnattributed, AcpOwner, AcpRouting } from "./routing-types.js";
 
 interface Owner<T> { requests: boolean; readonly target: T; readonly ids: Set<string>; opened: number | null; reserved: number | null; disposed: boolean }
+interface IngressStamp { readonly time: number; readonly sequence: number; readonly started: number }
 interface Pending<T> {
   readonly id: string;
   links: readonly AcpAssociation[];
+  readonly checks: readonly AcpAssociation[];
+  readonly request: boolean;
+  readonly waitingSince: number;
   readonly bytes: number;
   readonly sequence: number;
   readonly diagnostic: Omit<AcpUnattributed, "reason">;
@@ -66,11 +33,15 @@ function beforeReservation<T>(owner: Owner<T>, position: number): boolean { retu
 /** Connection-local ownership, independent of sessions' kernels and native request-id allocation. */
 export function createAcpRouting<T>(options: {
   readonly associations?: (method: string, params: JsonRecord) => readonly AcpAssociation[];
+  /** Late native claims can check a previously accepted link, never create or move one. */
+  readonly associationChecks?: (method: string, params: JsonRecord) => readonly AcpAssociation[];
   readonly sessionId?: (method: string, params: JsonRecord) => string | null;
   readonly diagnostic: (entry: AcpUnattributed) => void;
   readonly maxFrames?: number;
   readonly maxBytes?: number;
   readonly waitMs?: number;
+  /** Optional absolute host-request bound, also while a native session/new is pending. */
+  readonly requestWaitMs?: number;
 }): AcpRouting<T> {
   const owners = new Set<Owner<T>>();
   // Native work may outlive disposal. Retain only redactors, not session targets, until exit.
@@ -78,10 +49,11 @@ export function createAcpRouting<T>(options: {
   let credentialValues: readonly string[] = [];
   let credentialsChanged = false;
   const ids = new Map<string, Owner<T> | null>();
+  const parents = new Map<string, Set<string>>();
   const pending = new Set<Pending<T>>();
   const newRequests = new Set<JsonRpcId>();
-  const received = new WeakMap<object, { readonly time: number; readonly sequence: number }>();
-  const requestIngress = new Map<JsonRpcId, { readonly time: number; readonly sequence: number }>();
+  const received = new WeakMap<object, IngressStamp>();
+  const requestIngress = new Map<JsonRpcId, IngressStamp>();
   const opened = new Map<string, number>();
   const reserved = new Map<string, number>();
   let sequence = 0;
@@ -112,12 +84,20 @@ export function createAcpRouting<T>(options: {
     if (!entry.delivered) { entry.reject(reason); }
   };
   const arm = (entry: Pending<T>): void => {
-    if (newRequests.size > 0) { return; }
-    entry.timer = setTimeout(() => { discard(entry, "expired"); }, options.waitMs ?? 1000);
+    const bound = entry.request ? options.requestWaitMs : undefined;
+    if (newRequests.size > 0 && bound === undefined) { return; }
+    const wait = bound === undefined ? options.waitMs ?? 1000 : Math.max(0, bound - (performance.now() - entry.waitingSince));
+    entry.timer = setTimeout(() => { discard(entry, "expired"); }, wait);
     entry.timer.unref();
   };
   const conflict = (entry: Pending<T>): void => {
     if (!entry.conflictReported) { entry.conflictReported = true; report(entry.diagnostic, "conflict"); }
+  };
+  const check = (entry: Pending<T>): void => {
+    for (const { parent, child } of entry.checks) {
+      // Grok always names its carrier as parent; other profiles must also prove the carrier root.
+      if (ids.get(parent) !== ids.get(entry.id) || parents.get(child)?.has(parent) !== true) { conflict(entry); }
+    }
   };
   const link = (entry: Pending<T>): boolean => {
     const carrier = ids.get(entry.id);
@@ -131,8 +111,12 @@ export function createAcpRouting<T>(options: {
       if (parent === undefined) { unresolved.push(relation); continue; }
       if (parent !== carrier) { conflict(entry); continue; }
       if (ids.has(relation.child)) {
-        if (ids.get(relation.child) !== carrier) { conflict(entry); }
+        if (ids.get(relation.child) !== carrier) { conflict(entry); continue; }
       } else { ids.set(relation.child, carrier); carrier.ids.add(relation.child); changed = true; }
+      if (options.associationChecks !== undefined) {
+        const accepted = parents.get(relation.child) ?? new Set<string>();
+        accepted.add(relation.parent); parents.set(relation.child, accepted);
+      }
     }
     entry.links = unresolved;
     return changed;
@@ -153,6 +137,7 @@ export function createAcpRouting<T>(options: {
       if (owner === null) { discard(entry, "retired"); }
       else if (owner !== undefined && !owner.disposed) {
         if (!entry.delivered) {
+          check(entry);
           entry.delivered = true;
           entry.deliver(owner, { receivedAt: entry.diagnostic.receivedAt, afterOpen: owner.opened !== null && entry.sequence > owner.opened });
         }
@@ -192,7 +177,7 @@ export function createAcpRouting<T>(options: {
     }
     pending.add(entry); bytes += entry.bytes; arm(entry);
   };
-  const route = (method: string, params: unknown, deliver: Pending<T>["deliver"], refuse: Pending<T>["reject"], requestId?: JsonRpcId): void => {
+  const route = (method: string, params: unknown, deliver: Pending<T>["deliver"], refuse: Pending<T>["reject"], requestId?: JsonRpcId, request = false): void => {
     const record = asRecord(params);
     const metadata = requestId === undefined ? (typeof params === "object" && params !== null ? received.get(params) : undefined) : requestIngress.get(requestId);
     if (requestId !== undefined) { requestIngress.delete(requestId); }
@@ -210,10 +195,11 @@ export function createAcpRouting<T>(options: {
     }
     if (owner === null) { report(diagnostic, "retired"); refuse("retired"); return; }
     const size = Buffer.byteLength(JSON.stringify(params));
-    const entry: Pending<T> = { id, links: record === null ? [] : options.associations?.(method, record) ?? [], bytes: size,
+    const entry: Pending<T> = { id, links: record === null ? [] : options.associations?.(method, record) ?? [],
+      checks: record === null ? [] : options.associationChecks?.(method, record) ?? [], request, waitingSince: metadata?.started ?? performance.now(), bytes: size,
       sequence: frameSequence, diagnostic, deliver, reject: refuse, timer: null, conflictReported: false, delivered: false };
     if (owner !== undefined && !owner.disposed) {
-      const changed = link(entry); entry.delivered = true;
+      const changed = link(entry); check(entry); entry.delivered = true;
       if (entry.links.length > 0) { buffer(entry); }
       if (changed) { flush(); }
       deliver(owner, { receivedAt, afterOpen: owner.opened !== null && frameSequence > owner.opened }); return;
@@ -223,7 +209,7 @@ export function createAcpRouting<T>(options: {
   return {
     redact, redactValue: safe,
     ingress(params, requestId): void {
-      const metadata = { time: Date.now(), sequence: ++sequence };
+      const metadata = { time: Date.now(), sequence: ++sequence, started: performance.now() };
       received.set(params, metadata);
       if (requestId !== undefined) {
         requestIngress.set(requestId, metadata);
@@ -243,12 +229,12 @@ export function createAcpRouting<T>(options: {
     },
     newStarted(requestId): void {
       newRequests.add(requestId);
-      for (const entry of pending) { if (entry.timer !== null) { clearTimeout(entry.timer); entry.timer = null; } }
+      for (const entry of pending) { if (entry.timer !== null && !(entry.request && options.requestWaitMs !== undefined)) { clearTimeout(entry.timer); entry.timer = null; } }
     },
     newFinished(requestId): void {
       if (!newRequests.delete(requestId) || newRequests.size > 0) { return; }
       // Give the SDK's asynchronous response dispatch time to bind before expiring unknown ids.
-      for (const entry of pending) { arm(entry); }
+      for (const entry of pending) { if (entry.timer === null) { arm(entry); } }
     },
     retired(id): boolean { return ids.get(id) === null; },
     inUse(id): boolean { const owner = ids.get(id); return owner !== undefined && owner !== null; },
@@ -272,7 +258,7 @@ export function createAcpRouting<T>(options: {
         dispose() {
           if (owner.disposed) { return; }
           owner.disposed = true;
-          for (const id of owner.ids) { ids.set(id, null); opened.delete(id); reserved.delete(id); }
+          for (const id of owner.ids) { ids.set(id, null); parents.delete(id); opened.delete(id); reserved.delete(id); }
           flush(); owners.delete(owner);
         },
       };
@@ -285,7 +271,7 @@ export function createAcpRouting<T>(options: {
         route(method, params, (owner, ingress) => {
           if (!owner.requests || owner.disposed) { reject(RequestError.invalidParams(undefined, "ACP native session no longer accepts host requests")); return; }
           resolve({ target: owner.target, ingress, active: () => owner.requests && !owner.disposed });
-        }, () => { reject(RequestError.invalidParams(undefined, "ACP host request has no active native session owner")); }, requestId);
+        }, () => { reject(RequestError.invalidParams(undefined, "ACP host request has no active native session owner")); }, requestId, true);
       });
       return answer;
     },
@@ -294,7 +280,7 @@ export function createAcpRouting<T>(options: {
       closed = true; requestIngress.clear(); newRequests.clear();
       for (const entry of pending) { discard(entry, "connection_closed"); }
       for (const owner of owners) { owner.disposed = true; }
-      owners.clear(); ids.clear(); opened.clear(); reserved.clear();
+      owners.clear(); ids.clear(); parents.clear(); opened.clear(); reserved.clear();
     },
   };
 }

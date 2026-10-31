@@ -106,3 +106,12 @@ custom startup inputs retain their separately tested isolation policy.
 `opencode-sharing-experiment.yml` manually runs these candidate controls and
 the configured-plugin child environment comparison. They are outside default
 `check`; the public isolated cleanup regression remains in ordinary CI.
+
+`OAR_TEST=grok-shared` selects an **experimental** Grok 1.0.70 adapter with
+all roots in one project directory. The public Grok runtime refuses sharing.
+Manual `grok-sharing-experiment.yml` runs this suite, the shared/isolated
+lifecycle control, and native MCP/hook cwd comparisons. Lifecycle asserts
+models, HTTP MCP routing, child timing with no conflict/expiry diagnostics,
+live terminal cleanup, reuse and final shutdown. Synthetic routing and public
+refusal regressions remain in default CI; native experimental runs do not.
+Artifacts are confined to `oar-trial-run/grok-sharing`.

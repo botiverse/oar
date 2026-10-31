@@ -106,3 +106,16 @@ test("the credential union re-sorts only when a lease or a distinct credential i
   expect(f.router.redact("prefix-secret-longer")).toBe("[redacted]");
   expect(sorting).toHaveBeenCalledTimes(updated); f.router.close();
 });
+
+test("OpenCode's default host-request wait pauses during every session/new and resumes after the last reply", async () => {
+  vi.useFakeTimers(); const f = fixture(); let settled = false;
+  const pending = (async () => { const value = await f.router.request("terminal/create", { sessionId: "new-root" }); settled = true; return value; })();
+  await vi.advanceTimersByTimeAsync(500); f.router.newStarted(1);
+  await vi.advanceTimersByTimeAsync(2000); f.router.newStarted(2); f.router.newFinished(1);
+  await vi.advanceTimersByTimeAsync(2000);
+  expect(settled).toBe(false); expect(f.diagnostics).toEqual([]);
+  f.router.newFinished(2); await vi.advanceTimersByTimeAsync(999);
+  expect(settled).toBe(false); expect(f.diagnostics).toEqual([]);
+  f.owner.bind("new-root"); const owner = await pending; expect(owner.target).toBe("a");
+  expect(f.diagnostics).toEqual([]); f.router.close();
+});

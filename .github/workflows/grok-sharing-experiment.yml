@@ -1,0 +1,58 @@
+name: Grok sharing experiment
+
+on:
+  workflow_dispatch:
+    inputs:
+      platforms:
+        description: 'JSON array of runner platforms for the non-admitted adapter'
+        required: true
+        default: '["ubuntu-latest","windows-latest","macos-latest"]'
+
+permissions:
+  contents: read
+
+jobs:
+  observe:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJSON(inputs.platforms) }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install pinned Grok
+        id: grok-install
+        if: ${{ !cancelled() }}
+        run: npm install -g @xai-official/grok@1.0.70
+        timeout-minutes: 5
+      - name: Experimental shared behavior
+        if: ${{ !cancelled() && steps.grok-install.outcome == 'success' }}
+        run: pnpm sea-trial
+        timeout-minutes: 10
+        env:
+          OAR_TEST: grok-shared
+          OAR_TEST_REQUIRE_AVAILABLE: '1'
+          OAR_TRIAL_RUN_DIR: ${{ github.workspace }}/oar-trial-run/grok-sharing
+      - name: Experimental lifecycle and execution environment controls
+        if: ${{ !cancelled() && steps.grok-install.outcome == 'success' }}
+        run: pnpm vitest run sea-trial/vendor/grok-sharing.vendor.test.ts sea-trial/vendor/grok-execution-environment.vendor.test.ts --maxWorkers 1
+        timeout-minutes: 12
+        env:
+          OAR_TEST: grok-shared
+          OAR_TRIAL_RUN_DIR: ${{ github.workspace }}/oar-trial-run
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: grok-sharing-${{ matrix.os }}
+          path: oar-trial-run/grok-sharing
+          if-no-files-found: warn
+          retention-days: 14
