@@ -108,9 +108,9 @@ export async function codexFixture(timing = new ProbeTiming()) {
       nativeProcesses.set(client, native); processIdentities.push(native);
       client.notify("initialized", {}); return client;
     };
-    const open = async (client: AppServerClient, label: "A" | "B", options: { cwd?: string; withMcp?: boolean } = {}): Promise<string> => {
+    const open = async (client: AppServerClient, label: "A" | "B", options: { cwd?: string; withMcp?: boolean; bypassHookTrust?: boolean } = {}): Promise<string> => {
       const result = await request(client, "thread/start", { cwd: options.cwd ?? cwds[label === "A" ? 0 : 1], model: "gpt-5.1", approvalPolicy: "never",
-        config: { mcp_servers: options.withMcp === false ? {} : { scope: { command: process.execPath, args: [mcp.script, label], enabled: true } } } });
+        config: { ...(options.bypassHookTrust === undefined ? {} : { bypass_hook_trust: options.bypassHookTrust }), mcp_servers: options.withMcp === false ? {} : { scope: { command: process.execPath, args: [mcp.script, label], enabled: true } } } });
       const id = asRecord(result.thread)?.id; assert.equal(typeof id, "string"); return String(id);
     };
     const start = async (client: AppServerClient, threadId: string, key: string): Promise<string> => {

@@ -4,11 +4,21 @@ Runtime version check: 2026-10-30.
 
 The earlier sharing reports used different directories for A and B. They do
 not establish same-directory MCP isolation or fresh configuration for later
-sessions. This Linux x64 follow-up finds same-directory MCP crossover in
-OpenCode 2.2.3 and Qoder 1.1.81, and stale configuration in Kimi 2.4.1.
-Windows/macOS counterparts remain missing. No native adapter is enabled.
+sessions. The original Linux x64 follow-up found same-directory MCP crossover
+in OpenCode 2.2.3 and Qoder 1.1.81, and stale configuration in Kimi 2.4.1.
+The subsequent three-platform run below reproduced those results. New
+configuration coverage is reported separately in the
+[coverage follow-up](configuration-coverage-2026-10-30.md). No native adapter is enabled.
 
 ## Method and retained evidence
+
+This method and the tables below describe the original probe change on
+base `8858813` and its merged three-platform version `0a8c5e9`. The current
+reproduction command runs the extended probe: six native hook sources,
+Antigravity's `GEMINI.md` attempt, Grok's disposable folder-trust policy,
+and Codex's per-session trust parameters and controls. See the
+[coverage follow-up](configuration-coverage-2026-10-30.md) for those newer
+observations and their limitations.
 
 Run [same-directory.ts](same-directory.ts) with Node 24 and an exact native
 binary. Each runtime gets two disposable cohorts: one shared native
@@ -31,12 +41,12 @@ mode 0600 where supported. Cleanup is registered as each resource is acquired
 and always attempted, even if fixture setup or evidence collection throws.
 No real credentials or paid model are used.
 
-The run also changes project `AGENTS.md` from marker A to marker B after
+The original run also changed project `AGENTS.md` from marker A to marker B after
 A's baseline and before opening B. Those markers are never prompted.
 Kimi's disposable `KIMI_CODE_HOME/config.toml` and Qoder's project
 `.qoder/settings.json` install a `PreToolUse` hook that journals revision,
 event and actual cwd. They are also changed from A to B. Other runtimes'
-hooks are **not exercised**. Presence in provider history shows a file was
+hooks were **not exercised by that version**. Presence in provider history shows a file was
 read, not which instruction wins; absent markers or hooks do not establish
 unsupported configuration or freshness. Qoder uses native fake responses,
 which do not expose the model's instruction input here.
@@ -48,6 +58,37 @@ One revised run per runtime is selected, including the release controls and
 Kimi timing controls. The source base was `8858813`; these are measurements
 of this probe change on a local Linux x64 host, not results from a dispatched
 workflow.
+
+## Three-platform confirmation
+
+[Run 41132390241](https://github.com/botiverse/oar/actions/runs/41132390241)
+ran the merged probe at `0a8c5e982235ee59de0cd494b02b99ed415fe375` with
+`same_directory_only=true`: six pinned runtimes on Linux x64, Windows x64
+and macOS arm64. All 18 installations completed; all 18 same-directory
+steps failed on the expected measured difference or missing configuration
+coverage. Failure alone is not a regression verdict. The
+[selected platform evidence](selected-directory-platforms-2026-10-30.json)
+retains every artifact ID, actual five-turn invocation, final journal check,
+release result and configuration comparison. Antigravity's Windows native
+installation did not report a version string; 1.4.5 is its workflow package
+pin, retained separately from the null reported version.
+
+All three platforms match the original Linux tables below: Codex, Kimi,
+Grok and Antigravity route all five inputs correctly in both cohorts;
+OpenCode and Qoder cross-route A to B only in the shared cohort. Every
+runtime's B survives A's release. Only OpenCode still invokes the old B
+server after both sessions close and an empty-MCP session reopens on that
+process. Qoder's close control does not retain it. Antigravity accepts
+`session/close` without advertising it on all three platforms.
+
+Kimi's immediate later B sees the old instruction and hook in shared mode;
+a three-second wait before B makes the instruction current whether A is
+live, closed or in another directory, but the old hook persists in all
+three controls on all platforms. The other five runtimes' configuration
+coverage gaps also match the original Linux run. The OpenCode/Qoder
+process-lifetime directory restriction and Kimi isolation conclusion
+therefore have three-platform evidence. These historical runs do not
+inherit the subsequently added hooks or trust conditions.
 
 ## Linux MCP comparison
 
@@ -114,7 +155,9 @@ keep implementation separate from evidence.
 A later session must read the configuration that an isolated process opened
 at that moment would read. Otherwise automatic sharing changes behavior
 silently. This is now an explicit admission requirement, not implied by MCP
-routing. The following results are from the same five-turn Linux cohorts.
+routing. The following results are historical observations from the original
+five-turn Linux cohorts on base `8858813`, repeated by `0a8c5e9` on three
+platforms. They do not describe the current probe's expanded coverage.
 
 | Runtime | Shared later B | Separate later B | Existing A after edit | Hook coverage |
 | --- | --- | --- | --- | --- |
@@ -127,7 +170,10 @@ routing. The following results are from the same five-turn Linux cohorts.
 
 Codex/OpenCode agree with their fresh-process controls for the observed
 instruction file; this does not establish all configuration or hook behavior.
-Grok/Antigravity instruction freshness is **unverified**, not a pass. Qoder
+Grok/Antigravity instruction freshness was **unverified in that probe**, not a pass.
+The [coverage follow-up](configuration-coverage-2026-10-30.md) subsequently
+observed Grok's markers with its explicit trust condition; Antigravity's
+markers remain missing. Qoder
 agrees with its control for the exercised project hook, but its instruction
 freshness is unverified. Qoder's normal project-file refresh affects existing
 sessions in both modes, so that refresh is not a sharing-only defect.
@@ -209,14 +255,15 @@ The report compares only observed instruction markers and exercised hook
 revisions for B; an unobserved field is null, not a freshness pass. MCP
 crossover, an observed configuration difference, or **missing instruction or
 hook evidence** exits nonzero after saving evidence. Missing observations
-explicitly report "missing evidence". Thus all six current Linux runs fail
+explicitly report "missing evidence". Thus all six original Linux runs and the 18 platform runs fail
 the complete revised gate: measured defects and missing coverage both remain
 visible in the manual workflow. No runtime version on any platform currently
 meets that complete gate. The
 ordinary PR gate does not run this native evidence experiment.
 
-After merge, run the full six-runtime, three-platform manual workflow with
-both scope flags false. It retains old different-directory observations,
+The original three-platform same-directory run above is complete. After
+the coverage follow-up merges, rerun the revised six-runtime probe on all
+three platforms; use both scope flags false when also collecting resources. It retains old different-directory observations,
 new same-directory/configuration observations, and resource groups even if
 the new comparison fails. No automatic retries. Missing instruction/hook
 coverage, exact platform results and any required admission restrictions

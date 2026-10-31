@@ -24,6 +24,30 @@ export async function probeFixture<T>(create: (defer: (cleanup: () => void | Pro
 
 export async function usingProbeFixture<T extends StoppableFixture, R>(create: () => Promise<T>, observe: (fixture: T) => Promise<R>): Promise<R> {
   const fixture = await create();
-  try { return await observe(fixture); }
-  finally { await fixture.stop(); }
+  const result = await (async (): Promise<R> => { const value = await observe(fixture); return value; })().catch(async (error: unknown): Promise<never> => {
+    try { await fixture.stop(); }
+    catch (cleanupError) { throw new AggregateError([error, cleanupError], "Probe observation and cleanup failed", { cause: cleanupError }); }
+    throw error;
+  });
+  await fixture.stop();
+  return result;
+}
+
+/** Attempt every evidence source even when observation or another source fails. */
+export async function preservingProbeEvidence(observe: () => Promise<void>, collect: readonly (() => void | Promise<void>)[]): Promise<void> {
+  const errors: unknown[] = [];
+  try { await observe(); } catch (error) { errors.push(error); }
+  for (const read of collect) {
+    // oxlint-disable-next-line no-await-in-loop -- Retain independent evidence in a stable order, attempting every source.
+    try { await read(); } catch (error) { errors.push(error); }
+  }
+  if (errors.length === 1) { throw errors[0]; }
+  if (errors.length > 1) { throw new AggregateError(errors, "Probe observation and evidence collection failed"); }
+}
+
+/** String(AggregateError) omits its causes; evidence must retain each failure. */
+export function probeErrorText(error: unknown): string {
+  return error instanceof AggregateError
+    ? `${String(error)}: [${error.errors.map((cause: unknown) => probeErrorText(cause)).join("; ")}]`
+    : String(error);
 }
