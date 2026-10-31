@@ -101,3 +101,10 @@ the adapter's isolated fallback. The three admitted platforms run it in CI,
 then `sea-trial/vendor/opencode-sharing.vendor.test.ts` checks shared and
 isolated lifecycle controls. The fixture PATH excludes relative entries;
 custom startup inputs retain their separately tested isolation policy.
+
+`OAR_TEST=grok-shared` runs real Grok 1.0.70 with all behavior roots in
+one project directory. Fresh roots must actually share. The three `check`
+jobs also run `grok-sharing.vendor.test.ts` in shared and isolated placement,
+checking models, same-directory MCP, child arrival/association timing, live
+terminal trees for both roots, directory reuse and final-lease shutdown.
+Artifacts go under `oar-trial-run/grok-sharing`.

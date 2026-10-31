@@ -5,6 +5,7 @@ import { onFirstCall } from "../../shared/lazy.js";
 import { grokInstallation } from "./installation.js";
 import { grokInstall, grokInstallPlan } from "./install.js";
 import { grokCheckUpdate, grokUpgrade } from "./update.js";
+import { grokSharedRefusal } from "./sharing-admission.js";
 import { grokRefusedSessionOptions } from "./options.js";
 
 export const grokRuntime = defineRuntime({
@@ -32,4 +33,7 @@ export const grokRuntime = defineRuntime({
     const { grokSession } = await import("./session.js");
     return grokSession;
   }),
-}, { execution: "process" });
+}, { execution: "process", shared: { refusal: grokSharedRefusal, session: () => onFirstCall(async () => {
+  const { createGrokSharedSession } = await import("./shared-session.js");
+  return createGrokSharedSession();
+}) } });

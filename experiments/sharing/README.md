@@ -4,6 +4,7 @@ These probes exercise native multi-session transports with scripted local
 model responses. They do not enable OAR process sharing. The admission rule
 is [system.md, Shared runtime processes](../../docs/design/system.md#shared-runtime-processes).
 
+- [Grok child arrival timing and adapter verification](grok-child-order-2026-10-31.md).
 - [Current version/platform admission decisions](admission-2026-10-31.md).
 - [OpenCode 2.2.5 complete three-platform evidence and restricted admission](opencode-2.2.5-2026-10-31.md).
 - [Native trust refresh, cross-directory controls and latest platform results](trust-freshness-2026-10-31.md).
@@ -45,7 +46,9 @@ CI run 2.2.5. The earlier 2.2.3 native evidence remains recorded above.
 and Windows x64. OpenCode 2.2.3 and 2.2.5 meet it on the same platforms only with one
 session per canonical directory for the entire process lifetime.**
 OpenCode currently enables 2.2.3 and 2.2.5 with the lifetime directory
-restriction; Grok's admitted adapter cells are not enabled yet.
+restriction; Grok 1.0.70 also enables its three admitted cells, without a
+directory restriction. Its native shared behavior and shared/isolated
+lifecycle controls run on all three platforms in PR CI.
 The [current admission report](admission-2026-10-31.md)
 links each decision to its observation, resource and configuration evidence,
 including all 18 artifacts from run 41157633349.

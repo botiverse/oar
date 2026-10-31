@@ -248,7 +248,8 @@ Sharing follows five rules:
    typed reason. The exact versions and platforms that meet this gate are
    recorded in the [evidence index](../../experiments/sharing/README.md)
    (see the [2026-10-31 admission decisions](../../experiments/sharing/admission-2026-10-31.md)). OpenCode 2.2.3 and 2.2.5 enable sharing on the three admitted
-   platforms with its lifetime directory restriction. Other native adapters
+   platforms with its lifetime directory restriction. Grok 1.0.70 enables
+   sharing on those platforms without a directory restriction. Other native adapters
    still run in isolation until separately enabled. Claude, Qwen and Pi RPC
    run one session per native process and are always isolated. Qoder 1.1.80
    and earlier are also isolated. From 1.1.81, Qoder's native SDK daemon can
