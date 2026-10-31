@@ -1,0 +1,40 @@
+{
+  "version": "1.19.5",
+  "platform": "linux",
+  "arch": "x64",
+  "node": "v24.19.0",
+  "concurrency": 2,
+  "results": [
+    {
+      "phase": "cold-a",
+      "opened": true,
+      "elapsedMs": 2866.678779,
+      "errors": []
+    },
+    {
+      "phase": "cold-b",
+      "opened": false,
+      "elapsedMs": 881.0554259999999,
+      "errors": [
+        {
+          "stage": "open",
+          "message": "ACP process exited: exit code 1; signal none\nstderr (tail):\n\u001b[91m\u001b[1mError: \u001b[0mUnexpected error\n\nFailed query: \n        CREATE TABLE `workspace` (\n          `id` text PRIMARY KEY,\n          `type` text NOT NULL,\n          `name` text DEFAULT '' NOT NULL,\n          `branch` text,\n          `directory` text,\n          `extra` text,\n          `project_id` text NOT NULL,\n          `time_used` integer NOT NULL,\n          CONSTRAINT `fk_workspace_project_id_project_id_fk` FOREIGN KEY (`project_id`) REFERENCES `project`(`id`) ON DELETE CASCADE\n        );\n      \nparams: \n"
+        }
+      ]
+    },
+    {
+      "phase": "prepared-a",
+      "opened": true,
+      "elapsedMs": 2497.2736520000008,
+      "errors": []
+    },
+    {
+      "phase": "prepared-b",
+      "opened": true,
+      "elapsedMs": 2421.3007740000003,
+      "errors": []
+    }
+  ],
+  "fixtureErrors": [],
+  "coldStartFailure": "observed"
+}

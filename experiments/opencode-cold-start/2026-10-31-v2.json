@@ -1,0 +1,40 @@
+{
+  "version": "opencode v2.2.3",
+  "platform": "linux",
+  "arch": "x64",
+  "node": "v24.19.0",
+  "concurrency": 2,
+  "results": [
+    {
+      "phase": "cold-a",
+      "opened": true,
+      "elapsedMs": 1688.9753580000001,
+      "errors": []
+    },
+    {
+      "phase": "cold-b",
+      "opened": false,
+      "elapsedMs": 574.525522,
+      "errors": [
+        {
+          "stage": "open",
+          "message": "ACP process exited: exit code 1; signal none\nstderr (tail):\nError: Standalone server exited before reporting readiness\n    at <anonymous> (/$bunfs/root/chunk-rdpfjr8w.js:2:1020)\n    at cli.standalone.endpoint (/$bunfs/root/chunk-nr7dn5kx.js:11:5182)\n    at cli.standalone.endpoint (definition) (/$bunfs/root/chunk-rdpfjr8w.js:2:841)\n    at cli.acp (/$bunfs/root/chunk-parzszjw.js:7:21343)\n    at cli.acp (definition) (/$bunfs/root/chunk-nr7dn5kx.js:11:4984)\n"
+        }
+      ]
+    },
+    {
+      "phase": "prepared-a",
+      "opened": true,
+      "elapsedMs": 1626.8936040000008,
+      "errors": []
+    },
+    {
+      "phase": "prepared-b",
+      "opened": true,
+      "elapsedMs": 1594.7848750000003,
+      "errors": []
+    }
+  ],
+  "fixtureErrors": [],
+  "coldStartFailure": "observed"
+}

@@ -238,7 +238,11 @@ or pull request whose changes are all Markdown files or under `docs/` or
   vendor tests use native programs with local scripted providers, isolated
   configuration and synthetic keys. Shared-case concurrency and Vitest
   worker count are both 2; CodeBuddy serializes shared cases in its isolated
-  fixture HOME. A missing installation fails; individual
+  fixture HOME. OpenCode prepares each behavior fixture's database with one
+  serial native open and exit before concurrent cases begin. Preparation
+  failures stop the suite without retries; the independent
+  [cold-start observation](../experiments/opencode-cold-start.ts) retains the
+  native database race separately. A missing installation fails; individual
   unsupported capabilities remain visible skips. Each job has a 20-minute
   ceiling and each suite step a 12-minute ceiling, without changing case
   assertions or native deadlines. Logs and traces upload even on failure.

@@ -67,6 +67,16 @@ Run `pnpm sea-trial`, then `pnpm vitest run sea-trial/vendor` with that
 selection. CI installs exact versions on Linux, macOS and Windows and sets
 `OAR_TEST_REQUIRE_AVAILABLE=1`; it does not silently skip an absent binary.
 The CI jobs use two concurrent shared cases and two Vitest workers.
+For each OpenCode behavior fixture, `beforeSuite` first opens and disposes
+one independent native session against its fresh data directory. It waits for
+both initialization and exit before concurrent cases begin; a failure stops
+the suite with the original error and a preparation trace, without retrying.
+The standalone ACP behavior probe uses the same preparation. Vendor fixtures
+and native sharing evidence are unchanged. The separate
+[`opencode-cold-start.ts`](../experiments/opencode-cold-start.ts) observation
+keeps concurrent cold starts visible, including failed native starts, without
+mixing them into prepared behavior results. Product deadlines, case deadlines
+and concurrency remain unchanged.
 Shared-suite output counts passing, skipped and failing cases separately
 and names the capability behind each skip. These subjects intentionally do
 not expose account usage or standalone model catalogs; Kimi also lacks steer.

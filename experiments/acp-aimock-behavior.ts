@@ -27,9 +27,12 @@ import { openTrace } from "../sea-trial/harness/trace.js";
 const [id] = process.argv.slice(2);
 assert.ok(id === "antigravity" || id === "grok" || id === "kimi" || id === "opencode", "Choose antigravity, grok, kimi or opencode");
 const name = `${id}-aimock`;
-const { runtime, aimock: env } = await acpBackend(id);
+const { runtime, aimock: env, beforeSuite } = await acpBackend(id);
 try {
   console.log(`trace: ${openTrace(name)}`);
+  const installation = await runtime.installation?.();
+  assert.ok(installation?.kind === "available", `${name} installation unavailable: ${installation?.kind ?? "no probe"}`);
+  await beforeSuite?.(installation);
   const outcomes = await runSuite(trialCases, runtimeUnderTest(runtime, env.env));
   process.stdout.write(`${JSON.stringify(outcomes, null, 2)}\n`);
   process.exitCode = outcomes.some(o => o.kind === "fail") ? 1 : 0;
