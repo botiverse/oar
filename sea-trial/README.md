@@ -106,3 +106,10 @@ custom startup inputs retain their separately tested isolation policy.
 `opencode-sharing-experiment.yml` manually runs these candidate controls and
 the configured-plugin child environment comparison. They are outside default
 `check`; the public isolated cleanup regression remains in ordinary CI.
+
+`OAR_TEST=grok-shared` runs real Grok 1.0.70 with all behavior roots in
+one project directory. Fresh roots must actually share. The three `check`
+jobs also run `grok-sharing.vendor.test.ts` in shared and isolated placement,
+checking models, same-directory MCP, child arrival/association timing, live
+terminal trees for both roots, directory reuse and final-lease shutdown.
+Artifacts go under `oar-trial-run/grok-sharing`.

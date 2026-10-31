@@ -5,6 +5,7 @@ model responses. They do not enable OAR process sharing. The admission rule
 is [system.md, Shared runtime processes](../../docs/design/system.md#shared-runtime-processes).
 
 - [OpenCode plugin child cwd counterexample and admission withdrawal](opencode-plugin-environment-2026-10-31.md).
+- [Grok child arrival timing and adapter verification](grok-child-order-2026-10-31.md).
 - [Current version/platform admission decisions](admission-2026-10-31.md).
 - [OpenCode 2.2.5 historical three-platform evidence](opencode-2.2.5-2026-10-31.md).
 - [Native trust refresh, cross-directory controls and latest platform results](trust-freshness-2026-10-31.md).

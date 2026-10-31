@@ -21,7 +21,7 @@ Admission also checks same-directory MCP isolation and configuration
 freshness: a later shared session must observe the project/user configuration
 that a new isolated process would observe then. The generic factory's
 per-session arguments alone do not prove that a vendor scopes them that way.
-For OpenCode 2.2.3, one canonical directory serves at most one
+For OpenCode 2.2.3 and 2.2.5, one canonical directory serves at most one
 session for the entire process lifetime. Release does not clear that used
 directory. Another open in that directory, including an identical or empty
 MCP list, uses a fresh isolated process for `auto` and throws
@@ -120,6 +120,37 @@ turn ending. Unowned host requests receive ACP invalid-params errors after
 their bounded wait. They cannot create a terminal or use another root's
 permission handler. A diagnostic callback's exception cannot prevent that
 refusal. SDK validation still applies to typed native requests and updates.
+
+### Grok 1.0.70 shared adapter
+
+Grok enables sharing on Linux x64, macOS arm64 and Windows x64, with no
+lifetime directory restriction. Both installation output and the native
+`initialize._meta.agentVersion` must identify exact stable 1.0.70. A refusal
+falls back before native open under `auto`, or rejects explicit `shared`
+with option `placement`. Its [launch audit](../runtimes/grok.md#shared-launch-ownership-and-cleanup)
+defines the neutral home, relative-input guards and process-key boundaries.
+
+The native `subagent_spawned` parent/child pair supplies ownership.
+A completed `SubagentCompleted.subagent_id` is only checked against an
+accepted direct parent/child pair on that connection. A mismatching or
+unproved pair records `conflict`, without creating or moving ownership.
+Accepted association evidence is connection-local and cleared on exit.
+No sibling tool-call correlation is inferred from temporal order.
+
+The [12-sample Linux probe](../../experiments/sharing/grok-child-order-2026-10-31.md)
+observed spawn 68-83 ms before each first child frame, with scripted child
+latencies of 0, 250, 1500 and 5000 ms, three samples each. Grok keeps the
+1-second / 256-frame / 1-MiB notification buffer as reordering margin.
+Its permission and terminal requests wait for proven association for at
+most 1000 ms from ingress, independently of any pending `session/new`.
+Expiry diagnoses the request and returns ACP invalid params without
+calling another root's handler. Owned permissions use the same fixed allow
+policy as isolated Grok; shared placement adds no approval mode.
+
+Three-platform native lifecycle CI asserts that ancestry preceded the first
+child frame or arrived within that window, that the child is projected only
+into its own root, and that completed ancestry agrees. Deliberately late,
+expired and conflicting sequences are exercised by synthetic regressions.
 
 ## Controls and cleanup
 

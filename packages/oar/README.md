@@ -162,6 +162,13 @@ processes otherwise inherit a different working directory.
 the opened session's actual placement. See the
 [placement contract](https://github.com/botiverse/oar/blob/main/docs/spec/record-stream.md#placement-and-release).
 
+On Linux x64, macOS arm64 and Windows x64, `auto` shares Grok 1.0.70
+processes even for concurrent sessions in the same directory. OpenCode 2.2.3
+and 2.2.5 share only when a canonical directory has not already been used
+on that process. Other versions do not inherit these decisions; both the
+installation and running native version are checked. See the
+[shared-process admission evidence](https://github.com/botiverse/oar/blob/main/experiments/sharing/admission-2026-10-31.md).
+
 What a runtime cannot honor is refused, never dropped: `runtime.session()`
 rejects with an `UnsupportedOptionError` (`option` names the refused
 `SessionOptions` key, the message is the reason), so a host can try and fall

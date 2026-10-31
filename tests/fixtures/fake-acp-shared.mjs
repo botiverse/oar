@@ -28,7 +28,8 @@ async function handle(message) {
     initialized++;
     if (process.env.FAIL_INIT === '1') { send({ id, error: { code: -32_000, message: 'initialize refused' } }); return; }
     const version = process.env.FIXTURE_AGENT_VERSION_FILE ? readFileSync(process.env.FIXTURE_AGENT_VERSION_FILE, 'utf8') : process.env.FIXTURE_AGENT_VERSION;
-    result(id, { protocolVersion: 1, ...(version ? { agentInfo: { name: 'fixture', version } } : {}), agentCapabilities: { ...(process.env.FIXTURE_HTTP_MCP === "1" ? { mcpCapabilities: { http: true } } : {}), loadSession: true, sessionCapabilities: { resume: {}, close: {} } } });
+    const identity = process.env.FIXTURE_GROK === '1' ? { _meta: { agentVersion: version } } : { agentInfo: { name: 'fixture', version } };
+    result(id, { protocolVersion: 1, ...(version ? identity : {}), agentCapabilities: { ...(process.env.FIXTURE_HTTP_MCP === "1" ? { mcpCapabilities: { http: true } } : {}), loadSession: true, sessionCapabilities: { resume: {}, close: {} } } });
   } else if (method === 'session/new') {
     const sessionId = `root-${++nextSession}`;
     const collision = /(?:late-)?collision-(?<id>root-\d+)$/u.exec(params.cwd)?.groups?.id;
@@ -106,6 +107,18 @@ async function handle(message) {
       catch { update(params.sessionId, 'peer-terminal-refused'); }
     } else if (text === 'session-count') { update(params.sessionId, `count:${sessions.size}`);
     } else if (text === 'resume-count') { update(params.sessionId, `resume-count:${resumes}`);
+    } else if (text === 'grok-child') {
+      const child = `${params.sessionId}-child`;
+      update(child, 'early-grok-child');
+      send({ method: '_x.ai/session_notification', params: { sessionId: params.sessionId, update: { sessionUpdate: 'subagent_spawned', parent_session_id: params.sessionId, child_session_id: child } } });
+      const permission = await host('session/request_permission', { sessionId: child, toolCall: { toolCallId: `call-${child}`, title: 'child permission' }, options: [{ optionId: `allow-${child}`, kind: 'allow_once', name: 'Allow' }] });
+      update(child, JSON.stringify(permission));
+      const terminal = await host('terminal/create', { sessionId: child, command: process.execPath, args: ['-e', 'process.exit(0)'] });
+      await host('terminal/release', { sessionId: child, terminalId: terminal.terminalId });
+      send({ method: 'session/update', params: { sessionId: params.sessionId, update: { sessionUpdate: 'tool_call_update', toolCallId: 'spawn', status: 'completed', rawOutput: { type: 'SubagentCompleted', subagent_id: child } } } });
+    } else if (text === 'unowned-permission') {
+      try { await host('session/request_permission', { sessionId: 'unowned', toolCall: { toolCallId: 'unknown', title: 'unknown' }, options: [{ optionId: 'allow', kind: 'allow_once', name: 'Allow' }] }); update(params.sessionId, 'unexpected-allowed'); }
+      catch { update(params.sessionId, 'unowned-permission-refused'); }
     } else if (text === 'child') {
       update(`${params.sessionId}-grandchild`, 'grandchild-first');
       send({ method: 'fixture/lineage', params: { sessionId: `${params.sessionId}-child`, child: `${params.sessionId}-grandchild` } });

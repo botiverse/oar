@@ -28,12 +28,14 @@ export interface AcpSharedOptions {
   readonly initializationRefusal?: (response: JsonRecord) => string | null;
   /** Only explicit native links; never infer parenthood from a foreign id. */
   readonly associations: (method: string, params: JsonRecord) => readonly AcpAssociation[];
+  /** Consistency checks against accepted links. A late claim never grants ownership. */
+  readonly associationChecks?: (method: string, params: JsonRecord) => readonly AcpAssociation[];
   readonly sessionId?: (method: string, params: JsonRecord) => string | null;
   /** Per-session native cancel/close, using the vendor's verified protocol. Never kill this process. */
   readonly cleanup: (runtime: AcpProcess, sessionId: string) => Promise<void>;
   /** Redacted connection facts have no session owner and must not be sent to an arbitrary recorder. */
   readonly diagnostic: (entry: AcpUnattributed) => void;
-  readonly pending?: { readonly maxFrames?: number; readonly maxBytes?: number; readonly waitMs?: number };
+  readonly pending?: { readonly maxFrames?: number; readonly maxBytes?: number; readonly waitMs?: number; readonly requestWaitMs?: number };
 }
 
 /** Attempt native cleanup and hosted terminal cleanup independently, retaining both failures. */
@@ -55,6 +57,7 @@ export function sharedAcpSession(profile: AcpSessionProfile, shared: AcpSharedOp
   const pool = createProcessPool((configuration: ProcessConfiguration, retire) => {
     const routing = createAcpRouting<AcpClientTarget>({
       associations: shared.associations, diagnostic: shared.diagnostic,
+      ...(shared.associationChecks === undefined ? {} : { associationChecks: shared.associationChecks }),
       ...(shared.sessionId === undefined ? {} : { sessionId: shared.sessionId }), ...shared.pending,
     });
     const app = createRoutedAcpClientApp({

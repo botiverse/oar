@@ -8,7 +8,7 @@ import { descendantsOf, killEntries, type ProcessEntry } from "../../../packages
 import { asRecord } from "../../../packages/oar/src/shared/json.js";
 import { linuxProcessState, settleObservedProcesses } from "./process-reclamation.js";
 
-export function cleanupObserver(home: string): { observations: unknown[]; sample(stage: string): Promise<void>; reclaim(): Promise<void> } {
+export function cleanupObserver(home: string, runtime = "opencode"): { observations: unknown[]; sample(stage: string): Promise<void>; reclaim(): Promise<void> } {
   const owned = new Map<number, ProcessEntry>();
   const observations: unknown[] = [];
   const failures: unknown[] = [];
@@ -16,7 +16,7 @@ export function cleanupObserver(home: string): { observations: unknown[]; sample
     observations,
     async sample(stage: string): Promise<void> {
       try {
-        const table = checkedProcessTable(`opencode-${stage}`, process.platform, true);
+        const table = checkedProcessTable(`${runtime}-${stage}`, process.platform, true);
         const current = descendantsOf(table, process.pid);
         for (const entry of current) { owned.set(entry.pid, entry); }
         const retained = [...owned.values()].flatMap(entry => {
@@ -42,19 +42,19 @@ export function cleanupObserver(home: string): { observations: unknown[]; sample
           return { pid: row.pid, ppid: row.ppid, start: row.start, cwd, executable, state: linuxProcessState(entry) };
         }));
         const observation = { stage, at: new Date().toISOString(), processes, windows, tool, child };
-        observations.push(observation); process.stdout.write(`${JSON.stringify({ kind: "opencode_cleanup", ...observation })}\n`);
+        observations.push(observation); process.stdout.write(`${JSON.stringify({ kind: `${runtime}_cleanup`, ...observation })}\n`);
       } catch (error) {
         // Diagnostics must not prevent the lifecycle assertion from running.
         failures.push(error); observations.push({ stage, error: String(error) });
       }
     },
     async reclaim(): Promise<void> {
-      const table = checkedProcessTable("opencode-fixture-reclaim", process.platform, true);
+      const table = checkedProcessTable(`${runtime}-fixture-reclaim`, process.platform, true);
       const candidates = [...owned.values(), ...descendantsOf(table, process.pid)].filter(entry => table.get(entry.pid)?.start === entry.start);
       const settled = await settleObservedProcesses([...new Map(candidates.map(entry => [entry.pid, entry])).values()], table);
       const { remaining, zombies, snapshots, elapsedMs, waitMs } = settled;
       const observation = { stage: "fixture-reclaim", at: new Date().toISOString(), elapsedMs, waitMs, processes: remaining, zombies, snapshots };
-      observations.push(observation); process.stdout.write(`${JSON.stringify({ kind: "opencode_cleanup", ...observation })}\n`);
+      observations.push(observation); process.stdout.write(`${JSON.stringify({ kind: `${runtime}_cleanup`, ...observation })}\n`);
       // Reclaim for runner hygiene, but never turn a leaked MCP/tool/conhost into a passing test.
       killEntries(remaining, settled.table);
       const pids = [...new Set(remaining.map(entry => entry.pid))].join(", ");
