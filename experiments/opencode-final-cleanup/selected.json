@@ -1,0 +1,1172 @@
+{
+  "ci": {
+    "run": 41186300592,
+    "job": 124493806298,
+    "artifact": 13036849515,
+    "commit": "1be57a5cbc0979bbdc12be6dc08255b69cf877a9",
+    "version": "opencode v2.2.3",
+    "errors": [
+      "AggregateError: Native cleanup evidence or final tree assertion failed: [Error: Fixture reclaimed leaked processes: 15827, 15848, 15854]"
+    ],
+    "sharedRuntime": {
+      "closed": true,
+      "diagnostics": {
+        "exitCode": 0,
+        "signal": null,
+        "stderr": "",
+        "cleanup": {
+          "status": "observed",
+          "observations": [
+            {
+              "ok": true,
+              "phase": "before_eof",
+              "source": "procfs",
+              "elapsedMs": 14.724777999999787,
+              "skipped": 0
+            },
+            {
+              "ok": true,
+              "phase": "after_exit",
+              "source": "procfs",
+              "elapsedMs": 24.21899999999914,
+              "skipped": 0
+            }
+          ]
+        }
+      }
+    },
+    "exitedAt": [
+      1793436986908
+    ],
+    "samples": [
+      {
+        "stage": "before-dispose",
+        "at": "2026-10-31T08:56:22.024Z",
+        "processes": [
+          {
+            "pid": 15817,
+            "ppid": 15794,
+            "start": "30218"
+          },
+          {
+            "pid": 15827,
+            "ppid": 15817,
+            "start": "30235"
+          },
+          {
+            "pid": 15848,
+            "ppid": 15827,
+            "start": "30364"
+          },
+          {
+            "pid": 15854,
+            "ppid": 15827,
+            "start": "30365"
+          },
+          {
+            "pid": 15877,
+            "ppid": 15827,
+            "start": "30452"
+          },
+          {
+            "pid": 15884,
+            "ppid": 15877,
+            "start": "30457"
+          }
+        ]
+      },
+      {
+        "stage": "after-dispose",
+        "at": "2026-10-31T08:56:22.044Z",
+        "processes": [
+          {
+            "pid": 15817,
+            "ppid": 15794,
+            "start": "30218"
+          },
+          {
+            "pid": 15827,
+            "ppid": 15817,
+            "start": "30235"
+          },
+          {
+            "pid": 15848,
+            "ppid": 15827,
+            "start": "30364"
+          },
+          {
+            "pid": 15854,
+            "ppid": 15827,
+            "start": "30365"
+          }
+        ]
+      },
+      {
+        "stage": "before-directory-removal",
+        "at": "2026-10-31T08:56:26.916Z",
+        "processes": [
+          {
+            "pid": 15827,
+            "ppid": 1,
+            "start": "30235"
+          },
+          {
+            "pid": 15848,
+            "ppid": 15827,
+            "start": "30364"
+          },
+          {
+            "pid": 15854,
+            "ppid": 15827,
+            "start": "30365"
+          }
+        ]
+      }
+    ],
+    "linuxStatesRetained": false
+  },
+  "local": {
+    "productCommit": "3e47590f5063fc763774eb42a4e898503c7d3003",
+    "platform": "linux",
+    "arch": "x64",
+    "node": "24.19.0",
+    "sampler": "state-aware settling fixture in this change",
+    "runs": [
+      {
+        "iteration": 1,
+        "exitCode": 0,
+        "version": "opencode v2.2.3",
+        "errors": [],
+        "samples": [
+          {
+            "stage": "before-dispose",
+            "at": "2026-10-31T10:10:11.233Z",
+            "states": [
+              "S",
+              "S",
+              "S",
+              "S",
+              "S",
+              "S"
+            ]
+          },
+          {
+            "stage": "after-dispose",
+            "at": "2026-10-31T10:10:11.259Z",
+            "states": [
+              "S",
+              "S",
+              "S",
+              "S"
+            ]
+          },
+          {
+            "stage": "before-directory-removal",
+            "at": "2026-10-31T10:10:17.663Z",
+            "states": []
+          },
+          {
+            "stage": "fixture-reclaim",
+            "at": "2026-10-31T10:10:17.669Z",
+            "states": [],
+            "elapsedMs": 0.16962100000091596,
+            "zombies": []
+          }
+        ],
+        "sharedRuntime": {
+          "closed": true,
+          "diagnostics": {
+            "exitCode": 0,
+            "signal": null,
+            "stderr": "",
+            "cleanup": {
+              "status": "observed",
+              "observations": [
+                {
+                  "ok": true,
+                  "phase": "before_eof",
+                  "source": "procfs",
+                  "elapsedMs": 30.86526699999922,
+                  "skipped": 0
+                },
+                {
+                  "ok": true,
+                  "phase": "after_exit",
+                  "source": "procfs",
+                  "elapsedMs": 39.102623000000676,
+                  "skipped": 0
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "iteration": 2,
+        "exitCode": 0,
+        "version": "opencode v2.2.3",
+        "errors": [],
+        "samples": [
+          {
+            "stage": "before-dispose",
+            "at": "2026-10-31T10:10:25.256Z",
+            "states": [
+              "S",
+              "S",
+              "S",
+              "S",
+              "S",
+              "S"
+            ]
+          },
+          {
+            "stage": "after-dispose",
+            "at": "2026-10-31T10:10:25.293Z",
+            "states": [
+              "S",
+              "S",
+              "S",
+              "S"
+            ]
+          },
+          {
+            "stage": "before-directory-removal",
+            "at": "2026-10-31T10:10:31.359Z",
+            "states": []
+          },
+          {
+            "stage": "fixture-reclaim",
+            "at": "2026-10-31T10:10:31.368Z",
+            "states": [],
+            "elapsedMs": 0.19895899999937683,
+            "zombies": []
+          }
+        ],
+        "sharedRuntime": {
+          "closed": true,
+          "diagnostics": {
+            "exitCode": 130,
+            "signal": null,
+            "stderr": "",
+            "cleanup": {
+              "status": "observed",
+              "observations": [
+                {
+                  "ok": true,
+                  "phase": "before_eof",
+                  "source": "procfs",
+                  "elapsedMs": 34.93636300000071,
+                  "skipped": 0
+                },
+                {
+                  "ok": true,
+                  "phase": "after_exit",
+                  "source": "procfs",
+                  "elapsedMs": 17.878500999999233,
+                  "skipped": 0
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "iteration": 3,
+        "exitCode": 0,
+        "version": "opencode v2.2.3",
+        "errors": [],
+        "samples": [
+          {
+            "stage": "before-dispose",
+            "at": "2026-10-31T10:10:39.095Z",
+            "states": [
+              "S",
+              "S",
+              "S",
+              "S",
+              "S",
+              "S"
+            ]
+          },
+          {
+            "stage": "after-dispose",
+            "at": "2026-10-31T10:10:39.125Z",
+            "states": [
+              "S",
+              "S",
+              "S",
+              "S"
+            ]
+          },
+          {
+            "stage": "before-directory-removal",
+            "at": "2026-10-31T10:10:46.247Z",
+            "states": []
+          },
+          {
+            "stage": "fixture-reclaim",
+            "at": "2026-10-31T10:10:46.253Z",
+            "states": [],
+            "elapsedMs": 0.14895400000023074,
+            "zombies": []
+          }
+        ],
+        "sharedRuntime": {
+          "closed": true,
+          "diagnostics": {
+            "exitCode": 130,
+            "signal": null,
+            "stderr": "",
+            "cleanup": {
+              "status": "observed",
+              "observations": [
+                {
+                  "ok": true,
+                  "phase": "before_eof",
+                  "source": "procfs",
+                  "elapsedMs": 26.032693999999537,
+                  "skipped": 0
+                },
+                {
+                  "ok": true,
+                  "phase": "after_exit",
+                  "source": "procfs",
+                  "elapsedMs": 24.97671799999989,
+                  "skipped": 0
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "iteration": 4,
+        "exitCode": 0,
+        "version": "opencode v2.2.3",
+        "errors": [],
+        "samples": [
+          {
+            "stage": "before-dispose",
+            "at": "2026-10-31T10:10:54.751Z",
+            "states": [
+              "S",
+              "S",
+              "S",
+              "S",
+              "S",
+              "S"
+            ]
+          },
+          {
+            "stage": "after-dispose",
+            "at": "2026-10-31T10:10:54.785Z",
+            "states": [
+              "S",
+              "S",
+              "S",
+              "S"
+            ]
+          },
+          {
+            "stage": "before-directory-removal",
+            "at": "2026-10-31T10:11:00.662Z",
+            "states": []
+          },
+          {
+            "stage": "fixture-reclaim",
+            "at": "2026-10-31T10:11:00.668Z",
+            "states": [],
+            "elapsedMs": 0.14283700000123645,
+            "zombies": []
+          }
+        ],
+        "sharedRuntime": {
+          "closed": true,
+          "diagnostics": {
+            "exitCode": 130,
+            "signal": null,
+            "stderr": "",
+            "cleanup": {
+              "status": "observed",
+              "observations": [
+                {
+                  "ok": true,
+                  "phase": "before_eof",
+                  "source": "procfs",
+                  "elapsedMs": 28.942999000000782,
+                  "skipped": 0
+                },
+                {
+                  "ok": true,
+                  "phase": "after_exit",
+                  "source": "procfs",
+                  "elapsedMs": 21.471729999999297,
+                  "skipped": 0
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "iteration": 5,
+        "exitCode": 0,
+        "version": "opencode v2.2.3",
+        "errors": [],
+        "samples": [
+          {
+            "stage": "before-dispose",
+            "at": "2026-10-31T10:11:08.062Z",
+            "states": [
+              "S",
+              "S",
+              "S",
+              "S",
+              "S",
+              "S"
+            ]
+          },
+          {
+            "stage": "after-dispose",
+            "at": "2026-10-31T10:11:08.090Z",
+            "states": [
+              "S",
+              "S",
+              "S",
+              "S"
+            ]
+          },
+          {
+            "stage": "before-directory-removal",
+            "at": "2026-10-31T10:11:14.811Z",
+            "states": []
+          },
+          {
+            "stage": "fixture-reclaim",
+            "at": "2026-10-31T10:11:14.819Z",
+            "states": [],
+            "elapsedMs": 0.22083899999961432,
+            "zombies": []
+          }
+        ],
+        "sharedRuntime": {
+          "closed": true,
+          "diagnostics": {
+            "exitCode": 130,
+            "signal": null,
+            "stderr": "",
+            "cleanup": {
+              "status": "observed",
+              "observations": [
+                {
+                  "ok": true,
+                  "phase": "before_eof",
+                  "source": "procfs",
+                  "elapsedMs": 43.19450700000016,
+                  "skipped": 0
+                },
+                {
+                  "ok": true,
+                  "phase": "after_exit",
+                  "source": "procfs",
+                  "elapsedMs": 24.174353000000337,
+                  "skipped": 0
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "iteration": 6,
+        "exitCode": 0,
+        "version": "opencode v2.2.3",
+        "errors": [],
+        "samples": [
+          {
+            "stage": "before-dispose",
+            "at": "2026-10-31T10:11:22.090Z",
+            "states": [
+              "S",
+              "S",
+              "S",
+              "S",
+              "S",
+              "S"
+            ]
+          },
+          {
+            "stage": "after-dispose",
+            "at": "2026-10-31T10:11:22.116Z",
+            "states": [
+              "S",
+              "S",
+              "S",
+              "S"
+            ]
+          },
+          {
+            "stage": "before-directory-removal",
+            "at": "2026-10-31T10:11:27.997Z",
+            "states": []
+          },
+          {
+            "stage": "fixture-reclaim",
+            "at": "2026-10-31T10:11:28.004Z",
+            "states": [],
+            "elapsedMs": 0.20398699999896053,
+            "zombies": []
+          }
+        ],
+        "sharedRuntime": {
+          "closed": true,
+          "diagnostics": {
+            "exitCode": 0,
+            "signal": null,
+            "stderr": "",
+            "cleanup": {
+              "status": "observed",
+              "observations": [
+                {
+                  "ok": true,
+                  "phase": "before_eof",
+                  "source": "procfs",
+                  "elapsedMs": 56.81959300000017,
+                  "skipped": 0
+                },
+                {
+                  "ok": true,
+                  "phase": "after_exit",
+                  "source": "procfs",
+                  "elapsedMs": 35.55038400000012,
+                  "skipped": 0
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "iteration": 7,
+        "exitCode": 0,
+        "version": "opencode v2.2.3",
+        "errors": [],
+        "samples": [
+          {
+            "stage": "before-dispose",
+            "at": "2026-10-31T10:11:35.277Z",
+            "states": [
+              "S",
+              "S",
+              "S",
+              "S",
+              "S",
+              "S"
+            ]
+          },
+          {
+            "stage": "after-dispose",
+            "at": "2026-10-31T10:11:35.342Z",
+            "states": [
+              "S",
+              "S",
+              "S",
+              "S"
+            ]
+          },
+          {
+            "stage": "before-directory-removal",
+            "at": "2026-10-31T10:11:41.342Z",
+            "states": []
+          },
+          {
+            "stage": "fixture-reclaim",
+            "at": "2026-10-31T10:11:41.351Z",
+            "states": [],
+            "elapsedMs": 0.21342399999957706,
+            "zombies": []
+          }
+        ],
+        "sharedRuntime": {
+          "closed": true,
+          "diagnostics": {
+            "exitCode": 130,
+            "signal": null,
+            "stderr": "",
+            "cleanup": {
+              "status": "observed",
+              "observations": [
+                {
+                  "ok": true,
+                  "phase": "before_eof",
+                  "source": "procfs",
+                  "elapsedMs": 58.29354300000159,
+                  "skipped": 0
+                },
+                {
+                  "ok": true,
+                  "phase": "after_exit",
+                  "source": "procfs",
+                  "elapsedMs": 20.62888600000042,
+                  "skipped": 0
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "iteration": 8,
+        "exitCode": 0,
+        "version": "opencode v2.2.3",
+        "errors": [],
+        "samples": [
+          {
+            "stage": "before-dispose",
+            "at": "2026-10-31T10:11:48.632Z",
+            "states": [
+              "S",
+              "S",
+              "S",
+              "S",
+              "S",
+              "S"
+            ]
+          },
+          {
+            "stage": "after-dispose",
+            "at": "2026-10-31T10:11:48.672Z",
+            "states": [
+              "S",
+              "S",
+              "S",
+              "S"
+            ]
+          },
+          {
+            "stage": "before-directory-removal",
+            "at": "2026-10-31T10:11:54.585Z",
+            "states": []
+          },
+          {
+            "stage": "fixture-reclaim",
+            "at": "2026-10-31T10:11:54.591Z",
+            "states": [],
+            "elapsedMs": 0.16257099999893398,
+            "zombies": []
+          }
+        ],
+        "sharedRuntime": {
+          "closed": true,
+          "diagnostics": {
+            "exitCode": 0,
+            "signal": null,
+            "stderr": "",
+            "cleanup": {
+              "status": "observed",
+              "observations": [
+                {
+                  "ok": true,
+                  "phase": "before_eof",
+                  "source": "procfs",
+                  "elapsedMs": 56.870215999999346,
+                  "skipped": 0
+                },
+                {
+                  "ok": true,
+                  "phase": "after_exit",
+                  "source": "procfs",
+                  "elapsedMs": 26.099419000000125,
+                  "skipped": 0
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "iteration": 9,
+        "exitCode": 0,
+        "version": "opencode v2.2.3",
+        "errors": [],
+        "samples": [
+          {
+            "stage": "before-dispose",
+            "at": "2026-10-31T10:12:01.791Z",
+            "states": [
+              "S",
+              "S",
+              "S",
+              "S",
+              "S",
+              "S"
+            ]
+          },
+          {
+            "stage": "after-dispose",
+            "at": "2026-10-31T10:12:01.827Z",
+            "states": [
+              "S",
+              "S",
+              "S",
+              "S"
+            ]
+          },
+          {
+            "stage": "before-directory-removal",
+            "at": "2026-10-31T10:12:07.420Z",
+            "states": []
+          },
+          {
+            "stage": "fixture-reclaim",
+            "at": "2026-10-31T10:12:07.425Z",
+            "states": [],
+            "elapsedMs": 0.17430099999910453,
+            "zombies": []
+          }
+        ],
+        "sharedRuntime": {
+          "closed": true,
+          "diagnostics": {
+            "exitCode": 0,
+            "signal": null,
+            "stderr": "",
+            "cleanup": {
+              "status": "observed",
+              "observations": [
+                {
+                  "ok": true,
+                  "phase": "before_eof",
+                  "source": "procfs",
+                  "elapsedMs": 50.2100819999996,
+                  "skipped": 0
+                },
+                {
+                  "ok": true,
+                  "phase": "after_exit",
+                  "source": "procfs",
+                  "elapsedMs": 23.847631999999066,
+                  "skipped": 0
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "iteration": 10,
+        "exitCode": 0,
+        "version": "opencode v2.2.3",
+        "errors": [],
+        "samples": [
+          {
+            "stage": "before-dispose",
+            "at": "2026-10-31T10:12:14.570Z",
+            "states": [
+              "S",
+              "S",
+              "S",
+              "S",
+              "S",
+              "S"
+            ]
+          },
+          {
+            "stage": "after-dispose",
+            "at": "2026-10-31T10:12:14.597Z",
+            "states": [
+              "S",
+              "S",
+              "S",
+              "S"
+            ]
+          },
+          {
+            "stage": "before-directory-removal",
+            "at": "2026-10-31T10:12:20.121Z",
+            "states": []
+          },
+          {
+            "stage": "fixture-reclaim",
+            "at": "2026-10-31T10:12:20.127Z",
+            "states": [],
+            "elapsedMs": 0.1584229999989475,
+            "zombies": []
+          }
+        ],
+        "sharedRuntime": {
+          "closed": true,
+          "diagnostics": {
+            "exitCode": 0,
+            "signal": null,
+            "stderr": "",
+            "cleanup": {
+              "status": "observed",
+              "observations": [
+                {
+                  "ok": true,
+                  "phase": "before_eof",
+                  "source": "procfs",
+                  "elapsedMs": 37.181078999999954,
+                  "skipped": 0
+                },
+                {
+                  "ok": true,
+                  "phase": "after_exit",
+                  "source": "procfs",
+                  "elapsedMs": 27.53578700000071,
+                  "skipped": 0
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "iteration": 11,
+        "exitCode": 0,
+        "version": "opencode v2.2.3",
+        "errors": [],
+        "samples": [
+          {
+            "stage": "before-dispose",
+            "at": "2026-10-31T10:12:27.736Z",
+            "states": [
+              "S",
+              "S",
+              "S",
+              "S",
+              "S",
+              "S"
+            ]
+          },
+          {
+            "stage": "after-dispose",
+            "at": "2026-10-31T10:12:27.768Z",
+            "states": [
+              "S",
+              "S",
+              "S",
+              "S"
+            ]
+          },
+          {
+            "stage": "before-directory-removal",
+            "at": "2026-10-31T10:12:33.807Z",
+            "states": []
+          },
+          {
+            "stage": "fixture-reclaim",
+            "at": "2026-10-31T10:12:33.813Z",
+            "states": [],
+            "elapsedMs": 0.15869199999906414,
+            "zombies": []
+          }
+        ],
+        "sharedRuntime": {
+          "closed": true,
+          "diagnostics": {
+            "exitCode": 130,
+            "signal": null,
+            "stderr": "",
+            "cleanup": {
+              "status": "observed",
+              "observations": [
+                {
+                  "ok": true,
+                  "phase": "before_eof",
+                  "source": "procfs",
+                  "elapsedMs": 50.122293000000354,
+                  "skipped": 0
+                },
+                {
+                  "ok": true,
+                  "phase": "after_exit",
+                  "source": "procfs",
+                  "elapsedMs": 20.921739999999772,
+                  "skipped": 0
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "iteration": 12,
+        "exitCode": 0,
+        "version": "opencode v2.2.3",
+        "errors": [],
+        "samples": [
+          {
+            "stage": "before-dispose",
+            "at": "2026-10-31T10:12:40.948Z",
+            "states": [
+              "S",
+              "S",
+              "S",
+              "S",
+              "S",
+              "S"
+            ]
+          },
+          {
+            "stage": "after-dispose",
+            "at": "2026-10-31T10:12:40.981Z",
+            "states": [
+              "S",
+              "S",
+              "S",
+              "S"
+            ]
+          },
+          {
+            "stage": "before-directory-removal",
+            "at": "2026-10-31T10:12:46.886Z",
+            "states": []
+          },
+          {
+            "stage": "fixture-reclaim",
+            "at": "2026-10-31T10:12:46.892Z",
+            "states": [],
+            "elapsedMs": 0.14678300000014133,
+            "zombies": []
+          }
+        ],
+        "sharedRuntime": {
+          "closed": true,
+          "diagnostics": {
+            "exitCode": 130,
+            "signal": null,
+            "stderr": "",
+            "cleanup": {
+              "status": "observed",
+              "observations": [
+                {
+                  "ok": true,
+                  "phase": "before_eof",
+                  "source": "procfs",
+                  "elapsedMs": 54.796831999999995,
+                  "skipped": 0
+                },
+                {
+                  "ok": true,
+                  "phase": "after_exit",
+                  "source": "procfs",
+                  "elapsedMs": 23.937866000000213,
+                  "skipped": 0
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "iteration": 13,
+        "exitCode": 0,
+        "version": "opencode v2.2.3",
+        "errors": [],
+        "samples": [
+          {
+            "stage": "before-dispose",
+            "at": "2026-10-31T10:12:54.110Z",
+            "states": [
+              "S",
+              "S",
+              "S",
+              "S",
+              "S",
+              "S"
+            ]
+          },
+          {
+            "stage": "after-dispose",
+            "at": "2026-10-31T10:12:54.154Z",
+            "states": [
+              "S",
+              "S",
+              "S",
+              "S"
+            ]
+          },
+          {
+            "stage": "before-directory-removal",
+            "at": "2026-10-31T10:12:59.988Z",
+            "states": []
+          },
+          {
+            "stage": "fixture-reclaim",
+            "at": "2026-10-31T10:12:59.994Z",
+            "states": [],
+            "elapsedMs": 0.1515739999995276,
+            "zombies": []
+          }
+        ],
+        "sharedRuntime": {
+          "closed": true,
+          "diagnostics": {
+            "exitCode": 130,
+            "signal": null,
+            "stderr": "",
+            "cleanup": {
+              "status": "observed",
+              "observations": [
+                {
+                  "ok": true,
+                  "phase": "before_eof",
+                  "source": "procfs",
+                  "elapsedMs": 38.10009100000025,
+                  "skipped": 0
+                },
+                {
+                  "ok": true,
+                  "phase": "after_exit",
+                  "source": "procfs",
+                  "elapsedMs": 25.707328000000416,
+                  "skipped": 0
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "iteration": 14,
+        "exitCode": 0,
+        "version": "opencode v2.2.3",
+        "errors": [],
+        "samples": [
+          {
+            "stage": "before-dispose",
+            "at": "2026-10-31T10:13:07.287Z",
+            "states": [
+              "S",
+              "S",
+              "S",
+              "S",
+              "S",
+              "S"
+            ]
+          },
+          {
+            "stage": "after-dispose",
+            "at": "2026-10-31T10:13:07.315Z",
+            "states": [
+              "S",
+              "S",
+              "S",
+              "S"
+            ]
+          },
+          {
+            "stage": "before-directory-removal",
+            "at": "2026-10-31T10:13:12.753Z",
+            "states": []
+          },
+          {
+            "stage": "fixture-reclaim",
+            "at": "2026-10-31T10:13:12.758Z",
+            "states": [],
+            "elapsedMs": 0.127212999999756,
+            "zombies": []
+          }
+        ],
+        "sharedRuntime": {
+          "closed": true,
+          "diagnostics": {
+            "exitCode": 0,
+            "signal": null,
+            "stderr": "",
+            "cleanup": {
+              "status": "observed",
+              "observations": [
+                {
+                  "ok": true,
+                  "phase": "before_eof",
+                  "source": "procfs",
+                  "elapsedMs": 26.463529999999082,
+                  "skipped": 0
+                },
+                {
+                  "ok": true,
+                  "phase": "after_exit",
+                  "source": "procfs",
+                  "elapsedMs": 21.129950000000463,
+                  "skipped": 0
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "iteration": 15,
+        "exitCode": 0,
+        "version": "opencode v2.2.3",
+        "errors": [],
+        "samples": [
+          {
+            "stage": "before-dispose",
+            "at": "2026-10-31T10:13:20.331Z",
+            "states": [
+              "S",
+              "S",
+              "S",
+              "S",
+              "S",
+              "S"
+            ]
+          },
+          {
+            "stage": "after-dispose",
+            "at": "2026-10-31T10:13:20.367Z",
+            "states": [
+              "S",
+              "S",
+              "S",
+              "S"
+            ]
+          },
+          {
+            "stage": "before-directory-removal",
+            "at": "2026-10-31T10:13:26.506Z",
+            "states": []
+          },
+          {
+            "stage": "fixture-reclaim",
+            "at": "2026-10-31T10:13:26.512Z",
+            "states": [],
+            "elapsedMs": 0.16083699999944656,
+            "zombies": []
+          }
+        ],
+        "sharedRuntime": {
+          "closed": true,
+          "diagnostics": {
+            "exitCode": 130,
+            "signal": null,
+            "stderr": "",
+            "cleanup": {
+              "status": "observed",
+              "observations": [
+                {
+                  "ok": true,
+                  "phase": "before_eof",
+                  "source": "procfs",
+                  "elapsedMs": 61.04965500000071,
+                  "skipped": 0
+                },
+                {
+                  "ok": true,
+                  "phase": "after_exit",
+                  "source": "procfs",
+                  "elapsedMs": 18.661081000000195,
+                  "skipped": 0
+                }
+              ]
+            }
+          }
+        }
+      }
+    ]
+  }
+}

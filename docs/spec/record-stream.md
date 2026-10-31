@@ -355,8 +355,10 @@ Further rules:
   start cleanup: the agent can finish native shutdown after closing stdout.
   If it stays alive, host disposal still performs the normal cleanup.
   The final `exited` notification is still emitted exactly once after cleanup;
-  it may follow the native exit by an asynchronous cleanup phase. Failed
-  asynchronous observations settle as cleanup diagnostics, not unhandled
+  it may follow the native exit by an asynchronous cleanup phase. Cleanup
+  completion means the owned signalling actions have finished, not that the
+  operating system has finished terminating or reaping every descendant.
+  Failed asynchronous observations settle as cleanup diagnostics, not unhandled
   promise rejections. A root observed exiting during capture cannot claim a
   reused PID or initiate another capture attempt.
   Concurrent callers may share a query only when all requested it before
