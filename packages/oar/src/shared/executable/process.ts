@@ -9,7 +9,7 @@ import type { CancellationObservation } from "./process-cancellation.js";
 import { processShutdown } from "./process-shutdown.js";
 import { OWN_PROCESS_GROUP } from "./process-signals.js";
 import { windowsSpawnTarget } from "./windows-shim.js";
-import { prepareProcessTable, processTablePreparation } from "./process-table-preparation.js";
+import { prepareProcessTable, processTablePreparation, type ProcessTablePreparation } from "./process-table-preparation.js";
 
 export { trackOwnedProcess } from "./ownership.js";
 export { killGraceMs, KILL_GRACE_MS, killProcessTree, signalProcessGroup, OWN_PROCESS_GROUP } from "./process-signals.js";
@@ -123,10 +123,12 @@ export function spawnLineProcess(
   let exitCode: number | null = null;
   let exitSignal: NodeJS.Signals | null = null;
   let spawnError: ProcessDiagnostics["error"] = undefined;
+  let preparationAfterCleanup: ProcessTablePreparation | undefined = undefined;
   const shutdown = processShutdown(child, options);
   const { promise: spawned, resolve: spawnOk, reject: spawnFailed } = Promise.withResolvers<void>();
   const exited = (async (): Promise<number | null> => {
     await shutdown.finished;
+    if (shutdown.diagnostics() !== undefined) { preparationAfterCleanup = processTablePreparation(); }
     finalized = true;
     for (const handler of exitHandlers) { handler(exitCode, shutdown.reason()); }
     return exitCode;
@@ -181,11 +183,11 @@ export function spawnLineProcess(
     ...(child.stdio[3] instanceof Duplex ? { extraPipe: child.stdio[3] } : {}),
     diagnostics: () => {
       const cleanup = shutdown.diagnostics();
-      const preparation = options.killTree === true ? processTablePreparation() : undefined;
       return { exitCode, signal: exitSignal, stderr: stderr.text(),
         ...(spawnError === undefined ? {} : { error: spawnError }),
-        ...(cleanup === undefined ? {} : { cleanup }),
-        ...(preparation === undefined ? {} : { processTablePreparation: preparation }),
+        ...(cleanup === undefined ? {} : { cleanup: { ...cleanup,
+          ...(preparationAfterCleanup === undefined ? {} : { preparation: { ...preparationAfterCleanup } }),
+        } }),
       };
     },
     // Stop accepting writes immediately, including while capture awaits EOF.

@@ -396,15 +396,29 @@ Further rules:
   there is no promised worst-case duration for complete disposal. Other
   platforms retain up to two capture reads and per-query limits. Reads are
   asynchronous and do not block the host event loop.
-  After the first successful Windows `killTree` long-lived spawn, OAR starts
+  After the first actual Windows `spawnLineProcess` spawn with `killTree`, OAR starts
   one background CIM preparation using the same serial reader. It has a
   five-second total caller budget, never delays `spawned`, and is not retried.
+  Preparation alone does not keep the host event loop alive: its timer and
+  query handles are unreferenced. A foreground caller joining the same batch
+  before it starts keeps that query referenced; later callers get a fresh
+  batch as usual. Query ownership still covers synchronous host exit.
   Only bounded success/failure metadata is retained as
-  `diagnostics().processTablePreparation`; no process table is cached or used
-  as cleanup evidence. Preparation failure does not fail opening or claim
-  cleanup failure. Short help/version commands do not trigger preparation.
+  `diagnostics().cleanup.preparation` after that process's cleanup finishes;
+  the metadata is sampled once then, never mixed into an unrelated running
+  process or spawn-error diagnostic. No process table is cached or used as
+  cleanup evidence. Preparation failure does not fail opening or claim
+  cleanup failure. This includes short tree-owning line-process probes for
+  models, inventory or account usage, and a Windows command shell that starts
+  but later reports a missing target. `runExecutable` help/version queries
+  do not trigger preparation.
   The synchronous host-exit hook neither waits for it nor uses its result.
   EOF-driven runtimes retain their native shutdown-hook grace unchanged.
+  This policy deliberately trades a longer successful retry for bounded
+  observation waiting. The baseline's slowest cold capture (PID 8704) would
+  expire near five seconds as unverified, instead of waiting 11.4 seconds
+  for its retry to succeed. It would then proceed with native shutdown;
+  that does not imply the entire stop would finish at five seconds.
   A root that exits before OAR sends any stop action (EOF, a native cancel or
   close, or a signal/taskkill) is a natural exit, even if preparation or its
   observation is already pending. It keeps the native exit/error without an

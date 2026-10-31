@@ -45,3 +45,26 @@ test("a rejected query resolves each caller with redacted failure and does not p
     expect(rejected).toEqual([]);
   } finally { process.off("unhandledRejection", onRejected); }
 });
+
+test.each([true, false])("a foreground caller keeps its shared batch alive (preparation first: %s)", async (backgroundFirst) => {
+  const query = vi.fn().mockResolvedValue(first);
+  const read = batchProcessTableReads(query);
+  const a = read("windows", backgroundFirst ? { background: true } : undefined);
+  const b = read("windows", backgroundFirst ? undefined : { background: true });
+  await Promise.all([a, b]);
+  expect(query).toHaveBeenCalledExactlyOnceWith("windows", undefined);
+});
+
+// oxlint-disable-next-line eslint/max-statements -- The foreground request must arrive after the preparation's physical query starts.
+test("preparation alone is background; a later foreground request gets a fresh foreground query", async () => {
+  const gate = Promise.withResolvers<ProcessTableObservation>();
+  const query = vi.fn().mockReturnValueOnce(gate.promise).mockResolvedValue(second);
+  const read = batchProcessTableReads(query);
+  const preparation = read("windows", { background: true });
+  await nextTurn();
+  expect(query).toHaveBeenCalledExactlyOnceWith("windows", { background: true });
+  const cleanup = read("windows");
+  await nextTurn(); expect(query).toHaveBeenCalledTimes(1);
+  gate.resolve(first); await Promise.all([preparation, cleanup]);
+  expect(query).toHaveBeenNthCalledWith(2, "windows", undefined);
+});

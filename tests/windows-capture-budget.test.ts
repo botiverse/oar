@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { processTreeCleanup } from "../packages/oar/src/shared/executable/process-cleanup.js";
+import { observeBeforeCancellation } from "../packages/oar/src/shared/executable/process-cancellation.js";
 // oxlint-disable-next-line import/no-namespace -- Control query timing without replacing cleanup or its caller budget.
 import * as reads from "../packages/oar/src/shared/executable/process-table-async.js";
 // oxlint-disable-next-line import/no-namespace -- Prevent actual signals and verify identity acceptance.
@@ -117,4 +118,13 @@ test("an overdue query delivered before its timer is still discarded", async () 
   expect(cleanup.diagnostics()).toEqual({ status: "unverified", observations: [
     { ok: false, phase: "before_eof", source: "windows", reason: "timeout", timeoutMs: 5000, elapsedMs: 5001 },
   ] });
+});
+
+test("the one-second cancellation budget also discards an overdue result delivered before its timer", async () => {
+  const gate = Promise.withResolvers<tree.ProcessTableObservation>();
+  vi.spyOn(reads, "observeProcessTableAsync").mockReturnValue(gate.promise);
+  const clock = vi.spyOn(performance, "now").mockReturnValue(0);
+  const pending = observeBeforeCancellation();
+  clock.mockReturnValue(1001); gate.resolve(snapshot);
+  expect(await pending).toEqual({ ok: false, source: "windows", reason: "timeout", timeoutMs: 1000, elapsedMs: 1001 });
 });

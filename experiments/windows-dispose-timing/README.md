@@ -94,21 +94,36 @@ by the new prepared samples. No assertion or case deadline was changed.
 
 ### Resulting product policy
 
-The first successful Windows tree-owning long-lived spawn starts one
+The first actual Windows tree-owning line-process spawn starts one
 asynchronous preparation through the regular serial reader. Only diagnostic
 metadata is retained, never identities. Before-EOF capture has a five-second
 total budget including queueing; timeout is not retried, and another failure
 may retry once with the remainder. Force and post-exit observations each have
 their own five-second total budget. Expiry reports unverified cleanup and
 never signals from a late snapshot; force still stops the owned root.
+Preparation alone does not keep an otherwise finished host alive. Its timer,
+query child and pipe are unreferenced; a foreground caller joining before
+query start keeps the combined batch referenced. Host-exit ownership still
+stops a running query.
 
 This bounds OAR's observation waits, not entire disposal: taskkill and native
 exit have no hard deadline. Native EOF hooks and the existing escalation
-grace are unchanged. Short help/version commands do not start preparation;
+grace are unchanged. This includes short tree-owning model, inventory and
+account probes, or a command shell that starts before reporting a missing
+target. `runExecutable` help/version commands do not start preparation;
 the synchronous host-exit hook neither waits for it nor consumes its result.
-Behavior-suite preparation reuses the existing test helper. The baseline run
+Preparation metadata is sampled only in a process's completed cleanup
+diagnostic, rather than appearing in unrelated startup errors. The behavior
+entry does not add test-only preparation, so its unchanged 15-second disposal
+assertion exercises the product's cold path. The baseline run
 above predates this policy; changed Windows behavior must be validated by the
 implementation's CI, and is not claimed as measured here.
+
+The accepted tradeoff is bounded observation waiting with explicit uncertainty.
+Under this policy the cold PID 8704 capture would expire near five seconds
+as unverified, rather than succeeding through a retry after 11.4 seconds.
+Native shutdown and any required revalidation still follow; five seconds
+is not a promise for the complete stop.
 
 ### Rebuild the evidence
 

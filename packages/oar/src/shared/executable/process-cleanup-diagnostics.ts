@@ -1,4 +1,5 @@
 import type { ProcessTableObservation } from "./process-tree.js";
+import type { ProcessTablePreparation } from "./process-table-preparation.js";
 
 export type Phase = "before_eof" | "before_cancel" | "before_force" | "after_exit";
 export type Observation = (Exclude<ProcessTableObservation, { ok: true }> | {
@@ -12,6 +13,8 @@ export type Observation = (Exclude<ProcessTableObservation, { ok: true }> | {
 export interface ProcessCleanupDiagnostics {
   readonly status: "observed" | "unverified";
   readonly observations: readonly Observation[];
+  /** Host preparation metadata captured after this process's cleanup finishes. */
+  readonly preparation?: ProcessTablePreparation;
 }
 
 export function cleanupFailureReason(cleanup: ProcessCleanupDiagnostics | undefined): string | undefined {

@@ -14,7 +14,7 @@ export function prepareProcessTable(): void {
   if (processTableSource() !== "windows" || preparation !== null) { return; }
   preparation = { status: "pending" };
   void (async (): Promise<void> => {
-    const result = await observeProcessTableWithin(5000, "windows");
+    const result = await observeProcessTableWithin(5000, "windows", { background: true });
     preparation = result.ok
       ? { ok: true, source: "windows", elapsedMs: result.elapsedMs, skipped: result.skipped }
       : result;
