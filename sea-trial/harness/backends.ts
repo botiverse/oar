@@ -32,6 +32,7 @@ import { scriptedRuntime } from "../../packages/oar/src/testing/index.js";
 import { MOCK_DEFAULT_EFFORT, MOCK_EFFORT_LEVELS, startMockSession } from "../fixtures/mock-session.js";
 import { startClaudeAimock, startCodexAimock, startPiAimock, type AimockEnv } from "./aimock.js";
 import { acpBackend } from "./acp-backends.js";
+import { opencodeSharedBackend } from "./opencode-shared.js";
 
 /**
  * OAR_TEST backend selection. Every entry answers: which runtime, and does
@@ -83,6 +84,7 @@ async function qwenBackend(): Promise<Backend> {
 
 export async function selectBackend(target: string): Promise<Backend> {
   switch (target) {
+    case "opencode-shared": return opencodeSharedBackend();
     case "mock-shared":
     case "mock-isolated":
       return { runtime: pooledMockRuntime().withPlacement(target === "mock-shared" ? "shared" : "isolated"), aimock: null };

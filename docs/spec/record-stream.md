@@ -49,7 +49,9 @@ default instances request `auto`. At session open, the adapter checks the
 installation's version and platform against its observed sharing support.
 `auto` uses isolated processes until that evidence exists; explicit `shared`
 is refused with `UnsupportedOptionError` on `placement`. An in-process runtime
-also refuses explicit `isolated`. No shipped native runtime shares yet.
+also refuses explicit `isolated`. OpenCode 2.2.3 shares on Linux x64, macOS arm64 and Windows x64, subject to
+its lifetime canonical-directory and launch-input restrictions; see its
+[runtime audit](../runtimes/opencode.md#shared-launch-ownership-and-cleanup).
 The in-process SDK runtimes use `in_process` under `auto` and refuse both
 explicit process placements. Custom adapters without a placement declaration
 keep their existing `auto` behavior and refuse explicit placement requests.

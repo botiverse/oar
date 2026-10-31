@@ -197,6 +197,10 @@ or pull request whose changes are all Markdown files or under `docs/` or
   installed package's version and an idempotent second install. They then
   install Kimi 2.4.1 and run its native login tests against a
   local OAuth/model server, including browser suppression and credential writes.
+  Finally, OpenCode 2.2.3 runs the session behavior suite with distinct
+  directories through `opencode-shared` and native shared/isolated controls
+  for model, cwd, MCP, child attribution, cancel, cleanup and resume. These
+  use a local scripted provider and retain records as CI artifacts.
   The browser-entry unit test bundles the complete portable entry for a
   browser and refuses Node imports or unresolved externals.
 - `behavior`: per aimock backend on the same three systems,

@@ -19,7 +19,7 @@ is [system.md, Shared runtime processes](../../docs/design/system.md#shared-runt
 The older native MCP comparisons used **different directories**. They do not
 prove same-directory isolation or that later sessions see freshly changed
 project/user configuration. No adapter is admitted by those observations
-alone, and no native adapter enables sharing yet.
+alone. The current adapter enablement is listed below.
 
 The [updated-version report](updated-versions-2026-10-30.md) and
 [completed follow-up](followup-2026-10-30.md) cover different-directory
@@ -33,7 +33,8 @@ Other versions do not inherit these results.
 **Grok 1.0.70 meets the complete evidence gate on Linux x64, macOS arm64
 and Windows x64. OpenCode 2.2.3 meets it on the same platforms only with one
 session per canonical directory for the entire process lifetime.**
-No native adapter enables sharing yet. The [current admission report](admission-2026-10-31.md)
+OpenCode enables the admitted cells with its lifetime directory restriction;
+Grok admission is recorded, but its adapter is not enabled yet. The [current admission report](admission-2026-10-31.md)
 links each decision to its observation, resource and configuration evidence,
 including all 18 artifacts from run 41157633349.
 

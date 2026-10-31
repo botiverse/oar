@@ -104,10 +104,18 @@ export function createAcpRecorder(usageGate: UsageUpdateGate, attributeUpdate?: 
       write((kernel) => {
         const source = attributeUpdate?.(notification);
         const update = asRecord(notification.update);
+        const ownedLinks = associations?.(methods.client.session.update, asRecord(notification) ?? {});
+        if (source !== null && source !== undefined && ownedLinks !== undefined
+          && !ownedLinks.some(link => link.parent === source.parent && link.child === source.sessionId)) {
+          // Preserve the carrier's native frame, but rejected metadata cannot
+          // relabel it as another owner's child or contaminate root projections.
+          kernel.frame({ type: methods.client.session.update, native: notification, events: [] },
+            { sessionId: notification.sessionId, ...(receivedAt === undefined ? {} : { receivedAt }) });
+          return;
+        }
         const sessionId = source?.sessionId ?? notification.sessionId;
         const foreign = sessionId !== kernel.sessionId;
         const events: RuntimeEventBody[] = update === null ? [] : projectAcpUpdate(projectionFor(sessionId), update);
-        const ownedLinks = associations?.(methods.client.session.update, asRecord(notification) ?? {});
         if (ownedLinks !== undefined) { events.push(...newSessionLinks(kernel, ownedLinks.map(({ parent, child }) => ({ parent, child, via: "tool_call" })))); }
         else if (source?.parent !== undefined) {
           events.push(...newSessionLinks(kernel, [{ parent: source.parent, child: sessionId, via: "tool_call" }]));

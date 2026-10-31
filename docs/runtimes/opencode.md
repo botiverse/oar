@@ -71,8 +71,14 @@ check used by CI.
 
 ### Shared-process admission boundary
 
-OAR currently opens an isolated native process for each session. In native
-2.2.3 ACP, two sessions in the same directory with the same MCP server name
+On OpenCode **2.2.3**, `opencodeRuntime` uses shared placement by default
+(`auto`) on **Linux x64, macOS arm64 and Windows x64**. This is the first
+native runtime whose default is shared. Other or unknown versions and other
+platforms remain isolated; explicit `shared` refuses them. A host selects
+`opencodeRuntime.withPlacement("isolated")` to retain one process per session.
+The standalone `opencodeSession` export retains the isolated path.
+
+In native 2.2.3 ACP, two sessions in the same directory with the same MCP server name
 and different command arguments share the later registration: after B opens,
 A invokes B's server. Closing A/B and opening the directory with no client
 MCP servers still invokes B's server. Separate-process controls do not cross.
@@ -83,7 +89,7 @@ not an unreported upstream defect. Reproduce with
 `pnpm tsx experiments/sharing/same-directory.ts opencode` and the exact
 2.2.3 executable; [results and limits](../../experiments/sharing/same-directory-2026-10-30.md).
 
-A future shared adapter must give each canonical directory to only one
+The shared adapter gives each canonical directory to only one
 session during the entire process lifetime. After that session releases,
 the directory remains used. A subsequent same-directory open, even with an
 identical or empty MCP list, uses a fresh isolated process for `auto` and
@@ -92,8 +98,70 @@ The old different-directory MCP evidence cannot establish unrestricted
 same-directory sharing. The [2026-10-31 admission report](../../experiments/sharing/admission-2026-10-31.md)
 now establishes cross-directory project discovery and user-configuration
 refresh for 2.2.3 on Linux x64, macOS arm64 and Windows x64. It meets the
-evidence gate with the lifetime directory restriction; adapter enablement
-is a separate change. See the [ACP ownership spec](../spec/acp-shared-connection.md).
+evidence gate with the lifetime directory restriction. See the [ACP ownership spec](../spec/acp-shared-connection.md).
+
+### Shared launch, ownership and cleanup
+
+Each Runtime instance owns a separate pool, including every instance returned
+by `withPlacement()`. The command, `acp` arguments, complete captured child
+environment (inherited values plus overlay/removals), process cwd and
+initialize metadata must match to share. Environment comparison includes
+HOME/USERPROFILE, all XDG directories, configuration overrides and credentials;
+private pool keys are never recorded. Initialization happens once, including
+concurrent first opens. The native ACP process owns its standalone server.
+
+The standard shared launch uses the effective HOME on POSIX or USERPROFILE
+on Windows (the host's home if absent) as its stable process cwd, as in the
+native evidence. Project cwd travels in `session/new` or resume/load, and
+native project catalogs/configuration use that session location. Model,
+effort and MCP inputs remain native session operations. The audit inspected
+2.2.3's `commands/handlers/acp.ts`, `services/standalone.ts`,
+`acp/service.ts`, `acp/sessions.ts`, `acp/catalog.ts` and
+`core/config/discovery.ts`; project discovery and user refresh were then
+[observed on all three platforms](../../experiments/sharing/admission-2026-10-31.md).
+
+Custom `launchArgs`, a relative executable path, relative home/configuration
+paths or relative PATH entries lack that neutral-directory launch evidence:
+`auto` uses the existing isolated launch and explicit `shared` refuses.
+They are never silently interpreted relative to the shared process home.
+The runtime does not write user configuration, retry failed native opens,
+or serialize unrelated pools to hide the known database race.
+
+Before native opening, cwd is resolved through symlinks. The connection
+reserves both the canonical path and directory file identity, so aliases
+on case-insensitive macOS/Windows volumes cannot acquire a second session.
+Windows path keys are conservatively case-folded; file identity preserves
+distinct directories on case-sensitive POSIX volumes. Reservation
+is atomic after asynchronous filesystem reads, survives failed opens and
+release, and disappears only with the native process. An auto fallback waits
+for the existing pool's initialization before starting its independent
+process. A controlled resume id still fails with `SessionUnavailableError`
+before any directory fallback; native open/configuration failures do not
+retry in isolation.
+
+Disposal and abort fallback use native `session/close` for that session and
+independently release its OAR-hosted terminals. Close interrupts the native
+turn and detaches its subscription, but does not erase the directory's MCP
+registration. Failures remain `cleanup` records. Child identity uses only
+`_meta["opencode/child-session"]` parent/id links owned by the carrier's root;
+rejected metadata stays native-only, without child projection. Unowned and
+conflicting connection frames are union-redacted and reported to stderr
+with the `[oar:opencode:shared]` prefix, never assigned to an arbitrary root.
+
+Peers keep their process on release/disposal. Only the last lease stops it;
+actual exits fan out once to attached sessions. After abort-fallback release,
+late frames remain recorded and new controls are rejected. Dispose detaches
+routing; later traffic becomes connection diagnostics. A native turn or work
+started after the last cleanup may continue. Resource readings describe the whole shared
+process (`scope: "shared_process"`); Windows still returns null. Open request
+and observed placement, release, cleanup and actual exit use the
+[record-stream contract](../spec/record-stream.md#placement-and-release).
+
+The three-platform CI check jobs run the full session behavior suite with
+fresh, distinct directories through `opencode-shared`, plus real shared and
+isolated controls for concurrent roots, model/cwd/MCP, child attribution,
+cancel, tool cleanup, peer survival and isolated resume after release.
+The model provider is local and scripted; the CLI and its processes are real.
 
 ### Startup and compatibility
 

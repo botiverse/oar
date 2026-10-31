@@ -1,6 +1,7 @@
 /* oxlint-disable import/max-dependencies -- Connection ownership composes the existing ACP session mechanisms. */
 import type { SessionOptions, StartSession } from "../../contracts/session.js";
 import { UnsupportedOptionError } from "../../contracts/errors.js";
+import { SessionUnavailableError } from "../../contracts/session-unavailable-error.js";
 import { sessionEnvironment } from "../environment.js";
 import { cleanupFailureReason, appendCleanupFailure } from "../executable/process-cleanup.js";
 import { asRecord, type JsonRecord } from "../json.js";
@@ -21,6 +22,8 @@ import { acpSession, createAcpSessionState, finishAcpSession } from "./session.j
 export interface AcpSharedOptions {
   /** Launch cwd audit belongs in the runtime page. A differing process cwd creates another pool entry. */
   readonly processCwd: (options: SessionOptions) => string;
+  /** Reserve vendor process-lifetime state before any native open. Null reserves it; a reason refuses it. */
+  readonly reserveSession?: (runtime: AcpProcess, options: SessionOptions) => Promise<string | null>;
   /** Only explicit native links; never infer parenthood from a foreign id. */
   readonly associations: (method: string, params: JsonRecord) => readonly AcpAssociation[];
   readonly sessionId?: (method: string, params: JsonRecord) => string | null;
@@ -118,6 +121,26 @@ export function sharedAcpSession(profile: AcpSessionProfile, shared: AcpSharedOp
       cwd: shared.processCwd(options), protocol: JSON.stringify(profile.initializeMeta?.(options) ?? null),
     }, "shared");
     const { runtime, routing, initialize } = lease.process;
+    // Ownership conflicts must not become a directory-policy fallback to another controller.
+    let refusal: string | null = null;
+    try {
+      if (options.resume !== undefined && routing.inUse(options.resume)) {
+        throw new SessionUnavailableError(options.resume, "ACP native session id is already controlled on this connection", {
+          reason: "in_use", method: "oar/open", native: { sessionId: options.resume },
+        });
+      }
+      refusal = await shared.reserveSession?.(runtime, options) ?? null;
+    } catch (error) { await lease.dispose(); throw withoutCredentials(error); }
+    if (refusal !== null) {
+      if (context.requested === "auto") {
+        // A concurrent fallback must not race a pool's first initialization
+        // with a second cold process using the same native data directory.
+        try { await initialize(); } finally { await lease.dispose(); }
+        return isolated(installation, options, { requested: "auto", placement: "isolated" });
+      }
+      await lease.dispose();
+      throw new UnsupportedOptionError("placement", refusal);
+    }
     // This is a pre-open decision, never a retry of a native resume or configuration failure.
     if (options.resume !== undefined && routing.retired(options.resume)) {
       await lease.dispose();
