@@ -94,7 +94,7 @@ test("explicit isolated and unknown versions keep their own processes", async ()
   await expect(f.runtime.withPlacement("shared").session({ ...installation, version: "2.2.4" }, { cwd: f.root })).rejects.toMatchObject({ option: "placement" });
 });
 
-test("a failed canonical-directory read releases only the acquired lease", async () => {
+test("a failed canonical-directory preflight leaves existing sessions alive", async () => {
   const f = await fixture(); const launches = vi.spyOn(acp, "startAcpProcess");
   const a = await f.open("a");
   await expect(f.open("missing")).rejects.toMatchObject({ code: "ENOENT" });
@@ -170,12 +170,11 @@ test("a shared native crash records exit once for every attached session", async
   expect([exits(a).length, exits(b).length]).toEqual([1, 1]);
 });
 
-test("directory read failure after acquiring the first lease stops that native process", async () => {
+test("directory read failure does not acquire or start the first shared process", async () => {
   const f = await fixture(); const launches = vi.spyOn(acp, "startAcpProcess");
   try {
     await expect(f.open("missing")).rejects.toMatchObject({ code: "ENOENT" });
-    expect(launches).toHaveBeenCalledTimes(1);
-    expect(launched(launches, 0).closed).toBe(true);
-    const a = await f.open("a"); expect(a.placement).toBe("shared"); expect(launches).toHaveBeenCalledTimes(2);
+    expect(launches).not.toHaveBeenCalled();
+    const a = await f.open("a"); expect(a.placement).toBe("shared"); expect(launches).toHaveBeenCalledTimes(1);
   } finally { launches.mockRestore(); }
 });

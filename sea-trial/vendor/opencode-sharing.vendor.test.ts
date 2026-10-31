@@ -129,6 +129,7 @@ for (const placement of ["auto", "isolated"] as const) {
         for (const result of results) { if (result.status === "rejected") { failed.push(result.reason); } }
         errors.push(...failed); if (failed.length > 0) { throw new AggregateError(failed, "Session disposal failed"); } },
       async () => { await cleanup.sample("before-directory-removal"); },
+      () => { try { cleanup.reclaim(); } catch (error) { errors.push(error); throw error; } },
       async () => {
         const out = path.resolve(process.env.OAR_TRIAL_RUN_DIR ?? "oar-trial-run", "opencode-sharing");
         await mkdir(out, { recursive: true });
@@ -136,7 +137,7 @@ for (const placement of ["auto", "isolated"] as const) {
           cleanup: cleanup.observations, runtimes: runtimes.map(r => ({ closed: r.closed, diagnostics: r.diagnostics() })),
           sessions: sessions.map(s => ({ placement: s.placement, records: s.records() })) }, null, 2));
       },
-      () => { spy.mockRestore(); cleanup.reclaim(); },
+      () => { spy.mockRestore(); },
       async () => { await f.stop(); },
     ]);
   }, 240_000);

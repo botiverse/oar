@@ -16,16 +16,20 @@ import { opencodeChildAttribution } from "./attribution.js";
 import { opencodeSession, opencodeV2AcpProfile } from "./session.js";
 import { openCodeDiagnosticSummary } from "./sharing-diagnostics.js";
 
+async function directoryKeys(cwd: string): Promise<string[]> {
+  const resolved = await realpath(cwd);
+  const identity = await stat(resolved, { bigint: true });
+  const directory = process.platform === "win32" ? resolved.toLowerCase() : resolved;
+  // File identity also catches case aliases on case-insensitive macOS volumes,
+  // without conflating different directories on case-sensitive volumes.
+  return [`path:${directory}`, ...(identity.ino === 0n ? [] : [`file:${identity.dev}:${identity.ino}`])];
+}
+
 /** Keep directory ownership after failed opens and disposal, until this native process is collected. */
 export function openCodeDirectoryReservation(): (runtime: AcpProcess, options: SessionOptions) => Promise<string | null> {
   const used = new WeakMap<AcpProcess, Set<string>>();
   return async (runtime, options) => {
-    const resolved = await realpath(options.cwd);
-    const identity = await stat(resolved, { bigint: true });
-    const directory = process.platform === "win32" ? resolved.toLowerCase() : resolved;
-    // File identity also catches case aliases on case-insensitive macOS volumes,
-    // without conflating different directories on case-sensitive volumes.
-    const keys = [`path:${directory}`, ...(identity.ino === 0n ? [] : [`file:${identity.dev}:${identity.ino}`])];
+    const keys = await directoryKeys(options.cwd);
     const directories = used.get(runtime) ?? new Set<string>();
     if (keys.some(key => directories.has(key))) { return "OpenCode retains MCP configuration by directory until process exit; this canonical directory was already used on the shared process"; }
     // No await between check and reservation: concurrent aliases cannot both acquire the directory.
@@ -78,6 +82,9 @@ export function createOpenCodeSharedSession(diagnostic: (entry: AcpUnattributed)
       if (context.requested === "auto") { const session = await opencodeSession(installation, options, { requested: "auto", placement: "isolated" }); return session; }
       throw new UnsupportedOptionError("placement", refusal);
     }
+    // Reject unreadable directories before acquiring or spawning a pooled process.
+    // Reservation re-reads the identity after acquisition, then checks and claims atomically.
+    await directoryKeys(options.cwd);
     const session = await open(installation, options, context); return session;
   }, "shared");
 }
