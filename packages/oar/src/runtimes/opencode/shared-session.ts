@@ -13,6 +13,7 @@ import { checkMcpServerNames } from "../../shared/mcp-servers.js";
 import { withSessionCredentials } from "../../shared/session-credentials.js";
 import { opencodeChildAttribution } from "./attribution.js";
 import { opencodeSession, opencodeV2AcpProfile } from "./session.js";
+import { openCodeDiagnosticSummary } from "./sharing-diagnostics.js";
 
 /** Keep directory ownership after failed opens and disposal, until this native process is collected. */
 export function openCodeDirectoryReservation(): (runtime: AcpProcess, options: SessionOptions) => Promise<string | null> {
@@ -55,10 +56,7 @@ function launchRefusal(command: string, options: SessionOptions): string | null 
   return null;
 }
 
-export function createOpenCodeSharedSession(diagnostic: (entry: AcpUnattributed) => void = (entry) => {
-  // Connection facts have no session owner. The shared router has already redacted every lease's credentials.
-  console.error("[oar:opencode:shared]", JSON.stringify(entry));
-}): StartSession {
+export function createOpenCodeSharedSession(diagnostic: (entry: AcpUnattributed) => void = openCodeDiagnosticSummary()): StartSession {
   const open = sharedAcpSession(opencodeV2AcpProfile, {
     processCwd: processHome,
     reserveSession: openCodeDirectoryReservation(),

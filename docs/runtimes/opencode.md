@@ -145,8 +145,12 @@ turn and detaches its subscription, but does not erase the directory's MCP
 registration. Failures remain `cleanup` records. Child identity uses only
 `_meta["opencode/child-session"]` parent/id links owned by the carrier's root;
 rejected metadata stays native-only, without child projection. Unowned and
-conflicting connection frames are union-redacted and reported to stderr
-with the `[oar:opencode:shared]` prefix, never assigned to an arbitrary root.
+conflicting connection frames are union-redacted, never assigned to an
+arbitrary root. The default diagnostic sink keeps only reason counts and
+writes at most one summary every 30 seconds per Runtime instance, prefixed
+`[oar:opencode:shared]`. It does not print frame bodies. The first summary is
+immediate; a pending summary uses one unreferenced timer, so diagnostics do
+not keep the host alive. Counts are best-effort and are not session records.
 
 Peers keep their process on release/disposal. Only the last lease stops it;
 actual exits fan out once to attached sessions. After abort-fallback release,
