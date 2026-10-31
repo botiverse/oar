@@ -1,6 +1,6 @@
 name: release
 
-# Publish both packages to npm. Two triggers:
+# Publish both packages to npm, or recover a missing GitHub release:
 # - workflow_dispatch with a version (`stamp workflow run release.yml
 #   --repo botiverse/oar -f version=X.Y.Z`): releases the head of main once
 #   its CI run succeeded, then the `release` job creates the `vX.Y.Z` tag and
@@ -8,6 +8,8 @@ name: release
 #   produced the commit. A tag pushed with GITHUB_TOKEN starts no workflow,
 #   so this path publishes once.
 # - a pushed `v*` tag, as before: publishes that commit, nothing else.
+# - workflow_dispatch with release_only: verifies an existing tag and both
+#   published npm versions, then creates only the missing GitHub release.
 # Auth is npm trusted publishing (OIDC): the publish job only requests an
 # id-token; no npm token secret exists in this repo. The npm-side
 # trusted-publisher configuration names this file and is owner-managed; it
@@ -20,9 +22,14 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Version to release, without the v (both package.json files on main must already say it)"
+        description: "Version without the v (on main for publishing; at the existing tag for release_only)"
         required: true
         type: string
+      release_only:
+        description: "Recover only a GitHub release after both npm packages and the tag already exist"
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -36,6 +43,7 @@ env:
 
 jobs:
   publish:
+    if: github.event_name != 'workflow_dispatch' || !inputs.release_only
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -121,7 +129,7 @@ jobs:
   # release whose publish succeeded.
   release:
     needs: publish
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' && !inputs.release_only
     runs-on: ubuntu-latest
     permissions:
       contents: write # pushes the tag and creates the GitHub release
@@ -154,3 +162,62 @@ jobs:
           gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls" --jq '.[0].body // ""' \
             | sed -e '/<!-- stamp:review:v1 -->/,/<!-- \/stamp:review:v1 -->/d' -e '/Generated with \[Claude Code\]/d' > notes.md
           gh release create "$TAG" --title "$TAG" --notes-file notes.md --verify-tag
+
+  # No checkout, package code, npm publish or tag writes in this recovery path.
+  release_only:
+    if: github.event_name == 'workflow_dispatch' && inputs.release_only
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write # creates only the GitHub release
+      pull-requests: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: verify publication and recover the GitHub release
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            echo "recovery must be dispatched from main"; exit 1
+          fi
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]; then
+            echo "not a version: $TAG"; exit 1
+          fi
+          version=${TAG#v}
+          # Exact ref lookup fails on missing tags and all API errors.
+          ref=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG")
+          original=$(jq -er '.object.sha' <<< "$ref")
+          object=$ref
+          for depth in $(seq 1 10); do
+            kind=$(jq -er '.object.type' <<< "$object")
+            commit=$(jq -er '.object.sha' <<< "$object")
+            [[ "$commit" =~ ^[0-9a-f]{40}$ ]] || { echo "invalid tag object"; exit 1; }
+            [ "$kind" = commit ] && break
+            [ "$kind" = tag ] || { echo "tag does not point to a commit"; exit 1; }
+            object=$(gh api "repos/$GITHUB_REPOSITORY/git/tags/$commit")
+          done
+          [ "$kind" = commit ] || { echo "tag nesting exceeds recovery limit"; exit 1; }
+          for package in oar cli; do
+            name=@botiverse/oar
+            [ "$package" != cli ] || name=@botiverse/oar-cli
+            manifest=$(gh api -X GET "repos/$GITHUB_REPOSITORY/contents/packages/$package/package.json" -f "ref=$commit")
+            jq -e --arg name "$name" --arg version "$version" \
+              '.content | gsub("[\r\n]"; "") | @base64d | fromjson | .name == $name and .version == $version' <<< "$manifest" >/dev/null
+            published=$(npm view "$name@$version" version --json --registry=https://registry.npmjs.org)
+            jq -e --arg version "$version" '. == $version' <<< "$published" >/dev/null
+          done
+          # Select the release PR for the tagged commit, never the current main PR.
+          prs=$(gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/commits/$commit/pulls?per_page=100")
+          jq -er --arg commit "$commit" --arg repo "$GITHUB_REPOSITORY" --arg title "chore: release $TAG" '
+            [ .[][] | select(.merged_at != null and .merge_commit_sha == $commit
+              and .base.ref == "main" and .base.repo.full_name == $repo and .title == $title) ]
+            | if length == 1 and (.[0].body | type) == "string" then .[0].body
+              else error("expected exactly one merged release PR for the tagged commit") end
+          ' <<< "$prs" \
+            | sed -e '/<!-- stamp:review:v1 -->/,/<!-- \/stamp:review:v1 -->/d' -e '/Generated with \[Claude Code\]/d' > notes.md
+          [ -n "$(tr -d '[:space:]' < notes.md)" ] || { echo "release notes are empty"; exit 1; }
+          # Reject a moved tag rather than attaching checked notes to another commit.
+          current=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG" --jq '.object.sha')
+          [ "$current" = "$original" ] || { echo "$TAG moved during verification"; exit 1; }
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "$TAG" --notes-file notes.md --verify-tag
