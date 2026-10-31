@@ -31,6 +31,21 @@ Fresh identity matching, bounded read retries and unverified-cleanup reporting
 reuse the existing cleanup mechanism. Failed reads never authorize signalling
 an unverified remembered PID.
 
+This adds Windows shutdown latency: capture completes before cancellation or
+EOF, and remembered descendants require a fresh read after native exit. Each
+CIM query keeps its five-second deadline; capture retries once only while the
+owned root remains alive. Concurrent reads follow the existing fresh-batch
+rule. They are asynchronous and do not block the host event loop. A native
+startup failure can exit during capture and report `missing_root`; the original
+native error remains intact, with the cleanup diagnostic appended.
+
+Release-note impact: Windows CIM reads can take hundreds of milliseconds,
+so runtimes that fail immediately at startup often exit before the first
+capture completes. Their original startup error type and native cause remain
+unchanged, but the error message may frequently append `before_eof windows:
+missing_root` to report that descendant cleanup could not be verified. This
+is an intentional diagnostic change as well as the isolated tool cleanup fix.
+
 `tests/process-orphan-cleanup.test.ts` covers a real orphan, duplicate
 preparation, an unreadable table, and ordinary tree shutdown.
 `tests/acp/acp-orphan-cleanup.test.ts` exercises the Windows public ACP disposal
@@ -61,3 +76,12 @@ restored afterwards.
 Local Linux x64 validation passed the native isolated scenario and left no
 processes for fixture reclamation. Linux does not validate Windows CIM or
 Windows native termination; those results belong to the fix commit's CI.
+
+The fix at `a83abd0` passed that native scenario on all three CI platforms in
+[run 41169414228](https://github.com/botiverse/oar/actions/runs/41169414228).
+The `opencode-cleanup-{ubuntu,macos,windows}-latest` artifacts retain each
+process tree and shutdown diagnosis. On Windows, all three runtime roots
+reported exit code 0 and observed cleanup; capture took 388 to 441 ms and
+post-exit revalidation took 415 to 434 ms. Both tool-liveness assertions and
+the final residual-process check passed. This is evidence for that isolated
+scenario, not for the proposed shared adapter or every native shutdown path.

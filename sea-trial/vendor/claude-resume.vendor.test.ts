@@ -2,8 +2,11 @@ import { randomUUID } from "node:crypto";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 import { claudeInstallation, claudeSession, SessionNotFoundError, type Session } from "../../packages/oar/src/index.js";
+// oxlint-disable-next-line import/no-namespace -- Observe the actual failed native process without changing its behavior.
+import * as claudeLaunch from "../../packages/oar/src/runtimes/claude/launch.js";
+import { cleanupFailureReason } from "../../packages/oar/src/shared/executable/process-cleanup.js";
 import { startClaudeAimock } from "../harness/aimock.js";
 import { runTurn } from "./support/asserts.js";
 
@@ -23,6 +26,7 @@ test.skipIf(process.env.OAR_TEST !== "claude-aimock")("Claude missing resume fai
   const directory = await mkdtemp(path.join(tmpdir(), "oar-claude-missing-resume-"));
   const provider = await startClaudeAimock();
   const opened: { session?: Session } = {};
+  const launch = vi.spyOn(claudeLaunch, "launchClaude");
   try {
     const installation = await claudeInstallation();
     if (installation.kind !== "available") { throw new Error("Claude installation unavailable"); }
@@ -30,10 +34,24 @@ test.skipIf(process.env.OAR_TEST !== "claude-aimock")("Claude missing resume fai
     const failure: unknown = await claudeSession(installation, { cwd: directory, resume: id, env: { ...provider.env, CLAUDE_CONFIG_DIR: directory, ANTHROPIC_AUTH_TOKEN: null, CLAUDE_CODE_OAUTH_TOKEN: null } })
       .then((session) => { opened.session = session; return session; }, (error: unknown) => error);
     expect(failure).toBeInstanceOf(SessionNotFoundError);
+    if (!(failure instanceof SessionNotFoundError)) { throw new Error("Expected the native missing-session refusal"); }
     expect(failure).toMatchObject({ sessionId: id });
-    expect(failure).toMatchObject({ message: `No conversation found with session ID: ${id}`, cause: { method: "initialize", native: { type: "result", subtype: "error_during_execution", is_error: true, errors: [`No conversation found with session ID: ${id}`], num_turns: 0 } } });
+    expect(launch).toHaveBeenCalledTimes(1);
+    const call = launch.mock.results[0];
+    if (call?.type !== "return") { throw new Error("Expected the native resume process to start"); }
+    const child = await call.value;
+    const cleanup = cleanupFailureReason(child.diagnostics().cleanup);
+    const nativeMessage = `No conversation found with session ID: ${id}`;
+    // A native exit during capture adds observed cleanup diagnostics, without replacing its refusal.
+    expect(failure.message).toContain(nativeMessage);
+    expect(failure).toMatchObject({ cause: { method: "initialize", native: { type: "result", subtype: "error_during_execution", is_error: true, errors: [nativeMessage], num_turns: 0 } } });
+    if (cleanup !== undefined) {
+      expect(cleanup).toMatch(/^Descendant cleanup could not be verified: (?:before_eof|before_force|after_exit) (?:windows|procfs|ps): [a-z_]+ \(\d+ ms(?:, [^)]*)?\)/u);
+      expect(failure.message).toContain(`; ${cleanup}`);
+    }
     expect(provider.mock.getRequests()).toEqual([]);
   } finally {
+    launch.mockRestore();
     await opened.session?.dispose();
     await provider.stop();
     await rm(directory, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });

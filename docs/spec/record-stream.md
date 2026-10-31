@@ -331,6 +331,18 @@ Further rules:
   Isolated ACP disposal captures before sending native cancel/close too:
   those operations can end a tool's shell before the runtime exits. Shared
   session release does not capture or terminate the whole pooled process.
+  Windows stop/dispose therefore waits for an asynchronous CIM capture before
+  native cancellation or EOF, then a fresh read if remembered descendants need
+  cleanup after exit. Each query retains its five-second limit; a failed
+  capture retries once only while the owned root is still alive. This adds
+  shutdown latency without blocking the host event loop. Concurrent queries
+  retain the batch freshness rule above, rather than using a cached table.
+  On Windows, a CIM read can take hundreds of milliseconds. Runtimes that
+  fail immediately at startup often exit before capture completes, so their
+  startup error messages may frequently include `before_eof windows:
+  missing_root`. The native error type and cause remain unchanged; this
+  appended diagnostic reports unverified descendants, not a different reason
+  for the startup failure.
   The same bounded read failures and unverified-cleanup reporting apply;
   an unavailable table never authorizes signalling a remembered PID.
 - **An exit after a host stop ends the running turn as aborted.** `status()`,
