@@ -1,0 +1,57 @@
+name: OpenCode sharing experiment
+on:
+  workflow_dispatch:
+    inputs:
+      platforms:
+        description: JSON array of runner platforms
+        required: true
+        default: '["ubuntu-latest","windows-latest","macos-latest"]'
+permissions:
+  contents: read
+jobs:
+  observe:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJSON(inputs.platforms) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install experimental OpenCode version
+        id: opencode-install
+        if: ${{ !cancelled() }}
+        run: npm install -g @opencode/cli@2.2.5
+        timeout-minutes: 5
+      - name: Candidate shared behavior
+        if: ${{ !cancelled() && steps.opencode-install.outcome == 'success' }}
+        run: pnpm sea-trial
+        timeout-minutes: 10
+        env:
+          OAR_TEST: opencode-shared
+          OAR_TEST_REQUIRE_AVAILABLE: '1'
+          OAR_TRIAL_RUN_DIR: ${{ github.workspace }}/oar-trial-run/opencode-sharing
+      - name: Candidate shared and isolated lifecycle controls
+        if: ${{ !cancelled() && steps.opencode-install.outcome == 'success' }}
+        run: pnpm vitest run sea-trial/vendor/opencode-sharing.vendor.test.ts --maxWorkers 1
+        timeout-minutes: 10
+        env:
+          OAR_TEST: opencode-shared
+      - name: Configured plugin child environment comparison
+        if: ${{ !cancelled() && steps.opencode-install.outcome == 'success' }}
+        run: pnpm tsx experiments/sharing/opencode-plugin-environment.ts
+        timeout-minutes: 10
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: opencode-sharing-${{ matrix.os }}
+          path: oar-trial-run/opencode-sharing
+          if-no-files-found: warn

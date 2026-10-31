@@ -71,20 +71,20 @@ check used by CI.
 
 ### Shared-process admission boundary
 
-On OpenCode **2.2.3 and 2.2.5**, `opencodeRuntime` uses shared placement by default
-(`auto`) on **Linux x64, macOS arm64 and Windows x64**. This is the first
-native runtime whose default is shared. Other or unknown versions and other
-platforms remain isolated; explicit `shared` refuses them. A host selects
-`opencodeRuntime.withPlacement("isolated")` to retain one process per session.
-The standalone `opencodeSession` export retains the isolated path. Platform
-and architecture mean the host Node process's `process.platform` and
-`process.arch`, not the physical machine or executable architecture (including
-x64 Node under Rosetta or on Windows ARM). Before any native session opens,
-the shared process must also report exactly `agentInfo.version: "2.2.3"` or
-`"2.2.5"` in
-`initialize`. A different or missing value retires and stops that process;
-`auto` then opens independently, while explicit `shared` is refused. This
-protects hosts whose installation snapshot predates an executable update.
+`opencodeRuntime` uses an isolated process for every `auto` open. Explicit
+`shared` is refused with `UnsupportedOptionError`, option `placement`, on
+all versions and platforms. The standalone `opencodeSession` export remains
+isolated. OpenCode 2.2.3 and 2.2.5 were previously enabled, but configured
+user/project plugins can start children in the shared process HOME instead
+of the session directory. OAR cannot discover all such configuration from
+session options. See the [native counterexample and withdrawal](../../experiments/sharing/opencode-plugin-environment-2026-10-31.md).
+
+The following shared adapter mechanisms are retained for experiments only.
+They do not authorize production sharing. The candidate checks exact native
+2.2.3/2.2.5 and Linux x64, macOS arm64 or Windows x64, then independently
+requires the same exact versions in `initialize.agentInfo.version`. A
+mismatch retires the process before opening any session. Platform/architecture
+refer to the host Node process, not the physical machine.
 
 In native 2.2.3 and 2.2.5 ACP, two sessions in the same directory with the same MCP server name
 and different command arguments share the later registration: after B opens,
@@ -106,10 +106,10 @@ The old different-directory MCP evidence cannot establish unrestricted
 same-directory sharing. The [2026-10-31 admission report](../../experiments/sharing/admission-2026-10-31.md)
 now establishes cross-directory project discovery and user-configuration
 refresh separately for 2.2.3 and 2.2.5 on Linux x64, macOS arm64 and Windows
-x64. Both meet the evidence gate with the lifetime directory restriction;
-other versions do not inherit their admission. See the [ACP ownership spec](../spec/acp-shared-connection.md).
+x64. These earlier controls omitted plugin child environment and no longer
+establish admission, even with the lifetime directory restriction. See the [ACP ownership spec](../spec/acp-shared-connection.md).
 
-### Shared launch, ownership and cleanup
+### Experimental shared launch, ownership and cleanup
 
 Each Runtime instance owns a separate pool, including every instance returned
 by `withPlacement()`. The command, `acp` arguments, complete captured child
@@ -133,9 +133,8 @@ Custom `launchArgs`, a relative executable path, relative home/configuration
 paths or relative PATH entries lack that neutral-directory launch evidence:
 `auto` uses the existing isolated launch and explicit `shared` refuses.
 This includes empty PATH entries: a trailing `;` on Windows and the relative
-`./node_modules/.bin` entry inserted by pnpm 11 both disable sharing. A host
-that wants sharing must supply only absolute PATH entries. CI fixtures do
-this explicitly. These entries are never silently interpreted relative to the
+`./node_modules/.bin` entry inserted by pnpm 11 both disable sharing. The experiment must supply only absolute PATH entries. Its fixtures do
+this explicitly; this does not bypass the public admission refusal. These entries are never silently interpreted relative to the
 shared process home.
 The runtime does not write user configuration, retry failed native opens,
 or serialize unrelated pools to hide the known database race.

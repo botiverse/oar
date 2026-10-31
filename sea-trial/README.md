@@ -94,10 +94,15 @@ Title-generation requests receive a separate fixture, so they cannot consume
 conversation replies or be counted as duplicated turns.
 
 `OAR_TEST=opencode-shared` runs the session behavior suite through the real
-OpenCode 2.2.5 auto-sharing adapter with a local provider. Each fresh session
+experimental OpenCode 2.2.5 adapter with a local provider; public production
+admission remains closed. Each fresh session
 gets a distinct temporary project; resume keeps the observed original cwd.
 Fresh sessions must report shared placement, while directory reuse follows
-the adapter's isolated fallback. The three admitted platforms run it in CI,
+the adapter's isolated fallback. The manual experiment workflow can run it on three platforms,
 then `sea-trial/vendor/opencode-sharing.vendor.test.ts` checks shared and
 isolated lifecycle controls. The fixture PATH excludes relative entries;
 custom startup inputs retain their separately tested isolation policy.
+
+`opencode-sharing-experiment.yml` manually runs these candidate controls and
+the configured-plugin child environment comparison. They are outside default
+`check`; the public isolated cleanup regression remains in ordinary CI.

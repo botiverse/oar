@@ -2,21 +2,21 @@
 
 Runtime version check: 2026-10-31.
 
-Grok 1.0.70 and OpenCode 2.2.3 and 2.2.5 meet the native evidence gate on **Linux x64,
-macOS arm64 and Windows x64**. OpenCode's admission requires **one session
-per canonical directory for the entire native process lifetime**, including
-after release. Other versions and architectures do not inherit admission.
-This report records native admission. OAR enables OpenCode 2.2.3 and 2.2.5
-on those platforms with the lifetime directory restriction. Other native
-adapters remain isolated until separately implemented.
+**No native runtime currently meets the complete sharing gate.** The earlier
+OpenCode 2.2.3/2.2.5 admission is withdrawn after the
+[configured plugin child counterexample](opencode-plugin-environment-2026-10-31.md).
+Grok 1.0.70 is also unadmitted: configured stdio MCP children inherit HOME
+when shared instead of the session cwd. The observations below retain their
+historical scope; passing them does not establish child-environment equivalence.
+OpenCode production `auto` is isolated and explicit `shared` is refused.
 
 ## Decisions and evidence
 
 | Exact runtime | Linux x64 | macOS arm64 | Windows x64 | Required adapter boundary |
 | --- | --- | --- | --- | --- |
-| Grok 1.0.70 | admitted | admitted | admitted | Native per-session cleanup and explicit child attribution; configuration/trust controls below |
-| OpenCode 2.2.3 | admitted with directory restriction | admitted with directory restriction | admitted with directory restriction | Enabled; each canonical directory belongs to only one session per process lifetime |
-| OpenCode 2.2.5 | admitted with directory restriction | admitted with directory restriction | admitted with directory restriction | Enabled with the same lifetime directory restriction |
+| Grok 1.0.70 | not admitted | not admitted | not admitted | Configured stdio MCP child environment differs |
+| OpenCode 2.2.3 | not admitted | not admitted | not admitted | Configured plugin child environment differs; candidate directory restriction retained |
+| OpenCode 2.2.5 | not admitted | not admitted | not admitted | Configured plugin child environment differs; candidate directory restriction retained |
 | Codex 0.166.0 | not admitted | not admitted | not admitted | Persisted hook-trust changes untested; loaded-session resume model behavior needs an adapter rule |
 
 Grok's [original admission report](admission-2026-10-30.md) records seven of
@@ -24,7 +24,7 @@ seven observations on each platform in the second run, complete resources,
 lower shared memory and no higher shared CPU. Its same-directory/release
 checks passed in [run 41149607090](https://github.com/botiverse/oar/actions/runs/41149607090)
 and the latest run below. The latest external native trust grant and
-cross-directory controls close the remaining configuration gap.
+cross-directory controls closed the then-known configuration gap; child environment was not tested.
 
 OpenCode's [updated-version report](updated-versions-2026-10-30.md) records
 seven of seven observations and complete resources on each platform, with
@@ -45,8 +45,8 @@ cross-directory project discovery and user-configuration refresh complete on
 each platform. All 18 post-turn resource windows are exact, with lower shared
 memory and CPU. Its same-directory failures match 2.2.3: registration
 replacement and retention after native close. The same lifetime directory
-restriction is therefore required. This admission preserves 2.2.3 and does
-not admit other versions or architectures.
+restriction remains necessary in the experimental adapter, but is insufficient
+for admission after the plugin child environment counterexample.
 
 Codex's Windows hooks now execute after the explicit PowerShell invocation
 fix. Same-directory checks and all four per-session trust controls pass on
@@ -115,13 +115,12 @@ remain failures in those files, including the expected non-admitted results.
 | qoder-Windows-X64 | [13025781710](https://github.com/botiverse/oar/actions/runs/41157633349/artifacts/13025781710) |
 | qoder-macOS-ARM64 | [13025623993](https://github.com/botiverse/oar/actions/runs/41157633349/artifacts/13025623993) |
 
-## Implementation order
+## Implementation status
 
-OpenCode is the first enabled adapter, at exact versions 2.2.3 and 2.2.5
-with the lifetime directory restriction. Its shared-placement and
-isolated-cleanup CI run 2.2.5. Grok follows. Kimi remains deferred for stale
-hooks. Codex remains in the second group. A separate adapter change must
-enforce exact version/platform
-admission, retain an explicit isolated path, validate its OAR lifecycle and
-routing, and document its first default `auto` sharing release. This report
-is evidence admission, not a switch that enables sharing.
+OpenCode 2.2.3/2.2.5 production sharing has been withdrawn. The exact-version
+checks, directory restriction and lifecycle mechanism remain experimental;
+real shared behavior and lifecycle controls run only by manual dispatch.
+The real isolated-cleanup regression remains in ordinary CI at 2.2.5.
+Grok remains disabled. Re-admission requires per-platform child-environment
+evidence in addition to the existing gate; Kimi and Codex retain their
+separate unresolved requirements above.

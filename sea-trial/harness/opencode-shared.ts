@@ -1,3 +1,4 @@
+import { experimentalOpenCodeRuntime } from "../../experiments/sharing/opencode-candidate.js";
 import assert from "node:assert/strict";
 import { mkdtemp, mkdir, rm } from "node:fs/promises";
 import os from "node:os";
@@ -13,7 +14,7 @@ export async function opencodeSharedBackend(): Promise<Backend> {
     mock.onMessage(/^(?![\s\S]*slow)[\s\S]*$/u, { content: "ok" }, { latency: 80 });
   });
   const root = await mkdtemp(path.join(os.tmpdir(), "oar-opencode-behavior-"));
-  const runtime = opencodeRuntime.withPlacement("auto");
+  const runtime = experimentalOpenCodeRuntime().withPlacement("auto");
   const directories = new Map<string, string>();
   let next = 0;
   return {

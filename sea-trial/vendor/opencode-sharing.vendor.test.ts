@@ -3,7 +3,7 @@ import { readFile, writeFile, mkdir, symlink, stat } from "node:fs/promises";
 import path from "node:path";
 import { expect, test, vi } from "vitest";
 import type { Session, SessionOptions } from "../../packages/oar/src/contracts/session.js";
-import { opencodeRuntime } from "../../packages/oar/src/runtimes/opencode/index.js";
+import { experimentalOpenCodeRuntime } from "../../experiments/sharing/opencode-candidate.js";
 // oxlint-disable-next-line import/no-namespace -- Spy observes real native launches without replacing their behavior.
 import * as acp from "../../packages/oar/src/shared/acp/process.js";
 import { promptAndWait, awaitTurnEnd } from "../../packages/oar/src/observe/turns.js";
@@ -24,7 +24,7 @@ for (const placement of ["auto", "isolated"] as const) {
     const runtimes: acp.AcpProcess[] = [];
     const original = acp.startAcpProcess;
     const spy = vi.spyOn(acp, "startAcpProcess").mockImplementation((...args) => { const runtime = original(...args); runtimes.push(runtime); return runtime; });
-    const runtime = opencodeRuntime.withPlacement(placement);
+    const runtime = experimentalOpenCodeRuntime().withPlacement(placement);
     const env = { ...Object.fromEntries(Object.keys(process.env).map(key => [key, null])), ...f.env, PATH: (f.env.PATH ?? "").split(path.delimiter).filter(entry => path.isAbsolute(entry)).join(path.delimiter) };
     const open = async (label: "A" | "B", extra: Partial<SessionOptions> = {}): Promise<Session> => {
       const session = await runtime.session(f.installation, { cwd: f.cwds[label === "A" ? 0 : 1] ?? f.home, env,

@@ -155,6 +155,9 @@ const selected = runtime.execution === "process" ? runtime.withPlacement("isolat
 
 This preserves SDK and undeclared runtime instances. `null` does not promise
 isolation; explicit process placement is still refused for those adapters.
+OpenCode currently opens an isolated process under `auto` and refuses explicit
+`shared`, including native 2.2.3 and 2.2.5, because configured plugin child
+processes otherwise inherit a different working directory.
 `Runtime.placement` is the requested policy, while `Session.placement` reports
 the opened session's actual placement. See the
 [placement contract](https://github.com/botiverse/oar/blob/main/docs/spec/record-stream.md#placement-and-release).
