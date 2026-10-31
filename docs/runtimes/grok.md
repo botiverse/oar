@@ -33,7 +33,9 @@ prompt-options probe against local scripted providers, without a real login.
 
 Grok **1.0.70 stable** enables `auto` sharing on Node **Linux x64, macOS
 arm64 and Windows x64**. Installation output must identify that exact
-version, and each newly started process must independently report
+version, with either npm's `grok 1.0.70 (<commit>)` output or the official
+installer's additional `[stable]` suffix. Other channel suffixes are refused.
+Each newly started process must independently report
 `initialize._meta.agentVersion: "1.0.70"` before any session opens. Grok does
 not report this value in `agentInfo.version`. A changed or unknown version
 or platform makes `auto` isolated and explicit `shared` fail with

@@ -66,7 +66,7 @@ for (const placement of ["auto", "isolated"] as const) {
       const config = await readFile(configPath, "utf8");
       const model = config.slice(config.indexOf("[model.aimock-model]"));
       await writeFile(configPath, `${config}\n${model.replaceAll("aimock-model", "aimock-other")}\n`);
-      expect(f.installation.version).toMatch(/^grok 1\.0\.70 \([a-f\d]+\) \[stable\]$/u);
+      expect(f.installation.version).toMatch(/^grok 1\.0\.70 \([a-f\d]+\)(?: \[stable\])?$/u);
       const [a, b] = await Promise.all([open("A"), open("B", { model: "aimock-other" })]);
       expect(runtimes).toHaveLength(placement === "auto" ? 1 : 2);
       for (const session of [a, b]) {

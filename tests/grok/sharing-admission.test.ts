@@ -5,13 +5,16 @@ import { grokSharedRefusal } from "../../packages/oar/src/runtimes/grok/sharing-
 import { grokSharedLaunchRefusal } from "../../packages/oar/src/runtimes/grok/shared-session.js";
 
 const installation = { kind: "available", via: "executable", command: "grok", version: "grok 1.0.70 (f50904eaee6c) [stable]" } as const;
+test.each(["grok 1.0.70 (f50904eaee6c)", "grok 1.0.70 (f50904eaee6c) [stable]"])("Grok admits the observed npm and installer output %j", version => {
+  expect(grokSharedRefusal({ ...installation, version }, "linux", "x64")).toBeNull();
+});
 test.each([["linux", "x64"], ["darwin", "arm64"], ["win32", "x64"]] as const)("Grok admits precisely the measured %s/%s cell", (platform, arch) => {
   expect(grokSharedRefusal(installation, platform, arch)).toBeNull();
 });
 test.each([["linux", "arm64"], ["darwin", "x64"], ["win32", "arm64"], ["freebsd", "x64"]] as const)("Grok rejects unmeasured %s/%s", (platform, arch) => {
   expect(grokSharedRefusal(installation, platform, arch)).not.toBeNull();
 });
-test.each(["1.0.70", "grok 1.0.71 (abc) [stable]", "grok 1.0.700 (abc) [stable]", "grok 1.0.70-dev (abc) [stable]", "grok 1.0.70 (abc) [nightly]", undefined])("unknown installation version %j cannot inherit admission", version => {
+test.each(["1.0.70", "grok 1.0.71 (abc) [stable]", "grok 1.0.700 (abc) [stable]", "grok 1.0.70-dev (abc) [stable]", "grok 1.0.70 (abc) [nightly]", "grok 1.0.70 (abc) [beta]", undefined])("unknown installation version %j cannot inherit admission", version => {
   expect(grokSharedRefusal({ kind: "available", via: "executable", command: "grok", ...(version === undefined ? {} : { version }) }, "linux", "x64")).not.toBeNull();
 });
 const cwd = os.tmpdir();

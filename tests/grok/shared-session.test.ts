@@ -43,8 +43,9 @@ async function fixture() {
   } };
 }
 
-test("same-directory concurrent roots and reuse after release keep sharing; a new Runtime owns a separate pool", async () => {
-  const f = await fixture(); const [a, b] = await Promise.all([f.open("a"), f.open("a")]);
+test.each(["grok 1.0.70 (f50904eaee6c)", "grok 1.0.70 (f50904eaee6c) [stable]"])("%s: same-directory concurrent roots and reuse keep sharing; a new Runtime owns a separate pool", async version => {
+  const f = await fixture(); const i = { ...installation, version };
+  const [a, b] = await Promise.all([f.open("a", {}, f.runtime, i), f.open("a", {}, f.runtime, i)]);
   expect([a.placement, b.placement]).toEqual(["shared", "shared"]); expect(opening(a)?.pid).toBe(opening(b)?.pid);
   expect(opening(a)?.initialized).toBe(1); expect(opening(b)?.initialized).toBe(1);
   await a.dispose(); const c = await f.open("a"); expect(c.placement).toBe("shared"); expect(opening(c)?.pid).toBe(opening(b)?.pid);
