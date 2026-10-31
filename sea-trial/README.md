@@ -2,7 +2,7 @@
 
     main.ts        one backend per process: OAR_TEST selects; absent skips locally,
                    OAR_TEST_REQUIRE_AVAILABLE=1 fails a missing installation
-    all.ts         several backends CONCURRENTLY (process = isolation unit)
+    all.ts         several backends with bounded concurrency (each in a process)
     cases/         the shared behavior suite: public-API assertions only,
                    must run on EVERY backend (real logins included)
     vendor/        *.vendor.test.ts: vitest, OAR_TEST-gated; anything that

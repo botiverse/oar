@@ -1,4 +1,4 @@
-// Run several backends CONCURRENTLY: each is its own process (backend env
+// Run several backends with bounded concurrency: each is its own process (backend env
 // setup is process-scoped by design, so processes are the isolation unit).
 // One invocation = one run directory (see harness/trace.ts): every backend's
 // trace and full output land together, plus a machine-readable report.json.
@@ -8,12 +8,13 @@ import { spawn } from "node:child_process";
 import { createWriteStream, mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { resolveRunDir } from "./harness/trace.js";
+import { runBackends } from "./harness/parallel-backends.js";
 
 const backends = process.argv.slice(2);
 const targets = backends.length > 0 ? backends : ["mock", "mock-shared", "mock-isolated", "claude-aimock", "codex-aimock", "pi-aimock", "pi-rpc-aimock", "pi-durable-aimock", "qwen-aimock", "qoder-native", "codebuddy-aimock", "grok-aimock", "kimi-aimock", "opencode-aimock"];
 const runDir = resolveRunDir();
 
-const results = await Promise.all(targets.map(async (target) => {
+const results = await runBackends(targets, async (target) => {
   const backendDir = path.join(runDir, target);
   mkdirSync(backendDir, { recursive: true });
   const log = createWriteStream(path.join(backendDir, "output.log"));
@@ -46,7 +47,7 @@ const results = await Promise.all(targets.map(async (target) => {
     });
   });
   return result;
-}));
+});
 
 writeFileSync(path.join(runDir, "report.json"), `${JSON.stringify({ runDir, results }, null, 2)}\n`);
 for (const result of results) {
