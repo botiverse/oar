@@ -406,6 +406,12 @@ release notes. Squash merge it, then start
 stamp workflow run release.yml --repo botiverse/oar -f version=X.Y.Z
 ```
 
+From the release commit's merge until its tag exists, do not merge a pull
+request that changes `.github/workflows/`. A workflow change on main can
+make GitHub reject the older commit's new tag as a workflow update, which
+the release job's token cannot authorize. Cindy owns this hold and lifts
+it once the tag is confirmed at the release commit.
+
 Dispatch right after the release pull request merges: the workflow releases
 the head of main only after `ci.yml` succeeded on that exact commit (a
 docs-only head has no run and fails the gate). It refuses a version that
@@ -422,3 +428,20 @@ passes. npm trusted
 publishing (OIDC) authenticates the publish job; the repo holds no npm
 token. Pushing a `vX.Y.Z` tag by hand still publishes that commit, without
 the CI gate or the GitHub release.
+
+If npm publication succeeded and the correct tag already exists but the
+GitHub release is missing, Cindy can dispatch the recovery path from main:
+
+```bash
+stamp workflow run release.yml --repo botiverse/oar -f version=X.Y.Z -f release_only=true
+```
+
+Recovery does not publish packages, create or move tags, run package code,
+or require the historical version to remain npm's `latest`. It requires
+both exact package versions on the public npm registry, matching package
+names and versions in the tagged commit, and exactly one merged release
+pull request for that commit. It takes notes from that pull request rather
+than current main, verifies the tag has not moved, and uses
+[`gh release create --verify-tag`](https://cli.github.com/manual/gh_release_create).
+Missing or inconsistent evidence, API errors and an already existing GitHub
+release fail the recovery. Normal publication keeps its existing gates.
