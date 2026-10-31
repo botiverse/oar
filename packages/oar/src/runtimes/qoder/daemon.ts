@@ -50,6 +50,7 @@ export async function qoderDaemonSession(child: LineProcess, sessionId: string, 
     final(callback): void {
       // EOF on the dedicated daemon is its native shutdown boundary. The
       // caller retains the same bounded process-tree cleanup as the worker.
+      child.markNativeStop();
       child.stdin.end(); callback();
     },
   });
