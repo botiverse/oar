@@ -1,3 +1,4 @@
+/* oxlint-disable import/max-dependencies -- The turn driver composes input, protocol, projection and cancellation ownership. */
 import type {
   InputImage,
   InputOptions,
@@ -11,6 +12,7 @@ import { pathToFileURL } from "node:url";
 import { withdrawHeld } from "../held-input.js";
 import { withInputImages, type LoadedImage } from "../input-images.js";
 import { asRecord, type JsonRecord } from "../json.js";
+import type { CancellationObservation } from "../executable/process-cancellation.js";
 import type { SessionKernel } from "../session-kernel.js";
 import { AcpError, acpProcessExitedError } from "./errors.js";
 import { promptAcp, type AcpSessionProfile, type UsageUpdateGate } from "./profile.js";
@@ -42,6 +44,7 @@ export interface ActiveTurn {
   readonly pending: Set<number>;
   abortRequested: boolean;
   fallback: NodeJS.Timeout | null;
+  cancellation?: CancellationObservation;
 }
 
 /** The agent advertised image prompts in `initialize` (`agentCapabilities.promptCapabilities.image`). */
@@ -59,6 +62,8 @@ function acpPrompt(input: string, images: readonly LoadedImage[]): JsonRecord[] 
 
 export interface AcpTurns {
   active(): ActiveTurn | null;
+  /** Null outside observation so ordinary input keeps its synchronous dispatch. */
+  pendingCancellation(): Promise<CancellationObservation> | null;
   /** Open a turn with one prompt RPC; rejected when the process is gone or its images can't go (`inputImagesRefusal`). */
   begin(request: RequestRecord | null, input: string, images?: readonly InputImage[]): ResponseBody;
   /** Another prompt RPC inside the active turn (the profile's steer params); rejected like `begin`. */
@@ -88,8 +93,10 @@ export function createAcpTurns(deps: {
   const held: { readonly inputId: string | undefined; readonly prompt: JsonRecord[] }[] = [];
   let active: ActiveTurn | null = null;
   let nextRequest = 0;
+  let observingCancellation: Promise<CancellationObservation> | null = null;
 
   const closeTurn = (state: ActiveTurn): void => {
+    state.cancellation?.complete();
     if (state.fallback !== null) {
       clearTimeout(state.fallback);
       state.fallback = null;
@@ -190,7 +197,7 @@ export function createAcpTurns(deps: {
   function drainHeld(): void {
     // Held input is dropped once the stream says the runtime is unreachable
     // (an `exited` response or a `dispose` request), not by an adapter flag.
-    if (kernel.unreachable() !== null || active !== null || runtime.closed) {
+    if (kernel.unreachable() !== null || active !== null || runtime.closed || observingCancellation !== null) {
       return;
     }
     // Taken off `held` in the same step it is sent: a withdraw after this finds it gone.
@@ -202,6 +209,7 @@ export function createAcpTurns(deps: {
 
   return {
     active: () => active,
+    pendingCancellation: (): Promise<CancellationObservation> | null => observingCancellation,
     begin,
     async steer(state, input, options, extraParams) {
       await runtime.spawned;
@@ -215,10 +223,29 @@ export function createAcpTurns(deps: {
     },
     async abort(state, request) {
       if (!state.abortRequested) {
+        // Isolated user abort can orphan tools while leaving this process
+        // reusable. Dispose already prepared its whole-process cleanup;
+        // shared cancellation must never claim the pool's descendants.
+        if (request !== undefined && deps.fallback === undefined) {
+          observingCancellation ??= runtime.observeCancellation();
+          const window = observingCancellation;
+          try { state.cancellation = await window; }
+          finally {
+            if (observingCancellation === window) { observingCancellation = null; queueMicrotask(drainHeld); }
+          }
+          if (active !== state || runtime.closed || kernel.unreachable() !== null) {
+            state.cancellation.complete();
+            return runtime.closed ? gone() : { kind: "rejected", code: "no_active_turn", reason: "turn ended before cancellation was sent" };
+          }
+        }
+        // Another abort can dispatch while this one awaits the shared observation.
+        if (active?.abortRequested === true) { return { kind: "accepted" }; }
         state.abortRequested = true;
         try {
+          state.cancellation?.commit();
           await runtime.connection.agent.notify(methods.agent.session.cancel, { sessionId: rootId });
         } catch (error) {
+          state.cancellation?.complete();
           return { kind: "rejected", code: "error", reason: error instanceof Error ? error.message : String(error) };
         }
         // A stalled shared prompt releases only this root; isolated fallback

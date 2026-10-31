@@ -1,5 +1,6 @@
 import type { ChildProcess } from "node:child_process";
 import { processTreeCleanup, cleanupFailureReason, type ProcessCleanupDiagnostics } from "./process-cleanup.js";
+import { observeBeforeCancellation, type CancellationObservation } from "./process-cancellation.js";
 import { trackPendingCleanup } from "./ownership.js";
 import { killGraceMs, killProcessTree, signalProcessGroup } from "./process-signals.js";
 
@@ -11,6 +12,7 @@ export function processShutdown(child: ChildProcess, options: ShutdownOptions): 
   stop(): void;
   prepare(): Promise<void>;
   markNativeStop(): void;
+  observeCancellation(): Promise<CancellationObservation>;
   nativeExited(): void;
   stopping(): boolean;
   diagnostics(): ProcessCleanupDiagnostics | undefined;
@@ -19,6 +21,7 @@ export function processShutdown(child: ChildProcess, options: ShutdownOptions): 
   let stopping = false;
   let ended = false;
   let stopAction = false;
+  const cancellations = new Set<symbol>();
   let phase: Promise<void> = Promise.resolve();
   let escalation: NodeJS.Timeout | undefined = undefined;
   let cleanup: ReturnType<typeof processTreeCleanup> | undefined = undefined;
@@ -52,17 +55,24 @@ export function processShutdown(child: ChildProcess, options: ShutdownOptions): 
     }
     escalation = setTimeout(() => { phase = force(); }, killGraceMs());
   };
+  const ownedCleanup = (): ReturnType<typeof processTreeCleanup> => {
+    if (cleanup === undefined) {
+      if (child.pid === undefined) { throw new Error("Cannot observe an unspawned root"); }
+      const created = processTreeCleanup(child.pid, alive);
+      cleanup = created;
+      releaseCleanup = trackPendingCleanup((read) => created.finishSync(read));
+    }
+    return cleanup;
+  };
   // Only call immediately before an intended stop: the snapshot is memoized
   // and its cleanup stays registered until exit, even before stop() is called.
   const prepare = async (): Promise<void> => {
     if (capture !== undefined) { await capture; return; }
     if (!alive() || options.killTree !== true || child.pid === undefined) { return; }
-    const ownedCleanup = processTreeCleanup(child.pid, alive);
-    cleanup = ownedCleanup;
-    releaseCleanup = trackPendingCleanup((read) => ownedCleanup.finishSync(read));
+    const preparedCleanup = ownedCleanup();
     capture = (async (): Promise<void> => {
-      try { await ownedCleanup.capture(); }
-      catch (error) { ownedCleanup.failed(error, "before_eof"); }
+      try { await preparedCleanup.capture(); }
+      catch (error) { preparedCleanup.failed(error, "before_eof"); }
     })();
     phase = capture;
     await capture;
@@ -86,13 +96,28 @@ export function processShutdown(child: ChildProcess, options: ShutdownOptions): 
     finished,
     prepare,
     markNativeStop() { if (alive()) { stopAction = true; } },
+    async observeCancellation() {
+      if (options.killTree !== true || !alive() || child.pid === undefined) { return { commit() {}, complete() {} }; }
+      const result = await observeBeforeCancellation();
+      const attempt = Symbol("native cancellation");
+      let committed = false, completed = false;
+      return {
+        commit() {
+          if (completed || committed || !alive() || stopping || options.killTree !== true || child.pid === undefined) { return; }
+          committed = true;
+          ownedCleanup().rememberCancellation(result);
+          cancellations.add(attempt);
+        },
+        complete() { completed = true; cancellations.delete(attempt); },
+      };
+    },
     stopping: () => stopping,
     diagnostics: () => cleanup?.diagnostics(),
     reason: () => cleanupFailureReason(cleanup?.diagnostics()),
     nativeExited() {
       ended = true;
       clearTimeout(escalation);
-      if (!stopAction) {
+      if (!stopAction && cancellations.size === 0) {
         // A pending observation does not turn a spontaneous exit into an OAR
         // stop. Its orphan descendants remain the natural-exit limitation.
         cleanup = undefined;

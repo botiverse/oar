@@ -1,3 +1,4 @@
+import type { CancellationObservation } from "../../packages/oar/src/shared/executable/process-cancellation.js";
 import type { LineProcess } from "../../packages/oar/src/shared/executable/index.js";
 import { PassThrough } from "node:stream";
 import { StderrTail, type ProcessDiagnostics } from "../../packages/oar/src/shared/executable/diagnostics.js";
@@ -49,6 +50,7 @@ class ScriptedLineProcess implements FakeLineProcess {
   stopping(): boolean { return this.wasKilled; }
   markNativeStop(): void { /* No native lifecycle in this scripted fixture. */ }
   async prepareShutdown(): Promise<void> { /* No native descendants in this scripted fixture. */ }
+  async observeCancellation(): Promise<CancellationObservation> { return { commit() {}, complete() {} }; }
 
   diagnostics(): ProcessDiagnostics {
     return { exitCode: this.exitCode, signal: this.exitSignal, stderr: this.stderr.text(), ...(this.cleanup === undefined ? {} : { cleanup: this.cleanup }) };

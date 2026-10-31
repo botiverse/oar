@@ -39,7 +39,11 @@ test("recorded dropped id reuse resolves as invalid_request without waiting for 
   let abort: ReturnType<Session["abort"]> | undefined = undefined;
   try {
     for (const [index, native] of frames.entries()) {
-      if (index === 57) { abort = session.abort(); }
+      if (index === 57) {
+        abort = session.abort();
+        // Preserve the recording's write boundary after asynchronous ownership observation.
+        await vi.waitFor(() => { expect(child.written).toHaveLength(3); });
+      }
       if (index === 61) { retry = run(session, writes[3]); await vi.waitFor(() => { expect(child.written).toHaveLength(4); }); }
       child.emit(`${JSON.stringify(native)}\n`);
       if (index === 52) { cancelled = run(session, writes[1]); await vi.waitFor(() => { expect(child.written).toHaveLength(2); }); }

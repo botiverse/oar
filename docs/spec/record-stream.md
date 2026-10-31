@@ -281,6 +281,42 @@ Further rules:
   does. A native refusal cancels only that abort attempt; it must not kill
   work the runtime refused to interrupt. Hosts resume the native session to
   continue after this fallback.
+- **An isolated cancel observes ownership before dispatch.** User abort in
+  isolated ACP and stream-json takes one fresh asynchronous process-table
+  observation before sending the native cancel or interrupt. It waits at most
+  one second, including any wait for a fresh shared query batch. This can add
+  up to one second to abort dispatch on Windows or another slow host. There is
+  no retry. At the deadline OAR sends the cancellation and records an incomplete
+  `before_cancel` observation; a late query result is never used as evidence
+  predating this cancellation. An underlying query shared with other callers
+  may continue within its own budget, without extending the abort's wait.
+  The existing ten-second fallback starts when cancel is sent.
+  The first abort on a cold Windows host is likely to exceed this observation
+  limit while PowerShell or CIM initializes; cancellation still proceeds at
+  the same one-second limit.
+  The observation belongs to the current turn, including a resumed turn.
+  OAR holds its queued input only during this observation window. New prompt
+  and steer calls wait for this window, then use the existing post-cancel
+  acceptance rules instead of adding an observation-specific busy refusal. If
+  the turn ends in that window, the abort is rejected `no_active_turn`, no cancellation
+  is sent, and queued input can proceed. Repeated aborts share that turn's
+  observation; the next turn takes a new one. Identities are committed only
+  immediately before sending native cancellation. Completed turns do not kill
+  tools. Captured identities remain available to a later fallback or disposal,
+  alongside freshly observed descendants, and require fresh identity checks
+  before any signal. A failed or timed-out cancellation observation leaves
+  cleanup explicitly unverified even if a later disposal snapshot succeeds:
+  the first cancellation may already have detached an unobserved tool.
+  This unverified observation is retained for the later dispose or host-exit
+  cleanup report.
+  An exit after cancellation was sent but before that turn's cancellation
+  completes is attributed to that cancellation for cleanup and diagnostics.
+  A refusal or turn end clears the active cancellation marker. A later,
+  unrelated natural exit does not become a host stop because of an old abort.
+  Shared ACP never claims the pooled process's descendants on a session abort;
+  it uses the native session cancel/close and explicitly owned host terminals.
+  Without native PID-to-session association, tool ownership is not inferred
+  from the common parent process.
 - **A failed process-table read is not an empty tree.** Cleanup records the
   source, duration and bounded failure fields internally, without process
   names, command lines or environment values. Before EOF it retries a failed
@@ -337,7 +373,9 @@ Further rules:
   Isolated ACP disposal captures before sending native cancel/close too:
   those operations can end a tool's shell before the runtime exits. Shared
   session release does not capture or terminate the whole pooled process.
-  Capture completes before the first native cancellation, EOF or signal.
+  Whole-process disposal capture completes before its first native
+  cancellation, EOF or signal; the per-turn user abort budget is separate
+  as described above.
   Each ps/CIM query retains its five-second limit; a failed capture retries
   once only while the owned root is still alive. The cold observation budget
   is therefore up to 2 x 5 seconds before the first stop action, plus up to
@@ -355,10 +393,10 @@ Further rules:
   root still reports unverified cleanup. A table read failure never authorizes
   signalling a remembered PID.
   Natural exits can leave orphan descendants that were not owned by an OAR
-  stop sequence. Another known gap is user abort in ACP and stream-json:
-  native cancel/interrupt precedes capture by the fallback kill, so a tool
-  whose parent exits during cancellation can already be outside that later
-  snapshot. Disposal's earlier capture does not close that abort-path gap.
+  stop sequence. A tool already outside the root's tree before the first
+  successful observation remains unknown, as does a new tool that loses its
+  parent before any later observation can link it. Per-turn cancellation
+  capture closes the observed-parent gap, not these unobserved cases.
 - **An exit after a host stop ends the running turn as aborted.** `status()`,
   `turnEndAfter` / `awaitTurnEnd`, and the record-based session view read an
   exit after that turn's accepted abort (by the runtime or OAR), or its

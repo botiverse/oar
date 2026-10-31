@@ -9,6 +9,7 @@ interface Snapshot { readonly table: ProcessTable; readonly source: ProcessTable
 /** Capture before EOF, then revalidate identities before signalling descendants. */
 export function processTreeCleanup(pid: number, alive: () => boolean = () => true): {
   capture(): Promise<void>;
+  rememberCancellation(result: ProcessTableObservation): void;
   force(stopRoot: () => void): Promise<void>;
   finish(): Promise<void>;
   finishSync(read: () => ProcessTableObservation): ProcessCleanupDiagnostics;
@@ -27,7 +28,7 @@ export function processTreeCleanup(pid: number, alive: () => boolean = () => tru
   };
   const accept = (result: ProcessTableObservation, phase: Phase): Snapshot | undefined => {
     if (!result.ok) { observations.push({ ...result, phase }); return undefined; }
-    if (phase === "before_eof" && (!alive() || !result.table.has(pid))) {
+    if ((phase === "before_eof" || phase === "before_cancel") && (!alive() || !result.table.has(pid))) {
       observations.push({ ok: false, phase, source: result.source, elapsedMs: result.elapsedMs, reason: "missing_root" });
       return undefined;
     }
@@ -52,16 +53,29 @@ export function processTreeCleanup(pid: number, alive: () => boolean = () => tru
     }
     return [...entries.values()];
   };
+  const remember = (snapshot: Snapshot): void => {
+    captured = true;
+    root = snapshot.table.get(pid);
+    // Keep earlier cancellation's orphaned tools when their identity remains
+    // visible, and add this turn's newly started descendants. Never overwrite
+    // identity evidence with a reused PID's current owner.
+    const retained = descendants.filter(entry => snapshot.table.get(entry.pid)?.start === entry.start);
+    descendants = [...new Map([...retained, ...descendantsOf(snapshot.table, pid, snapshot.source)]
+      .map(entry => [entry.pid, entry])).values()];
+  };
   return {
+    rememberCancellation(result) {
+      const snapshot = accept(result, "before_cancel");
+      if (snapshot === undefined) { unverified = true; }
+      else { remember(snapshot); }
+    },
     async capture() {
       // At most two reads (one retry), both before EOF. A root that exited
       // during a read cannot lend its possibly reused PID to a retry.
       let table = await read("before_eof");
       if (table === undefined && alive()) { table = await read("before_eof"); }
       if (table === undefined) { unverified = true; return; }
-      captured = true;
-      root = table.table.get(pid);
-      descendants = descendantsOf(table.table, pid, table.source);
+      remember(table);
     },
     async force(stopRoot) {
       const table = await read("before_force");

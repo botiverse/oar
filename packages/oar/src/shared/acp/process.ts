@@ -8,6 +8,7 @@ import {
 } from "@agentclientprotocol/sdk";
 import { Readable, Writable } from "node:stream";
 import { spawnLineProcess } from "../executable/index.js";
+import type { CancellationObservation } from "../executable/process-cancellation.js";
 import type { ProcessDiagnostics } from "../executable/diagnostics.js";
 import { AcpError, acpProcessExitedError, acpRequestTimeoutError } from "./errors.js";
 import { nativeErrorCause } from "../native-error.js";
@@ -65,6 +66,8 @@ export interface AcpProcess {
   prepareShutdown(): Promise<void>;
   /** Record the actual native stop attempt, immediately before sending cancel/close. */
   markNativeStop(): void;
+  /** Observe before isolated user cancellation; never use for a shared root. */
+  observeCancellation(): Promise<CancellationObservation>;
   /** Bounded native diagnostics for the session-opening error boundary only. */
   diagnostics(): ProcessDiagnostics;
   /** The agent's memory with everything it started (`LineProcess.resources`). */
@@ -190,6 +193,7 @@ export function startAcpProcess(
     },
     prepareShutdown: async () => { await child.prepareShutdown(); },
     markNativeStop: () => { child.markNativeStop(); },
+    observeCancellation: async () => { const observation = await child.observeCancellation(); return observation; },
     resources: child.resources,
     diagnostics: () => child.diagnostics(),
   };

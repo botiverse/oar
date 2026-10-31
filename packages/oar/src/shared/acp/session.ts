@@ -181,6 +181,11 @@ export function finishAcpSession(
     body: RequestBody,
     decide: (request: RequestRecord) => ResponseBody | Promise<ResponseBody>,
   ): Promise<ControlResult> => serial(async () => {
+    const pendingCancellation = turns.pendingCancellation();
+    if ((body.kind === "prompt" || body.kind === "steer") && pendingCancellation !== null) {
+      try { await pendingCancellation; }
+      catch { /* The abort reports its own failure; later input can still proceed. */ }
+    }
     if (runtime.closed && kernel.unreachable() === null) { await runtime.exited; }
     return kernel.control(body, decide);
   });
