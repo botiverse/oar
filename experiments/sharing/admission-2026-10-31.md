@@ -7,14 +7,15 @@ macOS arm64 and Windows x64**. OpenCode's admission requires **one session
 per canonical directory for the entire native process lifetime**, including
 after release. Other versions and architectures do not inherit admission.
 This report records native admission. OAR enables OpenCode 2.2.3 and 2.2.5
-on those platforms with the lifetime directory restriction. Other native
-adapters remain isolated until separately implemented.
+on those platforms with the lifetime directory restriction, and Grok 1.0.70
+without a directory restriction. Other native adapters remain isolated
+until separately implemented.
 
 ## Decisions and evidence
 
 | Exact runtime | Linux x64 | macOS arm64 | Windows x64 | Required adapter boundary |
 | --- | --- | --- | --- | --- |
-| Grok 1.0.70 | admitted | admitted | admitted | Native per-session cleanup and explicit child attribution; configuration/trust controls below |
+| Grok 1.0.70 | admitted | admitted | admitted | Enabled without directory restriction; native close plus hosted-terminal cleanup and spawn attribution |
 | OpenCode 2.2.3 | admitted with directory restriction | admitted with directory restriction | admitted with directory restriction | Enabled; each canonical directory belongs to only one session per process lifetime |
 | OpenCode 2.2.5 | admitted with directory restriction | admitted with directory restriction | admitted with directory restriction | Enabled with the same lifetime directory restriction |
 | Codex 0.166.0 | not admitted | not admitted | not admitted | Persisted hook-trust changes untested; loaded-session resume model behavior needs an adapter rule |
@@ -119,7 +120,8 @@ remain failures in those files, including the expected non-admitted results.
 
 OpenCode is the first enabled adapter, at exact versions 2.2.3 and 2.2.5
 with the lifetime directory restriction. Its shared-placement and
-isolated-cleanup CI run 2.2.5. Grok follows. Kimi remains deferred for stale
+isolated-cleanup CI run 2.2.5. Grok 1.0.70 is also enabled, with native
+shared behavior and shared/isolated lifecycle CI on the three admitted platforms. Kimi remains deferred for stale
 hooks. Codex remains in the second group. A separate adapter change must
 enforce exact version/platform
 admission, retain an explicit isolated path, validate its OAR lifecycle and
