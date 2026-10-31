@@ -53,6 +53,20 @@ investigation):
   first run against local scripted providers, without an account
   ([October 28 report](../../experiments/runtime-version-checks/2026-10-28.md#opencode-1195)).
 
+## Windows isolated-process cleanup
+
+Disposing an active tool can stop OpenCode's shell before its tool and child
+exit. OAR captures descendant start identities before the existing native
+cancel/close operations, then revalidates and cleans remembered descendants
+after the root exits. After an OAR stop action, a process-table read failure
+is reported as unverified cleanup. A prior natural exit keeps its native error without a
+cleanup suffix. This uses the common Windows process-tree fallback;
+it does not add a native close operation or enable sharing.
+
+The [Windows baseline and regression](../../experiments/windows-orphan-cleanup.md)
+retain the main-branch reproduction and the same native isolated lifecycle
+check used by CI.
+
 ## OpenCode v2
 
 ### Shared-process admission boundary

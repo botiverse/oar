@@ -50,6 +50,7 @@ export async function qoderDaemonSession(child: LineProcess, sessionId: string, 
     final(callback): void {
       // EOF on the dedicated daemon is its native shutdown boundary. The
       // caller retains the same bounded process-tree cleanup as the worker.
+      child.markNativeStop();
       child.stdin.end(); callback();
     },
   });
@@ -65,7 +66,8 @@ export async function qoderDaemonSession(child: LineProcess, sessionId: string, 
     const opened = await controls.request({ type: "daemon.open_session", worker_args: workerArgs, cwd });
     if (opened.session_id !== sessionId) { throw new Error("Qoder daemon did not confirm the requested session identity"); }
     return {
-      spawned: child.spawned, exited: child.exited, stdin, stdout, write, stopping: () => child.stopping(),
+      spawned: child.spawned, exited: child.exited, stdin, stdout, write, stopping: () => child.stopping(), prepareShutdown: async () => { await child.prepareShutdown(); },
+      markNativeStop: () => { child.markNativeStop(); },
       diagnostics: () => ({ ...child.diagnostics(), ...(failure.error === undefined ? {} : {
         error: { code: "QODER_PROTOCOL_ERROR", message: failure.error.message },
       }) }), resources: child.resources,

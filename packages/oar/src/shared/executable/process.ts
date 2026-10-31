@@ -22,8 +22,9 @@ export interface LineProcessOptions {
   /**
    * `kill()` ends the child's whole process tree. On Windows
    * (killProcessTree) that is more than the direct child, which for an
-   * npm `.cmd` shim is only `cmd.exe`. On POSIX, where the child's process
-   * group is always signalled, it adds the descendants that left the group
+   * npm `.cmd` shim is only `cmd.exe`. Captured start identities also reach
+   * Windows tools whose intermediate parent exits before taskkill walks it.
+   * On POSIX, where the child's process group is always signalled, it adds the descendants that left the group
    * (process-tree.ts): SIGTERM still goes to the group alone, so the child
    * can stop its tools itself; the SIGKILL, or the child's exit if that comes
    * first, also takes every descendant seen before (when `kill()` began, and
@@ -53,6 +54,10 @@ export interface LineProcess {
   diagnostics(): ProcessDiagnostics;
   /** True immediately when kill begins, before asynchronous capture or EOF. */
   stopping(): boolean;
+  /** Only immediately before stopping: memoizes descendant capture and registers exit cleanup. */
+  prepareShutdown(): Promise<void>;
+  /** Record the actual native stop attempt, immediately before sending cancel/close. */
+  markNativeStop(): void;
   write(text: string): void;
   /** Complete UTF-8 lines, independent of stdout byte-chunk boundaries. */
   onLine(handler: (line: string) => void): void;
@@ -162,6 +167,8 @@ export function spawnLineProcess(
     stdin,
     stdout,
     stopping: () => shutdown.stopping(),
+    prepareShutdown: async () => { await shutdown.prepare(); },
+    markNativeStop: () => { shutdown.markNativeStop(); },
     ...(child.stdio[3] instanceof Duplex ? { extraPipe: child.stdio[3] } : {}),
     diagnostics: () => {
       const cleanup = shutdown.diagnostics();

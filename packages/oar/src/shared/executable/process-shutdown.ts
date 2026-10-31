@@ -9,6 +9,8 @@ interface ShutdownOptions { readonly killTree?: boolean; readonly shutdown?: "st
 export function processShutdown(child: ChildProcess, options: ShutdownOptions): {
   readonly finished: Promise<void>;
   stop(): void;
+  prepare(): Promise<void>;
+  markNativeStop(): void;
   nativeExited(): void;
   stopping(): boolean;
   diagnostics(): ProcessCleanupDiagnostics | undefined;
@@ -16,14 +18,17 @@ export function processShutdown(child: ChildProcess, options: ShutdownOptions): 
 } {
   let stopping = false;
   let ended = false;
+  let stopAction = false;
   let phase: Promise<void> = Promise.resolve();
   let escalation: NodeJS.Timeout | undefined = undefined;
   let cleanup: ReturnType<typeof processTreeCleanup> | undefined = undefined;
+  let capture: Promise<void> | undefined = undefined;
   let releaseCleanup: (() => void) | undefined = undefined;
   const nativeExit = Promise.withResolvers<void>();
   const alive = (): boolean => !ended && child.exitCode === null && child.signalCode === null;
   const stopRoot = (): void => {
     if (!alive()) { return; }
+    stopAction = true;
     if (process.platform === "win32" && options.killTree === true) { killProcessTree(child); }
     else { signalProcessGroup(child, "SIGKILL"); }
   };
@@ -38,14 +43,32 @@ export function processShutdown(child: ChildProcess, options: ShutdownOptions): 
   };
   const close = (): void => {
     if (!alive()) { return; }
+    stopAction = true;
     child.stdin?.end();
     // Pi reenters shutdown on EOF plus SIGTERM and skips its native hooks.
-    if (options.shutdown !== "stdin") { signalProcessGroup(child, "SIGTERM"); }
+    if (options.shutdown !== "stdin") {
+      if (process.platform === "win32" && options.killTree === true) { killProcessTree(child); }
+      else { signalProcessGroup(child, "SIGTERM"); }
+    }
     escalation = setTimeout(() => { phase = force(); }, killGraceMs());
   };
-  const captureAndClose = async (): Promise<void> => {
-    try { await cleanup?.capture(); }
-    catch (error) { cleanup?.failed(error, "before_eof"); }
+  // Only call immediately before an intended stop: the snapshot is memoized
+  // and its cleanup stays registered until exit, even before stop() is called.
+  const prepare = async (): Promise<void> => {
+    if (capture !== undefined) { await capture; return; }
+    if (!alive() || options.killTree !== true || child.pid === undefined) { return; }
+    const ownedCleanup = processTreeCleanup(child.pid, alive);
+    cleanup = ownedCleanup;
+    releaseCleanup = trackPendingCleanup((read) => ownedCleanup.finishSync(read));
+    capture = (async (): Promise<void> => {
+      try { await ownedCleanup.capture(); }
+      catch (error) { ownedCleanup.failed(error, "before_eof"); }
+    })();
+    phase = capture;
+    await capture;
+  };
+  const captureAndClose = async (prepared: Promise<void>): Promise<void> => {
+    await prepared;
     try { close(); }
     catch (error) { cleanup?.failed(error, "before_force"); await force(); }
   };
@@ -61,25 +84,30 @@ export function processShutdown(child: ChildProcess, options: ShutdownOptions): 
   const finished = finish();
   return {
     finished,
+    prepare,
+    markNativeStop() { if (alive()) { stopAction = true; } },
     stopping: () => stopping,
     diagnostics: () => cleanup?.diagnostics(),
     reason: () => cleanupFailureReason(cleanup?.diagnostics()),
-    nativeExited() { ended = true; clearTimeout(escalation); nativeExit.resolve(); },
+    nativeExited() {
+      ended = true;
+      clearTimeout(escalation);
+      if (!stopAction) {
+        // A pending observation does not turn a spontaneous exit into an OAR
+        // stop. Its orphan descendants remain the natural-exit limitation.
+        cleanup = undefined;
+        releaseCleanup?.();
+      }
+      nativeExit.resolve();
+    },
     stop() {
       if (!alive() || stopping) { return; }
       stopping = true;
-      if (options.shutdown !== "stdin" && options.killTree === true && process.platform === "win32") {
-        child.stdin?.end();
-        killProcessTree(child);
-        escalation = setTimeout(() => { if (alive()) { child.kill("SIGKILL"); } }, killGraceMs());
-        return;
-      }
-      if (options.killTree === true && child.pid !== undefined) {
-        cleanup = processTreeCleanup(child.pid, alive);
-        const ownedCleanup = cleanup;
-        releaseCleanup = trackPendingCleanup((read) => ownedCleanup.finishSync(read));
-        phase = captureAndClose();
-      } else { close(); }
+      if (options.killTree !== true || child.pid === undefined) { close(); return; }
+      // Capture before EOF/taskkill too: an intermediate Windows parent may
+      // exit first, leaving tools outside taskkill's remaining parent chain.
+      const prepared = prepare();
+      phase = captureAndClose(prepared);
     },
   };
 }

@@ -61,6 +61,10 @@ export interface AcpProcess {
   readonly exitCode: number | null;
   readonly redact?: (text: string) => string;
   kill(): void;
+  /** Only immediately before stopping: memoizes capture before native cancel/close can orphan tools. */
+  prepareShutdown(): Promise<void>;
+  /** Record the actual native stop attempt, immediately before sending cancel/close. */
+  markNativeStop(): void;
   /** Bounded native diagnostics for the session-opening error boundary only. */
   diagnostics(): ProcessDiagnostics;
   /** The agent's memory with everything it started (`LineProcess.resources`). */
@@ -184,6 +188,8 @@ export function startAcpProcess(
         child.kill();
       }
     },
+    prepareShutdown: async () => { await child.prepareShutdown(); },
+    markNativeStop: () => { child.markNativeStop(); },
     resources: child.resources,
     diagnostics: () => child.diagnostics(),
   };

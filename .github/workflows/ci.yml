@@ -32,9 +32,26 @@ jobs:
         timeout-minutes: 5
         env:
           OAR_TEST: codebuddy-install
+      - name: Install pinned OpenCode for native isolated cleanup
+        run: npm install -g @opencode/cli@2.2.3
+      - name: Native isolated OpenCode tool cleanup
+        run: pnpm vitest run sea-trial/vendor/opencode-cleanup.vendor.test.ts
+        timeout-minutes: 5
+        env:
+          OAR_TEST: opencode-cleanup
+          OAR_TRIAL_RUN_DIR: ${{ github.workspace }}/oar-trial-run
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: opencode-cleanup-${{ matrix.os }}
+          path: ${{ github.workspace }}/oar-trial-run/opencode-cleanup
+          if-no-files-found: warn
       # Real Kimi device login, local OAuth/model server, no account or browser.
       - run: npm install -g @moonshot-ai/kimi-code@2.4.1
+        id: kimi-login-install
+        if: always() && !cancelled()
       - run: pnpm vitest run sea-trial/vendor/kimi-login.vendor.test.ts
+        if: always() && !cancelled() && steps.kimi-login-install.outcome == 'success'
         env:
           OAR_TEST: kimi-login
           OAR_TRIAL_RUN_DIR: ${{ github.workspace }}/oar-trial-run
