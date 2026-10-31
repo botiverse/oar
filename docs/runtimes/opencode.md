@@ -76,7 +76,14 @@ On OpenCode **2.2.3**, `opencodeRuntime` uses shared placement by default
 native runtime whose default is shared. Other or unknown versions and other
 platforms remain isolated; explicit `shared` refuses them. A host selects
 `opencodeRuntime.withPlacement("isolated")` to retain one process per session.
-The standalone `opencodeSession` export retains the isolated path.
+The standalone `opencodeSession` export retains the isolated path. Platform
+and architecture mean the host Node process's `process.platform` and
+`process.arch`, not the physical machine or executable architecture (including
+x64 Node under Rosetta or on Windows ARM). Before any native session opens,
+the shared process must also report exactly `agentInfo.version: "2.2.3"` in
+`initialize`. A different or missing value retires and stops that process;
+`auto` then opens independently, while explicit `shared` is refused. This
+protects hosts whose installation snapshot predates an executable update.
 
 In native 2.2.3 ACP, two sessions in the same directory with the same MCP server name
 and different command arguments share the later registration: after B opens,
@@ -123,11 +130,17 @@ effort and MCP inputs remain native session operations. The audit inspected
 Custom `launchArgs`, a relative executable path, relative home/configuration
 paths or relative PATH entries lack that neutral-directory launch evidence:
 `auto` uses the existing isolated launch and explicit `shared` refuses.
-They are never silently interpreted relative to the shared process home.
+This includes empty PATH entries: a trailing `;` on Windows and the relative
+`./node_modules/.bin` entry inserted by pnpm 11 both disable sharing. A host
+that wants sharing must supply only absolute PATH entries. CI fixtures do
+this explicitly. These entries are never silently interpreted relative to the
+shared process home.
 The runtime does not write user configuration, retry failed native opens,
 or serialize unrelated pools to hide the known database race.
 
-Before native opening, cwd is resolved through symlinks. The connection
+Before native opening, cwd is resolved through symlinks for ownership only.
+Native session arguments and isolated fallback preserve the host's original
+cwd spelling, including symlinks and Windows short paths. The connection
 reserves both the canonical path and directory file identity, so aliases
 on case-insensitive macOS/Windows volumes cannot acquire a second session.
 Windows path keys are conservatively case-folded; file identity preserves
@@ -135,7 +148,8 @@ distinct directories on case-sensitive POSIX volumes. Reservation
 is atomic after asynchronous filesystem reads, survives failed opens and
 release, and disappears only with the native process. An auto fallback waits
 for the existing pool's initialization before starting its independent
-process. A controlled resume id still fails with `SessionUnavailableError`
+process, even if that initialization failed. The independent open reports its
+own failure if it cannot start. A controlled resume id still fails with `SessionUnavailableError`
 before any directory fallback; native open/configuration failures do not
 retry in isolation.
 
@@ -144,7 +158,8 @@ independently release its OAR-hosted terminals. Close interrupts the native
 turn and detaches its subscription, but does not erase the directory's MCP
 registration. Failures remain `cleanup` records. Child identity uses only
 `_meta["opencode/child-session"]` parent/id links owned by the carrier's root;
-rejected metadata stays native-only, without child projection. Unowned and
+rejected or temporarily unresolved metadata stays native-only, without child
+projection. Later links do not retroactively project earlier frames. Unowned and
 conflicting connection frames are union-redacted, never assigned to an
 arbitrary root. The default diagnostic sink keeps only reason counts and
 writes at most one summary every 30 seconds per Runtime instance, prefixed

@@ -109,6 +109,8 @@ export function createAcpRecorder(usageGate: UsageUpdateGate, attributeUpdate?: 
           && !ownedLinks.some(link => link.parent === source.parent && link.child === source.sessionId)) {
           // Preserve the carrier's native frame, but rejected metadata cannot
           // relabel it as another owner's child or contaminate root projections.
+          // This also covers an unresolved parent. Records are append-only: a
+          // later accepted link does not retroactively project this native-only frame.
           kernel.frame({ type: methods.client.session.update, native: notification, events: [] },
             { sessionId: notification.sessionId, ...(receivedAt === undefined ? {} : { receivedAt }) });
           return;

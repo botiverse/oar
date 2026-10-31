@@ -1,6 +1,6 @@
 /* oxlint-disable typescript/no-unsafe-assignment, typescript/no-unsafe-call, typescript/no-unsafe-member-access, typescript/no-unsafe-argument, typescript/no-unsafe-return, typescript/strict-boolean-expressions, typescript/promise-function-async, eslint/max-statements, eslint/max-lines-per-function, promise/avoid-new, promise/prefer-await-to-then, promise/prefer-await-to-callbacks -- Standalone untyped ACP adversarial wire fixture, with independent reply scheduling and raw native payloads. */
 import readline from 'node:readline';
-import { appendFileSync } from 'node:fs';
+import { appendFileSync, readFileSync } from 'node:fs';
 
 const sessions = new Map();
 const requests = new Map();
@@ -27,7 +27,8 @@ async function handle(message) {
   if (method === 'initialize') {
     initialized++;
     if (process.env.FAIL_INIT === '1') { send({ id, error: { code: -32_000, message: 'initialize refused' } }); return; }
-    result(id, { protocolVersion: 1, agentCapabilities: { loadSession: true, sessionCapabilities: { resume: {}, close: {} } } });
+    const version = process.env.FIXTURE_AGENT_VERSION_FILE ? readFileSync(process.env.FIXTURE_AGENT_VERSION_FILE, 'utf8') : process.env.FIXTURE_AGENT_VERSION;
+    result(id, { protocolVersion: 1, ...(version ? { agentInfo: { name: 'fixture', version } } : {}), agentCapabilities: { loadSession: true, sessionCapabilities: { resume: {}, close: {} } } });
   } else if (method === 'session/new') {
     const sessionId = `root-${++nextSession}`;
     const collision = /(?:late-)?collision-(?<id>root-\d+)$/u.exec(params.cwd)?.groups?.id;

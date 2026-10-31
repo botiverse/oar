@@ -10,6 +10,7 @@ import type { AcpProcess } from "../../shared/acp/process.js";
 import { sharedAcpSession } from "../../shared/acp/shared-session.js";
 import type { AcpUnattributed } from "../../shared/acp/routing.js";
 import { checkMcpServerNames } from "../../shared/mcp-servers.js";
+import { asRecord } from "../../shared/json.js";
 import { withSessionCredentials } from "../../shared/session-credentials.js";
 import { opencodeChildAttribution } from "./attribution.js";
 import { opencodeSession, opencodeV2AcpProfile } from "./session.js";
@@ -60,6 +61,8 @@ export function createOpenCodeSharedSession(diagnostic: (entry: AcpUnattributed)
   const open = sharedAcpSession(opencodeV2AcpProfile, {
     processCwd: processHome,
     reserveSession: openCodeDirectoryReservation(),
+    initializationRefusal: response => asRecord(response.agentInfo)?.version === "2.2.3" ? null
+      : "OpenCode shared placement requires the running process to report agentInfo.version 2.2.3",
     associations: (method, params) => {
       const child = method === "session/update" ? opencodeChildAttribution(params) : null;
       return child === null ? [] : [{ parent: child.parent, child: child.sessionId }];
@@ -75,7 +78,6 @@ export function createOpenCodeSharedSession(diagnostic: (entry: AcpUnattributed)
       if (context.requested === "auto") { const session = await opencodeSession(installation, options, { requested: "auto", placement: "isolated" }); return session; }
       throw new UnsupportedOptionError("placement", refusal);
     }
-    const cwd = await realpath(options.cwd);
-    const session = await open(installation, { ...options, cwd }, context); return session;
+    const session = await open(installation, options, context); return session;
   }, "shared");
 }

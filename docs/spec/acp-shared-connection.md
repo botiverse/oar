@@ -195,3 +195,11 @@ actual `exited` response. This reports an OAR cleanup observation, not a new
 native frame or a successful stop. A host request cancelled before handler
 dispatch remains a `toApp` request and an answered failure; no terminal or
 other host work starts for the cancelled request.
+
+For OpenCode 2.2.3, the running process must confirm the exact admitted version
+in its initialize reply before any session/new or resume. A stale installation
+snapshot cannot admit a newer binary. Version refusal retires the pool entry
+and stops its process before auto opens independently or shared is refused.
+Directory canonicalization is ownership-only; native and isolated fallback
+opens retain the caller's cwd spelling. A directory-refused auto open waits
+for shared initialization to settle, but does not inherit its failure.

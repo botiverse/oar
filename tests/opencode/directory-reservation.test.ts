@@ -53,3 +53,28 @@ test("same-directory auto fallback waits for the shared process initialization b
     init.mockRestore(); launches.mockRestore();
   }
 });
+
+// oxlint-disable-next-line eslint/max-statements -- Keep both concurrent opens and their settlement under the same controlled gate.
+test("directory-refused auto still starts independently when the shared initialization fails", async () => {
+  const entered = Promise.withResolvers<void>(); const release = Promise.withResolvers<void>(); const refused = Promise.withResolvers<void>();
+  const init = vi.spyOn(initialize, "initializeAcpConnection").mockImplementationOnce(async () => {
+    entered.resolve(); await release.promise; throw new Error("database is locked");
+  });
+  const launches = vi.spyOn(acp, "startAcpProcess");
+  const reserve = openCodeDirectoryReservation();
+  const f = await fixture({ reserveSession: async (...args) => {
+    const reason = await reserve(...args); if (reason !== null) { refused.resolve(); } return reason;
+  } });
+  const first = f.open("a"); const firstResult = Promise.allSettled([first]);
+  let second: ReturnType<typeof f.open> | undefined = undefined;
+  try {
+    await entered.promise; second = f.open("a"); await refused.promise; await setImmediate();
+    expect(launches).toHaveBeenCalledTimes(1); release.resolve();
+    expect(await firstResult).toMatchObject([{ status: "rejected", reason: { message: "database is locked" } }]);
+    const b = await second; expect(b.placement).toBe("isolated"); expect(launches).toHaveBeenCalledTimes(2);
+    expect(await promptAndWait(b, "fresh-process")).toMatchObject({ kind: "ended" });
+  } finally {
+    release.resolve(); await Promise.allSettled([first, ...(second === undefined ? [] : [second])]);
+    init.mockRestore(); launches.mockRestore();
+  }
+});

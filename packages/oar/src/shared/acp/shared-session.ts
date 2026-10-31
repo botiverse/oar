@@ -24,6 +24,8 @@ export interface AcpSharedOptions {
   readonly processCwd: (options: SessionOptions) => string;
   /** Reserve vendor process-lifetime state before any native open. Null reserves it; a reason refuses it. */
   readonly reserveSession?: (runtime: AcpProcess, options: SessionOptions) => Promise<string | null>;
+  /** Check the running process before any native open, independently of the installation snapshot. */
+  readonly initializationRefusal?: (response: JsonRecord) => string | null;
   /** Only explicit native links; never infer parenthood from a foreign id. */
   readonly associations: (method: string, params: JsonRecord) => readonly AcpAssociation[];
   readonly sessionId?: (method: string, params: JsonRecord) => string | null;
@@ -91,12 +93,15 @@ export function sharedAcpSession(profile: AcpSessionProfile, shared: AcpSharedOp
     runtime.connection.signal.addEventListener("abort", stop, { once: true });
     if (runtime.connection.signal.aborted) { stop(); }
     const meta: unknown = JSON.parse(configuration.protocol ?? "null");
-    let initialized: Promise<JsonRecord> | null = null;
-    const initialize = async (): Promise<JsonRecord> => {
-      initialized ??= (async (): Promise<JsonRecord> => {
+    let initialized: Promise<{ response: JsonRecord; refusal: string | null }> | null = null;
+    const initialize = async (): Promise<{ response: JsonRecord; refusal: string | null }> => {
+      initialized ??= (async (): Promise<{ response: JsonRecord; refusal: string | null }> => {
         try {
-          return await acpOpenStep(initializeAcpConnection(runtime, { ...profile, initializeMeta: () => asRecord(meta) ?? undefined },
+          const response = await acpOpenStep(initializeAcpConnection(runtime, { ...profile, initializeMeta: () => asRecord(meta) ?? undefined },
             { cwd: configuration.cwd ?? process.cwd() }, () => {}), "open");
+          const refusal = shared.initializationRefusal?.(response) ?? null;
+          if (refusal !== null) { stop(); await runtime.exited; }
+          return { response, refusal };
         } catch (error) { stop(); await runtime.exited; throw routing.redactValue(error); }
       })();
       const response = await initialized;
@@ -135,7 +140,9 @@ export function sharedAcpSession(profile: AcpSessionProfile, shared: AcpSharedOp
       if (context.requested === "auto") {
         // A concurrent fallback must not race a pool's first initialization
         // with a second cold process using the same native data directory.
-        try { await initialize(); } finally { await lease.dispose(); }
+        try { await initialize(); }
+        catch { /* This controller needs an independent process, even if the shared one could not start. */ }
+        finally { await lease.dispose(); }
         return isolated(installation, options, { requested: "auto", placement: "isolated" });
       }
       await lease.dispose();
@@ -152,6 +159,7 @@ export function sharedAcpSession(profile: AcpSessionProfile, shared: AcpSharedOp
     const state = createAcpSessionState(profile, options, environment, (method, params) => owner.associations(method, params));
     const owner = routing.attach({ terminal: state.terminalHost, hooks: state.hooks }, credentials);
     let nativeId: string | null = null;
+    let initializationRefusal: string | null = null;
     const cleanup = async (): Promise<void> => {
       try { await cleanupAcpOwner(async () => {
         if (nativeId !== null && !runtime.closed) { await shared.cleanup(runtime, nativeId); }
@@ -160,7 +168,9 @@ export function sharedAcpSession(profile: AcpSessionProfile, shared: AcpSharedOp
     try {
       if (options.resume !== undefined) { owner.reserve(options.resume); nativeId = options.resume; }
       const ready = await initialize();
-      const opened = await openInitializedAcpSession(runtime, profile, options, ready,
+      initializationRefusal = ready.refusal;
+      if (initializationRefusal !== null) { throw new UnsupportedOptionError("placement", initializationRefusal); }
+      const opened = await openInitializedAcpSession(runtime, profile, options, ready.response,
         (step) => { state.recorder.step(step.method, step.response); },
         (id) => { owner.bind(id); nativeId = id; owner.opened(); });
       return finishAcpSession(profile, options, credentials, runtime, opened, state, {
@@ -172,6 +182,9 @@ export function sharedAcpSession(profile: AcpSessionProfile, shared: AcpSharedOp
       const cleaned = await Promise.allSettled([cleanup()]);
       owner.dispose();
       await lease.dispose();
+      if (initializationRefusal !== null && context.requested === "auto") {
+        return isolated(installation, options, { requested: "auto", placement: "isolated" });
+      }
       const failure = safeError instanceof AcpError && safeError.kind === "process_exited"
         ? acpProcessExitedError(safeError.exitCode, runtime.diagnostics(), routing.redact) : safeError;
       const cleanupError = cleaned[0].status === "rejected" ? routing.redact(String(cleaned[0].reason)) : cleanupFailureReason(runtime.diagnostics().cleanup);
