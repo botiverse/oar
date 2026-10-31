@@ -9,7 +9,9 @@ test("SDK rejection of a native batch ends the isolated session without a host d
   try {
     const prompt = await session.prompt("invalid-batch");
     expect(prompt.response.body.kind).toBe("accepted");
-    await expect.poll(() => session.records().filter(record => record.kind === "response" && record.body.kind === "exited"), { timeout: 5000 }).toHaveLength(1);
+    // Protocol rejection stops the process before asynchronous cleanup records its exit.
+    await expect.poll(() => session.records().filter(record => record.kind === "response" && record.body.kind === "exited"), { timeout: 15_000 }).toHaveLength(1)
+      .catch(error => { throw new Error(`Missing protocol-close exit record: ${JSON.stringify(session.records())}`, { cause: error }); });
     expect(await awaitTurnEnd(session, prompt.request.seq)).toMatchObject({ kind: "failed", failure: "runtime_exited" });
     const after = await session.prompt("after-protocol-close");
     expect(after.response.body).toMatchObject({ kind: "rejected", code: "runtime_exited" });

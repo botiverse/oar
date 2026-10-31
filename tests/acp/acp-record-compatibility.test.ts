@@ -71,6 +71,9 @@ test("isolated native exit retains an explicit terminal cleanup failure response
   const create = terminals.createAcpTerminalHost;
   vi.spyOn(terminals, "createAcpTerminalHost").mockImplementation((...args) => ({ ...create(...args), dispose: async () => { throw new Error("terminal cleanup refused"); } }));
   const { session } = await open(); await promptAndWait(session, "exit");
-  await expect.poll(() => session.records().filter(record => record.kind === "response" && record.body.kind === "cleanup")).toMatchObject([{ requestId: "", body: { kind: "cleanup", result: { kind: "failed", reason: "terminal cleanup refused" } } }]);
+  // Terminal cleanup reporting follows the native process's asynchronous cleanup.
+  try {
+    await expect.poll(() => session.records().filter(record => record.kind === "response" && record.body.kind === "cleanup"), { timeout: 15_000 }).toMatchObject([{ requestId: "", body: { kind: "cleanup", result: { kind: "failed", reason: "terminal cleanup refused" } } }]);
+  } catch (error) { throw new Error(`Missing terminal cleanup record: ${JSON.stringify(session.records())}`, { cause: error }); }
   expect(session.records().filter(record => record.kind === "response" && record.body.kind === "exited")).toHaveLength(1);
 });

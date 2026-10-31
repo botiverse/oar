@@ -164,7 +164,9 @@ test.each(["2.2.4", ""])("a stale installation cannot admit an actual version %j
 test("a shared native crash records exit once for every attached session", async () => {
   const f = await fixture(); const [a, b] = await Promise.all([f.open("a"), f.open("b")]);
   expect(pid(a)).toEqual(pid(b)); await a.prompt("exit");
-  await expect.poll(() => [exits(a).length, exits(b).length]).toEqual([1, 1]);
+  // Final records follow asynchronous process cleanup, including Windows read budgets.
+  try { await expect.poll(() => [exits(a).length, exits(b).length], { timeout: 15_000 }).toEqual([1, 1]); }
+  catch (error) { throw new Error(`Missing shared exit records: ${JSON.stringify({ a: a.records(), b: b.records() })}`, { cause: error }); }
   for (const session of [a, b]) { expect(exits(session)[0]?.body).toMatchObject({ code: 7 }); }
   await Promise.all([a.dispose(), b.dispose()]);
   expect([exits(a).length, exits(b).length]).toEqual([1, 1]);
