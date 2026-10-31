@@ -71,7 +71,7 @@ check used by CI.
 
 ### Shared-process admission boundary
 
-On OpenCode **2.2.3**, `opencodeRuntime` uses shared placement by default
+On OpenCode **2.2.3 and 2.2.5**, `opencodeRuntime` uses shared placement by default
 (`auto`) on **Linux x64, macOS arm64 and Windows x64**. This is the first
 native runtime whose default is shared. Other or unknown versions and other
 platforms remain isolated; explicit `shared` refuses them. A host selects
@@ -80,12 +80,13 @@ The standalone `opencodeSession` export retains the isolated path. Platform
 and architecture mean the host Node process's `process.platform` and
 `process.arch`, not the physical machine or executable architecture (including
 x64 Node under Rosetta or on Windows ARM). Before any native session opens,
-the shared process must also report exactly `agentInfo.version: "2.2.3"` in
+the shared process must also report exactly `agentInfo.version: "2.2.3"` or
+`"2.2.5"` in
 `initialize`. A different or missing value retires and stops that process;
 `auto` then opens independently, while explicit `shared` is refused. This
 protects hosts whose installation snapshot predates an executable update.
 
-In native 2.2.3 ACP, two sessions in the same directory with the same MCP server name
+In native 2.2.3 and 2.2.5 ACP, two sessions in the same directory with the same MCP server name
 and different command arguments share the later registration: after B opens,
 A invokes B's server. Closing A/B and opening the directory with no client
 MCP servers still invokes B's server. Separate-process controls do not cross.
@@ -94,7 +95,7 @@ explicitly describes directory-scoped registration, same-name replacement
 and retention until the ACP process exits. This is documented native scope,
 not an unreported upstream defect. Reproduce with
 `pnpm tsx experiments/sharing/same-directory.ts opencode` and the exact
-2.2.3 executable; [results and limits](../../experiments/sharing/same-directory-2026-10-30.md).
+2.2.3 or 2.2.5 executable; [results and limits](../../experiments/sharing/admission-2026-10-31.md).
 
 The shared adapter gives each canonical directory to only one
 session during the entire process lifetime. After that session releases,
@@ -104,8 +105,9 @@ refuses explicit `shared` with `UnsupportedOptionError("placement")`.
 The old different-directory MCP evidence cannot establish unrestricted
 same-directory sharing. The [2026-10-31 admission report](../../experiments/sharing/admission-2026-10-31.md)
 now establishes cross-directory project discovery and user-configuration
-refresh for 2.2.3 on Linux x64, macOS arm64 and Windows x64. It meets the
-evidence gate with the lifetime directory restriction. See the [ACP ownership spec](../spec/acp-shared-connection.md).
+refresh separately for 2.2.3 and 2.2.5 on Linux x64, macOS arm64 and Windows
+x64. Both meet the evidence gate with the lifetime directory restriction;
+other versions do not inherit their admission. See the [ACP ownership spec](../spec/acp-shared-connection.md).
 
 ### Shared launch, ownership and cleanup
 
@@ -176,7 +178,7 @@ process (`scope: "shared_process"`); Windows still returns null. Open request
 and observed placement, release, cleanup and actual exit use the
 [record-stream contract](../spec/record-stream.md#placement-and-release).
 
-The three-platform CI check jobs run the full session behavior suite with
+The three-platform CI check jobs pin 2.2.5 and run the full session behavior suite with
 fresh, distinct directories through `opencode-shared`, plus real shared and
 isolated controls for concurrent roots, model/cwd/MCP, child attribution,
 cancel, tool cleanup, peer survival and isolated resume after release.
@@ -191,9 +193,11 @@ on creation and on none of six cold resumes, despite seven successful MCP
 connections. Warm tool replacement still passed. Two of four concurrent
 first server starts exited 1 with `table account_state already exists`;
 two sequential starts and four concurrent starts over an initialized
-database passed. These results do not expand the 2.2.3 sharing table;
-2.2.5 still uses isolated placement in `auto`, pending separate full platform
-evidence. [Daily report](../../experiments/runtime-version-checks/2026-10-31.md#opencode-225).
+database passed. These ordinary checks alone did not establish sharing;
+the subsequent [three-platform admission evidence](../../experiments/sharing/admission-2026-10-31.md)
+established 2.2.5 with the same lifetime directory restriction as 2.2.3.
+The cold-start and cold-resume limitations remain.
+[Daily report](../../experiments/runtime-version-checks/2026-10-31.md#opencode-225).
 
 **Known limitation, reproduced in 2.2.1 and 2.2.3** (2026-10-29/30):
 concurrent first starts over a fresh native database can fail before

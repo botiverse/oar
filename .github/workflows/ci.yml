@@ -33,7 +33,7 @@ jobs:
         env:
           OAR_TEST: codebuddy-install
       - name: Install pinned OpenCode for native isolated cleanup
-        run: npm install -g @opencode/cli@2.2.3
+        run: npm install -g @opencode/cli@2.2.5
       - name: Native isolated OpenCode tool cleanup
         run: pnpm vitest run sea-trial/vendor/opencode-cleanup.vendor.test.ts
         timeout-minutes: 5
@@ -61,8 +61,8 @@ jobs:
           name: kimi-login-${{ matrix.os }}
           path: ${{ github.workspace }}/oar-trial-run/kimi-login
           if-no-files-found: warn
-      # First native auto-sharing adapter: real 2.2.3, local model only, all admitted platforms.
-      - run: npm install -g @opencode/cli@2.2.3
+      # First native auto-sharing adapter: real 2.2.5, local model only, all admitted platforms.
+      - run: npm install -g @opencode/cli@2.2.5
         timeout-minutes: 5
       - name: OpenCode shared session behavior
         run: pnpm sea-trial

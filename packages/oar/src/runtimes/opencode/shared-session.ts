@@ -15,6 +15,7 @@ import { withSessionCredentials } from "../../shared/session-credentials.js";
 import { opencodeChildAttribution } from "./attribution.js";
 import { opencodeSession, opencodeV2AcpProfile } from "./session.js";
 import { openCodeDiagnosticSummary } from "./sharing-diagnostics.js";
+import { isOpenCodeSharedVersion } from "./sharing-admission.js";
 
 async function directoryKeys(cwd: string): Promise<string[]> {
   const resolved = await realpath(cwd);
@@ -65,8 +66,8 @@ export function createOpenCodeSharedSession(diagnostic: (entry: AcpUnattributed)
   const open = sharedAcpSession(opencodeV2AcpProfile, {
     processCwd: processHome,
     reserveSession: openCodeDirectoryReservation(),
-    initializationRefusal: response => asRecord(response.agentInfo)?.version === "2.2.3" ? null
-      : "OpenCode shared placement requires the running process to report agentInfo.version 2.2.3",
+    initializationRefusal: response => isOpenCodeSharedVersion(asRecord(response.agentInfo)?.version) ? null
+      : "OpenCode shared placement requires the running process to report agentInfo.version 2.2.3 or 2.2.5",
     associations: (method, params) => {
       const child = method === "session/update" ? opencodeChildAttribution(params) : null;
       return child === null ? [] : [{ parent: child.parent, child: child.sessionId }];
