@@ -1,0 +1,116 @@
+[
+  {
+    "runtime": "opencode",
+    "requestedVersion": "2.2.5",
+    "platform": "Linux-X64",
+    "source": {
+      "run": 41221951609,
+      "commit": "7c888bdd353cb996b4db96d3a593886677cfae08",
+      "artifactId": 13050487013,
+      "artifactName": "shared-evidence-opencode-Linux-X64",
+      "archiveDigest": "sha256:db232ace4011c665b9eb23fd30e82d6b999d28fe81a47b7c5d71f5763c178936",
+      "jobId": 124598180915,
+      "jobConclusion": "failure"
+    },
+    "steps": {
+      "native": "success",
+      "sameDirectory": "failure",
+      "configurationFreshness": "success",
+      "resources": "success"
+    },
+    "inputs": {
+      "native": {
+        "path": "Linux-X64/shared-opencode/evidence.json",
+        "sha256": "7d64f51df22eb93d4510d96c8a0f763a4f99f75dc03122d367a1adb809cbe5dc"
+      },
+      "sameDirectory": {
+        "path": "Linux-X64/same-directory-opencode/evidence.json",
+        "sha256": "23d01c8bbe13c6088c4c42d137e420159d867bf0c6298b9f34acd37312463241"
+      },
+      "configurationFreshness": {
+        "path": "Linux-X64/configuration-freshness-opencode/evidence.json",
+        "sha256": "56391050407629957ff0e6cc59ecd9a933afc79d6264300452b1a844b70b7810"
+      },
+      "resources": {
+        "path": "Linux-X64/opencode-sharing-resources/evidence.json",
+        "sha256": "a9d0b6259d3e5a817a4a8c4fddfed2c127283658f907d9ee2e688fe1aba8dc34"
+      }
+    }
+  },
+  {
+    "runtime": "opencode",
+    "requestedVersion": "2.2.5",
+    "platform": "macOS-ARM64",
+    "source": {
+      "run": 41221951609,
+      "commit": "7c888bdd353cb996b4db96d3a593886677cfae08",
+      "artifactId": 13050785762,
+      "artifactName": "shared-evidence-opencode-macOS-ARM64",
+      "archiveDigest": "sha256:761b22849288ab56b73a5937dbddc8f1dfe3ee9cd13c34f15be4774993d1dbfe",
+      "jobId": 124598180793,
+      "jobConclusion": "failure"
+    },
+    "steps": {
+      "native": "success",
+      "sameDirectory": "failure",
+      "configurationFreshness": "success",
+      "resources": "success"
+    },
+    "inputs": {
+      "native": {
+        "path": "macOS-ARM64/shared-opencode/evidence.json",
+        "sha256": "9366a17612177b8123b8b4e40a182a11d6c3a374362beca6ef91a11b1ea6ff71"
+      },
+      "sameDirectory": {
+        "path": "macOS-ARM64/same-directory-opencode/evidence.json",
+        "sha256": "80b48227f7ce3b719132fab43274ac805adf0645c59f53456516701661567476"
+      },
+      "configurationFreshness": {
+        "path": "macOS-ARM64/configuration-freshness-opencode/evidence.json",
+        "sha256": "92378182752ac6f3472f4dd3fd6db091b3acf42dbc28a865c7a15d7ba3929658"
+      },
+      "resources": {
+        "path": "macOS-ARM64/opencode-sharing-resources/evidence.json",
+        "sha256": "84768890c1eb8f1e58c42352626014f5aa890c489617fc5eff66d721a0beafed"
+      }
+    }
+  },
+  {
+    "runtime": "opencode",
+    "requestedVersion": "2.2.5",
+    "platform": "Windows-X64",
+    "source": {
+      "run": 41221951609,
+      "commit": "7c888bdd353cb996b4db96d3a593886677cfae08",
+      "artifactId": 13050676627,
+      "artifactName": "shared-evidence-opencode-Windows-X64",
+      "archiveDigest": "sha256:61e0a7effcca24f54209c49db84d92bae5be5e09e0753574d66f9ed7fde0bfa7",
+      "jobId": 124598181018,
+      "jobConclusion": "failure"
+    },
+    "steps": {
+      "native": "success",
+      "sameDirectory": "failure",
+      "configurationFreshness": "success",
+      "resources": "success"
+    },
+    "inputs": {
+      "native": {
+        "path": "Windows-X64/shared-opencode/evidence.json",
+        "sha256": "c13b062dacece7db20af73808ca628ce424c9826159280c5653d251a6e91d942"
+      },
+      "sameDirectory": {
+        "path": "Windows-X64/same-directory-opencode/evidence.json",
+        "sha256": "ba3db91fa67c67d35b6db5f49105663287a26e7fd2b1ba9cef510ecb09f9c69d"
+      },
+      "configurationFreshness": {
+        "path": "Windows-X64/configuration-freshness-opencode/evidence.json",
+        "sha256": "a5d4347e0fba39a622e614b972fc97c2a4b247a961d2f6be2c3977247a2130bd"
+      },
+      "resources": {
+        "path": "Windows-X64/opencode-sharing-resources/evidence.json",
+        "sha256": "89df852595c4ec0afce7ebbcc571d5b4e777afd67b8baf80bae7f6b2293da1ac"
+      }
+    }
+  }
+]

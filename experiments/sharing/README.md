@@ -5,6 +5,7 @@ model responses. They do not enable OAR process sharing. The admission rule
 is [system.md, Shared runtime processes](../../docs/design/system.md#shared-runtime-processes).
 
 - [Current version/platform admission decisions](admission-2026-10-31.md).
+- [OpenCode 2.2.5 complete three-platform evidence and restricted admission](opencode-2.2.5-2026-10-31.md).
 - [Native trust refresh, cross-directory controls and latest platform results](trust-freshness-2026-10-31.md).
 - [Configuration coverage and complete failure diagnostics](configuration-coverage-2026-10-30.md).
 - [Same-directory MCP and configuration freshness](same-directory-2026-10-30.md).
@@ -32,15 +33,20 @@ Other versions do not inherit these results.
 
 The workflow now collects OpenCode **2.2.5**, whose ordinary Linux checks
 are in the [October 31 daily report](../runtime-version-checks/2026-10-31.md#opencode-225).
-Its complete three-platform sharing evidence is pending. This collection pin
-does not change the admitted version below or OAR's shared-placement CI,
-which both remain 2.2.3.
+Its [complete three-platform sharing evidence](opencode-2.2.5-2026-10-31.md)
+is now recorded: native observations, project discovery, user-configuration
+refresh and resources complete on all three platforms, while same-directory
+MCP crossover and post-close retention remain. It is admitted on those
+platforms with the same lifetime directory restriction as 2.2.3. Product
+enablement is a separate change; OAR's product table and shared-placement CI
+still remain 2.2.3.
 
 **Grok 1.0.70 meets the complete evidence gate on Linux x64, macOS arm64
-and Windows x64. OpenCode 2.2.3 meets it on the same platforms only with one
+and Windows x64. OpenCode 2.2.3 and 2.2.5 meet it on the same platforms only with one
 session per canonical directory for the entire process lifetime.**
-OpenCode enables the admitted cells with its lifetime directory restriction;
-Grok admission is recorded, but its adapter is not enabled yet. The [current admission report](admission-2026-10-31.md)
+OpenCode currently enables 2.2.3 with its lifetime directory restriction;
+2.2.5 and Grok admission are recorded, but those adapter cells are not enabled
+yet. The [current admission report](admission-2026-10-31.md)
 links each decision to its observation, resource and configuration evidence,
 including all 18 artifacts from run 41157633349.
 

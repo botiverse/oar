@@ -2,12 +2,13 @@
 
 Runtime version check: 2026-10-31.
 
-Grok 1.0.70 and OpenCode 2.2.3 meet the native evidence gate on **Linux x64,
+Grok 1.0.70 and OpenCode 2.2.3 and 2.2.5 meet the native evidence gate on **Linux x64,
 macOS arm64 and Windows x64**. OpenCode's admission requires **one session
 per canonical directory for the entire native process lifetime**, including
 after release. Other versions and architectures do not inherit admission.
-This report changes no adapter: native OAR sessions still run in isolation
-until each runtime's separate implementation is enabled.
+This report records native admission. OAR enables OpenCode 2.2.3; adding
+2.2.5 to these decisions does not enable that adapter version. Other native
+adapters remain isolated until separately implemented.
 
 ## Decisions and evidence
 
@@ -15,6 +16,7 @@ until each runtime's separate implementation is enabled.
 | --- | --- | --- | --- | --- |
 | Grok 1.0.70 | admitted | admitted | admitted | Native per-session cleanup and explicit child attribution; configuration/trust controls below |
 | OpenCode 2.2.3 | admitted with directory restriction | admitted with directory restriction | admitted with directory restriction | Each canonical directory belongs to only one session per process lifetime |
+| OpenCode 2.2.5 | admitted with directory restriction | admitted with directory restriction | admitted with directory restriction | Same lifetime directory restriction; separate product enablement pending |
 | Codex 0.166.0 | not admitted | not admitted | not admitted | Persisted hook-trust changes untested; loaded-session resume model behavior needs an adapter rule |
 
 Grok's [original admission report](admission-2026-10-30.md) records seven of
@@ -36,6 +38,16 @@ servers. The restriction lasts until the shared process exits.
 The [cold-start database race](../../docs/runtimes/opencode.md#startup-and-compatibility)
 remains an independent known limitation across processes.
 
+OpenCode **2.2.5** has its own [complete three-platform report](opencode-2.2.5-2026-10-31.md)
+from [run 41221951609](https://github.com/botiverse/oar/actions/runs/41221951609),
+main `7c888bdd353cb996b4db96d3a593886677cfae08`. All seven native groups,
+cross-directory project discovery and user-configuration refresh complete on
+each platform. All 18 post-turn resource windows are exact, with lower shared
+memory and CPU. Its same-directory failures match 2.2.3: registration
+replacement and retention after native close. The same lifetime directory
+restriction is therefore required. This admission preserves 2.2.3 and does
+not admit other versions or architectures.
+
 Codex's Windows hooks now execute after the explicit PowerShell invocation
 fix. Same-directory checks and all four per-session trust controls pass on
 all three platforms. The Windows main comparison has six hook records in
@@ -44,7 +56,7 @@ session parameters, not persistent hook-trust changes. That gap and the
 [loaded-session resume model limitation](codex-2026-10-29.md) remain;
 passing this run does not admit Codex.
 
-## Latest three-platform observations
+## Earlier six-runtime three-platform observations
 
 [Run 41157633349](https://github.com/botiverse/oar/actions/runs/41157633349)
 used main `56e0fda10a2ccf9f316d4888a8a8eab974a1c99a`, six exact runtime
@@ -105,8 +117,9 @@ remain failures in those files, including the expected non-admitted results.
 
 ## Implementation order
 
-OpenCode is the first adapter to implement, with its directory restriction;
-Grok follows. Kimi remains deferred for stale hooks. Codex remains in the
+OpenCode 2.2.3 is the first enabled adapter, with its directory restriction;
+Grok follows. OpenCode 2.2.5 admission requires a separate version-table and
+CI update. Kimi remains deferred for stale hooks. Codex remains in the
 second group. A separate adapter change must enforce exact version/platform
 admission, retain an explicit isolated path, validate its OAR lifecycle and
 routing, and document its first default `auto` sharing release. This report
