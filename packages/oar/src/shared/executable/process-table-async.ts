@@ -46,7 +46,11 @@ export async function observeProcessTableOnce(source: ProcessTableSource, option
 
 type Reader = (source: ProcessTableSource, options?: ProcessTableReadOptions) => Promise<ProcessTableObservation>;
 export interface ProcessTableRequestOptions extends ProcessTableReadOptions {
-  /** Caller deadline on performance.now()'s clock, checked before a query starts. */
+  /**
+   * Deadline on performance.now()'s clock, gating query start only.
+   * observeProcessTableWithin rejects late results; direct callers passing
+   * a deadline must check result timeliness themselves.
+   */
   readonly deadline?: number;
 }
 type Request = (source: ProcessTableSource, options?: ProcessTableRequestOptions) => Promise<ProcessTableObservation>;
@@ -71,11 +75,12 @@ export function batchProcessTableReads(read: Reader): Request {
       // caller that arrived before this query actually begins.
       if (previous !== undefined) { await previous.result; }
       await Promise.resolve();
-      batch.started = true;
-      const started = performance.now();
-      const live = batch.callers.filter(caller => caller.deadline === undefined || started < caller.deadline);
-      batch.callers.length = 0;
+      let started = requested;
       try {
+        batch.started = true;
+        started = performance.now();
+        const live = batch.callers.filter(caller => caller.deadline === undefined || started < caller.deadline);
+        batch.callers.length = 0;
         // Expired callers cannot start a query or keep a background read alive.
         // A query already started still runs to completion under its own limit.
         if (live.length === 0) { return { ok: false, source, reason: "timeout", elapsedMs: started - requested }; }

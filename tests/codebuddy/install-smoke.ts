@@ -72,5 +72,13 @@ if (process.argv[2] === "child") {
     });
     assert.ok(result.ok, `${result.stdout}\n${result.stderr}`);
     process.stdout.write(result.stdout);
-  } finally { await rm(home, { recursive: true, force: true }); }
+  } finally {
+    try { await rm(home, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 }); }
+    catch (error) {
+      // Directory cleanup must not replace the installation's result or error.
+      const code = asRecord(error)?.code;
+      process.stderr.write(`${JSON.stringify({ kind: "codebuddy_install_cleanup_failed", directory: home,
+        code: typeof code === "string" ? code : null, message: error instanceof Error ? error.message : String(error) })}\n`);
+    }
+  }
 }

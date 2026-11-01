@@ -46,6 +46,18 @@ test("a rejected query resolves each caller with redacted failure and does not p
   } finally { process.off("unhandledRejection", onRejected); }
 });
 
+test("an exception while starting a batch removes it and allows the next query", async () => {
+  const query = vi.fn().mockResolvedValue(first);
+  const read = batchProcessTableReads(query);
+  vi.spyOn(performance, "now").mockReturnValueOnce(0).mockImplementationOnce(() => {
+    throw Object.assign(new Error("private start failure"), { code: "EIO" });
+  }).mockReturnValue(1);
+  await expect(read("windows")).resolves.toEqual({ ok: false, source: "windows", elapsedMs: 1, reason: "read_failed", code: "EIO" });
+  expect(query).not.toHaveBeenCalled();
+  expect(await read("windows")).toBe(first);
+  expect(query).toHaveBeenCalledOnce();
+});
+
 test.each([true, false])("a foreground caller keeps its shared batch alive (preparation first: %s)", async (backgroundFirst) => {
   const query = vi.fn().mockResolvedValue(first);
   const read = batchProcessTableReads(query);
