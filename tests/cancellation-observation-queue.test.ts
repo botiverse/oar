@@ -1,4 +1,6 @@
+/* oxlint-disable import/max-dependencies -- One native control combines the real batcher, caller diagnostics and process-tree assertions. */
 import { fileURLToPath } from "node:url";
+import { setTimeout as delay } from "node:timers/promises";
 import { afterEach, expect, test, vi } from "vitest";
 import type { Session } from "../packages/oar/src/contracts/session.js";
 import { awaitTurnEnd } from "../packages/oar/src/observe/turns.js";
@@ -6,6 +8,8 @@ import { acpSession } from "../packages/oar/src/shared/acp/session.js";
 import { asRecord } from "../packages/oar/src/shared/json.js";
 // oxlint-disable-next-line import/no-namespace -- Interpose the real serial batcher with one controlled background query.
 import * as tables from "../packages/oar/src/shared/executable/process-table-async.js";
+// oxlint-disable-next-line import/no-namespace -- Record each caller's actual one-second observation result.
+import * as cancellation from "../packages/oar/src/shared/executable/process-cancellation.js";
 import { processTablePreparation } from "../packages/oar/src/shared/executable/process-table-preparation.js";
 import { gone } from "./fixtures/process-tree.js";
 
@@ -17,17 +21,22 @@ function ready(session: Session, since: number): Record<string, unknown> | undef
     .find(value => typeof value.tool === "number");
 }
 
-// oxlint-disable-next-line eslint/max-statements, eslint/max-lines-per-function -- Two real turns and one held query form a single ordered control.
+// oxlint-disable-next-line eslint/max-statements, eslint/max-lines-per-function -- Two real turns span a held background query and an expired foreground read.
 test.each([false, true])("ACP background query queue: wait before cancelling = %s", async waitBeforeCancel => {
   const session = await acpSession({ args: [fixture, "acp"], capabilities: { queue: { durable: false }, attribution: "opaque" } })(
     { kind: "available", via: "executable", command: process.execPath }, { cwd: process.cwd(), resume: "cancel-root" });
   const entered = Promise.withResolvers<void>(), release = Promise.withResolvers<void>();
   const owned: number[] = [], source = tables.processTableSource();
   const queries: { background: boolean; started: number; finished?: number }[] = [];
+  const reads: ReturnType<typeof tables.observeProcessTableAsync>[] = [];
+  const observations: Record<string, unknown>[] = [];
   const batch = tables.batchProcessTableReads(async (selected, options) => {
     const timing: { background: boolean; started: number; finished?: number } = { background: options?.background === true, started: performance.now() };
     queries.push(timing);
     if (options?.background === true) { entered.resolve(); await release.promise; }
+    // The expired first caller still owns a queued read. Keep it pending long
+    // enough to expose a second cancellation that accidentally queues behind it.
+    if (!waitBeforeCancel && queries.length === 2) { await delay(2000); }
     const result = await tables.observeProcessTableOnce(selected, options);
     timing.finished = performance.now();
     return result;
@@ -37,7 +46,16 @@ test.each([false, true])("ACP background query queue: wait before cancelling = %
     if (process.platform === "win32") {
       await expect.poll(() => processTablePreparation(), { timeout: 6000 }).toMatchObject({ ok: true });
     }
-    vi.spyOn(tables, "observeProcessTableAsync").mockImplementation(async (selected, options) => batch(selected ?? source, options));
+    vi.spyOn(tables, "observeProcessTableAsync").mockImplementation(async (selected, options) => {
+      const read = batch(selected ?? source, options); reads.push(read); return read;
+    });
+    const observe = cancellation.observeBeforeCancellation;
+    vi.spyOn(cancellation, "observeBeforeCancellation").mockImplementation(async () => {
+      const requested = performance.now(), result = await observe();
+      const { table: _table, ...metadata } = result.ok ? result : { ...result, table: undefined };
+      observations.push({ requested, returned: performance.now(), ...metadata });
+      return result;
+    });
     preparation = batch(source, { background: true });
     await entered.promise;
     for (const round of [1, 2]) {
@@ -64,6 +82,12 @@ test.each([false, true])("ACP background query queue: wait before cancelling = %
         release.resolve();
         // eslint-disable-next-line no-await-in-loop -- Only release the background query after the first observation expired.
         await preparation;
+        // Finishing preparation only starts the expired foreground read. Drain
+        // it before the next turn, which is the successful fresh-read control.
+        // Its late result must still leave the first tool unverified.
+        expect(reads, JSON.stringify(queries)).toHaveLength(1);
+        // eslint-disable-next-line no-await-in-loop -- The next control starts with no pending observation from this turn.
+        await Promise.all(reads);
       }
       // eslint-disable-next-line no-await-in-loop -- Both controls must issue and finish native cancellation.
       const abortResult = await abort;
@@ -78,7 +102,8 @@ test.each([false, true])("ACP background query queue: wait before cancelling = %
     await session.dispose();
     const exit = session.records().findLast(record => record.kind === "response" && record.body.kind === "exited");
     const reason = exit?.kind === "response" && exit.body.kind === "exited" ? exit.body.reason : undefined;
-    const diagnostic = JSON.stringify({ waitBeforeCancel, queries, exited: exit?.kind === "response" ? exit.body : null });
+    const diagnostic = JSON.stringify({ waitBeforeCancel, queries, observations, exited: exit?.kind === "response" ? exit.body : null });
+    expect(observations.map(observation => observation.ok), diagnostic).toEqual([waitBeforeCancel, true]);
     const reclaimed = await Promise.all(owned.map(async (pid, index) => gone(pid, index === 0 && !waitBeforeCancel ? 100 : 5000)));
     expect(reclaimed, diagnostic).toEqual([waitBeforeCancel, true, true, true]);
     if (waitBeforeCancel) { expect(reason, diagnostic).toBeUndefined(); }
