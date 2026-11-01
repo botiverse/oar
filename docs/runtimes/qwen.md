@@ -32,9 +32,18 @@ Rechecked npm **0.26.5** on Linux on 2026-11-01: all 11 native vendor tests
 and 16 applicable behavior cases passed. Snapshot ids and extension-store locking
 retain the limits above; all fourteen preset credential variables remain
 covered. The direct probe now gives new and resumed MCP calls different ids
-and asserts both actual echo results: the old fixture reused an id that the
-native runtime rejects. [Daily evidence](../../experiments/runtime-version-checks/2026-11-01.md#qwen-0265)
-retains the initial fixture failures and corrected controls.
+and asserts both actual echo results. Qwen renames ids already in history
+to `<id>__qwen_dup_N`, drops same-response duplicates and generates an id
+when absent. Recorded tool-call ids can differ from the model's raw ids.
+Separately, reusing a provider id with the same tool name and arguments
+triggers replay protection: the tool is not executed and an error tool
+result is emitted, even if the turn later succeeds. Compatible endpoints
+that reuse ids such as `call_0` can therefore suppress a legitimate later
+repeat, such as reading the same file again. Reused ids with different
+arguments can execute under the renamed id.
+[Daily evidence](../../experiments/runtime-version-checks/2026-11-01.md#qwen-0265)
+retains the initial fixture failures, corrected controls and a correction
+to the October 25 MCP observations. Both mechanisms predate 0.26.5.
 
 ## OAR mapping
 

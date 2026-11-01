@@ -308,14 +308,14 @@
       "probeExitCode": 0,
       "resumedResult": "error_during_execution",
       "nativeError": "[API Error: 404 No fixture matched]",
-      "cause": "Probe reused native-echo; native duplicate-id result used native-echo__qwen_dup_2, which the provider fixture did not match"
+      "cause": "Probe reused native-echo with the same tool and arguments. Qwen normalized the id to native-echo__qwen_dup_2 and suppressed the identical replay with an error tool result; the scripted provider did not match that renamed result and returned 404."
     },
     {
       "scenario": "permission",
       "probeExitCode": 0,
       "resumedResult": "error_during_execution",
       "nativeError": "[API Error: 404 No fixture matched]",
-      "cause": "Probe reused native-echo; native duplicate-id result used native-echo__qwen_dup_2, which the provider fixture did not match"
+      "cause": "Probe reused native-echo with the same tool and arguments. Qwen normalized the id to native-echo__qwen_dup_2 and suppressed the identical replay with an error tool result; the scripted provider did not match that renamed result and returned 404."
     }
   ],
   "qwenCorrectedMcp": [
@@ -958,5 +958,363 @@
     "actionlint": "passed",
     "interruptTestChanged": false,
     "productFilesChanged": false
+  },
+  "qwenToolIdentityAudit": {
+    "interpretation": "Historical tool-call ids are normalized separately from replay protection. Same provider id plus same tool and args is suppressed with an error tool result. A successful turn result alone does not prove tool execution.",
+    "observations": [
+      {
+        "date": "2026-10-25",
+        "version": "0.26.1",
+        "scenario": "tools",
+        "files": [
+          {
+            "name": "runtime-2026-10-25-qwen-native-tools-raw/facts.json",
+            "sha256": "d2cd6f62d4207210afa34f78e1e7a1f7b36fced8e191dbf92f22529978c0e3fe"
+          },
+          {
+            "name": "runtime-2026-10-25-qwen-native-tools-raw/fresh.wire.jsonl",
+            "sha256": "257eae472336f9fdfa33b0c6d76401e8bfca192c04c35ef21ece18592c7f4558"
+          },
+          {
+            "name": "runtime-2026-10-25-qwen-native-tools-raw/resume.wire.jsonl",
+            "sha256": "f37febe8776737b27b7fd711b3ca1e174d6a57cd299030498496befa44d10e1b"
+          },
+          {
+            "name": "runtime-2026-10-25-qwen-native-tools-raw/provider.json",
+            "sha256": "0ac54664229157e68b84cb90c14238b2a9b251718c51c1a6ee2ae8312e264e7d"
+          }
+        ],
+        "phases": [
+          {
+            "phase": "fresh",
+            "toolBlocks": [
+              {
+                "type": "tool_use",
+                "id": "native-echo",
+                "name": "mcp__echo__echo",
+                "input": {
+                  "text": "native-probe"
+                }
+              },
+              {
+                "type": "tool_result",
+                "tool_use_id": "native-echo",
+                "is_error": false,
+                "content": "echo:native-probe via=stdio token=none"
+              }
+            ],
+            "turnResult": {
+              "subtype": "success",
+              "is_error": false,
+              "result": "native answer"
+            }
+          },
+          {
+            "phase": "resume",
+            "toolBlocks": [
+              {
+                "type": "tool_use",
+                "id": "native-echo__qwen_dup_2",
+                "name": "mcp__echo__echo",
+                "input": {
+                  "text": "native-probe"
+                }
+              },
+              {
+                "type": "tool_result",
+                "tool_use_id": "native-echo__qwen_dup_2",
+                "is_error": true,
+                "content": "Duplicate provider tool call id \"native-echo\" was already handled. The duplicate tool call was ignored and not executed again. If you intended to run this tool again, re-issue the call with a new unique tool-call id (or explicitly different arguments)."
+              }
+            ],
+            "turnResult": {
+              "subtype": "success",
+              "is_error": false,
+              "result": "native answer"
+            }
+          }
+        ]
+      },
+      {
+        "date": "2026-10-25",
+        "version": "0.26.1",
+        "scenario": "permission",
+        "files": [
+          {
+            "name": "runtime-2026-10-25-qwen-native-permission-raw/facts.json",
+            "sha256": "098d885a7d29cf4ae78df98fa5547265f4e2ea2cc5a17ab101e2a1f42e798d45"
+          },
+          {
+            "name": "runtime-2026-10-25-qwen-native-permission-raw/fresh.wire.jsonl",
+            "sha256": "7f3e43c66c8dbbd02de7a4d44c4e2f49645540e01a3b2f6cc9a7d1e579973ca9"
+          },
+          {
+            "name": "runtime-2026-10-25-qwen-native-permission-raw/resume.wire.jsonl",
+            "sha256": "350ac4a2c7ed9408b2285c0de631095c6c3a88eb8919f183cf39d203df79ca99"
+          },
+          {
+            "name": "runtime-2026-10-25-qwen-native-permission-raw/provider.json",
+            "sha256": "83d2fbd7538b49373586fe4dffb382ac7f27f4b498505ed96f6c417c23347dc3"
+          }
+        ],
+        "phases": [
+          {
+            "phase": "fresh",
+            "toolBlocks": [
+              {
+                "type": "tool_use",
+                "id": "native-echo",
+                "name": "mcp__echo__echo",
+                "input": {
+                  "text": "native-probe"
+                }
+              },
+              {
+                "type": "tool_result",
+                "tool_use_id": "native-echo",
+                "is_error": false,
+                "content": "echo:native-probe via=stdio token=none"
+              }
+            ],
+            "turnResult": {
+              "subtype": "success",
+              "is_error": false,
+              "result": "native answer"
+            }
+          },
+          {
+            "phase": "resume",
+            "toolBlocks": [
+              {
+                "type": "tool_use",
+                "id": "native-echo__qwen_dup_2",
+                "name": "mcp__echo__echo",
+                "input": {
+                  "text": "native-probe"
+                }
+              },
+              {
+                "type": "tool_result",
+                "tool_use_id": "native-echo__qwen_dup_2",
+                "is_error": true,
+                "content": "Duplicate provider tool call id \"native-echo\" was already handled. The duplicate tool call was ignored and not executed again. If you intended to run this tool again, re-issue the call with a new unique tool-call id (or explicitly different arguments)."
+              }
+            ],
+            "turnResult": {
+              "subtype": "success",
+              "is_error": false,
+              "result": "native answer"
+            }
+          }
+        ]
+      },
+      {
+        "date": "2026-11-01",
+        "version": "0.26.5",
+        "scenario": "tools",
+        "files": [
+          {
+            "name": "runtime-2026-11-01-qwen-tools/facts.json",
+            "sha256": "2281523ed760f1b345ac528737119bcc784f3c3af928bdd3776d2a833031bf3e"
+          },
+          {
+            "name": "runtime-2026-11-01-qwen-tools/fresh.wire.jsonl",
+            "sha256": "d3c59490324fe24a7696decf90c207fc47ac5b69bbb8b6f1eae1594b7734b9a4"
+          },
+          {
+            "name": "runtime-2026-11-01-qwen-tools/resume.wire.jsonl",
+            "sha256": "0bf617ab4cf53f1dd01b902dc9345c4a1365c44ad6f69ea16bc509ec734b355e"
+          },
+          {
+            "name": "runtime-2026-11-01-qwen-tools/provider.json",
+            "sha256": "e5dac89e71cdb32b9e50910a773282036ed3aefe7258feaac70d83bb3e06074d"
+          }
+        ],
+        "phases": [
+          {
+            "phase": "fresh",
+            "toolBlocks": [
+              {
+                "type": "tool_use",
+                "id": "native-echo",
+                "name": "mcp__echo__echo",
+                "input": {
+                  "text": "native-probe"
+                }
+              },
+              {
+                "type": "tool_result",
+                "tool_use_id": "native-echo",
+                "is_error": false,
+                "content": "echo:native-probe via=stdio token=none"
+              }
+            ],
+            "turnResult": {
+              "subtype": "success",
+              "is_error": false,
+              "result": "tool completed"
+            }
+          },
+          {
+            "phase": "resume",
+            "toolBlocks": [
+              {
+                "type": "tool_use",
+                "id": "native-echo__qwen_dup_2",
+                "name": "mcp__echo__echo",
+                "input": {
+                  "text": "native-probe"
+                }
+              },
+              {
+                "type": "tool_result",
+                "tool_use_id": "native-echo__qwen_dup_2",
+                "is_error": true,
+                "content": "Duplicate provider tool call id \"native-echo\" was already handled. The duplicate tool call was ignored and not executed again. If you intended to run this tool again, re-issue the call with a new unique tool-call id (or explicitly different arguments)."
+              }
+            ],
+            "turnResult": {
+              "subtype": "error_during_execution",
+              "is_error": true,
+              "error": {
+                "message": "[API Error: 404 No fixture matched]"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "date": "2026-11-01",
+        "version": "0.26.5",
+        "scenario": "permission",
+        "files": [
+          {
+            "name": "runtime-2026-11-01-qwen-permission/facts.json",
+            "sha256": "b69c95ead1763f3229134c769b1134a31b159e30789dfc13fefe884bb11bf555"
+          },
+          {
+            "name": "runtime-2026-11-01-qwen-permission/fresh.wire.jsonl",
+            "sha256": "82d939aef5622bc7664a093c8dff1daccc29dff71a4dd1aea2d12514fb368246"
+          },
+          {
+            "name": "runtime-2026-11-01-qwen-permission/resume.wire.jsonl",
+            "sha256": "549c0c055946b8939004c4282ac2cdcb78936e227a9c713ae8be4be6edeeba93"
+          },
+          {
+            "name": "runtime-2026-11-01-qwen-permission/provider.json",
+            "sha256": "9cd03e99558985170ebb6cb9a94fc0c1d1479ec0872f970f660722c7ade64480"
+          }
+        ],
+        "phases": [
+          {
+            "phase": "fresh",
+            "toolBlocks": [
+              {
+                "type": "tool_use",
+                "id": "native-echo",
+                "name": "mcp__echo__echo",
+                "input": {
+                  "text": "native-probe"
+                }
+              },
+              {
+                "type": "tool_result",
+                "tool_use_id": "native-echo",
+                "is_error": false,
+                "content": "echo:native-probe via=stdio token=none"
+              }
+            ],
+            "turnResult": {
+              "subtype": "success",
+              "is_error": false,
+              "result": "tool completed"
+            }
+          },
+          {
+            "phase": "resume",
+            "toolBlocks": [
+              {
+                "type": "tool_use",
+                "id": "native-echo__qwen_dup_2",
+                "name": "mcp__echo__echo",
+                "input": {
+                  "text": "native-probe"
+                }
+              },
+              {
+                "type": "tool_result",
+                "tool_use_id": "native-echo__qwen_dup_2",
+                "is_error": true,
+                "content": "Duplicate provider tool call id \"native-echo\" was already handled. The duplicate tool call was ignored and not executed again. If you intended to run this tool again, re-issue the call with a new unique tool-call id (or explicitly different arguments)."
+              }
+            ],
+            "turnResult": {
+              "subtype": "error_during_execution",
+              "is_error": true,
+              "error": {
+                "message": "[API Error: 404 No fixture matched]"
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "publishedBundles": [
+      {
+        "version": "0.26.1",
+        "file": "chunks/chunk-Q3NSK7FV.js",
+        "sha256": "c478df30b9ec2f43384f6b4559f01a885db0c63971033864420c1d6a2a56f428",
+        "functionsPresent": [
+          "normalizeModelToolCallIds",
+          "collectToolCallIdsFromHistory",
+          "isReplayOfHandledToolCall",
+          "createDuplicateProviderToolCallResponse"
+        ]
+      },
+      {
+        "version": "0.26.2",
+        "file": "chunks/chunk-2XNBZWKL.js",
+        "sha256": "ad419dc25786c6f4ddc26de5bf04962d258575ca4fd6998e09c43e4f823d369b",
+        "functionsPresent": [
+          "normalizeModelToolCallIds",
+          "collectToolCallIdsFromHistory",
+          "isReplayOfHandledToolCall",
+          "createDuplicateProviderToolCallResponse"
+        ]
+      },
+      {
+        "version": "0.26.3",
+        "file": "chunks/chunk-ERV2ECV3.js",
+        "sha256": "7d2511a8317ee2c44edd2fd62b43966b9acfbfaac79175cd0cc9fb9ed42051c6",
+        "functionsPresent": [
+          "normalizeModelToolCallIds",
+          "collectToolCallIdsFromHistory",
+          "isReplayOfHandledToolCall",
+          "createDuplicateProviderToolCallResponse"
+        ]
+      },
+      {
+        "version": "0.26.4",
+        "file": "chunks/chunk-EZB3CCOL.js",
+        "sha256": "c57f56c87f8c67c0bbcb3a86afd5e872486d743955e3f9487eb52ac76294c4d0",
+        "functionsPresent": [
+          "normalizeModelToolCallIds",
+          "collectToolCallIdsFromHistory",
+          "isReplayOfHandledToolCall",
+          "createDuplicateProviderToolCallResponse"
+        ]
+      },
+      {
+        "version": "0.26.5",
+        "file": "chunks/chunk-XBXDDFWT.js",
+        "sha256": "9a80a1b9cbd46841a8b25b1696958cb9f11a4d5efcbec79ae27f98c02d3a5197",
+        "functionsPresent": [
+          "normalizeModelToolCallIds",
+          "collectToolCallIdsFromHistory",
+          "isReplayOfHandledToolCall",
+          "createDuplicateProviderToolCallResponse"
+        ]
+      }
+    ]
   }
 }
