@@ -366,6 +366,12 @@ Further rules:
   Concurrent callers may share a query only when all requested it before
   that query started. Requests arriving during a query wait for a later
   query; completed results are never cached for subsequent cleanup phases.
+  Caller deadlines use a monotonic clock and include queueing. Before a
+  pending query starts, expired callers are removed; if none remain, no OS
+  query starts. A new caller can join an unstarted batch, but must still get
+  a snapshot taken after its own request. Once started, a query completes
+  under its own budget even if every caller expires. Each expired caller
+  retains its timeout and cannot use the late result as identity evidence.
   Query subprocesses belong to the host's ownership registry, and their
   timeout includes pipe drain without recursively observing their own trees.
   A failed spawn without stdout settles as a read failure without leaving a
@@ -402,7 +408,8 @@ Further rules:
   five-second total caller budget, never delays `spawned`, and is not retried.
   Preparation alone does not keep the host event loop alive: its timer and
   query handles are unreferenced. A foreground caller joining the same batch
-  before it starts keeps that query referenced; later callers get a fresh
+  before it starts keeps that query referenced only if still live at query
+  start; expired foreground callers do not keep preparation alive. Later callers get a fresh
   batch as usual. Query ownership still covers synchronous host exit.
   Only bounded success/failure metadata is retained as
   `diagnostics().cleanup.preparation` after that process's cleanup finishes;
