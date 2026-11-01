@@ -33,8 +33,11 @@ and 16 applicable behavior cases passed. Snapshot ids and extension-store lockin
 retain the limits above; all fourteen preset credential variables remain
 covered. The direct probe now gives new and resumed MCP calls different ids
 and asserts both actual echo results. Qwen renames ids already in history
-to `<id>__qwen_dup_N`, drops same-response duplicates and generates an id
-when absent. Recorded tool-call ids can differ from the model's raw ids.
+to `<id>__qwen_dup_N` and generates an id when absent. Same-response
+duplicates are dropped when arguments arrive complete in one delta;
+fragmented arguments instead fail in the
+[tool-id controls below](#evidence-and-verification).
+Recorded tool-call ids can differ from the model's raw ids.
 Separately, reusing a provider id with the same tool name and arguments
 triggers replay protection: the tool is not executed and an error tool
 result is emitted, even if the turn later succeeds. Compatible endpoints
