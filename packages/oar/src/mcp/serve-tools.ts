@@ -36,6 +36,17 @@ export interface HostTool {
   /** JSON Schema of the input, an object schema, given to the runtime unchanged. OAR does not validate calls against it. */
   readonly inputSchema: Readonly<Record<string, unknown>>;
   /**
+   * MCP tool annotations, passed to the runtime unchanged in `tools/list`. Runtimes act on them: Codex outside its
+   * full-access sandbox requires approval for an MCP call (refused under `approvalPolicy: "never"`) unless the tool
+   * is marked `readOnlyHint`, or `destructiveHint: false` and `openWorldHint: false`.
+   */
+  readonly annotations?: {
+    readonly readOnlyHint?: boolean;
+    readonly destructiveHint?: boolean;
+    readonly idempotentHint?: boolean;
+    readonly openWorldHint?: boolean;
+  };
+  /**
    * Runs one call. `signal` aborts when the runtime cancels the call, drops
    * the request, or the server closes. A thrown error becomes an `isError`
    * result carrying the error's message.
@@ -94,7 +105,7 @@ function checkTools(given: readonly HostTool[]): ReadonlyMap<string, HostTool> {
 }
 
 function listed(tool: HostTool): JsonRecord {
-  const entry: JsonRecord = { name: tool.name, inputSchema: tool.inputSchema };
+  const entry: JsonRecord = { name: tool.name, inputSchema: tool.inputSchema, ...(tool.annotations === undefined ? {} : { annotations: tool.annotations }) };
   if (tool.description !== undefined) { entry.description = tool.description; }
   return entry;
 }

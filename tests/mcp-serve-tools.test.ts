@@ -65,6 +65,15 @@ test("initialize, tools/list and tools/call speak MCP", async () => {
   expect(await statusOf(post(entry, { jsonrpc: "2.0", method: "notifications/initialized" }))).toBe(202);
 });
 
+test("annotations reach tools/list unchanged, and are absent when not given", async () => {
+  const annotations = { readOnlyHint: true };
+  const entry = await serve([echo, { ...echo, name: "look", annotations }]);
+  expect(await rpc(entry, "tools/list")).toEqual({ jsonrpc: "2.0", id: 1, result: { tools: [
+    { name: "echo", description: "Echo text", inputSchema: echo.inputSchema },
+    { name: "look", description: "Echo text", inputSchema: echo.inputSchema, annotations },
+  ] } });
+});
+
 test("instructions, when given, are the initialize result's instructions", async () => {
   const entry = await serveMcpTools({ name: "host", tools: [echo], instructions: "Use echo before anything else." });
   served.push(entry);
