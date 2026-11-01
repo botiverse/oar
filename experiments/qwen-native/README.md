@@ -24,6 +24,32 @@ warm-HOME lock probe below also passed its assertions, reproducing the existing
 readiness limitation. See the [dated report](../runtime-version-checks/2026-10-25.md#qwen-0261)
 for the separate OAR vendor, behavior and installation checks.
 
+**Correction, 2026-11-01:** the October 25 recordings show that the fresh
+MCP calls succeeded, but both resumed calls produced a renamed error tool
+result saying that the replay was not executed. Their final turn results
+were still successful. The paragraph above did not distinguish observing
+a tool-call frame from executing the tool successfully. See the
+[correction and selected results](../runtime-version-checks/2026-11-01.md#qwen-0265).
+
+Rechecked **0.26.5** on 2026-11-01. The original tools and permission
+scenarios reused `native-echo` with the same tool and arguments after resume.
+Qwen first renamed the id, then suppressed the identical replay with an
+error tool result. The local provider could not match that renamed result
+and returned 404, so the resumed turns failed. Both runs
+were captured with exit 0 because this script previously only recorded the
+native failure. The probe now uses a distinct id and echo marker for each
+phase, and fails unless both native results succeed and both actual tool
+results reach the provider. The corrected controls passed; the
+[dated report](../runtime-version-checks/2026-11-01.md#qwen-0265)
+retains the initial failures separately. This changes the probe, not OAR's
+transport or Qwen's duplicate-id handling.
+
+Qwen's normalization and replay protection are separate: a historical id
+with different arguments can execute under `<id>__qwen_dup_N`; the same id,
+tool and arguments can instead yield an error without execution. Repeated
+ids within one response are dropped, and missing ids are generated. Hosts
+must use the ids in Qwen's records, which can differ from the provider's.
+
 Observed 2026-10-23 on npm 0.26.0, published source
 ac97ce7a70d9b2ea5d62b357e3d9b0851423afc9:
 

@@ -1,0 +1,1320 @@
+{
+  "checkedAt": "2026-11-01T12:03:02.942Z",
+  "oarBase": "9c1cf873e01de03e05bb223ff34b8db459408557",
+  "platform": "linux-x64",
+  "node": "v24.19.0",
+  "versions": [
+    {
+      "runtime": "antigravity",
+      "source": "https://raw.githubusercontent.com/agentclientprotocol/registry/main/antigravity-acp/agent.json",
+      "latest": "1.4.5"
+    },
+    {
+      "runtime": "claude",
+      "source": "https://registry.npmjs.org/@anthropic-ai/claude-code/latest",
+      "latest": "2.1.316"
+    },
+    {
+      "runtime": "codex",
+      "source": "https://registry.npmjs.org/@openai/codex/latest",
+      "latest": "0.166.0"
+    },
+    {
+      "runtime": "cursor",
+      "source": "https://registry.npmjs.org/@cursor/sdk/latest",
+      "latest": "1.2.0"
+    },
+    {
+      "runtime": "grok",
+      "source": "https://x.ai/cli/stable",
+      "latest": "1.0.70",
+      "initialError": "fetch failed",
+      "confirmation": "Separate curl request to stable pointer; npm latest agrees"
+    },
+    {
+      "runtime": "kimi",
+      "source": "https://registry.npmjs.org/@moonshot-ai/kimi-code/latest",
+      "latest": "2.4.1"
+    },
+    {
+      "runtime": "opencode",
+      "line": "v1",
+      "source": "https://registry.npmjs.org/opencode-ai/latest",
+      "latest": "1.19.5"
+    },
+    {
+      "runtime": "opencode",
+      "line": "v2",
+      "source": "https://registry.npmjs.org/@opencode/cli/latest",
+      "latest": "2.2.5"
+    },
+    {
+      "runtime": "codebuddy",
+      "source": "https://registry.npmjs.org/@tencent-ai/codebuddy-code/latest",
+      "latest": "2.179.1"
+    },
+    {
+      "runtime": "qoder",
+      "source": "https://registry.npmjs.org/@qoder-ai/qodercli/latest",
+      "latest": "1.1.81"
+    },
+    {
+      "runtime": "qwen",
+      "source": "https://registry.npmjs.org/@qwen-code/qwen-code/latest",
+      "latest": "0.26.5"
+    },
+    {
+      "runtime": "pi",
+      "source": "https://registry.npmjs.org/@earendil-works/pi-coding-agent/latest",
+      "latest": "1.4.0"
+    },
+    {
+      "runtime": "pi-durable",
+      "source": "https://registry.npmjs.org/@earendil-works/pi-durable/latest",
+      "latest": "1.4.0"
+    }
+  ],
+  "behavior": {
+    "codebuddy": {
+      "passed": 16,
+      "skipped": 3,
+      "failed": 0
+    },
+    "qwen": {
+      "passed": 16,
+      "skipped": 3,
+      "failed": 0
+    }
+  },
+  "vendor": {
+    "codebuddy": 5,
+    "qwen": 11
+  },
+  "codebuddyStandalone": {
+    "version": "2.179.1",
+    "source": "https://acc-1258344699.cos.accelerate.myqcloud.com/@tencent-ai/codebuddy-code/releases/download/2.179.1/codebuddy-code_Linux_x86_64.tar.gz",
+    "sha256": "6d032c372414d89e905b1210d1333e078224f8fe894f0402299079e97359b930"
+  },
+  "codebuddyStreamJson": [
+    {
+      "delayMs": 0,
+      "initialized": true,
+      "results": 2,
+      "requests": [
+        {
+          "number": 1,
+          "prompt": "first"
+        },
+        {
+          "number": 2,
+          "prompt": "second"
+        },
+        {
+          "number": 3,
+          "prompt": "second"
+        }
+      ],
+      "timedOut": false,
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "delayMs": 0,
+      "initialized": true,
+      "results": 2,
+      "requests": [
+        {
+          "number": 1,
+          "prompt": "first"
+        },
+        {
+          "number": 2,
+          "prompt": "second"
+        },
+        {
+          "number": 3,
+          "prompt": "second"
+        }
+      ],
+      "timedOut": false,
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "delayMs": 0,
+      "initialized": true,
+      "results": 2,
+      "requests": [
+        {
+          "number": 1,
+          "prompt": "first"
+        },
+        {
+          "number": 2,
+          "prompt": "second"
+        },
+        {
+          "number": 3,
+          "prompt": "second"
+        }
+      ],
+      "timedOut": false,
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "delayMs": 1000,
+      "initialized": true,
+      "results": 2,
+      "requests": [
+        {
+          "number": 1,
+          "prompt": "first"
+        },
+        {
+          "number": 2,
+          "prompt": "second"
+        }
+      ],
+      "timedOut": false,
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "delayMs": 1000,
+      "initialized": true,
+      "results": 2,
+      "requests": [
+        {
+          "number": 1,
+          "prompt": "first"
+        },
+        {
+          "number": 2,
+          "prompt": "second"
+        }
+      ],
+      "timedOut": false,
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "delayMs": 1000,
+      "initialized": true,
+      "results": 2,
+      "requests": [
+        {
+          "number": 1,
+          "prompt": "first"
+        },
+        {
+          "number": 2,
+          "prompt": "second"
+        }
+      ],
+      "timedOut": false,
+      "exitCode": 0,
+      "signal": null
+    }
+  ],
+  "codebuddyAcp": {
+    "pass": true,
+    "protocol": "acp",
+    "delayMs": 0,
+    "initialized": true,
+    "results": 2,
+    "stopReasons": [
+      "end_turn",
+      "end_turn"
+    ],
+    "requests": [
+      {
+        "number": 1,
+        "prompt": "first",
+        "purpose": "title",
+        "model": "deepseek-flash",
+        "stream": true
+      },
+      {
+        "number": 2,
+        "prompt": "first",
+        "purpose": "conversation",
+        "model": "deepseek-flash",
+        "stream": true
+      },
+      {
+        "number": 3,
+        "prompt": "first",
+        "purpose": "title",
+        "model": "deepseek-flash",
+        "stream": true
+      },
+      {
+        "number": 4,
+        "prompt": "second",
+        "purpose": "conversation",
+        "model": "deepseek-flash",
+        "stream": true
+      }
+    ],
+    "errors": [],
+    "timedOut": false,
+    "exitCode": null,
+    "signal": "SIGTERM"
+  },
+  "qwenLock": [
+    {
+      "phase": "warm-home initialize with held lock",
+      "elapsedMs": 1859,
+      "requests": 0
+    },
+    {
+      "phase": "first prompt blocked after initialize",
+      "lockHeld": true,
+      "requests": 0
+    },
+    {
+      "phase": "first prompt after releasing lock",
+      "outcome": "completed"
+    },
+    {
+      "phase": "ordinary later prompt with held lock",
+      "outcome": "completed"
+    }
+  ],
+  "qwenCredentialSources": {
+    "file": "chunk-57G2YE5Y.js",
+    "presetEnvKeys": [
+      "BAILIAN_CODING_PLAN_API_KEY",
+      "BAILIAN_TOKEN_PLAN_API_KEY",
+      "DASHSCOPE_API_KEY",
+      "DEEPSEEK_API_KEY",
+      "IDEALAB_API_KEY",
+      "MINIMAX_API_KEY",
+      "MODELSCOPE_API_KEY",
+      "MOONSHOT_API_KEY",
+      "OPENROUTER_API_KEY",
+      "QWENCLOUD_API_KEY",
+      "QWENCLOUD_TOKEN_PLAN_API_KEY",
+      "REQUESTY_API_KEY",
+      "XAI_API_KEY",
+      "ZAI_API_KEY"
+    ],
+    "uncovered": []
+  },
+  "qwenInitialMcpFailures": [
+    {
+      "scenario": "tools",
+      "probeExitCode": 0,
+      "resumedResult": "error_during_execution",
+      "nativeError": "[API Error: 404 No fixture matched]",
+      "cause": "Probe reused native-echo with the same tool and arguments. Qwen normalized the id to native-echo__qwen_dup_2 and suppressed the identical replay with an error tool result; the scripted provider did not match that renamed result and returned 404."
+    },
+    {
+      "scenario": "permission",
+      "probeExitCode": 0,
+      "resumedResult": "error_during_execution",
+      "nativeError": "[API Error: 404 No fixture matched]",
+      "cause": "Probe reused native-echo with the same tool and arguments. Qwen normalized the id to native-echo__qwen_dup_2 and suppressed the identical replay with an error tool result; the scripted provider did not match that renamed result and returned 404."
+    }
+  ],
+  "qwenCorrectedMcp": [
+    {
+      "scenario": "tools",
+      "probeExitCode": 0,
+      "results": [
+        {
+          "resume": false,
+          "subtype": "success",
+          "isError": false,
+          "result": "tool completed"
+        },
+        {
+          "resume": true,
+          "subtype": "success",
+          "isError": false,
+          "result": "tool completed"
+        }
+      ],
+      "echoes": [
+        "echo:fresh-probe via=stdio token=none",
+        "echo:resumed-probe via=stdio token=none"
+      ],
+      "permissionRequests": {
+        "fresh": 0,
+        "resume": 0
+      }
+    },
+    {
+      "scenario": "permission",
+      "probeExitCode": 0,
+      "results": [
+        {
+          "resume": false,
+          "subtype": "success",
+          "isError": false,
+          "result": "tool completed"
+        },
+        {
+          "resume": true,
+          "subtype": "success",
+          "isError": false,
+          "result": "tool completed"
+        }
+      ],
+      "echoes": [
+        "echo:fresh-probe via=stdio token=none",
+        "echo:resumed-probe via=stdio token=none"
+      ],
+      "permissionRequests": {
+        "fresh": 1,
+        "resume": 1
+      }
+    }
+  ],
+  "qwenNativeScenarios": [
+    {
+      "scenario": "plain",
+      "probeExitCode": 0,
+      "results": [
+        {
+          "resume": false,
+          "phase": "first",
+          "subtype": "success",
+          "isError": false
+        },
+        {
+          "resume": false,
+          "phase": "second",
+          "subtype": "success",
+          "isError": false
+        },
+        {
+          "resume": false,
+          "phase": "interrupted",
+          "subtype": "error_during_execution",
+          "isError": true
+        },
+        {
+          "resume": false,
+          "phase": "afterAbort",
+          "subtype": "success",
+          "isError": false
+        },
+        {
+          "resume": true,
+          "phase": "first",
+          "subtype": "success",
+          "isError": false
+        },
+        {
+          "resume": true,
+          "phase": "second",
+          "subtype": "success",
+          "isError": false
+        },
+        {
+          "resume": true,
+          "phase": "interrupted",
+          "subtype": "error_during_execution",
+          "isError": true
+        },
+        {
+          "resume": true,
+          "phase": "afterAbort",
+          "subtype": "success",
+          "isError": false
+        }
+      ]
+    },
+    {
+      "scenario": "catalog",
+      "probeExitCode": 0,
+      "results": [
+        {
+          "resume": false,
+          "phase": "first",
+          "subtype": "success",
+          "isError": false
+        },
+        {
+          "resume": false,
+          "phase": "second",
+          "subtype": "success",
+          "isError": false
+        },
+        {
+          "resume": false,
+          "phase": "interrupted",
+          "subtype": "error_during_execution",
+          "isError": true
+        },
+        {
+          "resume": false,
+          "phase": "afterAbort",
+          "subtype": "success",
+          "isError": false
+        },
+        {
+          "resume": true,
+          "phase": "first",
+          "subtype": "success",
+          "isError": false
+        },
+        {
+          "resume": true,
+          "phase": "second",
+          "subtype": "success",
+          "isError": false
+        },
+        {
+          "resume": true,
+          "phase": "interrupted",
+          "subtype": "error_during_execution",
+          "isError": true
+        },
+        {
+          "resume": true,
+          "phase": "afterAbort",
+          "subtype": "success",
+          "isError": false
+        }
+      ]
+    },
+    {
+      "scenario": "reply-blocks",
+      "probeExitCode": 0,
+      "results": [
+        {
+          "resume": false,
+          "phase": "first",
+          "subtype": "success",
+          "isError": false
+        },
+        {
+          "resume": false,
+          "phase": "second",
+          "subtype": "success",
+          "isError": false
+        },
+        {
+          "resume": false,
+          "phase": "interrupted",
+          "subtype": "error_during_execution",
+          "isError": true
+        },
+        {
+          "resume": false,
+          "phase": "afterAbort",
+          "subtype": "success",
+          "isError": false
+        },
+        {
+          "resume": true,
+          "phase": "first",
+          "subtype": "success",
+          "isError": false
+        },
+        {
+          "resume": true,
+          "phase": "second",
+          "subtype": "success",
+          "isError": false
+        },
+        {
+          "resume": true,
+          "phase": "interrupted",
+          "subtype": "error_during_execution",
+          "isError": true
+        },
+        {
+          "resume": true,
+          "phase": "afterAbort",
+          "subtype": "success",
+          "isError": false
+        }
+      ]
+    }
+  ],
+  "qwenReplyBlocks": {
+    "messageStarts": 1,
+    "blockStartIndices": [
+      0,
+      0
+    ],
+    "snapshots": [
+      {
+        "blockTypes": [
+          "thinking"
+        ],
+        "idMatchesInitial": true
+      },
+      {
+        "blockTypes": [
+          "text"
+        ],
+        "idMatchesInitial": false
+      }
+    ]
+  },
+  "windowsAcp": {
+    "windowStart": "2026-10-31T11:59:49Z",
+    "windowEnd": "2026-11-01T12:03:02.942Z",
+    "runs": 11,
+    "jobs": 33,
+    "failedJobs": 5,
+    "observations": [
+      {
+        "id": 41249324401,
+        "name": "Windows ACP observations",
+        "sha": "9c1cf873",
+        "jobs": 3,
+        "unsuccessful": [
+          {
+            "id": 124679329799,
+            "name": "acp-windows (windows-latest, grok-aimock)",
+            "conclusion": "failure",
+            "start": "2026-10-31T22:41:45Z",
+            "end": "2026-10-31T22:46:35Z",
+            "steps": [
+              {
+                "name": "Run pnpm vitest run sea-trial/vendor --maxWorkers 2",
+                "started_at": "2026-10-31T22:43:26Z",
+                "completed_at": "2026-10-31T22:46:05Z",
+                "conclusion": "failure"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 41243266234,
+        "name": "Windows ACP observations",
+        "sha": "ddec7e57",
+        "jobs": 3,
+        "unsuccessful": [
+          {
+            "id": 124661356201,
+            "name": "acp-windows (windows-latest, grok-aimock)",
+            "conclusion": "failure",
+            "start": "2026-10-31T21:22:14Z",
+            "end": "2026-10-31T21:24:19Z",
+            "steps": [
+              {
+                "name": "Run pnpm run sea-trial",
+                "started_at": "2026-10-31T21:22:58Z",
+                "completed_at": "2026-10-31T21:23:51Z",
+                "conclusion": "failure"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 41241375461,
+        "name": "Windows ACP observations",
+        "sha": "2c67f52d",
+        "jobs": 3,
+        "unsuccessful": []
+      },
+      {
+        "id": 41232969149,
+        "name": "Windows ACP observations",
+        "sha": "865126b7",
+        "jobs": 3,
+        "unsuccessful": []
+      },
+      {
+        "id": 41230703452,
+        "name": "Windows ACP observations",
+        "sha": "ffffc9fb",
+        "jobs": 3,
+        "unsuccessful": []
+      },
+      {
+        "id": 41229123713,
+        "name": "Windows ACP observations",
+        "sha": "ed875a15",
+        "jobs": 3,
+        "unsuccessful": []
+      },
+      {
+        "id": 41228727506,
+        "name": "Windows ACP observations",
+        "sha": "20847e9e",
+        "jobs": 3,
+        "unsuccessful": [
+          {
+            "id": 124618239326,
+            "name": "acp-windows (windows-latest, grok-aimock)",
+            "conclusion": "failure",
+            "start": "2026-10-31T18:18:10Z",
+            "end": "2026-10-31T18:23:09Z",
+            "steps": [
+              {
+                "name": "Run pnpm vitest run sea-trial/vendor --maxWorkers 2",
+                "started_at": "2026-10-31T18:19:57Z",
+                "completed_at": "2026-10-31T18:22:38Z",
+                "conclusion": "failure"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 41225849209,
+        "name": "Windows ACP observations",
+        "sha": "6c3604f6",
+        "jobs": 3,
+        "unsuccessful": []
+      },
+      {
+        "id": 41220310258,
+        "name": "Windows ACP observations",
+        "sha": "7c888bdd",
+        "jobs": 3,
+        "unsuccessful": [
+          {
+            "id": 124593292014,
+            "name": "acp-windows (windows-latest, opencode-aimock)",
+            "conclusion": "failure",
+            "start": "2026-10-31T16:34:11Z",
+            "end": "2026-10-31T16:43:35Z",
+            "steps": [
+              {
+                "name": "Run pnpm vitest run sea-trial/vendor --maxWorkers 2",
+                "started_at": "2026-10-31T16:36:47Z",
+                "completed_at": "2026-10-31T16:43:31Z",
+                "conclusion": "failure"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 41208880929,
+        "name": "Windows ACP observations",
+        "sha": "5b9f9642",
+        "jobs": 3,
+        "unsuccessful": [
+          {
+            "id": 124559500661,
+            "name": "acp-windows (windows-latest, grok-aimock)",
+            "conclusion": "failure",
+            "start": "2026-10-31T14:10:17Z",
+            "end": "2026-10-31T14:12:54Z",
+            "steps": [
+              {
+                "name": "Run pnpm run sea-trial",
+                "started_at": "2026-10-31T14:11:19Z",
+                "completed_at": "2026-10-31T14:12:18Z",
+                "conclusion": "failure"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 41203431769,
+        "name": "Windows ACP observations",
+        "sha": "bc49cb3c",
+        "jobs": 3,
+        "unsuccessful": []
+      }
+    ]
+  },
+  "mainCheckObservation": {
+    "runId": 41230703385,
+    "jobId": 124624137612,
+    "failure": "tests/pi-rpc-diagnostics.test.ts expected exit 124, observed null with empty output",
+    "secondaryFailure": "OpenCode lifecycle controls ran after their installation step was skipped",
+    "nativePiVendorCancellation": false,
+    "latestMainRun": 41249324384,
+    "latestMainConclusion": "success"
+  },
+  "upstream": {
+    "opencode-54794": {
+      "html_url": "https://github.com/anomalyco/opencode/issues/54794",
+      "state": "open",
+      "updated_at": "2026-10-12T20:53:16Z",
+      "comments": 2
+    },
+    "opencode-53879": {
+      "html_url": "https://github.com/anomalyco/opencode/issues/53879",
+      "state": "open",
+      "updated_at": "2026-10-29T17:18:46Z",
+      "comments": 4
+    },
+    "kimi-2370": {
+      "html_url": "https://github.com/MoonshotAI/kimi-cli/issues/2370",
+      "state": "open",
+      "updated_at": "2026-09-12T16:09:18Z",
+      "comments": 1
+    },
+    "qwen-15796": {
+      "html_url": "https://github.com/QwenLM/qwen-code/issues/15796",
+      "state": "open",
+      "updated_at": "2026-10-28T13:14:10Z",
+      "comments": 2
+    },
+    "qwen-15875": {
+      "html_url": "https://github.com/QwenLM/qwen-code/issues/15875",
+      "state": "open",
+      "updated_at": "2026-10-29T15:08:19Z",
+      "comments": 2
+    },
+    "codebuddy1847": {
+      "url": "https://cnb.cool/codebuddy/codebuddy-code/-/issues/1847",
+      "state": "open",
+      "comments": 0,
+      "updatedAt": "2026-10-28T06:32:16Z"
+    },
+    "dsh": {
+      "head": "ce7073d51254c26cd63b22a60835b8f948deb447",
+      "watchedPathsChanged": false,
+      "latestDiscussionComment": 19314203,
+      "technicalUpdate": false
+    },
+    "agy": {
+      "cliVersion": "1.4.12",
+      "publicHead": "841f45db2226ce15f5d1f52c580e35181e74ff68",
+      "acpVersion": "1.4.5",
+      "controlRequestSupported": false
+    }
+  },
+  "additionalPackageVersions": {
+    "pi-ai": {
+      "version": "1.4.0",
+      "source": "https://registry.npmjs.org/@earendil-works/pi-ai/latest"
+    },
+    "chord": {
+      "version": "1.4.0",
+      "source": "https://registry.npmjs.org/@earendil-works/chord/latest"
+    }
+  },
+  "localInterruptObservation": {
+    "initialCheck": {
+      "passed": 2947,
+      "failed": 1,
+      "test": "rejected concurrent queue attempts release the coordinator for the next interrupt",
+      "expected": "prompted",
+      "observed": "rejected",
+      "rejectionDetailsRecorded": false
+    },
+    "unchangedFocusedRecheckPassed": 20,
+    "instrumentedFullSuiteRepeatedCasePassed": 20,
+    "controlledTimings": [
+      {
+        "fallbackMs": 50,
+        "hostPauseMs": 0,
+        "run": 1,
+        "initialRefusals": [
+          "rejected",
+          "rejected"
+        ],
+        "landed": "prompted",
+        "code": null,
+        "undeliveredOwnInput": false
+      },
+      {
+        "fallbackMs": 50,
+        "hostPauseMs": 0,
+        "run": 2,
+        "initialRefusals": [
+          "rejected",
+          "rejected"
+        ],
+        "landed": "prompted",
+        "code": null,
+        "undeliveredOwnInput": false
+      },
+      {
+        "fallbackMs": 50,
+        "hostPauseMs": 0,
+        "run": 3,
+        "initialRefusals": [
+          "rejected",
+          "rejected"
+        ],
+        "landed": "prompted",
+        "code": null,
+        "undeliveredOwnInput": false
+      },
+      {
+        "fallbackMs": 50,
+        "hostPauseMs": 100,
+        "run": 1,
+        "initialRefusals": [
+          "rejected",
+          "rejected"
+        ],
+        "landed": "rejected",
+        "code": "runtime_exited",
+        "undeliveredOwnInput": true
+      },
+      {
+        "fallbackMs": 50,
+        "hostPauseMs": 100,
+        "run": 2,
+        "initialRefusals": [
+          "rejected",
+          "rejected"
+        ],
+        "landed": "rejected",
+        "code": "runtime_exited",
+        "undeliveredOwnInput": true
+      },
+      {
+        "fallbackMs": 50,
+        "hostPauseMs": 100,
+        "run": 3,
+        "initialRefusals": [
+          "rejected",
+          "rejected"
+        ],
+        "landed": "rejected",
+        "code": "runtime_exited",
+        "undeliveredOwnInput": true
+      },
+      {
+        "fallbackMs": 5000,
+        "hostPauseMs": 0,
+        "run": 1,
+        "initialRefusals": [
+          "rejected",
+          "rejected"
+        ],
+        "landed": "prompted",
+        "code": null,
+        "undeliveredOwnInput": false
+      },
+      {
+        "fallbackMs": 5000,
+        "hostPauseMs": 0,
+        "run": 2,
+        "initialRefusals": [
+          "rejected",
+          "rejected"
+        ],
+        "landed": "prompted",
+        "code": null,
+        "undeliveredOwnInput": false
+      },
+      {
+        "fallbackMs": 5000,
+        "hostPauseMs": 0,
+        "run": 3,
+        "initialRefusals": [
+          "rejected",
+          "rejected"
+        ],
+        "landed": "prompted",
+        "code": null,
+        "undeliveredOwnInput": false
+      },
+      {
+        "fallbackMs": 5000,
+        "hostPauseMs": 100,
+        "run": 1,
+        "initialRefusals": [
+          "rejected",
+          "rejected"
+        ],
+        "landed": "prompted",
+        "code": null,
+        "undeliveredOwnInput": false
+      },
+      {
+        "fallbackMs": 5000,
+        "hostPauseMs": 100,
+        "run": 2,
+        "initialRefusals": [
+          "rejected",
+          "rejected"
+        ],
+        "landed": "prompted",
+        "code": null,
+        "undeliveredOwnInput": false
+      },
+      {
+        "fallbackMs": 5000,
+        "hostPauseMs": 100,
+        "run": 3,
+        "initialRefusals": [
+          "rejected",
+          "rejected"
+        ],
+        "landed": "prompted",
+        "code": null,
+        "undeliveredOwnInput": false
+      }
+    ],
+    "conclusion": "The controlled pause reproduces the configured fallback refusal; the first failure lacks enough diagnostics to establish the same cause. Product behavior preserves the input identity; test-only follow-up adds diagnostics and separates normal-cancel timing from the forced-exit regression."
+  },
+  "repositoryValidation": {
+    "fullCheck": "passed on recheck; initial failure retained above",
+    "testsPassed": 2948,
+    "mockBehaviorPassed": 18,
+    "actionlint": "passed",
+    "interruptTestChanged": false,
+    "productFilesChanged": false
+  },
+  "qwenToolIdentityAudit": {
+    "interpretation": "Historical tool-call ids are normalized separately from replay protection. Same provider id plus same tool and args is suppressed with an error tool result. A successful turn result alone does not prove tool execution.",
+    "observations": [
+      {
+        "date": "2026-10-25",
+        "version": "0.26.1",
+        "scenario": "tools",
+        "files": [
+          {
+            "name": "runtime-2026-10-25-qwen-native-tools-raw/facts.json",
+            "sha256": "d2cd6f62d4207210afa34f78e1e7a1f7b36fced8e191dbf92f22529978c0e3fe"
+          },
+          {
+            "name": "runtime-2026-10-25-qwen-native-tools-raw/fresh.wire.jsonl",
+            "sha256": "257eae472336f9fdfa33b0c6d76401e8bfca192c04c35ef21ece18592c7f4558"
+          },
+          {
+            "name": "runtime-2026-10-25-qwen-native-tools-raw/resume.wire.jsonl",
+            "sha256": "f37febe8776737b27b7fd711b3ca1e174d6a57cd299030498496befa44d10e1b"
+          },
+          {
+            "name": "runtime-2026-10-25-qwen-native-tools-raw/provider.json",
+            "sha256": "0ac54664229157e68b84cb90c14238b2a9b251718c51c1a6ee2ae8312e264e7d"
+          }
+        ],
+        "phases": [
+          {
+            "phase": "fresh",
+            "toolBlocks": [
+              {
+                "type": "tool_use",
+                "id": "native-echo",
+                "name": "mcp__echo__echo",
+                "input": {
+                  "text": "native-probe"
+                }
+              },
+              {
+                "type": "tool_result",
+                "tool_use_id": "native-echo",
+                "is_error": false,
+                "content": "echo:native-probe via=stdio token=none"
+              }
+            ],
+            "turnResult": {
+              "subtype": "success",
+              "is_error": false,
+              "result": "native answer"
+            }
+          },
+          {
+            "phase": "resume",
+            "toolBlocks": [
+              {
+                "type": "tool_use",
+                "id": "native-echo__qwen_dup_2",
+                "name": "mcp__echo__echo",
+                "input": {
+                  "text": "native-probe"
+                }
+              },
+              {
+                "type": "tool_result",
+                "tool_use_id": "native-echo__qwen_dup_2",
+                "is_error": true,
+                "content": "Duplicate provider tool call id \"native-echo\" was already handled. The duplicate tool call was ignored and not executed again. If you intended to run this tool again, re-issue the call with a new unique tool-call id (or explicitly different arguments)."
+              }
+            ],
+            "turnResult": {
+              "subtype": "success",
+              "is_error": false,
+              "result": "native answer"
+            }
+          }
+        ]
+      },
+      {
+        "date": "2026-10-25",
+        "version": "0.26.1",
+        "scenario": "permission",
+        "files": [
+          {
+            "name": "runtime-2026-10-25-qwen-native-permission-raw/facts.json",
+            "sha256": "098d885a7d29cf4ae78df98fa5547265f4e2ea2cc5a17ab101e2a1f42e798d45"
+          },
+          {
+            "name": "runtime-2026-10-25-qwen-native-permission-raw/fresh.wire.jsonl",
+            "sha256": "7f3e43c66c8dbbd02de7a4d44c4e2f49645540e01a3b2f6cc9a7d1e579973ca9"
+          },
+          {
+            "name": "runtime-2026-10-25-qwen-native-permission-raw/resume.wire.jsonl",
+            "sha256": "350ac4a2c7ed9408b2285c0de631095c6c3a88eb8919f183cf39d203df79ca99"
+          },
+          {
+            "name": "runtime-2026-10-25-qwen-native-permission-raw/provider.json",
+            "sha256": "83d2fbd7538b49373586fe4dffb382ac7f27f4b498505ed96f6c417c23347dc3"
+          }
+        ],
+        "phases": [
+          {
+            "phase": "fresh",
+            "toolBlocks": [
+              {
+                "type": "tool_use",
+                "id": "native-echo",
+                "name": "mcp__echo__echo",
+                "input": {
+                  "text": "native-probe"
+                }
+              },
+              {
+                "type": "tool_result",
+                "tool_use_id": "native-echo",
+                "is_error": false,
+                "content": "echo:native-probe via=stdio token=none"
+              }
+            ],
+            "turnResult": {
+              "subtype": "success",
+              "is_error": false,
+              "result": "native answer"
+            }
+          },
+          {
+            "phase": "resume",
+            "toolBlocks": [
+              {
+                "type": "tool_use",
+                "id": "native-echo__qwen_dup_2",
+                "name": "mcp__echo__echo",
+                "input": {
+                  "text": "native-probe"
+                }
+              },
+              {
+                "type": "tool_result",
+                "tool_use_id": "native-echo__qwen_dup_2",
+                "is_error": true,
+                "content": "Duplicate provider tool call id \"native-echo\" was already handled. The duplicate tool call was ignored and not executed again. If you intended to run this tool again, re-issue the call with a new unique tool-call id (or explicitly different arguments)."
+              }
+            ],
+            "turnResult": {
+              "subtype": "success",
+              "is_error": false,
+              "result": "native answer"
+            }
+          }
+        ]
+      },
+      {
+        "date": "2026-11-01",
+        "version": "0.26.5",
+        "scenario": "tools",
+        "files": [
+          {
+            "name": "runtime-2026-11-01-qwen-tools/facts.json",
+            "sha256": "2281523ed760f1b345ac528737119bcc784f3c3af928bdd3776d2a833031bf3e"
+          },
+          {
+            "name": "runtime-2026-11-01-qwen-tools/fresh.wire.jsonl",
+            "sha256": "d3c59490324fe24a7696decf90c207fc47ac5b69bbb8b6f1eae1594b7734b9a4"
+          },
+          {
+            "name": "runtime-2026-11-01-qwen-tools/resume.wire.jsonl",
+            "sha256": "0bf617ab4cf53f1dd01b902dc9345c4a1365c44ad6f69ea16bc509ec734b355e"
+          },
+          {
+            "name": "runtime-2026-11-01-qwen-tools/provider.json",
+            "sha256": "e5dac89e71cdb32b9e50910a773282036ed3aefe7258feaac70d83bb3e06074d"
+          }
+        ],
+        "phases": [
+          {
+            "phase": "fresh",
+            "toolBlocks": [
+              {
+                "type": "tool_use",
+                "id": "native-echo",
+                "name": "mcp__echo__echo",
+                "input": {
+                  "text": "native-probe"
+                }
+              },
+              {
+                "type": "tool_result",
+                "tool_use_id": "native-echo",
+                "is_error": false,
+                "content": "echo:native-probe via=stdio token=none"
+              }
+            ],
+            "turnResult": {
+              "subtype": "success",
+              "is_error": false,
+              "result": "tool completed"
+            }
+          },
+          {
+            "phase": "resume",
+            "toolBlocks": [
+              {
+                "type": "tool_use",
+                "id": "native-echo__qwen_dup_2",
+                "name": "mcp__echo__echo",
+                "input": {
+                  "text": "native-probe"
+                }
+              },
+              {
+                "type": "tool_result",
+                "tool_use_id": "native-echo__qwen_dup_2",
+                "is_error": true,
+                "content": "Duplicate provider tool call id \"native-echo\" was already handled. The duplicate tool call was ignored and not executed again. If you intended to run this tool again, re-issue the call with a new unique tool-call id (or explicitly different arguments)."
+              }
+            ],
+            "turnResult": {
+              "subtype": "error_during_execution",
+              "is_error": true,
+              "error": {
+                "message": "[API Error: 404 No fixture matched]"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "date": "2026-11-01",
+        "version": "0.26.5",
+        "scenario": "permission",
+        "files": [
+          {
+            "name": "runtime-2026-11-01-qwen-permission/facts.json",
+            "sha256": "b69c95ead1763f3229134c769b1134a31b159e30789dfc13fefe884bb11bf555"
+          },
+          {
+            "name": "runtime-2026-11-01-qwen-permission/fresh.wire.jsonl",
+            "sha256": "82d939aef5622bc7664a093c8dff1daccc29dff71a4dd1aea2d12514fb368246"
+          },
+          {
+            "name": "runtime-2026-11-01-qwen-permission/resume.wire.jsonl",
+            "sha256": "549c0c055946b8939004c4282ac2cdcb78936e227a9c713ae8be4be6edeeba93"
+          },
+          {
+            "name": "runtime-2026-11-01-qwen-permission/provider.json",
+            "sha256": "9cd03e99558985170ebb6cb9a94fc0c1d1479ec0872f970f660722c7ade64480"
+          }
+        ],
+        "phases": [
+          {
+            "phase": "fresh",
+            "toolBlocks": [
+              {
+                "type": "tool_use",
+                "id": "native-echo",
+                "name": "mcp__echo__echo",
+                "input": {
+                  "text": "native-probe"
+                }
+              },
+              {
+                "type": "tool_result",
+                "tool_use_id": "native-echo",
+                "is_error": false,
+                "content": "echo:native-probe via=stdio token=none"
+              }
+            ],
+            "turnResult": {
+              "subtype": "success",
+              "is_error": false,
+              "result": "tool completed"
+            }
+          },
+          {
+            "phase": "resume",
+            "toolBlocks": [
+              {
+                "type": "tool_use",
+                "id": "native-echo__qwen_dup_2",
+                "name": "mcp__echo__echo",
+                "input": {
+                  "text": "native-probe"
+                }
+              },
+              {
+                "type": "tool_result",
+                "tool_use_id": "native-echo__qwen_dup_2",
+                "is_error": true,
+                "content": "Duplicate provider tool call id \"native-echo\" was already handled. The duplicate tool call was ignored and not executed again. If you intended to run this tool again, re-issue the call with a new unique tool-call id (or explicitly different arguments)."
+              }
+            ],
+            "turnResult": {
+              "subtype": "error_during_execution",
+              "is_error": true,
+              "error": {
+                "message": "[API Error: 404 No fixture matched]"
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "publishedBundles": [
+      {
+        "version": "0.26.1",
+        "file": "chunks/chunk-Q3NSK7FV.js",
+        "sha256": "c478df30b9ec2f43384f6b4559f01a885db0c63971033864420c1d6a2a56f428",
+        "functionsPresent": [
+          "normalizeModelToolCallIds",
+          "collectToolCallIdsFromHistory",
+          "isReplayOfHandledToolCall",
+          "createDuplicateProviderToolCallResponse"
+        ]
+      },
+      {
+        "version": "0.26.2",
+        "file": "chunks/chunk-2XNBZWKL.js",
+        "sha256": "ad419dc25786c6f4ddc26de5bf04962d258575ca4fd6998e09c43e4f823d369b",
+        "functionsPresent": [
+          "normalizeModelToolCallIds",
+          "collectToolCallIdsFromHistory",
+          "isReplayOfHandledToolCall",
+          "createDuplicateProviderToolCallResponse"
+        ]
+      },
+      {
+        "version": "0.26.3",
+        "file": "chunks/chunk-ERV2ECV3.js",
+        "sha256": "7d2511a8317ee2c44edd2fd62b43966b9acfbfaac79175cd0cc9fb9ed42051c6",
+        "functionsPresent": [
+          "normalizeModelToolCallIds",
+          "collectToolCallIdsFromHistory",
+          "isReplayOfHandledToolCall",
+          "createDuplicateProviderToolCallResponse"
+        ]
+      },
+      {
+        "version": "0.26.4",
+        "file": "chunks/chunk-EZB3CCOL.js",
+        "sha256": "c57f56c87f8c67c0bbcb3a86afd5e872486d743955e3f9487eb52ac76294c4d0",
+        "functionsPresent": [
+          "normalizeModelToolCallIds",
+          "collectToolCallIdsFromHistory",
+          "isReplayOfHandledToolCall",
+          "createDuplicateProviderToolCallResponse"
+        ]
+      },
+      {
+        "version": "0.26.5",
+        "file": "chunks/chunk-XBXDDFWT.js",
+        "sha256": "9a80a1b9cbd46841a8b25b1696958cb9f11a4d5efcbec79ae27f98c02d3a5197",
+        "functionsPresent": [
+          "normalizeModelToolCallIds",
+          "collectToolCallIdsFromHistory",
+          "isReplayOfHandledToolCall",
+          "createDuplicateProviderToolCallResponse"
+        ]
+      }
+    ]
+  }
+}

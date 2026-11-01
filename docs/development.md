@@ -132,7 +132,7 @@ runtimes may legitimately differ.
   backends at once, leaving room for native CLIs' own threads and children.
   Every selected backend still runs, including after another backend fails.
   Pin local native binaries to the versions in CI (for example,
-  `OAR_CODEBUDDY_BIN=/absolute/path/to/2.179.0/codebuddy`) before comparing
+  `OAR_CODEBUDDY_BIN=/absolute/path/to/2.179.1/codebuddy`) before comparing
   results; an old installation discovered on PATH is not evidence about the
   pinned version. Use this command before pushing a change to shared runtime
   machinery. CI already runs backends on separate VMs and is unchanged;
@@ -243,7 +243,7 @@ or pull request whose changes are all Markdown files or under `docs/` or
   active cases, combined Vitest output and redacted Pi RPC stderr tails.
   These observations change no assertion, concurrency or native deadline and
   do not establish the cause of the intermittent Windows hangs.
-- `acp-behavior`: Kimi 2.4.1, Grok 1.0.70, OpenCode v1 1.19.5 and CodeBuddy 2.179.0 on
+- `acp-behavior`: Kimi 2.4.1, Grok 1.0.70, OpenCode v1 1.19.5 and CodeBuddy 2.179.1 on
   Linux and macOS, with npm download caches. Shared behavior and
   vendor tests use native programs with local scripted providers, isolated
   configuration and synthetic keys. Shared-case concurrency and Vitest
