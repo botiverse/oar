@@ -17,12 +17,14 @@ const profiles = [{ name: "kimi", profile: kimiAcpProfile }, { name: "antigravit
 const cleanups: (() => Promise<void>)[] = [];
 afterEach(async () => { await Promise.all(cleanups.splice(0).map(async (cleanup) => { await cleanup(); })); });
 
-async function fixture(profile: AcpSessionProfile, mode = "tools") {
+// Normal cancellation tests exercise coordination, not a 50 ms process deadline.
+// Only the explicit forced-exit controls opt into that short fallback.
+async function fixture(profile: AcpSessionProfile, mode = "tools", abortTimeoutMs = 5000) {
   const dir = await mkdtemp(path.join(tmpdir(), "interrupt-"));
   const control = path.join(dir, "control");
   const image = path.join(dir, "shot.png");
   await writeFile(image, "png");
-  const session = await acpSession({ ...profile, args: [fileURLToPath(new URL("fixtures/fake-acp-interrupt.mjs", import.meta.url)), control, mode], abortTimeoutMs: 50, usageUpdateTimeoutMs: 10 })(
+  const session = await acpSession({ ...profile, args: [fileURLToPath(new URL("fixtures/fake-acp-interrupt.mjs", import.meta.url)), control, mode], abortTimeoutMs, usageUpdateTimeoutMs: 10 })(
     { kind: "available", via: "executable", command: process.execPath }, { cwd: dir },
   );
   cleanups.push(async () => { await session.dispose(); await rm(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 }); });
@@ -96,7 +98,7 @@ for (const { name, profile } of profiles) {
   });
 
   test(`${name}: deadline interrupts unfinished tools; a forced process exit returns all input identities`, async () => {
-    const { session } = await fixture(profile, "ignore-cancel");
+    const { session } = await fixture(profile, "ignore-cancel", 50);
     await working(session);
     const queued = await session.queue("saved");
     const delivered = await session.deliver("urgent", { when: "interrupt", maxWaitMs: 20 });
@@ -146,7 +148,36 @@ test("rejected concurrent queue attempts release the coordinator for the next in
   const refused = await Promise.all([session.deliver("", { when: "interrupt", maxWaitMs: 0 }), session.deliver("", { when: "interrupt", maxWaitMs: 0 })]);
   expect(refused.map((result) => result.landed)).toEqual(["rejected", "rejected"]);
   const next = await session.deliver("valid", { when: "interrupt", maxWaitMs: 0 });
-  expect(next.landed).toBe("prompted");
+  expect(next.landed, JSON.stringify({ delivery: next, records: session.records().slice(-30) })).toBe("prompted");
+});
+
+test("interrupt returns every withdrawn input when cancellation fallback expires while the host is paused", async () => {
+  const { session } = await fixture(opencodeV2AcpProfile, "tools", 50);
+  await working(session);
+  const earlier = await session.queue("saved");
+  if (earlier.request.body.kind !== "queue") { throw new Error("expected queue"); }
+  let abortId: string | null = null;
+  let paused = false;
+  const unsubscribe = session.rawEvents((record) => {
+    if (record.kind === "request" && record.body.kind === "abort") { abortId = record.id; }
+    if (!paused && record.kind === "response" && record.requestId === abortId && record.body.kind === "accepted") {
+      paused = true;
+      // The native cancel was sent and its 50 ms fallback is armed. Hold this
+      // host past that deadline even if the fixture replies in the meantime.
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 100);
+    }
+  });
+  try {
+    const delivered = await session.deliver("urgent", { when: "interrupt", maxWaitMs: 0 });
+    const evidence = JSON.stringify({ delivery: delivered, records: session.records().slice(-30) });
+    expect(paused, evidence).toBe(true);
+    expect(delivered, evidence).toMatchObject({
+      landed: "rejected",
+      code: "runtime_exited",
+      undeliveredInputIds: [earlier.request.body.inputId, delivered.inputId],
+    });
+    expect(requests(session, "prompt"), evidence).toHaveLength(1);
+  } finally { unsubscribe(); }
 });
 
 test("interrupt uses an immediate boundary when no root tools are active", async () => {
