@@ -1,0 +1,962 @@
+{
+  "checkedAt": "2026-11-01T12:03:02.942Z",
+  "oarBase": "9c1cf873e01de03e05bb223ff34b8db459408557",
+  "platform": "linux-x64",
+  "node": "v24.19.0",
+  "versions": [
+    {
+      "runtime": "antigravity",
+      "source": "https://raw.githubusercontent.com/agentclientprotocol/registry/main/antigravity-acp/agent.json",
+      "latest": "1.4.5"
+    },
+    {
+      "runtime": "claude",
+      "source": "https://registry.npmjs.org/@anthropic-ai/claude-code/latest",
+      "latest": "2.1.316"
+    },
+    {
+      "runtime": "codex",
+      "source": "https://registry.npmjs.org/@openai/codex/latest",
+      "latest": "0.166.0"
+    },
+    {
+      "runtime": "cursor",
+      "source": "https://registry.npmjs.org/@cursor/sdk/latest",
+      "latest": "1.2.0"
+    },
+    {
+      "runtime": "grok",
+      "source": "https://x.ai/cli/stable",
+      "latest": "1.0.70",
+      "initialError": "fetch failed",
+      "confirmation": "Separate curl request to stable pointer; npm latest agrees"
+    },
+    {
+      "runtime": "kimi",
+      "source": "https://registry.npmjs.org/@moonshot-ai/kimi-code/latest",
+      "latest": "2.4.1"
+    },
+    {
+      "runtime": "opencode",
+      "line": "v1",
+      "source": "https://registry.npmjs.org/opencode-ai/latest",
+      "latest": "1.19.5"
+    },
+    {
+      "runtime": "opencode",
+      "line": "v2",
+      "source": "https://registry.npmjs.org/@opencode/cli/latest",
+      "latest": "2.2.5"
+    },
+    {
+      "runtime": "codebuddy",
+      "source": "https://registry.npmjs.org/@tencent-ai/codebuddy-code/latest",
+      "latest": "2.179.1"
+    },
+    {
+      "runtime": "qoder",
+      "source": "https://registry.npmjs.org/@qoder-ai/qodercli/latest",
+      "latest": "1.1.81"
+    },
+    {
+      "runtime": "qwen",
+      "source": "https://registry.npmjs.org/@qwen-code/qwen-code/latest",
+      "latest": "0.26.5"
+    },
+    {
+      "runtime": "pi",
+      "source": "https://registry.npmjs.org/@earendil-works/pi-coding-agent/latest",
+      "latest": "1.4.0"
+    },
+    {
+      "runtime": "pi-durable",
+      "source": "https://registry.npmjs.org/@earendil-works/pi-durable/latest",
+      "latest": "1.4.0"
+    }
+  ],
+  "behavior": {
+    "codebuddy": {
+      "passed": 16,
+      "skipped": 3,
+      "failed": 0
+    },
+    "qwen": {
+      "passed": 16,
+      "skipped": 3,
+      "failed": 0
+    }
+  },
+  "vendor": {
+    "codebuddy": 5,
+    "qwen": 11
+  },
+  "codebuddyStandalone": {
+    "version": "2.179.1",
+    "source": "https://acc-1258344699.cos.accelerate.myqcloud.com/@tencent-ai/codebuddy-code/releases/download/2.179.1/codebuddy-code_Linux_x86_64.tar.gz",
+    "sha256": "6d032c372414d89e905b1210d1333e078224f8fe894f0402299079e97359b930"
+  },
+  "codebuddyStreamJson": [
+    {
+      "delayMs": 0,
+      "initialized": true,
+      "results": 2,
+      "requests": [
+        {
+          "number": 1,
+          "prompt": "first"
+        },
+        {
+          "number": 2,
+          "prompt": "second"
+        },
+        {
+          "number": 3,
+          "prompt": "second"
+        }
+      ],
+      "timedOut": false,
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "delayMs": 0,
+      "initialized": true,
+      "results": 2,
+      "requests": [
+        {
+          "number": 1,
+          "prompt": "first"
+        },
+        {
+          "number": 2,
+          "prompt": "second"
+        },
+        {
+          "number": 3,
+          "prompt": "second"
+        }
+      ],
+      "timedOut": false,
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "delayMs": 0,
+      "initialized": true,
+      "results": 2,
+      "requests": [
+        {
+          "number": 1,
+          "prompt": "first"
+        },
+        {
+          "number": 2,
+          "prompt": "second"
+        },
+        {
+          "number": 3,
+          "prompt": "second"
+        }
+      ],
+      "timedOut": false,
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "delayMs": 1000,
+      "initialized": true,
+      "results": 2,
+      "requests": [
+        {
+          "number": 1,
+          "prompt": "first"
+        },
+        {
+          "number": 2,
+          "prompt": "second"
+        }
+      ],
+      "timedOut": false,
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "delayMs": 1000,
+      "initialized": true,
+      "results": 2,
+      "requests": [
+        {
+          "number": 1,
+          "prompt": "first"
+        },
+        {
+          "number": 2,
+          "prompt": "second"
+        }
+      ],
+      "timedOut": false,
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "delayMs": 1000,
+      "initialized": true,
+      "results": 2,
+      "requests": [
+        {
+          "number": 1,
+          "prompt": "first"
+        },
+        {
+          "number": 2,
+          "prompt": "second"
+        }
+      ],
+      "timedOut": false,
+      "exitCode": 0,
+      "signal": null
+    }
+  ],
+  "codebuddyAcp": {
+    "pass": true,
+    "protocol": "acp",
+    "delayMs": 0,
+    "initialized": true,
+    "results": 2,
+    "stopReasons": [
+      "end_turn",
+      "end_turn"
+    ],
+    "requests": [
+      {
+        "number": 1,
+        "prompt": "first",
+        "purpose": "title",
+        "model": "deepseek-flash",
+        "stream": true
+      },
+      {
+        "number": 2,
+        "prompt": "first",
+        "purpose": "conversation",
+        "model": "deepseek-flash",
+        "stream": true
+      },
+      {
+        "number": 3,
+        "prompt": "first",
+        "purpose": "title",
+        "model": "deepseek-flash",
+        "stream": true
+      },
+      {
+        "number": 4,
+        "prompt": "second",
+        "purpose": "conversation",
+        "model": "deepseek-flash",
+        "stream": true
+      }
+    ],
+    "errors": [],
+    "timedOut": false,
+    "exitCode": null,
+    "signal": "SIGTERM"
+  },
+  "qwenLock": [
+    {
+      "phase": "warm-home initialize with held lock",
+      "elapsedMs": 1859,
+      "requests": 0
+    },
+    {
+      "phase": "first prompt blocked after initialize",
+      "lockHeld": true,
+      "requests": 0
+    },
+    {
+      "phase": "first prompt after releasing lock",
+      "outcome": "completed"
+    },
+    {
+      "phase": "ordinary later prompt with held lock",
+      "outcome": "completed"
+    }
+  ],
+  "qwenCredentialSources": {
+    "file": "chunk-57G2YE5Y.js",
+    "presetEnvKeys": [
+      "BAILIAN_CODING_PLAN_API_KEY",
+      "BAILIAN_TOKEN_PLAN_API_KEY",
+      "DASHSCOPE_API_KEY",
+      "DEEPSEEK_API_KEY",
+      "IDEALAB_API_KEY",
+      "MINIMAX_API_KEY",
+      "MODELSCOPE_API_KEY",
+      "MOONSHOT_API_KEY",
+      "OPENROUTER_API_KEY",
+      "QWENCLOUD_API_KEY",
+      "QWENCLOUD_TOKEN_PLAN_API_KEY",
+      "REQUESTY_API_KEY",
+      "XAI_API_KEY",
+      "ZAI_API_KEY"
+    ],
+    "uncovered": []
+  },
+  "qwenInitialMcpFailures": [
+    {
+      "scenario": "tools",
+      "probeExitCode": 0,
+      "resumedResult": "error_during_execution",
+      "nativeError": "[API Error: 404 No fixture matched]",
+      "cause": "Probe reused native-echo; native duplicate-id result used native-echo__qwen_dup_2, which the provider fixture did not match"
+    },
+    {
+      "scenario": "permission",
+      "probeExitCode": 0,
+      "resumedResult": "error_during_execution",
+      "nativeError": "[API Error: 404 No fixture matched]",
+      "cause": "Probe reused native-echo; native duplicate-id result used native-echo__qwen_dup_2, which the provider fixture did not match"
+    }
+  ],
+  "qwenCorrectedMcp": [
+    {
+      "scenario": "tools",
+      "probeExitCode": 0,
+      "results": [
+        {
+          "resume": false,
+          "subtype": "success",
+          "isError": false,
+          "result": "tool completed"
+        },
+        {
+          "resume": true,
+          "subtype": "success",
+          "isError": false,
+          "result": "tool completed"
+        }
+      ],
+      "echoes": [
+        "echo:fresh-probe via=stdio token=none",
+        "echo:resumed-probe via=stdio token=none"
+      ],
+      "permissionRequests": {
+        "fresh": 0,
+        "resume": 0
+      }
+    },
+    {
+      "scenario": "permission",
+      "probeExitCode": 0,
+      "results": [
+        {
+          "resume": false,
+          "subtype": "success",
+          "isError": false,
+          "result": "tool completed"
+        },
+        {
+          "resume": true,
+          "subtype": "success",
+          "isError": false,
+          "result": "tool completed"
+        }
+      ],
+      "echoes": [
+        "echo:fresh-probe via=stdio token=none",
+        "echo:resumed-probe via=stdio token=none"
+      ],
+      "permissionRequests": {
+        "fresh": 1,
+        "resume": 1
+      }
+    }
+  ],
+  "qwenNativeScenarios": [
+    {
+      "scenario": "plain",
+      "probeExitCode": 0,
+      "results": [
+        {
+          "resume": false,
+          "phase": "first",
+          "subtype": "success",
+          "isError": false
+        },
+        {
+          "resume": false,
+          "phase": "second",
+          "subtype": "success",
+          "isError": false
+        },
+        {
+          "resume": false,
+          "phase": "interrupted",
+          "subtype": "error_during_execution",
+          "isError": true
+        },
+        {
+          "resume": false,
+          "phase": "afterAbort",
+          "subtype": "success",
+          "isError": false
+        },
+        {
+          "resume": true,
+          "phase": "first",
+          "subtype": "success",
+          "isError": false
+        },
+        {
+          "resume": true,
+          "phase": "second",
+          "subtype": "success",
+          "isError": false
+        },
+        {
+          "resume": true,
+          "phase": "interrupted",
+          "subtype": "error_during_execution",
+          "isError": true
+        },
+        {
+          "resume": true,
+          "phase": "afterAbort",
+          "subtype": "success",
+          "isError": false
+        }
+      ]
+    },
+    {
+      "scenario": "catalog",
+      "probeExitCode": 0,
+      "results": [
+        {
+          "resume": false,
+          "phase": "first",
+          "subtype": "success",
+          "isError": false
+        },
+        {
+          "resume": false,
+          "phase": "second",
+          "subtype": "success",
+          "isError": false
+        },
+        {
+          "resume": false,
+          "phase": "interrupted",
+          "subtype": "error_during_execution",
+          "isError": true
+        },
+        {
+          "resume": false,
+          "phase": "afterAbort",
+          "subtype": "success",
+          "isError": false
+        },
+        {
+          "resume": true,
+          "phase": "first",
+          "subtype": "success",
+          "isError": false
+        },
+        {
+          "resume": true,
+          "phase": "second",
+          "subtype": "success",
+          "isError": false
+        },
+        {
+          "resume": true,
+          "phase": "interrupted",
+          "subtype": "error_during_execution",
+          "isError": true
+        },
+        {
+          "resume": true,
+          "phase": "afterAbort",
+          "subtype": "success",
+          "isError": false
+        }
+      ]
+    },
+    {
+      "scenario": "reply-blocks",
+      "probeExitCode": 0,
+      "results": [
+        {
+          "resume": false,
+          "phase": "first",
+          "subtype": "success",
+          "isError": false
+        },
+        {
+          "resume": false,
+          "phase": "second",
+          "subtype": "success",
+          "isError": false
+        },
+        {
+          "resume": false,
+          "phase": "interrupted",
+          "subtype": "error_during_execution",
+          "isError": true
+        },
+        {
+          "resume": false,
+          "phase": "afterAbort",
+          "subtype": "success",
+          "isError": false
+        },
+        {
+          "resume": true,
+          "phase": "first",
+          "subtype": "success",
+          "isError": false
+        },
+        {
+          "resume": true,
+          "phase": "second",
+          "subtype": "success",
+          "isError": false
+        },
+        {
+          "resume": true,
+          "phase": "interrupted",
+          "subtype": "error_during_execution",
+          "isError": true
+        },
+        {
+          "resume": true,
+          "phase": "afterAbort",
+          "subtype": "success",
+          "isError": false
+        }
+      ]
+    }
+  ],
+  "qwenReplyBlocks": {
+    "messageStarts": 1,
+    "blockStartIndices": [
+      0,
+      0
+    ],
+    "snapshots": [
+      {
+        "blockTypes": [
+          "thinking"
+        ],
+        "idMatchesInitial": true
+      },
+      {
+        "blockTypes": [
+          "text"
+        ],
+        "idMatchesInitial": false
+      }
+    ]
+  },
+  "windowsAcp": {
+    "windowStart": "2026-10-31T11:59:49Z",
+    "windowEnd": "2026-11-01T12:03:02.942Z",
+    "runs": 11,
+    "jobs": 33,
+    "failedJobs": 5,
+    "observations": [
+      {
+        "id": 41249324401,
+        "name": "Windows ACP observations",
+        "sha": "9c1cf873",
+        "jobs": 3,
+        "unsuccessful": [
+          {
+            "id": 124679329799,
+            "name": "acp-windows (windows-latest, grok-aimock)",
+            "conclusion": "failure",
+            "start": "2026-10-31T22:41:45Z",
+            "end": "2026-10-31T22:46:35Z",
+            "steps": [
+              {
+                "name": "Run pnpm vitest run sea-trial/vendor --maxWorkers 2",
+                "started_at": "2026-10-31T22:43:26Z",
+                "completed_at": "2026-10-31T22:46:05Z",
+                "conclusion": "failure"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 41243266234,
+        "name": "Windows ACP observations",
+        "sha": "ddec7e57",
+        "jobs": 3,
+        "unsuccessful": [
+          {
+            "id": 124661356201,
+            "name": "acp-windows (windows-latest, grok-aimock)",
+            "conclusion": "failure",
+            "start": "2026-10-31T21:22:14Z",
+            "end": "2026-10-31T21:24:19Z",
+            "steps": [
+              {
+                "name": "Run pnpm run sea-trial",
+                "started_at": "2026-10-31T21:22:58Z",
+                "completed_at": "2026-10-31T21:23:51Z",
+                "conclusion": "failure"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 41241375461,
+        "name": "Windows ACP observations",
+        "sha": "2c67f52d",
+        "jobs": 3,
+        "unsuccessful": []
+      },
+      {
+        "id": 41232969149,
+        "name": "Windows ACP observations",
+        "sha": "865126b7",
+        "jobs": 3,
+        "unsuccessful": []
+      },
+      {
+        "id": 41230703452,
+        "name": "Windows ACP observations",
+        "sha": "ffffc9fb",
+        "jobs": 3,
+        "unsuccessful": []
+      },
+      {
+        "id": 41229123713,
+        "name": "Windows ACP observations",
+        "sha": "ed875a15",
+        "jobs": 3,
+        "unsuccessful": []
+      },
+      {
+        "id": 41228727506,
+        "name": "Windows ACP observations",
+        "sha": "20847e9e",
+        "jobs": 3,
+        "unsuccessful": [
+          {
+            "id": 124618239326,
+            "name": "acp-windows (windows-latest, grok-aimock)",
+            "conclusion": "failure",
+            "start": "2026-10-31T18:18:10Z",
+            "end": "2026-10-31T18:23:09Z",
+            "steps": [
+              {
+                "name": "Run pnpm vitest run sea-trial/vendor --maxWorkers 2",
+                "started_at": "2026-10-31T18:19:57Z",
+                "completed_at": "2026-10-31T18:22:38Z",
+                "conclusion": "failure"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 41225849209,
+        "name": "Windows ACP observations",
+        "sha": "6c3604f6",
+        "jobs": 3,
+        "unsuccessful": []
+      },
+      {
+        "id": 41220310258,
+        "name": "Windows ACP observations",
+        "sha": "7c888bdd",
+        "jobs": 3,
+        "unsuccessful": [
+          {
+            "id": 124593292014,
+            "name": "acp-windows (windows-latest, opencode-aimock)",
+            "conclusion": "failure",
+            "start": "2026-10-31T16:34:11Z",
+            "end": "2026-10-31T16:43:35Z",
+            "steps": [
+              {
+                "name": "Run pnpm vitest run sea-trial/vendor --maxWorkers 2",
+                "started_at": "2026-10-31T16:36:47Z",
+                "completed_at": "2026-10-31T16:43:31Z",
+                "conclusion": "failure"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 41208880929,
+        "name": "Windows ACP observations",
+        "sha": "5b9f9642",
+        "jobs": 3,
+        "unsuccessful": [
+          {
+            "id": 124559500661,
+            "name": "acp-windows (windows-latest, grok-aimock)",
+            "conclusion": "failure",
+            "start": "2026-10-31T14:10:17Z",
+            "end": "2026-10-31T14:12:54Z",
+            "steps": [
+              {
+                "name": "Run pnpm run sea-trial",
+                "started_at": "2026-10-31T14:11:19Z",
+                "completed_at": "2026-10-31T14:12:18Z",
+                "conclusion": "failure"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": 41203431769,
+        "name": "Windows ACP observations",
+        "sha": "bc49cb3c",
+        "jobs": 3,
+        "unsuccessful": []
+      }
+    ]
+  },
+  "mainCheckObservation": {
+    "runId": 41230703385,
+    "jobId": 124624137612,
+    "failure": "tests/pi-rpc-diagnostics.test.ts expected exit 124, observed null with empty output",
+    "secondaryFailure": "OpenCode lifecycle controls ran after their installation step was skipped",
+    "nativePiVendorCancellation": false,
+    "latestMainRun": 41249324384,
+    "latestMainConclusion": "success"
+  },
+  "upstream": {
+    "opencode-54794": {
+      "html_url": "https://github.com/anomalyco/opencode/issues/54794",
+      "state": "open",
+      "updated_at": "2026-10-12T20:53:16Z",
+      "comments": 2
+    },
+    "opencode-53879": {
+      "html_url": "https://github.com/anomalyco/opencode/issues/53879",
+      "state": "open",
+      "updated_at": "2026-10-29T17:18:46Z",
+      "comments": 4
+    },
+    "kimi-2370": {
+      "html_url": "https://github.com/MoonshotAI/kimi-cli/issues/2370",
+      "state": "open",
+      "updated_at": "2026-09-12T16:09:18Z",
+      "comments": 1
+    },
+    "qwen-15796": {
+      "html_url": "https://github.com/QwenLM/qwen-code/issues/15796",
+      "state": "open",
+      "updated_at": "2026-10-28T13:14:10Z",
+      "comments": 2
+    },
+    "qwen-15875": {
+      "html_url": "https://github.com/QwenLM/qwen-code/issues/15875",
+      "state": "open",
+      "updated_at": "2026-10-29T15:08:19Z",
+      "comments": 2
+    },
+    "codebuddy1847": {
+      "url": "https://cnb.cool/codebuddy/codebuddy-code/-/issues/1847",
+      "state": "open",
+      "comments": 0,
+      "updatedAt": "2026-10-28T06:32:16Z"
+    },
+    "dsh": {
+      "head": "ce7073d51254c26cd63b22a60835b8f948deb447",
+      "watchedPathsChanged": false,
+      "latestDiscussionComment": 19314203,
+      "technicalUpdate": false
+    },
+    "agy": {
+      "cliVersion": "1.4.12",
+      "publicHead": "841f45db2226ce15f5d1f52c580e35181e74ff68",
+      "acpVersion": "1.4.5",
+      "controlRequestSupported": false
+    }
+  },
+  "additionalPackageVersions": {
+    "pi-ai": {
+      "version": "1.4.0",
+      "source": "https://registry.npmjs.org/@earendil-works/pi-ai/latest"
+    },
+    "chord": {
+      "version": "1.4.0",
+      "source": "https://registry.npmjs.org/@earendil-works/chord/latest"
+    }
+  },
+  "localInterruptObservation": {
+    "initialCheck": {
+      "passed": 2947,
+      "failed": 1,
+      "test": "rejected concurrent queue attempts release the coordinator for the next interrupt",
+      "expected": "prompted",
+      "observed": "rejected",
+      "rejectionDetailsRecorded": false
+    },
+    "unchangedFocusedRecheckPassed": 20,
+    "instrumentedFullSuiteRepeatedCasePassed": 20,
+    "controlledTimings": [
+      {
+        "fallbackMs": 50,
+        "hostPauseMs": 0,
+        "run": 1,
+        "initialRefusals": [
+          "rejected",
+          "rejected"
+        ],
+        "landed": "prompted",
+        "code": null,
+        "undeliveredOwnInput": false
+      },
+      {
+        "fallbackMs": 50,
+        "hostPauseMs": 0,
+        "run": 2,
+        "initialRefusals": [
+          "rejected",
+          "rejected"
+        ],
+        "landed": "prompted",
+        "code": null,
+        "undeliveredOwnInput": false
+      },
+      {
+        "fallbackMs": 50,
+        "hostPauseMs": 0,
+        "run": 3,
+        "initialRefusals": [
+          "rejected",
+          "rejected"
+        ],
+        "landed": "prompted",
+        "code": null,
+        "undeliveredOwnInput": false
+      },
+      {
+        "fallbackMs": 50,
+        "hostPauseMs": 100,
+        "run": 1,
+        "initialRefusals": [
+          "rejected",
+          "rejected"
+        ],
+        "landed": "rejected",
+        "code": "runtime_exited",
+        "undeliveredOwnInput": true
+      },
+      {
+        "fallbackMs": 50,
+        "hostPauseMs": 100,
+        "run": 2,
+        "initialRefusals": [
+          "rejected",
+          "rejected"
+        ],
+        "landed": "rejected",
+        "code": "runtime_exited",
+        "undeliveredOwnInput": true
+      },
+      {
+        "fallbackMs": 50,
+        "hostPauseMs": 100,
+        "run": 3,
+        "initialRefusals": [
+          "rejected",
+          "rejected"
+        ],
+        "landed": "rejected",
+        "code": "runtime_exited",
+        "undeliveredOwnInput": true
+      },
+      {
+        "fallbackMs": 5000,
+        "hostPauseMs": 0,
+        "run": 1,
+        "initialRefusals": [
+          "rejected",
+          "rejected"
+        ],
+        "landed": "prompted",
+        "code": null,
+        "undeliveredOwnInput": false
+      },
+      {
+        "fallbackMs": 5000,
+        "hostPauseMs": 0,
+        "run": 2,
+        "initialRefusals": [
+          "rejected",
+          "rejected"
+        ],
+        "landed": "prompted",
+        "code": null,
+        "undeliveredOwnInput": false
+      },
+      {
+        "fallbackMs": 5000,
+        "hostPauseMs": 0,
+        "run": 3,
+        "initialRefusals": [
+          "rejected",
+          "rejected"
+        ],
+        "landed": "prompted",
+        "code": null,
+        "undeliveredOwnInput": false
+      },
+      {
+        "fallbackMs": 5000,
+        "hostPauseMs": 100,
+        "run": 1,
+        "initialRefusals": [
+          "rejected",
+          "rejected"
+        ],
+        "landed": "prompted",
+        "code": null,
+        "undeliveredOwnInput": false
+      },
+      {
+        "fallbackMs": 5000,
+        "hostPauseMs": 100,
+        "run": 2,
+        "initialRefusals": [
+          "rejected",
+          "rejected"
+        ],
+        "landed": "prompted",
+        "code": null,
+        "undeliveredOwnInput": false
+      },
+      {
+        "fallbackMs": 5000,
+        "hostPauseMs": 100,
+        "run": 3,
+        "initialRefusals": [
+          "rejected",
+          "rejected"
+        ],
+        "landed": "prompted",
+        "code": null,
+        "undeliveredOwnInput": false
+      }
+    ],
+    "conclusion": "The controlled pause reproduces the configured fallback refusal; the first failure lacks enough diagnostics to establish the same cause. Product behavior preserves the input identity; test-only follow-up adds diagnostics and separates normal-cancel timing from the forced-exit regression."
+  },
+  "repositoryValidation": {
+    "fullCheck": "passed on recheck; initial failure retained above",
+    "testsPassed": 2948,
+    "mockBehaviorPassed": 18,
+    "actionlint": "passed",
+    "interruptTestChanged": false,
+    "productFilesChanged": false
+  }
+}

@@ -10,7 +10,7 @@ import { setTimeout as sleep } from "node:timers/promises";
 import { asRecord, parseJson } from "../../packages/oar/src/shared/json.js";
 import { createInterface } from "node:readline";
 import { LLMock } from "@copilotkit/aimock";
-import { ECHO_SERVER, currentTurnSays } from "../../sea-trial/vendor/support/echo-mcp.js";
+import { ECHO_SERVER, currentTurnSays, echoesReceived } from "../../sea-trial/vendor/support/echo-mcp.js";
 import { startRawCapture } from "../../sea-trial/harness/raw-capture.js";
 
 const [binary, output, scenario = "plain"] = process.argv.slice(2);
@@ -22,8 +22,11 @@ const home = path.join(root, "home");
 const cwd = path.join(root, "project");
 await Promise.all([out, home, cwd].map(async (dir) => { await mkdir(dir, { recursive: true }); }));
 const mock = new LLMock({ port: 0 });
-mock.on({ predicate: currentTurnSays(/MCP_MARKER/u), hasToolResult: false }, { toolCalls: [{ id: "native-echo", name: "mcp__echo__echo", arguments: JSON.stringify({ text: "native-probe" }) }] });
-mock.onToolResult("native-echo", { content: "tool completed" });
+for (const phase of ["fresh", "resumed"]) {
+  const id = `native-echo-${phase}`;
+  mock.on({ predicate: currentTurnSays(new RegExp(`MCP_MARKER_${phase}`, "u")), hasToolResult: false }, { toolCalls: [{ id, name: "mcp__echo__echo", arguments: JSON.stringify({ text: `${phase}-probe` }) }] });
+  mock.onToolResult(id, { content: "tool completed" });
+}
 mock.onMessage(/SLOW_MARKER/u, { content: "slow answer" }, { latency: 3000 });
 mock.onMessage(/^(?![\s\S]*(?:SLOW_MARKER|MCP_MARKER))[\s\S]*$/u, scenario === "reply-blocks"
   ? { content: "A repeated paragraph.\nA repeated paragraph.\n", reasoning: "Synthetic reasoning in a separate channel." }
@@ -49,6 +52,7 @@ if (scenario === "catalog") {
 const tools = scenario === "tools" || scenario === "permission";
 const sessionId = randomUUID();
 const facts: unknown[] = [];
+const mcpResults: Record<string, unknown>[] = [];
 async function native(resume: boolean): Promise<void> {
   const wire: { direction: string; message: Record<string, unknown> }[] = [];
   const errors: string[] = [];
@@ -94,7 +98,11 @@ async function native(resume: boolean): Promise<void> {
   try {
     facts.push({ resume, initialize: await request({ subtype: "initialize", effort: "medium", ...(tools ? { mcpServers: { echo: { command: process.execPath, args: [ECHO_SERVER] } } } : {}) }) });
     for (const subtype of ["get_usage_info", "get_context_usage"]) { facts.push({ resume, beforeFirst: subtype, response: await request({ subtype }) }); }
-    if (tools) { facts.push({ resume, mcp: await prompt("MCP_MARKER") }); }
+    if (tools) {
+      const mcp = await prompt(resume ? "MCP_MARKER_resumed" : "MCP_MARKER_fresh");
+      facts.push({ resume, mcp });
+      mcpResults.push(mcp);
+    }
     facts.push({ resume, first: await prompt(resume ? "resumed marker" : "first marker") });
     facts.push({ resume, second: await prompt("second marker") });
     for (const subtype of ["get_available_models", "get_context_usage", "get_usage_info"]) { facts.push({ resume, subtype, response: await request({ subtype }) }); }
@@ -119,5 +127,10 @@ finally {
   await writeFile(path.join(out, "facts.json"), JSON.stringify({ sessionId, root, facts }, null, 2));
   await writeFile(path.join(out, "provider.json"), JSON.stringify(capture.requests, null, 2));
   await capture.stop(); await mock.stop();
+}
+if (tools) {
+  assert.equal(mcpResults.length, 2, "MCP evidence must include new and resumed sessions");
+  for (const result of mcpResults) { assert.equal(result.is_error, false, JSON.stringify(result)); }
+  assert.deepEqual(echoesReceived(capture.requests), ["echo:fresh-probe via=stdio token=none", "echo:resumed-probe via=stdio token=none"]);
 }
 console.log(`Native evidence saved to ${out}`);

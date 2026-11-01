@@ -24,6 +24,17 @@ warm-HOME lock probe below also passed its assertions, reproducing the existing
 readiness limitation. See the [dated report](../runtime-version-checks/2026-10-25.md#qwen-0261)
 for the separate OAR vendor, behavior and installation checks.
 
+Rechecked **0.26.5** on 2026-11-01. The original tools and permission
+scenarios reused `native-echo` after resume. Qwen rejected the duplicate id,
+and the local provider could not match its renamed error result. Both runs
+were captured with exit 0 because this script previously only recorded the
+native failure. The probe now uses a distinct id and echo marker for each
+phase, and fails unless both native results succeed and both actual tool
+results reach the provider. The corrected controls passed; the
+[dated report](../runtime-version-checks/2026-11-01.md#qwen-0265)
+retains the initial failures separately. This changes the probe, not OAR's
+transport or Qwen's duplicate-id handling.
+
 Observed 2026-10-23 on npm 0.26.0, published source
 ac97ce7a70d9b2ea5d62b357e3d9b0851423afc9:
 

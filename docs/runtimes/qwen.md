@@ -28,6 +28,14 @@ after initialize succeeds. The provider preset key names remain covered by
 the local credential reader. See the
 [version check](../../experiments/runtime-version-checks/2026-10-29.md#qwen-0263-and-0264).
 
+Rechecked npm **0.26.5** on Linux on 2026-11-01: all 11 native vendor tests
+and 16 applicable behavior cases passed. Snapshot ids and extension-store locking
+retain the limits above; all fourteen preset credential variables remain
+covered. The direct probe now gives new and resumed MCP calls different ids
+and asserts both actual echo results: the old fixture reused an id that the
+native runtime rejects. [Daily evidence](../../experiments/runtime-version-checks/2026-11-01.md#qwen-0265)
+retains the initial fixture failures and corrected controls.
+
 ## OAR mapping
 
 `qwenRuntime` is in `defaultRuntimes` and available separately from
