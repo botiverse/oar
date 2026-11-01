@@ -28,15 +28,15 @@ test.each([false, true])("ACP background query queue: wait before cancelling = %
   const entered = Promise.withResolvers<void>(), release = Promise.withResolvers<void>();
   const owned: number[] = [], source = tables.processTableSource();
   const queries: { background: boolean; started: number; finished?: number }[] = [];
-  const reads: ReturnType<typeof tables.observeProcessTableAsync>[] = [];
+  let secondCancelRequested = false;
   const observations: Record<string, unknown>[] = [];
   const batch = tables.batchProcessTableReads(async (selected, options) => {
     const timing: { background: boolean; started: number; finished?: number } = { background: options?.background === true, started: performance.now() };
     queries.push(timing);
     if (options?.background === true) { entered.resolve(); await release.promise; }
-    // The expired first caller still owns a queued read. Keep it pending long
-    // enough to expose a second cancellation that accidentally queues behind it.
-    if (!waitBeforeCancel && queries.length === 2) { await delay(2000); }
+    // A read left behind by the first expired caller would occupy the next
+    // cancellation's budget. Delay only that unwanted read, never the fresh one.
+    if (!waitBeforeCancel && options?.background !== true && !secondCancelRequested) { await delay(2000); }
     const result = await tables.observeProcessTableOnce(selected, options);
     timing.finished = performance.now();
     return result;
@@ -46,9 +46,7 @@ test.each([false, true])("ACP background query queue: wait before cancelling = %
     if (process.platform === "win32") {
       await expect.poll(() => processTablePreparation(), { timeout: 6000 }).toMatchObject({ ok: true });
     }
-    vi.spyOn(tables, "observeProcessTableAsync").mockImplementation(async (selected, options) => {
-      const read = batch(selected ?? source, options); reads.push(read); return read;
-    });
+    vi.spyOn(tables, "observeProcessTableAsync").mockImplementation(async (selected, options) => batch(selected ?? source, options));
     const observe = cancellation.observeBeforeCancellation;
     vi.spyOn(cancellation, "observeBeforeCancellation").mockImplementation(async () => {
       const requested = performance.now(), result = await observe();
@@ -72,6 +70,10 @@ test.each([false, true])("ACP background query queue: wait before cancelling = %
         // eslint-disable-next-line no-await-in-loop -- Positive control finishes preparation before the first cancellation.
         await preparation;
       }
+      if (round === 2) {
+        if (!waitBeforeCancel) { expect(queries, JSON.stringify(queries)).toHaveLength(1); }
+        secondCancelRequested = true;
+      }
       const abort = session.abort();
       if (round === 1 && !waitBeforeCancel) {
         // Let the actual one-second caller budget expire while its fresh read
@@ -82,12 +84,8 @@ test.each([false, true])("ACP background query queue: wait before cancelling = %
         release.resolve();
         // eslint-disable-next-line no-await-in-loop -- Only release the background query after the first observation expired.
         await preparation;
-        // Finishing preparation only starts the expired foreground read. Drain
-        // it before the next turn, which is the successful fresh-read control.
-        // Its late result must still leave the first tool unverified.
-        expect(reads, JSON.stringify(queries)).toHaveLength(1);
-        // eslint-disable-next-line no-await-in-loop -- The next control starts with no pending observation from this turn.
-        await Promise.all(reads);
+        // No drain for the expired caller: its unstarted query must be skipped.
+        // The next turn must obtain fresh evidence while this tool stays unverified.
       }
       // eslint-disable-next-line no-await-in-loop -- Both controls must issue and finish native cancellation.
       const abortResult = await abort;
