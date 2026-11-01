@@ -2,18 +2,18 @@ import { copyFile, mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { LLMock } from "@copilotkit/aimock";
-import { startRawCapture } from "./raw-capture.js";
+import { startRawCapture, type ResponseRewrite } from "./raw-capture.js";
 import type { AimockEnv } from "./aimock.js";
 
 /** Qwen's real stream-json harness, with all home/project state isolated from local logins. */
-export async function startQwenAimock(configure?: (mock: LLMock) => void): Promise<AimockEnv & { readonly cwd: string; readonly env: Readonly<Record<string, string>> }> {
+export async function startQwenAimock(configure?: (mock: LLMock) => void, rewriteResponse?: ResponseRewrite): Promise<AimockEnv & { readonly cwd: string; readonly env: Readonly<Record<string, string>> }> {
   const mock = new LLMock({ port: 0 });
   if (configure === undefined) {
     mock.onMessage(/slow/u, { content: "ok" }, { latency: 900 });
     mock.onMessage(/^(?![\s\S]*slow)[\s\S]*$/u, { content: "ok" }, { latency: 80 });
   } else { configure(mock); }
   await mock.start();
-  const capture = await startRawCapture(mock.url);
+  const capture = await startRawCapture(mock.url, rewriteResponse);
   const home = await mkdtemp(path.join(tmpdir(), "oar-qwen-aimock-"));
   const cwd = path.join(home, "project");
   await mkdir(cwd);

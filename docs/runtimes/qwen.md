@@ -33,8 +33,11 @@ and 16 applicable behavior cases passed. Snapshot ids and extension-store lockin
 retain the limits above; all fourteen preset credential variables remain
 covered. The direct probe now gives new and resumed MCP calls different ids
 and asserts both actual echo results. Qwen renames ids already in history
-to `<id>__qwen_dup_N`, drops same-response duplicates and generates an id
-when absent. Recorded tool-call ids can differ from the model's raw ids.
+to `<id>__qwen_dup_N` and generates an id when absent. Same-response
+duplicates are dropped when arguments arrive complete in one delta;
+fragmented arguments instead fail in the
+[tool-id controls below](#evidence-and-verification).
+Recorded tool-call ids can differ from the model's raw ids.
 Separately, reusing a provider id with the same tool name and arguments
 triggers replay protection: the tool is not executed and an error tool
 result is emitted, even if the turn later succeeds. Compatible endpoints
@@ -321,6 +324,23 @@ unresponsive process after the normal cleanup grace; it never retries.
   tool denial, missing resume and native extension-lock failure. The persisted
   credential audit scans all fixture files after both native processes exit;
   a completed turn alone does not stop background model-registry writes.
+- [Tool-id vendor controls](../../sea-trial/vendor/qwen-tool-ids.vendor.test.ts)
+  on 0.26.5 cover a reused provider id across resume: different arguments
+  execute under a renamed id; identical arguments yield an error tool result
+  even when the turn succeeds. OAR preserves each native id and result.
+  Same-response duplicate ids also depend on the incoming OpenAI stream.
+  Qwen merges argument buffers by id when two streamed calls reuse that id;
+  separate argument fragments then produce a native `malformed tool call`
+  failure and execute no tools. Complete arguments in a single delta reach
+  deduplication instead, with one lifecycle per retained call. These controls
+  deliberately inject duplicate ids but assert the actual outgoing fragment
+  layout against the [OpenAI streaming format](https://developers.openai.com/api/docs/guides/function-calling#streaming):
+  each call has its own index, id/name appear only in its first delta, and
+  later deltas carry that index and argument fragments. Failure artifacts
+  retain the outgoing SSE alongside provider requests and OAR records.
+  Both outcomes are asserted separately; the fragmented failure is not
+  evidence of successful deduplication. These observations are from Linux
+  with Qwen 0.26.5; CI also runs the controls on macOS and Windows.
 - [No-lifecycle regression](../../tests/qwen/session.test.ts): busy checks before
   the next init, queue drain, withdrawal, abort, later prompts and disposal.
   [Pure fold tests](../../tests/qwen/projection.test.ts) assert empty acknowledgement
