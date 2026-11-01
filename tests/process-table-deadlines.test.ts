@@ -201,3 +201,53 @@ test("product preparation that expires before its query starts remains failed an
   expect(query).toHaveBeenCalledOnce();
   expect(preparation.processTablePreparation()).toEqual(result);
 });
+
+// oxlint-disable-next-line eslint/max-statements -- Failure, expired/live queued callers and a later fresh query form one causal sequence.
+test.each([false, true])("a failed predecessor still serves only live queued callers (throws: %s)", async throws => {
+  const gate = Promise.withResolvers<ProcessTableObservation>();
+  const third = { ...first, elapsedMs: 3 };
+  const failure: ProcessTableObservation = { ok: false, source: "windows", elapsedMs: 1000, reason: "read_failed", code: "EIO" };
+  const query = vi.fn().mockReturnValueOnce(gate.promise).mockResolvedValueOnce(second).mockResolvedValue(third);
+  const read = await reader(query);
+  const previous = read.raw("windows");
+  await vi.advanceTimersByTimeAsync(0);
+  const expired = read.within(1000, "windows");
+  const live = read.within(5000, "windows", { background: true });
+  await vi.advanceTimersByTimeAsync(1000);
+  expect(await expired).toMatchObject({ ok: false, reason: "timeout" });
+  expect(query).toHaveBeenCalledOnce();
+  if (throws) { gate.reject(Object.assign(new Error("private read failure"), { code: "EIO" })); }
+  else { gate.resolve(failure); }
+  expect(await previous).toEqual(failure);
+  expect(await live).toBe(second);
+  expect(query).toHaveBeenNthCalledWith(2, "windows", { background: true });
+  expect(await read.within(1000, "windows")).toBe(third);
+  expect(query).toHaveBeenCalledTimes(3);
+  expect(await expired).toMatchObject({ ok: false, reason: "timeout" });
+});
+
+// oxlint-disable-next-line eslint/max-statements -- One source must advance independently while another has a running query and an expired queued caller.
+test("a blocked source and its expired batch do not block or reuse another source's queries", async () => {
+  const windowsGate = Promise.withResolvers<ProcessTableObservation>();
+  const psGate = Promise.withResolvers<ProcessTableObservation>();
+  const psFirst: ProcessTableObservation = { ...first, source: "ps" };
+  const psSecond: ProcessTableObservation = { ...second, source: "ps" };
+  const query = vi.fn().mockReturnValueOnce(windowsGate.promise).mockReturnValueOnce(psGate.promise).mockResolvedValueOnce(psSecond).mockResolvedValue(second);
+  const read = await reader(query);
+  const windows = read.raw("windows");
+  await vi.advanceTimersByTimeAsync(0);
+  const expired = read.within(1000, "windows");
+  const ps = read.within(5000, "ps");
+  await vi.advanceTimersByTimeAsync(1000);
+  expect(await expired).toMatchObject({ ok: false, reason: "timeout" });
+  expect(query).toHaveBeenNthCalledWith(2, "ps", undefined);
+  psGate.resolve(psFirst);
+  expect(await ps).toBe(psFirst);
+  expect(await read.within(1000, "ps")).toBe(psSecond);
+  expect(query).toHaveBeenNthCalledWith(3, "ps", undefined);
+  windowsGate.resolve(first); await windows;
+  await vi.advanceTimersByTimeAsync(0);
+  expect(query).toHaveBeenCalledTimes(3);
+  expect(await read.within(1000, "windows")).toBe(second);
+  expect(query).toHaveBeenNthCalledWith(4, "windows", undefined);
+});

@@ -10,6 +10,12 @@ const root = { pid: 123, ppid: process.pid, pgid: 0, start: "2026-10-31T00:00:00
 const tool = { pid: 456, ppid: root.pid, pgid: 0, start: "2026-10-31T00:00:01Z" };
 const snapshot: tree.ProcessTableObservation = { ok: true, source: "windows", elapsedMs: 1, skipped: 0, table: new Map([root, tool].map(entry => [entry.pid, entry])) };
 const invalid: tree.ProcessTableObservation = { ok: false, source: "windows", reason: "command_failed", elapsedMs: 4000, exitCode: 1 };
+
+function mockBatchedRead(query: typeof reads.observeProcessTableOnce) {
+  const batched = reads.batchProcessTableReads(query);
+  vi.spyOn(reads, "observeProcessTableAsync").mockImplementation(async (source, options) => { const result = await batched(source ?? "windows", options); return result; });
+  return batched;
+}
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "performance"] });
   vi.spyOn(reads, "processTableSource").mockReturnValue("windows");
@@ -21,9 +27,8 @@ test("five seconds includes the prior batch and discards a successful late ident
   const previous = Promise.withResolvers<tree.ProcessTableObservation>();
   const own = Promise.withResolvers<tree.ProcessTableObservation>();
   const query = vi.fn().mockReturnValueOnce(previous.promise).mockReturnValueOnce(own.promise);
-  const batched = reads.batchProcessTableReads(query);
+  const batched = mockBatchedRead(query);
   const earlier = batched("windows"); await Promise.resolve();
-  vi.spyOn(reads, "observeProcessTableAsync").mockImplementation(async source => { const result = await batched(source ?? "windows"); return result; });
   const kill = vi.spyOn(tree, "killEntries").mockImplementation(() => {});
   const cleanup = processTreeCleanup(root.pid);
   const pending = cleanup.capture();
@@ -39,6 +44,35 @@ test("five seconds includes the prior batch and discards a successful late ident
   expect(query).toHaveBeenCalledTimes(2);
   expect(kill).not.toHaveBeenCalled();
   expect(cleanup.diagnostics().observations).toHaveLength(1);
+});
+
+// oxlint-disable-next-line eslint/max-statements -- Preparation and cleanup expire behind the same query; only a subsequent fresh capture can authorize cleanup.
+test("preparation and cleanup queued behind a query longer than five seconds are both skipped", async () => {
+  const previous = Promise.withResolvers<tree.ProcessTableObservation>();
+  const query = vi.fn().mockReturnValueOnce(previous.promise).mockResolvedValue(snapshot);
+  const batched = mockBatchedRead(query);
+  const earlier = batched("windows"); await Promise.resolve();
+  const preparation = await import("../packages/oar/src/shared/executable/process-table-preparation.js");
+  preparation.prepareProcessTable();
+  const kill = vi.spyOn(tree, "killEntries").mockImplementation(() => {});
+  const cleanup = processTreeCleanup(root.pid);
+  const pending = cleanup.capture();
+  await vi.advanceTimersByTimeAsync(5001); await pending;
+  const timeout = { ok: false, source: "windows", reason: "timeout", timeoutMs: 5000, elapsedMs: 5000 };
+  expect(preparation.processTablePreparation()).toEqual(timeout);
+  expect(cleanup.diagnostics()).toEqual({ status: "unverified", observations: [{ ...timeout, phase: "before_eof" }] });
+  expect(query).toHaveBeenCalledOnce();
+  previous.resolve(snapshot); await earlier;
+  await vi.advanceTimersByTimeAsync(0); await cleanup.finish();
+  expect(query).toHaveBeenCalledOnce();
+  expect(kill).not.toHaveBeenCalled();
+  expect(preparation.processTablePreparation()).toEqual(timeout);
+  const fresh = processTreeCleanup(root.pid);
+  await fresh.capture(); await fresh.finish();
+  expect(query).toHaveBeenCalledTimes(3);
+  expect(kill).toHaveBeenCalledExactlyOnceWith([tool], snapshot.table);
+  expect(fresh.diagnostics().status).toBe("observed");
+  expect(cleanup.diagnostics().status).toBe("unverified");
 });
 
 test("a query timeout does not start an immediate retry", async () => {
