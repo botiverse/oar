@@ -1,5 +1,6 @@
 packages:
   - "packages/*"
+autoInstallPeers: true
 allowBuilds:
   "@google/genai": true
   esbuild: true
