@@ -1,8 +1,12 @@
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { expect, test } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { createPiModelCatalog } from "../../packages/oar/src/runtimes/pi/catalog.js";
+import clearPiProviderCredentials from "../fixtures/pi-provider-env.js";
+
+beforeEach(clearPiProviderCredentials);
+afterEach(() => { vi.unstubAllEnvs(); });
 
 // Exercises the real Pi model catalog (built-in providers load without network
 // or credentials), asserting the provider-independent shape we expose.

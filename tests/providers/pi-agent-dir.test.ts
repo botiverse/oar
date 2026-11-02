@@ -5,6 +5,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { createPiProviderAuth } from "../../packages/oar/src/runtimes/pi/auth.js";
 import { createPiModelCatalog } from "../../packages/oar/src/runtimes/pi/catalog.js";
 import { piAgentDir } from "../../packages/oar/src/runtimes/pi/resolve.js";
+import clearPiProviderCredentials from "../fixtures/pi-provider-env.js";
 
 // oar#289: with OAR_PI_AGENT_DIR set, the facades read and write the agent
 // dir's auth.json and models.json, the ones sessions use, not pi's own dir.
@@ -13,6 +14,7 @@ let piHome = "";
 let agentDir = "";
 
 beforeEach(() => {
+  clearPiProviderCredentials();
   piHome = mkdtempSync(join(tmpdir(), "oar-pi-home-"));
   agentDir = mkdtempSync(join(tmpdir(), "oar-pi-agent-"));
   writeFileSync(join(agentDir, "auth.json"), JSON.stringify({ deepseek: { type: "api_key", key: "fake-key" } }), { mode: 0o600 });
