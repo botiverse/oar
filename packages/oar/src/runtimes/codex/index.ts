@@ -15,6 +15,10 @@ import { codexSession } from "./session.js";
 export const codexRuntime = defineRuntime({
   id: "codex",
   refusedSessionOptions: codexRefusedSessionOptions,
+  resumedSessionOptions: {
+    systemPrompt: { provided: "immediate", omitted: "saved" },
+    appendSystemPrompt: { provided: "next_compaction", omitted: "saved_until_compaction" },
+  },
   brand: runtimeBrands.codex,
   skills: codexSkills,
   mcpServers: codexMcpServers,

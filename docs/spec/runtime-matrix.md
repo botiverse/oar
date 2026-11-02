@@ -528,30 +528,71 @@ runtime cannot attach is an `UnsupportedOptionError` on `mcpServers` too: an
 http entry on an ACP agent whose `initialize` declares no
 `mcpCapabilities.http`; every runtime above attaches both.
 
-The refusals below depend on a value, the installed version or the session
-itself, so `refusedSessionOptions` does not declare them; each is the same
-`UnsupportedOptionError`.
+## Resumed session options
 
-| Runtime and condition | Refused option | Migration |
-| --- | --- | --- |
-| Claude, `resume` supplied | `systemPrompt`, `appendSystemPrompt` | Omit both to keep the saved prompts; create a new session to change them. |
-| Codex, `resume` supplied | `appendSystemPrompt` | Omit it to keep saved developer instructions; create a new session to change them. A replacement `systemPrompt` still applies on resume. |
-| Qwen, `resume` supplied | No refusal for nonempty prompt options | Pass `systemPrompt` and `appendSystemPrompt` again: new values apply, and omission does not restore the previous overrides. |
-| Pi SDK/RPC, `resume` supplied | No refusal for nonempty prompt options | Pass `systemPrompt` and `appendSystemPrompt` again: the session file does not save them, and omission returns to Pi's default prompt and current project resources. |
-| Pi Durable, `resume` supplied | `systemPrompt` (also refused on creation) | Omitted `appendSystemPrompt` retains saved instructions; supplying it replaces them. Changes while adopting an active run are refused. |
+`Runtime.resumedSessionOptions` lets a host choose how to resume before
+opening a session, without a runtime-name switch. It is a partial map keyed
+by `SessionOptions`; this release declares only `systemPrompt` and
+`appendSystemPrompt`. Each entry has two independent dimensions:
 
-[Raw-request vendor regressions](../../sea-trial/vendor/resume-fresh-prompts.vendor.test.ts)
-cover replacement, append and both together for Qwen 0.26.5 and Pi 1.4.0
-SDK/RPC: old markers on creation, only new markers after resume, and neither
-after another resume omitting both options.
+- `provided`: a value **different from the saved value** takes effect
+  `immediate`ly or at `next_compaction` (the next native compaction).
+- `omitted`: `saved` keeps the saved value; `default` means what a new session
+  without that option would get, including current user configuration;
+  `saved_until_compaction` keeps the saved value until native compaction,
+  then returns to that `default`.
 
-The Claude/Codex prompt refusals happen before any process starts, including for empty
-strings or the same text a host supplies on every open. Neither native
-interface provides the original text for an authoritative comparison.
-Claude 2.1.309 ignores both overrides; Codex 0.164.0 ignores the append but
-applies replacement ([request evidence](../../experiments/runtime-version-checks/2026-10-23.md#resumed-system-prompts)).
-Hosts may catch `UnsupportedOptionError` and reopen with the refused option
-omitted; OAR does not remove it silently or invent a replacement session.
+An absent entry means untested. It establishes neither support nor refusal.
+Refusals stay in `refusedSessionOptions` and conditional
+`UnsupportedOptionError`s; the declaration describes an accepted open, so
+value-specific and active-run restrictions still apply. OAR does not compare
+prompt strings, inject instructions into the first input, or fork a session.
+A host needing an immediate reminder can choose its own input policy using
+this declaration; that is separate from changing the system prompt.
+
+| Runtime / option | Different supplied value | Omitted | Declaration / evidence |
+| --- | --- | --- | --- |
+| Claude, both prompts | Next native compaction | Saved until compaction, then default | Both declared; 2.1.316, manual `/compact` |
+| Codex, `systemPrompt` | Immediate | Saved, including after compaction | Declared; 0.166.0 |
+| Codex, `appendSystemPrompt` | Next native compaction | Saved until compaction, then default | Declared; 0.166.0, local automatic compaction |
+| Qwen, both prompts | Immediate | Default | Both declared; 0.26.5 |
+| Pi SDK/RPC, both prompts | Immediate | Default, including current project resources | Both declared; 1.4.0 |
+| Pi Durable, `appendSystemPrompt` | Immediate | Saved | Declared; 1.4.0. Changing settings while adopting an active run is refused. Replacement is always refused. |
+| Cursor, Kimi | Both refused | Not applicable | Refusals declared, no resume entries |
+| Grok | Replacement and append together apply immediately; append-only resume is refused | Saved; append-only retention also verified across native compaction (1.0.70) | Conditional; no resume entries. Append-only hosts must omit append on resume; changing it requires replacement too. Blank replacement is refused. [Details](../runtimes/grok.md#models-and-instructions) |
+| OpenCode v1 | Both reapplied through native inline configuration | Omission across compaction untested | Version-dependent; no resume entries. [Details](../runtimes/opencode.md#models-effort-instructions-and-context) |
+| OpenCode v2 | Both refused | Not applicable | Installed-line refusal; no resume entries |
+| Antigravity, `appendSystemPrompt` | Immediate when native capability is advertised | Default in the measured resume control | Capability-dependent; no resume entry. Replacement refused. [Details](../runtimes/antigravity.md#models-instructions-and-context) |
+| Qoder | Native prompt flags are passed on open | Untested | No resume entries |
+| CodeBuddy | Replacement reapplied; append refused | Replacement omission untested | No resume entries |
+
+**Supply the current prompts on every Claude/Codex resume.** Claude's saved
+prompt snapshot and Codex's saved developer instructions can govern the
+first turn while the current open's options govern later turns after
+compaction. Omitting them is not a reliable way to keep them. Codex's
+replacement prompt is the exception: omission retains saved base instructions.
+Grok needs a different host rule: if only append was configured, **omit
+`appendSystemPrompt` on resume** to keep its saved value, including after
+compaction. Supplying it again is refused even when unchanged, because OAR
+cannot compare it with the saved value. To change it, also supply
+`systemPrompt`; no replacement is invented by OAR.
+
+The [Claude/Codex vendor regression](../../sea-trial/vendor/resume-system-prompt.vendor.test.ts)
+reads the runtime declarations and checks new and omitted values before and
+after native compaction using raw main provider requests and native completion
+records. Claude reports only an ending boundary; Codex reports start and end.
+The Codex fixture uses scripted usage to trigger local automatic compaction,
+not a new OAR control; remote compaction under a ChatGPT login is unverified.
+[Qwen/Pi regressions](../../sea-trial/vendor/resume-fresh-prompts.vendor.test.ts)
+and [Pi Durable regressions](../../sea-trial/vendor/pi-durable.vendor.test.ts)
+also read these declarations and check both supplied and omitted values.
+A vendor behavior change therefore fails the declared contract.
+
+### Conditional refusals
+
+The remaining refusals depend on a value, the installed version or the
+session itself, so `refusedSessionOptions` does not declare them; each is
+an `UnsupportedOptionError`.
 
 OpenCode v1 carries prompt options through native inline configuration. An
 already-defined `OPENCODE_CONFIG_CONTENT` refuses either prompt option, and

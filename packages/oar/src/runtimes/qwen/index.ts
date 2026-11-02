@@ -11,6 +11,10 @@ export type { QwenProvider, QwenProviderAuth, QwenProviderAuthOptions, QwenProvi
 export const qwenRuntime = defineRuntime({
   id: "qwen", brand: runtimeBrands.qwen,
   refusedSessionOptions: qwenRefusedSessionOptions,
+  resumedSessionOptions: {
+    systemPrompt: { provided: "immediate", omitted: "default" },
+    appendSystemPrompt: { provided: "immediate", omitted: "default" },
+  },
   installation: qwenInstallation,
   authStatus: Object.assign(onFirstCall(async () => {
     const { qwenAuthStatus } = await import("./auth-status.js");

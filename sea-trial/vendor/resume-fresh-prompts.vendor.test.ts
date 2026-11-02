@@ -3,17 +3,13 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, onTestFailed, test } from "vitest";
 import { qwenRuntime, type Session, type SessionOptions } from "../../packages/oar/src/index.js";
-import { asRecord } from "../../packages/oar/src/shared/json.js";
-import { startPiAimock, type RawProviderRequest } from "../harness/aimock.js";
+import { startPiAimock } from "../harness/aimock.js";
 import { startQwenAimock } from "../harness/qwen-aimock.js";
 import { runTurn } from "./support/asserts.js";
 import { isPiBackend, piTestRuntime } from "./support/pi-runtime.js";
+import { oldPrompts, newPrompts, promptMarkers, promptSemantics, requestsForTurn, resumedMarker } from "./support/resumed-prompts.js";
 
 const qwenBackend = process.env.OAR_TEST === "qwen-aimock";
-const oldPrompts = { systemPrompt: "OAR_OLD_REPLACEMENT_7319", appendSystemPrompt: "OAR_OLD_APPEND_8420" };
-const newPrompts = { systemPrompt: "OAR_NEW_REPLACEMENT_9531", appendSystemPrompt: "OAR_NEW_APPEND_0642" };
-const markers = [...Object.values(oldPrompts), ...Object.values(newPrompts)];
-
 async function fixture() {
   const qwenEnv = qwenBackend ? await startQwenAimock() : null;
   const env = qwenEnv ?? await startPiAimock(undefined, { captureRaw: true });
@@ -26,7 +22,7 @@ async function fixture() {
     const cwd = qwenEnv?.cwd ?? path.join(agentDir ?? "", "resume-prompt-project");
     await mkdir(cwd, { recursive: true });
     return {
-      raw: env.raw,
+      runtime, raw: env.raw,
       open: async (options: Partial<SessionOptions>) => runtime.session(installation, {
         cwd, ...(!qwenBackend ? { model: "aimock/aimock-model" } : {}), ...options, env: { ...env.env },
       }),
@@ -36,24 +32,6 @@ async function fixture() {
     await env.stop();
     throw error;
   }
-}
-
-/** Inspect native request fields, excluding saved user/assistant history from the prompt comparison. */
-function requestsForTurn(requests: readonly RawProviderRequest[], input: string) {
-  return requests.flatMap(({ body }) => {
-    const request = asRecord(body);
-    const messages = Array.isArray(request?.messages) ? request.messages.map(asRecord) : [];
-    // Qwen's post-reply memory extraction also carries the conversation, but
-    // its last user message asks for memory extraction, not this turn's input.
-    const content = messages.findLast((message) => message?.role === "user")?.content;
-    const texts = typeof content === "string" ? [content] : (Array.isArray(content) ? content.map((part) => asRecord(part)?.text) : []);
-    if (!texts.includes(input)) { return []; }
-    const system = request?.system;
-    return [{
-      system: JSON.stringify(system ?? messages.filter((message) => message?.role === "system" || message?.role === "developer")),
-      history: JSON.stringify(messages.filter((message) => message?.role === "user" || message?.role === "assistant")),
-    }];
-  });
 }
 
 const cases = [
@@ -93,9 +71,9 @@ describe.skipIf(!qwenBackend && !isPiBackend)("Qwen and Pi resumed prompt option
         expect(requests.length, `${step.name}: a fresh raw provider request must be observed`).toBeGreaterThan(0);
         for (const { system, history } of requests) {
           for (const previous of previousInputs) { expect(history).toContain(previous); }
-          expect(system).not.toBe("[]");
-          expect(system).not.toBe('""');
-          expect(markers.filter((marker) => system.includes(marker)).toSorted()).toEqual(Object.values(step.prompts).toSorted());
+          expect(system.length).toBeGreaterThan(50);
+          const expected = keys.flatMap((key) => step.name === "initial" ? [oldPrompts[key]] : resumedMarker(promptSemantics(f.runtime, key), key, step.name === "replacement"));
+          expect(promptMarkers.filter((marker) => system.includes(marker)).toSorted()).toEqual(expected.toSorted());
         }
         previousInputs.push(input);
       }

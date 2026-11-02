@@ -26,6 +26,9 @@ export function createPiDurableRuntime({ harness, models }: PiDurableRuntimeOpti
     id: "pi-durable",
     brand: runtimeBrands["pi-durable"],
     refusedSessionOptions: piDurableRefusedSessionOptions,
+    resumedSessionOptions: {
+      appendSystemPrompt: { provided: "immediate", omitted: "saved" },
+    },
     installation: async (options = {}) => { refuseReaderEnvironment(options.env, "Pi Durable uses the host environment"); await Promise.resolve(); return { kind: "available", via: "bundled" }; },
     listModels: async (_installation, options = {}) => { refuseReaderEnvironment(options.env, "Pi Durable uses the host environment"); await Promise.resolve(); return { kind: "ok", models: projectPiModels(currentModels().getModels(), getSupportedThinkingLevels) }; },
     session: async (installation: AvailableInstallation, options: SessionOptions, context?: SessionOpenContext) => {

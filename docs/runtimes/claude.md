@@ -650,15 +650,22 @@ Replace/append instructions map to `--system-prompt-file` and
 `--append-system-prompt-file`; native harness metadata may remain alongside
 replacement text. The vendor test checks that the configured instructions
 survive manual `/compact`.
-On resume, Claude 2.1.309 ignores both new flags and sends the saved prompts
-to the model. OAR therefore refuses either explicitly supplied option with
-`UnsupportedOptionError` before starting a process, including an empty value
-or repeated text. Hosts that supply prompts on every open must omit both
-`systemPrompt` and `appendSystemPrompt` on resume; the saved prompts remain.
-Changing either requires a new session. OAR does not inspect history files
-to guess whether the text is equal.
-[Native request evidence](../../experiments/runtime-version-checks/2026-10-23.md#resumed-system-prompts),
-[resume regression](../../sea-trial/vendor/resume-system-prompt.vendor.test.ts).
+On resume, Claude 2.1.316 initially sends its saved prompt snapshot. New
+`systemPrompt` and `appendSystemPrompt` values are accepted and forwarded,
+but apply only after the next native compaction replaces that snapshot.
+If either is omitted, its saved value lasts only until compaction, then the
+new-session default applies. **Pass the current prompts on every open** to
+retain them after compaction. This includes repeated text; OAR neither compares
+values nor rewrites history. `Runtime.resumedSessionOptions` declares both
+options as `next_compaction` / `saved_until_compaction`.
+
+The earlier [pre-compaction observation](../../experiments/runtime-version-checks/2026-10-23.md#resumed-system-prompts)
+led to a refusal that omitted this later effect. The
+[revised regression](../../sea-trial/vendor/resume-system-prompt.vendor.test.ts)
+checks supplied and omitted values on the same native session before and
+after `/compact`, with the runtime's `compact_boundary` confirming completion.
+There is no native start frame. See the
+[resume contract](../spec/runtime-matrix.md#resumed-session-options).
 [Adapter](../../packages/oar/src/runtimes/claude/session.ts),
 [vendor test](../../sea-trial/vendor/claude.vendor.test.ts).
 

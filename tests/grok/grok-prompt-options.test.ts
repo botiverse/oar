@@ -21,7 +21,7 @@ test.each([undefined, "saved-session"])("both instructions use native channels, 
 
 test("append alone is refused before launch on resume, naming the unsupported option", async () => {
   await expect(grokSession(unavailable, { cwd: "/", resume: "saved-session", appendSystemPrompt: "extra" }))
-    .rejects.toMatchObject({ name: "UnsupportedOptionError", option: "appendSystemPrompt", message: "grok does not reapply rules when resuming a session (observed on 1.0.52)" });
+    .rejects.toMatchObject({ name: "UnsupportedOptionError", option: "appendSystemPrompt", message: "Grok does not reapply appendSystemPrompt alone on resume, even after compaction. Omit appendSystemPrompt to retain the saved append; to change it, also supply systemPrompt." });
 });
 
 test("individual new-session instruction channels stay distinct", () => {

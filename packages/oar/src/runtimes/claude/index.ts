@@ -15,6 +15,10 @@ import { claudeSession } from "./session.js";
 export const claudeRuntime = defineRuntime({
   id: "claude",
   refusedSessionOptions: claudeRefusedSessionOptions,
+  resumedSessionOptions: {
+    systemPrompt: { provided: "next_compaction", omitted: "saved_until_compaction" },
+    appendSystemPrompt: { provided: "next_compaction", omitted: "saved_until_compaction" },
+  },
   brand: runtimeBrands.claude,
   skills: claudeSkills,
   commands: claudeCommands,

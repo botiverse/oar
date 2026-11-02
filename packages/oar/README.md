@@ -201,6 +201,13 @@ refuse a `resume` in another directory than the session's own (`option:
 "cwd"`). See
 [refused session options](https://github.com/botiverse/oar/blob/main/docs/spec/runtime-matrix.md#refused-session-options).
 
+`runtime.resumedSessionOptions` declares measured behavior for accepted
+options on resume: when a different supplied value takes effect, and whether
+omission uses saved or default settings. Missing entries mean untested.
+Claude prompt changes and Codex appended instructions take effect after
+native compaction, so pass the current prompt on every resume to retain it
+there. See [resume semantics](https://github.com/botiverse/oar/blob/main/docs/spec/runtime-matrix.md#resumed-session-options).
+
 A missing resume target rejects with `SessionNotFoundError` on verified native
 signals, carrying `sessionId` and a redacted `cause: { method, native }`.
 Other failed opens retain their own errors. Missing is scoped to the runtime's

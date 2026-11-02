@@ -122,8 +122,8 @@ describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex vendor error edg
         appendSystemPrompt: `${APPEND_MARKER} always be brief`,
       });
       await runTurn(session, "hello there");
-      // Compaction-survival for codex lands with the compact() capability:
-      // thread/compact/start is not reachable through the Session API yet.
+      // Resume behavior through native automatic compaction is covered by
+      // resume-system-prompt.vendor.test.ts, without an OAR compact control.
       expect(scrubSystem(lastAgentSystem(capture.systems))).toMatchInlineSnapshot(`
         "OAR-SYSTEM-REPLACE-MARKER you are the oar probe agent
         OAR-SYSTEM-APPEND-MARKER always be brief<skills_instructions>…(version-dependent skill catalog scrubbed)…</skills_instructions><permissions instructions>

@@ -41,6 +41,10 @@ export function createPiRuntime(options: PiRuntimeOptions = {}): Runtime & { rea
     id: "pi",
     brand: runtimeBrands.pi,
     refusedSessionOptions: subprocess ? piRpcRefusedSessionOptions : piRefusedSessionOptions,
+    resumedSessionOptions: {
+      systemPrompt: { provided: "immediate", omitted: "default" },
+      appendSystemPrompt: { provided: "immediate", omitted: "default" },
+    },
     mcpToolsListChanged: "full",
     ...inventories,
     skills: subprocess ? piReaderForEnvironment(inventories.skills, onFirstCall(async () => { const rpc = await import("./rpc/readers.js"); return rpc.piRpcSkillReader(options); })) : inventories.skills,

@@ -5,6 +5,7 @@ import { LiveDoc, type ConversationId } from "@earendil-works/pi-durable";
 import { startDurableFixture, type DurableFixture } from "../harness/pi-durable.js";
 import { awaitTurnEnd, promptAndWait } from "../../packages/oar/src/observe/turns.js";
 import type { Session, SessionOptions } from "../../packages/oar/src/contracts/session.js";
+import { newPrompts, oldPrompts, promptMarkers, promptSemantics, resumedMarker } from "./support/resumed-prompts.js";
 
 const fixtures: DurableFixture[] = [];
 afterEach(async () => { for (const fixture of fixtures.splice(0)) { await fixture.close(); } });
@@ -105,23 +106,20 @@ suite("Pi Durable native conversations against aimock", () => {
     await resumed.dispose();
   });
 
-  test("instructions persist on reopen and a supplied append replaces the saved value", async () => {
+  test.each([true, false])("append provided=%s agrees with the runtime resume declaration", async (provided) => {
     const fixture = await setup();
-    const first = await open(fixture, { appendSystemPrompt: "first instructions" });
-    const number = Number(first.id);
-    assert.ok(id(number));
-    await first.dispose();
-    const restored = await open(fixture, { resume: first.id });
-    
-    const native = await fixture.harness.conversation(number, BACKGROUND_CONTEXT);
-    const saved = await native?.agent(BACKGROUND_CONTEXT);
-    expect(saved?.instructions).toBe("first instructions");
-    await restored.dispose();
-    const changed = await open(fixture, { resume: first.id, appendSystemPrompt: "replacement" });
-    const updated = await native?.agent(BACKGROUND_CONTEXT);
-    expect(updated?.instructions).toBe("replacement");
-    const run = await promptAndWait(changed, "hello");
-    expect(run.kind).toBe("ended");
-    await changed.dispose();
+    const semantics = promptSemantics(fixture.runtime, "appendSystemPrompt");
+    const first = await open(fixture, { appendSystemPrompt: oldPrompts.appendSystemPrompt });
+    try { expect(await promptAndWait(first, "seed")).toMatchObject({ kind: "ended", outcome: { kind: "completed" } }); }
+    finally { await first.dispose(); }
+    const resumed = await open(fixture, { resume: first.id, ...(provided ? { appendSystemPrompt: newPrompts.appendSystemPrompt } : {}) });
+    try {
+      expect(resumed.id).toBe(first.id);
+      expect(await promptAndWait(resumed, "after resume")).toMatchObject({ kind: "ended", outcome: { kind: "completed" } });
+      const request = fixture.mock.getRequests().at(-1);
+      expect(request).toBeDefined();
+      const system = JSON.stringify(request?.body?.messages.filter((message) => message.role === "system"));
+      expect(promptMarkers.filter((marker) => system.includes(marker))).toEqual(resumedMarker(semantics, "appendSystemPrompt", provided));
+    } finally { await resumed.dispose(); }
   });
 });
