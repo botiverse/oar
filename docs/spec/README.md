@@ -139,6 +139,8 @@ they appear:
    `Runtime.mcpToolsListChanged` declares how a running session takes an MCP
    server's changed tool list
    ([host-served tools](runtime-matrix.md#host-served-tools));
+   `Runtime.resumedSessionOptions` declares measured supplied/omitted option
+   behavior on resume ([resume semantics](runtime-matrix.md#resumed-session-options));
    `SessionCapabilities` declares queue durability, the attribution tier and
    image input. Which further facts deserve a declaration (a remote
    environment, for one) stays open.

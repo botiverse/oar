@@ -1,25 +1,30 @@
+import { readFileSync } from "node:fs";
 import { afterEach, expect, test, vi } from "vitest";
-import { UnsupportedOptionError } from "../packages/oar/src/contracts/errors.js";
-import { claudeSession } from "../packages/oar/src/runtimes/claude/session.js";
-import { codexSession } from "../packages/oar/src/runtimes/codex/session.js";
+import { launchClaude } from "../packages/oar/src/runtimes/claude/launch.js";
+import { codexThreadOpen } from "../packages/oar/src/runtimes/codex/open.js";
 
-const spawnLineProcess = vi.hoisted(() => vi.fn(() => { throw new Error("must not start a process"); }));
+const spawnLineProcess = vi.hoisted(() => vi.fn<(command: string, args: readonly string[]) => never>());
 vi.mock("../packages/oar/src/shared/executable/index.js", () => ({ spawnLineProcess }));
-afterEach(() => { spawnLineProcess.mockClear(); });
+afterEach(() => { spawnLineProcess.mockReset(); });
 
-test.each(([
-  { runtime: "claude", session: claudeSession, option: "systemPrompt" },
-  { runtime: "claude", session: claudeSession, option: "appendSystemPrompt" },
-  { runtime: "codex", session: codexSession, option: "appendSystemPrompt" },
-] as const).flatMap((entry) => ["", "same prompt the host sends on every open"].map((value) => ({ runtime: entry.runtime, session: entry.session, option: entry.option, value }))))("$runtime rejects resumed $option=$value before starting any process", async ({ runtime, session, option, value }) => {
-  // An explicitly empty value is still an instruction, not an omission. A
-  // repeated value also cannot be compared without an authoritative readback.
-  const failure: unknown = await session({ kind: "available", via: "executable", command: runtime }, {
-      cwd: process.cwd(), resume: "saved-session", [option]: value,
-  }).catch((error: unknown) => error);
-  expect(failure).toBeInstanceOf(UnsupportedOptionError);
-  expect(failure).toHaveProperty("option", option);
-  expect(spawnLineProcess).not.toHaveBeenCalled();
-  expect(failure).toHaveProperty("message", expect.stringContaining("Omit"));
-  expect(failure).toHaveProperty("message", expect.stringContaining("new session"));
+const cases = ["systemPrompt", "appendSystemPrompt"].flatMap((option) => ["", "same prompt on every open", "changed prompt"].map((value) => ({ option, value })));
+
+test.each(cases)("Claude forwards resumed $option=$value through its native prompt file", async ({ option, value }) => {
+  const launched = new Error("stop after inspecting argv");
+  spawnLineProcess.mockImplementation((_command, args) => {
+    expect(args).toEqual(expect.arrayContaining(["--resume", "saved-session"]));
+    const flag = option === "systemPrompt" ? "--system-prompt-file" : "--append-system-prompt-file";
+    const file = args[args.indexOf(flag) + 1];
+    expect(file).toBeDefined();
+    expect(readFileSync(file ?? "", "utf8")).toBe(value);
+    throw launched;
+  });
+  await expect(launchClaude("claude", "saved-session", { cwd: process.cwd(), resume: "saved-session", [option]: value })).rejects.toBe(launched);
+  expect(spawnLineProcess).toHaveBeenCalledOnce();
+});
+
+test.each(cases)("Codex forwards resumed $option=$value unchanged", ({ option, value }) => {
+  const request = codexThreadOpen({ cwd: process.cwd(), resume: "saved-thread", [option]: value });
+  expect(request.method).toBe("thread/resume");
+  expect(request.params).toHaveProperty(option === "systemPrompt" ? "baseInstructions" : "developerInstructions", value);
 });

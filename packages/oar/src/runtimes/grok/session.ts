@@ -164,7 +164,7 @@ export const grokAcpProfile: AcpSessionProfile = {
       throw new UnsupportedOptionError("systemPrompt", "grok treats a blank systemPrompt as omitted (observed on 1.0.52)");
     }
     if (options.resume !== undefined && options.appendSystemPrompt !== undefined && options.systemPrompt === undefined) {
-      throw new UnsupportedOptionError("appendSystemPrompt", "grok does not reapply rules when resuming a session (observed on 1.0.52)");
+      throw new UnsupportedOptionError("appendSystemPrompt", "Grok does not reapply appendSystemPrompt alone on resume, even after compaction. Omit appendSystemPrompt to retain the saved append; to change it, also supply systemPrompt.");
     }
   },
   sessionMeta: () => ({ yoloMode: true }),

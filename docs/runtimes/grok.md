@@ -542,6 +542,15 @@ not reapply `rules` on resume without an override. A resumed `systemPrompt` is
 supported and replaces the saved system instructions; both options together
 replace both values. Omitting both preserves the saved instructions.
 
+**Host rule:** if a session was configured with append only, omit
+`appendSystemPrompt` on every resume. The saved append remains effective,
+including after native compaction. Repeating even unchanged text is refused:
+OAR cannot compare it with the saved value. To change the append, also supply
+`systemPrompt`. This is the exception to resupplying prompts on each open;
+OAR does not invent a replacement or silently drop an option. The
+[1.0.70 compaction control](../../experiments/resume-prompts-2026-11-02.md#grok-control)
+confirmed that even after compaction a native append-only change is ignored.
+
 An empty or whitespace-only `systemPrompt` is also refused before launch,
 naming `systemPrompt`, with or without an append and on both creation and
 resume. Native Grok treats it as omitted: a new session keeps its built-in

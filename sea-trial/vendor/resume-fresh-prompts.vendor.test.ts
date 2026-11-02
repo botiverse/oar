@@ -3,20 +3,20 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, onTestFailed, test } from "vitest";
 import { qwenRuntime, type Session, type SessionOptions } from "../../packages/oar/src/index.js";
-import { asRecord } from "../../packages/oar/src/shared/json.js";
-import { startPiAimock, type RawProviderRequest } from "../harness/aimock.js";
+import { startPiAimock } from "../harness/aimock.js";
 import { startQwenAimock } from "../harness/qwen-aimock.js";
 import { runTurn } from "./support/asserts.js";
 import { isPiBackend, piTestRuntime } from "./support/pi-runtime.js";
+import { oldPrompts, newPrompts, promptMarkers, promptSemantics, requestsForTurn, resumedMarker, resumeCompaction, type PromptKey } from "./support/resumed-prompts.js";
 
 const qwenBackend = process.env.OAR_TEST === "qwen-aimock";
-const oldPrompts = { systemPrompt: "OAR_OLD_REPLACEMENT_7319", appendSystemPrompt: "OAR_OLD_APPEND_8420" };
-const newPrompts = { systemPrompt: "OAR_NEW_REPLACEMENT_9531", appendSystemPrompt: "OAR_NEW_APPEND_0642" };
-const markers = [...Object.values(oldPrompts), ...Object.values(newPrompts)];
-
 async function fixture() {
-  const qwenEnv = qwenBackend ? await startQwenAimock() : null;
-  const env = qwenEnv ?? await startPiAimock(undefined, { captureRaw: true });
+  const compaction = resumeCompaction();
+  const qwenEnv = qwenBackend ? await startQwenAimock(compaction.configure) : null;
+  const env = qwenEnv ?? await startPiAimock(compaction.configure, {
+    captureRaw: true, contextWindow: 100_000,
+    settings: { compaction: { enabled: true, reserveTokens: 20_000, keepRecentTokens: 500 } },
+  });
   try {
     const runtime = qwenBackend ? qwenRuntime : piTestRuntime;
     const installation = await runtime.installation();
@@ -26,7 +26,7 @@ async function fixture() {
     const cwd = qwenEnv?.cwd ?? path.join(agentDir ?? "", "resume-prompt-project");
     await mkdir(cwd, { recursive: true });
     return {
-      raw: env.raw,
+      runtime, raw: env.raw, compaction,
       open: async (options: Partial<SessionOptions>) => runtime.session(installation, {
         cwd, ...(!qwenBackend ? { model: "aimock/aimock-model" } : {}), ...options, env: { ...env.env },
       }),
@@ -38,22 +38,46 @@ async function fixture() {
   }
 }
 
-/** Inspect native request fields, excluding saved user/assistant history from the prompt comparison. */
-function requestsForTurn(requests: readonly RawProviderRequest[], input: string) {
-  return requests.flatMap(({ body }) => {
-    const request = asRecord(body);
-    const messages = Array.isArray(request?.messages) ? request.messages.map(asRecord) : [];
-    // Qwen's post-reply memory extraction also carries the conversation, but
-    // its last user message asks for memory extraction, not this turn's input.
-    const content = messages.findLast((message) => message?.role === "user")?.content;
-    const texts = typeof content === "string" ? [content] : (Array.isArray(content) ? content.map((part) => asRecord(part)?.text) : []);
-    if (!texts.includes(input)) { return []; }
-    const system = request?.system;
-    return [{
-      system: JSON.stringify(system ?? messages.filter((message) => message?.role === "system" || message?.role === "developer")),
-      history: JSON.stringify(messages.filter((message) => message?.role === "user" || message?.role === "assistant")),
-    }];
-  });
+async function checkStep(f: Awaited<ReturnType<typeof fixture>>, session: Session, keys: readonly PromptKey[], name: string, saved: Readonly<Record<PromptKey, string | undefined>>, previousInput: string | undefined) {
+  const supplied = name === "replacement" ? newPrompts : undefined;
+  for (const compacted of name === "initial" ? [false] : [false, true]) {
+    const summariesBefore = f.compaction.summaries.length;
+    if (compacted) {
+      f.compaction.arm();
+      expect(await runTurn(session, `OAR_RESUME_RAISE_USAGE_${name}`)).toEqual({ kind: "completed" });
+      // Qwen exposes native /compress on stream-json. Pi compacts
+      // automatically before the next request when usage is high.
+      if (qwenBackend) {
+        const beforeCompact = session.records().length;
+        expect(await runTurn(session, "/compress")).toEqual({ kind: "completed" });
+        const native = session.records().slice(beforeCompact).filter((record) => record.kind === "frame" && record.body.type === "assistant");
+        const completion = /Context compressed \(~?(\d+) -> ~?(\d+)\)\./u.exec(JSON.stringify(native));
+        expect(completion, "Qwen must report native compression completion").not.toBeNull();
+        expect(Number(completion?.[2])).toBeLessThan(Number(completion?.[1]));
+      }
+    }
+    const before = f.raw.length;
+    const input = `OAR_RESUME_PROMPT_TURN_${name}_${String(compacted)}`;
+    expect(await runTurn(session, input)).toEqual({ kind: "completed" });
+    const requests = requestsForTurn(f.raw.slice(before), input);
+    expect(requests.length, `${name}: a fresh raw provider request must be observed`).toBeGreaterThan(0);
+    if (compacted) { expect(f.compaction.summaries.length, "native summarizer must run").toBeGreaterThan(summariesBefore); }
+    for (const { system, history } of requests) {
+      if (!compacted && previousInput !== undefined) { expect(history).toContain(previousInput); }
+      if (compacted) { expect(history).toContain(f.compaction.summaries.at(-1)); }
+      expect(system.length).toBeGreaterThan(50);
+      const expected = keys.flatMap((key) => name === "initial" ? [oldPrompts[key]] : resumedMarker(promptSemantics(f.runtime, key), { saved: saved[key], provided: supplied?.[key] }, compacted));
+      expect(promptMarkers.filter((marker) => system.includes(marker)).toSorted()).toEqual(expected.toSorted());
+    }
+    previousInput = input;
+  }
+  assert.ok(previousInput !== undefined);
+  // A later resume inherits the last effective value, which may be the new
+  // prompt supplied on this resume rather than the original seed marker.
+  const latest = requestsForTurn(f.raw, previousInput).at(-1)?.system ?? "";
+  const nextSaved = { ...saved };
+  for (const key of keys) { nextSaved[key] = [oldPrompts[key], newPrompts[key]].find((marker) => latest.includes(marker)); }
+  return { input: previousInput, saved: nextSaved };
 }
 
 const cases = [
@@ -78,26 +102,18 @@ describe.skipIf(!qwenBackend && !isPiBackend)("Qwen and Pi resumed prompt option
         { name: "omission", prompts: {} },
       ];
       let resume: string | undefined = undefined;
-      const previousInputs: string[] = [];
+      let previousInput: string | undefined = undefined;
+      let saved: Record<PromptKey, string | undefined> = { systemPrompt: undefined, appendSystemPrompt: undefined };
       for (const step of steps) {
-        const before = f.raw.length;
-        const input = `OAR_RESUME_PROMPT_TURN_${step.name}`;
         const session = await f.open({ ...step.prompts, ...(resume === undefined ? {} : { resume }) });
         sessions.push(session);
         try {
           if (resume !== undefined) { expect(session.id).toBe(resume); }
-          expect(await runTurn(session, input)).toEqual({ kind: "completed" });
+          const observed = await checkStep(f, session, keys, step.name, saved, previousInput);
+          previousInput = observed.input;
+          saved = observed.saved;
         } finally { await session.dispose(); }
         resume = session.id;
-        const requests = requestsForTurn(f.raw.slice(before), input);
-        expect(requests.length, `${step.name}: a fresh raw provider request must be observed`).toBeGreaterThan(0);
-        for (const { system, history } of requests) {
-          for (const previous of previousInputs) { expect(history).toContain(previous); }
-          expect(system).not.toBe("[]");
-          expect(system).not.toBe('""');
-          expect(markers.filter((marker) => system.includes(marker)).toSorted()).toEqual(Object.values(step.prompts).toSorted());
-        }
-        previousInputs.push(input);
       }
     } finally { await f.stop(); }
   }, 120_000);

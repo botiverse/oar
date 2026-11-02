@@ -641,14 +641,28 @@ base prompt) and `appendSystemPrompt` to `developerInstructions` (appended as
 a developer message); `instructions` / `userInstructions` are silently
 ignored by `thread/start`. Cwd and the process environment overlay are
 forwarded. Requested and effective configuration remain distinct.
-On resume, Codex 0.164.0 applies a replacement `systemPrompt` but ignores
-`appendSystemPrompt`. OAR refuses any explicit append on resume with
-`UnsupportedOptionError` before starting a process, including an empty or
-repeated value. Hosts must omit the append to preserve saved developer
-instructions, or create a new session to change them. OAR does not inspect
-history files to compare text.
-[Native request evidence](../../experiments/runtime-version-checks/2026-10-23.md#resumed-system-prompts),
-[resume regression](../../sea-trial/vendor/resume-system-prompt.vendor.test.ts).
+On resume, Codex 0.166.0 immediately applies a supplied replacement
+`systemPrompt` (`baseInstructions`). Omitting it retains the saved replacement,
+including after compaction. A supplied `appendSystemPrompt`
+(`developerInstructions`) is also accepted, but the saved developer message
+remains until the next native compaction; subsequent requests use the new
+value. If omitted, the saved append disappears at that compaction and the
+new-session default applies. **Pass the current prompts on every open** when
+they must remain in effect. OAR forwards values without comparing prompts or
+injecting an extra user message.
+
+`Runtime.resumedSessionOptions` declares replacement as `immediate` / `saved`
+and append as `next_compaction` / `saved_until_compaction`. The
+[raw-request regression](../../sea-trial/vendor/resume-system-prompt.vendor.test.ts)
+checks both dimensions before and after native automatic compaction, triggered
+by scripted token usage through the local Responses provider; it also requires
+the native compaction start/end records. Remote compaction under a ChatGPT
+login has not been exercised: only native source was inspected (0.163 routes
+both local and remote history replacement through
+`build_compaction_replacement_history`). The declaration retains that explicit
+evidence limit. The earlier
+[pre-compaction evidence](../../experiments/runtime-version-checks/2026-10-23.md#resumed-system-prompts)
+was incomplete and no longer justifies refusing an append on resume.
 [Vendor test](../../sea-trial/vendor/codex.vendor.test.ts).
 
 **Model listing:** `listModels` opens a bounded app-server connection and

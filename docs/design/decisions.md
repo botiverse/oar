@@ -12,6 +12,36 @@ and contract member, (4) the cheapest regression test and resource cost, and
 (5) a sea-trial case for every new `must` or `never`. If any answer is missing,
 keep the idea in the [roadmap](roadmap.md) or an experiment.
 
+## Accepting deferred resume prompts (2026-11-02)
+
+**Reversed:** the Claude prompt and Codex append refusals introduced in
+[#469](https://github.com/botiverse/oar/pull/469). Their evidence observed the
+first resumed request, not the next compaction. Claude retains a saved prompt
+snapshot until compaction; Codex retains the saved developer message until
+compaction. Current open options govern subsequent requests. Refusing those
+options prevented hosts from maintaining their prompts and the advice to omit
+them caused instructions to disappear later.
+
+**Accepted:** forward the native options and declare measured timing through
+`Runtime.resumedSessionOptions`, owned by the runtime contract and adapters.
+A host can decide whether to remind the model immediately or wait for native
+compaction. The declaration distinguishes a different supplied value from an
+omitted value, without duplicating refusal rules. OAR does not compare strings,
+inject a first message or fork history. Undeclared entries are untested.
+
+The [native regression](../../sea-trial/vendor/resume-system-prompt.vendor.test.ts)
+reads the declaration and tests both values before and after compaction using
+scripted providers, with no paid requests. Other declared runtimes have the
+[matching resume regressions](../spec/runtime-matrix.md#resumed-session-options).
+The API is optional and opens that were formerly refused now reach native
+behavior; Claude/Codex hosts should pass their current prompts on every resume.
+
+**What would reopen it:** native evidence that an accepted option never takes
+effect, a timing change the declaration cannot represent, or a concrete host
+need requiring more than the per-option supplied/omitted distinction. Grok's
+conditional append and OpenCode's version-dependent support remain outside
+this declaration; remote Codex compaction is still an evidence gap.
+
 ## Noninteractive native permission modes, not host approvals (2026-10-28)
 
 **Accepted:** a Claude host can tighten native policy through `launchArgs`

@@ -5,6 +5,7 @@ import { LiveDoc, type ConversationId } from "@earendil-works/pi-durable";
 import { startDurableFixture, type DurableFixture } from "../harness/pi-durable.js";
 import { awaitTurnEnd, promptAndWait } from "../../packages/oar/src/observe/turns.js";
 import type { Session, SessionOptions } from "../../packages/oar/src/contracts/session.js";
+import { newPrompts, oldPrompts, promptMarkers, promptSemantics, resumedMarker, resumeCompaction } from "./support/resumed-prompts.js";
 
 const fixtures: DurableFixture[] = [];
 afterEach(async () => { for (const fixture of fixtures.splice(0)) { await fixture.close(); } });
@@ -105,23 +106,38 @@ suite("Pi Durable native conversations against aimock", () => {
     await resumed.dispose();
   });
 
-  test("instructions persist on reopen and a supplied append replaces the saved value", async () => {
-    const fixture = await setup();
-    const first = await open(fixture, { appendSystemPrompt: "first instructions" });
-    const number = Number(first.id);
-    assert.ok(id(number));
-    await first.dispose();
-    const restored = await open(fixture, { resume: first.id });
-    
-    const native = await fixture.harness.conversation(number, BACKGROUND_CONTEXT);
-    const saved = await native?.agent(BACKGROUND_CONTEXT);
-    expect(saved?.instructions).toBe("first instructions");
-    await restored.dispose();
-    const changed = await open(fixture, { resume: first.id, appendSystemPrompt: "replacement" });
-    const updated = await native?.agent(BACKGROUND_CONTEXT);
-    expect(updated?.instructions).toBe("replacement");
-    const run = await promptAndWait(changed, "hello");
-    expect(run.kind).toBe("ended");
-    await changed.dispose();
+  test.each([true, false])("append provided=%s agrees with the runtime resume declaration", async (provided) => {
+    const compaction = resumeCompaction();
+    const fixture = await startDurableFixture(compaction.configure, undefined, undefined, undefined, {
+      enabled: true, reserveTokens: 120_000, keepRecentTokens: 500, backgroundTokens: 0,
+    });
+    fixtures.push(fixture);
+    const semantics = promptSemantics(fixture.runtime, "appendSystemPrompt");
+    const first = await open(fixture, { appendSystemPrompt: oldPrompts.appendSystemPrompt });
+    try { expect(await promptAndWait(first, "seed")).toMatchObject({ kind: "ended", outcome: { kind: "completed" } }); }
+    finally { await first.dispose(); }
+    const resumed = await open(fixture, { resume: first.id, ...(provided ? { appendSystemPrompt: newPrompts.appendSystemPrompt } : {}) });
+    try {
+      expect(resumed.id).toBe(first.id);
+      for (const compacted of [false, true]) {
+        const summariesBefore = compaction.summaries.length;
+        if (compacted) {
+          compaction.arm();
+          expect(await promptAndWait(resumed, "OAR_RESUME_RAISE_USAGE_durable")).toMatchObject({ kind: "ended", outcome: { kind: "completed" } });
+        }
+        const input = `after resume compacted=${String(compacted)}`;
+        const begin = fixture.mock.getRequests().length;
+        expect(await promptAndWait(resumed, input)).toMatchObject({ kind: "ended", outcome: { kind: "completed" } });
+        const requests = fixture.mock.getRequests().slice(begin).filter((request) => JSON.stringify(request.body?.messages.findLast((message) => message.role === "user")?.content).includes(input));
+        expect(requests.length).toBeGreaterThan(0);
+        if (compacted) { expect(compaction.summaries.length, "native summarizer must run").toBeGreaterThan(summariesBefore); }
+        for (const request of requests) {
+          const system = JSON.stringify(request.body?.messages.filter((message) => message.role === "system"));
+          const history = JSON.stringify(request.body?.messages.filter((message) => message.role !== "system"));
+          if (compacted) { expect(history).toContain(compaction.summaries.at(-1)); }
+          expect(promptMarkers.filter((marker) => system.includes(marker))).toEqual(resumedMarker(semantics, { saved: oldPrompts.appendSystemPrompt, provided: provided ? newPrompts.appendSystemPrompt : undefined }, compacted));
+        }
+      }
+    } finally { await resumed.dispose(); }
   });
 });

@@ -167,6 +167,8 @@ import * as testing from "@botiverse/oar/testing";
 import { createPiProviderAuth, type PiProviderAuthOptions } from "@botiverse/oar/runtimes/pi";
 
 export const entries = [oar, browser, forms, agents, report, brands, kernel, observe, testing];
+export const resumedOptions: oar.ResumedSessionOptions | undefined = oar.claudeRuntime.resumedSessionOptions;
+export const promptTiming: oar.ResumeOptionSemantics | undefined = resumedOptions?.systemPrompt;
 export const writeCapture: (marker: string) => void = oar.writeShellEnvironmentCapture;
 export const capture = (command: string, args: readonly string[]) => oar.userShellEnvironment({ command, args });
 export async function piLogin(paths: PiProviderAuthOptions, interaction: oar.ProviderLoginInteraction, options: oar.ProviderLoginOptions) {

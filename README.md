@@ -124,19 +124,20 @@ runtime cannot honor is refused before anything opens, never silently
 dropped.
 
 ```ts
-import { defaultRuntimes, promptAndWait } from "@botiverse/oar";
+import { defaultRuntimes, promptAndWait, type SessionOptions } from "@botiverse/oar";
 
 const claude = defaultRuntimes.require("claude");
 const installation = await claude.installation?.();
 if (installation?.kind !== "available") throw new Error("claude is not installed");
 
-const session = await claude.session(installation, {
+const options = {
   cwd: process.cwd(),
   model: "sonnet",
   effort: "high",
   appendSystemPrompt: "Run the tests before you say you are done.",
   mcpServers: [{ name: "fs", command: "npx", args: ["-y", "@modelcontextprotocol/server-filesystem", "."] }],
-});
+} satisfies SessionOptions;
+const session = await claude.session(installation, options);
 
 session.events((event) => {
   // Every event says which agent it came from: [] is the root, a subagent has its own path.
@@ -156,8 +157,15 @@ console.log(session.status().value, session.usage().value.total, session.context
 await session.dispose();
 
 // Later, even from another process: the same conversation, picked up where it stopped.
-const resumed = await claude.session(installation, { cwd: process.cwd(), resume: session.id });
+const resumed = await claude.session(installation, {
+  ...options, resume: session.id,
+});
 ```
+
+Pass Claude's current prompts again so they remain effective after native
+compaction. `runtime.resumedSessionOptions` declares when changed values take
+effect and what omission does; see the [resume rules](docs/spec/runtime-matrix.md#resumed-session-options)
+for other runtimes, including Grok's append-only exception.
 
 Hand work to other runtimes as subagents; each report wakes the session
 that is waiting for it:

@@ -57,6 +57,11 @@ front:
 
 - `Runtime.refusedSessionOptions`: the options a runtime refuses at open,
   each with its reason.
+- `Runtime.resumedSessionOptions`: measured timing for a different value
+  supplied on resume and behavior when it is omitted. A host can decide
+  whether its first input needs a reminder before a deferred system prompt
+  takes effect. Undeclared entries are untested; refusals stay separate
+  ([contract](../spec/runtime-matrix.md#resumed-session-options)).
 - `Runtime.execution`: whether the adapter runs a native process or an
   in-process SDK, so a host can request isolation only for process runtimes
   without keeping a list of runtime names. Undeclared execution stays unknown;
@@ -71,9 +76,11 @@ front:
   known only after the runtime's handshake.
 
 A declaration is added for a real pre-action need, not mirrored for every
-option. It is the same data the refusal reads: one shared check rejects a
+option. A refusal declaration is the same data the refusal reads: one shared check rejects a
 declared option before anything starts, so the declaration and the behavior
-cannot drift, and a test opens every declared refusal against the registry.
+cannot drift, and a test opens every declared refusal against the registry. Resume timing
+is owned by the native runtime; vendor tests read each declaration and check
+both supplied and omitted values against provider requests.
 
 ## A form for choosing settings
 

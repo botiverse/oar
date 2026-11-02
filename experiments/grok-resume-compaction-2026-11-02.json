@@ -1,0 +1,27 @@
+{
+  "version": "grok 1.0.70 (f50904eaee6c) [stable]",
+  "platform": "linux",
+  "arch": "x64",
+  "compact": {},
+  "compactRequests": 2,
+  "observations": [
+    {
+      "input": "GROK_SEED",
+      "old": true,
+      "next": false,
+      "summaryInHistory": false
+    },
+    {
+      "input": "GROK_BEFORE",
+      "old": true,
+      "next": false,
+      "summaryInHistory": false
+    },
+    {
+      "input": "GROK_AFTER",
+      "old": true,
+      "next": false,
+      "summaryInHistory": true
+    }
+  ]
+}
