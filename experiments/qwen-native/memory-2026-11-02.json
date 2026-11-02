@@ -1,0 +1,678 @@
+{
+  "version": "0.26.5",
+  "platform": "linux",
+  "arch": "x64",
+  "scenarios": [
+    {
+      "name": "empty",
+      "memoryDelayMs": 250,
+      "disposeDuringMemory": false,
+      "sessionId": "d693778e-30e3-4458-a823-886e6f3c9d0b",
+      "resumed": false,
+      "prompts": [],
+      "firstRequest": 0,
+      "requestCount": 0,
+      "requestsBeforeDispose": 0,
+      "disposeStartedMs": 1708.3,
+      "disposeReturnedMs": 2299.4,
+      "repeatDisposeExtraRequests": 0,
+      "usageBefore": {
+        "value": {
+          "total": null
+        },
+        "seq": 2
+      },
+      "usageAfter": {
+        "value": {
+          "total": null
+        },
+        "seq": 4
+      },
+      "nativeResults": [],
+      "nativeAssistantUsage": [],
+      "exit": [
+        {
+          "sessionId": "d693778e-30e3-4458-a823-886e6f3c9d0b",
+          "agentPath": [],
+          "seq": 4,
+          "receivedAt": 1793599428883,
+          "kind": "response",
+          "requestId": "361e7b76-8aaa-4f07-876c-7cfe1dcfb984",
+          "body": {
+            "kind": "exited",
+            "code": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "two-new-turns",
+      "memoryDelayMs": 250,
+      "disposeDuringMemory": false,
+      "sessionId": "14221893-6e3b-4d9d-88d7-a516ec27fab5",
+      "resumed": false,
+      "prompts": [
+        "OAR_MEMORY_FIRST_TURN",
+        "OAR_MEMORY_SECOND_TURN"
+      ],
+      "firstRequest": 0,
+      "requestCount": 4,
+      "requestsBeforeDispose": 4,
+      "disposeStartedMs": 5525.3,
+      "disposeReturnedMs": 5593,
+      "repeatDisposeExtraRequests": 0,
+      "usageBefore": {
+        "value": {
+          "total": {
+            "input": 604,
+            "output": 36,
+            "cacheRead": 0
+          },
+          "byAgent": [],
+          "unattributed": {
+            "input": 604,
+            "output": 36,
+            "cacheRead": 0
+          }
+        },
+        "seq": 23
+      },
+      "usageAfter": {
+        "value": {
+          "total": {
+            "input": 604,
+            "output": 36,
+            "cacheRead": 0
+          },
+          "byAgent": [],
+          "unattributed": {
+            "input": 604,
+            "output": 36,
+            "cacheRead": 0
+          }
+        },
+        "seq": 25
+      },
+      "nativeResults": [
+        {
+          "seq": 13,
+          "receivedAt": 1793599431737,
+          "subtype": "success",
+          "usage": {
+            "input_tokens": 302,
+            "output_tokens": 18,
+            "cache_read_input_tokens": 0,
+            "total_tokens": 320
+          }
+        },
+        {
+          "seq": 23,
+          "receivedAt": 1793599432108,
+          "subtype": "success",
+          "usage": {
+            "input_tokens": 604,
+            "output_tokens": 36,
+            "cache_read_input_tokens": 0,
+            "total_tokens": 640
+          }
+        }
+      ],
+      "nativeAssistantUsage": [
+        {
+          "seq": 11,
+          "usage": {
+            "input_tokens": 101,
+            "output_tokens": 7,
+            "cache_read_input_tokens": 0,
+            "total_tokens": 108
+          }
+        },
+        {
+          "seq": 21,
+          "usage": {
+            "input_tokens": 101,
+            "output_tokens": 7,
+            "cache_read_input_tokens": 0,
+            "total_tokens": 108
+          }
+        }
+      ],
+      "exit": [
+        {
+          "sessionId": "14221893-6e3b-4d9d-88d7-a516ec27fab5",
+          "agentPath": [],
+          "seq": 25,
+          "receivedAt": 1793599432176,
+          "kind": "response",
+          "requestId": "2a4e2ebf-145c-4ad7-997a-07463754e6be",
+          "body": {
+            "kind": "exited",
+            "code": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "resume-no-new-turn",
+      "memoryDelayMs": 250,
+      "disposeDuringMemory": false,
+      "sessionId": "14221893-6e3b-4d9d-88d7-a516ec27fab5",
+      "resumed": true,
+      "prompts": [],
+      "firstRequest": 4,
+      "requestCount": 0,
+      "requestsBeforeDispose": 0,
+      "disposeStartedMs": 7346,
+      "disposeReturnedMs": 7912.7,
+      "repeatDisposeExtraRequests": 0,
+      "usageBefore": {
+        "value": {
+          "total": null
+        },
+        "seq": 2
+      },
+      "usageAfter": {
+        "value": {
+          "total": null
+        },
+        "seq": 4
+      },
+      "nativeResults": [],
+      "nativeAssistantUsage": [],
+      "exit": [
+        {
+          "sessionId": "14221893-6e3b-4d9d-88d7-a516ec27fab5",
+          "agentPath": [],
+          "seq": 4,
+          "receivedAt": 1793599434496,
+          "kind": "response",
+          "requestId": "99deef51-7517-4f8c-b665-a04a46ebdd12",
+          "body": {
+            "kind": "exited",
+            "code": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "resume-new-turn",
+      "memoryDelayMs": 250,
+      "disposeDuringMemory": false,
+      "sessionId": "14221893-6e3b-4d9d-88d7-a516ec27fab5",
+      "resumed": true,
+      "prompts": [
+        "OAR_MEMORY_RESUMED_TURN"
+      ],
+      "firstRequest": 4,
+      "requestCount": 2,
+      "requestsBeforeDispose": 2,
+      "disposeStartedMs": 10730.7,
+      "disposeReturnedMs": 10789.5,
+      "repeatDisposeExtraRequests": 0,
+      "usageBefore": {
+        "value": {
+          "total": null
+        },
+        "seq": 13
+      },
+      "usageAfter": {
+        "value": {
+          "total": null
+        },
+        "seq": 15
+      },
+      "nativeResults": [
+        {
+          "seq": 13,
+          "receivedAt": 1793599437314,
+          "subtype": "success",
+          "usage": {
+            "input_tokens": 906,
+            "output_tokens": 54,
+            "cache_read_input_tokens": 0,
+            "total_tokens": 960
+          }
+        }
+      ],
+      "nativeAssistantUsage": [
+        {
+          "seq": 11,
+          "usage": {
+            "input_tokens": 101,
+            "output_tokens": 7,
+            "cache_read_input_tokens": 0,
+            "total_tokens": 108
+          }
+        }
+      ],
+      "exit": [
+        {
+          "sessionId": "14221893-6e3b-4d9d-88d7-a516ec27fab5",
+          "agentPath": [],
+          "seq": 15,
+          "receivedAt": 1793599437373,
+          "kind": "response",
+          "requestId": "30ac625d-0cbd-47b1-ae53-1fb843cfe27f",
+          "body": {
+            "kind": "exited",
+            "code": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "memory-reply-delayed-1500ms",
+      "memoryDelayMs": 1500,
+      "disposeDuringMemory": false,
+      "sessionId": "dd89b22e-491b-4299-b3e7-b08ce39f2223",
+      "resumed": false,
+      "prompts": [
+        "OAR_MEMORY_WAIT_TURN"
+      ],
+      "firstRequest": 6,
+      "requestCount": 2,
+      "requestsBeforeDispose": 2,
+      "disposeStartedMs": 14809.7,
+      "disposeReturnedMs": 14871.7,
+      "repeatDisposeExtraRequests": 0,
+      "usageBefore": {
+        "value": {
+          "total": {
+            "input": 302,
+            "output": 18,
+            "cacheRead": 0
+          },
+          "byAgent": [],
+          "unattributed": {
+            "input": 302,
+            "output": 18,
+            "cacheRead": 0
+          }
+        },
+        "seq": 13
+      },
+      "usageAfter": {
+        "value": {
+          "total": {
+            "input": 302,
+            "output": 18,
+            "cacheRead": 0
+          },
+          "byAgent": [],
+          "unattributed": {
+            "input": 302,
+            "output": 18,
+            "cacheRead": 0
+          }
+        },
+        "seq": 15
+      },
+      "nativeResults": [
+        {
+          "seq": 13,
+          "receivedAt": 1793599441393,
+          "subtype": "success",
+          "usage": {
+            "input_tokens": 302,
+            "output_tokens": 18,
+            "cache_read_input_tokens": 0,
+            "total_tokens": 320
+          }
+        }
+      ],
+      "nativeAssistantUsage": [
+        {
+          "seq": 11,
+          "usage": {
+            "input_tokens": 101,
+            "output_tokens": 7,
+            "cache_read_input_tokens": 0,
+            "total_tokens": 108
+          }
+        }
+      ],
+      "exit": [
+        {
+          "sessionId": "dd89b22e-491b-4299-b3e7-b08ce39f2223",
+          "agentPath": [],
+          "seq": 15,
+          "receivedAt": 1793599441455,
+          "kind": "response",
+          "requestId": "4461977c-893b-41df-bc74-37f25f8e3b43",
+          "body": {
+            "kind": "exited",
+            "code": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "memory-reply-delayed-8000ms",
+      "memoryDelayMs": 8000,
+      "disposeDuringMemory": false,
+      "sessionId": "d359dd32-28be-425a-a62b-24ecae5e7451",
+      "resumed": false,
+      "prompts": [
+        "OAR_MEMORY_TIMEOUT_TURN"
+      ],
+      "firstRequest": 8,
+      "requestCount": 2,
+      "requestsBeforeDispose": 2,
+      "disposeStartedMs": 25601.8,
+      "disposeReturnedMs": 25666.9,
+      "repeatDisposeExtraRequests": 0,
+      "usageBefore": {
+        "value": {
+          "total": {
+            "input": 302,
+            "output": 18,
+            "cacheRead": 0
+          },
+          "byAgent": [],
+          "unattributed": {
+            "input": 302,
+            "output": 18,
+            "cacheRead": 0
+          }
+        },
+        "seq": 13
+      },
+      "usageAfter": {
+        "value": {
+          "total": {
+            "input": 302,
+            "output": 18,
+            "cacheRead": 0
+          },
+          "byAgent": [],
+          "unattributed": {
+            "input": 302,
+            "output": 18,
+            "cacheRead": 0
+          }
+        },
+        "seq": 15
+      },
+      "nativeResults": [
+        {
+          "seq": 13,
+          "receivedAt": 1793599452185,
+          "subtype": "success",
+          "usage": {
+            "input_tokens": 302,
+            "output_tokens": 18,
+            "cache_read_input_tokens": 0,
+            "total_tokens": 320
+          }
+        }
+      ],
+      "nativeAssistantUsage": [
+        {
+          "seq": 11,
+          "usage": {
+            "input_tokens": 101,
+            "output_tokens": 7,
+            "cache_read_input_tokens": 0,
+            "total_tokens": 108
+          }
+        }
+      ],
+      "exit": [
+        {
+          "sessionId": "d359dd32-28be-425a-a62b-24ecae5e7451",
+          "agentPath": [],
+          "seq": 15,
+          "receivedAt": 1793599452250,
+          "kind": "response",
+          "requestId": "10ecc209-438a-44ec-a3ab-0f121f039376",
+          "body": {
+            "kind": "exited",
+            "code": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "dispose-during-memory",
+      "memoryDelayMs": 8000,
+      "disposeDuringMemory": true,
+      "sessionId": "912e6e38-33c0-4d12-b2a9-4db886243281",
+      "resumed": false,
+      "prompts": [
+        "OAR_MEMORY_INTERRUPTED_TURN"
+      ],
+      "firstRequest": 10,
+      "requestCount": 2,
+      "requestsBeforeDispose": 2,
+      "disposeStartedMs": 28003.1,
+      "disposeReturnedMs": 28109.6,
+      "repeatDisposeExtraRequests": 0,
+      "usageBefore": {
+        "value": {
+          "total": null
+        },
+        "seq": 12
+      },
+      "usageAfter": {
+        "value": {
+          "total": null
+        },
+        "seq": 14
+      },
+      "nativeResults": [],
+      "nativeAssistantUsage": [
+        {
+          "seq": 11,
+          "usage": {
+            "input_tokens": 101,
+            "output_tokens": 7,
+            "cache_read_input_tokens": 0,
+            "total_tokens": 108
+          }
+        }
+      ],
+      "exit": [
+        {
+          "sessionId": "912e6e38-33c0-4d12-b2a9-4db886243281",
+          "agentPath": [],
+          "seq": 14,
+          "receivedAt": 1793599454693,
+          "kind": "response",
+          "requestId": "074debbd-d4aa-4867-9102-55eac012d7f6",
+          "body": {
+            "kind": "exited",
+            "code": null
+          }
+        }
+      ]
+    }
+  ],
+  "requests": [
+    {
+      "kind": "main",
+      "receivedMs": 4744.9,
+      "firstChunkMs": 4744.9,
+      "finishedMs": 4748.2,
+      "closedMs": 4748.3,
+      "intendedUsage": {
+        "prompt_tokens": 101,
+        "completion_tokens": 7,
+        "total_tokens": 108
+      },
+      "historyMarkers": [
+        "OAR_MEMORY_FIRST_TURN"
+      ]
+    },
+    {
+      "kind": "memory",
+      "receivedMs": 4880.2,
+      "firstChunkMs": 4880.2,
+      "finishedMs": 5130.8,
+      "closedMs": 5130.8,
+      "intendedUsage": {
+        "prompt_tokens": 201,
+        "completion_tokens": 11,
+        "total_tokens": 212
+      },
+      "historyMarkers": [
+        "OAR_MEMORY_FIRST_TURN"
+      ]
+    },
+    {
+      "kind": "main",
+      "receivedMs": 5179.6,
+      "firstChunkMs": 5179.6,
+      "finishedMs": 5181.2,
+      "closedMs": 5181.2,
+      "intendedUsage": {
+        "prompt_tokens": 101,
+        "completion_tokens": 7,
+        "total_tokens": 108
+      },
+      "historyMarkers": [
+        "OAR_MEMORY_FIRST_TURN",
+        "OAR_MEMORY_SECOND_TURN"
+      ]
+    },
+    {
+      "kind": "memory",
+      "receivedMs": 5260,
+      "firstChunkMs": 5260.1,
+      "finishedMs": 5514.8,
+      "closedMs": 5514.8,
+      "intendedUsage": {
+        "prompt_tokens": 201,
+        "completion_tokens": 11,
+        "total_tokens": 212
+      },
+      "historyMarkers": [
+        "OAR_MEMORY_FIRST_TURN",
+        "OAR_MEMORY_SECOND_TURN"
+      ]
+    },
+    {
+      "kind": "main",
+      "receivedMs": 10341.3,
+      "firstChunkMs": 10341.3,
+      "finishedMs": 10343.4,
+      "closedMs": 10343.4,
+      "intendedUsage": {
+        "prompt_tokens": 101,
+        "completion_tokens": 7,
+        "total_tokens": 108
+      },
+      "historyMarkers": [
+        "OAR_MEMORY_FIRST_TURN",
+        "OAR_MEMORY_SECOND_TURN",
+        "OAR_MEMORY_RESUMED_TURN"
+      ]
+    },
+    {
+      "kind": "memory",
+      "receivedMs": 10457.2,
+      "firstChunkMs": 10457.2,
+      "finishedMs": 10707.6,
+      "closedMs": 10707.6,
+      "intendedUsage": {
+        "prompt_tokens": 201,
+        "completion_tokens": 11,
+        "total_tokens": 212
+      },
+      "historyMarkers": [
+        "OAR_MEMORY_FIRST_TURN",
+        "OAR_MEMORY_SECOND_TURN",
+        "OAR_MEMORY_RESUMED_TURN"
+      ]
+    },
+    {
+      "kind": "main",
+      "receivedMs": 13159.7,
+      "firstChunkMs": 13159.7,
+      "finishedMs": 13161.5,
+      "closedMs": 13161.5,
+      "intendedUsage": {
+        "prompt_tokens": 101,
+        "completion_tokens": 7,
+        "total_tokens": 108
+      },
+      "historyMarkers": [
+        "OAR_MEMORY_WAIT_TURN"
+      ]
+    },
+    {
+      "kind": "memory",
+      "receivedMs": 13285.1,
+      "firstChunkMs": 13285.1,
+      "finishedMs": 14786.7,
+      "closedMs": 14786.7,
+      "intendedUsage": {
+        "prompt_tokens": 201,
+        "completion_tokens": 11,
+        "total_tokens": 212
+      },
+      "historyMarkers": [
+        "OAR_MEMORY_WAIT_TURN"
+      ]
+    },
+    {
+      "kind": "main",
+      "receivedMs": 17449.3,
+      "firstChunkMs": 17449.3,
+      "finishedMs": 17449.9,
+      "closedMs": 17450,
+      "intendedUsage": {
+        "prompt_tokens": 101,
+        "completion_tokens": 7,
+        "total_tokens": 108
+      },
+      "historyMarkers": [
+        "OAR_MEMORY_TIMEOUT_TURN"
+      ]
+    },
+    {
+      "kind": "memory",
+      "receivedMs": 17570.1,
+      "firstChunkMs": 17570.1,
+      "finishedMs": 25571.7,
+      "closedMs": 25571.7,
+      "intendedUsage": {
+        "prompt_tokens": 201,
+        "completion_tokens": 11,
+        "total_tokens": 212
+      },
+      "historyMarkers": [
+        "OAR_MEMORY_TIMEOUT_TURN"
+      ]
+    },
+    {
+      "kind": "main",
+      "receivedMs": 27874.4,
+      "firstChunkMs": 27874.4,
+      "finishedMs": 27876.1,
+      "closedMs": 27876.1,
+      "intendedUsage": {
+        "prompt_tokens": 101,
+        "completion_tokens": 7,
+        "total_tokens": 108
+      },
+      "historyMarkers": [
+        "OAR_MEMORY_INTERRUPTED_TURN"
+      ]
+    },
+    {
+      "kind": "memory",
+      "receivedMs": 27999.6,
+      "firstChunkMs": 27999.6,
+      "finishedMs": null,
+      "closedMs": 28111,
+      "intendedUsage": {
+        "prompt_tokens": 201,
+        "completion_tokens": 11,
+        "total_tokens": 212
+      },
+      "historyMarkers": [
+        "OAR_MEMORY_INTERRUPTED_TURN"
+      ]
+    }
+  ]
+}
