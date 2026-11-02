@@ -55,7 +55,7 @@ result, the others still report, and the exit code is 1.
   bounds each runtime's check and its updater run. The exit code is 1 when
   an upgrade failed or left the version unchanged, or when a runtime could
   not be probed. See [runtime updates](https://github.com/botiverse/oar/blob/main/docs/spec/update.md).
-- `oar login <runtime>`: log a runtime in through its own login. It prints
+- `oar login [runtime]`: log the named runtime in through its own login. It prints
   the sign-in URL or device code and reads a pasted code from stdin, without
   echoing it, when the runtime asks for one; Ctrl-C cancels. `--status` only
   reports whether each runtime (or the named one) is logged in, `--json`

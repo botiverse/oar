@@ -52,29 +52,26 @@ someone else can rerun turns "trust me, I checked" into "run this and see".
 
 Setup: Node.js 24+, `pnpm install`.
 
-`pnpm run typecheck` and both packages' builds use the exact
-`tsrs@0.20.0-ts7.1.0-beta` version pinned in the root devDependencies, locally
-and in CI. It targets TypeScript 7.1 beta semantics. This is a compiler
-upgrade, not just a faster TypeScript 6 executable. Keep the pin exact and
-repeat the emitted-file comparison against the previous tsrs and matching
-official TypeScript 7 build on every upgrade, especially declarations and
-source maps.
+`pnpm run typecheck` and both packages' builds use `tsrs`, pinned exactly to
+`0.20.0-ts7.1.0-beta` in the root devDependencies (TypeScript 7.1 beta
+semantics, not TypeScript 6), locally and in CI. On every tsrs upgrade keep
+the pin exact and compare the emitted files, especially declarations and
+source maps, against the previous tsrs and the matching official
+TypeScript 7 build ([migration evidence](../experiments/tsrs-migration-2026-10-20.md):
+timings, comparisons, incremental-cache checks). Native binaries exist for
+Linux x64/arm64 (GNU and musl), macOS x64/arm64 and Windows x64; elsewhere
+set `TSRS_BINARY` to a locally built compiler or rely on the required CI
+checks (there is no automatic tsc fallback). Incremental build caches live
+inside `dist` and are excluded from the npm packages; removing `dist` forces
+a complete rebuild.
 
-The pinned release publishes native binaries for Linux x64/arm64 (GNU and
-musl), macOS x64/arm64 and Windows x64. On an unsupported platform, set
-`TSRS_BINARY` to a locally built compiler or rely on the required CI checks;
-there is no automatic tsc fallback. See the
-[migration evidence](../experiments/tsrs-migration-2026-10-20.md) for timings,
-comparisons and incremental-cache checks.
-
-The official `typescript` dependency stays only for `tests/clean-install.ts`,
-which checks that a host using TypeScript 6 can consume the packed, tsrs-built
-declarations. An editor using that workspace TypeScript 6 can report different
-diagnostics from CI; tsrs provides a language server with its own
-[editor setup](https://github.com/oxc-project/tsrs/blob/main/docs/LSP.md#editor-setup).
-Type-aware lint still uses oxlint/oxlint-tsgolint; tsx, esbuild and vitest keep
-their existing roles. Incremental build caches live inside `dist` and are
-excluded from the npm packages; removing `dist` forces a complete rebuild.
+The official `typescript` dependency serves only `tests/clean-install.ts`,
+which checks that a TypeScript 6 host can consume the packed, tsrs-built
+declarations. An editor on that workspace TypeScript 6 can report different
+diagnostics from CI; tsrs has its own language server
+([editor setup](https://github.com/oxc-project/tsrs/blob/main/docs/LSP.md#editor-setup)).
+Type-aware lint uses oxlint/oxlint-tsgolint; tsx, esbuild and vitest are
+not replaced by tsrs.
 
 The tests let whoever makes a change, human or coding agent, verify it end to
 end without a person as the bottleneck: a change is done when the tests prove
@@ -94,16 +91,14 @@ folds, resolvers, process plumbing. Use virtual time via `vi.useFakeTimers`
 (mock `Date` too when clocks matter).
 
 On Windows, Vitest global setup first runs one real CIM process-table query
-with a 60-second preparation limit. It records total/query duration in the job
-log and `oar-trial-run/windows-process-table-preparation.jsonl`; a failed read
-or missing observer identity fails setup. This keeps first-use work outside
-the unit tests' timing windows. The standalone behavior entry does not
-prewarm CIM: it exercises product preparation and the cold cleanup path,
-with the existing 15-second disposal assertion unchanged.
-Product preparation and its separate capture budget
-are described in the [record contract](spec/record-stream.md#the-rules).
-Cold first-use timing remains covered by the separate
-[Windows CIM experiment](../experiments/windows-cim/README.md).
+(60-second limit), recording total and query duration in the job log and
+`oar-trial-run/windows-process-table-preparation.jsonl`; a failed read or
+missing observer identity fails setup. This keeps first-use work outside the
+unit tests' timing windows. The standalone behavior entry does not prewarm
+CIM, so it exercises product preparation and the cold cleanup path under the
+15-second disposal assertion. Product preparation and its separate capture
+budget: [record contract](spec/record-stream.md#the-rules); cold first-use
+timing: [Windows CIM experiment](../experiments/windows-cim/README.md).
 
 ### Behavior: does the public contract still hold?
 
@@ -126,20 +121,19 @@ runtimes may legitimately differ.
   catches real-process integration mistakes the mock cannot.
 - `OAR_TEST=scripted pnpm sea-trial`: the public `scriptedRuntime`
   (`@botiverse/oar/testing`) held to the same contract.
-- `pnpm tsx sea-trial/all.ts [backend...]`: several backends with bounded
-  concurrency, by default mock plus the ten aimock backends and Qoder native
-  replay. It runs at most `max(1, min(4, floor(availableParallelism() / 2)))`
-  backends at once, leaving room for native CLIs' own threads and children.
-  Every selected backend still runs, including after another backend fails.
-  Pin local native binaries to the versions in CI (for example,
-  `OAR_CODEBUDDY_BIN=/absolute/path/to/2.179.1/codebuddy`) before comparing
-  results; an old installation discovered on PATH is not evidence about the
-  pinned version. Use this command before pushing a change to shared runtime
-  machinery. CI already runs backends on separate VMs and is unchanged;
-  product and individual test deadlines are unchanged. See the
-  [local overload evidence](../experiments/codebuddy-probe-cost/README.md).
+- `pnpm tsx sea-trial/all.ts [backend...]`: several backends, by default
+  `mock`, `mock-shared`, `mock-isolated`, the ten aimock backends and Qoder
+  native replay. Run it before pushing a change to shared runtime machinery.
+  It runs at most `max(1, min(4, floor(availableParallelism() / 2)))`
+  backends at once, leaving room for native CLIs' own threads and children,
+  and every selected backend runs even after another fails. The bound is
+  local only (CI runs backends on separate VMs) and changes no product or
+  individual test deadline ([local overload evidence](../experiments/codebuddy-probe-cost/README.md)).
+  Pin local native binaries to the CI versions before comparing results (for
+  example, `OAR_CODEBUDDY_BIN=/absolute/path/to/2.179.1/codebuddy`): an old
+  installation found on PATH is not evidence about the pinned version.
 - `OAR_TEST=<real id>` (`antigravity`, `claude`, `codebuddy`, `codex`, `cursor`, `grok`,
-  `kimi`, `opencode`, `pi`): your local installation and login. The final word when
+  `kimi`, `opencode`, `pi`, `qoder`, `qwen`): your local installation and login. The final word when
   vendor reality is in doubt; it costs quota, so never run it by default.
 
 ### Vendor: is the runtime-specific integration right?
@@ -147,10 +141,10 @@ runtimes may legitimately differ.
 `sea-trial/vendor/*.vendor.test.ts`, run by
 `OAR_TEST=<runtime>-aimock pnpm vitest run sea-trial/vendor`. The ACP
 runtimes' vendor backends (`opencode-aimock`, `kimi-aimock`, `grok-aimock`,
-`antigravity-aimock`, `sea-trial/harness/aimock-acp.ts`) need the installed
-CLI. Grok, Kimi and OpenCode v1 run in Linux/macOS pull-request CI and
-Windows main-push observations; Antigravity
-remains a local probe. Vendor tests see
+`antigravity-aimock`, `sea-trial/harness/aimock-acp.ts`; `codebuddy-aimock`,
+`sea-trial/harness/codebuddy-aimock.ts`) need the installed CLI. Grok, Kimi,
+OpenCode v1 and CodeBuddy run in Linux/macOS pull-request CI, the first three
+also in Windows main-push observations; Antigravity is a local probe. Vendor tests see
 the scripted provider's side: request contents, error edges, scripted tool
 rounds. Run them when a change affects what a runtime sends upstream or how it
 handles vendor-specific behavior; write one for anything that needs the
@@ -165,9 +159,10 @@ answers one question about a real runtime, kept as evidence with its
 conclusion indexed in the experiments README. These are not part of the normal
 CI change-validation gate; reach for one when the vendor's actual behavior is
 the open question. The manual [shared-runtime evidence workflow](../.github/workflows/shared-runtime-evidence.yml)
-is an explicit exception for the account-free `experiments/sharing` probes:
-it collects platform observations, preserves failures, and does not admit a
-runtime to sharing or alter the pull-request gate.
+runs the account-free `experiments/sharing` probes to collect platform
+observations, including actual MCP, hook/plugin and tool child cwd and
+environment. It preserves failures, retains differences as failures, and
+does not admit a runtime to sharing or alter the pull-request gate.
 
 ### Live: does the strong claim hold on the real runtime?
 
@@ -192,77 +187,62 @@ CI ([`.github/workflows/ci.yml`](../.github/workflows/ci.yml)) skips a push
 or pull request whose changes are all Markdown files or under `docs/` or
 `assets/`. Otherwise it runs these jobs:
 
-- `check`: `pnpm run check` and `pnpm run build` on Linux, macOS and Windows.
-  The same jobs run OpenCode 2.2.5 isolated native tool cleanup, including
-  readiness, surviving-peer and final residual-process assertions, with
-  diagnostic artifacts retained on failure.
-  The same jobs verify CodeBuddy's official npm installation in an isolated
-  HOME and global prefix, with its bin directory off PATH, and check the
-  installed package's version and an idempotent second install. They then
-  install Kimi 2.4.1 and run its native login tests against a
-  local OAuth/model server, including browser suppression and credential writes.
-  OpenCode shared placement is not admitted, so its shared session behavior
-  suite, native shared/isolated controls and plugin child-environment
-  comparison run only in the manual `opencode-sharing-experiment.yml`
-  workflow, against an experimental adapter outside the package.
-  Grok production sharing is also refused. Its candidate adapter and native
-  shared/isolated controls run only in `grok-sharing-experiment.yml`.
-  Synthetic routing and public placement-refusal regressions remain in the
-  required check jobs. The manual shared-runtime evidence workflow also
-  compares actual MCP, hook/plugin and tool child cwd and environment,
-  retaining differences as failures rather than admission.
+- `check`: `pnpm run check` and `pnpm run build` on Linux, macOS and Windows,
+  then three native steps: CodeBuddy's official npm installation in an
+  isolated HOME and global prefix with its bin directory off PATH (installed
+  version and an idempotent second install); OpenCode 2.2.5 isolated native
+  tool cleanup (readiness, surviving-peer and final residual-process
+  assertions); and Kimi 2.4.1's native login tests against a local
+  OAuth/model server, including browser suppression and credential writes.
+  OpenCode and Kimi upload their diagnostic artifacts, failures included.
   The browser-entry unit test bundles the complete portable entry for a
-  browser and refuses Node imports or unresolved externals.
-- `behavior`: per aimock backend on the same three systems,
-  `pnpm run sea-trial` plus that backend's vendor tests. Windows Pi RPC is
-  excluded from this combined job and runs as `pi-rpc-windows (behavior)`
-  and `pi-rpc-windows (vendor)` on separate VMs. The vendor job has four named
-  steps: RPC-specific files, native Pi files, MCP files and remaining shared
-  files. Together they cover every vendor file exactly once, including new
-  files. Each step starts Vitest separately with its existing worker settings;
-  groups run sequentially and an ordinary failure does not skip later groups.
-  The job names and required check count stay unchanged. Step names and start/end
-  times remain available through the GitHub jobs API when logs are unavailable;
-  they identify a group, not an individual test or the reason it stopped.
-  Both jobs retain the resource sampler; artifacts have phase suffixes, with
-  separate vendor group directories and resource files. Vendor
-  cases retain their existing 30 to 120 second Vitest limits. An external
-  monitor also stops the test process tree if a case (including hooks) stays
-  active for three minutes, naming it in the resource log. Each vendor group's
-  command ceiling is five minutes and its CI step ceiling is six minutes;
-  the overall job ceiling remains 20 minutes. Exit 124 means this diagnostic
-  monitor reached its deadline, not a native test result. Tree termination
-  runs in the background with a ten-second wait: a nonreturning call records
-  `termination_unreturned`; a thrown call records `termination_error`.
-  Either path records `stage_exit` and exits 124 without joining the worker
-  or taking another resource sample. A returned call waits up to five
-  seconds for root exit, within the same ten-second budget. Exit 124 does not prove descendant
-  cleanup; residual processes remain the runner's responsibility. Output
-  handles remain inherited so native test output still reaches the job log.
-  The always-uploaded artifact includes incremental case events, the last
-  active cases, combined Vitest output and redacted Pi RPC stderr tails.
-  These observations change no assertion, concurrency or native deadline and
-  do not establish the cause of the intermittent Windows hangs.
+  browser and refuses Node imports or unresolved externals. Synthetic
+  sharing routing and public placement-refusal regressions stay in these
+  required jobs.
+- `behavior`: `pnpm run sea-trial` plus the backend's vendor tests on the
+  same three systems for `claude-aimock`, `codex-aimock`, `pi-aimock`,
+  `pi-rpc-aimock` (not on Windows, below), `pi-durable-aimock`, `qwen-aimock`
+  and `qoder-native` (shared-case concurrency 2).
+- `pi-rpc-windows (behavior)` and `pi-rpc-windows (vendor)`: Windows Pi RPC
+  on separate VMs, so each phase keeps its outcome if the other loses its
+  runner (job ceiling 20 minutes). Both run under the resource sampler, with
+  phase-suffixed artifacts and separate vendor group directories and
+  resource files. The vendor job runs four named steps in sequence
+  (RPC-specific, native Pi, MCP and remaining shared files) that together
+  cover every vendor file exactly once, new files included; each starts
+  Vitest separately with the usual worker settings, and an ordinary failure
+  does not skip later groups. Step names and start/end times stay readable
+  through the GitHub jobs API when logs are not; they identify a group, not a
+  test or why it stopped.
+  Vendor cases keep their 30 to 120 second Vitest limits. An external
+  monitor also stops the test process tree when a case (hooks included)
+  stays active for three minutes, naming it in the resource log; each vendor
+  group has a five-minute command ceiling inside a six-minute step ceiling.
+  Its exit 124 means the diagnostic monitor reached its deadline, not a
+  native test result, and does not prove descendant cleanup (residual
+  processes remain the runner's responsibility). Tree termination runs in
+  the background within a ten-second budget: an unreturned call records
+  `termination_unreturned`, a thrown one `termination_error`, and either
+  records `stage_exit` and exits 124 without joining the worker or taking
+  another resource sample; a returned call waits up to five seconds of that
+  budget for root exit. Output handles stay inherited, so native test output
+  reaches the job log. The always-uploaded artifact holds incremental case
+  events, the last active cases, combined Vitest output and redacted Pi RPC
+  stderr tails. None of this changes an assertion, concurrency or native
+  deadline, or establishes the cause of the intermittent Windows hangs.
 - `acp-behavior`: Kimi 2.4.1, Grok 1.0.70, OpenCode v1 1.19.5 and CodeBuddy 2.179.1 on
-  Linux and macOS, with npm download caches. Shared behavior and
-  vendor tests use native programs with local scripted providers, isolated
-  configuration and synthetic keys. Shared-case concurrency and Vitest
-  worker count are both 2; CodeBuddy serializes shared cases in its isolated
-  fixture HOME. OpenCode prepares each behavior fixture's database with one
-  serial native open and exit before concurrent cases begin. Preparation
-  failures stop the suite without retries; the independent
-  [cold-start observation](../experiments/opencode-cold-start.ts) retains the
-  native database race separately. A missing installation fails; individual
-  unsupported capabilities remain visible skips. Each job has a 20-minute
-  ceiling and each suite step a 12-minute ceiling, without changing case
-  assertions or native deadlines. Logs and traces upload even on failure.
-  Windows runs the same three backends in a separate
-  [`acp-windows.yml`](../.github/workflows/acp-windows.yml) workflow after
-  main pushes, outside the pull-request and release gates. All three had
-  intermittent Windows startup or MCP timeouts whose causes remain unknown.
-  The observation jobs still fail and retain their logs and traces; daily
-  inspection summarizes them. They do not use `continue-on-error` or retries.
-  Grok's launch comparison runs after its tests, so it cannot prewarm them.
+  Linux and macOS: shared behavior and vendor tests against native programs
+  with local scripted providers, isolated configuration, synthetic keys and
+  npm download caches. Shared-case
+  concurrency and Vitest worker count are both 2; CodeBuddy serializes
+  shared cases in its isolated fixture HOME. OpenCode prepares each behavior
+  fixture's database with one serial native open and exit before concurrent
+  cases begin; a preparation failure stops the suite without retries (the
+  independent [cold-start observation](../experiments/opencode-cold-start.ts)
+  retains the native database race). A missing installation fails;
+  individual unsupported capabilities remain visible skips. Ceilings are 20 minutes per
+  job and 12 per suite step, changing no case assertion or native deadline.
+  Logs and traces upload even on failure.
   [Evidence and deferred runtimes](../experiments/acp-ci-2026-10-29.md).
 - `browser-demo`: `pnpm durable-demo:smoke` in headless Chromium on Linux.
   The real Pi Durable Harness and native fetch provider run in the browser;
@@ -280,7 +260,23 @@ or pull request whose changes are all Markdown files or under `docs/` or
   cursor's models through the SDK it depends on itself. It needs the npm
   registry.
 
-Windows Codex behavior jobs forward child stderr to the job log with
+Outside ci.yml and its pull-request and release gates:
+
+- [`acp-windows.yml`](../.github/workflows/acp-windows.yml) runs the Kimi,
+  Grok and OpenCode v1 ACP backends on Windows after main pushes. All three
+  had intermittent Windows startup or MCP timeouts whose causes remain
+  unknown. The jobs still fail, without `continue-on-error` or retries, and
+  retain logs and traces; daily inspection summarizes them. Grok's launch
+  comparison runs after its tests, so it cannot prewarm them.
+- OpenCode and Grok shared placement is not admitted (explicit `shared` is
+  refused), so their shared session behavior suites and native
+  shared/isolated controls run only in the manual
+  `opencode-sharing-experiment.yml` (with a configured plugin
+  child-environment comparison) and `grok-sharing-experiment.yml`
+  workflows, against experimental adapters outside the package.
+
+Windows `codex-aimock` and every `qoder-native` behavior job, and the Windows
+ACP observations, forward child stderr to the job log with
 `OAR_CHILD_STDERR=inherit`, including failures before a session trace exists
 (a login's or logout's process is never forwarded: its output may carry secrets).
 Artifact upload warns when no trace directory was created; the failed test
@@ -352,7 +348,7 @@ observed without changing deadlines, pipe draining or process cleanup.
    that needs a capability skips on its absence (a session without `steer`),
    never on a runtime name.
 5. **Add an aimock backend if feasible** (`sea-trial/harness/aimock.ts`,
-   `backends.ts`, and the `behavior` matrix in `.github/workflows/ci.yml`) so
+   `backends.ts`, and the `behavior` or `acp-behavior` matrix in `.github/workflows/ci.yml`) so
    the contract stays verifiable without a login, and add vendor tests for the
    provider-side specifics worth pinning.
 6. **Update the docs in the same commit**: the runtime lists in the root and
