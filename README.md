@@ -185,7 +185,10 @@ What else a session gives you:
 - **Control with honest answers.** `prompt`, `steer`, `queue`, `withdraw`
   and `abort` each answer accepted or rejected with a typed code (`busy`,
   `no_active_turn`, `runtime_exited`, …); where input landed is read from
-  the events, never guessed.
+  the events, never guessed. `deliver(input, { when: "interrupt", maxWaitMs, merge })`
+  steers where the runtime can, and otherwise interrupts at a tool boundary
+  and sends every held input as one turn
+  ([reference](docs/spec/conversation.md#interrupting-and-merging-held-inputs)).
 - **Your own tools on any runtime.** `serveMcpTools` serves tools your host
   implements as an MCP server a session attaches like any other; replace
   the list mid-session where `Runtime.mcpToolsListChanged` says the running
@@ -258,16 +261,19 @@ for (const runtime of defaultRuntimes.list()) {
 - **Install:** `installPlan()` says what installing a runtime would run (the
   vendor's documented installer, with its source page) or why no installer
   would run, and `install()` runs it for a runtime not found, judged by
-  `installation()` afterwards (claude, codex, codebuddy, grok, kimi, and
-  opencode's `v1` or `v2` line as the host chooses). Plans may run bounded
+  `installation()` afterwards (claude, codex, codebuddy, grok, kimi, qwen,
+  qoder, and opencode's `v1` or `v2` line as the host chooses). Plans may run bounded
   local read-only queries; an unknown destination returns `location_unknown`
   with the vendor command and source ([reference](docs/spec/install.md)).
 - **Login:** `login()` signs a runtime in through its own login without a
   terminal: it relays the sign-in URL or device code, and a code the person
   pastes back goes to the runtime only. `authStatus()` says whether it is
-  signed in, and `logout()` signs it out through its own logout (claude,
-  codex, cursor; [reference](docs/spec/login.md)). oar never handles the
-  tokens.
+  signed in, and `logout()` signs it out through its own logout. Login:
+  claude, codex, codebuddy, cursor, kimi, qoder; status also qwen; logout:
+  claude, codex, cursor, kimi ([reference](docs/spec/login.md)). Pass the
+  same `env` a session would get (`userShellEnvironment()` reads the user's
+  login shell once) so credentials are written and read in the same place.
+  oar never handles the tokens.
 - **Account usage:** `accountUsage()` reads the plan and quota windows with
   their reset times (claude, codex, grok, kimi;
   [reference](docs/spec/account-usage.md)).
@@ -288,11 +294,13 @@ for (const runtime of defaultRuntimes.list()) {
   `UnsupportedOptionError` rather than drop them
   ([reference](docs/spec/runtime-matrix.md#refused-session-options)).
   `mcpServers` attaches MCP servers to one session (except Cursor and
-  Pi Durable). `name` titles a session in the runtime's own list where it
+  Pi Durable). `userConfiguration: "exclude"` skips user-level plugins,
+  skills, MCP servers, hooks and settings while keeping the login and session history (Claude,
+  Cursor). `name` titles a session in the runtime's own list where it
   has one. A resume the runtime declines for now (the conversation is
   archived or open elsewhere) rejects with `SessionUnavailableError`.
 
-The CLI exposes the same queries: `oar installation`, `oar login`
+The CLI exposes the same queries: `oar orient`, `oar installation`, `oar login`
 (`--status` only reports), `oar logout`, `oar usage`, `oar models`,
 `oar upgrade --check`, and `oar skills`, `oar commands`, `oar mcps` and `oar tools`.
 

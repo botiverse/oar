@@ -30,6 +30,16 @@ increments, not a promise to add every feature listed.
   (`createCursorRuntime`, `createPiDurableRuntime`), one package entry per
   runtime (`@botiverse/oar/runtimes/<id>`) so a host loads only what it uses,
   and a clean-install check of the published packages.
+- Placement as a declared runtime choice ([system](system.md#placement)):
+  `Runtime.execution`, Pi through its own RPC process
+  (`createPiRuntime({ execution: "subprocess" })`), and `withPlacement` for
+  shared or isolated runtime processes. No native runtime is admitted to
+  shared placement today.
+- Interrupt delivery for runtimes without steer
+  (`deliver(input, { when: "interrupt", maxWaitMs, merge })`), sessions that
+  skip user-level configuration (`userConfiguration: "exclude"`), and login,
+  logout and status in the environment a session uses (`env`,
+  `userShellEnvironment()`).
 - Mock, aimock, vendor, experiment and live validation layers, with voyage
   logs as durable evidence.
 

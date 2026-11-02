@@ -205,8 +205,10 @@ Sharing follows five rules:
    directory instead of the session's, a session that uses them does not
    share: automatic placement opens it its own process, and explicit shared
    placement is refused. If the adapter cannot tell before opening whether a
-   session will use them, as with hooks read from configuration, that
-   runtime version does not share.
+   session will use them, as with hooks or plugins read from configuration,
+   that runtime version does not share. Both cases were observed: OpenCode
+   2.2.3 and 2.2.5 [plugin children](../../experiments/sharing/opencode-plugin-environment-2026-10-31.md)
+   and Grok 1.0.70 stdio MCP children start in the shared process's home.
 2. **The fallback releases the session; it does not kill.** `abort` stays
    the runtime's own interrupt. If the turn has not ended within the fallback
    interval, OAR accepts the pending abort and records a release for that
@@ -259,12 +261,6 @@ Sharing follows five rules:
    session, and an explicit request for shared placement is refused with a
    typed reason. The exact versions and platforms that meet this gate are
    recorded in the [evidence index](../../experiments/sharing/README.md)
-   (see the [2026-10-31 admission decisions](../../experiments/sharing/admission-2026-10-31.md)). OpenCode 2.2.3 and 2.2.5 are no longer admitted:
-   [configured plugin children inherit a different cwd](../../experiments/sharing/opencode-plugin-environment-2026-10-31.md).
-   Grok 1.0.70 also remains unadmitted because configured stdio MCP children
-   inherit the shared process HOME. No native runtime is currently enabled
-   for shared placement. Claude, Qwen and Pi RPC
-   run one session per native process and are always isolated. Qoder 1.1.80
-   and earlier are also isolated. From 1.1.81, Qoder's native SDK daemon can
-   run multiple sessions ([probe](../../experiments/qoder-native/daemon-2026-10-29.md));
-   admission still requires evidence for every part of this rule.
+   ([2026-10-31 admission decisions](../../experiments/sharing/admission-2026-10-31.md));
+   runtimes whose native interface runs one session per process (Claude,
+   Qwen, Pi RPC) are always isolated.
