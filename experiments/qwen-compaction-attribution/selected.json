@@ -1,0 +1,924 @@
+{
+  "observed_at": "2026-11-02",
+  "platform": "linux-x64",
+  "cases": [
+    {
+      "mode": "manual",
+      "version": "0.26.5",
+      "summary_requests": 1,
+      "steps": [
+        {
+          "input": "OAR_INITIAL",
+          "outcome": {
+            "kind": "completed"
+          },
+          "summaries_so_far": 0,
+          "native_frame_counts": {
+            "assistant": 1,
+            "result": 1,
+            "stream_event": 556,
+            "system": 1
+          },
+          "native_stream_event_counts": {
+            "content_block_delta": 551,
+            "content_block_start": 1,
+            "content_block_stop": 1,
+            "goal_state": 1,
+            "message_start": 1,
+            "message_stop": 1
+          },
+          "assistant_messages": [
+            {
+              "role": "assistant",
+              "model": "gpt-5.1",
+              "usage": {
+                "input_tokens": 100,
+                "output_tokens": 300,
+                "cache_read_input_tokens": 0,
+                "total_tokens": 400
+              },
+              "content_types": [
+                "text"
+              ]
+            }
+          ],
+          "results": [
+            {
+              "type": "result",
+              "subtype": "success",
+              "is_error": false,
+              "num_turns": 1,
+              "duration_api_ms": 491
+            }
+          ],
+          "text_length": 11018,
+          "text_prefix": "MODEL_BODY_manual Ordinary model words. Ordinary model words. Ordinary model words. Ordinary model w",
+          "compaction_events": [],
+          "provider_requests": [
+            {
+              "model": "gpt-5.1",
+              "summary_request": false,
+              "last_user_probe_markers": [
+                "OAR_INITIAL"
+              ],
+              "history_summary_markers": []
+            },
+            {
+              "model": "gpt-5.1",
+              "summary_request": false,
+              "last_user_probe_markers": [],
+              "history_summary_markers": []
+            }
+          ]
+        },
+        {
+          "input": "OAR_HIGH_USAGE",
+          "outcome": {
+            "kind": "completed"
+          },
+          "summaries_so_far": 0,
+          "native_frame_counts": {
+            "assistant": 1,
+            "result": 1,
+            "stream_event": 555,
+            "system": 1
+          },
+          "native_stream_event_counts": {
+            "content_block_delta": 551,
+            "content_block_start": 1,
+            "content_block_stop": 1,
+            "message_start": 1,
+            "message_stop": 1
+          },
+          "assistant_messages": [
+            {
+              "role": "assistant",
+              "model": "gpt-5.1",
+              "usage": {
+                "input_tokens": 90000,
+                "output_tokens": 300,
+                "cache_read_input_tokens": 0,
+                "total_tokens": 90300
+              },
+              "content_types": [
+                "text"
+              ]
+            }
+          ],
+          "results": [
+            {
+              "type": "result",
+              "subtype": "success",
+              "is_error": false,
+              "num_turns": 1,
+              "duration_api_ms": 101
+            }
+          ],
+          "text_length": 11018,
+          "text_prefix": "MODEL_BODY_manual Ordinary model words. Ordinary model words. Ordinary model words. Ordinary model w",
+          "compaction_events": [],
+          "provider_requests": [
+            {
+              "model": "gpt-5.1",
+              "summary_request": false,
+              "last_user_probe_markers": [
+                "OAR_HIGH_USAGE"
+              ],
+              "history_summary_markers": []
+            },
+            {
+              "model": "gpt-5.1",
+              "summary_request": false,
+              "last_user_probe_markers": [],
+              "history_summary_markers": []
+            }
+          ]
+        },
+        {
+          "input": "/compress",
+          "outcome": {
+            "kind": "completed"
+          },
+          "summaries_so_far": 1,
+          "native_frame_counts": {
+            "assistant": 1,
+            "result": 1,
+            "stream_event": 5,
+            "system": 1
+          },
+          "native_stream_event_counts": {
+            "content_block_delta": 1,
+            "content_block_start": 1,
+            "content_block_stop": 1,
+            "message_start": 1,
+            "message_stop": 1
+          },
+          "assistant_messages": [
+            {
+              "role": "assistant",
+              "model": "gpt-5.1",
+              "usage": {
+                "input_tokens": 0,
+                "output_tokens": 0
+              },
+              "content_types": [
+                "text"
+              ]
+            }
+          ],
+          "results": [
+            {
+              "type": "result",
+              "subtype": "success",
+              "is_error": false,
+              "num_turns": 0,
+              "duration_api_ms": 0
+            }
+          ],
+          "text_length": 37,
+          "text_prefix": "Context compressed (90000 -> ~81764).",
+          "compaction_events": [],
+          "provider_requests": [
+            {
+              "model": "gpt-5.1",
+              "summary_request": true,
+              "last_user_probe_markers": [],
+              "history_summary_markers": []
+            }
+          ]
+        },
+        {
+          "input": "OAR_AFTER",
+          "outcome": {
+            "kind": "completed"
+          },
+          "summaries_so_far": 1,
+          "native_frame_counts": {
+            "assistant": 1,
+            "result": 1,
+            "stream_event": 555,
+            "system": 1
+          },
+          "native_stream_event_counts": {
+            "content_block_delta": 551,
+            "content_block_start": 1,
+            "content_block_stop": 1,
+            "message_start": 1,
+            "message_stop": 1
+          },
+          "assistant_messages": [
+            {
+              "role": "assistant",
+              "model": "gpt-5.1",
+              "usage": {
+                "input_tokens": 100,
+                "output_tokens": 300,
+                "cache_read_input_tokens": 0,
+                "total_tokens": 400
+              },
+              "content_types": [
+                "text"
+              ]
+            }
+          ],
+          "results": [
+            {
+              "type": "result",
+              "subtype": "success",
+              "is_error": false,
+              "num_turns": 1,
+              "duration_api_ms": 89
+            }
+          ],
+          "text_length": 11018,
+          "text_prefix": "MODEL_BODY_manual Ordinary model words. Ordinary model words. Ordinary model words. Ordinary model w",
+          "compaction_events": [],
+          "provider_requests": [
+            {
+              "model": "gpt-5.1",
+              "summary_request": false,
+              "last_user_probe_markers": [
+                "OAR_AFTER"
+              ],
+              "history_summary_markers": [
+                "OAR_NATIVE_SUMMARY_1"
+              ]
+            },
+            {
+              "model": "gpt-5.1",
+              "summary_request": false,
+              "last_user_probe_markers": [],
+              "history_summary_markers": [
+                "OAR_NATIVE_SUMMARY_1"
+              ]
+            }
+          ]
+        },
+        {
+          "input": "OAR_SAME_STATUS",
+          "outcome": {
+            "kind": "completed"
+          },
+          "summaries_so_far": 1,
+          "native_frame_counts": {
+            "assistant": 1,
+            "result": 1,
+            "stream_event": 6,
+            "system": 1
+          },
+          "native_stream_event_counts": {
+            "content_block_delta": 2,
+            "content_block_start": 1,
+            "content_block_stop": 1,
+            "message_start": 1,
+            "message_stop": 1
+          },
+          "assistant_messages": [
+            {
+              "role": "assistant",
+              "model": "gpt-5.1",
+              "usage": {
+                "input_tokens": 100,
+                "output_tokens": 300,
+                "cache_read_input_tokens": 0,
+                "total_tokens": 400
+              },
+              "content_types": [
+                "text"
+              ]
+            }
+          ],
+          "results": [
+            {
+              "type": "result",
+              "subtype": "success",
+              "is_error": false,
+              "num_turns": 1,
+              "duration_api_ms": 29
+            }
+          ],
+          "text_length": 37,
+          "text_prefix": "Context compressed (90000 -> ~81764).",
+          "compaction_events": [],
+          "provider_requests": [
+            {
+              "model": "gpt-5.1",
+              "summary_request": false,
+              "last_user_probe_markers": [
+                "OAR_SAME_STATUS"
+              ],
+              "history_summary_markers": [
+                "OAR_NATIVE_SUMMARY_1"
+              ]
+            },
+            {
+              "model": "gpt-5.1",
+              "summary_request": false,
+              "last_user_probe_markers": [],
+              "history_summary_markers": [
+                "OAR_NATIVE_SUMMARY_1"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "automatic",
+      "version": "0.26.5",
+      "summary_requests": 1,
+      "steps": [
+        {
+          "input": "OAR_INITIAL",
+          "outcome": {
+            "kind": "completed"
+          },
+          "summaries_so_far": 0,
+          "native_frame_counts": {
+            "assistant": 1,
+            "result": 1,
+            "stream_event": 557,
+            "system": 1
+          },
+          "native_stream_event_counts": {
+            "content_block_delta": 552,
+            "content_block_start": 1,
+            "content_block_stop": 1,
+            "goal_state": 1,
+            "message_start": 1,
+            "message_stop": 1
+          },
+          "assistant_messages": [
+            {
+              "role": "assistant",
+              "model": "gpt-5.1",
+              "usage": {
+                "input_tokens": 100,
+                "output_tokens": 300,
+                "cache_read_input_tokens": 0,
+                "total_tokens": 400
+              },
+              "content_types": [
+                "text"
+              ]
+            }
+          ],
+          "results": [
+            {
+              "type": "result",
+              "subtype": "success",
+              "is_error": false,
+              "num_turns": 1,
+              "duration_api_ms": 459
+            }
+          ],
+          "text_length": 11021,
+          "text_prefix": "MODEL_BODY_automatic Ordinary model words. Ordinary model words. Ordinary model words. Ordinary mode",
+          "compaction_events": [],
+          "provider_requests": [
+            {
+              "model": "gpt-5.1",
+              "summary_request": false,
+              "last_user_probe_markers": [
+                "OAR_INITIAL"
+              ],
+              "history_summary_markers": []
+            },
+            {
+              "model": "gpt-5.1",
+              "summary_request": false,
+              "last_user_probe_markers": [],
+              "history_summary_markers": []
+            }
+          ]
+        },
+        {
+          "input": "OAR_HIGH_USAGE",
+          "outcome": {
+            "kind": "completed"
+          },
+          "summaries_so_far": 0,
+          "native_frame_counts": {
+            "assistant": 1,
+            "result": 1,
+            "stream_event": 556,
+            "system": 1
+          },
+          "native_stream_event_counts": {
+            "content_block_delta": 552,
+            "content_block_start": 1,
+            "content_block_stop": 1,
+            "message_start": 1,
+            "message_stop": 1
+          },
+          "assistant_messages": [
+            {
+              "role": "assistant",
+              "model": "gpt-5.1",
+              "usage": {
+                "input_tokens": 90000,
+                "output_tokens": 300,
+                "cache_read_input_tokens": 0,
+                "total_tokens": 90300
+              },
+              "content_types": [
+                "text"
+              ]
+            }
+          ],
+          "results": [
+            {
+              "type": "result",
+              "subtype": "success",
+              "is_error": false,
+              "num_turns": 1,
+              "duration_api_ms": 268
+            }
+          ],
+          "text_length": 11021,
+          "text_prefix": "MODEL_BODY_automatic Ordinary model words. Ordinary model words. Ordinary model words. Ordinary mode",
+          "compaction_events": [],
+          "provider_requests": [
+            {
+              "model": "gpt-5.1",
+              "summary_request": false,
+              "last_user_probe_markers": [
+                "OAR_HIGH_USAGE"
+              ],
+              "history_summary_markers": []
+            },
+            {
+              "model": "gpt-5.1",
+              "summary_request": false,
+              "last_user_probe_markers": [],
+              "history_summary_markers": []
+            }
+          ]
+        },
+        {
+          "input": "OAR_AFTER",
+          "outcome": {
+            "kind": "completed"
+          },
+          "summaries_so_far": 1,
+          "native_frame_counts": {
+            "assistant": 1,
+            "result": 1,
+            "stream_event": 556,
+            "system": 1
+          },
+          "native_stream_event_counts": {
+            "content_block_delta": 552,
+            "content_block_start": 1,
+            "content_block_stop": 1,
+            "message_start": 1,
+            "message_stop": 1
+          },
+          "assistant_messages": [
+            {
+              "role": "assistant",
+              "model": "gpt-5.1",
+              "usage": {
+                "input_tokens": 100,
+                "output_tokens": 300,
+                "cache_read_input_tokens": 0,
+                "total_tokens": 400
+              },
+              "content_types": [
+                "text"
+              ]
+            }
+          ],
+          "results": [
+            {
+              "type": "result",
+              "subtype": "success",
+              "is_error": false,
+              "num_turns": 1,
+              "duration_api_ms": 167
+            }
+          ],
+          "text_length": 11021,
+          "text_prefix": "MODEL_BODY_automatic Ordinary model words. Ordinary model words. Ordinary model words. Ordinary mode",
+          "compaction_events": [],
+          "provider_requests": [
+            {
+              "model": "gpt-5.1",
+              "summary_request": true,
+              "last_user_probe_markers": [],
+              "history_summary_markers": []
+            },
+            {
+              "model": "gpt-5.1",
+              "summary_request": false,
+              "last_user_probe_markers": [
+                "OAR_AFTER"
+              ],
+              "history_summary_markers": [
+                "OAR_NATIVE_SUMMARY_1"
+              ]
+            },
+            {
+              "model": "gpt-5.1",
+              "summary_request": false,
+              "last_user_probe_markers": [],
+              "history_summary_markers": [
+                "OAR_NATIVE_SUMMARY_1"
+              ]
+            }
+          ]
+        },
+        {
+          "input": "OAR_SAME_STATUS",
+          "outcome": {
+            "kind": "completed"
+          },
+          "summaries_so_far": 1,
+          "native_frame_counts": {
+            "assistant": 1,
+            "result": 1,
+            "stream_event": 5,
+            "system": 1
+          },
+          "native_stream_event_counts": {
+            "content_block_delta": 1,
+            "content_block_start": 1,
+            "content_block_stop": 1,
+            "message_start": 1,
+            "message_stop": 1
+          },
+          "assistant_messages": [
+            {
+              "role": "assistant",
+              "model": "gpt-5.1",
+              "usage": {
+                "input_tokens": 100,
+                "output_tokens": 300,
+                "cache_read_input_tokens": 0,
+                "total_tokens": 400
+              },
+              "content_types": [
+                "text"
+              ]
+            }
+          ],
+          "results": [
+            {
+              "type": "result",
+              "subtype": "success",
+              "is_error": false,
+              "num_turns": 1,
+              "duration_api_ms": 24
+            }
+          ],
+          "text_length": 17,
+          "text_prefix": "MODEL_PLACEHOLDER",
+          "compaction_events": [],
+          "provider_requests": [
+            {
+              "model": "gpt-5.1",
+              "summary_request": false,
+              "last_user_probe_markers": [
+                "OAR_SAME_STATUS"
+              ],
+              "history_summary_markers": [
+                "OAR_NATIVE_SUMMARY_1"
+              ]
+            },
+            {
+              "model": "gpt-5.1",
+              "summary_request": false,
+              "last_user_probe_markers": [],
+              "history_summary_markers": [
+                "OAR_NATIVE_SUMMARY_1"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "mode": "shadowed",
+      "version": "0.26.5",
+      "summary_requests": 0,
+      "steps": [
+        {
+          "input": "OAR_INITIAL",
+          "outcome": {
+            "kind": "completed"
+          },
+          "summaries_so_far": 0,
+          "native_frame_counts": {
+            "assistant": 1,
+            "result": 1,
+            "stream_event": 556,
+            "system": 1
+          },
+          "native_stream_event_counts": {
+            "content_block_delta": 551,
+            "content_block_start": 1,
+            "content_block_stop": 1,
+            "goal_state": 1,
+            "message_start": 1,
+            "message_stop": 1
+          },
+          "assistant_messages": [
+            {
+              "role": "assistant",
+              "model": "gpt-5.1",
+              "usage": {
+                "input_tokens": 100,
+                "output_tokens": 300,
+                "cache_read_input_tokens": 0,
+                "total_tokens": 400
+              },
+              "content_types": [
+                "text"
+              ]
+            }
+          ],
+          "results": [
+            {
+              "type": "result",
+              "subtype": "success",
+              "is_error": false,
+              "num_turns": 1,
+              "duration_api_ms": 481
+            }
+          ],
+          "text_length": 11020,
+          "text_prefix": "MODEL_BODY_shadowed Ordinary model words. Ordinary model words. Ordinary model words. Ordinary model",
+          "compaction_events": [],
+          "provider_requests": [
+            {
+              "model": "gpt-5.1",
+              "summary_request": false,
+              "last_user_probe_markers": [
+                "OAR_INITIAL"
+              ],
+              "history_summary_markers": []
+            },
+            {
+              "model": "gpt-5.1",
+              "summary_request": false,
+              "last_user_probe_markers": [],
+              "history_summary_markers": []
+            }
+          ]
+        },
+        {
+          "input": "OAR_HIGH_USAGE",
+          "outcome": {
+            "kind": "completed"
+          },
+          "summaries_so_far": 0,
+          "native_frame_counts": {
+            "assistant": 1,
+            "result": 1,
+            "stream_event": 555,
+            "system": 1
+          },
+          "native_stream_event_counts": {
+            "content_block_delta": 551,
+            "content_block_start": 1,
+            "content_block_stop": 1,
+            "message_start": 1,
+            "message_stop": 1
+          },
+          "assistant_messages": [
+            {
+              "role": "assistant",
+              "model": "gpt-5.1",
+              "usage": {
+                "input_tokens": 90000,
+                "output_tokens": 300,
+                "cache_read_input_tokens": 0,
+                "total_tokens": 90300
+              },
+              "content_types": [
+                "text"
+              ]
+            }
+          ],
+          "results": [
+            {
+              "type": "result",
+              "subtype": "success",
+              "is_error": false,
+              "num_turns": 1,
+              "duration_api_ms": 113
+            }
+          ],
+          "text_length": 11020,
+          "text_prefix": "MODEL_BODY_shadowed Ordinary model words. Ordinary model words. Ordinary model words. Ordinary model",
+          "compaction_events": [],
+          "provider_requests": [
+            {
+              "model": "gpt-5.1",
+              "summary_request": false,
+              "last_user_probe_markers": [
+                "OAR_HIGH_USAGE"
+              ],
+              "history_summary_markers": []
+            },
+            {
+              "model": "gpt-5.1",
+              "summary_request": false,
+              "last_user_probe_markers": [],
+              "history_summary_markers": []
+            }
+          ]
+        },
+        {
+          "input": "/compress",
+          "outcome": {
+            "kind": "completed"
+          },
+          "summaries_so_far": 0,
+          "native_frame_counts": {
+            "assistant": 1,
+            "result": 1,
+            "stream_event": 555,
+            "system": 1
+          },
+          "native_stream_event_counts": {
+            "content_block_delta": 551,
+            "content_block_start": 1,
+            "content_block_stop": 1,
+            "message_start": 1,
+            "message_stop": 1
+          },
+          "assistant_messages": [
+            {
+              "role": "assistant",
+              "model": "gpt-5.1",
+              "usage": {
+                "input_tokens": 100,
+                "output_tokens": 300,
+                "cache_read_input_tokens": 0,
+                "total_tokens": 400
+              },
+              "content_types": [
+                "text"
+              ]
+            }
+          ],
+          "results": [
+            {
+              "type": "result",
+              "subtype": "success",
+              "is_error": false,
+              "num_turns": 1,
+              "duration_api_ms": 90
+            }
+          ],
+          "text_length": 11020,
+          "text_prefix": "MODEL_BODY_shadowed Ordinary model words. Ordinary model words. Ordinary model words. Ordinary model",
+          "compaction_events": [],
+          "provider_requests": [
+            {
+              "model": "gpt-5.1",
+              "summary_request": false,
+              "last_user_probe_markers": [
+                "OAR_SHADOW_COMPRESS_MODEL"
+              ],
+              "history_summary_markers": []
+            },
+            {
+              "model": "gpt-5.1",
+              "summary_request": false,
+              "last_user_probe_markers": [],
+              "history_summary_markers": []
+            }
+          ]
+        },
+        {
+          "input": "OAR_AFTER",
+          "outcome": {
+            "kind": "completed"
+          },
+          "summaries_so_far": 0,
+          "native_frame_counts": {
+            "assistant": 1,
+            "result": 1,
+            "stream_event": 555,
+            "system": 1
+          },
+          "native_stream_event_counts": {
+            "content_block_delta": 551,
+            "content_block_start": 1,
+            "content_block_stop": 1,
+            "message_start": 1,
+            "message_stop": 1
+          },
+          "assistant_messages": [
+            {
+              "role": "assistant",
+              "model": "gpt-5.1",
+              "usage": {
+                "input_tokens": 100,
+                "output_tokens": 300,
+                "cache_read_input_tokens": 0,
+                "total_tokens": 400
+              },
+              "content_types": [
+                "text"
+              ]
+            }
+          ],
+          "results": [
+            {
+              "type": "result",
+              "subtype": "success",
+              "is_error": false,
+              "num_turns": 1,
+              "duration_api_ms": 83
+            }
+          ],
+          "text_length": 11020,
+          "text_prefix": "MODEL_BODY_shadowed Ordinary model words. Ordinary model words. Ordinary model words. Ordinary model",
+          "compaction_events": [],
+          "provider_requests": [
+            {
+              "model": "gpt-5.1",
+              "summary_request": false,
+              "last_user_probe_markers": [
+                "OAR_AFTER"
+              ],
+              "history_summary_markers": []
+            },
+            {
+              "model": "gpt-5.1",
+              "summary_request": false,
+              "last_user_probe_markers": [],
+              "history_summary_markers": []
+            }
+          ]
+        },
+        {
+          "input": "OAR_SAME_STATUS",
+          "outcome": {
+            "kind": "completed"
+          },
+          "summaries_so_far": 0,
+          "native_frame_counts": {
+            "assistant": 1,
+            "result": 1,
+            "stream_event": 5,
+            "system": 1
+          },
+          "native_stream_event_counts": {
+            "content_block_delta": 1,
+            "content_block_start": 1,
+            "content_block_stop": 1,
+            "message_start": 1,
+            "message_stop": 1
+          },
+          "assistant_messages": [
+            {
+              "role": "assistant",
+              "model": "gpt-5.1",
+              "usage": {
+                "input_tokens": 100,
+                "output_tokens": 300,
+                "cache_read_input_tokens": 0,
+                "total_tokens": 400
+              },
+              "content_types": [
+                "text"
+              ]
+            }
+          ],
+          "results": [
+            {
+              "type": "result",
+              "subtype": "success",
+              "is_error": false,
+              "num_turns": 1,
+              "duration_api_ms": 28
+            }
+          ],
+          "text_length": 17,
+          "text_prefix": "MODEL_PLACEHOLDER",
+          "compaction_events": [],
+          "provider_requests": [
+            {
+              "model": "gpt-5.1",
+              "summary_request": false,
+              "last_user_probe_markers": [
+                "OAR_SAME_STATUS"
+              ],
+              "history_summary_markers": []
+            },
+            {
+              "model": "gpt-5.1",
+              "summary_request": false,
+              "last_user_probe_markers": [],
+              "history_summary_markers": []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
