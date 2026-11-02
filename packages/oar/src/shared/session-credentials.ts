@@ -32,6 +32,7 @@ function sessionCredentials(options: SessionOptions, context: SessionOpenContext
         read: guard(adapter.goal.read.bind(adapter.goal), clean),
         clear: guard(adapter.goal.clear.bind(adapter.goal), clean),
       } }),
+      ...(adapter.compact === undefined ? {} : { compact: guard(adapter.compact.bind(adapter), clean) }),
       prompt: guard(adapter.prompt.bind(adapter), clean),
       queue: guard(adapter.queue.bind(adapter), clean),
       ...(adapter.steer === undefined ? {} : { steer: guard(adapter.steer.bind(adapter), clean) }),

@@ -1,13 +1,15 @@
 import { existsSync } from "node:fs";
 import { cp, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { afterEach, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { isPiBackend, piRpc } from "./support/pi-runtime.js";
 import { createPiRuntime } from "../../packages/oar/src/runtimes/pi/index.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { checkPiProjectPackages } from "../../packages/oar/src/runtimes/pi/project.js";
 import { piProjectFixture } from "./support/pi-project.js";
 
+// A managed host can inject a different Pi package; these tests exercise the bundled version.
+beforeEach(() => { vi.stubEnv("PI_PACKAGE_DIR", undefined); });
 afterEach(() => { vi.unstubAllEnvs(); });
 
 describe.skipIf(!isPiBackend)("Pi native project package resolution", () => {

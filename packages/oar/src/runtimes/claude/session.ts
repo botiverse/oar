@@ -1,3 +1,4 @@
+import { claudeCompaction, CLAUDE_COMPACTION_BUSY } from "./compaction.js";
 import { randomUUID } from "node:crypto";
 import type { StartSession } from "../../contracts/session.js";
 import { withSessionCredentials } from "../../shared/session-credentials.js";
@@ -16,21 +17,23 @@ export const claudeSession: StartSession = withSessionCredentials(async (install
   const child = await launchClaude(installation.command, sessionId, options);
   const readback = claudeOpenSettings(child);
   const contextBreakdown = claudeContextBreakdownReader(child);
+  const compaction = claudeCompaction(child);
   return streamJsonSession(child, sessionId, credentials, {
     projection: claudeProjectionProfile,
     initial: options.resume === undefined ? initialClaudeProjection : resumedClaudeProjection,
     capabilities: { queue: { durable: false }, attribution: "attributed", images: true },
     steer: true,
+    compaction: { busyReason: CLAUDE_COMPACTION_BUSY, create: compaction.create },
     cancelQueuedCapability: "interrupt_cancel_queued_v1",
-    consume: (message) => readback.consume(message) || contextBreakdown.consume(message),
+    consume: (message) => readback.consume(message) || contextBreakdown.consume(message) || compaction.consume(message),
     open: async (projection) => {
       await readback.confirm(options);
       if (options.resume !== undefined) {
         projection.replace(claudeUsageBaselined(projection.current(), await readback.usageBaseline()));
       }
     },
-    exited: (code) => { readback.exited(code); contextBreakdown.exited(); },
-    disposing: () => { contextBreakdown.exited(); },
+    exited: (code) => { readback.exited(code); contextBreakdown.exited(); compaction.close(); },
+    disposing: () => { contextBreakdown.exited(); compaction.close(); },
     contextBreakdown: contextBreakdown.read,
     // Preserve Claude's existing behavior: permissions are recorded, not answered.
   });

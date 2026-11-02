@@ -205,6 +205,10 @@ What else a session gives you:
 - **Native goals where supported.** Opt in with `goals: true`, check
   `Session.goal`, and observe native goal snapshots without a host continuation
   loop ([contract](docs/spec/goals.md)).
+- **Manual compaction:** Claude, Codex and Pi SDK/RPC expose optional
+  `session.compact()`. It waits for native completion; a timeout stops
+  waiting, not the operation. Read `runtime.manualCompaction` for the
+  declared policy ([contract](docs/spec/manual-compaction.md)).
 - **Projections for UIs.** `@botiverse/oar/observe` folds records into a
   conversation (`reduceConversation`, `viewOf`), status, tasks and stalls,
   with no Node imports, so it runs in a browser.

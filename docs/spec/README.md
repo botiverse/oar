@@ -34,6 +34,7 @@ usage *derivation* (cumulative/epoch/boundary views are consumer business).
 | Read | To answer |
 |---|---|
 | [acp-shared-connection.md](acp-shared-connection.md) | Internal ACP pooled connection ownership, explicit routing, bounded cleanup and lifetime credential redaction; runtime admission remains separate, and no native runtime is admitted in the current release |
+| [manual-compaction.md](manual-compaction.md) | Native compaction controls, completion evidence, busy state and observation deadlines |
 | [goals.md](goals.md) | Native goal controls, session opt-in, observed snapshots and continuation boundaries |
 | [record-stream.md](record-stream.md) | Why one stream with three record kinds? What exactly is an event, a request, a response? What does an event body carry? |
 | [attribution.md](attribution.md) | How do records self-attribute? Why is attribution a field, not a channel? How is usage exposed? |

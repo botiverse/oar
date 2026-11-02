@@ -168,6 +168,8 @@ import * as testing from "@botiverse/oar/testing";
 import { createPiProviderAuth, type PiProviderAuthOptions } from "@botiverse/oar/runtimes/pi";
 
 export const entries = [oar, browser, forms, agents, report, brands, kernel, observe, testing];
+export const compactPolicy: oar.ManualCompaction | undefined = oar.claudeRuntime.manualCompaction;
+export const compact = (session: oar.Session, options: oar.CompactionOptions): Promise<oar.CompactionOutcome> | undefined => session.compact?.(options);
 export const resumedOptions: oar.ResumedSessionOptions | undefined = oar.claudeRuntime.resumedSessionOptions;
 export const promptTiming: oar.ResumeOptionSemantics | undefined = resumedOptions?.systemPrompt;
 export const writeCapture: (marker: string) => void = oar.writeShellEnvironmentCapture;

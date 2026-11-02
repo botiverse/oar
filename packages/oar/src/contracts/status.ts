@@ -27,9 +27,9 @@ export type AgentStatus = (
   | { readonly kind: "idle"; readonly lastTurnOutcome?: TurnOutcome; readonly released?: true }
   | {
       readonly kind: "running";
-      /** seq of the record that opened this running span: the prompt request, or the first event of an adopted turn. */
+      /** seq of the record that opened this running span: a prompt/compact request, or the first event of an adopted turn. */
       readonly sinceSeq: number;
-      /** The prompt request id when the turn was opened through this Session; absent for adopted turns. */
+      /** The prompt/compact request id when the running span was opened through this Session; absent for adopted turns. */
       readonly requestId?: string;
       /** Input identity of the current prompt, when known. */
       readonly inputId?: string;
@@ -43,6 +43,8 @@ export type AgentStatus = (
         readonly pendingAbortIds: readonly string[];
         readonly abortedOnExit: boolean;
       };
+      /** An explicit compaction owns the slot beyond caller wait limits; nativeTurn retains its enclosing native command until turn end. */
+      readonly compaction?: { readonly requestId: string; readonly started?: true; readonly nativeTurn?: true; readonly spanId?: string };
       readonly phase: RunningPhase;
       /** Envelope receivedAt (unix epoch ms) of the latest folded record. */
       readonly lastEventAt: number;

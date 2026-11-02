@@ -12,6 +12,35 @@ and contract member, (4) the cheapest regression test and resource cost, and
 (5) a sea-trial case for every new `must` or `never`. If any answer is missing,
 keep the idea in the [roadmap](roadmap.md) or an experiment.
 
+## Native manual compaction with attributable completion (2026-11-02)
+
+**Accepted:** a host can restore current prompt options, request native
+compaction, wait for completion, then submit its next input. Claude and Codex
+otherwise defer changed prompt configuration until compaction. A successful
+ordinary `/compact` prompt is insufficient: a project command can replace
+it, and Claude can return ordinary success after reporting compaction failure.
+The control contract and runtime adapters own this decision, through
+[`Session.compact` and `Runtime.manualCompaction`](../spec/manual-compaction.md).
+
+OAR does not implement a summarizer, reset history, or infer a boundary from
+text. Completion needs native identity or an exclusive native operation.
+Busy dispatch is refused unless a regression proves both queued command
+identity and attributable completion. Caller timeouts stop observation, not
+native work; the input gate stays occupied until native settlement or session
+loss. This lets hosts distinguish "not admitted", "still unknown", and
+"finished" without guessing from a successful turn or elapsed time.
+
+The [native controls](../../sea-trial/vendor/manual-compaction.vendor.test.ts)
+use local scripted providers to test resume, completion, failure, busy input,
+caller deadlines and disposal with no paid requests. Pure regressions cover
+identity counterexamples, replayable status and synchronous reentrancy.
+Unsupported interfaces stay absent, and unverified candidates remain
+undeclared. Codex remote compaction remains source-only evidence.
+
+**What would reopen it:** a native receipt that safely correlates queued
+compaction, an atomic command-source invocation, or a host need for
+runtime-specific compaction options supported by equivalent native evidence.
+
 ## Accepting deferred resume prompts (2026-11-02)
 
 **Reversed:** the Claude prompt and Codex append refusals introduced in

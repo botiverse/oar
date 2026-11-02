@@ -1,12 +1,14 @@
 import { existsSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { afterEach, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { createPiRuntime } from "../../packages/oar/src/runtimes/pi/index.js";
 import { RuntimeFailureError } from "../../packages/oar/src/contracts/runtime-failure-error.js";
 import { isPiBackend, piRpc } from "./support/pi-runtime.js";
 import { piProjectFixture, type PackageState } from "./support/pi-project.js";
 
+// A managed host can inject a different Pi package; these tests exercise the bundled version.
+beforeEach(() => { vi.stubEnv("PI_PACKAGE_DIR", undefined); });
 afterEach(() => { vi.unstubAllEnvs(); vi.restoreAllMocks(); });
 
 const cases = (["none", "installed", "missing", "mismatched"] as const).flatMap((state) =>

@@ -7,7 +7,8 @@ import { codebuddyInstallation } from "./installation.js";
 import { codebuddyRefusedSessionOptions } from "./options.js";
 
 export const codebuddyRuntime = defineRuntime({
-  id: "codebuddy", brand: runtimeBrands.codebuddy,
+  id: "codebuddy",
+  manualCompaction: { kind: "unsupported", reason: "The published compact method is not implemented by the tested CLI; slash-command completion is unverified." }, brand: runtimeBrands.codebuddy,
   refusedSessionOptions: codebuddyRefusedSessionOptions,
   installation: codebuddyInstallation, install: codebuddyInstall, installPlan: codebuddyInstallPlan,
   listModels: onFirstCall(async () => { const { codebuddyListModels } = await import("./list-models.js"); return codebuddyListModels; }),

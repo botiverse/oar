@@ -251,6 +251,25 @@ from the next provider request. The
 [vendor regression](../../sea-trial/vendor/input-dropped.vendor.test.ts)
 runs that case with a local scripted provider.
 
+### Manual compaction
+
+`manualCompaction` declares support with `activeTurn: "reject"`; opened
+sessions expose [`compact()`](../spec/manual-compaction.md). OAR issues
+`thread/compact/start` only while idle, including no unconsumed queued input:
+native compaction can otherwise abort the active task. The RPC response
+accepts the operation; completion requires the same root turn's started and
+completed `contextCompaction` item, followed by its completed turn. Other
+threads, turns and item ids cannot finish the wait. Interrupted and failed
+turns remain aborted/failed outcomes.
+
+Caller deadlines do not interrupt native compaction. Prompts, steering,
+queue input and a second compaction are rejected busy until native settlement;
+disposal still terminates the process. The [native regression](../../sea-trial/vendor/manual-compaction.vendor.test.ts)
+proves changed resume prompts govern the first request after completion.
+This evidence uses local compaction on 0.166.0. ChatGPT-login remote compaction
+has only source evidence (the 0.163 local/remote paths both use
+`build_compaction_replacement_history`); it has not been exercised live.
+
 ### Prompt, steering, queueing, and abort
 
 **Prompt (mapped):** native `turn/start { threadId, input }` returns

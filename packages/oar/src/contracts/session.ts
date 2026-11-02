@@ -1,4 +1,6 @@
+/* oxlint-disable import/max-dependencies -- Session composes the independently owned control and observation contracts. */
 import type { AdapterGoalControl, GoalControl } from "./goal.js";
+import type { CompactionOptions, CompactionOutcome } from "./compaction.js";
 import type {
   ContextUsage,
   Cursor,
@@ -18,6 +20,7 @@ import type { ContextBreakdown } from "./context-breakdown.js";
 import type { SessionOptions } from "./session-options.js";
 
 export type { GoalControl, AdapterGoalControl, GoalSnapshot, GoalStatus, KnownGoalStatus, GoalSetOptions } from "./goal.js";
+export type { CompactionOptions, CompactionOutcome, ManualCompaction } from "./compaction.js";
 export type { ControlResult, ControlOutcome } from "./control.js";
 export type { McpServer, SessionOptions } from "./session-options.js";
 export type { CredentialProblem, FailedTurn, FailureClass } from "./failure.js";
@@ -87,16 +90,11 @@ export interface PromptOptions extends InputOptions {
 /**
  * Session contract: one ordered, resumable record stream.
  *
- * The external promise (docs/spec): everything the runtime said is in the
- * stream, nothing oar didn't observe is in it, every record knows whose it
- * is, and the stream is readable again from any position. Records split by
- * OBLIGATION into three kinds, frame (the runtime's own words), request (an
- * action that expects an outcome) and response (points at a request), and
- * travel on one channel with one monotonic `seq`. Consumers who do not want
- * records read the stream as flat `Event`s through `events()`; `rawEvents()`
- * and `records()` are the stream itself. Behavior invariants live as
- * comments on the member they constrain; each "must/never" has (or gets) a
- * sea-trial case.
+ * Every native observation is retained with attribution and readable again from any
+ * position. Frames carry native facts; requests expect answers; responses reference
+ * requests. All travel on one channel with monotonic `seq`. `events()` reads flat
+ * events; `rawEvents()` and `records()` expose the record stream. Member comments
+ * state behavior invariants, each backed by a sea-trial case.
  *
  * Scope notes that fit no single member:
  * - Ownership is the object reference; no in-process lease. Multi-controller
@@ -192,6 +190,8 @@ export interface SessionResources {
 export interface AdapterSession {
   /** Optional recorded controls for the runtime's structured goal. */
   readonly goal?: AdapterGoalControl;
+  /** Native manual compaction. Waiting limits do not cancel it or free its input slot. */
+  compact?(options?: CompactionOptions): Promise<CompactionOutcome>;
   readonly id: string; // runtime-native persistent identity; pass to SessionOptions.resume to reattach later
   readonly capabilities: SessionCapabilities;
   prompt(input: string, options?: PromptOptions): Promise<ControlResult>; // ≤1 active turn: rejected `busy` while one runs; NEVER queues implicitly. The request record is the turn's start.

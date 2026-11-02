@@ -224,6 +224,26 @@ The before-start case has no init or result at all. Adjacent `.stdin.jsonl`
 files preserve each experiment's requests; the after-start experiment forced
 `cancel_queued`, whereas OAR sends an ordinary interrupt once `started` is known.
 
+### Manual compaction
+
+`manualCompaction` declares support with `activeTurn: "reject"`; opened
+sessions expose [`compact()`](../spec/manual-compaction.md). OAR reads
+`initialize.commands` on this same process, privately consuming account
+fields, requires `compact.builtin === true`, then writes `/compact` with its
+control request UUID. It waits for that command's start, a root manual
+`compact_boundary`, and the matching `result.user_message_uuid`. A normal
+result alone is not evidence. Native `system/status.compact_result: "failed"`
+wins even when the ordinary result is success. `commands_changed` between
+validation and the boundary makes the result `failed` / `command_changed`.
+
+Busy sessions are refused: native queued slash commands can be reparsed as
+project or user commands before execution. The idle catalog read/write is
+not atomic, and OAR does not reload or replace user commands. Caller timeout
+or signal ends only the wait; the session stays compacting, ordinary prompts
+and repeated compaction are busy, and held queue input runs after native
+completion. Disposal still stops the process. Native failure and resumed
+prompt replacement are covered by the [control regressions](../../sea-trial/vendor/manual-compaction.vendor.test.ts).
+
 ### Prompt, steering, queueing, and abort
 
 **Prompt (mapped):** `prompt(string)` records a `prompt` request and answers

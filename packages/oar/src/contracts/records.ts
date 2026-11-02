@@ -12,14 +12,12 @@ export type { TurnOutcome } from "./turn-outcome.js";
 /**
  * The record stream and the events read off it. Three words, three layers:
  *
- * - `Event`: the consumer face. One flat, attributed fact (text, a tool
- *   call, a turn end, a process exit …). What `Session.events()` delivers.
+ * - `Event`: a flat, attributed fact delivered by `Session.events()`.
  * - `RawEvent`: one record of the underlying stream, three kinds by
  *   obligation: `Frame` (the runtime's own words), `RequestRecord` (an
  *   action expecting an outcome), `ResponseRecord` (points at a request).
  *   What `Session.rawEvents()` / `records()` deliver.
- * - `Frame`: a RawEvent carrying one runtime frame verbatim (`type`,
- *   `native`) plus the events oar read out of it.
+ * - `Frame`: one verbatim runtime frame (`type`, `native`) and its interpreted events.
  *
  * Semantics live in docs/spec; the session control surface that produces
  * these records is in ./session.ts.
@@ -172,8 +170,8 @@ export type RuntimeEventBody =
       readonly exitCode?: number | null;
     }
   | ToolCallProgress
-  /** The runtime's OWN completion report for a turn (claude `result`, codex `turn/completed`, pi `agent_settled`, an ACP prompt answer). A prompt request produces `turn_started`; a native active-run report produces `turn_active`. Neither implies an outcome: if a runtime reports no end, none appears. */
-  | { readonly kind: "turn_ended"; readonly outcome: TurnOutcome }
+  /** The runtime's OWN completion report for a turn (claude `result`, codex `turn/completed`, pi `agent_settled`, an ACP prompt answer). A prompt request produces `turn_started`; a native active-run report produces `turn_active`. Neither implies an outcome: if a runtime reports no end, none appears. `inputId` and ordered `inputIds` independently preserve native singular/plural input identities; neither is inferred. Use `inputIds` when present to settle every covered input. */
+  | { readonly kind: "turn_ended"; readonly outcome: TurnOutcome; readonly inputId?: string; readonly inputIds?: readonly string[] }
   /** The runtime began compacting its context. `trigger` is the runtime's own word for why (pi: manual | threshold | overflow; codex/cursor: none). claude reports only the boundary after the fact, so it never says this. */
   | { readonly kind: "compaction_started"; readonly trigger?: string }
   /**
@@ -197,7 +195,7 @@ export type RuntimeEventBody =
   | { readonly kind: "app_request_cancelled"; readonly requestId: string };
 
 /** The toRuntime control actions a Session issues. */
-export type ControlAction = "prompt" | "steer" | "queue" | "withdraw" | "abort" | "dispose" | "goal_set" | "goal_read" | "goal_clear";
+export type ControlAction = "prompt" | "steer" | "queue" | "withdraw" | "abort" | "dispose" | "compact" | "goal_set" | "goal_read" | "goal_clear";
 
 /**
  * Event kinds read off request and response records, so a consumer of
@@ -240,6 +238,8 @@ export type RequestBody =
   | { readonly kind: "goal_set"; readonly options: GoalSetOptions }
   | { readonly kind: "goal_read" }
   | { readonly kind: "goal_clear" }
+  /** Request native compaction; acceptance is admission, not completion. */
+  | { readonly kind: "compact" }
   | { readonly kind: "prompt"; readonly carries?: readonly string[]; readonly inputId?: string; readonly input: string; readonly images?: readonly InputImage[]; readonly origin?: InputOrigin }
   | { readonly kind: "steer"; readonly inputId?: string; readonly input: string; readonly images?: readonly InputImage[]; readonly origin?: InputOrigin }
   | { readonly kind: "queue"; readonly inputId?: string; readonly input: string; readonly images?: readonly InputImage[]; readonly origin?: InputOrigin }

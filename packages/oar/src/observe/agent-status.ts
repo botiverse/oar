@@ -67,7 +67,8 @@ function running(previous: AgentStatus, record: RawEvent, phase: RunningPhase): 
     ...(previous.kind === "running" && previous.stop !== undefined ? { stop: previous.stop } : {}),
     ...(previous.kind === "running" && previous.inputId !== undefined ? { inputId: previous.inputId } : {}),
     ...(previous.pendingPrompt === undefined ? {} : { pendingPrompt: previous.pendingPrompt }),
-    phase,
+    ...(previous.kind === "running" && previous.compaction !== undefined ? { compaction: previous.compaction } : {}),
+    phase: previous.kind === "running" && previous.compaction !== undefined ? "compacting" : phase,
     lastEventAt: record.receivedAt,
   };
 }
@@ -97,6 +98,9 @@ export function reduceStatus(previous: AgentStatus, record: RawEvent, sessionId?
   }
   switch (record.kind) {
     case "request":
+      if (record.direction === "toRuntime" && record.body.kind === "compact" && previous.kind === "idle" && previous.pendingPrompt === undefined) {
+        return { kind: "running", sinceSeq: record.seq, requestId: record.id, compaction: { requestId: record.id }, phase: "compacting", lastEventAt: record.receivedAt };
+      }
       return record.direction === "toRuntime" && record.body.kind === "prompt" && previous.kind === "idle" && previous.pendingPrompt === undefined
         ? { kind: "running", sinceSeq: record.seq, requestId: record.id, ...(record.body.inputId === undefined ? {} : { inputId: record.body.inputId }), phase: "waiting_model", lastEventAt: record.receivedAt }
         : previous;
@@ -129,6 +133,7 @@ export function reduceStatus(previous: AgentStatus, record: RawEvent, sessionId?
 function reduceEvent(previous: AgentStatus, record: RawEvent, event: RuntimeEventBody): AgentStatus {
   switch (event.kind) {
     case "input_queued": {
+      if (previous.kind === "running" && previous.compaction?.requestId === event.inputId) { return { ...previous, lastEventAt: record.receivedAt }; }
       const own = previous.kind === "running" && previous.inputId === event.inputId;
       const pendingPrompt = { inputId: event.inputId, sinceSeq: own ? previous.sinceSeq : record.seq,
         ...(own && previous.requestId !== undefined ? { requestId: previous.requestId } : {}),
@@ -136,6 +141,10 @@ function reduceEvent(previous: AgentStatus, record: RawEvent, event: RuntimeEven
       return { ...previous, pendingPrompt, ...(previous.kind === "running" ? { lastEventAt: record.receivedAt } : {}) };
     }
     case "turn_active":
+      if (previous.kind === "running" && previous.compaction !== undefined) {
+        if (event.inputId !== undefined && event.inputId !== previous.compaction.requestId) { return previous; }
+        return { ...previous, compaction: { ...previous.compaction, nativeTurn: true, ...(record.spanId === undefined ? {} : { spanId: record.spanId }) }, lastEventAt: record.receivedAt };
+      }
       if (event.inputId !== undefined && previous.pendingPrompt?.inputId === event.inputId) {
         return waitingForPrompt(previous.pendingPrompt, record, false);
       }
@@ -153,8 +162,13 @@ function reduceEvent(previous: AgentStatus, record: RawEvent, event: RuntimeEven
     case "retry":
       return running(previous, record, "waiting_model");
     case "compaction_ended":
+      if (previous.kind === "running" && previous.compaction !== undefined && event.trigger !== undefined && event.trigger !== "manual") { return previous; }
+      if (previous.kind === "running" && previous.compaction !== undefined && previous.compaction.nativeTurn !== true) { return previous.compaction.started === true ? { kind: "idle" } : previous; }
       return previous.kind === "running" ? running(previous, record, "waiting_model") : previous;
     case "compaction_started":
+      if (previous.kind === "running" && previous.compaction !== undefined && (event.trigger === "manual" || previous.compaction.nativeTurn === true)) {
+        return { ...previous, compaction: { ...previous.compaction, started: true }, lastEventAt: record.receivedAt };
+      }
       return running(previous, record, "compacting");
     case "tool_call_input_delta":
     case "tool_call_input": {
@@ -169,6 +183,10 @@ function reduceEvent(previous: AgentStatus, record: RawEvent, event: RuntimeEven
     case "tool_call_progress":
       return previous.kind === "running" ? { ...previous, lastEventAt: record.receivedAt } : previous;
     case "turn_ended":
+      if (previous.kind === "running" && previous.compaction !== undefined
+        && ((event.inputId !== undefined && event.inputId !== previous.compaction.requestId)
+          || (previous.compaction.spanId !== undefined && record.spanId !== previous.compaction.spanId))) { return previous; }
+      if (previous.kind === "running" && previous.compaction !== undefined && previous.compaction.nativeTurn !== true) { return previous; }
       return previous.pendingPrompt === undefined
         ? { kind: "idle", lastTurnOutcome: event.outcome }
         : waitingForPrompt(previous.pendingPrompt, record, true);

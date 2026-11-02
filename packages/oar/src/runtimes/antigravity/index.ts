@@ -8,6 +8,7 @@ import { antigravityRefusedSessionOptions } from "./options.js";
 
 export const antigravityRuntime = defineRuntime({
   id: "antigravity",
+  manualCompaction: { kind: "unsupported", reason: "The native ACP service exposes no manual compaction control." },
   brand: runtimeBrands.antigravity,
   installation: antigravityInstallation,
   installPlan: antigravityInstallPlan,

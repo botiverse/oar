@@ -9,6 +9,7 @@ import { kimiRefusedSessionOptions } from "./options.js";
 
 export const kimiRuntime = defineRuntime({
   id: "kimi",
+  manualCompaction: { kind: "unsupported", reason: "The ACP transport reports compaction as ordinary text, without a structural completion signal." },
   brand: runtimeBrands.kimi,
   installation: kimiInstallation,
   installPlan: kimiInstallPlan,

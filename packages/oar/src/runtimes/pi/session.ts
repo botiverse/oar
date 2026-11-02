@@ -1,3 +1,4 @@
+import { piManualCompaction } from "./compaction.js";
 import type {
   RequestRecord, ContextUsage, ControlResult, InputOptions, ResponseBody, Session, StartSession } from "../../contracts/session.js";
 import type { PiProjectOptions } from "./options.js";
@@ -60,6 +61,7 @@ export const createPiSession = (project: PiProjectOptions = {}): StartSession =>
   // or an adopted agent_start) until pi's own agent_settled. Held in an
   // object so closures always read the live value.
   const gate = { running: false };
+  const compaction = piManualCompaction(kernel, () => gate.running, async () => { await piAgentSession.compact(); }, () => { queueMicrotask(drainHeld); });
   // Identity of the latest launched prompt, so a late rejection of an older
   // one cannot be misread as the current run's.
   let launch: object | null = null;
@@ -135,7 +137,7 @@ export const createPiSession = (project: PiProjectOptions = {}): StartSession =>
     return decided;
   };
   function drainHeld(): void {
-    if (disposeRequest !== null || gate.running) {
+    if (disposeRequest !== null || gate.running || compaction.busy()) {
       return;
     }
     const next = held.shift();
@@ -195,10 +197,11 @@ export const createPiSession = (project: PiProjectOptions = {}): StartSession =>
   const session: Session = credentials.seal({
     id: kernel.sessionId,
     capabilities,
+    compact: compaction.compact,
     prompt: async (input, inputOptions?: InputOptions): Promise<ControlResult> => {
       const body = { kind: "prompt" as const, input, ...inputOptions };
       const result = await kernel.control(body, async () => {
-        if (gate.running) {
+        if (gate.running || compaction.busy()) {
           return { kind: "rejected", code: "busy", reason: "busy" };
         }
         const decided = await withInputImages(capabilities, inputOptions?.images, async (images) => {
@@ -211,6 +214,7 @@ export const createPiSession = (project: PiProjectOptions = {}): StartSession =>
     },
     steer: async (input, inputOptions?: InputOptions): Promise<ControlResult> => {
       const result = await kernel.control({ kind: "steer", input, ...inputOptions }, async () => {
+        if (compaction.busy()) { return { kind: "rejected", code: "busy", reason: "Manual compaction is still in progress" }; }
         if (!gate.running) {
           return { kind: "rejected", code: "no_active_turn", reason: "not_steerable: no active turn" };
         }
@@ -257,11 +261,12 @@ export const createPiSession = (project: PiProjectOptions = {}): StartSession =>
         return;
       }
       held.splice(0);
+      const abortCompaction = compaction.busy();
       const request = kernel.request("toRuntime", { kind: "dispose" });
       disposeRequest = request;
       // Abort and hooks share a deadline. Only Pi's own agent_settled ends a
       // turn in the stream; forced local cleanup invents no native end.
-      await disposePiAgentSession(piAgentSession, gate.running);
+      await disposePiAgentSession(piAgentSession, gate.running || abortCompaction);
       // pi runs in this process: there is no process exit to observe, so the
       // dispose is answered as taken over rather than with an exit code.
       kernel.respond(request.id, { kind: "accepted" });

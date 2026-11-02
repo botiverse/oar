@@ -1,3 +1,4 @@
+import { streamJsonCompaction } from "./compaction.js";
 /* oxlint-disable import/max-dependencies -- The driver composes protocol, input and process-lifetime mechanisms. */
 import type { ControlResult, InputOptions, RequestRecord, Session } from "../../contracts/session.js";
 import { createAbortFallback } from "../abort-fallback.js";
@@ -42,7 +43,9 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
   const commandLifecycle = profile.projection.commandLifecycle !== false;
   const writtenQueues = new Map<string, RequestRecord>();
   const heldQueue: { request: RequestRecord; input: string; inputId?: string; images: readonly LoadedImage[] }[] = [];
-  const busy = (): boolean => state.active !== null || state.spontaneous;
+  const nativeBusy = (): boolean => state.active !== null || state.spontaneous;
+  const compaction = streamJsonCompaction(kernel, profile, state, () => { queueMicrotask(drainHeld); });
+  const busy = (): boolean => nativeBusy() || compaction?.busy() === true;
   let canCancelQueued = false;
   const abortFallback = createAbortFallback(() => { child.kill(); });
   const pendingInterrupts = new Map<string, () => void>();
@@ -73,9 +76,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
     child.write(userMessage(next.input, next.inputId, next.images));
   }
 
-  // Drive the pure projection fold, applying its commands to the kernel. The
-  // fold owns event translation and attribution; this owns only transport
-  // and the control decisions (busy, queue drain).
+  // The fold translates and attributes facts; this driver owns transport, busy and queue drain.
   child.onLine((line) => {
     const message = asRecord(parseJson(line));
     if (message === null) { return; }
@@ -176,6 +177,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
   const session: Session = credentials.seal({
     id: kernel.sessionId,
     capabilities,
+    ...(compaction === null ? {} : { compact: compaction.compact }),
     prompt: async (input, inputOptions?: InputOptions): Promise<ControlResult> => {
       if (observingCancellation !== null) { await waitForCancellation(); }
       const body = { kind: "prompt" as const, input, ...inputOptions };
@@ -194,6 +196,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
       steer: async (input: string, inputOptions?: InputOptions): Promise<ControlResult> => {
         if (observingCancellation !== null) { await waitForCancellation(); }
         return kernel.control({ kind: "steer", input, ...inputOptions }, () => {
+          if (compaction?.busy() === true) { return { kind: "rejected", code: "busy", reason: "Manual compaction is still in progress" }; }
           if (!busy()) { return { kind: "rejected", code: "no_active_turn", reason: "not_steerable: no active turn" }; }
           return withInputImages(capabilities, inputOptions?.images, (images) => {
             child.write(userMessage(input, inputOptions?.inputId, images));
@@ -220,13 +223,10 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
     },
     withdraw: withdrawControl(kernel, heldQueue),
     abort: async (): Promise<ControlResult> => {
-      // The interrupt's outcome is the runtime's control_response, which the fold
-      // routes to THIS request id; the turn's end is the runtime's result frame.
+      // The matching control_response answers interrupt; the result frame ends the turn.
       interruptCounter += 1;
       const requestId = `interrupt-${interruptCounter}`;
-      // Recorded by hand (not kernel.control) because the runtime's control_response
-      // is the answer, routed to this id by the fold, so the reachability gate
-      // is applied here explicitly.
+      // Record by hand so the fold can answer this id from control_response; gate reachability here.
       const blocked = kernel.unreachable();
       const request = kernel.request("toRuntime", { kind: "abort" }, { id: requestId });
       if (blocked !== null || (!busy() && !(canCancelQueued && state.projection.unstartedInputs.size > 0))) {

@@ -80,6 +80,17 @@ sent (`accepted`), or answers `not_queued` once it went; with it a UI offers
 withdraw, edit (withdraw, then `queue` again) and send now (withdraw, then
 `deliver`). It exists where OAR holds the queue itself (claude, pi, qwen, qoder, cursor
 and the ACP runtimes), and on pi-durable through native submission cancellation, not on codex.
+`session.compact()` is optional on Claude, Codex and Pi SDK/RPC sessions.
+`runtime.manualCompaction` describes support and active-turn policy; these
+implementations require idle sessions. The result distinguishes native
+completion, failure, cancellation, rejection and an unconfirmed wait.
+`timeoutMs` or `signal` stops waiting without stopping native work, and the
+session remains busy until native completion or session loss. See
+[manual compaction](https://github.com/botiverse/oar/blob/main/docs/spec/manual-compaction.md).
+Claude's `turn_ended.inputId?` and `inputIds?` copy its independently reported
+singular and plural input identities. Use the full `inputIds` list when
+marking a merged native turn's inputs complete; neither field is inferred.
+
 `session.resources()` reads the memory a runtime takes on the host: resident
 bytes and a process count over the runtime process, its group and its
 descendants, `null` once it has exited (and on Windows). It is a reading only,

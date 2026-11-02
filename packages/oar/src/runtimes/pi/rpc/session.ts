@@ -1,3 +1,4 @@
+import { piManualCompaction } from "../compaction.js";
 /* oxlint-disable eslint/require-await -- Session controls return kernel promises directly; native delivery callbacks may decide synchronously. */
 import type { AgentSessionEvent, SessionStats } from "@earendil-works/pi-coding-agent";
 import type { RequestRecord, ResponseBody, StartSession } from "../../../contracts/session.js";
@@ -27,6 +28,12 @@ export const createPiRpcSession = (runtime: PiRuntimeOptions): StartSession => w
   let disposeRequest: RequestRecord | null = null;
   let disposePromise: Promise<void> | null = null;
   let pump = Promise.resolve();
+  const compaction = piManualCompaction(kernel, () => running, async () => {
+    const response = await rpc.control.request({ type: "compact" });
+    await pump;
+    if (!response.success) { throw new Error(response.error); }
+    return response;
+  }, () => { queueMicrotask(drain); });
   const held: { input: string; inputId: string | undefined; images: readonly LoadedImage[] }[] = [];
   const fallback = createAbortFallback(() => { rpc.child.kill(); });
   const abort = async (): Promise<void> => {
@@ -36,7 +43,7 @@ export const createPiRpcSession = (runtime: PiRuntimeOptions): StartSession => w
     } catch { /* Exit and the bounded fallback are observed separately. */ }
   };
   const start = async (input: string, images: readonly LoadedImage[]): Promise<ResponseBody> => {
-    if (running) { return { kind: "rejected", code: "busy", reason: "busy" }; }
+    if (running || compaction.busy()) { return { kind: "rejected", code: "busy", reason: "busy" }; }
     running = true;
     started = false;
     projection = piPrompted(projection);
@@ -59,7 +66,7 @@ export const createPiRpcSession = (runtime: PiRuntimeOptions): StartSession => w
     return { kind: "accepted" };
   };
   function drain(): void {
-    if (running || kernel.unreachable() !== null) { return; }
+    if (running || compaction.busy() || kernel.unreachable() !== null) { return; }
     const next = held.shift();
     if (next === undefined) { return; }
     void (async (): Promise<void> => {
@@ -143,11 +150,13 @@ export const createPiRpcSession = (runtime: PiRuntimeOptions): StartSession => w
   await pump;
   return credentials.seal({
     id: kernel.sessionId, capabilities,
+    compact: compaction.compact,
     prompt: async (input, inputOptions) => kernel.control({ kind: "prompt", input, ...inputOptions }, async () => {
-      if (running) { return { kind: "rejected", code: "busy", reason: "busy" }; }
+      if (running || compaction.busy()) { return { kind: "rejected", code: "busy", reason: "busy" }; }
       return withInputImages(capabilities, inputOptions?.images, async (images) => start(input, images));
     }),
     steer: async (input, inputOptions) => kernel.control({ kind: "steer", input, ...inputOptions }, async () => {
+      if (compaction.busy()) { return { kind: "rejected", code: "busy", reason: "Manual compaction is still in progress" }; }
       if (!running) { return { kind: "rejected", code: "no_active_turn", reason: "no active turn" }; }
       return withInputImages(capabilities, inputOptions?.images, async (images): Promise<ResponseBody> => {
         const response = await rpc.control.request({ type: "steer", message: input, ...(images.length === 0 ? {} : { images: nativeImages(images) }) });

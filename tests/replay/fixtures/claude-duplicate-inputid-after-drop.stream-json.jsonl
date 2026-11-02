@@ -43,7 +43,7 @@
 [{"kind":"frame","body":{"type":"stream_event","native":"<original frame>","events":[]},"agentPath":[]}]
 [{"kind":"frame","body":{"type":"stream_event","native":"<original frame>","events":[]},"agentPath":[]}]
 [{"kind":"frame","body":{"type":"stream_event","native":"<original frame>","events":[]},"agentPath":[]}]
-[{"kind":"frame","body":{"type":"result/success","native":"<original frame>","events":[{"kind":"service_tier","serviceTier":"default"},{"kind":"turn_ended","outcome":{"kind":"completed"}},{"kind":"usage","usage":{"context":{"tokens":5300,"contextWindow":1000000,"percent":1},"tokens":{"input":10300,"output":220,"cacheRead":0,"cacheWrite":0},"total":{"input":10300,"output":220,"cacheRead":0,"cacheWrite":0}}}]},"agentPath":[]}]
+[{"kind":"frame","body":{"type":"result/success","native":"<original frame>","events":[{"kind":"service_tier","serviceTier":"default"},{"kind":"turn_ended","outcome":{"kind":"completed"},"inputId":"6f1c2d3e-0001-4a5b-8c7d-000000000001","inputIds":["6f1c2d3e-0001-4a5b-8c7d-000000000001"]},{"kind":"usage","usage":{"context":{"tokens":5300,"contextWindow":1000000,"percent":1},"tokens":{"input":10300,"output":220,"cacheRead":0,"cacheWrite":0},"total":{"input":10300,"output":220,"cacheRead":0,"cacheWrite":0}}}]},"agentPath":[]}]
 [{"kind":"frame","body":{"type":"command_lifecycle","native":"<original frame>","events":[]},"agentPath":[]}]
 [{"kind":"frame","body":{"type":"system/task_progress","native":"<original frame>","events":[]},"agentPath":[]}]
 [{"kind":"frame","body":{"type":"system/task_progress","native":"<original frame>","events":[{"kind":"task_updated","taskId":"wvml0h2sf","description":"Review: beta"}]},"agentPath":[]}]
