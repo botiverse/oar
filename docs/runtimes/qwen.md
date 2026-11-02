@@ -265,6 +265,15 @@ following an OAR abort is `aborted`. No authentication or quota cause is inferre
 from arbitrary text. Native context and compaction readbacks are not projected
 into `contextUsage()` in this adapter.
 
+Qwen 0.26.5 stream-json exposes manual compression status as assistant text,
+so it also appears in OAR's `text_delta`. There is no structural origin field
+to distinguish that status from identical model-authored text. Automatic
+compression supplies no compression frame on this transport. OAR preserves
+the native frames and emits no Qwen `compaction_started` or `compaction_ended`
+events; it infers neither from text nor from a submitted command. A user
+`compress.toml` can override `/compress` and produce real model output without
+compressing. See the [manual, automatic and overridden-command controls](../../experiments/qwen-compaction-attribution/README.md).
+
 ### Extension-store contention
 
 **Finishing one warmup turn does not make shared-HOME concurrency safe.**

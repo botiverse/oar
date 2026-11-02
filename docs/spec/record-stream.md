@@ -849,6 +849,13 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   summary creates no compaction end. ACP never reports one. An ended
   compaction starts no work: `statusOf` keeps an idle agent idle, and only
   moves an already-running agent to `waiting_model`.
+  Qwen 0.26.5 stream-json emits neither compaction event: manual compression
+  status uses the same assistant text frames as model output and therefore
+  appears as `text_delta`; automatic compression has no structured frame.
+  OAR cannot distinguish that status from model text and keeps the native
+  frames without inference. A user `compress.toml` can override `/compress`,
+  so even a command sent by OAR would not prove compression occurred
+  ([native controls](../../experiments/qwen-compaction-attribution/README.md)).
 - `retry`: pi `auto_retry_start` and `summarization_retry_scheduled`. No
   other shipped runtime exposes a retry (claude retries silently).
 - `task_started` / `task_updated` / `task_ended`: work the runtime tracks
