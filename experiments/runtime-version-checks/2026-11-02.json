@@ -1,0 +1,1070 @@
+{
+  "checkedAt": "2026-11-02T14:52:26.523Z",
+  "oarBase": "11723ed45192763fb8d6ae91b6a9ce03d077c8f9",
+  "platform": "linux-x64",
+  "node": "v24.19.0",
+  "versions": [
+    {
+      "runtime": "antigravity",
+      "source": "https://raw.githubusercontent.com/agentclientprotocol/registry/main/antigravity-acp/agent.json",
+      "latest": "1.4.5"
+    },
+    {
+      "runtime": "claude",
+      "source": "https://registry.npmjs.org/@anthropic-ai/claude-code/latest",
+      "latest": "2.1.316"
+    },
+    {
+      "runtime": "codex",
+      "source": "https://registry.npmjs.org/@openai/codex/latest",
+      "latest": "0.166.0"
+    },
+    {
+      "runtime": "cursor",
+      "source": "https://registry.npmjs.org/@cursor/sdk/latest",
+      "latest": "1.2.0"
+    },
+    {
+      "runtime": "grok",
+      "source": "https://x.ai/cli/stable",
+      "latest": "1.0.70"
+    },
+    {
+      "runtime": "kimi",
+      "source": "https://registry.npmjs.org/@moonshot-ai/kimi-code/latest",
+      "latest": "2.4.1"
+    },
+    {
+      "runtime": "opencode",
+      "line": "v1",
+      "source": "https://registry.npmjs.org/opencode-ai/latest",
+      "latest": "1.19.5"
+    },
+    {
+      "runtime": "opencode",
+      "line": "v2",
+      "source": "https://registry.npmjs.org/@opencode/cli/latest",
+      "latest": "2.2.5"
+    },
+    {
+      "runtime": "codebuddy",
+      "source": "https://registry.npmjs.org/@tencent-ai/codebuddy-code/latest",
+      "latest": "2.179.2"
+    },
+    {
+      "runtime": "qoder",
+      "source": "https://registry.npmjs.org/@qoder-ai/qodercli/latest",
+      "latest": "1.1.81"
+    },
+    {
+      "runtime": "qwen",
+      "source": "https://registry.npmjs.org/@qwen-code/qwen-code/latest",
+      "latest": "0.26.5"
+    },
+    {
+      "runtime": "pi",
+      "source": "https://registry.npmjs.org/@earendil-works/pi-coding-agent/latest",
+      "latest": "1.5.0"
+    },
+    {
+      "runtime": "pi-durable",
+      "source": "https://registry.npmjs.org/@earendil-works/pi-durable/latest",
+      "latest": "1.5.0"
+    }
+  ],
+  "codebuddyStandalone": {
+    "version": "2.179.2",
+    "source": "https://acc-1258344699.cos.accelerate.myqcloud.com/@tencent-ai/codebuddy-code/releases/download/2.179.2/codebuddy-code_Linux_x86_64.tar.gz",
+    "sha256": "e067fa126e4d6d86b038c5e6115c10e214c8eca002c434fa73d3cf335c8821ec"
+  },
+  "codebuddyVersions": [
+    {
+      "installation": "npm",
+      "stdout": "2.179.2",
+      "exitCode": 0
+    },
+    {
+      "installation": "standalone",
+      "stdout": "2.179.2",
+      "exitCode": 0
+    }
+  ],
+  "codebuddyStreamJson": [
+    {
+      "delayMs": 0,
+      "initialized": true,
+      "results": 2,
+      "requests": [
+        {
+          "number": 1,
+          "prompt": "first"
+        },
+        {
+          "number": 2,
+          "prompt": "second"
+        },
+        {
+          "number": 3,
+          "prompt": "second"
+        }
+      ],
+      "timedOut": false,
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "delayMs": 0,
+      "initialized": true,
+      "results": 2,
+      "requests": [
+        {
+          "number": 1,
+          "prompt": "first"
+        },
+        {
+          "number": 2,
+          "prompt": "second"
+        },
+        {
+          "number": 3,
+          "prompt": "second"
+        }
+      ],
+      "timedOut": false,
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "delayMs": 0,
+      "initialized": true,
+      "results": 2,
+      "requests": [
+        {
+          "number": 1,
+          "prompt": "first"
+        },
+        {
+          "number": 2,
+          "prompt": "second"
+        },
+        {
+          "number": 3,
+          "prompt": "second"
+        }
+      ],
+      "timedOut": false,
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "delayMs": 1000,
+      "initialized": true,
+      "results": 2,
+      "requests": [
+        {
+          "number": 1,
+          "prompt": "first"
+        },
+        {
+          "number": 2,
+          "prompt": "second"
+        }
+      ],
+      "timedOut": false,
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "delayMs": 1000,
+      "initialized": true,
+      "results": 2,
+      "requests": [
+        {
+          "number": 1,
+          "prompt": "first"
+        },
+        {
+          "number": 2,
+          "prompt": "second"
+        }
+      ],
+      "timedOut": false,
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "delayMs": 1000,
+      "initialized": true,
+      "results": 2,
+      "requests": [
+        {
+          "number": 1,
+          "prompt": "first"
+        },
+        {
+          "number": 2,
+          "prompt": "second"
+        }
+      ],
+      "timedOut": false,
+      "exitCode": 0,
+      "signal": null
+    }
+  ],
+  "codebuddyAcp": {
+    "pass": true,
+    "protocol": "acp",
+    "delayMs": 0,
+    "initialized": true,
+    "results": 2,
+    "stopReasons": [
+      "end_turn",
+      "end_turn"
+    ],
+    "requests": [
+      {
+        "number": 1,
+        "prompt": "first",
+        "purpose": "title",
+        "model": "deepseek-flash",
+        "stream": true
+      },
+      {
+        "number": 2,
+        "prompt": "first",
+        "purpose": "conversation",
+        "model": "deepseek-flash",
+        "stream": true
+      },
+      {
+        "number": 3,
+        "prompt": "first",
+        "purpose": "title",
+        "model": "deepseek-flash",
+        "stream": true
+      },
+      {
+        "number": 4,
+        "prompt": "second",
+        "purpose": "conversation",
+        "model": "deepseek-flash",
+        "stream": true
+      }
+    ],
+    "errors": [],
+    "timedOut": false,
+    "exitCode": null,
+    "signal": "SIGTERM"
+  },
+  "behavior": {
+    "backend": "codebuddy-aimock",
+    "passed": 16,
+    "skipped": 3,
+    "failed": 0,
+    "attempts": 1
+  },
+  "vendor": {
+    "backend": "codebuddy-aimock",
+    "passed": 5,
+    "failed": 0,
+    "maxWorkers": 2,
+    "attempts": 1
+  },
+  "piSecurity": {
+    "pr": 611,
+    "head": "aa30252e38c3e34d62d81a68f70eba5bf56b17ea",
+    "codingAgent": "1.5.0",
+    "ai": "1.5.0",
+    "undici": "8.12.3",
+    "durablePeer": "~1.4.0",
+    "chordPeer": "~1.4.0",
+    "separateDurableMigration": true
+  },
+  "windowsAcp": {
+    "from": "2026-11-01T12:03:02Z",
+    "until": "2026-11-02T16:00:00Z",
+    "runs": 15,
+    "jobs": 45,
+    "conclusions": {
+      "success": 39,
+      "failure": 6
+    },
+    "observations": [
+      {
+        "category": "windows-acp",
+        "run": 41456702474,
+        "head": "11723ed45192763fb8d6ae91b6a9ce03d077c8f9",
+        "event": "push",
+        "runConclusion": "success",
+        "attempt": 1,
+        "createdAt": "2026-11-02T13:52:10Z",
+        "jobs": [
+          {
+            "id": 125315092506,
+            "name": "acp-windows (windows-latest, grok-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-02T13:52:13Z",
+            "completed_at": "2026-11-02T13:56:56Z",
+            "steps": []
+          },
+          {
+            "id": 125315093016,
+            "name": "acp-windows (windows-latest, opencode-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-02T13:52:14Z",
+            "completed_at": "2026-11-02T13:59:31Z",
+            "steps": []
+          },
+          {
+            "id": 125315093109,
+            "name": "acp-windows (windows-latest, kimi-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-02T13:52:14Z",
+            "completed_at": "2026-11-02T13:57:26Z",
+            "steps": []
+          }
+        ]
+      },
+      {
+        "category": "windows-acp",
+        "run": 41419863933,
+        "head": "4be08e93438e13f184486fad4c0abd47c6c524c2",
+        "event": "push",
+        "runConclusion": "success",
+        "attempt": 1,
+        "createdAt": "2026-11-02T09:20:42Z",
+        "jobs": [
+          {
+            "id": 125192543512,
+            "name": "acp-windows (windows-latest, kimi-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-02T09:20:48Z",
+            "completed_at": "2026-11-02T09:25:56Z",
+            "steps": []
+          },
+          {
+            "id": 125192543819,
+            "name": "acp-windows (windows-latest, grok-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-02T09:20:46Z",
+            "completed_at": "2026-11-02T09:25:31Z",
+            "steps": []
+          },
+          {
+            "id": 125192543958,
+            "name": "acp-windows (windows-latest, opencode-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-02T09:20:46Z",
+            "completed_at": "2026-11-02T09:30:28Z",
+            "steps": []
+          }
+        ]
+      },
+      {
+        "category": "windows-acp",
+        "run": 41400558472,
+        "head": "e997f02ae031fc4055fdc610754309524d55ba1e",
+        "event": "push",
+        "runConclusion": "failure",
+        "attempt": 1,
+        "createdAt": "2026-11-02T06:32:31Z",
+        "jobs": [
+          {
+            "id": 125131254707,
+            "name": "acp-windows (windows-latest, opencode-aimock)",
+            "status": "completed",
+            "conclusion": "failure",
+            "started_at": "2026-11-02T06:32:35Z",
+            "completed_at": "2026-11-02T06:47:08Z",
+            "steps": [
+              {
+                "name": "Run pnpm vitest run sea-trial/vendor --maxWorkers 2",
+                "conclusion": "failure"
+              }
+            ]
+          },
+          {
+            "id": 125131254982,
+            "name": "acp-windows (windows-latest, grok-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-02T06:32:35Z",
+            "completed_at": "2026-11-02T06:36:22Z",
+            "steps": []
+          },
+          {
+            "id": 125131255251,
+            "name": "acp-windows (windows-latest, kimi-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-02T06:32:35Z",
+            "completed_at": "2026-11-02T06:37:16Z",
+            "steps": []
+          }
+        ]
+      },
+      {
+        "category": "windows-acp",
+        "run": 41398051652,
+        "head": "cfe518ae7df2ff92718fe8a1958e1443ceb15e0b",
+        "event": "push",
+        "runConclusion": "success",
+        "attempt": 1,
+        "createdAt": "2026-11-02T06:08:21Z",
+        "jobs": [
+          {
+            "id": 125123590828,
+            "name": "acp-windows (windows-latest, kimi-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-02T06:08:25Z",
+            "completed_at": "2026-11-02T06:12:56Z",
+            "steps": []
+          },
+          {
+            "id": 125123591227,
+            "name": "acp-windows (windows-latest, grok-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-02T06:08:25Z",
+            "completed_at": "2026-11-02T06:13:21Z",
+            "steps": []
+          },
+          {
+            "id": 125123591250,
+            "name": "acp-windows (windows-latest, opencode-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-02T06:08:35Z",
+            "completed_at": "2026-11-02T06:14:46Z",
+            "steps": []
+          }
+        ]
+      },
+      {
+        "category": "windows-acp",
+        "run": 41383804435,
+        "head": "a6d681a40a09c3c5bb921b30c03403a11f88357f",
+        "event": "push",
+        "runConclusion": "failure",
+        "attempt": 1,
+        "createdAt": "2026-11-02T03:34:09Z",
+        "jobs": [
+          {
+            "id": 125080113827,
+            "name": "acp-windows (windows-latest, grok-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-02T03:34:13Z",
+            "completed_at": "2026-11-02T03:38:44Z",
+            "steps": []
+          },
+          {
+            "id": 125080114026,
+            "name": "acp-windows (windows-latest, opencode-aimock)",
+            "status": "completed",
+            "conclusion": "failure",
+            "started_at": "2026-11-02T03:34:14Z",
+            "completed_at": "2026-11-02T03:37:04Z",
+            "steps": [
+              {
+                "name": "Run pnpm run sea-trial",
+                "conclusion": "failure"
+              }
+            ]
+          },
+          {
+            "id": 125080114078,
+            "name": "acp-windows (windows-latest, kimi-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-02T03:34:13Z",
+            "completed_at": "2026-11-02T03:38:23Z",
+            "steps": []
+          }
+        ]
+      },
+      {
+        "category": "windows-acp",
+        "run": 41380958548,
+        "head": "1a8290520762522bc51830fd0d41fa36274ebda7",
+        "event": "push",
+        "runConclusion": "success",
+        "attempt": 1,
+        "createdAt": "2026-11-02T03:03:28Z",
+        "jobs": [
+          {
+            "id": 125071457086,
+            "name": "acp-windows (windows-latest, kimi-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-02T03:03:31Z",
+            "completed_at": "2026-11-02T03:08:25Z",
+            "steps": []
+          },
+          {
+            "id": 125071457361,
+            "name": "acp-windows (windows-latest, grok-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-02T03:03:31Z",
+            "completed_at": "2026-11-02T03:08:13Z",
+            "steps": []
+          },
+          {
+            "id": 125071457409,
+            "name": "acp-windows (windows-latest, opencode-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-02T03:03:32Z",
+            "completed_at": "2026-11-02T03:12:22Z",
+            "steps": []
+          }
+        ]
+      },
+      {
+        "category": "windows-acp",
+        "run": 41380864393,
+        "head": "00c4d41fd4ac66e11c80c4c6b89661ad9469465b",
+        "event": "push",
+        "runConclusion": "success",
+        "attempt": 1,
+        "createdAt": "2026-11-02T03:02:25Z",
+        "jobs": [
+          {
+            "id": 125071168631,
+            "name": "acp-windows (windows-latest, kimi-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-02T03:02:29Z",
+            "completed_at": "2026-11-02T03:07:23Z",
+            "steps": []
+          },
+          {
+            "id": 125071168878,
+            "name": "acp-windows (windows-latest, grok-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-02T03:02:29Z",
+            "completed_at": "2026-11-02T03:06:53Z",
+            "steps": []
+          },
+          {
+            "id": 125071168884,
+            "name": "acp-windows (windows-latest, opencode-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-02T03:02:29Z",
+            "completed_at": "2026-11-02T03:12:32Z",
+            "steps": []
+          }
+        ]
+      },
+      {
+        "category": "windows-acp",
+        "run": 41377499569,
+        "head": "1a167907c941b665cc7bc19a515358f8e9ac678e",
+        "event": "push",
+        "runConclusion": "failure",
+        "attempt": 1,
+        "createdAt": "2026-11-02T02:23:51Z",
+        "jobs": [
+          {
+            "id": 125060851699,
+            "name": "acp-windows (windows-latest, opencode-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-02T02:23:55Z",
+            "completed_at": "2026-11-02T02:33:15Z",
+            "steps": []
+          },
+          {
+            "id": 125060851790,
+            "name": "acp-windows (windows-latest, kimi-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-02T02:23:54Z",
+            "completed_at": "2026-11-02T02:29:13Z",
+            "steps": []
+          },
+          {
+            "id": 125060851877,
+            "name": "acp-windows (windows-latest, grok-aimock)",
+            "status": "completed",
+            "conclusion": "failure",
+            "started_at": "2026-11-02T02:23:55Z",
+            "completed_at": "2026-11-02T02:28:03Z",
+            "steps": [
+              {
+                "name": "Run pnpm vitest run sea-trial/vendor --maxWorkers 2",
+                "conclusion": "failure"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "category": "windows-acp",
+        "run": 41323764003,
+        "head": "25b43df42ffd6af35d65d219b682e84de27c8ecf",
+        "event": "push",
+        "runConclusion": "success",
+        "attempt": 1,
+        "createdAt": "2026-11-01T15:56:51Z",
+        "jobs": [
+          {
+            "id": 124899288447,
+            "name": "acp-windows (windows-latest, grok-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-01T15:56:54Z",
+            "completed_at": "2026-11-01T16:01:24Z",
+            "steps": []
+          },
+          {
+            "id": 124899288645,
+            "name": "acp-windows (windows-latest, opencode-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-01T15:56:54Z",
+            "completed_at": "2026-11-01T16:01:13Z",
+            "steps": []
+          },
+          {
+            "id": 124899288713,
+            "name": "acp-windows (windows-latest, kimi-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-01T15:56:54Z",
+            "completed_at": "2026-11-01T16:01:37Z",
+            "steps": []
+          }
+        ]
+      },
+      {
+        "category": "windows-acp",
+        "run": 41320952319,
+        "head": "bacf02b70efe55bc4e918a0ec990af812055f8ec",
+        "event": "push",
+        "runConclusion": "failure",
+        "attempt": 1,
+        "createdAt": "2026-11-01T15:23:06Z",
+        "jobs": [
+          {
+            "id": 124890846116,
+            "name": "acp-windows (windows-latest, opencode-aimock)",
+            "status": "completed",
+            "conclusion": "failure",
+            "started_at": "2026-11-01T15:23:09Z",
+            "completed_at": "2026-11-01T15:33:47Z",
+            "steps": [
+              {
+                "name": "Run pnpm vitest run sea-trial/vendor --maxWorkers 2",
+                "conclusion": "failure"
+              }
+            ]
+          },
+          {
+            "id": 124890846375,
+            "name": "acp-windows (windows-latest, kimi-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-01T15:23:10Z",
+            "completed_at": "2026-11-01T15:26:53Z",
+            "steps": []
+          },
+          {
+            "id": 124890846382,
+            "name": "acp-windows (windows-latest, grok-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-01T15:23:09Z",
+            "completed_at": "2026-11-01T15:28:06Z",
+            "steps": []
+          }
+        ]
+      },
+      {
+        "category": "windows-acp",
+        "run": 41317724175,
+        "head": "8b8e985876dc36a5544db76cc2d36396847f58cb",
+        "event": "push",
+        "runConclusion": "failure",
+        "attempt": 1,
+        "createdAt": "2026-11-01T14:45:05Z",
+        "jobs": [
+          {
+            "id": 124881227739,
+            "name": "acp-windows (windows-latest, opencode-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-01T14:45:09Z",
+            "completed_at": "2026-11-01T14:51:00Z",
+            "steps": []
+          },
+          {
+            "id": 124881227961,
+            "name": "acp-windows (windows-latest, grok-aimock)",
+            "status": "completed",
+            "conclusion": "failure",
+            "started_at": "2026-11-01T14:45:09Z",
+            "completed_at": "2026-11-01T14:47:09Z",
+            "steps": [
+              {
+                "name": "Run pnpm run sea-trial",
+                "conclusion": "failure"
+              }
+            ]
+          },
+          {
+            "id": 124881227996,
+            "name": "acp-windows (windows-latest, kimi-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-01T14:45:09Z",
+            "completed_at": "2026-11-01T14:49:55Z",
+            "steps": []
+          }
+        ]
+      },
+      {
+        "category": "windows-acp",
+        "run": 41316820813,
+        "head": "9e187e363586d5c6d9f9f734d956a74ca70e4e7c",
+        "event": "push",
+        "runConclusion": "failure",
+        "attempt": 1,
+        "createdAt": "2026-11-01T14:33:55Z",
+        "jobs": [
+          {
+            "id": 124878512422,
+            "name": "acp-windows (windows-latest, kimi-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-01T14:33:58Z",
+            "completed_at": "2026-11-01T14:38:57Z",
+            "steps": []
+          },
+          {
+            "id": 124878512561,
+            "name": "acp-windows (windows-latest, opencode-aimock)",
+            "status": "completed",
+            "conclusion": "failure",
+            "started_at": "2026-11-01T14:33:58Z",
+            "completed_at": "2026-11-01T14:45:49Z",
+            "steps": [
+              {
+                "name": "Run pnpm vitest run sea-trial/vendor --maxWorkers 2",
+                "conclusion": "failure"
+              }
+            ]
+          },
+          {
+            "id": 124878512613,
+            "name": "acp-windows (windows-latest, grok-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-01T14:33:58Z",
+            "completed_at": "2026-11-01T14:37:31Z",
+            "steps": []
+          }
+        ]
+      },
+      {
+        "category": "windows-acp",
+        "run": 41314224989,
+        "head": "1b23d48ed620fad7e8d918f482dcce8db4ec5067",
+        "event": "push",
+        "runConclusion": "success",
+        "attempt": 1,
+        "createdAt": "2026-11-01T14:03:09Z",
+        "jobs": [
+          {
+            "id": 124870764435,
+            "name": "acp-windows (windows-latest, grok-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-01T14:03:13Z",
+            "completed_at": "2026-11-01T14:07:07Z",
+            "steps": []
+          },
+          {
+            "id": 124870764580,
+            "name": "acp-windows (windows-latest, kimi-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-01T14:03:13Z",
+            "completed_at": "2026-11-01T14:08:09Z",
+            "steps": []
+          },
+          {
+            "id": 124870764662,
+            "name": "acp-windows (windows-latest, opencode-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-01T14:03:13Z",
+            "completed_at": "2026-11-01T14:16:50Z",
+            "steps": []
+          }
+        ]
+      },
+      {
+        "category": "windows-acp",
+        "run": 41311437523,
+        "head": "866d8e77e5e00425985728d1f9e5452a997e2ad3",
+        "event": "push",
+        "runConclusion": "success",
+        "attempt": 1,
+        "createdAt": "2026-11-01T13:28:40Z",
+        "jobs": [
+          {
+            "id": 124862486195,
+            "name": "acp-windows (windows-latest, kimi-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-01T13:28:43Z",
+            "completed_at": "2026-11-01T13:33:42Z",
+            "steps": []
+          },
+          {
+            "id": 124862486374,
+            "name": "acp-windows (windows-latest, opencode-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-01T13:28:43Z",
+            "completed_at": "2026-11-01T13:37:15Z",
+            "steps": []
+          },
+          {
+            "id": 124862486490,
+            "name": "acp-windows (windows-latest, grok-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-01T13:28:44Z",
+            "completed_at": "2026-11-01T13:33:14Z",
+            "steps": []
+          }
+        ]
+      },
+      {
+        "category": "windows-acp",
+        "run": 41309309712,
+        "head": "152df48d77c6937c0ff9354d7e27a8117071fb7b",
+        "event": "push",
+        "runConclusion": "success",
+        "attempt": 1,
+        "createdAt": "2026-11-01T13:02:25Z",
+        "jobs": [
+          {
+            "id": 124856162744,
+            "name": "acp-windows (windows-latest, kimi-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-01T13:02:28Z",
+            "completed_at": "2026-11-01T13:07:24Z",
+            "steps": []
+          },
+          {
+            "id": 124856162894,
+            "name": "acp-windows (windows-latest, grok-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-01T13:02:28Z",
+            "completed_at": "2026-11-01T13:07:09Z",
+            "steps": []
+          },
+          {
+            "id": 124856162907,
+            "name": "acp-windows (windows-latest, opencode-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-01T13:02:30Z",
+            "completed_at": "2026-11-01T13:11:48Z",
+            "steps": []
+          }
+        ]
+      }
+    ]
+  },
+  "piRpcWindowsVendor": {
+    "completedCiRunsInspected": 40,
+    "newCancelledVendorJobs": 0,
+    "postSplitCancellationCount": 2,
+    "failures": [
+      {
+        "category": "ci",
+        "run": 41309638193,
+        "head": "1195ac954e64eca4d73e8d6b041c83020b84de6e",
+        "event": "pull_request",
+        "runConclusion": "failure",
+        "attempt": 1,
+        "createdAt": "2026-11-01T13:06:28Z",
+        "jobs": [
+          {
+            "id": 124857120297,
+            "name": "pi-rpc-windows (vendor)",
+            "status": "completed",
+            "conclusion": "failure",
+            "started_at": "2026-11-01T13:06:31Z",
+            "completed_at": "2026-11-01T13:07:16Z",
+            "steps": [
+              {
+                "name": "Run pnpm install --frozen-lockfile",
+                "conclusion": "failure"
+              },
+              {
+                "name": "Pi RPC vendor - RPC protocol, files, readers and bundled host",
+                "conclusion": "failure"
+              },
+              {
+                "name": "Pi RPC vendor - native Pi extensions, projects and errors",
+                "conclusion": "failure"
+              },
+              {
+                "name": "Pi RPC vendor - MCP tools and servers",
+                "conclusion": "failure"
+              },
+              {
+                "name": "Pi RPC vendor - shared runtime contracts",
+                "conclusion": "failure"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "kimiConfirmationObservation": {
+    "run": 41457627797,
+    "job": 125318274040,
+    "initialFailure": "logged_in passed; immediate process existence assertion did not throw",
+    "originalLogHasProcessIdentity": false,
+    "uniqueCauseEstablished": false,
+    "followup": "Bounded process disappearance observation with creation identity; no product change"
+  },
+  "automaticMainCi": {
+    "conclusion": "success",
+    "created_at": "2026-11-02T13:52:10Z",
+    "event": "push",
+    "head_sha": "11723ed45192763fb8d6ae91b6a9ce03d077c8f9",
+    "html_url": "https://github.com/botiverse/oar/actions/runs/41456702500",
+    "id": 41456702500,
+    "path": ".github/workflows/ci.yml",
+    "run_started_at": "2026-11-02T13:52:10Z",
+    "status": "completed",
+    "updated_at": "2026-11-02T14:44:11Z"
+  },
+  "upstream": {
+    "opencode-54794": {
+      "html_url": "https://github.com/anomalyco/opencode/issues/54794",
+      "state": "open",
+      "comments": 2,
+      "updated_at": "2026-10-12T20:53:16Z"
+    },
+    "opencode-53879": {
+      "html_url": "https://github.com/anomalyco/opencode/issues/53879",
+      "state": "open",
+      "comments": 4,
+      "updated_at": "2026-10-29T17:18:46Z"
+    },
+    "kimi-2370": {
+      "html_url": "https://github.com/MoonshotAI/kimi-cli/issues/2370",
+      "state": "open",
+      "comments": 1,
+      "updated_at": "2026-09-12T16:09:18Z"
+    },
+    "qwen-15796": {
+      "html_url": "https://github.com/QwenLM/qwen-code/issues/15796",
+      "state": "open",
+      "comments": 2,
+      "updated_at": "2026-10-28T13:14:10Z"
+    },
+    "qwen-15875": {
+      "html_url": "https://github.com/QwenLM/qwen-code/issues/15875",
+      "state": "open",
+      "comments": 2,
+      "updated_at": "2026-10-29T15:08:19Z"
+    },
+    "codebuddy1847": {
+      "url": "https://cnb.cool/codebuddy/codebuddy-code/-/issues/1847",
+      "state": "open",
+      "comments": 0,
+      "updatedAt": "2026-10-28T06:32:16Z"
+    },
+    "dsh": {
+      "head": "ce7073d51254c26cd63b22a60835b8f948deb447",
+      "watchedPathsChanged": false,
+      "latestDiscussionComment": 19314203,
+      "newComment": false
+    },
+    "agy": {
+      "cliVersion": "1.4.12",
+      "publicHead": "841f45db2226ce15f5d1f52c580e35181e74ff68",
+      "acpVersion": "1.4.5",
+      "controlRequestSupported": false
+    }
+  },
+  "artifacts": [
+    {
+      "file": "runtime-2026-11-02-codebuddy-behavior.log",
+      "sha256": "c34524132adc1e502969219f654060f5a56387b2bef03cc899b3a113745746f2"
+    },
+    {
+      "file": "runtime-2026-11-02-codebuddy-vendor.log",
+      "sha256": "f4e7a1703dbdd9150ff03d0d1924f38d805b262bdda19a91704abfc5592b0134"
+    },
+    {
+      "file": "runtime-2026-11-02-codebuddy-checksums.txt",
+      "sha256": "3391548d5b9ab490d214401a84471dac18faeace5955dc144f59d6d730a84a0d"
+    },
+    {
+      "file": "runtime-2026-11-02-job-124857120297.log",
+      "sha256": "76be90e1b3930117f1111e7f6ba1fc64d0f8e6cd510ef57dd4a2f710a927a9ff"
+    },
+    {
+      "file": "runtime-2026-11-02-job-124878512561.log",
+      "sha256": "51cc2bb12ea92b5237b40e1fbc36f15764a27dbea292b986190b7f1900c9ad42"
+    },
+    {
+      "file": "runtime-2026-11-02-job-124881227961.log",
+      "sha256": "6d73ff3684e5e516f212a6edd0be23a41f43cf3e5fd86596e76e8af27c02c634"
+    },
+    {
+      "file": "runtime-2026-11-02-job-124890846116.log",
+      "sha256": "4624e5b86df37ca4a50d159a7f4d71d6dfde4ae43a61306fc59e9c1fb5f37601"
+    },
+    {
+      "file": "runtime-2026-11-02-job-125060851877.log",
+      "sha256": "6c022591b0967446a2ddb506d597f7f1486ac0f63574078800f15ca62253c6d6"
+    },
+    {
+      "file": "runtime-2026-11-02-job-125080114026.log",
+      "sha256": "fe44cae9406d2d353405b2ea8a7529011ae4e75517105bee41c0cce4d146de54"
+    },
+    {
+      "file": "runtime-2026-11-02-job-125131254707.log",
+      "sha256": "0f833ac2f288eb9895ffa7dc6ac5d6d62705dc66ce303125cda6cbe0c098f455"
+    },
+    {
+      "file": "runtime-2026-11-02-check.log",
+      "sha256": "6e3c08591833b4f6a835f598f8f1a65af815654fdb694a4aad69922b21500605"
+    }
+  ],
+  "repositoryValidation": {
+    "base": "11723ed45192763fb8d6ae91b6a9ce03d077c8f9",
+    "check": "passed",
+    "tests": 2991,
+    "mockBehavior": {
+      "passed": 18,
+      "skipped": 1,
+      "failed": 0
+    },
+    "productCodeChanged": false
+  }
+}

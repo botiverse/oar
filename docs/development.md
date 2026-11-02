@@ -130,7 +130,7 @@ runtimes may legitimately differ.
   local only (CI runs backends on separate VMs) and changes no product or
   individual test deadline ([local overload evidence](../experiments/codebuddy-probe-cost/README.md)).
   Pin local native binaries to the CI versions before comparing results (for
-  example, `OAR_CODEBUDDY_BIN=/absolute/path/to/2.179.1/codebuddy`): an old
+  example, `OAR_CODEBUDDY_BIN=/absolute/path/to/2.179.2/codebuddy`): an old
   installation found on PATH is not evidence about the pinned version.
 - `OAR_TEST=<real id>` (`antigravity`, `claude`, `codebuddy`, `codex`, `cursor`, `grok`,
   `kimi`, `opencode`, `pi`, `qoder`, `qwen`): your local installation and login. The final word when
@@ -235,7 +235,7 @@ or pull request whose changes are all Markdown files or under `docs/` or
   events, the last active cases, combined Vitest output and redacted Pi RPC
   stderr tails. None of this changes an assertion, concurrency or native
   deadline, or establishes the cause of the intermittent Windows hangs.
-- `acp-behavior`: Kimi 2.4.1, Grok 1.0.70, OpenCode v1 1.19.5 and CodeBuddy 2.179.1 on
+- `acp-behavior`: Kimi 2.4.1, Grok 1.0.70, OpenCode v1 1.19.5 and CodeBuddy 2.179.2 on
   Linux and macOS: shared behavior and vendor tests against native programs
   with local scripted providers, isolated configuration, synthetic keys and
   npm download caches. Shared-case
