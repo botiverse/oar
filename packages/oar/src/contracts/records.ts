@@ -8,7 +8,6 @@ import type { TurnOutcome } from "./turn-outcome.js";
 
 export type { UserMessage } from "./input.js";
 export type { TurnOutcome } from "./turn-outcome.js";
-
 /**
  * The record stream and the events read off it. Three words, three layers:
  *
@@ -42,9 +41,7 @@ export interface RecordEnvelope {
   /** Unix epoch milliseconds stamped at adapter ingress: same clock as Date.now(), so fold×clock consumers (stallOf) compose directly. */
   readonly receivedAt: number;
 }
-
 export type RecordKind = "frame" | "request" | "response";
-
 /** The runtime's own words. oar never synthesizes a frame and never drops one: whatever the runtime said enters the stream, even after a span ended. */
 export interface Frame extends RecordEnvelope {
   readonly kind: "frame";
@@ -110,7 +107,6 @@ export interface TokenTotals {
   /** The part of `input` written to the prompt cache. */
   readonly cacheWrite?: number;
 }
-
 /**
  * What a usage-bearing frame says. `context` is current context fullness as
  * the runtime reports it; `tokens` is the running total for this record's
@@ -172,8 +168,8 @@ export type RuntimeEventBody =
       readonly exitCode?: number | null;
     }
   | ToolCallProgress
-  /** The runtime's OWN completion report for a turn (claude `result`, codex `turn/completed`, pi `agent_settled`, an ACP prompt answer). A prompt request produces `turn_started`; a native active-run report produces `turn_active`. Neither implies an outcome: if a runtime reports no end, none appears. */
-  | { readonly kind: "turn_ended"; readonly outcome: TurnOutcome }
+  /** The runtime's OWN completion report for a turn (claude `result`, codex `turn/completed`, pi `agent_settled`, an ACP prompt answer). A prompt request produces `turn_started`; a native active-run report produces `turn_active`. Neither implies an outcome: if a runtime reports no end, none appears. `inputId` and ordered `inputIds` independently preserve native singular/plural input identities; neither is inferred. Use `inputIds` when present to settle every covered input. */
+  | { readonly kind: "turn_ended"; readonly outcome: TurnOutcome; readonly inputId?: string; readonly inputIds?: readonly string[] }
   /** The runtime began compacting its context. `trigger` is the runtime's own word for why (pi: manual | threshold | overflow; codex/cursor: none). claude reports only the boundary after the fact, so it never says this. */
   | { readonly kind: "compaction_started"; readonly trigger?: string }
   /**
@@ -197,7 +193,7 @@ export type RuntimeEventBody =
   | { readonly kind: "app_request_cancelled"; readonly requestId: string };
 
 /** The toRuntime control actions a Session issues. */
-export type ControlAction = "prompt" | "steer" | "queue" | "withdraw" | "abort" | "dispose" | "goal_set" | "goal_read" | "goal_clear";
+export type ControlAction = "prompt" | "steer" | "queue" | "withdraw" | "abort" | "dispose" | "compact" | "goal_set" | "goal_read" | "goal_clear";
 
 /**
  * Event kinds read off request and response records, so a consumer of
@@ -240,6 +236,8 @@ export type RequestBody =
   | { readonly kind: "goal_set"; readonly options: GoalSetOptions }
   | { readonly kind: "goal_read" }
   | { readonly kind: "goal_clear" }
+  /** Request native compaction; acceptance is admission, not completion. */
+  | { readonly kind: "compact" }
   | { readonly kind: "prompt"; readonly carries?: readonly string[]; readonly inputId?: string; readonly input: string; readonly images?: readonly InputImage[]; readonly origin?: InputOrigin }
   | { readonly kind: "steer"; readonly inputId?: string; readonly input: string; readonly images?: readonly InputImage[]; readonly origin?: InputOrigin }
   | { readonly kind: "queue"; readonly inputId?: string; readonly input: string; readonly images?: readonly InputImage[]; readonly origin?: InputOrigin }
@@ -258,6 +256,8 @@ export type RequestBody =
  * running when the prompt was recorded.
  */
 export type RejectionCode =
+  /** compact: the caller's signal was already aborted; no native operation was sent. */
+  | "aborted"
   /** prompt: another turn is active (≤1 active turn; nothing is queued implicitly). */
   | "busy"
   /** steer / abort: nothing is running; a late abort is a normal race, not an error. */

@@ -9,7 +9,8 @@ export { createQwenProviderAuth, QwenProviderAuthError } from "./provider-auth.j
 export type { QwenProvider, QwenProviderAuth, QwenProviderAuthOptions, QwenProviderAuthErrorKind, QwenProviderConnectOptions, QwenProviderConnectResult } from "./provider-auth.js";
 
 export const qwenRuntime = defineRuntime({
-  id: "qwen", brand: runtimeBrands.qwen,
+  id: "qwen",
+  manualCompaction: { kind: "unsupported", reason: "stream-json has no structural compaction completion signal and a user compress command can override the native operation." }, brand: runtimeBrands.qwen,
   refusedSessionOptions: qwenRefusedSessionOptions,
   resumedSessionOptions: {
     systemPrompt: { provided: "immediate", omitted: "default" },

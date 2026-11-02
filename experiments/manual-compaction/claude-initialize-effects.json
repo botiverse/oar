@@ -1,0 +1,12 @@
+{
+  "version": "2.1.316 (Claude Code)",
+  "repeatedQueries": 3,
+  "settingsUnchanged": true,
+  "permissionMode": "plan",
+  "sessionStartHooks": 1,
+  "mcpInitializations": 1,
+  "hooksNotRepeated": true,
+  "mcpNotRegisteredAgain": true,
+  "systemPromptUnchanged": true,
+  "toolCatalogUnchanged": true
+}

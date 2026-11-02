@@ -1,4 +1,5 @@
-import type { RuntimeEventBody, TurnOutcome, SessionCapabilities, Session, FrameBody } from "../../contracts/session.js";
+import type { CompactionOperation } from "../manual-compaction.js";
+import type { RuntimeEventBody, TurnOutcome, SessionCapabilities, Session, FrameBody, RequestRecord, ResponseBody } from "../../contracts/session.js";
 import type { LoadedImage } from "../input-images.js";
 import type { JsonRecord } from "../json.js";
 import type { StreamJsonProjectionState } from "./state.js";
@@ -41,6 +42,7 @@ export interface StreamJsonSessionProfile<S extends StreamJsonProjectionState> {
   readonly initial: S;
   readonly capabilities: SessionCapabilities;
   readonly steer: boolean;
+  readonly compaction?: { readonly busyReason: string; create(send: (request: RequestRecord) => ResponseBody): CompactionOperation };
   readonly userMessage?: (text: string, inputId?: string, images?: readonly LoadedImage[]) => string;
   readonly cancelQueuedCapability?: string;
   /** Private configuration/account responses must be consumed before public projection. */

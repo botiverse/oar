@@ -34,6 +34,7 @@ function actionLabel(action: ControlAction): string {
     case "queue": return "Queue";
     case "withdraw": return "Withdraw";
     case "abort": return "Abort";
+    case "compact": return "Compact";
     case "dispose": return "Dispose";
     case "goal_set": return "Set goal";
     case "goal_read": return "Read goal";

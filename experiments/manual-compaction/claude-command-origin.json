@@ -1,0 +1,8 @@
+{
+  "version": "2.1.316 (Claude Code)",
+  "mode": "reload_while_queued",
+  "preflightBuiltin": true,
+  "commandsChanged": true,
+  "customRequest": true,
+  "compactionBoundaries": 0
+}

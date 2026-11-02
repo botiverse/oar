@@ -224,6 +224,43 @@ The before-start case has no init or result at all. Adjacent `.stdin.jsonl`
 files preserve each experiment's requests; the after-start experiment forced
 `cancel_queued`, whereas OAR sends an ordinary interrupt once `started` is known.
 
+### Manual compaction
+
+`manualCompaction` declares support with `activeTurn: "reject"`; opened
+sessions expose [`compact()`](../spec/manual-compaction.md). OAR reads
+`initialize.commands` on this same process, privately consuming account
+fields, requires `compact.builtin === true` with no non-builtin entry of
+the same name, then writes `/compact` with its
+control request UUID. It waits for that command's start, a root manual
+`compact_boundary`, and the matching `result.user_message_uuid`. A normal
+result alone is not evidence. Native `system/status.compact_result: "failed"`
+wins even when the ordinary result is success. `commands_changed` between
+validation and the boundary makes the result `failed` / `command_changed`.
+
+Busy sessions are refused: native queued slash commands can be reparsed as
+project or user commands before execution. The idle catalog read/write is
+not atomic, and OAR does not reload or replace user commands. A signal
+already aborted at invocation refuses dispatch. After dispatch, caller timeout
+or signal ends only the wait; the session stays compacting, ordinary prompts
+and repeated compaction are busy, and held queue input runs after native
+completion. Disposal still stops the process. Native failure and resumed
+prompt replacement are covered by the [control regressions](../../sea-trial/vendor/manual-compaction.vendor.test.ts).
+
+A queued compact cancelled through native `command_lifecycle: cancelled`
+returns `aborted`. After the command starts, `abort()` still sends interrupt,
+but Claude reports the interrupted compaction as `compact_result: failed`;
+OAR returns `failed/native_failed` with that frame, without classifying its
+error text. The ordinary turn's `aborted` outcome follows OAR's existing
+cancellation convention and does not change this compaction result.
+
+The [same-session initialize control](../../experiments/manual-compaction/claude-initialize-effects.ts)
+on 2.1.316 repeated the provenance query three times: SessionStart and MCP
+initialization each remained at one, the changed permission mode stayed
+`plan`, and settings, system instructions and tools were unchanged. A
+catalog containing both builtin and non-builtin `compact` entries is
+refused. Query failure/timeout is distinct from a command override; disposal
+ends the wait and prevents a late response or dispatch.
+
 ### Prompt, steering, queueing, and abort
 
 **Prompt (mapped):** `prompt(string)` records a `prompt` request and answers

@@ -8,7 +8,7 @@ export function piRpcControl(child: LineProcess, receive: (message: Record<strin
 } {
   let sequence = 0;
   let ended = false;
-  const pending = new Map<string, { resolve(value: RpcResponse): void; reject(error: Error): void; timer: NodeJS.Timeout }>();
+  const pending = new Map<string, { resolve(value: RpcResponse): void; reject(error: Error): void; timer: NodeJS.Timeout | undefined }>();
   child.onLine((line) => {
     const message = asRecord(parseJson(line));
     if (message === null) { return; }
@@ -35,7 +35,8 @@ export function piRpcControl(child: LineProcess, receive: (message: Record<strin
       if (ended) { throw new Error("Pi RPC has exited"); }
       const id = `oar-pi-${sequence++}`;
       const { promise, resolve, reject } = Promise.withResolvers<RpcResponse>();
-      const timer = setTimeout(() => {
+      // Compact is a native operation, not a short query. Caller wait limits must not kill it.
+      const timer = command.type === "compact" ? undefined : setTimeout(() => {
         pending.delete(id);
         reject(new Error(`Pi RPC ${command.type} did not reply within 30 seconds: ${child.diagnostics().stderr}`));
         child.kill();

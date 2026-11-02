@@ -1,6 +1,6 @@
-import type { AgentStatus, QueryResult, RawEvent, TaskEventBody, TaskStatus, TaskType } from "../contracts/session.js";
+import type { QueryResult, RawEvent, TaskEventBody, TaskStatus, TaskType } from "../contracts/session.js";
 
-import { initialStatus, reduceStatus } from "./agent-status.js";
+import { initialStatus, reduceStatus, type StatusState } from "./agent-status.js";
 
 /**
  * One task as its runtime reported it, for a task panel: the shape a host
@@ -108,8 +108,8 @@ export function reduceTasks(previous: TaskMap, record: RawEvent): TaskMap {
 export interface TaskState {
   readonly tasks: TaskMap;
   readonly rootSessionId: string | undefined;
-  /** Reuses the status fold's current-turn stop evidence. */
-  readonly status: AgentStatus;
+  /** Complete status checkpoint, including native correlation and stop evidence. Persist unchanged with this TaskState. */
+  readonly status: StatusState;
   /** A root dispose request also applies when no turn is running. */
   readonly disposed: boolean;
   /** Task ids whose current error was inferred from runtime exit, not reported natively. */

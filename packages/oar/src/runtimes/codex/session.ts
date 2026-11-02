@@ -1,3 +1,5 @@
+import { manualCompaction } from "../../shared/manual-compaction.js";
+import { codexCompaction, codexCompactionBusy } from "./compaction.js";
 import { appendCleanupFailure } from "../../shared/executable/process-cleanup.js";
 import { codexGoalControl, confirmCodexGoals } from "./goal.js";
 /* oxlint-disable import/max-dependencies -- The adapter composes protocol, input and process-lifetime mechanisms. */
@@ -14,15 +16,11 @@ import { CODEX_SETTINGS_REPORT_MS, codexOpenReadback, codexResumeEffortRefusal, 
 import { foldCodexNotification, initialCodexProjection, type CodexProjectionState } from "./projection.js";
 import { prepareCodexToolDenials } from "./tool-denials.js";
 import { nameThread, openThread, rpcControl, type RpcControlPlan } from "./rpc-control.js";
-
 /*
- * App-server v2: RPC replies answer controls; notifications carry facts.
- * Record replies synchronously, before later notifications in the same chunk.
- * Model/effort read-back and resume overrides live in open.ts. Reachability
- * comes from the recorded exit/dispose, never a separate liveness flag.
- * Native mappings and live evidence: docs/runtimes/codex.md.
+ * App-server v2: RPC replies answer controls synchronously before later notifications.
+ * Model/effort read-back: open.ts. Reachability: recorded exit/dispose.
+ * Native mappings: docs/runtimes/codex.md.
  */
-
 interface CodexSessionState {
   /** The prompt request whose turn is running; null while idle or during a spontaneous turn. */
   active: RequestRecord | null;
@@ -33,9 +31,7 @@ interface CodexSessionState {
   projection: CodexProjectionState;
 }
 export const codexSession: StartSession = withSessionCredentials(async (installation, options, credentials) => {
-  if (installation.via !== "executable") {
-    throw new Error("The codex session adapter needs an executable installation");
-  }
+  if (installation.via !== "executable") { throw new Error("The codex session adapter needs an executable installation"); }
   // Threads persist so a later SessionOptions.resume can reattach; the thread
   // id is the runtime-native identity and becomes Session.id (open.ts builds
   // the request, and refuses what it cannot build before anything starts).
@@ -89,12 +85,14 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
       // baseline this Session's token totals count from (projection.ts, #169).
       projection: initialCodexProjection(threadId, openMethod),
     };
-    const busy = (): boolean => state.active !== null || state.spontaneous;
+    const nativeBusy = (): boolean => state.active !== null || state.spontaneous;
+    let compactOperation: ReturnType<typeof codexCompaction> | null = null;
+    const compaction = manualCompaction(kernel, { busy: codexCompactionBusy(kernel, nativeBusy), busyReason: "Codex manual compaction requires an idle session without an active goal or queued input", create: () => { compactOperation = codexCompaction(client, threadId); return compactOperation; } });
+    const busy = (): boolean => nativeBusy() || compaction.busy();
     const abortFallback = createAbortFallback(() => { client.kill(); });
     let disposeRequest: RequestRecord | null = null;
     // A resume's effort update in flight: codex's thread/settings/updated answers it.
     let settingsWaiter: ((params: JsonRecord) => void) | null = null;
-
     recordOpen = (): void => {
       kernel.frame({ type: openMethod, native: started, events: readback.events });
     };
@@ -175,7 +173,6 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
         throw new Error(refusal);
       }
     }
-    // Last, so an open refused above leaves the user's thread unrenamed.
     await nameThread(client, threadId, codexThreadName(openMethod, options, started));
 
     /** Turn a plan builder into a Session control member. */
@@ -216,7 +213,7 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
       const expectedTurnId = state.codexTurnId;
       return {
         body: { kind: "steer", input, ...inputOptions },
-        gate: () => (!busy() || expectedTurnId === null ? { kind: "rejected", code: "no_active_turn", reason: "not_steerable: no active turn" } : inputImagesRefusal(capabilities, inputOptions?.images)),
+        gate: () => compaction.busy() ? { kind: "rejected", code: "busy", reason: "Manual compaction is still in progress" } : (!busy() || expectedTurnId === null ? { kind: "rejected", code: "no_active_turn", reason: "not_steerable: no active turn" } : inputImagesRefusal(capabilities, inputOptions?.images)),
         method: "turn/steer",
         params: () => ({ threadId, input: codexUserInput(input, inputOptions?.images), expectedTurnId, clientUserMessageId: inputOptions?.inputId }),
         onReply: (reply) => {
@@ -228,11 +225,10 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
         onError: (message) => ({ kind: "rejected", code: "runtime_refused", reason: `not_steerable: ${message}` }),
       };
     };
-    // The reply carries the runtime's submission id; it is retained on the response.
     const queuePlan = (input: string, inputOptions?: InputOptions): RpcControlPlan => ({
       body: { kind: "queue", input, ...inputOptions },
-      gate: () => options.outputSchema === undefined ? inputImagesRefusal(capabilities, inputOptions?.images)
-        : { kind: "rejected", code: "unsupported", reason: "codex queued input cannot carry outputSchema; use prompt after the current turn ends" },
+      gate: () => compaction.busy() ? { kind: "rejected", code: "busy", reason: "Wait for manual compaction before queuing another turn" } : (options.outputSchema === undefined ? inputImagesRefusal(capabilities, inputOptions?.images)
+        : { kind: "rejected", code: "unsupported", reason: "codex queued input cannot carry outputSchema; use prompt after the current turn ends" }),
       method: "thread/queue/add",
       params: () => ({ threadId, input: codexUserInput(input, inputOptions?.images), clientUserMessageId: inputOptions?.inputId ?? randomUUID() }),
       onReply: (reply) => ({ kind: "accepted", native: reply }),
@@ -241,17 +237,21 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
     // An early or late interrupt can be refused; turn/completed is the outcome.
     const abortPlan = (): RpcControlPlan => {
       let refused: (() => void) | null = null;
+      const turnId = compaction.busy() ? compactOperation?.turnId() ?? null : state.codexTurnId;
       return {
         body: { kind: "abort" },
         gate: () => {
-          if (!busy() || state.codexTurnId === null) {
+          if (compaction.busy() && turnId === null) {
+            return { kind: "rejected", code: "busy", reason: "Codex has not yet reported the compaction turn id required by turn/interrupt" };
+          }
+          if (!busy() || turnId === null) {
             return { kind: "rejected", code: "no_active_turn", reason: "no active turn" };
           }
           return null;
         },
         onPending: (accept) => { refused = abortFallback.arm(accept); },
         method: "turn/interrupt",
-        params: () => ({ threadId, turnId: state.codexTurnId }),
+        params: () => ({ threadId, turnId }),
         onReply: (reply) => ({ kind: "accepted", native: reply }),
         onError: (message) => {
           refused?.();
@@ -263,6 +263,7 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
       id: kernel.sessionId,
       ...(options.goals === true ? { goal: codexGoalControl(kernel, client, threadId) } : {}),
       capabilities,
+      compact: compaction.compact,
       prompt: via(promptPlan),
       steer: via(steerPlan),
       queue: via(queuePlan),

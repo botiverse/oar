@@ -7,6 +7,7 @@ import { type PlacementRequest, type RuntimePlacementOptions, placementSession }
 import type { UpdateChecker, Upgrader } from "./update.js";
 import type { AccountUsageReader } from "./account-usage.js";
 import type { InstallationProbe } from "./installation.js";
+import type { ManualCompaction } from "./compaction.js";
 import type { ModelLister } from "./list-models.js";
 import type { ProviderAuthReader } from "./provider-auth.js";
 import type { RuntimeBrand } from "./brand.js";
@@ -90,6 +91,12 @@ export interface Runtime extends RuntimeInventories {
    * compaction has only been inspected in native source, not exercised.
    */
   readonly resumedSessionOptions?: ResumedSessionOptions;
+  /**
+   * Manual compaction before opening; absence means untested, not unsupported.
+   * The opened session member expresses actual availability. Codex has native
+   * local-compaction tests; ChatGPT remote compaction has source evidence only.
+   */
+  readonly manualCompaction?: ManualCompaction;
   /**
    * How a running session takes a change to an attached MCP server's tools
    * (any server that sends `notifications/tools/list_changed`, such as

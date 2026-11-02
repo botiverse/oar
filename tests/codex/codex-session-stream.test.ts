@@ -319,6 +319,28 @@ test("a completed turn cancels the abort deadline before another turn starts", a
   await session.dispose();
 });
 
+// oxlint-disable-next-line eslint/max-statements -- Abort must not use a turn id until a compaction item owns it.
+test("abort stays busy before Codex identifies the compaction turn in its native item", async () => {
+  const fake = scriptedAppServer({ interruptAckOnly: true });
+  const session = await codexSession({ ...installation, version: "0.166.0" }, { cwd: "/work" });
+  try {
+    expect(session.compact !== undefined).toBe(true);
+    const waiting = session.compact?.();
+    const writes = () => fake.written.map(text => asRecord(JSON.parse(text)));
+    expect(writes().filter(message => message?.method === "thread/compact/start")).toHaveLength(1);
+    expect(await session.abort()).toMatchObject({ kind: "rejected", code: "busy" });
+    notify(fake, "turn/started", { threadId, turn: { id: "compact-turn" } });
+    expect(await session.abort()).toMatchObject({ kind: "rejected", code: "busy" });
+    expect(writes().some(message => message?.method === "turn/interrupt")).toBe(false);
+    notify(fake, "item/started", { threadId, turnId: "compact-turn", item: { type: "contextCompaction", id: "compact-item" } });
+    expect(await session.abort()).toMatchObject({ kind: "accepted" });
+    expect(writes().filter(message => message?.method === "turn/interrupt").map(message => message?.params)).toEqual([{ threadId, turnId: "compact-turn" }]);
+    notify(fake, "turn/completed", { threadId, turn: { id: "compact-turn", status: "interrupted" } });
+    expect(await waiting).toMatchObject({ kind: "aborted" });
+    expect(session.status().value.kind).toBe("idle");
+  } finally { await session.dispose(); }
+});
+
 // oxlint-disable-next-line eslint/max-statements -- Follow native adoption, child isolation and settlement through one adapter stream.
 test("native Codex activity adopts a turn, while child activity does not start the root", async () => {
   const fake = scriptedAppServer();

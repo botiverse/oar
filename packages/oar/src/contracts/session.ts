@@ -1,4 +1,6 @@
+/* oxlint-disable import/max-dependencies -- Session composes the independently owned control and observation contracts. */
 import type { AdapterGoalControl, GoalControl } from "./goal.js";
+import type { CompactionOptions, CompactionOutcome } from "./compaction.js";
 import type {
   ContextUsage,
   Cursor,
@@ -18,6 +20,7 @@ import type { ContextBreakdown } from "./context-breakdown.js";
 import type { SessionOptions } from "./session-options.js";
 
 export type { GoalControl, AdapterGoalControl, GoalSnapshot, GoalStatus, KnownGoalStatus, GoalSetOptions } from "./goal.js";
+export type { CompactionOptions, CompactionOutcome, ManualCompaction } from "./compaction.js";
 export type { ControlResult, ControlOutcome } from "./control.js";
 export type { McpServer, SessionOptions } from "./session-options.js";
 export type { CredentialProblem, FailedTurn, FailureClass } from "./failure.js";
@@ -55,14 +58,12 @@ export type { TaskEventBody, TaskStatus, TaskType } from "./tasks.js";
 export type { AgentStatus, RunningPhase } from "./status.js";
 export type { InputImage, InputOrigin } from "./input.js";
 export type { DeliverOptions, DeliverResult, DeliverWhen, DeliverMergeInput, DeliverMergeResult } from "./deliver.js";
-
 export interface QueryResult<T> {
   /** The fold's current value. */
   readonly value: T;
   /** The seq of the last consumed record, or -1 before any record. */
   readonly seq: number;
 }
-
 /** For prompt, steer and queue: empty text requires at least one image; otherwise rejected unsupported. Whitespace is not trimmed. */
 export interface InputOptions {
   /** UUID identifying one logical input across delivery attempts; generated when omitted. */
@@ -77,8 +78,6 @@ export interface InputOptions {
   /** Who the input comes from; kept on the request record, never sent to the runtime. */
   readonly origin?: InputOrigin;
 }
-
-
 /** A single prompt may also deliver earlier inputs, without changing their historical queue/withdraw records. */
 export interface PromptOptions extends InputOptions {
   readonly carries?: readonly string[];
@@ -115,7 +114,6 @@ export interface PromptOptions extends InputOptions {
  *   nothing. `SessionOptions.resume` reopens the runtime-native conversation
  *   with a fresh stream starting at seq 0.
  */
-
 /**
  * Execution capability entrypoint; composition probes installation first.
  * Rejects only on operational failure (spawn/load/auth errors carry the
@@ -192,6 +190,8 @@ export interface SessionResources {
 export interface AdapterSession {
   /** Optional recorded controls for the runtime's structured goal. */
   readonly goal?: AdapterGoalControl;
+  /** Native manual compaction. Waiting limits do not cancel it or free its input slot. */
+  compact?(options?: CompactionOptions): Promise<CompactionOutcome>;
   readonly id: string; // runtime-native persistent identity; pass to SessionOptions.resume to reattach later
   readonly capabilities: SessionCapabilities;
   prompt(input: string, options?: PromptOptions): Promise<ControlResult>; // ≤1 active turn: rejected `busy` while one runs; NEVER queues implicitly. The request record is the turn's start.

@@ -5,6 +5,7 @@ import path from "node:path";
 import { test } from "vitest";
 import { awaitTurnEnd, conversationOf, type ControlResult } from "../../packages/oar/src/index.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
+import { claudeMergedIdentity } from "./support/claude-merged-identity.js";
 import { allRuntimes } from "../harness/runtimes.js";
 import { startClaudeAimock, startCodexAimock } from "../harness/aimock.js";
 
@@ -54,3 +55,11 @@ async function verifyIdentity(id: "codex" | "claude", mode: "steer" | "fallback"
 for (const id of ["codex", "claude"] as const) {
   test.skipIf(process.env.OAR_TEST !== `${id}-aimock`).each(["steer", "fallback"] as const)(`${id} correlates native %s echo without a duplicate input`, async (mode) => { await verifyIdentity(id, mode); }, 60_000);
 }
+
+
+test.skipIf(process.env.OAR_TEST !== "claude-aimock")("Claude preserves both native queued input identities on their merged turn end", async () => {
+  const observed = await claudeMergedIdentity();
+  const merged = observed.results.find((result) => result.user_message_uuid === observed.second);
+  assert.ok(merged !== undefined);
+  assert.deepEqual(merged.user_message_uuids, [observed.first, observed.second]);
+}, 60_000);

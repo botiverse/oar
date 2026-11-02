@@ -1,4 +1,4 @@
-import type { AgentStatus, QueryResult, RawEvent, RunningPhase, RuntimeEventBody } from "../contracts/session.js";
+import type { AgentStatus, QueryResult, RawEvent, RunningPhase, RuntimeEventBody, TurnOutcome } from "../contracts/session.js";
 
 import { exitTurnOutcome, releaseTurnOutcome, reduceTurnStop } from "./turn-stop.js";
 
@@ -44,7 +44,30 @@ export type { AgentStatus, RunningPhase } from "../contracts/session.js";
  * may subscribe mid-turn, and a queued input runs as a turn with no request).
  */
 
-export const initialStatus: AgentStatus = { kind: "idle" };
+/**
+ * Serializable checkpoint returned by `reduceStatus`, exported from
+ * `@botiverse/oar/observe` and the root entry. To resume an incremental fold,
+ * persist this entire value unchanged together with the last consumed cursor.
+ * Saving only AgentStatus fields loses native operation correlation.
+ * Use `statusValue` for display, never as the checkpoint for resuming a fold.
+ */
+export type StatusState = AgentStatus & { readonly compactionState?: {
+  readonly nativeTurn?: true;
+  readonly spanId?: string;
+  readonly lastTurnOutcome?: TurnOutcome;
+} };
+/** Start a new fold; use a saved StatusState when continuing after a cursor. */
+export const initialStatus: StatusState = { kind: "idle" };
+
+/** Separate display state from the checkpoint needed by incremental folds. */
+export function statusValue(state: StatusState): AgentStatus {
+  const { compactionState: _compactionState, ...value } = state;
+  return value;
+}
+function compactionIdle(previous: StatusState): StatusState {
+  const lastTurnOutcome = previous.compactionState?.lastTurnOutcome;
+  return { kind: "idle", ...(lastTurnOutcome === undefined ? {} : { lastTurnOutcome }) };
+}
 
 /** The status fold over a retained log, as a query (`Session.status()`): `seq` is the last record consumed, -1 before any. */
 export function statusOf(records: readonly RawEvent[], sessionId?: string): QueryResult<AgentStatus> {
@@ -54,10 +77,10 @@ export function statusOf(records: readonly RawEvent[], sessionId?: string): Quer
     value = reduceStatus(value, record, sessionId);
     seq = record.seq;
   }
-  return { value, seq };
+  return { value: statusValue(value), seq };
 }
 
-function running(previous: AgentStatus, record: RawEvent, phase: RunningPhase): AgentStatus {
+function running(previous: StatusState, record: RawEvent, phase: RunningPhase): StatusState {
   const sinceSeq = previous.kind === "running" ? previous.sinceSeq : record.seq;
   const requestId = previous.kind === "running" ? previous.requestId : undefined;
   return {
@@ -66,13 +89,16 @@ function running(previous: AgentStatus, record: RawEvent, phase: RunningPhase): 
     ...(requestId === undefined ? {} : { requestId }),
     ...(previous.kind === "running" && previous.stop !== undefined ? { stop: previous.stop } : {}),
     ...(previous.kind === "running" && previous.inputId !== undefined ? { inputId: previous.inputId } : {}),
+    ...(previous.compactionState === undefined ? {} : { compactionState: previous.compactionState }),
     ...(previous.pendingPrompt === undefined ? {} : { pendingPrompt: previous.pendingPrompt }),
-    phase,
+    ...(previous.kind === "running" && previous.compaction !== undefined ? { compaction: previous.compaction } : {}),
+    phase: previous.kind === "running" && previous.compaction !== undefined ? "compacting" : phase,
     lastEventAt: record.receivedAt,
   };
 }
 
-export function reduceStatus(previous: AgentStatus, record: RawEvent, sessionId?: string): AgentStatus {
+/** Fold one record using the complete previous checkpoint; preserve every returned field. */
+export function reduceStatus(previous: StatusState, record: RawEvent, sessionId?: string): StatusState {
   if (previous.kind === "idle" && previous.released === true) { return previous; }
   const foreignSession = sessionId !== undefined && record.sessionId !== sessionId;
   if (foreignSession && !belongsToSession(record, sessionId)) {
@@ -97,6 +123,9 @@ export function reduceStatus(previous: AgentStatus, record: RawEvent, sessionId?
   }
   switch (record.kind) {
     case "request":
+      if (record.direction === "toRuntime" && record.body.kind === "compact" && previous.kind === "idle" && previous.pendingPrompt === undefined) {
+        return { kind: "running", sinceSeq: record.seq, requestId: record.id, compaction: { requestId: record.id }, compactionState: previous.lastTurnOutcome === undefined ? {} : { lastTurnOutcome: previous.lastTurnOutcome }, phase: "compacting", lastEventAt: record.receivedAt };
+      }
       return record.direction === "toRuntime" && record.body.kind === "prompt" && previous.kind === "idle" && previous.pendingPrompt === undefined
         ? { kind: "running", sinceSeq: record.seq, requestId: record.id, ...(record.body.inputId === undefined ? {} : { inputId: record.body.inputId }), phase: "waiting_model", lastEventAt: record.receivedAt }
         : previous;
@@ -107,7 +136,7 @@ export function reduceStatus(previous: AgentStatus, record: RawEvent, sessionId?
         return { ...previous, released: true };
       }
       if (record.body.kind === "rejected" && previous.kind === "running" && previous.requestId === record.requestId) {
-        return { kind: "idle" };
+        return compactionIdle(previous);
       }
       if (record.body.kind === "exited" && previous.kind === "idle") { return { kind: "idle", ...(previous.lastTurnOutcome === undefined ? {} : { lastTurnOutcome: previous.lastTurnOutcome }) }; }
       if (record.body.kind === "exited" && previous.kind === "running") {
@@ -126,9 +155,10 @@ export function reduceStatus(previous: AgentStatus, record: RawEvent, sessionId?
   }
 }
 
-function reduceEvent(previous: AgentStatus, record: RawEvent, event: RuntimeEventBody): AgentStatus {
+function reduceEvent(previous: StatusState, record: RawEvent, event: RuntimeEventBody): StatusState {
   switch (event.kind) {
     case "input_queued": {
+      if (previous.kind === "running" && previous.compaction?.requestId === event.inputId) { return { ...previous, lastEventAt: record.receivedAt }; }
       const own = previous.kind === "running" && previous.inputId === event.inputId;
       const pendingPrompt = { inputId: event.inputId, sinceSeq: own ? previous.sinceSeq : record.seq,
         ...(own && previous.requestId !== undefined ? { requestId: previous.requestId } : {}),
@@ -136,6 +166,12 @@ function reduceEvent(previous: AgentStatus, record: RawEvent, event: RuntimeEven
       return { ...previous, pendingPrompt, ...(previous.kind === "running" ? { lastEventAt: record.receivedAt } : {}) };
     }
     case "turn_active":
+      if (previous.kind === "running" && previous.compaction !== undefined) {
+        if (event.inputId !== undefined && event.inputId !== previous.compaction.requestId) { return previous; }
+        // Claude names the input at turn start. Codex identifies the turn
+        // only at its compaction item, so an unrelated goal turn cannot own it.
+        return event.inputId === undefined ? previous : { ...previous, compactionState: { ...previous.compactionState, nativeTurn: true }, lastEventAt: record.receivedAt };
+      }
       if (event.inputId !== undefined && previous.pendingPrompt?.inputId === event.inputId) {
         return waitingForPrompt(previous.pendingPrompt, record, false);
       }
@@ -153,8 +189,14 @@ function reduceEvent(previous: AgentStatus, record: RawEvent, event: RuntimeEven
     case "retry":
       return running(previous, record, "waiting_model");
     case "compaction_ended":
+      if (previous.kind === "running" && previous.compaction !== undefined && event.trigger !== undefined && event.trigger !== "manual") { return previous; }
+      if (previous.kind === "running" && previous.compaction !== undefined && previous.compactionState?.nativeTurn !== true) { return previous.compaction.started === true ? compactionIdle(previous) : previous; }
       return previous.kind === "running" ? running(previous, record, "waiting_model") : previous;
     case "compaction_started":
+      if (previous.kind === "running" && previous.compaction !== undefined && (event.trigger === "manual" || (event.trigger === undefined && (previous.compactionState?.nativeTurn === true || record.spanId !== undefined)))) {
+        return { ...previous, compaction: { ...previous.compaction, started: true },
+          ...(record.spanId === undefined ? {} : { compactionState: { ...previous.compactionState, nativeTurn: true, spanId: record.spanId } }), lastEventAt: record.receivedAt };
+      }
       return running(previous, record, "compacting");
     case "tool_call_input_delta":
     case "tool_call_input": {
@@ -169,6 +211,10 @@ function reduceEvent(previous: AgentStatus, record: RawEvent, event: RuntimeEven
     case "tool_call_progress":
       return previous.kind === "running" ? { ...previous, lastEventAt: record.receivedAt } : previous;
     case "turn_ended":
+      if (previous.kind === "running" && previous.compaction !== undefined
+        && ((event.inputId !== undefined && event.inputId !== previous.compaction.requestId)
+          || (previous.compactionState?.spanId !== undefined && record.spanId !== previous.compactionState.spanId))) { return previous; }
+      if (previous.kind === "running" && previous.compaction !== undefined && previous.compactionState?.nativeTurn !== true) { return previous; }
       return previous.pendingPrompt === undefined
         ? { kind: "idle", lastTurnOutcome: event.outcome }
         : waitingForPrompt(previous.pendingPrompt, record, true);
@@ -178,6 +224,7 @@ function reduceEvent(previous: AgentStatus, record: RawEvent, event: RuntimeEven
       // Tasks run beside the turn; whether the agent is busy is the turn's fact, but a report is activity.
       return previous.kind === "running" ? { ...previous, lastEventAt: record.receivedAt } : previous;
     case "input_dropped": {
+      if (previous.kind === "running" && previous.compaction?.requestId === event.inputId) { return compactionIdle(previous); }
       if (previous.kind === "running" && previous.inputId === event.inputId) { return { kind: "idle" }; }
       if (previous.pendingPrompt?.inputId !== event.inputId) { return previous; }
       const { pendingPrompt: _pending, ...status } = previous;
@@ -197,7 +244,7 @@ function reduceEvent(previous: AgentStatus, record: RawEvent, event: RuntimeEven
 }
 
 /** A notification can finish while the accepted host input still owns the slot. */
-function waitingForPrompt(pending: NonNullable<AgentStatus["pendingPrompt"]>, record: RawEvent, keepPending: boolean): AgentStatus {
+function waitingForPrompt(pending: NonNullable<AgentStatus["pendingPrompt"]>, record: RawEvent, keepPending: boolean): StatusState {
   return { kind: "running", sinceSeq: pending.sinceSeq, inputId: pending.inputId,
     ...(pending.requestId === undefined ? {} : { requestId: pending.requestId }),
     ...(pending.stop === undefined ? {} : { stop: pending.stop }),

@@ -451,6 +451,32 @@ prompt's provider request. OAR emits no `input_dropped` on Pi's aborted
 `agent_settled`. Its echoes have no input IDs, so request-position placement
 continues. [Evidence](../../experiments/input-interruption-2026-10-08.md).
 
+### Manual compaction
+
+SDK and RPC sessions expose [`compact()`](../spec/manual-compaction.md) and
+declare `activeTurn: "reject"`. The adapter calls native `AgentSession.compact()`
+or RPC `compact`, accepts on the manual start event, and waits for the native
+manual end. Automatic boundaries cannot finish this operation. Native errors
+and cancellation retain their failed/aborted meaning. A rejected SDK promise
+after admission also supplies native failure evidence if no end event arrived
+and the session is still reachable. A transport error is not such evidence;
+disposal or process exit never produces a synthetic compaction terminal.
+
+Both paths refuse busy dispatch because the native entry can abort an active
+run. A signal already aborted at the call refuses dispatch. After dispatch,
+caller timeout/signal only stops waiting; status remains compacting,
+prompt/steer/repeated compact are busy, and queue input is held until native
+settlement. RPC compact has no ordinary 30-second transport deadline;
+`abort()` uses Pi's full native cancellation path, including manual
+compaction, and preserves the native aborted/failed outcome. Before native
+admission it refuses `busy` rather than claiming there is no operation.
+`dispose()` remains available to stop the session. Pi Durable remains
+undeclared, pending task/submission application correlation. The
+[native control regression](../../sea-trial/vendor/manual-compaction.vendor.test.ts)
+covers SDK/RPC completion, resumed prompts, failure and lifecycle boundaries
+on Pi 1.5.0, with earlier 1.4.0 observations retained in the
+[validation report](../../experiments/manual-compaction-2026-11-02.md).
+
 ### Prompt, steering, queueing, and abort
 
 **Prompt (mapped):** `prompt()` records a request and calls
@@ -725,8 +751,9 @@ contextWindow: 128000}`; three turns 1377 → 2772 → 4186 input, one
 `turn_ended` per prompt (`basic`/`multi-turn` scenarios). The compaction
 events are pinned with the pi-aimock recipe (tiny `contextWindow` plus fat
 reported usage plus compaction settings) and have not been reached with a
-real provider: live contexts stay near 1.4k of 128k tokens. Explicit
-compact/abort-compaction controls are **not exposed**.
+real provider: live contexts stay near 1.4k of 128k tokens. SDK/RPC explicit
+compaction is exposed through [the manual control](#manual-compaction); there
+is no separate abort-compaction member.
 [Native compaction][native-compaction],
 [adapter](../../packages/oar/src/runtimes/pi/session.ts),
 [vendor test](../../sea-trial/vendor/pi.vendor.test.ts).

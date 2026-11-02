@@ -14,6 +14,7 @@ import { claudeSession } from "./session.js";
 
 export const claudeRuntime = defineRuntime({
   id: "claude",
+  manualCompaction: { kind: "supported", activeTurn: "reject" },
   refusedSessionOptions: claudeRefusedSessionOptions,
   resumedSessionOptions: {
     systemPrompt: { provided: "next_compaction", omitted: "saved_until_compaction" },

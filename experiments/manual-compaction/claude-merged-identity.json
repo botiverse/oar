@@ -1,0 +1,30 @@
+{
+  "version": "2.1.316 (Claude Code)",
+  "active": "e727fb33-56bd-45a0-adcd-add08c877d2e",
+  "first": "0e9d3f5a-9fcd-4b5c-9f69-a9eb24916ef7",
+  "second": "dff9bcd0-e04d-4acc-85a5-40ce5229814d",
+  "results": [
+    {
+      "subtype": "success",
+      "user_message_uuid": "78e13688-9b68-42d8-a827-d6982c94fded",
+      "user_message_uuids": [
+        "78e13688-9b68-42d8-a827-d6982c94fded"
+      ]
+    },
+    {
+      "subtype": "success",
+      "user_message_uuid": "e727fb33-56bd-45a0-adcd-add08c877d2e",
+      "user_message_uuids": [
+        "e727fb33-56bd-45a0-adcd-add08c877d2e"
+      ]
+    },
+    {
+      "subtype": "success",
+      "user_message_uuid": "dff9bcd0-e04d-4acc-85a5-40ce5229814d",
+      "user_message_uuids": [
+        "0e9d3f5a-9fcd-4b5c-9f69-a9eb24916ef7",
+        "dff9bcd0-e04d-4acc-85a5-40ce5229814d"
+      ]
+    }
+  ]
+}

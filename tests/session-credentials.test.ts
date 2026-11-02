@@ -1,3 +1,4 @@
+import { manualCompaction } from "../packages/oar/src/shared/manual-compaction.js";
 import { inspect } from "node:util";
 import { expect, test } from "vitest";
 import { mcpCredentialRedactor } from "../packages/oar/src/shared/mcp-servers.js";
@@ -164,4 +165,33 @@ test("connection URLs with short passwords redact only the whole URL", () => {
   const url = "postgres://user:pass@localhost/db";
   const { redact } = sessionCredentialRedactor({ env: { DATABASE_URL: url } });
   expect(redact(`${url}; tests pass`)).toBe("[redacted]; tests pass");
+});
+
+
+test.each(["create", "refusal", "observation"] as const)("compact %s reasons use the session record redactor", async (mode) => {
+  const open = withSessionCredentials(async (_installation, _options, credentials) => {
+    const kernel = credentials.kernel("session");
+    const compaction = manualCompaction(kernel, { busy: () => false, busyReason: "busy", create: () => {
+      if (mode === "create") { throw new Error(secret); }
+      return { start: (_request, reply) => {
+        if (mode === "refusal") { reply({ kind: "rejected", code: "runtime_refused", reason: secret }); }
+        else { reply({ kind: "accepted" }); throw new Error(secret); }
+      }, observe: () => null };
+    } });
+    return credentials.seal({
+      id: kernel.sessionId, capabilities: { queue: { durable: false }, attribution: "none", images: false }, compact: compaction.compact,
+      prompt: async (input) => kernel.control({ kind: "prompt", input }, () => ({ kind: "accepted" })),
+      queue: async (input) => kernel.control({ kind: "queue", input }, () => ({ kind: "accepted" })),
+      abort: async () => kernel.control({ kind: "abort" }, () => ({ kind: "accepted" })),
+      dispose: async () => { kernel.request("toRuntime", { kind: "dispose" }); },
+      rawEvents: (observer, cursor) => kernel.rawEvents(observer, cursor), records: () => kernel.records(), graph: () => kernel.graph(),
+    });
+  });
+  const session = await open({ kind: "available", via: "bundled" }, { cwd: "/work", env: { API_KEY: secret } });
+  try {
+    const result = await session.compact?.();
+    expect(result).toMatchObject({ kind: mode === "observation" ? "unconfirmed" : "rejected", reason: "[redacted]" });
+    expect(JSON.stringify({ result, records: session.records() })).not.toContain(secret);
+    if (result?.kind === "rejected" && result.response.body.kind === "rejected") { expect(result.reason).toBe(result.response.body.reason); }
+  } finally { await session.dispose(); }
 });

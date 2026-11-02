@@ -39,6 +39,7 @@ export function createPiRuntime(options: PiRuntimeOptions = {}): Runtime & { rea
   };
   const runtime = defineRuntime({
     id: "pi",
+    manualCompaction: { kind: "supported", activeTurn: "reject" },
     brand: runtimeBrands.pi,
     refusedSessionOptions: subprocess ? piRpcRefusedSessionOptions : piRefusedSessionOptions,
     resumedSessionOptions: {

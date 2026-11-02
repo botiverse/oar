@@ -20,6 +20,7 @@ function recordedCommand(command: ProjectionCommand, native: JsonRecord): unknow
 // Captured on 6ce480c before extracting the stream-json core. Unlike the
 // concise projected.txt specimens, these pin every event field and its order,
 // every control command and agent path, and the original native frame itself.
+// The 2026-11-02 projection adds native-reported turn_ended inputId/inputIds; raw recordings are unchanged.
 // Host-side prompt/abort interleavings have their own recorded session tests.
 for (const fixture of fixtures) {
   test(`stream-json extraction preserves every frame of ${fixture}`, async () => {

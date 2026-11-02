@@ -4,7 +4,7 @@
 > [hard problems 5-8](../design/hard-problems.md#the-session-and-event-model),
 > [foundations](../design/foundations.md).
 
-Control (open / prompt / steer / queue / withdraw / abort / dispose and their replies) and
+Control (open / prompt / steer / queue / withdraw / abort / compact / dispose and their replies) and
 facts (what the runtime actually said) are records on one stream, and
 control never decides whether a fact exists. A model that pushes both
 through control objects lets the control plane trim, synthesize, and
@@ -144,7 +144,7 @@ one, it is honestly absent. No oar-made native frames exist in the stream, so th
 is no origin self-disclosure label.
 
 **request**: an action record that expects an outcome; bidirectional.
-app→runtime: open / prompt / steer / queue / withdraw / abort / dispose. runtime→app:
+app→runtime: open / prompt / steer / queue / withdraw / abort / compact / dispose. runtime→app:
 approvals, questions, external tools. toApp request bodies are runtime
 verbatim with an open vocabulary, so `direction` is the only way a server
 can decide "does the app need to answer this" without understanding the
@@ -253,7 +253,7 @@ Further rules:
   `exited` response (the runtime is gone), `released` response (OAR has
   relinquished control) or a `dispose` request (the
   session is being released), every later prompt / steer / queue / withdraw /
-  abort or goal-control request is rejected (`runtime_exited` / `session_released` / `disposed`) by the shared kernel
+  abort, compact or goal-control request is rejected (`runtime_exited` / `session_released` / `disposed`) by the shared kernel
   before any adapter code runs: no adapter keeps a private "is it alive"
   flag. `dispose` is the one control that still goes through after an
   release or observed exit. After exit it is recorded and answered `accepted` at once (nothing is
@@ -262,7 +262,7 @@ Further rules:
 - **Control responses answer only "accepted or not".** Final states and
   landing points are always events. A rejection carries one typed `code`
   (`busy`, `no_active_turn`, `not_queued`, `unsupported`, `runtime_exited`, `session_released`,
-  `disposed`, `runtime_refused`, `error`) next to the prose `reason`, so an application
+  `disposed`, `aborted`, `runtime_refused`, `error`) next to the prose `reason`, so an application
   branches on a word, not on vendor text. `unsupported` means the runtime
   cannot do this control with these inputs (images where it takes none,
   images on a cursor steer, or no input at all); a control a runtime cannot do at all is a
@@ -451,7 +451,12 @@ Further rules:
   OAR synthesizes neither a `turn_ended` frame nor a `timeout` rejection.
   The incremental `reduceStatus` keeps optional `stop` evidence in a running
   status (pending abort ids and `abortedOnExit`) so checkpoints preserve the
-  same result as replay. Flat events alone omit accepted controls; feed
+  same result as replay. Its public checkpoint type is `StatusState`:
+  persist the entire value with the consumed cursor, including native
+  compaction correlation, and pass it unchanged when continuing the fold.
+  `statusValue` and `Session.status()` expose only the display `AgentStatus`,
+  which cannot replace that checkpoint ([details](manual-compaction.md#ownership-records-and-state)).
+  Flat events alone omit accepted controls; feed
   records to the session view for this classification.
 - **Spawned processes belong to the host's lifetime.** One synchronous Node
   `exit` hook kills OAR's still-running sessions, probes (inventory and
@@ -611,7 +616,7 @@ interface FrameBody {
 //   tool_call_input_delta {callId, delta} |
 //   tool_call_progress {callId, output?, outputDelta?} |
 //   tool_call_ended {callId, content?: ToolOutputPart[], result?: "ok" | "failed", exitCode?: number | null} |
-//   turn_ended {outcome} | usage {usage: {context?, tokens?: {input, output, reasoning?, cacheRead?, cacheWrite?}, total?: <same>}} | model {model} |
+//   turn_ended {outcome, inputId?, inputIds?} | usage {usage: {context?, tokens?: {input, output, reasoning?, cacheRead?, cacheWrite?}, total?: <same>}} | model {model} |
 //   goal_changed {goal: GoalSnapshot | null} |
 //   effort {effort} | service_tier {serviceTier} | app_request_cancelled {requestId} |
 //   compaction_started {trigger?} |
@@ -637,7 +642,7 @@ interface RequestRecord extends RecordEnvelope {
   kind: "request";
   id: string;
   direction: "toRuntime" | "toApp";
-  body: RequestBody;            // open {placement} | prompt {input, inputId?, images?, origin?, carries?} | steer | queue {input, inputId?, images?, origin?} | withdraw {inputId} | abort | dispose | goal_set {options} | goal_read | goal_clear | native {type, native} (toApp, verbatim)
+  body: RequestBody;            // open {placement} | prompt {input, inputId?, images?, origin?, carries?} | steer | queue {input, inputId?, images?, origin?} | withdraw {inputId} | abort | compact | dispose | goal_set {options} | goal_read | goal_clear | native {type, native} (toApp, verbatim)
 }
 
 interface ResponseRecord extends RecordEnvelope {
@@ -657,7 +662,7 @@ interface ResponseRecord extends RecordEnvelope {
 ```
 
 The control surface that produces these records (`Session.prompt / steer /
-queue / withdraw / abort / dispose`, `rawEvents(observer, cursor?)`, `records()`,
+queue / withdraw / abort / compact / dispose`, `rawEvents(observer, cursor?)`, `records()`,
 `graph()`, and the folds) is documented on the contract itself. A `prompt`
 while a turn runs is rejected `busy`, never queued: a session has one
 control plane and at most one active turn
@@ -676,6 +681,11 @@ returns them read (`ControlOutcome`): `kind` is `accepted` or `rejected`
 (the two answers a toRuntime control can get), a rejection has its `code`
 and `reason` at hand, `seq` is the request's position in the stream (what `awaitTurnEnd`
 takes), and `request` / `response` are still the records themselves.
+The optional [manual compaction](manual-compaction.md) control returns
+`CompactionOutcome`: its response only admits/refuses, while its promise
+observes the native terminal evidence. Caller deadlines append no fake native
+terminal and do not release the operation; `status()` remains compacting.
+
 `dispose()` returns void: its request and response are read from the stream.
 Isolated process adapters stop owned work and record `exited`. Shared adapters
 attempt native cleanup for only this session, then record `released`; the last
@@ -831,6 +841,25 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   not an ever-growing input. It may be incomplete JSON; it is separate from
   both complete `tool_call_input` and tool output `tool_call_progress`.
   Codex 0.162.0 exposes no corresponding native argument notification.
+- `turn_ended.inputId?` and `inputIds?`: the shared stream-json fold copies native
+  `result.user_message_uuid` and `user_message_uuids`, respectively. Each
+  field appears only when the corresponding native field is reported; OAR
+  neither derives one from the other nor adds identities to native
+  spontaneous turns that have none. `inputIds` preserves native order and
+  lists all inputs covered by this turn. Hosts marking inputs complete
+  should use the full list when present, not just `inputId`. Claude 2.1.316
+  combined two queued messages into one reply with the latter UUID in
+  `inputId` and both UUIDs in `inputIds`; an earlier prompt-plus-steer
+  recording instead names the original prompt in the singular field.
+  Qwen 0.26.5 and Qoder 1.1.81 report neither field in the
+  [native control](../../experiments/manual-compaction/stream-json-result-fields.json);
+  their result `uuid` is not a reported input identity and is not substituted.
+  There is no universal first/last selection rule to infer. These are
+  native input identities, separate from OAR's interrupt merging: that
+  path creates a new prompt with a new input id; its `carries` and the
+  delivery result's `mergedInputIds` retain the original inputs. Claude
+  normally steers an interrupt instead of using that fallback. See
+  [the native controls](../../experiments/manual-compaction-2026-11-02.md#input-identities).
 - `compaction_started`: pi `compaction_start` (`trigger` is pi's reason:
   manual | threshold | overflow); codex `item/started` for a
   `contextCompaction` item (no trigger); cursor SDK 1.2.0 `run.stream()`
@@ -991,7 +1020,8 @@ Metadata-only updates retain the inferred status and error.
 
 For incremental consumers, use `initialTaskState(rootSessionId?)` and
 `reduceTaskState(state, record)`. Its `tasks` is the existing `TaskMap`;
-`status` reuses `reduceStatus`'s current-turn stop evidence, `disposed`
+`status` is the complete `StatusState` from `reduceStatus`, including
+current-turn stop evidence and compaction correlation; `disposed`
 remembers a root dispose even while idle, and `exitErrors` identifies
 inferred errors. Persist the whole state, preserving its Map and Set, so a
 checkpoint can continue folding with the same result as replay. Supply the
