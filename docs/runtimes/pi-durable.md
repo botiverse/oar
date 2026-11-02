@@ -25,12 +25,37 @@ replacement snapshot instead of the intervening batches.
 The host passes the **same `Models` instance or `() => Models` supplier** it
 supplied to `Harness.open`. A supplier lets the host replace its catalog
 without recreating either the Harness or OAR runtime. Harness exposes no
-public catalog getter, so OAR cannot verify this identity.
+public catalog getter, so OAR cannot verify this identity. Build this catalog
+with the Pi AI version matching the host Harness, currently 1.4.0. Keep
+Pi AI 1.5.0 under its normal name for the bundled coding SDK and import the
+older catalog through a version alias:
+
+```json
+{
+  "dependencies": {
+    "@earendil-works/pi-ai": "1.5.0",
+    "@earendil-works/pi-ai-durable": "npm:@earendil-works/pi-ai@1.4.0",
+    "@earendil-works/pi-durable": "~1.4.0",
+    "@earendil-works/chord": "~1.4.0"
+  }
+}
+```
+
+Use `import { createModels } from "@earendil-works/pi-ai-durable/models"`
+and the same alias for Durable provider/schema imports. Pinning the normal
+`@earendil-works/pi-ai` name to 1.4.0 instead can split the coding SDK's 1.5.0
+registration instances; a single-file host then fails OAuth derivation with
+`Cannot find module` for the provider module. The factory takes its catalog type directly
+from the Durable peer, independently of OAR's bundled Pi coding SDK 1.5.0.
 The host installs `@earendil-works/pi-durable@~1.4.0` and
 `@earendil-works/chord@~1.4.0`, both optional peers of OAR. OAR operates on
 the host's native package instances, without bundling another copy. Tests
 pin 1.4.0; upgrading this experimental API requires rerunning the native
-probe and vendor tests below.
+probe and vendor tests below. Pi Durable 1.5.0 is not supported by this
+adapter: it removes `watchEvents` and changes the persisted `pi.live` document
+to v3, which 1.4.0 cannot read. The
+[security update and coexistence evidence](../../experiments/pi-1.5.0-2026-11-02.md)
+keep both Durable peers on 1.4.0; they do not migrate host storage.
 
 **Upgrading from 1.3.0:** the host must upgrade both peers. The native
 [Durable 1.4.0 changelog](https://github.com/earendil-works/pi/blob/v1.4.0/packages/durable/CHANGELOG.md)

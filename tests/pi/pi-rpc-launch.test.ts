@@ -15,7 +15,7 @@ test("the source constant used by bundled hosts matches the installed coding-age
 });
 
 test("a custom executable gets native RPC arguments and its version is probed in the session environment", async () => {
-  vi.mocked(runExecutable).mockResolvedValue({ ok: true, stdout: "1.4.0\n", stderr: "", exitCode: null });
+  vi.mocked(runExecutable).mockResolvedValue({ ok: true, stdout: "1.5.0\n", stderr: "", exitCode: null });
   const env = { PATH: "child-path" };
   expect(await piRpcLaunch("my-host", "project", env, ["pi"])).toMatchInlineSnapshot(`
     {
@@ -25,15 +25,15 @@ test("a custom executable gets native RPC arguments and its version is probed in
         "rpc",
       ],
       "command": "my-host",
-      "version": "1.4.0",
+      "version": "1.5.0",
     }
   `);
   expect(runExecutable).toHaveBeenLastCalledWith("my-host", ["pi", "--version"], { cwd: "project", env, timeoutMs: 15_000 });
 });
 
-test.each(["1.3.0", "", "1.5.0"])("an incompatible or missing native version refuses before a session starts: %s", async (version) => {
+test.each(["1.4.0", "", "1.6.0"])("an incompatible or missing native version refuses before a session starts: %s", async (version) => {
   vi.mocked(runExecutable).mockResolvedValue({ ok: true, stdout: version, stderr: "", exitCode: null });
-  await expect(piRpcLaunch("my-pi", "project", {})).rejects.toThrow("Pi RPC requires 1.4.0");
+  await expect(piRpcLaunch("my-pi", "project", {})).rejects.toThrow("Pi RPC requires 1.5.0");
 });
 
 test("a command cannot silently change the default embedded runtime", () => {

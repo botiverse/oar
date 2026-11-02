@@ -16,7 +16,7 @@ import type { Agent, Dispatcher, EnvHttpProxyAgent, getGlobalDispatcher, setGlob
  * (`undici.install()`) for the whole host process, a footprint no embedding
  * library should have. The module is not exported by the SDK either. So the
  * plane is built here with undici directly, a direct dependency pinned to
- * the version pi itself uses (8.10.2, one instance in the tree), and limited
+ * the version pi itself uses (8.12.3, one instance in the tree), and limited
  * to what the fix needs: the proxy agent with pi's own connection options
  * (`piDispatcherOptions`), pi's `httpProxy` setting as the
  * fallback when the env names no proxy (pi's own precedence), and pi's

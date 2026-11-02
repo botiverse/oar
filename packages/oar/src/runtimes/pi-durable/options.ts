@@ -1,12 +1,15 @@
 import { BACKGROUND_CONTEXT } from "@earendil-works/chord/context";
-import type { ModelThinkingLevel, Models } from "@earendil-works/pi-ai";
+import type { ModelThinkingLevel } from "@earendil-works/pi-ai";
 import { getSupportedThinkingLevels } from "@earendil-works/pi-ai/models";
-import { AgentDoc, LiveDoc, configure, type AgentChange, type AgentState, type Conversation, type ConversationId, type Harness } from "@earendil-works/pi-durable";
+import { AgentDoc, LiveDoc, configure, type AgentChange, type AgentState, type Conversation, type ConversationId, type Harness, type HarnessOptions } from "@earendil-works/pi-durable";
 import { RuntimeFailureError } from "../../contracts/runtime-failure-error.js";
 import { SessionNotFoundError } from "../../contracts/session-not-found-error.js";
 import type { RefusedSessionOptions } from "../../contracts/runtime.js";
 import type { SessionOptions } from "../../contracts/session.js";
 import { refuseSessionOptions } from "../../shared/session-options.js";
+
+/** The catalog belonging to the host's Durable peer, which can differ from the coding SDK. */
+export type DurableModels = Exclude<HarnessOptions["models"], () => unknown>;
 
 export const piDurableRefusedSessionOptions: RefusedSessionOptions = {
   goals: "This runtime interface exposes no structured native goal controls",
@@ -30,7 +33,7 @@ function thinkingLevel(value: string): value is ModelThinkingLevel {
   return ["off", "minimal", "low", "medium", "high", "xhigh", "max"].includes(value);
 }
 
-function agentChange(options: SessionOptions, models: Models): AgentChange {
+function agentChange(options: SessionOptions, models: DurableModels): AgentChange {
   const slash = options.model?.indexOf("/") ?? -1;
   const model = options.model === undefined ? undefined : models.getModel(options.model.slice(0, slash), options.model.slice(slash + 1));
   if (options.model !== undefined && (slash < 1 || model === undefined)) {
@@ -58,7 +61,7 @@ async function resumeConversation(harness: Harness, id: string): Promise<Convers
   return found;
 }
 
-function validateEffort(agent: AgentState, models: Models, options: SessionOptions): void {
+function validateEffort(agent: AgentState, models: DurableModels, options: SessionOptions): void {
   if (options.effort === undefined) { return; }
   const model = agent.model === undefined ? undefined : models.getModel(agent.model.provider, agent.model.modelId);
   if (model === undefined || !getSupportedThinkingLevels(model).some((level) => level === options.effort)) {
@@ -71,7 +74,7 @@ function changedOptions(before: AgentState, change: AgentChange): boolean {
   return keys.some((key) => change[key] !== undefined && JSON.stringify(before[key]) !== JSON.stringify(change[key]));
 }
 
-async function configureResume(conversation: Conversation, change: AgentChange, models: Models, options: SessionOptions): Promise<void> {
+async function configureResume(conversation: Conversation, change: AgentChange, models: DurableModels, options: SessionOptions): Promise<void> {
   await conversation.commit(async (tx) => {
     const before = await tx.doc(AgentDoc, conversation.id);
     const live = await tx.doc(LiveDoc, conversation.id);
@@ -86,7 +89,7 @@ async function configureResume(conversation: Conversation, change: AgentChange, 
   }, BACKGROUND_CONTEXT);
 }
 
-export async function openConversation(harness: Harness, models: Models, options: SessionOptions): Promise<Conversation> {
+export async function openConversation(harness: Harness, models: DurableModels, options: SessionOptions): Promise<Conversation> {
   refuseSessionOptions(piDurableRefusedSessionOptions, options);
   const change = agentChange(options, models);
   const conversation = options.resume === undefined

@@ -1,12 +1,11 @@
 import type { SessionOpenContext } from "../../contracts/placement.js";
 import { BACKGROUND_CONTEXT } from "@earendil-works/chord/context";
-import type { Models } from "@earendil-works/pi-ai";
 import { watchEvents, type Conversation, type Harness, type SubmissionRecord, type WatchEnd } from "@earendil-works/pi-durable";
 import type { ControlResult, InputOptions, RequestRecord, ResponseBody, RuntimeEventBody, Session, SessionOptions } from "../../contracts/session.js";
 import { createSessionKernel } from "../../shared/session-kernel.js";
 import { sealSession } from "../../shared/seal-session.js";
 import { statusOf } from "../../observe/agent-status.js";
-import { openConversation } from "./options.js";
+import { openConversation, type DurableModels } from "./options.js";
 import { foldDurableBatch, initialDurableProjection, submissionOutcome } from "./projection.js";
 
 function settledOutcome(record: SubmissionRecord): readonly RuntimeEventBody[] {
@@ -31,7 +30,7 @@ async function withdraw(harness: Harness, conversation: Conversation, inputId: s
   return native === "aborted" ? { kind: "accepted", native } : { kind: "rejected", code: "not_queued", reason: native ?? "No submission with this inputId", native };
 }
 
-export async function piDurableSession(harness: Harness, models: Models, options: SessionOptions, context?: SessionOpenContext): Promise<Session> {
+export async function piDurableSession(harness: Harness, models: DurableModels, options: SessionOptions, context?: SessionOpenContext): Promise<Session> {
   const conversation = await openConversation(harness, models, options);
   const stream = await watchEvents(harness, conversation.id, BACKGROUND_CONTEXT);
   const kernel = createSessionKernel(String(conversation.id));

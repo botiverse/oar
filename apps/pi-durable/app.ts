@@ -1,6 +1,6 @@
 import { BACKGROUND_CONTEXT } from "@earendil-works/chord/context";
-import { createModels } from "@earendil-works/pi-ai/models";
-import { anthropicProvider } from "@earendil-works/pi-ai/providers/anthropic";
+import { createModels } from "@earendil-works/pi-ai-durable/models";
+import { anthropicProvider } from "@earendil-works/pi-ai-durable/providers/anthropic";
 import { createRegistry, Harness, MemoryStorage } from "@earendil-works/pi-durable";
 import { observeSessionView, phaseLabel, type Session, type SessionView, type Unsubscribe } from "../../packages/oar/src/browser.js";
 import { createPiDurableRuntime } from "../../packages/oar/src/pi-durable.js";

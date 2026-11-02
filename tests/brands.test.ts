@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "vitest";
 import { BACKGROUND_CONTEXT } from "@earendil-works/chord/context";
-import { createModels } from "@earendil-works/pi-ai/models";
+import { createModels } from "@earendil-works/pi-ai-durable/models";
 import { Harness, MemoryStorage, createRegistry } from "@earendil-works/pi-durable";
 import { defineRuntime, runtimeBrandIcon, runtimeBrands, type RuntimeBrand } from "../packages/oar/src/index.js";
 import { allRuntimes } from "../sea-trial/harness/runtimes.js";

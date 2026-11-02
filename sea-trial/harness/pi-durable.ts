@@ -1,6 +1,6 @@
 import { BACKGROUND_CONTEXT } from "@earendil-works/chord/context";
-import { createModels, createProvider } from "@earendil-works/pi-ai/models";
-import { anthropicMessagesApi } from "@earendil-works/pi-ai/api/anthropic-messages.lazy";
+import { createModels, createProvider } from "@earendil-works/pi-ai-durable/models";
+import { anthropicMessagesApi } from "@earendil-works/pi-ai-durable/api/anthropic-messages.lazy";
 import { createRegistry, Harness, MemoryStorage, type Storage, type Registry, type HarnessOptions, type CompactionSettings } from "@earendil-works/pi-durable";
 import { LLMock } from "@copilotkit/aimock";
 import { createPiDurableRuntime } from "../../packages/oar/src/runtimes/pi-durable/index.js";

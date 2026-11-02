@@ -4,7 +4,7 @@ import { expect, test } from "vitest";
 import { createRegistry, defineExtension, defineTool } from "@earendil-works/pi-durable";
 import { CodingTools } from "@earendil-works/pi-durable/tools";
 import { NodeExecutionEnv } from "@earendil-works/pi-durable/env/node";
-import { Type } from "@earendil-works/pi-ai";
+import { Type } from "@earendil-works/pi-ai-durable";
 import { promptAndWait, type Session } from "../../packages/oar/src/index.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { startDurableFixture } from "../harness/pi-durable.js";

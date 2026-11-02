@@ -142,9 +142,14 @@ Community runtimes are contributed and maintained outside the core team (each ma
 configuration and `SessionOptions.model`. When resuming an old Azure session,
 explicitly pass `model: "azure/<model>"`; without it, Pi can retain the
 conversation while selecting a different default model. The opening `model`
-event and `Session.model()` report the effective selection. OAR's `^1.4.0`
+event and `Session.model()` report the effective selection. OAR's `^1.5.0`
 dependency range includes this upstream update. See the
 [migration evidence and limits](https://github.com/botiverse/oar/blob/main/experiments/runtime-version-checks/2026-10-05.md).
+
+**Pi 1.5.0 default prompt:** the bundled native default system prompt has
+changed. Hosts that need stable wording should pass their own `systemPrompt`.
+The coding SDK and OAR share undici 8.12.3; see the
+[security update evidence](https://github.com/botiverse/oar/blob/main/experiments/pi-1.5.0-2026-11-02.md).
 
 Qwen Code is available as `qwenRuntime` and in `defaultRuntimes`. Install
 `@qwen-code/qwen-code` separately. The async `createQwenProviderAuth(installation,
@@ -423,7 +428,14 @@ TypeScript hosts: keep `skipLibCheck` on. With `skipLibCheck: false` and `module
 ## Host-owned durable sessions
 
 Install the optional native peers in the host: `npm install @earendil-works/pi-durable@~1.4.0 @earendil-works/chord@~1.4.0`.
-Upgrade both together. Native 1.4.0 migrates SQLite storage to schema 2,
+For the host catalog, keep `@earendil-works/pi-ai@1.5.0` under its normal
+name and add `@earendil-works/pi-ai-durable` as an npm alias of Pi AI 1.4.0;
+import Durable models/providers from that alias. See the
+[copyable host configuration](https://github.com/botiverse/oar/blob/main/docs/runtimes/pi-durable.md#native-objects-and-calling-interface).
+Installing Pi AI 1.4.0 under its normal name can split the coding SDK's
+registration instances and break OAuth loading in single-file hosts. Durable
+1.5.0 is not supported by this adapter.
+Upgrade both supported peers together. Native 1.4.0 migrates SQLite storage to schema 2,
 which cannot be reopened by 1.3.0 or earlier; see the
 [host upgrade notes](https://github.com/botiverse/oar/blob/main/docs/runtimes/pi-durable.md#native-objects-and-calling-interface)
 for storage and extension API changes.

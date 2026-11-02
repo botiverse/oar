@@ -7,14 +7,14 @@ templates (SDK 1.1.0, 2026-10-11). Core MCP discovery is unsupported. See the
 [native probe evidence](inventory.md).
 
 Evidence baseline: OAR source as of 2026-09-11; bundled
-`@earendil-works/pi-coding-agent` SDK **1.4.0**, with `@earendil-works/pi-ai`;
-OAR depends on both at `^1.4.0`. Native source references are pinned to pi
+`@earendil-works/pi-coding-agent` SDK **1.5.0**, with `@earendil-works/pi-ai`;
+OAR depends on both at `^1.5.0`. Native source references are pinned to pi
 **v0.84.2** (commit prefix `914cf1472`; former `badlogic/pi-mono` URLs
 redirect to `earendil-works/pi`). Live observations below are from SDK
 **0.84.2** unless they name a version or date (the bundled SDK moved to
 0.87.1 on 2026-09-29, then 0.99.1 on 09-30, 0.99.2 on 10-01, 1.0.0 on 10-02,
 1.0.2 on 10-04, 1.0.3 on 10-05, 1.0.4 on 10-06, 1.1.0 on 10-08, 1.2.0 on
-10-13, 1.3.0 on 10-16 and 1.4.0 on 10-22): in-process runs of [`experiments/live-contract.ts pi`](../../experiments/live-contract.ts)
+10-13, 1.3.0 on 10-16, 1.4.0 on 10-22 and 1.5.0 on 11-02): in-process runs of [`experiments/live-contract.ts pi`](../../experiments/live-contract.ts)
 and the [experiments index](../../experiments/README.md) probes against
 `openai-codex/gpt-5.3-codex-spark` (codex OAuth through pi; every assistant
 frame carries `provider: "openai-codex"`, `api: "openai-codex-responses"`) on
@@ -29,11 +29,15 @@ upstream overload response), as did the eight applicable vendor tests and
 the 19-case simulated-provider behavior suite (withdrawal included; only
 inapplicable cases skipped)
 ([October 6 report](../../experiments/runtime-version-checks/2026-10-06.md)).
-1.1.0 through 1.4.0 were checked against local scripted providers only; on
+1.1.0 through 1.5.0 were checked against local scripted providers only; on
 1.4.0, 63 native tests and the shared behavior suite (17 passed, 2 skipped)
 cover native controls, extension lifecycle and tool handling
 ([October 22 report](../../experiments/runtime-version-checks/2026-10-22.md)).
-At every upgrade from 0.99.2 through 1.4.0, a separate-process probe
+The [1.5.0 security update](../../experiments/pi-1.5.0-2026-11-02.md) also
+checks the RPC backend and coexistence with the host-owned Durable 1.4.0
+catalog. Pi 1.5.0 changes its native default system prompt; hosts that need
+stable wording should supply their own `systemPrompt`.
+At every upgrade from 0.99.2 through 1.5.0, a separate-process probe
 ([`pi-upgrade-resume.ts`](../../experiments/pi-upgrade-resume.ts)) resumed a
 session created by the previous SDK: native id, saved model and prior
 transcript survived, and the new OAR stream started at sequence zero. This
@@ -861,7 +865,7 @@ a session, model listing, login or catalog reaches a provider, it sets
 undici's global dispatcher itself to an `EnvHttpProxyAgent` built from the
 settings manager those entry points read (`OAR_PI_AGENT_DIR`, else `getAgentDir()`).
 `undici` is a direct dependency of `@botiverse/oar`, pinned to the version pi
-uses (8.10.2, one instance in the tree). An env proxy wins; pi's `httpProxy`
+uses (8.12.3 in Pi 1.5.0, one instance shared by OAR and the coding SDK). An env proxy wins; pi's `httpProxy`
 setting fills both http and https when the env names none (pi's own `??=`
 precedence, but the env is not written); pi's `httpIdleTimeoutMs` setting is
 the dispatcher's headers/body timeout (pi's default equals undici's). Nothing
@@ -899,12 +903,12 @@ own standalone binary makes (`registerBunOAuthFlows()` from
 `@earendil-works/pi-ai/compat`). The imports are literal, so a bundler
 follows them, and dynamic, so a host that never uses pi does not load them.
 A bundled host needs no pi dependency of its own for this. The hand-over only
-works when the bundle holds **one copy of pi-ai**: OAR hands the modules to
+works when OAR and the coding SDK share **one copy of pi-ai**: OAR hands the modules to
 the pi-ai its own import resolves to, and pi-coding-agent runs sessions on
 the pi-ai it resolves to. A package manager can resolve pi-ai twice at the
 same version when the optional peers of its `openai` dependency resolve
 differently in the two places, `undici` above all: pi-coding-agent pins
-`undici` (8.10.2 in pi 1.2.0 through 1.4.0, and OAR pins the same), so a host
+`undici` (8.12.3 in Pi 1.5.0, and OAR pins the same), so a host
 that depends on another `undici` gets a second pi-ai copy for its own imports. The bundle
 then carries two copies, the hand-over lands on the one no session uses, and
 every OAuth turn fails with "Cannot find module" again
@@ -919,7 +923,10 @@ versions pi-coding-agent resolves, checks that the bundle names a single
 `@earendil-works+pi-ai@` variant, and keeps a build check that derives auth
 for a dummy OAuth credential through pi-coding-agent's own `ModelRuntime`
 inside the bundle: it fails with that "Cannot find module" whenever the
-copies split again. Each hand-over is
+copies split again. A separate Durable 1.4.0 catalog uses its own Pi AI 1.4.0;
+that older catalog is not the coding SDK registration target. The packed-host
+check also verifies OAR and the coding SDK still share Pi AI and undici after
+the host installs this Durable catalog. Each hand-over is
 best effort: a host that leaves Bedrock out of its bundle (its AWS SDK adds
 about 1.4 MB) keeps every sign-in, gets one `OAR_PI_MODULES` process warning,
 and Bedrock loads pi's own way; a failed hand-over is tried again on the next
