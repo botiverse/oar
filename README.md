@@ -186,8 +186,9 @@ What else a session gives you:
   and `abort` each answer accepted or rejected with a typed code (`busy`,
   `no_active_turn`, `runtime_exited`, …); where input landed is read from
   the events, never guessed. `deliver(input, { when: "interrupt", maxWaitMs, merge })`
-  steers where the runtime can, and otherwise interrupts at a tool boundary
-  and sends every held input as one turn
+  steers where the runtime can; otherwise it waits up to `maxWaitMs` for the
+  root agent's tools to finish, interrupts, and sends every held input as one
+  merged prompt
   ([reference](docs/spec/conversation.md#interrupting-and-merging-held-inputs)).
 - **Your own tools on any runtime.** `serveMcpTools` serves tools your host
   implements as an MCP server a session attaches like any other; replace

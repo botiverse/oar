@@ -205,10 +205,11 @@ Sharing follows five rules:
    directory instead of the session's, a session that uses them does not
    share: automatic placement opens it its own process, and explicit shared
    placement is refused. If the adapter cannot tell before opening whether a
-   session will use them, as with hooks or plugins read from configuration,
-   that runtime version does not share. Both cases were observed: OpenCode
-   2.2.3 and 2.2.5 [plugin children](../../experiments/sharing/opencode-plugin-environment-2026-10-31.md)
-   and Grok 1.0.70 stdio MCP children start in the shared process's home.
+   session will use them, as with hooks, plugins or stdio MCP servers read
+   from configuration, that runtime version does not share. Both were
+   observed: OpenCode 2.2.3 and 2.2.5 [plugin children](../../experiments/sharing/opencode-plugin-environment-2026-10-31.md)
+   and Grok 1.0.70 [stdio MCP children](../../experiments/sharing/execution-environment-2026-10-31.md)
+   start in the shared process's home.
 2. **The fallback releases the session; it does not kill.** `abort` stays
    the runtime's own interrupt. If the turn has not ended within the fallback
    interval, OAR accepts the pending abort and records a release for that

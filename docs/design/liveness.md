@@ -32,9 +32,8 @@ The design answer is to make death observable in the record stream itself:
   event.
 - **Process exit produces a response record.** Death shows up in the stream,
   not only in the OS.
-- **A release is recorded the same way.** In shared placement (no native
-  runtime is admitted to it today) a session can end while its process keeps
-  running for its peers. OAR then records a release for that session, which
+- **A release is recorded the same way.** In shared placement a session can
+  end while its process keeps running for its peers. OAR then records a release for that session, which
   settles waiting folds as an exit does, without inventing a native outcome
   ([shared runtime processes](system.md#shared-runtime-processes),
   [record contract](../spec/record-stream.md#placement-and-release)). It is
