@@ -36,9 +36,40 @@ SDK/RPC cases in
 [`resume-fresh-prompts.vendor.test.ts`](../sea-trial/vendor/resume-fresh-prompts.vendor.test.ts)
 also read the declaration, as do the two Pi Durable append cases in
 [`pi-durable.vendor.test.ts`](../sea-trial/vendor/pi-durable.vendor.test.ts).
-Qwen/Pi omission restores defaults; Pi Durable omission retains saved
-instructions. All these controls passed locally; cross-platform results belong
-to the PR's native CI jobs.
+Every case now checks supplied and omitted values both before and after
+native compaction. Qwen/Pi omission restores defaults; Pi Durable omission
+retains saved instructions after compaction too. The Qwen/Pi sequence creates
+an old value, resumes with a new value, then resumes with omission. Expected
+saved values are tracked from the preceding session, rather than always using
+the original marker.
+
+Qwen runs native `/compress` through its existing stream-json prompt channel.
+The native assistant frame must report `Context compressed (... -> ...)` with
+a smaller resulting token count; command acceptance alone is insufficient.
+Pi SDK/RPC use a 100,000-token context window with 20,000 reserved tokens;
+Durable uses its 200,000-token model window with 120,000 reserved tokens and
+background compaction disabled. A selected normal response reports 90,000
+input tokens. Pi then compacts automatically; Qwen receives `/compress`.
+Only recognized native summary requests receive a unique summary marker.
+The later main provider request must contain that marker in its history;
+ordinary replies never contain it. This proves native compaction completed,
+including runtimes without normalized compaction events. Qwen's summary usage
+also reports the history tokens it consumed, so its native benefit check does
+not reject a nominal summary that claims to have compressed no input.
+
+All 19 controls passed locally; cross-platform results belong to the PR's
+native CI jobs. The [declaration inventory test](../tests/resumed-session-options.test.ts)
+fixes the measured runtimes and option keys, including both Pi execution modes
+and Pi Durable, and rejects overlap with `refusedSessionOptions`. Adding a
+new declaration requires updating this inventory and its native regression.
+
+Deliberately incorrect declarations fail the controls: the eight additional
+runtime/dimension runs cover Qwen, Pi SDK, Pi RPC and Pi Durable, changing
+supplied timing or omission behavior. In particular, changing Durable's
+`omitted: "saved"` to `saved_until_compaction` now fails specifically after
+compaction. Changing Qwen/Pi omission to `saved` expects the **new** marker
+from the preceding resume and fails against the actual default, confirming
+the expectation no longer incorrectly uses the seed value.
 
 Run the Claude/Codex file with `OAR_TEST=claude-aimock` or `codex-aimock` and
 `pnpm vitest run sea-trial/vendor/resume-system-prompt.vendor.test.ts`.

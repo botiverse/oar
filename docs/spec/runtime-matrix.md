@@ -528,6 +528,42 @@ runtime cannot attach is an `UnsupportedOptionError` on `mcpServers` too: an
 http entry on an ACP agent whose `initialize` declares no
 `mcpCapabilities.http`; every runtime above attaches both.
 
+### Conditional refusals
+
+The remaining refusals depend on a value, the installed version or the
+session itself, so `refusedSessionOptions` does not declare them; each is
+an `UnsupportedOptionError`.
+
+OpenCode v1 carries prompt options through native inline configuration. An
+already-defined `OPENCODE_CONFIG_CONTENT` refuses either prompt option, and
+an empty replacement is refused because native OpenCode selects its built-in
+prompt for that value ([evidence](../runtimes/opencode.md#models-effort-instructions-and-context)).
+OpenCode v2 refuses both prompt options after checking the installed line
+(v1 supports both): there is no verified session-local injection path, and
+its instruction loader ignores the v1 `instructions` configuration.
+
+Grok 1.0.70 refuses any explicitly supplied append-only prompt on resume,
+even unchanged text, since native `rules` is not reapplied without an override
+and OAR cannot compare the saved value. It also refuses a blank `systemPrompt`
+on creation and resume, even alongside an append, since it treats that as
+omitted. `systemPrompt` and `appendSystemPrompt` use separate native
+override/rules fields; together they are supported on creation and resume
+([request evidence](../runtimes/grok.md#models-and-instructions)).
+
+Kimi and opencode refuse a `resume` that names another directory than
+the one their `session/list` says the session lives in (option `cwd`): they
+would run the session in its own directory instead, and only the runtime
+knows that directory ([resume in another directory](../runtimes/resume-cwd.md)).
+
+An ACP runtime whose session advertises no `thought_level` config option
+has no effort channel, so it refuses `effort` once its handshake shows that
+(`shared/acp/effort.ts`, `tests/acp/acp-session-effort.test.ts`).
+Antigravity 1.4.0 advertises this selector for its grouped model families.
+The menu belongs to the model in effect: opencode offers one only for a
+model with variants, so after a requested model switch the switch's answer
+is read, not the open's ([env] opencode 1.18.30). A level a runtime does not
+offer is a plain error naming the level, not this one.
+
 ## Resumed session options
 
 `Runtime.resumedSessionOptions` lets a host choose how to resume before
@@ -555,15 +591,15 @@ this declaration; that is separate from changing the system prompt.
 | Claude, both prompts | Next native compaction | Saved until compaction, then default | Both declared; 2.1.316, manual `/compact` |
 | Codex, `systemPrompt` | Immediate | Saved, including after compaction | Declared; 0.166.0 |
 | Codex, `appendSystemPrompt` | Next native compaction | Saved until compaction, then default | Declared; 0.166.0, local automatic compaction |
-| Qwen, both prompts | Immediate | Default | Both declared; 0.26.5 |
-| Pi SDK/RPC, both prompts | Immediate | Default, including current project resources | Both declared; 1.4.0 |
-| Pi Durable, `appendSystemPrompt` | Immediate | Saved | Declared; 1.4.0. Changing settings while adopting an active run is refused. Replacement is always refused. |
+| Qwen, both prompts | Immediate | Default, including after compaction | Both declared; 0.26.5, native `/compress` |
+| Pi SDK/RPC, both prompts | Immediate | Default, including current project resources and after compaction | Both declared; 1.4.0, native automatic compaction |
+| Pi Durable, `appendSystemPrompt` | Immediate | Saved, including after compaction | Declared; 1.4.0, native automatic compaction. Changing settings while adopting an active run is refused. Replacement is always refused. |
 | Cursor, Kimi | Both refused | Not applicable | Refusals declared, no resume entries |
 | Grok | Replacement and append together apply immediately; append-only resume is refused | Saved; append-only retention also verified across native compaction (1.0.70) | Conditional; no resume entries. Append-only hosts must omit append on resume; changing it requires replacement too. Blank replacement is refused. [Details](../runtimes/grok.md#models-and-instructions) |
 | OpenCode v1 | Both reapplied through native inline configuration | Omission across compaction untested | Version-dependent; no resume entries. [Details](../runtimes/opencode.md#models-effort-instructions-and-context) |
 | OpenCode v2 | Both refused | Not applicable | Installed-line refusal; no resume entries |
 | Antigravity, `appendSystemPrompt` | Immediate when native capability is advertised | Default in the measured resume control | Capability-dependent; no resume entry. Replacement refused. [Details](../runtimes/antigravity.md#models-instructions-and-context) |
-| Qoder | Native prompt flags are passed on open | Untested | No resume entries |
+| Qoder | Immediate (1.1.78 request-construction evidence) | Untested | No resume entries; [details](../runtimes/qoder.md#oar-mapping) |
 | CodeBuddy | Replacement reapplied; append refused | Replacement omission untested | No resume entries |
 
 **Supply the current prompts on every Claude/Codex resume.** Claude's saved
@@ -585,43 +621,14 @@ The Codex fixture uses scripted usage to trigger local automatic compaction,
 not a new OAR control; remote compaction under a ChatGPT login is unverified.
 [Qwen/Pi regressions](../../sea-trial/vendor/resume-fresh-prompts.vendor.test.ts)
 and [Pi Durable regressions](../../sea-trial/vendor/pi-durable.vendor.test.ts)
-also read these declarations and check both supplied and omitted values.
+also read these declarations and check both supplied and omitted values before
+and after native compaction. Their unique scripted summaries must appear in
+fresh main requests after compaction; Qwen must also report its native successful
+compression and a smaller token count. The sequential controls track the current
+saved value, including one supplied on a previous resume. A
+[registry-wide test](../../tests/resumed-session-options.test.ts) fixes the
+measured runtime/option inventory and rejects overlap with refused options.
 A vendor behavior change therefore fails the declared contract.
-
-### Conditional refusals
-
-The remaining refusals depend on a value, the installed version or the
-session itself, so `refusedSessionOptions` does not declare them; each is
-an `UnsupportedOptionError`.
-
-OpenCode v1 carries prompt options through native inline configuration. An
-already-defined `OPENCODE_CONFIG_CONTENT` refuses either prompt option, and
-an empty replacement is refused because native OpenCode selects its built-in
-prompt for that value ([evidence](../runtimes/opencode.md#models-effort-instructions-and-context)).
-OpenCode v2 refuses both prompt options after checking the installed line
-(v1 supports both): there is no verified session-local injection path, and
-its instruction loader ignores the v1 `instructions` configuration.
-
-Grok 1.0.52 refuses an append-only prompt change on resume, since native
-`rules` is not reapplied without an override, and a blank `systemPrompt` on
-creation and resume, even alongside an append, since it treats that as
-omitted. `systemPrompt` and `appendSystemPrompt` use separate native
-override/rules fields; together they are supported on creation and resume
-([request evidence](../runtimes/grok.md#models-and-instructions)).
-
-Kimi and opencode refuse a `resume` that names another directory than
-the one their `session/list` says the session lives in (option `cwd`): they
-would run the session in its own directory instead, and only the runtime
-knows that directory ([resume in another directory](../runtimes/resume-cwd.md)).
-
-An ACP runtime whose session advertises no `thought_level` config option
-has no effort channel, so it refuses `effort` once its handshake shows that
-(`shared/acp/effort.ts`, `tests/acp/acp-session-effort.test.ts`).
-Antigravity 1.4.0 advertises this selector for its grouped model families.
-The menu belongs to the model in effect: opencode offers one only for a
-model with variants, so after a requested model switch the switch's answer
-is read, not the open's ([env] opencode 1.18.30). A level a runtime does not
-offer is a plain error naming the level, not this one.
 
 ## Host-served tools
 

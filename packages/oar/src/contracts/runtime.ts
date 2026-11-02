@@ -86,6 +86,8 @@ export interface Runtime extends RuntimeInventories {
    * How accepted options behave on resume, declared before opening. Omitted
    * entries are untested. Native vendor regressions verify each declaration;
    * this does not inject prompts, compare values or change native timing.
+   * Codex declarations were verified with local compaction; ChatGPT remote
+   * compaction has only been inspected in native source, not exercised.
    */
   readonly resumedSessionOptions?: ResumedSessionOptions;
   /**

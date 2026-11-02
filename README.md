@@ -124,20 +124,20 @@ runtime cannot honor is refused before anything opens, never silently
 dropped.
 
 ```ts
-import { defaultRuntimes, promptAndWait } from "@botiverse/oar";
+import { defaultRuntimes, promptAndWait, type SessionOptions } from "@botiverse/oar";
 
 const claude = defaultRuntimes.require("claude");
 const installation = await claude.installation?.();
 if (installation?.kind !== "available") throw new Error("claude is not installed");
 
-const instructions = "Run the tests before you say you are done.";
-const session = await claude.session(installation, {
+const options = {
   cwd: process.cwd(),
   model: "sonnet",
   effort: "high",
-  appendSystemPrompt: instructions,
+  appendSystemPrompt: "Run the tests before you say you are done.",
   mcpServers: [{ name: "fs", command: "npx", args: ["-y", "@modelcontextprotocol/server-filesystem", "."] }],
-});
+} satisfies SessionOptions;
+const session = await claude.session(installation, options);
 
 session.events((event) => {
   // Every event says which agent it came from: [] is the root, a subagent has its own path.
@@ -158,7 +158,7 @@ await session.dispose();
 
 // Later, even from another process: the same conversation, picked up where it stopped.
 const resumed = await claude.session(installation, {
-  cwd: process.cwd(), resume: session.id, appendSystemPrompt: instructions,
+  ...options, resume: session.id,
 });
 ```
 

@@ -85,7 +85,7 @@ for (const backend of ["claude", "codex"] as const) {
           for (const { system, history } of requests) {
             if (!compacted) { expect(history).toContain("OAR_SEED_PROMPT_HISTORY"); }
             expect(system.length).toBeGreaterThan(50);
-            expect(promptMarkers.filter((marker) => system.includes(marker))).toEqual(resumedMarker(semantics, key, provided, compacted));
+            expect(promptMarkers.filter((marker) => system.includes(marker))).toEqual(resumedMarker(semantics, { saved: oldPrompts[key], provided: provided ? newPrompts[key] : undefined }, compacted));
           }
         }
         const events = resumed.records().flatMap((record) => record.kind === "frame" ? record.body.events : []);

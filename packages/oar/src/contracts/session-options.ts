@@ -168,7 +168,8 @@ export interface SessionOptions {
    * on every open to retain it after compaction. Other runtimes' measured timing and
    * omission behavior are declared in Runtime.resumedSessionOptions; absence
    * means untested. Refused by cursor, kimi, opencode v2 and codebuddy with
-   * UnsupportedOptionError. Grok append-only resume must omit this option to
+   * UnsupportedOptionError; antigravity also refuses when its server does not
+   * advertise append support. Grok append-only resume must omit this option to
    * retain the saved value; changing it requires systemPrompt as well.
    */
   readonly appendSystemPrompt?: string;

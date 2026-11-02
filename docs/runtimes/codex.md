@@ -657,7 +657,10 @@ and append as `next_compaction` / `saved_until_compaction`. The
 checks both dimensions before and after native automatic compaction, triggered
 by scripted token usage through the local Responses provider; it also requires
 the native compaction start/end records. Remote compaction under a ChatGPT
-login remains unverified. The earlier
+login has not been exercised: only native source was inspected (0.163 routes
+both local and remote history replacement through
+`build_compaction_replacement_history`). The declaration retains that explicit
+evidence limit. The earlier
 [pre-compaction evidence](../../experiments/runtime-version-checks/2026-10-23.md#resumed-system-prompts)
 was incomplete and no longer justifies refusing an append on resume.
 [Vendor test](../../sea-trial/vendor/codex.vendor.test.ts).
