@@ -1,9 +1,13 @@
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { expect, test } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { createPiModelCatalog } from "../../packages/oar/src/runtimes/pi/catalog.js";
 import type { ModelCatalogFacade } from "../../packages/oar/src/contracts/model-catalog.js";
+import clearPiProviderCredentials from "../fixtures/pi-provider-env.js";
+
+beforeEach(clearPiProviderCredentials);
+afterEach(() => { vi.unstubAllEnvs(); });
 
 function configured(catalog: ModelCatalogFacade, providerId: string): boolean | undefined {
   return catalog.providers().find((provider) => provider.id === providerId)?.configured;
