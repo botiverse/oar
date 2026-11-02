@@ -46,8 +46,8 @@ model and token usage; `run.steer(text)` adds input mid run; `run.cancel()`
 stops it. Progress arrives through `send(…, { onDelta })` as updates, each a
 record with a `type`; `run.stream()` offers a coarser message view of the
 same run, including compaction statuses omitted from `onDelta` in SDK 1.2.0.
-The native `Agent.summarize()` starts a manual summary run; OAR exposes no
-manual-compaction control. An agent takes one run at a time: a second `send`
+The native `Agent.summarize()` starts a manual summary run; OAR exposes it as
+idle-only `compact()`. An agent takes one run at a time: a second `send`
 while one runs is refused (`already has active run`, probed).
 
 The credential is `CURSOR_API_KEY`, or, without it, the key
@@ -281,6 +281,17 @@ counted once, through `onDelta`. No trigger or failure reason is reported.
 `fallback` stays native and means a trimmed transcript was saved [src]; it
 still counts as completed compaction. Cancellation can end the run with only
 a summary start observed; OAR adds no compaction end in that case.
+
+Manual `compact()` binds its accepted response to the SDK's returned run id
+before observing messages. Native `agent_id` and `run_id` become the frame's
+session and span identities. A root terminal summary and that run's result
+are both required before queued input drains. A completed summary wins a late
+run cancellation. An empty new agent is refused by the SDK. Caller timeout or
+signal stops waiting only. Native cancellation with no terminal summary returns
+aborted using the run result, without inventing a summary event. A known run
+end without a terminal summary is unconfirmed but releases the gate; lost
+observation without a run end keeps it reserved. See the
+[SDK 1.2.0 native sample and account-free regressions](../../experiments/manual-compaction-followup-2026-11-02.md#cursor-account-scope-and-usage).
 
 Each view preserves its own internal order; the merged frames keep OAR's
 reception order, with no global native order guaranteed between the views.

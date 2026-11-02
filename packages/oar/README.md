@@ -80,7 +80,8 @@ sent (`accepted`), or answers `not_queued` once it went; with it a UI offers
 withdraw, edit (withdraw, then `queue` again) and send now (withdraw, then
 `deliver`). It exists where OAR holds the queue itself (claude, pi, qwen, qoder, cursor
 and the ACP runtimes), and on pi-durable through native submission cancellation, not on codex.
-`session.compact()` is optional on Claude, Codex and Pi SDK/RPC sessions.
+`session.compact()` is optional on Claude, Codex, Pi SDK/RPC, Grok, Qoder,
+Cursor and OpenCode v2 sessions. OpenCode v1 omits it.
 `runtime.manualCompaction` describes support and active-turn policy; these
 implementations require idle sessions. The result distinguishes native
 completion, failure, cancellation, rejection and an unconfirmed wait.

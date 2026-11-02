@@ -1,14 +1,15 @@
 import type { CompactionOptions, CompactionOutcome } from "../contracts/compaction.js";
 import type { Frame, RequestRecord, ResponseBody, ResponseRecord } from "../contracts/session.js";
-import type { SessionKernel } from "./session-kernel.js";
+import type { RecordAt, SessionKernel } from "./session-kernel.js";
 
 export type CompactionSettlement =
   | { readonly kind: "completed" | "aborted"; readonly frame: Frame }
-  | { readonly kind: "failed"; readonly code: "native_failed" | "not_compacted" | "command_changed"; readonly reason: string; readonly frame?: Frame };
+  | { readonly kind: "failed"; readonly code: "native_failed" | "not_compacted" | "command_changed"; readonly reason: string; readonly frame?: Frame }
+  | { readonly kind: "unconfirmed"; readonly code: "observation_failed"; readonly reason: string };
 
 export interface CompactionOperation {
   /** Reply at native admission; finish only when this operation actually settles. */
-  start(request: RequestRecord, reply: (body: ResponseBody) => void): void | Promise<void>;
+  start(request: RequestRecord, reply: (body: ResponseBody, at?: RecordAt) => void): void | Promise<void | CompactionSettlement>;
   /** Called only for this session's root frames after the request. */
   observe(frame: Frame): CompactionSettlement | null;
 }
@@ -88,9 +89,9 @@ export function manualCompaction(kernel: SessionKernel, options: {
       wait.signal?.addEventListener("abort", abort, { once: true });
       if (wait.signal?.aborted === true) { abort(); }
       if (wait.timeoutMs !== undefined) { timer = setTimeout(() => { stopWaiting("timeout"); }, wait.timeoutMs); }
-      const reply = (body: ResponseBody): void => {
+      const reply = (body: ResponseBody, at?: RecordAt): void => {
         if (active !== current || current.response !== undefined) { return; }
-        current.response = kernel.respond(request.id, body);
+        current.response = kernel.respond(request.id, body, at);
         const recorded = current.response.body;
         if (recorded.kind === "rejected") {
           resolve({ kind: "rejected", code: recorded.code, reason: recorded.reason, request, response: current.response });
@@ -98,7 +99,10 @@ export function manualCompaction(kernel: SessionKernel, options: {
         } else { completed(current); }
       };
       void (async (): Promise<void> => {
-        try { await current.operation.start(request, reply); }
+        try {
+          const settlement = await current.operation.start(request, reply);
+          if (active === current && settlement !== undefined && current.settlement === undefined) { current.settlement = settlement; completed(current); }
+        }
         catch (error) {
           if (active !== current) { return; }
           const reason = error instanceof Error ? error.message : String(error);

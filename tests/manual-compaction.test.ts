@@ -171,3 +171,56 @@ test("public status omits fold correlation and cloned checkpoints ignore unrelat
   expect(replayed).not.toHaveProperty("statusState");
   expect(replayed).toEqual(kernel.records().reduce((view, record) => reduceSessionView(view, record, "root"), initialSessionView()));
 });
+
+test.each(["completed", "failed", "aborted"] as const)("a correlated native %s can finish manual status without a start, while unowned ends cannot", (outcome) => {
+  const kernel = createSessionKernel("root");
+  const request = kernel.request("toRuntime", { kind: "compact" });
+  kernel.respond(request.id, { kind: "accepted" });
+  kernel.frame(body({ kind: "compaction_ended", outcome }));
+  kernel.frame(body({ kind: "compaction_ended", outcome, requestId: "older" }));
+  kernel.frame(body({ kind: "compaction_ended", outcome, requestId: request.id, trigger: "auto" }));
+  kernel.frame(body({ kind: "compaction_ended", outcome, requestId: request.id }), { sessionId: "child" });
+  kernel.frame(body({ kind: "compaction_ended", outcome, requestId: request.id }), { agentPath: ["child"] });
+  expect(statusOf(kernel.records(), "root").value).toMatchObject({ kind: "running", phase: "compacting" });
+  kernel.frame(body({ kind: "compaction_ended", outcome, requestId: request.id }));
+  expect(statusOf(kernel.records(), "root").value.kind).toBe("idle");
+});
+
+test("an accepted native span binds a compact run even when cancellation arrives before a start", () => {
+  const kernel = createSessionKernel("root");
+  const request = kernel.request("toRuntime", { kind: "compact" });
+  kernel.respond(request.id, { kind: "accepted" }, { spanId: "summary-run" });
+  kernel.frame(body({ kind: "compaction_started" }), { spanId: "foreign" });
+  kernel.frame(body({ kind: "turn_ended", outcome: { kind: "completed" } }), { spanId: "foreign" });
+  expect(statusOf(kernel.records()).value.kind).toBe("running");
+  kernel.frame(body({ kind: "turn_ended", outcome: { kind: "aborted" } }), { spanId: "summary-run" });
+  expect(statusOf(kernel.records()).value).toEqual({ kind: "idle", lastTurnOutcome: { kind: "aborted" } });
+});
+
+test.each(["completed", "failed"] as const)("native compaction identity survives replay and only its %s end settles", (outcome) => {
+  const kernel = createSessionKernel("root");
+  const request = kernel.request("toRuntime", { kind: "compact" });
+  kernel.respond(request.id, { kind: "accepted" });
+  kernel.frame(body({ ...start, trigger: "threshold", compactionId: "automatic" }));
+  kernel.frame(body({ ...end, trigger: "threshold", compactionId: "automatic" }));
+  kernel.frame(body({ ...end, compactionId: "old" }));
+  expect(statusOf(kernel.records()).value).not.toHaveProperty("compaction.started");
+  kernel.frame(body({ ...start, compactionId: "this-compact" }));
+  const checkpoint = kernel.records().reduce((state, record) => reduceStatus(state, record, "root"), initialStatus);
+  expect(checkpoint.compactionState?.compactionId).toBe("this-compact");
+  let replayed: StatusState = structuredClone(checkpoint);
+  for (const compactionId of ["wrong", "old", undefined]) {
+    const terminal = kernel.frame(body({ ...end, ...(compactionId === undefined ? {} : { compactionId }) }));
+    replayed = reduceStatus(replayed, terminal, "root");
+    expect(statusValue(replayed)).toMatchObject({ kind: "running", phase: "compacting" });
+  }
+  const otherStart = kernel.frame(body({ ...start, compactionId: "another" }));
+  replayed = reduceStatus(replayed, otherStart, "root");
+  const automatic = kernel.frame(body({ ...end, compactionId: "this-compact", trigger: "threshold" }));
+  replayed = reduceStatus(replayed, automatic, "root");
+  expect(statusValue(replayed)).toMatchObject({ kind: "running", phase: "compacting" });
+  const terminal = kernel.frame(body({ ...end, compactionId: "this-compact", outcome }));
+  replayed = reduceStatus(replayed, terminal, "root");
+  expect(statusValue(replayed)).toEqual({ kind: "idle" });
+  expect(statusOf(kernel.records()).value).toEqual(statusValue(replayed));
+});

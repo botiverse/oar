@@ -53,6 +53,8 @@ export type { AgentStatus, RunningPhase } from "../contracts/session.js";
  */
 export type StatusState = AgentStatus & { readonly compactionState?: {
   readonly nativeTurn?: true;
+  /** Learned from the native manual start during this exclusive idle operation. */
+  readonly compactionId?: string;
   readonly spanId?: string;
   readonly lastTurnOutcome?: TurnOutcome;
 } };
@@ -130,6 +132,9 @@ export function reduceStatus(previous: StatusState, record: RawEvent, sessionId?
         ? { kind: "running", sinceSeq: record.seq, requestId: record.id, ...(record.body.inputId === undefined ? {} : { inputId: record.body.inputId }), phase: "waiting_model", lastEventAt: record.receivedAt }
         : previous;
     case "response":
+      if (record.body.kind === "accepted" && record.spanId !== undefined && previous.kind === "running" && previous.compaction?.requestId === record.requestId) {
+        return { ...previous, compactionState: { ...previous.compactionState, nativeTurn: true, spanId: record.spanId } };
+      }
       if (record.body.kind === "released") {
         if (previous.kind === "running") { return { kind: "idle", released: true, lastTurnOutcome: releaseTurnOutcome(previous.stop) }; }
         if (previous.pendingPrompt !== undefined) { return { kind: "idle", released: true, lastTurnOutcome: releaseTurnOutcome(previous.pendingPrompt.stop) }; }
@@ -190,12 +195,20 @@ function reduceEvent(previous: StatusState, record: RawEvent, event: RuntimeEven
       return running(previous, record, "waiting_model");
     case "compaction_ended":
       if (previous.kind === "running" && previous.compaction !== undefined && event.trigger !== undefined && event.trigger !== "manual") { return previous; }
+      if (previous.kind === "running" && previous.compaction !== undefined && previous.compactionState?.compactionId !== undefined && event.compactionId !== previous.compactionState.compactionId) { return previous; }
+      if (event.requestId !== undefined && previous.kind === "running" && previous.compaction !== undefined) {
+        return event.requestId === previous.compaction.requestId ? compactionIdle(previous) : previous;
+      }
       if (previous.kind === "running" && previous.compaction !== undefined && previous.compactionState?.nativeTurn !== true) { return previous.compaction.started === true ? compactionIdle(previous) : previous; }
       return previous.kind === "running" ? running(previous, record, "waiting_model") : previous;
     case "compaction_started":
+      if (previous.kind === "running" && previous.compaction !== undefined && previous.compactionState?.compactionId !== undefined && event.compactionId !== previous.compactionState.compactionId) { return previous; }
+      if (previous.kind === "running" && previous.compaction !== undefined && previous.compactionState?.spanId !== undefined && record.spanId !== previous.compactionState.spanId) { return previous; }
       if (previous.kind === "running" && previous.compaction !== undefined && (event.trigger === "manual" || (event.trigger === undefined && (previous.compactionState?.nativeTurn === true || record.spanId !== undefined)))) {
         return { ...previous, compaction: { ...previous.compaction, started: true },
-          ...(record.spanId === undefined ? {} : { compactionState: { ...previous.compactionState, nativeTurn: true, spanId: record.spanId } }), lastEventAt: record.receivedAt };
+          compactionState: { ...previous.compactionState,
+            ...(event.compactionId === undefined ? {} : { compactionId: previous.compactionState?.compactionId ?? event.compactionId }),
+            ...(record.spanId === undefined ? {} : { nativeTurn: true, spanId: record.spanId }) }, lastEventAt: record.receivedAt };
       }
       return running(previous, record, "compacting");
     case "tool_call_input_delta":

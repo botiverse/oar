@@ -67,6 +67,8 @@ export interface CursorAgent {
   readonly model: ModelSelection | undefined;
   /** `local.force` takes the agent over from a run its store still holds as active. */
   send(message: string | CursorUserMessage, options: { readonly onDelta: CursorDeltaListener; readonly local?: { readonly force: boolean } }): Promise<CursorRun>;
+  /** Native local summary run, available in SDK 1.2.0. A host stand-in may omit it. */
+  summarize?(): Promise<CursorRun>;
   close(): void;
 }
 

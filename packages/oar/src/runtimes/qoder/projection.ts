@@ -42,5 +42,5 @@ export const qoderProjectionProfile: StreamJsonProjectionProfile<QoderProjection
     return { state: { ...state, usage }, outcome: outcome(message), before, after: [] };
   },
   init: () => [], compacted: (state) => state,
-  system: (state) => ({ state, events: [] }), other: (state) => ({ state, events: [] }),
+  system: (state, message) => ({ state, events: message.subtype === "status" && message.status === "compacting" ? [{ kind: "compaction_started" }] : [] }), other: (state) => ({ state, events: [] }),
 };

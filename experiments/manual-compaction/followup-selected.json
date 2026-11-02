@@ -1,0 +1,923 @@
+{
+  "selection": "Native control facts only; identifiers aliased, conversation and account data omitted.",
+  "platform": "Linux x64",
+  "grok": [
+    {
+      "backend": "grok",
+      "version": "grok 1.0.70 (f50904eaee6c) [stable]",
+      "scenario": "completed",
+      "answer": {
+        "kind": "success",
+        "value": {}
+      },
+      "markers": [
+        {
+          "method": "_x.ai/session_notification",
+          "sessionId": "native-id-1",
+          "update": {
+            "sessionUpdate": "auto_compact_completed",
+            "tokens_before": 11000,
+            "tokens_after": 11000,
+            "summary_preview": null
+          }
+        }
+      ]
+    },
+    {
+      "backend": "grok",
+      "version": "grok 1.0.70 (f50904eaee6c) [stable]",
+      "scenario": "failed",
+      "answer": {
+        "kind": "error",
+        "value": {
+          "code": -32603,
+          "data": {
+            "kind": "compact_failed",
+            "message": "API error (status 400 Bad Request): invalid_request_error: OAR_NATIVE_COMPACT_FAILURE"
+          },
+          "name": "RequestError",
+          "message": "Internal error"
+        }
+      },
+      "markers": []
+    },
+    {
+      "backend": "grok",
+      "version": "grok 1.0.70 (f50904eaee6c) [stable]",
+      "scenario": "cancelled",
+      "answer": {
+        "kind": "error",
+        "value": {
+          "code": -32603,
+          "data": {
+            "kind": "compact_cancelled",
+            "message": "compact cancelled"
+          },
+          "name": "RequestError",
+          "message": "Internal error"
+        }
+      },
+      "markers": []
+    },
+    {
+      "backend": "grok",
+      "version": "grok 1.0.70 (f50904eaee6c) [stable]",
+      "scenario": "empty",
+      "answer": {
+        "kind": "success",
+        "value": {}
+      },
+      "markers": [
+        {
+          "method": "_x.ai/session_notification",
+          "sessionId": "native-id-2",
+          "update": {
+            "sessionUpdate": "auto_compact_completed",
+            "tokens_before": 1265,
+            "tokens_after": 1265,
+            "summary_preview": null
+          }
+        }
+      ]
+    }
+  ],
+  "opencode": [
+    {
+      "backend": "opencode",
+      "version": "opencode v2.2.5",
+      "scenario": "completed",
+      "answer": {
+        "kind": "success",
+        "value": {
+          "stopReason": "end_turn",
+          "_meta": {}
+        }
+      },
+      "markers": [
+        {
+          "sessionId": "native-id-1",
+          "update": {
+            "sessionUpdate": "session_info_update",
+            "_meta": {
+              "opencode/compaction": {
+                "status": "started",
+                "messageId": "native-id-2",
+                "reason": "manual"
+              }
+            }
+          }
+        },
+        {
+          "sessionId": "native-id-1",
+          "update": {
+            "sessionUpdate": "session_info_update",
+            "_meta": {
+              "opencode/compaction": {
+                "status": "completed",
+                "messageId": "native-id-2",
+                "reason": "manual"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "backend": "opencode",
+      "version": "opencode v2.2.5",
+      "scenario": "failed",
+      "answer": {
+        "kind": "success",
+        "value": {
+          "stopReason": "end_turn",
+          "_meta": {}
+        }
+      },
+      "markers": [
+        {
+          "sessionId": "native-id-3",
+          "update": {
+            "sessionUpdate": "session_info_update",
+            "_meta": {
+              "opencode/compaction": {
+                "status": "started",
+                "messageId": "native-id-4",
+                "reason": "manual"
+              }
+            }
+          }
+        },
+        {
+          "sessionId": "native-id-3",
+          "update": {
+            "sessionUpdate": "session_info_update",
+            "_meta": {
+              "opencode/compaction": {
+                "status": "failed",
+                "messageId": "native-id-4",
+                "reason": "manual",
+                "error": {
+                  "type": "provider.invalid-request",
+                  "message": "OAR_NATIVE_COMPACT_FAILURE",
+                  "status": 400,
+                  "response": {
+                    "body": "{\"type\":\"error\",\"error\":{\"type\":\"invalid_request_error\",\"message\":\"OAR_NATIVE_COMPACT_FAILURE\"}}"
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "backend": "opencode",
+      "version": "opencode v2.2.5",
+      "scenario": "cancelled",
+      "answer": {
+        "kind": "success",
+        "value": {
+          "stopReason": "cancelled",
+          "_meta": {}
+        }
+      },
+      "markers": [
+        {
+          "sessionId": "native-id-5",
+          "update": {
+            "sessionUpdate": "session_info_update",
+            "_meta": {
+              "opencode/compaction": {
+                "status": "started",
+                "messageId": "native-id-6",
+                "reason": "manual"
+              }
+            }
+          }
+        },
+        {
+          "sessionId": "native-id-5",
+          "update": {
+            "sessionUpdate": "session_info_update",
+            "_meta": {
+              "opencode/compaction": {
+                "status": "failed",
+                "messageId": "native-id-6",
+                "reason": "manual",
+                "error": {
+                  "type": "aborted",
+                  "message": "Compaction cancelled"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "backend": "opencode",
+      "version": "opencode v2.2.5",
+      "scenario": "empty",
+      "answer": {
+        "kind": "success",
+        "value": {
+          "stopReason": "end_turn",
+          "_meta": {}
+        }
+      },
+      "markers": [
+        {
+          "sessionId": "native-id-7",
+          "update": {
+            "sessionUpdate": "session_info_update",
+            "_meta": {
+              "opencode/compaction": {
+                "status": "started",
+                "messageId": "native-id-8",
+                "reason": "manual"
+              }
+            }
+          }
+        },
+        {
+          "sessionId": "native-id-7",
+          "update": {
+            "sessionUpdate": "session_info_update",
+            "_meta": {
+              "opencode/compaction": {
+                "status": "failed",
+                "messageId": "native-id-8",
+                "reason": "manual",
+                "error": {
+                  "type": "compaction.unavailable",
+                  "message": "Nothing to compact yet"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "backend": "opencode",
+      "version": "opencode v2.2.5",
+      "scenario": "invalid_summary",
+      "answer": {
+        "kind": "success",
+        "value": {
+          "stopReason": "end_turn",
+          "_meta": {}
+        }
+      },
+      "markers": [
+        {
+          "sessionId": "native-id-9",
+          "update": {
+            "sessionUpdate": "session_info_update",
+            "_meta": {
+              "opencode/compaction": {
+                "status": "started",
+                "messageId": "native-id-10",
+                "reason": "manual"
+              }
+            }
+          }
+        },
+        {
+          "sessionId": "native-id-9",
+          "update": {
+            "sessionUpdate": "session_info_update",
+            "_meta": {
+              "opencode/compaction": {
+                "status": "failed",
+                "messageId": "native-id-10",
+                "reason": "manual",
+                "error": {
+                  "type": "compaction.failed",
+                  "message": "Compaction summary did not match the required template"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "opencodeCommandControl": {
+    "version": "2.2.5",
+    "results": [
+      {
+        "shadowed": false,
+        "native": {
+          "stopReason": "end_turn",
+          "_meta": {}
+        },
+        "markers": [
+          {
+            "status": "started",
+            "messageId": "native-id-1",
+            "reason": "manual"
+          },
+          {
+            "status": "completed",
+            "messageId": "native-id-1",
+            "reason": "manual"
+          }
+        ],
+        "compactCommand": [
+          {
+            "sessionUpdate": "available_commands_update",
+            "availableCommands": [
+              {
+                "name": "init",
+                "description": "guided AGENTS.md setup"
+              },
+              {
+                "name": "review",
+                "description": "review changes [commit|branch|pr], defaults to uncommitted"
+              },
+              {
+                "name": "goal",
+                "description": "keep working until an objective is met [pause|resume|clear]"
+              },
+              {
+                "name": "compact",
+                "description": "Compact the session"
+              }
+            ]
+          }
+        ],
+        "customExecuted": false
+      },
+      {
+        "shadowed": true,
+        "native": {
+          "stopReason": "end_turn",
+          "_meta": {}
+        },
+        "markers": [
+          {
+            "status": "started",
+            "messageId": "native-id-2",
+            "reason": "manual"
+          },
+          {
+            "status": "completed",
+            "messageId": "native-id-2",
+            "reason": "manual"
+          }
+        ],
+        "compactCommand": [
+          {
+            "sessionUpdate": "available_commands_update",
+            "availableCommands": [
+              {
+                "name": "init",
+                "description": "guided AGENTS.md setup"
+              },
+              {
+                "name": "review",
+                "description": "review changes [commit|branch|pr], defaults to uncommitted"
+              },
+              {
+                "name": "goal",
+                "description": "keep working until an objective is met [pause|resume|clear]"
+              },
+              {
+                "name": "oar-proof",
+                "description": "OAR_COMMAND_CONFIGURATION_LOADED"
+              },
+              {
+                "name": "compact",
+                "description": "Compact the session"
+              }
+            ]
+          }
+        ],
+        "customExecuted": false
+      }
+    ]
+  },
+  "qoder": [
+    {
+      "version": "1.1.81",
+      "scenario": "completed",
+      "commandLoaded": false,
+      "outcome": {
+        "kind": "completed"
+      },
+      "abort": null,
+      "frames": [
+        {
+          "type": "command_lifecycle",
+          "native": {
+            "type": "command_lifecycle",
+            "state": "completed",
+            "command_uuid": "native-id-1",
+            "session_id": "native-id-2",
+            "uuid": "native-id-3"
+          },
+          "events": []
+        },
+        {
+          "type": "command_lifecycle",
+          "native": {
+            "type": "command_lifecycle",
+            "state": "queued",
+            "command_uuid": "native-id-4",
+            "session_id": "native-id-2",
+            "uuid": "native-id-5"
+          },
+          "events": []
+        },
+        {
+          "type": "command_lifecycle",
+          "native": {
+            "type": "command_lifecycle",
+            "state": "started",
+            "command_uuid": "native-id-4",
+            "session_id": "native-id-2",
+            "uuid": "native-id-6"
+          },
+          "events": []
+        },
+        {
+          "type": "system/status",
+          "native": {
+            "type": "system",
+            "subtype": "status",
+            "status": "compacting",
+            "session_id": "native-id-2",
+            "uuid": "native-id-7"
+          },
+          "events": [
+            {
+              "kind": "compaction_started"
+            }
+          ]
+        },
+        {
+          "type": "system/status",
+          "native": {
+            "type": "system",
+            "subtype": "status",
+            "status": null,
+            "session_id": "native-id-2",
+            "uuid": "native-id-8"
+          },
+          "events": []
+        },
+        {
+          "type": "system/compact_boundary",
+          "native": {
+            "type": "system",
+            "subtype": "compact_boundary",
+            "session_id": "native-id-2",
+            "uuid": "native-id-9",
+            "compact_metadata": {
+              "trigger": "manual",
+              "pre_tokens": 11000,
+              "post_tokens": 883,
+              "messages_summarized": 8,
+              "duration_ms": 48
+            }
+          },
+          "events": [
+            {
+              "kind": "compaction_ended",
+              "outcome": "completed",
+              "trigger": "manual"
+            }
+          ]
+        },
+        {
+          "type": "result/success",
+          "native": {
+            "type": "result",
+            "subtype": "success",
+            "session_id": "native-id-2",
+            "uuid": "native-id-10",
+            "is_error": false
+          },
+          "events": [
+            {
+              "kind": "turn_ended",
+              "outcome": {
+                "kind": "completed"
+              }
+            }
+          ]
+        },
+        {
+          "type": "command_lifecycle",
+          "native": {
+            "type": "command_lifecycle",
+            "state": "completed",
+            "command_uuid": "native-id-4",
+            "session_id": "native-id-2",
+            "uuid": "native-id-11"
+          },
+          "events": []
+        }
+      ]
+    },
+    {
+      "version": "1.1.81",
+      "scenario": "cancelled",
+      "commandLoaded": false,
+      "outcome": {
+        "kind": "completed"
+      },
+      "abort": {
+        "kind": "accepted"
+      },
+      "frames": [
+        {
+          "type": "command_lifecycle",
+          "native": {
+            "type": "command_lifecycle",
+            "state": "completed",
+            "command_uuid": "native-id-12",
+            "session_id": "native-id-13",
+            "uuid": "native-id-14"
+          },
+          "events": []
+        },
+        {
+          "type": "command_lifecycle",
+          "native": {
+            "type": "command_lifecycle",
+            "state": "queued",
+            "command_uuid": "native-id-15",
+            "session_id": "native-id-13",
+            "uuid": "native-id-16"
+          },
+          "events": []
+        },
+        {
+          "type": "command_lifecycle",
+          "native": {
+            "type": "command_lifecycle",
+            "state": "started",
+            "command_uuid": "native-id-15",
+            "session_id": "native-id-13",
+            "uuid": "native-id-17"
+          },
+          "events": []
+        },
+        {
+          "type": "system/status",
+          "native": {
+            "type": "system",
+            "subtype": "status",
+            "status": "compacting",
+            "session_id": "native-id-13",
+            "uuid": "native-id-18"
+          },
+          "events": [
+            {
+              "kind": "compaction_started"
+            }
+          ]
+        },
+        {
+          "type": "system/status",
+          "native": {
+            "type": "system",
+            "subtype": "status",
+            "status": null,
+            "session_id": "native-id-13",
+            "uuid": "native-id-19"
+          },
+          "events": []
+        },
+        {
+          "type": "system/compact_boundary",
+          "native": {
+            "type": "system",
+            "subtype": "compact_boundary",
+            "session_id": "native-id-13",
+            "uuid": "native-id-20",
+            "compact_metadata": {
+              "trigger": "manual",
+              "pre_tokens": 11000,
+              "post_tokens": 883,
+              "messages_summarized": 8,
+              "duration_ms": 57
+            }
+          },
+          "events": [
+            {
+              "kind": "compaction_ended",
+              "outcome": "completed",
+              "trigger": "manual"
+            }
+          ]
+        },
+        {
+          "type": "result/success",
+          "native": {
+            "type": "result",
+            "subtype": "success",
+            "session_id": "native-id-13",
+            "uuid": "native-id-21",
+            "is_error": false
+          },
+          "events": [
+            {
+              "kind": "turn_ended",
+              "outcome": {
+                "kind": "completed"
+              }
+            }
+          ]
+        },
+        {
+          "type": "command_lifecycle",
+          "native": {
+            "type": "command_lifecycle",
+            "state": "cancelled",
+            "command_uuid": "native-id-15",
+            "session_id": "native-id-13",
+            "uuid": "native-id-22"
+          },
+          "events": []
+        }
+      ]
+    },
+    {
+      "version": "1.1.81",
+      "scenario": "empty",
+      "commandLoaded": false,
+      "outcome": {
+        "kind": "completed"
+      },
+      "abort": null,
+      "frames": [
+        {
+          "type": "command_lifecycle",
+          "native": {
+            "type": "command_lifecycle",
+            "state": "queued",
+            "command_uuid": "native-id-23",
+            "session_id": "native-id-24",
+            "uuid": "native-id-25"
+          },
+          "events": []
+        },
+        {
+          "type": "command_lifecycle",
+          "native": {
+            "type": "command_lifecycle",
+            "state": "started",
+            "command_uuid": "native-id-23",
+            "session_id": "native-id-24",
+            "uuid": "native-id-26"
+          },
+          "events": []
+        },
+        {
+          "type": "system/status",
+          "native": {
+            "type": "system",
+            "subtype": "status",
+            "status": "compacting",
+            "session_id": "native-id-24",
+            "uuid": "native-id-27"
+          },
+          "events": [
+            {
+              "kind": "compaction_started"
+            }
+          ]
+        },
+        {
+          "type": "system/status",
+          "native": {
+            "type": "system",
+            "subtype": "status",
+            "status": null,
+            "session_id": "native-id-24",
+            "uuid": "native-id-28"
+          },
+          "events": []
+        },
+        {
+          "type": "result/success",
+          "native": {
+            "type": "result",
+            "subtype": "success",
+            "session_id": "native-id-24",
+            "uuid": "native-id-29",
+            "is_error": false
+          },
+          "events": [
+            {
+              "kind": "turn_ended",
+              "outcome": {
+                "kind": "completed"
+              }
+            }
+          ]
+        },
+        {
+          "type": "command_lifecycle",
+          "native": {
+            "type": "command_lifecycle",
+            "state": "completed",
+            "command_uuid": "native-id-23",
+            "session_id": "native-id-24",
+            "uuid": "native-id-30"
+          },
+          "events": []
+        }
+      ]
+    },
+    {
+      "version": "1.1.81",
+      "scenario": "shadowed",
+      "commandLoaded": true,
+      "outcome": {
+        "kind": "completed"
+      },
+      "abort": null,
+      "frames": [
+        {
+          "type": "command_lifecycle",
+          "native": {
+            "type": "command_lifecycle",
+            "state": "queued",
+            "command_uuid": "native-id-31",
+            "session_id": "native-id-32",
+            "uuid": "native-id-33"
+          },
+          "events": []
+        },
+        {
+          "type": "command_lifecycle",
+          "native": {
+            "type": "command_lifecycle",
+            "state": "started",
+            "command_uuid": "native-id-31",
+            "session_id": "native-id-32",
+            "uuid": "native-id-34"
+          },
+          "events": []
+        },
+        {
+          "type": "system/status",
+          "native": {
+            "type": "system",
+            "subtype": "status",
+            "status": "compacting",
+            "session_id": "native-id-32",
+            "uuid": "native-id-35"
+          },
+          "events": [
+            {
+              "kind": "compaction_started"
+            }
+          ]
+        },
+        {
+          "type": "system/status",
+          "native": {
+            "type": "system",
+            "subtype": "status",
+            "status": null,
+            "session_id": "native-id-32",
+            "uuid": "native-id-36"
+          },
+          "events": []
+        },
+        {
+          "type": "system/compact_boundary",
+          "native": {
+            "type": "system",
+            "subtype": "compact_boundary",
+            "session_id": "native-id-32",
+            "uuid": "native-id-37",
+            "compact_metadata": {
+              "trigger": "manual",
+              "pre_tokens": 11000,
+              "post_tokens": 883,
+              "messages_summarized": 8,
+              "duration_ms": 57
+            }
+          },
+          "events": [
+            {
+              "kind": "compaction_ended",
+              "outcome": "completed",
+              "trigger": "manual"
+            }
+          ]
+        },
+        {
+          "type": "result/success",
+          "native": {
+            "type": "result",
+            "subtype": "success",
+            "session_id": "native-id-32",
+            "uuid": "native-id-38",
+            "is_error": false
+          },
+          "events": [
+            {
+              "kind": "turn_ended",
+              "outcome": {
+                "kind": "completed"
+              }
+            }
+          ]
+        },
+        {
+          "type": "command_lifecycle",
+          "native": {
+            "type": "command_lifecycle",
+            "state": "completed",
+            "command_uuid": "native-id-31",
+            "session_id": "native-id-32",
+            "uuid": "native-id-39"
+          },
+          "events": []
+        }
+      ]
+    }
+  ],
+  "cursor": {
+    "sdk": "1.2.0",
+    "empty": "rejected",
+    "cancelled": "aborted",
+    "usage": {
+      "total": {
+        "input": 3341,
+        "output": 40,
+        "reasoning": 31,
+        "cacheRead": 0,
+        "cacheWrite": 0
+      }
+    },
+    "account": "existing real account; no identifying fields retained",
+    "model": "gpt-5.4-nano",
+    "usageScope": "Ordinary seed turn only; summary usage unavailable, not the experiment total.",
+    "completed": {
+      "kind": "completed",
+      "frame": {
+        "sessionId": "native-id-1",
+        "agentPath": [],
+        "spanId": "native-id-2",
+        "type": "cursor/stream/summary",
+        "native": {
+          "type": "summary",
+          "agent_id": "native-id-1",
+          "run_id": "native-id-2",
+          "status": "completed"
+        },
+        "events": [
+          {
+            "kind": "compaction_ended",
+            "outcome": "completed"
+          }
+        ]
+      }
+    },
+    "cancelledFrames": [
+      {
+        "spanId": "native-id-3",
+        "type": "cursor/stream/summary",
+        "native": {
+          "type": "summary",
+          "agent_id": "native-id-1",
+          "run_id": "native-id-3",
+          "status": "running"
+        },
+        "events": [
+          {
+            "kind": "compaction_started"
+          }
+        ]
+      },
+      {
+        "spanId": "native-id-3",
+        "type": "cursor/run_result",
+        "native": {
+          "id": "native-id-3",
+          "status": "cancelled"
+        },
+        "events": [
+          {
+            "kind": "model",
+            "model": "gpt-5.4-nano"
+          },
+          {
+            "kind": "turn_ended",
+            "outcome": {
+              "kind": "aborted"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

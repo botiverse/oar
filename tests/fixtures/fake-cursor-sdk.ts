@@ -139,6 +139,8 @@ export class FakeCursorAgent implements CursorAgent {
     return run;
   }
 
+  async summarize(): Promise<CursorRun> { return this.send("native-summary", { onDelta: () => {} }); }
+
   close(): void {
     this.closed = true;
   }

@@ -73,7 +73,7 @@ export function acpLineageOf(params: JsonRecord): { readonly parent: string; rea
   return null;
 }
 
-export function createAcpRecorder(usageGate: UsageUpdateGate, attributeUpdate?: AcpSessionProfile["attributeUpdate"], tokenUsage?: AcpTokenUsage, associations?: (method: string, params: JsonRecord) => readonly { readonly parent: string; readonly child: string }[]): AcpRecorder {
+export function createAcpRecorder(usageGate: UsageUpdateGate, attributeUpdate?: AcpSessionProfile["attributeUpdate"], tokenUsage?: AcpTokenUsage, associations?: (method: string, params: JsonRecord) => readonly { readonly parent: string; readonly child: string }[], projectUpdate?: AcpSessionProfile["projectUpdate"]): AcpRecorder {
   const hostRequests = new Map<string, string>();
   const projections = new Map<string, AcpProjectionState>();
   const projectionFor = (sessionId: string): AcpProjectionState => {
@@ -117,7 +117,7 @@ export function createAcpRecorder(usageGate: UsageUpdateGate, attributeUpdate?: 
         }
         const sessionId = source?.sessionId ?? notification.sessionId;
         const foreign = sessionId !== kernel.sessionId;
-        const events: RuntimeEventBody[] = update === null ? [] : projectAcpUpdate(projectionFor(sessionId), update);
+        const events: RuntimeEventBody[] = update === null ? [] : [...projectAcpUpdate(projectionFor(sessionId), update), ...projectUpdate?.(update) ?? []];
         if (ownedLinks !== undefined) { events.push(...newSessionLinks(kernel, ownedLinks.map(({ parent, child }) => ({ parent, child, via: "tool_call" })))); }
         else if (source?.parent !== undefined) {
           events.push(...newSessionLinks(kernel, [{ parent: source.parent, child: sessionId, via: "tool_call" }]));

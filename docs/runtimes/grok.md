@@ -666,10 +666,16 @@ The earlier foreground-style 1.0.25 recording (root 53321/355, child
 (`live-contract/subagent`; [wire-shape test](../../tests/acp/acp-grok-wire-shapes.test.ts)).
 
 Native [explicit compaction dispatch](https://github.com/xai-org/grok-build/blob/bc7f02e/crates/codegen/xai-grok-shell/src/agent/mvp_agent/acp_agent.rs#L2561-L2563)
-exists through `x.ai/compact_conversation`; automatic compaction remains
-native harness behavior. OAR has no typed compaction operation, and no ACP
-frame reports one, so Grok sessions never carry `compaction_started` or
-`compaction_ended` events.
+exists on the wire as `_x.ai/compact_conversation`. OAR exposes idle-only
+`compact()`: the dedicated response proves completion; `RequestError.data.kind`
+`compact_failed` / `compact_cancelled` supplies failure / cancellation.
+Transport loss remains unconfirmed. The response's frame projects
+`compaction_ended.requestId` for the OAR request it explicitly answers, without
+inventing a start. The native `auto_compact_completed` notification also occurs
+after a manual request, so neither trigger nor request ownership is inferred
+from its name. Empty history returns a native successful no-op. Queued input
+waits behind this operation; abort uses native `session/cancel`.
+[1.0.70 controls and limits](../../experiments/manual-compaction-followup-2026-11-02.md).
 
 ### Tools, MCP, and permissions
 

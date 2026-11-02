@@ -619,8 +619,8 @@ interface FrameBody {
 //   turn_ended {outcome, inputId?, inputIds?} | usage {usage: {context?, tokens?: {input, output, reasoning?, cacheRead?, cacheWrite?}, total?: <same>}} | model {model} |
 //   goal_changed {goal: GoalSnapshot | null} |
 //   effort {effort} | service_tier {serviceTier} | app_request_cancelled {requestId} |
-//   compaction_started {trigger?} |
-//   compaction_ended {outcome: completed | aborted | failed, trigger?, reason?} |
+//   compaction_started {compactionId?, trigger?} |
+//   compaction_ended {outcome: completed | aborted | failed, compactionId?, requestId?, trigger?, reason?} |
 //   retry {attempt, maxAttempts?, delayMs?, reason?} |
 //   task_started {taskId, taskType, nativeType?, description?, toolCallId?, childSessionId?, background?, ambient?} |
 //   task_updated {taskId, status?, background?, description?, error?} |   // status: pending | running | paused | completed | failed | stopped
@@ -863,8 +863,10 @@ Which runtimes say which kinds (runtime pages hold the evidence):
 - `compaction_started`: pi `compaction_start` (`trigger` is pi's reason:
   manual | threshold | overflow); codex `item/started` for a
   `contextCompaction` item (no trigger); cursor SDK 1.2.0 `run.stream()`
-  summary status `running` (no trigger). Never claude (it reports only the
-  boundary after the fact) or ACP.
+  summary status `running` (no trigger); Qoder `system/status compacting`
+  (no trigger); OpenCode v2 `opencode/compaction.status: started`, with native
+  reason and `messageId` as `compactionId`. Claude has no projected start;
+  its boundary arrives after the fact.
 - `compaction_ended`: pi `compaction_end` (`aborted` → aborted, an
   `errorMessage` → failed with that reason, else completed; `trigger` as
   above); claude `system/compact_boundary` → completed with `trigger` from
@@ -875,9 +877,22 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   a compaction twice) [env 0.154.0 schema]; cursor SDK 1.2.0 summary status
   `completed` or `error` gives completed or failed, without trigger/reason.
   Cursor's fallback flag stays native; an aborted run without a terminal
-  summary creates no compaction end. ACP never reports one. An ended
+  summary creates no compaction end. Qoder's manual `compact_boundary`
+  supplies completed. OpenCode v2 metadata supplies completed/failed and an
+  explicit `error.type` of `aborted` or `compaction.interrupted` supplies
+  aborted, retaining `messageId` as
+  `compactionId` and the native reason as trigger. Grok's dedicated compact
+  RPC response supplies completed or structured failed/aborted, with the OAR
+  `requestId` it explicitly answers and no trigger. Its notification named
+  `auto_compact_completed` alone supplies neither ownership nor a trigger.
+  An ended
   compaction starts no work: `statusOf` keeps an idle agent idle, and only
-  moves an already-running agent to `waiting_model`.
+  moves an already-running ordinary agent to `waiting_model`. Manual
+  controls keep their own correlation: `compactionId` is a native operation,
+  `spanId` a native turn, and `requestId` an OAR control. The first manual
+  start in an exclusive idle operation teaches the fold its `compactionId`;
+  later ends require that exact id. A correlated RPC end can finish without
+  a start; unowned ends cannot. See [manual state](manual-compaction.md#ownership-records-and-state).
   Qwen 0.26.5 stream-json emits neither compaction event: manual compression
   status uses the same assistant text frames as model output and therefore
   appears as `text_delta`; automatic compression has no structured frame.

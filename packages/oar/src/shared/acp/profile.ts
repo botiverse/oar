@@ -1,6 +1,9 @@
+/* oxlint-disable import/max-dependencies -- Session profiles and assembly wire the native control, projection and lifecycle helpers. */
 /* oxlint-disable typescript/promise-function-async -- Deadline callbacks deliberately return the SDK's native promises. */
+import type { CompactionOperation } from "../manual-compaction.js";
+import type { SessionKernel } from "../session-kernel.js";
 import { methods } from "@agentclientprotocol/sdk";
-import type { ContextUsage, SessionCapabilities, SessionOptions, TokenTotals, TurnOutcome } from "../../contracts/session.js";
+import type { ContextUsage, RuntimeEventBody, SessionCapabilities, SessionOptions, TokenTotals, TurnOutcome } from "../../contracts/session.js";
 import { asRecord, type JsonRecord } from "../json.js";
 import { initializeAcpConnection } from "./initialize.js";
 import { acpAdditionalDirectories } from "./additional-directories.js";
@@ -13,6 +16,10 @@ import { refuseResumeElsewhere } from "./resume-cwd.js";
 export { createUsageUpdateGate, type UsageUpdateGate } from "./usage-wait.js";
 export { acpMcpOpenGuard } from "./mcp-servers.js";
 export interface AcpSessionProfile {
+  /** Native compaction control, absent when the installed protocol cannot prove completion. */
+  readonly compaction?: (kernel: SessionKernel, runtime: AcpProcess) => CompactionOperation;
+  /** Additional vendor facts on a session update; attribution remains the recorder's responsibility. */
+  readonly projectUpdate?: (update: JsonRecord) => readonly RuntimeEventBody[];
   /** Vendor attribution for forwarded updates. The original notification is always recorded verbatim. */
   readonly attributeUpdate?: (notification: unknown) => { readonly sessionId: string; readonly parent: string } | null;
   readonly args: readonly string[] | ((options: SessionOptions) => readonly string[]);

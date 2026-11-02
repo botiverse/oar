@@ -5,6 +5,7 @@ import type { StartSession } from "../../contracts/session.js";
 import { withSessionCredentials } from "../../shared/session-credentials.js";
 import { streamJsonSession } from "../../shared/stream-json/session.js";
 import { asRecord, asRecordList, type JsonRecord } from "../../shared/json.js";
+import { qoderCompaction } from "./compaction.js";
 import { qoderControl, qoderInitializeTimeoutMs, rememberQoderSecrets } from "./control.js";
 import { launchQoder, closeQoder } from "./launch.js";
 import { initialQoderProjection, qoderProjectionProfile } from "./projection.js";
@@ -39,6 +40,7 @@ export const qoderSession: StartSession = withSessionCredentials(async (installa
   let model: string | null = null;
   try {
     return await streamJsonSession(child, sessionId, credentials, {
+      compaction: { busyReason: "Wait until all Qoder input has finished before compacting", create: qoderCompaction },
       projection: qoderProjectionProfile, initial: initialQoderProjection(),
       capabilities: { queue: { durable: false }, attribution: "attributed", images: false },
       steer: true, cancelQueuedCapability: "interrupt_cancel_queued_v1",

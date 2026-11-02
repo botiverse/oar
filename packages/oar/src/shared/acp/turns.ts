@@ -62,6 +62,11 @@ function acpPrompt(input: string, images: readonly LoadedImage[]): JsonRecord[] 
 
 export interface AcpTurns {
   active(): ActiveTurn | null;
+  queued(): boolean;
+  drain(): void;
+  /** Reserve native cancellation ownership for a dedicated control, without fabricating a prompt. */
+  beginOperation(request: RequestRecord): ActiveTurn;
+  finishOperation(state: ActiveTurn): void;
   /** Null outside observation so ordinary input keeps its synchronous dispatch. */
   pendingCancellation(): Promise<CancellationObservation> | null;
   /** Open a turn with one prompt RPC; rejected when the process is gone or its images can't go (`inputImagesRefusal`). */
@@ -87,6 +92,7 @@ export function createAcpTurns(deps: {
   readonly promptMeta?: JsonRecord | undefined;
   readonly promptUsage: (response: JsonRecord) => RuntimeEventBody | null;
   readonly fallback?: (request: RequestRecord) => Promise<void>;
+  readonly operationBusy?: () => boolean;
 }): AcpTurns {
   const { kernel, runtime, profile, usageGate, capabilities, promptUsage, promptMeta } = deps;
   const rootId = kernel.sessionId;
@@ -180,6 +186,11 @@ export function createAcpTurns(deps: {
     if (runtime.closed) {
       return gone();
     }
+    const state = beginOperation(request);
+    startVendorPrompt(state, prompt);
+    return { kind: "accepted" };
+  };
+  const beginOperation = (request: RequestRecord | null): ActiveTurn => {
     const state: ActiveTurn = {
       request,
       since: kernel.records().at(-1)?.seq ?? -1,
@@ -189,15 +200,14 @@ export function createAcpTurns(deps: {
       fallback: null,
     };
     active = state;
-    startVendorPrompt(state, prompt);
-    return { kind: "accepted" };
+    return state;
   };
   const begin = (request: RequestRecord | null, input: string, images?: readonly InputImage[]): ResponseBody =>
     withInputImages(capabilities, images, (loaded) => open(request, acpPrompt(input, loaded)));
   function drainHeld(): void {
     // Held input is dropped once the stream says the runtime is unreachable
     // (an `exited` response or a `dispose` request), not by an adapter flag.
-    if (kernel.unreachable() !== null || active !== null || runtime.closed || observingCancellation !== null) {
+    if (kernel.unreachable() !== null || active !== null || runtime.closed || observingCancellation !== null || deps.operationBusy?.() === true) {
       return;
     }
     // Taken off `held` in the same step it is sent: a withdraw after this finds it gone.
@@ -209,6 +219,10 @@ export function createAcpTurns(deps: {
 
   return {
     active: () => active,
+    queued: () => held.length > 0,
+    drain: drainHeld,
+    beginOperation,
+    finishOperation: closeTurn,
     pendingCancellation: (): Promise<CancellationObservation> | null => observingCancellation,
     begin,
     async steer(state, input, options, extraParams) {

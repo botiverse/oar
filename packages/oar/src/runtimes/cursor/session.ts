@@ -1,3 +1,4 @@
+/* oxlint-disable import/max-dependencies -- Session profiles and assembly wire the native control, projection and lifecycle helpers. */
 import type {
   ControlResult,
   InputOptions,
@@ -6,6 +7,8 @@ import type {
   Session,
   StartSession,
 } from "../../contracts/session.js";
+import { manualCompaction } from "../../shared/manual-compaction.js";
+import { cursorCompaction } from "./compaction.js";
 import { withdrawControl } from "../../shared/held-input.js";
 import { withInputImages, type LoadedImage } from "../../shared/input-images.js";
 import { sealSession } from "../../shared/seal-session.js";
@@ -22,18 +25,9 @@ import {
 import { giveUp, newLaunch, observeRun, steerRun, stopOrphan, type ActiveRun, type Launch } from "./run.js";
 import type { CursorDeltaListener, CursorRun, CursorSdk } from "./sdk.js";
 
-/*
- * Cursor through `@cursor/sdk` (1.0.35), in process (settled 2026-10-03,
- * replacing cursor-agent ACP): a session is one local SDK agent, its id the
- * SDK's `agent-<uuid>`; a turn is one `send`, from the run it returns until
- * `run.wait()` answers; steer is `run.steer`; abort is `run.cancel`; the
- * agent takes one run at a time (a second `send` is refused "already has
- * active run"), so queued input is held here and sent when the run ends.
- * The agent's store keeps its last run as active until that run's own
- * agent object ends it, so after a process that died mid-run, or a session
- * closed before its first prompt, a resumed agent refuses every send the
- * same way (probed 2026-10-03); the first send after a resume is `force`d,
- * which takes the agent over. Arbitrating between processes is the host's.
+/**
+ * One local SDK agent, one active run. Summary runs share the same lifecycle
+ * and held input queue as ordinary runs. See docs/runtimes/cursor.md.
  */
 
 const message = (error: unknown): string => (error instanceof Error ? error.message : String(error));
@@ -59,6 +53,8 @@ export function cursorSessionWith(load: () => Promise<CursorSdk>): StartSession 
     // until its run's end is recorded. Held in an object so closures always
     // read the live value.
     const gate = { running: false };
+    let compaction: ReturnType<typeof manualCompaction> | null = null;
+    const summarize = agent.summarize?.bind(agent);
     // The send on its way to a run, and the run in flight.
     let launching: Launch | null = null;
     let active: ActiveRun | null = null;
@@ -68,9 +64,11 @@ export function cursorSessionWith(load: () => Promise<CursorSdk>): StartSession 
     const held: { readonly input: string; readonly inputId: string | undefined; readonly images: readonly LoadedImage[] }[] = [];
 
     const record = (frame: CursorFrame): void => {
+      // A failed SDK wait is lost observation, not the native end of a summary run.
+      const events = compaction?.busy() === true && frame.type === "cursor/run_failed" ? [] : frame.events;
       kernel.frame(
-        { type: frame.type, native: frame.native, events: frame.events },
-        frame.agentPath.length === 0 ? undefined : { agentPath: frame.agentPath },
+        { type: frame.type, native: frame.native, events },
+        { ...(frame.agentPath.length === 0 ? {} : { agentPath: frame.agentPath }), ...(frame.spanId === undefined ? {} : { spanId: frame.spanId }), ...(frame.sessionId === undefined ? {} : { sessionId: frame.sessionId }) },
       );
     };
     const onDelta: CursorDeltaListener = ({ update }) => {
@@ -103,7 +101,7 @@ export function cursorSessionWith(load: () => Promise<CursorSdk>): StartSession 
       return current;
     };
 
-    const launch = (input: string, images: readonly LoadedImage[]): Launch => {
+    const launch = (input: string, images: readonly LoadedImage[], compact?: { start(): Promise<CursorRun>; onRun(run: CursorRun): void }): Launch => {
       const attempt = newLaunch();
       const content = images.length === 0
         ? input
@@ -111,7 +109,9 @@ export function cursorSessionWith(load: () => Promise<CursorSdk>): StartSession 
       const force = forceNext;
       void (async (): Promise<void> => {
         try {
-          const run = await agent.send(content, { onDelta, ...(force ? { local: { force: true } } : {}) });
+          const run = compact === undefined
+            ? await agent.send(content, { onDelta, ...(force ? { local: { force: true } } : {}) })
+            : await compact.start();
           forceNext = false;
           if (attempt.state === "given_up") {
             stopOrphan(run, record);
@@ -119,6 +119,7 @@ export function cursorSessionWith(load: () => Promise<CursorSdk>): StartSession 
           }
           attempt.state = "sent";
           attempt.current = adopt(run);
+          compact?.onRun(run);
         } catch (error) {
           if (attempt.state === "sending") {
             attempt.state = "failed";
@@ -131,9 +132,9 @@ export function cursorSessionWith(load: () => Promise<CursorSdk>): StartSession 
       return attempt;
     };
 
-    const start = async (input: string, images: readonly LoadedImage[]): Promise<ResponseBody> => {
+    const start = async (input: string, images: readonly LoadedImage[], compact?: { start(): Promise<CursorRun>; onRun(run: CursorRun): void }): Promise<ResponseBody> => {
       gate.running = true;
-      const attempt = launch(input, images);
+      const attempt = launch(input, images, compact);
       launching = attempt;
       const deadline = setTimeout(() => {
         giveUp(attempt, `cursor did not start the run within ${String(SEND_TIMEOUT_MS / 1000)} s`);
@@ -162,7 +163,7 @@ export function cursorSessionWith(load: () => Promise<CursorSdk>): StartSession 
     };
 
     function drainHeld(): void {
-      if (disposeRequest !== null || gate.running) {
+      if (disposeRequest !== null || gate.running || compaction?.busy() === true) {
         return;
       }
       const next = held.shift();
@@ -189,13 +190,22 @@ export function cursorSessionWith(load: () => Promise<CursorSdk>): StartSession 
       return pending.current;
     };
 
+    if (summarize !== undefined) {
+      compaction = manualCompaction(kernel, {
+        busy: () => gate.running || held.length > 0,
+        busyReason: "Wait until the Cursor run and held inputs finish before summarizing",
+        released: drainHeld,
+        create: () => cursorCompaction(async (onRun) => { const response = await start("", [], { start: summarize, onRun }); return response; }),
+      });
+    }
     const capabilities = { queue: { durable: false }, attribution: "attributed", images: true } as const;
     const session: Session = sealSession({
       id: kernel.sessionId,
       capabilities,
+      ...(compaction === null ? {} : { compact: compaction.compact }),
       prompt: async (input, inputOptions?: InputOptions): Promise<ControlResult> => {
         const result = await kernel.control({ kind: "prompt", input, ...inputOptions }, async () => {
-          if (gate.running) {
+          if (gate.running || held.length > 0 || compaction?.busy() === true) {
             return { kind: "rejected", code: "busy", reason: "busy" };
           }
           const decided = await withInputImages(capabilities, inputOptions?.images, async (images) => {
@@ -208,6 +218,7 @@ export function cursorSessionWith(load: () => Promise<CursorSdk>): StartSession 
       },
       steer: async (input, inputOptions?: InputOptions): Promise<ControlResult> => {
         const result = await kernel.control({ kind: "steer", input, ...inputOptions }, async () => {
+          if (compaction?.busy() === true) { return { kind: "rejected", code: "busy", reason: "Native compaction is still running" }; }
           const current = gate.running ? await inFlight() : null;
           if (current === null) {
             return { kind: "rejected", code: "no_active_turn", reason: "not_steerable: no active turn" };

@@ -40,10 +40,12 @@ export function cursorStreamFrame(message: unknown): CursorFrame {
       case "error": events.push({ kind: "compaction_ended", outcome: "failed" }); break;
     }
   }
-  return { type: `cursor/stream/${type}`, native: message, events, agentPath: [] };
+  return { type: `cursor/stream/${type}`, native: message, events, agentPath: [], ...(typeof value?.run_id === "string" ? { spanId: value.run_id } : {}), ...(typeof value?.agent_id === "string" ? { sessionId: value.agent_id } : {}) };
 }
 
 export interface CursorFrame {
+  readonly spanId?: string;
+  readonly sessionId?: string;
   readonly type: string;
   readonly native: unknown;
   readonly events: readonly RuntimeEventBody[];
@@ -245,7 +247,7 @@ export function cursorRunResultFrame(result: unknown): CursorFrame {
         }),
       }
     : undefined;
-  return { type: "cursor/run_result", native: result, events: [...selectionEvents(selection), { kind: "turn_ended", outcome: runOutcome(record) }], agentPath: [] };
+  return { type: "cursor/run_result", native: result, events: [...selectionEvents(selection), { kind: "turn_ended", outcome: runOutcome(record) }], agentPath: [], ...(typeof record.id === "string" ? { spanId: record.id } : {}) };
 }
 
 function runOutcome(result: JsonRecord): TurnOutcome {

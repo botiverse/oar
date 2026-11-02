@@ -1,4 +1,6 @@
+/* oxlint-disable import/max-dependencies -- Session profiles and assembly wire the native control, projection and lifecycle helpers. */
 import { refuseSessionOptions } from "../../shared/session-options.js";
+import { grokCompaction } from "./compaction.js";
 import { grokRefusedSessionOptions } from "./options.js";
 import type { ContextUsage, SessionOptions, TokenTotals } from "../../contracts/session.js";
 import { UnsupportedOptionError } from "../../contracts/errors.js";
@@ -141,6 +143,7 @@ export const GROK_EXTENSION_NOTIFICATIONS: readonly string[] = [
 ];
 
 export const grokAcpProfile: AcpSessionProfile = {
+  compaction: grokCompaction,
   args: ["agent", "--always-approve", "--no-leader", "stdio"],
   isResumeNotFound: (native) => asRecord(native.data)?.code === "FS_NOT_FOUND",
   // `grok agent [OPTIONS] stdio [OPTIONS]`: agent options (--model,

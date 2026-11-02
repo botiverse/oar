@@ -170,15 +170,15 @@ export type RuntimeEventBody =
   | ToolCallProgress
   /** The runtime's OWN completion report for a turn (claude `result`, codex `turn/completed`, pi `agent_settled`, an ACP prompt answer). A prompt request produces `turn_started`; a native active-run report produces `turn_active`. Neither implies an outcome: if a runtime reports no end, none appears. `inputId` and ordered `inputIds` independently preserve native singular/plural input identities; neither is inferred. Use `inputIds` when present to settle every covered input. */
   | { readonly kind: "turn_ended"; readonly outcome: TurnOutcome; readonly inputId?: string; readonly inputIds?: readonly string[] }
-  /** The runtime began compacting its context. `trigger` is the runtime's own word for why (pi: manual | threshold | overflow; codex/cursor: none). claude reports only the boundary after the fact, so it never says this. */
-  | { readonly kind: "compaction_started"; readonly trigger?: string }
+  /** Native context compaction began. `compactionId` is its reported operation identity, distinct from the envelope's turn `spanId`. `trigger` is only the runtime's own reason. */
+  | { readonly kind: "compaction_started"; readonly compactionId?: string; readonly trigger?: string }
   /**
-   * The runtime finished (or gave up) compacting (pi `compaction_end`, claude
-   * `system/compact_boundary`, codex `contextCompaction` completed, cursor SDK summary `completed` or `error`).
-   * `trigger` as above (claude: manual | auto); `reason` is the runtime's
-   * error text when it failed. ACP runtimes report no compaction.
+   * Native compaction completed, failed or was cancelled. Optional `compactionId`
+   * is the native operation identity. Optional `requestId` identifies an OAR
+   * compact request explicitly answered by this native response (Grok RPC),
+   * never one inferred from timing. `trigger` and `reason` stay native.
    */
-  | { readonly kind: "compaction_ended"; readonly outcome: "completed" | "aborted" | "failed"; readonly trigger?: string; readonly reason?: string }
+  | { readonly kind: "compaction_ended"; readonly compactionId?: string; readonly outcome: "completed" | "aborted" | "failed"; readonly trigger?: string; readonly reason?: string; readonly requestId?: string }
   /** The runtime announced it will retry a failed provider call (pi `auto_retry_start`, `summarization_retry_scheduled`). Other shipped runtimes retry silently or not at all. */
   | { readonly kind: "retry"; readonly attempt: number; readonly maxAttempts?: number; readonly delayMs?: number; readonly reason?: string }
   | { readonly kind: "usage"; readonly usage: UsageReport }
