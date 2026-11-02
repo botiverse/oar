@@ -23,8 +23,8 @@ quota. Versions were selected explicitly, rather than taken from PATH:
 |---|---|---|
 | Claude | 2.1.316 | Same-process built-in command provenance, matching command lifecycle, manual `compact_boundary`, then matching result |
 | Codex | 0.166.0 | `thread/compact/start`, root turn identity, started/completed `contextCompaction` item identity, matching completed turn |
-| Pi SDK | 1.4.0 | Native `compact()` with manual start/end events |
-| Pi RPC | 1.4.0 | Native `compact` request with manual start/end events |
+| Pi SDK | 1.4.0, 1.5.0 | Native `compact()` with manual start/end events |
+| Pi RPC | 1.4.0, 1.5.0 | Native `compact` request with manual start/end events |
 
 The [vendor regression](../sea-trial/vendor/manual-compaction.vendor.test.ts)
 runs eight controls on each entry and a ninth on Claude:
@@ -205,6 +205,15 @@ validation. Full vendor suites pass for Claude 2.1.316 (80), Codex 0.166.0
 (62), Pi SDK 1.4.0 (97) and Pi RPC 1.4.0 (95). The manual compaction file
 contributes 33 native controls across the four entries. These runs are Linux
 observations; Windows and macOS validation remains pending CI.
+
+After rebasing onto the 0.85.1 release and the DSH/Qwen evidence changes,
+the full check still passes with 3,043 tests and 18 mock behaviors. Full
+Pi SDK 1.5.0 (97) and Pi RPC 1.5.0 (95) vendor suites pass, including all
+16 manual-compaction controls. The capability-inventory fixture now uses
+the separate Pi AI 1.4.0 catalog for Durable 1.4.0, matching the released
+dependency split; the adapter code is unchanged by this rebase. Build,
+clean packed-consumer validation and all three Pi behavior backends also
+pass on this baseline.
 
 Two Pi RPC project-package tests previously inherited the managed host's
 `PI_PACKAGE_DIR`, pointing at 1.0.56, and hit the existing version guard.

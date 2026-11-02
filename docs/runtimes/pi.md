@@ -473,7 +473,9 @@ admission it refuses `busy` rather than claiming there is no operation.
 `dispose()` remains available to stop the session. Pi Durable remains
 undeclared, pending task/submission application correlation. The
 [native control regression](../../sea-trial/vendor/manual-compaction.vendor.test.ts)
-covers SDK/RPC completion, resumed prompts, failure and lifecycle boundaries.
+covers SDK/RPC completion, resumed prompts, failure and lifecycle boundaries
+on Pi 1.5.0, with earlier 1.4.0 observations retained in the
+[validation report](../../experiments/manual-compaction-2026-11-02.md).
 
 ### Prompt, steering, queueing, and abort
 
