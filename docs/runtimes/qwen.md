@@ -49,6 +49,11 @@ its runtime. OAR itself requires Node 24 or newer.
 | Authentication status | Local user/system credential presence only. Configured or indeterminate sources return `unknown`; none in scope returns `logged_out` with setup guidance and a workspace caveat. No credential validation, native process, network request or write. |
 | Other surfaces | No service tier or session-name setting; no account quota, inventory, updater, live configure or context breakdown mapping. |
 
+On resume, pass `systemPrompt` and `appendSystemPrompt` again to retain or
+replace them. Qwen 0.26.5 applies new values; omitting them does not restore
+the saved conversation's previous overrides
+([raw-request regression](../../sea-trial/vendor/resume-fresh-prompts.vendor.test.ts)).
+
 The install plan checks writes to both the executable directory and the library
 parent (the installer stages and replaces the library there). Discovery and
 permission checks honor the vendor's `QWEN_INSTALL_ROOT`,
@@ -236,6 +241,23 @@ null**: 0.26.0 exposes no trustworthy session total before the first new turn.
 context occupancy; neither is a baseline. The raw native totals remain in the
 record stream. The first resumed result is not subtracted as a baseline,
 because that would lose the first new turn's spend.
+
+With Qwen 0.26.5 and a scripted provider, each completed ordinary turn also
+made a managed-memory extraction request carrying conversation history,
+after the main reply but before the native `result`. Empty sessions and a
+resume with no new input made no such call; repeating `dispose()` added none.
+This is extra model work within the turn, not a request triggered by disposal:
+`promptAndWait` waits for it, and the turn's duration and cumulative native
+usage include it. Fresh-session OAR usage includes that total; resumed
+sessions retain the raw total under the limitation above.
+
+Receiving all reply text does not mean the turn has ended. Disposing while
+memory extraction is still running interrupts it through the ordinary active
+turn shutdown path. There is then no native `result` or complete OAR usage
+for that turn. A raw assistant frame can still contain the main request's
+partial usage; it is not the full turn's spend. These are Linux observations
+with synthetic replies, not claims about every memory configuration or
+provider ([timing and usage controls](../../experiments/qwen-native/memory-2026-11-02.md)).
 
 A native result error retains its original message. Unclassified execution
 failures remain `unknown`; `error_max_turns` is `limit_reached`, and a result

@@ -536,8 +536,14 @@ itself, so `refusedSessionOptions` does not declare them; each is the same
 | --- | --- | --- |
 | Claude, `resume` supplied | `systemPrompt`, `appendSystemPrompt` | Omit both to keep the saved prompts; create a new session to change them. |
 | Codex, `resume` supplied | `appendSystemPrompt` | Omit it to keep saved developer instructions; create a new session to change them. A replacement `systemPrompt` still applies on resume. |
+| Qwen, `resume` supplied | No refusal for nonempty prompt options | Pass `systemPrompt` and `appendSystemPrompt` again: new values apply, and omission does not restore the previous overrides. |
 | Pi SDK/RPC, `resume` supplied | No refusal for nonempty prompt options | Pass `systemPrompt` and `appendSystemPrompt` again: the session file does not save them, and omission returns to Pi's default prompt and current project resources. |
 | Pi Durable, `resume` supplied | `systemPrompt` (also refused on creation) | Omitted `appendSystemPrompt` retains saved instructions; supplying it replaces them. Changes while adopting an active run are refused. |
+
+[Raw-request vendor regressions](../../sea-trial/vendor/resume-fresh-prompts.vendor.test.ts)
+cover replacement, append and both together for Qwen 0.26.5 and Pi 1.4.0
+SDK/RPC: old markers on creation, only new markers after resume, and neither
+after another resume omitting both options.
 
 The Claude/Codex prompt refusals happen before any process starts, including for empty
 strings or the same text a host supplies on every open. Neither native

@@ -90,3 +90,11 @@ sharing an already warmed HOME; [runtime documentation](../../docs/runtimes/qwen
 records the versions, concurrency and failing jobs. Shared behavior tests
 now isolate each new session's HOME, while resumes keep the original HOME.
 There is no native-lock retry or adapter startup serialization.
+
+## Auxiliary memory requests
+
+[Qwen 0.26.5 timing and usage controls](memory-2026-11-02.md) observed a
+managed-memory request after the main reply and before the native result.
+Its work is included in completed-turn usage; disposing during extraction
+interrupts an active turn. The probe separates empty sessions, ordinary
+turns, resume, delayed responses and disposal during a response.
