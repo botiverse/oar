@@ -592,6 +592,15 @@ served tools attach unless `refusedSessionOptions` declares `mcpServers` or
 which holds for every runtime OAR starts on this machine or runs in this
 process.
 
+A `HostTool` may carry MCP `annotations`, sent unchanged in `tools/list` and
+absent when not given. OAR neither validates nor acts on them; runtimes do.
+Probed on codex 0.161.0 with `-c sandbox_mode="read-only"`: an unannotated
+served tool is refused ("MCP tool call requires approval, but approval policy
+is never"), while one marked `readOnlyHint: true`, or `destructiveHint: false`
+with `openWorldHint: false`, is called, and the sandbox still blocks the
+agent's own file writes. So a host restricting codex this way annotates its
+tools.
+
 The server answers `initialize`, `ping`, `tools/list` and `tools/call` with
 JSON, single or batched, and `notifications/cancelled` aborts the call's
 `signal`. Each `initialize` opens its own MCP session (`mcp-session-id`), so
