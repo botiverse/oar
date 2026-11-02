@@ -134,11 +134,8 @@ infers that from the turn end.
 ## Native goals
 
 `SessionOptions.goals: true` exposes optional `Session.goal` on Codex and
-is refused before launch by all other runtimes. Omitted or false preserves
-native defaults and exposes no member. Controls and notifications report
-`goal_changed` snapshots; ordinary turn completion says nothing about the
-goal. Native continuation remains the runtime's responsibility.
-[Contract and boundaries](goals.md), [Codex evidence](../runtimes/codex.md#native-goals).
+is refused before launch by all other runtimes. Omitted or false exposes no
+member. [Contract and boundaries](goals.md), [Codex evidence](../runtimes/codex.md#native-goals).
 
 ## Context breakdown
 
@@ -226,8 +223,8 @@ regard to case. For example, `env: { ANTHROPIC_API_KEY: null,
 ANTHROPIC_BASE_URL: "https://provider.example" }` removes an inherited key
 while selecting the session's provider endpoint.
 
-Claude, codex, grok, kimi, opencode and antigravity apply the overlay to their
-runtime process and its tool children; ACP client-hosted terminals receive it
+Claude, codex, grok, kimi, opencode, antigravity, codebuddy, qwen and qoder
+apply the overlay to their runtime process and its tool children; ACP client-hosted terminals receive it
 too. OpenCode's prompt preparation queries use the same environment. Pi
 applies it to its Bash tool's children, not its in-process provider. Cursor
 refuses any non-empty `env`, including a removal-only map. Native tool shells
@@ -296,6 +293,7 @@ vendor test with the omitted-list resume.
 | cursor | SDK `disallowedTools`, including capability groups `shell` (shell plus stdin) and `mcp` (the whole MCP family) | unknown names, including individual MCP names, become `UnsupportedOptionError`; nested native subagents have their own toolset, so deny `task` to prevent spawning them |
 | codex | qualified `mcp__server__tool` on an unambiguously named configured or session MCP server, via session `config.mcp_servers.*.disabled_tools`; prior native denies are preserved | built-ins, unqualified names, missing/ambiguous or normalized server namespaces |
 | antigravity | canonical `BuiltinTools` filter names via `_meta.antigravity.disabledTools`; see its page for the exact list and native group names | MCP, client file tools, unknown names; a mixed list fails as a whole before launch |
+| qwen, qoder, codebuddy | native `--exclude-tools` (qwen), `--disallowed-tools` (qoder) and `--disallowedTools` (codebuddy, on new and resumed opens) | nothing: OAR passes the names unvalidated and matching is native ([qwen](../runtimes/qwen.md), [codebuddy](../runtimes/codebuddy.md)) |
 | grok, kimi, opencode | none through the selected OAR transport | every non-empty list, declared in `Runtime.refusedSessionOptions` |
 
 Value-specific refusals identify the offending names. They are not listed
@@ -324,7 +322,9 @@ again on resume.
 | codex | `app-server`, OAR's `-c` overrides, the host's arguments, `--listen stdio://` |
 | grok | `agent --always-approve --no-leader`, the host's arguments, `stdio`: `agent` takes its options before `stdio` |
 | kimi, opencode | after `acp` |
-| antigravity | after OAR's own arguments |
+| antigravity, codebuddy | after OAR's own arguments |
+| qwen | after OAR's own flags, before `--include-directories` and `--exclude-tools` |
+| qoder | after OAR's own flags, before `--mcp-config`, `--add-dir` and `--disallowed-tools`; from 1.1.81 the same list is the daemon's `worker_args` |
 | pi, cursor | refused: they run in the host process through their SDKs, with no command line |
 
 For Claude, `--permission-mode` (`default`, `dontAsk`, `acceptEdits`, `plan`)
@@ -361,7 +361,7 @@ imitate a missing native channel. Unsupported runtimes refuse even `{}`.
 | claude | `--json-schema` for the process, including queued and spontaneous turns | A successful native `result.structured_output` is passed unchanged to `turn_ended.outcome.structuredOutput`. Exhausted validation retries fail the turn. |
 | codex | `turn/start.outputSchema` on every OAR prompt; steer retains the active turn's setting | Native text only, including text that violates the schema when the provider does not enforce it. No `structuredOutput` is synthesized. Provider schema refusals remain failed turns. |
 | grok | `session/prompt._meta.outputSchema` on prompt, held queue drain and send-now steer | Native `_meta.structuredOutput` becomes the completed outcome's value; `_meta.structuredOutputError` fails the turn even when native `stopReason` is `end_turn`. |
-| cursor, kimi, opencode (both lines), antigravity, pi, pi-durable | Refused at open; no verified final-output schema channel through these adapters | `UnsupportedOptionError`, declared in `refusedSessionOptions`. |
+| cursor, kimi, opencode (both lines), antigravity, codebuddy, qwen, qoder, pi, pi-durable | Refused at open; no verified final-output schema channel through these adapters | `UnsupportedOptionError`, declared in `refusedSessionOptions`. |
 
 **Codex's native queue cannot carry a schema**, so `queue()` returns
 `rejected: unsupported` when `outputSchema` is set. Send a new prompt after
@@ -402,7 +402,9 @@ runtime and is not guaranteed by this option.
 | cursor | SDK `local.dirs`, cwd kept separately | Pass again to `Agent.resume`; current workspace metadata changes accordingly. Project-rule loading was not confirmed in the native probe. |
 | kimi | ACP `session/new.additionalDirectories`, after capability advertisement | A non-empty list is refused before launch: the native resume ignores it. |
 | opencode v2 | ACP `additionalDirectories`, after capability advertisement | Pass again; a cold resume without it does not restore the extra roots. |
-| opencode v1, grok, antigravity, pi, pi-durable | Refused with `UnsupportedOptionError` | Same refusal. |
+| qwen | `--include-directories` | Pass the list again for the new process. |
+| qoder | `--add-dir` | Pass the list again for the new process. |
+| opencode v1, grok, antigravity, codebuddy, pi, pi-durable | Refused with `UnsupportedOptionError` | Same refusal. |
 
 The unconditional refusals are declared in `Runtime.refusedSessionOptions`.
 Kimi's resume restriction and OpenCode's release-line restriction are checked
@@ -427,7 +429,7 @@ nothing. A blank name, or one with a NUL character, is refused with
 | claude | `--name` at launch | Left alone: `--name` on a resume replaces the session's name, and claude reports that name only once it has started (`session_title_changed`). |
 | codex | `thread/name/set` once the thread is open | Set only when the `thread/resume` reply shows no name. |
 | pi | a `session_info` entry, as pi's own `--name` writes it | Set only when the session never had one, so a name the user cleared stays cleared. |
-| cursor, kimi, grok, antigravity, opencode, pi-durable | Refused with `UnsupportedOptionError` | Same refusal. |
+| cursor, kimi, grok, antigravity, opencode, codebuddy, qwen, qoder, pi-durable | Refused with `UnsupportedOptionError` | Same refusal. |
 
 Evidence: [`experiments/codex-session-name.ts`](../../experiments/codex-session-name.ts)
 (codex 0.162.0) and the vendor tests
@@ -725,8 +727,9 @@ Runtimes not listed above do not map native errors to
 `SessionUnavailableError`. The internal [ACP shared factory](acp-shared-connection.md)
 also rejects a native id controlled by another lease with `in_use`; its
 cause method is `oar/open` and its native data contains only the observed
-session id. That is an OAR ownership observation, not a native error. No
-runtime is admitted to sharing by that foundation alone. Native evidence:
+session id. That is an OAR ownership observation, not a native error; no
+native runtime is admitted to shared placement in the current release
+([admission status](acp-shared-connection.md#admission-status)). Native evidence:
 [`experiments/codex-session-name.ts`](../../experiments/codex-session-name.ts)
 (codex 0.162.0, a second app-server standing in for the user's app) and
 [`codex-session-name.vendor.test.ts`](../../sea-trial/vendor/codex-session-name.vendor.test.ts).
@@ -1111,8 +1114,8 @@ settles inputs still awaiting echoes as `dropped: runtime_exited`, with the
 ## Qwen SDK channel
 
 [Qwen Code](../runtimes/qwen.md) shares the stream-json fold but has its own
-initialization, permission reply, effort confirmation and usage policy. It
-refuses `outputSchema`, `serviceTier` and `name`. Its native initialize response
+initialization, permission reply, effort confirmation and usage policy
+(refusals in [the table above](#refused-session-options)). Its native initialize response
 precedes full startup; extension-store failure can surface at the first prompt.
 On resume, session usage stays unknown because native cumulative totals include
 old turns and there is no trustworthy pre-turn session baseline. Context, quota,

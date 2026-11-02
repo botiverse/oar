@@ -76,6 +76,8 @@ instruction to run `brew upgrade`.
 | codex | `codex doctor --json`, row `updates.status` (the JSON decides; doctor exits 1 when any row fails) | `codex update` |
 | grok | `grok update --check --json` (exit is always 0; `error` decides) | `grok update` |
 | kimi | `code.kimi.com/kimi-code/latest`, or `code.kimi.ai` for the `global` region; only a newer release counts | `kimi upgrade -y` (from 0.43.0) |
+| codebuddy, qwen, qoder | none: OAR exposes no `checkUpdate` for them | none |
+| pi-durable | none: `@earendil-works/pi-durable` is the host's to install | none |
 | antigravity | The ACP registry entry, which trails Google's downloads; only a newer registry version counts | none: no updater exists |
 | opencode | none yet: `opencode upgrade` picks its source by install method (npm, Homebrew, Scoop, Chocolatey or the install script) and has no check-only mode | none yet |
 | pi | none: bundled with oar | none |

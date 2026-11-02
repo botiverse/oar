@@ -125,13 +125,16 @@ method and stays on the line.
 | kimi | `curl -fsSL https://code.kimi.com/kimi-code/install.sh \| bash` | [github.com/MoonshotAI/kimi-code](https://github.com/MoonshotAI/kimi-code#install) | `$KIMI_INSTALL_DIR/bin/kimi` (default `~/.kimi-code/bin/kimi`) |
 | opencode `v1` | `curl -fsSL https://opencode.ai/install \| bash` | [opencode.ai/docs](https://opencode.ai/docs/#install) | `~/.opencode/bin/opencode` (1.x) |
 | opencode `v2` | `curl -fsSL https://opencode.ai/v2/install \| bash` | [opencode.ai/v2/docs](https://opencode.ai/v2/docs/) | `~/.opencode/bin/opencode` (2.x) |
+| qwen | `curl -fsSL https://qwen-code-assets.oss-cn-hangzhou.aliyuncs.com/installation/install-qwen-standalone.sh \| bash -s -- --method standalone --no-modify-path` | [qwenlm.github.io/qwen-code-docs](https://qwenlm.github.io/qwen-code-docs/en/users/quickstart/) | `$QWEN_INSTALL_BIN_DIR` (default `~/.local/bin`) and `$QWEN_INSTALL_LIB_DIR` (default `~/.local/lib/qwen-code`) |
+| qoder | `curl -fsSL https://qoder.com/install \| bash -s -- --skip-path` | [docs.qoder.com/cli/troubleshoot-install](https://docs.qoder.com/cli/troubleshoot-install) | `~/.local/bin` and `~/.qoder` |
 | antigravity | nothing: `requires_gui` (installed from an editor's agent registry) | [antigravity.google/docs/ide/extensions/zed](https://antigravity.google/docs/ide/extensions/zed) | |
 | pi | no `install`: bundled with oar | | |
 | pi-durable | no `install`: `@earendil-works/pi-durable` is the host's to install | | |
 | cursor | no `install`: `@cursor/sdk` is the host's to install | | |
 
 Codex, grok and kimi also add their folder to PATH in the shell profile,
-opencode only in a profile that exists, and claude prints the line instead.
+opencode only in a profile that exists, and claude prints the line instead;
+qwen (`--no-modify-path`) and qoder (`--skip-path`) leave profiles unchanged.
 Grok links itself into `~/.local/bin` or `/usr/local/bin` when one is on
 PATH and writable; kimi renames an older Python `kimi-cli` it finds first on
 PATH to `kimi-legacy`.

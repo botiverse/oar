@@ -33,7 +33,7 @@ usage *derivation* (cumulative/epoch/boundary views are consumer business).
 
 | Read | To answer |
 |---|---|
-| [acp-shared-connection.md](acp-shared-connection.md) | Internal ACP pooled connection ownership, explicit routing, bounded cleanup and lifetime credential redaction; runtime admission remains separate |
+| [acp-shared-connection.md](acp-shared-connection.md) | Internal ACP pooled connection ownership, explicit routing, bounded cleanup and lifetime credential redaction; runtime admission remains separate, and no native runtime is admitted in the current release |
 | [goals.md](goals.md) | Native goal controls, session opt-in, observed snapshots and continuation boundaries |
 | [record-stream.md](record-stream.md) | Why one stream with three record kinds? What exactly is an event, a request, a response? What does an event body carry? |
 | [attribution.md](attribution.md) | How do records self-attribute? Why is attribution a field, not a channel? How is usage exposed? |
@@ -58,11 +58,13 @@ follow the TypeScript contracts.
 
 ## What the contract covers
 
-Implemented by every adapter (claude, codex, pi, grok, kimi, opencode, cursor,
-antigravity, qwen), pinned by the shared behavior suite
-(`sea-trial/cases/session.ts`, which CI runs on the mock and the claude,
-codex, pi, pi-durable and qwen aimock backends, and which runs on any installed
-runtime with `OAR_TEST=<id>`). `experiments/live-contract.ts` checks the same
+Implemented by every adapter (claude, codex, pi, pi-durable, grok, kimi,
+opencode, cursor, antigravity, qwen, qoder, codebuddy), pinned by the shared
+behavior suite (`sea-trial/cases/session.ts`, which CI runs on the mock, the
+claude, codex, pi (SDK and RPC), pi-durable, qwen, kimi, grok, opencode (v1)
+and codebuddy aimock backends and the native qoder backend, and which runs on
+any installed runtime with
+`OAR_TEST=<id>`). `experiments/live-contract.ts` checks the same
 contract on a real login; each runtime page states which live checks are verified:
 
 - one stream of `frame` / `request` / `response` records with a dense

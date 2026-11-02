@@ -49,11 +49,13 @@ default instances request `auto`. At session open, the adapter checks the
 installation's version and platform against its observed sharing support.
 `auto` uses isolated processes until that evidence exists; explicit `shared`
 is refused with `UnsupportedOptionError` on `placement`. An in-process runtime
-also refuses explicit `isolated`. No native runtime currently shares:
-OpenCode 2.2.3 and 2.2.5 shared from 0.81.0 and 0.82.0 until the admission was
-withdrawn, and every OpenCode `auto` open is now isolated; see its
-[admission boundary](../runtimes/opencode.md#shared-process-admission-boundary).
-The in-process SDK runtimes use `in_process` under `auto` and refuse both
+also refuses explicit `isolated`. No native runtime is admitted to shared
+placement in the current release
+([admission status](acp-shared-connection.md#admission-status)): OpenCode
+2.2.3 and 2.2.5 shared under 0.81.0 and 0.82.0 until 0.83.0 withdrew that
+admission, so every OpenCode `auto` open is isolated
+([admission boundary](../runtimes/opencode.md#shared-process-admission-boundary)),
+and Grok sharing is refused. The in-process SDK runtimes use `in_process` under `auto` and refuse both
 explicit process placements. Custom adapters without a placement declaration
 keep their existing `auto` behavior and refuse explicit placement requests.
 
@@ -86,8 +88,9 @@ objects can use `defineRuntime` to obtain these members. Its second argument's
 omitting it yields `null`. Supplying `shared` hooks requires `execution: "process"`;
 `defineRuntime` rejects a missing or incompatible declaration, including for
 JavaScript callers. Manually constructed `Runtime` objects must supply
-all three members. The new request/response
-body kinds and the `released` event extend the public TypeScript unions. Exhaustive consumers must handle them. Hosts must not assume
+all three members. The `open`, `opened`, `cleanup` and `released` bodies and
+the `released` event are members of the public TypeScript unions; exhaustive
+consumers must handle them. Hosts must not assume
 the first record is a native frame or a prompt. `events()` omits open, opened
 and cleanup; it projects released as an OAR event. Voyage records retain all
 these bodies unchanged, and `redactRecord` preserves these credential-free
@@ -105,9 +108,8 @@ abort or dispose request, using the same stop-evidence rule as exit. Later
 controls are rejected. `session_released` means an abort fallback released the
 session without a host dispose request. Once the host requests `dispose`,
 `disposed` takes precedence, including shared sessions; an actual process exit
-still takes precedence as `runtime_exited`. `session_released` is a new member
-of the `RejectionCode` union, so hosts with exhaustive TypeScript switches must
-handle it. Every late native frame remains recorded,
+still takes precedence as `runtime_exited`. Exhaustive TypeScript switches
+over `RejectionCode` must handle `session_released`. Every late native frame remains recorded,
 including tool and usage evidence; it cannot reopen OAR's released turn.
 Neither tools nor background tasks are inferred stopped from release. A view
 may show late native content in a new display segment, while its OAR status
@@ -131,8 +133,8 @@ ownership and permits a later dispose to retry. New opens never join a
 process whose shutdown began. A process fault records its exit for every
 still-attached session. Sessions and processes are never silently restarted.
 The internal [ACP connection ownership](acp-shared-connection.md) mechanism
-implements these boundaries with explicit native id routing; adding the
-mechanism does not admit any native runtime to sharing.
+implements these boundaries with explicit native id routing; the mechanism
+alone admits no native runtime to sharing.
 
 **frame**: the runtime's own words. Expects no reply; append-only;
 monotonic seq. oar never synthesizes a frame. The turn's start *is* the
@@ -285,9 +287,9 @@ Further rules:
 - **An isolated cancel observes ownership before dispatch.** User abort in
   isolated ACP and stream-json takes one fresh asynchronous process-table
   observation before sending the native cancel or interrupt. It waits at most
-  one second, including any wait for a fresh shared query batch. This can add
-  up to one second to abort dispatch on Windows or another slow host. There is
-  no retry. At the deadline OAR sends the cancellation and records an incomplete
+  one second, including any wait for a fresh shared query batch, which can
+  delay abort dispatch by up to one second on Windows or another slow host. There
+  is no retry. At the deadline OAR sends the cancellation and records an incomplete
   `before_cancel` observation; a late query result is never used as evidence
   predating this cancellation. An underlying query shared with other callers
   may continue within its own budget, without extending the abort's wait.
@@ -321,9 +323,8 @@ Further rules:
 - **A failed process-table read is not an empty tree.** Cleanup records the
   source, duration and bounded failure fields internally, without process
   names, command lines or environment values. Before EOF it retries a failed
-  read at most once while the root remains alive, preserving both observations.
-  Windows does not retry a timeout; its queue and any retry share one
-  five-second caller budget. Other platforms retain the per-read budget.
+  read at most once while the root remains alive, preserving both observations,
+  within the budgets in the next rule.
   Successful observations count skipped permission-denied procfs entries and
   Windows entries without creation times; these identities are never signalled.
   Malformed rows or a missing host identity still fail the observation.
@@ -389,10 +390,8 @@ Further rules:
   Each ps/CIM query retains its five-second limit. On Windows, before-EOF
   capture has one five-second total waiting budget including the current
   batch's queue and any retry. A timeout is not retried; another failure can
-  retry once using only the remaining time while the root is alive. Late
-  results never enter this capture's identity set, even if a shared query
-  remains useful to another caller. Timer delivery depends on the host event
-  loop; this is not a five-second bound on complete disposal. Windows
+  retry once using only the remaining time while the root is alive. Timer
+  delivery depends on the host event loop; this is not a five-second bound on complete disposal. Windows
   post-exit revalidation and force revalidation each also have a five-second
   total budget including queueing. Expiry reports unverified cleanup and
   discards late identity evidence; force still stops the owned root.
@@ -401,8 +400,7 @@ Further rules:
   escalation adds the existing grace and at most five seconds of force
   revalidation. Neither taskkill nor native exit has a hard deadline, so
   there is no promised worst-case duration for complete disposal. Other
-  platforms retain up to two capture reads and per-query limits. Reads are
-  asynchronous and do not block the host event loop.
+  platforms retain up to two capture reads and per-query limits.
   After the first actual Windows `spawnLineProcess` spawn with `killTree`, OAR starts
   one background CIM preparation using the same serial reader. It has a
   five-second total caller budget, never delays `spawned`, and is not retried.
@@ -422,11 +420,11 @@ Further rules:
   do not trigger preparation.
   The synchronous host-exit hook neither waits for it nor uses its result.
   EOF-driven runtimes retain their native shutdown-hook grace unchanged.
-  This policy deliberately trades a longer successful retry for bounded
-  observation waiting. The baseline's slowest cold capture (PID 8704) would
-  expire near five seconds as unverified, instead of waiting 11.4 seconds
-  for its retry to succeed. It would then proceed with native shutdown;
-  that does not imply the entire stop would finish at five seconds.
+  This deliberately trades a longer successful retry for bounded observation
+  waiting: the baseline's slowest cold capture (PID 8704), whose retry
+  succeeded after 11.4 seconds, would expire near five seconds as unverified
+  and proceed with native shutdown; that does not imply the entire stop would
+  finish at five seconds.
   A root that exits before OAR sends any stop action (EOF, a native cancel or
   close, or a signal/taskkill) is a natural exit, even if preparation or its
   observation is already pending. It keeps the native exit/error without an
@@ -690,15 +688,13 @@ for the runtime's own turn end (aborting when a limit fires, and reporting
 that as `interrupted` with the runtime's outcome), and `awaitIdle(session)`
 waits for the running turn, if any, to end.
 
-An invalid `carries` claim produces a rejected prompt without calling the
-runtime. Validation precedes the request record: each id must belong to the
-same session and agent and have an accepted withdraw as its latest attempt.
-The rejected claim is retained for audit but does not transfer input ownership.
-
 A prompt's optional `carries: string[]` names earlier logical input ids sent
 in that same prompt, scoped to its session and agent lineage. It is a host
-control fact, not a native echo. Original queue and withdrawal records remain
-unchanged. The prompt's response settles every carried attempt, while the
+control fact, not a native echo. An invalid claim produces a rejected prompt
+without calling the runtime: validation precedes the request record
+([which ids are valid](conversation.md#interrupting-and-merging-held-inputs)),
+and the rejected claim is retained for audit but does not transfer input
+ownership. Original queue and withdrawal records remain unchanged. The prompt's response settles every carried attempt, while the
 original content and origin remain available to views. Adapters copy this
 field to the prompt request only; it is never added to model text or vendor
 protocol fields. Older readers may ignore the additive field.
@@ -734,8 +730,8 @@ own. A withdrawn input can be queued again under the same `inputId` (edit)
 or sent with `deliver` (send now): a new attempt, read by the ordinary
 rules ([conversation](conversation.md#withdrawing-held-input)).
 
-`withdraw` exists where OAR holds the queue: claude, pi, cursor, kimi, grok,
-antigravity and opencode. pi-durable's queue is native, and its `withdraw`
+`withdraw` exists where OAR holds the queue: claude, qoder, qwen, pi, cursor,
+kimi, grok, antigravity, codebuddy and opencode. pi-durable's queue is native, and its `withdraw`
 aborts the input's native submission before it runs (`submission.abort()`).
 codex holds its queue natively, and its `thread/queue/delete` is
 experimental and not live-verified, so a codex session has no `withdraw`.
@@ -768,7 +764,7 @@ type EventBody = RuntimeEventBody | ControlEventBody;
 //   app_request {requestId, type}                      ← a toApp request
 //   app_answered {requestId}                           ← an answered response
 //   released {reason, nativeTurnMayContinue:true, workStartedAfterCleanupMayContinue:true} ← a released response
-//   exited {code}                                      ← an exited response
+//   exited {code, reason?}                             ← an exited response
 ```
 
 Which runtimes say which kinds (runtime pages hold the evidence):
@@ -778,20 +774,22 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   `graphOf` deduplicates repeated edges without changing the records.
 
 - `turn_active`: codex `turn/started`, pi `agent_start`, Pi Durable's
-  adopted conversation activity, and claude `system/init` when the root
-  starts a turn on its own. An optional `inputId` means the runtime started
-  its turn for that input; absent means unknown. Claude also maps
-  `command_lifecycle started` for prompt-like writes (including queue drains)
-  to `turn_active { inputId: command_uuid }`. A prompted turn can have both
-  `turn_started` (the request) and `turn_active` (the native start).
+  adopted conversation activity, qwen's root `system/init` for its sole
+  submitted input, and claude `system/init` when the root starts a turn on
+  its own ([per runtime](runtime-matrix.md#native-active-turns)). An optional
+  `inputId` means the runtime started its turn for that input; absent means
+  unknown. Claude and Qoder map `command_lifecycle started` for prompt-like
+  writes (including queue drains) to `turn_active { inputId: command_uuid }`.
+  A prompted turn can have both `turn_started` (the request) and
+  `turn_active` (the native start).
 - `input_queued { inputId }`: the runtime holds this input and has not started
-  its turn. Currently Claude-only, from `command_lifecycle queued` for an
+  its turn. Claude and Qoder report it, from `command_lifecycle queued` for an
   input OAR wrote as a prompt or queue, never a steer. This fact gates
   attribution: until the matching `turn_active { inputId }`, other root
   activity and its end belong to separate spontaneous turns. No queued fact
   means existing request-based behavior. `completed` never ends a turn.
-  Claude maps it (or a replayed user message) to a refused input only when
-  neither `queued` nor `started` has arrived since that registered write.
+  Claude and Qoder map it (or a replayed user message) to a refused input only
+  when neither `queued` nor `started` has arrived since that registered write.
   `promptAndWait` sends the caller's inputId or a generated UUID and waits for
   that span; `awaitTurnEnd` and `turnEndAfter` opt in with an inputId and still
   return the first root end without one. Native exits always settle waits.
@@ -1041,13 +1039,12 @@ seq=57  ◆ request   root  id=rq-30  abort
 
 ### ACP raw parameters and child host requests
 
-ACP `session/update` frames retain the validated wire parameters, including
-vendor extra fields and omitted optional fields, rather than the SDK's
-schema-parsed copy with defaults. Projection does not add defaults to the
-retained native data. Native child permission and terminal requests, plus
-their answers, carry the child's session id. A request cancelled before
-dispatch is still recorded and answered without starting host work. If
-hosted-terminal cleanup after process exit fails, a failed `cleanup` response
-with empty request id reports that failure separately from `exited`. See
-[ACP connection ownership](acp-shared-connection.md#record-changes-on-both-acp-paths)
-for these intentional record changes and the shared-path rules.
+ACP `session/update` frames retain the validated wire parameters (vendor
+extra fields kept, omitted optional fields left omitted) rather than the SDK's
+schema-parsed copy with defaults, and projection adds no defaults to them.
+Native child permission and terminal requests, plus their answers, carry the
+child's session id. A request cancelled before dispatch is still recorded and
+answered without starting host work. A failed hosted-terminal cleanup after
+process exit is a failed `cleanup` response with empty request id, separate
+from `exited`. See
+[ACP connection ownership](acp-shared-connection.md#record-changes-on-both-acp-paths).
