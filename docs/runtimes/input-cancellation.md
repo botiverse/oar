@@ -7,8 +7,8 @@ a missing match in a binary is never proof of absence. Reproduction and
 sanitized observations: [experiments/cancellation](../../experiments/cancellation/README.md).
 
 **Current OAR:** `Session.withdraw(inputId)` exists for the queues OAR holds
-itself (claude, pi, cursor, and the ACP runtimes kimi, grok, antigravity and
-opencode), built as the [consequences](#consequences-for-oar-and-rao) below
+itself (claude, pi, qwen, qoder, cursor, and the ACP runtimes kimi, grok,
+antigravity, codebuddy and opencode), built as the [consequences](#consequences-for-oar-and-rao) below
 ask: a `withdraw` request of its own targeting the earlier input by `inputId`,
 answered `accepted` only when the held entry was removed before dispatch and
 `not_queued` otherwise, with the queue request and its response left as they
@@ -19,7 +19,8 @@ removes OAR's own held entries only. Claude's capability-gated bulk
 cancellation and its effects on queued notifications. Grok `x.ai/queue/*` and
 Pi `clearQueue()` remain unmapped. Codex
 has no `withdraw`: its queue is native, and `thread/queue/delete` waits on the
-validation listed at the end. The 2026-09-16 research below is kept as found;
+validation listed at the end. Pi Durable's `withdraw` uses native submission
+cancellation ([session controls](../spec/runtime-matrix.md#session-controls)). The 2026-09-16 research below is kept as found;
 the Cursor row comes from the `@cursor/sdk` adapter (2026-10-03).
 
 ## Findings

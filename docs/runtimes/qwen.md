@@ -13,40 +13,11 @@ observed on Linux with a local scripted OpenAI provider on 2026-10-23.
 The source's `packages/cli/src/nonInteractive/session.ts` and
 `control/controllers/systemController.ts` define this interface.
 
-Rechecked npm **0.26.1** on Linux on 2026-10-25: all six native vendor tests,
-16 applicable shared behavior cases and the four direct protocol scenarios
-passed. The warm-HOME lock probe still separates initialize acknowledgement
-from first-prompt readiness. The official standalone install also passed in
-an isolated HOME; see the [version check](../../experiments/runtime-version-checks/2026-10-25.md#qwen-0261)
-for evidence and limits.
-
-Rechecked npm **0.26.4** on Linux on 2026-10-29, after testing 0.26.3
-earlier that day: all 11 native vendor tests and 16 shared cases passed.
-Native thinking/text snapshots still change message id without another
-`message_start`, and the extension-store lock still blocks a first prompt
-after initialize succeeds. The provider preset key names remain covered by
-the local credential reader. See the
-[version check](../../experiments/runtime-version-checks/2026-10-29.md#qwen-0263-and-0264).
-
-Rechecked npm **0.26.5** on Linux on 2026-11-01: all 11 native vendor tests
-and 16 applicable behavior cases passed. Snapshot ids and extension-store locking
-retain the limits above; all fourteen preset credential variables remain
-covered. The direct probe now gives new and resumed MCP calls different ids
-and asserts both actual echo results. Qwen renames ids already in history
-to `<id>__qwen_dup_N` and generates an id when absent. Same-response
-duplicates are dropped when arguments arrive complete in one delta;
-fragmented arguments instead fail in the
-[tool-id controls below](#evidence-and-verification).
-Recorded tool-call ids can differ from the model's raw ids.
-Separately, reusing a provider id with the same tool name and arguments
-triggers replay protection: the tool is not executed and an error tool
-result is emitted, even if the turn later succeeds. Compatible endpoints
-that reuse ids such as `call_0` can therefore suppress a legitimate later
-repeat, such as reading the same file again. Reused ids with different
-arguments can execute under the renamed id.
-[Daily evidence](../../experiments/runtime-version-checks/2026-11-01.md#qwen-0265)
-retains the initial fixture failures, corrected controls and a correction
-to the October 25 MCP observations. Both mechanisms predate 0.26.5.
+Current check: npm **0.26.5** on Linux, 2026-11-01. All 11 native vendor
+tests and 16 applicable behavior cases passed. The snapshot-id and
+extension-store limits below still reproduce, and all fourteen
+provider-preset credential variables remain covered by the local credential
+reader. See the [version check](../../experiments/runtime-version-checks/2026-11-01.md#qwen-0265).
 
 ## OAR mapping
 
@@ -69,6 +40,7 @@ its runtime. OAR itself requires Node 24 or newer.
 | Instructions / directories | `--system-prompt`, `--append-system-prompt`, `--include-directories`. Additional directories are resolved against the session cwd. |
 | Tool denial | Native `--exclude-tools`; matching and aliases are Qwen's. |
 | MCP | Per-session `initialize.mcpServers`: stdio command/args/env or streamable HTTP `httpUrl`/headers. Pass again on resume. Credentials do not enter the Qwen command line or OAR records. |
+| Tool-call ids | Native ids as Qwen records them, which can differ from the provider's raw ids; see [Tool-call ids](#tool-call-ids). |
 | Permissions | Explicit native `--approval-mode yolo`; Qwen's default auto mode uses a model classifier. If `can_use_tool` still arrives, OAR records the app request and sends Qwen's allow/updatedInput response. |
 | Images | Rejected before input submission; `images: false`. |
 | Structured output | Refused with `UnsupportedOptionError`: native 0.26.0 explicitly disallows `--json-schema` with stream-json input. No adapter emulation. |
@@ -85,23 +57,27 @@ Without overrides, installation uses `~/.local/lib/qwen-code` and
 `~/.local/bin/qwen`. OAR discovers this executable immediately without editing
 PATH. The vendor may print a PATH recommendation; OAR does not apply it.
 
-On 2026-10-23, a Linux sandbox with an empty HOME and no Qwen on PATH ran
-OAR's actual `install()` against the official installer. It installed 0.26.0,
+Install evidence (Linux, 0.26.0, 2026-10-23): in a sandbox with an empty HOME
+and no Qwen on PATH, OAR's actual `install()` ran the official installer,
 `installation()` found the executable outside PATH, a sentinel `.bashrc`
 remained byte-for-byte unchanged, and a second `install()` reported
-`already_installed`. No authentication or model request was performed. This
-is Linux installation evidence, not a macOS or Windows installation claim.
+`already_installed`. No authentication or model request was performed. The
+same check passed with 0.26.1 ([2026-10-25](../../experiments/runtime-version-checks/2026-10-25.md#qwen-0261)).
+This is Linux installation evidence, not a macOS or Windows installation claim.
 
 Discovery uses one `--version` query, without a preceding `--help` process.
 A timed-out executable remains a probe failure, never `not_found`.
 The [installation probe](../../experiments/qwen-native/installation.ts) compared
-both commands in three fresh homes and again in each same home on Linux with
-0.26.0. The standalone version query took 49 to 78 ms cold and 50 to 52 ms warm;
-help took 104 to 123 ms cold and 104 to 114 ms warm. The npm version query took
-100 to 186 ms cold and 65 to 162 ms warm; help took 119 to 263 ms cold and
-102 to 142 ms warm. The npm ranges overlap, but one version query avoids a
-second process regardless. Neither command created `.qwen` in these homes.
-These measurements do not establish startup times under concurrent CI load.
+both commands in three fresh homes and again in each same home (Linux, 0.26.0):
+
+| Install | `--version` cold / warm | `--help` cold / warm |
+|---|---|---|
+| Standalone | 49 to 78 ms / 50 to 52 ms | 104 to 123 ms / 104 to 114 ms |
+| npm | 100 to 186 ms / 65 to 162 ms | 119 to 263 ms / 102 to 142 ms |
+
+The npm ranges overlap, but one version query avoids a second process
+regardless. Neither command created `.qwen` in these homes. These measurements
+do not establish startup times under concurrent CI load.
 
 Qwen emits `stream_event`, assistant, tool-result user and result messages
 without Claude's `command_lifecycle` acknowledgements. The shared stream-json
@@ -120,9 +96,9 @@ not an additional OAR input or record.
 
 ### Streamed block snapshots
 
-With **0.26.3**, a response containing thinking followed by text emits one
-`message_start`, reuses content-block index 0, and follows each
-`content_block_stop` with a single-block `assistant` snapshot. The text
+With **0.26.3** through **0.26.5**, a response containing thinking followed
+by text emits one `message_start`, reuses content-block index 0, and follows
+each `content_block_stop` with a single-block `assistant` snapshot. The text
 deltas still carry the initial message identity, but the text snapshot gets
 a different `message.id`. Requiring equal ids therefore repeats the answer.
 OAR identifies these snapshots by the stopped block's position and type in
@@ -136,6 +112,43 @@ The [dated investigation](../../experiments/qwen-native/reply-text-2026-10-29.md
 records the native sequence, real Token Plan observations, regressions and
 an upstream issue draft. This handles the observed SDK-channel sequence;
 it does not assert that every provider emits thinking or rewrite Qwen's ids.
+
+### Tool-call ids
+
+Qwen normalizes provider tool-call ids (`normalizeModelToolCallIds` in the
+published 0.26.1 through 0.26.5 bundles). An id already in session history becomes `<id>__qwen_dup_N`; a missing id becomes a generated
+`call_qwen_N`. Recorded tool-call ids can therefore differ from the model's
+raw ids. OAR preserves each native id and result.
+
+Separately, replay protection (`isReplayOfHandledToolCall`) compares the
+original provider id, tool name and arguments with handled calls. Reusing a
+provider id with the same tool name and arguments means the tool is not
+executed and an error tool result is emitted, even if the turn later
+succeeds. Compatible endpoints that reuse ids such as `call_0` can therefore
+suppress a legitimate later repeat, such as reading the same file again.
+Reused ids with different arguments can execute under the renamed id.
+
+Same-response duplicate ids depend on the incoming OpenAI stream. Qwen merges
+argument buffers by id when two streamed calls reuse that id. If the
+arguments arrive as separate fragments, Qwen fails the turn with a native
+`malformed tool call` before any tool lifecycle and executes no tools. Only
+arguments complete in one delta reach deduplication, which drops the
+duplicate and leaves one lifecycle per retained call.
+
+Evidence (Linux, 0.26.5, 2026-11-01): the
+[tool-id vendor controls](../../sea-trial/vendor/qwen-tool-ids.vendor.test.ts)
+cover a reused id across resume with different and identical arguments, and
+both same-response layouts; CI also runs them on macOS and Windows. They
+deliberately inject duplicate ids but assert the actual outgoing fragment
+layout against the [OpenAI streaming format](https://developers.openai.com/api/docs/guides/function-calling#streaming):
+each call has its own index, id/name appear only in its first delta, and
+later deltas carry that index and argument fragments. Both outcomes are
+asserted separately; the fragmented failure is not evidence of successful
+deduplication. Failure artifacts retain the outgoing SSE alongside provider
+requests and OAR records. The
+[daily evidence](../../experiments/runtime-version-checks/2026-11-01.md#qwen-0265)
+retains the initial fixture failures, corrected controls and a correction
+to the October 25 MCP observations. Both mechanisms predate 0.26.5.
 
 ## Provider setup
 
@@ -195,19 +208,19 @@ on Qwen **0.26.2**, Linux, 2026-10-28; three native facade regressions also
 cover metadata scope, user/workspace writes and key reuse across processes.
 No real account or model tokens were used in those 0.26.2 probes.
 
-On 2026-10-29, two Linux runs with **0.26.3** and a real Model Studio
-Singapore Token Plan key also passed provider discovery, configuration,
-configuration readback, model listing and a completed model turn. The
-native provider is `token-plan`, region `ap-southeast-1`, endpoint
+Real-account check (Linux, **0.26.3**, 2026-10-29): with a Model Studio
+Singapore Token Plan key, two runs passed provider discovery, configuration,
+configuration readback, model listing and a completed model turn. The native
+provider is `token-plan`, region `ap-southeast-1`, endpoint
 `https://token-plan.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1`,
 model `qwen3.7-plus`. The connect reply omitted `baseUrl`; a second
 `listProviders()` confirmed the persisted address. `authStatus` moved from
 `logged_out` to `unknown`, as designed for local credential presence.
-Those first two runs exposed the duplicate text projection described
-above. A third run using the repaired adapter passed end to end: the reply
-was exactly the expected 22-character marker, without duplication, and
-reasoning remained separate. It used 21,971 input and 230 output tokens;
-processes and the private HOME were cleaned up. The
+Those two runs exposed the duplicated answer described above; a third run
+with OAR's snapshot handling passed end to end: the reply was exactly the
+expected 22-character marker, without duplication, and reasoning remained
+separate. That run used 21,971 input and
+230 output tokens; processes and the private HOME were cleaned up. The
 [portable probe](../../experiments/qwen-native/token-plan-real.ts) keeps the
 key on the executing machine and reports only fixed configuration labels,
 status, usage numbers and content-free text checks.
@@ -244,31 +257,31 @@ failure. The earlier [cold-start observation](../../experiments/qwen-native/evid
 remains valid but does not establish a warmup workaround. The native vendor
 test holds the on-disk lock to reproduce the error deterministically.
 
-Native `initialize` replies before extension initialization finishes. Its
-control queries do not establish readiness either. A [warm-HOME lock probe](../../experiments/qwen-native/lock-lifetime.ts)
-confirmed that `initialize` completed in 1.65 seconds while an external lock
-remained held; the first prompt reached no provider until that lock was
-released. An ordinary later prompt completed with a held lock, which does
-not establish that extension refresh operations never acquire it again.
-The same probe on 0.26.1 on 2026-10-25 returned initialize in 1.755 seconds
-while the lock was held, then reproduced the blocked first prompt and
-successful later prompt. The lock limitation therefore remains.
-On 2026-10-29 it also reproduced
-on 0.26.3 and 0.26.4; the latter returned initialize in 1.888 seconds with
-the lock held. Upstream's [source analysis](https://github.com/QwenLM/qwen-code/issues/15796#issuecomment-6469876861)
+Native `initialize` replies before extension initialization finishes, and
+its control queries do not establish readiness either. A
+[warm-HOME lock probe](../../experiments/qwen-native/lock-lifetime.ts) holds
+the lock externally: `initialize` completes (1.65 seconds on 0.26.0, 1.859
+seconds on 0.26.5) while the first prompt reaches no provider until the lock
+is released. An ordinary later prompt completes with the lock held, which does
+not establish that extension refresh operations never acquire it again. The
+probe reproduced this on [0.26.1](../../experiments/runtime-version-checks/2026-10-25.md#qwen-0261),
+[0.26.3 and 0.26.4](../../experiments/runtime-version-checks/2026-10-29.md#qwen-0263-and-0264)
+and [0.26.5](../../experiments/runtime-version-checks/2026-11-01.md#qwen-0265).
+Upstream's [source analysis](https://github.com/QwenLM/qwen-code/issues/15796#issuecomment-6469876861)
 confirms that initialization readiness follows the SDK initialize reply;
 it is not a released fix.
-Serializing launches only through the initialize response is insufficient. Therefore this failure can
-arrive at the **first prompt**, as `result/error_during_execution`, after OAR
-has returned the Session. It ends that turn as `failed/unknown` with the native
-message; it is not an authentication/model classification or a silent wait.
-The adapter cannot honestly move it to open without a native readiness signal.
-The Windows failure also exposed a test-fixture cleanup bug: three assertions
-failed before their sessions' explicit `dispose` calls, and those sessions had
-no exit records before recursive removal hit `EBUSY`. The shared behavior
-runner now disposes every session opened by a case, including failed cases,
-before removing fixture directories. That cleanup does not hide or retry the
-original extension-lock failure.
+
+Serializing launches only through the initialize response is insufficient.
+Therefore this failure can arrive at the **first prompt**, as
+`result/error_during_execution`, after OAR has returned the Session. It ends
+that turn as `failed/unknown` with the native message; it is not an
+authentication/model classification or a silent wait. The adapter cannot
+honestly move it to open without a native readiness signal.
+
+The shared behavior runner disposes every session opened by a case, including
+failed cases, before removing fixture directories; without that, the Windows
+job above hit `EBUSY` on sessions that had no exit records. That cleanup does
+not hide or retry the original extension-lock failure.
 
 Closing an idle process uses EOF so initialization can release its lock; an
 immediate hard termination during initialization can leave a stale lock.
@@ -285,7 +298,7 @@ the extension store, but do not guarantee timely initialization under load.
 The cause is not established: the trace cannot distinguish native startup
 work from CI CPU or I/O contention. Hosts should stagger cold starts.
 
-In CI, the Qwen behavior backend now runs at most two cases concurrently on
+In CI, the Qwen behavior backend runs at most two cases concurrently on
 Linux, macOS and Windows. Before those cases, it opens one session in a new
 HOME, records initialization and first-turn durations separately, and closes
 it. The later cases use different new HOMEs; this is a timing sample, not a
@@ -295,52 +308,39 @@ the job. Product deadlines, assertions and retries are unchanged. Reproduce
 the CI setup with `CI=1 OAR_TEST=qwen-aimock pnpm sea-trial`; outside CI the
 suite keeps its normal concurrency unless `OAR_TEST_CONCURRENCY` is supplied.
 
-On 2026-10-23, GitHub Actions `windows-latest` (Windows Server 2025,
-`windows-2025-vs2026` image 20261021.278.1, Node 24.22.1) ran 19 behavior
-cases concurrently against Qwen 0.26.0. The fixture had already finished one
-warmup turn in that HOME. Most newly launched sessions opened about 15 to
-17 seconds after their cases started; the separate model-list process failed
-to answer `initialize` within its former 15-second default. All other cases
-passed. These are measured case-to-open times under concurrent CI load, not
-isolated startup benchmarks. The trace does not identify a lock, CPU or I/O
-cause. [First failing job and retained artifact](https://github.com/botiverse/oar/actions/runs/39978507452/job/120499331029).
-
-Model listing now uses the same 30-second control-request default as session
-opening, since both launch the full native CLI. For comparison, OAR's CLI
+Model listing uses the same 30-second control-request default as session
+opening, since both launch the full native CLI. On 2026-10-23, GitHub Actions
+`windows-latest` (Windows Server 2025, `windows-2025-vs2026` image
+20261021.278.1, Node 24.22.1) ran 19 behavior cases concurrently against
+Qwen 0.26.0 after one warmup turn in that HOME. Most newly launched sessions
+opened about 15 to 17 seconds after their cases started; the separate
+model-list process failed to answer `initialize` within its former 15-second
+default. All other cases passed. These are case-to-open times under
+concurrent CI load, not isolated startup benchmarks; the trace does not
+identify a lock, CPU or I/O cause.
+[First failing job and retained artifact](https://github.com/botiverse/oar/actions/runs/39978507452/job/120499331029).
+The Qwen bound accommodates observed native startup instead of making the
+test fixture more permissive than the product. For comparison, OAR's CLI
 model readers use 15 seconds for Claude and Codex, 10 for Grok, and 30 for
-Kimi, Antigravity and OpenCode. The Qwen bound accommodates observed native
-startup instead of making the test fixture more permissive than the product.
-Hosts can still pass `listModels(installation, { timeoutMs })` for a different
-per-control-request bound. A timeout closes stdin and then force-cleans an
-unresponsive process after the normal cleanup grace; it never retries.
+Kimi, Antigravity and OpenCode. Hosts can still pass
+`listModels(installation, { timeoutMs })` for a different per-control-request
+bound. A timeout closes stdin and then force-cleans an unresponsive process
+after the normal cleanup grace; it never retries.
 
 ## Evidence and verification
 
 - [Direct native probe](../../experiments/qwen-native/README.md): initialization,
   two prompts, resume, cumulative usage, actual MCP call, permission reply and
-  interrupt. Uses a temporary HOME, local provider and synthetic credentials.
+  interrupt. New and resumed MCP calls use different ids, and both actual echo
+  results are asserted. Uses a temporary HOME, local provider and synthetic
+  credentials.
 - [Native vendor tests](../../sea-trial/vendor/qwen.vendor.test.ts): fresh/resume
   counts, model menu and effort, MCP stdio/HTTP credential delivery, instructions,
   tool denial, missing resume and native extension-lock failure. The persisted
   credential audit scans all fixture files after both native processes exit;
   a completed turn alone does not stop background model-registry writes.
-- [Tool-id vendor controls](../../sea-trial/vendor/qwen-tool-ids.vendor.test.ts)
-  on 0.26.5 cover a reused provider id across resume: different arguments
-  execute under a renamed id; identical arguments yield an error tool result
-  even when the turn succeeds. OAR preserves each native id and result.
-  Same-response duplicate ids also depend on the incoming OpenAI stream.
-  Qwen merges argument buffers by id when two streamed calls reuse that id;
-  separate argument fragments then produce a native `malformed tool call`
-  failure and execute no tools. Complete arguments in a single delta reach
-  deduplication instead, with one lifecycle per retained call. These controls
-  deliberately inject duplicate ids but assert the actual outgoing fragment
-  layout against the [OpenAI streaming format](https://developers.openai.com/api/docs/guides/function-calling#streaming):
-  each call has its own index, id/name appear only in its first delta, and
-  later deltas carry that index and argument fragments. Failure artifacts
-  retain the outgoing SSE alongside provider requests and OAR records.
-  Both outcomes are asserted separately; the fragmented failure is not
-  evidence of successful deduplication. These observations are from Linux
-  with Qwen 0.26.5; CI also runs the controls on macOS and Windows.
+- [Tool-id vendor controls](../../sea-trial/vendor/qwen-tool-ids.vendor.test.ts):
+  see [Tool-call ids](#tool-call-ids).
 - [No-lifecycle regression](../../tests/qwen/session.test.ts): busy checks before
   the next init, queue drain, withdrawal, abort, later prompts and disposal.
   [Pure fold tests](../../tests/qwen/projection.test.ts) assert empty acknowledgement
@@ -390,9 +390,9 @@ Project settings, workspace `.env` files and launch arguments such as
 does not add `cwd` or `launchArgs`. Any configured source in scope gives
 `unknown`, including a source shadowed by another setting. The reader does not
 choose an effective provider or test a key. Its nonempty `configured` list
-and human-readable detail name source kinds,
-environment variable names or a known `selectedType`, never values. A selected
-API-key protocol or a model entry with an unset key alone is not a credential.
+and human-readable detail name source kinds, environment variable names or a
+known `selectedType`, never values. A selected API-key protocol or a model
+entry with an unset key alone is not a credential.
 
 Vertex ADC and legacy Qwen OAuth files are checked for existence only, without
 reading their tokens. A missing explicit ADC file, external authentication,
@@ -401,9 +401,9 @@ or a Vertex configuration that might use metadata credentials remains
 follow [Google's documented lookup](https://docs.cloud.google.com/docs/authentication/application-default-credentials).
 Malformed, unreadable, oversized or unrecognized-version configuration and a
 query timeout also produce `unknown` with generic detail and no `configured`
-field. The missing field does not establish that configuration is absent. No key helper,
-Google credential client, token refresh or network request runs. The reader
-therefore declares `localOnly: true`.
+field. The missing field does not establish that configuration is absent. No
+key helper, Google credential client, token refresh or network request runs.
+The reader therefore declares `localOnly: true`.
 
 Only when no source is found in scope does it return `logged_out`. Its detail
 includes provider setup guidance and says that project settings, workspace

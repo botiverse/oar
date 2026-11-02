@@ -91,7 +91,7 @@ OAR's resume call:
 ```sh
 claude -p --input-format stream-json --output-format stream-json --verbose \
   --replay-user-messages --include-partial-messages \
-  --dangerously-skip-permissions --resume SESSION_ID
+  --resume SESSION_ID --dangerously-skip-permissions
 ```
 
 A new session passes `--session-id UUID` (OAR's `randomUUID()`) instead.
@@ -583,7 +583,7 @@ The listing process starts with hooks and MCP servers switched off
 (`--settings '{"disableAllHooks":true}' --strict-mcp-config --mcp-config
 '{"mcpServers":{}}'`; claude 2.1.x measured: without them a listing fires the
 user's SessionStart hooks and starts every configured MCP server before being
-killed — with them the answer is the same models, faster. User settings stay
+killed; with them the answer is the same models, faster. User settings stay
 loaded, so authentication is unaffected).
 [Catalog](../../packages/oar/src/runtimes/claude/list-models.ts),
 [readback probe](../../experiments/session-model-readback.ts),
@@ -1199,9 +1199,9 @@ uses a local OAuth stand-in and synthetic credentials. It verified browser
 suppression on Linux, Windows and macOS with 2.1.126 and 2.1.304. Linux and
 Windows also completed the login and status query; macOS login completion
 remains unverified in the CI keychain environment, as recorded in the probe.
-The Linux probe passed again on 2.1.312 (2026-10-28), including login
-completion and the failing-browser control
-([report](../../experiments/runtime-version-checks/2026-10-28.md#claude-21312)).
+The Linux controls, including login completion and the failing-browser
+control, last passed on 2.1.316 (2026-10-31,
+[report](../../experiments/runtime-version-checks/2026-10-31.md#claude-21316)).
 
 **Many claude processes on one machine share one login, and can lose it
 ([#402](https://github.com/botiverse/oar/issues/402)).** Every claude process
@@ -1299,15 +1299,17 @@ former only.
 ### Eight dimensions
 
 1. **Entry.** `claude -p --input-format stream-json --output-format stream-json
-   --verbose --replay-user-messages --include-partial-messages
-   --dangerously-skip-permissions` by default, or an explicit native permission
-   mode with `--permission-prompts none`; plus `--session-id <uuid>` (and `--name`)
-   or `--resume <id>`, and optional `--model`, `--effort` (then a
-   `get_settings` control request before the first turn), `--settings`
-   (service tier), `--json-schema`, `--system-prompt-file`,
-   `--append-system-prompt-file`, then the host's `launchArgs`, `--add-dir`,
-   `--mcp-config <file>` (for `SessionOptions.mcpServers`) and
-   `--disallowed-tools`. `CLAUDECODE` is cleared from
+   --verbose --replay-user-messages --include-partial-messages`, then
+   `--session-id <uuid>` (and `--name`) or `--resume <id>`, and optional
+   `--model`, `--effort` (then a `get_settings` control request before the
+   first turn) and one `--settings` object (service tier and
+   [user configuration](#user-configuration)); then
+   `--dangerously-skip-permissions` by default, or `--permission-prompts none`
+   with an explicit native permission mode; `--system-prompt-file`,
+   `--append-system-prompt-file`; `--setting-sources project,local
+   --strict-mcp-config` under `userConfiguration: "exclude"`; `--json-schema`;
+   then the host's `launchArgs`, `--add-dir`, `--mcp-config <file>` (for
+   `SessionOptions.mcpServers`) and `--disallowed-tools`. `CLAUDECODE` is cleared from
    the child environment, as is an inherited `CLAUDE_CODE_ENTRYPOINT` (an explicit
    host entrypoint wins). Prompts are `user` message lines on stdin. Present
    in 2.1.261 help but not on the session path:
@@ -1486,7 +1488,6 @@ whether anything ever collects `sessions/<pid>.json` or `session-env/<uuid>/`.
 [native-output]: https://code.claude.com/docs/en/agent-sdk/streaming-output
 [native-subagents]: https://code.claude.com/docs/en/agent-sdk/subagents
 [native-permissions]: https://code.claude.com/docs/en/agent-sdk/permissions
-[native-mcp]: https://code.claude.com/docs/en/agent-sdk/mcp
 [native-tool-result]: https://docs.claude.com/en/docs/agents-and-tools/tool-use/implement-tool-use
 
 ## Disallowed tools
@@ -1507,16 +1508,10 @@ Evidence and verification limits: [tool-denial audit](../../experiments/disallow
 
 `SessionOptions.launchArgs` go on claude's command line after OAR's own flags and before `--add-dir`, `--mcp-config` and `--disallowed-tools`. Each takes several values until the next argument that starts with `-`, so a bare host value (one that is neither a flag nor a flag's value) after them would be read as theirs. OAR refuses at open (`UnsupportedOptionError` on `launchArgs`) a flag it manages itself, whose use would break the session or be silently overridden: `--continue`/`-c` and `--session-id` (claude exits next to OAR's own session id), `--resume`/`-r` (use `SessionOptions.resume`), `--fork-session` (claude would run under a new id that `Session.id` does not report), `--permission-prompt-tool` (OAR has no interface for answering permission requests), `--print`/`-p`, `--input-format`, `--output-format`, and `--json-schema` (use `SessionOptions.outputSchema`), also in the `--flag=value` form ([#336](https://github.com/botiverse/oar/issues/336), [launch-args.ts](../../packages/oar/src/runtimes/claude/launch-args.ts)). Each argument is compared whole, so a flag's value that happens to equal one of these (`["--append-system-prompt", "-p"]`) is refused too; pass such text through the matching `SessionOptions` field instead. `--no-session-persistence` is allowed, but claude then keeps no transcript, so resuming the session later fails with `SessionNotFoundError`. Everything else passes unchecked: an unknown flag makes claude exit at once, so a fresh session without a readback can open with the exit as its first record; resume and settings readbacks reject at open if it exits before answering. Never recorded; give them again on resume. See [launch arguments](../spec/runtime-matrix.md#launch-arguments).
 
-`--permission-mode` accepts `default`, `dontAsk`, `acceptEdits` and `plan`,
-in separate-value or equals form. It replaces OAR's default bypass and
-forces `--permission-prompts none`. An explicit prompt target other than
-`none`, a missing/unknown mode, or a conflicting bypass flag is refused
-before spawn. See [permissions](#tools-permissions-and-extensions) for the
-native classifier and policy limits.
-
-**Resume must repeat the mode: omission restores OAR bypass.** The native
-init frame reports the actual mode after a turn starts; launch arguments
-are neither persisted nor reconstructed from transcript history.
+`--permission-mode` (`default`, `dontAsk`, `acceptEdits` or `plan`) replaces
+OAR's default bypass and forces `--permission-prompts none`; its refusals,
+limits and resume rule are under [permissions](#tools-permissions-and-extensions).
+**Resume must repeat the mode: omission restores OAR bypass.**
 
 ## Additional directories
 
@@ -1562,7 +1557,7 @@ present, not just whether `kind` is `completed`.
 With Claude 2.1.296 and a scripted provider, incorrect values exhausted native
 StructuredOutput retries and ended with `error_max_structured_output_retries`
 (`terminal_reason: structured_output_retry_exhausted`), mapped to
-`failed: unknown` with the native reason. A malformed schema instead made the
+`failed: output_schema` with the native reason. A malformed schema instead made the
 process exit; it did not produce a validated value. This is not a promise
 that every invalid schema fails at open.
 
@@ -1690,18 +1685,15 @@ credential in the original Keychain, and sent the new access token from a later
 fresh process without another refresh. Auth status remained logged in, and the
 same native session resumed in both modes. The fixture creates a disposable real
 Keychain and routes its child `security` commands to that file without replacing
-the default Keychain or search list. Its seeded account and child `USER` match;
-an earlier fixture revision had mismatched lookup accounts and failed before
-refresh. These controls distinguish that fixture error from the unavailable
-default-Keychain observation above. Other platforms retain the credential-file
-fixture. Setup errors fail the test, and token-reuse assertions remain strict.
+the default Keychain or search list; its seeded account matches the child
+`USER`. Other platforms retain the credential-file fixture. Setup errors fail the test, and token-reuse assertions remain strict.
 
 ## Orientation query costs
 
-`listModels()` starts a short-lived native print process and reads
-`initialize.supported_models`. It loads the current workspace's configuration,
-can start configured MCP servers, and can perform native account I/O. No model
-prompt is sent. `authStatus()` is not declared local: an expired OAuth record
+`listModels()` starts a short-lived native print process and sends the
+`list_models` control request ([catalog](#models-instructions-and-context)).
+It loads the current workspace's configuration with hooks and MCP servers
+switched off, and can perform native account I/O. No model prompt is sent. `authStatus()` is not declared local: an expired OAuth record
 can trigger network refresh. Explicit orientation `account` depth also reads
 usage, which can execute the configured `apiKeyHelper`; native auth status alone
 did not execute that helper in the Linux 2.1.309 control. Local orientation

@@ -14,10 +14,9 @@ at `319fa4b8`, the commit that added the `POST /topics` this adapter needs
 (reviewed 2026-10-04), its [Runtime API guide](https://github.com/quailyquaily/mistermorph/blob/master/docs/runtime-api.md)
 and the Control OpenAPI document beside it. Live observations come from a
 `morph dev` build's Console, profile `codex` (`gpt-5.6-luna`), 2026-10-04,
-through [`experiments/morph-runtime-probe.ts`](../../experiments/morph-runtime-probe.ts).
-The shared behavior suite and `live-contract.ts` have **not** been run
-against a real Console; see [evidence](#evidence-and-verification). Versions are evidence baselines, not a
-support range.
+through [`experiments/morph-runtime-probe.ts`](../../experiments/morph-runtime-probe.ts)
+([evidence](#evidence-and-verification)). Versions are evidence baselines,
+not a support range.
 
 ## Native concepts and calling interfaces
 
@@ -71,8 +70,8 @@ images: false }`; the session has `steer` and `withdraw`.
 
 ### Open, resume and release
 
-Morph keeps its existing Console attachment and sharing policy, outside the
-new runtime-instance process pool. `Session.placement` is `null`, its stream
+Morph keeps its own Console attachment and sharing policy, outside OAR's
+runtime process pool. `Session.placement` is `null`, its stream
 has no `open`/`opened` pair, and explicit `withPlacement("shared")` or
 `withPlacement("isolated")` requests are refused. An isolated process must not
 be claimed for a session that actually shares or borrows a Console.
@@ -183,8 +182,10 @@ Context fullness is the topic metadata above.
 Refused at open (`refusedSessionOptions`): `systemPrompt` and
 `appendSystemPrompt` (no override on the API); `env` and `launchArgs` (tools
 run inside the Console process, which the session neither starts nor owns);
-`mcpServers` (no known per-session channel); and `name` (no known session
-name setting). Because it
+`mcpServers` (no known per-session channel); `name` (no known session
+name setting); `goals: true` (no structured native goal controls); and
+`userConfiguration: "exclude"` (the Console process is shared, and no
+per-session exclusion of user configuration is verified). Because it
 refuses `env`, morph cannot be an `oar mcp` subagent. Images are not
 supported (`capabilities.images: false`); the API's `file_references` upload
 path is not used.

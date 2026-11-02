@@ -11,43 +11,42 @@ Evidence baseline: OAR source as of 2026-09-11; bundled
 OAR depends on both at `^1.4.0`. Native source references are pinned to pi
 **v0.84.2** (commit prefix `914cf1472`; former `badlogic/pi-mono` URLs
 redirect to `earendil-works/pi`). Live observations below are from SDK
-**0.84.2** unless they name a version or date (the bundled SDK moved to 0.87.1
-on 2026-09-29, 0.99.1 on 2026-09-30, 0.99.2 on 2026-10-01, 1.0.0 on
-2026-10-02, 1.0.2 on 2026-10-04, 1.0.3 on 2026-10-05, 1.0.4 on 2026-10-06,
-1.1.0 on 2026-10-08, 1.2.0 on 2026-10-13, 1.3.0 on 2026-10-16 and 1.4.0 on
-2026-10-22): in-process
-runs of [`experiments/live-contract.ts pi`](../../experiments/live-contract.ts)
+**0.84.2** unless they name a version or date (the bundled SDK moved to
+0.87.1 on 2026-09-29, then 0.99.1 on 09-30, 0.99.2 on 10-01, 1.0.0 on 10-02,
+1.0.2 on 10-04, 1.0.3 on 10-05, 1.0.4 on 10-06, 1.1.0 on 10-08, 1.2.0 on
+10-13, 1.3.0 on 10-16 and 1.4.0 on 10-22): in-process runs of [`experiments/live-contract.ts pi`](../../experiments/live-contract.ts)
 and the [experiments index](../../experiments/README.md) probes against
 `openai-codex/gpt-5.3-codex-spark` (codex OAuth through pi; every assistant
 frame carries `provider: "openai-codex"`, `api: "openai-codex-responses"`) on
 Node 26.7 / macOS. Versions are evidence baselines, not a support range; see
 the [runtime index](README.md) for conventions.
 
-**Upgrade checks.** The newest live runs are on SDK 1.0.0, 1.0.2, 1.0.3 and
-1.0.4 (2026-10-02 to 10-06; Linux x64, Node 24.19.0,
-`exe-dev-openai/gpt-6-luna@llm`): each time all 11 applicable live cases
-passed (subagents and process killing inapplicable; on 1.0.4 `tool-detail`
-passed on a targeted retry after an upstream overload response), and so did
-the eight applicable vendor tests and the 19-case simulated-provider behavior
-suite (withdrawal included; only inapplicable cases skipped). 1.1.0 through
-1.4.0 were checked against local scripted providers only; on 1.4.0, 63
-native tests and the shared behavior suite (17 passed, 2 skipped) cover
-native controls, extension lifecycle and tool handling. At every upgrade
-from 0.99.2 to 1.0.0 through 1.3.0 to 1.4.0, a separate-process probe
+**Upgrade checks.** The newest live runs are on SDK 1.0.0 through 1.0.4
+(latest 2026-10-06; Linux x64, Node 24.19.0, `exe-dev-openai/gpt-6-luna@llm`):
+each time all 11 applicable live cases passed (subagents and process killing
+inapplicable; on 1.0.4 `tool-detail` passed on a targeted retry after an
+upstream overload response), as did the eight applicable vendor tests and
+the 19-case simulated-provider behavior suite (withdrawal included; only
+inapplicable cases skipped)
+([October 6 report](../../experiments/runtime-version-checks/2026-10-06.md)).
+1.1.0 through 1.4.0 were checked against local scripted providers only; on
+1.4.0, 63 native tests and the shared behavior suite (17 passed, 2 skipped)
+cover native controls, extension lifecycle and tool handling
+([October 22 report](../../experiments/runtime-version-checks/2026-10-22.md)).
+At every upgrade from 0.99.2 through 1.4.0, a separate-process probe
 ([`pi-upgrade-resume.ts`](../../experiments/pi-upgrade-resume.ts)) resumed a
 session created by the previous SDK: native id, saved model and prior
 transcript survived, and the new OAR stream started at sequence zero. This
 checks conversation continuity, not unfinished execution recovery. None of
 these upgrades adopts the separate experimental [Pi Durable](pi-durable.md)
-harness. Scope, commands and evidence: version check reports of
+harness. Scope, commands and evidence for the earlier upgrades: version
+check reports of
 [October 2](../../experiments/runtime-version-checks/2026-10-02.md),
 [4](../../experiments/runtime-version-checks/2026-10-04.md),
 [5](../../experiments/runtime-version-checks/2026-10-05.md),
-[6](../../experiments/runtime-version-checks/2026-10-06.md),
 [8](../../experiments/runtime-version-checks/2026-10-08.md),
-[13](../../experiments/runtime-version-checks/2026-10-13.md),
-[16](../../experiments/runtime-version-checks/2026-10-16.md) and
-[22](../../experiments/runtime-version-checks/2026-10-22.md).
+[13](../../experiments/runtime-version-checks/2026-10-13.md) and
+[16](../../experiments/runtime-version-checks/2026-10-16.md).
 
 **Azure migration in 1.0.3:** the native provider was renamed from
 `azure-openai-responses` to `azure`. Update the native auth, model and
@@ -161,9 +160,9 @@ withdrawal instead of using native `clear_queue` (which clears everything).
 The same factory object accepts `execution`, `command`, `args`,
 `projectTrusted`, and `allowProjectPackageInstall`. The subprocess uses native
 `--approve` by default and `--no-approve` for `projectTrusted: false`. These are
-per-process overrides, not persistent trust grants. Like the SDK path, opening
-a cwd with the default trust can execute its Pi extensions. Package installation
-requires the explicit policy described below. The child receives the
+per-process overrides, not persistent trust grants; trust and package policy
+are the same as on the SDK path
+([project trust](#project-trust-and-package-installation)). The child receives the
 session environment, including removals, so provider variables and MCP children
 are isolated from the host. This is broader than the SDK's bash/MCP-only env
 overlay. OAR passes `--no-mcp` and supplies session MCP servers through a small
@@ -176,8 +175,9 @@ private files or RPC stdout. These pipe and model-switch checks run on Linux,
 macOS and Windows. The child uses Pi's own
 `registerMcpServer`; collisions with user registrations still fail natively.
 Neither location exposes arbitrary inline extension factories or custom tools.
-Unsupported session options remain typed refusals; RPC additionally refuses
-`launchArgs` so startup flags cannot contradict checked options.
+Unsupported session options remain typed refusals. Both locations refuse
+`launchArgs`; in RPC, OAR owns the startup arguments so that flags cannot
+contradict checked options.
 
 Resume differences are explicit:
 
@@ -821,9 +821,9 @@ lifecycle, and adds no dependency. Measured on the bundled pi-coding-agent
   user's) already registered fails the open ("pi did not register the
   session's MCP servers: ... already registered") rather than run without
   the server.
-- pi resolves `env` and header values (`!cmd` runs a shell command, `$NAME`
-  and `${NAME}` interpolate); OAR escapes every `$` and `!` (`$$`, `$!`) so
-  each value reaches the server literally (the unit test round-trips pi's
+- pi resolves `env` and header values (a leading `!cmd` runs a shell command,
+  `$NAME` and `${NAME}` interpolate); OAR escapes every `$` to `$$` and a
+  leading `!` to `$!` so each value reaches the server literally (the unit test round-trips pi's
   resolver). pi expands a leading `~` in `command` and `args`.
 - A stdio server gets the host's environment, then `SessionOptions.env`, then
   the entry's `env` (pi-mcp's `StdioTransport` inherits `process.env`).
@@ -904,7 +904,7 @@ the pi-ai its own import resolves to, and pi-coding-agent runs sessions on
 the pi-ai it resolves to. A package manager can resolve pi-ai twice at the
 same version when the optional peers of its `openai` dependency resolve
 differently in the two places, `undici` above all: pi-coding-agent pins
-`undici` (8.10.2 in pi 1.2.0 and 1.3.0, and OAR pins the same), so a host
+`undici` (8.10.2 in pi 1.2.0 through 1.4.0, and OAR pins the same), so a host
 that depends on another `undici` gets a second pi-ai copy for its own imports. The bundle
 then carries two copies, the hand-over lands on the one no session uses, and
 every OAuth turn fails with "Cannot find module" again
@@ -1133,7 +1133,7 @@ extension binding.
 
 ## Launch arguments
 
-`SessionOptions.launchArgs` is refused with `UnsupportedOptionError`: pi runs in the host process through its SDK, so a session has no command line. See [launch arguments](../spec/runtime-matrix.md#launch-arguments).
+`SessionOptions.launchArgs` is refused with `UnsupportedOptionError`: on the default SDK path pi runs in the host process, so a session has no command line; with `execution: "subprocess"` OAR owns Pi's RPC startup arguments. See [launch arguments](../spec/runtime-matrix.md#launch-arguments).
 
 ## Additional directories
 

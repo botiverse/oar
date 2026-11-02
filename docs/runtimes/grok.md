@@ -31,23 +31,33 @@ prompt-options probe against local scripted providers, without a real login.
 
 ## Shared launch, ownership and cleanup
 
-Grok **does not share**, including 1.0.70. `auto` always opens an independent
-process; explicit `shared` rejects with `UnsupportedOptionError`, option
-`placement`. [Native cwd controls](../../experiments/sharing/execution-environment-2026-10-31.md)
+Grok product sharing is refused, including 1.0.70: `grokRuntime` always opens
+an independent process under `auto`, and explicit `shared` rejects with
+`UnsupportedOptionError`, option `placement`
+([admission](../../packages/oar/src/runtimes/grok/sharing-admission.ts)).
+Explicit `isolated` is unchanged.
+[Native cwd controls](../../experiments/sharing/execution-environment-2026-10-31.md)
 show stdio MCP servers starting in the shared process HOME rather than the
-session directory. The user-configuration control also reproduces it with an empty
-`SessionOptions.mcpServers`; native configuration is not limited to those
-session entries. OAR does not try
-to predict that native configuration. HTTP-only session options therefore
-cannot establish eligibility either. Explicit `isolated` is unchanged.
+session directory. The user-configuration control also reproduces it with an
+empty `SessionOptions.mcpServers`; native configuration is not limited to
+those session entries. OAR does not try to predict that native configuration,
+so HTTP-only session options cannot establish eligibility either. Default
+pull-request CI retains synthetic regressions and public placement refusal
+tests; it does not exercise candidate sharing.
 
-The following describes the **experimental adapter**, used only by manual
-controls. Its installation gate accepts exact stable 1.0.70, both npm's
+### Experimental shared adapter
+
+The rest of this section describes the **experimental adapter**
+(`createGrokSharedSession`), used only by manual controls: the
+[candidate](../../experiments/sharing/grok-candidate.ts) and the manual
+`grok-sharing-experiment.yml` workflow. None of it overrides the production
+refusal.
+
+Its installation gate accepts exact stable 1.0.70, both npm's
 `grok 1.0.70 (<commit>)` and the installer's optional `[stable]` suffix. Other
 channel suffixes are refused. Each process independently reports
 `initialize._meta.agentVersion: "1.0.70"` before session open. Experimental
-platforms are Linux x64, macOS arm64 and Windows x64. These checks do not
-override the production refusal.
+platforms are Linux x64, macOS arm64 and Windows x64.
 
 The shared process starts in effective `HOME` (`USERPROFILE` on Windows,
 otherwise Node's home fallback) with `agent --always-approve --no-leader stdio`.
@@ -67,19 +77,19 @@ variables and its lifetime directory reservation do not apply to Grok.
 On Windows, every absolute path must include a drive (`C:\...`) or a UNC
 server/share; root-relative `\tools\grok.exe`, drive-relative `C:grok.exe`
 and `HOME=\Users\x` are refused. A pnpm-injected `./node_modules/.bin`
-PATH entry also prevents sharing in the experimental adapter.
-All stdio MCP session entries are refused by that adapter under explicit
-`shared` and fall back under `auto`, even if command and arguments are
-absolute. Script behavior can depend on cwd without a relative argument.
-Its HTTP controls remain possible in disposable configuration only.
+PATH entry also prevents sharing. All stdio MCP session entries are refused
+under explicit `shared` and fall back under `auto`, even if command and
+arguments are absolute. Script behavior can depend on cwd without a relative
+argument. Its HTTP controls remain possible in disposable configuration only.
 
-Concurrent roots may use the **same directory**, including after another
-root releases it in the experimental controls. Earlier observations include same-directory MCP and release
-controls in runs 41149607090 and 41157633349, plus the latter's external
-`grok --trust` grant and cross-directory user/project hook controls. Later
-sessions match a new isolated process's configuration. Existing A retains its
-old user hook in both cohorts. These are exact-version/platform conclusions,
-not sufficient for admission after the stdio MCP cwd counterexample. See the
+In the experimental controls, concurrent roots may use the **same
+directory**, including after another root releases it. Observations include
+same-directory MCP and release controls in runs 41149607090 and 41157633349,
+plus the latter's external `grok --trust` grant and cross-directory
+user/project hook controls. Later sessions match a new isolated process's
+configuration. Existing A retains its old user hook in both cohorts. These are
+exact-version/platform conclusions, not sufficient for admission after the
+stdio MCP cwd counterexample. See the
 [admission report](../../experiments/sharing/admission-2026-10-31.md).
 
 Only `_x.ai/session_notification` with `subagent_spawned` and explicit
@@ -116,13 +126,12 @@ process-table preparation, fresh identity observations and shutdown budgets.
 It records one `exited` after cleanup; it does not claim unverified descendants
 were killed. A native crash reaches every attached session once.
 
-The manual `grok-sharing-experiment.yml` workflow exercises the candidate adapter with real 1.0.70 and a local model: same-directory
-behavior, shared/isolated lifecycle controls, model/MCP separation, child
-arrival timing, cancellation, both roots' live terminal trees, directory
-reuse, final-lease exit and resume. The native lifecycle control asserts that routing emits no `conflict` or
-`expired` diagnostics. Default pull-request CI retains synthetic regressions
-and public placement refusal tests; it does not exercise candidate sharing.
-`grokRuntime` always opens isolated sessions under `auto` and refuses `shared`.
+The manual workflow exercises the candidate adapter with real 1.0.70 and a
+local model: same-directory behavior, shared/isolated lifecycle controls,
+model/MCP separation, child arrival timing, cancellation, both roots' live
+terminal trees, directory reuse, final-lease exit and resume. The native
+lifecycle control asserts that routing emits no `conflict` or `expired`
+diagnostics.
 
 ## Native concepts and calling interfaces
 
@@ -771,8 +780,9 @@ HTTP credential shapes and notifications before and after session opening.
 ### Process ownership, release, installation, and account usage
 
 Native ACP advertises session close. **Mapped:** OAR owns the spawned
-process. In isolated placement, disposal cancels active work and attempts `session/close` when
-advertised (2-second deadline), kills its process, and disposes hosted
+process; product sessions are always isolated
+([shared launch](#shared-launch-ownership-and-cleanup)). Disposal cancels
+active work, attempts `session/close` when advertised (2-second deadline), kills its process, and disposes hosted
 terminals. On POSIX the process and each hosted terminal command lead their
 own process groups, so OAR's signals reach what they started (a shell line's
 children too). The runtime gets SIGTERM, then SIGKILL if it is still running
@@ -790,7 +800,7 @@ controllers. The environment overlay applies to the child process and to
 hosted terminals. A `null` entry removes an inherited variable from both
 ([environment contract](../spec/runtime-matrix.md#session-environment)).
 
-On Windows, the shared ACP session uses `taskkill /T /F` for disposal and
+On Windows, OAR's common ACP session code uses `taskkill /T /F` for disposal and
 the abort fallback, so termination reaches the runtime behind its launcher
 and its descendants ([test](../../tests/session-dispose.test.ts)).
 See [host-exit cleanup and limits](../spec/record-stream.md#the-rules).
@@ -862,8 +872,8 @@ attachment and load-fallback code effects; the `skills-reload` response's
 payload; the [sym]-only vendor methods; [session MCP
 servers](#session-mcp-servers) on a real login and model (measured against
 a scripted provider only; their vendor test and the shared behavior suite
-run in CI with `OAR_TEST=grok-aimock`, pinned to Grok 1.0.70 on Linux,
-macOS, with Windows main-push observations; [scope and evidence](../../experiments/acp-ci-2026-10-29.md)). Design should distinguish restoring
+run in CI with `OAR_TEST=grok-aimock`, pinned to Grok 1.0.70;
+[scope and evidence](../../experiments/acp-ci-2026-10-29.md)). Design should distinguish restoring
 context, replaying observations, and adopting live execution; the Session
 OAR returns does not imply all three.
 

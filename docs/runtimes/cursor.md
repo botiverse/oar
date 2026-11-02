@@ -18,29 +18,21 @@ Current required SDK: **1.2.0**, the exact optional peer version. Hosts
 using Cursor install that version alongside OAR; the CLI installs it itself.
 The pin matches CI and does not promise support for older SDKs. The SDK
 also requires a Zod peer (`^3.25.0 || ^4.0.0`); this workspace resolves 4.4.3.
-The [compaction probe](../../experiments/cursor-compaction.md) records 1.2.0's
-dual-stream behavior, the adapter's live checks and an initial late-abort
-failure followed by an unchanged successful rerun.
 On **1.2.0** (2026-10-28; Linux x64, Node 24.19.0, `gpt-5.4-nano`,
-reusing an existing login), existing interfaces were compatible: all 12
-applicable live session scenarios and three root tool-selection scenarios
-passed; `kill-runtime` remains skipped.
-All 11 local login/logout scenarios passed. The four configuration-source
-controls passed after the probe learned to observe the SDK's new
-`FileHandle.readFile` path; the initial failures and unchanged recheck are
-retained in the [October 28 report](../../experiments/runtime-version-checks/2026-10-28.md#cursor-120).
-
-Since SDK 1.1.0, its `toTokenUsage` and `sumTokenUsage` formulas add only
-input and output. OAR follows that accounting and no longer adds cache
-reads or writes to `inputTokens` again; cache parts remain separate. The
-1.1.0 and 1.2.0 native samples confirm nonzero cache reads are included;
-nonzero cache writes remain source-backed and synthetically tested only.
-This does not establish whether 1.0.40's native input field had different
-semantics. Earlier observations remain in the
-[October 27 report](../../experiments/runtime-version-checks/2026-10-27.md#cursor-110),
-[October 21 report](../../experiments/runtime-version-checks/2026-10-21.md#cursor-1040),
-[October 17 report](../../experiments/runtime-version-checks/2026-10-17.md)
-and [October 8 report](../../experiments/runtime-version-checks/2026-10-08.md).
+reusing an existing login), all 12 applicable live session scenarios and
+three root tool-selection scenarios passed; `kill-runtime` remains skipped
+([October 28 report](../../experiments/runtime-version-checks/2026-10-28.md#cursor-120)).
+With the compaction adapter the live battery passed again, `abort` on an
+unchanged rerun ([compaction probe](../../experiments/cursor-compaction.md#validation-and-retained-failure)).
+Since SDK 1.1.0, whose totals count cache reads and writes as part of
+`inputTokens`, OAR no longer adds them to input again, so Cursor `input` can
+be smaller than in earlier OAR releases; whether 1.0.40's native input field
+had different semantics is not established
+([usage](#observation-children-and-history)). Earlier baselines:
+[1.1.0](../../experiments/runtime-version-checks/2026-10-27.md#cursor-110),
+[1.0.40](../../experiments/runtime-version-checks/2026-10-21.md#cursor-1040),
+[1.0.38](../../experiments/runtime-version-checks/2026-10-17.md#cursor-1038),
+[1.0.37](../../experiments/runtime-version-checks/2026-10-08.md).
 
 ## Native concepts and calling interfaces
 
@@ -76,12 +68,13 @@ OAR reads out of it. Control calls are request/response record pairs.
 | Local agent | `Session.id` is the `agentId`; `SessionOptions.resume` reopens it with `Agent.resume`. |
 | Agent state after open | One `cursor/agent_opened` frame with the `model` (and `effort`) the SDK holds. |
 | Run | A turn: a prompt is one `send`; `run.wait()`'s answer is the `cursor/run_result` frame carrying `turn_ended`. |
-| Updates | One frame per update; a subagent's updates arrive inside its `task` call and are attributed to it (`agentPath`, tier `attributed`). |
+| Updates | One frame per `onDelta` update, and one `cursor/stream/<type>` frame per `run.stream()` message ([compaction](#observation-children-and-history)); a subagent's updates arrive inside its `task` call and are attributed to it (`agentPath`, tier `attributed`). |
 | Steer, queue, abort | `run.steer`; an adapter-held queue sent as the next run; `run.cancel`. |
 | `Cursor.auth` | `login` is `Cursor.auth.login` (the URL relayed, the SDK polls), `logout` is `Cursor.auth.logout` (local only: the minted key is not revoked), `authStatus` is `Cursor.auth.status` ([login](#login), [logout](#logout)). |
 
 Sources: [session](../../packages/oar/src/runtimes/cursor/session.ts),
 [projection](../../packages/oar/src/runtimes/cursor/projection.ts),
+[run observation](../../packages/oar/src/runtimes/cursor/run.ts),
 [model selection](../../packages/oar/src/runtimes/cursor/model.ts),
 [SDK surface](../../packages/oar/src/runtimes/cursor/sdk.ts).
 
@@ -109,15 +102,15 @@ without `SessionOptions.model` OAR reopens with the model of the agent's
 latest run (`Agent.listRuns`), or `default` when it has none. The next prompt
 recalls what was taught before disposal (`resume`).
 
-A cross-version check on October 28 created an agent and completed a turn
-with SDK 1.0.40, then resumed it in a separate SDK 1.1.0 process without
-specifying a model. The agent id, original run and `gpt-5.4-nano` selection
-were preserved, and the second turn recalled a random marker absent from
-its prompt [env]. The two bundles have identical agent/run and checkpoint
-SQL schemas; the checkpoint database sets `user_version = 1` in both [src].
-The agent index does not explicitly set that pragma. The same schema
-statements were also found in 1.2.0, but this is not a rollback guarantee.
-[Probe and evidence](../../experiments/runtime-version-checks/2026-10-28.md#sdk-1040-to-110-resume).
+Across an SDK upgrade (2026-10-28): an agent created and run on 1.0.40
+resumed in a separate 1.1.0 process without a model, keeping its id,
+original run and `gpt-5.4-nano` selection, and the second turn recalled a
+random marker absent from its prompt [env]. The two bundles have identical
+agent/run and checkpoint SQL schemas, and the checkpoint database sets
+`user_version = 1` in both; the agent index does not explicitly set that
+pragma [src]. 1.2.0 has the same schema statements. The live test was 1.0.40
+to 1.1.0 only and is not a rollback guarantee
+([probe and evidence](../../experiments/runtime-version-checks/2026-10-28.md#sdk-1040-to-110-resume)).
 
 An SDK `agent_not_found` error from either the run lookup or `Agent.resume`
 becomes `SessionNotFoundError`, retaining the requested `sessionId` and a
@@ -233,21 +226,22 @@ conversation is kept.
 a steer or on the call's own `timeout`, and the SDK arms a 24 hour hard
 timeout for it. SDK 1.0.38 hands the backgrounded shell an `onCleanup` that
 clears the timer when the command completes or is aborted (`748.js`). Live
-on 1.0.38 (2026-10-17, model `gpt-5.4-nano`), in the tool-timeout case, the
-steer case, and with `agent.close()` while a backgrounded `sleep 121` was
-still running, each process exited about one second after `agent.close()`,
-which aborted the backgrounded command, and no `sleep` was left. `oar run`
-still exits explicitly after disposal.
+on 1.0.38 ([2026-10-17](../../experiments/runtime-version-checks/2026-10-17.md#cursor-1038),
+model `gpt-5.4-nano`), in the tool-timeout case, the steer case, and with
+`agent.close()` while a backgrounded `sleep 121` was still running, each
+process exited about one second after `agent.close()`, which aborted the
+backgrounded command, and no `sleep` was left. `oar run` still exits
+explicitly after disposal.
 
 SDK 1.0.35 to 1.0.37 never clear that timer, neither at the command's end
-nor on `agent.close()` (the shell executor's `hardTimeout`, in the bundled
-`689.js`, `867.js` and `464.js` of those versions), and it is not unref'd,
-so after such a turn the host process does not exit on its own, even with
-every session disposed: hosts still on those SDKs need to exit explicitly
-when meant to end. Probed on SDK 1.0.35 (2026-10-04): a `sleep 20` that a 3
-second tool timeout moved to the background left one 86400000 ms timer, and
-`oar run` was still running 150 seconds after `[turn completed]` until it
-exited explicitly. Reported upstream on 2026-10-07
+nor on `agent.close()` (the shell executor's `hardTimeout`, in their bundled
+`689.js`, `867.js` and `464.js`), and do not unref it, so after such a turn
+the host process does not exit on its own, even with every session
+disposed: hosts still on those SDKs need to exit explicitly when meant to
+end. Probed on SDK 1.0.35 (2026-10-04): a `sleep 20` that a 3 second tool
+timeout moved to the background left one 86400000 ms timer, and `oar run`
+was still running 150 seconds after `[turn completed]` until it exited
+explicitly. Reported upstream on 2026-10-07
 ([forum post](https://forum.cursor.com/t/cursor-sdk-1-0-35-and-1-0-36-a-backgrounded-shell-call-keeps-the-node-process-alive-for-24-hours/173928));
 Cursor reproduced it the same day and called it unintended.
 
@@ -277,35 +271,36 @@ child's is unverified. `token-delta`, `thinking-completed`,
 `shell-output-delta` are recorded with no events. No update reports context
 occupancy, so `contextUsage()` stays empty.
 
-**Compaction (SDK 1.2.0):** OAR concurrently drains `run.stream()` to capture
-summary statuses absent from `onDelta`. Each message is retained verbatim
-as `cursor/stream/<type>`. A summary's `running` status becomes
-`compaction_started`, `completed` becomes `compaction_ended: completed`,
-and `error` becomes `compaction_ended: failed`. Other stream messages have no
-projected events, so text, tools and usage remain counted once through
-`onDelta`. Unknown summary statuses stay raw. No trigger or failure reason
-is reported; `fallback` stays native and means a trimmed transcript was saved
-[src]. It still counts as completed compaction.
+**Compaction (SDK 1.2.0):** OAR concurrently drains `run.stream()` for the
+summary statuses `onDelta` omits, retaining each message verbatim as a
+`cursor/stream/<type>` frame. A summary's `running` status becomes
+`compaction_started`, `completed` becomes `compaction_ended: completed`, and
+`error` becomes `compaction_ended: failed`; unknown summary statuses stay
+raw. Other stream messages add no events, so text, tools and usage are
+counted once, through `onDelta`. No trigger or failure reason is reported.
+`fallback` stays native and means a trimmed transcript was saved [src]; it
+still counts as completed compaction. Cancellation can end the run with only
+a summary start observed; OAR adds no compaction end in that case.
 
-Each view preserves its own internal order. The merged frames retain OAR's
-reception order; no global native order is guaranteed between the two views.
-After `run.wait()` settles, OAR allows the iterator up to two seconds to drain
-before recording the run result and sending queued input. This is an adapter
-budget for the local buffer tail, below the five-second disposal wait, not an
-SDK guarantee. The initial native probe measured tail gaps of 0, 1 and 0 ms
-at millisecond resolution. An unclosed iterator produces `cursor/stream_unclosed`
-with `timeoutMs: 2000` and no events. OAR stops consuming it, requests its
-`return()` without waiting and ignores any pending read's late value or error.
-An iterator error is retained as `cursor/stream_failed`, using the same bounded,
-first-line token redaction as Cursor authentication diagnostics, without
-replacing the native run outcome. Cancellation
-can end the run with only a summary start observed; OAR adds no compaction
-end in that case. Disposal keeps its existing five-second wait for run
-settlement; late runs are still cancelled and observed with the same tail bound.
-See the [probe and evidence boundaries](../../experiments/cursor-compaction.md)
-for native success/cancellation, source-only error/fallback evidence and the
-adapter regressions. Automatic context-threshold compaction was not forced
-in the live probe; the native manual method was only its trigger.
+Each view preserves its own internal order; the merged frames keep OAR's
+reception order, with no global native order guaranteed between the views.
+After `run.wait()` settles, OAR allows the iterator up to two seconds to
+drain before recording the run result and sending queued input: an adapter
+budget for the local buffer tail, below the five-second disposal wait, not
+an SDK guarantee (the first native probe measured tail gaps of 0, 1 and 0 ms
+at millisecond resolution). An unclosed iterator then produces
+`cursor/stream_unclosed` with `timeoutMs: 2000` and no events; OAR stops
+consuming it, requests its `return()` without waiting and ignores any
+pending read's late value or error. An iterator error is retained as
+`cursor/stream_failed`, with the same bounded, first-line token redaction as
+Cursor authentication diagnostics, without replacing the native run outcome.
+Disposal keeps its five-second wait for run settlement; late runs are still
+cancelled and observed with the same tail bound. The
+[probe and evidence boundaries](../../experiments/cursor-compaction.md) cover
+native success and cancellation, source-only error and fallback evidence,
+and the adapter regressions ([tests](../../tests/cursor/cursor-compaction.test.ts)).
+The live probe triggered compaction only through the native manual
+`Agent.summarize()`; automatic context-threshold compaction was not forced.
 
 `shell-output-delta` is separate from model tool calls. In SDK 1.0.37,
 its `{event: {case: "stdout" | "stderr", value: {data}}}` carries no
@@ -386,10 +381,11 @@ Cursor runs its own tools in the host process tree; no request reaches the
 application, and none of the scenarios asked for permission. OAR opens every
 agent with the SDK's sandbox off (`sandboxOptions.enabled: false`), as every
 OAR session runs by default; otherwise a `~/.cursor/sandbox.json` would turn
-one on. OAR sets no `settingSources`, so the SDK's default decides which of
-the user's and project's Cursor settings the agent loads. Measured only
-against a hand-scripted stand-in for Cursor's backend, that default read
-neither `~/.cursor/mcp.json` nor the project's `.cursor/mcp.json`
+one on. Unless `userConfiguration` is `"exclude"`
+([user configuration](#user-configuration)), OAR sets no `settingSources`,
+so the SDK's default decides which of the user's and project's Cursor
+settings the agent loads. Measured only against a hand-scripted stand-in for
+Cursor's backend, that default read neither MCP file
 ([session MCP servers](#session-mcp-servers)); rules were not part of that
 measurement.
 
@@ -405,8 +401,9 @@ refuses to spawn a cursor child.
 **Native companion:** the agent's ripgrep and tree-sitter shell parser come
 from `@cursor/sdk-<platform>-<arch>`, which the SDK finds by walking up from
 the host's entry script. OAR does not modify `process.env` while loading it.
-SDK 1.1.0 exposes no per-local-agent environment or native-package-path
-option; its bundle reads these variables directly from the host environment.
+SDK 1.2.0, like 1.1.0, exposes no per-local-agent environment or
+native-package-path option; its bundle reads these variables directly from
+the host environment [src].
 
 A host using a non-hoisted pnpm layout, a bundled entry, or a single executable
 whose platform package is outside that search path must ship the platform
@@ -418,17 +415,16 @@ package and set these absolute paths before loading the SDK:
 OAR exports `cursorNativeEnvironment()`, a pure helper that resolves these
 paths from the SDK's own package location, including pnpm layouts. It returns
 `null` when the packages cannot be resolved, and neither loads the SDK nor
-changes the environment. A host can explicitly apply its result at startup:
+changes the environment. A host can explicitly apply its result at startup,
+and decides whether to replace existing values with these discovered paths;
+a bundled deployment whose packages cannot be resolved must supply its own
+absolute paths:
 
 ```ts
 import { cursorNativeEnvironment } from "@botiverse/oar";
 
 Object.assign(process.env, cursorNativeEnvironment() ?? {});
 ```
-
-The host decides whether to replace existing values with these discovered
-paths. A bundled deployment whose packages cannot be resolved must supply
-its own absolute paths.
 
 The SDK ignores relative values. Without a discoverable tree-sitter package,
 its shell parser warns `shell-parser: tree-sitter natives are unavailable in
@@ -439,13 +435,13 @@ a configured or discovered ripgrep executable, the bundle's accessor throws
 `Ripgrep path not configured. Call configureRipgrepPath() at startup.`; a
 configured but nonexistent executable can fail when native process startup
 attempts to use it. These are SDK failures, not an OAR validation result.
+The variable selection and error text were checked in the 1.0.40 bundle;
+the earlier real-turn comparison used Ferry CLI 0.1.35 on October 4, and no
+account-backed tool run followed this loader change.
 
-Hosts that previously relied on OAR to set these paths must now configure
-them at process startup or use a layout the SDK discovers itself. This is a
-host-visible migration, especially for bundled SDKs. The variable selection
-and error text above were checked in the 1.0.40 bundle; the earlier real-turn
-comparison used Ferry CLI 0.1.35 on October 4. No new account-backed tool run
-was performed for this loader change.
+Earlier OAR releases set these paths while loading the SDK. Hosts that
+relied on that must now configure them at process startup or use a layout
+the SDK discovers itself, especially with bundled SDKs.
 
 ### Session MCP servers
 
@@ -579,11 +575,11 @@ account; a status that reads logged out is `not_logged_in`.
 `CURSOR_API_KEY` comes first: the SDK uses it before the stored login for
 every call (an explicit key, then the variable, then the stored key), and
 `status()` ignores it. When the variable is present, including an empty value,
-OAR's `authStatus` returns `unknown` with
-`configured: ["environment: CURSOR_API_KEY"]` and explains that native status
-neither reads nor validates the key sessions will use. Failed or unreadable
-status queries omit `configured`. It does not attach the stored
-login's email or expiry. A login started while the variable is set adds an `info`
+OAR's `authStatus` returns `unknown` without loading the SDK, with
+`configured: ["environment: CURSOR_API_KEY"]`, and explains that native
+status neither reads nor validates the key sessions will use. It does not
+attach the stored login's email or expiry. Failed or unreadable status
+queries omit `configured`. A login started while the variable is set adds an `info`
 event saying that the variable wins until it is unset; its value is never
 read. A key stored against another backend (`CURSOR_BACKEND_URL`) also reads
 `logged-in`, though the SDK uses it only against that backend. The SDK's own
@@ -591,9 +587,9 @@ warning when a backend has no `POST /auth/poll` (it falls back to `GET`) goes
 to the host's stderr, out of OAR's reach; it names the backend, not the
 verifier.
 
-The required `@cursor/sdk` version is 1.2.0, the exact peer dependency. An SDK handed
-over without `Cursor.auth` and `FileCredentialStore` makes the login
-`unsupported` / `version_unsupported` and the status `unknown`; an
+An SDK handed over without `Cursor.auth` or `FileCredentialStore` makes the
+login `unsupported` / `version_unsupported` (its detail names the required
+1.2.0), and one without `Cursor.auth` makes the status `unknown`; an
 installation other than `bundled` is `unsupported_installation`, and an SDK
 that fails to load `process_failed`. Verified against a stand-in SDK that
 runs the 1.0.35 order: URL relayed, success with the account, a cancel while
@@ -646,7 +642,8 @@ host that wants the key dead must send the person to the dashboard.
 a logout with it set is `logged_out` while every SDK call goes on using the
 variable. A throw is `rejected` with its first line, redacted. The deadline
 is 20 s; the removal is local and OAR cannot stop it, so past the deadline
-OAR stops waiting (`timed_out`, unless the status already reads logged out).
+OAR stops waiting (`timed_out`). Either failure is `logged_out` instead when
+the status already reads logged out.
 An SDK handed over without `Cursor.auth.logout` makes the logout
 `unsupported` / `version_unsupported`. Verified against the stand-in SDK
 ([tests](../../tests/login/cursor-logout.test.ts)), and with the real SDK in
@@ -667,8 +664,8 @@ covers the promises above on a real login: `basic`, `multi-turn`,
 [Cursor tests](../../tests/cursor/) drive the session with a stand-in SDK
 (prompt, busy, steer delivered, handed back and outrun, images, queue,
 withdraw, abort before and after the run exists, dispose, resume, refused
-options, the SDK loader) and fold
-recorded updates (tools, usage, the subagent path, run outcomes). The
+options, the SDK loader, the `run.stream()` view and its tail bound) and
+fold recorded updates (tools, usage, the subagent path, run outcomes). The
 [real-runtime CI matrix](../../.github/workflows/ci.yml) excludes Cursor.
 
 Open gaps: a crew child (no environment); tool calls the SDK runs without
@@ -729,9 +726,10 @@ answer; OAR does not substitute that unrelated field or a prompt instruction.
 ## User configuration
 
 `userConfiguration: "exclude"` explicitly passes `local.settingSources: []`
-and keeps `local.sandboxOptions: { enabled: false }`. SDK 1.1.0 still
-loads no ambient settings when setting sources are omitted, so omission and
-`"include"` retain that native default. Project settings are absent too.
+and keeps `local.sandboxOptions: { enabled: false }`. SDK 1.2.0, like
+1.0.40 and 1.1.0, loads no ambient settings when setting sources are
+omitted, so omission and `"include"` retain that native default. Project
+settings are absent too.
 The SDK still reads `~/.cursor/sandbox.json`, but the explicit sandbox option
 takes precedence. Managed organization controls remain native.
 
@@ -745,27 +743,32 @@ OAR's default and exclusion opens do not. A subsequent exclusion open
 reuses the original login and leaves its file unchanged. The stand-in
 rejects inference deliberately; this proves local configuration and
 credential use, not a successful model turn or remote account-rule behavior.
+All four controls passed on 1.0.40, 1.1.0 and 1.2.0; on 1.2.0 only once the
+probe also observed the SDK's new `FileHandle.readFile` reads
+([October 28 report](../../experiments/runtime-version-checks/2026-10-28.md#configuration-observer)).
 
 ## Orientation query costs
 
 `listModels()` loads the host-supplied SDK and calls `Cursor.models.list()`.
 This can make an authenticated remote catalog request, without opening a
-conversation. OAR's auth reader is declared local. With `CURSOR_API_KEY`
-present it returns `unknown` without loading the SDK; otherwise it calls
+conversation. OAR's auth reader is declared local (`localOnly`): unless
+`CURSOR_API_KEY` is present ([login](#login)), it calls
 `Cursor.auth.status()` with no options. The stored user key has API-key form
 but is charged to the Cursor plan; those are independent facts.
 
-The SDK 1.1.0 bundle's status path loads its default `FileCredentialStore`,
-validates the stored shape and checks expiry. Its operation wrapper only
-normalizes errors. It does not use the model-request credential resolver
-(explicit `apiKey`, then `CURSOR_API_KEY`, then a stored backend-paired key),
-refresh tokens, execute a helper or validate a key remotely. An explicit model
-key is not an option accepted by status or supplied by OAR. A native caller
-can supply a custom status `store`; its `load()` may do arbitrary work, but
-OAR does not pass that option. A host replacing the official SDK must preserve
+The SDK bundle's status path (audited in 1.0.40; the same function in 1.1.0
+and 1.2.0 [src]) loads its default `FileCredentialStore`, validates the
+stored shape and checks expiry. Its operation wrapper only normalizes
+errors. It does not use the model-request credential resolver (explicit
+`apiKey`, then `CURSOR_API_KEY`, then a stored backend-paired key), refresh
+tokens, execute a helper or validate a key remotely. An explicit model key
+is not an option accepted by status or supplied by OAR. A native caller can
+supply a custom status `store`; its `load()` may do arbitrary work, but OAR
+does not pass that option. A host replacing the official SDK must preserve
 this local status contract.
 
 [Credential-source controls](../../experiments/orientation/README.md#cursor-status-credential-sources)
+(SDK 1.0.40, 2026-10-26)
 cover missing, malformed and foreign stores, unexpired and non-expiring keys,
 expired keys, environment-key overrides including an empty value, and a backend
 override. The native status still describes a stored login for another backend;

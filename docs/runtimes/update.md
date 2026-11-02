@@ -69,6 +69,10 @@ dependency of oar (`^1.4.0`), and `@cursor/sdk` an optional peer dependency
 CLI depends on it). Both installations are `via: "bundled"`; neither runtime
 has `checkUpdate` or `upgrade`, so `oar upgrade` reports each as bundled with
 oar and moving with the oar version.
+Pi's optional RPC process (`createPiRuntime({ execution: "subprocess" })`)
+launches the bundled package's RPC entry, or a host command that must report
+the same version, so it moves with the oar version too
+([pi](pi.md#optional-native-rpc-process)).
 
 ## oar runs
 

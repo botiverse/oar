@@ -29,8 +29,8 @@ Pi Durable SDKs before selecting live probes.
 | [OpenCode](opencode.md) | `opencode acp`, ACP | Installed v1/v2 line selection, native steering differences, child attribution, model queries and prompt-option limits |
 | [Mister Morph](morph.md) | **Community runtime** (`@botiverse/oar/community`); Console Runtime API over loopback HTTP + WebSocket | Topic as session, snapshot stream versus authoritative task query, steer by submission, attached versus started Console |
 | [Qwen Code](qwen.md) | CLI SDK channel, bidirectional `stream-json` | Native initialization, held input queue, restored usage boundary and cold extension-store lock |
-| [Qoder](qoder.md) | Native CLI bidirectional `stream-json` | Private login/status, native input cancellation, next-priority steering, per-query token visibility and current-open totals |
-| [Pi](pi.md) | Embedded `@earendil-works/pi-coding-agent` SDK | Agent run versus internal turns, history tree, session replacement, extension-dependent capabilities |
+| [Qoder](qoder.md) | `qodercli --sdk` daemon protocol from 1.1.81 (bidirectional `stream-json` worker on 1.1.78 to 1.1.80) | Private login/status, native input cancellation, next-priority steering, per-query token visibility and current-open totals |
+| [Pi](pi.md) | Embedded `@earendil-works/pi-coding-agent` SDK, or its optional native RPC process | Agent run versus internal turns, history tree, session replacement, extension-dependent capabilities |
 | [Pi Durable](pi-durable.md) | Host-owned `@earendil-works/pi-durable` Harness and `watchEvents` | Durable submissions, adopted runs, snapshot recovery, controller-only disposal and browser use |
 | [Maka](maka.md) | **Reference only; no OAR adapter** | Runtime Host client calls, continuation query/start, recovery identities and caller obligations |
 | [OpenAI Agents API](agents-api.md) | **Reference only; no OAR adapter** | Managed Codex harness over HTTP: session/turn/item model, input events as control, no-replay stream, environment as a separate object, subagent attribution fields |

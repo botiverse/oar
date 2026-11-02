@@ -16,16 +16,8 @@ not a support range; a claim that holds only on a named binary is marked
 [env]. See the [runtime index](README.md) for evidence and status conventions.
 
 Newest release checked: **0.166.0** (Linux x64, 2026-10-30): all 52 native
-vendor cases and 16 shared cases passed against a local scripted provider.
-Independent concurrent starts still failed over one fresh database, while
-isolated, warm and sequential controls passed; OAR's initialization
-serialization remains necessary. See the
-[October 30 report](../../experiments/runtime-version-checks/2026-10-30.md#codex-01660).
-The earlier 0.165.0 [PR #503](https://github.com/botiverse/oar/pull/503)
-maps native `modelNotFound` to `model_unavailable`; its Windows regression
-passed after an earlier timeout whose cause remains unconfirmed.
-The saved-tier resume behavior was established on 0.164.0
-([report](../../experiments/runtime-version-checks/2026-10-23.md#codex-01640-resume-preserves-the-saved-tier)).
+vendor cases and 16 shared cases passed against a local scripted provider
+([October 30 report](../../experiments/runtime-version-checks/2026-10-30.md#codex-01660)).
 The newest run on a real login is **0.162.1** (Linux x64, 2026-10-10, `gpt-6-luna`):
 conversation, tool detail and resume passed with no adapter change
 ([report](../../experiments/runtime-version-checks/2026-10-10.md)).
@@ -72,7 +64,7 @@ ends the turn. The adapter declares `capabilities: { queue: { durable: true
 | Thread identity | `Session.id` is the native thread id. The `thread/start` / `thread/resume` reply is the open Frame record (`type` = the method), carrying the `model` event (and `effort` when codex reports a level). Frames codex sends before that reply (notifications and server requests alike) are recorded ahead of it in wire order, and frames written after it (`thread/started`) follow it whatever the chunking. |
 | Native turn | No OAR turn object. A prompt request produces `turn_started`; native `turn/started` produces `turn_active`, also for a queued turn with no new OAR prompt. An already open turn is not opened twice. The turn ends at codex's `turn/completed` (`turn_ended`: `completed`; `interrupted` → aborted; any other status → failed, with the preceding `error` notification's detail appended). The native turn id rides every turn-scoped notification as `spanId` and is the precondition for steer and interrupt. |
 | Items and notifications | One frame per notification, nothing dropped: `item/agentMessage/delta` → `text_delta` (`messageId` = `itemId`, the agentMessage item); `rawResponseItem/completed` reasoning → `reasoning`; `userMessage` items → `user_message`; `commandExecution` / `fileChange` / `mcpToolCall` / `webSearch` / `sleep` items → `tool_call_started` / `tool_call_ended` with the item type as `tool` and the item id as `callId` ([outcomes](#tool-call-outcome-reporting); a `sleep` is the model waiting, its input `{durationMs}` the wait it asked for, which a steer can end early, and `classifyTool` reads it as a `wait`; a `fileChange`'s input is its `changes` array, see [file changes](#tools-permissions-and-client-callbacks)); `item/commandExecution/outputDelta` → `tool_call_progress` (`callId` = `itemId`, `outputDelta` = the chunk, appended to the current preview) [env 0.154.0 schema]; `contextCompaction` items → `compaction_started` / `compaction_ended`; `item/completed` for `subAgentActivity` items → task events; `thread/tokenUsage/updated` → `usage`; `thread/settings/updated` → `model` / `effort` / `service_tier`; everything else is a frame with no events. No `retry` event: codex exposes no retry notification. |
-| Control replies | The `turn/start`, `turn/steer`, `turn/interrupt` and `thread/queue/add` replies are the `accepted` / `rejected` responses to prompt / steer / abort / queue, with the reply as `native` (so the queue submission id is retained). Each response is recorded as the reply line is read, before notifications codex wrote after it. |
+| Control replies | The `turn/start`, `turn/steer`, `turn/interrupt` and `thread/queue/add` replies are the `accepted` / `rejected` responses to prompt / steer / abort / queue, with the reply as `native` (so the queue submission id is retained). A `thread/goal/*` reply is its own frame; the [goal control](#native-goals) response only accepts or rejects. Each response is recorded as the reply line is read, before notifications codex wrote after it. |
 | Effective configuration | `model()`, `effort()` and `serviceTier()` fold the `model` / `effort` / `service_tier` events of the open reply and of `thread/settings/updated` ([models](#models-instructions-and-context)). Most native configuration has no public mutator. |
 | Server requests | Recorded as `toApp` request records (method and params verbatim, the server's own id), never answered: `approvalPolicy: never` means none are expected, and one that arrives stays dangling. `events()` reads each as `app_request` with the method as `type`; no `app_answered` follows. `serverRequest/resolved {threadId, requestId}` (0.160.1 schema) reads as `app_request_cancelled`: OAR answered nothing, so codex cleared the request itself. Through OAR (`approvalPolicy: never`) neither question reaches the host: codex declines MCP elicitations itself and `request_user_input` is unavailable in Default mode. Driving 0.160.1 app-server directly, a `requestUserInput` (plan mode) and an MCP tool approval (`mcpServer/elicitation/request` under `on-request`) cut by `turn/interrupt` were each followed by `serverRequest/resolved` (numeric id 0, recorded as "0"), right after the interrupted `turn/completed`. codex also sends it after a client's answer, so once OAR answers codex requests this reading must tell the two apart. |
 | Native children | Notifications of another thread are child-session records (`sessionId` = that thread id, a `graph()` node); a collaboration item naming `receiverThreadIds` / `agentThreadId` emits `session_linked` on that frame for the `tool_call` edge from the sender thread; without such an item no edge is fabricated ([children](#observation-children-and-history)). |
@@ -88,8 +80,8 @@ read-back][oar-open], [projection][oar-projection], [kernel][oar-kernel], and
 
 OAR launches `codex app-server -c sandbox_mode="…" --listen stdio://` (see
 [tools and permissions](#tools-permissions-and-client-callbacks)), sends
-`initialize` (`clientInfo: { name: "oar" }`, `capabilities: { experimentalApi:
-true }`), then the `initialized` notification; request ids correlate replies.
+`initialize` (`clientInfo: { name: "oar", version: "0.0.0" }`,
+`capabilities: { experimentalApi: true }`), then the `initialized` notification; request ids correlate replies.
 New sessions call `thread/start { cwd, runtimeWorkspaceRoots?, model?,
 serviceTier?, approvalPolicy: "never", experimentalRawEvents: true,
 baseInstructions?, developerInstructions?, config?: { model_reasoning_effort?,
@@ -209,8 +201,8 @@ codex-aimock, Linux, one run per release, 2026-10-07):
 | 0.118.0, 0.130.0 | inside the first turn, after its `userMessage` item and under that turn's own id | none: no `tokens`, `usage().total` null |
 
 So from 0.151.0 a resumed Session reports this Session's numbers; earlier
-releases, down to the [login](#login) floor 0.118.0 (the oldest codex OAR
-names), report no token totals after a resume. A new (not resumed) Session
+releases, down to the [login](#login) floor 0.118.0, report no token
+totals after a resume. A new (not resumed) Session
 counts from zero on every release. Only the root thread is baselined:
 whether codex re-reports a child thread's total when a child started before
 the resume runs again is unobserved. [Baseline][oar-token-usage],
@@ -220,7 +212,8 @@ the resume runs again is unobserved. [Baseline][oar-token-usage],
 A thread whose rollout was never written (no turn yet) cannot be resumed
 ([session identity](#matrix-columns), [floors](#resumability-floors)).
 A refused resume, typed or not, reads `codex thread/resume failed:
-<message>`; its `cause` keeps `{ method, native }`, where `native` is
+<message>` (an untyped one with a requested `serviceTier` first says that
+tier could not be confirmed); its `cause` keeps `{ method, native }`, where `native` is
 the JSON-RPC error, including `code`, `message` and any `data`. The same
 context is kept for `initialize` and other pre-session RPC failures, when
 no Session exists for the host to inspect records. MCP credential values
@@ -591,16 +584,17 @@ ChatGPT account."}}`, class `invalid_request` (live-contract `bad-model`;
 
 [env] Codex 0.165.0 reports a provider `404 model_not_found` as the named
 `codexErrorInfo: "modelNotFound"` in both its `error` notification and failed
-`turn/completed`. OAR maps that explicit value to `model_unavailable`. The
-HTTP status is absent in the native report, so OAR leaves `status` absent.
-The older transport variant with `httpStatusCode: 404` still maps to the
-same class and retains its reported status. The
+`turn/completed`. OAR maps that explicit value to `model_unavailable`
+([#503](https://github.com/botiverse/oar/pull/503)). The HTTP status is
+absent in the native report, so OAR leaves `status` absent. The older
+transport variant with `httpStatusCode: 404` still maps to the same class
+and retains its reported status. The
 [failure-class vendor test](../../sea-trial/vendor/failure-classes.vendor.test.ts)
-saves a separate trace for every Codex error case, including incomplete runs.
-On 2026-10-28 the first Windows 0.165.0 unknown-model case reached the test
-deadline without a retained case trace; the cause and completion behavior of
-that run are unconfirmed. The trace now distinguishes a missing native
-completion from an incorrect projection, without changing the adapter deadline.
+saves a separate trace for every Codex error case, including incomplete runs,
+distinguishing a missing native completion from an incorrect projection. One
+Windows 0.165.0 unknown-model run (2026-10-28) reached the test deadline
+without a retained case trace; its cause and completion behavior are
+unconfirmed, and the regression passed afterwards.
 
 **Effort (mapped):** `SessionOptions.effort` governs every turn of the
 thread, a turn codex starts from its own queue included ([env] 0.155.1). A
@@ -898,8 +892,12 @@ the runtime behind a `.cmd` launcher and the tool it started are gone.
 **First open per `CODEX_HOME` (coordinated):** native 0.160.0 can fail SQLite
 initialization when several processes first open a fresh shared home: a direct
 Linux probe failed 21/24 starts, while independent homes, a completed prior
-initialization, and serial starts each initialized 24/24; this does not
-establish the cause of similar Windows CI failures
+initialization, and serial starts each initialized 24/24. On 0.166.0, two of
+eight concurrent starts on one fresh home were ready (the rest exited 1 with
+`failed to initialize sqlite state runtime`), while separate homes, an
+initialized home and sequential starts were 8/8
+([October 30 report](../../experiments/runtime-version-checks/2026-10-30.md#codex-01660)).
+This does not establish the cause of similar Windows CI failures
 ([reproduction and limits](../../experiments/codex-concurrent-startup.md),
 [upstream issue](https://github.com/openai/codex/issues/50290)). OAR
 therefore coordinates the first app-server initialization of each home
@@ -1141,10 +1139,13 @@ material" row describes the former only.
    and left dangling ([tools](#tools-permissions-and-client-callbacks),
    [outcomes](#tool-call-outcome-reporting)).
 8. **Extension points.** MCP servers, skills, apps, collab agents, and
-   dynamic tools exist natively; OAR passes only the session's own MCP
-   servers ([session MCP servers](#session-mcp-servers)). A Session's
-   control calls are `turn/start`, `turn/steer`, `thread/queue/add` and
-   `turn/interrupt`; inventories, account usage, model listing (`model/list`)
+   dynamic tools exist natively; OAR passes the session's own MCP servers
+   ([session MCP servers](#session-mcp-servers)), per-server `disabled_tools`
+   filters under `disallowedTools`
+   ([disallowed tools](#disallowed-tools)) and `features.goals` under
+   `goals: true` ([native goals](#native-goals)). A Session's control calls
+   are `turn/start`, `turn/steer`, `thread/queue/add` and `turn/interrupt`,
+   plus `thread/goal/set`, `/get` and `/clear` with goals; inventories, account usage, model listing (`model/list`)
    and login each run their own app-server process.
 
 ### Six questions
@@ -1623,13 +1624,11 @@ original path. After cleanup, the history file remains but resume by id
 fails with `SessionNotFoundError`. OAR neither rewrites that index nor opens
 a session whose later continuation is broken.
 
-## Future: a host-owned persistent clean home
-
-A host-supplied, persistent clean home could keep those indexed paths valid.
-OAR would not create a hidden permanent directory in the user's home. This
-is not implemented: revisit it when a host needs Codex exclusion, then test
-cross-mode resume, original history visibility and credential refresh with
-that lifecycle before accepting the option.
+Not implemented: a host-supplied, persistent clean home could keep those
+indexed paths valid (OAR would not create a hidden permanent directory in the
+user's home). Revisit it when a host needs Codex exclusion; accepting it
+would first need cross-mode resume, original history visibility and
+credential refresh tested with that lifecycle.
 
 ## Orientation query costs
 

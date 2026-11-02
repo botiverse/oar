@@ -59,8 +59,8 @@ await session.prompt("Inspect the project", { inputId });
 
 The constructor is exported only by `@botiverse/oar/pi-durable`, usable in
 Node and browsers. The root and portable `@botiverse/oar/browser` core do not
-import this adapter and load without its optional peers. It is absent from `defaultRuntimes` and the
-CLI: the host must supply its Harness. `installation()` reports bundled and
+import this adapter and load without its optional peers. It is absent from
+`defaultRuntimes` and the CLI: the host must supply its Harness. `installation()` reports bundled and
 available without probing a binary or credentials. Login, account quota,
 updates and inventories are not implemented by this adapter.
 
@@ -207,7 +207,8 @@ stay raw. CodingTools' structured exit is available only on nested calls in
 text mentions an exit code, so OAR leaves `exitCode` absent for those calls.
 The local execution environment reports SIGTERM as 143, not null; OAR preserves
 the native value. The [native exit-code test](../../sea-trial/vendor/pi-durable-exit-code.vendor.test.ts)
-covers both paths, a non-command tool and JSON storage.
+covers both paths, a non-command tool and JSON storage
+([1.3.0 observation](../../experiments/runtime-version-checks/2026-10-16.md#native-command-exits-numbers-and-a-durable-observation-limit)).
 
 The optional `reasoning` counter in each model or tool usage entry is part
 of its output. OAR sums the reported parts and subtracts the attachment
@@ -244,14 +245,13 @@ Native source: [v1.2.0 README](https://github.com/earendil-works/pi/blob/v1.2.0/
 and [events](https://github.com/earendil-works/pi/blob/v1.2.0/packages/durable/src/harness/events.ts),
 checked against installed 1.2.0 on 2026-10-13
 ([report](../../experiments/runtime-version-checks/2026-10-13.md#pi-durable-and-chord-120)).
-On 1.3.0 (2026-10-16) the 23 native tests, including the exit-code test, and
-the shared behavior suite (18 passed, 1 skipped) pass
-([report](../../experiments/runtime-version-checks/2026-10-16.md)). The
-[probe](../../experiments/pi-durable-probe.ts) prints actual batches and
+The [probe](../../experiments/pi-durable-probe.ts) prints actual batches and
 checks persisted instructions and request deduplication after JSONL reopen.
 On 1.4.0 (2026-10-22), all 23 native tests, 18 shared behavior cases (one
 skipped), that probe and the Chromium demo smoke test pass
-([report](../../experiments/runtime-version-checks/2026-10-22.md)).
+([report](../../experiments/runtime-version-checks/2026-10-22.md)). The
+exit-code test is named among the 23 on 1.3.0
+([report](../../experiments/runtime-version-checks/2026-10-16.md)).
 
 The [1.4.0 parking probe and findings](../../experiments/pi-durable-parked-task.md)
 (2026-10-23) cover the default restart limit with JSONL storage: the host sees
