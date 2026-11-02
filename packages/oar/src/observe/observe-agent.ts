@@ -1,5 +1,5 @@
 import type { Session } from "../contracts/session.js";
-import { initialStatus, reduceStatus, stallOf, type AgentStatus } from "./agent-status.js";
+import { initialStatus, reduceStatus, stallOf, statusValue, type AgentStatus } from "./agent-status.js";
 
 /**
  * The composed observer: one subscription yields a unified derived view of
@@ -32,10 +32,10 @@ export interface AgentObserver {
 export function observeAgent(session: Session, options: ObserveAgentOptions): AgentObserver {
   const now = options.now ?? ((): number => Date.now());
   const listeners = new Set<(view: AgentView) => void>();
-  let status: AgentStatus = initialStatus;
+  let status = initialStatus;
   let lastStalled = false;
 
-  const view = (): AgentView => ({ status, stall: stallOf(status, now(), options.stallAfterMs) });
+  const view = (): AgentView => ({ status: statusValue(status), stall: stallOf(status, now(), options.stallAfterMs) });
   const push = (): void => {
     const current = view();
     lastStalled = current.stall !== null;

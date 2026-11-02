@@ -29,10 +29,12 @@ export const createPiRpcSession = (runtime: PiRuntimeOptions): StartSession => w
   let disposePromise: Promise<void> | null = null;
   let pump = Promise.resolve();
   const compaction = piManualCompaction(kernel, () => running, async () => {
-    const response = await rpc.control.request({ type: "compact" });
+    // A rejected transport promise is not a native compaction failure. The
+    // process exit below settles the caller after its final stdout is folded.
+    const response = await rpc.control.request({ type: "compact" }).catch(() => null);
+    if (response === null) { return; }
     await pump;
     if (!response.success) { throw new Error(response.error); }
-    return response;
   }, () => { queueMicrotask(drain); });
   const held: { input: string; inputId: string | undefined; images: readonly LoadedImage[] }[] = [];
   const fallback = createAbortFallback(() => { rpc.child.kill(); });
@@ -108,6 +110,7 @@ export const createPiRpcSession = (runtime: PiRuntimeOptions): StartSession => w
       ? event.message.role === "assistant" && event.message.stopReason === "error" && isContextOverflow(event.message)
       : event.type === "message_update" && event.assistantMessageEvent.type === "error" && isContextOverflow(event.assistantMessageEvent.error);
     let context: SessionStats["contextUsage"] = undefined;
+    if (event.type === "compaction_end" && event.reason === "manual") { fallback.clear(); }
     if (event.type === "agent_settled") {
       fallback.clear();
       try {
@@ -171,9 +174,10 @@ export const createPiRpcSession = (runtime: PiRuntimeOptions): StartSession => w
       })),
     withdraw: withdrawControl(kernel, held),
     abort: async () => kernel.control({ kind: "abort" }, () => {
-      if (!running) { return { kind: "rejected", code: "no_active_turn", reason: "no active turn" }; }
+      if (compaction.busy() && !compaction.admitted()) { return { kind: "rejected", code: "busy", reason: "Pi has not yet started the compaction that abort would cancel" }; }
+      if (!running && !compaction.busy()) { return { kind: "rejected", code: "no_active_turn", reason: "no active turn" }; }
       fallback.arm();
-      if (started) { void abort(); } else { pendingAbort = true; }
+      if (started || compaction.busy()) { void abort(); } else { pendingAbort = true; }
       return { kind: "accepted" };
     }),
     rawEvents: (observer, cursor) => kernel.rawEvents(observer, cursor),

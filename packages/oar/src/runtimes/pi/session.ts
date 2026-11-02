@@ -238,13 +238,14 @@ export const createPiSession = (project: PiProjectOptions = {}): StartSession =>
     withdraw: withdrawControl(kernel, held),
     abort: async (): Promise<ControlResult> => {
       const result = await kernel.control({ kind: "abort" }, () => {
-        if (!gate.running) {
+        if (compaction.busy() && !compaction.admitted()) { return { kind: "rejected", code: "busy", reason: "Pi has not yet started the compaction that abort would cancel" }; }
+        if (!gate.running && !compaction.busy()) {
           return { kind: "rejected", code: "no_active_turn", reason: "no active turn" };
         }
         // Use the complete SDK cancellation path, including its run-aborted
         // flag, retries, compaction and branch summaries. Before agent_start,
         // hold the intent until Pi has created the run that owns that flag.
-        if (piAgentSession.isStreaming) {
+        if (piAgentSession.isStreaming || compaction.busy()) {
           void abortNative();
         } else {
           pendingAbort = true;

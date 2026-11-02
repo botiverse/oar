@@ -115,7 +115,7 @@ describe.skipIf(!enabled)("native manual compaction control", () => {
     } finally { await f.close(); }
   }, 120_000);
 
-  test("dispose releases an unfinished compaction without claiming it completed", async () => {
+  test("dispose releases an unfinished compaction without synthesizing a native terminal", async () => {
     const f = await fixture();
     try {
       const session = await f.open();
@@ -127,7 +127,42 @@ describe.skipIf(!enabled)("native manual compaction control", () => {
       await session.dispose();
       expect(await waiting).toMatchObject({ kind: "unconfirmed", code: "disposed" });
       expect(await session.compact()).toMatchObject({ kind: "rejected", code: backend === "pi-aimock" ? "disposed" : "runtime_exited" });
-      expect(session.records().some((record) => record.kind === "frame" && record.body.events.some((event) => event.kind === "compaction_ended" && event.outcome === "completed"))).toBe(false);
+      expect(session.records().some((record) => record.kind === "frame" && record.body.type === "pi/compact_rejected")).toBe(false);
+      const terminal = session.records().flatMap((record) => record.kind === "frame" ? record.body.events.filter((event) => event.kind === "compaction_ended") : []);
+      expect(terminal.every((event) => event.outcome === "aborted")).toBe(true);
+    } finally { await f.close(); }
+  }, 120_000);
+
+  test("abort interrupts native compaction and keeps the session usable", async () => {
+    const f = await fixture();
+    try {
+      const session = await f.open(); await seed(session);
+      assert.ok(session.compact !== undefined);
+      f.hold();
+      const waiting = session.compact({ timeoutMs: 30_000 });
+      await f.entered();
+      expect(session.status().value).toMatchObject({ kind: "running", phase: "compacting" });
+      expect(await session.abort()).toMatchObject({ kind: "accepted" });
+      expect(await waiting, JSON.stringify(session.records())).toMatchObject(backend === "claude-aimock"
+        ? { kind: "failed", code: "native_failed", frame: { body: { native: { compact_result: "failed" } } } }
+        : { kind: "aborted" });
+      await vi.waitFor(() => { expect(session.status().value.kind).toBe("idle"); });
+      expect(session.records().some((record) => record.kind === "response" && record.body.kind === "exited")).toBe(false);
+      f.release();
+      expect(await runTurn(session, "OAR_AFTER_ABORTED_COMPACT")).toEqual({ kind: "completed" });
+    } finally { await f.close(); }
+  }, 120_000);
+
+  test("an already aborted signal refuses before any native request", async () => {
+    const f = await fixture();
+    try {
+      const session = await f.open(); await seed(session);
+      assert.ok(session.compact !== undefined);
+      const controller = new AbortController(); controller.abort();
+      const before = f.raw.length;
+      expect(await session.compact({ signal: controller.signal })).toMatchObject({ kind: "rejected", code: "aborted" });
+      expect(f.raw).toHaveLength(before);
+      expect(session.status().value.kind).toBe("idle");
     } finally { await f.close(); }
   }, 120_000);
 

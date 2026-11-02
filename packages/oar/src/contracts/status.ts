@@ -43,8 +43,8 @@ export type AgentStatus = (
         readonly pendingAbortIds: readonly string[];
         readonly abortedOnExit: boolean;
       };
-      /** An explicit compaction owns the slot beyond caller wait limits; nativeTurn retains its enclosing native command until turn end. */
-      readonly compaction?: { readonly requestId: string; readonly started?: true; readonly nativeTurn?: true; readonly spanId?: string };
+      /** An explicit compaction owns the slot beyond caller wait limits; started requires a native start report. */
+      readonly compaction?: { readonly requestId: string; readonly started?: true };
       readonly phase: RunningPhase;
       /** Envelope receivedAt (unix epoch ms) of the latest folded record. */
       readonly lastEventAt: number;

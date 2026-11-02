@@ -8,16 +8,17 @@ import type { TurnOutcome } from "./turn-outcome.js";
 
 export type { UserMessage } from "./input.js";
 export type { TurnOutcome } from "./turn-outcome.js";
-
 /**
  * The record stream and the events read off it. Three words, three layers:
  *
- * - `Event`: a flat, attributed fact delivered by `Session.events()`.
+ * - `Event`: the consumer face. One flat, attributed fact (text, a tool
+ *   call, a turn end, a process exit …). What `Session.events()` delivers.
  * - `RawEvent`: one record of the underlying stream, three kinds by
  *   obligation: `Frame` (the runtime's own words), `RequestRecord` (an
  *   action expecting an outcome), `ResponseRecord` (points at a request).
  *   What `Session.rawEvents()` / `records()` deliver.
- * - `Frame`: one verbatim runtime frame (`type`, `native`) and its interpreted events.
+ * - `Frame`: a RawEvent carrying one runtime frame verbatim (`type`,
+ *   `native`) plus the events oar read out of it.
  *
  * Semantics live in docs/spec; the session control surface that produces
  * these records is in ./session.ts.
@@ -40,9 +41,7 @@ export interface RecordEnvelope {
   /** Unix epoch milliseconds stamped at adapter ingress: same clock as Date.now(), so fold×clock consumers (stallOf) compose directly. */
   readonly receivedAt: number;
 }
-
 export type RecordKind = "frame" | "request" | "response";
-
 /** The runtime's own words. oar never synthesizes a frame and never drops one: whatever the runtime said enters the stream, even after a span ended. */
 export interface Frame extends RecordEnvelope {
   readonly kind: "frame";
@@ -108,7 +107,6 @@ export interface TokenTotals {
   /** The part of `input` written to the prompt cache. */
   readonly cacheWrite?: number;
 }
-
 /**
  * What a usage-bearing frame says. `context` is current context fullness as
  * the runtime reports it; `tokens` is the running total for this record's
@@ -258,6 +256,8 @@ export type RequestBody =
  * running when the prompt was recorded.
  */
 export type RejectionCode =
+  /** compact: the caller's signal was already aborted; no native operation was sent. */
+  | "aborted"
   /** prompt: another turn is active (≤1 active turn; nothing is queued implicitly). */
   | "busy"
   /** steer / abort: nothing is running; a late abort is a normal race, not an error. */

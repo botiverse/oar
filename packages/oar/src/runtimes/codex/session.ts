@@ -16,13 +16,11 @@ import { CODEX_SETTINGS_REPORT_MS, codexOpenReadback, codexResumeEffortRefusal, 
 import { foldCodexNotification, initialCodexProjection, type CodexProjectionState } from "./projection.js";
 import { prepareCodexToolDenials } from "./tool-denials.js";
 import { nameThread, openThread, rpcControl, type RpcControlPlan } from "./rpc-control.js";
-
 /*
  * App-server v2: RPC replies answer controls synchronously before later notifications.
  * Model/effort read-back: open.ts. Reachability: recorded exit/dispose.
  * Native mappings: docs/runtimes/codex.md.
  */
-
 interface CodexSessionState {
   /** The prompt request whose turn is running; null while idle or during a spontaneous turn. */
   active: RequestRecord | null;
@@ -33,9 +31,7 @@ interface CodexSessionState {
   projection: CodexProjectionState;
 }
 export const codexSession: StartSession = withSessionCredentials(async (installation, options, credentials) => {
-  if (installation.via !== "executable") {
-    throw new Error("The codex session adapter needs an executable installation");
-  }
+  if (installation.via !== "executable") { throw new Error("The codex session adapter needs an executable installation"); }
   // Threads persist so a later SessionOptions.resume can reattach; the thread
   // id is the runtime-native identity and becomes Session.id (open.ts builds
   // the request, and refuses what it cannot build before anything starts).
@@ -90,13 +86,13 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
       projection: initialCodexProjection(threadId, openMethod),
     };
     const nativeBusy = (): boolean => state.active !== null || state.spontaneous;
-    const compaction = manualCompaction(kernel, { busy: codexCompactionBusy(kernel, nativeBusy), busyReason: "Codex manual compaction requires an idle session; it would otherwise replace the active turn", create: () => codexCompaction(client, threadId) });
+    let compactOperation: ReturnType<typeof codexCompaction> | null = null;
+    const compaction = manualCompaction(kernel, { busy: codexCompactionBusy(kernel, nativeBusy), busyReason: "Codex manual compaction requires an idle session without an active goal or queued input", create: () => { compactOperation = codexCompaction(client, threadId); return compactOperation; } });
     const busy = (): boolean => nativeBusy() || compaction.busy();
     const abortFallback = createAbortFallback(() => { client.kill(); });
     let disposeRequest: RequestRecord | null = null;
     // A resume's effort update in flight: codex's thread/settings/updated answers it.
     let settingsWaiter: ((params: JsonRecord) => void) | null = null;
-
     recordOpen = (): void => {
       kernel.frame({ type: openMethod, native: started, events: readback.events });
     };
@@ -241,17 +237,21 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
     // An early or late interrupt can be refused; turn/completed is the outcome.
     const abortPlan = (): RpcControlPlan => {
       let refused: (() => void) | null = null;
+      const turnId = compaction.busy() ? compactOperation?.turnId() ?? null : state.codexTurnId;
       return {
         body: { kind: "abort" },
         gate: () => {
-          if (!busy() || state.codexTurnId === null) {
+          if (compaction.busy() && turnId === null) {
+            return { kind: "rejected", code: "busy", reason: "Codex has not yet reported the compaction turn id required by turn/interrupt" };
+          }
+          if (!busy() || turnId === null) {
             return { kind: "rejected", code: "no_active_turn", reason: "no active turn" };
           }
           return null;
         },
         onPending: (accept) => { refused = abortFallback.arm(accept); },
         method: "turn/interrupt",
-        params: () => ({ threadId, turnId: state.codexTurnId }),
+        params: () => ({ threadId, turnId }),
         onReply: (reply) => ({ kind: "accepted", native: reply }),
         onError: (message) => {
           refused?.();

@@ -10,9 +10,9 @@ export interface SessionCredentials extends CredentialRedactor {
   seal(adapter: AdapterSession, extraRedact?: <T>(value: T) => T): Session;
 }
 
-function guard<Args extends unknown[], Result>(method: (...args: Args) => Promise<Result>, clean: <T>(value: T) => T): (...args: Args) => Promise<Result> {
+function guard<Args extends unknown[], Result>(method: (...args: Args) => Promise<Result>, clean: <T>(value: T) => T, cleanResult = false): (...args: Args) => Promise<Result> {
   return async (...args) => {
-    try { return await method(...args); } catch (error) { throw clean(error); }
+    try { const result = await method(...args); return cleanResult ? clean(result) : result; } catch (error) { throw clean(error); }
   };
 }
 
@@ -32,7 +32,7 @@ function sessionCredentials(options: SessionOptions, context: SessionOpenContext
         read: guard(adapter.goal.read.bind(adapter.goal), clean),
         clear: guard(adapter.goal.clear.bind(adapter.goal), clean),
       } }),
-      ...(adapter.compact === undefined ? {} : { compact: guard(adapter.compact.bind(adapter), clean) }),
+      ...(adapter.compact === undefined ? {} : { compact: guard(adapter.compact.bind(adapter), clean, true) }),
       prompt: guard(adapter.prompt.bind(adapter), clean),
       queue: guard(adapter.queue.bind(adapter), clean),
       ...(adapter.steer === undefined ? {} : { steer: guard(adapter.steer.bind(adapter), clean) }),

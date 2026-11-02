@@ -458,12 +458,18 @@ declare `activeTurn: "reject"`. The adapter calls native `AgentSession.compact()
 or RPC `compact`, accepts on the manual start event, and waits for the native
 manual end. Automatic boundaries cannot finish this operation. Native errors
 and cancellation retain their failed/aborted meaning. A rejected SDK promise
-after admission also supplies native failure evidence if no end event arrived.
+after admission also supplies native failure evidence if no end event arrived
+and the session is still reachable. A transport error is not such evidence;
+disposal or process exit never produces a synthetic compaction terminal.
 
 Both paths refuse busy dispatch because the native entry can abort an active
-run. Caller timeout/signal only stops waiting; status remains compacting,
+run. A signal already aborted at the call refuses dispatch. After dispatch,
+caller timeout/signal only stops waiting; status remains compacting,
 prompt/steer/repeated compact are busy, and queue input is held until native
 settlement. RPC compact has no ordinary 30-second transport deadline;
+`abort()` uses Pi's full native cancellation path, including manual
+compaction, and preserves the native aborted/failed outcome. Before native
+admission it refuses `busy` rather than claiming there is no operation.
 `dispose()` remains available to stop the session. Pi Durable remains
 undeclared, pending task/submission application correlation. The
 [native control regression](../../sea-trial/vendor/manual-compaction.vendor.test.ts)

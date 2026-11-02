@@ -5,7 +5,7 @@ export type ManualCompaction =
   | { readonly kind: "supported"; readonly activeTurn: "reject" | "queue" }
   | { readonly kind: "unsupported"; readonly reason: string };
 
-/** These bounds stop observation only. They never cancel native compaction. */
+/** An already-aborted signal refuses dispatch. After dispatch these bounds stop observation only; timeoutMs: 0 still dispatches. */
 export interface CompactionOptions {
   readonly timeoutMs?: number;
   readonly signal?: AbortSignal;

@@ -23,7 +23,6 @@ interface StreamJsonSessionState<S extends StreamJsonProjectionState> {
   projection: S;
   disposed: boolean;
 }
-
 /** Shared line protocol driver. A runtime launches its own process and supplies its own readbacks. */
 export async function streamJsonSession<S extends StreamJsonProjectionState>(
   child: LineProcess,
@@ -33,18 +32,14 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
 ): Promise<Session> {
   const kernel = credentials.kernel(sessionId);
   const userMessage = profile.userMessage ?? streamJsonUserMessage;
-  const state: StreamJsonSessionState<S> = {
-    child, active: null, spontaneous: false,
-    projection: profile.initial,
-    disposed: false,
-  };
+  const state: StreamJsonSessionState<S> = { child, active: null, spontaneous: false, projection: profile.initial, disposed: false };
   // Keep queue entries in OAR until a turn ends. Native active-turn writes
   // can steer or become an irreversible native queue, depending on the dialect.
   const commandLifecycle = profile.projection.commandLifecycle !== false;
   const writtenQueues = new Map<string, RequestRecord>();
   const heldQueue: { request: RequestRecord; input: string; inputId?: string; images: readonly LoadedImage[] }[] = [];
   const nativeBusy = (): boolean => state.active !== null || state.spontaneous;
-  const compaction = streamJsonCompaction(kernel, profile, state, () => { queueMicrotask(drainHeld); });
+  const compaction = streamJsonCompaction(kernel, profile, state, drainHeld, () => heldQueue.length > 0);
   const busy = (): boolean => nativeBusy() || compaction?.busy() === true;
   let canCancelQueued = false;
   const abortFallback = createAbortFallback(() => { child.kill(); });
@@ -70,12 +65,12 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
     const next = heldQueue.shift();
     if (next === undefined) { return; }
     turnRevision += 1;
+    state.active = next.request;
     if (commandLifecycle && next.inputId !== undefined) { writtenQueues.set(next.inputId, next.request); }
     state.projection = streamJsonPrompted(state.projection, next.inputId, false, commandLifecycle);
     if (!commandLifecycle) { state.spontaneous = true; }
     child.write(userMessage(next.input, next.inputId, next.images));
   }
-
   // The fold translates and attributes facts; this driver owns transport, busy and queue drain.
   child.onLine((line) => {
     const message = asRecord(parseJson(line));
@@ -114,7 +109,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
           const cancelled = command.body.events.find((event) => event.kind === "input_dropped");
           dropped ||= cancelled !== undefined;
           if (cancelled?.kind === "input_dropped") { writtenQueues.delete(cancelled.inputId); }
-          if (cancelled?.kind === "input_dropped" && state.active !== null && "inputId" in state.active.body && cancelled.inputId === state.active.body.inputId) { state.active = null; }
+          if (cancelled?.kind === "input_dropped" && state.active !== null && cancelled.inputId === (state.active.body.kind === "compact" ? state.active.id : ("inputId" in state.active.body ? state.active.body.inputId : undefined))) { state.active = null; }
           break;
         }
         case "respond": {
@@ -197,7 +192,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
         if (observingCancellation !== null) { await waitForCancellation(); }
         return kernel.control({ kind: "steer", input, ...inputOptions }, () => {
           if (compaction?.busy() === true) { return { kind: "rejected", code: "busy", reason: "Manual compaction is still in progress" }; }
-          if (!busy()) { return { kind: "rejected", code: "no_active_turn", reason: "not_steerable: no active turn" }; }
+          if (!nativeBusy()) { return { kind: "rejected", code: "no_active_turn", reason: "not_steerable: no active turn" }; }
           return withInputImages(capabilities, inputOptions?.images, (images) => {
             child.write(userMessage(input, inputOptions?.inputId, images));
             return { kind: "accepted" };
@@ -227,9 +222,10 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
       interruptCounter += 1;
       const requestId = `interrupt-${interruptCounter}`;
       // Record by hand so the fold can answer this id from control_response; gate reachability here.
-      const blocked = kernel.unreachable();
+      const blocked = kernel.unreachable() ?? (compaction?.busy() === true && !compaction.admitted()
+        ? { kind: "rejected", code: "busy", reason: "Claude has not yet dispatched the compact command that abort would cancel" } as const : null);
       const request = kernel.request("toRuntime", { kind: "abort" }, { id: requestId });
-      if (blocked !== null || (!busy() && !(canCancelQueued && state.projection.unstartedInputs.size > 0))) {
+      if (blocked !== null || (!nativeBusy() && compaction?.busy() !== true && !(canCancelQueued && state.projection.unstartedInputs.size > 0))) {
         return { request, response: kernel.respond(request.id, blocked ?? { kind: "rejected", code: "no_active_turn", reason: "no active turn" }) };
       }
       const revision = turnRevision;
@@ -240,7 +236,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
       catch (error) {
         return { request, response: kernel.respond(request.id, { kind: "rejected", code: "error", reason: error instanceof Error ? error.message : String(error) }) };
       } finally {
-        if (observingCancellation === window) { observingCancellation = null; queueMicrotask(drainHeld); }
+        if (observingCancellation === window) { observingCancellation = null; drainHeld(); }
       }
       const afterObservation = kernel.unreachable();
       if (turnRevision !== revision || window.revision !== revision || afterObservation !== null || state.disposed) {

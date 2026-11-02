@@ -101,6 +101,8 @@ test("dispose during provenance lookup cannot later dispatch compact", async () 
   expect(await waiting).toMatchObject({ kind: "unconfirmed", code: "disposed" });
   await Promise.resolve();
   expect(f.fake.written).toHaveLength(1);
+  const disposeSeq = f.session.records().find((record) => record.kind === "request" && record.body.kind === "dispose")?.seq ?? -1;
+  expect(f.session.records().filter((record) => record.seq > disposeSeq && record.kind === "response" && record.body.kind === "rejected")).toEqual([]);
 });
 
 test("native compaction failure wins over a successful ordinary command result", async () => {
@@ -112,5 +114,99 @@ test("native compaction failure wins over a successful ordinary command result",
     f.fake.emit(line(end(id)));
     expect(await waiting).toMatchObject({ kind: "failed", code: "native_failed", frame: { body: { native: { compact_result: "failed" } } } });
     expect(f.session.status().value.kind).toBe("idle");
+  } finally { await f.session.dispose(); }
+});
+
+test("a catalog containing both builtin and user compact entries is refused", async () => {
+  const f = await open(true, false);
+  try {
+    const waiting = f.compact();
+    const query = asRecord(JSON.parse(f.fake.written[0] ?? "{}"));
+    f.fake.emit(line({ type: "control_response", response: { subtype: "success", request_id: query?.request_id, response: { commands: [{ name: "compact", builtin: true }, { name: "compact" }] } } }));
+    expect(await waiting).toMatchObject({ kind: "rejected", code: "unsupported" });
+    expect(f.fake.written).toHaveLength(1);
+  } finally { await f.session.dispose(); }
+});
+
+test("source query timeout has its own reason and a late source reply cannot dispatch", async () => {
+  vi.useFakeTimers();
+  const f = await open(true, false);
+  try {
+    const waiting = f.compact();
+    await vi.advanceTimersByTimeAsync(10_001);
+    expect(await waiting).toMatchObject({ kind: "rejected", code: "runtime_refused", reason: "Claude command provenance query timeout" });
+    const query = asRecord(JSON.parse(f.fake.written[0] ?? "{}"));
+    f.fake.emit(line({ type: "control_response", response: { subtype: "success", request_id: query?.request_id, response: { commands: [{ name: "compact", builtin: true }] } } }));
+    expect(f.fake.written).toHaveLength(1);
+  } finally { await f.session.dispose(); }
+});
+
+test("abort cancels the native queued compact command and never fires its process fallback", async () => {
+  const f = await open();
+  try {
+    const seed = await f.session.prompt("seed");
+    assert.ok(seed.request.body.kind === "prompt" && seed.request.body.inputId !== undefined);
+    f.fake.emit(line({ type: "system", subtype: "init", session_id: f.session.id, capabilities: ["interrupt_cancel_queued_v1"] }));
+    f.fake.emit(line({ type: "command_lifecycle", command_uuid: seed.request.body.inputId, state: "started" }));
+    f.fake.emit(line(end(seed.request.body.inputId)));
+    vi.useFakeTimers();
+    const before = f.fake.written.length;
+    const waiting = f.compact();
+    await vi.waitFor(() => { expect(f.fake.written).toHaveLength(before + 2); });
+    const command = asRecord(JSON.parse(f.fake.written[before + 1] ?? "{}"));
+    assert.ok(typeof command?.uuid === "string");
+    f.fake.emit(line({ type: "command_lifecycle", command_uuid: command.uuid, state: "queued" }));
+    const aborted = f.session.abort();
+    await vi.waitFor(() => { expect(f.fake.written.some((text) => text.includes('"subtype":"interrupt"'))).toBe(true); });
+    const interrupt = f.fake.written.map((text) => asRecord(JSON.parse(text))).find((message) => asRecord(message?.request)?.subtype === "interrupt");
+    expect(asRecord(interrupt?.request)).toMatchObject({ cancel_queued: true });
+    f.fake.emit(line({ type: "control_response", response: { subtype: "success", request_id: interrupt?.request_id, response: {} } }));
+    expect(await aborted).toMatchObject({ kind: "accepted" });
+    f.fake.emit(line({ type: "command_lifecycle", command_uuid: command.uuid, state: "cancelled" }));
+    expect(await waiting).toMatchObject({ kind: "aborted" });
+    expect(f.session.status().value.kind).toBe("idle");
+    await vi.advanceTimersByTimeAsync(11_000);
+    expect(f.fake.killed()).toBe(false);
+    expect(await f.session.prompt("still available")).toMatchObject({ kind: "accepted" });
+  } finally { await f.session.dispose(); }
+});
+
+test("two queued inputs after compact remain two distinct turns", async () => {
+  const f = await open();
+  try {
+    const waiting = f.compact(); const id = await f.dispatch();
+    const first = "10000000-0000-4000-8000-000000000001";
+    const second = "10000000-0000-4000-8000-000000000002";
+    await f.session.queue("first", { inputId: first });
+    await f.session.queue("second", { inputId: second });
+    f.fake.emit(line(boundary)); f.fake.emit(line(end(id)));
+    expect(await waiting).toMatchObject({ kind: "completed" });
+    await Promise.resolve(); await Promise.resolve();
+    const users = () => f.fake.written.map((text) => asRecord(JSON.parse(text))).filter((message) => message?.type === "user");
+    expect(users().map((message) => message?.uuid)).toEqual([id, first]);
+    f.fake.emit(line({ type: "command_lifecycle", command_uuid: first, state: "queued" }));
+    f.fake.emit(line({ type: "command_lifecycle", command_uuid: first, state: "started" }));
+    f.fake.emit(line(end(first)));
+    await Promise.resolve();
+    expect(users().map((message) => message?.uuid)).toEqual([id, first, second]);
+    f.fake.emit(line({ type: "command_lifecycle", command_uuid: second, state: "started" }));
+    f.fake.emit(line(end(second)));
+    expect(f.session.status().value.kind).toBe("idle");
+  } finally { await f.session.dispose(); }
+});
+
+
+test("an interrupted ordinary turn cannot reclassify a native compact error as an aborted compaction", async () => {
+  const f = await open();
+  try {
+    const waiting = f.compact(); const id = await f.dispatch();
+    const aborted = f.session.abort();
+    await vi.waitFor(() => { expect(f.fake.written.some((text) => text.includes('"subtype":"interrupt"'))).toBe(true); });
+    const interrupt = f.fake.written.map((text) => asRecord(JSON.parse(text))).find((message) => asRecord(message?.request)?.subtype === "interrupt");
+    f.fake.emit(line({ type: "control_response", response: { subtype: "success", request_id: interrupt?.request_id, response: {} } }));
+    expect(await aborted).toMatchObject({ kind: "accepted" });
+    f.fake.emit(line(end(id, { is_error: true, errors: ["cancelled"] })));
+    expect(await waiting).toMatchObject({ kind: "failed", code: "native_failed" });
+    expect(f.session.status().value).toEqual({ kind: "idle", lastTurnOutcome: { kind: "aborted" } });
   } finally { await f.session.dispose(); }
 });

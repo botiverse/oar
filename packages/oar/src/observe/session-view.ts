@@ -15,7 +15,7 @@ import type {
 } from "../contracts/session.js";
 import { withSessionNode } from "./graph.js";
 import type { SessionTokens } from "./usage-totals.js";
-import { initialStatus, reduceStatus, type AgentStatus } from "./agent-status.js";
+import { initialStatus, reduceStatus, type AgentStatus, type StatusState } from "./agent-status.js";
 import {
   initialConversation,
   reduceConversation,
@@ -26,7 +26,6 @@ import { assemble, draftOf, stampTurnOutcome } from "./session-view-fold.js";
 import { deferWaitingInputs, foldInputUpdate, turnOpenedBy, upsertInput } from "./session-view-inputs.js";
 import { foldEvent, recordFacts } from "./session-view-events.js";
 import { upgradeLegacyEvent } from "./legacy.js";
-
 /**
  * The chat-UI projection: grouped messages, agent status, model/usage/context
  * and runtime requests awaiting answers. Pure over the record stream
@@ -66,7 +65,6 @@ import { upgradeLegacyEvent } from "./legacy.js";
  *   aborted after an accepted abort or dispose request, failed otherwise.
  *   Flat events lack accepted controls: exit ends tools without a turn outcome.
  */
-
 export type ViewNotice =
   | { readonly cause: "compaction_started"; readonly trigger?: string }
   | {
@@ -175,6 +173,8 @@ export interface SessionView {
   /** Index of the unsealed turn segment in `messages`; -1 when none. */
   readonly openTurn: number;
   readonly status: AgentStatus;
+  /** Serializable status-fold internals, separate from the displayed status. */
+  readonly statusState?: StatusState;
   readonly model: string | null;
   /** The latest reasoning-effort level the runtime reported (`effort` events); null before any. */
   readonly effort: string | null;
@@ -243,7 +243,7 @@ export function reduceSessionView(
   ) {
     draft.rootSessionId = record.sessionId;
   }
-  const status = reduceStatus(previous.status, record, draft.rootSessionId);
+  const status = reduceStatus(previous.statusState ?? previous.status, record, draft.rootSessionId);
   if (record.kind === "response" && (record.body.kind === "exited" || record.body.kind === "released") && previous.status.kind === "running" && status.kind === "idle" && status.lastTurnOutcome !== undefined) {
     stampTurnOutcome(draft, `turn:${streamId}:${record.sessionId}:${record.seq}`, status.lastTurnOutcome);
   }
@@ -270,14 +270,14 @@ export function reduceSessionViewEvent(previous: SessionView, event: Event, stre
   draft.rootSessionId ??= event.sessionId;
   draft.sessionGraph = withSessionNode(draft.sessionGraph, event.sessionId);
   foldEvent(draft, upgradeLegacyEvent(event), streamId);
-  return assemble(draft, previous.conversation, previous.status);
+  return assemble(draft, previous.conversation, previous.statusState ?? previous.status);
 }
 
 /** Upsert a user input from a non-record source (an app's own submission log); it enters `messages` now. */
 export function reduceSessionViewInput(previous: SessionView, input: ConversationInput): SessionView {
   const draft = draftOf(previous);
   upsertInput(draft, input, false);
-  return assemble(draft, previous.conversation, previous.status);
+  return assemble(draft, previous.conversation, previous.statusState ?? previous.status);
 }
 
 /** Replay a whole record log into a view. One `streamId` per call. */

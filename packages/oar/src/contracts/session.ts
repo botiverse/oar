@@ -58,14 +58,12 @@ export type { TaskEventBody, TaskStatus, TaskType } from "./tasks.js";
 export type { AgentStatus, RunningPhase } from "./status.js";
 export type { InputImage, InputOrigin } from "./input.js";
 export type { DeliverOptions, DeliverResult, DeliverWhen, DeliverMergeInput, DeliverMergeResult } from "./deliver.js";
-
 export interface QueryResult<T> {
   /** The fold's current value. */
   readonly value: T;
   /** The seq of the last consumed record, or -1 before any record. */
   readonly seq: number;
 }
-
 /** For prompt, steer and queue: empty text requires at least one image; otherwise rejected unsupported. Whitespace is not trimmed. */
 export interface InputOptions {
   /** UUID identifying one logical input across delivery attempts; generated when omitted. */
@@ -80,8 +78,6 @@ export interface InputOptions {
   /** Who the input comes from; kept on the request record, never sent to the runtime. */
   readonly origin?: InputOrigin;
 }
-
-
 /** A single prompt may also deliver earlier inputs, without changing their historical queue/withdraw records. */
 export interface PromptOptions extends InputOptions {
   readonly carries?: readonly string[];
@@ -90,11 +86,16 @@ export interface PromptOptions extends InputOptions {
 /**
  * Session contract: one ordered, resumable record stream.
  *
- * Every native observation is retained with attribution and readable again from any
- * position. Frames carry native facts; requests expect answers; responses reference
- * requests. All travel on one channel with monotonic `seq`. `events()` reads flat
- * events; `rawEvents()` and `records()` expose the record stream. Member comments
- * state behavior invariants, each backed by a sea-trial case.
+ * The external promise (docs/spec): everything the runtime said is in the
+ * stream, nothing oar didn't observe is in it, every record knows whose it
+ * is, and the stream is readable again from any position. Records split by
+ * OBLIGATION into three kinds, frame (the runtime's own words), request (an
+ * action that expects an outcome) and response (points at a request), and
+ * travel on one channel with one monotonic `seq`. Consumers who do not want
+ * records read the stream as flat `Event`s through `events()`; `rawEvents()`
+ * and `records()` are the stream itself. Behavior invariants live as
+ * comments on the member they constrain; each "must/never" has (or gets) a
+ * sea-trial case.
  *
  * Scope notes that fit no single member:
  * - Ownership is the object reference; no in-process lease. Multi-controller
@@ -113,7 +114,6 @@ export interface PromptOptions extends InputOptions {
  *   nothing. `SessionOptions.resume` reopens the runtime-native conversation
  *   with a fresh stream starting at seq 0.
  */
-
 /**
  * Execution capability entrypoint; composition probes installation first.
  * Rejects only on operational failure (spawn/load/auth errors carry the

@@ -2,6 +2,7 @@
 import { afterEach, expect, test, vi } from "vitest";
 import type { FrameBody, RuntimeEventBody } from "../packages/oar/src/contracts/session.js";
 import { statusOf, initialStatus, reduceStatus } from "../packages/oar/src/observe/agent-status.js";
+import { initialSessionView, reduceSessionView } from "../packages/oar/src/observe/session-view.js";
 import { manualCompaction } from "../packages/oar/src/shared/manual-compaction.js";
 import { createSessionKernel } from "../packages/oar/src/shared/session-kernel.js";
 import { piCompaction } from "../packages/oar/src/runtimes/pi/compaction.js";
@@ -62,13 +63,16 @@ test("an SDK rejection after admission supplies native failure evidence", async 
 });
 
 test.each(["exit", "dispose"] as const)("%s ends observation without manufacturing a compaction result", async (mode) => {
-  const f = setup();
+  const rejected = Promise.withResolvers<void>();
+  const f = setup(async () => rejected.promise);
   const waiting = f.compact();
   f.kernel.frame(body(start));
   if (mode === "exit") { f.kernel.respond("", { kind: "exited", code: 1 }); }
   else { f.kernel.request("toRuntime", { kind: "dispose" }); }
   expect(await waiting).toMatchObject({ kind: "unconfirmed", code: mode === "exit" ? "runtime_exited" : "disposed" });
   expect(f.busy()).toBe(false);
+  rejected.reject(new Error("late cleanup rejection"));
+  await Promise.resolve(); await Promise.resolve();
   expect(f.kernel.records().some((record) => record.kind === "frame" && record.body.events.some((event) => event.kind === "compaction_ended"))).toBe(false);
 });
 
@@ -114,4 +118,54 @@ test("Pi RPC's ordinary 30 second transport deadline cannot kill a compact opera
   expect(child.killed()).toBe(false);
   child.emit(`${JSON.stringify({ type: "response", id: "oar-pi-0", command: "compact", success: true, data: {} })}\n`);
   expect(await pending).toMatchObject({ success: true });
+});
+
+
+test("an already aborted signal records refusal without creating or sending an operation", async () => {
+  const run = vi.fn(async () => {}); const f = setup(run);
+  const controller = new AbortController(); controller.abort();
+  expect(await f.compact({ signal: controller.signal })).toMatchObject({ kind: "rejected", code: "aborted" });
+  expect(run).not.toHaveBeenCalled(); expect(f.busy()).toBe(false);
+  expect(statusOf(f.kernel.records()).value.kind).toBe("idle");
+});
+
+test("zero timeout still dispatches, and preserves the previous turn outcome after native compaction", async () => {
+  const run = vi.fn(async () => {}); const f = setup(run);
+  const outcome = { kind: "failed", failure: "unknown", reason: "previous native failure" } as const;
+  f.kernel.frame(body({ kind: "turn_ended", outcome }));
+  const waiting = f.compact({ timeoutMs: 0 });
+  expect(run).toHaveBeenCalledOnce(); f.kernel.frame(body(start));
+  expect(await waiting).toMatchObject({ kind: "unconfirmed", code: "timeout" });
+  const publicStatus = statusOf(f.kernel.records()).value;
+  expect(publicStatus).toMatchObject({ compaction: { started: true } });
+  expect(publicStatus).not.toHaveProperty("compactionState");
+  if (publicStatus.kind === "running") { expect(Object.keys(publicStatus.compaction ?? {}).toSorted()).toEqual(["requestId", "started"]); }
+  f.kernel.frame(body(end));
+  expect(statusOf(f.kernel.records()).value).toEqual({ kind: "idle", lastTurnOutcome: outcome });
+});
+
+
+test("public status omits fold correlation and cloned checkpoints ignore unrelated automatic turns", () => {
+  const kernel = createSessionKernel("root");
+  const request = kernel.request("toRuntime", { kind: "compact" });
+  kernel.respond(request.id, { kind: "accepted" });
+  kernel.frame(body({ kind: "turn_active" }), { spanId: "goal" });
+  kernel.frame(body({ kind: "compaction_started", trigger: "threshold" }), { spanId: "goal" });
+  kernel.frame(body({ kind: "compaction_ended", trigger: "threshold", outcome: "completed" }), { spanId: "goal" });
+  kernel.frame(body({ kind: "turn_ended", outcome: { kind: "completed" } }), { spanId: "goal" });
+  expect(statusOf(kernel.records()).value).toMatchObject({ compaction: { requestId: request.id } });
+  expect(statusOf(kernel.records()).value).not.toHaveProperty("compaction.started");
+  kernel.frame(body({ kind: "compaction_started" }), { spanId: "manual" });
+  kernel.frame(body({ kind: "compaction_ended", outcome: "completed" }), { spanId: "manual" });
+  kernel.frame(body({ kind: "turn_ended", outcome: { kind: "failed", failure: "unknown", reason: "unrelated" } }), { spanId: "goal" });
+  expect(statusOf(kernel.records()).value).toMatchObject({ kind: "running", compaction: { requestId: request.id, started: true } });
+  const checkpoint = kernel.records().reduce((view, record) => reduceSessionView(view, record, "root"), initialSessionView());
+  expect(checkpoint.status).toEqual(statusOf(kernel.records()).value);
+  expect(checkpoint.status).not.toHaveProperty("compactionState");
+  expect(checkpoint.statusState?.compactionState).toMatchObject({ nativeTurn: true, spanId: "manual" });
+  const terminal = kernel.frame(body({ kind: "turn_ended", outcome: { kind: "completed" } }), { spanId: "manual" });
+  const replayed = reduceSessionView(structuredClone(checkpoint), terminal, "root");
+  expect(replayed.status).toEqual({ kind: "idle", lastTurnOutcome: { kind: "completed" } });
+  expect(replayed).not.toHaveProperty("statusState");
+  expect(replayed).toEqual(kernel.records().reduce((view, record) => reduceSessionView(view, record, "root"), initialSessionView()));
 });

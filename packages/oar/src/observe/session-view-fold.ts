@@ -5,7 +5,7 @@ import type {
   TurnOutcome,
 } from "../contracts/session.js";
 import { usageFromSessions, type SessionTokens } from "./usage-totals.js";
-import type { AgentStatus } from "./agent-status.js";
+import { statusValue, type StatusState } from "./agent-status.js";
 import type { ConversationInput, ConversationState } from "./conversation.js";
 import type {
   PendingRequest,
@@ -64,7 +64,7 @@ export function draftOf(state: SessionView): Draft {
 export function assemble(
   draft: Draft,
   conversation: ConversationState,
-  status: AgentStatus,
+  status: StatusState,
 ): SessionView {
   const usage = usageFromSessions(draft.usageBySession, draft.rootSessionId ?? "", draft.sessionGraph);
   const own = draft.usageBySession.get(draft.rootSessionId ?? "");
@@ -72,7 +72,8 @@ export function assemble(
     messages: draft.messages,
     pendingInputs: draft.pendingInputs,
     openTurn: draft.openTurn,
-    status,
+    status: statusValue(status),
+    ...(status.compactionState === undefined ? {} : { statusState: status }),
     model: draft.model,
     effort: draft.effort,
     serviceTier: draft.serviceTier,

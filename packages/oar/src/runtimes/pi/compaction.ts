@@ -12,7 +12,7 @@ export function piCompaction(kernel: SessionKernel, run: () => Promise<unknown>)
       reply = respond;
       try { await run(); }
       catch (error) {
-        if (ended) { return; }
+        if (ended || kernel.unreachable() !== null) { return; }
         const reason = error instanceof Error ? error.message : String(error);
         if (!started) { respond({ kind: "rejected", code: "runtime_refused", reason }); }
         else {

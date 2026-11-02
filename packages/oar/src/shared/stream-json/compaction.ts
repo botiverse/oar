@@ -12,10 +12,11 @@ export function streamJsonCompaction<S extends StreamJsonProjectionState>(
   profile: StreamJsonSessionProfile<S>,
   state: { readonly child: LineProcess; active: RequestRecord | null; spontaneous: boolean; projection: S },
   released: () => void,
+  queued: () => boolean,
 ): ReturnType<typeof manualCompaction> | null {
   const control = profile.compaction;
   if (control === undefined) { return null; }
-  const busy = (): boolean => state.active !== null || state.spontaneous || state.projection.unstartedInputs.size > 0;
+  const busy = (): boolean => state.active !== null || state.spontaneous || queued() || state.projection.unstartedInputs.size > 0;
   return manualCompaction(kernel, {
     busy, busyReason: control.busyReason, released,
     create: () => control.create((request) => {

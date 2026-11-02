@@ -27,7 +27,7 @@ quota. Versions were selected explicitly, rather than taken from PATH:
 | Pi RPC | 1.4.0 | Native `compact` request with manual start/end events |
 
 The [vendor regression](../sea-trial/vendor/manual-compaction.vendor.test.ts)
-runs six controls on each entry and a seventh on Claude:
+runs eight controls on each entry and a ninth on Claude:
 
 1. Create with old system/append instructions, resume with new instructions,
    compact, require native completion, and inspect the next provider request
@@ -38,18 +38,30 @@ runs six controls on each entry and a seventh on Claude:
 3. Repeat with an aborted observation signal. It stops the wait only.
    Claude/Pi retain a later queued input; Codex refuses it `busy`.
 4. Dispose while summarization is held. Observation ends as unconfirmed,
-   with no fabricated completed boundary.
+   with no synthetic compaction terminal frame, including after transport
+   rejection. Any real native aborted frame remains observable.
 5. Return a native provider failure. The operation fails and a subsequent
    normal input can run after native settlement.
 6. Request compaction during a held ordinary reply. It is refused and the
    original reply finishes normally.
-7. Claude only: install a project `compact` command. Refuse compaction before
+7. Abort while summarization is held. Require native cancellation control
+   acceptance, preserve the native compact outcome, and complete a later input.
+8. Call with an already aborted signal. Require `rejected / aborted` and no
+   additional provider request, with the session still idle.
+9. Claude only: install a project `compact` command. Refuse compaction before
    invoking that command or making another provider request.
 
-All 25 controls passed locally. Claude's failure control found an important
+All 33 controls passed locally. Claude's failure control found an important
 distinction: `system/status.compact_result: "failed"` can be followed by an
 ordinary result with `is_error: false`. The compaction result retains the
 native failure instead of treating that ordinary success as completion.
+The same distinction applies to interrupt during summarization: Claude stops
+the work but reports `compact_result: failed`, so `compact()` retains
+`failed / native_failed`. The ordinary `turn_ended: aborted` reflects OAR's
+existing turn cancellation convention and is a separate fact. A queued
+Claude command with native `cancelled` settles as `aborted`. Codex and both
+Pi entries report native aborted compaction in the held-summary control.
+No error-text matching is used.
 
 Codex's regression exercises local compaction. ChatGPT-login remote
 compaction was not exercised. Earlier 0.163 source inspection found both
@@ -74,8 +86,21 @@ the project prompt, with zero compaction boundaries. The
 [selected result](manual-compaction/claude-command-origin.json) retains only
 version, provenance and observed outcome, excluding initialize account data.
 
+[`claude-initialize-effects.ts`](manual-compaction/claude-initialize-effects.ts)
+checks the safety of reading this catalog after a session is configured.
+After an ordinary turn and a change to `plan` permission mode, it sends three
+more `initialize` requests. On Claude 2.1.316, SessionStart stays at one
+invocation, the HTTP MCP server stays at one initialization, `get_settings`
+is unchanged, the next native init still reports `plan`, and the next
+provider request has the same system/append instructions and tool catalog.
+The [selected result](manual-compaction/claude-initialize-effects.json)
+contains these assertions and counters, without account data or paths.
+This is a Linux observation of that version, not a claim about all versions
+or arbitrary hook implementations.
+
 The adapter therefore requires idle state, reads provenance in that same
-process, dispatches immediately, and rejects another control while the first
+process, requires a builtin entry with no non-builtin `compact` entry,
+dispatches immediately, and rejects another control while the first
 is unresolved. A later source change before the boundary makes the result
 `failed / command_changed`. It never reloads commands itself. Native source
 read and dispatch remain separate messages; the residual idle read/write
@@ -103,7 +128,12 @@ and `turn_ended.inputIds?`. Missing fields stay missing, including spontaneous
 turns without reported input identities. Consumers should mark every entry
 in `inputIds` complete when the list is present. OAR does not derive the
 plural from the singular or the singular from the plural. The original
-native frame is unchanged.
+native frame is unchanged. This mapping belongs to the shared stream-json
+fold, not only Claude. The [result-field probe](manual-compaction/stream-json-result-fields.ts)
+on Qwen 0.26.5 and Qoder 1.1.81 observes neither native field; their separate
+result `uuid` is not substituted as an input identity. The
+[selected fields](manual-compaction/stream-json-result-fields.json) and
+three-profile unit regression preserve that boundary.
 
 This differs from OAR's interrupt-merging fallback. That path withdraws
 held inputs, then creates one new prompt with its own id. The prompt's
@@ -142,7 +172,23 @@ OAR_TEST=pi-aimock pnpm vitest run sea-trial/vendor/manual-compaction.vendor.tes
 OAR_TEST=pi-rpc-aimock pnpm vitest run sea-trial/vendor/manual-compaction.vendor.test.ts
 pnpm tsx experiments/manual-compaction/claude-command-origin.ts
 pnpm tsx experiments/manual-compaction/claude-merged-identity.ts
+pnpm tsx experiments/manual-compaction/claude-initialize-effects.ts
+# Also set OAR_QWEN_BIN=.../0.26.5/qwen and OAR_QODER_BIN=.../1.1.81/qodercli.
+pnpm tsx experiments/manual-compaction/stream-json-result-fields.ts
 ```
+
+Review regressions also cover native queued-command cancellation without
+firing the process-kill fallback, two queued inputs draining one per turn,
+provenance timeout and late replies after disposal, conflicting catalog
+entries, pre-aborted signals, zero-timeout dispatch, credential redaction in
+returned reasons, and disposal/exit without synthetic terminal frames.
+An unrelated root goal turn before Codex's `contextCompaction` item cannot
+claim its identity; an observed active goal also refuses compact as busy.
+`AgentStatus.compaction` contains only `requestId` and `started?`. Native
+turn/span correlation stays in serializable fold state, including
+`SessionView.statusState`, outside the displayed status; cloned checkpoints
+produce the same result as a full replay. Pi returns to idle retaining the
+previous ordinary turn outcome.
 
 Unit regressions also retain wrong-root/turn/item negatives, automatic
 boundaries, reentrant observers, source changes, old command results,
@@ -153,16 +199,19 @@ supported, unsupported or still undeclared.
 
 ## Local validation
 
-The full check passed with 3,021 unit tests and 18 mock behaviors. All 14
-behavior backends passed; the affected Claude and Codex entries were also
-checked at the versions above. Full vendor suites passed for Claude (78),
-Codex (60), and Pi SDK (95). Pi RPC had 79 passes and 14 refusals in two
-project-package test files because this managed host exports `PI_PACKAGE_DIR`
-pointing at a different package version (1.0.56). Removing that inherited
-variable for those two files produced 20 passes, including all 14 failures;
-the refusal itself was the existing version guard, with no product change.
-Both test files now clear that variable in `beforeEach` and restore the host
-environment afterward, so future runs do not need a manual environment fix.
+The revised implementation passes the full check with 3,043 tests and 18
+mock behaviors, all 14 behavior backends, build and clean packed-consumer
+validation. Full vendor suites pass for Claude 2.1.316 (80), Codex 0.166.0
+(62), Pi SDK 1.4.0 (97) and Pi RPC 1.4.0 (95). The manual compaction file
+contributes 33 native controls across the four entries. These runs are Linux
+observations; Windows and macOS validation remains pending CI.
+
+Two Pi RPC project-package tests previously inherited the managed host's
+`PI_PACKAGE_DIR`, pointing at 1.0.56, and hit the existing version guard.
+Both now clear that variable in `beforeEach` and restore the host environment
+afterward. Their 20 cases also pass with the original host environment
+present; the complete suite above uses the intended 1.4.0 package. This is
+test isolation, with no change to the product version guard.
 
 The replay comparison covered 11 files and 30 added identity fields, each
 matching its own raw result; no other snapshot value changed. Build and
@@ -174,14 +223,19 @@ outcome type exports.
 - Add optional `Runtime.manualCompaction` and `Session.compact()` with typed
   outcomes on Claude, Codex and Pi SDK/RPC. These implementations require
   idle sessions; unsupported and unverified entries remain distinguishable.
-- A compact wait timeout or signal returns `unconfirmed` and does not stop
+- An already aborted signal returns `rejected / aborted` without sending
+  native work; `timeoutMs: 0` still dispatches. After dispatch, a compact wait
+  timeout or signal returns `unconfirmed` and does not stop
   native work. The session remains compacting, ordinary prompts are refused,
-  and late native outcomes remain observable. Disposal still works.
+  and late native outcomes remain observable. Abort uses the native control
+  once a target exists. Claude reports mid-compaction cancellation as failure;
+  OAR preserves it independently of the ordinary turn's aborted outcome.
+  Disposal still works and cannot synthesize a compact result.
 - Claude checks same-process built-in command provenance and refuses a user
   override. Codex's evidence covers local compaction; remote ChatGPT-login
   compaction remains untested.
 - Add public `turn_ended.inputId?` and ordered `inputIds?`, copied separately
-  from Claude's reported result fields. These also appear on ordinary turns.
+  from reported stream-json result fields. These also appear on ordinary turns.
   Use `inputIds` when present to settle every input covered by a native
   merged turn; OAR's own merged-input provenance remains in `mergedInputIds`
   and `carries`.

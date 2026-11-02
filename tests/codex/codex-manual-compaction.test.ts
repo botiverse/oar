@@ -20,6 +20,9 @@ test("only this root turn and its own started compaction item can complete the r
   const waiting = f.compact();
   expect(f.call).toHaveBeenCalledWith("thread/compact/start", { threadId: "root" }, expect.any(Function));
   f.frame("turn/started", { turn: { id: "other" } }, "child");
+  f.frame("turn/started", { turn: { id: "goal-turn" } });
+  f.frame("turn/completed", { turn: { id: "goal-turn", status: "completed" } });
+  expect(f.busy()).toBe(true);
   f.frame("turn/started", { turn: { id: "manual" } });
   f.frame("item/started", { turnId: "manual", item: { type: "contextCompaction", id: "ours" } });
   f.frame("item/completed", { turnId: "other", item: { type: "contextCompaction", id: "ours" } });
@@ -32,10 +35,11 @@ test("only this root turn and its own started compaction item can complete the r
   expect(await waiting).toMatchObject({ kind: "completed", frame: boundary });
 });
 
-test.each(["completed", "failed", "interrupted"] as const)("a %s turn without a matching compaction item cannot be successful", async (status) => {
+test.each(["completed", "failed", "interrupted"] as const)("a %s compaction turn without its completed item cannot be successful", async (status) => {
   const f = setup();
   const waiting = f.compact();
   f.frame("turn/started", { turn: { id: "manual" } });
+  f.frame("item/started", { turnId: "manual", item: { type: "contextCompaction", id: "ours" } });
   f.frame("item/completed", { turnId: "manual", item: { type: "contextCompaction", id: "never-started" } });
   f.frame("turn/completed", { turn: { id: "manual", status } });
   expect(await waiting).toMatchObject(status === "interrupted" ? { kind: "aborted" } : { kind: "failed", code: status === "failed" ? "native_failed" : "not_compacted" });
@@ -55,5 +59,18 @@ test("a queued input reserves against compact until its own native echo or refus
   const waiting = f.compact();
   expect(f.call).toHaveBeenCalledOnce();
   f.kernel.respond("", { kind: "exited", code: 1 });
+  expect(await waiting).toMatchObject({ kind: "unconfirmed", code: "runtime_exited" });
+});
+
+
+test("an observed active goal prevents compact until native goal status changes", async () => {
+  const f = setup();
+  f.kernel.frame({ type: "thread/goal/updated", native: {}, events: [{ kind: "goal_changed", goal: { objective: "native goal", status: "active" } }] });
+  expect(await f.compact()).toMatchObject({ kind: "rejected", code: "busy" });
+  expect(f.call).not.toHaveBeenCalled();
+  f.kernel.frame({ type: "thread/goal/updated", native: {}, events: [{ kind: "goal_changed", goal: { objective: "native goal", status: "paused" } }] });
+  const waiting = f.compact();
+  expect(f.call).toHaveBeenCalledOnce();
+  f.kernel.respond("", { kind: "exited", code: 0 });
   expect(await waiting).toMatchObject({ kind: "unconfirmed", code: "runtime_exited" });
 });

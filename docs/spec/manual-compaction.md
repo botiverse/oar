@@ -40,14 +40,18 @@ not completion. Results are:
 | `unconfirmed` | Observation ended without a confirmed outcome: `timeout`, `signal`, `disposed`, `runtime_exited`, `session_released`, or `observation_failed` |
 
 `timeoutMs` must be finite and non-negative. Omitting it waits until native
-settlement or session loss. Both `timeoutMs` and `signal` stop **waiting only**;
-even an already-aborted signal does not cancel dispatch. They never mean
-`aborted`, abort the native operation, or manufacture a compaction end. A late
+settlement or session loss. A signal already aborted at invocation returns
+`rejected` with code `aborted`, without sending a native operation.
+`timeoutMs: 0` still dispatches and does not wait. After dispatch, expiration
+or signal cancellation stops **waiting only**; it returns `unconfirmed`,
+never cancels the native operation or manufactures a compaction end. A late
 native result still enters the same record stream. A subsequent call does not
 resume the old wait: it is a new request and is rejected `busy` while the old
 operation remains unresolved.
 
 ## Ownership, records and state
+
+Compaction result reasons use the same credential redaction as session records.
 
 The adapter reserves one compaction operation before publishing its request,
 so synchronous record observers cannot acquire it twice. Completion belongs
@@ -59,7 +63,11 @@ previous turns, and automatic boundaries cannot satisfy the wait.
 until its native terminal evidence it reports `running`, phase `compacting`,
 including after a caller stops waiting. A rejected request releases that
 provisional status. This control intent does not fabricate a native
-`compaction_started` event. The fold retains correlation in its checkpoint;
+`compaction_started` event. `AgentStatus.compaction` exposes only `requestId`
+and optional `started`; correlation and the previous turn outcome stay in
+serializable reducer bookkeeping, separate from the displayed status.
+A Pi manual end restores idle with the previous `lastTurnOutcome`.
+The fold retains correlation in its checkpoint;
 Claude's native queued receipt for the compact command is not a pending
 ordinary prompt. `turn_ended.inputId` and `inputIds`, when present, preserve native input
 identities independently, without inference; see the
@@ -70,6 +78,14 @@ returns `rejected` / `busy`. Claude and Pi retain `queue()` input in the
 existing OAR queue and drain it after native completion; Codex refuses new
 queue input `busy` because its native queue could start another turn during
 compaction. A submitted but not yet started input also prevents compact.
+`abort()` uses the native cancellation control once it has a target. Before
+native admission or Codex's compaction item identifies a turn, it returns
+`busy` with the missing-target reason. Claude's queued `cancelled` command
+settles as `aborted`. Once Claude starts compacting, interrupt stops it but
+Claude reports `compact_result: failed`, so the compact result is `failed`
+with `native_failed`; OAR does not reclassify its error text. The ordinary
+`turn_ended: aborted` follows OAR's turn cancellation convention and is a
+separate observation. Codex and Pi retain their native aborted/failed report.
 `dispose()` still stops/releases the session through its ordinary lifecycle;
 process exit and session release end the wait as `unconfirmed` if native
 completion was missing. There is no OAR deadline that pretends the operation
@@ -83,7 +99,7 @@ using scripted local providers without account quota.
 
 | Entry | Declaration and native boundary |
 |---|---|
-| Claude stream-json | Supported, idle only. Same-process `initialize.commands` must identify built-in `compact`; command lifecycle, manual `compact_boundary`, and matching result identify completion. Source changes before the boundary fail the operation. A native compaction failure overrides a successful ordinary result. |
+| Claude stream-json | Supported, idle only. Same-process `initialize.commands` must identify built-in `compact` with no non-builtin entry of that name; command lifecycle, manual `compact_boundary`, and matching result identify completion. Source changes before the boundary fail the operation. A native compaction failure overrides a successful ordinary result. |
 | Codex app-server | Supported, idle only. `thread/compact/start` accepts; the root turn's started/completed `contextCompaction` item and matching completed turn prove completion. Local compaction tested; ChatGPT-login remote compaction has source evidence only, no live test. |
 | Pi SDK / RPC | Supported, idle only. Native `compact()` / RPC `compact`, manual start/end with native failure/cancellation preserved. |
 | Kimi | Unsupported: ACP has no structural completion signal for this operation; text is insufficient. |

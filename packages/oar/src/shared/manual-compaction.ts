@@ -27,7 +27,7 @@ export function manualCompaction(kernel: SessionKernel, options: {
   readonly busyReason: string;
   readonly create: () => CompactionOperation;
   readonly released?: () => void;
-}): { busy(): boolean; compact(this: void, options?: CompactionOptions): Promise<CompactionOutcome> } {
+}): { busy(): boolean; admitted(): boolean; compact(this: void, options?: CompactionOptions): Promise<CompactionOutcome> } {
   let active: Active | null = null;
   let reserved = false;
   const release = (current: Active): void => {
@@ -56,9 +56,12 @@ export function manualCompaction(kernel: SessionKernel, options: {
   });
   return {
     busy: () => reserved,
+    admitted: () => active?.response?.body.kind === "accepted",
     compact: async (wait = {}) => {
       if (wait.timeoutMs !== undefined && (!Number.isFinite(wait.timeoutMs) || wait.timeoutMs < 0)) { throw new RangeError("compact timeoutMs must be finite and non-negative"); }
-      const blocked = kernel.unreachable() ?? (reserved || options.busy() ? { kind: "rejected", code: "busy", reason: options.busyReason } as const : null);
+      const blocked = wait.signal?.aborted === true
+        ? { kind: "rejected", code: "aborted", reason: "The caller's signal was already aborted; no native compaction was sent" } as const
+        : kernel.unreachable() ?? (reserved || options.busy() ? { kind: "rejected", code: "busy", reason: options.busyReason } as const : null);
       // Reserve before publishing: a synchronous record observer can issue another control.
       if (blocked === null) { reserved = true; }
       const request = kernel.request("toRuntime", { kind: "compact" });
@@ -86,16 +89,18 @@ export function manualCompaction(kernel: SessionKernel, options: {
       if (wait.signal?.aborted === true) { abort(); }
       if (wait.timeoutMs !== undefined) { timer = setTimeout(() => { stopWaiting("timeout"); }, wait.timeoutMs); }
       const reply = (body: ResponseBody): void => {
-        if (current.response !== undefined) { return; }
+        if (active !== current || current.response !== undefined) { return; }
         current.response = kernel.respond(request.id, body);
-        if (body.kind === "rejected") {
-          resolve({ kind: "rejected", code: body.code, reason: body.reason, request, response: current.response });
+        const recorded = current.response.body;
+        if (recorded.kind === "rejected") {
+          resolve({ kind: "rejected", code: recorded.code, reason: recorded.reason, request, response: current.response });
           release(current);
         } else { completed(current); }
       };
       void (async (): Promise<void> => {
         try { await current.operation.start(request, reply); }
         catch (error) {
+          if (active !== current) { return; }
           const reason = error instanceof Error ? error.message : String(error);
           if (current.response === undefined) { reply({ kind: "rejected", code: "runtime_refused", reason }); }
           else { resolve({ kind: "unconfirmed", code: "observation_failed", reason, request, response: current.response }); }

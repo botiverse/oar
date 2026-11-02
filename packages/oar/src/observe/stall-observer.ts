@@ -1,5 +1,5 @@
 import type { Session, Unsubscribe } from "../contracts/session.js";
-import { initialStatus, reduceStatus, stallOf, type AgentStatus } from "./agent-status.js";
+import { initialStatus, reduceStatus, stallOf } from "./agent-status.js";
 
 /**
  * Convenience layer over the public status reducer: fold the session's records
@@ -20,7 +20,7 @@ export function observeStalls(
   session: Session,
   options: { readonly stallAfterMs: number; readonly onStall: (info: StallInfo) => void },
 ): Unsubscribe {
-  let status: AgentStatus = initialStatus;
+  let status = initialStatus;
   let lastRecordKind = "";
   let timer: NodeJS.Timeout | null = null;
 

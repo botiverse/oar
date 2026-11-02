@@ -836,7 +836,7 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   not an ever-growing input. It may be incomplete JSON; it is separate from
   both complete `tool_call_input` and tool output `tool_call_progress`.
   Codex 0.162.0 exposes no corresponding native argument notification.
-- `turn_ended.inputId?` and `inputIds?`: Claude's native
+- `turn_ended.inputId?` and `inputIds?`: the shared stream-json fold copies native
   `result.user_message_uuid` and `user_message_uuids`, respectively. Each
   field appears only when the corresponding native field is reported; OAR
   neither derives one from the other nor adds identities to native
@@ -846,6 +846,9 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   combined two queued messages into one reply with the latter UUID in
   `inputId` and both UUIDs in `inputIds`; an earlier prompt-plus-steer
   recording instead names the original prompt in the singular field.
+  Qwen 0.26.5 and Qoder 1.1.81 report neither field in the
+  [native control](../../experiments/manual-compaction/stream-json-result-fields.json);
+  their result `uuid` is not a reported input identity and is not substituted.
   There is no universal first/last selection rule to infer. These are
   native input identities, separate from OAR's interrupt merging: that
   path creates a new prompt with a new input id; its `carries` and the

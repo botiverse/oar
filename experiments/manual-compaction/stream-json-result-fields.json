@@ -1,0 +1,53 @@
+[
+  {
+    "runtime": "qwen-aimock",
+    "version": "0.26.5",
+    "results": [
+      {
+        "fields": [
+          "duration_api_ms",
+          "duration_ms",
+          "is_error",
+          "num_turns",
+          "permission_denials",
+          "result",
+          "session_id",
+          "subtype",
+          "type",
+          "usage",
+          "uuid"
+        ],
+        "singular": false,
+        "plural": false
+      }
+    ]
+  },
+  {
+    "runtime": "qoder-native",
+    "version": "1.1.81",
+    "results": [
+      {
+        "fields": [
+          "duration_api_ms",
+          "duration_ms",
+          "fast_mode_state",
+          "is_error",
+          "modelUsage",
+          "num_turns",
+          "permission_denials",
+          "result",
+          "session_id",
+          "stop_reason",
+          "subtype",
+          "total_cost_usd",
+          "total_credits",
+          "type",
+          "usage",
+          "uuid"
+        ],
+        "singular": false,
+        "plural": false
+      }
+    ]
+  }
+]
