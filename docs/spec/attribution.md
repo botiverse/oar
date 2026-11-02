@@ -256,7 +256,7 @@ SessionView preserve it through JSON replay.
 | pi | assistant `usage.reasoning` | pi-ai 1.1.0 `Usage`; optional provider-reported subset of output [src] |
 | pi-durable | model and tool ledger entries' `reasoning` | Pi Durable 1.1.0 `UsageState` uses pi-ai `Usage`; subtract attachment snapshot [src] |
 | cursor | `turn-ended.usage.reasoningTokens` | SDK 1.0.37 `TokenUsage` / `TurnUsageInput`; optional subset of output [src] |
-| claude, kimi, opencode, antigravity | absent | no verified native reasoning counter on the integrated surface |
+| claude, kimi, opencode, antigravity, qwen, qoder, codebuddy | absent | no verified native reasoning counter on the integrated surface |
 
 [Accounting regressions](../../tests/reasoning-tokens.test.ts) pin absence,
 zero, agent/child totals and replay. The
@@ -294,7 +294,9 @@ without `input` changing under existing consumers
 | pi-durable | model and tool ledger entries' `cacheRead` | their `cacheWrite` | both added into `input`, less the totals at attachment; Pi Durable `UsageState` uses pi-ai `Usage` [src] |
 | codex | `tokenUsage.total.cachedInputTokens` | `tokenUsage.total.cacheWriteInputTokens` | both already inside `inputTokens`; codex's own thread total, less the total re-reported on resume like `input` [src 4f39251a, env 0.154.0 / 0.160.0]; absent on a codex without the write field (below) |
 | grok | `_meta.usage.cachedReadTokens` | `_meta.usage.cacheCreationTokens` | per-prompt ledger, summed per session like its input; live 1.0.25 answer: 1280 / 0 [env] |
-| kimi, opencode, antigravity | absent | absent | no token totals reported, `usage().total` stays null |
+| qwen | `result.usage.cache_read_input_tokens` | `result.usage.cache_creation_input_tokens` | copied without addition (native `input_tokens` already includes cache reads); a cumulative native total, so resumed sessions report no usage ([qwen](../runtimes/qwen.md)) [src] |
+| qoder | `result.usage.cache_read_input_tokens` | `result.usage.cache_creation_input_tokens` | both added into `input`; per-query reports summed since open; the local probe reported zero cache counts ([qoder](../runtimes/qoder.md#usage-and-failures)) [env] |
+| kimi, opencode, antigravity, codebuddy | absent | absent | no token totals reported, `usage().total` stays null |
 
 Codex fills `cachedInputTokens` and `cacheWriteInputTokens` from the
 Responses API's `input_tokens_details.cached_tokens` and

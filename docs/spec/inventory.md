@@ -117,7 +117,7 @@ ACP session's `available_commands_update` is not an independent query.
 | Claude | `get_context_usage` skill frontmatter | `initialize.commands` | `mcp_status`, bounded startup polling | MCP names/descriptions when supplied; no invented schemas |
 | Grok | `inspect --json` skills | Unsupported for independent queries | `inspect --json` configured/compatibility entries | Unsupported for independent queries |
 | Pi | SDK resource loader | SDK extension runner and prompt templates | Unsupported | SDK registered tools, parameter schemas and active membership |
-| Kimi, Cursor, Antigravity, OpenCode, Pi Durable | Unsupported on the selected interface | Unsupported on the selected interface | Unsupported on the selected interface | Unsupported on the selected interface |
+| Kimi, Cursor, Antigravity, OpenCode, Pi Durable, Qwen, Qoder, CodeBuddy | Unsupported on the selected interface | Unsupported on the selected interface | Unsupported on the selected interface | Unsupported on the selected interface |
 
 Kimi's separate native Web API was probed but is not integrated. Grok's
 session-only MCP tool view is not used. Claude's historical session-init tool

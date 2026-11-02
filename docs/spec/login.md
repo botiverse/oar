@@ -127,9 +127,9 @@ OAR-owned overrides still win, including browser suppression and Claude's
 Claude, Codex, CodeBuddy, Kimi and Qoder apply the overlay to their authentication processes.
 Cursor's SDK runs in the host process: its three authentication methods reject
 any nonempty `env` with `UnsupportedOptionError` (`option: "env"`) before
-loading the SDK, as its sessions do. An empty map is a no-op. Runtime login is
-separate from Pi's provider-auth facade. A runtime whose sessions refuse `env`
-also refuses it for login, logout and authentication status.
+loading the SDK, as its sessions do. An empty map is a no-op. A runtime whose
+sessions refuse `env` also refuses it for login, logout and authentication
+status.
 
 ### Explicit login-shell environment
 
@@ -330,9 +330,9 @@ declares no network, refresh or key-command execution. The
 | grok, opencode, pi | not yet | not yet | | |
 
 The [runtime pages](../runtimes/README.md) record each login path's caveats.
-Claude normally attempts to open a browser; `openBrowser: false` overrides
-`BROWSER` only for its login child process, using a harmless executable.
-This works from the existing login floor, 2.1.126. Codex's device-code login
+Claude normally attempts to open a browser; from its login floor (2.1.126),
+`openBrowser: false` overrides `BROWSER` only for its login child process,
+using a harmless executable. Codex's device-code login
 never opens one, and OAR always passes `openBrowser: false` to Cursor's SDK,
 regardless of this option. Qoder suppresses its browser with a per-login
 `BROWSER=www-browser` override. CodeBuddy uses a login-only `BROWSER=true`
@@ -413,7 +413,7 @@ runtime oar does not sign in.
 | codex | `codex logout`, stdin closed | revokes a stored ChatGPT login's token, best effort (from 0.122.0); an API key is only deleted | 0.15.0 | 60 s |
 | cursor | `Cursor.auth.logout()` in process, with the SDK's own store | nothing: the minted key stays valid until it expires or is revoked in the dashboard | `@cursor/sdk` 1.2.0 | 20 s |
 | kimi | ACP `initialize` then `logout`; reads authentication again afterward | removes the native credential slot and managed model configuration; no server-side revocation | 2.3.3 verified | 60 s |
-| antigravity, codebuddy, grok, opencode, pi, qoder | no `logout` (pi's provider logouts are on `createPiProviderAuth`) | | | |
+| antigravity, codebuddy, grok, opencode, pi, qoder, qwen | no `logout` (pi's provider logouts are on `createPiProviderAuth`) | | | |
 
 ## CLI
 

@@ -96,9 +96,10 @@ extra process cost applies even at `local` depth on hosts without CodeBuddy.
 
 An auth reader without an evidenced `localOnly` declaration is skipped at
 `local` depth with `{ kind: "skipped", because: "depth" }`. An absent reader
-is `unsupported`. Currently only Cursor declares local auth status;
-Claude, Codex and Qoder require `account` depth. Other built-in runtimes do not expose
-an auth reader. No direct credential-file parser is added for the aggregate.
+is `unsupported`. Cursor and Qwen declare local auth status; Claude, Codex,
+CodeBuddy, Kimi and Qoder require `account` depth. Antigravity, Grok,
+OpenCode, Pi and Pi Durable expose no auth reader. No direct credential-file
+parser is added for the aggregate.
 
 When `CURSOR_API_KEY` is present, Cursor reports `unknown`: sessions use that
 environment key, while the SDK's status method only describes a stored login.
@@ -146,9 +147,9 @@ installation propagates that failure to its dependent probes. Explicit native
 independent sources. Native model `unauthenticated` becomes a logged-out skip,
 not an empty model list. Native `unsupported` remains unsupported.
 
-`LoginAccount.credential` describes `account` or `api_key`, while `metering`
-describes `plan` or `usage`. They are independent, optional native facts. Claude
-`claude.ai` and Codex `chatgpt` map to account/plan; their generic API keys leave
+[`LoginAccount.credential` and `metering`](login.md#status-results) are
+independent, optional native facts. Claude `claude.ai` and Codex `chatgpt` map
+to account/plan; their generic API keys leave
 metering unknown. Cursor's stored SDK user key maps to api_key/plan. The native
 `method`, plan, email and expiry remain available. Provider-auth records keep
 their existing `method` and `subscription` fields. A locally configured key is
@@ -198,8 +199,8 @@ an unmet host-supplied semantic version floor gives `version_unsupported`.
 No floor is built in. An unreadable or unavailable version cannot prove a
 floor was met.
 
-Native rate limiting, reauthentication requirements and explicit logged-out
-answers prevent readiness. Otherwise a logged-in auth answer or a configured
+Native rate limiting (`rate_limited`), reauthentication requirements and
+explicit logged-out answers (`logged_out`) prevent readiness. Otherwise a logged-in auth answer or a configured
 provider is sufficient; missing auth evidence gives `auth_unknown`, and failed
 or timed-out auth/provider probes give `probe_failed`. Optional failed quota,
 model or customization observations remain visible without inventing a logout.
