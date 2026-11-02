@@ -16,12 +16,11 @@ Current check: **1.4.5** (2026-10-30), with its matching companion
 `localharness_external`, passed nine native tests and all 15 applicable
 shared cases against a local scripted Gemini provider. Temporary homes and
 dummy keys covered instruction/effort settings, MCP, tool denials,
-image-only input and failure reporting. The native settings probe still
-finds MCP credentials in `0644` database and WAL files under umask `0022`.
-Concurrent prompts still expose the stream-consumer race documented in the
-[steering investigation](../../experiments/antigravity-steering-2026-10-29.md);
-OAR keeps its queue and absent steer member. See the
-[October 30 report](../../experiments/runtime-version-checks/2026-10-30.md#antigravity-145).
+image-only input and failure reporting. On 1.4.5 the native settings probe
+finds MCP credentials in `0644` database and WAL files under umask `0022`
+([below](#session-mcp-servers)), and concurrent prompts expose the
+stream-consumer race described under [steer](#prompt-steering-queueing-and-abort).
+See the [October 30 report](../../experiments/runtime-version-checks/2026-10-30.md#antigravity-145).
 These checks do not extend the personal-login evidence.
 
 The server ships as a packaged Python archive without a public source
@@ -41,9 +40,8 @@ such as `gemini-3.8-flash-high`. A child agent started through the `start_subage
 tool has its own id inside the harness but no ACP session of its own.
 
 Both the `agy` CLI and the separate ACP service are vendor-native entry
-points. The CLI now has a documented persistent `stream-json` input mode;
-the earlier one-shot print-mode description is no longer complete. OAR keeps
-ACP because it exposes the session controls needed by a host on one stdio
+points. The CLI has a documented persistent `stream-json` input mode. OAR
+keeps ACP because it exposes the session controls needed by a host on one stdio
 connection. The bundled Python SDK drives its companion harness underneath
 ACP; OAR does not call that private connection directly.
 
@@ -106,7 +104,7 @@ OAR reads out of it. Control calls are request/response record pairs.
 | Handshake answers and opening pushes | Answers are Frame records with `model` and `effort` events where they report them; pushes are recorded in arrival order, so queries fold the stream. No `authenticate` is sent. |
 | Native agent and turn | Every `session/update` is one frame with `native` verbatim. No `spanId` (ACP updates carry no turn id). Attribution tier `opaque`: a child's activity arrives under the parent's session id with nothing that identifies it as a child. |
 | Prompt, steer, queue and cancel | A turn is one `session/prompt` RPC, its answer carrying `turn_ended`. The session has no `steer`; `queue()` is a host-memory FIFO; `abort()` is `session/cancel` with a kill fallback that a running shell command reaches. |
-| Typed events, history and child graph | Events for message, tool and model updates; unknown kinds are recorded with no events. No usage, reasoning, compaction or retry frame arrived. The graph is the root session only. |
+| Typed events, history and child graph | Events for message, tool and model updates; unknown kinds are recorded with no events. No usage, reasoning, compaction or retry frame arrived in the observed runs ([observation](#observation-children-and-history)). The graph is the root session only. |
 | Client execution and interaction duties | Antigravity runs its own tools. In `yolo` no `session/request_permission` arrives; in `default` it precedes every shell call. |
 
 Sources: [Antigravity profile](../../packages/oar/src/runtimes/antigravity/session.ts),
@@ -510,7 +508,7 @@ first, also takes its descendants that left its group (as for
 [claude](claude.md#process-ownership-environment-installation-and-account-usage)).
 Persisted native sessions are not deleted.
 
-On Windows, the shared ACP session uses `taskkill /T /F` for disposal and
+On Windows, OAR's common ACP session code uses `taskkill /T /F` for disposal and
 the abort fallback, including the runtime's descendants
 ([test](../../tests/session-dispose.test.ts)). See
 [host-exit cleanup and limits](../spec/record-stream.md#the-rules).
@@ -547,7 +545,7 @@ Account usage is **unexposed**: OAR has no Antigravity account usage query.
 
 [`experiments/live-contract.ts antigravity`](../../experiments/live-contract.ts)
 covers the promises above on a real login: `basic`, `multi-turn`,
-`tool-detail`, `busy-and-late-control`, `steer` (now skipped: the session has
+`tool-detail`, `busy-and-late-control`, `steer` (skipped: the session has
 no `steer`), `queue`, `abort` (fails, see above), `dispose-mid-turn`,
 `cursor`, `resume`, `subagent`, `kill-runtime`, `bad-model`.
 [Antigravity tests](../../tests/acp/acp-session-antigravity.test.ts) use a
@@ -567,7 +565,7 @@ macOS and Windows installation; real-account runs on any version after
 1.2.1; [session MCP servers](#session-mcp-servers) on a real login and model
 and on 1.2.1 (measured on 1.3.0, 1.4.0 and 1.4.1 against a scripted
 provider; their vendor test runs locally, `OAR_TEST=antigravity-aimock`, not
-in CI); whether a later server stops storing the entries' values (1.4.1
+in CI); whether a later server stops storing the entries' values (1.4.5
 still does), until which entries with `env` or `headers` are refused. Keep
 native API capabilities, transport limitations, OAR omissions and unexecuted
 checks separate when designing or claiming support.

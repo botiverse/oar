@@ -29,11 +29,10 @@ on **kimi 2.0.0** (2026-09-18, live-contract 13/13; its `thinking` values are
 under [Effort](#models-instructions-and-context)). The newest checked release
 is **kimi 2.4.1** (2026-10-30, Linux): all 15 shared behavior cases and
 11 native vendor cases passed, with four existing capability skips and
-two vendor workers. The four local OAuth/login regressions also passed,
-without a real login. See the
+two vendor workers, and the four local OAuth/login regressions passed
+without a real login. The
 [version check](../../experiments/runtime-version-checks/2026-10-30.md#kimi-241)
-for the cross-platform validation boundary. OAR's 30-second Kimi request
-default and verified login minimum of 2.3.3 are unchanged.
+states the cross-platform validation boundary.
 Facts from later binaries name their version. Versions are
 evidence baselines, not a support range. The [spec](../spec/README.md) is the
 contract the adapter implements, not evidence of this adapter's behavior; see
@@ -579,7 +578,7 @@ its group, read from the process table when the kill begins and before the
 SIGKILL (as for [claude](claude.md#process-ownership-environment-installation-and-account-usage)).
 It does not delete persisted native sessions.
 
-On Windows, the shared ACP session uses `taskkill /T /F` for disposal and
+On Windows, OAR's common ACP session code uses `taskkill /T /F` for disposal and
 the abort fallback, including the runtime behind its launcher and its
 descendants ([test](../../tests/session-dispose.test.ts)). See
 [host-exit cleanup and limits](../spec/record-stream.md#the-rules).
@@ -633,6 +632,8 @@ child-agent usage stream.
 stderr. Kimi owns polling, credentials and model provisioning. A native
 `Logged in to ...` marker establishes success, then OAR checks authentication.
 No token, arbitrary stderr or account identity reaches events or results.
+Login and logout require Kimi 2.3.3 or later; an older version returns
+`unsupported/version_unsupported`.
 
 `KimiLoginOptions.region` accepts `mainland-cn` or `global`. With no option,
 Kimi resolves endpoint environment overrides, its saved OAuth reference, the
@@ -683,7 +684,8 @@ after the credential write. Linux passed on 2026-10-28; macOS and Windows
 evidence comes from the same test in the three-platform CI check job. These
 tests use synthetic credentials. Run locally with
 `OAR_TEST=kimi-login pnpm vitest run sea-trial/vendor/kimi-login.vendor.test.ts`
-and an installed Kimi 2.3.3 (`OAR_KIMI_LOGIN_COMMAND` selects its executable).
+and an installed Kimi 2.3.3 or later (CI pins 2.4.1; `OAR_KIMI_LOGIN_COMMAND`
+selects its executable).
 
 [env] Real account validation on 2026-10-29 used Kimi 2.3.3 on xxwork
 (Linux x64) through main OAR at `a2840bd` (0.76.0), with the account owner's
@@ -734,8 +736,7 @@ on Linux and macOS, using a local scripted provider. Windows runs the same
 suites after main pushes in the separate
 [ACP observation workflow](../../.github/workflows/acp-windows.yml), because
 startup or MCP timeouts remain intermittent and unexplained. The shared
-suite reports capability skips separately; the native login tests above
-also run in the three platform check jobs.
+suite reports capability skips separately.
 [CI scope and evidence](../../experiments/acp-ci-2026-10-29.md).
 
 Open gaps: questions and approvals (no `request_permission` arrives under
@@ -816,8 +817,10 @@ a local provider and synthetic state; it makes no OAuth refresh claim.
 `listModels()` starts an ACP process, initializes and authenticates the
 native channel, then opens a temporary native session to read its model config
 option. It closes the native session/process without a model prompt. This can
-load workspace configuration and contact the account service. OAR exposes no
-local auth-status reader; a model catalog is not used to invent one.
+load workspace configuration and contact the account service. `authStatus()`
+also starts `kimi acp` and does not declare `localOnly`, so local orientation
+skips it; it is available at account depth. A model catalog is not used to
+infer authentication.
 
 ## Reader environment
 

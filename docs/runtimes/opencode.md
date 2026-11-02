@@ -24,34 +24,15 @@ earlier investigation of the same version through `opencode serve`.
 Versions are evidence baselines, not a support range; see the
 [runtime index](README.md) for status conventions.
 
-v1 rechecks (Linux x64, no adapter changes; none repeats the HTTP-server
-investigation):
-
-- **1.18.35** (2026-10-07, Node 24.19.0): the same 13 live scenarios on
-  `opencode/big-pickle` (not the direct model-switching probes), the native
-  prompt-options probe and all three MCP vendor tests, including both
-  prompts with session MCP servers
-  ([October 7 report](../../experiments/runtime-version-checks/2026-10-07.md)).
-- **1.19.0** (2026-10-11): eight applicable native vendor tests, the
-  prompt-options experiment and eight selected live checks on free Big
-  Pickle without an account (model catalog, basic and tool turns, resume,
-  steering, MCP, abort, disposal)
-  ([October 11 report](../../experiments/runtime-version-checks/2026-10-11.md)).
-- **1.19.3** (2026-10-17; still current on 2026-10-18): 10 native vendor
-  tests, the shared session behavior suite (17 passed, 2 skipped on a
-  diagnostic rerun) and the prompt-options probe, with no account or
-  billable model
-  ([October 17 report](../../experiments/runtime-version-checks/2026-10-17.md),
-  [October 18 report](../../experiments/runtime-version-checks/2026-10-18.md)).
-- **1.19.4** (2026-10-23): 10 native tests, the prompt-options probe and a
-  10-model catalog. Shared behavior passed 17 cases with two skips on an
-  unchanged recheck after one native startup failed a workspace-table
-  creation statement; the underlying cause was not identified
-  ([October 23 report](../../experiments/runtime-version-checks/2026-10-23.md#opencode-startup-and-compatibility)).
-- **1.19.5** (2026-10-28): 10 native tests, 17 shared behavior cases (two
-  skipped), the prompt-options probe and a nine-model catalog passed on the
-  first run against local scripted providers, without an account
-  ([October 28 report](../../experiments/runtime-version-checks/2026-10-28.md#opencode-1195)).
+Later v1 releases were rechecked on Linux x64 without adapter changes; no
+recheck repeats the direct model-switching probes or the HTTP-server
+investigation. Latest: **1.19.5** (2026-10-28) passed 10 native vendor
+tests, 17 shared behavior cases (two skipped), the prompt-options probe and
+a nine-model catalog on the first run against local scripted providers,
+without an account
+([October 28 report](../../experiments/runtime-version-checks/2026-10-28.md#opencode-1195)).
+Native startup failures on v1 are under
+[startup and compatibility](#startup-and-compatibility).
 
 ## Windows isolated-process cleanup
 
@@ -59,68 +40,75 @@ Disposing an active tool can stop OpenCode's shell before its tool and child
 exit. OAR captures descendant start identities before the existing native
 cancel/close operations, then revalidates and cleans remembered descendants
 after the root exits. After an OAR stop action, a process-table read failure
-is reported as unverified cleanup. A prior natural exit keeps its native error without a
-cleanup suffix. This uses the common Windows process-tree fallback;
-it does not add a native close operation or enable sharing.
-
+is reported as unverified cleanup; a prior natural exit keeps its native
+error without a cleanup suffix. This uses the common Windows process-tree
+fallback; it adds no native close operation and does not enable sharing.
 The [Windows baseline and regression](../../experiments/windows-orphan-cleanup.md)
-retain the main-branch reproduction and the same native isolated lifecycle
-check used by CI.
+retain the main-branch reproduction and the native isolated lifecycle check
+that CI runs.
 
 ## OpenCode v2
 
 ### Shared-process admission boundary
 
-`opencodeRuntime` uses an isolated process for every `auto` open. Explicit
-`shared` is refused with `UnsupportedOptionError`, option `placement`, on
-all versions and platforms. The standalone `opencodeSession` export remains
-isolated. OpenCode 2.2.3 and 2.2.5 were previously enabled, but configured
-user/project plugins can start children in the shared process HOME instead
-of the session directory. OAR cannot discover all such configuration from
-session options. See the [native counterexample and withdrawal](../../experiments/sharing/opencode-plugin-environment-2026-10-31.md).
+`opencodeRuntime` opens an isolated process for every `auto` request and
+refuses explicit `shared` with `UnsupportedOptionError`, option `placement`,
+on all versions and platforms. The standalone `opencodeSession` export is
+isolated. Sharing for 2.2.3 and 2.2.5 was withdrawn in 0.83.0
+([#587](https://github.com/botiverse/oar/pull/587)): configured user or
+project plugins can start children that inherit the shared process HOME
+instead of the session directory, and OAR cannot discover all such
+configuration from session options
+([native counterexample and withdrawal](../../experiments/sharing/opencode-plugin-environment-2026-10-31.md)).
 
-The following shared adapter mechanisms are retained for experiments only.
-They do not authorize production sharing. The candidate checks exact native
-2.2.3/2.2.5 and Linux x64, macOS arm64 or Windows x64, then independently
-requires the same exact versions in `initialize.agentInfo.version`. A
-mismatch retires the process before opening any session. Platform/architecture
-refer to the host Node process, not the physical machine.
+The shared adapter described below is retained for experiments only and
+does not authorize production sharing: production admission never selects
+it, and only
+[`experiments/sharing/opencode-candidate.ts`](../../experiments/sharing/opencode-candidate.ts)
+admits sessions to it. The candidate requires exact native 2.2.3 or 2.2.5 on Linux
+x64, macOS arm64 or Windows x64 (the host Node process's platform and
+architecture, not the physical machine's), then independently requires the
+same exact versions in `initialize.agentInfo.version`. A mismatch retires
+the process before opening any session.
 
-In native 2.2.3 and 2.2.5 ACP, two sessions in the same directory with the same MCP server name
-and different command arguments share the later registration: after B opens,
-A invokes B's server. Closing A/B and opening the directory with no client
-MCP servers still invokes B's server. Separate-process controls do not cross.
-The [official ACP documentation](https://opencode.ai/v2/docs/cli/acp#MCP-servers)
-explicitly describes directory-scoped registration, same-name replacement
-and retention until the ACP process exits. This is documented native scope,
-not an unreported upstream defect. Reproduce with
+In native 2.2.3 and 2.2.5 ACP, two sessions in the same directory with the
+same MCP server name and different command arguments share the later
+registration: after B opens, A invokes B's server. Closing A/B and opening
+the directory with no client MCP servers still invokes B's server.
+Separate-process controls do not cross. The
+[official ACP documentation](https://opencode.ai/v2/docs/cli/acp#MCP-servers)
+describes directory-scoped registration, same-name replacement and retention
+until the ACP process exits, so this is documented native scope, not an
+unreported upstream defect. Reproduce with
 `pnpm tsx experiments/sharing/same-directory.ts opencode` and the exact
 2.2.3 or 2.2.5 executable; [results and limits](../../experiments/sharing/admission-2026-10-31.md).
 
-The shared adapter gives each canonical directory to only one
-session during the entire process lifetime. After that session releases,
-the directory remains used. A subsequent same-directory open, even with an
-identical or empty MCP list, uses a fresh isolated process for `auto` and
-refuses explicit `shared` with `UnsupportedOptionError("placement")`.
-The old different-directory MCP evidence cannot establish unrestricted
+The shared adapter gives each canonical directory to only one session for
+the entire process lifetime; the directory remains used after that session
+releases. A later same-directory open, even with an identical or empty MCP
+list, uses a fresh isolated process for `auto` and refuses explicit
+`shared` with `UnsupportedOptionError("placement")`. The earlier
+different-directory MCP evidence cannot establish unrestricted
 same-directory sharing. The [2026-10-31 admission report](../../experiments/sharing/admission-2026-10-31.md)
-now establishes cross-directory project discovery and user-configuration
-refresh separately for 2.2.3 and 2.2.5 on Linux x64, macOS arm64 and Windows
-x64. These earlier controls omitted plugin child environment and no longer
-establish admission, even with the lifetime directory restriction. See the [ACP ownership spec](../spec/acp-shared-connection.md).
+observed cross-directory project discovery and user-configuration refresh
+separately for 2.2.3 and 2.2.5 on Linux x64, macOS arm64 and Windows x64.
+Those controls omitted plugin child environment and do not establish
+admission, even with the lifetime directory restriction. See the
+[ACP ownership spec](../spec/acp-shared-connection.md).
 
 ### Experimental shared launch, ownership and cleanup
 
 Each Runtime instance owns a separate pool, including every instance returned
-by `withPlacement()`. The command, `acp` arguments, complete captured child
-environment (inherited values plus overlay/removals), process cwd and
-initialize metadata must match to share. Environment comparison includes
-HOME/USERPROFILE, all XDG directories, configuration overrides and credentials;
-private pool keys are never recorded. Initialization happens once, including
-concurrent first opens. The native ACP process owns its standalone server.
+by `withPlacement()`. To share, the command, `acp` arguments, complete
+captured child environment (inherited values plus overlay/removals), process
+cwd and initialize metadata must match. Environment comparison includes
+HOME/USERPROFILE, all XDG directories, configuration overrides and
+credentials; private pool keys are never recorded. Initialization happens
+once, including concurrent first opens. The native ACP process owns its
+standalone server.
 
-The standard shared launch uses the effective HOME on POSIX or USERPROFILE
-on Windows (the host's home if absent) as its stable process cwd, as in the
+The shared launch uses the effective HOME on POSIX or USERPROFILE on
+Windows (the host's home if absent) as its stable process cwd, as in the
 native evidence. Project cwd travels in `session/new` or resume/load, and
 native project catalogs/configuration use that session location. Model,
 effort and MCP inputs remain native session operations. The audit inspected
@@ -131,13 +119,14 @@ effort and MCP inputs remain native session operations. The audit inspected
 
 Custom `launchArgs`, a relative executable path, relative home/configuration
 paths or relative PATH entries lack that neutral-directory launch evidence:
-`auto` uses the existing isolated launch and explicit `shared` refuses.
-This includes empty PATH entries: a trailing `;` on Windows and the relative
-`./node_modules/.bin` entry inserted by pnpm 11 both disable sharing. The experiment must supply only absolute PATH entries. Its fixtures do
-this explicitly; this does not bypass the public admission refusal. These entries are never silently interpreted relative to the
-shared process home.
-The runtime does not write user configuration, retry failed native opens,
-or serialize unrelated pools to hide the known database race.
+`auto` uses the isolated launch and explicit `shared` refuses. Empty PATH
+entries count as relative, so a trailing `;` on Windows and the
+`./node_modules/.bin` entry inserted by pnpm 11 both disable sharing. Such
+entries are never silently interpreted relative to the shared process home.
+The experiment's fixtures supply only absolute PATH entries; this does not
+bypass the public admission refusal. The runtime does not write user
+configuration, retry failed native opens, or serialize unrelated pools to
+hide the known database race.
 
 Before native opening, cwd is resolved through symlinks for ownership only.
 Native session arguments and isolated fallback preserve the host's original
@@ -145,12 +134,12 @@ cwd spelling, including symlinks and Windows short paths. The connection
 reserves both the canonical path and directory file identity, so aliases
 on case-insensitive macOS/Windows volumes cannot acquire a second session.
 Windows path keys are conservatively case-folded; file identity preserves
-distinct directories on case-sensitive POSIX volumes. Reservation
-is atomic after asynchronous filesystem reads, survives failed opens and
-release, and disappears only with the native process. An auto fallback waits
-for the existing pool's initialization before starting its independent
-process, even if that initialization failed. The independent open reports its
-own failure if it cannot start. A controlled resume id still fails with `SessionUnavailableError`
+distinct directories on case-sensitive POSIX volumes. Reservation is atomic
+after asynchronous filesystem reads, survives failed opens and release, and
+disappears only with the native process. An auto fallback waits for the
+existing pool's initialization, even a failed one, before starting its
+independent process, and reports its own failure if that process cannot
+start. A controlled resume id still fails with `SessionUnavailableError`
 before any directory fallback; native open/configuration failures do not
 retry in isolation.
 
@@ -158,13 +147,13 @@ Disposal and abort fallback use native `session/close` for that session and
 independently release its OAR-hosted terminals. Close interrupts the native
 turn and detaches its subscription, but does not erase the directory's MCP
 registration. Failures remain `cleanup` records. Child identity uses only
-`_meta["opencode/child-session"]` parent/id links owned by the carrier's root;
-rejected or temporarily unresolved metadata stays native-only, without child
-projection. Later links do not retroactively project earlier frames. Unowned and
-conflicting connection frames are union-redacted, never assigned to an
-arbitrary root. The default diagnostic sink keeps only reason counts and
-writes at most one summary every 30 seconds per Runtime instance, prefixed
-`[oar:opencode:shared]`. It does not print frame bodies. The first summary is
+`_meta["opencode/child-session"]` parent/id links owned by the carrier's
+root; rejected or temporarily unresolved metadata stays native-only, without
+child projection, and later links do not retroactively project earlier
+frames. Unowned and conflicting connection frames are union-redacted, never
+assigned to an arbitrary root. The default diagnostic sink keeps only reason
+counts and writes at most one summary every 30 seconds per Runtime instance,
+prefixed `[oar:opencode:shared]`, without frame bodies. The first summary is
 immediate; a pending summary uses one unreferenced timer, so diagnostics do
 not keep the host alive. Counts are best-effort and are not session records.
 
@@ -172,59 +161,63 @@ Peers keep their process on release/disposal. Only the last lease stops it;
 actual exits fan out once to attached sessions. After abort-fallback release,
 late frames remain recorded and new controls are rejected. Dispose detaches
 routing; later traffic becomes connection diagnostics. A native turn or work
-started after the last cleanup may continue. Resource readings describe the whole shared
-process (`scope: "shared_process"`); Windows still returns null. Open request
-and observed placement, release, cleanup and actual exit use the
-[record-stream contract](../spec/record-stream.md#placement-and-release).
+started after the last cleanup may continue. Resource readings describe the
+whole shared process (`scope: "shared_process"`); Windows still returns
+null. Open request and observed placement, release, cleanup and actual exit
+use the [record-stream contract](../spec/record-stream.md#placement-and-release).
 
 The manual `opencode-sharing-experiment.yml` workflow runs this experimental
 adapter on real 2.2.5: the full session behavior suite with fresh, distinct
 directories through `opencode-shared`, real shared and isolated controls for
-concurrent roots, model/cwd/MCP, child attribution, cancel, tool cleanup, peer
-survival and isolated resume after release, and the plugin child-environment
-comparison. The model provider is local and scripted; the CLI and its
-processes are real. The default CI check jobs run only the real isolated
-tool-cleanup check.
+concurrent roots, model/cwd/MCP, child attribution, cancel, tool cleanup,
+peer survival and isolated resume after release, and the plugin
+child-environment comparison. The model provider is local and scripted; the
+CLI and its processes are real. The default CI check jobs run only the real
+isolated tool-cleanup check (`@opencode/cli@2.2.5`).
 
 ### Startup and compatibility
 
-**2.2.5** was rechecked on Linux x64 on 2026-10-31. All 15 applicable
-behavior cases passed, while the boundary probe again passed nine of ten:
-cold MCP resume omitted its tool. The independent native probe called echo
-on creation and on none of six cold resumes, despite seven successful MCP
-connections. Warm tool replacement still passed. Two of four concurrent
-first server starts exited 1 with `table account_state already exists`;
-two sequential starts and four concurrent starts over an initialized
-database passed. These ordinary checks alone did not establish sharing;
-the subsequent [three-platform admission evidence](../../experiments/sharing/admission-2026-10-31.md)
-established 2.2.5 with the same lifetime directory restriction as 2.2.3.
-The cold-start and cold-resume limitations remain.
-[Daily report](../../experiments/runtime-version-checks/2026-10-31.md#opencode-225).
+The v2 adapter's ACP subprocess owns a standalone native server; OAR does
+not connect to or leave a persistent daemon. Latest recheck: **2.2.5**
+(Linux x64, 2026-10-31) passed all 15 applicable behavior cases, and the
+[boundary probe](../../experiments/opencode-release-lines.ts) passed nine of
+ten (an eight-model cold catalog, queueing, child attribution, ordinary
+resume, prompt-option refusal, abort, disposal and native steer refusal);
+only the cold MCP resume failed (see [v2 session behavior](#v2-session-behavior)).
+The cold-start and cold-resume limitations remain
+([October 31 report](../../experiments/runtime-version-checks/2026-10-31.md#opencode-225));
+2.2.3 gave the same results on 2026-10-30.
 
-**Known limitation, reproduced in 2.2.1 and 2.2.3** (2026-10-29/30):
-concurrent first starts over a fresh native database can fail before
-readiness, confirmed by native SQLite errors. On 2.2.3, an OAR-free probe
-started four native servers simultaneously against a fresh database:
-two became ready, one exited 1 with `database is locked`, and one exited 1
-with `table account_state already exists`. Both sequential starts and all
-four concurrent starts over an initialized database succeeded. The earlier
-2.2.1 batches failed one of four and three of four cold starts with the
-account-state error. Version 2.2.2 was not tested. See the
-[October 30 report](../../experiments/runtime-version-checks/2026-10-30.md#native-startup)
-and [upstream issue 53879](https://github.com/anomalyco/opencode/issues/53879).
+**Known limitation: concurrent first starts over a fresh native database can
+fail before readiness**, confirmed by native SQLite errors. The OAR-free
+startup probe started four native servers simultaneously against a fresh
+database. On 2.2.5 two exited 1 with `table account_state already exists`
+([October 31 report](../../experiments/runtime-version-checks/2026-10-31.md#native-startup)).
+On 2.2.3 two became ready, one exited 1 with `database is locked`, and one
+exited 1 with `table account_state already exists`
+([October 30 report](../../experiments/runtime-version-checks/2026-10-30.md#native-startup)).
+The 2.2.1 batches failed one of four and three of four cold starts with the
+account-state error; 2.2.2 was not tested. On 2.2.3 and 2.2.5, two
+sequential starts and four concurrent starts over an initialized database
+succeeded. On 2.1.4 and 2.2.0 the first behavior-suite run failed one case
+before server readiness (2.2.0's saved native log reports `SQLiteError:
+database is locked`) and the unchanged recheck passed
+([2.1.4](../../experiments/runtime-version-checks/2026-10-23.md#opencode-startup-and-compatibility),
+[2.2.0](../../experiments/runtime-version-checks/2026-10-27.md#opencode-220)).
+See [upstream issue 53879](https://github.com/anomalyco/opencode/issues/53879).
 The inspected 2.2.1 bootstrap semaphore is process-local. These observations
-do not establish that every earlier startup failure has this cause, or that
-warmup is a general fix. Hosts can serialize the first startup and wait for
-readiness before opening more sessions against the same data directory,
-as in the passing controls. OAR adds no retry or lock.
+do not establish that every startup failure has this cause, or that warmup
+is a general fix. Hosts can serialize the first startup and wait for
+readiness before opening more sessions against the same data directory, as
+in the passing controls. OAR adds no retry or lock.
 
-Further startup observations on **2026-10-30** also cover v1. A local Linux
-x64 run on xxwork with **1.19.5**, a fresh isolated HOME/XDG data directory
-and the scripted provider scheduled 17 applicable behavior cases concurrently
-(16 session cases and one installation probe). `session.queue-runs-after-turn`
-lost its native process before opening a session. The bounded stderr captured
-by OAR's ACP opening diagnostics contained this excerpt, with ANSI formatting
-removed and the remaining schema omitted:
+v1 shows startup exits too. On 2026-10-30 a local Linux x64 run on xxwork
+with **1.19.5**, a fresh isolated HOME/XDG data directory and the scripted
+provider scheduled 17 applicable behavior cases concurrently (16 session
+cases and one installation probe). `session.queue-runs-after-turn` lost its
+native process before opening a session; it exited with code 1 and no
+signal. The bounded stderr captured by OAR's ACP opening diagnostics
+contained this excerpt (ANSI formatting removed, remaining schema omitted):
 
 ```text
 Error: Unexpected error
@@ -232,65 +225,27 @@ Failed query:
         CREATE TABLE `workspace` (
 ```
 
-The process exited with code 1 and no signal. This identifies a failed schema
-creation statement, consistent with the startup problem tracked in
-[upstream issue 53879](https://github.com/anomalyco/opencode/issues/53879);
-the excerpt does not identify `already exists` or `database is locked` as
-that run's precise SQLite cause.
-
-OAR's own CI also encounters native startup failures: the
-[Linux 1.19.5 job](https://github.com/botiverse/oar/actions/runs/40983609942/job/123829294049)
+This identifies a failed schema creation statement, consistent with
+upstream issue 53879; it does not identify `already exists` or `database is
+locked` as that run's precise SQLite cause. On 1.19.4 one native startup
+failed a workspace-table creation statement, cause not identified
+([October 23 report](../../experiments/runtime-version-checks/2026-10-23.md#opencode-startup-and-compatibility)).
+OAR's own
+[Linux 1.19.5 CI job](https://github.com/botiverse/oar/actions/runs/40983609942/job/123829294049)
 ran two cases concurrently and lost `session.dispose-is-recorded` before a
-session opened (exit 1; 16 passed, two skipped, one failed). That older run
-did not retain native stderr, so its database cause remains unconfirmed.
-These observations do not establish that every startup exit has one cause.
+session opened (exit 1; 16 passed, two skipped, one failed); that run did
+not retain native stderr, so its database cause is unconfirmed. These
+observations do not establish that every startup exit has one cause.
 
-On **2.2.3**, all 15 applicable shared behavior cases passed, but the cold
-MCP-resume failure persists. The boundary probe passed nine of ten checks:
-its cold catalog returned eight models; queueing, child attribution,
-ordinary resume, prompt-option refusal, abort, disposal and native steer
-refusal passed. The MCP cold resume omitted the tool call. An independent
-native ACP reproduction called echo in the new session and on none of six
-cold resumes, although every process logged an MCP connection and every
-turn reported `end_turn`. Native transcript notices removed the tool after
-the first turn without a later re-addition. The warm-connection tool-list
-replacement control passed. The existing
-[cold-resume issue](https://github.com/anomalyco/opencode/issues/54794)
-remains open. [Full evidence](../../experiments/runtime-version-checks/2026-10-30.md#existing-boundaries-and-mcp).
+### v2 session behavior
 
-The v2 adapter's ACP subprocess owns a standalone native server; OAR does
-not connect to or leave a persistent daemon. Verified on `@opencode/cli`
-**2.2.0** (2026-10-27,
-[October 27 report](../../experiments/runtime-version-checks/2026-10-27.md#opencode-220)):
-shared session behavior (15 passed, 4 skipped on recheck), a nine-model
-catalog, prompt refusals and MCP list changes. Like the
-[2.1.4 observation](../../experiments/runtime-version-checks/2026-10-23.md#opencode-startup-and-compatibility),
-the first shared run failed one case before server readiness; the saved
-native log reports `SQLiteError: database is locked`. The unchanged recheck
-passed. This identifies those runs' startup errors, not the cause of every
-earlier failure. Initial stderr, native state and elapsed times were
-preserved before cleanup.
-
-All six direct cold resumes called echo on 2.2.0, but every resume still
-removed the tool 39 to 160 ms after the prompt and re-added it 1,260 to
-3,184 ms after the prompt. Successful calls do not eliminate this catalog
-race ([October 27 evidence](../../experiments/runtime-version-checks/2026-10-27.md#opencode-220)).
-Only one of six direct cold resumes called echo on 2.1.4. A catalog removal
-47 ms after the first resume's prompt persisted until re-addition 2,337 ms
-after the sixth resume's prompt
-([evidence](../../experiments/runtime-version-checks/2026-10-23.md#cold-mcp-resume-remains-broken)).
-The [six successful calls on 2.1.2](../../experiments/runtime-version-checks/2026-10-21.md#opencode-212)
-had still included a removal/re-addition window and did not establish a fix.
-On 2.1.0, all six cold resumes had omitted the call
-([October 20 report](../../experiments/runtime-version-checks/2026-10-20.md#cold-mcp-resume-remains-broken)).
-The [boundary probe](../../experiments/opencode-release-lines.ts) last passed
-all ten of its checks on 2.0.29
-([October 14 report](../../experiments/runtime-version-checks/2026-10-14.md)).
+Bullets that name no version come from the boundary probe (2.0.26 through
+2.0.29; it last passed all ten checks on 2.0.29,
+[October 14 report](../../experiments/runtime-version-checks/2026-10-14.md))
+and the [original 2.0.26 investigation](../../experiments/opencode-v2-2026-10-09.md),
+which separates observations from source findings.
 [October 12 evidence](../../experiments/runtime-version-checks/2026-10-12.md)
-covers 2.0.27, and [October 9 evidence](../../experiments/opencode-v2-2026-10-09.md)
-records the original 2.0.26 investigation, separating observations from
-source findings. Bullets that name no version come from the boundary probe
-(2.0.26 through 2.0.29) and that investigation.
+covers 2.0.27.
 
 - **Control:** v2 refuses a concurrent `session/prompt`. The session has no
   `steer` member; `steerOrQueue` and `deliver` queue the input for another
@@ -316,16 +271,33 @@ source findings. Bullets that name no version come from the boundary probe
   are retained, including the names of enclosed MCP calls.
   **Open cold-resume race:** a resumed session's first turn can see a native
   catalog update that removes the reattached tool, then complete without
-  calling it. OAR observed this intermittently on 2.0.27, also with the
-  OAR-free [native reproduction](../../experiments/opencode-mcp-resume-native.ts)
-  ([October 12 evidence](../../experiments/runtime-version-checks/2026-10-12.md));
-  an [independent upstream reproduction](https://github.com/anomalyco/opencode/issues/54794#issuecomment-6123225428)
+  calling it. On [2.2.5](../../experiments/runtime-version-checks/2026-10-31.md#existing-boundaries-and-mcp) (and
+  [2.2.3](../../experiments/runtime-version-checks/2026-10-30.md#existing-boundaries-and-mcp))
+  the OAR-free [native reproduction](../../experiments/opencode-mcp-resume-native.ts)
+  called echo in the new session and on none of six cold resumes, although
+  every process logged an MCP connection and every turn reported `end_turn`;
+  the native transcript removed the tool on the first resume without adding
+  it again. The warm-connection tool-list replacement control passed.
+  Earlier releases varied: all six cold resumes called echo on
+  [2.1.2](../../experiments/runtime-version-checks/2026-10-21.md#opencode-212)
+  and [2.2.0](../../experiments/runtime-version-checks/2026-10-27.md#opencode-220),
+  one of six on [2.1.4](../../experiments/runtime-version-checks/2026-10-23.md#cold-mcp-resume-remains-broken)
+  (a removal 47 ms after the first resume's prompt persisted until re-addition
+  2,337 ms after the sixth resume's prompt),
+  none on [2.1.0](../../experiments/runtime-version-checks/2026-10-20.md#cold-mcp-resume-remains-broken),
+  and the race was intermittent on 2.0.27, also in the OAR-free reproduction
+  ([October 12 evidence](../../experiments/runtime-version-checks/2026-10-12.md)). Successful
+  calls did not eliminate the removal/re-addition window: on 2.2.0 every
+  resume removed the tool 39 to 160 ms after the prompt and re-added it
+  1,260 to 3,184 ms after the prompt. An
+  [independent upstream reproduction](https://github.com/anomalyco/opencode/issues/54794#issuecomment-6123225428)
   saw the removal notice on all 12 cold resumes, with tool failures
   depending on when the model sees the later catalog update. It is tracked
   in [OAR #371](https://github.com/botiverse/oar/issues/371) and
   [upstream #54794](https://github.com/anomalyco/opencode/issues/54794),
-  both open with no posted fix as of 2.1.4 (2026-10-23). A passing run does
-  not resolve it; OAR adds no retry or sleep for it.
+  both open with no posted fix as of 2.1.4 (2026-10-23); the upstream issue
+  was still open on 2.2.5 (2026-10-31). A passing run does not resolve it;
+  OAR adds no retry or sleep for it.
 - **Prompt options:** both `systemPrompt` and `appendSystemPrompt` are
   refused before ACP startup, including resume. The v2 instruction loader
   does not consume the v1 `instructions` configuration. v2 has native
@@ -650,7 +622,7 @@ script install as the `curl` method and stays on the line
 ### Session MCP servers
 
 This section's measurements are v1 unless they name 2.x. v2's Code Mode
-`execute` and its open cold-resume race are in the [v2 MCP notes](#opencode-v2).
+`execute` and its open cold-resume race are in the [v2 MCP notes](#v2-session-behavior).
 
 `SessionOptions.mcpServers` is ACP's `mcpServers` on `session/new`,
 `session/load` and `session/resume`, in ACP's `McpServer` shape (stdio
@@ -661,8 +633,8 @@ always sent, empty when absent;
 [test](../../tests/acp/acp-session-mcp-servers.test.ts)). opencode declares
 `mcpCapabilities` http and sse, so http entries are sent (to an agent that
 declares no http, OAR refuses one with `UnsupportedOptionError`). An empty
-or repeated name fails the open before opencode starts; so does a reserved
-name such as `__proto__` (which opencode would drop), with
+or repeated name fails the open before opencode starts; a reserved name such
+as `__proto__` (which opencode would drop) fails it with
 `UnsupportedOptionError` ([reserved names](../spec/runtime-matrix.md#refused-session-options)).
 Measured on opencode 1.18.30 against a scripted provider: an isolated `HOME`
 and XDG dirs, provider `aimock` on opencode's bundled `@ai-sdk/anthropic` in

@@ -20,6 +20,9 @@ the echo correlates with the input. The implemented API (`inputId`,
 | Kimi Code 0.42.0 | From source: no ACP steer method, so the session has no `steer`; `steerOrQueue` and `deliver` queue in the adapter-held queue | No native steer mapping on the selected ACP transport | Do not show queued input as successfully steered |
 | Cursor `@cursor/sdk` 1.0.35 | `run.steer(text)`; `accepted` once the SDK answers `complete_delivered` (`native: {ack}`); `revert_to_followup` is rejected `runtime_refused` | A `user-message-appended` update with the text (live, real account, 2026-10-03); the steered text shaped the same turn's reply | Text only, no id. The acknowledgement itself waits for delivery, so the steer's `accepted` response is the correlation ([cursor](cursor.md#prompt-steering-queueing-and-abort)) |
 
+Qwen, CodeBuddy, Antigravity and OpenCode v2 sessions have no `steer`
+either ([session controls](../spec/runtime-matrix.md#session-controls)).
+
 The Codex, Claude and Pi probes ran real installed harnesses against a
 **scripted local model endpoint**, not real accounts, each sending exactly one
 unique input while a tool was running. They establish inclusion in that model
@@ -27,13 +30,13 @@ request for those runs, not universal timing, semantic influence, or race
 safety. OAR projects these native observations as `user_message` events
 ([native observations](../spec/conversation.md#native-observations)).
 
-An October 7 comparison of Claude 2.1.292 and 2.1.293 found that the newer
-`haiku` alias selects Haiku 5.5, which carries the mid-turn input in a
+In Claude 2.1.293 (compared with 2.1.292 on 2026-10-07), the `haiku`
+alias selects Haiku 5.5, which carries the mid-turn input in a
 `role: "system"` entry within the outgoing `messages` array. It still
 arrives before that turn's end, and the replay UUID is unchanged. aimock's
 normalized chat view drops that entry, so the vendor test inspects the
-original request body. The older probes' normalized view alone is
-insufficient for this model; the [comparison probe and report](../../experiments/runtime-version-checks/2026-10-07.md#claude-code-21293-evening-follow-up)
+original request body; a normalized view alone is insufficient for this
+model. The [comparison probe and report](../../experiments/runtime-version-checks/2026-10-07.md#claude-code-21293-evening-follow-up)
 retain both views.
 
 ## Native shapes

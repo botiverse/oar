@@ -16,16 +16,13 @@ pass. OAR adds no delay between turns. A future transport change requires both
 a fixed native reproduction and a capability comparison, not just an upstream
 version change. [Official ACP documentation](https://www.codebuddy.ai/docs/cli/acp).
 
-Evidence below identifies CodeBuddy 2.178.1, Linux x64 local-provider tests and
-Linux arm64 international-account tests on 2026-10-29. These are observation
+Current check: **2.179.1** (Linux x64, 2026-11-01): all 16 applicable
+behavior cases and five native vendor cases passed against local providers
+([daily evidence](../../experiments/runtime-version-checks/2026-11-01.md#codebuddy-21791)).
+Unless marked otherwise, evidence below identifies CodeBuddy 2.178.1, Linux
+x64 local-provider tests and Linux arm64 international-account tests on
+2026-10-29; account observations remain on 2.178.1. These are observation
 baselines, not a compatibility range.
-
-On **2.179.1** (Linux x64, 2026-11-01), all 16 applicable behavior cases
-and five native vendor cases passed against local providers. Independent
-controls still duplicated the second stream-json input in three immediate
-runs, while all three one-second controls and the immediate ACP control
-kept one conversation request per input. Historical account observations
-below remain on 2.178.1. [Daily evidence](../../experiments/runtime-version-checks/2026-11-01.md#codebuddy-21791).
 
 ## OAR mapping
 
@@ -140,34 +137,37 @@ The adapter preserves the native account environment rather than changing region
 
 ### Observed on 2026-10-29
 
-- On xxwork, HEAD requests to the international homepage and authentication path
+The earlier helper's reports label the failed attempts below
+`failed / rejected`; they are native `auth_failed` results
+([below](#native-authentication-failure-evidence)).
+
+- xxwork: HEAD requests to the international homepage and authentication path
   both timed out while connecting to port 443 after eight seconds. No login was
   started there.
-- On a second Linux x64 computer, Node 24.22.1 and CodeBuddy 2.178.1 ran the same
-  draft's bundled account helpers. The initial read returned `logged_out`.
-  The earlier helper classified one login attempt as `failed / rejected` in
-  about seven seconds, without
-  an authorization URL. A fresh account read still returned `logged_out`.
-- That operator separately observed a TLS unexpected EOF at both the
-  international homepage and the authentication path (curl exit 35, no HTTP
-  status). This is a connectivity failure, but the state-only login report does
-  not establish that it is the exact cause of the native failure.
-- A third computer returned HTTP 404 for HEAD at the authentication path and
-  homepage. On Linux arm64, Node 24.18.1, CodeBuddy 2.178.1 and an isolated HOME,
-  the first two authorized login attempts produced URLs but ended with
-  the earlier helper's `failed / rejected`; fresh status reads remained `logged_out`. The full helper
-  runs lasted 85.899 and 81.892 seconds. The exact failing step is unknown.
-- A third attempt on that arm64 computer succeeded: `login` returned
+- Second Linux x64 computer (Node 24.22.1, CodeBuddy 2.178.1, the draft's
+  bundled account helpers): the initial read returned `logged_out`; one login
+  attempt failed in about seven seconds without an authorization URL; a fresh
+  account read still returned `logged_out`. That operator separately observed
+  a TLS unexpected EOF at both the international homepage and the
+  authentication path (curl exit 35, no HTTP status). This is a connectivity
+  failure, but the state-only login report does not establish that it is the
+  exact cause of the native failure.
+- Third computer (Linux arm64, Node 24.18.1, CodeBuddy 2.178.1, isolated HOME):
+  HEAD returned HTTP 404 at the authentication path and homepage. The first two
+  authorized login attempts produced URLs but failed; fresh status reads
+  remained `logged_out`. The full helper runs lasted 85.899 and 81.892 seconds.
+  The exact failing step is unknown. A third attempt succeeded: `login` returned
   `logged_in`, a separate process read `logged_in`, and one real conversation
-  completed with the expected fixed answer. That earlier draft used a
-  stream-json conversation helper, which reported input 6,730 and output 8;
-  these counts are not from the selected ACP adapter, whose token total is null.
-  The operator confirmed international browser authorization by the account
-  owner. No account identity, authorization URL or credentials are included in
-  the reports. Credentials remain only on the operator's computer.
-- This verifies international login, a fresh-process status read and one short
-  conversation on Linux arm64. It does not verify logout, refresh, the domestic
-  service or other platforms. ACP sessions are verified separately below.
+  completed with the expected fixed answer. That draft's stream-json
+  conversation helper reported input 6,730 and output 8; these counts are not
+  from the selected ACP adapter, whose token total is null. The operator
+  confirmed international browser authorization by the account owner. No
+  account identity, authorization URL or credentials are included in the
+  reports. Credentials remain only on the operator's computer.
+
+This verifies international login, a fresh-process status read and one short
+conversation on Linux arm64. It does not verify logout, refresh, the domestic
+service or other platforms. ACP sessions are verified separately below.
 
 ### Native authentication failure evidence
 
@@ -177,9 +177,8 @@ state with POST, it polls `GET /v2/plugin/auth/token`, then
 `GET /v2/plugin/login/account`. The token poll continues for native pending code
 11217; other token errors end the attempt. The account pending code is 12151.
 `AuthenticationManager.login` catches provider errors and returns false;
-`authenticate` then reports `success: false` with `auth_failed`. The earlier
-helper mislabeled this `failed / rejected`; the adapter now reports
-`failed / process_failed`. Historical reports keep the original result.
+`authenticate` then reports `success: false` with `auth_failed`, which the
+adapter reports as `failed / process_failed`.
 
 That result is not evidence that a person denied authorization. It can also
 represent a transport, server, polling or other native authentication failure.
@@ -197,8 +196,10 @@ real account login.
 
 [env] The unchanged standalone stream-json reproduction returned
 `first, second, second` in all three immediate runs, and `first, second` in
-three controls delaying the second input by one second. The custom provider
-used synthetic credentials. Slowing that provider's responses did not remove
+three controls delaying the second input by one second (2.178.1, and again on
+2.179.1 on 2026-11-01, when the immediate ACP control also kept one
+conversation request per input). The custom provider used synthetic
+credentials. Slowing that provider's responses did not remove
 the failure: at 500 ms, two runs duplicated and one timed out after the first
 result; at 1,000 and 2,000 ms, all three runs at each delay duplicated.
 
