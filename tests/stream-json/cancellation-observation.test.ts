@@ -16,6 +16,7 @@ async function open(child: FakeLineProcess) {
   return withSessionCredentials(async (_i, _o, credentials) => streamJsonSession(child, "session", credentials, {
     projection: claudeProjectionProfile, initial: initialClaudeProjection,
     capabilities: { queue: { durable: false }, attribution: "attributed", images: false },
+    cancelQueuedCapability: "interrupt_cancel_queued_v1",
     steer: true, consume: () => false, open: async () => {}, exited: () => {}, disposing: () => {},
   }))({ kind: "available", via: "executable", command: "fixture" }, { cwd: "/work" });
 }
@@ -25,6 +26,31 @@ function answer(text: string, child: FakeLineProcess, refusal = false): void {
   child.emit(`${JSON.stringify({ type: "control_response", response: { subtype: refusal ? "error" : "success", request_id: value.request_id, response: {} } })}\n`);
 }
 function endTurn(child: FakeLineProcess): void { child.emit(`${JSON.stringify({ type: "result", subtype: "success", is_error: false })}\n`); }
+
+// oxlint-disable-next-line max-statements -- Native queued input and an observation-window arrival must share one cancellation.
+test("interrupts native unstarted input before draining arrivals held during observation", async () => {
+  const child = fakeLineProcess(answer);
+  const gate = Promise.withResolvers<CancellationObservation>();
+  const commit = vi.fn<() => void>();
+  vi.spyOn(child, "observeCancellation").mockReturnValue(gate.promise);
+  const session = await open(child);
+  try {
+    child.emit(`${JSON.stringify({ type: "system", subtype: "init", capabilities: ["interrupt_cancel_queued_v1"] })}\n`);
+    endTurn(child);
+    await session.queue("native queue", { inputId: "10000000-0000-4000-8000-000000000001" });
+    const abort = session.abort();
+    await session.queue("held arrival", { inputId: "10000000-0000-4000-8000-000000000002" });
+    expect(child.written).toHaveLength(1);
+    gate.resolve({ commit, complete() {} });
+    const aborted = await abort;
+    expect(aborted.kind).toBe("accepted");
+    expect(commit).toHaveBeenCalledOnce();
+    const writes = child.written.map(text => asRecord(parseJson(text)));
+    expect(writes.map(write => write?.type)).toEqual(["user", "control_request", "user"]);
+    expect(writes[1]?.request).toEqual({ subtype: "interrupt", cancel_queued: true });
+    expect(writes[2]?.uuid).toBe("10000000-0000-4000-8000-000000000002");
+  } finally { gate.resolve({ commit, complete() {} }); await session.dispose(); }
+});
 
 // oxlint-disable-next-line max-statements -- The input must remain pending, then follow the actual interrupt write.
 test.each(["prompt", "steer"] as const)("%s waits through the observation window and uses existing post-cancel rules", async input => {

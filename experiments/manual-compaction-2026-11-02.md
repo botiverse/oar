@@ -185,8 +185,10 @@ returned reasons, and disposal/exit without synthetic terminal frames.
 An unrelated root goal turn before Codex's `contextCompaction` item cannot
 claim its identity; an observed active goal also refuses compact as busy.
 `AgentStatus.compaction` contains only `requestId` and `started?`. Native
-turn/span correlation stays in serializable fold state, including
-`SessionView.statusState`, outside the displayed status; cloned checkpoints
+turn/span correlation stays in the exported `StatusState` checkpoint, including
+`SessionView.statusState` and `TaskState.status`, outside the displayed status.
+Incremental hosts preserve the entire checkpoint plus its consumed cursor;
+`statusValue` extracts only the display value. Cloned checkpoints
 produce the same result as a full replay. Pi returns to idle retaining the
 previous ordinary turn outcome.
 
@@ -197,14 +199,38 @@ operation continuing past its usual 30-second request deadline. The full
 capability inventory includes Pi Durable and fixes which entries are
 supported, unsupported or still undeclared.
 
+The final review added a cancellation-window regression: when native input
+has been sent but has not started, an arrival held during cancellation
+observation must drain only after the interrupt with `cancel_queued` is
+written. Synchronously draining it first advanced the turn revision and
+incorrectly rejected the abort. Only that observation-window release is
+deferred; native compaction completion still reserves and drains the next
+queued turn synchronously, before a new prompt can overtake it.
+
+Six independent mutations were rejected by their focused regression:
+
+| Removed protection | Failing assertion |
+|---|---|
+| Interrupt before observation-window queue drain | Abort must be accepted and interrupt written before the new input |
+| Reserve the drained queue entry before its native receipt | A new prompt must be rejected busy |
+| Pi RPC transport-rejection handling | The wait remains pending without a synthetic native compact failure until exit |
+| Codex unassociated-turn guard | Completed, failed and interrupted frames with no turn identity cannot release compact |
+| Codex early-abort busy rejection | The Session control stays busy before the item supplies its target, then interrupts only that turn |
+| Claude failure-frame reference | Started cancellation must reference the `compact_result` frame, not the later ordinary result |
+
 ## Local validation
 
-The revised implementation passes the full check with 3,043 tests and 18
+The final revision passes the full check with 3,049 tests and 18
 mock behaviors, all 14 behavior backends, build and clean packed-consumer
 validation. Full vendor suites pass for Claude 2.1.316 (80), Codex 0.166.0
 (62), Pi SDK 1.4.0 (97) and Pi RPC 1.4.0 (95). The manual compaction file
 contributes 33 native controls across the four entries. These runs are Linux
 observations; Windows and macOS validation remains pending CI.
+The final cancellation-order change also passes the complete Claude 2.1.316
+(80), Qwen 0.26.5 (18) and Qoder 1.1.81 (9) vendor suites. The six mutation
+controls above each fail at the intended assertion. Clean packed-consumer
+validation covers both root and observe exports of `StatusState` and
+`statusValue`; restored checkpoints retain the same result as full replay.
 
 After rebasing onto the 0.85.1 release and the DSH/Qwen evidence changes,
 the full check still passes with 3,043 tests and 18 mock behaviors. Full
@@ -232,6 +258,9 @@ outcome type exports.
 - Add optional `Runtime.manualCompaction` and `Session.compact()` with typed
   outcomes on Claude, Codex and Pi SDK/RPC. These implementations require
   idle sessions; unsupported and unverified entries remain distinguishable.
+- Export `StatusState` and `statusValue` for incremental status consumers.
+  Persist the complete reducer checkpoint with its cursor; a displayed
+  `AgentStatus` alone cannot continue the fold through manual compaction.
 - An already aborted signal returns `rejected / aborted` without sending
   native work; `timeoutMs: 0` still dispatches. After dispatch, a compact wait
   timeout or signal returns `unconfirmed` and does not stop

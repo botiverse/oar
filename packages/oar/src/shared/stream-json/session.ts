@@ -236,7 +236,9 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
       catch (error) {
         return { request, response: kernel.respond(request.id, { kind: "rejected", code: "error", reason: error instanceof Error ? error.message : String(error) }) };
       } finally {
-        if (observingCancellation === window) { observingCancellation = null; drainHeld(); }
+        // Preserve the observed turn until interrupt has been written. A
+        // drained arrival must not advance its revision before that check.
+        if (observingCancellation === window) { observingCancellation = null; queueMicrotask(drainHeld); }
       }
       const afterObservation = kernel.unreachable();
       if (turnRevision !== revision || window.revision !== revision || afterObservation !== null || state.disposed) {

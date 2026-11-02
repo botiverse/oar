@@ -44,12 +44,19 @@ export type { AgentStatus, RunningPhase } from "../contracts/session.js";
  * may subscribe mid-turn, and a queued input runs as a turn with no request).
  */
 
-/** Serializable reducer bookkeeping; status queries expose only AgentStatus. */
+/**
+ * Serializable checkpoint returned by `reduceStatus`, exported from
+ * `@botiverse/oar/observe` and the root entry. To resume an incremental fold,
+ * persist this entire value unchanged together with the last consumed cursor.
+ * Saving only AgentStatus fields loses native operation correlation.
+ * Use `statusValue` for display, never as the checkpoint for resuming a fold.
+ */
 export type StatusState = AgentStatus & { readonly compactionState?: {
   readonly nativeTurn?: true;
   readonly spanId?: string;
   readonly lastTurnOutcome?: TurnOutcome;
 } };
+/** Start a new fold; use a saved StatusState when continuing after a cursor. */
 export const initialStatus: StatusState = { kind: "idle" };
 
 /** Separate display state from the checkpoint needed by incremental folds. */
@@ -90,6 +97,7 @@ function running(previous: StatusState, record: RawEvent, phase: RunningPhase): 
   };
 }
 
+/** Fold one record using the complete previous checkpoint; preserve every returned field. */
 export function reduceStatus(previous: StatusState, record: RawEvent, sessionId?: string): StatusState {
   if (previous.kind === "idle" && previous.released === true) { return previous; }
   const foreignSession = sessionId !== undefined && record.sessionId !== sessionId;

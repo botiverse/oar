@@ -23,6 +23,7 @@ interface PendingPrompt {
   readonly stop?: { readonly pendingAbortIds: readonly string[]; readonly abortedOnExit: boolean };
 }
 
+/** Display/query value. Incremental consumers persist the complete `StatusState` from `reduceStatus`, not only these fields. */
 export type AgentStatus = (
   | { readonly kind: "idle"; readonly lastTurnOutcome?: TurnOutcome; readonly released?: true }
   | {

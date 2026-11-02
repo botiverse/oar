@@ -173,7 +173,7 @@ export interface SessionView {
   /** Index of the unsealed turn segment in `messages`; -1 when none. */
   readonly openTurn: number;
   readonly status: AgentStatus;
-  /** Serializable status-fold internals, separate from the displayed status. */
+  /** Status checkpoint when it needs additional correlation. Preserve it with the entire SessionView when resuming a fold; `status` alone cannot replace it. */
   readonly statusState?: StatusState;
   readonly model: string | null;
   /** The latest reasoning-effort level the runtime reported (`effort` events); null before any. */

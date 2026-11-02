@@ -184,6 +184,10 @@ test("two queued inputs after compact remain two distinct turns", async () => {
     await Promise.resolve(); await Promise.resolve();
     const users = () => f.fake.written.map((text) => asRecord(JSON.parse(text))).filter((message) => message?.type === "user");
     expect(users().map((message) => message?.uuid)).toEqual([id, first]);
+    // Native has not acknowledged the first queued input yet. It already
+    // owns the next turn, so a new prompt cannot overtake either queue entry.
+    expect(await f.session.prompt("cannot overtake queue")).toMatchObject({ kind: "rejected", code: "busy" });
+    expect(users().map((message) => message?.uuid)).toEqual([id, first]);
     f.fake.emit(line({ type: "command_lifecycle", command_uuid: first, state: "queued" }));
     f.fake.emit(line({ type: "command_lifecycle", command_uuid: first, state: "started" }));
     f.fake.emit(line(end(first)));
@@ -205,8 +209,14 @@ test("an interrupted ordinary turn cannot reclassify a native compact error as a
     const interrupt = f.fake.written.map((text) => asRecord(JSON.parse(text))).find((message) => asRecord(message?.request)?.subtype === "interrupt");
     f.fake.emit(line({ type: "control_response", response: { subtype: "success", request_id: interrupt?.request_id, response: {} } }));
     expect(await aborted).toMatchObject({ kind: "accepted" });
+    f.fake.emit(line({ type: "system", subtype: "status", compact_result: "failed", compact_error: "cancelled" }));
+    const nativeFailure = f.session.records().at(-1);
+    expect(nativeFailure).toMatchObject({ kind: "frame", body: { native: { compact_result: "failed" } } });
     f.fake.emit(line(end(id, { is_error: true, errors: ["cancelled"] })));
-    expect(await waiting).toMatchObject({ kind: "failed", code: "native_failed" });
+    const result = await waiting;
+    expect(result).toMatchObject({ kind: "failed", code: "native_failed" });
+    assert.ok(result.kind === "failed");
+    expect(result.frame).toBe(nativeFailure);
     expect(f.session.status().value).toEqual({ kind: "idle", lastTurnOutcome: { kind: "aborted" } });
   } finally { await f.session.dispose(); }
 });

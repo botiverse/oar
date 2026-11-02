@@ -170,6 +170,9 @@ import { createPiProviderAuth, type PiProviderAuthOptions } from "@botiverse/oar
 export const entries = [oar, browser, forms, agents, report, brands, kernel, observe, testing];
 export const compactPolicy: oar.ManualCompaction | undefined = oar.claudeRuntime.manualCompaction;
 export const compact = (session: oar.Session, options: oar.CompactionOptions): Promise<oar.CompactionOutcome> | undefined => session.compact?.(options);
+export const checkpoint: observe.StatusState = oar.initialStatus;
+export const resumeStatus = (saved: oar.StatusState, record: oar.RawEvent): observe.StatusState => observe.reduceStatus(saved, record);
+export const displayStatus: oar.AgentStatus = observe.statusValue(checkpoint);
 export const resumedOptions: oar.ResumedSessionOptions | undefined = oar.claudeRuntime.resumedSessionOptions;
 export const promptTiming: oar.ResumeOptionSemantics | undefined = resumedOptions?.systemPrompt;
 export const writeCapture: (marker: string) => void = oar.writeShellEnvironmentCapture;

@@ -67,7 +67,17 @@ provisional status. This control intent does not fabricate a native
 and optional `started`; correlation and the previous turn outcome stay in
 serializable reducer bookkeeping, separate from the displayed status.
 A Pi manual end restores idle with the previous `lastTurnOutcome`.
-The fold retains correlation in its checkpoint;
+Incremental hosts use the exported `StatusState` checkpoint type from
+`@botiverse/oar/observe` (also exported at the root). Save the **entire** value
+returned by `reduceStatus`, unchanged, together with the last consumed cursor;
+continue with that value and records after the cursor. `initialStatus` starts
+a new fold. `statusValue(checkpoint)` extracts `AgentStatus` for display, but
+that display value and `Session.status().value` are not resumable checkpoints:
+they omit correlation needed to match Claude's final command result.
+Likewise preserve the entire `SessionView`, including optional `statusState`,
+and the entire `TaskState`, whose `status` is a `StatusState`. Do not rebuild
+either from only its displayed status.
+
 Claude's native queued receipt for the compact command is not a pending
 ordinary prompt. `turn_ended.inputId` and `inputIds`, when present, preserve native input
 identities independently, without inference; see the

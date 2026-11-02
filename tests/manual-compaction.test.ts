@@ -1,8 +1,7 @@
 /* oxlint-disable eslint/max-statements -- Keep each ordered native control and its negative assertions together. */
 import { afterEach, expect, test, vi } from "vitest";
 import type { FrameBody, RuntimeEventBody } from "../packages/oar/src/contracts/session.js";
-import { statusOf, initialStatus, reduceStatus } from "../packages/oar/src/observe/agent-status.js";
-import { initialSessionView, reduceSessionView } from "../packages/oar/src/observe/session-view.js";
+import { statusOf, initialStatus, reduceStatus, statusValue, type StatusState, initialSessionView, reduceSessionView } from "../packages/oar/src/observe/index.js";
 import { manualCompaction } from "../packages/oar/src/shared/manual-compaction.js";
 import { createSessionKernel } from "../packages/oar/src/shared/session-kernel.js";
 import { piCompaction } from "../packages/oar/src/runtimes/pi/compaction.js";
@@ -103,8 +102,11 @@ test("status checkpoints retain the compaction identity across native queued rec
   expect(await waiting).toMatchObject({ kind: "completed" });
   const records = f.kernel.records();
   for (let split = 0; split < records.length; split += 1) {
-    const checkpoint = records.slice(0, split).reduce((state, record) => reduceStatus(state, record, "root"), initialStatus);
-    expect(records.slice(split).reduce((state, record) => reduceStatus(state, record, "root"), checkpoint)).toEqual(statusOf(records, "root").value);
+    const checkpoint: StatusState = records.slice(0, split).reduce((state, record) => reduceStatus(state, record, "root"), initialStatus);
+    const restored: StatusState = structuredClone(checkpoint);
+    expect(statusValue(restored)).toEqual(statusOf(records.slice(0, split), "root").value);
+    expect(statusValue(restored)).not.toHaveProperty("compactionState");
+    expect(records.slice(split).reduce((state, record) => reduceStatus(state, record, "root"), restored)).toEqual(statusOf(records, "root").value);
   }
   expect(statusOf(records).value.kind).toBe("idle");
 });

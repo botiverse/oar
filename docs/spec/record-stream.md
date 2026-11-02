@@ -262,7 +262,7 @@ Further rules:
 - **Control responses answer only "accepted or not".** Final states and
   landing points are always events. A rejection carries one typed `code`
   (`busy`, `no_active_turn`, `not_queued`, `unsupported`, `runtime_exited`, `session_released`,
-  `disposed`, `runtime_refused`, `error`) next to the prose `reason`, so an application
+  `disposed`, `aborted`, `runtime_refused`, `error`) next to the prose `reason`, so an application
   branches on a word, not on vendor text. `unsupported` means the runtime
   cannot do this control with these inputs (images where it takes none,
   images on a cursor steer, or no input at all); a control a runtime cannot do at all is a
@@ -451,7 +451,12 @@ Further rules:
   OAR synthesizes neither a `turn_ended` frame nor a `timeout` rejection.
   The incremental `reduceStatus` keeps optional `stop` evidence in a running
   status (pending abort ids and `abortedOnExit`) so checkpoints preserve the
-  same result as replay. Flat events alone omit accepted controls; feed
+  same result as replay. Its public checkpoint type is `StatusState`:
+  persist the entire value with the consumed cursor, including native
+  compaction correlation, and pass it unchanged when continuing the fold.
+  `statusValue` and `Session.status()` expose only the display `AgentStatus`,
+  which cannot replace that checkpoint ([details](manual-compaction.md#ownership-records-and-state)).
+  Flat events alone omit accepted controls; feed
   records to the session view for this classification.
 - **Spawned processes belong to the host's lifetime.** One synchronous Node
   `exit` hook kills OAR's still-running sessions, probes (inventory and
@@ -1015,7 +1020,8 @@ Metadata-only updates retain the inferred status and error.
 
 For incremental consumers, use `initialTaskState(rootSessionId?)` and
 `reduceTaskState(state, record)`. Its `tasks` is the existing `TaskMap`;
-`status` reuses `reduceStatus`'s current-turn stop evidence, `disposed`
+`status` is the complete `StatusState` from `reduceStatus`, including
+current-turn stop evidence and compaction correlation; `disposed`
 remembers a root dispose even while idle, and `exitErrors` identifies
 inferred errors. Persist the whole state, preserving its Map and Set, so a
 checkpoint can continue folding with the same result as replay. Supply the

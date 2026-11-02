@@ -108,7 +108,7 @@ export function reduceTasks(previous: TaskMap, record: RawEvent): TaskMap {
 export interface TaskState {
   readonly tasks: TaskMap;
   readonly rootSessionId: string | undefined;
-  /** Reuses the status fold's current-turn stop evidence. */
+  /** Complete status checkpoint, including native correlation and stop evidence. Persist unchanged with this TaskState. */
   readonly status: StatusState;
   /** A root dispose request also applies when no turn is running. */
   readonly disposed: boolean;

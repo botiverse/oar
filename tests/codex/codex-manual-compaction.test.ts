@@ -46,6 +46,21 @@ test.each(["completed", "failed", "interrupted"] as const)("a %s compaction turn
   expect(f.busy()).toBe(false);
 });
 
+test.each(["completed", "failed", "interrupted"] as const)("a %s turn with no identity cannot release compact before its native item arrives", async (status) => {
+  const f = setup();
+  const waiting = f.compact();
+  f.frame("turn/started", { turn: { id: "unassociated" } });
+  f.frame("turn/completed", { turn: { id: null, status } });
+  expect(f.busy()).toBe(true);
+  expect(await f.compact()).toMatchObject({ kind: "rejected", code: "busy" });
+  expect(f.call).toHaveBeenCalledOnce();
+  f.frame("item/started", { turnId: "manual", item: { type: "contextCompaction", id: "ours" } });
+  const boundary = f.frame("item/completed", { turnId: "manual", item: { type: "contextCompaction", id: "ours" } });
+  f.frame("turn/completed", { turn: { id: "manual", status: "completed" } });
+  expect(await waiting).toMatchObject({ kind: "completed", frame: boundary });
+  expect(f.busy()).toBe(false);
+});
+
 test("a queued input reserves against compact until its own native echo or refusal", async () => {
   const f = setup();
   const queued = f.kernel.request("toRuntime", { kind: "queue", input: "first", inputId: "input" });

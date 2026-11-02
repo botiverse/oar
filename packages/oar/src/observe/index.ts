@@ -9,8 +9,8 @@ export { coalesceText, controlActionsOf, eventsOf, eventsReader } from "./events
 export { usability } from "./usability.js";
 export { graphOf } from "./graph.js";
 export type { KnownControl } from "./events.js";
-export { initialStatus, reduceStatus, stallOf, statusOf } from "./agent-status.js";
-export type { AgentStatus, RunningPhase } from "./agent-status.js";
+export { initialStatus, reduceStatus, stallOf, statusOf, statusValue } from "./agent-status.js";
+export type { AgentStatus, RunningPhase, StatusState } from "./agent-status.js";
 export { observeStalls } from "./stall-observer.js";
 export type { StallInfo } from "./stall-observer.js";
 export { observeAgent, simpleStateOf } from "./observe-agent.js";
