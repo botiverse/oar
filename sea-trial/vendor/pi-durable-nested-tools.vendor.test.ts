@@ -1,6 +1,6 @@
 import { expect, test, vi } from "vitest";
 import { BACKGROUND_CONTEXT } from "@earendil-works/chord/context";
-import { Type } from "@earendil-works/pi-ai";
+import { Type } from "@earendil-works/pi-ai-durable";
 import { createRegistry, defineExtension, defineTool } from "@earendil-works/pi-durable";
 import { awaitTurnEnd } from "../../packages/oar/src/observe/turns.js";
 import type { Session } from "../../packages/oar/src/contracts/session.js";

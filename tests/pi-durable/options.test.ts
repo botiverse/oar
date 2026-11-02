@@ -1,7 +1,7 @@
 import { afterEach, expect, test, vi } from "vitest";
 import { BACKGROUND_CONTEXT } from "@earendil-works/chord/context";
-import { createModels } from "@earendil-works/pi-ai/models";
-import { fauxProvider } from "@earendil-works/pi-ai/providers/faux";
+import { createModels } from "@earendil-works/pi-ai-durable/models";
+import { fauxProvider } from "@earendil-works/pi-ai-durable/providers/faux";
 import { createRegistry, Harness, MemoryStorage } from "@earendil-works/pi-durable";
 import { orient, RuntimeRegistry } from "../../packages/oar/src/index.js";
 import { createPiDurableRuntime } from "../../packages/oar/src/runtimes/pi-durable/index.js";

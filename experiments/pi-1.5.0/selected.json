@@ -1,0 +1,152 @@
+{
+  "observedAt": "2026-11-02",
+  "platform": "linux-x64",
+  "baseCommit": "11723ed45192763fb8d6ae91b6a9ce03d077c8f9",
+  "versions": {
+    "piCodingAgent": "1.5.0",
+    "piAiForCodingAgent": "1.5.0",
+    "undici": "8.12.3",
+    "piDurable": "1.4.0",
+    "chord": "1.4.0",
+    "piAiForDurable": "1.4.0"
+  },
+  "advisories": [
+    {
+      "id": "GHSA-2m5v-pch6-74hx",
+      "url": "https://github.com/advisories/GHSA-2m5v-pch6-74hx",
+      "affected8x": ">= 8.0.0, < 8.12.2",
+      "firstPatched8x": "8.12.2"
+    },
+    {
+      "id": "GHSA-4w7w-5xrc-9h26",
+      "url": "https://github.com/advisories/GHSA-4w7w-5xrc-9h26",
+      "affected8x": ">= 8.0.0, < 8.12.2",
+      "firstPatched8x": "8.12.2"
+    },
+    {
+      "id": "GHSA-qrxm-fqhp-jwvm",
+      "url": "https://github.com/advisories/GHSA-qrxm-fqhp-jwvm",
+      "affected8x": ">= 8.0.0, < 8.12.2",
+      "firstPatched8x": "8.12.2"
+    },
+    {
+      "id": "GHSA-xjj6-f33q-929c",
+      "url": "https://github.com/advisories/GHSA-xjj6-f33q-929c",
+      "affected8x": ">= 8.0.0, < 8.12.2",
+      "firstPatched8x": "8.12.2"
+    }
+  ],
+  "upgradeResume": {
+    "before": {
+      "version": "1.4.0",
+      "id": "01a19cd9-5d32-7736-a386-4166f0751e22",
+      "model": "aimock/aimock-model",
+      "firstSeq": 0,
+      "text": "OAR_PI_BEFORE_UPGRADE_REPLY"
+    },
+    "after": {
+      "version": "1.5.0",
+      "id": "01a19cd9-5d32-7736-a386-4166f0751e22",
+      "model": "aimock/aimock-model",
+      "firstSeq": 0,
+      "text": "OAR_PI_AFTER_UPGRADE_REPLY"
+    },
+    "priorTranscriptSent": true,
+    "separateProcesses": true,
+    "passed": true
+  },
+  "nativeChecks": {
+    "pi-1.5.0-pi-aimock-vendor-first.log": {
+      "sha256": "73e8f7225155b177e47fee830798314d21915f0919e8620323acfb2c43ede310",
+      "summary": "1 failed | 88 passed | 269 skipped (358)"
+    },
+    "pi-1.5.0-pi-durable-aimock-vendor-first.log": {
+      "sha256": "95378c1c3e55776ebbc16f97c56804fd7ac93a38d71a7bc2607d0b542505625c",
+      "summary": "24 passed | 334 skipped (358)"
+    },
+    "pi-1.5.0-pi-rpc-aimock-vendor-first.log": {
+      "sha256": "5170a6c5ca2eb879d221a5c95dcc61c7e0b824f8480cf4f8c9397f887891c169",
+      "summary": "1 failed | 86 passed | 271 skipped (358)"
+    },
+    "pi-1.5.0-pi-aimock-updated-controls.log": {
+      "sha256": "786e4c8427a4d80080e3b5a157bf547d7989b3b73ba441b3fcb310e58df8d706",
+      "summary": "3 passed (3)"
+    },
+    "pi-1.5.0-pi-durable-aimock-updated-controls.log": {
+      "sha256": "84a2df8deb2a7b11d5ad08522a6858f4e1c86f07865bd9473f01795c6ca0b154",
+      "summary": "1 passed (1)"
+    },
+    "pi-1.5.0-pi-rpc-aimock-updated-controls.log": {
+      "sha256": "d10366a08b3c39693fd5c468080bded18269fe542f8fb3a7b79fc7c2bce8b9ff",
+      "summary": "3 passed (3)"
+    }
+  },
+  "behavior": {
+    "pi-aimock": {
+      "passed": 17,
+      "skipped": 2,
+      "failed": 0
+    },
+    "pi-rpc-aimock": {
+      "passed": 17,
+      "skipped": 2,
+      "failed": 0
+    },
+    "pi-durable-aimock": {
+      "passed": 18,
+      "skipped": 1,
+      "failed": 0
+    }
+  },
+  "initialFailures": "SDK and RPC each failed only the obsolete literal default-prompt assertion; all three cases in that file passed after comparing with the current native default. Original failures retained in log digests.",
+  "packedHostNegative": {
+    "install": "OAR plus Durable/Chord 1.4.0 and normal-name Pi AI 1.4.0",
+    "codingAiCopies": 3,
+    "npmDedupeRepaired": false,
+    "oauthDerivation": "failed",
+    "error": "OAuth auth derivation failed for anthropic: Cannot find module <bundle>/anthropic.js",
+    "syntheticUnexpiredCredential": true,
+    "providerNetworkUsed": false,
+    "rawLogSha256": "0ba6e93a200a72552bd0dcb62d9aa55ac4de06ca0c001fb91eb7cc0f647a7c44"
+  },
+  "finalNativeChecks": {
+    "pi-1.5.0-pi-aimock-vendor-final.log": {
+      "sha256": "f6359bf92581f663e2f6c61d542ab4e9d50bdb88a6aa521f009b16c9cf1af2b3",
+      "summary": "89 passed | 270 skipped (359)"
+    },
+    "pi-1.5.0-pi-durable-aimock-vendor-final.log": {
+      "sha256": "50f99ece6ccd288e80254b2bc757d840ca46da5be77526cf03666659ff0b2e44",
+      "summary": "25 passed | 334 skipped (359)"
+    },
+    "pi-1.5.0-pi-rpc-aimock-vendor-final.log": {
+      "sha256": "d632b6f46e734ebef69893ab14b7233d9c7a53c68d4f32053998a4d1ffdd2fb9",
+      "summary": "87 passed | 272 skipped (359)"
+    }
+  },
+  "localGate": {
+    "unitTestsPassed": 2991,
+    "mockBehaviorPassed": 18,
+    "mockBehaviorSkipped": 1,
+    "checkExitCode": 0,
+    "buildExitCode": 0,
+    "cleanInstallExitCode": 0,
+    "checkLogSha256": "05132f8b6f49053779ab7c5316ff7cb2fd9e3f433c9d200457dd78b48d5e4980"
+  },
+  "packedHostPositive": {
+    "plainOarHost": {
+      "codingAiCopies": 1,
+      "sharedOarSdkAi": true,
+      "sharedOarSdkUndici": true,
+      "bundledSdkOAuthDerivation": "passed"
+    },
+    "durableAliasHost": {
+      "codingAiCopies": 1,
+      "sharedOarSdkAi": true,
+      "sharedOarSdkUndici": true,
+      "bundledSdkOAuthDerivation": "passed",
+      "durableDirectAndSupplierTypes": "passed",
+      "durableSyntheticNativeTurn": "completed"
+    },
+    "cleanInstallLogSha256": "469af611c1b343139cc5291a9a56c94d0cbf5aede5c2e2de0bd42045d65d4adc"
+  }
+}

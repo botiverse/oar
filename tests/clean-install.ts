@@ -5,6 +5,7 @@ import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, 
 import { tmpdir } from "node:os";
 import path from "node:path";
 import PI_AUTH_PROBE from "./fixtures/pi-auth-entry-probe.js";
+import { checkPiHost, DURABLE_PROBE, DURABLE_TYPES } from "./fixtures/pi-clean-install.js";
 
 /*
  * The published packages installed the way a host installs them: packed by
@@ -229,6 +230,7 @@ writeFileSync(path.join(host, "package.json"), JSON.stringify({ name: "host", pr
 writeFileSync(path.join(host, "probe.mjs"), PROBE);
 
 npmInstall(library);
+await checkPiHost(host);
 const browser = await build({
   stdin: { contents: 'export * from "@botiverse/oar/browser";', resolveDir: host },
   bundle: true, platform: "browser", format: "esm", write: false, metafile: true,
@@ -249,22 +251,11 @@ assert.equal(forgotten.length, 1, forgotten.join("\n"));
 assert.match(forgotten[0] ?? "", /^check\.ts\(\d+,\d+\): error TS2307: Cannot find module '@cursor\/sdk'/u);
 
 // The host supplies the native peers only when it opts into this subpath.
-npmInstall("@earendil-works/pi-durable@1.4.0", "@earendil-works/chord@1.4.0");
-run(process.execPath, ["--input-type=module", "-e", `
-import assert from "node:assert/strict";
-import { createPiDurableRuntime } from "@botiverse/oar/pi-durable";
-import { Harness, MemoryStorage, createRegistry } from "@earendil-works/pi-durable";
-import { createModels } from "@earendil-works/pi-ai/models";
-import { BACKGROUND_CONTEXT } from "@earendil-works/chord/context";
-const models = createModels();
-const harness = await Harness.open(new MemoryStorage(), { models, registry: createRegistry() }, BACKGROUND_CONTEXT);
-try {
-  const runtime = createPiDurableRuntime({ harness, models });
-  const session = await runtime.session({ kind: "available", via: "bundled" }, { cwd: "/" });
-  assert.equal(session.status().value.kind, "idle");
-  await session.dispose();
-} finally { await harness.close(BACKGROUND_CONTEXT); }
-`], host);
+npmInstall("@earendil-works/pi-durable@1.4.0", "@earendil-works/chord@1.4.0",
+  "@earendil-works/pi-ai@1.5.0", "@earendil-works/pi-ai-durable@npm:@earendil-works/pi-ai@1.4.0");
+await checkPiHost(host);
+assert.deepEqual(typecheck(DURABLE_TYPES), []);
+run(process.execPath, ["--input-type=module", "-e", DURABLE_PROBE], host);
 const durable = await build({ stdin: { contents: 'export * from "@botiverse/oar/pi-durable";', resolveDir: host }, bundle: true, platform: "browser", format: "esm", write: false, metafile: true });
 assert.deepEqual(Object.values(durable.metafile.outputs).flatMap((output) => output.imports), []);
 

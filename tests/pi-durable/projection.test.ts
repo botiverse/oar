@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import type { AssistantMessage, Usage } from "@earendil-works/pi-ai";
+import type { AssistantMessage, Usage } from "@earendil-works/pi-ai-durable";
 import type { AgentEvent, SnapshotEvent, TaskId } from "@earendil-works/pi-durable";
 import { foldDurableBatch, initialDurableProjection } from "../../packages/oar/src/runtimes/pi-durable/projection.js";
 

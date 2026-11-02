@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import { BACKGROUND_CONTEXT } from "@earendil-works/chord/context";
-import { createModels } from "@earendil-works/pi-ai/models";
+import { createModels } from "@earendil-works/pi-ai-durable/models";
 import { createRegistry, Harness, MemoryStorage } from "@earendil-works/pi-durable";
 import { createPiRuntime } from "../packages/oar/src/runtimes/pi/index.js";
 import { createPiDurableRuntime } from "../packages/oar/src/runtimes/pi-durable/index.js";

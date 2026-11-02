@@ -8,8 +8,6 @@ import { isPiBackend, piTestRuntime } from "./support/pi-runtime.js";
 import { runTurn } from "./support/asserts.js";
 import { lastAgentSystem, systemCapture } from "./support/system-prompt.js";
 
-const DEFAULT_PROMPT = "You are an expert coding assistant operating inside pi";
-
 async function fixture() {
   const capture = systemCapture();
   const env = await startPiAimock(capture.configure);
@@ -38,8 +36,8 @@ describe.skipIf(!isPiBackend)("Pi empty replacement prompt", () => {
       // If the guard regresses, exercise the real provider request so the
       // failure retains evidence of Pi's default-prompt fallback.
       if (session !== undefined) { await runTurn(session, "capture empty replacement"); }
-      expect({ rejected: failure instanceof UnsupportedOptionError, defaultPromptSent: f.capture.systems.some((system) => system.includes(DEFAULT_PROMPT)) })
-        .toEqual({ rejected: true, defaultPromptSent: false });
+      expect({ rejected: failure instanceof UnsupportedOptionError, providerRequests: f.capture.systems.length })
+        .toEqual({ rejected: true, providerRequests: 0 });
       assert.ok(failure instanceof UnsupportedOptionError);
       expect(failure.option).toBe("systemPrompt");
       expect(failure.message).toContain("empty");
@@ -54,9 +52,14 @@ describe.skipIf(!isPiBackend)("Pi empty replacement prompt", () => {
     const f = await fixture();
     let session: Session | undefined = undefined;
     try {
+      session = await f.open({});
+      expect(await runTurn(session, "capture native default")).toEqual({ kind: "completed" });
+      const nativeDefault = lastAgentSystem(f.capture.systems);
+      expect(nativeDefault.trim().length).toBeGreaterThan(0);
+      await session.dispose();
       session = await f.open({ systemPrompt: " \t\n ", appendSystemPrompt: "" });
       expect(await runTurn(session, "capture whitespace replacement")).toEqual({ kind: "completed" });
-      expect(lastAgentSystem(f.capture.systems)).not.toContain(DEFAULT_PROMPT);
+      expect(lastAgentSystem(f.capture.systems)).not.toContain(nativeDefault);
     } finally { await session?.dispose(); await f.env.stop(); }
   }, 60_000);
 
@@ -64,9 +67,14 @@ describe.skipIf(!isPiBackend)("Pi empty replacement prompt", () => {
     const f = await fixture();
     let session: Session | undefined = undefined;
     try {
+      session = await f.open({});
+      expect(await runTurn(session, "capture native default")).toEqual({ kind: "completed" });
+      const nativeDefault = lastAgentSystem(f.capture.systems);
+      expect(nativeDefault.trim().length).toBeGreaterThan(0);
+      await session.dispose();
       session = await f.open({ appendSystemPrompt: "" });
       expect(await runTurn(session, "capture empty append")).toEqual({ kind: "completed" });
-      expect(lastAgentSystem(f.capture.systems)).toContain(DEFAULT_PROMPT);
+      expect(lastAgentSystem(f.capture.systems)).toBe(nativeDefault);
     } finally { await session?.dispose(); await f.env.stop(); }
   }, 60_000);
 });
