@@ -5,7 +5,7 @@ import path from "node:path";
 import { afterEach, expect, test, vi } from "vitest";
 import type { AvailableInstallation } from "../../packages/oar/src/contracts/installation.js";
 import type { Session, SessionOptions } from "../../packages/oar/src/contracts/session.js";
-import { experimentalGrokRuntime } from "../../experiments/sharing/grok-candidate.js";
+import { experimentalGrokRuntime, grokCandidateRefusal } from "../../experiments/sharing/grok-candidate.js";
 import { promptAndWait, awaitTurnEnd } from "../../packages/oar/src/observe/turns.js";
 import { opening, text } from "../fixtures/acp-shared-support.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
@@ -26,6 +26,9 @@ afterEach(async () => {
   await Promise.all(roots.splice(0).map(async root => { await rm(root, { recursive: true, force: true }); }));
 });
 const installation = { kind: "available", via: "executable", command: process.execPath, version: "grok 1.0.70 (f50904eaee6c) [stable]" } as const;
+const platformRefusal = grokCandidateRefusal(installation, process.platform, process.arch);
+// The candidate's platform gate also applies when its executable is a fixture.
+const sharedTest = test.skipIf(platformRefusal !== null);
 const exits = (session: Session) => session.records().filter(r => r.kind === "response" && r.body.kind === "exited");
 async function fixture() {
   const root = await mkdtemp(path.join(os.tmpdir(), "oar-grok-sharing-")); roots.push(root);
@@ -39,7 +42,18 @@ async function fixture() {
   } };
 }
 
-test.each(["grok 1.0.70 (f50904eaee6c)", "grok 1.0.70 (f50904eaee6c) [stable]"])("%s: same-directory concurrent roots and reuse keep sharing; a new Runtime owns a separate pool", async version => {
+test.skipIf(platformRefusal === null)("unadmitted platforms use isolated processes and refuse explicit sharing with the platform reason", async () => {
+  const f = await fixture(); const [a, b] = await Promise.all([f.open("a"), f.open("a")]);
+  expect([a.placement, b.placement]).toEqual(["isolated", "isolated"]);
+  expect([opening(a)?.pid, opening(b)?.pid]).toEqual([expect.any(Number), expect.any(Number)]);
+  expect(opening(a)?.pid).not.toBe(opening(b)?.pid);
+  await expect(f.open("a", {}, f.runtime.withPlacement("shared"))).rejects.toMatchObject({
+    name: "UnsupportedOptionError", option: "placement", message: platformRefusal,
+  });
+  expect(await promptAndWait(a, "isolated-after-refusal")).toMatchObject({ kind: "ended" });
+});
+
+sharedTest.each(["grok 1.0.70 (f50904eaee6c)", "grok 1.0.70 (f50904eaee6c) [stable]"])("%s: same-directory concurrent roots and reuse keep sharing; a new Runtime owns a separate pool", async version => {
   const f = await fixture(); const i = { ...installation, version };
   const [a, b] = await Promise.all([f.open("a", {}, f.runtime, i), f.open("a", {}, f.runtime, i)]);
   expect([a.placement, b.placement]).toEqual(["shared", "shared"]); expect(opening(a)?.pid).toBe(opening(b)?.pid);
@@ -51,7 +65,7 @@ test.each(["grok 1.0.70 (f50904eaee6c)", "grok 1.0.70 (f50904eaee6c) [stable]"])
   await c.dispose(); await b.dispose(); expect(exits(b)).toHaveLength(1);
 });
 
-test("cwd and MCP vary within a pool; environment and initialization system prompts split it", async () => {
+sharedTest("cwd and MCP vary within a pool; environment and initialization system prompts split it", async () => {
   const f = await fixture(); const [a, b] = await Promise.all([f.open("a", { mcpServers: [{ name: "a", type: "http", url: "http://127.0.0.1/a" }] }), f.open("b", { mcpServers: [{ name: "b", type: "http", url: "http://127.0.0.1/b" }] })]);
   expect(opening(a)).toMatchObject({ cwd: path.join(f.root, "a"), servers: ["a"] });
   expect(opening(b)).toMatchObject({ cwd: path.join(f.root, "b"), servers: ["b"] }); expect(opening(a)?.pid).toBe(opening(b)?.pid);
@@ -70,7 +84,7 @@ test("unknown version and launchArgs fall back under auto; explicit shared refus
   await expect(f.open("a", { launchArgs: ["custom"] }, shared)).rejects.toMatchObject({ option: "placement" });
 });
 
-test.each(["", "1.0.71", "1.0.70-dev"])("stale installation cannot admit running native version %j, including simultaneous opens", async nativeVersion => {
+sharedTest.each(["", "1.0.71", "1.0.70-dev"])("stale installation cannot admit running native version %j, including simultaneous opens", async nativeVersion => {
   const f = await fixture(); const trace = path.join(f.root, "trace.jsonl");
   const env = { ...f.env, FIXTURE_AGENT_VERSION: nativeVersion, FIXTURE_TRACE_FILE: trace };
   const [a, b] = await Promise.all([f.open("a", { env }), f.open("b", { env })]);
@@ -82,14 +96,14 @@ test.each(["", "1.0.71", "1.0.70-dev"])("stale installation cannot admit running
   expect([...byPid.values()].filter(methods => methods.length === 1 && methods[0] === "initialize")).toHaveLength(2);
 });
 
-test("same installation snapshot rechecks the native version after pool exit", async () => {
+sharedTest("same installation snapshot rechecks the native version after pool exit", async () => {
   const f = await fixture(); const file = path.join(f.root, "version.txt"); const env = { ...f.env, FIXTURE_AGENT_VERSION_FILE: file };
   await writeFile(file, "1.0.70"); const a = await f.open("a", { env }); expect(a.placement).toBe("shared"); await a.dispose();
   await writeFile(file, "1.0.71"); const b = await f.open("a", { env }); expect(b.placement).toBe("isolated"); await b.dispose();
   await writeFile(file, "1.0.70"); const recovered = await f.open("a", { env }); expect(recovered.placement).toBe("shared");
 });
 
-test("child routing preserves fixed allow policy and child request ids; unowned permissions never reach a peer", async () => {
+sharedTest("child routing preserves fixed allow policy and child request ids; unowned permissions never reach a peer", async () => {
   const f = await fixture(); const [a, b] = await Promise.all([f.open("a"), f.open("a")]);
   await promptAndWait(a, "grok-child");
   expect(a.graph().edges).toEqual(expect.arrayContaining([expect.objectContaining({ parent: a.id, child: `${a.id}-child` })]));
@@ -100,7 +114,7 @@ test("child routing preserves fixed allow policy and child request ids; unowned 
   expect(b.records().some(r => r.kind === "request" && r.direction === "toApp")).toBe(false);
 });
 
-test("occupied resume refuses, retired resume falls back before native resume, and abort fallback releases only its lease", async () => {
+sharedTest("occupied resume refuses, retired resume falls back before native resume, and abort fallback releases only its lease", async () => {
   const f = await fixture(); const [a, b] = await Promise.all([f.open("a"), f.open("a")]);
   await expect(f.open("a", { resume: a.id })).rejects.toMatchObject({ reason: "in_use" });
   const pending = await a.prompt("ignore-cancel"); await a.abort();
@@ -111,7 +125,7 @@ test("occupied resume refuses, retired resume falls back before native resume, a
   expect(exits(b)).toHaveLength(0); await b.dispose(); expect(exits(b)).toHaveLength(1);
 });
 
-test("shared crash emits one final exit per root after cleanup, within the Windows cleanup budgets", async () => {
+sharedTest("shared crash emits one final exit per root after cleanup, within the Windows cleanup budgets", async () => {
   const f = await fixture(); const [a, b] = await Promise.all([f.open("a"), f.open("a")]); await a.prompt("exit");
   try { await expect.poll(() => [exits(a).length, exits(b).length], { timeout: 15_000 }).toEqual([1, 1]); }
   catch (error) { throw new Error(JSON.stringify({ a: a.records(), b: b.records() }), { cause: error }); }
@@ -119,7 +133,7 @@ test("shared crash emits one final exit per root after cleanup, within the Windo
   await a.dispose(); await b.dispose(); expect([exits(a).length, exits(b).length]).toEqual([1, 1]);
 });
 
-test("Grok records and native errors use the union of overlapping and retired peer credentials", async () => {
+sharedTest("Grok records and native errors use the union of overlapping and retired peer credentials", async () => {
   const f = await fixture(); const secret = "fixture-grok-private-credential";
   const a = await f.open("a", { mcpServers: [{ name: "a", type: "http", url: "http://127.0.0.1/echo", headers: { "X-API-Key": secret } }] });
   const b = await f.open("a", { mcpServers: [{ name: "b", type: "http", url: "http://127.0.0.1/echo", headers: { "X-API-Key": `${secret}-long-tail` } }] });
