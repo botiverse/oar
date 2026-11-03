@@ -205,7 +205,7 @@ What else a session gives you:
 - **Native goals where supported.** Opt in with `goals: true`, check
   `Session.goal`, and observe native goal snapshots without a host continuation
   loop ([contract](docs/spec/goals.md)).
-- **Manual compaction:** Claude, Codex and Pi SDK/RPC expose optional
+- **Manual compaction:** Claude, Codex, Pi SDK/RPC, Grok, Qoder, Cursor and OpenCode v2 expose optional
   `session.compact()`. It waits for native completion; a timeout stops
   waiting, not the operation. Read `runtime.manualCompaction` for the
   declared policy ([contract](docs/spec/manual-compaction.md)).

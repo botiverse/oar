@@ -42,17 +42,18 @@ async function working(session: Session) {
 }
 
 for (const { name, profile } of profiles) {
-  test(`${name}: prompt refuses carries of an input that is still queued`, async () => {
+  test(`${name}: prompt cannot overtake an adapter-held input by carrying its identity`, async () => {
     const { session } = await fixture(profile);
     await working(session);
     const queued = await session.queue("still queued");
     if (queued.request.body.kind !== "queue") { throw new Error("expected queue"); }
     const inputId = queued.request.body.inputId ?? "";
     const result = await session.prompt("false merge", { carries: [inputId] });
-    expect(result).toMatchObject({ kind: "rejected", code: "unsupported", reason: `carries input ${inputId} is not a withdrawn input owned by this session and agent` });
+    expect(result).toMatchObject({ kind: "rejected", code: "busy" });
     const original = conversationOf(session.records()).inputs.get(JSON.stringify([session.id, [], inputId]));
     expect(original).toMatchObject({ input: "still queued", state: "accepted" });
-    expect(original?.attempts).toHaveLength(1);
+    expect(original?.attempts.map(attempt => attempt.state)).toEqual(["accepted", "rejected"]);
+    expect(original?.attempts[0]?.response?.body).toMatchObject({ kind: "accepted", queued: "adapter" });
     expect(await session.withdraw?.(inputId)).toMatchObject({ kind: "accepted" });
   });
 

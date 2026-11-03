@@ -62,7 +62,9 @@ class FakePiSession {
 
   dispose(): void {}
 
-  private emit(event: unknown): void {
+  async compact(): Promise<void> { this.emit({ type: "compaction_start", reason: "manual" }); }
+
+  emit(event: unknown): void {
     for (const listener of this.listeners) {
       listener(event);
     }
@@ -184,4 +186,22 @@ test("dispose releases a session whose native abort never settles, without inven
   // A late native abort completion must not run shutdown hooks on a context
   // that the timeout has already disposed.
   expect(shutdown).not.toHaveBeenCalled();
+});
+
+// oxlint-disable-next-line max-statements -- Observe and reenter precisely at the SDK terminal frame.
+test("Pi SDK compaction end releases the gate before observers see idle", async () => {
+  const { session, pi } = await open();
+  const observed: { kind: string; prompt: ReturnType<typeof session.prompt> }[] = [];
+  try {
+    expect(typeof session.compact).toBe("function");
+    const pending = session.compact?.();
+    session.rawEvents(record => {
+      if (record.kind !== "frame" || !record.body.events.some(event => event.kind === "compaction_ended")) { return; }
+      observed.push({ kind: session.status().value.kind, prompt: session.prompt("next") });
+    });
+    pi.emit({ type: "compaction_end", reason: "manual", aborted: false }); await pending;
+    expect(observed).toHaveLength(1); expect(observed[0]?.kind).toBe("idle");
+    expect(await observed[0]?.prompt).toMatchObject({ kind: "accepted" });
+    expect(await session.prompt("cannot-overtake-next")).toMatchObject({ kind: "rejected", code: "busy" });
+  } finally { await session.dispose(); }
 });

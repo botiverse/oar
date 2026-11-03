@@ -33,8 +33,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
   const kernel = credentials.kernel(sessionId);
   const userMessage = profile.userMessage ?? streamJsonUserMessage;
   const state: StreamJsonSessionState<S> = { child, active: null, spontaneous: false, projection: profile.initial, disposed: false };
-  // Keep queue entries in OAR until a turn ends. Native active-turn writes
-  // can steer or become an irreversible native queue, depending on the dialect.
+  // Hold queues until turn end; active-turn writes may steer or become an irreversible native queue.
   const commandLifecycle = profile.projection.commandLifecycle !== false;
   const writtenQueues = new Map<string, RequestRecord>();
   const heldQueue: { request: RequestRecord; input: string; inputId?: string; images: readonly LoadedImage[] }[] = [];
@@ -97,15 +96,22 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
     for (const command of commands) {
       switch (command.kind) {
         case "frame": {
-          // Projection can establish a spontaneous start at init, or at a
-          // later queued receipt that proves the init did not own our prompt.
+          // A spontaneous start can arrive at init or at a later queued receipt.
           if (command.agentPath.length === 0 && command.body.events.some((event) => event.kind === "turn_active" && event.inputId === undefined)) {
             if (!busy()) { turnRevision += 1; }
             state.spontaneous = true;
           }
-          const record = kernel.frame(command.body, { agentPath: command.agentPath });
+          const nativeResponse = profile.compaction?.responseTo?.(message);
+          const correlated = command.agentPath.length === 0 && nativeResponse !== undefined && nativeResponse === compaction?.requestId();
+          const closes = command.agentPath.length === 0 && (correlated || command.body.events.some((event) => event.kind === "turn_ended"));
+          if (closes) {
+            abortFallback.clear(); completeCancellation(); turnRevision += 1;
+            if (state.projection.pendingInputId === null) { state.active = null; }
+            state.spontaneous = false;
+          }
+          const record = kernel.frame(correlated ? { ...command.body, responseTo: nativeResponse } : command.body, { agentPath: command.agentPath });
           if (record.agentPath.length > 0) { break; }
-          ended ||= command.body.events.some((event) => event.kind === "turn_ended");
+          ended ||= closes;
           const cancelled = command.body.events.find((event) => event.kind === "input_dropped");
           dropped ||= cancelled !== undefined;
           if (cancelled?.kind === "input_dropped") { writtenQueues.delete(cancelled.inputId); }
@@ -121,8 +127,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
             }
             kernel.respond(command.requestId, command.body);
           } else {
-            // Exit may precede the last stdout bytes. Preserve a late or
-            // duplicate native reply, but never answer a request twice.
+            // Preserve late/duplicate stdout after exit without answering a request twice.
             kernel.frame({ type: "control_response", native: message, events: [] });
           }
           break;
@@ -141,12 +146,12 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
           break;
       }
     }
-    if (ended || (dropped && !busy())) {
+    if (dropped && !ended && !busy()) {
       abortFallback.clear(); completeCancellation(); turnRevision += 1;
       if (state.projection.pendingInputId === null) { state.active = null; }
       state.spontaneous = false;
-      drainHeld();
     }
+    if (ended || (dropped && !busy())) { drainHeld(); }
   });
   child.onExit((code, cleanupReason) => {
     abortFallback.clear(); completeCancellation(); turnRevision += 1;
@@ -162,11 +167,9 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
     }
     profile.exited(code);
   });
-
   try {
     await profile.open({ current: () => state.projection, replace: (projection) => { state.projection = projection; }, report: (body) => { kernel.frame(body); } });
   } catch (error) { throw appendCleanupFailure(error, cleanupFailureReason(child.diagnostics().cleanup)); }
-
   let interruptCounter = 0;
   const capabilities = profile.capabilities;
   const session: Session = credentials.seal({
@@ -177,7 +180,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
       if (observingCancellation !== null) { await waitForCancellation(); }
       const body = { kind: "prompt" as const, input, ...inputOptions };
       return kernel.control(body, (request) => {
-        if (busy()) { return { kind: "rejected", code: "busy", reason: "busy" }; }
+        if (busy() || heldQueue.length > 0) { return { kind: "rejected", code: "busy", reason: "busy" }; }
         return withInputImages(capabilities, inputOptions?.images, (images) => {
           turnRevision += 1;
           state.active = request;
@@ -203,7 +206,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
     queue: async (input, inputOptions?: InputOptions): Promise<ControlResult> => {
       const result = await kernel.control({ kind: "queue", input, ...inputOptions }, (request) =>
         withInputImages(capabilities, inputOptions?.images, (images) => {
-          if (busy() || observingCancellation !== null) {
+          if (busy() || heldQueue.length > 0 || observingCancellation !== null) {
             heldQueue.push({ request, input, ...(inputOptions?.inputId === undefined ? {} : { inputId: inputOptions.inputId }), images });
           } else {
             turnRevision += 1;

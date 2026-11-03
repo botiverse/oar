@@ -13,6 +13,7 @@ import type {
   SessionOptions,
   StartSession,
 } from "../../contracts/session.js";
+import { manualCompaction, type CompactionOperation } from "../manual-compaction.js";
 import { processSessionLifecycle } from "../process-session.js";
 import type { ProcessLease, PooledProcess } from "../process-pool.js";
 import { withSessionCredentials, type SessionCredentials } from "../session-credentials.js";
@@ -30,7 +31,7 @@ import { startAcpProcess, type AcpProcess } from "./process.js";
 import { AcpError, acpProcessExitedError } from "./errors.js";
 import { createAcpRecorder } from "./records.js";
 import { createAcpTerminalHost } from "./terminal.js";
-import { acpTakesImages, createAcpTurns } from "./turns.js";
+import { acpTakesImages, createAcpTurns, type ActiveTurn } from "./turns.js";
 import { createAcpTokenUsage } from "./token-usage.js";
 import { createAcpOpening } from "./opening.js";
 
@@ -97,7 +98,7 @@ export function createAcpSessionState(profile: AcpSessionProfile, options: Sessi
   const usageGate = createUsageUpdateGate();
   const tokenUsage = createAcpTokenUsage(profile);
   const opening = createAcpOpening();
-  const recorder = createAcpRecorder(usageGate, profile.attributeUpdate, tokenUsage, associations);
+  const recorder = createAcpRecorder(usageGate, profile.attributeUpdate, tokenUsage, associations, profile.projectUpdate);
   const hooks: AcpClientHooks = {
     update: (notification, receivedAt) => {
       recorder.update(notification, receivedAt);
@@ -141,9 +142,36 @@ export function finishAcpSession(
   let disposeRequest: RequestRecord | null = null;
   const capabilities = { ...profile.capabilities, images: profile.capabilities.images ?? acpTakesImages(opened.initialized) };
   const ownership = shared;
-  const turns = createAcpTurns({ kernel, runtime, profile, usageGate, capabilities, promptMeta: profile.promptMeta?.(options), promptUsage: (result) => tokenUsage.prompt(result),
+  let compaction: ReturnType<typeof manualCompaction> | null = null;
+  const turns = createAcpTurns({ operationBusy: () => compaction?.busy() === true, kernel, runtime, profile, usageGate, capabilities, promptMeta: profile.promptMeta?.(options), promptUsage: (result) => tokenUsage.prompt(result),
     ...(ownership === undefined ? {} : { fallback: async (request: RequestRecord): Promise<void> => { ownership.stopRequests(); await lifecycle?.abortFallback(request); } }),
   });
+  const createCompaction = profile.compaction;
+  if (createCompaction !== undefined) {
+    compaction = manualCompaction(kernel, {
+      busy: () => turns.active() !== null || turns.queued() || turns.pendingCancellation() !== null,
+      busyReason: "Wait for native input and cancellation to finish before compacting",
+      settledBy: "native_response",
+      released: () => { queueMicrotask(() => { turns.drain(); }); },
+      create: (): CompactionOperation => {
+        const operation = createCompaction(kernel, runtime, (response) => tokenUsage.prompt(response));
+        let state: ActiveTurn | null = null;
+        const finish = (): void => { if (state !== null) { turns.finishOperation(state); state = null; } };
+        return {
+          observe(frame) {
+            const result = operation.observe(frame);
+            if (result !== null) { finish(); }
+            return result;
+          },
+          async start(request, reply) {
+            state = turns.beginOperation(request);
+            try { return await operation.start(request, reply); }
+            finally { finish(); }
+          },
+        };
+      },
+    });
+  }
   const disposeTerminals = async (): Promise<void> => {
     try { await terminalHost.dispose(); }
     catch (error) { kernel.respond("", { kind: "cleanup", result: { kind: "failed", reason: error instanceof Error ? error.message : String(error) } }); }
@@ -196,6 +224,7 @@ export function finishAcpSession(
     ? {}
     : {
       steer: (input: string, inputOptions?: InputOptions): Promise<ControlResult> => control({ kind: "steer", input, ...inputOptions }, (): ResponseBody | Promise<ResponseBody> => {
+        if (compaction?.busy() === true) { return { kind: "rejected", code: "busy", reason: "Native compaction is still running" }; }
         const state = turns.active();
         return state === null
           ? { kind: "rejected", code: "no_active_turn", reason: "not_steerable: no active turn" }
@@ -207,9 +236,10 @@ export function finishAcpSession(
     id: kernel.sessionId,
     capabilities,
     prompt: (input, inputOptions?: InputOptions): Promise<ControlResult> => control({ kind: "prompt", input, ...inputOptions }, (request): ResponseBody =>
-      (turns.active() === null ? turns.begin(request, input, inputOptions?.images) : { kind: "rejected", code: "busy", reason: "busy" })),
+      (turns.active() === null && !turns.queued() && compaction?.busy() !== true ? turns.begin(request, input, inputOptions?.images) : { kind: "rejected", code: "busy", reason: "busy" })),
     ...steer,
-    queue: (input, inputOptions?: InputOptions): Promise<ControlResult> => control({ kind: "queue", input, ...inputOptions }, () => turns.hold(input, inputOptions?.images, inputOptions?.inputId)),
+    ...(compaction === null ? {} : { compact: compaction.compact }),
+    queue: (input, inputOptions?: InputOptions): Promise<ControlResult> => control({ kind: "queue", input, ...inputOptions }, (request) => turns.hold(input, inputOptions?.images, inputOptions?.inputId, request)),
     // The queue is held here (turns.ts), not by the vendor: an entry can be taken back until the drain sends it.
     withdraw: (inputId: string): Promise<ControlResult> => control({ kind: "withdraw", inputId }, () => turns.withdraw(inputId)),
     abort: (): Promise<ControlResult> => control({ kind: "abort" }, (request): ResponseBody | Promise<ResponseBody> => {

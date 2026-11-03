@@ -60,7 +60,7 @@ function readStream(run: CursorRun, record: (frame: CursorFrame) => void): { rea
       }
     } catch (error) {
       if (state.accepting) {
-        record({ type: "cursor/stream_failed", native: { message: new LoginSecrets().line(errorMessage(error)) }, events: [], agentPath: [] });
+        record({ type: "cursor/stream_failed", native: { message: new LoginSecrets().line(errorMessage(error)) }, events: [], agentPath: [], spanId: run.id });
       }
     }
   })();
@@ -82,7 +82,7 @@ export async function observeRun(run: CursorRun, record: (frame: CursorFrame) =>
   const stream = readStream(run, record);
   const frame = await (async (): Promise<CursorFrame> => {
     try { return cursorRunResultFrame(await run.wait()); }
-    catch (error) { return cursorRunFailedFrame(errorMessage(error)); }
+    catch (error) { return { ...cursorRunFailedFrame(errorMessage(error)), spanId: run.id }; }
   })();
   const deadline = Promise.withResolvers<"unclosed">();
   const timer = setTimeout(() => { deadline.resolve("unclosed"); }, STREAM_SETTLE_MS);
@@ -90,7 +90,7 @@ export async function observeRun(run: CursorRun, record: (frame: CursorFrame) =>
   try {
     if (await Promise.race([stream.done, deadline.promise]) === "unclosed") {
       stream.stop();
-      record({ type: "cursor/stream_unclosed", native: { timeoutMs: STREAM_SETTLE_MS }, events: [], agentPath: [] });
+      record({ type: "cursor/stream_unclosed", native: { timeoutMs: STREAM_SETTLE_MS }, events: [], agentPath: [], spanId: run.id });
     }
     return frame;
   } finally { clearTimeout(timer); }

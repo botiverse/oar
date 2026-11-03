@@ -7,6 +7,7 @@ import { qoderRefusedSessionOptions } from "./options.js";
 
 export const qoderRuntime = defineRuntime({
   id: "qoder", brand: runtimeBrands.qoder,
+  manualCompaction: { kind: "supported", activeTurn: "reject" },
   refusedSessionOptions: qoderRefusedSessionOptions,
   installation: qoderInstallation, install: qoderInstall, installPlan: qoderInstallPlan,
   login: onFirstCall(async () => { const { qoderLogin } = await import("./login.js"); return qoderLogin; }),

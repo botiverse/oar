@@ -18,7 +18,7 @@ export function streamJsonCompaction<S extends StreamJsonProjectionState>(
   if (control === undefined) { return null; }
   const busy = (): boolean => state.active !== null || state.spontaneous || queued() || state.projection.unstartedInputs.size > 0;
   return manualCompaction(kernel, {
-    busy, busyReason: control.busyReason, released,
+    busy, busyReason: control.busyReason, released, ...(control.settledBy === undefined ? {} : { settledBy: control.settledBy }),
     create: () => control.create((request) => {
       const refusal = kernel.unreachable();
       if (refusal !== null) { return refusal; }

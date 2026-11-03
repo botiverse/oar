@@ -13,7 +13,7 @@ export interface CompactionOptions {
 
 interface CompactionEvidence {
   readonly request: RequestRecord;
-  /** Absent when observation ended before the native admission answer. */
+  /** Dispatch/admission response, if already recorded. A later native refusal does not rewrite an accepted response. */
   readonly response?: ResponseRecord;
 }
 

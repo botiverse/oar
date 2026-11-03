@@ -11,6 +11,7 @@ import { grokRefusedSessionOptions } from "./options.js";
 export const grokRuntime = defineRuntime({
   id: "grok",
   brand: runtimeBrands.grok,
+  manualCompaction: { kind: "supported", activeTurn: "reject" },
   refusedSessionOptions: grokRefusedSessionOptions,
   mcpToolsListChanged: "none",
   skills: grokSkills,

@@ -22,7 +22,6 @@ import {
   acpFailureOutcome,
   defaultAcpPromptOutcome,
 } from "./projection.js";
-
 /**
  * The turn machinery: ≤1 active turn, each `session/prompt` RPC of it, the
  * host-held queue, cancel with an isolated-stop or shared-release fallback. The RPC ANSWER is the
@@ -33,7 +32,6 @@ import {
  * from its exit observer. One turn may span several prompt RPCs (grok's
  * send-now steer): each answer is its own event; the turn_ended event rides
  * the final answer, carrying the latest non-refused request's outcome.
- * Otherwise the original prompt's answer ends the turn independently of steer replies.
  */
 export interface ActiveTurn {
   /** The prompt request that opened this turn; null for a spontaneous (queue-drained) turn. */
@@ -46,12 +44,10 @@ export interface ActiveTurn {
   fallback: NodeJS.Timeout | null;
   cancellation?: CancellationObservation;
 }
-
 /** The agent advertised image prompts in `initialize` (`agentCapabilities.promptCapabilities.image`). */
 export function acpTakesImages(initialized: JsonRecord): boolean {
   return asRecord(asRecord(initialized.agentCapabilities)?.promptCapabilities)?.image === true;
 }
-
 /** One input as ACP ContentBlocks: the images (each naming its file as `uri`), then any nonempty text. */
 function acpPrompt(input: string, images: readonly LoadedImage[]): JsonRecord[] {
   return [
@@ -59,9 +55,13 @@ function acpPrompt(input: string, images: readonly LoadedImage[]): JsonRecord[] 
     ...(input === "" ? [] : [{ type: "text", text: input }]),
   ];
 }
-
 export interface AcpTurns {
   active(): ActiveTurn | null;
+  queued(): boolean;
+  drain(): void;
+  /** Reserve native cancellation ownership for a dedicated control, without fabricating a prompt. */
+  beginOperation(request: RequestRecord): ActiveTurn;
+  finishOperation(state: ActiveTurn): void;
   /** Null outside observation so ordinary input keeps its synchronous dispatch. */
   pendingCancellation(): Promise<CancellationObservation> | null;
   /** Open a turn with one prompt RPC; rejected when the process is gone or its images can't go (`inputImagesRefusal`). */
@@ -71,13 +71,12 @@ export interface AcpTurns {
   /** session/cancel, then a bounded fallback: release this shared root or stop its isolated process. */
   abort(state: ActiveTurn, request?: RequestRecord): Promise<ResponseBody>;
   /** Hold input for the next turn, drained when the active one closes; rejected like `begin`. */
-  hold(input: string, images: readonly InputImage[] | undefined, inputId: string | undefined): Promise<ResponseBody>;
+  hold(input: string, images: readonly InputImage[] | undefined, inputId: string | undefined, request: RequestRecord): Promise<ResponseBody>;
   /** Take a held input back by its `inputId` before the drain sends it (`withdrawHeld`). */
   withdraw(inputId: string): ResponseBody;
   /** The process is gone: close the active turn (its end is the exited response) and drop held input. */
   onExit(): void;
 }
-
 export function createAcpTurns(deps: {
   readonly kernel: SessionKernel;
   readonly runtime: AcpProcess;
@@ -87,14 +86,20 @@ export function createAcpTurns(deps: {
   readonly promptMeta?: JsonRecord | undefined;
   readonly promptUsage: (response: JsonRecord) => RuntimeEventBody | null;
   readonly fallback?: (request: RequestRecord) => Promise<void>;
+  readonly operationBusy?: () => boolean;
 }): AcpTurns {
   const { kernel, runtime, profile, usageGate, capabilities, promptUsage, promptMeta } = deps;
   const rootId = kernel.sessionId;
-  const held: { readonly inputId: string | undefined; readonly prompt: JsonRecord[] }[] = [];
+  const held: { readonly inputId: string | undefined; readonly input: string; readonly images: readonly InputImage[] | undefined; readonly request: RequestRecord; readonly prompt: JsonRecord[]; accepted: boolean }[] = [];
+  let dispatching = false;
+  kernel.rawEvents((record) => {
+    if (record.kind !== "response" || record.body.kind !== "accepted" || record.body.queued !== "adapter") { return; }
+    const entry = held.find(value => value.request.id === record.requestId);
+    if (entry !== undefined) { entry.accepted = true; queueMicrotask(drainHeld); }
+  });
   let active: ActiveTurn | null = null;
   let nextRequest = 0;
   let observingCancellation: Promise<CancellationObservation> | null = null;
-
   const closeTurn = (state: ActiveTurn): void => {
     state.cancellation?.complete();
     if (state.fallback !== null) {
@@ -128,10 +133,8 @@ export function createAcpTurns(deps: {
     if (frame.context !== null) {
       events.push(frame.context);
     }
+    if (closes) { closeTurn(state); }
     kernel.frame({ type: frame.type, native: frame.native, events });
-    if (closes) {
-      closeTurn(state);
-    }
   };
   const startVendorPrompt = (state: ActiveTurn, prompt: readonly JsonRecord[], extraParams: JsonRecord = {}, steered?: { readonly inputId: string | undefined }): void => {
     nextRequest += 1;
@@ -180,6 +183,11 @@ export function createAcpTurns(deps: {
     if (runtime.closed) {
       return gone();
     }
+    const state = beginOperation(request);
+    startVendorPrompt(state, prompt);
+    return { kind: "accepted" };
+  };
+  const beginOperation = (request: RequestRecord | null): ActiveTurn => {
     const state: ActiveTurn = {
       request,
       since: kernel.records().at(-1)?.seq ?? -1,
@@ -189,26 +197,34 @@ export function createAcpTurns(deps: {
       fallback: null,
     };
     active = state;
-    startVendorPrompt(state, prompt);
-    return { kind: "accepted" };
+    return state;
   };
   const begin = (request: RequestRecord | null, input: string, images?: readonly InputImage[]): ResponseBody =>
     withInputImages(capabilities, images, (loaded) => open(request, acpPrompt(input, loaded)));
   function drainHeld(): void {
     // Held input is dropped once the stream says the runtime is unreachable
     // (an `exited` response or a `dispose` request), not by an adapter flag.
-    if (kernel.unreachable() !== null || active !== null || runtime.closed || observingCancellation !== null) {
+    if (kernel.unreachable() !== null || active !== null || runtime.closed || observingCancellation !== null || deps.operationBusy?.() === true) {
       return;
     }
     // Taken off `held` in the same step it is sent: a withdraw after this finds it gone.
+    if (held[0]?.accepted !== true) { return; }
     const next = held.shift();
     if (next !== undefined) {
-      open(null, next.prompt);
+      dispatching = true;
+      try {
+        const request = kernel.request("toRuntime", { kind: "prompt", input: next.input,
+          carries: [next.inputId ?? next.request.id], ...(next.images === undefined ? {} : { images: next.images }) });
+        kernel.respond(request.id, open(request, next.prompt));
+      } finally { dispatching = false; }
     }
   }
-
   return {
     active: () => active,
+    queued: () => dispatching || held.length > 0,
+    drain: drainHeld,
+    beginOperation,
+    finishOperation: closeTurn,
     pendingCancellation: (): Promise<CancellationObservation> | null => observingCancellation,
     begin,
     async steer(state, input, options, extraParams) {
@@ -262,15 +278,14 @@ export function createAcpTurns(deps: {
       }
       return { kind: "accepted" };
     },
-    async hold(input, images, inputId) {
+    async hold(input, images, inputId, request) {
       await runtime.spawned;
       if (runtime.closed) {
         return gone();
       }
       return withInputImages(capabilities, images, (loaded) => {
-        held.push({ inputId, prompt: acpPrompt(input, loaded) });
-        queueMicrotask(drainHeld);
-        return { kind: "accepted" };
+        held.push({ inputId, input, images, request, prompt: acpPrompt(input, loaded), accepted: false });
+        return { kind: "accepted", queued: "adapter" };
       });
     },
     withdraw: (inputId) => withdrawHeld(held, inputId),

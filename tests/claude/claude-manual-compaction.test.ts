@@ -220,3 +220,53 @@ test("an interrupted ordinary turn cannot reclassify a native compact error as a
     expect(f.session.status().value).toEqual({ kind: "idle", lastTurnOutcome: { kind: "aborted" } });
   } finally { await f.session.dispose(); }
 });
+
+test.each(["compact", "prompt"])("Claude %s result releases the gate at the same record that folds idle", async mode => {
+  const f = await open(); const observed: { kind: string; prompt: ReturnType<typeof f.session.prompt> }[] = [];
+  try {
+    const pending = mode === "compact" ? f.compact() : f.session.prompt("first", { inputId: "11111111-1111-4111-8111-111111111111" });
+    const id = await f.dispatch(); if (mode === "compact") { f.fake.emit(line(boundary)); }
+    f.session.rawEvents(record => {
+      if (record.kind !== "frame" || !record.body.events.some(event => event.kind === "turn_ended" && event.inputId === id)) { return; }
+      observed.push({ kind: f.session.status().value.kind, prompt: f.session.prompt("next") });
+    });
+    f.fake.emit(line(end(id))); await pending;
+    expect(observed).toHaveLength(1); expect(observed[0]?.kind).toBe("idle");
+    expect(await observed[0]?.prompt).toMatchObject({ kind: "accepted" });
+    expect(await f.session.prompt("cannot-overtake-next")).toMatchObject({ kind: "rejected", code: "busy" });
+  } finally { await f.session.dispose(); }
+});
+
+test.each(["prompt", "queue"] as const)("Claude terminal observer %s cannot overtake an OAR-held queue", async method => {
+  const f = await open(); const observed: { kind: string; control: ReturnType<typeof f.session.prompt> }[] = [];
+  try {
+    await f.session.prompt("A"); const first = await f.dispatch();
+    const queued = await f.session.queue("B");
+    f.session.rawEvents(record => {
+      if (observed.length > 0 || record.kind !== "frame" || !record.body.events.some(event => event.kind === "turn_ended")) { return; }
+      observed.push({ kind: f.session.status().value.kind, control: f.session[method]("C") });
+    });
+    f.fake.emit(line(end(first)));
+    const next = await observed[0]?.control;
+    expect(next).toMatchObject(method === "prompt" ? { kind: "rejected", code: "busy" } : { kind: "accepted" });
+    // The documented stream-json held-queue exception remains until its own follow-up.
+    expect(observed[0]?.kind).toBe("idle");
+    assert.ok(queued.request.body.kind === "queue");
+    const second = queued.request.body.inputId;
+    assert.ok(typeof second === "string");
+    const writtenIds = () => f.fake.written.map(text => asRecord(JSON.parse(text))).filter(message => message?.type === "user").map(message => message?.uuid);
+    expect(writtenIds()).toEqual([first, second]);
+    f.fake.emit(line({ type: "command_lifecycle", command_uuid: second, state: "started" }));
+    f.fake.emit(line(end(second)));
+    if (method === "queue") {
+      assert.ok(next?.request.body.kind === "queue");
+      const third = next.request.body.inputId;
+      assert.ok(typeof third === "string");
+      expect(writtenIds()).toEqual([first, second, third]);
+      f.fake.emit(line({ type: "command_lifecycle", command_uuid: third, state: "started" }));
+      f.fake.emit(line(end(third)));
+      expect(writtenIds()).toEqual([first, second, third]);
+    } else { expect(writtenIds()).toEqual([first, second]); }
+    expect(f.session.status().value.kind).toBe("idle");
+  } finally { await f.session.dispose(); }
+});

@@ -40,6 +40,7 @@ export function createCursorRuntime(options: CursorRuntimeOptions): CursorRuntim
   return defineRuntime({
     id: "cursor",
     brand: runtimeBrands.cursor,
+    manualCompaction: { kind: "supported", activeTurn: "reject" },
     installation: cursorInstallation,
     listModels: cursorListModelsWith(load),
     login: cursorLoginWith(load),

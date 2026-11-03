@@ -1,6 +1,8 @@
+/* oxlint-disable import/max-dependencies -- Session profiles and assembly wire the native control, projection and lifecycle helpers. */
 import type { RefusedSessionOptions } from "../../contracts/runtime.js";
 import { withSessionCredentials } from "../../shared/session-credentials.js";
 import { opencodeRefusedSessionOptions, opencodeV1RefusedSessionOptions } from "./options.js";
+import { opencodeCompaction, opencodeCompactionEvents } from "./compaction.js";
 import { opencodeMajor } from "./version.js";
 import { opencodeChildAttribution } from "./attribution.js";
 import { refuseSessionOptions } from "../../shared/session-options.js";
@@ -47,6 +49,7 @@ export const opencodeV2RefusedSessionOptions: RefusedSessionOptions = {
 };
 export const opencodeV2AcpProfile: AcpSessionProfile = {
   ...commonProfile,
+  compaction: opencodeCompaction, projectUpdate: opencodeCompactionEvents,
   capabilities: { queue: { durable: false }, attribution: "nested" },
   attributeUpdate: opencodeChildAttribution,
   validateOptions: (options) => { refuseSessionOptions(opencodeV2RefusedSessionOptions, options); },

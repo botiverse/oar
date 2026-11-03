@@ -383,3 +383,29 @@ test("Codex collaboration puts lineage on its source frame and usage replays wit
     expect(viewOf(records).usage).toEqual(session.usage().value);
   } finally { await session.dispose(); }
 });
+
+// oxlint-disable-next-line eslint/max-statements -- Observe admission from inside the native terminal's synchronous callback.
+test.each(["compact", "prompt"])("Codex %s completion exposes idle and accepts prompt in the same record", async mode => {
+  const process = scriptedAppServer(); spawnLineProcess.mockReturnValue(process);
+  const session = await codexSession(installation, { cwd: "/work" });
+  if (session.compact === undefined) { throw new Error("missing compact"); }
+  const compact = session.compact.bind(session);
+  const observed: { kind: string; prompt: ReturnType<typeof session.prompt> }[] = [];
+  try {
+    const pending = mode === "compact" ? compact() : session.prompt("hold");
+    const turn = mode === "compact" ? "summary" : "turn-1";
+    if (mode === "compact") {
+      notify(process, "turn/started", { threadId, turn: { id: turn } });
+      notify(process, "item/started", { threadId, turnId: turn, item: { type: "contextCompaction", id: "compact-item" } });
+      notify(process, "item/completed", { threadId, turnId: turn, item: { type: "contextCompaction", id: "compact-item" } });
+    } else { await pending; }
+    session.rawEvents(record => {
+      if (record.kind !== "frame" || record.spanId !== turn || !record.body.events.some(e => e.kind === "turn_ended")) { return; }
+      observed.push({ kind: session.status().value.kind, prompt: session.prompt("hold") });
+    });
+    notify(process, "turn/completed", { threadId, turn: { id: turn, status: "completed" } }); await pending;
+    expect(observed).toHaveLength(1); expect(observed[0]?.kind).toBe("idle");
+    expect(await observed[0]?.prompt).toMatchObject({ kind: "accepted" });
+    expect(await session.prompt("cannot-overtake-next")).toMatchObject({ kind: "rejected", code: "busy" });
+  } finally { await session.dispose(); }
+});

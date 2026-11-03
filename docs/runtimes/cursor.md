@@ -46,8 +46,8 @@ model and token usage; `run.steer(text)` adds input mid run; `run.cancel()`
 stops it. Progress arrives through `send(…, { onDelta })` as updates, each a
 record with a `type`; `run.stream()` offers a coarser message view of the
 same run, including compaction statuses omitted from `onDelta` in SDK 1.2.0.
-The native `Agent.summarize()` starts a manual summary run; OAR exposes no
-manual-compaction control. An agent takes one run at a time: a second `send`
+The native `Agent.summarize()` starts a manual summary run; OAR exposes it as
+idle-only `compact()`. An agent takes one run at a time: a second `send`
 while one runs is refused (`already has active run`, probed).
 
 The credential is `CURSOR_API_KEY`, or, without it, the key
@@ -67,7 +67,7 @@ OAR reads out of it. Control calls are request/response record pairs.
 | `@cursor/sdk` package | An optional peer dependency of `@botiverse/oar` that the host installs (`@cursor/sdk@1.2.0`) and hands over through `createCursorRuntime` ([installation](#installation-and-account-usage)); the agent runs in the host process. Cursor is not in `defaultRuntimes`; the `oar` CLI depends on the SDK and adds cursor itself ([CLI registry](../../packages/cli/src/runtimes.ts)). |
 | Local agent | `Session.id` is the `agentId`; `SessionOptions.resume` reopens it with `Agent.resume`. |
 | Agent state after open | One `cursor/agent_opened` frame with the `model` (and `effort`) the SDK holds. |
-| Run | A turn: a prompt is one `send`; `run.wait()`'s answer is the `cursor/run_result` frame carrying `turn_ended`. |
+| Run | A turn: a prompt is one `send`; `run.wait()`'s answer is the `cursor/run_result` frame carrying `turn_ended`. The SDK run id is `spanId` on results, `run.stream()` frames and `onDelta` frames; early callbacks retain their ingress time while waiting for `send` to return that id. |
 | Updates | One frame per `onDelta` update, and one `cursor/stream/<type>` frame per `run.stream()` message ([compaction](#observation-children-and-history)); a subagent's updates arrive inside its `task` call and are attributed to it (`agentPath`, tier `attributed`). |
 | Steer, queue, abort | `run.steer`; an adapter-held queue sent as the next run; `run.cancel`. |
 | `Cursor.auth` | `login` is `Cursor.auth.login` (the URL relayed, the SDK polls), `logout` is `Cursor.auth.logout` (local only: the minted key is not revoked), `authStatus` is `Cursor.auth.status` ([login](#login), [logout](#logout)). |
@@ -281,6 +281,24 @@ counted once, through `onDelta`. No trigger or failure reason is reported.
 `fallback` stays native and means a trimmed transcript was saved [src]; it
 still counts as completed compaction. Cancellation can end the run with only
 a summary start observed; OAR adds no compaction end in that case.
+
+Manual `compact()` binds its accepted response to the SDK's returned run id
+before observing messages. Native `run_id` becomes `spanId`; `sessionId`
+remains the root agent id. Children retain task-call `agentPath` attribution,
+and a different native `agent_id` cannot supply root summary evidence. A root terminal summary and that run's result
+are both required before queued input drains. A completed summary wins a late
+run cancellation. An empty new agent is refused by the SDK. SDK 1.2.0 `summarize()` accepts no
+options and passes empty send options internally, so `local.force` cannot
+take over a restored active run for compact. An isolated
+[storage probe](../../experiments/cursor-summarize-force-offline.ts) confirms
+that refusal with and without an ignored force argument, without an executor
+or network call. OAR returns the native refusal and does not expire that run.
+Caller timeout or
+signal stops waiting only. Native cancellation with no terminal summary returns
+aborted using the run result, without inventing a summary event. A known run
+end without a terminal summary is unconfirmed but releases the gate; lost
+observation without a run end keeps it reserved. See the
+[SDK 1.2.0 native sample and account-free regressions](../../experiments/manual-compaction-followup-2026-11-02.md#cursor-account-scope-and-usage).
 
 Each view preserves its own internal order; the merged frames keep OAR's
 reception order, with no global native order guaranteed between the views.

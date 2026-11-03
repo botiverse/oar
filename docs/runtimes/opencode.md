@@ -34,6 +34,28 @@ without an account
 Native startup failures on v1 are under
 [startup and compatibility](#startup-and-compatibility).
 
+## Manual compaction
+
+The v2 session exposes idle-only `compact()` through native `/compact`.
+`session_info_update._meta["opencode/compaction"]` supplies status, messageId
+and reason. OAR projects that native messageId as `compactionId` on both start
+and end events, including automatic events. The manual control binds the first
+manual start in its exclusive idle window and requires the same identity at
+completion to prove compaction. The correlated prompt RPC answer
+(`responseTo`) releases the gate and status together, after preceding markers.
+Wrong, old and absent ids cannot establish completion; an answer without a
+matching marker returns unconfirmed. A native RPC error is retained as a
+frame and returns failed. Response usage follows the ordinary profile
+projection when supplied; no missing counts are inferred. Ordinary `end_turn` does not prove success:
+provider errors, invalid summary headings and empty history all produced
+structured failed markers with ordinary success in 2.2.5. Cancellation supplies
+`error.type: aborted`. Same-name configured commands did not override the
+native compact path in the control.
+
+V1 has no session member: a project command can replace `/compact`, and its
+structural completion is unverified. The common v1/v2 Runtime remains
+undeclared; inspect the opened session. [2.2.5 evidence and limitations](../../experiments/manual-compaction-followup-2026-11-02.md).
+
 ## Windows isolated-process cleanup
 
 Disposing an active tool can stop OpenCode's shell before its tool and child

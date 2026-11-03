@@ -1,0 +1,22 @@
+{
+  "sdk": "1.2.0",
+  "syntheticStorage": true,
+  "catalogStubbed": true,
+  "results": [
+    {
+      "suppliedForce": false,
+      "errorName": "UnknownAgentError",
+      "causeName": "Error",
+      "message": "Agent <agent> already has active run"
+    },
+    {
+      "suppliedForce": true,
+      "errorName": "UnknownAgentError",
+      "causeName": "Error",
+      "message": "Agent <agent> already has active run"
+    }
+  ],
+  "activeRunUnchanged": true,
+  "executorCalls": 0,
+  "blockedFetchCalls": 0
+}

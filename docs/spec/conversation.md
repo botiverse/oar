@@ -81,7 +81,11 @@ that caller gets `queued`, with any other merged or undelivered ids still
 reported. An accepted input is never returned for automatic resubmission.
 
 Every carried id must name an input in this session and agent whose latest
-attempt is an accepted withdraw, with no later delivery. OAR checks the whole
+attempt is an accepted withdraw with no later delivery, or whose current
+owner is a queue accepted with `queued: "adapter"`. The latter permits the
+adapter's recorded dispatch; a refused carry attempt does not take ownership
+away from that held queue. Native queues, already dispatched inputs, foreign
+lineage and a pending ownership change are ineligible. OAR checks the whole
 set before publishing the prompt attempt and refuses it without invoking the
 runtime if any id fails. The rejected request retains the caller's claim for
 audit, but conversation and chat projections leave those original inputs alone.

@@ -78,6 +78,8 @@ export type RawEvent = Frame | RequestRecord | ResponseRecord;
  * enters the stream, with `type` and `native` and no events.
  */
 export interface FrameBody {
+  /** This native frame explicitly identifies an OAR request using the identifier supplied to the runtime (RPC id, command UUID, etc.). Exact identity only, never timing or order; not a claim of successful execution. */
+  readonly responseTo?: string;
   /** Runtime-native discriminator: claude `type[/subtype]`, codex notification method, pi event type, ACP `sessionUpdate`. */
   readonly type: string;
   /** The frame as sent (JSON-safe), except documented credential-field redaction. Never otherwise trimmed or re-shaped. */
@@ -85,7 +87,6 @@ export interface FrameBody {
   /** What oar read out of the frame, in frame order; empty when oar read nothing. Only runtime-said kinds appear here. */
   readonly events: readonly RuntimeEventBody[];
 }
-
 export type ReasoningContent =
   | { readonly kind: "text"; readonly text: string }
   | { readonly kind: "redacted" }
@@ -170,15 +171,15 @@ export type RuntimeEventBody =
   | ToolCallProgress
   /** The runtime's OWN completion report for a turn (claude `result`, codex `turn/completed`, pi `agent_settled`, an ACP prompt answer). A prompt request produces `turn_started`; a native active-run report produces `turn_active`. Neither implies an outcome: if a runtime reports no end, none appears. `inputId` and ordered `inputIds` independently preserve native singular/plural input identities; neither is inferred. Use `inputIds` when present to settle every covered input. */
   | { readonly kind: "turn_ended"; readonly outcome: TurnOutcome; readonly inputId?: string; readonly inputIds?: readonly string[] }
-  /** The runtime began compacting its context. `trigger` is the runtime's own word for why (pi: manual | threshold | overflow; codex/cursor: none). claude reports only the boundary after the fact, so it never says this. */
-  | { readonly kind: "compaction_started"; readonly trigger?: string }
+  /** Native context compaction began. `compactionId` is its reported operation identity, distinct from the envelope's turn `spanId`. `trigger` is only the runtime's own reason. */
+  | { readonly kind: "compaction_started"; readonly compactionId?: string; readonly trigger?: string }
   /**
-   * The runtime finished (or gave up) compacting (pi `compaction_end`, claude
-   * `system/compact_boundary`, codex `contextCompaction` completed, cursor SDK summary `completed` or `error`).
-   * `trigger` as above (claude: manual | auto); `reason` is the runtime's
-   * error text when it failed. ACP runtimes report no compaction.
+   * Native compaction completed, failed or was cancelled. Optional `compactionId`
+   * is the native operation identity. Optional `requestId` identifies an OAR
+   * compact request explicitly answered by this native response (Grok RPC),
+   * never one inferred from timing. `trigger` and `reason` stay native.
    */
-  | { readonly kind: "compaction_ended"; readonly outcome: "completed" | "aborted" | "failed"; readonly trigger?: string; readonly reason?: string }
+  | { readonly kind: "compaction_ended"; readonly compactionId?: string; readonly outcome: "completed" | "aborted" | "failed"; readonly trigger?: string; readonly reason?: string; readonly requestId?: string }
   /** The runtime announced it will retry a failed provider call (pi `auto_retry_start`, `summarization_retry_scheduled`). Other shipped runtimes retry silently or not at all. */
   | { readonly kind: "retry"; readonly attempt: number; readonly maxAttempts?: number; readonly delayMs?: number; readonly reason?: string }
   | { readonly kind: "usage"; readonly usage: UsageReport }
@@ -230,14 +231,13 @@ export type EventBody = RuntimeEventBody | ControlEventBody;
  * RawEvent stream via `eventsOf`.
  */
 export type Event = EventBody & RecordEnvelope;
-
 export type RequestBody =
   | { readonly kind: "open"; readonly placement: PlacementRequest }
   | { readonly kind: "goal_set"; readonly options: GoalSetOptions }
   | { readonly kind: "goal_read" }
   | { readonly kind: "goal_clear" }
-  /** Request native compaction; acceptance is admission, not completion. */
-  | { readonly kind: "compact" }
+  /** Request native compaction; acceptance is admission, not completion. settledBy requires a native frame whose responseTo equals this request id before releasing the operation. */
+  | { readonly kind: "compact"; readonly settledBy?: "native_response" }
   | { readonly kind: "prompt"; readonly carries?: readonly string[]; readonly inputId?: string; readonly input: string; readonly images?: readonly InputImage[]; readonly origin?: InputOrigin }
   | { readonly kind: "steer"; readonly inputId?: string; readonly input: string; readonly images?: readonly InputImage[]; readonly origin?: InputOrigin }
   | { readonly kind: "queue"; readonly inputId?: string; readonly input: string; readonly images?: readonly InputImage[]; readonly origin?: InputOrigin }
@@ -282,8 +282,8 @@ export type ResponseBody =
   | { readonly kind: "opened"; readonly placement: SessionPlacement }
   | { readonly kind: "cleanup"; readonly result: SessionCleanup }
   | SessionRelease
-  /** The adapter (or runtime) took the action over. For prompt/steer/queue this is ONE deliberately weak promise: the caller's delivery obligation ENDS; do not resubmit, unless the stream later reports the input dropped (`input_dropped`, `ConversationInput.state` "dropped"), which hands it back. No guarantee it lands in the current turn, that the model attends to it, or that any business outcome happened; where input landed is the event stream's job. For withdraw it is a strong one: the held input was removed before it was sent, and the caller owns it again. `native` is the runtime's own acknowledgement when it gave one. */
-  | { readonly kind: "accepted"; readonly native?: unknown }
+  /** The adapter (or runtime) took the action over. For prompt/steer/queue this is ONE deliberately weak promise: the caller's delivery obligation ENDS; do not resubmit, unless the stream later reports the input dropped (`input_dropped`, `ConversationInput.state` "dropped"), which hands it back. No guarantee it lands in the current turn, that the model attends to it, or that any business outcome happened; where input landed is the event stream's job. For withdraw it is a strong one: the held input was removed before it was sent, and the caller owns it again. `native` is the runtime's own acknowledgement when it gave one. `queued: "adapter"` means OAR still holds this queue input; actual dispatch is a new prompt carrying its input identity, never a second response. */
+  | { readonly kind: "accepted"; readonly native?: unknown; readonly queued?: "adapter" }
   /** Not taken over; the caller still owns the input. `code` says why in one word; `reason` is the prose. */
   | { readonly kind: "rejected"; readonly code: RejectionCode; readonly reason: string; readonly native?: unknown }
   /** oar's reply to a `toApp` request (e.g. the automatic permission grant), verbatim. */

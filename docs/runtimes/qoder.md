@@ -14,6 +14,24 @@ Those replay checks used no real account or paid provider. The
 [model-selection probe](../../experiments/qoder-native/model-selection-report.md)
 uses an existing login for catalog reads and opens, without a model prompt.
 
+## Manual compaction
+
+`compact()` is idle-only and sends the native built-in `/compact` with the OAR
+request id as its command UUID. Qoder 1.1.81 intercepts this built-in before
+custom commands. OAR requires that command's started lifecycle, a root manual
+`compact_boundary`, and its completed/cancelled lifecycle. Results carry no
+input UUID, so an ordinary successful result cannot prove compaction.
+Empty history ends without a boundary and returns `failed / not_compacted`.
+A completed boundary remains `completed` if cancellation arrives later; the
+ordinary result remains its own native fact (success in the measured race).
+`queue()` is retained until the command settles. The compact request carries
+`settledBy: "native_response"`; exact `command_uuid` equality attaches
+`responseTo` to its terminal lifecycle. That frame releases the input gate
+and compacting status together, even without an ordinary result. Earlier
+turn and compaction events stay in place and do not release the operation. Native `system/status
+compacting` projects the start without an inferred trigger.
+[Controls and evidence](../../experiments/manual-compaction-followup-2026-11-02.md).
+
 ## Transport versions
 
 [src] Qoder 1.1.81 explicitly rejects the old SDK worker with
