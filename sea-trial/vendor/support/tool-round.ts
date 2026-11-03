@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { getTextContent, type ChatCompletionRequest, type ChatMessage } from "@copilotkit/aimock";
 import type { Session, RawEvent } from "../../../packages/oar/src/contracts/session.js";
 import { awaitTurnEnd } from "../../../packages/oar/src/observe/turns.js";
 import type { LLMock } from "../../harness/aimock.js";
@@ -7,6 +8,17 @@ import { openTrace, record } from "../../harness/trace.js";
 // Vendor runs are runs too: their traces land in the same run directory the
 // CI behavior jobs upload, so a red vendor test ships its trajectory.
 openTrace(`vendor-${process.env.OAR_TEST ?? "unset"}`);
+
+function toolRoundTurn(request: ChatCompletionRequest): { user: string; result: ChatMessage | undefined } {
+  // Codex can append a native environment_context as a user message after
+  // a tool result at UTC midnight. It is context for the same turn.
+  const userIndex = request.messages.findLastIndex(message => message.role === "user"
+    && !/^<environment_context>[\s\S]*<\/environment_context>$/u.test(getTextContent(message.content)?.trim() ?? ""));
+  return {
+    user: getTextContent(request.messages[userIndex]?.content ?? null) ?? "",
+    result: request.messages.slice(userIndex + 1).findLast(message => message.role === "tool"),
+  };
+}
 
 /**
  * A scripted two-round tool conversation: the provider first demands a tool
@@ -18,13 +30,16 @@ export function toolRoundFixtures(
   mock: LLMock,
   tool: (command: string) => { name: string; arguments: string },
 ): void {
-  // hasToolResult flags keep the three stages mutually exclusive: without
-  // them the opening fixture keeps matching follow-up requests (the original
+  // The current turn's latest tool result keeps the stages mutually exclusive:
+  // otherwise the opening fixture keeps matching follow-up requests (the original
   // user text stays in the conversation) and the runtime loops the tool
   // forever (observed: pi executed it 1143 times in 30s).
-  mock.on({ userMessage: /run the tool/u, hasToolResult: false }, { toolCalls: [tool("echo oar-round-one")] });
-  mock.on({ hasToolResult: true, toolResultContains: "oar-round-one" }, { toolCalls: [tool("echo oar-round-two")] });
-  mock.on({ hasToolResult: true, toolResultContains: "oar-round-two" }, { content: "both rounds done" });
+  mock.on({ predicate: request => {
+    const turn = toolRoundTurn(request);
+    return turn.result === undefined && /run the tool/u.test(turn.user);
+  } }, { toolCalls: [tool("echo oar-round-one")] });
+  mock.on({ predicate: request => getTextContent(toolRoundTurn(request).result?.content ?? null)?.includes("oar-round-one") === true }, { toolCalls: [tool("echo oar-round-two")] });
+  mock.on({ predicate: request => getTextContent(toolRoundTurn(request).result?.content ?? null)?.includes("oar-round-two") === true }, { content: "both rounds done" });
 }
 
 /**
@@ -69,8 +84,8 @@ export async function structuralToolRound(
   assert.ok(result.response.body.kind === "accepted", `prompt not accepted: ${JSON.stringify(result.response.body)}`);
   const outcome = await awaitTurnEnd(session, result.request.seq);
   if (outcome.kind !== "completed" && mock !== undefined) {
-    // Distill each request down to exactly what fixture matching consumes:
-    // the last user message and whether a tool result is present.
+    // Keep the raw tail visible in diagnostics, including native context
+    // after a tool result that the fixture treats as part of the same turn.
     const requests = mock.journal.getAll().map((entry) => {
       const messages = entry.body?.messages ?? [];
       const lastUser = messages.findLast((message) => message.role === "user");
