@@ -508,6 +508,14 @@ boundary. A second prompt during a run is `rejected` `busy`
 (`busy-and-late-control` scenario). Native prompt preflight callbacks are
 **not exposed**.
 
+SDK and RPC release the finished run before publishing its terminal frame.
+With no held input, a synchronous `turn_ended` observer can submit the next
+prompt; a late rejection or RPC response for the old prompt cannot release
+that new run. Queued work drains after the terminal frame, preserving the
+old end before the next native start. The
+[native observer tests](../../sea-trial/vendor/pi-turn-admission.vendor.test.ts)
+cover both execution modes on Pi 1.5.0.
+
 **Images (mapped):** `InputOptions.images` become pi's `ImageContent`
 (`{ type: "image", data, mimeType }`) for `prompt(text, { images })`,
 `steer(text, images)` and held queue input. Pi sends them to a model whose
@@ -540,6 +548,11 @@ drains one input per run end; a drained input runs as a spontaneous turn
 (`agent_settled`, then `agent_start` with no request record of its own) and
 its reply ends its own turn (`queue` scenario). If pi refuses a drained input,
 the refusal is recorded as a `pi/prompt_rejected` frame with no events.
+Held input retains priority over a new `prompt`, `queue` or `compact` from
+a terminal observer: prompt and compaction return `busy`, and a new queue
+entry joins the tail. OAR does not yet record this FIFO's ownership as ACP
+does, so status may briefly be idle while held input still makes prompt
+busy ([queue exception](../spec/manual-compaction.md#ownership-records-and-state)).
 Native extension commands cannot simply be queued like ordinary text.
 `withdraw(inputId)` takes an input out of the FIFO before the drain prompts
 it (`accepted`) and answers `not_queued` after; pi's own `clearQueue()` is a

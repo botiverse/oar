@@ -135,6 +135,12 @@ controller started work before the watch caught up, native `ConversationBusy`
 is `runtime_refused` with the native message. A previously submitted inputId
 is instead accepted as a retry, even while running, without new submission.
 
+This adapter uses native submissions and the record fold, not the SDK/RPC
+adapter's run flag or held FIFO. The
+[native terminal-observer test](../../sea-trial/vendor/pi-turn-admission.vendor.test.ts)
+verifies on Durable 1.4.0 that an idle `turn_ended` observer can submit the next
+prompt and that it stays busy until the new native run ends.
+
 An open or resumed snapshot with a run emits `turn_active`, making status
 running before any model output. It creates a view turn only if none is
 already open. A native `run_start` after an OAR prompt therefore does not

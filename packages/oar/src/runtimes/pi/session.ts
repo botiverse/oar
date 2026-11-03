@@ -61,7 +61,7 @@ export const createPiSession = (project: PiProjectOptions = {}): StartSession =>
   // or an adopted agent_start) until pi's own agent_settled. Held in an
   // object so closures always read the live value.
   const gate = { running: false };
-  const compaction = piManualCompaction(kernel, () => gate.running, async () => { await piAgentSession.compact(); }, () => { queueMicrotask(drainHeld); });
+  const compaction = piManualCompaction(kernel, () => gate.running || held.length > 0, async () => { await piAgentSession.compact(); }, () => { queueMicrotask(drainHeld); });
   // Identity of the latest launched prompt, so a late rejection of an older
   // one cannot be misread as the current run's.
   let launch: object | null = null;
@@ -125,6 +125,8 @@ export const createPiSession = (project: PiProjectOptions = {}): StartSession =>
         if (launch === token && gate.running) {
           const reason = error instanceof Error ? error.message : "pi prompt failed";
           gate.running = false;
+          pendingAbort = false;
+          launch = null;
           kernel.frame({
             type: "pi/prompt_rejected",
             native: { message: reason },
@@ -172,11 +174,16 @@ export const createPiSession = (project: PiProjectOptions = {}): StartSession =>
     const { state: nextProjection, commands } = foldPiEvent(projection, event, extra);
     projection = nextProjection;
     for (const command of commands) {
-      kernel.frame(command.body);
-      if (command.body.events.some((item) => item.kind === "turn_ended")) {
+      const ended = command.body.events.some((item) => item.kind === "turn_ended");
+      if (ended) {
+        // Observers may submit synchronously from this frame. Release only
+        // the old run before publishing; never clear their new run afterwards.
         gate.running = false;
-        drainHeld();
+        pendingAbort = false;
+        launch = null;
       }
+      kernel.frame(command.body);
+      if (ended) { drainHeld(); }
     }
   });
 
@@ -201,7 +208,7 @@ export const createPiSession = (project: PiProjectOptions = {}): StartSession =>
     prompt: async (input, inputOptions?: InputOptions): Promise<ControlResult> => {
       const body = { kind: "prompt" as const, input, ...inputOptions };
       const result = await kernel.control(body, async () => {
-        if (gate.running || compaction.busy()) {
+        if (gate.running || held.length > 0 || compaction.busy()) {
           return { kind: "rejected", code: "busy", reason: "busy" };
         }
         const decided = await withInputImages(capabilities, inputOptions?.images, async (images) => {

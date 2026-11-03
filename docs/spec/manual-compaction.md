@@ -115,7 +115,7 @@ of the release record can submit another prompt when status is idle.
 ACP-held inputs instead keep status at `running / waiting_model` until their
 dispatch or withdrawal.
 
-**Held-queue exception:** Claude, Qoder, Qwen and Cursor do not yet record
+**Held-queue exception:** Claude, Qoder, Qwen, Cursor and Pi SDK/RPC do not yet record
 OAR's queue ownership and dispatch as ACP does. While OAR itself holds a
 queued input, status can display `idle` although a new `prompt` returns
 `busy` to preserve FIFO. This includes the synchronous terminal-observer

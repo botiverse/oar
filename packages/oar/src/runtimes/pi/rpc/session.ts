@@ -24,11 +24,12 @@ export const createPiRpcSession = (runtime: PiRuntimeOptions): StartSession => w
   let projection = initialPiProjection;
   let running = false;
   let started = false;
+  let launch: object | null = null;
   let pendingAbort = false;
   let disposeRequest: RequestRecord | null = null;
   let disposePromise: Promise<void> | null = null;
   let pump = Promise.resolve();
-  const compaction = piManualCompaction(kernel, () => running, async () => {
+  const compaction = piManualCompaction(kernel, () => running || held.length > 0, async () => {
     // A rejected transport promise is not a native compaction failure. The
     // process exit below settles the caller after its final stdout is folded.
     const response = await rpc.control.request({ type: "compact" }).catch(() => null);
@@ -48,20 +49,26 @@ export const createPiRpcSession = (runtime: PiRuntimeOptions): StartSession => w
     if (running || compaction.busy()) { return { kind: "rejected", code: "busy", reason: "busy" }; }
     running = true;
     started = false;
+    const token = {};
+    launch = token;
     projection = piPrompted(projection);
     const response = await rpc.control.request({ type: "prompt", message: input, ...(images.length === 0 ? {} : { images: nativeImages(images) }) });
     if (!response.success) {
-      running = false;
-      pendingAbort = false;
-      fallback.clear();
+      if (launch === token) {
+        running = false;
+        pendingAbort = false;
+        launch = null;
+        fallback.clear();
+      }
       return { kind: "rejected", code: "runtime_refused", reason: response.error };
     }
     // oxlint-disable-next-line typescript/no-unnecessary-condition -- Native events can change started while the response is awaited.
-    if (response.command === "prompt" && response.data.disposition === "handled" && !started) {
+    if (launch === token && response.command === "prompt" && response.data.disposition === "handled" && !started) {
       // A slash command or input extension handled it without a model run.
       // Acceptance is native, but there is no turn end to invent.
       running = false;
       pendingAbort = false;
+      launch = null;
       fallback.clear();
       drain();
     }
@@ -121,13 +128,16 @@ export const createPiRpcSession = (runtime: PiRuntimeOptions): StartSession => w
     }
     const next = foldPiEvent(projection, event, { overflow, ...(context === undefined ? {} : { context }) });
     projection = next.state;
-    for (const command of next.commands) { kernel.frame(command.body); }
     if (event.type === "agent_settled") {
+      // Terminal observers may start the next run, even before the old RPC
+      // prompt response arrives. Neither this callback nor that reply owns it.
       running = false;
       started = false;
       pendingAbort = false;
-      drain();
+      launch = null;
     }
+    for (const command of next.commands) { kernel.frame(command.body); }
+    if (event.type === "agent_settled") { drain(); }
   };
   receive = (message): void => {
     const previous = pump;
@@ -155,7 +165,7 @@ export const createPiRpcSession = (runtime: PiRuntimeOptions): StartSession => w
     id: kernel.sessionId, capabilities,
     compact: compaction.compact,
     prompt: async (input, inputOptions) => kernel.control({ kind: "prompt", input, ...inputOptions }, async () => {
-      if (running || compaction.busy()) { return { kind: "rejected", code: "busy", reason: "busy" }; }
+      if (running || held.length > 0 || compaction.busy()) { return { kind: "rejected", code: "busy", reason: "busy" }; }
       return withInputImages(capabilities, inputOptions?.images, async (images) => start(input, images));
     }),
     steer: async (input, inputOptions) => kernel.control({ kind: "steer", input, ...inputOptions }, async () => {

@@ -514,7 +514,7 @@ Further rules:
   or `-1` before any record. `status()` is the one the control decisions
   must agree with: a prompt recorded while it says `running` is rejected
   `busy`, and one recorded while it says `idle` is not refused as `busy`
-  unless OAR holds an input in Claude, Qoder, Qwen or Cursor's queue. Those four adapters
+  unless OAR holds an input in Claude, Qoder, Qwen, Cursor or Pi SDK/RPC's queue. Those adapters
   preserve FIFO by returning `busy` in that window but do not yet record
   queue ownership for the status fold. Without a held input, terminal status
   and prompt admission change on the same record
