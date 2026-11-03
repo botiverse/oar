@@ -206,7 +206,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
     queue: async (input, inputOptions?: InputOptions): Promise<ControlResult> => {
       const result = await kernel.control({ kind: "queue", input, ...inputOptions }, (request) =>
         withInputImages(capabilities, inputOptions?.images, (images) => {
-          if (busy() || observingCancellation !== null) {
+          if (busy() || heldQueue.length > 0 || observingCancellation !== null) {
             heldQueue.push({ request, input, ...(inputOptions?.inputId === undefined ? {} : { inputId: inputOptions.inputId }), images });
           } else {
             turnRevision += 1;

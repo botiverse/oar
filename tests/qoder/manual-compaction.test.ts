@@ -73,23 +73,34 @@ test.each([true, false])("Qoder command terminal releases the gate before observ
   } finally { await f.session.dispose(); }
 });
 
-test.each([true, false])("Qoder terminal observer admission respects held queue: %s", async held => {
-  const f = await open(); const observed: { kind: string; prompt: ReturnType<typeof f.session.prompt> }[] = [];
+test.each([["prompt", true], ["queue", true], ["prompt", false], ["queue", false]] as const)("Qoder terminal observer %s respects held queue: %s", async (method, held) => {
+  const f = await open(); const observed: { kind: string; control: ReturnType<typeof f.session.prompt> }[] = [];
   try {
     await f.session.prompt("A"); const first = f.input();
     f.emit({ type: "command_lifecycle", command_uuid: first, state: "started" });
     const queued = held ? await f.session.queue("B") : undefined;
     f.session.rawEvents(record => {
       if (observed.length > 0 || record.kind !== "frame" || !record.body.events.some(event => event.kind === "turn_ended")) { return; }
-      observed.push({ kind: f.session.status().value.kind, prompt: f.session.prompt("C") });
+      observed.push({ kind: f.session.status().value.kind, control: f.session[method]("C") });
     });
     f.emit({ type: "result", subtype: "success", is_error: false });
-    const next = await observed[0]?.prompt;
-    expect(next).toMatchObject(held ? { kind: "rejected", code: "busy" } : { kind: "accepted" });
+    const next = await observed[0]?.control;
+    expect(next).toMatchObject(held && method === "prompt" ? { kind: "rejected", code: "busy" } : { kind: "accepted" });
     const second = queued?.request.body ?? next?.request.body;
     expect(observed[0]?.kind).toBe("idle");
-    const users = f.fake.written.map(text => asRecord(JSON.parse(text))).filter(message => message?.type === "user");
-    expect(users.map(message => message?.uuid)).toEqual([first, second?.kind === "queue" || second?.kind === "prompt" ? second.inputId : undefined]);
-    expect(users).toHaveLength(2);
+    assert.ok(second?.kind === "queue" || second?.kind === "prompt");
+    const writtenIds = () => f.fake.written.map(text => asRecord(JSON.parse(text))).filter(message => message?.type === "user").map(message => message?.uuid);
+    expect(writtenIds()).toEqual([first, second.inputId]);
+    f.emit({ type: "command_lifecycle", command_uuid: second.inputId, state: "started" });
+    f.emit({ type: "result", subtype: "success", is_error: false });
+    if (held && method === "queue") {
+      assert.ok(next?.request.body.kind === "queue");
+      const third = next.request.body.inputId;
+      expect(writtenIds()).toEqual([first, second.inputId, third]);
+      f.emit({ type: "command_lifecycle", command_uuid: third, state: "started" });
+      f.emit({ type: "result", subtype: "success", is_error: false });
+      expect(writtenIds()).toEqual([first, second.inputId, third]);
+    } else { expect(writtenIds()).toEqual([first, second.inputId]); }
+    expect(f.session.status().value.kind).toBe("idle");
   } finally { await f.session.dispose(); }
 });

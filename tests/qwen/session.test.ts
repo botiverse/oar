@@ -1,4 +1,5 @@
 /* oxlint-disable eslint/max-statements -- One ordered protocol interleaving pins queue and abort ownership. */
+import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { expect, test, vi } from "vitest";
 import { launchQwen } from "../../packages/oar/src/runtimes/qwen/launch.js";
@@ -81,7 +82,7 @@ test("private initialization failure preserves the runtime error and releases th
   expect(child.killed()).toBe(true);
 });
 
-test.each([true, false])("Qwen terminal observer admission respects held queue: %s", async held => {
+test.each([["prompt", true], ["queue", true], ["prompt", false], ["queue", false]] as const)("Qwen terminal observer %s respects held queue: %s", async (method, held) => {
   const child = fakeLineProcess((line, process) => {
     const frame = asRecord(parseJson(line));
     if (asRecord(frame?.request)?.subtype === "initialize") {
@@ -92,26 +93,35 @@ test.each([true, false])("Qwen terminal observer admission respects held queue: 
   child.stdin.on("finish", () => { child.end(0); });
   const session = await qwenSession(installation, { cwd: "/fixture", resume: id });
   const emit = (frame: unknown) => { child.emit(`${JSON.stringify(frame)}\n`); };
-  const observed: { kind: string; prompt: ReturnType<typeof session.prompt> }[] = [];
+  const observed: { kind: string; control: ReturnType<typeof session.prompt> }[] = [];
   try {
     const first = await session.prompt("A");
     emit({ type: "system", subtype: "init", session_id: id, model: "native-model" });
     const queued = held ? await session.queue("B") : undefined;
     session.rawEvents(record => {
       if (observed.length > 0 || record.kind !== "frame" || !record.body.events.some(event => event.kind === "turn_ended")) { return; }
-      observed.push({ kind: session.status().value.kind, prompt: session.prompt("C") });
+      observed.push({ kind: session.status().value.kind, control: session[method]("C") });
     });
     emit({ type: "result", subtype: "success", is_error: false });
-    const next = await observed[0]?.prompt;
-    expect(next).toMatchObject(held ? { kind: "rejected", code: "busy" } : { kind: "accepted" });
+    const next = await observed[0]?.control;
+    expect(next).toMatchObject(held && method === "prompt" ? { kind: "rejected", code: "busy" } : { kind: "accepted" });
     const second = queued?.request.body ?? next?.request.body;
     expect(observed[0]?.kind).toBe("idle");
-    const users = child.written.map(text => asRecord(parseJson(text))).filter(message => message?.type === "user");
-    expect(users.map(message => message?.uuid)).toEqual([
-      first.request.body.kind === "prompt" ? first.request.body.inputId : undefined,
-      second?.kind === "queue" || second?.kind === "prompt" ? second.inputId : undefined,
-    ]);
+    assert.ok(first.request.body.kind === "prompt");
+    assert.ok(second?.kind === "queue" || second?.kind === "prompt");
+    const writtenIds = () => child.written.map(text => asRecord(parseJson(text))).filter(message => message?.type === "user").map(message => message?.uuid);
+    const initialIds = [first.request.body.inputId, second.inputId];
+    expect(writtenIds()).toEqual(initialIds);
     emit({ type: "system", subtype: "init", session_id: id, model: "native-model" });
     emit({ type: "result", subtype: "success", is_error: false });
+    if (held && method === "queue") {
+      assert.ok(next?.request.body.kind === "queue");
+      const allIds = [...initialIds, next.request.body.inputId];
+      expect(writtenIds()).toEqual(allIds);
+      emit({ type: "system", subtype: "init", session_id: id, model: "native-model" });
+      emit({ type: "result", subtype: "success", is_error: false });
+      expect(writtenIds()).toEqual(allIds);
+    } else { expect(writtenIds()).toEqual(initialIds); }
+    expect(session.status().value.kind).toBe("idle");
   } finally { await session.dispose(); vi.restoreAllMocks(); }
 });

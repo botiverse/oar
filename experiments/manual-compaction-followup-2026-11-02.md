@@ -187,7 +187,7 @@ identity, queue order, late replies, disposal and transport-loss boundaries.
 
 ## Validation boundary
 
-The revised full check passed 3,136 tests and 18 mock behavior checks. Existing
+The revised full check passed 3,141 tests and 18 mock behavior checks. Existing
 replay snapshots required no updates. Fourteen review counterexamples were
 caught: Cursor's early unhandled rejection, Grok RPC classification,
 OpenCode missing-proof release/error frames/usage, Qoder terminal release,
@@ -203,20 +203,24 @@ A subsequent review found a duplicate view entry for an ACP queue without
 Both failed before the fixes. Request-only carry lookup now uses the same
 stream-scoped identity as storage, with foreign session, agent and stream
 controls. Claude, Qoder and Qwen all have failing-before/passing-after FIFO
-regressions; Cursor has ordinary-turn and compact-terminal FIFO controls.
+regressions for both `prompt()` and `queue()` calls from a synchronous
+terminal observer. In the queue case, the tests finish each turn and verify
+the complete A, B, C dispatch order; all three fail without the queue hold
+guard. Cursor has ordinary-turn and compact-terminal FIFO controls.
 The no-queue controls continue to admit synchronous observer prompts. An
 ACP ordinary-turn regression also fails when terminal release moves back
 after frame publication.
 
-All 14 existing behavior backends passed on the final revision. Full native
-vendor runs for the revised stream-json driver passed for Claude (80 tests),
-Qoder (12) and Qwen (18). The preceding review revision also passed Codex
+All 14 existing behavior backends passed with the final queue guard. The
+preceding review revision passed full native vendor runs for Claude
+(80 tests), Qoder (12) and Qwen (18). Earlier review validation passed Codex
 (62), Grok (20), OpenCode v1 (10), all 16 Pi SDK/RPC 1.5.0 manual compaction
 controls and the six new OpenCode v2 compaction controls. Those native
 compaction paths are unchanged by the queue/view revision; the v2 controls
 explicitly skip with v1.
-Build and clean packed-host installation passed, including optional peers
-and public type exports. Routine Cursor controls and the added SDK storage
+Build and clean packed-host installation passed on the preceding revision,
+including optional peers and public type exports; the final queue guard
+does not change packaging or types. Routine Cursor controls and the added SDK storage
 probe require no credentials. Native evidence remains local Linux x64;
 Windows and macOS results depend on the revised pull-request CI.
 
@@ -264,8 +268,8 @@ CodeBuddy), as well as compact: with no held input, a synchronous
 `turn_ended` observer can immediately send the next prompt. Internal
 ownership is released before publishing that same terminal frame, and old
 cleanup cannot clear the new turn. Held inputs retain priority over new
-prompts. The native frame content and relative frame order are unchanged by
-this sequencing fix. Direct observer-reentry and FIFO regressions cover the
+prompts and queued input. The native frame content and relative frame order
+are unchanged by this sequencing fix. Direct observer-reentry and FIFO regressions cover the
 ordinary driver paths and the compact boundaries.
 The same rule covers startup refusal: the compact reservation releases before
 external observers see its rejected response restore idle.
