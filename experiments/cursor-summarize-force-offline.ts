@@ -1,11 +1,17 @@
 /* oxlint-disable max-statements, no-await-in-loop -- Serial probes must preserve the same active run. */
 /* oxlint-disable require-await -- Offline replacements preserve native async API signatures without performing IO. */
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { findPackageJSON } from "node:module";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createAgentPlatform } from "@cursor/sdk";
+import { asRecord, parseJson } from "../packages/oar/src/shared/json.js";
 
+const manifest = findPackageJSON("@cursor/sdk", import.meta.url);
+assert.ok(manifest !== undefined);
+const sdk = asRecord(parseJson(await readFile(manifest, "utf8")))?.version;
+assert.equal(typeof sdk, "string");
 const directory = await mkdtemp(join(tmpdir(), "cursor-summary-force-"));
 let networkCalls = 0;
 let executorCalls = 0;
@@ -30,7 +36,7 @@ try {
   assert.equal(after?.activeRunId, run.runId);
   assert.equal(executorCalls, 0);
   assert.ok(results.every(result => result.errorName === "UnknownAgentError" && result.message === "Agent <agent> already has active run"));
-  console.log(JSON.stringify({ sdk: "1.2.0", syntheticStorage: true, catalogStubbed: true, results, activeRunUnchanged: true, executorCalls, blockedFetchCalls: networkCalls }, null, 2));
+  console.log(JSON.stringify({ sdk, syntheticStorage: true, catalogStubbed: true, results, activeRunUnchanged: true, executorCalls, blockedFetchCalls: networkCalls }, null, 2));
   agent.close();
 } finally {
   globalThis.fetch = originalFetch;

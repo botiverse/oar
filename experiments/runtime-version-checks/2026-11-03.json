@@ -1,0 +1,2096 @@
+{
+  "checkedAt": "2026-11-03T14:53:33.794Z",
+  "platform": "linux-x64",
+  "node": "v24.19.0",
+  "oarBase": "b4328cc659fbb231b6941b107ce25d08b3bda261",
+  "versions": [
+    {
+      "runtime": "antigravity",
+      "source": "https://raw.githubusercontent.com/agentclientprotocol/registry/main/antigravity-acp/agent.json",
+      "latest": "1.4.5"
+    },
+    {
+      "runtime": "claude",
+      "source": "https://registry.npmjs.org/@anthropic-ai/claude-code/latest",
+      "latest": "2.1.317"
+    },
+    {
+      "runtime": "codex",
+      "source": "https://registry.npmjs.org/@openai/codex/latest",
+      "latest": "0.166.0"
+    },
+    {
+      "runtime": "cursor",
+      "source": "https://registry.npmjs.org/@cursor/sdk/latest",
+      "latest": "1.3.0"
+    },
+    {
+      "runtime": "grok",
+      "source": "https://x.ai/cli/stable",
+      "latest": "1.0.70"
+    },
+    {
+      "runtime": "kimi",
+      "source": "https://registry.npmjs.org/@moonshot-ai/kimi-code/latest",
+      "latest": "2.4.1"
+    },
+    {
+      "runtime": "opencode",
+      "line": "v1",
+      "source": "https://registry.npmjs.org/opencode-ai/latest",
+      "latest": "1.19.5"
+    },
+    {
+      "runtime": "opencode",
+      "line": "v2",
+      "source": "https://registry.npmjs.org/@opencode/cli/latest",
+      "latest": "2.2.5"
+    },
+    {
+      "runtime": "codebuddy",
+      "source": "https://registry.npmjs.org/@tencent-ai/codebuddy-code/latest",
+      "latest": "2.179.3"
+    },
+    {
+      "runtime": "qoder",
+      "source": "https://registry.npmjs.org/@qoder-ai/qodercli/latest",
+      "latest": "1.1.82"
+    },
+    {
+      "runtime": "qwen",
+      "source": "https://registry.npmjs.org/@qwen-code/qwen-code/latest",
+      "latest": "0.26.6"
+    },
+    {
+      "runtime": "pi",
+      "source": "https://registry.npmjs.org/@earendil-works/pi-coding-agent/latest",
+      "latest": "1.5.0"
+    },
+    {
+      "runtime": "pi-durable",
+      "source": "https://registry.npmjs.org/@earendil-works/pi-durable/latest",
+      "latest": "1.5.0"
+    }
+  ],
+  "behavior": {
+    "claude": {
+      "passed": 17,
+      "skipped": 2,
+      "failed": 0
+    },
+    "qwen": {
+      "passed": 16,
+      "skipped": 3,
+      "failed": 0
+    },
+    "codebuddy": {
+      "passed": 16,
+      "skipped": 3,
+      "failed": 0
+    },
+    "qoder": {
+      "passed": 2,
+      "skipped": 2,
+      "failed": 15
+    }
+  },
+  "vendor": {
+    "claude": {
+      "passed": 80,
+      "skipped": 295
+    },
+    "qwen": {
+      "passed": 18,
+      "skipped": 357
+    },
+    "codebuddy": {
+      "passed": 5,
+      "skipped": 370
+    },
+    "qoder": {
+      "failed": 11,
+      "passed": 1,
+      "skipped": 363
+    }
+  },
+  "claudeLoginBrowser": [
+    {
+      "platform": "linux",
+      "version": "2.1.317",
+      "mode": "default",
+      "exit": 0,
+      "result": {
+        "kind": "result",
+        "login": "logged_in",
+        "status": "logged_in",
+        "urls": 1,
+        "prompts": 1
+      },
+      "loginCompletion": {
+        "kind": "verified"
+      },
+      "browserOpens": 1,
+      "exchanges": 1,
+      "profiles": 1,
+      "verified": true,
+      "routes": [
+        "POST /v1/oauth/token",
+        "GET /api/oauth/profile",
+        "GET /api/oauth/claude_cli/roles"
+      ]
+    },
+    {
+      "platform": "linux",
+      "version": "2.1.317",
+      "mode": "suppressed",
+      "exit": 0,
+      "result": {
+        "kind": "result",
+        "login": "logged_in",
+        "status": "logged_in",
+        "urls": 1,
+        "prompts": 1
+      },
+      "loginCompletion": {
+        "kind": "verified"
+      },
+      "browserOpens": 0,
+      "exchanges": 1,
+      "profiles": 1,
+      "verified": true,
+      "routes": [
+        "POST /v1/oauth/token",
+        "GET /api/oauth/profile",
+        "GET /api/oauth/claude_cli/roles"
+      ]
+    },
+    {
+      "platform": "linux",
+      "version": "2.1.317",
+      "mode": "failing-browser",
+      "exit": 0,
+      "result": {
+        "kind": "result",
+        "login": "logged_in",
+        "status": "logged_in",
+        "urls": 1,
+        "prompts": 1
+      },
+      "loginCompletion": {
+        "kind": "verified"
+      },
+      "browserOpens": 1,
+      "exchanges": 1,
+      "profiles": 1,
+      "verified": true,
+      "routes": [
+        "POST /v1/oauth/token",
+        "GET /api/oauth/profile",
+        "GET /api/oauth/claude_cli/roles"
+      ]
+    }
+  ],
+  "cursor": {
+    "version": "1.3.0",
+    "oarPeer": "1.2.0",
+    "login": {
+      "passed": 11,
+      "networkGuardPassed": true,
+      "realAccount": false
+    },
+    "userConfiguration": [
+      {
+        "label": "oar default",
+        "userConfigurationRead": false,
+        "userMcpConnected": false,
+        "storedLoginUsed": true,
+        "authenticatedRunReachedLocalBackend": true,
+        "terminalStatus": "error"
+      },
+      {
+        "label": "native user positive control",
+        "userConfigurationRead": true,
+        "userMcpConnected": true,
+        "storedLoginUsed": true,
+        "authenticatedRunReachedLocalBackend": true,
+        "terminalStatus": "error"
+      },
+      {
+        "label": "oar exclude",
+        "userConfigurationRead": false,
+        "userMcpConnected": false,
+        "storedLoginUsed": true,
+        "authenticatedRunReachedLocalBackend": true,
+        "terminalStatus": "error"
+      },
+      {
+        "label": "oar exclude after reopen",
+        "userConfigurationRead": false,
+        "userMcpConnected": false,
+        "storedLoginUsed": true,
+        "authenticatedRunReachedLocalBackend": true,
+        "terminalStatus": "error"
+      },
+      {
+        "credentialFileUnchangedAfterDisposalAndReopen": true,
+        "originalLoginStillPresent": true,
+        "inferencePerformed": false
+      }
+    ],
+    "offlineSummarize": {
+      "sdk": "1.3.0",
+      "syntheticStorage": true,
+      "catalogStubbed": true,
+      "results": [
+        {
+          "suppliedForce": false,
+          "errorName": "UnknownAgentError",
+          "causeName": "Error",
+          "message": "Agent <agent> already has active run"
+        },
+        {
+          "suppliedForce": true,
+          "errorName": "UnknownAgentError",
+          "causeName": "Error",
+          "message": "Agent <agent> already has active run"
+        }
+      ],
+      "activeRunUnchanged": true,
+      "executorCalls": 0,
+      "blockedFetchCalls": 0
+    },
+    "exportedTypeChanges": [
+      "hostMcpBridgeUrls in local executor option declarations",
+      "internal payment-token log redaction helper"
+    ],
+    "limits": [
+      "No real-account inference, tool, upgrade/resume or compaction run on 1.3.0.",
+      "No peer or bundled SDK version change."
+    ]
+  },
+  "codebuddyStandalone": {
+    "version": "2.179.3",
+    "source": "https://acc-1258344699.cos.accelerate.myqcloud.com/@tencent-ai/codebuddy-code/releases/download/2.179.3/codebuddy-code_Linux_x86_64.tar.gz",
+    "sha256": "35f5c7713ae2f97690042431f11081eb74040cb73e7ca1f1568534d47bf25629",
+    "versionOutput": "2.179.3"
+  },
+  "codebuddyStreamJson": [
+    {
+      "attempt": 1,
+      "delayMs": 0,
+      "initialized": true,
+      "results": 2,
+      "requests": [
+        {
+          "number": 1,
+          "prompt": "first"
+        },
+        {
+          "number": 2,
+          "prompt": "second"
+        },
+        {
+          "number": 3,
+          "prompt": "second"
+        }
+      ],
+      "timedOut": false,
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "attempt": 2,
+      "delayMs": 0,
+      "initialized": true,
+      "results": 2,
+      "requests": [
+        {
+          "number": 1,
+          "prompt": "first"
+        },
+        {
+          "number": 2,
+          "prompt": "second"
+        },
+        {
+          "number": 3,
+          "prompt": "second"
+        }
+      ],
+      "timedOut": false,
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "attempt": 3,
+      "delayMs": 0,
+      "initialized": true,
+      "results": 2,
+      "requests": [
+        {
+          "number": 1,
+          "prompt": "first"
+        },
+        {
+          "number": 2,
+          "prompt": "second"
+        },
+        {
+          "number": 3,
+          "prompt": "second"
+        }
+      ],
+      "timedOut": false,
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "attempt": 1,
+      "delayMs": 1000,
+      "initialized": true,
+      "results": 2,
+      "requests": [
+        {
+          "number": 1,
+          "prompt": "first"
+        },
+        {
+          "number": 2,
+          "prompt": "second"
+        }
+      ],
+      "timedOut": false,
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "attempt": 2,
+      "delayMs": 1000,
+      "initialized": true,
+      "results": 2,
+      "requests": [
+        {
+          "number": 1,
+          "prompt": "first"
+        },
+        {
+          "number": 2,
+          "prompt": "second"
+        }
+      ],
+      "timedOut": false,
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "attempt": 3,
+      "delayMs": 1000,
+      "initialized": true,
+      "results": 2,
+      "requests": [
+        {
+          "number": 1,
+          "prompt": "first"
+        },
+        {
+          "number": 2,
+          "prompt": "second"
+        }
+      ],
+      "timedOut": false,
+      "exitCode": 0,
+      "signal": null
+    }
+  ],
+  "codebuddyAcp": {
+    "pass": true,
+    "protocol": "acp",
+    "delayMs": 0,
+    "initialized": true,
+    "results": 2,
+    "stopReasons": [
+      "end_turn",
+      "end_turn"
+    ],
+    "requests": [
+      {
+        "number": 1,
+        "prompt": "first",
+        "purpose": "title",
+        "model": "deepseek-flash",
+        "stream": true
+      },
+      {
+        "number": 2,
+        "prompt": "first",
+        "purpose": "conversation",
+        "model": "deepseek-flash",
+        "stream": true
+      },
+      {
+        "number": 3,
+        "prompt": "first",
+        "purpose": "title",
+        "model": "deepseek-flash",
+        "stream": true
+      },
+      {
+        "number": 4,
+        "prompt": "second",
+        "purpose": "conversation",
+        "model": "deepseek-flash",
+        "stream": true
+      }
+    ],
+    "updates": [
+      "config_option_update",
+      "available_commands_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "available_commands_update",
+      "session_info_update",
+      "session_info_update",
+      "agent_message_chunk",
+      "session_info_update",
+      "session_info_update",
+      "available_commands_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "agent_message_chunk",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update",
+      "session_info_update"
+    ],
+    "errors": [],
+    "timedOut": false,
+    "exitCode": null,
+    "signal": "SIGTERM"
+  },
+  "codebuddyInvalidSetup": {
+    "source": "npm entry point used as the standalone executable in the unchanged bubblewrap reproducer",
+    "runs": 7,
+    "initialized": false,
+    "nativeExitCode": 1,
+    "interpretation": "Excluded from transport outcomes: the reproducer binds one standalone executable, not its npm wrapper and dependencies. Repeated with the verified standalone archive."
+  },
+  "qoder": {
+    "catalogComparison": [
+      {
+        "version": "1.1.81",
+        "syntheticReplay": true,
+        "requested": "efficient",
+        "rows": [
+          {
+            "fetchStrategy": "cache",
+            "initModel": "Efficient",
+            "selected": {
+              "keys": [
+                "availableContextWindows",
+                "context_config",
+                "defaultContextWindow",
+                "description",
+                "displayName",
+                "format",
+                "isEnabled",
+                "isVl",
+                "maxInputTokens",
+                "maxOutputTokens",
+                "modelId",
+                "priceFactor",
+                "scene",
+                "serverModel",
+                "serverScene",
+                "source",
+                "strategies",
+                "value"
+              ],
+              "value": "efficient",
+              "displayName": "Efficient",
+              "nativeName": "Efficient"
+            }
+          },
+          {
+            "fetchStrategy": "live",
+            "initModel": "Efficient",
+            "selected": {
+              "keys": [
+                "availableContextWindows",
+                "context_config",
+                "defaultContextWindow",
+                "description",
+                "displayName",
+                "format",
+                "isEnabled",
+                "isVl",
+                "maxInputTokens",
+                "maxOutputTokens",
+                "modelId",
+                "priceFactor",
+                "scene",
+                "serverModel",
+                "serverScene",
+                "source",
+                "strategies",
+                "value"
+              ],
+              "value": "efficient",
+              "displayName": "Efficient",
+              "nativeName": "Efficient"
+            }
+          }
+        ],
+        "opened": {
+          "kind": "opened",
+          "model": "Efficient"
+        }
+      },
+      {
+        "version": "1.1.82",
+        "syntheticReplay": true,
+        "requested": "efficient",
+        "rows": [
+          {
+            "fetchStrategy": "cache",
+            "initModel": "Efficient",
+            "selected": {
+              "keys": [
+                "availableContextWindows",
+                "defaultContextWindow",
+                "description",
+                "displayName",
+                "format",
+                "isEnabled",
+                "isVl",
+                "maxInputTokens",
+                "modelId",
+                "priceFactor",
+                "serverScene",
+                "source",
+                "strategies",
+                "value"
+              ],
+              "value": "efficient",
+              "displayName": "Efficient",
+              "nativeName": null
+            }
+          },
+          {
+            "fetchStrategy": "live",
+            "initModel": "Efficient",
+            "selected": {
+              "keys": [
+                "availableContextWindows",
+                "defaultContextWindow",
+                "description",
+                "displayName",
+                "format",
+                "isEnabled",
+                "isVl",
+                "maxInputTokens",
+                "modelId",
+                "priceFactor",
+                "serverScene",
+                "source",
+                "strategies",
+                "value"
+              ],
+              "value": "efficient",
+              "displayName": "Efficient",
+              "nativeName": null
+            }
+          }
+        ],
+        "opened": {
+          "kind": "refused",
+          "reason": "Qoder model catalog did not provide a resolved name for \"efficient\"; reported \"Efficient\""
+        }
+      }
+    ],
+    "permission": {
+      "oldVersion": "1.1.81",
+      "oldTest": "passed",
+      "oldPermissionRequests": 1,
+      "oldPermissionReplies": 1,
+      "newVersion": "1.1.82",
+      "permissionRequests": 0,
+      "permissionReplies": 0,
+      "newResult": {
+        "type": "result",
+        "subtype": "error_during_execution",
+        "is_error": true,
+        "num_turns": 1,
+        "total_cost_usd": 0,
+        "total_credits": 0,
+        "usage": {
+          "input_tokens": 0,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "output_tokens": 0,
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 0,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "",
+          "iterations": [],
+          "speed": "standard"
+        },
+        "permission_denials": [],
+        "errors": [
+          "The model service is temporarily unavailable. Please try again later."
+        ],
+        "error_code": 10500,
+        "error_message": "Internal Server Error"
+      }
+    },
+    "bundleComparison": [
+      {
+        "version": "1.1.81",
+        "sha256": "dcabbcaece1c0683ee4929ac7c0cf0ea00bbea4d319f5abeaae8216088b9888f",
+        "getFakeResponseStoreOccurrences": 3,
+        "interpretation": "Includes the method declaration; 1.1.81 has two additional consumer references, 1.1.82 has none under this method name."
+      },
+      {
+        "version": "1.1.82",
+        "sha256": "723550e7f3d746b2074140e995083f6646b721f4f870b00a31e82d0af0e26eaf",
+        "getFakeResponseStoreOccurrences": 1,
+        "interpretation": "Includes the method declaration; 1.1.81 has two additional consumer references, 1.1.82 has none under this method name."
+      }
+    ],
+    "limits": [
+      "Synthetic replay evidence does not verify account-backed catalog or provider behavior.",
+      "The native 10500 error alone does not identify a service outage or prove why replay was not consumed.",
+      "Product confirmation and assertions are unchanged; remediation is separate."
+    ]
+  },
+  "qwen": {
+    "version": "0.26.6",
+    "lock": [
+      {
+        "phase": "warm-home initialize with held lock",
+        "elapsedMs": 1738,
+        "requests": 0
+      },
+      {
+        "phase": "first prompt blocked after initialize",
+        "lockHeld": true,
+        "requests": 0
+      },
+      {
+        "phase": "first prompt after releasing lock",
+        "outcome": "completed"
+      },
+      {
+        "phase": "ordinary later prompt with held lock",
+        "outcome": "completed"
+      }
+    ],
+    "credentialKeys": {
+      "version": "0.26.6",
+      "providerPresetSource": "chunks/chunk-ET2Z7ZGF.js",
+      "presetEnvKeys": [
+        "BAILIAN_CODING_PLAN_API_KEY",
+        "BAILIAN_TOKEN_PLAN_API_KEY",
+        "DASHSCOPE_API_KEY",
+        "DEEPSEEK_API_KEY",
+        "IDEALAB_API_KEY",
+        "MINIMAX_API_KEY",
+        "MODELSCOPE_API_KEY",
+        "MOONSHOT_API_KEY",
+        "OPENROUTER_API_KEY",
+        "QWENCLOUD_API_KEY",
+        "QWENCLOUD_TOKEN_PLAN_API_KEY",
+        "REQUESTY_API_KEY",
+        "XAI_API_KEY",
+        "ZAI_API_KEY"
+      ],
+      "nativeAuthKeys": [
+        "OPENAI_API_KEY",
+        "ANTHROPIC_API_KEY",
+        "GEMINI_API_KEY",
+        "GOOGLE_API_KEY"
+      ],
+      "oarKeys": [
+        "ANTHROPIC_API_KEY",
+        "BAILIAN_CODING_PLAN_API_KEY",
+        "BAILIAN_TOKEN_PLAN_API_KEY",
+        "DASHSCOPE_API_KEY",
+        "DEEPSEEK_API_KEY",
+        "GEMINI_API_KEY",
+        "GOOGLE_API_KEY",
+        "IDEALAB_API_KEY",
+        "MINIMAX_API_KEY",
+        "MODELSCOPE_API_KEY",
+        "MOONSHOT_API_KEY",
+        "OPENAI_API_KEY",
+        "OPENROUTER_API_KEY",
+        "QWENCLOUD_API_KEY",
+        "QWENCLOUD_TOKEN_PLAN_API_KEY",
+        "REQUESTY_API_KEY",
+        "XAI_API_KEY",
+        "ZAI_API_KEY"
+      ],
+      "missing": []
+    },
+    "nativeScenarios": [
+      {
+        "scenario": "plain",
+        "results": [
+          {
+            "resume": false,
+            "phase": "first",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": false,
+            "phase": "second",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": false,
+            "phase": "interrupted",
+            "subtype": "error_during_execution",
+            "isError": true
+          },
+          {
+            "resume": false,
+            "phase": "afterAbort",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": true,
+            "phase": "first",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": true,
+            "phase": "second",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": true,
+            "phase": "interrupted",
+            "subtype": "error_during_execution",
+            "isError": true
+          },
+          {
+            "resume": true,
+            "phase": "afterAbort",
+            "subtype": "success",
+            "isError": false
+          }
+        ],
+        "controls": [
+          {
+            "resume": false,
+            "phase": "before_first",
+            "control": "get_usage_info",
+            "subtype": "success"
+          },
+          {
+            "resume": false,
+            "phase": "before_first",
+            "control": "get_context_usage",
+            "subtype": "success",
+            "modelName": "gpt-5.1",
+            "totalTokens": 0,
+            "contextWindowSize": 272000,
+            "isEstimated": true
+          },
+          {
+            "resume": false,
+            "phase": "after_turns",
+            "control": "get_available_models",
+            "subtype": "success",
+            "models": []
+          },
+          {
+            "resume": false,
+            "phase": "after_turns",
+            "control": "get_context_usage",
+            "subtype": "success",
+            "modelName": "gpt-5.1",
+            "totalTokens": 11676,
+            "contextWindowSize": 272000,
+            "isEstimated": false
+          },
+          {
+            "resume": false,
+            "phase": "after_turns",
+            "control": "get_usage_info",
+            "subtype": "success"
+          },
+          {
+            "resume": true,
+            "phase": "before_first",
+            "control": "get_usage_info",
+            "subtype": "success"
+          },
+          {
+            "resume": true,
+            "phase": "before_first",
+            "control": "get_context_usage",
+            "subtype": "success",
+            "modelName": "gpt-5.1",
+            "totalTokens": 0,
+            "contextWindowSize": 272000,
+            "isEstimated": true
+          },
+          {
+            "resume": true,
+            "phase": "after_turns",
+            "control": "get_available_models",
+            "subtype": "success",
+            "models": []
+          },
+          {
+            "resume": true,
+            "phase": "after_turns",
+            "control": "get_context_usage",
+            "subtype": "success",
+            "modelName": "gpt-5.1",
+            "totalTokens": 11699,
+            "contextWindowSize": 272000,
+            "isEstimated": false
+          },
+          {
+            "resume": true,
+            "phase": "after_turns",
+            "control": "get_usage_info",
+            "subtype": "success"
+          }
+        ],
+        "permissionRequests": {
+          "fresh": 0,
+          "resume": 0
+        }
+      },
+      {
+        "scenario": "reply-blocks",
+        "results": [
+          {
+            "resume": false,
+            "phase": "first",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": false,
+            "phase": "second",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": false,
+            "phase": "interrupted",
+            "subtype": "error_during_execution",
+            "isError": true
+          },
+          {
+            "resume": false,
+            "phase": "afterAbort",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": true,
+            "phase": "first",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": true,
+            "phase": "second",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": true,
+            "phase": "interrupted",
+            "subtype": "error_during_execution",
+            "isError": true
+          },
+          {
+            "resume": true,
+            "phase": "afterAbort",
+            "subtype": "success",
+            "isError": false
+          }
+        ],
+        "controls": [
+          {
+            "resume": false,
+            "phase": "before_first",
+            "control": "get_usage_info",
+            "subtype": "success"
+          },
+          {
+            "resume": false,
+            "phase": "before_first",
+            "control": "get_context_usage",
+            "subtype": "success",
+            "modelName": "gpt-5.1",
+            "totalTokens": 0,
+            "contextWindowSize": 272000,
+            "isEstimated": true
+          },
+          {
+            "resume": false,
+            "phase": "after_turns",
+            "control": "get_available_models",
+            "subtype": "success",
+            "models": []
+          },
+          {
+            "resume": false,
+            "phase": "after_turns",
+            "control": "get_context_usage",
+            "subtype": "success",
+            "modelName": "gpt-5.1",
+            "totalTokens": 11683,
+            "contextWindowSize": 272000,
+            "isEstimated": false
+          },
+          {
+            "resume": false,
+            "phase": "after_turns",
+            "control": "get_usage_info",
+            "subtype": "success"
+          },
+          {
+            "resume": true,
+            "phase": "before_first",
+            "control": "get_usage_info",
+            "subtype": "success"
+          },
+          {
+            "resume": true,
+            "phase": "before_first",
+            "control": "get_context_usage",
+            "subtype": "success",
+            "modelName": "gpt-5.1",
+            "totalTokens": 0,
+            "contextWindowSize": 272000,
+            "isEstimated": true
+          },
+          {
+            "resume": true,
+            "phase": "after_turns",
+            "control": "get_available_models",
+            "subtype": "success",
+            "models": []
+          },
+          {
+            "resume": true,
+            "phase": "after_turns",
+            "control": "get_context_usage",
+            "subtype": "success",
+            "modelName": "gpt-5.1",
+            "totalTokens": 11722,
+            "contextWindowSize": 272000,
+            "isEstimated": false
+          },
+          {
+            "resume": true,
+            "phase": "after_turns",
+            "control": "get_usage_info",
+            "subtype": "success"
+          }
+        ],
+        "permissionRequests": {
+          "fresh": 0,
+          "resume": 0
+        },
+        "firstReplyStructure": {
+          "messageStarts": 1,
+          "blockStartIndices": [
+            0,
+            0
+          ],
+          "snapshots": [
+            {
+              "blockTypes": [
+                "thinking"
+              ],
+              "idMatchesInitial": true
+            },
+            {
+              "blockTypes": [
+                "text"
+              ],
+              "idMatchesInitial": false
+            }
+          ]
+        }
+      },
+      {
+        "scenario": "tools",
+        "results": [
+          {
+            "resume": false,
+            "phase": "mcp",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": false,
+            "phase": "first",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": false,
+            "phase": "second",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": false,
+            "phase": "interrupted",
+            "subtype": "error_during_execution",
+            "isError": true
+          },
+          {
+            "resume": false,
+            "phase": "afterAbort",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": true,
+            "phase": "mcp",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": true,
+            "phase": "first",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": true,
+            "phase": "second",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": true,
+            "phase": "interrupted",
+            "subtype": "error_during_execution",
+            "isError": true
+          },
+          {
+            "resume": true,
+            "phase": "afterAbort",
+            "subtype": "success",
+            "isError": false
+          }
+        ],
+        "controls": [
+          {
+            "resume": false,
+            "phase": "before_first",
+            "control": "get_usage_info",
+            "subtype": "success"
+          },
+          {
+            "resume": false,
+            "phase": "before_first",
+            "control": "get_context_usage",
+            "subtype": "success",
+            "modelName": "gpt-5.1",
+            "totalTokens": 0,
+            "contextWindowSize": 272000,
+            "isEstimated": true
+          },
+          {
+            "resume": false,
+            "phase": "after_turns",
+            "control": "get_available_models",
+            "subtype": "success",
+            "models": []
+          },
+          {
+            "resume": false,
+            "phase": "after_turns",
+            "control": "get_context_usage",
+            "subtype": "success",
+            "modelName": "gpt-5.1",
+            "totalTokens": 11819,
+            "contextWindowSize": 272000,
+            "isEstimated": false
+          },
+          {
+            "resume": false,
+            "phase": "after_turns",
+            "control": "get_usage_info",
+            "subtype": "success"
+          },
+          {
+            "resume": true,
+            "phase": "before_first",
+            "control": "get_usage_info",
+            "subtype": "success"
+          },
+          {
+            "resume": true,
+            "phase": "before_first",
+            "control": "get_context_usage",
+            "subtype": "success",
+            "modelName": "gpt-5.1",
+            "totalTokens": 0,
+            "contextWindowSize": 272000,
+            "isEstimated": true
+          },
+          {
+            "resume": true,
+            "phase": "after_turns",
+            "control": "get_available_models",
+            "subtype": "success",
+            "models": []
+          },
+          {
+            "resume": true,
+            "phase": "after_turns",
+            "control": "get_context_usage",
+            "subtype": "success",
+            "modelName": "gpt-5.1",
+            "totalTokens": 11733,
+            "contextWindowSize": 272000,
+            "isEstimated": false
+          },
+          {
+            "resume": true,
+            "phase": "after_turns",
+            "control": "get_usage_info",
+            "subtype": "success"
+          }
+        ],
+        "permissionRequests": {
+          "fresh": 0,
+          "resume": 0
+        },
+        "observedEchoes": [
+          "echo:fresh-probe via=stdio token=none",
+          "echo:resumed-probe via=stdio token=none"
+        ]
+      },
+      {
+        "scenario": "permission",
+        "results": [
+          {
+            "resume": false,
+            "phase": "mcp",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": false,
+            "phase": "first",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": false,
+            "phase": "second",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": false,
+            "phase": "interrupted",
+            "subtype": "error_during_execution",
+            "isError": true
+          },
+          {
+            "resume": false,
+            "phase": "afterAbort",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": true,
+            "phase": "mcp",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": true,
+            "phase": "first",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": true,
+            "phase": "second",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": true,
+            "phase": "interrupted",
+            "subtype": "error_during_execution",
+            "isError": true
+          },
+          {
+            "resume": true,
+            "phase": "afterAbort",
+            "subtype": "success",
+            "isError": false
+          }
+        ],
+        "controls": [
+          {
+            "resume": false,
+            "phase": "before_first",
+            "control": "get_usage_info",
+            "subtype": "success"
+          },
+          {
+            "resume": false,
+            "phase": "before_first",
+            "control": "get_context_usage",
+            "subtype": "success",
+            "modelName": "gpt-5.1",
+            "totalTokens": 0,
+            "contextWindowSize": 272000,
+            "isEstimated": true
+          },
+          {
+            "resume": false,
+            "phase": "after_turns",
+            "control": "get_available_models",
+            "subtype": "success",
+            "models": []
+          },
+          {
+            "resume": false,
+            "phase": "after_turns",
+            "control": "get_context_usage",
+            "subtype": "success",
+            "modelName": "gpt-5.1",
+            "totalTokens": 11819,
+            "contextWindowSize": 272000,
+            "isEstimated": false
+          },
+          {
+            "resume": false,
+            "phase": "after_turns",
+            "control": "get_usage_info",
+            "subtype": "success"
+          },
+          {
+            "resume": true,
+            "phase": "before_first",
+            "control": "get_usage_info",
+            "subtype": "success"
+          },
+          {
+            "resume": true,
+            "phase": "before_first",
+            "control": "get_context_usage",
+            "subtype": "success",
+            "modelName": "gpt-5.1",
+            "totalTokens": 0,
+            "contextWindowSize": 272000,
+            "isEstimated": true
+          },
+          {
+            "resume": true,
+            "phase": "after_turns",
+            "control": "get_available_models",
+            "subtype": "success",
+            "models": []
+          },
+          {
+            "resume": true,
+            "phase": "after_turns",
+            "control": "get_context_usage",
+            "subtype": "success",
+            "modelName": "gpt-5.1",
+            "totalTokens": 11733,
+            "contextWindowSize": 272000,
+            "isEstimated": false
+          },
+          {
+            "resume": true,
+            "phase": "after_turns",
+            "control": "get_usage_info",
+            "subtype": "success"
+          }
+        ],
+        "permissionRequests": {
+          "fresh": 1,
+          "resume": 1
+        },
+        "observedEchoes": [
+          "echo:fresh-probe via=stdio token=none",
+          "echo:resumed-probe via=stdio token=none"
+        ]
+      },
+      {
+        "scenario": "catalog",
+        "results": [
+          {
+            "resume": false,
+            "phase": "first",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": false,
+            "phase": "second",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": false,
+            "phase": "interrupted",
+            "subtype": "error_during_execution",
+            "isError": true
+          },
+          {
+            "resume": false,
+            "phase": "afterAbort",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": true,
+            "phase": "first",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": true,
+            "phase": "second",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": true,
+            "phase": "interrupted",
+            "subtype": "error_during_execution",
+            "isError": true
+          },
+          {
+            "resume": true,
+            "phase": "afterAbort",
+            "subtype": "success",
+            "isError": false
+          }
+        ],
+        "controls": [
+          {
+            "resume": false,
+            "phase": "before_first",
+            "control": "get_usage_info",
+            "subtype": "success"
+          },
+          {
+            "resume": false,
+            "phase": "before_first",
+            "control": "get_context_usage",
+            "subtype": "success",
+            "modelName": "gpt-5.1",
+            "totalTokens": 0,
+            "contextWindowSize": 272000,
+            "isEstimated": true
+          },
+          {
+            "resume": false,
+            "phase": "after_turns",
+            "control": "get_available_models",
+            "subtype": "success",
+            "models": [
+              {
+                "id": "gpt-5.1",
+                "label": "Local reasoning model",
+                "capabilities": {},
+                "contextWindowSize": 272000
+              }
+            ]
+          },
+          {
+            "resume": false,
+            "phase": "after_turns",
+            "control": "get_context_usage",
+            "subtype": "success",
+            "modelName": "gpt-5.1",
+            "totalTokens": 11676,
+            "contextWindowSize": 272000,
+            "isEstimated": false
+          },
+          {
+            "resume": false,
+            "phase": "after_turns",
+            "control": "get_usage_info",
+            "subtype": "success"
+          },
+          {
+            "resume": true,
+            "phase": "before_first",
+            "control": "get_usage_info",
+            "subtype": "success"
+          },
+          {
+            "resume": true,
+            "phase": "before_first",
+            "control": "get_context_usage",
+            "subtype": "success",
+            "modelName": "gpt-5.1",
+            "totalTokens": 0,
+            "contextWindowSize": 272000,
+            "isEstimated": true
+          },
+          {
+            "resume": true,
+            "phase": "after_turns",
+            "control": "get_available_models",
+            "subtype": "success",
+            "models": [
+              {
+                "id": "gpt-5.1",
+                "label": "Local reasoning model",
+                "capabilities": {},
+                "contextWindowSize": 272000
+              }
+            ]
+          },
+          {
+            "resume": true,
+            "phase": "after_turns",
+            "control": "get_context_usage",
+            "subtype": "success",
+            "modelName": "gpt-5.1",
+            "totalTokens": 11699,
+            "contextWindowSize": 272000,
+            "isEstimated": false
+          },
+          {
+            "resume": true,
+            "phase": "after_turns",
+            "control": "get_usage_info",
+            "subtype": "success"
+          }
+        ],
+        "permissionRequests": {
+          "fresh": 0,
+          "resume": 0
+        }
+      }
+    ]
+  },
+  "windows": {
+    "from": "2026-11-02T16:00:15Z",
+    "through": "2026-11-03T14:55:00Z",
+    "acpRuns": [
+      {
+        "category": "windows-acp",
+        "run": 41566468215,
+        "head": "b4328cc659fbb231b6941b107ce25d08b3bda261",
+        "event": "push",
+        "runConclusion": "failure",
+        "attempt": 1,
+        "createdAt": "2026-11-03T02:29:50Z",
+        "jobs": [
+          {
+            "id": 125689132240,
+            "name": "acp-windows (windows-latest, kimi-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-03T02:30:01Z",
+            "completed_at": "2026-11-03T02:35:06Z",
+            "steps": []
+          },
+          {
+            "id": 125689132532,
+            "name": "acp-windows (windows-latest, grok-aimock)",
+            "status": "completed",
+            "conclusion": "failure",
+            "started_at": "2026-11-03T02:29:53Z",
+            "completed_at": "2026-11-03T02:35:10Z",
+            "steps": [
+              {
+                "name": "Run pnpm vitest run sea-trial/vendor --maxWorkers 2",
+                "conclusion": "failure"
+              }
+            ]
+          },
+          {
+            "id": 125689132740,
+            "name": "acp-windows (windows-latest, opencode-aimock)",
+            "status": "completed",
+            "conclusion": "failure",
+            "started_at": "2026-11-03T02:29:54Z",
+            "completed_at": "2026-11-03T02:42:23Z",
+            "steps": [
+              {
+                "name": "Run pnpm vitest run sea-trial/vendor --maxWorkers 2",
+                "conclusion": "failure"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "category": "windows-acp",
+        "run": 41545214152,
+        "head": "47c2c3f078b7706ec87b50ffc9c31040c116d7a7",
+        "event": "push",
+        "runConclusion": "success",
+        "attempt": 1,
+        "createdAt": "2026-11-02T23:24:42Z",
+        "jobs": [
+          {
+            "id": 125619028360,
+            "name": "acp-windows (windows-latest, grok-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-02T23:24:45Z",
+            "completed_at": "2026-11-02T23:29:10Z",
+            "steps": []
+          },
+          {
+            "id": 125619028576,
+            "name": "acp-windows (windows-latest, opencode-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-02T23:24:46Z",
+            "completed_at": "2026-11-02T23:35:04Z",
+            "steps": []
+          },
+          {
+            "id": 125619028735,
+            "name": "acp-windows (windows-latest, kimi-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-02T23:24:47Z",
+            "completed_at": "2026-11-02T23:29:43Z",
+            "steps": []
+          }
+        ]
+      },
+      {
+        "category": "windows-acp",
+        "run": 41542142266,
+        "head": "4bf1e23b60aa88f41513d01e80c9f8b084ff0637",
+        "event": "push",
+        "runConclusion": "success",
+        "attempt": 1,
+        "createdAt": "2026-11-02T23:01:55Z",
+        "jobs": [
+          {
+            "id": 125608700663,
+            "name": "acp-windows (windows-latest, opencode-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-02T23:01:59Z",
+            "completed_at": "2026-11-02T23:07:49Z",
+            "steps": []
+          },
+          {
+            "id": 125608700988,
+            "name": "acp-windows (windows-latest, kimi-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-02T23:01:59Z",
+            "completed_at": "2026-11-02T23:06:57Z",
+            "steps": []
+          },
+          {
+            "id": 125608701068,
+            "name": "acp-windows (windows-latest, grok-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-02T23:02:06Z",
+            "completed_at": "2026-11-02T23:07:48Z",
+            "steps": []
+          }
+        ]
+      },
+      {
+        "category": "windows-acp",
+        "run": 41530482143,
+        "head": "da83fe0a0c699adcff8a140e0a9a8e66eaccf600",
+        "event": "push",
+        "runConclusion": "failure",
+        "attempt": 1,
+        "createdAt": "2026-11-02T21:40:26Z",
+        "jobs": [
+          {
+            "id": 125569068852,
+            "name": "acp-windows (windows-latest, kimi-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-02T21:40:29Z",
+            "completed_at": "2026-11-02T21:47:26Z",
+            "steps": []
+          },
+          {
+            "id": 125569069243,
+            "name": "acp-windows (windows-latest, grok-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-02T21:40:29Z",
+            "completed_at": "2026-11-02T21:45:39Z",
+            "steps": []
+          },
+          {
+            "id": 125569069270,
+            "name": "acp-windows (windows-latest, opencode-aimock)",
+            "status": "completed",
+            "conclusion": "failure",
+            "started_at": "2026-11-02T21:40:29Z",
+            "completed_at": "2026-11-02T21:54:25Z",
+            "steps": [
+              {
+                "name": "Run pnpm vitest run sea-trial/vendor --maxWorkers 2",
+                "conclusion": "failure"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "category": "windows-acp",
+        "run": 41522765296,
+        "head": "9f31e49c56189682e68684af6fb69bf121dd6f6c",
+        "event": "push",
+        "runConclusion": "success",
+        "attempt": 1,
+        "createdAt": "2026-11-02T20:49:48Z",
+        "jobs": [
+          {
+            "id": 125542698734,
+            "name": "acp-windows (windows-latest, kimi-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-02T20:49:53Z",
+            "completed_at": "2026-11-02T20:55:30Z",
+            "steps": []
+          },
+          {
+            "id": 125542699317,
+            "name": "acp-windows (windows-latest, opencode-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-02T20:49:57Z",
+            "completed_at": "2026-11-02T20:58:26Z",
+            "steps": []
+          },
+          {
+            "id": 125542699661,
+            "name": "acp-windows (windows-latest, grok-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-02T20:50:03Z",
+            "completed_at": "2026-11-02T20:55:08Z",
+            "steps": []
+          }
+        ]
+      },
+      {
+        "category": "windows-acp",
+        "run": 41513387698,
+        "head": "198be9db8075c3703a7b7691e1d2667360fa37a3",
+        "event": "push",
+        "runConclusion": "success",
+        "attempt": 1,
+        "createdAt": "2026-11-02T19:48:42Z",
+        "jobs": [
+          {
+            "id": 125510640478,
+            "name": "acp-windows (windows-latest, kimi-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-02T19:48:45Z",
+            "completed_at": "2026-11-02T19:54:26Z",
+            "steps": []
+          },
+          {
+            "id": 125510640968,
+            "name": "acp-windows (windows-latest, grok-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-02T19:48:45Z",
+            "completed_at": "2026-11-02T19:53:42Z",
+            "steps": []
+          },
+          {
+            "id": 125510641156,
+            "name": "acp-windows (windows-latest, opencode-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-02T19:48:46Z",
+            "completed_at": "2026-11-02T19:54:39Z",
+            "steps": []
+          }
+        ]
+      },
+      {
+        "category": "windows-acp",
+        "run": 41484362459,
+        "head": "181d908f2b988c89b867954fb02c74e36285c39e",
+        "event": "push",
+        "runConclusion": "success",
+        "attempt": 1,
+        "createdAt": "2026-11-02T16:44:06Z",
+        "jobs": [
+          {
+            "id": 125410671742,
+            "name": "acp-windows (windows-latest, opencode-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-02T16:44:21Z",
+            "completed_at": "2026-11-02T16:55:07Z",
+            "steps": []
+          },
+          {
+            "id": 125410671791,
+            "name": "acp-windows (windows-latest, kimi-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-02T16:44:18Z",
+            "completed_at": "2026-11-02T16:48:44Z",
+            "steps": []
+          },
+          {
+            "id": 125410672052,
+            "name": "acp-windows (windows-latest, grok-aimock)",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-11-02T16:44:12Z",
+            "completed_at": "2026-11-02T16:49:42Z",
+            "steps": []
+          }
+        ]
+      }
+    ],
+    "ciRunsObserved": 21,
+    "piRpcVendorJobs": [
+      {
+        "run": 41585291099,
+        "id": 125749233037,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-11-03T05:40:42Z",
+        "completed_at": "2026-11-03T05:45:06Z",
+        "steps": []
+      },
+      {
+        "run": 41571015774,
+        "id": 125703654068,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-11-03T03:14:39Z",
+        "completed_at": "2026-11-03T03:19:23Z",
+        "steps": []
+      },
+      {
+        "run": 41568235839,
+        "id": 125694803936,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-11-03T02:47:14Z",
+        "completed_at": "2026-11-03T02:52:04Z",
+        "steps": []
+      },
+      {
+        "run": 41568213431,
+        "id": 125694733437,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-11-03T02:47:01Z",
+        "completed_at": "2026-11-03T02:51:52Z",
+        "steps": []
+      },
+      {
+        "run": 41566468211,
+        "id": 125689132980,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-11-03T02:29:53Z",
+        "completed_at": "2026-11-03T02:34:30Z",
+        "steps": []
+      },
+      {
+        "run": 41563633233,
+        "id": 125679805755,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-11-03T02:02:56Z",
+        "completed_at": "2026-11-03T02:07:01Z",
+        "steps": []
+      },
+      {
+        "run": 41562155432,
+        "id": 125675032604,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-11-03T01:48:54Z",
+        "completed_at": "2026-11-03T01:52:41Z",
+        "steps": []
+      },
+      {
+        "run": 41557394150,
+        "id": 125659500095,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-11-03T01:05:31Z",
+        "completed_at": "2026-11-03T01:09:48Z",
+        "steps": []
+      },
+      {
+        "run": 41549486131,
+        "id": 125633223383,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-11-02T23:59:07Z",
+        "completed_at": "2026-11-03T00:03:55Z",
+        "steps": []
+      },
+      {
+        "run": 41549486131,
+        "id": 125638202235,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-11-02T23:59:07Z",
+        "completed_at": "2026-11-03T00:03:55Z",
+        "steps": []
+      },
+      {
+        "run": 41545214153,
+        "id": 125619028515,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-11-02T23:24:45Z",
+        "completed_at": "2026-11-02T23:29:24Z",
+        "steps": []
+      },
+      {
+        "run": 41545214153,
+        "id": 125624819936,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-11-02T23:24:45Z",
+        "completed_at": "2026-11-02T23:29:24Z",
+        "steps": []
+      },
+      {
+        "run": 41543090611,
+        "id": 125611846034,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-11-02T23:08:53Z",
+        "completed_at": "2026-11-02T23:12:13Z",
+        "steps": []
+      },
+      {
+        "run": 41542142092,
+        "id": 125608700932,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-11-02T23:01:59Z",
+        "completed_at": "2026-11-02T23:06:44Z",
+        "steps": []
+      },
+      {
+        "run": 41538552611,
+        "id": 125596509007,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-11-02T22:35:29Z",
+        "completed_at": "2026-11-02T22:40:17Z",
+        "steps": []
+      },
+      {
+        "run": 41531662675,
+        "id": 125573129380,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-11-02T21:48:19Z",
+        "completed_at": "2026-11-02T21:53:22Z",
+        "steps": []
+      },
+      {
+        "run": 41530482229,
+        "id": 125569070270,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-11-02T21:40:30Z",
+        "completed_at": "2026-11-02T21:45:02Z",
+        "steps": []
+      },
+      {
+        "run": 41523288466,
+        "id": 125544458973,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-11-02T20:53:19Z",
+        "completed_at": "2026-11-02T20:58:13Z",
+        "steps": []
+      },
+      {
+        "run": 41522764770,
+        "id": 125542696787,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-11-02T20:49:56Z",
+        "completed_at": "2026-11-02T20:54:06Z",
+        "steps": []
+      },
+      {
+        "run": 41519404304,
+        "id": 125531238141,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-11-02T20:27:53Z",
+        "completed_at": "2026-11-02T20:33:13Z",
+        "steps": []
+      },
+      {
+        "run": 41513388038,
+        "id": 125510642439,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-11-02T19:48:48Z",
+        "completed_at": "2026-11-02T19:55:23Z",
+        "steps": []
+      },
+      {
+        "run": 41486372733,
+        "id": 125417677763,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-11-02T16:56:52Z",
+        "completed_at": "2026-11-02T17:01:09Z",
+        "steps": []
+      },
+      {
+        "run": 41484362594,
+        "id": 125410671491,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-11-02T16:44:12Z",
+        "completed_at": "2026-11-02T16:47:34Z",
+        "steps": []
+      }
+    ],
+    "piRpcPostSplitCancellationCount": 2,
+    "codebuddyInstallSmoke": "Only the previously reported 41545214153 attempt-1 deadline and its successful rerun; no second timeout in this interval."
+  },
+  "upstream": {
+    "opencode-54794": {
+      "html_url": "https://github.com/anomalyco/opencode/issues/54794",
+      "state": "open",
+      "comments": 2,
+      "updated_at": "2026-10-12T20:53:16Z"
+    },
+    "opencode-53879": {
+      "html_url": "https://github.com/anomalyco/opencode/issues/53879",
+      "state": "open",
+      "comments": 4,
+      "updated_at": "2026-10-29T17:18:46Z"
+    },
+    "kimi-2370": {
+      "html_url": "https://github.com/MoonshotAI/kimi-cli/issues/2370",
+      "state": "open",
+      "comments": 1,
+      "updated_at": "2026-09-12T16:09:18Z"
+    },
+    "qwen-15796": {
+      "html_url": "https://github.com/QwenLM/qwen-code/issues/15796",
+      "state": "open",
+      "comments": 2,
+      "updated_at": "2026-10-28T13:14:10Z"
+    },
+    "qwen-15875": {
+      "html_url": "https://github.com/QwenLM/qwen-code/issues/15875",
+      "state": "open",
+      "comments": 2,
+      "updated_at": "2026-10-29T15:08:19Z"
+    },
+    "codebuddy1847": {
+      "url": "https://cnb.cool/codebuddy/codebuddy-code/-/issues/1847",
+      "state": "open",
+      "comments": 0,
+      "updatedAt": "2026-10-28T06:32:16Z"
+    },
+    "dsh": {
+      "previousHead": "ce7073d51254c26cd63b22a60835b8f948deb447",
+      "head": "8bd073392eef6f54e921a093b95076248eb08cbb",
+      "oarPatchBlob": "d2c671a3e233f33534ec4df90bb4f98067d7c47f",
+      "workspaceBlob": "59b31eb46b90e35251cbf3c26b20556892c4aa52",
+      "patchAndPinUnchanged": true,
+      "watchedPathsChanged": true,
+      "subagentOarTree": "23128d0d68f595086711b68540f8b4bbab5e1321",
+      "toolSubagentOarTree": "ef49397669103a9fcddff8b5549192af2af097d6",
+      "changes": [
+        "Both experimental OAR packages: 0.2.2-alpha.2 to 0.2.2-alpha.3",
+        "tool-subagent-oar: flatten startActivation parent/prompt/cwd fields",
+        "subagent-oar test: replace removed list() assertion with getProvider()"
+      ],
+      "latestDiscussionComment": 19314203,
+      "newComment": false
+    },
+    "agy": {
+      "cliVersion": "1.4.12",
+      "publicHead": "841f45db2226ce15f5d1f52c580e35181e74ff68",
+      "acpVersion": "1.4.5",
+      "controlRequestSupported": false
+    }
+  },
+  "repositoryValidation": {
+    "check": "passed",
+    "testsPassed": 3141,
+    "testsSkipped": 484,
+    "mockBehaviorPassed": 18,
+    "mockCapabilitySkips": 1,
+    "build": "passed",
+    "cursorSdkRestored": "1.2.0",
+    "nativeQoderLatest": "failed as recorded; separate compatibility follow-up"
+  }
+}
