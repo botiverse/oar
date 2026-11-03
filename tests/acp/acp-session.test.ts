@@ -48,6 +48,22 @@ test("the handshake answers are events, so model() and effort() are folds over t
   await session.dispose();
 });
 
+test("an ACP terminal observer can start the next turn without old cleanup releasing it", async () => {
+  const session = await start();
+  const observed: { kind: string; prompt: ReturnType<typeof session.prompt> }[] = [];
+  session.rawEvents(record => {
+    if (observed.length > 0 || record.kind !== "frame" || !record.body.events.some(event => event.kind === "turn_ended")) { return; }
+    observed.push({ kind: session.status().value.kind, prompt: session.prompt("hold") });
+  });
+  try {
+    await promptAndWait(session, "first");
+    expect(observed[0]?.kind).toBe("idle");
+    expect(await observed[0]?.prompt).toMatchObject({ kind: "accepted" });
+    expect(session.status().value.kind).toBe("running");
+    expect(await session.prompt("cannot-overtake-next")).toMatchObject({ kind: "rejected", code: "busy" });
+  } finally { await session.dispose(); }
+});
+
 // oxlint-disable-next-line eslint/max-statements -- One lifecycle test must observe busy, abort, queue drain, and turn identity together.
 test("ACP session rejects a second prompt busy and drains its host-held queue through a prompt carrying the original identity", async () => {
   const session = await start();

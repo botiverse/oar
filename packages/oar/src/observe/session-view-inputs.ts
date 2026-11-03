@@ -1,6 +1,7 @@
 import type { Event } from "../contracts/session.js";
 import { awaitsEcho } from "./input-delivery.js";
 import type { ConversationInput, ConversationState } from "./conversation.js";
+import { findCarriedInput } from "./input-carries.js";
 import { removeEmptyTurn, sealTurn, type Draft } from "./session-view-fold.js";
 
 /**
@@ -85,10 +86,11 @@ function removeInput(draft: Draft, index: number): void {
 
 /** Keep the aggregate for identity matching, but show its known constituents. */
 function hiddenAggregate(input: ConversationInput, conversation: ConversationState): boolean {
-  const request = input.attempts.at(-1)?.request;
+  const latest = input.attempts.at(-1);
+  const request = latest?.request;
   const carried = input.carries?.filter((id) => id !== input.inputId) ?? [];
-  return carried.length > 0 && request !== undefined
-    && carried.every((inputId) => conversation.inputs.get(JSON.stringify([request.sessionId, request.agentPath, inputId]))?.attempts
+  return carried.length > 0 && request !== undefined && latest !== undefined
+    && carried.every((inputId) => findCarriedInput(conversation.inputs, request, inputId, latest.streamId)?.attempts
       .some((attempt) => attempt.request === request) === true);
 }
 

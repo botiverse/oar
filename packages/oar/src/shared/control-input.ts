@@ -1,5 +1,5 @@
 import { conversationOf } from "../observe/conversation.js";
-import { invalidCarriedInput } from "../observe/input-carries.js";
+import { findCarriedInput, invalidCarriedInput } from "../observe/input-carries.js";
 import type { RawEvent, RequestBody, ResponseBody } from "../contracts/session.js";
 
 /** Refuse an input with neither text nor images before contacting the runtime. Whitespace is left intact. */
@@ -15,6 +15,6 @@ export function emptyInputRefusal(body: RequestBody): ResponseBody | null {
 export function carriesRefusal(body: RequestBody, records: readonly RawEvent[], sessionId: string, agentPath: readonly string[]): ResponseBody | null {
   if (body.kind !== "prompt" || (body.carries?.length ?? 0) === 0) { return null; }
   const inputs = conversationOf(records).inputs;
-  const invalid = invalidCarriedInput(body, (id) => inputs.get(JSON.stringify([sessionId, agentPath, id])));
+  const invalid = invalidCarriedInput(body, (id) => findCarriedInput(inputs, { sessionId, agentPath }, id));
   return invalid === undefined ? null : { kind: "rejected", code: "unsupported", reason: `carries input ${invalid} is not a withdrawn or adapter-held input owned by this session and agent` };
 }

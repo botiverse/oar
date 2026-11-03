@@ -513,7 +513,12 @@ Further rules:
   records and return `{ value, seq }`; `seq` is the last record consumed,
   or `-1` before any record. `status()` is the one the control decisions
   must agree with: a prompt recorded while it says `running` is rejected
-  `busy`, and one recorded while it says `idle` never is.
+  `busy`, and one recorded while it says `idle` is not refused as `busy`
+  unless OAR holds an input in Claude, Qoder, Qwen or Cursor's queue. Those four adapters
+  preserve FIFO by returning `busy` in that window but do not yet record
+  queue ownership for the status fold. Without a held input, terminal status
+  and prompt admission change on the same record
+  ([held-queue exception](manual-compaction.md)).
 - **Folds scope to the root session.** A derived child session's records
   (own `sessionId`, a node in `graph()`) never satisfy the folds or
   `awaitTurnEnd`. On codex the child's `turn/completed` was observed
@@ -711,14 +716,17 @@ that as `interrupted` with the runtime's outcome), and `awaitIdle(session)`
 waits for the running turn, if any, to end.
 
 A prompt's optional `carries: string[]` names earlier logical input ids sent
-in that same prompt, scoped to its session and agent lineage. It is a host
+in that same prompt, scoped to its session and agent lineage. When an input
+has no `inputId`, its queue request id identifies it within that same record
+stream; this fallback never links across resumed streams. It is a host
 control fact, not a native echo. An invalid claim produces a rejected prompt
 without calling the runtime: validation precedes the request record
 ([which ids are valid](conversation.md#interrupting-and-merging-held-inputs)),
 and the rejected claim is retained for audit but does not transfer input
 ownership. Original queue and withdrawal records remain unchanged. The prompt's response settles every carried attempt, while the
-original content and origin remain available to views. Adapters copy this
-field to the prompt request only; it is never added to model text or vendor
+original content and origin remain available to views. Queue acceptance and
+dispatch render one input even when no `inputId` was supplied. Adapters copy
+this field to the prompt request only; it is never added to model text or vendor
 protocol fields. Older readers may ignore the additive field.
 
 ### Adapter-held ACP queue records

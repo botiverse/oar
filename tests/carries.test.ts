@@ -113,3 +113,25 @@ test("only an explicitly adapter-held input can be carried, including after a re
   expect(duplicateDispatched).toBe(false);
   expect(conversationOf(kernel.records()).inputs.get(JSON.stringify(["root", [], firstId]))?.attempts.at(-1)?.request).toBe(sent.request);
 });
+
+test("a queue without inputId can be carried by request identity only once", async () => {
+  const kernel = createSessionKernel("root");
+  const queued = await kernel.control({ kind: "queue", input: "held" }, () => ({ kind: "accepted", queued: "adapter" }));
+  const sent = await kernel.control({ kind: "prompt", input: "held", carries: [queued.request.id] }, () => ({ kind: "accepted" }));
+  expect(sent.response.body.kind).toBe("accepted");
+  const duplicate = await kernel.control({ kind: "prompt", input: "again", carries: [queued.request.id] }, () => ({ kind: "accepted" }));
+  expect(duplicate.response.body).toMatchObject({ kind: "rejected", code: "unsupported" });
+  const original = [...conversationOf(kernel.records()).inputs.values()].find(input => input.attempts[0]?.request === queued.request);
+  expect(original?.attempts.map(attempt => attempt.state)).toEqual(["accepted", "accepted"]);
+});
+
+test.each(["session", "agent", "stream"])("request-only carries never link another %s", async scope => {
+  const original = createSessionKernel("root");
+  const queued = await original.control({ kind: "queue", input: "held" }, () => ({ kind: "accepted", queued: "adapter" }));
+  const next = createSessionKernel(scope === "session" ? "other" : "root");
+  const prompt = next.request("toRuntime", { kind: "prompt", input: "unowned", carries: [queued.request.id] }, scope === "agent" ? { agentPath: ["child"] } : {});
+  const before = original.records().reduce((state, record) => reduceSessionView(state, record, "original"), initialSessionView());
+  const after = reduceSessionView(before, { ...prompt, seq: queued.response.seq + 1 }, scope === "stream" ? "resumed" : "original");
+  expect(after.messages.filter(message => message.kind === "input")).toHaveLength(2);
+  expect([...after.conversation.inputs.values()].find(input => input.input === "held")?.attempts).toHaveLength(1);
+});

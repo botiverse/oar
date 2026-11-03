@@ -180,7 +180,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
       if (observingCancellation !== null) { await waitForCancellation(); }
       const body = { kind: "prompt" as const, input, ...inputOptions };
       return kernel.control(body, (request) => {
-        if (busy()) { return { kind: "rejected", code: "busy", reason: "busy" }; }
+        if (busy() || heldQueue.length > 0) { return { kind: "rejected", code: "busy", reason: "busy" }; }
         return withInputImages(capabilities, inputOptions?.images, (images) => {
           turnRevision += 1;
           state.active = request;

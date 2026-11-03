@@ -236,3 +236,22 @@ test.each(["compact", "prompt"])("Claude %s result releases the gate at the same
     expect(await f.session.prompt("cannot-overtake-next")).toMatchObject({ kind: "rejected", code: "busy" });
   } finally { await f.session.dispose(); }
 });
+
+test("Claude terminal observers cannot overtake an OAR-held queue", async () => {
+  const f = await open(); const observed: { kind: string; prompt: ReturnType<typeof f.session.prompt> }[] = [];
+  try {
+    await f.session.prompt("A"); const first = await f.dispatch();
+    const queued = await f.session.queue("B");
+    f.session.rawEvents(record => {
+      if (observed.length > 0 || record.kind !== "frame" || !record.body.events.some(event => event.kind === "turn_ended")) { return; }
+      observed.push({ kind: f.session.status().value.kind, prompt: f.session.prompt("C") });
+    });
+    f.fake.emit(line(end(first)));
+    expect(await observed[0]?.prompt).toMatchObject({ kind: "rejected", code: "busy" });
+    // The documented stream-json held-queue exception remains until its own follow-up.
+    expect(observed[0]?.kind).toBe("idle");
+    const users = f.fake.written.map(text => asRecord(JSON.parse(text))).filter(message => message?.type === "user");
+    expect(users.map(message => message?.uuid)).toEqual([first, queued.request.body.kind === "queue" ? queued.request.body.inputId : undefined]);
+    expect(users).toHaveLength(2);
+  } finally { await f.session.dispose(); }
+});

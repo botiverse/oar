@@ -187,7 +187,7 @@ identity, queue order, late replies, disposal and transport-loss boundaries.
 
 ## Validation boundary
 
-The revised full check passed 3,122 tests and 18 mock behavior checks. Existing
+The revised full check passed 3,136 tests and 18 mock behavior checks. Existing
 replay snapshots required no updates. Fourteen review counterexamples were
 caught: Cursor's early unhandled rejection, Grok RPC classification,
 OpenCode missing-proof release/error frames/usage, Qoder terminal release,
@@ -198,10 +198,23 @@ before/after regressions pin startup-refusal reentry and buffered callback
 ingress time. The initial seven identity/ownership counterexamples remain
 covered by their committed regressions.
 
-All 14 existing behavior backends passed. Full native vendor runs passed
-for Claude (80 tests), Codex (62), Qoder (12), Grok (20) and OpenCode v1 (10).
-Pi SDK and RPC 1.5.0 passed all 16 manual compaction controls. The six new
-OpenCode v2 compaction controls passed; all six explicitly skip with v1.
+A subsequent review found a duplicate view entry for an ACP queue without
+`inputId` and terminal-observer prompts overtaking stream-json held inputs.
+Both failed before the fixes. Request-only carry lookup now uses the same
+stream-scoped identity as storage, with foreign session, agent and stream
+controls. Claude, Qoder and Qwen all have failing-before/passing-after FIFO
+regressions; Cursor has ordinary-turn and compact-terminal FIFO controls.
+The no-queue controls continue to admit synchronous observer prompts. An
+ACP ordinary-turn regression also fails when terminal release moves back
+after frame publication.
+
+All 14 existing behavior backends passed on the final revision. Full native
+vendor runs for the revised stream-json driver passed for Claude (80 tests),
+Qoder (12) and Qwen (18). The preceding review revision also passed Codex
+(62), Grok (20), OpenCode v1 (10), all 16 Pi SDK/RPC 1.5.0 manual compaction
+controls and the six new OpenCode v2 compaction controls. Those native
+compaction paths are unchanged by the queue/view revision; the v2 controls
+explicitly skip with v1.
 Build and clean packed-host installation passed, including optional peers
 and public type exports. Routine Cursor controls and the added SDK storage
 probe require no credentials. Native evidence remains local Linux x64;
@@ -232,19 +245,27 @@ This changes ordinary adapter-held queues too, for Kimi, Grok, OpenCode,
 Antigravity and CodeBuddy. Hosts counting requests or grouping by kind must
 distinguish that extra prompt from a new host input: `carries` identifies the
 already accepted input, so queue plus dispatch is one logical submission.
-Qoder uses stream-json and keeps its existing queue records.
-These additive fields keep status and input admission aligned, including
-native refusals, missing completion evidence and the held-queue gap.
+The request-id fallback is stream-scoped; a queue without `inputId` also
+renders as one logical input. These additive fields keep status and input
+admission aligned for native refusals, missing completion evidence and ACP's
+held-queue gap. Claude, Qoder, Qwen and Cursor retain their existing queue
+records: while OAR holds input, status can show idle but prompt returns busy
+to prevent overtaking. Explicit queue ownership and dispatch records for
+those four adapters are a separate follow-up; without held input the
+same-record release guarantee applies.
 Incremental status consumers must preserve the complete `StatusState`.
 Cursor frames retain the existing root session/child-task attribution while
 adding native run spans to callbacks and stream frames. SDK 1.2.0 summarize
 cannot forward `local.force` for a restored active run.
 
-Bug fix affecting ordinary Claude, Codex and Cursor turns as well as compact:
-a synchronous `turn_ended` observer can immediately send the next prompt.
-Internal ownership is released before publishing that same terminal frame,
-and old cleanup cannot clear the new turn. The native frame content and
-relative frame order are unchanged by this sequencing fix. All three ordinary
-paths and the compact boundaries have direct observer-reentry regressions.
+Bug fix affecting ordinary Claude, Qoder, Qwen, Codex and Cursor turns and
+the five shared-driver ACP runtimes (Kimi, Grok, OpenCode, Antigravity and
+CodeBuddy), as well as compact: with no held input, a synchronous
+`turn_ended` observer can immediately send the next prompt. Internal
+ownership is released before publishing that same terminal frame, and old
+cleanup cannot clear the new turn. Held inputs retain priority over new
+prompts. The native frame content and relative frame order are unchanged by
+this sequencing fix. Direct observer-reentry and FIFO regressions cover the
+ordinary driver paths and the compact boundaries.
 The same rule covers startup refusal: the compact reservation releases before
 external observers see its rejected response restore idle.

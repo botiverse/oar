@@ -80,3 +80,38 @@ test("private initialization failure preserves the runtime error and releases th
   finally { vi.restoreAllMocks(); }
   expect(child.killed()).toBe(true);
 });
+
+test.each([true, false])("Qwen terminal observer admission respects held queue: %s", async held => {
+  const child = fakeLineProcess((line, process) => {
+    const frame = asRecord(parseJson(line));
+    if (asRecord(frame?.request)?.subtype === "initialize") {
+      process.emit(`${JSON.stringify({ type: "control_response", response: { subtype: "success", request_id: frame?.request_id, response: { session_id: id } } })}\n`);
+    }
+  });
+  vi.mocked(launchQwen).mockResolvedValue(child);
+  child.stdin.on("finish", () => { child.end(0); });
+  const session = await qwenSession(installation, { cwd: "/fixture", resume: id });
+  const emit = (frame: unknown) => { child.emit(`${JSON.stringify(frame)}\n`); };
+  const observed: { kind: string; prompt: ReturnType<typeof session.prompt> }[] = [];
+  try {
+    const first = await session.prompt("A");
+    emit({ type: "system", subtype: "init", session_id: id, model: "native-model" });
+    const queued = held ? await session.queue("B") : undefined;
+    session.rawEvents(record => {
+      if (observed.length > 0 || record.kind !== "frame" || !record.body.events.some(event => event.kind === "turn_ended")) { return; }
+      observed.push({ kind: session.status().value.kind, prompt: session.prompt("C") });
+    });
+    emit({ type: "result", subtype: "success", is_error: false });
+    const next = await observed[0]?.prompt;
+    expect(next).toMatchObject(held ? { kind: "rejected", code: "busy" } : { kind: "accepted" });
+    const second = queued?.request.body ?? next?.request.body;
+    expect(observed[0]?.kind).toBe("idle");
+    const users = child.written.map(text => asRecord(parseJson(text))).filter(message => message?.type === "user");
+    expect(users.map(message => message?.uuid)).toEqual([
+      first.request.body.kind === "prompt" ? first.request.body.inputId : undefined,
+      second?.kind === "queue" || second?.kind === "prompt" ? second.inputId : undefined,
+    ]);
+    emit({ type: "system", subtype: "init", session_id: id, model: "native-model" });
+    emit({ type: "result", subtype: "success", is_error: false });
+  } finally { await session.dispose(); vi.restoreAllMocks(); }
+});

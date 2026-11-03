@@ -92,7 +92,9 @@ Grok's dedicated RPC response can finish it without an observed start. No
 request ownership is inferred from notification timing. Unowned ends retain
 the previous rules.
 
-The input gate and status change on the same retained native record:
+The manual operation releases its input reservation and status on the same
+retained native record. Admission of the next prompt also respects any
+adapter-held queue, including the exception below:
 
 | Runtime | Record releasing manual compaction |
 |---|---|
@@ -108,9 +110,16 @@ Grok, OpenCode and Qoder compact requests carry
 `settledBy: "native_response"`; their terminal frames carry the exact
 `responseTo` request id. Earlier `turn_ended` and `compaction_ended` events
 remain in place but do not release these operations. Other runtimes use their
-existing terminal records. A synchronous observer of the release record can
-submit another prompt when status is idle. Adapter-held inputs may instead
-keep status at `running / waiting_model` until their dispatch or withdrawal.
+existing terminal records. With no adapter-held input, a synchronous observer
+of the release record can submit another prompt when status is idle.
+ACP-held inputs instead keep status at `running / waiting_model` until their
+dispatch or withdrawal.
+
+**Held-queue exception:** Claude, Qoder, Qwen and Cursor do not yet record
+OAR's queue ownership and dispatch as ACP does. While OAR itself holds a
+queued input, status can display `idle` although a new `prompt` returns
+`busy` to preserve FIFO. This includes the synchronous terminal-observer
+window. It does not weaken the same-record guarantee when no input is held.
 
 Claude's native queued receipt for the compact command is not a pending
 ordinary prompt. `turn_ended.inputId` and `inputIds`, when present, preserve native input

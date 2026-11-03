@@ -1,4 +1,4 @@
-import { invalidCarriedInput } from "./input-carries.js";
+import { findCarriedInput, inputIdentity as identity, invalidCarriedInput } from "./input-carries.js";
 import { awaitsEcho, deliveryState, withDeliveryState, type InputDrop } from "./input-delivery.js";
 import type { Cursor, Event, InputImage, InputOrigin, RawEvent, RequestRecord, ResponseRecord, Session, Unsubscribe, UserMessage } from "../contracts/session.js";
 import { eventsOf, type KnownControl } from "./events.js";
@@ -49,9 +49,6 @@ export interface ConversationState {
 export function initialConversation(): ConversationState {
   return { drops: new Map(), inputs: new Map(), requests: new Map(), actions: new Map(), cursors: new Map(), updates: [] };
 }
-function identity(record: RawEvent, id: string): string {
-  return JSON.stringify([record.sessionId, record.agentPath, id]);
-}
 /** One ordered stream per streamId. Use a new streamId after runtime resume (seq restarts).
  * Input UUIDs/native message IDs can still connect observations across those streams.
  * Missing IDs never fall back to text matching. Unlinked user messages remain event updates.
@@ -81,7 +78,8 @@ export function reduceConversation(previous: ConversationState, record: RawEvent
   const actions = copyOnWrite(previous.actions);
   const cursors = new Map([...previous.cursors, [streamId, record.seq] as const]);
   const updates: ConversationUpdate[] = [];
-  const operationKey = (id: string): string => JSON.stringify([streamId, identity(record, id)]);
+  const operationKey = (id: string): string => identity(record, id, streamId);
+  const carriedInput = (id: string): ConversationInput | undefined => findCarriedInput(inputs, record, id, streamId);
   const publish = (input: ConversationInput): void => { inputs.set(input.id, input); updates.push({ kind: "input", input }); };
   let handled = false;
   if (record.kind === "request" && record.direction === "toRuntime" && record.body.kind !== "native" && record.body.kind !== "open") {
@@ -102,9 +100,9 @@ export function reduceConversation(previous: ConversationState, record: RawEvent
       const carries = record.body.kind === "prompt" ? record.body.carries : undefined;
       // Preserve rejected caller claims as records without changing the inputs
       // they do not own. Validate the whole set before linking any member.
-      const invalid = invalidCarriedInput(record.body, (carriedId) => inputs.get(identity(record, carriedId)));
+      const invalid = invalidCarriedInput(record.body, carriedInput);
       for (const carriedId of new Set(invalid === undefined ? carries : [])) {
-        const carried = inputs.get(identity(record, carriedId));
+        const carried = carriedInput(carriedId);
         if (carried === undefined || carried.id === id) { continue; }
         const { turn: _turn, reason: _reason, ...content } = carried;
         const carriedAttempts: readonly InputAttempt[] = [...carried.attempts, { request: record, streamId, state: "pending" }];
@@ -122,7 +120,7 @@ export function reduceConversation(previous: ConversationState, record: RawEvent
       const request = input.attempts.find((attempt) => attempt.request.id === record.requestId && attempt.streamId === streamId)?.request;
       const carries = request?.body.kind === "prompt" ? request.body.carries : undefined;
       const related = [input, ...(carries ?? []).flatMap((inputId) => {
-        const carried = inputs.get(identity(record, inputId));
+        const carried = carriedInput(inputId);
         return carried === undefined || carried.id === input.id || !carried.attempts.some((attempt) => attempt.request.id === record.requestId && attempt.streamId === streamId) ? [] : [carried];
       })];
       for (const target of related) {
@@ -188,7 +186,7 @@ export function reduceConversation(previous: ConversationState, record: RawEvent
     const aggregate = update.input;
     const latest = aggregate.attempts.at(-1);
     for (const inputId of new Set(aggregate.carries)) {
-      const carried = inputs.get(identity(record, inputId));
+      const carried = latest === undefined ? undefined : findCarriedInput(inputs, latest.request, inputId, latest.streamId);
       const attempt = carried?.attempts.at(-1);
       if (carried === undefined || carried.id === aggregate.id || latest === undefined
         || attempt?.request.id !== latest.request.id || attempt.streamId !== latest.streamId) { continue; }

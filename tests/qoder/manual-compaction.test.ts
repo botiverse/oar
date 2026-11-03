@@ -72,3 +72,24 @@ test.each([true, false])("Qoder command terminal releases the gate before observ
     expect(await f.session.prompt("cannot-overtake-next")).toMatchObject({ kind: "rejected", code: "busy" });
   } finally { await f.session.dispose(); }
 });
+
+test.each([true, false])("Qoder terminal observer admission respects held queue: %s", async held => {
+  const f = await open(); const observed: { kind: string; prompt: ReturnType<typeof f.session.prompt> }[] = [];
+  try {
+    await f.session.prompt("A"); const first = f.input();
+    f.emit({ type: "command_lifecycle", command_uuid: first, state: "started" });
+    const queued = held ? await f.session.queue("B") : undefined;
+    f.session.rawEvents(record => {
+      if (observed.length > 0 || record.kind !== "frame" || !record.body.events.some(event => event.kind === "turn_ended")) { return; }
+      observed.push({ kind: f.session.status().value.kind, prompt: f.session.prompt("C") });
+    });
+    f.emit({ type: "result", subtype: "success", is_error: false });
+    const next = await observed[0]?.prompt;
+    expect(next).toMatchObject(held ? { kind: "rejected", code: "busy" } : { kind: "accepted" });
+    const second = queued?.request.body ?? next?.request.body;
+    expect(observed[0]?.kind).toBe("idle");
+    const users = f.fake.written.map(text => asRecord(JSON.parse(text))).filter(message => message?.type === "user");
+    expect(users.map(message => message?.uuid)).toEqual([first, second?.kind === "queue" || second?.kind === "prompt" ? second.inputId : undefined]);
+    expect(users).toHaveLength(2);
+  } finally { await f.session.dispose(); }
+});
