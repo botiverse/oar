@@ -1,7 +1,11 @@
-import type { AgentStatus, QueryResult, RawEvent, RunningPhase, RuntimeEventBody, TurnOutcome } from "../contracts/session.js";
+import { reduceAdapterQueue } from "./adapter-queue.js";
+import type { AgentStatus, QueryResult, RawEvent, RunningPhase, RuntimeEventBody } from "../contracts/session.js";
 
 import { exitTurnOutcome, releaseTurnOutcome, reduceTurnStop } from "./turn-stop.js";
 
+import { initialStatus, statusValue, type StatusState } from "./status-state.js";
+
+export { initialStatus, statusValue, type StatusState } from "./status-state.js";
 export type { AgentStatus, RunningPhase } from "../contracts/session.js";
 
 /**
@@ -44,28 +48,6 @@ export type { AgentStatus, RunningPhase } from "../contracts/session.js";
  * may subscribe mid-turn, and a queued input runs as a turn with no request).
  */
 
-/**
- * Serializable checkpoint returned by `reduceStatus`, exported from
- * `@botiverse/oar/observe` and the root entry. To resume an incremental fold,
- * persist this entire value unchanged together with the last consumed cursor.
- * Saving only AgentStatus fields loses native operation correlation.
- * Use `statusValue` for display, never as the checkpoint for resuming a fold.
- */
-export type StatusState = AgentStatus & { readonly compactionState?: {
-  readonly nativeTurn?: true;
-  /** Learned from the native manual start during this exclusive idle operation. */
-  readonly compactionId?: string;
-  readonly spanId?: string;
-  readonly lastTurnOutcome?: TurnOutcome;
-} };
-/** Start a new fold; use a saved StatusState when continuing after a cursor. */
-export const initialStatus: StatusState = { kind: "idle" };
-
-/** Separate display state from the checkpoint needed by incremental folds. */
-export function statusValue(state: StatusState): AgentStatus {
-  const { compactionState: _compactionState, ...value } = state;
-  return value;
-}
 function compactionIdle(previous: StatusState): StatusState {
   const lastTurnOutcome = previous.compactionState?.lastTurnOutcome;
   return { kind: "idle", ...(lastTurnOutcome === undefined ? {} : { lastTurnOutcome }) };
@@ -101,11 +83,27 @@ function running(previous: StatusState, record: RawEvent, phase: RunningPhase): 
 
 /** Fold one record using the complete previous checkpoint; preserve every returned field. */
 export function reduceStatus(previous: StatusState, record: RawEvent, sessionId?: string): StatusState {
+  const { adapterQueue, ...core } = previous;
+  const root = (sessionId === undefined || record.sessionId === sessionId) && record.agentPath.length === 0;
+  const queue = root ? reduceAdapterQueue(adapterQueue, record) : adapterQueue;
+  const status = reduceCore(adapterQueue?.idle ?? core, record, sessionId);
+  const waiting = queue?.inputs.find(input => input.accepted === true);
+  if (status.kind === "idle" && status.released !== true && waiting !== undefined) {
+    return { kind: "running", phase: "waiting_model", sinceSeq: waiting.seq, lastEventAt: record.receivedAt,
+      adapterQueue: { ...queue, inputs: queue?.inputs ?? [], withdrawals: queue?.withdrawals ?? [], dispatches: queue?.dispatches ?? [], idle: status } };
+  }
+  return queue === undefined ? status : { ...status, adapterQueue: queue };
+}
+
+function reduceCore(previous: StatusState, record: RawEvent, sessionId?: string): StatusState {
   if (previous.kind === "idle" && previous.released === true) { return previous; }
   const foreignSession = sessionId !== undefined && record.sessionId !== sessionId;
   if (foreignSession && !belongsToSession(record, sessionId)) {
     return previous;
   }
+  if (!foreignSession && record.agentPath.length === 0 && record.kind === "frame"
+    && previous.kind === "running" && previous.compactionState?.settledBy === "native_response"
+    && record.body.responseTo === previous.compaction?.requestId) { return compactionIdle(previous); }
   if (foreignSession || record.agentPath.length > 0 || (record.kind === "frame" && record.body.events.length === 0)) {
     // A child agent, a child session, or a frame oar read nothing from: the session is
     // alive, so the clock moves, but the root agent's phase does not.
@@ -126,7 +124,7 @@ export function reduceStatus(previous: StatusState, record: RawEvent, sessionId?
   switch (record.kind) {
     case "request":
       if (record.direction === "toRuntime" && record.body.kind === "compact" && previous.kind === "idle" && previous.pendingPrompt === undefined) {
-        return { kind: "running", sinceSeq: record.seq, requestId: record.id, compaction: { requestId: record.id }, compactionState: previous.lastTurnOutcome === undefined ? {} : { lastTurnOutcome: previous.lastTurnOutcome }, phase: "compacting", lastEventAt: record.receivedAt };
+        return { kind: "running", sinceSeq: record.seq, requestId: record.id, compaction: { requestId: record.id }, compactionState: { ...(record.body.settledBy === undefined ? {} : { settledBy: record.body.settledBy }), ...(previous.lastTurnOutcome === undefined ? {} : { lastTurnOutcome: previous.lastTurnOutcome }) }, phase: "compacting", lastEventAt: record.receivedAt };
       }
       return record.direction === "toRuntime" && record.body.kind === "prompt" && previous.kind === "idle" && previous.pendingPrompt === undefined
         ? { kind: "running", sinceSeq: record.seq, requestId: record.id, ...(record.body.inputId === undefined ? {} : { inputId: record.body.inputId }), phase: "waiting_model", lastEventAt: record.receivedAt }
@@ -194,6 +192,7 @@ function reduceEvent(previous: StatusState, record: RawEvent, event: RuntimeEven
     case "retry":
       return running(previous, record, "waiting_model");
     case "compaction_ended":
+      if (previous.compactionState?.settledBy === "native_response") { return previous; }
       if (previous.kind === "running" && previous.compaction !== undefined && event.trigger !== undefined && event.trigger !== "manual") { return previous; }
       if (previous.kind === "running" && previous.compaction !== undefined && previous.compactionState?.compactionId !== undefined && event.compactionId !== previous.compactionState.compactionId) { return previous; }
       if (event.requestId !== undefined && previous.kind === "running" && previous.compaction !== undefined) {
@@ -224,6 +223,7 @@ function reduceEvent(previous: StatusState, record: RawEvent, event: RuntimeEven
     case "tool_call_progress":
       return previous.kind === "running" ? { ...previous, lastEventAt: record.receivedAt } : previous;
     case "turn_ended":
+      if (previous.compactionState?.settledBy === "native_response") { return previous; }
       if (previous.kind === "running" && previous.compaction !== undefined
         && ((event.inputId !== undefined && event.inputId !== previous.compaction.requestId)
           || (previous.compactionState?.spanId !== undefined && record.spanId !== previous.compactionState.spanId))) { return previous; }

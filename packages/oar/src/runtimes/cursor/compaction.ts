@@ -6,10 +6,15 @@ import type { CursorRun } from "./sdk.js";
 /** The SDK returns the exact summary run before its messages are consumed. */
 export function cursorCompaction(start: (onRun: (run: CursorRun) => void) => Promise<ResponseBody>): CompactionOperation {
   const observation = Promise.withResolvers<void>();
+  // Observation may fail while start still awaits an early abort's cancel.
+  // oxlint-disable-next-line promise/prefer-await-to-then -- Attach immediately, before start can await cancellation.
+  void observation.promise.catch(() => {});
+  let sessionId: string | null = null;
   let runId: string | null = null;
   let summary: Frame | null = null;
   return {
-    async start(_request, reply) {
+    async start(request, reply) {
+      sessionId = request.sessionId;
       const response = await start((run) => {
         runId = run.id;
         reply({ kind: "accepted", native: { runId } }, { spanId: runId });
@@ -23,7 +28,7 @@ export function cursorCompaction(start: (onRun: (run: CursorRun) => void) => Pro
         observation.reject(new Error("Cursor summary observation failed; native completion is not known"));
         return null;
       }
-      if (frame.body.type === "cursor/stream/summary" && frame.body.events.some((event) => event.kind === "compaction_ended")) { summary = frame; }
+      if (frame.body.type === "cursor/stream/summary" && asRecord(frame.body.native)?.agent_id === sessionId && frame.body.events.some((event) => event.kind === "compaction_ended")) { summary = frame; }
       if (frame.body.type !== "cursor/run_result") { return null; }
       const native = asRecord(frame.body.native);
       if (native?.id !== runId) { return null; }

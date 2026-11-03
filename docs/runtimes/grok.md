@@ -669,7 +669,12 @@ Native [explicit compaction dispatch](https://github.com/xai-org/grok-build/blob
 exists on the wire as `_x.ai/compact_conversation`. OAR exposes idle-only
 `compact()`: the dedicated response proves completion; `RequestError.data.kind`
 `compact_failed` / `compact_cancelled` supplies failure / cancellation.
-Transport loss remains unconfirmed. The response's frame projects
+Method-not-found, invalid-parameter and missing-session errors are
+`rejected / runtime_refused`, not compaction failures. A null answer is
+unconfirmed; both release the gate. Transport loss without a native answer
+remains unconfirmed and reserved. The correlated answer frame carries
+`responseTo`; its publication releases both the gate and compacting status.
+Only proven completion/failure/cancellation projects
 `compaction_ended.requestId` for the OAR request it explicitly answers, without
 inventing a start. The native `auto_compact_completed` notification also occurs
 after a manual request, so neither trigger nor request ownership is inferred

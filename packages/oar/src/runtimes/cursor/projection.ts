@@ -40,12 +40,13 @@ export function cursorStreamFrame(message: unknown): CursorFrame {
       case "error": events.push({ kind: "compaction_ended", outcome: "failed" }); break;
     }
   }
-  return { type: `cursor/stream/${type}`, native: message, events, agentPath: [], ...(typeof value?.run_id === "string" ? { spanId: value.run_id } : {}), ...(typeof value?.agent_id === "string" ? { sessionId: value.agent_id } : {}) };
+  return { type: `cursor/stream/${type}`, native: message, events, agentPath: [], ...(typeof value?.run_id === "string" ? { spanId: value.run_id } : {}) };
 }
 
 export interface CursorFrame {
+  /** Callback ingress time retained while waiting for the returned run identity. */
+  readonly receivedAt?: number;
   readonly spanId?: string;
-  readonly sessionId?: string;
   readonly type: string;
   readonly native: unknown;
   readonly events: readonly RuntimeEventBody[];

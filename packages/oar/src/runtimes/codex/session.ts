@@ -111,6 +111,12 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
           state.codexTurnId = startedTurn;
         }
       }
+      if (isRoot && method === "turn/completed") {
+        abortFallback.clear();
+        state.active = null;
+        state.spontaneous = false;
+        state.codexTurnId = null;
+      }
       const { state: nextProjection, commands } = foldCodexNotification(state.projection, method, params);
       state.projection = nextProjection;
       const links = newSessionLinks(kernel, commands.flatMap((command) => command.kind === "link" ? [command.edge] : []));
@@ -127,12 +133,6 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
           default:
             break;
         }
-      }
-      if (isRoot && method === "turn/completed") {
-        abortFallback.clear();
-        state.active = null;
-        state.spontaneous = false;
-        state.codexTurnId = null;
       }
       if (isRoot && method === "thread/settings/updated") {
         settingsWaiter?.(params);

@@ -1,3 +1,4 @@
+import { asRecord } from "../../shared/json.js";
 /* oxlint-disable import/max-dependencies -- Session profiles and assembly wire the native control, projection and lifecycle helpers. */
 import type {
   ControlResult,
@@ -24,19 +25,15 @@ import {
 } from "./projection.js";
 import { giveUp, newLaunch, observeRun, steerRun, stopOrphan, type ActiveRun, type Launch } from "./run.js";
 import type { CursorDeltaListener, CursorRun, CursorSdk } from "./sdk.js";
-
 /**
  * One local SDK agent, one active run. Summary runs share the same lifecycle
  * and held input queue as ordinary runs. See docs/runtimes/cursor.md.
  */
-
 const message = (error: unknown): string => (error instanceof Error ? error.message : String(error));
-
 /** How long dispose waits for a cancelled run to report its own end before releasing the agent. */
 const DISPOSE_SETTLE_MS = 5000;
 /** How long a `send` may take to return its run (a cold start took about 4 s in the probes). */
 const SEND_TIMEOUT_MS = 60_000;
-
 export function cursorSessionWith(load: () => Promise<CursorSdk>): StartSession {
   return async (installation, options, context) => {
     if (installation.via !== "bundled") {
@@ -45,7 +42,6 @@ export function cursorSessionWith(load: () => Promise<CursorSdk>): StartSession 
     refuseSessionOptions(cursorRefusedSessionOptions, options);
     const sdk = await load();
     const agent = await openCursorAgent(sdk, options);
-
     const kernel = createSessionKernel(agent.agentId);
     kernel.opened(context ?? { requested: "auto", placement: "in_process" });
     let projection: CursorProjectionState = initialCursorProjection;
@@ -62,28 +58,22 @@ export function cursorSessionWith(load: () => Promise<CursorSdk>): StartSession 
     let disposeRequest: RequestRecord | null = null;
     // Adapter-held queue, drained one input per run end; withdrawable by inputId until then.
     const held: { readonly input: string; readonly inputId: string | undefined; readonly images: readonly LoadedImage[] }[] = [];
-
     const record = (frame: CursorFrame): void => {
       // A failed SDK wait is lost observation, not the native end of a summary run.
-      const events = compaction?.busy() === true && frame.type === "cursor/run_failed" ? [] : frame.events;
+      const foreignSummary = frame.type === "cursor/stream/summary" && asRecord(frame.native)?.agent_id !== kernel.sessionId;
+      const events = foreignSummary || (compaction?.busy() === true && frame.type === "cursor/run_failed") ? [] : frame.events;
       kernel.frame(
         { type: frame.type, native: frame.native, events },
-        { ...(frame.agentPath.length === 0 ? {} : { agentPath: frame.agentPath }), ...(frame.spanId === undefined ? {} : { spanId: frame.spanId }), ...(frame.sessionId === undefined ? {} : { sessionId: frame.sessionId }) },
+        { ...(frame.agentPath.length === 0 ? {} : { agentPath: frame.agentPath }), ...(frame.spanId === undefined ? {} : { spanId: frame.spanId }), ...(frame.receivedAt === undefined ? {} : { receivedAt: frame.receivedAt }) },
       );
     };
-    const onDelta: CursorDeltaListener = ({ update }) => {
-      const folded = foldCursorDelta(projection, update);
-      projection = folded.state;
-      record(folded.frame);
-    };
     record(cursorOpenedFrame(agent.agentId, agent.model));
-
     const finish = (current: ActiveRun | null, frame: CursorFrame): void => {
-      record(frame);
       if (active === current) {
         active = null;
       }
       gate.running = false;
+      record(frame);
       drainHeld();
     };
 
@@ -107,11 +97,22 @@ export function cursorSessionWith(load: () => Promise<CursorSdk>): StartSession 
         ? input
         : { text: input, images: images.map((image) => ({ data: image.data, mimeType: image.mediaType })) };
       const force = forceNext;
+      let runId: string | undefined = undefined;
+      const earlyDeltas: CursorFrame[] = [];
+      const onDelta: CursorDeltaListener = ({ update }) => {
+        const folded = foldCursorDelta(projection, update);
+        projection = folded.state;
+        const frame = { ...folded.frame, receivedAt: Date.now() };
+        if (runId === undefined) { earlyDeltas.push(frame); }
+        else { record({ ...frame, spanId: runId }); }
+      };
       void (async (): Promise<void> => {
         try {
           const run = compact === undefined
             ? await agent.send(content, { onDelta, ...(force ? { local: { force: true } } : {}) })
             : await compact.start();
+          runId = run.id;
+          for (const frame of earlyDeltas.splice(0)) { record({ ...frame, spanId: runId }); }
           forceNext = false;
           if (attempt.state === "given_up") {
             stopOrphan(run, record);
@@ -121,6 +122,7 @@ export function cursorSessionWith(load: () => Promise<CursorSdk>): StartSession 
           attempt.current = adopt(run);
           compact?.onRun(run);
         } catch (error) {
+          for (const frame of earlyDeltas.splice(0)) { record(frame); }
           if (attempt.state === "sending") {
             attempt.state = "failed";
             attempt.reason = message(error);

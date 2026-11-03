@@ -34,7 +34,7 @@ not completion. Results are:
 | `kind` | Evidence and caller meaning |
 |---|---|
 | `completed` | A native frame proves this operation completed; `frame` points at that record |
-| `rejected` | It was not admitted; `code`, `reason` and the rejection response explain why |
+| `rejected` | It was not admitted, or the runtime refused the dispatched RPC without executing compaction; `code` and `reason` explain why. A dispatch acceptance stays accepted; the later native refusal remains in its correlated frame |
 | `failed` | Native failure (`native_failed`), command-source change (`command_changed`), or a command that ended without compaction (`not_compacted`); native evidence remains available |
 | `aborted` | The native operation reported cancellation, with its `frame` |
 | `unconfirmed` | Observation ended without a confirmed outcome: `timeout`, `signal`, `disposed`, `runtime_exited`, `session_released`, or `observation_failed` |
@@ -66,7 +66,7 @@ provisional status. This control intent does not fabricate a native
 `compaction_started` event. `AgentStatus.compaction` exposes only `requestId`
 and optional `started`; correlation and the previous turn outcome stay in
 serializable reducer bookkeeping, separate from the displayed status.
-A Pi manual end or a correlated Grok RPC end restores idle with the previous `lastTurnOutcome`.
+A Pi manual end or a correlated native response restores idle with the previous `lastTurnOutcome`.
 Incremental hosts use the exported `StatusState` checkpoint type from
 `@botiverse/oar/observe` (also exported at the root). Save the **entire** value
 returned by `reduceStatus`, unchanged, together with the last consumed cursor;
@@ -91,6 +91,26 @@ means the native response explicitly answered that OAR `compact` request:
 Grok's dedicated RPC response can finish it without an observed start. No
 request ownership is inferred from notification timing. Unowned ends retain
 the previous rules.
+
+The input gate and status change on the same retained native record:
+
+| Runtime | Record releasing manual compaction |
+|---|---|
+| Claude | Matching command result, or a native cancellation before it starts |
+| Codex | Completed native turn identified by its compaction item |
+| Pi SDK / RPC | Native manual `compaction_end` (or the SDK's observed rejection) |
+| Grok | The compact RPC answer, including refusal, failure or null result |
+| OpenCode v2 | The compact prompt RPC answer, after recording preceding markers |
+| Qoder | Matching `command_lifecycle completed/cancelled`, with or without an ordinary result |
+| Cursor | The returned run's native terminal result, after the bounded stream drain |
+
+Grok, OpenCode and Qoder compact requests carry
+`settledBy: "native_response"`; their terminal frames carry the exact
+`responseTo` request id. Earlier `turn_ended` and `compaction_ended` events
+remain in place but do not release these operations. Other runtimes use their
+existing terminal records. A synchronous observer of the release record can
+submit another prompt when status is idle. Adapter-held inputs may instead
+keep status at `running / waiting_model` until their dispatch or withdrawal.
 
 Claude's native queued receipt for the compact command is not a pending
 ordinary prompt. `turn_ended.inputId` and `inputIds`, when present, preserve native input
@@ -150,16 +170,26 @@ reloads user commands nor overrides their configuration.
 OpenCode's native markers can report `failed` even while the ordinary prompt
 returns `end_turn`: provider failure, cancellation, empty history and an
 invalid summary template are separate controls. Only matching native markers
-can settle the operation. An absent marker leaves it unconfirmed and reserved;
-dispose remains available. Qoder's completed boundary also remains completed
+prove completion. A known RPC answer without a matching marker returns
+unconfirmed and releases the gate. A native RPC error is retained as a frame
+and returns failed with that frame. Transport loss without a known answer
+remains unconfirmed and reserved; dispose remains available. Qoder's completed boundary also remains completed
 when its command later reports cancelled; the ordinary turn outcome stays as
 reported, independently.
 
 Cursor binds the accepted control to the SDK's returned run id before reading
-its stream. Its native `agent_id` and `run_id` become session and span identities
-on those frames. A known terminal run with no terminal summary is unconfirmed
+its stream. The native `run_id` becomes the span identity; the envelope retains the root
+session id and existing task/agentPath attribution. Summary ownership also
+requires the native `agent_id` to match the root. A known terminal run with no terminal summary is unconfirmed
 but releases the input gate because the run has ended. A lost stream or rejected
 `run.wait()` cannot prove native completion; observation is unconfirmed and the
 gate stays reserved until a terminal run or disposal is observed. The existing
 two-second stream-tail budget does not fabricate a summary end. Real account
 probes stay in experiments and never run in `check` or CI.
+
+SDK 1.2.0 `summarize()` accepts no send options and internally uses empty
+options. It cannot forward `local.force`: a restored agent whose store still
+has an active run may refuse compact even when OAR has no live turn. The
+[offline storage control](../../experiments/cursor-summarize-force-offline.ts)
+confirms the refusal without launching an executor or using an account. OAR
+does not call a private SDK method or expire the native run to work around it.

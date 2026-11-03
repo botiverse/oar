@@ -16,5 +16,5 @@ export function carriesRefusal(body: RequestBody, records: readonly RawEvent[], 
   if (body.kind !== "prompt" || (body.carries?.length ?? 0) === 0) { return null; }
   const inputs = conversationOf(records).inputs;
   const invalid = invalidCarriedInput(body, (id) => inputs.get(JSON.stringify([sessionId, agentPath, id])));
-  return invalid === undefined ? null : { kind: "rejected", code: "unsupported", reason: `carries input ${invalid} is not a withdrawn input owned by this session and agent` };
+  return invalid === undefined ? null : { kind: "rejected", code: "unsupported", reason: `carries input ${invalid} is not a withdrawn or adapter-held input owned by this session and agent` };
 }

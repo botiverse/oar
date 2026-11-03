@@ -49,7 +49,7 @@ test("the handshake answers are events, so model() and effort() are folds over t
 });
 
 // oxlint-disable-next-line eslint/max-statements -- One lifecycle test must observe busy, abort, queue drain, and turn identity together.
-test("ACP session rejects a second prompt busy and drains its host-held queue as a spontaneous turn", async () => {
+test("ACP session rejects a second prompt busy and drains its host-held queue through a prompt carrying the original identity", async () => {
   const session = await start();
   const first = await session.prompt("hold");
   assert.equal(first.response.body.kind, "accepted");
@@ -61,13 +61,15 @@ test("ACP session rejects a second prompt busy and drains its host-held queue as
   const aborted = await session.abort();
   assert.equal(aborted.response.body.kind, "accepted");
   assert.deepEqual(await awaitTurnEnd(session, first.request.seq), { kind: "aborted" });
-  // The queued input runs as its own turn: it has an end but no prompt request of its own.
+  // The adapter records actual dispatch separately, preserving the original logical input.
   const ended = session.records().find((record) => record.kind === "frame" && record.body.events.some((view) => view.kind === "turn_ended" && view.outcome.kind === "aborted"));
   assert.ok(ended !== undefined);
   const outcome = await awaitTurnEnd(session, ended.seq);
   assert.deepEqual(outcome, { kind: "completed" });
   const requests = session.records().filter((record) => record.kind === "request" && record.body.kind === "prompt");
-  assert.equal(requests.length, 2, "only the two explicit prompts are prompt requests");
+  assert.equal(requests.length, 3, "two host attempts plus one adapter dispatch");
+  expect(requests.at(-1)?.body).toMatchObject({ kind: "prompt", input: "queued", carries: [queued.request.body.kind === "queue" ? queued.request.body.inputId ?? queued.request.id : ""] });
+  expect(session.records().filter(record => record.kind === "response" && record.requestId === queued.request.id)).toHaveLength(1);
   assert.ok(session.records().some((record) => record.kind === "frame" && record.body.events.some((view) => view.kind === "text_delta" && view.text === "echo:queued")));
   const late = await session.abort();
   assert.deepEqual(late.response.body, { kind: "rejected", code: "no_active_turn", reason: "no active turn" });

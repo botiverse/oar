@@ -40,7 +40,8 @@ export const qoderSession: StartSession = withSessionCredentials(async (installa
   let model: string | null = null;
   try {
     return await streamJsonSession(child, sessionId, credentials, {
-      compaction: { busyReason: "Wait until all Qoder input has finished before compacting", create: qoderCompaction },
+      compaction: { busyReason: "Wait until all Qoder input has finished before compacting", create: qoderCompaction, settledBy: "native_response",
+        responseTo: message => message.type === "command_lifecycle" && (message.state === "completed" || message.state === "cancelled") && typeof message.command_uuid === "string" ? message.command_uuid : undefined },
       projection: qoderProjectionProfile, initial: initialQoderProjection(),
       capabilities: { queue: { durable: false }, attribution: "attributed", images: false },
       steer: true, cancelQueuedCapability: "interrupt_cancel_queued_v1",

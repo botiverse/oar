@@ -40,3 +40,33 @@ test("RPC transport rejection after compaction starts waits for exit without inv
     expect(session.records().some(record => record.kind === "frame" && record.body.events.some(event => event.kind === "compaction_ended"))).toBe(false);
   } finally { await session.dispose(); }
 });
+
+// oxlint-disable-next-line max-statements -- The RPC reply remains pending after its native terminal event.
+test("Pi RPC compaction end releases the gate before observers see idle", async () => {
+  const child = fakeLineProcess();
+  const reply = Promise.withResolvers<RpcResponse>();
+  let receiveNative: (message: Record<string, unknown>) => void = vi.fn<(message: Record<string, unknown>) => void>();
+  vi.mocked(openPiRpc).mockImplementation(async (_options, _credentials, receive) => {
+    receiveNative = receive;
+    return { child, directory: { path: "/fixture", remove() {} },
+      control: { request: async command => command.type === "compact" ? reply.promise :
+        { type: "response", command: "prompt", success: true, data: { disposition: "started" } } },
+      state: { sessionId: "rpc", thinkingLevel: "off", isStreaming: false, isCompacting: false,
+        steeringMode: "all", followUpMode: "all", autoCompactionEnabled: true, messageCount: 0, pendingMessageCount: 0 },
+    };
+  });
+  const session = await createPiRpcSession({ execution: "subprocess" })({ kind: "available", via: "bundled" }, { cwd: "/work" });
+  const observed: { kind: string; prompt: ReturnType<typeof session.prompt> }[] = [];
+  try {
+    assert.ok(session.compact !== undefined);
+    const pending = session.compact(); receiveNative({ type: "compaction_start", reason: "manual" }); await setImmediate();
+    session.rawEvents(record => {
+      if (record.kind !== "frame" || !record.body.events.some(event => event.kind === "compaction_ended")) { return; }
+      observed.push({ kind: session.status().value.kind, prompt: session.prompt("next") });
+    });
+    receiveNative({ type: "compaction_end", reason: "manual", aborted: false }); await pending;
+    expect(observed).toHaveLength(1); expect(observed[0]?.kind).toBe("idle");
+    expect(await observed[0]?.prompt).toMatchObject({ kind: "accepted" });
+    expect(await session.prompt("cannot-overtake-next")).toMatchObject({ kind: "rejected", code: "busy" });
+  } finally { child.end(0); await session.dispose(); }
+});

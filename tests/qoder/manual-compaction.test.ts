@@ -53,3 +53,22 @@ test.each(["empty", "error", "cancelled"] as const)("Qoder %s without a boundary
     expect(await waiting).toMatchObject(mode === "cancelled" ? { kind: "aborted" } : { kind: "failed", code: mode === "empty" ? "not_compacted" : "native_failed" });
   } finally { await f.session.dispose(); }
 });
+
+test.each([true, false])("Qoder command terminal releases the gate before observers see idle, result present: %s", async result => {
+  const f = await open(); const observed: { kind: string; prompt: ReturnType<typeof f.session.prompt> }[] = [];
+  try {
+    const pending = f.compact(); const id = f.input();
+    f.emit({ type: "command_lifecycle", command_uuid: id, state: "started" }); f.emit(boundary);
+    if (result) { f.emit({ type: "result", subtype: "success", is_error: false }); }
+    expect(f.session.status().value).toMatchObject({ kind: "running", phase: "compacting" });
+    expect(await f.session.prompt("before-command-end")).toMatchObject({ kind: "rejected", code: "busy" });
+    f.session.rawEvents(record => {
+      if (record.kind !== "frame" || asRecord(record.body.native)?.command_uuid !== id || asRecord(record.body.native)?.state !== "completed") { return; }
+      observed.push({ kind: f.session.status().value.kind, prompt: f.session.prompt("next") });
+    });
+    f.emit({ type: "command_lifecycle", command_uuid: id, state: "completed" }); await pending;
+    expect(observed).toHaveLength(1); expect(observed[0]?.kind).toBe("idle");
+    expect(await observed[0]?.prompt).toMatchObject({ kind: "accepted" });
+    expect(await f.session.prompt("cannot-overtake-next")).toMatchObject({ kind: "rejected", code: "busy" });
+  } finally { await f.session.dispose(); }
+});

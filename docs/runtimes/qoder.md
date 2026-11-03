@@ -24,7 +24,11 @@ input UUID, so an ordinary successful result cannot prove compaction.
 Empty history ends without a boundary and returns `failed / not_compacted`.
 A completed boundary remains `completed` if cancellation arrives later; the
 ordinary result remains its own native fact (success in the measured race).
-`queue()` is retained until the command settles. Native `system/status
+`queue()` is retained until the command settles. The compact request carries
+`settledBy: "native_response"`; exact `command_uuid` equality attaches
+`responseTo` to its terminal lifecycle. That frame releases the input gate
+and compacting status together, even without an ordinary result. Earlier
+turn and compaction events stay in place and do not release the operation. Native `system/status
 compacting` projects the start without an inferred trigger.
 [Controls and evidence](../../experiments/manual-compaction-followup-2026-11-02.md).
 

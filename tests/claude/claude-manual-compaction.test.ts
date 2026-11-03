@@ -220,3 +220,19 @@ test("an interrupted ordinary turn cannot reclassify a native compact error as a
     expect(f.session.status().value).toEqual({ kind: "idle", lastTurnOutcome: { kind: "aborted" } });
   } finally { await f.session.dispose(); }
 });
+
+test.each(["compact", "prompt"])("Claude %s result releases the gate at the same record that folds idle", async mode => {
+  const f = await open(); const observed: { kind: string; prompt: ReturnType<typeof f.session.prompt> }[] = [];
+  try {
+    const pending = mode === "compact" ? f.compact() : f.session.prompt("first", { inputId: "11111111-1111-4111-8111-111111111111" });
+    const id = await f.dispatch(); if (mode === "compact") { f.fake.emit(line(boundary)); }
+    f.session.rawEvents(record => {
+      if (record.kind !== "frame" || !record.body.events.some(event => event.kind === "turn_ended" && event.inputId === id)) { return; }
+      observed.push({ kind: f.session.status().value.kind, prompt: f.session.prompt("next") });
+    });
+    f.fake.emit(line(end(id))); await pending;
+    expect(observed).toHaveLength(1); expect(observed[0]?.kind).toBe("idle");
+    expect(await observed[0]?.prompt).toMatchObject({ kind: "accepted" });
+    expect(await f.session.prompt("cannot-overtake-next")).toMatchObject({ kind: "rejected", code: "busy" });
+  } finally { await f.session.dispose(); }
+});

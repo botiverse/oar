@@ -41,8 +41,12 @@ The v2 session exposes idle-only `compact()` through native `/compact`.
 and reason. OAR projects that native messageId as `compactionId` on both start
 and end events, including automatic events. The manual control binds the first
 manual start in its exclusive idle window and requires the same identity at
-completion plus the prompt RPC answer before releasing queued input. Wrong,
-old and absent ids cannot settle it. Ordinary `end_turn` does not prove success:
+completion to prove compaction. The correlated prompt RPC answer
+(`responseTo`) releases the gate and status together, after preceding markers.
+Wrong, old and absent ids cannot establish completion; an answer without a
+matching marker returns unconfirmed. A native RPC error is retained as a
+frame and returns failed. Response usage follows the ordinary profile
+projection when supplied; no missing counts are inferred. Ordinary `end_turn` does not prove success:
 provider errors, invalid summary headings and empty history all produced
 structured failed markers with ordinary success in 2.2.5. Cancellation supplies
 `error.type: aborted`. Same-name configured commands did not override the

@@ -601,6 +601,7 @@ interface Frame extends RecordEnvelope {
 }
 
 interface FrameBody {
+  responseTo?: string;          // exact native identifier correlation to an OAR request; see below
   type: string;                 // runtime-native discriminator (claude type[/subtype], codex method, pi event type, ACP sessionUpdate)
   native: unknown;              // as sent, except credential-field values redacted before recording
   events: readonly RuntimeEventBody[];  // what oar read out of the frame, in frame order; [] when oar read nothing
@@ -642,13 +643,13 @@ interface RequestRecord extends RecordEnvelope {
   kind: "request";
   id: string;
   direction: "toRuntime" | "toApp";
-  body: RequestBody;            // open {placement} | prompt {input, inputId?, images?, origin?, carries?} | steer | queue {input, inputId?, images?, origin?} | withdraw {inputId} | abort | compact | dispose | goal_set {options} | goal_read | goal_clear | native {type, native} (toApp, verbatim)
+  body: RequestBody;            // open {placement} | prompt {input, inputId?, images?, origin?, carries?} | steer | queue {input, inputId?, images?, origin?} | withdraw {inputId} | abort | compact {settledBy?: "native_response"} | dispose | goal_set {options} | goal_read | goal_clear | native {type, native} (toApp, verbatim)
 }
 
 interface ResponseRecord extends RecordEnvelope {
   kind: "response";
   requestId: string;            // must point to a request; reverse not guaranteed
-  body: ResponseBody;           // opened {placement} | accepted {native?} | rejected {code, reason, native?} | answered {native} | cleanup {result} | released {reason, nativeTurnMayContinue:true, workStartedAfterCleanupMayContinue:true} | exited {code, reason?}
+  body: ResponseBody;           // opened {placement} | accepted {native?, queued?: "adapter"} | rejected {code, reason, native?} | answered {native} | cleanup {result} | released {reason, nativeTurnMayContinue:true, workStartedAfterCleanupMayContinue:true} | exited {code, reason?}
 }
 // accepted/rejected: control answers only "taken over or not".
 // answered: oar's own reply to a toApp request (the automatic permission
@@ -686,6 +687,17 @@ The optional [manual compaction](manual-compaction.md) control returns
 observes the native terminal evidence. Caller deadlines append no fake native
 terminal and do not release the operation; `status()` remains compacting.
 
+`FrameBody.responseTo` means this native frame explicitly identifies an OAR
+request using an identifier OAR supplied to the runtime (RPC id, command UUID,
+etc.). Correlation uses exact identifiers, never timing or order. It is neither
+a second control response nor proof of successful execution. Grok/OpenCode
+compact RPC answers and Qoder compact command terminals carry this field.
+Their compact requests have `settledBy: "native_response"`: status and the
+input gate stay occupied until that correlated frame, even if earlier native
+compaction or turn events report completion. No missing completion event is
+invented. A known terminal response without completion evidence can return
+`unconfirmed` while releasing the operation.
+
 `dispose()` returns void: its request and response are read from the stream.
 Isolated process adapters stop owned work and record `exited`. Shared adapters
 attempt native cleanup for only this session, then record `released`; the last
@@ -708,6 +720,24 @@ ownership. Original queue and withdrawal records remain unchanged. The prompt's 
 original content and origin remain available to views. Adapters copy this
 field to the prompt request only; it is never added to model text or vendor
 protocol fields. Older readers may ignore the additive field.
+
+### Adapter-held ACP queue records
+
+Kimi, Grok, OpenCode, Antigravity and CodeBuddy use the shared ACP driver.
+An ACP queue accepted with `queued: "adapter"` is still held by OAR. At
+actual dispatch the adapter records a new prompt carrying the original
+`inputId` (or the queue request id when absent), then that prompt's single
+accepted/rejected response. The queue request never receives a second
+response. Until dispatch or accepted withdrawal, status remains running with
+`waiting_model`, including a gap with no active native turn; a new prompt
+cannot overtake it. This is adapter ownership, not native `input_queued`
+evidence. Persist the entire `StatusState` checkpoint to retain that ownership.
+
+Hosts counting requests or grouping by request kind must distinguish this
+adapter dispatch from a new host submission: it adds a prompt request, but
+`carries` points to the already accepted logical input. Do not count the
+queue and its carried prompt as two user inputs. Qoder uses the stream-json
+driver; its queue record shape is unchanged by this ACP change.
 
 Controls issued synchronously by a record observer can act before an adapter
 resumes draining its held queue. Reentrant records are retained immediately;
@@ -882,7 +912,10 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   explicit `error.type` of `aborted` or `compaction.interrupted` supplies
   aborted, retaining `messageId` as
   `compactionId` and the native reason as trigger. Grok's dedicated compact
-  RPC response supplies completed or structured failed/aborted, with the OAR
+  RPC object response supplies completed; only structured `compact_failed` /
+  `compact_cancelled` errors supply failed/aborted. Other RPC errors are
+  refusals and null answers remain unconfirmed, without a compaction end.
+  Proven ends carry the OAR
   `requestId` it explicitly answers and no trigger. Its notification named
   `auto_compact_completed` alone supplies neither ownership nor a trigger.
   An ended
@@ -891,8 +924,9 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   controls keep their own correlation: `compactionId` is a native operation,
   `spanId` a native turn, and `requestId` an OAR control. The first manual
   start in an exclusive idle operation teaches the fold its `compactionId`;
-  later ends require that exact id. A correlated RPC end can finish without
-  a start; unowned ends cannot. See [manual state](manual-compaction.md#ownership-records-and-state).
+  later ends require that exact id to prove completion. Operations marked
+  `settledBy: "native_response"` release on the exact `responseTo` frame, not
+  on those earlier events. Unowned ends cannot settle them. See [manual state](manual-compaction.md#ownership-records-and-state).
   Qwen 0.26.5 stream-json emits neither compaction event: manual compression
   status uses the same assistant text frames as model output and therefore
   appears as `text_delta`; automatic compression has no structured frame.

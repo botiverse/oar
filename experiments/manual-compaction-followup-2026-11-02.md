@@ -18,9 +18,9 @@ control. This is versioned evidence, not a claim about every future binary.
 
 | Runtime | Native entry and completion | Failure, cancellation and empty history |
 | --- | --- | --- |
-| Grok | `_x.ai/compact_conversation` replies `{}` after completion. Its reply directly answers this request; no start event or manual trigger is inferred. | Structured `RequestError.data.kind` reports `compact_failed` or `compact_cancelled`. Empty history returns `{}` as a native no-op. Transport loss or a malformed reply remains unconfirmed. |
-| OpenCode v2 | ACP `/compact` emits `_meta["opencode/compaction"]` start/end with a shared `messageId`. Both the matching terminal marker and the prompt RPC answer are required before queued input is released. | Provider failure, empty history and an invalid summary all report failed compaction even though the ordinary prompt returns `end_turn`. Native cancellation reports an aborted marker and a cancelled prompt. |
-| Qoder | `/compact` is a command with an exact `command_uuid`. Started lifecycle, manual `compact_boundary`, ordinary result and the matching terminal lifecycle delimit the operation. | Empty history ends successfully as a command but has no boundary: `compact()` returns `failed/not_compacted`. A completed boundary remains completed if a cancelled lifecycle arrives later. |
+| Grok | `_x.ai/compact_conversation` replies `{}` after completion. Its reply directly answers this request; no start event or manual trigger is inferred. | Structured `RequestError.data.kind` reports `compact_failed` or `compact_cancelled`. Empty history returns `{}` as a native no-op. Other RPC errors refuse execution without a compaction end. Null replies release the gate as unconfirmed; transport loss without a native answer remains reserved. |
+| OpenCode v2 | ACP `/compact` emits `_meta["opencode/compaction"]` start/end with a shared `messageId`. A matching terminal marker proves compaction. The prompt RPC answer releases the gate and status together; absent evidence yields unconfirmed rather than retaining a known-finished operation. | Provider failure, empty history and an invalid summary all report failed compaction even though the ordinary prompt returns `end_turn`. Native cancellation reports an aborted marker and a cancelled prompt. |
+| Qoder | `/compact` is a command with an exact `command_uuid`. Started lifecycle, manual `compact_boundary` and the matching terminal lifecycle delimit the operation; an ordinary result is independent and can be absent. | Empty history ends successfully as a command but has no boundary: `compact()` returns `failed/not_compacted`. A completed boundary remains completed if a cancelled lifecycle arrives later. |
 | Cursor | `Agent.summarize()` returns a native run. A root summary terminal status with that run id, followed by its terminal `run.wait()` result, proves completion. | Empty history is refused by the SDK. A cancelled run without a terminal summary returns aborted without inventing `compaction_ended`. Lost observation stays unconfirmed; a known terminal run without a summary releases the input gate but cannot establish completed compaction. |
 
 OpenCode v1 still has no `compact` session member. The common OpenCode
@@ -82,21 +82,37 @@ The additional optional fields represent distinct facts:
 - `compactionId` on start/end is the native compaction identity. OpenCode's
   `messageId` is projected for automatic as well as manual events.
 - `spanId` on the envelope is a native turn/run identity. Cursor's stream
-  `run_id` and terminal result `id` populate it; it is not a message id.
+  `run_id` and terminal result `id` populate it; `onDelta` uses the id of
+  its returned run too, buffering callbacks that arrive before that id while
+  preserving their ingress time. It is
+  not a message id.
 - `compaction_ended.requestId` identifies the OAR request answered by a native
-  response. Grok can settle from it without an observed start.
+  response. Grok can report completion without an observed start.
+- `FrameBody.responseTo` explicitly correlates a native answer or command
+  terminal with an OAR request by identifiers, never timing. It also survives
+  null answers or RPC refusals without manufacturing compaction events.
+- `compact.settledBy: "native_response"` tells the fold to remain occupied
+  until that response. Grok, OpenCode and Qoder use it; Qoder keeps both its
+  ordinary result and manual boundary at their original positions.
+- `accepted.queued: "adapter"` retains ACP queue ownership. Actual dispatch
+  records one new prompt with `carries` (input id, otherwise queue request id)
+  and one response. Withdrawal removes the held entry; no second response is
+  added to the queue request. The gap before dispatch remains visibly busy.
 
 The fold learns an OpenCode manual operation's identity from the first
 native manual start inside the exclusive idle operation. The complete
 public `StatusState` checkpoint retains it. Wrong, old or absent ids cannot
-finish that operation; neither can an automatic end. Matching completed
-and failed ends are independently tested after serializing the checkpoint.
+prove completion; neither can an automatic end. Matching native terminal
+evidence is evaluated at the correlated response, which releases the gate
+even when completion could not be confirmed. JSON checkpoint regressions
+cover that response and adapter-held queue ownership.
 For Cursor, the accepted response carries the native run id before its
 summary frames are processed, including cancellation before any start.
 
-Cursor stream frames now also retain native `agent_id` as envelope
-`sessionId`; a foreign session cannot settle the root operation. These
-identity fields apply to ordinary runs too when native frames supply them.
+Cursor retains its root envelope `sessionId` and existing task/agentPath
+attribution. Native `agent_id` remains in the payload and must match the
+root for a summary to prove compaction. Run spans also appear on ordinary
+callback and stream frames.
 The native payloads are unchanged. A lost SDK wait is recorded diagnostically
 without an artificial terminal event for the manual operation, so the fold
 stays compacting while its outcome is unknown.
@@ -117,6 +133,25 @@ model, followed by a usage report. This retained script is manual evidence,
 not an automatic fallback when an SDK fixture fails. Routine tests use a
 credential-free SDK stand-in, including late startup after disposal,
 wrong run/session ids, missing terminal summaries and stream/wait failures.
+
+### Restored Cursor active-run limitation
+
+The additional [offline SDK storage probe](cursor-summarize-force-offline.ts)
+uses SDK 1.2.0's real isolated store and resume path, a synthetic model/key,
+and a stubbed model catalog. It seeds a saved checkpoint and an active run,
+then invokes public `summarize()` with no argument and with an ignored
+`local.force` argument. Both refuse with `UnknownAgentError` and the native
+message `Agent <agent> already has active run`; the run remains active.
+No executor or fetch call occurs. This tests persisted ownership, not a real
+crashed executor. [Selected output](manual-compaction/cursor-force-offline.json)
+contains no account or local-path data.
+
+The 1.2.0 declaration accepts no summarize options, and its implementation
+calls the shared send implementation with empty options. OAR cannot forward
+`local.force` through that public method. It preserves the typed native
+refusal instead of using a private send method or expiring a native run.
+Run the probe with `pnpm tsx experiments/cursor-summarize-force-offline.ts`;
+it never invokes the retained real-account script.
 
 ## Reproduction and retained evidence
 
@@ -152,18 +187,25 @@ identity, queue order, late replies, disposal and transport-loss boundaries.
 
 ## Validation boundary
 
-The full check passed 3,087 tests and 18 mock behavior checks. Seven
-independent mutations were caught by assertion failures: wrong compaction
-identity, automatic end ownership, wrong OpenCode marker identity, marker-only
-settlement before the RPC reply, foreign Cursor run ownership, treating a lost
-Cursor wait as a terminal turn, and letting late Qoder cancellation erase a
-completed boundary. Each mutation was reverted before the full check.
+The revised full check passed 3,122 tests and 18 mock behavior checks. Existing
+replay snapshots required no updates. Fourteen review counterexamples were
+caught: Cursor's early unhandled rejection, Grok RPC classification,
+OpenCode missing-proof release/error frames/usage, Qoder terminal release,
+exact response identity, adapter queue acceptance, early Cursor callback
+spans, ordinary Claude/Codex/Cursor terminal reentry, and Grok/OpenCode
+admission before dispatch. Each mutation was reverted. Two additional
+before/after regressions pin startup-refusal reentry and buffered callback
+ingress time. The initial seven identity/ownership counterexamples remain
+covered by their committed regressions.
 
 All 14 existing behavior backends passed. Full native vendor runs passed
-for Qoder (12 tests), Grok (20) and OpenCode v1 (10). The six new OpenCode
-v2 compaction controls passed; all six explicitly skip with v1. Build and
-clean packed-host installation passed, including optional peers and the
-public type exports. Routine Cursor controls require no credentials.
+for Claude (80 tests), Codex (62), Qoder (12), Grok (20) and OpenCode v1 (10).
+Pi SDK and RPC 1.5.0 passed all 16 manual compaction controls. The six new
+OpenCode v2 compaction controls passed; all six explicitly skip with v1.
+Build and clean packed-host installation passed, including optional peers
+and public type exports. Routine Cursor controls and the added SDK storage
+probe require no credentials. Native evidence remains local Linux x64;
+Windows and macOS results depend on the revised pull-request CI.
 
 An additional, deliberately broader run of the existing OpenCode vendor
 suite with v2 failed five MCP cases: three in `mcp-servers-acp`, one in
@@ -182,8 +224,27 @@ using OpenCode v2. Active work must finish first. OpenCode v1 remains
 unsupported; Pi Durable is deferred to its native API migration. Caller
 cancellation stops waiting and does not claim that native compaction stopped.
 
-Compaction events may now carry a native `compactionId`; a directly
-correlated native RPC end may carry the OAR `requestId`. Cursor frames also
-retain native session and run identities in their envelopes, including on
-ordinary runs. Incremental status consumers must preserve the complete
-`StatusState` checkpoint, as documented by the first compaction release.
+Compaction events may carry native `compactionId` and directly correlated
+OAR `requestId`. Frames gain `responseTo`; Grok/OpenCode/Qoder compact requests
+gain `settledBy: "native_response"`. ACP queue acceptance gains
+`queued: "adapter"`, with a carried prompt recorded at actual dispatch.
+This changes ordinary adapter-held queues too, for Kimi, Grok, OpenCode,
+Antigravity and CodeBuddy. Hosts counting requests or grouping by kind must
+distinguish that extra prompt from a new host input: `carries` identifies the
+already accepted input, so queue plus dispatch is one logical submission.
+Qoder uses stream-json and keeps its existing queue records.
+These additive fields keep status and input admission aligned, including
+native refusals, missing completion evidence and the held-queue gap.
+Incremental status consumers must preserve the complete `StatusState`.
+Cursor frames retain the existing root session/child-task attribution while
+adding native run spans to callbacks and stream frames. SDK 1.2.0 summarize
+cannot forward `local.force` for a restored active run.
+
+Bug fix affecting ordinary Claude, Codex and Cursor turns as well as compact:
+a synchronous `turn_ended` observer can immediately send the next prompt.
+Internal ownership is released before publishing that same terminal frame,
+and old cleanup cannot clear the new turn. The native frame content and
+relative frame order are unchanged by this sequencing fix. All three ordinary
+paths and the compact boundaries have direct observer-reentry regressions.
+The same rule covers startup refusal: the compact reservation releases before
+external observers see its rejected response restore idle.

@@ -15,7 +15,7 @@ function complete() {
     else { answer(id, {}); }
   } else {
     if (mode !== "missing") { update(mode === "failed" || mode === "cancel" ? "failed" : "completed"); }
-    answer(id, { stopReason: mode === "cancel" ? "cancelled" : "end_turn" });
+    answer(id, { stopReason: mode === "cancel" ? "cancelled" : "end_turn", usage: { inputTokens: 12, outputTokens: 4, totalTokens: 16 } });
   }
 }
 const lines = createInterface({ input: process.stdin });
@@ -27,7 +27,11 @@ lines.on("line", (line) => {
   else if (method === "_x.ai/compact_conversation" || (method === "session/prompt" && params.prompt?.[0]?.text === "/compact")) {
     pending = id;
     if (mode === "disconnect") { process.exit(1); }
-    if (mode === "malformed") { answer(id, null); return; }
+    if (mode === "malformed") { pending = null; answer(id, null); return; }
+    if (mode === "rpc-error" || mode === "no-method" || mode === "no-session" || mode === "bad-params") {
+      pending = null;
+      send({ id, error: { code: mode === "no-method" ? -32_601 : -32_602, message: mode, data: { kind: mode } } }); return;
+    }
     if (backend === "opencode") {
       update("started", "foreign", "manual", "child"); update("completed", "foreign", "manual", "child");
       update("started", "automatic", "overflow"); update("completed", "automatic", "overflow");

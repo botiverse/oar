@@ -78,6 +78,8 @@ export type RawEvent = Frame | RequestRecord | ResponseRecord;
  * enters the stream, with `type` and `native` and no events.
  */
 export interface FrameBody {
+  /** This native frame explicitly identifies an OAR request using the identifier supplied to the runtime (RPC id, command UUID, etc.). Exact identity only, never timing or order; not a claim of successful execution. */
+  readonly responseTo?: string;
   /** Runtime-native discriminator: claude `type[/subtype]`, codex notification method, pi event type, ACP `sessionUpdate`. */
   readonly type: string;
   /** The frame as sent (JSON-safe), except documented credential-field redaction. Never otherwise trimmed or re-shaped. */
@@ -85,7 +87,6 @@ export interface FrameBody {
   /** What oar read out of the frame, in frame order; empty when oar read nothing. Only runtime-said kinds appear here. */
   readonly events: readonly RuntimeEventBody[];
 }
-
 export type ReasoningContent =
   | { readonly kind: "text"; readonly text: string }
   | { readonly kind: "redacted" }
@@ -230,14 +231,13 @@ export type EventBody = RuntimeEventBody | ControlEventBody;
  * RawEvent stream via `eventsOf`.
  */
 export type Event = EventBody & RecordEnvelope;
-
 export type RequestBody =
   | { readonly kind: "open"; readonly placement: PlacementRequest }
   | { readonly kind: "goal_set"; readonly options: GoalSetOptions }
   | { readonly kind: "goal_read" }
   | { readonly kind: "goal_clear" }
-  /** Request native compaction; acceptance is admission, not completion. */
-  | { readonly kind: "compact" }
+  /** Request native compaction; acceptance is admission, not completion. settledBy requires a native frame whose responseTo equals this request id before releasing the operation. */
+  | { readonly kind: "compact"; readonly settledBy?: "native_response" }
   | { readonly kind: "prompt"; readonly carries?: readonly string[]; readonly inputId?: string; readonly input: string; readonly images?: readonly InputImage[]; readonly origin?: InputOrigin }
   | { readonly kind: "steer"; readonly inputId?: string; readonly input: string; readonly images?: readonly InputImage[]; readonly origin?: InputOrigin }
   | { readonly kind: "queue"; readonly inputId?: string; readonly input: string; readonly images?: readonly InputImage[]; readonly origin?: InputOrigin }
@@ -282,8 +282,8 @@ export type ResponseBody =
   | { readonly kind: "opened"; readonly placement: SessionPlacement }
   | { readonly kind: "cleanup"; readonly result: SessionCleanup }
   | SessionRelease
-  /** The adapter (or runtime) took the action over. For prompt/steer/queue this is ONE deliberately weak promise: the caller's delivery obligation ENDS; do not resubmit, unless the stream later reports the input dropped (`input_dropped`, `ConversationInput.state` "dropped"), which hands it back. No guarantee it lands in the current turn, that the model attends to it, or that any business outcome happened; where input landed is the event stream's job. For withdraw it is a strong one: the held input was removed before it was sent, and the caller owns it again. `native` is the runtime's own acknowledgement when it gave one. */
-  | { readonly kind: "accepted"; readonly native?: unknown }
+  /** The adapter (or runtime) took the action over. For prompt/steer/queue this is ONE deliberately weak promise: the caller's delivery obligation ENDS; do not resubmit, unless the stream later reports the input dropped (`input_dropped`, `ConversationInput.state` "dropped"), which hands it back. No guarantee it lands in the current turn, that the model attends to it, or that any business outcome happened; where input landed is the event stream's job. For withdraw it is a strong one: the held input was removed before it was sent, and the caller owns it again. `native` is the runtime's own acknowledgement when it gave one. `queued: "adapter"` means OAR still holds this queue input; actual dispatch is a new prompt carrying its input identity, never a second response. */
+  | { readonly kind: "accepted"; readonly native?: unknown; readonly queued?: "adapter" }
   /** Not taken over; the caller still owns the input. `code` says why in one word; `reason` is the prose. */
   | { readonly kind: "rejected"; readonly code: RejectionCode; readonly reason: string; readonly native?: unknown }
   /** oar's reply to a `toApp` request (e.g. the automatic permission grant), verbatim. */

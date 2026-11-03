@@ -31,7 +31,7 @@ import { startAcpProcess, type AcpProcess } from "./process.js";
 import { AcpError, acpProcessExitedError } from "./errors.js";
 import { createAcpRecorder } from "./records.js";
 import { createAcpTerminalHost } from "./terminal.js";
-import { acpTakesImages, createAcpTurns } from "./turns.js";
+import { acpTakesImages, createAcpTurns, type ActiveTurn } from "./turns.js";
 import { createAcpTokenUsage } from "./token-usage.js";
 import { createAcpOpening } from "./opening.js";
 
@@ -151,15 +151,22 @@ export function finishAcpSession(
     compaction = manualCompaction(kernel, {
       busy: () => turns.active() !== null || turns.queued() || turns.pendingCancellation() !== null,
       busyReason: "Wait for native input and cancellation to finish before compacting",
-      released: () => { turns.drain(); },
+      settledBy: "native_response",
+      released: () => { queueMicrotask(() => { turns.drain(); }); },
       create: (): CompactionOperation => {
-        const operation = createCompaction(kernel, runtime);
+        const operation = createCompaction(kernel, runtime, (response) => tokenUsage.prompt(response));
+        let state: ActiveTurn | null = null;
+        const finish = (): void => { if (state !== null) { turns.finishOperation(state); state = null; } };
         return {
-          observe: (frame) => operation.observe(frame),
+          observe(frame) {
+            const result = operation.observe(frame);
+            if (result !== null) { finish(); }
+            return result;
+          },
           async start(request, reply) {
-            const state = turns.beginOperation(request);
+            state = turns.beginOperation(request);
             try { return await operation.start(request, reply); }
-            finally { turns.finishOperation(state); }
+            finally { finish(); }
           },
         };
       },
@@ -232,7 +239,7 @@ export function finishAcpSession(
       (turns.active() === null && !turns.queued() && compaction?.busy() !== true ? turns.begin(request, input, inputOptions?.images) : { kind: "rejected", code: "busy", reason: "busy" })),
     ...steer,
     ...(compaction === null ? {} : { compact: compaction.compact }),
-    queue: (input, inputOptions?: InputOptions): Promise<ControlResult> => control({ kind: "queue", input, ...inputOptions }, () => turns.hold(input, inputOptions?.images, inputOptions?.inputId)),
+    queue: (input, inputOptions?: InputOptions): Promise<ControlResult> => control({ kind: "queue", input, ...inputOptions }, (request) => turns.hold(input, inputOptions?.images, inputOptions?.inputId, request)),
     // The queue is held here (turns.ts), not by the vendor: an entry can be taken back until the drain sends it.
     withdraw: (inputId: string): Promise<ControlResult> => control({ kind: "withdraw", inputId }, () => turns.withdraw(inputId)),
     abort: (): Promise<ControlResult> => control({ kind: "abort" }, (request): ResponseBody | Promise<ResponseBody> => {

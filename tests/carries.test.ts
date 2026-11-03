@@ -94,7 +94,22 @@ test.each(["queued", "pending-withdraw", "requeued", "foreign-agent", "foreign-s
   const original = conversationOf(kernel.records()).inputs.get(JSON.stringify([at.sessionId ?? "root", at.agentPath ?? [], firstId]));
   let called = false;
   const result = await kernel.control({ kind: "prompt", inputId: aggregateId, input: "merged", carries: [firstId] }, () => { called = true; return { kind: "accepted" }; });
-  expect(result.response.body).toEqual({ kind: "rejected", code: "unsupported", reason: `carries input ${firstId} is not a withdrawn input owned by this session and agent` });
+  expect(result.response.body).toEqual({ kind: "rejected", code: "unsupported", reason: `carries input ${firstId} is not a withdrawn or adapter-held input owned by this session and agent` });
   expect(called).toBe(false);
   expect(conversationOf(kernel.records()).inputs.get(JSON.stringify([at.sessionId ?? "root", at.agentPath ?? [], firstId]))).toEqual(original);
+});
+
+// oxlint-disable-next-line max-statements -- Reject an attempted overtake, then drain once, retaining original ownership.
+test("only an explicitly adapter-held input can be carried, including after a refused drain attempt", async () => {
+  const kernel = createSessionKernel("root");
+  await kernel.control({ kind: "queue", inputId: firstId, input: "held" }, () => ({ kind: "accepted", queued: "adapter" }));
+  const refused = await kernel.control({ kind: "prompt", inputId: aggregateId, input: "too early", carries: [firstId] }, () => ({ kind: "rejected", code: "busy", reason: "busy" }));
+  expect(refused.response.body).toMatchObject({ kind: "rejected", code: "busy" });
+  const sent = await kernel.control({ kind: "prompt", inputId: aggregateId, input: "held", carries: [firstId] }, () => ({ kind: "accepted" }));
+  expect(sent.response.body.kind).toBe("accepted");
+  let duplicateDispatched = false;
+  const duplicate = await kernel.control({ kind: "prompt", input: "again", carries: [firstId] }, () => { duplicateDispatched = true; return { kind: "accepted" }; });
+  expect(duplicate.response.body).toMatchObject({ kind: "rejected", code: "unsupported" });
+  expect(duplicateDispatched).toBe(false);
+  expect(conversationOf(kernel.records()).inputs.get(JSON.stringify(["root", [], firstId]))?.attempts.at(-1)?.request).toBe(sent.request);
 });

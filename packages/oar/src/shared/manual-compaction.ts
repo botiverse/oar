@@ -1,8 +1,9 @@
 import type { CompactionOptions, CompactionOutcome } from "../contracts/compaction.js";
-import type { Frame, RequestRecord, ResponseBody, ResponseRecord } from "../contracts/session.js";
+import type { Frame, RejectionCode, RequestRecord, ResponseBody, ResponseRecord } from "../contracts/session.js";
 import type { RecordAt, SessionKernel } from "./session-kernel.js";
 
 export type CompactionSettlement =
+  | { readonly kind: "rejected"; readonly code: RejectionCode; readonly reason: string }
   | { readonly kind: "completed" | "aborted"; readonly frame: Frame }
   | { readonly kind: "failed"; readonly code: "native_failed" | "not_compacted" | "command_changed"; readonly reason: string; readonly frame?: Frame }
   | { readonly kind: "unconfirmed"; readonly code: "observation_failed"; readonly reason: string };
@@ -26,9 +27,10 @@ interface Active {
 export function manualCompaction(kernel: SessionKernel, options: {
   readonly busy: () => boolean;
   readonly busyReason: string;
+  readonly settledBy?: "native_response";
   readonly create: () => CompactionOperation;
   readonly released?: () => void;
-}): { busy(): boolean; admitted(): boolean; compact(this: void, options?: CompactionOptions): Promise<CompactionOutcome> } {
+}): { busy(): boolean; admitted(): boolean; requestId(): string | undefined; compact(this: void, options?: CompactionOptions): Promise<CompactionOutcome> } {
   let active: Active | null = null;
   let reserved = false;
   const release = (current: Active): void => {
@@ -45,7 +47,12 @@ export function manualCompaction(kernel: SessionKernel, options: {
   kernel.rawEvents((record) => {
     const current = active;
     if (current === null || record.seq <= current.request.seq || record.sessionId !== kernel.sessionId || record.agentPath.length > 0) { return; }
-    if ((record.kind === "request" && record.body.kind === "dispose")
+    // Release before later observers see the refusal fold back to idle.
+    if (record.kind === "response" && record.requestId === current.request.id && record.body.kind === "rejected") {
+      current.response = record;
+      current.resolve({ kind: "rejected", code: record.body.code, reason: record.body.reason, request: current.request, response: record });
+      release(current);
+    } else if ((record.kind === "request" && record.body.kind === "dispose")
       || (record.kind === "response" && (record.body.kind === "exited" || record.body.kind === "released"))) {
       const code = record.kind === "request" ? "disposed" : (record.body.kind === "released" ? "session_released" : "runtime_exited");
       current.resolve({ kind: "unconfirmed", code, reason: "Native compaction completion was not observed before the session became unavailable", request: current.request, ...(current.response === undefined ? {} : { response: current.response }) });
@@ -57,6 +64,7 @@ export function manualCompaction(kernel: SessionKernel, options: {
   });
   return {
     busy: () => reserved,
+    requestId: () => active?.request.id,
     admitted: () => active?.response?.body.kind === "accepted",
     compact: async (wait = {}) => {
       if (wait.timeoutMs !== undefined && (!Number.isFinite(wait.timeoutMs) || wait.timeoutMs < 0)) { throw new RangeError("compact timeoutMs must be finite and non-negative"); }
@@ -65,7 +73,7 @@ export function manualCompaction(kernel: SessionKernel, options: {
         : kernel.unreachable() ?? (reserved || options.busy() ? { kind: "rejected", code: "busy", reason: options.busyReason } as const : null);
       // Reserve before publishing: a synchronous record observer can issue another control.
       if (blocked === null) { reserved = true; }
-      const request = kernel.request("toRuntime", { kind: "compact" });
+      const request = kernel.request("toRuntime", { kind: "compact", ...(options.settledBy === undefined ? {} : { settledBy: options.settledBy }) });
       const refusal = blocked ?? kernel.unreachable();
       if (refusal !== null) {
         if (blocked === null) { reserved = false; }
