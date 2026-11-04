@@ -1,19 +1,10 @@
-import type { SessionOptions } from "../../contracts/session.js";
+import type { StartSession, SessionOptions } from "../../contracts/session.js";
 import { antigravityRefusedSessionOptions } from "./options.js";
 import { UnsupportedOptionError } from "../../contracts/errors.js";
 import { acpSession, type AcpSessionProfile } from "../../shared/acp/session.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
 import { refuseSessionOptions } from "../../shared/session-options.js";
-
-/**
- * The ACP registry's launch line for agy_acp_server 1.2.1. On Linux the
- * binary's startup drops privileges to group `nobody` unless `--uid=` is
- * empty, and on a host without that group it aborts before speaking ACP
- * ("Check failed: LookupGIDByGroupName"). macOS and Windows take no args.
- */
-export function antigravityAcpArgs(platform: NodeJS.Platform = process.platform): readonly string[] {
-  return platform === "linux" ? ["--uid="] : [];
-}
+import { antigravityAcpArgs } from "./launch.js";
 
 /**
  * agy_acp_server 1.2.1 lists `yolo` both as a session mode and as a value of
@@ -70,7 +61,7 @@ function sessionMeta(options: SessionOptions, initialized: JsonRecord): JsonReco
 }
 
 export const antigravityAcpProfile: AcpSessionProfile = {
-  args: () => antigravityAcpArgs(),
+  args: ["acp"],
   isResumeNotFound: (native) => native.code === -32_002,
   // Subagents run inside the harness and never reach ACP under their own
   // ids: opaque (tier #1, docs/spec/attribution.md). The method set has no
@@ -103,4 +94,10 @@ export const antigravityAcpProfile: AcpSessionProfile = {
   },
 };
 
-export const antigravitySession = acpSession(antigravityAcpProfile);
+export const antigravitySession: StartSession = async (installation, options, context) => {
+  const session = await acpSession({
+    ...antigravityAcpProfile,
+    args: installation.via === "executable" ? antigravityAcpArgs(installation.command) : [],
+  })(installation, options, context);
+  return session;
+};

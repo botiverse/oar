@@ -104,9 +104,19 @@ test("kimi counts only a newer release as an update, as its upgrade does", async
 test("antigravity counts only a newer registry version as an update", async () => {
   routes.set("/registry.json", [200, JSON.stringify({ id: "antigravity-acp", version: "1.2.1" })]);
   const check = antigravityUpdateCheck(`${base}/registry.json`);
-  const ahead = await check(executable(path.join(dir, "agy"), "1.3.0"));
+  const ahead = await check(executable(path.join(dir, "agy_acp_server.par"), "1.3.0"));
   assert.equal(ahead.kind === "ok" && ahead.updateAvailable, false);
-  const behind = await check(executable(path.join(dir, "agy"), "1.2.0"));
+  const behind = await check(executable(path.join(dir, "agy_acp_server.par"), "1.2.0"));
   assert.equal(behind.kind === "ok" && behind.updateAvailable, true);
 });
 
+
+test("the agy CLI is not compared with the separate ACP registry release", async () => {
+  const check = antigravityUpdateCheck(`${base}/must-not-be-read`);
+  const installation = executable(path.join(dir, "agy"), "1.4.12");
+  assert.deepEqual(await check(installation), {
+    kind: "unavailable",
+    reason: "unmanaged_installation",
+    detail: "The agy CLI updates itself; OAR has not integrated its update source. The ACP registry versions only the separate agy_acp_server.",
+  });
+});

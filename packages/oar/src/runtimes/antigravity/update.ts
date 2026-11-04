@@ -1,3 +1,4 @@
+import { isAntigravityCli } from "./launch.js";
 import type { AvailableInstallation } from "../../contracts/installation.js";
 import type { UpdateCheck, UpdateCheckOptions, UpdateChecker } from "../../contracts/update.js";
 import { asRecord, parseJson } from "../../shared/json.js";
@@ -17,6 +18,13 @@ export function antigravityUpdateCheck(
     const update = executableUpdate(installation);
     if (update.kind === "unavailable") {
       return update.check;
+    }
+    if (isAntigravityCli(update.installation.command)) {
+      return {
+        kind: "unavailable",
+        reason: "unmanaged_installation",
+        detail: "The agy CLI updates itself; OAR has not integrated its update source. The ACP registry versions only the separate agy_acp_server.",
+      };
     }
     const read = await readReleaseSource(registry, options.timeoutMs ?? CHECK_TIMEOUT_MS);
     if (!read.ok) {

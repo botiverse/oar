@@ -1,8 +1,8 @@
+import { antigravityAcpArgs } from "../../packages/oar/src/runtimes/antigravity/launch.js";
 import assert from "node:assert/strict";
 import { expect, test, vi } from "vitest";
 import type { Session, SessionOptions } from "../../packages/oar/src/contracts/session.js";
 import {
-  antigravityAcpArgs,
   antigravityAcpProfile,
   supportsAntigravityYolo,
 } from "../../packages/oar/src/runtimes/antigravity/session.js";
@@ -95,9 +95,9 @@ test("a turn ends on the prompt answer alone, with no usage_update to wait for",
 });
 
 test("the antigravity profile drops privileges only on linux and refuses a system prompt", () => {
-  assert.deepEqual(antigravityAcpArgs("linux"), ["--uid="]);
-  assert.deepEqual(antigravityAcpArgs("darwin"), []);
-  assert.deepEqual(antigravityAcpArgs("win32"), []);
+  assert.deepEqual(antigravityAcpArgs("agy_acp_server.par", "linux"), ["--uid="]);
+  assert.deepEqual(antigravityAcpArgs("agy_acp_server.par", "darwin"), []);
+  assert.deepEqual(antigravityAcpArgs("agy_acp_server.exe", "win32"), []);
   assert.equal(antigravityAcpProfile.modelViaConfigOption, true);
   assert.equal(antigravityAcpProfile.selectAuthMethod, undefined);
   assert.equal(antigravityAcpProfile.capabilities.attribution, "opaque");

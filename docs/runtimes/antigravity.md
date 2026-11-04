@@ -29,6 +29,61 @@ uses the 1.4.0 metadata namespace: upgrade the server and companion harness
 together. Versions are evidence baselines, not a support range; see the
 [runtime index](README.md) for status conventions.
 
+## Official CLI entrypoint
+
+OAR now prefers Google's official `agy` CLI, launched as `agy acp` (the
+[documented stdio ACP interface](https://antigravity.google/docs/cli/acp/)),
+over the older standalone registry server. Install it on macOS/Linux with:
+
+```sh
+curl -fsSL https://antigravity.google/cli/install.sh | bash
+agy acp --help
+agy
+```
+
+The last command is the vendor's interactive sign-in. OAR does not start a
+login, copy credentials or impersonate an editor. `agy acp` reuses the CLI's
+own cached credentials. Google's [ACP guide](https://antigravity.google/docs/ide/extensions/acp/)
+describes supported clients, authentication and model availability; OAR
+identifies itself as `oar` and does not promise editor-only third-party models.
+
+Discovery checks PATH `agy`, then the official default `~/.local/bin/agy`,
+then PATH `agy_acp_server.par` (`.exe` on Windows). `OAR_ANTIGRAVITY_BIN` pins
+one executable exclusively: keep the CLI's native `agy` / `agy.exe` name.
+Other override names retain the prior standalone-server launch contract.
+CLI versions are
+read from their bare version line; server versions from `Build label:`.
+The two entrypoints have separate credential stores and native sessions.
+Choose the prior executable explicitly to resume a legacy conversation.
+
+`installPlan` uses the official CLI installer through the existing script
+installer on macOS/Linux. It writes `~/.local/bin`, stages under
+`~/.cache/antigravity`, and runs native shell setup; Windows installation is
+manual. An already-installed legacy server is not silently replaced.
+`checkUpdate` still follows the registry for a legacy server. For the CLI it
+reports `unavailable/unmanaged_installation`, rather than compare unrelated
+CLI and registry versions; CLI auto-update integration is not included here.
+
+Validation on macOS arm64 with the user's installed **agy 1.5.0**, using
+its native stored login and client identity `oar`: model discovery returned
+Gemini 4 Argon and Gemini 3.8 Flash; the default model advertised effort
+`low`, `medium`, `high`. An explicit `gemini-4-argon` / `low` session reported
+both requested values through native readback. Two sequential turns returned
+`ACK` then the remembered codeword. After disposal, reopening the same
+native session id returned the original codeword on a third turn. Both
+disposals recorded process exit code 0 and a null resource query. These
+text-only checks ran in an empty temporary working directory; they did not
+exercise tools, permission requests, MCP or instruction/tool-denial parity.
+
+A separate empty-HOME/no-credential probe returned typed `unauthenticated`
+from model listing, rejected session opening with `Authentication required`,
+and completed child cleanup. `initialize` advertised ACP v1, agent version
+1.5.0, instruction metadata and close/resume/load/list capabilities.
+Automated fixtures cover the production runtime entrypoint's `acp` argv,
+multiple turns, settings readback, resume and disposal. The detailed
+1.2.1–1.4.5 evidence below describes the **standalone registry server**, not
+new CLI tool or permission behavior.
+
 ## Native concepts and calling interfaces
 
 A native session is a persistent conversation with an id, a working
@@ -513,31 +568,12 @@ the abort fallback, including the runtime's descendants
 ([test](../../tests/session-dispose.test.ts)). See
 [host-exit cleanup and limits](../spec/record-stream.md#the-rules).
 
-[Installation detection](../../packages/oar/src/runtimes/antigravity/installation.ts)
-checks `OAR_ANTIGRAVITY_BIN` and PATH `agy_acp_server.par`
-(`agy_acp_server.exe` on Windows), reading `Build label: <version>` from
-`--version` with a 30 second timeout. The ACP registry ships a zip with no
-installer, so there is no fallback path: put the binary on PATH or name it in
-`OAR_ANTIGRAVITY_BIN`. Google documents installing the agent only from an
-editor's agent registry
-([Zed](https://antigravity.google/docs/ide/extensions/zed): External
-Agents, Install from Registry), so `installPlan` and `install` answer
-`unsupported` `requires_gui` ([runtime install](../spec/install.md)). `checkUpdate` compares the installed version with that
-registry entry, the only release listing (it can trail Google's downloads),
-and counts only a newer registry version as an update; the server has no
-updater, so there is no `upgrade` ([runtime updates](update.md)).
-
-**Account terms (caveat):** the vendor FAQ warns that using a personal Google
-account from third-party tools may violate the terms of service and can lead
-to account suspension, and recommends an API key or Vertex instead. The live
-evidence above was gathered on a personal login. For anything beyond
-evaluation, configure the server with an API key (`gemini-api-key`) or
-Vertex (`agent-platform`). For the same reason the runtime has no `login`
-([runtime login](../spec/login.md)): OAR does not sign a person's account
-in on their behalf, since the terms do not allow it. The ACP server's own
-sign-in also redirects only to a loopback listener with no code to paste
-back, so a person on another device could not finish it. There is no
-`authStatus`.
+Current CLI installation and native sign-in are described under
+[Official CLI entrypoint](#official-cli-entrypoint). The historical registry
+server remains discoverable and uses its own stored login/API-key setup;
+OAR exposes neither `login` nor `authStatus` for either entrypoint. Earlier
+personal-login observations and vendor FAQ caveats for the standalone server
+are not a current policy statement for the official `agy acp` interface.
 
 Account usage is **unexposed**: OAR has no Antigravity account usage query.
 

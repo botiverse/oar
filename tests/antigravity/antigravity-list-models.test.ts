@@ -62,7 +62,7 @@ test("a catalog without a thought_level selector does not invent effort levels",
   expect(projectAntigravityModels(response)?.every((entry) => entry.effortLevels === undefined && entry.defaultEffort === undefined)).toBe(true);
 });
 
-test("antigravity lister initializes and opens a session, then kills the process without close", async () => {
+test.each(["agy", "agy_acp_server.par"])("antigravity lister uses %s stdio entrypoint, then kills the process", async (command) => {
   acp.request.mockImplementation(async (method) => {
     switch (method) {
       case "initialize":
@@ -73,7 +73,10 @@ test("antigravity lister initializes and opens a session, then kills the process
         throw new Error(`unexpected ${method}`);
     }
   });
-  await expect(antigravityListModels(installation)).resolves.toMatchObject({ kind: "ok" });
+  await expect(antigravityListModels({ ...installation, command })).resolves.toMatchObject({ kind: "ok" });
+  const serverArgs = process.platform === "linux" ? ["--uid="] : [];
+  const args = command === "agy" ? ["acp"] : serverArgs;
+  expect(vi.mocked(startAcpProcess).mock.calls.at(-1)?.slice(0, 2)).toEqual([command, args]);
   expect(acp.request.mock.calls.map(([method]) => method)).toEqual(["initialize", "session/new"]);
   expect(acp.kill).toHaveBeenCalledOnce();
   expect(acp.request.mock.calls[1]?.[1]).toEqual({ cwd: process.cwd(), mcpServers: [] });

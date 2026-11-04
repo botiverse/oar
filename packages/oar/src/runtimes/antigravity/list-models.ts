@@ -11,7 +11,7 @@ import { startAcpProcess, withAcpDeadline } from "../../shared/acp/process.js";
 import { acpThoughtLevelOption } from "../../shared/acp/model.js";
 import { asRecord, asRecordList, type JsonRecord } from "../../shared/json.js";
 import { listingCwd } from "../../shared/listing-cwd.js";
-import { antigravityAcpArgs } from "./session.js";
+import { antigravityAcpArgs } from "./launch.js";
 
 function text(value: unknown): string | undefined {
   if (typeof value !== "string") {
@@ -60,7 +60,7 @@ export function projectAntigravityModels(response: unknown): ModelEntry[] | unde
 }
 
 async function readNewSession(command: string, cwd: string, timeoutMs: number, env: NodeJS.ProcessEnv): Promise<JsonRecord> {
-  const runtime = startAcpProcess(command, antigravityAcpArgs(), createClient({ name: "oar" }), { cwd, env });
+  const runtime = startAcpProcess(command, antigravityAcpArgs(command), createClient({ name: "oar" }), { cwd, env });
   try {
     const initialize = methods.agent.initialize;
     await withAcpDeadline(
@@ -98,13 +98,13 @@ async function readNewSession(command: string, cwd: string, timeoutMs: number, e
 
 export const antigravityListModels: ModelLister = async (installation, options = {}) => {
   if (installation.via !== "executable") {
-    return { kind: "unsupported", reason: "antigravity model listing requires the agy_acp_server executable" };
+    return { kind: "unsupported", reason: "antigravity model listing requires an agy or agy_acp_server executable" };
   }
   try {
     const response = await readNewSession(installation.command, listingCwd(options), options.timeoutMs ?? 30_000, sessionEnvironment(options.env));
     const models = projectAntigravityModels(response);
     if (models === undefined) {
-      return { kind: "unsupported", reason: "this agy_acp_server build returns no model config option on session/new" };
+      return { kind: "unsupported", reason: "this Antigravity ACP build returns no model config option on session/new" };
     }
     return { kind: "ok", models };
   } catch (error) {
