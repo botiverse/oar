@@ -14,13 +14,14 @@ Those replay checks used no real account or paid provider. The
 [model-selection probe](../../experiments/qoder-native/model-selection-report.md)
 uses an existing login for catalog reads and opens, without a model prompt.
 
-Latest check, **1.1.82** (Linux x64, 2026-11-03): the synthetic native
-controls fail. Cache/live catalogs omit `serverModel.display_name` even when
-init resolves `efficient` to `Efficient`, so OAR refuses this unconfirmed model
-selection. A separate permission replay returns native error 10500 before any
-permission request. The same fixture passes on 1.1.81; account-backed behavior
-on 1.1.82 is unverified. No confirmation fallback is applied.
-[Comparison and limits](../../experiments/runtime-version-checks/2026-11-03.md#qoder-1182).
+Latest check, **1.1.83** (Linux x64, 2026-11-04): the synthetic native
+controls still fail. Cache/live catalogs omit `serverModel.display_name` even
+when init resolves `efficient` to `Efficient`; both catalog `value` and
+`modelId` are `efficient`, but OAR still refuses the missing confirmation.
+A separate permission replay returns native HTTP 500 before any permission
+request. The earlier [1.1.81 control](../../experiments/runtime-version-checks/2026-11-03.md#qoder-1182)
+passes; account-backed behavior on 1.1.83 is unverified. No confirmation
+fallback is applied. [Evidence and limits](../../experiments/runtime-version-checks/2026-11-04.md#qoder-1183).
 
 ## Manual compaction
 

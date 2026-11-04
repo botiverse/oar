@@ -1,0 +1,1588 @@
+{
+  "checkedAt": "2026-11-04T14:50:44.929Z",
+  "platform": "linux-x64",
+  "node": "v24.19.0",
+  "oarBase": "b4328cc659fbb231b6941b107ce25d08b3bda261",
+  "versions": [
+    {
+      "runtime": "antigravity",
+      "source": "https://raw.githubusercontent.com/agentclientprotocol/registry/main/antigravity-acp/agent.json",
+      "latest": "1.4.5"
+    },
+    {
+      "runtime": "claude",
+      "source": "https://registry.npmjs.org/@anthropic-ai/claude-code/latest",
+      "latest": "2.1.318"
+    },
+    {
+      "runtime": "codex",
+      "source": "https://registry.npmjs.org/@openai/codex/latest",
+      "latest": "0.166.0"
+    },
+    {
+      "runtime": "cursor",
+      "source": "https://registry.npmjs.org/@cursor/sdk/latest",
+      "latest": "1.3.1"
+    },
+    {
+      "runtime": "grok",
+      "source": "https://x.ai/cli/stable",
+      "latest": "1.0.70",
+      "lookup": "Inventory fetch failed; separately read the same official stable pointer."
+    },
+    {
+      "runtime": "kimi",
+      "source": "https://registry.npmjs.org/@moonshot-ai/kimi-code/latest",
+      "latest": "2.5.0"
+    },
+    {
+      "runtime": "opencode",
+      "line": "v1",
+      "source": "https://registry.npmjs.org/opencode-ai/latest",
+      "latest": "1.19.5"
+    },
+    {
+      "runtime": "opencode",
+      "line": "v2",
+      "source": "https://registry.npmjs.org/@opencode/cli/latest",
+      "latest": "2.2.5"
+    },
+    {
+      "runtime": "codebuddy",
+      "source": "https://registry.npmjs.org/@tencent-ai/codebuddy-code/latest",
+      "latest": "2.179.3"
+    },
+    {
+      "runtime": "qoder",
+      "source": "https://registry.npmjs.org/@qoder-ai/qodercli/latest",
+      "latest": "1.1.83"
+    },
+    {
+      "runtime": "qwen",
+      "source": "https://registry.npmjs.org/@qwen-code/qwen-code/latest",
+      "latest": "0.26.7"
+    },
+    {
+      "runtime": "pi",
+      "source": "https://registry.npmjs.org/@earendil-works/pi-coding-agent/latest",
+      "latest": "1.5.0"
+    },
+    {
+      "runtime": "pi-durable",
+      "source": "https://registry.npmjs.org/@earendil-works/pi-durable/latest",
+      "latest": "1.5.0"
+    },
+    {
+      "runtime": "pi-ai",
+      "source": "https://registry.npmjs.org/@earendil-works/pi-ai/latest",
+      "latest": "1.5.0"
+    },
+    {
+      "runtime": "chord",
+      "source": "https://registry.npmjs.org/@earendil-works/chord/latest",
+      "latest": "1.5.0"
+    }
+  ],
+  "behavior": {
+    "claude": {
+      "passed": 17,
+      "skipped": 2,
+      "failed": 0
+    },
+    "kimi": {
+      "passed": 15,
+      "skipped": 4,
+      "failed": 0
+    },
+    "qwen": {
+      "passed": 16,
+      "skipped": 3,
+      "failed": 0
+    },
+    "qoder": {
+      "passed": 2,
+      "skipped": 2,
+      "failed": 15
+    }
+  },
+  "vendor": {
+    "claude": {
+      "passed": 80,
+      "skipped": 295
+    },
+    "kimi": {
+      "failed": 1,
+      "passed": 10,
+      "skipped": 364
+    },
+    "qwen": {
+      "passed": 18,
+      "skipped": 357
+    },
+    "qoder": {
+      "failed": 11,
+      "passed": 1,
+      "skipped": 363
+    }
+  },
+  "execution": [
+    {
+      "name": "claude-version",
+      "exitCode": 0,
+      "elapsedSeconds": 0.033
+    },
+    {
+      "name": "kimi-version",
+      "exitCode": 0,
+      "elapsedSeconds": 1.47
+    },
+    {
+      "name": "claude-behavior",
+      "exitCode": 0,
+      "elapsedSeconds": 45.141
+    },
+    {
+      "name": "kimi-behavior",
+      "exitCode": 0,
+      "elapsedSeconds": 59.109
+    },
+    {
+      "name": "kimi-vendor",
+      "exitCode": 1,
+      "elapsedSeconds": 154.207
+    },
+    {
+      "name": "kimi-login",
+      "exitCode": 0,
+      "elapsedSeconds": 35.389
+    },
+    {
+      "name": "qwen-version",
+      "exitCode": 0,
+      "elapsedSeconds": 0.064
+    },
+    {
+      "name": "claude-vendor",
+      "exitCode": 0,
+      "elapsedSeconds": 210.182
+    },
+    {
+      "name": "claude-login-browser",
+      "exitCode": 0,
+      "elapsedSeconds": 7.296
+    },
+    {
+      "name": "qoder-version",
+      "exitCode": 0,
+      "elapsedSeconds": 2.622
+    },
+    {
+      "name": "qwen-behavior",
+      "exitCode": 0,
+      "elapsedSeconds": 61.508
+    },
+    {
+      "name": "qoder-behavior",
+      "exitCode": 1,
+      "elapsedSeconds": 108.88
+    },
+    {
+      "name": "qwen-vendor",
+      "exitCode": 0,
+      "elapsedSeconds": 163.225
+    },
+    {
+      "name": "qwen-native-plain",
+      "exitCode": 0,
+      "elapsedSeconds": 28.551
+    },
+    {
+      "name": "qwen-native-reply-blocks",
+      "exitCode": 0,
+      "elapsedSeconds": 32.193
+    },
+    {
+      "name": "qoder-vendor",
+      "exitCode": 1,
+      "elapsedSeconds": 172.962
+    },
+    {
+      "name": "qoder-login",
+      "exitCode": 0,
+      "elapsedSeconds": 2.375
+    },
+    {
+      "name": "qwen-native-tools",
+      "exitCode": 0,
+      "elapsedSeconds": 29.883
+    },
+    {
+      "name": "qwen-native-permission",
+      "exitCode": 0,
+      "elapsedSeconds": 29.629
+    },
+    {
+      "name": "qwen-native-catalog",
+      "exitCode": 0,
+      "elapsedSeconds": 28.172
+    },
+    {
+      "name": "qwen-lock-lifetime",
+      "exitCode": 0,
+      "elapsedSeconds": 15.578
+    }
+  ],
+  "claudeLoginBrowser": [
+    {
+      "platform": "linux",
+      "version": "2.1.318",
+      "mode": "default",
+      "exit": 0,
+      "result": {
+        "kind": "result",
+        "login": "logged_in",
+        "status": "logged_in",
+        "urls": 1,
+        "prompts": 1
+      },
+      "loginCompletion": {
+        "kind": "verified"
+      },
+      "browserOpens": 1,
+      "exchanges": 1,
+      "profiles": 1,
+      "verified": true,
+      "routes": [
+        "POST /v1/oauth/token",
+        "GET /api/oauth/profile",
+        "GET /api/oauth/claude_cli/roles"
+      ]
+    },
+    {
+      "platform": "linux",
+      "version": "2.1.318",
+      "mode": "suppressed",
+      "exit": 0,
+      "result": {
+        "kind": "result",
+        "login": "logged_in",
+        "status": "logged_in",
+        "urls": 1,
+        "prompts": 1
+      },
+      "loginCompletion": {
+        "kind": "verified"
+      },
+      "browserOpens": 0,
+      "exchanges": 1,
+      "profiles": 1,
+      "verified": true,
+      "routes": [
+        "POST /v1/oauth/token",
+        "GET /api/oauth/profile",
+        "GET /api/oauth/claude_cli/roles"
+      ]
+    },
+    {
+      "platform": "linux",
+      "version": "2.1.318",
+      "mode": "failing-browser",
+      "exit": 0,
+      "result": {
+        "kind": "result",
+        "login": "logged_in",
+        "status": "logged_in",
+        "urls": 1,
+        "prompts": 1
+      },
+      "loginCompletion": {
+        "kind": "verified"
+      },
+      "browserOpens": 1,
+      "exchanges": 1,
+      "profiles": 1,
+      "verified": true,
+      "routes": [
+        "POST /v1/oauth/token",
+        "GET /api/oauth/profile",
+        "GET /api/oauth/claude_cli/roles"
+      ]
+    }
+  ],
+  "cursor": {
+    "version": "1.3.1",
+    "oarPeer": "1.2.0",
+    "execution": [
+      {
+        "name": "cursor-login",
+        "sdk": "1.3.1",
+        "exitCode": 0,
+        "elapsedSeconds": 39.463
+      },
+      {
+        "name": "cursor-user-configuration",
+        "sdk": "1.3.1",
+        "exitCode": 0,
+        "elapsedSeconds": 65.699
+      },
+      {
+        "name": "cursor-force-offline",
+        "sdk": "1.3.1",
+        "exitCode": 0,
+        "elapsedSeconds": 2.272
+      }
+    ],
+    "login": {
+      "passed": 11,
+      "networkGuardPassed": true,
+      "realAccount": false
+    },
+    "userConfiguration": [
+      {
+        "label": "oar default",
+        "userConfigurationRead": false,
+        "userMcpConnected": false,
+        "storedLoginUsed": true,
+        "authenticatedRunReachedLocalBackend": true,
+        "terminalStatus": "error"
+      },
+      {
+        "label": "native user positive control",
+        "userConfigurationRead": true,
+        "userMcpConnected": true,
+        "storedLoginUsed": true,
+        "authenticatedRunReachedLocalBackend": true,
+        "terminalStatus": "error"
+      },
+      {
+        "label": "oar exclude",
+        "userConfigurationRead": false,
+        "userMcpConnected": false,
+        "storedLoginUsed": true,
+        "authenticatedRunReachedLocalBackend": true,
+        "terminalStatus": "error"
+      },
+      {
+        "label": "oar exclude after reopen",
+        "userConfigurationRead": false,
+        "userMcpConnected": false,
+        "storedLoginUsed": true,
+        "authenticatedRunReachedLocalBackend": true,
+        "terminalStatus": "error"
+      },
+      {
+        "credentialFileUnchangedAfterDisposalAndReopen": true,
+        "originalLoginStillPresent": true,
+        "inferencePerformed": false
+      }
+    ],
+    "offlineSummarize": {
+      "sdk": "1.3.1",
+      "syntheticStorage": true,
+      "catalogStubbed": true,
+      "results": [
+        {
+          "suppliedForce": false,
+          "errorName": "UnknownAgentError",
+          "causeName": "Error",
+          "message": "Agent <agent> already has active run"
+        },
+        {
+          "suppliedForce": true,
+          "errorName": "UnknownAgentError",
+          "causeName": "Error",
+          "message": "Agent <agent> already has active run"
+        }
+      ],
+      "activeRunUnchanged": true,
+      "executorCalls": 0,
+      "blockedFetchCalls": 0
+    },
+    "declarationDiffFrom": "1.3.0",
+    "declarationDiffLines": 0,
+    "excludedSetup": "Initial pnpm exec invocation restored the workspace 1.2.0 dependency; excluded those outcomes. Repeated using direct tsx and verified SDK 1.3.1 before and after each command.",
+    "limits": [
+      "No real-account inference, tool, upgrade/resume or compaction run on 1.3.1.",
+      "No peer or bundled SDK version change."
+    ]
+  },
+  "kimi": {
+    "version": "2.5.0",
+    "ciPin": "2.4.1",
+    "localLoginTests": 4,
+    "focusedCase": "sea-trial/vendor/mcp-servers-acp.vendor.test.ts: a stdio and an http server attach, the agent calls both, and a resume attaches them again",
+    "configuredTools": [
+      "mcp__echo__echo",
+      "mcp__remote__echo"
+    ],
+    "comparison": [
+      {
+        "version": "2.4.1",
+        "passed": 1,
+        "failed": 0,
+        "skipped": 8,
+        "toolsOnResumeWithoutMcpServers": []
+      },
+      {
+        "version": "2.5.0",
+        "passed": 0,
+        "failed": 1,
+        "skipped": 8,
+        "toolsOnResumeWithoutMcpServers": [
+          "mcp__echo__echo",
+          "mcp__remote__echo"
+        ]
+      }
+    ],
+    "limits": [
+      "Observed provider tool declarations after a fresh-process resume, not proof those tools executed in the omitted-configuration turn.",
+      "The configured opening and explicit configured resume completed their echo tool calls.",
+      "No product, assertion, deadline or pin change; persistence mechanism requires separate investigation."
+    ]
+  },
+  "qoder": {
+    "version": "1.1.83",
+    "catalog": {
+      "version": "1.1.83",
+      "syntheticReplay": true,
+      "requested": "efficient",
+      "rows": [
+        {
+          "fetchStrategy": "cache",
+          "initModel": "Efficient",
+          "selected": {
+            "keys": [
+              "availableContextWindows",
+              "defaultContextWindow",
+              "description",
+              "displayName",
+              "format",
+              "isEnabled",
+              "isVl",
+              "maxInputTokens",
+              "modelId",
+              "priceFactor",
+              "serverScene",
+              "source",
+              "strategies",
+              "value"
+            ],
+            "value": "efficient",
+            "modelId": "efficient",
+            "displayName": "Efficient",
+            "nativeName": null
+          }
+        },
+        {
+          "fetchStrategy": "live",
+          "initModel": "Efficient",
+          "selected": {
+            "keys": [
+              "availableContextWindows",
+              "defaultContextWindow",
+              "description",
+              "displayName",
+              "format",
+              "isEnabled",
+              "isVl",
+              "maxInputTokens",
+              "modelId",
+              "priceFactor",
+              "serverScene",
+              "source",
+              "strategies",
+              "value"
+            ],
+            "value": "efficient",
+            "modelId": "efficient",
+            "displayName": "Efficient",
+            "nativeName": null
+          }
+        }
+      ],
+      "opened": {
+        "kind": "refused",
+        "reason": "Qoder model catalog did not provide a resolved name for \"efficient\"; reported \"Efficient\""
+      }
+    },
+    "permission": {
+      "permissionRequests": 0,
+      "permissionReplies": 0,
+      "result": {
+        "type": "result",
+        "subtype": "error_during_execution",
+        "is_error": true,
+        "num_turns": 1,
+        "total_cost_usd": 0,
+        "total_credits": 0,
+        "usage": {
+          "input_tokens": 0,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "output_tokens": 0,
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 0,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "",
+          "iterations": [],
+          "speed": "standard"
+        },
+        "permission_denials": [],
+        "errors": [
+          "inference.remoteChat.stream failed: HTTP 500: Internal Server Error"
+        ],
+        "error_message": "Internal Server Error"
+      }
+    },
+    "bundle": {
+      "sha256": "66699ea0d17b4080445a8b22e628f150bbfbe137ee4acb57a4041fbc3a50f4d6",
+      "getFakeResponseStoreOccurrences": 1
+    },
+    "limits": [
+      "No account-backed catalog or inference probe.",
+      "Only the method declaration remains under getFakeResponseStore; this does not exhaust dynamic code paths.",
+      "The native HTTP 500 result does not establish a remote service outage or the replay failure cause.",
+      "No product confirmation, assertion or deadline change."
+    ]
+  },
+  "antigravityCli": {
+    "version": "1.5.0",
+    "existingAcpVersion": "1.4.5",
+    "manifestSource": "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app/manifests/linux_amd64.json",
+    "manifest": {
+      "version": "1.5.0",
+      "url": "https://storage.googleapis.com/antigravity-public/antigravity-cli/1.5.0-5269980577660928/linux-x64/cli_linux_x64.tar.gz",
+      "sha512": "e6031f850929210705d8c2393a5665b82b8c3b19684a6d3c556cafa31f26f77acbf164dfee96ca84a5ae7670ac0cc238a974c981c517b269194bdccff271cbd5"
+    },
+    "sha512Verified": true,
+    "publicHead": "c994f07d241d3b3b1902d5705008092beb00e099",
+    "handshake": {
+      "network": "isolated namespace",
+      "authenticated": false,
+      "promptSent": false,
+      "initialize": {
+        "jsonrpc": "2.0",
+        "result": {
+          "protocolVersion": 1,
+          "agentCapabilities": {
+            "loadSession": true,
+            "load_session": true,
+            "promptCapabilities": {
+              "image": true,
+              "audio": false,
+              "embeddedContext": true
+            },
+            "sessionCapabilities": {
+              "resume": {},
+              "close": {},
+              "load": {},
+              "list": {},
+              "additionalDirectories": {}
+            },
+            "session_capabilities": {
+              "resume": {},
+              "close": {},
+              "load": {},
+              "list": {},
+              "additionalDirectories": {}
+            },
+            "auth": {
+              "logout": {}
+            },
+            "_meta": {
+              "antigravity": {
+                "tier": true,
+                "systemPrompt": {
+                  "append": true
+                }
+              }
+            }
+          },
+          "agentInfo": {
+            "name": "Antigravity ACP Server",
+            "version": "1.5.0"
+          },
+          "authMethods": [
+            {
+              "id": "oauth-personal",
+              "name": "Log in with Google",
+              "description": "Log in with your Google account"
+            },
+            {
+              "id": "oauth-business",
+              "name": "Log in with Gemini Enterprise",
+              "description": "Log in with your Gemini Enterprise account"
+            },
+            {
+              "id": "gemini-api-key",
+              "name": "Gemini API key",
+              "description": "Use an API key with Gemini Developer API"
+            },
+            {
+              "id": "agent-platform",
+              "name": "Gemini Enterprise Agent Platform",
+              "description": "Use Gemini Enterprise Agent Platform (formerly Vertex AI) with Application Default Credentials"
+            }
+          ]
+        },
+        "id": 1
+      },
+      "launchError": null,
+      "stderr": ""
+    },
+    "limits": [
+      "Only help, version and initialize were exercised.",
+      "No authentication, session opening, prompt, steer, tools, permissions, resume or MCP behavior test.",
+      "Production continues to use the separate ACP server."
+    ]
+  },
+  "qwen": {
+    "version": "0.26.7",
+    "lock": [
+      {
+        "phase": "warm-home initialize with held lock",
+        "elapsedMs": 1767,
+        "requests": 0
+      },
+      {
+        "phase": "first prompt blocked after initialize",
+        "lockHeld": true,
+        "requests": 0
+      },
+      {
+        "phase": "first prompt after releasing lock",
+        "outcome": "completed"
+      },
+      {
+        "phase": "ordinary later prompt with held lock",
+        "outcome": "completed"
+      }
+    ],
+    "credentialKeys": {
+      "version": "0.26.7",
+      "providerPresetSource": "chunks/chunk-WSCYZAMU.js",
+      "presetEnvKeys": [
+        "BAILIAN_CODING_PLAN_API_KEY",
+        "BAILIAN_TOKEN_PLAN_API_KEY",
+        "DASHSCOPE_API_KEY",
+        "DEEPSEEK_API_KEY",
+        "IDEALAB_API_KEY",
+        "MINIMAX_API_KEY",
+        "MODELSCOPE_API_KEY",
+        "MOONSHOT_API_KEY",
+        "OPENROUTER_API_KEY",
+        "QWENCLOUD_API_KEY",
+        "QWENCLOUD_TOKEN_PLAN_API_KEY",
+        "REQUESTY_API_KEY",
+        "XAI_API_KEY",
+        "ZAI_API_KEY"
+      ],
+      "nativeAuthKeys": [
+        "OPENAI_API_KEY",
+        "ANTHROPIC_API_KEY",
+        "GEMINI_API_KEY",
+        "GOOGLE_API_KEY"
+      ],
+      "oarKeys": [
+        "ANTHROPIC_API_KEY",
+        "BAILIAN_CODING_PLAN_API_KEY",
+        "BAILIAN_TOKEN_PLAN_API_KEY",
+        "DASHSCOPE_API_KEY",
+        "DEEPSEEK_API_KEY",
+        "GEMINI_API_KEY",
+        "GOOGLE_API_KEY",
+        "IDEALAB_API_KEY",
+        "MINIMAX_API_KEY",
+        "MODELSCOPE_API_KEY",
+        "MOONSHOT_API_KEY",
+        "OPENAI_API_KEY",
+        "OPENROUTER_API_KEY",
+        "QWENCLOUD_API_KEY",
+        "QWENCLOUD_TOKEN_PLAN_API_KEY",
+        "REQUESTY_API_KEY",
+        "XAI_API_KEY",
+        "ZAI_API_KEY"
+      ],
+      "missing": []
+    },
+    "nativeScenarios": [
+      {
+        "scenario": "plain",
+        "results": [
+          {
+            "resume": false,
+            "phase": "first",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": false,
+            "phase": "second",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": false,
+            "phase": "interrupted",
+            "subtype": "error_during_execution",
+            "isError": true
+          },
+          {
+            "resume": false,
+            "phase": "afterAbort",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": true,
+            "phase": "first",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": true,
+            "phase": "second",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": true,
+            "phase": "interrupted",
+            "subtype": "error_during_execution",
+            "isError": true
+          },
+          {
+            "resume": true,
+            "phase": "afterAbort",
+            "subtype": "success",
+            "isError": false
+          }
+        ],
+        "controls": [
+          {
+            "resume": false,
+            "phase": "before_first",
+            "control": "get_usage_info",
+            "subtype": "success"
+          },
+          {
+            "resume": false,
+            "phase": "before_first",
+            "control": "get_context_usage",
+            "subtype": "success",
+            "modelName": "gpt-5.1",
+            "totalTokens": 0,
+            "contextWindowSize": 272000,
+            "isEstimated": true
+          },
+          {
+            "resume": false,
+            "phase": "after_turns",
+            "control": "get_available_models",
+            "subtype": "success",
+            "models": []
+          },
+          {
+            "resume": false,
+            "phase": "after_turns",
+            "control": "get_context_usage",
+            "subtype": "success",
+            "modelName": "gpt-5.1",
+            "totalTokens": 11677,
+            "contextWindowSize": 272000,
+            "isEstimated": false
+          },
+          {
+            "resume": false,
+            "phase": "after_turns",
+            "control": "get_usage_info",
+            "subtype": "success"
+          },
+          {
+            "resume": true,
+            "phase": "before_first",
+            "control": "get_usage_info",
+            "subtype": "success"
+          },
+          {
+            "resume": true,
+            "phase": "before_first",
+            "control": "get_context_usage",
+            "subtype": "success",
+            "modelName": "gpt-5.1",
+            "totalTokens": 0,
+            "contextWindowSize": 272000,
+            "isEstimated": true
+          },
+          {
+            "resume": true,
+            "phase": "after_turns",
+            "control": "get_available_models",
+            "subtype": "success",
+            "models": []
+          },
+          {
+            "resume": true,
+            "phase": "after_turns",
+            "control": "get_context_usage",
+            "subtype": "success",
+            "modelName": "gpt-5.1",
+            "totalTokens": 11700,
+            "contextWindowSize": 272000,
+            "isEstimated": false
+          },
+          {
+            "resume": true,
+            "phase": "after_turns",
+            "control": "get_usage_info",
+            "subtype": "success"
+          }
+        ],
+        "permissionRequests": {
+          "fresh": 0,
+          "resume": 0
+        }
+      },
+      {
+        "scenario": "reply-blocks",
+        "results": [
+          {
+            "resume": false,
+            "phase": "first",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": false,
+            "phase": "second",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": false,
+            "phase": "interrupted",
+            "subtype": "error_during_execution",
+            "isError": true
+          },
+          {
+            "resume": false,
+            "phase": "afterAbort",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": true,
+            "phase": "first",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": true,
+            "phase": "second",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": true,
+            "phase": "interrupted",
+            "subtype": "error_during_execution",
+            "isError": true
+          },
+          {
+            "resume": true,
+            "phase": "afterAbort",
+            "subtype": "success",
+            "isError": false
+          }
+        ],
+        "controls": [
+          {
+            "resume": false,
+            "phase": "before_first",
+            "control": "get_usage_info",
+            "subtype": "success"
+          },
+          {
+            "resume": false,
+            "phase": "before_first",
+            "control": "get_context_usage",
+            "subtype": "success",
+            "modelName": "gpt-5.1",
+            "totalTokens": 0,
+            "contextWindowSize": 272000,
+            "isEstimated": true
+          },
+          {
+            "resume": false,
+            "phase": "after_turns",
+            "control": "get_available_models",
+            "subtype": "success",
+            "models": []
+          },
+          {
+            "resume": false,
+            "phase": "after_turns",
+            "control": "get_context_usage",
+            "subtype": "success",
+            "modelName": "gpt-5.1",
+            "totalTokens": 11684,
+            "contextWindowSize": 272000,
+            "isEstimated": false
+          },
+          {
+            "resume": false,
+            "phase": "after_turns",
+            "control": "get_usage_info",
+            "subtype": "success"
+          },
+          {
+            "resume": true,
+            "phase": "before_first",
+            "control": "get_usage_info",
+            "subtype": "success"
+          },
+          {
+            "resume": true,
+            "phase": "before_first",
+            "control": "get_context_usage",
+            "subtype": "success",
+            "modelName": "gpt-5.1",
+            "totalTokens": 0,
+            "contextWindowSize": 272000,
+            "isEstimated": true
+          },
+          {
+            "resume": true,
+            "phase": "after_turns",
+            "control": "get_available_models",
+            "subtype": "success",
+            "models": []
+          },
+          {
+            "resume": true,
+            "phase": "after_turns",
+            "control": "get_context_usage",
+            "subtype": "success",
+            "modelName": "gpt-5.1",
+            "totalTokens": 11723,
+            "contextWindowSize": 272000,
+            "isEstimated": false
+          },
+          {
+            "resume": true,
+            "phase": "after_turns",
+            "control": "get_usage_info",
+            "subtype": "success"
+          }
+        ],
+        "permissionRequests": {
+          "fresh": 0,
+          "resume": 0
+        },
+        "firstReplyStructure": {
+          "messageStarts": 1,
+          "blockStartIndices": [
+            0,
+            0
+          ],
+          "snapshots": [
+            {
+              "blockTypes": [
+                "thinking"
+              ],
+              "idMatchesInitial": true
+            },
+            {
+              "blockTypes": [
+                "text"
+              ],
+              "idMatchesInitial": false
+            }
+          ]
+        }
+      },
+      {
+        "scenario": "tools",
+        "results": [
+          {
+            "resume": false,
+            "phase": "mcp",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": false,
+            "phase": "first",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": false,
+            "phase": "second",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": false,
+            "phase": "interrupted",
+            "subtype": "error_during_execution",
+            "isError": true
+          },
+          {
+            "resume": false,
+            "phase": "afterAbort",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": true,
+            "phase": "mcp",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": true,
+            "phase": "first",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": true,
+            "phase": "second",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": true,
+            "phase": "interrupted",
+            "subtype": "error_during_execution",
+            "isError": true
+          },
+          {
+            "resume": true,
+            "phase": "afterAbort",
+            "subtype": "success",
+            "isError": false
+          }
+        ],
+        "controls": [
+          {
+            "resume": false,
+            "phase": "before_first",
+            "control": "get_usage_info",
+            "subtype": "success"
+          },
+          {
+            "resume": false,
+            "phase": "before_first",
+            "control": "get_context_usage",
+            "subtype": "success",
+            "modelName": "gpt-5.1",
+            "totalTokens": 0,
+            "contextWindowSize": 272000,
+            "isEstimated": true
+          },
+          {
+            "resume": false,
+            "phase": "after_turns",
+            "control": "get_available_models",
+            "subtype": "success",
+            "models": []
+          },
+          {
+            "resume": false,
+            "phase": "after_turns",
+            "control": "get_context_usage",
+            "subtype": "success",
+            "modelName": "gpt-5.1",
+            "totalTokens": 11820,
+            "contextWindowSize": 272000,
+            "isEstimated": false
+          },
+          {
+            "resume": false,
+            "phase": "after_turns",
+            "control": "get_usage_info",
+            "subtype": "success"
+          },
+          {
+            "resume": true,
+            "phase": "before_first",
+            "control": "get_usage_info",
+            "subtype": "success"
+          },
+          {
+            "resume": true,
+            "phase": "before_first",
+            "control": "get_context_usage",
+            "subtype": "success",
+            "modelName": "gpt-5.1",
+            "totalTokens": 0,
+            "contextWindowSize": 272000,
+            "isEstimated": true
+          },
+          {
+            "resume": true,
+            "phase": "after_turns",
+            "control": "get_available_models",
+            "subtype": "success",
+            "models": []
+          },
+          {
+            "resume": true,
+            "phase": "after_turns",
+            "control": "get_context_usage",
+            "subtype": "success",
+            "modelName": "gpt-5.1",
+            "totalTokens": 11734,
+            "contextWindowSize": 272000,
+            "isEstimated": false
+          },
+          {
+            "resume": true,
+            "phase": "after_turns",
+            "control": "get_usage_info",
+            "subtype": "success"
+          }
+        ],
+        "permissionRequests": {
+          "fresh": 0,
+          "resume": 0
+        },
+        "observedEchoes": [
+          "echo:fresh-probe via=stdio token=none",
+          "echo:resumed-probe via=stdio token=none"
+        ]
+      },
+      {
+        "scenario": "permission",
+        "results": [
+          {
+            "resume": false,
+            "phase": "mcp",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": false,
+            "phase": "first",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": false,
+            "phase": "second",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": false,
+            "phase": "interrupted",
+            "subtype": "error_during_execution",
+            "isError": true
+          },
+          {
+            "resume": false,
+            "phase": "afterAbort",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": true,
+            "phase": "mcp",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": true,
+            "phase": "first",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": true,
+            "phase": "second",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": true,
+            "phase": "interrupted",
+            "subtype": "error_during_execution",
+            "isError": true
+          },
+          {
+            "resume": true,
+            "phase": "afterAbort",
+            "subtype": "success",
+            "isError": false
+          }
+        ],
+        "controls": [
+          {
+            "resume": false,
+            "phase": "before_first",
+            "control": "get_usage_info",
+            "subtype": "success"
+          },
+          {
+            "resume": false,
+            "phase": "before_first",
+            "control": "get_context_usage",
+            "subtype": "success",
+            "modelName": "gpt-5.1",
+            "totalTokens": 0,
+            "contextWindowSize": 272000,
+            "isEstimated": true
+          },
+          {
+            "resume": false,
+            "phase": "after_turns",
+            "control": "get_available_models",
+            "subtype": "success",
+            "models": []
+          },
+          {
+            "resume": false,
+            "phase": "after_turns",
+            "control": "get_context_usage",
+            "subtype": "success",
+            "modelName": "gpt-5.1",
+            "totalTokens": 11820,
+            "contextWindowSize": 272000,
+            "isEstimated": false
+          },
+          {
+            "resume": false,
+            "phase": "after_turns",
+            "control": "get_usage_info",
+            "subtype": "success"
+          },
+          {
+            "resume": true,
+            "phase": "before_first",
+            "control": "get_usage_info",
+            "subtype": "success"
+          },
+          {
+            "resume": true,
+            "phase": "before_first",
+            "control": "get_context_usage",
+            "subtype": "success",
+            "modelName": "gpt-5.1",
+            "totalTokens": 0,
+            "contextWindowSize": 272000,
+            "isEstimated": true
+          },
+          {
+            "resume": true,
+            "phase": "after_turns",
+            "control": "get_available_models",
+            "subtype": "success",
+            "models": []
+          },
+          {
+            "resume": true,
+            "phase": "after_turns",
+            "control": "get_context_usage",
+            "subtype": "success",
+            "modelName": "gpt-5.1",
+            "totalTokens": 11734,
+            "contextWindowSize": 272000,
+            "isEstimated": false
+          },
+          {
+            "resume": true,
+            "phase": "after_turns",
+            "control": "get_usage_info",
+            "subtype": "success"
+          }
+        ],
+        "permissionRequests": {
+          "fresh": 1,
+          "resume": 1
+        },
+        "observedEchoes": [
+          "echo:fresh-probe via=stdio token=none",
+          "echo:resumed-probe via=stdio token=none"
+        ]
+      },
+      {
+        "scenario": "catalog",
+        "results": [
+          {
+            "resume": false,
+            "phase": "first",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": false,
+            "phase": "second",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": false,
+            "phase": "interrupted",
+            "subtype": "error_during_execution",
+            "isError": true
+          },
+          {
+            "resume": false,
+            "phase": "afterAbort",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": true,
+            "phase": "first",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": true,
+            "phase": "second",
+            "subtype": "success",
+            "isError": false
+          },
+          {
+            "resume": true,
+            "phase": "interrupted",
+            "subtype": "error_during_execution",
+            "isError": true
+          },
+          {
+            "resume": true,
+            "phase": "afterAbort",
+            "subtype": "success",
+            "isError": false
+          }
+        ],
+        "controls": [
+          {
+            "resume": false,
+            "phase": "before_first",
+            "control": "get_usage_info",
+            "subtype": "success"
+          },
+          {
+            "resume": false,
+            "phase": "before_first",
+            "control": "get_context_usage",
+            "subtype": "success",
+            "modelName": "gpt-5.1",
+            "totalTokens": 0,
+            "contextWindowSize": 272000,
+            "isEstimated": true
+          },
+          {
+            "resume": false,
+            "phase": "after_turns",
+            "control": "get_available_models",
+            "subtype": "success",
+            "models": [
+              {
+                "id": "gpt-5.1",
+                "label": "Local reasoning model",
+                "capabilities": {},
+                "contextWindowSize": 272000
+              }
+            ]
+          },
+          {
+            "resume": false,
+            "phase": "after_turns",
+            "control": "get_context_usage",
+            "subtype": "success",
+            "modelName": "gpt-5.1",
+            "totalTokens": 11677,
+            "contextWindowSize": 272000,
+            "isEstimated": false
+          },
+          {
+            "resume": false,
+            "phase": "after_turns",
+            "control": "get_usage_info",
+            "subtype": "success"
+          },
+          {
+            "resume": true,
+            "phase": "before_first",
+            "control": "get_usage_info",
+            "subtype": "success"
+          },
+          {
+            "resume": true,
+            "phase": "before_first",
+            "control": "get_context_usage",
+            "subtype": "success",
+            "modelName": "gpt-5.1",
+            "totalTokens": 0,
+            "contextWindowSize": 272000,
+            "isEstimated": true
+          },
+          {
+            "resume": true,
+            "phase": "after_turns",
+            "control": "get_available_models",
+            "subtype": "success",
+            "models": [
+              {
+                "id": "gpt-5.1",
+                "label": "Local reasoning model",
+                "capabilities": {},
+                "contextWindowSize": 272000
+              }
+            ]
+          },
+          {
+            "resume": true,
+            "phase": "after_turns",
+            "control": "get_context_usage",
+            "subtype": "success",
+            "modelName": "gpt-5.1",
+            "totalTokens": 11700,
+            "contextWindowSize": 272000,
+            "isEstimated": false
+          },
+          {
+            "resume": true,
+            "phase": "after_turns",
+            "control": "get_usage_info",
+            "subtype": "success"
+          }
+        ],
+        "permissionRequests": {
+          "fresh": 0,
+          "resume": 0
+        }
+      }
+    ]
+  },
+  "windows": {
+    "from": "2026-11-03T14:55:00Z",
+    "through": "2026-11-04T14:50:00Z",
+    "newAcpMainRuns": 0,
+    "ciRunEntries": 3,
+    "ciRunsWithJobs": 1,
+    "notExecutedRuns": [
+      {
+        "run": 41850948731,
+        "conclusion": "action_required",
+        "jobCount": 0
+      },
+      {
+        "run": 41850379512,
+        "conclusion": "action_required",
+        "jobCount": 0
+      }
+    ],
+    "piRpcVendorJobs": [
+      {
+        "run": 41662458763,
+        "id": 126008935470,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-11-03T15:18:15Z",
+        "completed_at": "2026-11-03T15:21:35Z",
+        "steps": []
+      }
+    ],
+    "piRpcPostSplitCancellationCount": 2,
+    "codebuddyInstallSmoke": {
+      "run": 41662458763,
+      "job": 126008935585,
+      "completed_at": "2026-11-03T15:26:42Z",
+      "conclusion": "success",
+      "name": "CodeBuddy npm installer in an isolated HOME and global prefix",
+      "number": 8,
+      "started_at": "2026-11-03T15:24:51Z",
+      "status": "completed"
+    },
+    "newCodebuddyTimeouts": 0
+  },
+  "upstream": {
+    "opencode-54794": {
+      "html_url": "https://github.com/anomalyco/opencode/issues/54794",
+      "state": "open",
+      "comments": 2,
+      "updated_at": "2026-10-12T20:53:16Z"
+    },
+    "opencode-53879": {
+      "html_url": "https://github.com/anomalyco/opencode/issues/53879",
+      "state": "open",
+      "comments": 4,
+      "updated_at": "2026-10-29T17:18:46Z"
+    },
+    "kimi-2370": {
+      "html_url": "https://github.com/MoonshotAI/kimi-cli/issues/2370",
+      "state": "open",
+      "comments": 1,
+      "updated_at": "2026-09-12T16:09:18Z"
+    },
+    "qwen-15796": {
+      "html_url": "https://github.com/QwenLM/qwen-code/issues/15796",
+      "state": "open",
+      "comments": 2,
+      "updated_at": "2026-10-28T13:14:10Z"
+    },
+    "qwen-15875": {
+      "html_url": "https://github.com/QwenLM/qwen-code/issues/15875",
+      "state": "open",
+      "comments": 3,
+      "updated_at": "2026-11-04T13:52:28Z"
+    },
+    "qwenSnapshotComment": {
+      "id": 6632408160,
+      "html_url": "https://github.com/QwenLM/qwen-code/issues/15875#issuecomment-6632408160",
+      "created_at": "2026-11-04T13:52:28Z",
+      "meaning": "Volunteer offers an implementation after the wire contract is agreed; no maintainer decision or fix reported."
+    },
+    "codebuddy1847": {
+      "url": "https://cnb.cool/codebuddy/codebuddy-code/-/issues/1847",
+      "state": "open",
+      "comments": 0,
+      "updatedAt": "2026-10-28T06:32:16Z"
+    },
+    "dsh": {
+      "previousHead": "8bd073392eef6f54e921a093b95076248eb08cbb",
+      "head": "fcc0ad462172522aaf5c93a7b2e01f6b9f0b0159",
+      "oarPatchBlob": "d2c671a3e233f33534ec4df90bb4f98067d7c47f",
+      "workspaceBlob": "59b31eb46b90e35251cbf3c26b20556892c4aa52",
+      "patchAndPinUnchanged": true,
+      "watchedPathsChanged": true,
+      "changes": [
+        "Both experimental OAR packages: 0.2.2-alpha.3 to 0.2.2-rc.1",
+        "Optional activation name forwarded to startActivation; receipt reports activation kind/name",
+        "Presentation metadata, persisted-name validation and associated tests/docs"
+      ],
+      "commits": [
+        "ff563d07e07e78a882b376c674254a7aedfbbc51",
+        "a7f21a8dd69feb3b89947b03222ca42aa11c9712",
+        "6c0b6c7aa33c04d26380be49937dd7f08de4ba00",
+        "2f97f60455605e915b8176d9170cae337bfedcc6"
+      ],
+      "latestDiscussionComment": 19314203,
+      "newComment": false
+    }
+  },
+  "repositoryValidation": {
+    "check": "passed",
+    "unitTests": 3141,
+    "mockBehaviorPassed": 18,
+    "mockBehaviorSkipped": 1,
+    "packageBuilds": "passed",
+    "nativeKnownFailures": [
+      "Kimi 2.5.0 omitted-resume MCP inventory",
+      "Qoder 1.1.83 model confirmation and independent permission replay"
+    ]
+  }
+}

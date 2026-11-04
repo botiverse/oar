@@ -45,6 +45,17 @@ keeps ACP because it exposes the session controls needed by a host on one stdio
 connection. The bundled Python SDK drives its companion harness underneath
 ACP; OAR does not call that private connection directly.
 
+### New CLI ACP entry point, checked November 4
+
+The separate **agy CLI 1.5.0** now exposes public `agy acp`. Its official
+changelog describes steering through a prompt sent during an active turn.
+An unauthenticated, network-isolated initialize probe identifies an ACP 1.5.0
+server and its advertised capabilities. No session, prompt, steering, cancel,
+permission, resume or MCP behavior has been verified on that entry point.
+OAR continues to use the separate ACP 1.4.5 distribution. The dated comparison
+below concerns the older CLI's stream-json interface, not this new ACP mode.
+See the [new interface evidence and limits](../../experiments/runtime-version-checks/2026-11-04.md#agy-cli-150-new-public-acp-entry-point).
+
 ### CLI versus ACP, checked October 29
 
 The comparison uses **agy CLI 1.4.9** and **ACP 1.4.4** on Linux x64.

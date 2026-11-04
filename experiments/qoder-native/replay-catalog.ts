@@ -37,6 +37,7 @@ try {
       const selected = models.find(model => model.value === options.model);
       rows.push({ fetchStrategy, initModel, selected: selected === undefined ? null : {
         keys: Object.keys(selected).toSorted(), value: selected.value,
+        modelId: typeof selected.modelId === "string" ? selected.modelId : null,
         displayName: selected.displayName,
         nativeName: asRecord(selected.serverModel)?.display_name ?? null,
       } });

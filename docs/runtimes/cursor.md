@@ -24,11 +24,11 @@ three root tool-selection scenarios passed; `kill-runtime` remains skipped
 ([October 28 report](../../experiments/runtime-version-checks/2026-10-28.md#cursor-120)).
 With the compaction adapter the live battery passed again, `abort` on an
 unchanged rerun ([compaction probe](../../experiments/cursor-compaction.md#validation-and-retained-failure)).
-The newer **1.3.0** release passed local login/configuration controls and an
-offline interrupted-run summarize check on November 3. Those checks used no
+The newer **1.3.1** release passed local login/configuration controls and an
+offline interrupted-run summarize check on November 4. Those checks used no
 real inference and do not establish tool, resume or compaction compatibility;
 the required peer remains 1.2.0.
-[Evidence and limits](../../experiments/runtime-version-checks/2026-11-03.md#cursor-130).
+[Evidence and limits](../../experiments/runtime-version-checks/2026-11-04.md#cursor-131).
 
 Since SDK 1.1.0, whose totals count cache reads and writes as part of
 `inputTokens`, OAR no longer adds them to input again, so Cursor `input` can

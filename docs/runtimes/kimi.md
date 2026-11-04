@@ -26,13 +26,12 @@ darwin arm64, default model `kimi-code/k3`, no `--model`), 2026-09-11, through
 [experiments index](../../experiments/README.md): `kimi-wire-tap.ts`,
 `kimi-usage-update-order.ts live`, `kimi-steer-or-queue.ts`. All of them pass
 on **kimi 2.0.0** (2026-09-18, live-contract 13/13; its `thinking` values are
-under [Effort](#models-instructions-and-context)). The newest checked release
-is **kimi 2.4.1** (2026-10-30, Linux): all 15 shared behavior cases and
-11 native vendor cases passed, with four existing capability skips and
-two vendor workers, and the four local OAuth/login regressions passed
-without a real login. The
-[version check](../../experiments/runtime-version-checks/2026-10-30.md#kimi-241)
-states the cross-platform validation boundary.
+under [Effort](#models-instructions-and-context)). The latest check is
+**kimi 2.5.0** (2026-11-04, Linux): all 15 shared behavior cases and four local OAuth/login regressions pass, but one of eleven
+native vendor cases fails. A fresh-process resume without MCP configuration
+still offers the saved stdio and HTTP tools. The same unchanged case passes on
+2.4.1, which remains the CI pin. This observes tool declarations, not tool
+execution in that resumed turn. See the [comparison and limits](../../experiments/runtime-version-checks/2026-11-04.md#kimi-250).
 Facts from later binaries name their version. Versions are
 evidence baselines, not a support range. The [spec](../spec/README.md) is the
 contract the adapter implements, not evidence of this adapter's behavior; see
@@ -548,6 +547,12 @@ answering `{}` for that API-key model, with no OAuth
 - kimi appends a `<system-reminder>` user message (the date) after the
   prompt, so the scripted fixtures match the current turn's user messages,
   not only the last one.
+
+**2.5.0 changes the omitted-resume behavior above:** a fresh process still
+offers the previously supplied stdio and HTTP tools when the host omits
+`mcpServers`. The same test on 2.4.1 offers none. The new check observes tool
+declarations, not execution in that turn or the storage of their credentials;
+see the [November 4 comparison](../../experiments/runtime-version-checks/2026-11-04.md#kimi-250).
 
 The credentials reach kimi only in the open request's params, which OAR does
 not record (it records the answers, every `session/update` and vendor
