@@ -56,7 +56,10 @@ for (const { name, profile } of profiles) {
     expect(original?.attempts[0]?.response?.body).toMatchObject({ kind: "accepted", queued: "adapter" });
     expect(await session.withdraw?.(inputId)).toMatchObject({ kind: "accepted" });
   });
+}
 
+// The interrupt coordinator is the fallback for runtimes without native steer.
+for (const { name, profile } of profiles.filter((entry) => entry.profile.steerParams === undefined)) {
   test(`${name}: waits for every root tool, withdraws every input, then sends one merged prompt`, async () => {
     const { session, command } = await fixture(profile);
     await working(session);
@@ -182,7 +185,7 @@ test("interrupt returns every withdrawn input when cancellation fallback expires
 });
 
 test("interrupt uses an immediate boundary when no root tools are active", async () => {
-  const { session } = await fixture(antigravityAcpProfile, "no-tools");
+  const { session } = await fixture(opencodeV2AcpProfile, "no-tools");
   await session.prompt("work");
   await expect.poll(() => text(session)).toEqual(["working"]);
   const next = await session.deliver("next", { when: "interrupt", maxWaitMs: 5000 });
@@ -214,7 +217,7 @@ test("tools in a derived child session do not postpone the root interruption", a
 });
 
 test("default merging keeps image order and a deliver arriving during withdrawal runs after the batch", async () => {
-  const { session, image } = await fixture(antigravityAcpProfile);
+  const { session, image } = await fixture(opencodeV2AcpProfile);
   await working(session);
   await session.queue("first", { images: [{ path: image }] });
   const late: ReturnType<Session["deliver"]>[] = [];
@@ -231,4 +234,17 @@ test("default merging keeps image order and a deliver arriving during withdrawal
   expect(requests(session, "prompt")[1]?.body).toMatchObject({ input: "first\n\nsecond", images: [{ path: image }, { path: image }] });
   expect(text(session).at(-1)).toBe(JSON.stringify([{ type: "text", text: "after" }]));
   unsubscribe();
+});
+
+// CLI ACP now offers native steer, so interrupt delivery selects that member.
+test("antigravity interrupt delivery steers without withdrawing queued input or aborting", async () => {
+  const { session } = await fixture(antigravityAcpProfile, "no-tools");
+  await session.prompt("work");
+  await expect.poll(() => text(session)).toEqual(["working"]);
+  await session.queue("later");
+  const result = await session.deliver("now", { when: "interrupt", maxWaitMs: 5000 });
+  expect(result.landed).toBe("steered");
+  expect(requests(session, "steer")).toHaveLength(1);
+  expect(requests(session, "withdraw")).toHaveLength(0);
+  expect(requests(session, "abort")).toHaveLength(0);
 });

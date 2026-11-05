@@ -76,32 +76,12 @@ jobs:
       - id: native-install
         if: matrix.runtime != 'antigravity'
         run: npm install -g "$EVIDENCE_PACKAGE"
-      - name: Install pinned Antigravity ACP archive
+      - name: Install pinned Antigravity CLI
         id: antigravity-install
         if: matrix.runtime == 'antigravity'
         shell: pwsh
-        run: |
-          # Versioned archives and digests from the public ACP registry.
-          $archives = @{
-            'Linux-X64' = @('linux/agy-acp-server-1.4.5-linux-x86_64.zip', '923923a0d7dc8073f66cc6f78647a3107e3a7ee2b7e1a24df8b3927b5188013b')
-            'macOS-ARM64' = @('macos/agy-acp-server-1.4.5-darwin-arm64.zip', '886fff7767d08994ca39eb02c3d01a7532c7325a94aa33aaf52d52068733284f')
-            'macOS-X64' = @('macos/agy-acp-server-1.4.5-darwin-x86_64.zip', 'b39f3573c03b9acb9df028853f647527f1f3133f32bd77e78b796e48a205114a')
-            'Windows-X64' = @('windows/agy-acp-server-1.4.5-windows-x86_64.zip', 'd24f4c73c9f96d4f44384e281c855a56c72d8eaa9c5b0fad7ccb1635c6b63f50')
-          }
-          $entry = $archives["$env:RUNNER_OS-$env:RUNNER_ARCH"]
-          if (-not $entry) { throw 'No verified archive for runner platform' }
-          $archive = Join-Path $env:RUNNER_TEMP 'antigravity.zip'
-          $destination = Join-Path $env:RUNNER_TEMP 'antigravity'
-          Invoke-WebRequest "https://dl.google.com/agy-extensions/releases/$($entry[0])" -OutFile $archive
-          if ((Get-FileHash $archive -Algorithm SHA256).Hash.ToLowerInvariant() -ne $entry[1]) { throw 'Archive digest mismatch' }
-          Expand-Archive $archive $destination
-          $name = if ($IsWindows) { 'agy_acp_server.exe' } else { 'agy_acp_server.par' }
-          $binaries = @(Get-ChildItem $destination -Recurse -File -Filter $name)
-          if ($binaries.Count -ne 1) { throw 'Expected one ACP executable' }
-          if (-not $IsWindows) {
-            Get-ChildItem $destination -Recurse -File | ForEach-Object { chmod u+x $_.FullName }
-          }
-          "OAR_ANTIGRAVITY_BIN=$($binaries[0].FullName)" >> $env:GITHUB_ENV
+        run: node .github/scripts/install-antigravity.mjs
+
       - name: Codex native observations
         if: ${{ !inputs.execution_environment_only && !inputs.resources_only && !inputs.same_directory_only && matrix.runtime == 'codex' }}
         run: pnpm tsx experiments/sharing/codex.ts

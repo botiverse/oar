@@ -1,0 +1,375 @@
+{
+  "runtime": "agy CLI",
+  "platform": "linux x64",
+  "observations": [
+    {
+      "scenario": "unprompted-resume",
+      "responses": [
+        {
+          "method": "initialize",
+          "agentInfo": {
+            "name": "Antigravity ACP Server",
+            "version": "1.5.0"
+          },
+          "agentCapabilities": {
+            "loadSession": true,
+            "load_session": true,
+            "promptCapabilities": {
+              "image": true,
+              "audio": false,
+              "embeddedContext": true
+            },
+            "sessionCapabilities": {
+              "resume": {},
+              "close": {},
+              "load": {},
+              "list": {},
+              "additionalDirectories": {}
+            },
+            "session_capabilities": {
+              "resume": {},
+              "close": {},
+              "load": {},
+              "list": {},
+              "additionalDirectories": {}
+            },
+            "mcpCapabilities": {
+              "http": true
+            },
+            "mcp_capabilities": {
+              "http": true
+            },
+            "auth": {
+              "logout": {}
+            },
+            "_meta": {
+              "antigravity": {
+                "tier": true,
+                "systemPrompt": {
+                  "append": true
+                }
+              }
+            }
+          }
+        },
+        {
+          "method": "session/new",
+          "configOptions": [
+            {
+              "id": "model",
+              "currentValue": "gemini-3.1-pro"
+            },
+            {
+              "id": "thought_level",
+              "currentValue": "low"
+            },
+            {
+              "id": "mode",
+              "currentValue": "default"
+            }
+          ]
+        },
+        {
+          "method": "session/close"
+        },
+        {
+          "method": "initialize",
+          "agentInfo": {
+            "name": "Antigravity ACP Server",
+            "version": "1.5.0"
+          },
+          "agentCapabilities": {
+            "loadSession": true,
+            "load_session": true,
+            "promptCapabilities": {
+              "image": true,
+              "audio": false,
+              "embeddedContext": true
+            },
+            "sessionCapabilities": {
+              "resume": {},
+              "close": {},
+              "load": {},
+              "list": {},
+              "additionalDirectories": {}
+            },
+            "session_capabilities": {
+              "resume": {},
+              "close": {},
+              "load": {},
+              "list": {},
+              "additionalDirectories": {}
+            },
+            "mcpCapabilities": {
+              "http": true
+            },
+            "mcp_capabilities": {
+              "http": true
+            },
+            "auth": {
+              "logout": {}
+            },
+            "_meta": {
+              "antigravity": {
+                "tier": true,
+                "systemPrompt": {
+                  "append": true
+                }
+              }
+            }
+          }
+        },
+        {
+          "method": "session/list",
+          "sessions": []
+        },
+        {
+          "method": "session/resume",
+          "absentIdControl": false,
+          "responseKeys": [
+            "sessionId",
+            "models",
+            "modes",
+            "configOptions"
+          ],
+          "sessionIdMatchesRequest": true,
+          "configOptions": [
+            {
+              "id": "model",
+              "currentValue": "gemini-3.1-pro"
+            },
+            {
+              "id": "thought_level",
+              "currentValue": "low"
+            },
+            {
+              "id": "mode",
+              "currentValue": "default"
+            }
+          ]
+        },
+        {
+          "method": "session/prompt",
+          "stopReason": "end_turn"
+        },
+        {
+          "method": "session/close"
+        },
+        {
+          "method": "session/resume",
+          "absentIdControl": true,
+          "error": {
+            "code": -32603,
+            "message": "Failed to read session <session-id>; retry, or load it with session/load"
+          }
+        },
+        {
+          "method": "session/new",
+          "configOptions": [
+            {
+              "id": "model",
+              "currentValue": "gemini-3.1-pro"
+            },
+            {
+              "id": "thought_level",
+              "currentValue": "low"
+            },
+            {
+              "id": "mode",
+              "currentValue": "default"
+            }
+          ]
+        },
+        {
+          "method": "session/close"
+        },
+        {
+          "method": "initialize",
+          "agentInfo": {
+            "name": "Antigravity ACP Server",
+            "version": "1.5.0"
+          },
+          "agentCapabilities": {
+            "loadSession": true,
+            "load_session": true,
+            "promptCapabilities": {
+              "image": true,
+              "audio": false,
+              "embeddedContext": true
+            },
+            "sessionCapabilities": {
+              "resume": {},
+              "close": {},
+              "load": {},
+              "list": {},
+              "additionalDirectories": {}
+            },
+            "session_capabilities": {
+              "resume": {},
+              "close": {},
+              "load": {},
+              "list": {},
+              "additionalDirectories": {}
+            },
+            "mcpCapabilities": {
+              "http": true
+            },
+            "mcp_capabilities": {
+              "http": true
+            },
+            "auth": {
+              "logout": {}
+            },
+            "_meta": {
+              "antigravity": {
+                "tier": true,
+                "systemPrompt": {
+                  "append": true
+                }
+              }
+            }
+          }
+        },
+        {
+          "method": "session/list",
+          "sessions": [
+            {
+              "cwd": "<home>/original"
+            }
+          ]
+        },
+        {
+          "method": "session/load",
+          "absentIdControl": false,
+          "responseKeys": [
+            "sessionId",
+            "models",
+            "modes",
+            "configOptions"
+          ],
+          "sessionIdMatchesRequest": true,
+          "configOptions": [
+            {
+              "id": "model",
+              "currentValue": "gemini-3.1-pro"
+            },
+            {
+              "id": "thought_level",
+              "currentValue": "low"
+            },
+            {
+              "id": "mode",
+              "currentValue": "default"
+            }
+          ]
+        },
+        {
+          "method": "session/prompt",
+          "stopReason": "end_turn"
+        },
+        {
+          "method": "session/close"
+        },
+        {
+          "method": "session/load",
+          "absentIdControl": true,
+          "responseKeys": [
+            "sessionId",
+            "models",
+            "modes",
+            "configOptions"
+          ],
+          "sessionIdMatchesRequest": true,
+          "configOptions": [
+            {
+              "id": "model",
+              "currentValue": "gemini-3.1-pro"
+            },
+            {
+              "id": "thought_level",
+              "currentValue": "low"
+            },
+            {
+              "id": "mode",
+              "currentValue": "default"
+            }
+          ]
+        }
+      ],
+      "provider": [
+        {
+          "path": "/v1beta/models/gemini-3.1-pro-preview:streamGenerateContent?alt=sse",
+          "generationConfig": {
+            "maxOutputTokens": 65535,
+            "thinkingConfig": {
+              "includeThoughts": true,
+              "thinkingBudget": 1024
+            }
+          },
+          "appended": [],
+          "workspaces": "Active Workspaces:\n- <home>/original\n- <home>/other\nCommand Working Directory: <home>/original",
+          "selectedToolNames": [
+            "run_command"
+          ],
+          "hasSteerInput": false,
+          "hasSteerToolResult": false
+        },
+        {
+          "path": "/v1beta/models/gemini-3.1-pro-preview:streamGenerateContent?alt=sse",
+          "generationConfig": {
+            "maxOutputTokens": 65535,
+            "thinkingConfig": {
+              "includeThoughts": true,
+              "thinkingBudget": 1024
+            }
+          },
+          "appended": [],
+          "workspaces": "Active Workspaces:\n- <home>/original\n- <home>/other\nCommand Working Directory: <home>/original",
+          "selectedToolNames": [
+            "run_command"
+          ],
+          "hasSteerInput": false,
+          "hasSteerToolResult": false
+        },
+        {
+          "path": "/v1beta/models/gemini-3.1-pro-preview:streamGenerateContent?alt=sse",
+          "generationConfig": {
+            "maxOutputTokens": 65535,
+            "thinkingConfig": {
+              "includeThoughts": true,
+              "thinkingBudget": 1024
+            }
+          },
+          "appended": [],
+          "workspaces": "Active Workspaces:\n- <home>/original\n- <home>/other\nCommand Working Directory: <home>/original",
+          "selectedToolNames": [
+            "run_command"
+          ],
+          "hasSteerInput": false,
+          "hasSteerToolResult": false
+        },
+        {
+          "path": "/v1beta/models/gemini-3.1-pro-preview:streamGenerateContent?alt=sse",
+          "generationConfig": {
+            "maxOutputTokens": 65535,
+            "thinkingConfig": {
+              "includeThoughts": true,
+              "thinkingBudget": 1024
+            }
+          },
+          "appended": [],
+          "workspaces": "Active Workspaces:\n- <home>/original\n- <home>/other\nCommand Working Directory: <home>/original",
+          "selectedToolNames": [
+            "run_command"
+          ],
+          "hasSteerInput": false,
+          "hasSteerToolResult": false
+        }
+      ],
+      "toolResults": [
+        "{\"output\":\"Created At: 2026-11-05T04:32:21Z\\nCompleted At: 2026-11-05T04:32:21Z\\nCommand exited with code 0.\\n\\nCommand output:\\n<home>/original\\r\\n\"}",
+        "{\"output\":\"Created At: 2026-11-05T04:32:23Z\\nCompleted At: 2026-11-05T04:32:23Z\\nCommand exited with code 0.\\n\\nCommand output:\\n<home>/original\\r\\n\"}"
+      ]
+    }
+  ]
+}

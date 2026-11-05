@@ -2,7 +2,7 @@ import { piTestRuntime } from "./support/pi-runtime.js";
 import type { LLMock } from "@copilotkit/aimock";
 import { describe, expect, test } from "vitest";
 import { startClaudeAimock, startCodexAimock, startPiAimock, type AimockEnv } from "../harness/aimock.js";
-import { startGrokAimock, startKimiAimock, startOpencodeAimock } from "../harness/aimock-acp.js";
+import { startAntigravityAimock, startGrokAimock, startKimiAimock, startOpencodeAimock } from "../harness/aimock-acp.js";
 import { allRuntimes } from "../harness/runtimes.js";
 import { runtimeUnderTest } from "../harness/subject.js";
 import { loadClaudeProbeTools, modelView, runToolsListChanged } from "./support/tools-list-changed.js";
@@ -14,14 +14,16 @@ import { loadClaudeProbeTools, modelView, runToolsListChanged } from "./support/
  * here. The client must have listed the tools before the change, and lists
  * them again exactly when the declaration is not "none"; where the requests
  * define MCP tools (all but grok here), the model's view must match too.
- * antigravity and opencode 2.x list MCP tools outside `tools` and were read
- * on their own installs (experiments/mcp-tools-list-changed.ts).
+ * OpenCode 2.x lists MCP tools outside `tools` and was read
+ * on its own install (experiments/mcp-tools-list-changed.ts).
  */
 
 const replyOk = (mock: LLMock): void => { mock.onMessage(/[\s\S]*/u, { content: "ok" }); };
 
 // CI runs claude, codex, pi, OpenCode v1, kimi and grok with local scripted providers.
+// Antigravity runs locally with the same declaration assertion.
 const backends: readonly { readonly id: string; readonly runtime: string; readonly start: () => Promise<AimockEnv> }[] = [
+  { id: "antigravity-aimock", runtime: "antigravity", start: async () => startAntigravityAimock(replyOk) },
   { id: "claude-aimock", runtime: "claude", start: async () => startClaudeAimock(loadClaudeProbeTools, { captureRaw: true }) },
   { id: "codex-aimock", runtime: "codex", start: async () => startCodexAimock(replyOk, { captureRaw: true }) },
   { id: "pi-aimock", runtime: "pi", start: async () => startPiAimock(replyOk, { captureRaw: true }) },

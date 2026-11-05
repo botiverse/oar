@@ -149,7 +149,8 @@ runtimes' vendor backends (`opencode-aimock`, `kimi-aimock`, `grok-aimock`,
 `antigravity-aimock`, `sea-trial/harness/aimock-acp.ts`; `codebuddy-aimock`,
 `sea-trial/harness/codebuddy-aimock.ts`) need the installed CLI. Grok, Kimi,
 OpenCode v1 and CodeBuddy run in Linux/macOS pull-request CI, the first three
-also in Windows main-push observations; Antigravity is a local probe. Vendor tests see
+also in Windows main-push observations. Antigravity CLI 1.5.0 runs in all
+three required `check` jobs. Vendor tests see
 the scripted provider's side: request contents, error edges, scripted tool
 rounds. Run them when a change affects what a runtime sends upstream or how it
 handles vendor-specific behavior; write one for anything that needs the
@@ -193,13 +194,17 @@ or pull request whose changes are all Markdown files or under `docs/` or
 `assets/`. Otherwise it runs these jobs:
 
 - `check`: `pnpm run check` and `pnpm run build` on Linux, macOS and Windows,
-  then three native steps: CodeBuddy's official npm installation in an
+  then native checks: CodeBuddy's official npm installation in an
   isolated HOME and global prefix with its bin directory off PATH (installed
   version and an idempotent second install); OpenCode 2.2.5 isolated native
   tool cleanup (readiness, surviving-peer and final residual-process
   assertions); and Kimi 2.4.1's native login tests against a local
   OAuth/model server, including browser suppression and credential writes.
-  OpenCode and Kimi upload their diagnostic artifacts, failures included.
+  Antigravity CLI 1.5.0 is installed from platform archives with pinned
+  SHA-512 digests and runs behavior plus vendor suites against a local
+  Gemini provider in an isolated home. Each suite requires a successful
+  install; an earlier unrelated check failure does not skip installation.
+  OpenCode, Kimi and Antigravity upload diagnostic artifacts, failures included.
   The browser-entry unit test bundles the complete portable entry for a
   browser and refuses Node imports or unresolved externals. Synthetic
   sharing routing and public placement-refusal regressions stay in these

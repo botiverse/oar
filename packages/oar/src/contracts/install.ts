@@ -8,9 +8,10 @@ import type { AvailableInstallation } from "./installation.js";
 export type InstallUnsupportedReason =
   | "platform" // the vendor's installer does not run here, or oar does not run it on this OS (Windows)
   | "requires_privileges" // the installer would write where this user cannot; oar never uses sudo; carries `steps` and `source`
-  | "requires_gui" // the vendor installs it only from inside an app (antigravity: an editor's agent registry)
+  | "requires_gui" // the vendor installs it only from inside an app
   | "missing_tool" // the official method needs a tool (curl, bash, npm, ...) that is not on PATH; `detail` names it; carries `steps` and `source`
   | "location_unknown" // oar cannot determine where the installer would write; `detail` names the failure category; carries `steps` and `source`
+  | "configuration" // an existing executable or pinned location needs manual adjustment before the installer can provide a usable runtime
   | "bundled" // nothing to install: the runtime comes with the package that carries it
   | "line_required" // the runtime ships parallel release lines (`Runtime.installLines`) and no `line` was given; oar does not choose one
   | "unknown_line"; // `line` names none of the runtime's `installLines` (a runtime without lines takes none)

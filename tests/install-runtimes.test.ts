@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { createCursorRuntime, defaultRuntimes } from "../packages/oar/src/index.js";
-import { antigravityInstall, antigravityInstallPlan } from "../packages/oar/src/runtimes/antigravity/install.js";
+import { antigravityInstallMethod } from "../packages/oar/src/runtimes/antigravity/install.js";
 import { claudeInstallMethod } from "../packages/oar/src/runtimes/claude/install.js";
 import { codexInstallMethod } from "../packages/oar/src/runtimes/codex/install.js";
 import { grokInstallMethod } from "../packages/oar/src/runtimes/grok/install.js";
@@ -18,6 +18,7 @@ const linux: InstallHost = {
 
 test("each built-in script install runs its vendor's documented line, cited by its documentation page", () => {
   const methods: Record<string, readonly [ScriptInstallMethod | undefined, string, string]> = {
+    antigravity: [antigravityInstallMethod, "curl -fsSL https://antigravity.google/cli/install.sh | bash", "https://antigravity.google/docs/cli"],
     claude: [claudeInstallMethod, "curl -fsSL https://claude.ai/install.sh | bash", "https://code.claude.com/docs/en/setup"],
     codex: [codexInstallMethod, "curl -fsSL https://chatgpt.com/codex/install.sh | CODEX_NON_INTERACTIVE=1 sh", "https://github.com/openai/codex#installing-and-running-codex-cli"],
     grok: [grokInstallMethod, "curl -fsSL https://x.ai/cli/install.sh | bash", "https://docs.x.ai/build/overview"],
@@ -62,22 +63,6 @@ test("install and installPlan come together, and a bundled runtime has neither",
   );
 });
 
-test("antigravity installs only from an editor, so its plan and install name the GUI", async () => {
-  const plan = await antigravityInstallPlan();
-  assert.equal(plan.kind === "unsupported" ? plan.reason : plan.kind, "requires_gui");
-  const previous = process.env.OAR_ANTIGRAVITY_BIN;
-  process.env.OAR_ANTIGRAVITY_BIN = "/nonexistent/oar-fixture/agy_acp_server.par";
-  try {
-    assert.deepEqual(await antigravityInstall(), plan);
-  } finally {
-    if (previous === undefined) {
-      delete process.env.OAR_ANTIGRAVITY_BIN;
-    } else {
-      process.env.OAR_ANTIGRAVITY_BIN = previous;
-    }
-  }
-});
-
 test("opencode ships two lines and oar picks neither: the plan needs a line", async () => {
   assert.deepEqual(defaultRuntimes.list().filter((runtime) => runtime.installLines !== undefined).map((runtime) => [runtime.id, runtime.installLines?.map((entry) => entry.line)]), [
     ["opencode", ["v1", "v2"]],
@@ -109,4 +94,11 @@ test("an opencode installation's line is its major version", () => {
   assert.equal(opencodeLineOf(found("opencode v2.0.26")), "v2");
   assert.equal(opencodeLineOf(found("opencode v3.0.0")), undefined);
   assert.equal(opencodeLineOf({ kind: "available", via: "bundled" }), undefined);
+});
+
+test("Antigravity's optional shell-profile update does not require write permission", () => {
+  const plan = scriptInstallPlanOn(antigravityInstallMethod, {
+    ...linux, unwritable: (target) => target.endsWith(".bashrc") || target.endsWith(".zshrc") ? target : null,
+  });
+  assert.equal(plan.kind, "plan");
 });

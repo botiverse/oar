@@ -101,12 +101,12 @@ test("kimi counts only a newer release as an update, as its upgrade does", async
   assert.equal(ahead.kind === "ok" && ahead.updateAvailable, false);
 });
 
-test("antigravity counts only a newer registry version as an update", async () => {
-  routes.set("/registry.json", [200, JSON.stringify({ id: "antigravity-acp", version: "1.2.1" })]);
-  const check = antigravityUpdateCheck(`${base}/registry.json`);
-  const ahead = await check(executable(path.join(dir, "agy"), "1.3.0"));
+test("antigravity counts only a newer CLI manifest version as an update", async () => {
+  routes.set("/agy-manifest.json", [200, JSON.stringify({ version: "1.5.0" })]);
+  const check = antigravityUpdateCheck(`${base}/agy-manifest.json`);
+  const ahead = await check(executable(path.join(dir, "agy"), "1.6.0"));
   assert.equal(ahead.kind === "ok" && ahead.updateAvailable, false);
-  const behind = await check(executable(path.join(dir, "agy"), "1.2.0"));
+  const behind = await check(executable(path.join(dir, "agy"), "1.4.9"));
   assert.equal(behind.kind === "ok" && behind.updateAvailable, true);
 });
 

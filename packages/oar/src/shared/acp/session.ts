@@ -34,6 +34,7 @@ import { createAcpTerminalHost } from "./terminal.js";
 import { acpTakesImages, createAcpTurns, type ActiveTurn } from "./turns.js";
 import { createAcpTokenUsage } from "./token-usage.js";
 import { createAcpOpening } from "./opening.js";
+import { createAcpConfigUpdates } from "./config-updates.js";
 
 export type { AcpSessionProfile } from "./profile.js";
 
@@ -67,7 +68,7 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
     const runtime = startAcpProcess(installation.command, args, client, { cwd: options.cwd, env: environment, redact: credentials.redact, opening });
     const opened = await openAcpSession(runtime, profile, options, (step) => {
       recorder.step(step.method, step.response);
-    }).catch(async (error: unknown) => {
+    }, state.configUpdates).catch(async (error: unknown) => {
       runtime.kill();
       await runtime.exited;
       await terminalHost.dispose();
@@ -85,6 +86,7 @@ export interface AcpSessionState {
   readonly usageGate: ReturnType<typeof createUsageUpdateGate>;
   readonly tokenUsage: ReturnType<typeof createAcpTokenUsage>;
   readonly opening: ReturnType<typeof createAcpOpening>;
+  readonly configUpdates: ReturnType<typeof createAcpConfigUpdates>;
   readonly recorder: ReturnType<typeof createAcpRecorder>;
   readonly hooks: AcpClientHooks;
 }
@@ -98,10 +100,12 @@ export function createAcpSessionState(profile: AcpSessionProfile, options: Sessi
   const usageGate = createUsageUpdateGate();
   const tokenUsage = createAcpTokenUsage(profile);
   const opening = createAcpOpening();
+  const configUpdates = createAcpConfigUpdates();
   const recorder = createAcpRecorder(usageGate, profile.attributeUpdate, tokenUsage, associations, profile.projectUpdate);
   const hooks: AcpClientHooks = {
     update: (notification, receivedAt) => {
       recorder.update(notification, receivedAt);
+      configUpdates.observe(notification);
     },
     extension: (method, params, receivedAt, afterOpen) => {
       recorder.extension(method, profile.redactExtensionNotification?.(method, params) ?? params, afterOpen ?? opening.afterOpen(params), receivedAt);
@@ -114,7 +118,7 @@ export function createAcpSessionState(profile: AcpSessionProfile, options: Sessi
     },
     extensionNotifications: profile.extensionNotifications ?? [],
   };
-  return { terminalHost, usageGate, tokenUsage, opening, recorder, hooks };
+  return { terminalHost, usageGate, tokenUsage, opening, configUpdates, recorder, hooks };
 }
 
 export interface SharedAcpSessionOwnership {

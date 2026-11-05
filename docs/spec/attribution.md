@@ -99,7 +99,8 @@ already show the degeneration (adapter red lines in
 - antigravity (ACP): opaque; agy_acp_server 1.2.1 flattens the child's
   tool calls and text onto the parent session (the child id survives only
   as a `toolCallId` prefix) and reports no usage, so only the root is
-  marked. [env]
+  marked. [env] This is historical separate-service evidence. The CLI 1.5.0
+  adapter also declares opaque, pending a native child-attribution probe.
 - kimi (ACP): opaque; an internal graph exists, but the default ACP server
   subscribes only to the main agent. The protocol honestly marks root only;
   fabricating a child graph from display text is forbidden. [src]

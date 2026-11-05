@@ -3,6 +3,19 @@ import { UnsupportedOptionError } from "../../contracts/errors.js";
 import { asRecord, type JsonRecord } from "../json.js";
 import { acpReportedEffort, acpThoughtLevelOption } from "./model.js";
 import { type AcpProcess, withAcpDeadline } from "./process.js";
+import type { AcpConfigUpdates } from "./config-updates.js";
+
+function setConfigOption(
+  process: AcpProcess, sessionId: string, configId: string, value: string,
+  context: { readonly timeoutMs: number; readonly updates?: AcpConfigUpdates },
+): Promise<unknown> {
+  return withAcpDeadline(process, "session/set_config_option", context.timeoutMs, (requestOptions) => {
+    const send = (): Promise<unknown> => process.connection.agent.request("session/set_config_option", { sessionId, configId, value }, requestOptions);
+    const signals = [process.connection.signal, ...(requestOptions?.cancellationSignal === undefined ? [] : [requestOptions.cancellationSignal])];
+    return context.updates === undefined ? send()
+      : context.updates.confirm(sessionId, configId, value, AbortSignal.any(signals), send);
+  });
+}
 
 /** An RPC error's message plus its `data` (grok puts the reason there: "unknown reasoning_effort value"). */
 function rpcErrorText(error: unknown): string {
@@ -33,6 +46,7 @@ export async function applyAcpEffort(
   effort: string,
   context: {
     readonly timeoutMs: number;
+    readonly updates?: AcpConfigUpdates;
     readonly observe: (step: { readonly method: string; readonly response: JsonRecord }) => void;
   },
 ): Promise<void> {
@@ -45,16 +59,7 @@ export async function applyAcpEffort(
   const method = "session/set_config_option";
   let answer: unknown = undefined;
   try {
-    answer = await withAcpDeadline(
-      process,
-      method,
-      context.timeoutMs,
-      (requestOptions) => process.connection.agent.request(
-        method,
-        { sessionId: opened.sessionId, configId, value: effort },
-        requestOptions,
-      ),
-    );
+    answer = await setConfigOption(process, opened.sessionId, configId, effort, context);
   } catch (error) {
     throw new Error(`${method} ${configId}=${effort} was refused: ${rpcErrorText(error)}`, { cause: error });
   }
@@ -79,19 +84,19 @@ export async function applyAcpModel(
   context: {
     readonly viaConfigOption: boolean;
     readonly timeoutMs: number;
+    readonly updates?: AcpConfigUpdates;
     readonly observe: (step: { readonly method: string; readonly response: JsonRecord }) => void;
   },
 ): Promise<JsonRecord | undefined> {
   const method = context.viaConfigOption ? "session/set_config_option" : "session/set_model";
-  const params = context.viaConfigOption
-    ? { sessionId, configId: "model", value: model }
-    : { sessionId, modelId: model };
-  const response = asRecord(await withAcpDeadline(
+  const response = asRecord(await (context.viaConfigOption
+    ? setConfigOption(process, sessionId, "model", model, context)
+    : withAcpDeadline(
     process,
     method,
     context.timeoutMs,
-    (requestOptions) => process.connection.agent.request(method, params, requestOptions),
-  )) ?? undefined;
+    (requestOptions) => process.connection.agent.request(method, { sessionId, modelId: model }, requestOptions),
+  ))) ?? undefined;
   context.observe({ method, response: response ?? {} });
   return response;
 }

@@ -1,6 +1,7 @@
-import { mkdtempSync, realpathSync } from "node:fs";
+import { mkdtempSync, realpathSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { expect, test } from "vitest";
 import { UnsupportedOptionError } from "../../packages/oar/src/index.js";
 import { acpSession } from "../../packages/oar/src/shared/acp/session.js";
@@ -38,4 +39,32 @@ test("without the flag the resume is not checked", async () => {
   const session = await acpSession(profile({ args: [fixture, "listed"] }))(installation, { cwd: other, resume: "fake-session", env });
   expect(session.id).toBe("fake-session");
   await session.dispose();
+});
+
+const unknownCases = [
+  { list: false },
+  { pages: [{ result: { sessions: [] } }] },
+  { pages: [{ result: { sessions: [{ sessionId: "fake-session" }] } }] },
+  { pages: [{ result: { sessions: [{ sessionId: "fake-session", cwd: "" }] } }] },
+  { pages: [{ result: { sessions: [], nextCursor: "again" } }] },
+  { pages: [{ result: { sessions: [], nextCursor: 1 } }] },
+  { pages: [{ result: { sessions: [null] } }] },
+];
+const guarded = profile({
+  args: [fileURLToPath(new URL("../fixtures/fake-acp-missing-resume.mjs", import.meta.url))],
+  resumeKeepsSessionCwd: true,
+});
+test.each(unknownCases)("unknown saved cwd refuses before any resume or load: %j", async (scenario) => {
+  const dir = scratch("oar-acp-cwd-guard-");
+  const log = path.join(dir, "calls.txt");
+  try {
+    const opening = acpSession(guarded)(installation, { cwd: own, resume: "fake-session", env: {
+      FAKE_RESUME_CASE: JSON.stringify({ ...scenario, succeed: true }), FAKE_ACP_CALL_LOG: log,
+    } });
+    const failure: unknown = await opening.then(async (unexpected) => { await unexpected.dispose(); return null; }, (error: unknown) => error);
+    expect(failure).toMatchObject({ name: "UnsupportedOptionError", option: "cwd" });
+    const calls = readFileSync(log, "utf8").trim().split("\n");
+    expect(calls).not.toContain("session/resume");
+    expect(calls).not.toContain("session/load");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
 });

@@ -99,9 +99,10 @@ neither.
 | --- | --- |
 | platform | The installer does not run here. Script installers run on macOS and Linux (x64, arm64); on Windows their detail names the vendor's command, which oar does not run. CodeBuddy's npm installer runs on Linux, macOS and Windows. |
 | requires_privileges | A directory the installer writes is not writable by this user (an install location variable naming `/usr/local`, say). oar never uses sudo. `steps` and `source` carry the vendor's command, for the person to run with the rights it needs. |
-| requires_gui | The vendor installs the runtime only from inside an app (antigravity). |
+| requires_gui | The vendor installs the runtime only from inside an app. |
 | missing_tool | A program the documented command runs (`curl`, `bash`, `sh`, `npm`) is not on PATH; `detail` names it. `steps` and `source` carry the vendor's command, for the person to run once the tool is installed. |
 | location_unknown | OAR cannot determine where the installer would write. `detail` gives the failure category without native output; `steps` and `source` carry the vendor's command, for the person to run after checking the installer's location configuration. This does not establish missing tools or insufficient rights. |
+| configuration | An existing executable or pinned location needs manual adjustment before the installer can provide a usable runtime. No installer or download starts; `detail` explains what to update or correct. |
 | bundled | Nothing to install: the runtime comes with the package that carries it. No built-in runtime returns it, since bundled ones have no `install` at all. |
 | line_required | The runtime has `installLines` and no `line` was given; `detail` lists them. |
 | unknown_line | `line` is not one of the runtime's `installLines`. |
@@ -127,12 +128,12 @@ method and stays on the line.
 | opencode `v2` | `curl -fsSL https://opencode.ai/v2/install \| bash` | [opencode.ai/v2/docs](https://opencode.ai/v2/docs/) | `~/.opencode/bin/opencode` (2.x) |
 | qwen | `curl -fsSL https://qwen-code-assets.oss-cn-hangzhou.aliyuncs.com/installation/install-qwen-standalone.sh \| bash -s -- --method standalone --no-modify-path` | [qwenlm.github.io/qwen-code-docs](https://qwenlm.github.io/qwen-code-docs/en/users/quickstart/) | `$QWEN_INSTALL_BIN_DIR` (default `~/.local/bin`) and `$QWEN_INSTALL_LIB_DIR` (default `~/.local/lib/qwen-code`) |
 | qoder | `curl -fsSL https://qoder.com/install \| bash -s -- --skip-path` | [docs.qoder.com/cli/troubleshoot-install](https://docs.qoder.com/cli/troubleshoot-install) | `~/.local/bin` and `~/.qoder` |
-| antigravity | nothing: `requires_gui` (installed from an editor's agent registry) | [antigravity.google/docs/ide/extensions/zed](https://antigravity.google/docs/ide/extensions/zed) | |
+| antigravity | `curl -fsSL https://antigravity.google/cli/install.sh \| bash` | [antigravity.google/docs/cli](https://antigravity.google/docs/cli) | Windows: vendor PowerShell command returned for manual installation |
 | pi | no `install`: bundled with oar | | |
 | pi-durable | no `install`: `@earendil-works/pi-durable` is the host's to install | | |
 | cursor | no `install`: `@cursor/sdk` is the host's to install | | |
 
-Codex, grok and kimi also add their folder to PATH in the shell profile,
+Codex, grok, kimi and antigravity also add their folder to PATH in the shell profile,
 opencode only in a profile that exists, and claude prints the line instead;
 qwen (`--no-modify-path`) and qoder (`--skip-path`) leave profiles unchanged.
 Grok links itself into `~/.local/bin` or `/usr/local/bin` when one is on

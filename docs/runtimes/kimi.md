@@ -179,12 +179,12 @@ shell as `cd <A> && pwd`. OAR therefore (profile flag
 resuming, without recording it, and when the session is listed under another
 directory `session()` rejects with an `UnsupportedOptionError` on `cwd` whose
 message names both directories ([resume in another directory](resume-cwd.md),
-[test](../../tests/acp/acp-resume-cwd.test.ts)). If a complete list has no
-matching id and the native resume then fails, OAR throws
-`SessionNotFoundError`, preserving the resume method/native error in `cause`.
-No missing claim is made from an unavailable or incomplete list, or from
-`-32602` alone; authentication refusals keep their existing type
-([missing targets](../spec/runtime-matrix.md#missing-resume-targets)).
+[test](../../tests/acp/acp-resume-cwd.test.ts)). A missing list capability,
+unlisted id, missing cwd or incomplete listing also refuses `cwd` before any
+resume. Listing authentication, process-exit and other RPC errors retain
+their existing failure classification; no resume follows them. List absence
+cannot prove a missing session, so it does not produce `SessionNotFoundError`; failures after a confirmed cwd retain their
+native classification ([missing targets](../spec/runtime-matrix.md#missing-resume-targets)).
 
 ```ts
 const resumed = await kimiRuntime.session(installation, {

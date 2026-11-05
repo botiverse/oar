@@ -1,12 +1,7 @@
 /* oxlint-disable import/max-dependencies -- The turn driver composes input, protocol, projection and cancellation ownership. */
 import type {
-  InputImage,
-  InputOptions,
-  RuntimeEventBody,
-  RequestRecord,
-  ResponseBody,
-  SessionCapabilities,
-  TurnOutcome,
+  InputImage, InputOptions, RuntimeEventBody, RequestRecord,
+  ResponseBody, SessionCapabilities, TurnOutcome,
 } from "../../contracts/session.js";
 import { pathToFileURL } from "node:url";
 import { withdrawHeld } from "../held-input.js";
@@ -17,11 +12,8 @@ import type { SessionKernel } from "../session-kernel.js";
 import { AcpError, acpProcessExitedError } from "./errors.js";
 import { promptAcp, type AcpSessionProfile, type UsageUpdateGate } from "./profile.js";
 import { methods, type AcpProcess } from "./process.js";
-import {
-  acpErrorNative,
-  acpFailureOutcome,
-  defaultAcpPromptOutcome,
-} from "./projection.js";
+import { acpErrorNative, acpFailureOutcome, defaultAcpPromptOutcome } from "./projection.js";
+
 /**
  * The turn machinery: ≤1 active turn, each `session/prompt` RPC of it, the
  * host-held queue, cancel with an isolated-stop or shared-release fallback. The RPC ANSWER is the
@@ -31,7 +23,8 @@ import {
  * process dying is not; that is the `exited` response the session records
  * from its exit observer. One turn may span several prompt RPCs (grok's
  * send-now steer): each answer is its own event; the turn_ended event rides
- * the final answer, carrying the latest non-refused request's outcome.
+ * the final answer, carrying the latest non-refused request's outcome, except when the profile
+ * says a replacing steer invalidates earlier replies (agy CLI).
  */
 export interface ActiveTurn {
   /** The prompt request that opened this turn; null for a spontaneous (queue-drained) turn. */
@@ -40,14 +33,18 @@ export interface ActiveTurn {
   readonly since: number;
   readonly outcomes: Map<number, TurnOutcome>;
   readonly pending: Set<number>;
+  /** Replies received before the SDK notification flush and final record publication. */
+  readonly answered: Set<number>;
   abortRequested: boolean;
   fallback: NodeJS.Timeout | null;
   cancellation?: CancellationObservation;
 }
+
 /** The agent advertised image prompts in `initialize` (`agentCapabilities.promptCapabilities.image`). */
 export function acpTakesImages(initialized: JsonRecord): boolean {
   return asRecord(asRecord(initialized.agentCapabilities)?.promptCapabilities)?.image === true;
 }
+
 /** One input as ACP ContentBlocks: the images (each naming its file as `uri`), then any nonempty text. */
 function acpPrompt(input: string, images: readonly LoadedImage[]): JsonRecord[] {
   return [
@@ -77,6 +74,7 @@ export interface AcpTurns {
   /** The process is gone: close the active turn (its end is the exited response) and drop held input. */
   onExit(): void;
 }
+
 export function createAcpTurns(deps: {
   readonly kernel: SessionKernel;
   readonly runtime: AcpProcess;
@@ -145,7 +143,7 @@ export function createAcpTurns(deps: {
         usageGate.arm();
         // oxlint-disable-next-line eslint/no-underscore-dangle -- `_meta` is the native ACP extension envelope.
         const params = promptMeta === undefined ? extraParams : { ...extraParams, _meta: { ...promptMeta, ...asRecord(extraParams._meta) } };
-        const result = await promptAcp(runtime, rootId, prompt, params);
+        const result = await promptAcp(runtime, rootId, prompt, params, () => { state.answered.add(requestNumber); });
         // Deliberate ordering: the answer's event waits (bounded) for the
         // usage_update kimi pushes AFTER answering, so the usage record
         // precedes the turn end and contextUsage() at turn_ended is this
@@ -174,7 +172,7 @@ export function createAcpTurns(deps: {
           context: null,
           steered: steered !== undefined,
           ...(steered === undefined ? {} : { dropped: steered.inputId }),
-        }, steered === undefined ? outcome : null);
+        }, steered === undefined || (profile.steerOutcomeIsLatest === true && [...state.pending].every((number) => number >= requestNumber || state.answered.has(number))) ? outcome : null);
       }
     })();
   };
@@ -193,6 +191,7 @@ export function createAcpTurns(deps: {
       since: kernel.records().at(-1)?.seq ?? -1,
       outcomes: new Map(),
       pending: new Set(),
+      answered: new Set(),
       abortRequested: false,
       fallback: null,
     };

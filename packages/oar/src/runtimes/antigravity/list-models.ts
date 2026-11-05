@@ -8,6 +8,7 @@ import {
 } from "@agentclientprotocol/sdk";
 import type { ModelEntry, ModelLister } from "../../contracts/list-models.js";
 import { startAcpProcess, withAcpDeadline } from "../../shared/acp/process.js";
+import { hasAcpCapability } from "../../shared/acp/profile.js";
 import { acpThoughtLevelOption } from "../../shared/acp/model.js";
 import { asRecord, asRecordList, type JsonRecord } from "../../shared/json.js";
 import { listingCwd } from "../../shared/listing-cwd.js";
@@ -22,7 +23,7 @@ function text(value: unknown): string | undefined {
 }
 
 /**
- * Project a `session/new` response. agy_acp_server 1.4.0 has no model-list
+ * Project a `session/new` response. agy CLI 1.5.0 has no model-list
  * method; the account's models ride on every new session as the
  * `configOptions` entry with id `model`, the option the session switches
  * through `session/set_config_option`. Its `thought_level` menu belongs only
@@ -63,7 +64,7 @@ async function readNewSession(command: string, cwd: string, timeoutMs: number, e
   const runtime = startAcpProcess(command, antigravityAcpArgs(), createClient({ name: "oar" }), { cwd, env });
   try {
     const initialize = methods.agent.initialize;
-    await withAcpDeadline(
+    const initialized = asRecord(await withAcpDeadline(
       runtime,
       initialize,
       timeoutMs,
@@ -75,9 +76,8 @@ async function readNewSession(command: string, cwd: string, timeoutMs: number, e
         },
         clientInfo: { name: "oar", version: "0.0.0" },
       }, requestOptions),
-    );
-    // No `authenticate` and no `session/close`: the server signs in from its
-    // own persisted login, and the process is killed once the list is read.
+    ));
+    // Native configuration selects authentication; no login flow is started.
     const newSession = methods.agent.session.new;
     const response = await withAcpDeadline(
       runtime,
@@ -89,6 +89,11 @@ async function readNewSession(command: string, cwd: string, timeoutMs: number, e
         requestOptions,
       ),
     );
+    const capabilities = asRecord(asRecord(initialized?.agentCapabilities)?.sessionCapabilities);
+    if (typeof response.sessionId === "string" && hasAcpCapability(capabilities?.close)) {
+      // Cleanup cannot erase a catalog already returned by session/new.
+      await withAcpDeadline(runtime, methods.agent.session.close, timeoutMs, (requestOptions) => runtime.connection.agent.request(methods.agent.session.close, { sessionId: response.sessionId }, requestOptions)).catch(() => {});
+    }
     return asRecord(response) ?? {};
   } finally {
     runtime.kill();
@@ -98,13 +103,13 @@ async function readNewSession(command: string, cwd: string, timeoutMs: number, e
 
 export const antigravityListModels: ModelLister = async (installation, options = {}) => {
   if (installation.via !== "executable") {
-    return { kind: "unsupported", reason: "antigravity model listing requires the agy_acp_server executable" };
+    return { kind: "unsupported", reason: "antigravity model listing requires the agy CLI executable" };
   }
   try {
     const response = await readNewSession(installation.command, listingCwd(options), options.timeoutMs ?? 30_000, sessionEnvironment(options.env));
     const models = projectAntigravityModels(response);
     if (models === undefined) {
-      return { kind: "unsupported", reason: "this agy_acp_server build returns no model config option on session/new" };
+      return { kind: "unsupported", reason: "this agy CLI build returns no model config option on session/new" };
     }
     return { kind: "ok", models };
   } catch (error) {

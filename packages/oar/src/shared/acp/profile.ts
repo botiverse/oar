@@ -8,10 +8,11 @@ import { asRecord, type JsonRecord } from "../json.js";
 import { initializeAcpConnection } from "./initialize.js";
 import { acpAdditionalDirectories } from "./additional-directories.js";
 import { applyAcpEffort, applyAcpModel } from "./effort.js";
+import type { AcpConfigUpdates } from "./config-updates.js";
 import { acpResumeFailure, acpOpenStep, type AcpFailureReader } from "./failure.js";
 import { acpMcpServersParam } from "./mcp-servers.js";
 import { type AcpProcess, withAcpDeadline } from "./process.js";
-import { refuseResumeElsewhere } from "./resume-cwd.js";
+import { refuseResumeElsewhere, unknownResumeCwd } from "./resume-cwd.js";
 
 export { createUsageUpdateGate, type UsageUpdateGate } from "./usage-wait.js";
 export { acpMcpOpenGuard } from "./mcp-servers.js";
@@ -46,16 +47,18 @@ export interface AcpSessionProfile {
    * `{}` and pushes nothing (agy_acp_server 1.2.1): only that answer reports the applied model.
    */
   readonly modelViaConfigOption?: boolean;
+  /** Wait for each native config notification before the next setting; agy publishes snapshots asynchronously. */
+  readonly confirmConfigOptionUpdates?: boolean;
   /**
    * The agent resumes a session in the directory it was created in, whatever
    * `cwd` the resume names (kimi 2.1.1, probed 2026-10-03: a resume naming B
    * ran its shell as `cd <A> && …`). OAR reads the session's own directory
-   * from `session/list` and refuses a resume elsewhere, rather than let the
-   * session run where the host did not ask.
+   * from `session/list` and refuses a resume elsewhere or when the saved cwd
+   * cannot be confirmed. No list capability or missing entry is not consent.
    */
   readonly resumeKeepsSessionCwd?: boolean;
-  /** Native resume/load refusal only. `listed` is false only after a complete session/list walk, null when unknown. */
-  readonly isResumeNotFound?: (native: JsonRecord, listed: boolean | null) => boolean;
+  /** A native resume/load error must positively identify a missing session. */
+  readonly isResumeNotFound?: (native: JsonRecord) => boolean;
   readonly sessionMeta?: (options: SessionOptions, initialized: JsonRecord) => JsonRecord | undefined;
   /** Native metadata on every prompt RPC, including held queue entries and steer. */
   readonly promptMeta?: (options: SessionOptions) => JsonRecord | undefined;
@@ -72,6 +75,8 @@ export interface AcpSessionProfile {
   readonly steerParams?: (input: string) => JsonRecord;
   /** A steer replaces the native prompt: fold all admitted answers as one turn (grok sendNow). Otherwise only the original prompt ends the turn. */
   readonly steerSupersedesPrompt?: boolean;
+  /** A replacing steer settles the prior RPC early; a later failure reports the loop outcome only after every earlier RPC has replied (agy CLI). */
+  readonly steerOutcomeIsLatest?: boolean;
   readonly promptContextUsage?: (response: JsonRecord) => ContextUsage | null;
   /**
    * Tokens billed by ONE prompt (grok `_meta.usage`, live 2026-09-11), summed
@@ -127,18 +132,22 @@ export async function promptAcp(
   sessionId: string,
   prompt: readonly JsonRecord[],
   extraParams: JsonRecord = {},
+  received: () => void = () => {},
 ): Promise<JsonRecord> {
   const method = methods.agent.session.prompt;
-  const response = await withAcpDeadline(
-    process,
-    method,
-    null,
-    (requestOptions) => process.connection.agent.request(method, {
-      sessionId,
-      prompt,
-      ...extraParams,
-    }, requestOptions),
-  );
+  let response: unknown = undefined;
+  try {
+    response = await withAcpDeadline(
+      process,
+      method,
+      null,
+      (requestOptions) => process.connection.agent.request(method, {
+        sessionId,
+        prompt,
+        ...extraParams,
+      }, requestOptions),
+    );
+  } finally { received(); }
   // The SDK's built-in session router yields once before OAR's update handler.
   await new Promise<void>((resolve) => {
     setImmediate(resolve);
@@ -179,9 +188,9 @@ async function createOrResume(
   const timeoutMs = profile.requestTimeoutMs ?? 15_000;
   if (options.resume !== undefined) {
     const sessionId = options.resume;
-    let listed: boolean | null = null;
-    if (profile.resumeKeepsSessionCwd === true && hasAcpCapability(sessionCapabilities?.list)) {
-      listed = await refuseResumeElsewhere(process, sessionId, options.cwd, timeoutMs);
+    if (profile.resumeKeepsSessionCwd === true) {
+      if (!hasAcpCapability(sessionCapabilities?.list)) { throw unknownResumeCwd(sessionId); }
+      await refuseResumeElsewhere(process, sessionId, options.cwd, timeoutMs);
     }
     const params = { ...baseParams, sessionId };
     let method: typeof methods.agent.session.resume | typeof methods.agent.session.load | undefined = undefined;
@@ -198,7 +207,7 @@ async function createOrResume(
       method, method === methods.agent.session.resume ? profile.sessionStartTimeoutMs ?? timeoutMs : timeoutMs,
       (requestOptions) => process.connection.agent.request(method, params, requestOptions),
     ).catch((error: unknown) => {
-      throw acpResumeFailure(error, method, sessionId, (native) => profile.isResumeNotFound?.(native, listed) === true);
+      throw acpResumeFailure(error, method, sessionId, (native) => profile.isResumeNotFound?.(native) === true);
     });
     return { response: responseRecord(method, resumed), sessionId, openMethod: method };
   }
@@ -222,10 +231,11 @@ export async function openAcpSession(
   profile: AcpSessionProfile,
   options: SessionOptions,
   observe: AcpOpenObserver = () => {},
+  configUpdates?: AcpConfigUpdates,
 ): Promise<OpenedAcpSession> {
   // A refused login or model rejects the open as a RuntimeFailureError (failure.ts).
   const initialized = await acpOpenStep(initializeAcpConnection(process, profile, options, observe), "open");
-  return openInitializedAcpSession(process, profile, options, initialized, observe);
+  return openInitializedAcpSession(process, profile, options, initialized, observe, undefined, configUpdates);
 }
 
 /** Open/configure one session on an already initialized connection. */
@@ -236,7 +246,12 @@ export async function openInitializedAcpSession(
   initialized: JsonRecord,
   observe: AcpOpenObserver = () => {},
   bind: (sessionId: string) => void = () => {},
+  configUpdates?: AcpConfigUpdates,
 ): Promise<OpenedAcpSession> {
+  if (profile.confirmConfigOptionUpdates === true && configUpdates === undefined) {
+    throw new Error("ACP configuration confirmation requires a session notification observer");
+  }
+  const updates = profile.confirmConfigOptionUpdates === true ? configUpdates : undefined;
   const opened = await acpOpenStep(createOrResume(process, profile, initialized, options, profile.sessionMeta?.(options, initialized)), "open");
   bind(opened.sessionId);
   observe({ method: opened.openMethod, response: opened.response });
@@ -245,7 +260,7 @@ export async function openInitializedAcpSession(
     : await acpOpenStep(applyAcpModel(process, opened.sessionId, options.model, {
       viaConfigOption: profile.modelViaConfigOption === true,
       timeoutMs: profile.requestTimeoutMs ?? 15_000,
-      observe,
+      observe, ...(updates === undefined ? {} : { updates }),
     }), "model");
   if (options.effort !== undefined) {
     // The effort menu belongs to the model in effect: a model switch whose
@@ -257,7 +272,7 @@ export async function openInitializedAcpSession(
       : opened;
     await applyAcpEffort(process, menu, options.effort, {
       timeoutMs: profile.requestTimeoutMs ?? 15_000,
-      observe,
+      observe, ...(updates === undefined ? {} : { updates }),
     });
   }
   const configure = profile.configureSession;

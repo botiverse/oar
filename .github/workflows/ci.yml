@@ -62,6 +62,35 @@ jobs:
           path: ${{ github.workspace }}/oar-trial-run/kimi-login
           if-no-files-found: warn
 
+      - name: Install pinned agy CLI for native ACP regressions
+        id: agy-install
+        if: ${{ !cancelled() }}
+        shell: pwsh
+        run: node .github/scripts/install-antigravity.mjs
+      - name: Native agy ACP behavior
+        if: ${{ !cancelled() && steps.agy-install.outcome == 'success' }}
+        run: pnpm run sea-trial
+        timeout-minutes: 12
+        env:
+          OAR_TEST: antigravity-aimock
+          OAR_TEST_REQUIRE_AVAILABLE: '1'
+          OAR_TEST_CONCURRENCY: '2'
+          OAR_TRIAL_RUN_DIR: ${{ github.workspace }}/oar-trial-run/agy
+      - name: Native agy ACP vendor regressions
+        if: ${{ !cancelled() && steps.agy-install.outcome == 'success' }}
+        run: pnpm vitest run sea-trial/vendor --maxWorkers 2
+        timeout-minutes: 12
+        env:
+          OAR_TEST: antigravity-aimock
+          OAR_TEST_REQUIRE_AVAILABLE: '1'
+          OAR_TRIAL_RUN_DIR: ${{ github.workspace }}/oar-trial-run/agy
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: agy-acp-${{ matrix.os }}
+          path: ${{ github.workspace }}/oar-trial-run/agy
+          if-no-files-found: warn
+
   # The packed packages installed into an empty project the way a host
   # installs them: OAR without its optional peer @cursor/sdk must load,
   # type-check and probe every other runtime (tests/clean-install.ts).

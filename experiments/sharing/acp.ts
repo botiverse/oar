@@ -46,7 +46,7 @@ try {
       .map((event) => asRecord(asRecord(event.params.update)?.content)?.text).filter((text) => typeof text === "string").join(""));
     assert.ok(texts[0]?.includes("ANSWER_A_cwd") === true && !texts[0].includes("ANSWER_B_cwd"));
     assert.ok(texts[1]?.includes("ANSWER_B_cwd") === true && !texts[1].includes("ANSWER_A_cwd"));
-    return { responses, texts, directories, cwdFromExplicitToolArgument: id === "antigravity" };
+    return { responses, texts, directories, cwdFromExplicitToolArgument: false };
   });
   await observe("mcpIsolation", async () => {
     const responses = await Promise.all([prompt(a, "mcp"), prompt(b, "mcp")]);

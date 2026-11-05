@@ -81,15 +81,15 @@ const cases: readonly AcpCase[] = [
       : ""),
   },
   {
-    // antigravity lists a server's tools in its system prompt and calls them
-    // through its `call_mcp_tool` tool. Run with OAR_ANTIGRAVITY_BIN naming
-    // an agy_acp_server.par with its localharness_external beside it.
+    // agy CLI exposes MCP calls directly, with the native toolSummary field.
     id: "antigravity-aimock",
     session: antigravitySession,
     installation: antigravityInstallation,
-    call: (server, text) => ({ name: "call_mcp_tool", arguments: { ServerName: server, ToolName: "echo", Arguments: { text }, toolSummary: "Echo the text", toolAction: "Echoing" } }),
-    // 1.4.3 reports <server>_<tool>; 1.4.1 reported "Running <tool>".
-    reported: ["echo_echo", "remote_echo"],
+    call: (server, text) => server === "userecho"
+      ? { name: "call_mcp_tool", arguments: { ServerName: server, ToolName: "echo", Arguments: { text } } }
+      : { name: `mcp_${server}_echo`, arguments: { text, toolSummary: "Echo the text" } },
+    // CLI 1.5.0 preserves the server and tool in the opening title.
+    reported: ["mcp_echo_echo", "mcp_remote_echo"],
     start: async (configure, withUserServers) => startAntigravityAimock(configure, withUserServers ? { mcpServers: { echo: userServer, userecho: userServer } } : undefined),
     credentials: false,
   },

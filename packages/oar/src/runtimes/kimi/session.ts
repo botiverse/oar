@@ -51,7 +51,6 @@ export const kimiAcpProfile: AcpSessionProfile = {
   // 2026-10-03), so a resume elsewhere is refused (profile.ts).
   resumeKeepsSessionCwd: true,
   // These runtimes lack a unique native missing-session code (#294).
-  isResumeNotFound: (_native, listed) => listed === false,
   configureSession: async ({ request, sessionId, response }) => {
     if (supportsKimiYolo(response)) {
       await request(
