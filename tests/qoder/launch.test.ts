@@ -10,7 +10,7 @@ import { fakeLineProcess } from "../fixtures/fake-line-process.js";
 
 const spawned = vi.hoisted(() => ({ spawnLineProcess: vi.fn(), readExecutableVersion: vi.fn(async () => "1.1.80") }));
 vi.mock("../../packages/oar/src/shared/executable/index.js", () => spawned);
-beforeEach(() => { spawned.spawnLineProcess.mockReset(); });
+beforeEach(() => { spawned.spawnLineProcess.mockReset(); spawned.readExecutableVersion.mockReset().mockResolvedValue("1.1.80"); });
 
 test.each(["--replay-user-messages", "--no-replay-user-messages", "--replay-user-messages=false"])("refuses an override of native input identity before spawn: %s", async (flag) => {
   await expect(launchQoder("qoder", "session", { cwd: tmpdir(), launchArgs: [flag] })).rejects.toMatchObject({
@@ -101,5 +101,29 @@ test("1.1.81 sends private launch files inside open_session, not daemon argv, an
 
 test("an unknown version fails before spawning any control or permission transport", async () => {
   await expect(launchQoder("qoder", "session", { cwd: tmpdir() }, "unknown")).rejects.toThrow("version compatibility");
+  expect(spawned.spawnLineProcess).not.toHaveBeenCalled();
+});
+
+test.each(["1.1.81", "1.1.82", "1.1.83"])("an omitted installation version probes %s once and carries it with the selected daemon", async (version) => {
+  spawned.readExecutableVersion.mockResolvedValue(version);
+  const child = fakeLineProcess((line, process) => {
+    const frame = asRecord(parseJson(line)); const request = asRecord(frame?.request);
+    const initialized = request?.type === "daemon.initialize";
+    process.emit(`${JSON.stringify({ type: "control_response", ...(initialized ? {} : { session_id: "session" }), response: {
+      subtype: "success", request_id: frame?.request_id,
+      response: initialized ? { daemon_protocol_version: 2, capabilities: ["multi_session_v2", "daemon_queries_v1"] } : {},
+    } })}\n`);
+  });
+  spawned.spawnLineProcess.mockReturnValue(child);
+  const process = await launchQoder("qoder", "session", { cwd: tmpdir(), env: { QODER_VERSION_SCOPE: "fixture" } });
+  expect(process.qoderVersion).toBe(version);
+  expect(spawned.readExecutableVersion).toHaveBeenCalledExactlyOnceWith("qoder", 15_000, undefined, expect.objectContaining({ QODER_VERSION_SCOPE: "fixture" }));
+  expect(spawned.spawnLineProcess.mock.calls[0]?.[1]).toEqual(["--sdk"]);
+  child.end(0);
+});
+
+test("an unreadable probed version cannot silently use a legacy model path", async () => {
+  spawned.readExecutableVersion.mockResolvedValue("unknown");
+  await expect(launchQoder("qoder", "session", { cwd: tmpdir() })).rejects.toThrow("version compatibility");
   expect(spawned.spawnLineProcess).not.toHaveBeenCalled();
 });

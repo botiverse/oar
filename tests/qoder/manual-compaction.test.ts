@@ -15,7 +15,7 @@ async function open() {
     if (message?.type !== "control_request") { return; }
     process.emit(line({ type: "control_response", response: { subtype: "success", request_id: message.request_id, response: {} } }));
   });
-  launch.launchQoder.mockResolvedValue(fake);
+  launch.launchQoder.mockResolvedValue(Object.assign(fake, { qoderVersion: "1.1.81" }));
   launch.closeQoder.mockImplementation(async () => { fake.end(0); await fake.exited; });
   const session = await qoderSession({ kind: "available", via: "executable", command: "fixture", version: "1.1.81" }, { cwd: "/work" });
   assert.ok(session.compact !== undefined);

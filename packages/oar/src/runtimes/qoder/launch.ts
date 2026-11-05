@@ -9,18 +9,19 @@ import { checkMcpServerNames, isHttpMcpServer } from "../../shared/mcp-servers.j
 import { refuseSessionOptions } from "../../shared/session-options.js";
 import { resolvedAdditionalDirectories } from "../../shared/additional-directories.js";
 import { qoderDaemonSession } from "./daemon.js";
-import { qoderProtocol, qoderStartupError } from "./protocol.js";
+import { qoderVersionInfo, qoderStartupError } from "./protocol.js";
 import { checkQoderLaunchArgs, qoderRefusedSessionOptions } from "./options.js";
 
 /** Process-scoped files keep MCP credentials and system prompts out of argv. */
-export async function launchQoder(command: string, sessionId: string, options: SessionOptions, version?: string): Promise<LineProcess> {
+export async function launchQoder(command: string, sessionId: string, options: SessionOptions, version?: string): Promise<LineProcess & { readonly qoderVersion: string }> {
   refuseSessionOptions(qoderRefusedSessionOptions, options);
   checkQoderLaunchArgs(options.launchArgs);
   const env = { ...sessionEnvironment(options.env), QODER_EXPOSE_TOKEN_USAGE: "1" };
   const servers = options.mcpServers ?? [];
   checkMcpServerNames(servers);
   const directories = resolvedAdditionalDirectories(options);
-  const protocol = qoderProtocol(version ?? await readExecutableVersion(command, 15_000, undefined, env));
+  const compatibility = qoderVersionInfo(version ?? await readExecutableVersion(command, 15_000, undefined, env));
+  const { protocol } = compatibility;
   const needsFiles = servers.length > 0 || options.systemPrompt !== undefined || options.appendSystemPrompt !== undefined;
   const temporary = needsFiles ? await privateTempDir("oar-qoder-mcp-") : null;
   let child: LineProcess | undefined = undefined;
@@ -61,7 +62,8 @@ export async function launchQoder(command: string, sessionId: string, options: S
       env: protocol === "daemon" ? { ...env, QODER_AGENT_SDK_DAEMON: "1" } : env, killTree: true });
     child.onExit(() => { temporary?.remove(); });
     await child.spawned;
-    return protocol === "daemon" ? await qoderDaemonSession(child, sessionId, args, path.resolve(options.cwd), env) : child;
+    const transport = protocol === "daemon" ? await qoderDaemonSession(child, sessionId, args, path.resolve(options.cwd), env) : child;
+    return { ...transport, qoderVersion: compatibility.version };
   } catch (error) { child?.kill(); temporary?.remove(); throw qoderStartupError(error, options.effort); }
 }
 

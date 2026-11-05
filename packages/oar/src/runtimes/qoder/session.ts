@@ -9,23 +9,27 @@ import { qoderCompaction } from "./compaction.js";
 import { qoderControl, qoderInitializeTimeoutMs, rememberQoderSecrets } from "./control.js";
 import { launchQoder, closeQoder } from "./launch.js";
 import { initialQoderProjection, qoderProjectionProfile } from "./projection.js";
-import { qoderStartupError, qoderTerminationReason } from "./protocol.js";
+import { qoderStartupError, qoderTerminationReason, qoderVersionInfo } from "./protocol.js";
 import { qoderPermissionResponse } from "./permission.js";
 import { qoderNativeModelName } from "./list-models.js";
 
-async function readSelectedModel(control: ReturnType<typeof qoderControl>, requested: string, fetchStrategy: "cache" | "live"): Promise<JsonRecord | undefined> {
+async function readModelCatalog(control: ReturnType<typeof qoderControl>, requested: string, fetchStrategy: "cache" | "live"): Promise<JsonRecord[]> {
   const catalog = await control.request({ subtype: "get_models", fetchStrategy }).catch((error: unknown) => {
     throw new Error(`Qoder could not read ${fetchStrategy} model catalog to confirm ${JSON.stringify(requested)}: ${String(error)}`, { cause: error });
   });
   const payload = asRecord(asRecord(catalog.response)?.response);
-  return asRecordList(payload?.models).find((entry) => entry.value === requested);
+  return asRecordList(payload?.models);
 }
 
-async function confirmModel(control: ReturnType<typeof qoderControl>, requested: string, reported: string | null): Promise<void> {
-  let selected = await readSelectedModel(control, requested, "cache");
-  if (qoderNativeModelName(selected) === undefined) { selected = await readSelectedModel(control, requested, "live"); }
+async function confirmModel(control: ReturnType<typeof qoderControl>, requested: string, reported: string | null, version: string): Promise<void> {
+  let models = await readModelCatalog(control, requested, "cache");
+  let selected = models.find(entry => entry.value === requested);
+  if (qoderNativeModelName(selected, models, version) === undefined) {
+    models = await readModelCatalog(control, requested, "live");
+    selected = models.find(entry => entry.value === requested);
+  }
   if (selected === undefined) { throw new Error(`Qoder model catalog did not contain requested selector ${JSON.stringify(requested)}`); }
-  const resolvedId = qoderNativeModelName(selected);
+  const resolvedId = qoderNativeModelName(selected, models, version);
   if (resolvedId === undefined) { throw new Error(`Qoder model catalog did not provide a resolved name for ${JSON.stringify(requested)}; reported ${JSON.stringify(reported)}`); }
   if (resolvedId !== reported) {
     throw new Error(`Qoder did not confirm model ${JSON.stringify(requested)}; reported ${JSON.stringify(reported)}, catalog resolved ${JSON.stringify(resolvedId)}`);
@@ -53,7 +57,9 @@ export const qoderSession: StartSession = withSessionCredentials(async (installa
       },
       open: async (projection) => {
         await control.request({ subtype: "initialize" }, qoderInitializeTimeoutMs).catch((error: unknown) => { throw qoderStartupError(error, options.effort); });
-        if (options.model !== undefined && model !== options.model) { await confirmModel(control, options.model, model); }
+        if (options.model !== undefined && (model !== options.model || qoderVersionInfo(child.qoderVersion).modelFormat === "provider")) {
+          await confirmModel(control, options.model, model, child.qoderVersion);
+        }
         const answer = await control.request({ subtype: "get_settings" }).catch((error: unknown) => {
           if (options.effort === undefined) { throw error; }
           throw new Error(`Qoder could not confirm effort ${JSON.stringify(options.effort)}: ${String(error)}`, { cause: error });

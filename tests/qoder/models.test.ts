@@ -25,7 +25,7 @@ test("model display labels do not substitute for an absent native resolved name"
 });
 
 vi.mock("../../packages/oar/src/runtimes/qoder/launch.js", () => ({
-  launchQoder: vi.fn(async () => ({ onLine: vi.fn(), onExit: vi.fn() })),
+  launchQoder: vi.fn(async () => ({ onLine: vi.fn(), onExit: vi.fn(), qoderVersion: "1.1.78" })),
   closeQoder: vi.fn(async () => {}),
 }));
 vi.mock("../../packages/oar/src/runtimes/qoder/auth-status.js", () => ({ qoderAuthStatus: vi.fn(async () => ({ kind: "logged_in" })) }));
