@@ -122,6 +122,8 @@ async function promptedSession(fake: FakeLineProcess): Promise<Session> {
 
 let kill: MockInstance<typeof process.kill>;
 beforeEach(() => {
+  // These cases are about the POSIX reading; the Windows path has its own case.
+  vi.spyOn(tables, "processTableSource").mockReturnValue("ps");
   kill = vi.spyOn(process, "kill").mockImplementation(() => true);
 });
 afterEach(() => {
