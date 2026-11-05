@@ -42,7 +42,7 @@ export function cursorSessionWith(load: () => Promise<CursorSdk>): StartSession 
     refuseSessionOptions(cursorRefusedSessionOptions, options);
     const sdk = await load();
     const agent = await openCursorAgent(sdk, options);
-    const kernel = createSessionKernel(agent.agentId);
+    const kernel = createSessionKernel(agent.agentId, undefined, options.retainedBytes);
     kernel.opened(context ?? { requested: "auto", placement: "in_process" });
     let projection: CursorProjectionState = initialCursorProjection;
     // A turn is running from an accepted prompt (or a drained queue input)

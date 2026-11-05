@@ -41,7 +41,7 @@ export function eventsOf(record: RawEvent, actions: ReadonlyMap<string, KnownCon
   const envelope = { sessionId, agentPath, seq, receivedAt, ...(record.spanId === undefined ? {} : { spanId: record.spanId }) };
   switch (record.kind) {
     case "frame":
-      return record.body.events.map((event): Event => ({ ...upgradeLegacyBody(event), ...envelope }));
+      return record.body.events.map((event): Event => ({ ...upgradeLegacyBody(event), ...envelope, ...(record.body.elided === true ? { elided: true as const } : {}) }));
     case "request":
       if (record.direction === "toApp") {
         const type = record.body.kind === "native" ? record.body.type : record.body.kind;

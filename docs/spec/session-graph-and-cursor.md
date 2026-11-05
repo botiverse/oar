@@ -110,7 +110,9 @@ it for positioning.
 **Semantics: sequence determinism within a stream.** The total order of a
 stream is uniquely determined by `seq`; identity and positioning rest on
 `seq` alone, and `receivedAt` is observation metadata. While the adapter
-process lives, a cursor continues in memory without loss or duplication.
+process lives, a cursor continues in memory without loss or duplication; with
+[`retainedBytes`](record-stream.md#bounding-retained-records), frames replayed
+past the limit arrive marked `elided`.
 After the process dies, the replay source is the host's own persisted log of
 those records, never the runtime's history: native storage is not isomorphic
 to the wire and cannot reproduce it, so a rebuild from it is not implemented and

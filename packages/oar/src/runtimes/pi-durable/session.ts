@@ -33,7 +33,7 @@ async function withdraw(harness: Harness, conversation: Conversation, inputId: s
 export async function piDurableSession(harness: Harness, models: DurableModels, options: SessionOptions, context?: SessionOpenContext): Promise<Session> {
   const conversation = await openConversation(harness, models, options);
   const stream = await watchEvents(harness, conversation.id, BACKGROUND_CONTEXT);
-  const kernel = createSessionKernel(String(conversation.id));
+  const kernel = createSessionKernel(String(conversation.id), undefined, options.retainedBytes);
   kernel.opened(context ?? { requested: "auto", placement: "in_process" });
   let state = initialDurableProjection(stream.snapshot);
   const initial = foldDurableBatch(state, [stream.snapshot]);

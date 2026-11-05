@@ -758,6 +758,25 @@ the kernel finishes publishing the current record to every observer before
 publishing those new records, so all observers still receive monotonically
 ordered sequences.
 
+## Bounding retained records
+
+`SessionOptions.retainedBytes` bounds what the process keeps for `records()`,
+the query folds and cursor replay. Omitted, it keeps everything. Past the limit,
+the oldest frames lose `native` (now `null`) and their events' tool input and
+output, and carry `elided: true`; events read from them carry `elided: true` too.
+
+- Every observer receives each record complete before anything is elided. A host
+  wanting the full history persists it (`openVoyage` or its own log).
+- Records stay: `seq` stays dense, and frame `type`, event kinds, call ids,
+  results, exit codes, usage, model and text remain, so `status()`, `usage()` and
+  the other folds do not change. Requests and responses are never elided.
+- A cursor replay across trimmed frames receives them with `elided: true`: a host
+  can tell the user that part is gone. It is never silently skipped.
+- The record count and text are not bounded, and the size is measured from each
+  frame's `native` and tool payloads. A newest frame above the limit is kept whole.
+
+[Why content rather than records](../design/decisions.md#bounded-retention-by-eliding-content-2026-11-05).
+
 ## Withdrawing held input
 
 `Session.withdraw(inputId)` takes back an input a `queue` request left in

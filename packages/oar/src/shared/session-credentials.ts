@@ -2,6 +2,7 @@ import type { SessionOpenContext, SessionPlacement } from "../contracts/placemen
 import type { AvailableInstallation } from "../contracts/installation.js";
 import type { AdapterSession, Session, SessionOptions, StartSession } from "../contracts/session.js";
 import { sessionCredentialRedactor, type CredentialRedactor } from "./credential-redactor.js";
+import { checkRetainedBytes } from "./record-retention.js";
 import { sealSession } from "./seal-session.js";
 import { createSessionKernel, type SessionKernel } from "./session-kernel.js";
 
@@ -24,7 +25,7 @@ function sessionCredentials(options: SessionOptions, context: SessionOpenContext
     values,
     redact,
     redactValue,
-    kernel: (id, extraRedact) => { const kernel = createSessionKernel(id, extraRedact ?? redactValue); kernel.opened(context); return kernel; },
+    kernel: (id, extraRedact) => { const kernel = createSessionKernel(id, extraRedact ?? redactValue, options.retainedBytes); kernel.opened(context); return kernel; },
     seal: (adapter, clean = redactValue) => sealSession({
       ...adapter,
       ...(adapter.goal === undefined ? {} : { goal: {
@@ -49,6 +50,7 @@ function sessionCredentials(options: SessionOptions, context: SessionOpenContext
 export function withSessionCredentials(open: (installation: AvailableInstallation, options: SessionOptions, credentials: SessionCredentials, context: SessionOpenContext) => Promise<Session>, placement: SessionPlacement = "isolated"): StartSession {
   return async (installation, options, context) => {
     const selected = context ?? { requested: "auto", placement };
+    checkRetainedBytes(options.retainedBytes);
     const credentials = sessionCredentials(options, selected);
     try { return await open(installation, options, credentials, selected); }
     catch (error) { throw credentials.redactValue(error); }
