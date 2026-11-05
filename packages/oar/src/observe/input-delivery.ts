@@ -26,6 +26,7 @@ export function withDeliveryState(input: ConversationInput, attempts: readonly I
 
 /** Whether the stream has established that this input waits for a native echo. */
 export function awaitsEcho(input: ConversationInput, conversation: Pick<ConversationState, "inputs">): boolean {
+  if (input.disposition?.kind === "handled") { return false; }
   if (input.turn?.state === "queued" && input.state !== "dropped" && input.state !== "withdrawn" && input.state !== "rejected") { return true; }
   if (input.turn?.state === "active") { return false; }
   if (input.observations.length > 0 || input.state === "rejected" || input.state === "withdrawn" || input.state === "dropped") { return false; }

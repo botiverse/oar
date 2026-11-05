@@ -92,7 +92,7 @@ test.each(cases)("promptAndWait observes exit after %s", async (stop) => {
   if (stop === "none") { kernel.respond("", { kind: "exited", code: 9 }); }
   const result = await ended;
   expect(result.kind).toBe(stop === "accepted" ? "interrupted" : "ended");
-  if (result.kind === "rejected") { throw new Error("prompt was unexpectedly rejected"); }
+  if (result.kind === "rejected" || result.kind === "handled") { throw new Error(`prompt unexpectedly ${result.kind}`); }
   expect(result.outcome).toEqual(outcomeFor(stop));
 });
 

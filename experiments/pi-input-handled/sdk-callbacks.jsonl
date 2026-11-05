@@ -1,0 +1,11 @@
+{"input":"HANDLE","disposition":"handled"}
+{"input":"A","disposition":"started"}
+{"input":"HANDLE","disposition":"handled"}
+{"input":"A","disposition":"started"}
+{"input":"EXT","disposition":"started"}
+{"input":"B","disposition":"started"}
+{"input":"/spawn","disposition":"handled"}
+{"input":"EXT","disposition":"started"}
+{"input":"A","disposition":"started"}
+{"method":"steer","input":"HANDLE","disposition":"handled"}
+{"input":"/fail","disposition":"handled"}

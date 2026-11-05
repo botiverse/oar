@@ -119,7 +119,8 @@ async function runTurn(
   });
   const run = await promptAndWait(session, prompt);
   if (run.kind !== "ended") {
-    throw new Error(`prompt ${run.kind}: ${run.kind === "rejected" ? run.reason : run.by}`);
+    const reason = run.kind === "interrupted" ? run.by : "no model turn";
+    throw new Error(`prompt ${run.kind}: ${run.kind === "rejected" ? run.reason : reason}`);
   }
   if (run.outcome.kind !== "completed") {
     throw new Error(`turn ${run.outcome.kind}`);

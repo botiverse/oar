@@ -1,4 +1,5 @@
 import { reduceAdapterQueue } from "./adapter-queue.js";
+import { reduceInputAdmission } from "./input-admission.js";
 import type { AgentStatus, QueryResult, RawEvent, RunningPhase, RuntimeEventBody } from "../contracts/session.js";
 
 import { exitTurnOutcome, releaseTurnOutcome, reduceTurnStop } from "./turn-stop.js";
@@ -83,14 +84,18 @@ function running(previous: StatusState, record: RawEvent, phase: RunningPhase): 
 
 /** Fold one record using the complete previous checkpoint; preserve every returned field. */
 export function reduceStatus(previous: StatusState, record: RawEvent, sessionId?: string): StatusState {
-  const { adapterQueue, ...core } = previous;
+  const { adapterQueue, inputAdmission, ...core } = previous;
   const root = (sessionId === undefined || record.sessionId === sessionId) && record.agentPath.length === 0;
   const queue = root ? reduceAdapterQueue(adapterQueue, record) : adapterQueue;
-  const status = reduceCore(adapterQueue?.idle ?? core, record, sessionId);
+  const before = adapterQueue?.idle ?? inputAdmission?.nativeIdle ?? core;
+  const reduced = reduceCore(before, record, sessionId);
+  const status = root ? reduceInputAdmission(inputAdmission, before, reduced, record)
+    : (inputAdmission === undefined ? reduced : { ...reduced, inputAdmission });
+  const admission = status.inputAdmission;
   const waiting = queue?.inputs.find(input => input.accepted === true);
   if (status.kind === "idle" && status.released !== true && waiting !== undefined) {
     return { kind: "running", phase: "waiting_model", sinceSeq: waiting.seq, lastEventAt: record.receivedAt,
-      adapterQueue: { ...queue, inputs: queue?.inputs ?? [], withdrawals: queue?.withdrawals ?? [], dispatches: queue?.dispatches ?? [], idle: status } };
+      ...(admission === undefined ? {} : { inputAdmission: admission }), adapterQueue: { ...queue, inputs: queue?.inputs ?? [], withdrawals: queue?.withdrawals ?? [], dispatches: queue?.dispatches ?? [], idle: status } };
   }
   return queue === undefined ? status : { ...status, adapterQueue: queue };
 }
@@ -237,6 +242,7 @@ function reduceEvent(previous: StatusState, record: RawEvent, event: RuntimeEven
       // Tasks run beside the turn; whether the agent is busy is the turn's fact, but a report is activity.
       return previous.kind === "running" ? { ...previous, lastEventAt: record.receivedAt } : previous;
     case "input_dropped": {
+      if (event.requestId !== undefined) { return previous; }
       if (previous.kind === "running" && previous.compaction?.requestId === event.inputId) { return compactionIdle(previous); }
       if (previous.kind === "running" && previous.inputId === event.inputId) { return { kind: "idle" }; }
       if (previous.pendingPrompt?.inputId !== event.inputId) { return previous; }
@@ -246,6 +252,7 @@ function reduceEvent(previous: StatusState, record: RawEvent, event: RuntimeEven
     case "app_request_cancelled":
     case "session_linked":
     case "user_message":
+    case "input_handled":
     case "goal_changed":
     case "usage":
     case "model":

@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import type { Frame, RawEvent, RuntimeEventBody } from "../packages/oar/src/index.js";
-import { initialStatus, reduceStatus } from "../packages/oar/src/observe/agent-status.js";
+import { initialStatus, reduceStatus, statusValue } from "../packages/oar/src/observe/agent-status.js";
 import { viewOf } from "../packages/oar/src/observe/session-view.js";
 
 /**
@@ -31,5 +31,5 @@ test("a tool part takes the latest input reported for its call, its state untouc
 
 test("a tool input keeps the status in the call's tool phase and moves the clock", () => {
   const status = records.slice(0, 3).reduce((state, record) => reduceStatus(state, record), initialStatus);
-  expect(status).toEqual({ kind: "running", sinceSeq: 0, requestId: "r1", phase: { tool: "bash", callId: "c1" }, lastEventAt: 20 });
+  expect(statusValue(status)).toEqual({ kind: "running", sinceSeq: 0, requestId: "r1", phase: { tool: "bash", callId: "c1" }, lastEventAt: 20 });
 });

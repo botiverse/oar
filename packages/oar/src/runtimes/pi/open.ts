@@ -124,7 +124,7 @@ export function checkPiSystemPrompt(prompt: string | undefined): void {
  * then the session against an explicit SessionManager so resume and creation
  * share one session directory.
  */
-export async function openPiAgentSession(options: SessionOptions, rememberKey?: (key: string | undefined) => void, project: PiProjectOptions = {}): Promise<PiAgentSession> {
+export async function openPiAgentSession(options: SessionOptions, rememberKey?: (key: string | undefined) => void, project: PiProjectOptions = {}, onError?: Parameters<PiAgentSession["bindExtensions"]>[0]["onError"]): Promise<PiAgentSession> {
   refuseSessionOptions(piRefusedSessionOptions, options);
   checkSessionName(options);
   checkPiSystemPrompt(options.systemPrompt);
@@ -258,7 +258,7 @@ export async function openPiAgentSession(options: SessionOptions, rememberKey?: 
   // awaits resource discovery, whether or not MCP was requested.
   try {
     if (rememberKey !== undefined) { await rememberPiKey(new sdk.ModelRegistry(session.modelRuntime), session.model, rememberKey); }
-    await session.bindExtensions({});
+    await session.bindExtensions(onError === undefined ? {} : { onError });
   } catch (error) {
     await disposePiAgentSession(session);
     throw error;

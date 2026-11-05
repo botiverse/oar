@@ -1,4 +1,5 @@
 /* oxlint-disable eslint/max-classes-per-file -- one stand-in. */
+import type { PromptOptions } from "@earendil-works/pi-coding-agent";
 import { setImmediate as settle } from "node:timers/promises";
 import { expect, test, vi } from "vitest";
 import { awaitTurnEnd } from "../../packages/oar/src/observe/turns.js";
@@ -6,7 +7,7 @@ import { piSession } from "../../packages/oar/src/runtimes/pi/session.js";
 import { inputIdOf, withdraw } from "../fixtures/withdraw.js";
 
 /**
- * A stand-in for the slice of pi's AgentSession (SDK 1.1.0) the adapter
+ * A stand-in for the slice of pi's AgentSession (SDK 1.5.0) the adapter
  * drives: `prompt` starts a run (`agent_start`) that lasts until the test
  * ends it with pi's own `agent_end` then `agent_settled`.
  */
@@ -20,6 +21,7 @@ class FakePiSession {
   isStreaming = false;
   private readonly listeners: ((event: unknown) => void)[] = [];
   private finish: (() => void) | null = null;
+  private preflight: PromptOptions["preflightResult"];
 
   subscribe(listener: (event: unknown) => void): () => void {
     this.listeners.push(listener);
@@ -30,7 +32,8 @@ class FakePiSession {
     return undefined;
   }
 
-  async prompt(input: string): Promise<void> {
+  async prompt(input: string, options?: PromptOptions): Promise<void> {
+    this.preflight = options?.preflightResult;
     this.prompts.push(input);
     const { promise, resolve } = Promise.withResolvers<void>();
     this.finish = resolve;
@@ -39,6 +42,8 @@ class FakePiSession {
   }
 
   begin(): void {
+    this.preflight?.("started");
+    this.preflight = undefined;
     this.isStreaming = true;
     this.emit({ type: "agent_start" });
   }

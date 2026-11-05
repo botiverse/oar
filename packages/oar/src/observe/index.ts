@@ -29,13 +29,13 @@ export type { AppRequestKind } from "./app-requests.js";
 export type { ToolAction, ToolActionKind } from "./tool-activity.js";
 export type { ReasoningPart, ToolGroup, ToolGroupSegment, ToolPart } from "./tool-groups.js";
 export { awaitIdle, awaitTurnEnd, promptAndWait, turnEndAfter } from "./turns.js";
-export type { PromptRun, PromptRunOptions } from "./turns.js";
+export type { PromptRun, PromptRunOptions, InputHandled } from "./turns.js";
 export { contextUsageOf, effortOf, modelOf, serviceTierOf, usageOf } from "./usage.js";
 export { applyTaskEvent, initialTasks, initialTaskState, reduceTasks, reduceTaskState, tasksOf } from "./tasks.js";
 export type { TaskEventOrigin, TaskMap, TaskState, TaskView } from "./tasks.js";
 
 export { initialConversation, reduceConversation, conversationOf, observeConversation } from "./conversation.js";
-export type { ConversationState, ConversationInput, ConversationUpdate, InputAttempt } from "./conversation.js";
+export type { ConversationState, ConversationInput, ConversationUpdate, InputAttempt, InputDisposition } from "./conversation.js";
 
 export {
   initialSessionView,

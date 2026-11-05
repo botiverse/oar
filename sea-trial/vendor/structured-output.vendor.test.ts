@@ -36,7 +36,7 @@ test.skipIf(process.env.OAR_TEST !== "claude-aimock")("Claude's exhausted schema
     const run = await promptAndWait(session, "Use StructuredOutput", { timeoutMs: 30_000 });
     expect(run).toMatchObject({ kind: "ended", outcome: { kind: "failed", failure: "output_schema" } });
     expect(run.kind === "ended" && run.outcome.kind === "failed" ? run.outcome.reason : "").toMatch(/^error_max_structured_output_retries/u);
-    if (run.kind !== "rejected") { expect(run.outcome).not.toHaveProperty("structuredOutput"); }
+    if (run.kind === "ended") { expect(run.outcome).not.toHaveProperty("structuredOutput"); }
     const frame = session.records().find((record) => record.kind === "frame" && asRecord(record.body.native)?.type === "result");
     expect(frame?.kind === "frame" ? frame.body.native : null).toMatchObject({ terminal_reason: "structured_output_retry_exhausted" });
   } finally { await session?.dispose(); await provider.stop(); await rm(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 }); }
@@ -52,7 +52,7 @@ test.skipIf(process.env.OAR_TEST !== "codex-aimock").each(['{"answer":4}', '{"an
     session = await codexSession(installation, { cwd: root, env: provider.env ?? {}, outputSchema });
     const run = await promptAndWait(session, "Give the answer", { timeoutMs: 30_000 });
     expect(run).toMatchObject({ kind: "ended", text, outcome: { kind: "completed" } });
-    if (run.kind !== "rejected") { expect(run.outcome).not.toHaveProperty("structuredOutput"); }
+    if (run.kind === "ended") { expect(run.outcome).not.toHaveProperty("structuredOutput"); }
     expect(asRecord(provider.raw.at(-1)?.body)?.text).toMatchObject({ format: { type: "json_schema", schema: outputSchema } });
     expect(await session.queue("again")).toMatchObject({ kind: "rejected", code: "unsupported" });
     const id = session.id;
@@ -73,7 +73,7 @@ test.skipIf(process.env.OAR_TEST !== "codex-aimock")("Codex reports a provider s
     session = await codexSession(installation, { cwd: root, env: provider.env ?? {}, outputSchema });
     const run = await promptAndWait(session, "Give the answer", { timeoutMs: 30_000 });
     expect(run).toMatchObject({ kind: "ended", outcome: { kind: "failed", failure: "invalid_request" } });
-    if (run.kind !== "rejected") { expect(run.outcome).not.toHaveProperty("structuredOutput"); }
+    if (run.kind === "ended") { expect(run.outcome).not.toHaveProperty("structuredOutput"); }
     expect(JSON.stringify(session.records())).toContain("Invalid schema for response_format");
   } finally { await session?.dispose(); await provider.stop(); await rm(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 }); }
 }, 120_000);

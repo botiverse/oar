@@ -237,7 +237,10 @@ view: the records and flat events retain their original order.
 
 ## Dropped input
 
-`input_dropped {inputId, reason: "turn_interrupted" | "runtime_refused"}` is a runtime event.
+`input_dropped` is a native discard event with
+`reason: "turn_interrupted" | "runtime_refused"`. It identifies the exact
+attempt with `requestId`, or the logical input with `inputId` on older
+adapters. At least one reference is required; both may be present.
 For `runtime_refused` only, optional `failure: FailureClass` and `message`
 retain the classification and explanation supplied by the adapter. An
 input-scoped wait returns a failed outcome using those fields, defaulting
@@ -410,3 +413,29 @@ The separate [`parseReport`](subagents.md#reading-results) helper reads only
 `formatReport`'s own report format. Each union member is covered by tests
 and exhaustive type checks in OAR, so an added member requires its wording
 to be supplied here.
+
+## Handled input
+
+`input_handled { requestId, inputId? }` resolves a native delivery disposition,
+not a turn. `ConversationInput.disposition` retains the handled receipt and
+its attempt; the input's delivery state remains accepted. An extension error
+is a separate fact, and an independent extension run remains active. A view
+shows the input once and removes only its empty provisional turn; it does not
+invent a successful answer or assign an unrelated run to that input.
+
+Queue dispatch uses the existing `queued: "adapter"` and `carries` contract,
+so a handled or dropped dispatch updates the original input. Request
+correlation supports old inputs without an input ID and prevents a late
+receipt for an older attempt from resolving a newer retry. A handled input
+no longer waits for a message echo.
+
+`promptAndWait` has a distinct `handled` result. Input-scoped `awaitTurnEnd`
+and `turnEndAfter` return `TurnOutcome | InputHandled`; unscoped turn waits
+keep their existing return types. An input-scoped wait binds to the attempt
+at its cursor, so reusing the ID cannot resolve the old attempt's wait.
+`InputHandled` is not a `TurnOutcome`. `awaitIdle` resolves with null when
+handling leaves no active or pending work; otherwise it waits for that work.
+These helpers also handle receipts that precede the control's accepted
+response. A prompt recorded with `admission: "native"` waits for its own
+admission even when an independent run finishes first; that run's output
+and outcome remain visible without attributing them to the handled input.

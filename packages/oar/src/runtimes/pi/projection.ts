@@ -31,20 +31,22 @@ export interface ProjectionCommand {
 }
 
 export interface PiProjectionState {
+  readonly runStarted: boolean;
   readonly reasoningHadText: boolean;
   readonly providerError: PiProviderError | undefined;
   readonly tokens: TokenTotals;
 }
 
 export const initialPiProjection: PiProjectionState = {
+  runStarted: false,
   reasoningHadText: false,
   providerError: undefined,
   tokens: noTokens,
 };
 
-/** Control plane → state: a prompt (or a drained queue input) resets the per-run accumulators; the running token total stays. */
+/** A native run start resets the per-run accumulators; the running token total stays. */
 export function piPrompted(state: PiProjectionState): PiProjectionState {
-  return { ...initialPiProjection, tokens: state.tokens };
+  return { ...initialPiProjection, runStarted: true, tokens: state.tokens };
 }
 
 /** Pi's settlement reports cancellation; preceding provider events supply error details. */
@@ -147,11 +149,12 @@ function step(state: PiProjectionState, event: AgentSessionEvent, extra: PiFoldE
       // precedes threshold compaction and auto-retries; between the two pi
       // rejects new prompts ("Cannot submit a prompt while compaction is in
       // progress"). The context read here is therefore post-compaction.
-      const events: RuntimeEventBody[] = [{ kind: "turn_ended", outcome: piRunOutcome(state, event.aborted) }];
+      const events: RuntimeEventBody[] = state.runStarted
+        ? [{ kind: "turn_ended", outcome: piRunOutcome(state, event.aborted) }] : [];
       if (extra.context !== undefined && extra.context !== null) {
         events.push({ kind: "usage", usage: { context: extra.context } });
       }
-      return { state: piPrompted(state), events };
+      return { state: { ...initialPiProjection, tokens: state.tokens }, events };
     }
     case "message_update":
       return foldMessageUpdate(state, event.assistantMessageEvent, extra.overflow === true);
@@ -222,7 +225,7 @@ function step(state: PiProjectionState, event: AgentSessionEvent, extra: PiFoldE
     case "message_start":
       return { state, events: event.message.role === "user" ? [{ kind: "user_message", evidence: "conversation", input: typeof event.message.content === "string" ? event.message.content : event.message.content.filter((part) => part.type === "text").map((part) => part.text).join("") }] : [] };
     case "agent_start":
-      return { state, events: [{ kind: "turn_active" }] };
+      return { state: piPrompted(state), events: [{ kind: "turn_active" }] };
     case "agent_end":
     case "turn_start":
     case "bash_execution_update":
@@ -243,7 +246,17 @@ export function foldPiEvent(
   event: AgentSessionEvent,
   extra: PiFoldExtra = {},
 ): { readonly state: PiProjectionState; readonly commands: readonly ProjectionCommand[] } {
-  const next = step(state, event, extra);
+  // A session_start extension can launch a run before we subscribe. Its
+  // message/tool/turn events still prove a run. Custom messages can also be
+  // appended while idle or on failed preparation, so they do not prove one;
+  // neither do configuration, persistence, queue or standalone compaction.
+  const runEvidence = event.type === "agent_start" || event.type === "agent_end"
+    || event.type === "turn_start" || event.type === "turn_end"
+    || ((event.type === "message_start" || event.type === "message_end") && event.message.role !== "custom")
+    || event.type === "message_update"
+    || event.type === "tool_execution_start" || event.type === "tool_execution_update" || event.type === "tool_execution_end"
+    || event.type === "auto_retry_start" || event.type === "auto_retry_end";
+  const next = step(runEvidence ? { ...state, runStarted: true } : state, event, extra);
   return {
     state: next.state,
     commands: [{ kind: "frame", body: { type: event.type, native: event, events: next.events } }],

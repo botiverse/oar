@@ -32,3 +32,8 @@ export interface UserMessage {
   readonly turnId?: string;
   readonly evidence: "acknowledged" | "turn_item" | "conversation";
 }
+
+/** An exact delivery attempt when available; older runtimes name only the logical input. */
+export type InputReference =
+  | { readonly requestId: string; readonly inputId?: string }
+  | { readonly requestId?: string; readonly inputId: string };

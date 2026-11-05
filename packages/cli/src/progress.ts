@@ -131,7 +131,7 @@ export function createProgressRenderer(
       case "tool_call_input_delta":
       case "app_answered":
       case "input_withdrawn":
-      case "input_dropped":
+      case "input_handled": case "input_dropped":
       case "session_linked":
       case "user_message":
       case "goal_changed":

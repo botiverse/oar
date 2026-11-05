@@ -114,8 +114,8 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
           ended ||= closes;
           const cancelled = command.body.events.find((event) => event.kind === "input_dropped");
           dropped ||= cancelled !== undefined;
-          if (cancelled?.kind === "input_dropped") { writtenQueues.delete(cancelled.inputId); }
-          if (cancelled?.kind === "input_dropped" && state.active !== null && cancelled.inputId === (state.active.body.kind === "compact" ? state.active.id : ("inputId" in state.active.body ? state.active.body.inputId : undefined))) { state.active = null; }
+          if (cancelled?.kind === "input_dropped" && cancelled.inputId !== undefined) { writtenQueues.delete(cancelled.inputId); }
+          if (cancelled?.kind === "input_dropped" && cancelled.inputId !== undefined && state.active !== null && cancelled.inputId === (state.active.body.kind === "compact" ? state.active.id : ("inputId" in state.active.body ? state.active.body.inputId : undefined))) { state.active = null; }
           break;
         }
         case "respond": {

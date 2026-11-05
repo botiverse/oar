@@ -486,9 +486,13 @@ Further rules:
   status (pending abort ids and `abortedOnExit`) so checkpoints preserve the
   same result as replay. Its public checkpoint type is `StatusState`:
   persist the entire value with the consumed cursor, including native
-  compaction correlation, and pass it unchanged when continuing the fold.
+  compaction correlation, provisional input admission and adapter queue
+  ownership, and pass it unchanged when continuing the fold.
   `statusValue` and `Session.status()` expose only the display `AgentStatus`,
   which cannot replace that checkpoint ([details](manual-compaction.md#ownership-records-and-state)).
+  `SessionView.statusState` is shared by all runtimes and appears when the
+  fold needs this additional correlation, including sessions without input
+  disposition events; `SessionView.status` remains the display value.
   Flat events alone omit accepted controls; feed
   records to the session view for this classification.
 - **Spawned processes belong to the host's lifetime.** One synchronous Node
@@ -547,14 +551,14 @@ Further rules:
   or `-1` before any record. `status()` is the one the control decisions
   must agree with: a prompt recorded while it says `running` is rejected
   `busy`, and one recorded while it says `idle` is not refused as `busy`
-  except for the following known gaps. Claude, Qoder, Qwen, Cursor and Pi
-  SDK/RPC do not yet record held queue ownership, including an input dequeued
-  but awaiting native start/refusal. Pi SDK/RPC also release their run gate
+  except for the following known gaps. Claude, Qoder, Qwen and Cursor do not yet record held queue ownership,
+  including an input dequeued but awaiting native start/refusal. Pi SDK/RPC also release their run gate
   after publishing ordinary `turn_ended`: a synchronous observer can see
   `idle` while `prompt` returns `busy`, even with no queue. Submit after that
-  observer returns. Conversely, a Pi extension-handled input can leave the
-  provisional `running` fold without a native run, while RPC permits another
-  prompt. These are explicit exceptions, not permission to infer a turn end.
+  observer returns. Pi SDK/RPC record adapter queue ownership and native
+  `input_handled` dispositions; handling clears only that request's provisional
+  occupancy, preserving independently observed native runs. These remaining
+  exceptions are not permission to infer a turn end.
   Outside them, terminal status and prompt admission change on the same
   record ([state exceptions](manual-compaction.md#ownership-records-and-state)).
 - **Folds scope to the root session.** A derived child session's records
@@ -644,15 +648,16 @@ interface Frame extends RecordEnvelope {
 }
 
 interface FrameBody {
-  responseTo?: string;          // exact native identifier correlation to an OAR request; see below
+  responseTo?: string;          // native identifier or per-invocation callback correlation; see below
   type: string;                 // runtime-native discriminator (claude type[/subtype], codex method, pi event type, ACP sessionUpdate)
   native: unknown;              // as sent, except credential-field values redacted before recording
   events: readonly RuntimeEventBody[];  // what oar read out of the frame, in frame order; [] when oar read nothing
 }
 // RuntimeEventBody:
 //   user_message {input, inputId?, nativeMessageId?, turnId?, evidence} (conversation.md) |
-//   input_dropped {inputId, reason: "turn_interrupted"} |
-//   input_dropped {inputId, reason: "runtime_refused", failure?: FailureClass, message?: string} (conversation.md) |
+//   input_handled {requestId, inputId?} |
+//   input_dropped {requestId?, inputId?, reason: "turn_interrupted"} |
+//   input_dropped {requestId?, inputId?, reason: "runtime_refused", failure?: FailureClass, message?: string} (at least one ID; conversation.md) |
 //   session_linked {parent, child, via: "tool_call"} |
 //   text_delta {text, messageId?} | reasoning {content, messageId?} |
 //   tool_call_started {callId, tool, input?} |
@@ -686,7 +691,7 @@ interface RequestRecord extends RecordEnvelope {
   kind: "request";
   id: string;
   direction: "toRuntime" | "toApp";
-  body: RequestBody;            // open {placement} | prompt {input, inputId?, images?, origin?, carries?} | steer | queue {input, inputId?, images?, origin?} | withdraw {inputId} | abort | compact {settledBy?: "native_response"} | dispose | goal_set {options} | goal_read | goal_clear | native {type, native} (toApp, verbatim)
+  body: RequestBody;            // open {placement} | prompt {input, inputId?, images?, origin?, carries?, admission?: "native"} | steer | queue {input, inputId?, images?, origin?} | withdraw {inputId} | abort | compact {settledBy?: "native_response"} | dispose | goal_set {options} | goal_read | goal_clear | native {type, native} (toApp, verbatim)
 }
 
 interface ResponseRecord extends RecordEnvelope {
@@ -731,9 +736,10 @@ The optional [manual compaction](manual-compaction.md) control returns
 observes the native terminal evidence. Caller deadlines append no fake native
 terminal and do not release the operation; `status()` remains compacting.
 
-`FrameBody.responseTo` means this native frame explicitly identifies an OAR
-request using an identifier OAR supplied to the runtime (RPC id, command UUID,
-etc.). Correlation uses exact identifiers, never timing or order. It is neither
+`FrameBody.responseTo` links native evidence to an OAR request through an
+identifier OAR supplied to the runtime (RPC id, command UUID, etc.) or the
+native callback supplied for that exact invocation, such as Pi SDK's
+`preflightResult`. Correlation never comes from timing or order. It is neither
 a second control response nor proof of successful execution. Grok/OpenCode
 compact RPC answers and Qoder compact command terminals carry this field.
 Their compact requests have `settledBy: "native_response"`: status and the
@@ -751,8 +757,11 @@ does not abort work, delete history, close the Harness or fabricate an exit.
 Call `abort()` first when stopping that durable work is intended. The turn helpers build on this:
 `promptAndWait(session, input, { timeoutMs?, signal? })` prompts and waits
 for the runtime's own turn end (aborting when a limit fires, and reporting
-that as `interrupted` with the runtime's outcome), and `awaitIdle(session)`
-waits for the running turn, if any, to end.
+that as `interrupted` with the runtime's outcome), or returns the distinct
+`handled` branch when native input handling is observed. Handling is not a
+successful turn and never borrows an independent extension run's result.
+`awaitIdle(session)` waits for remaining work; handling resolves it with null
+only when no native run or accepted input remains.
 
 A prompt's optional `carries: string[]` names earlier logical input ids sent
 in that same prompt, scoped to its session and agent lineage. When an input
@@ -768,10 +777,11 @@ dispatch render one input even when no `inputId` was supplied. Adapters copy
 this field to the prompt request only; it is never added to model text or vendor
 protocol fields. Older readers may ignore the additive field.
 
-### Adapter-held ACP queue records
+### Adapter-held queue records
 
 Kimi, Grok, OpenCode, Antigravity and CodeBuddy use the shared ACP driver.
-An ACP queue accepted with `queued: "adapter"` is still held by OAR. At
+Pi SDK/RPC use the same ownership records. A queue accepted with
+`queued: "adapter"` is still held by OAR. At
 actual dispatch the adapter records a new prompt carrying the original
 `inputId` (or the queue request id when absent), then that prompt's single
 accepted/rejected response. The queue request never receives a second
@@ -784,7 +794,7 @@ Hosts counting requests or grouping by request kind must distinguish this
 adapter dispatch from a new host submission: it adds a prompt request, but
 `carries` points to the already accepted logical input. Do not count the
 queue and its carried prompt as two user inputs. Qoder uses the stream-json
-driver; its queue record shape is unchanged by this ACP change.
+driver and retains its existing queue record shape.
 
 Controls issued synchronously by a record observer can act before an adapter
 resumes draining its held queue. Reentrant records are retained immediately;
@@ -883,7 +893,9 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   OpenCode v2 child attribution. The source frame carries both endpoints;
   `graphOf` deduplicates repeated edges without changing the records.
 
-- `turn_active`: codex `turn/started`, dsh's native inbox claim or empty `turn/start`, pi `agent_start`, Pi Durable's
+- `turn_active`: codex `turn/started`, dsh's native inbox claim or empty
+  `turn/start`, Pi `agent_start` and per-input
+  `started` admission receipts (SDK `preflightResult`, RPC prompt response), Pi Durable's
   adopted conversation activity, qwen's root `system/init` for its sole
   submitted input, and claude `system/init` when the root starts a turn on
   its own ([per runtime](runtime-matrix.md#native-active-turns)). An optional
@@ -903,8 +915,13 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   `promptAndWait` sends the caller's inputId or a generated UUID and waits for
   that span; `awaitTurnEnd` and `turnEndAfter` opt in with an inputId and still
   return the first root end without one. Native exits always settle waits.
+- `input_handled { requestId, inputId? }`: native handling of one delivery
+  attempt outside the normal prompt path. It is separate from delivery
+  acceptance, model consumption and turn completion. Pi SDK/RPC report it
+  from native prompt and steer dispositions; [details](#native-input-disposition).
 - `input_dropped`: native evidence that the input was interrupted before
-  delivery, or refused. Only `reason: "runtime_refused"` permits optional
+  delivery, or refused. `inputId` is optional when `requestId` identifies the
+  attempt; at least one identifier is required. Only `reason: "runtime_refused"` permits optional
   `failure` and `message`. Input-scoped waits use them for the failed outcome;
   absent fields yield `unknown` / `runtime refused the input`. An interruption
   yields `aborted`. See [dropped input](conversation.md#dropped-input).
@@ -1204,3 +1221,52 @@ answered without starting host work. A failed hosted-terminal cleanup after
 process exit is a failed `cleanup` response with empty request id, separate
 from `exited`. See
 [ACP connection ownership](acp-shared-connection.md#record-changes-on-both-acp-paths).
+
+### Native input disposition
+
+`input_handled { requestId, inputId? }` reports that the runtime explicitly
+handled this delivery attempt outside its normal prompt path. It appears on
+the frame carrying that evidence. The request ID is OAR correlation, not a
+native turn identifier. Handling neither proves business success nor ends a
+turn: a native extension can report handled after a handler error, or start
+an independent run. Preserve those native facts separately. Accepted delivery
+remains accepted; the host must not automatically resend handled input.
+
+`input_dropped` may carry a request ID as well as an input ID, or just a request
+ID when the caller supplied no input ID. A native refusal of already accepted
+queue input returns ownership with `reason: "runtime_refused"`; it does not
+automatically replay an input hook that might already have caused effects.
+Receipts affect only their delivery attempt, including when an input ID is
+reused. Old records with input IDs remain readable.
+
+Input-scoped waits bind the live attempt at their cursor, or the next attempt
+when that cursor is after the prior attempt's disposition. Accepted withdrawal
+of the bound input resolves as `aborted` for every runtime, including native
+queues, without requiring an adapter-held marker. Rejection of a recorded dispatch
+resolves as `failed`, even in older logs with no native drop frame. An invalid
+carry claim cannot settle the original input's wait; a rejected carry attempt
+alone also does not retire the original adapter queue ownership. These are
+control outcomes for the wait, not synthetic native turn ends. `awaitIdle`
+follows the session's status through all held inputs, including a final native
+drop, rather than remaining bound to the turn that was active when called.
+A provisional prompt rejected before any turn exists resolves `awaitIdle` with
+null, including `busy`. A manual compaction ending without an accompanying turn
+also resolves it with null. These cases and accepted withdrawal used to leave
+some waits pending; none adds a synthetic native `turn_ended` record.
+
+The complete `StatusState` checkpoint retains provisional admissions separately
+from observed native activity. Handling one input leaves another native run
+active and removes only that input's provisional state. No new turn outcome is
+created. Old logs without disposition evidence retain their existing behavior.
+Pi SDK/RPC supply this evidence; Pi Durable is unchanged.
+
+Pi prompt records also carry `admission: "native"`, an adapter control fact:
+this attempt waits for its own native admission. The flag is on the recorded
+request, not a host `InputOptions` setting. A correlated `turn_active` frame
+or accepted control settles admission; handling or refusal releases it. An
+unrelated native turn may start and end while an extension handler is still
+pending. Its end retains its own outcome but cannot release this reservation
+or finish this input's wait. The status checkpoint keeps the underlying idle
+state until the pending handler reports. Requests without the flag retain
+the existing fallback interpretation, so old logs acquire no inferred wait.
+This is separate from the ordinary terminal-observer submission exception.
