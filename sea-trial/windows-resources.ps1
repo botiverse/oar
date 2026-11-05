@@ -18,13 +18,14 @@ $sampleFile = Join-Path $OutputDirectory "$Stage.jsonl"
 $writer = [System.IO.StreamWriter]::new($sampleFile, $true, [System.Text.UTF8Encoding]::new($false))
 $writer.AutoFlush = $true
 
-function Write-Record([hashtable]$Record, [switch]$ToLog) {
+function Write-Record([hashtable]$Record, [switch]$ToLog, [switch]$Startup) {
     $Record.at = [DateTime]::UtcNow.ToString('o')
     $Record.stage = $Stage
     $json = $Record | ConvertTo-Json -Depth 5 -Compress
-    if ($ToLog) {
+    if ($ToLog -or $Startup) {
         try {
-            [Console]::Out.WriteLine("resources $json")
+            $prefix = if ($Startup) { 'startup' } else { 'resources' }
+            [Console]::Out.WriteLine("$prefix $json")
             [Console]::Out.Flush()
         } catch { } # A closed log pipe must not prevent termination.
     }
@@ -34,11 +35,17 @@ function Write-Record([hashtable]$Record, [switch]$ToLog) {
     }
 }
 
-function Write-Sample {
+function Write-Sample([switch]$Startup) {
     $timer = [System.Diagnostics.Stopwatch]::StartNew()
     try {
+        if ($Startup) { Write-Record @{ kind = 'query_start'; query = 'operating_system' } -Startup }
         $memory = Get-CimInstance Win32_OperatingSystem -Property TotalVisibleMemorySize,FreePhysicalMemory -OperationTimeoutSec 3
+        if ($Startup) {
+            Write-Record @{ kind = 'query_end'; query = 'operating_system' } -Startup
+            Write-Record @{ kind = 'query_start'; query = 'processes' } -Startup
+        }
         $native = @(Get-CimInstance Win32_Process -Property ProcessId,ParentProcessId,Name,CreationDate,WorkingSetSize,PrivatePageCount,KernelModeTime,UserModeTime,HandleCount -OperationTimeoutSec 3)
+        if ($Startup) { Write-Record @{ kind = 'query_end'; query = 'processes' } -Startup }
         $processes = @($native | ForEach-Object {
             @{
                 pid = [long]$_.ProcessId
@@ -69,15 +76,17 @@ function Write-Sample {
         Write-Host "resources stage=$Stage freeMiB=$([math]::Round($memory.FreePhysicalMemory / 1024)) processes=$($processes.Count) node=$nodeCount shells=$shellCount handles=$handles queryMs=$($timer.ElapsedMilliseconds)"
     } catch {
         # Diagnostic failure must neither hide a native failure nor stop the original test command.
-        Write-Record @{ kind = 'sample_error'; errorType = $_.Exception.GetType().Name; queryMs = $timer.ElapsedMilliseconds }
+        Write-Record @{ kind = 'sample_error'; errorType = $_.Exception.GetType().Name; queryMs = $timer.ElapsedMilliseconds } -Startup:$Startup
         Write-Warning 'Resource sample unavailable; see the sample_error record.'
     }
 }
 
 $child = $null
 try {
-    Write-Record @{ kind = 'stage_start'; samplerPid = $PID }
-    Write-Sample
+    # Flush startup boundaries before CIM or child launch can block. These
+    # records contain no command, environment or executable path.
+    Write-Record @{ kind = 'stage_start'; samplerPid = $PID } -Startup
+    Write-Sample -Startup
     $start = [System.Diagnostics.ProcessStartInfo]::new((Join-Path $PSHOME 'pwsh.exe'))
     $start.UseShellExecute = $false
     $start.WorkingDirectory = (Get-Location).Path
@@ -85,9 +94,10 @@ try {
         [void]$start.ArgumentList.Add($argument)
     }
     # Standard streams are inherited, so CI still receives the native test output.
+    Write-Record @{ kind = 'command_starting' } -Startup
     $child = [System.Diagnostics.Process]::Start($start)
     $commandTimer = [System.Diagnostics.Stopwatch]::StartNew()
-    Write-Record @{ kind = 'command_start'; pid = $child.Id; createdAt = $child.StartTime.ToUniversalTime().ToString('o') }
+    Write-Record @{ kind = 'command_start'; pid = $child.Id; createdAt = $child.StartTime.ToUniversalTime().ToString('o') } -Startup
     $samples = 0
     while (-not $child.HasExited -and $samples -lt $MaxSamples) {
         Write-Sample

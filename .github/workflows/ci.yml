@@ -26,6 +26,12 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm run check
+      - uses: actions/upload-artifact@v4
+        if: always() && runner.os == 'Windows'
+        with:
+          name: windows-watchdog-diagnostics
+          path: ${{ github.workspace }}/oar-trial-run/pi-rpc-diagnostics
+          if-no-files-found: warn
       - run: pnpm run build
       - name: CodeBuddy npm installer in an isolated HOME and global prefix
         run: pnpm tsx tests/codebuddy/install-smoke.ts
