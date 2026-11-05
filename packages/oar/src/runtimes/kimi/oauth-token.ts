@@ -1,8 +1,9 @@
 import { readFile } from "node:fs/promises";
+import { getSystemErrorMap } from "node:util";
 import { asRecord, parseJson } from "../../shared/json.js";
 import type { KimiAuthContext } from "./auth-config.js";
 
-/** The stored credential is unusable; the account needs `kimi` re-auth. */
+/** The credential file is absent; the account needs `kimi` re-auth. */
 export class KimiReauthError extends Error {
   constructor(message: string) {
     super(message);
@@ -31,11 +32,22 @@ export async function storedKimiAccessToken(auth: KimiAuthContext): Promise<stri
   return accessToken;
 }
 
+const systemErrorCodes = new Set([...getSystemErrorMap().values()].map(([code]) => code));
+
 async function readAccessToken(path: string): Promise<string | undefined> {
-  try {
-    const raw = await readFile(path, "utf8");
-    return text(asRecord(parseJson(raw))?.access_token);
-  } catch {
-    return undefined;
+  let raw = "";
+  try { raw = await readFile(path, "utf8"); }
+  catch (error) {
+    const code = asRecord(error)?.code;
+    if (code === "ENOENT") { return undefined; }
+    const reason = typeof code === "string" && systemErrorCodes.has(code) ? code : "unknown I/O error";
+    // Native errors carry a path; parser errors can quote token bytes. Neither is a safe cause.
+    // oxlint-disable-next-line preserve-caught-error -- The native cause can expose the credential path; retain only its system error code.
+    throw new Error(`Kimi OAuth credential file could not be read (${reason})`);
   }
+  const parsed = parseJson(raw);
+  if (parsed === undefined) { throw new Error("Kimi OAuth credential file is not valid JSON"); }
+  const token = text(asRecord(parsed)?.access_token);
+  if (token === undefined) { throw new Error("Kimi OAuth credential file has no usable access_token"); }
+  return token;
 }

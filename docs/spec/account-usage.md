@@ -65,6 +65,14 @@ the promise. `options.timeoutMs` bounds the whole read, every process and
 request in it included. Reasons do not include tokens, credential values, or raw provider
 responses.
 
+Kimi rejects an unreadable response body, invalid JSON, or a response with no
+usable quota windows. A window with a malformed present usage metric is omitted;
+other valid windows remain. A missing native `used` metric retains its zero
+meaning, while an invalid value never becomes zero. Malformed Extra Usage data
+does not supply a window or override exhausted subscription limits. Only an
+absent credential file is `credentials_missing`; file I/O failures and malformed
+credential contents reject with a safe reason, without token bytes or file paths.
+
 Grok can return a valid billing configuration and subscription tier without
 `creditUsagePercent` or legacy `used`/`monthlyLimit` metrics (observed with
 Grok 1.0.46 on an unused account). OAR follows Grok's native `/usage`
