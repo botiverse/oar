@@ -119,7 +119,7 @@ including in a browser ([demo](apps/pi-durable/README.md)).
 ## Library
 
 One API drives every runtime: swap `"claude"` for `"codex"`, `"grok"` or
-`"pi"` and the code stays the same. An option a runtime cannot honor is refused
+`"pi"` (with a model it has) and the code stays the same. An option a runtime cannot honor is refused
 before anything opens, never silently dropped.
 
 ```ts
@@ -152,9 +152,10 @@ A session gives you:
 - **Every fact, attributed.** One event per fact with `seq` and `agentPath`;
   `rawEvents()` keeps every native payload verbatim
   ([record stream](docs/spec/record-stream.md)).
-- **Control with honest answers.** `prompt`, `steer`, `queue`, `withdraw`,
-  `abort` and `compact` answer accepted or rejected with a typed code
-  ([conversation](docs/spec/conversation.md)).
+- **Control with honest answers.** `prompt`, `steer`, `queue`, `withdraw` and
+  `abort` answer accepted or rejected with a typed code
+  ([conversation](docs/spec/conversation.md)). Runtimes with native compaction
+  also offer `compact` ([contract](docs/spec/manual-compaction.md)).
 - **Your own tools and subagents.** `serveMcpTools` attaches host tools to any
   runtime; `@botiverse/oar/agents` hands work to other runtimes
   ([host tools](docs/spec/runtime-matrix.md#host-served-tools)).
