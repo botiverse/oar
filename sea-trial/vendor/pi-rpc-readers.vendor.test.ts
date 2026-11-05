@@ -1,3 +1,4 @@
+import { piRpcTestOptions } from "../harness/pi-rpc.js";
 /* oxlint-disable import/max-dependencies -- Native reader isolation, fixture files and process cleanup evidence. */
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
@@ -55,7 +56,7 @@ export default function(pi) {
 describe.skipIf(process.env.OAR_TEST !== "pi-rpc-aimock")("native Pi RPC readers", () => {
   test.each([false, true])("models and commands use the child HOME and full env; explicit host command=%s", async (selectedCommand) => {
     const f = await fixture();
-    const runtime = createPiRuntime({ execution: "subprocess", ...(selectedCommand ? {
+    const runtime = createPiRuntime({ ...piRpcTestOptions(), ...(selectedCommand ? {
       command: process.execPath, args: [fileURLToPath(import.meta.resolve("@earendil-works/pi-coding-agent/rpc-entry"))],
     } : {}) });
     const options = { cwd: f.cwd, env: f.env, timeoutMs: 30_000 };

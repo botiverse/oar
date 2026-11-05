@@ -19,6 +19,7 @@ time.
 
 | Experiment | Fact it pins | Findings | Last observed |
 |---|---|---|---|
+| [Pi RPC command versions](pi-rpc-version-floor-2026-11-05.md) | Explicit CLI floor and independent extension check, bundled exact-match control. | [native matrix and reproduction](pi-rpc-version-floor-2026-11-05.md) | 2026-11-05, Pi 1.4.0 and 1.5.0, Linux x64, local provider |
 | [Qoder ModelProvider confirmation](qoder-native/model-provider-2026-11-05.md) | Versioned selector/modelId/name confirmation, unique names and omitted installation versions; no inference. | [native control and limits](qoder-native/model-provider-2026-11-05.md) | 2026-11-05, Qoder 1.1.81/1.1.82/1.1.83, Linux x64; independent Free-account 1.1.83 catalog/init comparison |
 | [Qwen compaction attribution](qwen-compaction-attribution/README.md) | Manual status and model text share stream-json frames; automatic compaction has no frame; user commands can override `/compress`. | [controls and upstream draft](qwen-compaction-attribution/README.md) | 2026-11-02, Qwen 0.26.5, Linux x64, local provider |
 | [Manual compaction follow-up](manual-compaction-followup-2026-11-02.md) | Dedicated RPC, command UUID, summary run and compaction message identities; failure, cancellation and queue controls. | [evidence and release notes](manual-compaction-followup-2026-11-02.md) | 2026-11-02, Grok 1.0.70, Qoder 1.1.81, Cursor SDK 1.2.0, OpenCode 2.2.5; Linux |

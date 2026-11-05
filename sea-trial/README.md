@@ -23,6 +23,18 @@ Pi Durable uses `OAR_TEST=pi-durable-aimock`: a real native Harness with host
 Models, memory or JSONL storage, and a scripted localhost provider. The
 vendor tests cover durable controls, reopen, adoption and watcher overflow.
 
+## Explicit Pi RPC commands
+
+The default `pi-rpc-aimock` backend uses OAR's bundled Pi. To run the same
+behavior and vendor controls against another CLI, set `OAR_PI_RPC_COMMAND`
+and optionally `OAR_PI_RPC_ARGS` (a JSON string array of literal prefix
+arguments). For example, set the command to `node` and the args to the
+selected Pi CLI entry file. Both `pnpm sea-trial` and
+`pnpm vitest run sea-trial/vendor` use that selection. Tests specifically
+about bundled hosts or a deliberately different command retain their own
+selection. Daily inspection runs the latest explicit CLI as well as the
+bundled backend and names both versions in its report.
+
 ## Windows Pi RPC resource evidence
 
 CI wraps the Windows Pi RPC behavior and vendor commands with

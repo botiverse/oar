@@ -31,9 +31,21 @@ test("a custom executable gets native RPC arguments and its version is probed in
   expect(runExecutable).toHaveBeenLastCalledWith("my-host", ["pi", "--version"], { cwd: "project", env, timeoutMs: 15_000 });
 });
 
-test.each(["1.4.0", "", "1.6.0"])("an incompatible or missing native version refuses before a session starts: %s", async (version) => {
+test.each(["1.4.0", "1.5.0", "1.6.0", "2.0.0"])("an explicit command accepts the tested floor or a newer version: %s", async (version) => {
   vi.mocked(runExecutable).mockResolvedValue({ ok: true, stdout: version, stderr: "", exitCode: null });
-  await expect(piRpcLaunch("my-pi", "project", {})).rejects.toThrow("Pi RPC requires 1.5.0");
+  expect(await piRpcLaunch("my-pi", "project", {})).toEqual({ command: "my-pi", args: ["--mode", "rpc"], version });
+});
+
+test.each(["1.3.99", "", "unparseable", "1.5", "01.5.0", "1.5.0\nother output", "1.5.0-beta.1"])("an incompatible or missing explicit native version refuses before a session starts: %s", async (version) => {
+  vi.mocked(runExecutable).mockResolvedValue({ ok: true, stdout: version, stderr: "", exitCode: null });
+  await expect(piRpcLaunch("my-pi", "project", {})).rejects.toMatchObject({ name: "RuntimeFailureError", failure: "invalid_request",
+    message: `Pi RPC requires at least 1.4.0; the selected runtime reports ${version || "no readable version"}. Select a supported Pi executable with createPiRuntime({ execution: "subprocess", command }).` });
+});
+
+test.each(["1.4.0", "1.6.0"])("the default entry still requires OAR's exact dependency version: %s", async (version) => {
+  vi.mocked(runExecutable).mockResolvedValue({ ok: true, stdout: version, stderr: "", exitCode: null });
+  await expect(piRpcLaunch(undefined, "project", {})).rejects.toMatchObject({ name: "RuntimeFailureError", failure: "invalid_request",
+    message: `Pi RPC requires 1.5.0, matching OAR's bundled Pi; the selected runtime reports ${version}. Select a supported Pi executable with createPiRuntime({ execution: "subprocess", command }).` });
 });
 
 test("a command cannot silently change the default embedded runtime", () => {

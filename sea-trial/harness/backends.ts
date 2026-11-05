@@ -1,3 +1,4 @@
+import { piRpcTestOptions } from "./pi-rpc.js";
 import { codebuddyRuntime } from "../../packages/oar/src/runtimes/codebuddy/index.js";
 import { startCodebuddyAimock } from "./codebuddy-aimock.js";
 import { pooledMockRuntime } from "../fixtures/pooled-mock-runtime.js";
@@ -177,7 +178,7 @@ export async function selectBackend(target: string): Promise<Backend> {
     case "pi-rpc-aimock":
     case "pi-aimock": {
       const aimock = await startPiAimock(undefined, { imageInput: true });
-      const native = target === "pi-rpc-aimock" ? createPiRuntime({ execution: "subprocess" }) : piRuntime;
+      const native = target === "pi-rpc-aimock" ? createPiRuntime(piRpcTestOptions()) : piRuntime;
       return { runtime: defineRuntime({ id: target, session: target === "pi-rpc-aimock" ? native.session : piSession, installation: piInstallation }, executionOptions(native)), aimock };
     }
     default:

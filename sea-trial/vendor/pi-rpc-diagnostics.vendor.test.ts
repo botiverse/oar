@@ -1,3 +1,4 @@
+import { piRpcTestOptions } from "../harness/pi-rpc.js";
 import assert from "node:assert/strict";
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -15,7 +16,7 @@ test.skipIf(process.env.OAR_TEST !== "pi-rpc-aimock" || process.env.OAR_PI_RPC_D
     const extensions = path.join(directory, "extensions");
     await mkdir(extensions, { recursive: true });
     await writeFile(path.join(extensions, "diagnostic.ts"), String.raw`export default pi => { pi.on("session_start", () => { process.stderr.write("diagnostic-stderr: " + process.env.OAR_DIAGNOSTIC_SECRET + "\n"); }); };`);
-    const runtime = createPiRuntime({ execution: "subprocess" });
+    const runtime = createPiRuntime(piRpcTestOptions());
     const installation = await runtime.installation();
     assert.ok(installation.kind === "available");
     const session = await runtime.session(installation, { cwd: directory, env: { ...fixture.env, OAR_DIAGNOSTIC_SECRET: "synthetic-diagnostic-secret" } });

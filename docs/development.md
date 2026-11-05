@@ -203,6 +203,11 @@ or pull request whose changes are all Markdown files or under `docs/` or
   same three systems for `claude-aimock`, `codex-aimock`, `pi-aimock`,
   `pi-rpc-aimock` (not on Windows, below), `pi-durable-aimock`, `qwen-aimock`
   and `qoder-native` (shared-case concurrency 2).
+- `pi-rpc-minimum`: Ubuntu behavior and vendor suites with a separately
+  installed Pi CLI 1.4.0 selected through `OAR_PI_RPC_COMMAND`. This guards the
+  explicit-command floor while OAR keeps its current bundled dependency.
+  Any floor increase must update this CI pin and `PI_RPC_MINIMUM_VERSION`
+  together in the same pull request.
 - `pi-rpc-windows (behavior)` and `pi-rpc-windows (vendor)`: Windows Pi RPC
   on separate VMs, so each phase keeps its outcome if the other loses its
   runner (job ceiling 20 minutes). Both run under the resource sampler, with

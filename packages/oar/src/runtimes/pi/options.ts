@@ -14,7 +14,7 @@ export type PiRuntimeOptions = PiProjectOptions & ({
 } | {
   /** One native RPC process per session. */
   readonly execution: "subprocess";
-  /** A Pi CLI executable, as a path or PATH command, never a shell expression. */
+  /** A Pi CLI executable (stable 1.4.0 or newer), as a path or PATH command, never a shell expression. Omitted uses OAR's exact bundled version. */
   readonly command?: string;
   /** Prefix arguments, for example a host binary's Pi subcommand. Requires command. */
   readonly args?: readonly string[];
