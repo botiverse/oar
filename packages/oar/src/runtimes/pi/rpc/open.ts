@@ -19,6 +19,7 @@ import { checkPiProjectPackages, reportMissingPiPackages } from "../project.js";
 import { piRpcControl } from "./control.js";
 import { readPiRpcCredentials } from "./credentials.js";
 import { piRpcLaunch } from "./launch.js";
+import { assertPiRpcVersion } from "./version.js";
 import { piRpcExtensionSource } from "./extension.js";
 import { piRpcPromptFiles } from "./prompt-files.js";
 import { RuntimeFailureError } from "../../../contracts/runtime-failure-error.js";
@@ -46,7 +47,7 @@ interface PiRpcReadLifetime {
   readonly noSession: true;
 }
 
-/** Native RPC startup, with the same bundled version as the in-process runtime. */
+/** Native RPC startup, using the bundled dependency or a supported explicit command. */
 export async function openPiRpc(options: SessionOptions, credentials: CredentialRedactor, receive: (message: Record<string, unknown>) => void, runtime: PiRuntimeOptions, lifetime?: PiRpcReadLifetime): Promise<OpenPiRpc> {
   const signal = lifetime?.signal;
   signal?.throwIfAborted();
@@ -113,7 +114,7 @@ export async function openPiRpc(options: SessionOptions, credentials: Credential
       if (!existsSync(path.join(directory.path, "ready"))) { throw new Error(`Pi did not load the OAR RPC extension: ${child.diagnostics().stderr}`); }
       // oxlint-disable-next-line typescript/no-unsafe-assignment -- Written only by the bundled extension into this private directory.
       const ready: { modelRegistered: boolean; version: string } = JSON.parse(readFileSync(path.join(directory.path, "ready"), "utf8"));
-      if (ready.version !== launch.version) { throw new Error(`Pi RPC session loaded ${ready.version}, expected ${launch.version}`); }
+      assertPiRpcVersion(ready.version, runtime.command === undefined ? launch.version : undefined);
       if (options.model !== undefined && !ready.modelRegistered) {
         throw new RuntimeFailureError("model_unavailable", `pi model ${options.model} is not registered in the native model registry`);
       }

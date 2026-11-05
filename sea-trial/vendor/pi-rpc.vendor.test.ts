@@ -1,3 +1,4 @@
+import { piRpcTestOptions } from "../harness/pi-rpc.js";
 /* oxlint-disable import/max-dependencies -- Native process evidence and the shared provider fixture. */
 import assert from "node:assert/strict";
 import { existsSync, readFileSync, statSync } from "node:fs";
@@ -13,7 +14,7 @@ import { stdioEcho } from "./support/echo-mcp.js";
 import { piChildCwd } from "./support/pi-runtime.js";
 import { eventually, gone } from "../../tests/fixtures/process-tree.js";
 
-const runtime = createPiRuntime({ execution: "subprocess" });
+const runtime = createPiRuntime(piRpcTestOptions());
 const builtins = ["read", "bash", "powershell", "edit", "write", "grep", "find", "ls"];
 const register = `pi.registerTool({ name: "history_probe", description: "probe", label: "probe", defaultActive: false,
   parameters: { type: "object", properties: {} }, execute: async () => ({ content: [{ type: "text", text: "PROBE_EXECUTED" }] }) });`;

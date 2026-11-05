@@ -1,3 +1,5 @@
+/* oxlint-disable import/max-dependencies -- Native command selection, private files, process observation and provider evidence. */
+import { piRpcTestOptions } from "../harness/pi-rpc.js";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { type default as fileSystem, mkdir, writeFile } from "node:fs/promises";
@@ -47,7 +49,7 @@ async function fixture(command?: string) {
       pi.on("input", () => { if (process.env.OAR_PROMPT_PROBE_FAILURE === "turn") process.exit(23); });
     }
   `);
-  const runtime = createPiRuntime({ execution: "subprocess", ...(command === undefined ? {} : { command }) });
+  const runtime = createPiRuntime(command === undefined ? piRpcTestOptions() : { execution: "subprocess", command });
   const installation = await runtime.installation();
   assert.ok(installation.kind === "available");
   const sessions: Session[] = [];

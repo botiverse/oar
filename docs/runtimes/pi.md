@@ -115,9 +115,16 @@ Node executable with Pi's exported `@earendil-works/pi-coding-agent/rpc-entry`,
 not a second OAR SDK host. An explicit `command` is one executable path or PATH
 name; `args` are literal prefix arguments, not shell text. The selected command
 must implement Pi's `--version` and `--mode rpc` CLI behavior. It is checked at
-each open against OAR's installed Pi dependency version before extensions or a
-session start. The session's own extension reports its version again. A missing
-or different version fails explicitly; OAR does not adapt between RPC versions.
+each open before extensions or a session start. The default entry must match
+OAR's installed Pi dependency exactly. An explicit command accepts stable Pi
+**1.4.0 or newer**, based on native RPC controls against 1.4.0 and 1.5.0 with
+OAR embedding 1.5.0. The session's own extension reports its version again and
+uses the same rule. A missing, unparsable or too-old version throws
+`RuntimeFailureError` with `failure: "invalid_request"` and the actual and
+required versions in its reason ([native evidence](../../experiments/pi-rpc-version-floor-2026-11-05.md)). Newer explicit commands do not need an OAR
+release just to pass admission; this is a compatibility floor, not a claim that
+every future release has been tested. Daily inspection exercises the latest
+explicit command and records any protocol or behavior changes.
 A single-file host without a separate Node executable must provide a command.
 
 With a normal package tree OAR reads the dependency's package metadata directly.
@@ -125,8 +132,8 @@ For a bundled host it uses Pi's source `PI_AI_VERSION` constant; the test suite
 checks that it equals the coding-agent package version in OAR's build. The
 coding-agent `VERSION` export alone cannot identify the host's dependency:
 `PI_PACKAGE_DIR` can make it read the embedding application's package metadata.
-This variable still belongs to native Pi configuration; an inherited override
-that makes the selected executable report a different version is rejected.
+This variable still belongs to native Pi configuration. An inherited override
+must still satisfy the selected path's version rule; OAR does not replace it.
 
 RPC commands are newline-delimited JSON with correlated ids. OAR opens with
 `get_state`, reads the effective native model and thinking level, and shares the

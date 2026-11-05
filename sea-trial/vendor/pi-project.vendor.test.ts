@@ -1,3 +1,4 @@
+import { piRpcTestOptions } from "../harness/pi-rpc.js";
 import { existsSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -21,7 +22,7 @@ describe.skipIf(!isPiBackend)("Pi native project policy", () => {
     vi.stubEnv("PI_OFFLINE", mode === "offline" ? "1" : "");
     const warning = vi.spyOn(process, "emitWarning").mockImplementation(() => {});
     try {
-      const opening = createPiRuntime({ execution: piRpc ? "subprocess" : "in-process", allowProjectPackageInstall: mode === "allow" }).session({ kind: "available", via: "bundled" }, { cwd: fixture.cwd });
+      const opening = createPiRuntime({ ...(piRpc ? piRpcTestOptions() : { execution: "in-process" as const }), allowProjectPackageInstall: mode === "allow" }).session({ kind: "available", via: "bundled" }, { cwd: fixture.cwd });
       const refused = mode === "default" && (state === "missing" || state === "mismatched");
       if (refused) {
         const refusal = await opening.then(async (session) => { await session.dispose(); return null; }, (error: unknown) => error);
@@ -47,7 +48,7 @@ describe.skipIf(!isPiBackend)("Pi native project policy", () => {
     const trust = path.join(fixture.agentDir, "trust.json");
     await writeFile(trust, "{}\n");
     try {
-      const runtime = createPiRuntime({ execution: piRpc ? "subprocess" : "in-process", projectTrusted: true });
+      const runtime = createPiRuntime({ ...(piRpc ? piRpcTestOptions() : { execution: "in-process" as const }), projectTrusted: true });
       const session = await runtime.session({ kind: "available", via: "bundled" }, { cwd: fixture.cwd });
       await session.dispose();
       expect(existsSync(fixture.projectLoaded)).toBe(true);
@@ -60,7 +61,7 @@ describe.skipIf(!isPiBackend)("Pi native project policy", () => {
     for (const [key, value] of Object.entries(fixture.env)) { vi.stubEnv(key, value); }
     vi.stubEnv("PI_OFFLINE", " 1 ");
     try {
-      const opening = createPiRuntime({ execution: piRpc ? "subprocess" : "in-process" }).session({ kind: "available", via: "bundled" }, { cwd: fixture.cwd });
+      const opening = createPiRuntime({ ...(piRpc ? piRpcTestOptions() : { execution: "in-process" as const }) }).session({ kind: "available", via: "bundled" }, { cwd: fixture.cwd });
       await expect(opening.then(async (session) => { await session.dispose(); return null; })).rejects.toBeInstanceOf(RuntimeFailureError);
       expect(existsSync(fixture.installed)).toBe(false);
     } finally { await fixture.stop(); }
@@ -73,7 +74,7 @@ describe.skipIf(!isPiBackend)("Pi native project policy", () => {
     const trust = path.join(fixture.agentDir, "trust.json");
     await writeFile(trust, "{}\n");
     try {
-      const runtime = createPiRuntime({ execution: piRpc ? "subprocess" : "in-process", projectTrusted: false });
+      const runtime = createPiRuntime({ ...(piRpc ? piRpcTestOptions() : { execution: "in-process" as const }), projectTrusted: false });
       const session = await runtime.session({ kind: "available", via: "bundled" }, { cwd: fixture.cwd });
       await session.dispose();
       const inventory = await runtime.tools({ kind: "available", via: "bundled" }, { cwd: fixture.cwd });
