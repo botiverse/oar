@@ -10,6 +10,14 @@ export interface InputAttempt {
   readonly response?: ResponseRecord;
   readonly state: "pending" | "accepted" | "rejected";
   readonly reason?: string;
+  /** Native disposition of this exact attempt, independent of control acceptance. */
+  readonly disposition?: InputDisposition;
+}
+export interface InputDisposition {
+  readonly kind: "handled";
+  readonly requestId: string;
+  readonly seq: number;
+  readonly streamId: string;
 }
 export interface ConversationInput {
   /** Stable projection key, scoped to native session and agent lineage. */
@@ -30,6 +38,8 @@ export interface ConversationInput {
   readonly attempts: readonly InputAttempt[];
   /** Native queue/start evidence for this attempt, separate from control acceptance and message echoes; cleared on drop or a new attempt. */
   readonly turn?: { readonly state: "queued" | "active"; readonly seq: number; readonly streamId: string };
+  /** Native handling of the latest delivery attempt. Does not mean success or a model turn. */
+  readonly disposition?: InputDisposition;
   /** Native observations; none of these alone proves model consumption. */
   readonly observations: readonly (UserMessage & { readonly seq: number })[];
 }
@@ -104,7 +114,7 @@ export function reduceConversation(previous: ConversationState, record: RawEvent
       for (const carriedId of new Set(invalid === undefined ? carries : [])) {
         const carried = carriedInput(carriedId);
         if (carried === undefined || carried.id === id) { continue; }
-        const { turn: _turn, reason: _reason, ...content } = carried;
+        const { turn: _turn, reason: _reason, disposition: _disposition, ...content } = carried;
         const carriedAttempts: readonly InputAttempt[] = [...carried.attempts, { request: record, streamId, state: "pending" }];
         publish({ ...content, attempts: carriedAttempts, ...deliveryState(carriedAttempts, drops.get(carried.id)) });
       }
@@ -125,7 +135,7 @@ export function reduceConversation(previous: ConversationState, record: RawEvent
       })];
       for (const target of related) {
         const attempts = target.attempts.map((attempt): InputAttempt => attempt.request.id !== record.requestId || attempt.streamId !== streamId ? attempt : {
-          request: attempt.request, streamId, response: record, state: body.kind, ...(body.kind === "rejected" ? { reason: body.reason } : {}),
+          ...attempt, response: record, state: body.kind, ...(body.kind === "rejected" ? { reason: body.reason } : {}),
         });
         publish(withDeliveryState(target, attempts, drops.get(target.id)));
       }
@@ -143,6 +153,11 @@ export function reduceConversation(previous: ConversationState, record: RawEvent
       publish(withDeliveryState(input, input.attempts, drop));
     }
   }
+  function publishDrop(input: ConversationInput, drop: InputDrop): void {
+    if ((drops.get(input.id)?.attempts ?? 0) > drop.attempts) { return; }
+    drops.set(input.id, drop);
+    publish(withDeliveryState(input, input.attempts, drop));
+  }
   if (!handled) {
     const control = new Map<string, KnownControl>();
     if (record.kind === "response") {
@@ -156,12 +171,22 @@ export function reduceConversation(previous: ConversationState, record: RawEvent
           publish({ ...input, turn: { state: event.kind === "input_queued" ? "queued" : "active", seq: event.seq, streamId } });
         }
         updates.push({ kind: "event", event });
-      } else if (event.kind === "input_dropped") {
-        const input = inputs.get(identity(record, event.inputId));
+      } else if (event.kind === "input_dropped" || event.kind === "input_handled") {
+        const key = event.requestId === undefined ? (event.inputId === undefined ? undefined : identity(record, event.inputId)) : requests.get(operationKey(event.requestId));
+        const input = key === undefined ? undefined : inputs.get(key);
         if (input === undefined) { updates.push({ kind: "event", event }); continue; }
-        const drop: InputDrop = { attempts: input.attempts.length, reason: event.reason };
-        drops.set(input.id, drop);
-        publish(withDeliveryState(input, input.attempts, drop));
+        const index = event.requestId === undefined ? input.attempts.length - 1
+          : input.attempts.findIndex(attempt => attempt.request.id === event.requestId && attempt.streamId === streamId);
+        if (index === -1) { updates.push({ kind: "event", event }); continue; }
+        if (event.kind === "input_handled") {
+          const disposition: InputDisposition = { kind: "handled", requestId: event.requestId, seq: record.seq, streamId };
+          const attempts = input.attempts.map((attempt, i) => i === index ? { ...attempt, disposition } : attempt);
+          const { turn: _turn, ...content } = input;
+          publish(index === attempts.length - 1 ? { ...content, attempts, disposition } : { ...input, attempts });
+        } else {
+          publishDrop(input, { attempts: index + 1, reason: event.reason });
+        }
+        updates.push({ kind: "event", event });
       } else if (event.kind === "user_message" && event.inputId !== undefined) {
         const id = identity(record, event.inputId);
         const input = inputs.get(id) ?? { id, inputId: event.inputId, input: event.input, state: "untracked" as const, attempts: [], observations: [] };
@@ -197,6 +222,11 @@ export function reduceConversation(previous: ConversationState, record: RawEvent
       } else if (aggregate.state === "accepted" && aggregate.observations.length > 0 && carried.reason === "runtime_exited") {
         drops.delete(carried.id);
         publish(withDeliveryState(carried, carried.attempts));
+      } else if (aggregate.disposition !== undefined) {
+        const disposition = aggregate.disposition;
+        const { turn: _turn, ...content } = carried;
+        publish({ ...content, disposition,
+          attempts: carried.attempts.map(entry => entry === attempt ? { ...entry, disposition } : entry) });
       } else if (aggregate.turn !== undefined) {
         publish({ ...carried, turn: aggregate.turn });
       }

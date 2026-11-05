@@ -1,0 +1,625 @@
+{
+  "base": "5e6658deb5c1dbd48117467558e104a457cba945",
+  "selection": "Baseline public results and original RPC response payloads; source record envelopes and unrelated frames omitted. SDK callback values are in sdk-callbacks.jsonl.",
+  "observations": [
+    {
+      "mode": "SDK",
+      "version": "1.5.0",
+      "case": "direct-handled",
+      "control": {
+        "kind": "accepted"
+      },
+      "before": {
+        "providerRequests": [],
+        "terminalCount": 0,
+        "status": "running"
+      },
+      "next": {
+        "kind": "rejected",
+        "code": "busy",
+        "reason": "busy"
+      },
+      "nativeResponses": []
+    },
+    {
+      "mode": "SDK",
+      "version": "1.5.0",
+      "case": "queued-handled",
+      "next": {
+        "kind": "rejected",
+        "code": "busy",
+        "reason": "busy"
+      },
+      "requests": [
+        "A"
+      ],
+      "hooks": [
+        {
+          "type": "input",
+          "text": "A"
+        },
+        {
+          "type": "input",
+          "text": "HANDLE"
+        }
+      ],
+      "status": "idle",
+      "nativeResponses": []
+    },
+    {
+      "mode": "SDK",
+      "version": "1.5.0",
+      "case": "competing-extension",
+      "next": {
+        "kind": "rejected",
+        "code": "busy",
+        "reason": "busy"
+      },
+      "requests": [
+        "A",
+        "EXT",
+        "B"
+      ],
+      "hooks": [
+        {
+          "type": "input",
+          "text": "A"
+        },
+        {
+          "type": "input",
+          "text": "EXT"
+        },
+        {
+          "type": "input",
+          "text": "B"
+        }
+      ],
+      "nativeResponses": []
+    },
+    {
+      "mode": "SDK",
+      "version": "1.5.0",
+      "case": "handled-plus-extension",
+      "command": {
+        "kind": "accepted"
+      },
+      "next": {
+        "kind": "rejected",
+        "code": "busy",
+        "reason": "busy"
+      },
+      "requests": [
+        "EXT"
+      ],
+      "status": "running",
+      "nativeResponses": []
+    },
+    {
+      "mode": "SDK",
+      "version": "1.5.0",
+      "case": "handled-steer",
+      "handled": {
+        "kind": "accepted"
+      },
+      "next": {
+        "kind": "rejected",
+        "code": "busy",
+        "reason": "busy"
+      },
+      "requests": [
+        "A"
+      ],
+      "status": "running",
+      "nativeResponses": []
+    },
+    {
+      "mode": "SDK",
+      "version": "1.5.0",
+      "case": "handled-command-error",
+      "result": {
+        "kind": "accepted"
+      },
+      "requests": [],
+      "status": "running",
+      "nativeResponses": []
+    },
+    {
+      "mode": "RPC",
+      "version": "1.5.0",
+      "case": "direct-handled",
+      "control": {
+        "kind": "accepted"
+      },
+      "before": {
+        "providerRequests": [],
+        "terminalCount": 0,
+        "status": "running"
+      },
+      "next": {
+        "kind": "accepted"
+      },
+      "nativeResponses": [
+        {
+          "id": "oar-pi-1",
+          "type": "response",
+          "command": "prompt",
+          "success": true,
+          "data": {
+            "disposition": "handled"
+          }
+        },
+        {
+          "id": "oar-pi-2",
+          "type": "response",
+          "command": "prompt",
+          "success": true,
+          "data": {
+            "disposition": "started"
+          }
+        }
+      ]
+    },
+    {
+      "mode": "RPC",
+      "version": "1.5.0",
+      "case": "queued-handled",
+      "next": {
+        "kind": "accepted"
+      },
+      "requests": [
+        "A",
+        "C",
+        "NEXT"
+      ],
+      "hooks": [
+        {
+          "type": "input",
+          "text": "A"
+        },
+        {
+          "type": "input",
+          "text": "HANDLE"
+        },
+        {
+          "type": "input",
+          "text": "C"
+        },
+        {
+          "type": "input",
+          "text": "NEXT"
+        }
+      ],
+      "status": "idle",
+      "nativeResponses": [
+        {
+          "id": "oar-pi-1",
+          "type": "response",
+          "command": "prompt",
+          "success": true,
+          "data": {
+            "disposition": "started"
+          }
+        },
+        {
+          "id": "oar-pi-3",
+          "type": "response",
+          "command": "prompt",
+          "success": true,
+          "data": {
+            "disposition": "handled"
+          }
+        },
+        {
+          "id": "oar-pi-4",
+          "type": "response",
+          "command": "prompt",
+          "success": true,
+          "data": {
+            "disposition": "started"
+          }
+        },
+        {
+          "id": "oar-pi-6",
+          "type": "response",
+          "command": "prompt",
+          "success": true,
+          "data": {
+            "disposition": "started"
+          }
+        }
+      ]
+    },
+    {
+      "mode": "RPC",
+      "version": "1.5.0",
+      "case": "competing-extension",
+      "next": {
+        "kind": "rejected",
+        "code": "runtime_refused",
+        "reason": "Agent is already processing. Specify streamingBehavior ('steer' or 'followUp') to queue the message."
+      },
+      "requests": [
+        "A",
+        "EXT"
+      ],
+      "hooks": [
+        {
+          "type": "input",
+          "text": "A"
+        },
+        {
+          "type": "input",
+          "text": "EXT"
+        },
+        {
+          "type": "input",
+          "text": "B"
+        },
+        {
+          "type": "input",
+          "text": "C"
+        }
+      ],
+      "nativeResponses": [
+        {
+          "id": "oar-pi-1",
+          "type": "response",
+          "command": "prompt",
+          "success": true,
+          "data": {
+            "disposition": "started"
+          }
+        },
+        {
+          "id": "oar-pi-3",
+          "type": "response",
+          "command": "prompt",
+          "success": false,
+          "error": "Agent is already processing. Specify streamingBehavior ('steer' or 'followUp') to queue the message."
+        },
+        {
+          "id": "oar-pi-4",
+          "type": "response",
+          "command": "prompt",
+          "success": false,
+          "error": "Agent is already processing. Specify streamingBehavior ('steer' or 'followUp') to queue the message."
+        }
+      ]
+    },
+    {
+      "mode": "RPC",
+      "version": "1.5.0",
+      "case": "handled-plus-extension",
+      "command": {
+        "kind": "accepted"
+      },
+      "next": {
+        "kind": "rejected",
+        "code": "busy",
+        "reason": "busy"
+      },
+      "requests": [
+        "EXT"
+      ],
+      "status": "running",
+      "nativeResponses": [
+        {
+          "id": "oar-pi-1",
+          "type": "response",
+          "command": "prompt",
+          "success": true,
+          "data": {
+            "disposition": "handled"
+          }
+        }
+      ]
+    },
+    {
+      "mode": "RPC",
+      "version": "1.5.0",
+      "case": "handled-steer",
+      "handled": {
+        "kind": "accepted"
+      },
+      "next": {
+        "kind": "rejected",
+        "code": "busy",
+        "reason": "busy"
+      },
+      "requests": [
+        "A"
+      ],
+      "status": "running",
+      "nativeResponses": [
+        {
+          "id": "oar-pi-1",
+          "type": "response",
+          "command": "prompt",
+          "success": true,
+          "data": {
+            "disposition": "started"
+          }
+        },
+        {
+          "id": "oar-pi-2",
+          "type": "response",
+          "command": "steer",
+          "success": true,
+          "data": {
+            "disposition": "handled"
+          }
+        }
+      ]
+    },
+    {
+      "mode": "RPC",
+      "version": "1.5.0",
+      "case": "handled-command-error",
+      "result": {
+        "kind": "accepted"
+      },
+      "requests": [],
+      "status": "running",
+      "nativeResponses": [
+        {
+          "id": "oar-pi-1",
+          "type": "response",
+          "command": "prompt",
+          "success": true,
+          "data": {
+            "disposition": "handled"
+          }
+        }
+      ]
+    },
+    {
+      "mode": "RPC",
+      "version": "1.4.0",
+      "case": "direct-handled",
+      "control": {
+        "kind": "accepted"
+      },
+      "before": {
+        "providerRequests": [],
+        "terminalCount": 0,
+        "status": "running"
+      },
+      "next": {
+        "kind": "accepted"
+      },
+      "nativeResponses": [
+        {
+          "id": "oar-pi-1",
+          "type": "response",
+          "command": "prompt",
+          "success": true,
+          "data": {
+            "disposition": "handled"
+          }
+        },
+        {
+          "id": "oar-pi-2",
+          "type": "response",
+          "command": "prompt",
+          "success": true,
+          "data": {
+            "disposition": "started"
+          }
+        }
+      ]
+    },
+    {
+      "mode": "RPC",
+      "version": "1.4.0",
+      "case": "queued-handled",
+      "next": {
+        "kind": "accepted"
+      },
+      "requests": [
+        "A",
+        "C",
+        "NEXT"
+      ],
+      "hooks": [
+        {
+          "type": "input",
+          "text": "A"
+        },
+        {
+          "type": "input",
+          "text": "HANDLE"
+        },
+        {
+          "type": "input",
+          "text": "C"
+        },
+        {
+          "type": "input",
+          "text": "NEXT"
+        }
+      ],
+      "status": "idle",
+      "nativeResponses": [
+        {
+          "id": "oar-pi-1",
+          "type": "response",
+          "command": "prompt",
+          "success": true,
+          "data": {
+            "disposition": "started"
+          }
+        },
+        {
+          "id": "oar-pi-3",
+          "type": "response",
+          "command": "prompt",
+          "success": true,
+          "data": {
+            "disposition": "handled"
+          }
+        },
+        {
+          "id": "oar-pi-4",
+          "type": "response",
+          "command": "prompt",
+          "success": true,
+          "data": {
+            "disposition": "started"
+          }
+        },
+        {
+          "id": "oar-pi-6",
+          "type": "response",
+          "command": "prompt",
+          "success": true,
+          "data": {
+            "disposition": "started"
+          }
+        }
+      ]
+    },
+    {
+      "mode": "RPC",
+      "version": "1.4.0",
+      "case": "competing-extension",
+      "next": {
+        "kind": "rejected",
+        "code": "runtime_refused",
+        "reason": "Agent is already processing. Specify streamingBehavior ('steer' or 'followUp') to queue the message."
+      },
+      "requests": [
+        "A",
+        "EXT"
+      ],
+      "hooks": [
+        {
+          "type": "input",
+          "text": "A"
+        },
+        {
+          "type": "input",
+          "text": "EXT"
+        },
+        {
+          "type": "input",
+          "text": "B"
+        },
+        {
+          "type": "input",
+          "text": "C"
+        }
+      ],
+      "nativeResponses": [
+        {
+          "id": "oar-pi-1",
+          "type": "response",
+          "command": "prompt",
+          "success": true,
+          "data": {
+            "disposition": "started"
+          }
+        },
+        {
+          "id": "oar-pi-3",
+          "type": "response",
+          "command": "prompt",
+          "success": false,
+          "error": "Agent is already processing. Specify streamingBehavior ('steer' or 'followUp') to queue the message."
+        },
+        {
+          "id": "oar-pi-4",
+          "type": "response",
+          "command": "prompt",
+          "success": false,
+          "error": "Agent is already processing. Specify streamingBehavior ('steer' or 'followUp') to queue the message."
+        }
+      ]
+    },
+    {
+      "mode": "RPC",
+      "version": "1.4.0",
+      "case": "handled-plus-extension",
+      "command": {
+        "kind": "accepted"
+      },
+      "next": {
+        "kind": "rejected",
+        "code": "busy",
+        "reason": "busy"
+      },
+      "requests": [
+        "EXT"
+      ],
+      "status": "running",
+      "nativeResponses": [
+        {
+          "id": "oar-pi-1",
+          "type": "response",
+          "command": "prompt",
+          "success": true,
+          "data": {
+            "disposition": "handled"
+          }
+        }
+      ]
+    },
+    {
+      "mode": "RPC",
+      "version": "1.4.0",
+      "case": "handled-steer",
+      "handled": {
+        "kind": "accepted"
+      },
+      "next": {
+        "kind": "rejected",
+        "code": "busy",
+        "reason": "busy"
+      },
+      "requests": [
+        "A"
+      ],
+      "status": "running",
+      "nativeResponses": [
+        {
+          "id": "oar-pi-1",
+          "type": "response",
+          "command": "prompt",
+          "success": true,
+          "data": {
+            "disposition": "started"
+          }
+        },
+        {
+          "id": "oar-pi-2",
+          "type": "response",
+          "command": "steer",
+          "success": true,
+          "data": {
+            "disposition": "handled"
+          }
+        }
+      ]
+    },
+    {
+      "mode": "RPC",
+      "version": "1.4.0",
+      "case": "handled-command-error",
+      "result": {
+        "kind": "accepted"
+      },
+      "requests": [],
+      "status": "running",
+      "nativeResponses": [
+        {
+          "id": "oar-pi-1",
+          "type": "response",
+          "command": "prompt",
+          "success": true,
+          "data": {
+            "disposition": "handled"
+          }
+        }
+      ]
+    }
+  ]
+}

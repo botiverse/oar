@@ -1,7 +1,9 @@
+/* oxlint-disable import/max-dependencies -- Session controls compose native startup, projection, input admission, compaction and lifecycle. */
 import { piManualCompaction } from "../compaction.js";
+import { handledInput, refusedInput, startedInput, type PiHeldInput } from "../input-disposition.js";
 /* oxlint-disable eslint/require-await -- Session controls return kernel promises directly; native delivery callbacks may decide synchronously. */
 import type { AgentSessionEvent, SessionStats } from "@earendil-works/pi-coding-agent";
-import type { RequestRecord, ResponseBody, StartSession } from "../../../contracts/session.js";
+import type { RequestRecord, ResponseBody, RuntimeEventBody, StartSession } from "../../../contracts/session.js";
 import { createAbortFallback } from "../../../shared/abort-fallback.js";
 import { withdrawControl } from "../../../shared/held-input.js";
 import { withInputImages, type LoadedImage } from "../../../shared/input-images.js";
@@ -22,13 +24,16 @@ export const createPiRpcSession = (runtime: PiRuntimeOptions): StartSession => w
   const kernel = credentials.kernel(rpc.state.sessionId);
   const capabilities = { queue: { durable: false }, attribution: "none", images: true } as const;
   let projection = initialPiProjection;
-  let running = false;
-  let started = false;
-  let pendingAbort = false;
+  interface Admission { readonly request: RequestRecord; readonly queued: boolean; abort: boolean }
+  const admissions = new Map<string, Admission>();
+  const commands = new Map<string, { readonly request: RequestRecord; readonly queued: boolean }>();
+  let nativeActive = false;
+  let nextOwner: Admission | null = null;
+  const busy = (): boolean => nativeActive || admissions.size > 0;
   let disposeRequest: RequestRecord | null = null;
   let disposePromise: Promise<void> | null = null;
   let pump = Promise.resolve();
-  const compaction = piManualCompaction(kernel, () => running, async () => {
+  const compaction = piManualCompaction(kernel, () => busy() || held.length > 0, async () => {
     // A rejected transport promise is not a native compaction failure. The
     // process exit below settles the caller after its final stdout is folded.
     const response = await rpc.control.request({ type: "compact" }).catch(() => null);
@@ -36,7 +41,7 @@ export const createPiRpcSession = (runtime: PiRuntimeOptions): StartSession => w
     await pump;
     if (!response.success) { throw new Error(response.error); }
   }, () => { queueMicrotask(drain); });
-  const held: { input: string; inputId: string | undefined; images: readonly LoadedImage[] }[] = [];
+  const held: PiHeldInput[] = [];
   const fallback = createAbortFallback(() => { rpc.child.kill(); });
   const abort = async (): Promise<void> => {
     try {
@@ -44,50 +49,50 @@ export const createPiRpcSession = (runtime: PiRuntimeOptions): StartSession => w
       if (!response.success) { kernel.frame({ type: "pi/abort_rejected", native: response, events: [] }); }
     } catch { /* Exit and the bounded fallback are observed separately. */ }
   };
-  const start = async (input: string, images: readonly LoadedImage[]): Promise<ResponseBody> => {
-    if (running || compaction.busy()) { return { kind: "rejected", code: "busy", reason: "busy" }; }
-    running = true;
-    started = false;
-    projection = piPrompted(projection);
-    const response = await rpc.control.request({ type: "prompt", message: input, ...(images.length === 0 ? {} : { images: nativeImages(images) }) });
-    if (!response.success) {
-      running = false;
-      pendingAbort = false;
-      fallback.clear();
-      return { kind: "rejected", code: "runtime_refused", reason: response.error };
-    }
-    // oxlint-disable-next-line typescript/no-unnecessary-condition -- Native events can change started while the response is awaited.
-    if (response.command === "prompt" && response.data.disposition === "handled" && !started) {
-      // A slash command or input extension handled it without a model run.
-      // Acceptance is native, but there is no turn end to invent.
-      running = false;
-      pendingAbort = false;
-      fallback.clear();
-      drain();
-    }
-    return { kind: "accepted" };
+  const start = async (request: RequestRecord, input: string, images: readonly LoadedImage[], queued = false): Promise<ResponseBody> => {
+    admissions.set(request.id, { request, queued, abort: false });
+    const response = await rpc.control.request({ type: "prompt", message: input, ...(images.length === 0 ? {} : { images: nativeImages(images) }) },
+      id => { commands.set(id, { request, queued }); });
+    // The raw response owns both disposition and gate release. Fold it before
+    // publishing the control decision, without inventing a second native frame.
+    await pump;
+    return response.success ? { kind: "accepted" } : { kind: "rejected", code: "runtime_refused", reason: response.error };
   };
   function drain(): void {
-    if (running || compaction.busy() || kernel.unreachable() !== null) { return; }
+    if (busy() || compaction.busy() || kernel.unreachable() !== null) { return; }
+    if (held[0]?.accepted !== true) { return; }
     const next = held.shift();
     if (next === undefined) { return; }
     void (async (): Promise<void> => {
-      try {
-        const response = await start(next.input, next.images);
-        if (response.kind === "rejected") {
-          kernel.frame({ type: "pi/prompt_rejected", native: { inputId: next.inputId, reason: response.reason }, events: [] });
-          drain();
-        }
-      } catch { /* Pending commands settle on process exit, which is recorded. */ }
+      const { inputId: _inputId, ...body } = next.body;
+      await kernel.control({ ...body, kind: "prompt", admission: "native", carries: [next.inputId ?? next.requestId] },
+         async request => { const response = await start(request, next.body.input, next.images, true); return response; });
+      drain();
     })();
   }
   const processMessage = async (message: Record<string, unknown>): Promise<void> => {
     if (message.type === "response") {
-      const events = message.command === "get_state" && message.success === true
+      const events: RuntimeEventBody[] = message.command === "get_state" && message.success === true
         ? [...(rpc.state.model === undefined ? [] : [{ kind: "model" as const, model: `${rpc.state.model.provider}/${rpc.state.model.id}` }]),
           { kind: "effort" as const, effort: rpc.state.thinkingLevel }]
         : [];
-      kernel.frame({ type: "response", native: message, events });
+      const command = typeof message.id === "string" ? commands.get(message.id) : undefined;
+      if (command !== undefined) {
+        const data = typeof message.data === "object" && message.data !== null && "disposition" in message.data ? message.data.disposition : undefined;
+        if (message.success === false || data === "handled") {
+          admissions.delete(command.request.id);
+          if (!busy()) { fallback.clear(); }
+          if (data === "handled") { events.push(handledInput(command.request)); }
+          if (message.success === false && command.queued) {
+            events.push(refusedInput(command.request, typeof message.error === "string" ? message.error : "pi prompt failed"));
+          }
+        } else if (data === "started") {
+          nextOwner = admissions.get(command.request.id) ?? null;
+          events.push(startedInput(command.request));
+        }
+        if (typeof message.id === "string") { commands.delete(message.id); }
+      }
+      kernel.frame({ type: "response", native: message, events, ...(command === undefined ? {} : { responseTo: command.request.id }) });
       return;
     }
     if (message.type === "extension_ui_request") {
@@ -102,9 +107,12 @@ export const createPiRpcSession = (runtime: PiRuntimeOptions): StartSession => w
     // oxlint-disable-next-line typescript/consistent-type-assertions, typescript/no-unsafe-type-assertion -- AgentSessionEvent is the pinned bundled RPC encoder's native payload.
     const event = message as unknown as AgentSessionEvent;
     if (event.type === "agent_start") {
-      running = true;
-      started = true;
-      if (pendingAbort) { pendingAbort = false; void abort(); }
+      nativeActive = true;
+      projection = piPrompted(projection);
+      const owner = nextOwner;
+      nextOwner = null;
+      if (owner !== null) { admissions.delete(owner.request.id); }
+      if (owner?.abort === true) { void abort(); }
     }
     const overflow = event.type === "turn_end"
       ? event.message.role === "assistant" && event.message.stopReason === "error" && isContextOverflow(event.message)
@@ -125,9 +133,7 @@ export const createPiRpcSession = (runtime: PiRuntimeOptions): StartSession => w
     if (event.type === "agent_settled") {
       // Abort can rearm this while stats are awaited or observers run.
       fallback.clear();
-      running = false;
-      started = false;
-      pendingAbort = false;
+      nativeActive = false;
       drain();
     }
   };
@@ -144,7 +150,9 @@ export const createPiRpcSession = (runtime: PiRuntimeOptions): StartSession => w
   for (const message of buffered) { receive(message); }
   rpc.child.onExit((code, reason) => {
     fallback.clear();
-    running = false;
+    nativeActive = false;
+    admissions.clear();
+    commands.clear();
     held.splice(0);
     void (async (): Promise<void> => {
       await pump;
@@ -157,34 +165,41 @@ export const createPiRpcSession = (runtime: PiRuntimeOptions): StartSession => w
     id: kernel.sessionId, capabilities,
     compact: compaction.compact,
     prompt: async (input, inputOptions) => {
-      const result = await kernel.control({ kind: "prompt", input, ...inputOptions }, async () => {
-        if (running || compaction.busy()) { return { kind: "rejected", code: "busy", reason: "busy" }; }
-        return withInputImages(capabilities, inputOptions?.images, async (images) => start(input, images));
+      const result = await kernel.control({ kind: "prompt", input, ...inputOptions, admission: "native" }, async (request) => {
+        if (busy() || held.length > 0 || compaction.busy()) { return { kind: "rejected", code: "busy", reason: "busy" }; }
+        return withInputImages(capabilities, inputOptions?.images, async (images) => start(request, input, images));
       });
       // A pre-start refusal has no settlement; record it before draining.
       drain();
       return result;
     },
-    steer: async (input, inputOptions) => kernel.control({ kind: "steer", input, ...inputOptions }, async () => {
+    steer: async (input, inputOptions) => kernel.control({ kind: "steer", input, ...inputOptions }, async (request) => {
       if (compaction.busy()) { return { kind: "rejected", code: "busy", reason: "Manual compaction is still in progress" }; }
-      if (!running) { return { kind: "rejected", code: "no_active_turn", reason: "no active turn" }; }
+      if (!busy()) { return { kind: "rejected", code: "no_active_turn", reason: "no active turn" }; }
       return withInputImages(capabilities, inputOptions?.images, async (images): Promise<ResponseBody> => {
-        const response = await rpc.control.request({ type: "steer", message: input, ...(images.length === 0 ? {} : { images: nativeImages(images) }) });
+        const response = await rpc.control.request({ type: "steer", message: input, ...(images.length === 0 ? {} : { images: nativeImages(images) }) },
+          id => { commands.set(id, { request, queued: false }); });
+        await pump;
         return response.success ? { kind: "accepted" } : { kind: "rejected", code: "runtime_refused", reason: response.error };
       });
     }),
-    queue: async (input, inputOptions) => kernel.control({ kind: "queue", input, ...inputOptions }, async () =>
-      withInputImages(capabilities, inputOptions?.images, (images) => {
-        held.push({ input, inputId: inputOptions?.inputId, images });
-        drain();
-        return { kind: "accepted" };
-      })),
+    queue: async (input, inputOptions) => {
+      const body = { kind: "queue" as const, input, ...inputOptions };
+      const result = await kernel.control(body, request => withInputImages(capabilities, inputOptions?.images, images => {
+        held.push({ body, requestId: request.id, inputId: inputOptions?.inputId, images });
+        return { kind: "accepted", queued: "adapter" };
+      }));
+      const queued = held.find(entry => entry.requestId === result.request.id);
+      if (queued !== undefined) { queued.accepted = true; }
+      drain();
+      return result;
+    },
     withdraw: withdrawControl(kernel, held),
     abort: async () => kernel.control({ kind: "abort" }, () => {
       if (compaction.busy() && !compaction.admitted()) { return { kind: "rejected", code: "busy", reason: "Pi has not yet started the compaction that abort would cancel" }; }
-      if (!running && !compaction.busy()) { return { kind: "rejected", code: "no_active_turn", reason: "no active turn" }; }
+      if (!busy() && !compaction.busy()) { return { kind: "rejected", code: "no_active_turn", reason: "no active turn" }; }
       fallback.arm();
-      if (started || compaction.busy()) { void abort(); } else { pendingAbort = true; }
+      if (nativeActive || compaction.busy()) { void abort(); } else { for (const admission of admissions.values()) { admission.abort = true; } }
       return { kind: "accepted" };
     }),
     rawEvents: (observer, cursor) => kernel.rawEvents(observer, cursor),

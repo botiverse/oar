@@ -4,7 +4,7 @@ import { asRecord, parseJson } from "../../../shared/json.js";
 
 /** Native Pi JSONL correlation. Event observers never wait for a command response. */
 export function piRpcControl(child: LineProcess, receive: (message: Record<string, unknown>) => void): {
-  request(command: RpcCommand): Promise<RpcResponse>;
+  request(command: RpcCommand, issued?: (id: string) => void): Promise<RpcResponse>;
 } {
   let sequence = 0;
   let ended = false;
@@ -31,7 +31,7 @@ export function piRpcControl(child: LineProcess, receive: (message: Record<strin
     pending.clear();
   });
   return {
-    request: async (command) => {
+    request: async (command, issued) => {
       if (ended) { throw new Error("Pi RPC has exited"); }
       const id = `oar-pi-${sequence++}`;
       const { promise, resolve, reject } = Promise.withResolvers<RpcResponse>();
@@ -42,6 +42,9 @@ export function piRpcControl(child: LineProcess, receive: (message: Record<strin
         child.kill();
       }, 30_000);
       pending.set(id, { resolve, reject, timer });
+      // Associate the OAR attempt before the write: a response can arrive
+      // synchronously in a transport implementation or fixture.
+      issued?.(id);
       child.write(`${JSON.stringify({ ...command, id })}\n`);
       const response = await promise;
       return response;

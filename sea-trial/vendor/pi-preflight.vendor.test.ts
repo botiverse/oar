@@ -11,7 +11,7 @@ test.skipIf(!isPiBackend)("native Pi missing-key refusal drains queued work and 
     const refused = await first;
     expect(refused).toMatchObject({ kind: "rejected", code: "runtime_refused" });
     expect(refused.response.body.kind === "rejected" && refused.response.body.reason).toMatch(/No API key/iu);
-    await vi.waitFor(() => { expect(session.records().filter(record => record.kind === "frame" && record.body.type === "pi/prompt_rejected")).toHaveLength(1); }, { timeout: 10_000 });
+    await vi.waitFor(() => { expect(session.records().filter(record => record.kind === "frame" && record.body.events.some(event => event.kind === "input_dropped" && event.reason === "runtime_refused"))).toHaveLength(1); }, { timeout: 10_000 });
     expect(f.requests).toHaveLength(0);
     expect(await session.abort()).toMatchObject({ kind: "rejected", code: "no_active_turn" });
     const recovered = await promptAndWait(session, "C", { timeoutMs: 15_000 });

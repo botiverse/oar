@@ -101,6 +101,9 @@ function sessionFighter(session: Session, name: string, icon: string | null, cwd
         if (run.kind === "interrupted") {
           return { move: null, taunt: "", ms, trouble: "timed out" };
         }
+        if (run.kind === "handled") {
+          return { move: null, taunt: "", ms, trouble: "input handled without a model turn" };
+        }
         if (run.outcome.kind !== "completed") {
           return { move: null, taunt: "", ms, trouble: run.outcome.kind === "failed" ? run.outcome.reason : "aborted" };
         }

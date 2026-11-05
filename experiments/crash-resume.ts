@@ -112,7 +112,8 @@ async function phaseTwo(run: Run): Promise<void> {
   const unprompted = new Set(["user_message", "text_delta", "tool_call_started", "turn_ended", "task_ended"]);
   const spontaneous = session.records().filter((record) => record.kind === "frame" && record.body.events.some((event) => unprompted.has(event.kind))).length;
   const answer = await promptAndWait(session, QUESTIONS, { timeoutMs: 240_000 });
-  const text = answer.kind === "rejected" ? `rejected: ${answer.reason}` : answer.text;
+  const reply = answer.kind === "ended" || answer.kind === "interrupted" ? answer.text : "handled without a model turn";
+  const text = answer.kind === "rejected" ? `rejected: ${answer.reason}` : reply;
   writeFileSync(path.join(out, "phase2.json"), JSON.stringify({ resumedId: session.id, spontaneousFrames: spontaneous, outcome: answer.kind, text }, null, 2));
   await session.dispose();
 }

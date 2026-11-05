@@ -126,6 +126,10 @@ export function registerRunCommand(program: Command, version: string): void {
         process.exitCode = 1;
         return;
       }
+      if (run.kind === "handled") {
+        if (flags.json === true) { process.stdout.write(`${JSON.stringify({ disposition: run.disposition })}\n`); }
+        return;
+      }
       const { outcome } = run;
       if (flags.json === true) {
         process.stdout.write(`${JSON.stringify({ outcome })}\n`);

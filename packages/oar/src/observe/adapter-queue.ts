@@ -34,5 +34,14 @@ export function reduceAdapterQueue(previous: AdapterQueueState | undefined, reco
     const accepted = record.body.kind === "accepted" && record.body.queued === "adapter";
     inputs = inputs.flatMap(input => input.requestId !== record.requestId ? [input] : (accepted ? [{ ...input, accepted: true as const }] : []));
   }
+  if (record.kind === "frame") {
+    for (const event of record.body.events) {
+      if (event.kind !== "input_handled" && event.kind !== "input_dropped") { continue; }
+      const dispatch = dispatches.find(entry => entry.requestId === event.requestId);
+      inputs = inputs.filter(input => event.requestId === undefined ? input.inputId !== event.inputId
+        : input.requestId !== event.requestId && dispatch?.inputIds.includes(input.inputId) !== true);
+      dispatches = dispatches.filter(entry => entry.requestId !== event.requestId);
+    }
+  }
   return inputs.length === 0 && withdrawals.length === 0 && dispatches.length === 0 ? undefined : { inputs, withdrawals, dispatches };
 }

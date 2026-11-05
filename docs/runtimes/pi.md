@@ -505,8 +505,8 @@ carries error state into the outcome. A run pi fails after starting, without
 its own settlement, is recorded as a `pi/prompt_rejected` frame carrying pi's
 message and a failed `turn_ended` event: pi's word, not a synthesized
 boundary. A second prompt during a run is `rejected` `busy`
-(`busy-and-late-control` scenario). Native prompt preflight callbacks are
-**not exposed**.
+(`busy-and-late-control` scenario). Native preflight callback values are
+retained as frames; they establish admission only for their own invocation.
 
 SDK and RPC publish the native terminal frame before releasing the run gate.
 A synchronous `turn_ended` observer therefore sees `idle`, but `prompt` can
@@ -517,8 +517,9 @@ not a promise to enter Pi's settlement-time deferred prompt list. The
 verify it on Pi 1.5.0, alongside ordinary FIFO and Durable's different behavior.
 
 A refusal before native start clears its pending abort. After recording the
-refusal, OAR drains held work; a queued refusal records `pi/prompt_rejected`
-without inventing a turn end. RPC clears its cancellation fallback after
+refusal, OAR drains held work; a queued refusal records `input_dropped` on
+its SDK `pi/prompt_rejected` frame or original RPC error response, without
+inventing a turn end. RPC clears its cancellation fallback after
 terminal stats and synchronous observers, so an abort in either window does
 not later kill a healthy child. SDK reports disposal if the session became
 unavailable while prompt admission was pending. The
@@ -526,12 +527,25 @@ unavailable while prompt admission was pending. The
 verifies native refusal and recovery in both execution modes; deterministic
 [regressions](../../tests/pi/pi-turn-preflight.test.ts) cover cancellation and disposal races.
 
-Native extensions remain a separate limitation: an extension-handled input
-has no native turn end, so `promptAndWait` cannot finish on that input alone.
-SDK can retain its run gate after such an input; RPC can release the gate
-while the status fold still shows provisional `running`. Competing extension
-runs can also consume a queued dispatch without running that input. OAR does
-not yet have a disposition record that reconciles these cases.
+Native SDK `preflightResult` and RPC `data.disposition` report per-input
+admission. Pi prompt request records mark `admission: "native"` so a separate
+extension run ending during preflight cannot finish that input's wait or
+release its reservation. This control fact preserves old logs' fallback
+behavior without treating an unrelated `agent_settled` as a native receipt. The invocation's `started` receipt projects `turn_active` with
+its original input identity, when known; the later `agent_start` remains a
+separate native frame. This lets input-scoped queue waits skip unrelated
+extension turns during preflight. An explicit `handled` result produces `input_handled` on its
+evidence frame; the caller's delivery remains accepted. Handled is not a
+success result or a turn end: a command handler can throw, or start an
+independent extension run. Only the matching request's provisional occupancy
+is released, and the independent run stays busy. `promptAndWait` returns its
+distinct `handled` branch. SDK/RPC queues use recorded adapter ownership
+and `carries`; a native refusal after acceptance records a correlated
+`input_dropped` without automatically replaying extension hooks. Pi Durable
+is unchanged. Native handler errors remain separate frames: SDK extension
+`onError` supplies `extension_error`, and RPC keeps its original error event.
+The [native regressions](../../sea-trial/vendor/pi-input-handled.vendor.test.ts)
+cover handled prompts, commands, steering, queue dispatch and competing runs.
 
 **Images (mapped):** `InputOptions.images` become pi's `ImageContent`
 (`{ type: "image", data, mimeType }`) for `prompt(text, { images })`,
@@ -550,8 +564,9 @@ The SDK may still drop images for a model that does not declare image input.
 **Steer (partial, landing observed):** `steer()` delegates to
 `AgentSession.steer()` and answers `accepted` on queue entry, or `rejected`
 (`no_active_turn`, reason `not_steerable: no active turn`) when no run is
-active. Acceptance means entry
-into pi's queue, not model receipt. Natively the steer is a `queue_update`
+active. A native `queued` result means entry into pi's queue, not model
+receipt. If an input extension instead returns `handled`, the accepted
+steer carries `input_handled` and leaves the active run unchanged. Natively the steer is a `queue_update`
 with the text under `steering`, inside the running span; the run's next
 internal turn drains it (a `queue_update` with empty lists) and injects it as
 a user message, so the text lands in the same turn's final reply with one
@@ -560,19 +575,21 @@ steer's words).
 
 **Queue (partial):** `queue()` uses an adapter FIFO
 (`capabilities.queue.durable: false`), because native `followUp()` continues
-the same outer run and would break OAR's separate-turn promise. The FIFO
-drains one input per run end; a drained input runs as a spontaneous turn
-(`agent_settled`, then `agent_start` with no request record of its own) and
-its reply ends its own turn (`queue` scenario). If pi refuses a drained input,
-the refusal is recorded as a `pi/prompt_rejected` frame with no events.
-A synchronous ordinary `turn_ended` observer cannot overtake held input:
-`prompt` and `compact` stay busy, and `queue` appends to the tail. This does
-not cover extension competition or a new prompt issued synchronously from a
-pre-start refusal response: in the latter window a new prompt can overtake
-held input. OAR also lacks queue-ownership records here, so status can be
-idle while a dequeued input awaits native start or refusal
-([state exceptions](../spec/manual-compaction.md#ownership-records-and-state)).
-Native extension commands cannot simply be queued like ordinary text.
+the same outer run and would break OAR's separate-turn promise. Acceptance
+records `queued: "adapter"`; dispatch creates a prompt request whose `carries`
+references the original logical input (or queue request ID for old inputs
+without an input ID). Views render one input. The dispatch is recorded only
+after queue acceptance and waits for that invocation's native admission.
+
+Held inputs keep status waiting through dispatch, including preflight.
+`prompt` and `compact` cannot overtake them, including from a synchronous
+refusal observer; `queue` appends at the tail. A handled input releases only
+its admission, allowing the next entry to drain when no native run remains.
+If an extension wins the native slot after an input hook has run, a native
+refusal returns that accepted input with `input_dropped`. OAR does not retry
+the hook or clear the competing native run. The ordinary terminal-observer
+exception above remains in force.
+
 `withdraw(inputId)` takes an input out of the FIFO before the drain prompts
 it (`accepted`) and answers `not_queued` after; pi's own `clearQueue()` is a
 different queue and is not used ([input cancellation](input-cancellation.md),

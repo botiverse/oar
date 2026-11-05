@@ -51,9 +51,8 @@ export default function piPreflightFixture() {
     emit = receive;
     const state = { sessionId: "preflight", thinkingLevel: "off", isStreaming: false, isCompacting: false,
       steeringMode: "all", followUpMode: "all", autoCompactionEnabled: true, messageCount: 0, pendingMessageCount: 0 } as const;
-    return {
-      child, directory: { path: "/fixture", remove() {} }, state,
-      control: { request: async (command: RpcCommand): Promise<RpcResponse> => {
+    let sequence = 0;
+    const respond = async (command: RpcCommand): Promise<RpcResponse> => {
         if (command.type === "get_state") { return { type: "response", command: "get_state", success: true, data: { ...state, isStreaming: sdk.isStreaming } }; }
         if (command.type === "get_session_stats" && stats !== undefined) { statsEntered.resolve(); return stats.promise; }
         if (command.type === "abort") { return { type: "response", command: "abort", success: true }; }
@@ -61,8 +60,17 @@ export default function piPreflightFixture() {
         prompts.push(command.message);
         const outcome = await (gates.get(command.message)?.promise ?? Promise.resolve("start"));
         if (outcome === "refused") { return { type: "response", command: "prompt", success: false, error: `native preflight refused ${command.message}` }; }
-        if (outcome === "start") { begin(); }
         return { type: "response", command: "prompt", success: true, data: { disposition: outcome === "start" ? "started" : "handled" } };
+    };
+    return {
+      child, directory: { path: "/fixture", remove() {} }, state,
+      control: { request: async (command: RpcCommand, issued?: (id: string) => void): Promise<RpcResponse> => {
+        const id = `fixture-${sequence++}`;
+        issued?.(id);
+        const response = { ...await respond(command), id };
+        receive(response);
+        if (response.success && response.command === "prompt" && response.data.disposition === "started") { begin(); }
+        return response;
       } },
     };
   };

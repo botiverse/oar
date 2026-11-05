@@ -112,10 +112,10 @@ Grok, OpenCode and Qoder compact requests carry
 remain in place but do not release these operations. Other runtimes use their
 existing terminal records. With no adapter-held input, a synchronous observer
 of the release record can submit another prompt when status is idle.
-ACP-held inputs instead keep status at `running / waiting_model` until their
+ACP and Pi SDK/RPC held inputs instead keep status at `running / waiting_model` until their
 dispatch or withdrawal.
 
-**Held-queue exception:** Claude, Qoder, Qwen, Cursor and Pi SDK/RPC do not
+**Held-queue exception:** Claude, Qoder, Qwen and Cursor do not
 yet record OAR's queue ownership and dispatch as ACP does. While OAR holds
 or dispatches a queued input, status can display `idle` although a new
 `prompt` returns `busy`. This includes the window after dequeue but before
@@ -125,9 +125,9 @@ native start/refusal is recorded.
 publishing the native `turn_ended` frame. A synchronous observer can see
 `idle` while `prompt` still returns `busy`, even with no held input. Submit
 after that observer returns. This does not change manual `compaction_end`
-release. Pi's extension-handled inputs also lack a disposition record, so
-status can remain provisionally `running` without a native run; see the
-[runtime limitations](../runtimes/pi.md#prompt-steering-queueing-and-abort).
+release. Pi's `input_handled` receipt releases only its request's provisional
+occupancy, retaining independent native activity; see the
+[runtime mapping](../runtimes/pi.md#prompt-steering-queueing-and-abort).
 The [design decision](../design/decisions.md#pi-synchronous-terminal-submission-2026-11-05)
 records why synchronous ordinary-turn submission is not supported.
 

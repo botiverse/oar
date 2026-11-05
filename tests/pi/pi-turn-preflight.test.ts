@@ -37,7 +37,7 @@ test.each(["SDK", "RPC"] as const)("Pi %s drains held work after preflight refus
     await f.session.queue("B"); a.resolve("refused");
     expect(await first).toMatchObject({ kind: "rejected", code: "runtime_refused" }); await settle();
     expect(f.prompts).toEqual(["A", "B"]); b.resolve("refused"); await settle();
-    expect(f.session.records().filter(record => record.kind === "frame" && record.body.type === "pi/prompt_rejected"))
+    expect(f.session.records().filter(record => record.kind === "frame" && record.body.events.some(event => event.kind === "input_dropped")))
       .toHaveLength(1);
     expect(JSON.stringify(f.session.records())).toContain("native preflight refused B");
     expect(await f.session.abort()).toMatchObject({ kind: "rejected", code: "no_active_turn" });
@@ -86,6 +86,22 @@ test("RPC keeps queued dispatch after the observable terminal frame", async () =
     onEnd(f.session, () => { seen.push([...f.prompts]); }); f.end(); await settle();
     expect(seen).toEqual([["A"]]); expect(f.prompts).toEqual(["A", "B"]);
   } finally { await f.close(); }
+});
+
+test("SDK deferred prompt fulfillment cannot accept an input before its own native preflight", async () => {
+  const f = await fixture("SDK"); const b = f.hold("B");
+  try {
+    await f.session.prompt("A"); await f.session.queue("B"); await f.session.queue("C");
+    f.end(); await settle();
+    expect(f.deferrals()).toBe(1); expect(f.prompts).toEqual(["A", "B"]);
+    const dispatch = f.session.records().find(record => record.kind === "request" && record.body.kind === "prompt" && record.body.carries !== undefined);
+    expect(dispatch?.kind).toBe("request");
+    expect(f.session.records().filter(record => record.kind === "response" && record.requestId === (dispatch?.kind === "request" ? dispatch.id : undefined)))
+      .toEqual([]);
+    expect(f.session.status().value.kind).toBe("running");
+    b.resolve("handled"); await settle();
+    expect(f.prompts).toEqual(["A", "B", "C"]);
+  } finally { b.resolve("refused"); await f.close(); }
 });
 
 test("RPC clears cancellation fallback rearmed while terminal stats are pending", async () => {
@@ -193,4 +209,67 @@ test("SDK native rejection after start clears cancellation before the next run",
     expect(await f.session.prompt("C")).toMatchObject({ kind: "accepted" });
     expect(f.aborts()).toBe(0); expect(f.session.status().value.kind).toBe("running");
   } finally { await f.close(); }
+});
+
+test.each([
+  ["SDK", "prompt"], ["SDK", "queue"], ["SDK", "compact"],
+  ["RPC", "prompt"], ["RPC", "queue"], ["RPC", "compact"],
+] as const)("Pi %s keeps held FIFO when a preflight-refusal observer calls %s", async (mode, control) => {
+  const f = await fixture(mode); const a = f.hold("A"); const results: Promise<unknown>[] = [];
+  try {
+    const first = f.session.prompt("A"); await settle(); await f.session.queue("B");
+    let used = false;
+    f.session.rawEvents(record => {
+      if (used || record.kind !== "response" || record.body.kind !== "rejected") { return; }
+      used = true;
+      const result = control === "compact" ? f.session.compact?.() : f.session[control]("C");
+      if (result === undefined) { throw new Error("expected compact"); } results.push(result);
+    });
+    a.resolve("refused"); await first; await settle();
+    expect(await results[0]).toMatchObject(control === "queue" ? { kind: "accepted" } : { kind: "rejected", code: "busy" });
+    expect(f.prompts).toEqual(["A", "B"]);
+    f.end(); await settle();
+    expect(f.prompts).toEqual(control === "queue" ? ["A", "B", "C"] : ["A", "B"]);
+  } finally { a.resolve("refused"); await f.close(); }
+});
+
+test.each(["SDK", "RPC"] as const)("Pi %s handling releases its request before observers, without bypassing held inputs", async mode => {
+  const f = await fixture(mode); const a = f.hold("A"); const results: Promise<ControlResult>[] = [];
+  try {
+    const first = f.session.prompt("A"); await settle(); await f.session.queue("B");
+    f.session.rawEvents(record => {
+      if (record.kind === "frame" && record.body.events.some(event => event.kind === "input_handled")) { results.push(f.session.prompt("C")); }
+    });
+    a.resolve("handled"); await first; await settle();
+    expect(await results[0]).toMatchObject({ kind: "rejected", code: "busy" });
+    expect(f.prompts).toEqual(["A", "B"]);
+  } finally { a.resolve("refused"); await f.close(); }
+});
+
+test.each(["SDK", "RPC"] as const)("Pi %s cannot dispatch a queued input before publishing its acceptance", async mode => {
+  const f = await fixture(mode);
+  try {
+    await f.session.prompt("A");
+    const atAcceptance: string[][] = [];
+    f.session.rawEvents(record => {
+      if (record.kind === "response" && record.body.kind === "accepted" && record.body.queued === "adapter") { atAcceptance.push([...f.prompts]); }
+    });
+    const queued = f.session.queue("B"); f.end(); await queued; await settle();
+    expect(atAcceptance).toEqual([["A"]]); expect(f.prompts).toEqual(["A", "B"]);
+    const request = f.session.records().find(record => record.kind === "request" && record.body.kind === "queue");
+    const accepted = f.session.records().find(record => record.kind === "response" && record.requestId === (request?.kind === "request" ? request.id : undefined));
+    const dispatch = f.session.records().find(record => record.kind === "request" && record.body.kind === "prompt" && record.body.carries !== undefined);
+    expect(dispatch?.seq).toBeGreaterThan(accepted?.seq ?? Infinity);
+  } finally { await f.close(); }
+});
+
+test.each(["SDK", "RPC"] as const)("Pi %s handling forgets cancellation for that admission before the next queued run", async mode => {
+  const f = await fixture(mode); const a = f.hold("A");
+  try {
+    const first = f.session.prompt("A"); await settle();
+    expect(await f.session.abort()).toMatchObject({ kind: "accepted" });
+    await f.session.queue("B"); a.resolve("handled"); await first; await settle();
+    expect(f.prompts).toEqual(["A", "B"]); expect(f.aborts()).toBe(0);
+    expect(f.session.status().value.kind).toBe("running");
+  } finally { a.resolve("refused"); await f.close(); }
 });

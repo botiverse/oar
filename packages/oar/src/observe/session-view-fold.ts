@@ -73,7 +73,7 @@ export function assemble(
     pendingInputs: draft.pendingInputs,
     openTurn: draft.openTurn,
     status: statusValue(status),
-    ...(status.compactionState === undefined && status.adapterQueue === undefined ? {} : { statusState: status }),
+    ...(status.compactionState === undefined && status.adapterQueue === undefined && status.inputAdmission === undefined ? {} : { statusState: status }),
     model: draft.model,
     effort: draft.effort,
     serviceTier: draft.serviceTier,

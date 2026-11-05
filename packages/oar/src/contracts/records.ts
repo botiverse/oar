@@ -1,5 +1,5 @@
 import type { GoalSetOptions, GoalSnapshot } from "./goal.js";
-import type { InputImage, InputOrigin, UserMessage } from "./input.js";
+import type { InputImage, InputOrigin, InputReference, UserMessage } from "./input.js";
 import type { PlacementRequest, SessionCleanup, SessionPlacement, SessionRelease } from "./placement.js";
 import type { ToolCallProgress, ToolOutputPart } from "./tool-output.js";
 import type { FailureClass } from "./failure.js";
@@ -20,8 +20,7 @@ export type { TurnOutcome } from "./turn-outcome.js";
  * - `Frame`: a RawEvent carrying one runtime frame verbatim (`type`,
  *   `native`) plus the events oar read out of it.
  *
- * Semantics live in docs/spec; the session control surface that produces
- * these records is in ./session.ts.
+ * Semantics live in docs/spec; the producing control surface is in ./session.ts.
  */
 // ─── The record stream ────────────────────────────────────────────────────
 /**
@@ -78,7 +77,7 @@ export type RawEvent = Frame | RequestRecord | ResponseRecord;
  * enters the stream, with `type` and `native` and no events.
  */
 export interface FrameBody {
-  /** This native frame explicitly identifies an OAR request using the identifier supplied to the runtime (RPC id, command UUID, etc.). Exact identity only, never timing or order; not a claim of successful execution. */
+  /** This frame identifies an OAR request by its native invocation callback or the identifier supplied to the runtime (RPC id, command UUID, etc.). Exact identity only, never timing or order; not a claim of successful execution. */
   readonly responseTo?: string;
   /** Runtime-native discriminator: claude `type[/subtype]`, codex notification method, pi event type, ACP `sessionUpdate`. */
   readonly type: string;
@@ -110,8 +109,7 @@ export interface TokenTotals {
   readonly cacheWrite?: number;
 }
 /**
- * What a usage-bearing frame says. `context` is current context fullness as
- * the runtime reports it; `tokens` is the running total for this record's
+ * `context` is native context fullness; `tokens` is the running total for this record's
  * `agentPath` counted from when this Session opened, resolved by the adapter
  * (the authoritative figure, deduplication and what a resumed runtime had
  * already counted never cross this surface; docs/spec/attribution.md).
@@ -138,12 +136,14 @@ export type RuntimeEventBody =
   | { readonly kind: "session_linked"; readonly parent: string; readonly child: string; readonly via: "tool_call" }
   /** The runtime reports an active turn. inputId names the input it started for; absent means unknown. After input_queued, only a matching inputId begins that input’s turn. */
   | { readonly kind: "turn_active"; readonly inputId?: string }
-  /** The runtime holds this input and has not started its turn. Only this fact gates input-specific turn attribution; acceptance alone does not. */
+  /** The runtime holds this input and has not started its turn. Native queue evidence gates input-specific turn attribution; control acceptance alone does not. */
   | { readonly kind: "input_queued"; readonly inputId: string }
   /** The runtime discarded or refused an accepted input, established by native evidence. Returns ownership to the caller for resend; never inferred by a view from turn completion. */
-  | { readonly kind: "input_dropped"; readonly inputId: string; readonly reason: "turn_interrupted" }
+  | ({ readonly kind: "input_dropped"; readonly reason: "turn_interrupted" } & InputReference)
   /** A native refusal's classification and explanation, only when known. An input-scoped wait reads these as a failure, never as a turn_ended fact. */
-  | { readonly kind: "input_dropped"; readonly inputId: string; readonly reason: "runtime_refused"; readonly failure?: FailureClass; readonly message?: string }
+  | ({ readonly kind: "input_dropped"; readonly reason: "runtime_refused"; readonly failure?: FailureClass; readonly message?: string } & InputReference)
+  /** Native handling of this delivery attempt without a model turn. Not success, model consumption, or a turn end. Handler errors remain separate native facts. */
+  | { readonly kind: "input_handled"; readonly requestId: string; readonly inputId?: string }
   /** `messageId`: the runtime's id of the assistant message the text is part of (codex `agentMessage` item, claude API message), so two messages of one turn stay apart; absent when it names none (pi, cursor, ACP) and in older records. */
   | { readonly kind: "text_delta"; readonly text: string; readonly messageId?: string }
   /** A reasoning output item; its lifecycle remains observable without readable contents. `messageId` names the native message when provided, keeping streamed reasoning from distinct messages apart when coalescing. */
@@ -228,8 +228,7 @@ export type EventBody = RuntimeEventBody | ControlEventBody;
  * EventBody plus the envelope of the record it was read from, so it carries
  * `seq` (several events read from one frame share it), `agentPath`,
  * `spanId` and `receivedAt` without the consumer touching the record. Lossy
- * by design (no `native`, no `type`), and always re-derivable from the
- * RawEvent stream via `eventsOf`.
+ * by design (no `native`, no `type`), and always re-derivable from RawEvent via `eventsOf`.
  */
 export type Event = EventBody & RecordEnvelope & { readonly elided?: true }; // `elided`: its frame was trimmed, so tool input and output may be missing.
 export type RequestBody =
@@ -239,7 +238,8 @@ export type RequestBody =
   | { readonly kind: "goal_clear" }
   /** Request native compaction; acceptance is admission, not completion. settledBy requires a native frame whose responseTo equals this request id before releasing the operation. */
   | { readonly kind: "compact"; readonly settledBy?: "native_response" }
-  | { readonly kind: "prompt"; readonly carries?: readonly string[]; readonly inputId?: string; readonly input: string; readonly images?: readonly InputImage[]; readonly origin?: InputOrigin }
+  /** `admission: "native"` keeps this attempt pending until its own receipt, even if an independent run ends during preflight. Adapter fact, not InputOptions. */
+  | { readonly kind: "prompt"; readonly admission?: "native"; readonly carries?: readonly string[]; readonly inputId?: string; readonly input: string; readonly images?: readonly InputImage[]; readonly origin?: InputOrigin }
   | { readonly kind: "steer"; readonly inputId?: string; readonly input: string; readonly images?: readonly InputImage[]; readonly origin?: InputOrigin }
   | { readonly kind: "queue"; readonly inputId?: string; readonly input: string; readonly images?: readonly InputImage[]; readonly origin?: InputOrigin }
   /** Take back the held input `inputId` (an earlier queue request's) before it is sent. The queue request and its response are never changed. */

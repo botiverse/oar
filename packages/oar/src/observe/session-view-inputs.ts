@@ -97,12 +97,34 @@ function hiddenAggregate(input: ConversationInput, conversation: ConversationSta
 /** Queue evidence arms attribution; only an actual conflicting turn defers a placed input. */
 export function foldInputUpdate(draft: Draft, input: ConversationInput, conversation: ConversationState): void {
   const request = input.attempts.at(-1)?.request;
+  if (input.state === "dropped" && request?.body.kind === "prompt") { removeEmptyTurn(draft, request.id); }
+  for (const attempt of input.attempts) {
+    if (attempt.request.body.kind === "prompt" && attempt.disposition?.kind === "handled") {
+      detachHandledTurn(draft, attempt.request.id, attempt.streamId);
+    }
+  }
   if (hiddenAggregate(input, conversation)) {
     return; // The original inputs enter together; do not repeat the aggregate body.
   }
-  if (input.state === "dropped" && request?.body.kind === "prompt") { removeEmptyTurn(draft, request.id); }
   const wait = awaitsEcho(input, conversation);
   upsertInput(draft, input, input.turn?.state === "queued" ? wait && draft.pendingInputs.some((pending) => pending.id === input.id) : wait);
+}
+
+/** A late receipt changes only its provisional attribution, even after inputId reuse. */
+function detachHandledTurn(draft: Draft, requestId: string, streamId: string): void {
+  const index = draft.messages.findIndex(message => message.kind === "turn"
+    && message.id === `turn:${streamId}:${requestId}` && message.openedBy === requestId);
+  const message = draft.messages[index];
+  if (message?.kind !== "turn") { return; }
+  if (message.sections.length === 0 && message.outcome === undefined) {
+    draft.messages.splice(index, 1);
+    if (draft.openTurn === index) { draft.openTurn = -1; }
+    else if (draft.openTurn > index) { draft.openTurn -= 1; }
+  } else {
+    const { openedBy: _openedBy, ...native } = message;
+    draft.messages[index] = native;
+  }
+  draft.turn = null;
 }
 
 /** Split a provisional prompt only when native activity actually belongs to another turn. */

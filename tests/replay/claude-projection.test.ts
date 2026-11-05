@@ -65,7 +65,7 @@ function describeCommand(command: ProjectionCommand): string {
           case "tool_call_ended":
           case "goal_changed": case "service_tier":
           case "app_request_cancelled":
-          case "input_dropped":
+          case "input_handled": case "input_dropped":
           case "session_linked": case "user_message":
           case "model":
           case "effort":
