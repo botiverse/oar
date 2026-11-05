@@ -145,6 +145,21 @@ test("a missing inventory method removes or refuses its control, with the reason
   await refused.dispose();
 });
 
+test("listModels reads the native catalog as provider/model selectors", async () => {
+  const listed = await dshRuntime.listModels({ kind: "available", via: "executable", command, version: "0.2.1-rc.5" }, { cwd });
+  expect(listed).toEqual({ kind: "ok", models: [
+    { id: "local/plain", displayName: "Plain", provider: { id: "local", displayName: "Local" } },
+    { id: "local/thinks", displayName: "Thinks", provider: { id: "local", displayName: "Local" }, effortLevels: ["low", "high"], defaultEffort: "low", default: true },
+  ] });
+});
+
+test("a catalog with no provider that could list is unsupported with the native reason; a floor refusal comes first", async () => {
+  const failing = await dshRuntime.listModels({ kind: "available", via: "executable", command, version: "0.2.1-rc.5" }, { cwd, env: { FAKE_DSH_MODE: "listing-fails" } });
+  expect(failing).toEqual({ kind: "unsupported", reason: "DSH could not list any provider's models: local: no credential; broken: no credential" });
+  const old = await dshRuntime.listModels({ kind: "available", via: "executable", command, version: "0.2.1-rc.4" }, { cwd });
+  expect(old).toEqual({ kind: "unsupported", reason: "DSH 0.2.1-rc.4 is below the supported floor; OAR requires 0.2.1-rc.5 or later" });
+});
+
 test("a line that is not protocol is a recorded frame, not a lost one", async () => {
   const session = await open({ FAKE_DSH_MODE: "stdout-noise" });
   expect(session.records().some((record) => record.kind === "frame" && record.body.type === "dsh/stdout" && JSON.stringify(record.body.native).includes("not json at all"))).toBe(true);
@@ -180,6 +195,7 @@ test("a dispose whose native close fails still ends the process and records the 
   const session = await open({ FAKE_DSH_MODE: "dispose-fails" });
   await session.dispose();
   expect(session.records().some((record) => record.kind === "response" && record.body.kind === "exited")).toBe(true);
+  expect(session.records().some((record) => record.kind === "frame" && record.body.type === "dsh/dispose-failed" && JSON.stringify(record.body.native).includes("native dispose failed"))).toBe(true);
   await session.dispose();
 });
 

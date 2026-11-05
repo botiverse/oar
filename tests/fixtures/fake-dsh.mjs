@@ -79,13 +79,19 @@ const persistence = {
   flush: async () => {},
 };
 const llm = {
+  listProviders: () => [{ id: "local", name: "Local" }, ...(mode === "listing-fails" ? [{ id: "broken", name: "Broken" }] : [])],
+  listModels: async (provider) => {
+    if (provider === "broken" || mode === "listing-fails") { throw new Error("no credential"); }
+    return [{ provider, id: "plain", name: "Plain" }, { provider, id: "thinks", name: "Thinks" }];
+  },
+  resolveModelInfo: async (provider, id) => ({ provider, id, ...(id === "thinks" ? { reasoning: { efforts: [{ id: "low", name: "Low" }, { id: "high", name: "High" }], defaultEffort: "low" } } : {}) }),
   ...(missing.has("resolveCallConfig") ? {} : { resolveCallConfig: async (route) => {
     if (route.reasoningEffort === "bad") { throw Object.assign(new Error('does not support reasoning effort "bad"'), { code: "UNSUPPORTED_REASONING_EFFORT" }); }
     if (route.model === "bad") { throw Object.assign(new Error('no configured model "bad"'), { code: "UNKNOWN_MODEL" }); }
     return route;
   } }),
 };
-const services = { agents, sessionPersistence: persistence, llm };
+const services = { agents, sessionPersistence: persistence, llm, ...(mode === "no-default" ? {} : { agentDefaultModel: { currentSelection: () => ({ provider: "local", model: "thinks" }) } }) };
 const loader = {
   await: async () => { if (mode === "barrier-fails") { throw new Error("barrier failed"); } },
 };

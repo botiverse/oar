@@ -3,7 +3,7 @@ import { mkdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
 import { awaitTurnEnd } from "../../packages/oar/src/observe/turns.js";
-import { dshInstallation, SessionNotFoundError, UnsupportedOptionError } from "../../packages/oar/src/index.js";
+import { dshInstallation, dshRuntime, SessionNotFoundError, UnsupportedOptionError } from "../../packages/oar/src/index.js";
 import { DSH_MINIMUM_VERSION, compareSemver } from "../../packages/oar/src/runtimes/dsh/version.js";
 import { dshEnabled, eventsOf, nativeOf, posix, reportsSelection, say, untilCount, untilEvent, withDshFixture } from "./support/dsh-fixture.js";
 import { durableEvents, lastInput, toolResults } from "./support/dsh-provider.js";
@@ -14,6 +14,15 @@ describe.skipIf(!dshEnabled)("DSH native sessions", () => {
     assert.ok(installation.kind === "available" && installation.via === "executable" && installation.version !== undefined, JSON.stringify(installation));
     assert.ok((compareSemver(installation.version, DSH_MINIMUM_VERSION) ?? -1) >= 0, installation.version);
   }, 30_000);
+
+  test("listModels reads the native catalog of the configured route, with its effort menu and default", async () => {
+    await withDshFixture(() => say("never"), async ({ aimock, installation, provider }) => {
+      const listed = await dshRuntime.listModels(installation, { cwd: aimock.cwd, env: aimock.env });
+      assert.ok(listed.kind === "ok", JSON.stringify(listed));
+      expect(listed.models.find((model) => model.id === "aimock/aimock-model")).toMatchObject({ provider: { id: "aimock" }, effortLevels: ["low", "high"], default: true });
+      expect(provider.requests).toEqual([]);
+    });
+  }, 60_000);
 
   test("open records the inventory, runs isolated, and writes nothing to the user's patch", async () => {
     await withDshFixture(() => say("hello"), async ({ aimock, open }) => {

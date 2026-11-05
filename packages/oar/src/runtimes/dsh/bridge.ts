@@ -84,8 +84,8 @@ function boot(ctx) {
     if (handle === undefined) { throw refusal("unknown_session", "This process does not own session " + sessionId); }
     return handle;
   };
-  // A withdrawal commits a native cancelled splice before remove() returns;
-  // this routing field tells it apart from one an abort caused.
+  // A native splice commits before followup() or remove() returns. This routing
+  // field says which control caused it, which the splice alone cannot.
   let cause;
   ctx.on("session/event", (session, event) => { write({ type: "native", channel: "session/event", sessionId: session.header.id, ...(cause === undefined ? {} : { cause }), event }); });
   ctx.on("agent/assistant-stream", ({ agent, frame }) => { write({ type: "native", channel: "agent/assistant-stream", sessionId: agent.session.id, frame }); });
@@ -150,7 +150,8 @@ function boot(ctx) {
       requireMethod(agent, "followup", "prompt");
       if (agent.status !== "idle") { throw refusal("busy", "busy"); }
       const message = userMessage(request.text, request.inputId);
-      agent.followup(message);
+      cause = "prompt";
+      try { agent.followup(message); } finally { cause = undefined; }
       return { messageId: message.id };
     },
     queue(request) {
@@ -182,6 +183,23 @@ function boot(ctx) {
       if (agent.status === "idle") { throw refusal("no_active_turn", "no active turn"); }
       agent.cancel({ kind: "user" }, { keepInbox: false });
       return {};
+    },
+    async models() {
+      const llm = ctx.get("llm");
+      requireMethod(llm, "listProviders", "listing models");
+      requireMethod(llm, "listModels", "listing models");
+      requireMethod(llm, "resolveModelInfo", "listing models");
+      const providers = await Promise.all(llm.listProviders().map(async (provider) => {
+        try {
+          const models = await llm.listModels(provider.id);
+          const entries = await Promise.all(models.map(async (model) => {
+            const resolved = await llm.resolveModelInfo(provider.id, model.id);
+            return { id: model.id, name: model.name, ...(resolved.reasoning === undefined ? {} : { reasoning: resolved.reasoning }) };
+          }));
+          return { id: provider.id, name: provider.name, models: entries };
+        } catch (error) { return { id: provider.id, name: provider.name, failure: String(error?.message ?? error) }; }
+      }));
+      return { providers, default: defaultRoute() };
     },
     async dispose() {
       const results = await Promise.allSettled([...handles.values()].map(async (handle) => { await handle.dispose(); }));

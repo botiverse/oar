@@ -14,7 +14,7 @@ export interface DshAimockOptions {
   readonly homePatch?: readonly unknown[];
   /** Replaces the local provider: the route still points at this URL's `/v1`. */
   readonly providerUrl?: string;
-  /** Model entries of the local route; defaults to one model without reasoning levels. */
+  /** Model entries of the local route; defaults to one model with two reasoning levels. */
   readonly models?: readonly Readonly<Record<string, unknown>>[];
 }
 
@@ -47,7 +47,7 @@ export async function startDshAimock(options: DshAimockOptions = {}): Promise<Ds
   await Promise.all([home, dshHome, cwd].map(async (directory) => { await mkdir(directory); }));
   const route = {
     api: "openai-completions", apiKeyEnv: "OAR_DSH_AIMOCK_KEY", baseURL: `${options.providerUrl ?? capture.url}/v1`,
-    compat: { thinkingFormat: "deepseek" }, models: options.models ?? [{ id: "aimock-model", contextWindow: 128_000, maxTokens: 4096 }],
+    compat: { thinkingFormat: "deepseek" }, models: options.models ?? [{ id: "aimock-model", contextWindow: 128_000, maxTokens: 4096, reasoningEfforts: { low: "low", high: "high" } }],
   };
   await writeFile(path.join(dshHome, "cordis.patch.yml"), `${JSON.stringify([
     { id: "llm-deepseek", disabled: true },

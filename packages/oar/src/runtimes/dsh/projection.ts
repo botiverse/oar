@@ -125,7 +125,7 @@ function spent(session: DshSessionFold, usage: JsonRecord | null, committed: boo
 }
 
 /** A native inbox splice. No outcome means the loop claimed the input; `canceled` means it was discarded. */
-function spliced(session: DshSessionFold, data: JsonRecord, withdrawn: boolean): { readonly session: DshSessionFold; readonly events: readonly RuntimeEventBody[] } {
+function spliced(session: DshSessionFold, data: JsonRecord, cause: unknown): { readonly session: DshSessionFold; readonly events: readonly RuntimeEventBody[] } {
   const target = data.target === "next-step" ? "nextStep" : "nextTurn";
   const list = session[target];
   const start = asNumber(data.start) ?? 0;
@@ -134,9 +134,12 @@ function spliced(session: DshSessionFold, data: JsonRecord, withdrawn: boolean):
   const inserted = asRecordList(data.inserted).map((message) => inputIdOf(message));
   const next = { ...session, [target]: list.toSpliced(start, removedCount, ...inserted) };
   if (data.outcome === "canceled") {
-    return { session: next, events: withdrawn ? [] : removed.map((inputId) => ({ kind: "input_dropped", inputId, reason: "turn_interrupted" })) };
+    return { session: next, events: cause === "withdraw" ? [] : removed.map((inputId) => ({ kind: "input_dropped", inputId, reason: "turn_interrupted" })) };
   }
-  return { session: next, events: target === "nextTurn" ? removed.map((inputId) => ({ kind: "turn_active", inputId })) : [] };
+  // A prompt behind input a crashed process left waiting runs after it, so it is not yet started.
+  const behind = cause === "prompt" && target === "nextTurn" && list.length > 0
+    ? inserted.flatMap((inputId): RuntimeEventBody[] => inputId === null ? [] : [{ kind: "input_queued", inputId }]) : [];
+  return { session: next, events: target === "nextTurn" ? [...removed.map((inputId): RuntimeEventBody => ({ kind: "turn_active", inputId })), ...behind] : [] };
 }
 
 function toolEnd(message: JsonRecord): readonly RuntimeEventBody[] {
@@ -152,7 +155,7 @@ function sessionEvent(state: DshProjection, sessionId: string, session: DshSessi
   const unchanged = { session, links: state.links };
   switch (event.type) {
     case "agent/inbox/spliced":
-      return { ...spliced(session, data, cause === "withdraw"), links: state.links };
+      return { ...spliced(session, data, cause), links: state.links };
     case "turn/start":
       // The claim that follows names the input when one is waiting.
       return { session: { ...session, turnOpen: true }, links: state.links, events: session.nextTurn.length === 0 ? [{ kind: "turn_active" }] : [] };
@@ -216,11 +219,12 @@ function streamEvents(frame: JsonRecord): readonly RuntimeEventBody[] {
 function subagentEvents(channel: unknown, info: JsonRecord): readonly RuntimeEventBody[] {
   if (typeof info.runId !== "string") { return []; }
   if (channel === "subagent/start") {
-    return [{ kind: "task_started", taskId: info.runId, taskType: "agent", background: true,
+    return [{ kind: "task_started", taskId: info.runId, taskType: "agent",
       ...(typeof info.provider === "string" ? { nativeType: info.provider } : {}),
       ...(typeof info.id === "string" ? { childSessionId: info.id } : {}) }];
   }
-  const status = info.stopReason === "completed" ? "completed" : (info.stopReason === "aborted" || info.stopReason === "cancelled" ? "stopped" : "failed");
+  // `error`, `max-tokens`, `refusal` and any later reason all mean the child did not finish its task.
+  const status = info.stopReason === "completed" ? "completed" : (info.stopReason === "aborted" ? "stopped" : "failed");
   return [{ kind: "task_ended", taskId: info.runId, status }];
 }
 

@@ -124,6 +124,26 @@ test("a claim starts the named input's turn; a steer's claim starts nothing; a c
   ]);
 });
 
+test("a prompt behind input a crashed process left waiting is held until its own claim", () => {
+  const events = eventsOf([
+    durable("agent/inbox/spliced", { target: "next-turn", start: 0, inserted: [message("left")] }),
+    durable("agent/inbox/spliced", { target: "next-turn", start: 1, inserted: [message("prompted")] }, { cause: "prompt" }),
+    durable("turn/start", { turn: 2 }),
+    durable("agent/inbox/spliced", { target: "next-turn", start: 0, removedCount: 1, inserted: [] }),
+    durable("turn/end", { turn: 2, reason: { kind: "completed" } }),
+    durable("turn/start", { turn: 3 }),
+    durable("agent/inbox/spliced", { target: "next-turn", start: 0, removedCount: 1, inserted: [] }),
+  ]);
+  expect(events).toEqual([
+    { kind: "input_queued", inputId: "prompted" },
+    { kind: "turn_active", inputId: "left" },
+    { kind: "turn_ended", outcome: { kind: "completed" } },
+    { kind: "turn_active", inputId: "prompted" },
+  ]);
+  const alone = durable("agent/inbox/spliced", { target: "next-turn", start: 0, inserted: [message("only")] }, { cause: "prompt" });
+  expect(eventsOf([alone])).toEqual([]);
+});
+
 test("a turn with no waiting input is an active turn with no input id", () => {
   expect(eventsOf([durable("turn/start", { turn: 3 })])).toEqual([{ kind: "turn_active" }]);
 });
@@ -236,7 +256,7 @@ test("a child session's frames say whose they are; the parent's catalog is the o
     native("subagent/end", { info: { runId: "r3", stopReason: "aborted" } }),
   ], "root");
   expect(frames.map((frame) => [frame.sessionId ?? "root", frame.body.events])).toEqual([
-    ["root", [{ kind: "task_started", taskId: "run", taskType: "agent", background: true, nativeType: "spawn", childSessionId: "child" }]],
+    ["root", [{ kind: "task_started", taskId: "run", taskType: "agent", nativeType: "spawn", childSessionId: "child" }]],
     ["child", []],
     ["root", [{ kind: "session_linked", parent: "root", child: "child", via: "tool_call" }]],
     ["root", []],

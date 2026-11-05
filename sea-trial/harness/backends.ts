@@ -157,7 +157,11 @@ export async function selectBackend(target: string): Promise<Backend> {
         const session = await dshRuntime.session(installation, { ...options, cwd: aimock.cwd, env: { ...options.env, ...aimock.env } });
         return session;
       };
-      return { aimock, runtime: { ...dshRuntime, id: target, session: open } };
+      const listModels: Runtime["listModels"] = async (installation, options) => {
+        const listed = await dshRuntime.listModels(installation, { ...options, cwd: aimock.cwd, env: { ...options?.env, ...aimock.env } });
+        return listed;
+      };
+      return { aimock, runtime: { ...dshRuntime, id: target, session: open, listModels } };
     }
     case "antigravity-aimock": return acpBackend("antigravity");
     case "kimi-aimock": return acpBackend("kimi");

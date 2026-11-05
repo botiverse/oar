@@ -162,7 +162,10 @@ async function open(command: string, options: SessionOptions, env: NodeJS.Proces
         if (exited) { kernel.respond(disposeRequest.id, { kind: "accepted" }); return; }
         // Native disposal records its own turn end and flushes the log; the
         // process owner then bounds shutdown and removes anything left.
-        await control.request("dispose", {}, DISPOSE_TIMEOUT_MS).catch(() => {});
+        try { await control.request("dispose", {}, DISPOSE_TIMEOUT_MS); }
+        catch (error) {
+          kernel.frame({ type: "dsh/dispose-failed", native: error instanceof DshCommandError ? error.native : { message: String(error) }, events: [] });
+        }
         child.kill();
         await child.exited;
         directory.remove();
