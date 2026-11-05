@@ -25,7 +25,7 @@ test("a dynamic tool call fails rather than succeeding empty", () => {
   expect(codexRequestReply("item/tool/call")).toMatchObject({ result: { success: false } });
 });
 
-test.each(["account/chatgptAuthTokens/refresh", "attestation/generate", "currentTime/read", "a/method/from/a/later/version"])("%s is not a decision and gets method not found", (method) => {
+test.each(["account/chatgptAuthTokens/refresh", "attestation/generate", "currentTime/read", "a/method/from/a/later/version", "toString", "constructor", "__proto__"])("%s is not a decision and gets method not found", (method) => {
   expect(codexRequestReply(method)).toMatchObject({ error: { code: -32_601 } });
 });
 
