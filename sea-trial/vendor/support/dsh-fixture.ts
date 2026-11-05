@@ -21,7 +21,7 @@ export function shellDirectory(output: string): string {
 }
 
 export function expectedDirectory(cwd: string): string {
-  return posix ? cwd : realpathSync.native(cwd);
+  return realpathSync.native(cwd);
 }
 
 export interface DshFixture {
