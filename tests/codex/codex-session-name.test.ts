@@ -53,7 +53,30 @@ test("no name option sends no thread/name/set", async () => {
   expect(nameSets(requests)).toEqual([]);
 });
 
-test("a name codex refuses fails the open with codex's words", async () => {
-  server(null, { error: { code: -32_600, message: "name too long" } });
-  await expect(codexSession(installation, { cwd: "/work", name: "x".repeat(10) })).rejects.toThrow("codex thread/name/set failed: name too long");
+test("a name codex refuses is recorded and the session still opens", async () => {
+  const requests = server(null, { error: { code: -32_601, message: "Method not found" } });
+  const session = await codexSession(installation, { cwd: "/work", name: "host name" });
+  const refusal = session.records().find((record) => record.kind === "frame" && record.body.type === "thread/name/set/error");
+  expect(refusal).toMatchObject({ body: { native: { code: -32_601, message: "Method not found" }, events: [] } });
+  expect(session.status().value.kind).toBe("idle");
+  await session.dispose();
+  expect(nameSets(requests)).toHaveLength(1);
+});
+
+test("a lost connection while naming still fails the open", async () => {
+  spawnLineProcess.mockReturnValue(fakeLineProcess((line, child) => {
+    const message = asRecord(parseJson(line));
+    if (message?.id === undefined) { return; }
+    if (message.method === "thread/name/set") { child.end(1); return; }
+    const opened = message.method === "thread/start";
+    child.emit(`${JSON.stringify({ id: message.id, result: opened ? { thread: { id: "thread", name: null } } : {} })}\n`);
+  }));
+  await expect(codexSession(installation, { cwd: "/work", name: "host name" })).rejects.toThrow("codex thread/name/set failed");
+});
+
+test("the app-server starts in the session directory", async () => {
+  server(null);
+  const session = await codexSession(installation, { cwd: "/work/session" });
+  await session.dispose();
+  expect(spawnLineProcess.mock.calls[0]?.[2]).toMatchObject({ cwd: "/work/session" });
 });

@@ -27,7 +27,6 @@ const failures: FailureCase[] = [
   { failure: "tool-preflight", options: { disallowedTools: ["mcp__missing__tool"] }, reason: /cannot identify one configured MCP server/u },
   { failure: "model-readback", options: { model: "requested-model" }, reason: /requested-model/u },
   { failure: "thread/settings/update", options: { resume: "fixture-thread", effort: "high" }, reason: /fixture refused thread\/settings\/update/u },
-  { failure: "thread/name/set", options: { name: "requested name" }, reason: /fixture refused thread\/name\/set/u },
 ];
 
 function running(pid: number): boolean {
@@ -90,4 +89,13 @@ test.each(failures)("$failure rejection waits for the app-server to exit", async
     await opening;
     await rm(directory, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
   }
+});
+
+test("a missing session directory is named instead of a missing executable", async () => {
+  const directory = await mkdtemp(path.join(tmpdir(), "oar-codex-startup-"));
+  const installation = { kind: "available", via: "executable", command: fakeAgentBinary(directory, [fixture]) } as const;
+  const missing = path.join(directory, "missing");
+  try {
+    await expect(codexSession(installation, { cwd: missing, env: { CODEX_HOME: directory } })).rejects.toThrow(`Codex session directory does not exist: ${missing}`);
+  } finally { await rm(directory, { recursive: true, force: true }); }
 });

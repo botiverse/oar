@@ -15,7 +15,7 @@ import { startAppServerClient, type RpcOutcome } from "./app-server-client.js";
 import { CODEX_SETTINGS_REPORT_MS, codexOpenReadback, codexResumeEffortRefusal, codexThreadName, codexThreadOpen } from "./open.js";
 import { foldCodexNotification, initialCodexProjection, type CodexProjectionState } from "./projection.js";
 import { prepareCodexToolDenials } from "./tool-denials.js";
-import { nameThread, openThread, rpcControl, type RpcControlPlan } from "./rpc-control.js";
+import { missingDirectoryError, nameThread, openThread, rpcControl, type RpcControlPlan } from "./rpc-control.js";
 /*
  * App-server v2: RPC replies answer controls synchronously before later notifications.
  * Model/effort read-back: open.ts. Reachability: recorded exit/dispose.
@@ -44,7 +44,7 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
   const sandboxMode = process.env.OAR_CODEX_SANDBOX ?? "danger-full-access";
   const configOverrides = { ...(sandboxMode === "inherit" ? {} : { sandbox_mode: `"${sandboxMode}"` }), ...(options.goals === true ? { "features.goals": "true" } : {}) };
   // Client errors redact the MCP credentials carried by the open config.
-  const client = startAppServerClient(installation.command, options.env, configOverrides, undefined, { redact, ...(options.launchArgs === undefined ? {} : { launchArgs: options.launchArgs }) });
+  const client = startAppServerClient(installation.command, options.env, configOverrides, options.cwd, { redact, ...(options.launchArgs === undefined ? {} : { launchArgs: options.launchArgs }) });
   const cleanup: { reason?: string } = {};
   client.onExit((_code, reason) => { if (reason !== undefined) { cleanup.reason = reason; } });
   try {
@@ -173,7 +173,7 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
         throw new Error(refusal);
       }
     }
-    await nameThread(client, threadId, codexThreadName(openMethod, options, started));
+    await nameThread(client, threadId, codexThreadName(openMethod, options, started), (native) => { kernel.frame({ type: "thread/name/set/error", native, events: [] }); });
 
     /** Turn a plan builder into a Session control member. */
     const via = <Args extends unknown[]>(plan: (...args: Args) => RpcControlPlan) =>
@@ -295,6 +295,6 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
     // No Session can dispose a failed open; wait for its process before rejecting.
     client.kill();
     await client.exited;
-    throw appendCleanupFailure(error, cleanup.reason);
+    throw appendCleanupFailure(missingDirectoryError(error, options.cwd), cleanup.reason);
   }
 });

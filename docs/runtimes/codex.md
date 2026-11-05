@@ -158,13 +158,22 @@ are pinned against codex 0.162.0 ([missing targets](../spec/runtime-matrix.md#mi
 [`experiments/codex-session-name.ts`](../../experiments/codex-session-name.ts),
 [vendor test](../../sea-trial/vendor/codex-session-name.vendor.test.ts)).
 
+**Process directory (mapped).** The app-server starts in `SessionOptions.cwd`,
+so stdio MCP servers and a relative `CODEX_HOME` resolve in the session's
+directory, not the host's
+([vendor test](../../sea-trial/vendor/codex-session-name.vendor.test.ts)). A
+directory that does not exist fails the open with that reason; before this,
+Codex 0.163.0 accepted the open.
+
 **Session name (mapped, [#368](https://github.com/botiverse/oar/issues/368)).**
 `SessionOptions.name` is set with `thread/name/set` once the thread is open
 and the open's checks pass. On a resume it is set only when the
 `thread/resume` reply's `thread.name` is empty, so a name the user gave in
 their app stays. A blank name, or one with a NUL character, is refused
-(`UnsupportedOptionError`) before codex starts; another name codex refuses
-fails the open with codex's words. The name shows in the
+(`UnsupportedOptionError`) before codex starts. The name is display only, so
+if codex refuses it (an older app-server has no such method), the session still
+opens and the native error is recorded as a `thread/name/set/error` frame with
+no events. A lost connection still fails the open. The name shows in the
 user's Codex app when the host shares `CODEX_HOME` with it; keeping a
 host's threads out of that app entirely takes a separate `CODEX_HOME`, at
 the cost of the shared login and configuration.

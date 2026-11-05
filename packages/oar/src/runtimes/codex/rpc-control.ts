@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { SessionNotFoundError } from "../../contracts/session-not-found-error.js";
 import { SessionUnavailableError, type SessionUnavailableReason } from "../../contracts/session-unavailable-error.js";
 import { emptyInputRefusal } from "../../shared/control-input.js";
@@ -116,7 +117,7 @@ function resumeError(method: string, resumeId: string | undefined, cause: JsonRe
  * not). The session opener owns process cleanup on every failure.
  */
 export async function openThread(
-  method: "thread/start" | "thread/resume" | "thread/name/set",
+  method: "thread/start" | "thread/resume",
   send: () => Promise<JsonRecord>,
   serviceTier?: string,
   resumeId?: string,
@@ -135,13 +136,32 @@ export async function openThread(
   }
 }
 
-/** SessionOptions.name (#368) on the opened thread, when there is one to set (open.ts `codexThreadName`); a name codex refuses fails the open. */
-export async function nameThread(client: AppServerClient, threadId: string, name: string | null): Promise<void> {
+/**
+ * SessionOptions.name (#368) on the opened thread, when there is one to set
+ * (open.ts `codexThreadName`). The name is display only, so codex refusing it
+ * does not fail the open: its error goes to `onRefused` for the record. A
+ * transport failure is not a refusal and still fails.
+ */
+export async function nameThread(client: AppServerClient, threadId: string, name: string | null, onRefused: (native: JsonRecord) => void): Promise<void> {
   if (name === null) {
     return;
   }
-  await openThread("thread/name/set", async () => {
-    const reply = await client.request("thread/name/set", { threadId, name });
-    return reply;
-  });
+  try {
+    await client.request("thread/name/set", { threadId, name });
+  } catch (error) {
+    const native = asRecord(asRecord(error instanceof Error ? error.cause : undefined)?.native);
+    if (native === null) {
+      const message = error instanceof Error ? error.message : String(error);
+      // oxlint-disable-next-line eslint/preserve-caught-error -- Keep the native diagnostic directly in cause, without another Error layer.
+      throw new Error(`codex thread/name/set failed: ${message}`, { cause: error instanceof Error ? error.cause ?? error : error });
+    }
+    onRefused(native);
+  }
+}
+
+/** Spawning in a missing directory reports ENOENT with the executable's name, which misleads. */
+export function missingDirectoryError(error: unknown, cwd: string): unknown {
+  return error instanceof Error && error.message.includes("ENOENT") && !existsSync(cwd)
+    ? new Error(`Codex session directory does not exist: ${cwd}`, { cause: error })
+    : error;
 }
