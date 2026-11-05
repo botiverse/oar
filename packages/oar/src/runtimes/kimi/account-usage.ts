@@ -41,11 +41,11 @@ function text(value: unknown): string | undefined {
 
 function numeric(value: unknown): number | null {
   if (typeof value === "string") {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? Math.trunc(parsed) : null;
+    const parsed = value.trim() === "" ? Number.NaN : Number(value);
+    return Number.isFinite(parsed) && parsed >= 0 ? Math.trunc(parsed) : null;
   }
   const parsed = asNumber(value);
-  return parsed === null ? null : Math.trunc(parsed);
+  return parsed === null || parsed < 0 ? null : Math.trunc(parsed);
 }
 
 function resetInstant(value: unknown): UtcInstant | undefined {
@@ -88,9 +88,9 @@ function usageRow(
   extra: { readonly name?: string; readonly window?: UsageWindowSpec } = {},
 ): UsageRow | null {
   const record = asRecord(value);
-  const used = numeric(record?.used);
+  const used = record?.used === undefined ? 0 : numeric(record.used);
   const limit = numeric(record?.limit);
-  if (used === null && limit === null) {
+  if (used === null || limit === null) {
     return null;
   }
   const name = extra.name ?? text(record?.name);
@@ -98,8 +98,8 @@ function usageRow(
   return {
     ...(name === undefined ? {} : { name }),
     ...(extra.window === undefined ? {} : { window: extra.window }),
-    used: used ?? 0,
-    limit: limit ?? 0,
+    used,
+    limit,
     ...(resetsAt === undefined ? {} : { resetsAt }),
   };
 }
@@ -133,19 +133,24 @@ function moneyCents(value: unknown): number | null {
 
 function boosterWallet(value: unknown): BoosterWallet | null {
   const record = asRecord(value);
+  if (record?.monthlyChargeLimitEnabled !== undefined && typeof record.monthlyChargeLimitEnabled !== "boolean") { return null; }
   const balance = asRecord(record?.balance);
   const total = numeric(balance?.amount);
   if (balance?.type !== "BOOSTER" || total === null || total <= 0) {
     return null;
   }
-  const amountLeft = numeric(balance.amountLeft) ?? 0;
+  const amountLeft = balance.amountLeft === undefined ? 0 : numeric(balance.amountLeft);
+  const monthlyUsed = record?.monthlyUsed === undefined ? 0 : moneyCents(record.monthlyUsed);
   const limit = record?.monthlyChargeLimitEnabled === true
     ? moneyCents(record.monthlyChargeLimit)
     : null;
+  if (amountLeft === null || monthlyUsed === null || (record?.monthlyChargeLimitEnabled === true && limit === null)) {
+    return null;
+  }
   return {
     balance: Math.max(0, amountLeft),
     monthlyLimit: limit !== null && limit > 0 ? limit : null,
-    monthlyUsed: moneyCents(record?.monthlyUsed) ?? 0,
+    monthlyUsed,
   };
 }
 
@@ -157,12 +162,13 @@ export function projectKimiUsage(
   displayName?: string,
 ): AccountUsageSnapshot {
   const root = asRecord(payload);
+  if (root === null) { throw new Error("Kimi usage response is not an object"); }
   const rows: UsageRow[] = [];
-  const summary = usageRow(root?.usage, { window: { duration: 1, unit: "week" } });
+  const summary = usageRow(root.usage, { window: { duration: 1, unit: "week" } });
   if (summary !== null) {
     rows.push(summary);
   }
-  const limits = root?.limits;
+  const limits = root.limits;
   if (Array.isArray(limits)) {
     for (const value of limits) {
       const limit = asRecord(value);
@@ -180,13 +186,14 @@ export function projectKimiUsage(
   const windows = rows
     .map((row) => projectWindow(row))
     .filter((window): window is AccountUsageWindow => window !== null);
-  const extraUsage = boosterWallet(root?.boosterWallet);
+  const extraUsage = boosterWallet(root.boosterWallet);
   if (extraUsage?.monthlyLimit !== null && extraUsage?.monthlyLimit !== undefined) {
     windows.push({
       label: "Extra Usage monthly limit",
       usedRatio: Number(Math.min(1, extraUsage.monthlyUsed / extraUsage.monthlyLimit).toFixed(6)),
     });
   }
+  if (windows.length === 0) { throw new Error("Kimi usage response contains no usable quota windows"); }
   // Kimi's Extra Usage balance bypasses exhausted weekly/hourly subscription
   // quotas. A configured monthly spending cap is the only additional blocker.
   const extraUsageHeadroom = extraUsage !== null
@@ -220,6 +227,15 @@ async function fetchUsage(
   }
 }
 
+async function usagePayload(response: Response): Promise<unknown> {
+  let body = "";
+  try { body = await response.text(); }
+  catch { throw new Error("Kimi usage response body could not be read"); }
+  const payload = parseJson(body);
+  if (payload === undefined) { throw new Error("Kimi usage response is not valid JSON"); }
+  return payload;
+}
+
 export const kimiAccountUsage: AccountUsageReader = async (installation, options = {}) => {
   if (installation.via !== "executable") {
     return { kind: "unsupported", reason: "unsupported_installation" };
@@ -249,7 +265,7 @@ export const kimiAccountUsage: AccountUsageReader = async (installation, options
     if (!response.ok) {
       throw new Error(`Kimi usage endpoint returned HTTP ${response.status}`);
     }
-    return projectKimiUsage(parseJson(await response.text()), identity.email, identity.plan, identity.displayName);
+    return projectKimiUsage(await usagePayload(response), identity.email, identity.plan, identity.displayName);
   } catch (error) {
     if (error instanceof KimiReauthError) {
       return { kind: "reauth_required", reason: "credentials_missing" };

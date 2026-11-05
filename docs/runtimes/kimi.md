@@ -629,8 +629,14 @@ resolves the managed `kimi-code` provider through `kimi provider list --json`
 no such provider is `unsupported/auth_configuration_unavailable`, a run that
 times out rejects),
 reads the stored OAuth token as-is (never refreshed), and calls the `/usages`
-and `/me` endpoints; 401/403 or a missing token read `reauth_required`, 404
-`unsupported`. [`/me`](../../packages/oar/src/runtimes/kimi/profile.ts) is a
+and `/me` endpoints; 401/403 or an absent credential file read `reauth_required`,
+404 `unsupported`. File I/O errors, malformed credential contents, unreadable
+response bodies and invalid quota responses reject with safe reasons. Damaged
+quota windows are omitted without inventing zero usage; if none remain, the
+read fails. Malformed Extra Usage data cannot override exhausted subscription
+limits. Malformed quota responses and credential permission failures were checked
+with Kimi 2.4.1 and 2.5.0 on Linux x64 using real provider discovery and local
+HTTP responses with synthetic credentials. [`/me`](../../packages/oar/src/runtimes/kimi/profile.ts) is a
 best-effort identity add-on: it supplies `plan` (`user_level_name`), `email`,
 and `displayName` (`nickname`). Phone or WeChat sign-ins return no `email`, so
 `displayName` is often their only readable identity. Account quota and
