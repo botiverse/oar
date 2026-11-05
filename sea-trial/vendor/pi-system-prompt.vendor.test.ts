@@ -44,7 +44,10 @@ describe.skipIf(!isPiBackend)("Pi system prompt boundary", () => {
     const configuredTemp = path.join(inherited, ".raft", "agents", "tmp");
     await mkdir(configuredTemp, { recursive: true });
     for (const key of ["TMPDIR", "TMP", "TEMP"]) { vi.stubEnv(key, configuredTemp); }
-    const { TMPDIR: _tmpdir, TMP: _tmp, TEMP: _temp, ...environment } = process.env;
+    // Windows environment names are case-insensitive and may retain the
+    // original spelling (for example, Temp rather than TEMP).
+    const environment = Object.fromEntries(Object.entries(process.env)
+      .filter(([key]) => !["TMPDIR", "TMP", "TEMP"].includes(key.toUpperCase())));
     const nativeTemp = execFileSync(process.execPath, ["-e", "process.stdout.write(require('node:os').tmpdir())"], { env: environment, encoding: "utf8" });
     // Canonicalize once so SDK input and RPC process.cwd() agree on macOS.
     const cwd = await realpath(await mkdtemp(path.join(nativeTemp, "oar-pi-system-")));

@@ -154,7 +154,8 @@ from awaitIdle rather than claiming a failed turn.
 A synthetic ancestor CLAUDE.md control confirmed that native context survives
 prompt replacement. The exact prompt snapshot now creates its working directory
 under Node's OS default temporary directory with TMPDIR/TMP/TEMP overrides
-removed, since runners can put their configured temp directory inside an agent
+removed case-insensitively, matching Windows environment-name semantics.
+Runners can put their configured temp directory inside an agent
 checkout. Both SDK and RPC are checked with such an inherited directory. The
 expected prompt and compaction assertions remain unchanged. Reverting to the
 configured temporary directory makes both native snapshots fail with the
@@ -162,7 +163,12 @@ synthetic project context. The working directory is also canonicalized before
 opening either execution path: the preceding macOS CI run failed solely on
 its symlink spelling in this snapshot, with 109 other vendor cases passing.
 The [original failing job](https://github.com/botiverse/oar/actions/runs/42033856458/job/127266796761)
-is retained; this is separate from the ancestor-context failure.
+is retained; this is separate from the ancestor-context failure. The next
+[Windows job](https://github.com/botiverse/oar/actions/runs/42049301862/job/127320754447)
+passed all 114 other vendor cases, including the six new settlement controls,
+but its snapshot still contained the synthetic ancestor. The fixture now
+removes all case spellings of the temporary-directory overrides; that platform
+correction awaits the next Windows CI result.
 
 | Review boundary | Committed regression |
 | --- | --- |
