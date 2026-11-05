@@ -120,14 +120,14 @@ runtimes may legitimately differ.
   session behavior.
 - `OAR_TEST=<runtime>-aimock pnpm sea-trial` (`claude-aimock`, `codex-aimock`,
   `pi-aimock`, `pi-rpc-aimock`, `pi-durable-aimock`, `qwen-aimock`,
-  `grok-aimock`, `kimi-aimock`, `opencode-aimock`, `codebuddy-aimock`; Qoder uses
+  `grok-aimock`, `kimi-aimock`, `opencode-aimock`, `codebuddy-aimock`, `dsh-aimock`; Qoder uses
   `qoder-native`): the real vendor binary and adapter with only the model
   provider scripted, no login. Use it when you touched a runtime's adapter: it
   catches real-process integration mistakes the mock cannot.
 - `OAR_TEST=scripted pnpm sea-trial`: the public `scriptedRuntime`
   (`@botiverse/oar/testing`) held to the same contract.
 - `pnpm tsx sea-trial/all.ts [backend...]`: several backends, by default
-  `mock`, `mock-shared`, `mock-isolated`, the ten aimock backends and Qoder
+  `mock`, `mock-shared`, `mock-isolated`, the eleven aimock backends and Qoder
   native replay. Run it before pushing a change to shared runtime machinery.
   It runs at most `max(1, min(4, floor(availableParallelism() / 2)))`
   backends at once, leaving room for native CLIs' own threads and children,
@@ -137,7 +137,7 @@ runtimes may legitimately differ.
   Pin local native binaries to the CI versions before comparing results (for
   example, `OAR_CODEBUDDY_BIN=/absolute/path/to/2.179.3/codebuddy`): an old
   installation found on PATH is not evidence about the pinned version.
-- `OAR_TEST=<real id>` (`antigravity`, `claude`, `codebuddy`, `codex`, `cursor`, `grok`,
+- `OAR_TEST=<real id>` (`antigravity`, `claude`, `codebuddy`, `codex`, `cursor`, `dsh`, `grok`,
   `kimi`, `opencode`, `pi`, `qoder`, `qwen`): your local installation and login. The final word when
   vendor reality is in doubt; it costs quota, so never run it by default.
 
@@ -211,8 +211,9 @@ or pull request whose changes are all Markdown files or under `docs/` or
   required jobs.
 - `behavior`: `pnpm run sea-trial` plus the backend's vendor tests on the
   same three systems for `claude-aimock`, `codex-aimock`, `pi-aimock`,
-  `pi-rpc-aimock` (not on Windows, below), `pi-durable-aimock`, `qwen-aimock`
-  and `qoder-native` (shared-case concurrency 2).
+  `pi-rpc-aimock` (not on Windows, below), `pi-durable-aimock`, `qwen-aimock`,
+  `dsh-aimock` (DSH pinned to 0.2.1-rc.5, a missing installation fails) and
+  `qoder-native` (the last two at shared-case concurrency 2).
 - `pi-rpc-minimum`: Ubuntu behavior and vendor suites with a separately
   installed Pi CLI 1.4.0 selected through `OAR_PI_RPC_COMMAND`. This guards the
   explicit-command floor while OAR keeps its current bundled dependency.

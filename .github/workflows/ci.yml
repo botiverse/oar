@@ -129,7 +129,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        backend: [claude-aimock, codex-aimock, pi-aimock, pi-rpc-aimock, pi-durable-aimock, qwen-aimock, qoder-native]
+        backend: [claude-aimock, codex-aimock, pi-aimock, pi-rpc-aimock, pi-durable-aimock, qwen-aimock, qoder-native, dsh-aimock]
         exclude:
           - os: windows-latest
             backend: pi-rpc-aimock
@@ -137,8 +137,9 @@ jobs:
     env:
       OAR_TEST: ${{ matrix.backend }}
       # Bound native Qoder cold starts on all platforms without changing per-call deadlines.
-      OAR_TEST_CONCURRENCY: ${{ matrix.backend == 'qoder-native' && '2' || '' }}
-      OAR_CHILD_STDERR: ${{ ((matrix.os == 'windows-latest' && matrix.backend == 'codex-aimock') || matrix.backend == 'qoder-native') && 'inherit' || '' }}
+      OAR_TEST_CONCURRENCY: ${{ (matrix.backend == 'qoder-native' || matrix.backend == 'dsh-aimock') && '2' || '' }}
+      OAR_TEST_REQUIRE_AVAILABLE: ${{ matrix.backend == 'dsh-aimock' && '1' || '' }}
+      OAR_CHILD_STDERR: ${{ ((matrix.os == 'windows-latest' && matrix.backend == 'codex-aimock') || matrix.backend == 'qoder-native' || matrix.backend == 'dsh-aimock') && 'inherit' || '' }}
       # runner context is not allowed in job-level env; workspace-relative works everywhere
       OAR_TRIAL_RUN_DIR: ${{ github.workspace }}/oar-trial-run
     steps:
@@ -154,7 +155,7 @@ jobs:
       # resolves, only unchanged tarballs are reused). pi needs no install:
       # it is the bundled SDK already in node_modules.
       - uses: actions/cache@v4
-        if: matrix.backend == 'claude-aimock' || matrix.backend == 'codex-aimock' || matrix.backend == 'qwen-aimock' || matrix.backend == 'qoder-native'
+        if: matrix.backend == 'claude-aimock' || matrix.backend == 'codex-aimock' || matrix.backend == 'qwen-aimock' || matrix.backend == 'qoder-native' || matrix.backend == 'dsh-aimock'
         with:
           path: |
             ~/.npm
@@ -172,6 +173,10 @@ jobs:
       # passes all native cases. Daily version probes still check the latest release.
       - run: npm install -g @qoder-ai/qodercli@1.1.81
         if: matrix.backend == 'qoder-native'
+      # The oldest release the floor admits (DSH_MINIMUM_VERSION). Raise this pin and that
+      # constant together; daily version probes check newer releases.
+      - run: npm install -g @deepseek-ai/dsh@0.2.1-rc.5
+        if: matrix.backend == 'dsh-aimock'
       - run: pnpm run sea-trial
       # Vendor error-edge snapshots for this backend (vitest, OAR_TEST-gated).
       - run: pnpm vitest run sea-trial/vendor

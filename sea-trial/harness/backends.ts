@@ -1,5 +1,7 @@
 import { piRpcTestOptions } from "./pi-rpc.js";
 import { codebuddyRuntime } from "../../packages/oar/src/runtimes/codebuddy/index.js";
+import { dshRuntime } from "../../packages/oar/src/runtimes/dsh/index.js";
+import { startDshAimock } from "./dsh-aimock.js";
 import { startCodebuddyAimock } from "./codebuddy-aimock.js";
 import { pooledMockRuntime } from "../fixtures/pooled-mock-runtime.js";
 import type { RuntimePlacementOptions } from "../../packages/oar/src/contracts/placement.js";
@@ -148,6 +150,18 @@ export async function selectBackend(target: string): Promise<Backend> {
           return session;
         },
       } };
+    }
+    case "dsh-aimock": {
+      const aimock = await startDshAimock();
+      const open: Runtime["session"] = async (installation, options) => {
+        const session = await dshRuntime.session(installation, { ...options, cwd: aimock.cwd, env: { ...options.env, ...aimock.env } });
+        return session;
+      };
+      const listModels: Runtime["listModels"] = async (installation, options) => {
+        const listed = await dshRuntime.listModels(installation, { ...options, cwd: aimock.cwd, env: { ...options?.env, ...aimock.env } });
+        return listed;
+      };
+      return { aimock, runtime: { ...dshRuntime, id: target, session: open, listModels } };
     }
     case "antigravity-aimock": return acpBackend("antigravity");
     case "kimi-aimock": return acpBackend("kimi");

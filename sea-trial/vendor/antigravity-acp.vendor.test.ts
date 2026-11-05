@@ -1,5 +1,5 @@
 /* oxlint-disable import/max-dependencies -- Native controls compare provider fields, session lifecycle, MCP and real directory identity. */
-import { sameDirectory } from "../../packages/oar/src/shared/acp/resume-cwd.js";
+import { sameDirectory } from "../../packages/oar/src/shared/same-directory.js";
 /* oxlint-disable typescript/promise-function-async -- Native provider callbacks may return an immediate scripted reply. */
 import assert from "node:assert/strict";
 import { mkdir } from "node:fs/promises";

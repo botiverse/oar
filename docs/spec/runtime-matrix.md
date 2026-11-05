@@ -15,6 +15,7 @@ calls, resume semantics, and what each adapter still does not carry.
 
 | runtime | declared tier | how children appear in the stream |
 |---|---|---|
+| dsh | `nested` | frames of other session ids are child-session records; the parent's durable `subagent/catalog` adds the `tool_call` edge ([mapping](../runtimes/dsh.md#children)) |
 | qoder | `attributed` | native parent tool ids use the shared stream-json fold; live nested subagent interleavings remain unverified ([mapping](../runtimes/qoder.md)) |
 | qwen | `attributed` | stream-json `parent_tool_use_id` maps to agentPath through the shared fold; live nested subagent interleavings remain unverified ([mapping](../runtimes/qwen.md)) |
 | claude | `attributed` | frames with `parent_tool_use_id` carry `agentPath = [...parentPath, taskCallId]`, nested through the Task call's own agent; a child's spend is in the session total, `unattributed`: no frame carries its final usage ([env] 2.1.292) |
@@ -31,6 +32,7 @@ calls, resume semantics, and what each adapter still does not carry.
 
 | runtime | sub-agent exposure | linkage | per-agent tokens | session graph | resume | evidence |
 |---|---|---|---|---|---|---|
+| dsh | native child sessions on the process's event channel | `subagent/catalog` (`childId`) on the parent; `subagent/start` alone names no parent | each session's own durable usage; children add through `withChildren` | native parent/child session edges | native id; saved cwd required | [native/current mapping](../runtimes/dsh.md) |
 | qoder | native parent tool ids on forwarded child frames | `parent_tool_use_id` | root per-query reports summed since open; no inferred child usage | no inferred child-session edges | native UUID in the same HOME/project | [native/current mapping](../runtimes/qoder.md) |
 | qwen | native parent tool ids on forwarded child frames | `parent_tool_use_id` | fresh total only; resumed totals unknown without a baseline | no inferred child-session edges | native UUID in the same HOME/project | [native/current mapping](../runtimes/qwen.md) |
 | claude | native subagent messages can share the stream | `parent_tool_use_id` | the root's main loop (`result.usage`); subagents and compaction in the session total (`modelUsage`), `unattributed` ([env] 2.1.292) | `agentPath` (not in graph) | native session id | [native/current mapping](../runtimes/claude.md) |
@@ -90,6 +92,7 @@ false, the adapter holds queued input in this process.
 
 | runtime | `steer` | `withdraw` | `capabilities.queue.durable` |
 |---|---|---|---|
+| dsh | yes: `agent.steer`, the native next-step inbox | yes: native `inbox.remove`, for input held for a later turn | no: native dispose clears the inbox; a crash can leave input that runs at the next wake ([mapping](../runtimes/dsh.md#session-options)) |
 | qoder | yes: stdin user message with `priority: next`, joining at a tool boundary or following a text-only turn | yes, while held | no |
 | qwen | no: native busy writes queue | yes, while held | no |
 | claude | yes: a user message written to stdin mid-turn | yes | no |
@@ -123,7 +126,7 @@ child process ([report](../../experiments/runtime-resources-2026-10-28.md)):
 | codex 0.165.0 | keeps running until it exits by itself (about 45 s in the probe), both in an OAR session and in a shared app-server; OAR's 10 s fallback does not apply once codex has ended the turn | `dispose()`. Native `thread/backgroundTerminals/terminate` and `thread/archive` also stop it; OAR does not call them yet |
 | grok 1.0.70 (ACP) | keeps running: native cancel and close leave the terminals grok created through the host | `dispose()` releases every terminal OAR hosted for the session |
 | kimi 2.3.3, opencode 1.19.5 and 2.2.0, antigravity 1.4.3 (ACP) | stopped within 2 s of the cancel | |
-| claude, qwen, qoder, pi (RPC) | not measured | `dispose()`: OAR owns the process |
+| claude, dsh, qwen, qoder, pi (RPC) | not measured | `dispose()`: OAR owns the process |
 | pi (in process), cursor | not measured | they run in the host process: `dispose()` ends the SDK session; whether its commands stop is not measured |
 | pi-durable | not measured | the host owns the harness: `dispose()` ends observation only |
 
@@ -153,6 +156,7 @@ an observation from the runtime and carries no request id. It may name an
 
 | Runtime | Native activity source |
 |---|---|
+| dsh | the `next-turn` claim of an `agent/inbox/spliced` names the input; a `turn/start` with nothing waiting has no input id |
 | qoder | `command_lifecycle started` identifies the input; startup `system/init` alone is idle |
 | qwen | root `system/init` for the sole submitted input; no native command_lifecycle acknowledgement |
 | claude | `command_lifecycle started` for a prompt-like write identifies its input; a spontaneous root `system/init` has no input id |
@@ -223,7 +227,7 @@ regard to case. For example, `env: { ANTHROPIC_API_KEY: null,
 ANTHROPIC_BASE_URL: "https://provider.example" }` removes an inherited key
 while selecting the session's provider endpoint.
 
-Claude, codex, grok, kimi, opencode, antigravity, codebuddy, qwen and qoder
+Claude, codex, dsh, grok, kimi, opencode, antigravity, codebuddy, qwen and qoder
 apply the overlay to their runtime process and its tool children; ACP client-hosted terminals receive it
 too. OpenCode's prompt preparation queries use the same environment. Pi
 applies it to its Bash tool's children, not its in-process provider. Cursor
@@ -269,6 +273,7 @@ in CI. Keys belong in `SessionOptions.env` or the runtime's own config, never in
 | kimi | `SessionOptions.env` | `KIMI_MODEL_NAME`, `KIMI_MODEL_BASE_URL`, `KIMI_MODEL_API_KEY`, `KIMI_MODEL_PROVIDER_TYPE = "openai"` (chat completions) |
 | grok | `$GROK_HOME/config.toml` | `[models] default = "<id>"` and `[model.<id>]` with `base_url`, `api_key`, `api_backend = "chat_completions"` |
 | antigravity | `$GEMINI_HOME` and `SessionOptions.env` | `antigravity-cli/settings.json` with `modelProvider: "gemini"`, then `GEMINI_API_KEY` and `GOOGLE_GEMINI_BASE_URL` |
+| dsh | `$DSH_HOME/cordis.patch.yml` | an `llm-pi-ai` row with `config.providers.<id>` (`api: "openai-completions"`, `baseURL`, `apiKeyEnv`, `models`), and `agent-default-model` naming it, or `model` as `<id>/<model>` ([`dsh-aimock.ts`](../../sea-trial/harness/dsh-aimock.ts)) |
 | pi | `models.json` in pi's agent dir (`OAR_PI_AGENT_DIR`) | a `providers.<id>` with `baseUrl`, `apiKey`, `api` and its models; process-wide, since pi runs in-process |
 | pi-durable | the host's own `Harness` | `models.setProvider(createProvider({ baseUrl, ... }))` |
 | cursor | none | Cursor's SDK talks to Cursor's own backend only |
@@ -291,6 +296,7 @@ non-empty lists because the retired service's metadata filter is ignored.
 | pi | SDK `excludeTools`, built-ins such as `bash` and directly exposed MCP names `mcp__server__tool` | native SDK name/pattern semantics apply; unmatched names are accepted silently and disable nothing |
 | cursor | SDK `disallowedTools`, including capability groups `shell` (shell plus stdin) and `mcp` (the whole MCP family) | unknown names, including individual MCP names, become `UnsupportedOptionError`; nested native subagents have their own toolset, so deny `task` to prevent spawning them |
 | codex | qualified `mcp__server__tool` on an unambiguously named configured or session MCP server, via session `config.mcp_servers.*.disabled_tools`; prior native denies are preserved | built-ins, unqualified names, missing/ambiguous or normalized server namespaces |
+| dsh | Refused at open; not verified through the bridge | `UnsupportedOptionError`, declared in `refusedSessionOptions` |
 | qwen, qoder, codebuddy | native `--exclude-tools` (qwen), `--disallowed-tools` (qoder) and `--disallowedTools` (codebuddy, on new and resumed opens) | nothing: OAR passes the names unvalidated and matching is native ([qwen](../runtimes/qwen.md), [codebuddy](../runtimes/codebuddy.md)) |
 | grok, kimi, opencode, antigravity | none through the selected OAR transport | every non-empty list, declared in `Runtime.refusedSessionOptions` |
 
@@ -322,6 +328,7 @@ again on resume.
 | kimi, opencode | after `acp` |
 | antigravity, codebuddy | after OAR's own arguments |
 | qwen | after OAR's own flags, before `--include-directories` and `--exclude-tools` |
+| dsh | refused: OAR owns the launcher arguments and bridge overlay |
 | qoder | after OAR's own flags, before `--mcp-config`, `--add-dir` and `--disallowed-tools`; from 1.1.81 the same list is the daemon's `worker_args` |
 | pi, cursor | refused: they run in the host process through their SDKs, with no command line |
 
@@ -359,7 +366,7 @@ imitate a missing native channel. Unsupported runtimes refuse even `{}`.
 | claude | `--json-schema` for the process, including queued and spontaneous turns | A successful native `result.structured_output` is passed unchanged to `turn_ended.outcome.structuredOutput`. Exhausted validation retries fail the turn. |
 | codex | `turn/start.outputSchema` on every OAR prompt; steer retains the active turn's setting | Native text only, including text that violates the schema when the provider does not enforce it. No `structuredOutput` is synthesized. Provider schema refusals remain failed turns. |
 | grok | `session/prompt._meta.outputSchema` on prompt, held queue drain and send-now steer | Native `_meta.structuredOutput` becomes the completed outcome's value; `_meta.structuredOutputError` fails the turn even when native `stopReason` is `end_turn`. |
-| cursor, kimi, opencode (both lines), antigravity, codebuddy, qwen, qoder, pi, pi-durable | Refused at open; no verified final-output schema channel through these adapters | `UnsupportedOptionError`, declared in `refusedSessionOptions`. |
+| cursor, dsh, kimi, opencode (both lines), antigravity, codebuddy, qwen, qoder, pi, pi-durable | Refused at open; no verified final-output schema channel through these adapters | `UnsupportedOptionError`, declared in `refusedSessionOptions`. |
 
 **Codex's native queue cannot carry a schema**, so `queue()` returns
 `rejected: unsupported` when `outputSchema` is set. Send a new prompt after
@@ -402,6 +409,7 @@ runtime and is not guaranteed by this option.
 | opencode v2 | ACP `additionalDirectories`, after capability advertisement | Pass again; a cold resume without it does not restore the extra roots. |
 | qwen | `--include-directories` | Pass the list again for the new process. |
 | qoder | `--add-dir` | Pass the list again for the new process. |
+| dsh | refused at open | Same refusal. |
 | opencode v1, grok, antigravity, codebuddy, pi, pi-durable | Refused with `UnsupportedOptionError` | Same refusal. |
 
 The unconditional refusals are declared in `Runtime.refusedSessionOptions`.
@@ -427,7 +435,7 @@ nothing. A blank name, or one with a NUL character, is refused with
 | claude | `--name` at launch | Left alone: `--name` on a resume replaces the session's name, and claude reports that name only once it has started (`session_title_changed`). |
 | codex | `thread/name/set` once the thread is open | Set only when the `thread/resume` reply shows no name. |
 | pi | a `session_info` entry, as pi's own `--name` writes it | Set only when the session never had one, so a name the user cleared stays cleared. |
-| cursor, kimi, grok, antigravity, opencode, codebuddy, qwen, qoder, pi-durable | Refused with `UnsupportedOptionError` | Same refusal. |
+| cursor, dsh, kimi, grok, antigravity, opencode, codebuddy, qwen, qoder, pi-durable | Refused with `UnsupportedOptionError` | Same refusal. |
 
 Evidence: [`experiments/codex-session-name.ts`](../../experiments/codex-session-name.ts)
 (codex 0.162.0) and the vendor tests
@@ -477,6 +485,7 @@ in [user configuration](#user-configuration).
 | pi-durable | `systemPrompt`, `env`, `launchArgs`, `serviceTier`, `mcpServers`, `disallowedTools`, `additionalDirectories`, `outputSchema`, `name`, `userConfiguration: "exclude"`, `goals: true` | native instructions append only; host-owned environment; no process arguments or verified per-conversation tier/MCP/tool-denial mapping |
 | pi | `launchArgs`, `serviceTier`, `additionalDirectories`, `outputSchema`, `userConfiguration: "exclude"`, `goals: true` | it runs in the host process through its SDK, with no command line |
 | qwen | `serviceTier`, `outputSchema`, `name`, `userConfiguration: "exclude"`, `goals: true` | no verified tier, structured-output, session-name or user-configuration exclusion channel |
+| dsh | `systemPrompt`, `appendSystemPrompt`, `mcpServers`, `disallowedTools`, `launchArgs`, `serviceTier`, `additionalDirectories`, `outputSchema`, `name`, `userConfiguration: "exclude"`, `goals: true` | each not yet probed through the bridge ([mapping](../runtimes/dsh.md#session-options)) |
 | qoder | `serviceTier`, `outputSchema`, `name`, `userConfiguration: "exclude"`, `goals: true` | no verified tier, structured-output, session-name or user-configuration exclusion channel |
 | codex | `userConfiguration: "exclude"` | temporary clean homes break shared history paths after cleanup ([evidence](../runtimes/codex.md#user-configuration)) |
 | claude | `goals: true` | no structured native goal controls on the chosen transport; other value-specific refusals are described on its runtime page |
@@ -598,6 +607,7 @@ this declaration; that is separate from changing the system prompt.
 | OpenCode v2 | Both refused | Not applicable | Installed-line refusal; no resume entries |
 | Antigravity, `appendSystemPrompt` | Immediate when native capability is advertised | Default in the measured resume control | Capability-dependent; no resume entry. Replacement refused. [Details](../runtimes/antigravity.md#models-instructions-and-context) |
 | Qoder | Immediate (1.1.78 request-construction evidence) | Untested | No resume entries; [details](../runtimes/qoder.md#oar-mapping) |
+| DSH | Refused | Refused | No resume entries; both prompt options are refused at open |
 | CodeBuddy | Replacement reapplied; append refused | Replacement omission untested | No resume entries |
 
 **Supply the current prompts on every Claude/Codex resume.** Claude's saved
@@ -754,6 +764,7 @@ existing types and causes; OAR never starts a replacement conversation.
 | cursor | SDK error `code === "agent_not_found"` from `Agent.listRuns` or `Agent.resume` | Not found by the SDK with this configuration; the 1.0.37 probe had no `CURSOR_API_KEY`, and did not test a real id. |
 | pi | OAR's `SessionManager.list(cwd, sessionDir)` lookup has no matching id | This cwd and agent directory, including a real id saved under another cwd. The cause reports the lookup scope and count, not an invented native error. |
 | pi-durable | `Harness.conversation(id)` returns `undefined` for a valid native numeric id | The host's Harness and storage. Malformed ids and failed storage queries retain their ordinary errors; no replacement is created. |
+| dsh | `sessionPersistence.open` throws `SessionPersistenceNotFoundError` | The active `DSH_HOME`, across working directories. |
 | claude | During resume, before the `initialize` answer, `result/error_during_execution` with `errors[0]` starting `No conversation found with session ID` | The active Claude configuration; exact prose is the last resort. |
 | codex | `thread/resume` JSON-RPC error `-32600` with message starting `no rollout found for thread id` | The active Codex storage/configuration; exact prose is the last resort. |
 
@@ -1048,6 +1059,14 @@ a tool call.
 | missing login (no stored key, no `CURSOR_API_KEY`) | the open succeeds; the run ends `status: error`, `error.message` "[unknown] Invalid User API Key", no code. oar: `auth` from the words, the last resort | `[env]` |
 | invalid key (a made-up `CURSOR_API_KEY`) | the open rejects with `AuthenticationError {status: 401, code: "error"}`. oar: `RuntimeFailureError` `auth`, `rejected`, 401 | `[env]` |
 | the other causes | not observed: each needs an account. The SDK's errors are `AuthenticationError` (401: invalid key, not logged in), `RateLimitError` (429: too many requests, usage limits), `ConfigurationError` (400, 404: bad key, invalid model), `NetworkError` and `UnknownAgentError`, each with `code`, `status` and `isRetryable` | `[src]` (`errors.d.ts`) |
+
+### dsh
+
+`turn/end` with `reason.kind: "error"` carries a native `LlmFailure`: `code` first,
+then `status`. 401 `AUTH`, 429 `RATE_LIMIT`, 500 `SERVER` and 400 `INVALID_REQUEST`
+were observed from a scripted provider; a 402 arrives as `PI_AI_ERROR` with its status
+only in prose and stays `unknown`. An unknown model or effort is refused at open
+through `llm.resolveCallConfig`. [Table](../runtimes/dsh.md#records).
 
 ### Where a class can come from
 

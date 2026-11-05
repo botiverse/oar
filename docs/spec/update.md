@@ -76,7 +76,7 @@ instruction to run `brew upgrade`.
 | codex | `codex doctor --json`, row `updates.status` (the JSON decides; doctor exits 1 when any row fails) | `codex update` |
 | grok | `grok update --check --json` (exit is always 0; `error` decides) | `grok update` |
 | kimi | `code.kimi.com/kimi-code/latest`, or `code.kimi.ai` for the `global` region; only a newer release counts | `kimi upgrade -y` (from 0.43.0) |
-| codebuddy, qwen, qoder | none: OAR exposes no `checkUpdate` for them | none |
+| codebuddy, dsh, qwen, qoder | none: OAR exposes no `checkUpdate` for them | none |
 | pi-durable | none: `@earendil-works/pi-durable` is the host's to install | none |
 | antigravity | The native CLI platform manifest; only a newer version counts | not implemented in OAR; native CLI provides `agy update` |
 | opencode | none yet: `opencode upgrade` picks its source by install method (npm, Homebrew, Scoop, Chocolatey or the install script) and has no check-only mode | none yet |

@@ -414,7 +414,7 @@ runtime oar does not sign in.
 | codex | `codex logout`, stdin closed | revokes a stored ChatGPT login's token, best effort (from 0.122.0); an API key is only deleted | 0.15.0 | 60 s |
 | cursor | `Cursor.auth.logout()` in process, with the SDK's own store | nothing: the minted key stays valid until it expires or is revoked in the dashboard | `@cursor/sdk` 1.2.0 | 20 s |
 | kimi | ACP `initialize` then `logout`; reads authentication again afterward | removes the native credential slot and managed model configuration; no server-side revocation | 2.3.3 verified | 60 s |
-| antigravity, codebuddy, grok, opencode, pi, qoder, qwen | no `logout` (pi's provider logouts are on `createPiProviderAuth`) | | | |
+| antigravity, codebuddy, dsh, grok, opencode, pi, qoder, qwen | no `logout` (pi's provider logouts are on `createPiProviderAuth`) | | | |
 
 ## CLI
 

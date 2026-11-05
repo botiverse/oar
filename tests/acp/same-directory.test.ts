@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { sameDirectory } from "../../packages/oar/src/shared/acp/resume-cwd.js";
+import { sameDirectory } from "../../packages/oar/src/shared/same-directory.js";
 
 test.each(([
   ["/D:/a/oar/oar", String.raw`D:\a\oar\oar`, "win32", true],
