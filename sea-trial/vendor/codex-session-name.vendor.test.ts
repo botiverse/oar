@@ -35,7 +35,7 @@ describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex session name and
       await promptAndWait(session, "first");
       await session.dispose();
     } finally {
-      await rm(directory, { recursive: true, force: true });
+      await rm(directory, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
       await env.stop();
     }
   }, 60_000);
