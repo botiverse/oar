@@ -8,6 +8,7 @@ import { asRecord, type JsonRecord } from "../json.js";
 import { initializeAcpConnection } from "./initialize.js";
 import { acpAdditionalDirectories } from "./additional-directories.js";
 import { applyAcpEffort, applyAcpModel } from "./effort.js";
+import type { AcpConfigUpdates } from "./config-updates.js";
 import { acpResumeFailure, acpOpenStep, type AcpFailureReader } from "./failure.js";
 import { acpMcpServersParam } from "./mcp-servers.js";
 import { type AcpProcess, withAcpDeadline } from "./process.js";
@@ -46,6 +47,8 @@ export interface AcpSessionProfile {
    * `{}` and pushes nothing (agy_acp_server 1.2.1): only that answer reports the applied model.
    */
   readonly modelViaConfigOption?: boolean;
+  /** Wait for each native config notification before the next setting; agy publishes snapshots asynchronously. */
+  readonly confirmConfigOptionUpdates?: boolean;
   /**
    * The agent resumes a session in the directory it was created in, whatever
    * `cwd` the resume names (kimi 2.1.1, probed 2026-10-03: a resume naming B
@@ -72,7 +75,7 @@ export interface AcpSessionProfile {
   readonly steerParams?: (input: string) => JsonRecord;
   /** A steer replaces the native prompt: fold all admitted answers as one turn (grok sendNow). Otherwise only the original prompt ends the turn. */
   readonly steerSupersedesPrompt?: boolean;
-  /** A replacing steer settles the prior RPC early; only the latest RPC, including its failure, can report the loop outcome (agy CLI). */
+  /** A replacing steer settles the prior RPC early; a later failure reports the loop outcome only after every earlier RPC has replied (agy CLI). */
   readonly steerOutcomeIsLatest?: boolean;
   readonly promptContextUsage?: (response: JsonRecord) => ContextUsage | null;
   /**
@@ -129,18 +132,22 @@ export async function promptAcp(
   sessionId: string,
   prompt: readonly JsonRecord[],
   extraParams: JsonRecord = {},
+  received: () => void = () => {},
 ): Promise<JsonRecord> {
   const method = methods.agent.session.prompt;
-  const response = await withAcpDeadline(
-    process,
-    method,
-    null,
-    (requestOptions) => process.connection.agent.request(method, {
-      sessionId,
-      prompt,
-      ...extraParams,
-    }, requestOptions),
-  );
+  let response: unknown = undefined;
+  try {
+    response = await withAcpDeadline(
+      process,
+      method,
+      null,
+      (requestOptions) => process.connection.agent.request(method, {
+        sessionId,
+        prompt,
+        ...extraParams,
+      }, requestOptions),
+    );
+  } finally { received(); }
   // The SDK's built-in session router yields once before OAR's update handler.
   await new Promise<void>((resolve) => {
     setImmediate(resolve);
@@ -224,10 +231,11 @@ export async function openAcpSession(
   profile: AcpSessionProfile,
   options: SessionOptions,
   observe: AcpOpenObserver = () => {},
+  configUpdates?: AcpConfigUpdates,
 ): Promise<OpenedAcpSession> {
   // A refused login or model rejects the open as a RuntimeFailureError (failure.ts).
   const initialized = await acpOpenStep(initializeAcpConnection(process, profile, options, observe), "open");
-  return openInitializedAcpSession(process, profile, options, initialized, observe);
+  return openInitializedAcpSession(process, profile, options, initialized, observe, undefined, configUpdates);
 }
 
 /** Open/configure one session on an already initialized connection. */
@@ -238,7 +246,12 @@ export async function openInitializedAcpSession(
   initialized: JsonRecord,
   observe: AcpOpenObserver = () => {},
   bind: (sessionId: string) => void = () => {},
+  configUpdates?: AcpConfigUpdates,
 ): Promise<OpenedAcpSession> {
+  if (profile.confirmConfigOptionUpdates === true && configUpdates === undefined) {
+    throw new Error("ACP configuration confirmation requires a session notification observer");
+  }
+  const updates = profile.confirmConfigOptionUpdates === true ? configUpdates : undefined;
   const opened = await acpOpenStep(createOrResume(process, profile, initialized, options, profile.sessionMeta?.(options, initialized)), "open");
   bind(opened.sessionId);
   observe({ method: opened.openMethod, response: opened.response });
@@ -247,7 +260,7 @@ export async function openInitializedAcpSession(
     : await acpOpenStep(applyAcpModel(process, opened.sessionId, options.model, {
       viaConfigOption: profile.modelViaConfigOption === true,
       timeoutMs: profile.requestTimeoutMs ?? 15_000,
-      observe,
+      observe, ...(updates === undefined ? {} : { updates }),
     }), "model");
   if (options.effort !== undefined) {
     // The effort menu belongs to the model in effect: a model switch whose
@@ -259,7 +272,7 @@ export async function openInitializedAcpSession(
       : opened;
     await applyAcpEffort(process, menu, options.effort, {
       timeoutMs: profile.requestTimeoutMs ?? 15_000,
-      observe,
+      observe, ...(updates === undefined ? {} : { updates }),
     });
   }
   const configure = profile.configureSession;

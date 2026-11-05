@@ -71,7 +71,9 @@ native prompt as a control method. Fake-transport regressions also hold the
 replacement response after the early `end_turn`, then settle it with success,
 RPC failure or cancellation. The replacement owns the final outcome in all
 three; an old success cannot turn a failed or aborted replacement into a
-completed turn. The separate title-generation request is
+completed turn. Conversely, a rejected steer that arrives before the original
+prompt has replied does not own the original turn's outcome. The new ordering
+regression requires that original prompt's later success to remain completed. The separate title-generation request is
 identified from its native system instruction and excluded from main-model
 counts.
 
@@ -86,6 +88,38 @@ the CLI default model and low budget. Append changes and omission are
 visible in the actual system instruction, independently of config readback.
 The vendor test compares low and high only after explicitly selecting the
 same family on both opens. It does not hide the default-model reset.
+
+### Model notifications must settle before effort
+
+The original Ubuntu CI failed the resumed effort readback: high was requested
+but low was observed. An independent review reproduced an answer of high,
+then an update of high, then the older model-switch update of low in 1 of
+150 native pairs. That failing run did not retain a provider request, so its
+actual inference setting is unknown.
+
+This machine did not reproduce that spontaneous order in 450 direct-native
+pairs (150 serial, 300 with five sessions in parallel). To inspect the
+provider without inventing a native reproduction, a separate **delivery-only
+control** held the first native configuration notification and released it
+after the second. It changed neither requests nor native message contents.
+All 10 delivered update pairs were high then low, while all 10 actual Gemini
+requests carried `thinkingLevel: "HIGH"`. This demonstrates that stale
+readback need not describe the native inference setting; it does not prove
+what the original failing run used.
+
+The fix waits, within the existing request deadline, for the model answer
+and its own `config_option_update` before setting effort. It then requires
+both the effort answer and notification to confirm the requested value.
+No retry, quiet-time heuristic or substituted value is used. Missing or
+contradictory confirmation refuses construction. With native ordered
+requests, 150 additional pairs all ended with high; a separate 10-prompt
+control also observed `HIGH` at the provider in every request.
+[Selected counts and provider fields](antigravity-cli-acp-2026-11-05/effort-order.json)
+distinguish direct execution from the controlled delivery change.
+
+Protocol regressions delay the model update, omit each required notification,
+and contradict the effort answer. They require both notifications to be
+recorded before open returns and retain the requested high assertion.
 
 ### Extra roots violate the primary directory contract
 
@@ -114,8 +148,9 @@ OAR therefore refuses an unknown saved cwd before either native request,
 with `UnsupportedOptionError("cwd", ...)`, for unprompted and absent ids
 alike. Missing list support, missing/empty cwd, malformed pages and cursor
 loops cannot bypass that guard. The same positive-evidence rule applies to
-Kimi and OpenCode, which also retain native cwd. Native listing errors keep
-their original error; a listed session's generic resume error is not mapped
+Kimi and OpenCode, which also retain native cwd. Native listing errors become
+typed cwd refusals with the original error in `cause`; a listed session's
+generic resume error is not mapped
 to missing. Hosts may open a new session, but cannot infer history loss from
 these refusals. Existing service history is neither migrated nor deleted.
 
@@ -168,6 +203,20 @@ OAR_TEST=antigravity-aimock OAR_ANTIGRAVITY_BIN=/absolute/path/to/agy \
   pnpm vitest run sea-trial/vendor
 ```
 
+The separate notification-order control writes only selected values:
+
+```sh
+OAR_ANTIGRAVITY_BIN=/absolute/path/to/agy OAR_AGY_ORDERED=1 \
+  OAR_AGY_ITERATIONS=10 OAR_AGY_PROVIDER_EACH=1 \
+  OAR_AGY_RESULT=oar-trial-run/agy-effort-order.json \
+  pnpm tsx experiments/agy-effort-order.ts
+```
+
+Omit `OAR_AGY_ORDERED` for direct unordered requests. Use
+`OAR_AGY_REORDER_DELIVERY=1` instead for the explicitly modified-delivery
+control; it cannot be combined with ordered requests. `OAR_AGY_CONCURRENCY=5`
+opens five sessions concurrently without changing native message content.
+
 The probe writes full wire/provider JSON and `selected.json`. Set
 `OAR_PROBE_CASE` to `steering`, `settingsAndResume`, `userMcp`, `cwdRoots` or `unpromptedResume`
 for one control. `OAR_PROBE_WORKERS=0 OAR_PROBE_CASE=cwdRoots` repeats the
@@ -184,11 +233,13 @@ pnpm tsx experiments/agy-install-smoke.ts
 It verifies installation, discovery with `~/.local/bin` off PATH, and an
 idempotent second call. It removes the temporary HOME afterwards. The
 installer may write `~/.bashrc` and `~/.zshrc` as well as its bin/cache paths;
-the plan's permission preflight includes all four locations. Existing old
+only bin/cache writability blocks installation. Read-only shell profiles do
+not prevent the vendor installer from succeeding. Existing old official
 CLI and pinned-server cases are checked before downloads, because the vendor
 installer skips existing copies instead of upgrading them. They return
 `unsupported` with reason `configuration`; an unpinned old PATH copy may
-still yield to a supported CLI in the official install location. On this
+still yield to a supported CLI in the official install location, or be
+resolved by installing there when that location is empty. On this
 Linux run, installation reported checksum verified, OAR found version 1.5.0,
 and the second call returned `already_installed`. Native Windows/macOS
 installation was not run; path-selection unit cases are not native evidence.
@@ -211,7 +262,13 @@ mutations were reverted. The review revision added six more controls: removing
 supersession, ignoring a replacement error, skipping native close, bypassing
 unknown-cwd refusal, closing without the advertised capability, or allowing
 close failure to discard a model catalog each failed its corresponding
-regression. All six mutations were reverted.
+regression. All six mutations were reverted. The latest review adds eight
+mutation controls: skipping configuration confirmation, accepting a conflicting
+notification, allowing an early rejected steer to own the turn, dropping the
+typed list error, bypassing a failed list, rejecting an old PATH-only install,
+requiring writable shell profiles, and accepting VS Code's version output.
+Each makes its targeted regression fail. The steer case ends the original
+prompt directly, without a third prompt that could mask the wrong outcome.
 
 The default unit/fake suite covers the CLI launch line, version floor,
 Windows/POSIX discovery paths, migration preflight, model selectors,
@@ -223,10 +280,15 @@ the fake native process, not just that process teardown succeeded.
 Required `check` CI jobs now install CLI 1.5.0 from pinned official archives
 and run native behavior and vendor tests on Linux, macOS and Windows.
 SHA-512 is verified before extraction/execution; the local Linux invocation
-of that same installer passed. Windows/macOS remain for this PR's CI to
-verify. The manual sharing-evidence workflow uses the same installer and
+of that same installer passed. The first three-platform CI exposed the effort
+race above, a macOS `/private`
+path alias, and a Windows fixture missing `USERPROFILE`. Directory comparison
+now uses the existing `sameDirectory` rule. The isolated fixture sets both
+HOME and USERPROFILE, matching the CLI's native home lookup. Linux controls
+pass; the macOS/Windows corrections still require the new CI run. The manual
+sharing-evidence workflow uses the same installer and
 current native tool schemas instead of the retired 1.4.5 server archive.
-On the rebased release baseline, the full check passed 3,159 unit tests and
+On the rebased release baseline, the full check passed 3,192 unit tests and
 18 mock behavior cases. All 15 configured behavior backends passed; native
 vendor regressions also passed for Antigravity, Kimi, OpenCode and Grok.
 Build and clean package installation results are recorded in the pull request.
@@ -254,7 +316,7 @@ Build and clean package installation results are recorded in the pull request.
   dynamic tool-list changes are declared `none`. Hosts should inspect the
   declaration rather than assuming the retired service's behavior.
 - Installation plans and update checks follow the native CLI. The new
-  `configuration` installation refusal means an old selected executable or
+  `configuration` installation refusal means an old official executable or
   a pinned missing location needs manual correction; no download runs.
   OAR exposes no consumer login/status/logout or CLI upgrade. This PR
   changes neither package versions nor release tags.

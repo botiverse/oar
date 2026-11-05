@@ -439,12 +439,13 @@ directory](resume-cwd.md)). Every non-git directory belongs to the one
 `global` project, yet `session/list` without a directory still found a
 session from a non-git directory when the resume named a git repository.
 
-On both release lines, a complete `session/list` with no matching id plus a
-native resume failure yields `SessionNotFoundError`, retaining the requested
-`sessionId` and method/native error in `cause`. V1's generic `-32603`
-`OpenCode service failure` cannot prove absence by itself: a listed id's
-failure keeps its original type. Missing/incomplete lists and authentication
-failures are likewise not mapped
+On both release lines, OAR requires a matching list entry with a confirmed
+saved cwd before resume. Missing list support, unlisted ids, missing cwd and
+incomplete listings produce `UnsupportedOptionError` on `cwd`; listing RPC
+failures use the same type and retain the original error in `cause`. List
+absence does not produce `SessionNotFoundError`. After cwd confirmation, a
+native resume error retains its original classification: V1's generic
+`-32603 OpenCode service failure` cannot prove absence
 ([missing targets](../spec/runtime-matrix.md#missing-resume-targets)).
 
 ### Interrupted input

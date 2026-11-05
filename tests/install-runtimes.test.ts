@@ -95,3 +95,10 @@ test("an opencode installation's line is its major version", () => {
   assert.equal(opencodeLineOf(found("opencode v3.0.0")), undefined);
   assert.equal(opencodeLineOf({ kind: "available", via: "bundled" }), undefined);
 });
+
+test("Antigravity's optional shell-profile update does not require write permission", () => {
+  const plan = scriptInstallPlanOn(antigravityInstallMethod, {
+    ...linux, unwritable: (target) => target.endsWith(".bashrc") || target.endsWith(".zshrc") ? target : null,
+  });
+  assert.equal(plan.kind, "plan");
+});

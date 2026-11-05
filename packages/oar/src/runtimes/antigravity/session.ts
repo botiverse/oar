@@ -42,6 +42,7 @@ export const antigravityAcpProfile: AcpSessionProfile = {
   sessionMeta,
   // Only the config response confirms the selected family and thought level.
   modelViaConfigOption: true,
+  confirmConfigOptionUpdates: true,
 };
 
 export const antigravitySession = acpSession(antigravityAcpProfile);

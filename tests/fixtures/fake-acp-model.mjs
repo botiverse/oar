@@ -5,6 +5,7 @@
 // Reported in both upstream spellings: kimi's configOptions row and grok's
 // models.currentModelId.
 const EFFECTIVE_MODEL = "fixture-model-x";
+let selectedAgyModel = EFFECTIVE_MODEL;
 
 function modelOption(currentValue) {
   return {
@@ -83,7 +84,7 @@ export function setModelResponse(modelId) {
 /**
  * What `session/set_config_option {configId: "model", value}` does, the way
  * agy CLI 1.5.0 answers it: a known model is applied and answered with
- * the model and effort options; no `config_option_update` is pushed. An unknown
+ * the model and effort options, then publishes an asynchronous configuration update. An unknown
  * model is refused `-32602`. In mode
  * "opencode" (1.18.30) `requested-y` has variants, so the answer also lists
  * the effort selector the open model lacked.
@@ -93,7 +94,9 @@ function setModelOption(value, mode) {
     return { error: { code: -32_602, message: "Invalid params", data: `unknown model ${String(value)}` } };
   }
   const effort = mode === "antigravity" || (mode === "opencode" && value === "requested-y") ? [effortOption("medium", mode)] : [];
-  return { response: { configOptions: [modelOption(value), ...effort] } };
+  const response = { configOptions: [modelOption(value), ...effort] };
+  if (mode === "antigravity") { selectedAgyModel = value; }
+  return { response, ...(mode === "antigravity" ? { delayedUpdate: { sessionUpdate: "config_option_update", ...response } } : {}) };
 }
 
 /**
@@ -104,6 +107,7 @@ function setModelOption(value, mode) {
  * `-32602 Invalid params`. `sticky` is a level the fixture accepts but does
  * not apply (answered at `medium`), the silent substitution oar must refuse.
  */
+// oxlint-disable-next-line eslint/max-statements -- Keep the native refusal variants and successful response adjacent.
 export function setConfigOption(params, mode) {
   if (params?.configId === "model") {
     return setModelOption(params.value, mode);
@@ -117,8 +121,9 @@ export function setConfigOption(params, mode) {
   if (!EFFORT_LEVELS.includes(params.value)) {
     return { error: { code: -32_602, message: "Invalid params", data: `unknown ${EFFORT_ID} value` } };
   }
-  const configOptions = [modelOption(EFFECTIVE_MODEL), effortOption(params.value, mode)];
-  return { ...(mode === "antigravity" ? {} : { pushedUpdate: { sessionUpdate: "config_option_update", configOptions } }), response: { configOptions } };
+  const configOptions = [modelOption(mode === "antigravity" ? selectedAgyModel : EFFECTIVE_MODEL), effortOption(params.value, mode)];
+  const update = { sessionUpdate: "config_option_update", configOptions };
+  return { ...(mode === "antigravity" ? { delayedUpdate: update } : { pushedUpdate: update }), response: { configOptions } };
 }
 
 /**
@@ -138,4 +143,16 @@ export function answerConfigRequest(message, wire, mode) {
     wire.update(outcome.pushedUpdate);
   }
   wire.result(message.id, outcome.response);
+  publishDelayedConfig(message, wire, outcome);
+}
+
+function publishDelayedConfig(message, wire, outcome) {
+  if (outcome.delayedUpdate !== undefined) {
+    const model = message.params?.configId === "model";
+    if (process.env.FAKE_ACP_OMIT_CONFIG_UPDATE === (model ? "model" : "effort")) { return; }
+    const notification = !model && process.env.FAKE_ACP_WRONG_EFFORT_UPDATE === "1"
+      ? { ...outcome.delayedUpdate, configOptions: [modelOption(selectedAgyModel), effortOption("low", "antigravity")] }
+      : outcome.delayedUpdate;
+    setTimeout(() => { wire.update(notification); }, model ? Number(process.env.FAKE_ACP_MODEL_UPDATE_DELAY_MS ?? "0") : 0);
+  }
 }

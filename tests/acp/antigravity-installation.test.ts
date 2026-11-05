@@ -19,6 +19,7 @@ test.each([
   ["1.5.0-beta.1\n", "unsupported"],
   ["Update available\n1.5.0\n", "available"],
   ["1.5.0\n1.6.0\n", "unsupported"],
+  ["1.107.0\n0123456789abcdef0123456789abcdef01234567\nx64\n", "unsupported"],
   ["Build label: 1.4.5\n", "unsupported"],
 ])("native ACP requires the CLI version, not a successful unknown-command help: %j", async (stdout, kind) => {
   vi.stubEnv("OAR_ANTIGRAVITY_BIN", process.execPath);
@@ -103,4 +104,19 @@ test("antigravity accepts only the CLI release format and rejects a different ex
     expect(result.kind === "unsupported" ? result.reason : "").toContain(process.execPath);
     expect(result.kind === "unsupported" ? result.reason : "").toContain("stable agy CLI 1.5.0");
   } finally { vi.unstubAllEnvs(); }
+});
+
+test("an old PATH copy does not block a new installation into the absent official location", async () => {
+  const home = mkdtempSync(path.join(tmpdir(), "oar-agy-path-only-"));
+  const originalPath = process.env.PATH ?? "";
+  try {
+    isolatedHome(home);
+    const old = scratchCli(home, "old", "1.4.9");
+    vi.stubEnv("PATH", `${path.dirname(old)}${path.delimiter}${originalPath}`);
+    runExecutable.mockResolvedValue({ ok: true, exitCode: 0, stdout: "1.4.9", stderr: "" });
+    expect(await antigravityInstallation()).toMatchObject({ kind: "unsupported" });
+    const plan = await antigravityInstallPlan();
+    expect(plan.kind).toBe(process.platform === "win32" ? "unsupported" : "plan");
+    if (plan.kind === "unsupported") { expect(plan.reason).toBe("platform"); }
+  } finally { rmSync(home, { recursive: true, force: true }); }
 });

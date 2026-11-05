@@ -14,7 +14,7 @@ function real(dir: string): string {
 }
 
 /** The same directory, spelled or linked differently. */
-function sameDirectory(left: string, right: string): boolean {
+export function sameDirectory(left: string, right: string): boolean {
   return path.resolve(left) === path.resolve(right) || real(left) === real(right);
 }
 
@@ -22,7 +22,7 @@ function sameDirectory(left: string, right: string): boolean {
  * A resume is safe only after the saved cwd is positively confirmed. Absence
  * from session/list is not evidence of a missing id: agy omits sessions that
  * have not received a prompt, but resumes them in their original directory.
- * Listing RPC failures retain their native error; no resume follows them.
+ * Listing RPC failures refuse cwd with the native error as their cause; no resume follows them.
  */
 export async function refuseResumeElsewhere(process: AcpProcess, sessionId: string, cwd: string, timeoutMs: number): Promise<void> {
   const method = methods.agent.session.list;
@@ -31,7 +31,11 @@ export async function refuseResumeElsewhere(process: AcpProcess, sessionId: stri
   do {
     const params: JsonRecord = cursor === null ? {} : { cursor };
     // oxlint-disable-next-line no-await-in-loop -- pages are sequential by construction.
-    const page = asRecord(await withAcpDeadline(process, method, timeoutMs, (requestOptions) => process.connection.agent.request(method, params, requestOptions)));
+    const page = asRecord(await withAcpDeadline(process, method, timeoutMs, (requestOptions) => process.connection.agent.request(method, params, requestOptions)).catch((error: unknown) => {
+      const refusal = unknownResumeCwd(sessionId);
+      Object.defineProperty(refusal, "cause", { value: error, configurable: true });
+      throw refusal;
+    }));
     const sessions = asRecordList(page?.sessions);
     if (!Array.isArray(page?.sessions) || sessions.length !== page.sessions.length
       || sessions.some((session) => typeof session.sessionId !== "string" || session.sessionId.length === 0)) {

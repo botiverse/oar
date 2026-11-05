@@ -68,3 +68,17 @@ test.each(unknownCases)("unknown saved cwd refuses before any resume or load: %j
     expect(calls).not.toContain("session/load");
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
+
+test("a failed list is a typed cwd refusal and never calls an otherwise successful resume", async () => {
+  const dir = scratch("oar-acp-cwd-list-error-");
+  const log = path.join(dir, "calls.txt");
+  try {
+    const opening = acpSession(guarded)(installation, { cwd: own, resume: "missing-session", env: {
+      FAKE_RESUME_CASE: JSON.stringify({ succeed: true, pages: [{ error: { code: -32_603, message: "listing unavailable" } }] }),
+      FAKE_ACP_CALL_LOG: log,
+    } });
+    const failure: unknown = await opening.then(async (session) => { await session.dispose(); return null; }, (error: unknown) => error);
+    expect(failure).toMatchObject({ name: "UnsupportedOptionError", option: "cwd", cause: { code: -32_603, message: "listing unavailable" } });
+    expect(readFileSync(log, "utf8").trim().split("\n")).toEqual(["initialize", "authenticate", "session/list"]);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});

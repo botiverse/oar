@@ -1,3 +1,5 @@
+/* oxlint-disable import/max-dependencies -- Native controls compare provider fields, session lifecycle, MCP and real directory identity. */
+import { sameDirectory } from "../../packages/oar/src/shared/acp/resume-cwd.js";
 /* oxlint-disable typescript/promise-function-async -- Native provider callbacks may return an immediate scripted reply. */
 import assert from "node:assert/strict";
 import { mkdir } from "node:fs/promises";
@@ -5,7 +7,7 @@ import path from "node:path";
 import { describe, expect, test } from "vitest";
 import { antigravityRuntime, type Session } from "../../packages/oar/src/index.js";
 import { awaitTurnEnd, promptAndWait } from "../../packages/oar/src/observe/turns.js";
-import { asRecord } from "../../packages/oar/src/shared/json.js";
+import { asRecord, asRecordList } from "../../packages/oar/src/shared/json.js";
 import { startAntigravityAimock } from "../harness/aimock-acp.js";
 import { runtimeUnderTest } from "../harness/subject.js";
 import { ECHO_SERVER } from "./support/echo-mcp.js";
@@ -96,7 +98,12 @@ describe.skipIf(process.env.OAR_TEST !== "antigravity-aimock")("agy native ACP",
       session = await antigravityRuntime.session(installation, { cwd, env: env.env, resume: id });
       expect(await promptAndWait(session, "AGY_WORKSPACE_RESUME")).toMatchObject({ kind: "ended", outcome: { kind: "completed" } });
       const resumed = env.raw.findLast((request) => !JSON.stringify(asRecord(request.body)?.systemInstruction).includes("conversation title generator"));
-      expect(JSON.stringify(asRecord(resumed?.body)?.systemInstruction)).toContain(`Command Working Directory: ${cwd}`);
+      const system = asRecordList(asRecord(asRecord(resumed?.body)?.systemInstruction)?.parts)
+        .map(part => typeof part.text === "string" ? part.text : "").join("\n");
+      const nativeCwd = /Command Working Directory: ([^\n]+)/u.exec(system)?.[1];
+      assert.ok(nativeCwd !== undefined, "Native system instructions must report the command cwd");
+      // macOS resolves /var to /private/var; Windows paths must not be JSON-escaped.
+      expect(sameDirectory(nativeCwd, cwd)).toBe(true);
       await expect(antigravityRuntime.session(installation, { cwd, env: env.env, resume: "oar-missing-session" })).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "cwd" });
     } finally { await session?.dispose(); await env.stop(); }
   }, 60_000);

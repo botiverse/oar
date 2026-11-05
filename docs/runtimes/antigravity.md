@@ -78,7 +78,10 @@ login and history.
 
 OAR sends `cwd`, MCP servers and any supported append metadata on every open.
 Requested model and effort values are then applied through native config
-options, whose responses confirm the selection. Opening requests have a
+options. OAR waits for each option's response and matching configuration
+notification before applying the next setting, so a delayed model snapshot
+cannot overwrite the later effort selection. Missing or contradictory
+confirmation rejects the open within its deadline. Opening requests have a
 30-second deadline; an opening failure rejects construction and cleans up
 the process.
 
@@ -102,7 +105,8 @@ A different or unconfirmed directory gives `UnsupportedOptionError("cwd", ...)`.
 Missing listing capability, an incomplete listing and an unlisted id all
 refuse construction rather than silently opening elsewhere
 ([resume-cwd contract](resume-cwd.md)). A listing transport/authentication
-failure retains its original error and also prevents resume.
+failure becomes a typed cwd refusal with the original error in `cause` and
+also prevents resume.
 
 On 1.5.0, a session closed before its first prompt is absent from the list,
 yet native resume/load can reopen it at the old cwd without reporting that
@@ -127,9 +131,12 @@ its final answer. The CLI answered the *original* prompt early, while that
 provider response was still held. OAR therefore marks a steer as
 superseding the earlier prompt: the earlier answer is still a frame, but
 cannot report `turn_ended` or release the busy gate. The latest prompt's
-answer settles the turn, including a failed replacement request or cancellation.
-An earlier successful reply cannot replace that outcome. The vendor regression asserts this ordering,
-provider input, one completion and rejection of a premature new prompt.
+answer settles the turn. A replacement failure after every earlier prompt
+has replied can report the loop's failure or cancellation; a steer rejected
+before the original prompt replies cannot fail that still-running turn.
+The vendor regression asserts the successful replacement ordering, provider
+input, one completion and rejection of a premature new prompt. Protocol
+regressions cover both failure orders.
 
 `queue()` holds input in memory (`durable: false`) and sends it FIFO when
 active work ends. The dispatch is recorded as a prompt carrying the original
@@ -174,8 +181,11 @@ possible. It is not a local auth-status query.
 
 1.5.0 reports grouped model ids such as `gemini-3.8-flash`, with a separate
 `thought_level` config option in category `thought_level`. OAR selects each
-through `session/set_config_option` and folds the returned values; an empty
-`session/set_model` acknowledgement would not establish model readback.
+through `session/set_config_option` and folds the returned values. Both its
+answer and corresponding `config_option_update` must confirm the requested
+selection before open returns; an empty `session/set_model` acknowledgement
+would not establish model readback. See the
+[notification-order controls](../../experiments/antigravity-cli-acp-2026-11-05.md#model-notifications-must-settle-before-effort).
 The provider regression verifies `LOW` and `HIGH` thinking levels for the
 explicitly selected Gemini Flash family on creation and resume. Other
 families may encode effort as a thinking budget instead.

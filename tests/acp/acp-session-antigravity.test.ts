@@ -16,9 +16,10 @@ import { agentTreeModule, gone, withTreeProbe } from "../fixtures/process-tree.j
 
 // Replay agy CLI 1.5.0's close capability and thought_level selector.
 // Only the executable launch is replaced by the fake transport.
-async function startAntigravity(options: Omit<SessionOptions, "cwd"> = {}, keepAlive = false): Promise<Session> {
+async function startAntigravity(options: Omit<SessionOptions, "cwd"> = {}, keepAlive = false, requestTimeoutMs = 15_000): Promise<Session> {
   return acpSession({
     ...antigravityAcpProfile,
+    requestTimeoutMs,
     args: [...(keepAlive ? ["--import", agentTreeModule] : []), fixture, "antigravity"],
   })({ kind: "available", via: "executable", command: process.execPath }, { cwd: process.cwd(), ...options });
 }
@@ -128,5 +129,47 @@ test.each(["completed", "failed", "aborted"] as const)("early prompt success can
     expect(outcomes()).toHaveLength(1);
     const terminal = session.records().find((record) => record.kind === "frame" && record.body.events.some((event) => event.kind === "turn_ended"));
     expect(terminal).toMatchObject({ body: { type: expected === "completed" ? "session/prompt" : "session/prompt/error" } });
+  } finally { await session.dispose(); rmSync(dir, { recursive: true, force: true }); }
+});
+
+
+test("model notification settles before setting effort, and both notifications are recorded before open returns", async () => {
+  const session = await startAntigravity({ model: "requested-y", effort: "high", env: { FAKE_ACP_MODEL_UPDATE_DELAY_MS: "100" } });
+  try {
+    const configFrames = () => session.records().flatMap(record => record.kind === "frame" && record.body.type === "config_option_update" ? [record] : []);
+    expect(configFrames()).toHaveLength(2);
+    expect(session.model().value).toBe("requested-y");
+    expect(session.effort().value).toBe("high");
+    const opening = session.records().map(record => describe(record));
+    expect(opening.indexOf("event config_option_update → model:requested-y, effort:medium")).toBeLessThan(opening.indexOf("event session/set_config_option → model:requested-y, effort:high"));
+  } finally { await session.dispose(); }
+});
+
+test.each(["model", "effort"])("missing %s notification refuses open within the configuration deadline", async kind => {
+  await expect(startAntigravity({ model: "requested-y", effort: "high", env: { FAKE_ACP_OMIT_CONFIG_UPDATE: kind } }, false, 1000)).rejects.toThrow(/timed out/u);
+});
+
+test("an effort answer alone cannot override a contradictory native notification", async () => {
+  await expect(startAntigravity({ model: "requested-y", effort: "high", env: { FAKE_ACP_WRONG_EFFORT_UPDATE: "1" } })).rejects.toThrow(/config_option_update left thought_level at low/u);
+});
+
+// oxlint-disable-next-line eslint/max-statements -- Follow only the rejected steer and original prompt, without a third prompt masking the outcome.
+test("a refused steer before the original prompt reply cannot poison its later success", async () => {
+  const dir = mkdtempSync(path.join(tmpdir(), "oar-agy-refused-steer-"));
+  const gate = path.join(dir, "finish");
+  const session = await startAntigravity({ env: { FAKE_ACP_STEER_FINISH: gate } });
+  try {
+    const first = await session.prompt("agy-original-held");
+    const steering = await session.steer?.("agy-refused-steer", { inputId: "c6c6c6c6-c6c6-46c6-86c6-c6c6c6c6c6c6" });
+    expect(steering?.response.body.kind).toBe("accepted");
+    const frames = () => session.records().flatMap(record => record.kind === "frame" ? [record.body] : []);
+    await expect.poll(() => frames().some(frame => frame.type === "session/prompt/error")).toBe(true);
+    expect(frames().find(frame => frame.type === "session/prompt/error")?.native).toMatchObject({ code: -32_602 });
+    expect(frames().some(frame => frame.type === "session/prompt")).toBe(false);
+    expect(frames().flatMap(frame => frame.events).filter(event => event.kind === "turn_ended")).toHaveLength(0);
+    expect(session.status().value.kind).toBe("running");
+    writeFileSync(gate, "ok");
+    expect(await awaitTurnEnd(session, first.request.seq)).toEqual({ kind: "completed" });
+    expect(frames().flatMap(frame => frame.events).filter(event => event.kind === "turn_ended")).toEqual([{ kind: "turn_ended", outcome: { kind: "completed" } }]);
   } finally { await session.dispose(); rmSync(dir, { recursive: true, force: true }); }
 });

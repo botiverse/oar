@@ -133,7 +133,7 @@ method and stays on the line.
 | pi-durable | no `install`: `@earendil-works/pi-durable` is the host's to install | | |
 | cursor | no `install`: `@cursor/sdk` is the host's to install | | |
 
-Codex, grok and kimi also add their folder to PATH in the shell profile,
+Codex, grok, kimi and antigravity also add their folder to PATH in the shell profile,
 opencode only in a profile that exists, and claude prints the line instead;
 qwen (`--no-modify-path`) and qoder (`--skip-path`) leave profiles unchanged.
 Grok links itself into `~/.local/bin` or `/usr/local/bin` when one is on

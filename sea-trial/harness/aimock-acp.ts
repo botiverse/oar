@@ -172,5 +172,7 @@ export async function startAntigravityAimock(configure: (mock: LLMock) => void, 
   if (userMcp !== undefined) {
     await writeFile(path.join(geminiHome, "config", "mcp_config.json"), JSON.stringify(userMcp));
   }
-  return environment(started, { GEMINI_HOME: geminiHome, GEMINI_API_KEY: "aimock", GOOGLE_GEMINI_BASE_URL: started.url, AGY_CLI_DISABLE_AUTO_UPDATE: "1" });
+  // The Go CLI reads its settings below the OS home, USERPROFILE on Windows.
+  // GEMINI_HOME alone only configures the retired standalone-service fixture.
+  return environment(started, { USERPROFILE: started.base.HOME, GEMINI_HOME: geminiHome, GEMINI_API_KEY: "aimock", GOOGLE_GEMINI_BASE_URL: started.url, AGY_CLI_DISABLE_AUTO_UPDATE: "1" });
 }

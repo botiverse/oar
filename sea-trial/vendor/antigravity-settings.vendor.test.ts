@@ -45,7 +45,7 @@ describe.skipIf(process.env.OAR_TEST !== "antigravity-aimock")("antigravity nati
       // intended configuration before comparing effort in the same family.
       const resumed = await subject.startSession({ resume: first.id, model: "gemini-3.8-flash", effort: "high", appendSystemPrompt: "OAR_APPEND_RESUMED_150" });
       expect(resumed.model().value).toBe("gemini-3.8-flash");
-      expect(resumed.effort().value).toBe("high");
+      expect(resumed.effort().value, JSON.stringify(resumed.records())).toBe("high");
       const changed = settings(await turn(resumed, env));
       expect(changed).toHaveLength(1);
       expect(changed[0]?.system).toContain("OAR_APPEND_RESUMED_150");

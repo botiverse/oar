@@ -2,10 +2,13 @@
 import { existsSync, readFileSync } from "node:fs";
 
 export default function replacingPrompt(text, message, { pendingPrompts, result, error }) {
-  if (text === "agy-steer-pending") {
-    // Native 1.5.0 acknowledges the prior prompt while the loop continues.
-    for (const id of pendingPrompts.keys()) { result(id, { stopReason: "end_turn" }); }
-    pendingPrompts.clear();
+  if (text === "agy-refused-steer") { error(message.id, -32602, "Invalid params: image is empty"); return true; }
+  if (text === "agy-steer-pending" || text === "agy-original-held") {
+    if (text === "agy-steer-pending") {
+      // Native 1.5.0 acknowledges the prior prompt while the loop continues.
+      for (const id of pendingPrompts.keys()) { result(id, { stopReason: "end_turn" }); }
+      pendingPrompts.clear();
+    }
     pendingPrompts.set(message.id, text);
     const timer = setInterval(() => {
       if (pendingPrompts.has(message.id) !== true) { clearInterval(timer); return; }

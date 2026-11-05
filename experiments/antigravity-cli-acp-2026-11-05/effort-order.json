@@ -1,0 +1,173 @@
+{
+  "date": "2026-11-05",
+  "runtime": "agy CLI 1.5.0",
+  "platform": "linux x64",
+  "method": "Isolated native ACP and local scripted Gemini provider; no account inference. The modified-delivery case changes notification arrival order only.",
+  "limitation": "The original spontaneous late-low failure was not reproduced locally and had no captured provider request.",
+  "cases": [
+    {
+      "case": "native-serial",
+      "ordered": false,
+      "modifiedDelivery": false,
+      "iterations": 150,
+      "concurrency": 1,
+      "notificationPairs": [
+        {
+          "values": [
+            "low",
+            "high"
+          ],
+          "count": 150
+        }
+      ],
+      "providerRequests": 1,
+      "providerThinkingLevels": [
+        [
+          "HIGH"
+        ]
+      ]
+    },
+    {
+      "case": "native-concurrent",
+      "ordered": false,
+      "modifiedDelivery": false,
+      "iterations": 300,
+      "concurrency": 5,
+      "notificationPairs": [
+        {
+          "values": [
+            "low",
+            "high"
+          ],
+          "count": 300
+        }
+      ],
+      "providerRequests": 1,
+      "providerThinkingLevels": [
+        [
+          "HIGH"
+        ]
+      ]
+    },
+    {
+      "case": "native-ordered",
+      "ordered": true,
+      "modifiedDelivery": false,
+      "iterations": 150,
+      "concurrency": 1,
+      "notificationPairs": [
+        {
+          "values": [
+            "low",
+            "high"
+          ],
+          "count": 150
+        }
+      ],
+      "providerRequests": 1,
+      "providerThinkingLevels": [
+        [
+          "HIGH"
+        ]
+      ]
+    },
+    {
+      "case": "native-ordered-provider",
+      "ordered": true,
+      "modifiedDelivery": false,
+      "iterations": 10,
+      "concurrency": 1,
+      "notificationPairs": [
+        {
+          "values": [
+            "low",
+            "high"
+          ],
+          "count": 10
+        }
+      ],
+      "providerRequests": 10,
+      "providerThinkingLevels": [
+        [
+          "HIGH"
+        ],
+        [
+          "HIGH"
+        ],
+        [
+          "HIGH"
+        ],
+        [
+          "HIGH"
+        ],
+        [
+          "HIGH"
+        ],
+        [
+          "HIGH"
+        ],
+        [
+          "HIGH"
+        ],
+        [
+          "HIGH"
+        ],
+        [
+          "HIGH"
+        ],
+        [
+          "HIGH"
+        ]
+      ]
+    },
+    {
+      "case": "modified-delivery-provider",
+      "ordered": false,
+      "modifiedDelivery": true,
+      "iterations": 10,
+      "concurrency": 1,
+      "notificationPairs": [
+        {
+          "values": [
+            "high",
+            "low"
+          ],
+          "count": 10
+        }
+      ],
+      "providerRequests": 10,
+      "providerThinkingLevels": [
+        [
+          "HIGH"
+        ],
+        [
+          "HIGH"
+        ],
+        [
+          "HIGH"
+        ],
+        [
+          "HIGH"
+        ],
+        [
+          "HIGH"
+        ],
+        [
+          "HIGH"
+        ],
+        [
+          "HIGH"
+        ],
+        [
+          "HIGH"
+        ],
+        [
+          "HIGH"
+        ],
+        [
+          "HIGH"
+        ]
+      ]
+    }
+  ]
+}
