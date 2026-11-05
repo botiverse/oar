@@ -1,7 +1,8 @@
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
+import { execFileSync } from "node:child_process";
 import path from "node:path";
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import { isPiBackend, piSession, piChildCwd } from "./support/pi-runtime.js";
 import { startPiAimock } from "../harness/aimock.js";
 import { runTurn } from "./support/asserts.js";
@@ -35,7 +36,18 @@ describe.skipIf(!isPiBackend)("Pi system prompt boundary", () => {
     });
     // Native ancestor context is preserved even with systemPrompt replacement.
     // Keep this exact prompt snapshot independent of the checkout's parents.
-    const cwd = await mkdtemp(path.join(tmpdir(), "oar-pi-system-"));
+    // Runners can put TMPDIR/TMP/TEMP inside a checkout with ancestor AGENTS
+    // or CLAUDE files. Ask Node for the OS default without those overrides;
+    // both the in-process SDK and RPC use this same context-free directory.
+    const inherited = await mkdtemp(path.join(tmpdir(), "oar-pi-ancestor-"));
+    await writeFile(path.join(inherited, "CLAUDE.md"), "OAR-ANCESTOR-CONTEXT-CONTROL");
+    const configuredTemp = path.join(inherited, ".raft", "agents", "tmp");
+    await mkdir(configuredTemp, { recursive: true });
+    for (const key of ["TMPDIR", "TMP", "TEMP"]) { vi.stubEnv(key, configuredTemp); }
+    const { TMPDIR: _tmpdir, TMP: _tmp, TEMP: _temp, ...environment } = process.env;
+    const nativeTemp = execFileSync(process.execPath, ["-e", "process.stdout.write(require('node:os').tmpdir())"], { env: environment, encoding: "utf8" });
+    // Canonicalize once so SDK input and RPC process.cwd() agree on macOS.
+    const cwd = await realpath(await mkdtemp(path.join(nativeTemp, "oar-pi-system-")));
     let session: Awaited<ReturnType<typeof piSession>> | undefined = undefined;
     try {
       session = await piSession({ kind: "available", via: "bundled" }, {
@@ -71,6 +83,8 @@ describe.skipIf(!isPiBackend)("Pi system prompt boundary", () => {
     } finally {
       await session?.dispose();
       await env.stop();
+      vi.unstubAllEnvs();
+      await rm(inherited, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
       await rm(cwd, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
     }
   }, 120_000);

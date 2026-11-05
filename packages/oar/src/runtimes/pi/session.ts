@@ -1,4 +1,5 @@
 /* oxlint-disable import/max-dependencies -- Session controls compose native startup, projection, input admission, compaction and lifecycle. */
+import { piQueueBarrier } from "./queue-barrier.js";
 import { piManualCompaction } from "./compaction.js";
 import { handledInput, refusedInput, startedInput, type PiHeldInput } from "./input-disposition.js";
 import type {
@@ -72,6 +73,7 @@ export const createPiSession = (project: PiProjectOptions = {}): StartSession =>
   let nativeOwner: Admission | null = null;
   let disposeRequest: RequestRecord | null = null;
   const held: PiHeldInput[] = [];
+  const queueBarrier = piQueueBarrier(piAgentSession, drainHeld);
   const busy = (): boolean => nativeActive || admissions.size > 0;
   const compaction = piManualCompaction(kernel, () => busy() || held.length > 0,
     async () => { await piAgentSession.compact(); }, () => { queueMicrotask(drainHeld); });
@@ -91,6 +93,7 @@ export const createPiSession = (project: PiProjectOptions = {}): StartSession =>
   const start = async (request: RequestRecord, input: string, images: readonly LoadedImage[], queued = false): Promise<ResponseBody> => {
     const admission: Admission = { request, abort: false };
     admissions.set(request.id, admission);
+    queueBarrier.begin(request.id);
     const decision = { ...Promise.withResolvers<ResponseBody>(), settled: false };
     const run = piAgentSession.prompt(input, {
       ...(images.length === 0 ? {} : { images: piImages(images) }),
@@ -134,28 +137,31 @@ export const createPiSession = (project: PiProjectOptions = {}): StartSession =>
             events: [{ kind: "turn_ended", outcome: { kind: "failed", reason, failure: classifyFailure(reason) } }] });
           drainHeld();
         }
+      } finally {
+        queueBarrier.settled();
       }
     })();
     const response = await decision.promise;
     return kernel.unreachable() ?? response;
   };
   function drainHeld(): void {
-    if (disposeRequest !== null || busy() || compaction.busy() || kernel.unreachable() !== null) { return; }
+    if (queueBarrier.pending() || disposeRequest !== null || busy() || compaction.busy() || kernel.unreachable() !== null) { return; }
     if (held[0]?.accepted !== true) { return; }
     const next = held.shift();
     if (next === undefined) { return; }
     void (async (): Promise<void> => {
       const { inputId: _inputId, ...body } = next.body;
-      await kernel.control({ ...body, kind: "prompt", admission: "native", carries: [next.inputId ?? next.requestId] },
+      const result = await kernel.control({ ...body, kind: "prompt", admission: "native", carries: [next.inputId ?? next.requestId] },
          async request => { const response = await start(request, next.body.input, next.images, true); return response; });
-      // Handled inputs and native preflight refusals have no turn end.
-      drainHeld();
+      // Handled inputs and preflight refusals drain after their response.
+      queueBarrier.responded(result.request.id);
     })();
   }
 
   // Drive the pure projection fold: one SDK event → one frame. The
   // fold owns events and outcome classification; this owns the run gate.
   piAgentSession.subscribe((event) => {
+    let abortStarted = false;
     if (event.type === "agent_start") {
       nativeActive = true;
       nativeOwner = nextOwner;
@@ -164,27 +170,29 @@ export const createPiSession = (project: PiProjectOptions = {}): StartSession =>
       const aborted = nativeOwner?.abort === true || [...admissions.values()].some(admission => admission.abort);
       for (const admission of admissions.values()) { admission.abort = false; }
       if (nativeOwner !== null) { admissions.delete(nativeOwner.request.id); }
-      if (aborted) { void abortNative(); }
+      abortStarted = aborted;
     }
     const extra = event.type === "agent_settled" ? { context: contextOf() } : { overflow: overflowOf(event) };
     const { state: nextProjection, commands } = foldPiEvent(projection, event, extra);
     projection = nextProjection;
+    if (projection.runStarted) { nativeActive = true; queueBarrier.observeRun(); }
     for (const command of commands) {
       const unstarted = event.type === "agent_settled" && !nativeActive ? nextOwner : null;
       kernel.frame(unstarted === null ? command.body : { ...command.body,
         events: [...command.body.events, refusedInput(unstarted.request, "Pi settled before agent_start")] });
     }
+    if (abortStarted) { void abortNative(); }
     if (event.type === "agent_settled") {
       if (nextOwner !== null) { admissions.delete(nextOwner.request.id); nextOwner = null; }
       nativeActive = false;
       nativeOwner = null;
-      // Calling prompt inside Pi's settlement emitter detaches its promise:
-      // a later refusal is then charged to the preceding run. Dispatch only
-      // after that emitter has returned, retaining this input's own result.
-      queueMicrotask(drainHeld);
+      // The prompt promise includes Pi's awaited deferred extension actions.
+      // Its finalizer (or the already armed idle wait for independent runs)
+      // drains only once those actions finish, preserving their priority.
     }
   });
 
+  queueBarrier.observeRun();
   const openedModel = piEffectiveModel(piAgentSession);
   if (openedModel !== null) {
     // The SDK's own report of the model and thinking level in effect at open,
@@ -215,9 +223,8 @@ export const createPiSession = (project: PiProjectOptions = {}): StartSession =>
         });
         return decided;
       });
-      // A pre-start refusal has no settlement to release queued work.
-      // Publish its response before dispatching the next input.
-      drainHeld();
+      // A pre-start refusal has no settlement; publish before draining.
+      queueBarrier.responded(result.request.id);
       return result;
     },
     steer: async (input, inputOptions?: InputOptions): Promise<ControlResult> => {

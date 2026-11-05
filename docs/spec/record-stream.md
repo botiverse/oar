@@ -1207,13 +1207,18 @@ reused. Old records with input IDs remain readable.
 
 Input-scoped waits bind the live attempt at their cursor, or the next attempt
 when that cursor is after the prior attempt's disposition. Accepted withdrawal
-of adapter-held input resolves as `aborted`; rejection of its recorded dispatch
+of the bound input resolves as `aborted` for every runtime, including native
+queues, without requiring an adapter-held marker. Rejection of a recorded dispatch
 resolves as `failed`, even in older logs with no native drop frame. An invalid
 carry claim cannot settle the original input's wait; a rejected carry attempt
 alone also does not retire the original adapter queue ownership. These are
 control outcomes for the wait, not synthetic native turn ends. `awaitIdle`
 follows the session's status through all held inputs, including a final native
 drop, rather than remaining bound to the turn that was active when called.
+A provisional prompt rejected before any turn exists resolves `awaitIdle` with
+null, including `busy`. A manual compaction ending without an accompanying turn
+also resolves it with null. These cases and accepted withdrawal used to leave
+some waits pending; none adds a synthetic native `turn_ended` record.
 
 The complete `StatusState` checkpoint retains provisional admissions separately
 from observed native activity. Handling one input leaves another native run

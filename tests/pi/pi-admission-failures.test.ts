@@ -107,3 +107,36 @@ test("RPC preflight abort starts its kill deadline only when a native run receiv
     expect(kill).not.toHaveBeenCalled();
   } finally { vi.useRealTimers(); command.resolve("handled"); await f.close(); }
 });
+
+test.each(["SDK", "RPC"] as const)("%s consumes a preflight abort once, before two extension runs finish the command", async mode => {
+  const f = await fixture(mode); const command = f.hold("/spawn");
+  try {
+    const pending = f.session.prompt("/spawn"); await settle();
+    expect(await f.session.abort()).toMatchObject({ kind: "accepted" });
+    f.begin(); await settle();
+    if (mode === "RPC") { f.settled(true); await settle(); }
+    // The same command is still awaiting its hook. Its consumed cancellation
+    // must not cancel a second independent run before the handled receipt.
+    f.begin(); await settle();
+    expect(mode === "SDK" ? f.aborts() : f.commandTypes.filter(type => type === "abort").length).toBe(1);
+    expect(f.session.status().value.kind).toBe("running");
+    f.end(); await settle(); command.resolve("handled"); await pending;
+  } finally { command.resolve("handled"); await f.close(); }
+});
+
+test("RPC preflight cancellation bounds a non-settling run from actual delivery", async () => {
+  const f = await fixture("RPC"); const command = f.hold("/spawn"); const kill = vi.spyOn(f.child, "kill");
+  try {
+    const pending = f.session.prompt("/spawn"); await settle(); vi.useFakeTimers();
+    expect(await f.session.abort()).toMatchObject({ kind: "accepted" });
+    await vi.advanceTimersByTimeAsync(20_000);
+    expect(kill).not.toHaveBeenCalled();
+    f.begin(); await vi.advanceTimersByTimeAsync(0);
+    expect(f.commandTypes.filter(type => type === "abort")).toHaveLength(1);
+    await vi.advanceTimersByTimeAsync(9999);
+    expect(kill).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
+    expect(kill).toHaveBeenCalledTimes(1);
+    command.resolve("handled"); await pending;
+  } finally { vi.useRealTimers(); command.resolve("handled"); await f.close(); }
+});

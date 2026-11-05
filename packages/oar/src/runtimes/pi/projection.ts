@@ -149,7 +149,7 @@ function step(state: PiProjectionState, event: AgentSessionEvent, extra: PiFoldE
       // precedes threshold compaction and auto-retries; between the two pi
       // rejects new prompts ("Cannot submit a prompt while compaction is in
       // progress"). The context read here is therefore post-compaction.
-      const events: RuntimeEventBody[] = state.runStarted || event.aborted
+      const events: RuntimeEventBody[] = state.runStarted
         ? [{ kind: "turn_ended", outcome: piRunOutcome(state, event.aborted) }] : [];
       if (extra.context !== undefined && extra.context !== null) {
         events.push({ kind: "usage", usage: { context: extra.context } });
@@ -246,7 +246,15 @@ export function foldPiEvent(
   event: AgentSessionEvent,
   extra: PiFoldExtra = {},
 ): { readonly state: PiProjectionState; readonly commands: readonly ProjectionCommand[] } {
-  const next = step(state, event, extra);
+  // A session_start extension can launch a run before we subscribe. Its
+  // message/tool/turn events still prove a run; configuration, persistence,
+  // queue and standalone compaction events do not.
+  const runEvidence = event.type === "agent_start" || event.type === "agent_end"
+    || event.type === "turn_start" || event.type === "turn_end"
+    || event.type === "message_start" || event.type === "message_update" || event.type === "message_end"
+    || event.type === "tool_execution_start" || event.type === "tool_execution_update" || event.type === "tool_execution_end"
+    || event.type === "auto_retry_start" || event.type === "auto_retry_end";
+  const next = step(runEvidence ? { ...state, runStarted: true } : state, event, extra);
   return {
     state: next.state,
     commands: [{ kind: "frame", body: { type: event.type, native: event, events: next.events } }],

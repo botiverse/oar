@@ -17,6 +17,7 @@ export default function piPreflightFixture() {
   let settling = false;
   let aborts = 0;
   let deferrals = 0;
+  let idle = Promise.withResolvers<void>();
   const statsEntered = Promise.withResolvers<void>();
   let stats: PromiseWithResolvers<RpcResponse> | undefined = undefined;
   const begin = (): void => { sdk.isStreaming = true; emit({ type: "agent_start" }); };
@@ -25,12 +26,24 @@ export default function piPreflightFixture() {
     try { emit({ type: "agent_settled", aborted }); }
     finally { settling = false; }
   };
-  const end = (): void => {
+  const end = (finishPrompt = true): void => {
     sdk.isStreaming = false;
     emit({ type: "agent_end", messages: [] });
     settled();
-    // Pi charges failures in these deferred actions to the preceding run.
-    for (const action of deferred.splice(0)) { void (async () => { try { await action(); } catch (error) { runs[0]?.reject(error); } })(); }
+    const run = runs.at(-1);
+    // A native prompt includes the deferred settlement actions, not only the
+    // emitted boundary. Resolve its promise only after those actions finish.
+    void (async () => {
+      try {
+        for (const action of deferred.splice(0)) {
+          // oxlint-disable-next-line no-await-in-loop -- Pi awaits deferred actions sequentially.
+          await action();
+        }
+        if (finishPrompt) { run?.resolve(); }
+      }
+      catch (error) { run?.reject(error); }
+      finally { if (!sdk.isStreaming) { idle.resolve(); idle = Promise.withResolvers<void>(); } }
+    })();
   };
   const sdk = {
     sessionId: "preflight", thinkingLevel: "off", model: undefined, isStreaming: false,
@@ -45,7 +58,8 @@ export default function piPreflightFixture() {
       const run = Promise.withResolvers<void>(); runs.push(run);
       options?.preflightResult?.("started"); begin(); await run.promise;
     },
-    async abort() { aborts += 1; sdk.isStreaming = false; settled(true); },
+    async waitForIdle() { if (sdk.isStreaming) { await idle.promise; } },
+    async abort() { aborts += 1; sdk.isStreaming = false; settled(true); runs.at(-1)?.resolve(); idle.resolve(); idle = Promise.withResolvers<void>(); },
     dispose() {},
   };
   const rpc = (receive: typeof emit) => {

@@ -90,3 +90,47 @@ test.each([false, true])("legacy input drop keeps delivery state and updates, tr
   expect([...state.inputs.values()][0]).toMatchObject({ state: "dropped", reason: "turn_interrupted" });
   expect(state.updates.map(update => update.kind)).toEqual(["input"]);
 });
+
+test.each(["busy", "runtime_refused"] as const)("awaitIdle returns null for provisional prompt rejection: %s", async code => {
+  const { kernel, session } = fixture();
+  const prompt = kernel.request("toRuntime", { kind: "prompt", input: "not started", admission: "native" });
+  const idle = awaitIdle(session);
+  kernel.respond(prompt.id, { kind: "rejected", code, reason: "no turn started" });
+  await expect(idle).resolves.toBeNull();
+});
+
+test("a later retry's withdrawal cannot settle a wait bound to the superseded attempt", async () => {
+  const { kernel, session } = fixture();
+  const old = kernel.request("toRuntime", { kind: "queue", input: "old", inputId });
+  kernel.respond(old.id, { kind: "accepted", queued: "adapter" });
+  const waiting = awaitTurnEnd(session, old.seq, inputId);
+  const retry = kernel.request("toRuntime", { kind: "queue", input: "retry", inputId });
+  kernel.respond(retry.id, { kind: "accepted", queued: "adapter" });
+  const withdraw = kernel.request("toRuntime", { kind: "withdraw", inputId });
+  kernel.respond(withdraw.id, { kind: "accepted" });
+  expect(turnEndAfter(kernel.records(), old.seq, session.id, inputId)).toBeNull();
+  kernel.frame({ type: "old-refused", native: {}, events: [{ kind: "input_dropped", requestId: old.id, inputId, reason: "runtime_refused", message: "old attempt refused" }] });
+  expect(await waiting).toMatchObject({ kind: "failed", reason: "old attempt refused" });
+});
+
+test("accepted native queue withdrawal resolves its input-scoped wait without adapter ownership", async () => {
+  const { kernel, session } = fixture();
+  const queue = kernel.request("toRuntime", { kind: "queue", input: "native", inputId });
+  kernel.respond(queue.id, { kind: "accepted" });
+  kernel.frame({ type: "native-queued", native: {}, events: [{ kind: "input_queued", inputId }] });
+  const waiting = awaitTurnEnd(session, queue.seq, inputId);
+  const withdraw = kernel.request("toRuntime", { kind: "withdraw", inputId });
+  kernel.respond(withdraw.id, { kind: "accepted" });
+  expect(await waiting).toEqual({ kind: "aborted" });
+  expect(turnEndAfter(kernel.records(), queue.seq, session.id, inputId)).toEqual({ kind: "aborted" });
+});
+
+test("awaitIdle returns null after standalone manual compaction", async () => {
+  const { kernel, session } = fixture();
+  const compact = kernel.request("toRuntime", { kind: "compact" });
+  kernel.respond(compact.id, { kind: "accepted" });
+  kernel.frame({ type: "compact-start", native: {}, events: [{ kind: "compaction_started", trigger: "manual" }] });
+  const idle = awaitIdle(session);
+  kernel.frame({ type: "compact-end", native: {}, events: [{ kind: "compaction_ended", requestId: compact.id, trigger: "manual", outcome: "completed" }] });
+  expect(await idle).toBeNull();
+});

@@ -71,7 +71,7 @@ test("SDK settlement clears an abort held during asynchronous native settlement"
 test("SDK settlement forgets the old launch before an extension starts an independent run", async () => {
   const f = await fixture("SDK");
   try {
-    await f.session.prompt("A"); f.end(); await settle(); f.begin();
+    await f.session.prompt("A"); f.end(false); await settle(); f.begin();
     f.runs[0]?.reject(new Error("late old failure")); await settle();
     expect(f.session.records().filter(record => record.kind === "frame" && record.body.type === "pi/prompt_rejected")).toEqual([]);
     expect(f.session.status().value.kind).toBe("running");

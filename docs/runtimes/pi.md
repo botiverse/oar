@@ -494,8 +494,11 @@ on Pi 1.5.0, with earlier 1.4.0 observations retained in the
 native `started` or `handled` preflight receipt, or `rejected`
 (`runtime_refused`, with pi's own message) when the promise rejects first
 (e.g. "Cannot submit a prompt while compaction is in progress"). A run that
-actually emits `agent_start` ends at pi's `agent_settled`, whose `turn_ended` event
-carries completed, aborted or failed. `agent_end` is recorded but does not end
+has native run evidence ends at pi's `agent_settled`, whose `turn_ended` event
+carries completed, aborted or failed. Evidence includes message, tool and turn
+activity even if a `session_start` extension ran before OAR subscribed and its
+`agent_start` was missed. Settlement without any run evidence emits no turn end,
+including when its native `aborted` flag is true. `agent_end` is recorded but does not end
 the turn: pi runs threshold compaction and auto-retries between `agent_end`
 and `agent_settled` and refuses prompts meanwhile (pinned with the pi-aimock
 compaction recipe in the [vendor test](../../sea-trial/vendor/pi.vendor.test.ts)).
@@ -520,10 +523,14 @@ verify it on Pi 1.5.0, alongside ordinary FIFO and Durable's different behavior.
 A refusal before native start clears its pending abort. After recording the
 refusal, OAR drains held work; a queued refusal records `input_dropped` on
 its SDK `pi/prompt_rejected` frame or original RPC error response, without
-inventing a turn end. SDK drains after the settlement emitter returns: calling
-`prompt` inside it would detach that input's promise and charge a later refusal
-to the preceding run. A `started` receipt followed by failure or settlement
-without `agent_start` retires the input without fabricating `completed`.
+inventing a turn end. SDK waits for the current `prompt()` promise, including
+Pi's awaited deferred extension actions, before draining. For independently
+started runs it arms the native idle wait while the run is active, not inside
+`agent_settled` where `isIdle` is already true. Fast and slow extension input
+hooks retain the tested A → EXT → B order. Calling `prompt` inside settlement
+would detach its promise and charge a later refusal to the preceding run.
+A `started` receipt followed by failure or settlement without any native run
+evidence retires the input without fabricating `completed`.
 RPC clears its cancellation fallback after
 terminal stats and synchronous observers, so an abort in either window does
 not later kill a healthy child. SDK reports disposal if the session became
@@ -613,11 +620,17 @@ not evidence that the turn has ended. Before Pi creates its run, OAR holds
 the abort and delivers it at `agent_start`. Callers still `awaitTurnEnd`
 before the next prompt. A late abort rejects with `no_active_turn`.
 An extension can start that run while the original input is still in preflight;
-the pending abort reaches that run too. RPC starts its fallback deadline only
-when it sends the native cancellation, not while awaiting the preflight hook.
+the pending abort reaches that run only if it starts before the input's receipt.
+The marker is consumed once and cleared at handling or refusal. If a command
+calls `sendUserMessage("EXT")` and returns handled before EXT starts, the prior
+abort does not follow EXT; wait for its `turn_active` and abort again if needed.
+This changes the old SDK behavior that accidentally retained a cancellation
+marker beyond handling. RPC starts its fallback deadline only when it sends
+the native cancellation, not while awaiting the preflight hook. These limits
+are pinned by the [native settlement controls](../../sea-trial/vendor/pi-settlement-admission.vendor.test.ts).
 
 The outcome comes from **`agent_settled.aborted`** (authoritative since SDK
-1.1.0), not from OAR's request state. A native `true` produces
+1.1.0), not from OAR's request state. For a run with observed evidence, a native `true` produces
 `turn_ended: aborted` even if an extension called `ctx.abort()` and the host
 never requested it. A native `false`
 keeps a provider failure or normal completion. This also prevents a

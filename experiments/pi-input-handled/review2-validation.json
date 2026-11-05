@@ -1,0 +1,66 @@
+{
+  "platform": "Linux x64",
+  "piSdk": "1.5.0",
+  "piRpc": "1.5.0",
+  "piRpcFloor": "1.4.0",
+  "mutationResults": [
+    {
+      "name": "N15-sdk-abort-consumed",
+      "caught": true
+    },
+    {
+      "name": "N16-rpc-abort-consumed",
+      "caught": true
+    },
+    {
+      "name": "N18-rpc-delivery-deadline",
+      "caught": true
+    },
+    {
+      "name": "M2-superseded-retry",
+      "caught": true
+    },
+    {
+      "name": "provisional-failed-turn",
+      "caught": true
+    },
+    {
+      "name": "missed-start-evidence",
+      "caught": true
+    },
+    {
+      "name": "empty-aborted-turn",
+      "caught": true
+    },
+    {
+      "name": "sdk-response-before-drain",
+      "caught": true
+    },
+    {
+      "name": "sdk-before-revision",
+      "caught": true
+    }
+  ],
+  "configuredTempContext": [
+    {
+      "backend": "pi-aimock",
+      "ancestor_context_under_configured_temp": true,
+      "unchanged_snapshot_passed": true
+    },
+    {
+      "backend": "pi-rpc-aimock",
+      "ancestor_context_under_configured_temp": true,
+      "unchanged_snapshot_passed": true
+    }
+  ],
+  "contextReversion": [
+    {
+      "backend": "pi-aimock",
+      "using_configured_temp_fails_snapshot": true
+    },
+    {
+      "backend": "pi-rpc-aimock",
+      "using_configured_temp_fails_snapshot": true
+    }
+  ]
+}

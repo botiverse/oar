@@ -145,7 +145,6 @@ export async function awaitIdle(session: Session): Promise<TurnOutcome | null> {
     const stop = previous.kind === "running" ? previous.stop ?? previous.pendingPrompt?.stop : previous.pendingPrompt?.stop;
     if (record.kind === "response" && record.body.kind === "exited") { resolve(exitTurnOutcome(stop, record.body.reason)); }
     else if (record.kind === "response" && record.body.kind === "released") { resolve(releaseTurnOutcome(stop)); }
-    else if (record.kind === "response" && record.body.kind === "rejected") { resolve({ kind: "failed", failure: "unknown", reason: record.body.reason }); }
     else { resolve(null); }
   }, { sessionId: session.id, afterSeq: -1 });
   try { return await promise; } finally { unsubscribe(); }
