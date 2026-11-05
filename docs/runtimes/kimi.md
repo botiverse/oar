@@ -560,7 +560,7 @@ MCP configuration on resume must expect this mismatch on 2.5.0. OAR does not
 filter the native declarations or refuse the entire resumed MCP configuration.
 The same controls on 2.4.1 keep declarations and execution aligned. Evidence
 covers fresh processes and local providers on Linux, not real models or other
-platforms; see the [native investigation](https://raft-artifacts.com/p/open-agent-runtime/kimi-2-5-mcp-resume)
+platforms; see the [native investigation](../../experiments/kimi-mcp-resume/2026-11-04.md)
 and [November 4 comparison](../../experiments/runtime-version-checks/2026-11-04.md#kimi-250).
 
 The credentials reach kimi only in the open request's params, which OAR does

@@ -44,6 +44,11 @@ someone else can rerun turns "trust me, I checked" into "run this and see".
 - **Leave a handoff.** For work that spans turns or owners, record the runtime
   identity, cursor or artifact, current conclusion, and next action. A status
   message without a continuation is not an accumulated result.
+- **Public evidence must be readable without a login.** Repository docs must
+  not rely on private Artifact pages as evidence. Commit the report,
+  reproduction script and selected, redacted results under `experiments/`
+  and link them with repository-relative paths. Keep raw credentials,
+  account identifiers and machine-local paths out of published results.
 - **Real logins cost quota.** Repeatable ad-hoc runs belong on the mock or
   aimock backends; use a real installation deliberately, as with
   `OAR_TEST=<real id>`.
