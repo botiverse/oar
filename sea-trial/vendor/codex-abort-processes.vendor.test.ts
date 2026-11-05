@@ -110,7 +110,8 @@ function scripted(markers: Markers, script: string, older: string, trigger: stri
   return (mock: AimockEnv["mock"]): void => {
     mock.on({ userMessage: /START_EARLIER/u, hasToolResult: false }, { toolCalls: [{ id: "call-earlier", name: "exec_command", arguments: JSON.stringify({ cmd: `exec ${node} ${JSON.stringify(older)} ${JSON.stringify(trigger)} ${markers.earlier}`, yield_time_ms: 250 }) }] });
     mock.on({ userMessage: /START_EARLIER/u, hasToolResult: true }, { content: "earlier command left running" });
-    mock.on({ userMessage: /START_FOREGROUND/u, hasToolResult: false }, { toolCalls: [{ id: "call-foreground", name: "exec_command", arguments: JSON.stringify({ cmd: command, yield_time_ms: 300_000 }) }] });
+    // The baseline read is not awaited: a command it sees counts as earlier and is spared, a documented limit this test is not about.
+    mock.on({ userMessage: /START_FOREGROUND/u, hasToolResult: false }, { toolCalls: [{ id: "call-foreground", name: "exec_command", arguments: JSON.stringify({ cmd: command, yield_time_ms: 300_000 }) }] }, { latency: 2000 });
     mock.on({ userMessage: /START_FOREGROUND/u, hasToolResult: true }, { content: "too late" });
     // The command yields, then the turn stays open on a slow model reply.
     mock.on({ userMessage: /START_YIELDED/u, hasToolResult: false }, { toolCalls: [{ id: "call-yielded", name: "exec_command", arguments: JSON.stringify({ cmd: command, yield_time_ms: 250 }) }] });
