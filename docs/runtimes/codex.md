@@ -277,7 +277,10 @@ turns remain aborted/failed outcomes.
 Caller deadlines do not interrupt native compaction. Prompts, steering,
 queue input and a second compaction are rejected busy until native settlement;
 `abort()` interrupts the turn identified by the compaction item, or refuses
-`busy` if that identity is not yet known; disposal still terminates the process. The [native regression](../../sea-trial/vendor/manual-compaction.vendor.test.ts)
+`busy` if that identity is not yet known; disposal still terminates the process.
+A provider request can precede receipt of that item, even while status is
+`compacting` ([Windows timing evidence](../../experiments/codex-compaction-abort/README.md)).
+The [native regression](../../sea-trial/vendor/manual-compaction.vendor.test.ts)
 proves changed resume prompts govern the first request after completion.
 This evidence uses local compaction on 0.166.0. ChatGPT-login remote compaction
 has only source evidence (the 0.163 local/remote paths both use

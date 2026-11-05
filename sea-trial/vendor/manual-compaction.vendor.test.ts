@@ -1,3 +1,4 @@
+/* oxlint-disable import/max-dependencies -- Native controls share provider, resume, and transport synchronization fixtures. */
 import assert from "node:assert/strict";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -6,6 +7,7 @@ import { describe, expect, onTestFailed, test, vi } from "vitest";
 import { claudeRuntime, codexRuntime, type Session, type SessionOptions } from "../../packages/oar/src/index.js";
 import { startClaudeAimock, startCodexAimock, startPiAimock } from "../harness/aimock.js";
 import { runTurn } from "./support/asserts.js";
+import { abortStartedCodexCompaction } from "./support/codex-compaction.js";
 import { isPiBackend, piTestRuntime } from "./support/pi-runtime.js";
 import { oldPrompts, newPrompts, promptMarkers, requestsForTurn } from "./support/resumed-prompts.js";
 
@@ -139,10 +141,12 @@ describe.skipIf(!enabled)("native manual compaction control", () => {
       const session = await f.open(); await seed(session);
       assert.ok(session.compact !== undefined);
       f.hold();
+      const before = session.records().at(-1)?.seq ?? -1;
       const waiting = session.compact({ timeoutMs: 30_000 });
       await f.entered();
       expect(session.status().value).toMatchObject({ kind: "running", phase: "compacting" });
-      expect(await session.abort()).toMatchObject({ kind: "accepted" });
+      const aborted = await (backend === "codex-aimock" ? abortStartedCodexCompaction(session, before) : session.abort());
+      expect(aborted, JSON.stringify({ aborted, records: session.records().filter((record) => record.seq > before) })).toMatchObject({ kind: "accepted" });
       expect(await waiting, JSON.stringify(session.records())).toMatchObject(backend === "claude-aimock"
         ? { kind: "failed", code: "native_failed", frame: { body: { native: { compact_result: "failed" } } } }
         : { kind: "aborted" });

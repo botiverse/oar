@@ -1,4 +1,4 @@
-/* oxlint-disable eslint/max-lines -- Stream/control sequencing tests share the scripted app-server below. */
+/* oxlint-disable eslint/max-lines, import/max-dependencies -- Stream/control sequencing tests share the scripted app-server and vendor synchronization fixture. */
 import { afterEach, expect, test, vi } from "vitest";
 import type { ControlResult, ResponseBody, RawEvent } from "../../packages/oar/src/contracts/session.js";
 import { graphOf } from "../../packages/oar/src/observe/graph.js";
@@ -9,6 +9,7 @@ import { codexSession } from "../../packages/oar/src/runtimes/codex/session.js";
 import { asRecord, type JsonRecord } from "../../packages/oar/src/shared/json.js";
 import { fakeLineProcess, type FakeLineProcess } from "../fixtures/fake-line-process.js";
 import { steer } from "../fixtures/steer.js";
+import { abortStartedCodexCompaction } from "../../sea-trial/vendor/support/codex-compaction.js";
 
 const spawnLineProcess = vi.hoisted(() => vi.fn<(command: string, args: readonly string[]) => FakeLineProcess>());
 vi.mock("../../packages/oar/src/shared/executable/index.js", () => ({ spawnLineProcess }));
@@ -337,6 +338,39 @@ test("abort stays busy before Codex identifies the compaction turn in its native
     expect(writes().filter(message => message?.method === "turn/interrupt").map(message => message?.params)).toEqual([{ threadId, turnId: "compact-turn" }]);
     notify(fake, "turn/completed", { threadId, turn: { id: "compact-turn", status: "interrupted" } });
     expect(await waiting).toMatchObject({ kind: "aborted" });
+    expect(session.status().value.kind).toBe("idle");
+  } finally { await session.dispose(); }
+});
+
+// oxlint-disable-next-line eslint/max-statements -- Reproduce both Windows notification positions without depending on pipe timing.
+test.each([false, true])("the compaction fixture waits for its native item before aborting (turn started: %s)", async (turnStarted) => {
+  vi.useFakeTimers();
+  const fake = scriptedAppServer({ interruptAckOnly: true });
+  const session = await codexSession({ ...installation, version: "0.166.0" }, { cwd: "/work" });
+  try {
+    // A retained item from a previous operation is not evidence for this one.
+    notify(fake, "turn/started", { threadId, turn: { id: "old-turn" } });
+    notify(fake, "item/started", { threadId, turnId: "old-turn", item: { type: "contextCompaction", id: "old-item" } });
+    notify(fake, "item/completed", { threadId, turnId: "old-turn", item: { type: "contextCompaction", id: "old-item" } });
+    notify(fake, "turn/completed", { threadId, turn: { id: "old-turn", status: "completed" } });
+    const before = session.records().at(-1)?.seq ?? -1;
+    const waiting = session.compact?.();
+    if (turnStarted) { notify(fake, "turn/started", { threadId, turn: { id: "compact-turn" } }); }
+    expect(session.status().value).toMatchObject({ kind: "running", phase: "compacting" });
+    const aborted = abortStartedCodexCompaction(session, before);
+    await vi.advanceTimersByTimeAsync(100);
+    expect(session.records().some(record => record.kind === "request" && record.body.kind === "abort")).toBe(false);
+    notify(fake, "item/started", { threadId: "child", turnId: "foreign-turn", item: { type: "contextCompaction", id: "child-item" } });
+    await vi.advanceTimersByTimeAsync(100);
+    expect(session.records().some(record => record.kind === "request" && record.body.kind === "abort")).toBe(false);
+    if (!turnStarted) { notify(fake, "turn/started", { threadId, turn: { id: "compact-turn" } }); }
+    notify(fake, "item/started", { threadId, turnId: "compact-turn", item: { type: "contextCompaction", id: "compact-item" } });
+    await vi.advanceTimersByTimeAsync(50);
+    expect(await aborted).toMatchObject({ kind: "accepted" });
+    expect(fake.written.map(text => asRecord(JSON.parse(text))).filter(message => message?.method === "turn/interrupt").map(message => message?.params)).toEqual([{ threadId, turnId: "compact-turn" }]);
+    notify(fake, "turn/completed", { threadId, turn: { id: "compact-turn", status: "interrupted" } });
+    expect(await waiting).toMatchObject({ kind: "aborted" });
+    expect(await session.prompt("next")).toMatchObject({ kind: "accepted" });
     expect(session.status().value.kind).toBe("idle");
   } finally { await session.dispose(); }
 });
