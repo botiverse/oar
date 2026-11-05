@@ -1,7 +1,7 @@
 /* oxlint-disable max-statements -- Keep each native settlement, observer reentry and late cleanup in one ordered regression. */
 import assert from "node:assert/strict";
 import { setImmediate as settle } from "node:timers/promises";
-import type { RpcCommand, RpcResponse } from "@earendil-works/pi-coding-agent";
+import type { PromptOptions, RpcCommand, RpcResponse } from "@earendil-works/pi-coding-agent";
 import { afterEach, expect, test, vi } from "vitest";
 import type { ControlResult, Session } from "../../packages/oar/src/contracts/session.js";
 import { piSession } from "../../packages/oar/src/runtimes/pi/session.js";
@@ -32,10 +32,10 @@ async function fixture(mode: "SDK" | "RPC", delayedReply = false) {
     extensionRunner: { emit: async (): Promise<void> => {} },
     getContextUsage: () => undefined,
     subscribe(listener: (event: Record<string, unknown>) => void) { emit = listener; return () => {}; },
-    async prompt(input: string) {
+    async prompt(input: string, options?: PromptOptions) {
       prompts.push(input);
       const run = Promise.withResolvers<void>(); runs.push(run);
-      emit({ type: "agent_start" });
+      options?.preflightResult?.("started"); emit({ type: "agent_start" });
       await run.promise;
     },
     abort: end,

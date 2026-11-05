@@ -92,27 +92,26 @@ export const createPiSession = (project: PiProjectOptions = {}): StartSession =>
       : { tokens: usage.tokens, contextWindow: usage.contextWindow, percent: usage.percent };
   };
 
-  // agent_start waiters: a prompt is `accepted` once pi actually starts the
-  // run, `rejected` with pi's own message if pi refuses it first.
-  const startWaiters = new Set<() => void>();
-  const start = async (input: string, images: readonly LoadedImage[]): Promise<ResponseBody> => {
+  const start = async (input: string, images: readonly LoadedImage[]): Promise<{ response: ResponseBody; retry: boolean }> => {
     gate.running = true;
     projection = piPrompted(projection);
     const token = {};
     launch = token;
     const { run, response: decided, started } = await admitPiPrompt(
       piAgentSession, input, images.length === 0 ? {} : { images: piImages(images) },
-      startWaiters, () => kernel.unreachable(),
+      () => kernel.unreachable(),
     );
     if (!started && launch === token) {
-      gate.running = false;
+      gate.running = piAgentSession.isStreaming;
       pendingAbort = false;
       launch = null;
       // A native refusal or extension-handled input has no agent_settled.
       // Held work still gets its own dispatch or recorded refusal.
       queueMicrotask(drainHeld);
     }
-    if (decided.kind === "rejected") { return decided; }
+    if (decided.kind === "rejected") {
+      return { response: decided, retry: !started && piAgentSession.isStreaming && kernel.unreachable() === null };
+    }
     void (async (): Promise<void> => {
       try {
         await run;
@@ -135,7 +134,7 @@ export const createPiSession = (project: PiProjectOptions = {}): StartSession =>
         }
       }
     })();
-    return decided;
+    return { response: decided, retry: false };
   };
   function drainHeld(): void {
     if (disposeRequest !== null || gate.running || compaction.busy()) {
@@ -146,8 +145,16 @@ export const createPiSession = (project: PiProjectOptions = {}): StartSession =>
       return;
     }
     void (async (): Promise<void> => {
-      const decided = await start(next.input, next.images);
+      const { response: decided, retry } = await start(next.input, next.images);
+      if (retry) {
+        // A native extension won admission after we took this held input.
+        // Preserve its place until that independent run settles.
+        held.unshift(next);
+        queueMicrotask(drainHeld);
+        return;
+      }
       if (decided.kind === "rejected") {
+        if (kernel.unreachable() !== null) { return; }
         // The queue took the input over; pi refusing it is not silent: pi's
         // refusal enters the stream (no turn ever started, so no turn end).
         kernel.frame({ type: "pi/prompt_rejected", native: { message: decided.reason, input: next }, events: [] });
@@ -161,9 +168,6 @@ export const createPiSession = (project: PiProjectOptions = {}): StartSession =>
   piAgentSession.subscribe((event) => {
     if (event.type === "agent_start") {
       gate.running = true;
-      for (const waiter of startWaiters) {
-        waiter();
-      }
       if (pendingAbort) {
         pendingAbort = false;
         void abortNative();
@@ -212,7 +216,7 @@ export const createPiSession = (project: PiProjectOptions = {}): StartSession =>
         }
         const decided = await withInputImages(capabilities, inputOptions?.images, async (images) => {
           const started = await start(input, images);
-          return started;
+          return started.response;
         });
         return decided;
       });

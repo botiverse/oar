@@ -42,18 +42,19 @@ export default function piPreflightFixture() {
       if (outcome === "refused") { throw new Error(`native preflight refused ${input}`); }
       if (outcome === "handled") { options?.preflightResult?.("handled"); return; }
       const run = Promise.withResolvers<void>(); runs.push(run);
-      begin(); options?.preflightResult?.("started"); await run.promise;
+      options?.preflightResult?.("started"); begin(); await run.promise;
     },
     async abort() { aborts += 1; sdk.isStreaming = false; settled(true); },
     dispose() {},
   };
   const rpc = (receive: typeof emit) => {
     emit = receive;
+    const state = { sessionId: "preflight", thinkingLevel: "off", isStreaming: false, isCompacting: false,
+      steeringMode: "all", followUpMode: "all", autoCompactionEnabled: true, messageCount: 0, pendingMessageCount: 0 } as const;
     return {
-      child, directory: { path: "/fixture", remove() {} },
-      state: { sessionId: "preflight", thinkingLevel: "off", isStreaming: false, isCompacting: false,
-        steeringMode: "all", followUpMode: "all", autoCompactionEnabled: true, messageCount: 0, pendingMessageCount: 0 },
+      child, directory: { path: "/fixture", remove() {} }, state,
       control: { request: async (command: RpcCommand): Promise<RpcResponse> => {
+        if (command.type === "get_state") { return { type: "response", command: "get_state", success: true, data: { ...state, isStreaming: sdk.isStreaming } }; }
         if (command.type === "get_session_stats" && stats !== undefined) { statsEntered.resolve(); return stats.promise; }
         if (command.type === "abort") { return { type: "response", command: "abort", success: true }; }
         if (command.type !== "prompt") { return { type: "response", command: command.type, success: false, error: "fixture has no stats" }; }

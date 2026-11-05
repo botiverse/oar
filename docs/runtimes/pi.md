@@ -242,7 +242,7 @@ sections describe the default SDK path unless the RPC differences above apply.
 |---|---|
 | In-process AgentSession | One OAR Session wrapping the SDK object; no runtime subprocess. |
 | Session file header ID | `Session.id`; resume resolves it to a file in the cwd's session directory. Every open starts a new record stream at seq 0; history is not rebuilt. |
-| Agent run | One OAR turn: from the `prompt` request (accepted once pi emits `agent_start`) to pi's `agent_settled`, whose `turn_ended` event carries the outcome. Several native `turn_start`/`turn_end` pairs, threshold compaction and auto-retries sit inside it. |
+| Agent run | One OAR turn: from the `prompt` request (accepted when its own native preflight reports `started`) to pi's `agent_settled`, whose `turn_ended` event carries the outcome. Several native `turn_start`/`turn_end` pairs, threshold compaction and auto-retries sit inside it. |
 | History tree and replacement APIs | Resume is mapped; branch navigation, fork, import and history access are not exposed. |
 | ModelRuntime and ResourceLoader | Native services determine models/resources; OAR exposes selected startup options and catalog results. The `pi/session_opened` frame reports the effective model and thinking level as `model` and `effort` events. Outside sessions, `createPiProviderAuth` wraps `ModelRuntime.login`/`logout`/auth status and lists the providers pi's `/login` offers (`loginProviders`), and `createPiModelCatalog` wraps `ModelRegistry` (providers, model metadata, refresh). |
 | SDK event stream | Every `AgentSessionEvent` is exactly one Frame record, verbatim as `native`, with the events OAR reads from it ([table](#observation-history-and-children)). No `spanId` (pi has no native turn id); `agentPath` is always root; capabilities declare `attribution: "none"`. |
@@ -493,7 +493,7 @@ on Pi 1.5.0, with earlier 1.4.0 observations retained in the
 `AgentSession.prompt(text)`. Native dispatch is deferred one microtask so
 a terminal observer does not enter Pi's settlement-time deferred list.
 Disposal in that observer prevents dispatch. The response is `accepted`
-once pi emits `agent_start`, or when its preflight reports that an extension
+once that prompt's own preflight reports `started`, or when it reports that an extension
 handled the input without a run; it is `rejected` (`runtime_refused`, with
 pi's own message) when
 the promise rejects first (e.g. "Cannot submit a prompt while compaction is in
@@ -525,6 +525,17 @@ terminal stats finish, including an abort delivered while those stats were
 pending. The [preflight controls](../../sea-trial/vendor/pi-preflight.vendor.test.ts)
 exercise missing-key refusal, observer reentry and extension-handled input
 against the real SDK and RPC.
+
+An extension can start an independent run from its settlement hook before
+OAR's held input obtains native admission. SDK and RPC preserve that native
+run's occupancy and return the competing input to the FIFO's front, without
+recording a refusal or a failed turn for it. The extension run finishes before
+the held input is dispatched again; later held inputs cannot overtake it.
+RPC reads the current native `get_state` after a refused or handled dispatch
+to distinguish an independent extension run from an idle session, retaining
+that response as an ordinary frame. The [native extension controls](../../sea-trial/vendor/pi-extension-queue.vendor.test.ts)
+cover synchronous and asynchronous settlement hooks, a command that starts a
+run, and a delayed input hook on Pi 1.5.0 for both execution modes.
 
 An extension-handled input releases the SDK/RPC input gate without inventing
 a native turn end. The status fold still retains the prompt request's

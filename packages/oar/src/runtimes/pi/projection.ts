@@ -47,6 +47,17 @@ export function piPrompted(state: PiProjectionState): PiProjectionState {
   return { ...initialPiProjection, tokens: state.tokens };
 }
 
+/** Read each native state reply afresh; an extension may have changed the selection. */
+export function piRpcStateEvents(message: Record<string, unknown>): RuntimeEventBody[] {
+  if (message.command !== "get_state" || message.success !== true) { return []; }
+  const state = asRecord(message.data);
+  const model = asRecord(state?.model);
+  return [
+    ...(typeof model?.provider !== "string" || typeof model.id !== "string" ? [] : [{ kind: "model" as const, model: `${model.provider}/${model.id}` }]),
+    ...(typeof state?.thinkingLevel === "string" ? [{ kind: "effort" as const, effort: state.thinkingLevel }] : []),
+  ];
+}
+
 /** Pi's settlement reports cancellation; preceding provider events supply error details. */
 export function piRunOutcome(state: PiProjectionState, aborted: boolean): TurnOutcome {
   if (aborted) {

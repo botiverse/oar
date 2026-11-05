@@ -101,6 +101,16 @@ test("RPC keeps queued dispatch after the observable terminal frame", async () =
   } finally { await f.close(); }
 });
 
+test("RPC state replies after extension dispatch preserve the current model and effort", async () => {
+  const f = await fixture("RPC");
+  try {
+    f.emit({ type: "response", command: "get_state", success: true, data: { model: { provider: "extension", id: "changed" }, thinkingLevel: "high" } });
+    await settle();
+    const frames = f.session.records().flatMap(record => record.kind === "frame" && record.body.type === "response" ? [record.body] : []);
+    expect(frames.at(-1)?.events).toEqual([{ kind: "model", model: "extension/changed" }, { kind: "effort", effort: "high" }]);
+  } finally { await f.close(); }
+});
+
 test("RPC clears cancellation fallback rearmed while terminal stats are pending", async () => {
   const f = await fixture("RPC"); const stats = f.holdStats(); const kill = vi.spyOn(f.child, "kill");
   try {
@@ -131,4 +141,41 @@ test("SDK dispose in the terminal observer prevents its newly reserved prompt fr
     f.end(); await settle(); await Promise.all(disposed);
     expect(await observed[0]).toMatchObject({ kind: "rejected", code: "disposed" }); expect(f.prompts).toEqual(["A"]);
   } finally { await f.close(); }
+});
+
+test("SDK does not accept a pending input when an unrelated extension run starts", async () => {
+  const f = await fixture("SDK"); const pending = f.hold("B");
+  try {
+    let answered = false;
+    const result = (async (): Promise<ControlResult> => { const value = await f.session.prompt("B"); answered = true; return value; })();
+    await settle(); f.begin(); await settle();
+    expect(answered).toBe(false);
+    pending.resolve("refused");
+    expect(await result).toMatchObject({ kind: "rejected", code: "runtime_refused" });
+    expect(await f.session.prompt("cannot replace extension")).toMatchObject({ kind: "rejected", code: "busy" });
+    expect(f.session.records().some(record => record.kind === "frame" && record.body.events.some(event => event.kind === "turn_ended"))).toBe(false);
+  } finally { pending.resolve("refused"); await f.close(); }
+});
+
+test.each(["SDK", "RPC"] as const)("Pi %s returns a held input to the front when an extension wins admission", async mode => {
+  const f = await fixture(mode); const pending = f.hold("B");
+  try {
+    await f.session.prompt("A"); await f.session.queue("B"); await f.session.queue("C");
+    f.end(); await settle(); f.begin(); pending.resolve("refused"); await settle();
+    expect(f.prompts).toEqual(["A", "B"]);
+    expect(f.session.records().filter(record => record.kind === "frame" && record.body.type === "pi/prompt_rejected")).toEqual([]);
+    f.hold("B").resolve("start"); f.end(); await settle();
+    expect(f.prompts).toEqual(["A", "B", "B"]);
+    f.end(); await settle(); expect(f.prompts).toEqual(["A", "B", "B", "C"]);
+  } finally { pending.resolve("refused"); await f.close(); }
+});
+
+test("SDK disposal during preflight is reported as disposed even if native preflight later reports started", async () => {
+  const f = await fixture("SDK"); const pending = f.hold("A");
+  try {
+    const result = f.session.prompt("A"); await settle();
+    await f.session.dispose(); pending.resolve("start");
+    expect(await result).toMatchObject({ kind: "rejected", code: "disposed" });
+    expect(f.session.records().filter(record => record.kind === "frame" && record.body.type === "pi/prompt_rejected")).toEqual([]);
+  } finally { pending.resolve("refused"); await f.close(); }
 });
