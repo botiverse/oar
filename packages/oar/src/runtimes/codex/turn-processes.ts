@@ -20,8 +20,11 @@ import type { RpcControlPlan } from "./rpc-control.js";
  * Semantics and record shape: docs/runtimes/codex.md, docs/spec/record-stream.md.
  */
 
-/** Each read's own limit, as for a Windows cleanup read: a cold CIM query can outlast one second. */
+/** Each read's own limit, as for the cleanup reads of a slow `ps`. */
 const READ_BUDGET_MS = 5000;
+
+/** Process groups are what tell the runtime's own work and an MCP server's workers from a turn's commands. */
+const NO_PROCESS_GROUPS = "Windows has no process groups to tell this turn's processes from codex's own helpers and an MCP server's workers";
 
 /** A baseline read: `result` stays null until it settles. */
 interface Baseline { result: ProcessTableObservation | null }
@@ -66,6 +69,7 @@ function readFailure(what: string, result: Exclude<ProcessTableObservation, { re
 
 /** The two usable reads, or why there are not two: nothing is ended without both. */
 function usableReadings(evidence: AbortEvidence, root: number | undefined): Readings | string {
+  if (processTableSource() === "windows") { return NO_PROCESS_GROUPS; }
   const { baseline, baselineStarted, cancellation: { observation: snapshot } } = evidence;
   if (!baselineStarted) { return "no baseline: OAR did not start this turn with a prompt"; }
   if (baseline === null) { return "the baseline process table read had not finished"; }
@@ -95,6 +99,7 @@ export function codexTurnProcesses(options: SessionOptions, kernel: SessionKerne
   const ending = new Set<Promise<void>>();
 
   const startBaseline = (): void => {
+    if (processTableSource() === "windows") { return; }
     const started: Baseline = { result: null };
     baseline = started;
     void (async (): Promise<void> => {
@@ -105,7 +110,8 @@ export function codexTurnProcesses(options: SessionOptions, kernel: SessionKerne
   const observe = async (turnId: unknown): Promise<AbortEvidence> => {
     const held = baseline;
     let cancellation: CancellationObservation = { commit() {}, complete() {} };
-    try { cancellation = await client.observeCancellation(); }
+    // A snapshot nothing can act on must not delay the interrupt.
+    try { if (processTableSource() !== "windows") { cancellation = await client.observeCancellation(); } }
     // Cancellation must proceed whatever this read does; the evidence stays failed.
     catch (error) { cancellation = { ...cancellation, observation: processTableFailure(error, processTableSource(), 0) }; }
     return { turnId, cancellation, baselineStarted: held !== null, baseline: held?.result ?? null, requests: new Set() };

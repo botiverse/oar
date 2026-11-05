@@ -140,7 +140,8 @@ infers that from the turn end.
 what that turn started, keeping the runtime and session for the next prompt.
 Codex in an isolated app-server is the only runtime that takes it; every other
 runtime, and shared placement, refuses it before launch. Omitted or false
-changes nothing. A `cleanup` response on the abort request reports the outcome
+changes nothing. On Windows it is accepted and ends nothing, with `failed`
+saying why. A `cleanup` response on the abort request reports the outcome
 ([record shape](record-stream.md#the-rules),
 [Codex mechanism and limits](../runtimes/codex.md#ending-a-turns-processes-on-abort)).
 

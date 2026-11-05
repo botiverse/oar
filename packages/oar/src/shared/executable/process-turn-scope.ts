@@ -36,11 +36,22 @@ function identities(table: ProcessTable): ReadonlySet<string> {
  * Below `root` in `snapshot`, outside its group, and not in `baseline` as the
  * same process: a pid reused since the baseline counts as new, and the whole
  * baseline table counts as earlier, because a process it holds cannot have been
- * started afterwards.
+ * started afterwards. What an earlier process outside the root's group started
+ * is that process's work, however recent (an MCP server's worker), so its
+ * subtree is spared. An earlier process in the root's group is the runtime
+ * itself, and may be the native binary behind a launcher, so what is reached
+ * through it stays a candidate.
  */
 export function turnEntries(root: number, baseline: ProcessTable, snapshot: ProcessTableReading): readonly ProcessEntry[] {
   const earlier = identities(baseline);
-  return descendantsOf(snapshot.table, root, snapshot.source).filter((entry) => entry.pid !== root && !inRootGroup(root, snapshot.table, entry) && !earlier.has(identity(entry)));
+  const below = descendantsOf(snapshot.table, root, snapshot.source);
+  const spared = new Set<number>();
+  for (const entry of below) {
+    if (earlier.has(identity(entry)) && !inRootGroup(root, snapshot.table, entry)) {
+      for (const child of descendantsOf(snapshot.table, entry.pid, snapshot.source)) { spared.add(child.pid); }
+    }
+  }
+  return below.filter((entry) => entry.pid !== root && !spared.has(entry.pid) && !inRootGroup(root, snapshot.table, entry) && !earlier.has(identity(entry)));
 }
 
 /**

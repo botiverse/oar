@@ -329,9 +329,11 @@ Further rules:
   every process in the snapshot below the runtime and absent from the
   baseline as the same process (pid and start time), and to what those started
   since. The runtime itself, and any member of its own process group, is left
-  alone; a process group is signalled only when every member the fresh table
-  shows is a target. Nothing is sent to the runtime for this, and no frame
-  records it: `native` stays what the runtime said.
+  alone. So is everything below a baseline process outside that group, however
+  recently it started: an MCP server's worker is the server's. A process group is
+  signalled only when every member the fresh table shows is a target. Nothing is
+  sent to the runtime for this, and no frame records it: `native` stays what the
+  runtime said.
 
   The outcome is one `cleanup` response on the abort request, recorded after the
   turn's end frame. It is the same shape a fallback or dispose cleanup uses, and
@@ -342,7 +344,8 @@ Further rules:
   the baseline or snapshot read failed or had not finished, the turn had no
   baseline because `prompt` did not start it (a drained queue, a goal continuation,
   a compaction), the fresh read failed, the turn ended some other way than this
-  interrupt, or the runtime exited first (its exit cleanup then applies). An
+  interrupt, the runtime exited first (its exit cleanup then applies), or the host
+  is Windows, which has no process groups to tell these processes apart. An
   unreadable table never reads as no descendants, and an unknown baseline never
   kills. An abort refused or rejected, including one whose turn ended before the
   interrupt was sent, has that response as its whole record: it ends nothing and

@@ -449,19 +449,25 @@ The app-server and session stay up for the next prompt; the fallback above and
 
 The baseline holds MCP servers and earlier background commands, so they
 survive. A stdio MCP server was already running when `thread/start` replied on
-both versions, so a first prompt straight after open also spares it. The
-process group of the app-server is spared too: codex runs its own helpers there (`git`
-for its plugin cache, started at any moment, seen on both versions) while each
-`exec_command` gets a session of its own. The difference is otherwise literal, and
-its limits follow from that:
+both versions, so a first prompt straight after open also spares it.
 
-- A new child of an older process, such as a worker an MCP server forks during the
-  turn, is in the difference, and is killed.
+Process groups separate the rest. On both versions the app-server's own group
+holds its helpers (`git` for its plugin cache, started at any moment) and, on
+0.163.0, the native binary behind the npm launcher. A stdio MCP server leads a
+group of its own within the app-server's session, and each `exec_command` leads
+its own session. So the app-server's group is never a target, nor is anything below
+a baseline process outside it: a worker an MCP server forks during the turn
+survives, as does a new child of an earlier background command, detached or not.
+Commands reached through the app-server's group are the candidates. Limits:
+
 - A command started after the snapshot and before the interrupt lands is not
   in the snapshot, so a child it detached survives.
 - A baseline read that finishes after a fast command started counts that command
   as earlier, and spares it. This errs towards not killing.
 - A process that left the app-server's tree before the snapshot is not reached.
+- A launcher that put the native binary in a group of its own would make every
+  command look like an earlier process's work: nothing would be ended, and
+  `signalled` would read zero. The native test fails if this appears.
 - A tool process kept in the app-server's group is treated as codex's own. None
   was seen on these versions.
 - Only turns OAR started with `prompt` have a baseline. A drained queue, a goal
@@ -475,16 +481,17 @@ waits for that response, not for the turn end. A later prompt is not held for it
 
 **Verified:** on Linux x64 with codex 0.163.0 and 0.166.0
 ([native test](../../sea-trial/vendor/codex-abort-processes.vendor.test.ts)):
-both kinds of command and the detached child are gone, the MCP server and earlier
-background command survive, the next prompt completes; without the option the
-child and the yielded command survive.
+both kinds of command and the detached child are gone; the MCP server, the workers
+it forked during the aborted turn, the earlier background command and its new
+child survive; the next prompt completes. Without the option the child and the
+yielded command survive.
 
-**Windows is not verified.** The same process-table machinery runs there: CIM has no
-process groups, so nothing tells codex's helpers from a turn's processes and a
-helper started during the turn would be killed, and a cold CIM query can exceed
-the one-second snapshot limit, which ends nothing and records so. The native test is
-POSIX only, and no Windows run of this option has been made. macOS uses the same
-code with `ps`, and has not been run either.
+**Windows ends nothing.** CIM reports no process groups, so a turn's commands cannot
+be told from codex's helpers or an MCP server's workers. The option is still
+accepted there: no table is read for it, the interrupt goes out at once, and an
+interrupted turn records `cleanup` `failed` with that reason. This path is covered
+by a unit test only; no native Windows run of this option has been made. macOS uses
+the Linux logic with `ps`, and has not been run.
 
 ### Native goals
 

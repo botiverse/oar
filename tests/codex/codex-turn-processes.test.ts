@@ -11,6 +11,8 @@ import { startAppServerClient } from "../../packages/oar/src/runtimes/codex/app-
 import { codexRuntime } from "../../packages/oar/src/runtimes/codex/index.js";
 import { codexSession } from "../../packages/oar/src/runtimes/codex/session.js";
 import type { CancellationObservation } from "../../packages/oar/src/shared/executable/process-cancellation.js";
+// oxlint-disable-next-line import/no-namespace -- Stand in for the platform's table source.
+import * as tables from "../../packages/oar/src/shared/executable/process-table-async.js";
 // oxlint-disable-next-line import/no-namespace -- Script each table read while keeping the budget module's export shape.
 import * as budget from "../../packages/oar/src/shared/executable/process-table-budget.js";
 import { observeProcessTable, type ProcessEntry, type ProcessTableObservation } from "../../packages/oar/src/shared/executable/process-tree.js";
@@ -475,6 +477,36 @@ test("the app-server's own group is its work, not the turn's: a helper there is 
   const helper = entry(910_010, NATIVE, ROOT, "200");
   const baseline = reading(root, native).table;
   expect(turnEntries(ROOT, baseline, reading(root, native, helper, command)).map((item) => item.pid)).toEqual([COMMAND]);
+});
+
+test("what an earlier process outside the app-server's group starts is spared, detached or not; what is reached through its group is not", () => {
+  const worker = entry(910_020, MCP, MCP, "200");
+  const detachedWorker = entry(910_021, MCP, 910_021, "200");
+  const grandchild = entry(910_022, 910_021, 910_021, "200");
+  const earlierChild = entry(910_023, EARLIER, 910_023, "200");
+  const baseline = reading(root, native, mcp, earlier).table;
+  expect(turnEntries(ROOT, baseline, reading(root, native, mcp, earlier, worker, detachedWorker, grandchild, earlierChild, command, detached)).map((item) => item.pid).toSorted((left, right) => left - right))
+    .toEqual([COMMAND, DETACHED]);
+});
+
+test("a reused pid is not an earlier process, so it shelters nothing below it", () => {
+  const reused = { ...mcp, start: "300" };
+  const child = entry(910_024, MCP, MCP, "300");
+  expect(turnEntries(ROOT, reading(root, native, mcp).table, reading(root, native, reused, child)).map((item) => item.pid).toSorted((left, right) => left - right)).toEqual([MCP, 910_024]);
+});
+
+test("Windows reads nothing for this, interrupts at once and ends nothing, saying why", async () => {
+  vi.spyOn(tables, "processTableSource").mockReturnValue("windows");
+  const fake = appServer();
+  const reads = scriptReads();
+  const observe = vi.spyOn(fake, "observeCancellation");
+  const session = await promptedSession(fake);
+  expect((await session.abort()).response.body.kind).toBe("accepted");
+  expect(sentMethods(fake)).toContain("turn/interrupt");
+  expect(await cleanupOf(session)).toMatchObject({ result: { kind: "failed", reason: "Windows has no process groups to tell this turn's processes from codex's own helpers and an MCP server's workers" } });
+  expect(reads).not.toHaveBeenCalled();
+  expect(observe).not.toHaveBeenCalled();
+  expect(kill).not.toHaveBeenCalled();
 });
 
 test("a group holding anything but targets is not signalled: the app-server's, or one an earlier process shares", () => {

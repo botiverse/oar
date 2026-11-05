@@ -263,9 +263,10 @@ other runtimes refuse it. Give it again on resume. See
 `SessionOptions.endTurnProcessesOnAbort: true` (Codex only; other runtimes
 and shared placement refuse it) makes an accepted `abort()` also end the
 processes that turn started, where native `turn/interrupt` leaves a detached
-child running. MCP servers and earlier background commands are kept, and the
-session stays usable. A `cleanup` response on the abort request says what happened;
-a failed or unfinished process-table read ends nothing. See
+child running. MCP servers and earlier background commands are kept with what
+they start, and the session stays usable. A `cleanup` response on the abort
+request says what happened; a failed or unfinished process-table read ends
+nothing, and so does Windows, which has no process groups to tell them apart. See
 [Codex](https://github.com/botiverse/oar/blob/main/docs/runtimes/codex.md#ending-a-turns-processes-on-abort).
 
 `SessionOptions.outputSchema` supplies a JSON Schema object for final output.

@@ -54,12 +54,13 @@ export interface SessionOptions {
    * after turn/interrupt.
    *
    * OAR compares a process-table read started before each prompt's turn/start
-   * with a snapshot taken before turn/interrupt, and sends SIGKILL (Windows:
-   * process termination) to the difference once turn/completed reports
-   * `interrupted`, after a fresh start-identity check. Processes running before
-   * that prompt, such as MCP servers and earlier background commands, are kept.
-   * A failed or unfinished read, or an abort that did not interrupt the turn,
-   * ends nothing. The outcome is a `cleanup` response on the abort request
+   * with a snapshot taken before turn/interrupt, and sends SIGKILL to the
+   * difference once turn/completed reports `interrupted`, after a fresh
+   * start-identity check. Processes running before that prompt, such as MCP
+   * servers and earlier background commands, are kept with what they start. A
+   * failed or unfinished read, an abort that did not interrupt the turn, or
+   * Windows, where process groups cannot tell these apart, ends nothing. The
+   * outcome is a `cleanup` response on the abort request
    * (docs/spec/record-stream.md); `failed` means nothing was signalled.
    * Supply again on resume. This launch choice is not recorded.
    */
