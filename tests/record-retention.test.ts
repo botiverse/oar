@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import type { Frame, RawEvent, RuntimeEventBody } from "../packages/oar/src/contracts/records.js";
-import { eventsOf, statusOf } from "../packages/oar/src/observe/index.js";
+import { eventsOf, statusOf, usageOf, viewOf } from "../packages/oar/src/observe/index.js";
 import { checkRetainedBytes } from "../packages/oar/src/shared/record-retention.js";
 import { createSessionKernel, type SessionKernel } from "../packages/oar/src/shared/session-kernel.js";
 
@@ -64,15 +64,37 @@ test("cursor replay and events say what was elided", () => {
   expect(events.at(-1)).not.toHaveProperty("elided");
 });
 
-test("folds read the same with and without a limit", () => {
-  const events: readonly RuntimeEventBody[] = [{ kind: "turn_active" }];
-  const status = (limit: number | undefined): unknown => {
+test("status and usage read the same with and without a limit", () => {
+  const read = (limit: number | undefined): unknown => {
     const kernel = createSessionKernel("s", undefined, limit);
-    kernel.frame({ type: "start", native: { big }, events });
-    kernel.frame({ type: "more", native: { big }, events: [] });
-    return statusOf(kernel.records(), "s").value;
+    kernel.frame({ type: "start", native: { big }, events: [{ kind: "turn_active" }] }, { receivedAt: 1 });
+    kernel.frame({ type: "used", native: { big }, events: [{ kind: "usage", usage: { total: { input: 3, output: 2 } } }] }, { receivedAt: 2 });
+    kernel.frame({ type: "more", native: { big }, events: [] }, { receivedAt: 3 });
+    return { status: statusOf(kernel.records(), "s").value, usage: usageOf(kernel.records(), "s", kernel.graph()).value };
   };
-  expect(status(1)).toEqual(status(undefined));
+  expect(read(1)).toEqual(read(undefined));
+});
+
+test("output deltas are elided and the budget counts what remains", () => {
+  const kernel = createSessionKernel("s", undefined, 1000);
+  for (let index = 0; index < 20; index += 1) {
+    kernel.frame({ type: "item/commandExecution/outputDelta", native: { delta: "y".repeat(10_000) }, events: [{ kind: "tool_call_progress", callId: "c", outputDelta: "y".repeat(10_000) }] });
+  }
+  expect(JSON.stringify(kernel.records()).length).toBeLessThan(40_000);
+});
+
+test("the limit counts UTF-8 bytes, not characters", () => {
+  const kernel = createSessionKernel("s", undefined, 1000);
+  kernel.frame({ type: "a", native: "\u4E2D".repeat(300), events: [] });
+  kernel.frame({ type: "b", native: "\u4E2D".repeat(300), events: [] });
+  expect(frames(kernel.records()).map((frame) => frame.body.elided)).toEqual([true, undefined]);
+});
+
+test("a session view marks the tool whose input or output was elided", () => {
+  const { kernel } = run(10_000, 10);
+  const tool = (seq: number): unknown => viewOf(kernel.records().filter((record) => record.seq === seq)).messages.flatMap((message) => message.kind === "turn" ? message.sections.flatMap((section) => section.parts) : []).find((part) => part.kind === "tool");
+  expect(tool(0)).toMatchObject({ callId: "c", elided: true, result: "ok" });
+  expect(tool(9)).not.toHaveProperty("elided");
 });
 
 test.each([0, -1, 1.5, Number.NaN])("retainedBytes %s is refused", (value) => {

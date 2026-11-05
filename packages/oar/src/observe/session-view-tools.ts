@@ -65,20 +65,25 @@ export function updateToolPart(draft: Draft, event: ToolUpdate, result: ToolResu
     if (event.kind === "tool_call_ended") {
       // The streamed preview gives way to the result.
       const { output: _streamed, ...settled } = part;
-      return { ...settled, ...ended(event), result, endedAt: event.receivedAt };
+      return { ...settled, ...ended(event), ...elidedMark(event), result, endedAt: event.receivedAt };
     }
     // A late output delta adds evidence; it cannot reopen an ended call.
-    return { ...part, ...toolPreview(part.output, event) };
+    return { ...part, ...toolPreview(part.output, event), ...elidedMark(event) };
   });
 }
 
 /** Append raw fragments, or replace them with the complete input, without changing the call's state. False when no part holds the callId. */
 export function updateToolInput(draft: Draft, event: ToolInput): boolean {
   return replaceToolPart(draft, event, (part) => {
-    if (event.kind === "tool_call_input_delta") { return { ...part, input: (part.input ?? "") + event.delta, inputPartial: true }; }
+    if (event.kind === "tool_call_input_delta") { return { ...part, input: (part.input ?? "") + event.delta, inputPartial: true, ...elidedMark(event) }; }
     const { inputPartial: _partial, ...complete } = part;
-    return { ...complete, input: event.input };
+    return { ...complete, input: event.input, ...elidedMark(event) };
   });
+}
+
+/** A trimmed record leaves the part's content incomplete from then on, whatever later records add. */
+export function elidedMark(event: Event): Pick<ToolPart, "elided"> {
+  return event.elided === true ? { elided: true } : {};
 }
 
 function replaceToolPart(draft: Draft, event: ToolUpdate | ToolInput, next: (part: ToolPart) => ToolPart): boolean {

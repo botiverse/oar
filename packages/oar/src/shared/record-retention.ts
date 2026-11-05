@@ -7,7 +7,7 @@ function withoutPayload(event: RuntimeEventBody): RuntimeEventBody {
     return rest;
   }
   if (event.kind === "tool_call_progress") {
-    const { output: _output, ...rest } = event;
+    const { output: _output, outputDelta: _outputDelta, ...rest } = event;
     return rest;
   }
   if (event.kind === "tool_call_ended") {
@@ -18,9 +18,12 @@ function withoutPayload(event: RuntimeEventBody): RuntimeEventBody {
   return event.kind === "tool_call_input_delta" ? { ...event, delta: "" } : event;
 }
 
+const encoder = new TextEncoder();
+
+/** UTF-8 bytes of the frame's `native` and of the tool events that elision changes. */
 function payloadBytes(frame: Frame): number {
   const tools = frame.body.events.filter((event) => event !== withoutPayload(event));
-  return JSON.stringify(frame.body.native ?? null).length + (tools.length === 0 ? 0 : JSON.stringify(tools).length);
+  return encoder.encode(JSON.stringify(frame.body.native ?? null)).length + (tools.length === 0 ? 0 : encoder.encode(JSON.stringify(tools)).length);
 }
 
 function elided(frame: Frame): Frame {

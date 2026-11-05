@@ -763,17 +763,20 @@ ordered sequences.
 `SessionOptions.retainedBytes` bounds what the process keeps for `records()`,
 the query folds and cursor replay. Omitted, it keeps everything. Past the limit,
 the oldest frames lose `native` (now `null`) and their events' tool input and
-output, and carry `elided: true`; events read from them carry `elided: true` too.
+output, and carry `elided: true`. Events read from them, and the session view's
+tool parts built from them, carry `elided: true` too. The limit counts the UTF-8
+bytes of each frame's `native` and tool payloads.
 
 - Every observer receives each record complete before anything is elided. A host
   wanting the full history persists it (`openVoyage` or its own log).
 - Records stay: `seq` stays dense, and frame `type`, event kinds, call ids,
   results, exit codes, usage, model and text remain, so `status()`, `usage()` and
-  the other folds do not change. Requests and responses are never elided.
+  the model and effort queries do not change. Tool detail in a view does, which
+  `elided` marks. Requests and responses are never elided.
 - A cursor replay across trimmed frames receives them with `elided: true`: a host
   can tell the user that part is gone. It is never silently skipped.
-- The record count and text are not bounded, and the size is measured from each
-  frame's `native` and tool payloads. A newest frame above the limit is kept whole.
+- The record count and text are not bounded. A newest frame above the limit is
+  kept whole.
 
 [Why content rather than records](../design/decisions.md#bounded-retention-by-eliding-content-2026-11-05).
 
