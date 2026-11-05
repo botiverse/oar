@@ -1,0 +1,8 @@
+{
+  "package": "@qoder-ai/qodercli",
+  "version": "1.1.83",
+  "sha256": {
+    "qoder-worker-runtime.mjs": "c2d1af7ffcd911b95857891d435401b015cfebf14ea969dcd4456841ab4a691f",
+    "qodercli.js": "66699ea0d17b4080445a8b22e628f150bbfbe137ee4acb57a4041fbc3a50f4d6"
+  }
+}

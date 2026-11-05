@@ -430,7 +430,7 @@ adapter's own gates; the adapter keeps no liveness flag. [Kernel][oar-kernel].
 **What native leaves:** on 0.163.0 and 0.166.0 (Linux x64, scripted provider),
 `turn/interrupt` ended an `exec_command` still in the foreground but left a child
 it had detached with `setsid`, and left a command that had already yielded in that
-same turn, with its child. A report on 0.166 (task #168) also saw the running
+same turn, with its child. The [native terminal probe on 0.166.0](../../experiments/codex-background-terminals/README.md) also saw the running
 command survive, and found that native `thread/backgroundTerminals/terminate`
 and `clean` do not end a detached child, miss a command in its launch window,
 that `clean` also ends earlier background commands, and that a success reply

@@ -48,6 +48,12 @@
  * Also compare deepseek-harness master with the last report: OAR patch files,
  * its workspace OAR pin/patchedDependencies and both experimental subagent-oar
  * packages. Record changed patches and their reason for maintainer review.
+ * DSH CLI releases are a separate watch: compare npm latest with the selected
+ * OAR_DSH_BIN or PATH installation. On each changed version, run dsh-aimock
+ * behavior and all dsh*.vendor.test.ts cases with that exact executable,
+ * isolated HOME/DSH_HOME and the loopback provider. Record failures and the
+ * exact tested version; a version above the floor is not compatibility proof.
+ * Keep the CI pin separate from this latest-version observation.
  * OpenCode has separate v1/v2 release sources. Compare only the selected
  * executable's own line; an unselected line is not an outdated installation.
  * A changed OpenCode binary also needs opencode-release-lines.ts; v1 additionally
@@ -69,6 +75,7 @@ const sources: readonly { id: string; url: string; major?: number }[] = [
   { id: "claude", url: "https://registry.npmjs.org/@anthropic-ai/claude-code/latest" },
   { id: "codex", url: "https://registry.npmjs.org/@openai/codex/latest" },
   { id: "cursor", url: `https://registry.npmjs.org/${CURSOR_PACKAGE}/latest` },
+  { id: "dsh", url: "https://registry.npmjs.org/@deepseek-ai/dsh/latest" },
   // The stable pointer used by the official https://x.ai/cli/install.sh.
   { id: "grok", url: "https://x.ai/cli/stable" },
   { id: "kimi", url: "https://registry.npmjs.org/@moonshot-ai/kimi-code/latest" },

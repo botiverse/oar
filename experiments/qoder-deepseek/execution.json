@@ -1,0 +1,96 @@
+{
+  "platform": "linux-x64",
+  "mode": "real-inference",
+  "submittedPrompts": 3,
+  "configurationCreated": true,
+  "checks": [
+    {
+      "name": "inference",
+      "passed": true
+    },
+    {
+      "name": "read-write-tools",
+      "passed": true,
+      "tools": [
+        "Read",
+        "Write"
+      ],
+      "started": 2,
+      "ended": 2
+    },
+    {
+      "name": "cross-process-resume",
+      "passed": true
+    }
+  ],
+  "version": "1.1.83",
+  "deepseek": {
+    "provider": "deepseek",
+    "enabled": true,
+    "types": [
+      {
+        "type": "pg",
+        "models": [
+          {
+            "key": "deepseek-v4-pro-pg",
+            "displayName": "DeepSeek-V4-Pro",
+            "format": "openai"
+          },
+          {
+            "key": "deepseek-flash-pg",
+            "displayName": "DeepSeek-Flash",
+            "format": "openai"
+          }
+        ]
+      }
+    ]
+  },
+  "emptyParametersCheck": {
+    "success": false,
+    "code": "BYOK_CONFIG_INVALID",
+    "emptyParameters": true
+  },
+  "keyValidation": {
+    "success": true
+  },
+  "selectedModel": "DeepSeek-Flash (DeepSeek)",
+  "firstOpenUsage": {
+    "input": 128104,
+    "output": 254,
+    "cacheRead": 54272,
+    "cacheWrite": 0
+  },
+  "firstOpenNativeResults": [
+    {
+      "seq": 46,
+      "type": "result",
+      "subtype": "success",
+      "isError": false
+    },
+    {
+      "seq": 239,
+      "type": "result",
+      "subtype": "success",
+      "isError": false
+    }
+  ],
+  "resumedOpenUsage": {
+    "input": 37275,
+    "output": 24,
+    "cacheRead": 18560,
+    "cacheWrite": 0
+  },
+  "resumedOpenNativeResults": [
+    {
+      "seq": 44,
+      "type": "result",
+      "subtype": "success",
+      "isError": false
+    }
+  ],
+  "configurationRemoved": true,
+  "nativeExit": {
+    "code": 0,
+    "signal": null
+  }
+}

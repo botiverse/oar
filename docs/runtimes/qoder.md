@@ -240,14 +240,23 @@ details returned by this command never leave the private query.
 ## Evidence and limits
 
 Required CI pins `@qoder-ai/qodercli@1.1.81` on Linux, macOS and Windows.
-Execution-level validation therefore covers versions only through 1.1.81;
-1.1.82 and later have no passing execution-level validation. Their native
-replay path no longer drives the scripted inference used by the suite, so a
+The complete required execution suite therefore covers versions only through
+1.1.81. From 1.1.82, the native replay path no longer drives the scripted
+inference used by the suite, so a
 model-catalog compatibility fix alone cannot restore these checks. Assertions
 and timeouts remain unchanged. Lift the pin only after native replay works
 again, or an officially supported local provider passes all native cases.
 Daily version probes continue to run the latest release and report differences;
 they do not turn failed probes into execution-level coverage.
+
+A separate [November 5 real-flow probe](../../experiments/qoder-deepseek/README.md)
+passed inference, native Read/Write tools and cross-process resume on Linux
+x64 with Qoder 1.1.83, OAR `4fd225c8`, an existing Free-account login and a
+DeepSeek pay-as-you-go API key. Bugen reported three submissions and removal
+of the temporary BYOK configuration. This is the first passing execution
+sample since 1.1.82; it covers those three flows, not the complete native
+suite or cancellation. First-party models, subscription quota and rate
+limits remain unverified. The manual probe does not enter CI or lift its pin.
 
 The official Unix installation and login URL/cancellation paths were checked
 in isolated homes; an existing-machine login completed and its status was
@@ -255,8 +264,9 @@ confirmed. Successful conversations, consecutive turns, resume, effort, MCP
 and the shared behavior suite used the real 1.1.78 binary with its native
 fake-response reader and a fresh home. They did not use account quota.
 The fake reader exercises the native agent loop but is not evidence of a
-particular remote provider's behavior. Successful real-provider conversation
-and resume remain unverified because of the Credits rejection. Reproduction
+particular remote provider's behavior. First-party conversation
+and resume remain unverified after the Credits rejection; the later DeepSeek
+BYOK result above uses a different credential path. Reproduction
 commands and the first failures are recorded in
 [the native evidence guide](../../experiments/qoder-native/README.md).
 

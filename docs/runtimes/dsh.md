@@ -12,20 +12,27 @@ provider. Run on Linux x64, Node 24, on 2026-11-05:
 
 | Version | Vendor tests | Shared behavior suite |
 |---|---|---|
-| 0.2.1-rc.5 (`latest`, CI pin) | 18 passed | 18 passed, 1 skipped by capability (`accountUsage`) |
+| 0.2.1-rc.5 (CI pin) | 18 passed | 18 passed, 1 skipped by capability (`accountUsage`) |
 | 0.2.2-alpha.2 | 18 passed | 18 passed, 1 skipped by capability |
-| 0.2.2-rc.1 (`next`) | 18 passed | 18 passed, 1 skipped by capability |
+| 0.2.2-rc.1 (`latest` and `next` on November 5) | 18 passed | 18 passed, 1 skipped by capability |
+
+The [daily version inventory](../../experiments/runtime-versions.ts) compares
+`@deepseek-ai/dsh`'s npm `latest` with `OAR_DSH_BIN` or `dsh` on PATH. Each new
+version gets its own loopback-provider behavior and vendor runs; the CI pin
+remains separate. [November 5 evidence](../../experiments/runtime-version-checks/2026-11-05.md).
 
 Real provider: Bugen ran `d6e41da` on Linux with a real DeepSeek API key
 (pay-per-use, not a first-party plan), model `deepseek-official/deepseek-flash`,
 effort low, on dsh 0.2.2-rc.1 and 0.2.1-rc.5: inference, tool call, resume, mid-turn
 cancel and usage passed. 0.2.2-alpha.2 was not run on a real key.
 
-Windows: the shared behavior suite passed on `windows-latest` (0.2.1-rc.5, 18 passed,
-1 capability skip, run 42001149111), so opening, turns, abort, resume and dispose work
-there. The vendor failures in that run were this repository's fixture, below in
-[Testing](#testing); the fixed vendor suite has not run on Windows yet. A process
-killed mid-turn is covered on POSIX only. macOS has not reported yet.
+The corrected fixtures also passed with 0.2.1-rc.5 in CI run 42078076588:
+[macOS](https://github.com/botiverse/oar/actions/runs/42078076588/job/127423516264)
+had 18 vendor cases and 18 behavior cases pass;
+[Windows](https://github.com/botiverse/oar/actions/runs/42078076588/job/127423516172)
+had 17 vendor cases and 18 behavior cases pass. Each behavior suite skipped
+`accountUsage`; Windows also skipped the POSIX-only mid-turn process-kill case.
+These platform results cover the CI pin, not 0.2.2-rc.1.
 
 ## Native interface
 
@@ -231,6 +238,6 @@ skips. DSH's shell tool there is `pwsh`, not `bash`.
 
 ## Open risks
 
-Image input, the flush timing of pending input before a crash,
-pipe backpressure with a slow host, and macOS are unverified. Only the test that kills the
+Image input, the flush timing of pending input before a crash and
+pipe backpressure with a slow host are unverified. Only the test that kills the
 process from a tool skips on Windows.
