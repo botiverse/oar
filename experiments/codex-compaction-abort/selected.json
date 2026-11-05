@@ -1,0 +1,230 @@
+[
+  {
+    "pr": 625,
+    "run": 41975009220,
+    "job": 127071696793,
+    "records": [
+      {
+        "seq": 773,
+        "receivedAt": 1793857075755,
+        "kind": "request",
+        "id": "704df3e7-a590-4b08-9f25-c374176285cc",
+        "body": {
+          "kind": "compact"
+        }
+      },
+      {
+        "seq": 774,
+        "receivedAt": 1793857075762,
+        "kind": "response",
+        "requestId": "704df3e7-a590-4b08-9f25-c374176285cc",
+        "body": {
+          "kind": "accepted"
+        }
+      },
+      {
+        "seq": 775,
+        "receivedAt": 1793857075781,
+        "kind": "request",
+        "id": "f54ad732-8dcd-49d2-9d9f-14c386aede3b",
+        "body": {
+          "kind": "abort"
+        }
+      },
+      {
+        "seq": 776,
+        "receivedAt": 1793857075781,
+        "kind": "response",
+        "requestId": "f54ad732-8dcd-49d2-9d9f-14c386aede3b",
+        "body": {
+          "kind": "rejected",
+          "code": "busy",
+          "reason": "Codex has not yet reported the compaction turn id required by turn/interrupt"
+        }
+      },
+      {
+        "seq": 777,
+        "receivedAt": 1793857075781,
+        "kind": "request",
+        "id": "12650df2-0084-4376-aff0-f844e152d308",
+        "body": {
+          "kind": "dispose"
+        }
+      },
+      {
+        "seq": 779,
+        "receivedAt": 1793857075791,
+        "kind": "frame",
+        "body": {
+          "type": "turn/started"
+        },
+        "turn": {
+          "id": "01a1aa36-ba35-7a11-bfe5-185c7b938525",
+          "status": "inProgress"
+        }
+      },
+      {
+        "seq": 780,
+        "receivedAt": 1793857075791,
+        "kind": "frame",
+        "body": {
+          "type": "item/started"
+        },
+        "item": {
+          "id": "01a1aa36-ba40-7961-8866-a9c2716af31c",
+          "type": "contextCompaction"
+        },
+        "turnId": "01a1aa36-ba35-7a11-bfe5-185c7b938525"
+      },
+      {
+        "seq": 790,
+        "receivedAt": 1793857075818,
+        "kind": "frame",
+        "body": {
+          "type": "item/completed"
+        },
+        "item": {
+          "id": "01a1aa36-ba40-7961-8866-a9c2716af31c",
+          "type": "contextCompaction"
+        },
+        "turnId": "01a1aa36-ba35-7a11-bfe5-185c7b938525"
+      },
+      {
+        "seq": 792,
+        "receivedAt": 1793857075826,
+        "kind": "frame",
+        "body": {
+          "type": "turn/completed"
+        },
+        "turn": {
+          "id": "01a1aa36-ba35-7a11-bfe5-185c7b938525",
+          "status": "completed"
+        }
+      },
+      {
+        "seq": 793,
+        "receivedAt": 1793857077772,
+        "kind": "response",
+        "requestId": "12650df2-0084-4376-aff0-f844e152d308",
+        "body": {
+          "kind": "exited",
+          "code": 0
+        }
+      }
+    ]
+  },
+  {
+    "pr": 630,
+    "run": 41996285253,
+    "job": 127140145055,
+    "records": [
+      {
+        "seq": 773,
+        "receivedAt": 1793868160403,
+        "kind": "request",
+        "id": "f56d2998-6963-443c-a092-0b2e645af24f",
+        "body": {
+          "kind": "compact"
+        }
+      },
+      {
+        "seq": 774,
+        "receivedAt": 1793868160413,
+        "kind": "response",
+        "requestId": "f56d2998-6963-443c-a092-0b2e645af24f",
+        "body": {
+          "kind": "accepted"
+        }
+      },
+      {
+        "seq": 776,
+        "receivedAt": 1793868160421,
+        "kind": "frame",
+        "body": {
+          "type": "turn/started"
+        },
+        "turn": {
+          "id": "01a1aadf-dd9b-7c71-bcee-7cc736437c50",
+          "status": "inProgress"
+        }
+      },
+      {
+        "seq": 777,
+        "receivedAt": 1793868160429,
+        "kind": "request",
+        "id": "780a5f29-d88a-4d4a-86dd-f6a1604a578c",
+        "body": {
+          "kind": "abort"
+        }
+      },
+      {
+        "seq": 778,
+        "receivedAt": 1793868160429,
+        "kind": "response",
+        "requestId": "780a5f29-d88a-4d4a-86dd-f6a1604a578c",
+        "body": {
+          "kind": "rejected",
+          "code": "busy",
+          "reason": "Codex has not yet reported the compaction turn id required by turn/interrupt"
+        }
+      },
+      {
+        "seq": 779,
+        "receivedAt": 1793868160430,
+        "kind": "request",
+        "id": "6b087f5f-552c-4f6a-a0fa-6bfea1f4b923",
+        "body": {
+          "kind": "dispose"
+        }
+      },
+      {
+        "seq": 780,
+        "receivedAt": 1793868160440,
+        "kind": "frame",
+        "body": {
+          "type": "item/started"
+        },
+        "item": {
+          "id": "01a1aadf-dda7-7fd0-9d3d-e6bab76ecd23",
+          "type": "contextCompaction"
+        },
+        "turnId": "01a1aadf-dd9b-7c71-bcee-7cc736437c50"
+      },
+      {
+        "seq": 790,
+        "receivedAt": 1793868160507,
+        "kind": "frame",
+        "body": {
+          "type": "item/completed"
+        },
+        "item": {
+          "id": "01a1aadf-dda7-7fd0-9d3d-e6bab76ecd23",
+          "type": "contextCompaction"
+        },
+        "turnId": "01a1aadf-dd9b-7c71-bcee-7cc736437c50"
+      },
+      {
+        "seq": 792,
+        "receivedAt": 1793868160514,
+        "kind": "frame",
+        "body": {
+          "type": "turn/completed"
+        },
+        "turn": {
+          "id": "01a1aadf-dd9b-7c71-bcee-7cc736437c50",
+          "status": "completed"
+        }
+      },
+      {
+        "seq": 793,
+        "receivedAt": 1793868162783,
+        "kind": "response",
+        "requestId": "6b087f5f-552c-4f6a-a0fa-6bfea1f4b923",
+        "body": {
+          "kind": "exited",
+          "code": 0
+        }
+      }
+    ]
+  }
+]
