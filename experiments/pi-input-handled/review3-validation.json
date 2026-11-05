@@ -1,0 +1,78 @@
+{
+  "platform": "Linux x64",
+  "base": "74839802c635d05e065c82079cbc056e876b69d8",
+  "nativeVersions": {
+    "sdk": "1.5.0",
+    "rpc": "1.5.0",
+    "rpcMinimum": "1.4.0"
+  },
+  "customMessageControls": [
+    "command",
+    "timer",
+    "handled input hook",
+    "failed preparation flush"
+  ],
+  "controlsPassedOn": [
+    "SDK 1.5.0",
+    "RPC 1.5.0",
+    "RPC 1.4.0"
+  ],
+  "unit": {
+    "passed": 3276,
+    "customMessageSettlement": [
+      "SDK completed flag",
+      "SDK aborted flag",
+      "RPC completed flag",
+      "RPC aborted flag"
+    ]
+  },
+  "mockBehaviorPassed": 18,
+  "nativeVendorPassed": {
+    "sdk": 119,
+    "rpc": 113,
+    "rpcMinimumSubset": 19
+  },
+  "behaviorBackends": [
+    "pi-aimock",
+    "pi-rpc-aimock",
+    "pi-durable-aimock"
+  ],
+  "mutations": [
+    {
+      "name": "B1-ignore-independent-idle",
+      "caught": true
+    },
+    {
+      "name": "B3-ignore-own-promise",
+      "caught": true
+    },
+    {
+      "name": "B4-no-observe-evidence",
+      "caught": true
+    },
+    {
+      "name": "B5-no-subscription-observer",
+      "caught": true
+    },
+    {
+      "name": "B6-no-observe-after-promise",
+      "caught": true
+    },
+    {
+      "name": "B7-evidence-does-not-set-gate",
+      "caught": true
+    },
+    {
+      "name": "custom-message-counted-as-run",
+      "caught": true
+    }
+  ],
+  "platformLimit": "Final Windows temporary-directory correction awaits CI. No Windows or macOS native execution on this machine.",
+  "retainedLimits": [
+    "Queued handled command can launch EXT after the next input wins native admission.",
+    "RPC can lose EXT or the queued input according to the native admission winner.",
+    "Duplicate accepted input IDs and generic mixed root/child status remain as documented."
+  ],
+  "build": "passed",
+  "cleanPackedConsumer": "passed"
+}

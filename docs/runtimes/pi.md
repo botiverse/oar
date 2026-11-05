@@ -531,6 +531,11 @@ hooks retain the tested A → EXT → B order. Calling `prompt` inside settlemen
 would detach its promise and charge a later refusal to the preceding run.
 A `started` receipt followed by failure or settlement without any native run
 evidence retires the input without fabricating `completed`.
+Custom-message start/end frames alone are not run evidence: Pi also emits
+them for idle extension notices and when failed preparation flushes held
+notices. They remain in the record stream without occupying a run or
+inventing a terminal outcome. The [native notice controls](../../sea-trial/vendor/pi-custom-message.vendor.test.ts)
+cover commands, timers, input hooks and preparation failure.
 RPC clears its cancellation fallback after
 terminal stats and synchronous observers, so an abort in either window does
 not later kill a healthy child. SDK reports disposal if the session became
@@ -604,6 +609,17 @@ refusal returns that accepted input with `input_dropped`. OAR does not retry
 the hook or clear the competing native run. The ordinary terminal-observer
 exception above remains in force.
 
+There are two extension-admission race limits. In SDK, a queued command that
+calls `sendUserMessage("EXT")` and returns handled before EXT begins streaming
+can release the next held input first. With a slow EXT input hook, that input
+can win the native slot and EXT can be lost with an `extension_error` frame;
+older SDK queue draining happened to preserve A → EXT → C in this case. The
+settlement-action barrier above does not cover this detached command launch.
+RPC has no equivalent prompt-promise barrier: either the held input can be
+refused after EXT wins, or the held input can win and EXT can fail. The latter
+also occurred before this change. Native handling is not a guarantee that
+extension-started work reached the model; its error frames remain observable.
+
 `withdraw(inputId)` takes an input out of the FIFO before the drain prompts
 it (`accepted`) and answers `not_queued` after; pi's own `clearQueue()` is a
 different queue and is not used ([input cancellation](input-cancellation.md),
@@ -676,9 +692,9 @@ new pi event type a compile error.
 | `compaction_end` | `compaction_ended`: `aborted` → aborted, an `errorMessage` → failed with that reason, else completed; `willRetry` stays in `native` and the retry announces itself |
 | `auto_retry_start`, `summarization_retry_scheduled` | `retry` with `attempt`, `maxAttempts`, `delayMs`, and the error message as `reason` [src 0.84.2 types] |
 | `thinking_level_changed` | `effort` |
-| `agent_settled` | `turn_ended`, plus a context `usage` event |
+| `agent_settled` | `turn_ended` if native run evidence was observed, plus a context `usage` event |
 
-Other agent and turn boundaries, assistant `message_start`, queue, entry,
+Other agent and turn boundaries, assistant `message_start`, custom messages, queue, entry,
 session-info, bash execution and the other retry events are in the stream
 with no event.
 

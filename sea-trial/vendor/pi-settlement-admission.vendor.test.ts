@@ -53,16 +53,18 @@ describe.skipIf(!isPiBackend)("Pi settlement and native admission", () => {
     try {
       expect(await until(() => f.requests.includes("BOOT"))).toBe(true);
       expect(f.session.records().some(record => record.kind === "frame" && record.body.type === "agent_start")).toBe(false);
-      const captured: { idle?: ReturnType<typeof awaitIdle> } = {};
+      const captured: { idle?: ReturnType<typeof awaitIdle>; prompt?: ReturnType<typeof f.session.prompt> } = {};
       f.session.rawEvents(record => {
         if (captured.idle === undefined && record.kind === "frame" && record.body.events.some(event => event.kind === "text_delta")) {
           expect(f.session.status().value.kind).toBe("running");
           captured.idle = awaitIdle(f.session);
+          captured.prompt = f.session.prompt("OVERTAKE");
         }
       });
       f.gate("BOOT").resolve();
       expect(await until(() => captured.idle !== undefined)).toBe(true);
       expect(await captured.idle).toEqual({ kind: "completed" });
+      expect(await captured.prompt).toMatchObject({ kind: "rejected", code: "busy" });
       expect(f.session.status().value.kind).toBe("idle");
       expect(ends(f.session)).toHaveLength(1);
       expect(await promptAndWait(f.session, "NEXT")).toMatchObject({ kind: "ended", outcome: { kind: "completed" } });

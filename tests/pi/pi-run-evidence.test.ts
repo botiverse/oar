@@ -24,3 +24,14 @@ test.each([false, true])("settlement without run evidence has no fabricated outc
   const settled = foldPiEvent(queued.state, { type: "agent_settled", aborted });
   expect(settled.commands[0]?.body.events).toEqual([]);
 });
+
+test.each([false, true])("idle custom messages are retained but cannot prove a run, aborted=%s", aborted => {
+  const message = { role: "custom", customType: "notice", content: "hello", display: true, timestamp: 0 } as const;
+  const start = foldPiEvent(initialPiProjection, { type: "message_start", message });
+  const end = foldPiEvent(start.state, { type: "message_end", message });
+  expect(start.commands[0]?.body.native).toEqual({ type: "message_start", message });
+  expect(end.commands[0]?.body.native).toEqual({ type: "message_end", message });
+  expect(start.state.runStarted).toBe(false);
+  expect(end.state.runStarted).toBe(false);
+  expect(foldPiEvent(end.state, { type: "agent_settled", aborted }).commands[0]?.body.events).toEqual([]);
+});

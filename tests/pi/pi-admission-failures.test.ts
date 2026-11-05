@@ -23,6 +23,19 @@ async function fixture(mode: "SDK" | "RPC") {
 }
 const id = "11111111-1111-4111-8111-111111111111";
 
+test.each([["SDK", false], ["SDK", true], ["RPC", false], ["RPC", true]] as const)("%s custom messages followed by settlement (aborted=%s) do not invent a turn", async (mode, aborted) => {
+  const f = await fixture(mode);
+  try {
+    const message = { role: "custom", customType: "notice", content: "hello", display: true, timestamp: 0 };
+    f.emit({ type: "message_start", message });
+    f.emit({ type: "message_end", message });
+    f.settled(aborted); await settle();
+    expect(f.session.records().flatMap(record => record.kind === "frame" ? record.body.events.filter(event => event.kind === "turn_ended") : [])).toEqual([]);
+    expect(f.session.status().value.kind).toBe("idle");
+    expect(await f.session.prompt("NEXT")).toMatchObject({ kind: "accepted" });
+  } finally { await f.close(); }
+});
+
 test("SDK dispatch avoids native settlement deferral so a refusal settles the correct input", async () => {
   const f = await fixture("SDK"); const b = f.hold("B");
   try {

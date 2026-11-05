@@ -247,11 +247,13 @@ export function foldPiEvent(
   extra: PiFoldExtra = {},
 ): { readonly state: PiProjectionState; readonly commands: readonly ProjectionCommand[] } {
   // A session_start extension can launch a run before we subscribe. Its
-  // message/tool/turn events still prove a run; configuration, persistence,
-  // queue and standalone compaction events do not.
+  // message/tool/turn events still prove a run. Custom messages can also be
+  // appended while idle or on failed preparation, so they do not prove one;
+  // neither do configuration, persistence, queue or standalone compaction.
   const runEvidence = event.type === "agent_start" || event.type === "agent_end"
     || event.type === "turn_start" || event.type === "turn_end"
-    || event.type === "message_start" || event.type === "message_update" || event.type === "message_end"
+    || ((event.type === "message_start" || event.type === "message_end") && event.message.role !== "custom")
+    || event.type === "message_update"
     || event.type === "tool_execution_start" || event.type === "tool_execution_update" || event.type === "tool_execution_end"
     || event.type === "auto_retry_start" || event.type === "auto_retry_end";
   const next = step(runEvidence ? { ...state, runStarted: true } : state, event, extra);

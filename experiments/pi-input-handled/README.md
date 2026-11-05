@@ -111,7 +111,12 @@ This is a public type change for the minor release after 0.88.0:
 - SDK holds queued inputs until its prompt promise finishes, including
   settlement-time extension actions. A run whose `agent_start` preceded
   subscription still ends on native settlement when later run events exist;
-  no-evidence settlement invents neither completed nor aborted.
+  idle custom-message notices are not run evidence, and no-evidence settlement
+  invents neither completed nor aborted. A queued command's detached EXT
+  launch can still lose the next native slot with an observable extension
+  error; the SDK barrier covers awaited settlement actions, not detached
+  work after a handled receipt. RPC can lose either the held input or EXT
+  according to which wins admission. These limits are documented in pi.md.
 - CLI JSON output for handled input is `{ disposition: ... }`; it does not
   print a fabricated completed outcome. Arena and repository examples handle
   the new arm explicitly.
@@ -154,7 +159,7 @@ from awaitIdle rather than claiming a failed turn.
 A synthetic ancestor CLAUDE.md control confirmed that native context survives
 prompt replacement. The exact prompt snapshot now creates its working directory
 under Node's OS default temporary directory with TMPDIR/TMP/TEMP overrides
-removed case-insensitively, matching Windows environment-name semantics.
+removed case-insensitively inside the path-query child after it starts.
 Runners can put their configured temp directory inside an agent
 checkout. Both SDK and RPC are checked with such an inherited directory. The
 expected prompt and compaction assertions remain unchanged. Reverting to the
@@ -166,9 +171,15 @@ The [original failing job](https://github.com/botiverse/oar/actions/runs/4203385
 is retained; this is separate from the ancestor-context failure. The next
 [Windows job](https://github.com/botiverse/oar/actions/runs/42049301862/job/127320754447)
 passed all 114 other vendor cases, including the six new settlement controls,
-but its snapshot still contained the synthetic ancestor. The fixture now
-removes all case spellings of the temporary-directory overrides; that platform
-correction awaits the next Windows CI result.
+but its snapshot still contained the synthetic ancestor. Removing all case
+spellings before spawn did not fix the [following Windows run](https://github.com/botiverse/oar/actions/runs/42050450407/job/127324844307).
+Node 24.22.2's bundled [libuv Windows process implementation](https://github.com/nodejs/node/blob/v24.22.2/deps/uv/src/win/process.c#L47)
+restores a missing TEMP from the parent. The fixture therefore clears overrides
+inside the path-query child before calling Node's tmpdir. Linux hostile-temp
+controls pass; the final Windows correction awaits CI.
+That run also retained a separate [Windows CodeBuddy installation timeout](https://github.com/botiverse/oar/actions/runs/42050450407/job/127324844350)
+after its unit, mock and build steps passed. Its installer test and 180-second
+deadline are unchanged; the log does not establish a cause.
 
 | Review boundary | Committed regression |
 | --- | --- |
@@ -199,6 +210,34 @@ reversions proved the hostile-temp-directory tests detect ancestor context.
 Selected outcomes are in [review2-validation.json](review2-validation.json).
 Existing replay snapshots and the expected system prompt were unchanged.
 Windows and macOS results remain for the revised pull request's CI.
+
+Third review isolates custom-message notices from run evidence. Real SDK 1.5.0
+controls reproduce the idle command, timer and handled-input-hook deadlock when
+the filter is removed. A fourth control queues a non-triggering custom notice
+inside `before_agent_start`, then deliberately supplies an invalid extension
+tool loadout. Native `_prepareRun` fails and flushes that notice; the fixed
+adapter records the failure and still accepts the next prompt. The same four
+controls run on RPC 1.5.0 and the 1.4.0 floor. Controlled SDK/RPC settlements
+with no start evidence invent neither completed nor aborted after a notice.
+
+The bootstrap native control now tries a new prompt while BOOT emits text:
+status is running and admission must report busy. This catches B7 without
+losing the legitimate BOOT end or A/BOOT → EXT → B ordering. Four controlled
+queue regressions separately delay the owning prompt's completion and the
+independent native idle wait, including a run that began before subscription
+and a handover from an owned prompt. B1, B3, B4, B5 and B6 all fail those FIFO
+assertions when reverted; they are not equivalent mutations. Restoring custom
+message start/end as run evidence fails all four new native controls and the
+no-start settlement checks. Selected outcomes are in
+[review3-validation.json](review3-validation.json).
+
+Third review validation passed full check (3,276 tests and 18 mock behavior
+cases), build, clean packed-consumer installation, all three Pi behavior
+backends, full Pi 1.5.0 vendor suites
+(119 SDK / 113 RPC), and 19 focused RPC 1.4.0 cases. This revision changes only
+Pi run-evidence classification, its regression tests and documentation; the
+previous round's all-backend validation remains separate above. The
+system-prompt correction still needs the new Windows/macOS CI results.
 
 Simultaneous accepted queue entries sharing one inputId remain outside this
 repair: their second dispatch can be refused by carries validation, without a

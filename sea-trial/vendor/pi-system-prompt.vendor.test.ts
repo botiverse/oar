@@ -44,11 +44,14 @@ describe.skipIf(!isPiBackend)("Pi system prompt boundary", () => {
     const configuredTemp = path.join(inherited, ".raft", "agents", "tmp");
     await mkdir(configuredTemp, { recursive: true });
     for (const key of ["TMPDIR", "TMP", "TEMP"]) { vi.stubEnv(key, configuredTemp); }
-    // Windows environment names are case-insensitive and may retain the
-    // original spelling (for example, Temp rather than TEMP).
-    const environment = Object.fromEntries(Object.entries(process.env)
-      .filter(([key]) => !["TMPDIR", "TMP", "TEMP"].includes(key.toUpperCase())));
-    const nativeTemp = execFileSync(process.execPath, ["-e", "process.stdout.write(require('node:os').tmpdir())"], { env: environment, encoding: "utf8" });
+    // libuv restores a missing Windows TEMP when spawning. Clear overrides
+    // inside the child, after spawn, before asking Node for its OS default.
+    const nativeTemp = execFileSync(process.execPath, ["-e", `
+      for (const key of Object.keys(process.env)) {
+        if (["TMPDIR", "TMP", "TEMP"].includes(key.toUpperCase())) delete process.env[key];
+      }
+      process.stdout.write(require("node:os").tmpdir());
+    `], { encoding: "utf8" });
     // Canonicalize once so SDK input and RPC process.cwd() agree on macOS.
     const cwd = await realpath(await mkdtemp(path.join(nativeTemp, "oar-pi-system-")));
     let session: Awaited<ReturnType<typeof piSession>> | undefined = undefined;
