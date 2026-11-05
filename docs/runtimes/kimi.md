@@ -181,9 +181,9 @@ directory `session()` rejects with an `UnsupportedOptionError` on `cwd` whose
 message names both directories ([resume in another directory](resume-cwd.md),
 [test](../../tests/acp/acp-resume-cwd.test.ts)). A missing list capability,
 unlisted id, missing cwd or incomplete listing also refuses `cwd` before any
-resume. A listing RPC error becomes the same typed refusal with its original
-error in `cause`. List absence cannot prove a missing session, so it does not
-produce `SessionNotFoundError`; failures after a confirmed cwd retain their
+resume. Listing authentication, process-exit and other RPC errors retain
+their existing failure classification; no resume follows them. List absence
+cannot prove a missing session, so it does not produce `SessionNotFoundError`; failures after a confirmed cwd retain their
 native classification ([missing targets](../spec/runtime-matrix.md#missing-resume-targets)).
 
 ```ts

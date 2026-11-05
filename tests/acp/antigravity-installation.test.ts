@@ -17,7 +17,7 @@ test.each([
   ["1.5.0\n", "available"],
   ["1.4.9\n", "unsupported"],
   ["1.5.0-beta.1\n", "unsupported"],
-  ["Update available\n1.5.0\n", "available"],
+  ["Update available\n1.5.0\n", "unsupported"],
   ["1.5.0\n1.6.0\n", "unsupported"],
   ["1.107.0\n0123456789abcdef0123456789abcdef01234567\nx64\n", "unsupported"],
   ["Build label: 1.4.5\n", "unsupported"],

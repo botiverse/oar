@@ -7,7 +7,7 @@ import { versionAtLeast } from "../../shared/update.js";
 
 /** The standalone CLI prints a bare release, unlike the retired ACP server's build stamp. */
 export function readAntigravityVersion(stdout: string): string | undefined {
-  return /^(?:Update available\r?\n)?(\d+\.\d+\.\d+(?:-[A-Za-z\d.-]+)?)$/u.exec(stdout.trim())?.[1];
+  return /^(\d+\.\d+\.\d+(?:-[A-Za-z\d.-]+)?)$/u.exec(stdout.trim())?.[1];
 }
 
 /** Official installer locations, including GUI hosts whose PATH omits them. */

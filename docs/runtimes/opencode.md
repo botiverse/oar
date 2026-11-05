@@ -441,9 +441,9 @@ session from a non-git directory when the resume named a git repository.
 
 On both release lines, OAR requires a matching list entry with a confirmed
 saved cwd before resume. Missing list support, unlisted ids, missing cwd and
-incomplete listings produce `UnsupportedOptionError` on `cwd`; listing RPC
-failures use the same type and retain the original error in `cause`. List
-absence does not produce `SessionNotFoundError`. After cwd confirmation, a
+incomplete listings produce `UnsupportedOptionError` on `cwd`. Listing
+authentication, process-exit and other RPC failures retain their existing
+classification and prevent resume. List absence does not produce `SessionNotFoundError`. After cwd confirmation, a
 native resume error retains its original classification: V1's generic
 `-32603 OpenCode service failure` cannot prove absence
 ([missing targets](../spec/runtime-matrix.md#missing-resume-targets)).

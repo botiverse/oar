@@ -148,10 +148,10 @@ OAR therefore refuses an unknown saved cwd before either native request,
 with `UnsupportedOptionError("cwd", ...)`, for unprompted and absent ids
 alike. Missing list support, missing/empty cwd, malformed pages and cursor
 loops cannot bypass that guard. The same positive-evidence rule applies to
-Kimi and OpenCode, which also retain native cwd. Native listing errors become
-typed cwd refusals with the original error in `cause`; a listed session's
-generic resume error is not mapped
-to missing. Hosts may open a new session, but cannot infer history loss from
+Kimi and OpenCode, which also retain native cwd. Listing authentication,
+process-exit and other RPC errors retain their existing failure classification
+and prevent resume. They do not establish a directory mismatch or unusable
+session. A listed session's generic resume error is not mapped to missing. Hosts may open a new session, but cannot infer history loss from
 these refusals. Existing service history is neither migrated nor deleted.
 
 ### MCP behavior is measured at the provider and server
@@ -250,10 +250,10 @@ The adapter's local native behavior suite passed 17 cases, with two
 capability skips. The full native vendor set passed 12 cases, including
 model listing, steering and resume guards.
 The tests use real CLI processes and tools with scripted model responses.
-No personal-account inference, reliable child identity link, native
-Windows/macOS run, usage guarantee or compaction-completion mapping is
-claimed. Existing completed-looking provider failures remain honest native
-observations.
+These local controls ran on Linux; the CI observations below separately
+cover macOS and Windows. No personal-account inference, reliable child
+identity link, usage guarantee or compaction-completion mapping is claimed.
+Existing completed-looking provider failures remain honest native observations.
 
 Two negative controls failed as intended: removing prompt supersession made
 the held-loop test observe idle instead of running; changing the MCP
@@ -262,13 +262,13 @@ mutations were reverted. The review revision added six more controls: removing
 supersession, ignoring a replacement error, skipping native close, bypassing
 unknown-cwd refusal, closing without the advertised capability, or allowing
 close failure to discard a model catalog each failed its corresponding
-regression. All six mutations were reverted. The latest review adds eight
-mutation controls: skipping configuration confirmation, accepting a conflicting
-notification, allowing an early rejected steer to own the turn, dropping the
-typed list error, bypassing a failed list, rejecting an old PATH-only install,
-requiring writable shell profiles, and accepting VS Code's version output.
-Each makes its targeted regression fail. The steer case ends the original
-prompt directly, without a third prompt that could mask the wrong outcome.
+regression. All six mutations were reverted. Further controls cover
+configuration confirmation, early rejected-steer ownership, installation
+migration and version parsing. The current revision's three negative controls
+remove Windows drive-prefix normalization, wrap listing failures as cwd
+refusals, or accept the unsupported update notice. Each makes its targeted
+regression fail. The steer control ends the original prompt directly, without
+a third prompt that could mask the wrong outcome.
 
 The default unit/fake suite covers the CLI launch line, version floor,
 Windows/POSIX discovery paths, migration preflight, model selectors,
@@ -283,15 +283,34 @@ SHA-512 is verified before extraction/execution; the local Linux invocation
 of that same installer passed. The first three-platform CI exposed the effort
 race above, a macOS `/private`
 path alias, and a Windows fixture missing `USERPROFILE`. Directory comparison
-now uses the existing `sameDirectory` rule. The isolated fixture sets both
+uses filesystem canonicalization for aliases. A subsequent Windows run
+[reported](https://github.com/botiverse/oar/actions/runs/41983739833/job/127099535734)
+native saved cwd `/D:/a/oar/oar` against requested
+`D:\a\oar\oar`, refusing all four prompted-session resumes. The shared
+comparison now strips that URI-style drive prefix only on Windows. Unit
+controls cover drive mismatch, different directories, UNC paths, literal
+percent characters and unchanged POSIX paths; native vendor cases continue
+to require successful resume. The isolated fixture sets both
 HOME and USERPROFILE, matching the CLI's native home lookup. Linux controls
-pass; the macOS/Windows corrections still require the new CI run. The manual
+pass. The previous revision's [macOS check](https://github.com/botiverse/oar/actions/runs/41983739833/job/127099535596)
+passed, including native resume. The Windows drive-prefix correction still
+requires the new native CI run. The manual
 sharing-evidence workflow uses the same installer and
 current native tool schemas instead of the retired 1.4.5 server archive.
-On the rebased release baseline, the full check passed 3,192 unit tests and
+On the rebased release baseline, the full check passed 3,208 unit tests and
 18 mock behavior cases. All 15 configured behavior backends passed; native
 vendor regressions also passed for Antigravity, Kimi, OpenCode and Grok.
 Build and clean package installation results are recorded in the pull request.
+
+The final directory/error revision tests all three profiles (Antigravity,
+Kimi and OpenCode) against authentication errors, generic listing errors and
+worker exit, requiring the original classification and no resume/load call.
+Unexpected version notices are rejected until native evidence establishes a
+supported form. Separate follow-ups cover rejected-steer/natural-response
+intersection and accepted-steer worker exit (task #176), and a stale
+configuration update arriving before the correct one (task #177). The
+natural-response and stale-update findings currently have fake-agent evidence
+only; they are not claimed as native reproductions or fixed here.
 
 ## Host migration and release-note draft
 

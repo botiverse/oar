@@ -25,6 +25,7 @@ function reply(request) {
 createInterface({ input: process.stdin }).on("line", (line) => {
   const request = JSON.parse(line);
   if (typeof process.env.FAKE_ACP_CALL_LOG === "string") { appendFileSync(process.env.FAKE_ACP_CALL_LOG, `${request.method}\n`); }
+  if (request.method === "session/list" && scenario.exitOnList !== undefined) { process.exit(scenario.exitOnList); }
   if (request.id === undefined) { return; }
   process.stdout.write(`${JSON.stringify({ jsonrpc: "2.0", id: request.id, ...reply(request) })}\n`);
 });

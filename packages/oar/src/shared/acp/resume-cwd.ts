@@ -5,24 +5,30 @@ import { UnsupportedOptionError } from "../../contracts/errors.js";
 import { asRecord, asRecordList, type JsonRecord } from "../json.js";
 import { type AcpProcess, methods, withAcpDeadline } from "./process.js";
 
-function real(dir: string): string {
+function real(dir: string, paths: typeof path): string {
   try {
     return realpathSync(dir);
   } catch {
-    return path.resolve(dir);
+    return paths.resolve(dir);
   }
 }
 
 /** The same directory, spelled or linked differently. */
-export function sameDirectory(left: string, right: string): boolean {
-  return path.resolve(left) === path.resolve(right) || real(left) === real(right);
+export function sameDirectory(left: string, right: string, platform: NodeJS.Platform = process.platform): boolean {
+  const paths = platform === "win32" ? path.win32 : path.posix;
+  // agy 1.5.0 reports Windows session/list cwd as /D:/path. Only remove
+  // that URI-style drive prefix on Windows; POSIX paths remain literal.
+  const normalize = (dir: string): string => platform === "win32" && /^\/[A-Za-z]:\//u.test(dir) ? dir.slice(1) : dir;
+  const a = normalize(left);
+  const b = normalize(right);
+  return paths.resolve(a) === paths.resolve(b) || real(a, paths) === real(b, paths);
 }
 
 /**
  * A resume is safe only after the saved cwd is positively confirmed. Absence
  * from session/list is not evidence of a missing id: agy omits sessions that
  * have not received a prompt, but resumes them in their original directory.
- * Listing RPC failures refuse cwd with the native error as their cause; no resume follows them.
+ * Listing failures retain their native error classification; no resume follows them.
  */
 export async function refuseResumeElsewhere(process: AcpProcess, sessionId: string, cwd: string, timeoutMs: number): Promise<void> {
   const method = methods.agent.session.list;
@@ -31,11 +37,7 @@ export async function refuseResumeElsewhere(process: AcpProcess, sessionId: stri
   do {
     const params: JsonRecord = cursor === null ? {} : { cursor };
     // oxlint-disable-next-line no-await-in-loop -- pages are sequential by construction.
-    const page = asRecord(await withAcpDeadline(process, method, timeoutMs, (requestOptions) => process.connection.agent.request(method, params, requestOptions)).catch((error: unknown) => {
-      const refusal = unknownResumeCwd(sessionId);
-      Object.defineProperty(refusal, "cause", { value: error, configurable: true });
-      throw refusal;
-    }));
+    const page = asRecord(await withAcpDeadline(process, method, timeoutMs, (requestOptions) => process.connection.agent.request(method, params, requestOptions)));
     const sessions = asRecordList(page?.sessions);
     if (!Array.isArray(page?.sessions) || sessions.length !== page.sessions.length
       || sessions.some((session) => typeof session.sessionId !== "string" || session.sessionId.length === 0)) {

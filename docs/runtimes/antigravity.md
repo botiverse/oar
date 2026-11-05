@@ -105,8 +105,10 @@ A different or unconfirmed directory gives `UnsupportedOptionError("cwd", ...)`.
 Missing listing capability, an incomplete listing and an unlisted id all
 refuse construction rather than silently opening elsewhere
 ([resume-cwd contract](resume-cwd.md)). A listing transport/authentication
-failure becomes a typed cwd refusal with the original error in `cause` and
-also prevents resume.
+failure retains its existing error classification and prevents resume;
+authentication failure does not mean the saved directory is unusable. On
+Windows, the CLI's URI-style `/D:/path` is compared as `D:\path`; POSIX paths
+and filesystem aliases still use their native directory semantics.
 
 On 1.5.0, a session closed before its first prompt is absent from the list,
 yet native resume/load can reopen it at the old cwd without reporting that
@@ -241,7 +243,8 @@ fallback). Without an explicit override, an unsupported old PATH copy does
 not hide a supported CLI at the official install location. An override is
 exclusive: OAR never silently substitutes a different executable for it.
 `--version` must report one unambiguous stable release of at least 1.5.0;
-standalone version lines among notices are accepted, prereleases are not.
+only the bare version line is accepted; additional notices and prereleases
+are rejected.
 Older CLI versions can return success and help for an unknown `acp` command,
 so help's exit code alone is insufficient. An unsupported selection reports
 its path and recognized version, with a migration instruction; the retired
@@ -255,8 +258,9 @@ curl -fsSL https://antigravity.google/cli/install.sh | bash
 ```
 
 The plan names its source and command. Preflight checks curl/bash and write
-access to `~/.local/bin`, `~/.cache/antigravity`, `~/.bashrc` and `~/.zshrc`;
-the vendor installer may modify those shell startup files. It verifies the
+access to `~/.local/bin` and `~/.cache/antigravity`;
+the vendor installer may also modify `~/.bashrc` and `~/.zshrc`, whose
+writability is not a prerequisite. It verifies the
 downloaded release checksum. The installer exits without upgrading an
 existing CLI, so an unsupported selected executable or a missing pinned
 path gives `unsupported` with reason `configuration` before any download.
