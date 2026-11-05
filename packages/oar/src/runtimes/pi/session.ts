@@ -1,6 +1,4 @@
-/* oxlint-disable import/max-dependencies -- SDK lifecycle, native admission, projection and shared session controls meet here. */
 import { piManualCompaction } from "./compaction.js";
-import { admitPiPrompt } from "./prompt.js";
 import type {
   RequestRecord, ContextUsage, ControlResult, InputOptions, ResponseBody, Session, StartSession } from "../../contracts/session.js";
 import type { PiProjectOptions } from "./options.js";
@@ -63,7 +61,7 @@ export const createPiSession = (project: PiProjectOptions = {}): StartSession =>
   // or an adopted agent_start) until pi's own agent_settled. Held in an
   // object so closures always read the live value.
   const gate = { running: false };
-  const compaction = piManualCompaction(kernel, () => gate.running || held.length > 0, async () => { await piAgentSession.compact(); }, () => { queueMicrotask(drainHeld); });
+  const compaction = piManualCompaction(kernel, () => gate.running, async () => { await piAgentSession.compact(); }, () => { queueMicrotask(drainHeld); });
   // Identity of the latest launched prompt, so a late rejection of an older
   // one cannot be misread as the current run's.
   let launch: object | null = null;
@@ -92,25 +90,31 @@ export const createPiSession = (project: PiProjectOptions = {}): StartSession =>
       : { tokens: usage.tokens, contextWindow: usage.contextWindow, percent: usage.percent };
   };
 
-  const start = async (input: string, images: readonly LoadedImage[]): Promise<{ response: ResponseBody; retry: boolean }> => {
+  // agent_start waiters: a prompt is `accepted` once pi actually starts the
+  // run, `rejected` with pi's own message if pi refuses it first.
+  const startWaiters = new Set<() => void>();
+  const start = async (input: string, images: readonly LoadedImage[]): Promise<ResponseBody> => {
     gate.running = true;
     projection = piPrompted(projection);
     const token = {};
     launch = token;
-    const { run, response: decided, started } = await admitPiPrompt(
-      piAgentSession, input, images.length === 0 ? {} : { images: piImages(images) },
-      () => kernel.unreachable(),
-    );
-    if (!started && launch === token) {
-      gate.running = piAgentSession.isStreaming;
+    const { promise: started, resolve: onStarted } = Promise.withResolvers<void>();
+    startWaiters.add(onStarted);
+    const run = piAgentSession.prompt(input, images.length === 0 ? undefined : { images: piImages(images) });
+    const nativeDecision = await Promise.race<ResponseBody>([
+      started.then(() => ({ kind: "accepted" })),
+      run.then(
+        () => ({ kind: "accepted" }),
+        (error: unknown) => ({ kind: "rejected", code: "runtime_refused", reason: error instanceof Error ? error.message : "pi prompt failed" }),
+      ),
+    ]);
+    startWaiters.delete(onStarted);
+    const decided = kernel.unreachable() ?? nativeDecision;
+    if (decided.kind === "rejected") {
+      gate.running = false;
       pendingAbort = false;
       launch = null;
-      // A native refusal or extension-handled input has no agent_settled.
-      // Held work still gets its own dispatch or recorded refusal.
-      queueMicrotask(drainHeld);
-    }
-    if (decided.kind === "rejected") {
-      return { response: decided, retry: !started && piAgentSession.isStreaming && kernel.unreachable() === null };
+      return decided;
     }
     void (async (): Promise<void> => {
       try {
@@ -134,7 +138,7 @@ export const createPiSession = (project: PiProjectOptions = {}): StartSession =>
         }
       }
     })();
-    return { response: decided, retry: false };
+    return decided;
   };
   function drainHeld(): void {
     if (disposeRequest !== null || gate.running || compaction.busy()) {
@@ -145,16 +149,8 @@ export const createPiSession = (project: PiProjectOptions = {}): StartSession =>
       return;
     }
     void (async (): Promise<void> => {
-      const { response: decided, retry } = await start(next.input, next.images);
-      if (retry) {
-        // A native extension won admission after we took this held input.
-        // Preserve its place until that independent run settles.
-        held.unshift(next);
-        queueMicrotask(drainHeld);
-        return;
-      }
+      const decided = await start(next.input, next.images);
       if (decided.kind === "rejected") {
-        if (kernel.unreachable() !== null) { return; }
         // The queue took the input over; pi refusing it is not silent: pi's
         // refusal enters the stream (no turn ever started, so no turn end).
         kernel.frame({ type: "pi/prompt_rejected", native: { message: decided.reason, input: next }, events: [] });
@@ -168,6 +164,9 @@ export const createPiSession = (project: PiProjectOptions = {}): StartSession =>
   piAgentSession.subscribe((event) => {
     if (event.type === "agent_start") {
       gate.running = true;
+      for (const waiter of startWaiters) {
+        waiter();
+      }
       if (pendingAbort) {
         pendingAbort = false;
         void abortNative();
@@ -177,16 +176,13 @@ export const createPiSession = (project: PiProjectOptions = {}): StartSession =>
     const { state: nextProjection, commands } = foldPiEvent(projection, event, extra);
     projection = nextProjection;
     for (const command of commands) {
-      const ended = command.body.events.some((item) => item.kind === "turn_ended");
-      if (ended) {
-        // Observers may submit synchronously from this frame. Release only
-        // the old run before publishing; never clear their new run afterwards.
+      kernel.frame(command.body);
+      if (command.body.events.some((item) => item.kind === "turn_ended")) {
         gate.running = false;
         pendingAbort = false;
         launch = null;
+        drainHeld();
       }
-      kernel.frame(command.body);
-      if (ended) { drainHeld(); }
     }
   });
 
@@ -211,15 +207,18 @@ export const createPiSession = (project: PiProjectOptions = {}): StartSession =>
     prompt: async (input, inputOptions?: InputOptions): Promise<ControlResult> => {
       const body = { kind: "prompt" as const, input, ...inputOptions };
       const result = await kernel.control(body, async () => {
-        if (gate.running || held.length > 0 || compaction.busy()) {
+        if (gate.running || compaction.busy()) {
           return { kind: "rejected", code: "busy", reason: "busy" };
         }
         const decided = await withInputImages(capabilities, inputOptions?.images, async (images) => {
           const started = await start(input, images);
-          return started.response;
+          return started;
         });
         return decided;
       });
+      // A pre-start refusal has no settlement to release queued work.
+      // Publish its response before dispatching the next input.
+      drainHeld();
       return result;
     },
     steer: async (input, inputOptions?: InputOptions): Promise<ControlResult> => {

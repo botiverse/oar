@@ -46,19 +46,6 @@ test.each(["SDK", "RPC"] as const)("Pi %s drains held work after preflight refus
   } finally { a.resolve("refused"); b.resolve("refused"); await f.close(); }
 });
 
-test("SDK terminal reentry waits for native admission instead of accepting a deferred prompt", async () => {
-  const f = await fixture("SDK"); const b = f.hold("B"); const observed: Promise<ControlResult>[] = [];
-  try {
-    await f.session.prompt("A"); onEnd(f.session, () => { observed.push(f.session.prompt("B")); });
-    f.end(); await settle();
-    let answered = false; void (async () => { await observed[0]; answered = true; })(); await settle();
-    expect(answered).toBe(false); expect(f.deferrals()).toBe(0);
-    b.resolve("refused"); expect(await observed[0]).toMatchObject({ kind: "rejected", code: "runtime_refused" });
-    expect(await f.session.prompt("C")).toMatchObject({ kind: "accepted" });
-    expect(f.prompts).toEqual(["A", "B", "C"]);
-  } finally { b.resolve("refused"); await f.close(); }
-});
-
 test("SDK preflight refusal clears its pending abort before the next run", async () => {
   const f = await fixture("SDK"); const a = f.hold("A");
   try {
@@ -101,16 +88,6 @@ test("RPC keeps queued dispatch after the observable terminal frame", async () =
   } finally { await f.close(); }
 });
 
-test("RPC state replies after extension dispatch preserve the current model and effort", async () => {
-  const f = await fixture("RPC");
-  try {
-    f.emit({ type: "response", command: "get_state", success: true, data: { model: { provider: "extension", id: "changed" }, thinkingLevel: "high" } });
-    await settle();
-    const frames = f.session.records().flatMap(record => record.kind === "frame" && record.body.type === "response" ? [record.body] : []);
-    expect(frames.at(-1)?.events).toEqual([{ kind: "model", model: "extension/changed" }, { kind: "effort", effort: "high" }]);
-  } finally { await f.close(); }
-});
-
 test("RPC clears cancellation fallback rearmed while terminal stats are pending", async () => {
   const f = await fixture("RPC"); const stats = f.holdStats(); const kill = vi.spyOn(f.child, "kill");
   try {
@@ -123,53 +100,6 @@ test("RPC clears cancellation fallback rearmed while terminal stats are pending"
   } finally { vi.useRealTimers(); await f.close(); }
 });
 
-test("SDK extension-handled input releases its reservation and drains held work without a fake turn", async () => {
-  const f = await fixture("SDK"); const a = f.hold("A");
-  try {
-    const first = f.session.prompt("A"); await settle(); await f.session.queue("B");
-    a.resolve("handled"); expect(await first).toMatchObject({ kind: "accepted" }); await settle();
-    expect(f.prompts).toEqual(["A", "B"]);
-    expect(f.session.records().filter(record => record.kind === "frame").map(record => record.body.type)).toEqual(["agent_start"]);
-  } finally { a.resolve("handled"); await f.close(); }
-});
-
-test("SDK dispose in the terminal observer prevents its newly reserved prompt from reaching Pi", async () => {
-  const f = await fixture("SDK"); const observed: Promise<ControlResult>[] = []; const disposed: Promise<void>[] = [];
-  try {
-    await f.session.prompt("A");
-    onEnd(f.session, () => { observed.push(f.session.prompt("B")); disposed.push(f.session.dispose()); });
-    f.end(); await settle(); await Promise.all(disposed);
-    expect(await observed[0]).toMatchObject({ kind: "rejected", code: "disposed" }); expect(f.prompts).toEqual(["A"]);
-  } finally { await f.close(); }
-});
-
-test("SDK does not accept a pending input when an unrelated extension run starts", async () => {
-  const f = await fixture("SDK"); const pending = f.hold("B");
-  try {
-    let answered = false;
-    const result = (async (): Promise<ControlResult> => { const value = await f.session.prompt("B"); answered = true; return value; })();
-    await settle(); f.begin(); await settle();
-    expect(answered).toBe(false);
-    pending.resolve("refused");
-    expect(await result).toMatchObject({ kind: "rejected", code: "runtime_refused" });
-    expect(await f.session.prompt("cannot replace extension")).toMatchObject({ kind: "rejected", code: "busy" });
-    expect(f.session.records().some(record => record.kind === "frame" && record.body.events.some(event => event.kind === "turn_ended"))).toBe(false);
-  } finally { pending.resolve("refused"); await f.close(); }
-});
-
-test.each(["SDK", "RPC"] as const)("Pi %s returns a held input to the front when an extension wins admission", async mode => {
-  const f = await fixture(mode); const pending = f.hold("B");
-  try {
-    await f.session.prompt("A"); await f.session.queue("B"); await f.session.queue("C");
-    f.end(); await settle(); f.begin(); pending.resolve("refused"); await settle();
-    expect(f.prompts).toEqual(["A", "B"]);
-    expect(f.session.records().filter(record => record.kind === "frame" && record.body.type === "pi/prompt_rejected")).toEqual([]);
-    f.hold("B").resolve("start"); f.end(); await settle();
-    expect(f.prompts).toEqual(["A", "B", "B"]);
-    f.end(); await settle(); expect(f.prompts).toEqual(["A", "B", "B", "C"]);
-  } finally { pending.resolve("refused"); await f.close(); }
-});
-
 test("SDK disposal during preflight is reported as disposed even if native preflight later reports started", async () => {
   const f = await fixture("SDK"); const pending = f.hold("A");
   try {
@@ -178,4 +108,89 @@ test("SDK disposal during preflight is reported as disposed even if native prefl
     expect(await result).toMatchObject({ kind: "rejected", code: "disposed" });
     expect(f.session.records().filter(record => record.kind === "frame" && record.body.type === "pi/prompt_rejected")).toEqual([]);
   } finally { pending.resolve("refused"); await f.close(); }
+});
+
+// Pi's native settlement emitter can defer prompt() without a per-input admission result.
+test.each(["SDK", "RPC"] as const)("Pi %s keeps synchronous terminal submission busy until the observer returns", async mode => {
+  const f = await fixture(mode); const observed: { status: string; result: Promise<ControlResult> }[] = [];
+  try {
+    await f.session.prompt("A");
+    onEnd(f.session, () => { observed.push({ status: f.session.status().value.kind, result: f.session.prompt("B") }); });
+    f.end(); await settle();
+    expect(observed[0]?.status).toBe("idle");
+    expect(await observed[0]?.result).toMatchObject({ kind: "rejected", code: "busy" });
+    expect(f.prompts).toEqual(["A"]); expect(f.deferrals()).toBe(0);
+    expect(await f.session.prompt("B")).toMatchObject({ kind: "accepted" });
+    expect(f.prompts).toEqual(["A", "B"]); expect(f.session.status().value.kind).toBe("running");
+  } finally { await f.close(); }
+});
+
+test.each([
+  ["SDK", "prompt"], ["SDK", "queue"], ["RPC", "prompt"], ["RPC", "queue"],
+] as const)("Pi %s preserves held FIFO against terminal observer %s without releasing early", async (mode, control) => {
+  const f = await fixture(mode); const results: Promise<ControlResult>[] = [];
+  try {
+    await f.session.prompt("A"); await f.session.queue("B");
+    onEnd(f.session, () => { results.push(f.session[control]("C")); });
+    f.end(); await settle();
+    expect(await results[0]).toMatchObject(control === "prompt" ? { kind: "rejected", code: "busy" } : { kind: "accepted" });
+    expect(f.prompts).toEqual(["A", "B"]);
+    f.end(); await settle();
+    expect(f.prompts).toEqual(control === "queue" ? ["A", "B", "C"] : ["A", "B"]);
+  } finally { await f.close(); }
+});
+
+test.each(["SDK", "RPC"] as const)("Pi %s keeps terminal observer compaction behind held input", async mode => {
+  const f = await fixture(mode); const results: unknown[] = [];
+  try {
+    await f.session.prompt("A"); await f.session.queue("B");
+    onEnd(f.session, () => { results.push(f.session.compact?.()); });
+    f.end(); await settle();
+    expect(await results[0]).toMatchObject({ kind: "rejected", code: "busy" });
+    expect(f.prompts).toEqual(["A", "B"]);
+  } finally { await f.close(); }
+});
+
+test("SDK disposal while a held input is in preflight records no fabricated native refusal", async () => {
+  const f = await fixture("SDK"); const b = f.hold("B");
+  try {
+    await f.session.prompt("A"); await f.session.queue("B"); f.end(); await settle();
+    expect(f.prompts).toEqual(["A", "B"]);
+    await f.session.dispose(); b.resolve("refused"); await settle();
+    expect(f.session.records().filter(record => record.kind === "frame" && record.body.type === "pi/prompt_rejected")).toEqual([]);
+  } finally { b.resolve("refused"); await f.close(); }
+});
+
+test("RPC clears cancellation fallback rearmed by a synchronous terminal observer", async () => {
+  const f = await fixture("RPC"); const kill = vi.spyOn(f.child, "kill"); const aborted: Promise<ControlResult>[] = [];
+  try {
+    await f.session.prompt("A"); vi.useFakeTimers();
+    onEnd(f.session, () => { aborted.push(f.session.abort()); }); f.end();
+    await vi.advanceTimersByTimeAsync(10_001);
+    expect(await aborted[0]).toMatchObject({ kind: "accepted" }); expect(kill).not.toHaveBeenCalled();
+    expect(await f.session.prompt("C")).toMatchObject({ kind: "accepted" });
+  } finally { vi.useRealTimers(); await f.close(); }
+});
+
+test.each(["SDK", "RPC"] as const)("Pi %s records a pre-start refusal before the next queued native start", async mode => {
+  const f = await fixture(mode); const a = f.hold("A");
+  try {
+    const first = f.session.prompt("A"); await settle(); await f.session.queue("B");
+    a.resolve("refused"); const refused = await first; await settle();
+    const start = f.session.records().find(record => record.kind === "frame" && record.body.type === "agent_start");
+    expect(start?.seq).toBeGreaterThan(refused.response.seq);
+    expect(f.session.status().value.kind).toBe("running");
+    expect(await f.session.prompt("C")).toMatchObject({ kind: "rejected", code: "busy" });
+  } finally { a.resolve("refused"); await f.close(); }
+});
+
+test("SDK native rejection after start clears cancellation before the next run", async () => {
+  const f = await fixture("SDK");
+  try {
+    await f.session.prompt("A"); f.sdk.isStreaming = false;
+    await f.session.abort(); f.runs[0]?.reject(new Error("native prompt failed before settlement")); await settle();
+    expect(f.session.records().filter(record => record.kind === "frame" && record.body.type === "pi/prompt_rejected")).toHaveLength(1);
+    expect(await f.session.prompt("C")).toMatchObject({ kind: "accepted" });
+    expect(f.aborts()).toBe(0); expect(f.session.status().value.kind).toBe("running");
+  } finally { await f.close(); }
 });

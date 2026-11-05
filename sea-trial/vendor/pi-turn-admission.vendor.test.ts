@@ -47,8 +47,8 @@ async function nextAtEnd(session: Session, action: () => Promise<ControlResult>)
   return observed.promise;
 }
 
-// oxlint-disable-next-line max-statements -- Native A ends, its observer starts B, and B stays reserved until its own completion.
-test.skipIf(!isPiBackend && !durable)("a native Pi terminal observer can prompt the next run without old cleanup releasing it", async () => {
+// oxlint-disable-next-line max-statements -- Native A ends; SDK/RPC defer B until the observer returns, while Durable admits it directly.
+test.skipIf(!isPiBackend && !durable)("native Pi terminal submission follows the documented SDK/RPC exception and Durable admission", async () => {
   const native = await fixture(); const { session } = native;
   try {
     const observed = nextAtEnd(session, async () => session.prompt("B"));
@@ -56,7 +56,10 @@ test.skipIf(!isPiBackend && !durable)("a native Pi terminal observer can prompt 
     await native.entered(1); native.release[0]?.resolve();
     const next = await observed;
     expect(next.status).toBe("idle");
-    const accepted = await next.result; assert.equal(accepted.response.body.kind, "accepted");
+    const synchronous = await next.result;
+    expect(synchronous).toMatchObject(durable ? { kind: "accepted" } : { kind: "rejected", code: "busy" });
+    const accepted = durable ? synchronous : await session.prompt("B");
+    assert.equal(accepted.response.body.kind, "accepted");
     await native.entered(2);
     expect(native.requests).toEqual(["A", "B"]);
     expect(session.status().value.kind).toBe("running");

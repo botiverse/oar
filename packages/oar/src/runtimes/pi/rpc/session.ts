@@ -6,7 +6,7 @@ import { createAbortFallback } from "../../../shared/abort-fallback.js";
 import { withdrawControl } from "../../../shared/held-input.js";
 import { withInputImages, type LoadedImage } from "../../../shared/input-images.js";
 import { withSessionCredentials } from "../../../shared/session-credentials.js";
-import { foldPiEvent, initialPiProjection, piPrompted, piRpcStateEvents } from "../projection.js";
+import { foldPiEvent, initialPiProjection, piPrompted } from "../projection.js";
 import type { PiRuntimeOptions } from "../options.js";
 import { openPiRpc } from "./open.js";
 
@@ -24,12 +24,11 @@ export const createPiRpcSession = (runtime: PiRuntimeOptions): StartSession => w
   let projection = initialPiProjection;
   let running = false;
   let started = false;
-  let launch: object | null = null;
   let pendingAbort = false;
   let disposeRequest: RequestRecord | null = null;
   let disposePromise: Promise<void> | null = null;
   let pump = Promise.resolve();
-  const compaction = piManualCompaction(kernel, () => running || held.length > 0, async () => {
+  const compaction = piManualCompaction(kernel, () => running, async () => {
     // A rejected transport promise is not a native compaction failure. The
     // process exit below settles the caller after its final stdout is folded.
     const response = await rpc.control.request({ type: "compact" }).catch(() => null);
@@ -45,46 +44,28 @@ export const createPiRpcSession = (runtime: PiRuntimeOptions): StartSession => w
       if (!response.success) { kernel.frame({ type: "pi/abort_rejected", native: response, events: [] }); }
     } catch { /* Exit and the bounded fallback are observed separately. */ }
   };
-  const nativeRunning = async (): Promise<boolean> => {
-    const response = await rpc.control.request({ type: "get_state" });
-    await pump;
-    // Preserve occupancy if native state is unavailable. Exit/settlement is
-    // authoritative; a failed read does not prove that an extension is idle.
-    return response.success && response.command === "get_state" ? response.data.isStreaming : running;
-  };
-  const start = async (input: string, images: readonly LoadedImage[]): Promise<{ response: ResponseBody; retry: boolean }> => {
-    if (running || compaction.busy()) { return { response: { kind: "rejected", code: "busy", reason: "busy" }, retry: running }; }
+  const start = async (input: string, images: readonly LoadedImage[]): Promise<ResponseBody> => {
+    if (running || compaction.busy()) { return { kind: "rejected", code: "busy", reason: "busy" }; }
     running = true;
     started = false;
-    const token = {};
-    launch = token;
     projection = piPrompted(projection);
     const response = await rpc.control.request({ type: "prompt", message: input, ...(images.length === 0 ? {} : { images: nativeImages(images) }) });
     if (!response.success) {
-      const streaming = launch === token ? await nativeRunning() : running;
-      if (launch === token) {
-        running = streaming;
-        pendingAbort = false;
-        launch = null;
-        fallback.clear();
-        queueMicrotask(drain);
-      }
-      return { response: { kind: "rejected", code: "runtime_refused", reason: response.error }, retry: streaming && kernel.unreachable() === null };
+      running = false;
+      pendingAbort = false;
+      fallback.clear();
+      return { kind: "rejected", code: "runtime_refused", reason: response.error };
     }
     // oxlint-disable-next-line typescript/no-unnecessary-condition -- Native events can change started while the response is awaited.
-    if (launch === token && response.command === "prompt" && response.data.disposition === "handled" && !started) {
+    if (response.command === "prompt" && response.data.disposition === "handled" && !started) {
       // A slash command or input extension handled it without a model run.
       // Acceptance is native, but there is no turn end to invent.
-      const streaming = await nativeRunning();
-      if (launch === token) {
-        running = streaming;
-        pendingAbort = false;
-        launch = null;
-        fallback.clear();
-        drain();
-      }
+      running = false;
+      pendingAbort = false;
+      fallback.clear();
+      drain();
     }
-    return { response: { kind: "accepted" }, retry: false };
+    return { kind: "accepted" };
   };
   function drain(): void {
     if (running || compaction.busy() || kernel.unreachable() !== null) { return; }
@@ -92,8 +73,7 @@ export const createPiRpcSession = (runtime: PiRuntimeOptions): StartSession => w
     if (next === undefined) { return; }
     void (async (): Promise<void> => {
       try {
-        const { response, retry } = await start(next.input, next.images);
-        if (retry) { held.unshift(next); queueMicrotask(drain); return; }
+        const response = await start(next.input, next.images);
         if (response.kind === "rejected") {
           kernel.frame({ type: "pi/prompt_rejected", native: { inputId: next.inputId, reason: response.reason }, events: [] });
           drain();
@@ -103,7 +83,11 @@ export const createPiRpcSession = (runtime: PiRuntimeOptions): StartSession => w
   }
   const processMessage = async (message: Record<string, unknown>): Promise<void> => {
     if (message.type === "response") {
-      kernel.frame({ type: "response", native: message, events: piRpcStateEvents(message) });
+      const events = message.command === "get_state" && message.success === true
+        ? [...(rpc.state.model === undefined ? [] : [{ kind: "model" as const, model: `${rpc.state.model.provider}/${rpc.state.model.id}` }]),
+          { kind: "effort" as const, effort: rpc.state.thinkingLevel }]
+        : [];
+      kernel.frame({ type: "response", native: message, events });
       return;
     }
     if (message.type === "extension_ui_request") {
@@ -137,18 +121,15 @@ export const createPiRpcSession = (runtime: PiRuntimeOptions): StartSession => w
     }
     const next = foldPiEvent(projection, event, { overflow, ...(context === undefined ? {} : { context }) });
     projection = next.state;
+    for (const command of next.commands) { kernel.frame(command.body); }
     if (event.type === "agent_settled") {
-      // Abort may have rearmed the fallback while stats were in flight.
+      // Abort can rearm this while stats are awaited or observers run.
       fallback.clear();
-      // Terminal observers may start the next run, even before the old RPC
-      // prompt response arrives. Neither this callback nor that reply owns it.
       running = false;
       started = false;
       pendingAbort = false;
-      launch = null;
+      drain();
     }
-    for (const command of next.commands) { kernel.frame(command.body); }
-    if (event.type === "agent_settled") { drain(); }
   };
   receive = (message): void => {
     const previous = pump;
@@ -175,13 +156,15 @@ export const createPiRpcSession = (runtime: PiRuntimeOptions): StartSession => w
   return credentials.seal({
     id: kernel.sessionId, capabilities,
     compact: compaction.compact,
-    prompt: async (input, inputOptions) => kernel.control({ kind: "prompt", input, ...inputOptions }, async () => {
-      if (running || held.length > 0 || compaction.busy()) { return { kind: "rejected", code: "busy", reason: "busy" }; }
-      return withInputImages(capabilities, inputOptions?.images, async (images) => {
-        const result = await start(input, images);
-        return result.response;
+    prompt: async (input, inputOptions) => {
+      const result = await kernel.control({ kind: "prompt", input, ...inputOptions }, async () => {
+        if (running || compaction.busy()) { return { kind: "rejected", code: "busy", reason: "busy" }; }
+        return withInputImages(capabilities, inputOptions?.images, async (images) => start(input, images));
       });
-    }),
+      // A pre-start refusal has no settlement; record it before draining.
+      drain();
+      return result;
+    },
     steer: async (input, inputOptions) => kernel.control({ kind: "steer", input, ...inputOptions }, async () => {
       if (compaction.busy()) { return { kind: "rejected", code: "busy", reason: "Manual compaction is still in progress" }; }
       if (!running) { return { kind: "rejected", code: "no_active_turn", reason: "no active turn" }; }

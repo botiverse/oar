@@ -9,7 +9,7 @@ import { piTestRuntime } from "./pi-runtime.js";
 import type { Session } from "../../../packages/oar/src/contracts/session.js";
 
 /** Public native input hooks hold preflight and reload the synthetic provider's authentication. */
-export async function piPreflightNative(mode: "missing" | "reentry" | "handled"): Promise<{
+export async function piPreflightNative(): Promise<{
   session: Session; requests: string[]; entered(): Promise<void>; release(): Promise<void>; close(): Promise<void>;
 }> {
   const requests: string[] = [];
@@ -28,12 +28,11 @@ export async function piPreflightNative(mode: "missing" | "reentry" | "handled")
     import { setTimeout } from "node:timers/promises";
     export default pi => {
       pi.on("input", async (event, ctx) => {
-        if (event.text === "HANDLED") return { action: "handled" };
-        if (${JSON.stringify(mode)} === "missing" && event.text === "A") {
+        if (event.text === "A") {
           await writeFile(${JSON.stringify(entered)}, "entered");
           while (!existsSync(${JSON.stringify(release)})) await setTimeout(5);
         }
-        if (event.text === "B" || event.text === "C" || (${JSON.stringify(mode)} === "missing" && event.text === "A")) {
+        if (event.text === "B" || event.text === "C" || event.text === "A") {
           const models = JSON.parse(await readFile(${JSON.stringify(models)}, "utf8"));
           if (event.text !== "C") delete models.providers.aimock.apiKey;
           else models.providers.aimock.apiKey = "aimock";

@@ -94,7 +94,7 @@ the previous rules.
 
 The manual operation releases its input reservation and status on the same
 retained native record. Admission of the next prompt also respects any
-adapter-held queue, including the exception below:
+adapter-held queue, including the exceptions below:
 
 | Runtime | Record releasing manual compaction |
 |---|---|
@@ -115,12 +115,21 @@ of the release record can submit another prompt when status is idle.
 ACP-held inputs instead keep status at `running / waiting_model` until their
 dispatch or withdrawal.
 
-**Held-queue exception:** Claude, Qoder, Qwen, Cursor and Pi SDK/RPC do not yet record
-OAR's queue ownership and dispatch as ACP does. While OAR holds or is dispatching a
-queued input, status can display `idle` although a new `prompt` returns
-`busy` to preserve FIFO. This includes the synchronous terminal-observer
-window, including after dequeue but before native start/refusal is recorded.
-It does not weaken the same-record guarantee when no input is held.
+**Held-queue exception:** Claude, Qoder, Qwen, Cursor and Pi SDK/RPC do not
+yet record OAR's queue ownership and dispatch as ACP does. While OAR holds
+or dispatches a queued input, status can display `idle` although a new
+`prompt` returns `busy`. This includes the window after dequeue but before
+native start/refusal is recorded.
+
+**Pi ordinary-turn exception:** SDK and RPC release their run gate after
+publishing the native `turn_ended` frame. A synchronous observer can see
+`idle` while `prompt` still returns `busy`, even with no held input. Submit
+after that observer returns. This does not change manual `compaction_end`
+release. Pi's extension-handled inputs also lack a disposition record, so
+status can remain provisionally `running` without a native run; see the
+[runtime limitations](../runtimes/pi.md#prompt-steering-queueing-and-abort).
+The [design decision](../design/decisions.md#pi-synchronous-terminal-submission-2026-11-05)
+records why synchronous ordinary-turn submission is not supported.
 
 Claude's native queued receipt for the compact command is not a pending
 ordinary prompt. `turn_ended.inputId` and `inputIds`, when present, preserve native input
