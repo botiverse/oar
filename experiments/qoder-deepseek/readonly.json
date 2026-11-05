@@ -1,0 +1,38 @@
+{
+  "platform": "linux-x64",
+  "mode": "read-only",
+  "submittedPrompts": 0,
+  "configurationCreated": false,
+  "checks": [],
+  "version": "1.1.83",
+  "deepseek": {
+    "provider": "deepseek",
+    "enabled": true,
+    "types": [
+      {
+        "type": "pg",
+        "models": [
+          {
+            "key": "deepseek-v4-pro-pg",
+            "displayName": "DeepSeek-V4-Pro",
+            "format": "openai"
+          },
+          {
+            "key": "deepseek-flash-pg",
+            "displayName": "DeepSeek-Flash",
+            "format": "openai"
+          }
+        ]
+      }
+    ]
+  },
+  "emptyParametersCheck": {
+    "success": false,
+    "code": "BYOK_CONFIG_INVALID",
+    "emptyParameters": true
+  },
+  "nativeExit": {
+    "code": 0,
+    "signal": null
+  }
+}

@@ -1,0 +1,72 @@
+{
+  "checkedAt": "2026-11-05T20:17:07.944Z",
+  "platform": "linux-x64",
+  "node": "v24.19.0",
+  "adapterBase": "e8a9274e0e2d2f2f38b5c8b89767cc86af856246",
+  "scope": "DSH inventory integration and targeted native checks; not a full runtime compatibility sweep",
+  "dsh": {
+    "inventory": {
+      "runtime": "dsh",
+      "source": "https://registry.npmjs.org/@deepseek-ai/dsh/latest",
+      "latest": "0.2.2-rc.1",
+      "installed": "0.2.2-rc.1",
+      "installation": "available",
+      "status": "current"
+    },
+    "distTags": {
+      "latest": "0.2.2-rc.1",
+      "alpha": "0.2.2-alpha.3",
+      "next": "0.2.2-rc.1"
+    },
+    "localProvider": {
+      "backend": "dsh-aimock",
+      "behavior": {
+        "passed": 18,
+        "skipped": 1,
+        "failed": 0,
+        "skip": "accountUsage absent"
+      },
+      "vendor": {
+        "passed": 18,
+        "failed": 0
+      },
+      "freshHome": true,
+      "realAccountUsed": false
+    },
+    "ciPin": "0.2.1-rc.5",
+    "ciEvidence": [
+      {
+        "platform": "macos-latest",
+        "runtimeVersion": "0.2.1-rc.5",
+        "head": "0b570c74dc1274906130bc97bce188ce85369462",
+        "job": "https://github.com/botiverse/oar/actions/runs/42078076588/job/127423516264",
+        "behavior": {
+          "passed": 18,
+          "skipped": 1,
+          "failed": 0
+        },
+        "vendor": {
+          "passed": 18,
+          "failed": 0
+        }
+      },
+      {
+        "platform": "windows-latest",
+        "runtimeVersion": "0.2.1-rc.5",
+        "head": "0b570c74dc1274906130bc97bce188ce85369462",
+        "job": "https://github.com/botiverse/oar/actions/runs/42078076588/job/127423516172",
+        "behavior": {
+          "passed": 18,
+          "skipped": 1,
+          "failed": 0
+        },
+        "vendor": {
+          "passed": 17,
+          "platformSkipped": 1,
+          "failed": 0,
+          "skip": "POSIX-only mid-turn process kill"
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,1766 @@
+{
+  "version": "codex-cli 0.166.0",
+  "platform": "linux x64",
+  "sourceCommit": "6ff1e1ca3b30fc8b914720681fcf5fe62e95f856",
+  "probe_sha256": "c02466de4f6db2458699c8789aafcef0758fb011b3e0851a77c13c5fc18b5e9d",
+  "cases": [
+    {
+      "label": "active-foreground-terminate",
+      "foreground": true,
+      "detached": false,
+      "action": "terminate",
+      "scope": false,
+      "pre_interrupt": true,
+      "target_candidates": 1,
+      "action_reply": {
+        "id": 6,
+        "result": {
+          "terminated": true
+        }
+      },
+      "app_server_alive": true,
+      "error": null,
+      "probe_cleanup_remaining": [],
+      "target_identity_before": {
+        "parent": {
+          "pid": 3971278,
+          "state": "S",
+          "ppid": 3971168,
+          "pgid": 3971278,
+          "sid": 3971278,
+          "started": 157702691
+        },
+        "child": {
+          "pid": 3971279,
+          "state": "R",
+          "ppid": 3971278,
+          "pgid": 3971278,
+          "sid": 3971278,
+          "started": 157702696
+        }
+      },
+      "after_interrupt_alive": {
+        "parent": true,
+        "child": true
+      },
+      "observations": [
+        {
+          "ms": 100.83,
+          "alive": {
+            "target": {
+              "parent": false,
+              "child": false
+            },
+            "mcp": {
+              "0": true
+            }
+          }
+        },
+        {
+          "ms": 1001.33,
+          "alive": {
+            "target": {
+              "parent": false,
+              "child": false
+            },
+            "mcp": {
+              "0": true
+            }
+          }
+        },
+        {
+          "ms": 2001.99,
+          "alive": {
+            "target": {
+              "parent": false,
+              "child": false
+            },
+            "mcp": {
+              "0": true
+            }
+          }
+        }
+      ],
+      "target_identity_after": {
+        "parent": null,
+        "child": null
+      },
+      "list_before_interrupt": {
+        "id": 4,
+        "result": {
+          "data": [
+            {
+              "itemId": "target",
+              "processId": "68907",
+              "command": "/usr/bin/python3 <probe-home>/tool.py <probe-home>/target.json normal",
+              "cwd": "<probe-home>",
+              "osPid": null,
+              "cpuPercent": null,
+              "rssKb": null
+            }
+          ],
+          "nextCursor": null
+        }
+      },
+      "list_before_action": {
+        "id": 5,
+        "result": {
+          "data": [
+            {
+              "itemId": "target",
+              "processId": "68907",
+              "command": "/usr/bin/python3 <probe-home>/tool.py <probe-home>/target.json normal",
+              "cwd": "<probe-home>",
+              "osPid": null,
+              "cpuPercent": null,
+              "rssKb": null
+            }
+          ],
+          "nextCursor": null
+        }
+      },
+      "list_after_action": {
+        "id": 7,
+        "result": {
+          "data": [],
+          "nextCursor": null
+        }
+      },
+      "raw_sha256": "d8e872a89648502ece3c2caf59f5bf16888daca3a4e63f60c68b05354bf638ce"
+    },
+    {
+      "label": "foreground-normal-clean",
+      "foreground": true,
+      "detached": false,
+      "action": "clean",
+      "scope": false,
+      "pre_interrupt": false,
+      "target_candidates": 1,
+      "action_reply": {
+        "id": 7,
+        "result": {}
+      },
+      "target_turn": {
+        "id": "01a1aac8-dc76-7870-8f4a-92cd63b3f866",
+        "rootTurnId": "01a1aac8-dc76-7870-8f4a-92cd63b3f866",
+        "items": [],
+        "itemsView": "notLoaded",
+        "status": "interrupted",
+        "error": null,
+        "startedAt": 1793866652,
+        "completedAt": 1793866653,
+        "durationMs": 352
+      },
+      "app_server_alive": true,
+      "error": null,
+      "probe_cleanup_remaining": [],
+      "target_identity_before": {
+        "parent": {
+          "pid": 3969687,
+          "state": "S",
+          "ppid": 3969576,
+          "pgid": 3969687,
+          "sid": 3969687,
+          "started": 157698611
+        },
+        "child": {
+          "pid": 3969688,
+          "state": "R",
+          "ppid": 3969687,
+          "pgid": 3969687,
+          "sid": 3969687,
+          "started": 157698615
+        }
+      },
+      "after_interrupt_alive": {
+        "parent": true,
+        "child": true
+      },
+      "observations": [
+        {
+          "ms": 100.95,
+          "alive": {
+            "target": {
+              "parent": false,
+              "child": false
+            },
+            "mcp": {
+              "0": true
+            }
+          }
+        },
+        {
+          "ms": 1001.39,
+          "alive": {
+            "target": {
+              "parent": false,
+              "child": false
+            },
+            "mcp": {
+              "0": true
+            }
+          }
+        },
+        {
+          "ms": 2001.98,
+          "alive": {
+            "target": {
+              "parent": false,
+              "child": false
+            },
+            "mcp": {
+              "0": true
+            }
+          }
+        }
+      ],
+      "target_identity_after": {
+        "parent": null,
+        "child": null
+      },
+      "list_before_interrupt": {
+        "id": 4,
+        "result": {
+          "data": [
+            {
+              "itemId": "target",
+              "processId": "76273",
+              "command": "/usr/bin/python3 <probe-home>/tool.py <probe-home>/target.json normal",
+              "cwd": "<probe-home>",
+              "osPid": null,
+              "cpuPercent": null,
+              "rssKb": null
+            }
+          ],
+          "nextCursor": null
+        }
+      },
+      "list_before_action": {
+        "id": 6,
+        "result": {
+          "data": [
+            {
+              "itemId": "target",
+              "processId": "76273",
+              "command": "/usr/bin/python3 <probe-home>/tool.py <probe-home>/target.json normal",
+              "cwd": "<probe-home>",
+              "osPid": null,
+              "cpuPercent": null,
+              "rssKb": null
+            }
+          ],
+          "nextCursor": null
+        }
+      },
+      "list_after_action": {
+        "id": 8,
+        "result": {
+          "data": [],
+          "nextCursor": null
+        }
+      },
+      "raw_sha256": "a190b374422c13d05ff9b5d63d156a8aef350a3556b252461f1654d895aa65bb"
+    },
+    {
+      "label": "foreground-normal-terminate",
+      "foreground": true,
+      "detached": false,
+      "action": "terminate",
+      "scope": false,
+      "pre_interrupt": false,
+      "target_candidates": 1,
+      "action_reply": {
+        "id": 7,
+        "result": {
+          "terminated": true
+        }
+      },
+      "target_turn": {
+        "id": "01a1aac8-cf03-7910-983c-b92cb076d8f1",
+        "rootTurnId": "01a1aac8-cf03-7910-983c-b92cb076d8f1",
+        "items": [],
+        "itemsView": "notLoaded",
+        "status": "interrupted",
+        "error": null,
+        "startedAt": 1793866649,
+        "completedAt": 1793866649,
+        "durationMs": 351
+      },
+      "app_server_alive": true,
+      "error": null,
+      "probe_cleanup_remaining": [],
+      "target_identity_before": {
+        "parent": {
+          "pid": 3969548,
+          "state": "S",
+          "ppid": 3969438,
+          "pgid": 3969548,
+          "sid": 3969548,
+          "started": 157698267
+        },
+        "child": {
+          "pid": 3969549,
+          "state": "R",
+          "ppid": 3969548,
+          "pgid": 3969548,
+          "sid": 3969548,
+          "started": 157698272
+        }
+      },
+      "after_interrupt_alive": {
+        "parent": true,
+        "child": true
+      },
+      "observations": [
+        {
+          "ms": 100.56,
+          "alive": {
+            "target": {
+              "parent": false,
+              "child": false
+            },
+            "mcp": {
+              "0": true
+            }
+          }
+        },
+        {
+          "ms": 1001.98,
+          "alive": {
+            "target": {
+              "parent": false,
+              "child": false
+            },
+            "mcp": {
+              "0": true
+            }
+          }
+        },
+        {
+          "ms": 2001.54,
+          "alive": {
+            "target": {
+              "parent": false,
+              "child": false
+            },
+            "mcp": {
+              "0": true
+            }
+          }
+        }
+      ],
+      "target_identity_after": {
+        "parent": null,
+        "child": null
+      },
+      "list_before_interrupt": {
+        "id": 4,
+        "result": {
+          "data": [
+            {
+              "itemId": "target",
+              "processId": "45299",
+              "command": "/usr/bin/python3 <probe-home>/tool.py <probe-home>/target.json normal",
+              "cwd": "<probe-home>",
+              "osPid": null,
+              "cpuPercent": null,
+              "rssKb": null
+            }
+          ],
+          "nextCursor": null
+        }
+      },
+      "list_before_action": {
+        "id": 6,
+        "result": {
+          "data": [
+            {
+              "itemId": "target",
+              "processId": "45299",
+              "command": "/usr/bin/python3 <probe-home>/tool.py <probe-home>/target.json normal",
+              "cwd": "<probe-home>",
+              "osPid": null,
+              "cpuPercent": null,
+              "rssKb": null
+            }
+          ],
+          "nextCursor": null
+        }
+      },
+      "list_after_action": {
+        "id": 8,
+        "result": {
+          "data": [],
+          "nextCursor": null
+        }
+      },
+      "raw_sha256": "525c12404c2408c73c9f06a73aa921dc60725bbecbe836ab64896d8d9c76493b"
+    },
+    {
+      "label": "foreground-setsid-clean",
+      "foreground": true,
+      "detached": true,
+      "action": "clean",
+      "scope": false,
+      "pre_interrupt": false,
+      "target_candidates": 1,
+      "action_reply": {
+        "id": 7,
+        "result": {}
+      },
+      "target_turn": {
+        "id": "01a1aac8-f8df-7dc0-b4da-940a4942955f",
+        "rootTurnId": "01a1aac8-f8df-7dc0-b4da-940a4942955f",
+        "items": [],
+        "itemsView": "notLoaded",
+        "status": "interrupted",
+        "error": null,
+        "startedAt": 1793866660,
+        "completedAt": 1793866660,
+        "durationMs": 349
+      },
+      "app_server_alive": true,
+      "error": null,
+      "probe_cleanup_remaining": [],
+      "target_identity_before": {
+        "parent": {
+          "pid": 3969962,
+          "state": "S",
+          "ppid": 3969850,
+          "pgid": 3969962,
+          "sid": 3969962,
+          "started": 157699339
+        },
+        "child": {
+          "pid": 3969963,
+          "state": "R",
+          "ppid": 3969962,
+          "pgid": 3969963,
+          "sid": 3969963,
+          "started": 157699343
+        }
+      },
+      "after_interrupt_alive": {
+        "parent": true,
+        "child": true
+      },
+      "observations": [
+        {
+          "ms": 100.58,
+          "alive": {
+            "target": {
+              "parent": false,
+              "child": true
+            },
+            "mcp": {
+              "0": true
+            }
+          }
+        },
+        {
+          "ms": 1000.86,
+          "alive": {
+            "target": {
+              "parent": false,
+              "child": true
+            },
+            "mcp": {
+              "0": true
+            }
+          }
+        },
+        {
+          "ms": 2001.58,
+          "alive": {
+            "target": {
+              "parent": false,
+              "child": true
+            },
+            "mcp": {
+              "0": true
+            }
+          }
+        }
+      ],
+      "target_identity_after": {
+        "parent": null,
+        "child": {
+          "pid": 3969963,
+          "state": "S",
+          "ppid": 1,
+          "pgid": 3969963,
+          "sid": 3969963,
+          "started": 157699343
+        }
+      },
+      "list_before_interrupt": {
+        "id": 4,
+        "result": {
+          "data": [
+            {
+              "itemId": "target",
+              "processId": "31765",
+              "command": "/usr/bin/python3 <probe-home>/tool.py <probe-home>/target.json setsid",
+              "cwd": "<probe-home>",
+              "osPid": null,
+              "cpuPercent": null,
+              "rssKb": null
+            }
+          ],
+          "nextCursor": null
+        }
+      },
+      "list_before_action": {
+        "id": 6,
+        "result": {
+          "data": [
+            {
+              "itemId": "target",
+              "processId": "31765",
+              "command": "/usr/bin/python3 <probe-home>/tool.py <probe-home>/target.json setsid",
+              "cwd": "<probe-home>",
+              "osPid": null,
+              "cpuPercent": null,
+              "rssKb": null
+            }
+          ],
+          "nextCursor": null
+        }
+      },
+      "list_after_action": {
+        "id": 8,
+        "result": {
+          "data": [],
+          "nextCursor": null
+        }
+      },
+      "raw_sha256": "b9e7c13d26872612a7e0270da5cd59aad1867f567f4eb400dcbf7b8a161f9c2b"
+    },
+    {
+      "label": "foreground-setsid-terminate",
+      "foreground": true,
+      "detached": true,
+      "action": "terminate",
+      "scope": false,
+      "pre_interrupt": false,
+      "target_candidates": 1,
+      "action_reply": {
+        "id": 7,
+        "result": {
+          "terminated": true
+        }
+      },
+      "target_turn": {
+        "id": "01a1aac8-eaba-7e32-9b38-9ceb06e5e2e9",
+        "rootTurnId": "01a1aac8-eaba-7e32-9b38-9ceb06e5e2e9",
+        "items": [],
+        "itemsView": "notLoaded",
+        "status": "interrupted",
+        "error": null,
+        "startedAt": 1793866656,
+        "completedAt": 1793866656,
+        "durationMs": 353
+      },
+      "app_server_alive": true,
+      "error": null,
+      "probe_cleanup_remaining": [],
+      "target_identity_before": {
+        "parent": {
+          "pid": 3969825,
+          "state": "S",
+          "ppid": 3969712,
+          "pgid": 3969825,
+          "sid": 3969825,
+          "started": 157698977
+        },
+        "child": {
+          "pid": 3969826,
+          "state": "R",
+          "ppid": 3969825,
+          "pgid": 3969826,
+          "sid": 3969826,
+          "started": 157698981
+        }
+      },
+      "after_interrupt_alive": {
+        "parent": true,
+        "child": true
+      },
+      "observations": [
+        {
+          "ms": 100.86,
+          "alive": {
+            "target": {
+              "parent": false,
+              "child": true
+            },
+            "mcp": {
+              "0": true
+            }
+          }
+        },
+        {
+          "ms": 1001.45,
+          "alive": {
+            "target": {
+              "parent": false,
+              "child": true
+            },
+            "mcp": {
+              "0": true
+            }
+          }
+        },
+        {
+          "ms": 2002.08,
+          "alive": {
+            "target": {
+              "parent": false,
+              "child": true
+            },
+            "mcp": {
+              "0": true
+            }
+          }
+        }
+      ],
+      "target_identity_after": {
+        "parent": null,
+        "child": {
+          "pid": 3969826,
+          "state": "S",
+          "ppid": 1,
+          "pgid": 3969826,
+          "sid": 3969826,
+          "started": 157698981
+        }
+      },
+      "list_before_interrupt": {
+        "id": 4,
+        "result": {
+          "data": [
+            {
+              "itemId": "target",
+              "processId": "74521",
+              "command": "/usr/bin/python3 <probe-home>/tool.py <probe-home>/target.json setsid",
+              "cwd": "<probe-home>",
+              "osPid": null,
+              "cpuPercent": null,
+              "rssKb": null
+            }
+          ],
+          "nextCursor": null
+        }
+      },
+      "list_before_action": {
+        "id": 6,
+        "result": {
+          "data": [
+            {
+              "itemId": "target",
+              "processId": "74521",
+              "command": "/usr/bin/python3 <probe-home>/tool.py <probe-home>/target.json setsid",
+              "cwd": "<probe-home>",
+              "osPid": null,
+              "cpuPercent": null,
+              "rssKb": null
+            }
+          ],
+          "nextCursor": null
+        }
+      },
+      "list_after_action": {
+        "id": 8,
+        "result": {
+          "data": [],
+          "nextCursor": null
+        }
+      },
+      "raw_sha256": "8a8488325a13c439cbe61bb61d6f06d5868abc7fc6f0aa3ea7979494a346676b"
+    },
+    {
+      "label": "scope-clean",
+      "foreground": true,
+      "detached": true,
+      "action": "clean",
+      "scope": true,
+      "pre_interrupt": false,
+      "target_candidates": 1,
+      "action_reply": {
+        "id": 10,
+        "result": {}
+      },
+      "target_turn": {
+        "id": "01a1aac9-5599-7862-8200-8b64587f92b8",
+        "rootTurnId": "01a1aac9-5599-7862-8200-8b64587f92b8",
+        "items": [],
+        "itemsView": "notLoaded",
+        "status": "interrupted",
+        "error": null,
+        "startedAt": 1793866683,
+        "completedAt": 1793866684,
+        "durationMs": 288
+      },
+      "app_server_alive": true,
+      "error": null,
+      "probe_cleanup_remaining": [],
+      "target_identity_before": {
+        "parent": {
+          "pid": 3970991,
+          "state": "S",
+          "ppid": 3970818,
+          "pgid": 3970991,
+          "sid": 3970991,
+          "started": 157701706
+        },
+        "child": {
+          "pid": 3970992,
+          "state": "R",
+          "ppid": 3970991,
+          "pgid": 3970992,
+          "sid": 3970992,
+          "started": 157701710
+        }
+      },
+      "after_interrupt_alive": {
+        "parent": true,
+        "child": true
+      },
+      "observations": [
+        {
+          "ms": 101.29,
+          "alive": {
+            "old": {
+              "parent": false,
+              "child": false
+            },
+            "peer": {
+              "parent": true,
+              "child": true
+            },
+            "target": {
+              "parent": false,
+              "child": true
+            },
+            "mcp": {
+              "0": true,
+              "1": true
+            }
+          }
+        },
+        {
+          "ms": 1001.22,
+          "alive": {
+            "old": {
+              "parent": false,
+              "child": false
+            },
+            "peer": {
+              "parent": true,
+              "child": true
+            },
+            "target": {
+              "parent": false,
+              "child": true
+            },
+            "mcp": {
+              "0": true,
+              "1": true
+            }
+          }
+        },
+        {
+          "ms": 2002.19,
+          "alive": {
+            "old": {
+              "parent": false,
+              "child": false
+            },
+            "peer": {
+              "parent": true,
+              "child": true
+            },
+            "target": {
+              "parent": false,
+              "child": true
+            },
+            "mcp": {
+              "0": true,
+              "1": true
+            }
+          }
+        }
+      ],
+      "target_identity_after": {
+        "parent": null,
+        "child": {
+          "pid": 3970992,
+          "state": "S",
+          "ppid": 1,
+          "pgid": 3970992,
+          "sid": 3970992,
+          "started": 157701710
+        }
+      },
+      "list_before_interrupt": {
+        "id": 7,
+        "result": {
+          "data": [
+            {
+              "itemId": "old",
+              "processId": "32253",
+              "command": "/usr/bin/python3 <probe-home>/tool.py <probe-home>/old.json normal",
+              "cwd": "<probe-home>",
+              "osPid": null,
+              "cpuPercent": null,
+              "rssKb": null
+            },
+            {
+              "itemId": "target",
+              "processId": "53406",
+              "command": "/usr/bin/python3 <probe-home>/tool.py <probe-home>/target.json setsid",
+              "cwd": "<probe-home>",
+              "osPid": null,
+              "cpuPercent": null,
+              "rssKb": null
+            }
+          ],
+          "nextCursor": null
+        }
+      },
+      "list_before_action": {
+        "id": 9,
+        "result": {
+          "data": [
+            {
+              "itemId": "old",
+              "processId": "32253",
+              "command": "/usr/bin/python3 <probe-home>/tool.py <probe-home>/old.json normal",
+              "cwd": "<probe-home>",
+              "osPid": null,
+              "cpuPercent": null,
+              "rssKb": null
+            },
+            {
+              "itemId": "target",
+              "processId": "53406",
+              "command": "/usr/bin/python3 <probe-home>/tool.py <probe-home>/target.json setsid",
+              "cwd": "<probe-home>",
+              "osPid": null,
+              "cpuPercent": null,
+              "rssKb": null
+            }
+          ],
+          "nextCursor": null
+        }
+      },
+      "list_after_action": {
+        "id": 11,
+        "result": {
+          "data": [],
+          "nextCursor": null
+        }
+      },
+      "peer_list_after_action": {
+        "id": 12,
+        "result": {
+          "data": [
+            {
+              "itemId": "peer",
+              "processId": "5622",
+              "command": "/usr/bin/python3 <probe-home>/tool.py <probe-home>/peer.json normal",
+              "cwd": "<probe-home>",
+              "osPid": null,
+              "cpuPercent": null,
+              "rssKb": null
+            }
+          ],
+          "nextCursor": null
+        }
+      },
+      "raw_sha256": "012c7605801c3db4d84c6bc241adca6ac23b98ae93fc0070470944498c613aa6"
+    },
+    {
+      "label": "scope-terminate",
+      "foreground": true,
+      "detached": true,
+      "action": "terminate",
+      "scope": true,
+      "pre_interrupt": false,
+      "target_candidates": 1,
+      "action_reply": {
+        "id": 10,
+        "result": {
+          "terminated": true
+        }
+      },
+      "target_turn": {
+        "id": "01a1aac9-6dee-7293-8596-29d075323081",
+        "rootTurnId": "01a1aac9-6dee-7293-8596-29d075323081",
+        "items": [],
+        "itemsView": "notLoaded",
+        "status": "interrupted",
+        "error": null,
+        "startedAt": 1793866690,
+        "completedAt": 1793866690,
+        "durationMs": 267
+      },
+      "app_server_alive": true,
+      "error": null,
+      "probe_cleanup_remaining": [],
+      "target_identity_before": {
+        "parent": {
+          "pid": 3971162,
+          "state": "S",
+          "ppid": 3970998,
+          "pgid": 3971162,
+          "sid": 3971162,
+          "started": 157702328
+        },
+        "child": {
+          "pid": 3971163,
+          "state": "R",
+          "ppid": 3971162,
+          "pgid": 3971163,
+          "sid": 3971163,
+          "started": 157702333
+        }
+      },
+      "after_interrupt_alive": {
+        "parent": true,
+        "child": true
+      },
+      "observations": [
+        {
+          "ms": 100.94,
+          "alive": {
+            "old": {
+              "parent": true,
+              "child": true
+            },
+            "peer": {
+              "parent": true,
+              "child": true
+            },
+            "target": {
+              "parent": false,
+              "child": true
+            },
+            "mcp": {
+              "0": true,
+              "1": true
+            }
+          }
+        },
+        {
+          "ms": 1001.98,
+          "alive": {
+            "old": {
+              "parent": true,
+              "child": true
+            },
+            "peer": {
+              "parent": true,
+              "child": true
+            },
+            "target": {
+              "parent": false,
+              "child": true
+            },
+            "mcp": {
+              "0": true,
+              "1": true
+            }
+          }
+        },
+        {
+          "ms": 2001.95,
+          "alive": {
+            "old": {
+              "parent": true,
+              "child": true
+            },
+            "peer": {
+              "parent": true,
+              "child": true
+            },
+            "target": {
+              "parent": false,
+              "child": true
+            },
+            "mcp": {
+              "0": true,
+              "1": true
+            }
+          }
+        }
+      ],
+      "target_identity_after": {
+        "parent": null,
+        "child": {
+          "pid": 3971163,
+          "state": "S",
+          "ppid": 1,
+          "pgid": 3971163,
+          "sid": 3971163,
+          "started": 157702333
+        }
+      },
+      "list_before_interrupt": {
+        "id": 7,
+        "result": {
+          "data": [
+            {
+              "itemId": "old",
+              "processId": "27535",
+              "command": "/usr/bin/python3 <probe-home>/tool.py <probe-home>/old.json normal",
+              "cwd": "<probe-home>",
+              "osPid": null,
+              "cpuPercent": null,
+              "rssKb": null
+            },
+            {
+              "itemId": "target",
+              "processId": "93464",
+              "command": "/usr/bin/python3 <probe-home>/tool.py <probe-home>/target.json setsid",
+              "cwd": "<probe-home>",
+              "osPid": null,
+              "cpuPercent": null,
+              "rssKb": null
+            }
+          ],
+          "nextCursor": null
+        }
+      },
+      "list_before_action": {
+        "id": 9,
+        "result": {
+          "data": [
+            {
+              "itemId": "old",
+              "processId": "27535",
+              "command": "/usr/bin/python3 <probe-home>/tool.py <probe-home>/old.json normal",
+              "cwd": "<probe-home>",
+              "osPid": null,
+              "cpuPercent": null,
+              "rssKb": null
+            },
+            {
+              "itemId": "target",
+              "processId": "93464",
+              "command": "/usr/bin/python3 <probe-home>/tool.py <probe-home>/target.json setsid",
+              "cwd": "<probe-home>",
+              "osPid": null,
+              "cpuPercent": null,
+              "rssKb": null
+            }
+          ],
+          "nextCursor": null
+        }
+      },
+      "list_after_action": {
+        "id": 11,
+        "result": {
+          "data": [
+            {
+              "itemId": "old",
+              "processId": "27535",
+              "command": "/usr/bin/python3 <probe-home>/tool.py <probe-home>/old.json normal",
+              "cwd": "<probe-home>",
+              "osPid": null,
+              "cpuPercent": null,
+              "rssKb": null
+            }
+          ],
+          "nextCursor": null
+        }
+      },
+      "peer_list_after_action": {
+        "id": 12,
+        "result": {
+          "data": [
+            {
+              "itemId": "peer",
+              "processId": "76360",
+              "command": "/usr/bin/python3 <probe-home>/tool.py <probe-home>/peer.json normal",
+              "cwd": "<probe-home>",
+              "osPid": null,
+              "cpuPercent": null,
+              "rssKb": null
+            }
+          ],
+          "nextCursor": null
+        }
+      },
+      "raw_sha256": "61299cdfcb6672af861d3aa588f6495d159c635a72a096259a977284c7ab5131"
+    },
+    {
+      "label": "yielded-normal-clean",
+      "foreground": false,
+      "detached": false,
+      "action": "clean",
+      "scope": false,
+      "pre_interrupt": false,
+      "target_candidates": 1,
+      "action_reply": {
+        "id": 7,
+        "result": {}
+      },
+      "target_turn": {
+        "id": "01a1aac9-181f-7823-a4d9-b9b517afd306",
+        "rootTurnId": "01a1aac9-181f-7823-a4d9-b9b517afd306",
+        "items": [],
+        "itemsView": "notLoaded",
+        "status": "interrupted",
+        "error": null,
+        "startedAt": 1793866668,
+        "completedAt": 1793866669,
+        "durationMs": 1335
+      },
+      "app_server_alive": true,
+      "error": null,
+      "probe_cleanup_remaining": [],
+      "target_identity_before": {
+        "parent": {
+          "pid": 3970496,
+          "state": "S",
+          "ppid": 3970378,
+          "pgid": 3970496,
+          "sid": 3970496,
+          "started": 157700141
+        },
+        "child": {
+          "pid": 3970497,
+          "state": "R",
+          "ppid": 3970496,
+          "pgid": 3970496,
+          "sid": 3970496,
+          "started": 157700146
+        }
+      },
+      "after_interrupt_alive": {
+        "parent": true,
+        "child": true
+      },
+      "observations": [
+        {
+          "ms": 100.76,
+          "alive": {
+            "target": {
+              "parent": false,
+              "child": false
+            },
+            "mcp": {
+              "0": true
+            }
+          }
+        },
+        {
+          "ms": 1001.34,
+          "alive": {
+            "target": {
+              "parent": false,
+              "child": false
+            },
+            "mcp": {
+              "0": true
+            }
+          }
+        },
+        {
+          "ms": 2002.03,
+          "alive": {
+            "target": {
+              "parent": false,
+              "child": false
+            },
+            "mcp": {
+              "0": true
+            }
+          }
+        }
+      ],
+      "target_identity_after": {
+        "parent": null,
+        "child": null
+      },
+      "list_before_interrupt": {
+        "id": 4,
+        "result": {
+          "data": [
+            {
+              "itemId": "target",
+              "processId": "64714",
+              "command": "/usr/bin/python3 <probe-home>/tool.py <probe-home>/target.json normal",
+              "cwd": "<probe-home>",
+              "osPid": null,
+              "cpuPercent": null,
+              "rssKb": null
+            }
+          ],
+          "nextCursor": null
+        }
+      },
+      "list_before_action": {
+        "id": 6,
+        "result": {
+          "data": [
+            {
+              "itemId": "target",
+              "processId": "64714",
+              "command": "/usr/bin/python3 <probe-home>/tool.py <probe-home>/target.json normal",
+              "cwd": "<probe-home>",
+              "osPid": null,
+              "cpuPercent": null,
+              "rssKb": null
+            }
+          ],
+          "nextCursor": null
+        }
+      },
+      "list_after_action": {
+        "id": 8,
+        "result": {
+          "data": [],
+          "nextCursor": null
+        }
+      },
+      "raw_sha256": "734bf65e775a9f2bdcef324343f5e84c3711bf0ea2bdd655930ad1651a77cdef"
+    },
+    {
+      "label": "yielded-normal-terminate",
+      "foreground": false,
+      "detached": false,
+      "action": "terminate",
+      "scope": false,
+      "pre_interrupt": false,
+      "target_candidates": 1,
+      "action_reply": {
+        "id": 7,
+        "result": {
+          "terminated": true
+        }
+      },
+      "target_turn": {
+        "id": "01a1aac9-0706-7971-8dca-8e57bc7bd1f6",
+        "rootTurnId": "01a1aac9-0706-7971-8dca-8e57bc7bd1f6",
+        "items": [],
+        "itemsView": "notLoaded",
+        "status": "interrupted",
+        "error": null,
+        "startedAt": 1793866663,
+        "completedAt": 1793866665,
+        "durationMs": 1330
+      },
+      "app_server_alive": true,
+      "error": null,
+      "probe_cleanup_remaining": [],
+      "target_identity_before": {
+        "parent": {
+          "pid": 3970099,
+          "state": "S",
+          "ppid": 3969987,
+          "pgid": 3970099,
+          "sid": 3970099,
+          "started": 157699701
+        },
+        "child": {
+          "pid": 3970100,
+          "state": "R",
+          "ppid": 3970099,
+          "pgid": 3970099,
+          "sid": 3970099,
+          "started": 157699705
+        }
+      },
+      "after_interrupt_alive": {
+        "parent": true,
+        "child": true
+      },
+      "observations": [
+        {
+          "ms": 100.9,
+          "alive": {
+            "target": {
+              "parent": false,
+              "child": false
+            },
+            "mcp": {
+              "0": true
+            }
+          }
+        },
+        {
+          "ms": 1003.07,
+          "alive": {
+            "target": {
+              "parent": false,
+              "child": false
+            },
+            "mcp": {
+              "0": true
+            }
+          }
+        },
+        {
+          "ms": 2001.91,
+          "alive": {
+            "target": {
+              "parent": false,
+              "child": false
+            },
+            "mcp": {
+              "0": true
+            }
+          }
+        }
+      ],
+      "target_identity_after": {
+        "parent": null,
+        "child": null
+      },
+      "list_before_interrupt": {
+        "id": 4,
+        "result": {
+          "data": [
+            {
+              "itemId": "target",
+              "processId": "88020",
+              "command": "/usr/bin/python3 <probe-home>/tool.py <probe-home>/target.json normal",
+              "cwd": "<probe-home>",
+              "osPid": null,
+              "cpuPercent": null,
+              "rssKb": null
+            }
+          ],
+          "nextCursor": null
+        }
+      },
+      "list_before_action": {
+        "id": 6,
+        "result": {
+          "data": [
+            {
+              "itemId": "target",
+              "processId": "88020",
+              "command": "/usr/bin/python3 <probe-home>/tool.py <probe-home>/target.json normal",
+              "cwd": "<probe-home>",
+              "osPid": null,
+              "cpuPercent": null,
+              "rssKb": null
+            }
+          ],
+          "nextCursor": null
+        }
+      },
+      "list_after_action": {
+        "id": 8,
+        "result": {
+          "data": [],
+          "nextCursor": null
+        }
+      },
+      "raw_sha256": "7829c5192192e77d24ffb2b12cb51a211112af61910184c257970e396506189c"
+    },
+    {
+      "label": "yielded-setsid-clean",
+      "foreground": false,
+      "detached": true,
+      "action": "clean",
+      "scope": false,
+      "pre_interrupt": false,
+      "target_candidates": 1,
+      "action_reply": {
+        "id": 7,
+        "result": {}
+      },
+      "target_turn": {
+        "id": "01a1aac9-3a2d-7211-92cd-23bcc1b9a740",
+        "rootTurnId": "01a1aac9-3a2d-7211-92cd-23bcc1b9a740",
+        "items": [],
+        "itemsView": "notLoaded",
+        "status": "interrupted",
+        "error": null,
+        "startedAt": 1793866676,
+        "completedAt": 1793866678,
+        "durationMs": 1310
+      },
+      "app_server_alive": true,
+      "error": null,
+      "probe_cleanup_remaining": [],
+      "target_identity_before": {
+        "parent": {
+          "pid": 3970791,
+          "state": "S",
+          "ppid": 3970674,
+          "pgid": 3970791,
+          "sid": 3970791,
+          "started": 157701011
+        },
+        "child": {
+          "pid": 3970792,
+          "state": "R",
+          "ppid": 3970791,
+          "pgid": 3970792,
+          "sid": 3970792,
+          "started": 157701015
+        }
+      },
+      "after_interrupt_alive": {
+        "parent": true,
+        "child": true
+      },
+      "observations": [
+        {
+          "ms": 100.96,
+          "alive": {
+            "target": {
+              "parent": false,
+              "child": true
+            },
+            "mcp": {
+              "0": true
+            }
+          }
+        },
+        {
+          "ms": 1001.55,
+          "alive": {
+            "target": {
+              "parent": false,
+              "child": true
+            },
+            "mcp": {
+              "0": true
+            }
+          }
+        },
+        {
+          "ms": 2001.32,
+          "alive": {
+            "target": {
+              "parent": false,
+              "child": true
+            },
+            "mcp": {
+              "0": true
+            }
+          }
+        }
+      ],
+      "target_identity_after": {
+        "parent": null,
+        "child": {
+          "pid": 3970792,
+          "state": "S",
+          "ppid": 1,
+          "pgid": 3970792,
+          "sid": 3970792,
+          "started": 157701015
+        }
+      },
+      "list_before_interrupt": {
+        "id": 4,
+        "result": {
+          "data": [
+            {
+              "itemId": "target",
+              "processId": "2954",
+              "command": "/usr/bin/python3 <probe-home>/tool.py <probe-home>/target.json setsid",
+              "cwd": "<probe-home>",
+              "osPid": null,
+              "cpuPercent": null,
+              "rssKb": null
+            }
+          ],
+          "nextCursor": null
+        }
+      },
+      "list_before_action": {
+        "id": 6,
+        "result": {
+          "data": [
+            {
+              "itemId": "target",
+              "processId": "2954",
+              "command": "/usr/bin/python3 <probe-home>/tool.py <probe-home>/target.json setsid",
+              "cwd": "<probe-home>",
+              "osPid": null,
+              "cpuPercent": null,
+              "rssKb": null
+            }
+          ],
+          "nextCursor": null
+        }
+      },
+      "list_after_action": {
+        "id": 8,
+        "result": {
+          "data": [],
+          "nextCursor": null
+        }
+      },
+      "raw_sha256": "4ab134f07ccaac98548551424b8cd390174df5d9d83228626b6db43849084c7f"
+    },
+    {
+      "label": "yielded-setsid-terminate",
+      "foreground": false,
+      "detached": true,
+      "action": "terminate",
+      "scope": false,
+      "pre_interrupt": false,
+      "target_candidates": 1,
+      "action_reply": {
+        "id": 7,
+        "result": {
+          "terminated": true
+        }
+      },
+      "target_turn": {
+        "id": "01a1aac9-2920-7b40-9305-635e81303718",
+        "rootTurnId": "01a1aac9-2920-7b40-9305-635e81303718",
+        "items": [],
+        "itemsView": "notLoaded",
+        "status": "interrupted",
+        "error": null,
+        "startedAt": 1793866672,
+        "completedAt": 1793866673,
+        "durationMs": 1305
+      },
+      "app_server_alive": true,
+      "error": null,
+      "probe_cleanup_remaining": [],
+      "target_identity_before": {
+        "parent": {
+          "pid": 3970648,
+          "state": "S",
+          "ppid": 3970536,
+          "pgid": 3970648,
+          "sid": 3970648,
+          "started": 157700574
+        },
+        "child": {
+          "pid": 3970649,
+          "state": "R",
+          "ppid": 3970648,
+          "pgid": 3970649,
+          "sid": 3970649,
+          "started": 157700578
+        }
+      },
+      "after_interrupt_alive": {
+        "parent": true,
+        "child": true
+      },
+      "observations": [
+        {
+          "ms": 101.02,
+          "alive": {
+            "target": {
+              "parent": false,
+              "child": true
+            },
+            "mcp": {
+              "0": true
+            }
+          }
+        },
+        {
+          "ms": 1001.67,
+          "alive": {
+            "target": {
+              "parent": false,
+              "child": true
+            },
+            "mcp": {
+              "0": true
+            }
+          }
+        },
+        {
+          "ms": 2001.58,
+          "alive": {
+            "target": {
+              "parent": false,
+              "child": true
+            },
+            "mcp": {
+              "0": true
+            }
+          }
+        }
+      ],
+      "target_identity_after": {
+        "parent": null,
+        "child": {
+          "pid": 3970649,
+          "state": "S",
+          "ppid": 1,
+          "pgid": 3970649,
+          "sid": 3970649,
+          "started": 157700578
+        }
+      },
+      "list_before_interrupt": {
+        "id": 4,
+        "result": {
+          "data": [
+            {
+              "itemId": "target",
+              "processId": "46905",
+              "command": "/usr/bin/python3 <probe-home>/tool.py <probe-home>/target.json setsid",
+              "cwd": "<probe-home>",
+              "osPid": null,
+              "cpuPercent": null,
+              "rssKb": null
+            }
+          ],
+          "nextCursor": null
+        }
+      },
+      "list_before_action": {
+        "id": 6,
+        "result": {
+          "data": [
+            {
+              "itemId": "target",
+              "processId": "46905",
+              "command": "/usr/bin/python3 <probe-home>/tool.py <probe-home>/target.json setsid",
+              "cwd": "<probe-home>",
+              "osPid": null,
+              "cpuPercent": null,
+              "rssKb": null
+            }
+          ],
+          "nextCursor": null
+        }
+      },
+      "list_after_action": {
+        "id": 8,
+        "result": {
+          "data": [],
+          "nextCursor": null
+        }
+      },
+      "raw_sha256": "dbffbf16a85d7ef768c9beb02e2d38c1012f0deb07e7daf6e315c168c5fa0f63"
+    },
+    {
+      "label": "launching-setsid-terminate",
+      "foreground": true,
+      "detached": true,
+      "action": "terminate",
+      "scope": false,
+      "pre_interrupt": false,
+      "early": true,
+      "target_candidates": 0,
+      "action_not_sent": "target absent from native list",
+      "target_turn": {
+        "id": "01a1aadb-7def-75b2-8e40-9040a6b2c134",
+        "rootTurnId": "01a1aadb-7def-75b2-8e40-9040a6b2c134",
+        "items": [],
+        "itemsView": "notLoaded",
+        "status": "interrupted",
+        "error": null,
+        "startedAt": 1793867873,
+        "completedAt": 1793867873,
+        "durationMs": 200
+      },
+      "app_server_alive": true,
+      "error": null,
+      "probe_cleanup_remaining": [],
+      "target_identity_before": {
+        "parent": {
+          "pid": 3978016,
+          "state": "S",
+          "ppid": 3977904,
+          "pgid": 3978016,
+          "sid": 3978016,
+          "started": 157820712
+        },
+        "child": {
+          "pid": 3978017,
+          "state": "R",
+          "ppid": 3978016,
+          "pgid": 3978017,
+          "sid": 3978017,
+          "started": 157820716
+        }
+      },
+      "after_interrupt_alive": {
+        "parent": false,
+        "child": true
+      },
+      "observations": [
+        {
+          "ms": 100.31,
+          "alive": {
+            "target": {
+              "parent": false,
+              "child": true
+            },
+            "mcp": {
+              "0": true
+            }
+          }
+        },
+        {
+          "ms": 1001.87,
+          "alive": {
+            "target": {
+              "parent": false,
+              "child": true
+            },
+            "mcp": {
+              "0": true
+            }
+          }
+        },
+        {
+          "ms": 2001.57,
+          "alive": {
+            "target": {
+              "parent": false,
+              "child": true
+            },
+            "mcp": {
+              "0": true
+            }
+          }
+        }
+      ],
+      "target_identity_after": {
+        "parent": null,
+        "child": {
+          "pid": 3978017,
+          "state": "S",
+          "ppid": 1,
+          "pgid": 3978017,
+          "sid": 3978017,
+          "started": 157820716
+        }
+      },
+      "list_before_interrupt": {
+        "id": 4,
+        "result": {
+          "data": [],
+          "nextCursor": null
+        }
+      },
+      "list_before_action": {
+        "id": 6,
+        "result": {
+          "data": [],
+          "nextCursor": null
+        }
+      },
+      "list_after_action": {
+        "id": 7,
+        "result": {
+          "data": [],
+          "nextCursor": null
+        }
+      },
+      "raw_sha256": "276f7bd79c56480c19fbee41aa2ce10accf15d25c564c7de57041fa73fe4b1b5"
+    }
+  ]
+}
