@@ -172,7 +172,7 @@ tools run and the native `permission/preset` frame is recorded.
 Refused with `UnsupportedOptionError`, each until its own probe:
 `systemPrompt`, `appendSystemPrompt`, `mcpServers`, `disallowedTools`, `launchArgs`,
 `serviceTier`, `additionalDirectories`, `outputSchema`, `name`,
-`userConfiguration: "exclude"`, `goals: true`. Images are not sent:
+`userConfiguration: "exclude"`, `goals: true`, `endTurnProcessesOnAbort: true`. Images are not sent:
 `capabilities.images` is false and an input with images is rejected `unsupported`.
 `queue.durable` is false: native dispose clears the inbox (measured). After a SIGKILL,
 one probe on 0.2.1-rc.5 found the queued input still in the log: it does not run at
