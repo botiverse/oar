@@ -19,6 +19,7 @@ the shell runs in B.
 | pi | SDK 1.0.0 | Refused at open: pi keeps sessions per directory (no session file under B) |
 | grok | 1.0.46 | Refused at open: grok answers the resume with `Path not found.` |
 | kimi | 2.1.1 | Natively kept in A without a word (its shell ran `cd <A> && pwd`); OAR refuses at open after reading the session's directory from `session/list` |
+| antigravity | agy CLI 1.5.0, local Gemini provider (2026-11-05) | Native resume keeps the original cwd; OAR reads `session/list` and refuses a different cwd before prompting ([control](../../experiments/antigravity-cli-acp-2026-11-05.md)) |
 | opencode | 1.18.30, opencode/big-pickle (2026-10-05) | Natively kept in A without a word (`pwd` printed A, the transcript intact); OAR refuses at open after reading the session's directory from `session/list`, for a git repository in B too |
 
 Current OAR maps the verified missing-target signals to
@@ -28,11 +29,10 @@ not found by the SDK with the supplied configuration. Persist and reuse the
 original cwd before deciding the old conversation is gone. The table above
 records the historical native errors, not a global absence guarantee.
 
-A refusal is the runtime's (or for kimi and opencode, OAR's) error from
+A refusal is the runtime's (or for kimi, opencode and antigravity, OAR's) error from
 `session()`, so a host that tries a resume in B and falls back to a handoff
-on refusal never runs in a directory it did not ask for. Kimi's and
-opencode's is an `UnsupportedOptionError`
+on refusal never runs in a directory it did not ask for. Kimi's, opencode's and
+antigravity's is an `UnsupportedOptionError`
 with `option: "cwd"`
 ([refused session options](../spec/runtime-matrix.md#refused-session-options)).
-Not covered: antigravity (not installed here), and runtimes whose session
-store the host moved by hand.
+Not covered: runtimes whose session store the host moved by hand.

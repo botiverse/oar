@@ -1,22 +1,30 @@
+import { existsSync } from "node:fs";
 import type { AvailableInstallation } from "../../contracts/installation.js";
 import type { UpdateCheck, UpdateCheckOptions, UpdateChecker } from "../../contracts/update.js";
 import { asRecord, parseJson } from "../../shared/json.js";
 import { CHECK_TIMEOUT_MS, comparedCheck, executableUpdate, readReleaseSource, versionAtLeast } from "../../shared/update.js";
 
-/**
- * agy_acp_server has no updater and Google publishes no latest pointer; the
- * ACP registry entry is the only release listing, and it trails Google's
- * own downloads (1.2.1 listed while 1.3.0 was downloadable on 2026-10-01).
- * So this check names the registry as its source, counts only a newer
- * registry version as an update, and there is no upgrade.
- */
+/** The same platform names and musl loader check used by the official installer. */
+export function antigravityReleaseSource(platform: NodeJS.Platform, arch: string, musl = false): string | undefined {
+  const systems: Readonly<Partial<Record<NodeJS.Platform, string>>> = { linux: "linux", darwin: "darwin", win32: "windows", android: "android" };
+  const system = systems[platform];
+  if (system === undefined || (arch !== "x64" && arch !== "arm64")) { return undefined; }
+  const architecture = arch === "x64" ? "amd64" : "arm64";
+  const suffix = platform === "linux" && musl ? "_musl" : "";
+  return `https://antigravity-cli-auto-updater-974169037036.us-central1.run.app/manifests/${system}_${architecture}${suffix}.json`;
+}
+
+/** The CLI installer and updater use Google's platform release manifest. */
 export function antigravityUpdateCheck(
-  registry = "https://raw.githubusercontent.com/agentclientprotocol/registry/main/antigravity-acp/agent.json",
+  registry = antigravityReleaseSource(process.platform, process.arch, existsSync("/lib/libc.musl-x86_64.so.1") || existsSync("/lib/libc.musl-aarch64.so.1")),
 ): UpdateChecker {
   return async (installation: AvailableInstallation, options: UpdateCheckOptions = {}): Promise<UpdateCheck> => {
     const update = executableUpdate(installation);
     if (update.kind === "unavailable") {
       return update.check;
+    }
+    if (registry === undefined) {
+      return { kind: "unavailable", reason: "unsupported_installation", detail: "No official agy release manifest for this platform and architecture" };
     }
     const read = await readReleaseSource(registry, options.timeoutMs ?? CHECK_TIMEOUT_MS);
     if (!read.ok) {

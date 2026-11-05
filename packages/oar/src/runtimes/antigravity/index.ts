@@ -8,7 +8,7 @@ import { antigravityRefusedSessionOptions } from "./options.js";
 
 export const antigravityRuntime = defineRuntime({
   id: "antigravity",
-  manualCompaction: { kind: "unsupported", reason: "The native ACP service exposes no manual compaction control." },
+  manualCompaction: { kind: "unsupported", reason: "The CLI advertises /compact, but no structured completion and attribution contract has been verified." },
   brand: runtimeBrands.antigravity,
   installation: antigravityInstallation,
   installPlan: antigravityInstallPlan,
@@ -23,5 +23,5 @@ export const antigravityRuntime = defineRuntime({
   }),
   checkUpdate: antigravityCheckUpdate,
   refusedSessionOptions: antigravityRefusedSessionOptions,
-  mcpToolsListChanged: "full",
+  mcpToolsListChanged: "none",
 }, { execution: "process" });

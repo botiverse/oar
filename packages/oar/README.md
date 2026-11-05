@@ -72,7 +72,7 @@ root tools, withdraws the held inputs, aborts the turn and, after the
 runtime's own turn end, sends them as one merged prompt
 ([interrupting](https://github.com/botiverse/oar/blob/main/docs/spec/conversation.md#interrupting-and-merging-held-inputs)).
 `session.steer` exists only on a session whose runtime can steer (qwen,
-codebuddy, kimi, antigravity and opencode v2 sessions have none; see
+codebuddy, kimi and opencode v2 sessions have none; see
 [session controls](https://github.com/botiverse/oar/blob/main/docs/spec/runtime-matrix.md#session-controls)),
 so a host offers a steer control by reading the member, never a runtime
 name; `deliver` and `steerOrQueue` queue where it is absent. `session.withdraw(inputId)` takes a queued input back before it is
@@ -338,10 +338,10 @@ opencode and grok show them to the model, pi and kimi do not.
 `notifications/tools/list_changed`. Whether a running session's model sees
 the change is the runtime's choice, declared before opening as
 `runtime.mcpToolsListChanged`: `full` (pi, opencode), `additions` (claude:
-new tools appear, removed ones stay offered) or `none` (codex, kimi, grok); a
+new tools appear, removed ones stay offered) or `none` (codex, kimi, grok, antigravity); a
 session that does not take it gets the new tools when the host opens its next
 session. The declaration covers any MCP server that announces a change, so
-antigravity declares `full` too, though a served entry never attaches there. See
+antigravity declares `none`, though a served entry never attaches there. See
 [host-served tools](https://github.com/botiverse/oar/blob/main/docs/spec/runtime-matrix.md#host-served-tools).
 
 `runtime.listModels(installation, options?)` lists the models an installation
@@ -386,7 +386,7 @@ location configuration); `runtime.install()` runs
 it, without a terminal and never with sudo, when `installation()` finds no
 copy, and judges the result by `installation()` afterwards, never by the
 installer's exit code. oar never installs on its own. Claude, Codex, Grok,
-Kimi, OpenCode, Qwen and Qoder install through their vendors' macOS and Linux scripts;
+Kimi, OpenCode, Qwen, Qoder and Antigravity install through their vendors' macOS and Linux scripts;
 CodeBuddy uses its official npm package on Linux, macOS and Windows, checks
 the configured global prefix, and discovers its launcher even off PATH.
 Planning may run bounded local read-only queries with private temporary files
@@ -395,8 +395,10 @@ An unreadable prefix returns `location_unknown` with the failure category in
 `detail`, without npm's raw output.
 OpenCode declares two release lines in `runtime.installLines` (`v1`, `v2`)
 and takes the host's choice as `line` (oar picks none), and a copy of either
-line is `already_installed`, never replaced. Antigravity's plan is
-`requires_gui`; Pi and Cursor have neither member.
+line is `already_installed`, never replaced. Antigravity uses `agy acp` from
+CLI 1.5.0 or newer, discovered on PATH or in the official install directory;
+its Windows plan provides the manual PowerShell command. Pi and Cursor have
+neither member.
 See [runtime install](https://github.com/botiverse/oar/blob/main/docs/spec/install.md).
 
 `runtime.login(installation, interaction)` logs an installation in through
@@ -413,8 +415,8 @@ its provider settings are on `createQwenProviderAuth`. Grok, OpenCode and Pi
 have neither yet (Pi's provider logins are on `createPiProviderAuth`).
 CodeBuddy supports login and a private native account-state read, but no logout
 ([mapping](https://github.com/botiverse/oar/blob/main/docs/runtimes/codebuddy.md#international-login)).
-Antigravity has neither, since its terms do not allow signing in through a
-third-party tool. `runtime.logout(installation)` signs Claude, Codex, Cursor
+Antigravity has neither typed control yet; use its native CLI login
+(`agy acp --login`) and existing CLI configuration. `runtime.logout(installation)` signs Claude, Codex, Cursor
 and Kimi out through their own logout (`claude auth logout`, `codex logout`,
 `Cursor.auth.logout`, Kimi's ACP `logout`) and resolves `logged_out` when
 `authStatus` then reads logged out (or, when it cannot tell, on the

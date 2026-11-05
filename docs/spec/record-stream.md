@@ -996,7 +996,7 @@ Which runtimes say which kinds (runtime pages hold the evidence):
 - `effort`: the reasoning-effort level the runtime reports in effect, in its
   own spelling. codex: the `thread/start` / `thread/resume` reply's
   `reasoningEffort` and `thread/settings/updated`; ACP (grok, kimi; opencode
-  and antigravity 1.4.0 where the model has the option): the
+  and antigravity CLI 1.5.0 where the model has the option): the
   current value of the config option in ACP's `thought_level` category, in
   a handshake answer or a `config_option_update`; pi: `thinkingLevel` on
   `pi/session_opened` and pi's `thinking_level_changed`; cursor: the

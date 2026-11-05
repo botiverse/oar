@@ -1,23 +1,41 @@
+import path from "node:path";
+import type { InstallationProbe } from "../../contracts/installation.js";
+import { environmentValue } from "../../shared/environment.js";
+import { environmentHome } from "../../shared/environment-home.js";
 import { executableInstallation } from "../../shared/installation.js";
+import { versionAtLeast } from "../../shared/update.js";
 
-/**
- * agy_acp_server 1.2.1 prints its build stamp for `--version`; the release
- * is the `Build label:` line. Its `--help` exits 1, so there is no cheap
- * readiness check beyond the version read.
- */
+/** The standalone CLI prints a bare release, unlike the retired ACP server's build stamp. */
 export function readAntigravityVersion(stdout: string): string | undefined {
-  return /^Build label:\s*(\S+)/mu.exec(stdout)?.[1];
+  return /^(\d+\.\d+\.\d+)\s*$/u.exec(stdout.trim())?.[1];
 }
 
-/**
- * The ACP registry ships the server as a zip that unpacks to
- * `agy_acp_server.par` (`agy_acp_server.exe` on Windows) with no installer,
- * so it is found on PATH or pinned with OAR_ANTIGRAVITY_BIN.
- */
-export const antigravityInstallation = executableInstallation(
-  "OAR_ANTIGRAVITY_BIN",
-  process.platform === "win32" ? "agy_acp_server.exe" : "agy_acp_server.par",
-  [],
+/** Official installer locations, including GUI hosts whose PATH omits them. */
+export function antigravityInstalledExecutableCandidates(
+  platform: NodeJS.Platform,
+  home: string,
+  env: Readonly<NodeJS.ProcessEnv>,
+): readonly string[] {
+  if (platform === "win32") {
+    const configured = environmentValue(env, "LOCALAPPDATA", platform);
+    const local = configured === undefined || configured.length === 0 ? path.win32.join(home, "AppData", "Local") : configured;
+    return [path.win32.join(local, "agy", "bin", "agy.exe")];
+  }
+  return [path.posix.join(home, ".local", "bin", "agy")];
+}
+
+const cliInstallation = executableInstallation(
+  "OAR_ANTIGRAVITY_BIN", "agy",
+  (env) => antigravityInstalledExecutableCandidates(process.platform, environmentHome(env), env),
   undefined,
   { versionTimeoutMs: 30_000, readVersion: readAntigravityVersion },
 );
+
+/** Older CLI releases accept unknown subcommands by printing help, so a successful help exit is not an ACP gate. */
+export const antigravityInstallation: InstallationProbe = async (options) => {
+  const snapshot = await cliInstallation(options);
+  if (snapshot.kind !== "available" || snapshot.via !== "executable") { return snapshot; }
+  return snapshot.version !== undefined && versionAtLeast(snapshot.version, "1.5.0")
+    ? snapshot
+    : { kind: "unsupported", reason: "Antigravity requires agy CLI 1.5.0 or newer with native ACP; update agy and point OAR_ANTIGRAVITY_BIN at agy, not agy_acp_server" };
+};

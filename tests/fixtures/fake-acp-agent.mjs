@@ -14,7 +14,7 @@ let reverseId = 0;
 const antigravity = mode === "antigravity";
 // OpenCode v1: mid-turn prompts join its loop; all answers arrive at idle.
 const opencode = mode === "opencode";
-const sessionCapabilities = { "grok-usage-load": {}, opencode: { close: {}, fork: {}, list: {}, resume: {} }, antigravity: { list: {}, resume: {} }, listed: { list: {}, resume: {} } };
+const sessionCapabilities = { "grok-usage-load": {}, opencode: { close: {}, fork: {}, list: {}, resume: {} }, antigravity: { list: {}, resume: {}, close: {}, additionalDirectories: {} }, listed: { list: {}, resume: {} } };
 let currentMode = "default";
 function send(message) { process.stdout.write(`${JSON.stringify(message)}\n`); }
 function result(id, value = {}) { send({ jsonrpc: "2.0", id, result: value }); }
@@ -232,7 +232,7 @@ function handleSessionRequest(message) {
       });
       break;
     case "session/list":
-      result(message.id, { sessions: [{ sessionId: "fake-session", cwd: process.env.FAKE_ACP_SESSION_CWD ?? "/" }] });
+      result(message.id, { sessions: [{ sessionId: "fake-session", cwd: process.env.FAKE_ACP_SESSION_CWD ?? (antigravity ? process.cwd() : "/") }] });
       break;
     case "session/set_model":
     case "session/set_config_option":
@@ -246,9 +246,6 @@ function handleSessionRequest(message) {
       handleSessionPrompt(message);
       break;
     case "session/close":
-      if (antigravity) {
-        process.exit(3);
-      }
       send({ jsonrpc: "2.0", method: "fixture/closed", params: message.params });
       result(message.id);
       break;

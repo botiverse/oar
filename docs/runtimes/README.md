@@ -19,7 +19,7 @@ Pi Durable SDKs before selecting live probes.
 
 | Runtime | Native entry used by OAR | Read for |
 |---|---|---|
-| [Antigravity](antigravity.md) | `agy_acp_server --uid=`, ACP | Grouped models and effort, appended instructions, mode reset on open, MCP credentials refused |
+| [Antigravity](antigravity.md) | `agy acp`, native CLI 1.5.0+ | Same-loop steer, grouped models/effort, appended instructions; tool denials, extra directories and MCP credentials refused |
 | [Claude Code](claude.md) | CLI print mode, bidirectional `stream-json` | Persistent conversations, user turns versus model steps, input delivery, native children, usage |
 | [Codex](codex.md) | App-server v2 over stdio | Thread/turn/item identity, bidirectional requests, native queue, collaboration threads |
 | [CodeBuddy Code](codebuddy.md) | Native CLI ACP sessions; private stream-json account controls | Consecutive turns, model/effort readback, native context 0/0 and token-ledger limits |

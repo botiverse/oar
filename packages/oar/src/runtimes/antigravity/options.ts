@@ -5,15 +5,16 @@ import type { RefusedSessionOptions } from "../../contracts/runtime.js";
 export const antigravityRefusedSessionOptions: RefusedSessionOptions = {
   goals: "This runtime interface exposes no structured native goal controls",
   userConfiguration: "antigravity has no verified separation of user configuration from its native login",
+  additionalDirectories: "agy CLI 1.5.0 can select an additional workspace as the command cwd instead of preserving the primary cwd",
   outputSchema: "Antigravity ACP and launch configuration expose no final-output schema channel",
   name: "antigravity exposes no verified session name setting",
-  additionalDirectories: "antigravity accepts but ignores ACP additionalDirectories",
   serviceTier: "antigravity exposes no verified per-session service-tier setting and readback",
-  systemPrompt: "The Antigravity ACP server has no system prompt override in its protocol, launch options, or configuration",
-  // agy_acp_server 1.4.0 and 1.4.1 write a session's `mcpServers`, `env` and `headers`
+  systemPrompt: "agy CLI ACP exposes no verified system prompt replacement channel",
+  disallowedTools: "agy CLI ACP exposes no verified tool-denial channel; _meta.antigravity.disabledTools is ignored in 1.5.0",
+  // agy CLI 1.5.0 writes a session's `mcpServers`, `env` and `headers`
   // values included, in plain text into its conversation database
-  // (`$GEMINI_HOME/antigravity-acp/conversations/<id>.db`), whose permissions
-  // follow the inherited umask. The database outlives the session and a host
+  // (`$GEMINI_HOME/antigravity-cli/conversations/<id>.db`).
+  // The database outlives the session and a host
   // cannot see or clear it through ACP;
   // credentials reach a runtime only through its native channel, never its
   // disk. An entry without `env` or `headers` attaches as usual.

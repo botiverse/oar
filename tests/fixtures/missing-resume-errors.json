@@ -33,14 +33,8 @@
     }
   },
   "antigravity": {
-    "code": -32002,
-    "message": "Session not found in the current GEMINI_HOME",
-    "data": {
-      "sessionId": "00000000-0000-4000-8000-000000000294",
-      "geminiHome": "<tmp>/gem",
-      "expectedPath": "<tmp>/gem/antigravity-acp/conversations/00000000-0000-4000-8000-000000000294.db",
-      "details": "No session with this ID exists under GEMINI_HOME ('<tmp>/gem'). If you recently changed GEMINI_HOME, point it back to the directory where the session was created."
-    }
+    "code": -32603,
+    "message": "Failed to read session missing-session; retry, or load it with session/load"
   },
   "cursor": {
     "name": "AgentNotFoundError",

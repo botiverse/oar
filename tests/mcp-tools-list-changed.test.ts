@@ -5,7 +5,7 @@ import { allRuntimes } from "../sea-trial/harness/runtimes.js";
 test("the declarations say how a running session takes a change to an MCP server's tools", () => {
   const declared = Object.fromEntries(allRuntimes.list().map((runtime) => [runtime.id, runtime.mcpToolsListChanged ?? null]));
   expect(declared).toEqual({
-    antigravity: "full",
+    antigravity: "none",
     claude: "additions",
     codebuddy: null,
     codex: "none",

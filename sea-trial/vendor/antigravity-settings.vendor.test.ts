@@ -5,7 +5,7 @@ import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { startAntigravityAimock, type AcpAimockEnv } from "../harness/aimock-acp.js";
 import { runtimeUnderTest } from "../harness/subject.js";
 
-/** The real 1.4.0 server and local harness, with provider bodies captured before aimock. */
+/** The real CLI ACP server, with provider bodies captured before aimock. */
 async function turn(session: Session, env: AcpAimockEnv): Promise<readonly unknown[]> {
   const offset = env.raw.length;
   try {
@@ -17,7 +17,7 @@ async function turn(session: Session, env: AcpAimockEnv): Promise<readonly unkno
 }
 
 function settings(bodies: readonly unknown[]): readonly { readonly system: string; readonly thinking: unknown }[] {
-  return bodies.map((value) => {
+  return bodies.filter((value) => !JSON.stringify(asRecord(value)?.systemInstruction).includes("You are a conversation title generator")).map((value) => {
     const body = asRecord(value);
     return {
       system: JSON.stringify(body?.systemInstruction),
@@ -31,29 +31,32 @@ describe.skipIf(process.env.OAR_TEST !== "antigravity-aimock")("antigravity nati
     const env = await startAntigravityAimock((mock) => { mock.onMessage(/SETTINGS_OK/u, { content: "SETTINGS_OK" }); });
     try {
       const subject = runtimeUnderTest(antigravityRuntime, env.env);
-      const first = await subject.startSession({ model: "gemini-3.8-flash", effort: "low", appendSystemPrompt: "OAR_APPEND_FIRST_140" });
+      const first = await subject.startSession({ model: "gemini-3.8-flash", effort: "low", appendSystemPrompt: "OAR_APPEND_FIRST_150" });
       expect(first.model().value).toBe("gemini-3.8-flash");
       expect(first.effort().value).toBe("low");
       const initial = settings(await turn(first, env));
       expect(initial).toHaveLength(1);
-      expect(initial[0]?.system).toContain("OAR_APPEND_FIRST_140");
-      expect(initial[0]?.thinking).toBe("low");
+      expect(initial[0]?.system).toContain("OAR_APPEND_FIRST_150");
+      expect(initial[0]?.thinking).toBe("LOW");
       // Appending retains the built-in harness instructions.
       expect(initial[0]?.system).toContain("Antigravity");
 
-      const resumed = await subject.startSession({ resume: first.id, effort: "high", appendSystemPrompt: "OAR_APPEND_RESUMED_140" });
+      // Resume defaults to its CLI-configured model, so reapply the complete
+      // intended configuration before comparing effort in the same family.
+      const resumed = await subject.startSession({ resume: first.id, model: "gemini-3.8-flash", effort: "high", appendSystemPrompt: "OAR_APPEND_RESUMED_150" });
+      expect(resumed.model().value).toBe("gemini-3.8-flash");
       expect(resumed.effort().value).toBe("high");
       const changed = settings(await turn(resumed, env));
       expect(changed).toHaveLength(1);
-      expect(changed[0]?.system).toContain("OAR_APPEND_RESUMED_140");
-      expect(changed[0]?.thinking).toBe("high");
-      expect(changed[0]?.system).not.toContain("OAR_APPEND_FIRST_140");
+      expect(changed[0]?.system).toContain("OAR_APPEND_RESUMED_150");
+      expect(changed[0]?.thinking).toBe("HIGH");
+      expect(changed[0]?.system).not.toContain("OAR_APPEND_FIRST_150");
 
       const omitted = await subject.startSession({ resume: first.id });
       const cleared = settings(await turn(omitted, env));
       expect(cleared).toHaveLength(1);
-      expect(cleared[0]?.system).not.toMatch(/OAR_APPEND_(?:FIRST|RESUMED)_140/u);
-      await expect(subject.startSession({ effort: "not-a-native-level" })).rejects.toThrow(/thinking_level=not-a-native-level was refused/u);
+      expect(cleared[0]?.system).not.toMatch(/OAR_APPEND_(?:FIRST|RESUMED)_150/u);
+      await expect(subject.startSession({ effort: "not-a-native-level" })).rejects.toThrow(/thought_level=not-a-native-level was refused/u);
     } finally {
       await env.stop();
     }

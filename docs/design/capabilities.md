@@ -4,8 +4,8 @@ A host picks the runtime at run time, from a user's choice or its own
 configuration, so its code cannot know which runtime it holds. Runtimes
 differ: cursor takes no environment for its tools, kimi and opencode resume
 a session only in the directory it was created in, cursor, kimi,
-antigravity, opencode v2 and Pi Durable take no system prompt, and kimi,
-antigravity and opencode v2 cannot steer. The design question is how a host
+antigravity, opencode v2 and Pi Durable take no system prompt, and kimi and
+opencode v2 cannot steer. The design question is how a host
 learns what it may ask for, and what happens when it asks for more.
 
 **The position: a host never gets something other than it asked for, never
@@ -17,9 +17,9 @@ tools, each used only where the one before does not fit.
 When a runtime either can or cannot do a whole thing, the thing is an
 optional member and its presence is the capability. `Runtime.accountUsage`,
 `listModels`, `installPlan`, `install`, `checkUpdate`, `upgrade`, `login`,
-`logout` and `authStatus` already work this way (antigravity, whose terms
-rule out a sign-in through OAR, has no `login`, only the runtimes OAR signs
-in have a `logout`, and bundled pi and cursor have no `install`);
+`logout` and `authStatus` already work this way (antigravity has no typed
+login integration yet, only the runtimes OAR signs in have a `logout`, and
+bundled pi and cursor have no `install`);
 `Session` `steer`, `withdraw`, `resources` and `goal` do too: a session that cannot
 steer has no `steer`, one whose queue OAR does not hold (codex) has no
 `withdraw`, and one whose runtime runs in the host process (pi, cursor) has

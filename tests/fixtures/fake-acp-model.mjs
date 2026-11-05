@@ -29,7 +29,7 @@ const EFFORT_LEVELS = ["low", "medium", "high"];
 function effortOption(currentValue, mode) {
   return {
     type: "select",
-    id: mode === "antigravity" ? "thinking_level" : EFFORT_ID,
+    id: mode === "antigravity" ? "thought_level" : EFFORT_ID,
     name: "Effort",
     category: "thought_level",
     currentValue,
@@ -39,7 +39,7 @@ function effortOption(currentValue, mode) {
 
 /**
  * `mode` "no-thought-level": an agent that offers no effort selector at all.
- * Mode "antigravity" uses 1.4.0's thinking_level id in the same category.
+ * Mode "antigravity" uses 1.5.0's thought_level id in the same category.
  */
 export function modelReport(mode) {
   // "opencode": the open model has no variants, so no effort selector (opencode/big-pickle).
@@ -82,7 +82,7 @@ export function setModelResponse(modelId) {
 
 /**
  * What `session/set_config_option {configId: "model", value}` does, the way
- * agy_acp_server 1.4.0 answers it: a known model is applied and answered with
+ * agy CLI 1.5.0 answers it: a known model is applied and answered with
  * the model and effort options; no `config_option_update` is pushed. An unknown
  * model is refused `-32602`. In mode
  * "opencode" (1.18.30) `requested-y` has variants, so the answer also lists
@@ -108,7 +108,7 @@ export function setConfigOption(params, mode) {
   if (params?.configId === "model") {
     return setModelOption(params.value, mode);
   }
-  if (params?.configId !== (mode === "antigravity" ? "thinking_level" : EFFORT_ID)) {
+  if (params?.configId !== (mode === "antigravity" ? "thought_level" : EFFORT_ID)) {
     return { error: { code: -32_602, message: "Invalid params", data: `unknown config option ${String(params?.configId)}` } };
   }
   if (params.value === "sticky") {

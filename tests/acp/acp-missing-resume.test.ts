@@ -29,7 +29,7 @@ test.each(Object.entries(profiles))("%s maps its recorded missing resume error",
 });
 
 test("antigravity uses the same structural signal on session/load", async () => {
-  const opening = open(profiles.antigravity, { error: errors.antigravity, capability: "load", errorMethod: "session/load" });
+  const opening = open(profiles.antigravity, { error: errors.antigravity, capability: "load", errorMethod: "session/load", pages: [unlisted] });
   await expect(opening).rejects.toBeInstanceOf(SessionNotFoundError);
   await expect(opening).rejects.toMatchObject({ cause: { method: "session/load", native: errors.antigravity } });
 });
@@ -43,7 +43,7 @@ test.each(Object.entries(profiles))("%s never classifies an initialize or new-se
   }
 });
 
-const listProfiles = [profiles.kimi, profiles.opencode, profiles.opencodeV2];
+const listProfiles = [profiles.antigravity, profiles.kimi, profiles.opencode, profiles.opencodeV2];
 test.each(listProfiles)("a listed id keeps a generic native resume failure, even on a later page", async (profile) => {
   const failure: unknown = await open(profile, { error: errors.opencode, pages: [{ result: { sessions: [], nextCursor: "next" } }, listed] }).catch((error: unknown) => error);
   expect(failure).not.toBeInstanceOf(SessionNotFoundError);
@@ -73,9 +73,12 @@ test.each([
   { pages: [{ result: { sessions: [], nextCursor: "repeated" } }] },
   { pages: [{ result: { sessions: [], nextCursor: "next" } }, { error: { code: -32_603, message: "list failed" } }] },
 ])("an unavailable, incomplete or malformed list never proves absence: %j", async (scenario) => {
-  const failure: unknown = await open(profiles.opencode, { ...scenario, error: errors.opencode }).catch((error: unknown) => error);
-  expect(failure).toBeInstanceOf(Error);
-  expect(failure).not.toBeInstanceOf(SessionNotFoundError);
+  for (const profile of [profiles.opencode, profiles.antigravity]) {
+    // oxlint-disable-next-line eslint/no-await-in-loop -- Independent native list failures, cleaned up before the next open.
+    const failure: unknown = await open(profile, { ...scenario, error: errors.opencode }).catch((error: unknown) => error);
+    expect(failure).toBeInstanceOf(Error);
+    expect(failure).not.toBeInstanceOf(SessionNotFoundError);
+  }
 });
 
 test.each(listProfiles)("an authentication failure keeps its classification despite an empty list", async (profile) => {
@@ -85,7 +88,7 @@ test.each(listProfiles)("an authentication failure keeps its classification desp
 });
 
 test.each([
-  [profiles.antigravity, { ...errors.antigravity, code: -32_603 }],
+  [profiles.antigravity, { ...errors.antigravity, code: -32_601 }],
   [profiles.grok, { ...errors.grok, data: { code: "FS_ACCESS_DENIED" } }],
   [{ args: [], capabilities: { queue: { durable: false }, attribution: "opaque" } } satisfies AcpSessionProfile, errors.antigravity],
 ] as const)("other native failures and profiles without a rule stay unchanged", async (profile, native) => {

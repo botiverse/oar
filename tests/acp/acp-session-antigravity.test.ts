@@ -4,7 +4,6 @@ import type { Session, SessionOptions } from "../../packages/oar/src/contracts/s
 import {
   antigravityAcpArgs,
   antigravityAcpProfile,
-  supportsAntigravityYolo,
 } from "../../packages/oar/src/runtimes/antigravity/session.js";
 import {
   antigravityInstallation,
@@ -15,10 +14,8 @@ import { promptAndWait } from "../../packages/oar/src/observe/turns.js";
 import { describe, fixture } from "../fixtures/acp-session-support.js";
 import { agentTreeModule, gone, withTreeProbe } from "../fixtures/process-tree.js";
 
-// The fixture's "antigravity" mode replays agy_acp_server 1.4.0: no `close`
-// capability, no usage_update in these turns, a thinking_level selector, and a session mode that
-// every open (new or resume) starts back at `default`. The real profile runs
-// against it, with only the launch line swapped for the fixture's.
+// Replay agy CLI 1.5.0's close capability and thought_level selector.
+// Only the executable launch is replaced by the fake transport.
 async function startAntigravity(options: Omit<SessionOptions, "cwd"> = {}, keepAlive = false): Promise<Session> {
   return acpSession({
     ...antigravityAcpProfile,
@@ -32,33 +29,31 @@ async function lastText(session: Session, input: string): Promise<string | undef
   return session.records().map((record) => describe(record)).findLast((line) => line.startsWith("event agent_message_chunk"));
 }
 
-test("the session opens without authenticate and runs in yolo, again after a resume", async () => {
+test("the session opens without authenticate or a synthetic permission mode, again after a resume", async () => {
   const first = await startAntigravity();
   const opening = first.records().map((record) => describe(record));
   assert.ok(!opening.includes("event authenticate"), JSON.stringify(opening));
-  assert.equal(await lastText(first, "mode"), "event agent_message_chunk → text:mode:yolo");
+  assert.equal(await lastText(first, "mode"), "event agent_message_chunk → text:mode:default");
   await first.dispose();
 
   const resumed = await startAntigravity({ resume: first.id });
   assert.equal(resumed.id, first.id);
-  assert.equal(await lastText(resumed, "mode"), "event agent_message_chunk → text:mode:yolo");
+  assert.equal(await lastText(resumed, "mode"), "event agent_message_chunk → text:mode:default");
   await resumed.dispose();
 });
 
-test.each([false, true])("dispose ends the process without unadvertised session/close; held open by a tool: %s", async (keepAlive) => {
+test.each([false, true])("dispose closes the native session and ends the process; held open by a tool: %s", async (keepAlive) => {
   // oxlint-disable-next-line eslint/max-statements -- Observe the same disposal's stream, native exit and descendant liveness together.
   await withTreeProbe({ ignoreSigterm: false }, async (probe) => {
     const session = await startAntigravity({ env: keepAlive ? probe.env : {} }, keepAlive);
     const tree = keepAlive ? await probe.tree() : null;
     await session.dispose();
     const tail = session.records().map((record) => describe(record));
+    // Disposal owns the process; the close response is not a session frame.
     assert.deepEqual(tail.slice(-2), ["request dispose", "response exited"]);
+    assert.equal(tail.at(-1), "response exited");
     const exit = session.records().findLast((entry) => entry.kind === "response" && entry.body.kind === "exited");
     assert.ok(exit?.kind === "response" && exit.body.kind === "exited");
-    // The fixture exits 3 on session/close. On Windows stdin EOF can end it
-    // normally before taskkill starts; an open tool keeps it alive for the
-    // forced tree termination. Neither is a POSIX signal exit.
-    assert.notEqual(exit.body.code, 3, "session/close must not be sent");
     if (process.platform === "win32") {
       process.stdout.write(`antigravity dispose: keepAlive=${String(keepAlive)} code=${String(exit.body.code)}\n`);
     } else {
@@ -82,7 +77,7 @@ test("model and effort go through their native config options on creation and re
     assert.equal(sessionWithEffort.effort().value, "high");
     await sessionWithEffort.dispose();
   }));
-  await expect(startAntigravity({ effort: "bogus" })).rejects.toThrow(/thinking_level=bogus was refused/u);
+  await expect(startAntigravity({ effort: "bogus" })).rejects.toThrow(/thought_level=bogus was refused/u);
 });
 
 test("a turn ends on the prompt answer alone, with no usage_update to wait for", async () => {
@@ -94,10 +89,8 @@ test("a turn ends on the prompt answer alone, with no usage_update to wait for",
   await session.dispose();
 });
 
-test("the antigravity profile drops privileges only on linux and refuses a system prompt", () => {
-  assert.deepEqual(antigravityAcpArgs("linux"), ["--uid="]);
-  assert.deepEqual(antigravityAcpArgs("darwin"), []);
-  assert.deepEqual(antigravityAcpArgs("win32"), []);
+test("the antigravity profile uses native CLI ACP workers and refuses unsupported options", () => {
+  assert.deepEqual(antigravityAcpArgs(), ["acp", "--dangerously-skip-permissions", "--process-per-session"]);
   assert.equal(antigravityAcpProfile.modelViaConfigOption, true);
   assert.equal(antigravityAcpProfile.selectAuthMethod, undefined);
   assert.equal(antigravityAcpProfile.capabilities.attribution, "opaque");
@@ -106,20 +99,17 @@ test("the antigravity profile drops privileges only on linux and refuses a syste
   assert.doesNotThrow(() => antigravityAcpProfile.validateOptions?.({ cwd: "/" }));
 });
 
-test("yolo is found in the session modes or in the mode config option", () => {
-  assert.ok(supportsAntigravityYolo({ modes: { availableModes: [{ id: "default" }, { id: "yolo" }] } }));
-  assert.ok(supportsAntigravityYolo({ configOptions: [{ id: "mode", options: [{ value: "default" }, { value: "yolo" }] }] }));
-  assert.ok(!supportsAntigravityYolo({ modes: { availableModes: [{ id: "default" }] }, configOptions: [] }));
-});
-
-test("antigravity reads its release from the Build label line", async () => {
-  // agy_acp_server 1.2.1 `--version`: a build stamp whose first line is not the release.
-  assert.equal(readAntigravityVersion("Built on Mon Sep 22 2026\nBuild label: 1.2.1\nBuild target: agy_acp_server\n"), "1.2.1");
+test("antigravity accepts only the CLI release format and rejects a different executable", async () => {
+  assert.equal(readAntigravityVersion("1.5.0\n"), "1.5.0");
+  assert.equal(readAntigravityVersion("Build label: 1.4.5\n"), undefined);
   assert.equal(readAntigravityVersion("v24.0.0\n"), undefined);
-
-  // Node's `--version` has no Build label, so the snapshot carries no version rather than a wrong one.
   vi.stubEnv("OAR_ANTIGRAVITY_BIN", process.execPath);
-  const snapshot = await antigravityInstallation();
-  vi.unstubAllEnvs();
-  assert.deepEqual(snapshot, { kind: "available", via: "executable", command: process.execPath });
+  try {
+    expect(await antigravityInstallation()).toMatchInlineSnapshot(`
+      {
+        "kind": "unsupported",
+        "reason": "Antigravity requires agy CLI 1.5.0 or newer with native ACP; update agy and point OAR_ANTIGRAVITY_BIN at agy, not agy_acp_server",
+      }
+    `);
+  } finally { vi.unstubAllEnvs(); }
 });

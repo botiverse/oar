@@ -1,17 +1,16 @@
-import { planInstaller, unsupportedInstallPlan } from "../../shared/install.js";
+import { homedir } from "node:os";
+import path from "node:path";
+import { planInstaller, scriptInstallPlan, type ScriptInstallMethod } from "../../shared/install.js";
 import { antigravityInstallation } from "./installation.js";
 
-/**
- * Google documents installing the Antigravity agent only from inside an
- * editor (Zed: agent settings, External Agents, Install from Registry;
- * https://antigravity.google/docs/ide/extensions/zed), which also signs it in
- * through the browser. There is no command-line installer: the ACP registry's
- * zip is what the editor unpacks.
- */
-export const antigravityInstallPlan = unsupportedInstallPlan({
-  kind: "unsupported",
-  reason: "requires_gui",
-  detail: "Google installs the Antigravity agent from an editor's agent registry (Zed: External Agents, Install from Registry); https://antigravity.google/docs/ide/extensions/zed",
-});
+/** The official CLI installer verifies its release manifest and installs ~/.local/bin/agy. */
+export const antigravityInstallMethod: ScriptInstallMethod = {
+  source: "https://antigravity.google/docs/cli",
+  line: "curl -fsSL https://antigravity.google/cli/install.sh | bash",
+  tools: ["curl", "bash"],
+  writes: () => [path.join(homedir(), ".local", "bin"), path.join(homedir(), ".cache", "antigravity"), homedir()],
+  windows: "Google documents, in PowerShell: irm https://antigravity.google/cli/install.ps1 | iex",
+};
 
+export const antigravityInstallPlan = scriptInstallPlan(antigravityInstallMethod);
 export const antigravityInstall = planInstaller(antigravityInstallation, antigravityInstallPlan);

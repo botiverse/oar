@@ -1,5 +1,5 @@
 import { readerEnvironment, expectReaderEnvironment } from "../fixtures/reader-environment.js";
-import selection from "../fixtures/antigravity-1.4.0-config.json" with { type: "json" };
+import selection from "../fixtures/antigravity-cli-1.5.0-config.json" with { type: "json" };
 import { RequestError } from "../../packages/oar/node_modules/@agentclientprotocol/sdk/dist/acp.js";
 import path from "node:path";
 import { afterEach, expect, test, vi } from "vitest";
@@ -40,18 +40,18 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-const installation = { kind: "available", via: "executable", command: "agy_acp_server", version: "1.4.0" } as const;
+const installation = { kind: "available", via: "executable", command: "agy", version: "1.5.0" } as const;
 
-// Native 1.4.0 API-key session: grouped model ids, with a menu only for the current model.
+// Native CLI 1.5.0 API-key session: grouped model ids, with a menu only for the current model.
 const newSessionResponse = { sessionId: "sess-1", ...selection };
 
 test("antigravity lists native model families and the current model's effort menu", () => {
   expect(projectAntigravityModels(newSessionResponse)).toEqual([
-    { id: "gemini-3.8-flash", displayName: "Gemini 3.8 Flash", default: true, effortLevels: ["low", "medium", "high"], defaultEffort: "high" },
+    { id: "gemini-4-argon", displayName: "Gemini 4 Argon" },
+    { id: "gemini-3.8-flash", displayName: "Gemini 3.8 Flash" },
     { id: "gemini-3.7-flash", displayName: "Gemini 3.7 Flash" },
     { id: "gemini-3.6-flash", displayName: "Gemini 3.6 Flash" },
-    { id: "gemini-3.5-flash", displayName: "Gemini 3.5 Flash" },
-    { id: "gemini-3.1-pro", displayName: "Gemini 3.1 Pro" },
+    { id: "gemini-3.1-pro", displayName: "Gemini 3.1 Pro", default: true, effortLevels: ["low", "high"], defaultEffort: "low" },
   ]);
   expect(projectAntigravityModels({ configOptions: [] })).toBeUndefined();
   expect(projectAntigravityModels(null)).toBeUndefined();
@@ -62,19 +62,21 @@ test("a catalog without a thought_level selector does not invent effort levels",
   expect(projectAntigravityModels(response)?.every((entry) => entry.effortLevels === undefined && entry.defaultEffort === undefined)).toBe(true);
 });
 
-test("antigravity lister initializes and opens a session, then kills the process without close", async () => {
+test("antigravity lister initializes and opens a session, closes it, then kills the process", async () => {
   acp.request.mockImplementation(async (method) => {
     switch (method) {
       case "initialize":
         return { authMethods: [] };
       case "session/new":
         return newSessionResponse;
+      case "session/close":
+        return {};
       default:
         throw new Error(`unexpected ${method}`);
     }
   });
   await expect(antigravityListModels(installation)).resolves.toMatchObject({ kind: "ok" });
-  expect(acp.request.mock.calls.map(([method]) => method)).toEqual(["initialize", "session/new"]);
+  expect(acp.request.mock.calls.map(([method]) => method)).toEqual(["initialize", "session/new", "session/close"]);
   expect(acp.kill).toHaveBeenCalledOnce();
   expect(acp.request.mock.calls[1]?.[1]).toEqual({ cwd: process.cwd(), mcpServers: [] });
 });

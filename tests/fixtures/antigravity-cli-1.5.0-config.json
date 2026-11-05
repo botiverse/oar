@@ -1,0 +1,74 @@
+{
+  "configOptions": [
+    {
+      "id": "model",
+      "name": "Model",
+      "category": "model",
+      "type": "select",
+      "currentValue": "gemini-3.1-pro",
+      "options": [
+        {
+          "value": "gemini-4-argon",
+          "name": "Gemini 4 Argon"
+        },
+        {
+          "value": "gemini-3.8-flash",
+          "name": "Gemini 3.8 Flash"
+        },
+        {
+          "value": "gemini-3.7-flash",
+          "name": "Gemini 3.7 Flash"
+        },
+        {
+          "value": "gemini-3.6-flash",
+          "name": "Gemini 3.6 Flash"
+        },
+        {
+          "value": "gemini-3.1-pro",
+          "name": "Gemini 3.1 Pro"
+        }
+      ]
+    },
+    {
+      "id": "thought_level",
+      "name": "Thinking Level",
+      "category": "thought_level",
+      "type": "select",
+      "currentValue": "low",
+      "options": [
+        {
+          "value": "low",
+          "name": "Low"
+        },
+        {
+          "value": "high",
+          "name": "High"
+        }
+      ]
+    },
+    {
+      "id": "mode",
+      "name": "Mode",
+      "category": "mode",
+      "type": "select",
+      "currentValue": "default",
+      "options": [
+        {
+          "value": "default",
+          "name": "Default",
+          "description": "Ask before edits and commands, per your permission settings."
+        },
+        {
+          "value": "accept-edits",
+          "name": "Accept edits",
+          "description": "Approve file edits in the workspace without asking."
+        },
+        {
+          "value": "plan",
+          "name": "Plan",
+          "description": "Plan carefully before executing a task."
+        }
+      ]
+    }
+  ]
+}
