@@ -36,6 +36,12 @@ test.skipIf(process.platform !== "win32").each([0, 37])("Windows sampler retains
     expect(result.stderr).toContain("resource-stderr");
     const contents = await readFile(path.join(directory, "fixture.jsonl"), "utf8");
     const records = contents.trim().split("\n").map((line) => asRecord(JSON.parse(line)));
+    const startup = result.stdout.split(/\r?\n/u).filter((line) => line.startsWith("startup {")).map((line) => asRecord(JSON.parse(line.slice("startup ".length))));
+    expect(startup.map((record) => [record?.kind, record?.query])).toEqual([
+      ["stage_start", undefined], ["query_start", "operating_system"], ["query_end", "operating_system"],
+      ["query_start", "processes"], ["query_end", "processes"], ["command_starting", undefined], ["command_start", undefined],
+    ]);
+    for (const checkpoint of startup) { expect(records).toContainEqual(checkpoint); }
     expect(records[0]?.kind).toBe("stage_start");
     expect(records.at(-1)).toMatchObject({ kind: "stage_exit", exitCode });
     expect(records.filter((record) => record?.kind === "sample").length).toBeGreaterThanOrEqual(3);

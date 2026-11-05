@@ -105,6 +105,14 @@ CIM, so it exercises product preparation and the cold cleanup path under the
 budget: [record contract](spec/record-stream.md#the-rules); cold first-use
 timing: [Windows CIM experiment](../experiments/windows-cim/README.md).
 
+The Windows watchdog regression keeps launcher, sampler/CIM, nested test
+and process-result diagnostics under `oar-trial-run/pi-rpc-diagnostics`,
+outside its disposable fixture directory. The Windows `check` job uploads
+them even when the unit suite fails. Startup records distinguish an entered
+sampler, returned initial resource queries, a launched child and an entered
+test; a missing checkpoint is an evidence gap, not a cause. Existing case,
+command and outer-test time limits and termination assertions still apply.
+
 ### Behavior: does the public contract still hold?
 
 One suite in `sea-trial/cases/`, run against interchangeable backends that
