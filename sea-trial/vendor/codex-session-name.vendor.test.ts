@@ -1,3 +1,6 @@
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { describe, expect, test } from "vitest";
 import { codexInstallation, codexSession, promptAndWait, SessionUnavailableError } from "../../packages/oar/src/index.js";
 import { startAppServerClient, type AppServerClient } from "../../packages/oar/src/runtimes/codex/app-server-client.js";
@@ -20,6 +23,23 @@ async function close(client: AppServerClient): Promise<void> {
  * reads the name, holds the thread, and archives it.
  */
 describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex session name and unavailable resume targets", () => {
+  test("the app-server runs in the session directory, so a relative CODEX_HOME resolves there", async () => {
+    const env = await startCodexAimock((mock) => { mock.onMessage(/[\s\S]*/u, { content: "pong" }); });
+    const installation = await codexInstallation();
+    expectAvailable(installation, "codex");
+    const directory = await mkdtemp(path.join(tmpdir(), "oar-codex-cwd-"));
+    const home = env.env?.CODEX_HOME;
+    if (typeof home !== "string") { throw new TypeError("the fixture needs its own CODEX_HOME"); }
+    try {
+      const session = await codexSession(installation, { cwd: directory, env: { ...env.env, CODEX_HOME: path.relative(directory, home) } });
+      await promptAndWait(session, "first");
+      await session.dispose();
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+      await env.stop();
+    }
+  }, 60_000);
+
   test("a new thread is named, a held or archived one is refused by reason, and an unarchived one resumes", async () => {
     const env = await startCodexAimock((mock) => {
       mock.onMessage(/[\s\S]*/u, { content: "pong" });
