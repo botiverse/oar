@@ -155,6 +155,36 @@ jobs:
           path: ${{ github.workspace }}/oar-trial-run
           if-no-files-found: warn
 
+  # Guard the explicit-command floor independently of OAR's bundled Pi version.
+  # Raise this pin and PI_RPC_MINIMUM_VERSION together in the same change.
+  pi-rpc-minimum:
+    runs-on: ubuntu-latest
+    env:
+      OAR_TEST: pi-rpc-aimock
+      OAR_TEST_REQUIRE_AVAILABLE: '1'
+      OAR_TRIAL_RUN_DIR: ${{ github.workspace }}/oar-trial-run
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install the minimum supported explicit Pi CLI
+        run: |
+          npm install --prefix "$RUNNER_TEMP/pi-rpc-minimum" --no-save --package-lock=false @earendil-works/pi-coding-agent@1.4.0
+          echo "OAR_PI_RPC_COMMAND=$RUNNER_TEMP/pi-rpc-minimum/node_modules/.bin/pi" >> "$GITHUB_ENV"
+      - run: '"$OAR_PI_RPC_COMMAND" --version'
+      - run: pnpm run sea-trial
+      - run: pnpm vitest run sea-trial/vendor
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sea-trial-pi-rpc-minimum-ubuntu-latest
+          path: ${{ github.workspace }}/oar-trial-run
+          if-no-files-found: warn
+
   # Separate VMs retain each phase's outcome if the other loses its runner.
   # Vendor groups expose progress through jobs API step names and timestamps.
   # CI ceilings may preserve a hung step's logs while its runner is alive.

@@ -50,6 +50,12 @@ the newest explicit CLI in addition to the bundled baseline and retains any
 new differences; a newer version passing admission does not imply that it
 passed these controls.
 
+The `pi-rpc-minimum` Ubuntu CI job installs the pinned 1.4.0 CLI outside the
+workspace dependency tree and selects it with `OAR_PI_RPC_COMMAND` for both
+suites. It guards the minimum as OAR's bundled Pi and extension change. A floor
+increase must update that pin and `PI_RPC_MINIMUM_VERSION` in the same PR.
+This old-version control covers Linux only; macOS and Windows remain unverified.
+
 ## Release note
 
 Pi subprocess hosts may supply a stable Pi CLI version 1.4.0 or newer without

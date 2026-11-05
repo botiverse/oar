@@ -118,8 +118,11 @@ must implement Pi's `--version` and `--mode rpc` CLI behavior. It is checked at
 each open before extensions or a session start. The default entry must match
 OAR's installed Pi dependency exactly. An explicit command accepts stable Pi
 **1.4.0 or newer**, based on native RPC controls against 1.4.0 and 1.5.0 with
-OAR embedding 1.5.0. The session's own extension reports its version again and
-uses the same rule. A missing, unparsable or too-old version throws
+OAR embedding 1.5.0 on Linux x64. The `pi-rpc-minimum` Ubuntu CI job runs the
+behavior and vendor suites against a separate, pinned 1.4.0 CLI. Explicit old
+versions remain unverified on macOS and Windows. The session's own extension
+reports its version again and uses the same rule. A missing, unparsable or
+too-old version throws
 `RuntimeFailureError` with `failure: "invalid_request"` and the actual and
 required versions in its reason ([native evidence](../../experiments/pi-rpc-version-floor-2026-11-05.md)). Newer explicit commands do not need an OAR
 release just to pass admission; this is a compatibility floor, not a claim that
