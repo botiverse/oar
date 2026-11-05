@@ -46,7 +46,7 @@ async function sendImage(open: (cwd: string) => Promise<Session>, env: AimockEnv
     assert.ok(part !== undefined, "the image bytes reached the provider");
     return part;
   } finally {
-    await rm(cwd, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+    await rm(cwd, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
   }
 }
 
