@@ -655,6 +655,15 @@ with `openWorldHint: false`, is called, and the sandbox still blocks the
 agent's own file writes. This is a versioned observation of Codex's approval
 policy, not a guarantee that a runtime will accept an annotated tool.
 
+The [native Codex regression](../../sea-trial/vendor/codex-tool-annotations.vendor.test.ts)
+checks the unannotated refusal, the actual `readOnlyHint: true` handler call
+and its result reaching the model, followed by an `apply_patch` write refused
+under the same read-only policy. A full-access control executes the same calls
+and writes the file, so a malformed call cannot masquerade as a sandbox refusal.
+Verified locally on Linux with Codex 0.166.0 on 2026-11-05; the test runs in the
+existing Codex vendor CI jobs. Both controls use `approvalPolicy: never` and a
+scripted local provider, without a login or model quota.
+
 The server answers `initialize`, `ping`, `tools/list` and `tools/call` with
 JSON, single or batched, and `notifications/cancelled` aborts the call's
 `signal`. Each `initialize` opens its own MCP session (`mcp-session-id`), so
