@@ -11,7 +11,7 @@ import { resolveRunDir } from "./harness/trace.js";
 import { runBackends } from "./harness/parallel-backends.js";
 
 const backends = process.argv.slice(2);
-const targets = backends.length > 0 ? backends : ["mock", "mock-shared", "mock-isolated", "claude-aimock", "codex-aimock", "pi-aimock", "pi-rpc-aimock", "pi-durable-aimock", "qwen-aimock", "qoder-native", "codebuddy-aimock", "grok-aimock", "kimi-aimock", "opencode-aimock"];
+const targets = backends.length > 0 ? backends : ["mock", "mock-shared", "mock-isolated", "claude-aimock", "codex-aimock", "pi-aimock", "pi-rpc-aimock", "pi-durable-aimock", "qwen-aimock", "qoder-native", "codebuddy-aimock", "dsh-aimock", "grok-aimock", "kimi-aimock", "opencode-aimock"];
 const runDir = resolveRunDir();
 
 const results = await runBackends(targets, async (target) => {
