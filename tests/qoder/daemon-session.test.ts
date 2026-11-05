@@ -23,7 +23,7 @@ function daemonSessionProcesses(): FakeLineProcess[] {
           ? { daemon_protocol_version: 2, capabilities: ["multi_session_v2", "daemon_queries_v1"] } : { applied: {} } } })}\n`);
     });
     children.push(child);
-    return qoderDaemonSession(child, id, [], "/work", {});
+    return { ...await qoderDaemonSession(child, id, [], "/work", {}), qoderVersion: "1.1.81" };
   });
   launch.closeQoder.mockImplementation(async (child: FakeLineProcess) => { child.kill(); await child.exited; });
   return children;

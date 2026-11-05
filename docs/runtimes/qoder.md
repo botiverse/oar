@@ -53,6 +53,10 @@ account-level query without a session id, with the same catalog payload. Its
 private replies, including late duplicates, remain outside public records.
 An unreadable or non-stable CLI version refuses opening explicitly as a
 version compatibility error instead of guessing a permission transport.
+If installation metadata omits the version, launch reads `--version` once in
+the session environment. That same stable-version decision selects the transport
+and model-catalog format; confirmation and listing do not independently probe or
+guess a version.
 
 The daemon uses the child environment's personal access token or service-account
 key when supplied, otherwise the native local `qodercli` login. A service-account
@@ -122,7 +126,7 @@ identity, organization data or authentication material.
 | Surface | Mapping and boundary |
 | --- | --- |
 | Session | Native session UUID; `--resume` opens its saved conversation. A missing id is refused, without creating a replacement. |
-| Model and effort | `--model` accepts the catalog's `value` (`ModelEntry.id`). Init may report the catalog's `serverModel.display_name`, exposed as `resolvedId` only when non-empty and different from `id`; a mismatch with the requested id is confirmed by an exact lookup in the same process's native catalog. `model()` retains the init name. `--reasoning-effort` is confirmed by applied settings. A startup failure includes the requested effort as context, without claiming it caused the failure; a later model-confirmation error keeps its model-specific reason. Failure to confirm an explicit choice refuses opening. |
+| Model and effort | `--model` accepts the catalog's `value` (`ModelEntry.id`). Through 1.1.81, a differing init name must match `serverModel.display_name`. From 1.1.82, every explicit choice requires exact `value`/`modelId` equality and a unique, nonempty `displayName` matching init in the same process's catalog. The verified name is `resolvedId` when different from `id`; `model()` retains init verbatim. `--reasoning-effort` is confirmed by applied settings. A startup failure includes the requested effort as context, without claiming it caused the failure; a later model-confirmation error keeps its model-specific reason. Failure to confirm an explicit choice refuses opening. |
 | Prompt and abort | Correlated native controls and lifecycle evidence. A cancelled unstarted input becomes `input_dropped`; input-scoped waits resolve it without inventing `turn_ended`. |
 | Queue and withdrawal | OAR holds queued input until the current turn ends, so withdrawal remains possible. This queue is not durable across process loss. |
 | Steer | A user message with native `priority: next` inserts at a tool boundary or starts after a text-only turn. The user echo preserves `inputId`; acceptance only confirms the write. Native `now` aborts the active turn and is not used for steering. [Priority evidence](../../experiments/qoder-native/README.md#input-priority-2026-10-24). |
@@ -396,19 +400,31 @@ therefore skipped by local orientation; it is available at account depth.
 On the daemon transport the catalog request is `daemon.get_models`; on the
 worker transport it remains `get_models`.
 
-An explicit model whose init name differs from the requested selector adds
+Through 1.1.81, an explicit model whose init name differs from the selector adds
 one `get_models` query with `fetchStrategy: cache` in that session's process.
-If the selected entry or its native name is missing, OAR reads once more with
-`fetchStrategy: live`, allowing a model from a fresh listing to be confirmed.
-A present but different name refuses opening immediately, without a live read.
-There is no second listing process, and omitted models or direct init matches
-need no catalog query. Only the selected entry's non-empty
-`serverModel.display_name` can confirm the mismatch; OAR does not normalize
-names or substitute a display label. The query keeps the normal 30-second
-control deadline for each read (at most two reads), and a query error or timeout
-closes the process without retrying. A live result still missing the entry or
-its native name also refuses opening. The private responses do not enter
-public records.
+Only its nonempty `serverModel.display_name` can confirm that mismatch.
+From 1.1.82, the native ModelProvider supplies both init and catalog names:
+every explicit model requires one exact selector entry, `modelId` equal to that
+selector, and a nonempty `displayName` unique across the entire catalog, including
+disabled entries. Even init equal to the selector cannot bypass those checks.
+The same mapping supplies `listModels().resolvedId`; an unverified catalog row
+can still be listed but has no inferred `resolvedId`.
+
+If the cache cannot establish that mapping, OAR reads once more with
+`fetchStrategy: live`. A verified but different init name refuses opening
+immediately, without a live read. A live catalog that still lacks a valid,
+unambiguous mapping also refuses opening. No names are normalized. Omitted
+models need no confirmation query, and legacy direct init matches retain that
+behavior. Each read keeps the normal 30-second control deadline; a query error
+or timeout closes the process without retrying. There is no second listing
+process, and private replies do not enter public records.
+
+[src, env] The [November 5 controls](../../experiments/qoder-native/model-provider-2026-11-05.md)
+assert the actual `modelId`/selector/name fields on 1.1.82 and 1.1.83 without
+submitting a prompt. An independent Free-account 1.1.83 read confirmed the
+enabled `qfmodel` selector and init name `Qwen3.8-Flash`; all 15 catalog display
+names were unique. These establish model confirmation, not successful inference
+or restored native replay on those versions.
 
 [src, env] Qoder 1.1.78 on xxwork (Linux), 2026-10-29: the enabled selectors
 `qfmodel` and `dfmodel` produced `Qwen3.8-Flash` and `DeepSeek-Flash` in init,

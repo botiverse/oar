@@ -19,6 +19,7 @@ time.
 
 | Experiment | Fact it pins | Findings | Last observed |
 |---|---|---|---|
+| [Qoder ModelProvider confirmation](qoder-native/model-provider-2026-11-05.md) | Versioned selector/modelId/name confirmation, unique names and omitted installation versions; no inference. | [native control and limits](qoder-native/model-provider-2026-11-05.md) | 2026-11-05, Qoder 1.1.81/1.1.82/1.1.83, Linux x64; independent Free-account 1.1.83 catalog/init comparison |
 | [Qwen compaction attribution](qwen-compaction-attribution/README.md) | Manual status and model text share stream-json frames; automatic compaction has no frame; user commands can override `/compress`. | [controls and upstream draft](qwen-compaction-attribution/README.md) | 2026-11-02, Qwen 0.26.5, Linux x64, local provider |
 | [Manual compaction follow-up](manual-compaction-followup-2026-11-02.md) | Dedicated RPC, command UUID, summary run and compaction message identities; failure, cancellation and queue controls. | [evidence and release notes](manual-compaction-followup-2026-11-02.md) | 2026-11-02, Grok 1.0.70, Qoder 1.1.81, Cursor SDK 1.2.0, OpenCode 2.2.5; Linux |
 | [Manual compaction controls](manual-compaction-2026-11-02.md) | Native control completion, wait limits, command provenance and input identities. | [report and release notes](manual-compaction-2026-11-02.md) | 2026-11-02, Claude 2.1.316, Codex 0.166.0, Pi SDK/RPC 1.5.0, Linux |

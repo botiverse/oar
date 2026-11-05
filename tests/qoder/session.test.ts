@@ -21,7 +21,7 @@ function privateControlProcess() {
       ? { sources: { user: privateData }, effective: privateData, applied: { effort: "high", ...privateData } } : privateData;
     process.emit(`${JSON.stringify({ type: "control_response", response: { subtype: "success", request_id: request?.request_id, response: payload } })}\n`);
   });
-  launch.launchQoder.mockResolvedValue(child);
+  launch.launchQoder.mockResolvedValue(Object.assign(child, { qoderVersion: "1.1.78" }));
   launch.closeQoder.mockImplementation(async () => { child.end(0); await child.exited; });
   return child;
 }
@@ -54,7 +54,7 @@ function slowControlProcess(initializeMs: number | null, settingsMs: number | nu
       process.emit(`${JSON.stringify({ type: "control_response", response: { subtype: "success", request_id: request?.request_id, response: {} } })}\n`);
     }, delay);
   });
-  launch.launchQoder.mockResolvedValue(child);
+  launch.launchQoder.mockResolvedValue(Object.assign(child, { qoderVersion: "1.1.78" }));
   launch.closeQoder.mockImplementation(async () => { child.end(0); await child.exited; });
   return child;
 }
@@ -134,7 +134,7 @@ function catalogProcesses(models: unknown = catalog, reported?: string, queries:
       process.emit(`${JSON.stringify({ type: "control_response", response: { subtype: "success", request_id: request?.request_id, response: controlPayload(subtype, rows) } })}\n`);
     });
     children.push(child);
-    return child;
+    return Object.assign(child, { qoderVersion: "1.1.78" });
   });
   launch.closeQoder.mockImplementation(async (child: FakeLineProcess) => { child.end(0); await child.exited; });
   return children;
@@ -242,7 +242,7 @@ test("native startup refusal retains the requested effort without blaming the ef
     const frame = asRecord(parseJson(line));
     process.emit(`${JSON.stringify({ type: "control_response", response: { subtype: "error", request_id: frame?.request_id, error: "secret-token" } })}\n`);
   });
-  launch.launchQoder.mockResolvedValue(child);
+  launch.launchQoder.mockResolvedValue(Object.assign(child, { qoderVersion: "1.1.78" }));
   launch.closeQoder.mockImplementation(async () => { child.end(0); await child.exited; });
   await expect(qoderSession(installation, { cwd: "/work", effort: "oar-no-such-effort" })).rejects.toThrow('Qoder startup failed (requested effort "oar-no-such-effort"): Error: Qoder refused initialize');
   expect(launch.closeQoder).toHaveBeenCalledWith(child);
