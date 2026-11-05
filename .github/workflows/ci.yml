@@ -138,7 +138,10 @@ jobs:
         if: matrix.backend == 'codex-aimock'
       - run: npm install -g @qwen-code/qwen-code
         if: matrix.backend == 'qwen-aimock'
-      - run: npm install -g @qoder-ai/qodercli
+      # Native replay stops driving inference from 1.1.82. Keep execution checks on 1.1.81.
+      # Unpin only when replay works again, or an officially supported local provider
+      # passes all native cases. Daily version probes still check the latest release.
+      - run: npm install -g @qoder-ai/qodercli@1.1.81
         if: matrix.backend == 'qoder-native'
       - run: pnpm run sea-trial
       # Vendor error-edge snapshots for this backend (vitest, OAR_TEST-gated).
