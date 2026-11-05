@@ -1006,9 +1006,9 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   undefined where OAR does not know where they are.
 - `app_request_cancelled`: the runtime withdrew a `toApp` request it had sent
   and no longer waits on an answer: claude `control_cancel_request` (an
-  interrupt cancels a pending question), codex `serverRequest/resolved`
-  (OAR answers no codex request, so a resolved one was cleared by codex).
-  SessionView drops the request from `pendingRequests` and marks its part
+  interrupt cancels a pending question). Codex's `serverRequest/resolved` is
+  not one: OAR answers every codex request as it arrives, so it follows that
+  answer. SessionView drops the request from `pendingRequests` and marks its part
   `cancelled`; the process exit empties `pendingRequests` too. Never inferred
   from a turn ending: a runtime may keep a request open across turns.
 

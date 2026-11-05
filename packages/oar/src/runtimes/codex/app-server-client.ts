@@ -33,6 +33,8 @@ export interface AppServerClient {
    */
   request(method: string, params: JsonRecord, onSettled?: (outcome: RpcOutcome) => void): Promise<JsonRecord>;
   notify(method: string, params: JsonRecord): void;
+  /** Answer a server request, by the id `onServerRequest` was given. */
+  respond(id: string, reply: { readonly result: JsonRecord } | { readonly error: { readonly code: number; readonly message: string } }): void;
   /**
    * Register the inbound handlers, once. Notifications and server-initiated
    * requests (frames with both `id` and `method`: approvals, user input,
@@ -123,6 +125,8 @@ function createAppServerClient(
   let exitFailure: Error | null = null;
   const redact = processOptions.redact ?? ((text: string): string => text);
 
+  // Recorded ids are strings; the reply carries codex's own id, of its own type.
+  const serverRequestIds = new Map<string, unknown>();
   child.onLine((line) => {
     const message = asRecord(parseJson(line));
     if (message === null) {
@@ -134,6 +138,7 @@ function createAppServerClient(
       const { method } = message;
       if (hasId) {
         const id = String(message.id);
+        serverRequestIds.set(id, message.id);
         deliver((target) => {
           target.onServerRequest(id, method, params);
         });
@@ -198,6 +203,11 @@ function createAppServerClient(
     },
     notify(method, params) {
       child.write(`${JSON.stringify({ method, params })}\n`);
+    },
+    respond(id, reply) {
+      const nativeId = serverRequestIds.get(id);
+      serverRequestIds.delete(id);
+      child.write(`${JSON.stringify({ id: nativeId, ...reply })}\n`);
     },
     handle(registered) {
       if (handlers !== null) {

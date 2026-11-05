@@ -231,7 +231,7 @@ test("deliver prompts when codex refuses its steer because the turn ended in fli
   await session.dispose();
 });
 
-test("a server-initiated request is recorded verbatim as a toApp request and left unanswered", async () => {
+test("a server-initiated request is recorded verbatim, refused natively, and the refusal recorded as its answer", async () => {
   scriptedAppServer();
   const session = await codexSession(installation, { cwd: "/work" });
   const result = await session.prompt("ask");
@@ -243,7 +243,9 @@ test("a server-initiated request is recorded verbatim as a toApp request and lef
     direction: "toApp",
     body: { kind: "native", type: "item/commandExecution/requestApproval", native: { threadId, turnId: "turn-1", itemId: "exec-1" } },
   });
-  expect(session.records().some((record) => record.kind === "response" && record.requestId === "srv-7")).toBe(false);
+  expect(session.records().find((record) => record.kind === "response" && record.requestId === "srv-7")).toMatchObject({
+    body: { kind: "answered", native: { result: { decision: "decline" } } },
+  });
   await session.dispose();
 });
 

@@ -66,7 +66,7 @@ ends the turn. The adapter declares `capabilities: { queue: { durable: true
 | Items and notifications | One frame per notification, nothing dropped: `item/agentMessage/delta` → `text_delta` (`messageId` = `itemId`, the agentMessage item); `rawResponseItem/completed` reasoning → `reasoning`; `userMessage` items → `user_message`; `commandExecution` / `fileChange` / `mcpToolCall` / `webSearch` / `sleep` items → `tool_call_started` / `tool_call_ended` with the item type as `tool` and the item id as `callId` ([outcomes](#tool-call-outcome-reporting); a `sleep` is the model waiting, its input `{durationMs}` the wait it asked for, which a steer can end early, and `classifyTool` reads it as a `wait`; a `fileChange`'s input is its `changes` array, see [file changes](#tools-permissions-and-client-callbacks)); `item/commandExecution/outputDelta` → `tool_call_progress` (`callId` = `itemId`, `outputDelta` = the chunk, appended to the current preview) [env 0.154.0 schema]; `contextCompaction` items → `compaction_started` / `compaction_ended`; `item/completed` for `subAgentActivity` items → task events; `thread/tokenUsage/updated` → `usage`; `thread/settings/updated` → `model` / `effort` / `service_tier`; everything else is a frame with no events. No `retry` event: codex exposes no retry notification. |
 | Control replies | The `turn/start`, `turn/steer`, `turn/interrupt` and `thread/queue/add` replies are the `accepted` / `rejected` responses to prompt / steer / abort / queue, with the reply as `native` (so the queue submission id is retained). A `thread/goal/*` reply is its own frame; the [goal control](#native-goals) response only accepts or rejects. Each response is recorded as the reply line is read, before notifications codex wrote after it. |
 | Effective configuration | `model()`, `effort()` and `serviceTier()` fold the `model` / `effort` / `service_tier` events of the open reply and of `thread/settings/updated` ([models](#models-instructions-and-context)). Most native configuration has no public mutator. |
-| Server requests | Recorded as `toApp` request records (method and params verbatim, the server's own id), never answered: `approvalPolicy: never` means none are expected, and one that arrives stays dangling. `events()` reads each as `app_request` with the method as `type`; no `app_answered` follows. `serverRequest/resolved {threadId, requestId}` (0.160.1 schema) reads as `app_request_cancelled`: OAR answered nothing, so codex cleared the request itself. Through OAR (`approvalPolicy: never`) neither question reaches the host: codex declines MCP elicitations itself and `request_user_input` is unavailable in Default mode. Driving 0.160.1 app-server directly, a `requestUserInput` (plan mode) and an MCP tool approval (`mcpServer/elicitation/request` under `on-request`) cut by `turn/interrupt` were each followed by `serverRequest/resolved` (numeric id 0, recorded as "0"), right after the interrupted `turn/completed`. codex also sends it after a client's answer, so once OAR answers codex requests this reading must tell the two apart. |
+| Server requests | Recorded as `toApp` request records (method and params verbatim, the server's own id), then answered at once, because `Session` gives a host no way to answer and an open request would hang the turn. Decisions get their native refusal (`decline`, `denied`, an empty grant or answer set, `success: false`; [table](../../packages/oar/src/runtimes/codex/runtime-requests.ts)); any other method gets JSON-RPC `-32601`. The reply is the `answered` response record, so `events()` reads `app_request` then `app_answered`. `serverRequest/resolved {threadId, requestId}` follows the answer and has no event. Through OAR (`approvalPolicy: never`) requests are rare: codex declines MCP elicitations itself and `request_user_input` is unavailable in Default mode. Driving 0.160.1 app-server directly, a `requestUserInput` (plan mode) and an MCP tool approval (`mcpServer/elicitation/request` under `on-request`) cut by `turn/interrupt` were each followed by `serverRequest/resolved`, right after the interrupted `turn/completed`. |
 | Native children | Notifications of another thread are child-session records (`sessionId` = that thread id, a `graph()` node); a collaboration item naming `receiverThreadIds` / `agentThreadId` emits `session_linked` on that frame for the `tool_call` edge from the sender thread; without such an item no edge is fabricated ([children](#observation-children-and-history)). |
 | Process and observation lifetime | The Session owns its process; `dispose` is a request answered by the observed `exited` response (also recorded, pointing at no request, when the app-server dies on its own). The retained log backs the cursor for this process's lifetime; a resume starts a fresh stream at seq 0. |
 
@@ -787,16 +787,16 @@ vendor instruction test defers compaction survival until it does.
 
 App-server supports native policy plus server requests for command/file/permission
 decisions, user input, MCP elicitation, and experimental dynamic tools. OAR
-records each server request as a `toApp` request record and never answers it:
-it sets `approvalPolicy: never` and launches with `-c
+records each server request as a `toApp` request record and refuses it at once
+([mapping](#high-level-mapping-to-oar)). It sets `approvalPolicy: never` and launches with `-c
 sandbox_mode="danger-full-access"`, the only seam that governs codex's exec
 tool (`thread/start.sandboxMode` does not; pinned on a real login).
 `OAR_CODEX_SANDBOX` pins a stricter mode, and `OAR_CODEX_SANDBOX=inherit`
 skips the override so the user's own configuration wins. Configurations
-requiring interactive settlement have no supported OAR interaction path: the
-dangling request is the honest record
-([stream tests](../../tests/codex/codex-session-stream.test.ts)); none arrived
-in any live run.
+requiring interactive settlement have no supported OAR interaction path: each
+such request is refused and the turn continues
+([stream tests](../../tests/codex/codex-session-stream.test.ts),
+[native refusal](../../sea-trial/vendor/codex-runtime-requests.vendor.test.ts)).
 
 On Windows without Codex's Windows sandbox enabled, `workspace-write`
 becomes `read-only` (the open reports `readOnly`) under the native
@@ -1464,7 +1464,7 @@ session's turn end and usage never satisfy the root folds
 ([folds](../../tests/observe-folds.test.ts)); resume parameters and model
 mismatch ([resume](../../tests/codex/codex-session-resume-model.test.ts));
 the stream shape: request/response ordering, busy, steer, queue and abort
-replies, a refused interrupt, an unanswered server request, an unrequested
+replies, a refused interrupt, an answered server request, an unrequested
 exit ([stream](../../tests/codex/codex-session-stream.test.ts)); pre-open
 ordering, the open event ahead of a same-chunk `thread/started`, and control
 after an unrequested death ([pre-open](../../tests/codex/codex-pre-open.test.ts));
@@ -1495,9 +1495,9 @@ Open gaps:
   ([resume](#connection-session-creation-and-resume)).
 - Queue durability across process death: one whole-tree SIGKILL run on
   0.158.0 ([crash and resume](crash-resume.md)), not repeated.
-- Server requests are recorded, never answered; no configuration requiring
-  approval, user input or elicitation has been exercised through OAR (only
-  against the app-server directly, [mapping](#high-level-mapping-to-oar)).
+- Server requests are recorded and refused. Only the command approval reply
+  has native evidence, driving the app-server directly; the other replies come
+  from the app-server schema ([mapping](#high-level-mapping-to-oar)).
 - Child threads: delivery and identity are [env] on 0.149.0 / 0.154.0 with
   differing item vocabularies; control of child threads is not exposed; a
   child `turn/completed` that never arrives is observed but unexplained.

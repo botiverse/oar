@@ -19,7 +19,7 @@ function nativeClient() {
   const client = {
     spawned: Promise.resolve(), exited: exited.promise,
     request: vi.fn(async () => { const value = await ready.promise; return value; }), notify: vi.fn(() => {}),
-    handle: vi.fn(() => {}), mark: vi.fn(() => {}), onExit: vi.fn(() => {}),
+    respond: vi.fn(() => {}), handle: vi.fn(() => {}), mark: vi.fn(() => {}), onExit: vi.fn(() => {}),
     kill: vi.fn(() => { ready.reject(failure); exited.resolve(null); }),
     resources: vi.fn(async () => null),
   } satisfies AppServerClient;
