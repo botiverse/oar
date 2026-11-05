@@ -70,6 +70,7 @@ function queuedClient(state: InitializingHome, start: () => AppServerClient): Ap
       return client.request(method, params, onSettled);
     },
     notify(method, params) { subscribe((client) => { client.notify(method, params); }); },
+    respond(id, reply) { subscribe((client) => { client.respond(id, reply); }); },
     handle(handlers) {
       if (handled) { throw new Error("app-server handlers are already registered"); }
       handled = true;

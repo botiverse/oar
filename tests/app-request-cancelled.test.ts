@@ -64,9 +64,9 @@ test("the exit empties pendingRequests; the part stays as it was", () => {
   expect(requestParts(view)[0]).not.toHaveProperty("cancelled");
 });
 
-test("codex serverRequest/resolved reads as app_request_cancelled, its numeric id as the recorded string", () => {
+test("codex serverRequest/resolved follows OAR's answer and withdraws nothing", () => {
   const { commands } = foldCodexNotification(initialCodexProjection("thread-1"), "serverRequest/resolved", { threadId: "thread-1", requestId: 7 });
-  expect(commands.flatMap((command) => command.kind === "frame" ? command.body.events : [])).toEqual([{ kind: "app_request_cancelled", requestId: "7" }]);
+  expect(commands.flatMap((command) => command.kind === "frame" ? command.body.events : [])).toEqual([]);
 });
 
 test("appRequestText reads each runtime's field, and never guesses", () => {

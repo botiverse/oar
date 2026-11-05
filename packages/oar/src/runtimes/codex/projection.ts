@@ -184,14 +184,10 @@ function viewsFor(state: CodexProjectionState, reporter: string, method: string,
       return typeof params.itemId === "string"
         ? [{ kind: "tool_call_progress", callId: params.itemId, ...(typeof params.delta === "string" ? { outputDelta: params.delta } : {}) }]
         : [];
-    case "serverRequest/resolved": {
-      // oar answers no codex request, so a resolved one is codex clearing it
-      // itself (observed after turn/interrupt, 0.160.1). codex sends it after a
-      // client's answer too: an answer path must not read that as cancelled.
-      // Request ids are recorded as strings (app-server-client.ts).
-      const id = params.requestId;
-      return typeof id === "string" || typeof id === "number" ? [{ kind: "app_request_cancelled", requestId: String(id) }] : [];
-    }
+    // OAR answers every request as it arrives, so this follows that answer.
+    // It withdraws nothing; the answer is the request's response record.
+    case "serverRequest/resolved":
+      return [];
     case "thread/compacted":
       return state.compacting ? [{ kind: "compaction_ended", outcome: "completed" }] : [];
     case "rawResponseItem/completed": {

@@ -16,6 +16,7 @@ import { CODEX_SETTINGS_REPORT_MS, codexOpenReadback, codexResumeEffortRefusal, 
 import { foldCodexNotification, initialCodexProjection, type CodexProjectionState } from "./projection.js";
 import { prepareCodexToolDenials } from "./tool-denials.js";
 import { missingDirectoryError, nameThread, openThread, rpcControl, type RpcControlPlan } from "./rpc-control.js";
+import { codexServerRequests } from "./runtime-requests.js";
 /*
  * App-server v2: RPC replies answer controls synchronously before later notifications.
  * Model/effort read-back: open.ts. Reachability: recorded exit/dispose.
@@ -138,10 +139,7 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
         settingsWaiter?.(params);
       }
     };
-    // Approvals, user input and dynamic tools remain verbatim unanswered requests.
-    const onServerRequest = (id: string, method: string, params: JsonRecord): void => {
-      kernel.request("toApp", { kind: "native", type: method, native: params }, { id });
-    };
+    const onServerRequest = codexServerRequests(kernel, client);
     // Registering flushes everything held so far in wire order: the frames
     // from before the thread existed, then the open event (the mark placed at
     // the reply), then whatever codex wrote after the reply.
