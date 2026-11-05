@@ -36,11 +36,12 @@ export interface HostTool {
   /** JSON Schema of the input, an object schema, given to the runtime unchanged. OAR does not validate calls against it. */
   readonly inputSchema: Readonly<Record<string, unknown>>;
   /**
-   * MCP tool annotations, passed to the runtime unchanged in `tools/list`. Runtimes act on them: Codex outside its
-   * full-access sandbox requires approval for an MCP call (refused under `approvalPolicy: "never"`) unless the tool
-   * is marked `readOnlyHint`, or `destructiveHint: false` and `openWorldHint: false`.
+   * MCP tool annotations declared by the host and passed unchanged in `tools/list`.
+   * Runtimes may use them, for example to decide whether a call needs approval
+   * (see the runtime matrix). OAR neither validates nor acts on these claims.
    */
   readonly annotations?: {
+    readonly title?: string;
     readonly readOnlyHint?: boolean;
     readonly destructiveHint?: boolean;
     readonly idempotentHint?: boolean;

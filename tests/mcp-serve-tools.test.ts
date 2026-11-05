@@ -66,7 +66,10 @@ test("initialize, tools/list and tools/call speak MCP", async () => {
 });
 
 test("annotations reach tools/list unchanged, and are absent when not given", async () => {
-  const annotations = { readOnlyHint: true };
+  const annotations: NonNullable<HostTool["annotations"]> = {
+    title: "Look up text", readOnlyHint: true, destructiveHint: false,
+    idempotentHint: true, openWorldHint: false,
+  };
   const entry = await serve([echo, { ...echo, name: "look", annotations }]);
   expect(await rpc(entry, "tools/list")).toEqual({ jsonrpc: "2.0", id: 1, result: { tools: [
     { name: "echo", description: "Echo text", inputSchema: echo.inputSchema },
