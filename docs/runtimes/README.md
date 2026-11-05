@@ -23,6 +23,7 @@ Pi Durable SDKs before selecting live probes.
 | [Claude Code](claude.md) | CLI print mode, bidirectional `stream-json` | Persistent conversations, user turns versus model steps, input delivery, native children, usage |
 | [Codex](codex.md) | App-server v2 over stdio | Thread/turn/item identity, bidirectional requests, native queue, collaboration threads |
 | [CodeBuddy Code](codebuddy.md) | Native CLI ACP sessions; private stream-json account controls | Consecutive turns, model/effort readback, native context 0/0 and token-ledger limits |
+| [DeepSeek Harness](dsh.md) | `dsh --profile acp` with a private plugin over injected native services, no ACP | Durable log versus transient stream, native inbox, version floor and method inventory, child catalog edges, resume by saved directory |
 | [Cursor](cursor.md) | Embedded `@cursor/sdk` (local agent) | Agent versus run, steer acknowledgement, subagent updates inside the task call, per-family effort parameters, the SDK's own credential |
 | [Grok](grok.md) | `grok agent stdio`, ACP plus vendor extensions | Shared-placement refusal, independent child sessions, client execution, context versus billing |
 | [Kimi](kimi.md) | TypeScript kimi-code's `kimi acp` | Session/agent/turn distinctions, native KAP versus ACP visibility, completion and compaction |

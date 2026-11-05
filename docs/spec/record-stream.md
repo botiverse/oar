@@ -808,7 +808,8 @@ rules ([conversation](conversation.md#withdrawing-held-input)).
 `withdraw` exists where OAR holds the queue: claude, qoder, qwen, pi, cursor,
 kimi, grok, antigravity, codebuddy and opencode. pi-durable's queue is native, and its `withdraw`
 aborts the input's native submission before it runs (`submission.abort()`).
-codex holds its queue natively, and its `thread/queue/delete` is
+dsh's queue is native too, and its `withdraw` is the native `inbox.remove`, answered
+from native state. codex holds its queue natively, and its `thread/queue/delete` is
 experimental and not live-verified, so a codex session has no `withdraw`.
 
 ```
@@ -848,7 +849,7 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   OpenCode v2 child attribution. The source frame carries both endpoints;
   `graphOf` deduplicates repeated edges without changing the records.
 
-- `turn_active`: codex `turn/started`, pi `agent_start`, Pi Durable's
+- `turn_active`: codex `turn/started`, dsh's native inbox claim or empty `turn/start`, pi `agent_start`, Pi Durable's
   adopted conversation activity, qwen's root `system/init` for its sole
   submitted input, and claude `system/init` when the root starts a turn on
   its own ([per runtime](runtime-matrix.md#native-active-turns)). An optional

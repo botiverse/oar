@@ -257,6 +257,7 @@ SessionView preserve it through JSON replay.
 | pi | assistant `usage.reasoning` | pi-ai 1.1.0 `Usage`; optional provider-reported subset of output [src] |
 | pi-durable | model and tool ledger entries' `reasoning` | Pi Durable 1.1.0 `UsageState` uses pi-ai `Usage`; subtract attachment snapshot [src] |
 | cursor | `turn-ended.usage.reasoningTokens` | SDK 1.0.37 `TokenUsage` / `TurnUsageInput`; optional subset of output [src] |
+| dsh | `usage.reasoningTokens` of durable `assistant/message` | optional native field [src]; the tested pi-ai route drops the provider's count, so it was absent on the wire |
 | claude, kimi, opencode, antigravity, qwen, qoder, codebuddy | absent | no verified native reasoning counter on the integrated surface |
 
 [Accounting regressions](../../tests/reasoning-tokens.test.ts) pin absence,
@@ -297,6 +298,7 @@ without `input` changing under existing consumers
 | grok | `_meta.usage.cachedReadTokens` | `_meta.usage.cacheCreationTokens` | per-prompt ledger, summed per session like its input; live 1.0.25 answer: 1280 / 0 [env] |
 | qwen | `result.usage.cache_read_input_tokens` | `result.usage.cache_creation_input_tokens` | copied without addition (native `input_tokens` already includes cache reads); a cumulative native total, so resumed sessions report no usage ([qwen](../runtimes/qwen.md)) [src] |
 | qoder | `result.usage.cache_read_input_tokens` | `result.usage.cache_creation_input_tokens` | both added into `input`; per-query reports summed since open; the local probe reported zero cache counts ([qoder](../runtimes/qoder.md#usage-and-failures)) [env] |
+| dsh | durable `usage.cacheReadTokens` | durable `usage.cacheWriteTokens` | both added into `input`: native `inputTokens` excludes them (60 plus 40 cached of a provider 100 [env]); `cacheWriteTokens` not yet seen on a wire |
 | kimi, opencode, antigravity, codebuddy | absent | absent | no token totals reported, `usage().total` stays null |
 
 Codex fills `cachedInputTokens` and `cacheWriteInputTokens` from the

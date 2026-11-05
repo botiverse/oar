@@ -1,5 +1,9 @@
 # Runtime version check: 2026-11-02
 
+The adapter built from this probe is [`docs/runtimes/dsh.md`](../../docs/runtimes/dsh.md).
+It uses a version floor plus the method inventory rather than the exact-version
+policy recommended below; this page stays as found.
+
 DSH can load a bridge shipped outside its profiles and expose its native agent
 controls and events directly. The working bridge has **zero runtime imports
 from DSH packages**. Both `@deepseek-ai/dsh` **0.2.1-rc.5** (npm `latest`) and

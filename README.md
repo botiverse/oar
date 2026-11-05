@@ -110,6 +110,15 @@ OAR (**O**pen **A**gent **R**untime) is a provider-independent programming inter
         Qoder
       </a>
     </td>
+    <td align="center" width="112">
+      <a href="docs/runtimes/dsh.md">
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="packages/oar/assets/brands/dsh-on-dark.svg">
+          <img src="packages/oar/assets/brands/dsh-on-light.svg" width="32" height="32" alt="">
+        </picture><br>
+        DeepSeek Harness
+      </a>
+    </td>
   </tr>
 </table>
 
