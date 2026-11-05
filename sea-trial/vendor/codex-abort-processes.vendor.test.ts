@@ -20,7 +20,8 @@ import { ECHO_SERVER } from "./support/echo-mcp.js";
  * The option ends both and nothing older, nor what older processes start. The
  * process groups that tell these apart are pinned too. Without the option this
  * pins what codex does on its own, so an upgrade that changes it shows up here.
- * POSIX only: the fixture reads `ps` and detaches with setsid.
+ * POSIX only: the fixture reads `ps` and detaches with setsid. Windows has its
+ * own control, codex-abort-processes-no-groups.vendor.test.ts.
  */
 
 const COMMAND_SCRIPT = `

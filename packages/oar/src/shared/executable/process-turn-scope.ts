@@ -1,4 +1,4 @@
-import { descendantsOf, killEntries, type ProcessEntry, type ProcessTable, type ProcessTableSource } from "./process-tree.js";
+import { descendantsOf, signalEntries, type ProcessEntry, type ProcessTable, type ProcessTableSource, type SignalReport } from "./process-tree.js";
 
 /*
  * The processes one turn of a long-lived runtime started, told apart by two
@@ -59,9 +59,9 @@ export function turnEntries(root: number, baseline: ProcessTable, snapshot: Proc
  * same process, with what it started since. A process group is signalled only
  * when every member `fresh` shows is itself a target: a command can stay in
  * the runtime's group, or share one with an earlier process, and neither may
- * be hit through it. Returns how many processes were targeted.
+ * be hit through it. Reports what was actually sent.
  */
-export function endTurnEntries(root: number, targets: readonly ProcessEntry[], baseline: ProcessTable, fresh: ProcessTableReading): number {
+export function endTurnEntries(root: number, targets: readonly ProcessEntry[], baseline: ProcessTable, fresh: ProcessTableReading): SignalReport {
   const earlier = identities(baseline);
   const entries = new Map<number, ProcessEntry>();
   for (const target of targets) {
@@ -73,6 +73,5 @@ export function endTurnEntries(root: number, targets: readonly ProcessEntry[], b
     }
   }
   const everyMemberTargeted = (group: number): boolean => [...fresh.table.values()].every((entry) => entry.pgid !== group || entries.has(entry.pid));
-  killEntries(entries.values(), fresh.table, everyMemberTargeted);
-  return entries.size;
+  return signalEntries(entries.values(), fresh.table, everyMemberTargeted);
 }

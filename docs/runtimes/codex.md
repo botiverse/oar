@@ -475,7 +475,8 @@ Commands reached through the app-server's group are the candidates. Limits:
 
 The outcome is the `cleanup` response on the abort request
 ([shape](../spec/record-stream.md#the-rules)). `completed {signalled}` counts the
-kills sent; `failed {reason}` means none was. It is recorded after the turn's end
+kills actually sent; `failed {reason}` says why not all could be, with `signalled`
+when a refused signal left only some sent. It is recorded after the turn's end
 frame, by a read that can take a moment, so a host that needs the processes gone
 waits for that response, not for the turn end. A later prompt is not held for it.
 
@@ -489,9 +490,12 @@ yielded command survive.
 **Windows ends nothing.** CIM reports no process groups, so a turn's commands cannot
 be told from codex's helpers or an MCP server's workers. The option is still
 accepted there: no table is read for it, the interrupt goes out at once, and an
-interrupted turn records `cleanup` `failed` with that reason. This path is covered
-by a unit test only; no native Windows run of this option has been made. macOS uses
-the Linux logic with `ps`, and has not been run.
+interrupted turn records `cleanup` `failed` with that reason. A
+[control case](../../sea-trial/vendor/codex-abort-processes-no-groups.vendor.test.ts) runs in
+the Windows CI job and writes its diagnostics to the run's `trace.jsonl`; it has
+been run here only on Linux, with the table source stubbed to Windows, so no native
+Windows result is claimed until that job has run. macOS uses the Linux logic with
+`ps`, and has not been run.
 
 ### Native goals
 

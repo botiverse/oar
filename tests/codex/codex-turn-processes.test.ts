@@ -328,6 +328,211 @@ test("a revalidation read that fails signals nothing and says so", async () => {
   expect(kill).not.toHaveBeenCalled();
 });
 
+test("a next prompt sent from the old turn's end frame keeps its own baseline", async () => {
+  const fake = appServer();
+  scriptReads(BASELINE, BASELINE, SNAPSHOT);
+  vi.spyOn(fake, "observeCancellation").mockResolvedValue(staged(SNAPSHOT));
+  const session = await promptedSession(fake);
+  let next: ReturnType<Session["prompt"]> | undefined;
+  session.rawEvents((record) => {
+    if (record.kind === "frame" && record.spanId === "turn-1" && record.body.events.some((event) => event.kind === "turn_ended")) {
+      next = session.prompt("second");
+    }
+  });
+  notify(fake, "turn/completed", { threadId, turn: { id: "turn-1", status: "completed" } });
+  await vi.waitFor(() => { expect(next).toBeDefined(); });
+  expect((await next)?.response.body.kind).toBe("accepted");
+  await vi.waitFor(() => { expect(session.status().value.kind).toBe("running"); });
+  expect((await session.abort()).response.body.kind).toBe("accepted");
+  expect(await cleanupOf(session)).toMatchObject({ result: { kind: "completed", signalled: 2 } });
+});
+
+test("a next prompt sent from an aborted turn's end frame: each turn's cleanup answers its own abort from its own reads", async () => {
+  const fake = appServer();
+  const firstEnding = Promise.withResolvers<ProcessTableObservation>();
+  // First baseline; second baseline, as the observer prompts before the first ending begins; first revalidation, still running; second revalidation.
+  const reads = [BASELINE, read(root, native, mcp, earlier, command, detached), firstEnding.promise, read(root, native, mcp, earlier, command, detached, entry(910_030, NATIVE, 910_030, "300"))];
+  vi.spyOn(budget, "observeProcessTableWithin").mockImplementation(async () => {
+    const next = reads.shift();
+    if (next === undefined) { throw new Error("an unexpected process table read"); }
+    const result = await next;
+    return result;
+  });
+  const later = entry(910_030, NATIVE, 910_030, "300");
+  vi.spyOn(fake, "observeCancellation").mockResolvedValueOnce(staged(SNAPSHOT)).mockResolvedValueOnce(staged(read(root, native, mcp, earlier, command, detached, later)));
+  const session = await promptedSession(fake);
+  let next: ReturnType<Session["prompt"]> | undefined;
+  session.rawEvents((record) => {
+    if (next === undefined && record.kind === "frame" && record.spanId === "turn-1" && record.body.events.some((event) => event.kind === "turn_ended")) {
+      next = session.prompt("second");
+    }
+  });
+  const firstAbort = await session.abort();
+  await vi.waitFor(() => { expect(next).toBeDefined(); });
+  await next;
+  await vi.waitFor(() => { expect(session.status().value.kind).toBe("running"); });
+  const secondAbort = await session.abort();
+  expect(secondAbort.response.body.kind).toBe("accepted");
+  const cleanups = (): unknown[] => session.records().flatMap((record) => record.kind === "response" && record.body.kind === "cleanup" ? [{ requestId: record.requestId, result: record.body.result }] : []);
+  // The second turn's baseline held its first turn's processes: only what it started itself is new.
+  await vi.waitFor(() => { expect(cleanups()).toEqual([{ requestId: secondAbort.request.id, result: { kind: "completed", signalled: 1 } }]); });
+  expect(signalled()).toEqual(ascending([-later.pid, later.pid]));
+  kill.mockClear();
+  firstEnding.resolve(SNAPSHOT);
+  await vi.waitFor(() => { expect(cleanups()).toHaveLength(2); });
+  expect(cleanups()[1]).toEqual({ requestId: firstAbort.request.id, result: { kind: "completed", signalled: 2 } });
+  expect(signalled()).toEqual(ascending([-COMMAND, -DETACHED, COMMAND, DETACHED]));
+});
+
+test("another turn completing while a prompt's reply is pending leaves that prompt's baseline", async () => {
+  const held: { replyToStart: (() => void) | null } = { replyToStart: null };
+  const fake = fakeLineProcess((text, process) => {
+    const message = asRecord(JSON.parse(text));
+    if (typeof message?.id !== "number") { return; }
+    const { id } = message;
+    if (message.method === "turn/start") {
+      held.replyToStart = (): void => {
+        process.emit(`${JSON.stringify({ id, result: { turn: { id: "turn-2" } } })}\n`);
+        notify(process, "turn/started", { threadId, turn: { id: "turn-2" } });
+      };
+      return;
+    }
+    process.emit(`${JSON.stringify({ id, result: message.method === "thread/start" ? { thread: { id: threadId }, model: "gpt-5.5" } : {} })}\n`);
+    if (message.method === "turn/interrupt") { notify(process, "turn/completed", { threadId, turn: { id: "turn-2", status: "interrupted" } }); }
+  });
+  Object.defineProperty(fake, "pid", { value: ROOT });
+  spawnLineProcess.mockReturnValue(fake);
+  scriptReads(BASELINE, SNAPSHOT);
+  vi.spyOn(fake, "observeCancellation").mockResolvedValue(staged(SNAPSHOT));
+  const session = await codexSession(installation, { cwd: process.cwd(), endTurnProcessesOnAbort: true });
+  const prompt = session.prompt("run");
+  await vi.waitFor(() => { expect(held.replyToStart).not.toBeNull(); });
+  // A drained queue entry runs and ends while turn/start is on its way.
+  notify(fake, "turn/started", { threadId, turn: { id: "turn-queued" } });
+  notify(fake, "turn/completed", { threadId, turn: { id: "turn-queued", status: "completed" } });
+  await vi.waitFor(() => { expect(session.records().some((record) => record.kind === "frame" && record.body.type === "turn/completed")).toBe(true); });
+  held.replyToStart?.();
+  await prompt;
+  await vi.waitFor(() => { expect(session.status().value.kind).toBe("running"); });
+  expect((await session.abort()).response.body.kind).toBe("accepted");
+  expect(await cleanupOf(session)).toMatchObject({ result: { kind: "completed", signalled: 2 } });
+});
+
+test("a refusal arriving after its turn ended and a new one began touches only the old turn", async () => {
+  const held: { refuse: (() => void) | null } = { refuse: null };
+  let turns = 0;
+  const fake = fakeLineProcess((text, process) => {
+    const message = asRecord(JSON.parse(text));
+    if (typeof message?.id !== "number") { return; }
+    const { id } = message;
+    if (message.method === "turn/interrupt" && held.refuse === null && turns === 1) {
+      held.refuse = (): void => { process.emit(`${JSON.stringify({ id, error: { message: "late" } })}\n`); };
+      return;
+    }
+    if (message.method === "turn/start") { turns += 1; }
+    const result = message.method === "thread/start" ? { thread: { id: threadId }, model: "gpt-5.5" } : (message.method === "turn/start" ? { turn: { id: `turn-${String(turns)}` } } : {});
+    process.emit(`${JSON.stringify({ id, result })}\n`);
+    if (message.method === "turn/start") { notify(process, "turn/started", { threadId, turn: { id: `turn-${String(turns)}` } }); }
+    if (message.method === "turn/interrupt") { notify(process, "turn/completed", { threadId, turn: { id: `turn-${String(turns)}`, status: "interrupted" } }); }
+  });
+  Object.defineProperty(fake, "pid", { value: ROOT });
+  spawnLineProcess.mockReturnValue(fake);
+  scriptReads(BASELINE, BASELINE, SNAPSHOT);
+  const first = staged(BASELINE);
+  const second = staged(SNAPSHOT);
+  vi.spyOn(fake, "observeCancellation").mockResolvedValueOnce(first).mockResolvedValueOnce(second);
+  const session = await promptedSession(fake);
+  const firstAbort = session.abort();
+  await vi.waitFor(() => { expect(held.refuse).not.toBeNull(); });
+  notify(fake, "turn/completed", { threadId, turn: { id: "turn-1", status: "completed" } });
+  await vi.waitFor(() => { expect(session.status().value.kind).toBe("idle"); });
+  await session.prompt("second");
+  await vi.waitFor(() => { expect(session.status().value.kind).toBe("running"); });
+  held.refuse?.();
+  expect((await firstAbort).response.body.kind).toBe("rejected");
+  const secondAbort = await session.abort();
+  expect(secondAbort.response.body.kind).toBe("accepted");
+  const cleanups = (): unknown[] => session.records().flatMap((record) => record.kind === "response" && record.body.kind === "cleanup" ? [record.requestId] : []);
+  await vi.waitFor(() => { expect(cleanups()).toContain(secondAbort.request.id); });
+  expect(signalled()).toEqual(ascending([-COMMAND, -DETACHED, COMMAND, DETACHED]));
+});
+
+test("an abort still observing when its turn ends and a new one begins is refused, and the new turn's abort observes afresh", async () => {
+  const fake = appServer();
+  scriptReads(BASELINE, BASELINE, SNAPSHOT);
+  const gate = Promise.withResolvers<CancellationObservation>();
+  const old = staged(BASELINE);
+  const observe = vi.spyOn(fake, "observeCancellation").mockReturnValueOnce(gate.promise).mockResolvedValueOnce(staged(SNAPSHOT));
+  const session = await promptedSession(fake);
+  const oldAbort = session.abort();
+  await vi.waitFor(() => { expect(observe).toHaveBeenCalledOnce(); });
+  notify(fake, "turn/completed", { threadId, turn: { id: "turn-1", status: "completed" } });
+  await vi.waitFor(() => { expect(session.status().value.kind).toBe("idle"); });
+  await session.prompt("second");
+  await vi.waitFor(() => { expect(session.status().value.kind).toBe("running"); });
+  const newAbort = await session.abort();
+  expect(newAbort.response.body.kind).toBe("accepted");
+  expect(observe).toHaveBeenCalledTimes(2);
+  expect(await cleanupOf(session)).toEqual({ requestId: newAbort.request.id, result: { kind: "completed", signalled: 2 } });
+  gate.resolve(old);
+  expect((await oldAbort).response.body).toMatchObject({ kind: "rejected", code: "no_active_turn" });
+  expect(old.commit).not.toHaveBeenCalled();
+  expect(old.complete).toHaveBeenCalled();
+});
+
+test("every signal refused is reported as failed, with nothing claimed sent", async () => {
+  kill.mockImplementation(() => { throw Object.assign(new Error("operation not permitted"), { code: "EPERM" }); });
+  const fake = appServer();
+  scriptReads(BASELINE, SNAPSHOT);
+  vi.spyOn(fake, "observeCancellation").mockResolvedValue(staged(SNAPSHOT));
+  const session = await promptedSession(fake);
+  await session.abort();
+  const cleanup = await cleanupOf(session);
+  expect(cleanup).toMatchObject({ result: { kind: "failed", reason: "2 of 2 processes could not be signalled: EPERM" } });
+  expect(cleanup).not.toHaveProperty("result.signalled");
+});
+
+test("some signals refused reports how many were sent and how many were not", async () => {
+  kill.mockImplementation((pid) => {
+    if (Math.abs(pid) === COMMAND) { throw Object.assign(new Error("operation not permitted"), { code: "EPERM" }); }
+    return true;
+  });
+  const fake = appServer();
+  scriptReads(BASELINE, SNAPSHOT);
+  vi.spyOn(fake, "observeCancellation").mockResolvedValue(staged(SNAPSHOT));
+  const session = await promptedSession(fake);
+  await session.abort();
+  expect(await cleanupOf(session)).toMatchObject({ result: { kind: "failed", reason: "1 of 2 processes could not be signalled: EPERM", signalled: 1 } });
+});
+
+test("processes already gone are neither sent a signal nor a failure", async () => {
+  kill.mockImplementation(() => { throw Object.assign(new Error("no such process"), { code: "ESRCH" }); });
+  const fake = appServer();
+  scriptReads(BASELINE, SNAPSHOT);
+  vi.spyOn(fake, "observeCancellation").mockResolvedValue(staged(SNAPSHOT));
+  const session = await promptedSession(fake);
+  await session.abort();
+  expect(await cleanupOf(session)).toMatchObject({ result: { kind: "completed", signalled: 0 } });
+});
+
+test("a process its group's signal reached counts as sent though its own signal finds it gone", () => {
+  kill.mockImplementation((pid) => {
+    if (pid === COMMAND) { throw Object.assign(new Error("no such process"), { code: "ESRCH" }); }
+    return true;
+  });
+  expect(endTurnEntries(ROOT, [command], reading(root, native).table, reading(root, native, command))).toEqual({ hostIdentified: true, signalled: 1, failed: 0, codes: [] });
+});
+
+test("a table without the host signals nothing and reports nothing sent", async () => {
+  const fake = appServer();
+  scriptReads(BASELINE, { ok: true, source: "procfs", elapsedMs: 1, skipped: 0, table: new Map([root, native, mcp, earlier, command, detached].map((item) => [item.pid, item])) });
+  vi.spyOn(fake, "observeCancellation").mockResolvedValue(staged(SNAPSHOT));
+  const session = await promptedSession(fake);
+  await session.abort();
+  expect(await cleanupOf(session)).toMatchObject({ result: { kind: "failed", reason: "the host is not in the revalidating process table, so nothing was signalled" } });
+  expect(kill).not.toHaveBeenCalled();
+});
+
 test("a difference with nothing in it needs no further read and records zero", async () => {
   const fake = appServer();
   scriptReads(BASELINE);
@@ -515,7 +720,7 @@ test("a group holding anything but targets is not signalled: the app-server's, o
   const sharing = entry(910_011, NATIVE, MCP, "200");
   const targets = [sharing, command];
   const fresh = reading(root, native, mcp, sharing, command);
-  expect(endTurnEntries(ROOT, targets, reading(root, native, mcp).table, fresh)).toBe(2);
+  expect(endTurnEntries(ROOT, targets, reading(root, native, mcp).table, fresh)).toMatchObject({ signalled: 2, failed: 0 });
   expect(signalled()).toEqual(ascending([sharing.pid, COMMAND, -COMMAND]));
 });
 
@@ -523,7 +728,7 @@ test("a process a target started since the snapshot is ended too, and the app-se
   const late = entry(910_012, DETACHED, DETACHED, "300");
   const self = entry(process.pid, DETACHED, HOST_GROUP);
   const fresh = reading(root, native, detached, late);
-  expect(endTurnEntries(ROOT, [detached, { ...root, ppid: DETACHED }, self], reading(root, native).table, fresh)).toBe(2);
+  expect(endTurnEntries(ROOT, [detached, { ...root, ppid: DETACHED }, self], reading(root, native).table, fresh)).toMatchObject({ signalled: 2, failed: 0 });
   expect(signalled()).toEqual(expect.arrayContaining([DETACHED, late.pid]));
   expect(signalled()).not.toContain(ROOT);
   expect(signalled()).not.toContain(process.pid);
@@ -547,7 +752,7 @@ test.skipIf(process.platform === "win32")("against the real table: only the proc
       expect(turnEntries(hostRoot, baseline.table, snapshot).map((item) => item.pid)).not.toContain(older.pid);
       const fresh = observeProcessTable();
       if (!fresh.ok) { throw new Error("no process table"); }
-      expect(endTurnEntries(hostRoot, targets, baseline.table, fresh)).toBe(1);
+      expect(endTurnEntries(hostRoot, targets, baseline.table, fresh)).toMatchObject({ signalled: 1, failed: 0 });
       await vi.waitFor(() => { expect(newer.exitCode !== null || newer.signalCode !== null).toBe(true); });
       expect(newer.signalCode).toBe("SIGKILL");
       expect(older.exitCode === null && older.signalCode === null).toBe(true);

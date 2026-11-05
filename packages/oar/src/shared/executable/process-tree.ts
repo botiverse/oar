@@ -222,40 +222,70 @@ export function descendantsOf(table: ProcessTable, pid: number, source: ProcessT
   return found;
 }
 
+/** What one round of signals did. `failed` counts processes a signal could not reach while they ran; a process already gone is neither. */
+export interface SignalReport {
+  /** False when `table` does not show the host: nothing is signalled without its group to protect. */
+  readonly hostIdentified: boolean;
+  readonly signalled: number;
+  readonly failed: number;
+  /** Bounded native error codes behind `failed`. */
+  readonly codes: readonly string[];
+}
+
+function signalCode(error: unknown): string {
+  const code = asRecord(error)?.code;
+  return typeof code === "string" && /^[A-Z][A-Z0-9_]{0,63}$/u.test(code) ? code : "UNKNOWN";
+}
+
 /**
  * SIGKILL each of `entries` that `table` (read just before) shows still
  * running, the same process (same start time), and the process group each
  * belongs to now: the runtime's own, or one a descendant made, which can hold
  * processes started since the entries were read. Never the host, nor its group,
- * nor a group `mayKillGroup` holds back.
+ * nor a group `mayKillGroup` holds back. Says what was actually sent.
  */
-export function killEntries(entries: Iterable<ProcessEntry>, table: ProcessTable, mayKillGroup: (group: number) => boolean = () => true): void {
+export function signalEntries(entries: Iterable<ProcessEntry>, table: ProcessTable, mayKillGroup: (group: number) => boolean = () => true): SignalReport {
   const hostGroup = table.get(process.pid)?.pgid;
-  if (hostGroup === undefined) { return; }
+  if (hostGroup === undefined) { return { hostIdentified: false, signalled: 0, failed: 0, codes: [] }; }
   const groups = new Set<number>();
-  const pids = new Set<number>();
+  const pids = new Map<number, number>();
   for (const entry of entries) {
     const current = table.get(entry.pid);
     if (current === undefined || current.start !== entry.start || current.pid === process.pid) {
       continue;
     }
-    pids.add(current.pid);
+    pids.set(current.pid, current.pgid);
     if (current.pgid > 1 && current.pgid !== hostGroup && mayKillGroup(current.pgid)) {
       groups.add(current.pgid);
     }
   }
+  const reached = new Set<number>();
   for (const group of groups) {
     try {
       process.kill(-group, "SIGKILL");
+      reached.add(group);
     } catch {
-      // The group emptied meanwhile.
+      // The group emptied meanwhile, or is out of reach: each member's own signal settles it.
     }
   }
-  for (const pid of pids) {
+  let signalled = 0;
+  let failed = 0;
+  const codes = new Set<string>();
+  for (const [pid, group] of pids) {
     try {
       process.kill(pid, "SIGKILL");
-    } catch {
-      // Gone meanwhile.
+      signalled += 1;
+    } catch (error) {
+      const code = signalCode(error);
+      // Its group's signal may already have reaped it.
+      if (reached.has(group)) { signalled += 1; }
+      else if (code !== "ESRCH") { failed += 1; codes.add(code); }
     }
   }
+  return { hostIdentified: true, signalled, failed, codes: [...codes] };
+}
+
+/** `signalEntries` for callers with no record to keep: a process that is gone or out of reach is left to the exit diagnostics. */
+export function killEntries(entries: Iterable<ProcessEntry>, table: ProcessTable): void {
+  signalEntries(entries, table);
 }

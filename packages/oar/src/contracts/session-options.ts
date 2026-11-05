@@ -61,7 +61,7 @@ export interface SessionOptions {
    * failed or unfinished read, an abort that did not interrupt the turn, or
    * Windows, where process groups cannot tell these apart, ends nothing. The
    * outcome is a `cleanup` response on the abort request
-   * (docs/spec/record-stream.md); `failed` means nothing was signalled.
+   * (docs/spec/record-stream.md); `signalled` counts the kills actually sent.
    * Supply again on resume. This launch choice is not recorded.
    */
   readonly endTurnProcessesOnAbort?: boolean;

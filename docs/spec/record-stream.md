@@ -339,8 +339,11 @@ Further rules:
   turn's end frame. It is the same shape a fallback or dispose cleanup uses, and
   like those it is read from `records()` or `rawEvents`, not `events()`.
   `completed` carries `signalled`, how many processes passed the identity
-  check and were sent the kill; it does not report that each has exited, and zero
-  is a valid count. `failed` means nothing was signalled, and `reason` says why:
+  check and were actually sent the kill; it does not report that each has exited,
+  and zero is a valid count, as when each had already gone. `failed` says why not
+  every target could be signalled. If a signal was refused (`EPERM`), `reason`
+  gives how many and the native code, and `signalled` is present when others were
+  sent. Otherwise nothing was signalled, because:
   the baseline or snapshot read failed or had not finished, the turn had no
   baseline because `prompt` did not start it (a drained queue, a goal continuation,
   a compaction), the fresh read failed, the turn ended some other way than this
@@ -689,7 +692,7 @@ interface RequestRecord extends RecordEnvelope {
 interface ResponseRecord extends RecordEnvelope {
   kind: "response";
   requestId: string;            // must point to a request; reverse not guaranteed
-  body: ResponseBody;           // opened {placement} | accepted {native?, queued?: "adapter"} | rejected {code, reason, native?} | answered {native} | cleanup {result: completed {signalled?} | failed {reason}} | released {reason, nativeTurnMayContinue:true, workStartedAfterCleanupMayContinue:true} | exited {code, reason?}
+  body: ResponseBody;           // opened {placement} | accepted {native?, queued?: "adapter"} | rejected {code, reason, native?} | answered {native} | cleanup {result: completed {signalled?} | failed {reason, signalled?}} | released {reason, nativeTurnMayContinue:true, workStartedAfterCleanupMayContinue:true} | exited {code, reason?}
 }
 // accepted/rejected: control answers only "taken over or not".
 // answered: oar's own reply to a toApp request (the automatic permission
