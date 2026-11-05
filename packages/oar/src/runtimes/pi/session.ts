@@ -1,4 +1,6 @@
+/* oxlint-disable import/max-dependencies -- SDK lifecycle, native admission, projection and shared session controls meet here. */
 import { piManualCompaction } from "./compaction.js";
+import { admitPiPrompt } from "./prompt.js";
 import type {
   RequestRecord, ContextUsage, ControlResult, InputOptions, ResponseBody, Session, StartSession } from "../../contracts/session.js";
 import type { PiProjectOptions } from "./options.js";
@@ -98,22 +100,19 @@ export const createPiSession = (project: PiProjectOptions = {}): StartSession =>
     projection = piPrompted(projection);
     const token = {};
     launch = token;
-    const { promise: started, resolve: onStarted } = Promise.withResolvers<void>();
-    startWaiters.add(onStarted);
-    const run = piAgentSession.prompt(input, images.length === 0 ? undefined : { images: piImages(images) });
-    const decided = await Promise.race<ResponseBody>([
-      started.then(() => ({ kind: "accepted" })),
-      run.then(
-        () => ({ kind: "accepted" }),
-        (error: unknown) => ({ kind: "rejected", code: "runtime_refused", reason: error instanceof Error ? error.message : "pi prompt failed" }),
-      ),
-    ]);
-    startWaiters.delete(onStarted);
-    if (decided.kind === "rejected") {
+    const { run, response: decided, started } = await admitPiPrompt(
+      piAgentSession, input, images.length === 0 ? {} : { images: piImages(images) },
+      startWaiters, () => kernel.unreachable(),
+    );
+    if (!started && launch === token) {
       gate.running = false;
+      pendingAbort = false;
       launch = null;
-      return decided;
+      // A native refusal or extension-handled input has no agent_settled.
+      // Held work still gets its own dispatch or recorded refusal.
+      queueMicrotask(drainHeld);
     }
+    if (decided.kind === "rejected") { return decided; }
     void (async (): Promise<void> => {
       try {
         await run;

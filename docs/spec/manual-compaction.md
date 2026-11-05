@@ -116,10 +116,11 @@ ACP-held inputs instead keep status at `running / waiting_model` until their
 dispatch or withdrawal.
 
 **Held-queue exception:** Claude, Qoder, Qwen, Cursor and Pi SDK/RPC do not yet record
-OAR's queue ownership and dispatch as ACP does. While OAR itself holds a
+OAR's queue ownership and dispatch as ACP does. While OAR holds or is dispatching a
 queued input, status can display `idle` although a new `prompt` returns
 `busy` to preserve FIFO. This includes the synchronous terminal-observer
-window. It does not weaken the same-record guarantee when no input is held.
+window, including after dequeue but before native start/refusal is recorded.
+It does not weaken the same-record guarantee when no input is held.
 
 Claude's native queued receipt for the compact command is not a pending
 ordinary prompt. `turn_ended.inputId` and `inputIds`, when present, preserve native input

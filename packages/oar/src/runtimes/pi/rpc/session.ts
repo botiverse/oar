@@ -59,6 +59,7 @@ export const createPiRpcSession = (runtime: PiRuntimeOptions): StartSession => w
         pendingAbort = false;
         launch = null;
         fallback.clear();
+        queueMicrotask(drain);
       }
       return { kind: "rejected", code: "runtime_refused", reason: response.error };
     }
@@ -129,6 +130,8 @@ export const createPiRpcSession = (runtime: PiRuntimeOptions): StartSession => w
     const next = foldPiEvent(projection, event, { overflow, ...(context === undefined ? {} : { context }) });
     projection = next.state;
     if (event.type === "agent_settled") {
+      // Abort may have rearmed the fallback while stats were in flight.
+      fallback.clear();
       // Terminal observers may start the next run, even before the old RPC
       // prompt response arrives. Neither this callback nor that reply owns it.
       running = false;

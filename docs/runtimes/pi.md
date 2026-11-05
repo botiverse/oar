@@ -490,8 +490,12 @@ on Pi 1.5.0, with earlier 1.4.0 observations retained in the
 ### Prompt, steering, queueing, and abort
 
 **Prompt (mapped):** `prompt()` records a request and calls
-`AgentSession.prompt(text)`. The response is `accepted` once pi emits
-`agent_start`, or `rejected` (`runtime_refused`, with pi's own message) when
+`AgentSession.prompt(text)`. Native dispatch is deferred one microtask so
+a terminal observer does not enter Pi's settlement-time deferred list.
+Disposal in that observer prevents dispatch. The response is `accepted`
+once pi emits `agent_start`, or when its preflight reports that an extension
+handled the input without a run; it is `rejected` (`runtime_refused`, with
+pi's own message) when
 the promise rejects first (e.g. "Cannot submit a prompt while compaction is in
 progress"). The turn ends at pi's `agent_settled`, whose `turn_ended` event
 carries completed, aborted or failed. `agent_end` is recorded but does not end
@@ -514,7 +518,19 @@ prompt; a late rejection or RPC response for the old prompt cannot release
 that new run. Queued work drains after the terminal frame, preserving the
 old end before the next native start. The
 [native observer tests](../../sea-trial/vendor/pi-turn-admission.vendor.test.ts)
-cover both execution modes on Pi 1.5.0.
+cover both execution modes on Pi 1.5.0. A refusal before native start clears
+its pending abort and drains held work; each queued refusal is recorded
+without inventing a turn end. RPC also clears its abort fallback after
+terminal stats finish, including an abort delivered while those stats were
+pending. The [preflight controls](../../sea-trial/vendor/pi-preflight.vendor.test.ts)
+exercise missing-key refusal, observer reentry and extension-handled input
+against the real SDK and RPC.
+
+An extension-handled input releases the SDK/RPC input gate without inventing
+a native turn end. The status fold still retains the prompt request's
+provisional running state until a later native turn settles. This is a known
+recording limitation: `promptAndWait` has no turn end to observe for such an
+input, even though a subsequent prompt can run.
 
 **Images (mapped):** `InputOptions.images` become pi's `ImageContent`
 (`{ type: "image", data, mimeType }`) for `prompt(text, { images })`,
@@ -551,7 +567,8 @@ the refusal is recorded as a `pi/prompt_rejected` frame with no events.
 Held input retains priority over a new `prompt`, `queue` or `compact` from
 a terminal observer: prompt and compaction return `busy`, and a new queue
 entry joins the tail. OAR does not yet record this FIFO's ownership as ACP
-does, so status may briefly be idle while held input still makes prompt
+does, so status can be idle while held input or an already dequeued input
+awaiting native start/refusal still makes prompt
 busy ([queue exception](../spec/manual-compaction.md#ownership-records-and-state)).
 Native extension commands cannot simply be queued like ordinary text.
 `withdraw(inputId)` takes an input out of the FIFO before the drain prompts
