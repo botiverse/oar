@@ -224,6 +224,16 @@ details returned by this command never leave the private query.
 
 ## Evidence and limits
 
+Required CI pins `@qoder-ai/qodercli@1.1.81` on Linux, macOS and Windows.
+Execution-level validation therefore covers versions only through 1.1.81;
+1.1.82 and later have no passing execution-level validation. Their native
+replay path no longer drives the scripted inference used by the suite, so a
+model-catalog compatibility fix alone cannot restore these checks. Assertions
+and timeouts remain unchanged. Lift the pin only after native replay works
+again, or an officially supported local provider passes all native cases.
+Daily version probes continue to run the latest release and report differences;
+they do not turn failed probes into execution-level coverage.
+
 The official Unix installation and login URL/cancellation paths were checked
 in isolated homes; an existing-machine login completed and its status was
 confirmed. Successful conversations, consecutive turns, resume, effort, MCP
