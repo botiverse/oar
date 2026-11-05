@@ -54,6 +54,7 @@ function findModel(models: readonly ModelListItem[], id: string): ModelListItem 
  */
 export const cursorRefusedSessionOptions: RefusedSessionOptions = {
   goals: "This runtime interface exposes no structured native goal controls",
+  endTurnProcessesOnAbort: "Cursor runs in the host process through its SDK, so OAR owns no runtime process tree to read for one turn",
   outputSchema: "Cursor SDK exposes no final-output schema option",
   name: "cursor exposes no verified session name setting",
   serviceTier: "cursor exposes no verified per-session service-tier setting and readback",

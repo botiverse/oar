@@ -43,6 +43,8 @@ export interface LineProcessOptions {
 export interface LineProcess {
   /** Resolves once the OS process exists; rejects when it cannot be spawned. */
   readonly spawned: Promise<void>;
+  /** The root's pid, once spawned. Signal only through an identity check: a reaped pid can be reused. */
+  readonly pid?: number;
   /**
    * Resolves when the process is truly gone and its state has been released.
    * After `kill()`, it includes bounded observations around the SIGKILL
@@ -173,6 +175,7 @@ export function spawnLineProcess(
 
   return {
     spawned,
+    ...(child.pid === undefined ? {} : { pid: child.pid }),
     exited,
     stdin,
     stdout,

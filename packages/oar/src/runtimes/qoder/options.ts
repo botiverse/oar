@@ -3,6 +3,7 @@ import { UnsupportedOptionError } from "../../contracts/errors.js";
 
 export const qoderRefusedSessionOptions: RefusedSessionOptions = {
   goals: "This runtime interface exposes no structured native goal controls",
+  endTurnProcessesOnAbort: "OAR has not verified reading and ending one aborted Qoder turn's processes while its session stays usable",
   serviceTier: "Qoder has no verified service-tier option",
   outputSchema: "Qoder has no verified structured-output option for long-lived sessions",
   userConfiguration: "Qoder has no verified way to exclude user configuration while preserving native credentials and history",

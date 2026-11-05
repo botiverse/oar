@@ -102,6 +102,7 @@ export function processShutdown(child: ChildProcess, options: ShutdownOptions): 
       const attempt = Symbol("native cancellation");
       let committed = false, completed = false;
       return {
+        observation: result,
         commit() {
           if (completed || committed || !alive() || stopping || options.killTree !== true || child.pid === undefined) { return; }
           committed = true;

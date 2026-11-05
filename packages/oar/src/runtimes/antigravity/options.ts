@@ -4,6 +4,7 @@ import type { RefusedSessionOptions } from "../../contracts/runtime.js";
 
 export const antigravityRefusedSessionOptions: RefusedSessionOptions = {
   goals: "This runtime interface exposes no structured native goal controls",
+  endTurnProcessesOnAbort: "OAR has not verified reading and ending one aborted Antigravity turn's processes while its session stays usable",
   userConfiguration: "antigravity has no verified separation of user configuration from its native login",
   additionalDirectories: "agy CLI 1.5.0 can select an additional workspace as the command cwd instead of preserving the primary cwd",
   outputSchema: "Antigravity ACP and launch configuration expose no final-output schema channel",

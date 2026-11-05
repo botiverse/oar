@@ -3,6 +3,7 @@ import { UnsupportedOptionError } from "../../contracts/errors.js";
 
 export const qwenRefusedSessionOptions: RefusedSessionOptions = {
   goals: "This runtime interface exposes no structured native goal controls",
+  endTurnProcessesOnAbort: "OAR has not verified reading and ending one aborted Qwen turn's processes while its session stays usable",
   userConfiguration: "qwen has no verified separation of user configuration from its native login",
   serviceTier: "Qwen's stream-json interface does not expose a service-tier setting",
   outputSchema: "Qwen rejects --json-schema with its long-lived stream-json input protocol",

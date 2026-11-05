@@ -37,6 +37,7 @@ const DISPOSE_SETTLE_MS = 3000;
 
 export const morphRefusedSessionOptions: RefusedSessionOptions = {
   goals: "This runtime interface exposes no structured native goal controls",
+  endTurnProcessesOnAbort: "OAR has not verified reading and ending one aborted Morph turn's processes while its session stays usable",
   userConfiguration: "morph shares its Console process; no per-session exclusion of user configuration is verified",
   systemPrompt: "The morph Runtime API has no system prompt override",
   appendSystemPrompt: "The morph Runtime API has no system prompt override",

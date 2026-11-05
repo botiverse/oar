@@ -18,6 +18,7 @@ function nativeClient() {
   const failure = new Error("app-server exited: exit code 1; signal none; sqlite initialization failed");
   const client = {
     spawned: Promise.resolve(), exited: exited.promise,
+    rootPid: vi.fn(() => undefined), observeCancellation: vi.fn(async () => ({ commit() {}, complete() {} })),
     request: vi.fn(async () => { const value = await ready.promise; return value; }), notify: vi.fn(() => {}),
     respond: vi.fn(() => {}), handle: vi.fn(() => {}), mark: vi.fn(() => {}), onExit: vi.fn(() => {}),
     kill: vi.fn(() => { ready.reject(failure); exited.resolve(null); }),

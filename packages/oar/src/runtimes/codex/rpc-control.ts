@@ -21,6 +21,8 @@ export interface RpcControlPlan {
   readonly params: () => JsonRecord;
   readonly onReply: (reply: JsonRecord) => ResponseBody;
   readonly onError: (message: string, native?: JsonRecord) => ResponseBody;
+  /** Asynchronous work due immediately before sending; a response refuses instead. Without it, sending stays synchronous. */
+  readonly prepare?: () => Promise<ResponseBody | null>;
   /** Arm a turn fallback that can take over and accept before the RPC settles. */
   readonly onPending?: (accept: () => void) => void;
 }
@@ -55,10 +57,12 @@ export async function rpcControl(
       resolve(kernel.respond(request.id, decided));
     }
   };
-  plan.onPending?.(() => { record({ kind: "accepted" }); });
   // A fallback answers independently of transport settlement. Keep observing
   // the RPC: a late native reply remains a frame, never a second response.
   const send = async (): Promise<void> => {
+    const late = plan.prepare === undefined ? null : await plan.prepare();
+    if (late !== null) { record(late); return; }
+    plan.onPending?.(() => { record({ kind: "accepted" }); });
     try {
       await client.request(plan.method, plan.params(), (outcome) => {
         if (recorded) {

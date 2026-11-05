@@ -123,7 +123,7 @@ child process ([report](../../experiments/runtime-resources-2026-10-28.md)):
 
 | runtime | after `abort` | how the command is stopped |
 |---|---|---|
-| codex 0.165.0 | keeps running until it exits by itself (about 45 s in the probe), both in an OAR session and in a shared app-server; OAR's 10 s fallback does not apply once codex has ended the turn | `dispose()`. Native `thread/backgroundTerminals/terminate` and `thread/archive` also stop it; OAR does not call them yet |
+| codex 0.165.0 | keeps running until it exits by itself (about 45 s in the probe), both in an OAR session and in a shared app-server; OAR's 10 s fallback does not apply once codex has ended the turn | `dispose()`, or [`endTurnProcessesOnAbort`](#ending-a-turns-processes-on-abort) on a session that opted in. Native `thread/backgroundTerminals/terminate` and `thread/archive` also stop the probed command; OAR does not call them |
 | grok 1.0.70 (ACP) | keeps running: native cancel and close leave the terminals grok created through the host | `dispose()` releases every terminal OAR hosted for the session |
 | kimi 2.3.3, opencode 1.19.5 and 2.2.0, antigravity 1.4.3 (ACP) | stopped within 2 s of the cancel | |
 | claude, dsh, qwen, qoder, pi (RPC) | not measured | `dispose()`: OAR owns the process |
@@ -133,6 +133,17 @@ child process ([report](../../experiments/runtime-resources-2026-10-28.md)):
 A host that must know the command is gone ends a session whose process OAR
 owns, or waits for the command's own end in the record stream. It never
 infers that from the turn end.
+
+### Ending a turn's processes on abort
+
+`SessionOptions.endTurnProcessesOnAbort: true` makes an accepted abort also end
+what that turn started, keeping the runtime and session for the next prompt.
+Codex in an isolated app-server is the only runtime that takes it; every other
+runtime, and shared placement, refuses it before launch. Omitted or false
+changes nothing. On Windows it is accepted and ends nothing, with `failed`
+saying why. A `cleanup` response on the abort request reports the outcome
+([record shape](record-stream.md#the-rules),
+[Codex mechanism and limits](../runtimes/codex.md#ending-a-turns-processes-on-abort)).
 
 ## Native goals
 
@@ -455,7 +466,7 @@ reading the message.
 
 `Runtime.refusedSessionOptions` declares, before any session opens, the
 `SessionOptions` a runtime refuses when given (`env`, `mcpServers`, `disallowedTools`, `launchArgs`, `additionalDirectories`: a
-non-empty one; `userConfiguration`: `"exclude"`; `goals`: `true`), each with that reason. The adapter checks the same map, so
+non-empty one; `userConfiguration`: `"exclude"`; `goals`, `endTurnProcessesOnAbort`: `true`), each with that reason. The adapter checks the same map, so
 the declaration and the refusal cannot drift
 (`tests/refused-session-options.test.ts`). A host leaves a declared option
 out instead of naming runtimes. `outputSchema` is considered given even
@@ -470,25 +481,27 @@ Four refusals have one reason wherever the table lists them: `serviceTier`,
 no verified per-session tier setting and readback; `outputSchema`, no
 verified final-output schema channel; `name`, no verified session name
 setting (pi-durable has no session name at all); `additionalDirectories`,
-no verified effective additional workspace directory channel. The why
-column gives the rest. `userConfiguration: "exclude"` refusals are explained
+no verified effective additional workspace directory channel;
+`endTurnProcessesOnAbort`, no verified way to end one aborted turn's processes
+while the session stays usable (in the host process, no process tree of its
+own to read). The why column gives the rest. `userConfiguration: "exclude"` refusals are explained
 in [user configuration](#user-configuration).
 
 | runtime | refuses | why |
 |---|---|---|
-| cursor | `systemPrompt`, `appendSystemPrompt`, `env`, `mcpServers`, `launchArgs`, `serviceTier`, `outputSchema`, `name`, `goals: true` | the SDK's local agent fails a run given a system prompt and has no append; it runs in the host process with no environment or command line of its own; its agent runs on Cursor's servers, and no run without a login or paid tokens shows it calling a tool of `Agent.create`'s `mcpServers` ([cursor](../runtimes/cursor.md#session-mcp-servers)) |
-| codebuddy | `appendSystemPrompt`, `serviceTier`, `additionalDirectories`, `outputSchema`, `name`, `userConfiguration: "exclude"`, `goals: true` | no verified private prompt-append input; replacement uses a private file ([mapping](../runtimes/codebuddy.md)) |
-| kimi | `systemPrompt`, `appendSystemPrompt`, `disallowedTools`, `serviceTier`, `outputSchema`, `name`, `userConfiguration: "exclude"`, `goals: true` | `kimi acp` has no per-session prompt input; its launcher does not forward the CLI's agent-profile flags, and has no session tool-denial overlay ([audit](../runtimes/kimi.md#models-instructions-and-context)) |
-| antigravity | `disallowedTools`, `systemPrompt`, `serviceTier`, `additionalDirectories`, `outputSchema`, `name`, `mcpServerCredentials`, `userConfiguration: "exclude"`, `goals: true` | the CLI adapter has no verified system prompt replacement channel (append is supported) ([audit](../runtimes/antigravity.md#models-instructions-and-context)); it would store an entry's `env` and `headers` values in plain text in its conversation database ([antigravity](../runtimes/antigravity.md#session-mcp-servers)) |
-| grok | `disallowedTools`, `serviceTier`, `additionalDirectories`, `name`, `userConfiguration: "exclude"`, `goals: true` | the top-level CLI denylist is not forwarded to `agent stdio`; replacing the selected agent profile is not a tool overlay |
-| opencode, both lines | `disallowedTools`, `serviceTier`, `outputSchema`, `name`, `userConfiguration: "exclude"`, `goals: true` | agent permissions can override global denies; permission names do not consistently match tool names |
-| pi-durable | `systemPrompt`, `env`, `launchArgs`, `serviceTier`, `mcpServers`, `disallowedTools`, `additionalDirectories`, `outputSchema`, `name`, `userConfiguration: "exclude"`, `goals: true` | native instructions append only; host-owned environment; no process arguments or verified per-conversation tier/MCP/tool-denial mapping |
-| pi | `launchArgs`, `serviceTier`, `additionalDirectories`, `outputSchema`, `userConfiguration: "exclude"`, `goals: true` | it runs in the host process through its SDK, with no command line |
-| qwen | `serviceTier`, `outputSchema`, `name`, `userConfiguration: "exclude"`, `goals: true` | no verified tier, structured-output, session-name or user-configuration exclusion channel |
-| dsh | `systemPrompt`, `appendSystemPrompt`, `mcpServers`, `disallowedTools`, `launchArgs`, `serviceTier`, `additionalDirectories`, `outputSchema`, `name`, `userConfiguration: "exclude"`, `goals: true` | each not yet probed through the bridge ([mapping](../runtimes/dsh.md#session-options)) |
-| qoder | `serviceTier`, `outputSchema`, `name`, `userConfiguration: "exclude"`, `goals: true` | no verified tier, structured-output, session-name or user-configuration exclusion channel |
-| codex | `userConfiguration: "exclude"` | temporary clean homes break shared history paths after cleanup ([evidence](../runtimes/codex.md#user-configuration)) |
-| claude | `goals: true` | no structured native goal controls on the chosen transport; other value-specific refusals are described on its runtime page |
+| cursor | `systemPrompt`, `appendSystemPrompt`, `env`, `mcpServers`, `launchArgs`, `serviceTier`, `outputSchema`, `name`, `goals: true`, `endTurnProcessesOnAbort: true` | the SDK's local agent fails a run given a system prompt and has no append; it runs in the host process with no environment or command line of its own; its agent runs on Cursor's servers, and no run without a login or paid tokens shows it calling a tool of `Agent.create`'s `mcpServers` ([cursor](../runtimes/cursor.md#session-mcp-servers)) |
+| codebuddy | `appendSystemPrompt`, `serviceTier`, `additionalDirectories`, `outputSchema`, `name`, `userConfiguration: "exclude"`, `goals: true`, `endTurnProcessesOnAbort: true` | no verified private prompt-append input; replacement uses a private file ([mapping](../runtimes/codebuddy.md)) |
+| kimi | `systemPrompt`, `appendSystemPrompt`, `disallowedTools`, `serviceTier`, `outputSchema`, `name`, `userConfiguration: "exclude"`, `goals: true`, `endTurnProcessesOnAbort: true` | `kimi acp` has no per-session prompt input; its launcher does not forward the CLI's agent-profile flags, and has no session tool-denial overlay ([audit](../runtimes/kimi.md#models-instructions-and-context)) |
+| antigravity | `disallowedTools`, `systemPrompt`, `serviceTier`, `additionalDirectories`, `outputSchema`, `name`, `mcpServerCredentials`, `userConfiguration: "exclude"`, `goals: true`, `endTurnProcessesOnAbort: true` | the CLI adapter has no verified system prompt replacement channel (append is supported) ([audit](../runtimes/antigravity.md#models-instructions-and-context)); it would store an entry's `env` and `headers` values in plain text in its conversation database ([antigravity](../runtimes/antigravity.md#session-mcp-servers)) |
+| grok | `disallowedTools`, `serviceTier`, `additionalDirectories`, `name`, `userConfiguration: "exclude"`, `goals: true`, `endTurnProcessesOnAbort: true` | the top-level CLI denylist is not forwarded to `agent stdio`; replacing the selected agent profile is not a tool overlay |
+| opencode, both lines | `disallowedTools`, `serviceTier`, `outputSchema`, `name`, `userConfiguration: "exclude"`, `goals: true`, `endTurnProcessesOnAbort: true` | agent permissions can override global denies; permission names do not consistently match tool names |
+| pi-durable | `systemPrompt`, `env`, `launchArgs`, `serviceTier`, `mcpServers`, `disallowedTools`, `additionalDirectories`, `outputSchema`, `name`, `userConfiguration: "exclude"`, `goals: true`, `endTurnProcessesOnAbort: true` | native instructions append only; host-owned environment; no process arguments or verified per-conversation tier/MCP/tool-denial mapping |
+| pi | `launchArgs`, `serviceTier`, `additionalDirectories`, `outputSchema`, `userConfiguration: "exclude"`, `goals: true`, `endTurnProcessesOnAbort: true` | it runs in the host process through its SDK, with no command line |
+| qwen | `serviceTier`, `outputSchema`, `name`, `userConfiguration: "exclude"`, `goals: true`, `endTurnProcessesOnAbort: true` | no verified tier, structured-output, session-name or user-configuration exclusion channel |
+| dsh | `systemPrompt`, `appendSystemPrompt`, `mcpServers`, `disallowedTools`, `launchArgs`, `serviceTier`, `additionalDirectories`, `outputSchema`, `name`, `userConfiguration: "exclude"`, `goals: true`, `endTurnProcessesOnAbort: true` | each not yet probed through the bridge ([mapping](../runtimes/dsh.md#session-options)) |
+| qoder | `serviceTier`, `outputSchema`, `name`, `userConfiguration: "exclude"`, `goals: true`, `endTurnProcessesOnAbort: true` | no verified tier, structured-output, session-name or user-configuration exclusion channel |
+| codex | `userConfiguration: "exclude"`; `endTurnProcessesOnAbort: true` only with shared placement | temporary clean homes break shared history paths after cleanup ([evidence](../runtimes/codex.md#user-configuration)); a shared app-server's process table does not say which session's turn started a process |
+| claude | `goals: true`, `endTurnProcessesOnAbort: true` | no structured native goal controls on the chosen transport; other value-specific refusals are described on its runtime page |
 
 `mcpServers` is refused until a runtime's channel is shown to make its agent
 call an attached server's tool, with the evidence on its runtime page

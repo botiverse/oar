@@ -425,6 +425,78 @@ prompt/steer/queue/abort is `rejected: runtime exited`, and a later
 `session disposed`) are the shared kernel's, read off the stream before the
 adapter's own gates; the adapter keeps no liveness flag. [Kernel][oar-kernel].
 
+### Ending a turn's processes on abort
+
+**What native leaves:** on 0.163.0 and 0.166.0 (Linux x64, scripted provider),
+`turn/interrupt` ended an `exec_command` still in the foreground but left a child
+it had detached with `setsid`, and left a command that had already yielded in that
+same turn, with its child. A report on 0.166 (task #168) also saw the running
+command survive, and found that native `thread/backgroundTerminals/terminate`
+and `clean` do not end a detached child, miss a command in its launch window,
+that `clean` also ends earlier background commands, and that a success reply
+and an empty list prove nothing. OAR therefore does not call them for this.
+
+**Mapped (opt-in):** `SessionOptions.endTurnProcessesOnAbort: true`. Before each
+`turn/start` the session starts a read of the process table, without waiting
+for it. `abort()` then takes a snapshot before it sends `turn/interrupt`, with
+the [one-second limit](../spec/record-stream.md#the-rules) of the existing
+pre-cancellation observation; the interrupt goes out at that deadline whatever the
+read did. When `turn/completed` reports `interrupted`, OAR reads the table again and
+kills every process in the snapshot below the app-server and absent from the
+baseline, plus what those started since, each only while its start time matches.
+The app-server and session stay up for the next prompt; the fallback above and
+`dispose()` are unchanged.
+
+The baseline holds MCP servers and earlier background commands, so they
+survive. A stdio MCP server was already running when `thread/start` replied on
+both versions, so a first prompt straight after open also spares it.
+
+Process groups separate the rest. On both versions the app-server's own group
+holds its helpers (`git` for its plugin cache, started at any moment) and, on
+0.163.0, the native binary behind the npm launcher. A stdio MCP server leads a
+group of its own within the app-server's session, and each `exec_command` leads
+its own session. So the app-server's group is never a target, nor is anything below
+a baseline process outside it: a worker an MCP server forks during the turn
+survives, as does a new child of an earlier background command, detached or not.
+Commands reached through the app-server's group are the candidates. Limits:
+
+- A command started after the snapshot and before the interrupt lands is not
+  in the snapshot, so a child it detached survives.
+- A baseline read that finishes after a fast command started counts that command
+  as earlier, and spares it. This errs towards not killing.
+- A process that left the app-server's tree before the snapshot is not reached.
+- A launcher that put the native binary in a group of its own would make every
+  command look like an earlier process's work: nothing would be ended, and
+  `signalled` would read zero. The native test fails if this appears.
+- A tool process kept in the app-server's group is treated as codex's own. None
+  was seen on these versions.
+- Only turns OAR started with `prompt` have a baseline. A drained queue, a goal
+  continuation or a compaction ends nothing.
+
+The outcome is the `cleanup` response on the abort request
+([shape](../spec/record-stream.md#the-rules)). `completed {signalled}` counts the
+kills actually sent; `failed {reason}` says why not all could be, with `signalled`
+when a refused signal left only some sent. It is recorded after the turn's end
+frame, by a read that can take a moment, so a host that needs the processes gone
+waits for that response, not for the turn end. A later prompt is not held for it.
+
+**Verified:** on Linux x64 with codex 0.163.0 and 0.166.0
+([native test](../../sea-trial/vendor/codex-abort-processes.vendor.test.ts)):
+both kinds of command and the detached child are gone; the MCP server, the workers
+it forked during the aborted turn, the earlier background command and its new
+child survive; the next prompt completes. Without the option the child and the
+yielded command survive.
+
+**Windows ends nothing.** CIM reports no process groups, so a turn's commands cannot
+be told from codex's helpers or an MCP server's workers. The option is still
+accepted there: no table is read for it, the interrupt goes out at once, and an
+interrupted turn records `cleanup` `failed` with that reason. A
+[control case](../../sea-trial/vendor/codex-abort-processes-no-groups.vendor.test.ts) runs in
+the Windows CI job and writes its diagnostics to the run's `trace.jsonl`; it has
+been run here only on Linux, with the table source stubbed to Windows, so no native
+Windows result is claimed until that job has run. macOS uses the Linux logic with
+`ps`, and has not been run.
+
 ### Native goals
 
 `SessionOptions.goals: true` enables `features.goals` for this process and

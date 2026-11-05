@@ -1,6 +1,7 @@
 import { sessionEnvironment } from "../../shared/environment.js";
 import { spawnLineProcess, type LineProcessOptions } from "../../shared/executable/index.js";
 import { processFailure } from "../../shared/executable/diagnostics.js";
+import type { CancellationObservation } from "../../shared/executable/process-cancellation.js";
 import { asRecord, parseJson, type JsonRecord } from "../../shared/json.js";
 import { nativeErrorCause } from "../../shared/native-error.js";
 import { coordinateHomeInitialization } from "./home-initialization.js";
@@ -25,6 +26,10 @@ export interface AppServerHandlers {
 export interface AppServerClient {
   readonly spawned: Promise<void>;
   readonly exited: Promise<number | null>;
+  /** The spawned root's pid: the app-server, or the launcher in front of it. Undefined before it spawns. */
+  rootPid(): number | undefined;
+  /** One fresh, bounded observation staged before a turn/interrupt (`LineProcess.observeCancellation`). */
+  observeCancellation(): Promise<CancellationObservation>;
   /**
    * Send a request. `onSettled`, when given, runs SYNCHRONOUSLY at the moment
    * the reply line (or the exit) is processed, before any later line in the
@@ -185,6 +190,8 @@ function createAppServerClient(
   return {
     spawned: child.spawned,
     exited: child.exited,
+    rootPid: () => child.pid,
+    observeCancellation: async () => { const observation = await child.observeCancellation(); return observation; },
     async request(method, params, onSettled) {
       const settled = onSettled ?? ((): void => {});
       if (exitFailure !== null) {
