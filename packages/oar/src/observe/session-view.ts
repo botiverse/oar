@@ -101,6 +101,7 @@ export type ViewPart =
       readonly output?: string;
       /** The result once the call ended (`tool_call_ended.content`). */
       readonly content?: readonly ToolOutputPart[];
+      readonly elided?: true; // `retainedBytes` removed some of this call's input or output from the records read.
       /** `ended` means the call or its root turn ended without a known result. */
       readonly result: "running" | "ok" | "failed" | "ended";
       /** `tool_call_ended.exitCode` verbatim: absent when the runtime reported none, never derived; a non-zero code leaves `result` alone. */
@@ -112,9 +113,8 @@ export type ViewPart =
        */
       readonly startedAt?: number;
       /**
-       * When OAR observed the call end: its `tool_call_ended` record's
-       * `receivedAt` (epoch ms). Absent while it runs, or when the end was
-       * never seen. `endedAt - startedAt` is how long it ran, as OAR saw it.
+       * When OAR observed the call end: its `tool_call_ended` record's `receivedAt`
+       * (epoch ms). Absent while it runs or if never seen. `endedAt - startedAt` is how long it ran, as OAR saw it.
        */
       readonly endedAt?: number;
     }

@@ -2,6 +2,7 @@ import type { RefusableSessionOption, RefusedSessionOptions } from "../contracts
 import type { SessionOptions } from "../contracts/session.js";
 import { UnsupportedOptionError } from "../contracts/errors.js";
 import { hasMcpCredentials } from "./mcp-servers.js";
+import { checkRetainedBytes } from "./record-retention.js";
 
 /** The names of the `mcpServers` entries carrying a credential: `env` on a stdio entry, `headers` on an http one. */
 function credentialEntries(options: SessionOptions): readonly string[] {
@@ -32,6 +33,7 @@ export function sessionOptionGiven(options: SessionOptions, key: RefusableSessio
  * `mcpServerCredentials`.
  */
 export function refuseSessionOptions(refused: RefusedSessionOptions, options: SessionOptions): void {
+  checkRetainedBytes(options.retainedBytes);
   for (const key of ["systemPrompt", "appendSystemPrompt", "env", "mcpServers", "mcpServerCredentials", "disallowedTools", "launchArgs", "serviceTier", "additionalDirectories", "outputSchema", "name", "userConfiguration", "goals"] as const) {
     const reason = refused[key];
     if (reason === undefined || !sessionOptionGiven(options, key)) {

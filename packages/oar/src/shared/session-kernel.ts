@@ -1,5 +1,6 @@
 import type { SessionOpenContext } from "../contracts/placement.js";
 import { carriesRefusal, emptyInputRefusal } from "./control-input.js";
+import { recordRetention } from "./record-retention.js";
 import { withSessionRecord } from "../observe/graph.js";
 import type {
   ControlResult,
@@ -113,7 +114,8 @@ function deliver(observer: RawEventObserver, record: RawEvent): void {
 }
 
 /** An optional session credential redactor runs before retention and observer delivery; native command inputs remain unchanged. */
-export function createSessionKernel(sessionId: string = globalThis.crypto.randomUUID(), redact?: <T extends RawEvent>(record: T) => T): SessionKernel {
+export function createSessionKernel(sessionId: string = globalThis.crypto.randomUUID(), redact?: <T extends RawEvent>(record: T) => T, retainedBytes?: number): SessionKernel {
+  const retain = retainedBytes === undefined ? undefined : recordRetention(retainedBytes);
   const observers = new Set<RawEventObserver>();
   const log: RawEvent[] = [];
   const notifications: RawEvent[] = [];
@@ -130,6 +132,8 @@ export function createSessionKernel(sessionId: string = globalThis.crypto.random
       notifications.length = 0;
       publishing = false;
     }
+    // Only after every observer has the complete records.
+    retain?.(log, log.length);
   };
   const nodeIds = new Set([sessionId]);
   let graph: SessionGraph = { nodes: [{ id: sessionId }], edges: [] };

@@ -82,10 +82,11 @@ export interface FrameBody {
   readonly responseTo?: string;
   /** Runtime-native discriminator: claude `type[/subtype]`, codex notification method, pi event type, ACP `sessionUpdate`. */
   readonly type: string;
-  /** The frame as sent (JSON-safe), except documented credential-field redaction. Never otherwise trimmed or re-shaped. */
+  /** The frame as sent (JSON-safe), except documented credential-field redaction. Never otherwise trimmed or re-shaped, unless `elided`. */
   readonly native: unknown;
   /** What oar read out of the frame, in frame order; empty when oar read nothing. Only runtime-said kinds appear here. */
   readonly events: readonly RuntimeEventBody[];
+  readonly elided?: true; // `retainedBytes` removed `native` (now null) and tool input and output from this retained frame. Live observers received it complete.
 }
 export type ReasoningContent =
   | { readonly kind: "text"; readonly text: string }
@@ -230,7 +231,7 @@ export type EventBody = RuntimeEventBody | ControlEventBody;
  * by design (no `native`, no `type`), and always re-derivable from the
  * RawEvent stream via `eventsOf`.
  */
-export type Event = EventBody & RecordEnvelope;
+export type Event = EventBody & RecordEnvelope & { readonly elided?: true }; // `elided`: its frame was trimmed, so tool input and output may be missing.
 export type RequestBody =
   | { readonly kind: "open"; readonly placement: PlacementRequest }
   | { readonly kind: "goal_set"; readonly options: GoalSetOptions }
@@ -296,5 +297,4 @@ export interface ContextUsage {
   readonly contextWindow: number | null;
   readonly percent: number | null;
 }
-
 export type { Cursor, SessionEdge, SessionGraph, SessionNode } from "./graph.js";

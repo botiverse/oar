@@ -15,7 +15,7 @@ import {
   updateRequestPart,
   type Draft,
 } from "./session-view-fold.js";
-import { ended, endRootTools, toolPreview, updateToolInput, updateToolPart } from "./session-view-tools.js";
+import { elidedMark, ended, endRootTools, toolPreview, updateToolInput, updateToolPart } from "./session-view-tools.js";
 import type { PendingRequest, ViewPart } from "./session-view.js";
 
 /**
@@ -71,7 +71,7 @@ export function foldEvent(draft: Draft, event: Event, streamId: string, openedBy
         kind: "tool",
         callId: event.callId,
         tool: event.tool,
-        ...(event.input === undefined ? {} : { input: event.input }),
+        ...(event.input === undefined ? {} : { input: event.input }), ...elidedMark(event),
         result: "running",
         startedAt: event.receivedAt,
       });
@@ -83,7 +83,7 @@ export function foldEvent(draft: Draft, event: Event, streamId: string, openedBy
       }
       // An input without a start is still a fact (mid-turn subscriber).
       laneFor(draft, event, streamId)?.parts.push({ kind: "tool", callId: event.callId, tool: "?",
-        ...(event.kind === "tool_call_input_delta" ? { input: event.delta, inputPartial: true } : { input: event.input }), result: "running" });
+        ...elidedMark(event), ...(event.kind === "tool_call_input_delta" ? { input: event.delta, inputPartial: true } : { input: event.input }), result: "running" });
       return;
     case "tool_call_progress":
     case "tool_call_ended": {
@@ -97,7 +97,7 @@ export function foldEvent(draft: Draft, event: Event, streamId: string, openedBy
         callId: event.callId,
         tool: "?",
         ...(event.kind === "tool_call_progress" ? toolPreview(undefined, event) : {}),
-        ...(event.kind === "tool_call_ended" ? ended(event) : {}),
+        ...(event.kind === "tool_call_ended" ? ended(event) : {}), ...elidedMark(event),
         result,
         ...(event.kind === "tool_call_ended" ? { endedAt: event.receivedAt } : {}),
       });

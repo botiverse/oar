@@ -42,6 +42,23 @@ fabricated completion is added here.
 call, or a concrete host needs synchronous submission and native evidence
 shows how to support it without compromising ordinary execution.
 
+## Bounded retention by eliding content (2026-11-05)
+
+**Accepted:** `SessionOptions.retainedBytes` removes native and tool payloads
+from the oldest retained frames and marks them `elided`. Raft asked for a bound
+because a build-heavy Codex session retains every frame. In a Codex 0.163.0
+sample of six commands, `item/completed` frames held 97% of 2.8 MB, half of it
+as `native` and half as the same output in events.
+
+**Refused:** dropping whole records, by count or by bytes. `status()`, `usage()`
+and the other queries fold over all records, so each fold would need a
+checkpoint, and `seq` and `carries` would gain holes. That cost is not justified
+while the remaining record shell is small. Lossless production is kept because
+observers receive everything first, and elision is explicit.
+
+**What would reopen it:** measurements showing the record shell or text still
+exhausts memory under a real limit.
+
 ## Native manual compaction with attributable completion (2026-11-02)
 
 **Accepted:** a host can restore current prompt options, request native
