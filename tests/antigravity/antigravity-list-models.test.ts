@@ -66,7 +66,7 @@ test("antigravity lister initializes and opens a session, closes it, then kills 
   acp.request.mockImplementation(async (method) => {
     switch (method) {
       case "initialize":
-        return { authMethods: [] };
+        return { agentCapabilities: { sessionCapabilities: { close: {} } } };
       case "session/new":
         return newSessionResponse;
       case "session/close":
@@ -112,4 +112,17 @@ test("antigravity lister maps auth failures, a missing model option, and other f
     throw new Error("boom");
   });
   await expect(antigravityListModels(installation)).rejects.toThrow("Failed to list Antigravity models");
+});
+
+test.each([false, true])("missing or refused close preserves the catalog: advertised=%s", async (advertised) => {
+  acp.request.mockImplementation(async (method) => {
+    if (method === "initialize") { return { agentCapabilities: { sessionCapabilities: advertised ? { close: {} } : {} } }; }
+    if (method === "session/new") { return newSessionResponse; }
+    throw new RequestError(-32_601, "close unavailable");
+  });
+  const result = await antigravityListModels(installation);
+  expect(result.kind).toBe("ok");
+  if (result.kind === "ok") { expect(result.models).toContainEqual({ id: "gemini-3.8-flash", displayName: "Gemini 3.8 Flash" }); }
+  expect(acp.request.mock.calls.some(([method]) => method === "session/close")).toBe(advertised);
+  expect(acp.kill).toHaveBeenCalledOnce();
 });

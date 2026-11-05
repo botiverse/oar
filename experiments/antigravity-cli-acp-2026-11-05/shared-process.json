@@ -1,0 +1,227 @@
+{
+  "runtime": "agy CLI 1.5.0",
+  "platform": "linux x64",
+  "mode": "two native sessions in one process, no OAR sharing pool",
+  "cwd": {
+    "processCwd": "<home>",
+    "sessionCwds": [
+      "<home>/a",
+      "<home>/b"
+    ],
+    "check": {
+      "observed": false,
+      "error": "AssertionError [ERR_ASSERTION]: tool ran in its own canonical directory"
+    },
+    "nativeToolResults": [
+      "{\"output\":\"Created At: 2026-11-05T04:42:46Z\\nCompleted At: 2026-11-05T04:42:46Z\\nCommand exited with code 0.\\n\\nCommand output:\\nCWD_RESULT=<home>\\r\\n\"}",
+      "{\"output\":\"Created At: 2026-11-05T04:42:46Z\\nCompleted At: 2026-11-05T04:42:46Z\\nCommand exited with code 0.\\n\\nCommand output:\\nCWD_RESULT=<home>\\r\\n\"}"
+    ]
+  },
+  "mcpIsolation": {
+    "observed": true,
+    "value": {
+      "responses": [
+        {
+          "stopReason": "end_turn"
+        },
+        {
+          "stopReason": "end_turn"
+        }
+      ],
+      "sameServerNameScopedToSession": true
+    }
+  },
+  "childAttribution": {
+    "observed": true,
+    "value": {
+      "responses": [
+        {
+          "stopReason": "end_turn"
+        },
+        {
+          "stopReason": "end_turn"
+        }
+      ],
+      "childRequests": 1,
+      "rootIds": [
+        "<root-a>",
+        "<root-b>"
+      ],
+      "eventSessionIds": [
+        "<root-b>",
+        "<root-a>"
+      ],
+      "peerReceivedChildReply": false,
+      "events": [
+        {
+          "method": "session/update",
+          "params": {
+            "sessionId": "<root-b>",
+            "update": {
+              "sessionUpdate": "user_message_chunk",
+              "content": {
+                "type": "text",
+                "text": "ACP_SHARE_B_childpeer"
+              }
+            }
+          }
+        },
+        {
+          "method": "session/update",
+          "params": {
+            "sessionId": "<root-b>",
+            "update": {
+              "sessionUpdate": "agent_message_chunk",
+              "content": {
+                "type": "text",
+                "text": "ANSWER_B_childpeer"
+              }
+            }
+          }
+        },
+        {
+          "method": "session/update",
+          "params": {
+            "sessionId": "<root-a>",
+            "update": {
+              "sessionUpdate": "user_message_chunk",
+              "content": {
+                "type": "text",
+                "text": "ACP_SHARE_A_child"
+              }
+            }
+          }
+        },
+        {
+          "method": "session/update",
+          "params": {
+            "sessionId": "<root-a>",
+            "update": {
+              "sessionUpdate": "tool_call",
+              "toolCallId": "call-A_child",
+              "name": "define_subagent",
+              "args": {
+                "Description": "Check child routing",
+                "Name": "scope_check",
+                "SystemPrompt": "Answer the supplied marker."
+              },
+              "status": "in_progress",
+              "kind": "other",
+              "title": "Run define_subagent",
+              "rawInput": {
+                "Description": "Check child routing",
+                "Name": "scope_check",
+                "SystemPrompt": "Answer the supplied marker."
+              }
+            }
+          }
+        },
+        {
+          "method": "session/update",
+          "params": {
+            "sessionId": "<root-a>",
+            "update": {
+              "sessionUpdate": "tool_call_update",
+              "toolCallId": "call-A_child",
+              "name": "define_subagent",
+              "args": {
+                "Description": "Check child routing",
+                "Name": "scope_check",
+                "SystemPrompt": "Answer the supplied marker."
+              },
+              "status": "completed",
+              "kind": "other",
+              "title": "Run define_subagent",
+              "rawInput": {
+                "Description": "Check child routing",
+                "Name": "scope_check",
+                "SystemPrompt": "Answer the supplied marker."
+              }
+            }
+          }
+        },
+        {
+          "method": "session/update",
+          "params": {
+            "sessionId": "<root-a>",
+            "update": {
+              "sessionUpdate": "tool_call_update",
+              "toolCallId": "call-A_child",
+              "name": "invoke_subagent",
+              "args": {
+                "Prompt": "ACP_SHARE_A_childreply",
+                "Role": "Routing observer",
+                "TypeName": "scope_check"
+              },
+              "status": "in_progress",
+              "kind": "other",
+              "title": "Run invoke_subagent",
+              "rawInput": {
+                "Prompt": "ACP_SHARE_A_childreply",
+                "Role": "Routing observer",
+                "TypeName": "scope_check"
+              }
+            }
+          }
+        },
+        {
+          "method": "session/update",
+          "params": {
+            "sessionId": "<root-a>",
+            "update": {
+              "sessionUpdate": "session_info_update",
+              "title": "probe"
+            }
+          }
+        },
+        {
+          "method": "session/update",
+          "params": {
+            "sessionId": "<root-a>",
+            "update": {
+              "sessionUpdate": "tool_call_update",
+              "toolCallId": "call-A_child",
+              "name": "invoke_subagent",
+              "args": {
+                "Prompt": "ACP_SHARE_A_childreply",
+                "Role": "Routing observer",
+                "TypeName": "scope_check"
+              },
+              "status": "completed",
+              "kind": "other",
+              "title": "Run invoke_subagent",
+              "rawInput": {
+                "Prompt": "ACP_SHARE_A_childreply",
+                "Role": "Routing observer",
+                "TypeName": "scope_check"
+              }
+            }
+          }
+        },
+        {
+          "method": "session/update",
+          "params": {
+            "sessionId": "<root-a>",
+            "update": {
+              "sessionUpdate": "agent_message_chunk",
+              "content": {
+                "type": "text",
+                "text": "ANSWER_A_child"
+              }
+            }
+          }
+        },
+        {
+          "method": "session/update",
+          "params": {
+            "sessionId": "<root-b>",
+            "update": {
+              "sessionUpdate": "session_info_update",
+              "title": "probe"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

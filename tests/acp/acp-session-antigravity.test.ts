@@ -1,16 +1,16 @@
+/* oxlint-disable import/max-dependencies -- Native lifecycle controls combine records and owned-process liveness. */
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import assert from "node:assert/strict";
-import { expect, test, vi } from "vitest";
+import { expect, test } from "vitest";
 import type { Session, SessionOptions } from "../../packages/oar/src/contracts/session.js";
 import {
   antigravityAcpArgs,
   antigravityAcpProfile,
 } from "../../packages/oar/src/runtimes/antigravity/session.js";
-import {
-  antigravityInstallation,
-  readAntigravityVersion,
-} from "../../packages/oar/src/runtimes/antigravity/installation.js";
 import { acpSession } from "../../packages/oar/src/shared/acp/session.js";
-import { promptAndWait } from "../../packages/oar/src/observe/turns.js";
+import { promptAndWait, awaitTurnEnd } from "../../packages/oar/src/observe/turns.js";
 import { describe, fixture } from "../fixtures/acp-session-support.js";
 import { agentTreeModule, gone, withTreeProbe } from "../fixtures/process-tree.js";
 
@@ -45,9 +45,13 @@ test("the session opens without authenticate or a synthetic permission mode, aga
 test.each([false, true])("dispose closes the native session and ends the process; held open by a tool: %s", async (keepAlive) => {
   // oxlint-disable-next-line eslint/max-statements -- Observe the same disposal's stream, native exit and descendant liveness together.
   await withTreeProbe({ ignoreSigterm: false }, async (probe) => {
-    const session = await startAntigravity({ env: keepAlive ? probe.env : {} }, keepAlive);
+    const dir = mkdtempSync(path.join(tmpdir(), "oar-agy-close-"));
+    const closeLog = path.join(dir, "close.txt");
+    const session = await startAntigravity({ env: { ...(keepAlive ? probe.env : {}), FAKE_ACP_CLOSE_LOG: closeLog } }, keepAlive);
     const tree = keepAlive ? await probe.tree() : null;
     await session.dispose();
+    assert.equal(readFileSync(closeLog, "utf8"), `${session.id}\n`);
+    rmSync(dir, { recursive: true, force: true });
     const tail = session.records().map((record) => describe(record));
     // Disposal owns the process; the close response is not a session frame.
     assert.deepEqual(tail.slice(-2), ["request dispose", "response exited"]);
@@ -99,17 +103,30 @@ test("the antigravity profile uses native CLI ACP workers and refuses unsupporte
   assert.doesNotThrow(() => antigravityAcpProfile.validateOptions?.({ cwd: "/" }));
 });
 
-test("antigravity accepts only the CLI release format and rejects a different executable", async () => {
-  assert.equal(readAntigravityVersion("1.5.0\n"), "1.5.0");
-  assert.equal(readAntigravityVersion("Build label: 1.4.5\n"), undefined);
-  assert.equal(readAntigravityVersion("v24.0.0\n"), undefined);
-  vi.stubEnv("OAR_ANTIGRAVITY_BIN", process.execPath);
+// oxlint-disable-next-line eslint/max-statements -- One lifecycle control follows the early reply through its real final outcome.
+test.each(["completed", "failed", "aborted"] as const)("early prompt success cannot settle a replacing steer: %s", async (expected) => {
+  const dir = mkdtempSync(path.join(tmpdir(), "oar-agy-steer-"));
+  const gate = path.join(dir, "finish");
+  const session = await startAntigravity({ env: { FAKE_ACP_STEER_FINISH: gate, FAKE_ACP_STEER_CANCEL_ERROR: "1" } });
   try {
-    expect(await antigravityInstallation()).toMatchInlineSnapshot(`
-      {
-        "kind": "unsupported",
-        "reason": "Antigravity requires agy CLI 1.5.0 or newer with native ACP; update agy and point OAR_ANTIGRAVITY_BIN at agy, not agy_acp_server",
-      }
-    `);
-  } finally { vi.unstubAllEnvs(); }
+    const earlier = Promise.withResolvers<void>();
+    session.rawEvents((record) => {
+      if (record.kind === "frame" && record.body.type === "session/prompt") { earlier.resolve(); }
+    });
+    const first = await session.prompt("hold");
+    const steering = await session.steer?.("agy-steer-pending", { inputId: "c6c6c6c6-c6c6-46c6-86c6-c6c6c6c6c6c6" });
+    expect(steering?.response.body.kind).toBe("accepted");
+    await earlier.promise;
+    expect(session.status().value.kind).toBe("running");
+    const outcomes = () => session.records().flatMap((record) => record.kind === "frame" ? record.body.events.filter((event) => event.kind === "turn_ended") : []);
+    expect(outcomes()).toHaveLength(0);
+    const overlap = await session.prompt("do not overlap");
+    expect(overlap.response.body).toMatchObject({ kind: "rejected", code: "busy" });
+    if (expected === "aborted") { const abort = await session.abort(); expect(abort.response.body.kind).toBe("accepted"); }
+    else { writeFileSync(gate, expected === "failed" ? "error" : "ok"); }
+    expect(await awaitTurnEnd(session, first.request.seq)).toMatchObject({ kind: expected });
+    expect(outcomes()).toHaveLength(1);
+    const terminal = session.records().find((record) => record.kind === "frame" && record.body.events.some((event) => event.kind === "turn_ended"));
+    expect(terminal).toMatchObject({ body: { type: expected === "completed" ? "session/prompt" : "session/prompt/error" } });
+  } finally { await session.dispose(); rmSync(dir, { recursive: true, force: true }); }
 });

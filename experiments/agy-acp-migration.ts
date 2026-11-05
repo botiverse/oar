@@ -211,6 +211,48 @@ async function cwdRoots(): Promise<void> {
   } finally { await run.stop(); await fixture.stop(); }
 }
 
+/** Session listing omits never-prompted sessions; inspect native resume/load directly. */
+async function unpromptedResume(): Promise<void> {
+  const wire: unknown[] = [];
+  const requests: unknown[] = [];
+  const fixture = await startAntigravityAimock(mock => {
+    mock.on({ predicate: () => true }, request => {
+      requests.push(request);
+      assert.ok(requests.length < 12, "Unexpected repeated native requests");
+      if (JSON.stringify(request.messages).includes("conversation title generator")) { return { content: "probe" }; }
+      if (request.messages.some(message => message.role === "tool")) { return { content: "PROBE_DONE" }; }
+      return { toolCalls: [{ id: "cwd", name: "run_command", arguments: JSON.stringify({ CommandLine: "pwd", toolSummary: "Read saved directory", WaitMsBeforeAsync: 1000 }) }] };
+    });
+  });
+  const home = fixture.env.HOME; assert.ok(home !== undefined);
+  const cwd = path.join(home, "original"); const other = path.join(home, "other");
+  await Promise.all([cwd, other].map(dir => mkdir(dir)));
+  let run = await launch(fixture, wire, cwd);
+  const outcomes: unknown[] = [];
+  try {
+    for (const method of ["session/resume", "session/load"]) {
+      const opened = await run.request("session/new", { cwd, mcpServers: [] });
+      await run.request("session/close", { sessionId: opened.sessionId });
+      await run.stop(); run = await launch(fixture, wire, other);
+      const listing = await run.request("session/list", {});
+      assert.ok(!asRecordList(listing.sessions).some(session => session.sessionId === opened.sessionId), "Control needs a saved unlisted session");
+      const resumed = await run.request(method, { sessionId: opened.sessionId, cwd: other, mcpServers: [] });
+      outcomes.push({ method, listed: false, resumedKeys: Object.keys(resumed) });
+      await run.request("session/prompt", { sessionId: opened.sessionId, prompt: [{ type: "text", text: "PROBE_UNPROMPTED_RESUME_CWD" }] });
+      await run.request("session/close", { sessionId: opened.sessionId });
+      const absent = "00000000-0000-4000-8000-000000000099";
+      try {
+        outcomes.push({ method, missing: await run.request(method, { sessionId: absent, cwd: other, mcpServers: [] }) });
+      } catch (error) {
+        outcomes.push({ method, missingError: String(error), native: error });
+      }
+    }
+  } finally {
+    evidence.push({ scenario: "unprompted-resume", outcomes, requests, raw: fixture.raw, wire });
+    await run.stop(); await fixture.stop();
+  }
+}
+
 /** Select only protocol facts and provider fields needed to reproduce the conclusions. */
 function selectedProvider(row: JsonRecord): unknown[] {
   return asRecordList(row.raw).filter((request) => !JSON.stringify(asRecord(request.body)?.systemInstruction).includes("conversation title generator")).map((request) => {
@@ -231,15 +273,19 @@ function selectedProvider(row: JsonRecord): unknown[] {
 }
 
 function selectedResponses(row: JsonRecord): unknown[] {
-  const methodsById = new Map<unknown, unknown>();
+  const requestsById = new Map<unknown, JsonRecord>();
   const responses: unknown[] = [];
   for (const entry of asRecordList(row.wire)) {
     const message = asRecord(entry.message);
-    if (entry.direction === "out" && message?.id !== undefined) { methodsById.set(message.id, message.method); }
+    if (entry.direction === "out" && message?.id !== undefined) { requestsById.set(message.id, message); }
     if (entry.direction === "in" && message?.id !== undefined) {
       const result = asRecord(message.result);
+      const request = requestsById.get(message.id);
+      const params = asRecord(request?.params);
+      const resume = request?.method === "session/resume" || request?.method === "session/load";
       responses.push({
-        method: methodsById.get(message.id),
+        method: request?.method,
+        ...(resume ? { absentIdControl: params?.sessionId === "00000000-0000-4000-8000-000000000099", responseKeys: result === null ? undefined : Object.keys(result), sessionIdMatchesRequest: result === null ? undefined : result.sessionId === params?.sessionId } : {}),
         error: message.error,
         stopReason: result?.stopReason,
         agentInfo: result?.agentInfo,
@@ -266,7 +312,7 @@ function selected(): string {
   return text.replaceAll(/token=[a-f\d]+/gu, "token=<synthetic>").replaceAll(/[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}/gu, "<session-id>");
 }
 
-for (const scenario of [steering, settingsAndResume, userMcp, cwdRoots].filter((entry) => process.env.OAR_PROBE_CASE === undefined || entry.name === process.env.OAR_PROBE_CASE)) {
+for (const scenario of [steering, settingsAndResume, userMcp, cwdRoots, unpromptedResume].filter((entry) => process.env.OAR_PROBE_CASE === undefined || entry.name === process.env.OAR_PROBE_CASE)) {
   try { await scenario(); } catch (error) { evidence.push({ scenario: scenario.name, error: String(error) }); }
   await writeFile(path.join(output, "native.json"), JSON.stringify(evidence, null, 2));
 }

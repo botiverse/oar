@@ -39,15 +39,15 @@ from treating the changelog as a behavioral guarantee.
 | --- | --- | --- |
 | Discovery | Plain `--version` is `1.5.0`; pre-1.5 CLI can print help and exit successfully for unknown `acp`. | Discover `agy`, require CLI release at least 1.5.0, refuse old server overrides. |
 | Permissions | Modes `default`, `accept-edits`, `plan`; old `yolo` absent. | Use the documented skip-permissions launch flag; no synthetic mode selection. |
-| Authentication/configuration | CLI settings live in `antigravity-cli`, not the old `antigravity-acp` store. | Reuse native CLI config/login; no automatic credential migration or typed login implementation. |
+| Authentication/configuration | CLI settings live in `antigravity-cli`, not the old `antigravity-acp` store. | Preserve both native stores; no credential migration or consumer login control. Follow the vendor FAQ and use provider API keys. |
 | MCP transport | With per-session workers, both stdio and HTTP tools execute successfully. | Include `--process-per-session` so native HTTP MCP capability is available. |
 | Steer | The second prompt reaches the next provider request before the first loop's final answer; original prompt RPC answers early. | Expose steer, supersede the earlier prompt when deciding turn completion. |
 | Model/effort | Config id is `thought_level`. Omitted model on resume resets to the CLI default; reapplying Flash plus high reaches the provider as `HIGH`. | Preserve native readback; callers pass the full intended config again on resume. |
 | Append | Fresh append arrives; a new resume append replaces it; omission removes it. | Keep capability-gated native append. No broader resume/compaction declaration is added. |
 | Tool denial | `_meta.antigravity.disabledTools: ["run_command"]` still leaves `run_command` in provider tools. | Refuse all non-empty `disallowedTools` before launch. |
 | Extra directories | Extra roots appear, but can replace command cwd. | Keep `additionalDirectories` refused; reason updated to the actual CLI violation. |
-| Resume cwd | Resume naming another cwd retains the saved native directory. | Use native listing to reject a different cwd before prompting. |
-| Missing resume | Missing id returns generic `-32603`. | Map to `SessionNotFoundError` only after a complete list independently proves absence. |
+| Resume cwd | Resume naming another cwd retains the saved native directory. | Require positive saved-cwd confirmation before any resume/load; reject different or unknown cwd. |
+| Unlisted resume | Unprompted sessions are unlisted but resumable; load also succeeds for a genuinely absent id. | Do not infer missing history, or fall back to load. Both unlisted cases receive the same cwd refusal. |
 | MCP credentials | Synthetic env/header values persist in conversation DB/WAL after close. | Keep `mcpServerCredentials` refused. |
 | MCP tool changes | Connected HTTP client never lists again after a tool-list change; next request offers old tools. | Declare `mcpToolsListChanged: "none"`, replacing the old service's `full`. |
 | Close | Native close is advertised and responds successfully. | Use existing ACP close/disposal path and process ownership. |
@@ -67,7 +67,11 @@ remain running, no `turn_ended` may exist, and a new prompt must reject busy.
 After releasing the provider barrier, it requires exactly one completed
 turn and verifies the second request's input and tool result. This is why
 `steerSupersedesPrompt: true` is required, rather than just exposing a second
-native prompt as a control method. The separate title-generation request is
+native prompt as a control method. Fake-transport regressions also hold the
+replacement response after the early `end_turn`, then settle it with success,
+RPC failure or cancellation. The replacement owns the final outcome in all
+three; an old success cannot turn a failed or aborted replacement into a
+completed turn. The separate title-generation request is
 identified from its native system instruction and excluded from main-model
 counts.
 
@@ -96,8 +100,24 @@ OAR cannot promise its primary cwd in that configuration and refuses it.
 A separate native resume control names another cwd but continues executing
 in the original one. The OAR regression checks that the guard rejects such
 a change without any provider request, then confirms same-cwd resume still
-works. Unknown-id mapping includes negative list/error tests so a generic
-internal error never becomes fabricated absence evidence.
+works after the saved session appears in the native list.
+
+The [unprompted-session control](antigravity-cli-acp-2026-11-05/unprompted-resume.json)
+creates and closes a session without a prompt. `session/list` omits it, yet
+both resume and load reopen its original id, ignore a different requested
+cwd, and return no cwd field. The next provider request names the original
+directory and native `pwd` executes there. With a genuinely absent valid
+UUID, resume fails with generic `-32603`, while load succeeds with that
+requested id. This does not prove that history exists or was created.
+
+OAR therefore refuses an unknown saved cwd before either native request,
+with `UnsupportedOptionError("cwd", ...)`, for unprompted and absent ids
+alike. Missing list support, missing/empty cwd, malformed pages and cursor
+loops cannot bypass that guard. The same positive-evidence rule applies to
+Kimi and OpenCode, which also retain native cwd. Native listing errors keep
+their original error; a listed session's generic resume error is not mapped
+to missing. Hosts may open a new session, but cannot infer history loss from
+these refusals. Existing service history is neither migrated nor deleted.
 
 ### MCP behavior is measured at the provider and server
 
@@ -118,6 +138,22 @@ not an OAR session that bypasses its guard. The marker appears in
 native close. OAR still refuses credential-bearing entries before launch.
 The move to a CLI-owned data directory does not fix that behavior.
 
+### The manual multi-session probe keeps its negative cwd result
+
+The migrated [sharing probe selection](antigravity-cli-acp-2026-11-05/shared-process.json)
+uses current CLI tool schemas and separates native title-generation requests
+from the main tool loop. MCP isolation passes. A synthetic child reaches the
+provider, but observed tool/text frames remain under the root session id,
+so attribution stays opaque.
+
+The cwd assertion deliberately remains red: with one CLI process in the
+probe home and two native sessions requesting `a` and `b`, both real commands
+run in the process home. No explicit command cwd is supplied to hide this
+result. Product sessions still have independent CLI processes started in
+their own requested cwd; native sharing remains unadmitted. The manual
+workflow retains this failed observation, rather than treating it as a
+successful isolation control.
+
 ## Repeat the controls
 
 Install the documented CLI, then point these commands at its absolute path:
@@ -133,7 +169,7 @@ OAR_TEST=antigravity-aimock OAR_ANTIGRAVITY_BIN=/absolute/path/to/agy \
 ```
 
 The probe writes full wire/provider JSON and `selected.json`. Set
-`OAR_PROBE_CASE` to `steering`, `settingsAndResume`, `userMcp` or `cwdRoots`
+`OAR_PROBE_CASE` to `steering`, `settingsAndResume`, `userMcp`, `cwdRoots` or `unpromptedResume`
 for one control. `OAR_PROBE_WORKERS=0 OAR_PROBE_CASE=cwdRoots` repeats the
 no-worker initialization/directory control without attaching MCP. Local raw files can contain temporary paths and synthetic
 configuration, so publish the selected fields rather than entire captures.
@@ -146,7 +182,13 @@ pnpm tsx experiments/agy-install-smoke.ts
 ```
 
 It verifies installation, discovery with `~/.local/bin` off PATH, and an
-idempotent second call. It removes the temporary HOME afterwards. On this
+idempotent second call. It removes the temporary HOME afterwards. The
+installer may write `~/.bashrc` and `~/.zshrc` as well as its bin/cache paths;
+the plan's permission preflight includes all four locations. Existing old
+CLI and pinned-server cases are checked before downloads, because the vendor
+installer skips existing copies instead of upgrading them. They return
+`unsupported` with reason `configuration`; an unpinned old PATH copy may
+still yield to a supported CLI in the official install location. On this
 Linux run, installation reported checksum verified, OAR found version 1.5.0,
 and the second call returned `already_installed`. Native Windows/macOS
 installation was not run; path-selection unit cases are not native evidence.
@@ -157,7 +199,7 @@ The adapter's local native behavior suite passed 17 cases, with two
 capability skips. The full native vendor set passed 12 cases, including
 model listing, steering and resume guards.
 The tests use real CLI processes and tools with scripted model responses.
-No personal-account inference, child-attribution measurement, native
+No personal-account inference, reliable child identity link, native
 Windows/macOS run, usage guarantee or compaction-completion mapping is
 claimed. Existing completed-looking provider failures remain honest native
 observations.
@@ -165,31 +207,54 @@ observations.
 Two negative controls failed as intended: removing prompt supersession made
 the held-loop test observe idle instead of running; changing the MCP
 declaration back to full failed on the absent second tools/list. Both
-mutations were reverted.
+mutations were reverted. The review revision added six more controls: removing
+supersession, ignoring a replacement error, skipping native close, bypassing
+unknown-cwd refusal, closing without the advertised capability, or allowing
+close failure to discard a model catalog each failed its corresponding
+regression. All six mutations were reverted.
 
 The default unit/fake suite covers the CLI launch line, version floor,
-Windows/POSIX discovery paths, model selectors, native close, option
-refusals, complete/incomplete session-list classification and declarations.
-The final commit gate and package checks are recorded in the pull request.
+Windows/POSIX discovery paths, migration preflight, model selectors,
+native close, option refusals and positive saved-cwd confirmation. Model
+listing does not request an unadvertised close, and close failure preserves
+the catalog. Disposal tests assert that an advertised close really reached
+the fake native process, not just that process teardown succeeded.
+
+Required `check` CI jobs now install CLI 1.5.0 from pinned official archives
+and run native behavior and vendor tests on Linux, macOS and Windows.
+SHA-512 is verified before extraction/execution; the local Linux invocation
+of that same installer passed. Windows/macOS remain for this PR's CI to
+verify. The manual sharing-evidence workflow uses the same installer and
+current native tool schemas instead of the retired 1.4.5 server archive.
+On the rebased release baseline, the full check passed 3,159 unit tests and
+18 mock behavior cases. All 15 configured behavior backends passed; native
+vendor regressions also passed for Antigravity, Kimi, OpenCode and Grok.
+Build and clean package installation results are recorded in the pull request.
 
 ## Host migration and release-note draft
 
 - Install agy CLI 1.5.0 or newer. `OAR_ANTIGRAVITY_BIN`, if set, must name
   `agy`/`agy.exe`; remove overrides pointing at `agy_acp_server`. OAR also
   discovers the official install directory when it is absent from PATH.
-- Use the CLI's existing login/configuration, or run its documented
-  `agy acp --login` flow. OAR does not copy the separate service's tokens or
-  conversation database; reuse of those old conversations is unverified.
+- Use provider API keys under the [vendor's account policy](../docs/runtimes/antigravity.md#process-ownership-installation-and-account-usage).
+  Consumer login controls remain deliberately absent. OAR leaves the old
+  service's credential and conversation stores intact, without migrating
+  them; unconfirmed old ids receive a cwd refusal, not an invented missing
+  history error.
 - Antigravity now exposes `steer`, so `deliver`/`steerOrQueue` can use the
   active native loop. Earlier prompt replies no longer release that loop.
 - Pass model, effort, append and MCP settings on each resumed open. A
-  changed cwd is rejected instead of silently continuing elsewhere.
+  changed or unknown saved cwd is rejected before resume. Kimi and OpenCode
+  likewise now require positive saved-cwd evidence; list absence does not
+  become `SessionNotFoundError`.
 - Non-empty tool-denial lists are now rejected because the new native CLI
   ignores the old filter. MCP credential-bearing entries and extra
   directories remain rejected for measured native limitations.
 - MCP tool titles for session entries now use `mcp_<server>_<tool>`;
   dynamic tool-list changes are declared `none`. Hosts should inspect the
   declaration rather than assuming the retired service's behavior.
-- Installation plans and update checks follow the native CLI. OAR login,
-  logout, auth-status and upgrade remain unimplemented; no package version
-  or release tag is changed by this migration.
+- Installation plans and update checks follow the native CLI. The new
+  `configuration` installation refusal means an old selected executable or
+  a pinned missing location needs manual correction; no download runs.
+  OAR exposes no consumer login/status/logout or CLI upgrade. This PR
+  changes neither package versions nor release tags.

@@ -1,5 +1,7 @@
 /* oxlint-disable eslint/max-statements, eslint/max-params, eslint/max-lines-per-function, eslint/prefer-destructuring, eslint/no-underscore-dangle, import/no-nodejs-modules, unicorn/numeric-separators-style, typescript/no-unsafe-assignment, typescript/no-unsafe-member-access, typescript/no-unsafe-call, typescript/no-unsafe-argument, typescript/no-unsafe-return, typescript/no-confusing-void-expression -- Standalone untyped child-process fixture for exercising raw ACP framing. */
 import codebuddyOpening from "./fake-acp-codebuddy.mjs";
+import replacingPrompt from "./fake-acp-agy.mjs";
+import { appendFileSync } from "node:fs";
 import { createInterface } from "node:readline";
 import { grokMcpCredentials, grokSteerAnswers, grokUsageAnswer, spawnChildGrok } from "./fake-acp-grok.mjs";
 import { answerConfigRequest, modelReport, setModelResponse } from "./fake-acp-model.mjs";
@@ -89,13 +91,13 @@ function handleRpcRequest(message) {
       break;
   }
 }
-
 function handleSessionPrompt(message) {
   if (message.params?._meta?.outputSchema !== undefined) { send({ jsonrpc: "2.0", method: "fixture/prompt-schema", params: message.params }); }
   const text = promptText(message.params);
   if (refuseSteer({ text, pending: pendingPrompts, id: message.id, result, error })) {
     return;
   }
+  if (antigravity && replacingPrompt(text, message, { pendingPrompts, result, error })) { return; }
   if (opencode && pendingPrompts.size > 0) {
     update({ sessionUpdate: "agent_message_chunk", content: { type: "text", text: `merged:${[...pendingPrompts.values(), text].join("+")}` } });
     for (const id of [...pendingPrompts.keys(), message.id]) {
@@ -246,6 +248,7 @@ function handleSessionRequest(message) {
       handleSessionPrompt(message);
       break;
     case "session/close":
+      if (typeof process.env.FAKE_ACP_CLOSE_LOG === "string") { appendFileSync(process.env.FAKE_ACP_CLOSE_LOG, `${message.params.sessionId}\n`); }
       send({ jsonrpc: "2.0", method: "fixture/closed", params: message.params });
       result(message.id);
       break;
@@ -254,7 +257,6 @@ function handleSessionRequest(message) {
       break;
   }
 }
-
 function handleResponse(message) {
   const pending = reverseRequests.get(message.id);
   if (pending === undefined) {
@@ -273,7 +275,8 @@ function handleResponse(message) {
 function handleNotification(message) {
   if (message.method === "session/cancel") {
     for (const id of pendingPrompts.keys()) {
-      result(id, { stopReason: "cancelled" });
+      if (process.env.FAKE_ACP_STEER_CANCEL_ERROR === "1") { error(id, -32603, "replacement interrupted"); }
+      else { result(id, { stopReason: "cancelled" }); }
     }
     pendingPrompts.clear();
   }

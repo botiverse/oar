@@ -17,8 +17,8 @@ tools, each used only where the one before does not fit.
 When a runtime either can or cannot do a whole thing, the thing is an
 optional member and its presence is the capability. `Runtime.accountUsage`,
 `listModels`, `installPlan`, `install`, `checkUpdate`, `upgrade`, `login`,
-`logout` and `authStatus` already work this way (antigravity has no typed
-login integration yet, only the runtimes OAR signs in have a `logout`, and
+`logout` and `authStatus` already work this way (antigravity consumer login is
+absent under its [account policy](../runtimes/antigravity.md#process-ownership-installation-and-account-usage), only the runtimes OAR signs in have a `logout`, and
 bundled pi and cursor have no `install`);
 `Session` `steer`, `withdraw`, `resources` and `goal` do too: a session that cannot
 steer has no `steer`, one whose queue OAR does not hold (codex) has no

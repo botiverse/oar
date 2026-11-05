@@ -8,9 +8,10 @@ See the [migration report](../../experiments/antigravity-cli-acp-2026-11-05.md)
 for native controls, retained limitations and the host migration checklist.
 These runs do not establish account-specific or macOS/Windows behavior.
 
-Independent inventories, account usage and OAR login/status/logout are not
-implemented. See the [query contract](../spec/inventory.md) and
-[native inventory evidence](inventory.md).
+Independent inventories and account usage are not implemented. OAR deliberately
+has no login/status/logout integration for Antigravity consumer accounts; see
+[account policy](#process-ownership-installation-and-account-usage). See the
+[query contract](../spec/inventory.md) and [native inventory evidence](inventory.md).
 
 ## Native concepts and calling interfaces
 
@@ -89,21 +90,28 @@ There is no `resumedSessionOptions` declaration for this runtime.
 ```ts
 const options = { cwd, model: "gemini-3.8-flash", effort: "low", appendSystemPrompt: instructions };
 const first = await antigravityRuntime.session(installation, options);
+// Complete a prompt so native session/list can confirm the saved cwd.
 // After disposing first:
 const resumed = await antigravityRuntime.session(installation, { ...options, resume: first.id });
 ```
 
 The native resume ignores a different supplied `cwd` and keeps the saved
-working directory. OAR reads native session listing before resuming and
-refuses a different directory with `UnsupportedOptionError("cwd", ...)`,
-before any prompt. If listing cannot establish the saved directory, OAR
-cannot promise a changed directory ([resume-cwd contract](resume-cwd.md)).
+working directory. Before any resume/load request, OAR requires a native
+`session/list` entry with a non-empty saved cwd equal to the requested cwd.
+A different or unconfirmed directory gives `UnsupportedOptionError("cwd", ...)`.
+Missing listing capability, an incomplete listing and an unlisted id all
+refuse construction rather than silently opening elsewhere
+([resume-cwd contract](resume-cwd.md)). A listing transport/authentication
+failure retains its original error and also prevents resume.
 
-A missing id returns native JSON-RPC error `-32603` on 1.5.0. That code also
-covers other internal errors: OAR emits `SessionNotFoundError` only when a
-complete `session/list` independently proved that id absent. Otherwise the
-native error remains a transport/opening error. Session inventory is not
-exposed as a public query. Concurrent controllers for the same id and
+On 1.5.0, a session closed before its first prompt is absent from the list,
+yet native resume/load can reopen it at the old cwd without reporting that
+cwd in the response. Conversely, loading a genuinely absent id can return
+success with that id. Therefore list absence does not establish
+`SessionNotFoundError`, and load is not a safe fallback. An unlisted existing
+id and an absent id receive the same cwd refusal; a host can start a new
+session but cannot infer that the old history is gone. Session inventory is
+not exposed as a public query. Concurrent controllers for the same id and
 continuing in-flight work across processes remain unverified.
 
 ### Prompt, steering, queueing, and abort
@@ -119,7 +127,8 @@ its final answer. The CLI answered the *original* prompt early, while that
 provider response was still held. OAR therefore marks a steer as
 superseding the earlier prompt: the earlier answer is still a frame, but
 cannot report `turn_ended` or release the busy gate. The latest prompt's
-answer settles the turn. The vendor regression asserts this ordering,
+answer settles the turn, including a failed replacement request or cancellation.
+An earlier successful reply cannot replace that outcome. The vendor regression asserts this ordering,
 provider input, one completion and rejection of a premature new prompt.
 
 `queue()` holds input in memory (`durable: false`) and sends it FIFO when
@@ -141,8 +150,10 @@ claim about CLI 1.5.0.
 Text and tool updates project through the shared ACP mapping; unrecognized
 frames remain available verbatim. Detail strings are bounded at 10,000
 characters, while `native` retains the full value. Resume does not replay
-history. No CLI child-attribution control or real-account child run has been
-performed, so the attribution declaration remains `opaque`.
+history. A local-provider CLI child control reached the child model but kept
+the observed tool/text events under the parent's session id; no native child
+identity link was established. Attribution remains `opaque`, and no
+real-account child run was performed.
 
 No `usage_update` or prompt usage was observed in the local CLI controls.
 OAR does not fabricate token or context totals. A native `/compact`
@@ -155,7 +166,9 @@ an error. See the versioned
 ### Models, instructions, and context
 
 `listModels()` initializes ACP and opens a temporary session without a
-prompt, reads its model selector, closes it, and terminates the process.
+prompt, reads its model selector, and terminates the process. It requests
+`session/close` only when advertised; a close failure does not discard an
+already obtained catalog.
 Startup, native configuration and account/catalog network access remain
 possible. It is not a local auth-status query.
 
@@ -214,10 +227,15 @@ are not deleted. Host-exit and descendant limitations are the
 Discovery checks `OAR_ANTIGRAVITY_BIN`, PATH `agy`, then the official install
 location: `~/.local/bin/agy` on Linux/macOS or
 `%LOCALAPPDATA%\agy\bin\agy.exe` on Windows (with the standard user AppData
-fallback). The plain `--version` release must be at least 1.5.0. Older CLI
-versions can return success and help for an unknown `acp` command, so help's
-exit code alone is insufficient. An override pointing at `agy_acp_server`
-is refused with a migration instruction.
+fallback). Without an explicit override, an unsupported old PATH copy does
+not hide a supported CLI at the official install location. An override is
+exclusive: OAR never silently substitutes a different executable for it.
+`--version` must report one unambiguous stable release of at least 1.5.0;
+standalone version lines among notices are accepted, prereleases are not.
+Older CLI versions can return success and help for an unknown `acp` command,
+so help's exit code alone is insufficient. An unsupported selection reports
+its path and recognized version, with a migration instruction; the retired
+`agy_acp_server` build stamp does not satisfy the CLI version gate.
 
 The [official CLI installer](https://antigravity.google/docs/cli) supplies
 `installPlan` and `install` on Linux/macOS:
@@ -226,8 +244,13 @@ The [official CLI installer](https://antigravity.google/docs/cli) supplies
 curl -fsSL https://antigravity.google/cli/install.sh | bash
 ```
 
-The plan names its source, required tools and write locations. The installer
-verifies the downloaded release checksum. On Windows OAR returns the
+The plan names its source and command. Preflight checks curl/bash and write
+access to `~/.local/bin`, `~/.cache/antigravity`, `~/.bashrc` and `~/.zshrc`;
+the vendor installer may modify those shell startup files. It verifies the
+downloaded release checksum. The installer exits without upgrading an
+existing CLI, so an unsupported selected executable or a missing pinned
+path gives `unsupported` with reason `configuration` before any download.
+Update that copy or correct the override first; OAR does not remove it. On Windows OAR returns the
 vendor's PowerShell instruction as an unsupported-platform plan; it does
 not execute that unverified installer. The Linux isolated-home smoke test
 verified a new installation, discovery with the install bin off PATH, and
@@ -238,12 +261,18 @@ release. OAR has no `upgrade` method for this runtime; the native CLI has
 `agy update`. Existing CLI auto-update behavior is not disabled by the
 product adapter (the test fixture disables it).
 
-For a new login use the vendor's terminal flow, documented as
-`agy acp --login`; existing CLI configuration is reused. OAR has not
-implemented or verified typed login, auth-status or logout controls for the
-CLI, and does not migrate the retired service's credential store. This is
-an integration gap, not a claim about current account terms. No real login
-was created or changed by this migration's tests.
+The vendor's [FAQ](https://antigravity.google/docs/faq) warns that third-party
+access using Antigravity login violates its terms and may lead to suspension
+or termination; it recommends API keys instead. Embedding `agy -p` in
+third-party applications is also unsupported on consumer plans. Its documented ACP editor
+integrations do not establish that an OAR host may use a consumer account.
+OAR therefore exposes no consumer login/status/logout controls and does not
+recommend `agy acp --login` as a host setup step. Use a provider API key under
+its applicable terms. No real login was created or changed by these tests.
+
+OAR neither copies nor deletes the retired service's credential or history
+store. CLI conversations use a separate native directory; old service ids
+are not migrated, and an unconfirmed saved cwd is refused as above.
 
 ## Disallowed tools
 
@@ -299,11 +328,13 @@ never rewrites the host process environment.
 The [migration report](../../experiments/antigravity-cli-acp-2026-11-05.md)
 links repeatable native controls and the runtime-specific vendor tests.
 The local behavior suite covers prompt, steer, queue, cancellation, resume,
-models, images and disposal as applicable. Antigravity remains outside the
-required native CI matrix; unit/fake-transport coverage runs on all CI
-platforms. Native Windows/macOS, real-account inference and login, child
-attribution, usage, structured compaction and concurrent same-id controllers
-remain unverified.
+models, images and disposal as applicable. Required CI installs the pinned
+CLI 1.5.0 archive on Linux, macOS and Windows, verifies its SHA-512, and runs
+the behavior and vendor suites with an isolated home and local provider.
+The manual sharing-evidence workflow uses the same installer. Local Linux
+results are distinct from the pending PR's native Windows/macOS results.
+Real-account inference and login, reliable child identity links, usage,
+structured compaction and concurrent same-id controllers remain unverified.
 
 Historical evidence stays versioned: the
 [CLI 1.4.9 versus separate ACP 1.4.4 comparison](../../experiments/antigravity-steering-2026-10-29.md),

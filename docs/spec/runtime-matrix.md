@@ -741,18 +741,20 @@ existing types and causes; OAR never starts a replacement conversation.
 
 | Runtime | Evidence required | Scope of "not found" |
 |---|---|---|
-| antigravity | CLI `session/resume`/`session/load` error `-32603` only after a complete `session/list` proved the id absent | The active CLI configuration; the generic error alone is not absence evidence. |
 | grok | Resume/load error `data.code === "FS_NOT_FOUND"` | This cwd, including a real id saved under another cwd. |
 | cursor | SDK error `code === "agent_not_found"` from `Agent.listRuns` or `Agent.resume` | Not found by the SDK with this configuration; the 1.0.37 probe had no `CURSOR_API_KEY`, and did not test a real id. |
 | pi | OAR's `SessionManager.list(cwd, sessionDir)` lookup has no matching id | This cwd and agent directory, including a real id saved under another cwd. The cause reports the lookup scope and count, not an invented native error. |
 | pi-durable | `Harness.conversation(id)` returns `undefined` for a valid native numeric id | The host's Harness and storage. Malformed ids and failed storage queries retain their ordinary errors; no replacement is created. |
-| kimi, opencode v1/v2 | A complete `session/list` walk has no matching id, then resume/load returns a native error | The runtime's session list. A listed id's generic error, an unavailable/incomplete list, or a successful resume never means missing. Authentication refusals retain `RuntimeFailureError`. |
 | claude | During resume, before the `initialize` answer, `result/error_during_execution` with `errors[0]` starting `No conversation found with session ID` | The active Claude configuration; exact prose is the last resort. |
 | codex | `thread/resume` JSON-RPC error `-32600` with message starting `no rollout found for thread id` | The active Codex storage/configuration; exact prose is the last resort. |
 
 Hosts should persist the cwd with the session id and reuse it on resume.
-Kimi and OpenCode reject a listed session from another cwd with
-`UnsupportedOptionError` on `cwd`, which does not mean missing. Codex's
+Kimi, OpenCode v1/v2 and Antigravity require a list entry confirming the saved
+cwd before resume/load. An unknown or different cwd gives
+`UnsupportedOptionError` on `cwd`, which does not mean missing. Antigravity
+CLI 1.5.0 omits unprompted sessions that can still resume; loading an absent
+id can even succeed. A listed session's generic native error is not mapped
+to missing ([cwd evidence and refusals](../runtimes/resume-cwd.md)). Codex's
 `-32600` also covers an archived thread and an active writer
 ([below](#unavailable-resume-targets)) and the unloaded sub-agent refusal,
 which is not mapped. OpenCode v1's generic `-32603` alone is not evidence.

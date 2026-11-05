@@ -27,13 +27,13 @@ function sessionMeta(options: SessionOptions, initialized: JsonRecord): JsonReco
 
 export const antigravityAcpProfile: AcpSessionProfile = {
   args: () => antigravityAcpArgs(),
-  isResumeNotFound: (native, listed) => native.code === -32_603 && listed === false,
   resumeKeepsSessionCwd: true,
   // Subagent transport attribution remains unverified. A second native
   // prompt steers the same loop and settles the preceding prompt early.
   capabilities: { queue: { durable: false }, attribution: "opaque" },
   steerParams: () => ({}),
   steerSupersedesPrompt: true,
+  steerOutcomeIsLatest: true,
   requestTimeoutMs: 30_000,
   // Native CLI configuration and cached authentication select the provider.
   validateOptions: (options) => {

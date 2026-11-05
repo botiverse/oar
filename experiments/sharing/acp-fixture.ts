@@ -48,6 +48,8 @@ export async function acpFixture(id: AcpId, timing = new ProbeTiming()) {
     const stages = new Map<string, number>(); const gates = new Map<string, ReturnType<typeof Promise.withResolvers<void>>>();
     const provider = await factories[id]((mock) => {
       mock.on({ predicate: () => true }, async (request) => {
+        // Native agy asks for a title separately; it must not consume a tool scenario's stage.
+        if (id === "antigravity" && request.messages.some((message) => message.role === "system" && JSON.stringify(message.content).includes("You are a conversation title generator"))) { return { content: "probe" }; }
         const user = request.messages.findLast((message) => message.role === "user" && /ACP_SHARE_[AB]_[a-z]+/u.test(JSON.stringify(message.content)));
         const key = /ACP_SHARE_(?<key>[AB]_[a-z]+)/u.exec(JSON.stringify(user))?.groups?.key ?? "metadata_echo";
         const stage = stages.get(key) ?? 0; stages.set(key, stage + 1); seen.push({ key, stage, request });
@@ -60,14 +62,14 @@ export async function acpFixture(id: AcpId, timing = new ProbeTiming()) {
           if (id === "kimi") { call = { name: "Bash", arguments: { command } }; }
           if (id === "grok") { call = { name: "run_terminal_command", arguments: { command, description: "Owned test command", block_until_ms: 1000 } }; }
           if (id === "opencode") { call = { name: codeMode ? "shell" : "bash", arguments: { command, description: "Owned test command" } }; }
-          if (id === "antigravity") { call = { name: "run_command", arguments: { CommandLine: command, Cwd: cwds[label === "A" ? 0 : 1], WaitMsBeforeAsync: 1000, toolSummary: "Check isolation", toolAction: "Checking" } }; }
+          if (id === "antigravity") { call = { name: "run_command", arguments: { CommandLine: command, WaitMsBeforeAsync: 1000, toolSummary: "Check isolation" } }; }
         }
         if (stage === 0 && phase?.startsWith("mcp") === true) {
           const text = phase === "mcp" ? label : key;
           if (id === "kimi") { call = { name: "mcp__scope__echo", arguments: { text } }; }
           if (id === "grok") { call = { name: "use_tool", arguments: { tool_name: "scope__echo", tool_input: { text } } }; }
           if (id === "opencode") { call = codeMode ? { name: "execute", arguments: { code: `return await tools.scope.echo(${JSON.stringify({ text })});` } } : { name: "scope_echo", arguments: { text } }; }
-          if (id === "antigravity") { call = { name: "call_mcp_tool", arguments: { ServerName: "scope", ToolName: "echo", Arguments: { text }, toolSummary: "Check isolation", toolAction: "Checking" } }; }
+          if (id === "antigravity") { call = { name: "mcp_scope_echo", arguments: { text, toolSummary: "Check isolation" } }; }
         }
         if (phase === "child") {
           const prompt = `ACP_SHARE_${label}_childreply`;
@@ -77,8 +79,8 @@ export async function acpFixture(id: AcpId, timing = new ProbeTiming()) {
             ? { name: "subagent", arguments: { agent: "general", description: "Check child routing", prompt } }
             : { name: "task", arguments: { subagent_type: "general", description: "Check child routing", prompt } }; }
           if (id === "antigravity") {
-            if (stage === 0) { call = { name: "define_subagent", arguments: { name: "scope_check", description: "Check child routing", system_prompt: "Answer the supplied marker.", toolSummary: "Child routing check", toolAction: "Checking child routing" } }; }
-            if (stage === 1) { call = { name: "invoke_subagent", arguments: { Subagents: [{ TypeName: "scope_check", Role: "Routing observer", Prompt: prompt }], toolSummary: "Child routing check", toolAction: "Checking child routing" } }; }
+            if (stage === 0) { call = { name: "define_subagent", arguments: { Name: "scope_check", Description: "Check child routing", SystemPrompt: "Answer the supplied marker." } }; }
+            if (stage === 1) { call = { name: "invoke_subagent", arguments: { TypeName: "scope_check", Role: "Routing observer", Prompt: prompt } }; }
           }
         }
         if (call !== null) { return { toolCalls: [{ id: `call-${key}`, name: call.name, arguments: JSON.stringify(call.arguments) }] }; }

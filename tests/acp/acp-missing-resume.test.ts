@@ -21,17 +21,18 @@ async function open(profile: AcpSessionProfile, scenario: object, resume: string
 }
 
 // These recorded answers and versions are documented beside the mapping in runtime-matrix.md.
-test.each(Object.entries(profiles))("%s maps its recorded missing resume error", async (runtime, profile) => {
+test.each([["grok", profiles.grok]] as const)("%s maps its recorded missing resume error", async (runtime, profile) => {
   const native = nativeErrors[runtime];
-  const failure: unknown = await open(profile, { error: native, pages: [unlisted] }).catch((error: unknown) => error);
+  const failure: unknown = await open(profile, { error: native, pages: [listed] }).catch((error: unknown) => error);
   expect(failure).toBeInstanceOf(SessionNotFoundError);
   expect(failure).toMatchObject({ name: "SessionNotFoundError", sessionId: "missing-session", cause: { method: "session/resume", native } });
 });
 
-test("antigravity uses the same structural signal on session/load", async () => {
-  const opening = open(profiles.antigravity, { error: errors.antigravity, capability: "load", errorMethod: "session/load", pages: [unlisted] });
-  await expect(opening).rejects.toBeInstanceOf(SessionNotFoundError);
-  await expect(opening).rejects.toMatchObject({ cause: { method: "session/load", native: errors.antigravity } });
+test.each(["resume", "load"])("antigravity keeps a generic native %s failure when cwd is confirmed", async (capability) => {
+  const method = `session/${capability}`;
+  const opening = open(profiles.antigravity, { error: errors.antigravity, capability, errorMethod: method, pages: [listed] });
+  await expect(opening).rejects.not.toBeInstanceOf(SessionNotFoundError);
+  await expect(opening).rejects.toMatchObject({ cause: { method, native: errors.antigravity } });
 });
 
 test.each(Object.entries(profiles))("%s never classifies an initialize or new-session error as a missing resume", async (runtime, profile) => {
@@ -50,12 +51,10 @@ test.each(listProfiles)("a listed id keeps a generic native resume failure, even
   expect(failure).toMatchObject({ cause: { method: "session/resume", native: errors.opencode } });
 });
 
-test.each(listProfiles)("complete pagination with no match proves absence only when resume fails", async (profile) => {
+test.each(listProfiles)("an unlisted session refuses cwd even if native resume would succeed", async (profile) => {
   const scenario = { error: errors.opencode, pages: [{ result: { sessions: [], nextCursor: "next" } }, unlisted] };
-  await expect(open(profile, scenario)).rejects.toBeInstanceOf(SessionNotFoundError);
-  const session = await open(profile, { ...scenario, succeed: true });
-  expect(session.id).toBe("missing-session");
-  await session.dispose();
+  await expect(open(profile, scenario)).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "cwd" });
+  await expect(open(profile, { ...scenario, succeed: true })).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "cwd" });
 });
 
 test.each(listProfiles)("a real id in another cwd is still an UnsupportedOptionError", async (profile) => {
@@ -81,8 +80,8 @@ test.each([
   }
 });
 
-test.each(listProfiles)("an authentication failure keeps its classification despite an empty list", async (profile) => {
-  const opening = open(profile, { pages: [unlisted], error: { code: -32_000, message: "Authentication required" } });
+test.each(listProfiles)("a native authentication failure keeps its classification after cwd confirmation", async (profile) => {
+  const opening = open(profile, { pages: [listed], error: { code: -32_000, message: "Authentication required" } });
   await expect(opening).rejects.toBeInstanceOf(RuntimeFailureError);
   await expect(opening).rejects.toMatchObject({ failure: "auth" });
 });
@@ -92,7 +91,7 @@ test.each([
   [profiles.grok, { ...errors.grok, data: { code: "FS_ACCESS_DENIED" } }],
   [{ args: [], capabilities: { queue: { durable: false }, attribution: "opaque" } } satisfies AcpSessionProfile, errors.antigravity],
 ] as const)("other native failures and profiles without a rule stay unchanged", async (profile, native) => {
-  const failure: unknown = await open(profile, { error: native, pages: [unlisted] }).catch((error: unknown) => error);
+  const failure: unknown = await open(profile, { error: native, pages: [listed] }).catch((error: unknown) => error);
   expect(failure).not.toBeInstanceOf(SessionNotFoundError);
   expect(failure).toMatchObject({ cause: { native } });
 });

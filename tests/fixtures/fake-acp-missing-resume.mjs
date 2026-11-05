@@ -1,4 +1,5 @@
 /* oxlint-disable import/no-nodejs-modules, typescript/no-unsafe-assignment, typescript/no-unsafe-member-access, typescript/no-unsafe-argument, typescript/no-unsafe-call -- Standalone native wire fixture. */
+import { appendFileSync } from "node:fs";
 import { createInterface } from "node:readline";
 
 const scenario = JSON.parse(process.env.FAKE_RESUME_CASE);
@@ -23,6 +24,7 @@ function reply(request) {
 }
 createInterface({ input: process.stdin }).on("line", (line) => {
   const request = JSON.parse(line);
+  if (typeof process.env.FAKE_ACP_CALL_LOG === "string") { appendFileSync(process.env.FAKE_ACP_CALL_LOG, `${request.method}\n`); }
   if (request.id === undefined) { return; }
   process.stdout.write(`${JSON.stringify({ jsonrpc: "2.0", id: request.id, ...reply(request) })}\n`);
 });

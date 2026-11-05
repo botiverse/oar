@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
-import { antigravityRuntime, SessionNotFoundError, type Session } from "../../packages/oar/src/index.js";
+import { antigravityRuntime, type Session } from "../../packages/oar/src/index.js";
 import { awaitTurnEnd, promptAndWait } from "../../packages/oar/src/observe/turns.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { startAntigravityAimock } from "../harness/aimock-acp.js";
@@ -82,6 +82,11 @@ describe.skipIf(process.env.OAR_TEST !== "antigravity-aimock")("agy native ACP",
       await expect(antigravityRuntime.session(installation, { cwd, env: env.env, additionalDirectories: [extra] })).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "additionalDirectories" });
       expect(env.raw).toHaveLength(0);
       session = await antigravityRuntime.session(installation, { cwd, env: env.env });
+      const unprompted = session.id;
+      await session.dispose();
+      await expect(antigravityRuntime.session(installation, { cwd: extra, env: env.env, resume: unprompted })).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "cwd" });
+      expect(env.raw).toHaveLength(0);
+      session = await antigravityRuntime.session(installation, { cwd, env: env.env });
       expect(await promptAndWait(session, "AGY_WORKSPACE_INITIAL")).toMatchObject({ kind: "ended", outcome: { kind: "completed" } });
       const id = session.id;
       await session.dispose();
@@ -92,7 +97,7 @@ describe.skipIf(process.env.OAR_TEST !== "antigravity-aimock")("agy native ACP",
       expect(await promptAndWait(session, "AGY_WORKSPACE_RESUME")).toMatchObject({ kind: "ended", outcome: { kind: "completed" } });
       const resumed = env.raw.findLast((request) => !JSON.stringify(asRecord(request.body)?.systemInstruction).includes("conversation title generator"));
       expect(JSON.stringify(asRecord(resumed?.body)?.systemInstruction)).toContain(`Command Working Directory: ${cwd}`);
-      await expect(antigravityRuntime.session(installation, { cwd, env: env.env, resume: "oar-missing-session" })).rejects.toBeInstanceOf(SessionNotFoundError);
+      await expect(antigravityRuntime.session(installation, { cwd, env: env.env, resume: "oar-missing-session" })).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "cwd" });
     } finally { await session?.dispose(); await env.stop(); }
   }, 60_000);
 });

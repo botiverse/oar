@@ -31,7 +31,8 @@ import {
  * process dying is not; that is the `exited` response the session records
  * from its exit observer. One turn may span several prompt RPCs (grok's
  * send-now steer): each answer is its own event; the turn_ended event rides
- * the final answer, carrying the latest non-refused request's outcome.
+ * the final answer, carrying the latest non-refused request's outcome, except when the profile
+ * says a replacing steer invalidates earlier replies (agy CLI).
  */
 export interface ActiveTurn {
   /** The prompt request that opened this turn; null for a spontaneous (queue-drained) turn. */
@@ -174,7 +175,7 @@ export function createAcpTurns(deps: {
           context: null,
           steered: steered !== undefined,
           ...(steered === undefined ? {} : { dropped: steered.inputId }),
-        }, steered === undefined ? outcome : null);
+        }, steered === undefined || profile.steerOutcomeIsLatest === true ? outcome : null);
       }
     })();
   };

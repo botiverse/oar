@@ -35,4 +35,11 @@ on refusal never runs in a directory it did not ask for. Kimi's, opencode's and
 antigravity's is an `UnsupportedOptionError`
 with `option: "cwd"`
 ([refused session options](../spec/runtime-matrix.md#refused-session-options)).
-Not covered: runtimes whose session store the host moved by hand.
+These three adapters require a positive native list entry with a non-empty
+saved cwd before sending resume/load, even when the requested cwd appears
+unchanged. Missing listing support, an incomplete list or an unlisted id
+also refuses with `option: "cwd"`; a native listing failure prevents resume
+and retains its error. Absence from a list is not absence of history: agy
+1.5.0 omits unprompted sessions that native resume can still reopen. Hosts
+may start a new session, but must not infer `SessionNotFoundError` from this
+refusal. Not covered: runtimes whose session store the host moved by hand.

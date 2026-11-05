@@ -379,7 +379,7 @@ See [runtime updates](https://github.com/botiverse/oar/blob/main/docs/spec/updat
 `runtime.installPlan()` reports what installing a runtime would run on this
 machine (the vendor's documented installer and the page that documents it)
 or why it would run no installer (`platform`, `requires_privileges`,
-`requires_gui`, `missing_tool`, `location_unknown`; `requires_privileges`, `missing_tool` and `location_unknown`
+`requires_gui`, `missing_tool`, `location_unknown`, `configuration`; `requires_privileges`, `missing_tool` and `location_unknown`
 still carry the vendor's `steps` and `source`, for the person to run
 themselves once they have the rights or the tool, or have checked the installer's
 location configuration); `runtime.install()` runs
@@ -397,7 +397,9 @@ OpenCode declares two release lines in `runtime.installLines` (`v1`, `v2`)
 and takes the host's choice as `line` (oar picks none), and a copy of either
 line is `already_installed`, never replaced. Antigravity uses `agy acp` from
 CLI 1.5.0 or newer, discovered on PATH or in the official install directory;
-its Windows plan provides the manual PowerShell command. Pi and Cursor have
+its Windows plan provides the manual PowerShell command. An old selected CLI
+or missing pinned path must be corrected first (`configuration`), because the
+vendor installer does not replace it. Pi and Cursor have
 neither member.
 See [runtime install](https://github.com/botiverse/oar/blob/main/docs/spec/install.md).
 
@@ -415,8 +417,10 @@ its provider settings are on `createQwenProviderAuth`. Grok, OpenCode and Pi
 have neither yet (Pi's provider logins are on `createPiProviderAuth`).
 CodeBuddy supports login and a private native account-state read, but no logout
 ([mapping](https://github.com/botiverse/oar/blob/main/docs/runtimes/codebuddy.md#international-login)).
-Antigravity has neither typed control yet; use its native CLI login
-(`agy acp --login`) and existing CLI configuration. `runtime.logout(installation)` signs Claude, Codex, Cursor
+Antigravity consumer login is deliberately absent: its vendor warns against
+third-party access with that login. Use provider API keys; see the
+[account policy and FAQ](https://github.com/botiverse/oar/blob/main/docs/runtimes/antigravity.md#process-ownership-installation-and-account-usage).
+`runtime.logout(installation)` signs Claude, Codex, Cursor
 and Kimi out through their own logout (`claude auth logout`, `codex logout`,
 `Cursor.auth.logout`, Kimi's ACP `logout`) and resolves `logged_out` when
 `authStatus` then reads logged out (or, when it cannot tell, on the

@@ -102,6 +102,7 @@ neither.
 | requires_gui | The vendor installs the runtime only from inside an app. |
 | missing_tool | A program the documented command runs (`curl`, `bash`, `sh`, `npm`) is not on PATH; `detail` names it. `steps` and `source` carry the vendor's command, for the person to run once the tool is installed. |
 | location_unknown | OAR cannot determine where the installer would write. `detail` gives the failure category without native output; `steps` and `source` carry the vendor's command, for the person to run after checking the installer's location configuration. This does not establish missing tools or insufficient rights. |
+| configuration | An existing executable or pinned location needs manual adjustment before the installer can provide a usable runtime. No installer or download starts; `detail` explains what to update or correct. |
 | bundled | Nothing to install: the runtime comes with the package that carries it. No built-in runtime returns it, since bundled ones have no `install` at all. |
 | line_required | The runtime has `installLines` and no `line` was given; `detail` lists them. |
 | unknown_line | `line` is not one of the runtime's `installLines`. |

@@ -8,6 +8,7 @@ import {
 } from "@agentclientprotocol/sdk";
 import type { ModelEntry, ModelLister } from "../../contracts/list-models.js";
 import { startAcpProcess, withAcpDeadline } from "../../shared/acp/process.js";
+import { hasAcpCapability } from "../../shared/acp/profile.js";
 import { acpThoughtLevelOption } from "../../shared/acp/model.js";
 import { asRecord, asRecordList, type JsonRecord } from "../../shared/json.js";
 import { listingCwd } from "../../shared/listing-cwd.js";
@@ -63,7 +64,7 @@ async function readNewSession(command: string, cwd: string, timeoutMs: number, e
   const runtime = startAcpProcess(command, antigravityAcpArgs(), createClient({ name: "oar" }), { cwd, env });
   try {
     const initialize = methods.agent.initialize;
-    await withAcpDeadline(
+    const initialized = asRecord(await withAcpDeadline(
       runtime,
       initialize,
       timeoutMs,
@@ -75,7 +76,7 @@ async function readNewSession(command: string, cwd: string, timeoutMs: number, e
         },
         clientInfo: { name: "oar", version: "0.0.0" },
       }, requestOptions),
-    );
+    ));
     // Native configuration selects authentication; no login flow is started.
     const newSession = methods.agent.session.new;
     const response = await withAcpDeadline(
@@ -88,8 +89,10 @@ async function readNewSession(command: string, cwd: string, timeoutMs: number, e
         requestOptions,
       ),
     );
-    if (typeof response.sessionId === "string") {
-      await withAcpDeadline(runtime, methods.agent.session.close, timeoutMs, (requestOptions) => runtime.connection.agent.request(methods.agent.session.close, { sessionId: response.sessionId }, requestOptions));
+    const capabilities = asRecord(asRecord(initialized?.agentCapabilities)?.sessionCapabilities);
+    if (typeof response.sessionId === "string" && hasAcpCapability(capabilities?.close)) {
+      // Cleanup cannot erase a catalog already returned by session/new.
+      await withAcpDeadline(runtime, methods.agent.session.close, timeoutMs, (requestOptions) => runtime.connection.agent.request(methods.agent.session.close, { sessionId: response.sessionId }, requestOptions)).catch(() => {});
     }
     return asRecord(response) ?? {};
   } finally {
