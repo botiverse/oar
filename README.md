@@ -63,6 +63,8 @@ OAR (**O**pen **A**gent **R**untime) is a provider-independent programming inter
         Grok Build
       </a>
     </td>
+  </tr>
+  <tr>
     <td align="center" width="112">
       <a href="docs/runtimes/kimi.md">
         <picture>
@@ -112,210 +114,79 @@ OAR (**O**pen **A**gent **R**untime) is a provider-independent programming inter
 </table>
 
 [Pi Durable](docs/runtimes/pi-durable.md) also runs through a host-owned Harness,
-including in a browser via `@botiverse/oar/pi-durable` and the portable
-core in `@botiverse/oar/browser`. The host installs its optional native peers.
-Try the [browser demo](apps/pi-durable/README.md) with `pnpm durable-demo`.
+including in a browser ([demo](apps/pi-durable/README.md)).
 
 ## Library
 
 One API drives every runtime: swap `"claude"` for `"codex"`, `"grok"` or
-`"pi"` (with a model it has) and the code stays the same. An option a
-runtime cannot honor is refused before anything opens, never silently
-dropped.
+`"pi"` and the code stays the same. An option a runtime cannot honor is refused
+before anything opens, never silently dropped.
 
 ```ts
-import { defaultRuntimes, promptAndWait, type SessionOptions } from "@botiverse/oar";
+import { defaultRuntimes, promptAndWait } from "@botiverse/oar";
 
 const claude = defaultRuntimes.require("claude");
 const installation = await claude.installation?.();
 if (installation?.kind !== "available") throw new Error("claude is not installed");
 
-const options = {
-  cwd: process.cwd(),
-  model: "sonnet",
-  effort: "high",
-  appendSystemPrompt: "Run the tests before you say you are done.",
-  mcpServers: [{ name: "fs", command: "npx", args: ["-y", "@modelcontextprotocol/server-filesystem", "."] }],
-} satisfies SessionOptions;
-const session = await claude.session(installation, options);
+const session = await claude.session(installation, { cwd: process.cwd(), model: "sonnet" });
 
 session.events((event) => {
-  // Every event says which agent it came from: [] is the root, a subagent has its own path.
-  const who = event.agentPath.length === 0 ? "" : `[${event.agentPath.join(" > ")}] `;
-  switch (event.kind) {
-    case "text_delta": if (who === "") process.stdout.write(event.text); break;
-    case "tool_call_started": console.log(`${who}${event.tool}`); break;
-    case "turn_ended": console.log(`${who}${event.outcome.kind}`); break;
-  }
+  // Every event says which agent it came from: [] is the root.
+  if (event.kind === "text_delta" && event.agentPath.length === 0) process.stdout.write(event.text);
+  if (event.kind === "tool_call_started") console.log(event.tool);
 });
 
 const run = promptAndWait(session, "Find and fix the flaky test", { timeoutMs: 600_000 });
-// Meanwhile, from your UI: steers the running turn, or queues it where the runtime cannot steer.
+// From your UI: steers the running turn, or queues where the runtime cannot steer.
 await session.deliver("Leave the snapshots alone.");
 console.log(await run);
-console.log(session.status().value, session.usage().value.total, session.contextUsage().value);
 await session.dispose();
 
-// Later, even from another process: the same conversation, picked up where it stopped.
-const resumed = await claude.session(installation, {
-  ...options, resume: session.id,
-});
+// Later, even from another process: the same conversation.
+const resumed = await claude.session(installation, { cwd: process.cwd(), resume: session.id });
 ```
 
-Pass Claude's current prompts again so they remain effective after native
-compaction. `runtime.resumedSessionOptions` declares when changed values take
-effect and what omission does; see the [resume rules](docs/spec/runtime-matrix.md#resumed-session-options)
-for other runtimes, including Grok's append-only exception.
+A session gives you:
 
-Hand work to other runtimes as subagents; each report wakes the session
-that is waiting for it:
+- **Every fact, attributed.** One event per fact with `seq` and `agentPath`;
+  `rawEvents()` keeps every native payload verbatim
+  ([record stream](docs/spec/record-stream.md)).
+- **Control with honest answers.** `prompt`, `steer`, `queue`, `withdraw`,
+  `abort` and `compact` answer accepted or rejected with a typed code
+  ([conversation](docs/spec/conversation.md)).
+- **Your own tools and subagents.** `serveMcpTools` attaches host tools to any
+  runtime; `@botiverse/oar/agents` hands work to other runtimes
+  ([host tools](docs/spec/runtime-matrix.md#host-served-tools)).
+- **Views and tests.** `@botiverse/oar/observe` folds records for a UI, in a
+  browser too; `@botiverse/oar/testing` is a scripted runtime with no binary or
+  login.
 
-```ts
-import { createSubagents, formatReport, reportOrigin } from "@botiverse/oar/agents";
+What differs by runtime is declared on the `Runtime`, not guessed
+([matrix](docs/spec/runtime-matrix.md)). Entry points and setup:
+[package README](packages/oar/README.md).
 
-const crew = createSubagents({ maxRunning: 4 });
-crew.onReport((report) => {
-  void resumed.deliver(formatReport(report), { origin: reportOrigin(report) });
-});
-await crew.spawn({ runtime: "codex", task: "Review the diff on this branch for race conditions" });
-await crew.spawn({ runtime: "pi", task: "Write the changelog entry for this branch" });
-```
+## Without a session
 
-What else a session gives you:
-
-- **Every fact, attributed.** `events()` is one `Event` per fact (native user
-  message echoes, text, reasoning, tool calls with their later input,
-  progress, end and any exit code the runtime reports, background tasks,
-  turns, usage, model, effort,
-  compaction, retries, app requests, control rejections, the process exit),
-  each with `seq` and `agentPath`. `{ coalesceText: true }` gives text in
-  blocks. `rawEvents()` and `records()` keep every native payload verbatim.
-- **Control with honest answers.** `prompt`, `steer`, `queue`, `withdraw`
-  and `abort` each answer accepted or rejected with a typed code (`busy`,
-  `no_active_turn`, `runtime_exited`, …); where input landed is read from
-  the events, never guessed. `deliver(input, { when: "interrupt", maxWaitMs, merge })`
-  steers where the runtime can; otherwise it waits up to `maxWaitMs` for the
-  root agent's tools to finish, interrupts, and sends every held input as one
-  merged prompt
-  ([reference](docs/spec/conversation.md#interrupting-and-merging-held-inputs)).
-- **Your own tools on any runtime.** `serveMcpTools` serves tools your host
-  implements as an MCP server a session attaches like any other; replace
-  the list mid-session where `Runtime.mcpToolsListChanged` says the running
-  session sees it ([reference](docs/spec/runtime-matrix.md#host-served-tools)).
-- **Native goals where supported.** Opt in with `goals: true`, check
-  `Session.goal`, and observe native goal snapshots without a host continuation
-  loop ([contract](docs/spec/goals.md)).
-- **Manual compaction:** Claude, Codex, Pi SDK/RPC, Grok, Qoder, Cursor and OpenCode v2 expose optional
-  `session.compact()`. It waits for native completion; a timeout stops
-  waiting, not the operation. Read `runtime.manualCompaction` for the
-  declared policy ([contract](docs/spec/manual-compaction.md)).
-- **Projections for UIs.** `@botiverse/oar/observe` folds records into a
-  conversation (`reduceConversation`, `viewOf`), status, tasks and stalls,
-  with no Node imports, so it runs in a browser.
-- **Recording and tests.** `openVoyage` writes a session's records to a
-  JSONL log as they happen, so the same folds can read it back later, and
-  `@botiverse/oar/testing` gives a scripted runtime with real `Session`
-  semantics and no binary or login.
-
-The [package README](packages/oar/README.md) lists the public entry points.
-`defaultRuntimes` holds the built-in Node runtimes; `@botiverse/oar/runtimes/<id>`
-loads one of them without the others. Cursor needs the SDK you install and hand
-over: `createRuntimeRegistry([...defaultRuntimes.list(), createCursorRuntime({ sdk: () => import("@cursor/sdk") })])`
-([why](docs/runtimes/cursor.md#installation-and-account-usage)). Pi Durable needs
-`createPiDurableRuntime({ harness, models })` with the host's already-open Harness
-and its Models.
-
-`Runtime.execution` declares `"process"`, `"in_process"` or `null` (undeclared)
-before opening a session. The declaration is independent of the installed
-version and remains the same after `withPlacement()`. A host that wants no
-process sharing can select without keeping runtime-name lists:
+The same API answers the questions a dashboard or setup wizard asks, for every
+runtime:
 
 ```ts
-const selected = runtime.execution === "process" ? runtime.withPlacement("isolated") : runtime;
-```
-
-SDK runtimes keep their existing instance; `null` makes no isolation promise.
-The opened `Session.placement` reports what ran
-([placement contract](docs/spec/record-stream.md#placement-and-release)).
-
-## Handy utilities, no session needed
-
-OAR also offers a set of handy utilities you can use without running an
-agent at all: is it installed, is it signed in (and sign it in or out),
-which account and how much quota is left, which models it can run, is
-there an update (and install it), what skills and tools it has. One API
-covers every supported runtime, so a dashboard, a setup wizard or a quota
-monitor needs no per-runtime code.
-
-```ts
-import { defaultRuntimes } from "@botiverse/oar";
-
 for (const runtime of defaultRuntimes.list()) {
   const installation = await runtime.installation?.();
   if (installation?.kind === "available") {
-    const [usage, models, update] = await Promise.all([
-      runtime.accountUsage?.(installation),
-      runtime.listModels?.(installation),
-      runtime.checkUpdate?.(installation),
-    ]);
-    console.log(runtime.id, usage?.kind, models?.kind, update?.kind);
+    console.log(runtime.id, await runtime.listModels?.(installation));
   }
 }
 ```
 
-- **Orientation:** `orient(defaultRuntimes)` combines installation and evidenced
-  local account metadata. Choose `depth: "account"` for native credential/usage
-  I/O, or `"models"` for catalogs; `usability(snapshot)` projects readiness.
-  Partial failures retain their own status and time
-  ([reference](docs/spec/orientation.md)).
-- **Installation:** `installation()` finds the runtime on this machine and
-  reports its version, with no account or network calls. When PATH found
-  it, `shadowed` lists the other copies on PATH after it, which never run.
-- **Install:** `installPlan()` says what installing a runtime would run (the
-  vendor's documented installer, with its source page) or why no installer
-  would run, and `install()` runs it for a runtime not found, judged by
-  `installation()` afterwards (claude, codex, codebuddy, grok, kimi, qwen,
-  qoder, and opencode's `v1` or `v2` line as the host chooses). Plans may run bounded
-  local read-only queries; an unknown destination returns `location_unknown`
-  with the vendor command and source ([reference](docs/spec/install.md)).
-- **Login:** `login()` signs a runtime in through its own login without a
-  terminal: it relays the sign-in URL or device code, and a code the person
-  pastes back goes to the runtime only. `authStatus()` says whether it is
-  signed in, and `logout()` signs it out through its own logout. Login:
-  claude, codex, codebuddy, cursor, kimi, qoder; status also qwen; logout:
-  claude, codex, cursor, kimi ([reference](docs/spec/login.md)). Pass the
-  same `env` a session would get (`userShellEnvironment()` reads the user's
-  login shell once) so credentials are written and read in the same place.
-  oar never handles the tokens.
-- **Account usage:** `accountUsage()` reads the plan and quota windows with
-  their reset times (claude, codex, grok, kimi;
-  [reference](docs/spec/account-usage.md)).
-- **Models:** `listModels()` lists the models the installation can run now
-  (in a given workspace, with `cwd`), with their effort levels and service
-  tiers; not being logged in is its own answer, not an empty list.
-- **Setup forms:** `@botiverse/oar/forms` describes a runtime's settings as
-  data a setup UI renders and may only narrow, with validation and the
-  mapping to session options; it loads no runtime SDK (Grok so far;
-  [reference](docs/spec/config-form.md)).
-- **Updates:** `checkUpdate()` reports the version the runtime's own updater
-  would install, and `upgrade()` runs that updater and judges it by the
-  version afterwards ([reference](docs/spec/update.md)).
-- **Inventories:** `skills()`, `commands()`, `mcpServers()` and `tools()` read what the
-  runtime has configured natively ([reference](docs/spec/inventory.md)).
-- **Session options:** `refusedSessionOptions` says which session options a
-  runtime refuses, before anything opens; `session()` rejects them with an
-  `UnsupportedOptionError` rather than drop them
-  ([reference](docs/spec/runtime-matrix.md#refused-session-options)).
-  `mcpServers` attaches MCP servers to one session (except Cursor and
-  Pi Durable). `userConfiguration: "exclude"` skips user-level plugins,
-  skills, MCP servers, hooks and settings while keeping the login and session history (Claude,
-  Cursor). `name` titles a session in the runtime's own list where it
-  has one. A resume the runtime declines for now (the conversation is
-  archived or open elsewhere) rejects with `SessionUnavailableError`.
-
-The CLI exposes the same queries: `oar orient`, `oar installation`, `oar login`
-(`--status` only reports), `oar logout`, `oar usage`, `oar models`,
-`oar upgrade --check`, and `oar skills`, `oar commands`, `oar mcps` and `oar tools`.
+- **[Orientation](docs/spec/orientation.md):** one call for what is installed and usable.
+- **[Install](docs/spec/install.md) and [update](docs/spec/update.md):** through the vendor's own installer and updater.
+- **[Login](docs/spec/login.md):** through the runtime's own login, without a terminal. OAR never handles the tokens.
+- **[Account usage](docs/spec/account-usage.md):** plan and quota windows.
+- **Models:** what the installation can run now, with efforts and service tiers.
+- **[Inventories](docs/spec/inventory.md):** configured skills, commands, MCP servers and tools.
+- **[Setup forms](docs/spec/config-form.md):** settings as data a UI renders.
 
 ## CLI
 
