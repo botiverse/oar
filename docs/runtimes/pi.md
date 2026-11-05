@@ -508,6 +508,31 @@ boundary. A second prompt during a run is `rejected` `busy`
 (`busy-and-late-control` scenario). Native prompt preflight callbacks are
 **not exposed**.
 
+SDK and RPC publish the native terminal frame before releasing the run gate.
+A synchronous `turn_ended` observer therefore sees `idle`, but `prompt` can
+still return `busy`; submit after that observer returns. This is a deliberate
+[exception](../design/decisions.md#pi-synchronous-terminal-submission-2026-11-05),
+not a promise to enter Pi's settlement-time deferred prompt list. The
+[native controls](../../sea-trial/vendor/pi-turn-admission.vendor.test.ts)
+verify it on Pi 1.5.0, alongside ordinary FIFO and Durable's different behavior.
+
+A refusal before native start clears its pending abort. After recording the
+refusal, OAR drains held work; a queued refusal records `pi/prompt_rejected`
+without inventing a turn end. RPC clears its cancellation fallback after
+terminal stats and synchronous observers, so an abort in either window does
+not later kill a healthy child. SDK reports disposal if the session became
+unavailable while prompt admission was pending. The
+[missing-key control](../../sea-trial/vendor/pi-preflight.vendor.test.ts)
+verifies native refusal and recovery in both execution modes; deterministic
+[regressions](../../tests/pi/pi-turn-preflight.test.ts) cover cancellation and disposal races.
+
+Native extensions remain a separate limitation: an extension-handled input
+has no native turn end, so `promptAndWait` cannot finish on that input alone.
+SDK can retain its run gate after such an input; RPC can release the gate
+while the status fold still shows provisional `running`. Competing extension
+runs can also consume a queued dispatch without running that input. OAR does
+not yet have a disposition record that reconciles these cases.
+
 **Images (mapped):** `InputOptions.images` become pi's `ImageContent`
 (`{ type: "image", data, mimeType }`) for `prompt(text, { images })`,
 `steer(text, images)` and held queue input. Pi sends them to a model whose
@@ -540,6 +565,13 @@ drains one input per run end; a drained input runs as a spontaneous turn
 (`agent_settled`, then `agent_start` with no request record of its own) and
 its reply ends its own turn (`queue` scenario). If pi refuses a drained input,
 the refusal is recorded as a `pi/prompt_rejected` frame with no events.
+A synchronous ordinary `turn_ended` observer cannot overtake held input:
+`prompt` and `compact` stay busy, and `queue` appends to the tail. This does
+not cover extension competition or a new prompt issued synchronously from a
+pre-start refusal response: in the latter window a new prompt can overtake
+held input. OAR also lacks queue-ownership records here, so status can be
+idle while a dequeued input awaits native start or refusal
+([state exceptions](../spec/manual-compaction.md#ownership-records-and-state)).
 Native extension commands cannot simply be queued like ordinary text.
 `withdraw(inputId)` takes an input out of the FIFO before the drain prompts
 it (`accepted`) and answers `not_queued` after; pi's own `clearQueue()` is a

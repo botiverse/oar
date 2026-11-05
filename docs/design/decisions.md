@@ -12,6 +12,36 @@ and contract member, (4) the cheapest regression test and resource cost, and
 (5) a sea-trial case for every new `must` or `never`. If any answer is missing,
 keep the idea in the [roadmap](roadmap.md) or an experiment.
 
+## Pi synchronous terminal submission (2026-11-05)
+
+**Refused:** releasing Pi SDK/RPC's run gate before publishing an ordinary
+`turn_ended`, to allow a host observer to submit its next prompt synchronously.
+Pi 1.5.0 defers `prompt()` calls made during settlement publication; the
+promise can resolve before that input is admitted. Extensions compete in the
+same native scheduling path. Adapter attempts to reconstruct per-input
+admission introduced hangs, lost extension input and status/gate disagreement.
+That risk to ordinary execution is not justified by synchronous observer use.
+
+The Pi adapters retain the gate until the terminal observer returns. The
+record fold may already show `idle`, so the host submits its next prompt
+after returning from the observer, not from inside it. The
+[record contract](../spec/record-stream.md) and
+[compaction contract](../spec/manual-compaction.md#ownership-records-and-state)
+state this exception. Independent cancellation, refusal recovery and disposal
+fixes do not change that ordering. The
+[native regression](../../sea-trial/vendor/pi-turn-admission.vendor.test.ts)
+checks SDK/RPC refusal inside the observer, admission afterwards and ordinary
+held-input FIFO using local scripted providers, without paid requests. Pi
+Durable's native submission/watch mechanism is separate and remains unchanged.
+
+Extension-handled input disposition, competition with held input and their
+replayable status need a separate record/ownership design; no inferred or
+fabricated completion is added here.
+
+**What would reopen it:** Pi supplies reliable admission for each `prompt()`
+call, or a concrete host needs synchronous submission and native evidence
+shows how to support it without compromising ordinary execution.
+
 ## Native manual compaction with attributable completion (2026-11-02)
 
 **Accepted:** a host can restore current prompt options, request native

@@ -123,6 +123,8 @@ export const createPiRpcSession = (runtime: PiRuntimeOptions): StartSession => w
     projection = next.state;
     for (const command of next.commands) { kernel.frame(command.body); }
     if (event.type === "agent_settled") {
+      // Abort can rearm this while stats are awaited or observers run.
+      fallback.clear();
       running = false;
       started = false;
       pendingAbort = false;
@@ -154,10 +156,15 @@ export const createPiRpcSession = (runtime: PiRuntimeOptions): StartSession => w
   return credentials.seal({
     id: kernel.sessionId, capabilities,
     compact: compaction.compact,
-    prompt: async (input, inputOptions) => kernel.control({ kind: "prompt", input, ...inputOptions }, async () => {
-      if (running || compaction.busy()) { return { kind: "rejected", code: "busy", reason: "busy" }; }
-      return withInputImages(capabilities, inputOptions?.images, async (images) => start(input, images));
-    }),
+    prompt: async (input, inputOptions) => {
+      const result = await kernel.control({ kind: "prompt", input, ...inputOptions }, async () => {
+        if (running || compaction.busy()) { return { kind: "rejected", code: "busy", reason: "busy" }; }
+        return withInputImages(capabilities, inputOptions?.images, async (images) => start(input, images));
+      });
+      // A pre-start refusal has no settlement; record it before draining.
+      drain();
+      return result;
+    },
     steer: async (input, inputOptions) => kernel.control({ kind: "steer", input, ...inputOptions }, async () => {
       if (compaction.busy()) { return { kind: "rejected", code: "busy", reason: "Manual compaction is still in progress" }; }
       if (!running) { return { kind: "rejected", code: "no_active_turn", reason: "no active turn" }; }

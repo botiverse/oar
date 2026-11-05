@@ -101,7 +101,7 @@ export const createPiSession = (project: PiProjectOptions = {}): StartSession =>
     const { promise: started, resolve: onStarted } = Promise.withResolvers<void>();
     startWaiters.add(onStarted);
     const run = piAgentSession.prompt(input, images.length === 0 ? undefined : { images: piImages(images) });
-    const decided = await Promise.race<ResponseBody>([
+    const nativeDecision = await Promise.race<ResponseBody>([
       started.then(() => ({ kind: "accepted" })),
       run.then(
         () => ({ kind: "accepted" }),
@@ -109,8 +109,10 @@ export const createPiSession = (project: PiProjectOptions = {}): StartSession =>
       ),
     ]);
     startWaiters.delete(onStarted);
+    const decided = kernel.unreachable() ?? nativeDecision;
     if (decided.kind === "rejected") {
       gate.running = false;
+      pendingAbort = false;
       launch = null;
       return decided;
     }
@@ -125,6 +127,8 @@ export const createPiSession = (project: PiProjectOptions = {}): StartSession =>
         if (launch === token && gate.running) {
           const reason = error instanceof Error ? error.message : "pi prompt failed";
           gate.running = false;
+          pendingAbort = false;
+          launch = null;
           kernel.frame({
             type: "pi/prompt_rejected",
             native: { message: reason },
@@ -175,6 +179,8 @@ export const createPiSession = (project: PiProjectOptions = {}): StartSession =>
       kernel.frame(command.body);
       if (command.body.events.some((item) => item.kind === "turn_ended")) {
         gate.running = false;
+        pendingAbort = false;
+        launch = null;
         drainHeld();
       }
     }
@@ -210,6 +216,9 @@ export const createPiSession = (project: PiProjectOptions = {}): StartSession =>
         });
         return decided;
       });
+      // A pre-start refusal has no settlement to release queued work.
+      // Publish its response before dispatching the next input.
+      drainHeld();
       return result;
     },
     steer: async (input, inputOptions?: InputOptions): Promise<ControlResult> => {

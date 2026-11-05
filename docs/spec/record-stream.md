@@ -514,11 +514,16 @@ Further rules:
   or `-1` before any record. `status()` is the one the control decisions
   must agree with: a prompt recorded while it says `running` is rejected
   `busy`, and one recorded while it says `idle` is not refused as `busy`
-  unless OAR holds an input in Claude, Qoder, Qwen or Cursor's queue. Those four adapters
-  preserve FIFO by returning `busy` in that window but do not yet record
-  queue ownership for the status fold. Without a held input, terminal status
-  and prompt admission change on the same record
-  ([held-queue exception](manual-compaction.md)).
+  except for the following known gaps. Claude, Qoder, Qwen, Cursor and Pi
+  SDK/RPC do not yet record held queue ownership, including an input dequeued
+  but awaiting native start/refusal. Pi SDK/RPC also release their run gate
+  after publishing ordinary `turn_ended`: a synchronous observer can see
+  `idle` while `prompt` returns `busy`, even with no queue. Submit after that
+  observer returns. Conversely, a Pi extension-handled input can leave the
+  provisional `running` fold without a native run, while RPC permits another
+  prompt. These are explicit exceptions, not permission to infer a turn end.
+  Outside them, terminal status and prompt admission change on the same
+  record ([state exceptions](manual-compaction.md#ownership-records-and-state)).
 - **Folds scope to the root session.** A derived child session's records
   (own `sessionId`, a node in `graph()`) never satisfy the folds or
   `awaitTurnEnd`. On codex the child's `turn/completed` was observed
