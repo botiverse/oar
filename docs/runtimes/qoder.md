@@ -14,6 +14,17 @@ Those replay checks used no real account or paid provider. The
 [model-selection probe](../../experiments/qoder-native/model-selection-report.md)
 uses an existing login for catalog reads and opens, without a model prompt.
 
+Latest check, **1.1.83** (Linux x64): model confirmation was restored on
+November 5 by [PR #624](https://github.com/botiverse/oar/pull/624), using the
+verified ModelProvider mapping for 1.1.82 and newer. The native catalog/init
+controls pass, including explicit wire assertions for `modelId` and unique
+display names ([evidence](../../experiments/qoder-native/model-provider-2026-11-05.md)).
+The separate permission replay still returns native HTTP 500 before any
+permission request. Execution on 1.1.82 and newer remains unverified; CI stays
+on the passing 1.1.81 replay controls. The
+[November 4 report](../../experiments/runtime-version-checks/2026-11-04.md#qoder-1183)
+retains the original model-confirmation failure and replay limits.
+
 ## Manual compaction
 
 `compact()` is idle-only and sends the native built-in `/compact` with the OAR

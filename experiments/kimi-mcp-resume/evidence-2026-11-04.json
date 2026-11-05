@@ -1,0 +1,876 @@
+{
+  "scope": "Linux x64; direct native ACP; local OpenAI-compatible provider; synthetic credentials only; fresh CLI process per turn",
+  "oar_harness_base": "b4328cc659fbb231b6941b107ce25d08b3bda261",
+  "runs": [
+    {
+      "label": "2.4.1",
+      "native_version": "2.4.1",
+      "modified_native_bundle": false,
+      "cases": [
+        {
+          "configuration": "omitted",
+          "seed_advertised": [
+            "mcp__echo__echo",
+            "mcp__remote__echo"
+          ],
+          "resume_advertised": [],
+          "outcomes": [
+            {
+              "phase": "seed",
+              "server": "echo",
+              "kind": "executed",
+              "native_echo_marker": "omitted-seed-echo",
+              "transport": "stdio",
+              "synthetic_credential_matched": "old-stdio"
+            },
+            {
+              "phase": "seed",
+              "server": "remote",
+              "kind": "executed",
+              "native_echo_marker": "omitted-seed-remote",
+              "transport": "http",
+              "synthetic_credential_matched": "old-http"
+            },
+            {
+              "phase": "resume",
+              "server": "echo",
+              "kind": "tool-not-found",
+              "native_message": "Tool \"mcp__echo__echo\" not found"
+            },
+            {
+              "phase": "resume",
+              "server": "remote",
+              "kind": "tool-not-found",
+              "native_message": "Tool \"mcp__remote__echo\" not found"
+            }
+          ],
+          "native_prompt_result": {
+            "stopReason": "end_turn"
+          },
+          "durable_tool_select_events": []
+        },
+        {
+          "configuration": "empty",
+          "seed_advertised": [
+            "mcp__echo__echo",
+            "mcp__remote__echo"
+          ],
+          "resume_advertised": [],
+          "outcomes": [
+            {
+              "phase": "seed",
+              "server": "echo",
+              "kind": "executed",
+              "native_echo_marker": "empty-seed-echo",
+              "transport": "stdio",
+              "synthetic_credential_matched": "old-stdio"
+            },
+            {
+              "phase": "seed",
+              "server": "remote",
+              "kind": "executed",
+              "native_echo_marker": "empty-seed-remote",
+              "transport": "http",
+              "synthetic_credential_matched": "old-http"
+            },
+            {
+              "phase": "resume",
+              "server": "echo",
+              "kind": "tool-not-found",
+              "native_message": "Tool \"mcp__echo__echo\" not found"
+            },
+            {
+              "phase": "resume",
+              "server": "remote",
+              "kind": "tool-not-found",
+              "native_message": "Tool \"mcp__remote__echo\" not found"
+            }
+          ],
+          "native_prompt_result": {
+            "stopReason": "end_turn"
+          },
+          "durable_tool_select_events": []
+        },
+        {
+          "configuration": "same-names",
+          "seed_advertised": [
+            "mcp__echo__echo",
+            "mcp__remote__echo"
+          ],
+          "resume_advertised": [
+            "mcp__echo__echo",
+            "mcp__remote__echo"
+          ],
+          "outcomes": [
+            {
+              "phase": "seed",
+              "server": "echo",
+              "kind": "executed",
+              "native_echo_marker": "same-names-seed-echo",
+              "transport": "stdio",
+              "synthetic_credential_matched": "old-stdio"
+            },
+            {
+              "phase": "seed",
+              "server": "remote",
+              "kind": "executed",
+              "native_echo_marker": "same-names-seed-remote",
+              "transport": "http",
+              "synthetic_credential_matched": "old-http"
+            },
+            {
+              "phase": "resume",
+              "server": "echo",
+              "kind": "executed",
+              "native_echo_marker": "same-names-resume-echo",
+              "transport": "stdio",
+              "synthetic_credential_matched": "new-stdio"
+            },
+            {
+              "phase": "resume",
+              "server": "remote",
+              "kind": "executed",
+              "native_echo_marker": "same-names-resume-remote",
+              "transport": "http",
+              "synthetic_credential_matched": "new-http"
+            }
+          ],
+          "native_prompt_result": {
+            "stopReason": "end_turn"
+          },
+          "durable_tool_select_events": []
+        },
+        {
+          "configuration": "new-names",
+          "seed_advertised": [
+            "mcp__echo__echo",
+            "mcp__remote__echo"
+          ],
+          "resume_advertised": [
+            "mcp__newhttp__echo",
+            "mcp__newstdio__echo"
+          ],
+          "outcomes": [
+            {
+              "phase": "seed",
+              "server": "echo",
+              "kind": "executed",
+              "native_echo_marker": "new-names-seed-echo",
+              "transport": "stdio",
+              "synthetic_credential_matched": "old-stdio"
+            },
+            {
+              "phase": "seed",
+              "server": "remote",
+              "kind": "executed",
+              "native_echo_marker": "new-names-seed-remote",
+              "transport": "http",
+              "synthetic_credential_matched": "old-http"
+            },
+            {
+              "phase": "resume",
+              "server": "echo",
+              "kind": "tool-not-found",
+              "native_message": "Tool \"mcp__echo__echo\" not found"
+            },
+            {
+              "phase": "resume",
+              "server": "remote",
+              "kind": "tool-not-found",
+              "native_message": "Tool \"mcp__remote__echo\" not found"
+            },
+            {
+              "phase": "resume",
+              "server": "newstdio",
+              "kind": "executed",
+              "native_echo_marker": "new-names-resume-newstdio",
+              "transport": "stdio",
+              "synthetic_credential_matched": "new-stdio"
+            },
+            {
+              "phase": "resume",
+              "server": "newhttp",
+              "kind": "executed",
+              "native_echo_marker": "new-names-resume-newhttp",
+              "transport": "http",
+              "synthetic_credential_matched": "new-http"
+            }
+          ],
+          "native_prompt_result": {
+            "stopReason": "end_turn"
+          },
+          "durable_tool_select_events": []
+        }
+      ],
+      "plaintext_synthetic_markers_found_in_native_home": 0
+    },
+    {
+      "label": "2.5.0",
+      "native_version": "2.5.0",
+      "modified_native_bundle": false,
+      "cases": [
+        {
+          "configuration": "omitted",
+          "seed_advertised": [
+            "mcp__echo__echo",
+            "mcp__remote__echo"
+          ],
+          "resume_advertised": [
+            "mcp__echo__echo",
+            "mcp__remote__echo"
+          ],
+          "outcomes": [
+            {
+              "phase": "seed",
+              "server": "echo",
+              "kind": "executed",
+              "native_echo_marker": "omitted-seed-echo",
+              "transport": "stdio",
+              "synthetic_credential_matched": "old-stdio"
+            },
+            {
+              "phase": "seed",
+              "server": "remote",
+              "kind": "executed",
+              "native_echo_marker": "omitted-seed-remote",
+              "transport": "http",
+              "synthetic_credential_matched": "old-http"
+            },
+            {
+              "phase": "resume",
+              "server": "echo",
+              "kind": "tool-not-found",
+              "native_message": "Tool \"mcp__echo__echo\" not found"
+            },
+            {
+              "phase": "resume",
+              "server": "remote",
+              "kind": "tool-not-found",
+              "native_message": "Tool \"mcp__remote__echo\" not found"
+            }
+          ],
+          "native_prompt_result": {
+            "stopReason": "end_turn"
+          },
+          "durable_tool_select_events": [
+            {
+              "type": "tool_select.initialized",
+              "tools": [
+                {
+                  "name": "mcp__echo__echo",
+                  "source": "mcp",
+                  "origin": "initial"
+                },
+                {
+                  "name": "mcp__remote__echo",
+                  "source": "mcp",
+                  "origin": "initial"
+                }
+              ]
+            },
+            {
+              "type": "tool_select.tools_changed",
+              "added": [],
+              "removed": [
+                {
+                  "name": "mcp__echo__echo",
+                  "source": "mcp",
+                  "origin": "initial"
+                },
+                {
+                  "name": "mcp__remote__echo",
+                  "source": "mcp",
+                  "origin": "initial"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "configuration": "empty",
+          "seed_advertised": [
+            "mcp__echo__echo",
+            "mcp__remote__echo"
+          ],
+          "resume_advertised": [
+            "mcp__echo__echo",
+            "mcp__remote__echo"
+          ],
+          "outcomes": [
+            {
+              "phase": "seed",
+              "server": "echo",
+              "kind": "executed",
+              "native_echo_marker": "empty-seed-echo",
+              "transport": "stdio",
+              "synthetic_credential_matched": "old-stdio"
+            },
+            {
+              "phase": "seed",
+              "server": "remote",
+              "kind": "executed",
+              "native_echo_marker": "empty-seed-remote",
+              "transport": "http",
+              "synthetic_credential_matched": "old-http"
+            },
+            {
+              "phase": "resume",
+              "server": "echo",
+              "kind": "tool-not-found",
+              "native_message": "Tool \"mcp__echo__echo\" not found"
+            },
+            {
+              "phase": "resume",
+              "server": "remote",
+              "kind": "tool-not-found",
+              "native_message": "Tool \"mcp__remote__echo\" not found"
+            }
+          ],
+          "native_prompt_result": {
+            "stopReason": "end_turn"
+          },
+          "durable_tool_select_events": [
+            {
+              "type": "tool_select.initialized",
+              "tools": [
+                {
+                  "name": "mcp__echo__echo",
+                  "source": "mcp",
+                  "origin": "initial"
+                },
+                {
+                  "name": "mcp__remote__echo",
+                  "source": "mcp",
+                  "origin": "initial"
+                }
+              ]
+            },
+            {
+              "type": "tool_select.tools_changed",
+              "added": [],
+              "removed": [
+                {
+                  "name": "mcp__echo__echo",
+                  "source": "mcp",
+                  "origin": "initial"
+                },
+                {
+                  "name": "mcp__remote__echo",
+                  "source": "mcp",
+                  "origin": "initial"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "configuration": "same-names",
+          "seed_advertised": [
+            "mcp__echo__echo",
+            "mcp__remote__echo"
+          ],
+          "resume_advertised": [
+            "mcp__echo__echo",
+            "mcp__remote__echo"
+          ],
+          "outcomes": [
+            {
+              "phase": "seed",
+              "server": "echo",
+              "kind": "executed",
+              "native_echo_marker": "same-names-seed-echo",
+              "transport": "stdio",
+              "synthetic_credential_matched": "old-stdio"
+            },
+            {
+              "phase": "seed",
+              "server": "remote",
+              "kind": "executed",
+              "native_echo_marker": "same-names-seed-remote",
+              "transport": "http",
+              "synthetic_credential_matched": "old-http"
+            },
+            {
+              "phase": "resume",
+              "server": "echo",
+              "kind": "executed",
+              "native_echo_marker": "same-names-resume-echo",
+              "transport": "stdio",
+              "synthetic_credential_matched": "new-stdio"
+            },
+            {
+              "phase": "resume",
+              "server": "remote",
+              "kind": "executed",
+              "native_echo_marker": "same-names-resume-remote",
+              "transport": "http",
+              "synthetic_credential_matched": "new-http"
+            }
+          ],
+          "native_prompt_result": {
+            "stopReason": "end_turn"
+          },
+          "durable_tool_select_events": [
+            {
+              "type": "tool_select.initialized",
+              "tools": [
+                {
+                  "name": "mcp__echo__echo",
+                  "source": "mcp",
+                  "origin": "initial"
+                },
+                {
+                  "name": "mcp__remote__echo",
+                  "source": "mcp",
+                  "origin": "initial"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "configuration": "new-names",
+          "seed_advertised": [
+            "mcp__echo__echo",
+            "mcp__remote__echo"
+          ],
+          "resume_advertised": [
+            "mcp__echo__echo",
+            "mcp__remote__echo"
+          ],
+          "outcomes": [
+            {
+              "phase": "seed",
+              "server": "echo",
+              "kind": "executed",
+              "native_echo_marker": "new-names-seed-echo",
+              "transport": "stdio",
+              "synthetic_credential_matched": "old-stdio"
+            },
+            {
+              "phase": "seed",
+              "server": "remote",
+              "kind": "executed",
+              "native_echo_marker": "new-names-seed-remote",
+              "transport": "http",
+              "synthetic_credential_matched": "old-http"
+            },
+            {
+              "phase": "resume",
+              "server": "echo",
+              "kind": "tool-not-found",
+              "native_message": "Tool \"mcp__echo__echo\" not found"
+            },
+            {
+              "phase": "resume",
+              "server": "remote",
+              "kind": "tool-not-found",
+              "native_message": "Tool \"mcp__remote__echo\" not found"
+            },
+            {
+              "phase": "resume",
+              "server": "newstdio",
+              "kind": "executed",
+              "native_echo_marker": "new-names-resume-newstdio",
+              "transport": "stdio",
+              "synthetic_credential_matched": "new-stdio"
+            },
+            {
+              "phase": "resume",
+              "server": "newhttp",
+              "kind": "executed",
+              "native_echo_marker": "new-names-resume-newhttp",
+              "transport": "http",
+              "synthetic_credential_matched": "new-http"
+            }
+          ],
+          "native_prompt_result": {
+            "stopReason": "end_turn"
+          },
+          "durable_tool_select_events": [
+            {
+              "type": "tool_select.initialized",
+              "tools": [
+                {
+                  "name": "mcp__echo__echo",
+                  "source": "mcp",
+                  "origin": "initial"
+                },
+                {
+                  "name": "mcp__remote__echo",
+                  "source": "mcp",
+                  "origin": "initial"
+                }
+              ]
+            },
+            {
+              "type": "tool_select.tools_changed",
+              "added": [
+                {
+                  "name": "mcp__newhttp__echo",
+                  "source": "mcp",
+                  "origin": "runtime"
+                },
+                {
+                  "name": "mcp__newstdio__echo",
+                  "source": "mcp",
+                  "origin": "runtime"
+                }
+              ],
+              "removed": [
+                {
+                  "name": "mcp__echo__echo",
+                  "source": "mcp",
+                  "origin": "initial"
+                },
+                {
+                  "name": "mcp__remote__echo",
+                  "source": "mcp",
+                  "origin": "initial"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "plaintext_synthetic_markers_found_in_native_home": 0
+    },
+    {
+      "label": "2.5.0-current-tools",
+      "native_version": "2.5.0",
+      "modified_native_bundle": true,
+      "cases": [
+        {
+          "configuration": "omitted",
+          "seed_advertised": [
+            "mcp__echo__echo",
+            "mcp__remote__echo"
+          ],
+          "resume_advertised": [],
+          "outcomes": [
+            {
+              "phase": "seed",
+              "server": "echo",
+              "kind": "executed",
+              "native_echo_marker": "omitted-seed-echo",
+              "transport": "stdio",
+              "synthetic_credential_matched": "old-stdio"
+            },
+            {
+              "phase": "seed",
+              "server": "remote",
+              "kind": "executed",
+              "native_echo_marker": "omitted-seed-remote",
+              "transport": "http",
+              "synthetic_credential_matched": "old-http"
+            },
+            {
+              "phase": "resume",
+              "server": "echo",
+              "kind": "tool-not-found",
+              "native_message": "Tool \"mcp__echo__echo\" not found"
+            },
+            {
+              "phase": "resume",
+              "server": "remote",
+              "kind": "tool-not-found",
+              "native_message": "Tool \"mcp__remote__echo\" not found"
+            }
+          ],
+          "native_prompt_result": {
+            "stopReason": "end_turn"
+          },
+          "durable_tool_select_events": [
+            {
+              "type": "tool_select.initialized",
+              "tools": [
+                {
+                  "name": "mcp__echo__echo",
+                  "source": "mcp",
+                  "origin": "initial"
+                },
+                {
+                  "name": "mcp__remote__echo",
+                  "source": "mcp",
+                  "origin": "initial"
+                }
+              ]
+            },
+            {
+              "type": "tool_select.tools_changed",
+              "added": [],
+              "removed": [
+                {
+                  "name": "mcp__echo__echo",
+                  "source": "mcp",
+                  "origin": "initial"
+                },
+                {
+                  "name": "mcp__remote__echo",
+                  "source": "mcp",
+                  "origin": "initial"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "configuration": "empty",
+          "seed_advertised": [
+            "mcp__echo__echo",
+            "mcp__remote__echo"
+          ],
+          "resume_advertised": [],
+          "outcomes": [
+            {
+              "phase": "seed",
+              "server": "echo",
+              "kind": "executed",
+              "native_echo_marker": "empty-seed-echo",
+              "transport": "stdio",
+              "synthetic_credential_matched": "old-stdio"
+            },
+            {
+              "phase": "seed",
+              "server": "remote",
+              "kind": "executed",
+              "native_echo_marker": "empty-seed-remote",
+              "transport": "http",
+              "synthetic_credential_matched": "old-http"
+            },
+            {
+              "phase": "resume",
+              "server": "echo",
+              "kind": "tool-not-found",
+              "native_message": "Tool \"mcp__echo__echo\" not found"
+            },
+            {
+              "phase": "resume",
+              "server": "remote",
+              "kind": "tool-not-found",
+              "native_message": "Tool \"mcp__remote__echo\" not found"
+            }
+          ],
+          "native_prompt_result": {
+            "stopReason": "end_turn"
+          },
+          "durable_tool_select_events": [
+            {
+              "type": "tool_select.initialized",
+              "tools": [
+                {
+                  "name": "mcp__echo__echo",
+                  "source": "mcp",
+                  "origin": "initial"
+                },
+                {
+                  "name": "mcp__remote__echo",
+                  "source": "mcp",
+                  "origin": "initial"
+                }
+              ]
+            },
+            {
+              "type": "tool_select.tools_changed",
+              "added": [],
+              "removed": [
+                {
+                  "name": "mcp__echo__echo",
+                  "source": "mcp",
+                  "origin": "initial"
+                },
+                {
+                  "name": "mcp__remote__echo",
+                  "source": "mcp",
+                  "origin": "initial"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "configuration": "same-names",
+          "seed_advertised": [
+            "mcp__echo__echo",
+            "mcp__remote__echo"
+          ],
+          "resume_advertised": [
+            "mcp__echo__echo",
+            "mcp__remote__echo"
+          ],
+          "outcomes": [
+            {
+              "phase": "seed",
+              "server": "echo",
+              "kind": "executed",
+              "native_echo_marker": "same-names-seed-echo",
+              "transport": "stdio",
+              "synthetic_credential_matched": "old-stdio"
+            },
+            {
+              "phase": "seed",
+              "server": "remote",
+              "kind": "executed",
+              "native_echo_marker": "same-names-seed-remote",
+              "transport": "http",
+              "synthetic_credential_matched": "old-http"
+            },
+            {
+              "phase": "resume",
+              "server": "echo",
+              "kind": "executed",
+              "native_echo_marker": "same-names-resume-echo",
+              "transport": "stdio",
+              "synthetic_credential_matched": "new-stdio"
+            },
+            {
+              "phase": "resume",
+              "server": "remote",
+              "kind": "executed",
+              "native_echo_marker": "same-names-resume-remote",
+              "transport": "http",
+              "synthetic_credential_matched": "new-http"
+            }
+          ],
+          "native_prompt_result": {
+            "stopReason": "end_turn"
+          },
+          "durable_tool_select_events": [
+            {
+              "type": "tool_select.initialized",
+              "tools": [
+                {
+                  "name": "mcp__echo__echo",
+                  "source": "mcp",
+                  "origin": "initial"
+                },
+                {
+                  "name": "mcp__remote__echo",
+                  "source": "mcp",
+                  "origin": "initial"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "configuration": "new-names",
+          "seed_advertised": [
+            "mcp__echo__echo",
+            "mcp__remote__echo"
+          ],
+          "resume_advertised": [
+            "mcp__newhttp__echo",
+            "mcp__newstdio__echo"
+          ],
+          "outcomes": [
+            {
+              "phase": "seed",
+              "server": "echo",
+              "kind": "executed",
+              "native_echo_marker": "new-names-seed-echo",
+              "transport": "stdio",
+              "synthetic_credential_matched": "old-stdio"
+            },
+            {
+              "phase": "seed",
+              "server": "remote",
+              "kind": "executed",
+              "native_echo_marker": "new-names-seed-remote",
+              "transport": "http",
+              "synthetic_credential_matched": "old-http"
+            },
+            {
+              "phase": "resume",
+              "server": "echo",
+              "kind": "tool-not-found",
+              "native_message": "Tool \"mcp__echo__echo\" not found"
+            },
+            {
+              "phase": "resume",
+              "server": "remote",
+              "kind": "tool-not-found",
+              "native_message": "Tool \"mcp__remote__echo\" not found"
+            },
+            {
+              "phase": "resume",
+              "server": "newstdio",
+              "kind": "executed",
+              "native_echo_marker": "new-names-resume-newstdio",
+              "transport": "stdio",
+              "synthetic_credential_matched": "new-stdio"
+            },
+            {
+              "phase": "resume",
+              "server": "newhttp",
+              "kind": "executed",
+              "native_echo_marker": "new-names-resume-newhttp",
+              "transport": "http",
+              "synthetic_credential_matched": "new-http"
+            }
+          ],
+          "native_prompt_result": {
+            "stopReason": "end_turn"
+          },
+          "durable_tool_select_events": [
+            {
+              "type": "tool_select.initialized",
+              "tools": [
+                {
+                  "name": "mcp__echo__echo",
+                  "source": "mcp",
+                  "origin": "initial"
+                },
+                {
+                  "name": "mcp__remote__echo",
+                  "source": "mcp",
+                  "origin": "initial"
+                }
+              ]
+            },
+            {
+              "type": "tool_select.tools_changed",
+              "added": [
+                {
+                  "name": "mcp__newhttp__echo",
+                  "source": "mcp",
+                  "origin": "runtime"
+                },
+                {
+                  "name": "mcp__newstdio__echo",
+                  "source": "mcp",
+                  "origin": "runtime"
+                }
+              ],
+              "removed": [
+                {
+                  "name": "mcp__echo__echo",
+                  "source": "mcp",
+                  "origin": "initial"
+                },
+                {
+                  "name": "mcp__remote__echo",
+                  "source": "mcp",
+                  "origin": "initial"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "plaintext_synthetic_markers_found_in_native_home": 0
+    }
+  ],
+  "source_bundles": {
+    "2.4.1": {
+      "sha256": "fd15d5c9b48892bb4f1d5fe82df9f790c8c19a44ca9a81054cc592b6fb9e2c90"
+    },
+    "2.5.0": {
+      "sha256": "acd6894e2e2db50d37c449eefe9d3549a0177bd2d12cf17a8e1da94c60eb359f"
+    },
+    "2.5.0-current-tools": {
+      "sha256": "af84307c2418be43f6c6d3e62e03a9761ec362b0cbd86c728262d223f5f4263e"
+    }
+  },
+  "native_control_change": "In defaultToolsForDisclosure, replace only the false branch this.initialTools() with this.currentTools(). Diagnostic only, not a proposed production patch."
+}

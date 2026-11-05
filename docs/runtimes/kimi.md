@@ -26,13 +26,14 @@ darwin arm64, default model `kimi-code/k3`, no `--model`), 2026-09-11, through
 [experiments index](../../experiments/README.md): `kimi-wire-tap.ts`,
 `kimi-usage-update-order.ts live`, `kimi-steer-or-queue.ts`. All of them pass
 on **kimi 2.0.0** (2026-09-18, live-contract 13/13; its `thinking` values are
-under [Effort](#models-instructions-and-context)). The newest checked release
-is **kimi 2.4.1** (2026-10-30, Linux): all 15 shared behavior cases and
-11 native vendor cases passed, with four existing capability skips and
-two vendor workers, and the four local OAuth/login regressions passed
-without a real login. The
-[version check](../../experiments/runtime-version-checks/2026-10-30.md#kimi-241)
-states the cross-platform validation boundary.
+under [Effort](#models-instructions-and-context)). The latest check is
+**kimi 2.5.0** (2026-11-04, Linux): all 15 shared behavior cases and four local OAuth/login regressions pass, but one of eleven
+native vendor cases fails. A fresh-process resume without MCP configuration
+still advertises the initial stdio and HTTP tool declarations. Follow-up native
+controls show that their calls fail without the configuration; actual MCP
+execution uses the current resume options. The same unchanged case passes on
+2.4.1, which remains the CI pin until an upstream fix passes the same controls.
+See the [comparison and limits](../../experiments/runtime-version-checks/2026-11-04.md#kimi-250).
 Facts from later binaries name their version. Versions are
 evidence baselines, not a support range. The [spec](../spec/README.md) is the
 contract the adapter implements, not evidence of this adapter's behavior; see
@@ -548,6 +549,19 @@ answering `{}` for that API-key model, with no OAuth
 - kimi appends a `<system-reminder>` user message (the date) after the
   prompt, so the scripted fixtures match the current turn's user messages,
   not only the last one.
+
+**2.5.0 keeps initial declarations across resume:** the model sees the original
+tool list, while actual MCP execution follows the current resume configuration.
+Omitting `mcpServers` or passing an empty list leaves the old names advertised,
+but calls to them fail with `Tool ... not found`. Replacing server names makes
+the new tools executable without listing them to the model; using the same names
+with new configuration executes against that new configuration. Hosts changing
+MCP configuration on resume must expect this mismatch on 2.5.0. OAR does not
+filter the native declarations or refuse the entire resumed MCP configuration.
+The same controls on 2.4.1 keep declarations and execution aligned. Evidence
+covers fresh processes and local providers on Linux, not real models or other
+platforms; see the [native investigation](../../experiments/kimi-mcp-resume/2026-11-04.md)
+and [November 4 comparison](../../experiments/runtime-version-checks/2026-11-04.md#kimi-250).
 
 The credentials reach kimi only in the open request's params, which OAR does
 not record (it records the answers, every `session/update` and vendor

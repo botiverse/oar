@@ -11,7 +11,7 @@ This fixes model confirmation only. Required execution CI remains pinned to
 The published 1.1.82 bundle uses `getModel(snapshot.model).displayName` for
 `system/init.model`. `daemon.get_models` projects the same ModelProvider
 descriptor as `value`, `modelId` and `displayName`, without `serverModel`.
-The [source investigation and selected hashes](https://raft-artifacts.com/p/open-agent-runtime/qoder-1-1-82-native-compatibility)
+The [source investigation and selected hashes](provider-transition-2026-11-03.md)
 retain the inspected packages and the separate replay controls. The
 [November 4 observations](https://github.com/botiverse/oar/blob/8f553bde2569cf1189088d5fb07e71b3f4092f64/experiments/runtime-version-checks/2026-11-04.md#qoder-1183)
 show the same catalog shape in 1.1.83. Its replay failure reports HTTP 500

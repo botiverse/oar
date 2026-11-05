@@ -1,0 +1,238 @@
+{
+  "date": "2026-11-03",
+  "versions": [
+    {
+      "version": "1.1.81",
+      "files": [
+        {
+          "file": "qodercli.js",
+          "sha256": "dcabbcaece1c0683ee4929ac7c0cf0ea00bbea4d319f5abeaae8216088b9888f",
+          "getFakeResponseStoreOccurrences": 3
+        },
+        {
+          "file": "qoder-worker-runtime.mjs",
+          "sha256": "4233d558c1c993c129fe96fe70ccb9300eb8b79db9007ec9b7084da366da1ce9",
+          "getFakeResponseStoreOccurrences": 3
+        }
+      ],
+      "guardedReplay": {
+        "version": "1.1.81",
+        "mode": "valid",
+        "requested": null,
+        "initModel": "auto",
+        "rows": [],
+        "result": {
+          "subtype": "success",
+          "is_error": false,
+          "usage": {
+            "input_tokens": 17,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "output_tokens": 3,
+            "server_tool_use": {
+              "web_search_requests": 0,
+              "web_fetch_requests": 0
+            },
+            "service_tier": "standard",
+            "cache_creation": {
+              "ephemeral_1h_input_tokens": 0,
+              "ephemeral_5m_input_tokens": 0
+            },
+            "inference_geo": "",
+            "iterations": [],
+            "speed": "standard"
+          }
+        },
+        "sawReplaySentinel": true,
+        "errors": {
+          "missingFile": false,
+          "malformedJson": false
+        },
+        "io": {
+          "guardLoads": 2,
+          "replayReads": 1,
+          "externalSocketsBlocked": 295
+        }
+      },
+      "catalog": {
+        "version": "1.1.81",
+        "syntheticReplay": true,
+        "requested": "efficient",
+        "rows": [
+          {
+            "fetchStrategy": "cache",
+            "initModel": "Efficient",
+            "selected": {
+              "keys": [
+                "availableContextWindows",
+                "context_config",
+                "defaultContextWindow",
+                "description",
+                "displayName",
+                "format",
+                "isEnabled",
+                "isVl",
+                "maxInputTokens",
+                "maxOutputTokens",
+                "modelId",
+                "priceFactor",
+                "scene",
+                "serverModel",
+                "serverScene",
+                "source",
+                "strategies",
+                "value"
+              ],
+              "value": "efficient",
+              "displayName": "Efficient",
+              "nativeName": "Efficient"
+            }
+          },
+          {
+            "fetchStrategy": "live",
+            "initModel": "Efficient",
+            "selected": {
+              "keys": [
+                "availableContextWindows",
+                "context_config",
+                "defaultContextWindow",
+                "description",
+                "displayName",
+                "format",
+                "isEnabled",
+                "isVl",
+                "maxInputTokens",
+                "maxOutputTokens",
+                "modelId",
+                "priceFactor",
+                "scene",
+                "serverModel",
+                "serverScene",
+                "source",
+                "strategies",
+                "value"
+              ],
+              "value": "efficient",
+              "displayName": "Efficient",
+              "nativeName": "Efficient"
+            }
+          }
+        ],
+        "opened": {
+          "kind": "opened",
+          "model": "Efficient"
+        }
+      }
+    },
+    {
+      "version": "1.1.82",
+      "files": [
+        {
+          "file": "qodercli.js",
+          "sha256": "723550e7f3d746b2074140e995083f6646b721f4f870b00a31e82d0af0e26eaf",
+          "getFakeResponseStoreOccurrences": 1
+        },
+        {
+          "file": "qoder-worker-runtime.mjs",
+          "sha256": "3fa3b9ca5907b9b74e658d63b0ce4757d620cd76edafbabd3a5211dc83028ab9",
+          "getFakeResponseStoreOccurrences": 1
+        }
+      ],
+      "guardedReplay": {
+        "version": "1.1.82",
+        "mode": "valid",
+        "requested": null,
+        "initModel": null,
+        "rows": [],
+        "result": null,
+        "sawReplaySentinel": false,
+        "errors": {
+          "missingFile": false,
+          "malformedJson": false
+        },
+        "io": {
+          "guardLoads": 1,
+          "replayReads": 0,
+          "externalSocketsBlocked": 275
+        },
+        "failure": "Qoder refused initialize"
+      },
+      "catalog": {
+        "version": "1.1.82",
+        "syntheticReplay": true,
+        "requested": "efficient",
+        "rows": [
+          {
+            "fetchStrategy": "cache",
+            "initModel": "Efficient",
+            "selected": {
+              "keys": [
+                "availableContextWindows",
+                "defaultContextWindow",
+                "description",
+                "displayName",
+                "format",
+                "isEnabled",
+                "isVl",
+                "maxInputTokens",
+                "modelId",
+                "priceFactor",
+                "serverScene",
+                "source",
+                "strategies",
+                "value"
+              ],
+              "value": "efficient",
+              "displayName": "Efficient",
+              "nativeName": null
+            }
+          },
+          {
+            "fetchStrategy": "live",
+            "initModel": "Efficient",
+            "selected": {
+              "keys": [
+                "availableContextWindows",
+                "defaultContextWindow",
+                "description",
+                "displayName",
+                "format",
+                "isEnabled",
+                "isVl",
+                "maxInputTokens",
+                "modelId",
+                "priceFactor",
+                "serverScene",
+                "source",
+                "strategies",
+                "value"
+              ],
+              "value": "efficient",
+              "displayName": "Efficient",
+              "nativeName": null
+            }
+          }
+        ],
+        "opened": {
+          "kind": "refused",
+          "reason": "Qoder model catalog did not provide a resolved name for \"efficient\"; reported \"Efficient\""
+        }
+      }
+    }
+  ],
+  "ci": {
+    "run": 41662458763,
+    "jobs": [
+      126008935505,
+      126008935990
+    ],
+    "behaviorFailuresEach": 15,
+    "vendorStarted": false
+  },
+  "sourceFindings": {
+    "newInit": "sessionSnapshot -> ModelProviderManager.getModel(snapshot.model).displayName -> system/init.model",
+    "newCatalog": "ModelProviderManager.listModels -> BQd -> value=model.key, modelId=model.key, displayName=model.displayName -> daemon.get_models",
+    "oldReplay": "Kou uses getFakeResponseStore().getNextResponse(generateContentStream); utility generation has a second caller",
+    "newReplay": "getFakeResponseStore remains defined but neither shipped bundle has a direct caller; CLI/configuration still retains fakeResponses"
+  }
+}

@@ -44,6 +44,11 @@ someone else can rerun turns "trust me, I checked" into "run this and see".
 - **Leave a handoff.** For work that spans turns or owners, record the runtime
   identity, cursor or artifact, current conclusion, and next action. A status
   message without a continuation is not an accumulated result.
+- **Public evidence must be readable without a login.** Repository docs must
+  not rely on private Artifact pages as evidence. Commit the report,
+  reproduction script and selected, redacted results under `experiments/`
+  and link them with repository-relative paths. Keep raw credentials,
+  account identifiers and machine-local paths out of published results.
 - **Real logins cost quota.** Repeatable ad-hoc runs belong on the mock or
   aimock backends; use a real installation deliberately, as with
   `OAR_TEST=<real id>`.
@@ -130,7 +135,7 @@ runtimes may legitimately differ.
   local only (CI runs backends on separate VMs) and changes no product or
   individual test deadline ([local overload evidence](../experiments/codebuddy-probe-cost/README.md)).
   Pin local native binaries to the CI versions before comparing results (for
-  example, `OAR_CODEBUDDY_BIN=/absolute/path/to/2.179.1/codebuddy`): an old
+  example, `OAR_CODEBUDDY_BIN=/absolute/path/to/2.179.3/codebuddy`): an old
   installation found on PATH is not evidence about the pinned version.
 - `OAR_TEST=<real id>` (`antigravity`, `claude`, `codebuddy`, `codex`, `cursor`, `grok`,
   `kimi`, `opencode`, `pi`, `qoder`, `qwen`): your local installation and login. The final word when
@@ -235,7 +240,7 @@ or pull request whose changes are all Markdown files or under `docs/` or
   events, the last active cases, combined Vitest output and redacted Pi RPC
   stderr tails. None of this changes an assertion, concurrency or native
   deadline, or establishes the cause of the intermittent Windows hangs.
-- `acp-behavior`: Kimi 2.4.1, Grok 1.0.70, OpenCode v1 1.19.5 and CodeBuddy 2.179.1 on
+- `acp-behavior`: Kimi 2.4.1, Grok 1.0.70, OpenCode v1 1.19.5 and CodeBuddy 2.179.3 on
   Linux and macOS: shared behavior and vendor tests against native programs
   with local scripted providers, isolated configuration, synthetic keys and
   npm download caches. Shared-case

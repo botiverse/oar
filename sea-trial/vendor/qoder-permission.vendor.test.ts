@@ -41,7 +41,7 @@ test.skipIf(process.env.OAR_TEST !== "qoder-native")("native permission request 
     await control.request({ type: "set_permission_mode", mode: "default" });
     child.write(`${JSON.stringify({ type: "user", session_id: id, uuid: randomUUID(), message: { role: "user", content: "exercise permission" } })}\n`);
     const ended = await result.promise;
-    expect(ended.subtype).toBe("success");
+    expect(ended.subtype, JSON.stringify({ result: ended, permissionRequests: requests.length, permissionReplies: replies.length })).toBe("success");
     expect(requests).toHaveLength(1);
     expect(replies).toHaveLength(1);
     expect(asRecord(replies[0]?.response)?.request_id).toBe(requests[0]?.request_id);

@@ -16,9 +16,9 @@ pass. OAR adds no delay between turns. A future transport change requires both
 a fixed native reproduction and a capability comparison, not just an upstream
 version change. [Official ACP documentation](https://www.codebuddy.ai/docs/cli/acp).
 
-Current check: **2.179.1** (Linux x64, 2026-11-01): all 16 applicable
+Current check: **2.179.3** (Linux x64, 2026-11-03): all 16 applicable
 behavior cases and five native vendor cases passed against local providers
-([daily evidence](../../experiments/runtime-version-checks/2026-11-01.md#codebuddy-21791)).
+([daily evidence](../../experiments/runtime-version-checks/2026-11-03.md#codebuddy-21793)).
 Unless marked otherwise, evidence below identifies CodeBuddy 2.178.1, Linux
 x64 local-provider tests and Linux arm64 international-account tests on
 2026-10-29; account observations remain on 2.178.1. These are observation
@@ -197,7 +197,7 @@ real account login.
 [env] The unchanged standalone stream-json reproduction returned
 `first, second, second` in all three immediate runs, and `first, second` in
 three controls delaying the second input by one second (2.178.1, and again on
-2.179.1 on 2026-11-01, when the immediate ACP control also kept one
+2.179.3 on 2026-11-03, when the immediate ACP control also kept one
 conversation request per input). The custom provider used synthetic
 credentials. Slowing that provider's responses did not remove
 the failure: at 500 ms, two runs duplicated and one timed out after the first
