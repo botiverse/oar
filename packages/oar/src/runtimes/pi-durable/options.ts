@@ -13,6 +13,7 @@ export type DurableModels = Exclude<HarnessOptions["models"], () => unknown>;
 
 export const piDurableRefusedSessionOptions: RefusedSessionOptions = {
   goals: "This runtime interface exposes no structured native goal controls",
+  endTurnProcessesOnAbort: "pi-durable runs in the host process, so OAR owns no runtime process tree to read for one turn",
   userConfiguration: "pi-durable uses host-owned harness configuration, with no per-conversation user-configuration exclusion",
   outputSchema: "Pi Durable exposes no final-output schema option",
   name: "pi-durable exposes no session name",

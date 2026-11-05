@@ -17,6 +17,7 @@ import { foldCodexNotification, initialCodexProjection, type CodexProjectionStat
 import { prepareCodexToolDenials } from "./tool-denials.js";
 import { missingDirectoryError, nameThread, openThread, rpcControl, type RpcControlPlan } from "./rpc-control.js";
 import { codexServerRequests } from "./runtime-requests.js";
+import { codexTurnProcesses, refuseSharedTurnProcesses } from "./turn-processes.js";
 /*
  * App-server v2: RPC replies answer controls synchronously before later notifications.
  * Model/effort read-back: open.ts. Reachability: recorded exit/dispose.
@@ -31,8 +32,9 @@ interface CodexSessionState {
   codexTurnId: string | null;
   projection: CodexProjectionState;
 }
-export const codexSession: StartSession = withSessionCredentials(async (installation, options, credentials) => {
+export const codexSession: StartSession = withSessionCredentials(async (installation, options, credentials, context) => {
   if (installation.via !== "executable") { throw new Error("The codex session adapter needs an executable installation"); }
+  refuseSharedTurnProcesses(options, context);
   // Threads persist so a later SessionOptions.resume can reattach; the thread
   // id is the runtime-native identity and becomes Session.id (open.ts builds
   // the request, and refuses what it cannot build before anything starts).
@@ -91,12 +93,11 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
     const compaction = manualCompaction(kernel, { busy: codexCompactionBusy(kernel, nativeBusy), busyReason: "Codex manual compaction requires an idle session without an active goal or queued input", create: () => { compactOperation = codexCompaction(client, threadId); return compactOperation; } });
     const busy = (): boolean => nativeBusy() || compaction.busy();
     const abortFallback = createAbortFallback(() => { client.kill(); });
+    const turnProcesses = codexTurnProcesses(options, kernel, client);
     let disposeRequest: RequestRecord | null = null;
     // A resume's effort update in flight: codex's thread/settings/updated answers it.
     let settingsWaiter: ((params: JsonRecord) => void) | null = null;
-    recordOpen = (): void => {
-      kernel.frame({ type: openMethod, native: started, events: readback.events });
-    };
+    recordOpen = (): void => { kernel.frame({ type: openMethod, native: started, events: readback.events }); };
     // Drive the pure projection fold, applying its commands to the kernel; the
     // fold owns event translation, attribution and graph links; this owns the
     // transport-only turn id and the control decisions (busy, spontaneous).
@@ -135,6 +136,7 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
             break;
         }
       }
+      if (isRoot && method === "turn/completed") { turnProcesses.turnCompleted(params); }
       if (isRoot && method === "thread/settings/updated") {
         settingsWaiter?.(params);
       }
@@ -146,6 +148,7 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
     client.handle({ onNotification, onServerRequest });
     client.onExit((code, reason) => {
       abortFallback.clear();
+      turnProcesses.exited();
       // The exit is an outcome only oar observes: it answers our dispose when
       // we caused it, and stands alone when the app-server died on its own.
       kernel.respond(disposeRequest?.id ?? "", { kind: "exited", code, ...(reason === undefined ? {} : { reason }) });
@@ -174,11 +177,7 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
     await nameThread(client, threadId, codexThreadName(openMethod, options, started), (native) => { kernel.frame({ type: "thread/name/set/error", native, events: [] }); });
 
     /** Turn a plan builder into a Session control member. */
-    const via = <Args extends unknown[]>(plan: (...args: Args) => RpcControlPlan) =>
-      async (...args: Args): Promise<ControlResult> => {
-        const result = await rpcControl(kernel, client, plan(...args));
-        return result;
-      };
+    const via = <Args extends unknown[]>(plan: (...args: Args) => RpcControlPlan) => async (...args: Args): Promise<ControlResult> => { const result = await rpcControl(kernel, client, plan(...args)); return result; };
     const capabilities = { queue: { durable: true }, attribution: "nested", images: true } as const;
     const promptPlan = (input: string, inputOptions?: InputOptions): RpcControlPlan => ({
       body: { kind: "prompt", input, ...inputOptions },
@@ -262,11 +261,11 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
       ...(options.goals === true ? { goal: codexGoalControl(kernel, client, threadId) } : {}),
       capabilities,
       compact: compaction.compact,
-      prompt: via(promptPlan),
+      prompt: via(turnProcesses.prompting(promptPlan)),
       steer: via(steerPlan),
       queue: via(queuePlan),
       // No withdraw: the queue is codex's own, and thread/queue/delete is experimental and not live-verified (docs/runtimes/input-cancellation.md).
-      abort: via(abortPlan),
+      abort: via(turnProcesses.aborting(abortPlan)),
       rawEvents: (observer, cursor) => kernel.rawEvents(observer, cursor),
       records: () => kernel.records(),
       graph: () => kernel.graph(),
@@ -286,6 +285,7 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
         // Await the actual exit: the process may hold state (codex's sqlite
         // runtime in CODEX_HOME) that the next session needs released; onExit records it.
         await client.exited;
+        await turnProcesses.settled();
       },
     });
     return session;

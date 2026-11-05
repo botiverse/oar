@@ -14,6 +14,8 @@ function fakeAppServer(
     client: {
       spawned: Promise.resolve(),
       exited: Promise.resolve(0),
+      rootPid: () => undefined,
+      async observeCancellation() { return { commit() {}, complete() {} }; },
       async request(method) {
         calls.push(method);
         return request(method);

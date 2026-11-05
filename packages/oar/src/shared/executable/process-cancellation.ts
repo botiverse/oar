@@ -4,6 +4,8 @@ import type { ProcessTableObservation } from "./process-tree.js";
 /** Staged evidence only. Commit immediately before sending the native cancel;
  * complete when that same turn ends or its cancellation is refused. */
 export interface CancellationObservation {
+  /** The read this stage holds. Absent when no root could be observed; never an empty table. */
+  readonly observation?: ProcessTableObservation;
   commit(): void;
   complete(): void;
 }

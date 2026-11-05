@@ -226,9 +226,10 @@ export function descendantsOf(table: ProcessTable, pid: number, source: ProcessT
  * SIGKILL each of `entries` that `table` (read just before) shows still
  * running, the same process (same start time), and the process group each
  * belongs to now: the runtime's own, or one a descendant made, which can hold
- * processes started since the entries were read. Never the host, nor its group.
+ * processes started since the entries were read. Never the host, nor its group,
+ * nor a group `mayKillGroup` holds back.
  */
-export function killEntries(entries: Iterable<ProcessEntry>, table: ProcessTable): void {
+export function killEntries(entries: Iterable<ProcessEntry>, table: ProcessTable, mayKillGroup: (group: number) => boolean = () => true): void {
   const hostGroup = table.get(process.pid)?.pgid;
   if (hostGroup === undefined) { return; }
   const groups = new Set<number>();
@@ -239,7 +240,7 @@ export function killEntries(entries: Iterable<ProcessEntry>, table: ProcessTable
       continue;
     }
     pids.add(current.pid);
-    if (current.pgid > 1 && current.pgid !== hostGroup) {
+    if (current.pgid > 1 && current.pgid !== hostGroup && mayKillGroup(current.pgid)) {
       groups.add(current.pgid);
     }
   }

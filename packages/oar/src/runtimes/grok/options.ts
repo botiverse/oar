@@ -4,6 +4,7 @@ import type { RefusedSessionOptions } from "../../contracts/runtime.js";
 
 export const grokRefusedSessionOptions: RefusedSessionOptions = {
   goals: "This runtime interface exposes no structured native goal controls",
+  endTurnProcessesOnAbort: "OAR has not verified reading and ending one aborted Grok turn's processes while its session stays usable",
   userConfiguration: "grok has no verified separation of user configuration from its native login",
   additionalDirectories: "grok ACP exposes no effective additional workspace directory setting",
   serviceTier: "grok exposes no verified per-session service-tier setting and readback",

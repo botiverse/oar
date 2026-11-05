@@ -320,6 +320,33 @@ Further rules:
   it uses the native session cancel/close and explicitly owned host terminals.
   Without native PID-to-session association, tool ownership is not inferred
   from the common parent process.
+- **`endTurnProcessesOnAbort` ends what the aborted turn started.** On a
+  session that opted in, each `prompt` starts a process-table read before its
+  native turn start, without delaying it: the baseline. An abort takes the
+  observation above, with the same one-second limit and the same rule that
+  cancellation is sent at the deadline. After the native turn end reports
+  that turn interrupted, OAR reads the table once more and sends the kill to
+  every process in the snapshot below the runtime and absent from the
+  baseline as the same process (pid and start time), and to what those started
+  since. The runtime itself, and any member of its own process group, is left
+  alone; a process group is signalled only when every member the fresh table
+  shows is a target. Nothing is sent to the runtime for this, and no frame
+  records it: `native` stays what the runtime said.
+
+  The outcome is one `cleanup` response on the abort request, recorded after the
+  turn's end frame. It is the same shape a fallback or dispose cleanup uses, and
+  like those it is read from `records()` or `rawEvents`, not `events()`.
+  `completed` carries `signalled`, how many processes passed the identity
+  check and were sent the kill; it does not report that each has exited, and zero
+  is a valid count. `failed` means nothing was signalled, and `reason` says why:
+  the baseline or snapshot read failed or had not finished, the turn had no
+  baseline because `prompt` did not start it (a drained queue, a goal continuation,
+  a compaction), the fresh read failed, the turn ended some other way than this
+  interrupt, or the runtime exited first (its exit cleanup then applies). An
+  unreadable table never reads as no descendants, and an unknown baseline never
+  kills. An abort refused or rejected, including one whose turn ended before the
+  interrupt was sent, has that response as its whole record: it ends nothing and
+  no `cleanup` follows. Without the option none of this runs.
 - **A failed process-table read is not an empty tree.** Cleanup records the
   source, duration and bounded failure fields internally, without process
   names, command lines or environment values. Before EOF it retries a failed
@@ -659,13 +686,14 @@ interface RequestRecord extends RecordEnvelope {
 interface ResponseRecord extends RecordEnvelope {
   kind: "response";
   requestId: string;            // must point to a request; reverse not guaranteed
-  body: ResponseBody;           // opened {placement} | accepted {native?, queued?: "adapter"} | rejected {code, reason, native?} | answered {native} | cleanup {result} | released {reason, nativeTurnMayContinue:true, workStartedAfterCleanupMayContinue:true} | exited {code, reason?}
+  body: ResponseBody;           // opened {placement} | accepted {native?, queued?: "adapter"} | rejected {code, reason, native?} | answered {native} | cleanup {result: completed {signalled?} | failed {reason}} | released {reason, nativeTurnMayContinue:true, workStartedAfterCleanupMayContinue:true} | exited {code, reason?}
 }
 // accepted/rejected: control answers only "taken over or not".
 // answered: oar's own reply to a toApp request (the automatic permission
 // grant): an outcome the runtime did not say.
 // opened: actual placement, answering the host's open request.
-// cleanup: completed | failed {reason}, answering an abort fallback or dispose.
+// cleanup: completed | failed {reason}, answering an abort fallback or dispose,
+// or an abort of a session with endTurnProcessesOnAbort (signalled: see below).
 // released: OAR stopped controlling this session; native work may continue.
 // exited: the process exit, an outcome the runtime can never say
 // itself; answers the dispose request when oar caused it, stands alone

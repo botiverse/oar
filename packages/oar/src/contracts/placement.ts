@@ -23,8 +23,13 @@ export type RuntimePlacementOptions = {
   };
 } | { readonly execution?: "in_process"; readonly shared?: never };
 
-/** One bounded native cleanup attempt; completed does not promise against future work. */
-export type SessionCleanup = { readonly kind: "completed" } | { readonly kind: "failed"; readonly reason: string };
+/**
+ * One bounded cleanup attempt; completed does not promise against future work.
+ * `signalled` is present on an `endTurnProcessesOnAbort` cleanup: how many
+ * processes passed the start-identity check and were sent the kill. It does
+ * not report that each has exited.
+ */
+export type SessionCleanup = { readonly kind: "completed"; readonly signalled?: number } | { readonly kind: "failed"; readonly reason: string };
 
 /** OAR gave up control, not evidence of native completion or process death. */
 export interface SessionRelease {

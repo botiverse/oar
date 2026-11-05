@@ -45,6 +45,25 @@ export interface SessionOptions {
    * Supply again on resume. This launch choice is not recorded.
    */
   readonly goals?: boolean;
+  /**
+   * After an accepted abort, end the processes the aborted turn started while
+   * keeping the runtime and session usable for the next prompt. Only Codex
+   * supports true, and only in an isolated app-server; other runtimes and
+   * shared placement refuse it before open. Omission or false preserves native
+   * behavior: Codex can leave a running command and its detached children alive
+   * after turn/interrupt.
+   *
+   * OAR compares a process-table read started before each prompt's turn/start
+   * with a snapshot taken before turn/interrupt, and sends SIGKILL (Windows:
+   * process termination) to the difference once turn/completed reports
+   * `interrupted`, after a fresh start-identity check. Processes running before
+   * that prompt, such as MCP servers and earlier background commands, are kept.
+   * A failed or unfinished read, or an abort that did not interrupt the turn,
+   * ends nothing. The outcome is a `cleanup` response on the abort request
+   * (docs/spec/record-stream.md); `failed` means nothing was signalled.
+   * Supply again on resume. This launch choice is not recorded.
+   */
+  readonly endTurnProcessesOnAbort?: boolean;
   /** Working directory the runtime operates in. With `resume`, a directory other than the session's own is refused where the runtime would run in its own instead (kimi, opencode: `UnsupportedOptionError` on `cwd`); pi and grok can report SessionNotFoundError for that cwd; Cursor reports what its SDK can find with this configuration (docs/runtimes/resume-cwd.md). */
   readonly cwd: string;
   /**

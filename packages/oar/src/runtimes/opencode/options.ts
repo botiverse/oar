@@ -9,6 +9,7 @@ import type { RefusedSessionOptions } from "../../contracts/runtime.js";
  */
 export const opencodeRefusedSessionOptions: RefusedSessionOptions = {
   goals: "This runtime interface exposes no structured native goal controls",
+  endTurnProcessesOnAbort: "OAR has not verified reading and ending one aborted OpenCode turn's processes while its session stays usable",
   userConfiguration: "opencode has no verified separation of user configuration from its native login",
   outputSchema: "OpenCode ACP exposes no final-output schema channel; its HTTP prompt format is not configurable through ACP",
   name: "opencode ACP exposes no verified session name setting",

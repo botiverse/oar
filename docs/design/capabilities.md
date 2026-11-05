@@ -139,6 +139,9 @@ Where it goes depends on how long it holds:
   `Session.goal` member. Enabling changes the model's tool set, so it is not
   implicit. No runtime-keyed `native` namespace or parallel capability flag
   is needed for this option ([contract](../spec/goals.md)).
+  `SessionOptions.endTurnProcessesOnAbort: true` follows the same pattern:
+  unsupported runtimes declare and refuse it, and omission and false change
+  nothing ([contract](../spec/runtime-matrix.md#ending-a-turns-processes-on-abort)).
 
 A package the host installs is handed over, never looked up. Written in the
 host's own code, `import("@cursor/sdk")` fails the host's compile when the

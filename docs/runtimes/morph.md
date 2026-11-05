@@ -183,7 +183,9 @@ Refused at open (`refusedSessionOptions`): `systemPrompt` and
 `appendSystemPrompt` (no override on the API); `env` and `launchArgs` (tools
 run inside the Console process, which the session neither starts nor owns);
 `mcpServers` (no known per-session channel); `name` (no known session
-name setting); `goals: true` (no structured native goal controls); and
+name setting); `goals: true` (no structured native goal controls);
+`endTurnProcessesOnAbort: true` (tools run in the Console process, not one this
+session owns); and
 `userConfiguration: "exclude"` (the Console process is shared, and no
 per-session exclusion of user configuration is verified). Because it
 refuses `env`, morph cannot be an `oar mcp` subagent. Images are not

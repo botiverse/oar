@@ -1,6 +1,7 @@
 import { realpathSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
+import type { CancellationObservation } from "../../shared/executable/process-cancellation.js";
 import type { AppServerClient } from "./app-server-client.js";
 
 interface InitializingHome { readonly waiting: Set<() => void> }
@@ -60,6 +61,11 @@ function queuedClient(state: InitializingHome, start: () => AppServerClient): Ap
   };
   return {
     spawned: spawn, exited: exit,
+    rootPid: () => actual?.rootPid(),
+    async observeCancellation() {
+      const observation: CancellationObservation = actual === null ? { commit() {}, complete() {} } : await actual.observeCancellation();
+      return observation;
+    },
     async request(method, params, onSettled) {
       let client: AppServerClient | null = null;
       try { client = await ready.promise; } catch (error) {

@@ -9,9 +9,10 @@ function credentialEntries(options: SessionOptions): readonly string[] {
   return (options.mcpServers ?? []).filter((server) => hasMcpCredentials(server)).map((server) => server.name);
 }
 
-/** Whether `options` gives `key`: any defined value (including an empty schema), a non-empty map for `env`, a non-empty list for list options, an entry carrying a credential for `mcpServerCredentials`, `exclude` for `userConfiguration`. */
+/** Whether `options` gives `key`: any defined value (including an empty schema), a non-empty map for `env`, a non-empty list for list options, an entry carrying a credential for `mcpServerCredentials`, `exclude` for `userConfiguration`, true for `goals` and `endTurnProcessesOnAbort`. */
 export function sessionOptionGiven(options: SessionOptions, key: RefusableSessionOption): boolean {
   if (key === "goals") { return options.goals === true; }
+  if (key === "endTurnProcessesOnAbort") { return options.endTurnProcessesOnAbort === true; }
   if (key === "userConfiguration") { return options.userConfiguration === "exclude"; }
   if (key === "env") {
     return options.env !== undefined && Object.keys(options.env).length > 0;
@@ -34,7 +35,7 @@ export function sessionOptionGiven(options: SessionOptions, key: RefusableSessio
  */
 export function refuseSessionOptions(refused: RefusedSessionOptions, options: SessionOptions): void {
   checkRetainedBytes(options.retainedBytes);
-  for (const key of ["systemPrompt", "appendSystemPrompt", "env", "mcpServers", "mcpServerCredentials", "disallowedTools", "launchArgs", "serviceTier", "additionalDirectories", "outputSchema", "name", "userConfiguration", "goals"] as const) {
+  for (const key of ["systemPrompt", "appendSystemPrompt", "env", "mcpServers", "mcpServerCredentials", "disallowedTools", "launchArgs", "serviceTier", "additionalDirectories", "outputSchema", "name", "userConfiguration", "goals", "endTurnProcessesOnAbort"] as const) {
     const reason = refused[key];
     if (reason === undefined || !sessionOptionGiven(options, key)) {
       continue;

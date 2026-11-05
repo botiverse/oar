@@ -22,7 +22,7 @@ import type { StartSession } from "./session.js";
  * entry does. `userConfiguration` declares refusal of `"exclude"` only;
  * `"include"` and omission keep native behavior.
  */
-export type RefusableSessionOption = "systemPrompt" | "appendSystemPrompt" | "env" | "mcpServers" | "mcpServerCredentials" | "disallowedTools" | "launchArgs" | "serviceTier" | "additionalDirectories" | "outputSchema" | "name" | "userConfiguration" | "goals";
+export type RefusableSessionOption = "systemPrompt" | "appendSystemPrompt" | "env" | "mcpServers" | "mcpServerCredentials" | "disallowedTools" | "launchArgs" | "serviceTier" | "additionalDirectories" | "outputSchema" | "name" | "userConfiguration" | "goals" | "endTurnProcessesOnAbort";
 
 /**
  * The options a runtime refuses when they are given (`env`, `mcpServers`, `disallowedTools`, `launchArgs`, `additionalDirectories`: a
