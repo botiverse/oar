@@ -6,7 +6,6 @@ import { RuntimeFailureError } from "../../contracts/runtime-failure-error.js";
 import { SessionNotFoundError } from "../../contracts/session-not-found-error.js";
 import type { RequestRecord, ResponseBody, Session, SessionOptions, StartSession } from "../../contracts/session.js";
 import { createAbortFallback } from "../../shared/abort-fallback.js";
-import { readExecutableVersion } from "../../shared/executable/index.js";
 import { appendCleanupFailure, cleanupFailureReason } from "../../shared/executable/process-cleanup.js";
 import { withInputImages } from "../../shared/input-images.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
@@ -14,19 +13,12 @@ import { sameDirectory } from "../../shared/same-directory.js";
 import { refuseSessionOptions } from "../../shared/session-options.js";
 import { withSessionCredentials, type SessionCredentials } from "../../shared/session-credentials.js";
 import { DshCommandError, dshControl, type DshControl } from "./control.js";
-import { dshEnvironment, launchDsh } from "./launch.js";
+import { dshEnvironment, dshExecutableRefusal, launchDsh } from "./launch.js";
 import { dshAgentOptions, dshRefusedSessionOptions, type DshAgentOptions } from "./options.js";
 import { dshOpenedFrame, foldDsh, initialDshProjection } from "./projection.js";
-import { dshVersionRefusal } from "./version.js";
 
 const OPEN_TIMEOUT_MS = 60_000;
 const DISPOSE_TIMEOUT_MS = 8000;
-
-/** A floor refusal names the real version, before anything starts. */
-async function checkVersion(command: string, version: string | undefined, env: NodeJS.ProcessEnv): Promise<void> {
-  const refusal = dshVersionRefusal(version ?? await readExecutableVersion(command, 15_000, undefined, env));
-  if (refusal !== null) { throw new RuntimeFailureError("invalid_request", refusal); }
-}
 
 /** Typed opening refusals from native evidence; anything else keeps its own message and native error as cause. */
 function openFailure(error: unknown, sessionId: string, resuming: boolean): unknown {
@@ -36,6 +28,7 @@ function openFailure(error: unknown, sessionId: string, resuming: boolean): unkn
   }
   if (error.code === "native_method_unavailable") {
     if (error.capability === "confirming a reasoning effort") { return new UnsupportedOptionError("effort", error.message); }
+    if (error.capability === "confirming a model") { return new UnsupportedOptionError("model", error.message); }
     return resuming ? new UnsupportedOptionError("resume", error.message) : new RuntimeFailureError("invalid_request", error.message, { cause: error });
   }
   if (error.code === "UNSUPPORTED_REASONING_EFFORT") { return new UnsupportedOptionError("effort", error.message); }
@@ -182,6 +175,8 @@ export const dshSession: StartSession = withSessionCredentials(async (installati
   dshAgentOptions(options);
   if (installation.via !== "executable") { throw new Error("DSH requires its executable installation"); }
   const env = dshEnvironment(options.env);
-  await checkVersion(installation.command, installation.version, env);
+  // A floor refusal names the real version, before anything starts.
+  const refusal = await dshExecutableRefusal(installation.command, installation.version, env);
+  if (refusal !== null) { throw new RuntimeFailureError("invalid_request", refusal); }
   return open(installation.command, options, env, credentials);
 });

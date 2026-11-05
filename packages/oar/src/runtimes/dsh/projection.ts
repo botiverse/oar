@@ -39,23 +39,23 @@ export function initialDshProjection(rootId: string): DshProjection {
  * dsh-llm 0.2.1-rc.5 not yet seen on a wire. PI_AI_ERROR (a 402, for one) and
  * UNKNOWN carry no class; the text is prose, never parsed.
  */
-const FAILURE_CODES: Readonly<Partial<Record<string, FailureClass>>> = {
-  AUTH: "auth",
-  INVALID_CREDENTIAL: "auth",
-  ACCOUNT_QUOTA: "quota",
-  QUOTA: "quota",
-  RATE_LIMIT: "rate_limited",
-  CONTEXT_WINDOW_EXCEEDED: "input_too_large",
-  UNKNOWN_MODEL: "model_unavailable",
-  NO_ADAPTER: "model_unavailable",
-  UNSUPPORTED_REASONING_EFFORT: "invalid_request",
-  INVALID_REQUEST: "invalid_request",
-  SERVER: "provider",
-};
+const FAILURE_CODES: ReadonlyMap<string, FailureClass> = new Map([
+  ["AUTH", "auth"],
+  ["INVALID_CREDENTIAL", "auth"],
+  ["ACCOUNT_QUOTA", "quota"],
+  ["QUOTA", "quota"],
+  ["RATE_LIMIT", "rate_limited"],
+  ["CONTEXT_WINDOW_EXCEEDED", "input_too_large"],
+  ["UNKNOWN_MODEL", "model_unavailable"],
+  ["NO_ADAPTER", "model_unavailable"],
+  ["UNSUPPORTED_REASONING_EFFORT", "invalid_request"],
+  ["INVALID_REQUEST", "invalid_request"],
+  ["SERVER", "provider"],
+]);
 
 /** The class of a native `LlmFailure`: its code first, then the HTTP status where it carries one. */
 export function dshFailureClass(failure: JsonRecord | null): FailureClass {
-  const code = typeof failure?.code === "string" ? FAILURE_CODES[failure.code] : undefined;
+  const code = typeof failure?.code === "string" ? FAILURE_CODES.get(failure.code) : undefined;
   if (code !== undefined) { return code; }
   const status = asNumber(failure?.status);
   return status === null ? "unknown" : failureFromStatus(status);
@@ -245,7 +245,8 @@ export function foldDsh(state: DshProjection, message: JsonRecord): DshFolded {
   }
   const sessionId = typeof message.sessionId === "string" ? message.sessionId : state.rootId;
   const at = sessionId === state.rootId ? {} : { sessionId };
-  const session = state.sessions[sessionId] ?? emptySession;
+  // Native ids are data: only a session this fold recorded counts, never an inherited property.
+  const session = (Object.hasOwn(state.sessions, sessionId) ? state.sessions[sessionId] : undefined) ?? emptySession;
   const native = payloadOf(message);
   if (message.channel === "session/event") {
     const event = asRecord(native) ?? {};

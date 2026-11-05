@@ -16,9 +16,16 @@ provider. Run on Linux x64, Node 24, on 2026-11-05:
 | 0.2.2-alpha.2 | 18 passed | 18 passed, 1 skipped by capability |
 | 0.2.2-rc.1 (`next`) | 18 passed | 18 passed, 1 skipped by capability |
 
-Not run: macOS and Windows loading, real provider authentication, a real model.
-The `dsh-aimock` jobs in `ci.yml` are the first evidence for those platforms; until
-they run, treat them as unverified.
+Real provider: Bugen ran `d6e41da` on Linux with a real DeepSeek API key
+(pay-per-use, not a first-party plan), model `deepseek-official/deepseek-flash`,
+effort low, on dsh 0.2.2-rc.1 and 0.2.1-rc.5: inference, tool call, resume, mid-turn
+cancel and usage passed. 0.2.2-alpha.2 was not run on a real key.
+
+Windows: the shared behavior suite passed on `windows-latest` (0.2.1-rc.5, 18 passed,
+1 capability skip, run 42001149111), so opening, turns, abort, resume and dispose work
+there. The vendor failures in that run were this repository's fixture, below in
+[Testing](#testing); the fixed vendor suite has not run on Windows yet. A process
+killed mid-turn is covered on POSIX only. macOS has not reported yet.
 
 ## Native interface
 
@@ -64,7 +71,7 @@ it differs from the request, the open is refused rather than run.
 
 | OAR | Native | Notes |
 |---|---|---|
-| open | `agents.create` | `Session.id` is the native id, supplied by OAR. Omitted model: `agentDefaultModel.currentSelection()`. Explicit model or effort: `llm.resolveCallConfig` first, so a route that cannot run is refused at open. |
+| open | `agents.create` | `Session.id` is the native id, supplied by OAR. Omitted model: `agentDefaultModel.currentSelection()`. Explicit model or effort: `llm.resolveCallConfig` first, so a route that cannot run is refused at open, and without that method the request is refused rather than run unchecked. |
 | resume | `sessionPersistence.open(id, "read")`, then `agents.resume` | Saved header compared with `options.cwd`; another directory is `UnsupportedOptionError("cwd")` before the session is taken over. Omitted model keeps the saved route from the last `request/header`. Missing: `SessionNotFoundError`. |
 | prompt | `agent.followup` when `status` is idle | Rejected `busy` otherwise. The native claim starts the turn; accepted means delivered. |
 | steer | `agent.steer` | Rejected `no_active_turn` when idle. Native `next-step` inbox; the input joins at the next step boundary, including when the model had just stopped. |
@@ -88,8 +95,8 @@ without `cancel`, are rejected `unsupported` with the reason. `steer` without
 `agent.steer` and `withdraw` without `inbox.remove` are absent members, as the
 contract asks, with `dsh/opened` keeping the inventory that says why. `create`
 missing rejects the open (`RuntimeFailureError`); `resume` or a saved-session
-read missing rejects a resume (`UnsupportedOptionError("resume")`); effort without
-`llm.resolveCallConfig` rejects (`UnsupportedOptionError("effort")`).
+read missing rejects a resume (`UnsupportedOptionError("resume")`); a model or effort
+without `llm.resolveCallConfig` rejects (`UnsupportedOptionError("model")`, `("effort")`).
 
 ### Records
 
@@ -181,16 +188,16 @@ catalog: `id` is the `provider/model` selector, with display names, `effortLevel
 and `defaultEffort` from `resolveModelInfo`, and `default` from
 `agentDefaultModel`. A provider that fails to list is left out; if none listed
 anything and one failed, the answer is `unsupported` with the native reasons. A
-missing method answers `unsupported`. DSH's real catalog and whether its
-`deepseek-official` provider lists without credentials have not been run;
-`unauthenticated` is never answered because no native evidence for it exists yet.
+missing method answers `unsupported`, and an executable below the floor does too, read
+from the executable when the installation names no version. Whether
+`deepseek-official` lists without credentials has not been run; `unauthenticated` is
+never answered because no native evidence for it exists yet.
 
 ## Installation and configuration
 
 `installation` looks for `OAR_DSH_BIN`, then `dsh` on PATH. `installPlan` and
 `install` run `npm install -g @deepseek-ai/dsh` (Node 24.9 or later). DSH's
-default route is `deepseek-official` with `DEEPSEEK_API_KEY`; that path has not
-been run. Any other route goes in the user's own patch, for example
+default route is `deepseek-official`, with an API key; see the real-provider run above. Any other route goes in the user's own patch, for example
 `$DSH_HOME/cordis.patch.yml` with `llm-pi-ai` providers and `agent-default-model`,
 which is what the test fixture does.
 
@@ -211,13 +218,19 @@ accumulate. They are DSH's own, so OAR does not remove them.
 `OAR_TEST=dsh-aimock pnpm vitest run sea-trial/vendor/dsh`. Home:
 [`sea-trial/harness/dsh-aimock.ts`](../../sea-trial/harness/dsh-aimock.ts): fresh
 HOME and DSH_HOME, a synthetic key, a loopback route. The durable-equality test
-reads the native `session.v4.jsonl.zstd` directly and compares it with the
-forwarded frames. The missing-method test inserts a plugin that strips methods from
+reads the native `session.v4.jsonl.zstd` directly, every Zstandard frame of it (Node
+24.19's one-shot decoder returns only the first, 24.22's all), and compares it with
+the forwarded frames. The missing-method test inserts a plugin that strips methods from
 real agents. Stand-in faults: `tests/dsh/`, with `tests/fixtures/fake-dsh.mjs`
 running the real bridge text over fake services.
 
+A first request on Windows carries a third user message, a `skill-catalog` system
+reminder offering the bundled `diagnose-windows-sandbox-acl` skill (seen in the CI
+trace), after the input and the runtime context, which the fixture's `lastInput` now
+skips. DSH's shell tool there is `pwsh`, not `bash`.
+
 ## Open risks
 
-Real authentication, image input, the flush timing of pending input before a crash,
-pipe backpressure with a slow host, and macOS and Windows loading are unverified. Tests
-that script POSIX commands skip on Windows, where DSH's tool is its own shell.
+Image input, the flush timing of pending input before a crash,
+pipe backpressure with a slow host, and macOS are unverified. Only the test that kills the
+process from a tool skips on Windows.

@@ -108,7 +108,7 @@ conversation replies or be counted as duplicated turns.
 DSH uses `OAR_TEST=dsh-aimock`: the real CLI with a fresh HOME and DSH_HOME and a
 loopback route, plus native vendor tests with a scripted provider for held streams,
 provider errors and native tools. It runs in Linux, macOS and Windows pull-request CI,
-pinned to 0.2.1-rc.5; its Windows and macOS loading are unverified until those jobs run.
+pinned to 0.2.1-rc.5. See [its page](../docs/runtimes/dsh.md) for what has run where.
 
 `OAR_TEST=opencode-shared` runs the session behavior suite through the real
 experimental OpenCode 2.2.5 adapter with a local provider; public production

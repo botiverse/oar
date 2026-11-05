@@ -23,7 +23,7 @@ import { fakeAgentBinary } from "../fixtures/process-tree.js";
 const dir = mkdtempSync(path.join(tmpdir(), "oar-dsh-session-"));
 const command = fakeAgentBinary(dir, [path.resolve(import.meta.dirname, "../fixtures/fake-dsh.mjs")]);
 const cwd = dir;
-afterAll(() => { rmSync(dir, { recursive: true, force: true }); });
+afterAll(() => { rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 }); });
 
 async function open(env: Readonly<Record<string, string>> = {}, options: { readonly resume?: string; readonly model?: string; readonly effort?: string } = {}): Promise<Session> {
   const session = await dshRuntime.session({ kind: "available", via: "executable", command, version: "0.2.1-rc.5" }, { cwd, env, ...options });
@@ -109,6 +109,14 @@ test("native route refusals keep their words and their class", async () => {
   expect(await failure({ FAKE_DSH_MISSING: "resolveCallConfig" }, { effort: "high" })).toMatchObject({ option: "effort", message: "This DSH does not provide resolveCallConfig(), which confirming a reasoning effort requires" });
 });
 
+test.each([["open", {}], ["resume", { resume: "11111111-1111-4111-8111-111111111111" }]])("an explicit model the runtime cannot confirm is refused on %s, never run unchecked", async (_case, options) => {
+  const refused = await failure({ FAKE_DSH_MISSING: "resolveCallConfig" }, { ...options, model: "p/bad" });
+  expect(refused).toBeInstanceOf(UnsupportedOptionError);
+  expect(refused).toMatchObject({ option: "model", message: "This DSH does not provide resolveCallConfig(), which confirming a model requires" });
+  const session = await open({ FAKE_DSH_MISSING: "resolveCallConfig" }, options);
+  await session.dispose();
+});
+
 test("a selection the runtime reports differently from the request is refused, never run", async () => {
   const model = await failure({ FAKE_DSH_MODEL: JSON.stringify({ provider: "p", model: "other" }) }, { model: "p/m" });
   expect(model).toBeInstanceOf(UnsupportedOptionError);
@@ -160,6 +168,19 @@ test("a catalog with no provider that could list is unsupported with the native 
   expect(old).toEqual({ kind: "unsupported", reason: "DSH 0.2.1-rc.4 is below the supported floor; OAR requires 0.2.1-rc.5 or later" });
 });
 
+test.each([
+  ["below the floor", "0.2.1-rc.1", "DSH 0.2.1-rc.1 is below the supported floor; OAR requires 0.2.1-rc.5 or later"],
+  ["unreadable", "nightly", 'DSH reported the unreadable version "nightly"; OAR requires 0.2.1-rc.5 or later'],
+  ["empty", "", "DSH did not report a version; OAR requires 0.2.1-rc.5 or later"],
+])("listModels reads the executable when the installation names no version: %s", async (_case, version, reason) => {
+  expect(await dshRuntime.listModels({ kind: "available", via: "executable", command }, { cwd, env: { FAKE_DSH_VERSION: version } })).toEqual({ kind: "unsupported", reason });
+});
+
+test("listModels lists when the executable it read is at the floor", async () => {
+  const listed = await dshRuntime.listModels({ kind: "available", via: "executable", command }, { cwd, env: { FAKE_DSH_VERSION: "0.2.1-rc.5" } });
+  expect(listed.kind).toBe("ok");
+});
+
 test("a line that is not protocol is a recorded frame, not a lost one", async () => {
   const session = await open({ FAKE_DSH_MODE: "stdout-noise" });
   expect(session.records().some((record) => record.kind === "frame" && record.body.type === "dsh/stdout" && JSON.stringify(record.body.native).includes("not json at all"))).toBe(true);
@@ -205,7 +226,8 @@ test("a line that is no command gets a protocol error frame, and the bridge keep
   const patch = path.join(dir, "protocol-patch.json");
   writeFileSync(bridge, dshBridgeSource);
   writeFileSync(patch, JSON.stringify([{ id: "acp", disabled: true }, { insert: [{ id: "oar-dsh-bridge", name: pathToFileURL(bridge).href }] }]));
-  const child = spawnLine(command, ["--profile", "acp", "--patch", patch], { cwd });
+  // The shim on Windows is cmd.exe: only the tree holds the node process whose cwd is this directory.
+  const child = spawnLine(command, ["--profile", "acp", "--patch", patch], { cwd, killTree: true });
   const frames: JsonRecord[] = [];
   child.onLine((line) => { frames.push(asRecord(parseJson(line)) ?? {}); });
   const until = async (type: string): Promise<JsonRecord> => {
@@ -222,9 +244,10 @@ test("a line that is no command gets a protocol error frame, and the bridge keep
     await until("ready");
     child.write("not json\n");
     child.write(`${JSON.stringify({ id: "1", method: "no-such-method" })}\n`);
+    child.write(`${JSON.stringify({ id: "3", method: "constructor" })}\n`);
     child.write(`${JSON.stringify({ id: "2", method: "dispose" })}\n`);
     await until("response");
-    expect(frames.filter((frame) => frame.type === "protocol-error").map((frame) => frame.line)).toEqual(["not json", JSON.stringify({ id: "1", method: "no-such-method" })]);
+    expect(frames.filter((frame) => frame.type === "protocol-error").map((frame) => frame.line)).toEqual(["not json", JSON.stringify({ id: "1", method: "no-such-method" }), JSON.stringify({ id: "3", method: "constructor" })]);
     expect(frames.find((frame) => frame.type === "response")).toEqual({ type: "response", id: "2", result: {} });
   } finally {
     child.kill();

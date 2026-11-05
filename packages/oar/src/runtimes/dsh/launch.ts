@@ -3,9 +3,10 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import type { SessionOptions } from "../../contracts/session.js";
 import { sessionEnvironment } from "../../shared/environment.js";
-import { spawnLineProcess, type LineProcess } from "../../shared/executable/index.js";
+import { readExecutableVersion, spawnLineProcess, type LineProcess } from "../../shared/executable/index.js";
 import { privateTempDir, type PrivateTempDir } from "../../shared/private-temp.js";
 import { dshBridgeSource } from "./bridge.js";
+import { dshVersionRefusal } from "./version.js";
 
 export interface LaunchedDsh {
   readonly child: LineProcess;
@@ -20,6 +21,11 @@ export interface LaunchedDsh {
 export function dshEnvironment(env: SessionOptions["env"]): NodeJS.ProcessEnv {
   const explicit = env?.DSH_PERMISSION_MODE;
   return { ...sessionEnvironment(env), ...(typeof explicit === "string" ? {} : { DSH_PERMISSION_MODE: "danger-full-access" }) };
+}
+
+/** Why this executable cannot run, read from the executable when the installation names no version; null at or above the floor. */
+export async function dshExecutableRefusal(command: string, version: string | undefined, env: NodeJS.ProcessEnv): Promise<string | null> {
+  return dshVersionRefusal(version ?? await readExecutableVersion(command, 15_000, undefined, env));
 }
 
 /**

@@ -1,3 +1,4 @@
+/* oxlint-disable eslint/max-lines -- One fold, one table of native shapes. */
 import assert from "node:assert/strict";
 import { expect, test } from "vitest";
 import alpha from "../../experiments/dsh-plugin/evidence/0.2.2-alpha.2.json" with { type: "json" };
@@ -174,6 +175,18 @@ test.each([
   ["INVALID_REQUEST", "invalid_request"], ["UNSUPPORTED_REASONING_EFFORT", "invalid_request"], ["SERVER", "provider"], ["PI_AI_ERROR", "unknown"], ["UNKNOWN", "unknown"],
 ])("native failure code %s is %s", (code, failure) => {
   expect(dshFailureClass({ code, message: "m" })).toBe(failure);
+});
+
+test.each(["constructor", "toString", "__proto__", "hasOwnProperty"])("a native code named %s is an unknown code, not an inherited property", (code) => {
+  expect(dshFailureClass({ code, message: "m" })).toBe("unknown");
+  expect(dshFailureClass({ code, status: 429 })).toBe("rate_limited");
+  expect(dshTurnOutcome({ kind: "error", error: { code, message: "m", status: 503 } })).toEqual({ kind: "failed", failure: "overloaded", reason: "m", status: 503 });
+});
+
+test.each(["constructor", "toString", "__proto__"])("a native session id named %s starts empty", (sessionId) => {
+  const { state, frames } = replay([durable("assistant/message", { usage: { inputTokens: 1, outputTokens: 1 } }, { sessionId })], "root");
+  expect(frames[0]?.body.events).toEqual([{ kind: "usage", usage: { tokens: { input: 1, output: 1 } } }]);
+  expect(state.sessions[sessionId]?.tokens).toEqual({ input: 1, output: 1 });
 });
 
 test("a failure without a known code falls to its reported status and never parses prose", () => {

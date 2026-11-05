@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { realpathSync } from "node:fs";
 import { setTimeout as delay } from "node:timers/promises";
 import { dshInstallation, dshRuntime, type AvailableInstallation, type RawEvent, type RuntimeEventBody, type Session, type SessionOptions } from "../../../packages/oar/src/index.js";
 import { asRecord } from "../../../packages/oar/src/shared/json.js";
@@ -6,8 +7,22 @@ import { startDshAimock, type DshAimock, type DshAimockOptions } from "../../har
 import { startDshProvider, type DshProvider, type ProviderRequest, type Reply } from "./dsh-provider.js";
 
 export const dshEnabled = process.env.OAR_TEST === "dsh-aimock";
-/** DSH's Windows tool is its own shell; these turns script POSIX commands. */
 export const posix = process.platform !== "win32";
+
+/** DSH's native shell tool here, and a command printing its working directory on one line. */
+export const nativeShell = posix
+  ? { tool: "bash", where: { description: "where", command: "pwd" } }
+  : { tool: "pwsh", where: { description: "where", command: "(Get-Location).Path" } };
+
+/** The directory a native shell printed: exact on POSIX; Windows may spell the same one with a short name. */
+export function shellDirectory(output: string): string {
+  const printed = output.trim().split(/\r?\n/u)[0] ?? "";
+  return posix ? printed : realpathSync.native(printed);
+}
+
+export function expectedDirectory(cwd: string): string {
+  return posix ? cwd : realpathSync.native(cwd);
+}
 
 export interface DshFixture {
   readonly provider: DshProvider;

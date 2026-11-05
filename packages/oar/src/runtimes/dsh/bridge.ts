@@ -106,8 +106,11 @@ function boot(ctx) {
   // Native validation before any turn; a route the runtime cannot run is refused at open.
   const validated = async (route, explicit) => {
     const llm = ctx.get("llm");
-    if (explicit.reasoningEffort !== undefined) { requireMethod(llm, "resolveCallConfig", "confirming a reasoning effort"); }
-    if ((explicit.provider !== undefined || explicit.reasoningEffort !== undefined) && typeof llm?.resolveCallConfig === "function") { await llm.resolveCallConfig(route); }
+    // An explicit request the runtime cannot check is refused, never run unchecked.
+    if (explicit.provider !== undefined) { requireMethod(llm, "resolveCallConfig", "confirming a model"); }
+    else if (explicit.reasoningEffort !== undefined) { requireMethod(llm, "resolveCallConfig", "confirming a reasoning effort"); }
+    else { return route; }
+    await llm.resolveCallConfig(route);
     return route;
   };
   const defaultRoute = () => {
@@ -220,7 +223,7 @@ function boot(ctx) {
     let request = null;
     try { request = JSON.parse(line); }
     catch (error) { write({ type: "protocol-error", error: structured(error), line }); return; }
-    if (request === null || typeof request !== "object" || typeof request.id !== "string" || typeof commands[request.method] !== "function") {
+    if (request === null || typeof request !== "object" || typeof request.id !== "string" || !Object.hasOwn(commands, request.method)) {
       write({ type: "protocol-error", error: { message: "Expected a command with an id and a known method" }, line });
       return;
     }

@@ -5,7 +5,7 @@ import { describe, expect, test } from "vitest";
 import { awaitTurnEnd } from "../../packages/oar/src/observe/turns.js";
 import { dshInstallation, dshRuntime, SessionNotFoundError, UnsupportedOptionError } from "../../packages/oar/src/index.js";
 import { DSH_MINIMUM_VERSION, compareSemver } from "../../packages/oar/src/runtimes/dsh/version.js";
-import { dshEnabled, eventsOf, nativeOf, posix, reportsSelection, say, untilCount, untilEvent, withDshFixture } from "./support/dsh-fixture.js";
+import { dshEnabled, eventsOf, expectedDirectory, nativeOf, nativeShell, reportsSelection, say, shellDirectory, untilCount, untilEvent, withDshFixture } from "./support/dsh-fixture.js";
 import { durableEvents, lastInput, toolResults } from "./support/dsh-provider.js";
 
 describe.skipIf(!dshEnabled)("DSH native sessions", () => {
@@ -40,10 +40,10 @@ describe.skipIf(!dshEnabled)("DSH native sessions", () => {
     });
   }, 60_000);
 
-  test.skipIf(!posix)("a tool turn: streamed arguments, native tool result, one copy of the text, native usage", async () => {
-    const command = { description: "where", command: "pwd" };
+  test("a tool turn: streamed arguments, native tool result, one copy of the text, native usage", async () => {
+    const command = nativeShell.where;
     await withDshFixture((request) => toolResults(request) === 0
-      ? { kind: "tool", name: "bash", arguments: command, id: "call-pwd" }
+      ? { kind: "tool", name: nativeShell.tool, arguments: command, id: "call-pwd" }
       : { kind: "say", text: "the answer", reasoning: "thinking it over" }, async ({ aimock, open }) => {
       const session = await open();
       expect(session.model().value).toBe(reportsSelection(session) ? "aimock/aimock-model" : null);
@@ -57,14 +57,14 @@ describe.skipIf(!dshEnabled)("DSH native sessions", () => {
       expect(seen.find((event) => event.kind === "turn_active")).toEqual({ kind: "turn_active", inputId });
       const tools = seen.filter((event) => event.kind === "tool_call_started" || event.kind === "tool_call_ended");
       expect(tools).toEqual([
-        { kind: "tool_call_started", callId: "call-pwd", tool: "bash", input: JSON.stringify(command) },
+        { kind: "tool_call_started", callId: "call-pwd", tool: nativeShell.tool, input: JSON.stringify(command) },
         expect.objectContaining({ kind: "tool_call_ended", callId: "call-pwd", result: "ok" }),
       ]);
       const ended = tools[1];
       assert.ok(ended?.kind === "tool_call_ended");
       const output = ended.content?.[0];
       assert.ok(output?.type === "text");
-      expect(output.text.trim().split("\n")[0]).toBe(aimock.cwd);
+      expect(shellDirectory(output.text)).toBe(expectedDirectory(aimock.cwd));
       const deltas = seen.flatMap((event) => event.kind === "tool_call_input_delta" ? [event.delta] : []);
       expect(deltas.join("")).toBe(JSON.stringify(command));
       expect(seen.flatMap((event) => event.kind === "text_delta" ? [event.text] : []).join("")).toBe("the answer");
@@ -79,8 +79,8 @@ describe.skipIf(!dshEnabled)("DSH native sessions", () => {
   }, 60_000);
 
   test("every forwarded durable event equals the native persisted log, in order", async () => {
-    await withDshFixture((request) => toolResults(request) === 0 && posix
-      ? { kind: "tool", name: "bash", arguments: { description: "where", command: "pwd" } }
+    await withDshFixture((request) => toolResults(request) === 0
+      ? { kind: "tool", name: nativeShell.tool, arguments: nativeShell.where }
       : say("the answer"), async ({ aimock, open }) => {
       const session = await open();
       const started = await session.prompt("persist me");
@@ -93,9 +93,9 @@ describe.skipIf(!dshEnabled)("DSH native sessions", () => {
     });
   }, 60_000);
 
-  test.skipIf(!posix)("resume keeps the id, the history, the saved directory and the saved model; another cwd is refused", async () => {
+  test("resume keeps the id, the history, the saved directory and the saved model; another cwd is refused", async () => {
     await withDshFixture((request) => lastInput(request).includes("WHERE") && toolResults(request) === 0
-      ? { kind: "tool", name: "bash", arguments: { description: "where", command: "pwd" } }
+      ? { kind: "tool", name: nativeShell.tool, arguments: nativeShell.where }
       : say("noted"), async ({ provider, aimock, open }) => {
       const first = await open();
       const prompted = await first.prompt("REMEMBER_MARKER");
@@ -117,7 +117,7 @@ describe.skipIf(!dshEnabled)("DSH native sessions", () => {
       assert.ok(ended?.kind === "tool_call_ended");
       const output = ended.content?.[0];
       assert.ok(output?.type === "text");
-      expect(output.text.trim().split("\n")[0]).toBe(aimock.cwd);
+      expect(shellDirectory(output.text)).toBe(expectedDirectory(aimock.cwd));
       await resumed.dispose();
     });
   }, 90_000);

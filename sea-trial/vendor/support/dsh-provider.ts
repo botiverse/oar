@@ -30,10 +30,52 @@ export interface DshProvider {
   stop(this: void): Promise<void>;
 }
 
-/** The latest input a person gave, past DSH's own runtime-context message. */
+/**
+ * The latest user message that is not DSH's own context. A first request carries the
+ * input, then a runtime-context snapshot and, where DSH has bundled skills to offer
+ * (Windows, in `skill-catalog`), a system reminder.
+ */
 export function lastInput(request: ProviderRequest): string {
-  const users = request.messages.filter((message) => message.role === "user" && !JSON.stringify(message.content).includes("Current runtime context"));
+  const users = request.messages.filter((message) => message.role === "user" && !/Current runtime context|<system-reminder>/u.test(JSON.stringify(message.content)));
   return JSON.stringify(users.at(-1)?.content ?? "");
+}
+
+/** Every Zstandard frame of a log, in order. DSH appends a frame per write, and Node's one-shot decoder reads only the first on some 24.x releases. */
+export function zstdFrames(data: Buffer): readonly Buffer[] {
+  const frames: Buffer[] = [];
+  let offset = 0;
+  while (offset < data.length) {
+    const start = offset;
+    const magic = data.readUInt32LE(offset);
+    offset += 4;
+    if ((magic & 0xFF_FF_FF_F0) >>> 0 === 0x18_4D_2A_50) {
+      offset += 4 + data.readUInt32LE(offset);
+    } else {
+      assert.equal(magic, 0xFD_2F_B5_28, `not a Zstandard frame at byte ${String(start)}`);
+      const descriptor = data.readUInt8(offset);
+      offset += 1;
+      const contentFlag = descriptor >> 6;
+      const singleSegment = (descriptor & 0x20) !== 0;
+      const contentSize = [singleSegment ? 1 : 0, 2, 4, 8][contentFlag] ?? 0;
+      offset += (singleSegment ? 0 : 1) + ([0, 1, 2, 4][descriptor & 3] ?? 0) + contentSize;
+      for (;;) {
+        const header = data.readUIntLE(offset, 3);
+        offset += 3;
+        const type = (header >> 1) & 3;
+        assert.notEqual(type, 3, `reserved Zstandard block at byte ${String(offset)}`);
+        offset += type === 1 ? 1 : header >> 3;
+        if ((header & 1) === 1) { break; }
+      }
+      if ((descriptor & 4) !== 0) { offset += 4; }
+      assert.ok(offset <= data.length, `truncated Zstandard frame at byte ${String(start)}`);
+      frames.push(data.subarray(start, offset));
+    }
+  }
+  return frames;
+}
+
+export function decompressZstd(data: Buffer): string {
+  return zstdFrames(data).map((frame) => zstdDecompressSync(frame).toString("utf8")).join("");
 }
 
 export function toolResults(request: ProviderRequest): number {
@@ -100,9 +142,14 @@ export async function startDshProvider(script: (request: ProviderRequest) => Rep
     },
     held: async () => {
       if (open.length > 0) { return; }
-      const { promise, resolve } = Promise.withResolvers<void>();
+      // A script that never holds fails here and disposes its sessions, not at the test's own limit.
+      const { promise, resolve, reject } = Promise.withResolvers<void>();
+      const timer = setTimeout(() => {
+        const last = requests.at(-1);
+        reject(new Error(`no stream was held within 20 s; last input ${last === undefined ? "none" : lastInput(last)}`));
+      }, 20_000);
       waiters.push(resolve);
-      await promise;
+      try { await promise; } finally { clearTimeout(timer); }
     },
     sent: (text) => requests.some((request) => JSON.stringify(request.messages).includes(text)),
     stop: async () => {
@@ -126,6 +173,6 @@ export async function durableEvents(dshHome: string, sessionId: string): Promise
   const names = await readdir(found);
   const log = names.find((name) => name.endsWith(".jsonl.zstd"));
   assert.ok(log !== undefined, `no durable log in ${names.join(", ")}`);
-  const text = zstdDecompressSync(await readFile(path.join(found, log))).toString("utf8");
+  const text = decompressZstd(await readFile(path.join(found, log)));
   return text.split("\n").filter((line) => line.length > 0).map((line) => asRecord(parseJson(line)) ?? {}).filter((entry) => typeof entry.type === "string" && "seq" in entry);
 }
