@@ -17,6 +17,7 @@ test("built-in registry exposes concrete ACP runtimes, not a generic ACP identit
     "claude",
     "codex",
     "codebuddy",
+    "dsh",
     "grok",
     "kimi",
     "opencode",

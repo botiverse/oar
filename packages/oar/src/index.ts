@@ -4,6 +4,7 @@ import { antigravityRuntime } from "./runtimes/antigravity/index.js";
 import { claudeRuntime } from "./runtimes/claude/index.js";
 import { codebuddyRuntime } from "./runtimes/codebuddy/index.js";
 import { codexRuntime } from "./runtimes/codex/index.js";
+import { dshRuntime } from "./runtimes/dsh/index.js";
 import { grokRuntime } from "./runtimes/grok/index.js";
 import { kimiRuntime } from "./runtimes/kimi/index.js";
 import { opencodeRuntime } from "./runtimes/opencode/index.js";
@@ -80,6 +81,7 @@ export const defaultRuntimes = new RuntimeRegistry([
   claudeRuntime,
   codexRuntime,
   codebuddyRuntime,
+  dshRuntime,
   grokRuntime,
   kimiRuntime,
   opencodeRuntime,
@@ -98,6 +100,11 @@ export { qoderListModels, projectQoderModels } from "./runtimes/qoder/list-model
 export { orient } from "./shared/orientation/index.js";
 export { userShellEnvironment } from "./shared/shell-environment.js";
 export { writeShellEnvironmentCapture } from "./shared/shell-environment-capture.js";
+
+export { dshRuntime } from "./runtimes/dsh/index.js";
+export { dshSession } from "./runtimes/dsh/session.js";
+export { dshInstallation } from "./runtimes/dsh/installation.js";
+export { DSH_MINIMUM_VERSION } from "./runtimes/dsh/version.js";
 
 export { codebuddyRuntime } from "./runtimes/codebuddy/index.js";
 export { codebuddySession } from "./runtimes/codebuddy/session.js";

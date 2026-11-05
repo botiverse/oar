@@ -42,7 +42,7 @@ function refusalMessage(reason: string | undefined, key: RefusableSessionOption)
 
 test("every declared refusal is what session() rejects with", async () => {
   const declaring = allRuntimes.list().filter((runtime) => runtime.refusedSessionOptions !== undefined);
-  assert.deepEqual(declaring.map((runtime) => runtime.id).toSorted(), ["antigravity", "claude", "codebuddy", "codex", "cursor", "grok", "kimi", "opencode", "pi", "qoder", "qwen"]);
+  assert.deepEqual(declaring.map((runtime) => runtime.id).toSorted(), ["antigravity", "claude", "codebuddy", "codex", "cursor", "dsh", "grok", "kimi", "opencode", "pi", "qoder", "qwen"]);
   for (const runtime of declaring) {
     const keys = (["systemPrompt", "appendSystemPrompt", "env", "mcpServers", "mcpServerCredentials", "disallowedTools", "launchArgs", "serviceTier", "additionalDirectories", "outputSchema", "name", "userConfiguration", "goals"] as const).filter((key) => runtime.refusedSessionOptions?.[key] !== undefined);
     for (const key of keys) {
@@ -63,6 +63,7 @@ test("the declarations say which options each runtime refuses", () => {
     codebuddy: ["additionalDirectories", "appendSystemPrompt", "goals", "name", "outputSchema", "serviceTier", "userConfiguration"],
     codex: ["userConfiguration"],
     cursor: ["appendSystemPrompt", "env", "goals", "launchArgs", "mcpServers", "name", "outputSchema", "serviceTier", "systemPrompt"],
+    dsh: ["additionalDirectories", "appendSystemPrompt", "disallowedTools", "goals", "launchArgs", "mcpServers", "name", "outputSchema", "serviceTier", "systemPrompt", "userConfiguration"],
     grok: ["additionalDirectories", "disallowedTools", "goals", "name", "serviceTier", "userConfiguration"],
     kimi: ["appendSystemPrompt", "disallowedTools", "goals", "name", "outputSchema", "serviceTier", "systemPrompt", "userConfiguration"],
     opencode: ["disallowedTools", "goals", "name", "outputSchema", "serviceTier", "userConfiguration"],
@@ -106,7 +107,7 @@ test("entries without credentials are no mcpServerCredentials given, and every r
     }, runtime.id);
   }
   const refusing = allRuntimes.list().filter((runtime) => runtime.refusedSessionOptions?.mcpServers !== undefined || runtime.refusedSessionOptions?.mcpServerCredentials !== undefined);
-  expect(refusing.map((runtime) => runtime.id).toSorted()).toEqual(["antigravity", "cursor"]);
+  expect(refusing.map((runtime) => runtime.id).toSorted()).toEqual(["antigravity", "cursor", "dsh"]);
 });
 
 // Some runtimes drop a server so named without a word (#395): every runtime
