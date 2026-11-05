@@ -177,16 +177,16 @@ export function reduceConversation(previous: ConversationState, record: RawEvent
         if (input === undefined) { updates.push({ kind: "event", event }); continue; }
         const index = event.requestId === undefined ? input.attempts.length - 1
           : input.attempts.findIndex(attempt => attempt.request.id === event.requestId && attempt.streamId === streamId);
-        if (index === -1) { updates.push({ kind: "event", event }); continue; }
+        if (index === -1 && event.requestId !== undefined) { updates.push({ kind: "event", event }); continue; }
         if (event.kind === "input_handled") {
           const disposition: InputDisposition = { kind: "handled", requestId: event.requestId, seq: record.seq, streamId };
           const attempts = input.attempts.map((attempt, i) => i === index ? { ...attempt, disposition } : attempt);
           const { turn: _turn, ...content } = input;
           publish(index === attempts.length - 1 ? { ...content, attempts, disposition } : { ...input, attempts });
+          updates.push({ kind: "event", event });
         } else {
           publishDrop(input, { attempts: index + 1, reason: event.reason });
         }
-        updates.push({ kind: "event", event });
       } else if (event.kind === "user_message" && event.inputId !== undefined) {
         const id = identity(record, event.inputId);
         const input = inputs.get(id) ?? { id, inputId: event.inputId, input: event.input, state: "untracked" as const, attempts: [], observations: [] };

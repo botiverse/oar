@@ -120,6 +120,12 @@ export const createPiSession = (project: PiProjectOptions = {}): StartSession =>
           kernel.frame({ type: "pi/prompt_rejected", native: { message: reason }, responseTo: request.id,
             events: queued ? [refusedInput(request, reason)] : [] });
           decision.resolve({ kind: "rejected", code: "runtime_refused", reason });
+        } else if (nextOwner === admission) {
+          nextOwner = null;
+          admissions.delete(request.id);
+          kernel.frame({ type: "pi/prompt_rejected", native: { message: reason }, responseTo: request.id,
+            events: [refusedInput(request, reason)] });
+          drainHeld();
         } else if (nativeOwner === admission && nativeActive) {
           nativeActive = false;
           nativeOwner = null;
@@ -155,19 +161,27 @@ export const createPiSession = (project: PiProjectOptions = {}): StartSession =>
       nativeOwner = nextOwner;
       nextOwner = null;
       projection = piPrompted(projection);
+      const aborted = nativeOwner?.abort === true || [...admissions.values()].some(admission => admission.abort);
+      for (const admission of admissions.values()) { admission.abort = false; }
       if (nativeOwner !== null) { admissions.delete(nativeOwner.request.id); }
-      if (nativeOwner?.abort === true) { nativeOwner.abort = false; void abortNative(); }
+      if (aborted) { void abortNative(); }
     }
     const extra = event.type === "agent_settled" ? { context: contextOf() } : { overflow: overflowOf(event) };
     const { state: nextProjection, commands } = foldPiEvent(projection, event, extra);
     projection = nextProjection;
     for (const command of commands) {
-      kernel.frame(command.body);
-      if (command.body.events.some((item) => item.kind === "turn_ended")) {
-        nativeActive = false;
-        nativeOwner = null;
-        drainHeld();
-      }
+      const unstarted = event.type === "agent_settled" && !nativeActive ? nextOwner : null;
+      kernel.frame(unstarted === null ? command.body : { ...command.body,
+        events: [...command.body.events, refusedInput(unstarted.request, "Pi settled before agent_start")] });
+    }
+    if (event.type === "agent_settled") {
+      if (nextOwner !== null) { admissions.delete(nextOwner.request.id); nextOwner = null; }
+      nativeActive = false;
+      nativeOwner = null;
+      // Calling prompt inside Pi's settlement emitter detaches its promise:
+      // a later refusal is then charged to the preceding run. Dispatch only
+      // after that emitter has returned, retaining this input's own result.
+      queueMicrotask(drainHeld);
     }
   });
 

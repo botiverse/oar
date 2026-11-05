@@ -8,6 +8,7 @@ type Dispatch = "start" | "handled" | "refused";
 /** Pi's preflight can await extensions, and prompt during settlement resolves before its deferred work. */
 export default function piPreflightFixture() {
   const prompts: string[] = [];
+  const commandTypes: string[] = [];
   const gates = new Map<string, PromiseWithResolvers<Dispatch>>();
   const runs: PromiseWithResolvers<void>[] = [];
   const deferred: (() => Promise<void>)[] = [];
@@ -65,6 +66,7 @@ export default function piPreflightFixture() {
     return {
       child, directory: { path: "/fixture", remove() {} }, state,
       control: { request: async (command: RpcCommand, issued?: (id: string) => void): Promise<RpcResponse> => {
+        commandTypes.push(command.type);
         const id = `fixture-${sequence++}`;
         issued?.(id);
         const response = { ...await respond(command), id };
@@ -74,7 +76,7 @@ export default function piPreflightFixture() {
       } },
     };
   };
-  return { sdk, rpc, prompts, runs, child, begin, end, settled, emit: (event: Record<string, unknown>) => { emit(event); },
+  return { sdk, rpc, prompts, commandTypes, runs, child, begin, end, settled, emit: (event: Record<string, unknown>) => { emit(event); },
     aborts: () => aborts, deferrals: () => deferrals,
     hold(input: string) { const gate = Promise.withResolvers<Dispatch>(); gates.set(input, gate); return gate; },
     holdStats() { stats = Promise.withResolvers<RpcResponse>(); return { reply: stats, entered: statsEntered.promise }; },

@@ -111,8 +111,10 @@ export const createPiRpcSession = (runtime: PiRuntimeOptions): StartSession => w
       projection = piPrompted(projection);
       const owner = nextOwner;
       nextOwner = null;
+      const aborted = owner?.abort === true || [...admissions.values()].some(admission => admission.abort);
+      for (const admission of admissions.values()) { admission.abort = false; }
       if (owner !== null) { admissions.delete(owner.request.id); }
-      if (owner?.abort === true) { void abort(); }
+      if (aborted) { fallback.arm(); void abort(); }
     }
     const overflow = event.type === "turn_end"
       ? event.message.role === "assistant" && event.message.stopReason === "error" && isContextOverflow(event.message)
@@ -129,10 +131,15 @@ export const createPiRpcSession = (runtime: PiRuntimeOptions): StartSession => w
     }
     const next = foldPiEvent(projection, event, { overflow, ...(context === undefined ? {} : { context }) });
     projection = next.state;
-    for (const command of next.commands) { kernel.frame(command.body); }
+    for (const command of next.commands) {
+      const unstarted = event.type === "agent_settled" && !nativeActive ? nextOwner : null;
+      kernel.frame(unstarted === null ? command.body : { ...command.body,
+        events: [...command.body.events, refusedInput(unstarted.request, "Pi settled before agent_start")] });
+    }
     if (event.type === "agent_settled") {
       // Abort can rearm this while stats are awaited or observers run.
       fallback.clear();
+      if (nextOwner !== null) { admissions.delete(nextOwner.request.id); nextOwner = null; }
       nativeActive = false;
       drain();
     }
@@ -198,8 +205,7 @@ export const createPiRpcSession = (runtime: PiRuntimeOptions): StartSession => w
     abort: async () => kernel.control({ kind: "abort" }, () => {
       if (compaction.busy() && !compaction.admitted()) { return { kind: "rejected", code: "busy", reason: "Pi has not yet started the compaction that abort would cancel" }; }
       if (!busy() && !compaction.busy()) { return { kind: "rejected", code: "no_active_turn", reason: "no active turn" }; }
-      fallback.arm();
-      if (nativeActive || compaction.busy()) { void abort(); } else { for (const admission of admissions.values()) { admission.abort = true; } }
+      if (nativeActive || compaction.busy()) { fallback.arm(); void abort(); } else { for (const admission of admissions.values()) { admission.abort = true; } }
       return { kind: "accepted" };
     }),
     rawEvents: (observer, cursor) => kernel.rawEvents(observer, cursor),

@@ -65,8 +65,7 @@ export function lastAgentSystem(systems: readonly string[]): string {
  * the replacement lands, where the append lands, and every fixed harness
  * addition around them).
  */
-export function scrubSystem(system: string): string {
-  const cwd = process.cwd();
+export function scrubSystem(system: string, cwd = process.cwd()): string {
   const temp = tmpdir();
   let scrubbed = system.replaceAll("\r\n", "\n").replaceAll("\r", "\n");
   // Both slash spellings of cwd/tmp appear on Windows.

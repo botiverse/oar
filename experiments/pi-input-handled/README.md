@@ -22,7 +22,7 @@ results. The original observation tests asserted the defects, not the repair.
 | --- | --- | --- |
 | Input extension handles `HANDLE` | SDK stays busy; RPC admits another prompt while status remains running. Neither makes a model request or emits a turn end. | Record handled, become idle, permit the next prompt. |
 | A runs, held HANDLE then C | SDK strands C; RPC drains it but supplies no handling record. | One logical HANDLE input, no fake turn, C runs. |
-| Extension starts EXT while B is being admitted | RPC runs B's hook, refuses B, silently loses it and clears EXT's gate. SDK defers B until after EXT. | Preserve EXT; record RPC's drop and do not repeat the hook. Keep SDK's different native result. |
+| Extension starts EXT while B is being admitted | RPC runs B's hook, refuses B, silently loses it and clears EXT's gate. SDK defers B until after EXT. | Preserve EXT; record refusal and do not repeat the hook. SDK now dispatches outside the settlement emitter, so both paths can report the native refusal. |
 | `/spawn` starts EXT and is handled | EXT inherits the command's provisional input identity. | Keep EXT active with its own content and no command `openedBy`. |
 | A runs while steer is handled | Native handling neither ends nor replaces A. | Resolve only the steer attempt; preserve A's identity and gate. |
 | `/fail` handler throws | Native still reports handled; no model turn exists. | Keep the handler error separately; handled is not completed. |
@@ -82,15 +82,22 @@ This is a public type change for the minor release after 0.88.0:
 - Only the input-scoped `awaitTurnEnd` and `turnEndAfter` overloads widen to
   `TurnOutcome | InputHandled` (plus the lookup's existing null). Unscoped
   next-turn waits keep their types and behavior. No public request selector
-  is added. An inputId wait binds the attempt at its cursor.
+  is added. An inputId wait binds the live attempt at its cursor; a cursor after
+  disposition binds the next attempt. Accepted queue withdrawal returns
+  `aborted`, and rejected dispatch returns `failed` even without a native
+  drop. These corrected waits also apply to older ACP adapter-queue logs;
+  they do not invent native turn ends.
 - `awaitIdle` resolves with null when handling leaves no remaining work; it
-  still waits for EXT or accepted queued input. An already-handled prompt
+  still waits for EXT or accepted queued input, and resolves when the final
+  held input is refused. It follows root status rather than retaining the
+  original turn's input identity. An already-handled prompt
   does not abort EXT because the caller's signal or timeout fired.
 - Hosts reading events can handle `input_handled` and request-referenced
   `input_dropped`. Pi ordinary prompt records now also include the optional
   admission field, and queue dispatch exposes its existing `carries` contract.
   The shared behavior assertions still compare the host payload exactly,
-  separately validating the declared optional admission field.
+  allowing the admission field only on Pi SDK/RPC. `SessionView.statusState`
+  is available to every runtime when the fold needs additional correlation.
 - CLI JSON output for handled input is `{ disposition: ... }`; it does not
   print a fabricated completed outcome. Arena and repository examples handle
   the new arm explicitly.
@@ -103,7 +110,7 @@ refusal ownership, not that separate native settlement window.
 ## Reproduction and validation
 
 ```sh
-CI=1 pnpm exec vitest run tests/input-handled.test.ts tests/pi/pi-turn-preflight.test.ts
+CI=1 pnpm exec vitest run tests/input-handled.test.ts tests/input-disposition-waits.test.ts tests/pi/pi-turn-preflight.test.ts tests/pi/pi-admission-failures.test.ts
 OAR_TEST=pi-aimock CI=1 pnpm exec vitest run sea-trial/vendor/pi-input-handled.vendor.test.ts
 OAR_TEST=pi-rpc-aimock CI=1 pnpm exec vitest run sea-trial/vendor/pi-input-handled.vendor.test.ts
 ```
@@ -113,19 +120,48 @@ Pi 1.4.0 executable and use `pi-rpc-aimock`. Clear an inherited
 `PI_PACKAGE_DIR`: it changes native resource lookup and is not fixture input.
 The tests install native input extensions in an isolated agent directory.
 
-Seven native cases pass on each of SDK 1.5.0, RPC 1.5.0 and RPC 1.4.0.
-Fourteen pure fold/helper cases and 34 controlled Pi cases pass, including
-full StatusState, task status and session-view checkpoints at every prefix,
-legacy logs, absent IDs, reused IDs, foreign/child receipts, cancellation,
-disposal, FIFO, and deferred SDK fulfillment. Full native vendor suites pass
-with 108 SDK and 106 RPC cases; the explicit floor's handling, preflight and
-admission subset passes 11 cases. All 14 shared behavior backends pass.
+Nine native cases now cover each of SDK 1.5.0, RPC 1.5.0 and the explicit RPC
+floor. The two additions exercise a command that starts an independent run
+after abort was accepted, and an extension that begins compaction at
+settlement while B/C are held. The latter exposed Pi's detached SDK prompt
+promise: a refusal was charged to the preceding run. SDK now dispatches after
+the native settlement emitter returns, retaining each input's own decision.
 
-Nine targeted mutations fail the relevant assertions: lose the native
-reservation; accept another request's handling; retain provisional view
-identity; borrow an unrelated end; retain handled SDK admission; omit RPC
-correlation; allow a new prompt past held input; remove the queue acceptance
-barrier; and accept SDK fulfillment before preflight. No replay snapshots
-were updated. Full check (3,233 tests and 18 mock behavior cases), build and
-clean packed-consumer validation passed on base `4fd225c8`. Cross-platform
-native results remain for the PR's CI.
+Controlled regressions also cover final-queue refusal and awaitIdle, withdrawal
+and rejected dispatch without drop frames, legacy untracked drops, cursors
+between attempts, and started receipts that settle or fail before agent_start.
+A synthetic ancestor CLAUDE.md control confirmed that native SDK context files
+survive prompt replacement. The exact prompt snapshot now opens an isolated
+working directory; its expected prompt and compaction assertions are unchanged.
+This establishes the fixture dependency, not the contents of the reviewer's
+machine.
+
+| Review boundary | Committed regression |
+| --- | --- |
+| Abort while a command waits to start EXT; RPC timer starts only at delivery | `pi-admission-failures.test.ts`, native `/spawndelay` case |
+| SDK delayed prompt refusal belongs to B, not A; C is not stranded | `pi-admission-failures.test.ts`, native settlement-compaction case |
+| Last held input is dropped; awaitIdle resolves | `input-disposition-waits.test.ts` |
+| Withdrawal or valid dispatch rejection without drop settles scoped waits | `input-disposition-waits.test.ts`, with invalid-carry negative control |
+| Legacy untracked drops and cursor after retired attempt | `input-disposition-waits.test.ts` |
+| Started receipt settles or rejects without native agent_start | `pi-admission-failures.test.ts`, no fabricated completed outcome |
+| RPC queue acceptance precedes observer-triggered dispatch | `pi-turn-preflight.test.ts` |
+
+Sixteen targeted reversions are checked against these regressions. The initial
+SDK unstarted-settlement reversion survived because a later promise rejection
+also cleaned up; an additional successful-promise/no-agent-start case closes
+that gap. The RPC acceptance barrier now has a terminal-observer queue case
+that fails when the guard is removed. The prior report's acceptance-barrier
+mutation applied only to SDK, not RPC; it did not prove both implementations.
+
+Revision validation on base `c77feca3` passed full check (3,249 tests and
+18 mock behavior cases), build, clean packed-consumer installation, all 14
+behavior backends, full native vendor suites (110 SDK / 108 RPC), and the
+13-case RPC 1.4.0 subset. Each of the 16 targeted reversions failed its
+regression. Existing replay snapshots were unchanged. Windows and macOS
+results remain for the revised pull request's CI.
+
+Simultaneous accepted queue entries sharing one inputId remain outside this
+repair: their second dispatch can be refused by carries validation, without a
+native drop receipt. The input contract already prohibits resubmitting an
+accepted logical input; use separate IDs for distinct inputs and retry only
+after ownership returns. No automatic replay was introduced.

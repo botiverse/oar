@@ -59,7 +59,15 @@ export function reduceInputAdmission(prior: InputAdmission | undefined, before: 
     (record.kind === "response" && record.requestId === admission.requestId && record.body.kind === "accepted")
     || (record.kind === "frame" && record.body.responseTo === admission.requestId && record.body.events.some(event => event.kind === "turn_active")));
   if (disposed || admitted || (status.kind === "idle" && admission?.native !== true)) { admission = undefined; }
-  if (admission === undefined) { return status; }
+  if (admission === undefined) {
+    // A started receipt may precede agent_start. A later request-scoped drop
+    // still retires that reservation, without inventing a completed turn.
+    if (status.kind === "running" && record.kind === "frame" && record.body.events.some(event =>
+      event.kind === "input_dropped" && event.requestId !== undefined && event.requestId === status.requestId)) {
+      return { kind: "idle", ...(status.pendingPrompt === undefined ? {} : { pendingPrompt: status.pendingPrompt }) };
+    }
+    return status;
+  }
   const { nativeIdle: _idle, ...pending } = admission;
   if (status.kind === "idle") {
     return { kind: "running", sinceSeq: admission.seq, requestId: admission.requestId,

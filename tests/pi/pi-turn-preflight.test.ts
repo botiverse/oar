@@ -88,12 +88,12 @@ test("RPC keeps queued dispatch after the observable terminal frame", async () =
   } finally { await f.close(); }
 });
 
-test("SDK deferred prompt fulfillment cannot accept an input before its own native preflight", async () => {
+test("SDK dispatch outside settlement cannot accept an input before its own native preflight", async () => {
   const f = await fixture("SDK"); const b = f.hold("B");
   try {
     await f.session.prompt("A"); await f.session.queue("B"); await f.session.queue("C");
     f.end(); await settle();
-    expect(f.deferrals()).toBe(1); expect(f.prompts).toEqual(["A", "B"]);
+    expect(f.deferrals()).toBe(0); expect(f.prompts).toEqual(["A", "B"]);
     const dispatch = f.session.records().find(record => record.kind === "request" && record.body.kind === "prompt" && record.body.carries !== undefined);
     expect(dispatch?.kind).toBe("request");
     expect(f.session.records().filter(record => record.kind === "response" && record.requestId === (dispatch?.kind === "request" ? dispatch.id : undefined)))
@@ -167,13 +167,20 @@ test.each(["SDK", "RPC"] as const)("Pi %s keeps terminal observer compaction beh
   } finally { await f.close(); }
 });
 
-test("SDK disposal while a held input is in preflight records no fabricated native refusal", async () => {
+test("SDK disposal preserves a later native preflight refusal without inventing a turn end", async () => {
   const f = await fixture("SDK"); const b = f.hold("B");
   try {
     await f.session.prompt("A"); await f.session.queue("B"); f.end(); await settle();
     expect(f.prompts).toEqual(["A", "B"]);
-    await f.session.dispose(); b.resolve("refused"); await settle();
-    expect(f.session.records().filter(record => record.kind === "frame" && record.body.type === "pi/prompt_rejected")).toEqual([]);
+    await f.session.dispose();
+    const releasedAt = f.session.records().at(-1)?.seq ?? -1;
+    b.resolve("refused"); await settle();
+    const late = f.session.records().filter(record => record.seq > releasedAt && record.kind === "frame");
+    expect(late).toHaveLength(1);
+    expect(late[0]).toMatchObject({ body: { type: "pi/prompt_rejected", native: { message: "native preflight refused B" },
+      events: [{ kind: "input_dropped", reason: "runtime_refused", message: "native preflight refused B" }] } });
+    expect(f.session.status().value.kind).toBe("idle");
+    expect(late.flatMap(record => record.kind === "frame" ? record.body.events.filter(event => event.kind === "turn_ended") : [])).toEqual([]);
   } finally { b.resolve("refused"); await f.close(); }
 });
 
@@ -258,6 +265,22 @@ test.each(["SDK", "RPC"] as const)("Pi %s cannot dispatch a queued input before 
     expect(atAcceptance).toEqual([["A"]]); expect(f.prompts).toEqual(["A", "B"]);
     const request = f.session.records().find(record => record.kind === "request" && record.body.kind === "queue");
     const accepted = f.session.records().find(record => record.kind === "response" && record.requestId === (request?.kind === "request" ? request.id : undefined));
+    const dispatch = f.session.records().find(record => record.kind === "request" && record.body.kind === "prompt" && record.body.carries !== undefined);
+    expect(dispatch?.seq).toBeGreaterThan(accepted?.seq ?? Infinity);
+  } finally { await f.close(); }
+});
+
+test.each(["SDK", "RPC"] as const)("Pi %s terminal-observer queue records acceptance before dispatch", async mode => {
+  const f = await fixture(mode); const queued: Promise<ControlResult>[] = []; const seen: string[][] = [];
+  try {
+    await f.session.prompt("A");
+    f.session.rawEvents(record => {
+      if (record.kind === "response" && record.body.kind === "accepted" && record.body.queued === "adapter") { seen.push([...f.prompts]); }
+    });
+    onEnd(f.session, () => { queued.push(f.session.queue("B")); });
+    f.end(); await settle(); await Promise.all(queued);
+    expect(seen).toEqual([["A"]]); expect(f.prompts).toEqual(["A", "B"]);
+    const accepted = f.session.records().find(record => record.kind === "response" && record.body.kind === "accepted" && record.body.queued === "adapter");
     const dispatch = f.session.records().find(record => record.kind === "request" && record.body.kind === "prompt" && record.body.carries !== undefined);
     expect(dispatch?.seq).toBeGreaterThan(accepted?.seq ?? Infinity);
   } finally { await f.close(); }

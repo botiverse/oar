@@ -1,3 +1,4 @@
+import { droppedOutcome, inputRequestAt, inputWait } from "./input-wait.js";
 import { initialStatus, reduceStatus } from "./agent-status.js";
 import { exitTurnOutcome, releaseTurnOutcome } from "./turn-stop.js";
 import type { ControlOutcome, InputImage, RejectionCode, Session, RawEvent, TurnOutcome } from "../contracts/session.js";
@@ -25,6 +26,8 @@ import type { ControlOutcome, InputImage, RejectionCode, Session, RawEvent, Turn
  * native input_queued until its turn_active; without that evidence, the first
  * end wins. A matching input drop resolves as aborted for interruption or
  * failed for refusal. A native handled receipt instead returns InputHandled.
+ * Accepted withdrawal of held input resolves as aborted; rejection of its
+ * recorded dispatch resolves as failed, including logs without a drop frame.
  * Requests marked admission: "native" wait for their own admission evidence,
  * excluding independent native ends while preflight is still pending.
  */
@@ -36,7 +39,7 @@ export function turnEndAfter(
   sessionId?: string,
   inputId?: string,
 ): TurnOutcome | InputHandled | null {
-  const read = turnEndReader(afterSeq, sessionId, inputId, undefined, false, inputRequestAt(records, afterSeq, sessionId, inputId));
+  const read = turnEndReader(afterSeq, sessionId, inputId, undefined, inputRequestAt(records, afterSeq, sessionId, inputId));
   for (const record of records) {
     const outcome = read(record);
     if (outcome !== null) { return outcome; }
@@ -53,65 +56,26 @@ export interface InputHandled {
   readonly seq: number;
 }
 
-function inputRequestAt(records: readonly RawEvent[], afterSeq: number, sessionId?: string, inputId?: string): string | undefined {
-  if (inputId === undefined) { return undefined; }
-  const request = records.findLast(record => record.seq <= afterSeq && record.agentPath.length === 0
-    && (sessionId === undefined || record.sessionId === sessionId) && record.kind === "request"
-    && record.direction === "toRuntime" && "input" in record.body && record.body.inputId === inputId);
-  return request?.kind === "request" ? request.id : undefined;
-}
-
 /** Keep request/response correlation across both the retained prefix and live records. */
-function turnEndReader(afterSeq: number, sessionId?: string, inputId?: string, onText?: (text: string) => void, onlyWhenIdle = false, boundRequest?: string): (record: RawEvent) => TurnOutcome | InputHandled | null {
+function turnEndReader(afterSeq: number, sessionId?: string, inputId?: string, onText?: (text: string) => void, boundRequest?: string): (record: RawEvent) => TurnOutcome | InputHandled | null {
   let status = initialStatus;
-  let waitingForInput = false;
-  let waitingForAdapter = false;
-  const nativeAdmissions = new Set<string>();
-  const attempts = new Set(boundRequest === undefined ? [] : [boundRequest]);
-  let superseded = false;
+  const input = inputWait(afterSeq, inputId, boundRequest);
   return (record) => {
     if (record.agentPath.length > 0 || (sessionId !== undefined && record.sessionId !== sessionId)) {
       return null;
     }
-    if (inputId !== undefined && record.kind === "request" && record.direction === "toRuntime" && "input" in record.body) {
-      if (attempts.size === 0 && record.seq >= afterSeq && record.body.inputId === inputId) { attempts.add(record.id); }
-      const carries = record.body.kind === "prompt" ? record.body.carries : undefined;
-      if (!superseded && carries?.some(id => id === inputId || attempts.has(id)) === true) { attempts.add(record.id); }
-      if (record.seq > afterSeq && record.body.inputId === inputId && !attempts.has(record.id)) { superseded = true; }
-      if (attempts.has(record.id) && record.body.kind === "prompt" && record.body.admission === "native") { nativeAdmissions.add(record.id); }
-    }
-    if (inputId !== undefined && record.kind === "response" && attempts.has(record.requestId)
-      && record.body.kind === "accepted") {
-      if (record.body.queued === "adapter") { waitingForAdapter = true; waitingForInput = true; }
-      else if (waitingForAdapter) { waitingForAdapter = false; waitingForInput = false; }
-    }
-    if (record.kind === "response") { nativeAdmissions.delete(record.requestId); }
-    if (record.kind === "frame" && record.body.responseTo !== undefined && record.body.events.some(event => event.kind === "turn_active")) {
-      nativeAdmissions.delete(record.body.responseTo);
-    }
+    const disposition = input.read(record);
     const previous = status;
     status = reduceStatus(previous, record, sessionId);
     if (previous.kind === "idle" && previous.released === true) {
       return record.seq > afterSeq && record.kind === "response" && record.body.kind === "exited"
         ? exitTurnOutcome(undefined, record.body.reason) : null;
     }
+    if (disposition !== null) { return disposition; }
     if (record.kind === "frame") {
       for (const event of record.body.events) {
-        if (event.kind === "input_handled" && record.seq > afterSeq
-          && ((onlyWhenIdle && status.kind === "idle") || (!onlyWhenIdle && inputId !== undefined && attempts.has(event.requestId)))) {
-          return { kind: "handled", requestId: event.requestId, ...(event.inputId === undefined ? {} : { inputId: event.inputId }), seq: record.seq };
-        }
-        if (inputId !== undefined && event.kind === "input_queued" && event.inputId === inputId) { waitingForInput = true; }
-        if (inputId !== undefined && event.kind === "turn_active" && event.inputId === inputId) { waitingForInput = false; }
-        if (inputId !== undefined && event.kind === "input_dropped" && (event.requestId === undefined ? event.inputId === inputId : attempts.has(event.requestId))) {
-          waitingForInput = false;
-          if (record.seq > afterSeq && (!onlyWhenIdle || status.kind === "idle")) {
-            return event.reason === "turn_interrupted" ? { kind: "aborted" }
-              : { kind: "failed", failure: event.failure ?? "unknown", reason: event.message ?? "runtime refused the input" };
-          }
-        }
-        if (record.seq > afterSeq && !waitingForInput && nativeAdmissions.size === 0 && event.kind === "text_delta") { onText?.(event.text); }
-        if (record.seq > afterSeq && !waitingForInput && nativeAdmissions.size === 0 && event.kind === "turn_ended" && (!onlyWhenIdle || status.kind === "idle")) { return event.outcome; }
+        if (record.seq > afterSeq && !input.waiting() && event.kind === "text_delta") { onText?.(event.text); }
+        if (record.seq > afterSeq && !input.waiting() && event.kind === "turn_ended") { return event.outcome; }
       }
     }
     if (record.seq <= afterSeq || record.kind !== "response") { return null; }
@@ -130,6 +94,7 @@ function turnEndReader(afterSeq: number, sessionId?: string, inputId?: string, o
  * queue/start evidence excludes intervening turns; explicit native admission
  * also excludes turns that finish during that input's preflight. Handled input
  * returns InputHandled. Unscoped next-turn waits keep their existing behavior.
+ * A withdrawn held input or refused dispatch also resolves its scoped wait.
  */
 export function awaitTurnEnd(session: Session, afterSeq: number, inputId?: undefined): Promise<TurnOutcome>;
 export function awaitTurnEnd(session: Session, afterSeq: number, inputId: string | undefined): Promise<TurnOutcome | InputHandled>;
@@ -139,10 +104,10 @@ export async function awaitTurnEnd(session: Session, afterSeq: number, inputId?:
 }
 
 /** One reader owns both the turn boundary and its text, including replay before subscription. */
-async function watchTurn(session: Session, afterSeq: number, inputId?: string, onText?: (text: string) => void, onlyWhenIdle = false, requestId?: string): Promise<TurnOutcome | InputHandled> {
+async function watchTurn(session: Session, afterSeq: number, inputId?: string, onText?: (text: string) => void, requestId?: string): Promise<TurnOutcome | InputHandled> {
   const { promise, resolve } = Promise.withResolvers<TurnOutcome | InputHandled>();
   let done = false;
-  const read = turnEndReader(afterSeq, session.id, inputId, onText, onlyWhenIdle, requestId ?? inputRequestAt(session.records(), afterSeq, session.id, inputId));
+  const read = turnEndReader(afterSeq, session.id, inputId, onText, requestId ?? inputRequestAt(session.records(), afterSeq, session.id, inputId));
   const unsubscribe = session.rawEvents((record) => {
     if (done) { return; }
     const outcome = read(record);
@@ -164,9 +129,26 @@ export async function awaitIdle(session: Session): Promise<TurnOutcome | null> {
   if (status.value.kind === "idle" && status.value.pendingPrompt === undefined) {
     return null;
   }
-  const inputId = status.value.pendingPrompt?.inputId ?? (status.value.kind === "running" ? status.value.inputId : undefined);
-  const outcome = await watchTurn(session, status.seq, inputId, undefined, true);
-  return outcome.kind === "handled" ? null : outcome;
+  const { promise, resolve } = Promise.withResolvers<TurnOutcome | null>();
+  let state = initialStatus;
+  const unsubscribe = session.rawEvents(record => {
+    const previous = state;
+    state = reduceStatus(state, record, session.id);
+    if (record.seq <= status.seq || record.sessionId !== session.id || record.agentPath.length > 0
+      || state.kind !== "idle" || state.pendingPrompt !== undefined) { return; }
+    if (record.kind === "frame") {
+      const ended = record.body.events.find(event => event.kind === "turn_ended");
+      const dropped = record.body.events.find(event => event.kind === "input_dropped");
+      resolve(ended?.kind === "turn_ended" ? ended.outcome : (dropped?.kind === "input_dropped" ? droppedOutcome(dropped) : null));
+      return;
+    }
+    const stop = previous.kind === "running" ? previous.stop ?? previous.pendingPrompt?.stop : previous.pendingPrompt?.stop;
+    if (record.kind === "response" && record.body.kind === "exited") { resolve(exitTurnOutcome(stop, record.body.reason)); }
+    else if (record.kind === "response" && record.body.kind === "released") { resolve(releaseTurnOutcome(stop)); }
+    else if (record.kind === "response" && record.body.kind === "rejected") { resolve({ kind: "failed", failure: "unknown", reason: record.body.reason }); }
+    else { resolve(null); }
+  }, { sessionId: session.id, afterSeq: -1 });
+  try { return await promise; } finally { unsubscribe(); }
 }
 
 export interface PromptRunOptions {
@@ -215,7 +197,7 @@ export async function promptAndWait(session: Session, input: string, options: Pr
   let text = "";
   const limit = armLimits(options);
   try {
-    const ended = watchTurn(session, result.seq, inputId, (delta) => { text += delta; }, false, result.request.id);
+    const ended = watchTurn(session, result.seq, inputId, (delta) => { text += delta; }, result.request.id);
     const first = await Promise.race([ended, limit.fired]);
     if (typeof first !== "string") {
       return first.kind === "handled" ? { kind: "handled", result, disposition: first } : { kind: "ended", result, outcome: first, text };

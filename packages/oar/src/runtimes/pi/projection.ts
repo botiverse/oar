@@ -31,20 +31,22 @@ export interface ProjectionCommand {
 }
 
 export interface PiProjectionState {
+  readonly runStarted: boolean;
   readonly reasoningHadText: boolean;
   readonly providerError: PiProviderError | undefined;
   readonly tokens: TokenTotals;
 }
 
 export const initialPiProjection: PiProjectionState = {
+  runStarted: false,
   reasoningHadText: false,
   providerError: undefined,
   tokens: noTokens,
 };
 
-/** Control plane → state: a prompt (or a drained queue input) resets the per-run accumulators; the running token total stays. */
+/** A native run start resets the per-run accumulators; the running token total stays. */
 export function piPrompted(state: PiProjectionState): PiProjectionState {
-  return { ...initialPiProjection, tokens: state.tokens };
+  return { ...initialPiProjection, runStarted: true, tokens: state.tokens };
 }
 
 /** Pi's settlement reports cancellation; preceding provider events supply error details. */
@@ -147,11 +149,12 @@ function step(state: PiProjectionState, event: AgentSessionEvent, extra: PiFoldE
       // precedes threshold compaction and auto-retries; between the two pi
       // rejects new prompts ("Cannot submit a prompt while compaction is in
       // progress"). The context read here is therefore post-compaction.
-      const events: RuntimeEventBody[] = [{ kind: "turn_ended", outcome: piRunOutcome(state, event.aborted) }];
+      const events: RuntimeEventBody[] = state.runStarted || event.aborted
+        ? [{ kind: "turn_ended", outcome: piRunOutcome(state, event.aborted) }] : [];
       if (extra.context !== undefined && extra.context !== null) {
         events.push({ kind: "usage", usage: { context: extra.context } });
       }
-      return { state: piPrompted(state), events };
+      return { state: { ...initialPiProjection, tokens: state.tokens }, events };
     }
     case "message_update":
       return foldMessageUpdate(state, event.assistantMessageEvent, extra.overflow === true);
@@ -222,7 +225,7 @@ function step(state: PiProjectionState, event: AgentSessionEvent, extra: PiFoldE
     case "message_start":
       return { state, events: event.message.role === "user" ? [{ kind: "user_message", evidence: "conversation", input: typeof event.message.content === "string" ? event.message.content : event.message.content.filter((part) => part.type === "text").map((part) => part.text).join("") }] : [] };
     case "agent_start":
-      return { state, events: [{ kind: "turn_active" }] };
+      return { state: piPrompted(state), events: [{ kind: "turn_active" }] };
     case "agent_end":
     case "turn_start":
     case "bash_execution_update":

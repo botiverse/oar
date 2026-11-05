@@ -490,10 +490,11 @@ on Pi 1.5.0, with earlier 1.4.0 observations retained in the
 ### Prompt, steering, queueing, and abort
 
 **Prompt (mapped):** `prompt()` records a request and calls
-`AgentSession.prompt(text)`. The response is `accepted` once pi emits
-`agent_start`, or `rejected` (`runtime_refused`, with pi's own message) when
-the promise rejects first (e.g. "Cannot submit a prompt while compaction is in
-progress"). The turn ends at pi's `agent_settled`, whose `turn_ended` event
+`AgentSession.prompt(text)`. The response is `accepted` on that invocation's
+native `started` or `handled` preflight receipt, or `rejected`
+(`runtime_refused`, with pi's own message) when the promise rejects first
+(e.g. "Cannot submit a prompt while compaction is in progress"). A run that
+actually emits `agent_start` ends at pi's `agent_settled`, whose `turn_ended` event
 carries completed, aborted or failed. `agent_end` is recorded but does not end
 the turn: pi runs threshold compaction and auto-retries between `agent_end`
 and `agent_settled` and refuses prompts meanwhile (pinned with the pi-aimock
@@ -519,7 +520,11 @@ verify it on Pi 1.5.0, alongside ordinary FIFO and Durable's different behavior.
 A refusal before native start clears its pending abort. After recording the
 refusal, OAR drains held work; a queued refusal records `input_dropped` on
 its SDK `pi/prompt_rejected` frame or original RPC error response, without
-inventing a turn end. RPC clears its cancellation fallback after
+inventing a turn end. SDK drains after the settlement emitter returns: calling
+`prompt` inside it would detach that input's promise and charge a later refusal
+to the preceding run. A `started` receipt followed by failure or settlement
+without `agent_start` retires the input without fabricating `completed`.
+RPC clears its cancellation fallback after
 terminal stats and synchronous observers, so an abort in either window does
 not later kill a healthy child. SDK reports disposal if the session became
 unavailable while prompt admission was pending. The
@@ -572,6 +577,8 @@ internal turn drains it (a `queue_update` with empty lists) and injects it as
 a user message, so the text lands in the same turn's final reply with one
 `turn_ended` (`steer` scenario: the final text combined the prompt's and the
 steer's words).
+The SDK's returned disposition is retained in a `pi/steer_result` frame;
+RPC retains its original response. Neither frame is a model-consumption receipt.
 
 **Queue (partial):** `queue()` uses an adapter FIFO
 (`capabilities.queue.durable: false`), because native `followUp()` continues
@@ -605,6 +612,9 @@ records `accepted` immediately; acceptance is delivery of the cancellation,
 not evidence that the turn has ended. Before Pi creates its run, OAR holds
 the abort and delivers it at `agent_start`. Callers still `awaitTurnEnd`
 before the next prompt. A late abort rejects with `no_active_turn`.
+An extension can start that run while the original input is still in preflight;
+the pending abort reaches that run too. RPC starts its fallback deadline only
+when it sends the native cancellation, not while awaiting the preflight hook.
 
 The outcome comes from **`agent_settled.aborted`** (authoritative since SDK
 1.1.0), not from OAR's request state. A native `true` produces
@@ -815,7 +825,7 @@ compaction is exposed through [the manual control](#manual-compaction); there
 is no separate abort-compaction member.
 [Native compaction][native-compaction],
 [adapter](../../packages/oar/src/runtimes/pi/session.ts),
-[vendor test](../../sea-trial/vendor/pi.vendor.test.ts).
+[vendor test](../../sea-trial/vendor/pi-system-prompt.vendor.test.ts).
 
 ### Credential echoes
 
@@ -1148,9 +1158,11 @@ eleven scenarios on a real login (`basic`, `multi-turn`, `tool-detail`,
 (`pi-upgrade-resume.ts`).
 [Vendor tests](../../sea-trial/vendor/pi.vendor.test.ts) run the real SDK
 with a scripted model (pi-aimock) for the 400 error edge, a two-round tool
-conversation, prompt configuration through threshold compaction with
-`compaction_*` in the stream, abort answered ahead of the aborted turn end,
-and context at turn end with every SDK event one record;
+conversation, abort answered ahead of the aborted turn end,
+and context at turn end with every SDK event one record. The
+[prompt configuration test](../../sea-trial/vendor/pi-system-prompt.vendor.test.ts)
+checks replacement and append through threshold compaction, using an isolated
+working directory so ancestor instructions do not change the snapshot;
 [MCP vendor tests](../../sea-trial/vendor/mcp-servers-pi.vendor.test.ts)
 cover [session MCP servers](#session-mcp-servers) and run in CI's pi-aimock
 job. The

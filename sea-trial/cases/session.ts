@@ -22,7 +22,6 @@ function rootTurnEnds(records: readonly RawEvent[]): readonly RawEvent[] {
     record.agentPath.length === 0 && record.kind === "frame" && record.body.events.some((view) => view.kind === "turn_ended"));
 }
 
-
 export const sessionCases: readonly TrialCase[] = [
   {
     id: "session.query-readbacks-carry-stream-seq",
@@ -33,7 +32,8 @@ export const sessionCases: readonly TrialCase[] = [
       const started = await accepted(session, "hello", { inputId });
       assert.ok(started.request.body.kind === "prompt");
       const { admission, ...requested } = started.request.body;
-      assert.ok([undefined, "native"].includes(admission), "only the declared admission control fact may be added");
+      const nativeAdmission = ["pi", "pi-aimock", "pi-rpc-aimock"].includes(subject.runtime.id) ? "native" : undefined;
+      assert.equal(admission, nativeAdmission, "only Pi SDK/RPC declares native input admission");
       assert.deepEqual(requested, { kind: "prompt", input: "hello", inputId }, "prompt inputId is recorded verbatim");
       await awaitTurnEnd(session, started.request.seq);
       const ordinary = await accepted(session, "without inputId");
@@ -41,7 +41,7 @@ export const sessionCases: readonly TrialCase[] = [
       assert.match(ordinary.request.body.inputId ?? "", /^[0-9a-f-]{36}$/u);
       assert.notEqual(ordinary.request.body.inputId, inputId);
       const { admission: ordinaryAdmission, ...ordinaryRequested } = ordinary.request.body;
-      assert.ok([undefined, "native"].includes(ordinaryAdmission));
+      assert.equal(ordinaryAdmission, nativeAdmission);
       assert.deepEqual(ordinaryRequested, { kind: "prompt", input: "without inputId", inputId: ordinary.request.body.inputId }, "an omitted inputId is generated");
       await awaitTurnEnd(session, ordinary.request.seq);
       const lastSeq = session.records().at(-1)?.seq ?? -1;

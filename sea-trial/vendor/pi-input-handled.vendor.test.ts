@@ -8,17 +8,17 @@ import { awaitIdle, awaitTurnEnd, promptAndWait, turnEndAfter, conversationOf, v
 import type { Session } from "../../packages/oar/src/contracts/session.js";
 import { startPiAimock } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
-import { isPiBackend, piRpc, piTestRuntime } from "./support/pi-runtime.js";
+import { isPiBackend, piTestRuntime } from "./support/pi-runtime.js";
 
 const inputId = (n: number) => `11111111-1111-4111-8111-${String(n).padStart(12, "0")}`;
-async function until(ready: () => boolean, ms = 3000) {
+async function until(ready: () => boolean | Promise<boolean>, ms = 3000) {
   const end = Date.now() + ms;
-  while (!ready() && Date.now() < end) { await sleep(10); }
+  while (!await ready() && Date.now() < end) { await sleep(10); }
   return ready();
 }
 const ends = (session: Session) => session.records().flatMap(record => record.kind === "frame"
   ? record.body.events.filter(event => event.kind === "turn_ended") : []);
-async function fixture(extension: string, hold: RegExp | null = null, latency = 30) {
+async function fixture(extension: string, hold: RegExp | null = null, latency = 30, settings?: Record<string, unknown>) {
   const requests: string[] = [];
   const gates = new Map<string, PromiseWithResolvers<void>>();
   const gate = (text: string) => {
@@ -31,7 +31,7 @@ async function fixture(extension: string, hold: RegExp | null = null, latency = 
     requests.push(text);
     await (hold?.test(text) === true ? gate(text).promise : sleep(latency));
     return { content: "reply" };
-  }); });
+  }); }, settings === undefined ? {} : { settings });
   const dir = process.env.OAR_PI_AGENT_DIR;
   if (dir === undefined) { throw new Error("Missing isolated Pi agent directory"); }
   const hooklog = path.join(dir, "handled-hooks.log");
@@ -107,17 +107,15 @@ describe.skipIf(!isPiBackend)("Pi native input dispositions", () => {
       await f.session.prompt("A", { inputId: inputId(1) });
       const queued = await f.session.queue("B", { inputId: inputId(2) });
       expect(await until(() => f.requests.includes("EXT"))).toBe(true);
-      if (piRpc) {
-        expect(await until(() => f.session.records().some(record => record.kind === "frame" && record.body.events.some(event => event.kind === "input_dropped")))).toBe(true);
-        expect(turnEndAfter(f.session.records(), queued.seq, f.session.id, inputId(2))).toMatchObject({ kind: "failed" });
-        expect([...conversationOf(f.session.records()).inputs.values()].find(input => input.inputId === inputId(2)))
-          .toMatchObject({ state: "dropped", reason: "runtime_refused" });
-      }
+      expect(await until(() => f.session.records().some(record => record.kind === "frame" && record.body.events.some(event => event.kind === "input_dropped")))).toBe(true);
+      expect(turnEndAfter(f.session.records(), queued.seq, f.session.id, inputId(2))).toMatchObject({ kind: "failed" });
+      expect([...conversationOf(f.session.records()).inputs.values()].find(input => input.inputId === inputId(2)))
+        .toMatchObject({ state: "dropped", reason: "runtime_refused" });
       expect(f.session.status().value.kind).toBe("running");
       expect(await f.session.prompt("C")).toMatchObject({ kind: "rejected", code: "busy" });
       f.gate("EXT").resolve();
       expect(await until(() => f.session.status().value.kind === "idle")).toBe(true);
-      expect(f.requests).toEqual(piRpc ? ["A", "EXT"] : ["A", "EXT", "B"]);
+      expect(f.requests).toEqual(["A", "EXT"]);
       const hooks = await f.hooks();
       expect(hooks.filter(text => text === "B")).toHaveLength(1);
       const next = await promptAndWait(f.session, "NEXT");
@@ -188,4 +186,49 @@ describe.skipIf(!isPiBackend)("Pi native input dispositions", () => {
       expect(f.session.records().some(record => record.kind === "frame" && JSON.stringify(record.body.native).includes("PROBE_HANDLER_FAILED"))).toBe(true);
     } finally { await f.close(); }
   }, 15_000);
+  test("abort accepted during a command preflight cancels the run started by that command", async () => {
+    const f = await fixture(`let done;
+      pi.on("agent_settled", () => { done?.(); });
+      pi.registerCommand("spawndelay", { description: "probe", handler: async () => {
+        note({ text: "command-entered" }); await delay(200);
+        await new Promise(resolve => { done = resolve; pi.sendUserMessage("EXT"); });
+      } });`, /^EXT$/u);
+    try {
+      const pending = promptAndWait(f.session, "/spawndelay", { inputId: inputId(1) });
+      expect(await until(async () => { const hooks = await f.hooks(); return hooks.includes("command-entered"); })).toBe(true);
+      expect(await f.session.abort()).toMatchObject({ kind: "accepted" });
+      expect(await pending).toMatchObject({ kind: "handled" });
+      expect(await until(() => f.session.status().value.kind === "idle")).toBe(true);
+      expect(ends(f.session)).toEqual([{ kind: "turn_ended", outcome: { kind: "aborted" } }]);
+      expect(f.session.records().some(record => record.kind === "response" && record.body.kind === "exited")).toBe(false);
+      expect(await promptAndWait(f.session, "NEXT")).toMatchObject({ kind: "ended", outcome: { kind: "completed" } });
+    } finally { await f.close(); }
+  }, 20_000);
+
+  test("settlement-triggered compaction refuses held inputs with their own receipts and reaches idle", async () => {
+    const f = await fixture(`let count = 0;
+      pi.on("session_before_compact", async () => { await delay(500); });
+      pi.on("agent_settled", (_event, ctx) => { if (++count === 3) ctx.compact(); });`, /^A$/u, 30,
+      { compaction: { keepRecentTokens: 10 } });
+    try {
+      await promptAndWait(f.session, `history one ${"padding ".repeat(400)}`);
+      await promptAndWait(f.session, `history two ${"padding ".repeat(400)}`);
+      await f.session.prompt("A");
+      expect(await until(() => f.requests.includes("A"))).toBe(true);
+      const b = await f.session.queue("B", { inputId: inputId(2) });
+      await f.session.queue("C", { inputId: inputId(3) });
+      const idle = awaitIdle(f.session);
+      const rejected = awaitTurnEnd(f.session, b.seq, inputId(2));
+      f.gate("A").resolve();
+      expect(await rejected).toMatchObject({ kind: "failed" });
+      await idle;
+      expect(await until(() => f.session.status().value.kind === "idle")).toBe(true);
+      expect([...conversationOf(f.session.records()).inputs.values()].find(input => input.inputId === inputId(2)))
+        .toMatchObject({ state: "dropped", reason: "runtime_refused" });
+      expect(f.requests).not.toContain("B");
+      expect(await until(() => f.session.records().some(record => record.kind === "frame" && record.body.type === "compaction_end"))).toBe(true);
+      expect(await promptAndWait(f.session, "NEXT")).toMatchObject({ kind: "ended", outcome: { kind: "completed" } });
+    } finally { await f.close(); }
+  }, 20_000);
+
 });

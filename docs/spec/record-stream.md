@@ -457,6 +457,9 @@ Further rules:
   ownership, and pass it unchanged when continuing the fold.
   `statusValue` and `Session.status()` expose only the display `AgentStatus`,
   which cannot replace that checkpoint ([details](manual-compaction.md#ownership-records-and-state)).
+  `SessionView.statusState` is shared by all runtimes and appears when the
+  fold needs this additional correlation, including sessions without input
+  disposition events; `SessionView.status` remains the display value.
   Flat events alone omit accepted controls; feed
   records to the session view for this classification.
 - **Spawned processes belong to the host's lifetime.** One synchronous Node
@@ -655,7 +658,7 @@ interface RequestRecord extends RecordEnvelope {
   kind: "request";
   id: string;
   direction: "toRuntime" | "toApp";
-  body: RequestBody;            // open {placement} | prompt {input, inputId?, images?, origin?, carries?} | steer | queue {input, inputId?, images?, origin?} | withdraw {inputId} | abort | compact {settledBy?: "native_response"} | dispose | goal_set {options} | goal_read | goal_clear | native {type, native} (toApp, verbatim)
+  body: RequestBody;            // open {placement} | prompt {input, inputId?, images?, origin?, carries?, admission?: "native"} | steer | queue {input, inputId?, images?, origin?} | withdraw {inputId} | abort | compact {settledBy?: "native_response"} | dispose | goal_set {options} | goal_read | goal_clear | native {type, native} (toApp, verbatim)
 }
 
 interface ResponseRecord extends RecordEnvelope {
@@ -856,7 +859,9 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   OpenCode v2 child attribution. The source frame carries both endpoints;
   `graphOf` deduplicates repeated edges without changing the records.
 
-- `turn_active`: codex `turn/started`, dsh's native inbox claim or empty `turn/start`, pi `agent_start`, Pi Durable's
+- `turn_active`: codex `turn/started`, dsh's native inbox claim or empty
+  `turn/start`, Pi `agent_start` and per-input
+  `started` admission receipts (SDK `preflightResult`, RPC prompt response), Pi Durable's
   adopted conversation activity, qwen's root `system/init` for its sole
   submitted input, and claude `system/init` when the root starts a turn on
   its own ([per runtime](runtime-matrix.md#native-active-turns)). An optional
@@ -881,7 +886,8 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   acceptance, model consumption and turn completion. Pi SDK/RPC report it
   from native prompt and steer dispositions; [details](#native-input-disposition).
 - `input_dropped`: native evidence that the input was interrupted before
-  delivery, or refused. Only `reason: "runtime_refused"` permits optional
+  delivery, or refused. `inputId` is optional when `requestId` identifies the
+  attempt; at least one identifier is required. Only `reason: "runtime_refused"` permits optional
   `failure` and `message`. Input-scoped waits use them for the failed outcome;
   absent fields yield `unknown` / `runtime refused the input`. An interruption
   yields `aborted`. See [dropped input](conversation.md#dropped-input).
@@ -1198,6 +1204,16 @@ queue input returns ownership with `reason: "runtime_refused"`; it does not
 automatically replay an input hook that might already have caused effects.
 Receipts affect only their delivery attempt, including when an input ID is
 reused. Old records with input IDs remain readable.
+
+Input-scoped waits bind the live attempt at their cursor, or the next attempt
+when that cursor is after the prior attempt's disposition. Accepted withdrawal
+of adapter-held input resolves as `aborted`; rejection of its recorded dispatch
+resolves as `failed`, even in older logs with no native drop frame. An invalid
+carry claim cannot settle the original input's wait; a rejected carry attempt
+alone also does not retire the original adapter queue ownership. These are
+control outcomes for the wait, not synthetic native turn ends. `awaitIdle`
+follows the session's status through all held inputs, including a final native
+drop, rather than remaining bound to the turn that was active when called.
 
 The complete `StatusState` checkpoint retains provisional admissions separately
 from observed native activity. Handling one input leaves another native run
