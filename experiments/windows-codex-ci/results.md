@@ -118,8 +118,8 @@ not evidence that the DSH change caused a Codex regression.
 
 The temporary workflow has moved out of `.github/workflows`. Both shared
 Codex fixture files are restored byte-for-byte to the pre-experiment commit
-`6e7fe8b9`; the logger and its existing tests now refer only to the experiment
-helper. Ordinary CI, product code, case assertions, case/native deadlines and
+`6e7fe8b9`. The logger remains an experiment helper, and its four
+regular-suite tests have been removed. Ordinary CI, product code, case assertions, case/native deadlines and
 the eight-session test are unchanged.
 
 The scripts, archived workflow and selected results remain here. Full
@@ -129,7 +129,7 @@ first-round downloads; GitHub's archive retention is finite, so the selected
 evidence is also committed. No further Windows round was started for cleanup.
 
 Cleanup validation on Linux with Codex 0.167.0 and the local provider passed:
-3,627 unit tests, 18 mock behavior cases, all 77 Codex vendor checks and
+3,623 unit tests, 18 mock behavior cases, all 77 Codex vendor checks and
 16 Codex behavior cases (3 unsupported cases skipped). The results selector
 reproduced the committed JSON byte-for-byte. [Validation metadata](validation.json)
 keeps these separate from the earlier instrumented controls and Windows round.
