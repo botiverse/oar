@@ -16,9 +16,10 @@ pass. OAR adds no delay between turns. A future transport change requires both
 a fixed native reproduction and a capability comparison, not just an upstream
 version change. [Official ACP documentation](https://www.codebuddy.ai/docs/cli/acp).
 
-Current check: **2.179.3** (Linux x64, 2026-11-03): all 16 applicable
-behavior cases and five native vendor cases passed against local providers
-([daily evidence](../../experiments/runtime-version-checks/2026-11-03.md#codebuddy-21793)).
+Current check: **2.181.0** (Linux x64, 2026-11-06): all 16 applicable
+behavior cases and six native vendor cases passed against local providers
+([daily evidence](../../experiments/runtime-version-checks/2026-11-06.md#codebuddy-21810)).
+CI remains pinned to 2.179.3.
 Unless marked otherwise, evidence below identifies CodeBuddy 2.178.1, Linux
 x64 local-provider tests and Linux arm64 international-account tests on
 2026-10-29; account observations remain on 2.178.1. These are observation
@@ -193,6 +194,14 @@ checked with a synthetic native process; these checks do not stand in for a
 real account login.
 
 ## Consecutive-prompt evidence and transport choice
+
+[env] On 2.181.0 (Linux x64, November 6), two of three immediate stream-json
+samples duplicated the second input; the third timed out after the first
+result. Three one-second-delay controls returned one request per input. The
+immediate ACP control completed both turns, with one conversation request
+per input and two separate title requests. These local-provider results do
+not extend the account observations below.
+[Selected results](../../experiments/runtime-version-checks/2026-11-06.md#codebuddy-21810).
 
 [env] The unchanged standalone stream-json reproduction returned
 `first, second, second` in all three immediate runs, and `first, second` in

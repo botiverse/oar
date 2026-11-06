@@ -1,0 +1,2761 @@
+{
+  "checkedAt": "2026-11-06T17:03:29.973Z",
+  "platform": "linux-x64",
+  "node": "24.19.0",
+  "oarBase": "5f63848a86d7dba9275e272622eda1ce6db7bb76",
+  "provider": "local scripted, no real account",
+  "inventory": [
+    {
+      "runtime": "antigravity",
+      "source": "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app/manifests/linux_amd64.json",
+      "latest": "1.5.2",
+      "installed": "1.5.0",
+      "installation": "available",
+      "status": "different"
+    },
+    {
+      "runtime": "claude",
+      "source": "https://registry.npmjs.org/@anthropic-ai/claude-code/latest",
+      "latest": "2.1.319",
+      "installed": "2.1.318",
+      "installation": "available",
+      "status": "different"
+    },
+    {
+      "runtime": "codex",
+      "source": "https://registry.npmjs.org/@openai/codex/latest",
+      "latest": "0.167.0",
+      "installed": "0.167.0",
+      "installation": "available",
+      "status": "current"
+    },
+    {
+      "runtime": "cursor",
+      "source": "https://registry.npmjs.org/@cursor/sdk/latest",
+      "latest": "1.3.1",
+      "installed": "1.2.0",
+      "installation": "available",
+      "status": "different"
+    },
+    {
+      "runtime": "dsh",
+      "source": "https://registry.npmjs.org/@deepseek-ai/dsh/latest",
+      "latest": "0.2.2-rc.1",
+      "installed": "0.2.2-rc.1",
+      "installation": "available",
+      "status": "current"
+    },
+    {
+      "runtime": "grok",
+      "source": "https://x.ai/cli/stable",
+      "latest": "1.0.77",
+      "installed": "1.0.77",
+      "installation": "available",
+      "status": "current"
+    },
+    {
+      "runtime": "kimi",
+      "source": "https://registry.npmjs.org/@moonshot-ai/kimi-code/latest",
+      "latest": "2.5.2",
+      "installed": "2.5.0",
+      "installation": "available",
+      "status": "different"
+    },
+    {
+      "runtime": "opencode",
+      "line": "v1",
+      "source": "https://registry.npmjs.org/opencode-ai/latest",
+      "latest": "1.19.5",
+      "installed": "1.18.30",
+      "installation": "available",
+      "status": "different"
+    },
+    {
+      "runtime": "opencode",
+      "line": "v2",
+      "source": "https://registry.npmjs.org/@opencode/cli/latest",
+      "latest": "2.2.5",
+      "installed": "1.18.30",
+      "installation": "available",
+      "status": "other_release_line"
+    },
+    {
+      "runtime": "codebuddy",
+      "source": "https://registry.npmjs.org/@tencent-ai/codebuddy-code/latest",
+      "latest": "2.181.0",
+      "installed": "2.173.0",
+      "installation": "available",
+      "status": "different"
+    },
+    {
+      "runtime": "qoder",
+      "source": "https://registry.npmjs.org/@qoder-ai/qodercli/latest",
+      "latest": "1.1.84",
+      "installed": "1.1.83",
+      "installation": "available",
+      "status": "different"
+    },
+    {
+      "runtime": "qwen",
+      "source": "https://registry.npmjs.org/@qwen-code/qwen-code/latest",
+      "latest": "0.26.9",
+      "installed": "0.26.7",
+      "installation": "available",
+      "status": "different"
+    },
+    {
+      "runtime": "pi",
+      "source": "https://registry.npmjs.org/@earendil-works/pi-coding-agent/latest",
+      "latest": "1.5.0",
+      "installed": "1.5.0",
+      "installation": "available",
+      "status": "current"
+    },
+    {
+      "runtime": "pi-durable",
+      "source": "https://registry.npmjs.org/@earendil-works/pi-durable/latest",
+      "latest": "1.5.0",
+      "installed": "1.4.0",
+      "installation": "host_supplied",
+      "status": "different"
+    }
+  ],
+  "checks": {
+    "antigravity": {
+      "version": "1.5.2",
+      "behavior": {
+        "passed": 17,
+        "failed": 0,
+        "skipped": 2
+      },
+      "vendor": {
+        "passed": 12,
+        "failed": 0
+      }
+    },
+    "claude": {
+      "version": "2.1.319",
+      "behavior": {
+        "passed": 17,
+        "failed": 0,
+        "skipped": 2
+      },
+      "vendor": {
+        "passed": 80,
+        "failed": 2
+      },
+      "afterSeparatePR674": {
+        "head": "2c69d27e5a789bda287c5c77951d66756ecc6af9",
+        "vendorPassed": 84,
+        "vendorFailed": 0,
+        "browserLoginControlsPassed": 3
+      }
+    },
+    "kimi": {
+      "version": "2.5.2",
+      "behavior": {
+        "passed": 15,
+        "failed": 0,
+        "skipped": 4
+      },
+      "vendor": {
+        "passed": 11,
+        "failed": 1
+      },
+      "localLogin": {
+        "passed": 5,
+        "initialRunExcluded": "one test could not import the unbuilt dist/agents/index.js; built both OAR packages and reran"
+      }
+    },
+    "codebuddy": {
+      "version": "2.181.0",
+      "behavior": {
+        "passed": 16,
+        "failed": 0,
+        "skipped": 3
+      },
+      "vendor": {
+        "passed": 6,
+        "failed": 0
+      }
+    },
+    "qwen": {
+      "version": "0.26.9",
+      "behavior": {
+        "passed": 16,
+        "failed": 0,
+        "skipped": 3
+      },
+      "vendor": {
+        "passed": 19,
+        "failed": 0
+      }
+    },
+    "qoder": {
+      "version": "1.1.84",
+      "behavior": {
+        "passed": 12,
+        "failed": 5,
+        "skipped": 2
+      },
+      "vendor": {
+        "passed": 4,
+        "failed": 10
+      },
+      "loginUnitPassed": 8
+    }
+  },
+  "antigravity": {
+    "ciPin": "1.5.0",
+    "manifest": {
+      "version": "1.5.2",
+      "url": "https://storage.googleapis.com/antigravity-public/antigravity-cli/1.5.2-4951595792859136/linux-x64/cli_linux_x64.tar.gz",
+      "sha512": "aa876c0813572efaf85ed47983cc937414705d40490cbdb54f6e255656a4f8744ae38e457823e924fa8270b348124e0521d3cda3fec6824bb2d14b98a7a05baa"
+    }
+  },
+  "codebuddy": {
+    "streamDelay0": [
+      {
+        "delayMs": 0,
+        "initialized": true,
+        "results": 2,
+        "requests": [
+          {
+            "number": 1,
+            "prompt": "first"
+          },
+          {
+            "number": 2,
+            "prompt": "second"
+          },
+          {
+            "number": 3,
+            "prompt": "second"
+          }
+        ],
+        "timedOut": false,
+        "exitCode": 0,
+        "signal": null
+      },
+      {
+        "delayMs": 0,
+        "initialized": true,
+        "results": 2,
+        "requests": [
+          {
+            "number": 1,
+            "prompt": "first"
+          },
+          {
+            "number": 2,
+            "prompt": "second"
+          },
+          {
+            "number": 3,
+            "prompt": "second"
+          }
+        ],
+        "timedOut": false,
+        "exitCode": 0,
+        "signal": null
+      },
+      {
+        "delayMs": 0,
+        "initialized": true,
+        "results": 1,
+        "requests": [
+          {
+            "number": 1,
+            "prompt": "first"
+          }
+        ],
+        "timedOut": true,
+        "exitCode": null,
+        "signal": "SIGTERM"
+      }
+    ],
+    "streamDelay1000": [
+      {
+        "delayMs": 1000,
+        "initialized": true,
+        "results": 2,
+        "requests": [
+          {
+            "number": 1,
+            "prompt": "first"
+          },
+          {
+            "number": 2,
+            "prompt": "second"
+          }
+        ],
+        "timedOut": false,
+        "exitCode": 0,
+        "signal": null
+      },
+      {
+        "delayMs": 1000,
+        "initialized": true,
+        "results": 2,
+        "requests": [
+          {
+            "number": 1,
+            "prompt": "first"
+          },
+          {
+            "number": 2,
+            "prompt": "second"
+          }
+        ],
+        "timedOut": false,
+        "exitCode": 0,
+        "signal": null
+      },
+      {
+        "delayMs": 1000,
+        "initialized": true,
+        "results": 2,
+        "requests": [
+          {
+            "number": 1,
+            "prompt": "first"
+          },
+          {
+            "number": 2,
+            "prompt": "second"
+          }
+        ],
+        "timedOut": false,
+        "exitCode": 0,
+        "signal": null
+      }
+    ],
+    "acpImmediate": {
+      "pass": true,
+      "protocol": "acp",
+      "delayMs": 0,
+      "initialized": true,
+      "results": 2,
+      "stopReasons": [
+        "end_turn",
+        "end_turn"
+      ],
+      "requests": [
+        {
+          "number": 1,
+          "prompt": "first",
+          "purpose": "title",
+          "model": "deepseek-flash",
+          "stream": true
+        },
+        {
+          "number": 2,
+          "prompt": "first",
+          "purpose": "conversation",
+          "model": "deepseek-flash",
+          "stream": true
+        },
+        {
+          "number": 3,
+          "prompt": "first",
+          "purpose": "title",
+          "model": "deepseek-flash",
+          "stream": true
+        },
+        {
+          "number": 4,
+          "prompt": "second",
+          "purpose": "conversation",
+          "model": "deepseek-flash",
+          "stream": true
+        }
+      ],
+      "updates": [
+        "config_option_update",
+        "available_commands_update",
+        "session_info_update",
+        "session_info_update",
+        "session_info_update",
+        "session_info_update",
+        "available_commands_update",
+        "session_info_update",
+        "session_info_update",
+        "agent_message_chunk",
+        "session_info_update",
+        "session_info_update",
+        "available_commands_update",
+        "session_info_update",
+        "session_info_update",
+        "session_info_update",
+        "session_info_update",
+        "session_info_update",
+        "session_info_update",
+        "session_info_update",
+        "session_info_update",
+        "agent_message_chunk",
+        "session_info_update",
+        "session_info_update",
+        "session_info_update",
+        "session_info_update"
+      ],
+      "errors": [],
+      "timedOut": false,
+      "exitCode": null,
+      "signal": "SIGTERM"
+    },
+    "standaloneSha256": "d8a983f0866ea6494223cdce09f969013b714e65898d607f0206b9bd4eb2c922"
+  },
+  "opencode": {
+    "coldResumes": {
+      "version": "opencode v2.2.5",
+      "provider": "local scripted",
+      "results": [
+        {
+          "transport": "stdio",
+          "round": 0,
+          "resumed": false,
+          "outcome": "completed",
+          "echoReceived": true,
+          "tools": [
+            "edit",
+            "glob",
+            "grep",
+            "question",
+            "read",
+            "shell",
+            "skill",
+            "subagent",
+            "webfetch",
+            "websearch",
+            "write",
+            "execute"
+          ],
+          "catalogNoticeCount": 1,
+          "lastNoticeMentionsEcho": true,
+          "lastNoticeSaysRemoved": false
+        },
+        {
+          "transport": "stdio",
+          "round": 1,
+          "resumed": true,
+          "outcome": "completed",
+          "echoReceived": false,
+          "tools": [
+            "edit",
+            "glob",
+            "grep",
+            "question",
+            "read",
+            "shell",
+            "skill",
+            "subagent",
+            "webfetch",
+            "websearch",
+            "write",
+            "execute"
+          ],
+          "catalogNoticeCount": 2,
+          "lastNoticeMentionsEcho": true,
+          "lastNoticeSaysRemoved": true
+        },
+        {
+          "transport": "stdio",
+          "round": 2,
+          "resumed": true,
+          "outcome": "completed",
+          "echoReceived": false,
+          "tools": [
+            "edit",
+            "glob",
+            "grep",
+            "question",
+            "read",
+            "shell",
+            "skill",
+            "subagent",
+            "webfetch",
+            "websearch",
+            "write",
+            "execute"
+          ],
+          "catalogNoticeCount": 4,
+          "lastNoticeMentionsEcho": true,
+          "lastNoticeSaysRemoved": true
+        },
+        {
+          "transport": "stdio",
+          "round": 3,
+          "resumed": true,
+          "outcome": "completed",
+          "echoReceived": false,
+          "tools": [
+            "edit",
+            "glob",
+            "grep",
+            "question",
+            "read",
+            "shell",
+            "skill",
+            "subagent",
+            "webfetch",
+            "websearch",
+            "write",
+            "execute"
+          ],
+          "catalogNoticeCount": 6,
+          "lastNoticeMentionsEcho": true,
+          "lastNoticeSaysRemoved": true
+        },
+        {
+          "transport": "http",
+          "round": 0,
+          "resumed": false,
+          "outcome": "completed",
+          "echoReceived": true,
+          "tools": [
+            "edit",
+            "glob",
+            "grep",
+            "question",
+            "read",
+            "shell",
+            "skill",
+            "subagent",
+            "webfetch",
+            "websearch",
+            "write",
+            "execute"
+          ],
+          "catalogNoticeCount": 1,
+          "lastNoticeMentionsEcho": true,
+          "lastNoticeSaysRemoved": false
+        },
+        {
+          "transport": "http",
+          "round": 1,
+          "resumed": true,
+          "outcome": "completed",
+          "echoReceived": false,
+          "tools": [
+            "edit",
+            "glob",
+            "grep",
+            "question",
+            "read",
+            "shell",
+            "skill",
+            "subagent",
+            "webfetch",
+            "websearch",
+            "write",
+            "execute"
+          ],
+          "catalogNoticeCount": 2,
+          "lastNoticeMentionsEcho": true,
+          "lastNoticeSaysRemoved": true
+        },
+        {
+          "transport": "http",
+          "round": 2,
+          "resumed": true,
+          "outcome": "completed",
+          "echoReceived": false,
+          "tools": [
+            "edit",
+            "glob",
+            "grep",
+            "question",
+            "read",
+            "shell",
+            "skill",
+            "subagent",
+            "webfetch",
+            "websearch",
+            "write",
+            "execute"
+          ],
+          "catalogNoticeCount": 4,
+          "lastNoticeMentionsEcho": true,
+          "lastNoticeSaysRemoved": true
+        },
+        {
+          "transport": "http",
+          "round": 3,
+          "resumed": true,
+          "outcome": "completed",
+          "echoReceived": false,
+          "tools": [
+            "edit",
+            "glob",
+            "grep",
+            "question",
+            "read",
+            "shell",
+            "skill",
+            "subagent",
+            "webfetch",
+            "websearch",
+            "write",
+            "execute"
+          ],
+          "catalogNoticeCount": 6,
+          "lastNoticeMentionsEcho": true,
+          "lastNoticeSaysRemoved": true
+        }
+      ]
+    },
+    "finalScriptSmoke": {
+      "version": "opencode v2.2.5",
+      "provider": "local scripted",
+      "results": [
+        {
+          "transport": "stdio",
+          "round": 0,
+          "resumed": false,
+          "outcome": "completed",
+          "echoReceived": true,
+          "tools": [
+            "edit",
+            "glob",
+            "grep",
+            "question",
+            "read",
+            "shell",
+            "skill",
+            "subagent",
+            "webfetch",
+            "websearch",
+            "write",
+            "execute"
+          ],
+          "catalogNoticeCount": 1,
+          "lastNoticeMentionsEcho": true,
+          "lastNoticeSaysRemoved": false
+        },
+        {
+          "transport": "stdio",
+          "round": 1,
+          "resumed": true,
+          "outcome": "completed",
+          "echoReceived": false,
+          "tools": [
+            "edit",
+            "glob",
+            "grep",
+            "question",
+            "read",
+            "shell",
+            "skill",
+            "subagent",
+            "webfetch",
+            "websearch",
+            "write",
+            "execute"
+          ],
+          "catalogNoticeCount": 2,
+          "lastNoticeMentionsEcho": true,
+          "lastNoticeSaysRemoved": true
+        },
+        {
+          "transport": "http",
+          "round": 0,
+          "resumed": false,
+          "outcome": "completed",
+          "echoReceived": true,
+          "tools": [
+            "edit",
+            "glob",
+            "grep",
+            "question",
+            "read",
+            "shell",
+            "skill",
+            "subagent",
+            "webfetch",
+            "websearch",
+            "write",
+            "execute"
+          ],
+          "catalogNoticeCount": 1,
+          "lastNoticeMentionsEcho": true,
+          "lastNoticeSaysRemoved": false
+        },
+        {
+          "transport": "http",
+          "round": 1,
+          "resumed": true,
+          "outcome": "completed",
+          "echoReceived": false,
+          "tools": [
+            "edit",
+            "glob",
+            "grep",
+            "question",
+            "read",
+            "shell",
+            "skill",
+            "subagent",
+            "webfetch",
+            "websearch",
+            "write",
+            "execute"
+          ],
+          "catalogNoticeCount": 2,
+          "lastNoticeMentionsEcho": true,
+          "lastNoticeSaysRemoved": true
+        }
+      ]
+    },
+    "initialSessionSeedTurn": true,
+    "seedTtftMs": 250,
+    "resumedSessionSeedTurn": false
+  },
+  "qoder": {
+    "catalog": {
+      "version": "1.1.84",
+      "syntheticReplay": true,
+      "requested": "efficient",
+      "rows": [
+        {
+          "fetchStrategy": "cache",
+          "initModel": "Efficient",
+          "selected": {
+            "keys": [
+              "availableContextWindows",
+              "defaultContextWindow",
+              "description",
+              "displayName",
+              "format",
+              "isEnabled",
+              "isVl",
+              "maxInputTokens",
+              "modelId",
+              "priceFactor",
+              "serverScene",
+              "source",
+              "strategies",
+              "value"
+            ],
+            "value": "efficient",
+            "modelId": "efficient",
+            "displayName": "Efficient",
+            "nativeName": null
+          }
+        },
+        {
+          "fetchStrategy": "live",
+          "initModel": "Efficient",
+          "selected": {
+            "keys": [
+              "availableContextWindows",
+              "defaultContextWindow",
+              "description",
+              "displayName",
+              "format",
+              "isEnabled",
+              "isVl",
+              "maxInputTokens",
+              "modelId",
+              "priceFactor",
+              "serverScene",
+              "source",
+              "strategies",
+              "value"
+            ],
+            "value": "efficient",
+            "modelId": "efficient",
+            "displayName": "Efficient",
+            "nativeName": null
+          }
+        }
+      ],
+      "opened": {
+        "kind": "opened",
+        "model": "Efficient"
+      }
+    },
+    "permissionReplay": {
+      "subtype": "error_during_execution",
+      "error": "inference.remoteChat.stream failed: HTTP 500: Internal Server Error",
+      "permissionRequests": 0,
+      "permissionReplies": 0,
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "has10500Field": false
+    }
+  },
+  "qwen": {
+    "catalog": {
+      "wire": {
+        "fresh": {
+          "permissionRequests": 0
+        },
+        "resume": {
+          "permissionRequests": 0
+        }
+      },
+      "phases": [
+        {
+          "resumed": false,
+          "initialize": {
+            "subtype": "success"
+          },
+          "first": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "native answer"
+          },
+          "second": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "native answer"
+          },
+          "interrupted": {
+            "subtype": "error_during_execution",
+            "is_error": true,
+            "result": null
+          },
+          "afterAbort": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "slow answer"
+          }
+        },
+        {
+          "resumed": true,
+          "initialize": {
+            "subtype": "success"
+          },
+          "first": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "native answer"
+          },
+          "second": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "native answer"
+          },
+          "interrupted": {
+            "subtype": "error_during_execution",
+            "is_error": true,
+            "result": null
+          },
+          "afterAbort": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "slow answer"
+          }
+        }
+      ]
+    },
+    "permission": {
+      "wire": {
+        "fresh": {
+          "permissionRequests": 1
+        },
+        "resume": {
+          "permissionRequests": 1
+        }
+      },
+      "phases": [
+        {
+          "resumed": false,
+          "initialize": {
+            "subtype": "success"
+          },
+          "mcp": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "tool completed"
+          },
+          "first": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "native answer"
+          },
+          "second": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "native answer"
+          },
+          "interrupted": {
+            "subtype": "error_during_execution",
+            "is_error": true,
+            "result": null
+          },
+          "afterAbort": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "slow answer"
+          }
+        },
+        {
+          "resumed": true,
+          "initialize": {
+            "subtype": "success"
+          },
+          "mcp": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "tool completed"
+          },
+          "first": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "native answer"
+          },
+          "second": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "native answer"
+          },
+          "interrupted": {
+            "subtype": "error_during_execution",
+            "is_error": true,
+            "result": null
+          },
+          "afterAbort": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "slow answer"
+          }
+        }
+      ]
+    },
+    "plain": {
+      "wire": {
+        "fresh": {
+          "permissionRequests": 0
+        },
+        "resume": {
+          "permissionRequests": 0
+        }
+      },
+      "phases": [
+        {
+          "resumed": false,
+          "initialize": {
+            "subtype": "success"
+          },
+          "first": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "native answer"
+          },
+          "second": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "native answer"
+          },
+          "interrupted": {
+            "subtype": "error_during_execution",
+            "is_error": true,
+            "result": null
+          },
+          "afterAbort": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "slow answer"
+          }
+        },
+        {
+          "resumed": true,
+          "initialize": {
+            "subtype": "success"
+          },
+          "first": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "native answer"
+          },
+          "second": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "native answer"
+          },
+          "interrupted": {
+            "subtype": "error_during_execution",
+            "is_error": true,
+            "result": null
+          },
+          "afterAbort": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "slow answer"
+          }
+        }
+      ]
+    },
+    "reply-blocks": {
+      "wire": {
+        "fresh": {
+          "permissionRequests": 0,
+          "firstTurn": {
+            "messageStarts": 1,
+            "blockStarts": [
+              {
+                "index": 0,
+                "type": "thinking"
+              },
+              {
+                "index": 0,
+                "type": "text"
+              }
+            ],
+            "snapshots": [
+              {
+                "types": [
+                  "thinking"
+                ],
+                "matchesInitialMessageId": true
+              },
+              {
+                "types": [
+                  "text"
+                ],
+                "matchesInitialMessageId": false
+              }
+            ]
+          }
+        },
+        "resume": {
+          "permissionRequests": 0,
+          "firstTurn": {
+            "messageStarts": 1,
+            "blockStarts": [
+              {
+                "index": 0,
+                "type": "thinking"
+              },
+              {
+                "index": 0,
+                "type": "text"
+              }
+            ],
+            "snapshots": [
+              {
+                "types": [
+                  "thinking"
+                ],
+                "matchesInitialMessageId": true
+              },
+              {
+                "types": [
+                  "text"
+                ],
+                "matchesInitialMessageId": false
+              }
+            ]
+          }
+        }
+      },
+      "phases": [
+        {
+          "resumed": false,
+          "initialize": {
+            "subtype": "success"
+          },
+          "first": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "A repeated paragraph.\nA repeated paragraph.\n"
+          },
+          "second": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "A repeated paragraph.\nA repeated paragraph.\n"
+          },
+          "interrupted": {
+            "subtype": "error_during_execution",
+            "is_error": true,
+            "result": null
+          },
+          "afterAbort": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "slow answer"
+          }
+        },
+        {
+          "resumed": true,
+          "initialize": {
+            "subtype": "success"
+          },
+          "first": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "A repeated paragraph.\nA repeated paragraph.\n"
+          },
+          "second": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "A repeated paragraph.\nA repeated paragraph.\n"
+          },
+          "interrupted": {
+            "subtype": "error_during_execution",
+            "is_error": true,
+            "result": null
+          },
+          "afterAbort": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "slow answer"
+          }
+        }
+      ]
+    },
+    "tools": {
+      "wire": {
+        "fresh": {
+          "permissionRequests": 0
+        },
+        "resume": {
+          "permissionRequests": 0
+        }
+      },
+      "phases": [
+        {
+          "resumed": false,
+          "initialize": {
+            "subtype": "success"
+          },
+          "mcp": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "tool completed"
+          },
+          "first": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "native answer"
+          },
+          "second": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "native answer"
+          },
+          "interrupted": {
+            "subtype": "error_during_execution",
+            "is_error": true,
+            "result": null
+          },
+          "afterAbort": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "slow answer"
+          }
+        },
+        {
+          "resumed": true,
+          "initialize": {
+            "subtype": "success"
+          },
+          "mcp": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "tool completed"
+          },
+          "first": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "native answer"
+          },
+          "second": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "native answer"
+          },
+          "interrupted": {
+            "subtype": "error_during_execution",
+            "is_error": true,
+            "result": null
+          },
+          "afterAbort": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "slow answer"
+          }
+        }
+      ]
+    },
+    "lock": {
+      "runtime": "Qwen",
+      "facts": [
+        {
+          "phase": "warm-home initialize with held lock",
+          "elapsedMs": 1665,
+          "requests": 0
+        },
+        {
+          "phase": "first prompt blocked after initialize",
+          "lockHeld": true,
+          "requests": 0
+        },
+        {
+          "phase": "first prompt after releasing lock",
+          "outcome": "completed"
+        },
+        {
+          "phase": "ordinary later prompt with held lock",
+          "outcome": "completed"
+        }
+      ]
+    },
+    "credentialNames": {
+      "providerPresets": [
+        "QWENCLOUD_API_KEY",
+        "QWENCLOUD_TOKEN_PLAN_API_KEY",
+        "BAILIAN_CODING_PLAN_API_KEY",
+        "BAILIAN_TOKEN_PLAN_API_KEY",
+        "DASHSCOPE_API_KEY",
+        "OPENROUTER_API_KEY",
+        "REQUESTY_API_KEY",
+        "DEEPSEEK_API_KEY",
+        "XAI_API_KEY",
+        "MINIMAX_API_KEY",
+        "ZAI_API_KEY",
+        "MOONSHOT_API_KEY",
+        "IDEALAB_API_KEY",
+        "MODELSCOPE_API_KEY"
+      ],
+      "nativeAuth": [
+        "OPENAI_API_KEY",
+        "ANTHROPIC_API_KEY",
+        "GEMINI_API_KEY",
+        "GOOGLE_API_KEY"
+      ],
+      "missingFromOar": []
+    }
+  },
+  "windows": {
+    "windowStart": "2026-11-05T20:00:00Z",
+    "windowEnd": "2026-11-06T17:03:29Z",
+    "piRpcVendorConclusions": {
+      "success": 69,
+      "cancelled": 1
+    },
+    "piRpcVendorJobs": [
+      {
+        "run": 42258039923,
+        "attempt": 1,
+        "job": 128030354615,
+        "url": "https://github.com/botiverse/oar/actions/runs/42258039923/job/128030354615",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T17:03:16Z",
+        "completedAt": "2026-11-06T17:08:05Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42255472765,
+        "attempt": 1,
+        "job": 128021386297,
+        "url": "https://github.com/botiverse/oar/actions/runs/42255472765/job/128021386297",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T16:46:26Z",
+        "completedAt": "2026-11-06T16:52:08Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42254208416,
+        "attempt": 1,
+        "job": 128016938362,
+        "url": "https://github.com/botiverse/oar/actions/runs/42254208416/job/128016938362",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T16:38:05Z",
+        "completedAt": "2026-11-06T16:44:04Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42251075958,
+        "attempt": 1,
+        "job": 128006006866,
+        "url": "https://github.com/botiverse/oar/actions/runs/42251075958/job/128006006866",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T16:18:09Z",
+        "completedAt": "2026-11-06T16:23:53Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42249205883,
+        "attempt": 1,
+        "job": 127999433539,
+        "url": "https://github.com/botiverse/oar/actions/runs/42249205883/job/127999433539",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T16:06:17Z",
+        "completedAt": "2026-11-06T16:10:47Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42247486997,
+        "attempt": 1,
+        "job": 127993410380,
+        "url": "https://github.com/botiverse/oar/actions/runs/42247486997/job/127993410380",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T15:55:12Z",
+        "completedAt": "2026-11-06T16:00:05Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42244960241,
+        "attempt": 1,
+        "job": 127984653047,
+        "url": "https://github.com/botiverse/oar/actions/runs/42244960241/job/127984653047",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T15:38:46Z",
+        "completedAt": "2026-11-06T15:43:58Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42244097238,
+        "attempt": 1,
+        "job": 127981662686,
+        "url": "https://github.com/botiverse/oar/actions/runs/42244097238/job/127981662686",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T15:33:14Z",
+        "completedAt": "2026-11-06T15:37:16Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42244097238,
+        "attempt": 2,
+        "job": 127996576093,
+        "url": "https://github.com/botiverse/oar/actions/runs/42244097238/job/127996576093",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T15:33:14Z",
+        "completedAt": "2026-11-06T15:37:16Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42243270062,
+        "attempt": 1,
+        "job": 127978795181,
+        "url": "https://github.com/botiverse/oar/actions/runs/42243270062/job/127978795181",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T15:27:55Z",
+        "completedAt": "2026-11-06T15:33:32Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42239998607,
+        "attempt": 1,
+        "job": 127967451834,
+        "url": "https://github.com/botiverse/oar/actions/runs/42239998607/job/127967451834",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T15:06:56Z",
+        "completedAt": "2026-11-06T15:11:19Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42239998607,
+        "attempt": 2,
+        "job": 127980622759,
+        "url": "https://github.com/botiverse/oar/actions/runs/42239998607/job/127980622759",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T15:06:56Z",
+        "completedAt": "2026-11-06T15:11:19Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42237027174,
+        "attempt": 1,
+        "job": 127957197612,
+        "url": "https://github.com/botiverse/oar/actions/runs/42237027174/job/127957197612",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T14:47:17Z",
+        "completedAt": "2026-11-06T14:50:54Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42236627645,
+        "attempt": 1,
+        "job": 127955816810,
+        "url": "https://github.com/botiverse/oar/actions/runs/42236627645/job/127955816810",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T14:44:39Z",
+        "completedAt": "2026-11-06T14:49:45Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42236050383,
+        "attempt": 1,
+        "job": 127953811520,
+        "url": "https://github.com/botiverse/oar/actions/runs/42236050383/job/127953811520",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T14:40:44Z",
+        "completedAt": "2026-11-06T14:46:15Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42232221115,
+        "attempt": 1,
+        "job": 127940692341,
+        "url": "https://github.com/botiverse/oar/actions/runs/42232221115/job/127940692341",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T14:15:01Z",
+        "completedAt": "2026-11-06T14:19:47Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42231767928,
+        "attempt": 1,
+        "job": 127939166589,
+        "url": "https://github.com/botiverse/oar/actions/runs/42231767928/job/127939166589",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T14:11:58Z",
+        "completedAt": "2026-11-06T14:16:31Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42231767928,
+        "attempt": 2,
+        "job": 127951079443,
+        "url": "https://github.com/botiverse/oar/actions/runs/42231767928/job/127951079443",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T14:11:58Z",
+        "completedAt": "2026-11-06T14:16:31Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42230493583,
+        "attempt": 1,
+        "job": 127934827306,
+        "url": "https://github.com/botiverse/oar/actions/runs/42230493583/job/127934827306",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T14:03:12Z",
+        "completedAt": "2026-11-06T14:07:43Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42219272509,
+        "attempt": 1,
+        "job": 127896958103,
+        "url": "https://github.com/botiverse/oar/actions/runs/42219272509/job/127896958103",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T12:38:57Z",
+        "completedAt": "2026-11-06T12:43:02Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42214939040,
+        "attempt": 1,
+        "job": 127882492989,
+        "url": "https://github.com/botiverse/oar/actions/runs/42214939040/job/127882492989",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T12:04:59Z",
+        "completedAt": "2026-11-06T12:09:36Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42210871353,
+        "attempt": 1,
+        "job": 127868894764,
+        "url": "https://github.com/botiverse/oar/actions/runs/42210871353/job/127868894764",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T11:31:25Z",
+        "completedAt": "2026-11-06T11:35:45Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42210762541,
+        "attempt": 1,
+        "job": 127868542604,
+        "url": "https://github.com/botiverse/oar/actions/runs/42210762541/job/127868542604",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T11:30:36Z",
+        "completedAt": "2026-11-06T11:36:02Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42208305182,
+        "attempt": 1,
+        "job": 127860366753,
+        "url": "https://github.com/botiverse/oar/actions/runs/42208305182/job/127860366753",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T11:10:58Z",
+        "completedAt": "2026-11-06T11:15:24Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42205301180,
+        "attempt": 1,
+        "job": 127850304997,
+        "url": "https://github.com/botiverse/oar/actions/runs/42205301180/job/127850304997",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T10:47:12Z",
+        "completedAt": "2026-11-06T10:52:11Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42205301180,
+        "attempt": 2,
+        "job": 127859042326,
+        "url": "https://github.com/botiverse/oar/actions/runs/42205301180/job/127859042326",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T10:47:12Z",
+        "completedAt": "2026-11-06T10:52:11Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42200588851,
+        "attempt": 1,
+        "job": 127834598321,
+        "url": "https://github.com/botiverse/oar/actions/runs/42200588851/job/127834598321",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T10:11:40Z",
+        "completedAt": "2026-11-06T10:17:29Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42200447239,
+        "attempt": 1,
+        "job": 127834124092,
+        "url": "https://github.com/botiverse/oar/actions/runs/42200447239/job/127834124092",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T10:09:25Z",
+        "completedAt": "2026-11-06T10:13:47Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42200297274,
+        "attempt": 1,
+        "job": 127833624321,
+        "url": "https://github.com/botiverse/oar/actions/runs/42200297274/job/127833624321",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T10:08:05Z",
+        "completedAt": "2026-11-06T10:13:10Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42195364067,
+        "attempt": 1,
+        "job": 127817175800,
+        "url": "https://github.com/botiverse/oar/actions/runs/42195364067/job/127817175800",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T09:28:58Z",
+        "completedAt": "2026-11-06T09:33:52Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42193482541,
+        "attempt": 1,
+        "job": 127810899561,
+        "url": "https://github.com/botiverse/oar/actions/runs/42193482541/job/127810899561",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T09:14:10Z",
+        "completedAt": "2026-11-06T09:19:06Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42193303767,
+        "attempt": 1,
+        "job": 127810313426,
+        "url": "https://github.com/botiverse/oar/actions/runs/42193303767/job/127810313426",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T09:12:46Z",
+        "completedAt": "2026-11-06T09:16:59Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42191724687,
+        "attempt": 1,
+        "job": 127805130547,
+        "url": "https://github.com/botiverse/oar/actions/runs/42191724687/job/127805130547",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T09:00:18Z",
+        "completedAt": "2026-11-06T09:05:32Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42191203262,
+        "attempt": 1,
+        "job": 127803374784,
+        "url": "https://github.com/botiverse/oar/actions/runs/42191203262/job/127803374784",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T08:55:52Z",
+        "completedAt": "2026-11-06T09:00:24Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42191012453,
+        "attempt": 1,
+        "job": 127802737245,
+        "url": "https://github.com/botiverse/oar/actions/runs/42191012453/job/127802737245",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T08:54:15Z",
+        "completedAt": "2026-11-06T08:59:04Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42191012453,
+        "attempt": 2,
+        "job": 127814474948,
+        "url": "https://github.com/botiverse/oar/actions/runs/42191012453/job/127814474948",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T08:54:15Z",
+        "completedAt": "2026-11-06T08:59:04Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42188288052,
+        "attempt": 1,
+        "job": 127793773070,
+        "url": "https://github.com/botiverse/oar/actions/runs/42188288052/job/127793773070",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T08:31:38Z",
+        "completedAt": "2026-11-06T08:35:55Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42188288052,
+        "attempt": 2,
+        "job": 127803515416,
+        "url": "https://github.com/botiverse/oar/actions/runs/42188288052/job/127803515416",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T08:31:38Z",
+        "completedAt": "2026-11-06T08:35:55Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42188192785,
+        "attempt": 1,
+        "job": 127793467683,
+        "url": "https://github.com/botiverse/oar/actions/runs/42188192785/job/127793467683",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T08:30:45Z",
+        "completedAt": "2026-11-06T08:36:05Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42185675729,
+        "attempt": 1,
+        "job": 127785308748,
+        "url": "https://github.com/botiverse/oar/actions/runs/42185675729/job/127785308748",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T08:09:37Z",
+        "completedAt": "2026-11-06T08:15:03Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42184013991,
+        "attempt": 1,
+        "job": 127779949457,
+        "url": "https://github.com/botiverse/oar/actions/runs/42184013991/job/127779949457",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T07:55:06Z",
+        "completedAt": "2026-11-06T08:00:13Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42180520439,
+        "attempt": 1,
+        "job": 127768806262,
+        "url": "https://github.com/botiverse/oar/actions/runs/42180520439/job/127768806262",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T07:23:14Z",
+        "completedAt": "2026-11-06T07:27:50Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42172429714,
+        "attempt": 1,
+        "job": 127743111880,
+        "url": "https://github.com/botiverse/oar/actions/runs/42172429714/job/127743111880",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T06:07:15Z",
+        "completedAt": "2026-11-06T06:12:19Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42170221405,
+        "attempt": 1,
+        "job": 127736046641,
+        "url": "https://github.com/botiverse/oar/actions/runs/42170221405/job/127736046641",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T05:45:25Z",
+        "completedAt": "2026-11-06T05:50:33Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42170096513,
+        "attempt": 1,
+        "job": 127735648926,
+        "url": "https://github.com/botiverse/oar/actions/runs/42170096513/job/127735648926",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T05:43:35Z",
+        "completedAt": "2026-11-06T05:48:53Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42166556674,
+        "attempt": 1,
+        "job": 127724276214,
+        "url": "https://github.com/botiverse/oar/actions/runs/42166556674/job/127724276214",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T05:07:56Z",
+        "completedAt": "2026-11-06T05:12:17Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42165991196,
+        "attempt": 1,
+        "job": 127722481104,
+        "url": "https://github.com/botiverse/oar/actions/runs/42165991196/job/127722481104",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T05:02:22Z",
+        "completedAt": "2026-11-06T05:06:52Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42164667483,
+        "attempt": 1,
+        "job": 127718225078,
+        "url": "https://github.com/botiverse/oar/actions/runs/42164667483/job/127718225078",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T04:48:34Z",
+        "completedAt": "2026-11-06T04:54:00Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42164632393,
+        "attempt": 1,
+        "job": 127718110874,
+        "url": "https://github.com/botiverse/oar/actions/runs/42164632393/job/127718110874",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T04:48:13Z",
+        "completedAt": "2026-11-06T04:53:34Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42161301640,
+        "attempt": 1,
+        "job": 127707367727,
+        "url": "https://github.com/botiverse/oar/actions/runs/42161301640/job/127707367727",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T04:14:24Z",
+        "completedAt": "2026-11-06T04:19:35Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42160878277,
+        "attempt": 1,
+        "job": 127705976658,
+        "url": "https://github.com/botiverse/oar/actions/runs/42160878277/job/127705976658",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T04:10:16Z",
+        "completedAt": "2026-11-06T04:14:49Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42158919897,
+        "attempt": 1,
+        "job": 127699626443,
+        "url": "https://github.com/botiverse/oar/actions/runs/42158919897/job/127699626443",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T03:50:24Z",
+        "completedAt": "2026-11-06T03:55:43Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42158919897,
+        "attempt": 2,
+        "job": 127706881597,
+        "url": "https://github.com/botiverse/oar/actions/runs/42158919897/job/127706881597",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T03:50:24Z",
+        "completedAt": "2026-11-06T03:55:43Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42158507892,
+        "attempt": 1,
+        "job": 127698284530,
+        "url": "https://github.com/botiverse/oar/actions/runs/42158507892/job/127698284530",
+        "conclusion": "cancelled",
+        "startedAt": "2026-11-06T03:46:06Z",
+        "completedAt": "2026-11-06T03:51:14Z",
+        "failedSteps": [
+          {
+            "name": "Pi RPC vendor - RPC protocol, files, readers and bundled host",
+            "conclusion": "failure"
+          },
+          {
+            "name": "Pi RPC vendor - shared runtime contracts",
+            "conclusion": "cancelled"
+          }
+        ]
+      },
+      {
+        "run": 42157997617,
+        "attempt": 1,
+        "job": 127696640700,
+        "url": "https://github.com/botiverse/oar/actions/runs/42157997617/job/127696640700",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T03:40:52Z",
+        "completedAt": "2026-11-06T03:44:27Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42157997617,
+        "attempt": 2,
+        "job": 127704864740,
+        "url": "https://github.com/botiverse/oar/actions/runs/42157997617/job/127704864740",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T03:40:52Z",
+        "completedAt": "2026-11-06T03:44:27Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42157913951,
+        "attempt": 1,
+        "job": 127696376429,
+        "url": "https://github.com/botiverse/oar/actions/runs/42157913951/job/127696376429",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T03:40:01Z",
+        "completedAt": "2026-11-06T03:45:30Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42155678841,
+        "attempt": 1,
+        "job": 127689131710,
+        "url": "https://github.com/botiverse/oar/actions/runs/42155678841/job/127689131710",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T03:17:58Z",
+        "completedAt": "2026-11-06T03:23:15Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42155194362,
+        "attempt": 1,
+        "job": 127687566314,
+        "url": "https://github.com/botiverse/oar/actions/runs/42155194362/job/127687566314",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T03:13:23Z",
+        "completedAt": "2026-11-06T03:18:02Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42154182291,
+        "attempt": 1,
+        "job": 127684273658,
+        "url": "https://github.com/botiverse/oar/actions/runs/42154182291/job/127684273658",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T03:03:44Z",
+        "completedAt": "2026-11-06T03:08:56Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42152500747,
+        "attempt": 1,
+        "job": 127678804828,
+        "url": "https://github.com/botiverse/oar/actions/runs/42152500747/job/127678804828",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T02:47:06Z",
+        "completedAt": "2026-11-06T02:50:53Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42152096814,
+        "attempt": 1,
+        "job": 127677499264,
+        "url": "https://github.com/botiverse/oar/actions/runs/42152096814/job/127677499264",
+        "conclusion": "success",
+        "startedAt": "2026-11-06T02:43:15Z",
+        "completedAt": "2026-11-06T02:48:26Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42111853787,
+        "attempt": 1,
+        "job": 127541153043,
+        "url": "https://github.com/botiverse/oar/actions/runs/42111853787/job/127541153043",
+        "conclusion": "success",
+        "startedAt": "2026-11-05T21:21:16Z",
+        "completedAt": "2026-11-05T21:26:44Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42109029472,
+        "attempt": 1,
+        "job": 127531384582,
+        "url": "https://github.com/botiverse/oar/actions/runs/42109029472/job/127531384582",
+        "conclusion": "success",
+        "startedAt": "2026-11-05T21:03:11Z",
+        "completedAt": "2026-11-05T21:08:19Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42106528282,
+        "attempt": 1,
+        "job": 127522689624,
+        "url": "https://github.com/botiverse/oar/actions/runs/42106528282/job/127522689624",
+        "conclusion": "success",
+        "startedAt": "2026-11-05T20:46:46Z",
+        "completedAt": "2026-11-05T20:52:08Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42103355508,
+        "attempt": 1,
+        "job": 127511651678,
+        "url": "https://github.com/botiverse/oar/actions/runs/42103355508/job/127511651678",
+        "conclusion": "success",
+        "startedAt": "2026-11-05T20:26:18Z",
+        "completedAt": "2026-11-05T20:31:22Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42103355508,
+        "attempt": 2,
+        "job": 127529127839,
+        "url": "https://github.com/botiverse/oar/actions/runs/42103355508/job/127529127839",
+        "conclusion": "success",
+        "startedAt": "2026-11-05T20:26:18Z",
+        "completedAt": "2026-11-05T20:31:22Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42102748494,
+        "attempt": 1,
+        "job": 127509525247,
+        "url": "https://github.com/botiverse/oar/actions/runs/42102748494/job/127509525247",
+        "conclusion": "success",
+        "startedAt": "2026-11-05T20:22:23Z",
+        "completedAt": "2026-11-05T20:27:32Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42100731676,
+        "attempt": 1,
+        "job": 127502502260,
+        "url": "https://github.com/botiverse/oar/actions/runs/42100731676/job/127502502260",
+        "conclusion": "success",
+        "startedAt": "2026-11-05T20:09:36Z",
+        "completedAt": "2026-11-05T20:14:30Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42100057983,
+        "attempt": 1,
+        "job": 127500177647,
+        "url": "https://github.com/botiverse/oar/actions/runs/42100057983/job/127500177647",
+        "conclusion": "success",
+        "startedAt": "2026-11-05T20:05:24Z",
+        "completedAt": "2026-11-05T20:10:24Z",
+        "failedSteps": []
+      }
+    ],
+    "missingPiRpcJobs": [
+      {
+        "run": 42179066044,
+        "attempt": 1,
+        "runStatusWhenListed": "completed",
+        "runConclusionWhenListed": "failure"
+      },
+      {
+        "run": 42178300030,
+        "attempt": 1,
+        "runStatusWhenListed": "completed",
+        "runConclusionWhenListed": "failure"
+      }
+    ],
+    "cancelledJobFailure": {
+      "run": 42158507892,
+      "attempt": 1,
+      "job": 127698284530,
+      "file": "sea-trial/vendor/pi-rpc-readers.vendor.test.ts",
+      "test": "commands deadline kills a stalled query process and removes any private directory",
+      "assertion": "gone(child.pid, killGraceMs() + 2000)",
+      "expected": true,
+      "received": false,
+      "cause": "unconfirmed",
+      "fullJobHang": false
+    },
+    "acpRuns": [
+      {
+        "run": 42258039930,
+        "createdAt": "2026-11-06T17:03:11Z",
+        "conclusion": "success",
+        "jobs": [
+          {
+            "id": 128030354403,
+            "name": "acp-windows (windows-latest, kimi-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42258039930/job/128030354403",
+            "failedSteps": []
+          },
+          {
+            "id": 128030354956,
+            "name": "acp-windows (windows-latest, grok-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42258039930/job/128030354956",
+            "failedSteps": []
+          },
+          {
+            "id": 128030355235,
+            "name": "acp-windows (windows-latest, opencode-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42258039930/job/128030355235",
+            "failedSteps": []
+          }
+        ]
+      },
+      {
+        "run": 42254208340,
+        "createdAt": "2026-11-06T16:38:01Z",
+        "conclusion": "failure",
+        "jobs": [
+          {
+            "id": 128016937062,
+            "name": "acp-windows (windows-latest, kimi-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42254208340/job/128016937062",
+            "failedSteps": []
+          },
+          {
+            "id": 128016937122,
+            "name": "acp-windows (windows-latest, opencode-aimock)",
+            "conclusion": "failure",
+            "url": "https://github.com/botiverse/oar/actions/runs/42254208340/job/128016937122",
+            "failedSteps": [
+              "Run pnpm vitest run sea-trial/vendor --maxWorkers 2"
+            ]
+          },
+          {
+            "id": 128016937394,
+            "name": "acp-windows (windows-latest, grok-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42254208340/job/128016937394",
+            "failedSteps": []
+          }
+        ]
+      },
+      {
+        "run": 42249205875,
+        "createdAt": "2026-11-06T16:06:11Z",
+        "conclusion": "failure",
+        "jobs": [
+          {
+            "id": 127999432234,
+            "name": "acp-windows (windows-latest, kimi-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42249205875/job/127999432234",
+            "failedSteps": []
+          },
+          {
+            "id": 127999432827,
+            "name": "acp-windows (windows-latest, opencode-aimock)",
+            "conclusion": "failure",
+            "url": "https://github.com/botiverse/oar/actions/runs/42249205875/job/127999432827",
+            "failedSteps": [
+              "Run pnpm vitest run sea-trial/vendor --maxWorkers 2"
+            ]
+          },
+          {
+            "id": 127999432874,
+            "name": "acp-windows (windows-latest, grok-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42249205875/job/127999432874",
+            "failedSteps": []
+          }
+        ]
+      },
+      {
+        "run": 42244960220,
+        "createdAt": "2026-11-06T15:38:41Z",
+        "conclusion": "failure",
+        "jobs": [
+          {
+            "id": 127984652504,
+            "name": "acp-windows (windows-latest, kimi-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42244960220/job/127984652504",
+            "failedSteps": []
+          },
+          {
+            "id": 127984652898,
+            "name": "acp-windows (windows-latest, opencode-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42244960220/job/127984652898",
+            "failedSteps": []
+          },
+          {
+            "id": 127984652995,
+            "name": "acp-windows (windows-latest, grok-aimock)",
+            "conclusion": "failure",
+            "url": "https://github.com/botiverse/oar/actions/runs/42244960220/job/127984652995",
+            "failedSteps": [
+              "Run pnpm run sea-trial"
+            ]
+          }
+        ]
+      },
+      {
+        "run": 42237026967,
+        "createdAt": "2026-11-06T14:47:12Z",
+        "conclusion": "failure",
+        "jobs": [
+          {
+            "id": 127957195395,
+            "name": "acp-windows (windows-latest, grok-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42237026967/job/127957195395",
+            "failedSteps": []
+          },
+          {
+            "id": 127957195671,
+            "name": "acp-windows (windows-latest, kimi-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42237026967/job/127957195671",
+            "failedSteps": []
+          },
+          {
+            "id": 127957195864,
+            "name": "acp-windows (windows-latest, opencode-aimock)",
+            "conclusion": "failure",
+            "url": "https://github.com/botiverse/oar/actions/runs/42237026967/job/127957195864",
+            "failedSteps": [
+              "Run pnpm vitest run sea-trial/vendor --maxWorkers 2"
+            ]
+          }
+        ]
+      },
+      {
+        "run": 42236050414,
+        "createdAt": "2026-11-06T14:40:40Z",
+        "conclusion": "failure",
+        "jobs": [
+          {
+            "id": 127953811273,
+            "name": "acp-windows (windows-latest, grok-aimock)",
+            "conclusion": "failure",
+            "url": "https://github.com/botiverse/oar/actions/runs/42236050414/job/127953811273",
+            "failedSteps": [
+              "Run pnpm run sea-trial"
+            ]
+          },
+          {
+            "id": 127953811618,
+            "name": "acp-windows (windows-latest, opencode-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42236050414/job/127953811618",
+            "failedSteps": []
+          },
+          {
+            "id": 127953811828,
+            "name": "acp-windows (windows-latest, kimi-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42236050414/job/127953811828",
+            "failedSteps": []
+          }
+        ]
+      },
+      {
+        "run": 42219272750,
+        "createdAt": "2026-11-06T12:38:54Z",
+        "conclusion": "failure",
+        "jobs": [
+          {
+            "id": 127896958970,
+            "name": "acp-windows (windows-latest, kimi-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42219272750/job/127896958970",
+            "failedSteps": []
+          },
+          {
+            "id": 127896959428,
+            "name": "acp-windows (windows-latest, opencode-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42219272750/job/127896959428",
+            "failedSteps": []
+          },
+          {
+            "id": 127896959509,
+            "name": "acp-windows (windows-latest, grok-aimock)",
+            "conclusion": "failure",
+            "url": "https://github.com/botiverse/oar/actions/runs/42219272750/job/127896959509",
+            "failedSteps": [
+              "Run pnpm run sea-trial"
+            ]
+          }
+        ]
+      },
+      {
+        "run": 42210871323,
+        "createdAt": "2026-11-06T11:31:22Z",
+        "conclusion": "success",
+        "jobs": [
+          {
+            "id": 127868894336,
+            "name": "acp-windows (windows-latest, kimi-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42210871323/job/127868894336",
+            "failedSteps": []
+          },
+          {
+            "id": 127868894528,
+            "name": "acp-windows (windows-latest, opencode-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42210871323/job/127868894528",
+            "failedSteps": []
+          },
+          {
+            "id": 127868894690,
+            "name": "acp-windows (windows-latest, grok-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42210871323/job/127868894690",
+            "failedSteps": []
+          }
+        ]
+      },
+      {
+        "run": 42210762566,
+        "createdAt": "2026-11-06T11:30:32Z",
+        "conclusion": "success",
+        "jobs": [
+          {
+            "id": 127868544686,
+            "name": "acp-windows (windows-latest, opencode-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42210762566/job/127868544686",
+            "failedSteps": []
+          },
+          {
+            "id": 127868544723,
+            "name": "acp-windows (windows-latest, kimi-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42210762566/job/127868544723",
+            "failedSteps": []
+          },
+          {
+            "id": 127868544769,
+            "name": "acp-windows (windows-latest, grok-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42210762566/job/127868544769",
+            "failedSteps": []
+          }
+        ]
+      },
+      {
+        "run": 42200588866,
+        "createdAt": "2026-11-06T10:10:17Z",
+        "conclusion": "success",
+        "jobs": [
+          {
+            "id": 127834598112,
+            "name": "acp-windows (windows-latest, opencode-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42200588866/job/127834598112",
+            "failedSteps": []
+          },
+          {
+            "id": 127834598496,
+            "name": "acp-windows (windows-latest, grok-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42200588866/job/127834598496",
+            "failedSteps": []
+          },
+          {
+            "id": 127834598524,
+            "name": "acp-windows (windows-latest, kimi-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42200588866/job/127834598524",
+            "failedSteps": []
+          }
+        ]
+      },
+      {
+        "run": 42200447151,
+        "createdAt": "2026-11-06T10:09:12Z",
+        "conclusion": "failure",
+        "jobs": [
+          {
+            "id": 127834123314,
+            "name": "acp-windows (windows-latest, kimi-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42200447151/job/127834123314",
+            "failedSteps": []
+          },
+          {
+            "id": 127834123721,
+            "name": "acp-windows (windows-latest, opencode-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42200447151/job/127834123721",
+            "failedSteps": []
+          },
+          {
+            "id": 127834123797,
+            "name": "acp-windows (windows-latest, grok-aimock)",
+            "conclusion": "failure",
+            "url": "https://github.com/botiverse/oar/actions/runs/42200447151/job/127834123797",
+            "failedSteps": [
+              "Run pnpm vitest run sea-trial/vendor --maxWorkers 2"
+            ]
+          }
+        ]
+      },
+      {
+        "run": 42200297285,
+        "createdAt": "2026-11-06T10:08:02Z",
+        "conclusion": "failure",
+        "jobs": [
+          {
+            "id": 127833624230,
+            "name": "acp-windows (windows-latest, opencode-aimock)",
+            "conclusion": "failure",
+            "url": "https://github.com/botiverse/oar/actions/runs/42200297285/job/127833624230",
+            "failedSteps": [
+              "Run pnpm vitest run sea-trial/vendor --maxWorkers 2"
+            ]
+          },
+          {
+            "id": 127833624500,
+            "name": "acp-windows (windows-latest, kimi-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42200297285/job/127833624500",
+            "failedSteps": []
+          },
+          {
+            "id": 127833624665,
+            "name": "acp-windows (windows-latest, grok-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42200297285/job/127833624665",
+            "failedSteps": []
+          }
+        ]
+      },
+      {
+        "run": 42191724685,
+        "createdAt": "2026-11-06T09:00:14Z",
+        "conclusion": "failure",
+        "jobs": [
+          {
+            "id": 127805131086,
+            "name": "acp-windows (windows-latest, kimi-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42191724685/job/127805131086",
+            "failedSteps": []
+          },
+          {
+            "id": 127805131378,
+            "name": "acp-windows (windows-latest, grok-aimock)",
+            "conclusion": "failure",
+            "url": "https://github.com/botiverse/oar/actions/runs/42191724685/job/127805131378",
+            "failedSteps": [
+              "Run pnpm vitest run sea-trial/vendor --maxWorkers 2"
+            ]
+          },
+          {
+            "id": 127805131444,
+            "name": "acp-windows (windows-latest, opencode-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42191724685/job/127805131444",
+            "failedSteps": []
+          }
+        ]
+      },
+      {
+        "run": 42188192798,
+        "createdAt": "2026-11-06T08:30:41Z",
+        "conclusion": "success",
+        "jobs": [
+          {
+            "id": 127793467048,
+            "name": "acp-windows (windows-latest, opencode-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42188192798/job/127793467048",
+            "failedSteps": []
+          },
+          {
+            "id": 127793467422,
+            "name": "acp-windows (windows-latest, grok-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42188192798/job/127793467422",
+            "failedSteps": []
+          },
+          {
+            "id": 127793467682,
+            "name": "acp-windows (windows-latest, kimi-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42188192798/job/127793467682",
+            "failedSteps": []
+          }
+        ]
+      },
+      {
+        "run": 42184013848,
+        "createdAt": "2026-11-06T07:55:02Z",
+        "conclusion": "failure",
+        "jobs": [
+          {
+            "id": 127779948702,
+            "name": "acp-windows (windows-latest, grok-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42184013848/job/127779948702",
+            "failedSteps": []
+          },
+          {
+            "id": 127779949013,
+            "name": "acp-windows (windows-latest, opencode-aimock)",
+            "conclusion": "failure",
+            "url": "https://github.com/botiverse/oar/actions/runs/42184013848/job/127779949013",
+            "failedSteps": [
+              "Run pnpm vitest run sea-trial/vendor --maxWorkers 2"
+            ]
+          },
+          {
+            "id": 127779949096,
+            "name": "acp-windows (windows-latest, kimi-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42184013848/job/127779949096",
+            "failedSteps": []
+          }
+        ]
+      },
+      {
+        "run": 42172429723,
+        "createdAt": "2026-11-06T06:07:11Z",
+        "conclusion": "failure",
+        "jobs": [
+          {
+            "id": 127743111470,
+            "name": "acp-windows (windows-latest, opencode-aimock)",
+            "conclusion": "failure",
+            "url": "https://github.com/botiverse/oar/actions/runs/42172429723/job/127743111470",
+            "failedSteps": [
+              "Run pnpm vitest run sea-trial/vendor --maxWorkers 2"
+            ]
+          },
+          {
+            "id": 127743111638,
+            "name": "acp-windows (windows-latest, grok-aimock)",
+            "conclusion": "failure",
+            "url": "https://github.com/botiverse/oar/actions/runs/42172429723/job/127743111638",
+            "failedSteps": [
+              "Run pnpm vitest run sea-trial/vendor --maxWorkers 2"
+            ]
+          },
+          {
+            "id": 127743111664,
+            "name": "acp-windows (windows-latest, kimi-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42172429723/job/127743111664",
+            "failedSteps": []
+          }
+        ]
+      },
+      {
+        "run": 42170096598,
+        "createdAt": "2026-11-06T05:43:30Z",
+        "conclusion": "success",
+        "jobs": [
+          {
+            "id": 127735647760,
+            "name": "acp-windows (windows-latest, kimi-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42170096598/job/127735647760",
+            "failedSteps": []
+          },
+          {
+            "id": 127735647913,
+            "name": "acp-windows (windows-latest, opencode-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42170096598/job/127735647913",
+            "failedSteps": []
+          },
+          {
+            "id": 127735647989,
+            "name": "acp-windows (windows-latest, grok-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42170096598/job/127735647989",
+            "failedSteps": []
+          }
+        ]
+      },
+      {
+        "run": 42164667512,
+        "createdAt": "2026-11-06T04:48:30Z",
+        "conclusion": "failure",
+        "jobs": [
+          {
+            "id": 127718224771,
+            "name": "acp-windows (windows-latest, opencode-aimock)",
+            "conclusion": "failure",
+            "url": "https://github.com/botiverse/oar/actions/runs/42164667512/job/127718224771",
+            "failedSteps": [
+              "Run pnpm vitest run sea-trial/vendor --maxWorkers 2"
+            ]
+          },
+          {
+            "id": 127718225023,
+            "name": "acp-windows (windows-latest, kimi-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42164667512/job/127718225023",
+            "failedSteps": []
+          },
+          {
+            "id": 127718225127,
+            "name": "acp-windows (windows-latest, grok-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42164667512/job/127718225127",
+            "failedSteps": []
+          }
+        ]
+      },
+      {
+        "run": 42164632397,
+        "createdAt": "2026-11-06T04:48:08Z",
+        "conclusion": "failure",
+        "jobs": [
+          {
+            "id": 127718110482,
+            "name": "acp-windows (windows-latest, kimi-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42164632397/job/127718110482",
+            "failedSteps": []
+          },
+          {
+            "id": 127718110599,
+            "name": "acp-windows (windows-latest, opencode-aimock)",
+            "conclusion": "failure",
+            "url": "https://github.com/botiverse/oar/actions/runs/42164632397/job/127718110599",
+            "failedSteps": [
+              "Run pnpm vitest run sea-trial/vendor --maxWorkers 2"
+            ]
+          },
+          {
+            "id": 127718110803,
+            "name": "acp-windows (windows-latest, grok-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42164632397/job/127718110803",
+            "failedSteps": []
+          }
+        ]
+      },
+      {
+        "run": 42160878295,
+        "createdAt": "2026-11-06T04:10:11Z",
+        "conclusion": "failure",
+        "jobs": [
+          {
+            "id": 127705975949,
+            "name": "acp-windows (windows-latest, kimi-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42160878295/job/127705975949",
+            "failedSteps": []
+          },
+          {
+            "id": 127705976350,
+            "name": "acp-windows (windows-latest, opencode-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42160878295/job/127705976350",
+            "failedSteps": []
+          },
+          {
+            "id": 127705976571,
+            "name": "acp-windows (windows-latest, grok-aimock)",
+            "conclusion": "failure",
+            "url": "https://github.com/botiverse/oar/actions/runs/42160878295/job/127705976571",
+            "failedSteps": [
+              "Run pnpm vitest run sea-trial/vendor --maxWorkers 2"
+            ]
+          }
+        ]
+      },
+      {
+        "run": 42157913955,
+        "createdAt": "2026-11-06T03:39:58Z",
+        "conclusion": "failure",
+        "jobs": [
+          {
+            "id": 127696376100,
+            "name": "acp-windows (windows-latest, kimi-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42157913955/job/127696376100",
+            "failedSteps": []
+          },
+          {
+            "id": 127696376406,
+            "name": "acp-windows (windows-latest, grok-aimock)",
+            "conclusion": "failure",
+            "url": "https://github.com/botiverse/oar/actions/runs/42157913955/job/127696376406",
+            "failedSteps": [
+              "Run pnpm vitest run sea-trial/vendor --maxWorkers 2"
+            ]
+          },
+          {
+            "id": 127696376475,
+            "name": "acp-windows (windows-latest, opencode-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42157913955/job/127696376475",
+            "failedSteps": []
+          }
+        ]
+      },
+      {
+        "run": 42154182360,
+        "createdAt": "2026-11-06T03:03:40Z",
+        "conclusion": "success",
+        "jobs": [
+          {
+            "id": 127684273776,
+            "name": "acp-windows (windows-latest, kimi-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42154182360/job/127684273776",
+            "failedSteps": []
+          },
+          {
+            "id": 127684273823,
+            "name": "acp-windows (windows-latest, grok-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42154182360/job/127684273823",
+            "failedSteps": []
+          },
+          {
+            "id": 127684273853,
+            "name": "acp-windows (windows-latest, opencode-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42154182360/job/127684273853",
+            "failedSteps": []
+          }
+        ]
+      },
+      {
+        "run": 42111853632,
+        "createdAt": "2026-11-05T21:21:10Z",
+        "conclusion": "failure",
+        "jobs": [
+          {
+            "id": 127541152365,
+            "name": "acp-windows (windows-latest, kimi-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42111853632/job/127541152365",
+            "failedSteps": []
+          },
+          {
+            "id": 127541152809,
+            "name": "acp-windows (windows-latest, opencode-aimock)",
+            "conclusion": "failure",
+            "url": "https://github.com/botiverse/oar/actions/runs/42111853632/job/127541152809",
+            "failedSteps": [
+              "Run pnpm vitest run sea-trial/vendor --maxWorkers 2"
+            ]
+          },
+          {
+            "id": 127541152816,
+            "name": "acp-windows (windows-latest, grok-aimock)",
+            "conclusion": "failure",
+            "url": "https://github.com/botiverse/oar/actions/runs/42111853632/job/127541152816",
+            "failedSteps": [
+              "Run pnpm run sea-trial"
+            ]
+          }
+        ]
+      },
+      {
+        "run": 42109029185,
+        "createdAt": "2026-11-05T21:03:06Z",
+        "conclusion": "success",
+        "jobs": [
+          {
+            "id": 127531381602,
+            "name": "acp-windows (windows-latest, opencode-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42109029185/job/127531381602",
+            "failedSteps": []
+          },
+          {
+            "id": 127531382094,
+            "name": "acp-windows (windows-latest, grok-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42109029185/job/127531382094",
+            "failedSteps": []
+          },
+          {
+            "id": 127531382111,
+            "name": "acp-windows (windows-latest, kimi-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42109029185/job/127531382111",
+            "failedSteps": []
+          }
+        ]
+      },
+      {
+        "run": 42102748370,
+        "createdAt": "2026-11-05T20:22:18Z",
+        "conclusion": "success",
+        "jobs": [
+          {
+            "id": 127509524738,
+            "name": "acp-windows (windows-latest, opencode-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42102748370/job/127509524738",
+            "failedSteps": []
+          },
+          {
+            "id": 127509525009,
+            "name": "acp-windows (windows-latest, grok-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42102748370/job/127509525009",
+            "failedSteps": []
+          },
+          {
+            "id": 127509525209,
+            "name": "acp-windows (windows-latest, kimi-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42102748370/job/127509525209",
+            "failedSteps": []
+          }
+        ]
+      },
+      {
+        "run": 42100731488,
+        "createdAt": "2026-11-05T20:09:32Z",
+        "conclusion": "success",
+        "jobs": [
+          {
+            "id": 127502499893,
+            "name": "acp-windows (windows-latest, grok-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42100731488/job/127502499893",
+            "failedSteps": []
+          },
+          {
+            "id": 127502500144,
+            "name": "acp-windows (windows-latest, kimi-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42100731488/job/127502500144",
+            "failedSteps": []
+          },
+          {
+            "id": 127502500169,
+            "name": "acp-windows (windows-latest, opencode-aimock)",
+            "conclusion": "success",
+            "url": "https://github.com/botiverse/oar/actions/runs/42100731488/job/127502500169",
+            "failedSteps": []
+          }
+        ]
+      }
+    ]
+  },
+  "postWindowReleaseCheck": {
+    "pr": 674,
+    "run": 42262179295,
+    "job": 128044700159,
+    "url": "https://github.com/botiverse/oar/actions/runs/42262179295/job/128044700159",
+    "failureStep": "CodeBuddy npm installer in an isolated HOME and global prefix",
+    "installerTimeoutMs": 180000,
+    "installerOutput": "[oar: stopped the installer after 180000 ms]",
+    "unitAndBuild": "passed",
+    "claudeThreePlatforms": "passed",
+    "rerun": "only this Windows check; separate from daily observation",
+    "rerunResult": {
+      "job": 128052980715,
+      "url": "https://github.com/botiverse/oar/actions/runs/42262179295/job/128052980715",
+      "conclusion": "success",
+      "unchangedOtherJobTimings": 38
+    },
+    "cause": "unconfirmed"
+  }
+}
