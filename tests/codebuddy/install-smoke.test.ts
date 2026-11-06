@@ -17,20 +17,31 @@ vi.mock("../../packages/oar/src/shared/executable/index.js", async importOrigina
   return { ...actual, runExecutable: vi.fn() };
 });
 
-const directory = path.join(tmpdir(), "oar-codebuddy-smoke-fixture");
+const files = await vi.importActual<typeof FilesModule>("node:fs/promises");
+let root = "";
+let directory = "";
+let evidence = "";
 const cleanupError = Object.assign(new Error("fixture directory is still busy"), { code: "ENOTEMPTY" });
 const output = vi.fn<typeof process.stdout.write>().mockReturnValue(true);
 const diagnostic = vi.fn<typeof process.stderr.write>().mockReturnValue(true);
 beforeEach(() => {
-  vi.resetModules();
-  vi.clearAllMocks();
+  vi.resetModules(); vi.clearAllMocks();
   vi.stubEnv("OAR_TEST", "codebuddy-install");
+});
+beforeEach(async () => {
+  root = await files.mkdtemp(path.join(tmpdir(), "oar-codebuddy-smoke-test-"));
+  directory = path.join(root, "home");
+  evidence = path.join(root, "evidence");
+  vi.stubEnv("OAR_CODEBUDDY_INSTALL_DIAGNOSTICS", evidence);
   vi.mocked(mkdtemp).mockResolvedValue(directory);
   vi.mocked(rm).mockRejectedValue(cleanupError);
   vi.spyOn(process.stdout, "write").mockImplementation(output);
   vi.spyOn(process.stderr, "write").mockImplementation(diagnostic);
 });
-afterEach(() => { vi.restoreAllMocks(); vi.unstubAllEnvs(); });
+afterEach(async () => {
+  vi.restoreAllMocks(); vi.unstubAllEnvs();
+  await files.rm(root, { recursive: true, force: true });
+});
 
 function expectCleanupDiagnostic() {
   expect(rm).toHaveBeenCalledExactlyOnceWith(directory, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
@@ -59,4 +70,25 @@ test("a thrown installer error keeps its identity when directory cleanup also fa
   vi.mocked(runExecutable).mockRejectedValue(original);
   await expect(import("./install-smoke.js")).rejects.toBe(original);
   expectCleanupDiagnostic();
+});
+
+test("a timed-out child retains partial npm logs before removing its home", async () => {
+  const logName = "2026-11-06T00_00_00_000Z-debug-0.log";
+  const lastStage = "19 silly fetch manifest @tencent-ai/codebuddy-code@*\n";
+  vi.mocked(runExecutable).mockImplementation(async (_command, _args, options) => {
+    expect(options).toMatchObject({ timeoutMs: 240_000, env: {
+      npm_config_loglevel: "verbose", npm_config_timing: "true", OAR_CODEBUDDY_INSTALL_DIAGNOSTICS: evidence,
+    } });
+    await files.mkdir(path.join(directory, "npm-cache", "_logs"), { recursive: true });
+    await files.writeFile(path.join(directory, "npm-cache", "_logs", logName), lastStage);
+    return { ok: false, stdout: "", stderr: "installer timed out", exitCode: null };
+  });
+  vi.mocked(rm).mockImplementation(async () => {
+    expect(await files.readFile(path.join(evidence, logName), "utf8")).toBe(lastStage);
+    await files.rm(directory, { recursive: true, force: true });
+  });
+  await expect(import("./install-smoke.js")).rejects.toMatchObject({ name: "AssertionError", message: "\ninstaller timed out" });
+  expect(await files.readFile(path.join(evidence, logName), "utf8")).toBe(lastStage);
+  expect(await files.readFile(path.join(evidence, "child-stderr.log"), "utf8")).toBe("installer timed out");
+  expect(await files.readdir(root)).toEqual(["evidence"]);
 });

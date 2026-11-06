@@ -38,6 +38,13 @@ jobs:
         timeout-minutes: 5
         env:
           OAR_TEST: codebuddy-install
+          OAR_TRIAL_RUN_DIR: ${{ github.workspace }}/oar-trial-run
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: codebuddy-install-${{ matrix.os }}
+          path: ${{ github.workspace }}/oar-trial-run/codebuddy-install
+          if-no-files-found: warn
       - name: Install pinned OpenCode for native isolated cleanup
         run: npm install -g @opencode/cli@2.2.5
       - name: Native isolated OpenCode tool cleanup

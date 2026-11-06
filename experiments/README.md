@@ -25,6 +25,7 @@ time.
 
 | Experiment | Fact it pins | Findings | Last observed |
 |---|---|---|---|
+| [CodeBuddy npm installation diagnostics](codebuddy-install-diagnostics/README.md) | Three Windows first-install timeouts lacked npm-stage evidence; retain logs before isolated HOME cleanup, with the same deadlines. | [report and selected results](codebuddy-install-diagnostics/README.md) | 2026-11-06, Windows failures retained; Linux 2.181.0 diagnostic control passed |
 | [Claude plan-mode classifier selection](claude-permissions/2026-11-06.md) | The local-provider default denies with `automode-unavailable` in 2.1.319; explicitly selecting the built-in classifier retains the allow/deny controls. | [probe and selected results](claude-permissions/2026-11-06.md) | 2026-11-06, Claude 2.1.318/2.1.319, Linux x64, local provider |
 | [Windows Codex worker comparison](windows-codex-ci/README.md) | Nine first-run default/2/1 worker samples: no established concurrency remedy; one cleanup timeout, with native completion and exit recorded. | [results, archived workflow and analysis](windows-codex-ci/results.md) | 2026-11-06, all nine Windows samples retained; temporary workflow and fixture hooks removed |
 | [ACP terminal process priority](acp-terminal-priority/README.md) | Host-launched commands take the wrapped agent's OOM score before exec; native reverse-terminal inventory. | [probe and selected results](acp-terminal-priority/README.md) | 2026-11-06, five ACP runtimes, Linux, local providers |

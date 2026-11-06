@@ -212,7 +212,14 @@ or pull request whose changes are all Markdown files or under `docs/` or
   SHA-512 digests and runs behavior plus vendor suites against a local
   Gemini provider in an isolated home. Each suite requires a successful
   install; an earlier unrelated check failure does not skip installation.
-  OpenCode, Kimi and Antigravity upload diagnostic artifacts, failures included.
+  CodeBuddy, OpenCode, Kimi and Antigravity upload diagnostic artifacts, failures included.
+  CodeBuddy records discovery, install, verification and cleanup phases under
+  `oar-trial-run/codebuddy-install`, enables npm verbose and timing logs in
+  its isolated environment, and saves the latest ten debug/timing files before
+  deleting that HOME (last 1 MiB per file, with truncation marked). A killed
+  npm process may not finish its timing file; the partial debug log and phase
+  records remain useful. The install limit stays 180 seconds and the enclosing
+  child limit stays 240 seconds. [Evidence](../experiments/codebuddy-install-diagnostics/README.md).
   The browser-entry unit test bundles the complete portable entry for a
   browser and refuses Node imports or unresolved externals. Synthetic
   sharing routing and public placement-refusal regressions stay in these
