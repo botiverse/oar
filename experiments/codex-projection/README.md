@@ -27,8 +27,10 @@ retain selected native notifications, with thread, turn and item identities
 normalized. Their adjacent `metadata.json` snapshots pin the full text event,
 not just its kind. The existing MCP raw fixture also has a new metadata
 snapshot. The existing subagent projection snapshot changes on three completion
-rows: those root/child messages already contained text but no recorded delta.
-No native fixture text was invented or replaced.
+rows: two root messages and one child message already contained text. That
+older fixture was trimmed to selected fields, has no deltas anywhere and omits
+turn ids. It cannot establish that real Codex omitted deltas for those messages;
+this is a snapshot change only. No fixture text was invented or replaced.
 
 ## Error evidence boundary
 
@@ -97,3 +99,8 @@ unauthorized mapping. Existing unsupported-capability cases remain skipped.
 Build and clean packed-package consumption also pass. The full check and Codex
 vendor suite were repeated after integrating the native retry projection from
 PR #647; both message and retry evidence remain in the projection state.
+
+Review note: message evidence is cleared at `turn/completed`. A hypothetical
+late `item/completed` after that boundary could repeat previously streamed text.
+No native example of that ordering was established in this change, including
+on abort; the normal native ordering is not a promise about unobserved paths.

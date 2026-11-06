@@ -89,8 +89,10 @@ A message can finish without a single text delta. In that case its
 with the native message id and phase if present. Any nonempty delta prevents
 this fallback, including when the final text differs from the streamed text;
 OAR does not concatenate the full body twice or guess a missing suffix.
-The normal streamed path remains unchanged. This also restores text from
-recorded child-thread messages whose only text is in the completion item.
+The normal streamed path remains unchanged. The older subagent fixture, which
+has no deltas and was trimmed to selected fields, now shows this text. That
+snapshot change does not establish that real Codex omits deltas for those
+messages.
 
 For an `mcpToolCall`, `tool_call_started` now carries the native `server` and
 `toolName` (the item's `tool`) when those fields are strings. The existing
