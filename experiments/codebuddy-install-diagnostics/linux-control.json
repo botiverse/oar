@@ -1,0 +1,97 @@
+{
+  "date": "2026-11-06",
+  "platform": "linux",
+  "arch": "x64",
+  "node": "24.19.0",
+  "codebuddy": "2.181.0",
+  "installed": true,
+  "globalBinOffPath": true,
+  "secondInstall": "already_installed",
+  "phases": [
+    {
+      "phase": "child_starting",
+      "at": "2026-11-06T18:50:41.812Z",
+      "timeoutMs": 240000
+    },
+    {
+      "phase": "discovery_started",
+      "at": "2026-11-06T18:50:42.177Z",
+      "node": "v24.19.0",
+      "platform": "linux",
+      "arch": "x64"
+    },
+    {
+      "phase": "discovery_completed",
+      "at": "2026-11-06T18:50:42.458Z"
+    },
+    {
+      "phase": "install_started",
+      "at": "2026-11-06T18:50:42.458Z",
+      "timeoutMs": 180000
+    },
+    {
+      "phase": "install_returned",
+      "at": "2026-11-06T18:50:53.029Z",
+      "kind": "installed"
+    },
+    {
+      "phase": "verification_started",
+      "at": "2026-11-06T18:50:53.030Z"
+    },
+    {
+      "phase": "verification_completed",
+      "at": "2026-11-06T18:50:58.845Z"
+    },
+    {
+      "phase": "child_returned",
+      "at": "2026-11-06T18:50:58.866Z",
+      "ok": true,
+      "exitCode": null
+    },
+    {
+      "phase": "npm_logs",
+      "at": "2026-11-06T18:50:58.867Z",
+      "files": [
+        "2026-11-06T18_50_42_785Z-debug-0.log",
+        "2026-11-06T18_50_42_785Z-timing.json"
+      ]
+    },
+    {
+      "phase": "npm_log_saved",
+      "at": "2026-11-06T18:50:58.869Z",
+      "file": "2026-11-06T18_50_42_785Z-debug-0.log",
+      "sourceBytes": 38047,
+      "savedBytes": 38047,
+      "truncated": false
+    },
+    {
+      "phase": "npm_log_saved",
+      "at": "2026-11-06T18:50:58.869Z",
+      "file": "2026-11-06T18_50_42_785Z-timing.json",
+      "sourceBytes": 5658,
+      "savedBytes": 5658,
+      "truncated": false
+    },
+    {
+      "phase": "cleanup_started",
+      "at": "2026-11-06T18:50:58.869Z"
+    },
+    {
+      "phase": "cleanup_finished",
+      "at": "2026-11-06T18:50:59.118Z"
+    }
+  ],
+  "npmTimersMs": {
+    "npm": 6582,
+    "command:install": 6348,
+    "idealTree": 1382,
+    "reify": 6338,
+    "reify:unpack": 4911,
+    "reify:build": 8
+  },
+  "limitsMs": {
+    "install": 180000,
+    "child": 240000
+  },
+  "conclusion": "Diagnostic control passed; Windows timeout cause remains unknown."
+}

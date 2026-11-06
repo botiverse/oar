@@ -8,6 +8,12 @@ import path from "node:path";
 import { codebuddyRuntime } from "../../packages/oar/src/runtimes/codebuddy/index.js";
 import { runExecutable } from "../../packages/oar/src/shared/executable/index.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
+import { installDiagnostics } from "../fixtures/codebuddy-install-diagnostics.js";
+
+const diagnosticsDirectory = process.env.OAR_CODEBUDDY_INSTALL_DIAGNOSTICS ?? path.resolve(
+  process.env.OAR_TRIAL_RUN_DIR ?? "oar-trial-run", "codebuddy-install", `${String(Date.now())}-${String(process.pid)}`,
+);
+const diagnostics = installDiagnostics(diagnosticsDirectory);
 
 async function directorySnapshot(directory: string): Promise<readonly object[]> {
   const names = await readdir(directory, { recursive: true });
@@ -44,10 +50,21 @@ async function verifyInstallation(prefix: string): Promise<void> {
 async function verify(): Promise<void> {
   const home = process.env.HOME; const prefix = process.env.npm_config_prefix;
   assert.ok(home !== undefined && home !== "" && prefix !== undefined && prefix !== "");
+  diagnostics.record("discovery_started", { node: process.version, platform: process.platform, arch: process.arch });
   await assertReadOnly(home);
-  const result = await codebuddyRuntime.install({ timeoutMs: 180_000 });
-  assert.equal(result.kind, "installed", JSON.stringify(result));
+  diagnostics.record("discovery_completed");
+  await install();
+  diagnostics.record("verification_started");
   await verifyInstallation(prefix);
+  diagnostics.record("verification_completed");
+}
+
+async function install(): Promise<void> {
+  diagnostics.record("install_started", { timeoutMs: 180_000 });
+  const result = await codebuddyRuntime.install({ timeoutMs: 180_000 });
+  diagnostics.record("install_returned", { kind: result.kind });
+  diagnostics.write("install-result.json", JSON.stringify(result, null, 2));
+  assert.equal(result.kind, "installed", JSON.stringify(result));
 }
 
 function isolatedEnvironment(home: string): NodeJS.ProcessEnv {
@@ -58,6 +75,8 @@ function isolatedEnvironment(home: string): NodeJS.ProcessEnv {
     HOME: home, USERPROFILE: home, APPDATA: path.join(home, "AppData", "Roaming"), LOCALAPPDATA: path.join(home, "AppData", "Local"),
     npm_config_prefix: path.join(home, "npm-prefix"), npm_config_cache: path.join(home, "npm-cache"),
     npm_config_userconfig: path.join(home, "user.npmrc"), npm_config_globalconfig: path.join(home, "global.npmrc"),
+    npm_config_loglevel: "verbose", npm_config_timing: "true",
+    OAR_CODEBUDDY_INSTALL_DIAGNOSTICS: diagnosticsDirectory,
     OAR_TEST: "codebuddy-install", DISABLE_AUTOUPDATER: "1" };
 }
 
@@ -66,13 +85,19 @@ if (process.argv[2] === "child") {
   await verify();
 } else {
   const home = await mkdtemp(path.join(tmpdir(), "oar-codebuddy-npm-"));
+  diagnostics.record("child_starting", { timeoutMs: 240_000 });
   try {
     const result = await runExecutable(process.execPath, [path.resolve("node_modules/tsx/dist/cli.mjs"), import.meta.filename, "child"], {
       env: isolatedEnvironment(home), timeoutMs: 240_000,
     });
+    diagnostics.record("child_returned", { ok: result.ok, exitCode: result.exitCode, diagnostics: result.diagnostics });
+    diagnostics.write("child-stdout.log", result.stdout);
+    diagnostics.write("child-stderr.log", result.stderr);
     assert.ok(result.ok, `${result.stdout}\n${result.stderr}`);
     process.stdout.write(result.stdout);
   } finally {
+    await diagnostics.capture(home);
+    diagnostics.record("cleanup_started");
     try { await rm(home, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 }); }
     catch (error) {
       // Directory cleanup must not replace the installation's result or error.
@@ -80,5 +105,6 @@ if (process.argv[2] === "child") {
       process.stderr.write(`${JSON.stringify({ kind: "codebuddy_install_cleanup_failed", directory: home,
         code: typeof code === "string" ? code : null, message: error instanceof Error ? error.message : String(error) })}\n`);
     }
+    diagnostics.record("cleanup_finished");
   }
 }
