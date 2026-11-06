@@ -1,0 +1,163 @@
+{
+  "date": "2026-11-06",
+  "platform": "Linux x64",
+  "oarBase": "576e66726d931501d6a21de3c9d610e9aa1d2488",
+  "versions": [
+    {
+      "version": "0.2.2-rc.1",
+      "sourceCommit": "66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db",
+      "sourceFiles": [
+        {
+          "path": "packages/jobs/tool-jobs/src/index.ts",
+          "sha256": "acdd47e8c5160eeda564c0edc012ba3ae3294be3e017e810c74c7037c1d87e56",
+          "url": "https://github.com/deepseek-ai/deepseek-harness/blob/66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db/packages/jobs/tool-jobs/src/index.ts"
+        },
+        {
+          "path": "packages/jobs/jobs-local/src/index.ts",
+          "sha256": "8c52fcba4410a89afd065b77a0cb98b558926292508cde276cce76355df76d19",
+          "url": "https://github.com/deepseek-ai/deepseek-harness/blob/66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db/packages/jobs/jobs-local/src/index.ts"
+        },
+        {
+          "path": "packages/jobs/jobs/src/types.ts",
+          "sha256": "d7f89fd44ef3e6fc1871d457e6980e84ce1b24a2d3dea146e4442dd11d4a8af5",
+          "url": "https://github.com/deepseek-ai/deepseek-harness/blob/66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db/packages/jobs/jobs/src/types.ts"
+        },
+        {
+          "path": "packages/core/agent-loop/src/inbox.ts",
+          "sha256": "336e10096a4899cdbef71e68da6896c5ed84c17a95c56729d17b8ba607bac1ca",
+          "url": "https://github.com/deepseek-ai/deepseek-harness/blob/66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db/packages/core/agent-loop/src/inbox.ts"
+        },
+        {
+          "path": "packages/core/agent-loop/src/agent.ts",
+          "sha256": "ad9ee0778c0a93dec40363f88b53f442add9b033837b9ff049675a1ada3df61f",
+          "url": "https://github.com/deepseek-ai/deepseek-harness/blob/66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db/packages/core/agent-loop/src/agent.ts"
+        },
+        {
+          "path": "packages/core/agent/src/runtime-types.ts",
+          "sha256": "2f7161c634956759bc33285ab1f293443cc30e64826c71c4164977802025f216",
+          "url": "https://github.com/deepseek-ai/deepseek-harness/blob/66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db/packages/core/agent/src/runtime-types.ts"
+        },
+        {
+          "path": "packages/subagent/subagent/src/manager.ts",
+          "sha256": "1e1844c145d6f985d594d348ed5f89a6d8e3283bab519ef88263f3d2d2a9fe07",
+          "url": "https://github.com/deepseek-ai/deepseek-harness/blob/66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db/packages/subagent/subagent/src/manager.ts"
+        },
+        {
+          "path": "packages/subagent/subagent/src/lifecycle.ts",
+          "sha256": "3f892ad12033aaf30a8c81b404eefaadb0974bd54d993631970a3c6509a13b92",
+          "url": "https://github.com/deepseek-ai/deepseek-harness/blob/66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db/packages/subagent/subagent/src/lifecycle.ts"
+        },
+        {
+          "path": "packages/subagent/subagent/src/continuation-messages.ts",
+          "sha256": "0c21aa2bece7c57440fcbfab480e61d6049d9f9a9b8cce6575290a2d1945e6fa",
+          "url": "https://github.com/deepseek-ai/deepseek-harness/blob/66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db/packages/subagent/subagent/src/continuation-messages.ts"
+        }
+      ],
+      "installedPackages": [
+        {
+          "name": "@deepseek-ai/dsh",
+          "version": "0.2.2-rc.1",
+          "entrySha256": "b6640801a5a65aae9f53ca21bcce3b2ea28bd9e9554c939c1ff7c4448d91fa18"
+        },
+        {
+          "name": "@deepseek-ai/dsh-tool-jobs",
+          "version": "0.2.2-rc.1",
+          "entrySha256": "7461570ac5d29f85b27b228d551911f392e5082651e93b83723b77e9b87de0b6"
+        },
+        {
+          "name": "@deepseek-ai/dsh-jobs-local",
+          "version": "0.2.2-rc.1",
+          "entrySha256": "cecdc8a766f62b28999ffff574008d34a39e276d91c4cc648f10ccb18afbed34"
+        },
+        {
+          "name": "@deepseek-ai/dsh-agent-loop",
+          "version": "0.2.2-rc.1",
+          "entrySha256": "a6fa8e0c7c90191caf5f4a3bb5c624a86e9845cf3c79d020b71420d0e20ae4c1"
+        },
+        {
+          "name": "@deepseek-ai/dsh-subagent",
+          "version": "0.2.2-rc.1",
+          "entrySha256": "5aad8aadee1879f1e8a878431630f885adbe6f9ee9cb1832838abbc56bc1fbea"
+        }
+      ]
+    },
+    {
+      "version": "0.2.1-rc.5",
+      "sourceCommit": "b830ec950faba0a46dda564be3e2d854afed94f1",
+      "sourceFiles": [
+        {
+          "path": "packages/jobs/tool-jobs/src/index.ts",
+          "sha256": "ef4ffb68c367a6fa44b0e12cf55a2c2b6ac824a9980cebc33a06cc2d0fc6647b",
+          "url": "https://github.com/deepseek-ai/deepseek-harness/blob/b830ec950faba0a46dda564be3e2d854afed94f1/packages/jobs/tool-jobs/src/index.ts"
+        },
+        {
+          "path": "packages/jobs/jobs-local/src/index.ts",
+          "sha256": "8c52fcba4410a89afd065b77a0cb98b558926292508cde276cce76355df76d19",
+          "url": "https://github.com/deepseek-ai/deepseek-harness/blob/b830ec950faba0a46dda564be3e2d854afed94f1/packages/jobs/jobs-local/src/index.ts"
+        },
+        {
+          "path": "packages/jobs/jobs/src/types.ts",
+          "sha256": "d7f89fd44ef3e6fc1871d457e6980e84ce1b24a2d3dea146e4442dd11d4a8af5",
+          "url": "https://github.com/deepseek-ai/deepseek-harness/blob/b830ec950faba0a46dda564be3e2d854afed94f1/packages/jobs/jobs/src/types.ts"
+        },
+        {
+          "path": "packages/core/agent-loop/src/inbox.ts",
+          "sha256": "70c07ea75ebcf18df353bbccf7c2aa3ecf6cb0d687b96e3520b675680c29f662",
+          "url": "https://github.com/deepseek-ai/deepseek-harness/blob/b830ec950faba0a46dda564be3e2d854afed94f1/packages/core/agent-loop/src/inbox.ts"
+        },
+        {
+          "path": "packages/core/agent-loop/src/agent.ts",
+          "sha256": "4add12f5c22bb1b8cf1dbc239c9b09fa3351feff2c936cb2b8900036468bd01b",
+          "url": "https://github.com/deepseek-ai/deepseek-harness/blob/b830ec950faba0a46dda564be3e2d854afed94f1/packages/core/agent-loop/src/agent.ts"
+        },
+        {
+          "path": "packages/core/agent/src/runtime-types.ts",
+          "sha256": "1ae0003c6968dc4af86e596d3ea08f6e517da0808e08089af2ed1818ab0651fc",
+          "url": "https://github.com/deepseek-ai/deepseek-harness/blob/b830ec950faba0a46dda564be3e2d854afed94f1/packages/core/agent/src/runtime-types.ts"
+        },
+        {
+          "path": "packages/subagent/subagent/src/manager.ts",
+          "sha256": "87298342da27dd567897bd23145fdec7d841e1f26a4e6b5dfa9a48b0b477d03e",
+          "url": "https://github.com/deepseek-ai/deepseek-harness/blob/b830ec950faba0a46dda564be3e2d854afed94f1/packages/subagent/subagent/src/manager.ts"
+        },
+        {
+          "path": "packages/subagent/subagent/src/lifecycle.ts",
+          "sha256": "3f892ad12033aaf30a8c81b404eefaadb0974bd54d993631970a3c6509a13b92",
+          "url": "https://github.com/deepseek-ai/deepseek-harness/blob/b830ec950faba0a46dda564be3e2d854afed94f1/packages/subagent/subagent/src/lifecycle.ts"
+        },
+        {
+          "path": "packages/subagent/subagent/src/continuation-messages.ts",
+          "sha256": "6faf0adce1af94da8b5d0dd03d2251b4ce1d2bcb29c15932a14dd4482ba5b76f",
+          "url": "https://github.com/deepseek-ai/deepseek-harness/blob/b830ec950faba0a46dda564be3e2d854afed94f1/packages/subagent/subagent/src/continuation-messages.ts"
+        }
+      ],
+      "installedPackages": [
+        {
+          "name": "@deepseek-ai/dsh",
+          "version": "0.2.1-rc.5",
+          "entrySha256": "80112efe368efb1a39720c7ada0af00442e5131fb2744edaaff8a3e8bb499e6f"
+        },
+        {
+          "name": "@deepseek-ai/dsh-tool-jobs",
+          "version": "0.2.1-rc.5",
+          "entrySha256": "de5707b43480ba37c8e141e6f67674978f3a46d87d58390c18eb1659bb17ec2f"
+        },
+        {
+          "name": "@deepseek-ai/dsh-jobs-local",
+          "version": "0.2.1-rc.5",
+          "entrySha256": "cecdc8a766f62b28999ffff574008d34a39e276d91c4cc648f10ccb18afbed34"
+        },
+        {
+          "name": "@deepseek-ai/dsh-agent-loop",
+          "version": "0.2.1-rc.5",
+          "entrySha256": "cf57e3ecd487ac5c2553455aaa5cef2c6fb41e6bd61be5aa455675d1d7193033"
+        },
+        {
+          "name": "@deepseek-ai/dsh-subagent",
+          "version": "0.2.1-rc.5",
+          "entrySha256": "9a9572e70fffdb100deb63326167f32bbf63016ce49c0017495dabcb95b44168"
+        }
+      ]
+    }
+  ]
+}
