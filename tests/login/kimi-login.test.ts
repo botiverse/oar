@@ -212,16 +212,27 @@ it("refuses browser suppression before launch when Kimi would exclude the helper
   `);
   expect(fake.read().calls).toBeUndefined();
 });
+// oxlint-disable-next-line eslint/max-statements -- Keep failure diagnostics and cancellation cleanup around the existing confirmation assertion.
 it("aborts the confirmation query after native success without undoing that success", async () => {
   const { fake, installation } = await fixture("status-timeout");
+  const { default: observeFakeLogin } = await import("../fixtures/login-process-observer.js");
+  const processes = await observeFakeLogin(fake.command);
   const controller = new AbortController();
-  const result = kimiRuntime.login(installation, recordedInteraction([], { signal: controller.signal }));
-  await vi.waitFor(() => { expect(fake.read().calls).toEqual([["login"], ["acp"]]); }, { timeout: 10_000 });
-  controller.abort();
-  expect(await result).toMatchInlineSnapshot(`
-    {
-      "kind": "logged_in",
-    }
-  `);
-  assertStopped(fake);
+  let outcome: Awaited<ReturnType<typeof kimiRuntime.login>> | undefined = undefined;
+  const result = (async () => {
+    outcome = await kimiRuntime.login(installation, recordedInteraction([], { signal: controller.signal }));
+    return outcome;
+  })();
+  try {
+    await vi.waitFor(() => {
+      expect(fake.read().calls, JSON.stringify({ result: outcome ?? "pending", processes: processes() })).toEqual([["login"], ["acp"]]);
+    }, { timeout: 10_000 });
+    controller.abort();
+    expect(await result).toMatchInlineSnapshot(`
+      {
+        "kind": "logged_in",
+      }
+    `);
+    assertStopped(fake);
+  } finally { controller.abort(); await result; }
 });
