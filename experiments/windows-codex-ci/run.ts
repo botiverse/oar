@@ -4,7 +4,7 @@ import { closeSync, mkdirSync, openSync, readFileSync, writeFileSync } from "nod
 import { createHash } from "node:crypto";
 import { availableParallelism, totalmem } from "node:os";
 import path from "node:path";
-import { codexPhaseRecord } from "../../sea-trial/harness/codex-phases.js";
+import { codexPhaseRecord } from "./codex-phases.js";
 
 const group = process.env.OAR_CODEX_WORKERS ?? "default";
 if (!["default", "2", "1"].includes(group)) { throw new Error("worker group must be default, 2 or 1"); }

@@ -1,7 +1,7 @@
 import { availableParallelism } from "node:os";
 import path from "node:path";
 import type { Reporter, TestCase, TestModule, Vitest } from "vitest/node";
-import { codexPhaseRecord } from "../../sea-trial/harness/codex-phases.js";
+import { codexPhaseRecord } from "./codex-phases.js";
 
 /** Parent-process records survive a blocked test worker. */
 export default class Progress implements Reporter {

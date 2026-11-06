@@ -3,7 +3,7 @@ import path from "node:path";
 import type { codexInstallation } from "../../packages/oar/src/runtimes/codex/installation.js";
 import type { codexSession } from "../../packages/oar/src/runtimes/codex/session.js";
 import { afterAll, afterEach, beforeEach, expect, vi } from "vitest";
-import { codexPhaseRecord, observeCodexPhase, setCodexPhaseContext } from "../../sea-trial/harness/codex-phases.js";
+import { codexPhaseRecord, observeCodexPhase, setCodexPhaseContext } from "./codex-phases.js";
 
 function context(): { file: string | null; test: string | null } {
   const state = expect.getState();

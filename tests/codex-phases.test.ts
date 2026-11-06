@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { asRecord } from "../packages/oar/src/shared/json.js";
-import { codexPhaseRecord, observeCodexPhase, setCodexPhaseContext, startCodexPhase } from "../sea-trial/harness/codex-phases.js";
+import { codexPhaseRecord, observeCodexPhase, setCodexPhaseContext, startCodexPhase } from "../experiments/windows-codex-ci/codex-phases.js";
 
 let directory = "";
 beforeEach(() => {

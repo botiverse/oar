@@ -1,0 +1,120 @@
+{
+  "runId": 42239998607,
+  "jobId": 127967452325,
+  "attempt": 1,
+  "head": "65452bd84ca3bc20800674f2e9c2c6efb4dad094",
+  "outsideComparison": true,
+  "failedCases": [
+    "completed text and phase survive (text deltas: false)",
+    "completed text and phase survive (text deltas: true)"
+  ],
+  "limitMs": 60000,
+  "passed": 69,
+  "failed": 2,
+  "skipped": 377,
+  "rawFiles": [
+    {
+      "file": "codex-message-completed-only/trace.jsonl",
+      "sha256": "5091e7af3d542295be731accfdca17db13d755e643f4d383bafa30f521dacdef"
+    },
+    {
+      "file": "codex-message-streamed/trace.jsonl",
+      "sha256": "fe0327f7f691ad997448763e3e6f4caf8d7e5fb5e230c970ef5c18116fa5068a"
+    }
+  ],
+  "timeline": [
+    {
+      "file": "codex-message-completed-only/trace.jsonl",
+      "at": "2026-11-06T15:14:34.317000+00:00",
+      "kind": "run_started",
+      "recordKind": null,
+      "bodyKind": null,
+      "frameType": null,
+      "session": null,
+      "seq": null,
+      "outcomes": []
+    },
+    {
+      "file": "codex-message-completed-only/trace.jsonl",
+      "at": "2026-11-06T15:15:32.597000+00:00",
+      "kind": "record",
+      "recordKind": "request",
+      "bodyKind": "prompt",
+      "frameType": null,
+      "session": "first-case-session",
+      "seq": 5,
+      "outcomes": []
+    },
+    {
+      "file": "codex-message-completed-only/trace.jsonl",
+      "at": "2026-11-06T15:15:32.624000+00:00",
+      "kind": "record",
+      "recordKind": "response",
+      "bodyKind": "accepted",
+      "frameType": null,
+      "session": "first-case-session",
+      "seq": 9,
+      "outcomes": []
+    },
+    {
+      "file": "codex-message-streamed/trace.jsonl",
+      "at": "2026-11-06T15:15:34.324000+00:00",
+      "kind": "run_started",
+      "recordKind": null,
+      "bodyKind": null,
+      "frameType": null,
+      "session": null,
+      "seq": null,
+      "outcomes": []
+    },
+    {
+      "file": "codex-message-streamed/trace.jsonl",
+      "at": "2026-11-06T15:15:42.926000+00:00",
+      "kind": "record",
+      "recordKind": "frame",
+      "bodyKind": null,
+      "frameType": "turn/started",
+      "session": "first-case-session",
+      "seq": 11,
+      "outcomes": []
+    },
+    {
+      "file": "codex-message-streamed/trace.jsonl",
+      "at": "2026-11-06T15:15:42.996000+00:00",
+      "kind": "record",
+      "recordKind": "frame",
+      "bodyKind": null,
+      "frameType": "turn/completed",
+      "session": "first-case-session",
+      "seq": 28,
+      "outcomes": [
+        {
+          "kind": "completed"
+        }
+      ]
+    },
+    {
+      "file": "codex-message-streamed/trace.jsonl",
+      "at": "2026-11-06T15:15:42.999000+00:00",
+      "kind": "record",
+      "recordKind": "request",
+      "bodyKind": "dispose",
+      "frameType": null,
+      "session": "first-case-session",
+      "seq": 29,
+      "outcomes": []
+    },
+    {
+      "file": "codex-message-streamed/trace.jsonl",
+      "at": "2026-11-06T15:15:43.889000+00:00",
+      "kind": "record",
+      "recordKind": "response",
+      "bodyKind": "exited",
+      "frameType": null,
+      "session": "first-case-session",
+      "seq": 30,
+      "outcomes": []
+    }
+  ],
+  "scope": "The streamed trace contains late records from the first session, not proof that the second session opened. No preparation subphases or resource counters were recorded."
+}

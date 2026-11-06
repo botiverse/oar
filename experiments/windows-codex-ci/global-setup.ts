@@ -1,6 +1,6 @@
 import { availableParallelism, totalmem } from "node:os";
 import setup from "../../sea-trial/global-setup.js";
-import { codexPhaseRecord, startCodexPhase } from "../../sea-trial/harness/codex-phases.js";
+import { codexPhaseRecord, startCodexPhase } from "./codex-phases.js";
 
 export default function prepare(): void {
   codexPhaseRecord("global_setup_entered", { availableParallelism: availableParallelism(), totalMemoryBytes: totalmem() });
