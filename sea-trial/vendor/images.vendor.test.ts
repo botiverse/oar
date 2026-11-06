@@ -1,11 +1,12 @@
 import { isPiBackend, piSession } from "./support/pi-runtime.js";
 import assert from "node:assert/strict";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { expect, test } from "vitest";
 import { awaitTurnEnd, defineRuntime, piInstallation, defaultRuntimes, type Session } from "../../packages/oar/src/index.js";
 import { startClaudeAimock, startCodexAimock, startPiAimock, type AimockEnv } from "../harness/aimock.js";
+import { removeFixtureDirectory } from "../harness/fixture-directory-cleanup.js";
 import { runtimeUnderTest } from "../harness/subject.js";
 
 /** A 1×1 PNG. */
@@ -46,7 +47,7 @@ async function sendImage(open: (cwd: string) => Promise<Session>, env: AimockEnv
     assert.ok(part !== undefined, "the image bytes reached the provider");
     return part;
   } finally {
-    await rm(cwd, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
+    await removeFixtureDirectory(cwd, "images-vendor");
   }
 }
 
