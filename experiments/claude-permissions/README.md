@@ -5,6 +5,9 @@ that point OAR always supplied bypass and refused `--permission-mode`. The
 subsequent implementation accepts four noninteractive modes through launch
 arguments; see [current behavior](../../docs/runtimes/claude.md#tools-permissions-and-extensions).
 The observations below retain the original native fixtures and limits.
+The [November 6 follow-up](2026-11-06.md) compares 2.1.318 and 2.1.319:
+the local-provider plan/Bash fixture now needs an explicit opt-in to the
+built-in classifier; the default path denies when its safety check is unavailable.
 
 ## Reproduce
 

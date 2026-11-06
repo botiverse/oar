@@ -873,12 +873,19 @@ on 2.1.311 and adapter regressions on 2.1.312 use local model providers.
 Write was allowed under `acceptEdits`, denied under the other three modes,
 and no host permission request waited. Reapplying `dontAsk` on resume
 preserved denial; omitting the mode restored bypass and allowed the write.
-Plan-mode Bash decisions also consult a model classifier: a scripted allow
-result permitted a file write, while a deny result blocked it. These checks
-do not claim what a real model will classify as safe. Permission modes are
-not OS isolation. A host needing an enforcement boundary supplies an OS
-sandbox or container; `disallowedTools` separately removes named tools from
-the session. [Native permissions][native-permissions],
+Plan-mode Bash can consult the built-in model classifier: a scripted allow
+result permitted a file write, while a deny result blocked it. In the
+[2.1.319 local-provider control](../../experiments/claude-permissions/2026-11-06.md),
+with `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1`, the default instead
+denied Bash without a classifier request and reported
+`tool_result_meta[].non_execution_kind: "automode-unavailable"`. Setting
+`SessionOptions.env.CLAUDE_CODE_AUTO_MODE_SERVER` to `"0"` explicitly
+selected the built-in classifier and restored those allow/deny controls.
+OAR does not set this switch for the host. These checks do not exercise the
+server-side check or claim what a real model will classify as safe.
+Permission modes are not OS isolation. A host needing an enforcement
+boundary supplies an OS sandbox or container; `disallowedTools` separately
+removes named tools from the session. [Native permissions][native-permissions],
 [adapter regressions](../../sea-trial/vendor/claude-permissions.vendor.test.ts).
 
 Inventories (2026-09-16) are control queries in their own

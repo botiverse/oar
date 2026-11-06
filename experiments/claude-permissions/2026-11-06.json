@@ -1,0 +1,177 @@
+{
+  "observedAt": "2026-11-06",
+  "platform": "linux x64",
+  "node": "24.19.0",
+  "provider": "local scripted",
+  "nonessentialTrafficDisabled": true,
+  "cases": [
+    {
+      "version": "2.1.318 (Claude Code)",
+      "autoModeServer": "unset",
+      "severity": 0,
+      "classifierCalls": 1,
+      "ordinaryCalls": 2,
+      "written": true,
+      "outcome": "completed",
+      "permissionRequests": 0,
+      "capturedRequests": 3,
+      "decisions": [
+        {
+          "nonExecutionKind": null,
+          "permissionDecision": {
+            "decision": "accept",
+            "source": "config",
+            "reason_type": "classifier"
+          }
+        }
+      ]
+    },
+    {
+      "version": "2.1.318 (Claude Code)",
+      "autoModeServer": "unset",
+      "severity": 90,
+      "classifierCalls": 2,
+      "ordinaryCalls": 2,
+      "written": false,
+      "outcome": "completed",
+      "permissionRequests": 0,
+      "capturedRequests": 4,
+      "decisions": [
+        {
+          "nonExecutionKind": "automode-blocked",
+          "permissionDecision": {
+            "decision": "reject",
+            "source": "config",
+            "reason_type": "classifier"
+          }
+        }
+      ]
+    },
+    {
+      "version": "2.1.318 (Claude Code)",
+      "autoModeServer": "0",
+      "severity": 0,
+      "classifierCalls": 1,
+      "ordinaryCalls": 2,
+      "written": true,
+      "outcome": "completed",
+      "permissionRequests": 0,
+      "capturedRequests": 3,
+      "decisions": [
+        {
+          "nonExecutionKind": null,
+          "permissionDecision": {
+            "decision": "accept",
+            "source": "config",
+            "reason_type": "classifier"
+          }
+        }
+      ]
+    },
+    {
+      "version": "2.1.318 (Claude Code)",
+      "autoModeServer": "0",
+      "severity": 90,
+      "classifierCalls": 2,
+      "ordinaryCalls": 2,
+      "written": false,
+      "outcome": "completed",
+      "permissionRequests": 0,
+      "capturedRequests": 4,
+      "decisions": [
+        {
+          "nonExecutionKind": "automode-blocked",
+          "permissionDecision": {
+            "decision": "reject",
+            "source": "config",
+            "reason_type": "classifier"
+          }
+        }
+      ]
+    },
+    {
+      "version": "2.1.319 (Claude Code)",
+      "autoModeServer": "unset",
+      "severity": 0,
+      "classifierCalls": 0,
+      "ordinaryCalls": 2,
+      "written": false,
+      "outcome": "completed",
+      "permissionRequests": 0,
+      "capturedRequests": 2,
+      "decisions": [
+        {
+          "nonExecutionKind": "automode-unavailable",
+          "permissionDecision": {
+            "decision": "reject",
+            "source": "config",
+            "reason_type": "classifier"
+          }
+        }
+      ]
+    },
+    {
+      "version": "2.1.319 (Claude Code)",
+      "autoModeServer": "unset",
+      "severity": 90,
+      "classifierCalls": 0,
+      "ordinaryCalls": 2,
+      "written": false,
+      "outcome": "completed",
+      "permissionRequests": 0,
+      "capturedRequests": 2,
+      "decisions": [
+        {
+          "nonExecutionKind": "automode-unavailable",
+          "permissionDecision": {
+            "decision": "reject",
+            "source": "config",
+            "reason_type": "classifier"
+          }
+        }
+      ]
+    },
+    {
+      "version": "2.1.319 (Claude Code)",
+      "autoModeServer": "0",
+      "severity": 0,
+      "classifierCalls": 1,
+      "ordinaryCalls": 2,
+      "written": true,
+      "outcome": "completed",
+      "permissionRequests": 0,
+      "capturedRequests": 3,
+      "decisions": [
+        {
+          "nonExecutionKind": null,
+          "permissionDecision": {
+            "decision": "accept",
+            "source": "config",
+            "reason_type": "classifier"
+          }
+        }
+      ]
+    },
+    {
+      "version": "2.1.319 (Claude Code)",
+      "autoModeServer": "0",
+      "severity": 90,
+      "classifierCalls": 2,
+      "ordinaryCalls": 2,
+      "written": false,
+      "outcome": "completed",
+      "permissionRequests": 0,
+      "capturedRequests": 4,
+      "decisions": [
+        {
+          "nonExecutionKind": "automode-blocked",
+          "permissionDecision": {
+            "decision": "reject",
+            "source": "config",
+            "reason_type": "classifier"
+          }
+        }
+      ]
+    }
+  ]
+}

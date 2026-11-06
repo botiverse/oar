@@ -12,7 +12,7 @@ function bashArgument(value: string): string {
   return `'${value.replaceAll("\\", "/").replaceAll("'", String.raw`'\''`)}'`;
 }
 
-async function fixture(tool: "Write" | "Bash" = "Write", severity = 90): Promise<{
+async function fixture(tool: "Write" | "Bash" = "Write", severity = 90, autoModeServer?: "0"): Promise<{
   readonly options: SessionOptions;
   readonly classifierCalls: () => number;
   readonly wrote: (marker: string) => Promise<boolean>;
@@ -47,7 +47,8 @@ async function fixture(tool: "Write" | "Bash" = "Write", severity = 90): Promise
     options: {
       cwd: directory, model: "sonnet",
       env: { ...provider.env, HOME: directory, USERPROFILE: directory, CLAUDE_CONFIG_DIR: path.join(directory, ".claude"),
-        ANTHROPIC_AUTH_TOKEN: null, CLAUDE_CODE_OAUTH_TOKEN: null, CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1" },
+        ANTHROPIC_AUTH_TOKEN: null, CLAUDE_CODE_OAUTH_TOKEN: null, CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1",
+        CLAUDE_CODE_AUTO_MODE_SERVER: autoModeServer ?? null },
       launchArgs: ["--settings", '{"disableAllHooks":true}', "--strict-mcp-config", "--mcp-config", '{"mcpServers":{}}'],
     },
     classifierCalls: () => classifierCalls,
@@ -105,9 +106,10 @@ test.skipIf(process.env.OAR_TEST !== "claude-aimock")("Claude resume reapplies a
   } finally { await session?.dispose(); await setup.stop(); }
 }, 120_000);
 
-// The native classifier's decision is model output, not a filesystem sandbox.
-test.skipIf(process.env.OAR_TEST !== "claude-aimock").each([0, 90])("Claude plan Bash classifier severity %s retains its native effect", async (severity) => {
-  const setup = await fixture("Bash", severity);
+// Since 2.1.319 this local-provider fixture must opt into the built-in
+// classifier. Its decision is model output, not a filesystem sandbox.
+test.skipIf(process.env.OAR_TEST !== "claude-aimock").each([0, 90])("Claude plan Bash built-in classifier severity %s retains its native effect", async (severity) => {
+  const setup = await fixture("Bash", severity, "0");
   let session: Session | undefined = undefined;
   try {
     const installation = await claudeInstallation();
@@ -116,5 +118,41 @@ test.skipIf(process.env.OAR_TEST !== "claude-aimock").each([0, 90])("Claude plan
     const results = await phase(session, "PERMISSION_PHASE_1", "plan");
     expect(setup.classifierCalls()).toBeGreaterThan(0);
     expect(await setup.wrote("PERMISSION_PHASE_1"), results).toBe(severity === 0);
+  } finally { await session?.dispose(); await setup.stop(); }
+}, 60_000);
+
+// Exercise the new default separately: disabling nonessential traffic no
+// longer implicitly selects the built-in classifier in Claude 2.1.319.
+test.skipIf(process.env.OAR_TEST !== "claude-aimock").each([0, 90])("Claude plan Bash without an available safety check denies before classifier severity %s", async (severity) => {
+  const setup = await fixture("Bash", severity);
+  let session: Session | undefined = undefined;
+  try {
+    const installation = await claudeInstallation();
+    expectAvailable(installation, "Claude");
+    session = await claudeSession(installation, { ...setup.options, launchArgs: [...setup.options.launchArgs ?? [], "--permission-mode=plan"] });
+    const results = await phase(session, "PERMISSION_PHASE_1", "plan");
+    expect(setup.classifierCalls()).toBe(0);
+    expect(await setup.wrote("PERMISSION_PHASE_1"), results).toBe(false);
+    const decisions = session.records().flatMap((record) => {
+      if (record.kind !== "frame") { return []; }
+      const metadata = asRecord(record.body.native)?.tool_result_meta;
+      return Array.isArray(metadata) ? metadata.map((value: unknown) => value) : [];
+    });
+    expect(decisions).toMatchInlineSnapshot(`
+      [
+        {
+          "id": "PERMISSION_PHASE_1",
+          "non_execution_kind": "automode-unavailable",
+          "permission_decision": {
+            "decision": "reject",
+            "reason_type": "classifier",
+            "source": "config",
+          },
+        },
+      ]
+    `);
+    const toolResults = session.records().flatMap((record) => record.kind === "frame"
+      ? record.body.events.flatMap((event) => event.kind === "tool_call_ended" ? [event.result] : []) : []);
+    expect(toolResults).toEqual(["failed"]);
   } finally { await session?.dispose(); await setup.stop(); }
 }, 60_000);
