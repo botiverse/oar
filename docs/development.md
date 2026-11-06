@@ -316,6 +316,13 @@ snapshot is taken before cleanup; a later cleanup-induced exit cannot replace
 it. This distinguishes an exited root with open pipes from an exit not yet
 observed without changing deadlines, pipe draining or process cleanup.
 
+A separate [manual Windows Codex comparison](../experiments/windows-codex-ci/README.md)
+observes default, two and one vendor file workers on three runners each. It
+records startup/cleanup phases and resources with fixed runtime versions;
+ordinary CI, per-case concurrency, assertions and deadlines remain unchanged.
+It is a one-round diagnostic workflow, not a merge check or evidence that
+lowering concurrency fixes the unexplained Windows delays.
+
 ## How to add a new runtime
 
 1. **Probe reality first.** Write an experiment that answers how the vendor

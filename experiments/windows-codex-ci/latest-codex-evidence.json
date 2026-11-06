@@ -1,0 +1,69 @@
+{
+  "run_id": 42219272509,
+  "job_id": 127896958827,
+  "head_sha": "5a6408b88cb2c7a854c5b19b4e44be8ef3cde00d",
+  "artifact_id": 13502923954,
+  "trace_path": "vendor-codex-failure-rate-limited-in-the-stream/trace.jsonl",
+  "original_trace_sha256": "f1fc21dcabc1bca4def62c9f11c6ddbac38aaf1920f4d47c5b7d756bd34a9279",
+  "clock": "Host trace receive times; not native internal start timestamps",
+  "timeline": [
+    {
+      "observation": "case_started",
+      "at_utc": "2026-11-06T12:44:38.798000+00:00",
+      "relative_s": 0.0
+    },
+    {
+      "observation": "opening",
+      "at_utc": "2026-11-06T12:46:02.074000+00:00",
+      "relative_s": 83.276
+    },
+    {
+      "observation": "session_started",
+      "at_utc": "2026-11-06T12:46:13.492000+00:00",
+      "relative_s": 94.694
+    },
+    {
+      "observation": "received native turn/started",
+      "at_utc": "2026-11-06T12:46:36.521000+00:00",
+      "relative_s": 117.723
+    },
+    {
+      "observation": "observed outcome: rate_limited",
+      "at_utc": "2026-11-06T12:46:37.560000+00:00",
+      "relative_s": 118.762
+    },
+    {
+      "observation": "disposed, native exit code 0",
+      "at_utc": "2026-11-06T12:46:38.282000+00:00",
+      "relative_s": 119.484
+    }
+  ],
+  "test_reported_duration_s": 120.004,
+  "windows_process_table_preparation": [
+    {
+      "job_id": 127896958827,
+      "at": "2026-11-06T12:43:06.308Z",
+      "timeoutMs": 60000,
+      "elapsedMs": 16222.6385,
+      "outcome": "completed",
+      "queryMs": 4567.4289
+    },
+    {
+      "job_id": 127882493203,
+      "at": "2026-11-06T12:06:18.789Z",
+      "timeoutMs": 60000,
+      "elapsedMs": 396.5794,
+      "outcome": "completed",
+      "queryMs": 124.6978
+    }
+  ],
+  "native_version_observed": {
+    "value": "codex-cli 0.167.0",
+    "source": "codex-aimock-abort-processes-no-groups/trace.jsonl"
+  },
+  "limits": [
+    "No CPU, memory, disk-pressure or actual worker-count telemetry for this job.",
+    "83.276s preparation is not subdivided into mock, configuration and warmup phases.",
+    "Other three failed cases do not have comparable phase traces."
+  ]
+}
