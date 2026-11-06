@@ -1,5 +1,5 @@
 import { afterEach, expect, test, vi } from "vitest";
-import { RuntimeRegistry, defineRuntime } from "../packages/oar/src/index.js";
+import { RuntimeRegistry, defineRuntime, type AccountUsageReadOptions } from "../packages/oar/src/index.js";
 import { orientationCommand, renderOrientation } from "../packages/cli/src/orient.js";
 
 afterEach(() => { vi.restoreAllMocks(); });
@@ -26,4 +26,23 @@ test("the human table exposes uncertainty instead of treating missing auth as si
   const { orient } = await import("../packages/oar/src/index.js");
   const snapshot = await orient(registry());
   expect(renderOrientation(snapshot)).toContain("missing\t\tnot_installed");
+});
+
+test("orient --env threads the overlay to the account usage probe", async () => {
+  const captured: { current?: unknown } = {};
+  const usageRuntime = defineRuntime({
+    id: "envprobe",
+    session: async () => { throw new Error("must not run"); },
+    installation: async () => ({ kind: "available" as const, via: "executable" as const, command: "/bin/envprobe", version: "0.0.1" }),
+    accountUsage: async (_installation, options?: AccountUsageReadOptions) => {
+      captured.current = options?.env;
+      return { kind: "available", email: "agent@example.com", rateLimited: false, windows: [{ label: "Weekly limit", usedRatio: 0 }] };
+    },
+  });
+  const output = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+  const command = orientationCommand(new RuntimeRegistry([usageRuntime])).exitOverride();
+  await command.parseAsync(["envprobe", "--depth", "account", "--json", "--env", "KIMI_CODE_HOME=/home/b"], { from: "user" });
+  expect(captured.current).toEqual({ KIMI_CODE_HOME: "/home/b" });
+  const parsed: unknown = JSON.parse(String(output.mock.calls[0]?.[0]));
+  expect(parsed).toMatchObject({ runtimes: [{ id: "envprobe", accountUsage: { kind: "ok", value: { kind: "available", email: "agent@example.com" } } }] });
 });

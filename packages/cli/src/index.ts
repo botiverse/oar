@@ -10,6 +10,7 @@ import { registerLoginCommand, registerLogoutCommand } from "./login.js";
 import { registerMcpCommand } from "./mcp-command.js";
 import { registerRunCommand } from "./run.js";
 import { registerOrientCommand } from "./orient.js";
+import { usageCommand } from "./usage.js";
 import { runtimes } from "./runtimes.js";
 
 // Read the version from this package's own manifest so `--version` can never
@@ -81,22 +82,7 @@ program
     })));
   });
 
-program
-  .command("usage [runtime]")
-  .description("Read account usage for each available installation")
-  .action(async (id: string | undefined) => {
-    printEach(await readEach(selected(id), async (runtime) => {
-      if (runtime.accountUsage === undefined || runtime.installation === undefined) {
-        return { runtimeId: runtime.id, accountUsage: { kind: "unsupported" as const, reason: "capability_unavailable" as const } };
-      }
-      const installation = await runtime.installation();
-      if (installation.kind !== "available") {
-        return { runtimeId: runtime.id, installation, accountUsage: null };
-      }
-      const accountUsage = await runtime.accountUsage(installation);
-      return { runtimeId: runtime.id, accountUsage };
-    }));
-  });
+program.addCommand(usageCommand(runtimes));
 
 for (const [command, method] of [["skills", "skills"], ["commands", "commands"], ["mcps", "mcpServers"], ["tools", "tools"]] as const) {
   program.command(`${command  } [runtime]`)
