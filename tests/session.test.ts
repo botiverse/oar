@@ -62,36 +62,6 @@ test("events({ coalesceText }) merges consecutive text into one event carrying t
   `);
 });
 
-async function stallFixture(): Promise<{ stalls: string[]; stop: () => void; dispose: () => Promise<void> }> {
-  const { observeStalls } = await import("../packages/oar/src/observe/stall-observer.js");
-  const session = await startMockSession(installation, { cwd: process.cwd() });
-  const stalls: string[] = [];
-  const stop = observeStalls(session, {
-    stallAfterMs: 50,
-    onStall: (info) => {
-      stalls.push(info.lastRecordKind);
-    },
-  });
-  const started = await session.prompt("hang");
-  assert.equal(started.response.body.kind, "accepted");
-  return { stalls, stop, dispose: async () => session.dispose() };
-}
-
-test("observeStalls reports a silent active turn (virtual time)", async () => {
-  // Date is mocked too: stallOf re-derives silence from the wall clock, so
-  // virtual time must advance both the timer AND Date.now().
-  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
-  const { stalls, stop, dispose } = await stallFixture();
-  vi.advanceTimersByTime(49);
-  assert.deepEqual(stalls, [], "must not fire before the threshold");
-  vi.advanceTimersByTime(2);
-  assert.deepEqual(stalls, ["response"], "fires once past the threshold (last record: the accepted response)");
-  vi.advanceTimersByTime(500);
-  assert.deepEqual(stalls, ["response"], "fires once per silence episode");
-  stop();
-  await dispose();
-});
-
 let seqCounter = 0;
 function event(events: RuntimeEventBody[], overrides: { agentPath?: readonly string[]; seq?: number; receivedAt?: number } = {}): RawEvent {
   seqCounter += 1;

@@ -30,14 +30,23 @@ export function observeStalls(
       timer = null;
     }
   };
-  const arm = (): void => {
+  const arm = (delayMs = options.stallAfterMs): void => {
     disarm();
     timer = setTimeout(() => {
-      const stall = stallOf(status, Date.now(), options.stallAfterMs);
+      timer = null;
+      const now = Date.now();
+      const stall = stallOf(status, now, options.stallAfterMs);
       if (stall !== null) {
         options.onStall({ ...stall, lastRecordKind });
+      } else if (status.kind === "running") {
+        const remaining = options.stallAfterMs - (now - status.lastEventAt);
+        if (Number.isFinite(remaining) && remaining > 0) {
+          // A timer can fire before the wall clock reaches the threshold.
+          // Keep retries in the timer's range without polling invalid clocks.
+          arm(Math.min(2_147_483_647, Math.max(1, remaining)));
+        }
       }
-    }, options.stallAfterMs);
+    }, delayMs);
   };
 
   const unsubscribe = session.rawEvents((record) => {
