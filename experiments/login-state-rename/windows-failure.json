@@ -1,0 +1,36 @@
+{
+  "run": 42290095183,
+  "attempt": 1,
+  "job": 128140953549,
+  "head": "d8fc9410490e848b6488bb54fe1e535e0e1f4677",
+  "platform": "windows-latest",
+  "node": "24.22.2",
+  "logSha256": "85302c46cb10a6a4a5c6b1b18cdcc2ab58767016784a5360b5d7af55bb0e5928",
+  "testFile": "tests/login/kimi-login.test.ts",
+  "test": "aborts the confirmation query after native success without undoing that success",
+  "result": {
+    "kind": "failed",
+    "reason": "process_failed",
+    "detail": "Kimi login ended without reporting success"
+  },
+  "fakeProcess": {
+    "args": [
+      "login"
+    ],
+    "exitCode": 1,
+    "signal": null,
+    "errorCode": "EPERM",
+    "syscall": "rename",
+    "source": "unpublished sibling .tmp",
+    "destination": "kimi.json",
+    "stack": [
+      "tests/fixtures/login-state.mjs:10",
+      "tests/fixtures/fake-kimi-login.mjs:8",
+      "tests/fixtures/fake-kimi-login.mjs:15"
+    ]
+  },
+  "confirmationStarted": false,
+  "nativeKimiControlsPassed": 5,
+  "codeBuddyInstall": "skipped after unit failure",
+  "lockOwner": null
+}

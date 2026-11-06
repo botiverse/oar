@@ -27,6 +27,7 @@ time.
 
 | Experiment | Fact it pins | Findings | Last observed |
 |---|---|---|---|
+| [Login fixture state replacement](login-state-rename/README.md) | Windows fake-login state publication returned EPERM; bounded rename retries preserve the last complete JSON and still surface persistent refusal. | [failure evidence and controlled regression](login-state-rename/README.md) | 2026-11-06, Windows failure retained; Linux controlled errors and interruption passed |
 | [CodeBuddy npm installation diagnostics](codebuddy-install-diagnostics/README.md) | Three Windows first-install timeouts lacked npm-stage evidence; retain logs before isolated HOME cleanup, with the same deadlines. | [report and selected results](codebuddy-install-diagnostics/README.md) | 2026-11-06, Windows failures retained; Linux 2.181.0 diagnostic control passed |
 | [Claude plan-mode classifier selection](claude-permissions/2026-11-06.md) | The local-provider default denies with `automode-unavailable` in 2.1.319; explicitly selecting the built-in classifier retains the allow/deny controls. | [probe and selected results](claude-permissions/2026-11-06.md) | 2026-11-06, Claude 2.1.318/2.1.319, Linux x64, local provider |
 | [Windows Codex worker comparison](windows-codex-ci/README.md) | Nine first-run default/2/1 worker samples: no established concurrency remedy; one cleanup timeout, with native completion and exit recorded. | [results, archived workflow and analysis](windows-codex-ci/results.md) | 2026-11-06, all nine Windows samples retained; temporary workflow and fixture hooks removed |
