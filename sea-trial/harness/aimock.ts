@@ -1,8 +1,11 @@
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { performance } from "node:perf_hooks";
 import { LLMock } from "@copilotkit/aimock";
 import { warmCodexHome } from "./codex-home.js";
+import { removeCodexHome } from "./codex-home-cleanup.js";
+import { record } from "./trace.js";
 import { startRawCapture, type RawCapture, type RawProviderRequest, type RequestRewrite, type ResponseRewrite } from "./raw-capture.js";
 
 export type { LLMock } from "@copilotkit/aimock";
@@ -126,18 +129,18 @@ export async function startCodexAimock(
     stop: async () => {
       await capture?.stop();
       await mock.stop();
-      try {
-        // codex leaves background writers (plugins clone) briefly alive after
-        // dispose; retry, and never fail a clean suite over teardown.
-        await rm(codexHome, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
-      } catch (error) {
-        process.stderr.write(`codex home teardown left residue: ${String(error)}\n`);
-      }
+      await removeCodexHome(codexHome);
     },
   };
   try {
     // Cold-start regressions must exercise the adapter without a prior process.
-    if (options.warmHome !== false) { await warmCodexHome(env); }
+    if (options.warmHome !== false) {
+      const started = performance.now();
+      let outcome: "ready" | "failed" = "failed";
+      record({ kind: "codex_home_warmup", stage: "start", home: codexHome });
+      try { await warmCodexHome(env); outcome = "ready"; }
+      finally { record({ kind: "codex_home_warmup", stage: "end", home: codexHome, elapsedMs: performance.now() - started, outcome }); }
+    }
     return result;
   } catch (error) {
     await result.stop();
