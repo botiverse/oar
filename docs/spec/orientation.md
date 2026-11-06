@@ -208,6 +208,13 @@ This is conservative selection guidance over the supplied facts, not a remote
 login test or quota guarantee. Hosts decide how old a snapshot may be and may
 apply their own policy instead.
 
+A verdict describes the account selected by that observation's environment,
+not every account using the runtime. Hosts that suspend work for `rate_limited`
+must scope that decision to the runtime and the selected account, retaining their
+own account/configuration key alongside the snapshot. Native identity fields are
+optional and display names need not be unique; absent identity does not justify
+applying one account's limit to the others.
+
 ## CLI and verification
 
 `oar orient [runtime...] --depth local|account|models --json` prints the complete
@@ -215,6 +222,39 @@ snapshot. Without JSON it prints a compact readiness table. `--customization`
 opts into inventories, and `--timeout <ms>` changes the overall bound. The
 command exits successfully when a snapshot was produced, including partial
 failures; invalid arguments and a rejected overall call fail the command.
+
+The CLI inherits its process environment. A separate environment flag is not
+required to select another Kimi account:
+
+```sh
+KIMI_CODE_HOME=/home/b oar usage kimi
+KIMI_CODE_HOME=/home/b oar orient kimi --depth account
+```
+
+In PowerShell, set the process variable before starting the commands, then restore
+its previous value:
+
+```powershell
+$previousKimiHome = $env:KIMI_CODE_HOME
+try {
+  $env:KIMI_CODE_HOME = 'C:\accounts\b'
+  oar usage kimi
+  oar orient kimi --depth account
+} finally {
+  $env:KIMI_CODE_HOME = $previousKimiHome
+}
+```
+
+PowerShell's [environment variables](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_environment_variables)
+are inherited by child processes. A host spawning the CLI directly supplies the
+same variable in that child's environment. Match the probe environment to the
+session's account configuration; an unqualified probe observes its own inherited
+configuration, not an arbitrary agent's account.
+
+The [Kimi account probe](../../experiments/orientation/kimi-accounts.md) verifies
+both commands, including the orientation readiness table, with real Kimi 2.4.1
+and two isolated synthetic accounts on Linux. It does not establish Windows
+runtime behavior.
 
 `tests/orientation.test.ts` covers depth, absence, independent failures, budgets,
 slots, cancellation, and truthful inventory counts. `tests/usability.test.ts`

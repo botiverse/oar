@@ -1,5 +1,6 @@
 # experiments
 
+- [Kimi account selection](orientation/kimi-accounts.md): real Kimi 2.4.1 and the OAR CLI inherit `KIMI_CODE_HOME`; quota decisions stay scoped to the selected account.
 - [Codex native signals](codex-native-signals/README.md): reconnects in the notification stream and not on stderr, a bad tool argument completing the turn, and an OOM score set through a command wrapper.
 - [Windows dispose timing](windows-dispose-timing/README.md): Claude 2.1.316 cold/prepared Windows phases, batched-query waiting, and separate bounded cleanup observations.
 
