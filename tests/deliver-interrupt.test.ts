@@ -156,7 +156,9 @@ test("rejected concurrent queue attempts release the coordinator for the next in
 });
 
 test("interrupt returns every withdrawn input when cancellation fallback expires while the host is paused", async () => {
-  const { session } = await fixture(opencodeV2AcpProfile, "tools", 50);
+  // A responsive peer can finish before an overdue fallback callback runs.
+  // Ignore cancellation so this case must exercise the forced-exit path.
+  const { session } = await fixture(opencodeV2AcpProfile, "ignore-cancel", 50);
   await working(session);
   const earlier = await session.queue("saved");
   if (earlier.request.body.kind !== "queue") { throw new Error("expected queue"); }
@@ -167,7 +169,7 @@ test("interrupt returns every withdrawn input when cancellation fallback expires
     if (!paused && record.kind === "response" && record.requestId === abortId && record.body.kind === "accepted") {
       paused = true;
       // The native cancel was sent and its 50 ms fallback is armed. Hold this
-      // host past that deadline even if the fixture replies in the meantime.
+      // host past that deadline before it can process the forced exit.
       Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 100);
     }
   });
@@ -181,6 +183,7 @@ test("interrupt returns every withdrawn input when cancellation fallback expires
       undeliveredInputIds: [earlier.request.body.inputId, delivered.inputId],
     });
     expect(requests(session, "prompt"), evidence).toHaveLength(1);
+    expect(session.records().flatMap((record) => record.kind === "frame" ? record.body.events.filter((event) => event.kind === "turn_ended") : []), evidence).toEqual([]);
   } finally { unsubscribe(); }
 });
 
