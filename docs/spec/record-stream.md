@@ -1059,7 +1059,15 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   their nested `data`; a reported `subagent_type` marks an agent, otherwise
   the type is other. Child identity, background flags, and spend are not
   inferred from task notifications. Unknown native status values remain
-  raw. Pi, cursor and the other ACP adapters report no task events. `tasksOf`
+  raw.
+  DSH maps `subagent/start` / `subagent/end` by native `runId`, and durable
+  `job/registered` / `job/settled` by native `jobId` on the owning session.
+  `bash` and `pwsh` jobs are shell tasks, including foreground commands;
+  other producers retain their `nativeType`. No background flag is inferred.
+  Native job `completed` / `failed` map directly and `killed` maps to stopped;
+  unknown outcomes and copied history owned by another session stay raw.
+  DSH does not provide `stopTask` ([mapping and completion boundaries](../runtimes/dsh.md#root-completion-and-background-work)).
+  Pi, cursor and the other ACP adapters report no task events. `tasksOf`
   folds them into one row per task, including endings inferred from runtime
   exit as described below.
 - `effort`: the reasoning-effort level the runtime reports in effect, in its

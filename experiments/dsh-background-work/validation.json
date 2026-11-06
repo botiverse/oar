@@ -1,0 +1,123 @@
+{
+  "platform": "Linux x64",
+  "node": "24.19.0",
+  "date": "2026-11-06",
+  "check": {
+    "passed": true,
+    "tests": 3635,
+    "mockBehaviorPassed": 18,
+    "mockBehaviorSkipped": 1,
+    "base": "9728c56988d524a061e0731dce7a8642c0a88ee6"
+  },
+  "vendor": [
+    {
+      "dsh": "0.2.1-rc.5",
+      "passed": 23,
+      "failed": 0
+    },
+    {
+      "dsh": "0.2.2-rc.1",
+      "passed": 23,
+      "failed": 0
+    }
+  ],
+  "behavior": {
+    "dsh": "0.2.2-rc.1",
+    "passed": 18,
+    "skipped": 1,
+    "failed": 0
+  },
+  "focusedUnit": {
+    "passed": 8
+  },
+  "finalNativeBackground": {
+    "dsh": "0.2.1-rc.5",
+    "passed": 1
+  },
+  "build": "passed",
+  "mutation": {
+    "mutation": "remove DSH job projection, preserve empty frame events",
+    "exitCodes": {
+      "unit": 1,
+      "background": 1
+    },
+    "excludedAttempt": "initial mutation returned no events property and was invalid, so excluded"
+  },
+  "sourceHashes": [
+    {
+      "dsh": "0.2.1-rc.5",
+      "file": "dsh-jobs/lib/types/types.d.ts",
+      "sha256": "dfa69379032dfb95461e9e06e1a88181f12be005129b3540f78eea015fe4dcb1"
+    },
+    {
+      "dsh": "0.2.1-rc.5",
+      "file": "dsh-tool-jobs/lib/index.js",
+      "sha256": "de5707b43480ba37c8e141e6f67674978f3a46d87d58390c18eb1659bb17ec2f"
+    },
+    {
+      "dsh": "0.2.2-rc.1",
+      "file": "dsh-jobs/lib/types/types.d.ts",
+      "sha256": "dfa69379032dfb95461e9e06e1a88181f12be005129b3540f78eea015fe4dcb1"
+    },
+    {
+      "dsh": "0.2.2-rc.1",
+      "file": "dsh-tool-jobs/lib/index.js",
+      "sha256": "7461570ac5d29f85b27b228d551911f392e5082651e93b83723b77e9b87de0b6"
+    }
+  ],
+  "unverified": [
+    "Windows and macOS execution of the manual subagent and Claude/Codex comparison probes",
+    "arbitrary custom jobs/plugins and quiet or limited wake delivery",
+    "native failed/killed job controls (mapping covered by unit tests)"
+  ],
+  "cleanInstall": "passed",
+  "ci": {
+    "head": "c95a8e691b79fec8d0ebdc00204c03174ddc9655",
+    "run": 42236627645,
+    "dsh": "0.2.1-rc.5",
+    "provider": "local scripted provider",
+    "jobs": [
+      {
+        "platform": "Linux",
+        "job": 127955817203,
+        "url": "https://github.com/botiverse/oar/actions/runs/42236627645/job/127955817203",
+        "conclusion": "success",
+        "vendorPassed": 23,
+        "behaviorPassed": 18,
+        "behaviorSkipped": [
+          "accountUsage unsupported"
+        ],
+        "vendorPlatformSkips": [],
+        "backgroundShell": "passed"
+      },
+      {
+        "platform": "macOS",
+        "job": 127955817259,
+        "url": "https://github.com/botiverse/oar/actions/runs/42236627645/job/127955817259",
+        "conclusion": "success",
+        "vendorPassed": 23,
+        "behaviorPassed": 18,
+        "behaviorSkipped": [
+          "accountUsage unsupported"
+        ],
+        "vendorPlatformSkips": [],
+        "backgroundShell": "passed"
+      },
+      {
+        "platform": "Windows",
+        "job": 127955817391,
+        "url": "https://github.com/botiverse/oar/actions/runs/42236627645/job/127955817391",
+        "conclusion": "success",
+        "vendorPassed": 22,
+        "behaviorPassed": 18,
+        "behaviorSkipped": [
+          "accountUsage unsupported"
+        ],
+        "vendorPlatformSkips": [
+          "POSIX-only mid-turn process-kill"
+        ],
+        "backgroundShell": "passed"
+      }
+    ]
+  }
+}

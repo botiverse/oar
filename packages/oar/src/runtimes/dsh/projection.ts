@@ -3,6 +3,7 @@ import { asNumber, asRecord, asRecordList, type JsonRecord } from "../../shared/
 import { failureFromStatus } from "../../shared/failure-class.js";
 import { addTokens, noTokens } from "../../shared/token-totals.js";
 import { toolContent } from "../../shared/tool-output.js";
+import { dshJobEvents } from "./jobs.js";
 
 /** What one session's native log has said so far. An input without a native id keeps its position as null. */
 export interface DshSessionFold {
@@ -154,6 +155,9 @@ function sessionEvent(state: DshProjection, sessionId: string, session: DshSessi
   const data = asRecord(event.data) ?? {};
   const unchanged = { session, links: state.links };
   switch (event.type) {
+    case "job/registered":
+    case "job/settled":
+      return { ...unchanged, events: dshJobEvents(event.type, data, sessionId) };
     case "agent/inbox/spliced":
       return { ...spliced(session, data, cause), links: state.links };
     case "turn/start":
