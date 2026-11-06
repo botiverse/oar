@@ -1,12 +1,14 @@
 import { Option, Command } from "commander";
 import { orient, type Orientation, type OrientationDepth, type RuntimeRegistry } from "@botiverse/oar";
 import { usability } from "@botiverse/oar/observe";
+import { collectEnvPair, envOverlayFromPairs } from "./env-option.js";
 
 interface Flags {
   readonly depth: OrientationDepth;
   readonly json?: boolean;
   readonly customization?: boolean;
   readonly timeout?: string;
+  readonly env?: readonly string[];
 }
 
 /** The JSON form carries all evidence; the table is a compact readiness projection. */
@@ -41,16 +43,19 @@ export function orientationCommand(registry: RuntimeRegistry): Command {
     .option("--json", "print the complete observation snapshot")
     .option("--customization", "run native inventories in an empty directory; can execute user configuration and connect MCP servers")
     .option("--timeout <ms>", "overall deadline in milliseconds (default 60000)")
+    .option("--env <KEY=VALUE>", "environment override for the probes, repeatable (for example --env KIMI_CODE_HOME=/path/to/home)", collectEnvPair, [])
     .action(async (ids: string[], flags: Flags) => {
       const timeoutMs = flags.timeout === undefined ? undefined : Number(flags.timeout);
       if (timeoutMs !== undefined && (!Number.isInteger(timeoutMs) || timeoutMs <= 0 || timeoutMs > 2_147_483_647)) {
         command.error("--timeout must be a positive integer that fits a timer");
       }
+      const env = envOverlayFromPairs(flags.env ?? [], (message) => command.error(message));
       const snapshot = await orient(registry, {
         depth: flags.depth,
         ...(ids.length === 0 ? {} : { runtimes: ids }),
         ...(timeoutMs === undefined ? {} : { timeoutMs }),
         ...(flags.customization === true ? { include: ["customization"] } : {}),
+        ...(env === undefined ? {} : { env }),
       });
       process.stdout.write(`${flags.json === true ? JSON.stringify(snapshot, null, 2) : renderOrientation(snapshot)}\n`);
     });

@@ -28,8 +28,11 @@ result, the others still report, and the exit code is 1.
   `account`, or `models`. Local skips unproven local auth readers; deeper reads
   can refresh credentials, run key commands and load trusted configuration.
   `--json` preserves complete evidence, `--customization` opts into native
-  inventories in an empty directory, and `--timeout <ms>` bounds the whole
-  read. Unlike per-runtime query commands, a partial snapshot exits 0; invalid
+  inventories in an empty directory, `--timeout <ms>` bounds the whole
+  read, and `--env KEY=VALUE` (repeatable) overlays the environment the
+  probes run with — for example `--env KIMI_CODE_HOME=/path/to/home` to read
+  one account when several share the host. Unlike per-runtime query
+  commands, a partial snapshot exits 0; invalid
   arguments or a rejected call fail. See
   [orientation](https://github.com/botiverse/oar/blob/main/docs/spec/orientation.md).
 - `oar list`: registered runtimes and their capabilities.
@@ -37,6 +40,8 @@ result, the others still report, and the exit code is 1.
   and version, no account or usage I/O. `shadowed` lists the other copies of
   the command on PATH after the one found, which never run.
 - `oar usage [runtime]`: account usage for each available installation.
+  `--env KEY=VALUE` (repeatable) overlays the probe environment, the way to
+  point the read at one account's home when several share the host.
 - `oar models [runtime]`: models each available installation can run right
   now (login state, plan, and configured providers included). The first
   column after the runtime is the `id` to pass to `oar run --model`,

@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { Command } from "commander";
 import type { Runtime } from "@botiverse/oar";
 import { isRuntimeFailure, readEach, type RuntimeFailure } from "./each-runtime.js";
+import { collectEnvPair, envOverlayFromPairs } from "./env-option.js";
 import { readModels, renderModels } from "./models.js";
 import { registerUpgradeCommand } from "./upgrade.js";
 import { registerLoginCommand, registerLogoutCommand } from "./login.js";
@@ -84,7 +85,9 @@ program
 program
   .command("usage [runtime]")
   .description("Read account usage for each available installation")
-  .action(async (id: string | undefined) => {
+  .option("--env <KEY=VALUE>", "environment override for the probe, repeatable (for example --env KIMI_CODE_HOME=/path/to/home)", collectEnvPair, [])
+  .action(async (id: string | undefined, flags: { env?: readonly string[] }) => {
+    const env = envOverlayFromPairs(flags.env ?? [], (message) => program.error(message));
     printEach(await readEach(selected(id), async (runtime) => {
       if (runtime.accountUsage === undefined || runtime.installation === undefined) {
         return { runtimeId: runtime.id, accountUsage: { kind: "unsupported" as const, reason: "capability_unavailable" as const } };
@@ -93,7 +96,7 @@ program
       if (installation.kind !== "available") {
         return { runtimeId: runtime.id, installation, accountUsage: null };
       }
-      const accountUsage = await runtime.accountUsage(installation);
+      const accountUsage = await runtime.accountUsage(installation, env === undefined ? {} : { env });
       return { runtimeId: runtime.id, accountUsage };
     }));
   });
