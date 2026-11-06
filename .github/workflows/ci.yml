@@ -160,12 +160,20 @@ jobs:
       # so a stale restore never pins an old CLI version: latest still
       # resolves, only unchanged tarballs are reused). pi needs no install:
       # it is the bundled SDK already in node_modules.
+      - name: Locate npm's download cache
+        id: npm-cache
+        if: matrix.backend == 'claude-aimock' || matrix.backend == 'codex-aimock' || matrix.backend == 'qwen-aimock' || matrix.backend == 'qoder-native' || matrix.backend == 'dsh-aimock'
+        shell: pwsh
+        run: |
+          $npmCachePath = (npm config get cache).Trim()
+          if ($LASTEXITCODE -ne 0 -or !$npmCachePath) {
+            throw 'Could not locate the npm download cache.'
+          }
+          "path=$npmCachePath" >> $env:GITHUB_OUTPUT
       - uses: actions/cache@v4
         if: matrix.backend == 'claude-aimock' || matrix.backend == 'codex-aimock' || matrix.backend == 'qwen-aimock' || matrix.backend == 'qoder-native' || matrix.backend == 'dsh-aimock'
         with:
-          path: |
-            ~/.npm
-            ~/AppData/Local/npm-cache
+          path: ${{ steps.npm-cache.outputs.path }}
           key: npm-dl-${{ runner.os }}-${{ matrix.backend }}-${{ github.run_id }}
           restore-keys: npm-dl-${{ runner.os }}-${{ matrix.backend }}-
       - run: npm install -g @anthropic-ai/claude-code
