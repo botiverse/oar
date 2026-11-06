@@ -8,6 +8,7 @@ import type {
   TurnOutcome,
 } from "../../contracts/session.js";
 import { codexFailure } from "./failure.js";
+import { foldCodexMessages, type CodexMessages } from "./messages.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
 import { noTokens } from "../../shared/token-totals.js";
 import { codexItemExitCode, codexItemInput, codexToolContent } from "./item-detail.js";
@@ -50,6 +51,8 @@ export type ProjectionCommand =
  */
 export interface CodexProjectionState {
   readonly rootThreadId: string;
+  /** Native message phases and text already streamed, scoped to their owning thread and turn. */
+  readonly messages: CodexMessages;
   /** Accepted steers and native echoes, keyed by the turn that owns them. */
   readonly inputs: CodexInputs;
   readonly lastErrorDetail: string | null;
@@ -70,7 +73,7 @@ export interface CodexProjectionState {
 
 /** The projection of a Session opened by `opened`: a resume awaits codex's re-reported token total. */
 export function initialCodexProjection(rootThreadId: string, opened: CodexOpenMethod = "thread/start"): CodexProjectionState {
-  return { inputs: new Map(), rootThreadId, lastErrorDetail: null, retries: new Map(), compacting: false, subagents: new Map(), tokenBaseline: initialTokenBaseline(opened === "thread/resume") };
+  return { inputs: new Map(), messages: new Map(), rootThreadId, lastErrorDetail: null, retries: new Map(), compacting: false, subagents: new Map(), tokenBaseline: initialTokenBaseline(opened === "thread/resume") };
 }
 
 const COMPACTION_ITEM_TYPE = "contextCompaction";
@@ -105,9 +108,11 @@ function toolViews(method: string, item: JsonRecord | null): RuntimeEventBody[] 
   const itemId = typeof item?.id === "string" ? item.id : "unknown";
   if (method === "item/started") {
     const input = item === null ? undefined : codexItemInput(item);
-    return [input === undefined
-      ? { kind: "tool_call_started", callId: itemId, tool: itemType }
-      : { kind: "tool_call_started", callId: itemId, tool: itemType, input }];
+    return [{ kind: "tool_call_started", callId: itemId, tool: itemType,
+      ...(input === undefined ? {} : { input }),
+      ...(itemType === "mcpToolCall" && typeof item?.server === "string" ? { server: item.server } : {}),
+      ...(itemType === "mcpToolCall" && typeof item?.tool === "string" ? { toolName: item.tool } : {}),
+    }];
   }
   const content = item === null ? undefined : codexToolContent(item);
   const exitCode = item === null ? undefined : codexItemExitCode(item);
@@ -188,11 +193,6 @@ function viewsFor(state: CodexProjectionState, reporter: string, method: string,
       return codexGoalEvents(method, params);
     case "turn/started":
       return [{ kind: "turn_active" }];
-    case "item/agentMessage/delta":
-      // `itemId` names the agentMessage item: one turn can say several.
-      return typeof params.delta === "string"
-        ? [{ kind: "text_delta", text: params.delta, ...(typeof params.itemId === "string" ? { messageId: params.itemId } : {}) }]
-        : [];
     case "item/commandExecution/outputDelta":
       // Streamed stdout of a running command item; `itemId` is the tool call.
       return typeof params.itemId === "string"
@@ -251,11 +251,12 @@ export function foldCodexNotification(
   // Before the views: a re-reported total is read against itself (zero).
   const tokenBaseline = threadId === previous.rootThreadId ? nextTokenBaseline(previous.tokenBaseline, method, params) : previous.tokenBaseline;
   const input = threadId === previous.rootThreadId ? foldCodexInputs(previous.inputs, method, params) : { inputs: previous.inputs, events: [] };
-  const state = { ...previous, tokenBaseline, inputs: input.inputs };
+  const observed = foldCodexMessages(previous.messages, threadId, method, params);
+  const state = { ...previous, tokenBaseline, inputs: input.inputs, messages: observed.messages };
   const spanId = spanIdOf(params);
   const event: ProjectionCommand = {
     kind: "frame",
-    body: { type: method, native: params, events: [...input.events, ...viewsFor(state, threadId, method, params)] },
+    body: { type: method, native: params, events: [...input.events, ...observed.events, ...viewsFor(state, threadId, method, params)] },
     ...(spanId === undefined ? {} : { spanId }),
     ...(threadId === state.rootThreadId ? {} : { sessionId: threadId }),
   };

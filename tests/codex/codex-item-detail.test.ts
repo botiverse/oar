@@ -75,6 +75,25 @@ describe("codex item diagnostics", () => {
   });
 });
 
+test.each([
+  { server: "catalog", tool: "lookup", expected: { server: "catalog", toolName: "lookup" } },
+  { server: "catalog", tool: null, expected: { server: "catalog" } },
+  { server: null, tool: "lookup", expected: { toolName: "lookup" } },
+  { server: 5, tool: {}, expected: {} },
+])("MCP native names are optional fields, preserving the tool category: $expected", ({ server, tool, expected }) => {
+  const { commands } = foldCodexNotification(initialCodexProjection("thread"), "item/started", {
+    threadId: "thread", item: { type: "mcpToolCall", id: "call", server, tool },
+  });
+  expect(commands[0]?.kind === "frame" ? commands[0].body.events : []).toEqual([{ kind: "tool_call_started", callId: "call", tool: "mcpToolCall", ...expected }]);
+});
+
+test("non-MCP tools do not claim MCP names from incidental fields", () => {
+  const { commands } = foldCodexNotification(initialCodexProjection("thread"), "item/started", {
+    threadId: "thread", item: { type: "sleep", id: "call", durationMs: 10, server: "not-mcp", tool: "not-mcp" },
+  });
+  expect(commands[0]?.kind === "frame" ? commands[0].body.events : []).toEqual([{ kind: "tool_call_started", callId: "call", tool: "sleep", input: '{"durationMs":10}' }]);
+});
+
 test("an MCP result's blocks are its content in order, the whole result without blocks, and an error its message (#73)", () => {
   const image = { type: "image", data: "iVBOR", mimeType: "image/png" };
   expect(codexToolContent({ type: "mcpToolCall", result: { content: [{ type: "text", text: "shot" }, image] } })).toEqual([

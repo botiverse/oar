@@ -37,6 +37,18 @@ function offeredTools(raw: readonly RawProviderRequest[]): readonly string[] {
   }))].toSorted();
 }
 
+function codexMcpNames(records: readonly RawEvent[]): readonly { server: unknown; toolName: unknown }[] {
+  return records.flatMap(record => {
+    if (record.kind !== "frame" || record.body.type !== "item/started") { return []; }
+    const item = asRecord(asRecord(record.body.native)?.item);
+    if (item?.type !== "mcpToolCall") { return []; }
+    expect(record.body.events).toContainEqual(expect.objectContaining({
+      kind: "tool_call_started", callId: item.id, tool: "mcpToolCall", server: item.server, toolName: item.tool,
+    }));
+    return [{ server: item.server, toolName: item.tool }];
+  });
+}
+
 describe.skipIf(process.env.OAR_TEST !== "claude-aimock")("claude mcpServers", () => {
   const runtime = defineRuntime({ id: "claude-aimock", session: claudeSession, installation: claudeInstallation });
 
@@ -174,6 +186,8 @@ describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex mcpServers", () 
         reported: [session.model().value, resumed.model().value],
         wire: [...new Set(env.raw.map((request) => asRecord(request.body)?.model))],
       }).toEqual({ reported: ["gpt-5.5", "gpt-5.5"], wire: ["gpt-5.5"] });
+      expect(codexMcpNames(session.records())).toEqual([{ server: "echo", toolName: "echo" }, { server: "remote", toolName: "echo" }]);
+      expect(codexMcpNames(resumed.records())).toEqual([{ server: "echo", toolName: "echo" }]);
       expect(leakedCredentials(session, resumed)).toEqual([]);
     } finally {
       await env.stop();

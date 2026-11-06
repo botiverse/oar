@@ -1,0 +1,11 @@
+[
+  {
+    "method": "item/completed",
+    "event": {
+      "kind": "text_delta",
+      "text": "COMPLETE_TEXT",
+      "messageId": "message-1",
+      "phase": "final_answer"
+    }
+  }
+]

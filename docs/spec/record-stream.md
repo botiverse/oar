@@ -659,8 +659,8 @@ interface FrameBody {
 //   input_dropped {requestId?, inputId?, reason: "turn_interrupted"} |
 //   input_dropped {requestId?, inputId?, reason: "runtime_refused", failure?: FailureClass, message?: string} (at least one ID; conversation.md) |
 //   session_linked {parent, child, via: "tool_call"} |
-//   text_delta {text, messageId?} | reasoning {content, messageId?} |
-//   tool_call_started {callId, tool, input?} |
+//   text_delta {text, messageId?, phase?} | reasoning {content, messageId?} |
+//   tool_call_started {callId, tool, input?, server?, toolName?} |
 //   tool_call_input {callId, input} |
 //   tool_call_input_delta {callId, delta} |
 //   tool_call_progress {callId, output?, outputDelta?} |
@@ -1119,6 +1119,22 @@ The rules that make this a projection and not a second source of truth:
   and the ACP runtimes name none, and older records lack it. Claude also
   names streamed `reasoning` with `messageId`; coalescing keeps readable
   reasoning from different API messages separate.
+- **Text phase is native metadata.** `text_delta.phase` is an optional string
+  reported by the runtime, currently Codex's `agentMessage.phase`. A delta
+  carries the last phase reported for that same native thread, turn and item;
+  a missing or null phase stays absent. OAR does not infer it from wording,
+  message order or the last message in a turn. Coalescing also keeps different
+  phases (including absent versus present) apart. A phase first reported at
+  completion does not relabel already delivered deltas.
+- **Completed text can be the only text.** Codex's `item/completed` emits one
+  `text_delta` containing its nonempty `agentMessage.text` if no nonempty delta
+  for that item was observed. If text already streamed, completion adds no
+  duplicate text and does not guess a missing suffix. The completion frame
+  retains its native body and is the source of this event.
+- **MCP names do not replace tool categories.** `tool_call_started.server` and
+  `toolName` are optional native names, currently from Codex's `mcpToolCall`
+  item. `tool` remains `mcpToolCall`; `callId` and `input` retain their existing
+  meaning. Missing names stay absent rather than being parsed out of ids.
 
 ## Tasks at runtime exit
 

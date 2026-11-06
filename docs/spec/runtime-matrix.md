@@ -909,14 +909,17 @@ the host changes the limit or the schema. A claude error result's `reason` is
 its subtype followed by claude's own `errors` text when it gives any
 (`error_max_turns: Reached maximum number of turns (2)`).
 
-Only `[env]` cells are mapped. A value a runtime declares that no run
-produced stays unmapped (it falls through to the status or to `unknown`)
-until it is observed: claude's `oauth_org_not_allowed`, `account_on_hold`,
+Mappings normally require `[env]` evidence. A declared value with no observed
+run stays unmapped (it falls through to the status or to `unknown`), apart from
+the two source-backed exceptions below: claude's `oauth_org_not_allowed`, `account_on_hold`,
 `verification_required`, `overloaded`, `max_output_tokens`,
-`cloud_credential_error`; codex's `unauthorized`, `badRequest`,
+`cloud_credential_error`; codex's `badRequest`,
 `sessionBudgetExceeded`, `cyberPolicy` and the rest of its schema; Anthropic's
 `request_too_large` and `permission_error`; OpenAI's spend-limit and
-`slow_down` codes. One mapping rests on `[src]` and `[sym]` alone: claude's
+`slow_down` codes. Codex's exact `unauthorized` tag maps to `auth` from its
+0.167.0 generated protocol, without a fabricated status or credential detail
+([evidence](../../experiments/codex-projection/README.md)). The other mapping
+rests on `[src]` and `[sym]` alone: claude's
 `rate_limit` after a `rejected` `rate_limit_event` naming a reset is `quota`
 ([below](#when-a-limit-resets)). Only a subscription at its limit makes
 claude send that event, and oar never triggers an error on a real account.
@@ -1041,7 +1044,10 @@ and the message "Reconnecting... n/5".
 | in the stream: `insufficient_quota`, `usage_not_included` | `usageLimitExceeded` | no | `quota` |
 | in the stream: `rate_limit_exceeded` | `rateLimitExceeded` | 5 | `rate_limited` |
 
-A 401 is `httpConnectionFailed`, not the declared `unauthorized`; the schema
+The observed 401 is `httpConnectionFailed`. The separately declared string
+`unauthorized` maps to `auth` from the 0.167.0 protocol shape; no account failure
+producing that tag was reproduced. A provider SSE error named `unauthorized`
+produced native `other` in the local probe and remains `unknown`. The schema
 also declares `sessionBudgetExceeded`, `badRequest`, `cyberPolicy` and others
 `[src]` (`codex app-server generate-json-schema`). After a tool call the
 values are the same.

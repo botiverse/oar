@@ -63,7 +63,7 @@ ends the turn. The adapter declares `capabilities: { queue: { durable: true
 |---|---|
 | Thread identity | `Session.id` is the native thread id. The `thread/start` / `thread/resume` reply is the open Frame record (`type` = the method), carrying the `model` event (and `effort` when codex reports a level). Frames codex sends before that reply (notifications and server requests alike) are recorded ahead of it in wire order, and frames written after it (`thread/started`) follow it whatever the chunking. |
 | Native turn | No OAR turn object. A prompt request produces `turn_started`; native `turn/started` produces `turn_active`, also for a queued turn with no new OAR prompt. An already open turn is not opened twice. The turn ends at codex's `turn/completed` (`turn_ended`: `completed`; `interrupted` → aborted; any other status → failed, with the preceding `error` notification's detail appended). The native turn id rides every turn-scoped notification as `spanId` and is the precondition for steer and interrupt. |
-| Items and notifications | One frame per notification, nothing dropped: `item/agentMessage/delta` → `text_delta` (`messageId` = `itemId`, the agentMessage item); `rawResponseItem/completed` reasoning → `reasoning`; `userMessage` items → `user_message`; `commandExecution` / `fileChange` / `mcpToolCall` / `webSearch` / `sleep` items → `tool_call_started` / `tool_call_ended` with the item type as `tool` and the item id as `callId` ([outcomes](#tool-call-outcome-reporting); a `sleep` is the model waiting, its input `{durationMs}` the wait it asked for, which a steer can end early, and `classifyTool` reads it as a `wait`; a `fileChange`'s input is its `changes` array, see [file changes](#tools-permissions-and-client-callbacks)); `item/commandExecution/outputDelta` → `tool_call_progress` (`callId` = `itemId`, `outputDelta` = the chunk, appended to the current preview) [env 0.154.0 schema]; `contextCompaction` items → `compaction_started` / `compaction_ended`; `item/completed` for `subAgentActivity` items → task events; `thread/tokenUsage/updated` → `usage`; `thread/settings/updated` → `model` / `effort` / `service_tier`; everything else is a frame with no events. |
+| Items and notifications | One frame per notification, nothing dropped: `item/agentMessage/delta` → `text_delta` (`messageId` = `itemId`, native `phase` when reported); a completed-only `agentMessage` also supplies text ([message projection](#message-text-and-mcp-names)); `rawResponseItem/completed` reasoning → `reasoning`; `userMessage` items → `user_message`; `commandExecution` / `fileChange` / `mcpToolCall` / `webSearch` / `sleep` items → `tool_call_started` / `tool_call_ended` with the item type as `tool` and the item id as `callId` ([outcomes](#tool-call-outcome-reporting); a `sleep` is the model waiting, its input `{durationMs}` the wait it asked for, which a steer can end early, and `classifyTool` reads it as a `wait`; a `fileChange`'s input is its `changes` array, see [file changes](#tools-permissions-and-client-callbacks)); `item/commandExecution/outputDelta` → `tool_call_progress` (`callId` = `itemId`, `outputDelta` = the chunk, appended to the current preview) [env 0.154.0 schema]; `contextCompaction` items → `compaction_started` / `compaction_ended`; `item/completed` for `subAgentActivity` items → task events; `thread/tokenUsage/updated` → `usage`; `thread/settings/updated` → `model` / `effort` / `service_tier`; everything else is a frame with no events. |
 | Reconnects | `error` with `willRetry: true` → `retry`, with the native message and details as `reason`. `attempt` is OAR's count within that thread's turn: native states it only in display text (`Reconnecting... 1/5`), so `maxAttempts` is absent. These appear in the notification stream and not on stderr on 0.163.0 and 0.167.0; a 503 that codex retried below this level announced nothing ([probe](../../experiments/codex-native-signals/README.md)). An `error` without `willRetry` carries detail into the failed `turn_ended` only. |
 | Control replies | The `turn/start`, `turn/steer`, `turn/interrupt` and `thread/queue/add` replies are the `accepted` / `rejected` responses to prompt / steer / abort / queue, with the reply as `native` (so the queue submission id is retained). A `thread/goal/*` reply is its own frame; the [goal control](#native-goals) response only accepts or rejects. Each response is recorded as the reply line is read, before notifications codex wrote after it. |
 | Effective configuration | `model()`, `effort()` and `serviceTier()` fold the `model` / `effort` / `service_tier` events of the open reply and of `thread/settings/updated` ([models](#models-instructions-and-context)). Most native configuration has no public mutator. |
@@ -74,6 +74,38 @@ ends the turn. The adapter declares `capabilities: { queue: { durable: true
 Implementation: [session adapter][oar-session], [open request and
 read-back][oar-open], [projection][oar-projection], [kernel][oar-kernel], and
 [transport][oar-transport].
+
+## Message text and MCP names
+
+On Codex 0.167.0, `agentMessage` items carry `phase` (`commentary`,
+`partial_answer`, `final_answer`, or null); text-delta notifications carry no
+phase. OAR remembers only the native phase of that same thread, turn and item,
+then includes it as `text_delta.phase` when present. Unknown future string
+values are preserved. It never derives a phase from text or position, and a
+late report does not rewrite prior events.
+
+A message can finish without a single text delta. In that case its
+`item/completed` frame now emits the full, nonempty `agentMessage.text` once,
+with the native message id and phase if present. Any nonempty delta prevents
+this fallback, including when the final text differs from the streamed text;
+OAR does not concatenate the full body twice or guess a missing suffix.
+The normal streamed path remains unchanged. The older subagent fixture, which
+has no deltas and was trimmed to selected fields, now shows this text. That
+snapshot change does not establish that real Codex omits deltas for those
+messages.
+
+For an `mcpToolCall`, `tool_call_started` now carries the native `server` and
+`toolName` (the item's `tool`) when those fields are strings. The existing
+`tool: "mcpToolCall"`, `callId` and input remain unchanged. These names and text
+phases live in frame events and the flat event subscription, without replacing
+or changing the native frame.
+
+The exact declared `codexErrorInfo: "unauthorized"` is classified as `auth`,
+without inventing HTTP status or a credential diagnosis. Its shape is checked
+against 0.167.0's generated protocol, not a reproduced account failure: a
+scripted provider's SSE `unauthorized` instead produced native `other`, which
+remains `unknown`. Existing HTTP 401 transport failures still use their native
+status. See the [probe and evidence limits](../../experiments/codex-projection/README.md).
 
 ## Capability details
 
