@@ -1,0 +1,68 @@
+name: Windows Codex worker comparison
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  observe:
+    name: Windows Codex (${{ matrix.workers }}, replica ${{ matrix.replica }})
+    runs-on: windows-2025-vs2026
+    strategy:
+      fail-fast: false
+      matrix:
+        replica: [1, 2, 3]
+        workers: ['default', '2', '1']
+    env:
+      OAR_TEST: codex-aimock
+      OAR_TEST_REQUIRE_AVAILABLE: '1'
+      OAR_CHILD_STDERR: inherit
+      OAR_TRIAL_RUN_DIR: ${{ github.workspace }}/oar-trial-run
+      OAR_CODEX_WORKERS: ${{ matrix.workers }}
+      OAR_CODEX_REPLICA: ${{ matrix.replica }}
+    steps:
+      # Keep the action revisions from the failure under investigation.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: '11.22.0'
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24.22.2'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: npm install -g @openai/codex@0.167.0
+      - name: Record and verify versions
+        id: versions
+        env:
+          OAR_CODEX_PHASES: ${{ github.workspace }}/oar-trial-run/codex-comparison
+        shell: pwsh
+        run: |
+          $versions = @{
+            node = (node --version).Trim()
+            npm = (npm --version).Trim()
+            pnpm = (pnpm --version).Trim()
+            codex = (codex --version).Trim()
+            powershell = $PSVersionTable.PSVersion.ToString()
+          }
+          New-Item -ItemType Directory -Force -Path $env:OAR_CODEX_PHASES | Out-Null
+          $versions | ConvertTo-Json | Set-Content "$env:OAR_CODEX_PHASES/versions.json"
+          if ($versions.node -ne 'v24.22.2' -or $versions.npm -ne '11.19.1' -or $versions.pnpm -ne '11.22.0' -or $versions.codex -ne 'codex-cli 0.167.0') {
+            throw 'An installed version differs from the fixed comparison baseline.'
+          }
+      # Preserve the behavior-suite predecessor from the ordinary Codex job.
+      - run: pnpm run sea-trial
+      - name: Observe the unchanged vendor suite
+        env:
+          OAR_CODEX_PHASES: ${{ github.workspace }}/oar-trial-run/codex-comparison
+        if: ${{ !cancelled() && steps.versions.outcome == 'success' }}
+        run: pnpm exec tsx experiments/windows-codex-ci/run.ts
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: windows-codex-${{ matrix.workers }}-${{ matrix.replica }}
+          path: oar-trial-run
+          if-no-files-found: warn
+          retention-days: 14
