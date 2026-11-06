@@ -21,8 +21,9 @@
 // (exit 3 with a token in its last words), "hang" (starts a worker in its
 // process group and never finishes).
 import { spawn } from "node:child_process";
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { createInterface } from "node:readline";
+import saveLoginState from "./login-state.mjs";
 
 const [stateFile, ...args] = process.argv.slice(2);
 const state = JSON.parse(readFileSync(stateFile, "utf8"));
@@ -32,7 +33,7 @@ const URL = "https://claude.com/cai/oauth/authorize?code=true&client_id=fixture&
 
 function save(changes) {
   Object.assign(state, changes);
-  writeFileSync(stateFile, JSON.stringify(state));
+  saveLoginState(stateFile, state);
 }
 
 // Capture only synthetic variables named by this test, never the inherited environment.

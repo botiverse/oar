@@ -1,10 +1,11 @@
 /* oxlint-disable eslint/max-statements, typescript/no-unsafe-assignment, typescript/no-unsafe-member-access, typescript/no-unsafe-call, typescript/no-unsafe-argument, typescript/no-unsafe-return, typescript/strict-boolean-expressions -- Standalone untyped fixture executable. */
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { createInterface } from "node:readline";
+import saveLoginState from "./login-state.mjs";
 
 const [stateFile, ...args] = process.argv.slice(2);
 const state = JSON.parse(readFileSync(stateFile, "utf8"));
-const save = () => writeFileSync(stateFile, JSON.stringify(state));
+const save = () => { saveLoginState(stateFile, state); };
 state.calls ??= [];
 state.calls.push(args);
 state.pids ??= [];
