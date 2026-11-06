@@ -181,7 +181,7 @@ export type RuntimeEventBody =
    * never one inferred from timing. `trigger` and `reason` stay native.
    */
   | { readonly kind: "compaction_ended"; readonly compactionId?: string; readonly outcome: "completed" | "aborted" | "failed"; readonly trigger?: string; readonly reason?: string; readonly requestId?: string }
-  /** The runtime announced it will retry a failed provider call (pi `auto_retry_start`, `summarization_retry_scheduled`). Other shipped runtimes retry silently or not at all. */
+  /** The runtime announced it will retry a failed provider call (pi `auto_retry_start`, `summarization_retry_scheduled`; codex `error` with `willRetry`). Other shipped runtimes retry silently or not at all. */
   | { readonly kind: "retry"; readonly attempt: number; readonly maxAttempts?: number; readonly delayMs?: number; readonly reason?: string }
   | { readonly kind: "usage"; readonly usage: UsageReport }
   /** The model the runtime reports as in effect: its own report, never the request echoed. */

@@ -1,5 +1,6 @@
 # experiments
 
+- [Codex native signals](codex-native-signals/README.md): reconnects in the notification stream and not on stderr, a bad tool argument completing the turn, and an OOM score set through a command wrapper.
 - [Windows dispose timing](windows-dispose-timing/README.md): Claude 2.1.316 cold/prepared Windows phases, batched-query waiting, and separate bounded cleanup observations.
 
 Manual experiment records against real runtimes, the analogue of OpenDAL's

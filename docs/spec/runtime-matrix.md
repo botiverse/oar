@@ -317,6 +317,26 @@ channels, observed versions and limits are in the
 [October 8 audit](../../experiments/disallowed-tools-2026-10-08.md). Supply
 the list again when resuming; OAR does not persist host options.
 
+## Process priority
+
+OAR has no option for it. The host owns `installation.command`, so a host wanting
+runtime children killed first under memory pressure hands OAR a wrapper that
+sets the score before the runtime exists:
+
+```sh
+#!/bin/sh
+echo 500 > /proc/self/oom_score_adj
+exec /path/to/runtime "$@"
+```
+
+`exec` keeps the pid, so process ownership is unchanged, and every process the
+runtime starts inherits the score, with no window. Linux only; raising the score
+needs no privilege, lowering it does. `choom -n 500 -- /path/to/runtime "$@"`
+behind `exec` does the same. Measured with Codex 0.167.0 using `choom`: the
+app-server, an MCP server and a tool command all read 500
+([probe](../../experiments/codex-native-signals/README.md),
+[decision](../design/decisions.md#no-stderr-channel-or-process-priority-option-2026-11-06)).
+
 ## Launch arguments
 
 `SessionOptions.launchArgs` adds the host's own command-line arguments to

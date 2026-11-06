@@ -1021,7 +1021,8 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   frames without inference. A user `compress.toml` can override `/compress`,
   so even a command sent by OAR would not prove compression occurred
   ([native controls](../../experiments/qwen-compaction-attribution/README.md)).
-- `retry`: pi `auto_retry_start` and `summarization_retry_scheduled`. No
+- `retry`: pi `auto_retry_start` and `summarization_retry_scheduled`; codex
+  `error` with `willRetry: true`, whose `attempt` OAR counts within the turn. No
   other shipped runtime exposes a retry (claude retries silently).
 - `task_started` / `task_updated` / `task_ended`: work the runtime tracks
   beside the turn that started it. claude `system/task_started`,
