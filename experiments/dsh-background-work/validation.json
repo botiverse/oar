@@ -1,0 +1,73 @@
+{
+  "platform": "Linux x64",
+  "node": "24.19.0",
+  "date": "2026-11-06",
+  "check": {
+    "passed": true,
+    "tests": 3631,
+    "mockBehaviorPassed": 18,
+    "mockBehaviorSkipped": 1
+  },
+  "vendor": [
+    {
+      "dsh": "0.2.1-rc.5",
+      "passed": 23,
+      "failed": 0
+    },
+    {
+      "dsh": "0.2.2-rc.1",
+      "passed": 23,
+      "failed": 0
+    }
+  ],
+  "behavior": {
+    "dsh": "0.2.2-rc.1",
+    "passed": 18,
+    "skipped": 1,
+    "failed": 0
+  },
+  "focusedUnit": {
+    "passed": 8
+  },
+  "finalNativeBackground": {
+    "dsh": "0.2.1-rc.5",
+    "passed": 1
+  },
+  "build": "passed",
+  "mutation": {
+    "mutation": "remove DSH job projection, preserve empty frame events",
+    "exitCodes": {
+      "unit": 1,
+      "background": 1
+    },
+    "excludedAttempt": "initial mutation returned no events property and was invalid, so excluded"
+  },
+  "sourceHashes": [
+    {
+      "dsh": "0.2.1-rc.5",
+      "file": "dsh-jobs/lib/types/types.d.ts",
+      "sha256": "dfa69379032dfb95461e9e06e1a88181f12be005129b3540f78eea015fe4dcb1"
+    },
+    {
+      "dsh": "0.2.1-rc.5",
+      "file": "dsh-tool-jobs/lib/index.js",
+      "sha256": "de5707b43480ba37c8e141e6f67674978f3a46d87d58390c18eb1659bb17ec2f"
+    },
+    {
+      "dsh": "0.2.2-rc.1",
+      "file": "dsh-jobs/lib/types/types.d.ts",
+      "sha256": "dfa69379032dfb95461e9e06e1a88181f12be005129b3540f78eea015fe4dcb1"
+    },
+    {
+      "dsh": "0.2.2-rc.1",
+      "file": "dsh-tool-jobs/lib/index.js",
+      "sha256": "7461570ac5d29f85b27b228d551911f392e5082651e93b83723b77e9b87de0b6"
+    }
+  ],
+  "unverified": [
+    "Windows and macOS execution of the new background-shell regression",
+    "arbitrary custom jobs/plugins and quiet or limited wake delivery",
+    "native failed/killed job controls (mapping covered by unit tests)"
+  ],
+  "cleanInstall": "passed"
+}

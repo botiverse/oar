@@ -1,5 +1,6 @@
 # experiments
 
+- [DSH background work](dsh-background-work/README.md): root completion, outstanding jobs and native follow-up tool calls, with Claude and Codex controls.
 - [DSH child settlement ordering](dsh-child-settlement/README.md): active-parent injection and idle-parent follow-up require different turn counts.
 
 - [Kimi account selection](orientation/kimi-accounts.md): real Kimi 2.4.1 and the OAR CLI inherit `KIMI_CODE_HOME`; quota decisions stay scoped to the selected account.

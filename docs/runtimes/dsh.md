@@ -118,6 +118,7 @@ captured probe frames of both versions. One native payload is one frame, its
 | `agent/status` | none |
 | `agent/error` | none; the native error object is structured, cause chain included (the probe kept only a string) |
 | `subagent/start`, `subagent/end` | `task_started`, `task_ended` keyed by the native `runId`, on the root; `completed`, `aborted` is `stopped`, any other reason is `failed` |
+| `session/event:job/registered`, `session/event:job/settled` | `task_started`, `task_ended` keyed by native `jobId`, on the owning session; `bash` and `pwsh` are `shell`, other producer kinds are `other` with `nativeType` retained |
 | `dsh/ready`, `dsh/opened`, `dsh/stdout`, `dsh/protocol-error`, `dsh/dispose-failed` | none, except `dsh/opened` reporting a selection on versions that read one |
 
 Durable events read: `turn/start`, `turn/end` (`turn_ended`), `agent/inbox/spliced`,
@@ -128,6 +129,14 @@ Durable events read: `turn/start`, `turn/end` (`turn_ended`), `agent/inbox/splic
 (`session_linked`), `compaction/start` and `compaction/end`. `assistant/message`
 adds no second text. Compaction reads are from the source and unit-tested, not yet
 exercised natively.
+
+Job events carry their native `toolCall.callId` and label. Settlement maps
+`completed` and `failed` directly, and `killed` to `stopped`; unknown results
+remain raw. The native event does not identify background execution, so the
+projection leaves `background` absent and also reports foreground jobs. Copied
+history whose `owner` differs from the containing session stays raw. Settlement
+is a native registry fact, not proof that every OS descendant exited: `cause`
+and `producerReported` remain in the original frame.
 
 `Session.model()` and `effort()` are folds: null until a request header says them
 on 0.2.1-rc.5 (no `agent.model`), reported at open from 0.2.2-alpha.2.
@@ -165,6 +174,34 @@ in the background: the parent's turn ends first, and when the child settles DSH
 gives the parent a turn of its own with a `subagent-settled` input under a native
 id. A host prompt during that turn is `busy`, as with any spontaneous turn.
 `usage().withChildren` sums the child's own records.
+
+### Root completion and background work
+
+`turn_ended`, `awaitTurnEnd` and an idle root status describe the root turn.
+They do not say that its children or shell jobs have finished. At that boundary,
+`tasksOf(session.records(), session.id).value` includes their reported states;
+`pending`, `running` and `paused` rows still represent unfinished work. Keep the
+session and its tool-routing context available while those tasks run.
+
+Under DSH's default `tool-jobs` `completionDelivery: "wakeup"`, an uncollected
+shell result can start another root turn, just as `subagent-settled` can. That
+turn can call tools. Do not dispose at `task_ended`: it can precede the wake.
+For these wake-enabled flows, wait for the ensuing root turn to end and inspect
+the task list again; the follow-up may itself launch more work. This is not a
+universal session-complete signal. Custom plugins, `quiet` delivery, wake limits
+and results already collected by the model can behave differently.
+
+A spontaneous turn can have a native `inputId` with no corresponding host
+request. Its durable `user/message` records the source, such as `tool-jobs` or
+`subagent-settled`; that notification is not projected as a host `user_message`.
+Attribute tool calls by their session and native turn, not by assuming every
+turn has a new host prompt or every spontaneous turn lacks an input id.
+
+[Background-work probes](../../experiments/dsh-background-work/README.md) held
+child and shell completion until after the root turn using DSH 0.2.1-rc.5 and 0.2.2-rc.1 on Linux with local
+providers. Child task events already existed; shell job events fill the missing
+part of that observation. The same report compares Claude and Codex and states
+their different limits. These new controls have not yet run on Windows or macOS.
 
 ## Session options
 
