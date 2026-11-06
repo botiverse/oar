@@ -129,16 +129,27 @@ the image. Unsupported audio is not sent.
 
 **Steer is supported.** With the first provider response held, a second
 native prompt entered the next model request in the same tool loop, before
-its final answer. The CLI answered the *original* prompt early, while that
+its final answer; that request retained the original prompt and the tool
+result too. The CLI answered the *original* prompt early, while that
 provider response was still held. OAR therefore marks a steer as
 superseding the earlier prompt: the earlier answer is still a frame, but
 cannot report `turn_ended` or release the busy gate. The latest prompt's
-answer settles the turn. A replacement failure after every earlier prompt
-has replied can report the loop's failure or cancellation; a steer rejected
-before the original prompt replies cannot fail that still-running turn.
-The vendor regression asserts the successful replacement ordering, provider
-input, one completion and rejection of a premature new prompt. Protocol
-regressions cover both failure orders.
+answer settles the turn. An invalid-params answer (`-32602`, verified with an
+empty image) refuses only that steer, even if the original prompt's natural
+completion arrives first. Its `input_dropped` event does not turn the original
+success into a failure.
+
+A replacement failure after every earlier prompt has replied can report the
+loop's failure or cancellation without relabeling that input as refused.
+Killing the accepted steer's worker on Linux yielded `-32603` while the outer
+ACP process stayed alive. OAR retains the accepted input and reports a failed
+turn with the native error; the error has no structured worker-exit category,
+so its failure class stays `unknown` and no root `exited` record is fabricated.
+[Native controls and before/after results](../../experiments/antigravity-steer-outcome/README.md)
+include the deliberately delayed invalid request used to reproduce the race.
+The vendor regression asserts both prompt texts and the tool result, one
+completion and rejection of a premature new prompt. Protocol regressions
+cover both refusal orders and the accepted worker failure.
 
 `queue()` holds input in memory (`durable: false`) and sends it FIFO when
 active work ends. The dispatch is recorded as a prompt carrying the original

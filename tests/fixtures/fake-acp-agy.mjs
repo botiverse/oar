@@ -2,6 +2,19 @@
 import { existsSync, readFileSync } from "node:fs";
 
 export default function replacingPrompt(text, message, { pendingPrompts, result, error }) {
+  if (text === "agy-refused-race" || text === "agy-natural-before-refusal") {
+    if (text === "agy-refused-race") { error(message.id, -32602, "Invalid params: image is empty"); }
+    for (const id of pendingPrompts.keys()) { result(id, { stopReason: "end_turn" }); }
+    if (text === "agy-natural-before-refusal") { error(message.id, -32602, "Invalid params: image is empty"); }
+    pendingPrompts.clear();
+    return true;
+  }
+  if (text === "agy-worker-exited") {
+    for (const id of pendingPrompts.keys()) { result(id, { stopReason: "end_turn" }); }
+    pendingPrompts.clear();
+    error(message.id, -32603, "The Antigravity process serving this session exited unexpectedly");
+    return true;
+  }
   if (text === "agy-refused-steer") { error(message.id, -32602, "Invalid params: image is empty"); return true; }
   if (text === "agy-steer-pending" || text === "agy-original-held") {
     if (text === "agy-steer-pending") {

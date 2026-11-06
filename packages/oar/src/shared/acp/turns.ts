@@ -166,13 +166,15 @@ export function createAcpTurns(deps: {
         }
         const turnFrames = kernel.records().flatMap((record) => (record.kind === "frame" && record.seq > state.since ? [record.body] : []));
         const outcome = state.abortRequested ? { kind: "aborted" as const } : acpFailureOutcome(error, turnFrames, profile.failureOutcome);
+        const refused = steered !== undefined && (profile.isSteerRefusal?.(error) === true || profile.steerOutcomeIsLatest !== true
+          || [...state.pending].some(number => number < requestNumber && !state.answered.has(number)));
         finishRequest(state, requestNumber, {
           type: `${methods.agent.session.prompt}/error`,
           native: acpErrorNative(error),
           context: null,
           steered: steered !== undefined,
-          ...(steered === undefined ? {} : { dropped: steered.inputId }),
-        }, steered === undefined || (profile.steerOutcomeIsLatest === true && [...state.pending].every((number) => number >= requestNumber || state.answered.has(number))) ? outcome : null);
+          ...(refused ? { dropped: steered.inputId } : {}),
+        }, refused ? null : outcome);
       }
     })();
   };

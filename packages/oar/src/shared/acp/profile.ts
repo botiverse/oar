@@ -79,6 +79,8 @@ export interface AcpSessionProfile {
   readonly steerSupersedesPrompt?: boolean;
   /** A replacing steer settles the prior RPC early; a later failure reports the loop outcome only after every earlier RPC has replied (agy CLI). */
   readonly steerOutcomeIsLatest?: boolean;
+  /** Native validation refusal, even when an earlier prompt has already answered naturally. */
+  readonly isSteerRefusal?: (error: unknown) => boolean;
   readonly promptContextUsage?: (response: JsonRecord) => ContextUsage | null;
   /**
    * Tokens billed by ONE prompt (grok `_meta.usage`, live 2026-09-11), summed
