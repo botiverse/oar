@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { expect, test } from "vitest";
@@ -7,6 +7,7 @@ import { awaitTurnEnd, defaultRuntimes } from "../../packages/oar/src/index.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { startClaudeAimock, startCodexAimock, startPiAimock, type AimockEnv } from "../harness/aimock.js";
 import { startAntigravityAimock, startGrokAimock, startKimiAimock, startOpencodeAimock } from "../harness/aimock-acp.js";
+import { removeFixtureDirectory } from "../harness/fixture-directory-cleanup.js";
 
 // Grok drops images smaller than 8×8. Use a 32×32 PNG across providers.
 const PNG = "iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAAKElEQVR4nO3NsQ0AAAzCMP5/un0CNkuZ41wybXsHAAAAAAAAAAAAxR4yw/wuPL6QkAAAAABJRU5ErkJggg==";
@@ -73,7 +74,7 @@ for (const [id, recipe] of Object.entries(recipes)) {
       }
     } finally {
       await env.stop();
-      await rm(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+      await removeFixtureDirectory(dir, "image-only");
     }
   }, 90_000);
 }
