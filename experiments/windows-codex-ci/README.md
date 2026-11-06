@@ -31,6 +31,11 @@ that virtual machines share hardware or load. There is no matrix concurrency
 cap. Preserve the complete first attempt, including failures and missing data.
 Do not substitute successful reruns into the nine slots.
 
+The vendor step has a 60-minute limit and each job a 90-minute limit. A run
+that reaches either limit remains that slot's result; retain its available
+evidence without increasing the limit or rerunning it. Individual case limits
+and assertions are unchanged.
+
 Pins: Node 24.22.2, npm 11.19.1, pnpm 11.22.0, Codex 0.167.0, and the repository
 lockfile (including Vitest 4.1.11). Actions use the revisions from the failing
 job. The OS label is `windows-2025-vs2026`; GitHub still updates that image, so
@@ -137,6 +142,10 @@ parallel phase while global preparation remains slow, keep those mechanisms
 separate. If all groups are slow, a worker limit is not an established remedy.
 Nine green jobs cannot establish a root cause or a reliable failure-rate
 change. Any proposal to change regular CI needs a separate result and review.
+
+After collecting this round, remove the temporary workflow and test-framework
+instrumentation in a separate change. Retain the experiment scripts, selected
+evidence and conclusions so the comparison remains reviewable.
 
 ## DSH installation, separate finding
 
