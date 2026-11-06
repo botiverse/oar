@@ -9,7 +9,8 @@ import { claudeInstallation, claudeSession, codexInstallation, codexSession, eve
 import { asRecord, parseJson, type JsonRecord } from "../../packages/oar/src/shared/json.js";
 import { startClaudeAimock, startCodexAimock } from "../harness/aimock.js";
 import { resolveRunDir } from "../harness/trace.js";
-import { codexTaskRecipient, codexTaskRequest } from "./support/codex-task-request.js";
+import { codexTaskIsResumed, codexTaskRecipient, codexTaskRequest } from "./support/codex-task-request.js";
+import { codexTaskRootReply } from "./support/codex-task-script.js";
 
 function taskEvents(session: Session): Event[] { return session.records().flatMap(record => eventsOf(record)).filter(e => e.kind.startsWith("task_")); }
 
@@ -64,20 +65,22 @@ function childTurns(session: Session, id: string): JsonRecord[] {
   });
 }
 
-test.skipIf(process.env.OAR_TEST !== "codex-aimock")("Codex child interruption leaves the parent and peer usable and permits later work on the same child", async () => {
-  let rootCalls = 0; let targetCalls = 0;
+test.skipIf(process.env.OAR_TEST !== "codex-aimock").each(["before", "during"])("Codex child interruption permits later work when the peer finishes %s the follow-up", async timing => {
+  let rootCalls = 0; let targetCalls = 0; let followupReplies = 0;
+  const finishPeer = Promise.withResolvers<void>();
+  const peerObserved = Promise.withResolvers<void>();
   const provider = await startCodexAimock(mock => {
     mock.on({ predicate: () => true }, async request => {
       const recipient = codexTaskRecipient(request);
-      if (recipient === "/root/a") { targetCalls += 1; await delay(targetCalls === 1 ? 15_000 : 250); return { content: "CHILD_A_DONE" }; }
-      if (recipient === "/root/b") { await delay(4000); return { content: "CHILD_B_DONE" }; }
+      if (recipient === "/root/a") { targetCalls += 1; await delay(codexTaskIsResumed(request) ? 250 : 15_000); return { content: "CHILD_A_DONE" }; }
+      if (recipient === "/root/b") { await (timing === "during" ? finishPeer.promise : delay(4000)); return { content: "CHILD_B_DONE" }; }
       rootCalls += 1;
-      if (rootCalls <= 2) {
-        const name = rootCalls === 1 ? "a" : "b";
-        return { toolCalls: [{ id: `spawn_${name}`, name: "spawn_agent", arguments: JSON.stringify({ task_name: name, message: `TASK_CHILD_${name}`, fork_turns: "none" }) }] };
+      const reply = codexTaskRootReply(request);
+      if ("toolCalls" in reply && reply.toolCalls.some(call => call.id === "followup_a")) {
+        followupReplies += 1;
+        if (timing === "during") { finishPeer.resolve(); await peerObserved.promise; }
       }
-      if (rootCalls === 4) { return { toolCalls: [{ id: "followup_a", name: "followup_task", arguments: JSON.stringify({ target: "a", message: "Resume child A" }) }] }; }
-      return { content: "PARENT_OK" };
+      return reply;
     });
   }, { captureRaw: true, rewriteResponse: qualifyResponse, rewriteRequest: codexTaskRequest });
   const installation = await codexInstallation(); assert.ok(installation.kind === "available");
@@ -90,23 +93,28 @@ test.skipIf(process.env.OAR_TEST !== "codex-aimock")("Codex child interruption l
     const target = taskEvents(current).find(e => e.kind === "task_started" && e.description === "/root/a");
     const peer = taskEvents(current).find(e => e.kind === "task_started" && e.description === "/root/b");
     assert.ok(target?.kind === "task_started" && peer?.kind === "task_started");
+    current.events(event => { if (event.kind === "task_ended" && event.taskId === peer.taskId) { peerObserved.resolve(); } });
     await expect.poll(() => current.records().some(r => r.kind === "frame" && r.sessionId === target.taskId && r.body.type === "turn/started"), { timeout: 30_000 }).toBe(true);
     // Native turn start can precede the first model request, including on Windows.
     await expect.poll(() => targetCalls, { timeout: 30_000 }).toBe(1);
     expect(await current.stopTask?.(target.taskId)).toMatchObject({ kind: "accepted" });
     await expect.poll(() => childTurns(current, target.taskId)[0]?.status, { timeout: 30_000 }).toBe("interrupted");
     expect(taskEvents(current).filter(e => e.kind === "task_ended" && e.taskId === target.taskId)).toEqual([]);
-    await expect.poll(() => childTurns(current, peer.taskId)[0]?.status, { timeout: 30_000 }).toBe("completed");
+    if (timing === "before") { await expect.poll(() => childTurns(current, peer.taskId)[0]?.status, { timeout: 30_000 }).toBe("completed"); }
     await expect.poll(() => current.status().value.kind, { timeout: 30_000 }).toBe("idle");
     expect(await promptAndWait(current, "PARENT_FOLLOWUP")).toMatchObject({ kind: "ended", outcome: { kind: "completed" } });
+    await expect.poll(() => childTurns(current, peer.taskId)[0]?.status, { timeout: 30_000 }).toBe("completed");
     await expect.poll(() => childTurns(current, target.taskId)[1]?.status, { timeout: 30_000 }).toBe("completed");
     await expect.poll(() => taskEvents(current).find(e => e.kind === "task_ended" && e.taskId === target.taskId), { timeout: 30_000 }).toMatchObject({ status: "completed" });
     expect(targetCalls).toBe(2);
     expect(childTurns(current, target.taskId)[1]?.id).not.toBe(childTurns(current, target.taskId)[0]?.id);
+    expect(current.records().filter(record => record.kind === "frame" && record.body.type === "item/completed" && asRecord(asRecord(record.body.native)?.item)?.id === "followup_a")).toHaveLength(1);
+    if (timing === "during") { expect(followupReplies).toBeGreaterThanOrEqual(2); }
   } finally {
+    finishPeer.resolve(); peerObserved.resolve();
     try { await session?.dispose(); }
     finally {
-      try { await writeFile(path.join(resolveRunDir(), "codex-task-stop.json"), JSON.stringify({ rootCalls, targetCalls, requests: provider.raw, records: session?.records() }, null, 2)); }
+      try { await writeFile(path.join(resolveRunDir(), `codex-task-stop-${timing}.json`), JSON.stringify({ rootCalls, targetCalls, followupReplies, requests: provider.raw, records: session?.records() }, null, 2)); }
       finally { await provider.stop(); }
     }
   }
