@@ -43,3 +43,13 @@ and retains its error. Absence from a list is not absence of history: agy
 1.5.0 omits unprompted sessions that native resume can still reopen. Hosts
 may start a new session, but must not infer `SessionNotFoundError` from this
 refusal. Not covered: runtimes whose session store the host moved by hand.
+
+The saved-directory check shared by these ACP adapters and DSH compares
+existing paths through the native filesystem lookup. Links, Windows 8.3
+short names and casing differences that refer to the same directory are
+accepted; another directory is still refused. If lookup fails, comparison
+falls back to resolved path strings, without assuming that different names
+or casing refer to the same missing or inaccessible directory.
+The [directory regressions](../../tests/acp/same-directory.test.ts) use real
+filesystem aliases; the Windows short-name case explicitly skips if the
+temporary directory has no distinct 8.3 name.

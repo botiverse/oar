@@ -104,10 +104,37 @@ resume assertions; the temporary project directories were removed afterward.
 digests and timings. Missing markers in the other two logs are not treated
 as proof that snapshotting did not occur.
 
-Windows and macOS results belong to the next ordinary CI runs; no special
-observation workflow is added. After merge,
-check whether these four files still time out, retaining any original and
-new failures rather than treating faster passing samples as causal proof.
+PR #681 passed its Linux and macOS OpenCode jobs. Its first ordinary
+[Windows main-push observation](https://github.com/botiverse/oar/actions/runs/42302454917/job/128183393957)
+passed nine vendor cases and failed attach/resume at the saved-directory
+check. The native session listed the long spelling of the temporary parent,
+while the host reused the original 8.3 spelling returned by `tmpdir()`.
+OAR incorrectly refused that same directory as another cwd. This is a
+product bug exposed by the fixture change, not a timeout or a reason to
+canonicalize the fixture's input. That raw spelling remains unchanged.
+The job log SHA-256 is
+`009716a91fdab011a9e36ca8006cb993d1ae5b0653dad302c32e48c0457d1546`;
+artifact `13544678853` has SHA-256
+`b4e7c67b5e8ab03dadd81d05adae3fce163a9a2148fb719c0da6f46485586988`.
+Raw paths and session IDs remain in the CI artifact.
+
+The shared ACP/DSH directory comparison now uses `realpathSync.native`.
+In [Node 24.19.0's JavaScript implementation](https://github.com/nodejs/node/blob/v24.19.0/lib/fs.js#L2608),
+`realpathSync` walks links but retains ordinary components' spelling.
+The [native Windows lookup](https://github.com/nodejs/node/blob/v24.19.0/deps/uv/src/win/fs.c#L2816)
+uses `GetFinalPathNameByHandleW` to retrieve the filesystem's normalized
+path. A failed lookup retains the existing lexical fallback; distinct
+directories are still refused. No blanket lowercasing is added.
+
+The [regressions](../../tests/acp/same-directory.test.ts) cover real links,
+distinct directories and missing-path fallback on every platform, plus
+actual short names and changed drive/directory casing on Windows. A volume
+without a distinct short name explicitly skips that case. Local Linux
+checks skip both Windows cases and cannot establish their behavior. The
+required Windows `check` job runs them; inspect its pass/skip results
+separately. The unchanged OpenCode resume case runs in ordinary Windows
+main-push observations after merge. Retain original and new failures rather
+than treating passing samples as proof that all snapshot delays are resolved.
 
 Grok and CodeBuddy continue to use natural samples. A new Windows Grok
 [initialize timeout](https://github.com/botiverse/oar/actions/runs/42295313820/job/128158902546)
