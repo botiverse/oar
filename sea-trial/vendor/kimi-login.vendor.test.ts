@@ -5,6 +5,7 @@ import path from "node:path";
 import { describe, expect, test } from "vitest";
 import { kimiRuntime } from "../../packages/oar/src/runtimes/kimi/index.js";
 import { recordedInteraction } from "../../tests/fixtures/login-interaction.js";
+import { probeKimiAccountEnvironment } from "./support/kimi-account-environment.js";
 import { kimiLoginFixture } from "./support/kimi-login.js";
 
 describe.skipIf(process.env.OAR_TEST !== "kimi-login")("Kimi native device login", () => {
@@ -65,3 +66,7 @@ describe.skipIf(process.env.OAR_TEST !== "kimi-login")("Kimi native device login
     } finally { await fixture.dispose(); }
   }, 60_000);
 });
+
+test.skipIf(process.env.OAR_TEST !== "kimi-login")("CLI usage and account orientation follow the process account home", async () => {
+  await probeKimiAccountEnvironment(process.env.OAR_KIMI_LOGIN_COMMAND ?? "kimi");
+}, 180_000);

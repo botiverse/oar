@@ -22,7 +22,7 @@ function parseExecution(line: string): BrowserExecution {
 }
 
 /** Real Kimi, synthetic local OAuth and models, isolated credentials and browser commands. */
-export async function kimiLoginFixture(mode: "success" | "pending" | "denied" | "models-failed" = "success"): Promise<KimiLoginFixture> {
+export async function kimiLoginFixture(mode: "success" | "pending" | "denied" | "models-failed" | "account-usage" = "success"): Promise<KimiLoginFixture> {
   const dir = await mkdtemp(path.join(tmpdir(), "oar-kimi-native-login-"));
   const home = path.join(dir, "home");
   const helpers = path.join(dir, "browser");
@@ -50,6 +50,7 @@ require('node:module').syncBuiltinESMExports();
 `);
   const requests: { method: string; path: string }[] = [];
   let origin = "";
+  let grants = 0;
   const server = createServer((request, response) => {
     const url = new URL(request.url ?? "/", "http://localhost");
     requests.push({ method: request.method ?? "", path: url.pathname });
@@ -59,10 +60,17 @@ require('node:module').syncBuiltinESMExports();
       body = { device_code: "synthetic-device", user_code: "OAR-CODE", verification_uri: `${origin}/device`, verification_uri_complete: `${origin}/device?code=OAR-CODE`, expires_in: 600, interval: 1 };
     } else if (url.pathname === "/api/oauth/token") {
       if (mode === "pending" || mode === "denied") { status = 400; body = { error: mode === "pending" ? "authorization_pending" : "access_denied" }; }
-      else { body = { access_token: "synthetic-access", refresh_token: "synthetic-refresh", expires_in: 3600, token_type: "Bearer" }; }
+      else { grants += 1; body = { access_token: mode === "account-usage" && grants > 1 ? "synthetic-access-b" : "synthetic-access", refresh_token: "synthetic-refresh", expires_in: 3600, token_type: "Bearer" }; }
     } else if (url.pathname === "/models") {
       if (mode === "models-failed") { status = 500; body = { error: { message: "synthetic provisioning failure" } }; }
       else { body = { data: [{ id: "synthetic-model", display_name: "Synthetic model", limit: { context: 32_768 }, protocol: "anthropic" }] }; }
+    } else if (mode === "account-usage" && (url.pathname === "/usages" || url.pathname === "/me")) {
+      const account = request.headers.authorization === "Bearer synthetic-access" ? "A"
+        : (request.headers.authorization === "Bearer synthetic-access-b" ? "B" : null);
+      if (account === null) { status = 401; body = { error: "unknown synthetic account" }; }
+      else { body = url.pathname === "/usages"
+        ? { usage: { used: account === "A" ? "100" : "25", limit: "100" } }
+        : { user_id: `synthetic-${account}`, nickname: `Fixture ${account}`, user_level_name: "Synthetic" }; }
     } else { status = 404; body = { error: "unexpected request" }; }
     response.writeHead(status, { "Content-Type": "application/json" }); response.end(JSON.stringify(body));
   });

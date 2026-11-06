@@ -1,0 +1,70 @@
+{
+  "version": "2.4.1",
+  "platform": "linux",
+  "cli": "built",
+  "observed": [
+    {
+      "account": "A",
+      "usage": {
+        "kind": "available",
+        "plan": "Synthetic",
+        "displayName": "Fixture A",
+        "rateLimited": true,
+        "windows": [
+          {
+            "label": "Weekly limit",
+            "usedRatio": 1
+          }
+        ]
+      },
+      "verdict": {
+        "id": "kimi",
+        "usable": false,
+        "because": "rate_limited"
+      },
+      "tableReadiness": "rate_limited"
+    },
+    {
+      "account": "B",
+      "usage": {
+        "kind": "available",
+        "plan": "Synthetic",
+        "displayName": "Fixture B",
+        "rateLimited": false,
+        "windows": [
+          {
+            "label": "Weekly limit",
+            "usedRatio": 0.25
+          }
+        ]
+      },
+      "verdict": {
+        "id": "kimi",
+        "usable": true
+      },
+      "tableReadiness": "ready"
+    },
+    {
+      "account": "A",
+      "usage": {
+        "kind": "available",
+        "plan": "Synthetic",
+        "displayName": "Fixture A",
+        "rateLimited": true,
+        "windows": [
+          {
+            "label": "Weekly limit",
+            "usedRatio": 1
+          }
+        ]
+      },
+      "verdict": {
+        "id": "kimi",
+        "usable": false,
+        "because": "rate_limited"
+      },
+      "tableReadiness": "rate_limited"
+    }
+  ],
+  "noLoginDuringReads": true
+}

@@ -23,6 +23,17 @@ Equal values and deleting an absent variable are not changes. The rejection is
 values. Other environment changes remain supported. `orient` records this as
 `unsupported`; explicit per-call proxy/CA handling is not provided.
 
+A snapshot belongs to the account resolved by this read. It is not a quota limit
+for every account on that runtime. A multi-account host retains its selected
+account/configuration key and scopes scheduling decisions to that key plus the
+runtime ID. Native email and display name fields can help identify the result,
+but are optional and are not guaranteed unique keys.
+
+The CLI also inherits its process environment: `KIMI_CODE_HOME=/home/b oar usage
+kimi` selects that home without an extra CLI flag. Use the same environment for
+`oar orient kimi --depth account` and the associated agent session. See the
+[CLI examples, including PowerShell](orientation.md#cli-and-verification).
+
 ## Windows
 
 Each window carries a display `label`, `usedRatio` (0 to 1), and, where the
