@@ -83,12 +83,46 @@
     "Local runs validate instrumentation, not the Windows concurrency hypothesis.",
     "The complete default run preceded addition of per-test duration fields; the final reporter was exercised by both selected-file runs.",
     "The selected-file runs validate maxWorkers option forwarding; one test file does not exercise two concurrent file workers.",
-    "No Windows comparison has been dispatched."
+    "At this pre-round validation point no Windows comparison had been dispatched; the completed round is retained in results.json."
   ],
   "wrapperFailureControl": {
     "trigger": "no matching test file",
     "vitestExitCode": 1,
     "wrapperExitCode": 1,
     "logSha256": "ff9860950d3c8cd15e03829140c21e2db8601df55fcc7edc6dedf92d2d2d8946"
+  },
+  "scope": "Original pre-round instrumentation validation, followed by cleanup validation below.",
+  "cleanupValidation": {
+    "date": "2026-11-06",
+    "base": "9728c56988d524a061e0731dce7a8642c0a88ee6",
+    "platform": "linux x64",
+    "node": "v24.19.0",
+    "native": "codex-cli 0.167.0",
+    "fullCheck": {
+      "exitCode": 0,
+      "testsPassed": 3623,
+      "testsSkipped": 556,
+      "mockPassed": 18,
+      "mockSkipped": 1
+    },
+    "vendor": {
+      "exitCode": 0,
+      "passed": 77,
+      "skipped": 370
+    },
+    "behavior": {
+      "exitCode": 0,
+      "passed": 16,
+      "skipped": 3
+    },
+    "fixtureFilesEqualTo": "6e7fe8b9",
+    "resultsReproducedByteForByte": true,
+    "windowsComparisonRerun": false,
+    "logs": {
+      "vendor": "e540ba7a3d449cfed942714ab332dfe619cdddb94e43136d045232c4ba43fc9e",
+      "behavior": "a349c8ce767d9c41001745b2aadbd21ee02081483b1997cc3edbbc142175ec56",
+      "check": "5f054019cd847d7ed1f04c75fa5a7fd4773361f512b82f71e59017e7586361aa"
+    },
+    "removedRegularTests": 4
   }
 }

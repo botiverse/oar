@@ -1,0 +1,4035 @@
+{
+  "runUrl": "https://github.com/botiverse/oar/actions/runs/42237872904",
+  "attempt": 1,
+  "runnerCount": 9,
+  "missingSlots": [],
+  "duplicateSlots": [],
+  "unexpectedSlots": [],
+  "cohort": {
+    "sha": [
+      "9728c56988d524a061e0731dce7a8642c0a88ee6"
+    ],
+    "runId": [
+      "42237872904"
+    ],
+    "runAttempt": [
+      "1"
+    ],
+    "lockSha256": [
+      "25e1269b22d9ec82eb5bd2be12fe6b05ece67fadd0401670e1881da0f6529e69"
+    ],
+    "baseConfigSha256": [
+      "59230dab7a62f7697ea221c70c6e42a334961dfdd3e7a7c9ffe02e4798f4c14e"
+    ],
+    "ciWorkflowSha256": [
+      "092c060afdc6b5bef8c69eb9666a54fbde61297c85938f384f64be60f2f2c96d"
+    ],
+    "coldStartTestSha256": [
+      "22e9c7a200201fc8790a9943e3d0e5bd24dcd29ef5ffb6ed1f846d904ddf7ebd"
+    ],
+    "imageOS": [
+      "win25-vs2026"
+    ],
+    "imageVersion": [
+      "20261103.298.1"
+    ],
+    "node": [
+      "v24.22.2"
+    ],
+    "platform": [
+      "win32"
+    ],
+    "availableParallelism": [
+      "4"
+    ],
+    "totalMemoryBytes": [
+      "17174360064"
+    ]
+  },
+  "archives": [
+    {
+      "name": "windows-codex-1-3",
+      "id": 13515700437,
+      "size_in_bytes": 809953,
+      "digest": "sha256:62a1eebb123cf809128f0895e3fb23217918398001d46f2b50172ea5f8a7a26e",
+      "expires_at": "2026-11-20T15:04:27Z"
+    },
+    {
+      "name": "windows-codex-default-1",
+      "id": 13515480098,
+      "size_in_bytes": 789403,
+      "digest": "sha256:00546e0360c6edd343515f407f6e329f1406359bd06947918902c49017f973c5",
+      "expires_at": "2026-11-20T15:00:04Z"
+    },
+    {
+      "name": "windows-codex-default-3",
+      "id": 13515465061,
+      "size_in_bytes": 776938,
+      "digest": "sha256:7766e0cffbea6e592c53fa8b9fe503dea0c5c2813caf989180b7484ff8290e6e",
+      "expires_at": "2026-11-20T14:59:39Z"
+    },
+    {
+      "name": "windows-codex-2-1",
+      "id": 13514370419,
+      "size_in_bytes": 766418,
+      "digest": "sha256:63b5ad9e15c70ecc3a00fd862668d0caf599032f3df953589ac9bcc508da30a4",
+      "expires_at": "2026-11-20T14:59:46Z"
+    },
+    {
+      "name": "windows-codex-1-1",
+      "id": 13513881306,
+      "size_in_bytes": 809653,
+      "digest": "sha256:2d8e67d3267ec0c6f6a41939522bd483574a24fc68de4530909739402e218f7a",
+      "expires_at": "2026-11-20T15:04:47Z"
+    },
+    {
+      "name": "windows-codex-1-2",
+      "id": 13513821339,
+      "size_in_bytes": 817825,
+      "digest": "sha256:c66f058d4a26e618c259af36c937970bf942a94869fd6b6f6a0be128cb0e24f6",
+      "expires_at": "2026-11-20T15:04:40Z"
+    },
+    {
+      "name": "windows-codex-default-2",
+      "id": 13513785388,
+      "size_in_bytes": 763602,
+      "digest": "sha256:a35bf70375aacba872e931b5e212d3a214e7818d078a5dab7c22af512599f9f8",
+      "expires_at": "2026-11-20T14:59:10Z"
+    },
+    {
+      "name": "windows-codex-2-2",
+      "id": 13513685209,
+      "size_in_bytes": 757745,
+      "digest": "sha256:153e3e785078acc420a1013d711a9efbda048848d84a581a06c6a1cdec874e16",
+      "expires_at": "2026-11-20T14:58:52Z"
+    },
+    {
+      "name": "windows-codex-2-3",
+      "id": 13513520902,
+      "size_in_bytes": 775406,
+      "digest": "sha256:ccff1dd22338a2bfa526467be1d25f0a662f1e6d5bb28d69c7aac0bd8d7fa618",
+      "expires_at": "2026-11-20T15:01:21Z"
+    }
+  ],
+  "runners": [
+    {
+      "group": "1",
+      "replica": "1",
+      "jobId": 127960165985,
+      "jobUrl": "https://github.com/botiverse/oar/actions/runs/42237872904/job/127960165985",
+      "conclusion": "failure",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:52:59Z",
+          "completed_at": "2026-11-06T14:53:00Z"
+        },
+        {
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:53:01Z",
+          "completed_at": "2026-11-06T14:53:06Z"
+        },
+        {
+          "name": "Run pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:53:06Z",
+          "completed_at": "2026-11-06T14:53:09Z"
+        },
+        {
+          "name": "Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:53:09Z",
+          "completed_at": "2026-11-06T14:53:34Z"
+        },
+        {
+          "name": "Run pnpm install --frozen-lockfile",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:53:34Z",
+          "completed_at": "2026-11-06T14:53:40Z"
+        },
+        {
+          "name": "Run npm install -g @openai/codex@0.167.0",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:53:40Z",
+          "completed_at": "2026-11-06T14:53:53Z"
+        },
+        {
+          "name": "Record and verify versions",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:53:53Z",
+          "completed_at": "2026-11-06T14:53:59Z"
+        },
+        {
+          "name": "Run pnpm run sea-trial",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:53:59Z",
+          "completed_at": "2026-11-06T14:54:35Z"
+        },
+        {
+          "name": "Observe the unchanged vendor suite",
+          "conclusion": "failure",
+          "started_at": "2026-11-06T14:54:35Z",
+          "completed_at": "2026-11-06T15:04:47Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "conclusion": "success",
+          "started_at": "2026-11-06T15:04:47Z",
+          "completed_at": "2026-11-06T15:04:49Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "conclusion": "skipped",
+          "started_at": "2026-11-06T15:04:49Z",
+          "completed_at": "2026-11-06T15:04:49Z"
+        },
+        {
+          "name": "Post Run pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1",
+          "conclusion": "success",
+          "started_at": "2026-11-06T15:04:49Z",
+          "completed_at": "2026-11-06T15:04:50Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "conclusion": "success",
+          "started_at": "2026-11-06T15:04:50Z",
+          "completed_at": "2026-11-06T15:04:51Z"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success",
+          "started_at": "2026-11-06T15:04:51Z",
+          "completed_at": "2026-11-06T15:04:51Z"
+        }
+      ],
+      "versions": {
+        "pnpm": "11.22.0",
+        "npm": "11.19.1",
+        "codex": "codex-cli 0.167.0",
+        "node": "v24.22.2",
+        "powershell": "7.6.9"
+      },
+      "vendorWallSeconds": 611.5530002117157,
+      "vitestConfig": [
+        {
+          "pool": "forks",
+          "requestedWorkers": "1",
+          "configuredMaxWorkers": 1,
+          "testTimeout": 30000,
+          "hookTimeout": 10000
+        }
+      ],
+      "testStates": {
+        "skipped": 376,
+        "passed": 70,
+        "failed": 1
+      },
+      "failedTests": [
+        {
+          "file": "sea-trial\\vendor\\input-identity.vendor.test.ts",
+          "test": "codex correlates native steer echo without a duplicate input",
+          "state": "failed",
+          "elapsedMs": 60006.720400000006
+        }
+      ],
+      "coldStartTests": [
+        {
+          "file": "sea-trial\\vendor\\codex.vendor.test.ts",
+          "test": "codex vendor error edges > concurrent sessions initialize one fresh home without a warmup process",
+          "state": "passed",
+          "elapsedMs": 2586.1883
+        }
+      ],
+      "phasesMs": {
+        "fixture.config": {
+          "n": 71,
+          "min": 0.5424999999995634,
+          "median": 0.6713000000017928,
+          "p95NearestRank": 1.1476999999999862,
+          "max": 1.2304000000001452
+        },
+        "fixture.directory": {
+          "n": 71,
+          "min": 0.39649999999892316,
+          "median": 0.49879999999939173,
+          "p95NearestRank": 1.0978999999999814,
+          "max": 1.133100000000013
+        },
+        "fixture.mock": {
+          "n": 71,
+          "min": 0.912199999999757,
+          "median": 1.702900000000227,
+          "p95NearestRank": 7.750500000000102,
+          "max": 7.936099999999897
+        },
+        "fixture.prepare": {
+          "n": 71,
+          "min": 9.335199999999986,
+          "median": 1249.3881999999999,
+          "p95NearestRank": 1440.7064,
+          "max": 44335.0918
+        },
+        "fixture.stop": {
+          "n": 71,
+          "min": 13.3132999999998,
+          "median": 20.333300000002055,
+          "p95NearestRank": 13918.822699999997,
+          "max": 91474.549
+        },
+        "fixture.stop.directory": {
+          "n": 71,
+          "min": 11.977100000000064,
+          "median": 18.327900000000227,
+          "p95NearestRank": 2838.188199999997,
+          "max": 91471.8673
+        },
+        "fixture.stop.servers": {
+          "n": 71,
+          "min": 0.6298999999999069,
+          "median": 1.1617000000005646,
+          "p95NearestRank": 1.980599999998958,
+          "max": 18670.56
+        },
+        "global.process_table": {
+          "n": 1,
+          "min": 1378.6668,
+          "median": 1378.6668,
+          "p95NearestRank": 1378.6668,
+          "max": 1378.6668
+        },
+        "installation": {
+          "n": 157,
+          "min": 143.66749999999956,
+          "median": 152.6898999999994,
+          "p95NearestRank": 275.7518,
+          "max": 1406.4327999999987
+        },
+        "session.open": {
+          "n": 115,
+          "min": 119.34580000000005,
+          "median": 218.08559999999943,
+          "p95NearestRank": 1182.1753999999999,
+          "max": 1223.9352000000001
+        },
+        "warmup.exit": {
+          "n": 70,
+          "min": 636.1376,
+          "median": 647.6050999999989,
+          "p95NearestRank": 699.4500999999982,
+          "max": 730.9127999999982
+        },
+        "warmup.initialize": {
+          "n": 70,
+          "min": 344.38730000000214,
+          "median": 426.6204,
+          "p95NearestRank": 597.6406999999999,
+          "max": 42589.823
+        },
+        "warmup.installation": {
+          "n": 70,
+          "min": 148.0042999999987,
+          "median": 154.5743,
+          "p95NearestRank": 171.00260000000003,
+          "max": 1049.5132000000012
+        },
+        "warmup.launch": {
+          "n": 70,
+          "min": 4.089199999998527,
+          "median": 4.481699999999819,
+          "p95NearestRank": 6.532400000000052,
+          "max": 6.752099999999928
+        }
+      },
+      "counters": {
+        "\\memory\\available mbytes": {
+          "n": 94,
+          "min": 12113.0,
+          "median": 12928.0,
+          "p95NearestRank": 13166.0,
+          "max": 13193.0
+        },
+        "\\physicaldisk(_total)\\avg. disk sec/transfer": {
+          "n": 94,
+          "min": 4.78e-05,
+          "median": 0.0029202660664530513,
+          "p95NearestRank": 0.06063972786885246,
+          "max": 0.07040270327868853
+        },
+        "\\physicaldisk(_total)\\current disk queue length": {
+          "n": 94,
+          "min": 0.0,
+          "median": 0.0,
+          "p95NearestRank": 8.0,
+          "max": 24.0
+        },
+        "\\physicaldisk(_total)\\disk transfers/sec": {
+          "n": 94,
+          "min": 0.9864704590076641,
+          "median": 113.38342074667885,
+          "p95NearestRank": 1016.0357820428412,
+          "max": 1636.3806069024217
+        },
+        "\\processor(_total)\\% processor time": {
+          "n": 94,
+          "min": 2.866928151589909,
+          "median": 32.99416959125398,
+          "p95NearestRank": 53.918157548089575,
+          "max": 59.80184014065051
+        }
+      },
+      "poolSlotsObserved": [
+        "1"
+      ],
+      "fileWorkerPidsObserved": 103,
+      "peakObservedFileIntervals": 1,
+      "resourceSamples": {
+        "sampler_started": 1,
+        "counters": 94,
+        "processes": 94,
+        "sampler_stopped": 1
+      },
+      "unendedPhases": [],
+      "filesWithoutModuleEnd": [],
+      "malformedLines": []
+    },
+    {
+      "group": "1",
+      "replica": "2",
+      "jobId": 127960165996,
+      "jobUrl": "https://github.com/botiverse/oar/actions/runs/42237872904/job/127960165996",
+      "conclusion": "success",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:52:59Z",
+          "completed_at": "2026-11-06T14:53:01Z"
+        },
+        {
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:53:01Z",
+          "completed_at": "2026-11-06T14:53:08Z"
+        },
+        {
+          "name": "Run pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:53:08Z",
+          "completed_at": "2026-11-06T14:53:11Z"
+        },
+        {
+          "name": "Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:53:11Z",
+          "completed_at": "2026-11-06T14:53:26Z"
+        },
+        {
+          "name": "Run pnpm install --frozen-lockfile",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:53:26Z",
+          "completed_at": "2026-11-06T14:53:33Z"
+        },
+        {
+          "name": "Run npm install -g @openai/codex@0.167.0",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:53:33Z",
+          "completed_at": "2026-11-06T14:53:47Z"
+        },
+        {
+          "name": "Record and verify versions",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:53:47Z",
+          "completed_at": "2026-11-06T14:53:48Z"
+        },
+        {
+          "name": "Run pnpm run sea-trial",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:53:48Z",
+          "completed_at": "2026-11-06T14:54:21Z"
+        },
+        {
+          "name": "Observe the unchanged vendor suite",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:54:21Z",
+          "completed_at": "2026-11-06T15:04:40Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "conclusion": "success",
+          "started_at": "2026-11-06T15:04:40Z",
+          "completed_at": "2026-11-06T15:04:42Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "conclusion": "success",
+          "started_at": "2026-11-06T15:04:42Z",
+          "completed_at": "2026-11-06T15:04:42Z"
+        },
+        {
+          "name": "Post Run pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1",
+          "conclusion": "success",
+          "started_at": "2026-11-06T15:04:42Z",
+          "completed_at": "2026-11-06T15:04:42Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "conclusion": "success",
+          "started_at": "2026-11-06T15:04:42Z",
+          "completed_at": "2026-11-06T15:04:45Z"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success",
+          "started_at": "2026-11-06T15:04:45Z",
+          "completed_at": "2026-11-06T15:04:45Z"
+        }
+      ],
+      "versions": {
+        "codex": "codex-cli 0.167.0",
+        "npm": "11.19.1",
+        "powershell": "7.6.9",
+        "pnpm": "11.22.0",
+        "node": "v24.22.2"
+      },
+      "vendorWallSeconds": 617.5319998264313,
+      "vitestConfig": [
+        {
+          "pool": "forks",
+          "requestedWorkers": "1",
+          "configuredMaxWorkers": 1,
+          "testTimeout": 30000,
+          "hookTimeout": 10000
+        }
+      ],
+      "testStates": {
+        "skipped": 376,
+        "passed": 71
+      },
+      "failedTests": [],
+      "coldStartTests": [
+        {
+          "file": "sea-trial\\vendor\\codex.vendor.test.ts",
+          "test": "codex vendor error edges > concurrent sessions initialize one fresh home without a warmup process",
+          "state": "passed",
+          "elapsedMs": 3519.1528
+        }
+      ],
+      "phasesMs": {
+        "fixture.config": {
+          "n": 71,
+          "min": 0.7520000000004075,
+          "median": 0.9533000000001266,
+          "p95NearestRank": 1.6417999999998756,
+          "max": 7.55159999999978
+        },
+        "fixture.directory": {
+          "n": 71,
+          "min": 0.5494000000007873,
+          "median": 0.7211999999999534,
+          "p95NearestRank": 1.5284999999998945,
+          "max": 3.403600000001461
+        },
+        "fixture.mock": {
+          "n": 71,
+          "min": 1.0816000000013446,
+          "median": 2.1331999999983964,
+          "p95NearestRank": 10.313899999999876,
+          "max": 11.944400000000087
+        },
+        "fixture.prepare": {
+          "n": 71,
+          "min": 12.128400000000056,
+          "median": 1548.0048000000024,
+          "p95NearestRank": 2564.9573999999993,
+          "max": 5460.894
+        },
+        "fixture.stop": {
+          "n": 71,
+          "min": 18.7528999999995,
+          "median": 33.91900000000169,
+          "p95NearestRank": 4232.726699999999,
+          "max": 18377.115400000002
+        },
+        "fixture.stop.directory": {
+          "n": 71,
+          "min": 16.90990000000602,
+          "median": 30.41529999999966,
+          "p95NearestRank": 1845.840299999998,
+          "max": 8379.559799999995
+        },
+        "fixture.stop.servers": {
+          "n": 71,
+          "min": 0.6840999999985797,
+          "median": 1.5588999999999942,
+          "p95NearestRank": 2.4958999999998923,
+          "max": 18349.348600000005
+        },
+        "global.process_table": {
+          "n": 1,
+          "min": 471.0478999999999,
+          "median": 471.0478999999999,
+          "p95NearestRank": 471.0478999999999,
+          "max": 471.0478999999999
+        },
+        "installation": {
+          "n": 157,
+          "min": 185.8588000000018,
+          "median": 203.96430000000146,
+          "p95NearestRank": 307.5050999999994,
+          "max": 738.5807999999997
+        },
+        "session.open": {
+          "n": 115,
+          "min": 157.8801999999996,
+          "median": 289.16749999999956,
+          "p95NearestRank": 1632.6596000000002,
+          "max": 1766.1082000000024
+        },
+        "warmup.exit": {
+          "n": 70,
+          "min": 821.4874999999993,
+          "median": 891.8081499999998,
+          "p95NearestRank": 1072.6264,
+          "max": 1099.5693999999994
+        },
+        "warmup.initialize": {
+          "n": 70,
+          "min": 382.6537000000026,
+          "median": 427.3675000000003,
+          "p95NearestRank": 1332.1876999999986,
+          "max": 3592.168
+        },
+        "warmup.installation": {
+          "n": 70,
+          "min": 188.03670000000056,
+          "median": 203.0622500000003,
+          "p95NearestRank": 268.66910000000007,
+          "max": 739.5158000000001
+        },
+        "warmup.launch": {
+          "n": 70,
+          "min": 5.365000000001601,
+          "median": 6.066600000000108,
+          "p95NearestRank": 9.591399999999794,
+          "max": 13.037600000000111
+        }
+      },
+      "counters": {
+        "\\memory\\available mbytes": {
+          "n": 95,
+          "min": 12588.0,
+          "median": 13016.0,
+          "p95NearestRank": 13147.0,
+          "max": 13250.0
+        },
+        "\\physicaldisk(_total)\\avg. disk sec/transfer": {
+          "n": 95,
+          "min": 0.0,
+          "median": 0.001785221568627451,
+          "p95NearestRank": 0.007611289634146342,
+          "max": 0.009666731775700934
+        },
+        "\\physicaldisk(_total)\\current disk queue length": {
+          "n": 95,
+          "min": 0.0,
+          "median": 0.0,
+          "p95NearestRank": 2.0,
+          "max": 14.0
+        },
+        "\\physicaldisk(_total)\\disk transfers/sec": {
+          "n": 95,
+          "min": 0.0,
+          "median": 101.13630605987925,
+          "p95NearestRank": 1364.5703931930484,
+          "max": 2179.3851523354624
+        },
+        "\\processor(_total)\\% processor time": {
+          "n": 95,
+          "min": 1.6630004135773202,
+          "median": 40.63071132557048,
+          "p95NearestRank": 65.70226315580223,
+          "max": 75.39414109840882
+        }
+      },
+      "poolSlotsObserved": [
+        "1"
+      ],
+      "fileWorkerPidsObserved": 101,
+      "peakObservedFileIntervals": 1,
+      "resourceSamples": {
+        "sampler_started": 1,
+        "counters": 95,
+        "processes": 95,
+        "sampler_stopped": 1
+      },
+      "unendedPhases": [],
+      "filesWithoutModuleEnd": [],
+      "malformedLines": []
+    },
+    {
+      "group": "1",
+      "replica": "3",
+      "jobId": 127960165943,
+      "jobUrl": "https://github.com/botiverse/oar/actions/runs/42237872904/job/127960165943",
+      "conclusion": "success",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:52:59Z",
+          "completed_at": "2026-11-06T14:53:00Z"
+        },
+        {
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:53:00Z",
+          "completed_at": "2026-11-06T14:53:06Z"
+        },
+        {
+          "name": "Run pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:53:06Z",
+          "completed_at": "2026-11-06T14:53:08Z"
+        },
+        {
+          "name": "Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:53:08Z",
+          "completed_at": "2026-11-06T14:53:20Z"
+        },
+        {
+          "name": "Run pnpm install --frozen-lockfile",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:53:20Z",
+          "completed_at": "2026-11-06T14:53:26Z"
+        },
+        {
+          "name": "Run npm install -g @openai/codex@0.167.0",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:53:26Z",
+          "completed_at": "2026-11-06T14:53:38Z"
+        },
+        {
+          "name": "Record and verify versions",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:53:38Z",
+          "completed_at": "2026-11-06T14:53:41Z"
+        },
+        {
+          "name": "Run pnpm run sea-trial",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:53:41Z",
+          "completed_at": "2026-11-06T14:54:12Z"
+        },
+        {
+          "name": "Observe the unchanged vendor suite",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:54:12Z",
+          "completed_at": "2026-11-06T15:04:27Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "conclusion": "success",
+          "started_at": "2026-11-06T15:04:27Z",
+          "completed_at": "2026-11-06T15:04:28Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "conclusion": "success",
+          "started_at": "2026-11-06T15:04:28Z",
+          "completed_at": "2026-11-06T15:04:28Z"
+        },
+        {
+          "name": "Post Run pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1",
+          "conclusion": "success",
+          "started_at": "2026-11-06T15:04:28Z",
+          "completed_at": "2026-11-06T15:04:29Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "conclusion": "success",
+          "started_at": "2026-11-06T15:04:29Z",
+          "completed_at": "2026-11-06T15:04:31Z"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success",
+          "started_at": "2026-11-06T15:04:31Z",
+          "completed_at": "2026-11-06T15:04:31Z"
+        }
+      ],
+      "versions": {
+        "node": "v24.22.2",
+        "npm": "11.19.1",
+        "codex": "codex-cli 0.167.0",
+        "powershell": "7.6.9",
+        "pnpm": "11.22.0"
+      },
+      "vendorWallSeconds": 612.9920001029968,
+      "vitestConfig": [
+        {
+          "pool": "forks",
+          "requestedWorkers": "1",
+          "configuredMaxWorkers": 1,
+          "testTimeout": 30000,
+          "hookTimeout": 10000
+        }
+      ],
+      "testStates": {
+        "skipped": 376,
+        "passed": 71
+      },
+      "failedTests": [],
+      "coldStartTests": [
+        {
+          "file": "sea-trial\\vendor\\codex.vendor.test.ts",
+          "test": "codex vendor error edges > concurrent sessions initialize one fresh home without a warmup process",
+          "state": "passed",
+          "elapsedMs": 3891.6242
+        }
+      ],
+      "phasesMs": {
+        "fixture.config": {
+          "n": 71,
+          "min": 0.7379999999993743,
+          "median": 0.9020000000018626,
+          "p95NearestRank": 1.7527000000000044,
+          "max": 33.969099999994796
+        },
+        "fixture.directory": {
+          "n": 71,
+          "min": 0.5246000000006461,
+          "median": 0.6911000000000058,
+          "p95NearestRank": 1.624599999999873,
+          "max": 1.829300000000103
+        },
+        "fixture.mock": {
+          "n": 71,
+          "min": 1.076100000002043,
+          "median": 1.9958000000005995,
+          "p95NearestRank": 10.251500000000078,
+          "max": 14.072200000000066
+        },
+        "fixture.prepare": {
+          "n": 71,
+          "min": 13.294599999999946,
+          "median": 1555.4760999999999,
+          "p95NearestRank": 1903.675900000002,
+          "max": 2505.4934
+        },
+        "fixture.stop": {
+          "n": 71,
+          "min": 16.915899999999965,
+          "median": 36.48289999999997,
+          "p95NearestRank": 6959.1986,
+          "max": 18503.643500000002
+        },
+        "fixture.stop.directory": {
+          "n": 71,
+          "min": 15.256000000001222,
+          "median": 32.84870000000046,
+          "p95NearestRank": 4550.5664,
+          "max": 8461.770199999999
+        },
+        "fixture.stop.servers": {
+          "n": 71,
+          "min": 0.6283000000003085,
+          "median": 1.349000000001979,
+          "p95NearestRank": 2.277900000000045,
+          "max": 18471.4707
+        },
+        "global.process_table": {
+          "n": 1,
+          "min": 560.3754999999999,
+          "median": 560.3754999999999,
+          "p95NearestRank": 560.3754999999999,
+          "max": 560.3754999999999
+        },
+        "installation": {
+          "n": 157,
+          "min": 192.29459999999926,
+          "median": 208.70539999999892,
+          "p95NearestRank": 359.85009999999966,
+          "max": 696.4870000000001
+        },
+        "session.open": {
+          "n": 115,
+          "min": 155.87840000000142,
+          "median": 303.9805000000015,
+          "p95NearestRank": 1824.1409,
+          "max": 1968.6852000000035
+        },
+        "warmup.exit": {
+          "n": 70,
+          "min": 834.9599999999991,
+          "median": 906.7940500000002,
+          "p95NearestRank": 1043.8398000000002,
+          "max": 1219.0517999999993
+        },
+        "warmup.initialize": {
+          "n": 70,
+          "min": 367.31050000000005,
+          "median": 414.3577,
+          "p95NearestRank": 564.9650999999994,
+          "max": 1140.1936999999998
+        },
+        "warmup.installation": {
+          "n": 70,
+          "min": 196.33420000000024,
+          "median": 208.74019999999996,
+          "p95NearestRank": 240.28650000000016,
+          "max": 391.72209999999995
+        },
+        "warmup.launch": {
+          "n": 70,
+          "min": 5.854299999999057,
+          "median": 6.477800000000116,
+          "p95NearestRank": 9.333500000000186,
+          "max": 11.45659999999998
+        }
+      },
+      "counters": {
+        "\\memory\\available mbytes": {
+          "n": 94,
+          "min": 12291.0,
+          "median": 13024.5,
+          "p95NearestRank": 13219.0,
+          "max": 13270.0
+        },
+        "\\physicaldisk(_total)\\avg. disk sec/transfer": {
+          "n": 94,
+          "min": 0.0,
+          "median": 0.0014104915,
+          "p95NearestRank": 0.005879356916996047,
+          "max": 0.019895297950819672
+        },
+        "\\physicaldisk(_total)\\current disk queue length": {
+          "n": 94,
+          "min": 0.0,
+          "median": 0.0,
+          "p95NearestRank": 5.0,
+          "max": 34.0
+        },
+        "\\physicaldisk(_total)\\disk transfers/sec": {
+          "n": 94,
+          "min": 0.0,
+          "median": 100.95896920937112,
+          "p95NearestRank": 1027.5959915456515,
+          "max": 1688.1778011710676
+        },
+        "\\processor(_total)\\% processor time": {
+          "n": 94,
+          "min": 3.1895628805149845,
+          "median": 41.261865346913346,
+          "p95NearestRank": 71.12573244225541,
+          "max": 85.3219505007965
+        }
+      },
+      "poolSlotsObserved": [
+        "1"
+      ],
+      "fileWorkerPidsObserved": 100,
+      "peakObservedFileIntervals": 1,
+      "resourceSamples": {
+        "sampler_started": 1,
+        "counters": 94,
+        "processes": 94,
+        "sampler_stopped": 1
+      },
+      "unendedPhases": [],
+      "filesWithoutModuleEnd": [],
+      "malformedLines": []
+    },
+    {
+      "group": "2",
+      "replica": "1",
+      "jobId": 127960165812,
+      "jobUrl": "https://github.com/botiverse/oar/actions/runs/42237872904/job/127960165812",
+      "conclusion": "success",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:52:59Z",
+          "completed_at": "2026-11-06T14:53:00Z"
+        },
+        {
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:53:00Z",
+          "completed_at": "2026-11-06T14:53:06Z"
+        },
+        {
+          "name": "Run pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:53:06Z",
+          "completed_at": "2026-11-06T14:53:09Z"
+        },
+        {
+          "name": "Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:53:09Z",
+          "completed_at": "2026-11-06T14:53:35Z"
+        },
+        {
+          "name": "Run pnpm install --frozen-lockfile",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:53:35Z",
+          "completed_at": "2026-11-06T14:53:42Z"
+        },
+        {
+          "name": "Run npm install -g @openai/codex@0.167.0",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:53:42Z",
+          "completed_at": "2026-11-06T14:54:05Z"
+        },
+        {
+          "name": "Record and verify versions",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:54:05Z",
+          "completed_at": "2026-11-06T14:54:07Z"
+        },
+        {
+          "name": "Run pnpm run sea-trial",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:54:07Z",
+          "completed_at": "2026-11-06T14:54:44Z"
+        },
+        {
+          "name": "Observe the unchanged vendor suite",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:54:44Z",
+          "completed_at": "2026-11-06T14:59:46Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:59:46Z",
+          "completed_at": "2026-11-06T14:59:48Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:59:48Z",
+          "completed_at": "2026-11-06T14:59:48Z"
+        },
+        {
+          "name": "Post Run pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:59:48Z",
+          "completed_at": "2026-11-06T14:59:48Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:59:48Z",
+          "completed_at": "2026-11-06T14:59:50Z"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:59:50Z",
+          "completed_at": "2026-11-06T14:59:50Z"
+        }
+      ],
+      "versions": {
+        "npm": "11.19.1",
+        "powershell": "7.6.9",
+        "codex": "codex-cli 0.167.0",
+        "node": "v24.22.2",
+        "pnpm": "11.22.0"
+      },
+      "vendorWallSeconds": 301.48799991607666,
+      "vitestConfig": [
+        {
+          "pool": "forks",
+          "requestedWorkers": "2",
+          "configuredMaxWorkers": 2,
+          "testTimeout": 30000,
+          "hookTimeout": 10000
+        }
+      ],
+      "testStates": {
+        "skipped": 376,
+        "passed": 71
+      },
+      "failedTests": [],
+      "coldStartTests": [
+        {
+          "file": "sea-trial\\vendor\\codex.vendor.test.ts",
+          "test": "codex vendor error edges > concurrent sessions initialize one fresh home without a warmup process",
+          "state": "passed",
+          "elapsedMs": 2890.9012000000002
+        }
+      ],
+      "phasesMs": {
+        "fixture.config": {
+          "n": 71,
+          "min": 0.5728999999992084,
+          "median": 0.8289999999997235,
+          "p95NearestRank": 1.6272999999998774,
+          "max": 860.8332999999984
+        },
+        "fixture.directory": {
+          "n": 71,
+          "min": 0.42960000000311993,
+          "median": 0.5710999999992055,
+          "p95NearestRank": 1.4872000000000298,
+          "max": 5.576600000000099
+        },
+        "fixture.mock": {
+          "n": 71,
+          "min": 0.9527999999991152,
+          "median": 1.939699999998993,
+          "p95NearestRank": 10.733699999999999,
+          "max": 13.957300000000032
+        },
+        "fixture.prepare": {
+          "n": 71,
+          "min": 17.924099999999953,
+          "median": 1683.9321000000018,
+          "p95NearestRank": 2888.3993999999993,
+          "max": 7117.0445
+        },
+        "fixture.stop": {
+          "n": 71,
+          "min": 14.055500000000393,
+          "median": 26.33389999999781,
+          "p95NearestRank": 1864.8163999999997,
+          "max": 18645.410499999998
+        },
+        "fixture.stop.directory": {
+          "n": 71,
+          "min": 11.930099999999584,
+          "median": 23.4246000000021,
+          "p95NearestRank": 1824.9918000000016,
+          "max": 3025.9604
+        },
+        "fixture.stop.servers": {
+          "n": 71,
+          "min": 0.5810999999994237,
+          "median": 1.2662000000000262,
+          "p95NearestRank": 2.380699999999706,
+          "max": 18628.705500000004
+        },
+        "global.process_table": {
+          "n": 1,
+          "min": 761.3208,
+          "median": 761.3208,
+          "p95NearestRank": 761.3208,
+          "max": 761.3208
+        },
+        "installation": {
+          "n": 157,
+          "min": 151.4390000000003,
+          "median": 188.0045,
+          "p95NearestRank": 344.8652000000002,
+          "max": 1160.5261000000028
+        },
+        "session.open": {
+          "n": 115,
+          "min": 122.9966000000004,
+          "median": 245.64079999999376,
+          "p95NearestRank": 1324.3202999999999,
+          "max": 2077.9372999999996
+        },
+        "warmup.exit": {
+          "n": 70,
+          "min": 654.8178000000003,
+          "median": 798.8402999999998,
+          "p95NearestRank": 1073.9502000000002,
+          "max": 1457.8967999999995
+        },
+        "warmup.initialize": {
+          "n": 70,
+          "min": 419.20050000000083,
+          "median": 599.7318499999997,
+          "p95NearestRank": 1453.5463999999993,
+          "max": 5754.0458
+        },
+        "warmup.installation": {
+          "n": 70,
+          "min": 154.22749999999996,
+          "median": 192.11609999999973,
+          "p95NearestRank": 345.5023999999994,
+          "max": 1161.2163
+        },
+        "warmup.launch": {
+          "n": 70,
+          "min": 4.35740000000078,
+          "median": 6.01785000000018,
+          "p95NearestRank": 9.286499999999705,
+          "max": 100.30410000000006
+        }
+      },
+      "counters": {
+        "\\memory\\available mbytes": {
+          "n": 46,
+          "min": 12586.0,
+          "median": 12837.5,
+          "p95NearestRank": 12967.0,
+          "max": 13108.0
+        },
+        "\\physicaldisk(_total)\\avg. disk sec/transfer": {
+          "n": 46,
+          "min": 0.0,
+          "median": 0.0029412916468253966,
+          "p95NearestRank": 0.008794119315895372,
+          "max": 0.02208097748344371
+        },
+        "\\physicaldisk(_total)\\current disk queue length": {
+          "n": 46,
+          "min": 0.0,
+          "median": 0.0,
+          "p95NearestRank": 6.0,
+          "max": 10.0
+        },
+        "\\physicaldisk(_total)\\disk transfers/sec": {
+          "n": 46,
+          "min": 0.0,
+          "median": 156.36057120066178,
+          "p95NearestRank": 574.3911603802189,
+          "max": 880.9550111657552
+        },
+        "\\processor(_total)\\% processor time": {
+          "n": 46,
+          "min": 19.242408792199196,
+          "median": 60.118739838723926,
+          "p95NearestRank": 80.54619172000102,
+          "max": 93.7871034183854
+        }
+      },
+      "poolSlotsObserved": [
+        "1",
+        "2"
+      ],
+      "fileWorkerPidsObserved": 99,
+      "peakObservedFileIntervals": 2,
+      "resourceSamples": {
+        "sampler_started": 1,
+        "counters": 46,
+        "processes": 46,
+        "sampler_stopped": 1
+      },
+      "unendedPhases": [],
+      "filesWithoutModuleEnd": [],
+      "malformedLines": []
+    },
+    {
+      "group": "2",
+      "replica": "2",
+      "jobId": 127960165877,
+      "jobUrl": "https://github.com/botiverse/oar/actions/runs/42237872904/job/127960165877",
+      "conclusion": "success",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:52:58Z",
+          "completed_at": "2026-11-06T14:52:59Z"
+        },
+        {
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:52:59Z",
+          "completed_at": "2026-11-06T14:53:05Z"
+        },
+        {
+          "name": "Run pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:53:05Z",
+          "completed_at": "2026-11-06T14:53:07Z"
+        },
+        {
+          "name": "Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:53:07Z",
+          "completed_at": "2026-11-06T14:53:20Z"
+        },
+        {
+          "name": "Run pnpm install --frozen-lockfile",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:53:20Z",
+          "completed_at": "2026-11-06T14:53:24Z"
+        },
+        {
+          "name": "Run npm install -g @openai/codex@0.167.0",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:53:24Z",
+          "completed_at": "2026-11-06T14:53:38Z"
+        },
+        {
+          "name": "Record and verify versions",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:53:38Z",
+          "completed_at": "2026-11-06T14:53:44Z"
+        },
+        {
+          "name": "Run pnpm run sea-trial",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:53:44Z",
+          "completed_at": "2026-11-06T14:54:19Z"
+        },
+        {
+          "name": "Observe the unchanged vendor suite",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:54:19Z",
+          "completed_at": "2026-11-06T14:58:52Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:58:52Z",
+          "completed_at": "2026-11-06T14:58:54Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:58:54Z",
+          "completed_at": "2026-11-06T14:58:54Z"
+        },
+        {
+          "name": "Post Run pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:58:54Z",
+          "completed_at": "2026-11-06T14:58:54Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:58:54Z",
+          "completed_at": "2026-11-06T14:58:56Z"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:58:56Z",
+          "completed_at": "2026-11-06T14:58:56Z"
+        }
+      ],
+      "versions": {
+        "npm": "11.19.1",
+        "powershell": "7.6.9",
+        "pnpm": "11.22.0",
+        "codex": "codex-cli 0.167.0",
+        "node": "v24.22.2"
+      },
+      "vendorWallSeconds": 272.88100004196167,
+      "vitestConfig": [
+        {
+          "pool": "forks",
+          "requestedWorkers": "2",
+          "configuredMaxWorkers": 2,
+          "testTimeout": 30000,
+          "hookTimeout": 10000
+        }
+      ],
+      "testStates": {
+        "skipped": 376,
+        "passed": 71
+      },
+      "failedTests": [],
+      "coldStartTests": [
+        {
+          "file": "sea-trial\\vendor\\codex.vendor.test.ts",
+          "test": "codex vendor error edges > concurrent sessions initialize one fresh home without a warmup process",
+          "state": "passed",
+          "elapsedMs": 5080.3000999999995
+        }
+      ],
+      "phasesMs": {
+        "fixture.config": {
+          "n": 71,
+          "min": 0.4162999999989552,
+          "median": 0.6723000000001775,
+          "p95NearestRank": 1.3619000000001051,
+          "max": 6.7065000000000055
+        },
+        "fixture.directory": {
+          "n": 71,
+          "min": 0.30139999999664724,
+          "median": 0.4805999999998676,
+          "p95NearestRank": 1.9724999999998545,
+          "max": 2.667299999999841
+        },
+        "fixture.mock": {
+          "n": 71,
+          "min": 0.7540999999982887,
+          "median": 1.666200000000572,
+          "p95NearestRank": 7.551600000000008,
+          "max": 8.32529999999997
+        },
+        "fixture.prepare": {
+          "n": 71,
+          "min": 7.585199999999986,
+          "median": 1608.5965999999971,
+          "p95NearestRank": 2930.0735999999997,
+          "max": 3626.094799999999
+        },
+        "fixture.stop": {
+          "n": 71,
+          "min": 10.093800000000556,
+          "median": 22.130199999999604,
+          "p95NearestRank": 4131.4692,
+          "max": 18130.6021
+        },
+        "fixture.stop.directory": {
+          "n": 71,
+          "min": 8.6937999999991,
+          "median": 20.160399999998845,
+          "p95NearestRank": 1842.5753000000004,
+          "max": 8480.844800000006
+        },
+        "fixture.stop.servers": {
+          "n": 71,
+          "min": 0.5387000000009721,
+          "median": 1.224899999999252,
+          "p95NearestRank": 1.8992999999991298,
+          "max": 17976.5053
+        },
+        "global.process_table": {
+          "n": 1,
+          "min": 397.5183,
+          "median": 397.5183,
+          "p95NearestRank": 397.5183,
+          "max": 397.5183
+        },
+        "installation": {
+          "n": 157,
+          "min": 127.7725999999966,
+          "median": 166.9108000000001,
+          "p95NearestRank": 467.9637,
+          "max": 1862.7482999999993
+        },
+        "session.open": {
+          "n": 115,
+          "min": 96.89400000000023,
+          "median": 197.92719999999827,
+          "p95NearestRank": 3078.7455999999997,
+          "max": 3186.0326999999997
+        },
+        "warmup.exit": {
+          "n": 70,
+          "min": 525.6972000000005,
+          "median": 657.3484000000004,
+          "p95NearestRank": 765.1557999999968,
+          "max": 2372.7966000000006
+        },
+        "warmup.initialize": {
+          "n": 70,
+          "min": 514.8672999999999,
+          "median": 674.7389000000004,
+          "p95NearestRank": 1455.6511999999998,
+          "max": 2899.3485
+        },
+        "warmup.installation": {
+          "n": 70,
+          "min": 128.14980000000287,
+          "median": 169.33730000000003,
+          "p95NearestRank": 427.5144,
+          "max": 638.8859000000002
+        },
+        "warmup.launch": {
+          "n": 70,
+          "min": 3.6981999999989057,
+          "median": 4.939750000000458,
+          "p95NearestRank": 7.951400000000149,
+          "max": 13.130799999999908
+        }
+      },
+      "counters": {
+        "\\memory\\available mbytes": {
+          "n": 42,
+          "min": 12672.0,
+          "median": 12849.0,
+          "p95NearestRank": 13004.0,
+          "max": 13031.0
+        },
+        "\\physicaldisk(_total)\\avg. disk sec/transfer": {
+          "n": 42,
+          "min": 0.0,
+          "median": 0.004388342766574347,
+          "p95NearestRank": 0.015622669918699188,
+          "max": 0.029478681572481572
+        },
+        "\\physicaldisk(_total)\\current disk queue length": {
+          "n": 42,
+          "min": 0.0,
+          "median": 0.0,
+          "p95NearestRank": 12.0,
+          "max": 22.0
+        },
+        "\\physicaldisk(_total)\\disk transfers/sec": {
+          "n": 42,
+          "min": 0.0,
+          "median": 240.18029152576986,
+          "p95NearestRank": 1171.7783214439814,
+          "max": 1847.0546774160985
+        },
+        "\\processor(_total)\\% processor time": {
+          "n": 42,
+          "min": 2.906061211958888,
+          "median": 58.0078293444582,
+          "p95NearestRank": 78.83516873886376,
+          "max": 85.58310110860397
+        }
+      },
+      "poolSlotsObserved": [
+        "1",
+        "2"
+      ],
+      "fileWorkerPidsObserved": 100,
+      "peakObservedFileIntervals": 2,
+      "resourceSamples": {
+        "sampler_started": 1,
+        "counters": 42,
+        "processes": 42,
+        "sampler_stopped": 1
+      },
+      "unendedPhases": [],
+      "filesWithoutModuleEnd": [],
+      "malformedLines": []
+    },
+    {
+      "group": "2",
+      "replica": "3",
+      "jobId": 127960165960,
+      "jobUrl": "https://github.com/botiverse/oar/actions/runs/42237872904/job/127960165960",
+      "conclusion": "success",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:52:59Z",
+          "completed_at": "2026-11-06T14:53:01Z"
+        },
+        {
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:53:01Z",
+          "completed_at": "2026-11-06T14:53:09Z"
+        },
+        {
+          "name": "Run pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:53:09Z",
+          "completed_at": "2026-11-06T14:53:12Z"
+        },
+        {
+          "name": "Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:53:12Z",
+          "completed_at": "2026-11-06T14:53:50Z"
+        },
+        {
+          "name": "Run pnpm install --frozen-lockfile",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:53:50Z",
+          "completed_at": "2026-11-06T14:54:03Z"
+        },
+        {
+          "name": "Run npm install -g @openai/codex@0.167.0",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:54:03Z",
+          "completed_at": "2026-11-06T14:54:25Z"
+        },
+        {
+          "name": "Record and verify versions",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:54:25Z",
+          "completed_at": "2026-11-06T14:54:31Z"
+        },
+        {
+          "name": "Run pnpm run sea-trial",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:54:31Z",
+          "completed_at": "2026-11-06T14:55:43Z"
+        },
+        {
+          "name": "Observe the unchanged vendor suite",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:55:43Z",
+          "completed_at": "2026-11-06T15:01:20Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "conclusion": "success",
+          "started_at": "2026-11-06T15:01:20Z",
+          "completed_at": "2026-11-06T15:01:23Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "conclusion": "success",
+          "started_at": "2026-11-06T15:01:23Z",
+          "completed_at": "2026-11-06T15:01:23Z"
+        },
+        {
+          "name": "Post Run pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1",
+          "conclusion": "success",
+          "started_at": "2026-11-06T15:01:23Z",
+          "completed_at": "2026-11-06T15:01:23Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "conclusion": "success",
+          "started_at": "2026-11-06T15:01:23Z",
+          "completed_at": "2026-11-06T15:01:25Z"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success",
+          "started_at": "2026-11-06T15:01:25Z",
+          "completed_at": "2026-11-06T15:01:25Z"
+        }
+      ],
+      "versions": {
+        "powershell": "7.6.9",
+        "node": "v24.22.2",
+        "pnpm": "11.22.0",
+        "npm": "11.19.1",
+        "codex": "codex-cli 0.167.0"
+      },
+      "vendorWallSeconds": 336.05999994277954,
+      "vitestConfig": [
+        {
+          "pool": "forks",
+          "requestedWorkers": "2",
+          "configuredMaxWorkers": 2,
+          "testTimeout": 30000,
+          "hookTimeout": 10000
+        }
+      ],
+      "testStates": {
+        "skipped": 376,
+        "passed": 71
+      },
+      "failedTests": [],
+      "coldStartTests": [
+        {
+          "file": "sea-trial\\vendor\\codex.vendor.test.ts",
+          "test": "codex vendor error edges > concurrent sessions initialize one fresh home without a warmup process",
+          "state": "passed",
+          "elapsedMs": 2805.6221000000005
+        }
+      ],
+      "phasesMs": {
+        "fixture.config": {
+          "n": 71,
+          "min": 0.573499999998603,
+          "median": 0.8263999999999214,
+          "p95NearestRank": 1.5307000000000244,
+          "max": 4.90099999999984
+        },
+        "fixture.directory": {
+          "n": 71,
+          "min": 0.43180000000211294,
+          "median": 0.586699999999837,
+          "p95NearestRank": 1.2457999999999174,
+          "max": 3.34719999999993
+        },
+        "fixture.mock": {
+          "n": 71,
+          "min": 0.8602999999993699,
+          "median": 1.95640000000094,
+          "p95NearestRank": 10.201999999999998,
+          "max": 11.885299999999916
+        },
+        "fixture.prepare": {
+          "n": 71,
+          "min": 9.116800000000012,
+          "median": 1936.9806000000008,
+          "p95NearestRank": 4099.766600000001,
+          "max": 6449.913699999999
+        },
+        "fixture.stop": {
+          "n": 71,
+          "min": 12.89390000000003,
+          "median": 160.58549999999923,
+          "p95NearestRank": 4088.9639000000025,
+          "max": 19161.1876
+        },
+        "fixture.stop.directory": {
+          "n": 71,
+          "min": 11.554000000000087,
+          "median": 150.77120000000286,
+          "p95NearestRank": 3376.6777999999977,
+          "max": 19159.465299999996
+        },
+        "fixture.stop.servers": {
+          "n": 71,
+          "min": 0.6912999999995009,
+          "median": 1.3330000000005384,
+          "p95NearestRank": 2.579200000000128,
+          "max": 18612.6116
+        },
+        "global.process_table": {
+          "n": 1,
+          "min": 1698.0864,
+          "median": 1698.0864,
+          "p95NearestRank": 1698.0864,
+          "max": 1698.0864
+        },
+        "installation": {
+          "n": 157,
+          "min": 150.54079999999885,
+          "median": 204.62920000000304,
+          "p95NearestRank": 685.1454999999999,
+          "max": 986.6893999999993
+        },
+        "session.open": {
+          "n": 115,
+          "min": 134.27999999999884,
+          "median": 255.42029999999977,
+          "p95NearestRank": 1413.1293,
+          "max": 1460.3453
+        },
+        "warmup.exit": {
+          "n": 70,
+          "min": 643.0977999999996,
+          "median": 801.9326500000002,
+          "p95NearestRank": 1244.9859999999999,
+          "max": 5393.9005
+        },
+        "warmup.initialize": {
+          "n": 70,
+          "min": 410.1328999999996,
+          "median": 864.1374999999998,
+          "p95NearestRank": 2505.6533999999992,
+          "max": 3880.209999999999
+        },
+        "warmup.installation": {
+          "n": 70,
+          "min": 153.6900999999998,
+          "median": 207.41600000000005,
+          "p95NearestRank": 609.1494,
+          "max": 946.2403000000013
+        },
+        "warmup.launch": {
+          "n": 70,
+          "min": 4.2304000000003725,
+          "median": 6.317900000000009,
+          "p95NearestRank": 9.407400000000052,
+          "max": 175.35429999999997
+        }
+      },
+      "counters": {
+        "\\memory\\available mbytes": {
+          "n": 51,
+          "min": 12476.0,
+          "median": 12801.0,
+          "p95NearestRank": 13034.0,
+          "max": 13124.0
+        },
+        "\\physicaldisk(_total)\\avg. disk sec/transfer": {
+          "n": 51,
+          "min": 0.0011246045454545454,
+          "median": 0.0047518123376623376,
+          "p95NearestRank": 0.012240313684210526,
+          "max": 0.015965280392156864
+        },
+        "\\physicaldisk(_total)\\current disk queue length": {
+          "n": 51,
+          "min": 0.0,
+          "median": 1.0,
+          "p95NearestRank": 11.0,
+          "max": 15.0
+        },
+        "\\physicaldisk(_total)\\disk transfers/sec": {
+          "n": 51,
+          "min": 20.979821607577833,
+          "median": 160.98353138473934,
+          "p95NearestRank": 962.3371373235275,
+          "max": 1117.3080325136639
+        },
+        "\\processor(_total)\\% processor time": {
+          "n": 51,
+          "min": 12.69819765073662,
+          "median": 59.499799847263816,
+          "p95NearestRank": 88.00101942142483,
+          "max": 92.5876382137697
+        }
+      },
+      "poolSlotsObserved": [
+        "1",
+        "2"
+      ],
+      "fileWorkerPidsObserved": 105,
+      "peakObservedFileIntervals": 2,
+      "resourceSamples": {
+        "sampler_started": 1,
+        "counters": 51,
+        "processes": 51,
+        "sampler_stopped": 1
+      },
+      "unendedPhases": [],
+      "filesWithoutModuleEnd": [],
+      "malformedLines": []
+    },
+    {
+      "group": "default",
+      "replica": "1",
+      "jobId": 127960166047,
+      "jobUrl": "https://github.com/botiverse/oar/actions/runs/42237872904/job/127960166047",
+      "conclusion": "success",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:52:59Z",
+          "completed_at": "2026-11-06T14:53:00Z"
+        },
+        {
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:53:00Z",
+          "completed_at": "2026-11-06T14:53:06Z"
+        },
+        {
+          "name": "Run pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:53:06Z",
+          "completed_at": "2026-11-06T14:53:08Z"
+        },
+        {
+          "name": "Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:53:08Z",
+          "completed_at": "2026-11-06T14:53:22Z"
+        },
+        {
+          "name": "Run pnpm install --frozen-lockfile",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:53:22Z",
+          "completed_at": "2026-11-06T14:53:27Z"
+        },
+        {
+          "name": "Run npm install -g @openai/codex@0.167.0",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:53:27Z",
+          "completed_at": "2026-11-06T14:53:40Z"
+        },
+        {
+          "name": "Record and verify versions",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:53:40Z",
+          "completed_at": "2026-11-06T14:53:45Z"
+        },
+        {
+          "name": "Run pnpm run sea-trial",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:53:45Z",
+          "completed_at": "2026-11-06T14:54:17Z"
+        },
+        {
+          "name": "Observe the unchanged vendor suite",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:54:17Z",
+          "completed_at": "2026-11-06T15:00:03Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "conclusion": "success",
+          "started_at": "2026-11-06T15:00:03Z",
+          "completed_at": "2026-11-06T15:00:05Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "conclusion": "success",
+          "started_at": "2026-11-06T15:00:05Z",
+          "completed_at": "2026-11-06T15:00:05Z"
+        },
+        {
+          "name": "Post Run pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1",
+          "conclusion": "success",
+          "started_at": "2026-11-06T15:00:05Z",
+          "completed_at": "2026-11-06T15:00:05Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "conclusion": "success",
+          "started_at": "2026-11-06T15:00:05Z",
+          "completed_at": "2026-11-06T15:00:08Z"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success",
+          "started_at": "2026-11-06T15:00:08Z",
+          "completed_at": "2026-11-06T15:00:08Z"
+        }
+      ],
+      "versions": {
+        "powershell": "7.6.9",
+        "npm": "11.19.1",
+        "codex": "codex-cli 0.167.0",
+        "node": "v24.22.2",
+        "pnpm": "11.22.0"
+      },
+      "vendorWallSeconds": 344.8880000114441,
+      "vitestConfig": [
+        {
+          "pool": "forks",
+          "requestedWorkers": "default",
+          "configuredMaxWorkers": null,
+          "testTimeout": 30000,
+          "hookTimeout": 10000
+        }
+      ],
+      "testStates": {
+        "skipped": 376,
+        "passed": 71
+      },
+      "failedTests": [],
+      "coldStartTests": [
+        {
+          "file": "sea-trial\\vendor\\codex.vendor.test.ts",
+          "test": "codex vendor error edges > concurrent sessions initialize one fresh home without a warmup process",
+          "state": "passed",
+          "elapsedMs": 6174.4436000000005
+        }
+      ],
+      "phasesMs": {
+        "fixture.config": {
+          "n": 71,
+          "min": 0.8431000000018685,
+          "median": 1.343300000000454,
+          "p95NearestRank": 2.23949999999968,
+          "max": 6.393900000000031
+        },
+        "fixture.directory": {
+          "n": 71,
+          "min": 0.5510999999969499,
+          "median": 0.8852999999999156,
+          "p95NearestRank": 24.771899999999732,
+          "max": 438.31359999999995
+        },
+        "fixture.mock": {
+          "n": 71,
+          "min": 1.2228000000031898,
+          "median": 3.1231000000007043,
+          "p95NearestRank": 14.34310000000005,
+          "max": 18.756799999999657
+        },
+        "fixture.prepare": {
+          "n": 71,
+          "min": 13.796299999999974,
+          "median": 2739.7757,
+          "p95NearestRank": 5032.6419000000005,
+          "max": 7089.436
+        },
+        "fixture.stop": {
+          "n": 71,
+          "min": 23.172599999999875,
+          "median": 323.7349000000031,
+          "p95NearestRank": 3637.1669,
+          "max": 17993.676199999994
+        },
+        "fixture.stop.directory": {
+          "n": 71,
+          "min": 20.424799999999777,
+          "median": 320.98389999999927,
+          "p95NearestRank": 2928.7608999999993,
+          "max": 14302.331599999998
+        },
+        "fixture.stop.servers": {
+          "n": 71,
+          "min": 0.8483000000051106,
+          "median": 1.6727000000028056,
+          "p95NearestRank": 2.8564000000005763,
+          "max": 17333.602100000004
+        },
+        "global.process_table": {
+          "n": 1,
+          "min": 466.6087,
+          "median": 466.6087,
+          "p95NearestRank": 466.6087,
+          "max": 466.6087
+        },
+        "installation": {
+          "n": 157,
+          "min": 212.0268999999971,
+          "median": 382.69880000000194,
+          "p95NearestRank": 771.3536999999997,
+          "max": 1250.2362000000003
+        },
+        "session.open": {
+          "n": 115,
+          "min": 202.08279999999922,
+          "median": 492.1941000000079,
+          "p95NearestRank": 2681.3643999999986,
+          "max": 2898.4433000000004
+        },
+        "warmup.exit": {
+          "n": 70,
+          "min": 906.0627999999997,
+          "median": 1534.34505,
+          "p95NearestRank": 2462.880799999999,
+          "max": 2849.141699999999
+        },
+        "warmup.initialize": {
+          "n": 70,
+          "min": 495.0782000000004,
+          "median": 835.5500499999998,
+          "p95NearestRank": 2514.6494000000002,
+          "max": 3772.0510000000004
+        },
+        "warmup.installation": {
+          "n": 70,
+          "min": 235.254399999998,
+          "median": 382.35630000000015,
+          "p95NearestRank": 761.8382999999994,
+          "max": 1251.1769
+        },
+        "warmup.launch": {
+          "n": 70,
+          "min": 5.179299999996147,
+          "median": 8.925600000000486,
+          "p95NearestRank": 13.19459999999981,
+          "max": 14.880199999999604
+        }
+      },
+      "counters": {
+        "\\memory\\available mbytes": {
+          "n": 52,
+          "min": 11868.0,
+          "median": 12678.5,
+          "p95NearestRank": 12984.0,
+          "max": 13365.0
+        },
+        "\\physicaldisk(_total)\\avg. disk sec/transfer": {
+          "n": 52,
+          "min": 0.0008006302325581396,
+          "median": 0.003028809463572776,
+          "p95NearestRank": 0.008456257894736842,
+          "max": 0.011549644854881266
+        },
+        "\\physicaldisk(_total)\\current disk queue length": {
+          "n": 52,
+          "min": 0.0,
+          "median": 0.0,
+          "p95NearestRank": 8.0,
+          "max": 10.0
+        },
+        "\\physicaldisk(_total)\\disk transfers/sec": {
+          "n": 52,
+          "min": 32.76668807423621,
+          "median": 229.28626024005106,
+          "p95NearestRank": 1268.7908719898876,
+          "max": 2176.1677825360334
+        },
+        "\\processor(_total)\\% processor time": {
+          "n": 52,
+          "min": 22.313358441237863,
+          "median": 92.37734652075352,
+          "p95NearestRank": 100.0,
+          "max": 100.0
+        }
+      },
+      "poolSlotsObserved": [
+        "1",
+        "2",
+        "3"
+      ],
+      "fileWorkerPidsObserved": 104,
+      "peakObservedFileIntervals": 3,
+      "resourceSamples": {
+        "sampler_started": 1,
+        "counters": 52,
+        "processes": 52,
+        "sampler_stopped": 1
+      },
+      "unendedPhases": [],
+      "filesWithoutModuleEnd": [],
+      "malformedLines": []
+    },
+    {
+      "group": "default",
+      "replica": "2",
+      "jobId": 127960166170,
+      "jobUrl": "https://github.com/botiverse/oar/actions/runs/42237872904/job/127960166170",
+      "conclusion": "success",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:53:01Z",
+          "completed_at": "2026-11-06T14:53:02Z"
+        },
+        {
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:53:02Z",
+          "completed_at": "2026-11-06T14:53:10Z"
+        },
+        {
+          "name": "Run pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:53:10Z",
+          "completed_at": "2026-11-06T14:53:13Z"
+        },
+        {
+          "name": "Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:53:13Z",
+          "completed_at": "2026-11-06T14:53:36Z"
+        },
+        {
+          "name": "Run pnpm install --frozen-lockfile",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:53:36Z",
+          "completed_at": "2026-11-06T14:53:42Z"
+        },
+        {
+          "name": "Run npm install -g @openai/codex@0.167.0",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:53:42Z",
+          "completed_at": "2026-11-06T14:54:00Z"
+        },
+        {
+          "name": "Record and verify versions",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:54:00Z",
+          "completed_at": "2026-11-06T14:54:05Z"
+        },
+        {
+          "name": "Run pnpm run sea-trial",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:54:05Z",
+          "completed_at": "2026-11-06T14:54:44Z"
+        },
+        {
+          "name": "Observe the unchanged vendor suite",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:54:44Z",
+          "completed_at": "2026-11-06T14:59:10Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:59:10Z",
+          "completed_at": "2026-11-06T14:59:12Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:59:12Z",
+          "completed_at": "2026-11-06T14:59:12Z"
+        },
+        {
+          "name": "Post Run pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:59:12Z",
+          "completed_at": "2026-11-06T14:59:12Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:59:12Z",
+          "completed_at": "2026-11-06T14:59:14Z"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:59:14Z",
+          "completed_at": "2026-11-06T14:59:14Z"
+        }
+      ],
+      "versions": {
+        "npm": "11.19.1",
+        "pnpm": "11.22.0",
+        "node": "v24.22.2",
+        "codex": "codex-cli 0.167.0",
+        "powershell": "7.6.9"
+      },
+      "vendorWallSeconds": 265.15000009536743,
+      "vitestConfig": [
+        {
+          "pool": "forks",
+          "requestedWorkers": "default",
+          "configuredMaxWorkers": null,
+          "testTimeout": 30000,
+          "hookTimeout": 10000
+        }
+      ],
+      "testStates": {
+        "skipped": 376,
+        "passed": 71
+      },
+      "failedTests": [],
+      "coldStartTests": [
+        {
+          "file": "sea-trial\\vendor\\codex.vendor.test.ts",
+          "test": "codex vendor error edges > concurrent sessions initialize one fresh home without a warmup process",
+          "state": "passed",
+          "elapsedMs": 4504.7652
+        }
+      ],
+      "phasesMs": {
+        "fixture.config": {
+          "n": 71,
+          "min": 0.537400000001071,
+          "median": 0.9128999999993539,
+          "p95NearestRank": 3.023200000000088,
+          "max": 12.53859999999986
+        },
+        "fixture.directory": {
+          "n": 71,
+          "min": 0.41859999999724096,
+          "median": 0.6632999999999356,
+          "p95NearestRank": 25.41910000000007,
+          "max": 388.2931000000001
+        },
+        "fixture.mock": {
+          "n": 71,
+          "min": 0.984599999999773,
+          "median": 2.2053999999989173,
+          "p95NearestRank": 10.819700000000012,
+          "max": 10.990299999999934
+        },
+        "fixture.prepare": {
+          "n": 71,
+          "min": 11.823100000000068,
+          "median": 2515.225600000005,
+          "p95NearestRank": 4102.139,
+          "max": 6291.261300000001
+        },
+        "fixture.stop": {
+          "n": 71,
+          "min": 14.256399999998393,
+          "median": 314.3416999999972,
+          "p95NearestRank": 5093.2105999999985,
+          "max": 18025.6262
+        },
+        "fixture.stop.directory": {
+          "n": 71,
+          "min": 12.258099999999104,
+          "median": 311.9763000000021,
+          "p95NearestRank": 1866.6003999999994,
+          "max": 15455.718399999998
+        },
+        "fixture.stop.servers": {
+          "n": 71,
+          "min": 0.7119000000020606,
+          "median": 1.3415999999997439,
+          "p95NearestRank": 2.2295999999987544,
+          "max": 17989.1924
+        },
+        "global.process_table": {
+          "n": 1,
+          "min": 635.1320999999998,
+          "median": 635.1320999999998,
+          "p95NearestRank": 635.1320999999998,
+          "max": 635.1320999999998
+        },
+        "installation": {
+          "n": 157,
+          "min": 151.51250000000437,
+          "median": 262.6091999999999,
+          "p95NearestRank": 679.4978999999994,
+          "max": 1476.7721999999994
+        },
+        "session.open": {
+          "n": 115,
+          "min": 127.62960000000021,
+          "median": 297.1435999999994,
+          "p95NearestRank": 2217.0754,
+          "max": 2835.5576
+        },
+        "warmup.exit": {
+          "n": 70,
+          "min": 693.5661,
+          "median": 1014.8645999999992,
+          "p95NearestRank": 1317.9430999999986,
+          "max": 2119.6826
+        },
+        "warmup.initialize": {
+          "n": 70,
+          "min": 483.8643000000011,
+          "median": 1103.4618499999997,
+          "p95NearestRank": 2472.2076000000015,
+          "max": 5024.9455
+        },
+        "warmup.installation": {
+          "n": 70,
+          "min": 151.98389999999927,
+          "median": 261.93489999999997,
+          "p95NearestRank": 610.3137000000002,
+          "max": 1450.7028
+        },
+        "warmup.launch": {
+          "n": 70,
+          "min": 4.324200000000928,
+          "median": 6.589049999998679,
+          "p95NearestRank": 10.222199999999702,
+          "max": 10.48739999999998
+        }
+      },
+      "counters": {
+        "\\memory\\available mbytes": {
+          "n": 40,
+          "min": 12448.0,
+          "median": 12712.0,
+          "p95NearestRank": 12915.0,
+          "max": 12951.0
+        },
+        "\\physicaldisk(_total)\\avg. disk sec/transfer": {
+          "n": 40,
+          "min": 0.0010428545454545454,
+          "median": 0.004115741821894403,
+          "p95NearestRank": 0.015858579620853082,
+          "max": 0.030223474175824175
+        },
+        "\\physicaldisk(_total)\\current disk queue length": {
+          "n": 40,
+          "min": 0.0,
+          "median": 0.0,
+          "p95NearestRank": 12.0,
+          "max": 25.0
+        },
+        "\\physicaldisk(_total)\\disk transfers/sec": {
+          "n": 40,
+          "min": 10.99197256243765,
+          "median": 188.24214185036155,
+          "p95NearestRank": 1250.2593463632145,
+          "max": 1514.5185134525027
+        },
+        "\\processor(_total)\\% processor time": {
+          "n": 40,
+          "min": 3.6868170513728926,
+          "median": 80.06913907924181,
+          "p95NearestRank": 95.73249300860499,
+          "max": 98.46058279133533
+        }
+      },
+      "poolSlotsObserved": [
+        "1",
+        "2",
+        "3"
+      ],
+      "fileWorkerPidsObserved": 103,
+      "peakObservedFileIntervals": 3,
+      "resourceSamples": {
+        "sampler_started": 1,
+        "counters": 40,
+        "processes": 40,
+        "sampler_stopped": 1
+      },
+      "unendedPhases": [],
+      "filesWithoutModuleEnd": [],
+      "malformedLines": []
+    },
+    {
+      "group": "default",
+      "replica": "3",
+      "jobId": 127960165431,
+      "jobUrl": "https://github.com/botiverse/oar/actions/runs/42237872904/job/127960165431",
+      "conclusion": "success",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:52:58Z",
+          "completed_at": "2026-11-06T14:52:59Z"
+        },
+        {
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:53:00Z",
+          "completed_at": "2026-11-06T14:53:06Z"
+        },
+        {
+          "name": "Run pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:53:06Z",
+          "completed_at": "2026-11-06T14:53:10Z"
+        },
+        {
+          "name": "Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:53:10Z",
+          "completed_at": "2026-11-06T14:53:26Z"
+        },
+        {
+          "name": "Run pnpm install --frozen-lockfile",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:53:26Z",
+          "completed_at": "2026-11-06T14:53:32Z"
+        },
+        {
+          "name": "Run npm install -g @openai/codex@0.167.0",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:53:32Z",
+          "completed_at": "2026-11-06T14:53:45Z"
+        },
+        {
+          "name": "Record and verify versions",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:53:45Z",
+          "completed_at": "2026-11-06T14:53:54Z"
+        },
+        {
+          "name": "Run pnpm run sea-trial",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:53:54Z",
+          "completed_at": "2026-11-06T14:54:28Z"
+        },
+        {
+          "name": "Observe the unchanged vendor suite",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:54:28Z",
+          "completed_at": "2026-11-06T14:59:39Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:59:39Z",
+          "completed_at": "2026-11-06T14:59:40Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:59:40Z",
+          "completed_at": "2026-11-06T14:59:41Z"
+        },
+        {
+          "name": "Post Run pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:59:41Z",
+          "completed_at": "2026-11-06T14:59:41Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:59:41Z",
+          "completed_at": "2026-11-06T14:59:44Z"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success",
+          "started_at": "2026-11-06T14:59:44Z",
+          "completed_at": "2026-11-06T14:59:44Z"
+        }
+      ],
+      "versions": {
+        "powershell": "7.6.9",
+        "node": "v24.22.2",
+        "npm": "11.19.1",
+        "pnpm": "11.22.0",
+        "codex": "codex-cli 0.167.0"
+      },
+      "vendorWallSeconds": 308.7349998950958,
+      "vitestConfig": [
+        {
+          "pool": "forks",
+          "requestedWorkers": "default",
+          "configuredMaxWorkers": null,
+          "testTimeout": 30000,
+          "hookTimeout": 10000
+        }
+      ],
+      "testStates": {
+        "skipped": 376,
+        "passed": 71
+      },
+      "failedTests": [],
+      "coldStartTests": [
+        {
+          "file": "sea-trial\\vendor\\codex.vendor.test.ts",
+          "test": "codex vendor error edges > concurrent sessions initialize one fresh home without a warmup process",
+          "state": "passed",
+          "elapsedMs": 6235.527100000001
+        }
+      ],
+      "phasesMs": {
+        "fixture.config": {
+          "n": 71,
+          "min": 0.7209000000002561,
+          "median": 1.0830000000023574,
+          "p95NearestRank": 2.63149999999996,
+          "max": 3.735400000005029
+        },
+        "fixture.directory": {
+          "n": 71,
+          "min": 0.5031999999991967,
+          "median": 0.862800000000334,
+          "p95NearestRank": 32.43280000000004,
+          "max": 46.102300000000014
+        },
+        "fixture.mock": {
+          "n": 71,
+          "min": 1.181799999998475,
+          "median": 2.3919999999998254,
+          "p95NearestRank": 13.829099999999926,
+          "max": 14.47609999999986
+        },
+        "fixture.prepare": {
+          "n": 71,
+          "min": 16.559299999999894,
+          "median": 2585.7234000000003,
+          "p95NearestRank": 4094.1677999999993,
+          "max": 5764.587200000002
+        },
+        "fixture.stop": {
+          "n": 71,
+          "min": 20.138200000001234,
+          "median": 318.0629000000008,
+          "p95NearestRank": 4313.6781999999985,
+          "max": 17389.39
+        },
+        "fixture.stop.directory": {
+          "n": 71,
+          "min": 18.679299999999785,
+          "median": 316.37980000000243,
+          "p95NearestRank": 1964.4236999999994,
+          "max": 16192.447199999995
+        },
+        "fixture.stop.servers": {
+          "n": 71,
+          "min": 0.5966999999945983,
+          "median": 1.320900000002439,
+          "p95NearestRank": 2.524600000000646,
+          "max": 17036.6489
+        },
+        "global.process_table": {
+          "n": 1,
+          "min": 601.9502,
+          "median": 601.9502,
+          "p95NearestRank": 601.9502,
+          "max": 601.9502
+        },
+        "installation": {
+          "n": 157,
+          "min": 199.78199999999924,
+          "median": 329.66549999999916,
+          "p95NearestRank": 832.9231999999902,
+          "max": 1593.2299999999977
+        },
+        "session.open": {
+          "n": 115,
+          "min": 181.9398000000001,
+          "median": 406.16110000000026,
+          "p95NearestRank": 2650.7351,
+          "max": 2931.1358
+        },
+        "warmup.exit": {
+          "n": 70,
+          "min": 921.5066999999999,
+          "median": 1242.6618499999995,
+          "p95NearestRank": 1989.209399999996,
+          "max": 2557.674700000003
+        },
+        "warmup.initialize": {
+          "n": 70,
+          "min": 600.5937999999951,
+          "median": 906.6704999999995,
+          "p95NearestRank": 2026.379499999999,
+          "max": 2159.9665999999997
+        },
+        "warmup.installation": {
+          "n": 70,
+          "min": 200.34970000000612,
+          "median": 324.61644999999976,
+          "p95NearestRank": 797.3684000000012,
+          "max": 1594.0680000000011
+        },
+        "warmup.launch": {
+          "n": 70,
+          "min": 5.610599999999977,
+          "median": 8.096550000002026,
+          "p95NearestRank": 12.037900000000263,
+          "max": 12.590299999999843
+        }
+      },
+      "counters": {
+        "\\memory\\available mbytes": {
+          "n": 47,
+          "min": 12494.0,
+          "median": 12787.0,
+          "p95NearestRank": 13052.0,
+          "max": 13396.0
+        },
+        "\\physicaldisk(_total)\\avg. disk sec/transfer": {
+          "n": 47,
+          "min": 0.0018596149999999998,
+          "median": 0.004714206818181818,
+          "p95NearestRank": 0.01415230462962963,
+          "max": 0.0389135819025522
+        },
+        "\\physicaldisk(_total)\\current disk queue length": {
+          "n": 47,
+          "min": 0.0,
+          "median": 0.0,
+          "p95NearestRank": 3.0,
+          "max": 14.0
+        },
+        "\\physicaldisk(_total)\\disk transfers/sec": {
+          "n": 47,
+          "min": 9.936937215350223,
+          "median": 192.7376644698834,
+          "p95NearestRank": 916.3491054516184,
+          "max": 1280.2815502654091
+        },
+        "\\processor(_total)\\% processor time": {
+          "n": 47,
+          "min": 15.320186055469998,
+          "median": 86.76386668402085,
+          "p95NearestRank": 99.61459056352182,
+          "max": 100.0
+        }
+      },
+      "poolSlotsObserved": [
+        "1",
+        "2",
+        "3"
+      ],
+      "fileWorkerPidsObserved": 105,
+      "peakObservedFileIntervals": 3,
+      "resourceSamples": {
+        "sampler_started": 1,
+        "counters": 47,
+        "processes": 47,
+        "sampler_stopped": 1
+      },
+      "unendedPhases": [],
+      "filesWithoutModuleEnd": [],
+      "malformedLines": []
+    }
+  ],
+  "failureEvidence": {
+    "timeline": [
+      {
+        "at": "2026-11-06T15:01:17.266Z",
+        "monotonicMs": 1373.8938,
+        "pid": 8784,
+        "workerId": "65",
+        "poolId": "1",
+        "file": "sea-trial\\vendor\\input-identity.vendor.test.ts",
+        "test": "codex correlates native steer echo without a duplicate input",
+        "kind": "case_entered"
+      },
+      {
+        "at": "2026-11-06T15:01:17.267Z",
+        "monotonicMs": 1374.8097,
+        "pid": 8784,
+        "workerId": "65",
+        "poolId": "1",
+        "file": "sea-trial\\vendor\\input-identity.vendor.test.ts",
+        "test": "codex correlates native steer echo without a duplicate input",
+        "kind": "phase_start",
+        "id": 1,
+        "phase": "fixture.prepare"
+      },
+      {
+        "at": "2026-11-06T15:01:17.267Z",
+        "monotonicMs": 1375.1804,
+        "pid": 8784,
+        "workerId": "65",
+        "poolId": "1",
+        "file": "sea-trial\\vendor\\input-identity.vendor.test.ts",
+        "test": "codex correlates native steer echo without a duplicate input",
+        "kind": "phase_start",
+        "id": 2,
+        "phase": "fixture.mock"
+      },
+      {
+        "at": "2026-11-06T15:01:17.275Z",
+        "monotonicMs": 1382.776,
+        "pid": 8784,
+        "workerId": "65",
+        "poolId": "1",
+        "file": "sea-trial\\vendor\\input-identity.vendor.test.ts",
+        "test": "codex correlates native steer echo without a duplicate input",
+        "kind": "phase_end",
+        "id": 2,
+        "phase": "fixture.mock",
+        "elapsedMs": 7.597100000000182
+      },
+      {
+        "at": "2026-11-06T15:01:17.275Z",
+        "monotonicMs": 1383.0535,
+        "pid": 8784,
+        "workerId": "65",
+        "poolId": "1",
+        "file": "sea-trial\\vendor\\input-identity.vendor.test.ts",
+        "test": "codex correlates native steer echo without a duplicate input",
+        "kind": "phase_start",
+        "id": 3,
+        "phase": "fixture.directory"
+      },
+      {
+        "at": "2026-11-06T15:01:17.276Z",
+        "monotonicMs": 1384.047,
+        "pid": 8784,
+        "workerId": "65",
+        "poolId": "1",
+        "file": "sea-trial\\vendor\\input-identity.vendor.test.ts",
+        "test": "codex correlates native steer echo without a duplicate input",
+        "kind": "phase_end",
+        "id": 3,
+        "phase": "fixture.directory",
+        "elapsedMs": 0.9873000000000047
+      },
+      {
+        "at": "2026-11-06T15:01:17.276Z",
+        "monotonicMs": 1384.2629,
+        "pid": 8784,
+        "workerId": "65",
+        "poolId": "1",
+        "file": "sea-trial\\vendor\\input-identity.vendor.test.ts",
+        "test": "codex correlates native steer echo without a duplicate input",
+        "kind": "phase_start",
+        "id": 4,
+        "phase": "fixture.config"
+      },
+      {
+        "at": "2026-11-06T15:01:17.278Z",
+        "monotonicMs": 1385.3932,
+        "pid": 8784,
+        "workerId": "65",
+        "poolId": "1",
+        "file": "sea-trial\\vendor\\input-identity.vendor.test.ts",
+        "test": "codex correlates native steer echo without a duplicate input",
+        "kind": "phase_end",
+        "id": 4,
+        "phase": "fixture.config",
+        "elapsedMs": 1.1101000000001022
+      },
+      {
+        "at": "2026-11-06T15:01:17.278Z",
+        "monotonicMs": 1385.7629,
+        "pid": 8784,
+        "workerId": "65",
+        "poolId": "1",
+        "file": "sea-trial\\vendor\\input-identity.vendor.test.ts",
+        "test": "codex correlates native steer echo without a duplicate input",
+        "kind": "phase_start",
+        "id": 5,
+        "phase": "warmup.installation"
+      },
+      {
+        "at": "2026-11-06T15:01:17.278Z",
+        "monotonicMs": 1386.035,
+        "pid": 8784,
+        "workerId": "65",
+        "poolId": "1",
+        "file": "sea-trial\\vendor\\input-identity.vendor.test.ts",
+        "test": "codex correlates native steer echo without a duplicate input",
+        "kind": "phase_start",
+        "id": 6,
+        "phase": "installation"
+      },
+      {
+        "at": "2026-11-06T15:01:17.462Z",
+        "monotonicMs": 1569.4322,
+        "pid": 8784,
+        "workerId": "65",
+        "poolId": "1",
+        "file": "sea-trial\\vendor\\input-identity.vendor.test.ts",
+        "test": "codex correlates native steer echo without a duplicate input",
+        "kind": "phase_end",
+        "id": 6,
+        "phase": "installation",
+        "elapsedMs": 183.33079999999995,
+        "outcome": "fulfilled"
+      },
+      {
+        "at": "2026-11-06T15:01:17.462Z",
+        "monotonicMs": 1569.6815,
+        "pid": 8784,
+        "workerId": "65",
+        "poolId": "1",
+        "file": "sea-trial\\vendor\\input-identity.vendor.test.ts",
+        "test": "codex correlates native steer echo without a duplicate input",
+        "kind": "phase_end",
+        "id": 5,
+        "phase": "warmup.installation",
+        "elapsedMs": 183.96980000000008
+      },
+      {
+        "at": "2026-11-06T15:01:17.462Z",
+        "monotonicMs": 1569.8633,
+        "pid": 8784,
+        "workerId": "65",
+        "poolId": "1",
+        "file": "sea-trial\\vendor\\input-identity.vendor.test.ts",
+        "test": "codex correlates native steer echo without a duplicate input",
+        "kind": "phase_start",
+        "id": 7,
+        "phase": "warmup.launch"
+      },
+      {
+        "at": "2026-11-06T15:01:17.468Z",
+        "monotonicMs": 1576.1898,
+        "pid": 8784,
+        "workerId": "65",
+        "poolId": "1",
+        "file": "sea-trial\\vendor\\input-identity.vendor.test.ts",
+        "test": "codex correlates native steer echo without a duplicate input",
+        "kind": "phase_end",
+        "id": 7,
+        "phase": "warmup.launch",
+        "elapsedMs": 6.298399999999901
+      },
+      {
+        "at": "2026-11-06T15:01:17.469Z",
+        "monotonicMs": 1576.4093,
+        "pid": 8784,
+        "workerId": "65",
+        "poolId": "1",
+        "file": "sea-trial\\vendor\\input-identity.vendor.test.ts",
+        "test": "codex correlates native steer echo without a duplicate input",
+        "kind": "phase_start",
+        "id": 8,
+        "phase": "warmup.initialize"
+      },
+      {
+        "at": "2026-11-06T15:01:18.066Z",
+        "monotonicMs": 2174.1333,
+        "pid": 8784,
+        "workerId": "65",
+        "poolId": "1",
+        "file": "sea-trial\\vendor\\input-identity.vendor.test.ts",
+        "test": "codex correlates native steer echo without a duplicate input",
+        "kind": "phase_end",
+        "id": 8,
+        "phase": "warmup.initialize",
+        "elapsedMs": 597.6406999999999
+      },
+      {
+        "at": "2026-11-06T15:01:18.067Z",
+        "monotonicMs": 2174.4336,
+        "pid": 8784,
+        "workerId": "65",
+        "poolId": "1",
+        "file": "sea-trial\\vendor\\input-identity.vendor.test.ts",
+        "test": "codex correlates native steer echo without a duplicate input",
+        "kind": "phase_start",
+        "id": 9,
+        "phase": "warmup.exit"
+      },
+      {
+        "at": "2026-11-06T15:01:18.707Z",
+        "monotonicMs": 2815.2066,
+        "pid": 8784,
+        "workerId": "65",
+        "poolId": "1",
+        "file": "sea-trial\\vendor\\input-identity.vendor.test.ts",
+        "test": "codex correlates native steer echo without a duplicate input",
+        "kind": "phase_end",
+        "id": 9,
+        "phase": "warmup.exit",
+        "elapsedMs": 640.6970000000001
+      },
+      {
+        "at": "2026-11-06T15:01:18.708Z",
+        "monotonicMs": 2815.4442,
+        "pid": 8784,
+        "workerId": "65",
+        "poolId": "1",
+        "file": "sea-trial\\vendor\\input-identity.vendor.test.ts",
+        "test": "codex correlates native steer echo without a duplicate input",
+        "kind": "phase_end",
+        "id": 1,
+        "phase": "fixture.prepare",
+        "elapsedMs": 1440.7064
+      },
+      {
+        "at": "2026-11-06T15:01:18.708Z",
+        "monotonicMs": 2816.215,
+        "pid": 8784,
+        "workerId": "65",
+        "poolId": "1",
+        "file": "sea-trial\\vendor\\input-identity.vendor.test.ts",
+        "test": "codex correlates native steer echo without a duplicate input",
+        "kind": "phase_start",
+        "id": 10,
+        "phase": "installation"
+      },
+      {
+        "at": "2026-11-06T15:01:18.865Z",
+        "monotonicMs": 2972.4296,
+        "pid": 8784,
+        "workerId": "65",
+        "poolId": "1",
+        "file": "sea-trial\\vendor\\input-identity.vendor.test.ts",
+        "test": "codex correlates native steer echo without a duplicate input",
+        "kind": "phase_end",
+        "id": 10,
+        "phase": "installation",
+        "elapsedMs": 156.2251000000001,
+        "outcome": "fulfilled"
+      },
+      {
+        "at": "2026-11-06T15:01:18.865Z",
+        "monotonicMs": 2972.9304,
+        "pid": 8784,
+        "workerId": "65",
+        "poolId": "1",
+        "file": "sea-trial\\vendor\\input-identity.vendor.test.ts",
+        "test": "codex correlates native steer echo without a duplicate input",
+        "kind": "phase_start",
+        "id": 11,
+        "phase": "session.open"
+      },
+      {
+        "at": "2026-11-06T15:01:18.990Z",
+        "monotonicMs": 3097.7819,
+        "pid": 8784,
+        "workerId": "65",
+        "poolId": "1",
+        "file": "sea-trial\\vendor\\input-identity.vendor.test.ts",
+        "test": "codex correlates native steer echo without a duplicate input",
+        "kind": "phase_end",
+        "id": 11,
+        "phase": "session.open",
+        "elapsedMs": 124.77890000000025,
+        "outcome": "fulfilled"
+      },
+      {
+        "at": "2026-11-06T15:01:19.085Z",
+        "monotonicMs": 3192.8512,
+        "pid": 8784,
+        "workerId": "65",
+        "poolId": "1",
+        "file": "sea-trial\\vendor\\input-identity.vendor.test.ts",
+        "test": "codex correlates native steer echo without a duplicate input",
+        "kind": "session.native",
+        "frameType": "turn/started",
+        "events": [
+          "turn_active"
+        ],
+        "outcomes": [],
+        "seq": 11
+      },
+      {
+        "at": "2026-11-06T15:01:20.008Z",
+        "monotonicMs": 4115.9692,
+        "pid": 8784,
+        "workerId": "65",
+        "poolId": "1",
+        "file": "sea-trial\\vendor\\input-identity.vendor.test.ts",
+        "test": "codex correlates native steer echo without a duplicate input",
+        "kind": "session.native",
+        "frameType": "turn/completed",
+        "events": [
+          "turn_ended"
+        ],
+        "outcomes": [
+          "completed"
+        ],
+        "seq": 45
+      },
+      {
+        "at": "2026-11-06T15:01:20.011Z",
+        "monotonicMs": 4118.8898,
+        "pid": 8784,
+        "workerId": "65",
+        "poolId": "1",
+        "file": "sea-trial\\vendor\\input-identity.vendor.test.ts",
+        "test": "codex correlates native steer echo without a duplicate input",
+        "kind": "session.dispose.request",
+        "seq": 46
+      },
+      {
+        "at": "2026-11-06T15:01:20.699Z",
+        "monotonicMs": 4806.5795,
+        "pid": 8784,
+        "workerId": "65",
+        "poolId": "1",
+        "file": "sea-trial\\vendor\\input-identity.vendor.test.ts",
+        "test": "codex correlates native steer echo without a duplicate input",
+        "kind": "session.response",
+        "response": "exited",
+        "seq": 47
+      },
+      {
+        "at": "2026-11-06T15:01:20.699Z",
+        "monotonicMs": 4807.0032,
+        "pid": 8784,
+        "workerId": "65",
+        "poolId": "1",
+        "file": "sea-trial\\vendor\\input-identity.vendor.test.ts",
+        "test": "codex correlates native steer echo without a duplicate input",
+        "kind": "phase_start",
+        "id": 12,
+        "phase": "fixture.stop"
+      },
+      {
+        "at": "2026-11-06T15:01:20.699Z",
+        "monotonicMs": 4807.1781,
+        "pid": 8784,
+        "workerId": "65",
+        "poolId": "1",
+        "file": "sea-trial\\vendor\\input-identity.vendor.test.ts",
+        "test": "codex correlates native steer echo without a duplicate input",
+        "kind": "phase_start",
+        "id": 13,
+        "phase": "fixture.stop.servers"
+      },
+      {
+        "at": "2026-11-06T15:01:20.701Z",
+        "monotonicMs": 4808.9283,
+        "pid": 8784,
+        "workerId": "65",
+        "poolId": "1",
+        "file": "sea-trial\\vendor\\input-identity.vendor.test.ts",
+        "test": "codex correlates native steer echo without a duplicate input",
+        "kind": "phase_end",
+        "id": 13,
+        "phase": "fixture.stop.servers",
+        "elapsedMs": 1.707499999999527
+      },
+      {
+        "at": "2026-11-06T15:01:20.701Z",
+        "monotonicMs": 4809.2116,
+        "pid": 8784,
+        "workerId": "65",
+        "poolId": "1",
+        "file": "sea-trial\\vendor\\input-identity.vendor.test.ts",
+        "test": "codex correlates native steer echo without a duplicate input",
+        "kind": "phase_start",
+        "id": 14,
+        "phase": "fixture.stop.directory"
+      },
+      {
+        "at": "2026-11-06T15:02:17.273Z",
+        "monotonicMs": 61379.3486,
+        "pid": 8784,
+        "workerId": "65",
+        "poolId": "1",
+        "file": "sea-trial\\vendor\\input-identity.vendor.test.ts",
+        "test": "codex correlates native steer echo without a duplicate input",
+        "kind": "case_hooks_finished"
+      },
+      {
+        "at": "2026-11-06T15:02:17.278Z",
+        "monotonicMs": 461209.9975,
+        "pid": 8088,
+        "workerId": null,
+        "poolId": null,
+        "file": "sea-trial\\vendor\\input-identity.vendor.test.ts",
+        "test": "codex correlates native steer echo without a duplicate input",
+        "kind": "test_start"
+      },
+      {
+        "at": "2026-11-06T15:02:17.383Z",
+        "monotonicMs": 461315.1483,
+        "pid": 8088,
+        "workerId": null,
+        "poolId": null,
+        "file": "sea-trial\\vendor\\input-identity.vendor.test.ts",
+        "test": "codex correlates native steer echo without a duplicate input",
+        "kind": "test_end",
+        "elapsedMs": 60006.720400000006,
+        "state": "failed"
+      },
+      {
+        "at": "2026-11-06T15:02:52.175Z",
+        "monotonicMs": 96281.1849,
+        "pid": 8784,
+        "workerId": "65",
+        "poolId": "1",
+        "file": "sea-trial\\vendor\\input-identity.vendor.test.ts",
+        "test": "codex correlates native steer echo without a duplicate input",
+        "kind": "phase_end",
+        "id": 14,
+        "phase": "fixture.stop.directory",
+        "elapsedMs": 91471.8673,
+        "outcome": "removed"
+      },
+      {
+        "at": "2026-11-06T15:02:52.175Z",
+        "monotonicMs": 96281.55,
+        "pid": 8784,
+        "workerId": "65",
+        "poolId": "1",
+        "file": "sea-trial\\vendor\\input-identity.vendor.test.ts",
+        "test": "codex correlates native steer echo without a duplicate input",
+        "kind": "phase_end",
+        "id": 12,
+        "phase": "fixture.stop",
+        "elapsedMs": 91474.549
+      }
+    ],
+    "followingWarmup": [
+      {
+        "at": "2026-11-06T15:02:17.275Z",
+        "monotonicMs": 61380.5782,
+        "pid": 8784,
+        "workerId": "65",
+        "poolId": "1",
+        "file": "sea-trial\\vendor\\input-identity.vendor.test.ts",
+        "test": "codex correlates native fallback echo without a duplicate input",
+        "kind": "phase_start",
+        "id": 15,
+        "phase": "fixture.prepare"
+      },
+      {
+        "at": "2026-11-06T15:02:18.335Z",
+        "monotonicMs": 62441.357,
+        "pid": 8784,
+        "workerId": "65",
+        "poolId": "1",
+        "file": "sea-trial\\vendor\\input-identity.vendor.test.ts",
+        "test": "codex correlates native fallback echo without a duplicate input",
+        "kind": "phase_start",
+        "id": 22,
+        "phase": "warmup.initialize"
+      },
+      {
+        "at": "2026-11-06T15:03:00.925Z",
+        "monotonicMs": 105031.2105,
+        "pid": 8784,
+        "workerId": "65",
+        "poolId": "1",
+        "file": "sea-trial\\vendor\\input-identity.vendor.test.ts",
+        "test": "codex correlates native fallback echo without a duplicate input",
+        "kind": "phase_end",
+        "id": 22,
+        "phase": "warmup.initialize",
+        "elapsedMs": 42589.823
+      },
+      {
+        "at": "2026-11-06T15:03:01.610Z",
+        "monotonicMs": 105715.6499,
+        "pid": 8784,
+        "workerId": "65",
+        "poolId": "1",
+        "file": "sea-trial\\vendor\\input-identity.vendor.test.ts",
+        "test": "codex correlates native fallback echo without a duplicate input",
+        "kind": "phase_end",
+        "id": 15,
+        "phase": "fixture.prepare",
+        "elapsedMs": 44335.0918
+      }
+    ],
+    "directoryRemovalWindowCounters": {
+      "\\memory\\available mbytes": {
+        "n": 14,
+        "min": 12249.0,
+        "median": 12681.5,
+        "p95NearestRank": 13022.0,
+        "max": 13022.0
+      },
+      "\\physicaldisk(_total)\\avg. disk sec/transfer": {
+        "n": 14,
+        "min": 0.0070360502906976746,
+        "median": 0.04148848767776341,
+        "p95NearestRank": 0.06653145072463768,
+        "max": 0.06653145072463768
+      },
+      "\\physicaldisk(_total)\\current disk queue length": {
+        "n": 14,
+        "min": 3.0,
+        "median": 4.0,
+        "p95NearestRank": 12.0,
+        "max": 12.0
+      },
+      "\\physicaldisk(_total)\\disk transfers/sec": {
+        "n": 14,
+        "min": 60.36730835136188,
+        "median": 83.57423506108529,
+        "p95NearestRank": 1105.4315219345447,
+        "max": 1105.4315219345447
+      },
+      "\\processor(_total)\\% processor time": {
+        "n": 14,
+        "min": 2.866928151589909,
+        "median": 10.350199268543342,
+        "p95NearestRank": 13.350357010807755,
+        "max": 13.350357010807755
+      }
+    },
+    "directoryRemovalWindowSamples": [
+      {
+        "at": "2026-11-06T15:01:22.8693026Z",
+        "elapsedMs": 1010,
+        "kind": "counters",
+        "values": [
+          {
+            "status": 0,
+            "value": 4.49298196763065,
+            "counter": "\\processor(_total)\\% processor time"
+          },
+          {
+            "status": 0,
+            "value": 12994.0,
+            "counter": "\\memory\\available mbytes"
+          },
+          {
+            "status": 0,
+            "value": 0.011547693279569893,
+            "counter": "\\physicaldisk(_total)\\avg. disk sec/transfer"
+          },
+          {
+            "status": 0,
+            "value": 1105.4315219345447,
+            "counter": "\\physicaldisk(_total)\\disk transfers/sec"
+          },
+          {
+            "status": 0,
+            "value": 12.0,
+            "counter": "\\physicaldisk(_total)\\current disk queue length"
+          }
+        ],
+        "samplerPid": 8620
+      },
+      {
+        "at": "2026-11-06T15:01:29.3826267Z",
+        "elapsedMs": 1012,
+        "kind": "counters",
+        "values": [
+          {
+            "status": 0,
+            "value": 11.201611271627021,
+            "counter": "\\processor(_total)\\% processor time"
+          },
+          {
+            "status": 0,
+            "value": 13022.0,
+            "counter": "\\memory\\available mbytes"
+          },
+          {
+            "status": 0,
+            "value": 0.0070360502906976746,
+            "counter": "\\physicaldisk(_total)\\avg. disk sec/transfer"
+          },
+          {
+            "status": 0,
+            "value": 1021.2662870696407,
+            "counter": "\\physicaldisk(_total)\\disk transfers/sec"
+          },
+          {
+            "status": 0,
+            "value": 3.0,
+            "counter": "\\physicaldisk(_total)\\current disk queue length"
+          }
+        ],
+        "samplerPid": 8620
+      },
+      {
+        "at": "2026-11-06T15:01:35.9085160Z",
+        "elapsedMs": 1011,
+        "kind": "counters",
+        "values": [
+          {
+            "status": 0,
+            "value": 7.314969537025673,
+            "counter": "\\processor(_total)\\% processor time"
+          },
+          {
+            "status": 0,
+            "value": 12941.0,
+            "counter": "\\memory\\available mbytes"
+          },
+          {
+            "status": 0,
+            "value": 0.014447769683257918,
+            "counter": "\\physicaldisk(_total)\\avg. disk sec/transfer"
+          },
+          {
+            "status": 0,
+            "value": 218.70066865008053,
+            "counter": "\\physicaldisk(_total)\\disk transfers/sec"
+          },
+          {
+            "status": 0,
+            "value": 3.0,
+            "counter": "\\physicaldisk(_total)\\current disk queue length"
+          }
+        ],
+        "samplerPid": 8620
+      },
+      {
+        "at": "2026-11-06T15:01:42.3813121Z",
+        "elapsedMs": 1002,
+        "kind": "counters",
+        "values": [
+          {
+            "status": 0,
+            "value": 4.485673617527597,
+            "counter": "\\processor(_total)\\% processor time"
+          },
+          {
+            "status": 0,
+            "value": 12917.0,
+            "counter": "\\memory\\available mbytes"
+          },
+          {
+            "status": 0,
+            "value": 0.008747754080629304,
+            "counter": "\\physicaldisk(_total)\\avg. disk sec/transfer"
+          },
+          {
+            "status": 0,
+            "value": 1016.0357820428412,
+            "counter": "\\physicaldisk(_total)\\disk transfers/sec"
+          },
+          {
+            "status": 0,
+            "value": 8.0,
+            "counter": "\\physicaldisk(_total)\\current disk queue length"
+          }
+        ],
+        "samplerPid": 8620
+      },
+      {
+        "at": "2026-11-06T15:01:48.8896933Z",
+        "elapsedMs": 1005,
+        "kind": "counters",
+        "values": [
+          {
+            "status": 0,
+            "value": 2.866928151589909,
+            "counter": "\\processor(_total)\\% processor time"
+          },
+          {
+            "status": 0,
+            "value": 12740.0,
+            "counter": "\\memory\\available mbytes"
+          },
+          {
+            "status": 0,
+            "value": 0.02603790779220779,
+            "counter": "\\physicaldisk(_total)\\avg. disk sec/transfer"
+          },
+          {
+            "status": 0,
+            "value": 153.36294566002283,
+            "counter": "\\physicaldisk(_total)\\disk transfers/sec"
+          },
+          {
+            "status": 0,
+            "value": 4.0,
+            "counter": "\\physicaldisk(_total)\\current disk queue length"
+          }
+        ],
+        "samplerPid": 8620
+      },
+      {
+        "at": "2026-11-06T15:01:55.3915041Z",
+        "elapsedMs": 1013,
+        "kind": "counters",
+        "values": [
+          {
+            "status": 0,
+            "value": 7.140167807481745,
+            "counter": "\\processor(_total)\\% processor time"
+          },
+          {
+            "status": 0,
+            "value": 12740.0,
+            "counter": "\\memory\\available mbytes"
+          },
+          {
+            "status": 0,
+            "value": 0.049550328205128204,
+            "counter": "\\physicaldisk(_total)\\avg. disk sec/transfer"
+          },
+          {
+            "status": 0,
+            "value": 77.0245913845427,
+            "counter": "\\physicaldisk(_total)\\disk transfers/sec"
+          },
+          {
+            "status": 0,
+            "value": 4.0,
+            "counter": "\\physicaldisk(_total)\\current disk queue length"
+          }
+        ],
+        "samplerPid": 8620
+      },
+      {
+        "at": "2026-11-06T15:02:01.9044387Z",
+        "elapsedMs": 1011,
+        "kind": "counters",
+        "values": [
+          {
+            "status": 0,
+            "value": 6.539110833182971,
+            "counter": "\\processor(_total)\\% processor time"
+          },
+          {
+            "status": 0,
+            "value": 12695.0,
+            "counter": "\\memory\\available mbytes"
+          },
+          {
+            "status": 0,
+            "value": 0.054621539473684214,
+            "counter": "\\physicaldisk(_total)\\avg. disk sec/transfer"
+          },
+          {
+            "status": 0,
+            "value": 75.2319643986506,
+            "counter": "\\physicaldisk(_total)\\disk transfers/sec"
+          },
+          {
+            "status": 0,
+            "value": 4.0,
+            "counter": "\\physicaldisk(_total)\\current disk queue length"
+          }
+        ],
+        "samplerPid": 8620
+      },
+      {
+        "at": "2026-11-06T15:02:08.4030114Z",
+        "elapsedMs": 1011,
+        "kind": "counters",
+        "values": [
+          {
+            "status": 0,
+            "value": 11.173956626740445,
+            "counter": "\\processor(_total)\\% processor time"
+          },
+          {
+            "status": 0,
+            "value": 12668.0,
+            "counter": "\\memory\\available mbytes"
+          },
+          {
+            "status": 0,
+            "value": 0.06653145072463768,
+            "counter": "\\physicaldisk(_total)\\avg. disk sec/transfer"
+          },
+          {
+            "status": 0,
+            "value": 68.29037423421995,
+            "counter": "\\physicaldisk(_total)\\disk transfers/sec"
+          },
+          {
+            "status": 0,
+            "value": 4.0,
+            "counter": "\\physicaldisk(_total)\\current disk queue length"
+          }
+        ],
+        "samplerPid": 8620
+      },
+      {
+        "at": "2026-11-06T15:02:14.9042306Z",
+        "elapsedMs": 1001,
+        "kind": "counters",
+        "values": [
+          {
+            "status": 0,
+            "value": 12.239492504463634,
+            "counter": "\\processor(_total)\\% processor time"
+          },
+          {
+            "status": 0,
+            "value": 12638.0,
+            "counter": "\\memory\\available mbytes"
+          },
+          {
+            "status": 0,
+            "value": 0.041861172058823524,
+            "counter": "\\physicaldisk(_total)\\avg. disk sec/transfer"
+          },
+          {
+            "status": 0,
+            "value": 68.00097921410068,
+            "counter": "\\physicaldisk(_total)\\disk transfers/sec"
+          },
+          {
+            "status": 0,
+            "value": 3.0,
+            "counter": "\\physicaldisk(_total)\\current disk queue length"
+          }
+        ],
+        "samplerPid": 8620
+      },
+      {
+        "at": "2026-11-06T15:02:21.4462525Z",
+        "elapsedMs": 1011,
+        "kind": "counters",
+        "values": [
+          {
+            "status": 0,
+            "value": 13.10319142036358,
+            "counter": "\\processor(_total)\\% processor time"
+          },
+          {
+            "status": 0,
+            "value": 12331.0,
+            "counter": "\\memory\\available mbytes"
+          },
+          {
+            "status": 0,
+            "value": 0.06130410588235294,
+            "counter": "\\physicaldisk(_total)\\avg. disk sec/transfer"
+          },
+          {
+            "status": 0,
+            "value": 67.30818626907062,
+            "counter": "\\physicaldisk(_total)\\disk transfers/sec"
+          },
+          {
+            "status": 0,
+            "value": 5.0,
+            "counter": "\\physicaldisk(_total)\\current disk queue length"
+          }
+        ],
+        "samplerPid": 8620
+      },
+      {
+        "at": "2026-11-06T15:02:27.9763567Z",
+        "elapsedMs": 1011,
+        "kind": "counters",
+        "values": [
+          {
+            "status": 0,
+            "value": 12.733674815164676,
+            "counter": "\\processor(_total)\\% processor time"
+          },
+          {
+            "status": 0,
+            "value": 12296.0,
+            "counter": "\\memory\\available mbytes"
+          },
+          {
+            "status": 0,
+            "value": 0.06063972786885246,
+            "counter": "\\physicaldisk(_total)\\avg. disk sec/transfer"
+          },
+          {
+            "status": 0,
+            "value": 60.36730835136188,
+            "counter": "\\physicaldisk(_total)\\disk transfers/sec"
+          },
+          {
+            "status": 0,
+            "value": 4.0,
+            "counter": "\\physicaldisk(_total)\\current disk queue length"
+          }
+        ],
+        "samplerPid": 8620
+      },
+      {
+        "at": "2026-11-06T15:02:34.5397350Z",
+        "elapsedMs": 1010,
+        "kind": "counters",
+        "values": [
+          {
+            "status": 0,
+            "value": 11.880894333356517,
+            "counter": "\\processor(_total)\\% processor time"
+          },
+          {
+            "status": 0,
+            "value": 12264.0,
+            "counter": "\\memory\\available mbytes"
+          },
+          {
+            "status": 0,
+            "value": 0.0411158032967033,
+            "counter": "\\physicaldisk(_total)\\avg. disk sec/transfer"
+          },
+          {
+            "status": 0,
+            "value": 90.12387873762789,
+            "counter": "\\physicaldisk(_total)\\disk transfers/sec"
+          },
+          {
+            "status": 0,
+            "value": 5.0,
+            "counter": "\\physicaldisk(_total)\\current disk queue length"
+          }
+        ],
+        "samplerPid": 8620
+      },
+      {
+        "at": "2026-11-06T15:02:41.0993491Z",
+        "elapsedMs": 1010,
+        "kind": "counters",
+        "values": [
+          {
+            "status": 0,
+            "value": 9.52644191034624,
+            "counter": "\\processor(_total)\\% processor time"
+          },
+          {
+            "status": 0,
+            "value": 12254.0,
+            "counter": "\\memory\\available mbytes"
+          },
+          {
+            "status": 0,
+            "value": 0.050683445714285714,
+            "counter": "\\physicaldisk(_total)\\avg. disk sec/transfer"
+          },
+          {
+            "status": 0,
+            "value": 69.35323255912338,
+            "counter": "\\physicaldisk(_total)\\disk transfers/sec"
+          },
+          {
+            "status": 0,
+            "value": 5.0,
+            "counter": "\\physicaldisk(_total)\\current disk queue length"
+          }
+        ],
+        "samplerPid": 8620
+      },
+      {
+        "at": "2026-11-06T15:02:47.6451420Z",
+        "elapsedMs": 1010,
+        "kind": "counters",
+        "values": [
+          {
+            "status": 0,
+            "value": 13.350357010807755,
+            "counter": "\\processor(_total)\\% processor time"
+          },
+          {
+            "status": 0,
+            "value": 12249.0,
+            "counter": "\\memory\\available mbytes"
+          },
+          {
+            "status": 0,
+            "value": 0.013179797368421054,
+            "counter": "\\physicaldisk(_total)\\avg. disk sec/transfer"
+          },
+          {
+            "status": 0,
+            "value": 264.556842424574,
+            "counter": "\\physicaldisk(_total)\\disk transfers/sec"
+          },
+          {
+            "status": 0,
+            "value": 3.0,
+            "counter": "\\physicaldisk(_total)\\current disk queue length"
+          }
+        ],
+        "samplerPid": 8620
+      }
+    ],
+    "rawFiles": [
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-10212.jsonl",
+        "sha256": "a6dc07ba988dfe719df25ae75ad33392e164d380e7f67511b7ca4554096e7447"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-10220.jsonl",
+        "sha256": "a14746d4ac834eabb1957ae63a856d06bdbf4c14bd52dc3f87e053bd0de03d14"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-10340.jsonl",
+        "sha256": "fde0a47f2f436768192162e08fafe0f0dc09762a1870a2934050ae52d1b6daef"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-10428.jsonl",
+        "sha256": "ef588d16fe4ccbee8d057482dc119fbb37fabf540b17d19cf11dd12effad2454"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-10464.jsonl",
+        "sha256": "f53fc13e2ab0562d7631cee7b3a913f7225144f3ebfbe74ddb9a4e8ceb9353af"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-10568.jsonl",
+        "sha256": "599e1469eb965edf7aa4fc5f3925924a64cfb1de08d5a3089b904e954229c89c"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-10604.jsonl",
+        "sha256": "3d677fe8ac93908299209dfd327eb8903376d23d3a74b5d3680a826e54fe159e"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-10608.jsonl",
+        "sha256": "d06f7c32dd2aeab1e9b3e258f2fbbcc26000b752df7093a297ad97e3e8259a0d"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-10632.jsonl",
+        "sha256": "826d5cc11f0f3a27e5b1e0f205e62eed3681b4a8f86abbd480e2e8088be891dd"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-10844.jsonl",
+        "sha256": "694f15f0620c7a36b5346e127ec037c0d0b658d6d230aa2e4ca3cc429ea125eb"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-10996.jsonl",
+        "sha256": "ff0c42aa8736ee2c95aebeaf7a4358dbaf0370b019f75a697edda2d98eb56834"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-11232.jsonl",
+        "sha256": "054338754891f434291de447739a2eeb55cdf28d1ae084f23e8124273fe2cea6"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-11312.jsonl",
+        "sha256": "2c368e08ceb46bb5383542a74e86a825e3ea0e289743701dd2389b910674d524"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-11324.jsonl",
+        "sha256": "ee95e1718637c2a326f6718eb4c5e346206a783eadcba2bd4f180daa9678725d"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-11364.jsonl",
+        "sha256": "8a452b5ef3109bbbf91119fc8c40e6ecdd96273df7c9f9ebbccf3b73f120bc18"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-11376.jsonl",
+        "sha256": "0d25937fdab002975a5a5c2dc31fed757eec3f99874718993a5cbbb299cf2e50"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-11440.jsonl",
+        "sha256": "fa687c96b9703fd5d8bc9794fb0d823e6d3762947c22d8b47e1111ab9d54cbba"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-11552.jsonl",
+        "sha256": "8764612f26114ae7f5c51145a2971bc267de03282e536a14b8180a725b71ba85"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-11612.jsonl",
+        "sha256": "e78dd09b80447221739a1a08e6fc63359f77704aa45f21811bb6337b3caa2b24"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-11644.jsonl",
+        "sha256": "6f93925f4f074d063830011e055b4918fd4bd9ffc3334931a669268e39b8f58e"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-11676.jsonl",
+        "sha256": "3d65a708f73b6c8a3d1170a75f4cbc789b3eede1deba070c2394199552c676b7"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-11680.jsonl",
+        "sha256": "3fbd227ded0044ffba8e405c99065a8ed4da14f3bba5145404ff58a3c1e7a633"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-11712.jsonl",
+        "sha256": "eb0f67048792716a8b8950b694fb8727831d21aa4f4841f4ade7735f7991c649"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-11956.jsonl",
+        "sha256": "5b9f6664a71621dd98bc197dccfc64e5e77364e76862d6c421690686b47b66b6"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-12076.jsonl",
+        "sha256": "3f7e01af2e21b2930e2405dd1aa5d6f4b6c286f76536db83db3eefd2242f752f"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-12080.jsonl",
+        "sha256": "52e6f0f5ff22b985d4fcac82b2a8b5dae00872f6daaac311b1bc1b15e1970963"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-12084.jsonl",
+        "sha256": "936f9bd80336a5e829788f94e5ad59519749dad858d5ac05dd70be62cc7857c4"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-12088.jsonl",
+        "sha256": "cad85add005f2461e52d1f46139d4ac512311eaceb1bfd31ab1daafbae19e105"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-12380.jsonl",
+        "sha256": "c0fb16124942ed5abeb07a1535abf4474a2d0de229e86751e2284310eb4bacd6"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-12484.jsonl",
+        "sha256": "3b1e24f372bf005f9c0f624c9c8e350bd7737f85bce5d01a3b13620999d5f991"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-12516.jsonl",
+        "sha256": "6d7fb75910d243e45037be850f3614d8a83c3977098e1ddfe786007bb4dd5930"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-12520.jsonl",
+        "sha256": "fe3804cba1f9ebd818053e336a6fdd3b39dcdfc5983e284cb37efd87b0677b53"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-12696.jsonl",
+        "sha256": "dd1a39000a947f37272890d9cf3015329654f788cc8ff6cdf3de69ac5ee36cbc"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-12708.jsonl",
+        "sha256": "1535cf2e80deea1b9b8ee00b2c506ada2b3a009851b5504f1f98191e8b6ab2fc"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-12752.jsonl",
+        "sha256": "ab495ab233b005ccc93afc178714cc94f5daf777288976d0bde8301a2deec5d1"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-12848.jsonl",
+        "sha256": "189b3f9ae67012a695d146ae8144d39744949a19e99295b9e76931a7d01a68b8"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-1288.jsonl",
+        "sha256": "155cae7bb2d5f2991b820cc3acebbbe623003ca09f9e62ea04cef17d334ec37a"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-12928.jsonl",
+        "sha256": "069a7f1741acd7461b97ceca4baa8271e9f08501c38a66cb0c4aa5bb38fd53f8"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-12932.jsonl",
+        "sha256": "eeae6b0d9522b90c50e6be565a548f52db765e5e0f4417f549146c9479b6dbd7"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-13104.jsonl",
+        "sha256": "5e800f2e6cc5260d9feb70d9882ac16984580a5b619e8b49d49109b97e330dbb"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-13112.jsonl",
+        "sha256": "5f5ac56debf68c07beb40029acd7a7276df79469c8acb7ea79c85472994149cd"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-1380.jsonl",
+        "sha256": "a4276cf66a1d54ba6dfd67b0b5fe7f16ce689628cf09878b6713ce21418111bf"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-1424.jsonl",
+        "sha256": "7627b8d3e21edc693edbe65af4b2ac56704613cd7078b2be5897349a22e09a83"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-1480.jsonl",
+        "sha256": "5baba3e9beb2412d389e17e6cb032382739e5b22c2a31f922e28624a2750ae94"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-1692.jsonl",
+        "sha256": "ab9ed9eaa7e4c250a3e9bc81231b597333895b6c31c01ee67457a4b66fe98801"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-1756.jsonl",
+        "sha256": "aa7032d81fbb04702efdde98c91d8da5caf8489225b0eb529e840411ca6ebbc4"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-1908.jsonl",
+        "sha256": "276ca4abe3773fe347a4ea6879b7427713203b5a2e874cbbc2b34c81d327c1e1"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-1968.jsonl",
+        "sha256": "e82e987fde1ffdd2ca084cea3ea57bf17364188c611305e4160c7bd5ff2f3ef5"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-2180.jsonl",
+        "sha256": "e9a7eaa99e12a8bd09fe61489571d3132f51a871f1d512f09193f3f4b950760a"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-2504.jsonl",
+        "sha256": "26395e6336ab11fd771d5a7793afc6c298a816af289028030b62e032f07585a9"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-2644.jsonl",
+        "sha256": "0a5bea2c750783d55bfa7fae4d75de6b7a44b09a641ac58e2e6f1d934233b02f"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-3204.jsonl",
+        "sha256": "11b22143ba6266af174263994e78a022c944c6ec8f8b02bf59b7e57ff05d01d3"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-3252.jsonl",
+        "sha256": "5cf513145f37de31c3f9a52b89a448c403089d244362be540a734824033e9b23"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-3256.jsonl",
+        "sha256": "36baca96637b1c52d3d287df51140716a7dc3dc8a033d58ef07149e3d5752303"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-3456.jsonl",
+        "sha256": "dd50cac68036712fda79d757e0369b0aabfb9a8bfd5b48cf6700423ecadd37bd"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-3592.jsonl",
+        "sha256": "a0c4eb58a8336db2dea003d838a59b570bc54e32224686c38083787dbb6dd4d8"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-3656.jsonl",
+        "sha256": "861138c5d03a66444c2c77bd1b3793e946bbaee66f014322e5953f36d7c701ad"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-3836.jsonl",
+        "sha256": "69dde3b801a1109c320e7090837016203884a9b6f363714acca0436ecd9e1581"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-3876.jsonl",
+        "sha256": "3e759f851019f7cf9e843cf677927c4535ba2cdc57f789394ccf76cffd60725f"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-4036.jsonl",
+        "sha256": "b06eb1fd61220ce4d571e1b34147ae72eb231777dea42b17c29a9f22689af5c1"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-4060.jsonl",
+        "sha256": "d98054c518b07faee4174998f552c90ac1cee719a05a3a0ce7fb40aa8913285a"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-4284.jsonl",
+        "sha256": "f379585b075bdaf295a3650a2500f943e29717f03652610d6b398eb6f82dd70a"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-4912.jsonl",
+        "sha256": "8c1b4005c03f7a4862ba031d96b80c3ef09f992e5a2eb3600c4e04636dfb1989"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-5000.jsonl",
+        "sha256": "d95fc8a11b069817c3d88da1b0e87c4aaac9b228f5b4ec68d04ef8ce6d2e4a14"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-5060.jsonl",
+        "sha256": "f8c598b31a395079416d05b668f034622c48f4e3f851c8ebe0093a7636cfb284"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-508.jsonl",
+        "sha256": "1f235ba7b0837e8076b513a16367fba0d810ed7de709458290f293fe55e9f0c8"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-5228.jsonl",
+        "sha256": "c1f7ed34bc727852256e3b5cf4262d8e7d36d252c58fac8edd86656927f06d9f"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-5508.jsonl",
+        "sha256": "87508db864515d582c57bd25e29d38fca9522bd8e0144120270790a61449012c"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-5640.jsonl",
+        "sha256": "390db4904d56d8a7f44ca1049cf8c2b7af2d7e296e031482cdcd098bd7d73336"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-5828.jsonl",
+        "sha256": "2a78acdbaefdafe82a25b37514825b84e8df092c5c7f5653af8a9c108efa6b1a"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-5848.jsonl",
+        "sha256": "4bc7601600d71ddfb613b17695ced680b085eca2f83764d50682a2e32a7d1c6d"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-6032.jsonl",
+        "sha256": "8dd11a5c119a4e8c12a105cc7f8a062883b186aefea9ae6a25073983bfda8a1a"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-6044.jsonl",
+        "sha256": "351949dcf924c8c97f5facf402cfb519b25f8de481b81e75ff5a4cebd43f75bc"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-6112.jsonl",
+        "sha256": "d6d9d5937881c93f613cb26f160ce80d7cd4340bdbe20312c222b3b12215f906"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-6276.jsonl",
+        "sha256": "72bf869e99a29fe7e083d5371956f0d054575df51633653da6e7745ccdb47247"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-6472.jsonl",
+        "sha256": "4265cdf61d9f84cb88d9db492f181233e2a02239bb755a967ab86c18e98e1563"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-6788.jsonl",
+        "sha256": "3b84e24aa7e376a250fb0bfa1d1b34c056e8b67c2dbc1fe5a46c8411f1c88bfa"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-6872.jsonl",
+        "sha256": "6f660126fd876a565818e5f71be46d8b8c83b12052a0353900937d52c09271e6"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-6964.jsonl",
+        "sha256": "93033a705feb31802f50a507b25e9db2eac8642dac75aa52b4ccfc59fd570eab"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-7008.jsonl",
+        "sha256": "e8f02ea848a7dc0840a211ddd031021b94d08eb9509e1da9696595076131e2bd"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-7232.jsonl",
+        "sha256": "6c40c4be04b35123fb1afe719fabe9a0e3169f8bbe9a2619efa1c6a9f613535e"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-7284.jsonl",
+        "sha256": "4fd1e77179a4f233e2036501dccdb6324b352a615a41998011b1b73d78eb153e"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-7332.jsonl",
+        "sha256": "e9bb7e8381a9230972dc86f35061af5b2ca019894d5bb050068d30e32e4b3146"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-7456.jsonl",
+        "sha256": "b333b4d9fca0715d2223fbe7b66fa7d2c4944b8fa9ba9845efb04a45f61a9c57"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-7584.jsonl",
+        "sha256": "98a1d591f771878ff9c4028a1400300e900ba7a15411513b95e98c8b03977dd4"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-7612.jsonl",
+        "sha256": "50a98f9d5e0a6c2419033ce91e65fbb07ee7ea2e54ccdf1641f49c469a624f9d"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-7656.jsonl",
+        "sha256": "d0693270dc431ecb43c0a1ae5fa2d12ed8aa96ac7a296b9d51cc0b76acf5bfd1"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-7668.jsonl",
+        "sha256": "1647bc6fd760672b5c0088b6fafd8e2f3ff4ca87f3924915c3bbe63a12488011"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-8084.jsonl",
+        "sha256": "94cdbe788412e6acbd7dea27f6765c45a945e553bb187013a956f8ed337fec73"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-8088.jsonl",
+        "sha256": "9b705343a91b377de01a04dbb4419e244a6cccd941a55dd9cb0b9998e52afe48"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-8120.jsonl",
+        "sha256": "68acabaf88b000fc304df581040d74213dbfd18d175ae2dfa5a89da6e5f2183b"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-8164.jsonl",
+        "sha256": "3bc74177e178575172fa0d725390e9bd147e3c241f8db3065424b98ad6c8929b"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-8256.jsonl",
+        "sha256": "6bc51a2d6ec4c641fcb502f63ece3d90844822a65c3c62566af4bfffd341beb4"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-8356.jsonl",
+        "sha256": "4a055c7e92ad13692f14fb0bfeac6da349f10a46941475192991b31aa63e6199"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-8496.jsonl",
+        "sha256": "3ee09c85a62c9c7c1c3e6dd3ec36c55c53e48f1a7b0378137fc998a30544a206"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-8512.jsonl",
+        "sha256": "32a1d9a635209b4f757c7b1804e37f5be64810d573ff3bab37b6bf23decc2b82"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-852.jsonl",
+        "sha256": "9266ca879334f7f1cc48420aa3dcf50f8165e510d737c83a4e32d03c30c42682"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-8692.jsonl",
+        "sha256": "3a15d33b95a0fb5bdadeaa2924a90ef77b2be28c1a819dd12c5827013fe3ea73"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-8784.jsonl",
+        "sha256": "c401501dc4b7dff341cfddceccaa32ea24bdce2d61ad8df5d26bf9e1ea19f1f2"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-8836.jsonl",
+        "sha256": "546f45bbe501e20d9b5afc40053438f13365bc75c5b29088d3dd6d827142fc1c"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-9092.jsonl",
+        "sha256": "3194b0350279e57e852efbf91b01a7dc10e228d2cb186fde313facd5a9176fb3"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-9276.jsonl",
+        "sha256": "52c5128d646e9c190d367487ffa309e67722c0a3b073f269a905d659f3e65f3f"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-9332.jsonl",
+        "sha256": "68e822f838866e8b456d2b44b453ec21af74ef2ff753ce64a8a9fb91386cc5c6"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-9604.jsonl",
+        "sha256": "77c0e7e83e17d763aa36b6df55ff1c00a33ef7b7334b58ab58e98cb7eb3c2b0b"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/phases-9956.jsonl",
+        "sha256": "d4e9bc5e36f6a505262996e5206b5f865d5aed1c5374f81595f98e7d949fc77f"
+      },
+      {
+        "file": "windows-codex-1-1/codex-comparison/resources.jsonl",
+        "sha256": "410fcecd879059417d8b629bed80efc2a35e47cfd11243309a608d69aa6ebcfb"
+      }
+    ]
+  }
+}

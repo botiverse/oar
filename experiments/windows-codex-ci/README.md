@@ -1,5 +1,11 @@
 # Windows Codex worker comparison
 
+The first round is complete: [results and failure timeline](results.md),
+[all nine selected samples](results.json). Eight jobs passed; one single-worker
+job timed out during directory removal after native completion and exit.
+Keep regular CI worker settings unchanged on this evidence. The temporary
+workflow and shared fixture hooks have been removed.
+
 The November 6 CI audit found both reproducible fixture errors and unexplained
 startup/wait delays. Successful paired Windows Codex vendor steps took about
 twice as long as Linux (27 pairs, median paired ratio 2.04). That observation
@@ -16,8 +22,8 @@ the last pending await. There were no CPU, memory, disk or worker measurements.
 
 ## Fixed first round
 
-[The manual workflow](../../.github/workflows/windows-codex-comparison.yml)
-runs three independent Windows runners per group, nine jobs in total:
+[The archived manual workflow](workflow.yml)
+ran three independent Windows runners per group, nine jobs in total:
 
 | Group | Vendor Vitest option | Replicas |
 | --- | --- | --- |
@@ -55,25 +61,28 @@ inside a case. `ci.yml` and required checks are unchanged.
 
 ## Reproduce and collect
 
-After this workflow is present on the default branch, a repository-authorized
-operator can dispatch one round at the reviewed branch/tag:
+The recorded run is [42237872904, attempt 1](https://github.com/botiverse/oar/actions/runs/42237872904),
+commit `9728c56988d524a061e0731dce7a8642c0a88ee6`. It was dispatched once;
+no sample was replaced or rerun. The workflow is now an archive outside
+`.github/workflows`, so ordinary CI cannot invoke it. No further round is
+scheduled or needed for this report.
 
-```sh
-stamp workflow run windows-codex-comparison.yml --repo botiverse/oar --ref main
-```
+For historical reproduction, check out that exact commit in a separate
+worktree. It contains the original fixture/warmup phase hooks and workflow.
+The current scripts remain isolated under this experiment, but a local run
+on the current tree has only the external observation hooks, not the removed
+fixture/warmup markers. Do not compare those reduced phase sets as identical.
 
-[GitHub requires default-branch registration](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#workflow_dispatch)
-even when dispatch selects another ref. Record the resulting run ID and exact
-commit before collecting results. Do not enable scheduled or push triggers.
 Download all nine `windows-codex-<group>-<replica>` artifacts, keeping each in a
 separate directory. Also retain the run's job/step conclusions and durations:
 installation failures can produce an artifact without `environment.json`.
 
 ```sh
 python3 experiments/windows-codex-ci/analyze.py downloaded-artifacts > comparison.json
+python3 experiments/windows-codex-ci/summarize.py downloaded-artifacts jobs.json artifacts.json > results.json
 ```
 
-For local validation with a disposable native environment:
+At the recorded commit, local validation used a disposable native environment:
 
 ```sh
 CI=1 OAR_TEST=codex-aimock OAR_TEST_REQUIRE_AVAILABLE=1 \
@@ -125,9 +134,9 @@ reporter delivery time. Resource distributions exclude invalid counter status.
 Read raw timestamps alongside summaries; aggregating unlike cases can hide a
 single very slow phase.
 
-## Interpretation and current validation
+## Instrumentation validation before the round
 
-The first nine Windows results are pending. Linux validation passed the full
+Linux validation passed the full
 check (3,627 tests and 18 mock behavior cases), all 77 Codex vendor checks with
 observation enabled, and eight selected checks at each explicit worker setting.
 All three controls include the unchanged eight-session case. Phase pairs and
@@ -143,9 +152,10 @@ separate. If all groups are slow, a worker limit is not an established remedy.
 Nine green jobs cannot establish a root cause or a reliable failure-rate
 change. Any proposal to change regular CI needs a separate result and review.
 
-After collecting this round, remove the temporary workflow and test-framework
-instrumentation in a separate change. Retain the experiment scripts, selected
-evidence and conclusions so the comparison remains reviewable.
+The temporary workflow is archived here, and the phase logger is now an
+experiment helper. Shared `aimock.ts` and `codex-home.ts` are restored to their
+pre-experiment contents. The scripts, selected evidence and conclusions remain
+reviewable without leaving observation hooks in the regular test harness.
 
 ## DSH installation, separate finding
 
@@ -153,7 +163,8 @@ The audited Windows DSH install median was 625 seconds versus 26 on Linux.
 In [successful job 127868894869](https://github.com/botiverse/oar/actions/runs/42210871353/job/127868894869),
 `npm install` added 614 packages in about ten minutes. Restore found no npm
 cache, and post-job save reported that neither configured path existed.
-The paths in `ci.yml` are `~/.npm` and `~/AppData/Local/npm-cache`.
+The configured paths at that audit point were `~/.npm` and
+`~/AppData/Local/npm-cache`.
 Thus this successful job did not populate the intended cache; no reinstall
 experiment is needed to establish that defect.
 
@@ -163,8 +174,10 @@ sets npm's cache to `C:\npm\cache`. The historical job did not print
 Use that command's output for the cache action, as
 [setup-node itself does](https://github.com/actions/setup-node/blob/v4/src/cache-utils.ts),
 instead of hard-coding another path. Keep the download-only cache keys and
-normal exact-version DSH installation. This proposal is not applied to
-`ci.yml` in this experiment.
+normal exact-version DSH installation. PR #669 subsequently applied this independent fix.
+The first main runs saved caches, but both DSH restores preceded the first
+save, so a warm main comparison is still pending. [Results](results.md#npm-cache-follow-up)
+keep cache transfer and install time separate; no speedup is claimed.
 
 A corrected tarball cache still leaves extraction and lifecycle scripts.
 The retained log lacks package-level timings, so neither the expected savings

@@ -3,7 +3,6 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { LLMock } from "@copilotkit/aimock";
 import { warmCodexHome } from "./codex-home.js";
-import { startCodexPhase } from "./codex-phases.js";
 import { startRawCapture, type RawCapture, type RawProviderRequest, type RequestRewrite, type ResponseRewrite } from "./raw-capture.js";
 
 export type { LLMock } from "@copilotkit/aimock";
@@ -91,17 +90,11 @@ export async function startCodexAimock(
   configure: (mock: LLMock) => void = baseFixtures,
   options: AimockOptions & { readonly warmHome?: boolean } = {},
 ): Promise<AimockEnv> {
-  const fixtureReady = startCodexPhase("fixture.prepare");
-  const mockReady = startCodexPhase("fixture.mock");
   const mock = new LLMock({ port: 0 });
   configure(mock);
   await mock.start();
   const { url, capture } = await providerUrl(mock, options);
-  mockReady();
-  const directoryReady = startCodexPhase("fixture.directory");
   const codexHome = await mkdtemp(path.join(tmpdir(), "oar-codex-aimock-"));
-  directoryReady();
-  const configReady = startCodexPhase("fixture.config");
   await writeFile(path.join(codexHome, "config.toml"), [
     'model = "gpt-5.1"',
     'model_provider = "aimock"',
@@ -120,7 +113,6 @@ export async function startCodexAimock(
     'wire_api = "responses"',
     "",
   ].join("\n"));
-  configReady();
   const env = { CODEX_HOME: codexHome, OPENAI_API_KEY: "aimock" };
   // Warm the fresh home once: codex's first run initializes its sqlite state
   // and installs system skills, and those writers race when instances cycle
@@ -132,28 +124,20 @@ export async function startCodexAimock(
     mock,
     raw: capture?.requests ?? [],
     stop: async () => {
-      const stopReady = startCodexPhase("fixture.stop");
-      const serversStopped = startCodexPhase("fixture.stop.servers");
       await capture?.stop();
       await mock.stop();
-      serversStopped();
-      const directoryRemoved = startCodexPhase("fixture.stop.directory");
       try {
         // codex leaves background writers (plugins clone) briefly alive after
         // dispose; retry, and never fail a clean suite over teardown.
         await rm(codexHome, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
-        directoryRemoved({ outcome: "removed" });
       } catch (error) {
-        directoryRemoved({ outcome: "residue" });
         process.stderr.write(`codex home teardown left residue: ${String(error)}\n`);
       }
-      stopReady();
     },
   };
   try {
     // Cold-start regressions must exercise the adapter without a prior process.
     if (options.warmHome !== false) { await warmCodexHome(env); }
-    fixtureReady();
     return result;
   } catch (error) {
     await result.stop();
