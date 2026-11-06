@@ -53,6 +53,8 @@ export interface CodexProjectionState {
   /** Accepted steers and native echoes, keyed by the turn that owns them. */
   readonly inputs: CodexInputs;
   readonly lastErrorDetail: string | null;
+  /** Reconnects announced by each thread's current turn: native gives the attempt only in display text. */
+  readonly retries: ReadonlyMap<string, number>;
   /**
    * A root-thread compaction is open (its `contextCompaction` item started).
    * codex says "compacted" twice, as the item's completion and as the
@@ -68,7 +70,7 @@ export interface CodexProjectionState {
 
 /** The projection of a Session opened by `opened`: a resume awaits codex's re-reported token total. */
 export function initialCodexProjection(rootThreadId: string, opened: CodexOpenMethod = "thread/start"): CodexProjectionState {
-  return { inputs: new Map(), rootThreadId, lastErrorDetail: null, compacting: false, subagents: new Map(), tokenBaseline: initialTokenBaseline(opened === "thread/resume") };
+  return { inputs: new Map(), rootThreadId, lastErrorDetail: null, retries: new Map(), compacting: false, subagents: new Map(), tokenBaseline: initialTokenBaseline(opened === "thread/resume") };
 }
 
 const COMPACTION_ITEM_TYPE = "contextCompaction";
@@ -167,8 +169,20 @@ function spanIdOf(params: JsonRecord): string | undefined {
   return typeof turnId === "string" ? turnId : undefined;
 }
 
+function errorDetail(params: JsonRecord): string {
+  const error = asRecord(params.error);
+  const message = typeof error?.message === "string" ? error.message : "";
+  const details = typeof error?.additionalDetails === "string" ? error.additionalDetails : "";
+  return [message, details].filter((part) => part.length > 0).join(": ");
+}
+
 function viewsFor(state: CodexProjectionState, reporter: string, method: string, params: JsonRecord): RuntimeEventBody[] {
   switch (method) {
+    case "error": {
+      if (params.willRetry !== true) { return []; }
+      const reason = errorDetail(params);
+      return [{ kind: "retry", attempt: (state.retries.get(reporter) ?? 0) + 1, ...(reason.length > 0 ? { reason } : {}) }];
+    }
     case "thread/goal/updated":
     case "thread/goal/cleared":
       return codexGoalEvents(method, params);
@@ -251,15 +265,17 @@ export function foldCodexNotification(
 
   let next = state;
   if (method === "error") {
-    const error = asRecord(params.error);
-    const message = typeof error?.message === "string" ? error.message : "";
-    const details = typeof error?.additionalDetails === "string" ? error.additionalDetails : "";
-    const combined = [message, details].filter((part) => part.length > 0).join(": ");
+    const combined = errorDetail(params);
     if (combined.length > 0) {
       next = { ...state, lastErrorDetail: combined };
     }
-  } else if (method === "turn/completed" && threadId === state.rootThreadId) {
-    next = { ...state, lastErrorDetail: null };
+    if (params.willRetry === true) {
+      next = { ...next, retries: new Map(next.retries).set(threadId, (next.retries.get(threadId) ?? 0) + 1) };
+    }
+  } else if (method === "turn/completed") {
+    const retries = new Map(state.retries);
+    retries.delete(threadId);
+    next = { ...state, retries, ...(threadId === state.rootThreadId ? { lastErrorDetail: null } : {}) };
   } else if (threadId === state.rootThreadId && isCompactionItem(params) && (method === "item/started" || method === "item/completed")) {
     next = { ...state, compacting: method === "item/started" };
   } else if (method === "thread/compacted" && threadId === state.rootThreadId) {

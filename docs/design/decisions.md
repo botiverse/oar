@@ -42,6 +42,34 @@ fabricated completion is added here.
 call, or a concrete host needs synchronous submission and native evidence
 shows how to support it without compromising ordinary execution.
 
+## No stderr channel or process priority option (2026-11-06)
+
+**Refused:** `SessionOptions.recordStderr` and `SessionOptions.oomScoreAdj`. Raft
+asked for both to move Codex onto OAR, and OAR agreed on 11-05 before asking
+what a host needed underneath. tygg challenged that, and the probes changed the
+answer.
+
+A host wants to know a turn is reconnecting. On Codex 0.163.0 and 0.167.0 a
+dropped stream sends `error` with `willRetry: true` and writes no stderr line, so
+the signal was in the protocol and OAR had not translated it. It is now the
+existing `retry` event. A stderr channel would have every host parse a runtime's
+log text, which is the work OAR exists to remove, and that text promises nothing.
+An unparsable or wrongly typed tool argument logged one stderr line, went back to
+the model, and the turn completed. A turn that ends with no text because the model
+said nothing is reported accurately as completed. The original report of a quiet
+turn (Codex 0.153.4) has no surviving session, so this does not explain it.
+
+A host wants runtime children killed before itself. It already chooses
+`installation.command`, so a wrapper sets the score before `exec`, for every
+runtime, with no window ([process priority](../spec/runtime-matrix.md#process-priority)).
+An OAR option would set it after spawn, on Linux only, and needs every adapter wired.
+
+`OAR_CHILD_STDERR=inherit` remains for an operator debugging one process.
+
+**What would reopen it:** a state a host must act on that a runtime reports only on
+stderr, with a native reproduction. That case gets a typed event for the state,
+not the raw stream. For priority: a runtime whose command cannot be wrapped.
+
 ## Bounded retention by eliding content (2026-11-05)
 
 **Accepted:** `SessionOptions.retainedBytes` removes native and tool payloads
