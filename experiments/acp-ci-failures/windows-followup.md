@@ -47,6 +47,12 @@ These vendor cases run in the OAR checkout; the much faster behavior and
 image cases use temporary directories. This is a source-based hypothesis,
 not proof that snapshotting consumed the Windows interval.
 
+Real hosts in large repositories also use this native preparation path and
+may encounter its cost. OAR leaves the native `snapshot` configuration to
+the host. If new logs attribute the delay to `tracking`, the next proposal
+is to move these vendor cases out of the repository root, backed by that
+evidence, rather than increasing their time limits.
+
 Four sequential Linux controls, each with a fresh HOME and one resumed
 turn, did not reproduce the long wait:
 
@@ -92,8 +98,9 @@ before fixture cleanup can still prevent this final copy.
 Local validation passed: the full check (3,659 unit tests and 18 mock
 behavior cases), 17 OpenCode behavior cases, 10 native vendor cases and the
 eight experiment turns. The vendor run retained ten native logs totaling
-82,233 bytes. Windows and macOS retention still need this PR's CI results;
-the provider timelines above predate the native-log addition.
+82,233 bytes. Native retention still needs macOS PR CI and the ordinary
+Windows main-push ACP observation; the provider timelines above predate
+the native-log addition.
 
 ## Grok: first successful Windows phase measurement
 
