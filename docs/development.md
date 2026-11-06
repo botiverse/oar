@@ -306,6 +306,14 @@ Outside ci.yml and its pull-request and release gates:
   child-environment comparison) and `grok-sharing-experiment.yml`
   workflows, against experimental adapters outside the package.
 
+The Antigravity, Grok, Kimi and OpenCode synthetic ACP fixtures retain incremental
+provider requests, matcher selections and streamed response chunks under
+`acp-provider/` in the existing run artifacts.
+They survive a failed assertion or unfinished turn and fixture HOME cleanup;
+entries and files have explicit size limits. Headers, URL queries and environment
+variables are omitted. This is test evidence only, with no matcher, assertion or
+native timeout change ([November 6 failures and boundaries](../experiments/acp-ci-failures/README.md)).
+
 Windows `codex-aimock` and every `qoder-native` behavior job, and the Windows
 ACP observations, forward child stderr to the job log with
 `OAR_CHILD_STDERR=inherit`, including failures before a session trace exists

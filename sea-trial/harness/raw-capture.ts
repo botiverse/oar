@@ -21,6 +21,18 @@ export type ResponseRewrite = (body: string) => string;
 /** Rewrites a parsed request body on its way to aimock; the capture keeps it as the runtime sent it. */
 export type RequestRewrite = (body: unknown) => unknown;
 
+/** Incremental fixture evidence, scoped to one proxy. No headers are recorded. */
+export type ProviderCaptureEvent = { readonly requestId: number } & (
+  | { readonly kind: "request"; readonly path: string; readonly body: unknown; readonly forwardedBody?: unknown }
+  | { readonly kind: "response"; readonly status: number }
+  | { readonly kind: "response_chunk"; readonly base64: string }
+  | { readonly kind: "response_end" }
+  | { readonly kind: "response_closed"; readonly complete: boolean }
+  | { readonly kind: "upstream_error"; readonly message: string }
+);
+
+export type ProviderCaptureObserver = (event: ProviderCaptureEvent) => void;
+
 /**
  * A pass-through proxy in front of aimock that keeps each request body as
  * sent. aimock's own journal normalizes a request to its chat shape and drops
@@ -32,9 +44,12 @@ export type RequestRewrite = (body: unknown) => unknown;
  * `forward` rewrites a JSON request aimock would misread before it is passed
  * on (`geminiToolResultsAsUser`).
  */
-export async function startRawCapture(target: string, rewrite?: ResponseRewrite, forward?: RequestRewrite): Promise<RawCapture> {
+export async function startRawCapture(target: string, rewrite?: ResponseRewrite, forward?: RequestRewrite, observe?: ProviderCaptureObserver): Promise<RawCapture> {
   const upstream = new URL(target);
   const requests: RawProviderRequest[] = [];
+  const emit = (event: ProviderCaptureEvent): void => {
+    try { observe?.(event); } catch { /* Diagnostics must not change a provider result. */ }
+  };
   const server = http.createServer((request, response) => {
     const chunks: Buffer[] = [];
     request.on("data", (chunk: Buffer) => {
@@ -49,7 +64,10 @@ export async function startRawCapture(target: string, rewrite?: ResponseRewrite,
         // Not JSON: recorded as null, still forwarded.
       }
       requests.push({ path: request.url ?? "", body });
-      const rewritten = forward === undefined || body === null ? null : Buffer.from(JSON.stringify(forward(body)));
+      const requestId = requests.length;
+      const forwardedBody = forward === undefined || body === null ? undefined : forward(body);
+      const rewritten = forward === undefined || body === null ? null : Buffer.from(JSON.stringify(forwardedBody));
+      emit({ kind: "request", requestId, path: (request.url ?? "").split("?")[0] ?? "", body, ...(forwardedBody === undefined ? {} : { forwardedBody }) });
       const { "content-length": _sentLength, "transfer-encoding": _sentEncoding, ...rest } = request.headers;
       const proxied = http.request({
         hostname: upstream.hostname,
@@ -58,7 +76,13 @@ export async function startRawCapture(target: string, rewrite?: ResponseRewrite,
         method: request.method,
         headers: rewritten === null ? { ...request.headers, host: upstream.host } : { ...rest, "content-length": String(rewritten.length), host: upstream.host },
       }, (reply) => {
+        emit({ kind: "response", requestId, status: reply.statusCode ?? 502 });
+        reply.on("close", () => { emit({ kind: "response_closed", requestId, complete: reply.complete }); });
         if (rewrite === undefined) {
+          if (observe !== undefined) {
+            reply.on("data", (chunk: Buffer) => { emit({ kind: "response_chunk", requestId, base64: chunk.toString("base64") }); });
+            reply.on("end", () => { emit({ kind: "response_end", requestId }); });
+          }
           response.writeHead(reply.statusCode ?? 502, reply.headers);
           reply.pipe(response);
           return;
@@ -69,11 +93,15 @@ export async function startRawCapture(target: string, rewrite?: ResponseRewrite,
         });
         reply.on("end", () => {
           const { "content-length": _length, ...headers } = reply.headers;
+          const outgoing = rewrite(Buffer.concat(parts).toString("utf8"));
           response.writeHead(reply.statusCode ?? 502, headers);
-          response.end(rewrite(Buffer.concat(parts).toString("utf8")));
+          emit({ kind: "response_chunk", requestId, base64: Buffer.from(outgoing).toString("base64") });
+          response.end(outgoing);
+          emit({ kind: "response_end", requestId });
         });
       });
-      proxied.on("error", () => {
+      proxied.on("error", (error) => {
+        emit({ kind: "upstream_error", requestId, message: error.message });
         response.destroy();
       });
       proxied.end(rewritten ?? raw);

@@ -1,0 +1,12 @@
+{
+  "package": "@xai-official/grok",
+  "version": "1.0.70",
+  "file": "bin/grok-bootstrap.js",
+  "sha256": "15abbdc3e34d3c1e53b71def7f9c59f22bd793c51c5f6f88c645103742cc544e",
+  "observedOperations": [
+    "resolve GROK_HOME/bin canonical executable",
+    "decompress or copy platform binary into a versioned HOME binary if missing",
+    "copy the versioned binary to the canonical executable on Windows",
+    "spawn the resolved executable with inherited stdio"
+  ]
+}

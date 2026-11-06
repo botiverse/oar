@@ -1,0 +1,229 @@
+{
+  "run": 42274624041,
+  "attempt": 1,
+  "job": 128087646583,
+  "artifact": 13532953236,
+  "artifactSha256": "e53634396d61fbe976bc728d7a9ca4097b1b2ce506c152504ec06d581c27172e",
+  "platform": "Windows",
+  "codebuddyVersion": "2.181.0",
+  "phases": [
+    {
+      "phase": "child_starting",
+      "at": "2026-11-06T18:58:51.691Z",
+      "timeoutMs": 240000
+    },
+    {
+      "phase": "discovery_started",
+      "at": "2026-11-06T18:58:51.902Z"
+    },
+    {
+      "phase": "discovery_completed",
+      "at": "2026-11-06T18:58:53.708Z"
+    },
+    {
+      "phase": "install_started",
+      "at": "2026-11-06T18:58:53.709Z",
+      "timeoutMs": 180000
+    },
+    {
+      "phase": "install_returned",
+      "at": "2026-11-06T19:01:43.049Z",
+      "kind": "installed"
+    },
+    {
+      "phase": "verification_started",
+      "at": "2026-11-06T19:01:43.050Z"
+    },
+    {
+      "phase": "verification_completed",
+      "at": "2026-11-06T19:01:47.590Z"
+    },
+    {
+      "phase": "child_returned",
+      "at": "2026-11-06T19:01:47.606Z",
+      "ok": true
+    },
+    {
+      "phase": "npm_logs",
+      "at": "2026-11-06T19:01:47.607Z"
+    },
+    {
+      "phase": "npm_log_saved",
+      "at": "2026-11-06T19:01:47.609Z"
+    },
+    {
+      "phase": "npm_log_saved",
+      "at": "2026-11-06T19:01:47.610Z"
+    },
+    {
+      "phase": "cleanup_started",
+      "at": "2026-11-06T19:01:47.610Z"
+    },
+    {
+      "phase": "cleanup_finished",
+      "at": "2026-11-06T19:01:52.462Z"
+    }
+  ],
+  "installMs": 169340,
+  "verificationMs": 4540,
+  "cleanupMs": 4852,
+  "sourceSha256": {
+    "phases.jsonl": "0e99daca188913f64a605c133e86b1affa2a163a874a9b8d8e31b56e80b92e00",
+    "2026-11-06T18_58_54_284Z-timing.json": "61ffd4417d1d8114623c51c709f075621ab3c23106b23e4ef9646eb0442eb297",
+    "2026-11-06T18_58_54_284Z-debug-0.log": "92a253c32f9b46b040e2bd2cb9cab627505e40886fdca03a009750afb77c8e7c"
+  },
+  "npmTimings": [
+    {
+      "version": "11.19.1",
+      "timersMs": {
+        "idealTree": 2214,
+        "reify:unpack": 157155,
+        "reify:build": 16,
+        "build:link": 13,
+        "reify": 159435,
+        "command:install": 159443,
+        "npm": 164139
+      }
+    }
+  ],
+  "registryTarballFetches": [
+    {
+      "status": 200,
+      "tarball": "isexe/-/isexe-2.0.0.tgz",
+      "durationMs": 70,
+      "cache": "miss"
+    },
+    {
+      "status": 200,
+      "tarball": "shebang-regex/-/shebang-regex-3.0.0.tgz",
+      "durationMs": 223,
+      "cache": "miss"
+    },
+    {
+      "status": 200,
+      "tarball": "shebang-command/-/shebang-command-2.0.0.tgz",
+      "durationMs": 810,
+      "cache": "miss"
+    },
+    {
+      "status": 200,
+      "tarball": "@standard-schema/spec/-/spec-1.1.0.tgz",
+      "durationMs": 978,
+      "cache": "miss"
+    },
+    {
+      "status": 200,
+      "tarball": "ms/-/ms-2.1.3.tgz",
+      "durationMs": 1012,
+      "cache": "miss"
+    },
+    {
+      "status": 200,
+      "tarball": "path-key/-/path-key-3.1.1.tgz",
+      "durationMs": 1062,
+      "cache": "miss"
+    },
+    {
+      "status": 200,
+      "tarball": "which/-/which-2.0.2.tgz",
+      "durationMs": 1234,
+      "cache": "miss"
+    },
+    {
+      "status": 200,
+      "tarball": "@lydell/node-pty/-/node-pty-1.2.0-beta.14.tgz",
+      "durationMs": 1438,
+      "cache": "miss"
+    },
+    {
+      "status": 200,
+      "tarball": "pkce-challenge/-/pkce-challenge-5.0.1.tgz",
+      "durationMs": 1832,
+      "cache": "miss"
+    },
+    {
+      "status": 200,
+      "tarball": "debug/-/debug-4.4.3.tgz",
+      "durationMs": 1831,
+      "cache": "miss"
+    },
+    {
+      "status": 200,
+      "tarball": "cross-spawn/-/cross-spawn-7.0.6.tgz",
+      "durationMs": 1887,
+      "cache": "miss"
+    },
+    {
+      "status": 200,
+      "tarball": "eventsource/-/eventsource-3.0.7.tgz",
+      "durationMs": 2686,
+      "cache": "miss"
+    },
+    {
+      "status": 200,
+      "tarball": "eventsource-parser/-/eventsource-parser-3.1.1.tgz",
+      "durationMs": 3119,
+      "cache": "miss"
+    },
+    {
+      "status": 200,
+      "tarball": "@modelcontextprotocol/core/-/core-2.4.0.tgz",
+      "durationMs": 7768,
+      "cache": "miss"
+    },
+    {
+      "status": 200,
+      "tarball": "jose/-/jose-6.2.15.tgz",
+      "durationMs": 9358,
+      "cache": "miss"
+    },
+    {
+      "status": 200,
+      "tarball": "@lydell/node-pty-win32-x64/-/node-pty-win32-x64-1.2.0-beta.14.tgz",
+      "durationMs": 9567,
+      "cache": "miss"
+    },
+    {
+      "status": 200,
+      "tarball": "@modelcontextprotocol/client/-/client-2.4.0.tgz",
+      "durationMs": 16027,
+      "cache": "miss"
+    },
+    {
+      "status": 200,
+      "tarball": "@tencent-ai/sandbox-cli-win32-x64/-/sandbox-cli-win32-x64-5.12.0-beta.7.tgz",
+      "durationMs": 17090,
+      "cache": "miss"
+    },
+    {
+      "status": 200,
+      "tarball": "@agentclientprotocol/sdk/-/sdk-1.9.0.tgz",
+      "durationMs": 17376,
+      "cache": "miss"
+    },
+    {
+      "status": 200,
+      "tarball": "zod/-/zod-4.6.7.tgz",
+      "durationMs": 37601,
+      "cache": "miss"
+    },
+    {
+      "status": 200,
+      "tarball": "@openai/agents-core/-/agents-core-0.20.0.tgz",
+      "durationMs": 49492,
+      "cache": "miss"
+    },
+    {
+      "status": 200,
+      "tarball": "openai/-/openai-7.53.0.tgz",
+      "durationMs": 149778,
+      "cache": "miss"
+    },
+    {
+      "status": 200,
+      "tarball": "@tencent-ai/codebuddy-code/-/codebuddy-code-2.181.0.tgz",
+      "durationMs": 157134,
+      "cache": "miss"
+    }
+  ]
+}
