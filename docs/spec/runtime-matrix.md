@@ -116,6 +116,7 @@ false, the adapter holds queued input in this process.
 | Qoder | Native task starts, patches, progress and notifications | Native `stop_task`, verified on 1.1.83 foreground/background agents. |
 | Grok | Parent `subagent_spawned` / `subagent_finished` | Absent: child `session/cancel` left its work running on 1.0.77. |
 | Qwen | `system/task_started` / `task_notification` with nested `data`, verified on 0.26.8 | Absent: no verified host single-task control. |
+| DSH | `subagent/start` / `subagent/end`; durable `job/registered` / `job/settled` for shell and other jobs, including foreground commands ([mapping and completion boundaries](../runtimes/dsh.md#root-completion-and-background-work)) | Absent. |
 | Other runtimes | Existing runtime-specific observations only | Absent. |
 
 The [contract](subagents.md#native-single-task-stop) distinguishes native

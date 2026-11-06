@@ -102,8 +102,21 @@ pnpm vitest run tests/dsh/jobs.test.ts
 
 The manual shell gates are POSIX-only. The vendor regression uses Bash or
 PowerShell according to the host platform and enters the existing DSH vendor
-suite. Its Windows and macOS results remain pending CI; no deadlines or
-assertions were relaxed. Both specified DSH versions passed all 23 Linux vendor
-tests. See `validation.json` for the completed checks. Raw traces are local
+suite. It passed on all three CI platforms at `c95a8e69` on November 6 with the
+DSH 0.2.1-rc.5 pin and local providers:
+
+| Platform | Vendor tests passed | Behavior cases passed | Background-shell regression |
+|---|---:|---:|---|
+| [Linux](https://github.com/botiverse/oar/actions/runs/42236627645/job/127955817203) | 23 | 18 | Passed |
+| [macOS](https://github.com/botiverse/oar/actions/runs/42236627645/job/127955817259) | 23 | 18 | Passed |
+| [Windows](https://github.com/botiverse/oar/actions/runs/42236627645/job/127955817391) | 22 | 18 | Passed |
+
+Every platform skipped the unsupported account-usage behavior case. Windows
+also skipped the existing POSIX-only mid-turn process-kill vendor case; it ran
+the new background-shell case. No deadlines or assertions were relaxed. The
+manual subagent and Claude/Codex comparisons above remain Linux-only. Both
+specified DSH versions passed all 23 vendor tests locally on Linux.
+
+See `validation.json` for the completed checks. Raw traces are local
 artifacts; the committed selection excludes provider headers and temporary
 absolute paths.

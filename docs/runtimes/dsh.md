@@ -198,10 +198,12 @@ Attribute tool calls by their session and native turn, not by assuming every
 turn has a new host prompt or every spontaneous turn lacks an input id.
 
 [Background-work probes](../../experiments/dsh-background-work/README.md) held
-child and shell completion until after the root turn using DSH 0.2.1-rc.5 and 0.2.2-rc.1 on Linux with local
-providers. Child task events already existed; shell job events fill the missing
-part of that observation. The same report compares Claude and Codex and states
-their different limits. These new controls have not yet run on Windows or macOS.
+child and shell completion until after the root turn using DSH 0.2.1-rc.5 and
+0.2.2-rc.1 on Linux with local providers. Child task events already existed;
+shell job events fill the missing part of that observation. The shell regression
+also passed on Linux, macOS and Windows in CI with DSH 0.2.1-rc.5. The report
+links those results and keeps the manual Claude/Codex comparisons scoped to
+Linux.
 
 ## Session options
 
