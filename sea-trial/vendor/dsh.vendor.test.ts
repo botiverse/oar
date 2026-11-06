@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
-import { mkdir, readFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
 import { awaitTurnEnd } from "../../packages/oar/src/observe/turns.js";
 import { dshInstallation, dshRuntime, SessionNotFoundError, UnsupportedOptionError } from "../../packages/oar/src/index.js";
 import { DSH_MINIMUM_VERSION, compareSemver } from "../../packages/oar/src/runtimes/dsh/version.js";
 import { dshEnabled, eventsOf, expectedDirectory, nativeOf, nativeShell, reportsSelection, say, shellDirectory, untilCount, untilEvent, withDshFixture } from "./support/dsh-fixture.js";
+import { resolveRunDir } from "../harness/trace.js";
 import { durableEvents, lastInput, toolResults } from "./support/dsh-provider.js";
 
 describe.skipIf(!dshEnabled)("DSH native sessions", () => {
@@ -132,32 +133,49 @@ describe.skipIf(!dshEnabled)("DSH native sessions", () => {
     });
   }, 60_000);
 
-  test("a native child session attributes through the parent's catalog edge", async () => {
+  test.each(["before-parent", "after-parent"] as const)("a native child settles %s and keeps its catalog edge", async (order) => {
+    let heldParent = false;
     await withDshFixture((request) => {
       const input = lastInput(request);
-      if (input.includes("CHILD_ONLY")) { return say("child answer"); }
-      return input.includes("SPAWN") && toolResults(request) === 0
-        ? { kind: "tool", name: "subagent", arguments: { description: "kid", prompt: "CHILD_ONLY" } }
-        : say("parent answer");
-    }, async ({ open }) => {
+      if (input.includes("CHILD_ONLY")) { return order === "after-parent" ? { kind: "hold", text: "child answer" } : say("child answer"); }
+      if (input.includes("SPAWN") && toolResults(request) === 0) {
+        return { kind: "tool", name: "subagent", arguments: { description: "kid", prompt: "CHILD_ONLY" } };
+      }
+      if (order === "before-parent" && !heldParent) { heldParent = true; return { kind: "hold", text: "parent answer" }; }
+      return say("parent answer");
+    }, async ({ open, provider }) => {
       const session = await open();
-      const started = await session.prompt("SPAWN one");
-      expect(await awaitTurnEnd(session, started.seq)).toEqual({ kind: "completed" });
-      await untilEvent(session, (event) => event.kind === "task_ended");
-      const task = eventsOf(session.records()).find((event) => event.kind === "task_started");
-      assert.ok(task?.kind === "task_started" && task.childSessionId !== undefined);
-      const child = task.childSessionId;
-      expect(task).toMatchObject({ taskType: "agent", nativeType: "spawn", childSessionId: child });
-      expect(eventsOf(session.records()).find((event) => event.kind === "task_ended")).toEqual({ kind: "task_ended", taskId: task.taskId, status: "completed" });
-      expect(session.graph().edges).toEqual([{ parent: session.id, child, via: "tool_call" }]);
-      expect(eventsOf(session.records(), child).flatMap((event) => event.kind === "text_delta" ? [event.text] : []).join("")).toBe("child answer");
-      // DSH tells the parent a background child settled with a turn of its own, under a native input id.
-      const rootEnds = (): number => session.records().filter((record) => record.kind === "frame" && record.sessionId === session.id && record.body.events.some((event) => event.kind === "turn_ended")).length;
-      await untilCount(rootEnds, 2);
-      expect(rootEnds()).toBe(2);
-      expect(nativeOf(session, "session/event:user/message").some((message) => JSON.stringify(message).includes("subagent-settled"))).toBe(true);
-      expect(session.status().value.kind).toBe("idle");
-      await session.dispose();
+      try {
+        const started = await session.prompt("SPAWN one");
+        // DSH steers a running parent and queues a new turn only when it is idle.
+        if (order === "after-parent") { expect(await awaitTurnEnd(session, started.seq)).toEqual({ kind: "completed" }); }
+        await provider.held();
+        if (order === "before-parent") { await untilEvent(session, (event) => event.kind === "task_ended"); }
+        provider.release();
+        expect(await awaitTurnEnd(session, started.seq)).toEqual({ kind: "completed" });
+        await untilEvent(session, (event) => event.kind === "task_ended");
+        const task = eventsOf(session.records()).find((event) => event.kind === "task_started");
+        assert.ok(task?.kind === "task_started" && task.childSessionId !== undefined);
+        const child = task.childSessionId;
+        expect(task).toMatchObject({ taskType: "agent", nativeType: "spawn", childSessionId: child });
+        expect(eventsOf(session.records()).find((event) => event.kind === "task_ended")).toEqual({ kind: "task_ended", taskId: task.taskId, status: "completed" });
+        expect(session.graph().edges).toEqual([{ parent: session.id, child, via: "tool_call" }]);
+        expect(eventsOf(session.records(), child).flatMap((event) => event.kind === "text_delta" ? [event.text] : []).join("")).toBe("child answer");
+        const rootEnds = () => session.records().filter((record) => record.kind === "frame" && record.sessionId === session.id && record.body.events.some((event) => event.kind === "turn_ended"));
+        const wanted = order === "after-parent" ? 2 : 1;
+        await untilCount(() => rootEnds().length, wanted);
+        expect(rootEnds()).toHaveLength(wanted);
+        const notice = session.records().find(record => record.kind === "frame" && record.sessionId === session.id && record.body.type === "session/event:user/message" && JSON.stringify(record.body.native).includes("subagent-settled"));
+        const firstEnd = rootEnds()[0]; const lastEnd = rootEnds().at(-1);
+        assert.ok(notice !== undefined && firstEnd !== undefined && lastEnd !== undefined);
+        // The notice must have been consumed in the turn whose end we counted.
+        expect(notice.seq).toBeLessThan(lastEnd.seq);
+        if (order === "after-parent") { expect(notice.seq).toBeGreaterThan(firstEnd.seq); }
+        expect(session.status().value.kind).toBe("idle");
+        await session.dispose();
+      } finally {
+        await writeFile(path.join(resolveRunDir(), `dsh-child-${order}.json`), JSON.stringify({ order, requests: provider.requests, records: session.records() }, null, 2));
+      }
     });
   }, 60_000);
 });
