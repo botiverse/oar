@@ -7,7 +7,10 @@ export function terminalLaunch(command: string, args: readonly string[], cwd: st
   const original = { command, args, shell };
   if (process.platform !== "linux" || agentPid === undefined || !Number.isSafeInteger(agentPid) || agentPid <= 0) { return original; }
   let score = "";
-  try { score = readFileSync(`/proc/${String(agentPid)}/oom_score_adj`, "utf8").trim(); }
+  try {
+    score = readFileSync(`/proc/${String(agentPid)}/oom_score_adj`, "utf8").trim();
+    if (score === readFileSync("/proc/self/oom_score_adj", "utf8").trim()) { return original; }
+  }
   catch { return original; }
   if (!/^-?\d+$/u.test(score) || Number(score) < -1000 || Number(score) > 1000) { return original; }
   // Resolve relative PATH entries against the terminal cwd, not OAR's cwd.

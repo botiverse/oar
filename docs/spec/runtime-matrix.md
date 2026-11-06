@@ -339,9 +339,10 @@ app-server, an MCP server and a tool command all read 500
 
 ACP reverse terminals are launched by OAR, so they do not inherit the runtime
 process's score automatically. On Linux, OAR reads the requesting agent's
-`/proc/<pid>/oom_score_adj` for each terminal command and applies it before
-executing the command. If that value cannot be read, the command keeps the
-host's inherited value. A refused write also leaves that inherited value;
+`/proc/<pid>/oom_score_adj` and its own score for each terminal command. Only
+when the scores differ does OAR apply the agent's value before executing the
+command. Equal scores or an unreadable score keep the original launch path.
+A refused write also leaves the host's inherited value;
 OAR cannot grant permission to lower a score. No option is added, and other
 platforms keep their existing launch behavior.
 

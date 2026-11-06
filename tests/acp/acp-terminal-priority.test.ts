@@ -68,6 +68,14 @@ test.skipIf(process.platform !== "linux")("an unreadable native process keeps th
   } finally { await host.dispose(); }
 });
 
+test.skipIf(process.platform !== "linux")("equal native and host priorities spawn the original command with its original argv zero", async () => {
+  const command = path.basename(process.execPath);
+  const host = createAcpTerminalHost(process.cwd(), { ...process.env, PATH: path.dirname(process.execPath) }, { agentPid: () => process.pid });
+  try {
+    assert.equal((await commandOutput(host, command, ["-e", "console.log(process.argv0)"])).trim(), command);
+  } finally { await host.dispose(); }
+});
+
 test.skipIf(process.platform !== "linux")("priority forwarding resolves relative PATH in the terminal cwd and preserves missing-command rejection", async () => {
   await withAgent(async (pid, score, cwd) => {
     const executable = path.join(cwd, "score-command");

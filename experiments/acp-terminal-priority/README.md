@@ -7,12 +7,14 @@ had `oom_score_adj = 500`; the OAR host had `-1000`. Before this fix, its
 `terminal/release`) identified the host-launched path. Grok 1.0.70 and 1.0.77
 both reproduced the score mismatch. No account or real model was used.
 
-The fix reads the current agent score for each Linux terminal launch and
-sets it in a small `/bin/sh` wrapper before `exec`. Score, command and arguments
+The fix reads the current agent and host scores for each Linux terminal launch.
+Equal scores or an unreadable score keep the original launch path, including
+the original command name. Only differing scores use a small `/bin/sh` wrapper
+to set the agent's value before `exec`. Score, command and arguments
 are separate argv entries; shell-looking arguments are not evaluated. Native
 full-shell compatibility still belongs to the runtime profile. The command
 keeps the existing cwd, environment and owned process group. Missing commands
-still take the existing spawn error path. If the agent score cannot be read,
+still take the existing spawn error path. If either score cannot be read,
 launch proceeds unchanged; if setting it is refused, the command keeps its
 inherited score. There is no public option or non-Linux behavior change.
 
@@ -53,6 +55,6 @@ probe files. It requires Linux and a host score below 1000.
 
 Linux vendor regressions cover Grok, Kimi and CodeBuddy. Unit regressions cover
 pre-exec readback and child inheritance, literal argv/cwd/env, shell execution,
-changing agent scores, unreadable processes, relative PATH lookup, missing
-commands and descendant cleanup. Other platforms run the existing terminal
-suite with their unchanged launch path.
+changing agent scores, equal-score command identity, unreadable processes,
+relative PATH lookup, missing commands and descendant cleanup. Other platforms
+run the existing terminal suite with their unchanged launch path.
