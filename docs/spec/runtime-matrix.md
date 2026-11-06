@@ -337,6 +337,20 @@ app-server, an MCP server and a tool command all read 500
 ([probe](../../experiments/codex-native-signals/README.md),
 [decision](../design/decisions.md#no-stderr-channel-or-process-priority-option-2026-11-06)).
 
+ACP reverse terminals are launched by OAR, so they do not inherit the runtime
+process's score automatically. On Linux, OAR reads the requesting agent's
+`/proc/<pid>/oom_score_adj` for each terminal command and applies it before
+executing the command. If that value cannot be read, the command keeps the
+host's inherited value. A refused write also leaves that inherited value;
+OAR cannot grant permission to lower a score. No option is added, and other
+platforms keep their existing launch behavior.
+
+The [native terminal probe](../../experiments/acp-terminal-priority/README.md)
+confirmed reverse terminal requests from Grok 1.0.70, Kimi 2.4.1 and CodeBuddy
+2.179.3. OpenCode 1.19.5 and Antigravity CLI 1.5.0 executed this probe through
+their own processes, without reverse terminal requests. This inventory covers
+the measured command paths and versions, not every tool a runtime may offer.
+
 ## Launch arguments
 
 `SessionOptions.launchArgs` adds the host's own command-line arguments to

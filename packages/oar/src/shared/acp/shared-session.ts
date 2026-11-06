@@ -159,7 +159,7 @@ export function sharedAcpSession(profile: AcpSessionProfile, shared: AcpSharedOp
       }
       throw new UnsupportedOptionError("placement", "ACP native session id is retired on this shared connection; resume requires an isolated process");
     }
-    const state = createAcpSessionState(profile, options, environment, (method, params) => owner.associations(method, params));
+    const state = createAcpSessionState(profile, options, environment, (method, params) => owner.associations(method, params), () => runtime.pid);
     const owner = routing.attach({ terminal: state.terminalHost, hooks: state.hooks }, credentials);
     let nativeId: string | null = null;
     let initializationRefusal: string | null = null;

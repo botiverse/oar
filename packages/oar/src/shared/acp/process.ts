@@ -55,6 +55,7 @@ export interface AcpProcessOptions {
 
 /** A child process connected directly to an official SDK client app. */
 export interface AcpProcess {
+  readonly pid?: number;
   readonly connection: ClientConnection;
   readonly spawned: Promise<void>;
   readonly exited: Promise<number | null>;
@@ -175,6 +176,7 @@ export function startAcpProcess(
     child.stdout.destroy();
   });
   return {
+    ...(child.pid === undefined ? {} : { pid: child.pid }),
     connection,
     ...(options.redact === undefined ? {} : { redact: options.redact }),
     spawned: child.spawned,
