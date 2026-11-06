@@ -20,6 +20,7 @@ time.
 
 | Experiment | Fact it pins | Findings | Last observed |
 |---|---|---|---|
+| [Codex message projection](codex-projection/README.md) | Completed-only text, native message phase and MCP names; declared unauthorized tag distinguished from observed provider errors. | [probe and evidence](codex-projection/README.md) | 2026-11-06, Codex 0.167.0, Linux x64, local provider |
 | [Qoder DeepSeek BYOK](qoder-deepseek/README.md) | Native custom-model configuration, real inference, file tools and cross-process resume; first-party subscription remains unverified. | [probe and result](qoder-deepseek/README.md) | 2026-11-05, Qoder 1.1.83, Linux x64, Free login plus DeepSeek pay-as-you-go API key |
 | [Codex native terminal cleanup](codex-background-terminals/README.md) | Native terminal controls leave escaped descendants; list membership and successful replies do not prove process exit. | [twelve controls and selected evidence](codex-background-terminals/README.md) | 2026-11-05, Codex 0.166.0, Linux x64, local provider |
 | [Codex compaction abort timing](codex-compaction-abort/README.md) | A provider request can arrive before the app-server item identifying the compaction turn; preserve early refusal and wait for native identity in the fixture. | [Windows failures and deterministic regression](codex-compaction-abort/README.md) | 2026-11-05, two Windows CI failures; Codex 0.166.0 local-provider control on Linux |

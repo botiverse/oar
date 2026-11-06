@@ -122,12 +122,13 @@ function textsOf(records: readonly RawEvent[]): TextDelta[] {
     : []));
 }
 
-test("re-reading gives the recorded text each its agentMessage id; folding the log twice changes nothing", () => {
+test("re-reading gives the recorded text its native id and phase; folding the log twice changes nothing", () => {
   const original = recorded();
   const records = reread(original);
   const texts = textsOf(records);
-  expect(texts.map(({ messageId: _messageId, ...text }) => text)).toEqual(textsOf(original));
+  expect(texts.map(({ messageId: _messageId, phase: _phase, ...text }) => text)).toEqual(textsOf(original));
   expect(new Set(texts.map((text) => text.messageId ?? "none")).size).toBe(4);
+  expect([...new Map(texts.map(text => [text.messageId, text.phase])).values()]).toEqual(["commentary", "commentary", "commentary", "final_answer"]);
   const once = viewOf(records);
   const twice = viewOf([...records, ...records]);
   expect(twice.messages).toEqual(once.messages);

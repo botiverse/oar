@@ -134,13 +134,14 @@ function sameLane(held: Event, next: Event): boolean {
     && held.sessionId === next.sessionId
     && held.agentPath.length === next.agentPath.length
     && held.agentPath.every((segment, index) => segment === next.agentPath[index])
+    && (held.kind !== "text_delta" || next.kind !== "text_delta" || held.phase === next.phase)
     && messageIdOf(held) === messageIdOf(next);
 }
 
 /**
  * Consumer-side coalescing: wrap an event observer so consecutive text (or
  * readable reasoning) pieces of one agent arrive as one event instead of a
- * token stream. Flushes when the kind, agent or `messageId` changes, a
+ * token stream. Flushes when the kind, agent, `messageId` or native text phase changes, a
  * non-text event arrives, or (when `maxHoldMs` is set) the stream goes quiet
  * for that long.
  * The merged event carries the LAST piece's envelope. Order is safe because

@@ -9,11 +9,14 @@ import { asNumber, asRecord } from "../../shared/json.js";
  * `other` (an HTTP 400 codex does not name) carries the provider's JSON body
  * as its message, read for its code. A usage limit and an exhausted credit
  * balance are the same `usageLimitExceeded`, so both are `quota`. Declared
- * values no run produced (`unauthorized`, `badRequest`,
+ * `unauthorized` is the native auth variant in the 0.167.0 generated schema;
+ * unlike an HTTP transport error it carries no status or credential detail.
+ * Other declared values no run produced (`badRequest`,
  * `sessionBudgetExceeded`, `cyberPolicy`, …) stay `unknown`.
  */
 
 const NAMED: Readonly<Partial<Record<string, Classified["failure"]>>> = {
+  unauthorized: "auth",
   modelNotFound: "model_unavailable",
   usageLimitExceeded: "quota",
   rateLimitExceeded: "rate_limited",
@@ -27,7 +30,7 @@ const TRANSPORT = ["httpConnectionFailed", "responseStreamConnectionFailed", "re
 /** What `codexErrorInfo` says: a class, and the HTTP status a transport variant carries. */
 function fromInfo(info: unknown, message: string): Classified {
   if (typeof info === "string") {
-    const named = NAMED[info];
+    const named = Object.hasOwn(NAMED, info) ? NAMED[info] : undefined;
     if (named !== undefined) { return { failure: named }; }
     return { failure: info === "other" ? failureFromErrorBody(message) ?? "unknown" : "unknown" };
   }

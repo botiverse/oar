@@ -144,14 +144,14 @@ export type RuntimeEventBody =
   | ({ readonly kind: "input_dropped"; readonly reason: "runtime_refused"; readonly failure?: FailureClass; readonly message?: string } & InputReference)
   /** Native handling of this delivery attempt without a model turn. Not success, model consumption, or a turn end. Handler errors remain separate native facts. */
   | { readonly kind: "input_handled"; readonly requestId: string; readonly inputId?: string }
-  /** `messageId`: the runtime's id of the assistant message the text is part of (codex `agentMessage` item, claude API message), so two messages of one turn stay apart; absent when it names none (pi, cursor, ACP) and in older records. */
-  | { readonly kind: "text_delta"; readonly text: string; readonly messageId?: string }
+  /** `messageId`: the runtime's id of the assistant message the text is part of (codex `agentMessage` item, claude API message), so two messages of one turn stay apart; absent when it names none (pi, cursor, ACP) and in older records. `phase` is a native message phase (Codex), never inferred. */
+  | { readonly kind: "text_delta"; readonly text: string; readonly messageId?: string; readonly phase?: string }
   /** A reasoning output item; its lifecycle remains observable without readable contents. `messageId` names the native message when provided, keeping streamed reasoning from distinct messages apart when coalescing. */
   | { readonly kind: "reasoning"; readonly content: ReasoningContent; readonly messageId?: string }
   | {
-      readonly kind: "tool_call_started";
-      readonly callId: string;
-      readonly tool: string;
+      readonly kind: "tool_call_started"; readonly callId: string; readonly tool: string;
+      /** Native MCP server and tool names when explicitly reported. `tool` retains its existing category/name. */
+      readonly server?: string; readonly toolName?: string;
       /** Best-effort human-readable invocation detail when the runtime exposes it. */
       readonly input?: string;
     }

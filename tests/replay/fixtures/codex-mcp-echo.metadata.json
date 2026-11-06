@@ -1,0 +1,31 @@
+[
+  {
+    "method": "item/started",
+    "event": {
+      "kind": "tool_call_started",
+      "callId": "call_stdio-call",
+      "tool": "mcpToolCall",
+      "input": "{\"text\":\"stdio-call\"}",
+      "server": "echo",
+      "toolName": "echo"
+    }
+  },
+  {
+    "method": "item/started",
+    "event": {
+      "kind": "tool_call_started",
+      "callId": "call_http-call",
+      "tool": "mcpToolCall",
+      "input": "{\"text\":\"http-call\"}",
+      "server": "remote",
+      "toolName": "echo"
+    }
+  },
+  {
+    "method": "item/agentMessage/delta",
+    "event": {
+      "kind": "text_delta",
+      "text": "echoed"
+    }
+  }
+]

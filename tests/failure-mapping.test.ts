@@ -64,7 +64,9 @@ test.each([
   { name: "oversized context in the stream", codexErrorInfo: "contextWindowExceeded", message: "", expected: { failure: "input_too_large" } },
   { name: "oversized context as an HTTP 400", codexErrorInfo: "other", message: '{"error":{"message":"Your input exceeds the context window of this model.","type":"invalid_request_error","param":null,"code":"context_length_exceeded"}}', expected: { failure: "input_too_large" } },
   { name: "other with words only", codexErrorInfo: "other", message: "something broke", expected: { failure: "unknown" } },
-  { name: "a declared value no run produced", codexErrorInfo: "unauthorized", message: "", expected: { failure: "unknown" } },
+  { name: "native unauthorized without inferred status or credential detail", codexErrorInfo: "unauthorized", message: "", expected: { failure: "auth" } },
+  { name: "an unsupported native variant", codexErrorInfo: "badRequest", message: "unauthorized", expected: { failure: "unknown" } },
+  { name: "an inherited property is not a native variant", codexErrorInfo: "constructor", message: "", expected: { failure: "unknown" } },
   { name: "a disconnect without a status", codexErrorInfo: { responseStreamDisconnected: { httpStatusCode: null } }, message: "", expected: { failure: "unknown" } },
 ] as const)("codex: $name", ({ codexErrorInfo, message, expected }) => {
   expect(codexFailure("failed: x", { message, codexErrorInfo })).toEqual({ kind: "failed", reason: "failed: x", ...expected });
