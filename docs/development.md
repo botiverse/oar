@@ -298,7 +298,12 @@ Outside ci.yml and its pull-request and release gates:
   had intermittent Windows startup or MCP timeouts whose causes remain
   unknown. The jobs still fail, without `continue-on-error` or retries, and
   retain logs and traces; daily inspection summarizes them. Grok's launch
-  comparison runs after its tests, so it cannot prewarm them.
+  comparison runs after its tests, so it cannot prewarm them. It retains
+  bootstrap read/decode/write/copy/spawn phases for the explicit Node path
+  and repeats that path and the OAR-resolved executable in the same HOME
+  after either success or failure. The seven launches keep their 15-second
+  initialize and five-second cleanup limits; the diagnostic step remains
+  three minutes. [Measurement scope](../experiments/grok-startup/README.md).
 - OpenCode and Grok shared placement is not admitted (explicit `shared` is
   refused), so their shared session behavior suites and native
   shared/isolated controls run only in the manual
