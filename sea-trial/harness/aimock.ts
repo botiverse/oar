@@ -4,7 +4,7 @@ import path from "node:path";
 import { performance } from "node:perf_hooks";
 import { LLMock } from "@copilotkit/aimock";
 import { warmCodexHome } from "./codex-home.js";
-import { removeCodexHome } from "./codex-home-cleanup.js";
+import { removeFixtureDirectory } from "./fixture-directory-cleanup.js";
 import { record } from "./trace.js";
 import { startRawCapture, type RawCapture, type RawProviderRequest, type RequestRewrite, type ResponseRewrite } from "./raw-capture.js";
 
@@ -131,7 +131,7 @@ export async function startCodexAimock(
     stop: async () => {
       await capture?.stop();
       await mock.stop();
-      await removeCodexHome(codexHome);
+      await removeFixtureDirectory(codexHome, "codex-home");
     },
   };
   try {

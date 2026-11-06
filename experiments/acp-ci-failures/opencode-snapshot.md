@@ -64,6 +64,15 @@ fixture-owned directory:
 
 Each fixture initializes its own Git repository with one staged README.
 The same directory survives disposal and resume until fixture cleanup.
+Directory cleanup uses the same helper as the Codex fixture: it waits at
+most five seconds for `rm` with the existing retries, then lets deletion
+continue. Pending, late success and failure are recorded in the trace and
+job log as `fixture_directory_cleanup`, including directory and purpose
+(`opencode-vendor-cwd` or `codex-home`). Cleanup failure cannot change a
+native assertion's outcome. The wait still counts toward the test's time
+limit. Repeated slow or failed project deletion needs investigation; it
+does not by itself prove a process survived disposal.
+
 Native snapshots stay at their default; the provider configuration does
 not set `snapshot: false`. The generic subject helper takes an explicit
 optional cwd and otherwise keeps using the current directory. Other
