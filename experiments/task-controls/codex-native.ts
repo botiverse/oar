@@ -7,7 +7,8 @@ import { codexInstallation } from "../../packages/oar/src/runtimes/codex/install
 import { startAppServerClient } from "../../packages/oar/src/runtimes/codex/app-server-client.js";
 import { asRecord, parseJson, type JsonRecord } from "../../packages/oar/src/shared/json.js";
 import { startCodexAimock } from "../../sea-trial/harness/aimock.js";
-import { codexTaskRecipient, codexTaskRequest } from "../../sea-trial/vendor/support/codex-task-request.js";
+import { codexTaskIsResumed, codexTaskRecipient, codexTaskRequest } from "../../sea-trial/vendor/support/codex-task-request.js";
+import { codexTaskRootReply } from "../../sea-trial/vendor/support/codex-task-script.js";
 
 const qualify = (value: unknown): unknown => { const item = asRecord(value); return item?.type === "function_call" && (item.name === "spawn_agent" || item.name === "followup_task") ? { ...item, namespace: "collaboration" } : value; };
 
@@ -23,15 +24,10 @@ const provider = await startCodexAimock((mock) => {
     calls.push(request);
     const recipient = codexTaskRecipient(request);
     const user = typeof recipient === "string" ? recipient : JSON.stringify(request.messages.findLast((message) => message.role === "user"));
-    if (user === "/root/a") { targetCalls += 1; for (const notify of waiting) { notify(); } await delay(targetCalls === 1 ? 15_000 : 250); return { content: targetCalls === 1 ? "CHILD_A_DONE" : "CHILD_A_RESUMED" }; }
+    if (user === "/root/a") { targetCalls += 1; for (const notify of waiting) { notify(); } const resumed = codexTaskIsResumed(request); await delay(resumed ? 250 : 15_000); return { content: resumed ? "CHILD_A_RESUMED" : "CHILD_A_DONE" }; }
     if (user === "/root/b") { await delay(4000); return { content: "CHILD_B_DONE" }; }
     rootCalls += 1;
-    if (rootCalls <= 2) {
-      const name = rootCalls === 1 ? "a" : "b";
-      return { toolCalls: [{ id: `spawn_${name}`, name: "spawn_agent", arguments: JSON.stringify({ task_name: name, message: `TASK_CHILD_${name.toUpperCase()}`, fork_turns: "none" }) }] };
-    }
-    if (rootCalls === 4) { return { toolCalls: [{ id: "followup_a", name: "followup_task", arguments: JSON.stringify({ target: "a", message: "TASK_CHILD_A_RESUME" }) }] }; }
-    return { content: "PARENT_OK" };
+    return codexTaskRootReply(request);
   });
 }, { captureRaw: true, rewriteRequest: codexTaskRequest, rewriteResponse: (body) => body.split("\n").map((line) => {
   if (!line.startsWith("data: ")) { return line; }
@@ -91,7 +87,7 @@ try {
     return frame.method === "item/completed" && item?.type === "subAgentActivity" && item.kind === "completed" && item.agentThreadId === target;
   }));
   const taskFacts = wire.filter(frame => asRecord(asRecord(frame.params)?.item)?.type === "subAgentActivity");
-  await writeFile(path.join(output, "result.json"), JSON.stringify({ version: installation.version, interrupted, targetEnd, peerEnd, parentUsable: true, targetCanContinue: true, targetTurns, taskFacts }, null, 2));
+  await writeFile(path.join(output, "result.json"), JSON.stringify({ version: installation.version, rootCalls, targetCalls, interrupted, targetEnd, peerEnd, parentUsable: true, targetCanContinue: true, targetTurns, taskFacts }, null, 2));
   console.log(JSON.stringify({ version: installation.version, target: targetEnd.status, peer: peerEnd.status, parentUsable: true, targetCanContinue: true, targetTurns }));
 } finally {
   client.kill(); await client.exited;

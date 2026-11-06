@@ -122,6 +122,44 @@ probe now require the first target request to reach the provider before
 interrupting. The final two-call, different-turn, peer and parent assertions
 remain unchanged. This does not explain the earlier Ubuntu three-call failure.
 
+### Replies interrupted by native task messages
+
+PR #664's macOS Codex job
+([run 42205301180](https://github.com/botiverse/oar/actions/runs/42205301180/job/127850305048))
+retained five parent requests, one target request and no resumed target turn.
+The fourth parent request contained `PARENT_FOLLOWUP`; the fifth also contained
+the sibling's native final message, but no executed `followup_task` result.
+The fixture offered recovery only on request four, then switched to an ordinary
+reply. The parent completed without actually resuming its child. This case does
+not call `observeStalls`, the observer changed by that PR.
+
+A Linux Codex 0.166.0 control reproduces this sequence: keep the sibling running
+until the follow-up model request arrives, then hold that reply until the
+sibling's native completion is observed. The old script fails the same resumed
+child completion assertion, with five parent requests and one target request.
+The corrected script chooses all parent actions from user input and tool results,
+and chooses the child response delay from its task payload. Request counters
+are diagnostics only. A discarded proposal remains available on the next request;
+an executed tool result prevents another execution.
+
+HTTP regressions cover both spawn steps and follow-up before and after their
+results, including intervening peer messages. The native case runs both sibling
+completion orders and retains the exact two target requests, interrupted first
+turn, completed second turn, distinct turn IDs and usable parent and peer. It
+also requires exactly one native follow-up activity. The interrupted-proposal
+case requires at least two provider proposals but only that one execution.
+Both orders retain provider bodies and records on failure. No product behavior,
+assertion deadline or existing lifecycle assertion is relaxed.
+
+Run the provider-only regressions with
+`pnpm vitest run tests/codex-task-script.test.ts`, and both native orders with
+`OAR_TEST=codex-aimock pnpm vitest run sea-trial/vendor/task-stop.vendor.test.ts`.
+The native artifacts are `codex-task-stop-before.json` and
+`codex-task-stop-during.json` in the trial run directory.
+On Linux, the corrected cases, direct native probe and all 77 Codex vendor
+checks pass with Codex 0.167.0. macOS and Windows results belong to the new CI
+run, not this local validation.
+
 ## Release-note draft
 
 - Add optional `Session.stopTask(taskId)` for Claude, Codex and Qoder. The
