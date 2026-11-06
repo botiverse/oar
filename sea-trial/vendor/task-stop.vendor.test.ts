@@ -91,6 +91,8 @@ test.skipIf(process.env.OAR_TEST !== "codex-aimock")("Codex child interruption l
     const peer = taskEvents(current).find(e => e.kind === "task_started" && e.description === "/root/b");
     assert.ok(target?.kind === "task_started" && peer?.kind === "task_started");
     await expect.poll(() => current.records().some(r => r.kind === "frame" && r.sessionId === target.taskId && r.body.type === "turn/started"), { timeout: 30_000 }).toBe(true);
+    // Native turn start can precede the first model request, including on Windows.
+    await expect.poll(() => targetCalls, { timeout: 30_000 }).toBe(1);
     expect(await current.stopTask?.(target.taskId)).toMatchObject({ kind: "accepted" });
     await expect.poll(() => childTurns(current, target.taskId)[0]?.status, { timeout: 30_000 }).toBe("interrupted");
     expect(taskEvents(current).filter(e => e.kind === "task_ended" && e.taskId === target.taskId)).toEqual([]);

@@ -17,12 +17,13 @@ const wire: JsonRecord[] = [];
 const calls: unknown[] = [];
 let rootCalls = 0;
 let targetCalls = 0;
+const waiting = new Set<() => void>();
 const provider = await startCodexAimock((mock) => {
   mock.on({ predicate: () => true }, async (request) => {
     calls.push(request);
     const recipient = codexTaskRecipient(request);
     const user = typeof recipient === "string" ? recipient : JSON.stringify(request.messages.findLast((message) => message.role === "user"));
-    if (user === "/root/a") { targetCalls += 1; await delay(targetCalls === 1 ? 15_000 : 250); return { content: targetCalls === 1 ? "CHILD_A_DONE" : "CHILD_A_RESUMED" }; }
+    if (user === "/root/a") { targetCalls += 1; for (const notify of waiting) { notify(); } await delay(targetCalls === 1 ? 15_000 : 250); return { content: targetCalls === 1 ? "CHILD_A_DONE" : "CHILD_A_RESUMED" }; }
     if (user === "/root/b") { await delay(4000); return { content: "CHILD_B_DONE" }; }
     rootCalls += 1;
     if (rootCalls <= 2) {
@@ -42,7 +43,6 @@ assert.ok(provider.env !== undefined);
 const installation = await codexInstallation();
 assert.ok(installation.kind === "available" && installation.via === "executable");
 const client = startAppServerClient(installation.command, provider.env, { "features.multi_agent": "true", "features.multi_agent_v2": "true", sandbox_mode: '"danger-full-access"' }, provider.env.CODEX_HOME);
-const waiting = new Set<() => void>();
 client.handle({
   onNotification(method, params) { wire.push({ method, params }); for (const notify of waiting) { notify(); } },
   onServerRequest(id, method, params) { wire.push({ id, method, params }); client.respond(id, { error: { code: -32_601, message: "unexpected request" } }); },
@@ -70,6 +70,7 @@ try {
   const [target, peer] = children();
   const turn = asRecord(asRecord(wire.find((frame) => frame.method === "turn/started" && asRecord(frame.params)?.threadId === target)?.params)?.turn)?.id;
   assert.equal(typeof turn, "string");
+  await wait(() => targetCalls === 1);
   const interrupted = await client.request("turn/interrupt", { threadId: target, turnId: turn });
   await wait(() => wire.some((frame) => frame.method === "turn/completed" && asRecord(frame.params)?.threadId === target));
   await wait(() => wire.some((frame) => frame.method === "turn/completed" && asRecord(frame.params)?.threadId === peer));

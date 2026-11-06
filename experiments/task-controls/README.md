@@ -111,6 +111,17 @@ reuse assertions. It now saves provider bodies and session records even on
 assertion failure, so another failure can distinguish routing from a native
 extra request. No OAR product behavior or test deadline changes.
 
+The next Windows run
+([run 42191203262](https://github.com/botiverse/oar/actions/runs/42191203262/job/127803374639))
+retained the new diagnostics and exposed a separate ordering assumption:
+`turn/started` arrived before the target's first model request. The test
+interrupted that turn before it reached the provider, then the resumed turn
+completed with one target request in total. Both native turn outcomes were
+correct, but the fixture expected two provider calls. The test and native
+probe now require the first target request to reach the provider before
+interrupting. The final two-call, different-turn, peer and parent assertions
+remain unchanged. This does not explain the earlier Ubuntu three-call failure.
+
 ## Release-note draft
 
 - Add optional `Session.stopTask(taskId)` for Claude, Codex and Qoder. The
