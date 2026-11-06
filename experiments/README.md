@@ -20,6 +20,7 @@ time.
 
 | Experiment | Fact it pins | Findings | Last observed |
 |---|---|---|---|
+| [ACP terminal process priority](acp-terminal-priority/README.md) | Host-launched commands take the wrapped agent's OOM score before exec; native reverse-terminal inventory. | [probe and selected results](acp-terminal-priority/README.md) | 2026-11-06, five ACP runtimes, Linux, local providers |
 | [Codex message projection](codex-projection/README.md) | Completed-only text, native message phase and MCP names; declared unauthorized tag distinguished from observed provider errors. | [probe and evidence](codex-projection/README.md) | 2026-11-06, Codex 0.167.0, Linux x64, local provider |
 | [Qoder DeepSeek BYOK](qoder-deepseek/README.md) | Native custom-model configuration, real inference, file tools and cross-process resume; first-party subscription remains unverified. | [probe and result](qoder-deepseek/README.md) | 2026-11-05, Qoder 1.1.83, Linux x64, Free login plus DeepSeek pay-as-you-go API key |
 | [Codex native terminal cleanup](codex-background-terminals/README.md) | Native terminal controls leave escaped descendants; list membership and successful replies do not prove process exit. | [twelve controls and selected evidence](codex-background-terminals/README.md) | 2026-11-05, Codex 0.166.0, Linux x64, local provider |

@@ -1,0 +1,78 @@
+{
+  "before": {
+    "runtime": "grok",
+    "version": "grok 1.0.70 (f50904eaee6c) [stable]",
+    "hostScore": -1000,
+    "agentScore": 500,
+    "reverseRequests": [
+      "terminal/create",
+      "terminal/wait_for_exit",
+      "terminal/output",
+      "terminal/release"
+    ],
+    "commandScore": -1000,
+    "completed": true
+  },
+  "after": [
+    {
+      "runtime": "antigravity",
+      "version": "1.5.0",
+      "hostScore": -1000,
+      "agentScore": 500,
+      "commandScore": 500,
+      "completed": true,
+      "reverseRequests": []
+    },
+    {
+      "runtime": "codebuddy",
+      "version": "2.179.3",
+      "hostScore": -1000,
+      "agentScore": 500,
+      "commandScore": 500,
+      "completed": true,
+      "reverseRequests": [
+        "terminal/create",
+        "terminal/wait_for_exit",
+        "terminal/output",
+        "terminal/release"
+      ]
+    },
+    {
+      "runtime": "grok",
+      "version": "grok 1.0.70 (f50904eaee6c) [stable]",
+      "hostScore": -1000,
+      "agentScore": 500,
+      "commandScore": 500,
+      "completed": true,
+      "reverseRequests": [
+        "terminal/create",
+        "terminal/wait_for_exit",
+        "terminal/output",
+        "terminal/release"
+      ]
+    },
+    {
+      "runtime": "kimi",
+      "version": "2.4.1",
+      "hostScore": -1000,
+      "agentScore": 500,
+      "commandScore": 500,
+      "completed": true,
+      "reverseRequests": [
+        "terminal/create",
+        "terminal/wait_for_exit",
+        "terminal/output",
+        "terminal/release"
+      ]
+    },
+    {
+      "runtime": "opencode",
+      "version": "1.19.5",
+      "hostScore": -1000,
+      "agentScore": 500,
+      "commandScore": 500,
+      "completed": true,
+      "reverseRequests": []
+    }
+  ]
+}

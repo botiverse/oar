@@ -62,10 +62,10 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
     const withoutCredentials = acpMcpOpenGuard(options.mcpServers, credentials.redact);
     const args = acpLaunchArgs(profile, options);
     const environment = sessionEnvironment(options.env);
-    const state = createAcpSessionState(profile, options, environment);
+    const state = createAcpSessionState(profile, options, environment, undefined, () => runtime.pid);
     const { terminalHost, recorder, opening } = state;
     const client = createAcpClientApp(terminalHost, state.hooks);
-    const runtime = startAcpProcess(installation.command, args, client, { cwd: options.cwd, env: environment, redact: credentials.redact, opening });
+    const runtime: AcpProcess = startAcpProcess(installation.command, args, client, { cwd: options.cwd, env: environment, redact: credentials.redact, opening });
     const opened = await openAcpSession(runtime, profile, options, (step) => {
       recorder.step(step.method, step.response);
     }, state.configUpdates).catch(async (error: unknown) => {
@@ -91,9 +91,10 @@ export interface AcpSessionState {
   readonly hooks: AcpClientHooks;
 }
 
-export function createAcpSessionState(profile: AcpSessionProfile, options: SessionOptions, environment: NodeJS.ProcessEnv, associations?: Parameters<typeof createAcpRecorder>[3]): AcpSessionState {
+export function createAcpSessionState(profile: AcpSessionProfile, options: SessionOptions, environment: NodeJS.ProcessEnv, associations?: Parameters<typeof createAcpRecorder>[3], agentPid?: () => number | undefined): AcpSessionState {
   const terminalHost = createAcpTerminalHost(options.cwd, environment, {
     shellCommand: profile.terminalShellCommand === true,
+    ...(agentPid === undefined ? {} : { agentPid }),
   });
   // The recorder queues everything until the handshake reveals the session
   // id and the kernel can be bound (records.ts).

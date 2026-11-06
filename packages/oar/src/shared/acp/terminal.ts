@@ -12,6 +12,7 @@ import {
   type WaitForTerminalExitRequest,
   type WaitForTerminalExitResponse,
 } from "@agentclientprotocol/sdk";
+import { terminalLaunch } from "./terminal-launch.js";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { StringDecoder } from "node:string_decoder";
@@ -50,6 +51,8 @@ export interface AcpTerminalHost {
 
 export interface AcpTerminalHostOptions {
   readonly shellCommand?: boolean;
+  /** Native process issuing reverse terminal requests. */
+  readonly agentPid?: () => number | undefined;
 }
 
 function invalid(message: string): never {
@@ -136,13 +139,14 @@ export function createAcpTerminalHost(
       invalid("ACP terminal cwd must be an absolute path");
     }
     const terminalId = randomUUID();
-    const child = spawn(params.command, params.args ?? [], {
-      cwd: params.cwd ?? cwd,
-      env: {
-        ...environment,
-        ...Object.fromEntries((params.env ?? []).map(({ name, value }) => [name, value])),
-      },
-      shell: options.shellCommand === true && params.args === undefined,
+    const commandCwd = params.cwd ?? cwd;
+    const env = { ...environment, ...Object.fromEntries((params.env ?? []).map(({ name, value }) => [name, value])) };
+    const launch = terminalLaunch(params.command, params.args ?? [], commandCwd, env,
+      options.shellCommand === true && params.args === undefined, options.agentPid?.());
+    const child = spawn(launch.command, launch.args, {
+      cwd: commandCwd,
+      env,
+      shell: launch.shell,
       stdio: ["ignore", "pipe", "pipe"],
       // Its own process group (POSIX): kill and release reach the command and
       // everything it started, not only the shell that launched it.
