@@ -79,7 +79,7 @@ it differs from the request, the open is refused rather than run.
 | OAR | Native | Notes |
 |---|---|---|
 | open | `agents.create` | `Session.id` is the native id, supplied by OAR. Omitted model: `agentDefaultModel.currentSelection()`. Explicit model or effort: `llm.resolveCallConfig` first, so a route that cannot run is refused at open, and without that method the request is refused rather than run unchecked. |
-| resume | `sessionPersistence.open(id, "read")`, then `agents.resume` | Saved header compared with `options.cwd`; another directory is `UnsupportedOptionError("cwd")` before the session is taken over. Omitted model keeps the saved route from the last `request/header`. Missing: `SessionNotFoundError`. |
+| resume | `sessionPersistence.open(id, "read")`, then `agents.resume` | Saved header compared with `options.cwd` using the [shared directory check](resume-cwd.md); another directory is `UnsupportedOptionError("cwd")` before the session is taken over. Omitted model keeps the saved route from the last `request/header`. Missing: `SessionNotFoundError`. |
 | prompt | `agent.followup` when `status` is idle | Rejected `busy` otherwise. The native claim starts the turn; accepted means delivered. |
 | steer | `agent.steer` | Rejected `no_active_turn` when idle. Native `next-step` inbox; the input joins at the next step boundary, including when the model had just stopped. |
 | queue | `agent.followup` | Native `next-turn` inbox. While idle it starts a turn at once. |

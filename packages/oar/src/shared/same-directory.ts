@@ -4,7 +4,8 @@ import path from "node:path";
 
 function real(dir: string, paths: typeof path): string {
   try {
-    return realpathSync(dir);
+    // The native lookup also resolves Windows 8.3 names and stored casing.
+    return realpathSync.native(dir);
   } catch {
     return paths.resolve(dir);
   }
