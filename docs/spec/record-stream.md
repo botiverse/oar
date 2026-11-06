@@ -4,7 +4,7 @@
 > [hard problems 5-8](../design/hard-problems.md#the-session-and-event-model),
 > [foundations](../design/foundations.md).
 
-Control (open / prompt / steer / queue / withdraw / abort / compact / dispose and their replies) and
+Control (open / prompt / steer / queue / withdraw / abort / stop_task / compact / dispose and their replies) and
 facts (what the runtime actually said) are records on one stream, and
 control never decides whether a fact exists. A model that pushes both
 through control objects lets the control plane trim, synthesize, and
@@ -144,7 +144,7 @@ one, it is honestly absent. No oar-made native frames exist in the stream, so th
 is no origin self-disclosure label.
 
 **request**: an action record that expects an outcome; bidirectional.
-app→runtime: open / prompt / steer / queue / withdraw / abort / compact / dispose. runtime→app:
+app→runtime: open / prompt / steer / queue / withdraw / abort / stop_task / compact / dispose. runtime→app:
 approvals, questions, external tools. toApp request bodies are runtime
 verbatim with an open vocabulary, so `direction` is the only way a server
 can decide "does the app need to answer this" without understanding the
@@ -253,7 +253,7 @@ Further rules:
   `exited` response (the runtime is gone), `released` response (OAR has
   relinquished control) or a `dispose` request (the
   session is being released), every later prompt / steer / queue / withdraw /
-  abort, compact or goal-control request is rejected (`runtime_exited` / `session_released` / `disposed`) by the shared kernel
+  abort, stop_task, compact or goal-control request is rejected (`runtime_exited` / `session_released` / `disposed`) by the shared kernel
   before any adapter code runs: no adapter keeps a private "is it alive"
   flag. `dispose` is the one control that still goes through after an
   release or observed exit. After exit it is recorded and answered `accepted` at once (nothing is
@@ -691,7 +691,7 @@ interface RequestRecord extends RecordEnvelope {
   kind: "request";
   id: string;
   direction: "toRuntime" | "toApp";
-  body: RequestBody;            // open {placement} | prompt {input, inputId?, images?, origin?, carries?, admission?: "native"} | steer | queue {input, inputId?, images?, origin?} | withdraw {inputId} | abort | compact {settledBy?: "native_response"} | dispose | goal_set {options} | goal_read | goal_clear | native {type, native} (toApp, verbatim)
+  body: RequestBody;            // open {placement} | prompt {input, inputId?, images?, origin?, carries?, admission?: "native"} | steer | queue {input, inputId?, images?, origin?} | withdraw {inputId} | abort | stop_task {taskId} | compact {settledBy?: "native_response"} | dispose | goal_set {options} | goal_read | goal_clear | native {type, native} (toApp, verbatim)
 }
 
 interface ResponseRecord extends RecordEnvelope {
@@ -712,7 +712,7 @@ interface ResponseRecord extends RecordEnvelope {
 ```
 
 The control surface that produces these records (`Session.prompt / steer /
-queue / withdraw / abort / compact / dispose`, `rawEvents(observer, cursor?)`, `records()`,
+queue / withdraw / abort / stopTask / compact / dispose`, `rawEvents(observer, cursor?)`, `records()`,
 `graph()`, and the folds) is documented on the contract itself. A `prompt`
 while a turn runs is rejected `busy`, never queued: a session has one
 control plane and at most one active turn
@@ -1043,7 +1043,23 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   `childSessionId`, its `/root/name` path the description), interacted →
   `task_updated` running, completed → `task_ended` completed, interrupted →
   `task_ended` stopped. A codex command the model detached itself
-  (`nohup … &`) leaves no task. ACP, pi and cursor report none. `tasksOf`
+  (`nohup … &`) leaves no task. Child `turn/completed`, including an
+  interrupted turn, is not a parent task completion: that child can take
+  another native follow-up. `stop_task` acceptance is not a task event
+  ([control semantics](subagents.md#native-single-task-stop)).
+  Qoder 1.1.83 maps `system/task_started` (`local_agent` → agent), changed
+  progress descriptions, `task_updated.patch` (`killed` → stopped), and
+  `task_notification`. Native duplicate endings stay distinct records;
+  absent background and child-session fields stay absent.
+  Grok 1.0.77 maps parent `_x.ai/session_notification` updates
+  `subagent_spawned` and `subagent_finished`, with `subagent_id` as task ID
+  and the explicitly reported `child_session_id` on starts. These events
+  keep the parent's envelope; child usage is not counted again.
+  Qwen 0.26.8 maps `system/task_started` and `task_notification` from
+  their nested `data`; a reported `subagent_type` marks an agent, otherwise
+  the type is other. Child identity, background flags, and spend are not
+  inferred from task notifications. Unknown native status values remain
+  raw. Pi, cursor and the other ACP adapters report no task events. `tasksOf`
   folds them into one row per task, including endings inferred from runtime
   exit as described below.
 - `effort`: the reasoning-effort level the runtime reports in effect, in its

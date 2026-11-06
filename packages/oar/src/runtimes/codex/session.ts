@@ -1,3 +1,4 @@
+import { codexTaskControl } from "./task-control.js";
 import { manualCompaction } from "../../shared/manual-compaction.js";
 import { codexCompaction, codexCompactionBusy } from "./compaction.js";
 import { appendCleanupFailure } from "../../shared/executable/process-cleanup.js";
@@ -39,11 +40,8 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
   // id is the runtime-native identity and becomes Session.id (open.ts builds
   // the request, and refuses what it cannot build before anything starts).
   const { method: openMethod, params: openParams, redact } = codexThreadOpen(options);
-  // YOLO default (repo policy 2026-08-24): bypass the sandbox too, not just
-  // approvals; OAR_CODEX_SANDBOX pins a stricter mode when a host wants one.
-  // Injected as a launch -c override (app-server-client.ts). A host that
-  // wants the user's own config to win can set OAR_CODEX_SANDBOX=inherit to
-  // skip the override entirely.
+  // Default bypasses approvals and sandbox; OAR_CODEX_SANDBOX can override
+  // that launch setting, or use "inherit" to leave native configuration in charge.
   const sandboxMode = process.env.OAR_CODEX_SANDBOX ?? "danger-full-access";
   const configOverrides = { ...(sandboxMode === "inherit" ? {} : { sandbox_mode: `"${sandboxMode}"` }), ...(options.goals === true ? { "features.goals": "true" } : {}) };
   // Client errors redact the MCP credentials carried by the open config.
@@ -88,6 +86,7 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
       // baseline this Session's token totals count from (projection.ts, #169).
       projection: initialCodexProjection(threadId, openMethod),
     };
+    const tasks = codexTaskControl(kernel, client, () => state.projection.subagents);
     const nativeBusy = (): boolean => state.active !== null || state.spontaneous;
     let compactOperation: ReturnType<typeof codexCompaction> | null = null;
     const compaction = manualCompaction(kernel, { busy: codexCompactionBusy(kernel, nativeBusy), busyReason: "Codex manual compaction requires an idle session without an active goal or queued input", create: () => { compactOperation = codexCompaction(client, threadId); return compactOperation; } });
@@ -102,6 +101,7 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
     // fold owns event translation, attribution and graph links; this owns the
     // transport-only turn id and the control decisions (busy, spontaneous).
     const onNotification = (method: string, params: JsonRecord): void => {
+      tasks.observe(method, params);
       const isRoot = typeof params.threadId !== "string" || params.threadId === threadId;
       if (isRoot && method === "turn/started") {
         const startedTurn = asRecord(params.turn)?.id;
@@ -175,7 +175,6 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
       }
     }
     await nameThread(client, threadId, codexThreadName(openMethod, options, started), (native) => { kernel.frame({ type: "thread/name/set/error", native, events: [] }); });
-
     /** Turn a plan builder into a Session control member. */
     const via = <Args extends unknown[]>(plan: (...args: Args) => RpcControlPlan) => async (...args: Args): Promise<ControlResult> => { const result = await rpcControl(kernel, client, plan(...args)); return result; };
     const capabilities = { queue: { durable: true }, attribution: "nested", images: true } as const;
@@ -266,6 +265,7 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
       queue: via(queuePlan),
       // No withdraw: the queue is codex's own, and thread/queue/delete is experimental and not live-verified (docs/runtimes/input-cancellation.md).
       abort: via(turnProcesses.aborting(abortPlan)),
+      stopTask: tasks.stop,
       rawEvents: (observer, cursor) => kernel.rawEvents(observer, cursor),
       records: () => kernel.records(),
       graph: () => kernel.graph(),

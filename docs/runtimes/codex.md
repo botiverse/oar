@@ -1814,3 +1814,15 @@ separately configured `env_key`.
 Installation, model listing, usage and inventories accept an explicit `env`
 overlay. Discovery, native status and app-server queries use that environment
 without changing the host. See [reader environments](../spec/orientation.md#environment).
+
+## Native task control
+
+`stopTask(taskId)` interrupts the observed active turn of an observed child
+thread with `turn/interrupt {threadId, turnId}`. It refuses the root/unrelated
+IDs and children with no active turn. A late completion from an older turn
+cannot clear the current turn ID. On 0.167.0 the interrupted child accepted a
+later native `followup_task` and completed it, while its peer and parent
+continued. Therefore child `turn/completed` never becomes a parent task ending;
+only native `subAgentActivity` retains that authority.
+
+[Native evidence and reproducible probes](../../experiments/task-controls/README.md).

@@ -23,6 +23,7 @@ export const claudeSession: StartSession = withSessionCredentials(async (install
     initial: options.resume === undefined ? initialClaudeProjection : resumedClaudeProjection,
     capabilities: { queue: { durable: false }, attribution: "attributed", images: true },
     steer: true,
+    stopTask: (taskId) => ({ subtype: "stop_task", task_id: taskId }),
     compaction: { busyReason: CLAUDE_COMPACTION_BUSY, create: compaction.create },
     cancelQueuedCapability: "interrupt_cancel_queued_v1",
     consume: (message) => readback.consume(message) || contextBreakdown.consume(message) || compaction.consume(message),

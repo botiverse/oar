@@ -1,3 +1,4 @@
+import { qoderTaskViews } from "./tasks.js";
 import type { RuntimeEventBody, TokenTotals, TurnOutcome } from "../../contracts/session.js";
 import { asNumber, asRecord, type JsonRecord } from "../../shared/json.js";
 import { initialStreamJsonProjection, type StreamJsonProjectionState } from "../../shared/stream-json/state.js";
@@ -7,9 +8,10 @@ import { addTokens, cacheParts, noTokens } from "../../shared/token-totals.js";
 export interface QoderProjection extends StreamJsonProjectionState {
   readonly usage: TokenTotals;
   readonly tokensExposed: boolean;
+  readonly taskDescriptions: ReadonlyMap<string, string>;
 }
 export function initialQoderProjection(tokensExposed = true): QoderProjection {
-  return { ...initialStreamJsonProjection, usage: noTokens, tokensExposed };
+  return { ...initialStreamJsonProjection, usage: noTokens, tokensExposed, taskDescriptions: new Map() };
 }
 
 /** Qoder reports the query's usage, not a conversation total. Its default wire format hides token counts. */
@@ -42,5 +44,13 @@ export const qoderProjectionProfile: StreamJsonProjectionProfile<QoderProjection
     return { state: { ...state, usage }, outcome: outcome(message), before, after: [] };
   },
   init: () => [], compacted: (state) => state,
-  system: (state, message) => ({ state, events: message.subtype === "status" && message.status === "compacting" ? [{ kind: "compaction_started" }] : [] }), other: (state) => ({ state, events: [] }),
+  system: (state, message, agentPath) => {
+    const key = JSON.stringify([...agentPath, message.task_id]);
+    const events = qoderTaskViews(message, state.taskDescriptions.get(key));
+    const description = events.find(event => event.kind !== "task_ended" && event.description !== undefined);
+    const next = description?.kind !== "task_ended" && description?.description !== undefined && description.description !== state.taskDescriptions.get(key)
+      ? { ...state, taskDescriptions: new Map([...state.taskDescriptions, [key, description.description]]) } : state;
+    return { state: next, events: [...events, ...(message.subtype === "status" && message.status === "compacting" ? [{ kind: "compaction_started" as const }] : [])] };
+  },
+  other: (state) => ({ state, events: [] }),
 };

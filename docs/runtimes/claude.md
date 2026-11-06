@@ -545,7 +545,7 @@ state). With 2.1.293, a background Task against the scripted provider
 reported complete child thinking/text blocks after the root result, but no
 child `stream_event` frames. The partial-output flag does not make that
 native child path incremental; its completed blocks remain the source of
-child events. There is no child control handle. A subagent's spend is in the session
+child events. There is no separate child session handle; `stopTask` addresses a native task ID. A subagent's spend is in the session
 total but has no `byAgent` entry of its own: it is `unattributed`
 ([tokens](#token-totals)). The interleaving of concurrent children is
 **unverified**. [Native subagents][native-subagents].
@@ -1025,8 +1025,8 @@ before any text arrives (except when a host prompt was written just before
 that init: then the start is reported in the prompt's `queued` frame, after
 its `input_queued`, [above](#prompt-steering-queueing-and-abort)). `TaskStop` instead yields a `killed` patch and a
 `stopped` notification, both mapped to stopped; the recorded stopped run had
-no notification usage and no spontaneous turn. Host `stop_task` control is
-not exposed by OAR.
+no notification usage and no spontaneous turn. OAR now exposes host
+[`stopTask`](#native-task-control); workflow-specific host stops remain unverified.
 
 Evidence: Claude 2.1.292, a temporary HOME and a scripted provider with a
 synthetic API key, no account. Three original recordings pin
@@ -1035,7 +1035,7 @@ synthetic API key, no account. Three original recordings pin
 and [a stopped run](../../tests/replay/fixtures/claude-workflow-stopped.raw.jsonl).
 Their [adapter regressions](../../tests/claude/claude-workflows.test.ts) check
 native order, descriptions, spend and spontaneous turns. Withhold mode and
-host-initiated stops were not exercised.
+host-initiated workflow stops were not exercised.
 
 ### Idle compaction
 
@@ -1767,3 +1767,13 @@ Installation, models, usage and inventories accept the same explicit `env` as
 authentication and sessions. Native queries retain Claude's parent-marker
 cleanup; installation readiness and version commands use the supplied overlay.
 See [reader environments](../spec/orientation.md#environment).
+
+## Native task control
+
+`stopTask(taskId)` sends native `stop_task`, records its acknowledgement,
+and leaves the root turn and siblings alone. Task completion remains the native
+notification. Claude 2.1.318 accepted an unknown ID too; never treat accepted as
+proof of existence or termination. Linux controls covered background Bash and
+foreground Agent tasks, a surviving sibling and a later parent prompt.
+
+[Native evidence and reproducible probes](../../experiments/task-controls/README.md).

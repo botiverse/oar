@@ -20,6 +20,8 @@ export interface AcpSessionProfile {
   /** Native compaction control, absent when the installed protocol cannot prove completion. */
   readonly compaction?: (kernel: SessionKernel, runtime: AcpProcess, promptUsage: (response: JsonRecord) => RuntimeEventBody | null) => CompactionOperation;
   /** Additional vendor facts on a session update; attribution remains the recorder's responsibility. */
+  /** Vendor facts on an extension notification; its envelope retains native attribution. */
+  readonly projectExtension?: (method: string, params: JsonRecord) => readonly RuntimeEventBody[];
   readonly projectUpdate?: (update: JsonRecord) => readonly RuntimeEventBody[];
   /** Vendor attribution for forwarded updates. The original notification is always recorded verbatim. */
   readonly attributeUpdate?: (notification: unknown) => { readonly sessionId: string; readonly parent: string } | null;

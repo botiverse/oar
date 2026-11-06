@@ -468,3 +468,19 @@ session overlay rules.
 Discovery evaluates the QWEN installation directory variables and home
 fallback from that map on each call; the model query uses it too. See
 [reader environments](../spec/orientation.md#environment).
+
+## Native task control
+
+Qwen 0.26.8 emits structured task lifecycle in stream-json:
+`system/task_started` and `system/task_notification`, with fields under
+`data`. OAR maps these to the existing task events; `subagent_type` identifies
+an agent, otherwise the type is other. Task token statistics stay native;
+OAR does not infer child sessions or background flags. The local native
+control observed a background agent start and completion.
+
+Latest upstream source also wires these notifications in
+`nonInteractiveCli.ts` and persistent `nonInteractive/session.ts`. There is no verified host control
+for stopping one task; the model-facing `task_stop` tool is insufficient
+evidence, so the session has no `stopTask` member.
+
+[Native evidence and reproducible probes](../../experiments/task-controls/README.md).

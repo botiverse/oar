@@ -1,3 +1,4 @@
+import { qwenTaskViews } from "./tasks.js";
 import type { RuntimeEventBody, TokenTotals, TurnOutcome } from "../../contracts/session.js";
 import { asNumber, asRecord, type JsonRecord } from "../../shared/json.js";
 import { initialStreamJsonProjection, type StreamJsonProjectionState } from "../../shared/stream-json/state.js";
@@ -46,6 +47,6 @@ export const qwenProjectionProfile: StreamJsonProjectionProfile<QwenProjection> 
   },
   init: () => [],
   compacted: (state) => state,
-  system: (state) => ({ state, events: [] }),
+  system: (state, message) => ({ state, events: qwenTaskViews(message) }),
   other: (state) => ({ state, events: [] }),
 };

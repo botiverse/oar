@@ -1,0 +1,340 @@
+{
+  "platform": "linux-x64",
+  "mode": "real-inference",
+  "submittedPrompts": 3,
+  "checks": [
+    {
+      "name": "foreground",
+      "taskId": "a34006fbf270f12e6",
+      "reply": "success",
+      "ended": "stopped"
+    },
+    {
+      "name": "background-sibling",
+      "reply": "success",
+      "target": "stopped",
+      "peer": "completed"
+    },
+    {
+      "name": "parent-followup",
+      "subtype": "success",
+      "isError": false
+    }
+  ],
+  "evidence": [
+    {
+      "type": "system",
+      "task_id": "a34006fbf270f12e6",
+      "tool_use_id": "call_00_xIke7I9RRtBdieRh82OJ1321",
+      "description": "OAR_TASK_FOREGROUND",
+      "task_type": "local_agent",
+      "subagent_type": "general-purpose",
+      "prompt": "Use the Bash tool exactly once to run the following command: `sleep 45; echo OAR_FOREGROUND_DONE`. Wait for it to complete, then return exactly OAR_FOREGROUND_DONE as your final message. Do not use any other tools.",
+      "subtype": "task_started",
+      "uuid": "8257e64f-9e0e-4d7b-b146-57c82652c7ca",
+      "session_id": "86653778-0a74-4cb7-97fc-dc6a71f8a70d"
+    },
+    {
+      "type": "control_request",
+      "request_id": "task-stop-0",
+      "request": {
+        "subtype": "stop_task",
+        "task_id": "a34006fbf270f12e6"
+      }
+    },
+    {
+      "type": "system",
+      "task_id": "a34006fbf270f12e6",
+      "tool_use_id": "call_00_xIke7I9RRtBdieRh82OJ1321",
+      "status": "stopped",
+      "output_file": "[task-output]",
+      "summary": "OAR_TASK_FOREGROUND",
+      "subtype": "task_notification",
+      "uuid": "5f5b9792-7532-4df7-8cc1-3fbbe8ea810e",
+      "session_id": "86653778-0a74-4cb7-97fc-dc6a71f8a70d"
+    },
+    {
+      "type": "system",
+      "task_id": "a34006fbf270f12e6",
+      "tool_use_id": "call_00_xIke7I9RRtBdieRh82OJ1321",
+      "status": "stopped",
+      "output_file": "",
+      "summary": "OAR_TASK_FOREGROUND",
+      "subtype": "task_notification",
+      "uuid": "35046e55-e9f6-44b2-a426-0ee6d2ea6fcb",
+      "session_id": "86653778-0a74-4cb7-97fc-dc6a71f8a70d"
+    },
+    {
+      "type": "control_response",
+      "session_id": "86653778-0a74-4cb7-97fc-dc6a71f8a70d",
+      "response": {
+        "subtype": "success",
+        "request_id": "task-stop-0"
+      }
+    },
+    {
+      "type": "system",
+      "task_id": "a34006fbf270f12e6",
+      "patch": {
+        "status": "killed",
+        "end_time": 1793948955364
+      },
+      "subtype": "task_updated",
+      "uuid": "8dcdd46d-e5c7-438b-bc8a-f495f29cb6db",
+      "session_id": "86653778-0a74-4cb7-97fc-dc6a71f8a70d"
+    },
+    {
+      "type": "result",
+      "subtype": "success",
+      "is_error": false,
+      "session_id": "86653778-0a74-4cb7-97fc-dc6a71f8a70d",
+      "usage": {
+        "input_tokens": 42371,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 25216,
+        "output_tokens": 310,
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "standard",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "",
+        "iterations": [],
+        "speed": "standard",
+        "request_id": "43832a22-8ca4-457e-b827-e36c6ed93160",
+        "context_usage_ratio": 0.021328
+      },
+      "modelUsage": {
+        "auto": {
+          "inputTokens": 42371,
+          "outputTokens": 310,
+          "cacheReadInputTokens": 25216,
+          "cacheCreationInputTokens": 0,
+          "webSearchRequests": 0,
+          "costUSD": 0,
+          "contextWindow": 0,
+          "maxOutputTokens": 0
+        }
+      },
+      "duration_ms": 6356,
+      "num_turns": 2
+    },
+    {
+      "type": "system",
+      "task_id": "a1e6838b68ddad7e5",
+      "tool_use_id": "call_01_ZEBBXmezgTQv14xxU7ix4408",
+      "description": "OAR_TASK_PEER",
+      "task_type": "local_agent",
+      "subagent_type": "general-purpose",
+      "prompt": "Use the Bash tool exactly once to run the following command: `sleep 8; echo OAR_PEER_DONE`. Wait for it to complete, then return exactly OAR_PEER_DONE as your final message. Do not use any other tools.",
+      "subtype": "task_started",
+      "uuid": "0aaf2f01-2448-40d3-95cf-36a0d752d5e1",
+      "session_id": "86653778-0a74-4cb7-97fc-dc6a71f8a70d"
+    },
+    {
+      "type": "system",
+      "task_id": "a592c37246c8dce1e",
+      "tool_use_id": "call_00_jSNe0c0qdhZtyvPPXTLF1409",
+      "description": "OAR_TASK_TARGET",
+      "task_type": "local_agent",
+      "subagent_type": "general-purpose",
+      "prompt": "Use the Bash tool exactly once to run the following command: `sleep 60; echo OAR_TARGET_DONE`. Wait for it to complete, then return exactly OAR_TARGET_DONE as your final message. Do not use any other tools.",
+      "subtype": "task_started",
+      "uuid": "3096cb39-ee75-4fd9-bd91-b9276f72ea05",
+      "session_id": "86653778-0a74-4cb7-97fc-dc6a71f8a70d"
+    },
+    {
+      "type": "control_request",
+      "request_id": "task-stop-1",
+      "request": {
+        "subtype": "stop_task",
+        "task_id": "a592c37246c8dce1e"
+      }
+    },
+    {
+      "type": "system",
+      "task_id": "a592c37246c8dce1e",
+      "patch": {
+        "status": "killed",
+        "end_time": 1793948961141
+      },
+      "subtype": "task_updated",
+      "uuid": "9abd19f8-c045-47b1-9162-1e7aec52d076",
+      "session_id": "86653778-0a74-4cb7-97fc-dc6a71f8a70d"
+    },
+    {
+      "type": "system",
+      "task_id": "a592c37246c8dce1e",
+      "tool_use_id": "call_00_jSNe0c0qdhZtyvPPXTLF1409",
+      "status": "stopped",
+      "output_file": "[task-output]",
+      "summary": "OAR_TASK_TARGET",
+      "subtype": "task_notification",
+      "uuid": "27d904c3-c334-4f46-95cf-555eb691e9e0",
+      "session_id": "86653778-0a74-4cb7-97fc-dc6a71f8a70d"
+    },
+    {
+      "type": "control_response",
+      "session_id": "86653778-0a74-4cb7-97fc-dc6a71f8a70d",
+      "response": {
+        "subtype": "success",
+        "request_id": "task-stop-1"
+      }
+    },
+    {
+      "type": "system",
+      "task_id": "a1e6838b68ddad7e5",
+      "tool_use_id": "call_01_ZEBBXmezgTQv14xxU7ix4408",
+      "description": "Sleep 8 seconds then print marker",
+      "last_tool_name": "Bash",
+      "subagent_type": "general-purpose",
+      "subtype": "task_progress",
+      "uuid": "6d97b15f-5867-4b50-b030-e4abd4356292",
+      "session_id": "86653778-0a74-4cb7-97fc-dc6a71f8a70d"
+    },
+    {
+      "type": "result",
+      "subtype": "success",
+      "is_error": false,
+      "session_id": "86653778-0a74-4cb7-97fc-dc6a71f8a70d",
+      "usage": {
+        "input_tokens": 43715,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 43008,
+        "output_tokens": 351,
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "standard",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "",
+        "iterations": [],
+        "speed": "standard",
+        "request_id": "f8c49e53-10b0-45f4-968d-12d78c69ffe9",
+        "context_usage_ratio": 0.022224
+      },
+      "modelUsage": {
+        "auto": {
+          "inputTokens": 43715,
+          "outputTokens": 351,
+          "cacheReadInputTokens": 43008,
+          "cacheCreationInputTokens": 0,
+          "webSearchRequests": 0,
+          "costUSD": 0,
+          "contextWindow": 0,
+          "maxOutputTokens": 0
+        }
+      },
+      "duration_ms": 5033,
+      "num_turns": 2
+    },
+    {
+      "type": "system",
+      "task_id": "a1e6838b68ddad7e5",
+      "patch": {
+        "status": "completed",
+        "end_time": 1793948972605
+      },
+      "subtype": "task_updated",
+      "uuid": "4ed46a9f-732f-43f9-8abc-f3b425958301",
+      "session_id": "86653778-0a74-4cb7-97fc-dc6a71f8a70d"
+    },
+    {
+      "type": "system",
+      "subtype": "task_notification",
+      "task_id": "a1e6838b68ddad7e5",
+      "tool_use_id": "call_01_ZEBBXmezgTQv14xxU7ix4408",
+      "status": "completed",
+      "output_file": "[task-output]",
+      "summary": "Agent \"OAR_TASK_PEER\" finished",
+      "uuid": "c7d5c9f5-84f4-4e73-a492-5bf5a23119dd",
+      "session_id": "86653778-0a74-4cb7-97fc-dc6a71f8a70d"
+    },
+    {
+      "type": "result",
+      "subtype": "success",
+      "is_error": false,
+      "session_id": "86653778-0a74-4cb7-97fc-dc6a71f8a70d",
+      "usage": {
+        "input_tokens": 22481,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 22144,
+        "output_tokens": 94,
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "standard",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "",
+        "iterations": [],
+        "speed": "standard",
+        "request_id": "f8b1b56e-b5dd-465d-a83f-5bb995b8ca5c",
+        "context_usage_ratio": 0.022481
+      },
+      "modelUsage": {
+        "auto": {
+          "inputTokens": 22481,
+          "outputTokens": 94,
+          "cacheReadInputTokens": 22144,
+          "cacheCreationInputTokens": 0,
+          "webSearchRequests": 0,
+          "costUSD": 0,
+          "contextWindow": 0,
+          "maxOutputTokens": 0
+        }
+      },
+      "duration_ms": 2018,
+      "num_turns": 1
+    },
+    {
+      "type": "result",
+      "subtype": "error_during_execution",
+      "is_error": true,
+      "session_id": "86653778-0a74-4cb7-97fc-dc6a71f8a70d",
+      "usage": {
+        "input_tokens": 0,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "output_tokens": 0,
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "standard",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "",
+        "iterations": [],
+        "speed": "standard"
+      },
+      "modelUsage": {},
+      "duration_ms": 124,
+      "num_turns": 1
+    }
+  ],
+  "version": "1.1.83",
+  "access": {
+    "success": false,
+    "code": "BYOK_CONFIG_INVALID",
+    "emptyParameters": true
+  },
+  "configRemoved": true,
+  "nativeExit": {
+    "code": 0,
+    "signal": null
+  }
+}

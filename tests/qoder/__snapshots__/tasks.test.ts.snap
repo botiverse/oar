@@ -1,0 +1,77 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Qoder real foreground and background task frames survive folding without invented identity 1`] = `
+[
+  {
+    "description": "OAR_TASK_FOREGROUND",
+    "kind": "task_started",
+    "nativeType": "local_agent",
+    "taskId": "a34006fbf270f12e6",
+    "taskType": "agent",
+    "toolCallId": "call_00_xIke7I9RRtBdieRh82OJ1321",
+  },
+  {
+    "kind": "task_ended",
+    "outputFile": "[task-output]",
+    "status": "stopped",
+    "summary": "OAR_TASK_FOREGROUND",
+    "taskId": "a34006fbf270f12e6",
+  },
+  {
+    "kind": "task_ended",
+    "status": "stopped",
+    "summary": "OAR_TASK_FOREGROUND",
+    "taskId": "a34006fbf270f12e6",
+  },
+  {
+    "kind": "task_updated",
+    "status": "stopped",
+    "taskId": "a34006fbf270f12e6",
+  },
+  {
+    "description": "OAR_TASK_PEER",
+    "kind": "task_started",
+    "nativeType": "local_agent",
+    "taskId": "a1e6838b68ddad7e5",
+    "taskType": "agent",
+    "toolCallId": "call_01_ZEBBXmezgTQv14xxU7ix4408",
+  },
+  {
+    "description": "OAR_TASK_TARGET",
+    "kind": "task_started",
+    "nativeType": "local_agent",
+    "taskId": "a592c37246c8dce1e",
+    "taskType": "agent",
+    "toolCallId": "call_00_jSNe0c0qdhZtyvPPXTLF1409",
+  },
+  {
+    "kind": "task_updated",
+    "status": "stopped",
+    "taskId": "a592c37246c8dce1e",
+  },
+  {
+    "kind": "task_ended",
+    "outputFile": "[task-output]",
+    "status": "stopped",
+    "summary": "OAR_TASK_TARGET",
+    "taskId": "a592c37246c8dce1e",
+  },
+  {
+    "description": "Sleep 8 seconds then print marker",
+    "kind": "task_updated",
+    "taskId": "a1e6838b68ddad7e5",
+  },
+  {
+    "kind": "task_updated",
+    "status": "completed",
+    "taskId": "a1e6838b68ddad7e5",
+  },
+  {
+    "kind": "task_ended",
+    "outputFile": "[task-output]",
+    "status": "completed",
+    "summary": "Agent "OAR_TASK_PEER" finished",
+    "taskId": "a1e6838b68ddad7e5",
+  },
+]
+`;

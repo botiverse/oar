@@ -969,3 +969,16 @@ Installation, model listing, usage and MCP inventory queries accept the
 session-style `env` overlay. Discovery uses its installation directory
 variables and home fallback; native ACP queries use the same environment.
 See [reader environments](../spec/orientation.md#environment).
+
+## Native task control
+
+The parent's `_x.ai/session_notification` stream reports
+`subagent_spawned` and `subagent_finished`; OAR maps these to `task_started`
+and `task_ended`, keyed by `subagent_id`, without moving them onto the child
+envelope. A start retains explicit `child_session_id`, type and description.
+The existing graph and token ownership rules are unchanged. Grok 1.0.77
+continued a child model call after a `session/cancel` notification named that
+child, so `stopTask` is absent. Cancellation of the parent is a different
+operation and is not used as a substitute.
+
+[Native evidence and reproducible probes](../../experiments/task-controls/README.md).

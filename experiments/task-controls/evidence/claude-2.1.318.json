@@ -1,0 +1,156 @@
+{
+  "version": "2.1.318 (Claude Code)",
+  "stop": {
+    "type": "control_response",
+    "response": {
+      "subtype": "success",
+      "request_id": "task-probe-2",
+      "response": {}
+    }
+  },
+  "targetEnd": {
+    "type": "system",
+    "subtype": "task_notification",
+    "task_id": "bwyemwszf",
+    "run_id": "0mw4lyhxa-b6029856",
+    "tool_use_id": "task_a",
+    "status": "stopped",
+    "output_file": "[task-output]",
+    "summary": "TASK_A",
+    "uuid": "966da386-cb75-487e-8a14-3eec5e023afd",
+    "session_id": "35b84e78-2503-4e0d-8fbd-620386316dae"
+  },
+  "peerEnd": {
+    "type": "system",
+    "subtype": "task_notification",
+    "task_id": "btlst80ej",
+    "run_id": "0mw4lyhxp-a3aff7fe",
+    "tool_use_id": "task_b",
+    "status": "completed",
+    "output_file": "[task-output]",
+    "summary": "Background command \"TASK_B\" completed (exit code 0)",
+    "uuid": "58d59647-b20d-417c-8a2f-77e3e8abd3fc",
+    "session_id": "35b84e78-2503-4e0d-8fbd-620386316dae"
+  },
+  "unknown": {
+    "type": "control_response",
+    "response": {
+      "subtype": "success",
+      "request_id": "task-probe-3",
+      "response": {}
+    }
+  },
+  "parentResult": {
+    "duration_api_ms": 155,
+    "stop_reason": "end_turn",
+    "session_id": "35b84e78-2503-4e0d-8fbd-620386316dae",
+    "total_cost_usd": 0,
+    "usage": {
+      "input_tokens": 0,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "output_tokens": 0,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "server_tool_use": {
+        "web_search_requests": 0,
+        "web_fetch_requests": 0
+      },
+      "service_tier": "standard",
+      "cache_creation": {
+        "ephemeral_1h_input_tokens": 0,
+        "ephemeral_5m_input_tokens": 0
+      },
+      "inference_geo": "",
+      "iterations": [],
+      "speed": "standard",
+      "fallback_credit": null
+    },
+    "modelUsage": {
+      "claude-haiku-5-5": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "cacheReadInputTokens": 0,
+        "cacheCreationInputTokens": 0,
+        "webSearchRequests": 0,
+        "costUSD": 0,
+        "contextWindow": 1000000,
+        "maxOutputTokens": 128000,
+        "thinkingTokens": 0,
+        "cacheCreationEphemeral5mInputTokens": 0,
+        "cacheCreationEphemeral1hInputTokens": 0,
+        "canonicalModel": "claude-haiku-5-5",
+        "provider": "firstParty",
+        "costBasis": "list"
+      }
+    },
+    "permission_denials": [],
+    "terminal_reason": "completed",
+    "fast_mode_state": "off",
+    "fast_mode_disabled_reason": "sdk_opt_in_required",
+    "origin": {
+      "kind": "task-notification",
+      "producer": "session-task",
+      "runId": "0mw4lyhxp-a3aff7fe"
+    },
+    "subagent_stats": {
+      "spawned": 0,
+      "requested": {
+        "background": 0,
+        "foreground": 0,
+        "unset": 0
+      },
+      "started_in_background": 0,
+      "max_depth": 0,
+      "spawned_by_subagents": 0,
+      "completed": 0,
+      "failed": 0,
+      "killed": {
+        "parent": 0,
+        "user": 0,
+        "system": 0
+      },
+      "refused": {
+        "depth_limit": 0,
+        "concurrency_limit": 0,
+        "budget": 0
+      },
+      "by_type": {}
+    },
+    "safety_stops": 0,
+    "is_error": false,
+    "num_turns": 1,
+    "subtype": "success",
+    "api_error_status": null,
+    "result": "PARENT_OK",
+    "ttft_ms": 49,
+    "type": "result",
+    "duration_ms": 61,
+    "uuid": "2db40c18-d843-4963-a766-29b39ba72686",
+    "ttft_stream_ms": 43,
+    "time_to_request_ms": 38,
+    "first_content_frame_ms": 44,
+    "queued_turn_count": 0,
+    "result_index": 1,
+    "model_usage_since_last_result": {
+      "claude-haiku-5-5": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "cacheReadInputTokens": 0,
+        "cacheCreationInputTokens": 0,
+        "webSearchRequests": 0,
+        "costUSD": 0,
+        "contextWindow": 1000000,
+        "maxOutputTokens": 128000,
+        "thinkingTokens": 0,
+        "cacheCreationEphemeral5mInputTokens": 0,
+        "cacheCreationEphemeral1hInputTokens": 0,
+        "canonicalModel": "claude-haiku-5-5",
+        "provider": "firstParty",
+        "costBasis": "list"
+      }
+    }
+  },
+  "calls": 3
+}

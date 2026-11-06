@@ -63,7 +63,7 @@ export function sealSession(adapterSession: AdapterSession): Session {
   // A session that cannot steer (or withdraw) has no `steer` (`withdraw`): its
   // absence is the capability. Where the adapter has one, the sealed member
   // below replaces it in the spread.
-  const adapterFace: Omit<AdapterSession, "steer" | "withdraw" | "goal"> = adapterSession;
+  const adapterFace: Omit<AdapterSession, "steer" | "withdraw" | "goal" | "stopTask"> = adapterSession;
   const adapterSteer = adapterSession.steer?.bind(adapterSession);
   const steer = adapterSteer === undefined
     ? undefined
@@ -75,6 +75,9 @@ export function sealSession(adapterSession: AdapterSession): Session {
   const withdraw = adapterWithdraw === undefined
     ? undefined
     : async (inputId: string): Promise<ControlOutcome> => controlOutcomeOf(await adapterWithdraw(inputId));
+  const adapterStopTask = adapterSession.stopTask?.bind(adapterSession);
+  const stopTask = adapterStopTask === undefined ? undefined
+    : async (taskId: string): Promise<ControlOutcome> => controlOutcomeOf(await adapterStopTask(taskId));
   const abort = async (): Promise<ControlOutcome> => controlOutcomeOf(await adapterSession.abort());
   const steerOrQueue = async (input: string, options?: InputOptions): Promise<SteerOrQueueResult> => {
     const identified = identify(options);
@@ -102,6 +105,7 @@ export function sealSession(adapterSession: AdapterSession): Session {
     ...(steer === undefined ? {} : { steer }),
     queue,
     ...(withdraw === undefined ? {} : { withdraw }),
+    ...(stopTask === undefined ? {} : { stopTask }),
     abort,
     events: (observer, options = {}) => {
       const coalesce = options.coalesceText ?? false;

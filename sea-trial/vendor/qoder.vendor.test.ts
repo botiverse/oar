@@ -25,6 +25,16 @@ async function turn(session: Session, input = "hello") {
 }
 
 describe.skipIf(process.env.OAR_TEST !== "qoder-native")("Qoder native model replay", () => {
+  test("an unknown task gets a native acknowledgement without inventing a task", async () => {
+    const env = await qoderFixture([]);
+    const session = await open(env);
+    try {
+      expect(await session.stopTask?.("missing-task")).toMatchObject({ kind: "accepted", response: { body: { native: { type: "control_response", response: { subtype: "success" } } } } });
+      expect(session.records().flatMap(record => record.kind === "frame" ? record.body.events.filter(event => event.kind.startsWith("task_")) : [])).toEqual([]);
+      expect(session.status().value.kind).toBe("idle");
+    } finally { await session.dispose(); }
+  }, 45_000);
+
   test("startup idle, consecutive prompts and current-open usage survive resume", async () => {
     const env = await qoderFixture([{ text: "one", input: 100, output: 10 }, { text: "two", input: 200, output: 20 }]);
     const session = await open(env);

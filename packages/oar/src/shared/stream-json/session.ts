@@ -1,3 +1,4 @@
+import { streamJsonTaskControl } from "./task-control.js";
 import { streamJsonCompaction } from "./compaction.js";
 /* oxlint-disable import/max-dependencies -- The driver composes protocol, input and process-lifetime mechanisms. */
 import type { ControlResult, InputOptions, RequestRecord, Session } from "../../contracts/session.js";
@@ -11,18 +12,9 @@ import type { LineProcess } from "../executable/index.js";
 import type { CancellationObservation } from "../executable/process-cancellation.js";
 import { streamJsonUserMessage, streamJsonPrompted } from "./input-lifecycle.js";
 import { foldStreamJsonStdout } from "./projection.js";
-import { streamJsonAbortRequested, type StreamJsonProjectionState } from "./state.js";
+import { streamJsonAbortRequested, type StreamJsonProjectionState, type StreamJsonSessionState } from "./state.js";
 import type { StreamJsonSessionProfile } from "./profile.js";
 
-interface StreamJsonSessionState<S extends StreamJsonProjectionState> {
-  child: LineProcess;
-  /** The prompt request whose turn is running; null while idle. Spontaneous turns (a drained queue message) run with no request. */
-  active: RequestRecord | null;
-  /** True while the runtime is executing a turn we did not prompt (queue drain or task notification). */
-  spontaneous: boolean;
-  projection: S;
-  disposed: boolean;
-}
 /** Shared line protocol driver. A runtime launches its own process and supplies its own readbacks. */
 export async function streamJsonSession<S extends StreamJsonProjectionState>(
   child: LineProcess,
@@ -31,6 +23,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
   profile: StreamJsonSessionProfile<S>,
 ): Promise<Session> {
   const kernel = credentials.kernel(sessionId);
+  const tasks = profile.stopTask === undefined ? undefined : streamJsonTaskControl(kernel, child, profile.stopTask);
   const userMessage = profile.userMessage ?? streamJsonUserMessage;
   const state: StreamJsonSessionState<S> = { child, active: null, spontaneous: false, projection: profile.initial, disposed: false };
   // Hold queues until turn end; active-turn writes may steer or become an irreversible native queue.
@@ -77,7 +70,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
     if (message.type === "system" && message.subtype === "init" && typeof message.parent_tool_use_id !== "string" && Array.isArray(message.capabilities)) {
       canCancelQueued = profile.cancelQueuedCapability !== undefined && message.capabilities.includes(profile.cancelQueuedCapability);
     }
-    if (profile.consume(message)) { return; }
+    if (tasks?.consume(message) === true || profile.consume(message)) { return; }
     const { state: nextProjection, commands } = foldStreamJsonStdout(profile.projection, state.projection, message);
     state.projection = nextProjection;
     if (message.type === "command_lifecycle" && message.state === "queued" && typeof message.command_uuid === "string") {
@@ -165,6 +158,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
       pendingInterrupts.delete(requestId);
       kernel.respond(requestId, { kind: "rejected", code: "runtime_exited", reason: "runtime exited" });
     }
+    tasks?.end();
     profile.exited(code);
   });
   try {
@@ -176,6 +170,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
     id: kernel.sessionId,
     capabilities,
     ...(compaction === null ? {} : { compact: compaction.compact }),
+    ...(tasks === undefined ? {} : { stopTask: tasks.stop }),
     prompt: async (input, inputOptions?: InputOptions): Promise<ControlResult> => {
       if (observingCancellation !== null) { await waitForCancellation(); }
       const body = { kind: "prompt" as const, input, ...inputOptions };
@@ -286,6 +281,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
       profile.disposing();
       const gone = kernel.unreachable() !== null; // only an observed exit can say so before this dispose is recorded
       disposeRequest = kernel.request("toRuntime", { kind: "dispose" });
+      tasks?.end();
       if (gone) {
         // The exit is already recorded; nothing is left to release.
         kernel.respond(disposeRequest.id, { kind: "accepted" });
