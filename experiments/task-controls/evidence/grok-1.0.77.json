@@ -1,0 +1,104 @@
+{
+  "version": "grok 1.0.77 (50ca579fa996) [stable]",
+  "targetEnd": {
+    "sessionUpdate": "subagent_finished",
+    "subagent_id": "01a1af9f-8c09-7e10-8341-f2de7cc75650",
+    "attempt_id": "at1.289cffe14d474df29f6b34d1661b9d0d",
+    "child_session_id": "01a1af9f-8c09-7e10-8341-f2de7cc75650",
+    "status": "completed",
+    "tool_calls": 0,
+    "turns": 1,
+    "duration_ms": 15218,
+    "tokens_used": 1075,
+    "output": "CHILD_A_DONE",
+    "will_wake": true
+  },
+  "peerEnd": {
+    "sessionUpdate": "subagent_finished",
+    "subagent_id": "01a1af9f-8c14-7ca0-9e08-74c7c6771164",
+    "attempt_id": "at1.b06dc1084a264dfe93e14c485058e52f",
+    "child_session_id": "01a1af9f-8c14-7ca0-9e08-74c7c6771164",
+    "status": "completed",
+    "tool_calls": 0,
+    "turns": 1,
+    "duration_ms": 4220,
+    "tokens_used": 1075,
+    "output": "CHILD_B_DONE",
+    "will_wake": true
+  },
+  "parent": {
+    "stopReason": "end_turn",
+    "_meta": {
+      "sessionId": "01a1af9f-8aee-70d2-8e23-85002ae26692",
+      "requestId": "7382c077-9dda-4462-bcd2-c0166d899793",
+      "promptId": "7382c077-9dda-4462-bcd2-c0166d899793",
+      "totalTokens": 2066,
+      "modelId": "aimock-model",
+      "inputTokens": 2063,
+      "outputTokens": 3,
+      "cachedReadTokens": 0,
+      "reasoningTokens": 0,
+      "usage": {
+        "inputTokens": 6005,
+        "outputTokens": 43,
+        "totalTokens": 6048,
+        "cachedReadTokens": 0,
+        "cacheCreationTokens": 0,
+        "reasoningTokens": 0,
+        "modelCalls": 3,
+        "apiDurationMs": 25,
+        "modelUsage": {
+          "aimock-model": {
+            "inputTokens": 6005,
+            "outputTokens": 43,
+            "totalTokens": 6048,
+            "cachedReadTokens": 0,
+            "cacheCreationTokens": 0,
+            "reasoningTokens": 0,
+            "modelCalls": 3,
+            "apiDurationMs": 25
+          }
+        },
+        "numTurns": 3,
+        "usageIsIncomplete": true
+      }
+    }
+  },
+  "followup": {
+    "stopReason": "end_turn",
+    "_meta": {
+      "sessionId": "01a1af9f-8aee-70d2-8e23-85002ae26692",
+      "requestId": "c8ecaeda-7b8e-4391-9079-bea946ff4e62",
+      "promptId": "c8ecaeda-7b8e-4391-9079-bea946ff4e62",
+      "totalTokens": 2401,
+      "modelId": "aimock-model",
+      "inputTokens": 2398,
+      "outputTokens": 3,
+      "cachedReadTokens": 0,
+      "reasoningTokens": 0,
+      "usage": {
+        "inputTokens": 2398,
+        "outputTokens": 3,
+        "totalTokens": 2401,
+        "cachedReadTokens": 0,
+        "cacheCreationTokens": 0,
+        "reasoningTokens": 0,
+        "modelCalls": 1,
+        "apiDurationMs": 7,
+        "modelUsage": {
+          "aimock-model": {
+            "inputTokens": 2398,
+            "outputTokens": 3,
+            "totalTokens": 2401,
+            "cachedReadTokens": 0,
+            "cacheCreationTokens": 0,
+            "reasoningTokens": 0,
+            "modelCalls": 1,
+            "apiDurationMs": 7
+          }
+        },
+        "numTurns": 1
+      }
+    }
+  }
+}

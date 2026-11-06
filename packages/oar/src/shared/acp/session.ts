@@ -102,7 +102,7 @@ export function createAcpSessionState(profile: AcpSessionProfile, options: Sessi
   const tokenUsage = createAcpTokenUsage(profile);
   const opening = createAcpOpening();
   const configUpdates = createAcpConfigUpdates();
-  const recorder = createAcpRecorder(usageGate, profile.attributeUpdate, tokenUsage, associations, profile.projectUpdate);
+  const recorder = createAcpRecorder(usageGate, profile.attributeUpdate, tokenUsage, associations, profile.projectUpdate, profile.projectExtension);
   const hooks: AcpClientHooks = {
     update: (notification, receivedAt) => {
       recorder.update(notification, receivedAt);

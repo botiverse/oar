@@ -56,6 +56,7 @@ test("optional notice details do not add empty punctuation", () => {
 });
 
 const actions = {
+  stop_task: ["stop_task", "Stop task rejected: native refusal"],
   compact: ["compact", "Compact rejected: native refusal"],
   goal_set: ["goal_set", "Set goal rejected: native refusal"], goal_read: ["goal_read", "Read goal rejected: native refusal"], goal_clear: ["goal_clear", "Clear goal rejected: native refusal"],
   prompt: ["prompt", "Prompt rejected: native refusal"], steer: ["steer", "Steer rejected: native refusal"], queue: ["queue", "Queue rejected: native refusal"],

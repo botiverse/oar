@@ -46,7 +46,6 @@ export interface Frame extends RecordEnvelope {
   readonly kind: "frame";
   readonly body: FrameBody;
 }
-
 export type RequestDirection = "toRuntime" | "toApp";
 
 /** An action record that expects an outcome. `toRuntime`: prompt / steer / queue / withdraw / abort / dispose, issued through this Session. `toApp`: the runtime asking the application something (approval, question, external tool), body verbatim. */
@@ -195,7 +194,7 @@ export type RuntimeEventBody =
   | { readonly kind: "app_request_cancelled"; readonly requestId: string };
 
 /** The toRuntime control actions a Session issues. */
-export type ControlAction = "prompt" | "steer" | "queue" | "withdraw" | "abort" | "dispose" | "compact" | "goal_set" | "goal_read" | "goal_clear";
+export type ControlAction = "prompt" | "steer" | "queue" | "withdraw" | "stop_task" | "abort" | "dispose" | "compact" | "goal_set" | "goal_read" | "goal_clear";
 
 /**
  * Event kinds read off request and response records, so a consumer of
@@ -244,6 +243,7 @@ export type RequestBody =
   | { readonly kind: "queue"; readonly inputId?: string; readonly input: string; readonly images?: readonly InputImage[]; readonly origin?: InputOrigin }
   /** Take back the held input `inputId` (an earlier queue request's) before it is sent. The queue request and its response are never changed. */
   | { readonly kind: "withdraw"; readonly inputId: string }
+  | { readonly kind: "stop_task"; readonly taskId: string }
   | { readonly kind: "abort" }
   | { readonly kind: "dispose" }
   /** A runtime→app request, verbatim; `type` is the runtime's method/subtype. */

@@ -80,6 +80,7 @@ test("errors from later session methods use the same redactor", async () => {
       prompt: async () => { throw new Error(secret, { cause: { detail: secret } }); },
       // oxlint-disable-next-line typescript/only-throw-error -- Native APIs can throw a string; exercise that error boundary too.
       queue: async () => { throw secret; },
+      stopTask: async () => { throw new Error(secret, { cause: { detail: secret } }); },
       abort: async () => kernel.control({ kind: "abort" }, () => ({ kind: "accepted" })),
       dispose: async () => { throw new Error(secret); },
       rawEvents: (observer, cursor) => kernel.rawEvents(observer, cursor),
@@ -90,6 +91,7 @@ test("errors from later session methods use the same redactor", async () => {
   const session = await open({ kind: "available", via: "bundled" }, { cwd: "/work", env: { API_KEY: secret } });
   await expect(session.prompt("hello")).rejects.toMatchObject({ message: "[redacted]", cause: { detail: "[redacted]" } });
   await expect(session.queue("hello")).rejects.toBe("[redacted]");
+  await expect(session.stopTask?.("child")).rejects.toMatchObject({ message: "[redacted]", cause: { detail: "[redacted]" } });
   await expect(session.dispose()).rejects.toThrow("[redacted]");
 });
 

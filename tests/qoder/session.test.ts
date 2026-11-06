@@ -11,14 +11,20 @@ vi.mock("../../packages/oar/src/runtimes/qoder/auth-status.js", () => ({ qoderAu
 afterEach(() => { vi.useRealTimers(); vi.clearAllMocks(); });
 
 const privateData = { email: "private@example.invalid", username: "private-user", org_id: "private-org", access_token: "fixture-private-token" };
+function privateControlPayload(subtype: unknown) {
+  if (subtype === "stop_task") { return {}; }
+  if (subtype === "get_settings") {
+    return { sources: { user: privateData }, effective: privateData, applied: { effort: "high", ...privateData } };
+  }
+  return privateData;
+}
 function privateControlProcess() {
   const child = fakeLineProcess((line, process) => {
     const request = asRecord(parseJson(line));
     if (asRecord(request?.request)?.subtype === "initialize") {
       process.emit(`${JSON.stringify({ type: "system", subtype: "init", model: "efficient" })}\n`);
     }
-    const payload = asRecord(request?.request)?.subtype === "get_settings"
-      ? { sources: { user: privateData }, effective: privateData, applied: { effort: "high", ...privateData } } : privateData;
+    const payload = privateControlPayload(asRecord(request?.request)?.subtype);
     process.emit(`${JSON.stringify({ type: "control_response", response: { subtype: "success", request_id: request?.request_id, response: payload } })}\n`);
   });
   launch.launchQoder.mockResolvedValue(Object.assign(child, { qoderVersion: "1.1.78" }));
@@ -29,6 +35,9 @@ function expectPrivateDataAbsent(records: string) {
   for (const value of Object.values(privateData)) { expect(records).not.toContain(value); }
   expect(records).not.toContain('"email"');
   expect(records).not.toContain('"org_id"');
+}
+function expectTaskStopRequest(line: string | undefined) {
+  expect(asRecord(parseJson(line ?? ""))?.request).toEqual({ subtype: "stop_task", task_id: "native-task" });
 }
 
 test("private initialize and settings, including repeated responses, never expose account or configuration", async () => {
@@ -246,4 +255,17 @@ test("native startup refusal retains the requested effort without blaming the ef
   launch.closeQoder.mockImplementation(async () => { child.end(0); await child.exited; });
   await expect(qoderSession(installation, { cwd: "/work", effort: "oar-no-such-effort" })).rejects.toThrow('Qoder startup failed (requested effort "oar-no-such-effort"): Error: Qoder refused initialize');
   expect(launch.closeQoder).toHaveBeenCalledWith(child);
+});
+
+test("Qoder task stop uses its native control while task notifications stay public", async () => {
+  const child = privateControlProcess();
+  const session = await qoderSession({ kind: "available", via: "executable", command: "fixture", version: "1.1.78" }, { cwd: "/work" });
+  try {
+    expect(await session.stopTask?.("native-task")).toMatchObject({ kind: "accepted", request: { body: { kind: "stop_task", taskId: "native-task" } } });
+    expectTaskStopRequest(child.written.at(-1));
+    child.emit(`${JSON.stringify({ type: "system", subtype: "task_notification", task_id: "native-task", status: "stopped" })}\n`);
+    expect(session.records().at(-1)).toMatchObject({ kind: "frame", body: { events: [{ kind: "task_ended", taskId: "native-task", status: "stopped" }] } });
+    expect(child.killed()).toBe(false);
+    expectPrivateDataAbsent(JSON.stringify(session.records()));
+  } finally { await session.dispose(); }
 });

@@ -102,6 +102,35 @@ and the subagents it started itself. Crew rows belong to the host, not to a
 session, so their `sessionId` is empty; `childSessionId` names the
 subagent's own session.
 
+### Native single-task stop
+
+`Session.stopTask?(taskId)` is an optional control for tasks owned by the
+runtime. Pass the native `taskId` from its task event. It records a
+`stop_task {taskId}` request and returns a `ControlOutcome`; accepted means
+the native stop request was acknowledged. It does not manufacture
+`task_ended`, abort the parent, clear its queue, or dispose the session.
+Observe native task events for completion. A runtime without a verified
+single-task control has no member.
+
+Claude and Qoder send their native `control_request/stop_task`. The reply
+is retained in the response; an unanswered request rejects after 30 seconds
+without killing the runtime, and a late reply remains a raw frame. Claude
+can acknowledge an unknown ID, so acceptance does not even prove that a
+task existed. Native rejection remains `runtime_refused`.
+
+Codex sends `turn/interrupt` for the observed current turn of a known
+child thread, including descendants. The root and unrelated IDs are
+rejected `unsupported`; a child with no observed active turn is rejected
+`no_active_turn`. Interruption of a child turn is not a task-ending fact:
+the same child can accept a later native `followup_task`. OAR preserves its
+`turn/completed` frame under the child, without deriving `task_ended` from
+it. Only native parent `subAgentActivity` reports change the task row.
+
+Grok child `session/cancel` did not stop the child in the native control,
+so Grok has no `stopTask`. Qwen reports native task lifecycle but no verified
+host single-task control. The model's `task_stop` tool is not such a host
+control. [Native controls and limits](../../experiments/task-controls/README.md).
+
 ## Limits and policy
 
 The library is mechanism; the host chooses the policy.

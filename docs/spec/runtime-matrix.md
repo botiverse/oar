@@ -84,7 +84,7 @@ accepted. See each [runtime page](../runtimes/README.md) for native evidence.
 
 ## Session controls
 
-`prompt`, `queue` and `abort` are on every session. `steer` and `withdraw`
+`prompt`, `queue` and `abort` are on every session. `steer`, `withdraw` and `stopTask`
 are members a session may lack: a control the runtime cannot do is an
 absent member, never a request that is always rejected
 ([record stream](record-stream.md#the-rules)). Where `queue.durable` is
@@ -106,6 +106,21 @@ false, the adapter holds queued input in this process.
 | antigravity (CLI ACP) | yes | yes | no |
 | opencode v1 (ACP) | yes: a plain prompt RPC mid-turn, which joins the running loop at its next step; both prompts are answered at idle | yes | no |
 | opencode v2 (ACP) | absent: concurrent native prompts are refused; `steerOrQueue` and `deliver` use the host queue | yes | no |
+
+### Native tasks and single-task stop
+
+| Runtime | Native task lifecycle | `stopTask(taskId)` |
+| --- | --- | --- |
+| Claude | `system/task_started`, patches, changed progress descriptions, notifications | Native `stop_task`; acceptance is not an end. |
+| Codex | Parent `subAgentActivity` items | Interrupt the known child's active turn; no parent abort or synthesized task ending. |
+| Qoder | Native task starts, patches, progress and notifications | Native `stop_task`, verified on 1.1.83 foreground/background agents. |
+| Grok | Parent `subagent_spawned` / `subagent_finished` | Absent: child `session/cancel` left its work running on 1.0.77. |
+| Qwen | `system/task_started` / `task_notification` with nested `data`, verified on 0.26.8 | Absent: no verified host single-task control. |
+| Other runtimes | Existing runtime-specific observations only | Absent. |
+
+The [contract](subagents.md#native-single-task-stop) distinguishes native
+acknowledgement from completion. [Evidence](../../experiments/task-controls/README.md)
+is version-specific and does not establish every native task type or platform.
 
 ### What `abort` stops
 

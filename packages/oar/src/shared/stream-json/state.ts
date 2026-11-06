@@ -1,3 +1,5 @@
+import type { LineProcess } from "../executable/index.js";
+import type { RequestRecord } from "../../contracts/session.js";
 import type { StreamJsonPartials } from "./content.js";
 
 /** Protocol bookkeeping only; each runtime adds its own usage, failure and readback state. */
@@ -38,4 +40,14 @@ export const initialStreamJsonProjection: StreamJsonProjectionState = {
 
 export function streamJsonAbortRequested<S extends StreamJsonProjectionState>(state: S): S {
   return { ...state, abortRequested: true };
+}
+
+export interface StreamJsonSessionState<S extends StreamJsonProjectionState> {
+  child: LineProcess;
+  /** The prompt request whose turn is running; null while idle. Spontaneous turns (a drained queue message) run with no request. */
+  active: RequestRecord | null;
+  /** True while the runtime is executing a turn we did not prompt (queue drain or task notification). */
+  spontaneous: boolean;
+  projection: S;
+  disposed: boolean;
 }

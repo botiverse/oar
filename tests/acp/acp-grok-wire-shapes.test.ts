@@ -1,3 +1,4 @@
+/* oxlint-disable import/max-dependencies -- Native Grok projection and shared ACP attribution are checked together. */
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { Frame, RawEvent } from "../../packages/oar/src/contracts/session.js";
@@ -8,6 +9,7 @@ import {
   grokPromptTokens,
 } from "../../packages/oar/src/runtimes/grok/session.js";
 import { createAcpProjectionState, projectAcpUpdate } from "../../packages/oar/src/shared/acp/projection.js";
+import { grokTaskViews } from "../../packages/oar/src/runtimes/grok/tasks.js";
 import { acpLineageOf } from "../../packages/oar/src/shared/acp/records.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { describe, start } from "../fixtures/acp-session-support.js";
@@ -113,6 +115,7 @@ test("grok bash end: output is the content block's text, not the rawOutput byte 
 });
 
 const grokProfile = {
+  projectExtension: grokTaskViews,
   extensionNotifications: GROK_EXTENSION_NOTIFICATIONS,
   promptContextUsage: grokContextUsage,
   promptTokenUsage: grokPromptTokens,
@@ -135,8 +138,13 @@ test("a grok child session gets its graph edge from the vendor session_notificat
   );
   for (const record of vendor) {
     assert.ok(record.kind === "frame");
-    assert.deepEqual(record.body.events, record === lifecycle[0] ? [{ kind: "session_linked", parent: "fake-session", child: "fake-child-grok", via: "tool_call" }] : []);
+    assert.deepEqual(record.body.events, [...(record === lifecycle[0] ? [{ kind: "session_linked", parent: "fake-session", child: "fake-child-grok", via: "tool_call" }] : []), ...grokTaskViews(record.body.type, asRecord(record.body.native) ?? {})]);
   }
+  assert.equal(Object.hasOwn(session, "stopTask"), false);
+  assert.deepEqual(lifecycle.flatMap(record => record.kind === "frame" ? record.body.events.filter(event => event.kind.startsWith("task_")) : []), [
+    { kind: "task_started", taskId: "fake-child-grok", taskType: "agent", nativeType: "general-purpose", description: "Echo", childSessionId: "fake-child-grok" },
+    { kind: "task_ended", taskId: "fake-child-grok", status: "completed" },
+  ]);
   const [spawned] = lifecycle;
   assert.ok(spawned?.kind === "frame");
   assert.deepEqual(spawned.body.native, {

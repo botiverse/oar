@@ -7,7 +7,7 @@
  */
 export type TaskType = "shell" | "agent" | "tool" | "workflow" | "other";
 
-/** A task's state as the runtime reports it; claude's `killed` reads as `stopped`. */
+/** A task's state as the runtime reports it; Claude/Qoder `killed` reads as `stopped`. */
 export type TaskStatus = "pending" | "running" | "paused" | "completed" | "failed" | "stopped";
 
 export type TaskEventBody =
@@ -45,7 +45,7 @@ export type TaskEventBody =
     }
   /**
    * The runtime's report that a task settled (claude `task_notification`,
-   * codex `subAgentActivity` completed or interrupted). `outputFile` is where
+   * codex `subAgentActivity` completed or interrupted; Grok and Qwen native task notifications). `outputFile` is where
    * the runtime wrote the task's output, `summary` its own one-line account.
    * A codex subagent can take more work afterwards; a later `task_updated`
    * says so.

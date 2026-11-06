@@ -466,3 +466,20 @@ Installation and model listing accept the same `env` overlay as login and
 sessions. Model listing uses it for both auth status and the native catalog;
 installation fallbacks use the supplied home directory on each call. See
 [reader environments](../spec/orientation.md#environment).
+
+## Native task control
+
+Qoder 1.1.83 emits `system/task_started`, `task_updated.patch`, changed
+`task_progress.description`, and `task_notification`. OAR projects the three
+existing task events, reads `local_agent` as agent and `killed` as stopped,
+and preserves native duplicate notifications. It does not invent a background
+flag or child session ID. `stopTask(taskId)` sends native `stop_task`; only
+the task notification establishes completion, not the control success.
+
+A Free login with a DeepSeek pay-as-you-go custom model supplied the real
+foreground/background stop evidence. It was not a Qoder first-party plan.
+The target stopped and its peer completed. The probe's later parent prompt
+was not reliably correlated; an additional native error result lacked saved
+details. That outcome remains unconfirmed, not a claimed parent success.
+
+[Native evidence and reproducible probes](../../experiments/task-controls/README.md).

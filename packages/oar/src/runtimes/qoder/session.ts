@@ -48,6 +48,7 @@ export const qoderSession: StartSession = withSessionCredentials(async (installa
         responseTo: message => message.type === "command_lifecycle" && (message.state === "completed" || message.state === "cancelled") && typeof message.command_uuid === "string" ? message.command_uuid : undefined },
       projection: qoderProjectionProfile, initial: initialQoderProjection(),
       capabilities: { queue: { durable: false }, attribution: "attributed", images: false },
+      stopTask: (taskId) => ({ subtype: "stop_task", task_id: taskId }),
       steer: true, cancelQueuedCapability: "interrupt_cancel_queued_v1",
       userMessage: (text, inputId) => `${JSON.stringify({ type: "user", priority: "next", uuid: inputId ?? randomUUID(), session_id: sessionId,
         message: { role: "user", content: [{ type: "text", text }] } })}\n`,

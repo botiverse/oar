@@ -1,3 +1,4 @@
+import { grokTaskViews } from "./tasks.js";
 /* oxlint-disable import/max-dependencies -- Session profiles and assembly wire the native control, projection and lifecycle helpers. */
 import { refuseSessionOptions } from "../../shared/session-options.js";
 import { grokCompaction } from "./compaction.js";
@@ -143,6 +144,7 @@ export const GROK_EXTENSION_NOTIFICATIONS: readonly string[] = [
 ];
 
 export const grokAcpProfile: AcpSessionProfile = {
+  projectExtension: grokTaskViews,
   compaction: grokCompaction,
   args: ["agent", "--always-approve", "--no-leader", "stdio"],
   isResumeNotFound: (native) => asRecord(native.data)?.code === "FS_NOT_FOUND",

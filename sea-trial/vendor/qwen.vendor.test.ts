@@ -186,3 +186,26 @@ describe.skipIf(process.env.OAR_TEST !== "qwen-aimock")("Qwen stream-json 0.26.0
     } finally { await env.stop(); }
   }, 60_000);
 });
+
+// oxlint-disable-next-line eslint/max-statements -- Keep the native parent and child evidence together.
+test.skipIf(process.env.OAR_TEST !== "qwen-aimock")("native background task notifications project their own lifecycle only", async () => {
+  let calls = 0;
+  const env = await startQwenAimock(mock => {
+    mock.on({ predicate: () => true }, request => {
+      const user = JSON.stringify(request.messages.findLast(message => message.role === "user"));
+      if (user.includes("TASK_CHILD_QWEN")) { return { content: "QWEN_CHILD_DONE" }; }
+      calls += 1;
+      return calls === 1 ? { toolCalls: [{ id: "spawn", name: "agent", arguments: JSON.stringify({ subagent_type: "general-purpose", description: "Qwen native child", prompt: "TASK_CHILD_QWEN", run_in_background: true }) }] } : { content: "PARENT_OK" };
+    });
+  });
+  const session = await open(env);
+  try {
+    expect(await turn(session, "TASK_ROOT_QWEN")).toEqual({ kind: "completed" });
+    const facts = () => session.records().flatMap(record => record.kind === "frame" ? record.body.events.filter(event => event.kind.startsWith("task_")) : []);
+    await expect.poll(() => facts(), { timeout: 15_000 }).toEqual([
+      { kind: "task_started", taskId: "general-purpose-spawn", taskType: "agent", nativeType: "general-purpose", description: "Qwen native child", toolCallId: "spawn" },
+      { kind: "task_ended", taskId: "general-purpose-spawn", status: "completed" },
+    ]);
+    expect(Object.hasOwn(session, "stopTask")).toBe(false);
+  } finally { await session.dispose(); await env.stop(); }
+}, 60_000);
