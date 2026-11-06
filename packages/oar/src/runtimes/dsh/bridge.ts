@@ -70,8 +70,21 @@ export function apply(ctx, config) {
   }
   // Activation must not wait for the barrier it observes.
   void (async () => {
-    try { await loader.await(); boot(ctx, config); }
-    catch (error) { write({ type: "startup-error", error: structured(error) }); }
+    try {
+      await loader.await();
+      // The tree barrier uses allSettled. Each requested plugin must also
+      // report successful activation, or a missing server would be ignored.
+      for (const id of config?.mcpEntries ?? []) {
+        requireMethod(loader, "entries", "session MCP");
+        const fiber = [...loader.entries()].find((entry) => entry.options?.id === id)?.fiber;
+        requireMethod(fiber, "await", "session MCP");
+        await fiber.await();
+        // Cordis FiberState.ACTIVE is 2 in the native protocol we probe.
+        if (fiber.state !== 2) { throw refusal("mcp_inactive", "Requested MCP plugin is not active (native state " + fiber.state + ")", "session MCP"); }
+      }
+      boot(ctx, config);
+    }
+    catch (error) { const native = structured(error); write({ type: "startup-error", error: native, code: native.code, capability: native.capability }); }
   })();
 }
 

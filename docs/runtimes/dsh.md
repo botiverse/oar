@@ -169,7 +169,8 @@ id. A host prompt during that turn is `busy`, as with any spontaneous turn.
 ## Session options
 
 Supported: `cwd`, `resume`, `env`, `model` as `provider/model` (a bare name is
-refused at open: it has no route), `effort` as `reasoningEffort`.
+refused at open: it has no route), `effort` as `reasoningEffort`, and stdio
+`mcpServers` with command/args ([MCP details](#session-mcp-servers)).
 
 `DSH_PERMISSION_MODE` is `danger-full-access` unless the host names its own for this
 session in `SessionOptions.env`: nobody sits at an approval prompt, and native reports
@@ -177,7 +178,7 @@ session in `SessionOptions.env`: nobody sits at an approval prompt, and native r
 tools run and the native `permission/preset` frame is recorded.
 
 Refused with `UnsupportedOptionError`, each until its own probe:
-`systemPrompt`, `appendSystemPrompt`, `mcpServers`, `disallowedTools`, `launchArgs`,
+`systemPrompt`, `appendSystemPrompt`, `disallowedTools`, `launchArgs`,
 `serviceTier`, `additionalDirectories`, `outputSchema`, `name`,
 `userConfiguration: "exclude"`, `goals: true`, `endTurnProcessesOnAbort: true`. Images are not sent:
 `capabilities.images` is false and an input with images is rejected `unsupported`.
@@ -235,6 +236,42 @@ A first request on Windows carries a third user message, a `skill-catalog` syste
 reminder offering the bundled `diagnose-windows-sandbox-acl` skill (seen in the CI
 trace), after the input and the runtime context, which the fixture's `lastInput` now
 skips. DSH's shell tool there is `pwsh`, not `bash`.
+
+## Session MCP servers
+
+`SessionOptions.mcpServers` accepts stdio `command` and `args`. OAR adds one
+native `@deepseek-ai/dsh-mcp-client` loader row per server to its private
+invocation patch. Each OAR session owns that process, so these rows do not
+modify the user's profile or attach to another OAR session. `cwd` is the
+session directory; arguments go directly to the native transport, without a
+shell. Tools have native names such as `mcp__echo__echo`.
+
+Native loading is verified before open: `loader.await()` alone settles even
+when an individual plugin failed. The bridge then finds each requested row
+through `loader.entries()`, awaits its fiber and requires native ACTIVE state.
+A missing method, failed server or inactive plugin refuses the open. The check
+uses native `FiberState.ACTIVE = 2`, measured by the linked MCP probe. If DSH
+changes that enum, MCP opens will be refused until the mapping is updated.
+The latest-version vendor probe covers this dependency. Existing
+user-configured servers remain; a namespace collision fails native activation
+instead of replacing the user's server. Names must match the native
+`[A-Za-z0-9_-]{1,32}` constraint; OAR refuses other names without renaming them.
+
+Supply the entries again on resume. A resumed process without them has no
+current tools from those entries, even though conversation history retains
+previous tool results. Native disposal and OAR's process owner close the MCP
+children. Failed startup also cleans up children that already started.
+
+HTTP entries and nonempty `env` or `headers` are refused before launch.
+`refusedSessionOptions.mcpServerCredentials` declares the credential refusal:
+DSH's persistence of those values has not been audited. This does not claim
+that DSH itself lacks these transports or configuration fields. Empty `env`
+is allowed. Persistence of command/args has not been audited either. Do not
+move tokens into `args`; this path is not a credential channel.
+
+[Native probe and regressions](../../experiments/dsh-mcp/README.md) cover
+loopback model calls, process identity/cwd/arguments, simultaneous sessions,
+configured servers, resume with supplied/omitted entries, failure and disposal.
 
 ## Open risks
 

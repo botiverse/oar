@@ -14,6 +14,7 @@ import { refuseSessionOptions } from "../../shared/session-options.js";
 import { withSessionCredentials, type SessionCredentials } from "../../shared/session-credentials.js";
 import { DshCommandError, dshControl, type DshControl } from "./control.js";
 import { dshEnvironment, dshExecutableRefusal, launchDsh } from "./launch.js";
+import { dshMcpRows } from "./mcp.js";
 import { dshAgentOptions, dshRefusedSessionOptions, type DshAgentOptions } from "./options.js";
 import { dshOpenedFrame, foldDsh, initialDshProjection } from "./projection.js";
 
@@ -28,6 +29,7 @@ function openFailure(error: unknown, sessionId: string, resuming: boolean): unkn
   }
   if (error.code === "native_method_unavailable") {
     if (error.capability === "confirming a reasoning effort") { return new UnsupportedOptionError("effort", error.message); }
+    if (error.capability === "session MCP") { return new UnsupportedOptionError("mcpServers", error.message); }
     if (error.capability === "confirming a model") { return new UnsupportedOptionError("model", error.message); }
     return resuming ? new UnsupportedOptionError("resume", error.message) : new RuntimeFailureError("invalid_request", error.message, { cause: error });
   }
@@ -69,12 +71,12 @@ function refusalOf(error: unknown): ResponseBody {
 
 const inputFields = (text: string, inputId: string | undefined): JsonRecord => ({ text, ...(inputId === undefined ? {} : { inputId }) });
 
-async function open(command: string, options: SessionOptions, env: NodeJS.ProcessEnv, credentials: SessionCredentials): Promise<Session> {
+async function open(command: string, options: SessionOptions, env: NodeJS.ProcessEnv, credentials: SessionCredentials, mcpRows: readonly JsonRecord[]): Promise<Session> {
   const sessionId = options.resume ?? randomUUID();
   const agentOptions = dshAgentOptions(options);
   const kernel = credentials.kernel(sessionId);
   let projection = initialDshProjection(sessionId);
-  const { child, directory } = await launchDsh(command, options.cwd, env);
+  const { child, directory } = await launchDsh(command, options.cwd, env, mcpRows);
   const fallback = createAbortFallback(() => { child.kill(); });
   const control = dshControl(child, (message) => {
     const { state, frame } = foldDsh(projection, message);
@@ -173,10 +175,11 @@ export const dshSession: StartSession = withSessionCredentials(async (installati
   refuseSessionOptions(dshRefusedSessionOptions, options);
   // Checked before spawning anything: both refusals name what they refuse.
   dshAgentOptions(options);
+  const mcpRows = dshMcpRows(options.mcpServers, options.cwd);
   if (installation.via !== "executable") { throw new Error("DSH requires its executable installation"); }
   const env = dshEnvironment(options.env);
   // A floor refusal names the real version, before anything starts.
   const refusal = await dshExecutableRefusal(installation.command, installation.version, env);
   if (refusal !== null) { throw new RuntimeFailureError("invalid_request", refusal); }
-  return open(installation.command, options, env, credentials);
+  return open(installation.command, options, env, credentials, mcpRows);
 });
