@@ -35,8 +35,9 @@ stderr text. The normal loader inventory remains the first successful frame.
 The user's patch stays byte-for-byte identical. DSH still creates ordinary
 profile files and writes session logs and caches. This is not a claim that
 `DSH_HOME` is untouched, nor an audit of credentials persisted by DSH. HTTP and
-nonempty MCP env/headers remain refused. Command/args are ordinary configuration
-and are retained as such; they are not a credential transport.
+nonempty MCP env/headers remain refused. Persistence of command/args has not
+been audited either. Do not move tokens into `args`; this path is not a
+credential transport.
 
 ## Reproduce
 

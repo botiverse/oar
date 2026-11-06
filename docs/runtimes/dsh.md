@@ -249,7 +249,10 @@ shell. Tools have native names such as `mcp__echo__echo`.
 Native loading is verified before open: `loader.await()` alone settles even
 when an individual plugin failed. The bridge then finds each requested row
 through `loader.entries()`, awaits its fiber and requires native ACTIVE state.
-A missing method, failed server or inactive plugin refuses the open. Existing
+A missing method, failed server or inactive plugin refuses the open. The check
+uses native `FiberState.ACTIVE = 2`, measured by the linked MCP probe. If DSH
+changes that enum, MCP opens will be refused until the mapping is updated.
+The latest-version vendor probe covers this dependency. Existing
 user-configured servers remain; a namespace collision fails native activation
 instead of replacing the user's server. Names must match the native
 `[A-Za-z0-9_-]{1,32}` constraint; OAR refuses other names without renaming them.
@@ -263,8 +266,8 @@ HTTP entries and nonempty `env` or `headers` are refused before launch.
 `refusedSessionOptions.mcpServerCredentials` declares the credential refusal:
 DSH's persistence of those values has not been audited. This does not claim
 that DSH itself lacks these transports or configuration fields. Empty `env`
-is allowed. Command/args are ordinary retained configuration, not a credential
-channel.
+is allowed. Persistence of command/args has not been audited either. Do not
+move tokens into `args`; this path is not a credential channel.
 
 [Native probe and regressions](../../experiments/dsh-mcp/README.md) cover
 loopback model calls, process identity/cwd/arguments, simultaneous sessions,
