@@ -5,6 +5,10 @@ the OpenCode delay before its first agent model request, and show where one
 successful Grok launch spent its time. They do not establish the causes of
 the earlier timeouts. No runtime, test or workflow time limit has changed.
 
+Later native-log results and the resulting fixture change are recorded in
+[OpenCode first-prompt snapshots](opencode-snapshot.md). The hypothesis and
+pending checks below describe the earlier observation, before those logs.
+
 ## OpenCode: the long wait precedes the agent request
 
 OpenCode 1.19.5 passed both new Windows observation jobs:

@@ -3,7 +3,7 @@ import type { LLMock } from "@copilotkit/aimock";
 import { describe, expect, test } from "vitest";
 import { claudeInstallation, claudeSession, codexInstallation, codexSession, defineRuntime, grokInstallation, grokSession, kimiInstallation, kimiSession, opencodeInstallation, opencodeSession, piInstallation, piSession, serveMcpTools, type HostTool, type Runtime } from "../../packages/oar/src/index.js";
 import { namespaceMcpToolCalls, startClaudeAimock, startCodexAimock, startPiAimock } from "../harness/aimock.js";
-import { startGrokAimock, startKimiAimock, startOpencodeAimock } from "../harness/aimock-acp.js";
+import { startOpencodeGitFixture, startGrokAimock, startKimiAimock } from "../harness/aimock-acp.js";
 import { runtimeUnderTest } from "../harness/subject.js";
 import { echoesReceived, echoFixtures, type EchoCall } from "./support/echo-mcp.js";
 import { structuralToolRound } from "./support/tool-round.js";
@@ -37,7 +37,7 @@ interface Backend {
   readonly runtime: Runtime;
   /** Whether the runtime hands the server's `instructions` to the model ([env] 2026-10-13: claude 2.1.292, codex 0.162.0, opencode 1.18.30, grok 1.0.50 do; pi 1.1.0 and kimi 2.1.1 do not). */
   readonly instructions: boolean;
-  readonly start: () => Promise<{ readonly env?: Readonly<Record<string, string>>; readonly mock: LLMock; readonly raw: Parameters<typeof echoesReceived>[0]; stop(): Promise<void> }>;
+  readonly start: () => Promise<{ readonly cwd?: string; readonly env?: Readonly<Record<string, string>>; readonly mock: LLMock; readonly raw: Parameters<typeof echoesReceived>[0]; stop(): Promise<void> }>;
 }
 
 const runtime = (id: string, session: Runtime["session"], installation: NonNullable<Runtime["installation"]>): Runtime => defineRuntime({ id, session, installation });
@@ -48,7 +48,7 @@ const backends: readonly Backend[] = [
   { id: "codex-aimock", runtime: runtime("codex-aimock", codexSession, codexInstallation), instructions: true, start: async () => startCodexAimock(script(), { captureRaw: true, rewriteResponse: namespaceMcpToolCalls }) },
   { id: "pi-aimock", runtime: runtime("pi-aimock", piSession, piInstallation), instructions: false, start: async () => startPiAimock(script(), { captureRaw: true }) },
   { id: "pi-rpc-aimock", runtime: piTestRuntime, instructions: false, start: async () => startPiAimock(script(), { captureRaw: true }) },
-  { id: "opencode-aimock", runtime: runtime("opencode-aimock", opencodeSession, opencodeInstallation), instructions: true, start: async () => startOpencodeAimock(script((server, text) => ({ name: `${server}_echo`, arguments: { text } }))) },
+  { id: "opencode-aimock", runtime: runtime("opencode-aimock", opencodeSession, opencodeInstallation), instructions: true, start: async () => startOpencodeGitFixture(script((server, text) => ({ name: `${server}_echo`, arguments: { text } }))) },
   { id: "kimi-aimock", runtime: runtime("kimi-aimock", kimiSession, kimiInstallation), instructions: false, start: async () => startKimiAimock(script()) },
   { id: "grok-aimock", runtime: runtime("grok-aimock", grokSession, grokInstallation), instructions: true, start: async () => startGrokAimock(script((server, text) => ({ name: "use_tool", arguments: { tool_name: `${server}__echo`, tool_input: { text } } }))) },
 ];
@@ -63,7 +63,7 @@ for (const backend of backends) {
         record({ kind: "served_mcp_progress", backend: backend.id, phase, providerRequests: env.raw.length });
       }, 10_000).unref() : undefined;
       try {
-        const session = await runtimeUnderTest(backend.runtime, env.env).startSession({ mcpServers: [served.server] });
+        const session = await runtimeUnderTest(backend.runtime, env.env, env.cwd).startSession({ mcpServers: [served.server] });
         phase = "tool_turn";
         await structuralToolRound(session, env.mock, "please call the host tool");
         const records = JSON.stringify(session.records());

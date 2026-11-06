@@ -34,6 +34,24 @@ without an account
 Native startup failures on v1 are under
 [startup and compatibility](#startup-and-compatibility).
 
+## First-prompt snapshot cost (v1)
+
+On Windows CI, OpenCode **1.19.5** took **9.236 to 158.806 seconds** in
+its first directory snapshot across sixteen successful vendor fixtures on
+2026-11-06. These fixtures ran in the OAR Git checkout. Native logs place
+that interval between `initialized` and `tracking`, before the agent's
+model request. In the fifteen samples with a subsequent agent `stream`
+record, it followed about 0.9 to 1.8 seconds later. This wait can look like
+a stalled prompt even though the native process is preparing its snapshot.
+These are measured samples, not a latency guarantee or an explanation of
+all OpenCode timeouts; the underlying Git, disk and scheduling costs were
+not separated. [Evidence and reproduction](../../experiments/acp-ci-failures/opencode-snapshot.md).
+
+OAR does not change the native `snapshot` setting. Hosts that want to tune
+it must use their own OpenCode configuration. The MCP and failure-class
+vendor fixtures use small temporary Git projects so these tests do not
+wait for snapshots of the OAR checkout; native snapshots remain enabled.
+
 ## Manual compaction
 
 The v2 session exposes idle-only `compact()` through native `/compact`.

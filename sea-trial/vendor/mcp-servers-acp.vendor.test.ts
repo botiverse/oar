@@ -4,7 +4,7 @@ import type { McpServer, StartSession } from "../../packages/oar/src/contracts/s
 import { antigravityInstallation, antigravitySession, defineRuntime, grokInstallation, grokSession, kimiInstallation, kimiSession, opencodeInstallation, opencodeSession } from "../../packages/oar/src/index.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import type { LLMock, RawProviderRequest } from "../harness/aimock.js";
-import { startAntigravityAimock, startGrokAimock, startKimiAimock, startOpencodeAimock, type AcpAimockEnv } from "../harness/aimock-acp.js";
+import { startOpencodeGitFixture, startAntigravityAimock, startGrokAimock, startKimiAimock, type AcpAimockEnv } from "../harness/aimock-acp.js";
 import { runtimeUnderTest } from "../harness/subject.js";
 import { currentTurnSays, ECHO_SERVER, echoesReceived, echoFixtures, echoServers, EXPECTED_ECHOES, expectedEchoes, fingerprint, leakedCredentials, scriptEchoes, startHttpEcho, stdioEcho, STDIO_TOKEN, type EchoCall } from "./support/echo-mcp.js";
 import { structuralToolRound } from "./support/tool-round.js";
@@ -54,7 +54,7 @@ const cases: readonly AcpCase[] = [
     installation: opencodeInstallation,
     call: (server, text) => ({ name: `${server}_echo`, arguments: { text } }),
     reported: ["echo_echo", "remote_echo"],
-    start: async (configure, withUserServers) => startOpencodeAimock(configure, withUserServers
+    start: async (configure, withUserServers) => startOpencodeGitFixture(configure, withUserServers
       ? { mcp: Object.fromEntries(["echo", "userecho"].map((name) => [name, { type: "local", command: [userServer.command, ...userServer.args], environment: userServer.env }])) }
       : {}),
     offered: (request) => toolNames(request).filter((name) => /^(?:echo|remote|userecho)_echo$/u.test(name)),
@@ -108,7 +108,7 @@ for (const acp of cases) {
       const http = await startHttpEcho();
       const env = await acp.start(script, false);
       try {
-        const subject = runtimeUnderTest(runtime, env.env);
+        const subject = runtimeUnderTest(runtime, env.env, env.cwd);
         const credentials = acp.credentials !== false;
         if (!credentials) {
           await expect(subject.startSession({ mcpServers: echoServers(http.url) })).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "mcpServers" });
@@ -145,7 +145,7 @@ for (const acp of cases) {
       const env = await acp.start(script, true);
       try {
         const credentials = acp.credentials !== false;
-        const session = await runtimeUnderTest(runtime, env.env).startSession({ mcpServers: [stdioEcho("echo", credentials ? STDIO_TOKEN : undefined)] });
+        const session = await runtimeUnderTest(runtime, env.env, env.cwd).startSession({ mcpServers: [stdioEcho("echo", credentials ? STDIO_TOKEN : undefined)] });
         await structuralToolRound(session, env.mock, "please call echo over the user's own");
         await session.dispose();
         expect(echoesReceived(env.raw)).toEqual([
@@ -164,12 +164,12 @@ describe.skipIf(process.env.OAR_TEST !== "opencode-aimock")("opencode prompts wi
   // The prompts travel in OPENCODE_CONFIG_CONTENT (runtimes/opencode/prompt-config.ts), the servers in the ACP open.
   test("a replaced and an appended system prompt and the session's MCP servers all take effect", async () => {
     const http = await startHttpEcho();
-    const env = await startOpencodeAimock((mock) => {
+    const env = await startOpencodeGitFixture((mock) => {
       scriptEchoes(mock, (server, text) => ({ name: `${server}_echo`, arguments: { text } }));
     });
     try {
       const runtime = defineRuntime({ id: "opencode-aimock", session: opencodeSession, installation: opencodeInstallation });
-      const session = await runtimeUnderTest(runtime, env.env).startSession({
+      const session = await runtimeUnderTest(runtime, env.env, env.cwd).startSession({
         systemPrompt: "OAR-REPLACED-PROMPT you are the echo checker",
         appendSystemPrompt: "OAR-APPENDED-PROMPT always echo",
         mcpServers: echoServers(http.url),

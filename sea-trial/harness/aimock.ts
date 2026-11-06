@@ -30,6 +30,8 @@ export { namespaceMcpToolCalls } from "./raw-capture.js";
  * (server socket, temp CODEX_HOME).
  */
 export interface AimockEnv {
+  /** Optional fixture-owned project directory, kept until stop() for resumed sessions too. */
+  readonly cwd?: string;
   /** Session env overlay pointing the runtime at this scripted provider (absent for in-process pi, which is re-pointed via OAR_PI_AGENT_DIR at startup). */
   readonly env?: Readonly<Record<string, string>>;
   /** The scripted server itself. Vendor tests read its journal when a run goes sideways. */

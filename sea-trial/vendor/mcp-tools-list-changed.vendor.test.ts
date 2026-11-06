@@ -2,7 +2,7 @@ import { piTestRuntime } from "./support/pi-runtime.js";
 import type { LLMock } from "@copilotkit/aimock";
 import { describe, expect, test } from "vitest";
 import { startClaudeAimock, startCodexAimock, startPiAimock, type AimockEnv } from "../harness/aimock.js";
-import { startAntigravityAimock, startGrokAimock, startKimiAimock, startOpencodeAimock } from "../harness/aimock-acp.js";
+import { startOpencodeGitFixture, startAntigravityAimock, startGrokAimock, startKimiAimock } from "../harness/aimock-acp.js";
 import { allRuntimes } from "../harness/runtimes.js";
 import { runtimeUnderTest } from "../harness/subject.js";
 import { loadClaudeProbeTools, modelView, runToolsListChanged } from "./support/tools-list-changed.js";
@@ -28,7 +28,7 @@ const backends: readonly { readonly id: string; readonly runtime: string; readon
   { id: "codex-aimock", runtime: "codex", start: async () => startCodexAimock(replyOk, { captureRaw: true }) },
   { id: "pi-aimock", runtime: "pi", start: async () => startPiAimock(replyOk, { captureRaw: true }) },
   { id: "pi-rpc-aimock", runtime: "pi", start: async () => startPiAimock(replyOk, { captureRaw: true }) },
-  { id: "opencode-aimock", runtime: "opencode", start: async () => startOpencodeAimock(replyOk) },
+  { id: "opencode-aimock", runtime: "opencode", start: async () => startOpencodeGitFixture(replyOk) },
   { id: "kimi-aimock", runtime: "kimi", start: async () => startKimiAimock(replyOk) },
   { id: "grok-aimock", runtime: "grok", start: async () => startGrokAimock(replyOk) },
 ];
@@ -39,7 +39,7 @@ for (const backend of backends) {
       const runtime = backend.id === "pi-rpc-aimock" ? piTestRuntime : allRuntimes.require(backend.runtime);
       const env = await backend.start();
       try {
-        const run = await runToolsListChanged(env, async (server) => runtimeUnderTest(runtime, env.env).startSession({ mcpServers: [server] }));
+        const run = await runToolsListChanged(env, async (server) => runtimeUnderTest(runtime, env.env, env.cwd).startSession({ mcpServers: [server] }));
         const why = JSON.stringify(run.log);
         // The client reached the server before the change, so "never listed again" means something.
         expect(run.connected, why).toBe(true);

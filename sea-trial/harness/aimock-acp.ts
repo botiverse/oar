@@ -1,3 +1,5 @@
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -178,4 +180,29 @@ export async function startAntigravityAimock(configure: (mock: LLMock) => void, 
   // The Go CLI reads its settings below the OS home, USERPROFILE on Windows.
   // GEMINI_HOME alone only configures the retired standalone-service fixture.
   return environment(started, { USERPROFILE: started.base.HOME, GEMINI_HOME: geminiHome, GEMINI_API_KEY: "aimock", GOOGLE_GEMINI_BASE_URL: started.url, AGY_CLI_DISABLE_AUTO_UPDATE: "1" });
+}
+
+// oxlint-disable-next-line typescript/strict-void-return -- Node execFile has its own promisify overload and also returns a ChildProcess.
+const execFileAsync = promisify(execFile);
+
+/** Keep native snapshots enabled without snapshotting the whole OAR checkout. */
+export async function startOpencodeGitFixture(...args: Parameters<typeof startOpencodeAimock>): Promise<AcpAimockEnv & { readonly cwd: string }> {
+  const cwd = await mkdtemp(path.join(tmpdir(), "oar-opencode-vendor-"));
+  const remove = async (): Promise<void> => { await rm(cwd, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 }); };
+  try {
+    await writeFile(path.join(cwd, "README.md"), "Small OpenCode vendor fixture project\n");
+    await execFileAsync("git", ["init", cwd]);
+    await execFileAsync("git", ["-C", cwd, "add", "README.md"]);
+    const fixture = await startOpencodeAimock(...args);
+    return {
+      ...fixture,
+      cwd,
+      async stop() {
+        try { await fixture.stop(); } finally { await remove(); }
+      },
+    };
+  } catch (error) {
+    await remove();
+    throw error;
+  }
 }
