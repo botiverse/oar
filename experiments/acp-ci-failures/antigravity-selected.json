@@ -1,0 +1,941 @@
+{
+  "runtime": "Antigravity CLI 1.5.0",
+  "macOSFailure": {
+    "url": "https://github.com/botiverse/oar/actions/runs/42267287565/job/128062392077",
+    "attempt": 1,
+    "traceSha256": "0c83b63f38662801fc9af05e687d774f4fd0d7f58a60b9aa8d93ec4bfad26fb4",
+    "events": [
+      {
+        "afterPromptMs": 45,
+        "kind": "tool_call_started",
+        "callId": "call_clash-own",
+        "tool": "mcp_echo_echo"
+      },
+      {
+        "afterPromptMs": 58,
+        "kind": "text_delta",
+        "text": "echoed"
+      },
+      {
+        "afterPromptMs": 67,
+        "kind": "turn_ended",
+        "outcome": {
+          "kind": "completed"
+        }
+      }
+    ],
+    "providerRequestsArchived": false
+  },
+  "linuxControls": [
+    {
+      "iteration": 0,
+      "sha256": "be1369664545392fc5578fd0fa5390ea731b0af68977c3c5005c8af337f299fc",
+      "toolOrder": [
+        "request:prompt",
+        "response:accepted",
+        "tool_call_started:mcp_echo_echo",
+        "tool_call_ended",
+        "tool_call_started:call_mcp_tool",
+        "tool_call_ended",
+        "turn_ended:completed"
+      ],
+      "echoes": [
+        "echo:clash-own",
+        "echo:clash-user"
+      ],
+      "requests": [
+        {
+          "model": "gemini-3.1-flash-lite-preview",
+          "tools": 0,
+          "roles": [
+            "system",
+            "user"
+          ],
+          "matchedToolCallId": null,
+          "response": {
+            "toolCalls": [
+              {
+                "name": "mcp_echo_echo",
+                "arguments": "{\"text\":\"clash-own\",\"toolSummary\":\"Echo the text\"}",
+                "id": "call_clash-own"
+              }
+            ]
+          }
+        },
+        {
+          "model": "gemini-3.1-pro-preview",
+          "tools": 16,
+          "roles": [
+            "system",
+            "user"
+          ],
+          "matchedToolCallId": null,
+          "response": {
+            "toolCalls": [
+              {
+                "name": "mcp_echo_echo",
+                "arguments": "{\"text\":\"clash-own\",\"toolSummary\":\"Echo the text\"}",
+                "id": "call_clash-own"
+              }
+            ]
+          }
+        },
+        {
+          "model": "gemini-3.1-pro-preview",
+          "tools": 16,
+          "roles": [
+            "system",
+            "user",
+            "assistant",
+            "tool"
+          ],
+          "matchedToolCallId": "call_clash-own",
+          "response": {
+            "toolCalls": [
+              {
+                "name": "call_mcp_tool",
+                "arguments": "{\"ServerName\":\"userecho\",\"ToolName\":\"echo\",\"Arguments\":{\"text\":\"clash-user\"}}",
+                "id": "call_clash-user"
+              }
+            ]
+          }
+        },
+        {
+          "model": "gemini-3.1-pro-preview",
+          "tools": 16,
+          "roles": [
+            "system",
+            "user",
+            "assistant",
+            "tool",
+            "assistant",
+            "tool"
+          ],
+          "matchedToolCallId": "call_clash-user",
+          "response": {
+            "content": "echoed"
+          }
+        }
+      ]
+    },
+    {
+      "iteration": 1,
+      "sha256": "c1c554602cbde252b85285abcc6d6766523b56d84d017d6412d87774a5b46d3f",
+      "toolOrder": [
+        "request:prompt",
+        "response:accepted",
+        "tool_call_started:mcp_echo_echo",
+        "tool_call_ended",
+        "tool_call_started:call_mcp_tool",
+        "tool_call_ended",
+        "turn_ended:completed"
+      ],
+      "echoes": [
+        "echo:clash-own",
+        "echo:clash-user"
+      ],
+      "requests": [
+        {
+          "model": "gemini-3.1-flash-lite-preview",
+          "tools": 0,
+          "roles": [
+            "system",
+            "user"
+          ],
+          "matchedToolCallId": null,
+          "response": {
+            "toolCalls": [
+              {
+                "name": "mcp_echo_echo",
+                "arguments": "{\"text\":\"clash-own\",\"toolSummary\":\"Echo the text\"}",
+                "id": "call_clash-own"
+              }
+            ]
+          }
+        },
+        {
+          "model": "gemini-3.1-pro-preview",
+          "tools": 16,
+          "roles": [
+            "system",
+            "user"
+          ],
+          "matchedToolCallId": null,
+          "response": {
+            "toolCalls": [
+              {
+                "name": "mcp_echo_echo",
+                "arguments": "{\"text\":\"clash-own\",\"toolSummary\":\"Echo the text\"}",
+                "id": "call_clash-own"
+              }
+            ]
+          }
+        },
+        {
+          "model": "gemini-3.1-pro-preview",
+          "tools": 16,
+          "roles": [
+            "system",
+            "user",
+            "assistant",
+            "tool"
+          ],
+          "matchedToolCallId": "call_clash-own",
+          "response": {
+            "toolCalls": [
+              {
+                "name": "call_mcp_tool",
+                "arguments": "{\"ServerName\":\"userecho\",\"ToolName\":\"echo\",\"Arguments\":{\"text\":\"clash-user\"}}",
+                "id": "call_clash-user"
+              }
+            ]
+          }
+        },
+        {
+          "model": "gemini-3.1-pro-preview",
+          "tools": 16,
+          "roles": [
+            "system",
+            "user",
+            "assistant",
+            "tool",
+            "assistant",
+            "tool"
+          ],
+          "matchedToolCallId": "call_clash-user",
+          "response": {
+            "content": "echoed"
+          }
+        }
+      ]
+    },
+    {
+      "iteration": 2,
+      "sha256": "64a066502487f15fa1f1b862087f881cc94d09e3a50e568c6dd70a032a0ecc55",
+      "toolOrder": [
+        "request:prompt",
+        "response:accepted",
+        "tool_call_started:mcp_echo_echo",
+        "tool_call_ended",
+        "tool_call_started:call_mcp_tool",
+        "tool_call_ended",
+        "turn_ended:completed"
+      ],
+      "echoes": [
+        "echo:clash-own",
+        "echo:clash-user"
+      ],
+      "requests": [
+        {
+          "model": "gemini-3.1-flash-lite-preview",
+          "tools": 0,
+          "roles": [
+            "system",
+            "user"
+          ],
+          "matchedToolCallId": null,
+          "response": {
+            "toolCalls": [
+              {
+                "name": "mcp_echo_echo",
+                "arguments": "{\"text\":\"clash-own\",\"toolSummary\":\"Echo the text\"}",
+                "id": "call_clash-own"
+              }
+            ]
+          }
+        },
+        {
+          "model": "gemini-3.1-pro-preview",
+          "tools": 16,
+          "roles": [
+            "system",
+            "user"
+          ],
+          "matchedToolCallId": null,
+          "response": {
+            "toolCalls": [
+              {
+                "name": "mcp_echo_echo",
+                "arguments": "{\"text\":\"clash-own\",\"toolSummary\":\"Echo the text\"}",
+                "id": "call_clash-own"
+              }
+            ]
+          }
+        },
+        {
+          "model": "gemini-3.1-pro-preview",
+          "tools": 16,
+          "roles": [
+            "system",
+            "user",
+            "assistant",
+            "tool"
+          ],
+          "matchedToolCallId": "call_clash-own",
+          "response": {
+            "toolCalls": [
+              {
+                "name": "call_mcp_tool",
+                "arguments": "{\"ServerName\":\"userecho\",\"ToolName\":\"echo\",\"Arguments\":{\"text\":\"clash-user\"}}",
+                "id": "call_clash-user"
+              }
+            ]
+          }
+        },
+        {
+          "model": "gemini-3.1-pro-preview",
+          "tools": 16,
+          "roles": [
+            "system",
+            "user",
+            "assistant",
+            "tool",
+            "assistant",
+            "tool"
+          ],
+          "matchedToolCallId": "call_clash-user",
+          "response": {
+            "content": "echoed"
+          }
+        }
+      ]
+    },
+    {
+      "iteration": 3,
+      "sha256": "a9c45682ae4c2a0533624e0841495dbe69d004c7e722d4dddcc740815d2352fb",
+      "toolOrder": [
+        "request:prompt",
+        "response:accepted",
+        "tool_call_started:mcp_echo_echo",
+        "tool_call_ended",
+        "tool_call_started:call_mcp_tool",
+        "tool_call_ended",
+        "turn_ended:completed"
+      ],
+      "echoes": [
+        "echo:clash-own",
+        "echo:clash-user"
+      ],
+      "requests": [
+        {
+          "model": "gemini-3.1-flash-lite-preview",
+          "tools": 0,
+          "roles": [
+            "system",
+            "user"
+          ],
+          "matchedToolCallId": null,
+          "response": {
+            "toolCalls": [
+              {
+                "name": "mcp_echo_echo",
+                "arguments": "{\"text\":\"clash-own\",\"toolSummary\":\"Echo the text\"}",
+                "id": "call_clash-own"
+              }
+            ]
+          }
+        },
+        {
+          "model": "gemini-3.1-pro-preview",
+          "tools": 16,
+          "roles": [
+            "system",
+            "user"
+          ],
+          "matchedToolCallId": null,
+          "response": {
+            "toolCalls": [
+              {
+                "name": "mcp_echo_echo",
+                "arguments": "{\"text\":\"clash-own\",\"toolSummary\":\"Echo the text\"}",
+                "id": "call_clash-own"
+              }
+            ]
+          }
+        },
+        {
+          "model": "gemini-3.1-pro-preview",
+          "tools": 16,
+          "roles": [
+            "system",
+            "user",
+            "assistant",
+            "tool"
+          ],
+          "matchedToolCallId": "call_clash-own",
+          "response": {
+            "toolCalls": [
+              {
+                "name": "call_mcp_tool",
+                "arguments": "{\"ServerName\":\"userecho\",\"ToolName\":\"echo\",\"Arguments\":{\"text\":\"clash-user\"}}",
+                "id": "call_clash-user"
+              }
+            ]
+          }
+        },
+        {
+          "model": "gemini-3.1-pro-preview",
+          "tools": 16,
+          "roles": [
+            "system",
+            "user",
+            "assistant",
+            "tool",
+            "assistant",
+            "tool"
+          ],
+          "matchedToolCallId": "call_clash-user",
+          "response": {
+            "content": "echoed"
+          }
+        }
+      ]
+    },
+    {
+      "iteration": 4,
+      "sha256": "d32ab7702cfa8607e30bf77475d7fecf5b35d991341a64eb26853f0532377810",
+      "toolOrder": [
+        "request:prompt",
+        "response:accepted",
+        "tool_call_started:mcp_echo_echo",
+        "tool_call_ended",
+        "tool_call_started:call_mcp_tool",
+        "tool_call_ended",
+        "turn_ended:completed"
+      ],
+      "echoes": [
+        "echo:clash-own",
+        "echo:clash-user"
+      ],
+      "requests": [
+        {
+          "model": "gemini-3.1-flash-lite-preview",
+          "tools": 0,
+          "roles": [
+            "system",
+            "user"
+          ],
+          "matchedToolCallId": null,
+          "response": {
+            "toolCalls": [
+              {
+                "name": "mcp_echo_echo",
+                "arguments": "{\"text\":\"clash-own\",\"toolSummary\":\"Echo the text\"}",
+                "id": "call_clash-own"
+              }
+            ]
+          }
+        },
+        {
+          "model": "gemini-3.1-pro-preview",
+          "tools": 16,
+          "roles": [
+            "system",
+            "user"
+          ],
+          "matchedToolCallId": null,
+          "response": {
+            "toolCalls": [
+              {
+                "name": "mcp_echo_echo",
+                "arguments": "{\"text\":\"clash-own\",\"toolSummary\":\"Echo the text\"}",
+                "id": "call_clash-own"
+              }
+            ]
+          }
+        },
+        {
+          "model": "gemini-3.1-pro-preview",
+          "tools": 16,
+          "roles": [
+            "system",
+            "user",
+            "assistant",
+            "tool"
+          ],
+          "matchedToolCallId": "call_clash-own",
+          "response": {
+            "toolCalls": [
+              {
+                "name": "call_mcp_tool",
+                "arguments": "{\"ServerName\":\"userecho\",\"ToolName\":\"echo\",\"Arguments\":{\"text\":\"clash-user\"}}",
+                "id": "call_clash-user"
+              }
+            ]
+          }
+        },
+        {
+          "model": "gemini-3.1-pro-preview",
+          "tools": 16,
+          "roles": [
+            "system",
+            "user",
+            "assistant",
+            "tool",
+            "assistant",
+            "tool"
+          ],
+          "matchedToolCallId": "call_clash-user",
+          "response": {
+            "content": "echoed"
+          }
+        }
+      ]
+    },
+    {
+      "iteration": 5,
+      "sha256": "a9752433bceb8da100b9e24a2cf285dd5a6b1e6cbd286997510c11c8ca3c621e",
+      "toolOrder": [
+        "request:prompt",
+        "response:accepted",
+        "tool_call_started:mcp_echo_echo",
+        "tool_call_ended",
+        "tool_call_started:call_mcp_tool",
+        "tool_call_ended",
+        "turn_ended:completed"
+      ],
+      "echoes": [
+        "echo:clash-own",
+        "echo:clash-user"
+      ],
+      "requests": [
+        {
+          "model": "gemini-3.1-flash-lite-preview",
+          "tools": 0,
+          "roles": [
+            "system",
+            "user"
+          ],
+          "matchedToolCallId": null,
+          "response": {
+            "toolCalls": [
+              {
+                "name": "mcp_echo_echo",
+                "arguments": "{\"text\":\"clash-own\",\"toolSummary\":\"Echo the text\"}",
+                "id": "call_clash-own"
+              }
+            ]
+          }
+        },
+        {
+          "model": "gemini-3.1-pro-preview",
+          "tools": 16,
+          "roles": [
+            "system",
+            "user"
+          ],
+          "matchedToolCallId": null,
+          "response": {
+            "toolCalls": [
+              {
+                "name": "mcp_echo_echo",
+                "arguments": "{\"text\":\"clash-own\",\"toolSummary\":\"Echo the text\"}",
+                "id": "call_clash-own"
+              }
+            ]
+          }
+        },
+        {
+          "model": "gemini-3.1-pro-preview",
+          "tools": 16,
+          "roles": [
+            "system",
+            "user",
+            "assistant",
+            "tool"
+          ],
+          "matchedToolCallId": "call_clash-own",
+          "response": {
+            "toolCalls": [
+              {
+                "name": "call_mcp_tool",
+                "arguments": "{\"ServerName\":\"userecho\",\"ToolName\":\"echo\",\"Arguments\":{\"text\":\"clash-user\"}}",
+                "id": "call_clash-user"
+              }
+            ]
+          }
+        },
+        {
+          "model": "gemini-3.1-pro-preview",
+          "tools": 16,
+          "roles": [
+            "system",
+            "user",
+            "assistant",
+            "tool",
+            "assistant",
+            "tool"
+          ],
+          "matchedToolCallId": "call_clash-user",
+          "response": {
+            "content": "echoed"
+          }
+        }
+      ]
+    },
+    {
+      "iteration": 6,
+      "sha256": "b01c6bc1a7e993756b59aa33c3e06cc43bd7ebb3bc3a9bfb480a57b2e1dd7a07",
+      "toolOrder": [
+        "request:prompt",
+        "response:accepted",
+        "tool_call_started:mcp_echo_echo",
+        "tool_call_ended",
+        "tool_call_started:call_mcp_tool",
+        "tool_call_ended",
+        "turn_ended:completed"
+      ],
+      "echoes": [
+        "echo:clash-own",
+        "echo:clash-user"
+      ],
+      "requests": [
+        {
+          "model": "gemini-3.1-flash-lite-preview",
+          "tools": 0,
+          "roles": [
+            "system",
+            "user"
+          ],
+          "matchedToolCallId": null,
+          "response": {
+            "toolCalls": [
+              {
+                "name": "mcp_echo_echo",
+                "arguments": "{\"text\":\"clash-own\",\"toolSummary\":\"Echo the text\"}",
+                "id": "call_clash-own"
+              }
+            ]
+          }
+        },
+        {
+          "model": "gemini-3.1-pro-preview",
+          "tools": 16,
+          "roles": [
+            "system",
+            "user"
+          ],
+          "matchedToolCallId": null,
+          "response": {
+            "toolCalls": [
+              {
+                "name": "mcp_echo_echo",
+                "arguments": "{\"text\":\"clash-own\",\"toolSummary\":\"Echo the text\"}",
+                "id": "call_clash-own"
+              }
+            ]
+          }
+        },
+        {
+          "model": "gemini-3.1-pro-preview",
+          "tools": 16,
+          "roles": [
+            "system",
+            "user",
+            "assistant",
+            "tool"
+          ],
+          "matchedToolCallId": "call_clash-own",
+          "response": {
+            "toolCalls": [
+              {
+                "name": "call_mcp_tool",
+                "arguments": "{\"ServerName\":\"userecho\",\"ToolName\":\"echo\",\"Arguments\":{\"text\":\"clash-user\"}}",
+                "id": "call_clash-user"
+              }
+            ]
+          }
+        },
+        {
+          "model": "gemini-3.1-pro-preview",
+          "tools": 16,
+          "roles": [
+            "system",
+            "user",
+            "assistant",
+            "tool",
+            "assistant",
+            "tool"
+          ],
+          "matchedToolCallId": "call_clash-user",
+          "response": {
+            "content": "echoed"
+          }
+        }
+      ]
+    },
+    {
+      "iteration": 7,
+      "sha256": "59c02e4e8edf4c2e0ed3073ce4359f4c1b1be24f7dbcfab8cbd5845531348fb2",
+      "toolOrder": [
+        "request:prompt",
+        "response:accepted",
+        "tool_call_started:mcp_echo_echo",
+        "tool_call_ended",
+        "tool_call_started:call_mcp_tool",
+        "tool_call_ended",
+        "turn_ended:completed"
+      ],
+      "echoes": [
+        "echo:clash-own",
+        "echo:clash-user"
+      ],
+      "requests": [
+        {
+          "model": "gemini-3.1-flash-lite-preview",
+          "tools": 0,
+          "roles": [
+            "system",
+            "user"
+          ],
+          "matchedToolCallId": null,
+          "response": {
+            "toolCalls": [
+              {
+                "name": "mcp_echo_echo",
+                "arguments": "{\"text\":\"clash-own\",\"toolSummary\":\"Echo the text\"}",
+                "id": "call_clash-own"
+              }
+            ]
+          }
+        },
+        {
+          "model": "gemini-3.1-pro-preview",
+          "tools": 16,
+          "roles": [
+            "system",
+            "user"
+          ],
+          "matchedToolCallId": null,
+          "response": {
+            "toolCalls": [
+              {
+                "name": "mcp_echo_echo",
+                "arguments": "{\"text\":\"clash-own\",\"toolSummary\":\"Echo the text\"}",
+                "id": "call_clash-own"
+              }
+            ]
+          }
+        },
+        {
+          "model": "gemini-3.1-pro-preview",
+          "tools": 16,
+          "roles": [
+            "system",
+            "user",
+            "assistant",
+            "tool"
+          ],
+          "matchedToolCallId": "call_clash-own",
+          "response": {
+            "toolCalls": [
+              {
+                "name": "call_mcp_tool",
+                "arguments": "{\"ServerName\":\"userecho\",\"ToolName\":\"echo\",\"Arguments\":{\"text\":\"clash-user\"}}",
+                "id": "call_clash-user"
+              }
+            ]
+          }
+        },
+        {
+          "model": "gemini-3.1-pro-preview",
+          "tools": 16,
+          "roles": [
+            "system",
+            "user",
+            "assistant",
+            "tool",
+            "assistant",
+            "tool"
+          ],
+          "matchedToolCallId": "call_clash-user",
+          "response": {
+            "content": "echoed"
+          }
+        }
+      ]
+    },
+    {
+      "iteration": 8,
+      "sha256": "6f2e624281a769001536136cd477e0d12929bc98a8e361e498e82db9967b6829",
+      "toolOrder": [
+        "request:prompt",
+        "response:accepted",
+        "tool_call_started:mcp_echo_echo",
+        "tool_call_ended",
+        "tool_call_started:call_mcp_tool",
+        "tool_call_ended",
+        "turn_ended:completed"
+      ],
+      "echoes": [
+        "echo:clash-own",
+        "echo:clash-user"
+      ],
+      "requests": [
+        {
+          "model": "gemini-3.1-flash-lite-preview",
+          "tools": 0,
+          "roles": [
+            "system",
+            "user"
+          ],
+          "matchedToolCallId": null,
+          "response": {
+            "toolCalls": [
+              {
+                "name": "mcp_echo_echo",
+                "arguments": "{\"text\":\"clash-own\",\"toolSummary\":\"Echo the text\"}",
+                "id": "call_clash-own"
+              }
+            ]
+          }
+        },
+        {
+          "model": "gemini-3.1-pro-preview",
+          "tools": 16,
+          "roles": [
+            "system",
+            "user"
+          ],
+          "matchedToolCallId": null,
+          "response": {
+            "toolCalls": [
+              {
+                "name": "mcp_echo_echo",
+                "arguments": "{\"text\":\"clash-own\",\"toolSummary\":\"Echo the text\"}",
+                "id": "call_clash-own"
+              }
+            ]
+          }
+        },
+        {
+          "model": "gemini-3.1-pro-preview",
+          "tools": 16,
+          "roles": [
+            "system",
+            "user",
+            "assistant",
+            "tool"
+          ],
+          "matchedToolCallId": "call_clash-own",
+          "response": {
+            "toolCalls": [
+              {
+                "name": "call_mcp_tool",
+                "arguments": "{\"ServerName\":\"userecho\",\"ToolName\":\"echo\",\"Arguments\":{\"text\":\"clash-user\"}}",
+                "id": "call_clash-user"
+              }
+            ]
+          }
+        },
+        {
+          "model": "gemini-3.1-pro-preview",
+          "tools": 16,
+          "roles": [
+            "system",
+            "user",
+            "assistant",
+            "tool",
+            "assistant",
+            "tool"
+          ],
+          "matchedToolCallId": "call_clash-user",
+          "response": {
+            "content": "echoed"
+          }
+        }
+      ]
+    },
+    {
+      "iteration": 9,
+      "sha256": "f5d508bb3df3fb066211d28190b61095b496fbff11a53b1f099c6571e0a22d61",
+      "toolOrder": [
+        "request:prompt",
+        "response:accepted",
+        "tool_call_started:mcp_echo_echo",
+        "tool_call_ended",
+        "tool_call_started:call_mcp_tool",
+        "tool_call_ended",
+        "turn_ended:completed"
+      ],
+      "echoes": [
+        "echo:clash-own",
+        "echo:clash-user"
+      ],
+      "requests": [
+        {
+          "model": "gemini-3.1-flash-lite-preview",
+          "tools": 0,
+          "roles": [
+            "system",
+            "user"
+          ],
+          "matchedToolCallId": null,
+          "response": {
+            "toolCalls": [
+              {
+                "name": "mcp_echo_echo",
+                "arguments": "{\"text\":\"clash-own\",\"toolSummary\":\"Echo the text\"}",
+                "id": "call_clash-own"
+              }
+            ]
+          }
+        },
+        {
+          "model": "gemini-3.1-pro-preview",
+          "tools": 16,
+          "roles": [
+            "system",
+            "user"
+          ],
+          "matchedToolCallId": null,
+          "response": {
+            "toolCalls": [
+              {
+                "name": "mcp_echo_echo",
+                "arguments": "{\"text\":\"clash-own\",\"toolSummary\":\"Echo the text\"}",
+                "id": "call_clash-own"
+              }
+            ]
+          }
+        },
+        {
+          "model": "gemini-3.1-pro-preview",
+          "tools": 16,
+          "roles": [
+            "system",
+            "user",
+            "assistant",
+            "tool"
+          ],
+          "matchedToolCallId": "call_clash-own",
+          "response": {
+            "toolCalls": [
+              {
+                "name": "call_mcp_tool",
+                "arguments": "{\"ServerName\":\"userecho\",\"ToolName\":\"echo\",\"Arguments\":{\"text\":\"clash-user\"}}",
+                "id": "call_clash-user"
+              }
+            ]
+          }
+        },
+        {
+          "model": "gemini-3.1-pro-preview",
+          "tools": 16,
+          "roles": [
+            "system",
+            "user",
+            "assistant",
+            "tool",
+            "assistant",
+            "tool"
+          ],
+          "matchedToolCallId": "call_clash-user",
+          "response": {
+            "content": "echoed"
+          }
+        }
+      ]
+    }
+  ]
+}

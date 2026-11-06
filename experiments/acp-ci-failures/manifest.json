@@ -1,0 +1,256 @@
+{
+  "window": {
+    "start": "2026-11-05T20:00:00Z",
+    "end": "2026-11-06T17:03:29Z",
+    "completedMainRuns": 26,
+    "outcomes": {
+      "kimi": {
+        "success": 26
+      },
+      "grok": {
+        "success": 17,
+        "failure": 9
+      },
+      "opencode": {
+        "success": 17,
+        "failure": 9
+      }
+    }
+  },
+  "jobs": [
+    {
+      "job": 128016937122,
+      "run": 42254208340,
+      "url": "https://github.com/botiverse/oar/actions/runs/42254208340/job/128016937122",
+      "runtime": "opencode",
+      "failedSteps": [
+        "Run pnpm vitest run sea-trial/vendor --maxWorkers 2"
+      ],
+      "logSha256": "6627e542ba223e7cf27157a7f786cb762039c87baa6200f186fff47777a86afc",
+      "artifact": 13522996850,
+      "artifactDigest": "sha256:c1a042b0e38bc1c6fbe1d723d8ed56aee82ae3d317abcaaedb6b0668131261b2",
+      "directory": "opencode-mcp-rate"
+    },
+    {
+      "job": 127999432827,
+      "run": 42249205875,
+      "url": "https://github.com/botiverse/oar/actions/runs/42249205875/job/127999432827",
+      "runtime": "opencode",
+      "failedSteps": [
+        "Run pnpm vitest run sea-trial/vendor --maxWorkers 2"
+      ],
+      "logSha256": "99334966458dac70967347307d0b04a2291bc870cf75a188030003859366d696",
+      "artifact": 13520342002,
+      "artifactDigest": "sha256:b6bdb6bbb00fc5992028c5f7f2c7b18f862c339885f492e46d466d4d71c200f4",
+      "directory": "trace-127999432827"
+    },
+    {
+      "job": 127984652995,
+      "run": 42244960220,
+      "url": "https://github.com/botiverse/oar/actions/runs/42244960220/job/127984652995",
+      "runtime": "grok",
+      "failedSteps": [
+        "Run pnpm run sea-trial"
+      ],
+      "logSha256": "a3c0c37cc12a63b0c1b852468a887844b8121f939cd60ac421a9337c204542c0",
+      "artifact": 13516039793,
+      "artifactDigest": "sha256:cf635c53591962557de3918bd5d1313aa296316ceb30c31d3c6f613cc8961e82",
+      "directory": "grok-behavior"
+    },
+    {
+      "job": 127957195864,
+      "run": 42237026967,
+      "url": "https://github.com/botiverse/oar/actions/runs/42237026967/job/127957195864",
+      "runtime": "opencode",
+      "failedSteps": [
+        "Run pnpm vitest run sea-trial/vendor --maxWorkers 2"
+      ],
+      "logSha256": "cef1942cae75909dfd6c08d8eee2bcc320f5274bb51d6fa0eed94deffae0690c",
+      "artifact": 13512368765,
+      "artifactDigest": "sha256:675deaff3bc9d625c24c9bf0a355304fa081879d7603e785401193dec356f425",
+      "directory": "trace-127957195864"
+    },
+    {
+      "job": 127953811273,
+      "run": 42236050414,
+      "url": "https://github.com/botiverse/oar/actions/runs/42236050414/job/127953811273",
+      "runtime": "grok",
+      "failedSteps": [
+        "Run pnpm run sea-trial"
+      ],
+      "logSha256": "d242055687e1e9518a3ead2258ea4a424750b2ed5c45dea48eb0b39670f8f904",
+      "artifact": 13512286087,
+      "artifactDigest": "sha256:bd1b49c535251771cd3a0066b2d2c7a3e3a14eb1cfca8b7ef0f991cfffa103fe",
+      "directory": "trace-127953811273"
+    },
+    {
+      "job": 127896959509,
+      "run": 42219272750,
+      "url": "https://github.com/botiverse/oar/actions/runs/42219272750/job/127896959509",
+      "runtime": "grok",
+      "failedSteps": [
+        "Run pnpm run sea-trial"
+      ],
+      "logSha256": "228b23aacf7e042e70a0ac4f558d035b013c5843b1198263de84730a92cb1856",
+      "artifact": 13501939172,
+      "artifactDigest": "sha256:e3869e012bd282e94a28f8059bfc3916f0a914690cdc5158580a49201010e401",
+      "directory": "trace-127896959509"
+    },
+    {
+      "job": 127834123797,
+      "run": 42200447151,
+      "url": "https://github.com/botiverse/oar/actions/runs/42200447151/job/127834123797",
+      "runtime": "grok",
+      "failedSteps": [
+        "Run pnpm vitest run sea-trial/vendor --maxWorkers 2"
+      ],
+      "logSha256": "11492824466d4fb105f14e018cc0941ed990d22dfbcdc9e657c4c5a2e47c65e9",
+      "artifact": 13494696285,
+      "artifactDigest": "sha256:021f221d68976050c844ddf46ec21de8bd8a58d66b2a51daaf14c52b4b343343",
+      "directory": "trace-127834123797"
+    },
+    {
+      "job": 127833624230,
+      "run": 42200297285,
+      "url": "https://github.com/botiverse/oar/actions/runs/42200297285/job/127833624230",
+      "runtime": "opencode",
+      "failedSteps": [
+        "Run pnpm vitest run sea-trial/vendor --maxWorkers 2"
+      ],
+      "logSha256": "3f7fb59742f000ffb88d5f0b648f4afa0fc1796850910096dbbd03cc3bb8964f",
+      "artifact": 13493929639,
+      "artifactDigest": "sha256:da215e4d480e0fad13499ab475e64de74020070d79e17312f0b577c4ae9459d7",
+      "directory": "trace-127833624230"
+    },
+    {
+      "job": 127805131378,
+      "run": 42191724685,
+      "url": "https://github.com/botiverse/oar/actions/runs/42191724685/job/127805131378",
+      "runtime": "grok",
+      "failedSteps": [
+        "Run pnpm vitest run sea-trial/vendor --maxWorkers 2"
+      ],
+      "logSha256": "5ac8b64c2d7358282e61b550aa87a87c1250410d88c0aa3fa9d44dad57e83900",
+      "artifact": 13490600476,
+      "artifactDigest": "sha256:8c9d374f25745f4ced838f1abc6e0f06a250818382abe9cfa631cced91d23cb8",
+      "directory": "trace-127805131378"
+    },
+    {
+      "job": 127779949013,
+      "run": 42184013848,
+      "url": "https://github.com/botiverse/oar/actions/runs/42184013848/job/127779949013",
+      "runtime": "opencode",
+      "failedSteps": [
+        "Run pnpm vitest run sea-trial/vendor --maxWorkers 2"
+      ],
+      "logSha256": "76cecf2701ac8d2d25bcf86c9e0c8dcc8f0909e06ba27984cafea32ffd761299",
+      "artifact": 13487630200,
+      "artifactDigest": "sha256:d28b3e5e8740df7de233fbca83e80ddf01ffac434256ac5e9d9a3b9b6f38529c",
+      "directory": "trace-127779949013"
+    },
+    {
+      "job": 127743111470,
+      "run": 42172429723,
+      "url": "https://github.com/botiverse/oar/actions/runs/42172429723/job/127743111470",
+      "runtime": "opencode",
+      "failedSteps": [
+        "Run pnpm vitest run sea-trial/vendor --maxWorkers 2"
+      ],
+      "logSha256": "76186a48776bb2fd84424673b9b316343f327418aef197a64cea813d35b6f128",
+      "artifact": 13481834581,
+      "artifactDigest": "sha256:49cfff89c18a5640113530b6a0176d5840156f0b837b182fe15fb7bcfb656286",
+      "directory": "trace-127743111470"
+    },
+    {
+      "job": 127743111638,
+      "run": 42172429723,
+      "url": "https://github.com/botiverse/oar/actions/runs/42172429723/job/127743111638",
+      "runtime": "grok",
+      "failedSteps": [
+        "Run pnpm vitest run sea-trial/vendor --maxWorkers 2"
+      ],
+      "logSha256": "0bfd73fa464ec431d7b2d393b52a0b5f72c0352195ba3906fcc796e10de32c9f",
+      "artifact": 13482230230,
+      "artifactDigest": "sha256:c30ed4c04897fbfbe95415085813e038c6ed166df90cd5151f303ba9fd33a89e",
+      "directory": "grok-vendor"
+    },
+    {
+      "job": 127718224771,
+      "run": 42164667512,
+      "url": "https://github.com/botiverse/oar/actions/runs/42164667512/job/127718224771",
+      "runtime": "opencode",
+      "failedSteps": [
+        "Run pnpm vitest run sea-trial/vendor --maxWorkers 2"
+      ],
+      "logSha256": "e1d50bf122e8b6d69f751cf820fd2ce5429c8da194ca7822eca1aef5555da920",
+      "artifact": 13478817568,
+      "artifactDigest": "sha256:2e12e8c3d7cc698a6c543c177b0ff3abe087f8637100a88ff057fe95b240e9b2",
+      "directory": "opencode-host-tools"
+    },
+    {
+      "job": 127718110599,
+      "run": 42164632397,
+      "url": "https://github.com/botiverse/oar/actions/runs/42164632397/job/127718110599",
+      "runtime": "opencode",
+      "failedSteps": [
+        "Run pnpm vitest run sea-trial/vendor --maxWorkers 2"
+      ],
+      "logSha256": "602cbb0285ee8a2b29cd8268160807fe4e3d4352b27c9b551a4f62a6f4785625",
+      "artifact": 13479145352,
+      "artifactDigest": "sha256:787fc74cfa7af766dda576a439ec015db505994a98f36278cc529afff6cffe15",
+      "directory": "trace-127718110599"
+    },
+    {
+      "job": 127705976571,
+      "run": 42160878295,
+      "url": "https://github.com/botiverse/oar/actions/runs/42160878295/job/127705976571",
+      "runtime": "grok",
+      "failedSteps": [
+        "Run pnpm vitest run sea-trial/vendor --maxWorkers 2"
+      ],
+      "logSha256": "73c593e24be9c001c4666efd48611025a705c58fab1497c83931aeb8ff827dd0",
+      "artifact": 13477490040,
+      "artifactDigest": "sha256:8162833d3060581f953cc9e9b6a24be7b9dddac507bd311163b0a736afc44d36",
+      "directory": "trace-127705976571"
+    },
+    {
+      "job": 127696376406,
+      "run": 42157913955,
+      "url": "https://github.com/botiverse/oar/actions/runs/42157913955/job/127696376406",
+      "runtime": "grok",
+      "failedSteps": [
+        "Run pnpm vitest run sea-trial/vendor --maxWorkers 2"
+      ],
+      "logSha256": "d6bad6277bb9f2830e561b8558e9161ea36c542b138b04333939ac7f640cd75b",
+      "artifact": 13475419151,
+      "artifactDigest": "sha256:2c07ea8a2375cd2d264452eee14ab5faf2929eefa4cf0c5838d475c0c0155d90",
+      "directory": "trace-127696376406"
+    },
+    {
+      "job": 127541152809,
+      "run": 42111853632,
+      "url": "https://github.com/botiverse/oar/actions/runs/42111853632/job/127541152809",
+      "runtime": "opencode",
+      "failedSteps": [
+        "Run pnpm vitest run sea-trial/vendor --maxWorkers 2"
+      ],
+      "logSha256": "cd10c43812f65ca6020e680df800cc6194d9cc5cbf377122f207640c0af54ef5",
+      "artifact": 13454063857,
+      "artifactDigest": "sha256:70953db4ac1a89ec8666e139430b1217c317cbbf4fdd039a7c7053438e93c913",
+      "directory": "trace-127541152809"
+    },
+    {
+      "job": 127541152816,
+      "run": 42111853632,
+      "url": "https://github.com/botiverse/oar/actions/runs/42111853632/job/127541152816",
+      "runtime": "grok",
+      "failedSteps": [
+        "Run pnpm run sea-trial"
+      ],
+      "logSha256": "712bbd5374ee0a860d445ce30d7edc03cb5ffd00f3e2e9ef1328d2f796226fd7",
+      "artifact": 13453937582,
+      "artifactDigest": "sha256:a5d1e390171e3e44539ac1a2049294d68e418eb4eef846a55bcf5aaa255da33f",
+      "directory": "trace-127541152816"
+    }
+  ]
+}

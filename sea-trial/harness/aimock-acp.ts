@@ -4,6 +4,7 @@ import path from "node:path";
 import { LLMock } from "@copilotkit/aimock";
 import { geminiToolResultsAsUser, startRawCapture, type RawCapture, type RequestRewrite } from "./raw-capture.js";
 import type { AimockEnv } from "./aimock.js";
+import { acpProviderEvidence } from "./provider-evidence.js";
 
 /*
  * The REAL opencode, kimi, grok and antigravity ACP agents (`<cli> acp`,
@@ -46,7 +47,7 @@ async function startProvider(configure: (mock: LLMock) => void, prefix: string, 
   const mock = new LLMock({ port: 0 });
   configure(mock);
   await mock.start();
-  const capture = await startRawCapture(mock.url, undefined, forward);
+  const capture = await startRawCapture(mock.url, undefined, forward, acpProviderEvidence(prefix.replace(/^oar-/u, "").replace(/-$/u, ""), mock));
   const root = await mkdtemp(path.join(tmpdir(), prefix));
   const base: Home = {
     HOME: path.join(root, "home"),

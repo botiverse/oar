@@ -1,5 +1,7 @@
 # experiments
 
+- [Native CI failures: 2026-11-06](acp-ci-failures/README.md): CodeBuddy install timing, Antigravity MCP mismatch, all 18 Windows Grok/OpenCode failure artifacts, and incremental synthetic-provider evidence.
+
 - [DSH background work](dsh-background-work/README.md): root completion, outstanding jobs and native follow-up tool calls, with Claude and Codex controls.
 - [DSH child settlement ordering](dsh-child-settlement/README.md): active-parent injection and idle-parent follow-up require different turn counts.
 
