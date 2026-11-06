@@ -1,9 +1,10 @@
 /* oxlint-disable eslint/max-statements, typescript/no-unsafe-assignment, typescript/no-unsafe-member-access, typescript/no-unsafe-call, typescript/no-unsafe-argument, typescript/no-unsafe-return, typescript/strict-boolean-expressions -- Standalone untyped fixture executable. */
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import saveLoginState from "./login-state.mjs";
 
 const [file, ...args] = process.argv.slice(2);
 const state = JSON.parse(readFileSync(file, "utf8"));
-const save = () => writeFileSync(file, JSON.stringify(state));
+const save = () => { saveLoginState(file, state); };
 // Capture only synthetic variables named by this test, never the inherited environment.
 if (state.captureEnv !== undefined) {
   const environment = {};

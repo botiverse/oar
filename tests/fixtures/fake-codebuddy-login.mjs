@@ -1,6 +1,7 @@
 /* oxlint-disable eslint/max-statements, typescript/no-unsafe-assignment, typescript/no-unsafe-member-access, typescript/no-unsafe-call, typescript/no-unsafe-argument, typescript/no-unsafe-return, typescript/strict-boolean-expressions -- Standalone untyped fixture executable. */
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { createInterface } from "node:readline";
+import saveLoginState from "./login-state.mjs";
 
 const [file] = process.argv.slice(2);
 const state = JSON.parse(readFileSync(file, "utf8"));
@@ -10,7 +11,7 @@ if (process.argv.includes("--version") || process.argv.includes("--help")) {
 }
 const secret = "synthetic-private-codebuddy-access-token";
 const account = { token: secret, email: "private@example.invalid", uid: "private-uid", userId: "private-user-id", nickname: "private-nickname", enterpriseName: "private-enterprise", enterpriseId: "private-enterprise-id" };
-const save = () => writeFileSync(file, JSON.stringify(state));
+const save = () => { saveLoginState(file, state); };
 const emit = (message) => process.stdout.write(`${JSON.stringify(message)}\n`);
 const reply = (request_id, response) => emit({ type: "control_response", response: { subtype: "success", request_id, response } });
 const fail = (request_id, error) => emit({ type: "control_response", response: { subtype: "error", request_id, error } });
