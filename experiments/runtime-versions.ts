@@ -17,11 +17,10 @@
  * Tool selection: rerun sea-trial/vendor/disallowed-tools*.vendor.test.ts
  * on changed supporting runtimes; Cursor also needs cursor-disallowed-tools.ts
  * (real login and tokens). Revisit refused native channels in the tool-denial audit.
- * A changed Antigravity server also needs antigravity-native-settings.ts:
- * recheck instruction/effort channels and native MCP credential persistence.
- * Also rerun antigravity-steering.ts. Watch agy stream-json and ACP for a
- * publicly documented immediate-send/control-request interface; notify the
- * maintainer before changing the transport or adding steering.
+ * A changed Antigravity CLI needs antigravity-aimock behavior and vendor
+ * suites through its native ACP interface, including steering outcomes and
+ * saved-directory recovery. The official CLI updater is the version source;
+ * the older third-party ACP registry describes a different executable.
  * A changed Qwen binary also needs qwen-native/probe.ts and the qwen-aimock
  * vendor/behavior suites (local provider, isolated HOME, no account). Also run
  * qwen-native/lock-lifetime.ts: a successful warmup does not prove shared-HOME
@@ -42,7 +41,7 @@
  * the SDKs loaded by OAR, never an executable of the same name on the host's
  * PATH. Pi Durable's host-owned Harness is not opened by this inventory; check
  * its companion Chord SDK when upgrading and run the pi-durable-aimock backend.
- * Prioritize a Pi release newer than 1.4.0 the same day: upgrade OAR's own undici
+ * Prioritize a Pi release newer than OAR's dependency the same day: upgrade OAR's own undici
  * together to Pi's exact pin, verify one resolved copy, then run both Pi modes
  * and Pi Durable. Do not bump undici independently.
  * Also compare deepseek-harness master with the last report: OAR patch files,
@@ -71,7 +70,8 @@ const PI_PACKAGE = "@earendil-works/pi-coding-agent";
 const PI_DURABLE_PACKAGE = "@earendil-works/pi-durable";
 const CURSOR_PACKAGE = "@cursor/sdk";
 const sources: readonly { id: string; url: string; major?: number }[] = [
-  { id: "antigravity", url: "https://raw.githubusercontent.com/agentclientprotocol/registry/main/antigravity-acp/agent.json" },
+  // The Linux manifest used by the official https://antigravity.google/cli/install.sh.
+  { id: "antigravity", url: "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app/manifests/linux_amd64.json" },
   { id: "claude", url: "https://registry.npmjs.org/@anthropic-ai/claude-code/latest" },
   { id: "codex", url: "https://registry.npmjs.org/@openai/codex/latest" },
   { id: "cursor", url: `https://registry.npmjs.org/${CURSOR_PACKAGE}/latest` },

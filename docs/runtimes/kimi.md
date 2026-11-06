@@ -27,13 +27,14 @@ darwin arm64, default model `kimi-code/k3`, no `--model`), 2026-09-11, through
 `kimi-usage-update-order.ts live`, `kimi-steer-or-queue.ts`. All of them pass
 on **kimi 2.0.0** (2026-09-18, live-contract 13/13; its `thinking` values are
 under [Effort](#models-instructions-and-context)). The latest check is
-**kimi 2.5.0** (2026-11-04, Linux): all 15 shared behavior cases and four local OAuth/login regressions pass, but one of eleven
-native vendor cases fails. A fresh-process resume without MCP configuration
-still advertises the initial stdio and HTTP tool declarations. Follow-up native
-controls show that their calls fail without the configuration; actual MCP
-execution uses the current resume options. The same unchanged case passes on
-2.4.1, which remains the CI pin until an upstream fix passes the same controls.
-See the [comparison and limits](../../experiments/runtime-version-checks/2026-11-04.md#kimi-250).
+**kimi 2.5.2** (2026-11-06, Linux): all 15 shared behavior cases and five
+local OAuth/login regressions pass, but one of twelve native vendor cases
+fails. A fresh-process resume without MCP configuration still advertises the
+initial stdio and HTTP tool declarations. The earlier 2.5.0 investigation
+separately showed that actual MCP execution uses the current resume options;
+those deeper controls were not repeated on 2.5.2. The unchanged declaration
+case passes on 2.4.1, which remains the CI pin until an upstream fix passes
+the same controls. See the [latest results and limits](../../experiments/runtime-version-checks/2026-11-06.md#kimi-252).
 Facts from later binaries name their version. Versions are
 evidence baselines, not a support range. The [spec](../spec/README.md) is the
 contract the adapter implements, not evidence of this adapter's behavior; see
@@ -562,6 +563,9 @@ The same controls on 2.4.1 keep declarations and execution aligned. Evidence
 covers fresh processes and local providers on Linux, not real models or other
 platforms; see the [native investigation](../../experiments/kimi-mcp-resume/2026-11-04.md)
 and [November 4 comparison](../../experiments/runtime-version-checks/2026-11-04.md#kimi-250).
+The omitted-configuration declaration mismatch also reproduces on 2.5.2
+([November 6](../../experiments/runtime-version-checks/2026-11-06.md#kimi-252));
+that check does not repeat every execution control above.
 
 The credentials reach kimi only in the open request's params, which OAR does
 not record (it records the answers, every `session/update` and vendor

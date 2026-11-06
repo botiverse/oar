@@ -13,11 +13,11 @@ observed on Linux with a local scripted OpenAI provider on 2026-10-23.
 The source's `packages/cli/src/nonInteractive/session.ts` and
 `control/controllers/systemController.ts` define this interface.
 
-Current check: npm **0.26.7** on Linux, 2026-11-04. All 18 native vendor
+Current check: npm **0.26.9** on Linux, 2026-11-06. All 19 native vendor
 tests and 16 applicable behavior cases passed. The snapshot-id and
 extension-store limits below still reproduce, and all fourteen
 provider-preset credential variables remain covered by the local credential
-reader. See the [version check](../../experiments/runtime-version-checks/2026-11-04.md#qwen-0267).
+reader. See the [version check](../../experiments/runtime-version-checks/2026-11-06.md#qwen-0269).
 
 ## OAR mapping
 

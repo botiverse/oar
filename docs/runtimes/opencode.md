@@ -318,8 +318,13 @@ covers 2.0.27.
   in [OAR #371](https://github.com/botiverse/oar/issues/371) and
   [upstream #54794](https://github.com/anomalyco/opencode/issues/54794),
   both open with no posted fix as of 2.1.4 (2026-10-23); the upstream issue
-  was still open on 2.2.5 (2026-10-31). A passing run does not resolve it;
-  OAR adds no retry or sleep for it.
+  was still open on 2.2.5 (2026-10-31). Upstream closed it on November 5,
+  reporting a fix from 2.2.4. The [November 6 local-provider control](../../experiments/runtime-version-checks/2026-11-06.md#opencode-225-cold-mcp-resume-after-upstream-closure)
+  still finds no echo execution on three cold resumes each with stdio and
+  HTTP servers in 2.2.5; both warmed initial sessions call echo. The resumed
+  prompt is immediate, so this does not cover every catalog-settlement
+  timing or establish the cause. A passing run does not resolve it; OAR adds
+  no retry or sleep for it.
 - **Prompt options:** both `systemPrompt` and `appendSystemPrompt` are
   refused before ACP startup, including resume. The v2 instruction loader
   does not consume the v1 `instructions` configuration. v2 has native
