@@ -1,0 +1,226 @@
+{
+  "version": "0.2.1-rc.5",
+  "platform": "linux",
+  "provider": "local scripted OpenAI-compatible provider",
+  "cases": [
+    {
+      "order": "child-before-parent",
+      "rootEnds": 1,
+      "status": "idle",
+      "notice": true,
+      "frames": [
+        {
+          "recordSeq": 10,
+          "sessionRole": "root",
+          "native": {
+            "type": "turn/start",
+            "seq": 4,
+            "time": 1793956581047,
+            "data": {
+              "turn": 1
+            }
+          }
+        },
+        {
+          "recordSeq": 33,
+          "sessionRole": "child",
+          "native": {
+            "type": "turn/start",
+            "seq": 5,
+            "time": 1793956581348,
+            "data": {
+              "turn": 1
+            }
+          }
+        },
+        {
+          "recordSeq": 59,
+          "sessionRole": "child",
+          "native": {
+            "type": "turn/end",
+            "seq": 16,
+            "time": 1793956581420,
+            "data": {
+              "turn": 1,
+              "reason": {
+                "kind": "completed"
+              }
+            }
+          }
+        },
+        {
+          "recordSeq": 71,
+          "sessionRole": "root",
+          "native": {
+            "type": "user/message",
+            "seq": 24,
+            "time": 1793956581465,
+            "data": {
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Background subagent 858234b8-3e89-4f6d-837e-c20a28221a1f finished and will do no further work unless you send it more."
+                },
+                {
+                  "type": "text",
+                  "text": "Its closing message:"
+                },
+                {
+                  "type": "text",
+                  "text": "child answer"
+                }
+              ],
+              "source": {
+                "kind": "subagent-settled",
+                "form": "notice",
+                "summary": "Background subagent 858234b8-3e89-4f6d-837e-c20a28221a1f finished and will do no further work unless you send it more.",
+                "senderSessionId": "858234b8-3e89-4f6d-837e-c20a28221a1f"
+              },
+              "role": "user",
+              "id": "3e366407-b05f-4972-8ce7-b65914248977"
+            },
+            "surfaceOp": "append"
+          }
+        },
+        {
+          "recordSeq": 82,
+          "sessionRole": "root",
+          "native": {
+            "type": "turn/end",
+            "seq": 27,
+            "time": 1793956581484,
+            "data": {
+              "turn": 1,
+              "reason": {
+                "kind": "completed"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "order": "child-after-parent",
+      "rootEnds": 2,
+      "status": "idle",
+      "notice": true,
+      "frames": [
+        {
+          "recordSeq": 10,
+          "sessionRole": "root",
+          "native": {
+            "type": "turn/start",
+            "seq": 4,
+            "time": 1793956584582,
+            "data": {
+              "turn": 1
+            }
+          }
+        },
+        {
+          "recordSeq": 33,
+          "sessionRole": "child",
+          "native": {
+            "type": "turn/start",
+            "seq": 5,
+            "time": 1793956584873,
+            "data": {
+              "turn": 1
+            }
+          }
+        },
+        {
+          "recordSeq": 57,
+          "sessionRole": "root",
+          "native": {
+            "type": "turn/end",
+            "seq": 21,
+            "time": 1793956584936,
+            "data": {
+              "turn": 1,
+              "reason": {
+                "kind": "completed"
+              }
+            }
+          }
+        },
+        {
+          "recordSeq": 67,
+          "sessionRole": "child",
+          "native": {
+            "type": "turn/end",
+            "seq": 16,
+            "time": 1793956584958,
+            "data": {
+              "turn": 1,
+              "reason": {
+                "kind": "completed"
+              }
+            }
+          }
+        },
+        {
+          "recordSeq": 71,
+          "sessionRole": "root",
+          "native": {
+            "type": "turn/start",
+            "seq": 23,
+            "time": 1793956584976,
+            "data": {
+              "turn": 2
+            }
+          }
+        },
+        {
+          "recordSeq": 75,
+          "sessionRole": "root",
+          "native": {
+            "type": "user/message",
+            "seq": 26,
+            "time": 1793956584998,
+            "data": {
+              "content": [
+                {
+                  "type": "text",
+                  "text": "Background subagent fd8b5c5c-ad7d-46f6-84ea-cec127b871cf finished and will do no further work unless you send it more."
+                },
+                {
+                  "type": "text",
+                  "text": "Its closing message:"
+                },
+                {
+                  "type": "text",
+                  "text": "child answer"
+                }
+              ],
+              "source": {
+                "kind": "subagent-settled",
+                "form": "notice",
+                "summary": "Background subagent fd8b5c5c-ad7d-46f6-84ea-cec127b871cf finished and will do no further work unless you send it more.",
+                "senderSessionId": "fd8b5c5c-ad7d-46f6-84ea-cec127b871cf"
+              },
+              "role": "user",
+              "id": "12ecfda1-2b73-46f5-8a53-cae44c2790bd"
+            },
+            "surfaceOp": "append"
+          }
+        },
+        {
+          "recordSeq": 86,
+          "sessionRole": "root",
+          "native": {
+            "type": "turn/end",
+            "seq": 29,
+            "time": 1793956585014,
+            "data": {
+              "turn": 2,
+              "reason": {
+                "kind": "completed"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

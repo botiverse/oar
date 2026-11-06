@@ -1,5 +1,7 @@
 # experiments
 
+- [DSH child settlement ordering](dsh-child-settlement/README.md): active-parent injection and idle-parent follow-up require different turn counts.
+
 - [Kimi account selection](orientation/kimi-accounts.md): real Kimi 2.4.1 and the OAR CLI inherit `KIMI_CODE_HOME`; quota decisions stay scoped to the selected account.
 - [Native task lifecycle and single-task stop](task-controls/README.md): Claude, Codex, Grok, Qoder and Qwen controls, acknowledgements and limits.
 - [Codex native signals](codex-native-signals/README.md): reconnects in the notification stream and not on stderr, a bad tool argument completing the turn, and an OOM score set through a command wrapper.
