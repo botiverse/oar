@@ -6,6 +6,11 @@ the [November 6 observation window](../runtime-version-checks/2026-11-06.md).
 No cause is established for any of these intermittent failures. Existing
 assertions, native deadlines, test limits and concurrency remain unchanged.
 
+The [first Windows follow-up](windows-followup.md) adds two complete provider
+timelines, Grok bootstrap phases, recording-cost comparisons and two more
+ordinary CodeBuddy install samples. It also explains why native OpenCode
+logs are now retained before fixture cleanup.
+
 ## CodeBuddy: one successful install nearly reaches the test limit
 
 Three earlier Windows checks (#668, #672 and #674) stopped the first npm

@@ -5,6 +5,7 @@ import { LLMock } from "@copilotkit/aimock";
 import { geminiToolResultsAsUser, startRawCapture, type RawCapture, type RequestRewrite } from "./raw-capture.js";
 import type { AimockEnv } from "./aimock.js";
 import { acpProviderEvidence } from "./provider-evidence.js";
+import { retainOpencodeLogs } from "./opencode-evidence.js";
 
 /*
  * The REAL opencode, kimi, grok and antigravity ACP agents (`<cli> acp`,
@@ -62,7 +63,7 @@ async function startProvider(configure: (mock: LLMock) => void, prefix: string, 
   return { mock, url: capture.url, capture, root, base };
 }
 
-function environment(started: Started, env: Readonly<Record<string, string>>): AcpAimockEnv {
+function environment(started: Started, env: Readonly<Record<string, string>>, beforeCleanup?: () => Promise<void>): AcpAimockEnv {
   return {
     env: { ...started.base, ...env },
     mock: started.mock,
@@ -70,6 +71,7 @@ function environment(started: Started, env: Readonly<Record<string, string>>): A
     stop: async () => {
       await started.capture.stop();
       await started.mock.stop();
+      await beforeCleanup?.();
       await rm(started.root, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
     },
   };
@@ -112,7 +114,7 @@ export async function startOpencodeAimock(configure: (mock: LLMock) => void, use
     OPENCODE_DISABLE_LSP_DOWNLOAD: "1",
     OPENCODE_DISABLE_DEFAULT_PLUGINS: "1",
     OPENCODE_DISABLE_CLAUDE_CODE: "1",
-  });
+  }, async () => { await retainOpencodeLogs(started.base.XDG_DATA_HOME); });
 }
 
 /**

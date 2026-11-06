@@ -88,10 +88,39 @@ than Windows' canonical binary copy.
 
 All attempts succeeded before 15 seconds. These results demonstrate phase
 capture and reuse on Linux, **not** Windows startup costs or recovery from
-a real first-start timeout. The Windows answers remain open until the
-ordinary main-push observation produces those phase records. In particular,
+a real first-start timeout. The first Windows measurement is below. In particular,
 do not assume a partially materialized canonical binary is retryable just
 because a completed first launch is faster on its second attempt.
+
+## Windows control, 2026-11-06
+
+The first extended observation,
+[job 128124140045](https://github.com/botiverse/oar/actions/runs/42285210473/job/128124140045),
+used Grok 1.0.70 and Node 24.22.2. [Selected records](windows-selected.json)
+include verified artifact/source hashes, all attempts and the two phase files,
+without temporary paths. The official bootstrap hash matches the Linux control.
+
+| Path | First initialize | Second, same HOME |
+| --- | ---: | ---: |
+| OAR-resolved executable | 5,999 ms | 326 ms |
+| npm wrapper | 5,666 ms | not measured |
+| Explicit Node bootstrap, observed | 5,842 ms | 349 ms |
+| Direct native | 1,531 ms | not measured |
+| Direct native, overlapped pipes | 1,554 ms | not measured |
+
+The observed first Node launch read 50,686,299 compressed bytes in 23.3 ms,
+decoded 176,000,000 bytes in 723.5 ms, wrote the temporary binary in
+2,333.6 ms, renamed it in 0.4 ms and copied it to the canonical executable
+in 70.6 ms. Native spawn notification took 1,074.5 ms; initialize arrived
+about 1,524 ms after that notification. The second launch skipped extraction
+and copying, with spawn notification taking 5.2 ms.
+
+Among separately timed bootstrap calls, the temporary binary write was
+longest. These measurements do not distinguish disk work,
+security scanning or scheduling within those waits. All attempts completed
+before 15 seconds, so recovery after an actual first-start timeout is still
+unmeasured. The whole diagnostic step took 25 seconds. The existing
+three-minute limit and the suites preceding the probe are unchanged.
 
 ## Reproduce and validate
 

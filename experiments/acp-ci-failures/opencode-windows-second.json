@@ -1,0 +1,1024 @@
+{
+  "traceSha256": "710a11d21739b7c87350d6ec83de349e3385ff942585cc53038da91143c7c645",
+  "fixtures": [
+    {
+      "fixture": 0,
+      "sha256": "b8d4032aecbb874c4f2e28a09a15d097803673792d99543036e0f29d46b7528c",
+      "bytes": 1384147,
+      "requests": [
+        {
+          "request": 1,
+          "at": 1793995554396,
+          "role": "title",
+          "toolsOffered": 0,
+          "promptAt": null,
+          "promptToRequestMs": null,
+          "status": 200,
+          "responseEndAt": 1793995554415,
+          "requestToResponseEndMs": 19,
+          "complete": true,
+          "nativeTools": []
+        },
+        {
+          "request": 2,
+          "at": 1793995555221,
+          "role": "title",
+          "toolsOffered": 0,
+          "promptAt": null,
+          "promptToRequestMs": null,
+          "status": 200,
+          "responseEndAt": 1793995555225,
+          "requestToResponseEndMs": 4,
+          "complete": true,
+          "nativeTools": []
+        },
+        {
+          "request": 3,
+          "at": 1793995557667,
+          "role": "agent",
+          "toolsOffered": 10,
+          "promptAt": null,
+          "promptToRequestMs": null,
+          "status": 200,
+          "responseEndAt": 1793995558197,
+          "requestToResponseEndMs": 530,
+          "complete": true,
+          "nativeTools": []
+        },
+        {
+          "request": 4,
+          "at": 1793995559471,
+          "role": "agent",
+          "toolsOffered": 10,
+          "promptAt": null,
+          "promptToRequestMs": null,
+          "status": 200,
+          "responseEndAt": 1793995559997,
+          "requestToResponseEndMs": 526,
+          "complete": true,
+          "nativeTools": []
+        },
+        {
+          "request": 5,
+          "at": 1793995564908,
+          "role": "title",
+          "toolsOffered": 0,
+          "promptAt": null,
+          "promptToRequestMs": null,
+          "status": 200,
+          "responseEndAt": 1793995564911,
+          "requestToResponseEndMs": 3,
+          "complete": true,
+          "nativeTools": []
+        },
+        {
+          "request": 6,
+          "at": 1793995566706,
+          "role": "agent",
+          "toolsOffered": 10,
+          "promptAt": null,
+          "promptToRequestMs": null,
+          "status": 200,
+          "responseEndAt": 1793995567233,
+          "requestToResponseEndMs": 527,
+          "complete": true,
+          "nativeTools": []
+        },
+        {
+          "request": 7,
+          "at": 1793995568311,
+          "role": "agent",
+          "toolsOffered": 10,
+          "promptAt": null,
+          "promptToRequestMs": null,
+          "status": 200,
+          "responseEndAt": 1793995568837,
+          "requestToResponseEndMs": 526,
+          "complete": true,
+          "nativeTools": []
+        },
+        {
+          "request": 8,
+          "at": 1793995570619,
+          "role": "agent",
+          "toolsOffered": 10,
+          "promptAt": null,
+          "promptToRequestMs": null,
+          "status": 200,
+          "responseEndAt": 1793995571161,
+          "requestToResponseEndMs": 542,
+          "complete": true,
+          "nativeTools": []
+        },
+        {
+          "request": 9,
+          "at": 1793995574178,
+          "role": "title",
+          "toolsOffered": 0,
+          "promptAt": null,
+          "promptToRequestMs": null,
+          "status": 200,
+          "responseEndAt": 1793995574181,
+          "requestToResponseEndMs": 3,
+          "complete": true,
+          "nativeTools": []
+        },
+        {
+          "request": 10,
+          "at": 1793995577262,
+          "role": "title",
+          "toolsOffered": 0,
+          "promptAt": null,
+          "promptToRequestMs": null,
+          "status": 200,
+          "responseEndAt": 1793995577265,
+          "requestToResponseEndMs": 3,
+          "complete": true,
+          "nativeTools": []
+        },
+        {
+          "request": 11,
+          "at": 1793995579064,
+          "role": "agent",
+          "toolsOffered": 10,
+          "promptAt": null,
+          "promptToRequestMs": null,
+          "status": 200,
+          "responseEndAt": 1793995579582,
+          "requestToResponseEndMs": 518,
+          "complete": true,
+          "nativeTools": []
+        },
+        {
+          "request": 12,
+          "at": 1793995580857,
+          "role": "title",
+          "toolsOffered": 0,
+          "promptAt": null,
+          "promptToRequestMs": null,
+          "status": 200,
+          "responseEndAt": 1793995580860,
+          "requestToResponseEndMs": 3,
+          "complete": true,
+          "nativeTools": []
+        },
+        {
+          "request": 13,
+          "at": 1793995582581,
+          "role": "agent",
+          "toolsOffered": 10,
+          "promptAt": null,
+          "promptToRequestMs": null,
+          "status": 200,
+          "responseEndAt": 1793995583145,
+          "requestToResponseEndMs": 564,
+          "complete": true,
+          "nativeTools": []
+        },
+        {
+          "request": 14,
+          "at": 1793995585313,
+          "role": "title",
+          "toolsOffered": 0,
+          "promptAt": null,
+          "promptToRequestMs": null,
+          "status": 200,
+          "responseEndAt": 1793995585316,
+          "requestToResponseEndMs": 3,
+          "complete": true,
+          "nativeTools": []
+        },
+        {
+          "request": 15,
+          "at": 1793995587053,
+          "role": "agent",
+          "toolsOffered": 10,
+          "promptAt": null,
+          "promptToRequestMs": null,
+          "status": 200,
+          "responseEndAt": 1793995587593,
+          "requestToResponseEndMs": 540,
+          "complete": true,
+          "nativeTools": []
+        },
+        {
+          "request": 16,
+          "at": 1793995588580,
+          "role": "agent",
+          "toolsOffered": 10,
+          "promptAt": null,
+          "promptToRequestMs": null,
+          "status": 200,
+          "responseEndAt": 1793995589102,
+          "requestToResponseEndMs": 522,
+          "complete": true,
+          "nativeTools": []
+        },
+        {
+          "request": 17,
+          "at": 1793995590109,
+          "role": "agent",
+          "toolsOffered": 10,
+          "promptAt": null,
+          "promptToRequestMs": null,
+          "status": 200,
+          "responseEndAt": 1793995590639,
+          "requestToResponseEndMs": 530,
+          "complete": true,
+          "nativeTools": []
+        },
+        {
+          "request": 18,
+          "at": 1793995590597,
+          "role": "agent",
+          "toolsOffered": 10,
+          "promptAt": null,
+          "promptToRequestMs": null,
+          "status": 200,
+          "responseEndAt": 1793995596028,
+          "requestToResponseEndMs": 5431,
+          "complete": true,
+          "nativeTools": []
+        },
+        {
+          "request": 19,
+          "at": 1793995595059,
+          "role": "title",
+          "toolsOffered": 0,
+          "promptAt": null,
+          "promptToRequestMs": null,
+          "status": 200,
+          "responseEndAt": 1793995595062,
+          "requestToResponseEndMs": 3,
+          "complete": true,
+          "nativeTools": []
+        },
+        {
+          "request": 20,
+          "at": 1793995596590,
+          "role": "agent",
+          "toolsOffered": 10,
+          "promptAt": null,
+          "promptToRequestMs": null,
+          "status": 200,
+          "responseEndAt": 1793995602011,
+          "requestToResponseEndMs": 5421,
+          "complete": true,
+          "nativeTools": []
+        },
+        {
+          "request": 21,
+          "at": 1793995600577,
+          "role": "title",
+          "toolsOffered": 0,
+          "promptAt": null,
+          "promptToRequestMs": null,
+          "status": 200,
+          "responseEndAt": 1793995600580,
+          "requestToResponseEndMs": 3,
+          "complete": true,
+          "nativeTools": []
+        },
+        {
+          "request": 22,
+          "at": 1793995601974,
+          "role": "agent",
+          "toolsOffered": 10,
+          "promptAt": null,
+          "promptToRequestMs": null,
+          "status": 200,
+          "responseEndAt": 1793995602500,
+          "requestToResponseEndMs": 526,
+          "complete": true,
+          "nativeTools": []
+        },
+        {
+          "request": 23,
+          "at": 1793995602809,
+          "role": "agent",
+          "toolsOffered": 10,
+          "promptAt": null,
+          "promptToRequestMs": null,
+          "status": 200,
+          "responseEndAt": 1793995603341,
+          "requestToResponseEndMs": 532,
+          "complete": true,
+          "nativeTools": []
+        },
+        {
+          "request": 24,
+          "at": 1793995603304,
+          "role": "agent",
+          "toolsOffered": 10,
+          "promptAt": null,
+          "promptToRequestMs": null,
+          "status": 200,
+          "responseEndAt": 1793995603835,
+          "requestToResponseEndMs": 531,
+          "complete": true,
+          "nativeTools": []
+        },
+        {
+          "request": 25,
+          "at": 1793995609242,
+          "role": "title",
+          "toolsOffered": 0,
+          "promptAt": null,
+          "promptToRequestMs": null,
+          "status": 200,
+          "responseEndAt": 1793995609246,
+          "requestToResponseEndMs": 4,
+          "complete": true,
+          "nativeTools": []
+        },
+        {
+          "request": 26,
+          "at": 1793995609450,
+          "role": "title",
+          "toolsOffered": 0,
+          "promptAt": null,
+          "promptToRequestMs": null,
+          "status": 200,
+          "responseEndAt": 1793995609453,
+          "requestToResponseEndMs": 3,
+          "complete": true,
+          "nativeTools": []
+        },
+        {
+          "request": 27,
+          "at": 1793995611439,
+          "role": "agent",
+          "toolsOffered": 10,
+          "promptAt": null,
+          "promptToRequestMs": null,
+          "status": 200,
+          "responseEndAt": 1793995611982,
+          "requestToResponseEndMs": 543,
+          "complete": true,
+          "nativeTools": []
+        },
+        {
+          "request": 28,
+          "at": 1793995611531,
+          "role": "agent",
+          "toolsOffered": 10,
+          "promptAt": null,
+          "promptToRequestMs": null,
+          "status": 200,
+          "responseEndAt": 1793995612074,
+          "requestToResponseEndMs": 543,
+          "complete": true,
+          "nativeTools": []
+        },
+        {
+          "request": 29,
+          "at": 1793995618526,
+          "role": "title",
+          "toolsOffered": 0,
+          "promptAt": null,
+          "promptToRequestMs": null,
+          "status": 200,
+          "responseEndAt": 1793995618530,
+          "requestToResponseEndMs": 4,
+          "complete": true,
+          "nativeTools": []
+        },
+        {
+          "request": 30,
+          "at": 1793995620092,
+          "role": "agent",
+          "toolsOffered": 10,
+          "promptAt": null,
+          "promptToRequestMs": null,
+          "status": 200,
+          "responseEndAt": 1793995620619,
+          "requestToResponseEndMs": 527,
+          "complete": true,
+          "nativeTools": []
+        },
+        {
+          "request": 31,
+          "at": 1793995626427,
+          "role": "title",
+          "toolsOffered": 0,
+          "promptAt": null,
+          "promptToRequestMs": null,
+          "status": 200,
+          "responseEndAt": 1793995626430,
+          "requestToResponseEndMs": 3,
+          "complete": true,
+          "nativeTools": []
+        },
+        {
+          "request": 32,
+          "at": 1793995628289,
+          "role": "agent",
+          "toolsOffered": 10,
+          "promptAt": null,
+          "promptToRequestMs": null,
+          "status": 200,
+          "responseEndAt": 1793995628853,
+          "requestToResponseEndMs": 564,
+          "complete": true,
+          "nativeTools": []
+        },
+        {
+          "request": 33,
+          "at": 1793995628689,
+          "role": "title",
+          "toolsOffered": 0,
+          "promptAt": null,
+          "promptToRequestMs": null,
+          "status": 200,
+          "responseEndAt": 1793995628693,
+          "requestToResponseEndMs": 4,
+          "complete": true,
+          "nativeTools": []
+        },
+        {
+          "request": 34,
+          "at": 1793995630524,
+          "role": "agent",
+          "toolsOffered": 10,
+          "promptAt": null,
+          "promptToRequestMs": null,
+          "status": 200,
+          "responseEndAt": 1793995635934,
+          "requestToResponseEndMs": 5410,
+          "complete": true,
+          "nativeTools": []
+        }
+      ],
+      "truncations": 0
+    },
+    {
+      "fixture": 1,
+      "sha256": "a152ec6ffdbb606a8d8f29c75514fd9f8f2c84b29a2521006c6b0a960dd2746b",
+      "bytes": 404270,
+      "requests": [
+        {
+          "request": 1,
+          "at": 1793995662272,
+          "role": "title",
+          "toolsOffered": 0,
+          "promptAt": 1793995662023,
+          "promptToRequestMs": 249,
+          "status": 200,
+          "responseEndAt": 1793995662293,
+          "requestToResponseEndMs": 21,
+          "complete": true,
+          "nativeTools": []
+        },
+        {
+          "request": 2,
+          "at": 1793995704980,
+          "role": "agent",
+          "toolsOffered": 12,
+          "promptAt": 1793995662023,
+          "promptToRequestMs": 42957,
+          "status": 200,
+          "responseEndAt": 1793995704985,
+          "requestToResponseEndMs": 5,
+          "complete": true,
+          "nativeTools": [
+            {
+              "tool": "echo_echo",
+              "startedAt": 1793995705019,
+              "endedAt": 1793995705024
+            }
+          ]
+        },
+        {
+          "request": 3,
+          "at": 1793995705736,
+          "role": "agent",
+          "toolsOffered": 12,
+          "promptAt": 1793995662023,
+          "promptToRequestMs": 43713,
+          "status": 200,
+          "responseEndAt": 1793995705740,
+          "requestToResponseEndMs": 4,
+          "complete": true,
+          "nativeTools": [
+            {
+              "tool": "remote_echo",
+              "startedAt": 1793995705761,
+              "endedAt": 1793995705784
+            }
+          ]
+        },
+        {
+          "request": 4,
+          "at": 1793995706479,
+          "role": "agent",
+          "toolsOffered": 12,
+          "promptAt": 1793995662023,
+          "promptToRequestMs": 44456,
+          "status": 200,
+          "responseEndAt": 1793995706484,
+          "requestToResponseEndMs": 5,
+          "complete": true,
+          "nativeTools": []
+        },
+        {
+          "request": 5,
+          "at": 1793995713653,
+          "role": "agent",
+          "toolsOffered": 12,
+          "promptAt": 1793995712129,
+          "promptToRequestMs": 1524,
+          "status": 200,
+          "responseEndAt": 1793995713656,
+          "requestToResponseEndMs": 3,
+          "complete": true,
+          "nativeTools": [
+            {
+              "tool": "echo_echo",
+              "startedAt": 1793995713709,
+              "endedAt": 1793995713711
+            }
+          ]
+        },
+        {
+          "request": 6,
+          "at": 1793995714322,
+          "role": "agent",
+          "toolsOffered": 12,
+          "promptAt": 1793995712129,
+          "promptToRequestMs": 2193,
+          "status": 200,
+          "responseEndAt": 1793995714325,
+          "requestToResponseEndMs": 3,
+          "complete": true,
+          "nativeTools": []
+        },
+        {
+          "request": 7,
+          "at": 1793995723317,
+          "role": "agent",
+          "toolsOffered": 10,
+          "promptAt": 1793995719877,
+          "promptToRequestMs": 3440,
+          "status": 200,
+          "responseEndAt": 1793995723320,
+          "requestToResponseEndMs": 3,
+          "complete": true,
+          "nativeTools": []
+        }
+      ],
+      "truncations": 0
+    },
+    {
+      "fixture": 2,
+      "sha256": "bfad490142281aedd3736124f41ad5f451d2658f5ea39c654afce0e01ca8bc02",
+      "bytes": 75,
+      "requests": [],
+      "truncations": 0
+    },
+    {
+      "fixture": 3,
+      "sha256": "67ed85cbe96bc4e3eea08222ec7b8d7afe5737ae83ffef8be2355b0681ebd906",
+      "bytes": 69852,
+      "requests": [
+        {
+          "request": 1,
+          "at": 1793995686683,
+          "role": "title",
+          "toolsOffered": 0,
+          "promptAt": null,
+          "promptToRequestMs": null,
+          "status": 200,
+          "responseEndAt": 1793995686702,
+          "requestToResponseEndMs": 19,
+          "complete": true,
+          "nativeTools": []
+        },
+        {
+          "request": 2,
+          "at": 1793995727429,
+          "role": "agent",
+          "toolsOffered": 10,
+          "promptAt": null,
+          "promptToRequestMs": null,
+          "status": 401,
+          "responseEndAt": 1793995727434,
+          "requestToResponseEndMs": 5,
+          "complete": true,
+          "nativeTools": []
+        }
+      ],
+      "truncations": 0
+    },
+    {
+      "fixture": 4,
+      "sha256": "443f4dc56852a75f40676220dcb441a1de0e280851eb804326b56575b537fb07",
+      "bytes": 204122,
+      "requests": [
+        {
+          "request": 1,
+          "at": 1793995732766,
+          "role": "title",
+          "toolsOffered": 0,
+          "promptAt": 1793995732615,
+          "promptToRequestMs": 151,
+          "status": 200,
+          "responseEndAt": 1793995732770,
+          "requestToResponseEndMs": 4,
+          "complete": true,
+          "nativeTools": []
+        },
+        {
+          "request": 2,
+          "at": 1793995798817,
+          "role": "agent",
+          "toolsOffered": 12,
+          "promptAt": 1793995732615,
+          "promptToRequestMs": 66202,
+          "status": 200,
+          "responseEndAt": 1793995798821,
+          "requestToResponseEndMs": 4,
+          "complete": true,
+          "nativeTools": [
+            {
+              "tool": "echo_echo",
+              "startedAt": 1793995798851,
+              "endedAt": 1793995798853
+            }
+          ]
+        },
+        {
+          "request": 3,
+          "at": 1793995799545,
+          "role": "agent",
+          "toolsOffered": 12,
+          "promptAt": 1793995732615,
+          "promptToRequestMs": 66930,
+          "status": 200,
+          "responseEndAt": 1793995799549,
+          "requestToResponseEndMs": 4,
+          "complete": true,
+          "nativeTools": [
+            {
+              "tool": "userecho_echo",
+              "startedAt": 1793995799568,
+              "endedAt": 1793995799570
+            }
+          ]
+        },
+        {
+          "request": 4,
+          "at": 1793995800301,
+          "role": "agent",
+          "toolsOffered": 12,
+          "promptAt": 1793995732615,
+          "promptToRequestMs": 67686,
+          "status": 200,
+          "responseEndAt": 1793995800304,
+          "requestToResponseEndMs": 3,
+          "complete": true,
+          "nativeTools": []
+        }
+      ],
+      "truncations": 0
+    },
+    {
+      "fixture": 5,
+      "sha256": "c77bb8f03580286ebf31b399fd0c36a83b43f458c158d557b52ff558b71ba53a",
+      "bytes": 387119,
+      "requests": [
+        {
+          "request": 1,
+          "at": 1793995735001,
+          "role": "title",
+          "toolsOffered": 0,
+          "promptAt": null,
+          "promptToRequestMs": null,
+          "status": 200,
+          "responseEndAt": 1793995735005,
+          "requestToResponseEndMs": 4,
+          "complete": true,
+          "nativeTools": []
+        },
+        {
+          "request": 2,
+          "at": 1793995798681,
+          "role": "agent",
+          "toolsOffered": 10,
+          "promptAt": null,
+          "promptToRequestMs": null,
+          "status": 429,
+          "responseEndAt": 1793995798685,
+          "requestToResponseEndMs": 4,
+          "complete": true,
+          "nativeTools": []
+        },
+        {
+          "request": 3,
+          "at": 1793995799699,
+          "role": "agent",
+          "toolsOffered": 10,
+          "promptAt": null,
+          "promptToRequestMs": null,
+          "status": 429,
+          "responseEndAt": 1793995799703,
+          "requestToResponseEndMs": 4,
+          "complete": true,
+          "nativeTools": []
+        },
+        {
+          "request": 4,
+          "at": 1793995800713,
+          "role": "agent",
+          "toolsOffered": 10,
+          "promptAt": null,
+          "promptToRequestMs": null,
+          "status": 429,
+          "responseEndAt": 1793995800716,
+          "requestToResponseEndMs": 3,
+          "complete": true,
+          "nativeTools": []
+        },
+        {
+          "request": 5,
+          "at": 1793995801725,
+          "role": "agent",
+          "toolsOffered": 10,
+          "promptAt": null,
+          "promptToRequestMs": null,
+          "status": 429,
+          "responseEndAt": 1793995801728,
+          "requestToResponseEndMs": 3,
+          "complete": true,
+          "nativeTools": []
+        },
+        {
+          "request": 6,
+          "at": 1793995802735,
+          "role": "agent",
+          "toolsOffered": 10,
+          "promptAt": null,
+          "promptToRequestMs": null,
+          "status": 429,
+          "responseEndAt": 1793995802739,
+          "requestToResponseEndMs": 4,
+          "complete": true,
+          "nativeTools": []
+        },
+        {
+          "request": 7,
+          "at": 1793995803746,
+          "role": "agent",
+          "toolsOffered": 10,
+          "promptAt": null,
+          "promptToRequestMs": null,
+          "status": 429,
+          "responseEndAt": 1793995803749,
+          "requestToResponseEndMs": 3,
+          "complete": true,
+          "nativeTools": []
+        }
+      ],
+      "truncations": 0
+    },
+    {
+      "fixture": 6,
+      "sha256": "3124a46efbc5a5392f49a19218ebb8c089bf4509456d10a950f315185c14e664",
+      "bytes": 153363,
+      "requests": [
+        {
+          "request": 1,
+          "at": 1793995811097,
+          "role": "title",
+          "toolsOffered": 0,
+          "promptAt": 1793995810980,
+          "promptToRequestMs": 117,
+          "status": 200,
+          "responseEndAt": 1793995811100,
+          "requestToResponseEndMs": 3,
+          "complete": true,
+          "nativeTools": []
+        },
+        {
+          "request": 2,
+          "at": 1793995853437,
+          "role": "agent",
+          "toolsOffered": 12,
+          "promptAt": 1793995810980,
+          "promptToRequestMs": 42457,
+          "status": 200,
+          "responseEndAt": 1793995853440,
+          "requestToResponseEndMs": 3,
+          "complete": true,
+          "nativeTools": [
+            {
+              "tool": "echo_echo",
+              "startedAt": 1793995853476,
+              "endedAt": 1793995853477
+            }
+          ]
+        },
+        {
+          "request": 3,
+          "at": 1793995854310,
+          "role": "agent",
+          "toolsOffered": 12,
+          "promptAt": 1793995810980,
+          "promptToRequestMs": 43330,
+          "status": 200,
+          "responseEndAt": 1793995854312,
+          "requestToResponseEndMs": 2,
+          "complete": true,
+          "nativeTools": [
+            {
+              "tool": "remote_echo",
+              "startedAt": 1793995854335,
+              "endedAt": 1793995854351
+            }
+          ]
+        },
+        {
+          "request": 4,
+          "at": 1793995855174,
+          "role": "agent",
+          "toolsOffered": 12,
+          "promptAt": 1793995810980,
+          "promptToRequestMs": 44194,
+          "status": 200,
+          "responseEndAt": 1793995855177,
+          "requestToResponseEndMs": 3,
+          "complete": true,
+          "nativeTools": []
+        }
+      ],
+      "truncations": 0
+    },
+    {
+      "fixture": 7,
+      "sha256": "36f196fa2f064c03255ddec5bc020b374609ac6e99849ad8cf92460ce4be6c3b",
+      "bytes": 69908,
+      "requests": [
+        {
+          "request": 1,
+          "at": 1793995811601,
+          "role": "title",
+          "toolsOffered": 0,
+          "promptAt": null,
+          "promptToRequestMs": null,
+          "status": 200,
+          "responseEndAt": 1793995811605,
+          "requestToResponseEndMs": 4,
+          "complete": true,
+          "nativeTools": []
+        },
+        {
+          "request": 2,
+          "at": 1793995856543,
+          "role": "agent",
+          "toolsOffered": 10,
+          "promptAt": null,
+          "promptToRequestMs": null,
+          "status": 400,
+          "responseEndAt": 1793995856546,
+          "requestToResponseEndMs": 3,
+          "complete": true,
+          "nativeTools": []
+        }
+      ],
+      "truncations": 0
+    },
+    {
+      "fixture": 8,
+      "sha256": "26620c2c6b3f1bd63a14a649a8642679a92e57bb773ce7820b5e1f9cd0a4a217",
+      "bytes": 137167,
+      "requests": [
+        {
+          "request": 1,
+          "at": 1793995883802,
+          "role": "title",
+          "toolsOffered": 0,
+          "promptAt": 1793995883596,
+          "promptToRequestMs": 206,
+          "status": 200,
+          "responseEndAt": 1793995883820,
+          "requestToResponseEndMs": 18,
+          "complete": true,
+          "nativeTools": []
+        },
+        {
+          "request": 2,
+          "at": 1793995926623,
+          "role": "agent",
+          "toolsOffered": 11,
+          "promptAt": 1793995883596,
+          "promptToRequestMs": 43027,
+          "status": 200,
+          "responseEndAt": 1793995926629,
+          "requestToResponseEndMs": 6,
+          "complete": true,
+          "nativeTools": [
+            {
+              "tool": "host_echo",
+              "startedAt": 1793995926661,
+              "endedAt": 1793995926693
+            }
+          ]
+        },
+        {
+          "request": 3,
+          "at": 1793995927695,
+          "role": "agent",
+          "toolsOffered": 11,
+          "promptAt": 1793995883596,
+          "promptToRequestMs": 44099,
+          "status": 200,
+          "responseEndAt": 1793995927700,
+          "requestToResponseEndMs": 5,
+          "complete": true,
+          "nativeTools": []
+        }
+      ],
+      "truncations": 0
+    },
+    {
+      "fixture": 9,
+      "sha256": "0a288fc7f7242047bf69c1953a0eaec77a1702cfe671107ecb5dcebf67fe8704",
+      "bytes": 71152,
+      "requests": [
+        {
+          "request": 1,
+          "at": 1793995915794,
+          "role": "title",
+          "toolsOffered": 0,
+          "promptAt": null,
+          "promptToRequestMs": null,
+          "status": 200,
+          "responseEndAt": 1793995915810,
+          "requestToResponseEndMs": 16,
+          "complete": true,
+          "nativeTools": []
+        },
+        {
+          "request": 2,
+          "at": 1793995916622,
+          "role": "agent",
+          "toolsOffered": 10,
+          "promptAt": null,
+          "promptToRequestMs": null,
+          "status": 200,
+          "responseEndAt": 1793995916627,
+          "requestToResponseEndMs": 5,
+          "complete": true,
+          "nativeTools": []
+        }
+      ],
+      "truncations": 0
+    },
+    {
+      "fixture": 10,
+      "sha256": "0d56bbe8350207023dc7bb74c109dbe87184795cc425c803d083dee87bdd70e5",
+      "bytes": 136004,
+      "requests": [
+        {
+          "request": 1,
+          "at": 1793995940579,
+          "role": "title",
+          "toolsOffered": 0,
+          "promptAt": null,
+          "promptToRequestMs": null,
+          "status": 200,
+          "responseEndAt": 1793995940592,
+          "requestToResponseEndMs": 13,
+          "complete": true,
+          "nativeTools": []
+        },
+        {
+          "request": 2,
+          "at": 1793995983168,
+          "role": "agent",
+          "toolsOffered": 11,
+          "promptAt": null,
+          "promptToRequestMs": null,
+          "status": 200,
+          "responseEndAt": 1793995983173,
+          "requestToResponseEndMs": 5,
+          "complete": true,
+          "nativeTools": []
+        },
+        {
+          "request": 3,
+          "at": 1793995984288,
+          "role": "agent",
+          "toolsOffered": 11,
+          "promptAt": null,
+          "promptToRequestMs": null,
+          "status": 200,
+          "responseEndAt": 1793995984291,
+          "requestToResponseEndMs": 3,
+          "complete": true,
+          "nativeTools": []
+        }
+      ],
+      "truncations": 0
+    }
+  ]
+}
