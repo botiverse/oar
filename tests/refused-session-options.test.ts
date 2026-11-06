@@ -64,7 +64,7 @@ test("the declarations say which options each runtime refuses", () => {
     codebuddy: ["additionalDirectories", "appendSystemPrompt", "endTurnProcessesOnAbort", "goals", "name", "outputSchema", "serviceTier", "userConfiguration"],
     codex: ["userConfiguration"],
     cursor: ["appendSystemPrompt", "endTurnProcessesOnAbort", "env", "goals", "launchArgs", "mcpServers", "name", "outputSchema", "serviceTier", "systemPrompt"],
-    dsh: ["additionalDirectories", "appendSystemPrompt", "disallowedTools", "endTurnProcessesOnAbort", "goals", "launchArgs", "mcpServers", "name", "outputSchema", "serviceTier", "systemPrompt", "userConfiguration"],
+    dsh: ["additionalDirectories", "appendSystemPrompt", "disallowedTools", "endTurnProcessesOnAbort", "goals", "launchArgs", "mcpServerCredentials", "name", "outputSchema", "serviceTier", "systemPrompt", "userConfiguration"],
     grok: ["additionalDirectories", "disallowedTools", "endTurnProcessesOnAbort", "goals", "name", "serviceTier", "userConfiguration"],
     kimi: ["appendSystemPrompt", "disallowedTools", "endTurnProcessesOnAbort", "goals", "name", "outputSchema", "serviceTier", "systemPrompt", "userConfiguration"],
     opencode: ["disallowedTools", "endTurnProcessesOnAbort", "goals", "name", "outputSchema", "serviceTier", "userConfiguration"],
@@ -115,7 +115,7 @@ test("entries without credentials are no mcpServerCredentials given, and every r
 // that takes mcpServers refuses the names before anything starts.
 test.each(["__proto__", "__defineGetter__", "__defineSetter__", "__lookupGetter__", "__lookupSetter__"])("a reserved MCP server name is refused before anything starts: %s", async (name) => {
   const taking = allRuntimes.list().filter((runtime) => runtime.refusedSessionOptions?.mcpServers === undefined);
-  expect(taking.map((runtime) => runtime.id).toSorted()).toEqual(["antigravity", "claude", "codebuddy", "codex", "grok", "kimi", "opencode", "pi", "qoder", "qwen"]);
+  expect(taking.map((runtime) => runtime.id).toSorted()).toEqual(["antigravity", "claude", "codebuddy", "codex", "dsh", "grok", "kimi", "opencode", "pi", "qoder", "qwen"]);
   for (const runtime of taking) {
     // oxlint-disable-next-line no-await-in-loop -- one open at a time keeps the failure attributable.
     await expect(runtime.session(nowhere(runtime.id), { cwd: "/tmp", mcpServers: [{ name, command: "/nonexistent/oar-probe" }] }), runtime.id).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "mcpServers", message: `mcpServers name ${JSON.stringify(name)} is reserved: some runtimes drop a server so named without a word` });

@@ -6,7 +6,7 @@ import type { SessionOptions } from "../../contracts/session.js";
 export const dshRefusedSessionOptions: RefusedSessionOptions = {
   systemPrompt: "DSH's system prompt replacement through this bridge has not been verified",
   appendSystemPrompt: "DSH's appended system prompt through this bridge has not been verified",
-  mcpServers: "DSH's per-session MCP servers through this bridge have not been verified",
+  mcpServerCredentials: "DSH MCP env and header persistence has not been audited; only stdio command and args are supported",
   disallowedTools: "DSH's per-session tool denial through this bridge has not been verified",
   launchArgs: "OAR owns DSH's launcher arguments and bridge overlay; arbitrary flags have not been verified",
   serviceTier: "DSH has no verified per-session service-tier setting and readback",

@@ -1,0 +1,39 @@
+{
+  "version": "0.2.2-rc.1",
+  "initial": {
+    "kind": "completed"
+  },
+  "firstNames": [
+    "mcp__echo__echo"
+  ],
+  "toolEvents": [
+    {
+      "kind": "tool_call_started",
+      "callId": "call-1",
+      "tool": "mcp__echo__echo",
+      "input": "{\"text\":\"FIRST\"}"
+    },
+    {
+      "kind": "tool_call_ended",
+      "callId": "call-1",
+      "content": [
+        {
+          "type": "text",
+          "text": "echo:FIRST via=stdio token=none"
+        }
+      ],
+      "result": "ok"
+    }
+  ],
+  "resume": {
+    "kind": "completed"
+  },
+  "resumeNames": [
+    "mcp__fresh__echo"
+  ],
+  "omit": {
+    "kind": "completed"
+  },
+  "omittedNames": [],
+  "userPatchUnchanged": true
+}

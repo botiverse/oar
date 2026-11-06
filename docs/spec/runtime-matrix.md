@@ -518,7 +518,7 @@ in [user configuration](#user-configuration).
 | pi-durable | `systemPrompt`, `env`, `launchArgs`, `serviceTier`, `mcpServers`, `disallowedTools`, `additionalDirectories`, `outputSchema`, `name`, `userConfiguration: "exclude"`, `goals: true`, `endTurnProcessesOnAbort: true` | native instructions append only; host-owned environment; no process arguments or verified per-conversation tier/MCP/tool-denial mapping |
 | pi | `launchArgs`, `serviceTier`, `additionalDirectories`, `outputSchema`, `userConfiguration: "exclude"`, `goals: true`, `endTurnProcessesOnAbort: true` | it runs in the host process through its SDK, with no command line |
 | qwen | `serviceTier`, `outputSchema`, `name`, `userConfiguration: "exclude"`, `goals: true`, `endTurnProcessesOnAbort: true` | no verified tier, structured-output, session-name or user-configuration exclusion channel |
-| dsh | `systemPrompt`, `appendSystemPrompt`, `mcpServers`, `disallowedTools`, `launchArgs`, `serviceTier`, `additionalDirectories`, `outputSchema`, `name`, `userConfiguration: "exclude"`, `goals: true`, `endTurnProcessesOnAbort: true` | each not yet probed through the bridge ([mapping](../runtimes/dsh.md#session-options)) |
+| dsh | `systemPrompt`, `appendSystemPrompt`, `mcpServerCredentials`, `disallowedTools`, `launchArgs`, `serviceTier`, `additionalDirectories`, `outputSchema`, `name`, `userConfiguration: "exclude"`, `goals: true`, `endTurnProcessesOnAbort: true` | MCP credentials have no verified persistence boundary; the other options remain unverified through the bridge ([mapping](../runtimes/dsh.md#session-options)) |
 | qoder | `serviceTier`, `outputSchema`, `name`, `userConfiguration: "exclude"`, `goals: true`, `endTurnProcessesOnAbort: true` | no verified tier, structured-output, session-name or user-configuration exclusion channel |
 | codex | `userConfiguration: "exclude"`; `endTurnProcessesOnAbort: true` only with shared placement | temporary clean homes break shared history paths after cleanup ([evidence](../runtimes/codex.md#user-configuration)); a shared app-server's process table does not say which session's turn started a process |
 | claude | `goals: true`, `endTurnProcessesOnAbort: true` | no structured native goal controls on the chosen transport; other value-specific refusals are described on its runtime page |
@@ -536,6 +536,7 @@ call an attached server's tool, with the evidence on its runtime page
 | kimi | ACP `mcpServers` on `session/new` and `session/resume` | yes | yes | the param again | the session's replaces the user's `mcp.json` entry; the user's others stay ([kimi](../runtimes/kimi.md#session-mcp-servers)) |
 | opencode | ACP `mcpServers` on `session/new` and `session/resume`, held by that opencode process | yes | yes | the param again | the session's replaces the user's `mcp` entry for that process (a session server that fails to start removes it); the user's others stay ([opencode](../runtimes/opencode.md#session-mcp-servers)) |
 | antigravity | ACP `mcpServers` on `session/new` and `session/resume`; CLI worker mode exposes direct `mcp_<server>_<tool>` calls (user-configured servers remain lazy via `call_mcp_tool`). An entry with `env` or `headers` is refused (`mcpServerCredentials`, above) | yes | yes | the param again | the session's replaces the user's `mcp_config.json` entry; the user's others stay ([antigravity](../runtimes/antigravity.md#session-mcp-servers)) |
+| dsh | private invocation patch loads native MCP client plugins, checked active before open | command/args only | refused | supply entries again; omitted entries are absent | a native namespace collision refuses open ([dsh](../runtimes/dsh.md#session-mcp-servers)) |
 | pi | pi's MCP extension plus one registering the entries (`pi.registerMcpServer`); tools declared directly | yes | yes | registered again | oar's pi loads no `mcp.json`; a name another extension registered fails the open ([pi](../runtimes/pi.md#session-mcp-servers)) |
 
 Evidence: the vendor tests run the real CLI (pi: the bundled SDK) against a
@@ -550,6 +551,10 @@ home, [harness](../../sea-trial/harness/aimock-acp.ts); run locally, as CI
 has no ACP aimock backend). The same tests cover the name clash and check that
 no record holds a credential. The recordings are
 `tests/replay/fixtures/{claude,codex,pi}-mcp-echo.raw.jsonl`.
+
+DSH command/args controls, including startup failure and child cleanup, are in
+[`dsh-mcp.vendor.test.ts`](../../sea-trial/vendor/dsh-mcp.vendor.test.ts).
+HTTP and nonempty MCP env/headers remain refused, pending a persistence audit.
 
 CodeBuddy's credentialed stdio/HTTP invocation and post-exit persistence audit
 are in [`codebuddy.vendor.test.ts`](../../sea-trial/vendor/codebuddy.vendor.test.ts).
@@ -681,7 +686,8 @@ them from a streamable HTTP MCP server inside the host process, on
 Each runtime then attaches it through its own MCP channel above, so it
 behaves as any http entry does there: claude, codex, pi, grok, kimi and
 opencode take it; cursor and pi-durable refuse `mcpServers`, and
-antigravity refuses an entry with `headers`. A host tells before opening:
+antigravity refuses an entry with `headers`; dsh accepts only stdio command/args.
+A host tells before opening:
 served tools attach unless `refusedSessionOptions` declares `mcpServers` or
 `mcpServerCredentials`. The runtime must reach the host's loopback address,
 which holds for every runtime OAR starts on this machine or runs in this

@@ -10,7 +10,8 @@ if (process.argv.includes("--version")) {
 }
 const patch = JSON.parse(readFileSync(process.argv[process.argv.indexOf("--patch") + 1], "utf8"));
 if (process.argv[process.argv.indexOf("--profile") + 1] !== "acp" || patch[0].id !== "acp" || patch[0].disabled !== true) { process.exit(9); }
-const bridge = await import(patch[1].insert[0].name);
+const bridgeRow = patch[1].insert.find(row => row.id === "oar-dsh-bridge");
+const bridge = await import(bridgeRow.name);
 
 if (mode === "exit-before-ready") { process.stderr.write("native startup failed\n"); process.exit(3); }
 if (mode === "stdout-noise") { process.stdout.write("not json at all\n"); }
@@ -94,12 +95,13 @@ const llm = {
 const services = { agents, sessionPersistence: persistence, llm, ...(mode === "no-default" ? {} : { agentDefaultModel: { currentSelection: () => ({ provider: "local", model: "thinks" }) } }) };
 const loader = {
   await: async () => { if (mode === "barrier-fails") { throw new Error("barrier failed"); } },
+  ...(mode === "mcp-inactive" ? { entries: () => patch[1].insert.map(options => ({ options, fiber: { state: 0, await: async () => {} } })) } : {}),
 };
 const ctx = {
   get: (name) => name === "loader" ? (mode === "no-loader" ? undefined : loader) : services[name],
   on,
   effect: () => {},
 };
-bridge.apply(ctx, {});
+bridge.apply(ctx, bridgeRow.config ?? {});
 if (mode === "hang") { setInterval(() => {}, 1000); }
 process.stdin.on("end", () => { process.exit(0); });

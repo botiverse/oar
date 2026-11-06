@@ -210,11 +210,11 @@ export interface SessionOptions {
    * exits; codex from its `thread/start` / `thread/resume` config
    * overrides; grok, kimi, opencode and antigravity from ACP `session/new` /
    * `session/resume` `mcpServers`; pi from an extension that registers
-   * them). Not remembered: give them
+   * them; dsh from native MCP plugins in its private invocation patch, command/args only). Not remembered: give them
    * again on `resume`, where oar attaches them to the resumed session too. A
    * server named like one the user configured meets it the runtime's way for
    * this session (codex: merged into it field by field; pi: the open fails
-   * on a name another extension registered; the others: the session's
+   * on a name another extension registered; dsh refuses a native namespace collision; the others: the session's
    * replaces it), measured on each runtime page. A stdio server
    * gets `env` on top of what the runtime passes it (claude and pi: the whole
    * environment, `SessionOptions.env` included; codex: an allowlist such as
@@ -227,8 +227,9 @@ export interface SessionOptions {
    * docs/spec/runtime-matrix.md#refused-session-options), as it does for a
    * transport a runtime cannot attach (http on an ACP agent whose
    * `initialize` declares no `mcpCapabilities.http`) and for an entry with
-   * `env` or `headers` on antigravity, which would write them to its disk
-   * (declared as `refusedSessionOptions.mcpServerCredentials`).
+   * `env` or `headers` on antigravity, which would write them to its disk, or
+   * on dsh, whose persistence boundary is unverified (declared as
+   * `refusedSessionOptions.mcpServerCredentials`).
    */
   readonly mcpServers?: readonly McpServer[];
   /**
