@@ -12,6 +12,33 @@ and contract member, (4) the cheapest regression test and resource cost, and
 (5) a sea-trial case for every new `must` or `never`. If any answer is missing,
 keep the idea in the [roadmap](roadmap.md) or an experiment.
 
+## No inferred settlement disposition (2026-11-06)
+
+**Refused:** an OAR event or timer that infers whether each completed DSH job
+or child queued a notification, including a claim that none was queued. A host
+needs this distinction to decide whether to keep a session and its tool context
+available after the last `task_ended`. The decision belongs to the native
+notification producer, not the OAR projection.
+
+The [native probes](../../experiments/dsh-settlement-notifications/README.md)
+on DSH 0.2.1-rc.5 and 0.2.2-rc.1 found durable inbox changes, but no uniform
+record of the notification decision for each settlement. Job settlement comes
+before notification insertion; silence at that boundary is not a negative
+receipt. Quiet delivery and exhausted wake budgets leave notices pending,
+while model kill and a waiting read can suppress them. Normal subagent
+notification insertion comes before its end event, so its ordering differs.
+
+OAR preserves the existing native facts. Hosts can reconstruct the current
+inbox as described in the [runtime page](../runtimes/dsh.md#root-completion-and-background-work),
+but an empty inbox cannot promise that no later work will arrive. Native
+`whenIdle()` concerns current agent activity and is not exposed as a
+settlement-disposition contract. No public interface or inferred record is
+added.
+
+**What would reopen it:** a native durable record associating each settlement
+with its notification and wake decision, including an explicit no-notification
+outcome, verified by a native regression.
+
 ## Pi synchronous terminal submission (2026-11-05)
 
 **Refused:** releasing Pi SDK/RPC's run gate before publishing an ordinary

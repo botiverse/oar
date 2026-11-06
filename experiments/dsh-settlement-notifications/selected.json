@@ -1,0 +1,2370 @@
+[
+  {
+    "version": "0.2.2-rc.1",
+    "case": "wake",
+    "config": {},
+    "checkpoints": [
+      {
+        "label": "first-root-ended",
+        "rootEnds": 1,
+        "rootRequests": 2,
+        "native": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      },
+      {
+        "label": "after-settlement-500ms",
+        "rootEnds": 2,
+        "rootRequests": 3,
+        "native": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      }
+    ],
+    "settlements": [
+      {
+        "seq": 22,
+        "status": "completed",
+        "cause": "producer",
+        "producerReported": true,
+        "keys": [
+          "cause",
+          "detail",
+          "finishedAt",
+          "jobId",
+          "kind",
+          "label",
+          "owner",
+          "producerReported",
+          "startedAt",
+          "status",
+          "toolCall"
+        ],
+        "inboxAtRecord": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      }
+    ],
+    "notices": [
+      {
+        "seq": 23,
+        "observerIndex": 32,
+        "target": "next-turn",
+        "sourceKind": "tool-jobs",
+        "sourceKeys": [
+          "form",
+          "kind",
+          "summary"
+        ],
+        "inboxAtInsert": {
+          "status": "idle",
+          "nextTurn": 1,
+          "nextStep": 0
+        }
+      }
+    ],
+    "childEnds": [],
+    "whenIdle": [
+      {
+        "afterType": "turn/end",
+        "afterSeq": 21,
+        "rootLastSeqAtResolve": 21,
+        "rootState": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      },
+      {
+        "afterType": "job/settled",
+        "afterSeq": 22,
+        "rootLastSeqAtResolve": 30,
+        "rootState": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      },
+      {
+        "afterType": "turn/end",
+        "afterSeq": 30,
+        "rootLastSeqAtResolve": 30,
+        "rootState": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      }
+    ],
+    "liveAwaitedFlags": [
+      false
+    ],
+    "timeline": [
+      {
+        "seq": 4,
+        "type": "turn/start",
+        "turn": 1
+      },
+      {
+        "seq": 21,
+        "type": "turn/end",
+        "turn": 1
+      },
+      {
+        "seq": 22,
+        "type": "job/settled"
+      },
+      {
+        "seq": 23,
+        "type": "agent/inbox/spliced",
+        "target": "next-turn",
+        "sourceKind": "tool-jobs"
+      },
+      {
+        "seq": 24,
+        "type": "turn/start",
+        "turn": 2
+      },
+      {
+        "seq": 30,
+        "type": "turn/end",
+        "turn": 2
+      }
+    ],
+    "allObservedRootEventsPersisted": true,
+    "rawEvidence": {
+      "observer.jsonl": {
+        "sha256": "64d140937d22dd314c818ffd09da89d577c5ade13b0b35dac8d252a4276734b3",
+        "bytes": 47963
+      },
+      "before-dispose.json": {
+        "sha256": "99ee3ebcb5f2bc8b09c9f267cf5a63dd5e3552bfd3f392b99d014e28c278ba29",
+        "bytes": 211856
+      },
+      "durable.json": {
+        "sha256": "357fa0f0180852aac52504b898cb241068a589389f7a33cca9043f7ee7d4d91c",
+        "bytes": 50035
+      },
+      "summary.json": {
+        "sha256": "897ec728b668c7f9c9d9cbf54e396a0f97876bab4e807400bb2c4d475a0178af",
+        "bytes": 1465
+      }
+    }
+  },
+  {
+    "version": "0.2.2-rc.1",
+    "case": "kill",
+    "config": {},
+    "checkpoints": [
+      {
+        "label": "first-root-ended",
+        "rootEnds": 1,
+        "rootRequests": 3,
+        "native": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      },
+      {
+        "label": "after-settlement-500ms",
+        "rootEnds": 1,
+        "rootRequests": 3,
+        "native": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      }
+    ],
+    "settlements": [
+      {
+        "seq": 23,
+        "status": "killed",
+        "cause": "kill",
+        "producerReported": true,
+        "keys": [
+          "cause",
+          "detail",
+          "finishedAt",
+          "jobId",
+          "kind",
+          "label",
+          "owner",
+          "producerReported",
+          "startedAt",
+          "status",
+          "toolCall"
+        ],
+        "inboxAtRecord": {
+          "status": "running",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      }
+    ],
+    "notices": [],
+    "childEnds": [],
+    "whenIdle": [
+      {
+        "afterType": "job/settled",
+        "afterSeq": 23,
+        "rootLastSeqAtResolve": 27,
+        "rootState": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      },
+      {
+        "afterType": "turn/end",
+        "afterSeq": 27,
+        "rootLastSeqAtResolve": 27,
+        "rootState": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      }
+    ],
+    "liveAwaitedFlags": [
+      false
+    ],
+    "timeline": [
+      {
+        "seq": 4,
+        "type": "turn/start",
+        "turn": 1
+      },
+      {
+        "seq": 23,
+        "type": "job/settled"
+      },
+      {
+        "seq": 27,
+        "type": "turn/end",
+        "turn": 1
+      }
+    ],
+    "allObservedRootEventsPersisted": true,
+    "rawEvidence": {
+      "observer.jsonl": {
+        "sha256": "02af71a2d31f1987f928b46e20be81d18cca7841e3e160668149685245c4dc16",
+        "bytes": 42851
+      },
+      "before-dispose.json": {
+        "sha256": "4e3561555611c4cbd60cd254e5ab04afe691fadb40a73e214bfda9eb32b1ec7d",
+        "bytes": 209914
+      },
+      "durable.json": {
+        "sha256": "0275a96dac4c42a80d345e559003b0da785046535c229d3e414721021d6cfcae",
+        "bytes": 49174
+      },
+      "summary.json": {
+        "sha256": "13c1edfc7968c399c0390315b20b413964f601bff2785a079fd98468631e651d",
+        "bytes": 1178
+      }
+    }
+  },
+  {
+    "version": "0.2.2-rc.1",
+    "case": "collected",
+    "config": {},
+    "checkpoints": [
+      {
+        "label": "first-root-ended",
+        "rootEnds": 1,
+        "rootRequests": 3,
+        "native": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      },
+      {
+        "label": "after-settlement-500ms",
+        "rootEnds": 1,
+        "rootRequests": 3,
+        "native": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      }
+    ],
+    "settlements": [
+      {
+        "seq": 21,
+        "status": "completed",
+        "cause": "producer",
+        "producerReported": true,
+        "keys": [
+          "cause",
+          "detail",
+          "finishedAt",
+          "jobId",
+          "kind",
+          "label",
+          "owner",
+          "producerReported",
+          "startedAt",
+          "status",
+          "toolCall"
+        ],
+        "inboxAtRecord": {
+          "status": "running",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      }
+    ],
+    "notices": [],
+    "childEnds": [],
+    "whenIdle": [
+      {
+        "afterType": "job/settled",
+        "afterSeq": 21,
+        "rootLastSeqAtResolve": 27,
+        "rootState": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      },
+      {
+        "afterType": "turn/end",
+        "afterSeq": 27,
+        "rootLastSeqAtResolve": 27,
+        "rootState": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      }
+    ],
+    "liveAwaitedFlags": [
+      true
+    ],
+    "timeline": [
+      {
+        "seq": 4,
+        "type": "turn/start",
+        "turn": 1
+      },
+      {
+        "seq": 21,
+        "type": "job/settled"
+      },
+      {
+        "seq": 27,
+        "type": "turn/end",
+        "turn": 1
+      }
+    ],
+    "allObservedRootEventsPersisted": true,
+    "rawEvidence": {
+      "observer.jsonl": {
+        "sha256": "03410ea24c8928654bea2bc512566a88fdc7cd8b0e30cfbb8066db7a547be187",
+        "bytes": 42843
+      },
+      "before-dispose.json": {
+        "sha256": "7910bea49e7d7906f8d34430f9be34758c7d6063ba9cfe307473297329dcb76b",
+        "bytes": 210304
+      },
+      "durable.json": {
+        "sha256": "dc1d850b17246d800e28e8085902d659843a146fc444c564b62ad4e44ad7a09e",
+        "bytes": 49335
+      },
+      "summary.json": {
+        "sha256": "1ac1477a1800990b10b2f6c8b3f7f4a45e54850515a5da6ad034c87b402454ed",
+        "bytes": 1189
+      }
+    }
+  },
+  {
+    "version": "0.2.2-rc.1",
+    "case": "quiet",
+    "config": {
+      "completionDelivery": "quiet"
+    },
+    "checkpoints": [
+      {
+        "label": "first-root-ended",
+        "rootEnds": 1,
+        "rootRequests": 2,
+        "native": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      },
+      {
+        "label": "after-settlement-500ms",
+        "rootEnds": 1,
+        "rootRequests": 2,
+        "native": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 1
+        }
+      },
+      {
+        "label": "after-host-wake",
+        "rootEnds": 2,
+        "rootRequests": 3,
+        "native": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      }
+    ],
+    "settlements": [
+      {
+        "seq": 22,
+        "status": "completed",
+        "cause": "producer",
+        "producerReported": true,
+        "keys": [
+          "cause",
+          "detail",
+          "finishedAt",
+          "jobId",
+          "kind",
+          "label",
+          "owner",
+          "producerReported",
+          "startedAt",
+          "status",
+          "toolCall"
+        ],
+        "inboxAtRecord": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      }
+    ],
+    "notices": [
+      {
+        "seq": 23,
+        "observerIndex": 32,
+        "target": "next-step",
+        "sourceKind": "tool-jobs",
+        "sourceKeys": [
+          "form",
+          "kind",
+          "summary"
+        ],
+        "inboxAtInsert": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 1
+        }
+      }
+    ],
+    "childEnds": [],
+    "whenIdle": [
+      {
+        "afterType": "turn/end",
+        "afterSeq": 21,
+        "rootLastSeqAtResolve": 21,
+        "rootState": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      },
+      {
+        "afterType": "job/settled",
+        "afterSeq": 22,
+        "rootLastSeqAtResolve": 23,
+        "rootState": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 1
+        }
+      },
+      {
+        "afterType": "turn/end",
+        "afterSeq": 33,
+        "rootLastSeqAtResolve": 33,
+        "rootState": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      }
+    ],
+    "liveAwaitedFlags": [
+      false
+    ],
+    "timeline": [
+      {
+        "seq": 4,
+        "type": "turn/start",
+        "turn": 1
+      },
+      {
+        "seq": 21,
+        "type": "turn/end",
+        "turn": 1
+      },
+      {
+        "seq": 22,
+        "type": "job/settled"
+      },
+      {
+        "seq": 23,
+        "type": "agent/inbox/spliced",
+        "target": "next-step",
+        "sourceKind": "tool-jobs"
+      },
+      {
+        "seq": 25,
+        "type": "turn/start",
+        "turn": 2
+      },
+      {
+        "seq": 33,
+        "type": "turn/end",
+        "turn": 2
+      }
+    ],
+    "allObservedRootEventsPersisted": true,
+    "rawEvidence": {
+      "observer.jsonl": {
+        "sha256": "06f85129297490794c0cfb5b44a1b077c88806e7a143cf395053058b6a7e95f9",
+        "bytes": 52893
+      },
+      "before-dispose.json": {
+        "sha256": "0a694331b9bb0f9420e8aa0ed00a8353bd947e2c4dc9564f193dc76c1aa4a294",
+        "bytes": 216458
+      },
+      "durable.json": {
+        "sha256": "3d2fa4b74418abdfc27d45ddc58527aaf7da309511a2875a0ef81f55f39a70be",
+        "bytes": 51065
+      },
+      "summary.json": {
+        "sha256": "97ab69654a1a37b96ae1347ac1083aa3eb49732aa7f4b0b5c3e0e55852af481f",
+        "bytes": 2593
+      }
+    }
+  },
+  {
+    "version": "0.2.2-rc.1",
+    "case": "budget",
+    "config": {
+      "maxConsecutiveWakes": 1
+    },
+    "checkpoints": [
+      {
+        "label": "first-root-ended",
+        "rootEnds": 1,
+        "rootRequests": 2,
+        "native": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      },
+      {
+        "label": "after-settlement-500ms",
+        "rootEnds": 2,
+        "rootRequests": 4,
+        "native": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 1
+        }
+      },
+      {
+        "label": "after-host-wake",
+        "rootEnds": 3,
+        "rootRequests": 5,
+        "native": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      }
+    ],
+    "settlements": [
+      {
+        "seq": 22,
+        "status": "completed",
+        "cause": "producer",
+        "producerReported": true,
+        "keys": [
+          "cause",
+          "detail",
+          "finishedAt",
+          "jobId",
+          "kind",
+          "label",
+          "owner",
+          "producerReported",
+          "startedAt",
+          "status",
+          "toolCall"
+        ],
+        "inboxAtRecord": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      },
+      {
+        "seq": 37,
+        "status": "completed",
+        "cause": "producer",
+        "producerReported": true,
+        "keys": [
+          "cause",
+          "detail",
+          "finishedAt",
+          "jobId",
+          "kind",
+          "label",
+          "owner",
+          "producerReported",
+          "startedAt",
+          "status",
+          "toolCall"
+        ],
+        "inboxAtRecord": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      }
+    ],
+    "notices": [
+      {
+        "seq": 23,
+        "observerIndex": 32,
+        "target": "next-turn",
+        "sourceKind": "tool-jobs",
+        "sourceKeys": [
+          "form",
+          "kind",
+          "summary"
+        ],
+        "inboxAtInsert": {
+          "status": "idle",
+          "nextTurn": 1,
+          "nextStep": 0
+        }
+      },
+      {
+        "seq": 38,
+        "observerIndex": 58,
+        "target": "next-step",
+        "sourceKind": "tool-jobs",
+        "sourceKeys": [
+          "form",
+          "kind",
+          "summary"
+        ],
+        "inboxAtInsert": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 1
+        }
+      }
+    ],
+    "childEnds": [],
+    "whenIdle": [
+      {
+        "afterType": "turn/end",
+        "afterSeq": 21,
+        "rootLastSeqAtResolve": 21,
+        "rootState": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      },
+      {
+        "afterType": "job/settled",
+        "afterSeq": 22,
+        "rootLastSeqAtResolve": 36,
+        "rootState": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      },
+      {
+        "afterType": "turn/end",
+        "afterSeq": 36,
+        "rootLastSeqAtResolve": 36,
+        "rootState": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      },
+      {
+        "afterType": "job/settled",
+        "afterSeq": 37,
+        "rootLastSeqAtResolve": 38,
+        "rootState": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 1
+        }
+      },
+      {
+        "afterType": "turn/end",
+        "afterSeq": 48,
+        "rootLastSeqAtResolve": 48,
+        "rootState": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      }
+    ],
+    "liveAwaitedFlags": [
+      false,
+      false
+    ],
+    "timeline": [
+      {
+        "seq": 4,
+        "type": "turn/start",
+        "turn": 1
+      },
+      {
+        "seq": 21,
+        "type": "turn/end",
+        "turn": 1
+      },
+      {
+        "seq": 22,
+        "type": "job/settled"
+      },
+      {
+        "seq": 23,
+        "type": "agent/inbox/spliced",
+        "target": "next-turn",
+        "sourceKind": "tool-jobs"
+      },
+      {
+        "seq": 24,
+        "type": "turn/start",
+        "turn": 2
+      },
+      {
+        "seq": 36,
+        "type": "turn/end",
+        "turn": 2
+      },
+      {
+        "seq": 37,
+        "type": "job/settled"
+      },
+      {
+        "seq": 38,
+        "type": "agent/inbox/spliced",
+        "target": "next-step",
+        "sourceKind": "tool-jobs"
+      },
+      {
+        "seq": 40,
+        "type": "turn/start",
+        "turn": 3
+      },
+      {
+        "seq": 48,
+        "type": "turn/end",
+        "turn": 3
+      }
+    ],
+    "allObservedRootEventsPersisted": true,
+    "rawEvidence": {
+      "observer.jsonl": {
+        "sha256": "8ae619835810298a0766e0d7fa6b650253858c89de315f3d3ba1b1a4b747b039",
+        "bytes": 69312
+      },
+      "before-dispose.json": {
+        "sha256": "67d5173f36fdbfc68a6dbb1de35b3ecec141a16d598007afce1991aff7573f4a",
+        "bytes": 333149
+      },
+      "durable.json": {
+        "sha256": "6398a2d5bcb18a484c496a012611459eec6d637028c081de62d00fd263ff843a",
+        "bytes": 61914
+      },
+      "summary.json": {
+        "sha256": "2790464311fa61d9d86877802acdf9689c0b6726bbb319f7fe42aee0dd664a43",
+        "bytes": 2996
+      }
+    }
+  },
+  {
+    "version": "0.2.2-rc.1",
+    "case": "child",
+    "config": {},
+    "checkpoints": [
+      {
+        "label": "first-root-ended",
+        "rootEnds": 1,
+        "rootRequests": 2,
+        "native": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      },
+      {
+        "label": "after-settlement-500ms",
+        "rootEnds": 2,
+        "rootRequests": 3,
+        "native": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      }
+    ],
+    "settlements": [],
+    "notices": [
+      {
+        "seq": 22,
+        "observerIndex": 51,
+        "target": "next-turn",
+        "sourceKind": "subagent-settled",
+        "sourceKeys": [
+          "form",
+          "kind",
+          "senderSessionId",
+          "summary"
+        ],
+        "inboxAtInsert": {
+          "status": "idle",
+          "nextTurn": 1,
+          "nextStep": 0
+        }
+      }
+    ],
+    "childEnds": [
+      {
+        "observerIndex": 57,
+        "stopReason": "completed",
+        "noticeSeqsBeforeEnd": [
+          22
+        ],
+        "rootState": {
+          "status": "running",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      }
+    ],
+    "whenIdle": [
+      {
+        "afterType": "turn/end",
+        "afterSeq": 21,
+        "rootLastSeqAtResolve": 21,
+        "rootState": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      },
+      {
+        "afterType": "turn/end",
+        "afterSeq": 29,
+        "rootLastSeqAtResolve": 29,
+        "rootState": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      }
+    ],
+    "liveAwaitedFlags": [],
+    "timeline": [
+      {
+        "seq": 4,
+        "type": "turn/start",
+        "turn": 1
+      },
+      {
+        "seq": 21,
+        "type": "turn/end",
+        "turn": 1
+      },
+      {
+        "seq": 22,
+        "type": "agent/inbox/spliced",
+        "target": "next-turn",
+        "sourceKind": "subagent-settled"
+      },
+      {
+        "seq": 23,
+        "type": "turn/start",
+        "turn": 2
+      },
+      {
+        "seq": 29,
+        "type": "turn/end",
+        "turn": 2
+      }
+    ],
+    "allObservedRootEventsPersisted": true,
+    "rawEvidence": {
+      "observer.jsonl": {
+        "sha256": "c8fb99d88ed9c22d190673cdffe4c39dd32de67f6d168e93b12eee1a9e1b2b6c",
+        "bytes": 86127
+      },
+      "before-dispose.json": {
+        "sha256": "454b0e177637481356ffbf3058319c7f97faf63508e37c265e1a50ae11813fea",
+        "bytes": 311505
+      },
+      "durable.json": {
+        "sha256": "b8501632991aaca99e7c40a611072bf4a51b7995851b998983727e41411e8974",
+        "bytes": 49315
+      },
+      "summary.json": {
+        "sha256": "e1cb49bac03a02c092c558da7c0b44fac0e6397fd3c07fa8a1fe7649196b7bcd",
+        "bytes": 1417
+      }
+    }
+  },
+  {
+    "version": "0.2.2-rc.1",
+    "case": "child-quiet",
+    "config": {
+      "completionDelivery": "quiet"
+    },
+    "checkpoints": [
+      {
+        "label": "first-root-ended",
+        "rootEnds": 1,
+        "rootRequests": 2,
+        "native": {
+          "status": "running",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      },
+      {
+        "label": "after-settlement-500ms",
+        "rootEnds": 2,
+        "rootRequests": 3,
+        "native": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      }
+    ],
+    "settlements": [],
+    "notices": [
+      {
+        "seq": 22,
+        "observerIndex": 51,
+        "target": "next-turn",
+        "sourceKind": "subagent-settled",
+        "sourceKeys": [
+          "form",
+          "kind",
+          "senderSessionId",
+          "summary"
+        ],
+        "inboxAtInsert": {
+          "status": "idle",
+          "nextTurn": 1,
+          "nextStep": 0
+        }
+      }
+    ],
+    "childEnds": [
+      {
+        "observerIndex": 57,
+        "stopReason": "completed",
+        "noticeSeqsBeforeEnd": [
+          22
+        ],
+        "rootState": {
+          "status": "running",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      }
+    ],
+    "whenIdle": [
+      {
+        "afterType": "turn/end",
+        "afterSeq": 21,
+        "rootLastSeqAtResolve": 21,
+        "rootState": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      },
+      {
+        "afterType": "turn/end",
+        "afterSeq": 29,
+        "rootLastSeqAtResolve": 29,
+        "rootState": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      }
+    ],
+    "liveAwaitedFlags": [],
+    "timeline": [
+      {
+        "seq": 4,
+        "type": "turn/start",
+        "turn": 1
+      },
+      {
+        "seq": 21,
+        "type": "turn/end",
+        "turn": 1
+      },
+      {
+        "seq": 22,
+        "type": "agent/inbox/spliced",
+        "target": "next-turn",
+        "sourceKind": "subagent-settled"
+      },
+      {
+        "seq": 23,
+        "type": "turn/start",
+        "turn": 2
+      },
+      {
+        "seq": 29,
+        "type": "turn/end",
+        "turn": 2
+      }
+    ],
+    "allObservedRootEventsPersisted": true,
+    "rawEvidence": {
+      "observer.jsonl": {
+        "sha256": "eb2d9e9d6dc78e05f61e44ceb4a29210a656e77a3ecf5373132b6dfc1aad099e",
+        "bytes": 86163
+      },
+      "before-dispose.json": {
+        "sha256": "67f90527fc77eb77ce16b2ddedbb2ff0b8807c28a168f5bca7096340f2b96ea7",
+        "bytes": 311639
+      },
+      "durable.json": {
+        "sha256": "e9113d0a609cc334ba6a9bcff7c38e8dd8b68a4cd2342c0546d7cea149fc3314",
+        "bytes": 49351
+      },
+      "summary.json": {
+        "sha256": "a718c5702bcdc4996c36afc791e11eb894098a88c8ba2757455fbe494f35d413",
+        "bytes": 1463
+      }
+    }
+  },
+  {
+    "version": "0.2.2-rc.1",
+    "case": "child-interrupt",
+    "config": {},
+    "checkpoints": [
+      {
+        "label": "first-root-ended",
+        "rootEnds": 1,
+        "rootRequests": 4,
+        "native": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      },
+      {
+        "label": "after-settlement-500ms",
+        "rootEnds": 1,
+        "rootRequests": 4,
+        "native": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      }
+    ],
+    "settlements": [],
+    "notices": [
+      {
+        "seq": 23,
+        "observerIndex": 41,
+        "target": "next-step",
+        "sourceKind": "subagent-settled",
+        "sourceKeys": [
+          "form",
+          "kind",
+          "senderSessionId",
+          "summary"
+        ],
+        "inboxAtInsert": {
+          "status": "running",
+          "nextTurn": 0,
+          "nextStep": 1
+        }
+      }
+    ],
+    "childEnds": [
+      {
+        "observerIndex": 43,
+        "stopReason": "aborted",
+        "noticeSeqsBeforeEnd": [
+          23
+        ],
+        "rootState": {
+          "status": "running",
+          "nextTurn": 0,
+          "nextStep": 1
+        }
+      }
+    ],
+    "whenIdle": [
+      {
+        "afterType": "turn/end",
+        "afterSeq": 32,
+        "rootLastSeqAtResolve": 32,
+        "rootState": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      }
+    ],
+    "liveAwaitedFlags": [],
+    "timeline": [
+      {
+        "seq": 4,
+        "type": "turn/start",
+        "turn": 1
+      },
+      {
+        "seq": 23,
+        "type": "agent/inbox/spliced",
+        "target": "next-step",
+        "sourceKind": "subagent-settled"
+      },
+      {
+        "seq": 32,
+        "type": "turn/end",
+        "turn": 1
+      }
+    ],
+    "allObservedRootEventsPersisted": true,
+    "rawEvidence": {
+      "observer.jsonl": {
+        "sha256": "c42a085777a3904c10eff1182d9a10b8e28d2b8074c1954ba48b4c315a134919",
+        "bytes": 58444
+      },
+      "before-dispose.json": {
+        "sha256": "34755f04403b8c06370ca68d7887284dbdf3b6db06da915824ace120bc5bc21f",
+        "bytes": 270538
+      },
+      "durable.json": {
+        "sha256": "0b972a6c01330d86a3a11909a2e01c69dfc860e2bf651020878b994c150c6138",
+        "bytes": 53157
+      },
+      "summary.json": {
+        "sha256": "dc84748979a676fec9ad5e15b5241582f60bbd6c5ebd1d228f26599340aa6d15",
+        "bytes": 1397
+      }
+    }
+  },
+  {
+    "version": "0.2.1-rc.5",
+    "case": "wake",
+    "config": {},
+    "checkpoints": [
+      {
+        "label": "first-root-ended",
+        "rootEnds": 1,
+        "rootRequests": 2,
+        "native": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      },
+      {
+        "label": "after-settlement-500ms",
+        "rootEnds": 2,
+        "rootRequests": 3,
+        "native": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      }
+    ],
+    "settlements": [
+      {
+        "seq": 22,
+        "status": "completed",
+        "cause": "producer",
+        "producerReported": true,
+        "keys": [
+          "cause",
+          "detail",
+          "finishedAt",
+          "jobId",
+          "kind",
+          "label",
+          "owner",
+          "producerReported",
+          "startedAt",
+          "status",
+          "toolCall"
+        ],
+        "inboxAtRecord": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      }
+    ],
+    "notices": [
+      {
+        "seq": 23,
+        "observerIndex": 32,
+        "target": "next-turn",
+        "sourceKind": "tool-jobs",
+        "sourceKeys": [
+          "form",
+          "kind",
+          "summary"
+        ],
+        "inboxAtInsert": {
+          "status": "idle",
+          "nextTurn": 1,
+          "nextStep": 0
+        }
+      }
+    ],
+    "childEnds": [],
+    "whenIdle": [
+      {
+        "afterType": "turn/end",
+        "afterSeq": 21,
+        "rootLastSeqAtResolve": 21,
+        "rootState": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      },
+      {
+        "afterType": "job/settled",
+        "afterSeq": 22,
+        "rootLastSeqAtResolve": 30,
+        "rootState": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      },
+      {
+        "afterType": "turn/end",
+        "afterSeq": 30,
+        "rootLastSeqAtResolve": 30,
+        "rootState": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      }
+    ],
+    "liveAwaitedFlags": [
+      false
+    ],
+    "timeline": [
+      {
+        "seq": 4,
+        "type": "turn/start",
+        "turn": 1
+      },
+      {
+        "seq": 21,
+        "type": "turn/end",
+        "turn": 1
+      },
+      {
+        "seq": 22,
+        "type": "job/settled"
+      },
+      {
+        "seq": 23,
+        "type": "agent/inbox/spliced",
+        "target": "next-turn",
+        "sourceKind": "tool-jobs"
+      },
+      {
+        "seq": 24,
+        "type": "turn/start",
+        "turn": 2
+      },
+      {
+        "seq": 30,
+        "type": "turn/end",
+        "turn": 2
+      }
+    ],
+    "allObservedRootEventsPersisted": true,
+    "rawEvidence": {
+      "observer.jsonl": {
+        "sha256": "621ebdffce6a1600d90431b92da8a060700d7b3375585690dd9e2a8d972654dc",
+        "bytes": 49058
+      },
+      "before-dispose.json": {
+        "sha256": "a621bdfe452ce09076f2d786969b968d028d74eab61902a16d11b98de1203511",
+        "bytes": 219282
+      },
+      "durable.json": {
+        "sha256": "763762241294e9cec0e62c24f69b57e37b72265a891cb4686108eb0fa403d330",
+        "bytes": 51607
+      },
+      "summary.json": {
+        "sha256": "ab7e5598fa8827d7091a47b1196f131d637092170495c11e375637fed4e295ec",
+        "bytes": 1465
+      }
+    }
+  },
+  {
+    "version": "0.2.1-rc.5",
+    "case": "kill",
+    "config": {},
+    "checkpoints": [
+      {
+        "label": "first-root-ended",
+        "rootEnds": 1,
+        "rootRequests": 3,
+        "native": {
+          "status": "running",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      },
+      {
+        "label": "after-settlement-500ms",
+        "rootEnds": 1,
+        "rootRequests": 3,
+        "native": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      }
+    ],
+    "settlements": [
+      {
+        "seq": 23,
+        "status": "killed",
+        "cause": "kill",
+        "producerReported": true,
+        "keys": [
+          "cause",
+          "detail",
+          "finishedAt",
+          "jobId",
+          "kind",
+          "label",
+          "owner",
+          "producerReported",
+          "startedAt",
+          "status",
+          "toolCall"
+        ],
+        "inboxAtRecord": {
+          "status": "running",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      }
+    ],
+    "notices": [],
+    "childEnds": [],
+    "whenIdle": [
+      {
+        "afterType": "job/settled",
+        "afterSeq": 23,
+        "rootLastSeqAtResolve": 27,
+        "rootState": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      },
+      {
+        "afterType": "turn/end",
+        "afterSeq": 27,
+        "rootLastSeqAtResolve": 27,
+        "rootState": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      }
+    ],
+    "liveAwaitedFlags": [
+      false
+    ],
+    "timeline": [
+      {
+        "seq": 4,
+        "type": "turn/start",
+        "turn": 1
+      },
+      {
+        "seq": 23,
+        "type": "job/settled"
+      },
+      {
+        "seq": 27,
+        "type": "turn/end",
+        "turn": 1
+      }
+    ],
+    "allObservedRootEventsPersisted": true,
+    "rawEvidence": {
+      "observer.jsonl": {
+        "sha256": "898a072967e9a27e55683d7105b0c7a2b3c59b64ae2a5cd08a1512d9847aafdc",
+        "bytes": 43842
+      },
+      "before-dispose.json": {
+        "sha256": "c3e5bc49f0d12d3ff3c8aa0618d2623e29159bf0339146e9c88442888238159e",
+        "bytes": 217291
+      },
+      "durable.json": {
+        "sha256": "18efa6a5440640ae404809b9721ff55968accaa650f05aaa6c5306c789f476b0",
+        "bytes": 50720
+      },
+      "summary.json": {
+        "sha256": "734c34206dafe842ba30c853db07da89ed47b2ef932fc4bffd661c43ccbdaa76",
+        "bytes": 1181
+      }
+    }
+  },
+  {
+    "version": "0.2.1-rc.5",
+    "case": "collected",
+    "config": {},
+    "checkpoints": [
+      {
+        "label": "first-root-ended",
+        "rootEnds": 1,
+        "rootRequests": 3,
+        "native": {
+          "status": "running",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      },
+      {
+        "label": "after-settlement-500ms",
+        "rootEnds": 1,
+        "rootRequests": 3,
+        "native": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      }
+    ],
+    "settlements": [
+      {
+        "seq": 21,
+        "status": "completed",
+        "cause": "producer",
+        "producerReported": true,
+        "keys": [
+          "cause",
+          "detail",
+          "finishedAt",
+          "jobId",
+          "kind",
+          "label",
+          "owner",
+          "producerReported",
+          "startedAt",
+          "status",
+          "toolCall"
+        ],
+        "inboxAtRecord": {
+          "status": "running",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      }
+    ],
+    "notices": [],
+    "childEnds": [],
+    "whenIdle": [
+      {
+        "afterType": "job/settled",
+        "afterSeq": 21,
+        "rootLastSeqAtResolve": 27,
+        "rootState": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      },
+      {
+        "afterType": "turn/end",
+        "afterSeq": 27,
+        "rootLastSeqAtResolve": 27,
+        "rootState": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      }
+    ],
+    "liveAwaitedFlags": [
+      true
+    ],
+    "timeline": [
+      {
+        "seq": 4,
+        "type": "turn/start",
+        "turn": 1
+      },
+      {
+        "seq": 21,
+        "type": "job/settled"
+      },
+      {
+        "seq": 27,
+        "type": "turn/end",
+        "turn": 1
+      }
+    ],
+    "allObservedRootEventsPersisted": true,
+    "rawEvidence": {
+      "observer.jsonl": {
+        "sha256": "a8962b9c725c563fcd291da3e6d8429c7901c8d84e848ff7933816108cf88171",
+        "bytes": 43834
+      },
+      "before-dispose.json": {
+        "sha256": "50d45ccb62ffe97f197861662a8134c4900ae0336e44d2cc268e14869e054513",
+        "bytes": 217681
+      },
+      "durable.json": {
+        "sha256": "9051e65eb2687c90558571f316825b00dbaa65a27d9e97bfba2aaa7a477f2cd4",
+        "bytes": 50881
+      },
+      "summary.json": {
+        "sha256": "a6182493d050b5e6084b482eca3a3e60b4aa10c2d12e76db6d2b34709ccd6d0c",
+        "bytes": 1192
+      }
+    }
+  },
+  {
+    "version": "0.2.1-rc.5",
+    "case": "quiet",
+    "config": {
+      "completionDelivery": "quiet"
+    },
+    "checkpoints": [
+      {
+        "label": "first-root-ended",
+        "rootEnds": 1,
+        "rootRequests": 2,
+        "native": {
+          "status": "running",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      },
+      {
+        "label": "after-settlement-500ms",
+        "rootEnds": 1,
+        "rootRequests": 2,
+        "native": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 1
+        }
+      },
+      {
+        "label": "after-host-wake",
+        "rootEnds": 2,
+        "rootRequests": 3,
+        "native": {
+          "status": "running",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      }
+    ],
+    "settlements": [
+      {
+        "seq": 22,
+        "status": "completed",
+        "cause": "producer",
+        "producerReported": true,
+        "keys": [
+          "cause",
+          "detail",
+          "finishedAt",
+          "jobId",
+          "kind",
+          "label",
+          "owner",
+          "producerReported",
+          "startedAt",
+          "status",
+          "toolCall"
+        ],
+        "inboxAtRecord": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      }
+    ],
+    "notices": [
+      {
+        "seq": 23,
+        "observerIndex": 32,
+        "target": "next-step",
+        "sourceKind": "tool-jobs",
+        "sourceKeys": [
+          "form",
+          "kind",
+          "summary"
+        ],
+        "inboxAtInsert": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 1
+        }
+      }
+    ],
+    "childEnds": [],
+    "whenIdle": [
+      {
+        "afterType": "turn/end",
+        "afterSeq": 21,
+        "rootLastSeqAtResolve": 21,
+        "rootState": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      },
+      {
+        "afterType": "job/settled",
+        "afterSeq": 22,
+        "rootLastSeqAtResolve": 23,
+        "rootState": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 1
+        }
+      },
+      {
+        "afterType": "turn/end",
+        "afterSeq": 33,
+        "rootLastSeqAtResolve": 33,
+        "rootState": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      }
+    ],
+    "liveAwaitedFlags": [
+      false
+    ],
+    "timeline": [
+      {
+        "seq": 4,
+        "type": "turn/start",
+        "turn": 1
+      },
+      {
+        "seq": 21,
+        "type": "turn/end",
+        "turn": 1
+      },
+      {
+        "seq": 22,
+        "type": "job/settled"
+      },
+      {
+        "seq": 23,
+        "type": "agent/inbox/spliced",
+        "target": "next-step",
+        "sourceKind": "tool-jobs"
+      },
+      {
+        "seq": 25,
+        "type": "turn/start",
+        "turn": 2
+      },
+      {
+        "seq": 33,
+        "type": "turn/end",
+        "turn": 2
+      }
+    ],
+    "allObservedRootEventsPersisted": true,
+    "rawEvidence": {
+      "observer.jsonl": {
+        "sha256": "fd24c00c0a072dc17e494128834341ec5fc091a90443b1ee2690fdc4a4ce1e8e",
+        "bytes": 54053
+      },
+      "before-dispose.json": {
+        "sha256": "31cc49dca4c78dfa1830f4b1fabbb1f6026e5e0cf3cd804fb9d1366c89f86c81",
+        "bytes": 223598
+      },
+      "durable.json": {
+        "sha256": "ae62959bfde4108dff044936377f2f5b0f8fc6a42378bcc060bca755e53de64c",
+        "bytes": 52637
+      },
+      "summary.json": {
+        "sha256": "b579ba7abe3c446a1ccc7257a45a485584ce9663001181a3cdd5eb8a706c59be",
+        "bytes": 2612
+      }
+    }
+  },
+  {
+    "version": "0.2.1-rc.5",
+    "case": "budget",
+    "config": {
+      "maxConsecutiveWakes": 1
+    },
+    "checkpoints": [
+      {
+        "label": "first-root-ended",
+        "rootEnds": 1,
+        "rootRequests": 2,
+        "native": {
+          "status": "running",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      },
+      {
+        "label": "after-settlement-500ms",
+        "rootEnds": 2,
+        "rootRequests": 4,
+        "native": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 1
+        }
+      },
+      {
+        "label": "after-host-wake",
+        "rootEnds": 3,
+        "rootRequests": 5,
+        "native": {
+          "status": "running",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      }
+    ],
+    "settlements": [
+      {
+        "seq": 22,
+        "status": "completed",
+        "cause": "producer",
+        "producerReported": true,
+        "keys": [
+          "cause",
+          "detail",
+          "finishedAt",
+          "jobId",
+          "kind",
+          "label",
+          "owner",
+          "producerReported",
+          "startedAt",
+          "status",
+          "toolCall"
+        ],
+        "inboxAtRecord": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      },
+      {
+        "seq": 37,
+        "status": "completed",
+        "cause": "producer",
+        "producerReported": true,
+        "keys": [
+          "cause",
+          "detail",
+          "finishedAt",
+          "jobId",
+          "kind",
+          "label",
+          "owner",
+          "producerReported",
+          "startedAt",
+          "status",
+          "toolCall"
+        ],
+        "inboxAtRecord": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      }
+    ],
+    "notices": [
+      {
+        "seq": 23,
+        "observerIndex": 32,
+        "target": "next-turn",
+        "sourceKind": "tool-jobs",
+        "sourceKeys": [
+          "form",
+          "kind",
+          "summary"
+        ],
+        "inboxAtInsert": {
+          "status": "idle",
+          "nextTurn": 1,
+          "nextStep": 0
+        }
+      },
+      {
+        "seq": 38,
+        "observerIndex": 58,
+        "target": "next-step",
+        "sourceKind": "tool-jobs",
+        "sourceKeys": [
+          "form",
+          "kind",
+          "summary"
+        ],
+        "inboxAtInsert": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 1
+        }
+      }
+    ],
+    "childEnds": [],
+    "whenIdle": [
+      {
+        "afterType": "turn/end",
+        "afterSeq": 21,
+        "rootLastSeqAtResolve": 21,
+        "rootState": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      },
+      {
+        "afterType": "job/settled",
+        "afterSeq": 22,
+        "rootLastSeqAtResolve": 36,
+        "rootState": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      },
+      {
+        "afterType": "turn/end",
+        "afterSeq": 36,
+        "rootLastSeqAtResolve": 36,
+        "rootState": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      },
+      {
+        "afterType": "job/settled",
+        "afterSeq": 37,
+        "rootLastSeqAtResolve": 38,
+        "rootState": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 1
+        }
+      },
+      {
+        "afterType": "turn/end",
+        "afterSeq": 48,
+        "rootLastSeqAtResolve": 48,
+        "rootState": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      }
+    ],
+    "liveAwaitedFlags": [
+      false,
+      false
+    ],
+    "timeline": [
+      {
+        "seq": 4,
+        "type": "turn/start",
+        "turn": 1
+      },
+      {
+        "seq": 21,
+        "type": "turn/end",
+        "turn": 1
+      },
+      {
+        "seq": 22,
+        "type": "job/settled"
+      },
+      {
+        "seq": 23,
+        "type": "agent/inbox/spliced",
+        "target": "next-turn",
+        "sourceKind": "tool-jobs"
+      },
+      {
+        "seq": 24,
+        "type": "turn/start",
+        "turn": 2
+      },
+      {
+        "seq": 36,
+        "type": "turn/end",
+        "turn": 2
+      },
+      {
+        "seq": 37,
+        "type": "job/settled"
+      },
+      {
+        "seq": 38,
+        "type": "agent/inbox/spliced",
+        "target": "next-step",
+        "sourceKind": "tool-jobs"
+      },
+      {
+        "seq": 40,
+        "type": "turn/start",
+        "turn": 3
+      },
+      {
+        "seq": 48,
+        "type": "turn/end",
+        "turn": 3
+      }
+    ],
+    "allObservedRootEventsPersisted": true,
+    "rawEvidence": {
+      "observer.jsonl": {
+        "sha256": "16d7f43ae36d435a3188afe013571b16e947a0c444c47e5a342d77520cdf52c7",
+        "bytes": 70576
+      },
+      "before-dispose.json": {
+        "sha256": "0ea16860f69362380173cd125422108ae94164008fb4db2a352279b9351519be",
+        "bytes": 344276
+      },
+      "durable.json": {
+        "sha256": "4ccad8d9f6dc6971243d3f195473b9a831b08e56ef0ea1bb87017b7c594c17c8",
+        "bytes": 63512
+      },
+      "summary.json": {
+        "sha256": "7262250d3b9b6a59bdd0b030056c180d5d7c545d29ce04e6596559b7b1ffe491",
+        "bytes": 3015
+      }
+    }
+  },
+  {
+    "version": "0.2.1-rc.5",
+    "case": "child",
+    "config": {},
+    "checkpoints": [
+      {
+        "label": "first-root-ended",
+        "rootEnds": 1,
+        "rootRequests": 2,
+        "native": {
+          "status": "running",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      },
+      {
+        "label": "after-settlement-500ms",
+        "rootEnds": 2,
+        "rootRequests": 3,
+        "native": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      }
+    ],
+    "settlements": [],
+    "notices": [
+      {
+        "seq": 22,
+        "observerIndex": 47,
+        "target": "next-turn",
+        "sourceKind": "subagent-settled",
+        "sourceKeys": [
+          "form",
+          "kind",
+          "senderSessionId",
+          "summary"
+        ],
+        "inboxAtInsert": {
+          "status": "idle",
+          "nextTurn": 1,
+          "nextStep": 0
+        }
+      }
+    ],
+    "childEnds": [
+      {
+        "observerIndex": 53,
+        "stopReason": "completed",
+        "noticeSeqsBeforeEnd": [
+          22
+        ],
+        "rootState": {
+          "status": "running",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      }
+    ],
+    "whenIdle": [
+      {
+        "afterType": "turn/end",
+        "afterSeq": 21,
+        "rootLastSeqAtResolve": 21,
+        "rootState": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      },
+      {
+        "afterType": "turn/end",
+        "afterSeq": 29,
+        "rootLastSeqAtResolve": 29,
+        "rootState": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      }
+    ],
+    "liveAwaitedFlags": [],
+    "timeline": [
+      {
+        "seq": 4,
+        "type": "turn/start",
+        "turn": 1
+      },
+      {
+        "seq": 21,
+        "type": "turn/end",
+        "turn": 1
+      },
+      {
+        "seq": 22,
+        "type": "agent/inbox/spliced",
+        "target": "next-turn",
+        "sourceKind": "subagent-settled"
+      },
+      {
+        "seq": 23,
+        "type": "turn/start",
+        "turn": 2
+      },
+      {
+        "seq": 29,
+        "type": "turn/end",
+        "turn": 2
+      }
+    ],
+    "allObservedRootEventsPersisted": true,
+    "rawEvidence": {
+      "observer.jsonl": {
+        "sha256": "cb4ff51833f39d6ed2fb90b7cda5ad368e8479ac14c1dbbc4184e95ff30e549f",
+        "bytes": 86682
+      },
+      "before-dispose.json": {
+        "sha256": "f0915d1a24b05ba29a174f7f8fdee77ecc6fdf8191f2f3a1f4de1c582d0b9f7a",
+        "bytes": 320511
+      },
+      "durable.json": {
+        "sha256": "41f1a70ea7a0a0e96ef759e129c72b32d55682a911d54a822bcaf6e38ef031ed",
+        "bytes": 50861
+      },
+      "summary.json": {
+        "sha256": "1404d97de78e728114dd95f2d5bed6508db899bcd9e5fa7f76df57254cf8abd8",
+        "bytes": 1420
+      }
+    }
+  },
+  {
+    "version": "0.2.1-rc.5",
+    "case": "child-quiet",
+    "config": {
+      "completionDelivery": "quiet"
+    },
+    "checkpoints": [
+      {
+        "label": "first-root-ended",
+        "rootEnds": 1,
+        "rootRequests": 2,
+        "native": {
+          "status": "running",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      },
+      {
+        "label": "after-settlement-500ms",
+        "rootEnds": 2,
+        "rootRequests": 3,
+        "native": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      }
+    ],
+    "settlements": [],
+    "notices": [
+      {
+        "seq": 22,
+        "observerIndex": 47,
+        "target": "next-turn",
+        "sourceKind": "subagent-settled",
+        "sourceKeys": [
+          "form",
+          "kind",
+          "senderSessionId",
+          "summary"
+        ],
+        "inboxAtInsert": {
+          "status": "idle",
+          "nextTurn": 1,
+          "nextStep": 0
+        }
+      }
+    ],
+    "childEnds": [
+      {
+        "observerIndex": 53,
+        "stopReason": "completed",
+        "noticeSeqsBeforeEnd": [
+          22
+        ],
+        "rootState": {
+          "status": "running",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      }
+    ],
+    "whenIdle": [
+      {
+        "afterType": "turn/end",
+        "afterSeq": 21,
+        "rootLastSeqAtResolve": 21,
+        "rootState": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      },
+      {
+        "afterType": "turn/end",
+        "afterSeq": 29,
+        "rootLastSeqAtResolve": 29,
+        "rootState": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      }
+    ],
+    "liveAwaitedFlags": [],
+    "timeline": [
+      {
+        "seq": 4,
+        "type": "turn/start",
+        "turn": 1
+      },
+      {
+        "seq": 21,
+        "type": "turn/end",
+        "turn": 1
+      },
+      {
+        "seq": 22,
+        "type": "agent/inbox/spliced",
+        "target": "next-turn",
+        "sourceKind": "subagent-settled"
+      },
+      {
+        "seq": 23,
+        "type": "turn/start",
+        "turn": 2
+      },
+      {
+        "seq": 29,
+        "type": "turn/end",
+        "turn": 2
+      }
+    ],
+    "allObservedRootEventsPersisted": true,
+    "rawEvidence": {
+      "observer.jsonl": {
+        "sha256": "2bd1273dc12a12e6e7dd7184a50b3a5033b3f6dd2e61b543aca9d4dc5b43878b",
+        "bytes": 86718
+      },
+      "before-dispose.json": {
+        "sha256": "b1ac74fc2af3770c04d04a79f42e071e42a7eb353e8ab86796a4439132d9a158",
+        "bytes": 320642
+      },
+      "durable.json": {
+        "sha256": "319a1cef275e679e969b7139401d6ffce92b67261394476b9eb55a009a216275",
+        "bytes": 50897
+      },
+      "summary.json": {
+        "sha256": "01e3a2cc2882fea80ed02a704b29ec44e1f7e97042b4543632ea9b846c98df35",
+        "bytes": 1463
+      }
+    }
+  },
+  {
+    "version": "0.2.1-rc.5",
+    "case": "child-interrupt",
+    "config": {},
+    "checkpoints": [
+      {
+        "label": "first-root-ended",
+        "rootEnds": 1,
+        "rootRequests": 4,
+        "native": {
+          "status": "running",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      },
+      {
+        "label": "after-settlement-500ms",
+        "rootEnds": 1,
+        "rootRequests": 4,
+        "native": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      }
+    ],
+    "settlements": [],
+    "notices": [
+      {
+        "seq": 23,
+        "observerIndex": 46,
+        "target": "next-step",
+        "sourceKind": "subagent-settled",
+        "sourceKeys": [
+          "form",
+          "kind",
+          "senderSessionId",
+          "summary"
+        ],
+        "inboxAtInsert": {
+          "status": "running",
+          "nextTurn": 0,
+          "nextStep": 1
+        }
+      }
+    ],
+    "childEnds": [
+      {
+        "observerIndex": 48,
+        "stopReason": "aborted",
+        "noticeSeqsBeforeEnd": [
+          23
+        ],
+        "rootState": {
+          "status": "running",
+          "nextTurn": 0,
+          "nextStep": 1
+        }
+      }
+    ],
+    "whenIdle": [
+      {
+        "afterType": "turn/end",
+        "afterSeq": 32,
+        "rootLastSeqAtResolve": 32,
+        "rootState": {
+          "status": "idle",
+          "nextTurn": 0,
+          "nextStep": 0
+        }
+      }
+    ],
+    "liveAwaitedFlags": [],
+    "timeline": [
+      {
+        "seq": 4,
+        "type": "turn/start",
+        "turn": 1
+      },
+      {
+        "seq": 23,
+        "type": "agent/inbox/spliced",
+        "target": "next-step",
+        "sourceKind": "subagent-settled"
+      },
+      {
+        "seq": 32,
+        "type": "turn/end",
+        "turn": 1
+      }
+    ],
+    "allObservedRootEventsPersisted": true,
+    "rawEvidence": {
+      "observer.jsonl": {
+        "sha256": "ae0d1c7d80c66c3dbd419b70a3d27fd7c0aa199a88871ae067fc9ae0f6e817a6",
+        "bytes": 87668
+      },
+      "before-dispose.json": {
+        "sha256": "fb77eb970decd79e7b55cc8a47d8de61de27b1b4095052094c5b041636892ba2",
+        "bytes": 325685
+      },
+      "durable.json": {
+        "sha256": "7bd9f505848742495c5a7905677ca6bc2fc3a473095aa2e40b30d281e599262d",
+        "bytes": 54703
+      },
+      "summary.json": {
+        "sha256": "e655c1bdcdf22700a3a65009720f379ad18e1349b7dbc5d6e7c45814599522b4",
+        "bytes": 1400
+      }
+    }
+  }
+]

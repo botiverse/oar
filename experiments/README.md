@@ -4,6 +4,7 @@
 - [OpenCode first-prompt snapshots](acp-ci-failures/opencode-snapshot.md): Windows 1.19.5 native stage evidence and small Git directories for MCP/failure vendor fixtures, with native snapshots still enabled.
 
 - [DSH background work](dsh-background-work/README.md): root completion, outstanding jobs and native follow-up tool calls, with Claude and Codex controls.
+- [DSH settlement notifications](dsh-settlement-notifications/README.md): native inbox facts, quiet and exhausted-budget notices, skipped delivery, and the missing durable decision for each settlement.
 - [DSH child settlement ordering](dsh-child-settlement/README.md): active-parent injection and idle-parent follow-up require different turn counts.
 
 - [Kimi account selection](orientation/kimi-accounts.md): real Kimi 2.4.1 and the OAR CLI inherit `KIMI_CODE_HOME`; quota decisions stay scoped to the selected account.

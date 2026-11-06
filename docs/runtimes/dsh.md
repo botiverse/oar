@@ -188,8 +188,34 @@ shell result can start another root turn, just as `subagent-settled` can. That
 turn can call tools. Do not dispose at `task_ended`: it can precede the wake.
 For these wake-enabled flows, wait for the ensuing root turn to end and inspect
 the task list again; the follow-up may itself launch more work. This is not a
-universal session-complete signal. Custom plugins, `quiet` delivery, wake limits
-and results already collected by the model can behave differently.
+universal session-complete signal.
+
+The [settlement probes](../../experiments/dsh-settlement-notifications/README.md)
+on DSH 0.2.1-rc.5 and 0.2.2-rc.1, Linux with local providers, distinguish these
+native outcomes:
+
+- A successful model `job_kill`, or completion collected by a waiting
+  `job_output(wait: true)`, suppresses the completion notice. The job settlement
+  is still recorded, but there is no separate "no notification" record. An
+  earlier read that returned a running job is not this case.
+- `completionDelivery: "quiet"` and an exhausted `maxConsecutiveWakes` budget
+  still persist a notice in the `next-step` inbox. In the probes the agent stayed
+  idle with that notice pending until a later host input consumed it.
+- The job's `job/settled` record precedes notice insertion. An empty inbox at
+  that record does not yet describe its notification decision. For the tested
+  subagent completions, notification insertion precedes `subagent/end`; the
+  notice may already have been claimed by then. The jobs plugin's `quiet`
+  setting does not govern subagents.
+
+A host can reconstruct currently queued notifications by applying native
+`agent/inbox/spliced` records in order to the `next-turn` and `next-step` lists:
+splice at `start`, remove `removedCount`, and insert `inserted`. OAR retains
+these events in `session/event:agent/inbox/spliced` frames, with the original
+event in `body.native`. Notice sources include `tool-jobs` and
+`subagent-settled`; claiming or cancellation removes them. An empty inbox does
+not mean that no notification or turn can arrive later. Neither the inbox
+target nor `task_ended` is a durable wake decision for each settlement. OAR
+does not infer that missing fact or rely on undocumented `turn/start.cause`.
 
 A spontaneous turn can have a native `inputId` with no corresponding host
 request. Its durable `user/message` records the source, such as `tool-jobs` or
