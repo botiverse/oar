@@ -90,6 +90,38 @@ held queue also kept the session busy; the regression now checks the active
 root before adding that queue, and catches the mutation. Existing replay
 snapshots remain unchanged; the Qoder task fixture adds a new snapshot.
 
+### Concurrent provider routing correction
+
+The 0.91.0 release PR's Ubuntu Codex job
+([run 42188288052](https://github.com/botiverse/oar/actions/runs/42188288052/job/127793773215))
+observed three target-provider calls where the test requires two. That run did
+not retain this case's provider bodies, so its exact cause remains unconfirmed.
+
+The old fixture read the last global raw request when aimock invoked a callback.
+A local three-request control reproduced the race without Codex: concurrent
+parent, child A and child B requests all received child B's reply. Aimock drops
+native `agent_message` items during normalization, so the fixture now forwards
+each request's own recipient in a fixture-only message. Original captured
+requests remain unchanged. The native probe uses the same correction.
+
+The HTTP regression holds all three callbacks until they have arrived, then
+checks each response against its own recipient and verifies raw preservation.
+The native case keeps the exact two-call, interruption, peer, parent and child
+reuse assertions. It now saves provider bodies and session records even on
+assertion failure, so another failure can distinguish routing from a native
+extra request. No OAR product behavior or test deadline changes.
+
+The next Windows run
+([run 42191203262](https://github.com/botiverse/oar/actions/runs/42191203262/job/127803374639))
+retained the new diagnostics and exposed a separate ordering assumption:
+`turn/started` arrived before the target's first model request. The test
+interrupted that turn before it reached the provider, then the resumed turn
+completed with one target request in total. Both native turn outcomes were
+correct, but the fixture expected two provider calls. The test and native
+probe now require the first target request to reach the provider before
+interrupting. The final two-call, different-turn, peer and parent assertions
+remain unchanged. This does not explain the earlier Ubuntu three-call failure.
+
 ## Release-note draft
 
 - Add optional `Session.stopTask(taskId)` for Claude, Codex and Qoder. The

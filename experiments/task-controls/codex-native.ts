@@ -6,7 +6,8 @@ import { setTimeout as delay } from "node:timers/promises";
 import { codexInstallation } from "../../packages/oar/src/runtimes/codex/installation.js";
 import { startAppServerClient } from "../../packages/oar/src/runtimes/codex/app-server-client.js";
 import { asRecord, parseJson, type JsonRecord } from "../../packages/oar/src/shared/json.js";
-import { startCodexAimock, type RawProviderRequest } from "../../sea-trial/harness/aimock.js";
+import { startCodexAimock } from "../../sea-trial/harness/aimock.js";
+import { codexTaskRecipient, codexTaskRequest } from "../../sea-trial/vendor/support/codex-task-request.js";
 
 const qualify = (value: unknown): unknown => { const item = asRecord(value); return item?.type === "function_call" && (item.name === "spawn_agent" || item.name === "followup_task") ? { ...item, namespace: "collaboration" } : value; };
 
@@ -16,14 +17,13 @@ const wire: JsonRecord[] = [];
 const calls: unknown[] = [];
 let rootCalls = 0;
 let targetCalls = 0;
-let raw: readonly RawProviderRequest[] = [];
+const waiting = new Set<() => void>();
 const provider = await startCodexAimock((mock) => {
   mock.on({ predicate: () => true }, async (request) => {
     calls.push(request);
-    const input = asRecord(raw.at(-1)?.body)?.input;
-    const recipient = Array.isArray(input) ? input.map(value => asRecord(value)).findLast(item => item?.type === "agent_message")?.recipient : undefined;
+    const recipient = codexTaskRecipient(request);
     const user = typeof recipient === "string" ? recipient : JSON.stringify(request.messages.findLast((message) => message.role === "user"));
-    if (user === "/root/a") { targetCalls += 1; await delay(targetCalls === 1 ? 15_000 : 250); return { content: targetCalls === 1 ? "CHILD_A_DONE" : "CHILD_A_RESUMED" }; }
+    if (user === "/root/a") { targetCalls += 1; for (const notify of waiting) { notify(); } await delay(targetCalls === 1 ? 15_000 : 250); return { content: targetCalls === 1 ? "CHILD_A_DONE" : "CHILD_A_RESUMED" }; }
     if (user === "/root/b") { await delay(4000); return { content: "CHILD_B_DONE" }; }
     rootCalls += 1;
     if (rootCalls <= 2) {
@@ -33,18 +33,16 @@ const provider = await startCodexAimock((mock) => {
     if (rootCalls === 4) { return { toolCalls: [{ id: "followup_a", name: "followup_task", arguments: JSON.stringify({ target: "a", message: "TASK_CHILD_A_RESUME" }) }] }; }
     return { content: "PARENT_OK" };
   });
-}, { captureRaw: true, rewriteResponse: (body) => body.split("\n").map((line) => {
+}, { captureRaw: true, rewriteRequest: codexTaskRequest, rewriteResponse: (body) => body.split("\n").map((line) => {
   if (!line.startsWith("data: ")) { return line; }
   const event = asRecord(parseJson(line.slice(6))); if (event === null) { return line; }
   const response = asRecord(event.response);
   return `data: ${JSON.stringify({ ...event, ...("item" in event ? { item: qualify(event.item) } : {}), ...(Array.isArray(response?.output) ? { response: { ...response, output: response.output.map(value => qualify(value)) } } : {}) })}`;
 }).join("\n") });
-({ raw } = provider);
 assert.ok(provider.env !== undefined);
 const installation = await codexInstallation();
 assert.ok(installation.kind === "available" && installation.via === "executable");
 const client = startAppServerClient(installation.command, provider.env, { "features.multi_agent": "true", "features.multi_agent_v2": "true", sandbox_mode: '"danger-full-access"' }, provider.env.CODEX_HOME);
-const waiting = new Set<() => void>();
 client.handle({
   onNotification(method, params) { wire.push({ method, params }); for (const notify of waiting) { notify(); } },
   onServerRequest(id, method, params) { wire.push({ id, method, params }); client.respond(id, { error: { code: -32_601, message: "unexpected request" } }); },
@@ -72,6 +70,7 @@ try {
   const [target, peer] = children();
   const turn = asRecord(asRecord(wire.find((frame) => frame.method === "turn/started" && asRecord(frame.params)?.threadId === target)?.params)?.turn)?.id;
   assert.equal(typeof turn, "string");
+  await wait(() => targetCalls === 1);
   const interrupted = await client.request("turn/interrupt", { threadId: target, turnId: turn });
   await wait(() => wire.some((frame) => frame.method === "turn/completed" && asRecord(frame.params)?.threadId === target));
   await wait(() => wire.some((frame) => frame.method === "turn/completed" && asRecord(frame.params)?.threadId === peer));
