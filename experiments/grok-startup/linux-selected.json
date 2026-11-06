@@ -1,0 +1,236 @@
+{
+  "identity": {
+    "phase": "identity",
+    "platform": "linux",
+    "version": "grok 1.0.70 (f50904eaee6c) [stable]",
+    "node": "v24.19.0",
+    "bootstrapSha256": "15abbdc3e34d3c1e53b71def7f9c59f22bd793c51c5f6f88c645103742cc544e"
+  },
+  "samples": [
+    {
+      "name": "oar-installation",
+      "attempt": 1,
+      "previousOutcome": null,
+      "outcome": "initialized",
+      "startedAt": 1793993990247,
+      "elapsedMs": 276,
+      "stdoutBytes": 3791,
+      "stderr": "",
+      "binaries": null
+    },
+    {
+      "name": "oar-installation",
+      "attempt": 2,
+      "previousOutcome": "initialized",
+      "outcome": "initialized",
+      "startedAt": 1793993990533,
+      "elapsedMs": 267,
+      "stdoutBytes": 3791,
+      "stderr": "",
+      "binaries": null
+    },
+    {
+      "name": "npm-wrapper",
+      "attempt": 1,
+      "previousOutcome": null,
+      "outcome": "initialized",
+      "startedAt": 1793993990812,
+      "elapsedMs": 273,
+      "stdoutBytes": 3791,
+      "stderr": "",
+      "binaries": null
+    },
+    {
+      "name": "node-launcher",
+      "attempt": 1,
+      "previousOutcome": null,
+      "outcome": "initialized",
+      "startedAt": 1793993991098,
+      "elapsedMs": 1738,
+      "stdoutBytes": 3791,
+      "stderr": "",
+      "binaries": [
+        {
+          "kind": "canonical",
+          "bytes": 195700192
+        },
+        {
+          "kind": "versioned",
+          "bytes": 195700192
+        }
+      ],
+      "phaseFileSha256": "76a26009ce7b476c5f1f8afc3bf7da994c1a25057bc606ab26af6f1b5fbc6d2c",
+      "phases": [
+        {
+          "at": 1793993991196,
+          "sinceHookMs": 0.1006930000000068,
+          "phase": "hook_loaded",
+          "node": "v24.19.0",
+          "platform": "linux"
+        },
+        {
+          "at": 1793993991199,
+          "sinceHookMs": 2.3464440000000053,
+          "phase": "read_started",
+          "target": "compressed_binary"
+        },
+        {
+          "at": 1793993991245,
+          "sinceHookMs": 48.73660100000001,
+          "phase": "read_finished",
+          "target": "compressed_binary",
+          "durationMs": 46.225368999999986,
+          "resultBytes": 55510619
+        },
+        {
+          "at": 1793993991245,
+          "sinceHookMs": 49.078187000000014,
+          "phase": "decompress_started",
+          "inputBytes": 55510619
+        },
+        {
+          "at": 1793993992420,
+          "sinceHookMs": 1223.870398,
+          "phase": "decompress_finished",
+          "inputBytes": 55510619,
+          "durationMs": 1174.6001430000001,
+          "resultBytes": 195700192
+        },
+        {
+          "at": 1793993992420,
+          "sinceHookMs": 1224.087681,
+          "phase": "write_started",
+          "target": "temporary_binary"
+        },
+        {
+          "at": 1793993992538,
+          "sinceHookMs": 1341.822806,
+          "phase": "write_finished",
+          "target": "temporary_binary",
+          "durationMs": 117.64223700000002
+        },
+        {
+          "at": 1793993992540,
+          "sinceHookMs": 1343.569364,
+          "phase": "rename_started",
+          "source": "temporary_binary",
+          "target": "versioned_binary"
+        },
+        {
+          "at": 1793993992540,
+          "sinceHookMs": 1343.703744,
+          "phase": "rename_finished",
+          "source": "temporary_binary",
+          "target": "versioned_binary",
+          "durationMs": 0.04218400000013389
+        },
+        {
+          "at": 1793993992540,
+          "sinceHookMs": 1344.060544,
+          "phase": "symlink_started",
+          "source": null,
+          "target": "temporary_link"
+        },
+        {
+          "at": 1793993992540,
+          "sinceHookMs": 1344.158335,
+          "phase": "symlink_finished",
+          "source": null,
+          "target": "temporary_link",
+          "durationMs": 0.04362900000000991
+        },
+        {
+          "at": 1793993992540,
+          "sinceHookMs": 1344.207195,
+          "phase": "rename_started",
+          "source": "temporary_link",
+          "target": "canonical_binary"
+        },
+        {
+          "at": 1793993992541,
+          "sinceHookMs": 1344.248014,
+          "phase": "rename_finished",
+          "source": "temporary_link",
+          "target": "canonical_binary",
+          "durationMs": 0.01731100000006336
+        },
+        {
+          "at": 1793993992541,
+          "sinceHookMs": 1344.845955,
+          "phase": "native_spawn_requested",
+          "executable": "canonical_binary"
+        },
+        {
+          "at": 1793993992567,
+          "sinceHookMs": 1370.634574,
+          "phase": "native_spawned",
+          "durationMs": 25.729319000000032
+        }
+      ]
+    },
+    {
+      "name": "node-launcher",
+      "attempt": 2,
+      "previousOutcome": "initialized",
+      "outcome": "initialized",
+      "startedAt": 1793993992873,
+      "elapsedMs": 355,
+      "stdoutBytes": 3791,
+      "stderr": "",
+      "binaries": [
+        {
+          "kind": "canonical",
+          "bytes": 195700192
+        },
+        {
+          "kind": "versioned",
+          "bytes": 195700192
+        }
+      ],
+      "phaseFileSha256": "0963181e5f8237a1ce4a637e9bd5975cb538920836c70528cde9f0ce44d23dc8",
+      "phases": [
+        {
+          "at": 1793993992958,
+          "sinceHookMs": 0.09078399999999931,
+          "phase": "hook_loaded",
+          "node": "v24.19.0",
+          "platform": "linux"
+        },
+        {
+          "at": 1793993992960,
+          "sinceHookMs": 1.9221229999999991,
+          "phase": "native_spawn_requested",
+          "executable": "canonical_binary"
+        },
+        {
+          "at": 1793993992963,
+          "sinceHookMs": 4.878912,
+          "phase": "native_spawned",
+          "durationMs": 2.8753690000000063
+        }
+      ]
+    },
+    {
+      "name": "native",
+      "attempt": 1,
+      "previousOutcome": null,
+      "outcome": "initialized",
+      "startedAt": 1793993993282,
+      "elapsedMs": 272,
+      "stdoutBytes": 3791,
+      "stderr": "",
+      "binaries": null
+    },
+    {
+      "name": "native-overlapped",
+      "attempt": 1,
+      "previousOutcome": null,
+      "outcome": "initialized",
+      "startedAt": 1793993993569,
+      "elapsedMs": 273,
+      "stdoutBytes": 3791,
+      "stderr": "",
+      "binaries": null
+    }
+  ]
+}

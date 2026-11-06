@@ -7,11 +7,13 @@
  */
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
+import { createHash, randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
-import { appendFile, mkdir } from "node:fs/promises";
+import { appendFile, mkdir, readFile, readdir, stat } from "node:fs/promises";
 import { homedir } from "node:os";
 import path from "node:path";
 import { createInterface } from "node:readline";
+import { fileURLToPath } from "node:url";
 import { grokInstallation } from "../packages/oar/src/runtimes/grok/installation.js";
 import { sessionEnvironment } from "../packages/oar/src/shared/environment.js";
 import { sessionCredentialRedactor } from "../packages/oar/src/shared/credential-redactor.js";
@@ -35,25 +37,42 @@ const args = ["agent", "--always-approve", "--no-leader", "stdio"];
 const root = process.env.OAR_TRIAL_RUN_DIR ?? "oar-trial-run";
 await mkdir(root, { recursive: true });
 const file = path.join(root, "grok-acp-startup.jsonl");
+const phases = path.resolve(root, "grok-bootstrap", randomUUID());
+await mkdir(phases, { recursive: true });
+const observer = fileURLToPath(new URL("grok-startup/trace-bootstrap.ts", import.meta.url));
+const bootstrapBytes = await readFile(launcher);
+const bootstrapSha256 = createHash("sha256").update(bootstrapBytes).digest("hex");
+await appendFile(file, `${JSON.stringify({ phase: "identity", platform: process.platform, version: installation.version,
+  node: process.version, bootstrapSha256 })}\n`);
 
 interface Variant {
   readonly name: string;
   readonly command: string;
   readonly args: readonly string[];
   readonly pipes: "pipe" | "overlapped";
+  readonly repeat?: boolean;
+  readonly observe?: boolean;
+}
+
+interface ProbeResult {
+  readonly name: string;
+  readonly outcome: string;
+  readonly startedAt: number;
+  readonly elapsedMs: number;
+  readonly stdoutBytes: number;
+  readonly stderr: string;
 }
 
 const variants: readonly Variant[] = [
-  { name: "oar-installation", command: installation.command, args, pipes: "pipe" },
+  { name: "oar-installation", command: installation.command, args, pipes: "pipe", repeat: true },
   { name: "npm-wrapper", command: "grok", args, pipes: "pipe" },
-  { name: "node-launcher", command: process.execPath, args: [launcher, ...args], pipes: "pipe" },
+  { name: "node-launcher", command: process.execPath, args: ["--require", observer, launcher, ...args], pipes: "pipe", repeat: true, observe: true },
   { name: "native", command: native, args, pipes: "pipe" },
   { name: "native-overlapped", command: native, args, pipes: "overlapped" },
 ];
 
-async function probe(variant: Variant): Promise<unknown> {
-  const fixture = await startGrokAimock((mock) => { mock.onMessage(/[\s\S]*/u, { content: "unused" }); });
-  const env = sessionEnvironment(fixture.env);
+async function probe(variant: Variant, fixtureEnv: Readonly<Record<string, string>>): Promise<ProbeResult> {
+  const env = sessionEnvironment(fixtureEnv);
   const { redact } = sessionCredentialRedactor({ env: Object.fromEntries(Object.entries(env).map(([key, value]) => [key, value ?? null])) });
   const target = windowsSpawnTarget(variant.command, variant.args, { env });
   const started = Date.now();
@@ -89,7 +108,7 @@ async function probe(variant: Variant): Promise<unknown> {
   })}\n`);
   try {
     const outcome = await answer.promise;
-    return { name: variant.name, outcome, elapsedMs: Date.now() - started, stdoutBytes, stderr: redact(stderr) };
+    return { name: variant.name, outcome, startedAt: started, elapsedMs: Date.now() - started, stdoutBytes, stderr: redact(stderr) };
   } finally {
     clearTimeout(timer);
     lines.close();
@@ -99,19 +118,57 @@ async function probe(variant: Variant): Promise<unknown> {
     const didClose = await closed.promise;
     clearTimeout(cleanupTimer);
     child.stdin.destroy(); child.stdout.destroy(); child.stderr.destroy();
-    await fixture.stop();
     assert.ok(didClose, "The startup probe child must exit after cleanup");
   }
 }
 
+function binaryKind(name: string): string {
+  if (name.includes(".tmp.")) { return "temporary"; }
+  if (name.includes(".link.")) { return "temporary_link"; }
+  if (name.endsWith(".old")) { return "backup"; }
+  return name.startsWith("grok-") ? "versioned" : "canonical";
+}
+
+/** Metadata only: do not read or prepare a binary before a subsequent launch. */
+async function binaryState(home: string): Promise<unknown> {
+  try {
+    const directory = path.join(home, "bin");
+    const names = await readdir(directory);
+    return await Promise.all(names.filter(name => name.startsWith("grok")).map(async (name) => {
+      const kind = binaryKind(name);
+      try {
+        const metadata = await stat(path.join(directory, name));
+        return { kind, bytes: metadata.size };
+      }
+      catch { return { kind, unreadable: true }; }
+    }));
+  } catch { return null; }
+}
+
+async function runVariant(variant: Variant): Promise<void> {
+  const fixture = await startGrokAimock((mock) => { mock.onMessage(/[\s\S]*/u, { content: "unused" }); });
+  let previousOutcome: string | null = null;
+  try {
+    for (const attempt of variant.repeat === true ? [1, 2] : [1]) {
+      const trace = variant.observe === true ? path.join(phases, `${variant.name}-${String(attempt)}.jsonl`) : null;
+      const env = { ...fixture.env, ...(trace === null ? {} : { OAR_GROK_BOOTSTRAP_TRACE: trace }) };
+      const context = { name: variant.name, attempt, previousOutcome, trace: trace === null ? null : path.relative(root, trace) };
+      // oxlint-disable-next-line eslint/no-await-in-loop -- Persist each launch before it can fail.
+      await appendFile(file, `${JSON.stringify({ phase: "start", at: Date.now(), ...context })}\n`);
+      // oxlint-disable-next-line eslint/no-await-in-loop -- A repeat must reuse HOME only after the previous process exited.
+      const result = await probe(variant, env);
+      // oxlint-disable-next-line eslint/no-await-in-loop -- Observe materialization left by this attempt before retrying.
+      const binaries = await binaryState(fixture.env.GROK_HOME ?? "");
+      const line = `${JSON.stringify({ ...context, ...result, binaries })}\n`;
+      process.stdout.write(line);
+      // oxlint-disable-next-line eslint/no-await-in-loop -- Retain the first outcome even if the next attempt fails.
+      await appendFile(file, line);
+      previousOutcome = result.outcome;
+    }
+  } finally { await fixture.stop(); }
+}
+
 for (const variant of variants) {
-  // Preserve which launch began even if its cleanup fails.
-  // oxlint-disable-next-line eslint/no-await-in-loop -- Sequential cold launches isolate the entry-point difference.
-  await appendFile(file, `${JSON.stringify({ phase: "start", name: variant.name, platform: process.platform, version: installation.version })}\n`);
-  // oxlint-disable-next-line eslint/no-await-in-loop -- Each variant owns and cleans up its own isolated configuration.
-  const result = await probe(variant);
-  const line = `${JSON.stringify(result)}\n`;
-  process.stdout.write(line);
-  // oxlint-disable-next-line eslint/no-await-in-loop -- Persist every result before starting the next variant.
-  await appendFile(file, line);
+  // oxlint-disable-next-line eslint/no-await-in-loop -- Each variant owns a fresh HOME; its repeat alone shares it.
+  await runVariant(variant);
 }
