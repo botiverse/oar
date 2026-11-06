@@ -64,6 +64,7 @@ describe.skipIf(process.env.OAR_TEST !== "antigravity-aimock")("agy native ACP",
       expect(await awaitTurnEnd(session, original.request.seq)).toEqual({ kind: "completed" });
       expect(mainRequests).toHaveLength(2);
       expect(mainRequests[0]).not.toContain("AGY_STEER_INSIDE_LOOP");
+      expect(mainRequests[1]).toContain("AGY_INITIAL_TURN");
       expect(mainRequests[1]).toContain("AGY_STEER_INSIDE_LOOP");
       expect(mainRequests[1]).toContain("echo:agy-steered");
       expect(mainRequests[1]).not.toContain("MUST_NOT_START");

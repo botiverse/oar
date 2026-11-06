@@ -173,3 +173,26 @@ test("a refused steer before the original prompt reply cannot poison its later s
     expect(frames().flatMap(frame => frame.events).filter(event => event.kind === "turn_ended")).toEqual([{ kind: "turn_ended", outcome: { kind: "completed" } }]);
   } finally { await session.dispose(); rmSync(dir, { recursive: true, force: true }); }
 });
+
+test.each(["agy-refused-race", "agy-natural-before-refusal"])("a steer refusal crossing the original natural reply keeps its success: %s", async text => {
+  const session = await startAntigravity();
+  try {
+    const first = await session.prompt("hold");
+    expect(await session.steer?.(text, { inputId: "c6c6c6c6-c6c6-46c6-86c6-c6c6c6c6c6c6" })).toMatchObject({ kind: "accepted" });
+    expect(await awaitTurnEnd(session, first.request.seq)).toEqual({ kind: "completed" });
+    expect(session.records().flatMap(record => record.kind === "frame" ? record.body.events : [])).toContainEqual({ kind: "input_dropped", inputId: "c6c6c6c6-c6c6-46c6-86c6-c6c6c6c6c6c6", reason: "runtime_refused" });
+  } finally { await session.dispose(); }
+});
+
+test("a native worker failure after accepting steer retains the input and fails only its turn", async () => {
+  const session = await startAntigravity();
+  try {
+    const first = await session.prompt("hold");
+    expect(await session.steer?.("agy-worker-exited", { inputId: "c6c6c6c6-c6c6-46c6-86c6-c6c6c6c6c6c6" })).toMatchObject({ kind: "accepted" });
+    expect(await awaitTurnEnd(session, first.request.seq)).toMatchObject({ kind: "failed", failure: "unknown" });
+    const frames = session.records().flatMap(record => record.kind === "frame" ? [record.body] : []);
+    expect(frames.find(frame => frame.type === "session/prompt/error")?.native).toMatchObject({ code: -32_603 });
+    expect(frames.flatMap(frame => frame.events).filter(event => event.kind === "input_dropped")).toEqual([]);
+    expect([session.records().some(record => record.kind === "response" && record.body.kind === "exited"), session.status().value.kind]).toEqual([false, "idle"]);
+  } finally { await session.dispose(); }
+});

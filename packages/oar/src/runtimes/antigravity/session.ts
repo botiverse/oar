@@ -2,6 +2,7 @@ import type { SessionOptions } from "../../contracts/session.js";
 import { antigravityRefusedSessionOptions } from "./options.js";
 import { UnsupportedOptionError } from "../../contracts/errors.js";
 import { acpSession, type AcpSessionProfile } from "../../shared/acp/session.js";
+import { rpcErrorCode } from "../../shared/acp/failure.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
 import { refuseSessionOptions } from "../../shared/session-options.js";
 
@@ -34,6 +35,8 @@ export const antigravityAcpProfile: AcpSessionProfile = {
   steerParams: () => ({}),
   steerSupersedesPrompt: true,
   steerOutcomeIsLatest: true,
+  // Native invalid image prompts return invalid-params without entering the loop.
+  isSteerRefusal: (error) => rpcErrorCode(error) === -32_602,
   requestTimeoutMs: 30_000,
   // Native CLI configuration and cached authentication select the provider.
   validateOptions: (options) => {

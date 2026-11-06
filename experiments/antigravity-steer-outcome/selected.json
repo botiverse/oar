@@ -1,0 +1,249 @@
+{
+  "date": "2026-11-06",
+  "runtime": "Antigravity CLI 1.5.0",
+  "platform": "Linux x64",
+  "provider": "local scripted provider, no real account or inference",
+  "rawNative": {
+    "refusal": {
+      "mode": "refusal",
+      "initialized": {
+        "name": "Antigravity ACP Server",
+        "version": "1.5.0"
+      },
+      "originalOutcome": {
+        "result": {
+          "stopReason": "end_turn"
+        }
+      },
+      "steerOutcome": {
+        "error": {
+          "name": "RequestError",
+          "message": "Invalid prompt: prompt[0]: image: data is required",
+          "code": -32602
+        }
+      },
+      "workerCount": 0,
+      "rootClosed": false
+    },
+    "worker-exit": {
+      "mode": "worker-exit",
+      "initialized": {
+        "name": "Antigravity ACP Server",
+        "version": "1.5.0"
+      },
+      "originalOutcome": {
+        "result": {
+          "stopReason": "end_turn"
+        }
+      },
+      "steerOutcome": {
+        "error": {
+          "name": "RequestError",
+          "message": "The Antigravity process serving this session exited unexpectedly",
+          "code": -32603
+        }
+      },
+      "workerCount": 1,
+      "rootClosed": false
+    }
+  },
+  "before": {
+    "refusal": {
+      "mode": "refusal",
+      "steerAccepted": "accepted",
+      "outcome": {
+        "kind": "failed",
+        "reason": "Invalid prompt: prompt[0]: image: data is required",
+        "failure": "unknown"
+      },
+      "status": {
+        "kind": "idle",
+        "lastTurnOutcome": {
+          "kind": "failed",
+          "reason": "Invalid prompt: prompt[0]: image: data is required",
+          "failure": "unknown"
+        }
+      },
+      "frames": [
+        {
+          "seq": 12,
+          "type": "session/prompt",
+          "native": {
+            "stopReason": "end_turn"
+          },
+          "events": []
+        },
+        {
+          "seq": 13,
+          "type": "session/prompt/error",
+          "native": {
+            "code": -32602,
+            "name": "RequestError",
+            "message": "Invalid prompt: prompt[0]: image: data is required"
+          },
+          "events": [
+            {
+              "kind": "input_dropped",
+              "inputId": "c6c6c6c6-c6c6-46c6-86c6-c6c6c6c6c6c6",
+              "reason": "runtime_refused"
+            },
+            {
+              "kind": "turn_ended",
+              "outcome": {
+                "kind": "failed",
+                "reason": "Invalid prompt: prompt[0]: image: data is required",
+                "failure": "unknown"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "worker-exit": {
+      "mode": "worker-exit",
+      "steerAccepted": "accepted",
+      "outcome": {
+        "kind": "failed",
+        "reason": "The Antigravity process serving this session exited unexpectedly",
+        "failure": "unknown"
+      },
+      "status": {
+        "kind": "idle",
+        "lastTurnOutcome": {
+          "kind": "failed",
+          "reason": "The Antigravity process serving this session exited unexpectedly",
+          "failure": "unknown"
+        }
+      },
+      "frames": [
+        {
+          "seq": 10,
+          "type": "session/prompt",
+          "native": {
+            "stopReason": "end_turn"
+          },
+          "events": []
+        },
+        {
+          "seq": 11,
+          "type": "session/prompt/error",
+          "native": {
+            "code": -32603,
+            "name": "RequestError",
+            "message": "The Antigravity process serving this session exited unexpectedly"
+          },
+          "events": [
+            {
+              "kind": "input_dropped",
+              "inputId": "c6c6c6c6-c6c6-46c6-86c6-c6c6c6c6c6c6",
+              "reason": "runtime_refused"
+            },
+            {
+              "kind": "turn_ended",
+              "outcome": {
+                "kind": "failed",
+                "reason": "The Antigravity process serving this session exited unexpectedly",
+                "failure": "unknown"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "after": {
+    "refusal": {
+      "mode": "refusal",
+      "steerAccepted": "accepted",
+      "outcome": {
+        "kind": "completed"
+      },
+      "status": {
+        "kind": "idle",
+        "lastTurnOutcome": {
+          "kind": "completed"
+        }
+      },
+      "frames": [
+        {
+          "seq": 12,
+          "type": "session/prompt",
+          "native": {
+            "stopReason": "end_turn"
+          },
+          "events": []
+        },
+        {
+          "seq": 13,
+          "type": "session/prompt/error",
+          "native": {
+            "code": -32602,
+            "name": "RequestError",
+            "message": "Invalid prompt: prompt[0]: image: data is required"
+          },
+          "events": [
+            {
+              "kind": "input_dropped",
+              "inputId": "c6c6c6c6-c6c6-46c6-86c6-c6c6c6c6c6c6",
+              "reason": "runtime_refused"
+            },
+            {
+              "kind": "turn_ended",
+              "outcome": {
+                "kind": "completed"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "worker-exit": {
+      "mode": "worker-exit",
+      "steerAccepted": "accepted",
+      "outcome": {
+        "kind": "failed",
+        "reason": "The Antigravity process serving this session exited unexpectedly",
+        "failure": "unknown"
+      },
+      "status": {
+        "kind": "idle",
+        "lastTurnOutcome": {
+          "kind": "failed",
+          "reason": "The Antigravity process serving this session exited unexpectedly",
+          "failure": "unknown"
+        }
+      },
+      "frames": [
+        {
+          "seq": 10,
+          "type": "session/prompt",
+          "native": {
+            "stopReason": "end_turn"
+          },
+          "events": []
+        },
+        {
+          "seq": 11,
+          "type": "session/prompt/error",
+          "native": {
+            "code": -32603,
+            "name": "RequestError",
+            "message": "The Antigravity process serving this session exited unexpectedly"
+          },
+          "events": [
+            {
+              "kind": "turn_ended",
+              "outcome": {
+                "kind": "failed",
+                "reason": "The Antigravity process serving this session exited unexpectedly",
+                "failure": "unknown"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "refusalControl": "The relay delays the invalid second request until the original native success. It changes no request or response bytes.",
+  "contextRegression": "Real CLI vendor case passed: second model request retains AGY_INITIAL_TURN, AGY_STEER_INSIDE_LOOP and echo:agy-steered."
+}
