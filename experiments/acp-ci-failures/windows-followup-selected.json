@@ -1,0 +1,458 @@
+{
+  "windowsAcpSteps": [
+    {
+      "sample": "before-main675",
+      "backend": "kimi-aimock",
+      "job": 128089009063,
+      "run": 42275019869,
+      "conclusion": "success",
+      "steps": [
+        {
+          "name": "Run pnpm run sea-trial",
+          "seconds": 61.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "Run pnpm vitest run sea-trial/vendor --maxWorkers 2",
+          "seconds": 204.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "Measure Grok ACP launch paths",
+          "seconds": 0.0,
+          "conclusion": "skipped"
+        }
+      ],
+      "artifact": {
+        "id": 13533460556,
+        "size_in_bytes": 10334,
+        "digest": "sha256:47f50cf7a038a109e81472539c6a9d5adf37a52de505ca6601d7e47e37764206"
+      }
+    },
+    {
+      "sample": "before-main675",
+      "backend": "opencode-aimock",
+      "job": 128089009536,
+      "run": 42275019869,
+      "conclusion": "failure",
+      "steps": [
+        {
+          "name": "Run pnpm run sea-trial",
+          "seconds": 81.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "Run pnpm vitest run sea-trial/vendor --maxWorkers 2",
+          "seconds": 545.0,
+          "conclusion": "failure"
+        },
+        {
+          "name": "Measure Grok ACP launch paths",
+          "seconds": 0.0,
+          "conclusion": "skipped"
+        }
+      ],
+      "artifact": {
+        "id": 13533566437,
+        "size_in_bytes": 12280,
+        "digest": "sha256:6d9ca0b9276d8bd77c34ca25170d21754eb23a94ad477662447c30551da162ec"
+      }
+    },
+    {
+      "sample": "before-main675",
+      "backend": "grok-aimock",
+      "job": 128089009551,
+      "run": 42275019869,
+      "conclusion": "success",
+      "steps": [
+        {
+          "name": "Run pnpm run sea-trial",
+          "seconds": 58.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "Run pnpm vitest run sea-trial/vendor --maxWorkers 2",
+          "seconds": 201.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "Measure Grok ACP launch paths",
+          "seconds": 26.0,
+          "conclusion": "success"
+        }
+      ],
+      "artifact": {
+        "id": 13532138130,
+        "size_in_bytes": 31224,
+        "digest": "sha256:ff506c74d5731485ae5e2652e92fc1191287faa01139fa4e02fb1d10f9a050ea"
+      }
+    },
+    {
+      "sample": "before-main676",
+      "backend": "opencode-aimock",
+      "job": 128101212656,
+      "run": 42278563996,
+      "conclusion": "failure",
+      "steps": [
+        {
+          "name": "Run pnpm run sea-trial",
+          "seconds": 121.0,
+          "conclusion": "failure"
+        },
+        {
+          "name": "Run pnpm vitest run sea-trial/vendor --maxWorkers 2",
+          "seconds": 0.0,
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Measure Grok ACP launch paths",
+          "seconds": 0.0,
+          "conclusion": "skipped"
+        }
+      ],
+      "artifact": {
+        "id": 13534971107,
+        "size_in_bytes": 8100,
+        "digest": "sha256:377ade0367bc5dd0cbf3486e80f0c8321149fc698f9f54d3631220a50d153374"
+      }
+    },
+    {
+      "sample": "before-main676",
+      "backend": "kimi-aimock",
+      "job": 128101213013,
+      "run": 42278563996,
+      "conclusion": "success",
+      "steps": [
+        {
+          "name": "Run pnpm run sea-trial",
+          "seconds": 59.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "Run pnpm vitest run sea-trial/vendor --maxWorkers 2",
+          "seconds": 209.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "Measure Grok ACP launch paths",
+          "seconds": 0.0,
+          "conclusion": "skipped"
+        }
+      ],
+      "artifact": {
+        "id": 13533754088,
+        "size_in_bytes": 10194,
+        "digest": "sha256:00113a2f8c45477c8ff4549a8b67b99a58d087abb85e88c3e3c235b12cba55a9"
+      }
+    },
+    {
+      "sample": "before-main676",
+      "backend": "grok-aimock",
+      "job": 128101213186,
+      "run": 42278563996,
+      "conclusion": "success",
+      "steps": [
+        {
+          "name": "Run pnpm run sea-trial",
+          "seconds": 53.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "Run pnpm vitest run sea-trial/vendor --maxWorkers 2",
+          "seconds": 180.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "Measure Grok ACP launch paths",
+          "seconds": 26.0,
+          "conclusion": "success"
+        }
+      ],
+      "artifact": {
+        "id": 13533813809,
+        "size_in_bytes": 31010,
+        "digest": "sha256:4e8dd25fee19c3a4f87fe356c13a7b0d4155e36e103a8c4d40dda5c4c59bc6ed"
+      }
+    },
+    {
+      "sample": "after-main677",
+      "backend": "grok-aimock",
+      "job": 128118912100,
+      "run": 42283686331,
+      "conclusion": "success",
+      "steps": [
+        {
+          "name": "Run pnpm run sea-trial",
+          "seconds": 54.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "Run pnpm vitest run sea-trial/vendor --maxWorkers 2",
+          "seconds": 186.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "Measure Grok ACP launch paths",
+          "seconds": 23.0,
+          "conclusion": "success"
+        }
+      ],
+      "artifact": {
+        "id": 13537280898,
+        "size_in_bytes": 1985622,
+        "digest": "sha256:310c5daa4efd30050903fab844d0ba5dd431666cdd36a1c843b40875efc47a8d"
+      }
+    },
+    {
+      "sample": "after-main677",
+      "backend": "kimi-aimock",
+      "job": 128118912478,
+      "run": 42283686331,
+      "conclusion": "success",
+      "steps": [
+        {
+          "name": "Run pnpm run sea-trial",
+          "seconds": 47.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "Run pnpm vitest run sea-trial/vendor --maxWorkers 2",
+          "seconds": 172.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "Measure Grok ACP launch paths",
+          "seconds": 0.0,
+          "conclusion": "skipped"
+        }
+      ],
+      "artifact": {
+        "id": 13536427597,
+        "size_in_bytes": 1778700,
+        "digest": "sha256:d029c80a23b07fa1364ef91df7411eb57f47f8ed3477360b5af7960a5084603b"
+      }
+    },
+    {
+      "sample": "after-main677",
+      "backend": "opencode-aimock",
+      "job": 128118912525,
+      "run": 42283686331,
+      "conclusion": "success",
+      "steps": [
+        {
+          "name": "Run pnpm run sea-trial",
+          "seconds": 94.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "Run pnpm vitest run sea-trial/vendor --maxWorkers 2",
+          "seconds": 534.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "Measure Grok ACP launch paths",
+          "seconds": 0.0,
+          "conclusion": "skipped"
+        }
+      ],
+      "artifact": {
+        "id": 13536284123,
+        "size_in_bytes": 486815,
+        "digest": "sha256:27075eaa08ed3d56be20524540063e69a8493125c1c052908c236ff442f6fea8"
+      }
+    },
+    {
+      "sample": "after-main678",
+      "backend": "kimi-aimock",
+      "job": 128124139424,
+      "run": 42285210473,
+      "conclusion": "success",
+      "steps": [
+        {
+          "name": "Run pnpm run sea-trial",
+          "seconds": 54.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "Run pnpm vitest run sea-trial/vendor --maxWorkers 2",
+          "seconds": 191.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "Measure Grok ACP launch paths",
+          "seconds": 0.0,
+          "conclusion": "skipped"
+        }
+      ],
+      "artifact": {
+        "id": 13538025368,
+        "size_in_bytes": 1777967,
+        "digest": "sha256:c7cc189e273c6a5d93aca3f296ebb88606fc7f2ff5e19193626f0bfc2b75f539"
+      }
+    },
+    {
+      "sample": "after-main678",
+      "backend": "opencode-aimock",
+      "job": 128124139882,
+      "run": 42285210473,
+      "conclusion": "success",
+      "steps": [
+        {
+          "name": "Run pnpm run sea-trial",
+          "seconds": 98.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "Run pnpm vitest run sea-trial/vendor --maxWorkers 2",
+          "seconds": 354.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "Measure Grok ACP launch paths",
+          "seconds": 0.0,
+          "conclusion": "skipped"
+        }
+      ],
+      "artifact": {
+        "id": 13536744642,
+        "size_in_bytes": 494900,
+        "digest": "sha256:63b0e4bfa2de4e927342fe3f8867463cbfde89774b655df873d054fda4247e8a"
+      }
+    },
+    {
+      "sample": "after-main678",
+      "backend": "grok-aimock",
+      "job": 128124140045,
+      "run": 42285210473,
+      "conclusion": "success",
+      "steps": [
+        {
+          "name": "Run pnpm run sea-trial",
+          "seconds": 48.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "Run pnpm vitest run sea-trial/vendor --maxWorkers 2",
+          "seconds": 161.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "Measure Grok ACP launch paths",
+          "seconds": 25.0,
+          "conclusion": "success"
+        }
+      ],
+      "artifact": {
+        "id": 13537427051,
+        "size_in_bytes": 1983413,
+        "digest": "sha256:267a243100d43a83462ac7d4755ff3a0896fe185b6348a911c463d430f74a3bc"
+      }
+    }
+  ],
+  "providerSizes": [
+    {
+      "backend": "grok",
+      "files": 26,
+      "bytes": 8177131,
+      "maxFileBytes": 2400135,
+      "truncations": []
+    },
+    {
+      "backend": "kimi",
+      "files": 12,
+      "bytes": 5695363,
+      "maxFileBytes": 2473944,
+      "truncations": []
+    },
+    {
+      "backend": "opencode",
+      "files": 11,
+      "bytes": 3017184,
+      "maxFileBytes": 1384152,
+      "truncations": []
+    }
+  ],
+  "codebuddy": [
+    {
+      "pr": 676,
+      "installMs": 169340,
+      "kind": "installed",
+      "npmVersion": "11.19.1",
+      "timers": {
+        "reify:unpack": 157155,
+        "reify:build": 16,
+        "command:install": 159443,
+        "npm": 164139
+      },
+      "phaseSha256": "0e99daca188913f64a605c133e86b1affa2a163a874a9b8d8e31b56e80b92e00"
+    },
+    {
+      "pr": 677,
+      "installMs": 140076,
+      "kind": "installed",
+      "npmVersion": "11.19.1",
+      "timers": {
+        "reify:unpack": 130837,
+        "reify:build": 33,
+        "command:install": 133112,
+        "npm": 134128
+      },
+      "phaseSha256": "b355d09b0672b17558935faab11f98dd837117e5e5ce47fd787da11f6bf16ee4"
+    },
+    {
+      "pr": 678,
+      "installMs": 117990,
+      "kind": "installed",
+      "npmVersion": "11.19.1",
+      "timers": {
+        "reify:unpack": 110124,
+        "reify:build": 23,
+        "command:install": 111639,
+        "npm": 112612
+      },
+      "phaseSha256": "0a3fa38865aaa1aed2bbef65c47dd560d99c238ae8e82c9865c47d9d8a9d1b2c"
+    }
+  ],
+  "antigravity": {
+    "windowsSteps": {
+      "675": {
+        "Native agy ACP behavior": {
+          "seconds": 27.0,
+          "conclusion": "success"
+        },
+        "Native agy ACP vendor regressions": {
+          "seconds": 122.0,
+          "conclusion": "success"
+        }
+      },
+      "676": {
+        "Native agy ACP behavior": {
+          "seconds": 21.0,
+          "conclusion": "success"
+        },
+        "Native agy ACP vendor regressions": {
+          "seconds": 102.0,
+          "conclusion": "success"
+        }
+      },
+      "677": {
+        "Native agy ACP behavior": {
+          "seconds": 27.0,
+          "conclusion": "success"
+        },
+        "Native agy ACP vendor regressions": {
+          "seconds": 128.0,
+          "conclusion": "success"
+        }
+      }
+    },
+    "pr677": {
+      "artifactId": 13535731929,
+      "zipBytes": 674323,
+      "providerFiles": 13,
+      "providerBytes": 4016701,
+      "maxFileBytes": 1968370,
+      "truncationRecords": []
+    }
+  }
+}

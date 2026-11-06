@@ -1,0 +1,125 @@
+{
+  "sourceSha256": "5baa3d10f02550126f0e169f6d6f3011e97bb96c33f8e3b4209f5b5685d55482",
+  "identity": {
+    "kind": "identity",
+    "version": "1.19.5",
+    "node": "v24.19.0",
+    "platform": "linux"
+  },
+  "results": [
+    {
+      "label": "repository-default",
+      "attempt": 1,
+      "started": 1793996758279,
+      "prompted": 1793996760888,
+      "ended": 1793996762323,
+      "outcome": {
+        "kind": "completed"
+      },
+      "setupMs": 2609,
+      "turnMs": 1435
+    },
+    {
+      "label": "repository-default",
+      "attempt": 2,
+      "started": 1793996762530,
+      "prompted": 1793996764969,
+      "ended": 1793996765886,
+      "outcome": {
+        "kind": "completed"
+      },
+      "setupMs": 2439,
+      "turnMs": 917
+    },
+    {
+      "label": "repository-no-snapshot",
+      "attempt": 1,
+      "started": 1793996766086,
+      "prompted": 1793996768865,
+      "ended": 1793996769718,
+      "outcome": {
+        "kind": "completed"
+      },
+      "setupMs": 2779,
+      "turnMs": 853
+    },
+    {
+      "label": "repository-no-snapshot",
+      "attempt": 2,
+      "started": 1793996769831,
+      "prompted": 1793996772237,
+      "ended": 1793996772997,
+      "outcome": {
+        "kind": "completed"
+      },
+      "setupMs": 2406,
+      "turnMs": 760
+    },
+    {
+      "label": "small-git-default",
+      "attempt": 1,
+      "started": 1793996773129,
+      "prompted": 1793996775856,
+      "ended": 1793996776831,
+      "outcome": {
+        "kind": "completed"
+      },
+      "setupMs": 2727,
+      "turnMs": 975
+    },
+    {
+      "label": "small-git-default",
+      "attempt": 2,
+      "started": 1793996776940,
+      "prompted": 1793996779340,
+      "ended": 1793996780331,
+      "outcome": {
+        "kind": "completed"
+      },
+      "setupMs": 2400,
+      "turnMs": 991
+    },
+    {
+      "label": "plain-default",
+      "attempt": 1,
+      "started": 1793996780444,
+      "prompted": 1793996783111,
+      "ended": 1793996783846,
+      "outcome": {
+        "kind": "completed"
+      },
+      "setupMs": 2667,
+      "turnMs": 735
+    },
+    {
+      "label": "plain-default",
+      "attempt": 2,
+      "started": 1793996783967,
+      "prompted": 1793996786616,
+      "ended": 1793996787453,
+      "outcome": {
+        "kind": "completed"
+      },
+      "setupMs": 2649,
+      "turnMs": 837
+    }
+  ],
+  "nativeLogs": [
+    {
+      "sha256": "1d9e914d5c29a08ed3cbfc13c990e21b0b5490b28b1d2ab0b1a678d9bfa3a4a5",
+      "bytes": 4740
+    },
+    {
+      "sha256": "4878f596487d4d382c58574e7e86f98bf40ad318775d4a29ba7a66156b636a09",
+      "bytes": 11120
+    },
+    {
+      "sha256": "e9aa7693a2d4aea42b3bab892fe2ae503093b64923fa68848e2c4e288268179b",
+      "bytes": 8871
+    },
+    {
+      "sha256": "9a86866f49df33b8a1876d286b7996cbeed75ea6bdd88a4deb49b37923ecce2e",
+      "bytes": 10710
+    }
+  ]
+}

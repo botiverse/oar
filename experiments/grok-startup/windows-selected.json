@@ -1,0 +1,254 @@
+{
+  "run": 42285210473,
+  "job": 128124140045,
+  "artifact": 13537427051,
+  "artifactSha256": "267a243100d43a83462ac7d4755ff3a0896fe185b6348a911c463d430f74a3bc",
+  "sourceSha256": "6c7b54e8071738277b6c8df05b13e29942856284533736ad6bc95741ffc13010",
+  "identity": {
+    "phase": "identity",
+    "platform": "win32",
+    "version": "grok 1.0.70 (f50904eaee6c)",
+    "node": "v24.22.2",
+    "bootstrapSha256": "15abbdc3e34d3c1e53b71def7f9c59f22bd793c51c5f6f88c645103742cc544e"
+  },
+  "attempts": [
+    {
+      "name": "oar-installation",
+      "attempt": 1,
+      "previousOutcome": null,
+      "outcome": "initialized",
+      "startedAt": 1793995765126,
+      "elapsedMs": 5999,
+      "stdoutBytes": 3726,
+      "binaries": [
+        {
+          "kind": "versioned",
+          "bytes": 176000000
+        },
+        {
+          "kind": "canonical",
+          "bytes": 176000000
+        }
+      ]
+    },
+    {
+      "name": "oar-installation",
+      "attempt": 2,
+      "previousOutcome": "initialized",
+      "outcome": "initialized",
+      "startedAt": 1793995771190,
+      "elapsedMs": 326,
+      "stdoutBytes": 3726,
+      "binaries": [
+        {
+          "kind": "versioned",
+          "bytes": 176000000
+        },
+        {
+          "kind": "canonical",
+          "bytes": 176000000
+        }
+      ]
+    },
+    {
+      "name": "npm-wrapper",
+      "attempt": 1,
+      "previousOutcome": null,
+      "outcome": "initialized",
+      "startedAt": 1793995771631,
+      "elapsedMs": 5666,
+      "stdoutBytes": 3726,
+      "binaries": [
+        {
+          "kind": "versioned",
+          "bytes": 176000000
+        },
+        {
+          "kind": "canonical",
+          "bytes": 176000000
+        }
+      ]
+    },
+    {
+      "name": "node-launcher",
+      "attempt": 1,
+      "previousOutcome": null,
+      "outcome": "initialized",
+      "startedAt": 1793995777410,
+      "elapsedMs": 5842,
+      "stdoutBytes": 3726,
+      "binaries": [
+        {
+          "kind": "versioned",
+          "bytes": 176000000
+        },
+        {
+          "kind": "canonical",
+          "bytes": 176000000
+        }
+      ]
+    },
+    {
+      "name": "node-launcher",
+      "attempt": 2,
+      "previousOutcome": "initialized",
+      "outcome": "initialized",
+      "startedAt": 1793995783341,
+      "elapsedMs": 349,
+      "stdoutBytes": 3726,
+      "binaries": [
+        {
+          "kind": "versioned",
+          "bytes": 176000000
+        },
+        {
+          "kind": "canonical",
+          "bytes": 176000000
+        }
+      ]
+    },
+    {
+      "name": "native",
+      "attempt": 1,
+      "previousOutcome": null,
+      "outcome": "initialized",
+      "startedAt": 1793995783803,
+      "elapsedMs": 1531,
+      "stdoutBytes": 3726,
+      "binaries": null
+    },
+    {
+      "name": "native-overlapped",
+      "attempt": 1,
+      "previousOutcome": null,
+      "outcome": "initialized",
+      "startedAt": 1793995785410,
+      "elapsedMs": 1554,
+      "stdoutBytes": 3726,
+      "binaries": null
+    }
+  ],
+  "phases": [
+    {
+      "attempt": 1,
+      "sha256": "8f42d1fe7fa6fe8c546058ef5d4762bb6aa5358088fd9c5a5204af3e823fbd5e",
+      "events": [
+        {
+          "at": 1793995777495,
+          "sinceHookMs": 0.06380000000000052,
+          "phase": "hook_loaded",
+          "node": "v24.22.2",
+          "platform": "win32"
+        },
+        {
+          "at": 1793995777498,
+          "sinceHookMs": 3.183399999999999,
+          "phase": "read_started",
+          "target": "compressed_binary"
+        },
+        {
+          "at": 1793995777522,
+          "sinceHookMs": 26.702400000000004,
+          "phase": "read_finished",
+          "target": "compressed_binary",
+          "durationMs": 23.267200000000003,
+          "resultBytes": 50686299
+        },
+        {
+          "at": 1793995777522,
+          "sinceHookMs": 27.0336,
+          "phase": "decompress_started",
+          "inputBytes": 50686299
+        },
+        {
+          "at": 1793995778246,
+          "sinceHookMs": 750.7245,
+          "phase": "decompress_finished",
+          "inputBytes": 50686299,
+          "durationMs": 723.5395,
+          "resultBytes": 176000000
+        },
+        {
+          "at": 1793995778246,
+          "sinceHookMs": 751.181,
+          "phase": "write_started",
+          "target": "temporary_binary"
+        },
+        {
+          "at": 1793995780580,
+          "sinceHookMs": 3085.1205,
+          "phase": "write_finished",
+          "target": "temporary_binary",
+          "durationMs": 2333.5561
+        },
+        {
+          "at": 1793995780581,
+          "sinceHookMs": 3085.7429,
+          "phase": "rename_started",
+          "source": "temporary_binary",
+          "target": "versioned_binary"
+        },
+        {
+          "at": 1793995780581,
+          "sinceHookMs": 3086.2692,
+          "phase": "rename_finished",
+          "source": "temporary_binary",
+          "target": "versioned_binary",
+          "durationMs": 0.3890000000001237
+        },
+        {
+          "at": 1793995780582,
+          "sinceHookMs": 3086.7119,
+          "phase": "copy_started",
+          "source": "versioned_binary",
+          "target": "canonical_binary"
+        },
+        {
+          "at": 1793995780652,
+          "sinceHookMs": 3157.5404,
+          "phase": "copy_finished",
+          "source": "versioned_binary",
+          "target": "canonical_binary",
+          "durationMs": 70.61340000000018
+        },
+        {
+          "at": 1793995780654,
+          "sinceHookMs": 3158.6965,
+          "phase": "native_spawn_requested",
+          "executable": "canonical_binary"
+        },
+        {
+          "at": 1793995781728,
+          "sinceHookMs": 4233.3331,
+          "phase": "native_spawned",
+          "durationMs": 1074.4614000000006
+        }
+      ]
+    },
+    {
+      "attempt": 2,
+      "sha256": "30eb59bee85e4ae95c98437c204774ea4c62bfa4bddb99d252e2faa33f98c341",
+      "events": [
+        {
+          "at": 1793995783423,
+          "sinceHookMs": 0.0671999999999997,
+          "phase": "hook_loaded",
+          "node": "v24.22.2",
+          "platform": "win32"
+        },
+        {
+          "at": 1793995783425,
+          "sinceHookMs": 2.5054000000000016,
+          "phase": "native_spawn_requested",
+          "executable": "canonical_binary"
+        },
+        {
+          "at": 1793995783430,
+          "sinceHookMs": 7.890299999999996,
+          "phase": "native_spawned",
+          "durationMs": 5.205399999999997
+        }
+      ]
+    }
+  ]
+}

@@ -166,6 +166,14 @@ provider's view or a vendor-specific trigger. Each is gated with
 `skipIf(process.env.OAR_TEST !== ...)`; helpers live in
 `sea-trial/vendor/support/`.
 
+The synthetic OpenCode fixture also retains existing native logs before
+HOME cleanup under `OAR_TRIAL_RUN_DIR/native-opencode/`. Retention is bounded
+to four files and 1 MiB per file, with explicit head/tail gaps and omitted
+file counts. This changes no native logging level or test deadline. Raw
+logs can contain session IDs and local paths; publish selected evidence
+only. Rationale and current measurements:
+[Windows ACP follow-up](../experiments/acp-ci-failures/windows-followup.md).
+
 ### Experiment: what does the real runtime actually do?
 
 `experiments/`, run by `pnpm tsx experiments/<name>.ts`. A live probe that
