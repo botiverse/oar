@@ -1,0 +1,166 @@
+{
+  "runtime": "OpenCode 1.19.5",
+  "platform": "linux x64",
+  "date": "2026-11-06",
+  "node": "24.19.0",
+  "vendorTests": {
+    "passed": 10,
+    "skipped": 440
+  },
+  "nativeLogs": 10,
+  "nativeLogBytes": 53896,
+  "smallGitFixtureLogs": 9,
+  "smallGitLogsWithTracking": 7,
+  "fixtureDirectoriesRemoved": true,
+  "boundary": "Complete copies of native logs; absence of a buffered native marker does not establish absence of that operation. Seven logs positively retain initialized and tracking. Passing native tests establish their existing tool, resume and failure assertions.",
+  "fixtures": [
+    {
+      "sourceSha256": "ba932cb8e075cb2f8afd1dfa9b16e861071763ffc7de6402b683f3ecfb17a19c",
+      "bytes": 11976,
+      "runs": [
+        {
+          "firstLoopAt": 1794001159453,
+          "titleStreamAt": 1794001159472,
+          "snapshotInitializedAt": 1794001159554,
+          "firstTrackingAt": 1794001159595,
+          "firstAgentStreamAt": null,
+          "initializedToTrackingMs": 41,
+          "trackingToAgentStreamMs": null,
+          "loopToTrackingMs": 142,
+          "trackingRecords": 1
+        },
+        {
+          "firstLoopAt": 1794001166678,
+          "titleStreamAt": null,
+          "snapshotInitializedAt": null,
+          "firstTrackingAt": 1794001166713,
+          "firstAgentStreamAt": null,
+          "initializedToTrackingMs": null,
+          "trackingToAgentStreamMs": null,
+          "loopToTrackingMs": 35,
+          "trackingRecords": 1
+        },
+        {
+          "firstLoopAt": 1794001173356,
+          "titleStreamAt": null,
+          "snapshotInitializedAt": null,
+          "firstTrackingAt": 1794001173391,
+          "firstAgentStreamAt": 1794001174067,
+          "initializedToTrackingMs": null,
+          "trackingToAgentStreamMs": 676,
+          "loopToTrackingMs": 35,
+          "trackingRecords": 2
+        }
+      ],
+      "fixture": 0
+    },
+    {
+      "sourceSha256": "3a9a7a31dcdb336916c0cebaeca6b0ebe2d45e4093bd48250dbff3e43ccdb7d9",
+      "bytes": 4250,
+      "runs": [
+        {
+          "firstLoopAt": 1794001167438,
+          "titleStreamAt": 1794001167492,
+          "snapshotInitializedAt": 1794001167653,
+          "firstTrackingAt": 1794001167674,
+          "firstAgentStreamAt": null,
+          "initializedToTrackingMs": 21,
+          "trackingToAgentStreamMs": null,
+          "loopToTrackingMs": 236,
+          "trackingRecords": 1
+        }
+      ],
+      "fixture": 1
+    },
+    {
+      "sourceSha256": "63bf4f6b3b7b643ea28731b892d4c368eb7639f19f0bc3039e104e01f6d3b448",
+      "bytes": 4249,
+      "runs": [
+        {
+          "firstLoopAt": 1794001169227,
+          "titleStreamAt": 1794001169275,
+          "snapshotInitializedAt": 1794001169544,
+          "firstTrackingAt": 1794001169596,
+          "firstAgentStreamAt": null,
+          "initializedToTrackingMs": 52,
+          "trackingToAgentStreamMs": null,
+          "loopToTrackingMs": 369,
+          "trackingRecords": 1
+        }
+      ],
+      "fixture": 2
+    },
+    {
+      "sourceSha256": "f5f7eeb50ff5b36c379feda8966484bb3e626091146a4dfe170154359789a4f0",
+      "bytes": 4249,
+      "runs": [
+        {
+          "firstLoopAt": 1794001172517,
+          "titleStreamAt": 1794001172546,
+          "snapshotInitializedAt": 1794001172654,
+          "firstTrackingAt": 1794001172665,
+          "firstAgentStreamAt": null,
+          "initializedToTrackingMs": 11,
+          "trackingToAgentStreamMs": null,
+          "loopToTrackingMs": 148,
+          "trackingRecords": 1
+        }
+      ],
+      "fixture": 3
+    },
+    {
+      "sourceSha256": "db3dedae6b66d0d007dccf27701c8fd96faff3d4ec0798f3156b55f5f0e5c372",
+      "bytes": 7893,
+      "runs": [
+        {
+          "firstLoopAt": 1794001175112,
+          "titleStreamAt": 1794001175125,
+          "snapshotInitializedAt": 1794001175234,
+          "firstTrackingAt": 1794001175248,
+          "firstAgentStreamAt": 1794001175946,
+          "initializedToTrackingMs": 14,
+          "trackingToAgentStreamMs": 698,
+          "loopToTrackingMs": 136,
+          "trackingRecords": 1
+        }
+      ],
+      "fixture": 4
+    },
+    {
+      "sourceSha256": "72302e935f1aa2a5839bd6da5aea16a6950b9c8c7b3bc68454dad691ba9a6161",
+      "bytes": 6397,
+      "runs": [
+        {
+          "firstLoopAt": 1794001178033,
+          "titleStreamAt": 1794001178052,
+          "snapshotInitializedAt": 1794001178137,
+          "firstTrackingAt": 1794001178149,
+          "firstAgentStreamAt": 1794001178729,
+          "initializedToTrackingMs": 12,
+          "trackingToAgentStreamMs": 580,
+          "loopToTrackingMs": 116,
+          "trackingRecords": 3
+        }
+      ],
+      "fixture": 5
+    },
+    {
+      "sourceSha256": "35b07389695fcc84876e80532f649db0dd5674c90306890f88ed5a0cbdc95b91",
+      "bytes": 5339,
+      "runs": [
+        {
+          "firstLoopAt": 1794001184232,
+          "titleStreamAt": 1794001184248,
+          "snapshotInitializedAt": 1794001184320,
+          "firstTrackingAt": 1794001184330,
+          "firstAgentStreamAt": 1794001184921,
+          "initializedToTrackingMs": 10,
+          "trackingToAgentStreamMs": 591,
+          "loopToTrackingMs": 98,
+          "trackingRecords": 2
+        }
+      ],
+      "fixture": 6
+    }
+  ]
+}

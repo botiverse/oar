@@ -4,7 +4,7 @@ import path from "node:path";
 import { performance } from "node:perf_hooks";
 import { LLMock } from "@copilotkit/aimock";
 import { warmCodexHome } from "./codex-home.js";
-import { removeCodexHome } from "./codex-home-cleanup.js";
+import { removeFixtureDirectory } from "./fixture-directory-cleanup.js";
 import { record } from "./trace.js";
 import { startRawCapture, type RawCapture, type RawProviderRequest, type RequestRewrite, type ResponseRewrite } from "./raw-capture.js";
 
@@ -30,6 +30,8 @@ export { namespaceMcpToolCalls } from "./raw-capture.js";
  * (server socket, temp CODEX_HOME).
  */
 export interface AimockEnv {
+  /** Optional fixture-owned project directory, kept until stop() for resumed sessions too. */
+  readonly cwd?: string;
   /** Session env overlay pointing the runtime at this scripted provider (absent for in-process pi, which is re-pointed via OAR_PI_AGENT_DIR at startup). */
   readonly env?: Readonly<Record<string, string>>;
   /** The scripted server itself. Vendor tests read its journal when a run goes sideways. */
@@ -129,7 +131,7 @@ export async function startCodexAimock(
     stop: async () => {
       await capture?.stop();
       await mock.stop();
-      await removeCodexHome(codexHome);
+      await removeFixtureDirectory(codexHome, "codex-home");
     },
   };
   try {

@@ -7,7 +7,7 @@ import {
   opencodeInstallation, opencodeSession, RuntimeFailureError, type CredentialProblem, type FailureClass, type InstallationProbe, type StartSession, type TurnOutcome,
 } from "../../packages/oar/src/index.js";
 import { asRecord, parseJson } from "../../packages/oar/src/shared/json.js";
-import { startAntigravityAimock, startGrokAimock, startKimiAimock, startOpencodeAimock, type AcpAimockEnv } from "../harness/aimock-acp.js";
+import { startOpencodeGitFixture, startAntigravityAimock, startGrokAimock, startKimiAimock, type AcpAimockEnv } from "../harness/aimock-acp.js";
 import { runtimeUnderTest } from "../harness/subject.js";
 import { runTurn } from "./support/asserts.js";
 
@@ -65,7 +65,7 @@ async function freshDir(prefix: string): Promise<string> {
 
 const runtimes: readonly AcpRuntime[] = [
   {
-    id: "opencode-aimock", session: opencodeSession, installation: opencodeInstallation, start: startOpencodeAimock,
+    id: "opencode-aimock", session: opencodeSession, installation: opencodeInstallation, start: startOpencodeGitFixture,
     withoutLogin: async (env) => {
       const file = path.join(env.env.XDG_CONFIG_HOME ?? "", "opencode", "opencode.json");
       const config = asRecord(parseJson(await readFile(file, "utf8"))) ?? {};
@@ -132,7 +132,7 @@ for (const acp of runtimes) {
         if (cell.reply !== undefined) { mock.onMessage(/[\s\S]*/u, cell.reply); }
       });
       try {
-        const subject = runtimeUnderTest(runtime, cell.noLogin === true ? await acp.withoutLogin(env) : env.env);
+        const subject = runtimeUnderTest(runtime, cell.noLogin === true ? await acp.withoutLogin(env) : env.env, env.cwd);
         const opening = subject.startSession(cell.model === undefined ? {} : { model: cell.model });
         if ("open" in cell.expected) {
           await expect(opening).rejects.toBeInstanceOf(RuntimeFailureError);

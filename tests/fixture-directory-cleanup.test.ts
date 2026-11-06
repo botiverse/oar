@@ -1,7 +1,7 @@
 /* oxlint-disable eslint/max-statements -- Keep the deadline, late outcome and next-fixture sequence in one regression. */
 import { performance } from "node:perf_hooks";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { removeCodexHome } from "../sea-trial/harness/codex-home-cleanup.js";
+import { removeFixtureDirectory } from "../sea-trial/harness/fixture-directory-cleanup.js";
 
 const mocks = vi.hoisted(() => ({
   rm: vi.fn<() => Promise<void>>(),
@@ -20,71 +20,73 @@ beforeEach(() => {
 });
 afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); vi.resetAllMocks(); });
 
-test("a slow removal releases fixture cleanup and retains its later completion", async () => {
+const purposes = ["codex-home", "opencode-vendor-cwd"];
+
+test.each(purposes)("a slow removal releases fixture cleanup and retains its later completion (%s)", async (purpose) => {
   const deletion = Promise.withResolvers<void>();
   mocks.rm.mockReturnValue(deletion.promise);
   const returned = vi.fn();
-  const stop = (async () => { await removeCodexHome("home-A"); returned(); })();
+  const stop = (async () => { await removeFixtureDirectory("home-A", purpose); returned(); })();
   await vi.advanceTimersByTimeAsync(4999);
   expect(returned).not.toHaveBeenCalled();
   now = 5000;
   await vi.advanceTimersByTimeAsync(1);
   await stop;
   expect(returned).toHaveBeenCalledOnce();
-  expect(mocks.record).toHaveBeenCalledWith(expect.objectContaining({ home: "home-A", outcome: "pending", elapsedMs: 5000, residue: "unconfirmed" }));
+  expect(mocks.record).toHaveBeenCalledWith(expect.objectContaining({ directory: "home-A", purpose, outcome: "pending", elapsedMs: 5000, residue: "unconfirmed" }));
   expect(mocks.write).toHaveBeenCalledWith(expect.stringContaining('"outcome":"pending"'));
   expect(vi.getTimerCount()).toBe(0);
   now = 91_472;
   deletion.resolve();
   await vi.advanceTimersByTimeAsync(0);
-  expect(mocks.record).toHaveBeenLastCalledWith(expect.objectContaining({ home: "home-A", outcome: "removed", elapsedMs: 91_472, residue: "removed" }));
+  expect(mocks.record).toHaveBeenLastCalledWith(expect.objectContaining({ directory: "home-A", purpose, outcome: "removed", elapsedMs: 91_472, residue: "removed" }));
 });
 
-test("a late refusal stays observed and cannot reject an already returned stop", async () => {
+test.each(purposes)("a late refusal stays observed and cannot reject an already returned stop (%s)", async (purpose) => {
   const deletion = Promise.withResolvers<void>();
   mocks.rm.mockReturnValue(deletion.promise);
-  const stop = removeCodexHome("home-A");
+  const stop = removeFixtureDirectory("home-A", purpose);
   now = 5000;
   await vi.advanceTimersByTimeAsync(5000);
   await stop;
   deletion.reject(new Error("EPERM: cannot remove home-A"));
   await vi.advanceTimersByTimeAsync(0);
-  expect(mocks.record).toHaveBeenLastCalledWith(expect.objectContaining({ home: "home-A", outcome: "failed", error: "EPERM: cannot remove home-A" }));
+  expect(mocks.record).toHaveBeenLastCalledWith(expect.objectContaining({ directory: "home-A", purpose, outcome: "failed", error: "EPERM: cannot remove home-A" }));
   expect(mocks.write).toHaveBeenLastCalledWith(expect.stringContaining("EPERM"));
 });
 
-test("fast deletion leaves no deadline or slow-cleanup warning", async () => {
+test.each(purposes)("fast deletion leaves no deadline or slow-cleanup warning (%s)", async (purpose) => {
   mocks.rm.mockResolvedValue(undefined);
-  await removeCodexHome("home-B");
+  await removeFixtureDirectory("home-B", purpose);
   expect(mocks.rm).toHaveBeenCalledWith("home-B", { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
   expect(mocks.record).not.toHaveBeenCalled();
   expect(vi.getTimerCount()).toBe(0);
 });
 
-test("a cleanup refusal preserves a preceding native failure even if diagnostics cannot write", async () => {
+test.each(purposes)("a cleanup refusal preserves a preceding native failure even if diagnostics cannot write (%s)", async (purpose) => {
   mocks.rm.mockRejectedValue(new Error("EPERM"));
   mocks.record.mockImplementation(() => { throw new Error("trace closed"); });
   mocks.write.mockImplementation(() => { throw new Error("log closed"); });
   const nativeFailure = new Error("native assertion failed");
   async function run() {
     try { throw nativeFailure; }
-    finally { await removeCodexHome("home-A"); }
+    finally { await removeFixtureDirectory("home-A", purpose); }
   }
   await expect(run()).rejects.toBe(nativeFailure);
   expect(mocks.record).toHaveBeenCalledWith(expect.objectContaining({ outcome: "failed", error: "EPERM" }));
   expect(vi.getTimerCount()).toBe(0);
 });
 
-test("late cleanup retains its own home while the next fixture finishes", async () => {
+test.each(purposes)("late cleanup retains its own home while the next fixture finishes (%s)", async (purpose) => {
   const first = Promise.withResolvers<void>();
   mocks.rm.mockReturnValueOnce(first.promise).mockResolvedValueOnce(undefined);
-  const stop = removeCodexHome("home-A");
+  const stop = removeFixtureDirectory("home-A", purpose);
   now = 5000;
   await vi.advanceTimersByTimeAsync(5000);
   await stop;
-  await removeCodexHome("home-B");
+  await removeFixtureDirectory("home-B", purpose);
   first.reject(new Error("first home still locked"));
   await vi.advanceTimersByTimeAsync(0);
-  expect(mocks.record.mock.calls.map(call => call[0].home)).toEqual(["home-A", "home-A"]);
+  expect(mocks.record.mock.calls.map(call => call[0].directory)).toEqual(["home-A", "home-A"]);
   expect(mocks.rm).toHaveBeenCalledTimes(2);
 });

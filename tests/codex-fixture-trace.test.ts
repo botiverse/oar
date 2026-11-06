@@ -70,7 +70,7 @@ test("fixture stop returns while its private home removal is still pending", asy
     await barrier.entered.promise;
     await vi.advanceTimersByTimeAsync(5000);
     expect(returned).toHaveBeenCalledOnce();
-    expect(mocks.record).toHaveBeenCalledWith(expect.objectContaining({ kind: "codex_home_cleanup", outcome: "pending", residue: "unconfirmed" }));
+    expect(mocks.record).toHaveBeenCalledWith(expect.objectContaining({ kind: "fixture_directory_cleanup", purpose: "codex-home", outcome: "pending", residue: "unconfirmed" }));
   } finally {
     barrier.release.resolve();
     await barrier.finished.promise;

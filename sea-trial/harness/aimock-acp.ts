@@ -1,3 +1,4 @@
+import { execFile } from "node:child_process";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -5,6 +6,7 @@ import { LLMock } from "@copilotkit/aimock";
 import { geminiToolResultsAsUser, startRawCapture, type RawCapture, type RequestRewrite } from "./raw-capture.js";
 import type { AimockEnv } from "./aimock.js";
 import { acpProviderEvidence } from "./provider-evidence.js";
+import { removeFixtureDirectory } from "./fixture-directory-cleanup.js";
 import { retainOpencodeLogs } from "./opencode-evidence.js";
 
 /*
@@ -178,4 +180,31 @@ export async function startAntigravityAimock(configure: (mock: LLMock) => void, 
   // The Go CLI reads its settings below the OS home, USERPROFILE on Windows.
   // GEMINI_HOME alone only configures the retired standalone-service fixture.
   return environment(started, { USERPROFILE: started.base.HOME, GEMINI_HOME: geminiHome, GEMINI_API_KEY: "aimock", GOOGLE_GEMINI_BASE_URL: started.url, AGY_CLI_DISABLE_AUTO_UPDATE: "1" });
+}
+
+async function git(args: readonly string[]): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    execFile("git", args, (error) => { if (error) { reject(new Error(error.message, { cause: error })); } else { resolve(); } });
+  });
+}
+
+/** Keep native snapshots enabled without snapshotting the whole OAR checkout. */
+export async function startOpencodeGitFixture(...args: Parameters<typeof startOpencodeAimock>): Promise<AcpAimockEnv & { readonly cwd: string }> {
+  const cwd = await mkdtemp(path.join(tmpdir(), "oar-opencode-vendor-"));
+  try {
+    await writeFile(path.join(cwd, "README.md"), "Small OpenCode vendor fixture project\n");
+    await git(["init", cwd]);
+    await git(["-C", cwd, "add", "README.md"]);
+    const fixture = await startOpencodeAimock(...args);
+    return {
+      ...fixture,
+      cwd,
+      async stop() {
+        try { await fixture.stop(); } finally { await removeFixtureDirectory(cwd, "opencode-vendor-cwd"); }
+      },
+    };
+  } catch (error) {
+    await removeFixtureDirectory(cwd, "opencode-vendor-cwd");
+    throw error;
+  }
 }

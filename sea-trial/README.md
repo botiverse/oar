@@ -33,7 +33,7 @@ warmup before its caller opens a trace is not retained.
 
 After the fixture servers stop, cleanup waits for removal of its private
 `CODEX_HOME` or a five-second timer. The same removal continues with its
-existing retry settings. If it is still pending, `codex_home_cleanup` records
+existing retry settings. If it is still pending, `fixture_directory_cleanup` records (purpose `codex-home`)
 the elapsed time and `residue: "unconfirmed"` in the trace and job log. An
 eventual success or error is also recorded, retaining the home path even if
 the next fixture has started. Fast successful removal stays quiet; a removal
