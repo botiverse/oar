@@ -1,11 +1,15 @@
 /* oxlint-disable eslint/max-statements, eslint/max-lines-per-function, import/max-dependencies -- Native lifecycle proofs keep target, sibling and parent assertions in one bounded run. */
 import assert from "node:assert/strict";
+import { writeFile } from "node:fs/promises";
+import path from "node:path";
 import { test, expect } from "vitest";
 import { setTimeout as delay } from "node:timers/promises";
 import type { Session, Event } from "../../packages/oar/src/contracts/session.js";
 import { claudeInstallation, claudeSession, codexInstallation, codexSession, eventsOf, promptAndWait } from "../../packages/oar/src/index.js";
 import { asRecord, parseJson, type JsonRecord } from "../../packages/oar/src/shared/json.js";
-import { startClaudeAimock, startCodexAimock, type RawProviderRequest } from "../harness/aimock.js";
+import { startClaudeAimock, startCodexAimock } from "../harness/aimock.js";
+import { resolveRunDir } from "../harness/trace.js";
+import { codexTaskRecipient, codexTaskRequest } from "./support/codex-task-request.js";
 
 function taskEvents(session: Session): Event[] { return session.records().flatMap(record => eventsOf(record)).filter(e => e.kind.startsWith("task_")); }
 
@@ -61,11 +65,10 @@ function childTurns(session: Session, id: string): JsonRecord[] {
 }
 
 test.skipIf(process.env.OAR_TEST !== "codex-aimock")("Codex child interruption leaves the parent and peer usable and permits later work on the same child", async () => {
-  let rootCalls = 0; let targetCalls = 0; let raw: readonly RawProviderRequest[] = [];
+  let rootCalls = 0; let targetCalls = 0;
   const provider = await startCodexAimock(mock => {
-    mock.on({ predicate: () => true }, async () => {
-      const input = asRecord(raw.at(-1)?.body)?.input;
-      const recipient = Array.isArray(input) ? input.map(value => asRecord(value)).findLast(item => item?.type === "agent_message")?.recipient : undefined;
+    mock.on({ predicate: () => true }, async request => {
+      const recipient = codexTaskRecipient(request);
       if (recipient === "/root/a") { targetCalls += 1; await delay(targetCalls === 1 ? 15_000 : 250); return { content: "CHILD_A_DONE" }; }
       if (recipient === "/root/b") { await delay(4000); return { content: "CHILD_B_DONE" }; }
       rootCalls += 1;
@@ -76,8 +79,7 @@ test.skipIf(process.env.OAR_TEST !== "codex-aimock")("Codex child interruption l
       if (rootCalls === 4) { return { toolCalls: [{ id: "followup_a", name: "followup_task", arguments: JSON.stringify({ target: "a", message: "Resume child A" }) }] }; }
       return { content: "PARENT_OK" };
     });
-  }, { captureRaw: true, rewriteResponse: qualifyResponse });
-  ({ raw } = provider);
+  }, { captureRaw: true, rewriteResponse: qualifyResponse, rewriteRequest: codexTaskRequest });
   const installation = await codexInstallation(); assert.ok(installation.kind === "available");
   let session: Session | undefined = undefined;
   try {
@@ -99,7 +101,13 @@ test.skipIf(process.env.OAR_TEST !== "codex-aimock")("Codex child interruption l
     await expect.poll(() => taskEvents(current).find(e => e.kind === "task_ended" && e.taskId === target.taskId), { timeout: 30_000 }).toMatchObject({ status: "completed" });
     expect(targetCalls).toBe(2);
     expect(childTurns(current, target.taskId)[1]?.id).not.toBe(childTurns(current, target.taskId)[0]?.id);
-  } finally { await session?.dispose(); await provider.stop(); }
+  } finally {
+    try { await session?.dispose(); }
+    finally {
+      try { await writeFile(path.join(resolveRunDir(), "codex-task-stop.json"), JSON.stringify({ rootCalls, targetCalls, requests: provider.raw, records: session?.records() }, null, 2)); }
+      finally { await provider.stop(); }
+    }
+  }
 }, 90_000);
 
 test.skipIf(process.env.OAR_TEST !== "claude-aimock")("Claude single stop also targets a foreground Agent while its sibling completes", async () => {

@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { LLMock } from "@copilotkit/aimock";
 import { warmCodexHome } from "./codex-home.js";
-import { startRawCapture, type RawCapture, type RawProviderRequest, type ResponseRewrite } from "./raw-capture.js";
+import { startRawCapture, type RawCapture, type RawProviderRequest, type RequestRewrite, type ResponseRewrite } from "./raw-capture.js";
 
 export type { LLMock } from "@copilotkit/aimock";
 export type { RawProviderRequest } from "./raw-capture.js";
@@ -42,14 +42,16 @@ export interface AimockOptions {
   readonly captureRaw?: boolean;
   /** Put the same proxy in front and rewrite each response on its way back (`namespaceMcpToolCalls`: a reply shape aimock cannot script). */
   readonly rewriteResponse?: ResponseRewrite;
+  /** Normalize native request fields for this fixture only; raw capture remains unchanged. */
+  readonly rewriteRequest?: RequestRewrite;
 }
 
 /** The provider URL the runtime is pointed at: aimock itself, or the capture proxy in front of it. */
 async function providerUrl(mock: LLMock, options: AimockOptions): Promise<{ readonly url: string; readonly capture: RawCapture | null }> {
-  if (options.captureRaw !== true && options.rewriteResponse === undefined) {
+  if (options.captureRaw !== true && options.rewriteResponse === undefined && options.rewriteRequest === undefined) {
     return { url: mock.url, capture: null };
   }
-  const capture = await startRawCapture(mock.url, options.rewriteResponse);
+  const capture = await startRawCapture(mock.url, options.rewriteResponse, options.rewriteRequest);
   return { url: capture.url, capture };
 }
 
