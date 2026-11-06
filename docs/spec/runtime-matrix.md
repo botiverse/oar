@@ -330,8 +330,8 @@ exec /path/to/runtime "$@"
 ```
 
 `exec` keeps the pid, so process ownership is unchanged, and every process the
-runtime starts inherits the score, with no window. Linux only; raising the score
-needs no privilege, lowering it does. `choom -n 500 -- /path/to/runtime "$@"`
+runtime starts inherits the score, with no window. Linux only, and the kernel
+can refuse the write, for example a score below what the process may set. `choom -n 500 -- /path/to/runtime "$@"`
 behind `exec` does the same. Measured with Codex 0.167.0 using `choom`: the
 app-server, an MCP server and a tool command all read 500
 ([probe](../../experiments/codex-native-signals/README.md),
