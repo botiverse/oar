@@ -23,6 +23,30 @@ Pi Durable uses `OAR_TEST=pi-durable-aimock`: a real native Harness with host
 Models, memory or JSONL storage, and a scripted localhost provider. The
 vendor tests cover durable controls, reopen, adoption and watcher overflow.
 
+## Codex fixture preparation and cleanup
+
+With an open trace, the Codex aimock fixture records `codex_home_warmup` before and
+after its native warmup, with the private home path and, on return, elapsed
+time and success or failure. Cold-start cases still skip warmup. These are
+ordinary trace records; no diagnostic environment switch is required. A
+warmup before its caller opens a trace is not retained.
+
+After the fixture servers stop, cleanup waits for removal of its private
+`CODEX_HOME` or a five-second timer. The same removal continues with its
+existing retry settings. If it is still pending, `codex_home_cleanup` records
+the elapsed time and `residue: "unconfirmed"` in the trace and job log. An
+eventual success or error is also recorded, retaining the home path even if
+the next fixture has started. Fast successful removal stays quiet; a removal
+error is logged without replacing a native test failure. An unreturned
+removal has no final result, and neither a timeout nor a successful removal
+proves that all native descendants exited. Pending filesystem work can still
+outlive the test.
+
+This bounds fixture housekeeping only. Session disposal, native assertions,
+case deadlines and normal CI concurrency are unchanged. The
+[Windows comparison](../experiments/windows-codex-ci/README.md) found a slow
+removal, but did not establish its cause or a general fix for Windows delays.
+
 ## Explicit Pi RPC commands
 
 The default `pi-rpc-aimock` backend uses OAR's bundled Pi. To run the same
