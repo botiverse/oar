@@ -14,17 +14,17 @@ Those replay checks used no real account or paid provider. The
 [model-selection probe](../../experiments/qoder-native/model-selection-report.md)
 uses an existing login for catalog reads and opens, without a model prompt.
 
-Latest check, **1.1.84** (Linux x64, November 6): native cache/live catalogs
+Latest check, **1.1.85** (Linux x64, November 7): native cache/live catalogs
 and init confirm the selected `efficient` model and OAR opens successfully.
 This uses the verified ModelProvider mapping introduced by
 [PR #624](https://github.com/botiverse/oar/pull/624); its earlier controls cover
 `modelId` and unique display names ([evidence](../../experiments/qoder-native/model-provider-2026-11-05.md)).
 The separate permission replay still returns HTTP 500 before any permission
 request, and the full replay suite fails. CI stays on 1.1.81 with unchanged
-assertions ([latest check](../../experiments/runtime-version-checks/2026-11-06.md#qoder-1184)).
+assertions ([latest check](../../experiments/runtime-version-checks/2026-11-07.md#qoder-1185)).
 The [1.1.83 DeepSeek BYOK probe](../../experiments/qoder-deepseek/README.md)
 verifies inference, Read/Write and resume on that version only. It does not
-verify execution on 1.1.84 or first-party subscription behavior.
+verify execution on 1.1.85 or first-party subscription behavior.
 
 ## Manual compaction
 
