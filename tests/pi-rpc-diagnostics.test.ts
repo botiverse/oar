@@ -106,11 +106,18 @@ test.skipIf(process.platform !== "win32")("the external Windows deadline kills a
   const fixture = path.join(directory, "probe.test.ts");
   const config = path.join(directory, "vitest.config.mjs");
   try {
-    await writeFile(fixture, `import { appendFileSync } from "node:fs";
-import { test } from ${JSON.stringify(vitestEntry)};
+    await writeFile(fixture, `import { appendFileSync, readFileSync } from "node:fs";
+import { expect, test } from ${JSON.stringify(vitestEntry)};
 const mark = (kind) => { try { appendFileSync(${JSON.stringify(path.join(evidence, "worker.jsonl"))}, JSON.stringify({ kind, at: new Date().toISOString() }) + "\\n"); } catch {} };
 mark("module_loaded");
-test("blocked native worker", async () => { mark("case_entered"); await new Promise(r => setTimeout(r, 500)); mark("worker_blocking"); Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0); });`);
+test("blocked native worker", async () => { mark("case_entered");
+  // Vitest batches worker updates. Wait for the reporter before blocking delivery.
+  await expect.poll(() => {
+    try { return JSON.parse(readFileSync(${JSON.stringify(path.join(evidence, "active-tests.json"))}, "utf8")).some(entry => entry.name === "blocked native worker"); }
+    catch { return false; }
+  }, { timeout: 900, interval: 10 }).toBe(true);
+  mark("worker_blocking"); Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0);
+});`);
     await writeFile(config, `export default { root: ${JSON.stringify(directory)}, test: { include: ["probe.test.ts"], testTimeout: 1000, reporters: [${JSON.stringify(path.resolve("sea-trial/pi-rpc-progress.ts"))}] } };`);
     const command = `& ${quote(process.execPath)} ${quote(path.resolve("node_modules/vitest/vitest.mjs"))} run --config ${quote(config)}`;
     const result = await recordProbe(evidence, async () => runExecutable("pwsh.exe", ["-NoProfile", "-File", path.resolve("sea-trial/windows-resources.ps1"),
