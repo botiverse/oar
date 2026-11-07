@@ -328,8 +328,9 @@ and OAR reads only ACP. Upstream: [MoonshotAI/kimi-code#1865](https://github.com
 (reported on 0.26.0; the ACP adapter logs a failed turn and answers
 `end_turn`, as ACP's `StopReason` has no failure value), still so on 2.2.0.
 
-`classifyTool` reads `Edit` as `edit_file` with the native `path`. ACP tool
-inputs retain complete JSON, so MCP arguments such as `{text: "ACTUAL"}`
+Kimi's `Edit` names its file with the native `path` field; the
+[shared activity mappings](../spec/record-stream.md#the-rules) describe how
+`classifyTool` reads the recorded tools. ACP tool inputs retain complete JSON, so MCP arguments such as `{text: "ACTUAL"}`
 remain an object in the input string. The
 [tool audit](../../experiments/tool-activity-audit/README.md#follow-up-decisions-and-input-fix)
 records these shapes on 2.5.2.

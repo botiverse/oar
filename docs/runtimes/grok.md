@@ -709,10 +709,11 @@ to `rawOutput` as one `other` part. Under `--always-approve` no
 `allow_always`, then `allow_once`, otherwise `cancelled`, alongside the
 launch/session yolo settings.
 
-`classifyTool` also reads `search_replace` as `edit_file` using `file_path`,
-and `use_tool` as `mcp`. ACP input preserves the entire JSON object,
-including tagged `variant` fields and nested `tool_input`; output text
-still uses the existing preview limit. [Recorded inputs and regression](../../experiments/tool-activity-audit/README.md#follow-up-decisions-and-input-fix).
+Grok's `search_replace` names its file with `file_path`, and `use_tool`
+wraps MCP arguments in `tool_input`. See the
+[shared activity mappings](../spec/record-stream.md#the-rules) for classification.
+ACP input preserves the entire JSON object, including tagged `variant`
+fields and nested `tool_input`; output text still uses the existing preview limit. [Recorded inputs and regression](../../experiments/tool-activity-audit/README.md#follow-up-decisions-and-input-fix).
 
 There is no application approval callback or generic client-tool callback
 (both **unexposed**); per-session MCP servers are
