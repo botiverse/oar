@@ -4,6 +4,11 @@ export type { InventoryScope, InventoryOptions, SkillEntry, CommandEntry, McpSer
 export type { Probe, OrientOptions, OrientationDepth, Orientation, RuntimeOrientation, Customization, RuntimeUsability, UsabilityOptions, UnusableReason } from "./orientation.js";
 
 export type {
+  AccountLimitReset,
+  AccountLimitResets,
+  LimitResetOptions,
+  LimitResetRedeemer,
+  LimitResetResult,
   AccountUsageUnsupportedReason,
   AccountUsageReauthReason,
   AccountUsageReader,

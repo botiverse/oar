@@ -24,6 +24,31 @@ export interface AccountUsageWindow {
   readonly durationMs?: number;
 }
 
+/** One limit reset the account holds, as the runtime details it. */
+export interface AccountLimitReset {
+  /** The runtime's own identifier, for `LimitResetOptions.resetId`. */
+  readonly id: string;
+  /** The runtime's state for this reset; `unknown` when it reports a state it cannot name. */
+  readonly status: "available" | "redeeming" | "redeemed" | "unknown";
+  readonly grantedAt?: UtcInstant;
+  /** Omitted when the reset does not expire. */
+  readonly expiresAt?: UtcInstant;
+  /** Runtime-provided display text; omitted when it gives none. */
+  readonly title?: string;
+  readonly description?: string;
+}
+
+/**
+ * Resets the account can spend on its usage limits. `available` is the
+ * runtime's count. `resets` is its detail list, which it may cap below
+ * `available`; omitted when the runtime gave only the count, empty when it
+ * looked and found none.
+ */
+export interface AccountLimitResets {
+  readonly available: number;
+  readonly resets?: readonly AccountLimitReset[];
+}
+
 /** Stable reason codes; no credentials or provider response bodies are included. */
 export type AccountUsageUnsupportedReason =
   | "capability_unavailable"
@@ -54,6 +79,8 @@ export type AccountUsageSnapshot =
       readonly displayName?: string;
       readonly rateLimited: boolean;
       readonly windows: readonly AccountUsageWindow[];
+      /** The account's limit resets, when the runtime reports them (codex); see `Runtime.redeemLimitReset`. */
+      readonly limitResets?: AccountLimitResets;
     }
   | {
       readonly kind: "reauth_required";
@@ -77,3 +104,46 @@ export type AccountUsageReader = (
   installation: AvailableInstallation,
   options?: AccountUsageReadOptions,
 ) => Promise<AccountUsageSnapshot>;
+
+export interface LimitResetOptions {
+  /**
+   * Names one attempt: a fresh unique value (a UUID) for each attempt, and
+   * the same value when retrying it, so a retry never spends a second reset.
+   * Required because only the caller can keep it across a retry.
+   */
+  readonly idempotencyKey: string;
+  /** Which reset to spend, an `id` from `limitResets.resets`; omitted lets the runtime choose. */
+  readonly resetId?: string;
+  /** Same overlay as sessions: strings override, null removes, and the host is untouched. */
+  readonly env?: SessionOptions["env"];
+  /** Bounds the whole call, every process it starts included; each runtime has its own default. Past it the call rejects. */
+  readonly timeoutMs?: number;
+}
+
+/**
+ * How a redemption ended, as the runtime reports it. After any of the
+ * available outcomes, read `accountUsage` again for the account's state;
+ * none of them says what the limits are now.
+ */
+export type LimitResetResult =
+  /** The runtime reset the account's limits and spent a reset. */
+  | { readonly kind: "reset" }
+  /** No limit needed resetting; no reset was spent. */
+  | { readonly kind: "nothing_to_reset" }
+  /** The account holds no reset to spend (or not the one `resetId` names). */
+  | { readonly kind: "no_reset" }
+  /** This attempt already went through: a retry with the key of an earlier call that reached the runtime. */
+  | { readonly kind: "already_redeemed" }
+  | { readonly kind: "reauth_required"; readonly reason: AccountUsageReauthReason }
+  | { readonly kind: "unsupported"; readonly reason: AccountUsageUnsupportedReason };
+
+/**
+ * Spends one of the account's limit resets through the runtime's own call.
+ * It uses up the account owner's reset, so oar never calls it on its own.
+ * A rejection (timeout, network, malformed answer) leaves unknown whether
+ * the reset was spent: retry with the same `idempotencyKey`.
+ */
+export type LimitResetRedeemer = (
+  installation: AvailableInstallation,
+  options: LimitResetOptions,
+) => Promise<LimitResetResult>;

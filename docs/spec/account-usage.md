@@ -49,6 +49,46 @@ start, which an even-burn line needs. Sources:
 | codex | `<limitId>:primary` or `<limitId>:secondary` | `windowDurationMins` as reported |
 | grok, kimi | none | none |
 
+## Limit resets
+
+Some subscriptions grant resets an account can spend to restore its usage
+limits early. Codex reports them in the same read, and an available
+snapshot carries them as `limitResets`: `available`, the runtime's count,
+and `resets`, its detail rows (`id`, `status`, `grantedAt`, `expiresAt`,
+`title`, `description`, each only as reported). Codex may cap the rows below
+the count. `resets` is omitted when Codex gave only the count and empty when
+it found none; `limitResets` is omitted when the runtime reports nothing.
+Only resets of codex's own limits are listed: a row of a kind Codex cannot
+name is left out, since OAR cannot say what it would reset.
+
+`runtime.redeemLimitReset(installation, options)` spends one through the
+runtime's own call (codex `account/rateLimitResetCredit/consume`, the call
+its TUI makes). It is an optional member: only codex has it. It uses up a
+reset that belongs to the account owner, so OAR never calls it on its own,
+and its MCP server offers no tool for it: a host calls it on the owner's
+explicit request.
+
+- `idempotencyKey` is required and names one attempt. Make a fresh unique
+  value (a UUID) when the person asks, and send the same value again when
+  retrying that attempt. OAR does not make one, because a retry needs the
+  first one.
+- `resetId` picks a reset from `resets`; omitted, the runtime chooses.
+- The result is Codex's own outcome: `reset`, `nothing_to_reset` (no limit
+  needed it; nothing spent), `no_reset` (the account holds none, or not the
+  one named) or `already_redeemed` (this key's attempt already went through,
+  as when a retry follows a call whose answer was lost). An API-key account
+  is `unsupported` / `unsupported_auth_mode`, and no login is
+  `reauth_required` / `not_authenticated`, as for the read. A Codex without
+  the call is `unsupported` / `endpoint_unavailable`.
+- A rejection (the deadline, default 20 s; Codex's own 10 s bound on its
+  backend; a network error; an outcome OAR does not know) leaves unknown
+  whether a reset was spent. Retry with the same key.
+
+No outcome says what the limits are now. Read `accountUsage` again after
+any of them; do not infer recovered windows from the outcome. The reset
+applies to the account the call resolves, as for the read, so pass the same
+`env` as the session and the read.
+
 ## Failure reasons
 
 Unsuccessful account-usage snapshots retain `kind: "unsupported"` or
