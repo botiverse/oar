@@ -32,7 +32,7 @@ test("isolated ACP prompt and steer wait for cancellation observation, including
     expect(aborts.map(result => result.kind)).toEqual(["accepted", "accepted"]);
     const promptedResult = await prompted, steeredResult = await steered;
     expect(promptedResult.response.body).toEqual({ kind: "rejected", code: "busy", reason: "busy" });
-    expect(steeredResult?.kind).toBe("accepted");
+    expect(steeredResult?.response.body).toEqual({ kind: "rejected", code: "no_active_turn", reason: "not_steerable: no active turn" });
     expect(read).toHaveBeenCalledOnce();
   } finally { gate.resolve(failure); vi.restoreAllMocks(); await session.dispose(); }
 });

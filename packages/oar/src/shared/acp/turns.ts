@@ -3,28 +3,20 @@ import type {
   InputImage, InputOptions, RuntimeEventBody, RequestRecord,
   ResponseBody, SessionCapabilities, TurnOutcome,
 } from "../../contracts/session.js";
-import { pathToFileURL } from "node:url";
 import { withdrawHeld } from "../held-input.js";
-import { withInputImages, type LoadedImage } from "../input-images.js";
+import { withInputImages } from "../input-images.js";
 import { asRecord, type JsonRecord } from "../json.js";
 import type { CancellationObservation } from "../executable/process-cancellation.js";
 import type { SessionKernel } from "../session-kernel.js";
 import { AcpError, acpProcessExitedError } from "./errors.js";
-import { promptAcp, type AcpSessionProfile, type UsageUpdateGate } from "./profile.js";
+import { type AcpSessionProfile, type UsageUpdateGate } from "./profile.js";
+import { acpPrompt, promptAcp } from "./prompt.js";
 import { methods, type AcpProcess } from "./process.js";
 import { acpErrorNative, acpFailureOutcome, defaultAcpPromptOutcome } from "./projection.js";
 
 /**
- * The turn machinery: ≤1 active turn, each `session/prompt` RPC of it, the
- * host-held queue, cancel with an isolated-stop or shared-release fallback. The RPC ANSWER is the
- * runtime's own turn end and is recorded as an event with a turn_ended event;
- * a rejected prompt RPC is likewise the runtime's word. A refused steer
- * instead drops that input and preserves the active turn's outcome. The
- * process dying is not; that is the `exited` response the session records
- * from its exit observer. One turn may span several prompt RPCs (grok's
- * send-now steer): each answer is its own event; the turn_ended event rides
- * the final answer, carrying the latest non-refused request's outcome, except when the profile
- * says a replacing steer invalidates earlier replies (agy CLI).
+ * Owns the active turn, replies, queue and cancellation. Native replies end
+ * turns; refused steers drop only their input; process exit has its own response.
  */
 export interface ActiveTurn {
   /** The prompt request that opened this turn; null for a spontaneous (queue-drained) turn. */
@@ -40,18 +32,6 @@ export interface ActiveTurn {
   cancellation?: CancellationObservation;
 }
 
-/** The agent advertised image prompts in `initialize` (`agentCapabilities.promptCapabilities.image`). */
-export function acpTakesImages(initialized: JsonRecord): boolean {
-  return asRecord(asRecord(initialized.agentCapabilities)?.promptCapabilities)?.image === true;
-}
-
-/** One input as ACP ContentBlocks: the images (each naming its file as `uri`), then any nonempty text. */
-function acpPrompt(input: string, images: readonly LoadedImage[]): JsonRecord[] {
-  return [
-    ...images.map((image) => ({ type: "image", mimeType: image.mediaType, data: image.data, uri: pathToFileURL(image.path).href })),
-    ...(input === "" ? [] : [{ type: "text", text: input }]),
-  ];
-}
 export interface AcpTurns {
   active(): ActiveTurn | null;
   queued(): boolean;
@@ -74,6 +54,8 @@ export interface AcpTurns {
   /** The process is gone: close the active turn (its end is the exited response) and drop held input. */
   onExit(): void;
 }
+
+const noActiveTurn = (): ResponseBody => ({ kind: "rejected", code: "no_active_turn", reason: "not_steerable: no active turn" });
 
 export function createAcpTurns(deps: {
   readonly kernel: SessionKernel;
@@ -134,20 +116,28 @@ export function createAcpTurns(deps: {
     if (closes) { closeTurn(state); }
     kernel.frame({ type: frame.type, native: frame.native, events });
   };
-  const startVendorPrompt = (state: ActiveTurn, prompt: readonly JsonRecord[], extraParams: JsonRecord = {}, steered?: { readonly inputId: string | undefined }): void => {
+  const staleSteer = new Error("not_steerable: no active turn");
+  const startVendorPrompt = (state: ActiveTurn, prompt: readonly JsonRecord[], extraParams: JsonRecord = {}, steered?: { readonly inputId: string | undefined; readonly respond: (body: ResponseBody) => void }): void => {
     nextRequest += 1;
     const requestNumber = nextRequest;
-    state.pending.add(requestNumber);
+    // An unsent steer must not keep its original turn open while awaiting dispatch.
+    if (steered === undefined) { state.pending.add(requestNumber); }
+    const dispatch = { sent: false };
     void (async (): Promise<void> => {
       try {
-        usageGate.arm();
         // oxlint-disable-next-line eslint/no-underscore-dangle -- `_meta` is the native ACP extension envelope.
         const params = promptMeta === undefined ? extraParams : { ...extraParams, _meta: { ...promptMeta, ...asRecord(extraParams._meta) } };
-        const result = await promptAcp(runtime, rootId, prompt, params, () => { state.answered.add(requestNumber); });
-        // Deliberate ordering: the answer's event waits (bounded) for the
-        // usage_update kimi pushes AFTER answering, so the usage record
-        // precedes the turn end and contextUsage() at turn_ended is this
-        // turn's own value.
+        const result = await promptAcp(runtime, rootId, prompt, params, {
+          beforeSend: () => {
+            if (steered !== undefined && (active !== state || state.abortRequested)) { throw staleSteer; }
+            state.pending.add(requestNumber);
+            usageGate.arm();
+          },
+          sent: () => { dispatch.sent = true; steered?.respond({ kind: "accepted" }); },
+          received: () => { if (dispatch.sent) { state.answered.add(requestNumber); } },
+        });
+        // Kimi's bounded late-usage wait precedes turn end so contextUsage()
+        // at that end includes this turn's usage.
         await usageGate.settleAfterPrompt(profile, state.abortRequested);
         const usage = promptUsage(result);
         finishRequest(state, requestNumber, {
@@ -157,9 +147,14 @@ export function createAcpTurns(deps: {
           steered: steered !== undefined,
         }, profile.promptOutcome?.(result) ?? defaultAcpPromptOutcome(result));
       } catch (error) {
+        if (steered !== undefined && !dispatch.sent) {
+          state.pending.delete(requestNumber);
+          steered.respond(error === staleSteer ? noActiveTurn() : (runtime.closed ? gone()
+            : { kind: "rejected", code: "error", reason: error instanceof Error ? error.message : String(error) }));
+          return; // No native request means no native error frame or turn outcome.
+        }
         if (error instanceof AcpError && error.kind === "process_exited") {
-          // Not the runtime's word: the exit observer records the `exited`
-          // response, which is the turn's end.
+          // The exit observer records `exited`, which ends this turn.
           state.pending.delete(requestNumber);
           closeTurn(state);
           return;
@@ -233,9 +228,14 @@ export function createAcpTurns(deps: {
       if (runtime.closed) {
         return gone();
       }
+      if (active !== state || state.abortRequested) {
+        return noActiveTurn();
+      }
+      // oxlint-disable-next-line typescript/promise-function-async -- Return the dispatch receipt promise without another async wrapper.
       return withInputImages(capabilities, options?.images, (loaded) => {
-        startVendorPrompt(state, acpPrompt(input, loaded), extraParams, { inputId: options?.inputId });
-        return { kind: "accepted" };
+        const admission = Promise.withResolvers<ResponseBody>();
+        startVendorPrompt(state, acpPrompt(input, loaded), extraParams, { inputId: options?.inputId, respond: admission.resolve });
+        return admission.promise;
       });
     },
     async abort(state, request) {
