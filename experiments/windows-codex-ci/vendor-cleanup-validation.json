@@ -7,8 +7,8 @@
     "mockBehaviorPassed": 18,
     "result": "passed",
     "log": {
-      "file": "task206-check.log",
-      "sha256": "b4387b6a95cdeb714f841e88bfcc7a7910ce2ed33e6ea1e48f6e0cab3c62f1e9"
+      "file": "task206-check-revision2.log",
+      "sha256": "71cf614046669a1f2c85f5cbcea8045f14f66e4c7c00c73f05a8bf72b4f1e0d2"
     }
   },
   "codexVendor": {
@@ -58,5 +58,14 @@
   },
   "windowsCimExecutedLocally": false,
   "naturalPendingSnapshotCaptured": false,
-  "crossPlatformPrCi": "pending"
+  "crossPlatformPrCi": "pending",
+  "windowsNativeObserverTest": {
+    "path": "tests/fixture-process-snapshot.windows.test.ts",
+    "requires": [
+      "outcome=captured",
+      "current test-worker PID present"
+    ],
+    "localResult": "skipped on Linux",
+    "ciResult": "pending"
+  }
 }

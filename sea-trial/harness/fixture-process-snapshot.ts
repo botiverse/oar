@@ -1,7 +1,7 @@
 import { execFile, type ChildProcess } from "node:child_process";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 
-const timeoutMs = 2000;
+const timeoutMs = 10_000;
 const maxBytes = 512 * 1024;
 const maxRows = 1024;
 const command = "[Console]::OutputEncoding=[Text.UTF8Encoding]::new(); $ErrorActionPreference='Stop'; "

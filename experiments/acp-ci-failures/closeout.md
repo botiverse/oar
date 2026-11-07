@@ -17,7 +17,8 @@ and intermittent Grok initialization timeouts remain unexplained.
 
 The November 7 Codex cleanup follow-up adds one retained diagnostic:
 Windows `codex-aimock` pending directory removal takes a bounded process
-snapshot, guarded by `tests/fixture-process-snapshot.test.ts` and the observer
+snapshot, guarded by `tests/fixture-process-snapshot.test.ts`, its Windows
+native counterpart `tests/fixture-process-snapshot.windows.test.ts`, and the observer
 cases in `tests/fixture-directory-cleanup.test.ts`. It records only process
 name, PID and parent PID, with directory/observer identity and timing.
 There is no natural pending-removal sample with this snapshot yet. The

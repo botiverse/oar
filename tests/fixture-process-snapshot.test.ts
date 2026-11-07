@@ -81,7 +81,7 @@ test("a synchronous launcher failure is nonfatal and clears the observer deadlin
 test.each([false, true])("an unreturned callback is bounded even if kill throws=%s", async (throws) => {
   if (throws) { mocks.kill.mockImplementation(() => { throw new Error("cannot stop observer"); }); }
   const pending = snapshotFixtureProcesses();
-  await vi.advanceTimersByTimeAsync(2000);
+  await vi.advanceTimersByTimeAsync(10_000);
   expect(await pending).toEqual({ outcome: "timeout" });
   expect(mocks.kill).toHaveBeenCalledOnce();
   expect({ stdin: child.stdin?.destroyed, stdout: child.stdout?.destroyed, stderr: child.stderr?.destroyed, timers: vi.getTimerCount() })

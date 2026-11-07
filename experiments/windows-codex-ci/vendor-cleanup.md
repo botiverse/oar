@@ -38,7 +38,7 @@ failure is recorded without replacing the native test's earlier failure.
 Only Windows `codex-aimock` pending removal starts a process observation.
 One PowerShell CIM query requests `Name`, `ProcessId` and `ParentProcessId`.
 The observer accepts at most 512 KiB per output stream and records at most
-1,024 processes, marking a longer table as truncated. A separate two-second
+1,024 processes, marking a longer table as truncated. A separate ten-second
 timer bounds an observer whose callback never returns, including open-pipe
 cases. At that limit only the observer is stopped; no sampled PID is signalled.
 
@@ -71,9 +71,12 @@ used PATH's older Codex 0.162.0: 76 passed and two failed (resumed service tier
 and the unknown-model status). Both failures reproduce at the unchanged
 base; no assertion was adjusted for them.
 
-Cross-platform results are pending the pull request's ordinary CI. Windows
-CIM execution was not tested locally. No extra observation workflow is added.
-No natural pending-removal sample with this diagnostic has yet been captured.
+Cross-platform results are pending the pull request's ordinary CI. A
+Windows-only unit test calls the real observer and requires `captured` with
+the current test-worker PID in its rows; timeout or query failure fails that
+test. Linux skips it, so Windows CIM execution was not tested locally.
+No extra observation workflow is added. No natural pending-removal sample
+with this diagnostic has yet been captured.
 
 Cindy owns the **2026-12-07** [retention review](../acp-ci-failures/closeout.md#diagnostic-retention).
 If no target sample arrives, remove the process observer and its dedicated
