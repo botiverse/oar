@@ -1,0 +1,57 @@
+{
+  "platform": "Linux x64",
+  "provider": "local scripted provider",
+  "date": "2026-11-07",
+  "results": [
+    {
+      "runtime": "grok",
+      "version": "grok 1.0.77 (50ca579fa996) [stable]",
+      "sourceSha256": "38d477a93ea2e115a995c19c2b90d7045b01407d34b252150d8081737654d984",
+      "projectedInputsMatchNative": true,
+      "projectedInputCount": 8,
+      "maxProjectedInputBytes": 12072,
+      "mcpCalls": 1,
+      "mcpArgumentCharacters": 12000
+    },
+    {
+      "runtime": "kimi",
+      "version": "2.5.2",
+      "sourceSha256": "65dafa9d462e49ce24b0fdc963076941329e33562a338b1eb09e8c133b919b98",
+      "projectedInputsMatchNative": true,
+      "projectedInputCount": 4,
+      "maxProjectedInputBytes": 12011,
+      "mcpCalls": 1,
+      "mcpArgumentCharacters": 12000
+    },
+    {
+      "runtime": "opencode",
+      "version": "opencode v2.2.5",
+      "sourceSha256": "ceb60a6fcd0af374b43cf109c4a4644150ca524e7109c0c6da1b2de9caf964d7",
+      "projectedInputsMatchNative": true,
+      "projectedInputCount": 8,
+      "maxProjectedInputBytes": 12054,
+      "mcpCalls": 1,
+      "mcpArgumentCharacters": 12000
+    },
+    {
+      "runtime": "codebuddy",
+      "version": "2.181.0",
+      "sourceSha256": "ff164a9544ad0a78df755d43c0a160c619a5092e0b74d71f5babc6eaca4150a1",
+      "projectedInputsMatchNative": true,
+      "projectedInputCount": 14,
+      "maxProjectedInputBytes": 12011,
+      "mcpCalls": 1,
+      "mcpArgumentCharacters": 12000
+    },
+    {
+      "runtime": "antigravity",
+      "version": "1.5.2",
+      "sourceSha256": "a9dbddb93bd97cbcd2c5fddbef623d919782006a11c1fb2d18921338701f3954",
+      "projectedInputsMatchNative": true,
+      "projectedInputCount": 4,
+      "maxProjectedInputBytes": 12038,
+      "mcpCalls": 1,
+      "mcpArgumentCharacters": 12000
+    }
+  ]
+}

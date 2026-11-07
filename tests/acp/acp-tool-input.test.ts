@@ -1,5 +1,6 @@
 import { expect, test } from "vitest";
 import { createAcpProjectionState, projectAcpUpdate } from "../../packages/oar/src/shared/acp/projection.js";
+import { classifyTool } from "../../packages/oar/src/observe/tool-activity.js";
 
 // Frames as opencode 1.18.30 sent them on a real turn run through Ferry
 // (2026-10-06, issue #147): the opening `tool_call` carries a partial or empty
@@ -64,5 +65,39 @@ test("a running update carrying a new input and output reports the input, then t
   expect(projectAcpUpdate(state, { sessionUpdate: "tool_call_update", toolCallId: "t1", status: "in_progress", rawInput: { command: "ls" }, rawOutput: "a.txt" })).toEqual([
     { kind: "tool_call_input", callId: "t1", input: "{\"command\":\"ls\"}" },
     { kind: "tool_call_progress", callId: "t1", output: "a.txt" },
+  ]);
+});
+
+test("large JSON input stays parseable and changes after 10,000 characters remain observable", () => {
+  const state = createAcpProjectionState();
+  const oldString = "x".repeat(12_000);
+  const first = { old_string: oldString, new_string: "first", file_path: "/project/large.txt" };
+  const second = { ...first, new_string: "second" };
+  const started = projectAcpUpdate(state, { sessionUpdate: "tool_call", toolCallId: "large", title: "Edit", status: "in_progress", rawInput: first });
+  expect(started).toEqual([{ kind: "tool_call_started", callId: "large", tool: "Edit", input: JSON.stringify(first) }]);
+  const input = started[0]?.kind === "tool_call_started" ? started[0].input : undefined;
+  expect(classifyTool("codebuddy", "Edit", input)).toEqual({ kind: "edit_file", detail: first.file_path, paths: [first.file_path] });
+  expect(projectAcpUpdate(state, { sessionUpdate: "tool_call_update", toolCallId: "large", rawInput: second })).toEqual([
+    { kind: "tool_call_input", callId: "large", input: JSON.stringify(second) },
+  ]);
+  expect(projectAcpUpdate(state, { sessionUpdate: "tool_call_update", toolCallId: "large", rawInput: second })).toEqual([]);
+});
+
+test("raw input strings and arrays are not treated as output previews", () => {
+  for (const rawInput of ["x".repeat(12_000), [{ type: "text", text: "first", extra: 1 }, { text: "second" }], { text: "same", extra: "keep" }]) {
+    const state = createAcpProjectionState();
+    const input = typeof rawInput === "string" ? rawInput : JSON.stringify(rawInput);
+    expect(projectAcpUpdate(state, { sessionUpdate: "tool_call", toolCallId: "t1", title: "custom", rawInput })).toEqual([
+      { kind: "tool_call_started", callId: "t1", tool: "custom", input },
+    ]);
+  }
+});
+
+test("input fields beside unchanged text cause a new snapshot while output keeps its text preview", () => {
+  const state = createAcpProjectionState();
+  projectAcpUpdate(state, { sessionUpdate: "tool_call", toolCallId: "t1", title: "custom", rawInput: { text: "same", revision: 1 } });
+  expect(projectAcpUpdate(state, { sessionUpdate: "tool_call_update", toolCallId: "t1", rawInput: { text: "same", revision: 2 }, rawOutput: { text: "output", extra: 1 } })).toEqual([
+    { kind: "tool_call_input", callId: "t1", input: '{"text":"same","revision":2}' },
+    { kind: "tool_call_progress", callId: "t1", output: "output" },
   ]);
 });

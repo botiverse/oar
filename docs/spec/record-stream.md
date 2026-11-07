@@ -593,7 +593,21 @@ Further rules:
   the complete input. ACP still emits only whole `tool_call_input` snapshots
   when `rawInput` changes for a call that has not ended. An unchanged repeat
   adds none; on the frame that ends an ACP call the input comes before
-  `tool_call_ended`.
+  `tool_call_ended`. ACP input strings are preserved verbatim; objects and
+  arrays are serialized as complete JSON, including a field named `text`.
+  Inputs are not shortened to the output preview's 10,000-character limit.
+  A host's `retainedBytes` policy can still evict old frame payloads, with
+  the retention marker described above.
+
+  `classifyTool(runtimeId, tool, input)` from `@botiverse/oar/observe` reads
+  this input for friendly activity. Its mappings use recorded native names
+  and fields; unknown names stay `other`. The
+  [tool audit](../../experiments/tool-activity-audit/README.md#follow-up-decisions-and-input-fix)
+  covers Qwen, Qoder, CodeBuddy, Antigravity, DSH, Grok's `search_replace` /
+  `use_tool`, Kimi's `Edit` and Codex's `collabAgentToolCall`. A Qwen
+  `tool_call` is `mcp` only when its complete input names an `mcp__` target;
+  the dispatcher alone proves no category. A Codex collaboration operation
+  is `subagent`; its completion does not mean the child task has finished.
 - **Tool outcomes are the runtime's.** `tool_call_ended.result` (`"ok"` |
   `"failed"`) is present only when the runtime explicitly reports the
   outcome; oar never infers it from output, exit codes, or timing.

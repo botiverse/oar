@@ -227,6 +227,13 @@ wrapper rejects an extra `toolSummary`. A session entry replaces a user
 entry of the same name; non-clashing user servers remain and their config
 file is unchanged.
 
+`classifyTool` recognizes the direct `mcp_<server>_<tool>` namespace, and
+reads `run_command` from `CommandLine` / `toolSummary` and `edit_file` from
+`Path`. ACP inputs retain the whole JSON object, including `text` and
+`toolSummary`, without the output preview's character limit. The
+[recorded 1.5.2 inputs](../../experiments/tool-activity-audit/README.md#follow-up-decisions-and-input-fix)
+are the regression evidence; unrecorded tool names remain `other`.
+
 **`mcpToolsListChanged: "none"` on 1.5.0.** After the HTTP server reports a
 changed tool list, the connected CLI neither lists again nor updates the
 next provider request's tool catalog. This differs from the retired service.

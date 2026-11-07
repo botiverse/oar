@@ -44,12 +44,13 @@ export interface ToolAction {
   /**
    * `run_command`: the command line as the runtime reported it. Set only for runtimes whose
    * shell input shape is recorded (claude `Bash` and `PowerShell`, codex `commandExecution`, pi `bash`, cursor `shell`,
-   * grok `run_terminal_command`, kimi `Bash`, opencode `bash`).
+   * grok `run_terminal_command`, kimi / qoder / codebuddy `Bash`, opencode `bash` / `shell`,
+   * qwen `run_shell_command`, antigravity `run_command`, dsh `bash`).
    */
   readonly command?: string;
   /**
    * The agent's own one-line account of the call, where the runtime sends one (claude `Bash`
-   * and `PowerShell`, grok `run_terminal_command`). On a `subagent` call (claude `Agent` or `Task`, opencode `subagent`) it is
+   * and `PowerShell`, grok `run_terminal_command`, antigravity `run_command`, dsh `bash`). On a `subagent` call (claude `Agent` or `Task`, opencode `subagent`) it is
    * the subagent's task, also its `detail`.
    */
   readonly description?: string;
@@ -89,6 +90,7 @@ const BY_RUNTIME: Record<string, Record<string, ToolActionKind>> = {
     fileChange: "edit_file",
     webSearch: "web",
     mcpToolCall: "mcp",
+    collabAgentToolCall: "subagent",
     sleep: "wait",
   },
   pi: {
@@ -104,8 +106,14 @@ const BY_RUNTIME: Record<string, Record<string, ToolActionKind>> = {
   // (grok 1.0.5, kimi 0.38.0, opencode 1.18.30) and opencode-acp-v1-files.vendor.json
   // (opencode 1.18.30's file tools); ACP's `kind` is no help (grok sends none, kimi and
   // opencode a category, opencode's `write` the same `edit` as its `edit`).
-  grok: { run_terminal_command: "run_command" },
-  kimi: { Bash: "run_command" },
+  // Additional names and arguments: experiments/tool-activity-audit/results/.
+  grok: { run_terminal_command: "run_command", search_replace: "edit_file", use_tool: "mcp" },
+  kimi: { Bash: "run_command", Edit: "edit_file" },
+  qwen: { run_shell_command: "run_command", edit: "edit_file" },
+  qoder: { Bash: "run_command", Edit: "edit_file" },
+  codebuddy: { Bash: "run_command", Edit: "edit_file" },
+  antigravity: { run_command: "run_command", edit_file: "edit_file" },
+  dsh: { bash: "run_command", edit: "edit_file" },
   opencode: {
     bash: "run_command",
     shell: "run_command",
@@ -134,9 +142,15 @@ const BY_RUNTIME: Record<string, Record<string, ToolActionKind>> = {
   },
 };
 
-function kindOf(runtimeId: string, tool: string): ToolActionKind {
+/** Tool names are open, including names also present on Object.prototype. */
+function recorded<T>(table: Record<string, Record<string, T>>, runtime: string, tool: string): T | undefined {
+  const tools = Object.hasOwn(table, runtime) ? table[runtime] : undefined;
+  return tools !== undefined && Object.hasOwn(tools, tool) ? tools[tool] : undefined;
+}
+
+function kindOf(runtimeId: string, tool: string, inputJson?: string): ToolActionKind {
   const runtime = runtimeId.replace(/-aimock$/u, "");
-  const direct = BY_RUNTIME[runtime]?.[tool];
+  const direct = recorded(BY_RUNTIME, runtime, tool);
   if (direct !== undefined) {
     return direct;
   }
@@ -144,20 +158,30 @@ function kindOf(runtimeId: string, tool: string): ToolActionKind {
   if (tool.startsWith("mcp__")) {
     return "mcp";
   }
+  // Antigravity's observed native MCP namespace uses single underscores.
+  if (runtime === "antigravity" && /^mcp_.+_.+/u.test(tool)) {
+    return "mcp";
+  }
+  // Qwen's deferred-tool dispatcher is not specific to MCP. Only the
+  // recorded MCP target namespace proves that category.
+  if (runtime === "qwen" && tool === "tool_call" && inputJson !== undefined) {
+    const name = asRecord(parseJson(inputJson))?.name;
+    if (typeof name === "string" && name.startsWith("mcp__")) { return "mcp"; }
+  }
   return "other";
 }
 
 type InputFields = Pick<ToolAction, "command" | "description" | "durationMs">;
 
 /** The recorded keys' string values: `command` and, where the shape has one, `description`. */
-function stringFields(inputJson: string, withDescription: boolean): InputFields {
+function stringFields(inputJson: string, withDescription: boolean, commandKey = "command", descriptionKey = "description"): InputFields {
   const input = asRecord(parseJson(inputJson));
   const pick = (key: string): string | undefined => {
     const value = input?.[key];
     return typeof value === "string" && value.length > 0 ? value : undefined;
   };
-  const command = pick("command");
-  const description = withDescription ? pick("description") : undefined;
+  const command = pick(commandKey);
+  const description = withDescription ? pick(descriptionKey) : undefined;
   return {
     ...(command === undefined ? {} : { command }),
     ...(description === undefined ? {} : { description }),
@@ -204,6 +228,11 @@ const FIELDS: Record<string, Record<string, (input: string) => InputFields>> = {
   grok: { run_terminal_command: (input) => stringFields(input, true) },
   kimi: { Bash: (input) => stringFields(input, false) },
   opencode: { bash: (input) => stringFields(input, false), shell: (input) => stringFields(input, false), subagent: taskFields },
+  qwen: { run_shell_command: (input) => stringFields(input, false) },
+  qoder: { Bash: (input) => stringFields(input, false) },
+  codebuddy: { Bash: (input) => stringFields(input, false) },
+  antigravity: { run_command: (input) => stringFields(input, true, "CommandLine", "toolSummary") },
+  dsh: { bash: (input) => stringFields(input, true) },
 };
 
 const FIRST_STRING_KEYS = ["command", "cmd", "path", "file_path", "filePath", "file", "pattern", "query", "url"];
@@ -234,9 +263,9 @@ function detailOf(inputJson: string | undefined): string | undefined {
 
 /** Classify one tool call into a cross-runtime semantic action plus an extracted detail (and, for a file tool, its paths). Pass only complete input; omit inputJson while a view part has inputPartial. */
 export function classifyTool(runtimeId: string, tool: string, inputJson?: string): ToolAction {
-  const kind = kindOf(runtimeId, tool);
+  const kind = kindOf(runtimeId, tool, inputJson);
   const runtime = runtimeId.replace(/-aimock$/u, "");
-  const fields = inputJson === undefined ? {} : (FIELDS[runtime]?.[tool]?.(inputJson) ?? {});
+  const fields = inputJson === undefined ? {} : (recorded(FIELDS, runtime, tool)?.(inputJson) ?? {});
   const paths = inputJson === undefined || (kind !== "read_file" && kind !== "edit_file") ? [] : filePathsOf(runtime, tool, inputJson);
   const detail = paths[0] ?? detailOf(inputJson) ?? fields.command ?? (kind === "subagent" ? fields.description : undefined) ?? (kind === "other" ? tool : undefined);
   return { kind, ...(detail === undefined ? {} : { detail }), ...(paths.length === 0 ? {} : { paths }), ...fields };
