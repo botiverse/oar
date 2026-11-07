@@ -306,43 +306,24 @@ covers 2.0.27.
   its `description` as the detail. Code Mode `execute` retains its name and
   classifies as `other`: it can run MCP calls, ordinary
   JavaScript or `fetch`; the name alone cannot prove an MCP operation.
-- **MCP:** stdio servers supplied at new and resumed session open are
-  callable through `execute`, whose input code, result and native metadata
+- **MCP:** stdio and HTTP servers supplied at new and resumed session open
+  are callable through `execute`, whose input code, result and native metadata
   are retained, including the names of enclosed MCP calls.
-  **Open cold-resume race:** a resumed session's first turn can see a native
-  catalog update that removes the reattached tool, then complete without
-  calling it. On [2.2.5](../../experiments/runtime-version-checks/2026-10-31.md#existing-boundaries-and-mcp) (and
-  [2.2.3](../../experiments/runtime-version-checks/2026-10-30.md#existing-boundaries-and-mcp))
-  the OAR-free [native reproduction](../../experiments/opencode-mcp-resume-native.ts)
-  called echo in the new session and on none of six cold resumes, although
-  every process logged an MCP connection and every turn reported `end_turn`;
-  the native transcript removed the tool on the first resume without adding
-  it again. The warm-connection tool-list replacement control passed.
-  Earlier releases varied: all six cold resumes called echo on
-  [2.1.2](../../experiments/runtime-version-checks/2026-10-21.md#opencode-212)
-  and [2.2.0](../../experiments/runtime-version-checks/2026-10-27.md#opencode-220),
-  one of six on [2.1.4](../../experiments/runtime-version-checks/2026-10-23.md#cold-mcp-resume-remains-broken)
-  (a removal 47 ms after the first resume's prompt persisted until re-addition
-  2,337 ms after the sixth resume's prompt),
-  none on [2.1.0](../../experiments/runtime-version-checks/2026-10-20.md#cold-mcp-resume-remains-broken),
-  and the race was intermittent on 2.0.27, also in the OAR-free reproduction
-  ([October 12 evidence](../../experiments/runtime-version-checks/2026-10-12.md)). Successful
-  calls did not eliminate the removal/re-addition window: on 2.2.0 every
-  resume removed the tool 39 to 160 ms after the prompt and re-added it
-  1,260 to 3,184 ms after the prompt. An
-  [independent upstream reproduction](https://github.com/anomalyco/opencode/issues/54794#issuecomment-6123225428)
-  saw the removal notice on all 12 cold resumes, with tool failures
-  depending on when the model sees the later catalog update. It is tracked
-  in [OAR #371](https://github.com/botiverse/oar/issues/371) and
-  [upstream #54794](https://github.com/anomalyco/opencode/issues/54794),
-  both open with no posted fix as of 2.1.4 (2026-10-23); the upstream issue
-  was still open on 2.2.5 (2026-10-31). Upstream closed it on November 5,
-  reporting a fix from 2.2.4. The [November 6 local-provider control](../../experiments/runtime-version-checks/2026-11-06.md#opencode-225-cold-mcp-resume-after-upstream-closure)
-  still finds no echo execution on three cold resumes each with stdio and
-  HTTP servers in 2.2.5; both warmed initial sessions call echo. The resumed
-  prompt is immediate, so this does not cover every catalog-settlement
-  timing or establish the cause. A passing run does not resolve it; OAR adds
-  no retry or sleep for it.
+  **Cold resume on 2.2.6:** the [November 7 local-provider check](../../experiments/opencode-mcp-resume-2026-11-07.md)
+  called echo on all 20 cold resumes per transport, as well as both warmed
+  initial sessions, with no model-visible catalog-removal notice. These are
+  Linux x64 observations with immediate scripted tool calls, not a guarantee
+  for every provider, platform or catalog timing.
+  The [same probe on 2.2.5](../../experiments/runtime-version-checks/2026-11-06.md#opencode-225-cold-mcp-resume-after-upstream-closure)
+  called echo in both initial sessions but on none of six cold resumes;
+  the model saw a notice removing the reattached tool. Earlier intermittent
+  failures were also reproduced [without OAR](../../experiments/opencode-mcp-resume-native.ts)
+  and [independently upstream](https://github.com/anomalyco/opencode/issues/54794#issuecomment-6123225428).
+  [Upstream #54794](https://github.com/anomalyco/opencode/issues/54794)
+  is closed. Our verified boundary is 2.2.5 failed and 2.2.6 passed these
+  controls; 2.2.4 was not tested. [OAR #371](https://github.com/botiverse/oar/issues/371)
+  retains the earlier failure history. OAR adds no retry, sleep or catalog
+  filtering for this behavior.
 - **Prompt options:** both `systemPrompt` and `appendSystemPrompt` are
   refused before ACP startup, including resume. The v2 instruction loader
   does not consume the v1 `instructions` configuration. v2 has native
