@@ -98,6 +98,12 @@ export interface AccountUsageReadOptions {
   readonly env?: SessionOptions["env"];
   /** Bounds the whole read, every process it starts and request it sends included; each reader has its own default. Past it the read rejects. */
   readonly timeoutMs?: number;
+  /**
+   * `false` asks only for the count of limit resets, without their detail
+   * rows, for a host that polls (codex skips a backend lookup per read).
+   * Default `true`. A runtime that reports no limit resets ignores it.
+   */
+  readonly limitResetDetails?: boolean;
 }
 
 export type AccountUsageReader = (

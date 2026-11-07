@@ -1,5 +1,6 @@
 import { expect, test } from "vitest";
-import { accountEmail, projectCodexUsage } from "../packages/oar/src/runtimes/codex/account-usage.js";
+import { accountEmail } from "../packages/oar/src/runtimes/codex/account-request.js";
+import { projectCodexUsage } from "../packages/oar/src/runtimes/codex/account-usage.js";
 import {
   grokAccountEmail,
   projectGrokUsage,

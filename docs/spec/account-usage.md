@@ -59,7 +59,10 @@ and `resets`, its detail rows (`id`, `status`, `grantedAt`, `expiresAt`,
 the count. `resets` is omitted when Codex gave only the count and empty when
 it found none; `limitResets` is omitted when the runtime reports nothing.
 Only resets of codex's own limits are listed: a row of a kind Codex cannot
-name is left out, since OAR cannot say what it would reset.
+name is left out, since OAR cannot say what it would reset. A host that
+polls and needs only the count passes `limitResetDetails: false`: Codex then
+skips its detail lookup, still reports the count, and `resets` is omitted.
+A Codex too old for that parameter (0.131.0 refuses any) is read without it.
 
 `runtime.redeemLimitReset(installation, options)` spends one through the
 runtime's own call (codex `account/rateLimitResetCredit/consume`, the call

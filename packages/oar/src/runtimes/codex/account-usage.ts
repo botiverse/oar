@@ -1,22 +1,13 @@
 import type { SessionOptions } from "../../contracts/session-options.js";
 import type {
-  AccountUsageUnsupportedReason,
-  AccountUsageReauthReason,
   AccountUsageReader,
   AccountUsageSnapshot,
   AccountUsageWindow,
 } from "../../contracts/account-usage.js";
-import { startAppServerClient, type AppServerClient } from "./app-server-client.js";
+import { callAppServer, type ReadOutcome, type StartAppServerClient } from "./account-request.js";
+import { startAppServerClient } from "./app-server-client.js";
 import { asEpochInstant, asNumber, asRecord } from "../../shared/json.js";
 import { projectLimitResets } from "./reset-credits.js";
-
-type ReadOutcome =
-  | { readonly kind: "ok"; readonly result: unknown; readonly email: string | undefined }
-  | { readonly kind: "reauth_required"; readonly reason: AccountUsageReauthReason }
-  | { readonly kind: "unsupported"; readonly reason: AccountUsageUnsupportedReason }
-  | { readonly kind: "error" };
-
-type StartAppServerClient = (command: string, env?: SessionOptions["env"]) => AppServerClient;
 
 function text(value: unknown): string | undefined {
   if (typeof value !== "string") {
@@ -172,108 +163,26 @@ export function projectCodexUsage(result: unknown, email?: string): AccountUsage
   };
 }
 
-/**
- * Native evidence from `account/read` on the same app-server session:
- *
- * ```json
- * { "account": { "type": "chatgpt", "email": "user@example.com", "planType": "pro" },
- *   "requiresOpenaiAuth": true }
- * ```
- *
- * Only a ChatGPT (subscription) login carries a meaningful account email; an
- * API-key account is dropped per the owner's `type === "chatgpt"` requirement.
- */
-export function accountEmail(result: unknown): string | undefined {
-  const account = asRecord(asRecord(result)?.account);
-  if (account?.type !== "chatgpt" || typeof account.email !== "string") {
-    return undefined;
-  }
-  return account.email;
-}
-
-/**
- * Codex exposes ChatGPT rate-limit windows only for a ChatGPT account. API-key
- * and provider-managed runtimes are valid, but have no subscription usage for
- * this capability to report.
- */
-export function isNonSubscriptionAccount(result: unknown): boolean {
-  const root = asRecord(result);
-  const account = asRecord(root?.account);
-  return account?.type === "apiKey"
-    || account?.type === "amazonBedrock"
-    || root?.requiresOpenaiAuth === false;
-}
-
 export async function readFromAppServer(
   command: string,
   timeoutMs: number,
   startClient: StartAppServerClient = startAppServerClient,
   env?: SessionOptions["env"],
+  limitResetDetails = true,
 ): Promise<ReadOutcome> {
-  const outcome = await callAppServer(command, timeoutMs, "account/rateLimits/read", {}, startClient, env);
+  // Older app-servers take this read with no params and refuse any field;
+  // they report no reset credits either, so the bare read loses nothing.
+  const params = limitResetDetails ? {} : { excludeResetCreditDetails: true };
+  const outcome = await callAppServer(command, timeoutMs, { method: "account/rateLimits/read", params, legacyParams: {} }, startClient, env);
   return outcome;
 }
 
-/** One ChatGPT-account request on a fresh app-server, after `account/read` rules out other account modes. */
-export async function callAppServer(
-  command: string,
-  timeoutMs: number,
-  method: string,
-  params: Record<string, unknown>,
-  startClient: StartAppServerClient = startAppServerClient,
-  env?: SessionOptions["env"],
-): Promise<ReadOutcome> {
-  const client = startClient(command, env);
-  const deadline = setTimeout(() => {
-    client.kill();
-  }, timeoutMs);
-  try {
-    await client.request("initialize", {
-      clientInfo: { name: "oar", version: "0.0.0" },
-      capabilities: { experimentalApi: true },
-    });
-    client.notify("initialized", {});
-
-    // Read auth mode before the ChatGPT-only account endpoints. In API-key
-    // mode that endpoint rejects with "ChatGPT authentication required" even
-    // though Codex itself is correctly authenticated; treating that as expired
-    // OAuth would tell the user to perform a login that cannot fix the state.
-    let account: unknown = undefined;
-    try {
-      account = await client.request("account/read", {});
-    } catch {
-      // Older app-servers may not expose account/read. Preserve the existing
-      // rate-limit read in that case instead of making identity mandatory.
-    }
-    if (isNonSubscriptionAccount(account)) {
-      return { kind: "unsupported", reason: "unsupported_auth_mode" };
-    }
-
-    const result = await client.request(method, params);
-    return { kind: "ok", result, email: accountEmail(account) };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "";
-    if (/chatgpt authentication required for rate limit reset/iu.test(message)) {
-      return { kind: "unsupported", reason: "unsupported_auth_mode" };
-    }
-    if (/authentication required/iu.test(message)) {
-      return { kind: "reauth_required", reason: "not_authenticated" };
-    }
-    if (/method not found|not supported/iu.test(message)) {
-      return { kind: "unsupported", reason: "endpoint_unavailable" };
-    }
-    return { kind: "error" };
-  } finally {
-    clearTimeout(deadline);
-    client.kill();
-  }
-}
 
 export const codexAccountUsage: AccountUsageReader = async (installation, options = {}) => {
   if (installation.via !== "executable") {
     return { kind: "unsupported", reason: "unsupported_installation" };
   }
-  const outcome = await readFromAppServer(installation.command, options.timeoutMs ?? 8000, undefined, options.env);
+  const outcome = await readFromAppServer(installation.command, options.timeoutMs ?? 8000, undefined, options.env, options.limitResetDetails ?? true);
   switch (outcome.kind) {
     case "ok":
       return projectCodexUsage(outcome.result, outcome.email);

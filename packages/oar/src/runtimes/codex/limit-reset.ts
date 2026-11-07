@@ -1,5 +1,5 @@
 import type { LimitResetRedeemer } from "../../contracts/account-usage.js";
-import { callAppServer } from "./account-usage.js";
+import { callAppServer } from "./account-request.js";
 import { projectLimitResetOutcome } from "./reset-credits.js";
 
 /**
@@ -20,8 +20,10 @@ export const codexRedeemLimitReset: LimitResetRedeemer = async (installation, op
   const outcome = await callAppServer(
     installation.command,
     options.timeoutMs ?? 20_000,
-    "account/rateLimitResetCredit/consume",
-    { idempotencyKey: options.idempotencyKey, ...(options.resetId === undefined ? {} : { creditId: options.resetId }) },
+    {
+      method: "account/rateLimitResetCredit/consume",
+      params: { idempotencyKey: options.idempotencyKey, ...(options.resetId === undefined ? {} : { creditId: options.resetId }) },
+    },
     undefined,
     options.env,
   );
