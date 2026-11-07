@@ -170,9 +170,13 @@ a retry, so no `retry` event is read.
 only lineage edge (`session_linked`, `via: "tool_call"`), which `graph()` holds.
 `subagent/start` alone names no parent, so its task event sits on the root with
 `childSessionId` set. The native `subagent` tool returns at once and the child runs
-in the background: the parent's turn ends first, and when the child settles DSH
-gives the parent a turn of its own with a `subagent-settled` input under a native
-id. A host prompt during that turn is `busy`, as with any spontaneous turn.
+in the background. In the verified case where the parent's turn ends before
+the child completes, DSH starts another parent turn with a `subagent-settled`
+input under a native id. A host prompt during that turn is `busy`, as with any
+spontaneous turn. A child settling while the parent is still busy can instead
+join that existing turn: the `interrupt_agent` control in the
+[settlement probes](../../experiments/dsh-settlement-notifications/README.md#subagents-have-different-ordering)
+inserted its notice into `next-step`, and the original parent turn consumed it.
 `usage().withChildren` sums the child's own records.
 
 ### Root completion and background work
