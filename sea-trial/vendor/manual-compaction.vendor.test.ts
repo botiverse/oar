@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, onTestFailed, test, vi } from "vitest";
 import { claudeRuntime, codexRuntime, type Session, type SessionOptions } from "../../packages/oar/src/index.js";
+import { removeFixtureDirectory } from "../harness/fixture-directory-cleanup.js";
 import { startClaudeAimock, startCodexAimock, startPiAimock } from "../harness/aimock.js";
 import { runTurn } from "./support/asserts.js";
 import { abortStartedCodexCompaction } from "./support/codex-compaction.js";
@@ -13,6 +14,12 @@ import { oldPrompts, newPrompts, promptMarkers, requestsForTurn } from "./suppor
 
 const backend = process.env.OAR_TEST;
 const enabled = backend === "claude-aimock" || backend === "codex-aimock" || isPiBackend;
+async function removeDirectory(directory: string): Promise<void> {
+  await (backend === "codex-aimock"
+    ? removeFixtureDirectory(directory, "manual-compaction")
+    : rm(directory, { recursive: true, force: true }));
+}
+
 async function fixture() {
   const entered = Promise.withResolvers<void>();
   const release = Promise.withResolvers<void>();
@@ -50,9 +57,9 @@ async function fixture() {
       entered: async () => entered.promise,
       fail: (value: boolean) => { fail = value; },
       release: () => { hold = false; release.resolve(); },
-      close: async () => { hold = false; release.resolve(); try { for (const session of sessions) { await session.dispose(); } } finally { await provider.stop(); await rm(root, { recursive: true, force: true }); } },
+      close: async () => { hold = false; release.resolve(); try { for (const session of sessions) { await session.dispose(); } } finally { await provider.stop(); await removeDirectory(root); } },
     };
-  } catch (error) { release.resolve(); await provider.stop(); await rm(root, { recursive: true, force: true }); throw error; }
+  } catch (error) { release.resolve(); await provider.stop(); await removeDirectory(root); throw error; }
 }
 
 async function seed(session: Session) {

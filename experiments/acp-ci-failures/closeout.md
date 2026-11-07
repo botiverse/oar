@@ -15,7 +15,16 @@ and intermittent Grok initialization timeouts remain unexplained.
 | Grok's seven post-suite launches and bootstrap phases; `tests/grok/bootstrap-trace.test.ts` | Keep in the ordinary Windows observation workflow. | No observed first-launch timeout followed by its same-HOME retry has been captured with phase records. Later successful probes do not observe a suite process that timed out. Reassess after that paired sample. If the three-minute step ceiling is reached, reduce attempts rather than raising it. |
 | Automatic OpenCode native-log copying; `tests/opencode/native-log-evidence.test.ts` | Remove the normal fixture hook and its three dedicated tests. Keep the bounded copier only in the manual snapshot experiment. | The snapshot interval is localized, and the four changed vendor files now pass on Windows with native snapshots enabled. No continuing automatic copy is needed for that question. Use the manual experiment if a new failure specifically needs these native phase markers. |
 
-Review the three retained diagnostics on **2026-12-07**, with **Cindy owning
+The November 7 Codex cleanup follow-up adds one retained diagnostic:
+Windows `codex-aimock` pending directory removal takes a bounded process
+snapshot, guarded by `tests/fixture-process-snapshot.test.ts` and the observer
+cases in `tests/fixture-directory-cleanup.test.ts`. It records only process
+name, PID and parent PID, with directory/observer identity and timing.
+There is no natural pending-removal sample with this snapshot yet. The
+[scope and validation](../windows-codex-ci/vendor-cleanup.md) preserve that
+gap; neither process presence nor absence identifies the directory lock owner.
+
+Review the four retained diagnostics on **2026-12-07**, with **Cindy owning
 the decision**. If a required sample has not arrived, the default is to remove
 that diagnostic and its dedicated tests, record "not observed again; cause
 unknown", and restore it from Git history if the failure recurs. This does

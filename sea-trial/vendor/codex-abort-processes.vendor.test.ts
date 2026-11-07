@@ -1,7 +1,7 @@
 /* oxlint-disable import/max-dependencies -- A real binary, a scripted provider, an MCP server and the process table meet in this test. */
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
@@ -9,6 +9,7 @@ import { describe, expect, test, vi } from "vitest";
 import type { ControlResult, Session, SessionOptions } from "../../packages/oar/src/contracts/session.js";
 import type { SessionCleanup } from "../../packages/oar/src/contracts/placement.js";
 import { awaitTurnEnd, codexInstallation, codexSession, promptAndWait } from "../../packages/oar/src/index.js";
+import { removeFixtureDirectory } from "../harness/fixture-directory-cleanup.js";
 import { startCodexAimock, type AimockEnv } from "../harness/aimock.js";
 import { expectAvailable } from "./support/asserts.js";
 import { ECHO_SERVER } from "./support/echo-mcp.js";
@@ -197,7 +198,7 @@ async function abortedTurn({ options, markers, turn, earlier, after }: Scenario)
     await session?.dispose();
     killAll(markers);
     await provider.stop();
-    await rm(directory, { recursive: true, force: true });
+    await removeFixtureDirectory(directory, "codex-abort-processes");
   }
 }
 

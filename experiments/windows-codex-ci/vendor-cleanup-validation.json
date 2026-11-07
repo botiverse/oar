@@ -1,0 +1,62 @@
+{
+  "date": "2026-11-07",
+  "platform": "linux-x64",
+  "base": "c8801d1ef969db81a7260bd505ce6aa169acf09d",
+  "check": {
+    "unitPassed": 3737,
+    "mockBehaviorPassed": 18,
+    "result": "passed",
+    "log": {
+      "file": "task206-check.log",
+      "sha256": "b4387b6a95cdeb714f841e88bfcc7a7910ce2ed33e6ea1e48f6e0cab3c62f1e9"
+    }
+  },
+  "codexVendor": {
+    "version": "0.167.0",
+    "provider": "local scripted aimock",
+    "passed": 78,
+    "failed": 0,
+    "log": {
+      "file": "task206-codex-current.log",
+      "sha256": "a1e94005f04952952db82e0ce4d50ba69b7b9709ec6fdad144458404147e0c4f"
+    }
+  },
+  "oldHelperControl": {
+    "passed": 13,
+    "failed": 3,
+    "expectedFailures": [
+      "pending removal starts one nonblocking observation",
+      "observer rejection preserves original failure and records diagnostic",
+      "synchronous observer throw preserves original failure and records diagnostic"
+    ],
+    "log": {
+      "file": "task206-before-final.log",
+      "sha256": "332ebaa92a9bbd42cf2836cd4313bfa69df028c1ee94c36e2ac113fd067cb714"
+    }
+  },
+  "initialOldBinaryRun": {
+    "version": "0.162.0",
+    "selection": "PATH, unintentionally older than the daily-tested binary",
+    "passed": 76,
+    "failed": 2,
+    "log": {
+      "file": "task206-codex-vendor.log",
+      "sha256": "9ad3b89b0d9f1bd0fa04be578be72ddce39863b257fe676c58dfbe170f9d2968"
+    }
+  },
+  "oldBinaryBaseControl": {
+    "version": "0.162.0",
+    "sameFailures": 2,
+    "failures": [
+      "service tier after resume: default instead of priority",
+      "unknown model: status 404 in addition to model_unavailable"
+    ],
+    "log": {
+      "file": "task206-codex-old-base-final.log",
+      "sha256": "ef43fcb0e1e204a71dd11b0c0dcda99e0d317dd28e7a82931d146083352dee3d"
+    }
+  },
+  "windowsCimExecutedLocally": false,
+  "naturalPendingSnapshotCaptured": false,
+  "crossPlatformPrCi": "pending"
+}

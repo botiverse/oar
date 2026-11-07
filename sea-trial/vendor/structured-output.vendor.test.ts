@@ -4,6 +4,7 @@ import path from "node:path";
 import { expect, test } from "vitest";
 import { claudeInstallation, claudeSession, codexInstallation, codexSession, promptAndWait, type Session } from "../../packages/oar/src/index.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
+import { removeFixtureDirectory } from "../harness/fixture-directory-cleanup.js";
 import { startClaudeAimock, startCodexAimock } from "../harness/aimock.js";
 
 const outputSchema = { type: "object", properties: { answer: { type: "integer" } }, required: ["answer"], additionalProperties: false };
@@ -60,7 +61,7 @@ test.skipIf(process.env.OAR_TEST !== "codex-aimock").each(['{"answer":4}', '{"an
     session = await codexSession(installation, { cwd: root, env: provider.env ?? {}, outputSchema, resume: id });
     expect(await promptAndWait(session, "Again", { timeoutMs: 30_000 })).toMatchObject({ kind: "ended", text, outcome: { kind: "completed" } });
     expect(asRecord(provider.raw.at(-1)?.body)?.text).toMatchObject({ format: { schema: outputSchema } });
-  } finally { await session?.dispose(); await provider.stop(); await rm(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 }); }
+  } finally { await session?.dispose(); await provider.stop(); await removeFixtureDirectory(root, "codex-structured-output"); }
 }, 120_000);
 
 test.skipIf(process.env.OAR_TEST !== "codex-aimock")("Codex reports a provider schema refusal as the native failed turn", async () => {
@@ -75,5 +76,5 @@ test.skipIf(process.env.OAR_TEST !== "codex-aimock")("Codex reports a provider s
     expect(run).toMatchObject({ kind: "ended", outcome: { kind: "failed", failure: "invalid_request" } });
     if (run.kind === "ended") { expect(run.outcome).not.toHaveProperty("structuredOutput"); }
     expect(JSON.stringify(session.records())).toContain("Invalid schema for response_format");
-  } finally { await session?.dispose(); await provider.stop(); await rm(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 }); }
+  } finally { await session?.dispose(); await provider.stop(); await removeFixtureDirectory(root, "codex-structured-output"); }
 }, 120_000);

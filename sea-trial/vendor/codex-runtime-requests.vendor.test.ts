@@ -1,6 +1,6 @@
 /* oxlint-disable import/max-dependencies -- Drives one native app-server turn in a private directory. */
 import { existsSync } from "node:fs";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
@@ -8,6 +8,7 @@ import { codexInstallation } from "../../packages/oar/src/index.js";
 import { startAppServerClient } from "../../packages/oar/src/runtimes/codex/app-server-client.js";
 import { codexRequestReply } from "../../packages/oar/src/runtimes/codex/runtime-requests.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
+import { removeFixtureDirectory } from "../harness/fixture-directory-cleanup.js";
 import { startCodexAimock } from "../harness/aimock.js";
 import { expectAvailable } from "./support/asserts.js";
 
@@ -46,7 +47,7 @@ describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex accepts OAR's re
       client.kill();
       await client.exited;
       await env.stop();
-      await rm(directory, { recursive: true, force: true });
+      await removeFixtureDirectory(directory, "codex-runtime-requests");
     }
   }, 90_000);
 });

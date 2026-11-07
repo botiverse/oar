@@ -1,5 +1,5 @@
 /* oxlint-disable import/max-dependencies -- A real binary, a scripted provider, the process table and the trace meet in this test. */
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
@@ -11,6 +11,7 @@ import { awaitTurnEnd, codexInstallation, codexSession, promptAndWait } from "..
 import * as tables from "../../packages/oar/src/shared/executable/process-table-async.js";
 import { observeProcessTable } from "../../packages/oar/src/shared/executable/process-tree.js";
 import { asRecord, parseJson } from "../../packages/oar/src/shared/json.js";
+import { removeFixtureDirectory } from "../harness/fixture-directory-cleanup.js";
 import { startCodexAimock } from "../harness/aimock.js";
 import { openTrace, record } from "../harness/trace.js";
 import { expectAvailable } from "./support/asserts.js";
@@ -115,6 +116,6 @@ test.skipIf(process.env.OAR_TEST !== "codex-aimock")("Codex endTurnProcessesOnAb
       try { process.kill(pid, "SIGKILL"); } catch { /* Gone meanwhile. */ }
     }
     await provider.stop();
-    await rm(directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
+    await removeFixtureDirectory(directory, "codex-abort-processes-no-groups");
   }
 }, 180_000);
