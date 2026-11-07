@@ -1,5 +1,9 @@
 # Native CI failure follow-up: 2026-11-06
 
+The [November 7 closeout](closeout.md) records subsequent fixes, actual
+Windows validation and the keep/remove decision for all four diagnostics.
+The pending observations below describe the original investigation.
+
 The failures separate into three boundaries: CodeBuddy installation, the
 Antigravity MCP mismatch, and all 18 failed Windows Grok/OpenCode jobs from
 the [November 6 observation window](../runtime-version-checks/2026-11-06.md).

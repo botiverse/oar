@@ -1,0 +1,294 @@
+{
+  "observedAt": "2026-11-07",
+  "main": {
+    "head": "929bd86e3e252b19fb597e2af566bde8da41fd1b",
+    "ciRun": 42320021832,
+    "successfulRequiredJobs": 39,
+    "windowsAcpJobs": [
+      {
+        "id": 128242044355,
+        "run_id": 42320021880,
+        "run_attempt": 1,
+        "head_sha": "929bd86e3e252b19fb597e2af566bde8da41fd1b",
+        "name": "acp-windows (windows-latest, opencode-aimock)",
+        "conclusion": "success",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/42320021880/job/128242044355"
+      },
+      {
+        "id": 128242044576,
+        "run_id": 42320021880,
+        "run_attempt": 1,
+        "head_sha": "929bd86e3e252b19fb597e2af566bde8da41fd1b",
+        "name": "acp-windows (windows-latest, grok-aimock)",
+        "conclusion": "success",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/42320021880/job/128242044576"
+      },
+      {
+        "id": 128242044668,
+        "run_id": 42320021880,
+        "run_attempt": 1,
+        "head_sha": "929bd86e3e252b19fb597e2af566bde8da41fd1b",
+        "name": "acp-windows (windows-latest, kimi-aimock)",
+        "conclusion": "success",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/42320021880/job/128242044668"
+      }
+    ]
+  },
+  "opencodeSmallGit": {
+    "job": {
+      "id": 128213127757,
+      "run_id": 42311306143,
+      "run_attempt": 1,
+      "head_sha": "927f739d06b7bb760a81fcb2bb2c8541ec94a8d8",
+      "name": "acp-windows (windows-latest, opencode-aimock)",
+      "conclusion": "success",
+      "html_url": "https://github.com/botiverse/oar/actions/runs/42311306143/job/128213127757"
+    },
+    "jobLogSha256": "a280a08a5d33ada13f09d45e3b044ad34e7898793c882f864c98c1b74446420d",
+    "artifact": {
+      "id": 13548806839,
+      "bytes": 544543,
+      "sha256": "468f549b28ba243454484f851f66cc94c6f0b2acb3e8b71d30294b2285ab9e85"
+    },
+    "vendorFixtures": [
+      {
+        "sourceSha256": "aa09fa3779ff5da2545e0ddb71a6bcc992a5e0fd861d28d2b1de4e66099cbb25",
+        "bytes": 21237,
+        "runs": [
+          {
+            "firstLoopAt": 1794007439861,
+            "titleStreamAt": 1794007439878,
+            "snapshotInitializedAt": 1794007440872,
+            "firstTrackingAt": 1794007441149,
+            "firstAgentStreamAt": 1794007442713,
+            "initializedToTrackingMs": 277,
+            "trackingToAgentStreamMs": 1564,
+            "loopToTrackingMs": 1288,
+            "trackingRecords": 6
+          },
+          {
+            "firstLoopAt": 1794007451377,
+            "titleStreamAt": null,
+            "snapshotInitializedAt": null,
+            "firstTrackingAt": 1794007451617,
+            "firstAgentStreamAt": 1794007452935,
+            "initializedToTrackingMs": null,
+            "trackingToAgentStreamMs": 1318,
+            "loopToTrackingMs": 240,
+            "trackingRecords": 4
+          },
+          {
+            "firstLoopAt": 1794007459683,
+            "titleStreamAt": null,
+            "snapshotInitializedAt": null,
+            "firstTrackingAt": 1794007460030,
+            "firstAgentStreamAt": 1794007461581,
+            "initializedToTrackingMs": null,
+            "trackingToAgentStreamMs": 1551,
+            "loopToTrackingMs": 347,
+            "trackingRecords": 2
+          }
+        ],
+        "fixture": 1
+      },
+      {
+        "sourceSha256": "038213339c4845488a0ecd69e89b930bab63beaf266a146b3af9726b8c448d3a",
+        "bytes": 6482,
+        "runs": [
+          {
+            "firstLoopAt": 1794007468622,
+            "titleStreamAt": 1794007468665,
+            "snapshotInitializedAt": 1794007469829,
+            "firstTrackingAt": 1794007470112,
+            "firstAgentStreamAt": 1794007471948,
+            "initializedToTrackingMs": 283,
+            "trackingToAgentStreamMs": 1836,
+            "loopToTrackingMs": 1490,
+            "trackingRecords": 1
+          }
+        ],
+        "fixture": 2
+      },
+      {
+        "sourceSha256": "644a067038e5fae35a9fce71e8937193f8d2d0cfa68343592c69dfb49c43c83b",
+        "bytes": 8868,
+        "runs": [
+          {
+            "firstLoopAt": 1794007469033,
+            "titleStreamAt": 1794007469059,
+            "snapshotInitializedAt": 1794007470061,
+            "firstTrackingAt": 1794007470324,
+            "firstAgentStreamAt": 1794007472193,
+            "initializedToTrackingMs": 263,
+            "trackingToAgentStreamMs": 1869,
+            "loopToTrackingMs": 1291,
+            "trackingRecords": 5
+          }
+        ],
+        "fixture": 3
+      },
+      {
+        "sourceSha256": "c7d2377e6a236ea486407798afe2e29c872345b889641536c0eebe5313eb8656",
+        "bytes": 10027,
+        "runs": [
+          {
+            "firstLoopAt": 1794007479009,
+            "titleStreamAt": 1794007479061,
+            "snapshotInitializedAt": 1794007480027,
+            "firstTrackingAt": 1794007480302,
+            "firstAgentStreamAt": 1794007481954,
+            "initializedToTrackingMs": 275,
+            "trackingToAgentStreamMs": 1652,
+            "loopToTrackingMs": 1293,
+            "trackingRecords": 1
+          }
+        ],
+        "fixture": 4
+      },
+      {
+        "sourceSha256": "d84e75e7ae7acfbbddfaae8aa85fcfd36d52d1a0b7b7b8d7cbd9dcbe4a501469",
+        "bytes": 8866,
+        "runs": [
+          {
+            "firstLoopAt": 1794007482928,
+            "titleStreamAt": 1794007482940,
+            "snapshotInitializedAt": 1794007483578,
+            "firstTrackingAt": 1794007483813,
+            "firstAgentStreamAt": 1794007485120,
+            "initializedToTrackingMs": 235,
+            "trackingToAgentStreamMs": 1307,
+            "loopToTrackingMs": 885,
+            "trackingRecords": 5
+          }
+        ],
+        "fixture": 5
+      },
+      {
+        "sourceSha256": "52c6ccfe6c27091c854efbdc2a69aec31a636759896fa53272ca852719376019",
+        "bytes": 6608,
+        "runs": [
+          {
+            "firstLoopAt": 1794007493234,
+            "titleStreamAt": 1794007493275,
+            "snapshotInitializedAt": 1794007494289,
+            "firstTrackingAt": 1794007494542,
+            "firstAgentStreamAt": 1794007496165,
+            "initializedToTrackingMs": 253,
+            "trackingToAgentStreamMs": 1623,
+            "loopToTrackingMs": 1308,
+            "trackingRecords": 1
+          }
+        ],
+        "fixture": 6
+      },
+      {
+        "sourceSha256": "49970c853f1aa37650d7b2d0727b6a59a668a5105975c09edba9a8aaf2ae24de",
+        "bytes": 7968,
+        "runs": [
+          {
+            "firstLoopAt": 1794007517193,
+            "titleStreamAt": 1794007517224,
+            "snapshotInitializedAt": 1794007518158,
+            "firstTrackingAt": 1794007518446,
+            "firstAgentStreamAt": 1794007520041,
+            "initializedToTrackingMs": 288,
+            "trackingToAgentStreamMs": 1595,
+            "loopToTrackingMs": 1253,
+            "trackingRecords": 4
+          }
+        ],
+        "fixture": 7
+      },
+      {
+        "sourceSha256": "cf6b9b2000dab93677c1f70e269b89e50bb0e273eda5ba774224c6803fde3654",
+        "bytes": 8049,
+        "runs": [
+          {
+            "firstLoopAt": 1794007552496,
+            "titleStreamAt": 1794007552512,
+            "snapshotInitializedAt": 1794007553480,
+            "firstTrackingAt": 1794007553749,
+            "firstAgentStreamAt": 1794007555441,
+            "initializedToTrackingMs": 269,
+            "trackingToAgentStreamMs": 1692,
+            "loopToTrackingMs": 1253,
+            "trackingRecords": 4
+          }
+        ],
+        "fixture": 8
+      }
+    ],
+    "separateSharedBehavior": {
+      "sourceSha256": "f3aedc9378119cd06ad78c80c55785805e3615852567fd0d9bf83f5c1709086b",
+      "initializedToTrackingMs": 19453
+    }
+  },
+  "grokUnexplainedFailure": {
+    "runId": 42315029120,
+    "jobId": 128225418265,
+    "url": "https://github.com/botiverse/oar/actions/runs/42315029120/job/128225418265",
+    "jobLogSha256": "6437d7cba07674c47328deeffed3df935b7cc5a9fb9613cc185509be2353e6eb",
+    "artifact": {
+      "id": 13550895187,
+      "bytes": 566023,
+      "sha256": "644128809487c802ef1f3631e808bfd309f72ea97628b1d5aaf91fbd84fd73f2"
+    },
+    "failedSuiteInitializeCases": 2,
+    "laterProbeInitializeMs": [
+      5703,
+      328,
+      5888,
+      8236,
+      343,
+      1519,
+      1512
+    ],
+    "scope": "Later probes do not observe the failed suite processes."
+  },
+  "currentJobLogs": [
+    {
+      "jobId": 128242044355,
+      "sha256": "3a23a130e027c9975b201f5c1fd95e7f90fa686c35aa7aa02fac7c49c85d43ab"
+    },
+    {
+      "jobId": 128242044761,
+      "sha256": "937161dcad8cd30e6e43f3d46f91f7a20cc1df3fea3ff7a4531c6a83233e27c0"
+    },
+    {
+      "jobId": 128237161457,
+      "sha256": "913bdd7138479af43ab69686b16bbfc5dc19f73d614fa2157d2608f3a55711e6"
+    }
+  ],
+  "manualCopierValidation": {
+    "identity": {
+      "kind": "identity",
+      "version": "1.19.5",
+      "node": "v24.19.0",
+      "platform": "linux"
+    },
+    "completedTurns": 8,
+    "retention": [
+      {
+        "files": 1,
+        "bytes": 8734,
+        "omittedFiles": 0
+      },
+      {
+        "files": 1,
+        "bytes": 11488,
+        "omittedFiles": 0
+      },
+      {
+        "files": 1,
+        "bytes": 10575,
+        "omittedFiles": 0
+      },
+      {
+        "files": 1,
+        "bytes": 10548,
+        "omittedFiles": 0
+      }
+    ],
+    "rawResultsSha256": "f2046551b1f916ca6948f48537a8c9ecc4b2db7994bd34f02769f7781e77de29"
+  }
+}

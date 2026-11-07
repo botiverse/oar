@@ -1,5 +1,9 @@
 # CodeBuddy npm installation diagnostics
 
+The [November 7 closeout](../acp-ci-failures/closeout.md) records the five
+ordinary Windows success samples and why capture remains until a natural
+instrumented timeout. The pending platform checks below are historical.
+
 Three Windows first-install failures on 2026-11-06 reached OAR's 180-second
 installer deadline with no npm output. Their cause is unknown. The smoke
 fixture then removed its isolated HOME, including npm's debug logs, so those

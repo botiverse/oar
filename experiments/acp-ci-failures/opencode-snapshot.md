@@ -1,5 +1,8 @@
 # OpenCode first-prompt snapshots
 
+The [November 7 closeout](closeout.md) adds the successful Windows resume and
+snapshot measurements, and retires automatic native-log copying.
+
 Runtime version check: 2026-11-06. OpenCode 1.19.5, synthetic providers.
 
 Two ordinary Windows main-push observations now localize the long first

@@ -67,5 +67,20 @@ termination. It keeps the nested 1-second test limit, external 2-second case
 limit, 20-second command ceiling, 35-second launcher limit and 45-second outer
 test limit. The snapshot poll fails after 900 ms if readiness never arrives;
 it does not manufacture a reporter event. All existing exit, test-name,
-termination and worker-checkpoint assertions remain. Windows execution of the
-revised fixture awaits this change's CI.
+termination and worker-checkpoint assertions remain.
+
+## Windows validation
+
+PR #686's [Windows check](https://github.com/botiverse/oar/actions/runs/42318542225/job/128237161457)
+passed all five diagnostic tests. Its retained blocked-worker trace records
+`case_start` at 00:32:09.314 UTC on November 7, followed by `worker_blocking`
+at 00:32:09.323. The sampler reported the named two-second `case_timeout`
+at 00:32:11.731, then confirmed root exit and returned 124. It did not reach
+the 20-second command fallback. Artifact `13552336852` is 11,441 bytes with
+SHA-256 `2d6a98a8addb4cad9249f9c17845b90a7c43854e66b14ca84979433de23e94b3`;
+the job log SHA-256 is
+`913bdd7138479af43ab69686b16bbfc5dc19f73d614fa2157d2608f3a55711e6`.
+
+This verifies the revised fixture on Windows without claiming the cause of
+the original delayed or missing reporter update. The merged main check at
+`929bd86e` also passed.

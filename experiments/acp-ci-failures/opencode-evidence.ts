@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, open, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { resolveRunDir } from "./trace.js";
+import { resolveRunDir } from "../../sea-trial/harness/trace.js";
 
 const FILE_LIMIT = 4;
 const BYTE_LIMIT = 1024 * 1024;
