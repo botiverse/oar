@@ -15,6 +15,14 @@ and intermittent Grok initialization timeouts remain unexplained.
 | Grok's seven post-suite launches and bootstrap phases; `tests/grok/bootstrap-trace.test.ts` | Keep in the ordinary Windows observation workflow. | No observed first-launch timeout followed by its same-HOME retry has been captured with phase records. Later successful probes do not observe a suite process that timed out. Reassess after that paired sample. If the three-minute step ceiling is reached, reduce attempts rather than raising it. |
 | Automatic OpenCode native-log copying; `tests/opencode/native-log-evidence.test.ts` | Remove the normal fixture hook and its three dedicated tests. Keep the bounded copier only in the manual snapshot experiment. | The snapshot interval is localized, and the four changed vendor files now pass on Windows with native snapshots enabled. No continuing automatic copy is needed for that question. Use the manual experiment if a new failure specifically needs these native phase markers. |
 
+Review the three retained diagnostics on **2026-12-07**, with **Cindy owning
+the decision**. If a required sample has not arrived, the default is to remove
+that diagnostic and its dedicated tests, record "not observed again; cause
+unknown", and restore it from Git history if the failure recurs. This does
+not count as a fix. If failures are still occurring but the probe has not
+captured its target sample, revise its placement at that review instead of
+continuing to wait with the same probe.
+
 The retained tests guard diagnostics that still execute, including truncation,
 original-error preservation and observer failures. The removed tests guarded
 the retired automatic copy. The manual
