@@ -82,6 +82,11 @@ are refused before opening. Omission or `include` retains the native defaults.
 Transport, permission and session-identity flags cannot override OAR through
 `launchArgs`. Other native launch arguments keep their native semantics.
 
+Tool activity reads `Bash` as `run_command` with `command`, and `Edit` as
+`edit_file` with `file_path`. ACP input updates preserve the complete JSON,
+including MCP arguments with a `text` field and inputs over 10,000 characters.
+Output previews retain their existing limit. [Recorded inputs](../../experiments/tool-activity-audit/README.md#follow-up-decisions-and-input-fix).
+
 ### Usage is not a token ledger
 
 ACP `usage_update.used/size` describes context; it does not establish billed

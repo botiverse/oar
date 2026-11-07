@@ -9,12 +9,13 @@ export function callFor(runtime: string, stage: string, cwd: string): Call | und
   const edit = { old_string: "BEFORE", new_string: "AFTER" };
   if (stage === "catalog") { return undefined; }
   if (stage === "mcp") {
+    const mcpText = process.env.AUDIT_LARGE_INPUT === "1" ? "x".repeat(12_000) : "ACTUAL";
     switch (runtime) {
-      case "grok": return tool("use_tool", { tool_name: "audit__echo", tool_input: { text: "ACTUAL" } });
-      case "opencode": return tool("execute", { code: 'return await tools.audit.echo({text:"ACTUAL"});' });
-      case "antigravity": return tool("mcp_audit_echo", { text: "ACTUAL", toolSummary: "Audit echo" });
-      case "qwen": return tool("tool_call", { name: "mcp__audit__echo", arguments: { text: "ACTUAL" } });
-      default: return tool("mcp__audit__echo", { text: "ACTUAL" });
+      case "grok": return tool("use_tool", { tool_name: "audit__echo", tool_input: { text: mcpText } });
+      case "opencode": return tool("execute", { code: `return await tools.audit.echo({text:${JSON.stringify(mcpText)}});` });
+      case "antigravity": return tool("mcp_audit_echo", { text: mcpText, toolSummary: "Audit echo" });
+      case "qwen": return tool("tool_call", { name: "mcp__audit__echo", arguments: { text: mcpText } });
+      default: return tool("mcp__audit__echo", { text: mcpText });
     }
   }
   if (stage === "search") {

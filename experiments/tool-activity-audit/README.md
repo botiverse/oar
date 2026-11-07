@@ -4,12 +4,15 @@
 The model endpoints and MCP server were local fixtures; no account or paid
 inference was used. These are observations of real runtime processes, not
 mock runtime events. Pi includes both its SDK and subprocess RPC paths.
+The tables and selected records describe that base. The
+[follow-up](#follow-up-decisions-and-input-fix) records the input fix and
+the decisions made after the audit.
 
 ## Conclusions
 
 1. Tool names and input timing differ materially. Hosts must consume
    `tool_call_input` as well as the start, and cannot recover all arguments
-   from that typed string today. Shared ACP currently treats objects with a
+   from that typed string at the audited base. Shared ACP treated objects with a
    `text` property as display text, losing the other fields from the typed
    input. The original object remains in `frame.native`.
 2. Native categories and paths already exist on ACP, but are not separate
@@ -71,8 +74,9 @@ For Kimi and CodeBuddy, native `{text: "ACTUAL"}` becomes typed input
 `ACTUAL`; for Antigravity `{text: "ACTUAL", toolSummary: "Audit echo"}` loses
 both its JSON shape and the summary. This follows `detail()`/`textContent()`
 in [shared ACP projection](../../packages/oar/src/shared/acp/projection.ts).
-That helper also truncates input at 10,000 characters; large-input behavior
-was not tested here. The audit reports this loss without changing shared ACP.
+At the audited base that helper also truncated input at 10,000 characters;
+large-input behavior was not tested in the original runs. The follow-up
+below fixes both losses without changing output previews.
 
 Every selected edit changed `BEFORE\n` to `AFTER\n`; every selected MCP call
 reached the server and returned `AUDIT_MCP:ACTUAL`. CodeBuddy's initial
@@ -196,3 +200,54 @@ python3 experiments/tool-activity-audit/select.py /tmp/tool-audit /tmp/selected
 All platform observations in this report are Linux-only. macOS, Windows,
 real providers, failure readiness and runtime versions beyond those listed
 are not covered. Validation results are recorded in the pull request.
+
+## Follow-up decisions and input fix
+
+ACP `rawInput` is argument data. Objects and arrays are serialized whole,
+even when they contain `text`; strings remain verbatim. There is no
+10,000-character input cap, because clipping JSON makes its fields
+unparseable and can hide a later update that differs only beyond the cap.
+Output preview extraction and its cap are unchanged. A host's existing
+record-retention budget remains separate. Historical selected records above
+retain the original observations, not newly generated expectations.
+
+The public `classifyTool` utility uses these recorded tool names and fields:
+
+| Runtime | Added classification / fields |
+|---|---|
+| Qwen | `run_shell_command`: command; `edit`: file_path; `tool_call`: MCP only when input.name begins `mcp__` |
+| Qoder | `Bash`: command; `Edit`: file_path, evidenced by the 1.1.81 replay control |
+| CodeBuddy | `Bash`: command; `Edit`: file_path |
+| Antigravity | `run_command`: CommandLine and toolSummary; `edit_file`: Path; direct `mcp_<server>_<tool>` names: MCP |
+| DSH | `bash`: command and description; `edit`: file_path |
+| Grok | `search_replace`: edit using file_path; `use_tool`: MCP |
+| Kimi | `Edit`: edit using path |
+| Codex | `collabAgentToolCall`: subagent operation, with no invented arguments or child completion |
+
+Unrecorded names remain `other`; OpenCode `execute` is still `other` because
+the same tool executes plain code as well as MCP calls. Existing `mcp__`
+name handling remains. The regression reads the selected actual inputs,
+including the ACP native objects before projection; large-input cases check
+both JSON parsing and changes after the former limit.
+
+For a native large-input control, run the existing probe with
+`AUDIT_LARGE_INPUT=1` to send a 12,000-character MCP argument, then run
+`pnpm tsx experiments/tool-activity-audit/fidelity.ts <probe.json>`. The
+checker compares each projected input to that exact frame's `rawInput`,
+including start and later replacements, without publishing full payloads.
+
+[Linux native controls](results/input-fidelity.json) passed on Grok 1.0.77,
+Kimi 2.5.2, OpenCode 2.2.5, CodeBuddy 2.181.0 and Antigravity 1.5.2. All
+38 projected inputs matched their native source, and each server received
+the full 12,000-character MCP argument once. The longest projected input
+was 12,072 bytes. The same checker rejects the pre-fix CodeBuddy recording
+where the native `{text: "ACTUAL"}` became plain `ACTUAL`.
+[Replay regressions](../../tests/replay/tool-activity-audit.test.ts) use the
+original audit values; no existing snapshot was rewritten for the fix.
+
+MCP readiness remains a raw native observation. This audit does not justify
+a common readiness event or an OAR waiting policy; in particular the Codex
+startup notifications remain available as raw frames. The signals and
+measured ordering for other runtimes remain as recorded above. Review steer
+keeps the existing `runtime_refused` result; no review API or new rejection
+code is added.

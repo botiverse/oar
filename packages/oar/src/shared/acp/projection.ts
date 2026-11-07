@@ -57,22 +57,24 @@ function truncate(value: string): string {
   return value.length > 10_000 ? `${value.slice(0, 10_000)}…` : value;
 }
 
-function detail(value: unknown): string | undefined {
+/** Arguments are data: preserve JSON fields and size so hosts can parse the complete input. */
+function inputDetail(value: unknown): string | undefined {
   if (typeof value === "string") {
-    return truncate(value);
+    return value;
   }
   if (value === undefined || value === null) {
     return undefined;
   }
-  const text = textContent(value);
-  if (text !== null) {
-    return truncate(text);
-  }
   try {
-    return truncate(JSON.stringify(value));
+    return JSON.stringify(value);
   } catch {
     return undefined;
   }
+}
+
+function outputDetail(value: unknown): string | undefined {
+  const text = textContent(value) ?? inputDetail(value);
+  return text === undefined ? undefined : truncate(text);
 }
 
 function toolName(update: JsonRecord): string {
@@ -103,7 +105,7 @@ function projectTool(state: AcpProjectionState, update: JsonRecord): RuntimeEven
   let tool = state.tools.get(callId);
   const opening = tool === undefined;
   if (tool === undefined) {
-    const input = detail(update.rawInput);
+    const input = inputDetail(update.rawInput);
     tool = { callId, ended: false, input };
     state.tools.set(callId, tool);
     events.push({
@@ -117,7 +119,7 @@ function projectTool(state: AcpProjectionState, update: JsonRecord): RuntimeEven
     // opening `tool_call` has `rawInput` `{cwd}`, the next update `{command,
     // cwd}`; kimi's has none, and one update carries it whole). Read in the
     // started input's form, so an unchanged repeat says nothing new.
-    const input = detail(update.rawInput);
+    const input = inputDetail(update.rawInput);
     if (input !== undefined && input !== tool.input) {
       tool.input = input;
       events.push({ kind: "tool_call_input", callId, input });
@@ -130,7 +132,7 @@ function projectTool(state: AcpProjectionState, update: JsonRecord): RuntimeEven
     // A later non-terminal update with rawOutput is streamed output. `content`
     // is NOT used here: kimi streams the call's ARGUMENTS as content while
     // in_progress (wire-shapes test), which is input, not output.
-    const output = detail(update.rawOutput);
+    const output = outputDetail(update.rawOutput);
     events.push({ kind: "tool_call_progress", callId, ...(output === undefined ? {} : { output }) });
   }
   if (!tool.ended && terminal) {
