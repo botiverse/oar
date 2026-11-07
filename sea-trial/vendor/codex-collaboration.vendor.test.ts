@@ -1,11 +1,12 @@
 /* oxlint-disable import/max-dependencies -- Native fixture, trace and process cleanup need these independent helpers. */
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { describe, expect, test } from "vitest";
 import { codexInstallation, codexSession } from "../../packages/oar/src/index.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
+import { removeFixtureDirectory } from "../harness/fixture-directory-cleanup.js";
 import { startCodexAimock } from "../harness/aimock.js";
 import { openTrace, record } from "../harness/trace.js";
 import { expectAvailable, runTurn } from "./support/asserts.js";
@@ -46,7 +47,7 @@ describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("Codex collaboration in
       } finally { await session.dispose(); }
     } finally {
       await provider.stop();
-      await rm(cwd, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
+      await removeFixtureDirectory(cwd, "codex-collaboration");
     }
   }, 60_000);
 });

@@ -1,3 +1,4 @@
+/* oxlint-disable import/max-dependencies -- Native evidence and cleanup require the provider, session, and fixture helpers. */
 import assert from "node:assert/strict";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -6,6 +7,7 @@ import { test } from "vitest";
 import { awaitTurnEnd, conversationOf, type ControlResult } from "../../packages/oar/src/index.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { claudeMergedIdentity } from "./support/claude-merged-identity.js";
+import { removeFixtureDirectory } from "../harness/fixture-directory-cleanup.js";
 import { allRuntimes } from "../harness/runtimes.js";
 import { startClaudeAimock, startCodexAimock } from "../harness/aimock.js";
 
@@ -50,7 +52,7 @@ async function verifyIdentity(id: "codex" | "claude", mode: "steer" | "fallback"
       const providerInputs = env.raw.map((request) => asRecord(request.body)?.[id === "claude" ? "messages" : "input"]);
       assert.ok(providerInputs.some((providerInput) => JSON.stringify(providerInput ?? null).includes(marker)), "steer absent from raw provider input");
     } finally { clearTimeout(timer); await session.dispose(); }
-  } finally { await env.stop(); await rm(cwd, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }); }
+  } finally { await env.stop(); await (id === "codex" ? removeFixtureDirectory(cwd, "input-identity") : rm(cwd, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 })); }
 }
 for (const id of ["codex", "claude"] as const) {
   test.skipIf(process.env.OAR_TEST !== `${id}-aimock`).each(["steer", "fallback"] as const)(`${id} correlates native %s echo without a duplicate input`, async (mode) => { await verifyIdentity(id, mode); }, 60_000);

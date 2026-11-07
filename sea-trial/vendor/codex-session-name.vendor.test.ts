@@ -1,10 +1,11 @@
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
 import { codexInstallation, codexSession, promptAndWait, SessionUnavailableError } from "../../packages/oar/src/index.js";
 import { startAppServerClient, type AppServerClient } from "../../packages/oar/src/runtimes/codex/app-server-client.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
+import { removeFixtureDirectory } from "../harness/fixture-directory-cleanup.js";
 import { startCodexAimock } from "../harness/aimock.js";
 import { expectAvailable } from "./support/asserts.js";
 
@@ -35,7 +36,7 @@ describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex session name and
       await promptAndWait(session, "first");
       await session.dispose();
     } finally {
-      await rm(directory, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
+      await removeFixtureDirectory(directory, "codex-session-name");
       await env.stop();
     }
   }, 60_000);

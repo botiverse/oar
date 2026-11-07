@@ -4,9 +4,16 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, onTestFailed, test } from "vitest";
 import { claudeRuntime, codexRuntime, type Session, type SessionOptions } from "../../packages/oar/src/index.js";
+import { removeFixtureDirectory } from "../harness/fixture-directory-cleanup.js";
 import { startClaudeAimock, startCodexAimock } from "../harness/aimock.js";
 import { runTurn } from "./support/asserts.js";
 import { newPrompts, oldPrompts, promptKeys, promptMarkers, promptSemantics, requestsForTurn, resumedMarker } from "./support/resumed-prompts.js";
+
+async function removeDirectory(directory: string, backend: "claude" | "codex"): Promise<void> {
+  await (backend === "codex"
+    ? removeFixtureDirectory(directory, "resume-system-prompt")
+    : rm(directory, { recursive: true, force: true }));
+}
 
 async function fixture(backend: "claude" | "codex") {
   let largeUsage = false;
@@ -47,11 +54,11 @@ async function fixture(backend: "claude" | "codex") {
           expect(await runTurn(session, "OAR_RAISE_CONTEXT_USAGE")).toEqual({ kind: "completed" });
         }
       },
-      stop: async () => { try { await provider.stop(); } finally { await rm(directory, { recursive: true, force: true }); } },
+      stop: async () => { try { await provider.stop(); } finally { await removeDirectory(directory, backend); } },
     };
   } catch (error) {
     await provider.stop();
-    if (root !== undefined) { await rm(root, { recursive: true, force: true }); }
+    if (root !== undefined) { await removeDirectory(root, backend); }
     throw error;
   }
 }

@@ -6,6 +6,10 @@ job timed out during directory removal after native completion and exit.
 Keep regular CI worker settings unchanged on this evidence. The temporary
 workflow and shared fixture hooks have been removed.
 
+The separate [November 7 vendor cleanup follow-up](vendor-cleanup.md)
+preserves original failures and adds a bounded Windows process observation
+when directory removal is still pending. It does not identify a lock owner.
+
 The November 6 CI audit found both reproducible fixture errors and unexplained
 startup/wait delays. Successful paired Windows Codex vendor steps took about
 twice as long as Linux (27 pairs, median paired ratio 2.04). That observation

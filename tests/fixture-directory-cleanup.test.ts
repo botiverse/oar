@@ -7,9 +7,11 @@ const mocks = vi.hoisted(() => ({
   rm: vi.fn<() => Promise<void>>(),
   record: vi.fn<(entry: Record<string, unknown>) => void>(),
   write: vi.fn<(chunk: unknown) => boolean>(),
+  snapshot: vi.fn<() => Promise<Record<string, unknown>>>(),
 }));
 vi.mock("node:fs/promises", () => ({ rm: mocks.rm }));
 vi.mock("../sea-trial/harness/trace.js", () => ({ record: mocks.record }));
+vi.mock("../sea-trial/harness/fixture-process-snapshot.js", () => ({ snapshotFixtureProcesses: mocks.snapshot }));
 let now = 0;
 beforeEach(() => {
   vi.useFakeTimers();
@@ -18,7 +20,7 @@ beforeEach(() => {
   mocks.write.mockReturnValue(true);
   vi.spyOn(process.stderr, "write").mockImplementation(mocks.write);
 });
-afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); vi.resetAllMocks(); });
+afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); vi.resetAllMocks(); vi.unstubAllEnvs(); });
 
 const purposes = ["codex-home", "opencode-vendor-cwd"];
 
@@ -89,4 +91,56 @@ test.each(purposes)("late cleanup retains its own home while the next fixture fi
   await vi.advanceTimersByTimeAsync(0);
   expect(mocks.record.mock.calls.map(call => call[0].directory)).toEqual(["home-A", "home-A"]);
   expect(mocks.rm).toHaveBeenCalledTimes(2);
+});
+
+test("a Windows Codex pending removal observes once without waiting for the process snapshot", async () => {
+  vi.spyOn(process, "platform", "get").mockReturnValue("win32");
+  vi.stubEnv("OAR_TEST", "codex-aimock");
+  const deletion = Promise.withResolvers<void>();
+  const snapshot = Promise.withResolvers<Record<string, unknown>>();
+  mocks.rm.mockReturnValueOnce(deletion.promise).mockResolvedValueOnce(undefined);
+  mocks.snapshot.mockReturnValue(snapshot.promise);
+  const stop = removeFixtureDirectory("old-cwd", "input-identity");
+  now = 5000;
+  await vi.advanceTimersByTimeAsync(5000);
+  await stop;
+  expect(mocks.snapshot).toHaveBeenCalledOnce();
+  expect(mocks.record).toHaveBeenLastCalledWith(expect.objectContaining({ directory: "old-cwd", outcome: "pending" }));
+  await removeFixtureDirectory("new-cwd", "input-identity");
+  now = 6000;
+  snapshot.resolve({ outcome: "captured", processes: [{ name: "codex.exe", pid: 17, parentPid: 3 }], truncated: false });
+  await vi.advanceTimersByTimeAsync(0);
+  expect(mocks.record).toHaveBeenLastCalledWith(expect.objectContaining({ kind: "fixture_directory_processes", directory: "old-cwd", purpose: "input-identity", observerPid: process.pid, outcome: "captured", processes: [{ name: "codex.exe", pid: 17, parentPid: 3 }] }));
+  deletion.resolve();
+  await vi.advanceTimersByTimeAsync(0);
+  expect(mocks.snapshot).toHaveBeenCalledOnce();
+  expect(mocks.record).toHaveBeenLastCalledWith(expect.objectContaining({ directory: "old-cwd", outcome: "removed" }));
+});
+
+test.each(["reject", "throw"])("a process observer %s cannot replace the original assertion failure", async (mode) => {
+  vi.spyOn(process, "platform", "get").mockReturnValue("win32");
+  vi.stubEnv("OAR_TEST", "codex-aimock");
+  mocks.rm.mockReturnValue(Promise.withResolvers<void>().promise);
+  if (mode === "throw") { mocks.snapshot.mockImplementation(() => { throw new Error("observer failed"); }); }
+  else { mocks.snapshot.mockRejectedValue(new Error("observer failed")); }
+  const original = new Error("native assertion failed");
+  const check = expect((async () => {
+    try { throw original; } finally { await removeFixtureDirectory("cwd", "vendor"); }
+  })()).rejects.toBe(original);
+  await vi.advanceTimersByTimeAsync(5000);
+  await check;
+  expect(mocks.record).toHaveBeenCalledWith(expect.objectContaining({ kind: "fixture_directory_processes", outcome: "failed", reason: "observer" }));
+});
+
+test.each(["linux", "darwin", "win32"] as const)("process observation is absent for fast cleanup and other backends (%s)", async (platform) => {
+  vi.spyOn(process, "platform", "get").mockReturnValue(platform);
+  vi.stubEnv("OAR_TEST", "codex-aimock");
+  mocks.rm.mockResolvedValueOnce(undefined);
+  await removeFixtureDirectory("fast", "vendor");
+  vi.stubEnv("OAR_TEST", platform === "win32" ? "opencode-aimock" : "codex-aimock");
+  mocks.rm.mockReturnValueOnce(Promise.withResolvers<void>().promise);
+  const stop = removeFixtureDirectory("slow", "vendor");
+  await vi.advanceTimersByTimeAsync(5000);
+  await stop;
+  expect(mocks.snapshot).not.toHaveBeenCalled();
 });

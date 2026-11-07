@@ -1,11 +1,13 @@
+/* oxlint-disable import/max-dependencies -- Native evidence and cleanup require the provider, session, and fixture helpers. */
 import { existsSync } from "node:fs";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
 import { codexInstallation, codexSession, serveMcpTools } from "../../packages/oar/src/index.js";
 import { promptAndWait } from "../../packages/oar/src/observe/turns.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
+import { removeFixtureDirectory } from "../harness/fixture-directory-cleanup.js";
 import { namespaceMcpToolCalls, startCodexAimock } from "../harness/aimock.js";
 import { expectAvailable, withProcessEnv } from "./support/asserts.js";
 
@@ -82,7 +84,7 @@ describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("Codex host-tool annota
       } finally {
         await http.close();
         await env.stop();
-        await rm(directory, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
+        await removeFixtureDirectory(directory, "codex-tool-annotations");
       }
     });
   }, 90_000);

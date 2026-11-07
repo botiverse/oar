@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { awaitTurnEnd, defaultRuntimes, viewOf, type ControlResult, type ConversationInput, type RawEvent, type ResponseBody, type TurnOutcome } from "../../../packages/oar/src/index.js";
+import { removeFixtureDirectory } from "../../harness/fixture-directory-cleanup.js";
 import { startClaudeAimock, startCodexAimock, startPiAimock, type LLMock } from "../../harness/aimock.js";
 import { startGrokAimock, startOpencodeAimock } from "../../harness/aimock-acp.js";
 
@@ -77,6 +78,6 @@ export async function interruptedInputProbe(id: keyof typeof setups, afterRead =
       };
       return report;
     } finally { clearTimeout(timer); await session.dispose(); }
-  } finally { await env.stop(); await rm(cwd, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }); }
+  } finally { await env.stop(); await (id === "codex" ? removeFixtureDirectory(cwd, "input-interruption") : rm(cwd, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 })); }
 
 }

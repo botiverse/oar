@@ -4,6 +4,7 @@ import path from "node:path";
 import { expect, test } from "vitest";
 import { claudeInstallation, claudeSession, codexInstallation, codexSession, kimiInstallation, kimiSession, type AvailableInstallation, type Session, type SessionOptions } from "../../packages/oar/src/index.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
+import { removeFixtureDirectory } from "../harness/fixture-directory-cleanup.js";
 import { startClaudeAimock, startCodexAimock } from "../harness/aimock.js";
 import { startKimiAimock } from "../harness/aimock-acp.js";
 import { runTurn } from "./support/asserts.js";
@@ -78,7 +79,7 @@ test.skipIf(process.env.OAR_TEST !== "codex-aimock").each([
     expect(codexOpen(session)).toMatchObject({ runtimeWorkspaceRoots: [cwd, second], sandbox: { type: nativeType } });
     expect(session.model().value).toBe("gpt-5.1");
     expect(await runTurn(session, "Say ok again")).toEqual({ kind: "completed" });
-  } finally { await session?.dispose(); await provider.stop(); await rm(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 }); }
+  } finally { await session?.dispose(); await provider.stop(); await removeFixtureDirectory(root, "codex-additional-directories"); }
 }, 120_000);
 
 test.skipIf(process.env.OAR_TEST !== "kimi-aimock")("Kimi supplies new-session directories in native context and refuses a resume override", async () => {

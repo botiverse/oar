@@ -42,6 +42,27 @@ removal has no final result, and neither a timeout nor a successful removal
 proves that all native descendants exited. Pending filesystem work can still
 outlive the test.
 
+Codex vendor temporary directories use the same helper, including Codex
+branches in shared cases. Their removal retries are standardized on the
+helper's defaults: ten retries with a 300 ms linear retry delay. Other
+backends' cleanup branches retain their previous behavior. The five-second
+wait still counts toward the existing case deadline; cleanup errors are
+recorded without replacing an earlier assertion failure.
+
+When a Windows `codex-aimock` removal reaches `pending`, one independent
+`fixture_directory_processes` observation queries process names, PIDs and
+parent PIDs only. It has a ten-second deadline, a 512 KiB limit per output
+stream and a 1,024-row limit with explicit truncation. It records the
+directory identity, Node test-worker PID and timing, or a fixed failure/timeout
+outcome, in the trace and job log. It never records command lines or query
+stderr, never signals sampled processes and does not delay the cleanup
+waiter. Only its own PowerShell observer is stopped at the deadline.
+An observed process does not establish lock ownership; a missing process
+does not establish an antivirus or indexing cause. A Windows-only test runs
+the real observer and requires a successful capture containing its test
+worker's PID. This diagnostic and its
+dedicated tests join the [December 7 retention review](../experiments/acp-ci-failures/closeout.md#diagnostic-retention).
+
 This bounds fixture housekeeping only. Session disposal, native assertions,
 case deadlines and normal CI concurrency are unchanged. The
 [Windows comparison](../experiments/windows-codex-ci/README.md) found a slow
