@@ -1,0 +1,80 @@
+{
+  "node": "v24.19.0",
+  "vitest": "4.1.11",
+  "platform": "posix",
+  "results": [
+    {
+      "mode": "fixed-wait",
+      "exitCode": -9,
+      "worker": [
+        {
+          "kind": "module_loaded",
+          "at": "2026-11-07T00:26:04.761Z"
+        },
+        {
+          "kind": "case_entered",
+          "at": "2026-11-07T00:26:04.770Z"
+        },
+        {
+          "kind": "worker_blocking",
+          "at": "2026-11-07T00:26:05.271Z"
+        }
+      ],
+      "reporter": [
+        {
+          "kind": "run_start",
+          "at": "2026-11-07T00:26:04.557Z"
+        },
+        {
+          "kind": "module_queued",
+          "at": "2026-11-07T00:26:04.737Z"
+        },
+        {
+          "kind": "module_collected",
+          "at": "2026-11-07T00:26:04.764Z"
+        }
+      ],
+      "activeNames": []
+    },
+    {
+      "mode": "observed-ready",
+      "exitCode": -9,
+      "worker": [
+        {
+          "kind": "module_loaded",
+          "at": "2026-11-07T00:26:08.738Z"
+        },
+        {
+          "kind": "case_entered",
+          "at": "2026-11-07T00:26:08.746Z"
+        },
+        {
+          "kind": "worker_blocking",
+          "at": "2026-11-07T00:26:09.507Z"
+        }
+      ],
+      "reporter": [
+        {
+          "kind": "run_start",
+          "at": "2026-11-07T00:26:08.565Z"
+        },
+        {
+          "kind": "module_queued",
+          "at": "2026-11-07T00:26:08.713Z"
+        },
+        {
+          "kind": "module_collected",
+          "at": "2026-11-07T00:26:08.741Z"
+        },
+        {
+          "kind": "case_start",
+          "at": "2026-11-07T00:26:09.497Z",
+          "name": "blocked native worker"
+        }
+      ],
+      "activeNames": [
+        "blocked native worker"
+      ]
+    }
+  ]
+}

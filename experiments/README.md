@@ -1,6 +1,7 @@
 # experiments
 
 - [Native CI failures: 2026-11-06](acp-ci-failures/README.md): CodeBuddy install timing, Antigravity MCP mismatch, all 18 Windows Grok/OpenCode failure artifacts, and incremental synthetic-provider evidence.
+- [Windows watchdog fixture readiness](windows-watchdog/README.md): retained failure checkpoints and a controlled Vitest scheduling comparison before blocking a worker.
 - [OpenCode first-prompt snapshots](acp-ci-failures/opencode-snapshot.md): Windows 1.19.5 native stage evidence and small Git directories for MCP/failure vendor fixtures, with native snapshots still enabled.
 
 - [DSH background work](dsh-background-work/README.md): root completion, outstanding jobs and native follow-up tool calls, with Claude and Codex controls.
