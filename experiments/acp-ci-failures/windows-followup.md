@@ -1,5 +1,8 @@
 # Native CI follow-up: first Windows provider records
 
+The [November 7 closeout](closeout.md) supersedes the pending validation and
+retention decisions below. OpenCode native-log copying is now manual only.
+
 Measured November 6, 2026, after PRs #677 and #678. The new records localize
 the OpenCode delay before its first agent model request, and show where one
 successful Grok launch spent its time. They do not establish the causes of

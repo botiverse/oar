@@ -4,11 +4,11 @@ import { execFileSync } from "node:child_process";
 import { appendFile, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { opencodeInstallation, opencodeSession, type AvailableInstallation, type Session } from "../../packages/oar/src/index.js";
-import { awaitTurnEnd } from "../../packages/oar/src/observe/turns.js";
+import { awaitTurnEnd, opencodeInstallation, opencodeSession, type AvailableInstallation, type Session } from "../../packages/oar/src/index.js";
 import { startOpencodeAimock, type AcpAimockEnv } from "../../sea-trial/harness/aimock-acp.js";
 import { resolveRunDir } from "../../sea-trial/harness/trace.js";
 import { echoFixtures, stdioEcho } from "../../sea-trial/vendor/support/echo-mcp.js";
+import { retainOpencodeLogs } from "./opencode-evidence.js";
 
 const output = resolveRunDir();
 
@@ -69,7 +69,13 @@ async function probe(installation: AvailableInstallation, control: Control): Pro
         (server, text) => ({ name: `${server}_echo`, arguments: { text } }));
     }
   }, control.config);
-  try { await attempts(installation, control, fixture); } finally { await fixture.stop(); }
+  try { await attempts(installation, control, fixture); } finally {
+    try {
+      const dataHome = fixture.env.XDG_DATA_HOME;
+      assert.ok(dataHome !== undefined);
+      await retainOpencodeLogs(dataHome);
+    } finally { await fixture.stop(); }
+  }
 }
 
 const installation = await opencodeInstallation();

@@ -1,5 +1,9 @@
 # Grok ACP bootstrap phases and repeated startup
 
+The [November 7 closeout](../acp-ci-failures/closeout.md) keeps this probe and
+its tests for a natural first-timeout/reuse sample. Successful later probes
+do not explain a different suite process's initialization timeout.
+
 This extends the existing post-suite Windows launch comparison to distinguish
 binary extraction, installation into `GROK_HOME`, native spawn and the ACP
 initialize response. The 15-second initialize limit is unchanged. This is
