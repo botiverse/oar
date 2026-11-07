@@ -1,0 +1,115 @@
+{
+  "runtime": "claude",
+  "version": "2.1.319 (Claude Code)",
+  "mode": "full",
+  "sourceSha256": "5c8ba070c1be0e2dcdbeaeb32476444eaa8dbe455cbfe8654a46ac22680108ce",
+  "failure": null,
+  "fileAfterEdit": "AFTER\n",
+  "mcpCalls": [
+    {
+      "at": 1794022347230,
+      "kind": "tool_called",
+      "name": "echo",
+      "arguments": {
+        "text": "ACTUAL"
+      }
+    }
+  ],
+  "timingMsFromOpen": {
+    "openReturned": 66,
+    "toolsListReturned": 2779,
+    "firstPrimaryModelRequest": 2945
+  },
+  "readiness": [
+    {
+      "type": "system/init",
+      "servers": [
+        {
+          "name": "audit",
+          "status": "connected",
+          "source": "dynamic"
+        }
+      ]
+    }
+  ],
+  "tools": [
+    {
+      "tool": "Bash",
+      "events": [
+        {
+          "kind": "tool_call_started",
+          "tool": "Bash"
+        },
+        {
+          "kind": "tool_call_input",
+          "input": "{\"command\":\"printf 'AUDIT_COMMAND\\\\n'\"}"
+        },
+        {
+          "kind": "tool_call_ended",
+          "result": "ok"
+        }
+      ],
+      "nativeInputs": [
+        {
+          "command": "printf 'AUDIT_COMMAND\\n'"
+        }
+      ],
+      "nativeKinds": [],
+      "nativeLocations": [],
+      "nativeDetails": []
+    },
+    {
+      "tool": "Edit",
+      "events": [
+        {
+          "kind": "tool_call_started",
+          "tool": "Edit"
+        },
+        {
+          "kind": "tool_call_input",
+          "input": "{\"replace_all\":false,\"file_path\":\"<project>/audit.txt\",\"old_string\":\"BEFORE\",\"new_string\":\"AFTER\"}"
+        },
+        {
+          "kind": "tool_call_ended",
+          "result": "ok"
+        }
+      ],
+      "nativeInputs": [
+        {
+          "replace_all": false,
+          "file_path": "<project>/audit.txt",
+          "old_string": "BEFORE",
+          "new_string": "AFTER"
+        }
+      ],
+      "nativeKinds": [],
+      "nativeLocations": [],
+      "nativeDetails": []
+    },
+    {
+      "tool": "mcp__audit__echo",
+      "events": [
+        {
+          "kind": "tool_call_started",
+          "tool": "mcp__audit__echo"
+        },
+        {
+          "kind": "tool_call_input",
+          "input": "{\"text\":\"ACTUAL\"}"
+        },
+        {
+          "kind": "tool_call_ended",
+          "result": "ok"
+        }
+      ],
+      "nativeInputs": [
+        {
+          "text": "ACTUAL"
+        }
+      ],
+      "nativeKinds": [],
+      "nativeLocations": [],
+      "nativeDetails": []
+    }
+  ]
+}

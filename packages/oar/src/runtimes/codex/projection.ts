@@ -31,7 +31,7 @@ import { baselineTokens, codexUsageViews, initialTokenBaseline, nextTokenBaselin
 
 // `sleep` is the model waiting (`{durationMs}`, the wait it asked for; a steer
 // can end it early). It reports no status, so its end carries no result.
-const TOOL_ITEM_TYPES = new Set(["commandExecution", "fileChange", "mcpToolCall", "webSearch", "sleep"]);
+const TOOL_ITEM_TYPES = new Set(["commandExecution", "fileChange", "mcpToolCall", "webSearch", "sleep", "collabAgentToolCall"]);
 const COLLAB_ITEM_TYPES = new Set(["collabAgentToolCall", "collabToolCall", "subAgentActivity"]);
 
 export type ProjectionCommand =

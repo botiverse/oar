@@ -1,0 +1,112 @@
+{
+  "runtime": "antigravity",
+  "version": "1.5.2",
+  "mode": "full",
+  "sourceSha256": "b9ec4ca02d568390e16bb2efaa071064748937947c26018ce2e00d832648b9d7",
+  "failure": null,
+  "fileAfterEdit": "AFTER\n",
+  "mcpCalls": [
+    {
+      "at": 1794022446831,
+      "kind": "tool_called",
+      "name": "echo",
+      "arguments": {
+        "text": "ACTUAL"
+      }
+    }
+  ],
+  "timingMsFromOpen": {
+    "openReturned": 2555,
+    "toolsListReturned": 2519,
+    "firstPrimaryModelRequest": 2633
+  },
+  "readiness": [],
+  "tools": [
+    {
+      "tool": "run_command",
+      "events": [
+        {
+          "kind": "tool_call_started",
+          "tool": "run_command",
+          "input": "{\"CommandLine\":\"printf 'AUDIT_COMMAND\\\\n'\",\"WaitMsBeforeAsync\":5000,\"toolSummary\":\"Print audit marker\"}"
+        },
+        {
+          "kind": "tool_call_ended",
+          "result": "ok",
+          "exitCode": 0
+        }
+      ],
+      "nativeInputs": [
+        {
+          "CommandLine": "printf 'AUDIT_COMMAND\\n'",
+          "WaitMsBeforeAsync": 5000,
+          "toolSummary": "Print audit marker"
+        }
+      ],
+      "nativeKinds": [
+        "execute"
+      ],
+      "nativeLocations": [],
+      "nativeDetails": []
+    },
+    {
+      "tool": "edit_file",
+      "events": [
+        {
+          "kind": "tool_call_started",
+          "tool": "edit_file",
+          "input": "{\"Path\":\"<project>/audit.txt\",\"Replacement\":\"AFTER\",\"Target\":\"BEFORE\"}"
+        },
+        {
+          "kind": "tool_call_ended",
+          "result": "ok"
+        }
+      ],
+      "nativeInputs": [
+        {
+          "Path": "<project>/audit.txt",
+          "Replacement": "AFTER",
+          "Target": "BEFORE"
+        }
+      ],
+      "nativeKinds": [
+        "edit"
+      ],
+      "nativeLocations": [
+        {
+          "path": "<project>/audit.txt"
+        },
+        {
+          "path": "<project>/audit.txt",
+          "source": "content.diff"
+        }
+      ],
+      "nativeDetails": []
+    },
+    {
+      "tool": "mcp_audit_echo",
+      "events": [
+        {
+          "kind": "tool_call_started",
+          "tool": "mcp_audit_echo",
+          "input": "ACTUAL"
+        },
+        {
+          "kind": "tool_call_ended",
+          "result": "ok"
+        }
+      ],
+      "nativeInputs": [
+        {
+          "text": "ACTUAL",
+          "toolSummary": "Audit echo"
+        }
+      ],
+      "nativeKinds": [
+        "other"
+      ],
+      "nativeLocations": [],
+      "nativeDetails": []
+    }
+  ]
+}

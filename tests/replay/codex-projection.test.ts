@@ -119,7 +119,7 @@ function foldFrames(frames: readonly { method: string; params: Record<string, un
 
 test("codex notifications of another thread are child-session records; collab items link them", () => {
   expect(foldFrames(CHILD_FRAMES)).toEqual([
-    "event, link thread-root → thread-child (tool_call)",
+    "event → tool_call_started collabAgentToolCall, link thread-root → thread-child (tool_call)",
     "event @thread:thread-child → turn_active",
     "event @thread:thread-child → text_delta",
     "event, link thread-root → thread-child (tool_call)",

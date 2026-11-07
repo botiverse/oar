@@ -1,0 +1,132 @@
+{
+  "runtime": "codebuddy",
+  "version": "2.181.0",
+  "mode": "full",
+  "sourceSha256": "aede96ade7bf192661aa8ccf54d9a40b9152f4b0367aa9ed2352bd5ae590b9c3",
+  "failure": null,
+  "fileAfterEdit": "AFTER\n",
+  "mcpCalls": [
+    {
+      "at": 1794022536742,
+      "kind": "tool_called",
+      "name": "echo",
+      "arguments": {
+        "text": "ACTUAL"
+      }
+    }
+  ],
+  "timingMsFromOpen": {
+    "openReturned": 2886,
+    "toolsListReturned": 4774,
+    "firstPrimaryModelRequest": 3582
+  },
+  "readiness": [],
+  "tools": [
+    {
+      "tool": "Bash",
+      "events": [
+        {
+          "kind": "tool_call_started",
+          "tool": "Bash",
+          "input": "{}"
+        },
+        {
+          "kind": "tool_call_input",
+          "input": "{\"command\":\"pwd\"}"
+        },
+        {
+          "kind": "tool_call_ended",
+          "result": "ok"
+        }
+      ],
+      "nativeInputs": [
+        {},
+        {
+          "command": "pwd"
+        }
+      ],
+      "nativeKinds": [
+        "other",
+        "execute"
+      ],
+      "nativeLocations": [],
+      "nativeDetails": []
+    },
+    {
+      "tool": "Edit",
+      "events": [
+        {
+          "kind": "tool_call_started",
+          "tool": "Edit",
+          "input": "{}"
+        },
+        {
+          "kind": "tool_call_input",
+          "input": "{\"file_path\":\"/tmp/o\"}"
+        },
+        {
+          "kind": "tool_call_input",
+          "input": "{\"file_path\":\"<project>/audit.txt\",\"old_string\":\"BEFORE\",\"new_string\":\"AFTER\"}"
+        },
+        {
+          "kind": "tool_call_ended",
+          "result": "ok"
+        }
+      ],
+      "nativeInputs": [
+        {},
+        {
+          "file_path": "/tmp/o"
+        },
+        {
+          "file_path": "<project>/audit.txt",
+          "old_string": "BEFORE",
+          "new_string": "AFTER"
+        }
+      ],
+      "nativeKinds": [
+        "other",
+        "edit"
+      ],
+      "nativeLocations": [
+        {
+          "path": "<project>/audit.txt"
+        },
+        {
+          "path": "<project>/audit.txt",
+          "source": "content.diff"
+        }
+      ],
+      "nativeDetails": []
+    },
+    {
+      "tool": "mcp__audit__echo",
+      "events": [
+        {
+          "kind": "tool_call_started",
+          "tool": "mcp__audit__echo",
+          "input": "{}"
+        },
+        {
+          "kind": "tool_call_input",
+          "input": "ACTUAL"
+        },
+        {
+          "kind": "tool_call_ended",
+          "result": "ok"
+        }
+      ],
+      "nativeInputs": [
+        {},
+        {
+          "text": "ACTUAL"
+        }
+      ],
+      "nativeKinds": [
+        "other"
+      ],
+      "nativeLocations": [],
+      "nativeDetails": []
+    }
+  ]
+}

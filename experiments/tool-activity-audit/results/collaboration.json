@@ -1,0 +1,59 @@
+{
+  "version": "codex-cli 0.167.0",
+  "sourceSha256": "9a238c1d1955c9677ac5d55e9abe99809642e903db8c0993f5ed078f5c86053a",
+  "frames": [
+    {
+      "type": "item/started",
+      "item": {
+        "type": "collabAgentToolCall",
+        "id": "audit_wait",
+        "tool": "wait",
+        "status": "inProgress",
+        "receiverThreadIds": [],
+        "prompt": null,
+        "model": null,
+        "reasoningEffort": null,
+        "agentsStates": {}
+      },
+      "eventsBeforeFix": []
+    },
+    {
+      "type": "item/completed",
+      "item": {
+        "type": "collabAgentToolCall",
+        "id": "audit_wait",
+        "tool": "wait",
+        "status": "completed",
+        "receiverThreadIds": [],
+        "prompt": null,
+        "model": null,
+        "reasoningEffort": null,
+        "agentsStates": {}
+      },
+      "eventsBeforeFix": []
+    }
+  ],
+  "afterFixSourceSha256": "93719417d9873f02875af096e596235c2e1ddf6e069772496ef2badfa1d69fa4",
+  "afterFix": [
+    {
+      "type": "item/started",
+      "events": [
+        {
+          "kind": "tool_call_started",
+          "callId": "audit_wait",
+          "tool": "collabAgentToolCall"
+        }
+      ]
+    },
+    {
+      "type": "item/completed",
+      "events": [
+        {
+          "kind": "tool_call_ended",
+          "callId": "audit_wait",
+          "result": "ok"
+        }
+      ]
+    }
+  ]
+}
