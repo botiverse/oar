@@ -377,6 +377,10 @@ tier. Unsupported runtimes reject the option before opening.
 `runtime.accountUsage(installation)` reads account quota on claude,
 codex, grok and kimi; its failure semantics are in the
 [account usage reference](https://github.com/botiverse/oar/blob/main/docs/spec/account-usage.md).
+On codex it also reports the account's limit resets, and
+`runtime.redeemLimitReset(installation, { idempotencyKey })` spends one;
+oar never spends one on its own
+([limit resets](https://github.com/botiverse/oar/blob/main/docs/spec/account-usage.md#limit-resets)).
 
 `runtime.checkUpdate(installation)` reports the version the runtime's own
 updater would install and where that answer came from;

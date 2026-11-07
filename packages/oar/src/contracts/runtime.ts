@@ -1,11 +1,11 @@
 /* oxlint-disable import/max-dependencies -- Runtime composes the independently owned capability contracts. */
+import type { AccountUsageReader, LimitResetRedeemer } from "./account-usage.js";
 import type { AuthStatusReader, RuntimeLogin, RuntimeLogout } from "./login.js";
 import type { InstallLine, InstallPlanner, Installer } from "./install.js";
 import type { InventoryResult, RuntimeInventories } from "./inventory.js";
 // oxlint-disable-next-line import/consistent-type-specifier-style -- Keep types and implementation from the same contract in one import.
 import { type PlacementRequest, type RuntimePlacementOptions, placementSession } from "./placement.js";
 import type { UpdateChecker, Upgrader } from "./update.js";
-import type { AccountUsageReader } from "./account-usage.js";
 import type { InstallationProbe } from "./installation.js";
 import type { ManualCompaction } from "./compaction.js";
 import type { ModelLister } from "./list-models.js";
@@ -122,6 +122,8 @@ export interface Runtime extends RuntimeInventories {
    */
   readonly installLines?: readonly InstallLine[];
   readonly accountUsage?: AccountUsageReader;
+  /** Spends one of the account's limit resets (`limitResets` in `accountUsage`); uses up the account owner's reset, so only on the host's explicit call. */
+  readonly redeemLimitReset?: LimitResetRedeemer;
   readonly listModels?: ModelLister;
   /** Read only: the version the runtime's own updater would install. */
   readonly checkUpdate?: UpdateChecker;

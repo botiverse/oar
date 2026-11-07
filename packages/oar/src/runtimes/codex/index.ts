@@ -5,6 +5,7 @@ import { defineRuntime } from "../../contracts/runtime.js";
 import { codexAuthStatus, codexLogin } from "./login.js";
 import { codexLogout } from "./logout.js";
 import { codexAccountUsage } from "./account-usage.js";
+import { codexRedeemLimitReset } from "./limit-reset.js";
 import { codexInstallation } from "./installation.js";
 import { codexInstall, codexInstallPlan } from "./install.js";
 import { codexListModels } from "./list-models.js";
@@ -29,6 +30,7 @@ export const codexRuntime = defineRuntime({
   installPlan: codexInstallPlan,
   install: codexInstall,
   accountUsage: codexAccountUsage,
+  redeemLimitReset: codexRedeemLimitReset,
   listModels: codexListModels,
   checkUpdate: codexCheckUpdate,
   upgrade: codexUpgrade,
@@ -39,5 +41,6 @@ export const codexRuntime = defineRuntime({
 }, { execution: "process" });
 
 export { codexAccountUsage, projectCodexUsage } from "./account-usage.js";
+export { codexRedeemLimitReset } from "./limit-reset.js";
 export { codexListModels, projectCodexModels } from "./list-models.js";
 export { codexSession } from "./session.js";

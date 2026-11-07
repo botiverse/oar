@@ -8,6 +8,7 @@ import type {
 } from "../../contracts/account-usage.js";
 import { startAppServerClient, type AppServerClient } from "./app-server-client.js";
 import { asEpochInstant, asNumber, asRecord } from "../../shared/json.js";
+import { projectLimitResets } from "./reset-credits.js";
 
 type ReadOutcome =
   | { readonly kind: "ok"; readonly result: unknown; readonly email: string | undefined }
@@ -160,12 +161,14 @@ export function projectCodexUsage(result: unknown, email?: string): AccountUsage
   if (windows.length === 0) {
     throw new Error("Codex returned no usable account usage windows");
   }
+  const limitResets = projectLimitResets(root?.rateLimitResetCredits);
   return {
     kind: "available",
     ...(plan === undefined ? {} : { plan }),
     ...(email === undefined ? {} : { email }),
     rateLimited,
     windows,
+    ...(limitResets === undefined ? {} : { limitResets }),
   };
 }
 
@@ -207,6 +210,19 @@ export async function readFromAppServer(
   startClient: StartAppServerClient = startAppServerClient,
   env?: SessionOptions["env"],
 ): Promise<ReadOutcome> {
+  const outcome = await callAppServer(command, timeoutMs, "account/rateLimits/read", {}, startClient, env);
+  return outcome;
+}
+
+/** One ChatGPT-account request on a fresh app-server, after `account/read` rules out other account modes. */
+export async function callAppServer(
+  command: string,
+  timeoutMs: number,
+  method: string,
+  params: Record<string, unknown>,
+  startClient: StartAppServerClient = startAppServerClient,
+  env?: SessionOptions["env"],
+): Promise<ReadOutcome> {
   const client = startClient(command, env);
   const deadline = setTimeout(() => {
     client.kill();
@@ -218,7 +234,7 @@ export async function readFromAppServer(
     });
     client.notify("initialized", {});
 
-    // Read auth mode before the ChatGPT-only rate-limit endpoint. In API-key
+    // Read auth mode before the ChatGPT-only account endpoints. In API-key
     // mode that endpoint rejects with "ChatGPT authentication required" even
     // though Codex itself is correctly authenticated; treating that as expired
     // OAuth would tell the user to perform a login that cannot fix the state.
@@ -233,10 +249,13 @@ export async function readFromAppServer(
       return { kind: "unsupported", reason: "unsupported_auth_mode" };
     }
 
-    const result = await client.request("account/rateLimits/read", {});
+    const result = await client.request(method, params);
     return { kind: "ok", result, email: accountEmail(account) };
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
+    if (/chatgpt authentication required for rate limit reset/iu.test(message)) {
+      return { kind: "unsupported", reason: "unsupported_auth_mode" };
+    }
     if (/authentication required/iu.test(message)) {
       return { kind: "reauth_required", reason: "not_authenticated" };
     }

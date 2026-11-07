@@ -1127,7 +1127,10 @@ Account usage is a
 separate reader on its own app-server process (`initialize`, `account/read`,
 `account/rateLimits/read`, with `reauth_required` / `unsupported` outcomes and
 rate-limit buckets merged as the codex TUI does); neither it nor installation
-discovery is inferred from turn token totals. Update checks read the
+discovery is inferred from turn token totals. The same read's
+`rateLimitResetCredits` becomes `limitResets`, and `redeemLimitReset` sends
+`account/rateLimitResetCredit/consume` on its own app-server process the
+same way ([limit resets](../spec/account-usage.md#limit-resets)). Update checks read the
 `updates.status` row of `codex doctor --json`, and upgrades run `codex update`
 with a version read-back ([runtime updaters](update.md)). Login is mapped
 [below](#login). An installation probe that cannot run keeps its native error
