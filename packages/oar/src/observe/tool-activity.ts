@@ -29,6 +29,7 @@ export interface ToolAction {
   /**
    * A short target extracted from the tool input: the command text, a file path, a query.
    * On `read_file` and `edit_file` it is the first of `paths` when there are any.
+   * On `search`, a nonempty `pattern` or `query` precedes the search path.
    */
   readonly detail?: string;
   /**
@@ -107,13 +108,13 @@ const BY_RUNTIME: Record<string, Record<string, ToolActionKind>> = {
   // (opencode 1.18.30's file tools); ACP's `kind` is no help (grok sends none, kimi and
   // opencode a category, opencode's `write` the same `edit` as its `edit`).
   // Additional names and arguments: experiments/tool-activity-audit/results/.
-  grok: { run_terminal_command: "run_command", search_replace: "edit_file", use_tool: "mcp" },
-  kimi: { Bash: "run_command", Edit: "edit_file" },
-  qwen: { run_shell_command: "run_command", edit: "edit_file" },
-  qoder: { Bash: "run_command", Edit: "edit_file" },
-  codebuddy: { Bash: "run_command", Edit: "edit_file" },
-  antigravity: { run_command: "run_command", edit_file: "edit_file" },
-  dsh: { bash: "run_command", edit: "edit_file" },
+  grok: { run_terminal_command: "run_command", search_replace: "edit_file", use_tool: "mcp", read_file: "read_file", grep: "search" },
+  kimi: { Bash: "run_command", Edit: "edit_file", Read: "read_file", Grep: "search" },
+  qwen: { run_shell_command: "run_command", edit: "edit_file", read_file: "read_file", grep_search: "search" },
+  qoder: { Bash: "run_command", Edit: "edit_file", Read: "read_file", Grep: "search" },
+  codebuddy: { Bash: "run_command", Edit: "edit_file", Read: "read_file", Grep: "search" },
+  antigravity: { run_command: "run_command", edit_file: "edit_file", read_file: "read_file" },
+  dsh: { bash: "run_command", edit: "edit_file", read: "read_file", grep: "search" },
   opencode: {
     bash: "run_command",
     shell: "run_command",
@@ -237,7 +238,7 @@ const FIELDS: Record<string, Record<string, (input: string) => InputFields>> = {
 
 const FIRST_STRING_KEYS = ["command", "cmd", "path", "file_path", "filePath", "file", "pattern", "query", "url"];
 
-function detailOf(inputJson: string | undefined): string | undefined {
+function detailOf(inputJson: string | undefined, kind: ToolActionKind): string | undefined {
   if (inputJson === undefined) {
     return undefined;
   }
@@ -245,7 +246,8 @@ function detailOf(inputJson: string | undefined): string | undefined {
   if (input === null) {
     return undefined;
   }
-  for (const key of FIRST_STRING_KEYS) {
+  const keys = kind === "search" ? ["pattern", "query", ...FIRST_STRING_KEYS] : FIRST_STRING_KEYS;
+  for (const key of keys) {
     const value = input[key];
     if (typeof value === "string" && value.length > 0) {
       return value;
@@ -267,7 +269,7 @@ export function classifyTool(runtimeId: string, tool: string, inputJson?: string
   const runtime = runtimeId.replace(/-aimock$/u, "");
   const fields = inputJson === undefined ? {} : (recorded(FIELDS, runtime, tool)?.(inputJson) ?? {});
   const paths = inputJson === undefined || (kind !== "read_file" && kind !== "edit_file") ? [] : filePathsOf(runtime, tool, inputJson);
-  const detail = paths[0] ?? detailOf(inputJson) ?? fields.command ?? (kind === "subagent" ? fields.description : undefined) ?? (kind === "other" ? tool : undefined);
+  const detail = paths[0] ?? detailOf(inputJson, kind) ?? fields.command ?? (kind === "subagent" ? fields.description : undefined) ?? (kind === "other" ? tool : undefined);
   return { kind, ...(detail === undefined ? {} : { detail }), ...(paths.length === 0 ? {} : { paths }), ...fields };
 }
 

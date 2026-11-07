@@ -1,0 +1,103 @@
+{
+  "runtime": "kimi",
+  "version": "2.5.2",
+  "mode": "files",
+  "sourceSha256": "58c17fee83435e321d7e51650f25146817d410c36f989d9954da8b519842422f",
+  "failure": null,
+  "fileAfterEdit": null,
+  "mcpCalls": [],
+  "timingMsFromOpen": {
+    "openReturned": 1921,
+    "toolsListReturned": 3842,
+    "firstPrimaryModelRequest": 3948
+  },
+  "readiness": [],
+  "tools": [
+    {
+      "tool": "Read",
+      "events": [
+        {
+          "kind": "tool_call_started",
+          "tool": "Read"
+        },
+        {
+          "kind": "tool_call_input",
+          "input": "{\"path\":\"<project>/audit.txt\"}"
+        },
+        {
+          "kind": "tool_call_ended",
+          "content": [
+            {
+              "type": "text",
+              "text": "1\tBEFORE actual-file-evidence"
+            }
+          ],
+          "result": "ok"
+        }
+      ],
+      "nativeInputs": [
+        {
+          "path": "<project>/audit.txt"
+        }
+      ],
+      "nativeKinds": [
+        "read"
+      ],
+      "nativeLocations": [
+        {
+          "path": "<project>/audit.txt"
+        }
+      ],
+      "nativeDetails": []
+    },
+    {
+      "tool": "Grep",
+      "events": [
+        {
+          "kind": "tool_call_started",
+          "tool": "Grep"
+        },
+        {
+          "kind": "tool_call_input",
+          "input": "{\"pattern\":\"BEFORE\",\"path\":\"<project>\",\"output_mode\":\"content\"}"
+        },
+        {
+          "kind": "tool_call_ended",
+          "content": [
+            {
+              "type": "text",
+              "text": "audit.txt:1:BEFORE actual-file-evidence"
+            }
+          ],
+          "result": "ok"
+        }
+      ],
+      "nativeInputs": [
+        {
+          "pattern": "BEFORE",
+          "path": "<project>",
+          "output_mode": "content"
+        }
+      ],
+      "nativeKinds": [
+        "read"
+      ],
+      "nativeLocations": [
+        {
+          "path": "<project>"
+        }
+      ],
+      "nativeDetails": []
+    }
+  ],
+  "modelToolResults": [
+    {
+      "tool_call_id": "audit_read",
+      "content": "1\tBEFORE actual-file-evidence"
+    },
+    {
+      "tool_call_id": "audit_file-search",
+      "content": "Wall time: 0.025 seconds\naudit.txt:1:BEFORE actual-file-evidence"
+    }
+  ]
+}

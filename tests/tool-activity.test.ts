@@ -126,7 +126,7 @@ test("classifyTool leaves paths out when a call names no file, and off other kin
   assert.deepEqual(classifyTool("codex", "fileChange"), { kind: "edit_file" });
   assert.deepEqual(classifyTool("codex", "fileChange", "[]"), { kind: "edit_file" });
   assert.deepEqual(classifyTool("claude", "NotebookEdit", JSON.stringify({ cell_id: "c1", new_source: "x" })), { kind: "edit_file" });
-  assert.deepEqual(classifyTool("pi", "grep", JSON.stringify({ pattern: "x", path: "src" })), { kind: "search", detail: "src" });
+  assert.deepEqual(classifyTool("pi", "grep", JSON.stringify({ pattern: "x", path: "src" })), { kind: "search", detail: "x" });
   assert.deepEqual(classifyTool("claude", "Bash", JSON.stringify({ command: "cat a.ts" })), { kind: "run_command", detail: "cat a.ts", command: "cat a.ts" });
 });
 

@@ -1,0 +1,110 @@
+{
+  "runtime": "qwen",
+  "version": "0.26.9",
+  "mode": "files",
+  "sourceSha256": "37682e5ffa57a036dbe138aaa541d09313a52b079d2a1facc985e65ac291f2e4",
+  "failure": null,
+  "fileAfterEdit": null,
+  "mcpCalls": [],
+  "timingMsFromOpen": {
+    "openReturned": 1887,
+    "toolsListReturned": 4529,
+    "firstPrimaryModelRequest": 4920
+  },
+  "readiness": [
+    {
+      "type": "system/init",
+      "servers": [
+        {
+          "name": "audit",
+          "status": "connected"
+        }
+      ]
+    }
+  ],
+  "tools": [
+    {
+      "tool": "read_file",
+      "events": [
+        {
+          "kind": "tool_call_started",
+          "tool": "read_file"
+        },
+        {
+          "kind": "tool_call_input",
+          "input": "{\"file_path\":\"<project>/audit.txt\"}"
+        },
+        {
+          "kind": "tool_call_ended",
+          "content": [
+            {
+              "type": "text",
+              "text": "BEFORE actual-file-evidence\n"
+            }
+          ],
+          "result": "ok"
+        }
+      ],
+      "nativeInputs": [
+        {
+          "file_path": "<project>/audit.txt"
+        }
+      ],
+      "nativeKinds": [],
+      "nativeLocations": [],
+      "nativeDetails": []
+    },
+    {
+      "tool": "grep_search",
+      "events": [
+        {
+          "kind": "tool_call_started",
+          "tool": "grep_search"
+        },
+        {
+          "kind": "tool_call_input",
+          "input": "{\"pattern\":\"BEFORE\",\"path\":\"<project>\"}"
+        },
+        {
+          "kind": "tool_call_ended",
+          "content": [
+            {
+              "type": "text",
+              "text": "Found 1 match"
+            }
+          ],
+          "result": "ok"
+        }
+      ],
+      "nativeInputs": [
+        {
+          "pattern": "BEFORE",
+          "path": "<project>"
+        }
+      ],
+      "nativeKinds": [],
+      "nativeLocations": [],
+      "nativeDetails": []
+    }
+  ],
+  "modelToolResults": [
+    {
+      "tool_call_id": "audit_read",
+      "content": [
+        {
+          "type": "text",
+          "text": "BEFORE actual-file-evidence\n"
+        }
+      ]
+    },
+    {
+      "tool_call_id": "audit_file-search",
+      "content": [
+        {
+          "type": "text",
+          "text": "Found 1 match for pattern \"BEFORE\" in path \"<project>\":\n---\n<project>/audit.txt:1:BEFORE actual-file-evidence"
+        }
+      ]
+    }
+  ]
+}

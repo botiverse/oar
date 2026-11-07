@@ -608,6 +608,14 @@ Further rules:
   `tool_call` is `mcp` only when its complete input names an `mcp__` target;
   the dispatcher alone proves no category. A Codex collaboration operation
   is `subagent`; its completion does not mean the child task has finished.
+  Its input contains the native `tool` and `prompt` fields when present,
+  including null values; no recipient arguments are inferred from child ids.
+  [Read and search mappings](../../experiments/tool-activity-audit/files.md)
+  also cover the recorded Grok, Kimi, Qwen, Qoder, CodeBuddy, Antigravity and
+  DSH file tools. For `search`, `detail` prefers a nonempty `pattern`, then
+  `query`, over the search path. A path is scope, and remains the fallback
+  when no query is reported. Other categories keep their detail order;
+  a shell command that reads or searches is still `run_command`.
 - **Tool outcomes are the runtime's.** `tool_call_ended.result` (`"ok"` |
   `"failed"`) is present only when the runtime explicitly reports the
   outcome; oar never infers it from output, exit codes, or timing.

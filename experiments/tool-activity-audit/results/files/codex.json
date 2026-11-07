@@ -1,0 +1,122 @@
+{
+  "runtime": "codex",
+  "version": "codex-cli 0.167.0",
+  "mode": "files",
+  "sourceSha256": "63c604ae89d2f9852b8c4e9b58ab50be7e2c84963e2d12614f3be9c6e557a056",
+  "failure": null,
+  "fileAfterEdit": null,
+  "mcpCalls": [],
+  "timingMsFromOpen": {
+    "openReturned": 166,
+    "toolsListReturned": 2264,
+    "firstPrimaryModelRequest": 1339
+  },
+  "readiness": [
+    {
+      "type": "mcpServer/startupStatus/updated",
+      "native": {
+        "name": "audit",
+        "status": "starting",
+        "error": null,
+        "failureReason": null
+      }
+    },
+    {
+      "type": "mcpServer/startupStatus/updated",
+      "native": {
+        "name": "audit",
+        "status": "ready",
+        "error": null,
+        "failureReason": null
+      }
+    }
+  ],
+  "tools": [
+    {
+      "tool": "commandExecution",
+      "events": [
+        {
+          "kind": "tool_call_started",
+          "tool": "commandExecution",
+          "input": "/bin/bash -lc 'cat \"<project>/audit.txt\"'"
+        },
+        {
+          "kind": "tool_call_ended",
+          "content": [
+            {
+              "type": "text",
+              "text": "BEFORE actual-file-evidence\n"
+            }
+          ],
+          "result": "ok",
+          "exitCode": 0
+        }
+      ],
+      "nativeInputs": [],
+      "nativeKinds": [
+        "commandExecution"
+      ],
+      "nativeLocations": [],
+      "nativeDetails": [
+        {
+          "commandActions": [
+            {
+              "type": "read",
+              "command": "cat <project>/audit.txt",
+              "name": "audit.txt",
+              "path": "<project>/audit.txt"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tool": "commandExecution",
+      "events": [
+        {
+          "kind": "tool_call_started",
+          "tool": "commandExecution",
+          "input": "/bin/bash -lc 'rg BEFORE \"<project>/audit.txt\"'"
+        },
+        {
+          "kind": "tool_call_ended",
+          "content": [
+            {
+              "type": "text",
+              "text": "BEFORE actual-file-evidence\n"
+            }
+          ],
+          "result": "ok",
+          "exitCode": 0
+        }
+      ],
+      "nativeInputs": [],
+      "nativeKinds": [
+        "commandExecution"
+      ],
+      "nativeLocations": [],
+      "nativeDetails": [
+        {
+          "commandActions": [
+            {
+              "type": "search",
+              "command": "rg BEFORE <project>/audit.txt",
+              "query": "BEFORE",
+              "path": "audit.txt"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "modelToolResults": [
+    {
+      "tool_call_id": "audit_read",
+      "content": "Chunk ID: dc7db3\nWall time: 0.0001 seconds\nProcess exited with code 0\nOriginal token count: 7\nOutput:\nBEFORE actual-file-evidence\n"
+    },
+    {
+      "tool_call_id": "audit_file-search",
+      "content": "Chunk ID: 1be073\nWall time: 0.0000 seconds\nProcess exited with code 0\nOriginal token count: 7\nOutput:\nBEFORE actual-file-evidence\n"
+    }
+  ]
+}

@@ -1,0 +1,106 @@
+{
+  "runtime": "claude",
+  "version": "2.1.309 (Claude Code)",
+  "mode": "files",
+  "sourceSha256": "fbaa5096d3e869d75f845f567a2aa36e17f689dcad08f79f09e3fdf7e90c9c47",
+  "failure": "AssertionError [ERR_ASSERTION]: [{\"kind\":\"tool_call_ended\",\"callId\":\"audit_file-search\",\"content\":[{\"type\":\"text\",\"text\":\"<tool_use_error>Error: No such tool available: Grep. Grep is not available in this session — search file contents with `grep` via the Bash tool instead.</tool_use_error>\"}],\"result\":\"failed\"}]",
+  "fileAfterEdit": null,
+  "mcpCalls": [],
+  "timingMsFromOpen": {
+    "openReturned": 47,
+    "toolsListReturned": 2803,
+    "firstPrimaryModelRequest": 2957
+  },
+  "readiness": [
+    {
+      "type": "system/init",
+      "servers": [
+        {
+          "name": "audit",
+          "status": "connected",
+          "source": "dynamic"
+        }
+      ]
+    }
+  ],
+  "tools": [
+    {
+      "tool": "Read",
+      "events": [
+        {
+          "kind": "tool_call_started",
+          "tool": "Read"
+        },
+        {
+          "kind": "tool_call_input",
+          "input": "{\"file_path\":\"<project>/audit.txt\"}"
+        },
+        {
+          "kind": "tool_call_ended",
+          "content": [
+            {
+              "type": "text",
+              "text": "1\tBEFORE actual-file-evidence\n2\t"
+            }
+          ],
+          "result": "ok"
+        }
+      ],
+      "nativeInputs": [
+        {
+          "file_path": "<project>/audit.txt"
+        }
+      ],
+      "nativeKinds": [],
+      "nativeLocations": [],
+      "nativeDetails": []
+    },
+    {
+      "tool": "Grep",
+      "events": [
+        {
+          "kind": "tool_call_started",
+          "tool": "Grep"
+        },
+        {
+          "kind": "tool_call_input",
+          "input": "{\"pattern\":\"BEFORE\",\"path\":\"<project>\",\"output_mode\":\"content\"}"
+        },
+        {
+          "kind": "tool_call_ended",
+          "content": [
+            {
+              "type": "text",
+              "text": "<tool_use_error>Error: No such tool available: Grep. Grep is not available in this session — search file contents with `grep` via the Bash tool instead.</tool_use_error>"
+            }
+          ],
+          "result": "failed"
+        }
+      ],
+      "nativeInputs": [
+        {
+          "pattern": "BEFORE",
+          "path": "<project>",
+          "output_mode": "content"
+        }
+      ],
+      "nativeKinds": [],
+      "nativeLocations": [],
+      "nativeDetails": []
+    }
+  ],
+  "modelToolResults": [
+    {
+      "tool_call_id": "audit_read",
+      "content": "1\tBEFORE actual-file-evidence\n2\t"
+    },
+    {
+      "tool_call_id": "audit_discover-file-search",
+      "content": "No matching deferred tools found"
+    },
+    {
+      "tool_call_id": "audit_file-search",
+      "content": "<tool_use_error>Error: No such tool available: Grep. Grep is not available in this session — search file contents with `grep` via the Bash tool instead.</tool_use_error>"
+    }
+  ]
+}

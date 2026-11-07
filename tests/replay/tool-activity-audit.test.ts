@@ -89,7 +89,7 @@ for (const runtime of ["kimi", "codebuddy", "antigravity"]) {
   });
 }
 
-test("recorded Codex collaboration waits classify as subagent operations without invented input", () => {
+test("historical Codex collaboration records classify without requiring input", () => {
   const recorded = readAudit("collaboration");
   const events = asRecordList(recorded?.afterFix).flatMap(frame => asRecordList(frame.events));
   const started = events.find(event => event.kind === "tool_call_started");
@@ -121,4 +121,54 @@ test("names and input spellings not recorded for these runtimes stay unknown", (
   expect(classifyTool("qwen", "mcp_audit_echo").kind).toBe("other");
   expect(classifyTool("antigravity", "run_command", '{"command":"unrecorded spelling"}').command).toBeUndefined();
   expect(classifyTool("antigravity", "edit_file", '{"file_path":"unrecorded spelling"}').paths).toBeUndefined();
+});
+
+function checkRead(runtime: string, action: ToolAction): void {
+  if (runtime === "codex") {
+    expect(action.kind).toBe("run_command");
+    expect(action.command).toContain("cat ");
+    expect(action.paths).toBeUndefined();
+  } else {
+    const file = `${runtime === "qoder" ? "<probe>" : "<project>"}/audit.txt`;
+    expect(action).toEqual({ kind: "read_file", detail: file, paths: [file] });
+  }
+}
+function checkSearch(runtime: string, action: ToolAction): void {
+  if (["claude", "codex", "antigravity", "pi", "pi-rpc"].includes(runtime)) {
+    expect(action.kind).toBe("run_command");
+    expect(action.command).toContain("rg BEFORE ");
+  } else {
+    expect(action).toEqual({ kind: "search", detail: "BEFORE" });
+  }
+}
+for (const runtime of ["claude", "codex", "grok", "kimi", "opencode", "qwen", "qoder", "codebuddy", "antigravity", "dsh", "pi", "pi-rpc"]) {
+  test.each(["read", "search"])(`${runtime}: native %s retains its actual category and target`, (operation) => {
+    const calls = audit(`files/${runtime}`).tools;
+    expect(calls).toHaveLength(2);
+    const runtimeId = runtime === "pi-rpc" ? "pi" : runtime;
+    const call = calls[operation === "read" ? 0 : 1];
+    assert.ok(call);
+    const action = classifyTool(runtimeId, call.tool, inputOf(runtimeId, call));
+    (operation === "read" ? checkRead : checkSearch)(runtime, action);
+  });
+}
+
+test("search detail favors a query over its scope without changing other categories", () => {
+  const input = '{"pattern":"needle","query":"fallback","path":"src","command":"incidental"}';
+  expect(classifyTool("claude", "Grep", input)).toEqual({ kind: "search", detail: "needle" });
+  expect(classifyTool("cursor", "semSearch", '{"query":"question","path":"src"}')).toEqual({ kind: "search", detail: "question" });
+  expect(classifyTool("claude", "Grep", '{"pattern":"","query":"question","path":"src"}').detail).toBe("question");
+  expect(classifyTool("claude", "Grep", '{"path":"src"}').detail).toBe("src");
+  expect(classifyTool("claude", "Read", input)).toEqual({ kind: "read_file", detail: "src", paths: ["src"] });
+  expect(classifyTool("claude", "Bash", input)).toEqual({ kind: "run_command", detail: "incidental", command: "incidental" });
+  expect(classifyTool("claude", "WebSearch", '{"query":"question","path":"src"}')).toEqual({ kind: "web", detail: "src" });
+  expect(classifyTool("unknown", "search", input)).toEqual({ kind: "other", detail: "incidental" });
+});
+
+test("file mappings do not extrapolate unrecorded tool names or path spellings", () => {
+  for (const [runtime, tool] of [["antigravity", "grep"], ["qwen", "Grep"], ["codebuddy", "read_file"], ["dsh", "Read"], ["grok", "Grep"], ["kimi", "grep"], ["qoder", "grep_search"]]) {
+    expect(classifyTool(runtime ?? "", tool ?? "").kind).toBe("other");
+  }
+  expect(classifyTool("grok", "read_file", '{"path":"wrong spelling"}').paths).toBeUndefined();
+  expect(classifyTool("antigravity", "read_file", '{"path":"wrong spelling"}').paths).toBeUndefined();
 });

@@ -115,3 +115,12 @@ test("a sleep item is a sleep tool call with its requested duration as input and
   const ended = foldCodexNotification(started.state, "item/completed", { threadId: "thread-1", item, completedAtMs: 1_791_015_516_209 });
   assert.deepEqual(ended.commands[0]?.kind === "frame" ? ended.commands[0].body.events : [], [{ kind: "tool_call_ended", callId: "call_rorJ" }]);
 });
+
+test("collaboration input preserves present fields without deriving arguments from child ids", () => {
+  const common = { type: "collabAgentToolCall", receiverThreadIds: ["child"] };
+  expect(codexItemInput(common)).toBeUndefined();
+  expect(codexItemInput({ ...common, tool: "wait" })).toBe('{"tool":"wait"}');
+  expect(codexItemInput({ ...common, prompt: "native prompt" })).toBe('{"prompt":"native prompt"}');
+  expect(codexItemInput({ ...common, tool: "sendInput", prompt: "native prompt", model: "unrelated" })).toBe('{"tool":"sendInput","prompt":"native prompt"}');
+  expect(codexItemInput({ ...common, tool: "future", prompt: "" })).toBe('{"tool":"future","prompt":""}');
+});

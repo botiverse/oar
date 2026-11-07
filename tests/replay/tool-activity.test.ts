@@ -267,8 +267,8 @@ test("opencode file tools: each opens with an empty input, and the latest names 
       "write {} → {"content":"<content>","filePath":"<filePath>"} ⇒ {"kind":"edit_file","detail":"<filePath>","paths":["<filePath>"]}",
       "read {} → {"filePath":"<filePath>"} ⇒ {"kind":"read_file","detail":"<filePath>","paths":["<filePath>"]}",
       "edit {} → {"filePath":"<filePath>","newString":"<newString>","oldString":"<oldString>"} ⇒ {"kind":"edit_file","detail":"<filePath>","paths":["<filePath>"]}",
-      "grep {} → {"path":"<path>","pattern":"<pattern>"} ⇒ {"kind":"search","detail":"<path>"}",
-      "glob {} → {"path":"<path>","pattern":"<pattern>"} ⇒ {"kind":"search","detail":"<path>"}",
+      "grep {} → {"path":"<path>","pattern":"<pattern>"} ⇒ {"kind":"search","detail":"<pattern>"}",
+      "glob {} → {"path":"<path>","pattern":"<pattern>"} ⇒ {"kind":"search","detail":"<pattern>"}",
       "bash {"cwd":"<cwd>"} → {"command":"<command>","workdir":"<workdir>"} ⇒ {"kind":"run_command","detail":"<command>","command":"<command>"}",
     ]
   `);

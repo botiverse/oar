@@ -1,0 +1,86 @@
+{
+  "runtime": "qoder",
+  "version": "1.1.81",
+  "mode": "native-replay",
+  "sourceSha256": "6dd33df9697d8c3ff5aa69fb110ee0a5b868b24e8827a37942c78b12dfa9567d",
+  "failure": null,
+  "fileAfterEdit": null,
+  "mcpCalls": [],
+  "timingMsFromOpen": {
+    "openReturned": 11526,
+    "toolsListReturned": 9498,
+    "firstPrimaryModelRequest": null
+  },
+  "readiness": [
+    {
+      "type": "system/init",
+      "servers": [
+        {
+          "name": "audit",
+          "status": "connected"
+        }
+      ]
+    }
+  ],
+  "tools": [
+    {
+      "tool": "Read",
+      "events": [
+        {
+          "kind": "tool_call_started",
+          "tool": "Read",
+          "input": "{\"file_path\":\"<probe>/audit.txt\"}"
+        },
+        {
+          "kind": "tool_call_ended",
+          "content": [
+            {
+              "type": "text",
+              "text": "1\tBEFORE actual-file-evidence\n2\t"
+            }
+          ],
+          "result": "ok"
+        }
+      ],
+      "nativeInputs": [
+        {
+          "file_path": "<probe>/audit.txt"
+        }
+      ],
+      "nativeKinds": [],
+      "nativeLocations": [],
+      "nativeDetails": []
+    },
+    {
+      "tool": "Grep",
+      "events": [
+        {
+          "kind": "tool_call_started",
+          "tool": "Grep",
+          "input": "{\"pattern\":\"BEFORE\",\"path\":\"<probe>\",\"output_mode\":\"content\"}"
+        },
+        {
+          "kind": "tool_call_ended",
+          "content": [
+            {
+              "type": "text",
+              "text": "audit.txt:1:BEFORE actual-file-evidence"
+            }
+          ],
+          "result": "ok"
+        }
+      ],
+      "nativeInputs": [
+        {
+          "pattern": "BEFORE",
+          "path": "<probe>",
+          "output_mode": "content"
+        }
+      ],
+      "nativeKinds": [],
+      "nativeLocations": [],
+      "nativeDetails": []
+    }
+  ],
+  "modelToolResults": []
+}

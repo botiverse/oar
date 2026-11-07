@@ -79,9 +79,12 @@ A native `collabAgentToolCall` has the same tool lifecycle as other tool
 items, retaining that item type as `tool` and the native id as `callId`.
 Its `completed`/`failed` status determines the tool result. This is the
 collaboration operation ending, not the child task ending; `subAgentActivity`
-still supplies task events separately. No arguments are inferred from the
-child ids or prompt. Codex 0.167.0's `wait_agent` produces this item, with
-native inner `tool: "wait"` ([audit](../../experiments/tool-activity-audit/README.md)).
+still supplies task events separately. Its input serializes only the native
+`tool` and `prompt` fields that are present; null and empty values are kept,
+and missing fields stay absent. No arguments are inferred from child ids.
+Codex 0.167.0's `wait_agent` reports `{"tool":"wait","prompt":null}`;
+older peer recordings omit `prompt`
+([audit](../../experiments/tool-activity-audit/files.md)).
 
 ## Message text and MCP names
 

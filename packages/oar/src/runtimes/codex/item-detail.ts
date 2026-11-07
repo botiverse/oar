@@ -12,6 +12,9 @@ export function codexItemInput(item: JsonRecord): string | undefined {
       // The app-server schema defines arguments as a JSON value. Preserve that
       // value exactly instead of guessing a human-readable representation.
       return item.arguments === undefined ? undefined : JSON.stringify(item.arguments);
+    case "collabAgentToolCall":
+      // These are native operation fields, not arguments reconstructed from child ids.
+      return item.tool === undefined && item.prompt === undefined ? undefined : JSON.stringify({ tool: item.tool, prompt: item.prompt });
     case "webSearch":
       return typeof item.query === "string" ? item.query : undefined;
     case "sleep":

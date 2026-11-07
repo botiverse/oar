@@ -1,0 +1,43 @@
+{
+  "version": "codex-cli 0.167.0",
+  "sourceSha256": "3ae3208e7c83831022777a57dd4d1159a7c977601e90986ba8e3e4ccf09d6a17",
+  "frames": [
+    {
+      "type": "item/started",
+      "item": {
+        "type": "collabAgentToolCall",
+        "id": "input_wait",
+        "tool": "wait",
+        "status": "inProgress",
+        "receiverThreadIds": [],
+        "prompt": null
+      },
+      "events": [
+        {
+          "kind": "tool_call_started",
+          "callId": "input_wait",
+          "tool": "collabAgentToolCall",
+          "input": "{\"tool\":\"wait\",\"prompt\":null}"
+        }
+      ]
+    },
+    {
+      "type": "item/completed",
+      "item": {
+        "type": "collabAgentToolCall",
+        "id": "input_wait",
+        "tool": "wait",
+        "status": "completed",
+        "receiverThreadIds": [],
+        "prompt": null
+      },
+      "events": [
+        {
+          "kind": "tool_call_ended",
+          "callId": "input_wait",
+          "result": "ok"
+        }
+      ]
+    }
+  ]
+}

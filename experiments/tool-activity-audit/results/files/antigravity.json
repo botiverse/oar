@@ -1,0 +1,88 @@
+{
+  "runtime": "antigravity",
+  "version": "1.5.2",
+  "mode": "files",
+  "sourceSha256": "63827c0f501facfef7071c5beedfc52f387a91706ec0174149dee664eab6bbf9",
+  "failure": null,
+  "fileAfterEdit": null,
+  "mcpCalls": [],
+  "timingMsFromOpen": {
+    "openReturned": 2647,
+    "toolsListReturned": 2606,
+    "firstPrimaryModelRequest": 2717
+  },
+  "readiness": [],
+  "tools": [
+    {
+      "tool": "read_file",
+      "events": [
+        {
+          "kind": "tool_call_started",
+          "tool": "read_file",
+          "input": "{\"Path\":\"<project>/audit.txt\"}"
+        },
+        {
+          "kind": "tool_call_ended",
+          "result": "ok"
+        }
+      ],
+      "nativeInputs": [
+        {
+          "Path": "<project>/audit.txt"
+        }
+      ],
+      "nativeKinds": [
+        "read"
+      ],
+      "nativeLocations": [
+        {
+          "path": "<project>/audit.txt"
+        }
+      ],
+      "nativeDetails": []
+    },
+    {
+      "tool": "run_command",
+      "events": [
+        {
+          "kind": "tool_call_started",
+          "tool": "run_command",
+          "input": "{\"CommandLine\":\"rg BEFORE \\\"<project>/audit.txt\\\"\",\"WaitMsBeforeAsync\":5000,\"toolSummary\":\"Search audit file\"}"
+        },
+        {
+          "kind": "tool_call_ended",
+          "content": [
+            {
+              "type": "text",
+              "text": "Command exited with code 0.\n\nCommand output:\n1:BEFORE actual-file-evidence\r\n"
+            }
+          ],
+          "result": "ok",
+          "exitCode": 0
+        }
+      ],
+      "nativeInputs": [
+        {
+          "CommandLine": "rg BEFORE \"<project>/audit.txt\"",
+          "WaitMsBeforeAsync": 5000,
+          "toolSummary": "Search audit file"
+        }
+      ],
+      "nativeKinds": [
+        "execute"
+      ],
+      "nativeLocations": [],
+      "nativeDetails": []
+    }
+  ],
+  "modelToolResults": [
+    {
+      "tool_call_id": "audit_read",
+      "content": "{\"output\":\"Created At: 2026-11-07T05:50:57Z\\nCompleted At: 2026-11-07T05:50:57Z\\nShowing lines 1-1 of 1\\n1: BEFORE actual-file-evidence\"}"
+    },
+    {
+      "tool_call_id": "audit_file-search",
+      "content": "{\"output\":\"Created At: 2026-11-07T05:50:57Z\\nCompleted At: 2026-11-07T05:50:57Z\\nCommand exited with code 0.\\n\\nCommand output:\\n1:BEFORE actual-file-evidence\\r\\n\"}"
+    }
+  ]
+}

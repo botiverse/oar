@@ -1,0 +1,84 @@
+{
+  "runtime": "pi-rpc",
+  "version": null,
+  "mode": "files",
+  "sourceSha256": "f17ad56885a7b645bd8b3350ff75b4db9adf99f862d224ac05e37ea791c4e091",
+  "failure": null,
+  "fileAfterEdit": null,
+  "mcpCalls": [],
+  "timingMsFromOpen": {
+    "openReturned": 1322,
+    "toolsListReturned": 3412,
+    "firstPrimaryModelRequest": 3484
+  },
+  "readiness": [],
+  "tools": [
+    {
+      "tool": "read",
+      "events": [
+        {
+          "kind": "tool_call_started",
+          "tool": "read",
+          "input": "{\"path\":\"<project>/audit.txt\"}"
+        },
+        {
+          "kind": "tool_call_ended",
+          "content": [
+            {
+              "type": "text",
+              "text": "BEFORE actual-file-evidence\n"
+            }
+          ],
+          "result": "ok"
+        }
+      ],
+      "nativeInputs": [
+        {
+          "path": "<project>/audit.txt"
+        }
+      ],
+      "nativeKinds": [],
+      "nativeLocations": [],
+      "nativeDetails": []
+    },
+    {
+      "tool": "bash",
+      "events": [
+        {
+          "kind": "tool_call_started",
+          "tool": "bash",
+          "input": "{\"command\":\"rg BEFORE \\\"<project>/audit.txt\\\"\"}"
+        },
+        {
+          "kind": "tool_call_ended",
+          "content": [
+            {
+              "type": "text",
+              "text": "BEFORE actual-file-evidence\n"
+            }
+          ],
+          "result": "ok",
+          "exitCode": 0
+        }
+      ],
+      "nativeInputs": [
+        {
+          "command": "rg BEFORE \"<project>/audit.txt\""
+        }
+      ],
+      "nativeKinds": [],
+      "nativeLocations": [],
+      "nativeDetails": []
+    }
+  ],
+  "modelToolResults": [
+    {
+      "tool_call_id": "audit_read",
+      "content": "BEFORE actual-file-evidence\n"
+    },
+    {
+      "tool_call_id": "audit_file-search",
+      "content": "BEFORE actual-file-evidence\n"
+    }
+  ]
+}

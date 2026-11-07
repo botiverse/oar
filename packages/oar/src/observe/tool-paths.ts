@@ -50,8 +50,10 @@ const PATHS: Record<string, Record<string, (input: string) => readonly string[]>
   // The notebook it edits; never a `detail` before `paths`, now the first of them.
   claude: { NotebookEdit: pathUnder("notebook_path") },
   codex: { fileChange: fileChangePaths },
-  // Antigravity 1.5.2: experiments/tool-activity-audit/results/antigravity.json.
-  antigravity: { edit_file: pathUnder("Path") },
+  // Antigravity 1.5.2: experiments/tool-activity-audit/results/{files/,}antigravity.json.
+  antigravity: { edit_file: pathUnder("Path"), read_file: pathUnder("Path") },
+  // Grok 1.0.77: experiments/tool-activity-audit/results/files/grok.json.
+  grok: { read_file: pathUnder("target_file") },
 };
 
 /** The file paths a file tool's call involves, each once, in the runtime's order. */
