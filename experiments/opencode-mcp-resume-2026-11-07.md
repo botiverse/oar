@@ -1,6 +1,6 @@
-# Runtime version check: 2026-11-07
+# OpenCode 2.2.6: repeated cold MCP resume
 
-## OpenCode 2.2.6: repeated cold MCP resume
+Checked November 7, 2026.
 
 **All 40 cold resumes called echo:** 20 with stdio and 20 with HTTP, on
 Linux x64 using `@opencode/cli` 2.2.6 and a local scripted provider. Both
