@@ -14,6 +14,7 @@ import { acpMcpServersParam } from "./mcp-servers.js";
 import { type AcpProcess, withAcpDeadline } from "./process.js";
 import { refuseResumeElsewhere, unknownResumeCwd } from "./resume-cwd.js";
 
+export { promptAcp } from "./prompt.js";
 export { createUsageUpdateGate, type UsageUpdateGate } from "./usage-wait.js";
 export { acpMcpOpenGuard } from "./mcp-servers.js";
 export interface AcpSessionProfile {
@@ -129,34 +130,6 @@ function responseRecord(method: string, value: unknown): JsonRecord {
     throw new TypeError(`ACP ${method} returned a non-object response`);
   }
   return response;
-}
-
-export async function promptAcp(
-  process: AcpProcess,
-  sessionId: string,
-  prompt: readonly JsonRecord[],
-  extraParams: JsonRecord = {},
-  received: () => void = () => {},
-): Promise<JsonRecord> {
-  const method = methods.agent.session.prompt;
-  let response: unknown = undefined;
-  try {
-    response = await withAcpDeadline(
-      process,
-      method,
-      null,
-      (requestOptions) => process.connection.agent.request(method, {
-        sessionId,
-        prompt,
-        ...extraParams,
-      }, requestOptions),
-    );
-  } finally { received(); }
-  // The SDK's built-in session router yields once before OAR's update handler.
-  await new Promise<void>((resolve) => {
-    setImmediate(resolve);
-  });
-  return responseRecord(method, response);
 }
 
 export async function closeAcpSession(process: AcpProcess, sessionId: string): Promise<void> {

@@ -107,6 +107,12 @@ false, the adapter holds queued input in this process.
 | opencode v1 (ACP) | yes: a plain prompt RPC mid-turn, which joins the running loop at its next step; both prompts are answered at idle | yes | no |
 | opencode v2 (ACP) | absent: concurrent native prompts are refused; `steerOrQueue` and `deliver` use the host queue | yes | no |
 
+For ACP runtimes with `steer` (Grok, Antigravity and OpenCode v1), OAR
+rechecks the original active turn after startup waits and at SDK dispatch.
+A turn that ended, was replaced or has an abort in progress yields
+`rejected` / `no_active_turn`, with no native prompt sent. Acceptance follows
+dispatch; a steer waiting to send does not hold the original turn open.
+
 ### Native tasks and single-task stop
 
 | Runtime | Native task lifecycle | `stopTask(taskId)` |

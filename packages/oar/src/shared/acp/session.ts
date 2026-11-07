@@ -31,7 +31,8 @@ import { startAcpProcess, type AcpProcess } from "./process.js";
 import { AcpError, acpProcessExitedError } from "./errors.js";
 import { createAcpRecorder } from "./records.js";
 import { createAcpTerminalHost } from "./terminal.js";
-import { acpTakesImages, createAcpTurns, type ActiveTurn } from "./turns.js";
+import { createAcpTurns, type ActiveTurn } from "./turns.js";
+import { acpTakesImages } from "./prompt.js";
 import { createAcpTokenUsage } from "./token-usage.js";
 import { createAcpOpening } from "./opening.js";
 import { createAcpConfigUpdates } from "./config-updates.js";
@@ -280,8 +281,7 @@ export function finishAcpSession(
         await terminalHost.dispose();
         return;
       }
-      // Native cancel can sever a tool's parent chain before runtime exit,
-      // including POSIX tools that have left the original process group.
+      // Native cancel can orphan tools before exit, including detached POSIX tools.
       await runtime.prepareShutdown();
       const state = turns.active();
       if (state !== null && !runtime.closed) {

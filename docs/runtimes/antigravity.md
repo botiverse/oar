@@ -140,6 +140,13 @@ empty image) refuses only that steer, even if the original prompt's natural
 completion arrives first. Its `input_dropped` event does not turn the original
 success into a failure.
 
+OAR checks that the same turn is still active and not being aborted after
+waiting for startup and immediately before SDK dispatch. If it ended, was
+replaced, or was interrupted meanwhile, `steer()` rejects `no_active_turn`
+without sending another native prompt. Its `accepted` receipt follows
+dispatch; a waiting steer does not keep the original turn open. Image loading
+is synchronous and does not create another asynchronous wait.
+
 A replacement failure after every earlier prompt has replied can report the
 loop's failure or cancellation without relabeling that input as refused.
 Killing the accepted steer's worker on Linux yielded `-32603` while the outer
