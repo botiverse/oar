@@ -213,26 +213,35 @@ concurrent roots, model/cwd/MCP, child attribution, cancel, tool cleanup,
 peer survival and isolated resume after release, and the plugin
 child-environment comparison. The model provider is local and scripted; the
 CLI and its processes are real. The default CI check jobs run only the real
-isolated tool-cleanup check (`@opencode/cli@2.2.5`).
+isolated tool-cleanup check (`@opencode/cli@2.2.6`).
 
 ### Startup and compatibility
 
 The v2 adapter's ACP subprocess owns a standalone native server; OAR does
-not connect to or leave a persistent daemon. Latest recheck: **2.2.5**
-(Linux x64, 2026-10-31) passed all 15 applicable behavior cases, and the
-[boundary probe](../../experiments/opencode-release-lines.ts) passed nine of
-ten (an eight-model cold catalog, queueing, child attribution, ordinary
-resume, prompt-option refusal, abort, disposal and native steer refusal);
-only the cold MCP resume failed (see [v2 session behavior](#v2-session-behavior)).
-The cold-start and cold-resume limitations remain
-([October 31 report](../../experiments/runtime-version-checks/2026-10-31.md#opencode-225));
-2.2.3 gave the same results on 2026-10-30.
+not connect to or leave a persistent daemon. Latest recheck: **2.2.6**
+(Linux x64, 2026-11-07) passed all fifteen applicable behavior cases and
+[the isolated native cleanup control](../../sea-trial/vendor/opencode-cleanup.vendor.test.ts),
+including routed roots, MCP, children, cancellation, peer survival and resume.
+The cold catalog returned eleven models; both prompt-option refusals passed.
+The [daily report](../../experiments/runtime-version-checks/2026-11-07.md#opencode-226)
+separates these checks from the known v1-only vendor failures and retains
+the cold-start failure. The November 7 [cold MCP resume check](../../experiments/opencode-mcp-resume-2026-11-07.md)
+passed all twenty resumes per transport.
+
+The [October 31 boundary probe](../../experiments/runtime-version-checks/2026-10-31.md#opencode-225)
+passed nine of ten checks on 2.2.5; cold MCP resume failed. These historical
+results are not a complete rerun of that probe on 2.2.6.
 
 **Known limitation: concurrent first starts over a fresh native database can
 fail before readiness**, confirmed by native SQLite errors. The OAR-free
 startup probe started four native servers simultaneously against a fresh
 database. On 2.2.5 two exited 1 with `table account_state already exists`
 ([October 31 report](../../experiments/runtime-version-checks/2026-10-31.md#native-startup)).
+On 2.2.6, one of two concurrent fresh-database ACP opens exited before
+readiness; both opens after serial initialization succeeded
+([November 7 report](../../experiments/runtime-version-checks/2026-11-07.md#opencode-226)).
+The retained stderr says `Standalone server exited before reporting readiness`;
+this sample has no native SQLite error, so it does not establish the same cause.
 On 2.2.3 two became ready, one exited 1 with `database is locked`, and one
 exited 1 with `table account_state already exists`
 ([October 30 report](../../experiments/runtime-version-checks/2026-10-30.md#native-startup)).

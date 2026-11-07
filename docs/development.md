@@ -214,7 +214,7 @@ or pull request whose changes are all Markdown files or under `docs/` or
 - `check`: `pnpm run check` and `pnpm run build` on Linux, macOS and Windows,
   then native checks: CodeBuddy's official npm installation in an
   isolated HOME and global prefix with its bin directory off PATH (installed
-  version and an idempotent second install); OpenCode 2.2.5 isolated native
+  version and an idempotent second install); OpenCode 2.2.6 isolated native
   tool cleanup (readiness, surviving-peer and final residual-process
   assertions); and Kimi 2.4.1's native login tests against a local
   OAuth/model server, including browser suppression and credential writes.
