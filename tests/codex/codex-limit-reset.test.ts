@@ -115,3 +115,27 @@ test("an empty key or reset id is refused before codex starts", async () => {
 test("codex is the runtime with a redeemer", () => {
   expect(codexRuntime.redeemLimitReset).toBe(codexRedeemLimitReset);
 });
+
+test("a count-only read asks codex to skip the details, and an older codex is read bare", async () => {
+  const usage = { ...windowOnly, rateLimitResetCredits: { availableCount: 1, credits: null } };
+  const current = fakeAppServer(() => usage);
+  await expect(codexRuntime.accountUsage(installation, { limitResetDetails: false })).resolves.toMatchObject({ limitResets: { available: 1 } });
+  expect(current.calls.at(-1)).toEqual(["account/rateLimits/read", { excludeResetCreditDetails: true }]);
+
+  const older = fakeAppServer((_method, params) => {
+    if (JSON.stringify(params) !== "{}") { throw new Error("Invalid request: invalid type: map, expected unit"); }
+    return windowOnly;
+  });
+  await expect(codexRuntime.accountUsage(installation, { limitResetDetails: false })).resolves.toMatchObject({ kind: "available" });
+  expect(older.calls.slice(-2)).toEqual([["account/rateLimits/read", { excludeResetCreditDetails: true }], ["account/rateLimits/read", {}]]);
+
+  const detailed = fakeAppServer(() => usage);
+  await codexRuntime.accountUsage(installation);
+  expect(detailed.calls.at(-1)).toEqual(["account/rateLimits/read", {}]);
+});
+
+test("a codex older than the redemption call is unsupported, not an unknown outcome", async () => {
+  // codex 0.131.0's own answer.
+  fakeAppServer(() => { throw new Error("Invalid request: unknown variant `account/rateLimitResetCredit/consume`, expected one of `initialize`, `thread/start`"); });
+  await expect(codexRedeemLimitReset(installation, { idempotencyKey: "a" })).resolves.toEqual({ kind: "unsupported", reason: "endpoint_unavailable" });
+});

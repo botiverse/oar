@@ -1,8 +1,6 @@
 import { expect, test, vi } from "vitest";
-import {
-  isNonSubscriptionAccount,
-  readFromAppServer,
-} from "../packages/oar/src/runtimes/codex/account-usage.js";
+import { isNonSubscriptionAccount } from "../packages/oar/src/runtimes/codex/account-request.js";
+import { readFromAppServer } from "../packages/oar/src/runtimes/codex/account-usage.js";
 import type { AppServerClient } from "../packages/oar/src/runtimes/codex/app-server-client.js";
 
 function fakeAppServer(
