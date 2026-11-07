@@ -1,0 +1,99 @@
+{
+  "runtime": "pi",
+  "version": null,
+  "mode": "full",
+  "sourceSha256": "040dbcd1fadc670165ed6e0b6065336fa90ebdb644624b032b222ba0eeed2d3f",
+  "failure": null,
+  "fileAfterEdit": "AFTER\n",
+  "mcpCalls": [
+    {
+      "at": 1794022466488,
+      "kind": "tool_called",
+      "name": "echo",
+      "arguments": {
+        "text": "ACTUAL"
+      }
+    }
+  ],
+  "timingMsFromOpen": {
+    "openReturned": 185,
+    "toolsListReturned": 2261,
+    "firstPrimaryModelRequest": 2434
+  },
+  "readiness": [],
+  "tools": [
+    {
+      "tool": "bash",
+      "events": [
+        {
+          "kind": "tool_call_started",
+          "tool": "bash",
+          "input": "{\"command\":\"printf 'AUDIT_COMMAND\\\\n'\"}"
+        },
+        {
+          "kind": "tool_call_ended",
+          "result": "ok",
+          "exitCode": 0
+        }
+      ],
+      "nativeInputs": [
+        {
+          "command": "printf 'AUDIT_COMMAND\\n'"
+        }
+      ],
+      "nativeKinds": [],
+      "nativeLocations": [],
+      "nativeDetails": []
+    },
+    {
+      "tool": "edit",
+      "events": [
+        {
+          "kind": "tool_call_started",
+          "tool": "edit",
+          "input": "{\"path\":\"<project>/audit.txt\",\"edits\":[{\"oldText\":\"BEFORE\",\"newText\":\"AFTER\"}]}"
+        },
+        {
+          "kind": "tool_call_ended",
+          "result": "ok"
+        }
+      ],
+      "nativeInputs": [
+        {
+          "path": "<project>/audit.txt",
+          "edits": [
+            {
+              "oldText": "BEFORE",
+              "newText": "AFTER"
+            }
+          ]
+        }
+      ],
+      "nativeKinds": [],
+      "nativeLocations": [],
+      "nativeDetails": []
+    },
+    {
+      "tool": "mcp__audit__echo",
+      "events": [
+        {
+          "kind": "tool_call_started",
+          "tool": "mcp__audit__echo",
+          "input": "{\"text\":\"ACTUAL\"}"
+        },
+        {
+          "kind": "tool_call_ended",
+          "result": "ok"
+        }
+      ],
+      "nativeInputs": [
+        {
+          "text": "ACTUAL"
+        }
+      ],
+      "nativeKinds": [],
+      "nativeLocations": [],
+      "nativeDetails": []
+    }
+  ]
+}

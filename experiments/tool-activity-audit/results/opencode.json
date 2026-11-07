@@ -1,0 +1,142 @@
+{
+  "runtime": "opencode",
+  "version": "opencode v2.2.5",
+  "mode": "full",
+  "sourceSha256": "e9bfc619d96f8dc1699de5153be95a258358391791ded1c584ac58c725e57639",
+  "failure": null,
+  "fileAfterEdit": "AFTER\n",
+  "mcpCalls": [
+    {
+      "at": 1794022404845,
+      "kind": "tool_called",
+      "name": "echo",
+      "arguments": {
+        "text": "ACTUAL"
+      }
+    }
+  ],
+  "timingMsFromOpen": {
+    "openReturned": 3566,
+    "toolsListReturned": 3554,
+    "firstPrimaryModelRequest": 3662
+  },
+  "readiness": [],
+  "tools": [
+    {
+      "tool": "shell",
+      "events": [
+        {
+          "kind": "tool_call_started",
+          "tool": "shell",
+          "input": "{\"cwd\":\"<project>\"}"
+        },
+        {
+          "kind": "tool_call_input",
+          "input": "{\"command\":\"printf 'AUDIT_COMMAND\\\\n'\",\"cwd\":\"<project>\"}"
+        },
+        {
+          "kind": "tool_call_ended",
+          "result": "ok"
+        }
+      ],
+      "nativeInputs": [
+        {
+          "cwd": "<project>"
+        },
+        {
+          "command": "printf 'AUDIT_COMMAND\\n'",
+          "cwd": "<project>"
+        }
+      ],
+      "nativeKinds": [
+        "execute"
+      ],
+      "nativeLocations": [
+        {
+          "path": "<project>"
+        }
+      ],
+      "nativeDetails": []
+    },
+    {
+      "tool": "edit",
+      "events": [
+        {
+          "kind": "tool_call_started",
+          "tool": "edit",
+          "input": "{}"
+        },
+        {
+          "kind": "tool_call_input",
+          "input": "{\"path\":\"<project>/audit.txt\",\"oldString\":\"BEFORE\",\"newString\":\"AFTER\"}"
+        },
+        {
+          "kind": "tool_call_ended",
+          "result": "ok"
+        }
+      ],
+      "nativeInputs": [
+        {},
+        {
+          "path": "<project>/audit.txt",
+          "oldString": "BEFORE",
+          "newString": "AFTER"
+        }
+      ],
+      "nativeKinds": [
+        "edit"
+      ],
+      "nativeLocations": [
+        {
+          "path": "<project>/audit.txt"
+        },
+        {
+          "path": "<project>/audit.txt",
+          "source": "content.diff"
+        }
+      ],
+      "nativeDetails": []
+    },
+    {
+      "tool": "execute",
+      "events": [
+        {
+          "kind": "tool_call_started",
+          "tool": "execute",
+          "input": "{}"
+        },
+        {
+          "kind": "tool_call_input",
+          "input": "{\"code\":\"return await tools.audit.echo({text:\\\"ACTUAL\\\"});\"}"
+        },
+        {
+          "kind": "tool_call_ended",
+          "result": "ok"
+        }
+      ],
+      "nativeInputs": [
+        {},
+        {
+          "code": "return await tools.audit.echo({text:\"ACTUAL\"});"
+        }
+      ],
+      "nativeKinds": [
+        "other"
+      ],
+      "nativeLocations": [],
+      "nativeDetails": [
+        {
+          "toolCalls": [
+            {
+              "tool": "audit.echo",
+              "status": "completed",
+              "input": {
+                "text": "ACTUAL"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

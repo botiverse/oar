@@ -1,0 +1,136 @@
+{
+  "runtime": "codex",
+  "version": "codex-cli 0.167.0",
+  "mode": "full",
+  "sourceSha256": "13b7e6641f3e8bdfb91591a176dd35be9a7095300225e6bc02d3db93f345d74b",
+  "failure": null,
+  "fileAfterEdit": "AFTER\n",
+  "mcpCalls": [
+    {
+      "at": 1794022347037,
+      "kind": "tool_called",
+      "name": "echo",
+      "arguments": {
+        "text": "ACTUAL"
+      }
+    }
+  ],
+  "timingMsFromOpen": {
+    "openReturned": 146,
+    "toolsListReturned": 2201,
+    "firstPrimaryModelRequest": 1313
+  },
+  "readiness": [
+    {
+      "type": "mcpServer/startupStatus/updated",
+      "native": {
+        "name": "audit",
+        "status": "starting",
+        "error": null,
+        "failureReason": null
+      }
+    },
+    {
+      "type": "mcpServer/startupStatus/updated",
+      "native": {
+        "name": "audit",
+        "status": "ready",
+        "error": null,
+        "failureReason": null
+      }
+    }
+  ],
+  "tools": [
+    {
+      "tool": "commandExecution",
+      "events": [
+        {
+          "kind": "tool_call_started",
+          "tool": "commandExecution",
+          "input": "/bin/bash -lc \"printf 'AUDIT_COMMAND\\\\n'\""
+        },
+        {
+          "kind": "tool_call_ended",
+          "result": "ok",
+          "exitCode": 0
+        }
+      ],
+      "nativeInputs": [],
+      "nativeKinds": [
+        "commandExecution"
+      ],
+      "nativeLocations": [],
+      "nativeDetails": [
+        {
+          "commandActions": [
+            {
+              "type": "unknown",
+              "command": "printf 'AUDIT_COMMAND\\n'"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tool": "fileChange",
+      "events": [
+        {
+          "kind": "tool_call_started",
+          "tool": "fileChange",
+          "input": "[{\"path\":\"<project>/audit.txt\",\"kind\":{\"type\":\"update\",\"move_path\":null},\"diff\":\"@@ -1 +1 @@\\n-BEFORE\\n+AFTER\\n\"}]"
+        },
+        {
+          "kind": "tool_call_ended",
+          "result": "ok"
+        }
+      ],
+      "nativeInputs": [],
+      "nativeKinds": [
+        "fileChange"
+      ],
+      "nativeLocations": [],
+      "nativeDetails": [
+        {
+          "changes": [
+            {
+              "path": "<project>/audit.txt",
+              "kind": {
+                "type": "update",
+                "move_path": null
+              },
+              "diff": "@@ -1 +1 @@\n-BEFORE\n+AFTER\n"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "tool": "mcpToolCall",
+      "events": [
+        {
+          "kind": "tool_call_started",
+          "tool": "mcpToolCall",
+          "input": "{\"text\":\"ACTUAL\"}",
+          "server": "audit",
+          "toolName": "echo"
+        },
+        {
+          "kind": "tool_call_ended",
+          "result": "ok"
+        }
+      ],
+      "nativeInputs": [],
+      "nativeKinds": [
+        "mcpToolCall"
+      ],
+      "nativeLocations": [],
+      "nativeDetails": [
+        {
+          "arguments": {
+            "text": "ACTUAL"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,86 @@
+{
+  "runtime": "dsh",
+  "version": "0.2.2-rc.1",
+  "mode": "full",
+  "sourceSha256": "928802ad426679694de0e11db3c4025549efe50f2cd3bf68fa42d43a271b3db8",
+  "failure": null,
+  "fileAfterEdit": "AFTER\n",
+  "mcpCalls": [
+    {
+      "at": 1794022449310,
+      "kind": "tool_called",
+      "name": "echo",
+      "arguments": {
+        "text": "ACTUAL"
+      }
+    }
+  ],
+  "timingMsFromOpen": {
+    "openReturned": 4737,
+    "toolsListReturned": 4712,
+    "firstPrimaryModelRequest": 4948
+  },
+  "readiness": [],
+  "tools": [
+    {
+      "tool": "bash",
+      "events": [
+        {
+          "kind": "tool_call_started",
+          "tool": "bash",
+          "input": "{\"command\":\"printf 'AUDIT_COMMAND\\\\n'\",\"description\":\"Print audit marker\"}"
+        },
+        {
+          "kind": "tool_call_ended",
+          "result": "ok"
+        }
+      ],
+      "nativeInputs": [
+        "{\"command\":\"printf 'AUDIT_COMMAND\\\\n'\",\"description\":\"Print audit marker\"}"
+      ],
+      "nativeKinds": [],
+      "nativeLocations": [],
+      "nativeDetails": []
+    },
+    {
+      "tool": "edit",
+      "events": [
+        {
+          "kind": "tool_call_started",
+          "tool": "edit",
+          "input": "{\"file_path\":\"<project>/audit.txt\",\"old_string\":\"BEFORE\",\"new_string\":\"AFTER\"}"
+        },
+        {
+          "kind": "tool_call_ended",
+          "result": "ok"
+        }
+      ],
+      "nativeInputs": [
+        "{\"file_path\":\"<project>/audit.txt\",\"old_string\":\"BEFORE\",\"new_string\":\"AFTER\"}"
+      ],
+      "nativeKinds": [],
+      "nativeLocations": [],
+      "nativeDetails": []
+    },
+    {
+      "tool": "mcp__audit__echo",
+      "events": [
+        {
+          "kind": "tool_call_started",
+          "tool": "mcp__audit__echo",
+          "input": "{\"text\":\"ACTUAL\"}"
+        },
+        {
+          "kind": "tool_call_ended",
+          "result": "ok"
+        }
+      ],
+      "nativeInputs": [
+        "{\"text\":\"ACTUAL\"}"
+      ],
+      "nativeKinds": [],
+      "nativeLocations": [],
+      "nativeDetails": []
+    }
+  ]
+}

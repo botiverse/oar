@@ -1,0 +1,238 @@
+{
+  "runtime": "grok",
+  "version": "grok 1.0.77 (50ca579fa996) [stable]",
+  "mode": "full",
+  "sourceSha256": "aa8437bf56fc1f7f858bb0f31aa7ff8612f614c76d19ddd715f4eb0f2ddba20d",
+  "failure": null,
+  "fileAfterEdit": "AFTER\n",
+  "mcpCalls": [
+    {
+      "at": 1794022346660,
+      "kind": "tool_called",
+      "name": "echo",
+      "arguments": {
+        "text": "ACTUAL"
+      }
+    }
+  ],
+  "timingMsFromOpen": {
+    "openReturned": 188,
+    "toolsListReturned": 2244,
+    "firstPrimaryModelRequest": 2271
+  },
+  "readiness": [
+    {
+      "type": "_x.ai/mcp/servers_updated",
+      "native": {
+        "mcpServers": []
+      }
+    },
+    {
+      "type": "_x.ai/mcp/init_progress",
+      "native": {
+        "total": 1,
+        "connected": 0
+      }
+    },
+    {
+      "type": "_x.ai/mcp/server_status",
+      "native": {
+        "name": "audit",
+        "source": "local",
+        "status": "ready",
+        "reason": "initialized",
+        "tools": null
+      }
+    },
+    {
+      "type": "_x.ai/mcp/init_progress",
+      "native": {
+        "total": 1,
+        "connected": 1
+      }
+    },
+    {
+      "type": "_x.ai/mcp_initialized",
+      "native": {
+        "mcpToolCount": 1,
+        "elapsedMs": 2051
+      }
+    }
+  ],
+  "tools": [
+    {
+      "tool": "run_terminal_command",
+      "events": [
+        {
+          "kind": "tool_call_started",
+          "tool": "run_terminal_command",
+          "input": "{\"command\":\"printf 'AUDIT_COMMAND\\\\n'\",\"description\":\"Print audit marker\"}"
+        },
+        {
+          "kind": "tool_call_input",
+          "input": "{\"variant\":\"Bash\",\"command\":\"printf 'AUDIT_COMMAND\\\\n'\",\"description\":\"Print audit marker\",\"is_background\":false}"
+        },
+        {
+          "kind": "tool_call_ended",
+          "result": "ok",
+          "exitCode": 0
+        }
+      ],
+      "nativeInputs": [
+        {
+          "command": "printf 'AUDIT_COMMAND\\n'",
+          "description": "Print audit marker"
+        },
+        {
+          "variant": "Bash",
+          "command": "printf 'AUDIT_COMMAND\\n'",
+          "description": "Print audit marker",
+          "is_background": false
+        }
+      ],
+      "nativeKinds": [
+        "execute"
+      ],
+      "nativeLocations": [],
+      "nativeDetails": [
+        {
+          "version": 1,
+          "name": "run_terminal_command",
+          "kind": "execute",
+          "namespace": "grok_build",
+          "label": "Run Command",
+          "read_only": false
+        },
+        {
+          "version": 1,
+          "name": "run_terminal_command",
+          "kind": "execute",
+          "namespace": "grok_build",
+          "label": "Run Command",
+          "read_only": false,
+          "input": {
+            "command": "printf 'AUDIT_COMMAND\\n'",
+            "description": "Print audit marker"
+          }
+        }
+      ]
+    },
+    {
+      "tool": "search_replace",
+      "events": [
+        {
+          "kind": "tool_call_started",
+          "tool": "search_replace",
+          "input": "{\"file_path\":\"<project>/audit.txt\",\"old_string\":\"BEFORE\",\"new_string\":\"AFTER\"}"
+        },
+        {
+          "kind": "tool_call_input",
+          "input": "{\"variant\":\"SearchReplace\",\"file_path\":\"<project>/audit.txt\",\"old_string\":\"BEFORE\",\"new_string\":\"AFTER\",\"replace_all\":false}"
+        },
+        {
+          "kind": "tool_call_ended",
+          "result": "ok"
+        }
+      ],
+      "nativeInputs": [
+        {
+          "file_path": "<project>/audit.txt",
+          "old_string": "BEFORE",
+          "new_string": "AFTER"
+        },
+        {
+          "variant": "SearchReplace",
+          "file_path": "<project>/audit.txt",
+          "old_string": "BEFORE",
+          "new_string": "AFTER",
+          "replace_all": false
+        }
+      ],
+      "nativeKinds": [
+        "edit"
+      ],
+      "nativeLocations": [
+        {
+          "path": "<project>/audit.txt"
+        },
+        {
+          "path": "<project>/audit.txt",
+          "source": "content.diff"
+        }
+      ],
+      "nativeDetails": [
+        {
+          "version": 1,
+          "name": "search_replace",
+          "kind": "edit",
+          "namespace": "grok_build",
+          "label": "Edit",
+          "read_only": false
+        },
+        {
+          "version": 1,
+          "name": "search_replace",
+          "kind": "edit",
+          "namespace": "grok_build",
+          "label": "Edit",
+          "read_only": false,
+          "input": {
+            "path": "<project>/audit.txt"
+          }
+        }
+      ]
+    },
+    {
+      "tool": "use_tool",
+      "events": [
+        {
+          "kind": "tool_call_started",
+          "tool": "use_tool",
+          "input": "{\"tool_name\":\"audit__echo\",\"tool_input\":{\"text\":\"ACTUAL\"}}"
+        },
+        {
+          "kind": "tool_call_input",
+          "input": "{\"variant\":\"UseTool\",\"tool_name\":\"audit__echo\",\"tool_input\":{\"text\":\"ACTUAL\"}}"
+        },
+        {
+          "kind": "tool_call_ended",
+          "result": "ok"
+        }
+      ],
+      "nativeInputs": [
+        {
+          "tool_name": "audit__echo",
+          "tool_input": {
+            "text": "ACTUAL"
+          }
+        },
+        {
+          "variant": "UseTool",
+          "tool_name": "audit__echo",
+          "tool_input": {
+            "text": "ACTUAL"
+          }
+        }
+      ],
+      "nativeKinds": [
+        "other"
+      ],
+      "nativeLocations": [],
+      "nativeDetails": [
+        {
+          "version": 1,
+          "name": "use_tool",
+          "kind": "use_tool",
+          "namespace": "grok_build",
+          "label": "Use Tool",
+          "read_only": false
+        },
+        {
+          "type": "MCP",
+          "tool_name": "echo",
+          "server_name": "audit"
+        }
+      ]
+    }
+  ]
+}

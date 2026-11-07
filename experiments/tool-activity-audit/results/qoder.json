@@ -1,0 +1,104 @@
+{
+  "runtime": "qoder",
+  "version": "1.1.81",
+  "mode": "native-replay",
+  "sourceSha256": "79724747e67198c4a300ec0253ac8af792caf324985eefc40c1e88233a0c7003",
+  "failure": null,
+  "fileAfterEdit": "AFTER\n",
+  "mcpCalls": [
+    {
+      "at": 1794022460653,
+      "kind": "tool_called",
+      "name": "echo",
+      "arguments": {
+        "text": "ACTUAL"
+      }
+    }
+  ],
+  "timingMsFromOpen": {
+    "openReturned": 10743,
+    "toolsListReturned": 8924,
+    "firstPrimaryModelRequest": null
+  },
+  "readiness": [
+    {
+      "type": "system/init",
+      "servers": [
+        {
+          "name": "audit",
+          "status": "connected"
+        }
+      ]
+    }
+  ],
+  "tools": [
+    {
+      "tool": "Bash",
+      "events": [
+        {
+          "kind": "tool_call_started",
+          "tool": "Bash",
+          "input": "{\"command\":\"printf 'AUDIT_COMMAND\\\\n'\"}"
+        },
+        {
+          "kind": "tool_call_ended",
+          "result": "ok"
+        }
+      ],
+      "nativeInputs": [
+        {
+          "command": "printf 'AUDIT_COMMAND\\n'"
+        }
+      ],
+      "nativeKinds": [],
+      "nativeLocations": [],
+      "nativeDetails": []
+    },
+    {
+      "tool": "Edit",
+      "events": [
+        {
+          "kind": "tool_call_started",
+          "tool": "Edit",
+          "input": "{\"file_path\":\"<probe>/audit.txt\",\"old_string\":\"BEFORE\",\"new_string\":\"AFTER\"}"
+        },
+        {
+          "kind": "tool_call_ended",
+          "result": "ok"
+        }
+      ],
+      "nativeInputs": [
+        {
+          "file_path": "<probe>/audit.txt",
+          "old_string": "BEFORE",
+          "new_string": "AFTER"
+        }
+      ],
+      "nativeKinds": [],
+      "nativeLocations": [],
+      "nativeDetails": []
+    },
+    {
+      "tool": "mcp__audit__echo",
+      "events": [
+        {
+          "kind": "tool_call_started",
+          "tool": "mcp__audit__echo",
+          "input": "{\"text\":\"ACTUAL\"}"
+        },
+        {
+          "kind": "tool_call_ended",
+          "result": "ok"
+        }
+      ],
+      "nativeInputs": [
+        {
+          "text": "ACTUAL"
+        }
+      ],
+      "nativeKinds": [],
+      "nativeLocations": [],
+      "nativeDetails": []
+    }
+  ]
+}

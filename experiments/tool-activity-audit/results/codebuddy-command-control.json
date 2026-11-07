@@ -1,0 +1,32 @@
+{
+  "version": "2.181.0",
+  "initialCommandResult": [
+    {
+      "kind": "tool_call_started",
+      "callId": "audit_command",
+      "tool": "Bash",
+      "input": "{}"
+    },
+    {
+      "kind": "tool_call_input",
+      "callId": "audit_command",
+      "input": "{\"command\":\"printf '\"}"
+    },
+    {
+      "kind": "tool_call_input",
+      "callId": "audit_command",
+      "input": "{\"command\":\"printf 'AUDIT_COMMAND\\\\n'\"}"
+    },
+    {
+      "kind": "tool_call_ended",
+      "callId": "audit_command",
+      "content": [
+        {
+          "type": "text",
+          "text": "```\nError: Bash error: Internal error: spawn printf 'AUDIT_COMMAND\\n' ENOENT\n```"
+        }
+      ],
+      "result": "failed"
+    }
+  ]
+}

@@ -146,9 +146,9 @@ test.each([undefined, threadId])("Codex emits an edge once in a fresh stream (re
       { kind: "session_linked", parent: threadId, child: "other", via: "tool_call" },
     ]);
     expect(live.map((record) => record.body)).toMatchObject([
-      { type: "item/started", native: { item }, events: [{ kind: "session_linked" }, { kind: "session_linked" }] },
-      { type: "item/completed", native: { item }, events: [] },
-      { type: "item/started", native: { item: { ...item, id: "wait" } }, events: [] },
+      { type: "item/started", native: { item }, events: [{ kind: "tool_call_started" }, { kind: "session_linked" }, { kind: "session_linked" }] },
+      { type: "item/completed", native: { item }, events: [{ kind: "tool_call_ended" }] },
+      { type: "item/started", native: { item: { ...item, id: "wait" } }, events: [{ kind: "tool_call_started" }] },
     ]);
     const replayed: RawEvent[] = [];
     session.rawEvents((record) => { replayed.push(record); }, { sessionId: session.id, afterSeq: -1 })();
@@ -408,6 +408,7 @@ test("Codex collaboration puts lineage on its source frame and usage replays wit
     notify(fake, "item/started", { threadId, turnId: "turn-1", item: { type: "collabAgentToolCall", id: "spawn", senderThreadId: threadId, receiverThreadIds: ["child"] } });
     const source = session.records().at(-1);
     expect(source).toMatchObject({ kind: "frame", body: { type: "item/started", events: [
+      { kind: "tool_call_started", tool: "collabAgentToolCall", callId: "spawn" },
       { kind: "session_linked", parent: threadId, child: "child", via: "tool_call" },
     ] } });
     // oxlint-disable-next-line typescript/no-unsafe-assignment, unicorn/prefer-structured-clone -- Replaying the records a host persists is the assertion under test.

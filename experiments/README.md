@@ -1,5 +1,7 @@
 # experiments
 
+- [Tool activity audit](tool-activity-audit/README.md): native tool/input/category/path facts, MCP readiness and Codex review steering across eleven runtimes; collaboration tool lifecycle fix.
+
 - [Native CI investigation closeout](acp-ci-failures/closeout.md): Windows validation and four diagnostic retention decisions; the [original November 6 failures](acp-ci-failures/README.md) remain evidence, including unresolved CodeBuddy, Antigravity and Grok cases.
 - [Windows watchdog fixture readiness](windows-watchdog/README.md): retained failure checkpoints and a controlled Vitest scheduling comparison before blocking a worker.
 - [OpenCode first-prompt snapshots](acp-ci-failures/opencode-snapshot.md): Windows 1.19.5 native stage evidence and small Git directories for MCP/failure vendor fixtures, with native snapshots still enabled.

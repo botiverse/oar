@@ -1,0 +1,186 @@
+{
+  "sourceSha256": "76737ab637b3828ed52e01bf04331e662ec8ae92b90aa78b1e4207b89820ea93",
+  "wire": [
+    {
+      "direction": "toNative",
+      "message": {
+        "id": 3,
+        "method": "review/start",
+        "params": {
+          "threadId": "<id-1>",
+          "target": {
+            "type": "custom",
+            "instructions": "AUDIT_REVIEW"
+          },
+          "delivery": "inline"
+        }
+      }
+    },
+    {
+      "direction": "fromNative",
+      "message": {
+        "id": 3,
+        "result": {
+          "turn": {
+            "id": "<id-2>",
+            "rootTurnId": null,
+            "items": [
+              {
+                "type": "userMessage",
+                "id": "<id-2>",
+                "clientId": null,
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "AUDIT_REVIEW",
+                    "text_elements": []
+                  }
+                ],
+                "startedAtMs": null,
+                "completedAtMs": null
+              }
+            ],
+            "itemsView": "notLoaded",
+            "status": "inProgress",
+            "error": null,
+            "startedAt": null,
+            "completedAt": null,
+            "durationMs": null
+          },
+          "reviewThreadId": "<id-1>"
+        }
+      }
+    },
+    {
+      "direction": "fromNative",
+      "message": {
+        "method": "turn/started",
+        "params": {
+          "threadId": "<id-1>",
+          "turn": {
+            "id": "<id-3>",
+            "rootTurnId": "<id-2>",
+            "items": [],
+            "itemsView": "notLoaded",
+            "status": "inProgress",
+            "error": null,
+            "startedAt": 1794022848,
+            "completedAt": null,
+            "durationMs": null
+          }
+        },
+        "emittedAtMs": 1794022848926
+      }
+    },
+    {
+      "direction": "toNative",
+      "message": {
+        "id": 4,
+        "method": "turn/steer",
+        "params": {
+          "threadId": "<id-1>",
+          "input": [
+            {
+              "type": "text",
+              "text": "STEER_review"
+            }
+          ],
+          "expectedTurnId": "<id-3>",
+          "clientUserMessageId": "<id-4>"
+        }
+      }
+    },
+    {
+      "direction": "fromNative",
+      "message": {
+        "error": {
+          "code": -32600,
+          "message": "expected active turn id `<id-3>` but found `<id-2>`"
+        },
+        "id": 4
+      }
+    },
+    {
+      "direction": "fromNative",
+      "message": {
+        "method": "turn/started",
+        "params": {
+          "threadId": "<id-1>",
+          "turn": {
+            "id": "<id-5>",
+            "rootTurnId": "<id-5>",
+            "items": [],
+            "itemsView": "notLoaded",
+            "status": "inProgress",
+            "error": null,
+            "startedAt": 1794022849,
+            "completedAt": null,
+            "durationMs": null
+          }
+        },
+        "emittedAtMs": 1794022849021
+      }
+    },
+    {
+      "direction": "toNative",
+      "message": {
+        "id": 6,
+        "method": "turn/steer",
+        "params": {
+          "threadId": "<id-1>",
+          "input": [
+            {
+              "type": "text",
+              "text": "STEER_normal"
+            }
+          ],
+          "expectedTurnId": "<id-5>",
+          "clientUserMessageId": "<id-6>"
+        }
+      }
+    },
+    {
+      "direction": "fromNative",
+      "message": {
+        "id": 6,
+        "result": {
+          "turnId": "<id-5>"
+        }
+      }
+    }
+  ],
+  "results": [
+    {
+      "mode": "review",
+      "prompt": {
+        "kind": "accepted"
+      },
+      "steer": {
+        "kind": "rejected",
+        "code": "runtime_refused",
+        "reason": "not_steerable: expected active turn id `<id-3>` but found `<id-2>`"
+      }
+    },
+    {
+      "mode": "review",
+      "idle": {
+        "kind": "completed"
+      }
+    },
+    {
+      "mode": "normal",
+      "prompt": {
+        "kind": "accepted"
+      },
+      "steer": {
+        "kind": "accepted"
+      }
+    },
+    {
+      "mode": "normal",
+      "idle": {
+        "kind": "completed"
+      }
+    }
+  ]
+}
