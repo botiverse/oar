@@ -1,0 +1,106 @@
+{
+  "runtime": "opencode",
+  "version": "opencode v2.2.5",
+  "mode": "files",
+  "sourceSha256": "5c8184a74d693746bc747180a7d6632e1ed8c08baf938a7528c7a23f23b87b0d",
+  "failure": null,
+  "fileAfterEdit": null,
+  "mcpCalls": [],
+  "timingMsFromOpen": {
+    "openReturned": 3766,
+    "toolsListReturned": 3754,
+    "firstPrimaryModelRequest": 3851
+  },
+  "readiness": [],
+  "tools": [
+    {
+      "tool": "read",
+      "events": [
+        {
+          "kind": "tool_call_started",
+          "tool": "read",
+          "input": "{}"
+        },
+        {
+          "kind": "tool_call_input",
+          "input": "{\"path\":\"<project>/audit.txt\"}"
+        },
+        {
+          "kind": "tool_call_ended",
+          "content": [
+            {
+              "type": "text",
+              "text": "Read file <project>/audit.txt, lines 1-1\n1: BEFORE actual-file-evidence"
+            }
+          ],
+          "result": "ok"
+        }
+      ],
+      "nativeInputs": [
+        {},
+        {
+          "path": "<project>/audit.txt"
+        }
+      ],
+      "nativeKinds": [
+        "read"
+      ],
+      "nativeLocations": [
+        {
+          "path": "<project>/audit.txt"
+        }
+      ],
+      "nativeDetails": []
+    },
+    {
+      "tool": "grep",
+      "events": [
+        {
+          "kind": "tool_call_started",
+          "tool": "grep",
+          "input": "{}"
+        },
+        {
+          "kind": "tool_call_input",
+          "input": "{\"pattern\":\"BEFORE\",\"path\":\"<project>\"}"
+        },
+        {
+          "kind": "tool_call_ended",
+          "content": [
+            {
+              "type": "text",
+              "text": "Found 1 matches\n<project>/audit.txt:\n  Line 1: BEFORE actual-file-evidence\n"
+            }
+          ],
+          "result": "ok"
+        }
+      ],
+      "nativeInputs": [
+        {},
+        {
+          "pattern": "BEFORE",
+          "path": "<project>"
+        }
+      ],
+      "nativeKinds": [
+        "search"
+      ],
+      "nativeLocations": [
+        {
+          "path": "<project>"
+        }
+      ],
+      "nativeDetails": []
+    }
+  ],
+  "modelToolResults": [
+    {
+      "tool_call_id": "audit_read",
+      "content": "Read file <project>/audit.txt, lines 1-1\n1: BEFORE actual-file-evidence"
+    },
+    {
+      "tool_call_id": "audit_file-search",
+      "content": "Found 1 matches\n<project>/audit.txt:\n  Line 1: BEFORE actual-file-evidence\n"
+    }
+  ]
+}

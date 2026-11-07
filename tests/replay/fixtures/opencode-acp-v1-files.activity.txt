@@ -1,6 +1,6 @@
 write                │ Editing file: <filePath>
 read                 │ Reading file: <filePath>
 edit                 │ Editing file: <filePath>
-grep                 │ Searching: <path>
-glob                 │ Searching: <path>
+grep                 │ Searching: <pattern>
+glob                 │ Searching: <pattern>
 bash                 │ Running command: <command>

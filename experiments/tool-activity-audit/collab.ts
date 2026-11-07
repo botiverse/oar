@@ -31,7 +31,7 @@ try {
   await delay(1000);
   const events = session.records().flatMap(record => record.kind === "frame" ? record.body.events : []);
   assert.deepEqual(events.filter(event => "callId" in event && event.callId === "audit_wait"), [
-    { kind: "tool_call_started", callId: "audit_wait", tool: "collabAgentToolCall" },
+    { kind: "tool_call_started", callId: "audit_wait", tool: "collabAgentToolCall", input: '{"tool":"wait","prompt":null}' },
     { kind: "tool_call_ended", callId: "audit_wait", result: "ok" },
   ]);
 } finally {

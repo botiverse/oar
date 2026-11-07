@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { test, expect } from "vitest";
 import { initialCodexProjection, foldCodexNotification } from "../../packages/oar/src/runtimes/codex/projection.js";
-import { asRecord, parseJson } from "../../packages/oar/src/shared/json.js";
+import { asRecord, asRecordList, parseJson } from "../../packages/oar/src/shared/json.js";
 
 const here = import.meta.dirname;
 const ROOT = "thread-root";
@@ -20,7 +20,7 @@ test("recorded Codex collaboration waits have tool lifecycles on their reporting
       for (const event of command.kind === "frame" ? command.body.events : []) {
         if (event.kind === "tool_call_started") {
           expect(event.tool).toBe("collabAgentToolCall");
-          expect(event.input).toBeUndefined();
+          expect(event.input).toBe('{"tool":"wait"}');
           calls.push(`${(command.kind === "frame" ? command.sessionId : undefined) ?? ROOT}:start:${event.callId}`);
         } else if (event.kind === "tool_call_ended") {
           expect(event.result).toBe("ok");
@@ -41,3 +41,14 @@ test("recorded Codex collaboration waits have tool lifecycles on their reporting
   ]);
 });
 
+
+test("actual wait_agent items preserve the native operation and explicit null prompt", () => {
+  const text = readFileSync(path.join(here, "../../experiments/tool-activity-audit/results/collaboration.json"), "utf8");
+  const recording = asRecord(parseJson(text));
+  const [frame] = asRecordList(recording?.frames);
+  expect(frame).toBeDefined();
+  const projected = foldCodexNotification(initialCodexProjection(ROOT), "item/started", { threadId: ROOT, item: frame?.item });
+  expect(projected.commands.flatMap(command => command.kind === "frame" ? command.body.events : [])).toEqual([
+    { kind: "tool_call_started", tool: "collabAgentToolCall", callId: "audit_wait", input: '{"tool":"wait","prompt":null}' },
+  ]);
+});

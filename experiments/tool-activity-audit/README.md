@@ -251,3 +251,7 @@ startup notifications remain available as raw frames. The signals and
 measured ordering for other runtimes remain as recorded above. Review steer
 keeps the existing `runtime_refused` result; no review API or new rejection
 code is added.
+
+The [read/search follow-up](files.md) records additional native file tools,
+search detail ordering and Codex collaboration input fields. It retains the
+original observations above, including the first audit's missing input.

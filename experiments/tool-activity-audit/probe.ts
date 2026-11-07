@@ -21,7 +21,7 @@ await mkdir(output, { recursive: true });
 const root = await mkdtemp(path.join(tmpdir(), "oar-tool-audit-"));
 const cwd = path.join(root, "project");
 await mkdir(cwd);
-await writeFile(path.join(cwd, "audit.txt"), "BEFORE\n");
+await writeFile(path.join(cwd, "audit.txt"), mode === "files" ? "BEFORE actual-file-evidence\n" : "BEFORE\n");
 execFileSync("git", ["init", "--quiet", cwd]);
 execFileSync("git", ["-C", cwd, "add", "audit.txt"]);
 const journal = path.join(root, "mcp.jsonl");
@@ -70,6 +70,11 @@ function assertTools(current: Session, after: number): void {
   const ends = current.records().slice(after).flatMap(record => record.kind === "frame" ? record.body.events : []).filter(event => event.kind === "tool_call_ended");
   assert.ok(ends.length > 0 && ends.every(event => event.result !== "failed" && (event.exitCode === undefined || event.exitCode === 0)), JSON.stringify(ends));
 }
+function stages(): readonly string[] {
+  if (mode === "catalog") { return ["catalog"]; }
+  if (mode === "files") { return ["catalog", "read", "discover-file-search", "file-search"]; }
+  return ["catalog", "command", "read", "edit", "search", "mcp"];
+}
 let session: Session | null = null;
 let env: AimockEnv | null = null;
 let failure: string | null = null;
@@ -92,17 +97,20 @@ try {
     mcpServers: [{ name: "audit", command: process.execPath, args: [path.join(import.meta.dirname, "server.ts"), journal, "2000"] }],
   });
   mark("open_returned");
-  for (const next of ["catalog", ...(mode === "catalog" ? [] : ["command", "read", "edit", "search", "mcp"])]) {
+  for (const next of stages()) {
     stage = next; stageRequests = 0;
     call = callFor(runtimeId, stage, cwd);
     if (stage === "catalog" || call !== undefined) {
       const cursor: number = session.records().length;
+      const firstRequest = normalized.length;
       mark("prompt_start", stage);
       const result = await promptAndWait(session, `AUDIT_${stage.toUpperCase()}`, { timeoutMs: 60_000 });
       mark("prompt_returned", result);
       assert.ok(result.kind === "ended" && result.outcome.kind === "completed", JSON.stringify(result));
-      if (call !== undefined) {
-        assertTools(session, cursor);
+      if (call !== undefined) { assertTools(session, cursor); }
+      if (mode === "files" && (stage === "read" || stage === "file-search")) {
+        const results = normalized.slice(firstRequest).flatMap(request => request.messages.filter(message => message.role === "tool" && message.tool_call_id === `audit_${next}`));
+        assert.ok(JSON.stringify(results).includes("actual-file-evidence"), `Missing actual file result: ${JSON.stringify(results)}`);
       }
       if (stage === "catalog" && mode !== "catalog") { await observeMcp(); }
       if (stage === "edit") { const value = await readFile(path.join(cwd, "audit.txt"), "utf8"); mark("file_after_edit", value); assert.equal(value, "AFTER\n"); }

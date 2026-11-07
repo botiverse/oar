@@ -1,0 +1,120 @@
+{
+  "runtime": "codebuddy",
+  "version": "2.181.0",
+  "mode": "files",
+  "sourceSha256": "cdd64e3542283c2734289721163acbeee1227bb41aeb8e87fdcef9fd7d057a5d",
+  "failure": null,
+  "fileAfterEdit": null,
+  "mcpCalls": [],
+  "timingMsFromOpen": {
+    "openReturned": 2820,
+    "toolsListReturned": 4731,
+    "firstPrimaryModelRequest": 3453
+  },
+  "readiness": [],
+  "tools": [
+    {
+      "tool": "Read",
+      "events": [
+        {
+          "kind": "tool_call_started",
+          "tool": "Read",
+          "input": "{}"
+        },
+        {
+          "kind": "tool_call_input",
+          "input": "{\"file_path\":\"/tmp/o\"}"
+        },
+        {
+          "kind": "tool_call_input",
+          "input": "{\"file_path\":\"<project>/audit.txt\"}"
+        },
+        {
+          "kind": "tool_call_ended",
+          "content": [
+            {
+              "type": "text",
+              "text": "   1→BEFORE actual-file-evidence"
+            }
+          ],
+          "result": "ok"
+        }
+      ],
+      "nativeInputs": [
+        {},
+        {
+          "file_path": "/tmp/o"
+        },
+        {
+          "file_path": "<project>/audit.txt"
+        }
+      ],
+      "nativeKinds": [
+        "other",
+        "read"
+      ],
+      "nativeLocations": [
+        {
+          "path": "<project>/audit.txt",
+          "line": 0
+        }
+      ],
+      "nativeDetails": []
+    },
+    {
+      "tool": "Grep",
+      "events": [
+        {
+          "kind": "tool_call_started",
+          "tool": "Grep",
+          "input": "{}"
+        },
+        {
+          "kind": "tool_call_input",
+          "input": "{\"pattern\":\"BEFORE\"}"
+        },
+        {
+          "kind": "tool_call_input",
+          "input": "{\"pattern\":\"BEFORE\",\"path\":\"<project>\",\"output_mode\":\"content\"}"
+        },
+        {
+          "kind": "tool_call_ended",
+          "content": [
+            {
+              "type": "text",
+              "text": "[\"<project>/audit.txt:BEFORE actual-file-evidence\"]"
+            }
+          ],
+          "result": "ok"
+        }
+      ],
+      "nativeInputs": [
+        {},
+        {
+          "pattern": "BEFORE"
+        },
+        {
+          "pattern": "BEFORE",
+          "path": "<project>",
+          "output_mode": "content"
+        }
+      ],
+      "nativeKinds": [
+        "other",
+        "search"
+      ],
+      "nativeLocations": [],
+      "nativeDetails": []
+    }
+  ],
+  "modelToolResults": [
+    {
+      "tool_call_id": "audit_read",
+      "content": "   1→BEFORE actual-file-evidence"
+    },
+    {
+      "tool_call_id": "audit_file-search",
+      "content": "[\"<project>/audit.txt:BEFORE actual-file-evidence\"]"
+    }
+  ]
+}

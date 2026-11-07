@@ -1,0 +1,100 @@
+{
+  "runtime": "claude",
+  "version": "2.1.319 (Claude Code)",
+  "mode": "files",
+  "sourceSha256": "43a8354e1715b54199d381da179bf37199a82b49e3656d96de49aa256ed9797f",
+  "failure": null,
+  "fileAfterEdit": null,
+  "mcpCalls": [],
+  "timingMsFromOpen": {
+    "openReturned": 58,
+    "toolsListReturned": 2793,
+    "firstPrimaryModelRequest": 2931
+  },
+  "readiness": [
+    {
+      "type": "system/init",
+      "servers": [
+        {
+          "name": "audit",
+          "status": "connected",
+          "source": "dynamic"
+        }
+      ]
+    }
+  ],
+  "tools": [
+    {
+      "tool": "Read",
+      "events": [
+        {
+          "kind": "tool_call_started",
+          "tool": "Read"
+        },
+        {
+          "kind": "tool_call_input",
+          "input": "{\"file_path\":\"<project>/audit.txt\"}"
+        },
+        {
+          "kind": "tool_call_ended",
+          "content": [
+            {
+              "type": "text",
+              "text": "1\tBEFORE actual-file-evidence\n2\t"
+            }
+          ],
+          "result": "ok"
+        }
+      ],
+      "nativeInputs": [
+        {
+          "file_path": "<project>/audit.txt"
+        }
+      ],
+      "nativeKinds": [],
+      "nativeLocations": [],
+      "nativeDetails": []
+    },
+    {
+      "tool": "Bash",
+      "events": [
+        {
+          "kind": "tool_call_started",
+          "tool": "Bash"
+        },
+        {
+          "kind": "tool_call_input",
+          "input": "{\"command\":\"rg BEFORE \\\"<project>/audit.txt\\\"\"}"
+        },
+        {
+          "kind": "tool_call_ended",
+          "content": [
+            {
+              "type": "text",
+              "text": "BEFORE actual-file-evidence"
+            }
+          ],
+          "result": "ok"
+        }
+      ],
+      "nativeInputs": [
+        {
+          "command": "rg BEFORE \"<project>/audit.txt\""
+        }
+      ],
+      "nativeKinds": [],
+      "nativeLocations": [],
+      "nativeDetails": []
+    }
+  ],
+  "modelToolResults": [
+    {
+      "tool_call_id": "audit_read",
+      "content": "1\tBEFORE actual-file-evidence\n2\t"
+    },
+    {
+      "tool_call_id": "audit_file-search",
+      "content": "BEFORE actual-file-evidence"
+    }
+  ]
+}

@@ -1,0 +1,193 @@
+{
+  "runtime": "grok",
+  "version": "grok 1.0.77 (50ca579fa996) [stable]",
+  "mode": "files",
+  "sourceSha256": "92c28d18ca1f9d0a11278ea9a43ce4db467d044aa16e6f2e49a5a17be7ca63c6",
+  "failure": null,
+  "fileAfterEdit": null,
+  "mcpCalls": [],
+  "timingMsFromOpen": {
+    "openReturned": 194,
+    "toolsListReturned": 2308,
+    "firstPrimaryModelRequest": 2333
+  },
+  "readiness": [
+    {
+      "type": "_x.ai/mcp/servers_updated",
+      "native": {
+        "mcpServers": []
+      }
+    },
+    {
+      "type": "_x.ai/mcp/init_progress",
+      "native": {
+        "total": 1,
+        "connected": 0
+      }
+    },
+    {
+      "type": "_x.ai/mcp/server_status",
+      "native": {
+        "name": "audit",
+        "source": "local",
+        "status": "ready",
+        "reason": "initialized",
+        "tools": null
+      }
+    },
+    {
+      "type": "_x.ai/mcp/init_progress",
+      "native": {
+        "total": 1,
+        "connected": 1
+      }
+    },
+    {
+      "type": "_x.ai/mcp_initialized",
+      "native": {
+        "mcpToolCount": 1,
+        "elapsedMs": 2112
+      }
+    }
+  ],
+  "tools": [
+    {
+      "tool": "read_file",
+      "events": [
+        {
+          "kind": "tool_call_started",
+          "tool": "read_file",
+          "input": "{\"target_file\":\"<project>/audit.txt\"}"
+        },
+        {
+          "kind": "tool_call_input",
+          "input": "{\"variant\":\"ReadFile\",\"target_file\":\"<project>/audit.txt\"}"
+        },
+        {
+          "kind": "tool_call_ended",
+          "content": [
+            {
+              "type": "text",
+              "text": "1→BEFORE actual-file-evidence\n"
+            }
+          ],
+          "result": "ok"
+        }
+      ],
+      "nativeInputs": [
+        {
+          "target_file": "<project>/audit.txt"
+        },
+        {
+          "variant": "ReadFile",
+          "target_file": "<project>/audit.txt"
+        }
+      ],
+      "nativeKinds": [
+        "read"
+      ],
+      "nativeLocations": [
+        {
+          "path": "<project>/audit.txt"
+        }
+      ],
+      "nativeDetails": [
+        {
+          "version": 1,
+          "name": "read_file",
+          "kind": "read",
+          "namespace": "grok_build",
+          "label": "Read",
+          "read_only": true
+        },
+        {
+          "version": 1,
+          "name": "read_file",
+          "kind": "read",
+          "namespace": "grok_build",
+          "label": "Read",
+          "read_only": true,
+          "input": {
+            "path": "<project>/audit.txt"
+          }
+        }
+      ]
+    },
+    {
+      "tool": "grep",
+      "events": [
+        {
+          "kind": "tool_call_started",
+          "tool": "grep",
+          "input": "{\"pattern\":\"BEFORE\",\"path\":\"<project>\"}"
+        },
+        {
+          "kind": "tool_call_input",
+          "input": "{\"variant\":\"Grep\",\"pattern\":\"BEFORE\",\"path\":\"<project>\",\"glob\":null,\"-i\":false,\"type\":null,\"multiline\":false}"
+        },
+        {
+          "kind": "tool_call_ended",
+          "content": [
+            {
+              "type": "text",
+              "text": "found 1 matches"
+            }
+          ],
+          "result": "ok",
+          "exitCode": 0
+        }
+      ],
+      "nativeInputs": [
+        {
+          "pattern": "BEFORE",
+          "path": "<project>"
+        },
+        {
+          "variant": "Grep",
+          "pattern": "BEFORE",
+          "path": "<project>",
+          "glob": null,
+          "-i": false,
+          "type": null,
+          "multiline": false
+        }
+      ],
+      "nativeKinds": [
+        "search"
+      ],
+      "nativeLocations": [],
+      "nativeDetails": [
+        {
+          "version": 1,
+          "name": "grep",
+          "kind": "search",
+          "namespace": "grok_build",
+          "label": "Search",
+          "read_only": true
+        },
+        {
+          "version": 1,
+          "name": "grep",
+          "kind": "search",
+          "namespace": "grok_build",
+          "label": "Search",
+          "read_only": true,
+          "input": {
+            "pattern": "BEFORE",
+            "path": "<project>"
+          }
+        }
+      ]
+    }
+  ],
+  "modelToolResults": [
+    {
+      "tool_call_id": "audit_read",
+      "content": "1→BEFORE actual-file-evidence\n"
+    },
+    {
+      "tool_call_id": "audit_file-search",
+      "content": "<workspace_result workspace_path=\"<project>\">\nFound 1 matching lines\n<project>/audit.txt\n1:BEFORE actual-file-evidence\n</workspace_result>"
+    }
+  ]
+}

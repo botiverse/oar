@@ -7,6 +7,7 @@ import sys
 source = pathlib.Path(sys.argv[1])
 destination = pathlib.Path(sys.argv[2])
 destination.mkdir(parents=True, exist_ok=True)
+files = len(sys.argv) > 3 and sys.argv[3] == "files"
 
 
 def unique(values):
@@ -28,14 +29,17 @@ for filename in sorted(source.glob("*.json")):
     selected = []
     for start in starts:
         call_id = start["callId"]
-        if start["tool"] in {"Read", "read", "read_file", "ToolSearch", "tool_search"} or call_id.endswith(("audit_read", "audit_search")):
+        if files:
+            if start["tool"] in {"ToolSearch", "tool_search"}:
+                continue
+        elif start["tool"] in {"Read", "read", "read_file", "ToolSearch", "tool_search"} or call_id.endswith(("audit_read", "audit_search")):
             continue
         events, inputs, kinds, locations, identities = [], [], [], [], []
         for record in records:
             body = record.get("body", {})
             for event in body.get("events", []):
                 if event.get("callId") == call_id and event["kind"] in {"tool_call_started", "tool_call_input", "tool_call_ended"}:
-                    events.append({key: value for key, value in event.items() if key in {"kind", "tool", "server", "toolName", "input", "result", "exitCode"}})
+                    events.append({key: value for key, value in event.items() if key in {"kind", "tool", "server", "toolName", "input", "result", "exitCode"} or (files and key == "content")})
             native = body.get("native", {})
             update = native.get("update", {})
             if update.get("toolCallId") == call_id:
@@ -90,6 +94,14 @@ for filename in sorted(source.glob("*.json")):
               "failure": data.get("failure"), "fileAfterEdit": next((mark["value"] for mark in data["marks"] if mark["kind"] == "file_after_edit"), None),
               "mcpCalls": [entry for entry in data["mcp"] if entry["kind"] == "tool_called"],
               "timingMsFromOpen": timing, "readiness": unique(readiness), "tools": selected}
+    if files:
+        result["modelToolResults"] = unique([
+            {key: message[key] for key in ["tool_call_id", "content"] if key in message}
+            for request in data.get("normalized", []) for message in request.get("messages", [])
+            if message.get("role") == "tool"
+        ])
+        if result["failure"]:
+            result["failure"] = result["failure"].split("\n")[0]
     text = json.dumps(result, indent=2, ensure_ascii=False)
     for value, replacement in [(data.get("cwd"), "<project>"), (data["root"], "<probe>")]:
         if value:

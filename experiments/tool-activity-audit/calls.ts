@@ -18,6 +18,23 @@ export function callFor(runtime: string, stage: string, cwd: string): Call | und
       default: return tool("mcp__audit__echo", { text: mcpText });
     }
   }
+  if (stage === "file-search") {
+    const input = { pattern: "BEFORE", path: cwd };
+    switch (runtime) {
+      case "claude":
+        return process.env.AUDIT_CLAUDE_GREP === "1" ? tool("Grep", { ...input, output_mode: "content" }) : tool("Bash", { command: `rg BEFORE ${JSON.stringify(file)}` });
+      case "codebuddy": case "qoder": case "kimi": return tool("Grep", { ...input, output_mode: "content" });
+      case "qwen": return tool("grep_search", input);
+      case "grok": case "opencode": case "dsh": return tool("grep", input);
+      case "codex": return tool("exec_command", { cmd: `rg BEFORE ${JSON.stringify(file)}` });
+      case "antigravity": return tool("run_command", { CommandLine: `rg BEFORE ${JSON.stringify(file)}`, toolSummary: "Search audit file", WaitMsBeforeAsync: 5000 });
+      case "pi": case "pi-rpc": return tool("bash", { command: `rg BEFORE ${JSON.stringify(file)}` });
+      default: return undefined;
+    }
+  }
+  if (stage === "discover-file-search") {
+    return runtime === "claude" && process.env.AUDIT_CLAUDE_GREP === "1" ? tool("ToolSearch", { query: "select:Grep", max_results: 1 }) : undefined;
+  }
   if (stage === "search") {
     if (runtime === "claude") { return tool("ToolSearch", { query: "select:mcp__audit__echo", max_results: 1 }); }
     if (runtime === "codebuddy") { return tool("ToolSearch", { tool_names: ["mcp__audit__echo"] }); }
@@ -31,7 +48,7 @@ export function callFor(runtime: string, stage: string, cwd: string): Call | und
       return tool("Edit", { file_path: file, ...edit });
     case "codex":
       if (stage === "command") { return tool("exec_command", { cmd: command }); }
-      if (stage === "read") { return undefined; }
+      if (stage === "read") { return tool("exec_command", { cmd: `cat ${JSON.stringify(file)}` }); }
       return tool("apply_patch", {});
     case "grok":
       if (stage === "command") { return tool("run_terminal_command", { command, description: "Print audit marker" }); }

@@ -1,6 +1,7 @@
 # experiments
 
 - [Tool activity audit](tool-activity-audit/README.md): native tool/input/category/path facts, MCP readiness and Codex review steering across eleven runtimes; collaboration tool lifecycle fix.
+- [Tool read/search follow-up](tool-activity-audit/files.md): actual file tool mappings, search query before scope and native Codex collaboration input fields; Linux local-provider probes, Qoder 1.1.81 replay only.
 
 - [Native CI investigation closeout](acp-ci-failures/closeout.md): Windows validation and four diagnostic retention decisions; the [original November 6 failures](acp-ci-failures/README.md) remain evidence, including unresolved CodeBuddy, Antigravity and Grok cases.
 - [Windows watchdog fixture readiness](windows-watchdog/README.md): retained failure checkpoints and a controlled Vitest scheduling comparison before blocking a worker.

@@ -1,0 +1,79 @@
+{
+  "runtime": "dsh",
+  "version": "0.2.2-rc.1",
+  "mode": "files",
+  "sourceSha256": "fe215517dc5b2f6835eaa70396693bb7a24de3c14479ac1d1c4b990d24217efb",
+  "failure": null,
+  "fileAfterEdit": null,
+  "mcpCalls": [],
+  "timingMsFromOpen": {
+    "openReturned": 4701,
+    "toolsListReturned": 4675,
+    "firstPrimaryModelRequest": 4932
+  },
+  "readiness": [],
+  "tools": [
+    {
+      "tool": "read",
+      "events": [
+        {
+          "kind": "tool_call_started",
+          "tool": "read",
+          "input": "{\"file_path\":\"<project>/audit.txt\"}"
+        },
+        {
+          "kind": "tool_call_ended",
+          "content": [
+            {
+              "type": "text",
+              "text": "<path><project>/audit.txt</path>\n<type>file</type>\n<content>\n1: BEFORE actual-file-evidence\n\n(End of file - total 1 lines)\n</content>"
+            }
+          ],
+          "result": "ok"
+        }
+      ],
+      "nativeInputs": [
+        "{\"file_path\":\"<project>/audit.txt\"}"
+      ],
+      "nativeKinds": [],
+      "nativeLocations": [],
+      "nativeDetails": []
+    },
+    {
+      "tool": "grep",
+      "events": [
+        {
+          "kind": "tool_call_started",
+          "tool": "grep",
+          "input": "{\"pattern\":\"BEFORE\",\"path\":\"<project>\"}"
+        },
+        {
+          "kind": "tool_call_ended",
+          "content": [
+            {
+              "type": "text",
+              "text": "Found 1 match\n\naudit.txt\nLine 1: BEFORE actual-file-evidence"
+            }
+          ],
+          "result": "ok"
+        }
+      ],
+      "nativeInputs": [
+        "{\"pattern\":\"BEFORE\",\"path\":\"<project>\"}"
+      ],
+      "nativeKinds": [],
+      "nativeLocations": [],
+      "nativeDetails": []
+    }
+  ],
+  "modelToolResults": [
+    {
+      "tool_call_id": "audit_read",
+      "content": "<path><project>/audit.txt</path>\n<type>file</type>\n<content>\n1: BEFORE actual-file-evidence\n\n(End of file - total 1 lines)\n</content>"
+    },
+    {
+      "tool_call_id": "audit_file-search",
+      "content": "Found 1 match\n\naudit.txt\nLine 1: BEFORE actual-file-evidence"
+    }
+  ]
+}
