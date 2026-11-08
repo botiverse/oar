@@ -29,8 +29,10 @@
  * with runtimes/qwen/auth-status.ts KEY_NAMES; add new sources and regressions
  * so configured credentials cannot become a false logged_out result.
  * Watch Qwen issues #15796 (extension-store lock) and #15875 (thinking/text
- * snapshot ids). After a native snapshot fix, rerun the structure regressions
- * and remove the Qwen-specific snapshot rule if it is no longer needed.
+ * snapshot ids), including PR #16586. After a stable release includes the
+ * snapshot fix, replay thinking -> text -> tool_use and text -> tool_use;
+ * check repeated indices cannot mix snapshots or lose/duplicate events.
+ * Keep the positional/type compatibility rule for older Qwen versions.
  * A changed Kimi binary also needs sea-trial/vendor/kimi-login.vendor.test.ts
  * with OAR_TEST=kimi-login (local OAuth stand-in, no account). Recheck all three platforms before updating the CI login pin
  * and the minimum version accepted by loginExecutable in kimi/login.ts and

@@ -13,11 +13,11 @@ observed on Linux with a local scripted OpenAI provider on 2026-10-23.
 The source's `packages/cli/src/nonInteractive/session.ts` and
 `control/controllers/systemController.ts` define this interface.
 
-Current check: npm **0.26.9** on Linux, 2026-11-06. All 19 native vendor
+Current check: npm **0.27.0** on Linux, 2026-11-08. All 19 native vendor
 tests and 16 applicable behavior cases passed. The snapshot-id and
 extension-store limits below still reproduce, and all fourteen
 provider-preset credential variables remain covered by the local credential
-reader. See the [version check](../../experiments/runtime-version-checks/2026-11-06.md#qwen-0269).
+reader. See the [version check](../../experiments/runtime-version-checks/2026-11-08.md#qwen-0270).
 
 ## OAR mapping
 
@@ -101,8 +101,9 @@ not an additional OAR input or record.
 
 ### Streamed block snapshots
 
-With **0.26.3** through **0.26.5**, a response containing thinking followed
-by text emits one `message_start`, reuses content-block index 0, and follows
+With **0.26.3** through **0.26.5**, and again in **0.27.0**, a response
+containing thinking followed by text emits one `message_start`, reuses
+content-block index 0, and follows
 each `content_block_stop` with a single-block `assistant` snapshot. The text
 deltas still carry the initial message identity, but the text snapshot gets
 a different `message.id`. Requiring equal ids therefore repeats the answer.
@@ -117,6 +118,15 @@ The [dated investigation](../../experiments/qwen-native/reply-text-2026-10-29.md
 records the native sequence, real Token Plan observations, regressions and
 an upstream issue draft. This handles the observed SDK-channel sequence;
 it does not assert that every provider emits thinking or rewrite Qwen's ids.
+
+[Upstream PR #16586](https://github.com/QwenLM/qwen-code/pull/16586) proposes
+one message id and continuous thinking/text block indices. It is still
+unmerged as of November 8 and is not present in the verified 0.27.0 sequence.
+Its review flags tool blocks that may reuse indices under the proposed
+shared id; that is an upstream review finding, not a released-version result.
+After a stable release includes the final fix, verify thinking, text and
+tool-call transitions together, including repeated indices and snapshot
+association. The compatibility rule remains for older versions.
 
 ### Tool-call ids
 
