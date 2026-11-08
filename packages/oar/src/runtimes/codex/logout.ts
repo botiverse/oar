@@ -3,7 +3,7 @@ import type { AvailableInstallation } from "../../contracts/installation.js";
 import type { LogoutOptions, LogoutResult } from "../../contracts/login.js";
 import { loginExecutable } from "../../shared/login.js";
 import { commandLogout, confirmedLogout, runLogoutCommand } from "../../shared/logout.js";
-import { codexAuthStatus } from "./login.js";
+import { readCodexAuthStatus } from "./login.js";
 
 /*
  * `codex logout` (0.160.1, read in openai/codex `rust-v0.160.1`:
@@ -37,5 +37,5 @@ export async function codexLogout(installation: AvailableInstallation, options: 
     return { kind: "failed", reason: "process_failed", detail: end.detail };
   }
   const native = commandLogout(end, LOGOUT_COMMAND, timeoutMs);
-  return confirmedLogout(native, await codexAuthStatus(installation, { env: options.env }), LOGOUT_COMMAND);
+  return confirmedLogout(native, await readCodexAuthStatus(installation, { env: options.env }), LOGOUT_COMMAND);
 }

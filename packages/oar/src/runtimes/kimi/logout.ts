@@ -3,7 +3,7 @@ import type { LogoutOptions, LogoutResult } from "../../contracts/login.js";
 import { sessionEnvironment } from "../../shared/environment.js";
 import { loginExecutable } from "../../shared/login.js";
 import { confirmedLogout, type NativeLogout } from "../../shared/logout.js";
-import { kimiAuthStatus, queryKimiAuth } from "./auth-status.js";
+import { readKimiAuthStatus, queryKimiAuth } from "./auth-status.js";
 
 /** ACP logout removes the managed OAuth slot and its managed model configuration. */
 export async function kimiLogout(installation: AvailableInstallation, options: LogoutOptions = {}): Promise<LogoutResult> {
@@ -14,5 +14,5 @@ export async function kimiLogout(installation: AvailableInstallation, options: L
   const native: NativeLogout = result === "ok" ? { kind: "done" } : {
     kind: "failed", reason: result === "timed_out" ? "timed_out" : "process_failed", detail: "Kimi ACP logout did not complete",
   };
-  return confirmedLogout(native, await kimiAuthStatus(installation, { env: options.env }), "kimi acp logout");
+  return confirmedLogout(native, await readKimiAuthStatus(installation, { env: options.env }), "kimi acp logout");
 }

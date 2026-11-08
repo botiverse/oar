@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { codebuddyLogin } from "../../packages/oar/src/runtimes/codebuddy/login.js";
-import { codebuddyAuthStatus, projectCodebuddyAuthStatus } from "../../packages/oar/src/runtimes/codebuddy/auth-status.js";
+import { codebuddyAuthStatus, readCodebuddyAuthStatus, projectCodebuddyAuthStatus } from "../../packages/oar/src/runtimes/codebuddy/auth-status.js";
 import { fakeLoginCli } from "../fixtures/login-fixtures.js";
 import { recordedInteraction } from "../fixtures/login-interaction.js";
 
@@ -123,7 +123,7 @@ it("native cancellation is not mislabeled as a timeout or denial", async () => {
 it("a cancelled status query does not claim a timeout", async () => {
   const { installation } = await fixture("silent");
   const abort = new AbortController();
-  const pending = codebuddyAuthStatus(installation, {}, abort.signal);
+  const pending = readCodebuddyAuthStatus(installation, {}, abort.signal);
   abort.abort();
   expect(await pending).toEqual({ kind: "unknown", source: "codebuddy stream-json initialize.account", detail: "CodeBuddy account query cancelled" });
 });

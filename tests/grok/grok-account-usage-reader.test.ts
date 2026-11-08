@@ -1,3 +1,4 @@
+import { setImmediate as tick } from "node:timers/promises";
 import { readerEnvironment, expectReaderEnvironment } from "../fixtures/reader-environment.js";
 import { afterEach, expect, test, vi } from "vitest";
 import { grokAccountUsage } from "../../packages/oar/src/runtimes/grok/account-usage.js";
@@ -149,7 +150,7 @@ test("grok reader keeps billing when the optional auth-info extension fails", as
 test("grok reader gives each request only what is left of timeoutMs", async () => {
   vi.useFakeTimers();
   acp.request.mockImplementation(async (method) => {
-    vi.advanceTimersByTime(1500);
+    vi.advanceTimersByTime(method === "_x.ai/auth/info" ? 500 : 1500);
     switch (method) {
       case "initialize":
         return { protocolVersion: 1, agentCapabilities: {}, authMethods: [] };
@@ -178,5 +179,15 @@ test("grok reader rejects once timeoutMs is spent", async () => {
   const read = grokAccountUsage(installation, { timeoutMs: 2000 });
   await expect(read).rejects.toThrow("Failed to read Grok account usage");
   vi.useRealTimers();
+  expect(acp.request.mock.calls.map(([method]) => method)).toEqual(["initialize"]);
+});
+
+test("a late initialize result cannot start billing after the deadline", async () => {
+  const late = Promise.withResolvers<unknown>();
+  acp.request.mockImplementationOnce(async () => late.promise);
+  await expect(grokAccountUsage(installation, { timeoutMs: 20 })).rejects.toThrow("Failed to read Grok account usage");
+  expect(acp.kill).toHaveBeenCalled();
+  late.resolve({ protocolVersion: 1, authMethods: [] });
+  await tick();
   expect(acp.request.mock.calls.map(([method]) => method)).toEqual(["initialize"]);
 });

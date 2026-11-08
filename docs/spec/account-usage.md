@@ -116,8 +116,12 @@ reasons must be presented as unknown rather than guessed.
 
 Operational failures (network errors, timeouts, malformed responses) still reject
 the promise. `options.timeoutMs` bounds the whole read, every process and
-request in it included. Reasons do not include tokens, credential values, or raw provider
-responses.
+request in it included. The call rejects at the deadline; processes it started
+continue their normal owned shutdown in the background and may remain alive
+for the stop grace period (10 seconds by default) before escalation to SIGKILL.
+This also applies to Codex `redeemLimitReset`; a timeout still leaves whether
+the reset was consumed unknown, so retry with the same `idempotencyKey`.
+Reasons do not include tokens, credential values, or raw provider responses.
 
 Kimi rejects an unreadable response body, invalid JSON, or a response with no
 usable quota windows. A window with a malformed present usage metric is omitted;

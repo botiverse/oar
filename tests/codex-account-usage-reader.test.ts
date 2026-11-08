@@ -1,3 +1,4 @@
+import { setImmediate as tick } from "node:timers/promises";
 import { expect, test, vi } from "vitest";
 import { isNonSubscriptionAccount } from "../packages/oar/src/runtimes/codex/account-request.js";
 import { readFromAppServer } from "../packages/oar/src/runtimes/codex/account-usage.js";
@@ -201,4 +202,20 @@ test("usage forwards the environment to its app-server", async () => {
   const env = { CODEX_HOME: "private-home", HTTP_PROXY: null };
   await readFromAppServer("codex", 1000, start, env);
   expect(start).toHaveBeenCalledWith("codex", env);
+});
+
+// An answer arriving after the deadline must not start the next account
+// request, especially a redemption or the legacy-params fallback.
+// oxlint-disable-next-line max-statements -- Observe timeout, then release the held native answer and verify no next request.
+test.each(["initialize", "account/read", "account/rateLimits/read"])("a late %s answer cannot continue a timed-out read", async (stage) => {
+  const late = Promise.withResolvers<Record<string, unknown>>();
+  const server = fakeAppServer(async (method) => method === stage ? late.promise : {});
+  const kill = vi.spyOn(server.client, "kill");
+  await expect(readFromAppServer("codex", 20, () => server.client)).resolves.toEqual({ kind: "error" });
+  expect(kill).toHaveBeenCalled();
+  const sent = [...server.calls];
+  if (stage === "account/rateLimits/read") { late.reject(new Error("invalid type: map, expected unit")); }
+  else { late.resolve({}); }
+  await tick();
+  expect(server.calls).toEqual(sent);
 });

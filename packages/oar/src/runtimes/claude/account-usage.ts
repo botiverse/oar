@@ -1,3 +1,4 @@
+import { withQueryDeadline } from "../../shared/executable/query.js";
 import type { SessionOptions } from "../../contracts/session-options.js";
 import { randomUUID } from "node:crypto";
 import type { AccountUsageReader, AccountUsageSnapshot, AccountUsageWindow } from "../../contracts/account-usage.js";
@@ -109,7 +110,7 @@ function controlFailure(reply: JsonRecord): AccountUsageSnapshot {
  */
 const USAGE = "Claude account usage";
 const safeModeSupport = new Map<string, boolean>();
-async function supportsSafeMode(command: string, version: string | undefined, deadline: number, env: SessionOptions["env"]): Promise<boolean> {
+async function supportsSafeMode(command: string, version: string | undefined, deadline: number, env: SessionOptions["env"], signal: AbortSignal): Promise<boolean> {
   const key = `${command}\0${version ?? ""}`;
   const cacheable = Object.keys(env ?? {}).length === 0;
   const known = cacheable ? safeModeSupport.get(key) : undefined;
@@ -117,9 +118,10 @@ async function supportsSafeMode(command: string, version: string | undefined, de
     return known;
   }
   const help = await runExecutable(command, ["--help"], {
-    env: claudeEnv(env),
+    env: claudeEnv(env), signal,
     timeoutMs: remainingMs(deadline, USAGE),
   });
+  signal.throwIfAborted();
   assertRan(help, `Failed to run ${command} --help`);
   if (!help.ok) {
     return false;
@@ -140,70 +142,71 @@ export const claudeAccountUsage: AccountUsageReader = async (installation, optio
   }
   // One budget for the whole read, shared by the help probe and the query:
   // two claude starts, each of which a slow launcher can stretch.
-  const deadline = Date.now() + (options.timeoutMs ?? 30_000);
-  if (!await supportsSafeMode(installation.command, installation.version, deadline, options.env)) {
-    return { kind: "unsupported", reason: "unsupported_installation" };
-  }
-  const queryMs = remainingMs(deadline, USAGE);
-  const child = spawnLineProcess(installation.command, [
-    "-p", "--input-format", "stream-json", "--output-format", "stream-json",
-    "--verbose", "--no-session-persistence", "--safe-mode",
-  ], { env: claudeEnv(options.env), killTree: true });
-  let pending: { id: string; resolve: (reply: JsonRecord | null) => void } | null = null;
-  let ended = false;
-  let timedOut = false;
-  child.onLine((line) => {
-    const message = asRecord(parseJson(line));
-    const inner = asRecord(message?.response);
-    if (message?.type === "control_response" && pending !== null && inner?.request_id === pending.id) {
-      pending.resolve(inner);
+  const timeoutMs = options.timeoutMs ?? 30_000;
+  const deadline = Date.now() + timeoutMs;
+  const result = await withQueryDeadline<AccountUsageSnapshot>(USAGE, timeoutMs, async (signal) => {
+    if (!await supportsSafeMode(installation.command, installation.version, deadline, options.env, signal)) {
+      return { kind: "unsupported", reason: "unsupported_installation" };
+    }
+    signal.throwIfAborted();
+    remainingMs(deadline, USAGE);
+    const child = spawnLineProcess(installation.command, [
+      "-p", "--input-format", "stream-json", "--output-format", "stream-json",
+      "--verbose", "--no-session-persistence", "--safe-mode",
+    ], { env: claudeEnv(options.env), killTree: true });
+    let pending: { id: string; resolve: (reply: JsonRecord | null) => void } | null = null;
+    let ended = false;
+    child.onLine((line) => {
+      const message = asRecord(parseJson(line));
+      const inner = asRecord(message?.response);
+      if (message?.type === "control_response" && pending !== null && inner?.request_id === pending.id) {
+        pending.resolve(inner);
+      }
+    });
+    child.onExit(() => {
+      ended = true;
+      pending?.resolve(null);
+    });
+    child.stdin.on("error", () => {
+      ended = true;
+      pending?.resolve(null);
+    });
+    const stop = (): void => { pending?.resolve(null); child.kill(); };
+    signal.addEventListener("abort", stop, { once: true });
+    const query = async (request: JsonRecord): Promise<JsonRecord> => {
+      if (ended || signal.aborted) {
+        throw new Error("Claude exited or timed out before answering usage queries");
+      }
+      const id = `oar-usage-${randomUUID()}`;
+      const { promise, resolve } = Promise.withResolvers<JsonRecord | null>();
+      pending = { id, resolve };
+      child.write(`${JSON.stringify({ type: "control_request", request_id: id, request })}\n`);
+      const reply = await promise;
+      pending = null;
+      if (reply === null) {
+        throw new Error("Claude exited or timed out before answering usage query");
+      }
+      return reply;
+    };
+    try {
+      await child.spawned;
+      const initialized = await query({ subtype: "initialize" });
+      if (initialized.subtype !== "success") {
+        return controlFailure(initialized);
+      }
+      const account = asRecord(asRecord(initialized.response)?.account);
+      const email = typeof account?.email === "string" && account.email.trim().length > 0
+        ? account.email.trim() : undefined;
+      const reply = await query({ subtype: "get_usage", skip_behaviors: true });
+      if (reply.subtype !== "success") {
+        return controlFailure(reply);
+      }
+      return projectClaudeUsage(reply.response, email);
+    } finally {
+      signal.removeEventListener("abort", stop);
+      child.kill();
+      await child.exited;
     }
   });
-  child.onExit(() => {
-    ended = true;
-    pending?.resolve(null);
-  });
-  child.stdin.on("error", () => {
-    ended = true;
-    pending?.resolve(null);
-  });
-  const timer = setTimeout(() => {
-    timedOut = true;
-    pending?.resolve(null);
-    child.kill();
-  }, queryMs);
-  const query = async (request: JsonRecord): Promise<JsonRecord> => {
-    if (ended || timedOut) {
-      throw new Error("Claude exited or timed out before answering usage queries");
-    }
-    const id = `oar-usage-${randomUUID()}`;
-    const { promise, resolve } = Promise.withResolvers<JsonRecord | null>();
-    pending = { id, resolve };
-    child.write(`${JSON.stringify({ type: "control_request", request_id: id, request })}\n`);
-    const reply = await promise;
-    pending = null;
-    if (reply === null) {
-      throw new Error("Claude exited or timed out before answering usage query");
-    }
-    return reply;
-  };
-  try {
-    await child.spawned;
-    const initialized = await query({ subtype: "initialize" });
-    if (initialized.subtype !== "success") {
-      return controlFailure(initialized);
-    }
-    const account = asRecord(asRecord(initialized.response)?.account);
-    const email = typeof account?.email === "string" && account.email.trim().length > 0
-      ? account.email.trim() : undefined;
-    const reply = await query({ subtype: "get_usage", skip_behaviors: true });
-    if (reply.subtype !== "success") {
-      return controlFailure(reply);
-    }
-    return projectClaudeUsage(reply.response, email);
-  } finally {
-    clearTimeout(timer);
-    child.kill();
-    await child.exited;
-  }
+  return result;
 };

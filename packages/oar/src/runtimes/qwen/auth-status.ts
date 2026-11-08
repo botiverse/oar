@@ -1,3 +1,4 @@
+import { withQueryDeadline } from "../../shared/executable/query.js";
 import path from "node:path";
 import type { AvailableInstallation } from "../../contracts/installation.js";
 import type { AuthStatus, AuthStatusOptions, AuthStatusReader } from "../../contracts/login.js";
@@ -80,18 +81,12 @@ async function inspectCredentials(env: Readonly<NodeJS.ProcessEnv>, signal: Abor
 export const qwenAuthStatus: AuthStatusReader = Object.assign(async (
   _installation: AvailableInstallation, options: AuthStatusOptions = {},
 ): Promise<AuthStatus> => {
-  const abort = new AbortController();
-  const deadline = Promise.withResolvers<never>();
-  const timer = setTimeout(() => {
-    abort.abort();
-    deadline.reject(new Error("Qwen credential inspection timed out"));
-  }, options.timeoutMs ?? 20_000);
-  timer.unref();
-  try {
-    return await Promise.race([inspectCredentials(sessionEnvironment(options.env), abort.signal), deadline.promise]);
-  } catch {
-    return unknown(abort.signal.aborted ? "Qwen local credential inspection timed out" : "Qwen user/system configuration could not be completely inspected; credentials may be configured");
-  } finally {
-    clearTimeout(timer);
-  }
+  const result = await withQueryDeadline<AuthStatus>("Qwen auth status", options.timeoutMs ?? 20_000, async (signal) => {
+    try {
+      return await inspectCredentials(sessionEnvironment(options.env), signal);
+    } catch {
+      return unknown("Qwen user/system configuration could not be completely inspected; credentials may be configured");
+    }
+  }, { kind: "unknown", source: SOURCE, detail: "Qwen local credential inspection timed out" });
+  return result;
 }, { localOnly: true as const });

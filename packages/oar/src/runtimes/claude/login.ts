@@ -13,7 +13,7 @@ import {
   type LoginProcessExit,
   type LoginStop,
 } from "../../shared/login.js";
-import { claudeAuthStatus } from "./auth-status.js";
+import { readClaudeAuthStatus } from "./auth-status.js";
 import { claudeEnv } from "./environment.js";
 
 export { claudeAuthStatus } from "./auth-status.js";
@@ -73,9 +73,10 @@ interface FlowState {
  * report: a success it printed is `logged_in`, an exit 0 without one is not.
  */
 async function confirmed(installation: AvailableInstallation, signal: AbortSignal | undefined, reportedSuccess: boolean, env: LoginOptions["env"]): Promise<LoginResult> {
-  const status = signal?.aborted === true
+  const read = signal?.aborted === true
     ? undefined
-    : await claudeAuthStatus(installation, { env, ...(signal === undefined ? {} : { signal }) });
+    : await readClaudeAuthStatus(installation, { env, ...(signal === undefined ? {} : { signal }) });
+  const status = read?.status;
   if (status?.kind === "logged_in") {
     return { kind: "logged_in", ...(status.account === undefined ? {} : { account: status.account }) };
   }

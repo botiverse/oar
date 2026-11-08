@@ -1,0 +1,240 @@
+{
+  "date": "2026-11-08",
+  "platform": "linux-x64",
+  "node": "24.19.0",
+  "base": "2e235c857e07c22d746fcdd0880f6e9b06b44b88",
+  "cases": [
+    {
+      "version": "0.131.0",
+      "revision": "before",
+      "timeoutMs": 800,
+      "operation": "read",
+      "rejectedMs": 10897,
+      "error": "Failed to read Codex account usage",
+      "goneMs": 10897,
+      "remaining": [],
+      "events": [
+        {
+          "event": "wrapper",
+          "elapsedMs": 40
+        },
+        {
+          "event": "child",
+          "elapsedMs": 44
+        },
+        {
+          "event": "withheld",
+          "method": "account/rateLimits/read",
+          "elapsedMs": 277
+        },
+        {
+          "event": "sigterm",
+          "elapsedMs": 853
+        }
+      ]
+    },
+    {
+      "version": "0.131.0",
+      "revision": "before",
+      "timeoutMs": 800,
+      "operation": "redeem",
+      "rejectedMs": 10876,
+      "error": "Failed to redeem a Codex limit reset; whether it was spent is unknown, so retry with the same idempotencyKey",
+      "goneMs": 10898,
+      "remaining": [],
+      "events": [
+        {
+          "event": "wrapper",
+          "elapsedMs": 46
+        },
+        {
+          "event": "child",
+          "elapsedMs": 50
+        },
+        {
+          "event": "withheld",
+          "method": "account/rateLimitResetCredit/consume",
+          "elapsedMs": 281
+        },
+        {
+          "event": "sigterm",
+          "elapsedMs": 841
+        }
+      ]
+    },
+    {
+      "version": "0.131.0",
+      "revision": "after",
+      "timeoutMs": 800,
+      "operation": "read",
+      "rejectedMs": 803,
+      "error": "Failed to read Codex account usage",
+      "goneMs": 10919,
+      "remaining": [],
+      "events": [
+        {
+          "event": "wrapper",
+          "elapsedMs": 45
+        },
+        {
+          "event": "child",
+          "elapsedMs": 49
+        },
+        {
+          "event": "withheld",
+          "method": "account/rateLimits/read",
+          "elapsedMs": 283
+        },
+        {
+          "event": "sigterm",
+          "elapsedMs": 869
+        }
+      ]
+    },
+    {
+      "version": "0.131.0",
+      "revision": "after",
+      "timeoutMs": 800,
+      "operation": "redeem",
+      "rejectedMs": 802,
+      "error": "Failed to redeem a Codex limit reset; whether it was spent is unknown, so retry with the same idempotencyKey",
+      "goneMs": 10891,
+      "remaining": [],
+      "events": [
+        {
+          "event": "wrapper",
+          "elapsedMs": 55
+        },
+        {
+          "event": "child",
+          "elapsedMs": 61
+        },
+        {
+          "event": "withheld",
+          "method": "account/rateLimitResetCredit/consume",
+          "elapsedMs": 292
+        },
+        {
+          "event": "sigterm",
+          "elapsedMs": 843
+        }
+      ]
+    },
+    {
+      "version": "0.167.0",
+      "revision": "before",
+      "timeoutMs": 800,
+      "operation": "read",
+      "rejectedMs": 10871,
+      "error": "Failed to read Codex account usage",
+      "goneMs": 10871,
+      "remaining": [],
+      "events": [
+        {
+          "event": "wrapper",
+          "elapsedMs": 45
+        },
+        {
+          "event": "child",
+          "elapsedMs": 50
+        },
+        {
+          "event": "withheld",
+          "method": "account/rateLimits/read",
+          "elapsedMs": 448
+        },
+        {
+          "event": "sigterm",
+          "elapsedMs": 838
+        }
+      ]
+    },
+    {
+      "version": "0.167.0",
+      "revision": "before",
+      "timeoutMs": 800,
+      "operation": "redeem",
+      "rejectedMs": 10869,
+      "error": "Failed to redeem a Codex limit reset; whether it was spent is unknown, so retry with the same idempotencyKey",
+      "goneMs": 10869,
+      "remaining": [],
+      "events": [
+        {
+          "event": "wrapper",
+          "elapsedMs": 44
+        },
+        {
+          "event": "child",
+          "elapsedMs": 49
+        },
+        {
+          "event": "withheld",
+          "method": "account/rateLimitResetCredit/consume",
+          "elapsedMs": 410
+        },
+        {
+          "event": "sigterm",
+          "elapsedMs": 838
+        }
+      ]
+    },
+    {
+      "version": "0.167.0",
+      "revision": "after",
+      "timeoutMs": 800,
+      "operation": "read",
+      "rejectedMs": 802,
+      "error": "Failed to read Codex account usage",
+      "goneMs": 10971,
+      "remaining": [],
+      "events": [
+        {
+          "event": "wrapper",
+          "elapsedMs": 49
+        },
+        {
+          "event": "child",
+          "elapsedMs": 54
+        },
+        {
+          "event": "withheld",
+          "method": "account/rateLimits/read",
+          "elapsedMs": 568
+        },
+        {
+          "event": "sigterm",
+          "elapsedMs": 904
+        }
+      ]
+    },
+    {
+      "version": "0.167.0",
+      "revision": "after",
+      "timeoutMs": 800,
+      "operation": "redeem",
+      "rejectedMs": 802,
+      "error": "Failed to redeem a Codex limit reset; whether it was spent is unknown, so retry with the same idempotencyKey",
+      "goneMs": 10877,
+      "remaining": [],
+      "events": [
+        {
+          "event": "wrapper",
+          "elapsedMs": 44
+        },
+        {
+          "event": "child",
+          "elapsedMs": 49
+        },
+        {
+          "event": "withheld",
+          "method": "account/rateLimitResetCredit/consume",
+          "elapsedMs": 408
+        },
+        {
+          "event": "sigterm",
+          "elapsedMs": 824
+        }
+      ]
+    }
+  ]
+}

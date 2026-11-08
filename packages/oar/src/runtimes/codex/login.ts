@@ -1,3 +1,4 @@
+import { withQueryDeadline } from "../../shared/executable/query.js";
 import { sessionEnvironment } from "../../shared/environment.js";
 import type { AvailableInstallation } from "../../contracts/installation.js";
 import type {
@@ -77,16 +78,22 @@ export function projectCodexLoginStatus(exitCode: number | null, output: string)
   };
 }
 
-async function readCodexAuthStatus(installation: AvailableInstallation, options: AuthStatusOptions = {}): Promise<AuthStatus> {
+export async function readCodexAuthStatus(installation: AvailableInstallation, options: AuthStatusOptions & { readonly signal?: AbortSignal } = {}): Promise<AuthStatus> {
   if (installation.via !== "executable") {
     return { kind: "unknown", detail: "not a machine-installed executable" };
   }
-  const result = await runExecutable(installation.command, ["login", "status"], { env: sessionEnvironment(options.env), timeoutMs: options.timeoutMs ?? STATUS_TIMEOUT_MS });
+  const result = await runExecutable(installation.command, ["login", "status"], { env: sessionEnvironment(options.env), timeoutMs: options.timeoutMs ?? STATUS_TIMEOUT_MS, ...(options.signal === undefined ? {} : { signal: options.signal }) });
   return projectCodexLoginStatus(result.ok ? 0 : result.exitCode, `${result.stdout}\n${result.stderr}`);
 }
 
 /** Native status can hydrate personal access tokens and identity credentials over the network. */
-export const codexAuthStatus: AuthStatusReader = readCodexAuthStatus;
+export const codexAuthStatus: AuthStatusReader = async (installation, options = {}) => {
+  const status = await withQueryDeadline<AuthStatus>("Codex auth status", options.timeoutMs ?? STATUS_TIMEOUT_MS, async (signal) => {
+    const result = await readCodexAuthStatus(installation, { ...options, signal });
+    return result;
+  }, { kind: "unknown", source: STATUS_SOURCE, detail: "Codex auth status timed out" });
+  return status;
+};
 
 /** `account/read` after the sign-in; null when codex reports no account. */
 export function projectCodexAccount(result: unknown): LoginAccount | null {

@@ -1,3 +1,4 @@
+import { withQueryDeadline } from "../../shared/executable/query.js";
 import type { SessionOptions } from "../../contracts/session-options.js";
 import type { AccountUsageReauthReason, AccountUsageUnsupportedReason } from "../../contracts/account-usage.js";
 import { startAppServerClient, type AppServerClient } from "./app-server-client.js";
@@ -22,13 +23,15 @@ export interface AccountCall {
   readonly legacyParams?: Record<string, unknown>;
 }
 
-async function request(client: AppServerClient, call: AccountCall): Promise<unknown> {
+async function request(client: AppServerClient, call: AccountCall, signal: AbortSignal): Promise<unknown> {
+  signal.throwIfAborted();
   try {
     return await client.request(call.method, call.params);
   } catch (error) {
     if (call.legacyParams === undefined || !(error instanceof Error) || !/expected unit/iu.test(error.message)) {
       throw error;
     }
+    signal.throwIfAborted();
     return client.request(call.method, call.legacyParams);
   }
 }
@@ -73,34 +76,42 @@ export async function callAppServer(
   startClient: StartAppServerClient = startAppServerClient,
   env?: SessionOptions["env"],
 ): Promise<ReadOutcome> {
-  const client = startClient(command, env);
-  const deadline = setTimeout(() => {
-    client.kill();
-  }, timeoutMs);
   try {
-    await client.request("initialize", {
-      clientInfo: { name: "oar", version: "0.0.0" },
-      capabilities: { experimentalApi: true },
+    return await withQueryDeadline("Codex account request", timeoutMs, async (signal): Promise<ReadOutcome> => {
+      const client = startClient(command, env);
+      const stop = (): void => { client.kill(); };
+      signal.addEventListener("abort", stop, { once: true });
+      try {
+        await client.request("initialize", {
+          clientInfo: { name: "oar", version: "0.0.0" },
+          capabilities: { experimentalApi: true },
+        });
+        signal.throwIfAborted();
+        client.notify("initialized", {});
+
+        // Read auth mode before the ChatGPT-only account endpoints. In API-key
+        // mode that endpoint rejects with "ChatGPT authentication required" even
+        // though Codex itself is correctly authenticated; treating that as expired
+        // OAuth would tell the user to perform a login that cannot fix the state.
+        let account: unknown = undefined;
+        try {
+          account = await client.request("account/read", {});
+        } catch {
+          // Older app-servers may not expose account/read. Preserve the existing
+          // rate-limit read in that case instead of making identity mandatory.
+        }
+        signal.throwIfAborted();
+        if (isNonSubscriptionAccount(account)) {
+          return { kind: "unsupported", reason: "unsupported_auth_mode" };
+        }
+
+        const result = await request(client, call, signal);
+        return { kind: "ok", result, email: accountEmail(account) };
+      } finally {
+        signal.removeEventListener("abort", stop);
+        client.kill();
+      }
     });
-    client.notify("initialized", {});
-
-    // Read auth mode before the ChatGPT-only account endpoints. In API-key
-    // mode that endpoint rejects with "ChatGPT authentication required" even
-    // though Codex itself is correctly authenticated; treating that as expired
-    // OAuth would tell the user to perform a login that cannot fix the state.
-    let account: unknown = undefined;
-    try {
-      account = await client.request("account/read", {});
-    } catch {
-      // Older app-servers may not expose account/read. Preserve the existing
-      // rate-limit read in that case instead of making identity mandatory.
-    }
-    if (isNonSubscriptionAccount(account)) {
-      return { kind: "unsupported", reason: "unsupported_auth_mode" };
-    }
-
-    const result = await request(client, call);
-    return { kind: "ok", result, email: accountEmail(account) };
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
     if (/chatgpt authentication required for rate limit reset/iu.test(message)) {
@@ -114,8 +125,5 @@ export async function callAppServer(
       return { kind: "unsupported", reason: "endpoint_unavailable" };
     }
     return { kind: "error" };
-  } finally {
-    clearTimeout(deadline);
-    client.kill();
   }
 }

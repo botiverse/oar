@@ -1,3 +1,4 @@
+import { withQueryDeadline } from "../../shared/executable/query.js";
 import { environmentValue, sessionEnvironment } from "../../shared/environment.js";
 import type { AvailableInstallation } from "../../contracts/installation.js";
 import type { AuthStatus, AuthStatusOptions } from "../../contracts/login.js";
@@ -14,7 +15,7 @@ export function projectCodebuddyAuthStatus(response: JsonRecord): AuthStatus {
   return { kind: "unknown", source: SOURCE, detail: "CodeBuddy initialize gave no account state" };
 }
 
-export async function codebuddyAuthStatus(installation: AvailableInstallation, options: AuthStatusOptions = {}, signal?: AbortSignal): Promise<AuthStatus> {
+export async function readCodebuddyAuthStatus(installation: AvailableInstallation, options: AuthStatusOptions = {}, signal?: AbortSignal): Promise<AuthStatus> {
   if (installation.via !== "executable") { return { kind: "unknown", detail: "not a machine-installed executable" }; }
   const env = sessionEnvironment(options.env);
   if ((environmentValue(env, "CODEBUDDY_API_KEY") ?? "") !== "") {
@@ -34,4 +35,12 @@ export async function codebuddyAuthStatus(installation: AvailableInstallation, o
   } finally {
     bounds.dispose(); client?.process.stop(); await client?.process.exited;
   }
+}
+
+export async function codebuddyAuthStatus(installation: AvailableInstallation, options: AuthStatusOptions = {}): Promise<AuthStatus> {
+  const status = await withQueryDeadline<AuthStatus>("CodeBuddy auth status", options.timeoutMs ?? 30_000, async (signal) => {
+    const result = await readCodebuddyAuthStatus(installation, options, signal);
+    return result;
+  }, { kind: "unknown", source: SOURCE, detail: "CodeBuddy account query timed out" });
+  return status;
 }

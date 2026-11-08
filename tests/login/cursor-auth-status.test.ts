@@ -1,8 +1,9 @@
+import { setImmediate as tick } from "node:timers/promises";
 import assert from "node:assert/strict";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { createCursorRuntime, orient, RuntimeRegistry } from "../../packages/oar/src/index.js";
 import { projectCursorAuthStatus } from "../../packages/oar/src/runtimes/cursor/auth-status.js";
-import type { CursorAuthStatus } from "../../packages/oar/src/runtimes/cursor/sdk.js";
+import type { CursorAuthStatus, CursorSdk } from "../../packages/oar/src/runtimes/cursor/sdk.js";
 import { bundled, EXPIRES_MS, FakeCursor, KEY, leaks, unused } from "../fixtures/fake-cursor-auth.js";
 
 beforeEach(() => { vi.stubEnv("CURSOR_API_KEY", undefined); });
@@ -116,4 +117,17 @@ test("orient preserves the configured source without exposing the Cursor key", a
   const report = await orient(new RuntimeRegistry([new FakeCursor().runtime()]));
   expect(report.runtimes[0]?.auth).toMatchObject({ kind: "ok", value: { kind: "unknown", configured: ["environment: CURSOR_API_KEY"] } });
   assert.ok(!leaks(report));
+});
+
+// Loading the SDK is part of the public read, not a second unbounded stage.
+test("the status deadline covers both SDK loading and the native status call", async () => {
+  const fake = new FakeCursor();
+  const calls = vi.spyOn(fake.auth, "status");
+  const loading = Promise.withResolvers<CursorSdk>();
+  const runtime = createCursorRuntime({ sdk: async () => loading.promise });
+  await expect(runtime.authStatus(bundled, { timeoutMs: 20 })).resolves.toMatchObject({ kind: "unknown", detail: "Cursor.auth.status did not answer within 20 ms" });
+  loading.resolve(fake.sdk);
+  await tick();
+  expect(calls).not.toHaveBeenCalled();
+  await expect(new FakeCursor({ stored: "never" }).runtime().authStatus(bundled, { timeoutMs: 20 })).resolves.toMatchObject({ kind: "unknown", detail: "Cursor.auth.status did not answer within 20 ms" });
 });
