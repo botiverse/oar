@@ -740,11 +740,12 @@ See [host-served tools](../spec/runtime-matrix.md#host-served-tools).
   PR gates because intermittent startup or MCP timeouts remain unexplained.
   [Scope and evidence](../../experiments/acp-ci-2026-10-29.md).
   The broken-command clash was probed, not tested.
-- The `opencode-aimock` vendor suite is v1 only: 5 of its 10 cases fail on
-  v2 (2.0.30) because they need v1 protocol (direct MCP tools in the
+- The full `opencode-aimock` vendor suite is v1 only: on v2 **2.2.6**,
+  11 of its 16 cases passed and 5 failed in the November 7 Linux check.
+  The five failures need v1 protocol (direct MCP tools in the
   provider's `tools` array, a classification from that array, or v1 prompt
   replacement)
-  ([October 16 report](../../experiments/runtime-version-checks/2026-10-16.md)).
+  ([November 7 report](../../experiments/runtime-version-checks/2026-11-07.md#known-v1-vendor-boundary)).
   v2 evidence is the boundary probe, the shared behavior suite and focused probes.
 - Unexplained first-run failures, not reproduced on rerun:
   `opencode --version` over its 15-second limit during concurrent opens
