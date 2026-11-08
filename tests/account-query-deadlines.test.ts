@@ -18,7 +18,7 @@ import { kimiAuthStatus } from "../packages/oar/src/runtimes/kimi/auth-status.js
 import { fakeAgentBinary, gone, withTreeProbe } from "./fixtures/process-tree.js";
 
 const script = fileURLToPath(new URL("fixtures/stalled-account-query.mjs", import.meta.url));
-const TIMEOUT = 1500;
+const TIMEOUT = 4000;
 const GRACE = 1500;
 type Read = (installation: AvailableInstallation, options: AccountUsageReadOptions) => Promise<unknown>;
 const cases: readonly { name: string; stage: string; read: Read }[] = [
@@ -40,7 +40,7 @@ const cases: readonly { name: string; stage: string; read: Read }[] = [
 ];
 afterEach(() => { vi.unstubAllEnvs(); });
 
-// SIGTERM resistance is POSIX-only. Windows still proves timely rejection and
+// SIGTERM resistance is POSIX-only. Windows still proves timely settlement and
 // eventual tree cleanup through the same public calls and real fixture process.
 test.each(cases)("$name settles at its deadline while owned cleanup continues", async ({ name, stage, read }) => {
   vi.stubEnv("OAR_KILL_GRACE_MS", String(GRACE));
@@ -61,8 +61,14 @@ test.each(cases)("$name settles at its deadline while owned cleanup continues", 
       expect(outcome.value).toMatchObject({ kind: "unknown" });
       expect(outcome.value).toHaveProperty("detail", expect.stringContaining("timed out"));
       expect(outcome.error).toBeNull();
+    } else if (name === "Grok optional identity") {
+      expect(outcome.error).toBeNull();
+      expect(outcome.value).toEqual({
+        kind: "available", rateLimited: false,
+        windows: [{ label: "Included usage", usedRatio: 0.25 }],
+      });
     } else { expect(outcome.error).toBeInstanceOf(Error); }
-    expect(outcome.elapsed).toBeGreaterThanOrEqual(TIMEOUT - 50);
+    expect(outcome.elapsed).toBeGreaterThanOrEqual(TIMEOUT - (name === "Grok optional identity" ? 150 : 50));
     expect(outcome.elapsed).toBeLessThan(TIMEOUT + 1000);
     if (name === "Codex redemption") {
       expect(outcome.error).toHaveProperty("message", expect.stringMatching(/whether it was spent is unknown.*same idempotencyKey/u));

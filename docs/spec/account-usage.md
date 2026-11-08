@@ -131,6 +131,12 @@ does not supply a window or override exhausted subscription limits. Only an
 absent credential file is `credentials_missing`; file I/O failures and malformed
 credential contents reject with a safe reason, without token bytes or file paths.
 
+Grok's email lookup is optional. After billing has arrived, its identity query
+ends 100 ms before the overall deadline, or is skipped when less time remains.
+Failure or timeout of that query returns the billing result without an email;
+process cleanup continues in the background. Failure to obtain billing before
+the overall deadline still rejects.
+
 Grok can return a valid billing configuration and subscription tier without
 `creditUsagePercent` or legacy `used`/`monthlyLimit` metrics (observed with
 Grok 1.0.46 on an unused account). OAR follows Grok's native `/usage`

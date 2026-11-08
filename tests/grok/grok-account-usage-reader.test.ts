@@ -146,11 +146,11 @@ test("grok reader keeps billing when the optional auth-info extension fails", as
   });
 });
 
-// `timeoutMs` bounds the whole read: each request gets what is left of it.
+// Required requests share the whole budget; optional identity leaves a 100 ms margin.
 test("grok reader gives each request only what is left of timeoutMs", async () => {
   vi.useFakeTimers();
   acp.request.mockImplementation(async (method) => {
-    vi.advanceTimersByTime(method === "_x.ai/auth/info" ? 500 : 1500);
+    vi.advanceTimersByTime(1500);
     switch (method) {
       case "initialize":
         return { protocolVersion: 1, agentCapabilities: {}, authMethods: [] };
@@ -166,7 +166,7 @@ test("grok reader gives each request only what is left of timeoutMs", async () =
   expect(vi.mocked(withAcpDeadline).mock.calls.map(([, method, timeoutMs]) => [method, timeoutMs])).toEqual([
     ["initialize", 4000],
     ["_x.ai/billing", 2500],
-    ["_x.ai/auth/info", 1000],
+    ["_x.ai/auth/info", 900],
   ]);
 });
 
@@ -190,4 +190,41 @@ test("a late initialize result cannot start billing after the deadline", async (
   late.resolve({ protocolVersion: 1, authMethods: [] });
   await tick();
   expect(acp.request.mock.calls.map(([method]) => method)).toEqual(["initialize"]);
+});
+
+test("billing near the deadline skips optional identity instead of losing the result", async () => {
+  vi.useFakeTimers();
+  acp.request.mockImplementation(async (method) => {
+    if (method === "initialize") {
+      vi.advanceTimersByTime(1500);
+      return { protocolVersion: 1, agentCapabilities: {}, authMethods: [] };
+    }
+    vi.advanceTimersByTime(2450);
+    return billing();
+  });
+  await expect(grokAccountUsage(installation, { timeoutMs: 4000 })).resolves.toEqual({
+    kind: "available", plan: "SuperGrok", rateLimited: false,
+    windows: [{ label: "Included usage", usedRatio: 0.25 }],
+  });
+  vi.useRealTimers();
+  expect(acp.request.mock.calls.map(([method]) => method)).toEqual(["initialize", "_x.ai/billing"]);
+  expect(acp.kill).toHaveBeenCalledOnce();
+});
+
+test("late optional identity cannot replace the timely billing-only result", async () => {
+  const late = Promise.withResolvers<unknown>();
+  acp.request.mockImplementation(async (method) => {
+    if (method === "initialize") { return { protocolVersion: 1, agentCapabilities: {}, authMethods: [] }; }
+    if (method === "_x.ai/billing") { return billing(); }
+    return late.promise;
+  });
+  const result = await grokAccountUsage(installation, { timeoutMs: 250 });
+  expect(acp.request.mock.calls.map(([method]) => method)).toEqual(["initialize", "_x.ai/billing", "_x.ai/auth/info"]);
+  expect(acp.kill).toHaveBeenCalled();
+  late.resolve({ email: "late@example.com" });
+  await tick();
+  expect(result).toEqual({
+    kind: "available", plan: "SuperGrok", rateLimited: false,
+    windows: [{ label: "Included usage", usedRatio: 0.25 }],
+  });
 });

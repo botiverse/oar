@@ -114,89 +114,104 @@ interface GrokAccountPayload {
 
 const USAGE = "Grok account usage";
 
+// Identity is optional. Leave room to return the already-read billing result
+// before the caller's deadline, without waiting for process cleanup.
+const IDENTITY_MARGIN_MS = 100;
+
 async function readBilling(command: string, timeoutMs: number, env: NodeJS.ProcessEnv): Promise<GrokAccountPayload> {
-  // One budget for the whole read, shared by every request.
   const deadline = Date.now() + timeoutMs;
-  const result = await withQueryDeadline<GrokAccountPayload>(USAGE, timeoutMs, async (signal) => {
-    const runtime = startAcpProcess(
-      command,
-      ["agent", "--always-approve", "--no-leader", "stdio"],
-      createClient({ name: "oar" }),
-      { env },
-    );
-    const stop = (): void => { runtime.kill(); };
-    signal.addEventListener("abort", stop, { once: true });
-    try {
-      const initialize = methods.agent.initialize;
-      const response = await withAcpDeadline(
-        runtime,
-        initialize,
-        remainingMs(deadline, USAGE),
-        (requestOptions) => runtime.connection.agent.request(initialize, {
-          protocolVersion: PROTOCOL_VERSION,
-          clientCapabilities: {
-            fs: { readTextFile: false, writeTextFile: false },
-            terminal: false,
-          },
-          clientInfo: { name: "oar", version: "0.0.0" },
-          _meta: grokInitializeMeta({ cwd: process.cwd() }),
-        }, requestOptions),
-      );
-      signal.throwIfAborted();
-      const initialized = asRecord(response) ?? {};
-      const method = selectGrokAuthMethod(initialized);
-      if (method !== undefined) {
-        const authenticate = methods.agent.authenticate;
-        await withAcpDeadline(
+  const runtime = startAcpProcess(
+    command,
+    ["agent", "--always-approve", "--no-leader", "stdio"],
+    createClient({ name: "oar" }),
+    { env },
+  );
+  const stop = (): void => { runtime.kill(); };
+  try {
+    // Failure to obtain billing is fatal. Once obtained, optional identity
+    // gets its own earlier cutoff and cannot discard the billing result.
+    const billing = await withQueryDeadline(USAGE, remainingMs(deadline, USAGE), async (signal) => {
+      signal.addEventListener("abort", stop, { once: true });
+      try {
+        const initialize = methods.agent.initialize;
+        const response = await withAcpDeadline(
           runtime,
-          authenticate,
+          initialize,
           remainingMs(deadline, USAGE),
-          (requestOptions) => runtime.connection.agent.request(
+          (requestOptions) => runtime.connection.agent.request(initialize, {
+            protocolVersion: PROTOCOL_VERSION,
+            clientCapabilities: {
+              fs: { readTextFile: false, writeTextFile: false },
+              terminal: false,
+            },
+            clientInfo: { name: "oar", version: "0.0.0" },
+            _meta: grokInitializeMeta({ cwd: process.cwd() }),
+          }, requestOptions),
+        );
+        signal.throwIfAborted();
+        const initialized = asRecord(response) ?? {};
+        const method = selectGrokAuthMethod(initialized);
+        if (method !== undefined) {
+          const authenticate = methods.agent.authenticate;
+          await withAcpDeadline(
+            runtime,
             authenticate,
-            { methodId: method },
+            remainingMs(deadline, USAGE),
+            (requestOptions) => runtime.connection.agent.request(
+              authenticate,
+              { methodId: method },
+              requestOptions,
+            ),
+          );
+        }
+        signal.throwIfAborted();
+        const payload = await withAcpDeadline(
+          runtime,
+          "_x.ai/billing",
+          remainingMs(deadline, USAGE),
+          (requestOptions) => runtime.connection.agent.request<JsonRecord>(
+            "_x.ai/billing",
+            {},
             requestOptions,
           ),
         );
+        signal.throwIfAborted();
+        return payload;
+      } finally {
+        signal.removeEventListener("abort", stop);
       }
-      signal.throwIfAborted();
-      const billing = await withAcpDeadline(
-        runtime,
-        "_x.ai/billing",
-        remainingMs(deadline, USAGE),
-        (requestOptions) => runtime.connection.agent.request<JsonRecord>(
-          "_x.ai/billing",
-          {},
-          requestOptions,
-        ),
-      );
-      signal.throwIfAborted();
-      let email: string | null = null;
+    });
+    const identityMs = deadline - Date.now() - IDENTITY_MARGIN_MS;
+    if (identityMs <= 0) { return { billing }; }
+    const email = await withQueryDeadline<string | null>(USAGE, identityMs, async (signal) => {
+      signal.addEventListener("abort", stop, { once: true });
       try {
         const authInfo = await withAcpDeadline(
           runtime,
           "_x.ai/auth/info",
-          remainingMs(deadline, USAGE),
+          identityMs,
           (requestOptions) => runtime.connection.agent.request<JsonRecord>(
             "_x.ai/auth/info",
             {},
             requestOptions,
           ),
         );
-        email = grokAccountEmail(authInfo) ?? null;
+        signal.throwIfAborted();
+        return grokAccountEmail(authInfo) ?? null;
       } catch {
         // Older Grok builds and transient identity failures must not hide the
         // billing result that was already read successfully.
-        email = null;
+        return null;
+      } finally {
+        signal.removeEventListener("abort", stop);
       }
-      signal.throwIfAborted();
-      return { billing, ...(email === null ? {} : { email }) };
-    } finally {
-      signal.removeEventListener("abort", stop);
-      runtime.kill();
-      await runtime.exited;
-    }
-  });
-  return result;
+    }, null);
+    return { billing, ...(email === null ? {} : { email }) };
+  } finally {
+    // Process ownership and escalation remain with the ACP process. Joining
+    // exited here would discard billing when optional identity times out.
+    runtime.kill();
+  }
 }
 
 export const grokAccountUsage: AccountUsageReader = async (installation, options = {}) => {

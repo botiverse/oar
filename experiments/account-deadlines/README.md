@@ -59,8 +59,10 @@ process tracking, SIGTERM, escalation and descendant cleanup remain in use.
   cannot start a new account request after the deadline.
 - Claude account usage shares the deadline across the help preflight, native
   control requests and cleanup. Grok shares it across initialization,
-  authentication, billing and optional identity; a timed-out identity query
-  cannot turn the whole read into a late successful partial answer. Kimi's
+  authentication and billing. Once billing arrives, optional identity ends
+  100 ms before the original deadline (or is skipped when that margin is
+  reached). An identity failure or timeout returns billing without email,
+  while owned shutdown continues in the background. Kimi's
   provider-list preflight no longer waits for shutdown past the usage budget.
 - Public `authStatus` for Claude, Codex, Qoder, CodeBuddy, Kimi, Cursor and
   Qwen returns `unknown` with a timeout detail at its deadline. It does not
@@ -90,7 +92,7 @@ Qwen file metadata. Existing login/logout and account result regressions
 remain part of validation. Cross-platform results are supplied by PR CI;
 only Linux was run locally.
 
-Local validation passed: 3,781 tests and 18 mock behavior cases in the full
+Local validation passed: 3,783 tests and 18 mock behavior cases in the full
 check, all 15 behavior backends, five native Kimi 2.4.1 login/status/logout
 and account-environment cases, both package builds and packed-consumer
 validation. The polished native probe was rerun on Codex 0.167.0: 803/802 ms
@@ -101,6 +103,16 @@ while keeping abort and observing the deadline promise makes all four
 targeted real-process cases fail: Codex usage, Claude usage, Grok billing
 and Kimi provider list take about 3.0 to 3.1 seconds with a 1.5-second deadline
 and 1.5-second grace. The production boundary was restored afterward.
-The Grok per-request budget test now keeps its optional identity reply
-within the overall budget; the new stalled-identity case separately requires
-timeout rejection instead of accepting a late partial result.
+
+Review caught a regression in the first revision: its outer deadline discarded
+billing when optional identity stalled. Restoring the existing 1,500 ms
+per-request clock advancement and requiring billing from the real-process
+identity case both failed on that revision. The correction preserves billing,
+uses the earlier identity cutoff, and checks late identity replies and billing
+arriving with too little time left to attempt identity. The real-process
+regression now allows 4 seconds for startup while retaining its
+`< timeoutMs + 1000` result bound and final root/child cleanup assertions.
+The mutation timing above was measured before that fixture budget increase.
+The full check and package builds passed again after this correction, as did
+17 Grok 1.0.70 behavior cases against the local scripted model (two unsupported
+capabilities skipped). No live Grok account was queried.
