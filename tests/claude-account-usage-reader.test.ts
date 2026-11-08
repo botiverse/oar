@@ -1,3 +1,4 @@
+import { setImmediate as tick } from "node:timers/promises";
 import { readerEnvironment, expectReaderEnvironment } from "./fixtures/reader-environment.js";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { claudeAccountUsage, projectClaudeUsage } from "../packages/oar/src/runtimes/claude/account-usage.js";
@@ -217,4 +218,14 @@ test.each([
   { rate_limits_available: true, rate_limits: { five_hour: { utilization: Number.NaN } } },
 ])("malformed/unavailable snapshot is never manufactured as zero usage: %j", (payload) => {
   expect(() => projectClaudeUsage(payload)).toThrow();
+});
+
+test("a late help result cannot start a usage process after the deadline", async () => {
+  const late = Promise.withResolvers<Awaited<ReturnType<ExecutableRunner>>>();
+  runExecutable.mockImplementationOnce(async () => late.promise);
+  await expect(claudeAccountUsage({ ...installation, command: "late-help" }, { timeoutMs: 20 })).rejects.toThrow("timed out");
+  expect(runExecutable.mock.calls[0]?.[2]?.signal?.aborted).toBe(true);
+  late.resolve(helpWithSafeMode);
+  await tick();
+  expect(spawnLineProcess).not.toHaveBeenCalled();
 });

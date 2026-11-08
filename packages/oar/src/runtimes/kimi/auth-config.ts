@@ -1,3 +1,4 @@
+import { withQueryDeadline } from "../../shared/executable/query.js";
 import { environmentValue } from "../../shared/environment.js";
 import { createHash } from "node:crypto";
 import { environmentHome } from "../../shared/environment-home.js";
@@ -68,9 +69,10 @@ export async function resolveKimiAuth(
 ): Promise<KimiAuthContext | null> {
   // Kimi's public JSON command is the stable way to read its resolved TOML
   // shape without importing private packages or teaching OAR a TOML dialect.
-  const result = await runExecutable(command, ["provider", "list", "--json"], {
-    env,
-    timeoutMs: remainingMs(deadline, KIMI_USAGE),
+  const timeoutMs = remainingMs(deadline, KIMI_USAGE);
+  const result = await withQueryDeadline(KIMI_USAGE, timeoutMs, async (signal) => {
+    const execution = await runExecutable(command, ["provider", "list", "--json"], { env, timeoutMs, signal });
+    return execution;
   });
   assertRan(result, `Failed to run ${command} provider list --json`);
   if (!result.ok) {

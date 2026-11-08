@@ -1,3 +1,4 @@
+import { withQueryDeadline } from "../../shared/executable/query.js";
 import { client, methods, PROTOCOL_VERSION, RequestError } from "@agentclientprotocol/sdk";
 import type { AvailableInstallation } from "../../contracts/installation.js";
 import type { AuthStatus, AuthStatusOptions } from "../../contracts/login.js";
@@ -22,11 +23,13 @@ export async function queryKimiAuth(command: string, method: "authenticate" | "l
     const query = async (): Promise<KimiAuthQuery> => {
       try {
         await process.spawned;
+        options.signal?.throwIfAborted();
         const initialized = await process.connection.agent.request(methods.agent.initialize, {
           protocolVersion: PROTOCOL_VERSION,
           clientCapabilities: { fs: { readTextFile: false, writeTextFile: false }, terminal: false },
           clientInfo: { name: "oar", version: "0.0.0" },
         });
+        options.signal?.throwIfAborted();
         const response = asRecord(initialized);
         if (method === "authenticate" && !asRecordList(response?.authMethods).some((entry) => entry.id === "login")) { return "unsupported"; }
         if (method === "logout" && asRecord(asRecord(response?.agentCapabilities)?.auth)?.logout === undefined) { return "unsupported"; }
@@ -46,7 +49,7 @@ export async function queryKimiAuth(command: string, method: "authenticate" | "l
 }
 
 /** The auth gate reads cached material; the whole ACP startup is not declared local-only. */
-export async function kimiAuthStatus(installation: AvailableInstallation, options: AuthStatusOptions = {}): Promise<AuthStatus> {
+export async function readKimiAuthStatus(installation: AvailableInstallation, options: AuthStatusOptions & { readonly signal?: AbortSignal } = {}): Promise<AuthStatus> {
   if (installation.via !== "executable") { return { kind: "unknown", source: SOURCE, detail: "Kimi authentication requires an executable" }; }
   const result = await queryKimiAuth(installation.command, "authenticate", options).catch((): KimiAuthQuery => "failed");
   if (result === "ok" || result === "auth_required") { return { kind: result === "ok" ? "logged_in" : "logged_out", source: SOURCE }; }
@@ -54,4 +57,12 @@ export async function kimiAuthStatus(installation: AvailableInstallation, option
     : (result === "unsupported" ? "This Kimi build does not expose the authentication check"
     : "Kimi authentication query failed");
   return { kind: "unknown", source: SOURCE, detail };
+}
+
+export async function kimiAuthStatus(installation: AvailableInstallation, options: AuthStatusOptions = {}): Promise<AuthStatus> {
+  const status = await withQueryDeadline<AuthStatus>("Kimi auth status", options.timeoutMs ?? 20_000, async (signal) => {
+    const result = await readKimiAuthStatus(installation, { ...options, signal });
+    return result;
+  }, { kind: "unknown", source: SOURCE, detail: "Kimi authentication query timed out" });
+  return status;
 }

@@ -60,6 +60,13 @@ that pi's provider login already uses.
 - **`login` changes the machine.** oar never calls it on its own; a host
   calls it on a person's request. `authStatus` never starts a login flow and returns no secret; a native
   status query may contact its service or refresh stored credentials.
+- **Status reads have a whole-call deadline.** `AuthStatusOptions.timeoutMs`
+  bounds startup and the complete read. At that deadline `authStatus` returns
+  `unknown` with a timeout `detail`, without waiting for process cleanup.
+  Any processes it started continue their normal owned shutdown in the
+  background, including the default 10 s grace and SIGKILL escalation. Native
+  failures and unreadable configuration can still return `unknown`. This does
+  not change the joined cleanup of `login`, `logout`, or Qwen provider settings.
 - **Absent where oar never drives it.** A runtime whose login oar would
   refuse on every machine has no `login` member
   ([capabilities](../design/capabilities.md)). Antigravity consumer login is

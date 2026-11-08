@@ -6,7 +6,7 @@ import type { ProviderLoginInteraction } from "../../contracts/provider-auth.js"
 import { errorMessage, loginBounds, loginExecutable, stoppedResult } from "../../shared/login.js";
 import { asRecord } from "../../shared/json.js";
 import { codebuddyAccountControl } from "./account-control.js";
-import { codebuddyAuthStatus } from "./auth-status.js";
+import { readCodebuddyAuthStatus } from "./auth-status.js";
 
 /** Native auth_failed includes token retrieval errors, not an explicit authorization denial. */
 function authenticationFailure(value: unknown, redact: (text: string) => string): LoginResult {
@@ -72,7 +72,7 @@ export async function codebuddyLogin(installation: AvailableInstallation, intera
     // native success remains success unless a fresh read contradicts it.
     const remaining = deadline - Date.now();
     if (remaining <= 0) { return { kind: "logged_in" }; }
-    const status = await codebuddyAuthStatus(installation, { env: options.env, timeoutMs: Math.min(30_000, remaining) }, interaction.signal);
+    const status = await readCodebuddyAuthStatus(installation, { env: options.env, timeoutMs: Math.min(30_000, remaining) }, interaction.signal);
     return status.kind === "logged_out"
       ? { kind: "failed", reason: "not_logged_in", detail: "CodeBuddy reported success but its account query reads logged out" }
       : { kind: "logged_in" };

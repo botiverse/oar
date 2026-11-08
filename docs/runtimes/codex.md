@@ -1142,6 +1142,14 @@ classifies the installation as unsupported.
 [update](../../packages/oar/src/runtimes/codex/update.ts),
 [install](../../packages/oar/src/runtimes/codex/install.ts).
 
+The account query deadline settles `accountUsage` and `redeemLimitReset`
+without waiting for shutdown. OAR still owns the process and applies the
+normal stop grace and escalation. A reset timeout retains the ambiguous
+consumption warning and requires the same idempotency key on retry.
+[Linux native comparison](../../experiments/account-deadlines/README.md):
+Codex 0.131.0 and 0.167.0, 800 ms configured, approximately 803 ms to reject
+and 10.9 s until owned cleanup completed.
+
 ### Login
 
 `login`, `logout` and `authStatus` accept the same `env` overlay as sessions.

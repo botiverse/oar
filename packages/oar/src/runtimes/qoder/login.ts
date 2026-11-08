@@ -3,7 +3,7 @@ import type { AvailableInstallation } from "../../contracts/installation.js";
 import type { LoginOptions, LoginResult } from "../../contracts/login.js";
 import type { ProviderLoginInteraction } from "../../contracts/provider-auth.js";
 import { errorMessage, LoginSecrets, loginBounds, loginExecutable, spawnLoginProcess, stoppedResult, type LoginProcess } from "../../shared/login.js";
-import { qoderAuthStatus } from "./auth-status.js";
+import { readQoderAuthStatus } from "./auth-status.js";
 
 /** Native browser login restores the previous account first and does not log it out before an attempt. */
 export async function qoderLogin(installation: AvailableInstallation, interaction: ProviderLoginInteraction, options: LoginOptions = {}): Promise<LoginResult> {
@@ -55,7 +55,7 @@ export async function qoderLogin(installation: AvailableInstallation, interactio
     process.stop(); await process.exited;
     if (!flowState.success) { return result; }
     if (aborted()) { return { kind: "logged_in" }; }
-    const status = await qoderAuthStatus(installation, { env: options.env });
+    const status = await readQoderAuthStatus(installation, { env: options.env });
     return status.kind === "logged_out"
       ? { kind: "failed", reason: "not_logged_in", detail: "Qoder reported success but its status command reads logged out" }
       : { kind: "logged_in" };

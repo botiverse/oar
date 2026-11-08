@@ -1,3 +1,4 @@
+import { withQueryDeadline } from "../../shared/executable/query.js";
 import { sessionEnvironment } from "../../shared/environment.js";
 /* oxlint-disable typescript/promise-function-async -- Deadline callbacks deliberately return the SDK's native promises. */
 import {
@@ -113,8 +114,11 @@ interface GrokAccountPayload {
 
 const USAGE = "Grok account usage";
 
+// Identity is optional. Leave room to return the already-read billing result
+// before the caller's deadline, without waiting for process cleanup.
+const IDENTITY_MARGIN_MS = 100;
+
 async function readBilling(command: string, timeoutMs: number, env: NodeJS.ProcessEnv): Promise<GrokAccountPayload> {
-  // One budget for the whole read, shared by every request.
   const deadline = Date.now() + timeoutMs;
   const runtime = startAcpProcess(
     command,
@@ -122,69 +126,91 @@ async function readBilling(command: string, timeoutMs: number, env: NodeJS.Proce
     createClient({ name: "oar" }),
     { env },
   );
+  const stop = (): void => { runtime.kill(); };
   try {
-    const initialize = methods.agent.initialize;
-    const response = await withAcpDeadline(
-      runtime,
-      initialize,
-      remainingMs(deadline, USAGE),
-      (requestOptions) => runtime.connection.agent.request(initialize, {
-        protocolVersion: PROTOCOL_VERSION,
-        clientCapabilities: {
-          fs: { readTextFile: false, writeTextFile: false },
-          terminal: false,
-        },
-        clientInfo: { name: "oar", version: "0.0.0" },
-        _meta: grokInitializeMeta({ cwd: process.cwd() }),
-      }, requestOptions),
-    );
-    const initialized = asRecord(response) ?? {};
-    const method = selectGrokAuthMethod(initialized);
-    if (method !== undefined) {
-      const authenticate = methods.agent.authenticate;
-      await withAcpDeadline(
-        runtime,
-        authenticate,
-        remainingMs(deadline, USAGE),
-        (requestOptions) => runtime.connection.agent.request(
-          authenticate,
-          { methodId: method },
-          requestOptions,
-        ),
-      );
-    }
-    const billing = await withAcpDeadline(
-      runtime,
-      "_x.ai/billing",
-      remainingMs(deadline, USAGE),
-      (requestOptions) => runtime.connection.agent.request<JsonRecord>(
-        "_x.ai/billing",
-        {},
-        requestOptions,
-      ),
-    );
-    let email: string | undefined = undefined;
-    try {
-      const authInfo = await withAcpDeadline(
-        runtime,
-        "_x.ai/auth/info",
-        remainingMs(deadline, USAGE),
-        (requestOptions) => runtime.connection.agent.request<JsonRecord>(
+    // Failure to obtain billing is fatal. Once obtained, optional identity
+    // gets its own earlier cutoff and cannot discard the billing result.
+    const billing = await withQueryDeadline(USAGE, remainingMs(deadline, USAGE), async (signal) => {
+      signal.addEventListener("abort", stop, { once: true });
+      try {
+        const initialize = methods.agent.initialize;
+        const response = await withAcpDeadline(
+          runtime,
+          initialize,
+          remainingMs(deadline, USAGE),
+          (requestOptions) => runtime.connection.agent.request(initialize, {
+            protocolVersion: PROTOCOL_VERSION,
+            clientCapabilities: {
+              fs: { readTextFile: false, writeTextFile: false },
+              terminal: false,
+            },
+            clientInfo: { name: "oar", version: "0.0.0" },
+            _meta: grokInitializeMeta({ cwd: process.cwd() }),
+          }, requestOptions),
+        );
+        signal.throwIfAborted();
+        const initialized = asRecord(response) ?? {};
+        const method = selectGrokAuthMethod(initialized);
+        if (method !== undefined) {
+          const authenticate = methods.agent.authenticate;
+          await withAcpDeadline(
+            runtime,
+            authenticate,
+            remainingMs(deadline, USAGE),
+            (requestOptions) => runtime.connection.agent.request(
+              authenticate,
+              { methodId: method },
+              requestOptions,
+            ),
+          );
+        }
+        signal.throwIfAborted();
+        const payload = await withAcpDeadline(
+          runtime,
+          "_x.ai/billing",
+          remainingMs(deadline, USAGE),
+          (requestOptions) => runtime.connection.agent.request<JsonRecord>(
+            "_x.ai/billing",
+            {},
+            requestOptions,
+          ),
+        );
+        signal.throwIfAborted();
+        return payload;
+      } finally {
+        signal.removeEventListener("abort", stop);
+      }
+    });
+    const identityMs = deadline - Date.now() - IDENTITY_MARGIN_MS;
+    if (identityMs <= 0) { return { billing }; }
+    const email = await withQueryDeadline<string | null>(USAGE, identityMs, async (signal) => {
+      signal.addEventListener("abort", stop, { once: true });
+      try {
+        const authInfo = await withAcpDeadline(
+          runtime,
           "_x.ai/auth/info",
-          {},
-          requestOptions,
-        ),
-      );
-      email = grokAccountEmail(authInfo);
-    } catch {
-      // Older Grok builds and transient identity failures must not hide the
-      // billing result that was already read successfully.
-      email = undefined;
-    }
-    return { billing, ...(email === undefined ? {} : { email }) };
+          identityMs,
+          (requestOptions) => runtime.connection.agent.request<JsonRecord>(
+            "_x.ai/auth/info",
+            {},
+            requestOptions,
+          ),
+        );
+        signal.throwIfAborted();
+        return grokAccountEmail(authInfo) ?? null;
+      } catch {
+        // Older Grok builds and transient identity failures must not hide the
+        // billing result that was already read successfully.
+        return null;
+      } finally {
+        signal.removeEventListener("abort", stop);
+      }
+    }, null);
+    return { billing, ...(email === null ? {} : { email }) };
   } finally {
+    // Process ownership and escalation remain with the ACP process. Joining
+    // exited here would discard billing when optional identity times out.
     runtime.kill();
-    await runtime.exited;
   }
 }
 

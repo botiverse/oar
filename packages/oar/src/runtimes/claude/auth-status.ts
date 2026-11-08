@@ -1,3 +1,4 @@
+import { withQueryDeadline } from "../../shared/executable/query.js";
 import type { AvailableInstallation } from "../../contracts/installation.js";
 import type { AuthStatus, AuthStatusOptions, LoginAccount } from "../../contracts/login.js";
 import { runExecutable } from "../../shared/executable/index.js";
@@ -66,8 +67,11 @@ export async function readClaudeAuthStatus(
 
 export async function claudeAuthStatus(
   installation: AvailableInstallation,
-  options: AuthStatusOptions & { readonly signal?: AbortSignal } = {},
+  options: AuthStatusOptions = {},
 ): Promise<AuthStatus> {
-  const { status } = await readClaudeAuthStatus(installation, options);
-  return status;
+  const result = await withQueryDeadline<AuthStatus>("Claude auth status", options.timeoutMs ?? STATUS_TIMEOUT_MS, async (signal) => {
+    const { status } = await readClaudeAuthStatus(installation, { ...options, signal });
+    return status;
+  }, { kind: "unknown", source: STATUS_SOURCE, detail: "Claude auth status timed out" });
+  return result;
 }

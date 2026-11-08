@@ -168,6 +168,7 @@ export type AuthStatus =
 export interface AuthStatusOptions {
   /** Same overlay as SessionOptions.env: strings set, null deletes; never changes the host environment. */
   readonly env?: SessionOptions["env"];
+  /** Bounds the whole status read. At the deadline returns unknown with a timeout detail; owned process cleanup continues in the background. */
   readonly timeoutMs?: number;
 }
 

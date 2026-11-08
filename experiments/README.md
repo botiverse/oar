@@ -1,5 +1,7 @@
 # experiments
 
+- [Account query deadlines](account-deadlines/README.md): prompt timeout results with unchanged owned shutdown; real Codex 0.131.0/0.167.0 before/after and cross-runtime status/usage regressions.
+
 - [Tool activity audit](tool-activity-audit/README.md): native tool/input/category/path facts, MCP readiness and Codex review steering across eleven runtimes; collaboration tool lifecycle fix.
 - [Tool read/search follow-up](tool-activity-audit/files.md): actual file tool mappings, search query before scope and native Codex collaboration input fields; Linux local-provider probes, Qoder 1.1.81 replay only.
 

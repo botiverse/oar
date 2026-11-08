@@ -841,7 +841,10 @@ that method because its copy is the one `grok update` updates: `grok update
 --check --json` reports installer `internal`, where an npm install would be
 a second copy. [Account usage](../../packages/oar/src/runtimes/grok/account-usage.ts)
 separately opens a connection and queries `_x.ai/billing` (plus
-`_x.ai/auth/info` for the email). No billing `config` is `unsupported`
+`_x.ai/auth/info` for the email). Identity is optional: it ends 100 ms before
+the overall usage deadline, or is skipped if that margin is already reached.
+A failed or timed-out identity query returns billing without email, while
+the owned process stops in the background. No billing `config` is `unsupported`
 `quota_unavailable`; a config that carries none of `creditUsagePercent`,
 `used` and `monthlyLimit` reads as zero usage, as grok's own `/usage` shows it
 (1.0.46, an unused account; [account usage](../spec/account-usage.md),

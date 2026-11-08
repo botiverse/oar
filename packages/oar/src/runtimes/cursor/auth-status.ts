@@ -1,3 +1,4 @@
+import { withQueryDeadline } from "../../shared/executable/query.js";
 import { UnsupportedOptionError } from "../../contracts/errors.js";
 import type { AuthStatus, AuthStatusReader, LoginAccount } from "../../contracts/login.js";
 import { utcInstantFromDate } from "../../shared/instant.js";
@@ -69,16 +70,20 @@ export function cursorAuthStatusWith(load: () => Promise<CursorSdk>): AuthStatus
     if (process.env.CURSOR_API_KEY !== undefined) {
       return { kind: "unknown", configured: ["environment: CURSOR_API_KEY"], detail: "Sessions use CURSOR_API_KEY from the environment; Cursor.auth.status neither reads nor validates that key.", source: STATUS_SOURCE };
     }
-    const sdk = await loadedSdk(load);
-    if ("failed" in sdk) {
-      return { kind: "unknown", detail: new LoginSecrets().line(sdk.failed) };
-    }
-    const { auth } = sdk.Cursor;
-    if (auth === undefined) {
-      return { kind: "unknown", detail: "this @cursor/sdk has no Cursor.auth; OAR needs 1.2.0" };
-    }
-    const status = await readCursorAuthStatus(auth, options.timeoutMs);
-    return status;
+    const result = await withQueryDeadline<AuthStatus>("Cursor auth status", options.timeoutMs ?? STATUS_TIMEOUT_MS, async (signal) => {
+      const sdk = await loadedSdk(load);
+      signal.throwIfAborted();
+      if ("failed" in sdk) {
+        return { kind: "unknown", detail: new LoginSecrets().line(sdk.failed) };
+      }
+      const { auth } = sdk.Cursor;
+      if (auth === undefined) {
+        return { kind: "unknown", detail: "this @cursor/sdk has no Cursor.auth; OAR needs 1.2.0" };
+      }
+      const status = await readCursorAuthStatus(auth, options.timeoutMs);
+      return status;
+    }, { kind: "unknown", source: STATUS_SOURCE, detail: `Cursor.auth.status did not answer within ${String(options.timeoutMs ?? STATUS_TIMEOUT_MS)} ms` });
+    return result;
   };
   // With no status options, the official SDK uses only its local file store.
   return Object.assign(reader, { localOnly: true as const });

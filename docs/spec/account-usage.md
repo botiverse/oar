@@ -116,8 +116,12 @@ reasons must be presented as unknown rather than guessed.
 
 Operational failures (network errors, timeouts, malformed responses) still reject
 the promise. `options.timeoutMs` bounds the whole read, every process and
-request in it included. Reasons do not include tokens, credential values, or raw provider
-responses.
+request in it included. The call rejects at the deadline; processes it started
+continue their normal owned shutdown in the background and may remain alive
+for the stop grace period (10 seconds by default) before escalation to SIGKILL.
+This also applies to Codex `redeemLimitReset`; a timeout still leaves whether
+the reset was consumed unknown, so retry with the same `idempotencyKey`.
+Reasons do not include tokens, credential values, or raw provider responses.
 
 Kimi rejects an unreadable response body, invalid JSON, or a response with no
 usable quota windows. A window with a malformed present usage metric is omitted;
@@ -126,6 +130,12 @@ meaning, while an invalid value never becomes zero. Malformed Extra Usage data
 does not supply a window or override exhausted subscription limits. Only an
 absent credential file is `credentials_missing`; file I/O failures and malformed
 credential contents reject with a safe reason, without token bytes or file paths.
+
+Grok's email lookup is optional. After billing has arrived, its identity query
+ends 100 ms before the overall deadline, or is skipped when less time remains.
+Failure or timeout of that query returns the billing result without an email;
+process cleanup continues in the background. Failure to obtain billing before
+the overall deadline still rejects.
 
 Grok can return a valid billing configuration and subscription tier without
 `creditUsagePercent` or legacy `used`/`monthlyLimit` metrics (observed with

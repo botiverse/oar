@@ -1,3 +1,4 @@
+import { withQueryDeadline } from "../../shared/executable/query.js";
 import { sessionEnvironment } from "../../shared/environment.js";
 import type { AvailableInstallation } from "../../contracts/installation.js";
 import type { AuthStatus, AuthStatusOptions } from "../../contracts/login.js";
@@ -15,11 +16,19 @@ export function projectQoderAuthStatus(stdout: string): AuthStatus {
   return { kind: response.logged_in ? "logged_in" : "logged_out", source: SOURCE };
 }
 
-export async function qoderAuthStatus(installation: AvailableInstallation, options: AuthStatusOptions = {}): Promise<AuthStatus> {
+export async function readQoderAuthStatus(installation: AvailableInstallation, options: AuthStatusOptions & { readonly signal?: AbortSignal } = {}): Promise<AuthStatus> {
   if (installation.via !== "executable") { return { kind: "unknown", detail: "not a machine-installed executable" }; }
-  const result = await runExecutable(installation.command, ["status", "--output", "json"], { env: sessionEnvironment(options.env), timeoutMs: options.timeoutMs ?? 30_000 });
+  const result = await runExecutable(installation.command, ["status", "--output", "json"], { env: sessionEnvironment(options.env), timeoutMs: options.timeoutMs ?? 30_000, ...(options.signal === undefined ? {} : { signal: options.signal }) });
   if (!result.ok) {
     return { kind: "unknown", source: SOURCE, detail: "Qoder account query ended without an answer" };
   }
   return projectQoderAuthStatus(result.stdout);
+}
+
+export async function qoderAuthStatus(installation: AvailableInstallation, options: AuthStatusOptions = {}): Promise<AuthStatus> {
+  const status = await withQueryDeadline<AuthStatus>("Qoder auth status", options.timeoutMs ?? 30_000, async (signal) => {
+    const result = await readQoderAuthStatus(installation, { ...options, signal });
+    return result;
+  }, { kind: "unknown", source: SOURCE, detail: "Qoder auth status timed out" });
+  return status;
 }
