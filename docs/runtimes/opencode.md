@@ -52,6 +52,13 @@ own OpenCode configuration. The MCP and failure-class vendor fixtures use
 small temporary Git projects so they do not wait for snapshots of the OAR
 checkout; native snapshots stay enabled.
 
+A prompt failure is JSON-RPC -32603. A known `data.errorName` decides the class
+before the words: `provider.free-limit`, `provider.go-limit`,
+`provider.budget-limit`, `provider.model-budget-limit` and `provider.quota` are
+`quota`, `provider.rate-limit` is `rate_limited` (names from the 2.2.6 source;
+only `provider.free-limit` was observed live). Any other answer, `APIError`
+included, is classified by its words.
+
 ## Manual compaction
 
 The v2 session exposes idle-only `compact()` through native `/compact`.
