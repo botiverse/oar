@@ -6,22 +6,25 @@ logins or model requests were run. Native behavior not exercised is marked;
 a missing match in a binary is never proof of absence. Reproduction and
 sanitized observations: [experiments/cancellation](../../experiments/cancellation/README.md).
 
-**Current OAR:** `Session.withdraw(inputId)` exists for the queues OAR holds
-itself (claude, pi, qwen, qoder, cursor, and the ACP runtimes kimi, grok,
-antigravity, codebuddy and opencode), built as the [consequences](#consequences-for-oar-and-rao) below
-ask: a `withdraw` request of its own targeting the earlier input by `inputId`,
-answered `accepted` only when the held entry was removed before dispatch and
-`not_queued` otherwise, with the queue request and its response left as they
-were ([record stream](../spec/record-stream.md#withdrawing-held-input)). It
-removes OAR's own held entries only. Claude's capability-gated bulk
-`cancel_queued` is now used by `abort()` when a written prompt has not started;
+**Current OAR:** `Session.withdraw(inputId)` exists for every queue OAR holds
+itself (claude, pi, qwen, qoder, cursor, Mister Morph, and the ACP runtimes
+kimi, grok, antigravity, codebuddy and opencode), built as the
+[consequences](#consequences-for-oar-and-rao) below ask: a `withdraw` request
+of its own targeting the earlier input by `inputId`, answered `accepted` only
+when the held entry was removed before dispatch and `not_queued` otherwise,
+with the queue request and its response left as they were
+([record stream](../spec/record-stream.md#withdrawing-held-input)). It removes
+OAR's own held entries only. Two runtimes withdraw natively: Pi Durable by
+submission cancellation, and DSH by `inbox.remove` when its native inventory
+advertises it. Codex has no `withdraw`: its queue is native, and
+`thread/queue/delete` waits on the validation listed at the end. Per-runtime
+controls are in [session controls](../spec/runtime-matrix.md#session-controls).
+Claude's capability-gated bulk `cancel_queued` is used by `abort()` when a
+written prompt has not started;
 [the current mapping](claude.md#interrupted-input) pins before/after-start
 cancellation and its effects on queued notifications. Grok `x.ai/queue/*` and
-Pi `clearQueue()` remain unmapped. Codex
-has no `withdraw`: its queue is native, and `thread/queue/delete` waits on the
-validation listed at the end. Pi Durable's `withdraw` uses native submission
-cancellation ([session controls](../spec/runtime-matrix.md#session-controls)). The 2026-09-16 research below is kept as found;
-the Cursor row comes from the `@cursor/sdk` adapter (2026-10-03).
+Pi `clearQueue()` are unmapped. The 2026-09-16 research below is kept as
+found; the Cursor row comes from the `@cursor/sdk` adapter (2026-10-03).
 
 ## Findings
 

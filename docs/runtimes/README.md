@@ -39,7 +39,7 @@ Pi Durable SDKs before selecting live probes.
 Cross-runtime investigations:
 
 - [Steer, queue and cancellation](input-cancellation.md) (local probes without model turns, 2026-09-16): native withdrawal surfaces, adapter-held queues, abort semantics.
-- [Resume in another directory](resume-cwd.md) (live, 2026-10-03): which runtimes keep a conversation when it moves to another working directory, and which refuse.
+- [Resume in another directory](resume-cwd.md) (live, 2026-10-03; antigravity 2026-11-05): which runtimes keep a conversation when it moves to another working directory, and which refuse.
 - [Steer delivery](steer-delivery.md) (scripted-provider probes, 2026-09-16): what each runtime echoes for a steer and how the echo correlates with the input.
 - [Native runtime inventories](inventory.md) (skills, commands, MCP servers and tools): what each runtime's own discovery calls return.
 - [Live model and effort changes](live-configure.md) (local probes, 2026-09-29): native setters that change a running session without a restart, and the adapter queues they meet.

@@ -16,7 +16,10 @@ codex 0.162.0, grok 1.0.50, kimi 2.1.1, opencode 1.18.35 (`v1`) and 2.0.26
 **Not run:** macOS and Linux x64 (the same scripts, with their own platform
 branches), and Windows for these script installers (`platform`). Qwen's and
 Qoder's script installers are recorded on their pages
-([Qwen](qwen.md#oar-mapping), [Qoder](qoder.md#installation-and-login)).
+([Qwen](qwen.md#oar-mapping), [Qoder](qoder.md#installation-and-login)), as
+are the native agy CLI script that OAR's antigravity installer now runs
+([Antigravity](antigravity.md#process-ownership-installation-and-account-usage))
+and DSH's npm package ([DSH](dsh.md#installation-and-configuration)).
 
 ## Per runtime
 
@@ -29,7 +32,7 @@ Qoder's script installers are recorded on their pages
 | opencode `v1` | installed, `line: "v1"` (10 to 13 s, four runs) | `~/.opencode/bin/opencode`, `1.18.35` | no `checkUpdate` in oar; `opencode upgrade`: "Using method: curl", "skipped: 1.18.35 is already installed" |
 | opencode `v2` | installed, `line: "v2"` (15 s; the script also twice by hand) | `~/.opencode/bin/opencode`, `opencode v2.0.26` | `opencode upgrade`: "Using method: curl", "OpenCode upgrade skipped: 2.0.26 is already installed" |
 | opencode, no line | `line_required` ("choose a release line: v1, v2"), plan the same, nothing ran | not_found | |
-| antigravity | unsupported `requires_gui`, plan the same, nothing ran | not_found | |
+| antigravity (the former separate ACP server) | unsupported `requires_gui`, plan the same, nothing ran | not_found | |
 
 In every installed run the second `install()` was `already_installed` and
 ran nothing. For opencode it asked for the other line: after `v2`,

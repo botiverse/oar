@@ -29,25 +29,32 @@ not found by the SDK with the supplied configuration. Persist and reuse the
 original cwd before deciding the old conversation is gone. The table above
 records the historical native errors, not a global absence guarantee.
 
-A refusal is the runtime's (or for kimi, opencode and antigravity, OAR's) error from
-`session()`, so a host that tries a resume in B and falls back to a handoff
-on refusal never runs in a directory it did not ask for. Kimi's, opencode's and
-antigravity's is an `UnsupportedOptionError`
-with `option: "cwd"`
+A refusal is the runtime's error from `session()` (OAR's own for kimi,
+opencode, antigravity and dsh), so a host that tries a resume in B and falls
+back to a handoff on refusal never runs in a directory it did not ask for.
+OAR's refusal is an `UnsupportedOptionError` with `option: "cwd"`
 ([refused session options](../spec/runtime-matrix.md#refused-session-options)).
-These three adapters require a positive native list entry with a non-empty
-saved cwd before sending resume/load, even when the requested cwd appears
-unchanged. Missing listing support, an incomplete list or an unlisted id
-also refuses with `option: "cwd"`; a native listing failure prevents resume
-and retains its error. Absence from a list is not absence of history: agy
-1.5.0 omits unprompted sessions that native resume can still reopen. Hosts
-may start a new session, but must not infer `SessionNotFoundError` from this
-refusal. Not covered: runtimes whose session store the host moved by hand.
 
-The saved-directory check shared by these ACP adapters and DSH compares
-existing paths through the native filesystem lookup. Links, Windows 8.3
-short names and casing differences that refer to the same directory are
-accepted; another directory is still refused. If lookup fails, comparison
+The kimi, opencode and antigravity adapters require a positive native
+`session/list` entry with a non-empty saved cwd before sending resume/load,
+even when the requested cwd appears unchanged
+([resume-cwd.ts](../../packages/oar/src/shared/acp/resume-cwd.ts)). Missing
+listing support, an incomplete list or an unlisted id also refuses with
+`option: "cwd"`; a native listing failure prevents resume and retains its
+error. Absence from a list is not absence of history: agy 1.5.0 omits
+unprompted sessions that native resume can still reopen. Hosts may start a
+new session, but must not infer `SessionNotFoundError` from this refusal.
+DSH compares the cwd in its saved session header instead, and a header
+without one refuses with `option: "resume"` ([DSH](dsh.md#oar-mapping)).
+Not measured here: qwen, qoder, codebuddy, dsh, pi-durable, and runtimes whose session
+store the host moved by hand.
+
+The directory comparison shared by these ACP adapters and DSH
+([same-directory.ts](../../packages/oar/src/shared/same-directory.ts))
+compares existing paths through the native filesystem lookup. Links, Windows
+8.3 short names and casing differences that refer to the same directory are
+accepted, as is agy 1.5.0's Windows `/D:/path` form; another directory is
+still refused. If lookup fails, comparison
 falls back to resolved path strings, without assuming that different names
 or casing refer to the same missing or inaccessible directory.
 The [directory regressions](../../tests/acp/same-directory.test.ts) use real

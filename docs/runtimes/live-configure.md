@@ -97,3 +97,6 @@ change racing a queued input.
   reopens it with its latest run's selection (`Agent.listRuns`,
   [model.ts](../../packages/oar/src/runtimes/cursor/model.ts)). A configure would change the running session; what the
   next resume restores remains each runtime's rule and belongs in its page.
+  `Runtime.resumedSessionOptions` declares that rule, in this release for the
+  system prompt options only, not for `model` or `effort`
+  ([resumed session options](../spec/runtime-matrix.md#resumed-session-options)).

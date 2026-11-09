@@ -58,14 +58,16 @@ included. It reads `code.kimi.com/kimi-code/latest` (`code.kimi.ai` for the
 `global` region) and ignores the staged rollout. Auto update runs only in the
 interactive TUI.
 
-**antigravity.** OAR now uses `agy acp` (CLI 1.5.0+), and its check reads
-the official CLI platform manifest. The native `agy update` exists, but an
-OAR `upgrade` integration is not implemented. The historical separate-server
-results below are unchanged; [migration evidence](../../experiments/antigravity-cli-acp-2026-11-05.md).
+**antigravity.** OAR runs `agy acp` (CLI 1.5.0+). `checkUpdate` reads
+Google's CLI platform manifest, the source the official installer uses
+([update.ts](../../packages/oar/src/runtimes/antigravity/update.ts)). The
+native `agy update` exists; OAR has no `upgrade` for it. The 2026-10-01
+antigravity results on this page measured the former separate ACP server
+([migration evidence](../../experiments/antigravity-cli-acp-2026-11-05.md)).
 
 **pi and cursor.** In process through their SDKs: the pi SDK is a
-dependency of oar (`^1.4.0`), and `@cursor/sdk` an optional peer dependency
-(`1.1.0`) that the host installs and hands to `createCursorRuntime` (the oar
+dependency of oar (`^1.5.0`), and `@cursor/sdk` an optional peer dependency
+(`1.2.0`) that the host installs and hands to `createCursorRuntime` (the oar
 CLI depends on it). Both installations are `via: "bundled"`; neither runtime
 has `checkUpdate` or `upgrade`, so `oar upgrade` reports each as bundled with
 oar and moving with the oar version.

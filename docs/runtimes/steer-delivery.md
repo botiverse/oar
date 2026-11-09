@@ -23,6 +23,8 @@ the echo correlates with the input. The implemented API (`inputId`,
 
 Qwen, CodeBuddy and OpenCode v2 sessions have no `steer`
 either ([session controls](../spec/runtime-matrix.md#session-controls)).
+DSH's `steer` (present only when its native method inventory advertises it)
+was not probed here; see [DSH](dsh.md#oar-mapping).
 
 The Codex, Claude and Pi probes ran real installed harnesses against a
 **scripted local model endpoint**, not real accounts, each sending exactly one
@@ -43,7 +45,7 @@ retain both views.
 ## Native shapes
 
 Codex (`{turnId}`) and Cursor (`{ack}`) carry `native` on the steer response;
-Claude, Pi and Grok answer `{kind: "accepted"}` without it. OAR `request.id` / `response.requestId` are
+Claude, Pi, Grok and Antigravity answer `{kind: "accepted"}` without it. OAR `request.id` / `response.requestId` are
 operation identity, not native message identity.
 
 Codex (JSON-RPC transport ID omitted):

@@ -19,9 +19,10 @@ alternate-transport capabilities below are not implicitly exposed.
 | Kimi 0.42.0 (TypeScript kimi-code) | Native Web API session/workspace skills routes | Native Web API configured servers, auth state, and live server routes | Web API returns names, descriptions, source and active state; `input_schema` was null. These inventory routes are not exposed by the tested ACP surface |
 | Pi SDK 0.84.2 and 0.84.4 | Resource loader `getSkills()`, including source and diagnostics | No dedicated core MCP inventory API found in inspected SDK declarations; extensions may implement MCP | `getAllTools()` returns parameter schemas and provenance; `getActiveToolNames()` separately identifies active tools |
 
-Antigravity, CodeBuddy, Cursor, OpenCode, Qoder and Qwen were not probed; OAR
-answers all four of their inventory queries `unsupported`
-(`transport_unavailable`), as it does for Kimi. No full-fidelity three-way intersection is verified across the five
+Antigravity, CodeBuddy, Cursor, DSH, OpenCode, Qoder and Qwen were not probed;
+OAR answers all four of their inventory queries `unsupported`
+(`transport_unavailable`), as it does for Kimi, Pi Durable and Mister Morph
+([defineRuntime default](../../packages/oar/src/contracts/runtime.ts)). No full-fidelity three-way intersection is verified across the five
 probed **OAR-selected transports**. Skills are the broadest commonality, but Kimi
 needs a different transport and Claude's context view is narrower than a
 discovery catalog. A tool list is not necessarily a built-in tool list, a
@@ -177,10 +178,10 @@ close them.
 
 ## Commands (2026-10-11)
 
-The independent inventory contract now also exposes `commands()`. Pi SDK
+The independent inventory contract also exposes `commands()`. Pi SDK
 1.1.0 supplies extension invocation names and prompt templates from the
 loaded SDK session; Claude 2.1.296 supplies `initialize.commands`. Neither
-reader prompts a model. The other core runtime interfaces currently return
+reader prompts a model. The other runtime interfaces return
 unsupported for this independent query; their interactive or session-bound
 commands are not guessed from files or terminal help.
 [Current mapping](../spec/inventory.md#commands),
