@@ -40,6 +40,13 @@ increments, not a promise to add every feature listed.
   skip user-level configuration (`userConfiguration: "exclude"`), and login,
   logout and status in the environment a session uses (`env`,
   `userShellEnvironment()`).
+- Native controls with attributable results: manual compaction
+  (`Session.compact`, `Runtime.manualCompaction`), single-task stop
+  (`Session.stopTask`), account limit resets (`Runtime.redeemLimitReset`),
+  ending an aborted turn's processes (`endTurnProcessesOnAbort`), measured
+  resume timing (`Runtime.resumedSessionOptions`) and bounded retention by
+  eliding old frame content (`retainedBytes`)
+  ([decisions](decisions.md)).
 - Mock, aimock, vendor, experiment and live validation layers, with voyage
   logs as durable evidence.
 
