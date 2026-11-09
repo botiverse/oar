@@ -417,14 +417,9 @@ serves a form that cannot be submitted or launched.
 
 ### Stored values and launch
 
-Two different things can hide a field, and they launch differently:
-
-- **Branch-hidden**: its `visibleWhen` is not met (see "Hidden fields"). That
-  is the form's own declared rule, so its stored value does not launch.
-- **Unsupported**: the machine's report reduced it away. This is never a
-  reason to drop a stored value from a launch, because the stored value is
-  part of the agent's active configuration and silently launching without it
-  would contradict "an unknown field or value is refused".
+As in [Hidden fields](#hidden-fields), a branch-hidden field's stored value
+does not launch, while one the machine's report reduced away is never dropped
+from a launch.
 
 For a stored configuration on a given machine the host computes one explicit
 outcome, shown on the agent and returned by the launch path:

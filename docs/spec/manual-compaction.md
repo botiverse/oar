@@ -66,7 +66,8 @@ provisional status. This control intent does not fabricate a native
 `compaction_started` event. `AgentStatus.compaction` exposes only `requestId`
 and optional `started`; correlation and the previous turn outcome stay in
 serializable reducer bookkeeping, separate from the displayed status.
-A Pi manual end or a correlated native response restores idle with the previous `lastTurnOutcome`.
+A Pi manual end or a correlated native response restores idle with the
+previous `lastTurnOutcome`.
 Incremental hosts use the exported `StatusState` checkpoint type from
 `@botiverse/oar/observe` (also exported at the root). Save the **entire** value
 returned by `reduceStatus`, unchanged, together with the last consumed cursor;
@@ -109,11 +110,11 @@ adapter-held queue, including the exceptions below:
 Grok, OpenCode and Qoder compact requests carry
 `settledBy: "native_response"`; their terminal frames carry the exact
 `responseTo` request id. Earlier `turn_ended` and `compaction_ended` events
-remain in place but do not release these operations. Other runtimes use their
-existing terminal records. With no adapter-held input, a synchronous observer
-of the release record can submit another prompt when status is idle.
-ACP and Pi SDK/RPC held inputs instead keep status at `running / waiting_model` until their
-dispatch or withdrawal.
+remain in place but do not release these operations. Other runtimes use the
+terminal records above. With no adapter-held input, a synchronous observer
+of the release record can submit another prompt when status is idle. ACP and
+Pi SDK/RPC held inputs instead keep status at `running / waiting_model` until
+their dispatch or withdrawal.
 
 **Held-queue exception:** Claude, Qoder, Qwen and Cursor do not
 yet record OAR's queue ownership and dispatch as ACP does. While OAR holds
@@ -132,13 +133,13 @@ The [design decision](../design/decisions.md#pi-synchronous-terminal-submission-
 records why synchronous ordinary-turn submission is not supported.
 
 Claude's native queued receipt for the compact command is not a pending
-ordinary prompt. `turn_ended.inputId` and `inputIds`, when present, preserve native input
-identities independently, without inference; see the
+ordinary prompt. `turn_ended.inputId` and `inputIds`, when present, preserve
+native input identities without inference; see the
 [identity projection](record-stream.md).
 
 While compaction remains unresolved, a new `prompt`, `steer`, or `compact`
-returns `rejected` / `busy`. Claude, Pi, Grok, Qoder, Cursor and OpenCode v2 retain `queue()` input in the
-existing OAR queue and drain it after native completion; Codex refuses new
+returns `rejected` / `busy`. Claude, Pi, Grok, Qoder, Cursor and OpenCode v2
+retain `queue()` input in the OAR queue and drain it after native completion; Codex refuses new
 queue input `busy` because its native queue could start another turn during
 compaction. A submitted but not yet started input also prevents compact.
 `abort()` uses the native cancellation control once it has a target. Before
@@ -170,13 +171,14 @@ its unit regressions use a controlled SDK stand-in.
 | Pi SDK / RPC | Supported, idle only. Native `compact()` / RPC `compact`, manual start/end with native failure/cancellation preserved. |
 | Kimi | Unsupported: ACP has no structural completion signal for this operation; text is insufficient. |
 | Qwen | Unsupported: stream-json lacks structural completion evidence and a user command can replace `/compress`. |
-| Antigravity | Unsupported: current native interface has no manual compaction control. |
+| Antigravity | Unsupported: the `agy` CLI advertises `/compact`, but no structured completion and attribution contract is verified. |
 | CodeBuddy | Unsupported: the dedicated method in published types is refused by the CLI; slash-command completion/provenance is not established. |
 | OpenCode v1 | No session member: a project command can replace `/compact` and structural completion is unverified. The shared v1/v2 Runtime remains undeclared. |
 | OpenCode v2 | Session member supported, idle only; common v1/v2 Runtime undeclared. `/compact` emits native start/end metadata; the same `messageId` and the RPC answer are both required. Ordinary success is not proof. |
 | Grok | Supported, idle only. Dedicated `_x.ai/compact_conversation` response proves completion, with structured failure/cancellation. No native start or inferred trigger. Empty history is a native successful no-op. |
 | Qoder | Supported, idle only. `/compact` is intercepted before custom commands. Same-command UUID start, manual `compact_boundary`, and command completion/cancellation are required. A completed boundary wins later cancellation; a successful command without a boundary yields `not_compacted`. |
 | Cursor | Supported, idle only. `Agent.summarize()` returns a run id; its root summary status and terminal run result identify completion. An aborted run without a terminal summary returns aborted without inventing a compaction end. |
+| DSH | Undeclared; no session member. |
 | Pi Durable | Undeclared; handled with the separate Durable API migration. |
 
 Claude's command-source read and dispatch are separate native messages, not
@@ -192,15 +194,16 @@ invalid summary template are separate controls. Only matching native markers
 prove completion. A known RPC answer without a matching marker returns
 unconfirmed and releases the gate. A native RPC error is retained as a frame
 and returns failed with that frame. Transport loss without a known answer
-remains unconfirmed and reserved; dispose remains available. Qoder's completed boundary also remains completed
-when its command later reports cancelled; the ordinary turn outcome stays as
-reported, independently.
+remains unconfirmed and reserved; dispose remains available. Qoder's
+completed boundary remains completed when its command later reports
+cancelled; the ordinary turn outcome stays as reported.
 
 Cursor binds the accepted control to the SDK's returned run id before reading
-its stream. The native `run_id` becomes the span identity; the envelope retains the root
-session id and existing task/agentPath attribution. Summary ownership also
-requires the native `agent_id` to match the root. A known terminal run with no terminal summary is unconfirmed
-but releases the input gate because the run has ended. A lost stream or rejected
+its stream. The native `run_id` becomes the span identity; the envelope
+retains the root session id and existing task/agentPath attribution. Summary
+ownership also requires the native `agent_id` to match the root. A known
+terminal run with no terminal summary is unconfirmed but releases the input
+gate because the run has ended. A lost stream or rejected
 `run.wait()` cannot prove native completion; observation is unconfirmed and the
 gate stays reserved until a terminal run or disposal is observed. The existing
 two-second stream-tail budget does not fabricate a summary end. Real account

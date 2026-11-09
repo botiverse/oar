@@ -8,10 +8,10 @@ parent. `oar mcp` serves the same library to any agent that speaks MCP. The
 A child carries its depth in `env`, so a runtime that declares `env` in
 `refusedSessionOptions` cannot be a child: spawn refuses it with
 `open_failed` and the reason before opening anything, and the `oar mcp`
-`runtimes` tool marks it `spawnable: false`. Cursor is such a runtime. The
-crew finds runtimes in `defaultRuntimes` by default, which
-does not contain cursor, so there a cursor spawn is refused
-`unknown_runtime`; `oar mcp` offers the CLI's registry, which adds cursor.
+`runtimes` tool marks it `spawnable: false`. Cursor and the community Morph
+adapter are such runtimes. The crew finds runtimes in `defaultRuntimes` by
+default, which contains neither, so there their spawn is refused
+`unknown_runtime`; `oar mcp` offers the CLI's registry, which adds both.
 
 ## Model
 
@@ -67,8 +67,8 @@ subagent.
 
 A host that forwards or displays reports, such as a server relaying them
 from another machine, imports `formatReport`, `parseReport`, `reportOrigin`
-and their types from `@botiverse/oar/agents/report`, with no Node or adapter imports.
-`@botiverse/oar/agents` loads every built-in runtime, because
+and their types from `@botiverse/oar/agents/report`, with no Node or adapter
+imports. `@botiverse/oar/agents` loads every built-in runtime, because
 `createSubagents` defaults to them.
 
 `parseReport(text)` reads the format above, including reports recorded
@@ -128,7 +128,8 @@ it. Only native parent `subAgentActivity` reports change the task row.
 
 Grok child `session/cancel` did not stop the child in the native control,
 so Grok has no `stopTask`. Qwen reports native task lifecycle but no verified
-host single-task control. The model's `task_stop` tool is not such a host
+host single-task control. DSH reports its jobs as task events and has no
+`stopTask` member. The model's `task_stop` tool is not such a host
 control. [Native controls and limits](../../experiments/task-controls/README.md).
 
 ## Limits and policy
@@ -157,8 +158,8 @@ The library is mechanism; the host chooses the policy.
   restricted gains that access through a child, so whoever starts the host
   decides whether to offer subagents at all.
 - **Evidence.** With `logDir`, each child's records, from its first, are
-  written to `<logDir>/<name>-<sessionId>.jsonl` (the runtime id when the spawn has no name) as an `oar-voyage/3` log;
-  characters other than letters, digits, `.`, `_` and `-` become `_`, so a
+  written to `<logDir>/<name>-<sessionId>.jsonl` (the runtime id when the
+  spawn has no name) as an `oar-voyage/3` log; characters other than letters, digits, `.`, `_` and `-` become `_`, so a
   chosen name never leaves the directory.
 
 Refusals are typed (`unknown_runtime`, `not_installed`, `depth_limit`,

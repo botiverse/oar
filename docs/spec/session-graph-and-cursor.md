@@ -6,9 +6,9 @@
 
 ## The session graph holds true sessions only
 
-Derived sessions (grok, codex and OpenCode v2 children) form parent/child structure;
-without an explicit graph, consumers cannot answer "where did sess-B come
-from".
+Derived sessions (grok, codex, OpenCode v2 and DSH children) form
+parent/child structure; without an explicit graph, consumers cannot answer
+"where did sess-B come from".
 
 A claude subagent is not a session; it is an entity on `agentPath`.
 Putting agent parent/child in the session graph would commit, inside the
@@ -27,6 +27,8 @@ information is not stored twice.
   (`subAgentActivity.agentThreadId`, `receiverThreadIds`). [env 0.149.0]
 - OpenCode v2 (ACP): `update._meta["opencode/child-session"]` names the
   child id and its actual `parentID`, including nested children.
+- dsh: the parent's durable `subagent/catalog` names the child session
+  (`childId`) ([DSH mapping](../runtimes/dsh.md)).
 - claude: `parent_tool_use_id` is agent parent/child and produces no new
   session; carried by `agentPath`, not in the graph. [sym]
 - cursor: a subagent's updates arrive inside the parent's `task` call and
@@ -60,8 +62,8 @@ fold a child node's records into the root
 
 The native frame establishing a pair carries
 `session_linked { parent, child, via: "tool_call" }` in its events. Codex
-collaboration items, ACP lineage notifications and OpenCode v2 child
-attribution use this same event; the original native payload stays on that
+collaboration items, ACP lineage notifications, OpenCode v2 child
+attribution and DSH `subagent/catalog` use this same event; the original native payload stays on that
 frame. Each edge is emitted once per stream, on the first frame naming
 that parent/child pair. Later frames retain their native payload and other
 events but do not repeat the edge. A resume opens a fresh stream, so its
@@ -112,11 +114,10 @@ stream is uniquely determined by `seq`; identity and positioning rest on
 `seq` alone, and `receivedAt` is observation metadata. While the adapter
 process lives, a cursor continues in memory without loss or duplication; with
 [`retainedBytes`](record-stream.md#bounding-retained-records), frames replayed
-past the limit arrive marked `elided`.
-After the process dies, the replay source is the host's own persisted log of
+past the limit arrive marked `elided`. After the process dies, the replay source is the host's own persisted log of
 those records, never the runtime's history: native storage is not isomorphic
-to the wire and cannot reproduce it, so a rebuild from it is not implemented and
-was refused as a readback
+to the wire and cannot reproduce it, so a rebuild from it is not implemented
+and was refused as a readback
 ([decision](../design/decisions.md#session-history-readback-2026-09-15);
 [replay boundary](../design/foundations.md#replay-boundary)). oar has no
 storage layer of its own

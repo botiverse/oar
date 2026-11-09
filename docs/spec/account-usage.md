@@ -2,9 +2,9 @@
 
 `runtime.accountUsage(installation, options?)` reads account quota independently
 of session token usage. It is an optional member: claude, codex, grok and
-kimi have it; pi, cursor, antigravity and opencode do not. The [TypeScript contract](../../packages/oar/src/contracts/account-usage.ts)
-defines the snapshot and reader options.
-A custom runtime's reader (`defineRuntime` with `accountUsage`) builds each
+kimi have it; the other built-in runtimes do not. The
+[TypeScript contract](../../packages/oar/src/contracts/account-usage.ts)
+defines the snapshot and reader options. A custom runtime's reader (`defineRuntime` with `accountUsage`) builds each
 `resetsAt` with `utcInstantFromDate(date)`, which returns null for an invalid
 date, rather than casting a string to `UtcInstant`.
 
@@ -23,16 +23,16 @@ Equal values and deleting an absent variable are not changes. The rejection is
 values. Other environment changes remain supported. `orient` records this as
 `unsupported`; explicit per-call proxy/CA handling is not provided.
 
+The CLI inherits its process environment, so `KIMI_CODE_HOME=/home/b oar usage
+kimi` selects that home without a CLI flag. Use the same environment for
+`oar orient kimi --depth account` and the agent session
+([CLI examples, including PowerShell](orientation.md#cli-and-verification)).
+
 A snapshot belongs to the account resolved by this read. It is not a quota limit
 for every account on that runtime. A multi-account host retains its selected
 account/configuration key and scopes scheduling decisions to that key plus the
 runtime ID. Native email and display name fields can help identify the result,
 but are optional and are not guaranteed unique keys.
-
-The CLI also inherits its process environment: `KIMI_CODE_HOME=/home/b oar usage
-kimi` selects that home without an extra CLI flag. Use the same environment for
-`oar orient kimi --depth account` and the associated agent session. See the
-[CLI examples, including PowerShell](orientation.md#cli-and-verification).
 
 ## Windows
 
@@ -82,7 +82,8 @@ explicit request.
   as when a retry follows a call whose answer was lost). An API-key account
   is `unsupported` / `unsupported_auth_mode`, and no login is
   `reauth_required` / `not_authenticated`, as for the read. A Codex without
-  the call is `unsupported` / `endpoint_unavailable`.
+  the call is `unsupported` / `endpoint_unavailable`, and a non-executable
+  installation is `unsupported` / `unsupported_installation`.
 - A rejection (the deadline, default 20 s; Codex's own 10 s bound on its
   backend; a network error; an outcome OAR does not know) leaves unknown
   whether a reset was spent. Retry with the same key.
@@ -119,9 +120,8 @@ the promise. `options.timeoutMs` bounds the whole read, every process and
 request in it included. The call rejects at the deadline; processes it started
 continue their normal owned shutdown in the background and may remain alive
 for the stop grace period (10 seconds by default) before escalation to SIGKILL.
-This also applies to Codex `redeemLimitReset`; a timeout still leaves whether
-the reset was consumed unknown, so retry with the same `idempotencyKey`.
-Reasons do not include tokens, credential values, or raw provider responses.
+This also applies to Codex `redeemLimitReset` (a timeout is a rejection, see
+above). Reasons do not include tokens, credential values, or raw provider responses.
 
 Kimi rejects an unreadable response body, invalid JSON, or a response with no
 usable quota windows. A window with a malformed present usage metric is omitted;

@@ -75,7 +75,8 @@ refer to files elsewhere. Host options retain their existing refusals, so
 | Cursor SDK | Explicit empty `local.settingSources` and `local.sandboxOptions.enabled: false`; SDK login and native store remain. Project layers are also absent, as in its default. |
 | Codex | Refused: the temporary-home workaround leaves shared history indexes pointing at paths deleted during cleanup. |
 | Kimi | Refused: native atomic writes replace the workspace-index symlink and split the workspace catalog. |
-| Pi, Pi Durable, Grok, OpenCode v1/v2, Qwen, Antigravity, CodeBuddy | Refused: no verified separation preserving login and history. |
+| Pi, Pi Durable, Grok, OpenCode v1/v2, Qwen, Qoder, Antigravity, CodeBuddy | Refused: no verified separation preserving login and history. |
+| DSH | Refused: no verified exclusion that keeps its provider routes. |
 
 A refusal is `UnsupportedOptionError("userConfiguration", reason)` before
 starting a session and is declared in `Runtime.refusedSessionOptions`.
@@ -263,8 +264,8 @@ while selecting the session's provider endpoint.
 Claude, codex, dsh, grok, kimi, opencode, antigravity, codebuddy, qwen and qoder
 apply the overlay to their runtime process and its tool children; ACP client-hosted terminals receive it
 too. OpenCode's prompt preparation queries use the same environment. Pi
-applies it to its Bash tool's children, not its in-process provider. Cursor
-refuses any non-empty `env`, including a removal-only map. Native tool shells
+applies it to its Bash tool's children, not its in-process provider. Cursor and Pi Durable
+refuse any non-empty `env`, including a removal-only map. Native tool shells
 or runtime configuration can subsequently set their own variables.
 
 An MCP server's own `env` remains a map of strings; `null` there is refused
@@ -320,8 +321,8 @@ events after execution. This selects tools; another permitted tool can still
 perform similar work, so it is not a process sandbox. A model that calls a
 denied tool anyway gets the runtime's refusal, not the tool: claude ("No such
 tool available"), pi ("Tool … not found"), codex ("unsupported call", with no
-tool event), each pinned by its vendor tests. Antigravity CLI now refuses
-non-empty lists because the retired service's metadata filter is ignored.
+tool event), each pinned by its vendor tests. Antigravity CLI 1.5.0 ignores
+`_meta.antigravity.disabledTools`, so OAR refuses non-empty lists.
 
 | runtime | can disable | refuses |
 |---|---|---|
@@ -451,10 +452,10 @@ SessionView retain the same native value live and after record replay;
 ordinary text and raw frames remain available.
 Claude can complete without a structured value even with a schema when the
 model never supplies one; hosts must check for the field, not just `kind`.
-Hosts consuming Codex text
-must parse and validate it themselves when their application needs a value
-conforming to the schema. Claude retry exhaustion and Grok validation
-failures currently retain `failure: "unknown"` with the native reason.
+Hosts consuming Codex text must parse and validate it themselves when their
+application needs a value conforming to the schema. Claude retry exhaustion
+and Grok validation failures are `failure: "output_schema"` with the native
+reason ([mapping](#the-mapping)).
 
 [Native evidence, failure probes and limits](../../experiments/structured-output-2026-10-11.md).
 
@@ -534,31 +535,35 @@ entry, non-empty `headers` on an http one). Its error names `mcpServers`
 and ends with the entries' names
 ([#392](https://github.com/botiverse/oar/issues/392)).
 
-Four refusals have one reason wherever the table lists them: `serviceTier`,
+`goals: true` is refused everywhere except Codex ([native goals](#native-goals)),
+and `endTurnProcessesOnAbort: true` everywhere except Codex in an isolated
+app-server ([ending a turn's processes](#ending-a-turns-processes-on-abort)),
+for want of a verified way to end one aborted turn's processes while the
+session stays usable (in the host process, no process tree of its own to
+read). The table omits both, apart from Codex's shared-placement refusal.
+These refusals have one reason wherever the table lists them: `serviceTier`,
 no verified per-session tier setting and readback; `outputSchema`, no
 verified final-output schema channel; `name`, no verified session name
 setting (pi-durable has no session name at all); `additionalDirectories`,
-no verified effective additional workspace directory channel;
-`endTurnProcessesOnAbort`, no verified way to end one aborted turn's processes
-while the session stays usable (in the host process, no process tree of its
-own to read). The why column gives the rest. `userConfiguration: "exclude"` refusals are explained
+no verified effective additional workspace directory channel. The why
+column gives the rest. `userConfiguration: "exclude"` refusals are explained
 in [user configuration](#user-configuration).
 
 | runtime | refuses | why |
 |---|---|---|
-| cursor | `systemPrompt`, `appendSystemPrompt`, `env`, `mcpServers`, `launchArgs`, `serviceTier`, `outputSchema`, `name`, `goals: true`, `endTurnProcessesOnAbort: true` | the SDK's local agent fails a run given a system prompt and has no append; it runs in the host process with no environment or command line of its own; its agent runs on Cursor's servers, and no run without a login or paid tokens shows it calling a tool of `Agent.create`'s `mcpServers` ([cursor](../runtimes/cursor.md#session-mcp-servers)) |
-| codebuddy | `appendSystemPrompt`, `serviceTier`, `additionalDirectories`, `outputSchema`, `name`, `userConfiguration: "exclude"`, `goals: true`, `endTurnProcessesOnAbort: true` | no verified private prompt-append input; replacement uses a private file ([mapping](../runtimes/codebuddy.md)) |
-| kimi | `systemPrompt`, `appendSystemPrompt`, `disallowedTools`, `serviceTier`, `outputSchema`, `name`, `userConfiguration: "exclude"`, `goals: true`, `endTurnProcessesOnAbort: true` | `kimi acp` has no per-session prompt input; its launcher does not forward the CLI's agent-profile flags, and has no session tool-denial overlay ([audit](../runtimes/kimi.md#models-instructions-and-context)) |
-| antigravity | `disallowedTools`, `systemPrompt`, `serviceTier`, `additionalDirectories`, `outputSchema`, `name`, `mcpServerCredentials`, `userConfiguration: "exclude"`, `goals: true`, `endTurnProcessesOnAbort: true` | the CLI adapter has no verified system prompt replacement channel (append is supported) ([audit](../runtimes/antigravity.md#models-instructions-and-context)); it would store an entry's `env` and `headers` values in plain text in its conversation database ([antigravity](../runtimes/antigravity.md#session-mcp-servers)) |
-| grok | `disallowedTools`, `serviceTier`, `additionalDirectories`, `name`, `userConfiguration: "exclude"`, `goals: true`, `endTurnProcessesOnAbort: true` | the top-level CLI denylist is not forwarded to `agent stdio`; replacing the selected agent profile is not a tool overlay |
-| opencode, both lines | `disallowedTools`, `serviceTier`, `outputSchema`, `name`, `userConfiguration: "exclude"`, `goals: true`, `endTurnProcessesOnAbort: true` | agent permissions can override global denies; permission names do not consistently match tool names |
-| pi-durable | `systemPrompt`, `env`, `launchArgs`, `serviceTier`, `mcpServers`, `disallowedTools`, `additionalDirectories`, `outputSchema`, `name`, `userConfiguration: "exclude"`, `goals: true`, `endTurnProcessesOnAbort: true` | native instructions append only; host-owned environment; no process arguments or verified per-conversation tier/MCP/tool-denial mapping |
-| pi | `launchArgs`, `serviceTier`, `additionalDirectories`, `outputSchema`, `userConfiguration: "exclude"`, `goals: true`, `endTurnProcessesOnAbort: true` | it runs in the host process through its SDK, with no command line |
-| qwen | `serviceTier`, `outputSchema`, `name`, `userConfiguration: "exclude"`, `goals: true`, `endTurnProcessesOnAbort: true` | no verified tier, structured-output, session-name or user-configuration exclusion channel |
-| dsh | `systemPrompt`, `appendSystemPrompt`, `mcpServerCredentials`, `disallowedTools`, `launchArgs`, `serviceTier`, `additionalDirectories`, `outputSchema`, `name`, `userConfiguration: "exclude"`, `goals: true`, `endTurnProcessesOnAbort: true` | MCP credentials have no verified persistence boundary; the other options remain unverified through the bridge ([mapping](../runtimes/dsh.md#session-options)) |
-| qoder | `serviceTier`, `outputSchema`, `name`, `userConfiguration: "exclude"`, `goals: true`, `endTurnProcessesOnAbort: true` | no verified tier, structured-output, session-name or user-configuration exclusion channel |
+| cursor | `systemPrompt`, `appendSystemPrompt`, `env`, `mcpServers`, `launchArgs`, `serviceTier`, `outputSchema`, `name` | the SDK's local agent fails a run given a system prompt and has no append; it runs in the host process with no environment or command line of its own; its agent runs on Cursor's servers, and no run without a login or paid tokens shows it calling a tool of `Agent.create`'s `mcpServers` ([cursor](../runtimes/cursor.md#session-mcp-servers)) |
+| codebuddy | `appendSystemPrompt`, `serviceTier`, `additionalDirectories`, `outputSchema`, `name`, `userConfiguration: "exclude"` | no verified private prompt-append input; replacement uses a private file ([mapping](../runtimes/codebuddy.md)) |
+| kimi | `systemPrompt`, `appendSystemPrompt`, `disallowedTools`, `serviceTier`, `outputSchema`, `name`, `userConfiguration: "exclude"` | `kimi acp` has no per-session prompt input; its launcher does not forward the CLI's agent-profile flags, and has no session tool-denial overlay ([audit](../runtimes/kimi.md#models-instructions-and-context)) |
+| antigravity | `disallowedTools`, `systemPrompt`, `serviceTier`, `additionalDirectories`, `outputSchema`, `name`, `mcpServerCredentials`, `userConfiguration: "exclude"` | the CLI adapter has no verified system prompt replacement channel (append is supported) ([audit](../runtimes/antigravity.md#models-instructions-and-context)); it would store an entry's `env` and `headers` values in plain text in its conversation database ([antigravity](../runtimes/antigravity.md#session-mcp-servers)) |
+| grok | `disallowedTools`, `serviceTier`, `additionalDirectories`, `name`, `userConfiguration: "exclude"` | the top-level CLI denylist is not forwarded to `agent stdio`; replacing the selected agent profile is not a tool overlay |
+| opencode, both lines | `disallowedTools`, `serviceTier`, `outputSchema`, `name`, `userConfiguration: "exclude"` | agent permissions can override global denies; permission names do not consistently match tool names |
+| pi-durable | `systemPrompt`, `env`, `launchArgs`, `serviceTier`, `mcpServers`, `disallowedTools`, `additionalDirectories`, `outputSchema`, `name`, `userConfiguration: "exclude"` | native instructions append only; host-owned environment; no process arguments or verified per-conversation tier/MCP/tool-denial mapping |
+| pi | `launchArgs`, `serviceTier`, `additionalDirectories`, `outputSchema`, `userConfiguration: "exclude"` | it runs in the host process through its SDK, with no command line |
+| qwen | `serviceTier`, `outputSchema`, `name`, `userConfiguration: "exclude"` | no verified tier, structured-output, session-name or user-configuration exclusion channel |
+| dsh | `systemPrompt`, `appendSystemPrompt`, `mcpServerCredentials`, `disallowedTools`, `launchArgs`, `serviceTier`, `additionalDirectories`, `outputSchema`, `name`, `userConfiguration: "exclude"` | MCP credentials have no verified persistence boundary; the other options remain unverified through the bridge ([mapping](../runtimes/dsh.md#session-options)) |
+| qoder | `serviceTier`, `outputSchema`, `name`, `userConfiguration: "exclude"` | no verified tier, structured-output, session-name or user-configuration exclusion channel |
 | codex | `userConfiguration: "exclude"`; `endTurnProcessesOnAbort: true` only with shared placement | temporary clean homes break shared history paths after cleanup ([evidence](../runtimes/codex.md#user-configuration)); a shared app-server's process table does not say which session's turn started a process |
-| claude | `goals: true`, `endTurnProcessesOnAbort: true` | no structured native goal controls on the chosen transport; other value-specific refusals are described on its runtime page |
+| claude | nothing beyond `goals: true` and `endTurnProcessesOnAbort: true` | no structured native goal controls on the chosen transport; other value-specific refusals are described on its runtime page |
 
 `mcpServers` is refused until a runtime's channel is shown to make its agent
 call an attached server's tool, with the evidence on its runtime page
@@ -573,6 +578,8 @@ call an attached server's tool, with the evidence on its runtime page
 | kimi | ACP `mcpServers` on `session/new` and `session/resume` | yes | yes | the param again | the session's replaces the user's `mcp.json` entry; the user's others stay ([kimi](../runtimes/kimi.md#session-mcp-servers)) |
 | opencode | ACP `mcpServers` on `session/new` and `session/resume`, held by that opencode process | yes | yes | the param again | the session's replaces the user's `mcp` entry for that process (a session server that fails to start removes it); the user's others stay ([opencode](../runtimes/opencode.md#session-mcp-servers)) |
 | antigravity | ACP `mcpServers` on `session/new` and `session/resume`; CLI worker mode exposes direct `mcp_<server>_<tool>` calls (user-configured servers remain lazy via `call_mcp_tool`). An entry with `env` or `headers` is refused (`mcpServerCredentials`, above) | yes | yes | the param again | the session's replaces the user's `mcp_config.json` entry; the user's others stay ([antigravity](../runtimes/antigravity.md#session-mcp-servers)) |
+| qwen | per-session `initialize.mcpServers` (stdio command/args/env, HTTP `httpUrl`/headers) | yes | yes | the entries again | see [qwen](../runtimes/qwen.md) |
+| qoder | `--mcp-config <path>`: a 0600 file in a private 0700 directory removed on process exit or failed launch | yes | yes | the flag again | see [qoder](../runtimes/qoder.md) |
 | dsh | private invocation patch loads native MCP client plugins, checked active before open | command/args only | refused | supply entries again; omitted entries are absent | a native namespace collision refuses open ([dsh](../runtimes/dsh.md#session-mcp-servers)) |
 | pi | pi's MCP extension plus one registering the entries (`pi.registerMcpServer`); tools declared directly | yes | yes | registered again | oar's pi loads no `mcp.json`; a name another extension registered fails the open ([pi](../runtimes/pi.md#session-mcp-servers)) |
 
@@ -677,7 +684,7 @@ this declaration; that is separate from changing the system prompt.
 | Pi SDK/RPC, both prompts | Immediate | Default, including current project resources and after compaction | Both declared; 1.4.0, native automatic compaction |
 | Pi Durable, `appendSystemPrompt` | Immediate | Saved, including after compaction | Declared; 1.4.0, native automatic compaction. Changing settings while adopting an active run is refused. Replacement is always refused. |
 | Cursor, Kimi | Both refused | Not applicable | Refusals declared, no resume entries |
-| Grok | Replacement and append together apply immediately; append-only resume is refused | Saved; append-only retention also verified across native compaction (1.0.70) | Conditional; no resume entries. Append-only hosts must omit append on resume; changing it requires replacement too. Blank replacement is refused. [Details](../runtimes/grok.md#models-and-instructions) |
+| Grok | Replacement and append together apply immediately; append-only resume is refused | Saved; append-only retention also verified across native compaction (1.0.70) | Conditional; no resume entries; host rule below. [Details](../runtimes/grok.md#models-and-instructions) |
 | OpenCode v1 | Both reapplied through native inline configuration | Omission across compaction untested | Version-dependent; no resume entries. [Details](../runtimes/opencode.md#models-effort-instructions-and-context) |
 | OpenCode v2 | Both refused | Not applicable | Installed-line refusal; no resume entries |
 | Antigravity, `appendSystemPrompt` | Immediate when native capability is advertised | Default in the measured resume control | Capability-dependent; no resume entry. Replacement refused. [Details](../runtimes/antigravity.md#models-instructions-and-context) |
@@ -692,26 +699,25 @@ compaction. Omitting them is not a reliable way to keep them. Codex's
 replacement prompt is the exception: omission retains saved base instructions.
 Grok needs a different host rule: if only append was configured, **omit
 `appendSystemPrompt` on resume** to keep its saved value, including after
-compaction. Supplying it again is refused even when unchanged, because OAR
-cannot compare it with the saved value. To change it, also supply
-`systemPrompt`; no replacement is invented by OAR.
+compaction; supplying it again is refused ([conditional refusals](#conditional-refusals)).
+To change it, also supply `systemPrompt`; OAR invents no replacement.
 
-The [Claude/Codex vendor regression](../../sea-trial/vendor/resume-system-prompt.vendor.test.ts)
-reads the runtime declarations and checks new and omitted values before and
-after native compaction using raw main provider requests and native completion
-records. Claude reports only an ending boundary; Codex reports start and end.
-The Codex fixture uses scripted usage to trigger local automatic compaction,
-not a new OAR control; remote compaction under a ChatGPT login is unverified.
-[Qwen/Pi regressions](../../sea-trial/vendor/resume-fresh-prompts.vendor.test.ts)
-and [Pi Durable regressions](../../sea-trial/vendor/pi-durable.vendor.test.ts)
-also read these declarations and check both supplied and omitted values before
-and after native compaction. Their unique scripted summaries must appear in
-fresh main requests after compaction; Qwen must also report its native successful
-compression and a smaller token count. The sequential controls track the current
-saved value, including one supplied on a previous resume. A
+Vendor regressions read the runtime declarations and check supplied and
+omitted values before and after native compaction, from raw main provider
+requests and native completion records:
+[Claude/Codex](../../sea-trial/vendor/resume-system-prompt.vendor.test.ts)
+(Claude reports only an ending boundary, Codex start and end; the Codex
+fixture triggers local automatic compaction with scripted usage, not an OAR
+control, and remote compaction under a ChatGPT login is unverified),
+[Qwen/Pi](../../sea-trial/vendor/resume-fresh-prompts.vendor.test.ts) and
+[Pi Durable](../../sea-trial/vendor/pi-durable.vendor.test.ts) (unique
+scripted summaries must appear in fresh main requests after compaction; Qwen
+must also report its native successful compression and a smaller token
+count). The sequential controls track the current saved value, including one
+supplied on a previous resume. A
 [registry-wide test](../../tests/resumed-session-options.test.ts) fixes the
-measured runtime/option inventory and rejects overlap with refused options.
-A vendor behavior change therefore fails the declared contract.
+measured runtime/option inventory and rejects overlap with refused options,
+so a vendor behavior change fails the declared contract.
 
 ## Host-served tools
 
@@ -721,8 +727,8 @@ them from a streamable HTTP MCP server inside the host process, on
 `127.0.0.1` behind a random bearer token, and returns the `mcpServers` entry
 (`{ name, type: "http", url, headers: { Authorization } }`) and `close()`.
 Each runtime then attaches it through its own MCP channel above, so it
-behaves as any http entry does there: claude, codex, pi, grok, kimi and
-opencode take it; cursor and pi-durable refuse `mcpServers`, and
+behaves as any http entry does there: claude, codex, pi, grok, kimi,
+opencode, codebuddy, qwen and qoder take it; cursor and pi-durable refuse `mcpServers`, and
 antigravity refuses an entry with `headers`; dsh accepts only stdio command/args.
 A host tells before opening:
 served tools attach unless `refusedSessionOptions` declares `mcpServers` or
@@ -734,21 +740,20 @@ A `HostTool` may carry MCP `annotations`, sent unchanged in `tools/list` and
 absent when not given. OAR neither validates nor acts on them; runtimes do.
 These are the host's declarations: a runtime may skip approval based on the
 hints, so a host should declare only what is true of the tool.
-Probed on codex 0.161.0 with `-c sandbox_mode="read-only"`: an unannotated
-served tool is refused ("MCP tool call requires approval, but approval policy
-is never"), while one marked `readOnlyHint: true`, or `destructiveHint: false`
-with `openWorldHint: false`, is called, and the sandbox still blocks the
-agent's own file writes. This is a versioned observation of Codex's approval
-policy, not a guarantee that a runtime will accept an annotated tool.
-
-The [native Codex regression](../../sea-trial/vendor/codex-tool-annotations.vendor.test.ts)
-checks the unannotated refusal, the actual `readOnlyHint: true` handler call
-and its result reaching the model, followed by an `apply_patch` write refused
+Codex with `-c sandbox_mode="read-only"` (probed on 0.161.0) refuses an
+unannotated served tool ("MCP tool call requires approval, but approval policy
+is never") but calls one marked `readOnlyHint: true`, or `destructiveHint:
+false` with `openWorldHint: false`, while the sandbox still blocks the agent's
+own file writes. This is a versioned observation of Codex's approval policy,
+not a guarantee that a runtime will accept an annotated tool. The
+[native Codex regression](../../sea-trial/vendor/codex-tool-annotations.vendor.test.ts)
+(Codex 0.166.0, Linux, 2026-11-05; it runs in the existing Codex vendor CI
+jobs) checks the unannotated refusal, the actual `readOnlyHint: true` handler
+call and its result reaching the model, and an `apply_patch` write refused
 under the same read-only policy. A full-access control executes the same calls
-and writes the file, so a malformed call cannot masquerade as a sandbox refusal.
-Verified locally on Linux with Codex 0.166.0 on 2026-11-05; the test runs in the
-existing Codex vendor CI jobs. Both controls use `approvalPolicy: never` and a
-scripted local provider, without a login or model quota.
+and writes the file, so a malformed call cannot masquerade as a sandbox
+refusal. Both controls use `approvalPolicy: never` and a scripted local
+provider, without a login or model quota.
 
 The server answers `initialize`, `ping`, `tools/list` and `tools/call` with
 JSON, single or batched, and `notifications/cancelled` aborts the call's
@@ -793,16 +798,16 @@ notification:
 | `additions` | claude | adds new tools; removed tools' already loaded schemas remain offered, though search withdraws their names and calls fail as unknown tools ([2.1.304 evidence](../../experiments/runtime-version-checks/2026-10-20.md#claude-21304)) |
 | `none` | codex, kimi, grok, antigravity CLI | keeps the opening set; the client never lists again (grok's `use_tool` answers "Tool not found" for an added tool) |
 
-cursor and pi-durable take no `mcpServers` and declare nothing. The
+cursor and pi-durable take no `mcpServers` and declare nothing; codebuddy,
+dsh, qwen and qoder take it but are unmeasured, so they declare nothing either. The
 declaration covers any attached MCP server that announces a change, so
 antigravity's matters only for credential-free servers: a `serveMcpTools`
 entry never attaches there. A change a session does not take applies when
 the host opens its next session. Measured [env] 2026-10-14: pi ^1.2.0, opencode 1.18.30, 1.19.0 and 2.0.29,
-antigravity 1.4.0, claude 2.1.299, codex 0.162.0 and 0.162.1, kimi 2.1.1,
+claude 2.1.299, codex 0.162.0 and 0.162.1, kimi 2.1.1,
 grok 1.0.52 ([probe](../../experiments/mcp-tools-list-changed.ts),
-[vendor test](../../sea-trial/vendor/mcp-tools-list-changed.vendor.test.ts)).
-Antigravity changed from full on the separate service to none on CLI 1.5.0,
-verified with the same declaration-driven provider/catalog check
+[vendor test](../../sea-trial/vendor/mcp-tools-list-changed.vendor.test.ts));
+Antigravity CLI 1.5.0 with the same declaration-driven provider/catalog check
 ([migration](../../experiments/antigravity-cli-acp-2026-11-05.md)).
 
 Evidence: [`serve-mcp-tools.vendor.test.ts`](../../sea-trial/vendor/serve-mcp-tools.vendor.test.ts)
@@ -953,19 +958,19 @@ its subtype followed by claude's own `errors` text when it gives any
 (`error_max_turns: Reached maximum number of turns (2)`).
 
 Mappings normally require `[env]` evidence. A declared value with no observed
-run stays unmapped (it falls through to the status or to `unknown`), apart from
-the two source-backed exceptions below: claude's `oauth_org_not_allowed`, `account_on_hold`,
-`verification_required`, `overloaded`, `max_output_tokens`,
-`cloud_credential_error`; codex's `badRequest`,
-`sessionBudgetExceeded`, `cyberPolicy` and the rest of its schema; Anthropic's
-`request_too_large` and `permission_error`; OpenAI's spend-limit and
-`slow_down` codes. Codex's exact `unauthorized` tag maps to `auth` from its
-0.167.0 generated protocol, without a fabricated status or credential detail
-([evidence](../../experiments/codex-projection/README.md)). The other mapping
-rests on `[src]` and `[sym]` alone: claude's
-`rate_limit` after a `rejected` `rate_limit_event` naming a reset is `quota`
-([below](#when-a-limit-resets)). Only a subscription at its limit makes
-claude send that event, and oar never triggers an error on a real account.
+run stays unmapped (it falls through to the status or to `unknown`): claude's
+`oauth_org_not_allowed`, `account_on_hold`, `verification_required`,
+`overloaded`, `max_output_tokens`, `cloud_credential_error`; codex's
+`badRequest`, `sessionBudgetExceeded`, `cyberPolicy` and the rest of its
+schema; Anthropic's `request_too_large` and `permission_error`; OpenAI's
+spend-limit and `slow_down` codes. Two mappings are source-backed exceptions.
+Codex's exact `unauthorized` tag maps to `auth` from its 0.167.0 generated
+protocol, without a fabricated status or credential detail
+([evidence](../../experiments/codex-projection/README.md)). Claude's
+`rate_limit` after a `rejected` `rate_limit_event` naming a reset is `quota`,
+from `[src]` and `[sym]` alone ([below](#when-a-limit-resets)). Only a
+subscription at its limit makes claude send that event, and oar never
+triggers an error on a real account.
 
 A failed turn (`FailedTurn`) is tagged by `failure`: `credential` exists
 only on `auth`, `resetsAt` only on `quota`, `status` on every class. A host
@@ -1075,7 +1080,7 @@ and the message "Reconnecting... n/5".
 |---|---|---|---|
 | missing login (no key, the default provider: codex sent the request to api.openai.com, which answered 401) | `{httpConnectionFailed: {httpStatusCode: 401}}` | over WebSocket, then (a `warning` "Falling back from WebSockets to HTTPS transport") 5 over HTTPS: 9 notifications | `auth` (the status) |
 | invalid key | `{httpConnectionFailed: {httpStatusCode: 401}}` | 5 | `auth` (the status) |
-| unknown model | `modelNotFound` on 0.165.0; formerly `{httpConnectionFailed: {httpStatusCode: 404}}` | 1 on 0.165.0 | `model_unavailable`; status only when native reports it |
+| unknown model | `modelNotFound` (0.165.0); 0.160.1 sent `{httpConnectionFailed: {httpStatusCode: 404}}` | 1 on 0.165.0 | `model_unavailable`; status only when native reports it |
 | rate limited | `{responseTooManyFailedAttempts: {httpStatusCode: 429}}` | no notification | `rate_limited` (the status) |
 | usage limit, plan usage limit | `usageLimitExceeded` ("Quota exceeded. Check your plan and billing details."; "You've hit your usage limit.") | no | `quota` |
 | billing (both codes) | `usageLimitExceeded` ("Quota exceeded…") | no | `quota` |
@@ -1087,10 +1092,10 @@ and the message "Reconnecting... n/5".
 | in the stream: `insufficient_quota`, `usage_not_included` | `usageLimitExceeded` | no | `quota` |
 | in the stream: `rate_limit_exceeded` | `rateLimitExceeded` | 5 | `rate_limited` |
 
-The observed 401 is `httpConnectionFailed`. The separately declared string
-`unauthorized` maps to `auth` from the 0.167.0 protocol shape; no account failure
-producing that tag was reproduced. A provider SSE error named `unauthorized`
-produced native `other` in the local probe and remains `unknown`. The schema
+The observed 401 is `httpConnectionFailed`. No account failure producing the
+declared `unauthorized` tag ([mapped](#the-mapping)) was reproduced; a provider
+SSE error named `unauthorized` produced native `other` in the local probe and
+remains `unknown`. The schema
 also declares `sessionBudgetExceeded`, `badRequest`, `cyberPolicy` and others
 `[src]` (`codex app-server generate-json-schema`). After a tool call the
 values are the same.
@@ -1156,7 +1161,7 @@ through `llm.resolveCallConfig`. [Table](../runtimes/dsh.md#records).
 |---|---|---|---|---|---|---|---|---|
 | missing login | `error` + null status | info 401 | prompt refusal | text | open -32000 | open -32000 | open -32000 | text |
 | invalid key | `error` + 401 | info 401 | status in text | text | prompt -32000 | `error_type: auth` | nothing | open 401 |
-| unknown model | `error` + 404 | info 404 | open (oar) | open -32602 | open -32603 | open -32602 | open -32602 | not observed |
+| unknown model | `error` + 404 | info | open (oar) | open -32602 | open -32603 | open -32602 | open -32602 | not observed |
 | rate limited | `error` + 429 | info 429 | status in text | text | nothing | -32003 | nothing | not observed |
 | usage limit | 400 only; a subscription's: `error` + `rate_limit_event` `[sym]` | info | status in text | text | nothing | -32003 | nothing | not observed |
 | billing | `error` (400 text) or 402 | info | status in text | text | nothing | -32003 | nothing | not observed |
@@ -1284,8 +1289,9 @@ Cursor hands undelivered steering back as a refused control. Grok can
 lose a just-submitted steer, but its cancellation receipt cannot yet
 prove whether that input had been read, so OAR makes no discard claim.
 [The audit](../../experiments/input-interruption-2026-10-08.md) records
-native versions, evidence and verification limits. Kimi and Antigravity
-have no `steer` member. Independent of runtime, an observed process exit
+native versions, evidence and verification limits. Kimi has no `steer`
+member; Antigravity CLI's steer refusal and worker-failure outcomes are on
+[its page](../runtimes/antigravity.md#prompt-steering-queueing-and-abort). Independent of runtime, an observed process exit
 settles inputs still awaiting echoes as `dropped: runtime_exited`, with the
 [resume uncertainty](conversation.md#dropped-input) preserved.
 

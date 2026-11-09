@@ -22,7 +22,8 @@ installer behaved when run.
   and `upgrade()` work on it afterwards: never a copy that `checkUpdate()`
   would answer `unmanaged_installation` or `package_manager`. CodeBuddy is an
   explicit exception: its stable documented method is npm, its independent
-  installer remains Beta, and OAR does not yet expose its updater.
+  installer remains Beta, and OAR does not expose its updater. DSH's
+  documented method is npm, and OAR exposes no updater for it either.
 - **The probe decides, not the exit code.** `install` probes first and runs
   no installer when the probe finds an available installation. After the installer
   ran, it probes again, with the same discovery sessions use: the result is
@@ -30,11 +31,12 @@ installer behaved when run.
   installer exited with. An installer that puts the binary where the probe
   does not look is a probe to fix, so the probes also look where the
   installers put them (claude's `~/.local/bin`, codex's `~/.local/bin`, grok's
-  `~/.grok/bin`, kimi's `~/.kimi-code/bin`, opencode's `~/.opencode/bin`),
+  `~/.grok/bin`, kimi's `~/.kimi-code/bin`, opencode's `~/.opencode/bin`,
+  antigravity's `~/.local/bin/agy`),
   which a GUI or service process's PATH can miss. CodeBuddy also queries npm's
   configured global prefix when ordinary discovery finds nothing.
-- **`installPlan` does not change installations or user configuration.** It looks up the installer's tools on PATH
-  and checks that the directories it writes are writable. npm plans may run
+- **`installPlan` does not change installations or user configuration.** It
+  looks up the installer's tools on PATH and checks that the directories it writes are writable. npm plans may run
   a bounded, local `npm prefix -g` configuration query with logging, timing
   files and update checks disabled. OAR creates a private cache in the system
   temporary directory and removes it after the query, including failures. It
@@ -44,8 +46,7 @@ installer behaved when run.
   and the vendor's `steps` and `source`, instead of guessing the destination
   or rights. Categories distinguish a timeout, a non-zero exit code, an
   invalid path response and other local query failures, without native output.
-  The plan gives the same `unsupported` that `install`
-  would.
+  The plan gives the same `unsupported` that `install` would.
 - **Never over another copy.** A runtime whose vendor ships parallel
   release lines of one command (opencode 1 and 2) declares them in
   `installLines`; the host passes one as `line`, since oar never chooses a
@@ -79,12 +80,12 @@ and two constants: `network: true` (every installer downloads) and
 is `unsupported` instead).
 
 When oar knows the vendor's step but will not run it here
-(`requires_privileges`, `missing_tool`, `location_unknown`), the `unsupported` answer still
-carries the `steps` and `source` the plan would have had, so a host can show
-the person the vendor's documented command to run themselves once they have
-the rights or the tool, or have checked the installer's location configuration.
-oar runs none of them. Every other reason carries
-neither.
+(`requires_privileges`, `missing_tool`, `location_unknown`), the
+`unsupported` answer still carries the `steps` and `source` the plan would
+have had, so a host can show the person the vendor's documented command to
+run themselves once they have the rights or the tool, or have checked the
+installer's location configuration. oar runs none of them. Every other
+reason carries neither.
 
 ## Install results
 
@@ -99,10 +100,10 @@ neither.
 | --- | --- |
 | platform | The installer does not run here. Script installers run on macOS and Linux (x64, arm64); on Windows their detail names the vendor's command, which oar does not run. CodeBuddy's npm installer runs on Linux, macOS and Windows. |
 | requires_privileges | A directory the installer writes is not writable by this user (an install location variable naming `/usr/local`, say). oar never uses sudo. `steps` and `source` carry the vendor's command, for the person to run with the rights it needs. |
-| requires_gui | The vendor installs the runtime only from inside an app. |
+| requires_gui | The vendor installs the runtime only from inside an app. No built-in runtime returns it. |
 | missing_tool | A program the documented command runs (`curl`, `bash`, `sh`, `npm`) is not on PATH; `detail` names it. `steps` and `source` carry the vendor's command, for the person to run once the tool is installed. |
 | location_unknown | OAR cannot determine where the installer would write. `detail` gives the failure category without native output; `steps` and `source` carry the vendor's command, for the person to run after checking the installer's location configuration. This does not establish missing tools or insufficient rights. |
-| configuration | An existing executable or pinned location needs manual adjustment before the installer can provide a usable runtime. No installer or download starts; `detail` explains what to update or correct. |
+| configuration | An existing executable or pinned location needs manual adjustment before the installer can provide a usable runtime (antigravity: an existing `agy` OAR cannot use, which the installer would not replace, or an `OAR_ANTIGRAVITY_BIN` override naming a missing or unusable CLI). No installer or download starts; `detail` explains what to update or correct. |
 | bundled | Nothing to install: the runtime comes with the package that carries it. No built-in runtime returns it, since bundled ones have no `install` at all. |
 | line_required | The runtime has `installLines` and no `line` was given; `detail` lists them. |
 | unknown_line | `line` is not one of the runtime's `installLines`. |
@@ -129,13 +130,13 @@ method and stays on the line.
 | opencode `v2` | `curl -fsSL https://opencode.ai/v2/install \| bash` | [opencode.ai/v2/docs](https://opencode.ai/v2/docs/) | `~/.opencode/bin/opencode` (2.x) |
 | qwen | `curl -fsSL https://qwen-code-assets.oss-cn-hangzhou.aliyuncs.com/installation/install-qwen-standalone.sh \| bash -s -- --method standalone --no-modify-path` | [qwenlm.github.io/qwen-code-docs](https://qwenlm.github.io/qwen-code-docs/en/users/quickstart/) | `$QWEN_INSTALL_BIN_DIR` (default `~/.local/bin`) and `$QWEN_INSTALL_LIB_DIR` (default `~/.local/lib/qwen-code`) |
 | qoder | `curl -fsSL https://qoder.com/install \| bash -s -- --skip-path` | [docs.qoder.com/cli/troubleshoot-install](https://docs.qoder.com/cli/troubleshoot-install) | `~/.local/bin` and `~/.qoder` |
-| antigravity | `curl -fsSL https://antigravity.google/cli/install.sh \| bash` | [antigravity.google/docs/cli](https://antigravity.google/docs/cli) | Windows: vendor PowerShell command returned for manual installation |
+| antigravity | `curl -fsSL https://antigravity.google/cli/install.sh \| bash` | [antigravity.google/docs/cli](https://antigravity.google/docs/cli) | `~/.local/bin/agy`; on Windows the vendor's PowerShell command is returned for manual installation |
 | pi | no `install`: bundled with oar | | |
 | pi-durable | no `install`: `@earendil-works/pi-durable` is the host's to install | | |
 | cursor | no `install`: `@cursor/sdk` is the host's to install | | |
 
-Codex, grok, kimi and antigravity also add their folder to PATH in the shell profile,
-opencode only in a profile that exists, and claude prints the line instead;
+Codex, grok, kimi and antigravity also add their folder to PATH in the shell
+profile, opencode only in a profile that exists, and claude prints the line instead;
 qwen (`--no-modify-path`) and qoder (`--skip-path`) leave profiles unchanged.
 Grok links itself into `~/.local/bin` or `/usr/local/bin` when one is on
 PATH and writable; kimi renames an older Python `kimi-cli` it finds first on
