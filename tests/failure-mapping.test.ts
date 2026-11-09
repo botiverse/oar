@@ -1,3 +1,4 @@
+/* oxlint-disable import/max-dependencies -- Each adapter's failure mapping is pinned in this one file. */
 import { RequestError } from "../packages/oar/node_modules/@agentclientprotocol/sdk/dist/acp.js";
 import { expect, test } from "vitest";
 import { RuntimeFailureError } from "../packages/oar/src/contracts/runtime-failure-error.js";
@@ -6,6 +7,7 @@ import { claudeFailure, claudeResultReason } from "../packages/oar/src/runtimes/
 import { codexFailure } from "../packages/oar/src/runtimes/codex/failure.js";
 import { cursorOpenFailure } from "../packages/oar/src/runtimes/cursor/failure.js";
 import { grokFailureOutcome } from "../packages/oar/src/runtimes/grok/failure.js";
+import { opencodeFailureOutcome } from "../packages/oar/src/runtimes/opencode/failure.js";
 import { piFailure } from "../packages/oar/src/runtimes/pi/failure.js";
 import { acpFailureOutcome, acpOpenFailure } from "../packages/oar/src/shared/acp/failure.js";
 
@@ -110,6 +112,19 @@ test.each([
   { name: "unentitled model", error: RequestError.internalError("…"), frames: [retryState({ type: "retrying", error_type: "rate_limited" }), retryState({ type: "failed", error_type: "api" })], failure: "provider" },
 ] as const)("grok: $name", ({ error, frames, failure }) => {
   expect(acpFailureOutcome(error, frames, grokFailureOutcome)).toMatchObject({ kind: "failed", failure });
+});
+
+test.each([
+  { errorName: "provider.free-limit", failure: "quota" },
+  { errorName: "provider.go-limit", failure: "quota" },
+  { errorName: "provider.budget-limit", failure: "quota" },
+  { errorName: "provider.model-budget-limit", failure: "quota" },
+  { errorName: "provider.quota", failure: "quota" },
+  { errorName: "provider.rate-limit", failure: "rate_limited" },
+  { errorName: "provider.something-new", failure: "unknown" },
+] as const)("opencode: $errorName is $failure whatever the message says", ({ errorName, failure }) => {
+  const error = RequestError.internalError({ service: "Session", errorName }, "Rate limit exceeded");
+  expect(acpFailureOutcome(error, [], opencodeFailureOutcome)).toMatchObject({ kind: "failed", failure });
 });
 
 test("grok: a failure with no final retry_state falls to the generic rules", () => {
