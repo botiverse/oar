@@ -1,5 +1,7 @@
 # experiments
 
+- [OpenCode structured failure names](opencode-error-names/README.md): six source-derived error names, native 2.2.6 rate-limit and billing evidence, and preserved text fallback on both release lines.
+
 - [Account query deadlines](account-deadlines/README.md): prompt timeout results with unchanged owned shutdown; real Codex 0.131.0/0.167.0 before/after and cross-runtime status/usage regressions.
 
 - [Tool activity audit](tool-activity-audit/README.md): native tool/input/category/path facts, MCP readiness and Codex review steering across eleven runtimes; collaboration tool lifecycle fix.

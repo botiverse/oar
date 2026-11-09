@@ -3,8 +3,8 @@ import type { FailureClass } from "../../contracts/session.js";
 import { asRecord } from "../../shared/json.js";
 
 /*
- * A prompt opencode answered with an error is a JSON-RPC -32603 whose `data`
- * is `{ service, errorName }`; `errorName` is opencode's own `SessionError`
+ * OpenCode's JSON-RPC -32603 prompt errors can carry `data`
+ * `{ service, errorName }`; `errorName` is opencode's own `SessionError`
  * type (read on v2.2.6: packages/cli/src/acp/error.ts, packages/core/src/session/to-session-error.ts).
  * Only that field is read, and only a name in the table decides: any other
  * answer (no name, or one like `APIError`) is left to the generic rules, which
@@ -26,6 +26,6 @@ const ERROR_NAMES: Readonly<Partial<Record<string, FailureClass>>> = {
 export const opencodeFailureOutcome: AcpFailureReader = (error) => {
   if (rpcErrorCode(error) !== INTERNAL_ERROR) { return null; }
   const errorName = asRecord(error instanceof Error && "data" in error ? error.data : undefined)?.errorName;
-  const failure = typeof errorName === "string" ? ERROR_NAMES[errorName] : undefined;
+  const failure = typeof errorName === "string" && Object.hasOwn(ERROR_NAMES, errorName) ? ERROR_NAMES[errorName] : undefined;
   return failure === undefined ? null : { kind: "failed", reason: acpErrorReason(error), failure };
 };

@@ -1,0 +1,66 @@
+{
+  "date": "2026-11-09",
+  "platform": "Linux x64",
+  "node": "24.19.0",
+  "provider": "local scripted Anthropic-compatible provider, synthetic credentials",
+  "version": "opencode v2.2.6",
+  "cases": [
+    {
+      "case": "invalid_key",
+      "outcome": {
+        "kind": "failed",
+        "reason": "Authentication required: provider authentication required",
+        "failure": "auth"
+      },
+      "turnMs": 121,
+      "nativePromptErrors": [
+        {
+          "code": -32000,
+          "data": {},
+          "name": "RequestError",
+          "message": "Authentication required: provider authentication required"
+        }
+      ]
+    },
+    {
+      "case": "rate_limited",
+      "outcome": {
+        "kind": "failed",
+        "reason": "Internal error: This request would exceed the rate limit for your organization of 50 requests per minute.",
+        "failure": "rate_limited"
+      },
+      "turnMs": 82632,
+      "nativePromptErrors": [
+        {
+          "code": -32603,
+          "data": {
+            "service": "session",
+            "errorName": "provider.rate-limit"
+          },
+          "name": "RequestError",
+          "message": "Internal error: This request would exceed the rate limit for your organization of 50 requests per minute."
+        }
+      ]
+    },
+    {
+      "case": "billing",
+      "outcome": {
+        "kind": "failed",
+        "reason": "Internal error: Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.",
+        "failure": "billing"
+      },
+      "turnMs": 116,
+      "nativePromptErrors": [
+        {
+          "code": -32603,
+          "data": {
+            "service": "session",
+            "errorName": "provider.invalid-request"
+          },
+          "name": "RequestError",
+          "message": "Internal error: Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits."
+        }
+      ]
+    }
+  ]
+}

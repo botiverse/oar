@@ -1127,7 +1127,15 @@ another attempt follows. pi-ai keeps the status apart
 | billing (OpenAI: a 429; Anthropic: a 400 or 402; Gemini: a 400) | prompt: -32603 "Internal error: …" | turn completes, no message | as for the 429s above: -32003 "Rate limited" | turn completes, no message |
 | server error, overloaded | prompt: -32603 "Internal error: …", after about 70 s of silent retries | turn completes, no message, after about 140 s | `retry_state {retrying, api}` up to `max_retries: 15`: no turn end within 150 s | 500: the provider text as agent text, then `end_turn`; 503: no frame within 150 s |
 | oversized context | no turn end within 150 s | compaction messages ("Compaction cancelled."), then `end_turn` | `retry_state {failed, context_length}`, prompt: -32603 | turn completes, no message |
-| oar | a known prompt `data.errorName` decides the class before the words (`provider.free-limit`, `go-limit`, `budget-limit`, `model-budget-limit`, `quota`: `quota`; `provider.rate-limit`: `rate_limited`; names from 2.2.6 source, only `provider.free-limit` observed live); otherwise its words, the last resort (`auth`, `rate_limited`, `quota`, `billing`, `overloaded`, `provider`); an unknown model: `RuntimeFailureError` `model_unavailable` | open and prompt -32000: `auth` (at open a `RuntimeFailureError`); else a completed turn | open: `RuntimeFailureError` `auth` or `model_unavailable`; -32003 `rate_limited`; -32603 by the final `retry_state.error_type` (`auth`, `input_too_large`, `provider`) | open: `RuntimeFailureError` `auth` or `model_unavailable`; else a completed turn, or none (429, 503) |
+| oar | a known prompt `data.errorName` decides the class before the words (`provider.free-limit`, `provider.go-limit`, `provider.budget-limit`, `provider.model-budget-limit`, `provider.quota`: `quota`; `provider.rate-limit`: `rate_limited`; names from 2.2.6 source, evidence below); otherwise its words, the last resort (`auth`, `rate_limited`, `quota`, `billing`, `overloaded`, `provider`); an unknown model: `RuntimeFailureError` `model_unavailable` | open and prompt -32000: `auth` (at open a `RuntimeFailureError`); else a completed turn | open: `RuntimeFailureError` `auth` or `model_unavailable`; -32003 `rate_limited`; -32603 by the final `retry_state.error_type` (`auth`, `input_too_large`, `provider`) | open: `RuntimeFailureError` `auth` or `model_unavailable`; else a completed turn, or none (429, 503) |
+
+OpenCode's name table is shared by v1 and v2. [PR #710](https://github.com/botiverse/oar/pull/710)
+reports a live `provider.free-limit` observation. The
+[November 9 local-provider check](../../experiments/opencode-error-names/README.md)
+captured native 2.2.6's `provider.rate-limit`; the other four quota names
+remain source-derived and covered by synthetic tests. Missing, unknown or
+non-string names preserve the text fallback; only a listed name on -32603
+overrides it. This does not change open-time errors or add quota scope.
 
 **Known: kimi and antigravity report a failed turn as completed.** kimi
 records the failure in its own session (`wire.jsonl`: `turn.ended`

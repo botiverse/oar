@@ -4,7 +4,7 @@ import path from "node:path";
 import { expect, test } from "vitest";
 import type { Session, SessionOptions } from "../../packages/oar/src/contracts/session.js";
 import { opencodeInstalledExecutableCandidates } from "../../packages/oar/src/runtimes/opencode/installation.js";
-import { opencodeAcpProfile } from "../../packages/oar/src/runtimes/opencode/session.js";
+import { opencodeAcpProfile, opencodeV2AcpProfile } from "../../packages/oar/src/runtimes/opencode/session.js";
 import { acpSession } from "../../packages/oar/src/shared/acp/session.js";
 import { awaitTurnEnd, promptAndWait } from "../../packages/oar/src/observe/turns.js";
 import { describe, fixture } from "../fixtures/acp-session-support.js";
@@ -77,6 +77,27 @@ test("the opencode profile opens without authenticate", async () => {
   expect(lines(session)).not.toContain("event authenticate");
   expect(session.capabilities).toMatchObject({ queue: { durable: false }, attribution: "opaque" });
   await session.dispose();
+});
+
+test.each([
+  { line: "v1", profile: opencodeAcpProfile },
+  { line: "v2", profile: opencodeV2AcpProfile },
+])("$line reports a named prompt failure through the session", async ({ profile }) => {
+  const session = await acpSession({ ...profile, args: [fixture, "opencode"] })(
+    { kind: "available", via: "executable", command: process.execPath }, { cwd: process.cwd() },
+  );
+  try {
+    const run = await promptAndWait(session, "named-failure");
+    expect(run.kind === "ended" ? run.outcome : run).toMatchInlineSnapshot(`
+      {
+        "failure": "quota",
+        "kind": "failed",
+        "reason": "Opaque provider refusal",
+      }
+    `);
+  } finally {
+    await session.dispose();
+  }
 });
 
 test("the install script's directory is a fallback on each platform", () => {

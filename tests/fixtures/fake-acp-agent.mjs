@@ -6,7 +6,7 @@ import { createInterface } from "node:readline";
 import { grokMcpCredentials, grokSteerAnswers, grokUsageAnswer, spawnChildGrok } from "./fake-acp-grok.mjs";
 import { answerConfigRequest, modelReport, setModelResponse } from "./fake-acp-model.mjs";
 import { answeredMcpOpen, mcpCapabilities } from "./fake-acp-mcp.mjs";
-import refuseSteer from "./fake-acp-refusal.mjs";
+import refusePrompt from "./fake-acp-refusal.mjs";
 import grokBackgroundUsage, { grokUsageHistory } from "./fake-acp-grok-usage.mjs";
 
 const mode = process.argv[2] ?? "session";
@@ -94,7 +94,7 @@ function handleRpcRequest(message) {
 function handleSessionPrompt(message) {
   if (message.params?._meta?.outputSchema !== undefined) { send({ jsonrpc: "2.0", method: "fixture/prompt-schema", params: message.params }); }
   const text = promptText(message.params);
-  if (refuseSteer({ text, pending: pendingPrompts, id: message.id, result, error })) {
+  if (refusePrompt({ text, pending: pendingPrompts, id: message.id, result, error })) {
     return;
   }
   if (antigravity && replacingPrompt(text, message, { pendingPrompts, result, error })) { return; }
