@@ -133,12 +133,14 @@ Native echoes (`user_message.input`) remain text only.
 `user_message` is a runtime event carried by a real frame, with `input`, optional
 `inputId`, `nativeMessageId`, `turnId`, and `evidence`:
 
-- `acknowledged`: Claude's and Qoder's replay-user-message acknowledgement. Its UUID is
-  supplied on stdin and echoed on stdout. Adapter-held queued inputs retain it.
+- `acknowledged`: Claude's and Qoder's replay-user-message acknowledgement.
+  Its UUID is supplied on stdin and echoed on stdout. Adapter-held queued inputs retain it.
 - `turn_item`: Codex's `item/started` user message. `clientUserMessageId` is sent
   with prompt/steer/queue; `item.clientId` links the item to the input. The
   native item ID and turn ID are retained. Item completion does not create a
-  second user message event.
+  second user message event. DSH's `user/message` also uses this evidence;
+  its native message id is the input ID
+  ([DSH mapping](../runtimes/dsh.md)).
 - `conversation`: Pi's user `message_start`, and cursor's
   `user-message-appended` for a delivered steer. There is no proven native
   request association, so `inputId` is absent. Template expansion and
@@ -171,8 +173,8 @@ for (const update of state.updates) {
 observed response, and native observations. `state.updates` contains only the
 changes from the most recently folded record. Input states are `pending`,
 `accepted`, `rejected`, `withdrawn` (taken back before it was sent),
-`dropped` (ownership returned by the evidence below), or `untracked` (a native echo without an observed request).
-Among attempts after the latest accepted withdrawal or drop, an accepted
+`dropped` (ownership returned by the evidence below), or `untracked` (a
+native echo without an observed request). Among attempts after the latest accepted withdrawal or drop, an accepted
 attempt wins over later refusals; otherwise the latest attempt
 sets the state. A missing response remains pending: neither exceptions nor a
 turn end manufacture a refusal or consumption receipt.
@@ -348,7 +350,7 @@ adapter, and the `session.withdraw-before-dispatch` sea-trial case.
   in a later stream after resume.
 - Whether a stream echoes is read off the stream itself: once it has carried
   a `user_message` with an `inputId` (the echo of the first prompt, on codex,
-  claude and qoder), later steers and queues wait for their echo. A stream that
+  claude, qoder and dsh), later steers and queues wait for their echo. A stream that
   never has (the ACP runtimes echo nothing; pi's and cursor's echoes carry
   no `inputId`) places them at their request, the best fact it has. No
   capability flag or runtime name takes part.
@@ -417,7 +419,9 @@ to be supplied here.
 ## Handled input
 
 `input_handled { requestId, inputId? }` resolves a native delivery disposition,
-not a turn. `ConversationInput.disposition` retains the handled receipt and
+not a turn. Pi is the only built-in emitter
+([native input handling](../runtimes/pi.md#prompt-steering-queueing-and-abort)).
+`ConversationInput.disposition` retains the handled receipt and
 its attempt; the input's delivery state remains accepted. An extension error
 is a separate fact, and an independent extension run remains active. A view
 shows the input once and removes only its empty provisional turn; it does not
@@ -427,11 +431,11 @@ Queue dispatch uses the existing `queued: "adapter"` and `carries` contract,
 so a handled or dropped dispatch updates the original input. Request
 correlation supports old inputs without an input ID and prevents a late
 receipt for an older attempt from resolving a newer retry. A handled input
-no longer waits for a message echo.
+does not wait for a message echo.
 
 `promptAndWait` has a distinct `handled` result. Input-scoped `awaitTurnEnd`
 and `turnEndAfter` return `TurnOutcome | InputHandled`; unscoped turn waits
-keep their existing return types. An input-scoped wait binds to the attempt
+keep their return types. An input-scoped wait binds to the attempt
 at its cursor, so reusing the ID cannot resolve the old attempt's wait.
 `InputHandled` is not a `TurnOutcome`. `awaitIdle` resolves with null when
 handling leaves no active or pending work; otherwise it waits for that work.

@@ -96,18 +96,21 @@ already show the degeneration (adapter red lines in
 - cursor (`@cursor/sdk`): attributed; a child's updates carry
   `agentPath = [...parentPath, taskCallId]`, and each run's `turn-ended`
   usage is the root's. [env]
-- antigravity (ACP): opaque; agy_acp_server 1.2.1 flattens the child's
-  tool calls and text onto the parent session (the child id survives only
-  as a `toolCallId` prefix) and reports no usage, so only the root is
-  marked. [env] This is historical separate-service evidence. The CLI 1.5.0
-  adapter also declares opaque, pending a native child-attribution probe.
+- antigravity (ACP): opaque; only the root is marked. The CLI 1.5.0
+  adapter declares opaque pending a native child-attribution probe. The
+  retired agy_acp_server 1.2.1 flattened the child's tool calls and text onto
+  the parent session (the child id survived only as a `toolCallId` prefix)
+  and reported no usage. [env]
 - kimi (ACP): opaque; an internal graph exists, but the default ACP server
   subscribes only to the main agent. The protocol honestly marks root only;
   fabricating a child graph from display text is forbidden. [src]
-- opencode (ACP): opaque; a `task` subagent runs in a child session of its
+- opencode v1 (ACP): opaque; a `task` subagent runs in a child session of its
   own, but `opencode acp` forwards only its own sessions' parts, so the
   parent's `task` tool call is all that arrives. [src] opencode 1.18.34
   `acp/event.ts`
+- opencode v2 (ACP): nested; forwarded child updates carry
+  `_meta["opencode/child-session"]`, whose `id` and `parentID` give the child
+  session and its graph edge ([runtime-matrix.md](runtime-matrix.md#per-runtime-landing-matrix)). [src]
 - kimi-cli (native wire): full attribution, recursively unbounded
   (`SubagentEvent(event=SubagentEvent(...))`). Both of its offline
   consumers flatten the wrappers and lose attribution, which is

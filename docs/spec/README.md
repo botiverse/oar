@@ -63,10 +63,10 @@ Implemented by every adapter (claude, codex, pi, pi-durable, grok, kimi,
 opencode, cursor, antigravity, qwen, qoder, codebuddy, dsh), pinned by the shared
 behavior suite (`sea-trial/cases/session.ts`, which CI runs on the mock, the
 claude, codex, pi (SDK and RPC), pi-durable, qwen, kimi, grok, opencode (v1),
-codebuddy and dsh aimock backends and the native qoder backend, and which runs on
-any installed runtime with
-`OAR_TEST=<id>`). `experiments/live-contract.ts` checks the same
-contract on a real login; each runtime page states which live checks are verified:
+codebuddy, dsh and antigravity (pinned `agy`) aimock backends and the native
+qoder backend, and which runs on any installed runtime with `OAR_TEST=<id>`).
+`experiments/live-contract.ts` checks the same contract on a real login; each
+runtime page states which live checks are verified:
 
 - one stream of `frame` / `request` / `response` records with a dense
   monotonic `seq`, `sessionId`, `agentPath`, optional runtime-native
@@ -85,15 +85,16 @@ contract on a real login; each runtime page states which live checks are verifie
   reasoning, tool call start / progress / end, turn end, usage, model,
   effort, compaction start / end, retry and tasks as the runtime says them,
   plus `turn_started`, `input_withdrawn`, `control_rejected`, `app_request`,
-  `app_answered`, `released` and `exited` read off request/response records; a pure
-  projection (`eventsOf`) over the stream, never a second source of truth;
-- control as records: prompt / steer / queue / withdraw / abort / dispose requests
-  answered `accepted` / `rejected` (a rejection carries a typed `code` beside
+  `app_answered`, `released` and `exited` read off request/response records; a
+  pure projection (`eventsOf`) over the stream, never a second source of truth;
+- control as records: prompt / steer / queue / withdraw / abort / dispose
+  requests (and `compact`, `stop_task` and goal controls where a session has
+  them) answered `accepted` / `rejected` (a rejection carries a typed `code` beside
   its prose `reason`); the `Session` returns those records read, as a
   `ControlOutcome`; runtime→app requests recorded `toApp` and oar's
   automatic answer as `answered`; the process exit as `exited`;
-- queries as folds: `model()`, `effort()`, `serviceTier()`, `usage()`, `contextUsage()` and
-  `status()` project over `records()` and return `{ value, seq }`, where
+- queries as folds: `model()`, `effort()`, `serviceTier()`, `usage()`,
+  `contextUsage()` and `status()` project over `records()` and return `{ value, seq }`, where
   `seq` is the last record the fold consumed (or `-1` before any record);
   an active turn or accepted prompt waiting for its native start can reject a
   new prompt as `busy`. Pending prompt evidence survives unrelated turns;
@@ -141,7 +142,8 @@ they appear:
    server's changed tool list
    ([host-served tools](runtime-matrix.md#host-served-tools));
    `Runtime.resumedSessionOptions` declares measured supplied/omitted option
-   behavior on resume ([resume semantics](runtime-matrix.md#resumed-session-options));
+   behavior on resume
+   ([resume semantics](runtime-matrix.md#resumed-session-options));
    `SessionCapabilities` declares queue durability, the attribution tier and
    image input. Which further facts deserve a declaration (a remote
    environment, for one) stays open.

@@ -255,7 +255,7 @@ Further rules:
   session is being released), every later prompt / steer / queue / withdraw /
   abort, stop_task, compact or goal-control request is rejected (`runtime_exited` / `session_released` / `disposed`) by the shared kernel
   before any adapter code runs: no adapter keeps a private "is it alive"
-  flag. `dispose` is the one control that still goes through after an
+  flag. `dispose` is the one control that still goes through after a
   release or observed exit. After exit it is recorded and answered `accepted` at once (nothing is
   left to release), so a session whose runtime died on its own still ends
   with an answered dispose rather than a dangling one.
@@ -321,38 +321,39 @@ Further rules:
   Without native PID-to-session association, tool ownership is not inferred
   from the common parent process.
 - **`endTurnProcessesOnAbort` ends what the aborted turn started.** On a
-  session that opted in, each `prompt` starts a process-table read before its
-  native turn start, without delaying it: the baseline. An abort takes the
-  observation above, with the same one-second limit and the same rule that
-  cancellation is sent at the deadline. After the native turn end reports
-  that turn interrupted, OAR reads the table once more and sends the kill to
-  every process in the snapshot below the runtime and absent from the
-  baseline as the same process (pid and start time), and to what those started
-  since. The runtime itself, and any member of its own process group, is left
-  alone. So is everything below a baseline process outside that group, however
-  recently it started: an MCP server's worker is the server's. A process group is
-  signalled only when every member the fresh table shows is a target. Nothing is
-  sent to the runtime for this, and no frame records it: `native` stays what the
-  runtime said.
+  session that opted in (isolated Codex only;
+  [support](runtime-matrix.md#ending-a-turns-processes-on-abort)), each
+  `prompt` starts a process-table read (the baseline) before its native turn
+  start, without delaying it. An abort takes
+  the observation above, with the same one-second limit and cancellation sent
+  at the deadline. After the native turn end reports that turn interrupted,
+  OAR reads the table once more and sends the kill to every process below the
+  runtime that is absent from the baseline as the same process (pid and start
+  time), and to what those started since. The runtime itself and members of
+  its own process group are left alone, as is everything below a baseline
+  process outside that group, however recently it started: an MCP server's
+  worker is the server's. A process group is signalled only when every member
+  the fresh table shows is a target. Nothing is sent to the runtime for this
+  and no frame records it: `native` stays what the runtime said.
 
-  The outcome is one `cleanup` response on the abort request, recorded after the
-  turn's end frame. It is the same shape a fallback or dispose cleanup uses, and
-  like those it is read from `records()` or `rawEvents`, not `events()`.
-  `completed` carries `signalled`, how many processes passed the identity
-  check and were actually sent the kill; it does not report that each has exited,
-  and zero is a valid count, as when each had already gone. `failed` says why not
-  every target could be signalled. If a signal was refused (`EPERM`), `reason`
-  gives how many and the native code, and `signalled` is present when others were
-  sent. Otherwise nothing was signalled, because:
-  the baseline or snapshot read failed or had not finished, the turn had no
-  baseline because `prompt` did not start it (a drained queue, a goal continuation,
-  a compaction), the fresh read failed, the turn ended some other way than this
-  interrupt, the runtime exited first (its exit cleanup then applies), or the host
-  is Windows, which has no process groups to tell these processes apart. An
-  unreadable table never reads as no descendants, and an unknown baseline never
-  kills. An abort refused or rejected, including one whose turn ended before the
-  interrupt was sent, has that response as its whole record: it ends nothing and
-  no `cleanup` follows. Without the option none of this runs.
+  The outcome is one `cleanup` response on the abort request, recorded after
+  the turn's end frame, in the same shape as a fallback or dispose cleanup and
+  likewise read from `records()` or `rawEvents`, not `events()`. `completed`
+  carries `signalled`: how many processes passed the identity check and were
+  actually sent the kill (not that each has exited; zero is valid, as when
+  each had already gone). `failed` says why not every target could be
+  signalled. If a signal was refused (`EPERM`), `reason` gives how many and the
+  native code, and `signalled` is present when others were sent. Otherwise
+  nothing was signalled, because the baseline or snapshot read failed or had
+  not finished; the turn had no baseline because `prompt` did not start it (a
+  drained queue, a goal continuation, a compaction); the fresh read failed;
+  the turn ended some other way than this interrupt; the runtime exited first
+  (its exit cleanup then applies); or the host is Windows, which has no process
+  groups to tell these processes apart. An unreadable table never reads as no
+  descendants, and an unknown baseline never kills. An abort refused or
+  rejected, including one whose turn ended before the interrupt was sent, has
+  that response as its whole record: it ends nothing and no `cleanup` follows.
+  Without the option none of this runs.
 - **A failed process-table read is not an empty tree.** Cleanup records the
   source, duration and bounded failure fields internally, without process
   names, command lines or environment values. Before EOF it retries a failed
@@ -484,17 +485,16 @@ Further rules:
   OAR synthesizes neither a `turn_ended` frame nor a `timeout` rejection.
   The incremental `reduceStatus` keeps optional `stop` evidence in a running
   status (pending abort ids and `abortedOnExit`) so checkpoints preserve the
-  same result as replay. Its public checkpoint type is `StatusState`:
-  persist the entire value with the consumed cursor, including native
-  compaction correlation, provisional input admission and adapter queue
-  ownership, and pass it unchanged when continuing the fold.
-  `statusValue` and `Session.status()` expose only the display `AgentStatus`,
-  which cannot replace that checkpoint ([details](manual-compaction.md#ownership-records-and-state)).
-  `SessionView.statusState` is shared by all runtimes and appears when the
-  fold needs this additional correlation, including sessions without input
-  disposition events; `SessionView.status` remains the display value.
-  Flat events alone omit accepted controls; feed
-  records to the session view for this classification.
+  same result as replay. Persist its whole `StatusState` checkpoint (which
+  also holds native compaction correlation, provisional input admission and
+  adapter queue ownership) with the consumed cursor and continue the fold
+  from it unchanged. `statusValue(checkpoint)`, `Session.status()` and
+  `SessionView.status` give only the display `AgentStatus`, which cannot replace it
+  ([checkpoint rules](manual-compaction.md#ownership-records-and-state)).
+  `SessionView.statusState`, shared by all runtimes, appears when the fold
+  needs this correlation, including sessions without input disposition events.
+  Flat events alone omit accepted controls; feed records to the session view
+  for this classification.
 - **Spawned processes belong to the host's lifetime.** One synchronous Node
   `exit` hook kills OAR's still-running sessions, probes (inventory and
   account usage), updaters, logins and ACP terminals. POSIX sends SIGKILL to
@@ -550,17 +550,16 @@ Further rules:
   records and return `{ value, seq }`; `seq` is the last record consumed,
   or `-1` before any record. `status()` is the one the control decisions
   must agree with: a prompt recorded while it says `running` is rejected
-  `busy`, and one recorded while it says `idle` is not refused as `busy`
-  except for the following known gaps. Claude, Qoder, Qwen and Cursor do not yet record held queue ownership,
-  including an input dequeued but awaiting native start/refusal. Pi SDK/RPC also release their run gate
-  after publishing ordinary `turn_ended`: a synchronous observer can see
-  `idle` while `prompt` returns `busy`, even with no queue. Submit after that
-  observer returns. Pi SDK/RPC record adapter queue ownership and native
-  `input_handled` dispositions; handling clears only that request's provisional
-  occupancy, preserving independently observed native runs. These remaining
-  exceptions are not permission to infer a turn end.
-  Outside them, terminal status and prompt admission change on the same
-  record ([state exceptions](manual-compaction.md#ownership-records-and-state)).
+  `busy`, and one recorded while it says `idle` is not refused as `busy`,
+  with two known gaps
+  ([state exceptions](manual-compaction.md#ownership-records-and-state)):
+  Claude, Qoder, Qwen and Cursor do not yet record held queue ownership,
+  including an input dequeued but awaiting native start/refusal; and Pi
+  SDK/RPC release their run gate after publishing ordinary `turn_ended`, so a
+  synchronous observer can see `idle` while `prompt` returns `busy`, even with
+  no queue (submit after that observer returns). Neither gap permits
+  inferring a turn end. Outside them, terminal status and prompt admission
+  change on the same record.
 - **Folds scope to the root session.** A derived child session's records
   (own `sessionId`, a node in `graph()`) never satisfy the folds or
   `awaitTurnEnd`. On codex the child's `turn/completed` was observed
@@ -595,27 +594,27 @@ Further rules:
   adds none; on the frame that ends an ACP call the input comes before
   `tool_call_ended`. ACP input strings are preserved verbatim; objects and
   arrays are serialized as complete JSON, including a field named `text`.
-  Inputs are not shortened to the output preview's 10,000-character limit.
-  A host's `retainedBytes` policy can still evict old frame payloads, with
-  the retention marker described above.
+  Inputs are not shortened to the output preview's 10,000-character limit,
+  though `retainedBytes` can still elide old frame payloads
+  ([bounding retained records](#bounding-retained-records)).
 
   `classifyTool(runtimeId, tool, input)` from `@botiverse/oar/observe` reads
-  this input for friendly activity. Its mappings use recorded native names
-  and fields; unknown names stay `other`. The
+  this input for friendly activity, using recorded native names and fields;
+  unknown names stay `other`. The
   [tool audit](../../experiments/tool-activity-audit/README.md#follow-up-decisions-and-input-fix)
   covers Qwen, Qoder, CodeBuddy, Antigravity, DSH, Grok's `search_replace` /
-  `use_tool`, Kimi's `Edit` and Codex's `collabAgentToolCall`. A Qwen
-  `tool_call` is `mcp` only when its complete input names an `mcp__` target;
-  the dispatcher alone proves no category. A Codex collaboration operation
-  is `subagent`; its completion does not mean the child task has finished.
-  Its input contains the native `tool` and `prompt` fields when present,
-  including null values; no recipient arguments are inferred from child ids.
-  [Read and search mappings](../../experiments/tool-activity-audit/files.md)
-  also cover the recorded Grok, Kimi, Qwen, Qoder, CodeBuddy, Antigravity and
-  DSH file tools. For `search`, `detail` prefers a nonempty `pattern`, then
-  `query`, over the search path. A path is scope, and remains the fallback
-  when no query is reported. Other categories keep their detail order;
-  a shell command that reads or searches is still `run_command`.
+  `use_tool`, Kimi's `Edit` and Codex's `collabAgentToolCall`;
+  [read and search mappings](../../experiments/tool-activity-audit/files.md)
+  cover the recorded Grok, Kimi, Qwen, Qoder, CodeBuddy, Antigravity and DSH
+  file tools. A Qwen `tool_call` is `mcp` only when its complete input names
+  an `mcp__` target; the dispatcher alone proves no category. A Codex
+  collaboration operation is `subagent`, and its completion does not mean the
+  child task has finished; its input holds the native `tool` and `prompt`
+  fields when present (null included), with no recipient arguments inferred
+  from child ids. For `search`, `detail` prefers a nonempty `pattern`, then
+  `query`, over the path, which is scope and the fallback when no query is
+  reported. Other categories keep their detail order; a shell command that
+  reads or searches is still `run_command`.
 - **Tool outcomes are the runtime's.** `tool_call_ended.result` (`"ok"` |
   `"failed"`) is present only when the runtime explicitly reports the
   outcome; oar never infers it from output, exit codes, or timing.
@@ -674,9 +673,11 @@ interface FrameBody {
   type: string;                 // runtime-native discriminator (claude type[/subtype], codex method, pi event type, ACP sessionUpdate)
   native: unknown;              // as sent, except credential-field values redacted before recording
   events: readonly RuntimeEventBody[];  // what oar read out of the frame, in frame order; [] when oar read nothing
+  elided?: true;                // retainedBytes removed native (now null) and tool input/output; see Bounding retained records
 }
 // RuntimeEventBody:
 //   user_message {input, inputId?, nativeMessageId?, turnId?, evidence} (conversation.md) |
+//   turn_active {inputId?} | input_queued {inputId} |
 //   input_handled {requestId, inputId?} |
 //   input_dropped {requestId?, inputId?, reason: "turn_interrupted"} |
 //   input_dropped {requestId?, inputId?, reason: "runtime_refused", failure?: FailureClass, message?: string} (at least one ID; conversation.md) |
@@ -746,7 +747,7 @@ Explicit `deliver(..., { when: "interrupt", maxWaitMs })` can instead
 withdraw, abort and merge those inputs ([contract](conversation.md#interrupting-and-merging-held-inputs)). `queue` is on
 every session; `capabilities.queue.durable` says whether held input
 survives a restart. See [withdrawing held input](#withdrawing-held-input).
-An adapter's `prompt / steer / queue / withdraw / abort` and optional
+An adapter's `prompt / steer / queue / withdraw / stopTask / abort` and optional
 [goal controls](goals.md) return
 both records they appended (`ControlResult`); the `Session` a consumer holds
 returns them read (`ControlOutcome`): `kind` is `accepted` or `rejected`
@@ -754,21 +755,18 @@ returns them read (`ControlOutcome`): `kind` is `accepted` or `rejected`
 and `reason` at hand, `seq` is the request's position in the stream (what `awaitTurnEnd`
 takes), and `request` / `response` are still the records themselves.
 The optional [manual compaction](manual-compaction.md) control returns
-`CompactionOutcome`: its response only admits/refuses, while its promise
-observes the native terminal evidence. Caller deadlines append no fake native
-terminal and do not release the operation; `status()` remains compacting.
+`CompactionOutcome`: its response only admits or refuses, while its promise
+observes native terminal evidence.
 
 `FrameBody.responseTo` links native evidence to an OAR request through an
 identifier OAR supplied to the runtime (RPC id, command UUID, etc.) or the
 native callback supplied for that exact invocation, such as Pi SDK's
 `preflightResult`. Correlation never comes from timing or order. It is neither
 a second control response nor proof of successful execution. Grok/OpenCode
-compact RPC answers and Qoder compact command terminals carry this field.
-Their compact requests have `settledBy: "native_response"`: status and the
-input gate stay occupied until that correlated frame, even if earlier native
-compaction or turn events report completion. No missing completion event is
-invented. A known terminal response without completion evidence can return
-`unconfirmed` while releasing the operation.
+compact RPC answers and Qoder compact command terminals carry it; their
+compact requests have `settledBy: "native_response"`, so status and the input
+gate stay occupied until that correlated frame
+([manual state](manual-compaction.md#ownership-records-and-state)).
 
 `dispose()` returns void: its request and response are read from the stream.
 Isolated process adapters stop owned work and record `exited`. Shared adapters
@@ -812,11 +810,10 @@ response. Until dispatch or accepted withdrawal, status remains running with
 cannot overtake it. This is adapter ownership, not native `input_queued`
 evidence. Persist the entire `StatusState` checkpoint to retain that ownership.
 
-Hosts counting requests or grouping by request kind must distinguish this
-adapter dispatch from a new host submission: it adds a prompt request, but
-`carries` points to the already accepted logical input. Do not count the
-queue and its carried prompt as two user inputs. Qoder uses the stream-json
-driver and retains its existing queue record shape.
+Hosts counting or grouping requests by kind must not count the queue and
+this dispatch prompt as two user inputs: the prompt's `carries` points to the
+already accepted logical input. Qoder uses the stream-json driver and retains
+its existing queue record shape.
 
 Controls issued synchronously by a record observer can act before an adapter
 resumes draining its held queue. Reentrant records are retained immediately;
@@ -827,7 +824,9 @@ ordered sequences.
 ## Bounding retained records
 
 `SessionOptions.retainedBytes` bounds what the process keeps for `records()`,
-the query folds and cursor replay. Omitted, it keeps everything. Past the limit,
+the query folds and cursor replay. Omitted, it keeps everything; a value that is
+not a positive safe integer is refused with `UnsupportedOptionError` on
+`retainedBytes`. Past the limit,
 the oldest frames lose `native` (now `null`) and their events' tool input and
 output, and carry `elided: true`. Events read from them, and the session view's
 tool parts built from them, carry `elided: true` too. The limit counts the UTF-8
@@ -896,7 +895,7 @@ them as flat `Event`s and is the surface to start with; `rawEvents()` and
 `records()` are the stream itself, for when the native frame matters.
 
 ```ts
-type Event = EventBody & RecordEnvelope;      // one attributed fact
+type Event = EventBody & RecordEnvelope & { elided?: true };  // one attributed fact; elided: its frame was trimmed
 type EventBody = RuntimeEventBody | ControlEventBody;
 // ControlEventBody, read off request/response records so the consumer
 // never handles record kinds:
@@ -911,8 +910,8 @@ type EventBody = RuntimeEventBody | ControlEventBody;
 
 Which runtimes say which kinds (runtime pages hold the evidence):
 
-- `session_linked`: Codex collaboration items, ACP native lineage and
-  OpenCode v2 child attribution. The source frame carries both endpoints;
+- `session_linked`: Codex collaboration items, ACP native lineage,
+  OpenCode v2 child attribution and DSH's `subagent/catalog`. The source frame carries both endpoints;
   `graphOf` deduplicates repeated edges without changing the records.
 
 - `turn_active`: codex `turn/started`, dsh's native inbox claim or empty
@@ -950,7 +949,8 @@ Which runtimes say which kinds (runtime pages hold the evidence):
 - `text_delta`, `reasoning`, `tool_call_started`, `tool_call_ended`,
   `turn_ended`, `usage`, `model`: every shipped adapter, except that
   antigravity sent no reasoning and no usage in any probe ([env]
-  agy_acp_server 1.2.1).
+  agy_acp_server 1.2.1), and its CLI 1.5.0 local controls showed no usage
+  either ([antigravity](../runtimes/antigravity.md#observation-children-and-history)).
 - `tool_call_progress`: partial output of a running tool. `output` is the
   whole current preview, replacing earlier output; `outputDelta` appends a
   chunk. An empty `output` clears the preview; an absent field changes
@@ -974,38 +974,38 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   `is_background` and `variant` to `{command, description}`. Claude's
   completed `assistant.tool_use` emits it if the partial stream already
   started that call. In every case it holds a complete replacement.
-- `tool_call_input_delta`: append-only argument text, currently Claude's
+- `tool_call_input_delta`: append-only argument text: Claude's
   `input_json_delta.partial_json`, attributed by block index to its tool-use
-  id within the agent's current message. Each record keeps only its fragment,
+  id within the agent's current message, and DSH's `tool-call-delta`
+  `argumentsDelta` chunks. Each record keeps only its fragment,
   not an ever-growing input. It may be incomplete JSON; it is separate from
   both complete `tool_call_input` and tool output `tool_call_progress`.
   Codex 0.162.0 exposes no corresponding native argument notification.
 - `turn_ended.inputId?` and `inputIds?`: the shared stream-json fold copies native
-  `result.user_message_uuid` and `user_message_uuids`, respectively. Each
-  field appears only when the corresponding native field is reported; OAR
-  neither derives one from the other nor adds identities to native
-  spontaneous turns that have none. `inputIds` preserves native order and
-  lists all inputs covered by this turn. Hosts marking inputs complete
-  should use the full list when present, not just `inputId`. Claude 2.1.316
-  combined two queued messages into one reply with the latter UUID in
-  `inputId` and both UUIDs in `inputIds`; an earlier prompt-plus-steer
-  recording instead names the original prompt in the singular field.
-  Qwen 0.26.5 and Qoder 1.1.81 report neither field in the
+  `result.user_message_uuid` and `user_message_uuids` respectively, each only
+  when reported. OAR neither derives one from the other nor adds identities
+  to native spontaneous turns. `inputIds` lists, in native order, every input
+  the turn covered; hosts marking inputs complete use it when present, not
+  just `inputId`. Claude 2.1.316 combined two queued messages into one reply
+  with the latter UUID in `inputId` and both in `inputIds`; an earlier
+  prompt-plus-steer recording names the original prompt in the singular
+  field, so there is no universal first/last rule to infer. Qwen 0.26.5 and
+  Qoder 1.1.81 report neither field in the
   [native control](../../experiments/manual-compaction/stream-json-result-fields.json);
-  their result `uuid` is not a reported input identity and is not substituted.
-  There is no universal first/last selection rule to infer. These are
-  native input identities, separate from OAR's interrupt merging: that
-  path creates a new prompt with a new input id; its `carries` and the
-  delivery result's `mergedInputIds` retain the original inputs. Claude
-  normally steers an interrupt instead of using that fallback. See
+  their result `uuid` is not an input identity and is not substituted. These
+  native identities are separate from OAR's interrupt merging, which creates
+  a new prompt with a new input id whose `carries` and the delivery result's
+  `mergedInputIds` retain the originals (Claude normally steers an interrupt
+  instead). See
   [the native controls](../../experiments/manual-compaction-2026-11-02.md#input-identities).
 - `compaction_started`: pi `compaction_start` (`trigger` is pi's reason:
   manual | threshold | overflow); codex `item/started` for a
   `contextCompaction` item (no trigger); cursor SDK 1.2.0 `run.stream()`
   summary status `running` (no trigger); Qoder `system/status compacting`
   (no trigger); OpenCode v2 `opencode/compaction.status: started`, with native
-  reason and `messageId` as `compactionId`. Claude has no projected start;
-  its boundary arrives after the fact.
+  reason and `messageId` as `compactionId`; DSH `compaction/start`, with its
+  native `compactionId` (no trigger). Claude has no projected start; its
+  boundary arrives after the fact.
 - `compaction_ended`: pi `compaction_end` (`aborted` → aborted, an
   `errorMessage` → failed with that reason, else completed; `trigger` as
   above); claude `system/compact_boundary` → completed with `trigger` from
@@ -1024,28 +1024,26 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   RPC object response supplies completed; only structured `compact_failed` /
   `compact_cancelled` errors supply failed/aborted. Other RPC errors are
   refusals and null answers remain unconfirmed, without a compaction end.
-  Proven ends carry the OAR
-  `requestId` it explicitly answers and no trigger. Its notification named
-  `auto_compact_completed` alone supplies neither ownership nor a trigger.
-  An ended
-  compaction starts no work: `statusOf` keeps an idle agent idle, and only
-  moves an already-running ordinary agent to `waiting_model`. Manual
-  controls keep their own correlation: `compactionId` is a native operation,
-  `spanId` a native turn, and `requestId` an OAR control. The first manual
-  start in an exclusive idle operation teaches the fold its `compactionId`;
-  later ends require that exact id to prove completion. Operations marked
-  `settledBy: "native_response"` release on the exact `responseTo` frame, not
-  on those earlier events. Unowned ends cannot settle them. See [manual state](manual-compaction.md#ownership-records-and-state).
+  Proven Grok ends carry the OAR `requestId` they explicitly answer and no
+  trigger; its `auto_compact_completed` notification alone supplies neither
+  ownership nor a trigger. DSH `compaction/end` supplies failed with its
+  native `error` as reason, else completed, keeping its `compactionId`. An
+  ended compaction starts no work: `statusOf` keeps an idle agent idle, and
+  only moves an already-running ordinary agent to `waiting_model`. Which
+  `compactionId`, `responseTo` or `requestId` can settle a manual operation
+  is in [manual state](manual-compaction.md#ownership-records-and-state).
   Qwen 0.26.5 stream-json emits neither compaction event: manual compression
-  status uses the same assistant text frames as model output and therefore
-  appears as `text_delta`; automatic compression has no structured frame.
-  OAR cannot distinguish that status from model text and keeps the native
-  frames without inference. A user `compress.toml` can override `/compress`,
-  so even a command sent by OAR would not prove compression occurred
+  status arrives in the same assistant text frames as model output (so as
+  `text_delta`, which OAR cannot tell apart and keeps without inference), and
+  automatic compression has no structured frame. A user `compress.toml` can
+  override `/compress`, so even a command sent by OAR would not prove
+  compression occurred
   ([native controls](../../experiments/qwen-compaction-attribution/README.md)).
-- `retry`: pi `auto_retry_start` and `summarization_retry_scheduled`; codex
+- `retry`: pi `auto_retry_start` and `summarization_retry_scheduled` (Pi
+  Durable: `auto_retry_start`); codex
   `error` with `willRetry: true`, whose `attempt` OAR counts within the turn. No
-  other shipped runtime exposes a retry (claude retries silently).
+  other built-in runtime exposes a retry (claude retries silently); the
+  community Morph adapter reads its own retry notice.
 - `task_started` / `task_updated` / `task_ended`: work the runtime tracks
   beside the turn that started it. claude `system/task_started`,
   `task_updated` (its `patch`) and `task_notification` [env 2.1.284]:
@@ -1101,7 +1099,8 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   `pi/session_opened` and pi's `thinking_level_changed`; cursor: the
   reasoning parameter in the SDK's model selection at open and in each
   run's answer, which the SDK passes through unchecked (codex's case: OAR
-  checks the level against the model's menu first). claude never: its
+  checks the level against the model's menu first); DSH: `reasoningEffort`
+  in its request header and model configuration. claude never: its
   stream names no level, and its one report (`get_settings`) is read at open
   but not recorded, since it also dumps the user's merged settings. A
   requested `SessionOptions.effort` is never an event of its own: what the
@@ -1130,7 +1129,7 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   interrupt cancels a pending question). Codex's `serverRequest/resolved` is
   not one: OAR answers every codex request as it arrives, so it follows that
   answer. SessionView drops the request from `pendingRequests` and marks its part
-  `cancelled`; the process exit empties `pendingRequests` too. Never inferred
+  `cancelled`; the process exit or OAR's release empties `pendingRequests` too. Never inferred
   from a turn ending: a runtime may keep a request open across turns.
 
 The rules that make this a projection and not a second source of truth:
@@ -1160,9 +1159,10 @@ The rules that make this a projection and not a second source of truth:
   and one-to-one with what was read.
 - **Text names its message when the runtime does.** `text_delta.messageId`
   is the runtime's id of the assistant message the text is part of (codex:
-  the `agentMessage` item id; claude: the API `message.id`), so two messages
-  of one turn stay apart in coalescing and in the session view. pi, cursor
-  and the ACP runtimes name none, and older records lack it. Claude also
+  the `agentMessage` item id; claude: the API `message.id`; DSH: the native
+  `attemptId`), so two messages of one turn stay apart in coalescing and in
+  the session view. pi, cursor and the ACP runtimes name none, and older
+  records lack it. Claude also
   names streamed `reasoning` with `messageId`; coalescing keeps readable
   reasoning from different API messages separate.
 - **Text phase is native metadata.** `text_delta.phase` is an optional string
@@ -1312,24 +1312,23 @@ alone also does not retire the original adapter queue ownership. These are
 control outcomes for the wait, not synthetic native turn ends. `awaitIdle`
 follows the session's status through all held inputs, including a final native
 drop, rather than remaining bound to the turn that was active when called.
-A provisional prompt rejected before any turn exists resolves `awaitIdle` with
-null, including `busy`. A manual compaction ending without an accompanying turn
-also resolves it with null. These cases and accepted withdrawal used to leave
-some waits pending; none adds a synthetic native `turn_ended` record.
+A provisional prompt rejected before any turn exists (including `busy`) and a
+manual compaction ending without an accompanying turn both resolve `awaitIdle`
+with null. None of these adds a synthetic native `turn_ended` record.
 
-The complete `StatusState` checkpoint retains provisional admissions separately
-from observed native activity. Handling one input leaves another native run
-active and removes only that input's provisional state. No new turn outcome is
-created. Old logs without disposition evidence retain their existing behavior.
-Pi SDK/RPC supply this evidence; Pi Durable is unchanged.
+The `StatusState` checkpoint retains provisional admissions separately from
+observed native activity: handling one input removes only that input's
+provisional state, leaves another native run active and creates no turn
+outcome. Pi SDK/RPC supply this evidence; Pi Durable is unchanged, and old logs
+without disposition evidence keep their existing behavior.
 
-Pi prompt records also carry `admission: "native"`, an adapter control fact:
-this attempt waits for its own native admission. The flag is on the recorded
-request, not a host `InputOptions` setting. A correlated `turn_active` frame
-or accepted control settles admission; handling or refusal releases it. An
-unrelated native turn may start and end while an extension handler is still
-pending. Its end retains its own outcome but cannot release this reservation
-or finish this input's wait. The status checkpoint keeps the underlying idle
-state until the pending handler reports. Requests without the flag retain
-the existing fallback interpretation, so old logs acquire no inferred wait.
-This is separate from the ordinary terminal-observer submission exception.
+Pi prompt records also carry `admission: "native"`, an adapter control fact
+on the recorded request (not a host `InputOptions` setting): this attempt
+waits for its own native admission. A correlated `turn_active` frame or
+accepted control settles admission; handling or refusal releases it. An
+unrelated native turn that starts and ends while an extension handler is
+still pending keeps its own outcome but cannot release this reservation or
+finish this input's wait; the status checkpoint keeps the underlying idle
+state until the pending handler reports. Requests without the flag keep the
+existing fallback interpretation, so old logs acquire no inferred wait. This
+is separate from the ordinary terminal-observer submission exception.

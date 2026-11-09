@@ -55,13 +55,12 @@ Pi's in-process readers accept the overlay with their session's meaning: the
 inventory session's Bash tool receives it, while SDK configuration, credential
 resolution and SDK-owned key commands use the host environment. With
 `execution: "subprocess"`, model, skill and command readers keep the host SDK
-path when the overlay makes no actual change. That preserves its richer
-metadata and loading diagnostics without starting an RPC process. Actual
+path (richer metadata and loading diagnostics, no RPC process) when the overlay
+makes no actual change. Actual
 changes use bounded native RPC processes with the session's full environment
-and startup policy. Pi RPC
-has no tools/providers query: those readers still use the host SDK, and reject
-actual environment changes with `UnsupportedOptionError("env")` before loading
-it. Equal values and removal of absent variables are accepted. Bundled
+and startup policy. Pi RPC has no tools/providers query: those readers still
+use the host SDK, and reject actual environment changes with
+`UnsupportedOptionError("env")` before loading it. Equal values and removal of absent variables are accepted. Bundled
 installation discovery is independent of the overlay in both modes.
 RPC inventories have `partial:true` because loading diagnostics are absent;
 SDK inventories retain their native completeness result. RPC model-query
@@ -200,8 +199,8 @@ No floor is built in. An unreadable or unavailable version cannot prove a
 floor was met.
 
 Native rate limiting (`rate_limited`), reauthentication requirements and
-explicit logged-out answers (`logged_out`) prevent readiness. Otherwise a logged-in auth answer or a configured
-provider is sufficient; missing auth evidence gives `auth_unknown`, and failed
+explicit logged-out answers (`logged_out`) prevent readiness. Otherwise a
+logged-in auth answer or a configured provider is sufficient; missing auth evidence gives `auth_unknown`, and failed
 or timed-out auth/provider probes give `probe_failed`. Optional failed quota,
 model or customization observations remain visible without inventing a logout.
 This is conservative selection guidance over the supplied facts, not a remote
@@ -210,10 +209,10 @@ apply their own policy instead.
 
 A verdict describes the account selected by that observation's environment,
 not every account using the runtime. Hosts that suspend work for `rate_limited`
-must scope that decision to the runtime and the selected account, retaining their
-own account/configuration key alongside the snapshot. Native identity fields are
-optional and display names need not be unique; absent identity does not justify
-applying one account's limit to the others.
+must scope that decision to the runtime and the selected account, retaining
+their own account/configuration key alongside the snapshot
+([account scope](account-usage.md#environment)). Absent native identity does
+not justify applying one account's limit to the others.
 
 ## CLI and verification
 

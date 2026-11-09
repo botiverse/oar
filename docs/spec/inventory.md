@@ -68,8 +68,7 @@ runtime's configuration, so `mcpServers()` never lists them.
 
 `partial:true` signals a native discovery error or pending/failed MCP startup.
 Pi RPC also reports `partial:true` because it provides no loading diagnostics:
-discovery completeness cannot be confirmed.
-It is independent of coverage: a complete MCP catalog is still `mcp-only`.
+discovery completeness cannot be confirmed. It is independent of coverage: a complete MCP catalog is still `mcp-only`.
 Unknown fields are omitted. Enabled, active, loaded, auth and connection state
 are separate concepts. Names and descriptions are native strings; OAR never
 manufactures parameter schemas. A tool can reference its server through
@@ -91,10 +90,11 @@ built-ins. Skills remain in `skills()`; a host combines the two catalogs.
 SDK discovery, including subprocess-mode reads without actual environment
 changes, does not run extension commands or bind `session_start` hooks.
 Subprocess-mode reads with environment changes use native RPC startup, which
-does run those hooks, then read `get_commands`. This path separates `source: "skill"` entries into
-`skills()` and retains extension/prompt source labels for commands. RPC does
-not expose `argumentHint`, skill `disableModelInvocation`, or loading diagnostics;
-those metadata fields are absent and both inventories have `partial:true`.
+does run those hooks, then read `get_commands`. This path separates
+`source: "skill"` entries into `skills()` and retains extension/prompt source
+labels for commands. RPC does not expose `argumentHint`, skill
+`disableModelInvocation`, or loading diagnostics; those metadata fields are
+absent and both inventories have `partial:true`.
 Neither path executes a command or observes an existing session's later changes.
 
 Claude lists `initialize.commands`, including native aliases and argument

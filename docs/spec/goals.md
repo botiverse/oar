@@ -68,11 +68,11 @@ Controls record `goal_set {options}`, `goal_read`, or `goal_clear` requests.
 A native reply is recorded as a Frame at its wire position, with its
 verbatim `native` and observed `goal_changed` in `events`. Notifications
 carry the same event in their ordinary frame. The separate response only
-answers accepted or rejected; it carries no state events. Events inherit the containing record's attribution and
-sequence, so replay reads exactly the same facts in the same order. A reply
-and a following notification may repeat a snapshot; both observations stay.
-Malformed replies remain frames without events and are rejected without
-fabricating a snapshot. Rejections,
+answers accepted or rejected; it carries no state events. Events inherit the
+containing record's attribution and sequence, so replay reads exactly the
+same facts in the same order. A reply and a following notification may
+repeat a snapshot; both observations stay. Malformed replies remain frames
+without events and are rejected without fabricating a snapshot. Rejections,
 requests and ordinary turn endings never change goal state optimistically.
 
 Goal changes neither begin nor end an OAR turn. Native `turn/started` and

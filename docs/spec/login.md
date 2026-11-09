@@ -332,10 +332,11 @@ declares no network, refresh or key-command execution. The
 | cursor | `Cursor.auth.login({ openBrowser: false })` in process: relays the URL from `onLoginUrl`; the SDK polls; its save goes through a store oar passes, which refuses it once the login has ended | `Cursor.auth.status` (the stored login only, not `CURSOR_API_KEY`; `email` and the key's expiry) | `@cursor/sdk` 1.2.0 | 15 min |
 | codebuddy | private stream-json `initialize` then `authenticate`, native URL callback | private `initialize.account`: object / null / absent; non-empty `CODEBUDDY_API_KEY` instead yields `unknown` with a configured source label | international 2.178.1, Linux arm64 verified; generic `auth_failed` is process failure, not user denial | 5 min |
 | qoder | `qodercli login` over pipes: relays the authorization URL | `qodercli status --output json` (`logged_in`) | native 1.1.78 verified | 5 min |
-| antigravity | no consumer login integration; use provider API keys ([account policy](../runtimes/antigravity.md#process-ownership-installation-and-account-usage)) | native CLI configuration | | |
+| antigravity | no consumer login integration; use provider API keys ([account policy](../runtimes/antigravity.md#process-ownership-installation-and-account-usage)) | none: native CLI configuration selects authentication | | |
 | kimi | `kimi login [--region mainland-cn\|global]`: relays the device code; Kimi polls and provisions models | ACP `initialize` then `authenticate {methodId: "login"}`, no session; readiness, not proof of remote credential validity | 2.3.3 verified | 16 min |
 | qwen | none: native `qwen auth` removed; configure a provider externally | local user/system credential presence; configured means `unknown`, absent in scope means `logged_out` with a workspace caveat | 0.26.2 source verified | status: 20 s |
 | grok, opencode, pi | not yet | not yet | | |
+| dsh | none | none | | |
 
 The [runtime pages](../runtimes/README.md) record each login path's caveats.
 Claude normally attempts to open a browser; from its login floor (2.1.126),
