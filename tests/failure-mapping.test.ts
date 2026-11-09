@@ -121,9 +121,19 @@ test.each([
   { errorName: "provider.model-budget-limit", failure: "quota" },
   { errorName: "provider.quota", failure: "quota" },
   { errorName: "provider.rate-limit", failure: "rate_limited" },
-  { errorName: "provider.something-new", failure: "unknown" },
 ] as const)("opencode: $errorName is $failure whatever the message says", ({ errorName, failure }) => {
-  const error = RequestError.internalError({ service: "Session", errorName }, "Rate limit exceeded");
+  const error = RequestError.internalError({ service: "Session", errorName }, "Overloaded");
+  expect(acpFailureOutcome(error, [], opencodeFailureOutcome)).toMatchObject({ kind: "failed", failure });
+});
+
+// Anything the table does not name is left to the generic rules (its words).
+test.each([
+  { name: "an unlisted errorName follows the words", data: { service: "session", errorName: "provider.something-new" }, message: "Internal error: Rate limit exceeded", failure: "rate_limited" },
+  { name: "invalid key (errorName APIError) stays auth", data: { service: "session", errorName: "APIError" }, message: "Internal error: invalid x-api-key", failure: "auth" },
+  { name: "no data follows the words", data: undefined, message: "Internal error: Rate limit exceeded", failure: "rate_limited" },
+] as const)("opencode: $name", ({ data, message, failure }) => {
+  const error = new RequestError(-32_603, message, data);
+  expect(opencodeFailureOutcome(error, [])).toBeNull();
   expect(acpFailureOutcome(error, [], opencodeFailureOutcome)).toMatchObject({ kind: "failed", failure });
 });
 
