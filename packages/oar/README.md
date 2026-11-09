@@ -18,7 +18,7 @@ if (installation?.kind === "available") {
     }
   }, { coalesceText: true });
   const run = await promptAndWait(session, "Inspect this repository");
-  console.log(run.kind === "rejected" ? run.reason : run.outcome);
+  console.log("outcome" in run ? run.outcome : run.kind);
   console.log(session.usage(), await runtime.accountUsage?.(installation));
   await session.dispose();
 }
@@ -32,25 +32,33 @@ request-based fallback. For a lower-level wait, pass the inputId to
 root turn end after that cursor. `session.prompt()` already generates an id
 when omitted; it is recorded on the returned prompt request. A native
 before-start cancellation resolves an input-scoped wait as `aborted`, even
-without a turn-end event. `awaitIdle` waits through an intervening notification
-while a host prompt remains pending.
+without a turn-end event. When the runtime handles the input natively without
+a model turn (Pi, for an extension command), `promptAndWait` returns
+`kind: "handled"` with the `input_handled` disposition; that is not success.
+`awaitIdle` waits through an intervening notification while a host prompt
+remains pending.
 
 `session.events()` delivers flat, attributed `Event`s (native user message
 echoes, text, reasoning, tool call start / later input / progress / end, turn
 start and end, usage, model, effort, compaction start / end, retry, background
 tasks and subagents started, updated and ended, runtime→app requests and oar's
-answers, control rejections, withdrawn inputs, the process exit), each carrying
-the `seq` and `agentPath` of the record it was read from. Kinds a runtime never
-says (claude has no compaction start, ACP runtimes and cursor no compaction,
-pi and pi-durable report retry) never appear; the runtime pages say which. It is a
+answers, control rejections, withdrawn and natively handled inputs, the process
+exit), each carrying the `seq` and `agentPath` of the record it was read from.
+Kinds a runtime never says never appear (claude has no compaction start;
+kimi, codebuddy and antigravity no compaction; of the core runtimes only
+codex, pi and pi-durable report retry); the runtime pages say which. It is a
 projection over the record stream, which `session.rawEvents()` and
 `session.records()` expose (`RawEvent`: `Frame` with the native payload
 verbatim, `RequestRecord`, `ResponseRecord`) for consumers who need the
-runtime's own frames. `tool_call_ended.exitCode` is the exit status a runtime
+runtime's own frames. `SessionOptions.retainedBytes` bounds what the process
+retains: past it the oldest frames lose `native` and tool input and output and
+carry `elided: true`, while live observers still receive every record complete
+([bounding retained records](https://github.com/botiverse/oar/blob/main/docs/spec/record-stream.md#bounding-retained-records)).
+`tool_call_ended.exitCode` is the exit status a runtime
 reports for a command it ran, absent where it reports none (claude); see
 [tool outcomes](https://github.com/botiverse/oar/blob/main/docs/spec/runtime-matrix.md#tool-outcomes).
 In `session.usage()`, `TokenTotals.reasoning` is the part of `output` the
-runtime reports as reasoning (codex, grok, pi, pi-durable, cursor; absent
+runtime reports as reasoning (codex, grok, pi, pi-durable, cursor, dsh; absent
 elsewhere): never add it to `output` again
 ([reasoning tokens](https://github.com/botiverse/oar/blob/main/docs/spec/attribution.md#reasoning-tokens)).
 
@@ -79,7 +87,11 @@ name; `deliver` and `steerOrQueue` queue where it is absent. `session.withdraw(i
 sent (`accepted`), or answers `not_queued` once it went; with it a UI offers
 withdraw, edit (withdraw, then `queue` again) and send now (withdraw, then
 `deliver`). It exists where OAR holds the queue itself (claude, pi, qwen, qoder, cursor
-and the ACP runtimes), and on pi-durable through native submission cancellation, not on codex.
+and the ACP runtimes), on pi-durable through native submission cancellation and on
+dsh through native inbox removal where its method inventory advertises it, not on codex.
+`session.stopTask(taskId)` stops one native task without aborting its parent
+(claude, codex, qoder); acceptance is the native acknowledgement, never a task
+end ([single-task stop](https://github.com/botiverse/oar/blob/main/docs/spec/runtime-matrix.md#native-tasks-and-single-task-stop)).
 `session.compact()` is optional on Claude, Codex, Pi SDK/RPC, Grok, Qoder,
 Cursor and OpenCode v2 sessions. OpenCode v1 omits it.
 `runtime.manualCompaction` describes support and active-turn policy; these
@@ -145,18 +157,18 @@ The package has these public entry points, plus `@botiverse/oar/pi-durable` ([be
 
 Brand SVG files are exported at `@botiverse/oar/assets/brands/<runtime-id>.svg`. Any other deep import (`@botiverse/oar/dist/...`, source paths) is internal and may break without notice.
 
-Antigravity, CodeBuddy, Grok, Kimi, and OpenCode share an internal ACP v1 transport and session kernel, but only their concrete runtime identities are public. The registry deliberately does not expose a generic `acp` runtime. Cursor runs in the host process through its SDK; Pi does too by default, or in its own RPC process with `createPiRuntime({ execution: "subprocess" })`. The pi SDK (`@earendil-works/pi-coding-agent`) is a dependency of this package. `@cursor/sdk` is an optional peer dependency, and cursor is not in `defaultRuntimes`: install the SDK (`npm install @cursor/sdk@1.2.0`) and hand it over, `createRuntimeRegistry([...defaultRuntimes.list(), createCursorRuntime({ sdk: () => import("@cursor/sdk") })])`. Written in your code, that import fails your compile if the package is missing. It is Cursor's own package under Cursor's terms, and it signs in with `CURSOR_API_KEY` or its own `Cursor.auth.login()`.
+Antigravity, CodeBuddy, Grok, Kimi, and OpenCode share an internal ACP v1 transport and session kernel, but only their concrete runtime identities are public. The registry deliberately does not expose a generic `acp` runtime. The pi SDK (`@earendil-works/pi-coding-agent`) is a dependency of this package. `@cursor/sdk` is an optional peer dependency, and cursor is not in `defaultRuntimes`: install the SDK (`npm install @cursor/sdk@1.2.0`) and hand it over, `createRuntimeRegistry([...defaultRuntimes.list(), createCursorRuntime({ sdk: () => import("@cursor/sdk") })])`. Written in your code, that import fails your compile if the package is missing. It is Cursor's own package under Cursor's terms, and it signs in with `CURSOR_API_KEY` or its own `Cursor.auth.login()`.
 
 Community runtimes are contributed and maintained outside the core team (each maintainer is named on its runtime page). They ship in this package from a separate entry point, `@botiverse/oar/community`, and are not in `defaultRuntimes`: `createRuntimeRegistry([...defaultRuntimes.list(), createMorphRuntime()])` adds [Mister Morph](https://github.com/botiverse/oar/blob/main/docs/runtimes/morph.md), driven through its Console Runtime API. The `oar` CLI includes them.
 
-**Pi 1.0.3 Azure migration:** Pi renamed its provider from
-`azure-openai-responses` to `azure`. Update that prefix in native provider
-configuration and `SessionOptions.model`. When resuming an old Azure session,
-explicitly pass `model: "azure/<model>"`; without it, Pi can retain the
+**Pi Azure provider (since Pi 1.0.3):** the provider is `azure`, not
+`azure-openai-responses`; use that prefix in native provider configuration and
+`SessionOptions.model`. When resuming an old Azure session, pass
+`model: "azure/<model>"` explicitly; without it, Pi can retain the
 conversation while selecting a different default model. The opening `model`
 event and `Session.model()` report the effective selection. OAR's `^1.5.0`
-dependency range includes this upstream update. See the
-[migration evidence and limits](https://github.com/botiverse/oar/blob/main/experiments/runtime-version-checks/2026-10-05.md).
+dependency range includes this change
+([migration evidence and limits](https://github.com/botiverse/oar/blob/main/experiments/runtime-version-checks/2026-10-05.md)).
 
 **Pi 1.5.0 default prompt:** the bundled native default system prompt has
 changed. Hosts that need stable wording should pass their own `systemPrompt`.
@@ -178,8 +190,9 @@ and `codebuddyRuntime` (CodeBuddy Code's ACP server) are in `defaultRuntimes`
 too; see the [Qoder](https://github.com/botiverse/oar/blob/main/docs/runtimes/qoder.md)
 and [CodeBuddy](https://github.com/botiverse/oar/blob/main/docs/runtimes/codebuddy.md) mappings.
 `dshRuntime` (DeepSeek Harness through a private plugin on its native services, one
-process per session, `0.2.1-rc.5` or later) is too; most session options stay refused
-until probed ([mapping](https://github.com/botiverse/oar/blob/main/docs/runtimes/dsh.md)).
+process per session, `DSH_MINIMUM_VERSION` `0.2.1-rc.5` or later) is too; it selects
+models as `provider/model`, takes stdio session MCP servers only, and most session
+options stay refused until probed ([mapping](https://github.com/botiverse/oar/blob/main/docs/runtimes/dsh.md)).
 
 The command-line interface is a separate package: `@botiverse/oar-cli`.
 
@@ -290,7 +303,7 @@ const session = await runtime.session(installation, {
 });
 try {
   const run = await promptAndWait(session, "What is 2 + 2?");
-  if (run.kind !== "rejected" && run.outcome.kind === "completed" && "structuredOutput" in run.outcome) {
+  if ("outcome" in run && run.outcome.kind === "completed" && "structuredOutput" in run.outcome) {
     console.log(run.outcome.structuredOutput);
   }
 } finally { await session.dispose(); }
@@ -305,11 +318,11 @@ fails: [structured output](https://github.com/botiverse/oar/blob/main/docs/spec/
 args?, env?}` or streamable HTTP `{name, type: "http", url, headers?}`) to
 one session, on top of the runtime's own, through each runtime's own channel
 (claude reads them from a 0600 FIFO that never puts them on a disk, a
-temporary file on Windows); cursor and pi-durable refuse them. Give them
-again on `resume`. Their `env` and `headers` values never
-appear in a record or an error; antigravity, which would store them in its
-conversation database, refuses an entry carrying them (declared as
-`mcpServerCredentials`; leave such entries out). Every runtime refuses the
+temporary file on Windows); cursor and pi-durable refuse them, and dsh takes
+stdio `command` and `args` only. Give them again on `resume`. Their `env` and
+`headers` values never appear in a record or an error; antigravity, which would
+store them in its conversation database, and dsh refuse an entry carrying them
+(declared as `mcpServerCredentials`; leave such entries out). Every runtime refuses the
 names `__proto__`, `__defineGetter__`, `__defineSetter__`, `__lookupGetter__`
 and `__lookupSetter__` (`option: "mcpServers"`), which some runtimes drop
 without a word. See the
@@ -319,7 +332,7 @@ and each runtime page's "Session MCP servers".
 Tools the host implements itself go through the same option. `serveMcpTools`
 serves them from an MCP server inside the host process and returns the
 `mcpServers` entry to pass, so one implementation reaches every runtime that
-takes an http entry with `headers` (all but cursor, pi-durable and antigravity):
+takes an http entry with `headers` (all but cursor, pi-durable, antigravity and dsh):
 
 ```ts
 import { serveMcpTools } from "@botiverse/oar";
@@ -343,15 +356,17 @@ It listens on 127.0.0.1 behind a random bearer token (in the entry's
 machine, as OAR's runtimes do. A handler returns text, or MCP content with
 `isError` for a failed call; a thrown error becomes an `isError` result with
 its message. Its `signal` aborts when the runtime cancels the call or the
-server closes. One served set can back several sessions. `instructions` (guidance
+server closes. A tool's MCP `annotations` (`readOnlyHint`, `destructiveHint`,
+...) go out unchanged in `tools/list`; runtimes may use them (for approval, for
+example); OAR neither validates nor acts on them. One served set can back several sessions. `instructions` (guidance
 across the tools) goes out as the MCP server instructions; claude, codex,
 opencode and grok show them to the model, pi and kimi do not.
 `served.setTools(tools)` replaces the tools while sessions run and sends MCP's
 `notifications/tools/list_changed`. Whether a running session's model sees
 the change is the runtime's choice, declared before opening as
 `runtime.mcpToolsListChanged`: `full` (pi, opencode), `additions` (claude:
-new tools appear, removed ones stay offered) or `none` (codex, kimi, grok, antigravity); a
-session that does not take it gets the new tools when the host opens its next
+new tools appear, removed ones stay offered) or `none` (codex, kimi, grok, antigravity),
+absent where unmeasured; a session that does not take it gets the new tools when the host opens its next
 session. The declaration covers any MCP server that announces a change, so
 antigravity declares `none`, though a served entry never attaches there. See
 [host-served tools](https://github.com/botiverse/oar/blob/main/docs/spec/runtime-matrix.md#host-served-tools).
@@ -361,9 +376,10 @@ can run now (`ok`, `unauthenticated` or `unsupported`); every built-in runtime
 has it. Entries include native `effortLevels` and `serviceTiers` where supported.
 `default: true` marks the model a session uses when no `model` is set, where
 the runtime says so (codex's configured model, else its catalog default; a new
-session's current model on grok, kimi and antigravity; the default saved in
-pi's settings). claude, cursor and opencode mark none: OAR never picks one.
-Where several providers serve models (pi, opencode), `provider: { id,
+session's current model on grok, kimi, antigravity and codebuddy; the native
+default on qoder and dsh; the default saved in pi's settings). claude, cursor,
+opencode and qwen mark none: OAR never picks one.
+Where several providers serve models (pi, opencode, dsh), `provider: { id,
 displayName? }` says which, so a host never parses `id`. A project's own
 configuration can change the list and its default, so pass `options.cwd`, the
 directory a session would run in (the host's cwd by default). Like the
@@ -387,8 +403,8 @@ updater would install and where that answer came from;
 `runtime.upgrade(installation)` runs that updater without a terminal and
 judges the result by the version the same executable reports afterwards,
 never by its exit code. oar never upgrades on its own. Claude, Codex, Grok
-and Kimi have both; Antigravity has only the check; CodeBuddy, OpenCode, Qwen and Qoder have neither
-yet; Pi and Cursor have neither, their SDK versions following oar's (Pi's
+and Kimi have both; Antigravity has only the check; CodeBuddy, DSH, OpenCode, Qwen and Qoder
+have neither yet; Pi and Cursor have neither, their SDK versions following oar's (Pi's
 SDK is a dependency, Cursor's an exact peer dependency).
 See [runtime updates](https://github.com/botiverse/oar/blob/main/docs/spec/update.md).
 
@@ -403,8 +419,9 @@ it, without a terminal and never with sudo, when `installation()` finds no
 copy, and judges the result by `installation()` afterwards, never by the
 installer's exit code. oar never installs on its own. Claude, Codex, Grok,
 Kimi, OpenCode, Qwen, Qoder and Antigravity install through their vendors' macOS and Linux scripts;
-CodeBuddy uses its official npm package on Linux, macOS and Windows, checks
-the configured global prefix, and discovers its launcher even off PATH.
+CodeBuddy and DSH use their official npm packages on Linux, macOS and Windows
+and check the configured global prefix; CodeBuddy's launcher is discovered even
+off PATH.
 Planning may run bounded local read-only queries with private temporary files
 removed afterwards; it never installs, downloads packages or changes user files.
 An unreadable prefix returns `location_unknown` with the failure category in
@@ -425,11 +442,12 @@ arrives as a `ProviderLoginInteraction` event, and a code the person pastes
 back is answered through its `manual_code` prompt and written to the
 runtime's stdin only. It never logs the current account out first, and
 `interaction.signal` cancels it. `runtime.authStatus(installation)` reads the
-runtime's own status, never a secret, and never starts a login. Claude,
+runtime's own status, never a secret, and never starts a login; a status read
+past its `timeoutMs` returns `unknown` without waiting for process cleanup. Claude,
 Codex, Cursor (through its SDK's own `Cursor.auth`), Qoder and Kimi (`kimi
 login`, with `KimiLoginOptions.region`) have both. Qwen has only
 `authStatus`, a local check of whether a provider credential is configured;
-its provider settings are on `createQwenProviderAuth`. Grok, OpenCode and Pi
+its provider settings are on `createQwenProviderAuth`. Grok, OpenCode, DSH and Pi
 have neither yet (Pi's provider logins are on `createPiProviderAuth`).
 CodeBuddy supports login and a private native account-state read, but no logout
 ([mapping](https://github.com/botiverse/oar/blob/main/docs/runtimes/codebuddy.md#international-login)).
@@ -502,8 +520,8 @@ in the default registry or CLI.
 
 Every runtime exposes `skills(installation, options?)`,
 `commands(installation, options?)`, `mcpServers(installation, options?)`, and `tools(installation, options?)`.
-Options are `{ cwd?: string, timeoutMs?: number }`; cwd defaults to
-`process.cwd()`. Queries discover native information independently: they do
+Options are `{ cwd?: string, timeoutMs?: number, env? }` (`env` is the
+`SessionOptions.env` overlay); cwd defaults to `process.cwd()`. Queries discover native information independently: they do
 not inspect an existing Session or submit a model prompt, though native
 startup can load extensions and connect configured MCP servers.
 
@@ -517,7 +535,7 @@ exposes independent skills and MCP configuration discovery; Pi exposes skills
 and registered tools with active membership. Pi commands include extension
 commands and prompt templates; Claude commands come from native initialize.
 Other core runtimes return unsupported for independent command discovery.
-Antigravity, CodeBuddy, Cursor, Kimi, OpenCode, Qoder and Qwen inventory
+Antigravity, CodeBuddy, Cursor, DSH, Kimi, OpenCode, Qoder and Qwen inventory
 queries are unsupported.
 
 ```ts

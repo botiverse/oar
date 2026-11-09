@@ -95,7 +95,7 @@ via `coalesceText`), and other facts as bracketed meta lines
 (`[compacting: threshold]`, `[compacted]` or `[compaction failed] reason`,
 `[retry 2/3] reason`, `[waiting for app: type]`, `[task shell started]`).
 Turn starts, usage, model, service tier and effort reports, native user
-message echoes, queued, withdrawn and dropped inputs, task updates, tool
+message echoes, queued, withdrawn, handled and dropped inputs, task updates, tool
 input and progress deltas and oar's own answers to app requests print
 nothing (the full mapping is `src/progress.ts`):
 
@@ -108,7 +108,9 @@ The repo is a pnpm workspace...
 [turn completed]
 ```
 
-The exit code is 0 only when the turn completed. The first Ctrl-C interrupts
+The exit code is 0 when the turn completed or the runtime handled the prompt
+natively without a model turn (a Pi extension command), and 1 otherwise,
+except that the first Ctrl-C interrupts
 the turn and exits 130; a second one disposes the session at once. The
 process ends at most a second after the session is disposed, even when a
 runtime left a handle behind (`@cursor/sdk` 1.0.35 to 1.0.37 kept a 24 hour
@@ -135,7 +137,8 @@ Flags:
 - `--json`: print the session records (`RawEvent`s) as JSON lines instead
   of progress (frames with their verbatim `native` payload and oar's
   `events`, plus the request/response records of the run), and a final
-  `{"outcome": ...}` line.
+  `{"outcome": ...}` line (`{"disposition": ...}` for a natively handled
+  prompt).
 - `--record <file>`: also write the run as an `oar-voyage/3` JSONL log (in
   both output modes; the log always carries every record).
 

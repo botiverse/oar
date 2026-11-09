@@ -110,8 +110,8 @@ and process-result diagnostics under `oar-trial-run/pi-rpc-diagnostics`,
 outside its disposable fixture directory. The Windows `check` job uploads
 them even when the unit suite fails. Startup records distinguish an entered
 sampler, returned initial resource queries, a launched child and an entered
-test; a missing checkpoint is an evidence gap, not a cause. Existing case,
-command and outer-test time limits and termination assertions still apply.
+test; a missing checkpoint is an evidence gap, not a cause. The diagnostics
+change no time limit or termination assertion.
 
 ### Behavior: does the public contract still hold?
 
@@ -128,15 +128,16 @@ runtimes may legitimately differ.
   session behavior.
 - `OAR_TEST=<runtime>-aimock pnpm sea-trial` (`claude-aimock`, `codex-aimock`,
   `pi-aimock`, `pi-rpc-aimock`, `pi-durable-aimock`, `qwen-aimock`,
-  `grok-aimock`, `kimi-aimock`, `opencode-aimock`, `codebuddy-aimock`, `dsh-aimock`; Qoder uses
-  `qoder-native`): the real vendor binary and adapter with only the model
-  provider scripted, no login. Use it when you touched a runtime's adapter: it
+  `grok-aimock`, `kimi-aimock`, `opencode-aimock`, `codebuddy-aimock`,
+  `dsh-aimock`, `antigravity-aimock`; Qoder uses `qoder-native`): the real
+  vendor binary and adapter with only the model provider scripted, no login. Use it when you touched a runtime's adapter: it
   catches real-process integration mistakes the mock cannot.
 - `OAR_TEST=scripted pnpm sea-trial`: the public `scriptedRuntime`
   (`@botiverse/oar/testing`) held to the same contract.
 - `pnpm tsx sea-trial/all.ts [backend...]`: several backends, by default
-  `mock`, `mock-shared`, `mock-isolated`, the eleven aimock backends and Qoder
-  native replay. Run it before pushing a change to shared runtime machinery.
+  `mock`, `mock-shared`, `mock-isolated`, every aimock backend except
+  `antigravity-aimock`, and Qoder native replay. Run it before pushing a
+  change to shared runtime machinery.
   It runs at most `max(1, min(4, floor(availableParallelism() / 2)))`
   backends at once, leaving room for native CLIs' own threads and children,
   and every selected backend runs even after another fails. The bound is
@@ -155,11 +156,9 @@ runtimes may legitimately differ.
 `OAR_TEST=<runtime>-aimock pnpm vitest run sea-trial/vendor`. The ACP
 runtimes' vendor backends (`opencode-aimock`, `kimi-aimock`, `grok-aimock`,
 `antigravity-aimock`, `sea-trial/harness/aimock-acp.ts`; `codebuddy-aimock`,
-`sea-trial/harness/codebuddy-aimock.ts`) need the installed CLI. Grok, Kimi,
-OpenCode v1 and CodeBuddy run in Linux/macOS pull-request CI, the first three
-also in Windows main-push observations. Antigravity CLI 1.5.0 runs in all
-three required `check` jobs. Vendor tests see
-the scripted provider's side: request contents, error edges, scripted tool
+`sea-trial/harness/codebuddy-aimock.ts`) need the installed CLI; which CI
+job runs each is listed under [the commit gate](#the-commit-gate). Vendor
+tests see the scripted provider's side: request contents, error edges, scripted tool
 rounds. Run them when a change affects what a runtime sends upstream or how it
 handles vendor-specific behavior; write one for anything that needs the
 provider's view or a vendor-specific trigger. Each is gated with
@@ -170,8 +169,7 @@ The manual [OpenCode snapshot comparison](../experiments/acp-ci-failures/opencod
 retains existing native logs before HOME cleanup under
 `OAR_TRIAL_RUN_DIR/native-opencode/`. Retention is bounded to four files and
 1 MiB per file, with explicit head/tail gaps and omitted file counts. Normal
-fixtures no longer copy these logs: the snapshot interval was localized and
-the smaller vendor projects passed Windows validation. Raw logs can contain
+fixtures do not copy these logs. Raw logs can contain
 session IDs and local paths; publish selected evidence only.
 [Diagnostic retention decisions](../experiments/acp-ci-failures/closeout.md)
 explain which other observations remain active and why.
@@ -218,9 +216,12 @@ or pull request whose changes are all Markdown files or under `docs/` or
   tool cleanup (readiness, surviving-peer and final residual-process
   assertions); and Kimi 2.4.1's native login tests against a local
   OAuth/model server, including browser suppression and credential writes.
-  Antigravity CLI 1.5.0 is installed from platform archives with pinned
-  SHA-512 digests and runs behavior plus vendor suites against a local
-  Gemini provider in an isolated home. Each suite requires a successful
+  The agy CLI 1.5.0 (Antigravity) is installed from official platform
+  downloads with pinned SHA-512 digests
+  ([`install-antigravity.mjs`](../.github/scripts/install-antigravity.mjs))
+  and runs the `antigravity-aimock` behavior and vendor suites against a
+  local Gemini provider in an isolated home (concurrency 2, a missing
+  installation fails). Each suite requires a successful
   install; an earlier unrelated check failure does not skip installation.
   CodeBuddy, OpenCode, Kimi and Antigravity upload diagnostic artifacts, failures included.
   CodeBuddy records discovery, install, verification and cleanup phases under
@@ -228,8 +229,8 @@ or pull request whose changes are all Markdown files or under `docs/` or
   its isolated environment, and saves the latest ten debug/timing files before
   deleting that HOME (last 1 MiB per file, with truncation marked). A killed
   npm process may not finish its timing file; the partial debug log and phase
-  records remain useful. The install limit stays 180 seconds and the enclosing
-  child limit stays 240 seconds. [Evidence](../experiments/codebuddy-install-diagnostics/README.md).
+  records remain useful. The install limit is 180 seconds and the enclosing
+  child limit 240 seconds. [Evidence](../experiments/codebuddy-install-diagnostics/README.md).
   The browser-entry unit test bundles the complete portable entry for a
   browser and refuses Node imports or unresolved externals. Synthetic
   sharing routing and public placement-refusal regressions stay in these
@@ -237,8 +238,10 @@ or pull request whose changes are all Markdown files or under `docs/` or
 - `behavior`: `pnpm run sea-trial` plus the backend's vendor tests on the
   same three systems for `claude-aimock`, `codex-aimock`, `pi-aimock`,
   `pi-rpc-aimock` (not on Windows, below), `pi-durable-aimock`, `qwen-aimock`,
-  `dsh-aimock` (DSH pinned to 0.2.1-rc.5, a missing installation fails) and
-  `qoder-native` (the last two at shared-case concurrency 2).
+  `dsh-aimock` (DSH pinned to `DSH_MINIMUM_VERSION` 0.2.1-rc.5, a missing
+  installation fails) and `qoder-native` (Qoder pinned to 1.1.81 because
+  native replay stops driving inference from 1.1.82), the last two at
+  shared-case concurrency 2.
 - `pi-rpc-minimum`: Ubuntu behavior and vendor suites with a separately
   installed Pi CLI 1.4.0 selected through `OAR_PI_RPC_COMMAND`. This guards the
   explicit-command floor while OAR keeps its current bundled dependency.
@@ -314,6 +317,9 @@ Outside ci.yml and its pull-request and release gates:
   after either success or failure. The seven launches keep their 15-second
   initialize and five-second cleanup limits; the diagnostic step remains
   three minutes. [Measurement scope](../experiments/grok-startup/README.md).
+- [`osv-scanner.yml`](../.github/workflows/osv-scanner.yml) scans
+  dependencies daily and reports findings in its job log without failing;
+  only a scanner error fails it.
 - OpenCode and Grok shared placement is not admitted (explicit `shared` is
   refused), so their shared session behavior suites and native
   shared/isolated controls run only in the manual
@@ -326,10 +332,10 @@ provider requests, matcher selections and streamed response chunks under
 `acp-provider/` in the existing run artifacts.
 They survive a failed assertion or unfinished turn and fixture HOME cleanup;
 entries and files have explicit size limits. Headers, URL queries and environment
-variables are omitted. This is test evidence only, with no matcher, assertion or
-native timeout change ([November 6 failures and boundaries](../experiments/acp-ci-failures/README.md)).
+variables are omitted. This is test evidence only and changes no matcher,
+assertion or native timeout ([November 6 failures and boundaries](../experiments/acp-ci-failures/README.md)).
 
-Windows `codex-aimock` and every `qoder-native` behavior job, and the Windows
+Windows `codex-aimock`, every `qoder-native` and `dsh-aimock` behavior job, and the Windows
 ACP observations, forward child stderr to the job log with
 `OAR_CHILD_STDERR=inherit`, including failures before a session trace exists
 (a login's or logout's process is never forwarded: its output may carry secrets).
@@ -346,11 +352,10 @@ snapshot is taken before cleanup; a later cleanup-induced exit cannot replace
 it. This distinguishes an exited root with open pipes from an exit not yet
 observed without changing deadlines, pipe draining or process cleanup.
 
-The completed [Windows Codex comparison](../experiments/windows-codex-ci/results.md)
-retains all nine default/two/one file-worker samples, including a cleanup
-timeout in the single-worker group. It does not establish a worker-limit
-remedy. The temporary workflow and fixture hooks have been removed; ordinary
-CI, per-case concurrency, assertions and deadlines remain unchanged.
+The [Windows Codex comparison](../experiments/windows-codex-ci/results.md)
+(nine default/two/one file-worker samples, including a cleanup timeout in the
+single-worker group) does not establish a worker-limit remedy; CI keeps its
+per-case concurrency, assertions and deadlines.
 
 ## How to add a new runtime
 

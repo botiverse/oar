@@ -92,12 +92,14 @@ starts by itself carries `origin` (here `task-notification`, with
 `command_lifecycle` entry naming its `inputId`. The same race exists without a
 crash whenever a background task ends as the host prompts.
 
-[Issue #308](https://github.com/botiverse/oar/issues/308) addresses this
-attribution: Claude's `queued` becomes `input_queued`, and `started` becomes
-`turn_active` carrying the input id. `promptAndWait` supplies an id by default
-and waits through the notification for its own turn. Lower-level wait helpers
-can opt in with an input id. Every native result remains `turn_ended`; without
-native queue evidence the legacy first-result behavior remains. The original
+OAR attributes these turns ([issue #308](https://github.com/botiverse/oar/issues/308)):
+Claude's `queued` projects as `input_queued`, and `started` as `turn_active`
+carrying the input id
+([input-lifecycle.ts](../../packages/oar/src/shared/stream-json/input-lifecycle.ts)).
+`promptAndWait` supplies an id by default and waits through the notification
+for its own turn. Lower-level wait helpers can opt in with an input id. Every
+native result remains `turn_ended`; without native queue evidence the
+first-result behavior remains. The original
 observation belongs to [issue #55](https://github.com/botiverse/oar/issues/55),
 and the [Claude page](claude.md#prompt-steering-queueing-and-abort) describes the mapping.
 

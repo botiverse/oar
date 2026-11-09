@@ -180,7 +180,7 @@ export type RuntimeEventBody =
    * never one inferred from timing. `trigger` and `reason` stay native.
    */
   | { readonly kind: "compaction_ended"; readonly compactionId?: string; readonly outcome: "completed" | "aborted" | "failed"; readonly trigger?: string; readonly reason?: string; readonly requestId?: string }
-  /** The runtime announced it will retry a failed provider call (pi `auto_retry_start`, `summarization_retry_scheduled`; codex `error` with `willRetry`). Other shipped runtimes retry silently or not at all. */
+  /** The runtime announced it will retry a failed provider call (pi and pi-durable `auto_retry_start`, pi `summarization_retry_scheduled`; codex `error` with `willRetry`; community morph). Other shipped runtimes retry silently or not at all. */
   | { readonly kind: "retry"; readonly attempt: number; readonly maxAttempts?: number; readonly delayMs?: number; readonly reason?: string }
   | { readonly kind: "usage"; readonly usage: UsageReport }
   /** The model the runtime reports as in effect: its own report, never the request echoed. */
@@ -190,7 +190,7 @@ export type RuntimeEventBody =
   | { readonly kind: "effort"; readonly effort: string }
   /** The runtime-reported service tier; `default` means explicitly no special tier. */
   | { readonly kind: "service_tier"; readonly serviceTier: string }
-  /** The runtime withdrew a `toApp` request it had sent (`app_request` with this `requestId`) and no longer waits on an answer: claude `control_cancel_request`, codex `serverRequest/resolved` (oar answers no codex request, so a resolved one was cleared by codex itself). Never inferred from a turn ending. */
+  /** The runtime withdrew a `toApp` request it had sent (`app_request` with this `requestId`) and no longer waits on an answer: claude `control_cancel_request`. Codex `serverRequest/resolved` produces none: oar answers every codex request as it arrives, so the resolution follows that answer. Never inferred from a turn ending. */
   | { readonly kind: "app_request_cancelled"; readonly requestId: string };
 
 /** The toRuntime control actions a Session issues. */
