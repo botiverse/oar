@@ -26,9 +26,9 @@ The host passes the **same `Models` instance or `() => Models` supplier** it
 supplied to `Harness.open`. A supplier lets the host replace its catalog
 without recreating either the Harness or OAR runtime. Harness exposes no
 public catalog getter, so OAR cannot verify this identity. Build this catalog
-with the Pi AI version matching the host Harness, currently 1.4.0. Keep
-Pi AI 1.5.0 under its normal name for the bundled coding SDK and import the
-older catalog through a version alias:
+with the Pi AI version matching the host Harness, currently 1.4.0, through a
+version alias, keeping Pi AI 1.5.0 under its normal name for the bundled
+coding SDK:
 
 ```json
 {
@@ -44,18 +44,19 @@ older catalog through a version alias:
 Use `import { createModels } from "@earendil-works/pi-ai-durable/models"`
 and the same alias for Durable provider/schema imports. Pinning the normal
 `@earendil-works/pi-ai` name to 1.4.0 instead can split the coding SDK's 1.5.0
-registration instances; a single-file host then fails OAuth derivation with
-`Cannot find module` for the provider module. The factory takes its catalog type directly
-from the Durable peer, independently of OAR's bundled Pi coding SDK 1.5.0.
+registration instances, and a single-file host then fails OAuth derivation
+with `Cannot find module` for the provider module. The factory takes its
+catalog type from the Durable peer, independently of OAR's bundled Pi coding
+SDK 1.5.0.
 The host installs `@earendil-works/pi-durable@~1.4.0` and
 `@earendil-works/chord@~1.4.0`, both optional peers of OAR. OAR operates on
 the host's native package instances, without bundling another copy. Tests
 pin 1.4.0; upgrading this experimental API requires rerunning the native
-probe and vendor tests below. Pi Durable 1.5.0 is not supported by this
-adapter: it removes `watchEvents` and changes the persisted `pi.live` document
-to v3, which 1.4.0 cannot read. The
+probe and vendor tests below. This adapter does not support Pi Durable 1.5.0,
+which removes `watchEvents` and changes the persisted `pi.live` document to
+v3, unreadable by 1.4.0. The
 [security update and coexistence evidence](../../experiments/pi-1.5.0-2026-11-02.md)
-keep both Durable peers on 1.4.0; they do not migrate host storage.
+keep both Durable peers on 1.4.0 and do not migrate host storage.
 
 **Upgrading from 1.3.0:** the host must upgrade both peers. The native
 [Durable 1.4.0 changelog](https://github.com/earendil-works/pi/blob/v1.4.0/packages/durable/CHANGELOG.md)
@@ -135,11 +136,10 @@ controller started work before the watch caught up, native `ConversationBusy`
 is `runtime_refused` with the native message. A previously submitted inputId
 is instead accepted as a retry, even while running, without new submission.
 
-This adapter uses native submissions and the record fold, not the SDK/RPC
-adapter's run flag or held FIFO. The
-[native terminal-observer test](../../sea-trial/vendor/pi-turn-admission.vendor.test.ts)
-verifies on Durable 1.4.0 that an idle `turn_ended` observer can submit the next
-prompt and that it stays busy until the new native run ends.
+Admission uses native submissions and the record fold, not the SDK/RPC
+adapter's run flag or held FIFO: on Durable 1.4.0 an idle `turn_ended`
+observer can submit the next prompt, which stays busy until the new native
+run ends ([native terminal-observer test](../../sea-trial/vendor/pi-turn-admission.vendor.test.ts)).
 
 An open or resumed snapshot with a run emits `turn_active`, making status
 running before any model output. It creates a view turn only if none is
@@ -203,8 +203,11 @@ cwd/model/effort/instructions must match its saved settings; changed values
 are refused before mutation. Reopen after the run finishes to change them.
 The runtime also refuses `env`, `launchArgs`, `serviceTier`, `mcpServers` and
 `disallowedTools`. Environment and extensions belong to the host Harness;
-there is no verified per-conversation OAR channel for these options. `name`
-is refused because Pi Durable exposes no session name. Local-file image
+there is no verified per-conversation OAR channel for these options. `goals`
+is refused because this interface exposes no structured native goal controls,
+and `endTurnProcessesOnAbort` because the Harness runs in the host process,
+with no OAR-owned process tree. `name` is refused because Pi Durable exposes
+no session name. Local-file image
 input is refused whole (`capabilities.images: false`).
 
 ## Records, snapshots and limits
@@ -264,9 +267,9 @@ stays raw, since OAR has no text-replacement event.
 The chosen watch covers one conversation. Pi Durable can create child
 conversations, but this watch does not include their events; attribution is
 `opaque`, with no inferred child graph or child usage. Context occupancy,
-background task projection, native history navigation and child subscriptions
-are not exposed. Host applications persist their OAR records to render a
-continuous transcript across controllers; native storage and OAR records
+background task projection, native history navigation, child subscriptions
+and manual compaction (`manualCompaction` is not declared) are not exposed.
+Host applications persist their OAR records to render a continuous transcript across controllers; native storage and OAR records
 remain distinct artifacts.
 
 ## Evidence and verification

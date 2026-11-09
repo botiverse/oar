@@ -24,17 +24,17 @@ three root tool-selection scenarios passed; `kill-runtime` remains skipped
 ([October 28 report](../../experiments/runtime-version-checks/2026-10-28.md#cursor-120)).
 With the compaction adapter the live battery passed again, `abort` on an
 unchanged rerun ([compaction probe](../../experiments/cursor-compaction.md#validation-and-retained-failure)).
-The newer **1.3.1** release passed local login/configuration controls and an
-offline interrupted-run summarize check on November 4. Those checks used no
-real inference and do not establish tool, resume or compaction compatibility;
-the required peer remains 1.2.0.
-[Evidence and limits](../../experiments/runtime-version-checks/2026-11-04.md#cursor-131).
+**1.3.1** passed the local login and configuration controls and the offline
+interrupted-run summarize check (2026-11-04), with no real inference, so
+tool, resume and compaction compatibility are not established and the
+required peer stays 1.2.0
+([evidence and limits](../../experiments/runtime-version-checks/2026-11-04.md#cursor-131)).
 
-Since SDK 1.1.0, whose totals count cache reads and writes as part of
-`inputTokens`, OAR no longer adds them to input again, so Cursor `input` can
-be smaller than in earlier OAR releases; whether 1.0.40's native input field
-had different semantics is not established
-([usage](#observation-children-and-history)). Earlier baselines:
+Since SDK 1.1.0, `inputTokens` includes cache reads and writes and OAR does
+not add them again, so Cursor `input` can be smaller than in OAR releases
+before that change; whether 1.0.40's native input field had different
+semantics is not established ([usage](#observation-children-and-history)).
+Earlier baselines:
 [1.1.0](../../experiments/runtime-version-checks/2026-10-27.md#cursor-110),
 [1.0.40](../../experiments/runtime-version-checks/2026-10-21.md#cursor-1040),
 [1.0.38](../../experiments/runtime-version-checks/2026-10-17.md#cursor-1038),
@@ -288,22 +288,23 @@ counted once, through `onDelta`. No trigger or failure reason is reported.
 still counts as completed compaction. Cancellation can end the run with only
 a summary start observed; OAR adds no compaction end in that case.
 
-Manual `compact()` binds its accepted response to the SDK's returned run id
-before observing messages. Native `run_id` becomes `spanId`; `sessionId`
-remains the root agent id. Children retain task-call `agentPath` attribution,
-and a different native `agent_id` cannot supply root summary evidence. A root terminal summary and that run's result
-are both required before queued input drains. A completed summary wins a late
-run cancellation. An empty new agent is refused by the SDK. SDK 1.2.0 `summarize()` accepts no
-options and passes empty send options internally, so `local.force` cannot
-take over a restored active run for compact. An isolated
-[storage probe](../../experiments/cursor-summarize-force-offline.ts) confirms
-that refusal with and without an ignored force argument, without an executor
-or network call. OAR returns the native refusal and does not expire that run.
-Caller timeout or
-signal stops waiting only. Native cancellation with no terminal summary returns
-aborted using the run result, without inventing a summary event. A known run
-end without a terminal summary is unconfirmed but releases the gate; lost
-observation without a run end keeps it reserved. See the
+**Manual `compact()`** (`manualCompaction: { kind: "supported", activeTurn:
+"reject" }`) is `Agent.summarize()`. OAR binds the accepted response to the
+run id the SDK returns before observing messages: native `run_id` becomes
+`spanId`, `sessionId` stays the root agent id, children keep their task-call
+`agentPath`, and a different native `agent_id` cannot supply root summary
+evidence. Queued input drains only after both a root terminal summary and
+that run's result. A completed summary wins over a late run cancellation;
+native cancellation with no terminal summary returns aborted from the run
+result, with no invented summary event. A known run end without a terminal
+summary is unconfirmed but releases the gate; lost observation without a run
+end keeps it reserved. Caller timeout or signal only stops waiting. The SDK
+refuses an empty new agent. SDK 1.2.0 `summarize()` takes no options and
+passes empty send options, so `local.force` cannot take over a restored
+active run: OAR returns the native refusal and does not expire that run (an
+isolated [storage probe](../../experiments/cursor-summarize-force-offline.ts)
+confirms the refusal with and without an ignored force argument, with no
+executor or network call). See the
 [SDK 1.2.0 native sample and account-free regressions](../../experiments/manual-compaction-followup-2026-11-02.md#cursor-account-scope-and-usage).
 
 Each view preserves its own internal order; the merged frames keep OAR's
@@ -417,8 +418,10 @@ measurement.
 tools, and the agent shares the host's process, so a non-empty
 `SessionOptions.env` is refused at open the same way, including a map whose
 only entries are `null` removals. `refusedSessionOptions`
-declares these refusals, and the `mcpServers` one
-([below](#session-mcp-servers)), before any session opens. The
+declares these refusals, the `mcpServers` one
+([below](#session-mcp-servers)), and `goals` and `endTurnProcessesOnAbort`
+([refused session options](../spec/runtime-matrix.md#refused-session-options))
+before any session opens. The
 `@botiverse/oar/agents` crew passes its depth variable through `env`, so it
 refuses to spawn a cursor child.
 
@@ -463,9 +466,9 @@ The variable selection and error text were checked in the 1.0.40 bundle;
 the earlier real-turn comparison used Ferry CLI 0.1.35 on October 4, and no
 account-backed tool run followed this loader change.
 
-Earlier OAR releases set these paths while loading the SDK. Hosts that
-relied on that must now configure them at process startup or use a layout
-the SDK discovers itself, especially with bundled SDKs.
+Earlier OAR releases set these paths while loading the SDK; hosts that
+relied on that must set them at startup or use a layout the SDK discovers, especially with
+bundled SDKs.
 
 ### Session MCP servers
 
@@ -602,8 +605,9 @@ every call (an explicit key, then the variable, then the stored key), and
 OAR's `authStatus` returns `unknown` without loading the SDK, with
 `configured: ["environment: CURSOR_API_KEY"]`, and explains that native
 status neither reads nor validates the key sessions will use. It does not
-attach the stored login's email or expiry. Failed or unreadable status
-queries omit `configured`. A login started while the variable is set adds an `info`
+attach the stored login's email or expiry. A status query that fails, gives an
+unreadable answer, or gets no answer within 20 seconds (by default) is
+`unknown` and omits `configured`. A login started while the variable is set adds an `info`
 event saying that the variable wins until it is unset; its value is never
 read. A key stored against another backend (`CURSOR_BACKEND_URL`) also reads
 `logged-in`, though the SDK uses it only against that backend. The SDK's own

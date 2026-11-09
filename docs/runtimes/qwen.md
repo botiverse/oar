@@ -47,11 +47,12 @@ its runtime. OAR itself requires Node 24 or newer.
 | Install | Official standalone installer on macOS/Linux, checksum verification by the vendor script, with `--method standalone --no-modify-path`. No npm fallback or shell-profile change. Windows returns unsupported with the official PowerShell instructions. |
 | Login / provider setup | No runtime `login` member or browser flow; native `qwen auth` was removed. `createQwenProviderAuth` drives native ACP provider list/connect. Environment configuration also remains available. |
 | Authentication status | Local user/system credential presence only. Configured or indeterminate sources return `unknown`; none in scope returns `logged_out` with setup guidance and a workspace caveat. No credential validation, native process, network request or write. |
-| Other surfaces | No service tier or session-name setting; no account quota, inventory, updater, live configure or context breakdown mapping. |
+| Other surfaces | `serviceTier`, `name`, `goals` and `endTurnProcessesOnAbort` are refused ([declarations](../../packages/oar/src/runtimes/qwen/options.ts)); `launchArgs` cannot override the protocol, session identity, approval mode or output schema flags OAR owns. No account quota, inventory, updater, live configure or context breakdown mapping. |
 
 On resume, pass `systemPrompt` and `appendSystemPrompt` again to retain or
-replace them. Qwen 0.26.5 applies new values; omitting them does not restore
-the saved conversation's previous overrides
+replace them (`resumedSessionOptions`: provided `immediate`, omitted `default`).
+Qwen 0.26.5 applies new values; omitting them does not restore the saved
+conversation's previous overrides
 ([raw-request regression](../../sea-trial/vendor/resume-fresh-prompts.vendor.test.ts)).
 
 The install plan checks writes to both the executable directory and the library
@@ -103,8 +104,8 @@ not an additional OAR input or record.
 
 With **0.26.3** through **0.26.5**, and again in **0.27.0**, a response
 containing thinking followed by text emits one `message_start`, reuses
-content-block index 0, and follows
-each `content_block_stop` with a single-block `assistant` snapshot. The text
+content-block index 0, and follows each `content_block_stop` with a
+single-block `assistant` snapshot. The text
 deltas still carry the initial message identity, but the text snapshot gets
 a different `message.id`. Requiring equal ids therefore repeats the answer.
 OAR identifies these snapshots by the stopped block's position and type in
@@ -261,13 +262,12 @@ This is extra model work within the turn, not a request triggered by disposal:
 usage include it. Fresh-session OAR usage includes that total; resumed
 sessions retain the raw total under the limitation above.
 
-Receiving all reply text does not mean the turn has ended. Disposing while
-memory extraction is still running interrupts it through the ordinary active
-turn shutdown path. There is then no native `result` or complete OAR usage
-for that turn. A raw assistant frame can still contain the main request's
-partial usage; it is not the full turn's spend. These are Linux observations
-with synthetic replies, not claims about every memory configuration or
-provider ([timing and usage controls](../../experiments/qwen-native/memory-2026-11-02.md)).
+Receiving all reply text therefore does not mean the turn has ended. Disposing
+during memory extraction interrupts it through the ordinary active-turn
+shutdown path: there is no native `result` or complete OAR usage for that turn,
+and a raw assistant frame's partial usage is not the full turn's spend. These
+are Linux observations with synthetic replies, not claims about every memory
+configuration or provider ([timing and usage controls](../../experiments/qwen-native/memory-2026-11-02.md)).
 
 A native result error retains its original message. Unclassified execution
 failures remain `unknown`; `error_max_turns` is `limit_reached`, and a result
@@ -282,7 +282,7 @@ compression supplies no compression frame on this transport. OAR preserves
 the native frames and emits no Qwen `compaction_started` or `compaction_ended`
 events; it infers neither from text nor from a submitted command. A user
 `compress.toml` can override `/compress` and produce real model output without
-compressing. See the [manual, automatic and overridden-command controls](../../experiments/qwen-compaction-attribution/README.md).
+compressing, so `manualCompaction` is declared `unsupported`. See the [manual, automatic and overridden-command controls](../../experiments/qwen-compaction-attribution/README.md).
 
 ### Extension-store contention
 
@@ -486,11 +486,12 @@ Qwen 0.26.8 emits structured task lifecycle in stream-json:
 `data`. OAR maps these to the existing task events; `subagent_type` identifies
 an agent, otherwise the type is other. Task token statistics stay native;
 OAR does not infer child sessions or background flags. The local native
-control observed a background agent start and completion.
+control observed a background agent start and completion. Upstream source at
+`6fb74164` wires these notifications in `nonInteractiveCli.ts` and persistent
+`nonInteractive/session.ts`.
 
-Latest upstream source also wires these notifications in
-`nonInteractiveCli.ts` and persistent `nonInteractive/session.ts`. There is no verified host control
-for stopping one task; the model-facing `task_stop` tool is insufficient
-evidence, so the session has no `stopTask` member.
+There is no verified host control for stopping one task; the model-facing
+`task_stop` tool is insufficient evidence, so the session has no `stopTask`
+member.
 
 [Native evidence and reproducible probes](../../experiments/task-controls/README.md).

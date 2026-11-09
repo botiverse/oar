@@ -165,8 +165,8 @@ word. The final probe measures UI input delivery at the provider boundary
 and retains the raw screen output without claiming a machine-readable UI
 completion event; stream-json still checks both native result envelopes.
 
-The [runtime page](../docs/runtimes/antigravity.md#cli-versus-acp-checked-october-29)
-contains the full comparison of turns, cancellation, resume, configuration,
+The [runtime page](../docs/runtimes/antigravity.md#verification-and-open-gaps)
+lists this comparison of turns, cancellation, resume, configuration,
 MCP, permissions, usage, payload size and updates. Both entry points are
 vendor-native. ACP remains the selected host interface; a smaller CLI payload
 and an interactive feature do not replace its control methods.

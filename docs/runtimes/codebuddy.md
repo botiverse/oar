@@ -76,17 +76,21 @@ provider facade. [Installation evidence](install.md#codebuddy-npm-2026-10-29).
 | Failures | A successful prompt RPC can carry `refusal` and `_meta["codebuddy.ai/outcome"]: "FAILED_MODEL_REQUEST"`. Every `FAILED*` outcome or refusal is a failure. The reason preserves the native message or outcome name. Native error category takes precedence over HTTP status: quota, authentication and provider errors are distinguished; network/internal remain unknown. Known credentials are redacted from the reason. |
 
 `env` is applied to installation selection, account helpers, model listing and
-sessions. Unsupported goals, additional directories, service tier, final-output
-schema, session name, appended system prompt and `userConfiguration: "exclude"`
-are refused before opening. Omission or `include` retains the native defaults.
+sessions. Unsupported goals, `endTurnProcessesOnAbort`, additional directories,
+service tier, final-output schema, session name, appended system prompt and
+`userConfiguration: "exclude"` are refused before opening
+([declarations](../../packages/oar/src/runtimes/codebuddy/options.ts)). Omission or `include` retains the native defaults.
 Transport, permission and session-identity flags cannot override OAR through
 `launchArgs`. Other native launch arguments keep their native semantics.
+`manualCompaction` is declared `unsupported`: the published compact method is not
+implemented by the tested CLI, and slash-command completion is unverified.
 
 CodeBuddy can report intermediate whole input objects before the final
 arguments. The latest snapshot supplies the input for the
-[shared activity mappings](../spec/record-stream.md#the-rules).
-ACP input updates preserve the complete JSON, including MCP arguments with a `text` field and inputs over 10,000 characters.
-Output previews retain their existing limit. [Recorded inputs](../../experiments/tool-activity-audit/README.md#follow-up-decisions-and-input-fix).
+[shared activity mappings](../spec/record-stream.md#the-rules). ACP input
+updates preserve the complete JSON, including MCP arguments with a `text` field
+and inputs over 10,000 characters; output previews keep their limit
+([recorded inputs](../../experiments/tool-activity-audit/README.md#follow-up-decisions-and-input-fix)).
 
 ### Usage is not a token ledger
 
@@ -120,7 +124,8 @@ explicit native authorization denial could justify `rejected`; none has been
 verified on this interface.
 
 `authStatus()` reads `initialize.account`: an account object is `logged_in`,
-`null` is `logged_out`, and a missing or unreadable value is `unknown`. A non-empty
+`null` is `logged_out`, and a missing or unreadable value is `unknown`, as is a
+query cancelled or unanswered within its deadline (30 seconds by default). A non-empty
 `CODEBUDDY_API_KEY` overrides this projection: status is `unknown` with
 `configured: ["environment: CODEBUDDY_API_KEY"]`, never an account or key value.
 [env] With a synthetic key, a fresh HOME and a local provider, 2.178.1 returned
@@ -201,22 +206,19 @@ real account login.
 
 ## Consecutive-prompt evidence and transport choice
 
-[env] On 2.181.0 (Linux x64, November 6), two of three immediate stream-json
-samples duplicated the second input; the third timed out after the first
-result. Three one-second-delay controls returned one request per input. The
-immediate ACP control completed both turns, with one conversation request
-per input and two separate title requests. These local-provider results do
-not extend the account observations below.
-[Selected results](../../experiments/runtime-version-checks/2026-11-06.md#codebuddy-21810).
-
-[env] The unchanged standalone stream-json reproduction returned
-`first, second, second` in all three immediate runs, and `first, second` in
-three controls delaying the second input by one second (2.178.1, and again on
-2.179.3 on 2026-11-03, when the immediate ACP control also kept one
-conversation request per input). The custom provider used synthetic
-credentials. Slowing that provider's responses did not remove
-the failure: at 500 ms, two runs duplicated and one timed out after the first
-result; at 1,000 and 2,000 ms, all three runs at each delay duplicated.
+[env] The standalone stream-json reproduction (custom provider, synthetic
+credentials) returned `first, second, second` in all three immediate runs on
+2.178.1 and on 2.179.3 (2026-11-03). On 2.181.0 (Linux x64, 2026-11-06) two of
+three immediate runs duplicated the second input and the third timed out after
+the first result ([selected results](../../experiments/runtime-version-checks/2026-11-06.md#codebuddy-21810)).
+On each version, three controls delaying the second input by one second
+returned one request per input (`first, second`), and on 2.179.3 and 2.181.0
+the immediate ACP control kept one conversation request per input (2.181.0
+completed both turns, with two separate title requests). On 2.178.1, slowing the provider's
+responses did not remove the failure: at 500 ms, two runs duplicated and one
+timed out after the first result; at 1,000 and 2,000 ms, all three runs at each
+delay duplicated. These local-provider results do not extend the account
+observations below.
 
 A separate operator's official-account stream-json controls did not reproduce
 it: four immediate runs (two with partial-message output) and a one-second
