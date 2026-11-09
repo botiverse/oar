@@ -229,38 +229,38 @@ files preserve each experiment's requests; the after-start experiment forced
 
 `manualCompaction` declares support with `activeTurn: "reject"`; opened
 sessions expose [`compact()`](../spec/manual-compaction.md). OAR reads
-`initialize.commands` on this same process, privately consuming account
-fields, requires `compact.builtin === true` with no non-builtin entry of
-the same name, then writes `/compact` with its
-control request UUID. It waits for that command's start, a root manual
-`compact_boundary`, and the matching `result.user_message_uuid`. A normal
-result alone is not evidence. Native `system/status.compact_result: "failed"`
-wins even when the ordinary result is success. `commands_changed` between
-validation and the boundary makes the result `failed` / `command_changed`.
+`initialize.commands` on this same process (consuming its account fields
+privately), requires `compact.builtin === true` with no non-builtin entry of
+the same name, then writes `/compact` with its control request UUID. It waits
+for that command's start, a root manual `compact_boundary` and the matching
+`result.user_message_uuid`; a normal result alone is not evidence. Native
+`system/status.compact_result: "failed"` wins even over a successful ordinary
+result, and `commands_changed` between validation and the boundary makes the
+result `failed` / `command_changed`.
 
-Busy sessions are refused: native queued slash commands can be reparsed as
-project or user commands before execution. The idle catalog read/write is
-not atomic, and OAR does not reload or replace user commands. A signal
-already aborted at invocation refuses dispatch. After dispatch, caller timeout
-or signal ends only the wait; the session stays compacting, ordinary prompts
-and repeated compaction are busy, and held queue input runs after native
-completion. Disposal still stops the process. Native failure and resumed
-prompt replacement are covered by the [control regressions](../../sea-trial/vendor/manual-compaction.vendor.test.ts).
+Busy sessions are refused, because native queued slash commands can be
+reparsed as project or user commands before execution. The idle catalog read
+and write are not atomic, and OAR does not reload or replace user commands. A
+signal already aborted at invocation refuses dispatch. After dispatch, a
+caller timeout or signal ends only the wait: the session stays compacting,
+ordinary prompts and repeated compaction are busy, and held queue input runs
+after native completion. Disposal still stops the process. Native failure and
+resumed prompt replacement are covered by the
+[control regressions](../../sea-trial/vendor/manual-compaction.vendor.test.ts).
 
 A queued compact cancelled through native `command_lifecycle: cancelled`
 returns `aborted`. After the command starts, `abort()` still sends interrupt,
-but Claude reports the interrupted compaction as `compact_result: failed`;
+but Claude reports the interrupted compaction as `compact_result: failed`, so
 OAR returns `failed/native_failed` with that frame, without classifying its
-error text. The ordinary turn's `aborted` outcome follows OAR's existing
-cancellation convention and does not change this compaction result.
+error text; the ordinary turn's `aborted` outcome follows OAR's cancellation
+convention and does not change this compaction result.
 
 The [same-session initialize control](../../experiments/manual-compaction/claude-initialize-effects.ts)
 on 2.1.316 repeated the provenance query three times: SessionStart and MCP
-initialization each remained at one, the changed permission mode stayed
-`plan`, and settings, system instructions and tools were unchanged. A
-catalog containing both builtin and non-builtin `compact` entries is
-refused. Query failure/timeout is distinct from a command override; disposal
-ends the wait and prevents a late response or dispatch.
+initialization each stayed at one, the changed permission mode stayed
+`plan`, and settings, system instructions and tools were unchanged. Query
+failure or timeout is distinct from a command override; disposal ends the
+wait and prevents a late response or dispatch.
 
 ### Prompt, steering, queueing, and abort
 
@@ -546,8 +546,9 @@ state). With 2.1.293, a background Task against the scripted provider
 reported complete child thinking/text blocks after the root result, but no
 child `stream_event` frames. The partial-output flag does not make that
 native child path incremental; its completed blocks remain the source of
-child events. There is no separate child session handle; `stopTask` addresses a native task ID. A subagent's spend is in the session
-total but has no `byAgent` entry of its own: it is `unattributed`
+child events. There is no separate child session handle; `stopTask`
+addresses a native task id ([task control](#native-task-control)). A
+subagent's spend is in the session total but has no `byAgent` entry of its own: it is `unattributed`
 ([tokens](#token-totals)). The interleaving of concurrent children is
 **unverified**. [Native subagents][native-subagents].
 
@@ -688,22 +689,22 @@ Replace/append instructions map to `--system-prompt-file` and
 `--append-system-prompt-file`; native harness metadata may remain alongside
 replacement text. The vendor test checks that the configured instructions
 survive manual `/compact`.
-On resume, Claude 2.1.316 initially sends its saved prompt snapshot. New
-`systemPrompt` and `appendSystemPrompt` values are accepted and forwarded,
-but apply only after the next native compaction replaces that snapshot.
-If either is omitted, its saved value lasts only until compaction, then the
-new-session default applies. **Pass the current prompts on every open** to
-retain them after compaction. This includes repeated text; OAR neither compares
-values nor rewrites history. `Runtime.resumedSessionOptions` declares both
-options as `next_compaction` / `saved_until_compaction`.
+On resume, Claude 2.1.316 first sends its saved prompt snapshot. New
+`systemPrompt` and `appendSystemPrompt` values are accepted and forwarded but
+apply only after the next native compaction replaces that snapshot; an
+omitted one keeps its saved value only until compaction, then the new-session
+default applies. **Pass the current prompts on every open** to retain them
+after compaction, repeated text included; OAR neither compares values nor
+rewrites history. `Runtime.resumedSessionOptions` declares both options as
+`next_compaction` / `saved_until_compaction`
+([resume contract](../spec/runtime-matrix.md#resumed-session-options)).
 
-The earlier [pre-compaction observation](../../experiments/runtime-version-checks/2026-10-23.md#resumed-system-prompts)
-led to a refusal that omitted this later effect. The
-[revised regression](../../sea-trial/vendor/resume-system-prompt.vendor.test.ts)
+The [regression](../../sea-trial/vendor/resume-system-prompt.vendor.test.ts)
 checks supplied and omitted values on the same native session before and
-after `/compact`, with the runtime's `compact_boundary` confirming completion.
-There is no native start frame. See the
-[resume contract](../spec/runtime-matrix.md#resumed-session-options).
+after `/compact`, with the runtime's `compact_boundary` confirming completion
+(there is no native start frame). The earlier
+[pre-compaction observation](../../experiments/runtime-version-checks/2026-10-23.md#resumed-system-prompts)
+missed this later effect and does not justify refusing the options.
 [Adapter](../../packages/oar/src/runtimes/claude/session.ts),
 [vendor test](../../sea-trial/vendor/claude.vendor.test.ts).
 
@@ -1033,8 +1034,8 @@ before any text arrives (except when a host prompt was written just before
 that init: then the start is reported in the prompt's `queued` frame, after
 its `input_queued`, [above](#prompt-steering-queueing-and-abort)). `TaskStop` instead yields a `killed` patch and a
 `stopped` notification, both mapped to stopped; the recorded stopped run had
-no notification usage and no spontaneous turn. OAR now exposes host
-[`stopTask`](#native-task-control); workflow-specific host stops remain unverified.
+no notification usage and no spontaneous turn. Host stops go through
+[`stopTask`](#native-task-control), unverified for workflow tasks.
 
 Evidence: Claude 2.1.292, a temporary HOME and a scripted provider with a
 synthetic API key, no account. Three original recordings pin
@@ -1779,9 +1780,9 @@ See [reader environments](../spec/orientation.md#environment).
 ## Native task control
 
 `stopTask(taskId)` sends native `stop_task`, records its acknowledgement,
-and leaves the root turn and siblings alone. Task completion remains the native
-notification. Claude 2.1.318 accepted an unknown ID too; never treat accepted as
-proof of existence or termination. Linux controls covered background Bash and
-foreground Agent tasks, a surviving sibling and a later parent prompt.
+and leaves the root turn and siblings alone. Task completion remains the
+native notification. Claude 2.1.318 also accepted an unknown id, so accepted
+never proves existence or termination. Linux controls covered background
+Bash and foreground Agent tasks, a surviving sibling and a later parent prompt.
 
 [Native evidence and reproducible probes](../../experiments/task-controls/README.md).

@@ -23,7 +23,8 @@ workspaces, permission mode, model family and thought level. Native
 `session/list`, `session/close` and config options provide the host controls.
 The CLI also has interactive and stream-json entry points; OAR uses ACP.
 
-On 1.5.0, initialize reports `protocolVersion: 1`, `agentInfo` named
+On 1.5.0, initialize ([November 4 probe](../../experiments/runtime-version-checks/2026-11-04.md#agy-cli-150-new-public-acp-entry-point))
+reports `protocolVersion: 1`, `agentInfo` named
 `Antigravity ACP Server`, load/resume/list/close and additional-directory
 capabilities, image and embedded-context support, and native system-prompt
 append metadata. HTTP MCP is advertised with `--process-per-session`;
@@ -36,12 +37,6 @@ CLI with `--dangerously-skip-permissions` under the host-approved tools
 contract; it does not select `yolo`, which the new CLI does not offer.
 The CLI uses its existing configuration and login. OAR sends no synthetic
 `authenticate` request.
-
-The [November 4 probe](../../experiments/runtime-version-checks/2026-11-04.md#agy-cli-150-new-public-acp-entry-point)
-verified only the new CLI ACP initialize response. The November 5 migration
-report above adds session and control evidence. The older CLI/service
-comparison remains [dated evidence](../../experiments/antigravity-steering-2026-10-29.md),
-not a description of the current adapter.
 
 ## High-level mapping to OAR
 
@@ -58,7 +53,7 @@ Control calls have request/response records.
 | Cancel and dispose | `session/cancel`; native close when available during disposal, then owned process-tree cleanup. |
 | Model and effort | Native config responses and updates; selectors `model` and `thought_level`. |
 | Child attribution | `opaque`. No verified CLI child identity mapping; OAR does not invent child sessions or turn ids. |
-| Compaction | The CLI advertises `/compact`, but no structured completion/attribution contract has been verified. No `Session.compact` member. |
+| Compaction | The CLI advertises `/compact`, but no structured completion/attribution contract has been verified. `manualCompaction` is declared `unsupported`; no `Session.compact` member. |
 
 Implementation: [profile](../../packages/oar/src/runtimes/antigravity/session.ts),
 [ACP session kernel](../../packages/oar/src/shared/acp/session.ts),
@@ -169,9 +164,7 @@ lost when their owning OAR process exits.
 `stopReason: "cancelled"` produces an aborted turn. Other stop reasons map
 to completion. The common ACP fallback terminates the owned process when
 native cancellation does not settle within ten seconds. The behavior suite
-checks cancellation and disposal with the CLI/local provider; the old
-service's real-shell cancellation timings are historical evidence, not a
-claim about CLI 1.5.0.
+checks cancellation and disposal with the CLI/local provider.
 
 ### Observation, children, and history
 
@@ -196,9 +189,7 @@ an error. See the versioned
 `listModels()` initializes ACP and opens a temporary session without a
 prompt, reads its model selector, and terminates the process. It requests
 `session/close` only when advertised; a close failure does not discard an
-already obtained catalog.
-Startup, native configuration and account/catalog network access remain
-possible. It is not a local auth-status query.
+already obtained catalog ([query costs](#orientation-query-costs)).
 
 1.5.0 reports grouped model ids such as `gemini-3.8-flash`, with a separate
 `thought_level` config option in category `thought_level`. OAR selects each
@@ -332,8 +323,7 @@ not flags for the retired Python archive.
 
 ## Additional directories
 
-Non-empty `additionalDirectories` remains refused, for a newly measured
-reason. CLI 1.5.0 advertises and adds workspace roots, but can select an extra
+Non-empty `additionalDirectories` is refused. CLI 1.5.0 advertises and adds workspace roots, but can select an extra
 root as the command working directory. With process and session cwd
 `z-original` plus extra root `a-extra`, native `session/list` and an actual
 `run_command` running `pwd` both reported `a-extra`. Without the extra root
@@ -351,18 +341,23 @@ schema channel through this adapter; tool parameter schemas are unrelated.
 mechanism separates user configuration from login and session history.
 Omission and `"include"` retain native configuration.
 
+## Other refused options
+
+`goals`, `endTurnProcessesOnAbort`, `serviceTier` and `name` are refused
+before launch: this adapter has no verified native channel for them
+([declarations](../../packages/oar/src/runtimes/antigravity/options.ts)).
+
 ## Orientation query costs
 
 Model listing creates a temporary native session, and can do native
 configuration or account/catalog I/O, but submits no prompt. There is no
-local auth-status reader or substitute login flow. Installation and model
-listing accept the session-style env overlay for discovery and native
-queries ([reader environments](../spec/orientation.md#environment)).
+local auth-status reader or substitute login flow.
 
 ## Reader environment
 
 `OAR_ANTIGRAVITY_BIN`, HOME and native config variables in the env overlay
-apply to installation and model listing just as to sessions. An overlay
+apply to installation and model listing just as to sessions
+([reader environments](../spec/orientation.md#environment)). An overlay
 never rewrites the host process environment.
 
 ## Verification and open gaps
@@ -373,8 +368,8 @@ The local behavior suite covers prompt, steer, queue, cancellation, resume,
 models, images and disposal as applicable. Required CI installs the pinned
 CLI 1.5.0 archive on Linux, macOS and Windows, verifies its SHA-512, and runs
 the behavior and vendor suites with an isolated home and local provider.
-The manual sharing-evidence workflow uses the same installer. Local Linux
-results are distinct from the pending PR's native Windows/macOS results.
+The manual sharing-evidence workflow uses the same installer. The local
+Linux results do not stand in for CI's macOS/Windows runs.
 Real-account inference and login, reliable child identity links, usage,
 structured compaction and concurrent same-id controllers remain unverified.
 

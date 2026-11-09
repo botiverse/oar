@@ -2,46 +2,46 @@
 
 OAR uses Qoder's native bidirectional JSON-line SDK protocol, with one
 owned process per open session. From 1.1.81, OAR uses `--sdk` and the official
-SDK's daemon protocol, verified on October 29, 2026
-([evidence and reproduction](../../experiments/qoder-native/daemon-2026-10-29.md)).
-Qoder 1.1.78 through 1.1.80 use `--print --input-format stream-json
---output-format stream-json` and the native stdio permission flag. That worker
-interface was probed on 1.1.78, Linux, on October 23, 2026. The last worker
-release, **1.1.80**, passed eight native cases, 17 shared behavior cases (two
-skipped) and eight native priority controls on October 28, using separate
-settings files ([report](../../experiments/runtime-version-checks/2026-10-28.md#qoder-1180)).
-Those replay checks used no real account or paid provider. The
-[model-selection probe](../../experiments/qoder-native/model-selection-report.md)
+SDK's daemon protocol (verified 2026-10-29,
+[evidence and reproduction](../../experiments/qoder-native/daemon-2026-10-29.md)).
+Qoder 1.1.78 through 1.1.80 use the worker interface: `--print --input-format
+stream-json --output-format stream-json` and the native stdio permission flag
+(probed on 1.1.78, Linux, 2026-10-23). The last worker release, **1.1.80**,
+passed eight native cases, 17 shared behavior cases (two skipped) and eight
+native priority controls on 2026-10-28 with separate settings files, using no
+real account or paid provider
+([report](../../experiments/runtime-version-checks/2026-10-28.md#qoder-1180)).
+The [model-selection probe](../../experiments/qoder-native/model-selection-report.md)
 uses an existing login for catalog reads and opens, without a model prompt.
 
-Latest check, **1.1.85** (Linux x64, November 7): native cache/live catalogs
-and init confirm the selected `efficient` model and OAR opens successfully.
-This uses the verified ModelProvider mapping introduced by
-[PR #624](https://github.com/botiverse/oar/pull/624); its earlier controls cover
-`modelId` and unique display names ([evidence](../../experiments/qoder-native/model-provider-2026-11-05.md)).
-The separate permission replay still returns HTTP 500 before any permission
-request, and the full replay suite fails. CI stays on 1.1.81 with unchanged
-assertions ([latest check](../../experiments/runtime-version-checks/2026-11-07.md#qoder-1185)).
-The [1.1.83 DeepSeek BYOK probe](../../experiments/qoder-deepseek/README.md)
-verifies inference, Read/Write and resume on that version only. It does not
-verify execution on 1.1.85 or first-party subscription behavior.
+Latest check, **1.1.85** (Linux x64, 2026-11-07): cache and live catalogs and
+init confirm the selected `efficient` model through the ModelProvider mapping
+([PR #624](https://github.com/botiverse/oar/pull/624)), and OAR opens. The
+permission replay still returns HTTP 500 before any permission request and
+the full replay suite fails, so CI stays on 1.1.81
+([latest check](../../experiments/runtime-version-checks/2026-11-07.md#qoder-1185);
+see [Evidence and limits](#evidence-and-limits)).
 
 ## Manual compaction
 
 `compact()` is idle-only and sends the native built-in `/compact` with the OAR
-request id as its command UUID. Qoder 1.1.81 intercepts this built-in before
-custom commands. OAR requires that command's started lifecycle, a root manual
-`compact_boundary`, and its completed/cancelled lifecycle. Results carry no
-input UUID, so an ordinary successful result cannot prove compaction.
-Empty history ends without a boundary and returns `failed / not_compacted`.
-A completed boundary remains `completed` if cancellation arrives later; the
-ordinary result remains its own native fact (success in the measured race).
+request id as its command UUID; Qoder 1.1.81 intercepts this built-in before
+custom commands. Results carry no input UUID, so an ordinary successful result
+cannot prove compaction. OAR requires the command's started lifecycle, a root
+manual `compact_boundary`, and its completed or cancelled lifecycle:
+
+- Boundary seen: `completed`, even if cancellation arrives later. The ordinary
+  result remains its own native fact (success in the measured race).
+- Cancelled without a boundary: `aborted`. A native error result:
+  `failed / native_failed`.
+- Otherwise, including empty history: `failed / not_compacted`.
+
 `queue()` is retained until the command settles. The compact request carries
 `settledBy: "native_response"`; exact `command_uuid` equality attaches
-`responseTo` to its terminal lifecycle. That frame releases the input gate
-and compacting status together, even without an ordinary result. Earlier
-turn and compaction events stay in place and do not release the operation. Native `system/status
-compacting` projects the start without an inferred trigger.
+`responseTo` to its terminal lifecycle, and that frame releases the input gate
+and compacting status together, even without an ordinary result. Earlier turn
+and compaction events stay in place and do not release the operation. Native
+`system/status compacting` projects the start without an inferred trigger.
 [Controls and evidence](../../experiments/manual-compaction-followup-2026-11-02.md).
 
 ## Transport versions
@@ -50,7 +50,7 @@ compacting` projects the start without an inferred trigger.
 `sdk_worker_removed`. Removing `--permission-prompt-tool stdio` from ordinary
 headless stream-json is insufficient: that path accepts user input but no
 longer processes the SDK's `initialize` control. This is an intentional
-transport removal. On October 29, the published official
+transport removal. On 2026-10-29, the published official
 `@qoder-ai/qoder-agent-sdk` 1.0.56 still bundled CLI 1.1.78 and its default
 process transport still used the old flags; its public `startDaemon()` already
 used `--sdk`. OAR follows that public entry point and protocol, without adding
@@ -63,12 +63,12 @@ refuses opening and closes the process. Session messages and permission replies
 carry their native `session_id`. Model reads move to `daemon.get_models`, an
 account-level query without a session id, with the same catalog payload. Its
 private replies, including late duplicates, remain outside public records.
-An unreadable or non-stable CLI version refuses opening explicitly as a
-version compatibility error instead of guessing a permission transport.
 If installation metadata omits the version, launch reads `--version` once in
-the session environment. That same stable-version decision selects the transport
-and model-catalog format; confirmation and listing do not independently probe or
-guess a version.
+the session environment. That one stable-version decision selects both the
+transport (daemon from 1.1.81) and the model-catalog format (ModelProvider from
+1.1.82); confirmation and listing do not probe or guess a version separately.
+An unreadable or non-stable version refuses opening as a version compatibility
+error instead of guessing a permission transport.
 
 The daemon uses the child environment's personal access token or service-account
 key when supplied, otherwise the native local `qodercli` login. A service-account
@@ -138,13 +138,13 @@ identity, organization data or authentication material.
 | Surface | Mapping and boundary |
 | --- | --- |
 | Session | Native session UUID; `--resume` opens its saved conversation. A missing id is refused, without creating a replacement. |
-| Model and effort | `--model` accepts the catalog's `value` (`ModelEntry.id`). Through 1.1.81, a differing init name must match `serverModel.display_name`. From 1.1.82, every explicit choice requires exact `value`/`modelId` equality and a unique, nonempty `displayName` matching init in the same process's catalog. The verified name is `resolvedId` when different from `id`; `model()` retains init verbatim. `--reasoning-effort` is confirmed by applied settings. A startup failure includes the requested effort as context, without claiming it caused the failure; a later model-confirmation error keeps its model-specific reason. Failure to confirm an explicit choice refuses opening. |
+| Model and effort | `--model` accepts the catalog's `value` (`ModelEntry.id`), confirmed against init in the same process's catalog ([version-dependent rules](#model-confirmation)). The verified name is `resolvedId` when different from `id`; `model()` retains init verbatim. `--reasoning-effort` is confirmed by applied settings. A startup failure includes the requested effort as context, without claiming it caused the failure; a later model-confirmation error keeps its model-specific reason. Failure to confirm an explicit choice refuses opening. |
 | Prompt and abort | Correlated native controls and lifecycle evidence. A cancelled unstarted input becomes `input_dropped`; input-scoped waits resolve it without inventing `turn_ended`. |
 | Queue and withdrawal | OAR holds queued input until the current turn ends, so withdrawal remains possible. This queue is not durable across process loss. |
 | Steer | A user message with native `priority: next` inserts at a tool boundary or starts after a text-only turn. The user echo preserves `inputId`; acceptance only confirms the write. Native `now` aborts the active turn and is not used for steering. [Priority evidence](../../experiments/qoder-native/README.md#input-priority-2026-10-24). |
 | MCP | Native stdio and HTTP servers through a private per-process configuration file. Credentials are omitted from argv and redacted from public records. |
 | System and tools | Native system/append prompt files, additional-directory and disallowed-tool startup flags. Native global configuration still applies. |
-| Unsupported options | `serviceTier`, `outputSchema` and persisted session `name` are explicitly refused. Image input is refused. |
+| Unsupported options | `goals: true`, `endTurnProcessesOnAbort: true`, `serviceTier`, `outputSchema`, persisted session `name` and `userConfiguration: "exclude"` ([below](#user-configuration-selection)) are explicitly refused. Image input is refused. `launchArgs` cannot override OAR-owned protocol, session, permission, effort, name or replay flags. |
 | Cleanup | EOF permits normal idle shutdown; active disposal and bounded shutdown use process-tree cleanup. Native exit is recorded. |
 
 System prompts use `--system-prompt-file` and `--append-system-prompt-file`.
@@ -172,11 +172,11 @@ not a successful remote-provider call. The same two OAR steering cases passed
 on [Windows](https://github.com/botiverse/oar/actions/runs/40053017848/job/120749644261)
 and [macOS](https://github.com/botiverse/oar/actions/runs/40053017848/job/120749644019)
 at `b239c35`, alongside all six existing native Qoder cases and the shared
-behavior suite. An [initial Windows run](https://github.com/botiverse/oar/actions/runs/40050232565/job/120741056271)
+behavior suite. An [earlier Windows run](https://github.com/botiverse/oar/actions/runs/40050232565/job/120741056271)
 passed both steering cases but failed an older effort test after native
 completion and exit, while fixture cleanup still counted against the
 whole-test deadline (its exact remaining cost was not measured); cleanup now
-uses the separate bounded hook described below.
+uses the separate bounded hook described [below](#concurrent-startup-observations).
 
 The steer's accepted response means the input was written, not consumed.
 The user echo confirms the runtime observed that input. Since steer writes do
@@ -240,35 +240,33 @@ details returned by this command never leave the private query.
 
 ## Evidence and limits
 
-Required CI pins `@qoder-ai/qodercli@1.1.81` on Linux, macOS and Windows.
-The complete required execution suite therefore covers versions only through
-1.1.81. From 1.1.82, the native replay path no longer drives the scripted
-inference used by the suite, so a
-model-catalog compatibility fix alone cannot restore these checks. Assertions
-and timeouts remain unchanged. Lift the pin only after native replay works
-again, or an officially supported local provider passes all native cases.
-Daily version probes continue to run the latest release and report differences;
-they do not turn failed probes into execution-level coverage.
+Required CI pins `@qoder-ai/qodercli@1.1.81` on Linux, macOS and Windows, so
+the complete required execution suite covers versions only through 1.1.81.
+From 1.1.82, the native replay path no longer drives the suite's scripted
+inference, so a model-catalog compatibility fix alone cannot restore these
+checks. Assertions and timeouts remain unchanged. Lift the pin only after
+native replay works again, or an officially supported local provider passes
+all native cases. Daily version probes run the latest release and report
+differences; they do not turn failed probes into execution-level coverage.
 
-A separate [November 5 real-flow probe](../../experiments/qoder-deepseek/README.md)
+A separate [2026-11-05 real-flow probe](../../experiments/qoder-deepseek/README.md)
 passed inference, native Read/Write tools and cross-process resume on Linux
-x64 with Qoder 1.1.83, OAR `4fd225c8`, an existing Free-account login and a
-DeepSeek pay-as-you-go API key. Bugen reported three submissions and removal
-of the temporary BYOK configuration. This is the first passing execution
-sample since 1.1.82; it covers those three flows, not the complete native
-suite or cancellation. First-party models, subscription quota and rate
-limits remain unverified. The manual probe does not enter CI or lift its pin.
+x64 with Qoder **1.1.83 only**, OAR `4fd225c8`, an existing Free-account login
+and a DeepSeek pay-as-you-go API key (Bugen reported three submissions and
+removal of the temporary BYOK configuration). It is the first passing execution sample
+since 1.1.82 and covers those three flows, not the complete native suite,
+cancellation or 1.1.85. First-party models, subscription quota and rate limits
+remain unverified. The manual probe does not enter CI or lift its pin.
 
 The official Unix installation and login URL/cancellation paths were checked
 in isolated homes; an existing-machine login completed and its status was
 confirmed. Successful conversations, consecutive turns, resume, effort, MCP
 and the shared behavior suite used the real 1.1.78 binary with its native
-fake-response reader and a fresh home. They did not use account quota.
-The fake reader exercises the native agent loop but is not evidence of a
-particular remote provider's behavior. First-party conversation
-and resume remain unverified after the Credits rejection; the later DeepSeek
-BYOK result above uses a different credential path. Reproduction
-commands and the first failures are recorded in
+fake-response reader and a fresh home, without account quota. The fake reader
+exercises the native agent loop but is not evidence of a particular remote
+provider's behavior. First-party conversation and resume remain unverified
+after the Credits rejection; the DeepSeek BYOK result uses a different
+credential path. Reproduction commands and the first failures are recorded in
 [the native evidence guide](../../experiments/qoder-native/README.md).
 
 ### Concurrent startup observations
@@ -313,52 +311,53 @@ deadlines; it does not show that product behavior under concurrency is free of
 problems, and it is not sufficient evidence of stable startup. Retained CI
 observations, whose causes are not established:
 
-- Unbounded (1.1.78, 19 cases on `windows-latest`; skipped and query-only cases
-  do not all create sessions, and the simultaneous process count was not
-  recorded): the [first run](https://github.com/botiverse/oar/actions/runs/40003398891/job/120585055716)
+- Unbounded (1.1.78, 19 cases on `windows-latest`; not every case creates a
+  session, and the simultaneous process count was not recorded): the
+  [first run](https://github.com/botiverse/oar/actions/runs/40003398891/job/120585055716)
   exceeded the 15,000 ms native `--help` probe deadline; an
   [unchanged rerun](https://github.com/botiverse/oar/actions/runs/40003398891/job/120596276045)
   completed installation discovery but session opens exceeded the 30,000 ms
-  `initialize` deadline. A later [Linux run](https://github.com/botiverse/oar/actions/runs/40012665488/job/120616724600)
-  also exceeded the 15,000 ms help deadline during unbounded startup, despite
-  an earlier Linux pass, so this is not established as Windows-specific.
-- Two concurrent cases: a [controlled Windows comparison](https://github.com/botiverse/oar/actions/runs/40011070963/job/120611286021)
-  ran one cold initialization, five serial native cases, then the behavior
-  suite; initialize answered 9.427 seconds after the request (13.713 seconds
-  including discovery and startup), the serial cases took 126.89 seconds in
-  total, and all applicable behavior cases passed with their original
-  assertions and deadlines. A [controlled Linux comparison](https://github.com/botiverse/oar/actions/runs/40014865655/job/120624217871)
-  passed the same sequence; initialize took 6.979 seconds from the request,
-  or 9.957 seconds including discovery and startup.
+  `initialize` deadline. A later
+  [Linux run](https://github.com/botiverse/oar/actions/runs/40012665488/job/120616724600)
+  also exceeded the help deadline during unbounded startup, despite an earlier
+  Linux pass, so this is not established as Windows-specific.
+- Two concurrent cases, controlled sequence (one cold initialization, five
+  serial native cases, then the behavior suite):
+  [Windows](https://github.com/botiverse/oar/actions/runs/40011070963/job/120611286021)
+  initialize answered 9.427 seconds after the request (13.713 seconds including
+  discovery and startup), the serial cases took 126.89 seconds in total, and
+  all applicable behavior cases passed with original assertions and deadlines;
+  [Linux](https://github.com/botiverse/oar/actions/runs/40014865655/job/120624217871)
+  passed with initialize at 6.979 seconds (9.957 seconds including discovery
+  and startup).
 - An earlier two-case Windows run completed the shared behavior suite, but
   one native effort test reached its 45-second test deadline
-  ([job](https://github.com/botiverse/oar/actions/runs/40012665488/job/120616724464));
-  its records include a successful native result and process exit before
-  that deadline and do not establish which later phase consumed the remaining
-  time. On the same revision, macOS exceeded the old `--help` installation
-  deadline ([job](https://github.com/botiverse/oar/actions/runs/40012665488/job/120616724355)).
-  The single-version installation query removes the extra help invocation;
-  it is not evidence that every observed CI timeout is solved.
-- With the single-version query, a [Windows run](https://github.com/botiverse/oar/actions/runs/40021337004/job/120646366145)
-  still failed three behavior cases at the 30-second initialize deadline with
-  two active cases. That trace retained no startup stderr or native logs. The
-  replay fixture now retains native startup logs in CI artifacts, and Qoder CI
-  forwards child stderr; these diagnostics use only isolated, unauthenticated
-  replay homes and added no retry, deadline increase or further concurrency
-  reduction.
+  ([job](https://github.com/botiverse/oar/actions/runs/40012665488/job/120616724464))
+  after a successful native result and process exit; the phase consuming the
+  remaining time is not established. On the same revision, macOS exceeded the
+  old `--help` installation deadline
+  ([job](https://github.com/botiverse/oar/actions/runs/40012665488/job/120616724355)).
+  The single `--version` installation query removes the extra help call; it is
+  not evidence that every observed CI timeout is solved.
+- With the single-version query, a
+  [Windows run](https://github.com/botiverse/oar/actions/runs/40021337004/job/120646366145)
+  still failed three behavior cases at the 30-second initialize deadline,
+  without startup stderr or native logs. The replay fixture now retains native
+  startup logs in CI artifacts and Qoder CI forwards child stderr, using only
+  isolated, unauthenticated replay homes, with no retry, deadline increase or
+  further concurrency reduction.
 - A [macOS run](https://github.com/botiverse/oar/actions/runs/40023877345/job/120655031487)
-  passed the suite's single installation query, then timed out in concurrent
+  passed the single installation query, then timed out in concurrent
   `--version` queries after 15 seconds, before any session initialized. The
-  two-case CI limit also applies on macOS; the probe deadline is unchanged.
-  The single success and concurrent failures do not establish the underlying
-  cause or show that every cold start will fit the deadline.
-- Windows runs at concurrency two still exceeded the former 30-second
+  two-case limit also applies on macOS; the probe deadline is unchanged. This
+  does not establish the cause or show that every cold start will fit.
+- Windows at concurrency two still exceeded the former 30-second
   initialization bound, including an unchanged rerun of PR #473. Native
   startup logs from [PR #475](https://github.com/botiverse/oar/actions/runs/40040828083)
   repeatedly spent 10 to 15 seconds in `framework.init_builtin_plugins.initialize`;
-  two failed processes had not finished that stage. The same suite HOME was
-  already in use, so these observations do not establish a first-use
-  extraction cost. This delay can affect a real session open as well as tests.
+  two failed processes had not finished that stage. The suite HOME was already
+  in use, so this does not establish a first-use extraction cost. The delay
+  can affect a real session open as well as tests.
 
 `experiments/qoder-startup.ts` and the opt-in CI pre-suite probe compare a fresh
 isolated HOME, a HOME with only `.qoder/.bin` copied, a reused HOME, and two
@@ -387,24 +386,24 @@ inline settings no longer share a path. See the
 [daily report](../../experiments/runtime-version-checks/2026-10-27.md#qoder-1179)
 and the [controls and report draft](../../experiments/qoder-native/inline-settings-report.md).
 
-Fixture cleanup on Windows: in round 1, one native resume test reached its
-whole-test 90-second limit after both native processes had logged normal
-exits; round 2 passed. A missing-session message in the same job belongs to
-the expected negative resume test and is not evidence of a lost conversation.
-The initialize measurements do not explain that test's remaining time. An
+Fixture cleanup on Windows: native vendor tests perform fixture log copying
+and HOME deletion in a separate test-finished hook with a 90-second deadline.
+Native controls, session disposal, behavior assertions and their existing
+test deadlines stay inside the test body. Cleanup still runs on test failure;
+a cleanup rejection or timeout fails CI. An
 [instrumented Windows run](https://github.com/botiverse/oar/actions/runs/40047127596/job/120731316729)
-measured log copying at about 12 to 34 milliseconds, but deletion of
-initialized fixture HOMEs took 21 to 43 seconds after native exit. A
-[subsequent resume failure](https://github.com/botiverse/oar/actions/runs/40048891234/job/120736835381)
-again reached the whole-test limit after all three native turns completed and
-both processes exited successfully; that revision had no cleanup timers, so
-it cannot identify the exact operation consuming its remaining time. The
-native vendor tests now perform fixture log copying and HOME deletion in a
-separate test-finished hook with a 90-second deadline. Native controls,
-session disposal, behavior assertions and their existing test deadlines stay
-inside the test body. Cleanup still runs on test failure; a cleanup rejection
-or timeout fails CI. This separates fixture deletion cost from runtime
-behavior without claiming that every earlier timeout has the same cause.
+measured log copying at about 12 to 34 milliseconds but deletion of
+initialized fixture HOMEs at 21 to 43 seconds after native exit. Before the
+hook, resume tests reached the whole-test 90-second limit after native turns
+completed and processes exited normally (once in round 1, while round 2
+passed, and after all three native turns in a
+[later failure](https://github.com/botiverse/oar/actions/runs/40048891234/job/120736835381)
+without cleanup timers, which cannot identify the exact operation); the
+initialize measurements do not explain that remaining time. A
+missing-session message in such a job belongs to the expected negative resume
+test, not a lost conversation. The hook separates fixture deletion cost from
+runtime behavior without claiming that every earlier timeout has the same
+cause.
 
 ## User configuration selection
 
@@ -422,26 +421,27 @@ therefore skipped by local orientation; it is available at account depth.
 On the daemon transport the catalog request is `daemon.get_models`; on the
 worker transport it remains `get_models`.
 
-Through 1.1.81, an explicit model whose init name differs from the selector adds
-one `get_models` query with `fetchStrategy: cache` in that session's process.
-Only its nonempty `serverModel.display_name` can confirm that mismatch.
-From 1.1.82, the native ModelProvider supplies both init and catalog names:
-every explicit model requires one exact selector entry, `modelId` equal to that
-selector, and a nonempty `displayName` unique across the entire catalog, including
-disabled entries. Even init equal to the selector cannot bypass those checks.
+### Model confirmation
+
+An explicit model is confirmed with a `get_models` query (`fetchStrategy:
+cache`) in that session's process:
+
+| CLI version | Query when | Confirming name |
+| --- | --- | --- |
+| Through 1.1.81 | Init name differs from the selector | The selected entry's nonempty `serverModel.display_name` |
+| From 1.1.82 (ModelProvider) | Every explicit model, even when init equals the selector | Exactly one entry with that `value`, `modelId` equal to it, and a nonempty `displayName` unique across the entire catalog, including disabled entries |
+
 The same mapping supplies `listModels().resolvedId`; an unverified catalog row
-can still be listed but has no inferred `resolvedId`.
+can still be listed but has no inferred `resolvedId`. If the cache cannot
+establish the mapping, OAR reads once more with `fetchStrategy: live`. A
+verified but different init name refuses opening immediately, without a live
+read; a live catalog still lacking a valid, unambiguous mapping also refuses
+opening. No names are normalized. Omitted models need no query. Each read
+keeps the normal 30-second control deadline; a query error or timeout closes
+the process without retrying. There is no second listing process, and private
+replies do not enter public records.
 
-If the cache cannot establish that mapping, OAR reads once more with
-`fetchStrategy: live`. A verified but different init name refuses opening
-immediately, without a live read. A live catalog that still lacks a valid,
-unambiguous mapping also refuses opening. No names are normalized. Omitted
-models need no confirmation query, and legacy direct init matches retain that
-behavior. Each read keeps the normal 30-second control deadline; a query error
-or timeout closes the process without retrying. There is no second listing
-process, and private replies do not enter public records.
-
-[src, env] The [November 5 controls](../../experiments/qoder-native/model-provider-2026-11-05.md)
+[src, env] The [2026-11-05 controls](../../experiments/qoder-native/model-provider-2026-11-05.md)
 assert the actual `modelId`/selector/name fields on 1.1.82 and 1.1.83 without
 submitting a prompt. An independent Free-account 1.1.83 read confirmed the
 enabled `qfmodel` selector and init name `Qwen3.8-Flash`; all 15 catalog display
@@ -477,10 +477,10 @@ and preserves native duplicate notifications. It does not invent a background
 flag or child session ID. `stopTask(taskId)` sends native `stop_task`; only
 the task notification establishes completion, not the control success.
 
-A Free login with a DeepSeek pay-as-you-go custom model supplied the real
-foreground/background stop evidence. It was not a Qoder first-party plan.
-The target stopped and its peer completed. The probe's later parent prompt
-was not reliably correlated; an additional native error result lacked saved
-details. That outcome remains unconfirmed, not a claimed parent success.
+The real foreground/background stop evidence used a Free login with a
+DeepSeek pay-as-you-go custom model, not a Qoder first-party plan: the target
+stopped and its peer completed. The probe's later parent prompt was not
+reliably correlated and an additional native error result lacked saved
+details, so that outcome remains unconfirmed, not a claimed parent success.
 
 [Native evidence and reproducible probes](../../experiments/task-controls/README.md).

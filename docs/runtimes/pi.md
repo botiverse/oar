@@ -115,19 +115,20 @@ Node executable with Pi's exported `@earendil-works/pi-coding-agent/rpc-entry`,
 not a second OAR SDK host. An explicit `command` is one executable path or PATH
 name; `args` are literal prefix arguments, not shell text. The selected command
 must implement Pi's `--version` and `--mode rpc` CLI behavior. It is checked at
-each open before extensions or a session start. The default entry must match
-OAR's installed Pi dependency exactly. An explicit command accepts stable Pi
-**1.4.0 or newer**, based on native RPC controls against 1.4.0 and 1.5.0 with
-OAR embedding 1.5.0 on Linux x64. The `pi-rpc-minimum` Ubuntu CI job runs the
-behavior and vendor suites against a separate, pinned 1.4.0 CLI. Explicit old
-versions remain unverified on macOS and Windows. The session's own extension
-reports its version again and uses the same rule. A missing, unparsable or
-too-old version throws
-`RuntimeFailureError` with `failure: "invalid_request"` and the actual and
-required versions in its reason ([native evidence](../../experiments/pi-rpc-version-floor-2026-11-05.md)). Newer explicit commands do not need an OAR
-release just to pass admission; this is a compatibility floor, not a claim that
-every future release has been tested. Daily inspection exercises the latest
-explicit command and records any protocol or behavior changes.
+each open before extensions or a session start: the default entry must match
+OAR's installed Pi dependency exactly, and an explicit command must be stable
+Pi **1.4.0 or newer**. The floor rests on native RPC controls against 1.4.0 and
+1.5.0 with OAR embedding 1.5.0 on Linux x64, and the `pi-rpc-minimum` Ubuntu CI
+job runs the behavior and vendor suites against a pinned 1.4.0 CLI; explicit
+older versions are unverified on macOS and Windows. The session's own
+extension reports its version again under the same rule. A missing,
+unparsable or too-old version throws `RuntimeFailureError` with
+`failure: "invalid_request"` and the actual and required versions in its
+reason ([native evidence](../../experiments/pi-rpc-version-floor-2026-11-05.md)).
+A newer explicit command passes admission without an OAR release; this is a
+compatibility floor, not a claim that every future release was tested. Daily
+inspection exercises the latest explicit command and records protocol or
+behavior changes.
 A single-file host without a separate Node executable must provide a command.
 
 With a normal package tree OAR reads the dependency's package metadata directly.
@@ -465,26 +466,26 @@ continues. [Evidence](../../experiments/input-interruption-2026-10-08.md).
 
 SDK and RPC sessions expose [`compact()`](../spec/manual-compaction.md) and
 declare `activeTurn: "reject"`. The adapter calls native `AgentSession.compact()`
-or RPC `compact`, accepts on the manual start event, and waits for the native
-manual end. Automatic boundaries cannot finish this operation. Native errors
-and cancellation retain their failed/aborted meaning. A rejected SDK promise
-after admission also supplies native failure evidence if no end event arrived
-and the session is still reachable. A transport error is not such evidence;
-disposal or process exit never produces a synthetic compaction terminal.
+or RPC `compact`, accepts on the manual start event and waits for the native
+manual end; automatic boundaries cannot finish it. Native errors and
+cancellation keep their failed/aborted meaning. A rejected SDK promise after
+admission also counts as native failure evidence if no end event arrived and
+the session is still reachable; a transport error does not, and disposal or
+process exit never produces a synthetic compaction terminal.
 
-Both paths refuse busy dispatch because the native entry can abort an active
-run. A signal already aborted at the call refuses dispatch. After dispatch,
-caller timeout/signal only stops waiting; status remains compacting,
+Both paths refuse dispatch while busy, because the native entry can abort an
+active run, and refuse a signal already aborted at the call. After dispatch, a
+caller timeout or signal only stops waiting: status stays compacting,
 prompt/steer/repeated compact are busy, and queue input is held until native
-settlement. RPC compact has no ordinary 30-second transport deadline;
-`abort()` uses Pi's full native cancellation path, including manual
-compaction, and preserves the native aborted/failed outcome. Before native
-admission it refuses `busy` rather than claiming there is no operation.
-`dispose()` remains available to stop the session. Pi Durable remains
-undeclared, pending task/submission application correlation. The
+settlement. RPC compact has no ordinary 30-second transport deadline.
+`abort()` uses Pi's full native cancellation path, manual compaction included,
+and preserves the native aborted/failed outcome; before native admission it
+refuses `busy` rather than claiming there is no operation. `dispose()` still
+stops the session. Pi Durable does not declare it, pending task/submission
+application correlation. The
 [native control regression](../../sea-trial/vendor/manual-compaction.vendor.test.ts)
 covers SDK/RPC completion, resumed prompts, failure and lifecycle boundaries
-on Pi 1.5.0, with earlier 1.4.0 observations retained in the
+on Pi 1.5.0; 1.4.0 observations are in the
 [validation report](../../experiments/manual-compaction-2026-11-02.md).
 
 ### Prompt, steering, queueing, and abort
@@ -493,13 +494,13 @@ on Pi 1.5.0, with earlier 1.4.0 observations retained in the
 `AgentSession.prompt(text)`. The response is `accepted` on that invocation's
 native `started` or `handled` preflight receipt, or `rejected`
 (`runtime_refused`, with pi's own message) when the promise rejects first
-(e.g. "Cannot submit a prompt while compaction is in progress"). A run that
-has native run evidence ends at pi's `agent_settled`, whose `turn_ended` event
-carries completed, aborted or failed. Evidence includes message, tool and turn
-activity even if a `session_start` extension ran before OAR subscribed and its
-`agent_start` was missed. Settlement without any run evidence emits no turn end,
-including when its native `aborted` flag is true. `agent_end` is recorded but does not end
-the turn: pi runs threshold compaction and auto-retries between `agent_end`
+(e.g. "Cannot submit a prompt while compaction is in progress"). A run with
+native run evidence (message, tool or turn activity, even when a
+`session_start` extension started it before OAR subscribed and its
+`agent_start` was missed) ends at pi's `agent_settled`, whose `turn_ended`
+event carries completed, aborted or failed. Settlement without any run
+evidence emits no turn end, even with native `aborted: true`. `agent_end` is
+recorded but does not end the turn: pi runs threshold compaction and auto-retries between `agent_end`
 and `agent_settled` and refuses prompts meanwhile (pinned with the pi-aimock
 compaction recipe in the [vendor test](../../sea-trial/vendor/pi.vendor.test.ts)).
 Provider failure can arrive in SDK events even when the prompt promise
@@ -512,56 +513,59 @@ boundary. A second prompt during a run is `rejected` `busy`
 (`busy-and-late-control` scenario). Native preflight callback values are
 retained as frames; they establish admission only for their own invocation.
 
-SDK and RPC publish the native terminal frame before releasing the run gate.
-A synchronous `turn_ended` observer therefore sees `idle`, but `prompt` can
-still return `busy`; submit after that observer returns. This is a deliberate
+SDK and RPC publish the native terminal frame before releasing the run gate,
+so a synchronous `turn_ended` observer sees `idle` while `prompt` can still
+return `busy`; submit after that observer returns. This is a deliberate
 [exception](../design/decisions.md#pi-synchronous-terminal-submission-2026-11-05),
-not a promise to enter Pi's settlement-time deferred prompt list. The
-[native controls](../../sea-trial/vendor/pi-turn-admission.vendor.test.ts)
-verify it on Pi 1.5.0, alongside ordinary FIFO and Durable's different behavior.
+not a promise to enter Pi's settlement-time deferred prompt list
+([native controls](../../sea-trial/vendor/pi-turn-admission.vendor.test.ts)
+on Pi 1.5.0, alongside ordinary FIFO and Durable's different behavior).
 
 A refusal before native start clears its pending abort. After recording the
-refusal, OAR drains held work; a queued refusal records `input_dropped` on
-its SDK `pi/prompt_rejected` frame or original RPC error response, without
-inventing a turn end. SDK waits for the current `prompt()` promise, including
-Pi's awaited deferred extension actions, before draining. For independently
-started runs it arms the native idle wait while the run is active, not inside
-`agent_settled` where `isIdle` is already true. Fast and slow extension input
-hooks retain the tested A → EXT → B order. Calling `prompt` inside settlement
-would detach its promise and charge a later refusal to the preceding run.
-A `started` receipt followed by failure or settlement without any native run
-evidence retires the input without fabricating `completed`.
+refusal, OAR drains held work; a refused queued input records `input_dropped`
+on its SDK `pi/prompt_rejected` frame or original RPC error response, without
+inventing a turn end. A `started` receipt followed by failure, or by
+settlement without native run evidence, retires the input without
+fabricating `completed`. Before draining, SDK waits for the current
+`prompt()` promise, including Pi's awaited deferred extension actions; for
+independently started runs it arms the native idle wait while the run is
+active, not inside `agent_settled`, where `isIdle` is already true (calling
+`prompt` inside settlement would detach its promise and charge a later
+refusal to the preceding run). Fast and slow extension input hooks keep the
+tested A → EXT → B order.
+
 Custom-message start/end frames alone are not run evidence: Pi also emits
 them for idle extension notices and when failed preparation flushes held
-notices. They remain in the record stream without occupying a run or
-inventing a terminal outcome. The [native notice controls](../../sea-trial/vendor/pi-custom-message.vendor.test.ts)
-cover commands, timers, input hooks and preparation failure.
-RPC clears its cancellation fallback after
-terminal stats and synchronous observers, so an abort in either window does
-not later kill a healthy child. SDK reports disposal if the session became
-unavailable while prompt admission was pending. The
-[missing-key control](../../sea-trial/vendor/pi-preflight.vendor.test.ts)
+notices. They stay in the record stream without occupying a run or inventing
+a terminal outcome ([native notice controls](../../sea-trial/vendor/pi-custom-message.vendor.test.ts):
+commands, timers, input hooks, preparation failure). RPC clears its
+cancellation fallback after terminal stats and synchronous observers, so an
+abort in either window does not later kill a healthy child. SDK reports
+disposal if the session became unavailable while prompt admission was
+pending. The [missing-key control](../../sea-trial/vendor/pi-preflight.vendor.test.ts)
 verifies native refusal and recovery in both execution modes; deterministic
-[regressions](../../tests/pi/pi-turn-preflight.test.ts) cover cancellation and disposal races.
+[regressions](../../tests/pi/pi-turn-preflight.test.ts) cover cancellation
+and disposal races.
 
 Native SDK `preflightResult` and RPC `data.disposition` report per-input
-admission. Pi prompt request records mark `admission: "native"` so a separate
-extension run ending during preflight cannot finish that input's wait or
-release its reservation. This control fact preserves old logs' fallback
-behavior without treating an unrelated `agent_settled` as a native receipt. The invocation's `started` receipt projects `turn_active` with
-its original input identity, when known; the later `agent_start` remains a
-separate native frame. This lets input-scoped queue waits skip unrelated
-extension turns during preflight. An explicit `handled` result produces `input_handled` on its
-evidence frame; the caller's delivery remains accepted. Handled is not a
-success result or a turn end: a command handler can throw, or start an
-independent extension run. Only the matching request's provisional occupancy
-is released, and the independent run stays busy. `promptAndWait` returns its
-distinct `handled` branch. SDK/RPC queues use recorded adapter ownership
-and `carries`; a native refusal after acceptance records a correlated
-`input_dropped` without automatically replaying extension hooks. Pi Durable
-is unchanged. Native handler errors remain separate frames: SDK extension
-`onError` supplies `extension_error`, and RPC keeps its original error event.
-The [native regressions](../../sea-trial/vendor/pi-input-handled.vendor.test.ts)
+admission. Pi prompt request records carry `admission: "native"`, so a
+separate extension run ending during preflight cannot finish that input's
+wait or release its reservation, and an unrelated `agent_settled` is never
+read as a native receipt (records without the marker, from older logs, keep
+the fallback reading). The invocation's `started` receipt projects
+`turn_active` with its original input identity when known; the later
+`agent_start` stays a separate native frame, so input-scoped queue waits skip
+unrelated extension turns during preflight. An explicit `handled` result
+produces `input_handled` on its evidence frame, and the caller's delivery
+stays accepted. Handled is not a success result or a turn end: a command
+handler can throw, or start an independent extension run. Only the matching
+request's provisional occupancy is released; the independent run stays busy.
+`promptAndWait` returns its distinct `handled` branch. SDK/RPC queues use
+recorded adapter ownership and `carries`; a native refusal after acceptance
+records a correlated `input_dropped` without replaying extension hooks. Pi
+Durable is unchanged. Native handler errors stay separate frames: SDK
+extension `onError` supplies `extension_error`, and RPC keeps its original
+error event. The [native regressions](../../sea-trial/vendor/pi-input-handled.vendor.test.ts)
 cover handled prompts, commands, steering, queue dispatch and competing runs.
 
 **Images (mapped):** `InputOptions.images` become pi's `ImageContent`
@@ -582,42 +586,42 @@ The SDK may still drop images for a model that does not declare image input.
 `AgentSession.steer()` and answers `accepted` on queue entry, or `rejected`
 (`no_active_turn`, reason `not_steerable: no active turn`) when no run is
 active. A native `queued` result means entry into pi's queue, not model
-receipt. If an input extension instead returns `handled`, the accepted
-steer carries `input_handled` and leaves the active run unchanged. Natively the steer is a `queue_update`
-with the text under `steering`, inside the running span; the run's next
-internal turn drains it (a `queue_update` with empty lists) and injects it as
-a user message, so the text lands in the same turn's final reply with one
-`turn_ended` (`steer` scenario: the final text combined the prompt's and the
-steer's words).
-The SDK's returned disposition is retained in a `pi/steer_result` frame;
-RPC retains its original response. Neither frame is a model-consumption receipt.
+receipt; if an input extension returns `handled` instead, the accepted steer
+carries `input_handled` and leaves the active run unchanged. The SDK's
+returned disposition is kept in a `pi/steer_result` frame and RPC keeps its
+original response; neither is a model-consumption receipt. Natively the steer
+is a `queue_update` with the text under `steering`, inside the running span;
+the run's next internal turn drains it (a `queue_update` with empty lists)
+and injects it as a user message, so the text lands in the same turn's final
+reply with one `turn_ended` (`steer` scenario: the final text combined the
+prompt's and the steer's words).
 
 **Queue (partial):** `queue()` uses an adapter FIFO
 (`capabilities.queue.durable: false`), because native `followUp()` continues
 the same outer run and would break OAR's separate-turn promise. Acceptance
-records `queued: "adapter"`; dispatch creates a prompt request whose `carries`
-references the original logical input (or queue request ID for old inputs
-without an input ID). Views render one input. The dispatch is recorded only
-after queue acceptance and waits for that invocation's native admission.
+records `queued: "adapter"`. Dispatch, recorded only after queue acceptance,
+creates a prompt request whose `carries` references the original logical
+input (or the queue request id for old inputs without an input id) and waits
+for that invocation's native admission. Views render one input.
 
-Held inputs keep status waiting through dispatch, including preflight.
-`prompt` and `compact` cannot overtake them, including from a synchronous
-refusal observer; `queue` appends at the tail. A handled input releases only
-its admission, allowing the next entry to drain when no native run remains.
-If an extension wins the native slot after an input hook has run, a native
-refusal returns that accepted input with `input_dropped`. OAR does not retry
-the hook or clear the competing native run. The ordinary terminal-observer
-exception above remains in force.
+Held inputs keep status waiting through dispatch, preflight included.
+`prompt` and `compact` cannot overtake them, even from a synchronous refusal
+observer; `queue` appends at the tail. A handled input releases only its
+admission, so the next entry drains when no native run remains. If an
+extension wins the native slot after an input hook has run, the native
+refusal returns that accepted input with `input_dropped`; OAR does not retry
+the hook or clear the competing run. The terminal-observer exception above
+still applies.
 
-There are two extension-admission race limits. In SDK, a queued command that
-calls `sendUserMessage("EXT")` and returns handled before EXT begins streaming
-can release the next held input first. With a slow EXT input hook, that input
-can win the native slot and EXT can be lost with an `extension_error` frame;
-older SDK queue draining happened to preserve A → EXT → C in this case. The
+Two extension-admission races remain. In SDK, a queued command that calls
+`sendUserMessage("EXT")` and returns handled before EXT begins streaming can
+release the next held input first; with a slow EXT input hook, that input can
+win the native slot and EXT can be lost with an `extension_error` frame
+(before [#640](https://github.com/botiverse/oar/pull/640), OAR's SDK-mode
+queue draining happened to keep A → EXT → C here). The
 settlement-action barrier above does not cover this detached command launch.
-RPC has no equivalent prompt-promise barrier: either the held input can be
-refused after EXT wins, or the held input can win and EXT can fail. The latter
-also occurred before this change. Native handling is not a guarantee that
+RPC has no prompt-promise barrier: either the held input is refused after EXT
+wins, or it wins and EXT fails. Native handling does not guarantee that
 extension-started work reached the model; its error frames remain observable.
 
 `withdraw(inputId)` takes an input out of the FIFO before the drain prompts
@@ -635,21 +639,20 @@ records `accepted` immediately; acceptance is delivery of the cancellation,
 not evidence that the turn has ended. Before Pi creates its run, OAR holds
 the abort and delivers it at `agent_start`. Callers still `awaitTurnEnd`
 before the next prompt. A late abort rejects with `no_active_turn`.
-An extension can start that run while the original input is still in preflight;
-the pending abort reaches that run only if it starts before the input's receipt.
-The marker is consumed once and cleared at handling or refusal. If a command
-calls `sendUserMessage("EXT")` and returns handled before EXT starts, the prior
-abort does not follow EXT; wait for its `turn_active` and abort again if needed.
-This changes the old SDK behavior that accidentally retained a cancellation
-marker beyond handling. RPC starts its fallback deadline only when it sends
-the native cancellation, not while awaiting the preflight hook. These limits
-are pinned by the [native settlement controls](../../sea-trial/vendor/pi-settlement-admission.vendor.test.ts).
+An extension can start that run while the original input is still in
+preflight; the pending abort reaches it only if it starts before the input's
+receipt. The marker is consumed once and cleared at handling or refusal, so if
+a command calls `sendUserMessage("EXT")` and returns handled before EXT
+starts, the earlier abort does not follow EXT: wait for its `turn_active` and
+abort again if needed. RPC starts its fallback deadline only when it sends the
+native cancellation, not while awaiting the preflight hook
+([native settlement controls](../../sea-trial/vendor/pi-settlement-admission.vendor.test.ts)).
 
 The outcome comes from **`agent_settled.aborted`** (authoritative since SDK
-1.1.0), not from OAR's request state. For a run with observed evidence, a native `true` produces
-`turn_ended: aborted` even if an extension called `ctx.abort()` and the host
-never requested it. A native `false`
-keeps a provider failure or normal completion. This also prevents a
+1.1.0), not from OAR's request state. For a run with observed evidence, a
+native `true` produces `turn_ended: aborted` even if an extension called
+`ctx.abort()` and the host never requested it; a native `false` keeps a
+provider failure or normal completion. This also prevents a
 provider's abort-related error message from changing a native cancellation
 into failure. A later rejection from the SDK's abort promise is retained
 as `pi/abort_rejected`, without synthesizing a turn boundary.

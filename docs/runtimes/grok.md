@@ -28,6 +28,9 @@ newest check, on **1.0.70**
 ([2026-10-24](../../experiments/runtime-version-checks/2026-10-24.md#grok-1070)),
 passed the native vendor tests, the shared session behavior suite and the
 prompt-options probe against local scripted providers, without a real login.
+CI pins `@xai-official/grok@1.0.70`. The latest published 1.0.77 has only the
+[task-control probe](#native-task-control) and no new execution check
+([2026-11-08 inventory](../../experiments/runtime-version-checks/2026-11-08.md)).
 
 ## Shared launch, ownership and cleanup
 
@@ -538,18 +541,19 @@ retain native instructions.
 
 **Conditional refusal:** resuming with only `appendSystemPrompt` throws
 `UnsupportedOptionError` naming that option before launch: Grok 1.0.52 does
-not reapply `rules` on resume without an override. A resumed `systemPrompt` is
-supported and replaces the saved system instructions; both options together
-replace both values. Omitting both preserves the saved instructions.
+not reapply `rules` on resume without an override, and the
+[1.0.70 compaction control](../../experiments/resume-prompts-2026-11-02.md#grok-control)
+confirmed that a native append-only change is ignored even after compaction.
+A resumed `systemPrompt` is supported and replaces the saved system
+instructions; both options together replace both values. Omitting both
+preserves the saved instructions.
 
 **Host rule:** if a session was configured with append only, omit
-`appendSystemPrompt` on every resume. The saved append remains effective,
-including after native compaction. Repeating even unchanged text is refused:
-OAR cannot compare it with the saved value. To change the append, also supply
-`systemPrompt`. This is the exception to resupplying prompts on each open;
-OAR does not invent a replacement or silently drop an option. The
-[1.0.70 compaction control](../../experiments/resume-prompts-2026-11-02.md#grok-control)
-confirmed that even after compaction a native append-only change is ignored.
+`appendSystemPrompt` on every resume; the saved append remains effective,
+including after native compaction. Repeating even unchanged text is refused,
+because OAR cannot compare it with the saved value. To change the append,
+also supply `systemPrompt`. This is the exception to resupplying prompts on
+each open; OAR does not invent a replacement or silently drop an option.
 
 An empty or whitespace-only `systemPrompt` is also refused before launch,
 naming `systemPrompt`, with or without an append and on both creation and
@@ -582,6 +586,7 @@ for hosts ([October 13 report](../../experiments/runtime-version-checks/2026-10-
 | `env` | Child-process environment, including tools. |
 | `mcpServers` | ACP `mcpServers` on new and resumed sessions ([session MCP servers](#session-mcp-servers)). |
 | `name` | Declared refused: no verified native session name setting ([session name](../spec/runtime-matrix.md#session-name)). |
+| `goals: true`, `endTurnProcessesOnAbort: true` | Declared refused: no structured native goal controls; ending one aborted turn's processes while the session stays usable is unverified. |
 
 Grok's host settings form (model and reasoning effort) ships in
 `@botiverse/oar/forms` ([config form](../spec/config-form.md)).
@@ -665,21 +670,29 @@ The earlier foreground-style 1.0.25 recording (root 53321/355, child
 19280/96) establishes overlap, not coverage of every execution mode
 (`live-contract/subagent`; [wire-shape test](../../tests/acp/acp-grok-wire-shapes.test.ts)).
 
-Native [explicit compaction dispatch](https://github.com/xai-org/grok-build/blob/bc7f02e/crates/codegen/xai-grok-shell/src/agent/mvp_agent/acp_agent.rs#L2561-L2563)
-exists on the wire as `_x.ai/compact_conversation`. OAR exposes idle-only
-`compact()`: the dedicated response proves completion; `RequestError.data.kind`
-`compact_failed` / `compact_cancelled` supplies failure / cancellation.
-Method-not-found, invalid-parameter and missing-session errors are
-`rejected / runtime_refused`, not compaction failures. A null answer is
-unconfirmed; both release the gate. Transport loss without a native answer
-remains unconfirmed and reserved. The correlated answer frame carries
-`responseTo`; its publication releases both the gate and compacting status.
-Only proven completion/failure/cancellation projects
-`compaction_ended.requestId` for the OAR request it explicitly answers, without
-inventing a start. The native `auto_compact_completed` notification also occurs
-after a manual request, so neither trigger nor request ownership is inferred
-from its name. Empty history returns a native successful no-op. Queued input
-waits behind this operation; abort uses native `session/cancel`.
+**Manual compaction (mapped):** native
+[explicit compaction dispatch](https://github.com/xai-org/grok-build/blob/bc7f02e/crates/codegen/xai-grok-shell/src/agent/mvp_agent/acp_agent.rs#L2561-L2563)
+is `_x.ai/compact_conversation` on the wire. OAR's idle-only `compact()` sends
+it and reads the dedicated response
+([source](../../packages/oar/src/runtimes/grok/compaction.ts)):
+
+| Native answer | OAR outcome |
+| --- | --- |
+| Object result | `completed` |
+| `RequestError.data.kind` `compact_failed` | `failed / native_failed` |
+| `RequestError.data.kind` `compact_cancelled` | `aborted` |
+| Any other `RequestError` (method-not-found, invalid parameters, missing session) | `rejected / runtime_refused`, not a compaction failure |
+| Null or other non-object result | `unconfirmed` |
+| Transport loss without a native answer | Unconfirmed and reserved |
+
+The correlated answer frame carries `responseTo`; its publication releases
+both the gate and compacting status. Only proven completion, failure or
+cancellation projects `compaction_ended.requestId` for the OAR request it
+answers, without inventing a start. The native `auto_compact_completed`
+notification also occurs after a manual request, so neither trigger nor
+request ownership is inferred from its name. Empty history returns a native
+successful no-op. Queued input waits behind this operation; abort uses native
+`session/cancel`.
 [1.0.70 controls and limits](../../experiments/manual-compaction-followup-2026-11-02.md).
 
 ### Tools, MCP, and permissions
@@ -710,10 +723,11 @@ to `rawOutput` as one `other` part. Under `--always-approve` no
 launch/session yolo settings.
 
 Grok's `search_replace` names its file with `file_path`, and `use_tool`
-wraps MCP arguments in `tool_input`. See the
-[shared activity mappings](../spec/record-stream.md#the-rules) for classification.
-ACP input preserves the entire JSON object, including tagged `variant`
-fields and nested `tool_input`; output text still uses the existing preview limit. [Recorded inputs and regression](../../experiments/tool-activity-audit/README.md#follow-up-decisions-and-input-fix).
+wraps MCP arguments in `tool_input`
+([shared activity mappings](../spec/record-stream.md#the-rules)). ACP input
+preserves the entire JSON object, including tagged `variant` fields and nested
+`tool_input`; output text keeps the existing preview limit
+([recorded inputs and regression](../../experiments/tool-activity-audit/README.md#follow-up-decisions-and-input-fix)).
 
 There is no application approval callback or generic client-tool callback
 (both **unexposed**); per-session MCP servers are
@@ -841,10 +855,10 @@ that method because its copy is the one `grok update` updates: `grok update
 --check --json` reports installer `internal`, where an npm install would be
 a second copy. [Account usage](../../packages/oar/src/runtimes/grok/account-usage.ts)
 separately opens a connection and queries `_x.ai/billing` (plus
-`_x.ai/auth/info` for the email). Identity is optional: it ends 100 ms before
-the overall usage deadline, or is skipped if that margin is already reached.
-A failed or timed-out identity query returns billing without email, while
-the owned process stops in the background. No billing `config` is `unsupported`
+`_x.ai/auth/info` for the email). Identity is optional: its query ends 100 ms
+before the overall usage deadline and is skipped if that margin is already
+reached; failure or timeout returns billing without email while the owned
+process stops in the background. No billing `config` is `unsupported`
 `quota_unavailable`; a config that carries none of `creditUsagePercent`,
 `used` and `monthlyLimit` reads as zero usage, as grok's own `/usage` shows it
 (1.0.46, an unused account; [account usage](../spec/account-usage.md),
@@ -983,11 +997,11 @@ See [reader environments](../spec/orientation.md#environment).
 
 The parent's `_x.ai/session_notification` stream reports
 `subagent_spawned` and `subagent_finished`; OAR maps these to `task_started`
-and `task_ended`, keyed by `subagent_id`, without moving them onto the child
-envelope. A start retains explicit `child_session_id`, type and description.
-The existing graph and token ownership rules are unchanged. Grok 1.0.77
-continued a child model call after a `session/cancel` notification named that
-child, so `stopTask` is absent. Cancellation of the parent is a different
-operation and is not used as a substitute.
+(type agent) and `task_ended` (completed, failed or stopped), keyed by
+`subagent_id`, without moving them onto the child envelope. A start retains
+explicit `child_session_id`, native type and description. Graph and token
+ownership rules are unchanged. Grok 1.0.77 continued a child model call after
+a `session/cancel` notification named that child, so `stopTask` is absent;
+parent cancellation is a different operation and is not used as a substitute.
 
 [Native evidence and reproducible probes](../../experiments/task-controls/README.md).

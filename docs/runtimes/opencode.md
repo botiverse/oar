@@ -37,42 +37,43 @@ Native startup failures on v1 are under
 ## First-prompt snapshot cost (v1)
 
 On Windows CI, OpenCode **1.19.5** took **9.236 to 158.806 seconds** in
-its first directory snapshot across sixteen successful vendor fixtures on
-2026-11-06. These fixtures ran in the OAR Git checkout. Native logs place
-that interval between `initialized` and `tracking`, before the agent's
-model request. In the fifteen samples with a subsequent agent `stream`
-record, it followed about 0.9 to 1.8 seconds later. This wait can look like
-a stalled prompt even though the native process is preparing its snapshot.
-These are measured samples, not a latency guarantee or an explanation of
-all OpenCode timeouts; the underlying Git, disk and scheduling costs were
-not separated. [Evidence and reproduction](../../experiments/acp-ci-failures/opencode-snapshot.md).
+its first directory snapshot across sixteen successful vendor fixtures run
+in the OAR Git checkout (2026-11-06). Native logs place that interval
+between `initialized` and `tracking`, before the agent's model request; in
+the fifteen samples with a later agent `stream` record, it followed about
+0.9 to 1.8 seconds later. The wait can look like a stalled prompt while the
+native process prepares its snapshot. These are measured samples, not a
+latency guarantee or an explanation of all OpenCode timeouts; Git, disk and
+scheduling costs were not separated
+([evidence and reproduction](../../experiments/acp-ci-failures/opencode-snapshot.md)).
 
-OAR does not change the native `snapshot` setting. Hosts that want to tune
-it must use their own OpenCode configuration. The MCP and failure-class
-vendor fixtures use small temporary Git projects so these tests do not
-wait for snapshots of the OAR checkout; native snapshots remain enabled.
+OAR does not change the native `snapshot` setting; hosts tune it in their
+own OpenCode configuration. The MCP and failure-class vendor fixtures use
+small temporary Git projects so they do not wait for snapshots of the OAR
+checkout; native snapshots stay enabled.
 
 ## Manual compaction
 
 The v2 session exposes idle-only `compact()` through native `/compact`.
 `session_info_update._meta["opencode/compaction"]` supplies status, messageId
-and reason. OAR projects that native messageId as `compactionId` on both start
-and end events, including automatic events. The manual control binds the first
-manual start in its exclusive idle window and requires the same identity at
-completion to prove compaction. The correlated prompt RPC answer
-(`responseTo`) releases the gate and status together, after preceding markers.
-Wrong, old and absent ids cannot establish completion; an answer without a
-matching marker returns unconfirmed. A native RPC error is retained as a
-frame and returns failed. Response usage follows the ordinary profile
-projection when supplied; no missing counts are inferred. Ordinary `end_turn` does not prove success:
-provider errors, invalid summary headings and empty history all produced
-structured failed markers with ordinary success in 2.2.5. Cancellation supplies
-`error.type: aborted`. Same-name configured commands did not override the
-native compact path in the control.
+and reason; OAR projects that messageId as `compactionId` on start and end
+events, automatic ones included. The manual control binds the first manual
+start in its exclusive idle window and requires the same identity at
+completion. The correlated prompt RPC answer (`responseTo`) releases the gate
+and status together, after preceding markers. Wrong, old and absent ids
+cannot establish completion: an answer without a matching marker returns
+unconfirmed, and a native RPC error is retained as a frame and returns failed.
+Response usage follows the ordinary profile projection when supplied; missing
+counts are not inferred. Ordinary `end_turn` does not prove success: on
+2.2.5, provider errors, invalid summary headings and empty history all
+produced structured failed markers alongside an ordinary success answer.
+Cancellation supplies `error.type: aborted`. Same-name configured commands
+did not override the native compact path in the control.
 
-V1 has no session member: a project command can replace `/compact`, and its
-structural completion is unverified. The common v1/v2 Runtime remains
-undeclared; inspect the opened session. [2.2.5 evidence and limitations](../../experiments/manual-compaction-followup-2026-11-02.md).
+V1 sessions have no `compact()`: a project command can replace `/compact`,
+and its structural completion is unverified. The shared v1/v2 Runtime does
+not declare `manualCompaction`; inspect the opened session
+([2.2.5 evidence and limitations](../../experiments/manual-compaction-followup-2026-11-02.md)).
 
 ## Windows isolated-process cleanup
 
@@ -220,35 +221,34 @@ isolated tool-cleanup check (`@opencode/cli@2.2.6`).
 The v2 adapter's ACP subprocess owns a standalone native server; OAR does
 not connect to or leave a persistent daemon. Latest recheck: **2.2.6**
 (Linux x64, 2026-11-07) passed all fifteen applicable behavior cases and
-[the isolated native cleanup control](../../sea-trial/vendor/opencode-cleanup.vendor.test.ts),
-including routed roots, MCP, children, cancellation, peer survival and resume.
-The cold catalog returned eleven models; both prompt-option refusals passed.
+[the isolated native cleanup control](../../sea-trial/vendor/opencode-cleanup.vendor.test.ts)
+(routed roots, MCP, children, cancellation, peer survival and resume); the
+cold catalog returned eleven models and both prompt-option refusals passed.
 The [daily report](../../experiments/runtime-version-checks/2026-11-07.md#opencode-226)
 separates these checks from the known v1-only vendor failures and retains
-the cold-start failure. The November 7 [cold MCP resume check](../../experiments/opencode-mcp-resume-2026-11-07.md)
-passed all twenty resumes per transport.
-
-The [October 31 boundary probe](../../experiments/runtime-version-checks/2026-10-31.md#opencode-225)
-passed nine of ten checks on 2.2.5; cold MCP resume failed. These historical
-results are not a complete rerun of that probe on 2.2.6.
+the cold-start failure below. Cold MCP resume passed on 2.2.6
+([v2 session behavior](#v2-session-behavior)). The
+[boundary probe](../../experiments/opencode-release-lines.ts) last ran in
+full on 2.2.5 ([October 31](../../experiments/runtime-version-checks/2026-10-31.md#opencode-225)):
+nine of ten checks passed, cold MCP resume failed.
 
 **Known limitation: concurrent first starts over a fresh native database can
-fail before readiness**, confirmed by native SQLite errors. The OAR-free
-startup probe started four native servers simultaneously against a fresh
-database. On 2.2.5 two exited 1 with `table account_state already exists`
-([October 31 report](../../experiments/runtime-version-checks/2026-10-31.md#native-startup)).
-On 2.2.6, one of two concurrent fresh-database ACP opens exited before
-readiness; both opens after serial initialization succeeded
-([November 7 report](../../experiments/runtime-version-checks/2026-11-07.md#opencode-226)).
-The retained stderr says `Standalone server exited before reporting readiness`;
-this sample has no native SQLite error, so it does not establish the same cause.
-On 2.2.3 two became ready, one exited 1 with `database is locked`, and one
-exited 1 with `table account_state already exists`
-([October 30 report](../../experiments/runtime-version-checks/2026-10-30.md#native-startup)).
-The 2.2.1 batches failed one of four and three of four cold starts with the
-account-state error; 2.2.2 was not tested. On 2.2.3 and 2.2.5, two
-sequential starts and four concurrent starts over an initialized database
-succeeded. On 2.1.4 and 2.2.0 the first behavior-suite run failed one case
+fail before readiness**, confirmed by native SQLite errors. On 2.2.6, one
+of two concurrent fresh-database ACP opens exited before readiness and both
+opens after serial initialization succeeded
+([November 7 report](../../experiments/runtime-version-checks/2026-11-07.md#opencode-226));
+its retained stderr says `Standalone server exited before reporting
+readiness`, with no native SQLite error, so that sample does not establish
+the same cause. The OAR-free startup probe started four native servers
+simultaneously against a fresh database: on 2.2.5 two exited 1 with
+`table account_state already exists`
+([October 31 report](../../experiments/runtime-version-checks/2026-10-31.md#native-startup));
+on 2.2.3 two became ready, one exited 1 with `database is locked` and one
+with `table account_state already exists`
+([October 30 report](../../experiments/runtime-version-checks/2026-10-30.md#native-startup));
+the 2.2.1 batches failed one of four and three of four with the
+account-state error (2.2.2 not tested). On 2.2.3 and 2.2.5, two sequential
+starts and four concurrent starts over an initialized database succeeded. On 2.1.4 and 2.2.0 the first behavior-suite run failed one case
 before server readiness (2.2.0's saved native log reports `SQLiteError:
 database is locked`) and the unchanged recheck passed
 ([2.1.4](../../experiments/runtime-version-checks/2026-10-23.md#opencode-startup-and-compatibility),
@@ -318,21 +318,22 @@ covers 2.0.27.
 - **MCP:** stdio and HTTP servers supplied at new and resumed session open
   are callable through `execute`, whose input code, result and native metadata
   are retained, including the names of enclosed MCP calls.
-  **Cold resume on 2.2.6:** the [November 7 local-provider check](../../experiments/opencode-mcp-resume-2026-11-07.md)
-  called echo on all 20 cold resumes per transport, as well as both warmed
-  initial sessions, with no model-visible catalog-removal notice. These are
-  Linux x64 observations with immediate scripted tool calls, not a guarantee
-  for every provider, platform or catalog timing.
-  The [same probe on 2.2.5](../../experiments/runtime-version-checks/2026-11-06.md#opencode-225-cold-mcp-resume-after-upstream-closure)
-  called echo in both initial sessions but on none of six cold resumes;
-  the model saw a notice removing the reattached tool. Earlier intermittent
-  failures were also reproduced [without OAR](../../experiments/opencode-mcp-resume-native.ts)
-  and [independently upstream](https://github.com/anomalyco/opencode/issues/54794#issuecomment-6123225428).
-  [Upstream #54794](https://github.com/anomalyco/opencode/issues/54794)
-  is closed. Our verified boundary is 2.2.5 failed and 2.2.6 passed these
-  controls; 2.2.4 was not tested. [OAR #371](https://github.com/botiverse/oar/issues/371)
-  retains the earlier failure history. OAR adds no retry, sleep or catalog
-  filtering for this behavior.
+  **Cold resume:** on 2.2.6 the [November 7 local-provider check](../../experiments/opencode-mcp-resume-2026-11-07.md)
+  called echo on all 20 cold resumes per transport and in both warmed
+  initial sessions, with no model-visible catalog-removal notice (Linux x64,
+  immediate scripted tool calls; not a guarantee for every provider,
+  platform or catalog timing). The
+  [same probe on 2.2.5](../../experiments/runtime-version-checks/2026-11-06.md#opencode-225-cold-mcp-resume-after-upstream-closure)
+  called echo in both initial sessions but on none of six cold resumes, the
+  model seeing a notice that removed the reattached tool. Earlier
+  intermittent failures were also reproduced
+  [without OAR](../../experiments/opencode-mcp-resume-native.ts) and
+  [independently upstream](https://github.com/anomalyco/opencode/issues/54794#issuecomment-6123225428);
+  [upstream #54794](https://github.com/anomalyco/opencode/issues/54794) is
+  closed. The verified boundary is 2.2.5 failed, 2.2.6 passed (2.2.4 not
+  tested); [OAR #371](https://github.com/botiverse/oar/issues/371) keeps the
+  earlier failure history. OAR adds no retry, sleep or catalog filtering for
+  this behavior.
 - **Prompt options:** both `systemPrompt` and `appendSystemPrompt` are
   refused before ACP startup, including resume. The v2 instruction loader
   does not consume the v1 `instructions` configuration. v2 has native
@@ -452,13 +453,13 @@ directory](resume-cwd.md)). Every non-git directory belongs to the one
 `global` project, yet `session/list` without a directory still found a
 session from a non-git directory when the resume named a git repository.
 
-On both release lines, OAR requires a matching list entry with a confirmed
-saved cwd before resume. Missing list support, unlisted ids, missing cwd and
-incomplete listings produce `UnsupportedOptionError` on `cwd`. Listing
-authentication, process-exit and other RPC failures retain their existing
-classification and prevent resume. List absence does not produce `SessionNotFoundError`. After cwd confirmation, a
-native resume error retains its original classification: V1's generic
-`-32603 OpenCode service failure` cannot prove absence
+On both release lines a resume needs a matching list entry with a confirmed
+saved cwd: missing list support, unlisted ids, a missing cwd and incomplete
+listings produce `UnsupportedOptionError` on `cwd`, never
+`SessionNotFoundError`. Listing authentication, process-exit and other RPC
+failures keep their classification and prevent resume. After cwd
+confirmation, a native resume error keeps its original classification; v1's
+generic `-32603 OpenCode service failure` cannot prove absence
 ([missing targets](../spec/runtime-matrix.md#missing-resume-targets)).
 
 ### Interrupted input

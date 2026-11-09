@@ -1,15 +1,14 @@
 # Kimi
 
-Shared-process admission: Kimi 2.4.1 remains isolated. A later session on
-an existing ACP connection retained old user hooks after the file changed,
-including after a three-second delay, another directory or closing the prior
-session; a newly opened isolated process read the updated hooks. Project
-instructions were old when B opened immediately after editing, but new when
-B opened after three seconds, whether A was still live or closed. These
-observations do not establish a refresh-delay bound. The hook discrepancy
-is the admission blocker. Same-directory MCP invocation itself passed;
-that does not establish configuration freshness. Explicit shared placement
-remains refused. See the [native comparison and follow-up](../../experiments/sharing/same-directory-2026-10-30.md).
+Shared-process admission: Kimi 2.4.1 is isolated, and explicit shared
+placement is refused. The blocker is hooks: a later session on an existing
+ACP connection keeps the old user hooks after the file changes (also after a
+three-second delay, in another directory, or with the prior session closed),
+while a newly opened isolated process reads the updated hooks. Project
+instructions were old when B opened immediately after editing and new when B
+opened after three seconds, whether A was live or closed; this establishes no
+refresh-delay bound. Same-directory MCP invocation passed, which does not
+establish configuration freshness. See the [native comparison and follow-up](../../experiments/sharing/same-directory-2026-10-30.md).
 
 Independent inventories: skills, commands, MCP servers and tools return unsupported on the selected interface. The separately probed Web API is not used.
 See the [query contract](../spec/inventory.md) and [native probe evidence](inventory.md).
@@ -28,13 +27,12 @@ darwin arm64, default model `kimi-code/k3`, no `--model`), 2026-09-11, through
 on **kimi 2.0.0** (2026-09-18, live-contract 13/13; its `thinking` values are
 under [Effort](#models-instructions-and-context)). The latest check is
 **kimi 2.5.2** (2026-11-06, Linux): all 15 shared behavior cases and five
-local OAuth/login regressions pass, but one of twelve native vendor cases
-fails. A fresh-process resume without MCP configuration still advertises the
-initial stdio and HTTP tool declarations. The earlier 2.5.0 investigation
-separately showed that actual MCP execution uses the current resume options;
-those deeper controls were not repeated on 2.5.2. The unchanged declaration
-case passes on 2.4.1, which remains the CI pin until an upstream fix passes
-the same controls. See the [latest results and limits](../../experiments/runtime-version-checks/2026-11-06.md#kimi-252).
+local OAuth/login regressions pass; one of twelve native vendor cases fails:
+a fresh-process resume without MCP configuration still advertises the
+initial stdio and HTTP tool declarations
+([session MCP servers](#session-mcp-servers)). That case passes on 2.4.1,
+which stays the CI pin until an upstream fix passes the same controls
+([results and limits](../../experiments/runtime-version-checks/2026-11-06.md#kimi-252)).
 Facts from later binaries name their version. Versions are
 evidence baselines, not a support range. The [spec](../spec/README.md) is the
 contract the adapter implements, not evidence of this adapter's behavior; see
@@ -181,11 +179,12 @@ resuming, without recording it, and when the session is listed under another
 directory `session()` rejects with an `UnsupportedOptionError` on `cwd` whose
 message names both directories ([resume in another directory](resume-cwd.md),
 [test](../../tests/acp/acp-resume-cwd.test.ts)). A missing list capability,
-unlisted id, missing cwd or incomplete listing also refuses `cwd` before any
-resume. Listing authentication, process-exit and other RPC errors retain
-their existing failure classification; no resume follows them. List absence
-cannot prove a missing session, so it does not produce `SessionNotFoundError`; failures after a confirmed cwd retain their
-native classification ([missing targets](../spec/runtime-matrix.md#missing-resume-targets)).
+an unlisted id, a listed session without a cwd, or an incomplete listing also
+refuses `cwd` before any resume. Authentication, process-exit and other RPC
+errors from the listing keep their usual classification, and no resume
+follows them. Absence from the list cannot prove a missing session, so it
+does not produce `SessionNotFoundError`; failures after a confirmed cwd keep
+their native classification ([missing targets](../spec/runtime-matrix.md#missing-resume-targets)).
 
 ```ts
 const resumed = await kimiRuntime.session(installation, {
@@ -328,12 +327,12 @@ and OAR reads only ACP. Upstream: [MoonshotAI/kimi-code#1865](https://github.com
 (reported on 0.26.0; the ACP adapter logs a failed turn and answers
 `end_turn`, as ACP's `StopReason` has no failure value), still so on 2.2.0.
 
-Kimi's `Edit` names its file with the native `path` field; the
-[shared activity mappings](../spec/record-stream.md#the-rules) describe how
-`classifyTool` reads the recorded tools. ACP tool inputs retain complete JSON, so MCP arguments such as `{text: "ACTUAL"}`
-remain an object in the input string. The
-[tool audit](../../experiments/tool-activity-audit/README.md#follow-up-decisions-and-input-fix)
-records these shapes on 2.5.2.
+Kimi's `Edit` names its file in the native `path` field; `classifyTool`
+reads recorded tools by the
+[shared activity mappings](../spec/record-stream.md#the-rules). ACP tool
+inputs keep their complete JSON, so MCP arguments such as `{text: "ACTUAL"}`
+stay an object in the input string (kimi 2.5.2,
+[tool audit](../../experiments/tool-activity-audit/README.md#follow-up-decisions-and-input-fix)).
 
 **Tool frames:** the opening `tool_call` carries `title`, `kind`
 (`execute` for `Bash`, `other` for `Agent`), `status: "pending"`, an empty
@@ -471,6 +470,7 @@ sessions; OAR does not use that as a prompt override or modify user config.
 | `mcpServers` | ACP `mcpServers` on `session/new` and `session/resume` ([session MCP servers](#session-mcp-servers)). |
 | `systemPrompt`, `appendSystemPrompt` | Refused: the selected native launcher does not carry them. |
 | `name` | Refused: kimi has no verified session name setting ([session name](../spec/runtime-matrix.md#session-name)). |
+| `goals`, `endTurnProcessesOnAbort` | Refused ([refused session options](../spec/runtime-matrix.md#refused-session-options)). |
 
 **Context (partial):** native ACP
 [emits context usage after the prompt response](https://github.com/MoonshotAI/kimi-code/blob/f9ca33376/packages/acp-server/src/session.ts#L907-L947)
@@ -486,7 +486,8 @@ system prompt). Per-agent usage remains unexposed.
 
 Native agent compaction exists; ACP
 [`/compact` dispatches a background task](https://github.com/MoonshotAI/kimi-code/blob/f9ca33376/packages/acp-server/src/builtin-commands.ts#L100-L110).
-OAR has no typed compact operation, and no ACP frame reports a compaction,
+OAR has no typed compact operation (`kimiRuntime.manualCompaction` is
+declared `unsupported`), and no ACP frame reports a compaction,
 so Kimi sessions never carry `compaction_started` or `compaction_ended`
 events. Prompt text can reach that slash route, but completion text emitted
 after the OAR Turn ends is dropped; prompt completion does not establish
@@ -558,21 +559,22 @@ answering `{}` for that API-key model, with no OAuth
   prompt, so the scripted fixtures match the current turn's user messages,
   not only the last one.
 
-**2.5.0 keeps initial declarations across resume:** the model sees the original
-tool list, while actual MCP execution follows the current resume configuration.
-Omitting `mcpServers` or passing an empty list leaves the old names advertised,
-but calls to them fail with `Tool ... not found`. Replacing server names makes
-the new tools executable without listing them to the model; using the same names
-with new configuration executes against that new configuration. Hosts changing
-MCP configuration on resume must expect this mismatch on 2.5.0. OAR does not
-filter the native declarations or refuse the entire resumed MCP configuration.
-The same controls on 2.4.1 keep declarations and execution aligned. Evidence
-covers fresh processes and local providers on Linux, not real models or other
-platforms; see the [native investigation](../../experiments/kimi-mcp-resume/2026-11-04.md)
-and [November 4 comparison](../../experiments/runtime-version-checks/2026-11-04.md#kimi-250).
-The omitted-configuration declaration mismatch also reproduces on 2.5.2
-([November 6](../../experiments/runtime-version-checks/2026-11-06.md#kimi-252));
-that check does not repeat every execution control above.
+**2.5.0 keeps the initial declarations across resume:** the model sees the
+original tool list, while MCP execution follows the current resume
+configuration. Omitting `mcpServers` or passing an empty list leaves the old
+names advertised, but calls to them fail with `Tool ... not found`. New
+server names are executable without being listed to the model; the same
+names with new configuration execute against the new configuration. Hosts
+changing MCP configuration on resume must expect this mismatch on 2.5.0.
+OAR does not filter the native declarations or refuse the entire resumed MCP
+configuration. On 2.4.1 the same controls keep declarations and execution
+aligned. Evidence: fresh processes and local providers on Linux, not real
+models or other platforms
+([native investigation](../../experiments/kimi-mcp-resume/2026-11-04.md),
+[2.5.0 comparison](../../experiments/runtime-version-checks/2026-11-04.md#kimi-250)).
+On 2.5.2 the omitted-configuration declaration mismatch reproduces; not every
+execution control above was repeated
+([2.5.2 check](../../experiments/runtime-version-checks/2026-11-06.md#kimi-252)).
 
 The credentials reach kimi only in the open request's params, which OAR does
 not record (it records the answers, every `session/update` and vendor
@@ -637,17 +639,18 @@ non-interactive upgrade, so `upgrade` answers `unsupported`
 [Account usage](../../packages/oar/src/runtimes/kimi/account-usage.ts)
 resolves the managed `kimi-code` provider through `kimi provider list --json`
 (honouring `KIMI_CODE_BASE_URL`, `KIMI_CODE_OAUTH_HOST`, `KIMI_CODE_HOME`;
-no such provider is `unsupported/auth_configuration_unavailable`, a run that
-times out rejects),
-reads the stored OAuth token as-is (never refreshed), and calls the `/usages`
-and `/me` endpoints; 401/403 or an absent credential file read `reauth_required`,
-404 `unsupported`. File I/O errors, malformed credential contents, unreadable
-response bodies and invalid quota responses reject with safe reasons. Damaged
-quota windows are omitted without inventing zero usage; if none remain, the
-read fails. Malformed Extra Usage data cannot override exhausted subscription
-limits. Malformed quota responses and credential permission failures were checked
-with Kimi 2.4.1 and 2.5.0 on Linux x64 using real provider discovery and local
-HTTP responses with synthetic credentials. [`/me`](../../packages/oar/src/runtimes/kimi/profile.ts) is a
+no such provider is `unsupported/auth_configuration_unavailable`, non-file
+credential storage `unsupported/unsupported_auth_storage`, a run that times
+out rejects), reads the stored OAuth token as-is (never refreshed), and calls
+the `/usages` and `/me` endpoints; 401/403 or an absent credential file read
+`reauth_required`, 404 `unsupported`. File I/O errors, malformed credential
+contents, unreadable response bodies and invalid quota responses reject with
+safe reasons. Damaged quota windows are omitted rather than read as zero
+usage; if none remain, the read fails. Malformed Extra Usage data cannot
+override exhausted subscription limits. Malformed quota responses and
+credential permission failures were checked on Kimi 2.4.1 and 2.5.0 (Linux
+x64, real provider discovery, local HTTP responses, synthetic credentials).
+[`/me`](../../packages/oar/src/runtimes/kimi/profile.ts) is a
 best-effort identity add-on: it supplies `plan` (`user_level_name`), `email`,
 and `displayName` (`nickname`). Phone or WeChat sign-ins return no `email`, so
 `displayName` is often their only readable identity. Account quota and

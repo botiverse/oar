@@ -3,8 +3,8 @@
 OAR reaches DSH through its own plugin host, not through DSH's ACP server. Each
 session owns one `dsh --profile acp --patch <private file>` process with the
 `acp` protocol plugin disabled and a private bridge plugin inserted by its
-absolute file URL. The profile supplies the native core and its stdin shutdown; no ACP message
-is exchanged. Runtime id `dsh`, placement isolated only.
+absolute file URL. The profile supplies the native core and its stdin shutdown;
+no ACP message is exchanged. Runtime id `dsh`, placement isolated only.
 
 Native evidence: the [plugin probe](../../experiments/dsh-plugin/README.md) and
 `sea-trial/vendor/dsh*.vendor.test.ts` against the real CLI with a loopback
@@ -19,20 +19,20 @@ provider. Run on Linux x64, Node 24, on 2026-11-05:
 The [daily version inventory](../../experiments/runtime-versions.ts) compares
 `@deepseek-ai/dsh`'s npm `latest` with `OAR_DSH_BIN` or `dsh` on PATH. Each new
 version gets its own loopback-provider behavior and vendor runs; the CI pin
-remains separate. [November 5 evidence](../../experiments/runtime-version-checks/2026-11-05.md).
+remains separate. [November 5 evidence](../../experiments/runtime-version-checks/2026-11-05.md);
+`latest` is still 0.2.2-rc.1 in the [November 8 check](../../experiments/runtime-version-checks/2026-11-08.md).
 
-Real provider: Bugen ran `d6e41da` on Linux with a real DeepSeek API key
-(pay-per-use, not a first-party plan), model `deepseek-official/deepseek-flash`,
-effort low, on dsh 0.2.2-rc.1 and 0.2.1-rc.5: inference, tool call, resume, mid-turn
-cancel and usage passed. 0.2.2-alpha.2 was not run on a real key.
+Real provider (Bugen ran `d6e41da` on Linux, with a pay-per-use DeepSeek API
+key, not a first-party plan; model `deepseek-official/deepseek-flash`, effort low): inference,
+tool call, resume, mid-turn cancel and usage passed on 0.2.2-rc.1 and 0.2.1-rc.5.
+0.2.2-alpha.2 was not run on a real key.
 
-The corrected fixtures also passed with 0.2.1-rc.5 in CI run 42078076588:
+CI run 42078076588 on the 0.2.1-rc.5 pin (not 0.2.2-rc.1):
 [macOS](https://github.com/botiverse/oar/actions/runs/42078076588/job/127423516264)
-had 18 vendor cases and 18 behavior cases pass;
+passed 18 vendor and 18 behavior cases;
 [Windows](https://github.com/botiverse/oar/actions/runs/42078076588/job/127423516172)
-had 17 vendor cases and 18 behavior cases pass. Each behavior suite skipped
+passed 17 vendor and 18 behavior cases. Each behavior suite skipped
 `accountUsage`; Windows also skipped the POSIX-only mid-turn process-kill case.
-These platform results cover the CI pin, not 0.2.2-rc.1.
 
 ## Native interface
 
@@ -63,9 +63,8 @@ semver prerelease ordering. Below it, or with an unreadable version,
 `RuntimeFailureError` (`invalid_request`). Above it, the startup and per-agent
 method inventory decide: a missing method removes or refuses its control with the
 reason (below), and records keep the native frames. Method presence does not prove
-semantics, so the table above states what was actually run; the runtime version
-checks should run this suite on each new release. Reopen the floor if a release
-changes semantics silently.
+semantics, so the table above states what was actually run. Reopen the floor if a
+release changes semantics silently.
 
 A concrete semantic difference: from 0.2.2-alpha.2 a resumed session keeps its
 recorded selection over `agentOptions`, so the bridge calls `agent.model.select`
@@ -91,8 +90,8 @@ it differs from the request, the open is refused rather than run.
 
 Inputs carry their `inputId` as the native message id, which the durable log
 returns: `user/message` gives `user_message` with `evidence: "turn_item"`, and a
-`next-turn` claim gives `turn_active { inputId }`. A turn native started with
-nothing waiting gives `turn_active` with no id. `input_queued` is emitted only for a prompt held behind
+`next-turn` claim gives `turn_active { inputId }`. A turn native started with nothing waiting gives
+`turn_active` with no id. `input_queued` is emitted only for a prompt held behind
 input a crashed process left waiting; otherwise a claim follows at once, and a
 queued input's withdrawal is not a native drop, which the status fold's pending slot
 could not tell apart.
@@ -102,8 +101,8 @@ without `cancel`, are rejected `unsupported` with the reason. `steer` without
 `agent.steer` and `withdraw` without `inbox.remove` are absent members, as the
 contract asks, with `dsh/opened` keeping the inventory that says why. `create`
 missing rejects the open (`RuntimeFailureError`); `resume` or a saved-session
-read missing rejects a resume (`UnsupportedOptionError("resume")`); a model or effort
-without `llm.resolveCallConfig` rejects (`UnsupportedOptionError("model")`, `("effort")`).
+read missing rejects a resume (`UnsupportedOptionError("resume")`); a model or
+effort without `llm.resolveCallConfig` rejects (`UnsupportedOptionError("model")`, `("effort")`).
 
 ### Records
 
@@ -228,12 +227,10 @@ Attribute tool calls by their session and native turn, not by assuming every
 turn has a new host prompt or every spontaneous turn lacks an input id.
 
 [Background-work probes](../../experiments/dsh-background-work/README.md) held
-child and shell completion until after the root turn using DSH 0.2.1-rc.5 and
-0.2.2-rc.1 on Linux with local providers. Child task events already existed;
-shell job events fill the missing part of that observation. The shell regression
-also passed on Linux, macOS and Windows in CI with DSH 0.2.1-rc.5. The report
-links those results and keeps the manual Claude/Codex comparisons scoped to
-Linux.
+child and shell completion until after the root turn (DSH 0.2.1-rc.5 and
+0.2.2-rc.1, Linux, local providers); job events cover the shell side. The shell
+regression also passed on Linux, macOS and Windows in CI with 0.2.1-rc.5. The
+report links those results; its manual Claude/Codex comparisons are Linux only.
 
 ## Session options
 
@@ -249,14 +246,16 @@ tools run and the native `permission/preset` frame is recorded.
 Refused with `UnsupportedOptionError`, each until its own probe:
 `systemPrompt`, `appendSystemPrompt`, `disallowedTools`, `launchArgs`,
 `serviceTier`, `additionalDirectories`, `outputSchema`, `name`,
-`userConfiguration: "exclude"`, `goals: true`, `endTurnProcessesOnAbort: true`. Images are not sent:
-`capabilities.images` is false and an input with images is rejected `unsupported`.
-`queue.durable` is false: native dispose clears the inbox (measured). After a SIGKILL,
+`userConfiguration: "exclude"`, `goals: true`, `endTurnProcessesOnAbort: true`
+([`options.ts`](../../packages/oar/src/runtimes/dsh/options.ts)). Images are not
+sent: `capabilities.images` is false and an input with images is rejected
+`unsupported`. `queue.durable` is false: native dispose clears the inbox
+(measured). After a SIGKILL,
 one probe on 0.2.1-rc.5 found the queued input still in the log: it does not run at
 resume, `dsh/opened` reports it as `pending`, and it runs at the next wake, ahead of
 the prompt that woke it. Flush timing has not been established, so OAR promises
-nothing here. Login, auth status and account usage are absent. Manual compaction is undeclared, meaning
-untested. Inventories answer `unsupported`.
+nothing here. Login, auth status and account usage are absent. Manual compaction
+is undeclared, meaning untested. Inventories answer `unsupported`.
 
 ## Models
 
@@ -274,7 +273,8 @@ never answered because no native evidence for it exists yet.
 
 `installation` looks for `OAR_DSH_BIN`, then `dsh` on PATH. `installPlan` and
 `install` run `npm install -g @deepseek-ai/dsh` (Node 24.9 or later). DSH's
-default route is `deepseek-official`, with an API key; see the real-provider run above. Any other route goes in the user's own patch, for example
+default route is `deepseek-official`, with an API key (see the real-provider run
+above). Any other route goes in the user's own patch, for example
 `$DSH_HOME/cordis.patch.yml` with `llm-pi-ai` providers and `agent-default-model`,
 which is what the test fixture does.
 
@@ -303,8 +303,8 @@ running the real bridge text over fake services.
 
 A first request on Windows carries a third user message, a `skill-catalog` system
 reminder offering the bundled `diagnose-windows-sandbox-acl` skill (seen in the CI
-trace), after the input and the runtime context, which the fixture's `lastInput` now
-skips. DSH's shell tool there is `pwsh`, not `bash`.
+trace), after the input and the runtime context; the fixture's `lastInput` skips
+it. DSH's shell tool there is `pwsh`, not `bash`.
 
 ## Session MCP servers
 
@@ -319,9 +319,9 @@ Native loading is verified before open: `loader.await()` alone settles even
 when an individual plugin failed. The bridge then finds each requested row
 through `loader.entries()`, awaits its fiber and requires native ACTIVE state.
 A missing method, failed server or inactive plugin refuses the open. The check
-uses native `FiberState.ACTIVE = 2`, measured by the linked MCP probe. If DSH
-changes that enum, MCP opens will be refused until the mapping is updated.
-The latest-version vendor probe covers this dependency. Existing
+uses native `FiberState.ACTIVE = 2`, measured by the linked MCP probe and covered
+by the latest-version vendor probe. If DSH changes that enum, MCP opens are
+refused until the mapping is updated. Existing
 user-configured servers remain; a namespace collision fails native activation
 instead of replacing the user's server. Names must match the native
 `[A-Za-z0-9_-]{1,32}` constraint; OAR refuses other names without renaming them.

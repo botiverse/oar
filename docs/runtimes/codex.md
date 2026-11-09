@@ -67,7 +67,7 @@ ends the turn. The adapter declares `capabilities: { queue: { durable: true
 | Reconnects | `error` with `willRetry: true` → `retry`, with the native message and details as `reason`. `attempt` is OAR's count within that thread's turn: native states it only in display text (`Reconnecting... 1/5`), so `maxAttempts` is absent. These appear in the notification stream and not on stderr on 0.163.0 and 0.167.0; a 503 that codex retried below this level announced nothing ([probe](../../experiments/codex-native-signals/README.md)). An `error` without `willRetry` carries detail into the failed `turn_ended` only. |
 | Control replies | The `turn/start`, `turn/steer`, `turn/interrupt` and `thread/queue/add` replies are the `accepted` / `rejected` responses to prompt / steer / abort / queue, with the reply as `native` (so the queue submission id is retained). A `thread/goal/*` reply is its own frame; the [goal control](#native-goals) response only accepts or rejects. Each response is recorded as the reply line is read, before notifications codex wrote after it. |
 | Effective configuration | `model()`, `effort()` and `serviceTier()` fold the `model` / `effort` / `service_tier` events of the open reply and of `thread/settings/updated` ([models](#models-instructions-and-context)). Most native configuration has no public mutator. |
-| Server requests | Recorded as `toApp` request records (method and params verbatim, the server's own id), then answered at once, because `Session` gives a host no way to answer and an open request would hang the turn. Decisions get their native refusal (`decline`, `denied`, an empty grant or answer set, `success: false`; [table](../../packages/oar/src/runtimes/codex/runtime-requests.ts)); any other method gets JSON-RPC `-32601`. The reply is the `answered` response record, so `events()` reads `app_request` then `app_answered`. `serverRequest/resolved {threadId, requestId}` follows the answer and has no event. Through OAR (`approvalPolicy: never`) requests are rare: codex declines MCP elicitations itself and `request_user_input` is unavailable in Default mode. Driving 0.160.1 app-server directly, a `requestUserInput` (plan mode) and an MCP tool approval (`mcpServer/elicitation/request` under `on-request`) cut by `turn/interrupt` were each followed by `serverRequest/resolved`, right after the interrupted `turn/completed`. |
+| Server requests | Recorded as `toApp` request records (method and params verbatim, the server's own id), then answered at once: `Session` gives a host no way to answer, and an open request would hang the turn. Decisions get their native refusal (`decline`, `denied`, an empty grant or answer set, `success: false`; [table](../../packages/oar/src/runtimes/codex/runtime-requests.ts)); any other method gets JSON-RPC `-32601`. The reply is the `answered` response record, so `events()` reads `app_request` then `app_answered`; the `serverRequest/resolved {threadId, requestId}` that follows has no event. Through OAR (`approvalPolicy: never`) requests are rare: codex declines MCP elicitations itself and `request_user_input` is unavailable in Default mode. Driving 0.160.1 app-server directly, a `requestUserInput` (plan mode) and an MCP tool approval (`mcpServer/elicitation/request` under `on-request`) cut by `turn/interrupt` were each followed by `serverRequest/resolved` right after the interrupted `turn/completed`. |
 | Native children | Notifications of another thread are child-session records (`sessionId` = that thread id, a `graph()` node); a collaboration item naming `receiverThreadIds` / `agentThreadId` emits `session_linked` on that frame for the `tool_call` edge from the sender thread; without such an item no edge is fabricated ([children](#observation-children-and-history)). |
 | Process and observation lifetime | The Session owns its process; `dispose` is a request answered by the observed `exited` response (also recorded, pointing at no request, when the app-server dies on its own). The retained log backs the cursor for this process's lifetime; a resume starts a fresh stream at seq 0. |
 
@@ -76,47 +76,42 @@ read-back][oar-open], [projection][oar-projection], [kernel][oar-kernel], and
 [transport][oar-transport].
 
 A native `collabAgentToolCall` has the same tool lifecycle as other tool
-items, retaining that item type as `tool` and the native id as `callId`.
-Its `completed`/`failed` status determines the tool result. This is the
-collaboration operation ending, not the child task ending; `subAgentActivity`
-still supplies task events separately. Its input serializes only the native
-`tool` and `prompt` fields that are present; null and empty values are kept,
-and missing fields stay absent. No arguments are inferred from child ids.
-Codex 0.167.0's `wait_agent` reports `{"tool":"wait","prompt":null}`;
-older peer recordings omit `prompt`
-([audit](../../experiments/tool-activity-audit/files.md)).
+items (that item type as `tool`, the native id as `callId`), and its
+`completed`/`failed` status sets the tool result. That ends the collaboration operation, not the child task:
+`subAgentActivity` still supplies task events. Its input serializes only the
+native `tool` and `prompt` fields that are present (null and empty values
+kept, missing ones absent); no arguments are inferred from child ids. Codex
+0.167.0's `wait_agent` reports `{"tool":"wait","prompt":null}`; older peer
+recordings omit `prompt` ([audit](../../experiments/tool-activity-audit/files.md)).
 
 ## Message text and MCP names
 
 On Codex 0.167.0, `agentMessage` items carry `phase` (`commentary`,
-`partial_answer`, `final_answer`, or null); text-delta notifications carry no
-phase. OAR remembers only the native phase of that same thread, turn and item,
-then includes it as `text_delta.phase` when present. Unknown future string
-values are preserved. It never derives a phase from text or position, and a
-late report does not rewrite prior events.
+`partial_answer`, `final_answer`, or null); text-delta notifications carry
+none. OAR sets `text_delta.phase` only from the native phase reported for that
+same thread, turn and item, preserves unknown string values, never derives a
+phase from text or position, and does not rewrite earlier events on a late
+report.
 
-A message can finish without a single text delta. In that case its
-`item/completed` frame now emits the full, nonempty `agentMessage.text` once,
-with the native message id and phase if present. Any nonempty delta prevents
-this fallback, including when the final text differs from the streamed text;
-OAR does not concatenate the full body twice or guess a missing suffix.
-The normal streamed path remains unchanged. The older subagent fixture, which
-has no deltas and was trimmed to selected fields, now shows this text. That
-snapshot change does not establish that real Codex omits deltas for those
-messages.
+A message that finishes without any text delta emits its full, nonempty
+`agentMessage.text` once on `item/completed`, with the native message id and
+phase if present. Any nonempty delta suppresses this fallback, even when the
+final text differs from the streamed text: OAR neither emits the body twice
+nor guesses a missing suffix. The older subagent fixture (no deltas, trimmed
+to selected fields) shows this text; that does not establish that real Codex
+omits deltas for those messages.
 
-For an `mcpToolCall`, `tool_call_started` now carries the native `server` and
-`toolName` (the item's `tool`) when those fields are strings. The existing
-`tool: "mcpToolCall"`, `callId` and input remain unchanged. These names and text
-phases live in frame events and the flat event subscription, without replacing
-or changing the native frame.
+For an `mcpToolCall`, `tool_call_started` also carries the native `server` and
+`toolName` (the item's `tool`) when they are strings; `tool: "mcpToolCall"`,
+`callId` and input are unchanged. Names and phases are added to frame events
+and the flat event subscription; the native frame is unchanged.
 
-The exact declared `codexErrorInfo: "unauthorized"` is classified as `auth`,
-without inventing HTTP status or a credential diagnosis. Its shape is checked
-against 0.167.0's generated protocol, not a reproduced account failure: a
-scripted provider's SSE `unauthorized` instead produced native `other`, which
-remains `unknown`. Existing HTTP 401 transport failures still use their native
-status. See the [probe and evidence limits](../../experiments/codex-projection/README.md).
+Exactly `codexErrorInfo: "unauthorized"` is classified `auth`, with no
+invented HTTP status or credential diagnosis. The shape is checked against
+0.167.0's generated protocol, not a reproduced account failure: a scripted
+provider's SSE `unauthorized` produced native `other`, which stays `unknown`.
+HTTP 401 transport failures keep their native status
+([probe and evidence limits](../../experiments/codex-projection/README.md)).
 
 ## Capability details
 
@@ -206,8 +201,9 @@ are pinned against codex 0.162.0 ([missing targets](../spec/runtime-matrix.md#mi
 so stdio MCP servers and a relative `CODEX_HOME` resolve in the session's
 directory, not the host's
 ([vendor test](../../sea-trial/vendor/codex-session-name.vendor.test.ts)). A
-directory that does not exist fails the open with that reason; before this,
-Codex 0.163.0 accepted the open.
+directory that does not exist fails the open (`Codex session directory does
+not exist`); OAR releases before
+[#627](https://github.com/botiverse/oar/pull/627) opened it on Codex 0.163.0.
 
 **Session name (mapped, [#368](https://github.com/botiverse/oar/issues/368)).**
 `SessionOptions.name` is set with `thread/name/set` once the thread is open
@@ -307,28 +303,27 @@ runs that case with a local scripted provider.
 ### Manual compaction
 
 `manualCompaction` declares support with `activeTurn: "reject"`; opened
-sessions expose [`compact()`](../spec/manual-compaction.md). OAR issues
-`thread/compact/start` only while idle, including no unconsumed queued input
-or observed active goal:
-native compaction can otherwise abort the active task. The RPC response
-accepts the operation. The native compaction item identifies its turn; the
-first root turn after dispatch is insufficient because a goal can start one.
-Completion requires that turn's started and
-completed `contextCompaction` item, followed by its completed turn. Other
-threads, turns and item ids cannot finish the wait. Interrupted and failed
-turns remain aborted/failed outcomes.
+sessions expose [`compact()`](../spec/manual-compaction.md). OAR sends
+`thread/compact/start` only while idle, with no unconsumed queued input and no
+observed active goal, because native compaction can otherwise abort the active
+task. The RPC response accepts the operation. The native compaction item
+identifies its turn (the first root turn after dispatch does not, since a goal
+can start one): completion requires that turn's started and completed
+`contextCompaction` item, then its completed turn. Other threads, turns and
+item ids cannot finish the wait; interrupted and failed turns are
+aborted/failed outcomes.
 
-Caller deadlines do not interrupt native compaction. Prompts, steering,
-queue input and a second compaction are rejected busy until native settlement;
-`abort()` interrupts the turn identified by the compaction item, or refuses
-`busy` if that identity is not yet known; disposal still terminates the process.
+Caller deadlines do not interrupt native compaction. Until native settlement,
+prompts, steering, queue input and a second compaction are rejected `busy`;
+`abort()` interrupts the turn the compaction item identified, or refuses
+`busy` while that identity is unknown; disposal still terminates the process.
 A provider request can precede receipt of that item, even while status is
 `compacting` ([Windows timing evidence](../../experiments/codex-compaction-abort/README.md)).
 The [native regression](../../sea-trial/vendor/manual-compaction.vendor.test.ts)
-proves changed resume prompts govern the first request after completion.
-This evidence uses local compaction on 0.166.0. ChatGPT-login remote compaction
-has only source evidence (the 0.163 local/remote paths both use
-`build_compaction_replacement_history`); it has not been exercised live.
+proves changed resume prompts govern the first request after completion, with
+local compaction on 0.166.0. ChatGPT-login remote compaction has only source
+evidence (on 0.163 local and remote both use
+`build_compaction_replacement_history`) and has not been exercised live.
 
 ### Prompt, steering, queueing, and abort
 
@@ -474,18 +469,19 @@ adapter's own gates; the adapter keeps no liveness flag. [Kernel][oar-kernel].
 **What native leaves:** on 0.163.0 and 0.166.0 (Linux x64, scripted provider),
 `turn/interrupt` ended an `exec_command` still in the foreground but left a child
 it had detached with `setsid`, and left a command that had already yielded in that
-same turn, with its child. The [native terminal probe on 0.166.0](../../experiments/codex-background-terminals/README.md) also saw the running
-command survive, and found that native `thread/backgroundTerminals/terminate`
-and `clean` do not end a detached child, miss a command in its launch window,
-that `clean` also ends earlier background commands, and that a success reply
-and an empty list prove nothing. OAR therefore does not call them for this.
+same turn, with its child. The [native terminal probe on 0.166.0](../../experiments/codex-background-terminals/README.md)
+also saw the running command survive, and found that native
+`thread/backgroundTerminals/terminate` and `clean` do not end a detached child
+and miss a command in its launch window, that `clean` also ends earlier
+background commands, and that a success reply and an empty list prove nothing.
+OAR does not call them for this.
 
 **Mapped (opt-in):** `SessionOptions.endTurnProcessesOnAbort: true`. Before each
-`turn/start` the session starts a read of the process table, without waiting
-for it. `abort()` then takes a snapshot before it sends `turn/interrupt`, with
-the [one-second limit](../spec/record-stream.md#the-rules) of the existing
-pre-cancellation observation; the interrupt goes out at that deadline whatever the
-read did. When `turn/completed` reports `interrupted`, OAR reads the table again and
+`turn/start` the session starts a read of the process table without waiting
+for it. `abort()` takes a snapshot before sending `turn/interrupt`, within the
+[one-second limit](../spec/record-stream.md#the-rules) of the pre-cancellation
+observation; the interrupt goes out at that deadline whatever the read did.
+When `turn/completed` reports `interrupted`, OAR reads the table again and
 kills every process in the snapshot below the app-server and absent from the
 baseline, plus what those started since, each only while its start time matches.
 The app-server and session stay up for the next prompt; the fallback above and
@@ -499,10 +495,11 @@ Process groups separate the rest. On both versions the app-server's own group
 holds its helpers (`git` for its plugin cache, started at any moment) and, on
 0.163.0, the native binary behind the npm launcher. A stdio MCP server leads a
 group of its own within the app-server's session, and each `exec_command` leads
-its own session. So the app-server's group is never a target, nor is anything below
-a baseline process outside it: a worker an MCP server forks during the turn
-survives, as does a new child of an earlier background command, detached or not.
-Commands reached through the app-server's group are the candidates. Limits:
+its own session. So neither the app-server's group nor anything below a
+baseline process outside it is a target: a worker an MCP server forks during
+the turn survives, as does a new child of an earlier background command,
+detached or not. The candidates are commands reached through the app-server's
+group. Limits:
 
 - A command started after the snapshot and before the interrupt lands is not
   in the snapshot, so a child it detached survives.
@@ -531,15 +528,16 @@ it forked during the aborted turn, the earlier background command and its new
 child survive; the next prompt completes. Without the option the child and the
 yielded command survive.
 
-**Windows ends nothing.** CIM reports no process groups, so a turn's commands cannot
-be told from codex's helpers or an MCP server's workers. The option is still
-accepted there: no table is read for it, the interrupt goes out at once, and an
+**Windows ends nothing.** CIM reports no process groups, so a turn's commands
+cannot be told from codex's helpers or an MCP server's workers. The option is
+still accepted: no table is read for it, the interrupt goes out at once, and an
 interrupted turn records `cleanup` `failed` with that reason. A
-[control case](../../sea-trial/vendor/codex-abort-processes-no-groups.vendor.test.ts) runs in
-the Windows CI job and writes its diagnostics to the run's `trace.jsonl`; it has
-been run here only on Linux, with the table source stubbed to Windows, so no native
-Windows result is claimed until that job has run. macOS uses the Linux logic with
-`ps`, and has not been run.
+[control case](../../sea-trial/vendor/codex-abort-processes-no-groups.vendor.test.ts)
+runs in the Windows CI job and writes its diagnostics to the run's
+`trace.jsonl`; it has been run here only on Linux with the table source
+stubbed to Windows, so no native Windows result is claimed until that job has
+run. macOS uses the Linux logic
+with `ps` and has not been run.
 
 ### Native goals
 
@@ -678,8 +676,8 @@ by build):
   `wait` item completing on the child's message. `awaitTurnEnd` and the
   `model` / `usage` / `contextUsage` folds therefore scope to the root
   session ([fold tests](../../tests/observe-folds.test.ts)).
-- No `toApp` request arrived during a sub-agent turn. Control of child
-  threads is not exposed.
+- No `toApp` request arrived during a sub-agent turn. Child-thread control
+  is limited to [`stopTask`](#native-task-control).
 
 [Item schema][item-schema], [guide][guide],
 [child-thread probe](../../experiments/codex-child-threads.ts),
@@ -792,28 +790,25 @@ base prompt) and `appendSystemPrompt` to `developerInstructions` (appended as
 a developer message); `instructions` / `userInstructions` are silently
 ignored by `thread/start`. Cwd and the process environment overlay are
 forwarded. Requested and effective configuration remain distinct.
-On resume, Codex 0.166.0 immediately applies a supplied replacement
-`systemPrompt` (`baseInstructions`). Omitting it retains the saved replacement,
-including after compaction. A supplied `appendSystemPrompt`
-(`developerInstructions`) is also accepted, but the saved developer message
-remains until the next native compaction; subsequent requests use the new
-value. If omitted, the saved append disappears at that compaction and the
-new-session default applies. **Pass the current prompts on every open** when
-they must remain in effect. OAR forwards values without comparing prompts or
-injecting an extra user message.
-
+On resume (Codex 0.166.0), a supplied `systemPrompt` (`baseInstructions`)
+applies immediately, and an omitted one keeps the saved replacement, after
+compaction too. A supplied `appendSystemPrompt` (`developerInstructions`) is
+accepted, but the saved developer message stays until the next native
+compaction, after which requests use the new value; an omitted one disappears
+at that compaction and the new-session default applies. **Pass the current
+prompts on every open** when they must remain in effect. OAR forwards the
+values without comparing prompts or injecting an extra user message.
 `Runtime.resumedSessionOptions` declares replacement as `immediate` / `saved`
-and append as `next_compaction` / `saved_until_compaction`. The
-[raw-request regression](../../sea-trial/vendor/resume-system-prompt.vendor.test.ts)
-checks both dimensions before and after native automatic compaction, triggered
-by scripted token usage through the local Responses provider; it also requires
-the native compaction start/end records. Remote compaction under a ChatGPT
-login has not been exercised: only native source was inspected (0.163 routes
-both local and remote history replacement through
-`build_compaction_replacement_history`). The declaration retains that explicit
-evidence limit. The earlier
+and append as `next_compaction` / `saved_until_compaction`.
+
+The [raw-request regression](../../sea-trial/vendor/resume-system-prompt.vendor.test.ts)
+checks both before and after native automatic compaction (triggered by
+scripted token usage through the local Responses provider) and requires the
+native compaction start/end records. Remote compaction under a ChatGPT login
+has only source evidence ([manual compaction](#manual-compaction)); the
+declaration keeps that evidence limit. The earlier
 [pre-compaction evidence](../../experiments/runtime-version-checks/2026-10-23.md#resumed-system-prompts)
-was incomplete and no longer justifies refusing an append on resume.
+was incomplete and does not justify refusing an append on resume.
 [Vendor test](../../sea-trial/vendor/codex.vendor.test.ts).
 
 **Model listing:** `listModels` opens a bounded app-server connection and
@@ -896,8 +891,9 @@ Nor does oar match these snapshots to the failure: that would be inference
 "Deprecated: Use ContextCompaction item type instead") ends an open compaction
 only when the item did not already, which the projection's `compacting` flag
 tracks [env 0.154.0 schema; not yet reached live]. Native manual compaction
-(`thread/compact/start`, a client request) has no typed OAR operation; the
-vendor instruction test defers compaction survival until it does.
+(`thread/compact/start`) is [`compact()`](#manual-compaction); instruction
+survival through automatic compaction is under
+[instructions](#models-instructions-and-context).
 
 ### Tools, permissions, and client callbacks
 
@@ -1143,12 +1139,12 @@ classifies the installation as unsupported.
 [install](../../packages/oar/src/runtimes/codex/install.ts).
 
 The account query deadline settles `accountUsage` and `redeemLimitReset`
-without waiting for shutdown. OAR still owns the process and applies the
-normal stop grace and escalation. A reset timeout retains the ambiguous
-consumption warning and requires the same idempotency key on retry.
-[Linux native comparison](../../experiments/account-deadlines/README.md):
-Codex 0.131.0 and 0.167.0, 800 ms configured, approximately 803 ms to reject
-and 10.9 s until owned cleanup completed.
+without waiting for shutdown; OAR still owns the process and applies the
+normal stop grace and escalation. A reset timeout keeps the ambiguous
+consumption warning and requires the same idempotency key on retry
+([Linux native comparison](../../experiments/account-deadlines/README.md):
+Codex 0.131.0 and 0.167.0, 800 ms configured, about 803 ms to reject and
+10.9 s until owned cleanup completed).
 
 ### Login
 
@@ -1269,7 +1265,7 @@ material" row describes the former only.
 | Transport cursor | **Live stream cursor** (a position a reconnecting client hands back to get missed frames): none. No notification carries a sequence field, `turnId` is a span label and a `thread/items/list` filter, and `thread/resume` on a running thread delivers history plus a fresh full copy of every later frame, not a continuation (upstream comment "sends the thread's history to the client and atomically subscribes for new updates"; observed by @Faye: after B resumes, A and B receive frame for frame identical method sequences). **History pagination cursor:** `thread/resume` returns `itemsBackwardsCursor` and `turnsBackwardsCursor`, documented as opaque but observed as plaintext JSON `{ requestedThreadId, rolloutOrdinal, includeAnchor, scope }`; `rolloutOrdinal` is the `ordinal` every rollout line carries, monotonic from 0; a hand built cursor is accepted by `thread/items/list` and pages in both `sortDirection` values. It cannot reach a delta, because deltas are not persisted (question 2). OAR's process local `seq` is the only live cursor on this path. | source [kernel][oar-kernel]; source upstream [thread schema][upstream-thread-rs]; observed by @Faye |
 | Event stream scope | One event record per notification on this stdio connection, child threads included, which arrive on the parent's connection (observed 0.149.0 and 0.154.0). As the sole subscriber OAR receives both [tiers](#broadcast-tier-and-subscription-tier) merged. | source [projection][oar-projection]; observed [child thread probe](../../experiments/codex-child-threads.ts); source upstream [outgoing messages][upstream-outgoing]; observed by @Faye |
 | Runtime side resume material | `rollout-<timestamp>-<threadId>.jsonl` under `CODEX_HOME/sessions`, indexed by a sqlite state database in the same home: what `should_persist_response_item` and `should_persist_event_msg` admit (messages, reasoning, tool calls with outputs, compaction markers, turn started, completed, aborted, token counts), nothing OAR appended ([question 2](#six-questions)). `thread/resume` with `excludeTurns: true` feeds it to the model and replays nothing to OAR. Diagnostic reference only: OAR never replays observers from it. | source upstream [persistence policy][upstream-policy]; source adapter; observed [resume](#connection-session-creation-and-resume) |
-| Vendor claim versus evidence | Observed on 0.154.0: resume continuity with `excludeTurns`, steer, queue, interrupt, dispose mid turn, child notifications on the parent connection, `exited` after kill; on 0.158.0, one run: a queued submission surviving process tree death. Probed outside OAR: websocket and unix socket transports. Vendor only: `codex app-server proxy`, the app-server daemon, Codex Cloud `history` resume, `ephemeral` threads, ingress overload error `-32001`. Unverified either way: arbitration between competing controllers, resumed reasoning content, compaction frames, what happens when a recorded server request is never answered. | this page, [open gaps](#verification-and-open-gaps), [crash and resume](crash-resume.md); vendor [app-server README][upstream-readme] |
+| Vendor claim versus evidence | Observed on 0.154.0: resume continuity with `excludeTurns`, steer, queue, interrupt, dispose mid turn, child notifications on the parent connection, `exited` after kill; on 0.158.0, one run: a queued submission surviving process tree death. Probed outside OAR: websocket and unix socket transports. Vendor only: `codex app-server proxy`, the app-server daemon, Codex Cloud `history` resume, `ephemeral` threads, ingress overload error `-32001`. Unverified either way: arbitration between competing controllers, resumed reasoning content, compaction frames on a real login (scripted-provider runs cover them on 0.166.0, [manual compaction](#manual-compaction)). | this page, [open gaps](#verification-and-open-gaps), [crash and resume](crash-resume.md); vendor [app-server README][upstream-readme] |
 
 ### Eight dimensions
 
@@ -1284,7 +1280,7 @@ material" row describes the former only.
    ([kernel][oar-kernel]; source upstream rollout crate).
 3. **Event model.** One record per JSON-RPC notification (`type` = method,
    `native` = params verbatim, the turn id as `spanId`); server requests (frames with
-   both `id` and `method`) become `toApp` requests nobody answers; pre-open
+   both `id` and `method`) become `toApp` requests that OAR refuses at once; pre-open
    frames precede the open event; `turn/completed`'s `turn.status`
    (`completed`, `interrupted`, `failed`, `inProgress`) settles the outcome
    ([mapping](#high-level-mapping-to-oar);
@@ -1312,7 +1308,7 @@ material" row describes the former only.
    [daemon README][upstream-daemon]).
 7. **Tools and permissions.** `approvalPolicy: "never"` and a full access
    sandbox, so no approval request is expected; one that arrives is recorded
-   and left dangling ([tools](#tools-permissions-and-client-callbacks),
+   and refused ([tools](#tools-permissions-and-client-callbacks),
    [outcomes](#tool-call-outcome-reporting)).
 8. **Extension points.** MCP servers, skills, apps, collab agents, and
    dynamic tools exist natively; OAR passes the session's own MCP servers
@@ -1611,9 +1607,11 @@ a release passed.
 
 Open gaps:
 
-- Compaction: the per-call context reading is verified; compaction frames,
-  context after native compaction, and instruction survival through it are
-  not, and `thread/compact/start` is unreachable through the Session API.
+- Compaction: the per-call context reading is verified;
+  [manual compaction](#manual-compaction) and instruction survival through
+  automatic compaction are verified against a scripted provider only; context
+  after native compaction is not, and ChatGPT-login remote compaction has only
+  source evidence.
 - Resumed reasoning: raw events cannot be enabled on `thread/resume`, so a
   resumed session has no `reasoning` events.
 - Resumed token totals: before 0.151.0 codex sends no re-report ahead of the
@@ -1626,8 +1624,9 @@ Open gaps:
   has native evidence, driving the app-server directly; the other replies come
   from the app-server schema ([mapping](#high-level-mapping-to-oar)).
 - Child threads: delivery and identity are [env] on 0.149.0 / 0.154.0 with
-  differing item vocabularies; control of child threads is not exposed; a
-  child `turn/completed` that never arrives is observed but unexplained.
+  differing item vocabularies; child control is only
+  [`stopTask`](#native-task-control); a child `turn/completed` that never
+  arrives is observed but unexplained.
 - Resume refusals: the missing, archived and in-use answers are pinned
   against codex 0.162.0 ([resume](#connection-session-creation-and-resume));
   other unloadable thread ids only by the fake-process path. Concurrent
@@ -1839,12 +1838,13 @@ without changing the host. See [reader environments](../spec/orientation.md#envi
 
 ## Native task control
 
-`stopTask(taskId)` interrupts the observed active turn of an observed child
-thread with `turn/interrupt {threadId, turnId}`. It refuses the root/unrelated
-IDs and children with no active turn. A late completion from an older turn
-cannot clear the current turn ID. On 0.167.0 the interrupted child accepted a
-later native `followup_task` and completed it, while its peer and parent
-continued. Therefore child `turn/completed` never becomes a parent task ending;
-only native `subAgentActivity` retains that authority.
+`stopTask(taskId)` interrupts the observed active turn of an observed
+descendant thread with `turn/interrupt {threadId, turnId}`. It refuses the
+root, unrelated ids (`unsupported`) and children with no active turn
+(`no_active_turn`); a late completion of an older turn cannot clear the
+current turn id. On 0.167.0 the interrupted child later accepted a native
+`followup_task` and completed it while its peer and parent continued, so a
+child `turn/completed` never becomes a parent task ending; only native
+`subAgentActivity` has that authority.
 
 [Native evidence and reproducible probes](../../experiments/task-controls/README.md).

@@ -78,9 +78,9 @@ be claimed for a session that actually shares or borrows a Console.
 
 Console has no stdio session: the adapter's HTTP calls are its only link.
 Opening needs a Console whose Runtime API has `POST /topics` (mistermorph
-`319fa4b8` and later); an older one answers 405 and the open fails saying so. Before that endpoint existed, a
-topic was created only by the first task, which would leave `Session.id`
-unknown at open.
+`319fa4b8` and later); an older one answers 405 and the open fails saying so.
+(An older Console creates a topic only with the first task, which would leave
+`Session.id` unknown at open.)
 
 `resume` reopens the topic with a fresh stream at seq 0; nothing is replayed.
 A resume in another `cwd` re-attaches the workspace, so the topic runs where
@@ -160,7 +160,8 @@ each with a per-task `seq`. A slow reader may miss snapshots, and the stream's
 running\n\nstdout: ..."), not model output; it stays in the native frame
 only. So does the `text` of a failed or canceled snapshot, and the
 `final.output` of a failed or canceled task: there they carry the error
-("stopped by user", [env]), which the turn end already reports. The stream's `done` is a hint: Console's guide makes the task query
+("stopped by user", [env]), which the turn end already reports. The stream's
+`done` is a hint: Console's guide makes the task query
 authoritative, and the turn ends only there. Snapshots and status changes are
 the only frames; unchanged poll answers are not recorded.
 
@@ -185,8 +186,7 @@ run inside the Console process, which the session neither starts nor owns);
 `mcpServers` (no known per-session channel); `name` (no known session
 name setting); `goals: true` (no structured native goal controls);
 `endTurnProcessesOnAbort: true` (tools run in the Console process, not one this
-session owns); and
-`userConfiguration: "exclude"` (the Console process is shared, and no
+session owns); and `userConfiguration: "exclude"` (the Console process is shared, and no
 per-session exclusion of user configuration is verified). Because it
 refuses `env`, morph cannot be an `oar mcp` subagent. Images are not
 supported (`capabilities.images: false`); the API's `file_references` upload
