@@ -90,7 +90,11 @@ Another runtime could persist every notification and provide a replay cursor;
 that capability would need its own evidence and mapping. A history pagination
 cursor alone does not establish this guarantee.
 
-The library currently retains records in memory for a Session instance. A host
+The library currently retains records in memory for a Session instance;
+`retainedBytes` bounds that memory by marking the oldest frames `elided` and
+removing their native and tool payloads, never whole records, after live
+observers have received them complete
+([decision](decisions.md#bounded-retention-by-eliding-content-2026-11-05)). A host
 that needs replay after restart must persist records before delivering them,
 retain stream-instance identity when sequence numbers restart, and define its
 own durability policy. Native resume does not recover the host's lost log.

@@ -193,7 +193,7 @@ for (const runtime of defaultRuntimes.list()) {
 - **[Orientation](docs/spec/orientation.md):** one call for what is installed and usable.
 - **[Install](docs/spec/install.md) and [update](docs/spec/update.md):** through the vendor's own installer and updater.
 - **[Login](docs/spec/login.md):** through the runtime's own login, without a terminal. OAR never handles the tokens.
-- **[Account usage](docs/spec/account-usage.md):** plan and quota windows.
+- **[Account usage](docs/spec/account-usage.md):** plan and quota windows, and Codex limit resets.
 - **Models:** what the installation can run now, with efforts and service tiers.
 - **[Inventories](docs/spec/inventory.md):** configured skills, commands, MCP servers and tools.
 - **[Setup forms](docs/spec/config-form.md):** settings as data a UI renders.
