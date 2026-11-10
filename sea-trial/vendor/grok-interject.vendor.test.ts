@@ -13,8 +13,9 @@ import { startGrokAimock, type AcpAimockEnv } from "../harness/aimock-acp.js";
  * reach the next provider request inside the same turn, without cancelling
  * it, and an abort must drop a not-yet-taken interjection. The command is
  * one word per platform: on Windows Grok ran `sleep 4; echo ...` as `sleep`
- * with the argument `4;`, which failed at once and ended the turn before the
- * steer (2026-11-10, CI run 42880524360).
+ * with the argument `4;`, which failed at once, so the slow-tool window the
+ * test needs did not exist; the abort was rejected, and the exact order was
+ * not kept (2026-11-10, CI run 42880524360).
  */
 const user = (request: unknown): string => {
   const messages: unknown = asRecord(request)?.messages;
