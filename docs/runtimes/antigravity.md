@@ -312,10 +312,13 @@ confirmed.
   authorization code was entered` only when its input ends. After exit 0,
   `agy models` decides: a login is `logged_in` (no account details), a sign-in
   refusal `not_logged_in`. agy ignores `BROWSER` and starts the platform
-  launcher itself (`xdg-open`, `rundll32`, macOS `open`, found on PATH), so for
+  launcher itself. On Linux it finds `xdg-open` on PATH, so for
   `openBrowser: false` the login child's PATH starts with a directory holding a
-  launcher that does nothing; where that cannot be set up the login is
-  `unsupported` (`browser_suppression_unavailable`) before anything runs.
+  launcher that does nothing (macOS `open` is treated alike, unverified). On
+  Windows it runs `%SYSTEMROOT%\System32\rundll32.exe` by absolute path,
+  which nothing on PATH replaces, so `openBrowser: false` there, like any
+  platform where the launcher cannot be set up, is `unsupported`
+  (`browser_suppression_unavailable`) before anything runs.
 - `authStatus` runs `agy models`: exit 0 is `logged_in`; exit 1 with `Please
   sign in to view available models` is `logged_out`; anything else
   (network, a crash) is `unknown`. It is a remote call, not `localOnly`.

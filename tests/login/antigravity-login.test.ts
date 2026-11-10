@@ -16,7 +16,7 @@ async function fixture(mode: string, loggedIn = false) {
   return { fake, installation: { kind: "available" as const, via: "executable" as const, command: fake.command, version: "1.5.5" } };
 }
 
-it("relays the Google URL, writes only the pasted code to agy's stdin, and confirms with agy models", async () => {
+it.skipIf(process.platform === "win32")("relays the Google URL, writes only the pasted code to agy's stdin, and confirms with agy models", async () => {
   const { fake, installation } = await fixture("success");
   const interaction = recordedInteraction(["  synthetic-private-code  "]);
   expect(await antigravityLogin(installation, interaction, { openBrowser: false })).toEqual({ kind: "logged_in" });
@@ -24,6 +24,12 @@ it("relays the Google URL, writes only the pasted code to agy's stdin, and confi
   expect(interaction.prompts.map((prompt) => prompt.kind)).toEqual(["manual_code"]);
   expect(fake.read()).toMatchObject({ calls: [["acp", "--login"], ["models"]], pasted: "synthetic-private-code" });
   expect(String(fake.read().launcher)).toContain("oar-agy-browser-");
+});
+
+it.runIf(process.platform === "win32")("Windows refuses openBrowser: false before anything runs: agy's launcher is an absolute rundll32 path", async () => {
+  const { fake, installation } = await fixture("success");
+  expect(await antigravityLogin(installation, recordedInteraction([]), { openBrowser: false })).toMatchObject({ kind: "unsupported", reason: "browser_suppression_unavailable" });
+  expect(fake.read().calls).toBeUndefined();
 });
 
 it("an empty answer is never sent: agy would only keep waiting, so OAR asks again", async () => {
