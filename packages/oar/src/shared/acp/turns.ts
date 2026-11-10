@@ -36,8 +36,8 @@ export interface AcpTurns {
   active(): ActiveTurn | null;
   queued(): boolean;
   drain(): void;
-  /** Reserve native cancellation ownership for a dedicated control, without fabricating a prompt. */
-  beginOperation(request: RequestRecord): ActiveTurn;
+  /** Reserve native cancellation ownership for a dedicated control (or a turn the runtime runs on its own, `null`), without fabricating a prompt. */
+  beginOperation(request: RequestRecord | null): ActiveTurn;
   finishOperation(state: ActiveTurn): void;
   /** Null outside observation so ordinary input keeps its synchronous dispatch. */
   pendingCancellation(): Promise<CancellationObservation> | null;
@@ -66,7 +66,7 @@ export function createAcpTurns(deps: {
   readonly promptUsage: (response: JsonRecord) => RuntimeEventBody | null;
   readonly fallback?: (request: RequestRecord) => Promise<void>;
   readonly operationBusy?: () => boolean;
-  /** Extra params naming one prompt for its native reports (`nativeTurns`), from its input id. */ readonly promptParams?: ((inputId: string | undefined) => JsonRecord) | undefined;
+  /** Native turns (`nativeTurns`): params naming a prompt from its input id, and what a closing turn hands on (native-turns.ts). */ readonly native?: { readonly promptParams: (inputId: string | undefined) => JsonRecord; readonly afterClose: () => readonly RuntimeEventBody[] } | undefined;
 }): AcpTurns {
   const { kernel, runtime, profile, usageGate, capabilities, promptUsage, promptMeta } = deps;
   const rootId = kernel.sessionId;
@@ -80,7 +80,7 @@ export function createAcpTurns(deps: {
   let active: ActiveTurn | null = null;
   let nextRequest = 0;
   let observingCancellation: Promise<CancellationObservation> | null = null;
-  const closeTurn = (state: ActiveTurn): void => {
+  const closeTurn = (state: ActiveTurn): readonly RuntimeEventBody[] => {
     state.cancellation?.complete();
     if (state.fallback !== null) {
       clearTimeout(state.fallback);
@@ -89,7 +89,7 @@ export function createAcpTurns(deps: {
     if (active === state) {
       active = null;
     }
-    queueMicrotask(drainHeld);
+    queueMicrotask(drainHeld); return deps.native?.afterClose() ?? [];
   };
   const finishRequest = (
     state: ActiveTurn,
@@ -113,7 +113,7 @@ export function createAcpTurns(deps: {
     if (frame.context !== null) {
       events.push(frame.context);
     }
-    if (closes) { closeTurn(state); }
+    if (closes) { events.push(...closeTurn(state)); }
     kernel.frame({ type: frame.type, native: frame.native, events });
   };
   const staleSteer = new Error("not_steerable: no active turn");
@@ -179,7 +179,7 @@ export function createAcpTurns(deps: {
       return gone();
     }
     const state = beginOperation(request);
-    startVendorPrompt(state, prompt, deps.promptParams?.(request?.body.kind === "prompt" ? request.body.inputId : undefined));
+    startVendorPrompt(state, prompt, deps.native?.promptParams(request?.body.kind === "prompt" ? request.body.inputId : undefined));
     return { kind: "accepted" };
   };
   const beginOperation = (request: RequestRecord | null): ActiveTurn => {
@@ -220,7 +220,7 @@ export function createAcpTurns(deps: {
     queued: () => dispatching || held.length > 0,
     drain: drainHeld,
     beginOperation,
-    finishOperation: closeTurn,
+    finishOperation: (state) => { closeTurn(state); },
     pendingCancellation: (): Promise<CancellationObservation> | null => observingCancellation,
     begin,
     async steer(state, input, options, extraParams) {

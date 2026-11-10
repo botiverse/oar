@@ -28,7 +28,10 @@ export const grokNativeTurns: AcpNativeTurns = {
     if (method !== "_x.ai/session_notification") { return null; }
     const update = asRecord(params.update);
     if (update?.sessionUpdate !== "turn_completed" || typeof update.prompt_id !== "string" || update.prompt_id === "") { return null; }
-    return { kind: "ended", promptId: update.prompt_id, outcome: grokTurnOutcome(update) };
+    // A later wake of the same child reuses its prompt id; the native event id tells the reports apart.
+    // oxlint-disable-next-line eslint/no-underscore-dangle -- Native ACP extension envelope.
+    const key = asRecord(params._meta)?.eventId;
+    return { kind: "ended", promptId: update.prompt_id, outcome: grokTurnOutcome(update), ...(typeof key === "string" && key !== "" ? { key } : {}) };
   },
 };
 

@@ -106,16 +106,19 @@ export function finishAcpSession(
   const capabilities = { ...profile.capabilities, images: profile.capabilities.images ?? acpTakesImages(opened.initialized) };
   const ownership = shared;
   let compaction: ReturnType<typeof manualCompaction> | null = null;
-  const turns = createAcpTurns({ operationBusy: () => compaction?.busy() === true || nativeTurns?.busy() === true, kernel, runtime, profile, usageGate, capabilities, promptMeta: profile.promptMeta?.(options), promptUsage: (result) => tokenUsage.prompt(result),
-    ...(nativeTurns === undefined ? {} : { promptParams: (inputId: string | undefined): JsonRecord => ({ _meta: nativeTurns.name(inputId) }) }),
+  const turns = createAcpTurns({ operationBusy: () => compaction?.busy() === true, kernel, runtime, profile, usageGate, capabilities, promptMeta: profile.promptMeta?.(options), promptUsage: (result) => tokenUsage.prompt(result),
+    ...(nativeTurns === undefined ? {} : { native: { promptParams: (inputId: string | undefined): JsonRecord => ({ _meta: nativeTurns.name(inputId) }), afterClose: nativeTurns.afterOarTurn } }),
     ...(ownership === undefined ? {} : { fallback: async (request: RequestRecord): Promise<void> => { ownership.stopRequests(); await lifecycle?.abortFallback(request); } }),
   });
-  nativeTurns?.onIdle(() => { turns.drain(); });
-  nativeTurns?.bindOarTurn(() => turns.active() !== null);
+  // The runtime's own turn is the active turn: prompt is busy, held input waits, steer and abort reach it.
+  nativeTurns?.bind({ active: () => turns.active(), adopt: () => turns.beginOperation(null), release: (turn) => {
+    const active = turns.active();
+    if (active === turn) { turns.finishOperation(active); }
+  } });
   const createCompaction = profile.compaction;
   if (createCompaction !== undefined) {
     compaction = manualCompaction(kernel, {
-      busy: () => turns.active() !== null || turns.queued() || turns.pendingCancellation() !== null || nativeTurns?.busy() === true,
+      busy: () => turns.active() !== null || turns.queued() || turns.pendingCancellation() !== null,
       busyReason: "Wait for native input and cancellation to finish before compacting",
       settledBy: "native_response",
       released: () => { queueMicrotask(() => { turns.drain(); }); },
@@ -191,7 +194,9 @@ export function finishAcpSession(
     : {
       steer: (input: string, inputOptions?: InputOptions): Promise<ControlResult> => control({ kind: "steer", input, ...inputOptions }, (request): ResponseBody | Promise<ResponseBody> => {
         if (compaction?.busy() === true) { return { kind: "rejected", code: "busy", reason: "Native compaction is still running" }; }
-        if (steerRequest !== undefined) { return sendAcpSteerRequest({ kernel, runtime, profile, capabilities, running: () => turns.active()?.abortRequested === false || nativeTurns?.busy() === true }, request, input, inputOptions); }
+        // The turn running now, OAR's or the runtime's own, must still be the one running when the RPC goes out.
+        const target = turns.active();
+        if (steerRequest !== undefined) { return sendAcpSteerRequest({ kernel, runtime, profile, capabilities, running: () => target !== null && turns.active() === target && !target.abortRequested }, request, input, inputOptions); }
         const state = turns.active();
         return state === null || steerParams === undefined
           ? { kind: "rejected", code: "no_active_turn", reason: "not_steerable: no active turn" }
@@ -203,7 +208,7 @@ export function finishAcpSession(
     id: kernel.sessionId,
     capabilities,
     prompt: (input, inputOptions?: InputOptions): Promise<ControlResult> => control({ kind: "prompt", input, ...inputOptions }, (request): ResponseBody =>
-      (turns.active() === null && !turns.queued() && compaction?.busy() !== true && nativeTurns?.busy() !== true ? turns.begin(request, input, inputOptions?.images) : { kind: "rejected", code: "busy", reason: "busy" })),
+      (turns.active() === null && !turns.queued() && compaction?.busy() !== true ? turns.begin(request, input, inputOptions?.images) : { kind: "rejected", code: "busy", reason: "busy" })),
     ...steer,
     ...(compaction === null ? {} : { compact: compaction.compact }),
     queue: (input, inputOptions?: InputOptions): Promise<ControlResult> => control({ kind: "queue", input, ...inputOptions }, (request) => turns.hold(input, inputOptions?.images, inputOptions?.inputId, request)),

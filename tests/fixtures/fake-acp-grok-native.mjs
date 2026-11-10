@@ -46,6 +46,22 @@ function grokNativePrompt(message, { send, result }) {
   running = { id: message.id, promptId, text };
   if (text === "hold" || text === "hold-buffer") { return; }
   chunk(send, `echo:${text}`);
+  if (text === "race-long") {
+    const current = running;
+    running = { id: null, promptId: "subagent-completed-long", own: true };
+    queueChanged(send, null);
+    vendor(send, { sessionUpdate: "turn_completed", prompt_id: current.promptId, stop_reason: "end_turn" });
+    queueChanged(send, running.promptId);
+    chunk(send, "woke-long");
+    result(current.id, { stopReason: "end_turn", _meta: { promptId: current.promptId } });
+    // Native work can continue while its predecessor's RPC has already settled.
+    setTimeout(() => {
+      queueChanged(send, null);
+      vendor(send, { sessionUpdate: "turn_completed", prompt_id: "subagent-completed-long", stop_reason: "end_turn" });
+      running = null;
+    }, 500);
+    return;
+  }
   if (text === "race") {
     // Grok's next turn starts as soon as this one ends; its frames can reach
     // OAR before the prompt answer is recorded.
@@ -102,7 +118,12 @@ function grokNativeInterject(message, { send, result }) {
 /** session/cancel clears buffered interjections ("Clear, don't flush") and cancels the prompt. */
 function grokNativeCancel(send, result) {
   buffered = [];
-  if (running !== null && running.id !== null) { finish(send, result, "cancelled"); }
+  if (running?.own === true) {
+    const current = running;
+    running = null;
+    queueChanged(send, null);
+    send({ jsonrpc: "2.0", method: "_x.ai/session_notification", params: { sessionId: SESSION, _meta: { eventId: `cancel-${current.promptId}` }, update: { sessionUpdate: "turn_completed", prompt_id: current.promptId, stop_reason: "cancelled" } } });
+  } else if (running !== null) { finish(send, result, "cancelled"); }
 }
 
 /** Handle what mode "grok-native" answers itself; false leaves the message to the generic fixture. */

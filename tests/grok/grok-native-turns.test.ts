@@ -5,34 +5,50 @@ import { createAcpNativeTurnTracker } from "../../packages/oar/src/shared/acp/na
 const queue = (running: string | null, ids: readonly string[] = []) => ({ sessionId: "root", entries: ids.map((id) => ({ id, kind: "prompt" })), ...(running === null ? {} : { runningPromptId: running }) });
 const completed = (promptId: string, extra: Record<string, unknown> = {}) => ({ sessionId: "root", update: { sessionUpdate: "turn_completed", prompt_id: promptId, stop_reason: "end_turn", ...extra } });
 
+/** The tracker over a stand-in turn driver: `oar` is an open OAR prompt turn, `adopted` the runtime's own. */
 function tracker() {
   const turns = createAcpNativeTurnTracker(grokNativeTurns);
   if (turns === undefined) { throw new Error("grok has native turns"); }
+  const driver: { active: object | null; adopted: number; released: number } = { active: null, adopted: 0, released: 0 };
+  turns.bind({
+    active: () => driver.active,
+    adopt: () => { driver.adopted += 1; driver.active = { native: driver.adopted }; return driver.active; },
+    release: (turn) => { if (driver.active === turn) { driver.active = null; driver.released += 1; } },
+  });
   const project = (method: string, params: Record<string, unknown>, afterOpen = true) => turns.project(method, params, "root", afterOpen);
-  return { turns, project };
+  return { turns, project, driver };
 }
 
-test("Grok's own turn starts at its running id and ends at its turn_completed, once", () => {
-  const { turns, project } = tracker();
+test("Grok's own turn is adopted at its running id and released at its turn_completed, once", () => {
+  const { project, driver } = tracker();
   expect(project("_x.ai/queue/changed", queue("subagent-completed-x"))).toEqual([{ kind: "turn_active" }]);
-  expect(turns.busy()).toBe(true);
+  expect(driver.adopted).toBe(1);
   expect(project("_x.ai/queue/changed", queue("subagent-completed-x"))).toEqual([]);
   expect(project("_x.ai/queue/changed", queue(null))).toEqual([]);
-  expect(turns.busy()).toBe(true);
-  expect(project("_x.ai/session_notification", completed("subagent-completed-x"))).toEqual([{ kind: "turn_ended", outcome: { kind: "completed" } }]);
-  expect(turns.busy()).toBe(false);
-  expect(project("_x.ai/session_notification", completed("subagent-completed-x"))).toEqual([]);
+  expect(driver.active).not.toBeNull();
+  expect(project("_x.ai/session_notification", completed("subagent-completed-x", { _meta: { eventId: "e1" } }))).toEqual([{ kind: "turn_ended", outcome: { kind: "completed" } }]);
+  expect(driver).toMatchObject({ active: null, released: 1 });
+  expect(project("_x.ai/session_notification", completed("subagent-completed-x", { _meta: { eventId: "e1" } }))).toEqual([]);
+});
+
+test("two wakes of the same child are two turns, told apart by their native event ids", () => {
+  const { project, driver } = tracker();
+  for (const eventId of ["root-20", "root-40"]) {
+    expect(project("_x.ai/queue/changed", queue("subagent-completed-child"))).toEqual([{ kind: "turn_active" }]);
+    project("_x.ai/queue/changed", queue(null));
+    expect(project("_x.ai/session_notification", { ...completed("subagent-completed-child"), _meta: { eventId } })).toEqual([{ kind: "turn_ended", outcome: { kind: "completed" } }]);
+  }
+  expect(driver).toMatchObject({ adopted: 2, released: 2 });
 });
 
 test("an OAR prompt is queued and started with its input id, and its own end report is left to the RPC answer", () => {
-  const { turns, project } = tracker();
-  const meta = turns.name("input-1");
-  const promptId = String(meta.promptId);
+  const { turns, project, driver } = tracker();
+  const promptId = String(turns.name("input-1").promptId);
   expect(promptId).toMatch(/^oar-/u);
   expect(turns.sentByOar(promptId)).toBe(true);
   expect(project("_x.ai/queue/changed", queue(null, [promptId]))).toEqual([{ kind: "input_queued", inputId: "input-1" }]);
   expect(project("_x.ai/queue/changed", queue(promptId))).toEqual([{ kind: "turn_active", inputId: "input-1" }]);
-  expect(turns.busy()).toBe(false);
+  expect(driver.adopted).toBe(0);
   expect(project("_x.ai/session_notification", completed(promptId))).toEqual([]);
 });
 
@@ -49,31 +65,30 @@ test("a failed own turn carries Grok's message and its classified failure", () =
 });
 
 test("history, other sessions and opening frames start or end nothing", () => {
-  const { turns, project } = tracker();
+  const { project, driver } = tracker();
   expect(project("_x.ai/session_notification", { ...completed("subagent-completed-old"), _meta: { isReplay: true } })).toEqual([]);
   expect(project("_x.ai/queue/changed", { ...queue("subagent-completed-y"), sessionId: "child" })).toEqual([]);
   expect(project("_x.ai/queue/changed", queue("subagent-completed-z"), false)).toEqual([]);
-  expect(turns.busy()).toBe(false);
+  expect(driver.adopted).toBe(0);
 });
 
-test("while an OAR prompt's turn is open, Grok's next turn is not reported apart", () => {
-  const { turns, project } = tracker();
-  let open = true;
-  turns.bindOarTurn(() => open);
+test("a native turn starting inside an open OAR turn is reported once that turn closes, and still runs", () => {
+  const { turns, project, driver } = tracker();
+  driver.active = { oar: true };
   expect(project("_x.ai/queue/changed", queue("subagent-completed-r"))).toEqual([]);
-  expect(turns.busy()).toBe(true);
-  open = false;
-  // It ends after the OAR turn closed: its end is reported.
+  driver.active = null;
+  expect(turns.afterOarTurn()).toEqual([{ kind: "turn_active" }]);
+  expect(driver.adopted).toBe(1);
   expect(project("_x.ai/session_notification", completed("subagent-completed-r"))).toEqual([{ kind: "turn_ended", outcome: { kind: "completed" } }]);
-  expect(turns.busy()).toBe(false);
+  expect(driver.active).toBeNull();
 });
 
-test("an own turn ending lets held input go", async () => {
-  const { turns, project } = tracker();
-  let idle = 0;
-  turns.onIdle(() => { idle += 1; });
-  project("_x.ai/queue/changed", queue("bash-completed-1"));
-  project("_x.ai/session_notification", completed("bash-completed-1"));
-  await Promise.resolve();
-  expect(idle).toBe(1);
+test("a native run wholly inside an open OAR turn stays inside it", () => {
+  const { turns, project, driver } = tracker();
+  driver.active = { oar: true };
+  expect(project("_x.ai/queue/changed", queue("subagent-completed-s"))).toEqual([]);
+  expect(project("_x.ai/session_notification", completed("subagent-completed-s"))).toEqual([]);
+  driver.active = null;
+  expect(turns.afterOarTurn()).toEqual([]);
+  expect(driver.adopted).toBe(0);
 });

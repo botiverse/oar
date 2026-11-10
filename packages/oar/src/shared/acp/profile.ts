@@ -124,8 +124,8 @@ export interface AcpSessionProfile {
 export type AcpNativeTurnReport =
   /** The runtime's prompt queue: the prompt it is running (null when none) and the ones it holds. */
   | { readonly kind: "queue"; readonly running: string | null; readonly queued: readonly string[] }
-  /** A prompt's turn ended, by the runtime's own report. */
-  | { readonly kind: "ended"; readonly promptId: string; readonly outcome: TurnOutcome };
+  /** A prompt's turn ended, by the runtime's own report; `key` identifies that report across repeated delivery. */
+  | { readonly kind: "ended"; readonly promptId: string; readonly outcome: TurnOutcome; readonly key?: string };
 
 export interface AcpNativeTurns {
   /** Prompt-level fields naming one OAR prompt (merged into `_meta`). */

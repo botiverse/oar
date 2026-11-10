@@ -116,3 +116,28 @@ test("abort clears a buffered interjection: the turn is aborted and nothing runs
     expect(events(records).some((event) => event.kind === "input_dropped")).toBe(false);
   } finally { await session.dispose(); }
 });
+
+test("Grok's own turn can be stopped: abort cancels it and its own end is aborted", async () => {
+  const session = await grok();
+  try {
+    await promptAndWait(session, "wake");
+    await until(() => statusOf(session.records(), session.id).value.kind === "running");
+    const stopped = await session.abort();
+    expect(stopped.kind).toBe("accepted");
+    await until(() => statusOf(session.records(), session.id).value.kind === "idle");
+    expect(ends(session.records()).at(-1)).toEqual({ kind: "turn_ended", outcome: { kind: "aborted" } });
+    expect(await promptAndWait(session, "after the stop")).toMatchObject({ kind: "ended", outcome: { kind: "completed" } });
+  } finally { await session.dispose(); }
+});
+
+test("a Grok turn that outlives the prompt answer it overlapped is still running after that answer", async () => {
+  const session = await grok();
+  try {
+    expect(await promptAndWait(session, "race-long")).toMatchObject({ kind: "ended", outcome: { kind: "completed" } });
+    expect(statusOf(session.records(), session.id).value.kind).toBe("running");
+    expect(await session.prompt("too soon")).toMatchObject({ kind: "rejected", code: "busy" });
+    await until(() => statusOf(session.records(), session.id).value.kind === "idle");
+    expect(ends(session.records())).toHaveLength(2);
+    expect(await promptAndWait(session, "now")).toMatchObject({ kind: "ended", outcome: { kind: "completed" } });
+  } finally { await session.dispose(); }
+});

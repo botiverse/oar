@@ -375,15 +375,22 @@ held is `input_queued { inputId }`, its start `turn_active { inputId }`; a
 foreign running id is `turn_active` without an input id, and its root
 `turn_completed` is that turn's `turn_ended` (`stop_reason` `cancelled` is
 aborted, `error` failed with `agent_result` as reason, else completed) with
-its `usage` ledger billed once. While that turn runs, `prompt()` is rejected
-`busy`, held input waits, and `steer()` interjects into it. Replayed frames
-(`_meta.isReplay`) and frames before the session opened are history and start
-or end nothing. Grok runs one turn at a time, so its next turn can begin
-before OAR records the previous prompt's answer (OAR waits for the SDK's
-notification flush first). A Grok turn that starts or ends while an OAR
-prompt's turn is still open is therefore not reported apart: its frames stay
-inside that turn, and a host waiting on the prompt gets the prompt's end.
-([test](../../tests/acp/grok-interject.test.ts); late-drain and race cases.)
+its `usage` ledger billed once. A later wake of the same child reuses its
+prompt id; each run is its own turn, and repeated delivery of one end report
+is recognised by its native `_meta.eventId`. OAR's turn driver adopts Grok's
+turn as the active turn: `prompt()` is rejected `busy`, held input waits,
+`steer()` interjects into it, and `abort()` sends `session/cancel` (Grok ends
+it `cancelled`, so `aborted`) with the same ten-second fallback as a prompted
+turn. Replayed frames (`_meta.isReplay`) and frames before the session opened
+are history and start or end nothing. Grok runs one turn at a time, so its
+next turn can begin before OAR records the previous prompt's answer (OAR
+waits for the SDK's notification flush first). A Grok turn that starts while
+an OAR prompt's turn is still open is reported when that turn closes: the
+prompt's closing frame carries its `turn_ended`, then the Grok turn's
+`turn_active`, so a host waiting on the prompt gets the prompt's end and the
+session stays busy until Grok's own end. A Grok run that also ends before
+then stays inside the prompt's turn.
+([test](../../tests/acp/grok-interject.test.ts): late-drain, race, overlap and stop cases.)
 
 **Queue (mapped):** `queue()` is a host-memory FIFO
 (`capabilities.queue.durable: false`), drained one message per turn end; a
