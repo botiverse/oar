@@ -114,6 +114,24 @@ test.each([
   expect(acpFailureOutcome(error, frames, grokFailureOutcome)).toMatchObject({ kind: "failed", failure });
 });
 
+// Grok 1.0.77's own shapes (failure-classes-acp.vendor.test.ts; sampling/error.rs): a 429 keeps the provider's
+// error type after its prefix; any other API error keeps `data.http_status`.
+const limit = (detail: string): RequestError => new RequestError(-32_003, "Rate limited", detail);
+const apiError = (status: number, detail: string): RequestError => new RequestError(-32_603, "Internal error", { message: detail, http_status: status });
+test.each([
+  { name: "a throttling 429", error: limit("API error (status 429 Too Many Requests): requests: Rate limit reached for aimock-model."), failure: "rate_limited", status: 429 },
+  { name: "a 429 typed insufficient_quota", error: limit("API error (status 429 Too Many Requests): insufficient_quota: You exceeded your current quota."), failure: "quota", status: 429 },
+  { name: "a 429 typed credit_balance_exhausted", error: limit("API error (status 429 Too Many Requests): credit_balance_exhausted: Credit balance exhausted"), failure: "billing", status: 429 },
+  { name: "Grok's free-usage code", error: limit("API error (status 429 Too Many Requests): subscription:free-usage-exhausted: Free usage exhausted"), failure: "quota", status: 429 },
+  { name: "a 429 with only words", error: limit("quota exceeded"), failure: "rate_limited", status: 429 },
+  { name: "a 402 Grok called api", error: apiError(402, "API error (status 402 Payment Required): billing_error: Your team is out of credits."), frames: [retryState({ type: "failed", error_type: "api" })], failure: "billing", status: 402 },
+  { name: "a 401 keeps auth and its status", error: apiError(401, "API error (status 401 Unauthorized): …"), frames: [retryState({ type: "failed", error_type: "auth" })], failure: "auth", status: 401 },
+  { name: "a 500 Grok called api stays provider", error: apiError(500, "API error (status 500): …"), frames: [retryState({ type: "failed", error_type: "api" })], failure: "provider", status: 500 },
+  { name: "a 418 Grok called api stays provider", error: apiError(418, "API error (status 418): …"), frames: [retryState({ type: "failed", error_type: "api" })], failure: "provider", status: 418 },
+])("grok 1.0.77: $name", ({ error, frames = [], failure, status }) => {
+  expect(grokFailureOutcome(error, frames)).toMatchObject({ kind: "failed", failure, status });
+});
+
 test.each([
   { errorName: "provider.free-limit", failure: "quota" },
   { errorName: "provider.go-limit", failure: "quota" },

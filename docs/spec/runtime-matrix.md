@@ -987,7 +987,7 @@ HTTP status where the runtime reports one.
 Known blur, kept because the runtime does not tell the causes apart: codex's
 `usageLimitExceeded` covers a usage limit and an exhausted balance alike
 (`quota`); claude's 429 without a `rejected` `rate_limit_event` covers a
-tier's monthly spend cap as well as throttling (`rate_limited`); grok's -32003 covers every 429 (`rate_limited`).
+tier's monthly spend cap as well as throttling (`rate_limited`); grok's -32003 covers every 429, so only the provider's error type or Grok's free-usage code in its `data` makes one `quota` or `billing`; otherwise it is `rate_limited`.
 kimi and antigravity report most failed turns as completed, so oar does too.
 
 An open fails with a `RuntimeFailureError` (`failure`, `credential`,
@@ -1124,10 +1124,10 @@ another attempt follows. pi-ai keeps the status apart
 | unknown model | open: -32602 "Invalid params: model not found", `data {providerId, modelId}` | open: -32603 "Internal error", `data.details` "Model … is not configured" | open: -32602 "Invalid params", `data` "unknown model id" | open: -32602 "Model … is not available for the current authentication method", `data {modelId, availableModels}` |
 | unentitled model (provider 404) | prompt: -32603 "Internal error: model: …" | turn completes, no message | `retry_state {failed, api}`, prompt: -32603 | turn completes; the provider text as agent text |
 | rate limited, usage limit (OpenAI and Gemini: a 429; Anthropic's usage limit: a 400) | prompt: -32603 "Internal error: <provider message>" | turn completes, no message | `retry_state {retrying, rate_limited}` then `{exhausted, is_rate_limited: true}`, `stop_reason: rate_limit`, prompt: -32003 "Rate limited", `data` "API error (status 429 …): …" | no frame within 150 s |
-| billing (OpenAI: a 429; Anthropic: a 400 or 402; Gemini: a 400) | prompt: -32603 "Internal error: …" | turn completes, no message | as for the 429s above: -32003 "Rate limited" | turn completes, no message |
+| billing (OpenAI: a 429; Anthropic: a 400 or 402; Gemini: a 400) | prompt: -32603 "Internal error: …" | turn completes, no message | as for the 429s above: -32003 "Rate limited"; a 402 (1.0.77): `retry_state {failed, api}`, prompt: -32603 with `data` `{message: "API error (status 402 Payment Required): …", http_status: 402}` | turn completes, no message |
 | server error, overloaded | prompt: -32603 "Internal error: …", after about 70 s of silent retries | turn completes, no message, after about 140 s | `retry_state {retrying, api}` up to `max_retries: 15`: no turn end within 150 s | 500: the provider text as agent text, then `end_turn`; 503: no frame within 150 s |
 | oversized context | no turn end within 150 s | compaction messages ("Compaction cancelled."), then `end_turn` | `retry_state {failed, context_length}`, prompt: -32603 | turn completes, no message |
-| oar | a known prompt `data.errorName` decides the class before the words (`provider.free-limit`, `provider.go-limit`, `provider.budget-limit`, `provider.model-budget-limit`, `provider.quota`: `quota`; `provider.rate-limit`: `rate_limited`; names from 2.2.6 source, evidence below); otherwise its words, the last resort (`auth`, `rate_limited`, `quota`, `billing`, `overloaded`, `provider`); an unknown model: `RuntimeFailureError` `model_unavailable` | open and prompt -32000: `auth` (at open a `RuntimeFailureError`); else a completed turn | open: `RuntimeFailureError` `auth` or `model_unavailable`; -32003 `rate_limited`; -32603 by the final `retry_state.error_type` (`auth`, `input_too_large`, `provider`) | open: `RuntimeFailureError` `auth` or `model_unavailable`; else a completed turn, or none (429, 503) |
+| oar | a known prompt `data.errorName` decides the class before the words (`provider.free-limit`, `provider.go-limit`, `provider.budget-limit`, `provider.model-budget-limit`, `provider.quota`: `quota`; `provider.rate-limit`: `rate_limited`; names from 2.2.6 source, evidence below); otherwise its words, the last resort (`auth`, `rate_limited`, `quota`, `billing`, `overloaded`, `provider`); an unknown model: `RuntimeFailureError` `model_unavailable` | open and prompt -32000: `auth` (at open a `RuntimeFailureError`); else a completed turn | open: `RuntimeFailureError` `auth` or `model_unavailable`; -32003: `quota` or `billing` when Grok's free-usage code or the provider's error type after `API error (status 429 …): ` names one (`insufficient_quota`, `credit_balance_exhausted`), else `rate_limited`, status 429; -32603 by the final `retry_state.error_type` (`auth`, `input_too_large`, `provider`), where Grok's generic `api` yields to `data.http_status` (402 `billing`), whose status the outcome keeps | open: `RuntimeFailureError` `auth` or `model_unavailable`; else a completed turn, or none (429, 503) |
 
 OpenCode's name table is shared by v1 and v2. [PR #710](https://github.com/botiverse/oar/pull/710)
 reports a live `provider.free-limit` observation. The
@@ -1171,8 +1171,8 @@ through `llm.resolveCallConfig`. [Table](../runtimes/dsh.md#records).
 | invalid key | `error` + 401 | info 401 | status in text | text | prompt -32000 | `error_type: auth` | nothing | open 401 |
 | unknown model | `error` + 404 | info | open (oar) | open -32602 | open -32603 | open -32602 | open -32602 | not observed |
 | rate limited | `error` + 429 | info 429 | status in text | text | nothing | -32003 | nothing | not observed |
-| usage limit | 400 only; a subscription's: `error` + `rate_limit_event` `[sym]` | info | status in text | text | nothing | -32003 | nothing | not observed |
-| billing | `error` (400 text) or 402 | info | status in text | text | nothing | -32003 | nothing | not observed |
+| usage limit | 400 only; a subscription's: `error` + `rate_limit_event` `[sym]` | info | status in text | text | nothing | -32003 + error type or `subscription:free-usage-exhausted` | nothing | not observed |
+| billing | `error` (400 text) or 402 | info | status in text | text | nothing | -32003 + error type; 402: -32603 `data.http_status` | nothing | not observed |
 | server error | `error` + 500 | info | status in text | text | nothing | `error_type: api` | text | not observed |
 | overloaded | 529 | info | status in text | text | nothing | `error_type: api` | nothing | not observed |
 | oversized context | `terminal_reason` | info (in stream) | `isContextOverflow` | nothing | nothing | `error_type: context_length` | nothing | not observed |
