@@ -1,0 +1,162 @@
+{
+  "date": "2026-11-10",
+  "oarBase": "c0f258d8307699da8631a06cef80bf460d18925a",
+  "environment": {
+    "node": "v24.19.0",
+    "platform": "linux",
+    "arch": "x64"
+  },
+  "providers": "local scripted only",
+  "paidProviderCalls": false,
+  "dependencies": [
+    {
+      "requested": "@earendil-works/pi-coding-agent",
+      "name": "@earendil-works/pi-coding-agent",
+      "version": "1.5.2"
+    },
+    {
+      "requested": "@earendil-works/pi-ai",
+      "name": "@earendil-works/pi-ai",
+      "version": "1.5.2"
+    },
+    {
+      "requested": "undici",
+      "name": "undici",
+      "version": "8.12.3"
+    },
+    {
+      "requested": "@earendil-works/pi-durable",
+      "name": "@earendil-works/pi-durable",
+      "version": "1.4.0"
+    },
+    {
+      "requested": "@earendil-works/chord",
+      "name": "@earendil-works/chord",
+      "version": "1.4.0"
+    },
+    {
+      "requested": "@earendil-works/pi-ai-durable",
+      "name": "@earendil-works/pi-ai",
+      "version": "1.4.0"
+    }
+  ],
+  "sharedInstances": [
+    {
+      "package": "@earendil-works/pi-ai",
+      "version": "1.5.2",
+      "sharedInstance": true
+    },
+    {
+      "package": "undici",
+      "version": "8.12.3",
+      "sharedInstance": true
+    }
+  ],
+  "vendor": {
+    "pi-aimock": {
+      "passed": 119,
+      "skipped": 332,
+      "failed": 0
+    },
+    "pi-rpc-aimock": {
+      "passed": 113,
+      "skipped": 338,
+      "failed": 0
+    },
+    "pi-durable-aimock": {
+      "passed": 26,
+      "skipped": 425,
+      "failed": 0
+    }
+  },
+  "behavior": {
+    "pi-aimock": {
+      "passed": 17,
+      "skipped": 2,
+      "failed": 0
+    },
+    "pi-rpc-aimock": {
+      "passed": 17,
+      "skipped": 2,
+      "failed": 0
+    },
+    "pi-durable-aimock": {
+      "passed": 18,
+      "skipped": 1,
+      "failed": 0
+    }
+  },
+  "upgradeResume": {
+    "from": "1.5.0",
+    "to": "1.5.2",
+    "nativeIdPreserved": true,
+    "modelBefore": "aimock/aimock-model",
+    "modelAfter": "aimock/aimock-model",
+    "firstSeqBefore": 0,
+    "firstSeqAfter": 0,
+    "priorTranscriptSent": true,
+    "separateProcesses": true,
+    "passed": true
+  },
+  "beforeTestCorrection": {
+    "suite": "full repository check with Pi 1.5.2",
+    "passed": 3800,
+    "failed": 2,
+    "skipped": 563,
+    "file": "tests/pi/pi-rpc-launch.test.ts",
+    "reason": "Expected message used literal bundled version 1.5.0; actual refusal correctly named 1.5.2."
+  },
+  "afterTestCorrection": {
+    "sdkVersion": "1.5.2",
+    "suite": "tests/pi/pi-rpc-launch.test.ts",
+    "passed": 16,
+    "failed": 0
+  },
+  "builds": "passed with Pi 1.5.2",
+  "mockBehavior": {
+    "passed": 18,
+    "skipped": 1,
+    "failed": 0
+  },
+  "packedHostBaseline": {
+    "stage": "after adding Durable peers",
+    "assertion": "@earendil-works/pi-ai split between OAR and the coding SDK",
+    "hostPiAi": "1.5.0",
+    "codingSdk": "1.5.2",
+    "codingSdkPiAi": "1.5.2",
+    "durableAliasPiAi": "1.4.0",
+    "fixTrackedSeparately": "https://github.com/botiverse/oar/pull/715"
+  },
+  "limitations": [
+    "Linux x64 only for Pi 1.5.2.",
+    "Completed-conversation resume, not unfinished execution recovery.",
+    "No real-provider continuation or long-idle cache warming claim.",
+    "Workspace dependency pins and lock unchanged in the proposed PR."
+  ],
+  "sources": {
+    "codingSdk": "https://github.com/earendil-works/pi/blob/v1.5.2/packages/coding-agent/CHANGELOG.md",
+    "piAi": "https://github.com/earendil-works/pi/blob/v1.5.2/packages/ai/CHANGELOG.md"
+  },
+  "fullCheckWithPi152": {
+    "passed": 3802,
+    "failed": 0,
+    "skipped": 563,
+    "typecheck": "passed",
+    "lint": "passed",
+    "mockPassed": 18,
+    "mockSkipped": 1
+  },
+  "fullCheckWithCommittedPi150": {
+    "passed": 3802,
+    "failed": 0,
+    "skipped": 563,
+    "typecheck": "passed",
+    "lint": "passed",
+    "mockPassed": 18,
+    "mockSkipped": 1
+  },
+  "rpcLaunchWithCommittedPi150": {
+    "passed": 16,
+    "failed": 0
+  }
+}
