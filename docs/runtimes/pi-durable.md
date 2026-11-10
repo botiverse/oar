@@ -54,7 +54,10 @@ the host's native package instances, without bundling another copy. Tests
 pin 1.4.0; upgrading this experimental API requires rerunning the native
 probe and vendor tests below. This adapter does not support Pi Durable 1.5.0,
 which removes `watchEvents` and changes the persisted `pi.live` document to
-v3, unreadable by 1.4.0. The
+v3, unreadable by 1.4.0. A fresh in-memory Harness on 1.5.2 still exposes
+`Conversation.watch()` but no `watchEvents` export
+([November 10 check](../../experiments/runtime-version-checks/2026-11-10.md#pi-152-and-durable-152));
+that version is also outside this adapter's supported peer selection. The
 [security update and coexistence evidence](../../experiments/pi-1.5.0-2026-11-02.md)
 keep both Durable peers on 1.4.0 and do not migrate host storage.
 

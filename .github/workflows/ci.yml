@@ -46,7 +46,7 @@ jobs:
           path: ${{ github.workspace }}/oar-trial-run/codebuddy-install
           if-no-files-found: warn
       - name: Install pinned OpenCode for native isolated cleanup
-        run: npm install -g @opencode/cli@2.2.6
+        run: npm install -g @opencode/cli@2.2.7
       - name: Native isolated OpenCode tool cleanup
         run: pnpm vitest run sea-trial/vendor/opencode-cleanup.vendor.test.ts
         timeout-minutes: 5
