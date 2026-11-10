@@ -297,7 +297,7 @@ product adapter (the test fixture disables it).
 ### Login
 
 OAR drives Antigravity's own Google login and reads its status; it has no
-logout. Verified on agy 1.5.5 (Linux, 2026-11-10) up to the code prompt and
+logout. Verified on agy 1.5.5 (Linux, 2026-11-10; [launcher and input controls](../../experiments/antigravity-login/README.md)) up to the code prompt and
 against the logged-out status; the full sign-in was done once by a person on
 another machine through the CLI's interactive UI, which the status read
 confirmed.
@@ -307,11 +307,15 @@ confirmed.
   `https://accounts.google.com/...` URL (relayed as `auth_url`), then `Then
   paste the authorization code, or the full URL of the page you land on, and
   press Enter:`; OAR asks the host with a `manual_code` prompt and writes the
-  answer only to agy's stdin. An empty answer ends in agy's own `login
-  cancelled: no authorization code was entered` (exit 1, `rejected`). After
-  exit 0, `agy models` decides: a login is `logged_in` (no account details),
-  a sign-in refusal `not_logged_in`. With `openBrowser: false`, `BROWSER` is a
-  no-op for that child.
+  answer only to agy's stdin. agy keeps waiting on an empty line, so OAR asks
+  again instead of sending one; agy itself prints `login cancelled: no
+  authorization code was entered` only when its input ends. After exit 0,
+  `agy models` decides: a login is `logged_in` (no account details), a sign-in
+  refusal `not_logged_in`. agy ignores `BROWSER` and starts the platform
+  launcher itself (`xdg-open`, `rundll32`, macOS `open`, found on PATH), so for
+  `openBrowser: false` the login child's PATH starts with a directory holding a
+  launcher that does nothing; where that cannot be set up the login is
+  `unsupported` (`browser_suppression_unavailable`) before anything runs.
 - `authStatus` runs `agy models`: exit 0 is `logged_in`; exit 1 with `Please
   sign in to view available models` is `logged_out`; anything else
   (network, a crash) is `unknown`. It is a remote call, not `localOnly`.

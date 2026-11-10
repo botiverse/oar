@@ -23,12 +23,16 @@ it("relays the Google URL, writes only the pasted code to agy's stdin, and confi
   expect(interaction.events).toEqual([{ kind: "auth_url", url: "https://accounts.google.com/o/oauth2/auth?client_id=synthetic&code_challenge=synthetic&state=synthetic", instructions: "Open this URL and sign in with Google, then paste the code the page shows (or its full address)." }]);
   expect(interaction.prompts.map((prompt) => prompt.kind)).toEqual(["manual_code"]);
   expect(fake.read()).toMatchObject({ calls: [["acp", "--login"], ["models"]], pasted: "synthetic-private-code" });
-  expect(String(fake.read().loginBrowser)).toMatch(process.platform === "win32" ? /hostname\.exe$/u : /^true$/u);
+  expect(String(fake.read().launcher)).toContain("oar-agy-browser-");
 });
 
-it("an empty answer is agy's own cancellation, reported in its words", async () => {
-  const { installation } = await fixture("success");
-  expect(await antigravityLogin(installation, recordedInteraction([" "]))).toEqual({ kind: "failed", reason: "rejected", detail: "login cancelled: no authorization code was entered" });
+it("an empty answer is never sent: agy would only keep waiting, so OAR asks again", async () => {
+  const { fake, installation } = await fixture("success");
+  const interaction = recordedInteraction([" ", "synthetic-private-code"]);
+  expect(await antigravityLogin(installation, interaction)).toEqual({ kind: "logged_in" });
+  expect(interaction.prompts).toHaveLength(2);
+  expect(fake.read()).toMatchObject({ pasted: "synthetic-private-code" });
+  expect(fake.read().emptyLines).toBeUndefined();
 });
 
 it("a refused code never echoes the pasted code", async () => {

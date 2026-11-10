@@ -1,10 +1,10 @@
-import path from "node:path";
 import type { AvailableInstallation } from "../../contracts/installation.js";
 import type { AuthStatus, AuthStatusOptions, LoginOptions, LoginResult } from "../../contracts/login.js";
 import type { ProviderLoginInteraction } from "../../contracts/provider-auth.js";
 import { sessionEnvironment } from "../../shared/environment.js";
 import { runExecutable } from "../../shared/executable/index.js";
 import { withQueryDeadline } from "../../shared/executable/query.js";
+import { antigravityNoBrowserEnv } from "./login-browser.js";
 import { errorMessage, LoginSecrets, loginBounds, loginExecutable, spawnLoginProcess, stoppedResult, type LoginProcess, type LoginProcessExit, type LoginStop } from "../../shared/login.js";
 
 /*
@@ -66,7 +66,8 @@ type Ending =
 
 /** Exit 0 is only agy's word: its status decides, and an unanswered status leaves a login without an account. */
 async function confirmed(installation: AvailableInstallation, signal: AbortSignal | undefined, env: LoginOptions["env"]): Promise<LoginResult> {
-  const status = signal?.aborted === true ? undefined : await readAntigravityAuthStatus(installation, { env, ...(signal === undefined ? {} : { signal }) });
+  // The status query after a success is bounded like every runtime's (docs/spec/login.md: up to 20 s).
+  const status = signal?.aborted === true ? undefined : await readAntigravityAuthStatus(installation, { env, timeoutMs: 20_000, ...(signal === undefined ? {} : { signal }) });
   if (status?.kind === "logged_out") {
     return { kind: "failed", reason: "not_logged_in", detail: "agy acp --login exited 0, yet agy models asks to sign in" };
   }
@@ -74,7 +75,7 @@ async function confirmed(installation: AvailableInstallation, signal: AbortSigna
 }
 
 // oxlint-disable-next-line eslint/max-lines-per-function, eslint/max-statements -- One native flow: relay, ask, write, then settle every ending.
-async function runAntigravityLogin(installation: AvailableInstallation, command: string, interaction: ProviderLoginInteraction, timeoutMs: number, options: LoginOptions): Promise<LoginResult> {
+async function runAntigravityLogin(installation: AvailableInstallation, command: string, interaction: ProviderLoginInteraction, timeoutMs: number, options: LoginOptions, env: NodeJS.ProcessEnv): Promise<LoginResult> {
   const secrets = new LoginSecrets();
   const interactionFailure = Promise.withResolvers<Ending>();
   const flow: { urlSent: boolean; asked: boolean; settled: boolean; lastLine: string | undefined } = { urlSent: false, asked: false, settled: false, lastLine: undefined };
@@ -97,15 +98,14 @@ async function runAntigravityLogin(installation: AvailableInstallation, command:
     }
     const code = answer.trim();
     if (ended()) { return; }
+    // agy waits on an empty line (live 1.5.5): ask again rather than leave it waiting.
+    if (code === "") { flow.asked = false; await ask(); return; }
     // The code (or a landing URL carrying it) is the secret; only agy's stdin sees it.
     secrets.add(code);
     // A pasted landing URL carries the code as a query value; agy may echo that alone.
     for (const part of landingCodes(code)) { secrets.add(part); }
     child?.write(`${code}\n`);
   };
-  const env = sessionEnvironment(options.env);
-  // A no-op opener, as for claude: on Windows `hostname` changes nothing and opens no page.
-  if (options.openBrowser === false) { env.BROWSER = process.platform === "win32" ? path.join(process.env.SystemRoot ?? String.raw`C:\Windows`, "System32", "hostname.exe") : "true"; }
   try {
     child = spawnLoginProcess(command, ["acp", "--login"], env, {
       onLine(line) {
@@ -153,6 +153,13 @@ export async function antigravityLogin(installation: AvailableInstallation, inte
   const target = loginExecutable(installation, "agy", undefined, sessionEnvironment(options.env));
   if (target.kind === "settled") { return target.result; }
   if (interaction.signal?.aborted === true) { return { kind: "cancelled" }; }
-  const result = await runAntigravityLogin(installation, target.installation.command, interaction, options.timeoutMs ?? LOGIN_TIMEOUT_MS, options);
-  return result;
+  let browser: Awaited<ReturnType<typeof antigravityNoBrowserEnv>> | undefined = undefined;
+  if (options.openBrowser === false) {
+    try { browser = await antigravityNoBrowserEnv(sessionEnvironment(options.env)); }
+    catch { return { kind: "unsupported", reason: "browser_suppression_unavailable", detail: "agy opens its own browser and this machine cannot replace its launcher; allow local browser opening" }; }
+  }
+  try {
+    const result = await runAntigravityLogin(installation, target.installation.command, interaction, options.timeoutMs ?? LOGIN_TIMEOUT_MS, options, browser?.env ?? sessionEnvironment(options.env));
+    return result;
+  } finally { await browser?.dispose(); }
 }

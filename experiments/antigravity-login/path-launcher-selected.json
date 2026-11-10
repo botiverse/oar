@@ -1,0 +1,13 @@
+{
+ "runtime": "agy1.5.5",
+ "platform": "linux",
+ "BROWSER": "true",
+ "desktop": "GNOME simulated; sentinel xdg-open first on PATH (OAR openBrowser:false shim), sentinel gio",
+ "promptReached": true,
+ "exitAfterEmptyLineAnd800ms": null,
+ "exitAfterInputEOF": 1,
+ "browserCalls": [
+  "xdg-open [auth URL omitted]"
+ ],
+ "outputRedacted": "Open this link in a browser to log in with Google:\n\n  [auth URL omitted]\n\nThen paste the authorization code, or the full URL of the page you land on, and press Enter:\n\nlogin cancelled: no authorization code was entered\n"
+}

@@ -1,6 +1,7 @@
-/* oxlint-disable eslint/max-statements, typescript/no-unsafe-assignment, typescript/no-unsafe-member-access, typescript/no-unsafe-call, typescript/no-unsafe-argument, typescript/strict-boolean-expressions -- Standalone untyped fixture executable. */
+/* oxlint-disable eslint/max-statements, typescript/no-unsafe-assignment, typescript/no-unsafe-member-access, typescript/no-unsafe-call, typescript/no-unsafe-return, typescript/no-unsafe-argument, typescript/strict-boolean-expressions -- Standalone untyped fixture executable. */
 // agy 1.5.5's login and model listing as observed on 2026-11-10 (docs/runtimes/antigravity.md#login).
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import path from "node:path";
 import { createInterface } from "node:readline";
 import saveLoginState from "./login-state.mjs";
 
@@ -8,7 +9,13 @@ const [file, ...args] = process.argv.slice(2);
 const state = JSON.parse(readFileSync(file, "utf8"));
 const save = () => { saveLoginState(file, state); };
 state.calls = [...state.calls ?? [], args];
-if (args[0] === "acp") { state.loginBrowser = process.env.BROWSER ?? null; }
+if (args[0] === "acp") {
+  // agy starts this launcher itself, found on PATH; resolved here, never run.
+  const launchers = { win32: "rundll32.exe", darwin: "open" };
+  const launcher = launchers[process.platform] ?? "xdg-open";
+  const found = (process.env.PATH ?? "").split(path.delimiter).map((dir) => path.join(dir, launcher)).find((candidate) => existsSync(candidate));
+  state.launcher = found ?? null;
+}
 save();
 if (args[0] === "models") {
   if (state.mode === "models-error") { console.error("Error: failed to reach the model service"); process.exit(1); }
@@ -27,7 +34,8 @@ else {
   lines.on("line", (line) => {
     answered = true;
     state.pasted = line; save();
-    if (line.trim() === "") { console.log("login cancelled: no authorization code was entered"); process.exit(1); }
+    // Live 1.5.5: an empty line is not an answer; agy keeps waiting.
+    if (line.trim() === "") { state.emptyLines = (state.emptyLines ?? 0) + 1; save(); answered = false; return; }
     if (state.mode === "rejected") {
       // agy names the code it tried, also when the person pasted the whole landing URL.
       const code = URL.canParse(line.trim()) ? new URL(line.trim()).searchParams.get("code") : line.trim();
