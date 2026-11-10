@@ -235,7 +235,7 @@ writeFileSync(path.join(host, "package.json"), JSON.stringify({ name: "host", pr
 writeFileSync(path.join(host, "probe.mjs"), PROBE);
 
 npmInstall(library);
-await checkPiHost(host);
+const piAiVersion = await checkPiHost(host);
 const browser = await build({
   stdin: { contents: 'export * from "@botiverse/oar/browser";', resolveDir: host },
   bundle: true, platform: "browser", format: "esm", write: false, metafile: true,
@@ -257,7 +257,7 @@ assert.match(forgotten[0] ?? "", /^check\.ts\(\d+,\d+\): error TS2307: Cannot fi
 
 // The host supplies the native peers only when it opts into this subpath.
 npmInstall("@earendil-works/pi-durable@1.4.0", "@earendil-works/chord@1.4.0",
-  "@earendil-works/pi-ai@1.5.0", "@earendil-works/pi-ai-durable@npm:@earendil-works/pi-ai@1.4.0");
+  `@earendil-works/pi-ai@${piAiVersion}`, "@earendil-works/pi-ai-durable@npm:@earendil-works/pi-ai@1.4.0");
 await checkPiHost(host);
 assert.deepEqual(typecheck(DURABLE_TYPES), []);
 run(process.execPath, ["--input-type=module", "-e", DURABLE_PROBE], host);
