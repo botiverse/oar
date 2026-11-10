@@ -225,26 +225,32 @@ concurrent roots, model/cwd/MCP, child attribution, cancel, tool cleanup,
 peer survival and isolated resume after release, and the plugin
 child-environment comparison. The model provider is local and scripted; the
 CLI and its processes are real. The default CI check jobs run only the real
-isolated tool-cleanup check (`@opencode/cli@2.2.6`).
+isolated tool-cleanup check (`@opencode/cli@2.2.7`).
 
 ### Startup and compatibility
 
 The v2 adapter's ACP subprocess owns a standalone native server; OAR does
-not connect to or leave a persistent daemon. Latest recheck: **2.2.6**
-(Linux x64, 2026-11-07) passed all fifteen applicable behavior cases and
+not connect to or leave a persistent daemon. Latest recheck: **2.2.7**
+(Linux x64, 2026-11-10) passed all fifteen applicable behavior cases and
 [the isolated native cleanup control](../../sea-trial/vendor/opencode-cleanup.vendor.test.ts)
 (routed roots, MCP, children, cancellation, peer survival and resume); the
-cold catalog returned eleven models and both prompt-option refusals passed.
-The [daily report](../../experiments/runtime-version-checks/2026-11-07.md#opencode-226)
+cold catalog returned twelve models and both prompt-option refusals passed.
+The [daily report](../../experiments/runtime-version-checks/2026-11-10.md#opencode-227)
 separates these checks from the known v1-only vendor failures and retains
-the cold-start failure below. Cold MCP resume passed on 2.2.6
+the cold-start failure below. Cold MCP resume passed on 2.2.7
 ([v2 session behavior](#v2-session-behavior)). The
 [boundary probe](../../experiments/opencode-release-lines.ts) last ran in
 full on 2.2.5 ([October 31](../../experiments/runtime-version-checks/2026-10-31.md#opencode-225)):
 nine of ten checks passed, cold MCP resume failed.
 
 **Known limitation: concurrent first starts over a fresh native database can
-fail before readiness**, confirmed by native SQLite errors. On 2.2.6, one
+fail before readiness**, confirmed by native SQLite errors. On 2.2.7,
+one of four concurrent native starts failed with `table account_state
+already exists`; two serial starts and four concurrent starts after
+initialization succeeded. The separate ACP probe failed one of two cold
+opens with only a readiness error, while both prepared opens succeeded
+([November 10 report](../../experiments/runtime-version-checks/2026-11-10.md#opencode-227)).
+On 2.2.6, one
 of two concurrent fresh-database ACP opens exited before readiness and both
 opens after serial initialization succeeded
 ([November 7 report](../../experiments/runtime-version-checks/2026-11-07.md#opencode-226));
@@ -333,7 +339,9 @@ covers 2.0.27.
   called echo on all 20 cold resumes per transport and in both warmed
   initial sessions, with no model-visible catalog-removal notice (Linux x64,
   immediate scripted tool calls; not a guarantee for every provider,
-  platform or catalog timing). The
+  platform or catalog timing). The [2.2.7 recheck](../../experiments/runtime-version-checks/2026-11-10.md#opencode-227)
+  passed both initial sessions and six cold resumes per transport, again
+  without a removal notice. The
   [same probe on 2.2.5](../../experiments/runtime-version-checks/2026-11-06.md#opencode-225-cold-mcp-resume-after-upstream-closure)
   called echo in both initial sessions but on none of six cold resumes, the
   model seeing a notice that removed the reattached tool. Earlier
@@ -752,12 +760,12 @@ See [host-served tools](../spec/runtime-matrix.md#host-served-tools).
   PR gates because intermittent startup or MCP timeouts remain unexplained.
   [Scope and evidence](../../experiments/acp-ci-2026-10-29.md).
   The broken-command clash was probed, not tested.
-- The full `opencode-aimock` vendor suite is v1 only: on v2 **2.2.6**,
-  11 of its 16 cases passed and 5 failed in the November 7 Linux check.
+- The full `opencode-aimock` vendor suite is v1 only: on v2 **2.2.7**,
+  11 of its 16 cases passed and 5 failed in the November 10 Linux check.
   The five failures need v1 protocol (direct MCP tools in the
   provider's `tools` array, a classification from that array, or v1 prompt
   replacement)
-  ([November 7 report](../../experiments/runtime-version-checks/2026-11-07.md#known-v1-vendor-boundary)).
+  ([November 10 report](../../experiments/runtime-version-checks/2026-11-10.md#known-v1-vendor-boundary)).
   v2 evidence is the boundary probe, the shared behavior suite and focused probes.
 - Unexplained first-run failures, not reproduced on rerun:
   `opencode --version` over its 15-second limit during concurrent opens
