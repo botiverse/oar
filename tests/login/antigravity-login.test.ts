@@ -38,6 +38,13 @@ it("a refused code never echoes the pasted code", async () => {
   expect(JSON.stringify(result)).not.toContain("synthetic-private-code");
 });
 
+it("a pasted landing URL keeps its code out of the result when agy echoes only the code", async () => {
+  const { installation } = await fixture("rejected");
+  const result = await antigravityLogin(installation, recordedInteraction(["https://antigravity.google/oauth-callback?state=synthetic&code=4%2Fsynthetic-private-code&scope=email"]));
+  expect(result).toMatchObject({ kind: "failed", reason: "rejected" });
+  expect(JSON.stringify(result)).not.toContain("synthetic-private-code");
+});
+
 it("exit 0 without a login is not a login", async () => {
   const { installation } = await fixture("false-success");
   expect(await antigravityLogin(installation, recordedInteraction(["synthetic-private-code"]))).toMatchObject({ kind: "failed", reason: "not_logged_in" });

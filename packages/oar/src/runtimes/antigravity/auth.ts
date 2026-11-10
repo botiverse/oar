@@ -50,6 +50,15 @@ export async function antigravityAuthStatus(installation: AvailableInstallation,
   return status;
 }
 
+/** The secret query values of a pasted landing URL (`code`, also percent-decoded); none for a bare code. */
+function landingCodes(answer: string): readonly string[] {
+  if (!URL.canParse(answer)) { return []; }
+  const value = new URL(answer).searchParams.get("code");
+  if (value === null || value === "") { return []; }
+  const raw = /[?&]code=([^&#]*)/u.exec(answer)?.[1];
+  return [...new Set([value, ...(raw === undefined ? [] : [raw])])];
+}
+
 type Ending =
   | { readonly kind: "exit"; readonly exit: LoginProcessExit }
   | { readonly kind: "stop"; readonly stop: LoginStop }
@@ -90,6 +99,8 @@ async function runAntigravityLogin(installation: AvailableInstallation, command:
     if (ended()) { return; }
     // The code (or a landing URL carrying it) is the secret; only agy's stdin sees it.
     secrets.add(code);
+    // A pasted landing URL carries the code as a query value; agy may echo that alone.
+    for (const part of landingCodes(code)) { secrets.add(part); }
     child?.write(`${code}\n`);
   };
   const env = sessionEnvironment(options.env);

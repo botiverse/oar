@@ -28,7 +28,11 @@ else {
     answered = true;
     state.pasted = line; save();
     if (line.trim() === "") { console.log("login cancelled: no authorization code was entered"); process.exit(1); }
-    if (state.mode === "rejected") { console.log("login failed: invalid_grant synthetic-private-code"); process.exit(1); }
+    if (state.mode === "rejected") {
+      // agy names the code it tried, also when the person pasted the whole landing URL.
+      const code = URL.canParse(line.trim()) ? new URL(line.trim()).searchParams.get("code") : line.trim();
+      console.log(`login failed: invalid_grant ${code}`); process.exit(1);
+    }
     state.loggedIn = state.mode !== "false-success"; save();
     process.exit(0);
   });
