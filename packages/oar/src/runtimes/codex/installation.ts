@@ -12,6 +12,14 @@ import { executableInstallation } from "../../shared/installation.js";
  * by default `~/.local/bin/codex`, a link into
  * `$CODEX_HOME/packages/standalone/current`), which it adds to PATH only in
  * shell profiles.
+ *
+ * On Windows (none of them on PATH): npm's global `codex.cmd` shim in its
+ * default prefix (`%APPDATA%\npm`; OAR runs the shim's Node script without
+ * cmd.exe, windows-shim.ts), then the Codex Desktop app's CLI
+ * (`%LOCALAPPDATA%\Programs\OpenAI\Codex\bin\codex.exe`, or without
+ * `Programs` for a per-user install). Locations as Raft's own Codex driver
+ * resolves them; the `codex-command-runner` sandbox helper beside them is
+ * never a candidate.
  */
 export function codexInstalledExecutableCandidates(
   platform: NodeJS.Platform = process.platform,
@@ -19,7 +27,14 @@ export function codexInstalledExecutableCandidates(
   env: Readonly<NodeJS.ProcessEnv> = process.env,
 ): readonly string[] {
   if (platform === "win32") {
-    return [];
+    const win = path.win32;
+    const roaming = env.APPDATA === undefined || env.APPDATA === "" ? win.join(home, "AppData", "Roaming") : env.APPDATA;
+    const local = env.LOCALAPPDATA === undefined || env.LOCALAPPDATA === "" ? win.join(home, "AppData", "Local") : env.LOCALAPPDATA;
+    return [
+      win.join(roaming, "npm", "codex.cmd"),
+      win.join(local, "Programs", "OpenAI", "Codex", "bin", "codex.exe"),
+      win.join(local, "OpenAI", "Codex", "bin", "codex.exe"),
+    ];
   }
   const paths = path.posix;
   const bundles = platform === "darwin"

@@ -175,7 +175,7 @@ test("claude candidates are the native installer's launcher", () => {
   assert.deepEqual(claudeInstalledExecutableCandidates("win32", String.raw`C:\Users\oar`), [String.raw`C:\Users\oar\.local\bin\claude.exe`]);
 });
 
-test("codex candidates are the desktop app bundles, then the standalone installer's launcher", () => {
+test("codex candidates are the desktop app bundles, then the standalone installer's launcher; on Windows npm's global shim, then the desktop CLI", () => {
   assert.deepEqual(codexInstalledExecutableCandidates("linux", "/home/oar", { CODEX_INSTALL_DIR: "/opt/codex/bin" }), [
     "/opt/codex/bin/codex",
     "/home/oar/.local/bin/codex",
@@ -187,7 +187,16 @@ test("codex candidates are the desktop app bundles, then the standalone installe
     "/Users/oar/Applications/Codex.app/Contents/Resources/codex",
     "/Users/oar/.local/bin/codex",
   ]);
-  assert.deepEqual(codexInstalledExecutableCandidates("win32", String.raw`C:\Users\oar`, {}), []);
+  assert.deepEqual(codexInstalledExecutableCandidates("win32", String.raw`C:\Users\oar`, {}), [
+    String.raw`C:\Users\oar\AppData\Roaming\npm\codex.cmd`,
+    String.raw`C:\Users\oar\AppData\Local\Programs\OpenAI\Codex\bin\codex.exe`,
+    String.raw`C:\Users\oar\AppData\Local\OpenAI\Codex\bin\codex.exe`,
+  ]);
+  assert.deepEqual(codexInstalledExecutableCandidates("win32", String.raw`C:\Users\oar`, { APPDATA: String.raw`D:\roam`, LOCALAPPDATA: String.raw`D:\local` }), [
+    String.raw`D:\roam\npm\codex.cmd`,
+    String.raw`D:\local\Programs\OpenAI\Codex\bin\codex.exe`,
+    String.raw`D:\local\OpenAI\Codex\bin\codex.exe`,
+  ]);
 });
 
 test("readiness gates each candidate", async () => {

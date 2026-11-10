@@ -1107,7 +1107,13 @@ retry decision
 Installation checks `OAR_CODEX_BIN`, then `codex` on PATH, then the macOS
 desktop bundles (`ChatGPT.app` before the legacy `Codex.app`, system before
 per-user installs), then the standalone installer's launcher
-(`$CODEX_INSTALL_DIR/codex`, `~/.local/bin/codex`), and requires
+(`$CODEX_INSTALL_DIR/codex`, `~/.local/bin/codex`). On Windows the fallbacks
+are npm's global shim in its default prefix (`%APPDATA%\npm\codex.cmd`,
+whose Node script OAR runs without cmd.exe), then the Codex Desktop CLI
+(`%LOCALAPPDATA%\Programs\OpenAI\Codex\bin\codex.exe`, then
+`%LOCALAPPDATA%\OpenAI\Codex\bin\codex.exe`); these locations follow
+Raft's own Codex driver and have no native Windows run of their own here, so
+the `app-server --help` probe decides. Every candidate requires
 `codex app-server --help` to succeed; a codex without the app-server surface
 is unsupported. When none is found, `install` runs OpenAI's standalone
 installer (macOS and Linux),
