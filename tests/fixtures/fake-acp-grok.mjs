@@ -1,4 +1,5 @@
 /* oxlint-disable typescript/no-unsafe-assignment, typescript/no-unsafe-call, typescript/no-unsafe-argument, typescript/no-unsafe-return, eslint/no-underscore-dangle -- Standalone untyped fixture module for fake-acp-agent.mjs. */
+export { default as grokNative } from "./fake-acp-grok-native.mjs";
 // grok 1.0.25 (f7e67d6988e2) frames as tapped live on 2026-09-11
 // (experiments/grok-wire-tap.ts → oar-trial-run/live-grok-tap/wire.jsonl;
 // oar-trial-run/live-grok-c/subagent.voyage.jsonl seqs 52-121;

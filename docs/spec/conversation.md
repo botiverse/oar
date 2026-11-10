@@ -268,7 +268,7 @@ only when the whole turn ends. If the runtime later refuses that RPC, its
 error frame carries `input_dropped` with `reason: "runtime_refused"`. The
 original accepted response remains, and the refusal does not fail or end
 the active turn, even when it arrives after that turn has already ended.
-A successful steer that replaces the native prompt (Grok `sendNow`) still
+A successful steer that replaces the native prompt (Antigravity) still
 contributes its own native turn outcome.
 
 The conversation reducer sets the input's state to `dropped` and its `reason`

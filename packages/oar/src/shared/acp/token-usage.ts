@@ -9,7 +9,7 @@ export interface AcpTokenUsage {
   extension(method: string, params: JsonRecord, opened: boolean): RuntimeEventBody | null;
 }
 
-export function createAcpTokenUsage(profile: AcpSessionProfile): AcpTokenUsage {
+export function createAcpTokenUsage(profile: AcpSessionProfile, sentByOar: (promptId: string) => boolean = () => false): AcpTokenUsage {
   let billed: TokenTotals = { input: 0, output: 0 };
   const seen = new Set<string>();
   return {
@@ -19,7 +19,7 @@ export function createAcpTokenUsage(profile: AcpSessionProfile): AcpTokenUsage {
       return reading.event;
     },
     extension(method, params, opened) {
-      const report = profile.spontaneousTokenUsage?.(method, params);
+      const report = profile.spontaneousTokenUsage?.(method, params, sentByOar);
       if (report === undefined || report === null || seen.has(report.key)) { return null; }
       seen.add(report.key);
       // Opening can replay old terminal reports. Remember their identity so

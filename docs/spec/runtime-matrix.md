@@ -101,7 +101,7 @@ false, the adapter holds queued input in this process.
 | pi-durable | yes: native `submit`, `whenBusy: steer` | yes: `submission.abort()` | yes |
 | pi | yes: the SDK session's `steer` | yes | no |
 | cursor (`@cursor/sdk`) | yes, text only: `run.steer` (images are rejected `unsupported`) | yes | no |
-| grok (ACP) | yes: a prompt RPC with `_meta.sendNow` | yes | no |
+| grok (ACP) | yes: `_x.ai/interject`, taken into the running turn at its next safe point without cancelling it; one that misses the turn runs as Grok's own ([mapping](../runtimes/grok.md#prompting-steering-queuing-and-cancellation)) | yes | no |
 | codebuddy (ACP) | absent: no verified injection interface | yes | no |
 | kimi (ACP) | no | yes | no |
 | antigravity (CLI ACP) | yes | yes | no |
@@ -197,13 +197,15 @@ an observation from the runtime and carries no request id. It may name an
 | codex | `turn/started`, including queued turns without another OAR prompt |
 | pi | `agent_start`, including runs started directly through the SDK |
 | pi-durable | Initial active snapshot and `run_start` |
+| grok | `_x.ai/queue/changed` `runningPromptId`: OAR names each prompt (`_meta.promptId`), so its own start carries the input id; any other name is Grok's own turn (no input id), ended by its root `turn_completed` |
 
 Status becomes running when idle and preserves the current phase when
 already running. The session view opens a turn only if none is open, so a
 prompt followed by native activity remains one turn. Claude's preceding
 `input_queued { inputId }` separates a waiting prompt from an intervening
 spontaneous turn; only its matching native start takes that pending input.
-This queue fact is reported by Claude and Qoder and excludes steer writes. Child
+This queue fact is reported by Claude, Qoder and Grok (an OAR prompt listed in
+Grok's `_x.ai/queue/changed` entries) and excludes steer writes. Child
 activity keeps its own attribution and never starts the root turn. Other
 adapters do not yet emit `turn_active`.
 
@@ -434,7 +436,7 @@ imitate a missing native channel. Unsupported runtimes refuse even `{}`.
 |---|---|---|
 | claude | `--json-schema` for the process, including queued and spontaneous turns | A successful native `result.structured_output` is passed unchanged to `turn_ended.outcome.structuredOutput`. Exhausted validation retries fail the turn. |
 | codex | `turn/start.outputSchema` on every OAR prompt; steer retains the active turn's setting | Native text only, including text that violates the schema when the provider does not enforce it. No `structuredOutput` is synthesized. Provider schema refusals remain failed turns. |
-| grok | `session/prompt._meta.outputSchema` on prompt, held queue drain and send-now steer | Native `_meta.structuredOutput` becomes the completed outcome's value; `_meta.structuredOutputError` fails the turn even when native `stopReason` is `end_turn`. |
+| grok | `session/prompt._meta.outputSchema` on prompt and held queue drain; a steer (`_x.ai/interject`) carries none and joins its turn under that turn's schema | Native `_meta.structuredOutput` becomes the completed outcome's value; `_meta.structuredOutputError` fails the turn even when native `stopReason` is `end_turn`. |
 | cursor, dsh, kimi, opencode (both lines), antigravity, codebuddy, qwen, qoder, pi, pi-durable | Refused at open; no verified final-output schema channel through these adapters | `UnsupportedOptionError`, declared in `refusedSessionOptions`. |
 
 **Codex's native queue cannot carry a schema**, so `queue()` returns

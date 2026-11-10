@@ -3,7 +3,7 @@ import codebuddyOpening from "./fake-acp-codebuddy.mjs";
 import replacingPrompt from "./fake-acp-agy.mjs";
 import { appendFileSync } from "node:fs";
 import { createInterface } from "node:readline";
-import { grokMcpCredentials, grokSteerAnswers, grokUsageAnswer, spawnChildGrok } from "./fake-acp-grok.mjs";
+import { grokMcpCredentials, grokNative, grokSteerAnswers, grokUsageAnswer, spawnChildGrok } from "./fake-acp-grok.mjs";
 import { answerConfigRequest, modelReport, setModelResponse } from "./fake-acp-model.mjs";
 import { answeredMcpOpen, mcpCapabilities } from "./fake-acp-mcp.mjs";
 import refusePrompt from "./fake-acp-refusal.mjs";
@@ -163,7 +163,7 @@ function handleSessionPrompt(message) {
     result(message.id, { stopReason: "end_turn" });
     return;
   }
-  if (grokBackgroundUsage(text, { send, result, requestId: message.id })) { return; }
+  if (grokBackgroundUsage(text, { send, result, requestId: message.id, promptId: message.params?._meta?.promptId })) { return; }
   if (text === "spawn-child-grok" || text === "grok-usage") {
     result(message.id, text === "grok-usage" ? grokUsageAnswer(send, update) : spawnChildGrok(send, update)); // grok 1.0.25's real frames
     return;
@@ -273,7 +273,7 @@ function handleResponse(message) {
 }
 
 function handleNotification(message) {
-  if (message.method === "session/cancel") {
+  if (message.method === "session/cancel" && !(mode === "grok-native" && grokNative(message, { send, result }))) {
     for (const id of pendingPrompts.keys()) {
       if (process.env.FAKE_ACP_STEER_CANCEL_ERROR === "1") { error(id, -32603, "replacement interrupted"); }
       else { result(id, { stopReason: "cancelled" }); }
@@ -294,7 +294,7 @@ createInterface({ input: process.stdin }).on("line", (line) => {
   }
   if (mode === "rpc") {
     handleRpcRequest(message);
-  } else if (!answeredMcpOpen(message, error)) {
+  } else if (!(mode === "grok-native" && grokNative(message, { send, result })) && !answeredMcpOpen(message, error)) {
     handleSessionRequest(message);
   }
 });

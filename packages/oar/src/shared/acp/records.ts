@@ -73,7 +73,7 @@ export function acpLineageOf(params: JsonRecord): { readonly parent: string; rea
   return null;
 }
 
-export function createAcpRecorder(usageGate: UsageUpdateGate, attributeUpdate?: AcpSessionProfile["attributeUpdate"], tokenUsage?: AcpTokenUsage, associations?: (method: string, params: JsonRecord) => readonly { readonly parent: string; readonly child: string }[], projectUpdate?: AcpSessionProfile["projectUpdate"], projectExtension?: AcpSessionProfile["projectExtension"]): AcpRecorder {
+export function createAcpRecorder(usageGate: UsageUpdateGate, attributeUpdate?: AcpSessionProfile["attributeUpdate"], tokenUsage?: AcpTokenUsage, associations?: (method: string, params: JsonRecord) => readonly { readonly parent: string; readonly child: string }[], projectUpdate?: AcpSessionProfile["projectUpdate"], projectExtension?: AcpSessionProfile["projectExtension"], nativeTurns?: { project: (method: string, params: JsonRecord, rootId: string, afterOpen: boolean) => readonly RuntimeEventBody[] }): AcpRecorder {
   const hostRequests = new Map<string, string>();
   const projections = new Map<string, AcpProjectionState>();
   const projectionFor = (sessionId: string): AcpProjectionState => {
@@ -144,7 +144,7 @@ export function createAcpRecorder(usageGate: UsageUpdateGate, attributeUpdate?: 
         const events: RuntimeEventBody[] = newSessionLinks(kernel, links.map(({ parent, child }) => ({ parent, child, via: "tool_call" })));
         const usage = sessionId === kernel.sessionId ? tokenUsage?.extension(method, params, afterOpen ?? false) : null;
         if (usage !== null && usage !== undefined) { events.push(usage); }
-        events.push(...projectExtension?.(method, params) ?? []);
+        events.push(...projectExtension?.(method, params) ?? [], ...nativeTurns?.project(method, params, kernel.sessionId, afterOpen ?? false) ?? []);
         kernel.frame({ type: method, native: params, events }, { ...(foreign ? { sessionId } : {}), ...(receivedAt === undefined ? {} : { receivedAt }) });
       });
     },

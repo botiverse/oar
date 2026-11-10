@@ -918,8 +918,10 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   `turn/start`, Pi `agent_start` and per-input
   `started` admission receipts (SDK `preflightResult`, RPC prompt response), Pi Durable's
   adopted conversation activity, qwen's root `system/init` for its sole
-  submitted input, and claude `system/init` when the root starts a turn on
-  its own ([per runtime](runtime-matrix.md#native-active-turns)). An optional
+  submitted input, claude `system/init` when the root starts a turn on
+  its own, and grok's `_x.ai/queue/changed` `runningPromptId` (with the
+  input id for a prompt OAR named, without it for Grok's own turn)
+  ([per runtime](runtime-matrix.md#native-active-turns)). An optional
   `inputId` means the runtime started its turn for that input; absent means
   unknown. Claude and Qoder map `command_lifecycle started` for prompt-like
   writes (including queue drains) to `turn_active { inputId: command_uuid }`.
@@ -927,7 +929,8 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   `turn_active` (the native start).
 - `input_queued { inputId }`: the runtime holds this input and has not started
   its turn. Claude and Qoder report it, from `command_lifecycle queued` for an
-  input OAR wrote as a prompt or queue, never a steer. This fact gates
+  input OAR wrote as a prompt or queue, never a steer; Grok from an OAR
+  prompt listed in `_x.ai/queue/changed` entries. This fact gates
   attribution: until the matching `turn_active { inputId }`, other root
   activity and its end belong to separate spontaneous turns. No queued fact
   means existing request-based behavior. `completed` never ends a turn.

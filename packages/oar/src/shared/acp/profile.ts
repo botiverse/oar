@@ -76,6 +76,19 @@ export interface AcpSessionProfile {
   }) => Promise<void>;
   /** Return prompt-level extension fields for the runtime's native steer; absent when the runtime cannot steer, and then the session has no `steer`. */
   readonly steerParams?: (input: string) => JsonRecord;
+  /**
+   * A native steer that is its own RPC, not another prompt (grok
+   * `_x.ai/interject`): the answer admits the input into the running turn,
+   * which still ends with the original prompt's answer. Exclusive with
+   * `steerParams`.
+   */
+  readonly steerRequest?: (context: { readonly sessionId: string; readonly input: string; readonly prompt: readonly JsonRecord[]; readonly inputId: string }) => { readonly method: string; readonly params: JsonRecord };
+  /**
+   * Turns the runtime runs without a prompt from OAR (grok: a sub-agent's
+   * completion wake, a late interjection). OAR names each prompt it sends;
+   * any root turn under another name is the runtime's own.
+   */
+  readonly nativeTurns?: AcpNativeTurns;
   /** A steer replaces the native prompt: fold all admitted answers as one turn (grok sendNow). Otherwise only the original prompt ends the turn. */
   readonly steerSupersedesPrompt?: boolean;
   /** A replacing steer settles the prior RPC early; a later failure reports the loop outcome only after every earlier RPC has replied (agy CLI). */
@@ -89,8 +102,8 @@ export interface AcpSessionProfile {
    * combines them with independent vendor ledgers and emits cumulative usage.
    */
   readonly promptTokenUsage?: (response: JsonRecord) => TokenTotals | null;
-  /** Independent root ledger, never overlapping promptTokenUsage. The native key deduplicates delivery; replayed reports only remember that identity. Child notifications are excluded by the recorder. */
-  readonly spontaneousTokenUsage?: (method: string, params: JsonRecord) => { readonly key: string; readonly tokens: TokenTotals; readonly replayed?: boolean } | null;
+  /** Independent root ledger, never overlapping promptTokenUsage: `sentByOar` names prompts whose answer already carries their tokens. The native key deduplicates delivery; replayed reports only remember that identity. Child notifications are excluded by the recorder. */
+  readonly spontaneousTokenUsage?: (method: string, params: JsonRecord, sentByOar: (promptId: string) => boolean) => { readonly key: string; readonly tokens: TokenTotals; readonly replayed?: boolean } | null;
   readonly promptOutcome?: (response: JsonRecord) => TurnOutcome | null;
   /** Classify a prompt the agent answered with an error, from the error and the turn's frames; null leaves it to the generic rules (failure.ts). */
   readonly failureOutcome?: AcpFailureReader;
@@ -107,6 +120,20 @@ export interface AcpSessionProfile {
   /** Bound for `usageUpdateAfterPrompt`; default 500 ms. */
   readonly usageUpdateTimeoutMs?: number;
 }
+/** What one root notification says about the runtime's native turns. */
+export type AcpNativeTurnReport =
+  /** The runtime's prompt queue: the prompt it is running (null when none) and the ones it holds. */
+  | { readonly kind: "queue"; readonly running: string | null; readonly queued: readonly string[] }
+  /** A prompt's turn ended, by the runtime's own report; `key` identifies that report across repeated delivery. */
+  | { readonly kind: "ended"; readonly promptId: string; readonly outcome: TurnOutcome; readonly key?: string };
+
+export interface AcpNativeTurns {
+  /** Prompt-level fields naming one OAR prompt (merged into `_meta`). */
+  readonly promptMeta: (promptId: string) => JsonRecord;
+  /** Read a live root notification; replays and other sessions never reach this. */
+  readonly read: (method: string, params: JsonRecord) => AcpNativeTurnReport | null;
+}
+
 export interface OpenedAcpSession {
   readonly initialized: JsonRecord;
   readonly response: JsonRecord;

@@ -151,7 +151,9 @@ terminal command or decide a permission request while a prompt is running.
 
 A native session ID identifies conversation continuity; a `promptId`, native
 turn number, and JSON-RPC request ID have separate roles. Ordinary prompts
-enter a delivery queue; `_meta.sendNow` selects immediate dispatch. Subagents
+enter a delivery queue; `_meta.sendNow` selects immediate dispatch (cancelling
+the running turn), and `x.ai/interject` adds input to the running turn without
+cancelling it. A client may name its prompt with `_meta.promptId`. Subagents
 are independent child sessions with their own context, which may inherit
 history/configuration, run in the background, and wake a parent.
 
@@ -163,14 +165,15 @@ recorded verbatim as a frame's `native`, except credential configuration
 values are redacted before recording; the cross-runtime `events` are what
 OAR read out of it. Control calls are request/response record pairs. The
 profile declares `capabilities` `{ queue: { durable: false }, attribution:
-"nested", images: true }` and its steer params, so the session has `steer`.
+"nested", images: true }`, its steer request (`_x.ai/interject`), so the
+session has `steer`, and its native turns (Grok's own turns are turns).
 
 | Native concept or owner | Current OAR mapping |
 | --- | --- |
 | Grok executable/process | One `grok agent --always-approve --no-leader stdio` subprocess per OAR Session; its exit is an `exited` response record (answering `dispose` when OAR caused it, `requestId ""` when Grok died on its own). |
 | Persistent native session | `Session.id` is the native ID; `SessionOptions.resume` attaches by that ID with a fresh stream (seq 0, no history rebuild). |
 | Handshake answers | `initialize`, `authenticate`, `session/new`/`resume`/`load`, `session/set_model`, `session/set_config_option` answers are frame records; the model and `reasoning_effort` level they report are `model` and `effort` events, so `Session.model()` and `effort()` are folds. |
-| Prompt delivery and native execution | Controls are `toRuntime` requests answered accepted or rejected; each `session/prompt` RPC answer is a frame, the one closing the turn carrying `turn_ended` and `usage`. A steer (`_meta.sendNow`) adds another prompt RPC to the same turn. No `spanId`: no Grok frame carries a turn id. |
+| Prompt delivery and native execution | Controls are `toRuntime` requests answered accepted or rejected; each `session/prompt` RPC answer is a frame, the one closing the turn carrying `turn_ended` and `usage`. Each prompt carries OAR's `_meta.promptId`; Grok's `_x.ai/queue/changed` gives `input_queued`/`turn_active` with its input id. A steer is `_x.ai/interject`, not another prompt. A turn Grok runs under any other prompt id is its own: `turn_active` and `turn_ended` from its queue and `turn_completed` reports. No `spanId`. |
 | `session/update` notifications | One frame per notification, for every session id; events for message/thought/tool/usage/model updates, none for unknown kinds; nothing is dropped. |
 | `_x.ai/*` vendor notifications | Subscribed by name (`GROK_EXTENSION_NOTIFICATIONS`), each recorded under the session id its envelope names, with MCP credential values redacted; the first frame naming a parent/child pair in this stream carries `session_linked { parent, child, via: "tool_call" }`. Later frames do not repeat the edge event. Other vendor facts stay native-only. The live and replay graph are both `graphOf(records)`. |
 | Native child sessions | A frame for another session id is a derived child-session record (its own `sessionId` on the envelope, `agentPath []`, a graph node). Attribution tier `nested`. |
@@ -279,19 +282,20 @@ exists as `x.ai/session/fork`; OAR exposes no fork operation.
 
 ### Interrupted input
 
-Grok's `sendNow` steering cancels the active prompt and starts another.
-On 1.0.46, an immediate abort could cancel the replacement before its input
-was read: a subsequent provider request omitted it. If the abort waited
-until the replacement reached the provider, its text remained in later
-requests. Both runs reported `cancelled` / `MidTurnAbort`; the early
-replacement's usage could even repeat the previous prompt's totals.
+An abort clears every interjection Grok has buffered but not yet taken
+(`session/cancel`: "Clear, don't flush", run_loop.rs): on 1.0.77 a steer sent
+while a command ran, then an abort, never reached the provider and started no
+turn afterwards ([probe](../../experiments/grok-interject/README.md), case C).
+Grok reports neither taking an interjection nor clearing it, so OAR cannot
+tell an input the turn already took from one the abort cleared. It records no
+`input_dropped`: treating every steer before an abort as unread would return
+already-read input for duplicate delivery. Inputs remain placed at request, as
+for other ACP runtimes.
 
-OAR has no reliable per-input consumption or discard signal for this race. It records those native replies without `input_dropped`;
-blindly treating every cancelled steer as unread would return already-read
-input for duplicate delivery. The source's running-prompt queue removal
-explains the early loss but does not establish whether a cancelled prompt
-reached the transcript. Inputs remain placed at request, as for other ACP
-runtimes. [Comparison, source and reproducible probe](../../experiments/input-interruption-2026-10-08.md).
+OAR no longer steers with `_meta.sendNow`, which cancels the running prompt
+and starts another. On 1.0.46 an immediate abort could cancel that
+replacement before its input was read
+([comparison, source and probe](../../experiments/input-interruption-2026-10-08.md)).
 
 ### Prompting, steering, queuing, and cancellation
 
@@ -344,21 +348,56 @@ is an `exited` response, classified by the folds as described below. Around each
 [Turn machinery](../../packages/oar/src/shared/acp/turns.ts),
 [test](../../tests/acp/acp-session.test.ts).
 
-**Steer (mapped; a cancel-and-rerun natively):** `steer()` sends another
-`session/prompt` with `_meta.sendNow` inside the same turn (otherwise rejected
-`no_active_turn`, reason `not_steerable: no active turn`); each answer is its own frame, and
-only the one that leaves no request pending carries `turn_ended`, with the
-newest request's outcome. Natively `_meta.sendNow` is **not an injection
-into the running model call**: Grok answers the running prompt `stopReason:
-"cancelled"` with `_meta.cancelTrigger: "send_now"` and
-`cancellationCategory: "MidTurnAbort"` (the vendor `prompt_complete` says the
-same), while interrupted terminals keep running to completion (their
-`wait_for_exit` answers land afterwards), then starts a fresh model turn that
-re-issues the interrupted tool calls under new call ids and answers with the
-steered text. OAR folds both answers into the one turn; a steer costs a
-re-run of whatever the interrupted call was doing. (`live-contract/steer`;
-fixture replay in
-[`acp-grok-wire-shapes.test.ts`](../../tests/acp/acp-grok-wire-shapes.test.ts).)
+**Steer (mapped; joins the running turn):** `steer()` sends
+`_x.ai/interject {sessionId, text, interjectionId: inputId}` (with `content`
+blocks when images travel) and answers `accepted` once Grok replies
+`{result: {status: "queued"}}`; that reply is a frame `_x.ai/interject` with
+`responseTo` the steer request. An RPC error is a frame
+`_x.ai/interject/error` and the steer is rejected `runtime_refused`. With no
+active turn, OAR's or Grok's own, it is rejected `no_active_turn` (reason
+`not_steerable: no active turn`) and nothing is sent. Grok echoes
+`_x.ai/session/interjection` at once, buffers the input, and the running turn
+takes it at its next safe point (after a tool batch, at the top of the loop,
+before the turn returns): live on 1.0.77, a steer sent while a 4-second
+command ran reached the next provider request and the original prompt
+answered once with `end_turn`, nothing cancelled. Grok sends no live signal
+when it takes the input (it only writes it to its own session file), so OAR
+reports no consumption. An interjection that misses the turn's last safe point,
+or arrives while Grok is idle, is not lost: Grok runs it as its own turn
+(`interject-fallback-<uuid>`, below). The turn's `outputSchema` is the
+prompt's; an interjection carries none.
+([probe](../../experiments/grok-interject/README.md),
+[test](../../tests/acp/grok-interject.test.ts),
+[live](../../sea-trial/vendor/grok-interject.vendor.test.ts).)
+
+**Grok's own turns (mapped):** Grok also runs turns no prompt started: a
+finished sub-agent wakes its parent (`subagent-completed-*`), a late
+interjection (`interject-fallback-*`), a background command's completion and
+more (`bash-completed-*`, `goal-summary-*`, ...). OAR does not read those
+prefixes. It names every prompt it sends (`_meta.promptId: oar-<uuid>`, which
+Grok uses verbatim, acp_agent.rs `prompt`), and any root prompt id it did not
+name is Grok's own. Grok's `_x.ai/queue/changed` lists held prompt ids
+(`entries`) and the running one (`runningPromptId`): an OAR prompt listed as
+held is `input_queued { inputId }`, its start `turn_active { inputId }`; a
+foreign running id is `turn_active` without an input id, and its root
+`turn_completed` is that turn's `turn_ended` (`stop_reason` `cancelled` is
+aborted, `error` failed with `agent_result` as reason, else completed) with
+its `usage` ledger billed once. A later wake of the same child reuses its
+prompt id; each run is its own turn, and repeated delivery of one end report
+is recognised by its native `_meta.eventId`. OAR's turn driver adopts Grok's
+turn as the active turn: `prompt()` is rejected `busy`, held input waits,
+`steer()` interjects into it, and `abort()` sends `session/cancel` (Grok ends
+it `cancelled`, so `aborted`) with the same ten-second fallback as a prompted
+turn. Replayed frames (`_meta.isReplay`) and frames before the session opened
+are history and start or end nothing. Grok runs one turn at a time, so its
+next turn can begin before OAR records the previous prompt's answer (OAR
+waits for the SDK's notification flush first). A Grok turn that starts while
+an OAR prompt's turn is still open is reported when that turn closes: the
+prompt's closing frame carries its `turn_ended`, then the Grok turn's
+`turn_active`, so a host waiting on the prompt gets the prompt's end and the
+session stays busy until Grok's own end. A Grok run that also ends before
+then stays inside the prompt's turn.
+([test](../../tests/acp/grok-interject.test.ts): late-drain, race, overlap and stop cases.)
 
 **Queue (mapped):** `queue()` is a host-memory FIFO
 (`capabilities.queue.durable: false`), drained one message per turn end; a
@@ -623,20 +662,22 @@ as `cacheWrite`, each only from ledgers that carry it (live 1.0.25 basic
 answer: 1280 and 0; whether `inputTokens` holds a nonzero cache write is
 unverified; [spec](../spec/attribution.md#cache-reads-and-writes)). Each
 ledger covers one native prompt's model calls, not the session's lifetime:
-repeated one-word turns bill about 16.8k input each. A send-now steer's two
-answers carry disjoint ledgers (16776/222 and 34420/279 in the 1.0.25
-recording), which OAR accumulates into a running total. Each ledger's
+repeated one-word turns bill about 16.8k input each, and OAR accumulates them
+into a running total. An interjected turn's single answer sums all its model
+calls (1.0.77 probe: two calls, 3970/22). Each ledger's
 optional `reasoningTokens`, already part of `outputTokens`, also accumulates
 as `TokenTotals.reasoning`, including the independent root follow-up below;
 output is unchanged. Missing reasoning counters stay absent, and the same
 ledger deduplication applies to every token part.
 
-The root's automatic follow-up (`prompt_id: "subagent-completed-<child>"`)
-reports its own `turn_completed.usage`, without a `session/prompt` response.
-OAR adds that root ledger to the same running total. Repeated deliveries of
-its native `_meta.eventId` are counted once; the original frames remain in
-the stream. Other `turn_completed` reports stay native-only because the
-ordinary prompt's RPC answer already supplies its ledger. A report needs
+A turn Grok runs on its own (a root `turn_completed` whose `prompt_id` OAR
+did not name, such as `subagent-completed-<child>` or
+`interject-fallback-<uuid>`) reports its own `turn_completed.usage`, without
+a `session/prompt` response. OAR adds that root ledger to the same running
+total. Repeated deliveries of its native `_meta.eventId` are counted once;
+the original frames remain in the stream. The `turn_completed` of a prompt
+OAR named stays native-only because its RPC answer already supplies the
+ledger. A report needs
 both token sides, a native event id and an explicit root session id.
 Reports arriving before the `session/new`, `session/resume` or `session/load`
 answer stay native-only; their identities are remembered so a later duplicate
@@ -897,8 +938,8 @@ above) into the next scenario's log: a recorder hazard, not a stream one.
 
 [ACP session tests](../../tests/acp/acp-session.test.ts) and
 [model/usage tests](../../tests/acp/acp-session-model-usage.test.ts) use a fake
-agent for the record skeleton of a tool turn, busy/queue behavior, send-now
-steer folding, toApp permission records, prompt-error versus process-exit
+agent for the record skeleton of a tool turn, busy/queue behavior, toApp
+permission records, prompt-error versus process-exit
 ends, resume identity, child-session records, extension-notification graph
 edges, and model readback. [Grok wire-shape tests](../../tests/acp/acp-grok-wire-shapes.test.ts)
 replay the 1.0.25 frames (fixture [`fake-acp-grok.mjs`](../../tests/fixtures/fake-acp-grok.mjs)):
@@ -959,8 +1000,9 @@ scope by appending paths to the prompt.
 
 `SessionOptions.outputSchema` supplies the native ACP extension
 `session/prompt._meta.outputSchema`. OAR includes it on every prompt, held
-queue drain and send-now steer, preserving `_meta.sendNow`. Pass it again
-on resume. It is a request setting, with no guarantee for autonomous work
+queue drain and beside its own `_meta.promptId`; a steer (`_x.ai/interject`)
+has no schema field and joins the running turn under that turn's schema. Pass
+it again on resume. It is a request setting, with no guarantee for autonomous work
 that runs without an OAR prompt request.
 
 Grok 1.0.50 validates the output natively. A successful prompt answer carries

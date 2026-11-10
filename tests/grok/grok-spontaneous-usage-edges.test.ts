@@ -18,7 +18,8 @@ function wake(update: JsonRecord = {}): JsonRecord {
 
 function recording(opened = true) {
   const kernel = createSessionKernel("root");
-  const usage = createAcpTokenUsage(grokAcpProfile);
+  // OAR named "ordinary-prompt" itself: its RPC answer already bills it.
+  const usage = createAcpTokenUsage(grokAcpProfile, (promptId) => promptId === "ordinary-prompt");
   const raw = createAcpRecorder(createUsageUpdateGate(), undefined, usage);
   const recorder = { ...raw, extension: (eventMethod: string, params: JsonRecord, afterOpen = opened) => { raw.extension(eventMethod, params, afterOpen); } };
   if (opened) { recorder.step("session/new", {}); }
@@ -27,7 +28,7 @@ function recording(opened = true) {
 
 test.each([
   { name: "ordinary prompt terminal (already billed by RPC)", params: wake({ prompt_id: "ordinary-prompt" }) },
-  { name: "incomplete wake id", params: wake({ prompt_id: "subagent-completed-" }) },
+  { name: "empty prompt id", params: wake({ prompt_id: "" }) },
   { name: "response instead of terminal", params: wake({ sessionUpdate: "response_completed" }) },
   { name: "input-only ledger", params: wake({ usage: { inputTokens: 10 } }) },
   { name: "output-only ledger", params: wake({ usage: { outputTokens: 1 } }) },

@@ -1,4 +1,4 @@
-/* oxlint-disable max-statements, no-underscore-dangle -- Pin the entire prompt/steer/queue handoff and its native ACP _meta fields. */
+/* oxlint-disable max-statements, no-underscore-dangle -- Pin the entire prompt/queue handoff and its native ACP _meta fields. */
 import { readFileSync } from "node:fs";
 import { expect, test } from "vitest";
 import { acpSession } from "../../packages/oar/src/shared/acp/session.js";
@@ -30,25 +30,24 @@ test.each(["valid", "invalid", "bad-schema"])("Grok native %s result has the sam
   } finally { await session.dispose(); }
 });
 
-test("Grok forwards schema on prompt, send-now steer and held queue drain", async () => {
+test("Grok forwards schema on prompt and held queue drain; an interjection carries none", async () => {
   const outputSchema = { type: "object" };
-  const { promptMeta, steerParams } = grokAcpProfile;
-  if (promptMeta === undefined || steerParams === undefined) { throw new Error("Grok must expose prompt metadata and steer params"); }
-  const session = await acpSession(profile({ promptMeta, steerParams,
-    steerSupersedesPrompt: true, extensionNotifications: ["fixture/prompt-schema"] }))({ kind: "available", via: "executable", command: process.execPath }, { cwd: process.cwd(), outputSchema });
+  const { promptMeta, steerRequest } = grokAcpProfile;
+  if (promptMeta === undefined || steerRequest === undefined) { throw new Error("Grok must expose prompt metadata and its interjection"); }
+  const session = await acpSession(profile({ promptMeta, extensionNotifications: ["fixture/prompt-schema"] }))({ kind: "available", via: "executable", command: process.execPath }, { cwd: process.cwd(), outputSchema });
   try {
-    const first = await session.prompt("steer-base");
+    const first = await session.prompt("hello");
     await session.queue("queued");
-    expect(await session.steer?.("steer-new")).toMatchObject({ kind: "accepted" });
     await awaitTurnEnd(session, first.seq);
     const ended = session.records().find((record) => record.seq > first.seq && record.kind === "frame" && record.body.events.some((event) => event.kind === "turn_ended"));
     expect(ended).toBeDefined();
     await awaitTurnEnd(session, ended?.seq ?? first.seq);
     const sent = session.records().flatMap((record) => record.kind === "frame" && record.body.type === "fixture/prompt-schema"
       ? [asRecord(record.body.native)] : []);
-    expect(sent).toHaveLength(3);
-    expect(sent.map((params) => asRecord(params?._meta)?.outputSchema)).toEqual([outputSchema, outputSchema, outputSchema]);
-    expect(asRecord(sent[1]?._meta)?.sendNow).toBe(true);
+    expect(sent.map((params) => asRecord(params?._meta)?.outputSchema)).toEqual([outputSchema, outputSchema]);
+    // The turn's schema is its prompt's: `_x.ai/interject` has no schema field.
+    expect(Object.keys(steerRequest({ sessionId: "s", input: "more", prompt: [{ type: "text", text: "more" }], inputId: "i" }).params).toSorted())
+      .toEqual(["interjectionId", "sessionId", "text"]);
   } finally { await session.dispose(); }
 });
 
