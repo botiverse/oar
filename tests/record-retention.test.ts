@@ -26,6 +26,26 @@ test("without a limit nothing is elided", () => {
   expect(frames(run(undefined, 10).kernel.records()).some((frame) => frame.body.elided === true)).toBe(false);
 });
 
+test.each([1, 4096])("a rejected control preserves the newest oversized frame with budget %s", async (limit) => {
+  const kernel = createSessionKernel("s", undefined, limit);
+  const newest = kernel.frame({ type: "result/success", native: { text: big.repeat(12) }, events: [] });
+
+  await kernel.control({ kind: "abort" }, () => ({ kind: "rejected", code: "no_active_turn", reason: "no active turn" }));
+
+  expect(kernel.records().map((record) => record.kind)).toMatchInlineSnapshot(`
+    [
+      "frame",
+      "request",
+      "response",
+    ]
+  `);
+  expect(frames(kernel.records())).toEqual([newest]);
+
+  const next = kernel.frame({ type: "next", native: { small: true }, events: [] });
+  expect(frames(kernel.records())[0]?.body.elided).toBe(true);
+  expect(frames(kernel.records())[1]).toEqual(next);
+});
+
 test("the oldest frames lose native and tool payloads; records, seq and the rest stay", () => {
   const stored = frames(run(10_000, 10).kernel.records());
   expect(stored.map((frame) => frame.seq)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);

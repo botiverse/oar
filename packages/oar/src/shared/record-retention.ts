@@ -47,16 +47,18 @@ export function recordRetention(limit: number): (log: RawEvent[], appended: numb
   let held = 0;
   let oldest = 0;
   let measured = 0;
+  let newestFrame = -1;
   return (log, appended) => {
     for (; measured < appended; measured += 1) {
       const record = log[measured];
       if (record?.kind === "frame") {
+        newestFrame = measured;
         const size = payloadBytes(record);
         sizes.set(measured, size);
         held += size;
       }
     }
-    for (; held > limit && oldest < appended - 1; oldest += 1) {
+    for (; held > limit && oldest < newestFrame; oldest += 1) {
       const record = log[oldest];
       if (record?.kind === "frame") {
         log[oldest] = elided(record);
