@@ -1,8 +1,16 @@
 # Antigravity login: launcher and blank input
 
 agy 1.5.5, Linux, isolated empty HOME, harmless sentinels; no Google sign-in,
-code or credential. Reproduction: Otter's `pr720-direct-native-repro.py`
-(PR #720 review thread) with `xdg-open` added to its sentinel directory.
+code or credential.
+
+```sh
+python3 experiments/antigravity-login/probe.py /absolute/path/to/agy [out.json]                  # system xdg-open (needs one installed)
+python3 experiments/antigravity-login/probe.py /absolute/path/to/agy [out.json] --path-launcher  # OAR's openBrowser: false shim
+```
+
+The first form reproduces the `gio open` call on a machine with
+`/usr/bin/xdg-open` (observed by Otter in the PR #720 review); this machine
+has none, so only the second form was rerun here.
 
 | Control | Result |
 |---|---|
