@@ -327,8 +327,15 @@ acknowledgement. The RPC answer is Grok's own turn end: a frame
 `session/prompt` with `native` = the answer, a `turn_ended` event
 (`stopReason: "cancelled"` → aborted, else completed) and a `usage` event
 from `_meta`. An RPC error answer is a frame `session/prompt/error` with a
-failed `turn_ended`: -32003 is `rate_limited`, and a -32603's class is the
-`error_type` of the `retry_state` update that ended Grok's retries
+failed `turn_ended`. Grok answers every HTTP 429 with -32003 and the
+provider's words in `data` (`API error (status 429 …): <error type>:
+<message>`): the outcome is `quota` or `billing` when Grok's
+`subscription:free-usage-exhausted` code or that error type names one
+(`insufficient_quota` is `quota`), else `rate_limited`, with `status` 429.
+A -32603's class is the `error_type` of the `retry_state` update that ended
+Grok's retries; Grok's generic `api` yields to the provider status it keeps
+in `data.http_status`, so a 402 is `billing` (1.0.77, sampling/error.rs
+`map_sampling_err_to_acp`), and the outcome carries that `status`
 ([failure evidence](../spec/runtime-matrix.md#opencode-kimi-grok-antigravity-acp)). A process exit instead
 is an `exited` response, classified by the folds as described below. Around each prompt Grok pushes `_x.ai/sessions/changed`
 (`working`, then `idle`) and, after `turn_completed`,

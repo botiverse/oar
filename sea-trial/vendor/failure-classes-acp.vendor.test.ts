@@ -99,9 +99,11 @@ const runtimes: readonly AcpRuntime[] = [
     cells: [
       { name: "missing login", noLogin: true, expected: { open: { failure: "auth" } } },
       { name: "unknown model", model: "oar-missing-model", expected: { open: { failure: "model_unavailable" } } },
-      { name: "invalid key", reply: OPENAI_401, expected: { turn: { failure: "auth" } } },
-      { name: "a 429 (any)", reply: openai429("insufficient_quota", "You exceeded your current quota."), expected: { turn: { failure: "rate_limited" } } },
-      { name: "oversized context", reply: OPENAI_CONTEXT, expected: { turn: { failure: "input_too_large" } } },
+      { name: "invalid key", reply: OPENAI_401, expected: { turn: { failure: "auth", status: 401 } } },
+      { name: "a 429 throttling", reply: openai429("rate_limit_exceeded", "Rate limit reached for aimock-model."), expected: { turn: { failure: "rate_limited", status: 429 } } },
+      { name: "a 429 naming a quota", reply: { status: 429, error: { type: "insufficient_quota", code: "insufficient_quota", message: "You exceeded your current quota." } }, expected: { turn: { failure: "quota", status: 429 } } },
+      { name: "a 402", reply: { status: 402, error: { type: "billing_error", message: "Your team is out of credits." } }, expected: { turn: { failure: "billing", status: 402 } } },
+      { name: "oversized context", reply: OPENAI_CONTEXT, expected: { turn: { failure: "input_too_large", status: 400 } } },
     ],
   },
   {
