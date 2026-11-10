@@ -6,6 +6,7 @@ import type { RawEvent, Session } from "../../packages/oar/src/contracts/session
 import { awaitTurnEnd, promptAndWait, statusOf } from "../../packages/oar/src/observe/index.js";
 import { grokAcpProfile } from "../../packages/oar/src/runtimes/grok/session.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
+import { acpSession } from "../../packages/oar/src/shared/acp/session.js";
 import { fixture, profile, start } from "../fixtures/acp-session-support.js";
 
 const grok = async (): Promise<Session> => start({ ...grokAcpProfile, ...profile({ args: [fixture, "grok-native"] }) });
@@ -139,5 +140,18 @@ test("a Grok turn that outlives the prompt answer it overlapped is still running
     await until(() => statusOf(session.records(), session.id).value.kind === "idle");
     expect(ends(session.records())).toHaveLength(2);
     expect(await promptAndWait(session, "now")).toMatchObject({ kind: "ended", outcome: { kind: "completed" } });
+  } finally { await session.dispose(); }
+});
+
+test("a Grok turn that starts while the session is still being set up is the active turn once it opens", async () => {
+  const session = await acpSession({ ...grokAcpProfile, ...profile({ args: [fixture, "grok-native"] }) })(
+    { kind: "available", via: "executable", command: process.execPath }, { cwd: process.cwd(), env: { FAKE_GROK_EARLY_WAKE: "1" } });
+  try {
+    await until(() => texts(session.records()).includes("early"));
+    expect(statusOf(session.records(), session.id).value.kind).toBe("running");
+    expect(await session.prompt("not yet")).toMatchObject({ kind: "rejected", code: "busy" });
+    expect(await session.abort()).toMatchObject({ kind: "accepted" });
+    await until(() => statusOf(session.records(), session.id).value.kind === "idle");
+    expect(ends(session.records()).at(-1)).toEqual({ kind: "turn_ended", outcome: { kind: "aborted" } });
   } finally { await session.dispose(); }
 });

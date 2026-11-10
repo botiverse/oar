@@ -128,6 +128,11 @@ function grokNativeCancel(send, result) {
 
 /** Handle what mode "grok-native" answers itself; false leaves the message to the generic fixture. */
 export default function grokNative(message, { send, result }) {
+  if (message.method === "session/new" && process.env.FAKE_GROK_EARLY_WAKE === "1") {
+    // A wake right after the open answer, while OAR is still configuring the session.
+    setImmediate(() => { running = { id: null, promptId: "subagent-completed-early", own: true }; queueChanged(send, running.promptId); chunk(send, "early"); });
+    return false;
+  }
   if (message.method === "session/prompt") { grokNativePrompt(message, { send, result }); return true; }
   if (message.method === "_x.ai/interject") { grokNativeInterject(message, { send, result }); return true; }
   if (message.method === "session/cancel") { grokNativeCancel(send, result); return true; }

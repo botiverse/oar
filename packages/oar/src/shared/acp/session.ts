@@ -100,7 +100,6 @@ export function finishAcpSession(
 ): Session {
   const { terminalHost, recorder, usageGate, tokenUsage, nativeTurns } = sessionState;
   const kernel = credentials.kernel(opened.sessionId, shared?.redact);
-  recorder.bind(kernel);
 
   let disposeRequest: RequestRecord | null = null;
   const capabilities = { ...profile.capabilities, images: profile.capabilities.images ?? acpTakesImages(opened.initialized) };
@@ -115,6 +114,8 @@ export function finishAcpSession(
     const active = turns.active();
     if (active === turn) { turns.finishOperation(active); }
   } });
+  // Bound only now: frames queued since the open answer may start a native turn, which needs the driver above.
+  recorder.bind(kernel);
   const createCompaction = profile.compaction;
   if (createCompaction !== undefined) {
     compaction = manualCompaction(kernel, {
