@@ -14,12 +14,12 @@ real account or paid provider
 The [model-selection probe](../../experiments/qoder-native/model-selection-report.md)
 uses an existing login for catalog reads and opens, without a model prompt.
 
-Latest check, **1.1.85** (Linux x64, 2026-11-07): cache and live catalogs and
+Latest check, **1.1.86** (Linux x64, 2026-11-09): cache and live catalogs and
 init confirm the selected `efficient` model through the ModelProvider mapping
 ([PR #624](https://github.com/botiverse/oar/pull/624)), and OAR opens. The
 permission replay still returns HTTP 500 before any permission request and
 the full replay suite fails, so CI stays on 1.1.81
-([latest check](../../experiments/runtime-version-checks/2026-11-07.md#qoder-1185);
+([latest check](../../experiments/runtime-version-checks/2026-11-09.md#qoder-1186);
 see [Evidence and limits](#evidence-and-limits)).
 
 ## Manual compaction
@@ -255,7 +255,7 @@ x64 with Qoder **1.1.83 only**, OAR `4fd225c8`, an existing Free-account login
 and a DeepSeek pay-as-you-go API key (Bugen reported three submissions and
 removal of the temporary BYOK configuration). It is the first passing execution sample
 since 1.1.82 and covers those three flows, not the complete native suite,
-cancellation or 1.1.85. First-party models, subscription quota and rate limits
+cancellation or 1.1.86. First-party models, subscription quota and rate limits
 remain unverified. The manual probe does not enter CI or lift its pin.
 
 The official Unix installation and login URL/cancellation paths were checked

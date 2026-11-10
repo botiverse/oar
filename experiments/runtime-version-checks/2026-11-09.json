@@ -1,0 +1,2254 @@
+{
+  "checkedAt": "2026-11-09T19:07:31.224Z",
+  "platform": "linux-x64",
+  "node": "v24.19.0",
+  "oarBase": "2216dcce3eb7b26cf53b2fad3401c0be5d6ea30b",
+  "provider": "Isolated synthetic or loopback scripted provider; no real account or paid inference",
+  "inventoryMeaning": "PATH discovery only; exact isolated CodeBuddy 2.182.0, Qoder 1.1.86 and Qwen 0.27.1 selected for checks",
+  "inventory": [
+    {
+      "runtime": "antigravity",
+      "source": "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app/manifests/linux_amd64.json",
+      "latest": "1.5.3",
+      "installed": null,
+      "installation": "not_found",
+      "status": "unavailable"
+    },
+    {
+      "runtime": "claude",
+      "source": "https://registry.npmjs.org/@anthropic-ai/claude-code/latest",
+      "latest": "2.1.319",
+      "installed": "2.1.292",
+      "installation": "available",
+      "status": "different"
+    },
+    {
+      "runtime": "codex",
+      "source": "https://registry.npmjs.org/@openai/codex/latest",
+      "latest": "0.167.0",
+      "installed": "0.162.0",
+      "installation": "available",
+      "status": "different"
+    },
+    {
+      "runtime": "cursor",
+      "source": "https://registry.npmjs.org/@cursor/sdk/latest",
+      "latest": "1.3.1",
+      "installed": "1.2.0",
+      "installation": "available",
+      "status": "different"
+    },
+    {
+      "runtime": "dsh",
+      "source": "https://registry.npmjs.org/@deepseek-ai/dsh/latest",
+      "latest": "0.2.2-rc.1",
+      "installed": null,
+      "installation": "not_found",
+      "status": "unavailable"
+    },
+    {
+      "runtime": "grok",
+      "source": "https://x.ai/cli/stable",
+      "latest": "1.0.77",
+      "installed": "1.0.77",
+      "installation": "available",
+      "status": "current"
+    },
+    {
+      "runtime": "kimi",
+      "source": "https://registry.npmjs.org/@moonshot-ai/kimi-code/latest",
+      "latest": "2.5.2",
+      "installed": "2.1.1",
+      "installation": "available",
+      "status": "different"
+    },
+    {
+      "runtime": "opencode",
+      "line": "v1",
+      "source": "https://registry.npmjs.org/opencode-ai/latest",
+      "latest": "1.19.5",
+      "installed": "1.18.30",
+      "installation": "available",
+      "status": "different"
+    },
+    {
+      "runtime": "opencode",
+      "line": "v2",
+      "source": "https://registry.npmjs.org/@opencode/cli/latest",
+      "latest": "2.2.6",
+      "installed": "1.18.30",
+      "installation": "available",
+      "status": "other_release_line"
+    },
+    {
+      "runtime": "codebuddy",
+      "source": "https://registry.npmjs.org/@tencent-ai/codebuddy-code/latest",
+      "latest": "2.182.0",
+      "installed": "2.173.0",
+      "installation": "available",
+      "status": "different"
+    },
+    {
+      "runtime": "qoder",
+      "source": "https://registry.npmjs.org/@qoder-ai/qodercli/latest",
+      "latest": "1.1.86",
+      "installed": "1.1.78",
+      "installation": "available",
+      "status": "different"
+    },
+    {
+      "runtime": "qwen",
+      "source": "https://registry.npmjs.org/@qwen-code/qwen-code/latest",
+      "latest": "0.27.1",
+      "installed": "0.26.0",
+      "installation": "available",
+      "status": "different"
+    },
+    {
+      "runtime": "pi",
+      "source": "https://registry.npmjs.org/@earendil-works/pi-coding-agent/latest",
+      "latest": "1.5.0",
+      "installed": "1.5.0",
+      "installation": "available",
+      "status": "current"
+    },
+    {
+      "runtime": "pi-durable",
+      "source": "https://registry.npmjs.org/@earendil-works/pi-durable/latest",
+      "latest": "1.5.0",
+      "installed": "1.4.0",
+      "installation": "host_supplied",
+      "status": "different"
+    }
+  ],
+  "checkExitCodeMeaning": "Probe runner exit status only; inspect native outcomes, timeouts and case counts before deciding whether a control passed",
+  "checks": [
+    {
+      "name": "qwen-version",
+      "exitCode": 0,
+      "elapsedSeconds": 0.065
+    },
+    {
+      "name": "codebuddy-version",
+      "exitCode": 0,
+      "elapsedSeconds": 0.065
+    },
+    {
+      "name": "qwen-behavior",
+      "exitCode": 0,
+      "elapsedSeconds": 59.488,
+      "passed": 16,
+      "skipped": 3,
+      "failed": 0,
+      "failures": []
+    },
+    {
+      "name": "codebuddy-behavior",
+      "exitCode": 0,
+      "elapsedSeconds": 184.498,
+      "passed": 16,
+      "skipped": 3,
+      "failed": 0,
+      "failures": []
+    },
+    {
+      "name": "qwen-vendor",
+      "exitCode": 0,
+      "elapsedSeconds": 165.693,
+      "passed": 19,
+      "skipped": 432,
+      "failures": []
+    },
+    {
+      "name": "qwen-native-plain",
+      "exitCode": 0,
+      "elapsedSeconds": 15.438
+    },
+    {
+      "name": "qwen-native-reply-blocks",
+      "exitCode": 0,
+      "elapsedSeconds": 28.272
+    },
+    {
+      "name": "qwen-native-tools",
+      "exitCode": 0,
+      "elapsedSeconds": 25.47
+    },
+    {
+      "name": "codebuddy-vendor",
+      "exitCode": 0,
+      "elapsedSeconds": 118.057,
+      "passed": 6,
+      "skipped": 445,
+      "failures": []
+    },
+    {
+      "name": "codebuddy-stream-immediate-1",
+      "exitCode": 0,
+      "elapsedSeconds": 0.265,
+      "scope": "Invalid initial probe: npm launcher selected under Node 18.19.1, below its minimum. No protocol initialization or model request."
+    },
+    {
+      "name": "codebuddy-stream-immediate-2",
+      "exitCode": 0,
+      "elapsedSeconds": 0.265,
+      "scope": "Invalid initial probe: npm launcher selected under Node 18.19.1, below its minimum. No protocol initialization or model request."
+    },
+    {
+      "name": "codebuddy-stream-immediate-3",
+      "exitCode": 0,
+      "elapsedSeconds": 0.265,
+      "scope": "Invalid initial probe: npm launcher selected under Node 18.19.1, below its minimum. No protocol initialization or model request."
+    },
+    {
+      "name": "codebuddy-stream-delay",
+      "exitCode": 0,
+      "elapsedSeconds": 0.265,
+      "scope": "Invalid initial probe: npm launcher selected under Node 18.19.1, below its minimum. No protocol initialization or model request."
+    },
+    {
+      "name": "codebuddy-acp-immediate",
+      "exitCode": 1,
+      "elapsedSeconds": 0.265,
+      "scope": "Invalid initial probe: npm launcher selected under Node 18.19.1, below its minimum. No protocol initialization or model request."
+    },
+    {
+      "name": "qoder-version",
+      "exitCode": 0,
+      "elapsedSeconds": 2.371
+    },
+    {
+      "name": "qwen-native-permission",
+      "exitCode": 0,
+      "elapsedSeconds": 24.961
+    },
+    {
+      "name": "qwen-native-catalog",
+      "exitCode": 0,
+      "elapsedSeconds": 23.615
+    },
+    {
+      "name": "qwen-lock-lifetime",
+      "exitCode": 0,
+      "elapsedSeconds": 14.662
+    },
+    {
+      "name": "qoder-behavior",
+      "exitCode": 1,
+      "elapsedSeconds": 206.791,
+      "passed": 12,
+      "skipped": 2,
+      "failed": 5,
+      "failures": [
+        "session.framing-and-attribution: Expected values to be strictly deep-equal:",
+        "session.observer-isolation: a throwing observer affected the run",
+        "session.multi-turn-conversation: Expected values to be strictly deep-equal:",
+        "session.steer-mid-turn: steer broke the turn: {\"kind\":\"failed\",\"failure\":\"unknown\",\"reason\":\"inference.remoteChat.stream failed: HTTP 500: Internal Server Error\"}",
+        "session.resume-or-loud-rejection: Expected values to be strictly deep-equal:"
+      ]
+    },
+    {
+      "name": "qoder-vendor",
+      "exitCode": 1,
+      "elapsedSeconds": 296.435,
+      "failed": 10,
+      "passed": 4,
+      "skipped": 437,
+      "failures": [
+        "sea-trial/vendor/manual-compaction-followup.vendor.test.ts > native followup manual compaction > native boundary proves completion, same-name command configured: false",
+        "sea-trial/vendor/manual-compaction-followup.vendor.test.ts > native followup manual compaction > native boundary proves completion, same-name command configured: true",
+        "sea-trial/vendor/qoder-permission.vendor.test.ts > native permission request crosses stdio and the production reply unlocks execution",
+        "sea-trial/vendor/qoder-prompts.vendor.test.ts > long private prompt files replace and append on native resume",
+        "sea-trial/vendor/qoder-steer.vendor.test.ts > next-priority steer preserves input identity at tool",
+        "sea-trial/vendor/qoder-steer.vendor.test.ts > next-priority steer preserves input identity at streaming",
+        "sea-trial/vendor/qoder.vendor.test.ts > Qoder native model replay > startup idle, consecutive prompts and current-open usage survive resume",
+        "sea-trial/vendor/qoder.vendor.test.ts > Qoder native model replay > applied effort is read back while native private settings stay private",
+        "sea-trial/vendor/qoder.vendor.test.ts > Qoder native model replay > MCP stdio and HTTP tools return real server results",
+        "sea-trial/vendor/qoder.vendor.test.ts > Qoder native model replay > an excluded shell tool cannot execute a forced native call"
+      ]
+    },
+    {
+      "name": "qoder-login",
+      "exitCode": 0,
+      "elapsedSeconds": 1.569,
+      "passed": 8,
+      "failures": [],
+      "scope": "Unit tests with a synthetic CLI, not native Qoder 1.1.86 login"
+    },
+    {
+      "name": "qoder-catalog",
+      "exitCode": 0,
+      "elapsedSeconds": 20.844
+    },
+    {
+      "name": "codebuddy-standalone-stream-immediate-1",
+      "exitCode": 0,
+      "elapsedSeconds": 14.723
+    },
+    {
+      "name": "codebuddy-standalone-stream-immediate-2",
+      "exitCode": 0,
+      "elapsedSeconds": 60.33
+    },
+    {
+      "name": "codebuddy-standalone-stream-immediate-3",
+      "exitCode": 0,
+      "elapsedSeconds": 14.665
+    },
+    {
+      "name": "codebuddy-standalone-stream-delay",
+      "exitCode": 0,
+      "elapsedSeconds": 24.719
+    },
+    {
+      "name": "codebuddy-standalone-acp-immediate",
+      "exitCode": 0,
+      "elapsedSeconds": 6.386
+    }
+  ],
+  "qwen": {
+    "catalog": {
+      "results": [
+        {
+          "resume": false,
+          "initialize": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": false,
+          "beforeFirst": "get_usage_info",
+          "response": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": false,
+          "beforeFirst": "get_context_usage",
+          "response": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": false,
+          "first": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "native answer"
+          }
+        },
+        {
+          "resume": false,
+          "second": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "native answer"
+          }
+        },
+        {
+          "resume": false,
+          "subtype": "get_available_models",
+          "response": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": false,
+          "subtype": "get_context_usage",
+          "response": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": false,
+          "subtype": "get_usage_info",
+          "response": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": false,
+          "interrupt": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": false,
+          "interrupted": {
+            "subtype": "error_during_execution",
+            "is_error": true,
+            "result": null
+          }
+        },
+        {
+          "resume": false,
+          "afterAbort": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "native answer"
+          }
+        },
+        {
+          "resume": true,
+          "initialize": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": true,
+          "beforeFirst": "get_usage_info",
+          "response": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": true,
+          "beforeFirst": "get_context_usage",
+          "response": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": true,
+          "first": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "native answer"
+          }
+        },
+        {
+          "resume": true,
+          "second": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "native answer"
+          }
+        },
+        {
+          "resume": true,
+          "subtype": "get_available_models",
+          "response": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": true,
+          "subtype": "get_context_usage",
+          "response": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": true,
+          "subtype": "get_usage_info",
+          "response": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": true,
+          "interrupt": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": true,
+          "interrupted": {
+            "subtype": "error_during_execution",
+            "is_error": true,
+            "result": null
+          }
+        },
+        {
+          "resume": true,
+          "afterAbort": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "slow answer"
+          }
+        }
+      ],
+      "wire": {
+        "fresh": {
+          "permissionRequests": 0
+        },
+        "resume": {
+          "permissionRequests": 0
+        }
+      }
+    },
+    "permission": {
+      "results": [
+        {
+          "resume": false,
+          "initialize": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": false,
+          "beforeFirst": "get_usage_info",
+          "response": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": false,
+          "beforeFirst": "get_context_usage",
+          "response": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": false,
+          "mcp": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "tool completed"
+          }
+        },
+        {
+          "resume": false,
+          "first": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "native answer"
+          }
+        },
+        {
+          "resume": false,
+          "second": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "native answer"
+          }
+        },
+        {
+          "resume": false,
+          "subtype": "get_available_models",
+          "response": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": false,
+          "subtype": "get_context_usage",
+          "response": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": false,
+          "subtype": "get_usage_info",
+          "response": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": false,
+          "interrupt": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": false,
+          "interrupted": {
+            "subtype": "error_during_execution",
+            "is_error": true,
+            "result": null
+          }
+        },
+        {
+          "resume": false,
+          "afterAbort": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "native answer"
+          }
+        },
+        {
+          "resume": true,
+          "initialize": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": true,
+          "beforeFirst": "get_usage_info",
+          "response": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": true,
+          "beforeFirst": "get_context_usage",
+          "response": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": true,
+          "mcp": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "tool completed"
+          }
+        },
+        {
+          "resume": true,
+          "first": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "native answer"
+          }
+        },
+        {
+          "resume": true,
+          "second": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "native answer"
+          }
+        },
+        {
+          "resume": true,
+          "subtype": "get_available_models",
+          "response": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": true,
+          "subtype": "get_context_usage",
+          "response": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": true,
+          "subtype": "get_usage_info",
+          "response": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": true,
+          "interrupt": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": true,
+          "interrupted": {
+            "subtype": "error_during_execution",
+            "is_error": true,
+            "result": null
+          }
+        },
+        {
+          "resume": true,
+          "afterAbort": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "slow answer"
+          }
+        }
+      ],
+      "wire": {
+        "fresh": {
+          "permissionRequests": 1
+        },
+        "resume": {
+          "permissionRequests": 1
+        }
+      }
+    },
+    "plain": {
+      "results": [
+        {
+          "resume": false,
+          "initialize": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": false,
+          "beforeFirst": "get_usage_info",
+          "response": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": false,
+          "beforeFirst": "get_context_usage",
+          "response": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": false,
+          "first": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "native answer"
+          }
+        },
+        {
+          "resume": false,
+          "second": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "native answer"
+          }
+        },
+        {
+          "resume": false,
+          "subtype": "get_available_models",
+          "response": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": false,
+          "subtype": "get_context_usage",
+          "response": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": false,
+          "subtype": "get_usage_info",
+          "response": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": false,
+          "interrupt": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": false,
+          "interrupted": {
+            "subtype": "error_during_execution",
+            "is_error": true,
+            "result": null
+          }
+        },
+        {
+          "resume": false,
+          "afterAbort": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "native answer"
+          }
+        },
+        {
+          "resume": true,
+          "initialize": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": true,
+          "beforeFirst": "get_usage_info",
+          "response": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": true,
+          "beforeFirst": "get_context_usage",
+          "response": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": true,
+          "first": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "native answer"
+          }
+        },
+        {
+          "resume": true,
+          "second": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "native answer"
+          }
+        },
+        {
+          "resume": true,
+          "subtype": "get_available_models",
+          "response": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": true,
+          "subtype": "get_context_usage",
+          "response": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": true,
+          "subtype": "get_usage_info",
+          "response": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": true,
+          "interrupt": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": true,
+          "interrupted": {
+            "subtype": "error_during_execution",
+            "is_error": true,
+            "result": null
+          }
+        },
+        {
+          "resume": true,
+          "afterAbort": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "native answer"
+          }
+        }
+      ],
+      "wire": {
+        "fresh": {
+          "permissionRequests": 0,
+          "firstTurn": {
+            "messageStarts": 1,
+            "blockStarts": [
+              {
+                "index": 0,
+                "type": "text"
+              }
+            ],
+            "snapshots": [
+              {
+                "types": [
+                  "text"
+                ],
+                "matchesInitialMessageId": true
+              }
+            ]
+          }
+        },
+        "resume": {
+          "permissionRequests": 0,
+          "firstTurn": {
+            "messageStarts": 1,
+            "blockStarts": [
+              {
+                "index": 0,
+                "type": "text"
+              }
+            ],
+            "snapshots": [
+              {
+                "types": [
+                  "text"
+                ],
+                "matchesInitialMessageId": true
+              }
+            ]
+          }
+        }
+      }
+    },
+    "reply-blocks": {
+      "results": [
+        {
+          "resume": false,
+          "initialize": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": false,
+          "beforeFirst": "get_usage_info",
+          "response": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": false,
+          "beforeFirst": "get_context_usage",
+          "response": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": false,
+          "first": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "A repeated paragraph.\nA repeated paragraph.\n"
+          }
+        },
+        {
+          "resume": false,
+          "second": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "A repeated paragraph.\nA repeated paragraph.\n"
+          }
+        },
+        {
+          "resume": false,
+          "subtype": "get_available_models",
+          "response": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": false,
+          "subtype": "get_context_usage",
+          "response": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": false,
+          "subtype": "get_usage_info",
+          "response": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": false,
+          "interrupt": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": false,
+          "interrupted": {
+            "subtype": "error_during_execution",
+            "is_error": true,
+            "result": null
+          }
+        },
+        {
+          "resume": false,
+          "afterAbort": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "slow answer"
+          }
+        },
+        {
+          "resume": true,
+          "initialize": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": true,
+          "beforeFirst": "get_usage_info",
+          "response": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": true,
+          "beforeFirst": "get_context_usage",
+          "response": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": true,
+          "first": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "A repeated paragraph.\nA repeated paragraph.\n"
+          }
+        },
+        {
+          "resume": true,
+          "second": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "A repeated paragraph.\nA repeated paragraph.\n"
+          }
+        },
+        {
+          "resume": true,
+          "subtype": "get_available_models",
+          "response": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": true,
+          "subtype": "get_context_usage",
+          "response": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": true,
+          "subtype": "get_usage_info",
+          "response": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": true,
+          "interrupt": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": true,
+          "interrupted": {
+            "subtype": "error_during_execution",
+            "is_error": true,
+            "result": null
+          }
+        },
+        {
+          "resume": true,
+          "afterAbort": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "A repeated paragraph.\nA repeated paragraph.\n"
+          }
+        }
+      ],
+      "wire": {
+        "fresh": {
+          "permissionRequests": 0,
+          "firstTurn": {
+            "messageStarts": 1,
+            "blockStarts": [
+              {
+                "index": 0,
+                "type": "thinking"
+              },
+              {
+                "index": 0,
+                "type": "text"
+              }
+            ],
+            "snapshots": [
+              {
+                "types": [
+                  "thinking"
+                ],
+                "matchesInitialMessageId": true
+              },
+              {
+                "types": [
+                  "text"
+                ],
+                "matchesInitialMessageId": false
+              }
+            ]
+          }
+        },
+        "resume": {
+          "permissionRequests": 0,
+          "firstTurn": {
+            "messageStarts": 1,
+            "blockStarts": [
+              {
+                "index": 0,
+                "type": "thinking"
+              },
+              {
+                "index": 0,
+                "type": "text"
+              }
+            ],
+            "snapshots": [
+              {
+                "types": [
+                  "thinking"
+                ],
+                "matchesInitialMessageId": true
+              },
+              {
+                "types": [
+                  "text"
+                ],
+                "matchesInitialMessageId": false
+              }
+            ]
+          }
+        }
+      }
+    },
+    "tools": {
+      "results": [
+        {
+          "resume": false,
+          "initialize": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": false,
+          "beforeFirst": "get_usage_info",
+          "response": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": false,
+          "beforeFirst": "get_context_usage",
+          "response": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": false,
+          "mcp": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "tool completed"
+          }
+        },
+        {
+          "resume": false,
+          "first": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "native answer"
+          }
+        },
+        {
+          "resume": false,
+          "second": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "native answer"
+          }
+        },
+        {
+          "resume": false,
+          "subtype": "get_available_models",
+          "response": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": false,
+          "subtype": "get_context_usage",
+          "response": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": false,
+          "subtype": "get_usage_info",
+          "response": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": false,
+          "interrupt": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": false,
+          "interrupted": {
+            "subtype": "error_during_execution",
+            "is_error": true,
+            "result": null
+          }
+        },
+        {
+          "resume": false,
+          "afterAbort": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "slow answer"
+          }
+        },
+        {
+          "resume": true,
+          "initialize": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": true,
+          "beforeFirst": "get_usage_info",
+          "response": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": true,
+          "beforeFirst": "get_context_usage",
+          "response": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": true,
+          "mcp": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "tool completed"
+          }
+        },
+        {
+          "resume": true,
+          "first": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "native answer"
+          }
+        },
+        {
+          "resume": true,
+          "second": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "native answer"
+          }
+        },
+        {
+          "resume": true,
+          "subtype": "get_available_models",
+          "response": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": true,
+          "subtype": "get_context_usage",
+          "response": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": true,
+          "subtype": "get_usage_info",
+          "response": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": true,
+          "interrupt": {
+            "subtype": "success"
+          }
+        },
+        {
+          "resume": true,
+          "interrupted": {
+            "subtype": "error_during_execution",
+            "is_error": true,
+            "result": null
+          }
+        },
+        {
+          "resume": true,
+          "afterAbort": {
+            "subtype": "success",
+            "is_error": false,
+            "result": "native answer"
+          }
+        }
+      ],
+      "wire": {
+        "fresh": {
+          "permissionRequests": 0
+        },
+        "resume": {
+          "permissionRequests": 0
+        }
+      }
+    },
+    "lock": {
+      "runtime": "Qwen",
+      "facts": [
+        {
+          "phase": "warm-home initialize with held lock",
+          "elapsedMs": 1688,
+          "requests": 0
+        },
+        {
+          "phase": "first prompt blocked after initialize",
+          "lockHeld": true,
+          "requests": 0
+        },
+        {
+          "phase": "first prompt after releasing lock",
+          "outcome": "completed"
+        },
+        {
+          "phase": "ordinary later prompt with held lock",
+          "outcome": "completed"
+        }
+      ]
+    },
+    "credentialNames": {
+      "providerPresets": [
+        "BAILIAN_CODING_PLAN_API_KEY",
+        "BAILIAN_TOKEN_PLAN_API_KEY",
+        "DASHSCOPE_API_KEY",
+        "DEEPSEEK_API_KEY",
+        "IDEALAB_API_KEY",
+        "MINIMAX_API_KEY",
+        "MODELSCOPE_API_KEY",
+        "MOONSHOT_API_KEY",
+        "OPENROUTER_API_KEY",
+        "QWENCLOUD_API_KEY",
+        "QWENCLOUD_TOKEN_PLAN_API_KEY",
+        "REQUESTY_API_KEY",
+        "XAI_API_KEY",
+        "ZAI_API_KEY"
+      ],
+      "nativeAuth": [
+        "ANTHROPIC_API_KEY",
+        "GEMINI_API_KEY",
+        "GOOGLE_API_KEY",
+        "OPENAI_API_KEY"
+      ],
+      "missingFromOar": [],
+      "presetBundle": "chunk-ABSWZUZQ.js",
+      "nativeAuthBundle": "chunk-GJDKPQ65.js",
+      "nativeAuthMapping": "openai:{apiKey:[\"OPENAI_API_KEY\"],baseUrl:[\"OPENAI_BASE_URL\"],model:[\"OPENAI_MODEL\",\"QWEN_MODEL\"]},\"openai-responses\":{apiKey:[\"OPENAI_API_KEY\"],baseUrl:[\"OPENAI_BASE_URL\"],model:[\"OPENAI_MODEL\"]},anthropic:{apiKey:[\"ANTHROPIC_API_KEY\"],baseUrl:[\"ANTHROPIC_BASE_URL\"],model:[\"ANTHROPIC_MODEL\"]},gemini:{apiKey:[\"GEMINI_API_KEY\"],baseUrl:[],model:[\"GEMINI_MODEL\"]},\"vertex-ai\":{apiKey:[\"GOOGLE_API_KEY\"],baseUrl:[],model:[\"GOOGLE_MODEL\"]},\"qwen-oauth\":{apiKey:[],baseUrl:[],model:[]},\"qwen-subscription\":{apiKey:[],baseUrl:[],model:[]}}",
+      "snapshotBundle": "chunk-XGVCXJDQ.js",
+      "typeChangeStartsNewMessage": true
+    },
+    "publishedSource": "c2eccf7459c8d6d4b2a5df3733d2f3833153763b",
+    "publishedRelease": "https://github.com/QwenLM/qwen-code/releases/tag/v0.27.1"
+  },
+  "codebuddy": {
+    "version": "2.182.0",
+    "standalone": {
+      "version": "2.182.0",
+      "archiveUrl": "https://acc-1258344699.cos.accelerate.myqcloud.com/@tencent-ai/codebuddy-code/releases/download/2.182.0/codebuddy-code_Linux_x86_64.tar.gz",
+      "archiveSha256": "6bbd2a42fdab1eee7d6920005e9e1be6c868aba6529d6f819d35c987578a22cb",
+      "nativeSha256": "efdfb062f00826d4150a19e30f583c82e3ed9d649ba76244a5e7a0c28499b80f"
+    },
+    "initialNpmLauncherControl": {
+      "exitCode": 1,
+      "stdout": "",
+      "stderr": "\nCodeBuddy Code requires Node.js v18.20.8 or newer.\nYou are running Node.js v18.19.1.\nPlease upgrade Node.js: https://nodejs.org/en/download/\n\n",
+      "systemNode": "v18.19.1"
+    },
+    "initialInvalidProbes": {
+      "stream-immediate-1": {
+        "delayMs": 0,
+        "initialized": false,
+        "results": 0,
+        "requests": [],
+        "timedOut": false,
+        "exitCode": 1,
+        "signal": null
+      },
+      "stream-immediate-2": {
+        "delayMs": 0,
+        "initialized": false,
+        "results": 0,
+        "requests": [],
+        "timedOut": false,
+        "exitCode": 1,
+        "signal": null
+      },
+      "stream-immediate-3": {
+        "delayMs": 0,
+        "initialized": false,
+        "results": 0,
+        "requests": [],
+        "timedOut": false,
+        "exitCode": 1,
+        "signal": null
+      },
+      "stream-delay": {
+        "delayMs": 1000,
+        "initialized": false,
+        "results": 0,
+        "requests": [],
+        "timedOut": false,
+        "exitCode": 1,
+        "signal": null
+      },
+      "acp-immediate": {
+        "pass": false,
+        "protocol": "acp",
+        "delayMs": 0,
+        "initialized": false,
+        "results": 0,
+        "stopReasons": [],
+        "requests": [],
+        "updates": [],
+        "errors": [],
+        "timedOut": false,
+        "exitCode": 1,
+        "signal": null
+      }
+    },
+    "streamImmediate": [
+      {
+        "delayMs": 0,
+        "initialized": true,
+        "results": 2,
+        "requests": [
+          {
+            "number": 1,
+            "prompt": "first"
+          },
+          {
+            "number": 2,
+            "prompt": "second"
+          },
+          {
+            "number": 3,
+            "prompt": "second"
+          }
+        ],
+        "timedOut": false,
+        "exitCode": 0,
+        "signal": null
+      },
+      {
+        "delayMs": 0,
+        "initialized": true,
+        "results": 1,
+        "requests": [
+          {
+            "number": 1,
+            "prompt": "first"
+          }
+        ],
+        "timedOut": true,
+        "exitCode": null,
+        "signal": "SIGTERM"
+      },
+      {
+        "delayMs": 0,
+        "initialized": true,
+        "results": 2,
+        "requests": [
+          {
+            "number": 1,
+            "prompt": "first"
+          },
+          {
+            "number": 2,
+            "prompt": "second"
+          },
+          {
+            "number": 3,
+            "prompt": "second"
+          }
+        ],
+        "timedOut": false,
+        "exitCode": 0,
+        "signal": null
+      }
+    ],
+    "streamDelay": {
+      "delayMs": 1000,
+      "initialized": true,
+      "results": 2,
+      "requests": [
+        {
+          "number": 1,
+          "prompt": "first"
+        },
+        {
+          "number": 2,
+          "prompt": "second"
+        }
+      ],
+      "timedOut": false,
+      "exitCode": 0,
+      "signal": null
+    },
+    "acpImmediate": {
+      "pass": true,
+      "protocol": "acp",
+      "delayMs": 0,
+      "initialized": true,
+      "results": 2,
+      "stopReasons": [
+        "end_turn",
+        "end_turn"
+      ],
+      "requests": [
+        {
+          "number": 1,
+          "prompt": "first",
+          "purpose": "title",
+          "model": "deepseek-flash",
+          "stream": true
+        },
+        {
+          "number": 2,
+          "prompt": "first",
+          "purpose": "conversation",
+          "model": "deepseek-flash",
+          "stream": true
+        },
+        {
+          "number": 3,
+          "prompt": "first",
+          "purpose": "title",
+          "model": "deepseek-flash",
+          "stream": true
+        },
+        {
+          "number": 4,
+          "prompt": "second",
+          "purpose": "conversation",
+          "model": "deepseek-flash",
+          "stream": true
+        }
+      ],
+      "updates": [
+        "config_option_update",
+        "available_commands_update",
+        "session_info_update",
+        "session_info_update",
+        "session_info_update",
+        "session_info_update",
+        "available_commands_update",
+        "session_info_update",
+        "session_info_update",
+        "agent_message_chunk",
+        "session_info_update",
+        "session_info_update",
+        "available_commands_update",
+        "session_info_update",
+        "session_info_update",
+        "session_info_update",
+        "session_info_update",
+        "session_info_update",
+        "session_info_update",
+        "session_info_update",
+        "agent_message_chunk",
+        "session_info_update",
+        "session_info_update",
+        "session_info_update"
+      ],
+      "errors": [],
+      "timedOut": false,
+      "exitCode": null,
+      "signal": "SIGTERM"
+    }
+  },
+  "qoder": {
+    "version": "1.1.86",
+    "catalog": {
+      "version": "1.1.86",
+      "syntheticReplay": true,
+      "requested": "efficient",
+      "rows": [
+        {
+          "fetchStrategy": "cache",
+          "initModel": "Efficient",
+          "selected": {
+            "keys": [
+              "availableContextWindows",
+              "defaultContextWindow",
+              "description",
+              "displayName",
+              "format",
+              "isEnabled",
+              "isVl",
+              "maxInputTokens",
+              "modelId",
+              "priceFactor",
+              "serverScene",
+              "source",
+              "strategies",
+              "value"
+            ],
+            "value": "efficient",
+            "modelId": "efficient",
+            "displayName": "Efficient",
+            "nativeName": null
+          }
+        },
+        {
+          "fetchStrategy": "live",
+          "initModel": "Efficient",
+          "selected": {
+            "keys": [
+              "availableContextWindows",
+              "defaultContextWindow",
+              "description",
+              "displayName",
+              "format",
+              "isEnabled",
+              "isVl",
+              "maxInputTokens",
+              "modelId",
+              "priceFactor",
+              "serverScene",
+              "source",
+              "strategies",
+              "value"
+            ],
+            "value": "efficient",
+            "modelId": "efficient",
+            "displayName": "Efficient",
+            "nativeName": null
+          }
+        }
+      ],
+      "opened": {
+        "kind": "opened",
+        "model": "Efficient"
+      }
+    },
+    "permissionReplay": {
+      "subtype": "error_during_execution",
+      "isError": true,
+      "errors": [
+        "inference.remoteChat.stream failed: HTTP 500: Internal Server Error"
+      ],
+      "usage": {
+        "input_tokens": 0,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "output_tokens": 0,
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "standard",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "",
+        "iterations": [],
+        "speed": "standard"
+      },
+      "permissionRequests": 0,
+      "permissionReplies": 0
+    }
+  },
+  "windows": {
+    "windowStart": "2026-11-08T19:07:58Z",
+    "windowEnd": "2026-11-09T19:07:31Z",
+    "windowDefinition": "run created_at, all attempts observed at collection; distinct job IDs counted once",
+    "ordinaryRunIds": 7,
+    "ordinaryAttempts": 8,
+    "unexecutedRuns": [
+      {
+        "run": 42579356501,
+        "conclusion": "action_required",
+        "jobs": 0
+      },
+      {
+        "run": 42560815456,
+        "conclusion": "action_required",
+        "jobs": 0
+      }
+    ],
+    "latestMainCi": {
+      "run": 42553090131,
+      "head": "2216dcce3eb7b26cf53b2fad3401c0be5d6ea30b",
+      "conclusion": "success"
+    },
+    "piRpcVendorConclusions": {
+      "success": 6
+    },
+    "piRpcVendorJobs": [
+      {
+        "run": 42619182313,
+        "attempt": 1,
+        "job": 129166608283,
+        "url": "https://github.com/botiverse/oar/actions/runs/42619182313/job/129166608283",
+        "name": "pi-rpc-windows (vendor)",
+        "conclusion": "success",
+        "startedAt": "2026-11-09T12:42:02Z",
+        "completedAt": "2026-11-09T12:46:24Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42553090131,
+        "attempt": 1,
+        "job": 128952770454,
+        "url": "https://github.com/botiverse/oar/actions/runs/42553090131/job/128952770454",
+        "name": "pi-rpc-windows (vendor)",
+        "conclusion": "success",
+        "startedAt": "2026-11-09T02:50:14Z",
+        "completedAt": "2026-11-09T02:55:34Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42551330134,
+        "attempt": 1,
+        "job": 128947360458,
+        "url": "https://github.com/botiverse/oar/actions/runs/42551330134/job/128947360458",
+        "name": "pi-rpc-windows (vendor)",
+        "conclusion": "success",
+        "startedAt": "2026-11-09T02:30:38Z",
+        "completedAt": "2026-11-09T02:35:46Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42516939355,
+        "attempt": 1,
+        "job": 128841913171,
+        "url": "https://github.com/botiverse/oar/actions/runs/42516939355/job/128841913171",
+        "name": "pi-rpc-windows (vendor)",
+        "conclusion": "success",
+        "startedAt": "2026-11-08T19:49:16Z",
+        "completedAt": "2026-11-08T19:54:28Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42514263014,
+        "attempt": 1,
+        "job": 128833737913,
+        "url": "https://github.com/botiverse/oar/actions/runs/42514263014/job/128833737913",
+        "name": "pi-rpc-windows (vendor)",
+        "conclusion": "success",
+        "startedAt": "2026-11-08T19:17:18Z",
+        "completedAt": "2026-11-08T19:20:39Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42514263014,
+        "attempt": 2,
+        "job": 128837896406,
+        "url": "https://github.com/botiverse/oar/actions/runs/42514263014/job/128837896406",
+        "name": "pi-rpc-windows (vendor)",
+        "conclusion": "success",
+        "startedAt": "2026-11-08T19:17:18Z",
+        "completedAt": "2026-11-08T19:20:39Z",
+        "failedSteps": []
+      }
+    ],
+    "acpRunIds": 2,
+    "acpConclusions": {
+      "acp-windows (windows-latest, grok-aimock)": {
+        "success": 1,
+        "failure": 1
+      },
+      "acp-windows (windows-latest, kimi-aimock)": {
+        "success": 2
+      },
+      "acp-windows (windows-latest, opencode-aimock)": {
+        "success": 2
+      }
+    },
+    "acpJobs": [
+      {
+        "run": 42553090266,
+        "attempt": 1,
+        "job": 128952770185,
+        "url": "https://github.com/botiverse/oar/actions/runs/42553090266/job/128952770185",
+        "name": "acp-windows (windows-latest, grok-aimock)",
+        "conclusion": "success",
+        "startedAt": "2026-11-09T02:50:14Z",
+        "completedAt": "2026-11-09T02:55:32Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42553090266,
+        "attempt": 1,
+        "job": 128952770919,
+        "url": "https://github.com/botiverse/oar/actions/runs/42553090266/job/128952770919",
+        "name": "acp-windows (windows-latest, kimi-aimock)",
+        "conclusion": "success",
+        "startedAt": "2026-11-09T02:50:14Z",
+        "completedAt": "2026-11-09T02:54:13Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42553090266,
+        "attempt": 1,
+        "job": 128952771052,
+        "url": "https://github.com/botiverse/oar/actions/runs/42553090266/job/128952771052",
+        "name": "acp-windows (windows-latest, opencode-aimock)",
+        "conclusion": "success",
+        "startedAt": "2026-11-09T02:50:14Z",
+        "completedAt": "2026-11-09T02:54:03Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42516939352,
+        "attempt": 1,
+        "job": 128841913083,
+        "url": "https://github.com/botiverse/oar/actions/runs/42516939352/job/128841913083",
+        "name": "acp-windows (windows-latest, opencode-aimock)",
+        "conclusion": "success",
+        "startedAt": "2026-11-08T19:49:16Z",
+        "completedAt": "2026-11-08T19:54:50Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42516939352,
+        "attempt": 1,
+        "job": 128841913269,
+        "url": "https://github.com/botiverse/oar/actions/runs/42516939352/job/128841913269",
+        "name": "acp-windows (windows-latest, kimi-aimock)",
+        "conclusion": "success",
+        "startedAt": "2026-11-08T19:49:18Z",
+        "completedAt": "2026-11-08T19:54:23Z",
+        "failedSteps": []
+      },
+      {
+        "run": 42516939352,
+        "attempt": 1,
+        "job": 128841913324,
+        "url": "https://github.com/botiverse/oar/actions/runs/42516939352/job/128841913324",
+        "name": "acp-windows (windows-latest, grok-aimock)",
+        "conclusion": "failure",
+        "startedAt": "2026-11-08T19:49:16Z",
+        "completedAt": "2026-11-08T19:54:30Z",
+        "failedSteps": [
+          {
+            "name": "Run pnpm vitest run sea-trial/vendor --maxWorkers 2",
+            "conclusion": "failure"
+          }
+        ]
+      }
+    ],
+    "grokFailedJob": {
+      "job": 128841913324,
+      "run": 42516939352,
+      "url": "https://github.com/botiverse/oar/actions/runs/42516939352/job/128841913324",
+      "failures": [
+        {
+          "case": "failure-classes-acp / invalid key",
+          "error": "ACP request initialize timed out after 15000ms"
+        },
+        {
+          "case": "manual-compaction-followup / native boundary, configured false",
+          "error": "ACP request initialize timed out after 15000ms"
+        }
+      ],
+      "vendorPassed": 18,
+      "vendorFailed": 2,
+      "separateBootstrapControls": [
+        {
+          "name": "oar-installation",
+          "attempt": 1,
+          "previousOutcome": null,
+          "outcome": "initialized",
+          "elapsedMs": 6019,
+          "stdoutBytes": 3726,
+          "stderr": ""
+        },
+        {
+          "name": "oar-installation",
+          "attempt": 2,
+          "previousOutcome": "initialized",
+          "outcome": "initialized",
+          "elapsedMs": 326,
+          "stdoutBytes": 3726,
+          "stderr": ""
+        },
+        {
+          "name": "npm-wrapper",
+          "attempt": 1,
+          "previousOutcome": null,
+          "outcome": "initialized",
+          "elapsedMs": 5839,
+          "stdoutBytes": 3726,
+          "stderr": ""
+        },
+        {
+          "name": "node-launcher",
+          "attempt": 1,
+          "previousOutcome": null,
+          "outcome": "initialized",
+          "elapsedMs": 5349,
+          "stdoutBytes": 3726,
+          "stderr": ""
+        },
+        {
+          "name": "node-launcher",
+          "attempt": 2,
+          "previousOutcome": "initialized",
+          "outcome": "initialized",
+          "elapsedMs": 353,
+          "stdoutBytes": 3726,
+          "stderr": ""
+        },
+        {
+          "name": "native",
+          "attempt": 1,
+          "previousOutcome": null,
+          "outcome": "initialized",
+          "elapsedMs": 1526,
+          "stdoutBytes": 3726,
+          "stderr": ""
+        },
+        {
+          "name": "native-overlapped",
+          "attempt": 1,
+          "previousOutcome": null,
+          "outcome": "initialized",
+          "elapsedMs": 1594,
+          "stdoutBytes": 3726,
+          "stderr": ""
+        }
+      ],
+      "cause": "Not established by the timeout or subsequent passing controls"
+    },
+    "codebuddyInstallFailure": {
+      "phases": [
+        {
+          "phase": "child_starting",
+          "at": "2026-11-08T19:24:01.338Z",
+          "timeoutMs": 240000
+        },
+        {
+          "phase": "discovery_started",
+          "at": "2026-11-08T19:24:01.538Z"
+        },
+        {
+          "phase": "discovery_completed",
+          "at": "2026-11-08T19:24:03.224Z"
+        },
+        {
+          "phase": "install_started",
+          "at": "2026-11-08T19:24:03.224Z",
+          "timeoutMs": 180000
+        },
+        {
+          "phase": "install_returned",
+          "at": "2026-11-08T19:27:05.842Z",
+          "kind": "failed"
+        },
+        {
+          "phase": "child_returned",
+          "at": "2026-11-08T19:27:05.861Z",
+          "ok": false
+        },
+        {
+          "phase": "npm_logs",
+          "at": "2026-11-08T19:27:05.865Z"
+        },
+        {
+          "phase": "npm_log_saved",
+          "at": "2026-11-08T19:27:05.867Z"
+        },
+        {
+          "phase": "cleanup_started",
+          "at": "2026-11-08T19:27:05.867Z"
+        },
+        {
+          "phase": "cleanup_finished",
+          "at": "2026-11-08T19:27:11.031Z"
+        }
+      ],
+      "installMs": 182618,
+      "verificationMs": null,
+      "cleanupMs": 5164,
+      "sourceSha256": {
+        "phases.jsonl": "a9125939e63c3cc9da80aab35611d468c19e43d90d9acce679f6c70bdaddc430",
+        "2026-11-08T19_24_03_774Z-debug-0.log": "09149514df3b57beb31d45a76cc08ae3615db0e7c89cc285999a69383dd57b83"
+      },
+      "npmTimings": [],
+      "registryTarballFetches": [
+        {
+          "status": 200,
+          "tarball": "isexe/-/isexe-2.0.0.tgz",
+          "durationMs": 601,
+          "cache": "miss"
+        },
+        {
+          "status": 200,
+          "tarball": "ms/-/ms-2.1.3.tgz",
+          "durationMs": 695,
+          "cache": "miss"
+        },
+        {
+          "status": 200,
+          "tarball": "shebang-command/-/shebang-command-2.0.0.tgz",
+          "durationMs": 951,
+          "cache": "miss"
+        },
+        {
+          "status": 200,
+          "tarball": "shebang-regex/-/shebang-regex-3.0.0.tgz",
+          "durationMs": 953,
+          "cache": "miss"
+        },
+        {
+          "status": 200,
+          "tarball": "path-key/-/path-key-3.1.1.tgz",
+          "durationMs": 983,
+          "cache": "miss"
+        },
+        {
+          "status": 200,
+          "tarball": "which/-/which-2.0.2.tgz",
+          "durationMs": 1300,
+          "cache": "miss"
+        },
+        {
+          "status": 200,
+          "tarball": "debug/-/debug-4.4.3.tgz",
+          "durationMs": 1470,
+          "cache": "miss"
+        },
+        {
+          "status": 200,
+          "tarball": "@lydell/node-pty/-/node-pty-1.2.0-beta.14.tgz",
+          "durationMs": 1495,
+          "cache": "miss"
+        },
+        {
+          "status": 200,
+          "tarball": "@standard-schema/spec/-/spec-1.1.0.tgz",
+          "durationMs": 1790,
+          "cache": "miss"
+        },
+        {
+          "status": 200,
+          "tarball": "pkce-challenge/-/pkce-challenge-5.0.1.tgz",
+          "durationMs": 2211,
+          "cache": "miss"
+        },
+        {
+          "status": 200,
+          "tarball": "cross-spawn/-/cross-spawn-7.0.6.tgz",
+          "durationMs": 2323,
+          "cache": "miss"
+        },
+        {
+          "status": 200,
+          "tarball": "eventsource/-/eventsource-3.0.7.tgz",
+          "durationMs": 3692,
+          "cache": "miss"
+        },
+        {
+          "status": 200,
+          "tarball": "eventsource-parser/-/eventsource-parser-3.1.1.tgz",
+          "durationMs": 4220,
+          "cache": "miss"
+        },
+        {
+          "status": 200,
+          "tarball": "@modelcontextprotocol/core/-/core-2.4.0.tgz",
+          "durationMs": 8104,
+          "cache": "miss"
+        },
+        {
+          "status": 200,
+          "tarball": "jose/-/jose-6.2.16.tgz",
+          "durationMs": 10327,
+          "cache": "miss"
+        },
+        {
+          "status": 200,
+          "tarball": "@lydell/node-pty-win32-x64/-/node-pty-win32-x64-1.2.0-beta.14.tgz",
+          "durationMs": 10572,
+          "cache": "miss"
+        },
+        {
+          "status": 200,
+          "tarball": "@modelcontextprotocol/client/-/client-2.4.0.tgz",
+          "durationMs": 22369,
+          "cache": "miss"
+        },
+        {
+          "status": 200,
+          "tarball": "@tencent-ai/sandbox-cli-win32-x64/-/sandbox-cli-win32-x64-5.12.0-beta.7.tgz",
+          "durationMs": 23230,
+          "cache": "miss"
+        },
+        {
+          "status": 200,
+          "tarball": "@agentclientprotocol/sdk/-/sdk-1.9.0.tgz",
+          "durationMs": 24534,
+          "cache": "miss"
+        },
+        {
+          "status": 200,
+          "tarball": "zod/-/zod-4.6.7.tgz",
+          "durationMs": 69915,
+          "cache": "miss"
+        },
+        {
+          "status": 200,
+          "tarball": "@openai/agents-core/-/agents-core-0.20.0.tgz",
+          "durationMs": 89784,
+          "cache": "miss"
+        }
+      ],
+      "source": {
+        "runId": 42514263014,
+        "attempt": 1,
+        "jobId": 128833738070,
+        "artifactId": 13631266214,
+        "pr": 705,
+        "head": "42d6feea52f9cc5f754e10d8694347c3363236fd",
+        "url": "https://github.com/botiverse/oar/actions/runs/42514263014/job/128833738070"
+      },
+      "environment": {
+        "node": "24.22.2",
+        "npm": "11.19.1",
+        "codebuddy": "2.181.0",
+        "platform": "Windows x64"
+      },
+      "result": {
+        "kind": "failed",
+        "timeoutMs": 180000,
+        "noFinalTimingJson": true,
+        "retainedDebugLogBytes": 35090,
+        "truncated": false
+      },
+      "terminalLogRecord": "354 timing reifyNode:node_modules/@tencent-ai/codebuddy-code/node_modules/@openai/agents-core Completed in 89887ms",
+      "noCompletionRecords": [
+        "@tencent-ai/codebuddy-code",
+        "openai"
+      ],
+      "observedBoundary": "Install stopped at its 180-second budget during package fetch/extraction. Last retained completion was @openai/agents-core reify at 89887 ms. No completed reify:unpack/build/install record. No per-byte transfer or filesystem profile is present, so this sample does not independently identify network versus extraction cost."
+    },
+    "rerunsRequestedForThisReport": 0
+  },
+  "upstream": [
+    {
+      "key": "opencode-54794",
+      "ok": true,
+      "html_url": "https://github.com/anomalyco/opencode/issues/54794",
+      "state": "closed",
+      "updated_at": "2026-11-05T21:52:50Z",
+      "comments": 3
+    },
+    {
+      "key": "opencode-53879",
+      "ok": true,
+      "html_url": "https://github.com/anomalyco/opencode/issues/53879",
+      "state": "open",
+      "updated_at": "2026-10-29T17:18:46Z",
+      "comments": 4
+    },
+    {
+      "key": "kimi-2370",
+      "ok": true,
+      "html_url": "https://github.com/MoonshotAI/kimi-cli/issues/2370",
+      "state": "open",
+      "updated_at": "2026-09-12T16:09:18Z",
+      "comments": 1
+    },
+    {
+      "key": "qwen-15796",
+      "ok": true,
+      "html_url": "https://github.com/QwenLM/qwen-code/issues/15796",
+      "state": "open",
+      "updated_at": "2026-10-28T13:14:10Z",
+      "comments": 2
+    },
+    {
+      "key": "qwen-15875",
+      "ok": true,
+      "html_url": "https://github.com/QwenLM/qwen-code/issues/15875",
+      "state": "open",
+      "updated_at": "2026-11-08T03:54:29Z",
+      "comments": 5
+    },
+    {
+      "key": "qwen-16586",
+      "ok": true,
+      "html_url": "https://github.com/QwenLM/qwen-code/pull/16586",
+      "state": "open",
+      "updated_at": "2026-11-09T05:05:41Z",
+      "comments": 4,
+      "merged": false,
+      "merged_at": null,
+      "head": "ff62e2fcaf1690c36eb2b6f59417a1bf14d453ff",
+      "toolIndexReview": {
+        "url": "https://github.com/QwenLM/qwen-code/pull/16586#issuecomment-6722241500",
+        "kind": "Upstream bot static review claim, not a released-runtime observation",
+        "futureCheck": "After stable inclusion, replay thinking -> text -> tool_use and text -> tool_use; keep OAR positional/type compatibility for older versions."
+      }
+    },
+    {
+      "key": "qwen-16586-comments",
+      "ok": true,
+      "count": 4,
+      "commentIds": [
+        6721971304,
+        6722241218,
+        6722241500,
+        6722241759
+      ]
+    },
+    {
+      "key": "qwen-15875-comments",
+      "ok": true,
+      "count": 5,
+      "commentIds": [
+        6500170658,
+        6500361969,
+        6632408160,
+        6709946171,
+        6716941032
+      ]
+    },
+    {
+      "key": "dsh-master",
+      "ok": true,
+      "sha": "fcc0ad462172522aaf5c93a7b2e01f6b9f0b0159",
+      "html_url": "https://github.com/deepseek-ai/deepseek-harness/commit/fcc0ad462172522aaf5c93a7b2e01f6b9f0b0159"
+    },
+    {
+      "key": "agy-public-head",
+      "ok": true,
+      "sha": "099f43f0b0b7a9ffe17b549d80aac1f1ff6e2bb5",
+      "html_url": "https://github.com/google-antigravity/antigravity-cli/commit/099f43f0b0b7a9ffe17b549d80aac1f1ff6e2bb5"
+    },
+    {
+      "key": "codebuddy-issue",
+      "ok": true,
+      "bytes": 188427,
+      "state": "open",
+      "comments": 0,
+      "updatedAt": "2026-10-28T06:32:16Z",
+      "url": "https://cnb.cool/codebuddy/codebuddy-code/-/issues/1847"
+    },
+    {
+      "key": "dsh-discussion",
+      "ok": true,
+      "bytes": 327059,
+      "commentIds": [
+        "18089935",
+        "18637238",
+        "18831410",
+        "19266464",
+        "19311708",
+        "19314203",
+        "19490754"
+      ],
+      "url": "https://github.com/deepseek-ai/deepseek-harness/discussions/593",
+      "newComment": {
+        "id": "19490754",
+        "date": "2026-11-09",
+        "author": "Meraj-08",
+        "url": "https://github.com/deepseek-ai/deepseek-harness/discussions/593#discussioncomment-19490754",
+        "kind": "Contributor request for an ACP steering mapping, not a merged implementation or release announcement"
+      }
+    }
+  ],
+  "repositoryValidation": {
+    "check": "passed",
+    "unitPassed": 3783,
+    "mockBehaviorPassed": 18,
+    "build": "passed",
+    "changedProductCode": false,
+    "changedRuntimePins": false
+  }
+}
