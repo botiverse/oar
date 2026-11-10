@@ -451,9 +451,11 @@ its provider settings are on `createQwenProviderAuth`. Grok, OpenCode, DSH and P
 have neither yet (Pi's provider logins are on `createPiProviderAuth`).
 CodeBuddy supports login and a private native account-state read, but no logout
 ([mapping](https://github.com/botiverse/oar/blob/main/docs/runtimes/codebuddy.md#international-login)).
-Antigravity consumer login is deliberately absent: its vendor warns against
-third-party access with that login. Use provider API keys; see the
-[account policy and FAQ](https://github.com/botiverse/oar/blob/main/docs/runtimes/antigravity.md#process-ownership-installation-and-account-usage).
+Antigravity supports login (its own `agy acp --login`, with the person
+pasting the code back) and status (`agy models`), but no logout, which the CLI
+allows only in its interactive UI. Its vendor warns that third-party access
+with a consumer login may break its terms; see
+[login](https://github.com/botiverse/oar/blob/main/docs/runtimes/antigravity.md#login).
 `runtime.logout(installation)` signs Claude, Codex, Cursor
 and Kimi out through their own logout (`claude auth logout`, `codex logout`,
 `Cursor.auth.logout`, Kimi's ACP `logout`) and resolves `logged_out` when

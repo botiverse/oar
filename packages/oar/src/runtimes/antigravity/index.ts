@@ -5,6 +5,7 @@ import { antigravityInstallation } from "./installation.js";
 import { antigravityInstall, antigravityInstallPlan } from "./install.js";
 import { antigravityCheckUpdate } from "./update.js";
 import { antigravityRefusedSessionOptions } from "./options.js";
+import { antigravityAuthStatus, antigravityLogin } from "./auth.js";
 
 export const antigravityRuntime = defineRuntime({
   id: "antigravity",
@@ -22,6 +23,9 @@ export const antigravityRuntime = defineRuntime({
     return antigravityListModels;
   }),
   checkUpdate: antigravityCheckUpdate,
+  // No logout: the CLI refuses /logout outside its interactive UI (auth.ts).
+  login: antigravityLogin,
+  authStatus: antigravityAuthStatus,
   refusedSessionOptions: antigravityRefusedSessionOptions,
   mcpToolsListChanged: "none",
 }, { execution: "process" });

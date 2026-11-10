@@ -69,8 +69,7 @@ that pi's provider login already uses.
   not change the joined cleanup of `login`, `logout`, or Qwen provider settings.
 - **Absent where oar never drives it.** A runtime whose login oar would
   refuse on every machine has no `login` member
-  ([capabilities](../design/capabilities.md)). Antigravity consumer login is
-  deliberately absent under its [account policy](../runtimes/antigravity.md#process-ownership-installation-and-account-usage).
+  ([capabilities](../design/capabilities.md)).
   `unsupported` is only for what the machine decides, its
   installation or its version.
 
@@ -332,7 +331,7 @@ declares no network, refresh or key-command execution. The
 | cursor | `Cursor.auth.login({ openBrowser: false })` in process: relays the URL from `onLoginUrl`; the SDK polls; its save goes through a store oar passes, which refuses it once the login has ended | `Cursor.auth.status` (the stored login only, not `CURSOR_API_KEY`; `email` and the key's expiry) | `@cursor/sdk` 1.3.1 | 15 min |
 | codebuddy | private stream-json `initialize` then `authenticate`, native URL callback | private `initialize.account`: object / null / absent; non-empty `CODEBUDDY_API_KEY` instead yields `unknown` with a configured source label | international 2.178.1, Linux arm64 verified; generic `auth_failed` is process failure, not user denial | 5 min |
 | qoder | `qodercli login` over pipes: relays the authorization URL | `qodercli status --output json` (`logged_in`) | native 1.1.78 verified | 5 min |
-| antigravity | no consumer login integration; use provider API keys ([account policy](../runtimes/antigravity.md#process-ownership-installation-and-account-usage)) | none: native CLI configuration selects authentication | | |
+| antigravity | `agy acp --login` over pipes: relays the Google URL, prompts `manual_code` for the code or landing URL ([login](../runtimes/antigravity.md#login)) | `agy models` (exit 0 logged in; exit 1 with `Please sign in` logged out; a remote call) | 1.5.5 verified | 15 min |
 | kimi | `kimi login [--region mainland-cn\|global]`: relays the device code; Kimi polls and provisions models | ACP `initialize` then `authenticate {methodId: "login"}`, no session; readiness, not proof of remote credential validity | 2.3.3 verified | 16 min |
 | qwen | none: native `qwen auth` removed; configure a provider externally | local user/system credential presence; configured means `unknown`, absent in scope means `logged_out` with a workspace caveat | 0.26.2 source verified | status: 20 s |
 | grok, opencode, pi | not yet | not yet | | |
@@ -422,7 +421,7 @@ runtime oar does not sign in.
 | codex | `codex logout`, stdin closed | revokes a stored ChatGPT login's token, best effort (from 0.122.0); an API key is only deleted | 0.15.0 | 60 s |
 | cursor | `Cursor.auth.logout()` in process, with the SDK's own store | nothing: the minted key stays valid until it expires or is revoked in the dashboard | `@cursor/sdk` 1.3.1 | 20 s |
 | kimi | ACP `initialize` then `logout`; reads authentication again afterward | removes the native credential slot and managed model configuration; no server-side revocation | 2.3.3 verified | 60 s |
-| antigravity, codebuddy, dsh, grok, opencode, pi, qoder, qwen | no `logout` (pi's provider logouts are on `createPiProviderAuth`) | | | |
+| antigravity, codebuddy, dsh, grok, opencode, pi, qoder, qwen | no `logout` (pi's provider logouts are on `createPiProviderAuth`; antigravity refuses `/logout` outside its interactive UI) | | | |
 
 ## CLI
 
