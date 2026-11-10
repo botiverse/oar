@@ -22,7 +22,7 @@ function metadata(file: string): { name: string; version: string } {
 
 /** Check the actual packed tree and exercise the SDK's OAuth loader after OAR's
  * registration. Synthetic unexpired credentials never reach a provider. */
-function checkInstances(host: string): string {
+function checkInstances(host: string): { sdkEntry: string; piAiVersion: string } {
   const entry = pathToFileURL(path.join(host, "probe.mjs"));
   const oar = pathToFileURL(manifest("@botiverse/oar", entry));
   const sdk = pathToFileURL(manifest("@earendil-works/pi-coding-agent", oar));
@@ -34,11 +34,12 @@ function checkInstances(host: string): string {
   const copies = installed.trim().split(/\r?\n/u).map(directory => path.join(directory, "package.json"))
     .filter(file => metadata(file).name === "@earendil-works/pi-ai" && metadata(file).version === version);
   assert.equal(new Set(copies.map(file => realpathSync(file))).size, 1, `Multiple Pi AI ${version} copies in packed host`);
-  return path.join(path.dirname(manifest("@earendil-works/pi-coding-agent", oar)), "dist/index.js");
+  return { sdkEntry: path.join(path.dirname(manifest("@earendil-works/pi-coding-agent", oar)), "dist/index.js"), piAiVersion: version };
 }
 
-export async function checkPiHost(host: string): Promise<void> {
-  const sdkEntry = checkInstances(host);
+/** Return the coding SDK's resolved Pi AI version for subsequent host peer installs. */
+export async function checkPiHost(host: string): Promise<string> {
+  const { sdkEntry, piAiVersion } = checkInstances(host);
   const directory = mkdtempSync(path.join(tmpdir(), "oar-pi-packed-auth-"));
   const contents = `
 import assert from "node:assert/strict";
@@ -61,6 +62,7 @@ assert.deepEqual(auth?.auth, { apiKey: "OAR_SYNTHETIC_AUTH" });
     execFileSync(process.execPath, [outfile, directory], { cwd: directory, stdio: "pipe",
       env: { ...process.env, OAR_PI_AGENT_DIR: directory, PI_CODING_AGENT_DIR: directory } });
   } finally { rmSync(directory, { recursive: true, force: true }); }
+  return piAiVersion;
 }
 
 export const DURABLE_TYPES = `
