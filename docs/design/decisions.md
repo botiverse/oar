@@ -38,6 +38,7 @@ has neither. Upstream request:
 command, an SDK or control-protocol request, or a CLI subcommand) that reads
 what is left without spending it, redeems one kind at a time, and accepts an
 idempotency or retry key.
+
 ## Antigravity consumer login
 
 **Was refused (2026-11-05), now provided (2026-11-10):** OAR login and status
