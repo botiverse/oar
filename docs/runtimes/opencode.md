@@ -52,6 +52,17 @@ own OpenCode configuration. The MCP and failure-class vendor fixtures use
 small temporary Git projects so they do not wait for snapshots of the OAR
 checkout; native snapshots stay enabled.
 
+For a prompt failure reported as JSON-RPC -32603, a known `data.errorName`
+decides the class before the words: `provider.free-limit`, `provider.go-limit`,
+`provider.budget-limit`, `provider.model-budget-limit` and `provider.quota` are
+`quota`, `provider.rate-limit` is `rate_limited` (names from the 2.2.6 source).
+Any other answer, `APIError` included, is classified by its words. PR #710
+reports a live `provider.free-limit` observation; the
+[November 9 local-provider check](../../experiments/opencode-error-names/README.md)
+also captured native 2.2.6's `provider.rate-limit`. The other four quota names
+remain source-derived, with synthetic mapping tests. The shared profile
+applies this rule to both release lines and leaves open-time errors unchanged.
+
 ## Manual compaction
 
 The v2 session exposes idle-only `compact()` through native `/compact`.

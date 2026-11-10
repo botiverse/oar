@@ -1,3 +1,4 @@
+/* oxlint-disable import/max-dependencies -- Each adapter's failure mapping is pinned in this one file. */
 import { RequestError } from "../packages/oar/node_modules/@agentclientprotocol/sdk/dist/acp.js";
 import { expect, test } from "vitest";
 import { RuntimeFailureError } from "../packages/oar/src/contracts/runtime-failure-error.js";
@@ -6,6 +7,7 @@ import { claudeFailure, claudeResultReason } from "../packages/oar/src/runtimes/
 import { codexFailure } from "../packages/oar/src/runtimes/codex/failure.js";
 import { cursorOpenFailure } from "../packages/oar/src/runtimes/cursor/failure.js";
 import { grokFailureOutcome } from "../packages/oar/src/runtimes/grok/failure.js";
+import { opencodeFailureOutcome } from "../packages/oar/src/runtimes/opencode/failure.js";
 import { piFailure } from "../packages/oar/src/runtimes/pi/failure.js";
 import { acpFailureOutcome, acpOpenFailure } from "../packages/oar/src/shared/acp/failure.js";
 
@@ -110,6 +112,45 @@ test.each([
   { name: "unentitled model", error: RequestError.internalError("…"), frames: [retryState({ type: "retrying", error_type: "rate_limited" }), retryState({ type: "failed", error_type: "api" })], failure: "provider" },
 ] as const)("grok: $name", ({ error, frames, failure }) => {
   expect(acpFailureOutcome(error, frames, grokFailureOutcome)).toMatchObject({ kind: "failed", failure });
+});
+
+test.each([
+  { errorName: "provider.free-limit", failure: "quota" },
+  { errorName: "provider.go-limit", failure: "quota" },
+  { errorName: "provider.budget-limit", failure: "quota" },
+  { errorName: "provider.model-budget-limit", failure: "quota" },
+  { errorName: "provider.quota", failure: "quota" },
+  { errorName: "provider.rate-limit", failure: "rate_limited" },
+] as const)("opencode: $errorName is $failure whatever the message says", ({ errorName, failure }) => {
+  const error = RequestError.internalError({ service: "Session", errorName }, "Overloaded");
+  expect(acpFailureOutcome(error, [], opencodeFailureOutcome)).toMatchObject({ kind: "failed", failure });
+});
+
+// Anything the table does not name is left to the generic rules (its words).
+test.each([
+  { name: "an unlisted errorName follows the words", data: { service: "session", errorName: "provider.something-new" }, message: "Internal error: Rate limit exceeded", failure: "rate_limited" },
+  { name: "invalid key (errorName APIError) stays auth", data: { service: "session", errorName: "APIError" }, message: "Internal error: invalid x-api-key", failure: "auth" },
+  { name: "no data follows the words", data: undefined, message: "Internal error: Rate limit exceeded", failure: "rate_limited" },
+  { name: "unnamed billing stays billing", data: { service: "session" }, message: "Internal error: Your credit balance is too low", failure: "billing" },
+  { name: "a non-string name follows the words", data: { errorName: 42 }, message: "Internal error: invalid x-api-key", failure: "auth" },
+  { name: "unclassified words stay unknown", data: { errorName: "provider.something-new" }, message: "Internal service failure", failure: "unknown" },
+] as const)("opencode: $name", ({ data, message, failure }) => {
+  const error = new RequestError(-32_603, message, data);
+  expect(opencodeFailureOutcome(error, [])).toBeNull();
+  expect(acpFailureOutcome(error, [], opencodeFailureOutcome)).toMatchObject({ kind: "failed", failure });
+});
+
+test.each(["constructor", "toString", "__proto__"])("opencode: inherited name %s leaves the text fallback intact", (errorName) => {
+  const reason = "Internal error: invalid x-api-key";
+  const error = new RequestError(-32_603, reason, { errorName });
+  expect(opencodeFailureOutcome(error, [])).toBeNull();
+  expect(acpFailureOutcome(error, [], opencodeFailureOutcome)).toEqual({ kind: "failed", reason, failure: "auth" });
+});
+
+test.each([-32_000, -32_602])("opencode: a known name does not override another RPC code %s", (code) => {
+  const error = new RequestError(code, "invalid x-api-key", { errorName: "provider.quota" });
+  expect(opencodeFailureOutcome(error, [])).toBeNull();
+  expect(acpFailureOutcome(error, [], opencodeFailureOutcome)).toMatchObject({ kind: "failed", failure: "auth" });
 });
 
 test("grok: a failure with no final retry_state falls to the generic rules", () => {
