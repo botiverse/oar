@@ -37,6 +37,11 @@ The [1.5.0 security update](../../experiments/pi-1.5.0-2026-11-02.md) also
 checks the RPC backend and coexistence with the host-owned Durable 1.4.0
 catalog. Pi 1.5.0 changes its native default system prompt; hosts that need
 stable wording should supply their own `systemPrompt`.
+An independent Linux probe also checked SDK/RPC 1.5.2, Durable 1.4.0
+coexistence and resuming completed 1.5.0 sessions; it did not change the
+workspace's locked SDK version. See the [November 10 compatibility
+report](../../experiments/pi-1.5.2-2026-11-10.md) for results and the RPC
+launch test's version-dependent expectation.
 At every upgrade from 0.99.2 through 1.5.0, a separate-process probe
 ([`pi-upgrade-resume.ts`](../../experiments/pi-upgrade-resume.ts)) resumed a
 session created by the previous SDK: native id, saved model and prior

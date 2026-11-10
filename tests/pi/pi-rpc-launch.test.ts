@@ -7,11 +7,15 @@ import { asRecord, parseJson } from "../../packages/oar/src/shared/json.js";
 
 vi.mock("../../packages/oar/src/shared/executable/index.js", async (original) => ({ ...await original<object>(), runExecutable: vi.fn() }));
 
+const sdkManifest = new URL("../package.json", import.meta.resolve("@earendil-works/pi-coding-agent"));
+const installedVersion = asRecord(parseJson(readFileSync(sdkManifest, "utf8")))?.version;
+if (typeof installedVersion !== "string") {
+  throw new TypeError("Cannot read the installed Pi coding SDK version");
+}
+
 test("the source constant used by bundled hosts matches the installed coding-agent version", async () => {
-  const file = new URL("../package.json", import.meta.resolve("@earendil-works/pi-coding-agent"));
-  const pkg = asRecord(parseJson(readFileSync(file, "utf8")));
   const { PI_AI_VERSION } = await import("@earendil-works/pi-ai");
-  expect(pkg?.version).toBe(PI_AI_VERSION);
+  expect(installedVersion).toBe(PI_AI_VERSION);
 });
 
 test("a custom executable gets native RPC arguments and its version is probed in the session environment", async () => {
@@ -42,10 +46,10 @@ test.each(["1.3.99", "", "unparseable", "1.5", "01.5.0", "1.5.0\nother output", 
     message: `Pi RPC requires at least 1.4.0; the selected runtime reports ${version || "no readable version"}. Select a supported Pi executable with createPiRuntime({ execution: "subprocess", command }).` });
 });
 
-test.each(["1.4.0", "1.6.0"])("the default entry still requires OAR's exact dependency version: %s", async (version) => {
+test.each(["0.0.0", `${Number(installedVersion.split(".")[0]) + 1}.0.0`])("the default entry still requires OAR's exact dependency version: %s", async (version) => {
   vi.mocked(runExecutable).mockResolvedValue({ ok: true, stdout: version, stderr: "", exitCode: null });
   await expect(piRpcLaunch(undefined, "project", {})).rejects.toMatchObject({ name: "RuntimeFailureError", failure: "invalid_request",
-    message: `Pi RPC requires 1.5.0, matching OAR's bundled Pi; the selected runtime reports ${version}. Select a supported Pi executable with createPiRuntime({ execution: "subprocess", command }).` });
+    message: `Pi RPC requires ${installedVersion}, matching OAR's bundled Pi; the selected runtime reports ${version}. Select a supported Pi executable with createPiRuntime({ execution: "subprocess", command }).` });
 });
 
 test("a command cannot silently change the default embedded runtime", () => {
