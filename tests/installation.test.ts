@@ -192,7 +192,7 @@ test("codex candidates are the desktop app bundles, then the standalone installe
     String.raw`C:\Users\oar\AppData\Local\Programs\OpenAI\Codex\bin\codex.exe`,
     String.raw`C:\Users\oar\AppData\Local\OpenAI\Codex\bin\codex.exe`,
   ]);
-  assert.deepEqual(codexInstalledExecutableCandidates("win32", String.raw`C:\Users\oar`, { APPDATA: String.raw`D:\roam`, LOCALAPPDATA: String.raw`D:\local` }), [
+  assert.deepEqual(codexInstalledExecutableCandidates("win32", String.raw`C:\Users\oar`, { AppData: String.raw`D:\roam`, LocalAppData: String.raw`D:\local` }), [
     String.raw`D:\roam\npm\codex.cmd`,
     String.raw`D:\local\Programs\OpenAI\Codex\bin\codex.exe`,
     String.raw`D:\local\OpenAI\Codex\bin\codex.exe`,

@@ -1,4 +1,5 @@
 import { environmentHome } from "../../shared/environment-home.js";
+import { environmentValue } from "../../shared/environment.js";
 import { homedir } from "node:os";
 import path from "node:path";
 import { executableInstallation } from "../../shared/installation.js";
@@ -28,8 +29,13 @@ export function codexInstalledExecutableCandidates(
 ): readonly string[] {
   if (platform === "win32") {
     const win = path.win32;
-    const roaming = env.APPDATA === undefined || env.APPDATA === "" ? win.join(home, "AppData", "Roaming") : env.APPDATA;
-    const local = env.LOCALAPPDATA === undefined || env.LOCALAPPDATA === "" ? win.join(home, "AppData", "Local") : env.LOCALAPPDATA;
+    // Windows variable names are case-insensitive (`AppData` is `APPDATA`).
+    const folder = (name: string, fallback: string): string => {
+      const value = environmentValue(env, name, platform);
+      return value === undefined || value === "" ? fallback : value;
+    };
+    const roaming = folder("APPDATA", win.join(home, "AppData", "Roaming"));
+    const local = folder("LOCALAPPDATA", win.join(home, "AppData", "Local"));
     return [
       win.join(roaming, "npm", "codex.cmd"),
       win.join(local, "Programs", "OpenAI", "Codex", "bin", "codex.exe"),
