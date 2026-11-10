@@ -20,20 +20,24 @@ command in a pseudo-terminal. A host would use them as it uses Codex's: show
 what is left and spend one on the person's request.
 
 Claude Code 2.1.322 offers the command only in its interactive UI: not in
-`-p`, the SDK or the control protocol, and calling the service directly with
-the subscription token is against its terms. Raft's offline probe of the
-real TUI against a fake backend (`#oar-raft` 8fe1f4b2) found that keys in the
-first ~250 ms of the dialog are dropped, that a bare command at the 5-hour
-limit claims an old-style reset without confirmation, that on accounts with
-only the old program merely opening the command is not known to be free, and
-that the wire has no idempotency key, so a lost answer after Yes is unknown.
-OAR could only time keystrokes against version-specific dialog text, and a
-mistake spends a person's reset irreversibly. Codex has a native call and a
-retry key, so it keeps both members; Claude has neither.
+`-p`, the SDK or the control protocol. OAR never uses the subscription
+credential itself, so calling the service directly is not an option either.
+An offline probe of the real TUI against a fake backend, by the Raft team,
+found that keys in the first ~250 ms of the dialog are dropped; that a bare
+command at the 5-hour limit sent an old-style claim without asking for
+confirmation; that on accounts with only the old program merely opening the
+command is not known to be free; and that the request carries no
+idempotency key, so a lost answer after Yes leaves the outcome unknown. OAR
+could only time keystrokes against version-specific dialog text, and a
+mistake can spend a person's reset with no known way to undo it. Codex keeps
+both members because it has a non-interactive call and a retry key; Claude
+has neither. Upstream request:
+[anthropics/claude-code#108851](https://github.com/anthropics/claude-code/issues/108851).
 
 **What would reopen it:** a non-interactive form of the operation (a `-p`
 command, an SDK or control-protocol request, or a CLI subcommand) that reads
-what is left without spending it and redeems one kind at a time.
+what is left without spending it, redeems one kind at a time, and accepts an
+idempotency or retry key.
 
 ## No inferred settlement disposition (2026-11-06)
 
