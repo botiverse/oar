@@ -10,6 +10,7 @@ import { asNumber, asRecord, type JsonRecord } from "../../shared/json.js";
 import { cacheParts, reasoningPart } from "../../shared/token-totals.js";
 import { grokFailureOutcome, grokPromptOutcome } from "./failure.js";
 import { grokSpontaneousTokens } from "./spontaneous-usage.js";
+import { grokNativeTurns } from "./native-turns.js";
 import { redactGrokNotification } from "../../shared/credential-redaction.js";
 
 function authMethodIds(initialized: JsonRecord): string[] {
@@ -136,6 +137,8 @@ export const GROK_EXTENSION_NOTIFICATIONS: readonly string[] = [
   "_x.ai/mcp/init_progress",
   "_x.ai/mcp/server_status",
   "_x.ai/mcp_initialized",
+  // live 1.0.77: the echo of an accepted `_x.ai/interject` (experiments/grok-interject)
+  "_x.ai/session/interjection",
   // [sym] only
   "_x.ai/session/update",
   "_x.ai/task_backgrounded",
@@ -174,12 +177,15 @@ export const grokAcpProfile: AcpSessionProfile = {
   },
   sessionMeta: () => ({ yoloMode: true }),
   selectAuthMethod: selectGrokAuthMethod,
-  // `_meta.sendNow` is not an injection: grok answers the running prompt
-  // `cancelled` (`cancelTrigger: "send_now"`, live 1.0.25) and starts a fresh
-  // model turn that re-issued the interrupted tool calls; both answers fold
-  // into the one oar turn (turns.ts).
-  steerParams: () => ({ _meta: { sendNow: true } }),
-  steerSupersedesPrompt: true,
+  // `_x.ai/interject` adds the input to the running turn without cancelling
+  // it: Grok answers `queued` at once and the turn takes it at its next safe
+  // point; one that misses the turn runs as Grok's own (live 1.0.77,
+  // experiments/grok-interject). `_meta.sendNow` would cancel the turn instead.
+  steerRequest: ({ sessionId, input, prompt, inputId }) => ({
+    method: "_x.ai/interject",
+    params: { sessionId, text: input, interjectionId: inputId, ...(prompt.some((block) => block.type === "image") ? { content: prompt } : {}) },
+  }),
+  nativeTurns: grokNativeTurns,
   promptMeta: (options) => options.outputSchema === undefined ? undefined : { outputSchema: options.outputSchema },
   promptOutcome: grokPromptOutcome,
   promptContextUsage: grokContextUsage,

@@ -56,7 +56,6 @@ export interface AcpTurns {
 }
 
 const noActiveTurn = (): ResponseBody => ({ kind: "rejected", code: "no_active_turn", reason: "not_steerable: no active turn" });
-
 export function createAcpTurns(deps: {
   readonly kernel: SessionKernel;
   readonly runtime: AcpProcess;
@@ -67,6 +66,7 @@ export function createAcpTurns(deps: {
   readonly promptUsage: (response: JsonRecord) => RuntimeEventBody | null;
   readonly fallback?: (request: RequestRecord) => Promise<void>;
   readonly operationBusy?: () => boolean;
+  /** Extra params naming one prompt for its native reports (`nativeTurns`), from its input id. */ readonly promptParams?: ((inputId: string | undefined) => JsonRecord) | undefined;
 }): AcpTurns {
   const { kernel, runtime, profile, usageGate, capabilities, promptUsage, promptMeta } = deps;
   const rootId = kernel.sessionId;
@@ -179,7 +179,7 @@ export function createAcpTurns(deps: {
       return gone();
     }
     const state = beginOperation(request);
-    startVendorPrompt(state, prompt);
+    startVendorPrompt(state, prompt, deps.promptParams?.(request?.body.kind === "prompt" ? request.body.inputId : undefined));
     return { kind: "accepted" };
   };
   const beginOperation = (request: RequestRecord | null): ActiveTurn => {

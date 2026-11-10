@@ -17,27 +17,25 @@ import { manualCompaction, type CompactionOperation } from "../manual-compaction
 import { processSessionLifecycle } from "../process-session.js";
 import type { ProcessLease, PooledProcess } from "../process-pool.js";
 import { withSessionCredentials, type SessionCredentials } from "../session-credentials.js";
-import { createAcpClientApp, type AcpClientHooks } from "./client-app.js";
+import { createAcpClientApp } from "./client-app.js";
 import {
   acpMcpOpenGuard,
   closeAcpSession,
-  createUsageUpdateGate,
   openAcpSession,
   type AcpSessionProfile,
   type OpenedAcpSession,
 } from "./profile.js";
+import type { JsonRecord } from "../json.js";
 import { acpLaunchArgs } from "./launch-args.js";
 import { startAcpProcess, type AcpProcess } from "./process.js";
 import { AcpError, acpProcessExitedError } from "./errors.js";
-import { createAcpRecorder } from "./records.js";
-import { createAcpTerminalHost } from "./terminal.js";
 import { createAcpTurns, type ActiveTurn } from "./turns.js";
 import { acpTakesImages } from "./prompt.js";
-import { createAcpTokenUsage } from "./token-usage.js";
-import { createAcpOpening } from "./opening.js";
-import { createAcpConfigUpdates } from "./config-updates.js";
+import { createAcpSessionState, type AcpSessionState } from "./session-state.js";
+import { sendAcpSteerRequest } from "./steer-request.js";
 
 export type { AcpSessionProfile } from "./profile.js";
+export { createAcpSessionState, type AcpSessionState } from "./session-state.js";
 
 /*
  * ACP mapping onto the record stream (profiles carry the vendor bits):
@@ -82,47 +80,6 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
   });
 }
 
-export interface AcpSessionState {
-  readonly terminalHost: ReturnType<typeof createAcpTerminalHost>;
-  readonly usageGate: ReturnType<typeof createUsageUpdateGate>;
-  readonly tokenUsage: ReturnType<typeof createAcpTokenUsage>;
-  readonly opening: ReturnType<typeof createAcpOpening>;
-  readonly configUpdates: ReturnType<typeof createAcpConfigUpdates>;
-  readonly recorder: ReturnType<typeof createAcpRecorder>;
-  readonly hooks: AcpClientHooks;
-}
-
-export function createAcpSessionState(profile: AcpSessionProfile, options: SessionOptions, environment: NodeJS.ProcessEnv, associations?: Parameters<typeof createAcpRecorder>[3], agentPid?: () => number | undefined): AcpSessionState {
-  const terminalHost = createAcpTerminalHost(options.cwd, environment, {
-    shellCommand: profile.terminalShellCommand === true,
-    ...(agentPid === undefined ? {} : { agentPid }),
-  });
-  // The recorder queues everything until the handshake reveals the session
-  // id and the kernel can be bound (records.ts).
-  const usageGate = createUsageUpdateGate();
-  const tokenUsage = createAcpTokenUsage(profile);
-  const opening = createAcpOpening();
-  const configUpdates = createAcpConfigUpdates();
-  const recorder = createAcpRecorder(usageGate, profile.attributeUpdate, tokenUsage, associations, profile.projectUpdate, profile.projectExtension);
-  const hooks: AcpClientHooks = {
-    update: (notification, receivedAt) => {
-      recorder.update(notification, receivedAt);
-      configUpdates.observe(notification);
-    },
-    extension: (method, params, receivedAt, afterOpen) => {
-      recorder.extension(method, profile.redactExtensionNotification?.(method, params) ?? params, afterOpen ?? opening.afterOpen(params), receivedAt);
-    },
-    requested: (id, method, params, receivedAt) => {
-      recorder.requested(id, method, params, receivedAt);
-    },
-    answered: (id, reply) => {
-      recorder.answered(id, reply);
-    },
-    extensionNotifications: profile.extensionNotifications ?? [],
-  };
-  return { terminalHost, usageGate, tokenUsage, opening, configUpdates, recorder, hooks };
-}
-
 export interface SharedAcpSessionOwnership {
   readonly lease: ProcessLease<PooledProcess>;
   readonly cleanup: () => Promise<void>;
@@ -141,7 +98,7 @@ export function finishAcpSession(
   sessionState: AcpSessionState,
   shared?: SharedAcpSessionOwnership,
 ): Session {
-  const { terminalHost, recorder, usageGate, tokenUsage } = sessionState;
+  const { terminalHost, recorder, usageGate, tokenUsage, nativeTurns } = sessionState;
   const kernel = credentials.kernel(opened.sessionId, shared?.redact);
   recorder.bind(kernel);
 
@@ -149,13 +106,16 @@ export function finishAcpSession(
   const capabilities = { ...profile.capabilities, images: profile.capabilities.images ?? acpTakesImages(opened.initialized) };
   const ownership = shared;
   let compaction: ReturnType<typeof manualCompaction> | null = null;
-  const turns = createAcpTurns({ operationBusy: () => compaction?.busy() === true, kernel, runtime, profile, usageGate, capabilities, promptMeta: profile.promptMeta?.(options), promptUsage: (result) => tokenUsage.prompt(result),
+  const turns = createAcpTurns({ operationBusy: () => compaction?.busy() === true || nativeTurns?.busy() === true, kernel, runtime, profile, usageGate, capabilities, promptMeta: profile.promptMeta?.(options), promptUsage: (result) => tokenUsage.prompt(result),
+    ...(nativeTurns === undefined ? {} : { promptParams: (inputId: string | undefined): JsonRecord => ({ _meta: nativeTurns.name(inputId) }) }),
     ...(ownership === undefined ? {} : { fallback: async (request: RequestRecord): Promise<void> => { ownership.stopRequests(); await lifecycle?.abortFallback(request); } }),
   });
+  nativeTurns?.onIdle(() => { turns.drain(); });
+  nativeTurns?.bindOarTurn(() => turns.active() !== null);
   const createCompaction = profile.compaction;
   if (createCompaction !== undefined) {
     compaction = manualCompaction(kernel, {
-      busy: () => turns.active() !== null || turns.queued() || turns.pendingCancellation() !== null,
+      busy: () => turns.active() !== null || turns.queued() || turns.pendingCancellation() !== null || nativeTurns?.busy() === true,
       busyReason: "Wait for native input and cancellation to finish before compacting",
       settledBy: "native_response",
       released: () => { queueMicrotask(() => { turns.drain(); }); },
@@ -224,15 +184,16 @@ export function finishAcpSession(
     return kernel.control(body, decide);
   });
 
-  // A profile without steer params cannot inject, so the session has no `steer`.
-  const { steerParams } = profile;
-  const steer = steerParams === undefined
+  // A profile without a native steer cannot inject, so the session has no `steer`.
+  const { steerParams, steerRequest } = profile;
+  const steer = steerParams === undefined && steerRequest === undefined
     ? {}
     : {
-      steer: (input: string, inputOptions?: InputOptions): Promise<ControlResult> => control({ kind: "steer", input, ...inputOptions }, (): ResponseBody | Promise<ResponseBody> => {
+      steer: (input: string, inputOptions?: InputOptions): Promise<ControlResult> => control({ kind: "steer", input, ...inputOptions }, (request): ResponseBody | Promise<ResponseBody> => {
         if (compaction?.busy() === true) { return { kind: "rejected", code: "busy", reason: "Native compaction is still running" }; }
+        if (steerRequest !== undefined) { return sendAcpSteerRequest({ kernel, runtime, profile, capabilities, running: () => turns.active()?.abortRequested === false || nativeTurns?.busy() === true }, request, input, inputOptions); }
         const state = turns.active();
-        return state === null
+        return state === null || steerParams === undefined
           ? { kind: "rejected", code: "no_active_turn", reason: "not_steerable: no active turn" }
           : turns.steer(state, input, inputOptions, steerParams(input));
       }),
@@ -242,7 +203,7 @@ export function finishAcpSession(
     id: kernel.sessionId,
     capabilities,
     prompt: (input, inputOptions?: InputOptions): Promise<ControlResult> => control({ kind: "prompt", input, ...inputOptions }, (request): ResponseBody =>
-      (turns.active() === null && !turns.queued() && compaction?.busy() !== true ? turns.begin(request, input, inputOptions?.images) : { kind: "rejected", code: "busy", reason: "busy" })),
+      (turns.active() === null && !turns.queued() && compaction?.busy() !== true && nativeTurns?.busy() !== true ? turns.begin(request, input, inputOptions?.images) : { kind: "rejected", code: "busy", reason: "busy" })),
     ...steer,
     ...(compaction === null ? {} : { compact: compaction.compact }),
     queue: (input, inputOptions?: InputOptions): Promise<ControlResult> => control({ kind: "queue", input, ...inputOptions }, (request) => turns.hold(input, inputOptions?.images, inputOptions?.inputId, request)),

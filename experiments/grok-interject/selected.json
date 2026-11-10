@@ -1,0 +1,501 @@
+{
+ "version": "grok 1.0.77 (50ca579fa996)",
+ "provider": "local scripted (aimock), no login",
+ "results": {
+  "A": {
+   "interjectAnswer": {
+    "jsonrpc": "2.0",
+    "id": 5,
+    "result": {
+     "result": {
+      "status": "queued"
+     }
+    }
+   },
+   "providerSawInterjection": true,
+   "promptStopReason": "end_turn",
+   "promptAnswerMeta": {
+    "promptId": "oar-prompt-a"
+   }
+  },
+  "B": {
+   "interjectAnswer": {
+    "jsonrpc": "2.0",
+    "id": 6,
+    "result": {
+     "result": {
+      "status": "queued"
+     }
+    }
+   },
+   "turnCompleted": {
+    "jsonrpc": "2.0",
+    "method": "_x.ai/session_notification",
+    "params": {
+     "sessionId": "01a1c639-6ca7-75f3-a186-74875c4ed677",
+     "update": {
+      "sessionUpdate": "turn_completed",
+      "prompt_id": "interject-fallback-01a1c639-82fc-7361-8fa3-60f1f9318a10",
+      "stop_reason": "end_turn",
+      "usage": {
+       "inputTokens": 2069,
+       "outputTokens": 2,
+       "totalTokens": 2071,
+       "cachedReadTokens": 0,
+       "cacheCreationTokens": 0,
+       "reasoningTokens": 0,
+       "modelCalls": 1,
+       "apiDurationMs": 24,
+       "modelUsage": {
+        "aimock-model": {
+         "inputTokens": 2069,
+         "outputTokens": 2,
+         "totalTokens": 2071,
+         "cachedReadTokens": 0,
+         "cacheCreationTokens": 0,
+         "reasoningTokens": 0,
+         "modelCalls": 1,
+         "apiDurationMs": 24
+        }
+       },
+       "numTurns": 1
+      },
+      "elapsed_ms": 57
+     },
+     "_meta": {
+      "eventId": "01a1c639-6ca7-75f3-a186-74875c4ed677-22",
+      "agentTimestampMs": 1794327020342
+     }
+    }
+   }
+  },
+  "C": {
+   "interjectAnswer": {
+    "jsonrpc": "2.0",
+    "id": 8,
+    "result": {
+     "result": {
+      "status": "queued"
+     }
+    }
+   },
+   "providerSawInterjection": false,
+   "turnsAfterCancel": [],
+   "promptStopReason": "cancelled",
+   "promptAnswerMeta": {
+    "promptId": "oar-prompt-c",
+    "cancellationCategory": "MidTurnAbort"
+   }
+  }
+ },
+ "selected": [
+  {
+   "ms": 187,
+   "dir": "out",
+   "msg": {
+    "jsonrpc": "2.0",
+    "id": 4,
+    "method": "session/prompt",
+    "params": {
+     "sessionId": "01a1c639-6ca7-75f3-a186-74875c4ed677",
+     "prompt": [
+      {
+       "type": "text",
+       "text": "CASE_A"
+      }
+     ],
+     "_meta": {
+      "promptId": "oar-prompt-a"
+     }
+    }
+   }
+  },
+  {
+   "ms": 191,
+   "dir": "in",
+   "msg": {
+    "jsonrpc": "2.0",
+    "method": "_x.ai/queue/changed",
+    "params": {
+     "sessionId": "01a1c639-6ca7-75f3-a186-74875c4ed677",
+     "entries": [
+      {
+       "id": "oar-prompt-a",
+       "version": 0,
+       "kind": "prompt",
+       "text": "CASE_A",
+       "position": 0
+      }
+     ]
+    }
+   }
+  },
+  {
+   "ms": 191,
+   "dir": "in",
+   "msg": {
+    "jsonrpc": "2.0",
+    "method": "_x.ai/queue/changed",
+    "params": {
+     "sessionId": "01a1c639-6ca7-75f3-a186-74875c4ed677",
+     "entries": [],
+     "runningPromptId": "oar-prompt-a",
+     "runningText": "CASE_A",
+     "runningKind": "prompt"
+    }
+   }
+  },
+  {
+   "ms": 1260,
+   "dir": "out",
+   "msg": {
+    "jsonrpc": "2.0",
+    "id": 5,
+    "method": "_x.ai/interject",
+    "params": {
+     "sessionId": "01a1c639-6ca7-75f3-a186-74875c4ed677",
+     "text": "INTERJECT_A",
+     "interjectionId": "input-a"
+    }
+   }
+  },
+  {
+   "ms": 1262,
+   "dir": "in",
+   "msg": {
+    "jsonrpc": "2.0",
+    "id": 5,
+    "result": {
+     "result": {
+      "status": "queued"
+     }
+    }
+   }
+  },
+  {
+   "ms": 1262,
+   "dir": "in",
+   "msg": {
+    "jsonrpc": "2.0",
+    "method": "_x.ai/session/interjection",
+    "params": {
+     "sessionId": "01a1c639-6ca7-75f3-a186-74875c4ed677",
+     "text": "INTERJECT_A",
+     "interjectionId": "input-a"
+    }
+   }
+  },
+  {
+   "ms": 4324,
+   "dir": "in",
+   "msg": {
+    "jsonrpc": "2.0",
+    "method": "_x.ai/queue/changed",
+    "params": {
+     "sessionId": "01a1c639-6ca7-75f3-a186-74875c4ed677",
+     "entries": []
+    }
+   }
+  },
+  {
+   "ms": 4325,
+   "dir": "in",
+   "msg": {
+    "jsonrpc": "2.0",
+    "method": "_x.ai/session_notification",
+    "params": {
+     "sessionId": "01a1c639-6ca7-75f3-a186-74875c4ed677",
+     "update": {
+      "sessionUpdate": "turn_completed",
+      "prompt_id": "oar-prompt-a",
+      "stop_reason": "end_turn",
+      "elapsed_ms": 4131
+     },
+     "_meta": {
+      "eventId": "01a1c639-6ca7-75f3-a186-74875c4ed677-15",
+      "agentTimestampMs": 1794327018771
+     }
+    }
+   }
+  },
+  {
+   "ms": 4327,
+   "dir": "in",
+   "msg": {
+    "jsonrpc": "2.0",
+    "method": "_x.ai/session/prompt_complete",
+    "params": {
+     "sessionId": "01a1c639-6ca7-75f3-a186-74875c4ed677",
+     "promptId": "oar-prompt-a",
+     "stopReason": "end_turn",
+     "agentResult": null
+    }
+   }
+  },
+  {
+   "ms": 4334,
+   "dir": "in",
+   "msg": {
+    "jsonrpc": "2.0",
+    "id": 4,
+    "result": {
+     "stopReason": "end_turn",
+     "_meta": {
+      "sessionId": "01a1c639-6ca7-75f3-a186-74875c4ed677",
+      "requestId": "oar-prompt-a",
+      "promptId": "oar-prompt-a",
+      "totalTokens": 2016,
+      "modelId": "aimock-model",
+      "inputTokens": 2014,
+      "outputTokens": 2,
+      "cachedReadTokens": 0,
+      "reasoningTokens": 0
+     }
+    }
+   }
+  },
+  {
+   "ms": 5835,
+   "dir": "out",
+   "msg": {
+    "jsonrpc": "2.0",
+    "id": 6,
+    "method": "_x.ai/interject",
+    "params": {
+     "sessionId": "01a1c639-6ca7-75f3-a186-74875c4ed677",
+     "text": "INTERJECT_B",
+     "interjectionId": "input-b"
+    }
+   }
+  },
+  {
+   "ms": 5837,
+   "dir": "in",
+   "msg": {
+    "jsonrpc": "2.0",
+    "id": 6,
+    "result": {
+     "result": {
+      "status": "queued"
+     }
+    }
+   }
+  },
+  {
+   "ms": 5837,
+   "dir": "in",
+   "msg": {
+    "jsonrpc": "2.0",
+    "method": "_x.ai/session/interjection",
+    "params": {
+     "sessionId": "01a1c639-6ca7-75f3-a186-74875c4ed677",
+     "text": "INTERJECT_B",
+     "interjectionId": "input-b"
+    }
+   }
+  },
+  {
+   "ms": 5838,
+   "dir": "in",
+   "msg": {
+    "jsonrpc": "2.0",
+    "method": "_x.ai/queue/changed",
+    "params": {
+     "sessionId": "01a1c639-6ca7-75f3-a186-74875c4ed677",
+     "entries": [],
+     "runningPromptId": "interject-fallback-01a1c639-82fc-7361-8fa3-60f1f9318a10",
+     "runningText": "INTERJECT_B",
+     "runningKind": "prompt"
+    }
+   }
+  },
+  {
+   "ms": 5895,
+   "dir": "in",
+   "msg": {
+    "jsonrpc": "2.0",
+    "method": "_x.ai/session_notification",
+    "params": {
+     "sessionId": "01a1c639-6ca7-75f3-a186-74875c4ed677",
+     "update": {
+      "sessionUpdate": "turn_completed",
+      "prompt_id": "interject-fallback-01a1c639-82fc-7361-8fa3-60f1f9318a10",
+      "stop_reason": "end_turn",
+      "elapsed_ms": 57
+     },
+     "_meta": {
+      "eventId": "01a1c639-6ca7-75f3-a186-74875c4ed677-22",
+      "agentTimestampMs": 1794327020342
+     }
+    }
+   }
+  },
+  {
+   "ms": 7396,
+   "dir": "out",
+   "msg": {
+    "jsonrpc": "2.0",
+    "id": 7,
+    "method": "session/prompt",
+    "params": {
+     "sessionId": "01a1c639-6ca7-75f3-a186-74875c4ed677",
+     "prompt": [
+      {
+       "type": "text",
+       "text": "CASE_C"
+      }
+     ],
+     "_meta": {
+      "promptId": "oar-prompt-c"
+     }
+    }
+   }
+  },
+  {
+   "ms": 7399,
+   "dir": "in",
+   "msg": {
+    "jsonrpc": "2.0",
+    "method": "_x.ai/queue/changed",
+    "params": {
+     "sessionId": "01a1c639-6ca7-75f3-a186-74875c4ed677",
+     "entries": [
+      {
+       "id": "oar-prompt-c",
+       "version": 0,
+       "kind": "prompt",
+       "text": "CASE_C",
+       "position": 0
+      }
+     ]
+    }
+   }
+  },
+  {
+   "ms": 7399,
+   "dir": "in",
+   "msg": {
+    "jsonrpc": "2.0",
+    "method": "_x.ai/queue/changed",
+    "params": {
+     "sessionId": "01a1c639-6ca7-75f3-a186-74875c4ed677",
+     "entries": [],
+     "runningPromptId": "oar-prompt-c",
+     "runningText": "CASE_C",
+     "runningKind": "prompt"
+    }
+   }
+  },
+  {
+   "ms": 8431,
+   "dir": "out",
+   "msg": {
+    "jsonrpc": "2.0",
+    "id": 8,
+    "method": "_x.ai/interject",
+    "params": {
+     "sessionId": "01a1c639-6ca7-75f3-a186-74875c4ed677",
+     "text": "INTERJECT_C",
+     "interjectionId": "input-c"
+    }
+   }
+  },
+  {
+   "ms": 8432,
+   "dir": "in",
+   "msg": {
+    "jsonrpc": "2.0",
+    "id": 8,
+    "result": {
+     "result": {
+      "status": "queued"
+     }
+    }
+   }
+  },
+  {
+   "ms": 8433,
+   "dir": "in",
+   "msg": {
+    "jsonrpc": "2.0",
+    "method": "_x.ai/session/interjection",
+    "params": {
+     "sessionId": "01a1c639-6ca7-75f3-a186-74875c4ed677",
+     "text": "INTERJECT_C",
+     "interjectionId": "input-c"
+    }
+   }
+  },
+  {
+   "ms": 8934,
+   "dir": "out",
+   "msg": {
+    "jsonrpc": "2.0",
+    "method": "session/cancel",
+    "params": {
+     "sessionId": "01a1c639-6ca7-75f3-a186-74875c4ed677"
+    }
+   }
+  },
+  {
+   "ms": 8938,
+   "dir": "in",
+   "msg": {
+    "jsonrpc": "2.0",
+    "method": "_x.ai/session_notification",
+    "params": {
+     "sessionId": "01a1c639-6ca7-75f3-a186-74875c4ed677",
+     "update": {
+      "sessionUpdate": "turn_completed",
+      "prompt_id": "oar-prompt-c",
+      "stop_reason": "cancelled",
+      "elapsed_ms": 1537
+     },
+     "_meta": {
+      "eventId": "01a1c639-6ca7-75f3-a186-74875c4ed677-28",
+      "agentTimestampMs": 1794327023385,
+      "cancellationCategory": "MidTurnAbort"
+     }
+    }
+   }
+  },
+  {
+   "ms": 8938,
+   "dir": "in",
+   "msg": {
+    "jsonrpc": "2.0",
+    "method": "_x.ai/session/prompt_complete",
+    "params": {
+     "sessionId": "01a1c639-6ca7-75f3-a186-74875c4ed677",
+     "promptId": "oar-prompt-c",
+     "stopReason": "cancelled",
+     "agentResult": null,
+     "cancellationCategory": "MidTurnAbort"
+    }
+   }
+  },
+  {
+   "ms": 8940,
+   "dir": "in",
+   "msg": {
+    "jsonrpc": "2.0",
+    "id": 7,
+    "result": {
+     "stopReason": "cancelled",
+     "_meta": {
+      "sessionId": "01a1c639-6ca7-75f3-a186-74875c4ed677",
+      "requestId": "oar-prompt-c",
+      "promptId": "oar-prompt-c",
+      "totalTokens": 2098,
+      "modelId": "aimock-model",
+      "inputTokens": 2078,
+      "outputTokens": 20,
+      "cachedReadTokens": 0,
+      "reasoningTokens": 0,
+      "cancellationCategory": "MidTurnAbort"
+     }
+    }
+   }
+  }
+ ]
+}

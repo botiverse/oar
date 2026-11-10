@@ -32,7 +32,7 @@ found; the Cursor row comes from the `@cursor/sdk` adapter (2026-10-03).
 |---|---|---|---|
 | Codex CLI 0.154.0 | No per-steer deletion endpoint established; `turn/steer` returns a turn ID, not a cancellable input handle | **Native per-item deletion**, experimental `thread/queue/delete({threadId, queuedSubmissionId}) → {deleted}`; verified in installed schema and local source, not a live model turn | Native durable queue; the add response keeps the native submission in `response.body.native`. Delete/list are not exposed by Session |
 | Claude Code 2.1.273 | **Unverified**: installed binary contains `cancel_queued`, `cancelQueued`, `interrupt_cancel_queued_v1`, `interrupt_receipt_v1`, `msg_lifecycle_v1` | Same native leads; scope, parameter shape, capability negotiation and receipts need protocol validation | Steer writes a user message to stdin; OAR's later-turn queue is a separate in-memory array; abort sends an interrupt control request |
-| Grok Build 1.0.30 (04b7ffed98c6) | OAR steer is a `session/prompt` with `sendNow`; withdrawal after delivery is **unverified** | **Native extension leads** in installed binary: `x.ai/queue/remove`, `clear`, `edit`, `hold_edit`, `release_edit`, `reorder`; not verified on a wire session | OAR uses the shared ACP adapter-held queue; the vendor queue operations do not cancel OAR's held entries |
+| Grok Build 1.0.30 (04b7ffed98c6) | OAR steer is `_x.ai/interject` (since 1.0.77 evidence, 2026-11-10); no native withdrawal of a buffered interjection; `session/cancel` clears every buffered one | **Native extension leads** in installed binary: `x.ai/queue/remove`, `clear`, `edit`, `hold_edit`, `release_edit`, `reorder`; not verified on a wire session | OAR uses the shared ACP adapter-held queue; the vendor queue operations do not cancel OAR's held entries |
 | Kimi Code 0.42.0 (TypeScript harness) | Selected ACP interface has no mapped steer; no per-input withdrawal established | No per-item withdrawal established on selected ACP interface; do not generalize to every native KAP/SDK surface | `kimiAcpProfile` has no steer params, so the session has no `steer`; the ACP queue is OAR-held; `session/cancel` routes to the active agent turn, including deferred cancellation while its turn ID is pending |
 | Pi SDK 0.84.2 | **Native bulk clearing** of pending steering and follow-up messages via `AgentSession.clearQueue()`; no public per-item handle established | SDK clear applies to SDK queues; OAR's later-turn queue is a different array | Steer enters Pi's queue; OAR queue is adapter-held. `abort()` and `clearQueue()` are separate. Installed SDK methods exercised with a mock receiver |
 | Cursor `@cursor/sdk` 1.0.35 | `run.steer(text)` settles once the agent took the text (`complete_delivered`) or handed it back (`revert_to_followup`); no handle withdraws a delivered steer | No native queue: an agent takes one run at a time and refuses a second `send` (`already has active run`) | Steer is `accepted` only on `complete_delivered`; a handed back steer is rejected `runtime_refused` and the caller keeps the input. The queue is adapter-held, sent as the next run, withdrawable until then. `abort()` is `run.cancel()`, its outcome the run's own `cancelled`; an abort before `send` returns the run is held and delivered when it exists. The first send after a resume passes `local.force`, since the agent's store can still hold a dead process's run as active ([cursor](cursor.md#prompt-steering-queueing-and-abort)) |
@@ -106,9 +106,10 @@ next to serialization/notification diagnostics, plus `target_prompt_id` and
 RPC response schema; notification send success is not a deletion receipt. A
 target ID must come from native queue snapshots, never from OAR request IDs.
 
-OAR's `sendNow` steer can interrupt and restart work
-([grok](grok.md#prompting-steering-queuing-and-cancellation)); it is not
-evidence that a delivered input is retractable. Native queue extensions need
+OAR's steer is `_x.ai/interject`, which Grok buffers until the running
+turn's next safe point; `session/cancel` clears the buffer, but no native
+operation withdraws one interjection, and Grok reports neither the drain nor
+the clear per input ([grok](grok.md#prompting-steering-queuing-and-cancellation)). Native queue extensions need
 isolated wire validation before being exposed.
 
 ### Kimi: use the installed TypeScript harness, not the Python project
