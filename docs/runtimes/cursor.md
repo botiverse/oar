@@ -130,8 +130,8 @@ login, logout, status) rejects with that reason, and such a host uses the
 in-process mode. The child runs with stdin ignored, stdout drained,
 stderr kept as an 8 KiB tail, and a Node IPC channel (`serialization:
 "advanced"`). The script is self-contained (Node built-ins only), because a
-host that bundles OAR may have no separate file to point at; it is under
-8 KB (about 7 KB), well within the Windows command line limit (32767 characters). A host-side proxy implements
+host that bundles OAR may have no separate file to point at; it is about
+9,000 characters, well within the Windows command line limit (32767 characters). A host-side proxy implements
 `CursorSdk` over the channel: every SDK call is a request with an id and a
 reply; a run's `onDelta` updates and `run.stream()` messages arrive as
 events; `wait`, `cancel`, `steer`, `summarize` and `close` are requests.
@@ -227,9 +227,12 @@ run with `envBase: "clean"`
 
 **Host death.** The child must not outlive the host, SIGKILL included. When
 its IPC channel disconnects (the host ended, or died without running any
-exit hook), or when its parent pid has changed (checked every second, by an
-unref'd timer, for a child whose event loop was too busy to see the
-disconnect but still yields), the child shuts down as above: it closes its open agents, waiting
+exit hook), or when its parent is gone (checked every second, by an unref'd timer,
+for a child whose event loop was too busy to see the disconnect but still
+yields: on POSIX its parent pid has changed, because an orphan is
+reparented; on Windows, which keeps the dead parent's pid, no process with
+that pid exists any more, so a pid reused within that second goes
+unnoticed), the child shuts down as above: it closes its open agents, waiting
 for them for up to half of `OAR_KILL_GRACE_MS`, exits, ends its descendants
 from its exit hook, and also SIGKILLs its own process group (POSIX), since
 no host is left to. A host that calls `process.exit` ends it and its

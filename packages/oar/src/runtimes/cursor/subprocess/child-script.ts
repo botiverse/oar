@@ -145,9 +145,15 @@ process.on("uncaughtException", (error) => {
   process.exit(1);
 });
 process.on("disconnect", () => { orphaned = true; void shutdown(1); });
-// A host gone without the disconnect reaching this process: its parent changed. Needs an event loop that still yields.
+// A host gone without the disconnect reaching this process. Needs an event loop that still yields. POSIX reparents an
+// orphan, so its ppid changes; Windows keeps the dead parent's pid, so there the parent pid is checked for a live process.
 const parent = process.ppid;
-setInterval(() => { if (process.ppid !== parent) { orphaned = true; void shutdown(1); } }, 1000).unref();
+const parentGone = () => {
+  if (process.ppid !== parent) { return true; }
+  if (!windows) { return false; }
+  try { process.kill(parent, 0); return false; } catch (error) { return error.code === "ESRCH"; }
+};
+setInterval(() => { if (parentGone()) { orphaned = true; void shutdown(1); } }, 1000).unref();
 if (electron === null) { delete process.env.ELECTRON_RUN_AS_NODE; } else { process.env.ELECTRON_RUN_AS_NODE = electron; }
 try {
   const root = path.dirname(require("node:module").createRequire(sdkModule).resolve("@cursor/sdk-" + process.platform + "-" + process.arch + "/package.json"));
