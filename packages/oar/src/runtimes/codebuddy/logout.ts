@@ -2,7 +2,7 @@ import type { AvailableInstallation } from "../../contracts/installation.js";
 import type { LogoutOptions, LogoutResult } from "../../contracts/login.js";
 import { sessionEnvironment } from "../../shared/environment.js";
 import { loginBounds, loginExecutable } from "../../shared/login.js";
-import { confirmedLogout, type NativeLogout } from "../../shared/logout.js";
+import { confirmedLogout, statusAfterLogout, type NativeLogout } from "../../shared/logout.js";
 import { codebuddyAccountControl, CodebuddyAccountRefusalError } from "./account-control.js";
 import { readCodebuddyAuthStatus } from "./auth-status.js";
 
@@ -43,9 +43,10 @@ async function nativeLogout(command: string, env: NodeJS.ProcessEnv, timeoutMs: 
 
 /** Signs CodeBuddy out through its stream-json `logout`; its `initialize.account` decides. */
 export async function codebuddyLogout(installation: AvailableInstallation, options: LogoutOptions = {}): Promise<LogoutResult> {
+  const startedAt = Date.now();
   const env = sessionEnvironment(options.env);
   const target = loginExecutable(installation, "CodeBuddy", undefined, env);
   if (target.kind === "settled") { return target.result; }
   const native = await nativeLogout(target.installation.command, env, options.timeoutMs ?? LOGOUT_TIMEOUT_MS);
-  return confirmedLogout(native, await readCodebuddyAuthStatus(installation, { env: options.env }), COMMAND);
+  return confirmedLogout(native, await readCodebuddyAuthStatus(installation, { env: options.env, ...statusAfterLogout(startedAt, options.timeoutMs) }), COMMAND);
 }

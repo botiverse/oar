@@ -180,13 +180,15 @@ it("a silent confirmation shares the whole login deadline and cannot contradict 
 it("logout is CodeBuddy's stream-json logout, confirmed by initialize.account", async () => {
   const { fake, installation } = await fixture("success", true);
   expect(await codebuddyLogout(installation)).toEqual({ kind: "logged_out" });
-  expect(fake.read().requests.map((request: { subtype: string }) => request.subtype)).toEqual(["logout", "initialize"]);
+  expect(fake.read().requests).toEqual([{ subtype: "logout" }, { subtype: "initialize" }]);
   expect(fake.read().loggedIn).toBe(false);
 });
 
 it("a logout CodeBuddy refuses is rejected without its account details; one that leaves a sign-in is not called logged out", async () => {
-  const refused = await codebuddyLogout((await fixture("logout-error", true)).installation);
+  const { installation: refusing } = await fixture("logout-error", true);
+  const refused = await codebuddyLogout(refusing);
   expect(refused).toMatchObject({ kind: "failed", reason: "rejected" });
   expect(JSON.stringify(refused)).not.toContain("private@example.invalid");
-  expect(await codebuddyLogout((await fixture("sticky", true)).installation)).toMatchObject({ kind: "failed", reason: "still_logged_in" });
+  const { installation: sticky } = await fixture("sticky", true);
+  expect(await codebuddyLogout(sticky)).toMatchObject({ kind: "failed", reason: "still_logged_in" });
 });

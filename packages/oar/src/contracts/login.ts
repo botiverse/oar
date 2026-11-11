@@ -117,7 +117,11 @@ export type LogoutResult =
 export interface LogoutOptions {
   /** Same overlay as SessionOptions.env: strings set, null deletes; never changes the host environment. */
   readonly env?: SessionOptions["env"];
-  /** Bound for the runtime's logout; each runtime has its own default. The status query after it has its own. */
+  /**
+   * Bound for the runtime's logout; each runtime has its own default. When
+   * given, the status query that confirms it gets the rest of this budget (at
+   * least one second) instead of its own default, so both fit within it.
+   */
   readonly timeoutMs?: number;
 }
 
