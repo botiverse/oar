@@ -1,3 +1,4 @@
+// BYOK change: Modified from OAR 95c6547 so no permission request gets a permissive fallback (Apache-2.0).
 /* oxlint-disable typescript/promise-function-async -- SDK handlers deliberately return terminal promises directly. */
 import {
   client as createClient,
@@ -31,15 +32,19 @@ export interface AcpClientHooks {
   readonly answered: (id: string, reply: unknown) => void;
   readonly extension: (method: string, params: JsonRecord, receivedAt?: number, afterOpen?: boolean) => void;
   readonly extensionNotifications: readonly string[];
+  /** BYOK change: the caller's answer to a permission request. Absent, `cancelPermission` answers. */
+  readonly permission?: (request: RequestPermissionRequest) => RequestPermissionResponse;
 }
 
-/** OAR's YOLO answer to a permission request: the broadest allow on offer, else cancel. */
-export function allowPermission(request: RequestPermissionRequest): RequestPermissionResponse {
-  const selected = request.options.find((option) => option.kind === "allow_always")
-    ?? request.options.find((option) => option.kind === "allow_once");
-  return selected === undefined
-    ? { outcome: { outcome: "cancelled" } }
-    : { outcome: { outcome: "selected", optionId: selected.optionId } };
+/**
+ * BYOK change: no permission request gets a permissive fallback. The runtime
+ * already runs in its own approve-all mode; a request that still reaches the
+ * client comes from the user's own rules or hooks, and no human is here to
+ * answer it, so it is cancelled unless the caller answers it. The request and
+ * the answer stay recorded.
+ */
+export function cancelPermission(_request: RequestPermissionRequest): RequestPermissionResponse {
+  return { outcome: { outcome: "cancelled" } };
 }
 
 let anonymousRequestCounter = 0;
@@ -95,7 +100,7 @@ export function createRoutedAcpClientApp(routing: {
   // error) is the answered response.
   const observed = <Params, Reply>(
     method: string,
-    handle: (params: Params, terminal: AcpTerminalHost) => Reply | Promise<Reply>,
+    handle: (params: Params, terminal: AcpTerminalHost, hooks: AcpClientHooks) => Reply | Promise<Reply>,
   ) => async (context: { readonly params: Params; readonly requestId: JsonRpcId; readonly signal: AbortSignal }): Promise<Reply> => {
     const id = requestIdOf(context);
     const { terminal, hooks, receivedAt, active } = await routing.target(method, context.params, context.requestId);
@@ -103,7 +108,7 @@ export function createRoutedAcpClientApp(routing: {
     try {
       context.signal.throwIfAborted();
       if (active?.() === false) { throw RequestError.invalidParams(undefined, "ACP native session no longer accepts host requests"); }
-      const reply = await handle(context.params, terminal);
+      const reply = await handle(context.params, terminal, hooks);
       hooks.answered(id, reply);
       return reply;
     } catch (error) {
@@ -112,7 +117,7 @@ export function createRoutedAcpClientApp(routing: {
     }
   };
   let app = createClient({ name: "oar" })
-    .onRequest(methods.client.session.requestPermission, observed(methods.client.session.requestPermission, allowPermission))
+    .onRequest(methods.client.session.requestPermission, observed(methods.client.session.requestPermission, (params: RequestPermissionRequest, _terminal, hooks) => (hooks.permission ?? cancelPermission)(params)))
     .onRequest(methods.client.terminal.create, observed(methods.client.terminal.create, (params: CreateTerminalRequest, terminal) => terminal.create(params)))
     .onRequest(methods.client.terminal.output, observed(methods.client.terminal.output, (params: TerminalOutputRequest, terminal) => terminal.output(params)))
     .onRequest(methods.client.terminal.waitForExit, observed(methods.client.terminal.waitForExit, (params: WaitForTerminalExitRequest, terminal) => terminal.waitForExit(params)))
