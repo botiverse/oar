@@ -1,6 +1,4 @@
-import { processFailure, type ProcessDiagnostics } from "../executable/diagnostics.js";
-import { redactTokenShapes } from "../token-redaction.js";
-
+// BYOK change: Modified from OAR 95c6547; native process diagnostics stay SDK-owned (Apache-2.0).
 export type AcpErrorKind = "timeout" | "process_exited";
 
 /** One transport error class with a discriminant instead of four nominal wrappers. */
@@ -36,22 +34,11 @@ export function acpRequestTimeoutError(method: string, timeoutMs: number): AcpEr
   });
 }
 
-export function acpProcessExitedError(
-  exitCode: number | null,
-  diagnostics?: ProcessDiagnostics,
-  redact: (text: string) => string = (text) => text,
-): AcpError {
-  // Only session opening supplies diagnostics. Authentication queries and
-  // later transport failures keep their existing, diagnostic-free errors.
-  const safe = (text: string): string => redactTokenShapes(redact(text));
-  const failure = diagnostics === undefined ? undefined : processFailure("ACP process exited", {
-    ...diagnostics,
-    stderr: safe(diagnostics.stderr),
-    ...(diagnostics.error === undefined ? {} : { error: { ...diagnostics.error, message: safe(diagnostics.error.message) } }),
-  });
+// BYOK change: no native diagnostic bundle; the SDK transport owns the child's bounded stderr and exit.
+export function acpProcessExitedError(exitCode: number | null): AcpError {
   return new AcpError(
     "process_exited",
-    failure?.message ?? (exitCode === null ? "ACP process exited" : `ACP process exited with code ${exitCode}`),
-    { exitCode, ...(failure === undefined ? {} : { cause: failure.cause }) },
+    exitCode === null ? "ACP process exited" : `ACP process exited with code ${exitCode}`,
+    { exitCode },
   );
 }
