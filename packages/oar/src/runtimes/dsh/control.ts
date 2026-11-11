@@ -1,10 +1,14 @@
-import type { LineProcess } from "../../shared/executable/index.js";
+// BYOK change: Modified from OAR 95c6547 for the injected process and its bounded diagnostics (Apache-2.0).
+import type { LineProcess } from "../codex/app-server-client.js";
 import { asRecord, parseJson, type JsonRecord } from "../../shared/json.js";
 import { DSH_BRIDGE_PROTOCOL } from "./bridge.js";
 
 /** Measured cold starts stay near one second; this bounds a stuck loader, not an ordinary start. */
 export const DSH_READY_TIMEOUT_MS = 60_000;
 const COMMAND_TIMEOUT_MS = 30_000;
+
+// BYOK change: the transport's bounded exit error replaces upstream diagnostics.
+const stderrOf = (child: LineProcess): string => child.exitError?.().message ?? "";
 
 export interface DshReady {
   readonly protocol: number;
@@ -44,7 +48,7 @@ export function dshControl(child: LineProcess, receive: (message: JsonRecord) =>
   const { promise: ready, resolve: resolveReady, reject: rejectReady } = Promise.withResolvers<DshReady>();
   // A rejected startup may be observed only after the opening awaits it.
   void (async (): Promise<void> => { try { await ready; } catch { /* The opening reports it. */ } })();
-  const readyTimer = setTimeout(() => { rejectReady(new Error(`DSH did not load the OAR bridge within ${String(DSH_READY_TIMEOUT_MS)} ms: ${child.diagnostics().stderr}`)); }, DSH_READY_TIMEOUT_MS);
+  const readyTimer = setTimeout(() => { rejectReady(new Error(`DSH did not load the OAR bridge within ${String(DSH_READY_TIMEOUT_MS)} ms: ${stderrOf(child)}`)); }, DSH_READY_TIMEOUT_MS);
   child.onLine((line) => {
     const message = asRecord(parseJson(line));
     if (message?.type === "response" && typeof message.id === "string") {
@@ -69,7 +73,7 @@ export function dshControl(child: LineProcess, receive: (message: JsonRecord) =>
   child.onExit((code) => {
     ended = true;
     clearTimeout(readyTimer);
-    const failure = new Error(`DSH exited (${String(code)}): ${child.diagnostics().stderr}`);
+    const failure = new Error(`DSH exited (${String(code)}): ${stderrOf(child)}`);
     rejectReady(failure);
     for (const waiter of pending.values()) {
       clearTimeout(waiter.timer);
@@ -86,7 +90,7 @@ export function dshControl(child: LineProcess, receive: (message: JsonRecord) =>
       const { promise, resolve, reject } = Promise.withResolvers<JsonRecord>();
       const timer = setTimeout(() => {
         pending.delete(id);
-        reject(new Error(`DSH did not answer ${method} within ${String(timeoutMs)} ms: ${child.diagnostics().stderr}`));
+        reject(new Error(`DSH did not answer ${method} within ${String(timeoutMs)} ms: ${stderrOf(child)}`));
         child.kill();
       }, timeoutMs);
       pending.set(id, { resolve, reject, timer });

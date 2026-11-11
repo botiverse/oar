@@ -1,25 +1,43 @@
+// BYOK change: Modified from OAR 95c6547 for an injected process, a required explicit environment, a record consumer and session credential redaction without sealSession (Apache-2.0).
 /* oxlint-disable import/max-dependencies -- Native launch, controls, projection and the credential boundary meet here. */
 /* oxlint-disable eslint/require-await -- Session controls return kernel promises directly. */
 import { randomUUID } from "node:crypto";
+import type { AvailableInstallation } from "../../contracts/installation.js";
 import { UnsupportedOptionError } from "../../contracts/errors.js";
 import { RuntimeFailureError } from "../../contracts/runtime-failure-error.js";
 import { SessionNotFoundError } from "../../contracts/session-not-found-error.js";
-import type { RequestRecord, ResponseBody, Session, SessionOptions, StartSession } from "../../contracts/session.js";
+import type { AdapterSession, ControlResult, InputOptions, RawEvent, RequestRecord, ResponseBody, SessionOptions } from "../../contracts/session.js";
 import { createAbortFallback } from "../../shared/abort-fallback.js";
-import { appendCleanupFailure, cleanupFailureReason } from "../../shared/executable/process-cleanup.js";
 import { withInputImages } from "../../shared/input-images.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
 import { sameDirectory } from "../../shared/same-directory.js";
 import { refuseSessionOptions } from "../../shared/session-options.js";
-import { withSessionCredentials, type SessionCredentials } from "../../shared/session-credentials.js";
+// BYOK change: Build the session credential redactor directly; upstream withSessionCredentials imports sealSession.
+import { sessionCredentialRedactor, type CredentialRedactor } from "../../shared/credential-redactor.js";
+import { createSessionKernel } from "../../shared/session-kernel.js";
 import { DshCommandError, dshControl, type DshControl } from "./control.js";
-import { dshEnvironment, dshExecutableRefusal, launchDsh } from "./launch.js";
+import { launchDsh, type DshLaunch, type DshLineProcess, type SpawnDshLineProcess } from "./launch.js";
 import { dshMcpRows } from "./mcp.js";
 import { dshAgentOptions, dshRefusedSessionOptions, type DshAgentOptions } from "./options.js";
 import { dshOpenedFrame, foldDsh, initialDshProjection } from "./projection.js";
 
 const OPEN_TIMEOUT_MS = 60_000;
 const DISPOSE_TIMEOUT_MS = 8000;
+
+// BYOK change: the caller owns the process and the launch; the environment is required and explicit.
+export type DshSessionOptions = Pick<SessionOptions, "cwd" | "model" | "effort" | "resume" | "mcpServers"> & { readonly launch: DshLaunch };
+
+// BYOK change: the session always carries steer.
+export interface DshAdapterSession extends AdapterSession {
+  steer(input: string, options?: InputOptions): Promise<ControlResult>;
+}
+
+export interface DshSessionHooks {
+  /** The session id, before any record is delivered; a throw fails the open. */
+  readonly onReady?: (sessionId: string) => void;
+  /** A kernel observer from seq 0. The kernel swallows its errors, so it fails the session itself. */
+  readonly onRecord?: (record: RawEvent) => void;
+}
 
 /** Typed opening refusals from native evidence; anything else keeps its own message and native error as cause. */
 function openFailure(error: unknown, sessionId: string, resuming: boolean): unknown {
@@ -71,12 +89,15 @@ function refusalOf(error: unknown): ResponseBody {
 
 const inputFields = (text: string, inputId: string | undefined): JsonRecord => ({ text, ...(inputId === undefined ? {} : { inputId }) });
 
-async function open(command: string, options: SessionOptions, env: NodeJS.ProcessEnv, credentials: SessionCredentials, mcpRows: readonly JsonRecord[]): Promise<Session> {
+async function open(spawnLineProcess: SpawnDshLineProcess, command: string, options: DshSessionOptions, hooks: DshSessionHooks, credentials: CredentialRedactor, mcpRows: readonly JsonRecord[]): Promise<DshAdapterSession> {
   const sessionId = options.resume ?? randomUUID();
   const agentOptions = dshAgentOptions(options);
-  const kernel = credentials.kernel(sessionId);
+  // BYOK change: the record consumer observes from seq 0: it registers before any frame.
+  const kernel = createSessionKernel(sessionId, credentials.redactValue);
+  if (hooks.onRecord !== undefined) { kernel.rawEvents(hooks.onRecord); }
+  hooks.onReady?.(sessionId);
   let projection = initialDshProjection(sessionId);
-  const { child, directory } = await launchDsh(command, options.cwd, env, mcpRows);
+  const child: DshLineProcess = await launchDsh(spawnLineProcess, command, options.launch, mcpRows);
   const fallback = createAbortFallback(() => { child.kill(); });
   const control = dshControl(child, (message) => {
     const { state, frame } = foldDsh(projection, message);
@@ -87,10 +108,10 @@ async function open(command: string, options: SessionOptions, env: NodeJS.Proces
   let disposeRequest: RequestRecord | null = null;
   let disposal: Promise<void> | null = null;
   let exited = false;
-  child.onExit((code, reason) => {
+  child.onExit((code) => {
     exited = true;
     fallback.clear();
-    kernel.respond(disposeRequest?.id ?? "", { kind: "exited", code, ...(reason === undefined ? {} : { reason }) });
+    kernel.respond(disposeRequest?.id ?? "", { kind: "exited", code });
   });
   const fields = { sessionId, agentOptions: { ...agentOptions } };
   let opened: JsonRecord = {};
@@ -105,7 +126,7 @@ async function open(command: string, options: SessionOptions, env: NodeJS.Proces
   } catch (error) {
     child.kill();
     await child.exited;
-    throw appendCleanupFailure(openFailure(error, sessionId, options.resume !== undefined), cleanupFailureReason(child.diagnostics().cleanup));
+    throw openFailure(error, sessionId, options.resume !== undefined);
   }
   if (opened.sessionId !== sessionId) {
     child.kill();
@@ -113,9 +134,13 @@ async function open(command: string, options: SessionOptions, env: NodeJS.Proces
     throw new Error(`DSH opened ${String(opened.sessionId)}, not ${sessionId}`);
   }
   kernel.frame(dshOpenedFrame(opened));
+  if (asRecord(opened.methods)?.steer !== true) {
+    child.kill();
+    await child.exited;
+    throw new RuntimeFailureError("invalid_request", "This DSH does not provide steer(), which the SDK declares");
+  }
 
   const capabilities = { queue: { durable: false }, attribution: "nested", images: false } as const;
-  const methods = asRecord(opened.methods) ?? {};
   const inboxMethods = asRecord(opened.inboxMethods) ?? {};
   const send = async (method: string, payload: JsonRecord): Promise<ResponseBody> => {
     try { return { kind: "accepted", native: await control.request(method, { sessionId, ...payload }) }; }
@@ -123,35 +148,42 @@ async function open(command: string, options: SessionOptions, env: NodeJS.Proces
   };
   const active = (): boolean => projection.sessions[sessionId]?.turnOpen === true;
 
-  return credentials.seal({
-    id: sessionId, capabilities, resources: child.resources,
-    prompt: async (text, inputOptions) => kernel.control({ kind: "prompt", input: text, ...inputOptions }, async () => {
+  // BYOK change: The upstream credentials.seal guard without sealSession: a control's thrown error is redacted.
+  const guard = <Args extends unknown[], Result>(method: (...args: Args) => Promise<Result>) =>
+    async (...args: Args): Promise<Result> => {
+      try { return await method(...args); } catch (error) { throw credentials.redactValue(error); }
+    };
+  const session: DshAdapterSession = {
+    id: sessionId, capabilities,
+    prompt: guard(async (text: string, inputOptions?: InputOptions): Promise<ControlResult> => kernel.control({ kind: "prompt", input: text, ...inputOptions }, async () => {
       if (active()) { return { kind: "rejected", code: "busy", reason: "busy" }; }
       return withInputImages(capabilities, inputOptions?.images, async () => send("prompt", inputFields(text, inputOptions?.inputId)));
-    }),
+    })),
+    // BYOK change: steer is required; a dsh without it refuses here, so the SDK's static capability holds. The bridge reports `no_active_turn`.
+    steer: guard(async (text: string, inputOptions?: InputOptions): Promise<ControlResult> => kernel.control({ kind: "steer", input: text, ...inputOptions }, async () =>
+      withInputImages(capabilities, inputOptions?.images, async () => send("steer", inputFields(text, inputOptions?.inputId))))),
     // A control the runtime cannot do is an absent member; `dsh/opened` keeps the inventory that says why.
-    ...(methods.steer === true ? {
-      steer: async (text, inputOptions) => kernel.control({ kind: "steer", input: text, ...inputOptions }, async () =>
-        withInputImages(capabilities, inputOptions?.images, async () => send("steer", inputFields(text, inputOptions?.inputId)))),
-    } : {}),
-    queue: async (text, inputOptions) => kernel.control({ kind: "queue", input: text, ...inputOptions }, async () =>
-      withInputImages(capabilities, inputOptions?.images, async () => send("queue", inputFields(text, inputOptions?.inputId)))),
+    queue: guard(async (text: string, inputOptions?: InputOptions): Promise<ControlResult> => kernel.control({ kind: "queue", input: text, ...inputOptions }, async () =>
+      withInputImages(capabilities, inputOptions?.images, async () => send("queue", inputFields(text, inputOptions?.inputId))))),
     ...(inboxMethods.remove === true ? {
-      withdraw: async (inputId) => kernel.control({ kind: "withdraw", inputId }, async () => {
+      withdraw: guard(async (inputId: string): Promise<ControlResult> => kernel.control({ kind: "withdraw", inputId }, async () => {
         const answer = await send("withdraw", { messageId: inputId });
         return answer.kind === "accepted" && asRecord(answer.native)?.removed === false
           ? { kind: "rejected", code: "not_queued", reason: "no held input with this inputId is waiting" } : answer;
-      }),
+      })),
     } : {}),
-    abort: async () => kernel.control({ kind: "abort" }, async () => {
+    abort: guard(async (): Promise<ControlResult> => kernel.control({ kind: "abort" }, async () => {
+      // BYOK change: a tool the cancel orphans stays known to the SDK process-tree authority. A failed read sends no cancel.
+      try { child.observeDescendants(); }
+      catch (error) { return { kind: "rejected", code: "error", reason: error instanceof Error ? error.message : String(error) }; }
       const disarm = fallback.arm();
       const answer = await send("cancel", {});
       if (answer.kind !== "accepted") { disarm(); }
       return answer;
-    }),
+    })),
     rawEvents: (observer, cursor) => kernel.rawEvents(observer, cursor),
     records: () => kernel.records(), graph: () => kernel.graph(),
-    dispose: async () => {
+    dispose: guard(async () => {
       disposal ??= (async (): Promise<void> => {
         disposeRequest = kernel.request("toRuntime", { kind: "dispose" });
         if (exited) { kernel.respond(disposeRequest.id, { kind: "accepted" }); return; }
@@ -163,23 +195,23 @@ async function open(command: string, options: SessionOptions, env: NodeJS.Proces
         }
         child.kill();
         await child.exited;
-        directory.remove();
       })();
       await disposal;
-    },
-  });
+    }),
+  };
+  return session;
 }
 
 /** One owned DSH process per session, reached through a private bridge plugin. */
-export const dshSession: StartSession = withSessionCredentials(async (installation, options, credentials) => {
-  refuseSessionOptions(dshRefusedSessionOptions, options);
-  // Checked before spawning anything: both refusals name what they refuse.
-  dshAgentOptions(options);
-  const mcpRows = dshMcpRows(options.mcpServers, options.cwd);
-  if (installation.via !== "executable") { throw new Error("DSH requires its executable installation"); }
-  const env = dshEnvironment(options.env);
-  // A floor refusal names the real version, before anything starts.
-  const refusal = await dshExecutableRefusal(installation.command, installation.version, env);
-  if (refusal !== null) { throw new RuntimeFailureError("invalid_request", refusal); }
-  return open(installation.command, options, env, credentials, mcpRows);
-});
+export async function dshSession(spawnLineProcess: SpawnDshLineProcess, installation: AvailableInstallation, options: DshSessionOptions, hooks: DshSessionHooks = {}): Promise<DshAdapterSession> {
+  // BYOK change: Upstream withSessionCredentials without sealSession, over the caller's explicit environment.
+  const credentials = sessionCredentialRedactor({ ...options, env: options.launch.env });
+  try {
+    refuseSessionOptions(dshRefusedSessionOptions, options);
+    // Checked before spawning anything: both refusals name what they refuse.
+    dshAgentOptions(options);
+    const mcpRows = dshMcpRows(options.mcpServers, options.cwd);
+    if (installation.via !== "executable") { throw new Error("DSH requires its executable installation"); }
+    return await open(spawnLineProcess, installation.command, options, hooks, credentials, mcpRows);
+  } catch (error) { throw credentials.redactValue(error); }
+}

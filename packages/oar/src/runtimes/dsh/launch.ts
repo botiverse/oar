@@ -1,32 +1,24 @@
+// BYOK change: Modified from OAR 95c6547 for an injected process, an explicit environment and a caller-owned directory (Apache-2.0).
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import type { SessionOptions } from "../../contracts/session.js";
-import { sessionEnvironment } from "../../shared/environment.js";
-import { readExecutableVersion, spawnLineProcess, type LineProcess } from "../../shared/executable/index.js";
 import type { JsonRecord } from "../../shared/json.js";
-import { privateTempDir, type PrivateTempDir } from "../../shared/private-temp.js";
+import type { LineProcess, SpawnLineProcess } from "../codex/app-server-client.js";
 import { dshBridgeSource } from "./bridge.js";
-import { dshVersionRefusal } from "./version.js";
 
-export interface LaunchedDsh {
-  readonly child: LineProcess;
-  readonly directory: PrivateTempDir;
+// BYOK change: the abort reads the process table before its native cancel, as the ACP stack does.
+export interface DshLineProcess extends LineProcess {
+  observeDescendants(): void;
 }
+export type SpawnDshLineProcess = (...args: Parameters<SpawnLineProcess>) => DshLineProcess;
 
-/**
- * Sessions run without approval gates like every OAR runtime (`Session` scope
- * notes): nobody sits at a prompt, and DSH rejects an action needing approval. A
- * host that names its own mode for this session keeps it.
- */
-export function dshEnvironment(env: SessionOptions["env"]): NodeJS.ProcessEnv {
-  const explicit = env?.DSH_PERMISSION_MODE;
-  return { ...sessionEnvironment(env), ...(typeof explicit === "string" ? {} : { DSH_PERMISSION_MODE: "danger-full-access" }) };
-}
-
-/** Why this executable cannot run, read from the executable when the installation names no version; null at or above the floor. */
-export async function dshExecutableRefusal(command: string, version: string | undefined, env: NodeJS.ProcessEnv): Promise<string | null> {
-  return dshVersionRefusal(version ?? await readExecutableVersion(command, 15_000, undefined, env));
+/** BYOK change: the caller owns the process, its directory and the patch that names the provider route. */
+export interface DshLaunch {
+  /** The process cwd and the private home of the bridge files, removed with the execution. */
+  readonly directory: string;
+  /** Applied before the bridge overlay. */
+  readonly patches: readonly string[];
+  readonly env: Readonly<Record<string, string>>;
 }
 
 /**
@@ -34,16 +26,12 @@ export async function dshExecutableRefusal(command: string, version: string | un
  * bridge on. The profile supplies the native core and its stdin shutdown; no ACP
  * message is exchanged. The overlay is an invocation layer: it edits no user file.
  */
-export async function launchDsh(command: string, cwd: string, env: NodeJS.ProcessEnv, mcpRows: readonly JsonRecord[] = []): Promise<LaunchedDsh> {
-  const directory = await privateTempDir("oar-dsh-");
-  try {
-    const bridge = path.join(directory.path, "bridge.mjs");
-    const patch = path.join(directory.path, "patch.json");
-    await writeFile(bridge, dshBridgeSource, { mode: 0o600, flag: "wx" });
-    await writeFile(patch, JSON.stringify([{ id: "acp", disabled: true }, { insert: [...mcpRows, { id: "oar-dsh-bridge", name: pathToFileURL(bridge).href, config: { mcpEntries: mcpRows.map((row) => row.id) } }] }]), { mode: 0o600, flag: "wx" });
-    const child = spawnLineProcess(command, ["--profile", "acp", "--patch", patch], { cwd, env, killTree: true, shutdown: "stdin" });
-    child.onExit(() => { directory.remove(); });
-    await child.spawned;
-    return { child, directory };
-  } catch (error) { directory.remove(); throw error; }
+export async function launchDsh(spawnLineProcess: SpawnDshLineProcess, command: string, launch: DshLaunch, mcpRows: readonly JsonRecord[] = []): Promise<DshLineProcess> {
+  const bridge = path.join(launch.directory, "oar-dsh-bridge.mjs");
+  const patch = path.join(launch.directory, "oar-dsh-bridge.patch.json");
+  await writeFile(bridge, dshBridgeSource, { mode: 0o600, flag: "wx" });
+  await writeFile(patch, JSON.stringify([{ id: "acp", disabled: true }, { insert: [...mcpRows, { id: "oar-dsh-bridge", name: pathToFileURL(bridge).href, config: { mcpEntries: mcpRows.map((row) => row.id) } }] }]), { mode: 0o600, flag: "wx" });
+  const child = spawnLineProcess(command, ["--profile", "acp", ...launch.patches.flatMap((file) => ["--patch", file]), "--patch", patch], { cwd: launch.directory, env: launch.env });
+  await child.spawned;
+  return child;
 }
