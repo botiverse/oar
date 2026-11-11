@@ -9,8 +9,8 @@ See the [1.5.0 migration report](../../experiments/antigravity-cli-acp-2026-11-0
 for native controls, retained limitations and the host migration checklist.
 The new-version runs do not establish account-specific or macOS/Windows behavior.
 
-Independent inventories and account usage are not implemented. OAR deliberately
-has no login/status/logout integration for Antigravity consumer accounts; see
+Independent inventories and account usage are not implemented. Login, status
+and logout drive agy's own ([login](#login)); see
 [account policy](#process-ownership-installation-and-account-usage). See the
 [query contract](../spec/inventory.md) and [native inventory evidence](inventory.md).
 
@@ -296,8 +296,8 @@ product adapter (the test fixture disables it).
 
 ### Login
 
-OAR drives Antigravity's own Google login and reads its status; it has no
-logout. Verified on agy 1.5.5 (Linux, 2026-11-10; [launcher and input controls](../../experiments/antigravity-login/README.md)) up to the code prompt and
+OAR drives Antigravity's own Google login, reads its status, and signs out
+through agy's ACP `logout`. Verified on agy 1.5.5 (Linux, 2026-11-10; [launcher and input controls](../../experiments/antigravity-login/README.md)) up to the code prompt and
 against the logged-out status; the full sign-in was done once by a person on
 another machine through the CLI's interactive UI, which the status read
 confirmed.
@@ -322,10 +322,17 @@ confirmed.
 - `authStatus` runs `agy models`: exit 0 is `logged_in`; exit 1 with `Please
   sign in to view available models` is `logged_out`; anything else
   (network, a crash) is `unknown`. It is a remote call, not `localOnly`.
-- No `logout`: the CLI's `/logout` exists only in its interactive UI, and
-  print mode refuses it (`/logout is not available in print mode (it clears
-  stored credentials, an effect that outlives the run)`). OAR never deletes
-  the stored token itself.
+- `logout` sends ACP `logout` on a fresh `agy acp`. agy 1.5.5 declares it in
+  `initialize` (`agentCapabilities.auth.logout`), answers `{}`, and removes its
+  stored token file itself (checked in an empty HOME holding a placeholder
+  file, 2026-11-11; [probe](../../experiments/antigravity-login/README.md#logout)).
+  A build that does not declare it is `unsupported` (`version_unsupported`).
+  `agy models` then decides, so a sign-in from elsewhere (a keyring entry
+  agy keeps, an environment credential) reads `still_logged_in`. Whether agy
+  also revokes the grant at Google is not observed. Print mode refuses
+  `/logout` (`/logout is not available in print mode (it clears stored
+  credentials, an effect that outlives the run)`), and OAR never deletes the
+  token itself.
 
 The CLI chooses where the token lives: on a machine without a keyring it was a
 0600 file, `$GEMINI_HOME/antigravity-cli/antigravity-oauth-token`, and its

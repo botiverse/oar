@@ -18,8 +18,8 @@ When a runtime either can or cannot do a whole thing, the thing is an
 optional member and its presence is the capability. `Runtime.accountUsage`,
 `redeemLimitReset`, `listModels`, `installPlan`, `install`, `checkUpdate`, `upgrade`, `login`,
 `logout` and `authStatus` already work this way (only the runtimes OAR signs
-out through their own logout have a `logout`, which antigravity lacks, and
-bundled pi and cursor have no `install`);
+out through their own logout have a `logout`, and bundled pi and cursor have
+no `install`);
 `Session` `steer`, `withdraw`, `resources` and `goal` do too: a session that cannot
 steer has no `steer`, one whose queue OAR does not hold (codex) has no
 `withdraw`, and one whose runtime runs in the host process (pi, cursor) has

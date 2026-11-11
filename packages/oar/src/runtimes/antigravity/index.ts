@@ -23,8 +23,8 @@ export const antigravityRuntime = defineRuntime({
     return antigravityListModels;
   }),
   checkUpdate: antigravityCheckUpdate,
-  // No logout: the CLI refuses /logout outside its interactive UI (auth.ts).
   login: antigravityLogin,
+  logout: onFirstCall(async () => { const { antigravityLogout } = await import("./logout.js"); return antigravityLogout; }),
   authStatus: antigravityAuthStatus,
   refusedSessionOptions: antigravityRefusedSessionOptions,
   mcpToolsListChanged: "none",

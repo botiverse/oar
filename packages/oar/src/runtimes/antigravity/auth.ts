@@ -20,9 +20,8 @@ import { errorMessage, LoginSecrets, loginBounds, loginExecutable, spawnLoginPro
  * authorization code was entered` (exit 1). The CLI decides where the token
  * goes (a 0600 file under `$GEMINI_HOME/antigravity-cli/`, or a keyring it
  * detects); OAR never reads or writes it. Status is `agy models`, which
- * refuses with "Please sign in" when there is no login. There is no logout:
- * the CLI refuses `/logout` outside its interactive UI ("it clears stored
- * credentials"), so the runtime has no `logout` member.
+ * refuses with "Please sign in" when there is no login. Logout is agy's ACP
+ * `logout` (logout.ts); print mode refuses `/logout`.
  */
 const SOURCE = "agy models";
 const LOGIN_TIMEOUT_MS = 15 * 60_000;

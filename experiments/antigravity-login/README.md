@@ -22,3 +22,26 @@ has none, so only the second form was rerun here.
 So OAR suppresses the browser by replacing the launcher agy finds on PATH,
 and never sends a blank answer (it asks again). A full authenticated sign-in
 through OAR, and Windows/macOS launchers, are not verified here.
+
+## Logout
+
+agy 1.5.5, Linux, 2026-11-11, an empty temporary HOME holding only a
+placeholder `antigravity-oauth-token` file:
+
+```sh
+python3 experiments/antigravity-login/logout-probe.py /absolute/path/to/agy
+```
+
+```text
+auth capability: {"logout": {}}
+sign-in methods: ['oauth-personal', 'oauth-business', 'gemini-api-key', 'agent-platform']
+logout answer: {"jsonrpc": "2.0", "result": {}, "id": 2}
+placeholder token file still there: False
+```
+
+`agy acp` declares ACP `logout` and removes the stored token file itself, so
+OAR's `logout` sends it and reads `agy models` afterwards. Not observed: a
+keyring-stored sign-in, and whether agy revokes the grant at Google. The
+same `initialize` also lists sign-in methods besides Google
+(`oauth-business`, `gemini-api-key`, `agent-platform`), which OAR does not
+drive.

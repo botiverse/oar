@@ -23,26 +23,40 @@ if (args[0] === "models") {
   console.log("Fetching available models...\nGemini 3.5 Pro\nGemini 3.5 Flash");
   process.exit(0);
 }
-if (args[0] !== "acp" || args[1] !== "--login") { process.exit(2); }
-console.log("Open this link in a browser to log in with Google:\n");
-console.log("  https://accounts.google.com/o/oauth2/auth?client_id=synthetic&code_challenge=synthetic&state=synthetic\n");
-process.stdout.write("Then paste the authorization code, or the full URL of the page you land on, and press Enter:\n");
-if (state.mode === "hang") { setInterval(() => {}, 1000); }
-else {
-  const lines = createInterface({ input: process.stdin });
-  let answered = false;
-  lines.on("line", (line) => {
-    answered = true;
-    state.pasted = line; save();
-    // Live 1.5.5: an empty line is not an answer; agy keeps waiting.
-    if (line.trim() === "") { state.emptyLines = (state.emptyLines ?? 0) + 1; save(); answered = false; return; }
-    if (state.mode === "rejected") {
-      // agy names the code it tried, also when the person pasted the whole landing URL.
-      const code = URL.canParse(line.trim()) ? new URL(line.trim()).searchParams.get("code") : line.trim();
-      console.log(`login failed: invalid_grant ${code}`); process.exit(1);
+if (args[0] === "acp" && args.length === 1) {
+  // agy 1.5.5's ACP server, as far as logout goes: it declares auth.logout and removes its token (experiments/antigravity-login/README.md#logout).
+  createInterface({ input: process.stdin }).on("line", (line) => {
+    const request = JSON.parse(line);
+    const reply = (result) => process.stdout.write(`${JSON.stringify({ jsonrpc: "2.0", id: request.id, result })}\n`);
+    if (request.method === "initialize") {
+      reply({ protocolVersion: 1, agentCapabilities: state.mode === "no-logout" ? {} : { auth: { logout: {} } }, authMethods: [{ id: "oauth-personal", name: "Log in with Google" }] });
+    } else if (request.method === "logout") {
+      state.loggedIn = state.mode === "sticky"; save();
+      reply({});
     }
-    state.loggedIn = state.mode !== "false-success"; save();
-    process.exit(0);
   });
-  lines.on("close", () => { if (!answered) { console.log("login cancelled: no authorization code was entered"); process.exit(1); } });
+} else if (args[0] !== "acp" || args[1] !== "--login") { process.exit(2); }
+if (args[1] === "--login") {
+  console.log("Open this link in a browser to log in with Google:\n");
+  console.log("  https://accounts.google.com/o/oauth2/auth?client_id=synthetic&code_challenge=synthetic&state=synthetic\n");
+  process.stdout.write("Then paste the authorization code, or the full URL of the page you land on, and press Enter:\n");
+  if (state.mode === "hang") { setInterval(() => {}, 1000); }
+  else {
+    const lines = createInterface({ input: process.stdin });
+    let answered = false;
+    lines.on("line", (line) => {
+      answered = true;
+      state.pasted = line; save();
+      // Live 1.5.5: an empty line is not an answer; agy keeps waiting.
+      if (line.trim() === "") { state.emptyLines = (state.emptyLines ?? 0) + 1; save(); answered = false; return; }
+      if (state.mode === "rejected") {
+        // agy names the code it tried, also when the person pasted the whole landing URL.
+        const code = URL.canParse(line.trim()) ? new URL(line.trim()).searchParams.get("code") : line.trim();
+        console.log(`login failed: invalid_grant ${code}`); process.exit(1);
+      }
+      state.loggedIn = state.mode !== "false-success"; save();
+      process.exit(0);
+    });
+    lines.on("close", () => { if (!answered) { console.log("login cancelled: no authorization code was entered"); process.exit(1); } });
+  }
 }
