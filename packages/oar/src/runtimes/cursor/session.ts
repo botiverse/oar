@@ -12,8 +12,8 @@ import { manualCompaction } from "../../shared/manual-compaction.js";
 import { cursorCompaction } from "./compaction.js";
 import { withdrawControl } from "../../shared/held-input.js";
 import { withInputImages, type LoadedImage } from "../../shared/input-images.js";
-import { sealSession } from "../../shared/seal-session.js";
-import { createSessionKernel } from "../../shared/session-kernel.js";
+import { withSessionCredentials } from "../../shared/session-credentials.js";
+import { checkMcpServerNames } from "../../shared/mcp-servers.js";
 import { refuseSessionOptions } from "../../shared/session-options.js";
 import { cursorRefusedSessionOptions, openCursorAgent } from "./model.js";
 import {
@@ -35,15 +35,16 @@ const DISPOSE_SETTLE_MS = 5000;
 /** How long a `send` may take to return its run (a cold start took about 4 s in the probes). */
 const SEND_TIMEOUT_MS = 60_000;
 export function cursorSessionWith(load: () => Promise<CursorSdk>): StartSession {
-  return async (installation, options, context) => {
+  // MCP entries can carry credentials: records and errors go through the session's redactor.
+  return withSessionCredentials(async (installation, options, credentials) => {
+    checkMcpServerNames(options.mcpServers ?? []);
     if (installation.via !== "bundled") {
       throw new Error("The cursor session adapter needs the bundled @cursor/sdk installation");
     }
     refuseSessionOptions(cursorRefusedSessionOptions, options);
     const sdk = await load();
     const agent = await openCursorAgent(sdk, options);
-    const kernel = createSessionKernel(agent.agentId, undefined, options.retainedBytes);
-    kernel.opened(context ?? { requested: "auto", placement: "in_process" });
+    const kernel = credentials.kernel(agent.agentId);
     let projection: CursorProjectionState = initialCursorProjection;
     // A turn is running from an accepted prompt (or a drained queue input)
     // until its run's end is recorded. Held in an object so closures always
@@ -201,7 +202,7 @@ export function cursorSessionWith(load: () => Promise<CursorSdk>): StartSession 
       });
     }
     const capabilities = { queue: { durable: false }, attribution: "attributed", images: true } as const;
-    const session: Session = sealSession({
+    const session: Session = credentials.seal({
       id: kernel.sessionId,
       capabilities,
       ...(compaction === null ? {} : { compact: compaction.compact }),
@@ -294,6 +295,5 @@ export function cursorSessionWith(load: () => Promise<CursorSdk>): StartSession 
       },
     });
     return session;
-  };
+  }, "in_process");
 }
-

@@ -1,9 +1,10 @@
 import { UnsupportedOptionError } from "../../contracts/errors.js";
 import type { RefusedSessionOptions } from "../../contracts/runtime.js";
 import { resolvedAdditionalDirectories } from "../../shared/additional-directories.js";
-import type { SessionOptions } from "../../contracts/session.js";
+import type { McpServer, SessionOptions } from "../../contracts/session.js";
+import { checkMcpServerNames, givenMcpServers, isHttpMcpServer } from "../../shared/mcp-servers.js";
 import { cursorOpenFailure, cursorResumeFailure } from "./failure.js";
-import type { CursorAgent, CursorSdk, ModelListItem, ModelSelection } from "./sdk.js";
+import type { CursorAgent, CursorMcpServerConfig, CursorSdk, ModelListItem, ModelSelection } from "./sdk.js";
 
 /**
  * Cursor's catalog (`Cursor.models.list()`, SDK 1.0.35) gives each model its
@@ -62,7 +63,6 @@ export const cursorRefusedSessionOptions: RefusedSessionOptions = {
   appendSystemPrompt: "Cursor's SDK runs no system prompt override for a local agent",
   env: "Cursor runs in this process and its SDK takes no environment for the agent's tools; SessionOptions.env is unsupported",
   launchArgs: "Cursor runs in this process through its SDK; there is no runtime command line to add arguments to",
-  mcpServers: "OAR does not attach MCP servers to cursor yet: Cursor's agent runs on Cursor's servers, and no run without a login or paid tokens shows it calling a tool of the SDK's Agent.create mcpServers",
 };
 
 /**
@@ -127,6 +127,21 @@ export function cursorToolDenialError(error: unknown, options: SessionOptions): 
 }
 
 /**
+ * SessionOptions.mcpServers as the SDK's `mcpServers` record, keyed by name:
+ * stdio `{type: "stdio", command, args, env}`, http `{type: "http", url,
+ * headers}`. Given on create and again on resume (the SDK keeps none for an
+ * agent). Cursor's local agent called both forms' tools and the credentials
+ * reached the servers ([env] SDK 1.3.1, Linux, 2026-11-11,
+ * experiments/cursor-mcp.ts). Throws on a list no runtime can attach.
+ */
+export function cursorMcpServers(servers: readonly McpServer[]): Record<string, CursorMcpServerConfig> {
+  checkMcpServerNames(servers);
+  return Object.fromEntries(servers.map((server) => [server.name, isHttpMcpServer(server)
+    ? { type: "http", url: server.url, ...(server.headers === undefined ? {} : { headers: { ...server.headers } }) }
+    : { type: "stdio", command: server.command, args: [...server.args ?? []], ...(server.env === undefined ? {} : { env: { ...server.env } }) }]));
+}
+
+/**
  * The session's local agent, created or resumed with the selected model, the
  * disallowed tools and no sandbox, as every OAR session runs by default
  * (contracts/session.ts): without this a `~/.cursor/sandbox.json` would turn
@@ -135,9 +150,11 @@ export function cursorToolDenialError(error: unknown, options: SessionOptions): 
  */
 export async function openCursorAgent(sdk: CursorSdk, options: SessionOptions): Promise<CursorAgent> {
   const directories = resolvedAdditionalDirectories(options);
+  const mcpServers = givenMcpServers(options.mcpServers);
   const agentOptions = {
     model: await cursorModelSelection(sdk, options),
     ...(options.disallowedTools === undefined ? {} : { disallowedTools: [...options.disallowedTools] }),
+    ...(mcpServers === null ? {} : { mcpServers: cursorMcpServers(mcpServers) }),
     local: {
       cwd: options.cwd,
       ...(directories.length === 0 ? {} : { dirs: directories }),

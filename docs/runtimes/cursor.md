@@ -478,39 +478,46 @@ bundled SDKs.
 
 ### Session MCP servers
 
-**Refused:** a non-empty `SessionOptions.mcpServers` fails the open with an
-`UnsupportedOptionError`
-([model selection](../../packages/oar/src/runtimes/cursor/model.ts)): "OAR
-does not attach MCP servers to cursor yet: Cursor's agent runs on Cursor's
-servers, and no run without a login or paid tokens shows it calling a tool
-of the SDK's Agent.create mcpServers".
+**Mapped:** `SessionOptions.mcpServers` goes to `Agent.create` and again to
+`Agent.resume` as the SDK's `mcpServers` record, keyed by name: stdio
+`{type: "stdio", command, args, env}`, http `{type: "http", url, headers}`
+([mapping](../../packages/oar/src/runtimes/cursor/model.ts),
+[tests](../../tests/cursor/cursor-mcp-servers.test.ts)). An empty, repeated or
+reserved name is refused before the SDK is loaded, as on every runtime. The
+session's credential redactor covers the entries' `env` and `headers`, so
+they never appear in records, errors or control answers.
 
-The SDK has the channel. Its 1.0.36 bundle (`dist/esm/options.d.ts`) types
-`AgentOptions.mcpServers` as `Record<string, McpServerConfig>`: stdio
-`{type?: "stdio", command, args?, env?, cwd?}`, remote `{type?: "http" |
-"sse", url, headers?, auth?: {CLIENT_ID, CLIENT_SECRET?, scopes?}}`.
-`Agent.resume` takes it too, and a per-send `mcpServers` replaces the whole
-set. Measured only against a hand-scripted stand-in for Cursor's backend
-(`CURSOR_BACKEND_URL`, Connect/protobuf; not in the repo, and aimock cannot
-serve it), network-isolated, with no key:
+**Live evidence** ([probe](../../experiments/cursor-mcp.ts); SDK 1.3.1,
+Linux x64, `gpt-5.4-nano`, an existing login, 2026-11-11): one stdio and one
+http entry of the repo's echo MCP server, each with a synthetic credential.
+Asked to call both, Cursor's agent called both tools and their results came
+back, on create and again after `Agent.resume`; each echo carried the
+fingerprint of its entry's credential, so `env` and the `Authorization`
+header reached the servers; and no credential value appeared in any stream
+message or delta. After the run, neither synthetic credential was found as
+plain text in Cursor's local storage (`~/.cursor`, including the agent's
+`index.db`, `store.db` and their WAL files, `~/.config/cursor`, and its
+caches), where [antigravity](antigravity.md#session-mcp-servers) keeps them.
+That search does not rule out another encoding. Whether the SDK sends a
+local agent's MCP entries to Cursor's servers (its cloud agents send them
+with each run) is not observed.
+
+Earlier, against a hand-scripted stand-in for Cursor's backend
+(`CURSOR_BACKEND_URL`, Connect/protobuf; not in the repo), network-isolated:
 
 - The SDK starts nothing at `Agent.create`. It spawns a stdio server at the
-  first `send` and runs a `tools/call` when the backend asks for one
-  (`echo-echo`); the echo it returned showed the entry's `env` credential
-  had reached the server. An http server worked too, and both did after
-  `Agent.resume`.
+  first `send`.
 - A server with a bad command is dropped silently.
 - Under the SDK's default `settingSources` the agent read neither
   `~/.cursor/mcp.json` nor `.cursor/mcp.json`; with `["project", "user"]`
-  the inline entry won a name clash.
+  the inline entry won a name clash. Not re-checked live.
 
-That stand-in is not Cursor: the agent loop and the model run on Cursor's
-servers, so only a live run (a login, paid tokens) can show Cursor's agent
-choosing the tool, and what `tool_call` deltas OAR records for it (the
-stand-in sent none). Before the option is enabled, a live run must show a
-`tool_call` delta naming the MCP tool with the echo string in its result, on
-open and again after `Agent.resume`, and no `env` or header value in any
-delta or option record.
+Each call arrives as `tool-call-started` / `tool-call-completed` deltas whose
+`toolCall.args` carry `toolName` (`echo`) and `providerIdentifier` (the
+server's name, `echo` or `remote`); OAR records the SDK's `toolCall.type` as
+`tool` and those args as `input`, as for Cursor's other tools.
+
+Not verified: macOS and Windows, and other models.
 
 ### Installation and account usage
 

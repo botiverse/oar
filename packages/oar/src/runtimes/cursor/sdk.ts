@@ -72,8 +72,14 @@ export interface CursorAgent {
   close(): void;
 }
 
+/** The SDK's `McpServerConfig` forms OAR sends. */
+export type CursorMcpServerConfig =
+  | { readonly type: "stdio"; readonly command: string; readonly args: string[]; readonly env?: Record<string, string> }
+  | { readonly type: "http"; readonly url: string; readonly headers?: Record<string, string> };
+
 export interface CursorAgentOptions {
   readonly disallowedTools?: string[];
+  readonly mcpServers?: Record<string, CursorMcpServerConfig>;
   readonly model: ModelSelection;
   readonly local: { readonly cwd: string; readonly settingSources?: never[]; readonly sandboxOptions: { readonly enabled: boolean } };
 }
