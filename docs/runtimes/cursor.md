@@ -484,8 +484,14 @@ bundled SDKs.
 ([mapping](../../packages/oar/src/runtimes/cursor/model.ts),
 [tests](../../tests/cursor/cursor-mcp-servers.test.ts)). An empty, repeated or
 reserved name is refused before the SDK is loaded, as on every runtime. The
-session's credential redactor covers the entries' `env` and `headers`, so
-they never appear in records, errors or control answers.
+session opens under the shared
+[known-credential rule](../spec/record-stream.md#the-rules): entry `env`
+values under credential names (`*_TOKEN`, `*_KEY`, ...), `Authorization`
+and other credential-named header values (and the token after an
+authorization scheme), and URL passwords, at least eight characters long,
+are replaced with `[redacted]` in records, errors and control answers. Other
+`env` and header values stay readable there. The SDK itself gets every value
+unchanged.
 
 **Live evidence** ([probe](../../experiments/cursor-mcp.ts); SDK 1.3.1,
 Linux x64, `gpt-5.4-nano`, an existing login, 2026-11-11): one stdio and one
