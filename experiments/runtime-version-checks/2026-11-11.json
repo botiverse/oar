@@ -1,0 +1,395 @@
+{
+  "date": "2026-11-11",
+  "scope": "Focused Cursor SDK validation; the ordinary daily inventory is separate.",
+  "baseCommit": "2083f1ee",
+  "sdk": "1.3.1",
+  "node": "24.19.0",
+  "platform": "linux",
+  "arch": "x64",
+  "model": "gpt-5.4-nano",
+  "authentication": {
+    "storedLoginStatus": "logged-in",
+    "apiKeyEnvironmentPresent": false,
+    "newLoginPerformed": false
+  },
+  "live": {
+    "startedAt": "2026-11-11T02-34-24.223Z",
+    "passed": 12,
+    "skipped": 1,
+    "failed": 0,
+    "retries": 0,
+    "results": [
+      {
+        "id": "basic",
+        "status": "pass",
+        "ms": 5095,
+        "runs": [
+          {
+            "status": "finished",
+            "durationMs": 3020,
+            "usage": {
+              "inputTokens": 8490,
+              "outputTokens": 6,
+              "cacheReadTokens": 0,
+              "cacheWriteTokens": 0,
+              "totalTokens": 8496
+            }
+          }
+        ]
+      },
+      {
+        "id": "multi-turn",
+        "status": "pass",
+        "ms": 6613,
+        "runs": [
+          {
+            "status": "finished",
+            "durationMs": 2193,
+            "usage": {
+              "inputTokens": 8486,
+              "outputTokens": 19,
+              "cacheReadTokens": 0,
+              "cacheWriteTokens": 0,
+              "totalTokens": 8505,
+              "reasoningTokens": 12
+            }
+          },
+          {
+            "status": "finished",
+            "durationMs": 1299,
+            "usage": {
+              "inputTokens": 8549,
+              "outputTokens": 6,
+              "cacheReadTokens": 7680,
+              "cacheWriteTokens": 0,
+              "totalTokens": 8555
+            }
+          },
+          {
+            "status": "finished",
+            "durationMs": 3084,
+            "usage": {
+              "inputTokens": 8599,
+              "outputTokens": 6,
+              "cacheReadTokens": 7680,
+              "cacheWriteTokens": 0,
+              "totalTokens": 8605
+            }
+          }
+        ]
+      },
+      {
+        "id": "tool-detail",
+        "status": "pass",
+        "ms": 4647,
+        "runs": [
+          {
+            "status": "finished",
+            "durationMs": 4632,
+            "usage": {
+              "inputTokens": 17149,
+              "outputTokens": 102,
+              "cacheReadTokens": 15360,
+              "cacheWriteTokens": 0,
+              "totalTokens": 17251,
+              "reasoningTokens": 31
+            }
+          }
+        ]
+      },
+      {
+        "id": "busy-and-late-control",
+        "status": "pass",
+        "ms": 9773,
+        "runs": [
+          {
+            "status": "finished",
+            "durationMs": 9759,
+            "usage": {
+              "inputTokens": 17185,
+              "outputTokens": 132,
+              "cacheReadTokens": 15360,
+              "cacheWriteTokens": 0,
+              "totalTokens": 17317,
+              "reasoningTokens": 43
+            }
+          }
+        ]
+      },
+      {
+        "id": "steer",
+        "status": "pass",
+        "ms": 12630,
+        "runs": [
+          {
+            "status": "finished",
+            "durationMs": 12616,
+            "usage": {
+              "inputTokens": 26955,
+              "outputTokens": 535,
+              "cacheReadTokens": 17408,
+              "cacheWriteTokens": 0,
+              "totalTokens": 27490,
+              "reasoningTokens": 293
+            }
+          }
+        ]
+      },
+      {
+        "id": "queue",
+        "status": "pass",
+        "ms": 13720,
+        "runs": [
+          {
+            "status": "finished",
+            "durationMs": 12495,
+            "usage": {
+              "inputTokens": 17341,
+              "outputTokens": 288,
+              "cacheReadTokens": 8704,
+              "cacheWriteTokens": 0,
+              "totalTokens": 17629,
+              "reasoningTokens": 245
+            }
+          },
+          {
+            "status": "finished",
+            "durationMs": 1200,
+            "usage": {
+              "inputTokens": 8889,
+              "outputTokens": 6,
+              "cacheReadTokens": 8704,
+              "cacheWriteTokens": 0,
+              "totalTokens": 8895
+            }
+          }
+        ]
+      },
+      {
+        "id": "abort",
+        "status": "pass",
+        "ms": 5866,
+        "runs": [
+          {
+            "status": "cancelled",
+            "durationMs": 5859
+          }
+        ]
+      },
+      {
+        "id": "dispose-mid-turn",
+        "status": "pass",
+        "ms": 2659,
+        "runs": [
+          {
+            "status": "cancelled",
+            "durationMs": 2654
+          }
+        ]
+      },
+      {
+        "id": "cursor",
+        "status": "pass",
+        "ms": 7289,
+        "runs": [
+          {
+            "status": "finished",
+            "durationMs": 6983,
+            "usage": {
+              "inputTokens": 17152,
+              "outputTokens": 107,
+              "cacheReadTokens": 7680,
+              "cacheWriteTokens": 0,
+              "totalTokens": 17259,
+              "reasoningTokens": 42
+            }
+          }
+        ]
+      },
+      {
+        "id": "resume",
+        "status": "pass",
+        "ms": 5266,
+        "runs": [
+          {
+            "status": "finished",
+            "durationMs": 2190,
+            "usage": {
+              "inputTokens": 8494,
+              "outputTokens": 59,
+              "cacheReadTokens": 7680,
+              "cacheWriteTokens": 0,
+              "totalTokens": 8553,
+              "reasoningTokens": 52
+            }
+          },
+          {
+            "status": "finished",
+            "durationMs": 3051,
+            "usage": {
+              "inputTokens": 8605,
+              "outputTokens": 31,
+              "cacheReadTokens": 7680,
+              "cacheWriteTokens": 0,
+              "totalTokens": 8636,
+              "reasoningTokens": 21
+            }
+          }
+        ]
+      },
+      {
+        "id": "subagent",
+        "status": "pass",
+        "ms": 13688,
+        "runs": [
+          {
+            "status": "finished",
+            "durationMs": 10675,
+            "usage": {
+              "inputTokens": 38102,
+              "outputTokens": 505,
+              "cacheReadTokens": 33792,
+              "cacheWriteTokens": 0,
+              "totalTokens": 38607,
+              "reasoningTokens": 287
+            }
+          }
+        ]
+      },
+      {
+        "id": "kill-runtime",
+        "status": "skip",
+        "ms": 0,
+        "notes": [
+          "in-process runtime, no process to kill"
+        ],
+        "runs": []
+      },
+      {
+        "id": "bad-model",
+        "status": "pass",
+        "ms": 2,
+        "runs": []
+      }
+    ],
+    "selectedAssertions": {
+      "basicText": "PLUM",
+      "everyEventHasNative": true,
+      "multiTurnEndCounts": [
+        1,
+        1,
+        1
+      ],
+      "toolCallIdsMatch": true,
+      "steerLandedSameTurn": true,
+      "queueStartedWithoutAnotherPrompt": true,
+      "abortOutcome": {
+        "kind": "aborted"
+      },
+      "abortAcceptedBeforeTurnEnd": true,
+      "disposeOutcome": {
+        "kind": "aborted"
+      },
+      "recordReplayMatchesLog": true,
+      "resumeSameId": true,
+      "resumeRecalledMarker": true,
+      "childAgentPathCount": 1,
+      "childGraphEdges": 0
+    }
+  },
+  "nativeCompaction": {
+    "exitCode": 0,
+    "deltaText": "STORED",
+    "streamText": "STORED",
+    "phases": [
+      {
+        "status": "finished",
+        "durationMs": 4032,
+        "usage": {
+          "inputTokens": 3378,
+          "outputTokens": 31,
+          "cacheReadTokens": 0,
+          "cacheWriteTokens": 0,
+          "totalTokens": 3409,
+          "reasoningTokens": 22
+        },
+        "phase": "normal",
+        "summaryStatuses": [],
+        "streamEndAfterWaitMs": 0
+      },
+      {
+        "status": "finished",
+        "durationMs": 3588,
+        "phase": "summary",
+        "summaryStatuses": [
+          "running",
+          "completed"
+        ],
+        "streamEndAfterWaitMs": 0
+      },
+      {
+        "status": "cancelled",
+        "durationMs": 243,
+        "phase": "summary-cancel",
+        "summaryStatuses": [
+          "running"
+        ],
+        "streamEndAfterWaitMs": 0
+      }
+    ],
+    "clockResolutionMs": 1,
+    "retries": 0
+  },
+  "reportedUsage": {
+    "source": "Each distinct native run result, counted once; no stream-usage or OAR cumulative totals added.",
+    "runResults": 18,
+    "withUsage": 14,
+    "missing": [
+      {
+        "scenario": "abort",
+        "run": 1
+      },
+      {
+        "scenario": "dispose-mid-turn",
+        "run": 1
+      },
+      {
+        "probe": "native-compaction",
+        "phase": "summary"
+      },
+      {
+        "probe": "native-compaction",
+        "phase": "summary-cancel"
+      }
+    ],
+    "sum": {
+      "inputTokens": 197374,
+      "outputTokens": 1833,
+      "cacheReadTokens": 137728,
+      "cacheWriteTokens": 0,
+      "totalTokens": 199207,
+      "reasoningTokens": 1048
+    },
+    "completeBillingTotal": false
+  },
+  "limitations": [
+    "Linux x64 live execution only.",
+    "Native manual summaries trigger compaction; no automatic context-threshold exhaustion or cross-SDK resume test.",
+    "No fresh login/logout flow or account billing query.",
+    "The live shell scenario logged tree-sitter natives unavailable and parsingFailed; its shell tool and detail assertions passed.",
+    "Native summary output paths and all agent, run, request, tool-call and account identifiers are omitted."
+  ],
+  "repositoryValidation": {
+    "targetedCursorTests": 119,
+    "targetedCursorFiles": 16,
+    "fullCheck": {
+      "status": "passed",
+      "unitTests": 3832,
+      "unitFiles": 428,
+      "mockBehaviorPassed": 18,
+      "mockBehaviorSkipped": 1
+    },
+    "build": "passed",
+    "cleanInstall": "passed"
+  }
+}

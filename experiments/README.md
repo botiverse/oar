@@ -1,5 +1,7 @@
 # experiments
 
+- [Cursor SDK 1.3.1 live validation](runtime-version-checks/2026-11-11.md#cursor-131): full Linux session battery and native compaction using an existing login, with reported token usage and explicit limits.
+
 - [OpenCode structured failure names](opencode-error-names/README.md): six source-derived error names, native 2.2.6 rate-limit and billing evidence, and preserved text fallback on both release lines.
 
 - [Account query deadlines](account-deadlines/README.md): prompt timeout results with unchanged owned shutdown; real Codex 0.131.0/0.167.0 before/after and cross-runtime status/usage regressions.
