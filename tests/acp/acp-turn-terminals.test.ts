@@ -69,3 +69,16 @@ test("with no abort waiting, a closed turn's terminals are forgotten; a later ab
   await settled();
   expect(h.ended).toEqual([["second-turn"]]);
 });
+
+test("terminals requested after the aborted turn closed are not its own, even before the abort's answer arrives", async () => {
+  const h = harness();
+  const turn = h.begin();
+  h.terminal("this-turn");
+  const claim = h.turns.aborting(turn, request("abort-1"));
+  h.close();
+  h.begin();
+  h.terminal("next-turn");
+  claim.accepted();
+  await settled();
+  expect(h.ended).toEqual([["this-turn"]]);
+});

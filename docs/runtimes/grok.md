@@ -479,7 +479,9 @@ below), so a command keeps going after the turn is aborted until `dispose()`.
 **Mapped (opt-in):** `SessionOptions.endTurnProcessesOnAbort: true`. Every
 `terminal/create` is a `toApp` request record answered with its
 `terminalId`, so the terminals one turn created are exactly those whose
-request comes after the turn began. When an aborted turn closes, OAR stops
+request comes after the turn began and before the frame that closed it (a
+terminal requested after that belongs to a later turn, even while the
+abort's answer is still pending). When an aborted turn closes, OAR stops
 the ones still running, each by its own process group (its process tree on
 Windows), and records one `cleanup` response on the abort request:
 `completed {signalled}` counts the commands it had to stop. The terminals

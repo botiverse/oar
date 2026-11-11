@@ -10,7 +10,9 @@ import type { ActiveTurn } from "./turns.js";
  * in terminals OAR hosts (grok). The runtime asks OAR for each terminal
  * (`terminal/create`, a toApp request record answered with its terminalId),
  * so the terminals one turn created are exactly those whose request comes
- * after the turn's `since`. When an aborted turn closes, OAR stops those
+ * after the turn's `since` and before the frame that closed it (one
+ * requested after that belongs to a later turn, even while the abort's
+ * answer is still pending). When an aborted turn closes, OAR stops those
  * still running and records the outcome as a `cleanup` response on the abort
  * request. Terminals of earlier turns (a background command) are spared.
  * Semantics: docs/runtimes/grok.md#ending-a-turns-processes-on-abort.
@@ -21,8 +23,8 @@ export interface AcpTurnTerminals {
   aborting(state: ActiveTurn, request: RequestRecord): { readonly accepted: () => void; readonly refused: () => void };
 }
 
-/** One turn's aborts: each request's answer so far, and whether the turn has closed. */
-interface PendingAbort { readonly state: ActiveTurn; readonly requests: Map<string, "sent" | "accepted">; closed: boolean }
+/** One turn's aborts: each request's answer so far, and the seq of the frame that closed the turn once it has. */
+interface PendingAbort { readonly state: ActiveTurn; readonly requests: Map<string, "sent" | "accepted">; closedAt: number | undefined }
 
 /** The abort requests the runtime accepted. */
 const accepted = (abort: PendingAbort): readonly string[] => [...abort.requests].flatMap(([id, answer]) => answer === "accepted" ? [id] : []);
@@ -38,8 +40,10 @@ export function acpTurnTerminals(enabled: boolean, kernel: SessionKernel, host: 
   const record = (requestIds: readonly string[], result: SessionCleanup): void => {
     for (const requestId of requestIds) { kernel.respond(requestId, { kind: "cleanup", result }); }
   };
-  const end = async (requestIds: readonly string[], since: number): Promise<void> => {
-    const ids = created.filter((entry) => entry.seq > since).map((entry) => entry.terminalId);
+  /** The seq of the last frame that closed a turn: an abort sent after its turn closed is bounded by it. */
+  let lastClose = 0;
+  const end = async (requestIds: readonly string[], since: number, closedAt: number): Promise<void> => {
+    const ids = created.filter((entry) => entry.seq > since && entry.seq < closedAt).map((entry) => entry.terminalId);
     try {
       const { signalled } = await host.end(ids);
       record(requestIds, { kind: "completed", signalled });
@@ -49,10 +53,10 @@ export function acpTurnTerminals(enabled: boolean, kernel: SessionKernel, host: 
   };
   /** Settle once the turn has closed and every abort sent to it has its answer: only accepted aborts end anything. */
   const settle = (abort: PendingAbort): void => {
-    if (!abort.closed || [...abort.requests.values()].includes("sent")) { return; }
+    if (abort.closedAt === undefined || [...abort.requests.values()].includes("sent")) { return; }
     pending.delete(abort.state);
     const requestIds = accepted(abort);
-    if (requestIds.length > 0) { void end(requestIds, abort.state.since); }
+    if (requestIds.length > 0) { void end(requestIds, abort.state.since, abort.closedAt); }
   };
   kernel.rawEvents((event) => {
     if (event.kind === "request") {
@@ -74,8 +78,9 @@ export function acpTurnTerminals(enabled: boolean, kernel: SessionKernel, host: 
       return;
     }
     if (!event.body.events.some((body) => body.kind === "turn_ended")) { return; }
+    lastClose = event.seq;
     for (const abort of pending.values()) {
-      if (active() !== abort.state) { abort.closed = true; settle(abort); }
+      if (abort.closedAt === undefined && active() !== abort.state) { abort.closedAt = event.seq; settle(abort); }
     }
     // With no abort waiting, nothing needs terminals from turns that have ended:
     // a later abort only looks at terminals its own turn requested.
@@ -83,7 +88,7 @@ export function acpTurnTerminals(enabled: boolean, kernel: SessionKernel, host: 
   });
   return {
     aborting(state, request) {
-      const abort = pending.get(state) ?? { state, requests: new Map<string, "sent" | "accepted">(), closed: active() !== state };
+      const abort = pending.get(state) ?? { state, requests: new Map<string, "sent" | "accepted">(), closedAt: active() === state ? undefined : lastClose };
       abort.requests.set(request.id, "sent");
       pending.set(state, abort);
       return {
