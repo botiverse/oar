@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { mkdir, mkdtemp, rm, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "vitest";
-import { codexInstalledExecutableCandidates, desktopBuildExecutables } from "../../packages/oar/src/runtimes/codex/installation.js";
+import { asRecord } from "../../packages/oar/src/shared/json.js";
+import { codexInstalledExecutableCandidates, desktopBuildExecutables } from "../../packages/oar/src/runtimes/codex/installation-candidates.js";
 
 /** A build folder holding a `codex.exe` last written at `at` (seconds). */
 async function build(bin: string, folder: string, at: number): Promise<void> {
@@ -40,3 +42,11 @@ test("Desktop build folders are read newest first, at most three, skipping dot f
   } finally { await rm(bin, { recursive: true, force: true }); }
 });
 
+
+test("the candidates module, a public subpath, imports only Node built-ins and a type-only environment helper", () => {
+  const source = readFileSync(path.join(import.meta.dirname, "../../packages/oar/src/runtimes/codex/installation-candidates.ts"), "utf8");
+  const imports = [...source.matchAll(/^import .* from "(?<from>[^"]+)";$/gmu)].map((match) => match.groups?.from);
+  assert.deepEqual(imports, ["node:fs", "node:os", "node:path", "../../shared/environment.js"]);
+  const manifest: unknown = JSON.parse(readFileSync(path.join(import.meta.dirname, "../../packages/oar/package.json"), "utf8"));
+  assert.deepEqual(asRecord(asRecord(manifest)?.exports)?.["./runtimes/codex/installation-candidates"], { types: "./dist/runtimes/codex/installation-candidates.d.ts", import: "./dist/runtimes/codex/installation-candidates.js" });
+});
