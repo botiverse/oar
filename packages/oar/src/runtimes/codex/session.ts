@@ -167,13 +167,12 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
       const timer = setTimeout(() => {
         resolve(null);
       }, CODEX_SETTINGS_REPORT_MS);
-      const update = await updateThreadEffort(client, threadId, requested, version);
-      const refusal = codexResumeEffortRefusal(requested, update, update === null ? await reported : null);
-      clearTimeout(timer);
-      settingsWaiter = null;
-      if (refusal !== null) {
-        throw new Error(refusal);
-      }
+      let refusal: string | null = null;
+      try {
+        const update = await updateThreadEffort(client, threadId, requested, version);
+        refusal = codexResumeEffortRefusal(requested, update, update === null ? await reported : null);
+      } finally { clearTimeout(timer); settingsWaiter = null; }
+      if (refusal !== null) { throw new Error(refusal); }
     }
     await nameThread(client, threadId, codexThreadName(openMethod, options, started), (native) => { kernel.frame({ type: "thread/name/set/error", native, events: [] }); });
     /** Turn a plan builder into a Session control member. */

@@ -1,4 +1,4 @@
-import type { ControlOutcome, DeliverOptions, DeliverResult, InputOptions, Session } from "../contracts/session.js";
+import type { ControlOutcome, DeliverOptions, DeliverResult, FailureClass, InputOptions, Session } from "../contracts/session.js";
 import { interruptInto, pendingInterrupt } from "./deliver-interrupt.js";
 import { awaitIdle } from "../observe/turns.js";
 
@@ -10,9 +10,14 @@ function landed(kind: "prompted" | "steered" | "queued", inputId: string, result
   return { landed: kind, inputId, result };
 }
 
+/** A refused control's `failure`, spread into the result that reports it. */
+export function failureOf(result: ControlOutcome): { readonly failure?: FailureClass } {
+  return result.kind === "rejected" && result.failure !== undefined ? { failure: result.failure } : {};
+}
+
 function refused(inputId: string, result: ControlOutcome): DeliverResult {
   return result.kind === "rejected"
-    ? { landed: "rejected", inputId, code: result.code, reason: result.reason, result }
+    ? { landed: "rejected", inputId, code: result.code, reason: result.reason, ...failureOf(result), result }
     : { landed: "rejected", inputId, code: "unsupported", reason: "accepted", result };
 }
 

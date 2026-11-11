@@ -102,11 +102,12 @@ test.each([
   expect(rejection).toEqual({ kind: "rejected", code, reason: native.message, native, ...(failure === undefined ? {} : { failure }) });
 });
 
-test("a refused prompt's class reaches the host's outcome", async () => {
+test("a refused prompt's class reaches the host's outcome and deliver's result", async () => {
   serve("0.154.0", (method) => method === "turn/start" ? { code: -32_602, message: "Input exceeds the maximum length of 1048576 characters.", data: { input_error_code: "input_too_large" } } : null);
   const session = await codexSession(installation, { cwd: process.cwd() });
   try {
     expect(await session.prompt("hi")).toMatchObject({ kind: "rejected", code: "runtime_refused", failure: "input_too_large" });
+    expect(await session.deliver("hi")).toMatchObject({ landed: "rejected", code: "runtime_refused", failure: "input_too_large" });
   } finally { await session.dispose(); }
 });
 

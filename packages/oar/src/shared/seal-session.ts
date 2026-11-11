@@ -91,7 +91,7 @@ export function sealSession(adapterSession: AdapterSession): Session {
     const queued = await queue(input, identified);
     return queued.kind === "accepted"
       ? { landed: "queued", result: queued }
-      : { landed: "rejected", code: queued.code, reason: queued.reason, result: queued };
+      : { landed: "rejected", code: queued.code, reason: queued.reason, ...(queued.failure === undefined ? {} : { failure: queued.failure }), result: queued };
   };
   const adapterGoal = adapterSession.goal;
   const sealed: Session = {
