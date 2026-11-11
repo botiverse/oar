@@ -1,6 +1,6 @@
 {
   "date": "2026-11-11",
-  "scope": "Focused Cursor SDK validation; the ordinary daily inventory is separate.",
+  "scope": "Morning Cursor SDK live validation plus the evening core-runtime inventory and isolated native checks.",
   "baseCommit": "2083f1ee",
   "sdk": "1.3.1",
   "node": "24.19.0",
@@ -391,5 +391,4064 @@
     },
     "build": "passed",
     "cleanInstall": "passed"
+  },
+  "daily": {
+    "checkedAt": "2026-11-11T19:08:00.203Z",
+    "platform": "linux-x64",
+    "node": "v24.19.0",
+    "oarBase": "04fffc3f179eb3b318bb87af3846a6b63acce763",
+    "provider": "Isolated synthetic or loopback scripted providers; this evening run uses no real account or paid inference",
+    "inventoryMeaning": "PATH discovery only; native checks select exact isolated binaries",
+    "inventory": [
+      {
+        "runtime": "antigravity",
+        "source": "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app/manifests/linux_amd64.json",
+        "latest": "1.5.6",
+        "installed": null,
+        "installation": "not_found",
+        "status": "unavailable"
+      },
+      {
+        "runtime": "claude",
+        "source": "https://registry.npmjs.org/@anthropic-ai/claude-code/latest",
+        "latest": "2.1.322",
+        "installed": "2.1.292",
+        "installation": "available",
+        "status": "different"
+      },
+      {
+        "runtime": "codex",
+        "source": "https://registry.npmjs.org/@openai/codex/latest",
+        "latest": "0.167.1",
+        "installed": "0.162.0",
+        "installation": "available",
+        "status": "different"
+      },
+      {
+        "runtime": "cursor",
+        "source": "https://registry.npmjs.org/@cursor/sdk/latest",
+        "latest": "1.3.1",
+        "installed": "1.3.1",
+        "installation": "available",
+        "status": "current"
+      },
+      {
+        "runtime": "dsh",
+        "source": "https://registry.npmjs.org/@deepseek-ai/dsh/latest",
+        "latest": "0.2.2-rc.1",
+        "installed": null,
+        "installation": "not_found",
+        "status": "unavailable"
+      },
+      {
+        "runtime": "grok",
+        "source": "https://x.ai/cli/stable",
+        "latest": "1.0.77",
+        "installed": "1.0.77",
+        "installation": "available",
+        "status": "current"
+      },
+      {
+        "runtime": "kimi",
+        "source": "https://registry.npmjs.org/@moonshot-ai/kimi-code/latest",
+        "latest": "2.5.3",
+        "installed": "2.1.1",
+        "installation": "available",
+        "status": "different"
+      },
+      {
+        "runtime": "opencode",
+        "line": "v1",
+        "source": "https://registry.npmjs.org/opencode-ai/latest",
+        "latest": "1.19.5",
+        "installed": "1.18.30",
+        "installation": "available",
+        "status": "different"
+      },
+      {
+        "runtime": "opencode",
+        "line": "v2",
+        "source": "https://registry.npmjs.org/@opencode/cli/latest",
+        "latest": "2.2.7",
+        "installed": "1.18.30",
+        "installation": "available",
+        "status": "other_release_line"
+      },
+      {
+        "runtime": "codebuddy",
+        "source": "https://registry.npmjs.org/@tencent-ai/codebuddy-code/latest",
+        "latest": "2.183.0",
+        "installed": "2.173.0",
+        "installation": "available",
+        "status": "different"
+      },
+      {
+        "runtime": "qoder",
+        "source": "https://registry.npmjs.org/@qoder-ai/qodercli/latest",
+        "latest": "1.1.87",
+        "installed": "1.1.78",
+        "installation": "available",
+        "status": "different"
+      },
+      {
+        "runtime": "qwen",
+        "source": "https://registry.npmjs.org/@qwen-code/qwen-code/latest",
+        "latest": "0.27.2",
+        "installed": "0.26.0",
+        "installation": "available",
+        "status": "different"
+      },
+      {
+        "runtime": "pi",
+        "source": "https://registry.npmjs.org/@earendil-works/pi-coding-agent/latest",
+        "latest": "1.5.2",
+        "installed": "1.5.0",
+        "installation": "available",
+        "status": "different"
+      },
+      {
+        "runtime": "pi-durable",
+        "source": "https://registry.npmjs.org/@earendil-works/pi-durable/latest",
+        "latest": "1.5.2",
+        "installed": "1.4.0",
+        "installation": "host_supplied",
+        "status": "different"
+      }
+    ],
+    "checkExitCodeMeaning": "Runner exit status is distinct from observed outcomes and retained failed cases",
+    "checks": [
+      {
+        "name": "qwen-version",
+        "exitCode": 0,
+        "elapsedSeconds": 0.065,
+        "failedCases": [],
+        "sourceLogSha256": "c0472ebd5e87101546086b873029c8e6b5b99460b97c596aa992fccbfb52027a"
+      },
+      {
+        "name": "codex-version",
+        "exitCode": 0,
+        "elapsedSeconds": 0.115,
+        "failedCases": [],
+        "sourceLogSha256": "e248d9860a2845d5c66274e8536631ea12768f12ebe0faf4dd691a32d61b4ac4"
+      },
+      {
+        "name": "codex-behavior",
+        "exitCode": 0,
+        "elapsedSeconds": 30.15,
+        "cases": {
+          "passed": 16,
+          "skipped": 3,
+          "failed": 0
+        },
+        "failedCases": [],
+        "sourceLogSha256": "9cf7c592df20636f8c5c6904903f0cf8650e3015e0ec175f36fcea6a759b3a42"
+      },
+      {
+        "name": "qwen-behavior",
+        "exitCode": 0,
+        "elapsedSeconds": 58.69,
+        "cases": {
+          "passed": 16,
+          "skipped": 3,
+          "failed": 0
+        },
+        "failedCases": [],
+        "sourceLogSha256": "fc23aa5c96933148229f3af4fd7bebe479cce6196f7bec35a618661d3b06f50f"
+      },
+      {
+        "name": "qwen-vendor",
+        "exitCode": 0,
+        "elapsedSeconds": 166.374,
+        "cases": {
+          "passed": 19,
+          "skipped": 438
+        },
+        "failedCases": [],
+        "sourceLogSha256": "f8c7ed4f2c0035dc859695ca144d7f08f82bf315fb2cd32a72c7624f9e84b108"
+      },
+      {
+        "name": "qwen-native-plain",
+        "exitCode": 0,
+        "elapsedSeconds": 15.137,
+        "failedCases": [],
+        "sourceLogSha256": "91c2e6d0b1c330523c1ce49428e3f5547594c1f663b594aa2d7ed99d81999d71"
+      },
+      {
+        "name": "qwen-native-reply-blocks",
+        "exitCode": 0,
+        "elapsedSeconds": 19.521,
+        "failedCases": [],
+        "sourceLogSha256": "c8ee4fe7aeb4ca90464c6f8d3cf070532d1e071a8d8b179d30431ce4e78bc6ac"
+      },
+      {
+        "name": "qwen-native-tools",
+        "exitCode": 0,
+        "elapsedSeconds": 25.396,
+        "failedCases": [],
+        "sourceLogSha256": "3cd08358eda897702f3e270e8a9bf5f35bc7e40820f8db9b9668705c3d099602"
+      },
+      {
+        "name": "codex-vendor",
+        "exitCode": 0,
+        "elapsedSeconds": 267.034,
+        "cases": {
+          "passed": 78,
+          "skipped": 379
+        },
+        "failedCases": [],
+        "sourceLogSha256": "2f497a2788754b0ac3620c63f052b8d089158043e2eea2b2bae8486f1efc0dee"
+      },
+      {
+        "name": "antigravity-version",
+        "exitCode": 0,
+        "elapsedSeconds": 0.265,
+        "failedCases": [],
+        "sourceLogSha256": "dab64e06c0817d77b4f887261832cbb34ba023cac7c74d72d81068553652d0c5"
+      },
+      {
+        "name": "qwen-native-permission",
+        "exitCode": 0,
+        "elapsedSeconds": 24.978,
+        "failedCases": [],
+        "sourceLogSha256": "2da7a20b9d158ca8103dbf3e630c63c04699f27246f4f1885422f97e983e9a2e"
+      },
+      {
+        "name": "antigravity-behavior",
+        "exitCode": 0,
+        "elapsedSeconds": 16.238,
+        "cases": {
+          "passed": 17,
+          "skipped": 2,
+          "failed": 0
+        },
+        "failedCases": [],
+        "sourceLogSha256": "a976dfa5727e07fffd90cec9b049d56799d278b4d5f970d3953e9259bf4bc2bd"
+      },
+      {
+        "name": "qwen-native-catalog",
+        "exitCode": 0,
+        "elapsedSeconds": 32.207,
+        "failedCases": [],
+        "sourceLogSha256": "8ac2817d7d7972836b18c46cccd6ac3ede9d6ed795c9aa2a28e5f59de7382e6a"
+      },
+      {
+        "name": "qwen-lock-lifetime",
+        "exitCode": 0,
+        "elapsedSeconds": 16.092,
+        "failedCases": [],
+        "sourceLogSha256": "44af6f4c7ec346a4515f6a06a783701be2762ebc478dd59cd57bc8d2fdbfe78f"
+      },
+      {
+        "name": "codebuddy-version",
+        "exitCode": 0,
+        "elapsedSeconds": 0.065,
+        "failedCases": [],
+        "sourceLogSha256": "f590c2ac4e3a2cbf7e4ac0158759a70f17766c5d10184826a5a27a4917537703"
+      },
+      {
+        "name": "antigravity-vendor",
+        "exitCode": 0,
+        "elapsedSeconds": 100.54,
+        "cases": {
+          "passed": 12,
+          "skipped": 445
+        },
+        "failedCases": [],
+        "sourceLogSha256": "4ef55d91ec1fef61d30f2625a703661b717884d4727f85f9f7a4acec7837a19b"
+      },
+      {
+        "name": "qoder-version",
+        "exitCode": 0,
+        "elapsedSeconds": 2.625,
+        "failedCases": [],
+        "sourceLogSha256": "6d9722b827f9fc06e7f0432d3991671af435e9e50ed8c82f3cf2f2a3340fc904"
+      },
+      {
+        "name": "codebuddy-behavior",
+        "exitCode": 0,
+        "elapsedSeconds": 178.678,
+        "cases": {
+          "passed": 16,
+          "skipped": 3,
+          "failed": 0
+        },
+        "failedCases": [],
+        "sourceLogSha256": "991072f20f09e4341dfbb006eea3078d74a187b3d7af072e3ddfd6c792e47fb2"
+      },
+      {
+        "name": "qoder-behavior",
+        "exitCode": 1,
+        "elapsedSeconds": 212.309,
+        "cases": {
+          "passed": 12,
+          "skipped": 2,
+          "failed": 5
+        },
+        "failedCases": [
+          "session.framing-and-attribution: Expected values to be strictly deep-equal:",
+          "session.observer-isolation: a throwing observer affected the run",
+          "session.multi-turn-conversation: Expected values to be strictly deep-equal:",
+          "session.steer-mid-turn: steer broke the turn: {\"kind\":\"failed\",\"failure\":\"unknown\",\"reason\":\"inference.remoteChat.stream failed: HTTP 500: Internal Server Error\"}",
+          "session.resume-or-loud-rejection: Expected values to be strictly deep-equal:"
+        ],
+        "sourceLogSha256": "d79c933515a32b30177f00ebfe46d9c62d8ca0fc5ae9fbda8a9bdfc6e099bc18"
+      },
+      {
+        "name": "codebuddy-vendor",
+        "exitCode": 0,
+        "elapsedSeconds": 115.861,
+        "cases": {
+          "passed": 6,
+          "skipped": 451
+        },
+        "failedCases": [],
+        "sourceLogSha256": "09d9a25070cea06b42df21e895b1f2b9f5c1a6dbed0ee25ad871c03e4b76bca5"
+      },
+      {
+        "name": "codebuddy-stream-immediate-1",
+        "exitCode": 0,
+        "elapsedSeconds": 14.739,
+        "failedCases": [],
+        "sourceLogSha256": "f59113a90ed2bf7a384f948e35871f2f38be5a8a73a24de61252e0923b17d2eb"
+      },
+      {
+        "name": "codebuddy-stream-immediate-2",
+        "exitCode": 0,
+        "elapsedSeconds": 60.341,
+        "failedCases": [],
+        "sourceLogSha256": "bcacee37fda58d54fc03a320668ad062beb4e20c5d05ed3667e9ff42b11ba295"
+      },
+      {
+        "name": "codebuddy-stream-immediate-3",
+        "exitCode": 0,
+        "elapsedSeconds": 60.444,
+        "failedCases": [],
+        "sourceLogSha256": "bcacee37fda58d54fc03a320668ad062beb4e20c5d05ed3667e9ff42b11ba295"
+      },
+      {
+        "name": "codebuddy-stream-delay",
+        "exitCode": 0,
+        "elapsedSeconds": 24.914,
+        "failedCases": [],
+        "sourceLogSha256": "57c62791bbb8f850e11995c75a277a2a9417d9a6ba4b4455f4f173225d2887be"
+      },
+      {
+        "name": "codebuddy-acp-immediate",
+        "exitCode": 0,
+        "elapsedSeconds": 25.407,
+        "failedCases": [],
+        "sourceLogSha256": "1e6c9476739ec2ff081e45f163a49ad9883a779b74aa7e972b8eef4605d2b46d"
+      },
+      {
+        "name": "qoder-vendor",
+        "exitCode": 1,
+        "elapsedSeconds": 297.622,
+        "cases": {
+          "failed": 10,
+          "passed": 4,
+          "skipped": 443
+        },
+        "failedCases": [
+          "sea-trial/vendor/manual-compaction-followup.vendor.test.ts > native followup manual compaction > native boundary proves completion, same-name command configured: false",
+          "sea-trial/vendor/manual-compaction-followup.vendor.test.ts > native followup manual compaction > native boundary proves completion, same-name command configured: true",
+          "sea-trial/vendor/qoder-permission.vendor.test.ts > native permission request crosses stdio and the production reply unlocks execution",
+          "sea-trial/vendor/qoder-prompts.vendor.test.ts > long private prompt files replace and append on native resume",
+          "sea-trial/vendor/qoder-steer.vendor.test.ts > next-priority steer preserves input identity at tool",
+          "sea-trial/vendor/qoder-steer.vendor.test.ts > next-priority steer preserves input identity at streaming",
+          "sea-trial/vendor/qoder.vendor.test.ts > Qoder native model replay > startup idle, consecutive prompts and current-open usage survive resume",
+          "sea-trial/vendor/qoder.vendor.test.ts > Qoder native model replay > applied effort is read back while native private settings stay private",
+          "sea-trial/vendor/qoder.vendor.test.ts > Qoder native model replay > MCP stdio and HTTP tools return real server results",
+          "sea-trial/vendor/qoder.vendor.test.ts > Qoder native model replay > an excluded shell tool cannot execute a forced native call"
+        ],
+        "sourceLogSha256": "97dd4eff12409794dfb427ff7dffe6cec30a77f45e3417e1fbc7f23fc141b6f9"
+      },
+      {
+        "name": "qoder-login",
+        "exitCode": 0,
+        "elapsedSeconds": 1.569,
+        "cases": {
+          "passed": 8
+        },
+        "failedCases": [],
+        "sourceLogSha256": "85d1486124015e2458d9c28d928ea2b239d81ff3b97580c77bc4859db6c3f536",
+        "scope": "Unit fixture tests, not a native Qoder login or logout"
+      },
+      {
+        "name": "qoder-catalog",
+        "exitCode": 0,
+        "elapsedSeconds": 20.837,
+        "failedCases": [],
+        "sourceLogSha256": "88c30ea95d74a144248e4e306f60bcf67747427ae1874e4acf925ab6947dd16e"
+      }
+    ],
+    "qwen": {
+      "catalog": {
+        "results": [
+          {
+            "resume": false,
+            "initialize": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": false,
+            "beforeFirst": "get_usage_info",
+            "response": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": false,
+            "beforeFirst": "get_context_usage",
+            "response": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": false,
+            "first": {
+              "subtype": "success",
+              "is_error": false,
+              "result": "native answer"
+            }
+          },
+          {
+            "resume": false,
+            "second": {
+              "subtype": "success",
+              "is_error": false,
+              "result": "native answer"
+            }
+          },
+          {
+            "resume": false,
+            "subtype": "get_available_models",
+            "response": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": false,
+            "subtype": "get_context_usage",
+            "response": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": false,
+            "subtype": "get_usage_info",
+            "response": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": false,
+            "interrupt": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": false,
+            "interrupted": {
+              "subtype": "error_during_execution",
+              "is_error": true,
+              "result": null
+            }
+          },
+          {
+            "resume": false,
+            "afterAbort": {
+              "subtype": "success",
+              "is_error": false,
+              "result": "slow answer"
+            }
+          },
+          {
+            "resume": true,
+            "initialize": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": true,
+            "beforeFirst": "get_usage_info",
+            "response": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": true,
+            "beforeFirst": "get_context_usage",
+            "response": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": true,
+            "first": {
+              "subtype": "success",
+              "is_error": false,
+              "result": "native answer"
+            }
+          },
+          {
+            "resume": true,
+            "second": {
+              "subtype": "success",
+              "is_error": false,
+              "result": "native answer"
+            }
+          },
+          {
+            "resume": true,
+            "subtype": "get_available_models",
+            "response": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": true,
+            "subtype": "get_context_usage",
+            "response": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": true,
+            "subtype": "get_usage_info",
+            "response": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": true,
+            "interrupt": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": true,
+            "interrupted": {
+              "subtype": "error_during_execution",
+              "is_error": true,
+              "result": null
+            }
+          },
+          {
+            "resume": true,
+            "afterAbort": {
+              "subtype": "success",
+              "is_error": false,
+              "result": "slow answer"
+            }
+          }
+        ],
+        "wire": {
+          "fresh": {
+            "permissionRequests": 0
+          },
+          "resume": {
+            "permissionRequests": 0
+          }
+        }
+      },
+      "permission": {
+        "results": [
+          {
+            "resume": false,
+            "initialize": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": false,
+            "beforeFirst": "get_usage_info",
+            "response": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": false,
+            "beforeFirst": "get_context_usage",
+            "response": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": false,
+            "mcp": {
+              "subtype": "success",
+              "is_error": false,
+              "result": "tool completed"
+            }
+          },
+          {
+            "resume": false,
+            "first": {
+              "subtype": "success",
+              "is_error": false,
+              "result": "native answer"
+            }
+          },
+          {
+            "resume": false,
+            "second": {
+              "subtype": "success",
+              "is_error": false,
+              "result": "native answer"
+            }
+          },
+          {
+            "resume": false,
+            "subtype": "get_available_models",
+            "response": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": false,
+            "subtype": "get_context_usage",
+            "response": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": false,
+            "subtype": "get_usage_info",
+            "response": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": false,
+            "interrupt": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": false,
+            "interrupted": {
+              "subtype": "error_during_execution",
+              "is_error": true,
+              "result": null
+            }
+          },
+          {
+            "resume": false,
+            "afterAbort": {
+              "subtype": "success",
+              "is_error": false,
+              "result": "native answer"
+            }
+          },
+          {
+            "resume": true,
+            "initialize": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": true,
+            "beforeFirst": "get_usage_info",
+            "response": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": true,
+            "beforeFirst": "get_context_usage",
+            "response": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": true,
+            "mcp": {
+              "subtype": "success",
+              "is_error": false,
+              "result": "tool completed"
+            }
+          },
+          {
+            "resume": true,
+            "first": {
+              "subtype": "success",
+              "is_error": false,
+              "result": "native answer"
+            }
+          },
+          {
+            "resume": true,
+            "second": {
+              "subtype": "success",
+              "is_error": false,
+              "result": "native answer"
+            }
+          },
+          {
+            "resume": true,
+            "subtype": "get_available_models",
+            "response": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": true,
+            "subtype": "get_context_usage",
+            "response": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": true,
+            "subtype": "get_usage_info",
+            "response": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": true,
+            "interrupt": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": true,
+            "interrupted": {
+              "subtype": "error_during_execution",
+              "is_error": true,
+              "result": null
+            }
+          },
+          {
+            "resume": true,
+            "afterAbort": {
+              "subtype": "success",
+              "is_error": false,
+              "result": "slow answer"
+            }
+          }
+        ],
+        "wire": {
+          "fresh": {
+            "permissionRequests": 1
+          },
+          "resume": {
+            "permissionRequests": 1
+          }
+        }
+      },
+      "plain": {
+        "results": [
+          {
+            "resume": false,
+            "initialize": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": false,
+            "beforeFirst": "get_usage_info",
+            "response": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": false,
+            "beforeFirst": "get_context_usage",
+            "response": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": false,
+            "first": {
+              "subtype": "success",
+              "is_error": false,
+              "result": "native answer"
+            }
+          },
+          {
+            "resume": false,
+            "second": {
+              "subtype": "success",
+              "is_error": false,
+              "result": "native answer"
+            }
+          },
+          {
+            "resume": false,
+            "subtype": "get_available_models",
+            "response": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": false,
+            "subtype": "get_context_usage",
+            "response": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": false,
+            "subtype": "get_usage_info",
+            "response": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": false,
+            "interrupt": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": false,
+            "interrupted": {
+              "subtype": "error_during_execution",
+              "is_error": true,
+              "result": null
+            }
+          },
+          {
+            "resume": false,
+            "afterAbort": {
+              "subtype": "success",
+              "is_error": false,
+              "result": "native answer"
+            }
+          },
+          {
+            "resume": true,
+            "initialize": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": true,
+            "beforeFirst": "get_usage_info",
+            "response": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": true,
+            "beforeFirst": "get_context_usage",
+            "response": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": true,
+            "first": {
+              "subtype": "success",
+              "is_error": false,
+              "result": "native answer"
+            }
+          },
+          {
+            "resume": true,
+            "second": {
+              "subtype": "success",
+              "is_error": false,
+              "result": "native answer"
+            }
+          },
+          {
+            "resume": true,
+            "subtype": "get_available_models",
+            "response": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": true,
+            "subtype": "get_context_usage",
+            "response": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": true,
+            "subtype": "get_usage_info",
+            "response": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": true,
+            "interrupt": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": true,
+            "interrupted": {
+              "subtype": "error_during_execution",
+              "is_error": true,
+              "result": null
+            }
+          },
+          {
+            "resume": true,
+            "afterAbort": {
+              "subtype": "success",
+              "is_error": false,
+              "result": "native answer"
+            }
+          }
+        ],
+        "wire": {
+          "fresh": {
+            "permissionRequests": 0,
+            "firstTurn": {
+              "messageStarts": 1,
+              "blockStarts": [
+                {
+                  "index": 0,
+                  "type": "text"
+                }
+              ],
+              "snapshots": [
+                {
+                  "types": [
+                    "text"
+                  ],
+                  "matchesInitialMessageId": true
+                }
+              ]
+            }
+          },
+          "resume": {
+            "permissionRequests": 0,
+            "firstTurn": {
+              "messageStarts": 1,
+              "blockStarts": [
+                {
+                  "index": 0,
+                  "type": "text"
+                }
+              ],
+              "snapshots": [
+                {
+                  "types": [
+                    "text"
+                  ],
+                  "matchesInitialMessageId": true
+                }
+              ]
+            }
+          }
+        }
+      },
+      "reply-blocks": {
+        "results": [
+          {
+            "resume": false,
+            "initialize": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": false,
+            "beforeFirst": "get_usage_info",
+            "response": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": false,
+            "beforeFirst": "get_context_usage",
+            "response": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": false,
+            "first": {
+              "subtype": "success",
+              "is_error": false,
+              "result": "A repeated paragraph.\nA repeated paragraph.\n"
+            }
+          },
+          {
+            "resume": false,
+            "second": {
+              "subtype": "success",
+              "is_error": false,
+              "result": "A repeated paragraph.\nA repeated paragraph.\n"
+            }
+          },
+          {
+            "resume": false,
+            "subtype": "get_available_models",
+            "response": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": false,
+            "subtype": "get_context_usage",
+            "response": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": false,
+            "subtype": "get_usage_info",
+            "response": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": false,
+            "interrupt": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": false,
+            "interrupted": {
+              "subtype": "error_during_execution",
+              "is_error": true,
+              "result": null
+            }
+          },
+          {
+            "resume": false,
+            "afterAbort": {
+              "subtype": "success",
+              "is_error": false,
+              "result": "A repeated paragraph.\nA repeated paragraph.\n"
+            }
+          },
+          {
+            "resume": true,
+            "initialize": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": true,
+            "beforeFirst": "get_usage_info",
+            "response": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": true,
+            "beforeFirst": "get_context_usage",
+            "response": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": true,
+            "first": {
+              "subtype": "success",
+              "is_error": false,
+              "result": "A repeated paragraph.\nA repeated paragraph.\n"
+            }
+          },
+          {
+            "resume": true,
+            "second": {
+              "subtype": "success",
+              "is_error": false,
+              "result": "A repeated paragraph.\nA repeated paragraph.\n"
+            }
+          },
+          {
+            "resume": true,
+            "subtype": "get_available_models",
+            "response": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": true,
+            "subtype": "get_context_usage",
+            "response": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": true,
+            "subtype": "get_usage_info",
+            "response": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": true,
+            "interrupt": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": true,
+            "interrupted": {
+              "subtype": "error_during_execution",
+              "is_error": true,
+              "result": null
+            }
+          },
+          {
+            "resume": true,
+            "afterAbort": {
+              "subtype": "success",
+              "is_error": false,
+              "result": "A repeated paragraph.\nA repeated paragraph.\n"
+            }
+          }
+        ],
+        "wire": {
+          "fresh": {
+            "permissionRequests": 0,
+            "firstTurn": {
+              "messageStarts": 1,
+              "blockStarts": [
+                {
+                  "index": 0,
+                  "type": "thinking"
+                },
+                {
+                  "index": 0,
+                  "type": "text"
+                }
+              ],
+              "snapshots": [
+                {
+                  "types": [
+                    "thinking"
+                  ],
+                  "matchesInitialMessageId": true
+                },
+                {
+                  "types": [
+                    "text"
+                  ],
+                  "matchesInitialMessageId": false
+                }
+              ]
+            }
+          },
+          "resume": {
+            "permissionRequests": 0,
+            "firstTurn": {
+              "messageStarts": 1,
+              "blockStarts": [
+                {
+                  "index": 0,
+                  "type": "thinking"
+                },
+                {
+                  "index": 0,
+                  "type": "text"
+                }
+              ],
+              "snapshots": [
+                {
+                  "types": [
+                    "thinking"
+                  ],
+                  "matchesInitialMessageId": true
+                },
+                {
+                  "types": [
+                    "text"
+                  ],
+                  "matchesInitialMessageId": false
+                }
+              ]
+            }
+          }
+        }
+      },
+      "tools": {
+        "results": [
+          {
+            "resume": false,
+            "initialize": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": false,
+            "beforeFirst": "get_usage_info",
+            "response": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": false,
+            "beforeFirst": "get_context_usage",
+            "response": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": false,
+            "mcp": {
+              "subtype": "success",
+              "is_error": false,
+              "result": "tool completed"
+            }
+          },
+          {
+            "resume": false,
+            "first": {
+              "subtype": "success",
+              "is_error": false,
+              "result": "native answer"
+            }
+          },
+          {
+            "resume": false,
+            "second": {
+              "subtype": "success",
+              "is_error": false,
+              "result": "native answer"
+            }
+          },
+          {
+            "resume": false,
+            "subtype": "get_available_models",
+            "response": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": false,
+            "subtype": "get_context_usage",
+            "response": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": false,
+            "subtype": "get_usage_info",
+            "response": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": false,
+            "interrupt": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": false,
+            "interrupted": {
+              "subtype": "error_during_execution",
+              "is_error": true,
+              "result": null
+            }
+          },
+          {
+            "resume": false,
+            "afterAbort": {
+              "subtype": "success",
+              "is_error": false,
+              "result": "slow answer"
+            }
+          },
+          {
+            "resume": true,
+            "initialize": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": true,
+            "beforeFirst": "get_usage_info",
+            "response": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": true,
+            "beforeFirst": "get_context_usage",
+            "response": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": true,
+            "mcp": {
+              "subtype": "success",
+              "is_error": false,
+              "result": "tool completed"
+            }
+          },
+          {
+            "resume": true,
+            "first": {
+              "subtype": "success",
+              "is_error": false,
+              "result": "native answer"
+            }
+          },
+          {
+            "resume": true,
+            "second": {
+              "subtype": "success",
+              "is_error": false,
+              "result": "native answer"
+            }
+          },
+          {
+            "resume": true,
+            "subtype": "get_available_models",
+            "response": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": true,
+            "subtype": "get_context_usage",
+            "response": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": true,
+            "subtype": "get_usage_info",
+            "response": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": true,
+            "interrupt": {
+              "subtype": "success"
+            }
+          },
+          {
+            "resume": true,
+            "interrupted": {
+              "subtype": "error_during_execution",
+              "is_error": true,
+              "result": null
+            }
+          },
+          {
+            "resume": true,
+            "afterAbort": {
+              "subtype": "success",
+              "is_error": false,
+              "result": "native answer"
+            }
+          }
+        ],
+        "wire": {
+          "fresh": {
+            "permissionRequests": 0
+          },
+          "resume": {
+            "permissionRequests": 0
+          }
+        }
+      },
+      "lock": {
+        "runtime": "Qwen",
+        "facts": [
+          {
+            "phase": "warm-home initialize with held lock",
+            "elapsedMs": 1771,
+            "requests": 0
+          },
+          {
+            "phase": "first prompt blocked after initialize",
+            "lockHeld": true,
+            "requests": 0
+          },
+          {
+            "phase": "first prompt after releasing lock",
+            "outcome": "completed"
+          },
+          {
+            "phase": "ordinary later prompt with held lock",
+            "outcome": "completed"
+          }
+        ]
+      },
+      "credentialNames": {
+        "version": "0.27.2",
+        "providerPresets": [
+          "BAILIAN_CODING_PLAN_API_KEY",
+          "BAILIAN_TOKEN_PLAN_API_KEY",
+          "DASHSCOPE_API_KEY",
+          "DEEPSEEK_API_KEY",
+          "IDEALAB_API_KEY",
+          "MINIMAX_API_KEY",
+          "MODELSCOPE_API_KEY",
+          "MOONSHOT_API_KEY",
+          "OPENROUTER_API_KEY",
+          "QWENCLOUD_API_KEY",
+          "QWENCLOUD_TOKEN_PLAN_API_KEY",
+          "REQUESTY_API_KEY",
+          "XAI_API_KEY",
+          "ZAI_API_KEY"
+        ],
+        "nativeAuth": [
+          "ANTHROPIC_API_KEY",
+          "GEMINI_API_KEY",
+          "GOOGLE_API_KEY",
+          "OPENAI_API_KEY"
+        ],
+        "missingFromOar": [],
+        "presetBundle": "chunk-N3AKLLXG.js",
+        "nativeAuthBundle": "chunk-AZ4Q2ZWQ.js",
+        "nativeAuthMapping": "openai:{apiKey:[\"OPENAI_API_KEY\"],baseUrl:[\"OPENAI_BASE_URL\"],model:[\"OPENAI_MODEL\",\"QWEN_MODEL\"]},\"openai-responses\":{apiKey:[\"OPENAI_API_KEY\"],baseUrl:[\"OPENAI_BASE_URL\"],model:[\"OPENAI_MODEL\"]},anthropic:{apiKey:[\"ANTHROPIC_API_KEY\"],baseUrl:[\"ANTHROPIC_BASE_URL\"],model:[\"ANTHROPIC_MODEL\"]},gemini:{apiKey:[\"GEMINI_API_KEY\"],baseUrl:[],model:[\"GEMINI_MODEL\"]},\"vertex-ai\":{apiKey:[\"GOOGLE_API_KEY\"],baseUrl:[],model:[\"GOOGLE_MODEL\"]},\"qwen-oauth\":{apiKey:[],baseUrl:[],model:[]},\"qwen-subscription\":{apiKey:[],baseUrl:[],model:[]}}"
+      },
+      "publishedRelease": "https://github.com/QwenLM/qwen-code/releases/tag/v0.27.2"
+    },
+    "codebuddy": {
+      "version": "2.183.0",
+      "standalone": {
+        "version": "2.183.0",
+        "archiveUrl": "https://acc-1258344699.cos.accelerate.myqcloud.com/@tencent-ai/codebuddy-code/releases/download/2.183.0/codebuddy-code_Linux_x86_64.tar.gz",
+        "sha256": "a5a050a8966013a62fa8480c45b2141a63d82d6713d300838779e5fba3b388ed",
+        "checksumMatched": true,
+        "versionOutput": "2.183.0"
+      },
+      "streamImmediate": [
+        {
+          "delayMs": 0,
+          "initialized": true,
+          "results": 2,
+          "requests": [
+            {
+              "number": 1,
+              "prompt": "first"
+            },
+            {
+              "number": 2,
+              "prompt": "second"
+            },
+            {
+              "number": 3,
+              "prompt": "second"
+            }
+          ],
+          "timedOut": false,
+          "exitCode": 0,
+          "signal": null
+        },
+        {
+          "delayMs": 0,
+          "initialized": true,
+          "results": 1,
+          "requests": [
+            {
+              "number": 1,
+              "prompt": "first"
+            }
+          ],
+          "timedOut": true,
+          "exitCode": null,
+          "signal": "SIGTERM"
+        },
+        {
+          "delayMs": 0,
+          "initialized": true,
+          "results": 1,
+          "requests": [
+            {
+              "number": 1,
+              "prompt": "first"
+            }
+          ],
+          "timedOut": true,
+          "exitCode": null,
+          "signal": "SIGTERM"
+        }
+      ],
+      "streamDelay": {
+        "delayMs": 1000,
+        "initialized": true,
+        "results": 2,
+        "requests": [
+          {
+            "number": 1,
+            "prompt": "first"
+          },
+          {
+            "number": 2,
+            "prompt": "second"
+          }
+        ],
+        "timedOut": false,
+        "exitCode": 0,
+        "signal": null
+      },
+      "acpImmediate": {
+        "pass": true,
+        "protocol": "acp",
+        "delayMs": 0,
+        "initialized": true,
+        "results": 2,
+        "stopReasons": [
+          "end_turn",
+          "end_turn"
+        ],
+        "requests": [
+          {
+            "number": 1,
+            "prompt": "first",
+            "purpose": "title",
+            "model": "deepseek-flash",
+            "stream": true
+          },
+          {
+            "number": 2,
+            "prompt": "first",
+            "purpose": "conversation",
+            "model": "deepseek-flash",
+            "stream": true
+          },
+          {
+            "number": 3,
+            "prompt": "first",
+            "purpose": "title",
+            "model": "deepseek-flash",
+            "stream": true
+          },
+          {
+            "number": 4,
+            "prompt": "second",
+            "purpose": "conversation",
+            "model": "deepseek-flash",
+            "stream": true
+          }
+        ],
+        "updates": [
+          "config_option_update",
+          "available_commands_update",
+          "session_info_update",
+          "session_info_update",
+          "session_info_update",
+          "session_info_update",
+          "available_commands_update",
+          "session_info_update",
+          "session_info_update",
+          "agent_message_chunk",
+          "session_info_update",
+          "session_info_update",
+          "available_commands_update",
+          "session_info_update",
+          "session_info_update",
+          "session_info_update",
+          "session_info_update",
+          "session_info_update",
+          "session_info_update",
+          "session_info_update",
+          "agent_message_chunk",
+          "session_info_update",
+          "session_info_update",
+          "session_info_update"
+        ],
+        "errors": [],
+        "timedOut": false,
+        "exitCode": null,
+        "signal": "SIGTERM"
+      }
+    },
+    "qoder": {
+      "version": "1.1.87",
+      "catalog": {
+        "version": "1.1.87",
+        "syntheticReplay": true,
+        "requested": "efficient",
+        "rows": [
+          {
+            "fetchStrategy": "cache",
+            "initModel": "Efficient",
+            "selected": {
+              "keys": [
+                "availableContextWindows",
+                "defaultContextWindow",
+                "description",
+                "displayName",
+                "format",
+                "isEnabled",
+                "isVl",
+                "maxInputTokens",
+                "modelId",
+                "priceFactor",
+                "serverScene",
+                "source",
+                "strategies",
+                "value"
+              ],
+              "value": "efficient",
+              "modelId": "efficient",
+              "displayName": "Efficient",
+              "nativeName": null
+            }
+          },
+          {
+            "fetchStrategy": "live",
+            "initModel": "Efficient",
+            "selected": {
+              "keys": [
+                "availableContextWindows",
+                "defaultContextWindow",
+                "description",
+                "displayName",
+                "format",
+                "isEnabled",
+                "isVl",
+                "maxInputTokens",
+                "modelId",
+                "priceFactor",
+                "serverScene",
+                "source",
+                "strategies",
+                "value"
+              ],
+              "value": "efficient",
+              "modelId": "efficient",
+              "displayName": "Efficient",
+              "nativeName": null
+            }
+          }
+        ],
+        "opened": {
+          "kind": "opened",
+          "model": "Efficient"
+        }
+      },
+      "permissionReplay": {
+        "subtype": "error_during_execution",
+        "isError": true,
+        "errors": [
+          "inference.remoteChat.stream failed: HTTP 500: Internal Server Error"
+        ],
+        "usage": {
+          "input_tokens": 0,
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "output_tokens": 0,
+          "server_tool_use": {
+            "web_search_requests": 0,
+            "web_fetch_requests": 0
+          },
+          "service_tier": "standard",
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 0,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "inference_geo": "",
+          "iterations": [],
+          "speed": "standard"
+        },
+        "permissionRequests": 0,
+        "permissionReplies": 0
+      }
+    },
+    "antigravity": {
+      "version": "1.5.6",
+      "archive": {
+        "runtime": "antigravity",
+        "version": "1.5.6",
+        "exitCode": 0,
+        "sha512": "0c67824908caf9cc3156699802b8097f2fd02c4608ae9293c9aa7f17e1bcd342c4b9c2e158388253a37804ef6bd9c6b1d25cfaca3c07bbb7587378fc91839bb4",
+        "files": [
+          "antigravity"
+        ]
+      }
+    },
+    "windows": {
+      "windowStart": "2026-11-10T19:08:14Z",
+      "windowEnd": "2026-11-11T19:08:00Z",
+      "windowDefinition": "Workflow run creation time; all pages and attempts inspected, unique job ids counted once. Results read after inventory cutoff.",
+      "ordinaryRunCount": 63,
+      "ordinaryAttempts": 72,
+      "piRpcVendorConclusions": {
+        "success": 72
+      },
+      "piRpcVendorJobs": [
+        {
+          "runId": 43082123497,
+          "attempt": 1,
+          "headSha": "120a97281fc9c59b2ba8447a406d87819c7cad39",
+          "jobId": 130737072141,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43082123497/job/130737072141"
+        },
+        {
+          "runId": 43082057193,
+          "attempt": 1,
+          "headSha": "04fffc3f179eb3b318bb87af3846a6b63acce763",
+          "jobId": 130736847335,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43082057193/job/130736847335"
+        },
+        {
+          "runId": 43081094065,
+          "attempt": 1,
+          "headSha": "d2a80e3c18380312e2e3a2617d9384653bf824ac",
+          "jobId": 130733526708,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43081094065/job/130733526708"
+        },
+        {
+          "runId": 43078876080,
+          "attempt": 1,
+          "headSha": "8cef06b1be709620e79143a616fff2b7dcc08921",
+          "jobId": 130725868677,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43078876080/job/130725868677"
+        },
+        {
+          "runId": 43075264385,
+          "attempt": 1,
+          "headSha": "1f56f6f4df09d111f3d696d327e2b1713e93307b",
+          "jobId": 130713306217,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43075264385/job/130713306217"
+        },
+        {
+          "runId": 43074471059,
+          "attempt": 1,
+          "headSha": "11f9b8f71a31cc5f8f4c8f3e8df3e4c708003064",
+          "jobId": 130710571179,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43074471059/job/130710571179"
+        },
+        {
+          "runId": 43074471059,
+          "attempt": 2,
+          "headSha": "11f9b8f71a31cc5f8f4c8f3e8df3e4c708003064",
+          "jobId": 130730575289,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43074471059/job/130730575289"
+        },
+        {
+          "runId": 43074355995,
+          "attempt": 1,
+          "headSha": "245213dbfb5605f74930be29443578a0675054ff",
+          "jobId": 130710185929,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43074355995/job/130710185929"
+        },
+        {
+          "runId": 43064589966,
+          "attempt": 1,
+          "headSha": "c45d67aefef0d1166263edbf3bfe6a2e0275d0cb",
+          "jobId": 130676017008,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43064589966/job/130676017008"
+        },
+        {
+          "runId": 43062976963,
+          "attempt": 1,
+          "headSha": "4a463cd1ff4fce007ae35e5a69223586838ba88c",
+          "jobId": 130670226720,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43062976963/job/130670226720"
+        },
+        {
+          "runId": 43062865733,
+          "attempt": 1,
+          "headSha": "78a06da933a36afafa6bf07240c5a737f751eed2",
+          "jobId": 130669825566,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43062865733/job/130669825566"
+        },
+        {
+          "runId": 43061728929,
+          "attempt": 1,
+          "headSha": "e9ded7f7ddd4a039e5fc5b943ab1d3249dcbb8d4",
+          "jobId": 130665805261,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43061728929/job/130665805261"
+        },
+        {
+          "runId": 43061644536,
+          "attempt": 1,
+          "headSha": "999c6fb5eb5511ced155ac1b7078eaa0478a08c4",
+          "jobId": 130665500236,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43061644536/job/130665500236"
+        },
+        {
+          "runId": 43057966842,
+          "attempt": 1,
+          "headSha": "1779c213e6cbc44a9e53f3374b1a2789e9d42780",
+          "jobId": 130652432403,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43057966842/job/130652432403"
+        },
+        {
+          "runId": 43053150811,
+          "attempt": 1,
+          "headSha": "43b690495a6ccb894083eb75b24b6d7e8eaa8b61",
+          "jobId": 130635428572,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43053150811/job/130635428572"
+        },
+        {
+          "runId": 43053150811,
+          "attempt": 2,
+          "headSha": "43b690495a6ccb894083eb75b24b6d7e8eaa8b61",
+          "jobId": 130664860984,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43053150811/job/130664860984"
+        },
+        {
+          "runId": 43052662352,
+          "attempt": 1,
+          "headSha": "cfcff63130315d0f297095b170dc728135942070",
+          "jobId": 130633693158,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43052662352/job/130633693158"
+        },
+        {
+          "runId": 43052619615,
+          "attempt": 1,
+          "headSha": "5d25040e9cc468065b81046e1b5314bb907efa24",
+          "jobId": 130633543273,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43052619615/job/130633543273"
+        },
+        {
+          "runId": 43052545349,
+          "attempt": 1,
+          "headSha": "c987647539aba160fd9a8b8f1a77d25c403967d5",
+          "jobId": 130633282200,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43052545349/job/130633282200"
+        },
+        {
+          "runId": 43050668813,
+          "attempt": 1,
+          "headSha": "5e74062eb610cfdf004e992418d23578ad223809",
+          "jobId": 130626582879,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43050668813/job/130626582879"
+        },
+        {
+          "runId": 43049701968,
+          "attempt": 1,
+          "headSha": "f576b2f4fef826ec494dea69ab048f2e5f7ab995",
+          "jobId": 130623126183,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43049701968/job/130623126183"
+        },
+        {
+          "runId": 43044437072,
+          "attempt": 1,
+          "headSha": "8cde58e7cd68ddf4aad46474f392b672b0dce949",
+          "jobId": 130604519847,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43044437072/job/130604519847"
+        },
+        {
+          "runId": 43041257243,
+          "attempt": 1,
+          "headSha": "e31e4ee4bbdd6399dc14aac769bff6e59caa46d0",
+          "jobId": 130593346014,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43041257243/job/130593346014"
+        },
+        {
+          "runId": 43040563916,
+          "attempt": 1,
+          "headSha": "82815d4b3fe1ba3ea6d15a1c868b8cfc695eb225",
+          "jobId": 130590913866,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43040563916/job/130590913866"
+        },
+        {
+          "runId": 43040526673,
+          "attempt": 1,
+          "headSha": "8d88c57098374a4a17bef61ff91e49bce8634e02",
+          "jobId": 130590780767,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43040526673/job/130590780767"
+        },
+        {
+          "runId": 43040526673,
+          "attempt": 2,
+          "headSha": "8d88c57098374a4a17bef61ff91e49bce8634e02",
+          "jobId": 130615389797,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43040526673/job/130615389797"
+        },
+        {
+          "runId": 43039669239,
+          "attempt": 1,
+          "headSha": "be61683c7bac298f26710b171a91ed639c1db9ec",
+          "jobId": 130587770991,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43039669239/job/130587770991"
+        },
+        {
+          "runId": 43039669239,
+          "attempt": 2,
+          "headSha": "be61683c7bac298f26710b171a91ed639c1db9ec",
+          "jobId": 130600434239,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43039669239/job/130600434239"
+        },
+        {
+          "runId": 43034198254,
+          "attempt": 1,
+          "headSha": "f3e7139c28e55977b15742154b38c24729ceba19",
+          "jobId": 130568670635,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43034198254/job/130568670635"
+        },
+        {
+          "runId": 43032195228,
+          "attempt": 1,
+          "headSha": "ac7fde4ab2c487bc9bb539b5e8329a4032eb30c9",
+          "jobId": 130561840457,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43032195228/job/130561840457"
+        },
+        {
+          "runId": 43028437402,
+          "attempt": 1,
+          "headSha": "4549db2789fb3d07752bc53955be19116d657a12",
+          "jobId": 130548968298,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43028437402/job/130548968298"
+        },
+        {
+          "runId": 43028197826,
+          "attempt": 1,
+          "headSha": "74ac68a5d9e8b600d4ab9d6bc703874427fb41ae",
+          "jobId": 130548158583,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43028197826/job/130548158583"
+        },
+        {
+          "runId": 43025215665,
+          "attempt": 1,
+          "headSha": "f43ef0594b68e251e4711de57755d1c975498a39",
+          "jobId": 130538127792,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43025215665/job/130538127792"
+        },
+        {
+          "runId": 43024706043,
+          "attempt": 1,
+          "headSha": "63dcf4df9b9d76d40574ecfefd9cf6c9191e2171",
+          "jobId": 130536352784,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43024706043/job/130536352784"
+        },
+        {
+          "runId": 43022544198,
+          "attempt": 1,
+          "headSha": "f40382b71d901951eaa6aac8403741172c4a7c0b",
+          "jobId": 130529046333,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43022544198/job/130529046333"
+        },
+        {
+          "runId": 43012710957,
+          "attempt": 1,
+          "headSha": "1c47af72d65ea7d888aad35e779a0bab7af1a98a",
+          "jobId": 130496039935,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43012710957/job/130496039935"
+        },
+        {
+          "runId": 43010951745,
+          "attempt": 1,
+          "headSha": "582c529a1c26406c1e684124e3fb77b83a0359ac",
+          "jobId": 130490130846,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43010951745/job/130490130846"
+        },
+        {
+          "runId": 43008710412,
+          "attempt": 1,
+          "headSha": "08793214f869c47b185ee61175f84e56a966269f",
+          "jobId": 130482593163,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43008710412/job/130482593163"
+        },
+        {
+          "runId": 43005748481,
+          "attempt": 1,
+          "headSha": "8135d1ff2a48e5fc29c1715f70f3a82a076cf4b7",
+          "jobId": 130472680284,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43005748481/job/130472680284"
+        },
+        {
+          "runId": 42999777885,
+          "attempt": 1,
+          "headSha": "0225e07e52a62fc755baea03a1335d94a963deb8",
+          "jobId": 130452764370,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42999777885/job/130452764370"
+        },
+        {
+          "runId": 42999777885,
+          "attempt": 2,
+          "headSha": "0225e07e52a62fc755baea03a1335d94a963deb8",
+          "jobId": 130465246272,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42999777885/job/130465246272"
+        },
+        {
+          "runId": 42999501454,
+          "attempt": 1,
+          "headSha": "794fdf919aff44c2da264f735637ba20ed6e4d97",
+          "jobId": 130451819417,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42999501454/job/130451819417"
+        },
+        {
+          "runId": 42999501454,
+          "attempt": 2,
+          "headSha": "794fdf919aff44c2da264f735637ba20ed6e4d97",
+          "jobId": 130459680305,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42999501454/job/130459680305"
+        },
+        {
+          "runId": 42994122144,
+          "attempt": 1,
+          "headSha": "1a9be955c2c69f30dd867d27210e240185c92f9e",
+          "jobId": 130433828343,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42994122144/job/130433828343"
+        },
+        {
+          "runId": 42993550320,
+          "attempt": 1,
+          "headSha": "358ff234d05c882a72628fc1f8015914bb3a884b",
+          "jobId": 130431963247,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42993550320/job/130431963247"
+        },
+        {
+          "runId": 42993064273,
+          "attempt": 1,
+          "headSha": "3806fc84bc08d264ece56bb7d30180df2b4121c4",
+          "jobId": 130430358119,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42993064273/job/130430358119"
+        },
+        {
+          "runId": 42992193114,
+          "attempt": 1,
+          "headSha": "019b137daea1847f4122e17c1f88028cee436869",
+          "jobId": 130427508447,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42992193114/job/130427508447"
+        },
+        {
+          "runId": 42990248187,
+          "attempt": 1,
+          "headSha": "52711b5103c8ad922ca87a00ed5822265fc729ff",
+          "jobId": 130421080770,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42990248187/job/130421080770"
+        },
+        {
+          "runId": 42974748731,
+          "attempt": 1,
+          "headSha": "315d67395632bf3e09a2d833582e48a3aab144de",
+          "jobId": 130371098014,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42974748731/job/130371098014"
+        },
+        {
+          "runId": 42974748731,
+          "attempt": 2,
+          "headSha": "315d67395632bf3e09a2d833582e48a3aab144de",
+          "jobId": 130376588521,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42974748731/job/130376588521"
+        },
+        {
+          "runId": 42971639017,
+          "attempt": 1,
+          "headSha": "e1e8158873d77d0903ac8ec061ebbaec20f11dd7",
+          "jobId": 130361250286,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42971639017/job/130361250286"
+        },
+        {
+          "runId": 42971639017,
+          "attempt": 2,
+          "headSha": "e1e8158873d77d0903ac8ec061ebbaec20f11dd7",
+          "jobId": 130369462824,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42971639017/job/130369462824"
+        },
+        {
+          "runId": 42971472749,
+          "attempt": 1,
+          "headSha": "8b9d9cf4b7c7eed73ac9924af9a459d46151665a",
+          "jobId": 130360705870,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42971472749/job/130360705870"
+        },
+        {
+          "runId": 42968684234,
+          "attempt": 1,
+          "headSha": "d82589d0889a39371c1c9b7168937ca597b9dc5b",
+          "jobId": 130351797491,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42968684234/job/130351797491"
+        },
+        {
+          "runId": 42968684234,
+          "attempt": 2,
+          "headSha": "d82589d0889a39371c1c9b7168937ca597b9dc5b",
+          "jobId": 130357414728,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42968684234/job/130357414728"
+        },
+        {
+          "runId": 42958988008,
+          "attempt": 1,
+          "headSha": "f8405e325f05323f3f4f8980ef3a2ed8b56a2a4b",
+          "jobId": 130320755294,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42958988008/job/130320755294"
+        },
+        {
+          "runId": 42956946790,
+          "attempt": 1,
+          "headSha": "64a2ec055051fd800fea772049ead41f99ce82c9",
+          "jobId": 130314181464,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42956946790/job/130314181464"
+        },
+        {
+          "runId": 42956185179,
+          "attempt": 1,
+          "headSha": "8d0f927c5a5fc3bbc63343d04cb770a2cf9aab11",
+          "jobId": 130311742138,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42956185179/job/130311742138"
+        },
+        {
+          "runId": 42950018914,
+          "attempt": 1,
+          "headSha": "df9dc268d7427ee1fb49b6bca51e59824ddf4226",
+          "jobId": 130291862324,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42950018914/job/130291862324"
+        },
+        {
+          "runId": 42948126812,
+          "attempt": 1,
+          "headSha": "547d739fa0337a84a1778588d083e5a24c43f8f5",
+          "jobId": 130285759584,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42948126812/job/130285759584"
+        },
+        {
+          "runId": 42915134278,
+          "attempt": 1,
+          "headSha": "2083f1eedb4ef479e406679f58b318a609733b1a",
+          "jobId": 130175531311,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42915134278/job/130175531311"
+        },
+        {
+          "runId": 42913367645,
+          "attempt": 1,
+          "headSha": "84f41044a4948c5cb1062f26900443788948305b",
+          "jobId": 130169441799,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42913367645/job/130169441799"
+        },
+        {
+          "runId": 42908782993,
+          "attempt": 1,
+          "headSha": "d027fbe32f0cbd42b7bdbc04026a61708e606628",
+          "jobId": 130153630022,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42908782993/job/130153630022"
+        },
+        {
+          "runId": 42894354084,
+          "attempt": 1,
+          "headSha": "374b8b490812c91f8a2b9b0b87a76f95800f4bb8",
+          "jobId": 130103410965,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42894354084/job/130103410965"
+        },
+        {
+          "runId": 42886762798,
+          "attempt": 1,
+          "headSha": "f3b96dda7880f336f3600ffaabd28a3d497e6808",
+          "jobId": 130077000318,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42886762798/job/130077000318"
+        },
+        {
+          "runId": 42886758596,
+          "attempt": 1,
+          "headSha": "a879cd3804d1c377008d28c1f6a4ffd34129cc18",
+          "jobId": 130076988794,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42886758596/job/130076988794"
+        },
+        {
+          "runId": 42886670338,
+          "attempt": 1,
+          "headSha": "e45a83b0aa57f5afdba60d869e0d8402720aed46",
+          "jobId": 130076682694,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42886670338/job/130076682694"
+        },
+        {
+          "runId": 42884811036,
+          "attempt": 1,
+          "headSha": "7bc5be575e25f6ea4b94b8ba738ac9b03d6ca015",
+          "jobId": 130070195953,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42884811036/job/130070195953"
+        },
+        {
+          "runId": 42884574757,
+          "attempt": 1,
+          "headSha": "6412c1d32080880e2f57cb8246c2b377625a6afc",
+          "jobId": 130069383170,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42884574757/job/130069383170"
+        },
+        {
+          "runId": 42884521278,
+          "attempt": 1,
+          "headSha": "db6fcdd9619c26b9cc184f58d77df6fb77c992ee",
+          "jobId": 130069208230,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42884521278/job/130069208230"
+        },
+        {
+          "runId": 42883976626,
+          "attempt": 1,
+          "headSha": "903b636a3619d434d5285f4cdf85756d42cd7c03",
+          "jobId": 130067332571,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42883976626/job/130067332571"
+        },
+        {
+          "runId": 42883740452,
+          "attempt": 1,
+          "headSha": "05209055fec4b024cce85af2a06ad93061be220e",
+          "jobId": 130066505764,
+          "name": "pi-rpc-windows (vendor)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42883740452/job/130066505764"
+        }
+      ],
+      "historicalFullHangCount": 2,
+      "acpRunCount": 22,
+      "acpConclusions": {
+        "acp-windows (windows-latest, grok-aimock)": {
+          "success": 14,
+          "failure": 8
+        },
+        "acp-windows (windows-latest, kimi-aimock)": {
+          "success": 22
+        },
+        "acp-windows (windows-latest, opencode-aimock)": {
+          "success": 22
+        }
+      },
+      "acpJobs": [
+        {
+          "runId": 43082057024,
+          "attempt": 1,
+          "headSha": "04fffc3f179eb3b318bb87af3846a6b63acce763",
+          "jobId": 130736845968,
+          "name": "acp-windows (windows-latest, kimi-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43082057024/job/130736845968"
+        },
+        {
+          "runId": 43082057024,
+          "attempt": 1,
+          "headSha": "04fffc3f179eb3b318bb87af3846a6b63acce763",
+          "jobId": 130736846328,
+          "name": "acp-windows (windows-latest, grok-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43082057024/job/130736846328"
+        },
+        {
+          "runId": 43082057024,
+          "attempt": 1,
+          "headSha": "04fffc3f179eb3b318bb87af3846a6b63acce763",
+          "jobId": 130736846373,
+          "name": "acp-windows (windows-latest, opencode-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43082057024/job/130736846373"
+        },
+        {
+          "runId": 43074355829,
+          "attempt": 1,
+          "headSha": "245213dbfb5605f74930be29443578a0675054ff",
+          "jobId": 130710184658,
+          "name": "acp-windows (windows-latest, opencode-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43074355829/job/130710184658"
+        },
+        {
+          "runId": 43074355829,
+          "attempt": 1,
+          "headSha": "245213dbfb5605f74930be29443578a0675054ff",
+          "jobId": 130710185024,
+          "name": "acp-windows (windows-latest, grok-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43074355829/job/130710185024"
+        },
+        {
+          "runId": 43074355829,
+          "attempt": 1,
+          "headSha": "245213dbfb5605f74930be29443578a0675054ff",
+          "jobId": 130710185210,
+          "name": "acp-windows (windows-latest, kimi-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43074355829/job/130710185210"
+        },
+        {
+          "runId": 43062865690,
+          "attempt": 1,
+          "headSha": "78a06da933a36afafa6bf07240c5a737f751eed2",
+          "jobId": 130669824790,
+          "name": "acp-windows (windows-latest, kimi-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43062865690/job/130669824790"
+        },
+        {
+          "runId": 43062865690,
+          "attempt": 1,
+          "headSha": "78a06da933a36afafa6bf07240c5a737f751eed2",
+          "jobId": 130669825304,
+          "name": "acp-windows (windows-latest, grok-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43062865690/job/130669825304"
+        },
+        {
+          "runId": 43062865690,
+          "attempt": 1,
+          "headSha": "78a06da933a36afafa6bf07240c5a737f751eed2",
+          "jobId": 130669825536,
+          "name": "acp-windows (windows-latest, opencode-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43062865690/job/130669825536"
+        },
+        {
+          "runId": 43061644569,
+          "attempt": 1,
+          "headSha": "999c6fb5eb5511ced155ac1b7078eaa0478a08c4",
+          "jobId": 130665499800,
+          "name": "acp-windows (windows-latest, grok-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43061644569/job/130665499800"
+        },
+        {
+          "runId": 43061644569,
+          "attempt": 1,
+          "headSha": "999c6fb5eb5511ced155ac1b7078eaa0478a08c4",
+          "jobId": 130665500280,
+          "name": "acp-windows (windows-latest, kimi-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43061644569/job/130665500280"
+        },
+        {
+          "runId": 43061644569,
+          "attempt": 1,
+          "headSha": "999c6fb5eb5511ced155ac1b7078eaa0478a08c4",
+          "jobId": 130665500301,
+          "name": "acp-windows (windows-latest, opencode-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43061644569/job/130665500301"
+        },
+        {
+          "runId": 43052545295,
+          "attempt": 1,
+          "headSha": "c987647539aba160fd9a8b8f1a77d25c403967d5",
+          "jobId": 130633286223,
+          "name": "acp-windows (windows-latest, kimi-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43052545295/job/130633286223"
+        },
+        {
+          "runId": 43052545295,
+          "attempt": 1,
+          "headSha": "c987647539aba160fd9a8b8f1a77d25c403967d5",
+          "jobId": 130633286472,
+          "name": "acp-windows (windows-latest, opencode-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43052545295/job/130633286472"
+        },
+        {
+          "runId": 43052545295,
+          "attempt": 1,
+          "headSha": "c987647539aba160fd9a8b8f1a77d25c403967d5",
+          "jobId": 130633286577,
+          "name": "acp-windows (windows-latest, grok-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43052545295/job/130633286577"
+        },
+        {
+          "runId": 43032195256,
+          "attempt": 1,
+          "headSha": "ac7fde4ab2c487bc9bb539b5e8329a4032eb30c9",
+          "jobId": 130561813401,
+          "name": "acp-windows (windows-latest, grok-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43032195256/job/130561813401"
+        },
+        {
+          "runId": 43032195256,
+          "attempt": 1,
+          "headSha": "ac7fde4ab2c487bc9bb539b5e8329a4032eb30c9",
+          "jobId": 130561813867,
+          "name": "acp-windows (windows-latest, kimi-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43032195256/job/130561813867"
+        },
+        {
+          "runId": 43032195256,
+          "attempt": 1,
+          "headSha": "ac7fde4ab2c487bc9bb539b5e8329a4032eb30c9",
+          "jobId": 130561813928,
+          "name": "acp-windows (windows-latest, opencode-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43032195256/job/130561813928"
+        },
+        {
+          "runId": 43028197743,
+          "attempt": 1,
+          "headSha": "74ac68a5d9e8b600d4ab9d6bc703874427fb41ae",
+          "jobId": 130548154464,
+          "name": "acp-windows (windows-latest, kimi-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43028197743/job/130548154464"
+        },
+        {
+          "runId": 43028197743,
+          "attempt": 1,
+          "headSha": "74ac68a5d9e8b600d4ab9d6bc703874427fb41ae",
+          "jobId": 130548154828,
+          "name": "acp-windows (windows-latest, opencode-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43028197743/job/130548154828"
+        },
+        {
+          "runId": 43028197743,
+          "attempt": 1,
+          "headSha": "74ac68a5d9e8b600d4ab9d6bc703874427fb41ae",
+          "jobId": 130548156239,
+          "name": "acp-windows (windows-latest, grok-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43028197743/job/130548156239"
+        },
+        {
+          "runId": 43024706203,
+          "attempt": 1,
+          "headSha": "63dcf4df9b9d76d40574ecfefd9cf6c9191e2171",
+          "jobId": 130536353186,
+          "name": "acp-windows (windows-latest, kimi-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43024706203/job/130536353186"
+        },
+        {
+          "runId": 43024706203,
+          "attempt": 1,
+          "headSha": "63dcf4df9b9d76d40574ecfefd9cf6c9191e2171",
+          "jobId": 130536353664,
+          "name": "acp-windows (windows-latest, grok-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43024706203/job/130536353664"
+        },
+        {
+          "runId": 43024706203,
+          "attempt": 1,
+          "headSha": "63dcf4df9b9d76d40574ecfefd9cf6c9191e2171",
+          "jobId": 130536353748,
+          "name": "acp-windows (windows-latest, opencode-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43024706203/job/130536353748"
+        },
+        {
+          "runId": 43010951865,
+          "attempt": 1,
+          "headSha": "582c529a1c26406c1e684124e3fb77b83a0359ac",
+          "jobId": 130490130342,
+          "name": "acp-windows (windows-latest, opencode-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43010951865/job/130490130342"
+        },
+        {
+          "runId": 43010951865,
+          "attempt": 1,
+          "headSha": "582c529a1c26406c1e684124e3fb77b83a0359ac",
+          "jobId": 130490130747,
+          "name": "acp-windows (windows-latest, grok-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43010951865/job/130490130747"
+        },
+        {
+          "runId": 43010951865,
+          "attempt": 1,
+          "headSha": "582c529a1c26406c1e684124e3fb77b83a0359ac",
+          "jobId": 130490130950,
+          "name": "acp-windows (windows-latest, kimi-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43010951865/job/130490130950"
+        },
+        {
+          "runId": 43005748502,
+          "attempt": 1,
+          "headSha": "8135d1ff2a48e5fc29c1715f70f3a82a076cf4b7",
+          "jobId": 130472679622,
+          "name": "acp-windows (windows-latest, kimi-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43005748502/job/130472679622"
+        },
+        {
+          "runId": 43005748502,
+          "attempt": 1,
+          "headSha": "8135d1ff2a48e5fc29c1715f70f3a82a076cf4b7",
+          "jobId": 130472680056,
+          "name": "acp-windows (windows-latest, grok-aimock)",
+          "status": "completed",
+          "conclusion": "failure",
+          "url": "https://github.com/botiverse/oar/actions/runs/43005748502/job/130472680056",
+          "head_branch": "main",
+          "event": "push",
+          "display_title": "chore: release v0.98.0 (#730)",
+          "failedCases": [
+            "sea-trial/vendor/failure-classes-acp.vendor.test.ts > grok-aimock: failure classes > 'invalid key'",
+            "sea-trial/vendor/manual-compaction-followup.vendor.test.ts > native followup manual compaction > native boundary proves completion, same-name command configured: false"
+          ],
+          "errors": [
+            "AcpError: ACP request initialize timed out after 15000ms"
+          ],
+          "category": "initialize_timeout"
+        },
+        {
+          "runId": 43005748502,
+          "attempt": 1,
+          "headSha": "8135d1ff2a48e5fc29c1715f70f3a82a076cf4b7",
+          "jobId": 130472680095,
+          "name": "acp-windows (windows-latest, opencode-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/43005748502/job/130472680095"
+        },
+        {
+          "runId": 42999501450,
+          "attempt": 1,
+          "headSha": "794fdf919aff44c2da264f735637ba20ed6e4d97",
+          "jobId": 130451819332,
+          "name": "acp-windows (windows-latest, kimi-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42999501450/job/130451819332"
+        },
+        {
+          "runId": 42999501450,
+          "attempt": 1,
+          "headSha": "794fdf919aff44c2da264f735637ba20ed6e4d97",
+          "jobId": 130451819605,
+          "name": "acp-windows (windows-latest, grok-aimock)",
+          "status": "completed",
+          "conclusion": "failure",
+          "url": "https://github.com/botiverse/oar/actions/runs/42999501450/job/130451819605",
+          "head_branch": "main",
+          "event": "push",
+          "display_title": "feat(cursor): attach SessionOptions.mcpServers through the SDK (#729)",
+          "failedCases": [
+            "sea-trial/vendor/image-only.vendor.test.ts > grok: image-only input reaches the scripted provider without an empty text block"
+          ],
+          "errors": [
+            "AcpError: ACP request initialize timed out after 15000ms"
+          ],
+          "category": "initialize_timeout"
+        },
+        {
+          "runId": 42999501450,
+          "attempt": 1,
+          "headSha": "794fdf919aff44c2da264f735637ba20ed6e4d97",
+          "jobId": 130451819799,
+          "name": "acp-windows (windows-latest, opencode-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42999501450/job/130451819799"
+        },
+        {
+          "runId": 42992192983,
+          "attempt": 1,
+          "headSha": "019b137daea1847f4122e17c1f88028cee436869",
+          "jobId": 130427507746,
+          "name": "acp-windows (windows-latest, kimi-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42992192983/job/130427507746"
+        },
+        {
+          "runId": 42992192983,
+          "attempt": 1,
+          "headSha": "019b137daea1847f4122e17c1f88028cee436869",
+          "jobId": 130427508149,
+          "name": "acp-windows (windows-latest, opencode-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42992192983/job/130427508149"
+        },
+        {
+          "runId": 42992192983,
+          "attempt": 1,
+          "headSha": "019b137daea1847f4122e17c1f88028cee436869",
+          "jobId": 130427508221,
+          "name": "acp-windows (windows-latest, grok-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42992192983/job/130427508221"
+        },
+        {
+          "runId": 42974748648,
+          "attempt": 1,
+          "headSha": "315d67395632bf3e09a2d833582e48a3aab144de",
+          "jobId": 130371097080,
+          "name": "acp-windows (windows-latest, opencode-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42974748648/job/130371097080"
+        },
+        {
+          "runId": 42974748648,
+          "attempt": 1,
+          "headSha": "315d67395632bf3e09a2d833582e48a3aab144de",
+          "jobId": 130371097260,
+          "name": "acp-windows (windows-latest, grok-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42974748648/job/130371097260"
+        },
+        {
+          "runId": 42974748648,
+          "attempt": 1,
+          "headSha": "315d67395632bf3e09a2d833582e48a3aab144de",
+          "jobId": 130371097417,
+          "name": "acp-windows (windows-latest, kimi-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42974748648/job/130371097417"
+        },
+        {
+          "runId": 42971472908,
+          "attempt": 1,
+          "headSha": "8b9d9cf4b7c7eed73ac9924af9a459d46151665a",
+          "jobId": 130360705261,
+          "name": "acp-windows (windows-latest, opencode-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42971472908/job/130360705261"
+        },
+        {
+          "runId": 42971472908,
+          "attempt": 1,
+          "headSha": "8b9d9cf4b7c7eed73ac9924af9a459d46151665a",
+          "jobId": 130360705499,
+          "name": "acp-windows (windows-latest, kimi-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42971472908/job/130360705499"
+        },
+        {
+          "runId": 42971472908,
+          "attempt": 1,
+          "headSha": "8b9d9cf4b7c7eed73ac9924af9a459d46151665a",
+          "jobId": 130360705591,
+          "name": "acp-windows (windows-latest, grok-aimock)",
+          "status": "completed",
+          "conclusion": "failure",
+          "url": "https://github.com/botiverse/oar/actions/runs/42971472908/job/130360705591",
+          "head_branch": "main",
+          "event": "push",
+          "display_title": "feat(antigravity): sign in with agy's own login and read its status (…",
+          "failedCases": [
+            "session.query-readbacks-carry-stream-seq: ACP request initialize timed out after 15000ms",
+            "session.framing-and-attribution: ACP request initialize timed out after 15000ms"
+          ],
+          "errors": [],
+          "category": "initialize_timeout"
+        },
+        {
+          "runId": 42958988124,
+          "attempt": 1,
+          "headSha": "f8405e325f05323f3f4f8980ef3a2ed8b56a2a4b",
+          "jobId": 130320755235,
+          "name": "acp-windows (windows-latest, kimi-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42958988124/job/130320755235"
+        },
+        {
+          "runId": 42958988124,
+          "attempt": 1,
+          "headSha": "f8405e325f05323f3f4f8980ef3a2ed8b56a2a4b",
+          "jobId": 130320755699,
+          "name": "acp-windows (windows-latest, opencode-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42958988124/job/130320755699"
+        },
+        {
+          "runId": 42958988124,
+          "attempt": 1,
+          "headSha": "f8405e325f05323f3f4f8980ef3a2ed8b56a2a4b",
+          "jobId": 130320755703,
+          "name": "acp-windows (windows-latest, grok-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42958988124/job/130320755703"
+        },
+        {
+          "runId": 42950018919,
+          "attempt": 1,
+          "headSha": "df9dc268d7427ee1fb49b6bca51e59824ddf4226",
+          "jobId": 130291861909,
+          "name": "acp-windows (windows-latest, opencode-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42950018919/job/130291861909"
+        },
+        {
+          "runId": 42950018919,
+          "attempt": 1,
+          "headSha": "df9dc268d7427ee1fb49b6bca51e59824ddf4226",
+          "jobId": 130291862141,
+          "name": "acp-windows (windows-latest, kimi-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42950018919/job/130291862141"
+        },
+        {
+          "runId": 42950018919,
+          "attempt": 1,
+          "headSha": "df9dc268d7427ee1fb49b6bca51e59824ddf4226",
+          "jobId": 130291862184,
+          "name": "acp-windows (windows-latest, grok-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42950018919/job/130291862184"
+        },
+        {
+          "runId": 42915134362,
+          "attempt": 1,
+          "headSha": "2083f1eedb4ef479e406679f58b318a609733b1a",
+          "jobId": 130175531417,
+          "name": "acp-windows (windows-latest, grok-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42915134362/job/130175531417"
+        },
+        {
+          "runId": 42915134362,
+          "attempt": 1,
+          "headSha": "2083f1eedb4ef479e406679f58b318a609733b1a",
+          "jobId": 130175531760,
+          "name": "acp-windows (windows-latest, opencode-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42915134362/job/130175531760"
+        },
+        {
+          "runId": 42915134362,
+          "attempt": 1,
+          "headSha": "2083f1eedb4ef479e406679f58b318a609733b1a",
+          "jobId": 130175531770,
+          "name": "acp-windows (windows-latest, kimi-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42915134362/job/130175531770"
+        },
+        {
+          "runId": 42913367760,
+          "attempt": 1,
+          "headSha": "84f41044a4948c5cb1062f26900443788948305b",
+          "jobId": 130169438736,
+          "name": "acp-windows (windows-latest, grok-aimock)",
+          "status": "completed",
+          "conclusion": "failure",
+          "url": "https://github.com/botiverse/oar/actions/runs/42913367760/job/130169438736",
+          "head_branch": "main",
+          "event": "push",
+          "display_title": "test(runtimes): record November 10 checks and update OpenCode cleanup…",
+          "failedCases": [
+            "sea-trial/vendor/grok-interject.vendor.test.ts > abort drops an interjection Grok has not taken"
+          ],
+          "errors": [
+            "AssertionError: expected true to be false // Object.is equality"
+          ],
+          "category": "old_interject_fixture"
+        },
+        {
+          "runId": 42913367760,
+          "attempt": 1,
+          "headSha": "84f41044a4948c5cb1062f26900443788948305b",
+          "jobId": 130169439218,
+          "name": "acp-windows (windows-latest, opencode-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42913367760/job/130169439218"
+        },
+        {
+          "runId": 42913367760,
+          "attempt": 1,
+          "headSha": "84f41044a4948c5cb1062f26900443788948305b",
+          "jobId": 130169439711,
+          "name": "acp-windows (windows-latest, kimi-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42913367760/job/130169439711"
+        },
+        {
+          "runId": 42908782994,
+          "attempt": 1,
+          "headSha": "d027fbe32f0cbd42b7bdbc04026a61708e606628",
+          "jobId": 130153629621,
+          "name": "acp-windows (windows-latest, kimi-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42908782994/job/130153629621"
+        },
+        {
+          "runId": 42908782994,
+          "attempt": 1,
+          "headSha": "d027fbe32f0cbd42b7bdbc04026a61708e606628",
+          "jobId": 130153629877,
+          "name": "acp-windows (windows-latest, grok-aimock)",
+          "status": "completed",
+          "conclusion": "failure",
+          "url": "https://github.com/botiverse/oar/actions/runs/42908782994/job/130153629877",
+          "head_branch": "main",
+          "event": "push",
+          "display_title": "chore: release v0.96.0 (#723)",
+          "failedCases": [
+            "sea-trial/vendor/grok-interject.vendor.test.ts > abort drops an interjection Grok has not taken"
+          ],
+          "errors": [
+            "AssertionError: expected { kind: 'rejected', …(6) } to match object { kind: 'accepted' }"
+          ],
+          "category": "old_interject_fixture"
+        },
+        {
+          "runId": 42908782994,
+          "attempt": 1,
+          "headSha": "d027fbe32f0cbd42b7bdbc04026a61708e606628",
+          "jobId": 130153629934,
+          "name": "acp-windows (windows-latest, opencode-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42908782994/job/130153629934"
+        },
+        {
+          "runId": 42894354023,
+          "attempt": 1,
+          "headSha": "374b8b490812c91f8a2b9b0b87a76f95800f4bb8",
+          "jobId": 130103409579,
+          "name": "acp-windows (windows-latest, grok-aimock)",
+          "status": "completed",
+          "conclusion": "failure",
+          "url": "https://github.com/botiverse/oar/actions/runs/42894354023/job/130103409579",
+          "head_branch": "main",
+          "event": "push",
+          "display_title": "test(pi): derive RPC version expectations from installed SDK (#718)",
+          "failedCases": [
+            "sea-trial/vendor/grok-interject.vendor.test.ts > abort drops an interjection Grok has not taken"
+          ],
+          "errors": [
+            "AssertionError: expected { kind: 'rejected', …(6) } to match object { kind: 'accepted' }"
+          ],
+          "category": "old_interject_fixture"
+        },
+        {
+          "runId": 42894354023,
+          "attempt": 1,
+          "headSha": "374b8b490812c91f8a2b9b0b87a76f95800f4bb8",
+          "jobId": 130103410137,
+          "name": "acp-windows (windows-latest, kimi-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42894354023/job/130103410137"
+        },
+        {
+          "runId": 42894354023,
+          "attempt": 1,
+          "headSha": "374b8b490812c91f8a2b9b0b87a76f95800f4bb8",
+          "jobId": 130103410264,
+          "name": "acp-windows (windows-latest, opencode-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42894354023/job/130103410264"
+        },
+        {
+          "runId": 42886670496,
+          "attempt": 1,
+          "headSha": "e45a83b0aa57f5afdba60d869e0d8402720aed46",
+          "jobId": 130076684026,
+          "name": "acp-windows (windows-latest, kimi-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42886670496/job/130076684026"
+        },
+        {
+          "runId": 42886670496,
+          "attempt": 1,
+          "headSha": "e45a83b0aa57f5afdba60d869e0d8402720aed46",
+          "jobId": 130076684462,
+          "name": "acp-windows (windows-latest, grok-aimock)",
+          "status": "completed",
+          "conclusion": "failure",
+          "url": "https://github.com/botiverse/oar/actions/runs/42886670496/job/130076684462",
+          "head_branch": "main",
+          "event": "push",
+          "display_title": "feat(codex): find Codex on Windows when it is not on PATH (#719)",
+          "failedCases": [
+            "sea-trial/vendor/grok-interject.vendor.test.ts > abort drops an interjection Grok has not taken"
+          ],
+          "errors": [
+            "AssertionError: expected { kind: 'rejected', …(6) } to match object { kind: 'accepted' }"
+          ],
+          "category": "old_interject_fixture"
+        },
+        {
+          "runId": 42886670496,
+          "attempt": 1,
+          "headSha": "e45a83b0aa57f5afdba60d869e0d8402720aed46",
+          "jobId": 130076684555,
+          "name": "acp-windows (windows-latest, opencode-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42886670496/job/130076684555"
+        },
+        {
+          "runId": 42884574775,
+          "attempt": 1,
+          "headSha": "6412c1d32080880e2f57cb8246c2b377625a6afc",
+          "jobId": 130069382068,
+          "name": "acp-windows (windows-latest, grok-aimock)",
+          "status": "completed",
+          "conclusion": "failure",
+          "url": "https://github.com/botiverse/oar/actions/runs/42884574775/job/130069382068",
+          "head_branch": "main",
+          "event": "push",
+          "display_title": "fix(retention): preserve the newest frame across controls (#714)",
+          "failedCases": [
+            "sea-trial/vendor/grok-interject.vendor.test.ts > abort drops an interjection Grok has not taken"
+          ],
+          "errors": [
+            "AssertionError: expected { kind: 'rejected', …(6) } to match object { kind: 'accepted' }"
+          ],
+          "category": "old_interject_fixture"
+        },
+        {
+          "runId": 42884574775,
+          "attempt": 1,
+          "headSha": "6412c1d32080880e2f57cb8246c2b377625a6afc",
+          "jobId": 130069382410,
+          "name": "acp-windows (windows-latest, kimi-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42884574775/job/130069382410"
+        },
+        {
+          "runId": 42884574775,
+          "attempt": 1,
+          "headSha": "6412c1d32080880e2f57cb8246c2b377625a6afc",
+          "jobId": 130069382470,
+          "name": "acp-windows (windows-latest, opencode-aimock)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/botiverse/oar/actions/runs/42884574775/job/130069382470"
+        }
+      ],
+      "grokVersion": "1.0.70",
+      "grokFailedJobs": [
+        {
+          "runId": 43005748502,
+          "attempt": 1,
+          "headSha": "8135d1ff2a48e5fc29c1715f70f3a82a076cf4b7",
+          "jobId": 130472680056,
+          "name": "acp-windows (windows-latest, grok-aimock)",
+          "status": "completed",
+          "conclusion": "failure",
+          "url": "https://github.com/botiverse/oar/actions/runs/43005748502/job/130472680056",
+          "head_branch": "main",
+          "event": "push",
+          "display_title": "chore: release v0.98.0 (#730)",
+          "failedCases": [
+            "sea-trial/vendor/failure-classes-acp.vendor.test.ts > grok-aimock: failure classes > 'invalid key'",
+            "sea-trial/vendor/manual-compaction-followup.vendor.test.ts > native followup manual compaction > native boundary proves completion, same-name command configured: false"
+          ],
+          "errors": [
+            "AcpError: ACP request initialize timed out after 15000ms"
+          ],
+          "category": "initialize_timeout"
+        },
+        {
+          "runId": 42999501450,
+          "attempt": 1,
+          "headSha": "794fdf919aff44c2da264f735637ba20ed6e4d97",
+          "jobId": 130451819605,
+          "name": "acp-windows (windows-latest, grok-aimock)",
+          "status": "completed",
+          "conclusion": "failure",
+          "url": "https://github.com/botiverse/oar/actions/runs/42999501450/job/130451819605",
+          "head_branch": "main",
+          "event": "push",
+          "display_title": "feat(cursor): attach SessionOptions.mcpServers through the SDK (#729)",
+          "failedCases": [
+            "sea-trial/vendor/image-only.vendor.test.ts > grok: image-only input reaches the scripted provider without an empty text block"
+          ],
+          "errors": [
+            "AcpError: ACP request initialize timed out after 15000ms"
+          ],
+          "category": "initialize_timeout"
+        },
+        {
+          "runId": 42971472908,
+          "attempt": 1,
+          "headSha": "8b9d9cf4b7c7eed73ac9924af9a459d46151665a",
+          "jobId": 130360705591,
+          "name": "acp-windows (windows-latest, grok-aimock)",
+          "status": "completed",
+          "conclusion": "failure",
+          "url": "https://github.com/botiverse/oar/actions/runs/42971472908/job/130360705591",
+          "head_branch": "main",
+          "event": "push",
+          "display_title": "feat(antigravity): sign in with agy's own login and read its status (…",
+          "failedCases": [
+            "session.query-readbacks-carry-stream-seq: ACP request initialize timed out after 15000ms",
+            "session.framing-and-attribution: ACP request initialize timed out after 15000ms"
+          ],
+          "errors": [],
+          "category": "initialize_timeout"
+        },
+        {
+          "runId": 42913367760,
+          "attempt": 1,
+          "headSha": "84f41044a4948c5cb1062f26900443788948305b",
+          "jobId": 130169438736,
+          "name": "acp-windows (windows-latest, grok-aimock)",
+          "status": "completed",
+          "conclusion": "failure",
+          "url": "https://github.com/botiverse/oar/actions/runs/42913367760/job/130169438736",
+          "head_branch": "main",
+          "event": "push",
+          "display_title": "test(runtimes): record November 10 checks and update OpenCode cleanup…",
+          "failedCases": [
+            "sea-trial/vendor/grok-interject.vendor.test.ts > abort drops an interjection Grok has not taken"
+          ],
+          "errors": [
+            "AssertionError: expected true to be false // Object.is equality"
+          ],
+          "category": "old_interject_fixture"
+        },
+        {
+          "runId": 42908782994,
+          "attempt": 1,
+          "headSha": "d027fbe32f0cbd42b7bdbc04026a61708e606628",
+          "jobId": 130153629877,
+          "name": "acp-windows (windows-latest, grok-aimock)",
+          "status": "completed",
+          "conclusion": "failure",
+          "url": "https://github.com/botiverse/oar/actions/runs/42908782994/job/130153629877",
+          "head_branch": "main",
+          "event": "push",
+          "display_title": "chore: release v0.96.0 (#723)",
+          "failedCases": [
+            "sea-trial/vendor/grok-interject.vendor.test.ts > abort drops an interjection Grok has not taken"
+          ],
+          "errors": [
+            "AssertionError: expected { kind: 'rejected', …(6) } to match object { kind: 'accepted' }"
+          ],
+          "category": "old_interject_fixture"
+        },
+        {
+          "runId": 42894354023,
+          "attempt": 1,
+          "headSha": "374b8b490812c91f8a2b9b0b87a76f95800f4bb8",
+          "jobId": 130103409579,
+          "name": "acp-windows (windows-latest, grok-aimock)",
+          "status": "completed",
+          "conclusion": "failure",
+          "url": "https://github.com/botiverse/oar/actions/runs/42894354023/job/130103409579",
+          "head_branch": "main",
+          "event": "push",
+          "display_title": "test(pi): derive RPC version expectations from installed SDK (#718)",
+          "failedCases": [
+            "sea-trial/vendor/grok-interject.vendor.test.ts > abort drops an interjection Grok has not taken"
+          ],
+          "errors": [
+            "AssertionError: expected { kind: 'rejected', …(6) } to match object { kind: 'accepted' }"
+          ],
+          "category": "old_interject_fixture"
+        },
+        {
+          "runId": 42886670496,
+          "attempt": 1,
+          "headSha": "e45a83b0aa57f5afdba60d869e0d8402720aed46",
+          "jobId": 130076684462,
+          "name": "acp-windows (windows-latest, grok-aimock)",
+          "status": "completed",
+          "conclusion": "failure",
+          "url": "https://github.com/botiverse/oar/actions/runs/42886670496/job/130076684462",
+          "head_branch": "main",
+          "event": "push",
+          "display_title": "feat(codex): find Codex on Windows when it is not on PATH (#719)",
+          "failedCases": [
+            "sea-trial/vendor/grok-interject.vendor.test.ts > abort drops an interjection Grok has not taken"
+          ],
+          "errors": [
+            "AssertionError: expected { kind: 'rejected', …(6) } to match object { kind: 'accepted' }"
+          ],
+          "category": "old_interject_fixture"
+        },
+        {
+          "runId": 42884574775,
+          "attempt": 1,
+          "headSha": "6412c1d32080880e2f57cb8246c2b377625a6afc",
+          "jobId": 130069382068,
+          "name": "acp-windows (windows-latest, grok-aimock)",
+          "status": "completed",
+          "conclusion": "failure",
+          "url": "https://github.com/botiverse/oar/actions/runs/42884574775/job/130069382068",
+          "head_branch": "main",
+          "event": "push",
+          "display_title": "fix(retention): preserve the newest frame across controls (#714)",
+          "failedCases": [
+            "sea-trial/vendor/grok-interject.vendor.test.ts > abort drops an interjection Grok has not taken"
+          ],
+          "errors": [
+            "AssertionError: expected { kind: 'rejected', …(6) } to match object { kind: 'accepted' }"
+          ],
+          "category": "old_interject_fixture"
+        }
+      ],
+      "oldInterjectAdditionalEvidence": {
+        "run": 42913367760,
+        "job": 130169438736,
+        "artifactId": 13809335381,
+        "oarRecordsRetained": false,
+        "abortAndTurnEndAssertionsPassedBeforeFailure": true,
+        "failingAssertion": "No provider request should contain STEER_TEXT",
+        "exactProviderRequestVersusAbortOrder": "Not retained",
+        "providerTraces": [
+          {
+            "requestCount": 3,
+            "requests": [
+              {
+                "at": 1794349375750,
+                "requestId": 2,
+                "steerMarkerPresent": false,
+                "toolResults": []
+              },
+              {
+                "at": 1794349375855,
+                "requestId": 3,
+                "steerMarkerPresent": true,
+                "toolResults": [
+                  "exit: -1\nsleep: invalid time interval '4;'\nsleep: invalid time interval 'echo'\nsleep: invalid time interval 'slept-slow'\nTry 'sleep --help' for more information.\n"
+                ]
+              },
+              {
+                "at": 1794349376192,
+                "requestId": 4,
+                "steerMarkerPresent": false,
+                "toolResults": []
+              }
+            ]
+          },
+          {
+            "requestCount": 2,
+            "requests": [
+              {
+                "at": 1794349387407,
+                "requestId": 2,
+                "steerMarkerPresent": false,
+                "toolResults": []
+              },
+              {
+                "at": 1794349387515,
+                "requestId": 3,
+                "steerMarkerPresent": true,
+                "toolResults": [
+                  "exit: -1\nsleep: invalid time interval '4;'\nsleep: invalid time interval 'echo'\nsleep: invalid time interval 'slept-slow'\nTry 'sleep --help' for more information.\n"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "ordinaryFailedWindowsJobs": [
+        {
+          "runId": 43078876080,
+          "attempt": 1,
+          "headSha": "8cef06b1be709620e79143a616fff2b7dcc08921",
+          "jobId": 130725868701,
+          "name": "check (windows-latest)",
+          "status": "completed",
+          "conclusion": "failure",
+          "url": "https://github.com/botiverse/oar/actions/runs/43078876080/job/130725868701",
+          "head_branch": "cindy/cursor-subprocess",
+          "event": "pull_request",
+          "display_title": "feat(cursor): run the SDK in a Node child per session (execution: \"subprocess\")",
+          "failedCases": [],
+          "errors": [
+            "AssertionError: the cursor child or its tool outlived the killed host: expected { child: true, grandchild: true } to deeply equal { child: false, grandchild: false }"
+          ]
+        },
+        {
+          "runId": 43075264385,
+          "attempt": 1,
+          "headSha": "1f56f6f4df09d111f3d696d327e2b1713e93307b",
+          "jobId": 130713306806,
+          "name": "check (windows-latest)",
+          "status": "completed",
+          "conclusion": "failure",
+          "url": "https://github.com/botiverse/oar/actions/runs/43075264385/job/130713306806",
+          "head_branch": "cindy/cursor-subprocess",
+          "event": "pull_request",
+          "display_title": "feat(cursor): run the SDK in a Node child per session (execution: \"subprocess\")",
+          "failedCases": [],
+          "errors": [
+            "AssertionError: expected { kind: 'failed', …(2) } to match object { kind: 'failed', …(1) }",
+            "AssertionError: expected '{\"kind\":\"exited\",\"code\":1,\"reason\":\"c…' to contain 'fake SDK failure'",
+            "AssertionError: expected [ { kind: 'exited', code: 1, …(1) } ] to deeply equal [ Array(1) ]"
+          ]
+        },
+        {
+          "runId": 43074471059,
+          "attempt": 1,
+          "headSha": "11f9b8f71a31cc5f8f4c8f3e8df3e4c708003064",
+          "jobId": 130710571088,
+          "name": "check (windows-latest)",
+          "status": "completed",
+          "conclusion": "failure",
+          "url": "https://github.com/botiverse/oar/actions/runs/43074471059/job/130710571088",
+          "head_branch": "cindy/release-0.100.0",
+          "event": "pull_request",
+          "display_title": "chore: release v0.100.0",
+          "failedCases": [],
+          "errors": []
+        },
+        {
+          "runId": 43052619615,
+          "attempt": 1,
+          "headSha": "5d25040e9cc468065b81046e1b5314bb907efa24",
+          "jobId": 130633543312,
+          "name": "check (windows-latest)",
+          "status": "completed",
+          "conclusion": "failure",
+          "url": "https://github.com/botiverse/oar/actions/runs/43052619615/job/130633543312",
+          "head_branch": "cindy/login-gaps",
+          "event": "pull_request",
+          "display_title": "feat(login): OpenCode 2 provider sign-in, CodeBuddy logout, and review follow-ups",
+          "failedCases": [
+            "tests/opencode/provider-auth-host-death.test.ts > a SIGKILLed host's opencode serve stops with it",
+            "tests/opencode/provider-auth.test.ts > the public entry starts OpenCode 2 in the overlay's home and passes its idle period"
+          ],
+          "errors": [
+            "Error: EBUSY: resource busy or locked, rmdir '[Windows path omitted]'"
+          ]
+        },
+        {
+          "runId": 43052619615,
+          "attempt": 1,
+          "headSha": "5d25040e9cc468065b81046e1b5314bb907efa24",
+          "jobId": 130633543541,
+          "name": "behavior (windows-latest, claude-aimock)",
+          "status": "completed",
+          "conclusion": "failure",
+          "url": "https://github.com/botiverse/oar/actions/runs/43052619615/job/130633543541",
+          "head_branch": "cindy/login-gaps",
+          "event": "pull_request",
+          "display_title": "feat(login): OpenCode 2 provider sign-in, CodeBuddy logout, and review follow-ups",
+          "failedCases": [
+            "sea-trial/vendor/claude-open-hooks.vendor.test.ts > Claude real SessionStart hooks outlast the readback budget for effort, resume and serviceTier"
+          ],
+          "errors": [
+            "Error: claude did not answer initialize within 4000 ms, so resume [session id omitted] cannot be confirmed"
+          ]
+        },
+        {
+          "runId": 43044437072,
+          "attempt": 1,
+          "headSha": "8cde58e7cd68ddf4aad46474f392b672b0dce949",
+          "jobId": 130604520610,
+          "name": "check (windows-latest)",
+          "status": "completed",
+          "conclusion": "failure",
+          "url": "https://github.com/botiverse/oar/actions/runs/43044437072/job/130604520610",
+          "head_branch": "cindy/login-gaps",
+          "event": "pull_request",
+          "display_title": "feat(login): OpenCode 2 provider sign-in, CodeBuddy logout, and review follow-ups",
+          "failedCases": [
+            "tests/login/codebuddy-login.test.ts > times out a silent status query without claiming logged out"
+          ],
+          "errors": [
+            "Error: ENOTEMPTY: directory not empty, rmdir '[Windows path omitted]'"
+          ]
+        },
+        {
+          "runId": 43039669239,
+          "attempt": 1,
+          "headSha": "be61683c7bac298f26710b171a91ed639c1db9ec",
+          "jobId": 130587771210,
+          "name": "check (windows-latest)",
+          "status": "completed",
+          "conclusion": "failure",
+          "url": "https://github.com/botiverse/oar/actions/runs/43039669239/job/130587771210",
+          "head_branch": "cindy/login-gaps",
+          "event": "pull_request",
+          "display_title": "feat(login): OpenCode 2 provider sign-in, CodeBuddy logout, and review follow-ups",
+          "failedCases": [
+            "tests/opencode/provider-auth-host-death.test.ts > a SIGKILLed host's opencode serve stops with it",
+            "tests/opencode/provider-auth.test.ts > a 401 from serve is an authentication failure at once, not a timeout",
+            "tests/opencode/provider-auth.test.ts > startup and readiness share one timeoutMs: a late listen leaves readiness only the rest",
+            "tests/opencode/provider-auth.test.ts > a crashed or silent start is reported with OpenCode's first line"
+          ],
+          "errors": [
+            "AssertionError: opencode serve 3816 outlived its killed host: expected false to be true // Object.is equality",
+            "Error: EBUSY: resource busy or locked, rmdir '[Windows path omitted]'"
+          ]
+        },
+        {
+          "runId": 43039669239,
+          "attempt": 2,
+          "headSha": "be61683c7bac298f26710b171a91ed639c1db9ec",
+          "jobId": 130600345454,
+          "name": "check (windows-latest)",
+          "status": "completed",
+          "conclusion": "failure",
+          "url": "https://github.com/botiverse/oar/actions/runs/43039669239/job/130600345454",
+          "head_branch": "cindy/login-gaps",
+          "event": "pull_request",
+          "display_title": "feat(login): OpenCode 2 provider sign-in, CodeBuddy logout, and review follow-ups",
+          "failedCases": [
+            "tests/opencode/provider-auth-host-death.test.ts > a SIGKILLed host's opencode serve stops with it",
+            "tests/opencode/provider-auth-oauth.test.ts > a failed attempt rejects and is cancelled",
+            "tests/opencode/provider-auth.test.ts > a 401 from serve is an authentication failure at once, not a timeout",
+            "tests/opencode/provider-auth.test.ts > startup and readiness share one timeoutMs: a late listen leaves readiness only the rest",
+            "tests/opencode/provider-auth.test.ts > a crashed or silent start is reported with OpenCode's first line"
+          ],
+          "errors": [
+            "AssertionError: opencode serve 6980 outlived its killed host: expected false to be true // Object.is equality",
+            "Error: EBUSY: resource busy or locked, rmdir '[Windows path omitted]'"
+          ]
+        },
+        {
+          "runId": 43034198254,
+          "attempt": 1,
+          "headSha": "f3e7139c28e55977b15742154b38c24729ceba19",
+          "jobId": 130568670836,
+          "name": "check (windows-latest)",
+          "status": "completed",
+          "conclusion": "failure",
+          "url": "https://github.com/botiverse/oar/actions/runs/43034198254/job/130568670836",
+          "head_branch": "cindy/login-gaps",
+          "event": "pull_request",
+          "display_title": "feat(login): OpenCode 2 provider sign-in, CodeBuddy logout, and review follow-ups",
+          "failedCases": [],
+          "errors": [
+            "AssertionError: expected undefined to be true // Object.is equality"
+          ]
+        },
+        {
+          "runId": 42999777885,
+          "attempt": 1,
+          "headSha": "0225e07e52a62fc755baea03a1335d94a963deb8",
+          "jobId": 130452764230,
+          "name": "check (windows-latest)",
+          "status": "completed",
+          "conclusion": "failure",
+          "url": "https://github.com/botiverse/oar/actions/runs/42999777885/job/130452764230",
+          "head_branch": "cindy/release-0.98.0",
+          "event": "pull_request",
+          "display_title": "chore: release v0.98.0",
+          "failedCases": [],
+          "errors": []
+        },
+        {
+          "runId": 42999501454,
+          "attempt": 1,
+          "headSha": "794fdf919aff44c2da264f735637ba20ed6e4d97",
+          "jobId": 130451819906,
+          "name": "check (windows-latest)",
+          "status": "completed",
+          "conclusion": "failure",
+          "url": "https://github.com/botiverse/oar/actions/runs/42999501454/job/130451819906",
+          "head_branch": "main",
+          "event": "push",
+          "display_title": "feat(cursor): attach SessionOptions.mcpServers through the SDK (#729)",
+          "failedCases": [],
+          "errors": []
+        },
+        {
+          "runId": 42974748731,
+          "attempt": 1,
+          "headSha": "315d67395632bf3e09a2d833582e48a3aab144de",
+          "jobId": 130371098154,
+          "name": "behavior (windows-latest, claude-aimock)",
+          "status": "completed",
+          "conclusion": "failure",
+          "url": "https://github.com/botiverse/oar/actions/runs/42974748731/job/130371098154",
+          "head_branch": "main",
+          "event": "push",
+          "display_title": "chore: release v0.97.0 (#727)",
+          "failedCases": [
+            "sea-trial/vendor/task-stop.vendor.test.ts > Claude stops one native task; its sibling and the parent continue"
+          ],
+          "errors": [
+            "AssertionError: expected { kind: 'task_ended', …(8) } to match object { status: 'completed' }"
+          ]
+        }
+      ],
+      "codebuddyInstallFailures": [
+        {
+          "runId": 42999501454,
+          "artifactId": 13845009575,
+          "version": "2.183.0",
+          "attempt": 1,
+          "budgetMs": 180000,
+          "elapsedMs": 182666,
+          "result": {
+            "kind": "failed",
+            "exitCode": null
+          },
+          "sourceLogBytes": 35090,
+          "sourceLogSha256": "d8e08bb4abe056c58de98ac077ab28be220299c76d61cdb02f0de212bbe832f2",
+          "timingFilePresent": false,
+          "mainPackageCompletionRecorded": false,
+          "tail": [
+            "352 timing reifyNode:node_modules/@tencent-ai/codebuddy-code/node_modules/zod Completed in 59076ms",
+            "353 http fetch GET 200 https://registry.npmjs.org/@openai/agents-core/-/agents-core-0.20.0.tgz 136707ms (cache miss)",
+            "354 timing reifyNode:node_modules/@tencent-ai/codebuddy-code/node_modules/@openai/agents-core Completed in 136748ms"
+          ],
+          "phases": [
+            {
+              "phase": "child_starting",
+              "at": "2026-11-11T10:04:05.745Z",
+              "timeoutMs": 240000
+            },
+            {
+              "phase": "discovery_started",
+              "at": "2026-11-11T10:04:05.958Z"
+            },
+            {
+              "phase": "discovery_completed",
+              "at": "2026-11-11T10:04:07.696Z"
+            },
+            {
+              "phase": "install_started",
+              "at": "2026-11-11T10:04:07.697Z",
+              "timeoutMs": 180000
+            },
+            {
+              "phase": "install_returned",
+              "at": "2026-11-11T10:07:10.363Z",
+              "kind": "failed"
+            },
+            {
+              "phase": "child_returned",
+              "at": "2026-11-11T10:07:10.383Z",
+              "exitCode": 1
+            },
+            {
+              "phase": "npm_logs",
+              "at": "2026-11-11T10:07:10.387Z"
+            },
+            {
+              "phase": "npm_log_saved",
+              "at": "2026-11-11T10:07:10.388Z",
+              "sourceBytes": 35090,
+              "savedBytes": 35090,
+              "truncated": false
+            },
+            {
+              "phase": "cleanup_started",
+              "at": "2026-11-11T10:07:10.388Z"
+            },
+            {
+              "phase": "cleanup_finished",
+              "at": "2026-11-11T10:07:17.615Z"
+            }
+          ],
+          "cause": "Not established. npm fetch/reify spans do not isolate transport from extraction or scheduling."
+        },
+        {
+          "runId": 42999777885,
+          "artifactId": 13846231636,
+          "version": "2.183.0",
+          "attempt": 1,
+          "budgetMs": 180000,
+          "elapsedMs": 182652,
+          "result": {
+            "kind": "failed",
+            "exitCode": null
+          },
+          "sourceLogBytes": 35302,
+          "sourceLogSha256": "06fff0979659f06bbc02ffec44b974470f59305d38047a8aef858e97b57a395e",
+          "timingFilePresent": false,
+          "mainPackageCompletionRecorded": false,
+          "tail": [
+            "354 timing reifyNode:node_modules/@tencent-ai/codebuddy-code/node_modules/@openai/agents-core Completed in 122800ms",
+            "355 http fetch GET 200 https://registry.npmjs.org/openai/-/openai-7.55.0.tgz 176643ms (cache miss)",
+            "356 timing reifyNode:node_modules/@tencent-ai/codebuddy-code/node_modules/openai Completed in 176691ms"
+          ],
+          "phases": [
+            {
+              "phase": "child_starting",
+              "at": "2026-11-11T10:06:37.105Z",
+              "timeoutMs": 240000
+            },
+            {
+              "phase": "discovery_started",
+              "at": "2026-11-11T10:06:37.329Z"
+            },
+            {
+              "phase": "discovery_completed",
+              "at": "2026-11-11T10:06:39.029Z"
+            },
+            {
+              "phase": "install_started",
+              "at": "2026-11-11T10:06:39.029Z",
+              "timeoutMs": 180000
+            },
+            {
+              "phase": "install_returned",
+              "at": "2026-11-11T10:09:41.681Z",
+              "kind": "failed"
+            },
+            {
+              "phase": "child_returned",
+              "at": "2026-11-11T10:09:41.702Z",
+              "exitCode": 1
+            },
+            {
+              "phase": "npm_logs",
+              "at": "2026-11-11T10:09:41.706Z"
+            },
+            {
+              "phase": "npm_log_saved",
+              "at": "2026-11-11T10:09:41.708Z",
+              "sourceBytes": 35302,
+              "savedBytes": 35302,
+              "truncated": false
+            },
+            {
+              "phase": "cleanup_started",
+              "at": "2026-11-11T10:09:41.708Z"
+            },
+            {
+              "phase": "cleanup_finished",
+              "at": "2026-11-11T10:09:50.842Z"
+            }
+          ],
+          "cause": "Not established. npm fetch/reify spans do not isolate transport from extraction or scheduling."
+        },
+        {
+          "runId": 43074471059,
+          "artifactId": 13880053991,
+          "version": "2.183.0",
+          "attempt": 1,
+          "budgetMs": 180000,
+          "elapsedMs": 182644,
+          "result": {
+            "kind": "failed",
+            "exitCode": null
+          },
+          "sourceLogBytes": 35321,
+          "sourceLogSha256": "5c58774a29fd9caa5d9392c1b00b187f8a1f973a0be59740d34fc8cb1bd8e14e",
+          "timingFilePresent": false,
+          "mainPackageCompletionRecorded": false,
+          "tail": [
+            "354 timing reifyNode:node_modules/@tencent-ai/codebuddy-code/node_modules/@openai/agents-core Completed in 85944ms",
+            "355 http fetch GET 200 https://registry.npmjs.org/openai/-/openai-7.55.0.tgz 178313ms (cache miss)",
+            "356 timing reifyNode:node_modules/@tencent-ai/codebuddy-code/node_modules/openai Completed in 178341ms"
+          ],
+          "phases": [
+            {
+              "phase": "child_starting",
+              "at": "2026-11-11T18:13:10.280Z",
+              "timeoutMs": 240000
+            },
+            {
+              "phase": "discovery_started",
+              "at": "2026-11-11T18:13:10.507Z"
+            },
+            {
+              "phase": "discovery_completed",
+              "at": "2026-11-11T18:13:12.724Z"
+            },
+            {
+              "phase": "install_started",
+              "at": "2026-11-11T18:13:12.724Z",
+              "timeoutMs": 180000
+            },
+            {
+              "phase": "install_returned",
+              "at": "2026-11-11T18:16:15.368Z",
+              "kind": "failed"
+            },
+            {
+              "phase": "child_returned",
+              "at": "2026-11-11T18:16:15.387Z",
+              "exitCode": 1
+            },
+            {
+              "phase": "npm_logs",
+              "at": "2026-11-11T18:16:15.392Z"
+            },
+            {
+              "phase": "npm_log_saved",
+              "at": "2026-11-11T18:16:15.393Z",
+              "sourceBytes": 35321,
+              "savedBytes": 35321,
+              "truncated": false
+            },
+            {
+              "phase": "cleanup_started",
+              "at": "2026-11-11T18:16:15.393Z"
+            },
+            {
+              "phase": "cleanup_finished",
+              "at": "2026-11-11T18:16:21.978Z"
+            }
+          ],
+          "cause": "Not established. npm fetch/reify spans do not isolate transport from extraction or scheduling."
+        }
+      ],
+      "rerunsRequestedForThisReport": 0,
+      "intentionallyCancelledSupersededRuns": [
+        42894354084,
+        42886670338,
+        42884574757
+      ],
+      "mainCi": {
+        "conclusion": "success",
+        "head_sha": "04fffc3f179eb3b318bb87af3846a6b63acce763",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/43082057193",
+        "id": 43082057193,
+        "run_attempt": 1,
+        "status": "completed"
+      },
+      "mainCiJobs": {
+        "success": 39
+      },
+      "mainCiReadAt": "2026-11-11T19:30:07.066494+00:00"
+    },
+    "upstream": [
+      {
+        "key": "opencode-54794",
+        "ok": true,
+        "html_url": "https://github.com/anomalyco/opencode/issues/54794",
+        "state": "closed",
+        "updated_at": "2026-11-05T21:52:50Z",
+        "comments": 3
+      },
+      {
+        "key": "opencode-53879",
+        "ok": true,
+        "html_url": "https://github.com/anomalyco/opencode/issues/53879",
+        "state": "open",
+        "updated_at": "2026-10-29T17:18:46Z",
+        "comments": 4
+      },
+      {
+        "key": "kimi-2370",
+        "ok": true,
+        "html_url": "https://github.com/MoonshotAI/kimi-cli/issues/2370",
+        "state": "open",
+        "updated_at": "2026-09-12T16:09:18Z",
+        "comments": 1
+      },
+      {
+        "key": "qwen-15796",
+        "ok": true,
+        "html_url": "https://github.com/QwenLM/qwen-code/issues/15796",
+        "state": "open",
+        "updated_at": "2026-10-28T13:14:10Z",
+        "comments": 2
+      },
+      {
+        "key": "qwen-15875",
+        "ok": true,
+        "html_url": "https://github.com/QwenLM/qwen-code/issues/15875",
+        "state": "open",
+        "updated_at": "2026-11-08T03:54:29Z",
+        "comments": 5
+      },
+      {
+        "key": "qwen-16586",
+        "ok": true,
+        "html_url": "https://github.com/QwenLM/qwen-code/pull/16586",
+        "state": "open",
+        "updated_at": "2026-11-11T06:47:22Z",
+        "comments": 7,
+        "merged": false,
+        "merged_at": null,
+        "headSha": "8e932bbccd5ecc4703d3e8613614f9076b0c1653"
+      },
+      {
+        "key": "qwen-16586-comments",
+        "ok": true,
+        "count": 7,
+        "commentIds": [
+          6721971304,
+          6722241218,
+          6722241500,
+          6722241759,
+          6780984902,
+          6781273232,
+          6789114622
+        ]
+      },
+      {
+        "key": "qwen-15875-comments",
+        "ok": true,
+        "count": 5,
+        "commentIds": [
+          6500170658,
+          6500361969,
+          6632408160,
+          6709946171,
+          6716941032
+        ]
+      },
+      {
+        "key": "dsh-master",
+        "ok": true,
+        "html_url": "https://github.com/deepseek-ai/deepseek-harness/commit/e8f7b93a344964de3dca1ace9e72b6e4d6de87cb",
+        "sha": "e8f7b93a344964de3dca1ace9e72b6e4d6de87cb"
+      },
+      {
+        "key": "agy-public-head",
+        "ok": true,
+        "html_url": "https://github.com/google-antigravity/antigravity-cli/commit/f22a4d2291e727e777337098eec5ca39f06f75b8",
+        "sha": "f22a4d2291e727e777337098eec5ca39f06f75b8"
+      },
+      {
+        "key": "codebuddy-issue",
+        "ok": true
+      },
+      {
+        "key": "dsh-discussion",
+        "ok": true
+      },
+      {
+        "key": "agy-install",
+        "ok": true
+      },
+      {
+        "key": "agy-headless",
+        "ok": true
+      },
+      {
+        "key": "codebuddy-1847",
+        "url": "https://cnb.cool/codebuddy/codebuddy-code/-/issues/1847",
+        "state": "open",
+        "comments": 0,
+        "updatedAt": "2026-10-28T06:32:16Z"
+      },
+      {
+        "key": "dsh-discussion-593",
+        "url": "https://github.com/deepseek-ai/deepseek-harness/discussions/593",
+        "commentIds": [
+          18089935,
+          18637238,
+          18831410,
+          19266464,
+          19311708,
+          19314203,
+          19490754
+        ],
+        "newReply": false
+      }
+    ],
+    "dshWatchedTrees": {
+      "previous": {
+        "ref": "fcc0ad462172522aaf5c93a7b2e01f6b9f0b0159",
+        "truncated": false,
+        "watched": [
+          {
+            "path": "packages/experimental/subagent-oar",
+            "mode": "040000",
+            "type": "tree",
+            "sha": "f9c4cf6cfa1b4986cda362d858a52ce724c7d5f3",
+            "url": "https://api.github.com/repos/deepseek-ai/deepseek-harness/git/trees/f9c4cf6cfa1b4986cda362d858a52ce724c7d5f3"
+          },
+          {
+            "path": "packages/experimental/tool-subagent-oar",
+            "mode": "040000",
+            "type": "tree",
+            "sha": "f056682d16b32f2bde5303d8b12fe6a680f0654a",
+            "url": "https://api.github.com/repos/deepseek-ai/deepseek-harness/git/trees/f056682d16b32f2bde5303d8b12fe6a680f0654a"
+          },
+          {
+            "path": "patches/@botiverse__oar@0.67.0.patch",
+            "mode": "100644",
+            "type": "blob",
+            "sha": "d2c671a3e233f33534ec4df90bb4f98067d7c47f",
+            "size": 9267,
+            "url": "https://api.github.com/repos/deepseek-ai/deepseek-harness/git/blobs/d2c671a3e233f33534ec4df90bb4f98067d7c47f"
+          },
+          {
+            "path": "pnpm-workspace.yaml",
+            "mode": "100644",
+            "type": "blob",
+            "sha": "59b31eb46b90e35251cbf3c26b20556892c4aa52",
+            "size": 6380,
+            "url": "https://api.github.com/repos/deepseek-ai/deepseek-harness/git/blobs/59b31eb46b90e35251cbf3c26b20556892c4aa52"
+          }
+        ]
+      },
+      "current": {
+        "ref": "e8f7b93a344964de3dca1ace9e72b6e4d6de87cb",
+        "truncated": false,
+        "watched": [
+          {
+            "path": "packages/experimental/subagent-oar",
+            "mode": "040000",
+            "type": "tree",
+            "sha": "dab38398696296dd80e6227e97cf654652308606",
+            "url": "https://api.github.com/repos/deepseek-ai/deepseek-harness/git/trees/dab38398696296dd80e6227e97cf654652308606"
+          },
+          {
+            "path": "packages/experimental/tool-subagent-oar",
+            "mode": "040000",
+            "type": "tree",
+            "sha": "01a46106855ffd56cb63ab5e91b113d9e15e0499",
+            "url": "https://api.github.com/repos/deepseek-ai/deepseek-harness/git/trees/01a46106855ffd56cb63ab5e91b113d9e15e0499"
+          },
+          {
+            "path": "patches/@botiverse__oar@0.67.0.patch",
+            "mode": "100644",
+            "type": "blob",
+            "sha": "d2c671a3e233f33534ec4df90bb4f98067d7c47f",
+            "size": 9267,
+            "url": "https://api.github.com/repos/deepseek-ai/deepseek-harness/git/blobs/d2c671a3e233f33534ec4df90bb4f98067d7c47f"
+          },
+          {
+            "path": "pnpm-workspace.yaml",
+            "mode": "100644",
+            "type": "blob",
+            "sha": "02bb4f0fb5a0eefc776c69ef0133e99af7899640",
+            "size": 6514,
+            "url": "https://api.github.com/repos/deepseek-ai/deepseek-harness/git/blobs/02bb4f0fb5a0eefc776c69ef0133e99af7899640"
+          }
+        ]
+      }
+    },
+    "dshWatchedDiffs": [
+      {
+        "path": "packages/experimental/subagent-oar/package.json",
+        "diff": "--- packages/experimental/subagent-oar/package.json before\n+++ packages/experimental/subagent-oar/package.json after\n@@ -1,7 +1,7 @@\n {\n   \"name\": \"@deepseek-ai/dsh-experimental-subagent-oar\",\n   \"description\": \"Experimental one-shot subagents through OAR runtimes\",\n-  \"version\": \"0.2.2-rc.1\",\n+  \"version\": \"0.2.2-rc.2\",\n   \"publishConfig\": {\n     \"access\": \"public\"\n   },\n@@ -27,7 +27,10 @@\n     \"locale/*.json\",\n     \"lib/index.js\",\n     \"LICENSE-OAR\",\n-    \"lib/types/**/*.d.ts\"\n+    \"lib/types/**/*.d.ts\",\n+    \"lib/types/**/*.d.ts.map\",\n+    \"lib/**/*.js.map\",\n+    \"src\"\n   ],\n   \"license\": \"MIT\",\n   \"icon\": \"./icon.svg\",\n"
+      },
+      {
+        "path": "packages/experimental/tool-subagent-oar/package.json",
+        "diff": "--- packages/experimental/tool-subagent-oar/package.json before\n+++ packages/experimental/tool-subagent-oar/package.json after\n@@ -1,7 +1,7 @@\n {\n   \"name\": \"@deepseek-ai/dsh-experimental-tool-subagent-oar\",\n   \"description\": \"Delegate standalone tasks to configured external subagent providers\",\n-  \"version\": \"0.2.2-rc.1\",\n+  \"version\": \"0.2.2-rc.2\",\n   \"publishConfig\": {\n     \"access\": \"public\"\n   },\n@@ -25,7 +25,10 @@\n   \"files\": [\n     \"locale/*.json\",\n     \"lib/index.js\",\n-    \"lib/types/**/*.d.ts\"\n+    \"lib/types/**/*.d.ts\",\n+    \"lib/types/**/*.d.ts.map\",\n+    \"lib/**/*.js.map\",\n+    \"src\"\n   ],\n   \"license\": \"MIT\",\n   \"peerDependencies\": {\n"
+      },
+      {
+        "path": "pnpm-workspace.yaml",
+        "diff": "--- pnpm-workspace.yaml before\n+++ pnpm-workspace.yaml after\n@@ -58,12 +58,12 @@\n   # Native Codex and Claude tests qualify this exact release with its local patches.\n   - '@botiverse/oar@0.67.0'\n   # Office engines and their API are qualified and released together by the kit repository.\n-  - '@deepseek-ai/libreoffice-kit@0.1.5'\n-  - '@deepseek-ai/libreoffice-kit-darwin-arm64@0.1.5'\n-  - '@deepseek-ai/libreoffice-kit-darwin-x64@0.1.5'\n-  - '@deepseek-ai/libreoffice-kit-win32-arm64@0.1.5'\n-  - '@deepseek-ai/libreoffice-kit-win32-x64@0.1.5'\n-  - '@deepseek-ai/libreoffice-kit-wasm@0.1.5'\n+  - '@deepseek-ai/libreoffice-kit@0.2.3'\n+  - '@deepseek-ai/libreoffice-kit-darwin-arm64@0.2.3'\n+  - '@deepseek-ai/libreoffice-kit-darwin-x64@0.2.3'\n+  - '@deepseek-ai/libreoffice-kit-win32-arm64@0.2.3'\n+  - '@deepseek-ai/libreoffice-kit-win32-x64@0.2.3'\n+  - '@deepseek-ai/libreoffice-kit-wasm@0.2.3'\n   # Fresh pi-ai releases carry the model catalog updates that are the whole\n   # point of bumping it; waiting out the release age would defeat that.\n   - '@earendil-works/pi-ai@1.3.0'\n@@ -107,6 +107,8 @@\n   - pnpm@11.28.5\n   # Desktop packaging requires this Electron fingerprint with node-addon-require-builtin 0.1.9.\n   - electron@44.7.0\n+  # Stagehand 4.4.0 carries the reviewed zod 4.6.6 pin; install it without the release-age wait.\n+  - '@browserbasehq/stagehand@4.4.0'\n patchedDependencies:\n   '@botiverse/oar@0.67.0': patches/@botiverse__oar@0.67.0.patch\n   '@earendil-works/pi-ai@1.3.0': patches/@earendil-works__pi-ai@1.3.0.patch\n"
+      }
+    ],
+    "repositoryValidation": {
+      "check": "passed",
+      "unitPassed": 3920,
+      "mockBehaviorPassed": 18,
+      "build": "passed",
+      "productCodeChanged": false,
+      "dependencyOrCiPinsChanged": false,
+      "assertionsOrDeadlinesChanged": false
+    }
   }
 }
