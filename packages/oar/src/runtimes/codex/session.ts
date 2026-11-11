@@ -16,7 +16,8 @@ import { startAppServerClient, type RpcOutcome } from "./app-server-client.js";
 import { CODEX_SETTINGS_REPORT_MS, codexOpenReadback, codexResumeEffortRefusal, codexThreadName, codexThreadOpen } from "./open.js";
 import { foldCodexNotification, initialCodexProjection, type CodexProjectionState } from "./projection.js";
 import { prepareCodexToolDenials } from "./tool-denials.js";
-import { missingDirectoryError, nameThread, openThread, rpcControl, type RpcControlPlan } from "./rpc-control.js";
+import { missingDirectoryError, nameThread, openThread, rpcControl, updateThreadEffort, type RpcControlPlan } from "./rpc-control.js";
+import { codexControlRefusal, codexVersion } from "./refusal.js";
 import { codexServerRequests } from "./runtime-requests.js";
 import { codexTurnProcesses, refuseSharedTurnProcesses } from "./turn-processes.js";
 /*
@@ -49,10 +50,11 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
   const cleanup: { reason?: string } = {};
   client.onExit((_code, reason) => { if (reason !== undefined) { cleanup.reason = reason; } });
   try {
-    await client.request("initialize", {
+    // The running binary's own version; the probed one when codex names none.
+    const version = codexVersion(await client.request("initialize", {
       clientInfo: { name: "oar", version: "0.0.0" },
       capabilities: { experimentalApi: true },
-    });
+    })) ?? installation.version ?? null;
     client.notify("initialized", {});
     if (options.goals === true) { await confirmCodexGoals(client); }
     const filteredOpenParams = await prepareCodexToolDenials(client, options, openParams);
@@ -70,7 +72,7 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
     const started = await openThread(openMethod, async () => {
       const reply = await client.request(openMethod, filteredOpenParams, markOpen);
       return reply;
-    }, options.serviceTier, options.resume);
+    }, { version, serviceTier: options.serviceTier, resumeId: options.resume });
     const threadId = asRecord(started.thread)?.id;
     if (typeof threadId !== "string") { throw new TypeError("codex thread start/resume returned no thread id"); }
     // The reply is codex's word on the model and effort the thread runs (the
@@ -165,8 +167,7 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
       const timer = setTimeout(() => {
         resolve(null);
       }, CODEX_SETTINGS_REPORT_MS);
-      const update = await client.request("thread/settings/update", { threadId, effort: requested })
-        .then(() => null, (error: unknown) => ({ error: error instanceof Error ? error.message : String(error) }));
+      const update = await updateThreadEffort(client, threadId, requested, version);
       const refusal = codexResumeEffortRefusal(requested, update, update === null ? await reported : null);
       clearTimeout(timer);
       settingsWaiter = null;
@@ -200,9 +201,9 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
         state.codexTurnId = turnId;
         return { kind: "accepted", native: reply };
       },
-      onError: (message) => {
+      onError: (message, native) => {
         state.active = null;
-        return { kind: "rejected", code: "runtime_refused", reason: message };
+        return codexControlRefusal(message, native);
       },
     });
     const steerPlan = (input: string, inputOptions?: InputOptions): RpcControlPlan => {
@@ -218,7 +219,7 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
           }
           return { kind: "accepted", native: reply };
         },
-        onError: (message) => ({ kind: "rejected", code: "runtime_refused", reason: `not_steerable: ${message}` }),
+        onError: (message, native) => codexControlRefusal(`not_steerable: ${message}`, native),
       };
     };
     const queuePlan = (input: string, inputOptions?: InputOptions): RpcControlPlan => ({
@@ -228,7 +229,7 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
       method: "thread/queue/add",
       params: () => ({ threadId, input: codexUserInput(input, inputOptions?.images), clientUserMessageId: inputOptions?.inputId ?? randomUUID() }),
       onReply: (reply) => ({ kind: "accepted", native: reply }),
-      onError: (message) => ({ kind: "rejected", code: "runtime_refused", reason: message }),
+      onError: (message, native) => codexControlRefusal(message, native),
     });
     // An early or late interrupt can be refused; turn/completed is the outcome.
     const abortPlan = (): RpcControlPlan => {

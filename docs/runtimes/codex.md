@@ -281,6 +281,59 @@ resuming the same persisted identity.
 [resume tests](../../tests/codex/codex-session-resume-model.test.ts),
 [error handling][oar-transport].
 
+### Refusals
+
+Codex's refusals are read by their JSON-RPC code, `data` and words into
+OAR's types ([classifier](../../packages/oar/src/runtimes/codex/refusal.ts),
+[tests](../../tests/codex/codex-refusals.test.ts),
+[probe](../../experiments/codex-old-releases/README.md)).
+
+**An older Codex at open.** OAR reads the running version from
+`initialize`'s `userAgent` (`oar/0.132.0 (...)`). These fail the open with a
+`RuntimeFailureError` with `failure: "invalid_request"` and `code:
+"runtime_outdated"`, whose message names the version and the first release
+that has what OAR needs:
+
+| What OAR sends | Codex before | Codex's refusal (-32600) |
+| --- | --- | --- |
+| `serviceTier: "default"` or `"priority"` on `thread/start` / `thread/resume` | 0.129.0 | `Invalid request: unknown variant \`default\`, expected \`fast\` or \`flex\`` |
+| `thread/settings/update {effort}` after a resume on another level | 0.133.0 | `Invalid request: unknown variant \`thread/settings/update\`, expected one of ...` |
+
+Probed on 0.118.0, 0.125.0, 0.128.0, 0.129.0, 0.130.0, 0.132.0, 0.133.0,
+0.134.0 and 0.135.0. Every one of them reports `serviceTier` in the open
+reply (`null` without a tier), so an absent field still fails the readback
+as before ([service tiers](#service-tiers)). A tier no release accepts (a
+typo) keeps the plain error. Codex 0.133.0 and later report `flex` as
+`null` on this machine's default provider, which the readback refuses as a
+tier mismatch, not as an old release.
+
+**An unreadable `config.toml`.** Codex starts on its defaults (stderr:
+`Invalid configuration; using defaults`) and refuses `thread/start` and
+`thread/resume` with -32600 `failed to load configuration:
+<path>:<line>:<column>: <detail>` (0.118.0 and 0.154.0). The open fails with
+a `RuntimeFailureError` with `failure: "invalid_request"` and `code:
+"runtime_config_invalid"`; the message is `codex <method> failed:` and
+codex's words, so the file, line and column reach the user. A file written
+by a newer Codex (or its Desktop app) and read by an older CLI fails this way.
+
+**A refused control.** `turn/start`, `turn/steer` and `thread/queue/add`
+refusals keep codex's message as `reason` and its JSON-RPC error as
+`native`, and read its code (from the 0.167.0 source):
+
+| Codex's error | Rejection |
+| --- | --- |
+| -32600 `thread not found: <id>` | `code: "session_not_found"`: this process no longer has the thread; open a new Session with `resume` |
+| -32602 with `data.input_error_code: "input_too_large"` | `runtime_refused`, `failure: "input_too_large"` |
+| -32001 (its request queue is full) | `runtime_refused`, `failure: "overloaded"` |
+| -32600 `failed to load configuration: ...`, or `data.type` `modelProvider...` | `runtime_refused`, `failure: "invalid_request"` |
+| anything else (-32603 `failed to submit turn input`, a draining server) | `runtime_refused`, no `failure` |
+
+In the 0.167.0 source, `turn/start` reloads the configuration and checks
+the thread's model provider against it, so a `config.toml` broken while a
+Session runs, or one that now selects another `model_provider`
+(`modelProviderMismatch`), refuses every later prompt the same way until the
+file is fixed. A steer's `reason` keeps its `not_steerable:` prefix.
+
 ### Interrupted input
 
 When a root `turn/completed` reports `interrupted`, OAR emits
@@ -330,7 +383,8 @@ evidence (on 0.163 local and remote both use
 **Prompt (mapped):** native `turn/start { threadId, input }` returns
 `{ turn: { id } }`; later notifications establish completion. `prompt(string)`
 records a `prompt` request, sends the text input, and records the RPC reply
-as the `accepted` response. It is `rejected` with the RPC error message, with
+as the `accepted` response. It is `rejected` with the RPC error message
+([classified](#refusals)), with
 `codex turn/start returned no turn id` when the reply names none, or `busy`
 while a root turn is active (a queued turn codex started on its own
 included). Completion is codex's
@@ -1113,7 +1167,10 @@ whose Node script OAR runs without cmd.exe), then the Codex Desktop CLI
 (`%LOCALAPPDATA%\Programs\OpenAI\Codex\bin\codex.exe`, then
 `%LOCALAPPDATA%\OpenAI\Codex\bin\codex.exe`); these locations follow
 Raft's own Codex driver and have no native Windows run of their own here, so
-the `app-server --help` probe decides. Every candidate requires
+the `app-server --help` probe decides. The order compares no versions, and
+the Codex Desktop CLI can be older than the `codex` on PATH (a Raft machine
+ran Desktop's 0.130.0-alpha.5 while PATH had 0.165.0): set `OAR_CODEX_BIN`
+to choose, and see [refusals](#refusals) for what an old release cannot do. Every candidate requires
 `codex app-server --help` to succeed; a codex without the app-server surface
 is unsupported. When none is found, `install` runs OpenAI's standalone
 installer (macOS and Linux),

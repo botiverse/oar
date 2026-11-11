@@ -262,8 +262,12 @@ Further rules:
 - **Control responses answer only "accepted or not".** Final states and
   landing points are always events. A rejection carries one typed `code`
   (`busy`, `no_active_turn`, `not_queued`, `unsupported`, `runtime_exited`, `session_released`,
-  `disposed`, `aborted`, `runtime_refused`, `error`) next to the prose `reason`, so an application
-  branches on a word, not on vendor text. `unsupported` means the runtime
+  `disposed`, `aborted`, `runtime_refused`, `session_not_found`, `error`) next to the prose `reason`, so an application
+  branches on a word, not on vendor text. A `runtime_refused` may also carry
+  `failure` (a `FailureClass`) where the runtime's error code says one, as
+  `input_dropped` does; `session_not_found` means the runtime no longer has
+  the session, so no later control on it can succeed and a host reopens it
+  with `resume` ([codex refusals](../runtimes/codex.md#refusals)). `unsupported` means the runtime
   cannot do this control with these inputs (images where it takes none,
   images on a cursor steer, or no input at all); a control a runtime cannot do at all is a
   member the session lacks, never a request that is always rejected: a

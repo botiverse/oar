@@ -10,16 +10,23 @@ import type { CredentialProblem, FailureClass } from "./session.js";
  * runtime's own words, or OAR's policy explanation when `code` is present.
  * Other open failures keep their own errors.
  */
+/**
+ * - `project_packages_blocked`: OAR's policy refused to install or replace Pi packages.
+ * - `runtime_outdated`: the selected runtime is too old for what OAR needs; the reason names it and the first release that has it.
+ * - `runtime_config_invalid`: the runtime could not read its own configuration; the reason is its words (for codex, the file, line and column).
+ */
+export type RuntimeFailureCode = "project_packages_blocked" | "runtime_outdated" | "runtime_config_invalid";
+
 export class RuntimeFailureError extends Error {
   override readonly name = "RuntimeFailureError";
   readonly failure: FailureClass;
-  /** Stable OAR policy refusal, separate from a missing session or cwd. */
-  declare readonly code?: "project_packages_blocked";
+  /** Stable reason a host can branch on, separate from a missing session or cwd (`RuntimeFailureCode`). */
+  declare readonly code?: RuntimeFailureCode;
   // Declared, not initialized: absent unless the runtime said them.
   declare readonly credential?: CredentialProblem;
   declare readonly status?: number;
 
-  constructor(failure: FailureClass, reason: string, details: { readonly code?: "project_packages_blocked"; readonly credential?: CredentialProblem; readonly status?: number; readonly cause?: unknown } = {}) {
+  constructor(failure: FailureClass, reason: string, details: { readonly code?: RuntimeFailureCode; readonly credential?: CredentialProblem; readonly status?: number; readonly cause?: unknown } = {}) {
     super(reason, details.cause === undefined ? undefined : { cause: details.cause });
     this.failure = failure;
     if (details.code !== undefined) { this.code = details.code; }
