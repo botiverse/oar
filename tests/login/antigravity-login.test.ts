@@ -76,8 +76,25 @@ it("status is agy models: listed, asked to sign in, or unknown", async () => {
   expect(await antigravityAuthStatus(failing.installation)).toMatchObject({ kind: "unknown", source: "agy models" });
 });
 
-it("the runtime signs in and reads status, and has no logout", () => {
+it("the runtime signs in, reads status and signs out", () => {
   expect(typeof antigravityRuntime.login).toBe("function");
   expect(typeof antigravityRuntime.authStatus).toBe("function");
-  expect(antigravityRuntime.logout).toBeUndefined();
+  expect(typeof antigravityRuntime.logout).toBe("function");
+});
+
+it("logout is agy's own ACP logout, confirmed by agy models", async () => {
+  const { fake, installation } = await fixture("success", true);
+  expect(await antigravityRuntime.logout(installation)).toEqual({ kind: "logged_out" });
+  expect(fake.read()).toMatchObject({ calls: [["acp"], ["models"]], loggedIn: false });
+});
+
+it("logout does not claim a sign-in agy still reports is gone", async () => {
+  const { installation } = await fixture("sticky", true);
+  expect(await antigravityRuntime.logout(installation)).toMatchObject({ kind: "failed", reason: "still_logged_in" });
+});
+
+it("an agy without ACP logout is unsupported, and nothing is deleted", async () => {
+  const { fake, installation } = await fixture("no-logout", true);
+  expect(await antigravityRuntime.logout(installation)).toMatchObject({ kind: "unsupported", reason: "version_unsupported" });
+  expect(fake.read()).toMatchObject({ calls: [["acp"]], loggedIn: true });
 });

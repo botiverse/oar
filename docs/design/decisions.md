@@ -52,8 +52,8 @@ person's pasted code, and then runs the CLI's own ACP server, so whether a
 host's use of a consumer account fits the vendor's terms is the host's and the
 user's judgment, not something OAR can decide by withholding a wrapper. The
 [runtime page](../runtimes/antigravity.md#login) states the terms and the API
-key alternative. Logout stays absent because the CLI refuses it outside its
-interactive UI, not as policy.
+key alternative. Logout is the CLI's own ACP `logout` (added 2026-11-11 once
+`agy acp` was found to declare it; print mode still refuses `/logout`).
 
 **What would reopen it:** the vendor blocking non-interactive or ACP use of
 consumer logins, or stating that an ACP host's use is prohibited in a way that
