@@ -1,5 +1,6 @@
 /* oxlint-disable eslint/max-statements, eslint/max-lines-per-function, import/no-nodejs-modules, typescript/no-unsafe-assignment, typescript/no-unsafe-member-access, typescript/no-unsafe-call, typescript/no-unsafe-argument, typescript/no-unsafe-return -- Standalone untyped child-process fixture: a tiny MCP server. */
 import { createHash } from "node:crypto";
+import { appendFileSync } from "node:fs";
 import http from "node:http";
 import { createInterface } from "node:readline";
 
@@ -14,6 +15,8 @@ import { createInterface } from "node:readline";
  *                                     the process exits after answering it, over
  *                                     HTTP that session then answers 404 (MCP:
  *                                     the client must initialize a new one)
+ *   --evidence <file>                 bounded startup and stdio handshake facts;
+ *                                     never writes diagnostics to protocol stdout
  *
  * `echo {text}` answers `echo:<text> via=<transport> token=<fingerprint>`.
  * Nothing but this process writes that string, so a provider request carrying
@@ -26,6 +29,30 @@ import { createInterface } from "node:readline";
 
 const overHttp = process.argv.includes("--http") === true;
 const once = process.argv.includes("--once") === true;
+
+// Opt-in startup/handshake facts for the Antigravity clash case. Never log
+// argv, env, RPC IDs, tool arguments, credentials or raw protocol payloads.
+const evidenceIndex = process.argv.indexOf("--evidence");
+const evidenceFile = evidenceIndex === -1 ? undefined : process.argv[evidenceIndex + 1];
+let evidenceBytes = 0;
+function evidence(event, detail = {}) {
+  if (evidenceFile === undefined || evidenceBytes >= 64 * 1024) { return; }
+  try {
+    let line = `${JSON.stringify({ at: Date.now(), pid: process.pid, event, ...detail })}\n`;
+    if (evidenceBytes + Buffer.byteLength(line) > 64 * 1024 - 128) {
+      line = `${JSON.stringify({ at: Date.now(), event: "truncated" })}\n`;
+      evidenceBytes = 64 * 1024;
+    }
+    appendFileSync(evidenceFile, line);
+    evidenceBytes += Buffer.byteLength(line);
+  } catch { evidenceBytes = 64 * 1024; }
+}
+evidence("started", { node: process.version, transport: overHttp ? "http" : "stdio" });
+if (evidenceFile !== undefined) {
+  process.on("exit", code => { evidence("exit", { code }); });
+  process.on("uncaughtExceptionMonitor", () => { evidence("uncaught_exception"); });
+}
+let requestNumber = 0;
 
 function fingerprint(secret) {
   return typeof secret === "string" && secret.length > 0 ? createHash("sha256").update(secret).digest("hex").slice(0, 12) : "none";
@@ -119,15 +146,19 @@ if (overHttp) {
     } catch {
       return;
     }
+    const request = ++requestNumber;
+    const method = ["initialize", "notifications/initialized", "tools/list", "tools/call", "ping"].includes(message.method) ? message.method : "other";
+    evidence("received", { request, method });
     const reply = answer(message, process.env.OAR_ECHO_TOKEN, "stdio");
     called = once && message.method === "tools/call";
     if (reply !== null) {
       process.stdout.write(`${JSON.stringify(reply)}\n`, () => {
+        evidence("replied", { request, method, outcome: reply.error === undefined ? "result" : "error" });
         if (called) {
           process.exit(0);
         }
       });
     }
   });
-  lines.on("close", () => process.exit(0));
+  lines.on("close", () => { evidence("stdin_closed"); process.exit(0); });
 }

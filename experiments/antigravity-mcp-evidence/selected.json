@@ -1,0 +1,283 @@
+{
+  "atUtc": "2026-11-11T14:34:15Z",
+  "platform": "linux x64",
+  "node": "24.19.0",
+  "agy": "1.5.0",
+  "injection": "only the expected second echo changed in a temporary test copy",
+  "exitCode": 1,
+  "assertionPreserved": true,
+  "normalCasePassed": true,
+  "normalCaseRetainedFailureArtifacts": false,
+  "manifest": {
+    "at": 1794407655205,
+    "case": "antigravity MCP name clash",
+    "nativeDirectoryReadable": true,
+    "omittedNativeFiles": 0,
+    "files": [
+      {
+        "file": "native-0.log",
+        "kind": "worker",
+        "sourceBytes": 13231,
+        "truncated": false
+      },
+      {
+        "file": "native-1.log",
+        "kind": "front",
+        "sourceBytes": 933,
+        "truncated": false
+      },
+      {
+        "file": "session-echo.jsonl",
+        "kind": "mcp",
+        "sourceBytes": 1042,
+        "truncated": false
+      },
+      {
+        "file": "user-echo.jsonl",
+        "kind": "mcp",
+        "sourceBytes": 965,
+        "truncated": false
+      },
+      {
+        "file": "userecho.jsonl",
+        "kind": "mcp",
+        "sourceBytes": 1125,
+        "truncated": false
+      }
+    ]
+  },
+  "mcpEvents": {
+    "userecho": [
+      {
+        "event": "started",
+        "node": "v24.19.0",
+        "transport": "stdio",
+        "msAfterStartup": 0
+      },
+      {
+        "event": "received",
+        "request": 1,
+        "method": "other",
+        "msAfterStartup": 3
+      },
+      {
+        "event": "received",
+        "request": 2,
+        "method": "other",
+        "msAfterStartup": 4
+      },
+      {
+        "event": "replied",
+        "request": 1,
+        "method": "other",
+        "outcome": "error",
+        "msAfterStartup": 4
+      },
+      {
+        "event": "received",
+        "request": 3,
+        "method": "initialize",
+        "msAfterStartup": 4
+      },
+      {
+        "event": "replied",
+        "request": 3,
+        "method": "initialize",
+        "outcome": "result",
+        "msAfterStartup": 4
+      },
+      {
+        "event": "received",
+        "request": 4,
+        "method": "notifications/initialized",
+        "msAfterStartup": 5
+      },
+      {
+        "event": "received",
+        "request": 5,
+        "method": "tools/list",
+        "msAfterStartup": 5
+      },
+      {
+        "event": "replied",
+        "request": 5,
+        "method": "tools/list",
+        "outcome": "result",
+        "msAfterStartup": 5
+      },
+      {
+        "event": "received",
+        "request": 6,
+        "method": "other",
+        "msAfterStartup": 140
+      },
+      {
+        "event": "received",
+        "request": 7,
+        "method": "tools/call",
+        "msAfterStartup": 218
+      },
+      {
+        "event": "replied",
+        "request": 7,
+        "method": "tools/call",
+        "outcome": "result",
+        "msAfterStartup": 219
+      }
+    ],
+    "user-echo": [
+      {
+        "event": "started",
+        "node": "v24.19.0",
+        "transport": "stdio",
+        "msAfterStartup": 0
+      },
+      {
+        "event": "received",
+        "request": 1,
+        "method": "other",
+        "msAfterStartup": 2
+      },
+      {
+        "event": "received",
+        "request": 2,
+        "method": "other",
+        "msAfterStartup": 3
+      },
+      {
+        "event": "replied",
+        "request": 1,
+        "method": "other",
+        "outcome": "error",
+        "msAfterStartup": 3
+      },
+      {
+        "event": "received",
+        "request": 3,
+        "method": "initialize",
+        "msAfterStartup": 3
+      },
+      {
+        "event": "replied",
+        "request": 3,
+        "method": "initialize",
+        "outcome": "result",
+        "msAfterStartup": 3
+      },
+      {
+        "event": "received",
+        "request": 4,
+        "method": "notifications/initialized",
+        "msAfterStartup": 3
+      },
+      {
+        "event": "received",
+        "request": 5,
+        "method": "tools/list",
+        "msAfterStartup": 4
+      },
+      {
+        "event": "replied",
+        "request": 5,
+        "method": "tools/list",
+        "outcome": "result",
+        "msAfterStartup": 4
+      },
+      {
+        "event": "stdin_closed",
+        "msAfterStartup": 5
+      },
+      {
+        "event": "exit",
+        "code": 0,
+        "msAfterStartup": 5
+      }
+    ],
+    "session-echo": [
+      {
+        "event": "started",
+        "node": "v24.19.0",
+        "transport": "stdio",
+        "msAfterStartup": 0
+      },
+      {
+        "event": "received",
+        "request": 1,
+        "method": "other",
+        "msAfterStartup": 3
+      },
+      {
+        "event": "replied",
+        "request": 1,
+        "method": "other",
+        "outcome": "error",
+        "msAfterStartup": 4
+      },
+      {
+        "event": "received",
+        "request": 2,
+        "method": "initialize",
+        "msAfterStartup": 4
+      },
+      {
+        "event": "replied",
+        "request": 2,
+        "method": "initialize",
+        "outcome": "result",
+        "msAfterStartup": 5
+      },
+      {
+        "event": "received",
+        "request": 3,
+        "method": "notifications/initialized",
+        "msAfterStartup": 5
+      },
+      {
+        "event": "received",
+        "request": 4,
+        "method": "tools/list",
+        "msAfterStartup": 5
+      },
+      {
+        "event": "replied",
+        "request": 4,
+        "method": "tools/list",
+        "outcome": "result",
+        "msAfterStartup": 5
+      },
+      {
+        "event": "received",
+        "request": 5,
+        "method": "other",
+        "msAfterStartup": 61
+      },
+      {
+        "event": "received",
+        "request": 6,
+        "method": "tools/call",
+        "msAfterStartup": 120
+      },
+      {
+        "event": "replied",
+        "request": 6,
+        "method": "tools/call",
+        "outcome": "result",
+        "msAfterStartup": 120
+      }
+    ]
+  },
+  "nativeVendorSuite": {
+    "passed": 12,
+    "skipped": 445,
+    "files": 7
+  },
+  "fullCheck": {
+    "passed": 3878,
+    "skipped": 571,
+    "mockBehaviorPassed": 18
+  },
+  "pathOrderCounterfactual": {
+    "secretBeforePath": "1 failed, 4 skipped",
+    "fixed": "5 passed"
+  }
+}
