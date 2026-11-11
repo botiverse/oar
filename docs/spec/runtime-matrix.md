@@ -147,7 +147,7 @@ child process ([report](../../experiments/runtime-resources-2026-10-28.md)):
 | runtime | after `abort` | how the command is stopped |
 |---|---|---|
 | codex 0.165.0 | keeps running until it exits by itself (about 45 s in the probe), both in an OAR session and in a shared app-server; OAR's 10 s fallback does not apply once codex has ended the turn | `dispose()`, or [`endTurnProcessesOnAbort`](#ending-a-turns-processes-on-abort) on a session that opted in. Native `thread/backgroundTerminals/terminate` and `thread/archive` also stop the probed command; OAR does not call them |
-| grok 1.0.70 (ACP) | keeps running: native cancel and close leave the terminals grok created through the host | `dispose()` releases every terminal OAR hosted for the session |
+| grok 1.0.70 (ACP) | keeps running: native cancel and close leave the terminals grok created through the host | `dispose()` releases every terminal OAR hosted for the session, or [`endTurnProcessesOnAbort`](#ending-a-turns-processes-on-abort) stops the aborted turn's |
 | kimi 2.3.3, opencode 1.19.5 and 2.2.0, antigravity 1.4.3 (ACP) | stopped within 2 s of the cancel | |
 | claude, dsh, qwen, qoder, pi (RPC) | not measured | `dispose()`: OAR owns the process |
 | pi (in process), cursor | not measured | they run in the host process: `dispose()` ends the SDK session; whether its commands stop is not measured |
@@ -161,10 +161,12 @@ infers that from the turn end.
 
 `SessionOptions.endTurnProcessesOnAbort: true` makes an accepted abort also end
 what that turn started, keeping the runtime and session for the next prompt.
-Codex in an isolated app-server is the only runtime that takes it; every other
-runtime, and shared placement, refuses it before launch. Omitted or false
-changes nothing. On Windows it is accepted and ends nothing, with `failed`
-saying why. A `cleanup` response on the abort request reports the outcome
+Codex in an isolated app-server and Grok (isolated or shared) take it; every
+other runtime, and Codex in shared placement, refuses it before launch. Codex
+compares process-table reads; Grok stops the terminals OAR hosted for that
+turn ([grok](../runtimes/grok.md#ending-a-turns-processes-on-abort)). Omitted or false
+changes nothing. On Windows Codex accepts it and ends nothing, with `failed`
+saying why; Grok uses the process-tree kill there, not yet run. A `cleanup` response on the abort request reports the outcome
 ([record shape](record-stream.md#the-rules),
 [Codex mechanism and limits](../runtimes/codex.md#ending-a-turns-processes-on-abort)).
 
@@ -539,7 +541,7 @@ and ends with the entries' names
 
 `goals: true` is refused everywhere except Codex ([native goals](#native-goals)),
 and `endTurnProcessesOnAbort: true` everywhere except Codex in an isolated
-app-server ([ending a turn's processes](#ending-a-turns-processes-on-abort)),
+app-server and Grok ([ending a turn's processes](#ending-a-turns-processes-on-abort)),
 for want of a verified way to end one aborted turn's processes while the
 session stays usable (in the host process, no process tree of its own to
 read). The table omits both, apart from Codex's shared-placement refusal.

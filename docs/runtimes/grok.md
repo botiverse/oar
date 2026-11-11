@@ -469,6 +469,41 @@ status: with no sign-in it starts one and waits. A full device sign-in
 through OAR has not been run.
 [Tests](../../tests/login/grok-login.test.ts).
 
+### Ending a turn's processes on abort
+
+**What native leaves:** Grok runs its commands in terminals it asks OAR to
+host (`terminal/create`). Native `session/cancel` ends the turn but leaves
+those terminals running (1.0.70, [measured](../spec/runtime-matrix.md#what-abort-stops); 1.0.77 in the vendor test
+below), so a command keeps going after the turn is aborted until `dispose()`.
+
+**Mapped (opt-in):** `SessionOptions.endTurnProcessesOnAbort: true`. Every
+`terminal/create` is a `toApp` request record answered with its
+`terminalId`, so the terminals one turn created are exactly those whose
+request comes after the turn began. When an aborted turn closes, OAR stops
+the ones still running, each by its own process group (its process tree on
+Windows), and records one `cleanup` response on the abort request:
+`completed {signalled}` counts the commands it had to stop. The terminals
+stay known to Grok, which can still read and release them. A terminal from an
+earlier turn (a command left running in the background) is spared. This
+holds for Grok's own turns too, and in shared placement, where each session
+hosts its own terminals. If the runtime exits or the session is released
+before the aborted turn closes, the response is `failed` with that reason,
+and exit or dispose cleanup applies.
+
+Limits: a command that leaves its terminal's process group (`setsid`) is not
+reached; a command Grok runs without asking OAR for a terminal is not
+either; the cleanup is recorded after the turn's end frame, so a host that
+needs the commands gone waits for that response. Windows uses the
+process-tree kill and has not been run.
+
+**Verified:** Linux x64, Grok 1.0.77, scripted provider
+([vendor test](../../sea-trial/vendor/grok-abort-terminals.vendor.test.ts)):
+with the option the aborted turn's `sleep 3; touch <marker>` is stopped
+(`signalled: 1`), the marker never appears, and the next prompt completes;
+without it the marker appears and no cleanup is recorded. The turn
+attribution, an earlier turn's surviving terminal and the record shape are
+also covered against a fixture ([test](../../tests/acp/grok-turn-terminals.test.ts)).
+
 ### Events, history, and child sessions
 
 **Mapped:** a basic one-word turn is 50 records: the handshake answers
@@ -667,7 +702,8 @@ for hosts ([October 13 report](../../experiments/runtime-version-checks/2026-10-
 | `env` | Child-process environment, including tools. |
 | `mcpServers` | ACP `mcpServers` on new and resumed sessions ([session MCP servers](#session-mcp-servers)). |
 | `name` | Declared refused: no verified native session name setting ([session name](../spec/runtime-matrix.md#session-name)). |
-| `goals: true`, `endTurnProcessesOnAbort: true` | Declared refused: no structured native goal controls; ending one aborted turn's processes while the session stays usable is unverified. |
+| `goals: true` | Declared refused: no structured native goal controls. |
+| `endTurnProcessesOnAbort: true` | An aborted turn's terminals are stopped when it closes ([ending a turn's processes](#ending-a-turns-processes-on-abort)). |
 
 Grok's host settings form (model and reasoning effort) ships in
 `@botiverse/oar/forms` ([config form](../spec/config-form.md)).

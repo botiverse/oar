@@ -324,8 +324,11 @@ Further rules:
   it uses the native session cancel/close and explicitly owned host terminals.
   Without native PID-to-session association, tool ownership is not inferred
   from the common parent process.
-- **`endTurnProcessesOnAbort` ends what the aborted turn started.** On a
-  session that opted in (isolated Codex only;
+- **`endTurnProcessesOnAbort` ends what the aborted turn started.** On Grok
+  ([mechanism](../runtimes/grok.md#ending-a-turns-processes-on-abort)) OAR
+  stops the terminals it hosted for that turn when the turn closes and
+  records the same `cleanup` response below, with `signalled` counting the
+  commands it stopped. On a Codex session that opted in (isolated only;
   [support](runtime-matrix.md#ending-a-turns-processes-on-abort)), each
   `prompt` starts a process-table read (the baseline) before its native turn
   start, without delaying it. An abort takes
