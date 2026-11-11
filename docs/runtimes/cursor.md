@@ -492,7 +492,8 @@ counts only under a credential name (`*_TOKEN`, `*_KEY`, ...) and a header
 value only under `Authorization` or a credential-named header (plus the token
 after an authorization scheme); a value shorter than eight characters, or
 shaped like a path (`/...`, `~/...`, a Windows drive), is not one, even under
-`API_KEY`; URL passwords count under any name. Every other value stays
+`API_KEY`; an `env` value that is a URL with a password counts under any
+name (the whole URL). An http entry's `url` is not scanned. Every other value stays
 readable there. The SDK itself gets every value unchanged.
 
 **Live evidence** ([probe](../../experiments/cursor-mcp.ts); SDK 1.3.1,

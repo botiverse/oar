@@ -302,8 +302,11 @@ that has what OAR needs:
 Probed on 0.118.0, 0.125.0, 0.128.0, 0.129.0, 0.130.0, 0.132.0, 0.133.0,
 0.134.0 and 0.135.0. Every one of them reports `serviceTier` in the open
 reply (`null` without a tier), so an absent field still fails the readback
-as before ([service tiers](#service-tiers)). A tier no release accepts (a
-typo) keeps the plain error. Codex 0.133.0 and later report `flex` as
+as before ([service tiers](#service-tiers)). An unknown tier such as
+`turbo` is not called outdated. 0.128.0 refused it natively (a plain error);
+0.132.0 accepted and echoed it, so the open succeeded; 0.167.1 with a custom
+provider read it, and `priority`, back as `default`, which the readback
+refuses ([2026-11-11 inspection](../../experiments/codex-inspection-2026-11-11/README.md)). Codex 0.133.0 and later report `flex` as
 `null` on this machine's default provider, which the readback refuses as a
 tier mismatch, not as an old release.
 
@@ -332,7 +335,9 @@ In the 0.167.0 source, `turn/start` reloads the configuration and checks
 the thread's model provider against it, so a `config.toml` broken while a
 Session runs, or one that now selects another `model_provider`
 (`modelProviderMismatch`), refuses every later prompt the same way until the
-file is fixed. A steer's `reason` keeps its `not_steerable:` prefix.
+file is fixed. Observed on 0.167.1 (both cases `runtime_refused`,
+`invalid_request`). On 0.128.0 the next prompt after the open session's
+config was damaged was accepted ([2026-11-11 inspection](../../experiments/codex-inspection-2026-11-11/README.md)). A steer's `reason` keeps its `not_steerable:` prefix.
 
 ### Interrupted input
 
