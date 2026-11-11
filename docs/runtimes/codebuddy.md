@@ -16,9 +16,9 @@ pass. OAR adds no delay between turns. A future transport change requires both
 a fixed native reproduction and a capability comparison, not just an upstream
 version change. [Official ACP documentation](https://www.codebuddy.ai/docs/cli/acp).
 
-Current check: **2.182.0** (Linux x64, 2026-11-09): all 16 applicable
+Current check: **2.183.0** (Linux x64, 2026-11-11): all 16 applicable
 behavior cases and six native vendor cases passed against local providers
-([daily evidence](../../experiments/runtime-version-checks/2026-11-09.md#codebuddy-21820)).
+([daily evidence](../../experiments/runtime-version-checks/2026-11-11.md#codebuddy-21830)).
 CI remains pinned to 2.179.3.
 Unless marked otherwise, evidence below identifies CodeBuddy 2.178.1, Linux
 x64 local-provider tests and Linux arm64 international-account tests on
@@ -234,6 +234,12 @@ after the first result. A one-second-delay control completes both inputs
 once. Immediate ACP completes both inputs once, with two separate title
 requests. The npm installation passes the sixteen applicable OAR behavior
 cases and six ACP vendor cases.
+
+On [2.183.0, November 11](../../experiments/runtime-version-checks/2026-11-11.md#codebuddy-21830),
+one of three immediate standalone runs duplicates the second input and two
+time out after the first result. The one-second-delay control and immediate
+ACP control each complete both conversation inputs once. This retains the
+transport boundary; it does not identify the cause of the different outcomes.
 
 A separate operator's official-account stream-json controls did not reproduce
 it: four immediate runs (two with partial-message output) and a one-second

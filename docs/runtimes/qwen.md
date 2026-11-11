@@ -13,11 +13,11 @@ observed on Linux with a local scripted OpenAI provider on 2026-10-23.
 The source's `packages/cli/src/nonInteractive/session.ts` and
 `control/controllers/systemController.ts` define this interface.
 
-Current check: npm **0.27.1** on Linux, 2026-11-09. All 19 native vendor
+Current check: npm **0.27.2** on Linux, 2026-11-11. All 19 native vendor
 tests and 16 applicable behavior cases passed. The snapshot-id and
 extension-store limits below still reproduce, and all fourteen
 provider-preset credential variables remain covered by the local credential
-reader. See the [version check](../../experiments/runtime-version-checks/2026-11-09.md#qwen-0271).
+reader. See the [version check](../../experiments/runtime-version-checks/2026-11-11.md#qwen-0272).
 
 ## OAR mapping
 
@@ -102,7 +102,7 @@ not an additional OAR input or record.
 
 ### Streamed block snapshots
 
-With **0.26.3** through **0.26.5**, and again in **0.27.0** and **0.27.1**, a response
+With **0.26.3** through **0.26.5**, and again in **0.27.0** through **0.27.2**, a response
 containing thinking followed by text emits one `message_start`, reuses
 content-block index 0, and follows each `content_block_stop` with a
 single-block `assistant` snapshot. The text
@@ -122,7 +122,7 @@ it does not assert that every provider emits thinking or rewrite Qwen's ids.
 
 [Upstream PR #16586](https://github.com/QwenLM/qwen-code/pull/16586) proposes
 one message id and continuous thinking/text block indices. It is still
-unmerged as of November 9 and is not present in the verified 0.27.1 sequence.
+unmerged as of November 11 and is not present in the verified 0.27.2 sequence.
 Its review flags tool blocks that may reuse indices under the proposed
 shared id; that is an upstream review finding, not a released-version result.
 After a stable release includes the final fix, verify thinking, text and

@@ -15,9 +15,9 @@ later observations name their own version. Versions are evidence baselines,
 not a support range; a claim that holds only on a named binary is marked
 [env]. See the [runtime index](README.md) for evidence and status conventions.
 
-Newest release checked: **0.166.0** (Linux x64, 2026-10-30): all 52 native
-vendor cases and 16 shared cases passed against a local scripted provider
-([October 30 report](../../experiments/runtime-version-checks/2026-10-30.md#codex-01660)).
+Newest release checked: **0.167.1** (Linux x64, 2026-11-11): all 78 native
+vendor cases and 16 applicable behavior cases passed against a local scripted
+provider ([November 11 report](../../experiments/runtime-version-checks/2026-11-11.md#codex-01671)).
 The newest run on a real login is **0.162.1** (Linux x64, 2026-10-10, `gpt-6-luna`):
 conversation, tool detail and resume passed with no adapter change
 ([report](../../experiments/runtime-version-checks/2026-10-10.md)).
