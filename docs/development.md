@@ -174,6 +174,18 @@ session IDs and local paths; publish selected evidence only.
 [Diagnostic retention decisions](../experiments/acp-ci-failures/closeout.md)
 explain which other observations remain active and why.
 
+The Antigravity MCP name-clash vendor case retains failure evidence under
+`OAR_TRIAL_RUN_DIR/agy-mcp-failure/` (inside the existing `agy-acp-*` CI
+artifact). Before deleting its isolated HOME, it reads up to four native
+`antigravity-cli/log/*.log` files, at most 512 KiB from each tail. It also
+keeps the echo servers' bounded startup and handshake metadata, without RPC
+payloads. Paths, known credentials and credential-bearing native entries
+are removed before writing; the manifest identifies missing files and
+truncation. Passing cases discard the temporary metadata. Missing startup
+records mean startup was not observed, not that no process was launched.
+This changes neither the assertion nor the deadline or retry policy.
+[Capture validation and replay](../experiments/antigravity-mcp-evidence/README.md).
+
 ### Experiment: what does the real runtime actually do?
 
 `experiments/`, run by `pnpm tsx experiments/<name>.ts`. A live probe that

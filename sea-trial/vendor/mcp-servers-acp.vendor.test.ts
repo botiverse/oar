@@ -1,6 +1,7 @@
+/* oxlint-disable import/max-dependencies -- Shared ACP cases plus the failure-only Antigravity evidence helper. */
 import { describe, expect, test } from "vitest";
 import type { InstallationProbe } from "../../packages/oar/src/contracts/installation.js";
-import type { McpServer, StartSession } from "../../packages/oar/src/contracts/session.js";
+import type { McpServer, Session, StartSession } from "../../packages/oar/src/contracts/session.js";
 import { antigravityInstallation, antigravitySession, defineRuntime, grokInstallation, grokSession, kimiInstallation, kimiSession, opencodeInstallation, opencodeSession } from "../../packages/oar/src/index.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import type { LLMock, RawProviderRequest } from "../harness/aimock.js";
@@ -8,6 +9,7 @@ import { startOpencodeGitFixture, startAntigravityAimock, startGrokAimock, start
 import { runtimeUnderTest } from "../harness/subject.js";
 import { currentTurnSays, ECHO_SERVER, echoesReceived, echoFixtures, echoServers, EXPECTED_ECHOES, expectedEchoes, fingerprint, leakedCredentials, scriptEchoes, startHttpEcho, stdioEcho, STDIO_TOKEN, type EchoCall } from "./support/echo-mcp.js";
 import { structuralToolRound } from "./support/tool-round.js";
+import { createAntigravityMcpEvidence, type AntigravityMcpEvidence } from "./support/antigravity-mcp-evidence.js";
 
 /**
  * SessionOptions.mcpServers on the ACP runtimes that attach them (ACP
@@ -32,7 +34,7 @@ interface AcpCase {
   /** The tool oar reports for the call to `echo` and the one to `remote` (the ACP tool_call's title). */
   readonly reported: readonly [string, string];
   /** The scripted environment, with a user config holding `echo` and `userecho` (the stdio echo server with USER_TOKEN) when `withUserServers`. */
-  start(configure: (mock: LLMock) => void, withUserServers: boolean): Promise<AcpAimockEnv>;
+  start(configure: (mock: LLMock) => void, withUserServers: boolean, evidence?: AntigravityMcpEvidence): Promise<AcpAimockEnv>;
   /** The MCP tools one provider request offers, where the runtime declares them as tools of their own. */
   readonly offered?: (request: RawProviderRequest) => readonly string[];
   /** False where the runtime refuses entries carrying `env` or `headers` (antigravity stores them on disk): its servers get none. */
@@ -90,7 +92,10 @@ const cases: readonly AcpCase[] = [
       : { name: `mcp_${server}_echo`, arguments: { text, toolSummary: "Echo the text" } },
     // CLI 1.5.0 preserves the server and tool in the opening title.
     reported: ["mcp_echo_echo", "mcp_remote_echo"],
-    start: async (configure, withUserServers) => startAntigravityAimock(configure, withUserServers ? { mcpServers: { echo: userServer, userecho: userServer } } : undefined),
+    start: async (configure, withUserServers, evidence) => startAntigravityAimock(configure, withUserServers ? { mcpServers: {
+      echo: { ...userServer, args: [...userServer.args, ...(evidence?.flags("user-echo") ?? [])] },
+      userecho: { ...userServer, args: [...userServer.args, ...(evidence?.flags("userecho") ?? [])] },
+    } } : undefined),
     credentials: false,
   },
 ];
@@ -142,10 +147,13 @@ for (const acp of cases) {
     }, 240_000);
 
     test("a server named like one of the user's runs as the session's; the user's other servers stay", async () => {
-      const env = await acp.start(script, true);
+      const evidence = acp.id === "antigravity-aimock" ? await createAntigravityMcpEvidence() : undefined;
+      let env: AcpAimockEnv | undefined = undefined;
+      let session: Session | undefined = undefined;
       try {
+        env = await acp.start(script, true, evidence);
         const credentials = acp.credentials !== false;
-        const session = await runtimeUnderTest(runtime, env.env, env.cwd).startSession({ mcpServers: [stdioEcho("echo", credentials ? STDIO_TOKEN : undefined)] });
+        session = await runtimeUnderTest(runtime, env.env, env.cwd).startSession({ mcpServers: [stdioEcho("echo", credentials ? STDIO_TOKEN : undefined, evidence?.flags("session-echo"))] });
         await structuralToolRound(session, env.mock, "please call echo over the user's own");
         await session.dispose();
         expect(echoesReceived(env.raw)).toEqual([
@@ -153,8 +161,13 @@ for (const acp of cases) {
           `echo:clash-user via=stdio token=${fingerprint(USER_TOKEN)}`,
         ]);
         expect(leakedCredentials(session)).toEqual([]);
+      } catch (error) {
+        // Flush this failed session's own logs before copying and HOME removal.
+        await session?.dispose().catch(() => { process.stderr.write("[oar fixture] failed MCP session cleanup did not complete\n"); });
+        if (env !== undefined) { await evidence?.retain(env.env.GEMINI_HOME ?? "", env.env); }
+        throw error;
       } finally {
-        await env.stop();
+        try { await env?.stop(); } finally { await evidence?.remove(); }
       }
     }, 180_000);
   });
