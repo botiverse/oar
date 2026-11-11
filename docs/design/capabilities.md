@@ -150,11 +150,13 @@ against what OAR uses, and is visible to a bundler; a lookup inside OAR
 would fail only at run time. One form hands over a location instead of a
 module: cursor's subprocess execution
 (`createCursorRuntime({ execution: "subprocess", sdkModule: import.meta.resolve("@cursor/sdk") })`)
-loads the SDK in a child process, where no value from the host can go. The
-host still names the package in its own code, so a missing package fails
-when the host resolves it at startup rather than inside OAR, but the types
-are not checked against `CursorSdk`, and a bundled host must keep the
-package on disk where that location points. OAR still never searches for
+loads the SDK in a child process, which cannot receive the host's loaded
+module (plain data still crosses over IPC). The host still names the
+package in its own code: written as `import.meta.resolve("@cursor/sdk")`, a
+missing package fails when the host runs that line, not inside OAR; a
+location passed as a plain string fails only at the first call that starts
+a child. The types are not checked against `CursorSdk`, and a bundled host
+must keep the package on disk where that location points. OAR still never searches for
 it ([cursor](../runtimes/cursor.md#execution-modes)). `defaultRuntimes` holds what OAR
 can build without the host, and a host adds the rest to a registry of its
 own, the way Ferry and rowrow already add their test runtimes.
