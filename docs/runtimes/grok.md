@@ -449,8 +449,8 @@ OAR drives Grok Build's own sign-in, reads its status and signs it out
 - Grok starts a browser itself, also in device mode: `BROWSER` when set
   (that command, given the URL), otherwise the desktop's launcher (`gio
   open` was called here). `openBrowser: false` sets `BROWSER=true` for the
-  login child, so nothing opens. Whether Grok honours `BROWSER` on Windows is
-  not verified, so there `openBrowser: false` is `unsupported`
+  login child, so nothing opens (verified on Linux; macOS is not run). Whether
+  Grok honours `BROWSER` on Windows is not verified, so there `openBrowser: false` is `unsupported`
   (`browser_suppression_unavailable`) before anything runs.
 - `authStatus` runs `grok models`. Without a sign-in it prints `You are not
   authenticated.` (exit 0): `logged_out`. With one, its first line is `You
@@ -485,8 +485,10 @@ Windows), and records one `cleanup` response on the abort request:
 `completed {signalled}` counts the commands it had to stop. The terminals
 stay known to Grok, which can still read and release them. A terminal from an
 earlier turn (a command left running in the background) is spared. This
-holds for Grok's own turns too, and in shared placement, where each session
-hosts its own terminals. If the runtime exits or the session is released
+holds for Grok's own turns too. Shared placement accepts the option (each
+shared session hosts its own terminals) but has not been run. Only accepted
+aborts end anything: a turn that ends on its own while its abort is refused
+stops nothing and records no `cleanup`. If the runtime exits or the session is released
 before the aborted turn closes, the response is `failed` with that reason,
 and exit or dispose cleanup applies.
 

@@ -222,7 +222,7 @@ export function finishAcpSession(
       if (state === null) { return { kind: "rejected", code: "no_active_turn", reason: "no active turn" }; }
       const claim = turnTerminals.aborting(state, request);
       const answer = await turns.abort(state, request);
-      if (answer.kind !== "accepted") { claim.refused(); }
+      if (answer.kind === "accepted") { claim.accepted(); } else { claim.refused(); }
       return answer;
     }),
     rawEvents: (observer, cursor) => kernel.rawEvents(observer, cursor),
