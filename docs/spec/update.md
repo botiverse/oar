@@ -81,7 +81,7 @@ instruction to run `brew upgrade`.
 | antigravity | The native CLI platform manifest; only a newer version counts | not implemented in OAR; native CLI provides `agy update` |
 | opencode | none yet: `opencode upgrade` picks its source by install method (npm, Homebrew, Scoop, Chocolatey or the install script) and has no check-only mode | none yet |
 | pi | none: bundled with oar | none |
-| cursor | none: `@cursor/sdk` is the host's to install and pin (OAR's optional peer dependency, 1.2.0) | none |
+| cursor | none: `@cursor/sdk` is the host's to install and pin (OAR's optional peer dependency, 1.3.1) | none |
 
 A kimi native install stages the new binary and swaps it in on its next
 start; the version read back after the upgrade is that start.

@@ -2,8 +2,8 @@
  * BURNS TOKENS through an existing Cursor SDK login.
  * Run: pnpm tsx experiments/cursor-compaction.ts <new-output-directory>
  * One text-only turn, one native manual summary, then a summary cancelled at
- * its first running message. Manual summarization is only a probe trigger;
- * OAR exposes no such control. Logs and failures stay in the private output.
+ * its first running message. This probes the SDK directly; OAR
+ * separately exposes idle-only compact(). Logs and failures stay in the private output.
  */
 import assert from "node:assert/strict";
 import { appendFileSync, mkdirSync, writeFileSync } from "node:fs";
