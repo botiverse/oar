@@ -11,7 +11,8 @@ import { recordedInteraction } from "../fixtures/login-interaction.js";
 
 const directories: string[] = [];
 beforeEach(() => { vi.stubEnv("CODEBUDDY_API_KEY", undefined); });
-afterEach(async () => { vi.unstubAllEnvs(); await Promise.all(directories.splice(0).map(async (dir) => { await rm(dir, { recursive: true, force: true }); })); });
+// A timed-out status query returns at its deadline, before its process is gone (#703): on Windows that process may still hold or write the directory.
+afterEach(async () => { vi.unstubAllEnvs(); await Promise.all(directories.splice(0).map(async (dir) => { await rm(dir, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 }); })); });
 async function fixture(mode: string, loggedIn = false) {
 const dir = await mkdtemp(path.join(tmpdir(), "oar-codebuddy-login-")); directories.push(dir);
 const fake = fakeLoginCli({ dir, name: "codebuddy", script: "fake-codebuddy-login.mjs", state: { mode, loggedIn } });
