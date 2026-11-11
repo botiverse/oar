@@ -1,0 +1,11 @@
+{
+ "agy": "1.5.5",
+ "pathLauncher": true,
+ "promptReached": true,
+ "exitAfterBlankLineAnd800ms": null,
+ "exitAfterInputClosed": 1,
+ "browserCalls": [
+  "xdg-open [auth URL omitted]"
+ ],
+ "output": "Open this link in a browser to log in with Google:\n\n  [auth URL omitted]\n\nThen paste the authorization code, or the full URL of the page you land on, and press Enter:\n\nlogin cancelled: no authorization code was entered\n"
+}

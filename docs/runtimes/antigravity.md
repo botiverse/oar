@@ -294,14 +294,52 @@ release. OAR has no `upgrade` method for this runtime; the native CLI has
 `agy update`. Existing CLI auto-update behavior is not disabled by the
 product adapter (the test fixture disables it).
 
+### Login
+
+OAR drives Antigravity's own Google login and reads its status; it has no
+logout. Verified on agy 1.5.5 (Linux, 2026-11-10; [launcher and input controls](../../experiments/antigravity-login/README.md)) up to the code prompt and
+against the logged-out status; the full sign-in was done once by a person on
+another machine through the CLI's interactive UI, which the status read
+confirmed.
+
+- `login` runs `agy acp --login` ("Log in with Google interactively, then
+  exit"). It prints `Open this link in a browser to log in with Google:`, a
+  `https://accounts.google.com/...` URL (relayed as `auth_url`), then `Then
+  paste the authorization code, or the full URL of the page you land on, and
+  press Enter:`; OAR asks the host with a `manual_code` prompt and writes the
+  answer only to agy's stdin. agy keeps waiting on an empty line, so OAR asks
+  again instead of sending one; agy itself prints `login cancelled: no
+  authorization code was entered` only when its input ends. After exit 0,
+  `agy models` decides: a login is `logged_in` (no account details), a sign-in
+  refusal `not_logged_in`. agy ignores `BROWSER` and starts the platform
+  launcher itself. On Linux it finds `xdg-open` on PATH, so for
+  `openBrowser: false` the login child's PATH starts with a directory holding a
+  launcher that does nothing (macOS `open` is treated alike, unverified). On
+  Windows it runs `%SYSTEMROOT%\System32\rundll32.exe` by absolute path,
+  which nothing on PATH replaces, so `openBrowser: false` there, like any
+  platform where the launcher cannot be set up, is `unsupported`
+  (`browser_suppression_unavailable`) before anything runs.
+- `authStatus` runs `agy models`: exit 0 is `logged_in`; exit 1 with `Please
+  sign in to view available models` is `logged_out`; anything else
+  (network, a crash) is `unknown`. It is a remote call, not `localOnly`.
+- No `logout`: the CLI's `/logout` exists only in its interactive UI, and
+  print mode refuses it (`/logout is not available in print mode (it clears
+  stored credentials, an effect that outlives the run)`). OAR never deletes
+  the stored token itself.
+
+The CLI chooses where the token lives: on a machine without a keyring it was a
+0600 file, `$GEMINI_HOME/antigravity-cli/antigravity-oauth-token`, and its
+binary names keyring detection, so a desktop may differ. OAR reads neither.
+
 The vendor's [FAQ](https://antigravity.google/docs/faq) warns that third-party
 access using Antigravity login violates its terms and may lead to suspension
-or termination; it recommends API keys instead. Embedding `agy -p` in
-third-party applications is also unsupported on consumer plans. Its documented ACP editor
-integrations do not establish that an OAR host may use a consumer account.
-OAR therefore exposes no consumer login/status/logout controls and does not
-recommend `agy acp --login` as a host setup step. Use a provider API key under
-its applicable terms. No real login was created or changed by these tests.
+or termination, and recommends API keys; embedding `agy -p` in third-party
+applications is also unsupported on consumer plans. OAR runs the CLI's own
+login and its own ACP server rather than using the credential itself. Whether
+a host's use of a consumer account fits those terms is the host's and the
+user's call (decided for Raft by its owner on 2026-11-10;
+[decision](../design/decisions.md#antigravity-consumer-login)). An API key
+under its applicable terms avoids the question.
 
 OAR neither copies nor deletes the retired service's credential or history
 store. CLI conversations use a separate native directory; old service ids

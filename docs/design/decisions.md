@@ -39,6 +39,26 @@ command, an SDK or control-protocol request, or a CLI subcommand) that reads
 what is left without spending it, redeems one kind at a time, and accepts an
 idempotency or retry key.
 
+## Antigravity consumer login
+
+**Was refused (2026-11-05), now provided (2026-11-10):** OAR login and status
+for an Antigravity consumer (Google) account. It was refused because the
+vendor's FAQ says third-party access using Antigravity login violates its
+terms, and OAR did not want to make that a one-call setup step.
+
+The project owner reversed it for Raft: OAR does not use the credential
+itself. It runs the CLI's own `agy acp --login`, relays its URL and the
+person's pasted code, and then runs the CLI's own ACP server, so whether a
+host's use of a consumer account fits the vendor's terms is the host's and the
+user's judgment, not something OAR can decide by withholding a wrapper. The
+[runtime page](../runtimes/antigravity.md#login) states the terms and the API
+key alternative. Logout stays absent because the CLI refuses it outside its
+interactive UI, not as policy.
+
+**What would reopen it:** the vendor blocking non-interactive or ACP use of
+consumer logins, or stating that an ACP host's use is prohibited in a way that
+puts users' accounts at risk through OAR's own action.
+
 ## No inferred settlement disposition (2026-11-06)
 
 **Refused:** an OAR event or timer that infers whether each completed DSH job
