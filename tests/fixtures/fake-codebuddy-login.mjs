@@ -31,6 +31,13 @@ input.on("line", (line) => {
     reply(request_id, { account: state.loggedIn ? account : null });
     return;
   }
+  if (request.subtype === "logout") {
+    // 2.183.0: the CLI's own logout clears the local sign-in and answers success, also when there was none.
+    if (state.mode === "logout-error") { fail(request_id, "logout failed for private@example.invalid"); return; }
+    state.loggedIn = state.mode === "sticky"; save();
+    reply(request_id, { success: true });
+    return;
+  }
   if (request.subtype !== "authenticate") { return; }
   if (state.mode === "authenticate-error") { fail(request_id, "Unknown control request: authenticate"); return; }
   emitAuth({ subtype: "auth_url_callback", authState: { state: "synthetic-state", authUrl: "https://www.codebuddy.ai/login?state=synthetic-state" } });

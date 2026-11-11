@@ -234,6 +234,13 @@ existing account. `openBrowser: false` sets `BROWSER=www-browser` for this
 child, which Qoder's native browser predicate treats as unavailable.
 `NO_BROWSER` did not suppress the browser in the tested version.
 
+There is no `logout()`. Qoder 1.1.87 signs out only through the interactive
+`/logout` (alias `/signout`): the CLI has no `logout` subcommand, ACP and
+stream-json answer "Method not found", and `-p /logout` fails with
+`NonInteractiveAuthRequiredError`. `qodercli logout` is not a command at all:
+it is taken as a prompt, which starts a model turn when signed in. OAR never
+deletes Qoder's credential itself (isolated HOME, 2026-11-11).
+
 `authStatus()` reads `qodercli status --output json` and projects its explicit
 `logged_in` boolean. A failed query or missing field is `unknown`. Account
 details returned by this command never leave the private query.

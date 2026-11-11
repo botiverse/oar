@@ -57,8 +57,15 @@ uses an OAR-owned private cache in the system temporary directory, removed
 after success or failure, with npm logging, timing files and update checks
 disabled. HOME and Node's installation remain unchanged.
 
-OAR does not expose a CodeBuddy updater, logout, account quota reader or
-provider facade. [Installation evidence](install.md#codebuddy-npm-2026-10-29).
+OAR does not expose a CodeBuddy updater, account quota reader or provider
+facade. `logout()` sends the stream-json control request `{subtype:
+"logout"}`, which runs the CLI's own `AuthenticationManager.logout()` and
+answers `{success: true}` (2.183.0, isolated HOME, 2026-11-11, also with no
+sign-in). It clears the local sign-in and does not revoke the session on the
+server (that path needs `revokeServerSession`, which this request does not
+set). `initialize.account` then decides. A refusal is `rejected` with a fixed
+message: CodeBuddy's own text can name the account. With `CODEBUDDY_API_KEY`
+set, status stays `unknown` and the key is untouched. [Installation evidence](install.md#codebuddy-npm-2026-10-29).
 
 | Surface | Native mechanism and OAR behavior |
 | --- | --- |

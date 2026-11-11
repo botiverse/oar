@@ -424,7 +424,8 @@ runtime oar does not sign in.
 | kimi | ACP `initialize` then `logout`; reads authentication again afterward | removes the native credential slot and managed model configuration; no server-side revocation | 2.3.3 verified | 60 s |
 | antigravity | ACP `initialize` then `logout`; reads `agy models` afterward | removes its stored token file; server-side revocation not observed | 1.5.5 verified | 60 s |
 | grok | `grok logout`, stdin closed; reads `grok models` afterward | clears its cached sign-in; server-side revocation not observed | 1.0.77 verified | 60 s |
-| codebuddy, dsh, opencode, pi, qoder, qwen | no `logout` (pi's provider logouts are on `createPiProviderAuth`) | | | |
+| codebuddy | stream-json control request `{subtype: "logout"}`; reads `initialize.account` afterward | clears the local sign-in; no server-side revocation | 2.183.0 verified | 60 s |
+| dsh, opencode, pi, qoder, qwen | no `logout` (pi's provider logouts are on `createPiProviderAuth`; qoder signs out only in its interactive UI) | | | |
 
 ## CLI
 
