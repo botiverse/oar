@@ -1179,7 +1179,13 @@ Raft's own Codex driver and have no native Windows run of their own here, so
 the `app-server --help` probe decides. The order compares no versions, and
 the Codex Desktop CLI can be older than the `codex` on PATH (a Raft machine
 ran Desktop's 0.130.0-alpha.5 while PATH had 0.165.0): set `OAR_CODEX_BIN`
-to choose, and see [refusals](#refusals) for what an old release cannot do. Every candidate requires
+to choose, and see [refusals](#refusals) for what an old release cannot do. A host
+that arbitrates versions itself can list these fallbacks without probing or
+loading the runtime: `@botiverse/oar/runtimes/codex/installation-candidates`
+exports `codexInstalledExecutableCandidates(platform?, home?, env?)` and
+`desktopBuildExecutables(bin)`, both synchronous, reading only the Desktop
+`bin` folders; the list leaves out `OAR_CODEX_BIN` and PATH, which
+`codexInstallation` tries first. Every candidate requires
 `codex app-server --help` to succeed; a codex without the app-server surface
 is unsupported. When none is found, `install` runs OpenAI's standalone
 installer (macOS and Linux),

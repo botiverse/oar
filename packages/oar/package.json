@@ -51,6 +51,10 @@
       "types": "./dist/pi-durable.d.ts",
       "import": "./dist/pi-durable.js"
     },
+    "./runtimes/codex/installation-candidates": {
+      "types": "./dist/runtimes/codex/installation-candidates.d.ts",
+      "import": "./dist/runtimes/codex/installation-candidates.js"
+    },
     "./runtimes/*": {
       "types": "./dist/runtimes/*/index.d.ts",
       "import": "./dist/runtimes/*/index.js"
