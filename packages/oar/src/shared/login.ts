@@ -170,7 +170,9 @@ export function spawnLoginProcess(
     env: watched?.env ?? env,
     ...(options.cwd === undefined ? {} : { cwd: options.cwd }),
     stdio: ["pipe", "pipe", "pipe"],
-    detached: OWN_PROCESS_GROUP,
+    // Windows: Node puts a child it does not detach in a job object that ends it the moment the host
+    // dies, before the watchdog can stop the command's tree; what the command started is outside that job.
+    detached: OWN_PROCESS_GROUP || watched !== null,
     windowsHide: true,
     windowsVerbatimArguments: target.windowsVerbatimArguments === true,
   });

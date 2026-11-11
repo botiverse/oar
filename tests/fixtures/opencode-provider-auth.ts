@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, realpath, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { OpencodeProviderAuthFacade, type OpencodeFacadeOptions } from "../../packages/oar/src/runtimes/opencode/provider-auth-facade.js";
@@ -112,7 +112,9 @@ export interface OpencodeAuthFixture {
 }
 
 export async function opencodeAuthFixture(state: Record<string, unknown> = {}, version = "opencode v2.2.7"): Promise<OpencodeAuthFixture> {
-  const dir = await mkdtemp(path.join(tmpdir(), "oar-opencode-auth-"));
+  // The real path: the fake reports `process.cwd()`, which macOS resolves through /private.
+  const made = await mkdtemp(path.join(tmpdir(), "oar-opencode-auth-"));
+  const dir = await realpath(made);
   directories.push(dir);
   const home = path.join(dir, "home");
   await mkdir(home);

@@ -185,7 +185,9 @@ export class OpencodeServer {
       await this.#ready(running, deadline, timeoutMs, pollMs);
       return running;
     } catch (error) {
+      // Gone before the caller hears of the failure: Windows cannot remove a directory a live process runs in.
       child.stop();
+      await child.exited;
       throw error;
     } finally {
       clearTimeout(timer);

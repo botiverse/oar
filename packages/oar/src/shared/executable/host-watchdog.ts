@@ -10,7 +10,12 @@ import { killGraceMs } from "./process-signals.js";
  * the command and everything it started: SIGTERM to the command's own
  * process group, SIGKILL to it after the grace period or as soon as the
  * command exits (POSIX); `taskkill /T /F` on its tree (Windows, which has no
- * groups). A SIGTERM, SIGINT or SIGHUP to the watchdog does the same. The
+ * groups). On Windows the host starts the watchdog detached: Node puts a
+ * child it does not detach in a job object that ends it together with a
+ * dying host, and a grandchild the command starts (a `.cmd` shim's node) is
+ * outside that job, so it would outlive both. A watchdog that is itself
+ * killed outright leaves the same gap. A SIGTERM, SIGINT or SIGHUP to the
+ * watchdog does the same as EOF. The
  * command's stdout and stderr are the watchdog's, so the host reads them
  * unchanged; its stdin is not connected. The watchdog exits with the
  * command's exit code (1 when a signal ended it). In an Electron host,
