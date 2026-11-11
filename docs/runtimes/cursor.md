@@ -123,7 +123,11 @@ const cursor = createCursorRuntime({
 ```
 
 **How the child runs.** The child is the host's own executable
-(`process.execPath -e <script>`), with stdin ignored, stdout drained,
+(`process.execPath -e <script>`). A compiled single executable host (Node
+SEA, Bun standalone) cannot run one, because its executable starts the
+application again: there every subprocess call (session, model listing,
+login, logout, status) rejects with that reason, and such a host uses the
+in-process mode. The child runs with stdin ignored, stdout drained,
 stderr kept as an 8 KiB tail, and a Node IPC channel (`serialization:
 "advanced"`). The script is self-contained (Node built-ins only), because a
 host that bundles OAR may have no separate file to point at; it is under

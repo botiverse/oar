@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { nodeEvalExecutable } from "./node-eval.js";
 import { StderrTail } from "./diagnostics.js";
 import { killMarked, trackEnvironmentMarker } from "./environment-marker.js";
 import { trackOwnedProcess } from "./ownership.js";
@@ -55,10 +56,15 @@ const STDERR_DRAIN_MS = 250;
  * every process still carrying it is sent SIGKILL once the child exited, for
  * whatever reason, and from the host's own `exit` hook (Linux only). The
  * caller sets the environment, including `ELECTRON_RUN_AS_NODE=1` when
- * `process.execPath` may be Electron.
+ * `process.execPath` may be Electron. Throws in a compiled single executable
+ * host (node-eval.ts), which cannot run one.
  */
 export function spawnNodeScript(script: string, argument: string, env: NodeJS.ProcessEnv, marker?: string): NodeScriptChild {
-  const child = spawn(process.execPath, ["-e", script, argument], {
+  const node = nodeEvalExecutable();
+  if (node === null) {
+    throw new Error("this host is a compiled single executable (Node SEA or Bun standalone): its executable would start the application again instead of a Node script, so it cannot run a Node script child");
+  }
+  const child = spawn(node, ["-e", script, argument], {
     env,
     stdio: ["ignore", "pipe", "pipe", "ipc"],
     serialization: "advanced",
