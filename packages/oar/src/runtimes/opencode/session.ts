@@ -1,12 +1,13 @@
+// BYOK change: Modified from OAR 95c6547 for SDK-owned processes and explicit environments (Apache-2.0).
 /* oxlint-disable import/max-dependencies -- Session profiles and assembly wire the native control, projection and lifecycle helpers. */
 import type { RefusedSessionOptions } from "../../contracts/runtime.js";
-import { withSessionCredentials } from "../../shared/session-credentials.js";
 import { opencodeRefusedSessionOptions, opencodeV1RefusedSessionOptions } from "./options.js";
 import { opencodeCompaction, opencodeCompactionEvents } from "./compaction.js";
 import { opencodeMajor } from "./version.js";
 import { opencodeChildAttribution } from "./attribution.js";
 import { refuseSessionOptions } from "../../shared/session-options.js";
-import type { StartSession, Session } from "../../contracts/session.js";
+import type { AdapterSession as Session } from "../../contracts/session.js";
+import type { StartAcpSession } from "../../shared/acp/session.js";
 import { acpSession, type AcpSessionProfile } from "../../shared/acp/session.js";
 import { checkMcpServerNames } from "../../shared/mcp-servers.js";
 import { opencodeFailureOutcome } from "./failure.js";
@@ -82,25 +83,58 @@ function withPromptCleanup(session: Session, cleanup: () => Promise<void>): Sess
       await cleanup();
     }
   };
-  return { ...session, dispose: async () => { disposal ??= release(); await disposal; } };
+  return { ...session, dispose: async () => {
+    // BYOK change: a failed reclaim must remain retryable; concurrent callers still share the in-flight release.
+    disposal ??= release().catch((error: unknown) => { disposal = undefined; throw error; });
+    await disposal;
+  } };
 }
 
-export const opencodeSession: StartSession = withSessionCredentials(async (installation, options, _credentials, context) => {
+// BYOK: processes, environment and observation are owned by the SDK ACP bridge.
+export const opencodeSession: StartAcpSession = async (spawn, terminal, installation, options, hooks) => {
+  if (installation.via !== "executable" || installation.version === undefined) throw new Error("opencode requires a probed executable version");
   refuseSessionOptions(opencodeRefusedSessionOptions, options);
   // Invalid MCP entries fail before even the release-line helper can start.
   checkMcpServerNames(options.mcpServers ?? []);
-  if (installation.via !== "executable") { throw new Error("opencode requires an executable installation"); }
   if (await opencodeMajor(installation, options) === 2) {
-    return directV2Session(installation, options, context);
+    return directV2Session(spawn, terminal, installation, options, hooks);
   }
   refuseSessionOptions(opencodeV1RefusedSessionOptions, options);
   if (options.systemPrompt === undefined && options.appendSystemPrompt === undefined) {
-    return directSession(installation, options, context);
+    return directSession(spawn, terminal, installation, options, hooks);
   }
   // The prompts travel in OPENCODE_CONFIG_CONTENT, the session's MCP servers
   // in the ACP open as on the direct path, after validation above.
   validateOpenCodePrompts(options);
-  const prepared = await prepareOpenCodePrompts(installation.command, options);
+  const prepared = await prepareOpenCodePrompts(installation.command, options, async (command, args, query) => {
+    const env = Object.fromEntries(Object.entries(query.env).filter((entry): entry is [string, string] => entry[1] !== undefined));
+    const process = terminal(command, args, { cwd: query.cwd, env, shell: false });
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const stdout: Buffer[] = [];
+    const stderr: Buffer[] = [];
+    let retained = 0;
+    let refuse!: (error: Error) => void;
+    const refused = new Promise<never>((_, reject) => { refuse = reject; });
+    const retain = (stream: "stdout" | "stderr", chunk: Buffer): void => {
+      retained += chunk.length;
+      if (retained > 2 * 1024 * 1024) { refuse(new Error("opencode configuration query exceeded its output budget")); return; }
+      (stream === "stdout" ? stdout : stderr).push(chunk);
+    };
+    process.child.stdout?.on("data", (chunk: Buffer) => { retain("stdout", chunk); });
+    process.child.stderr?.on("data", (chunk: Buffer) => { retain("stderr", chunk); });
+    const closed = new Promise<number | null>((resolve, reject) => {
+      process.child.once("close", resolve);
+      process.child.once("error", reject);
+    });
+    void closed.catch(() => {});
+    void refused.catch(() => {});
+    try {
+      timer = setTimeout(() => { refuse(new Error("opencode configuration query timed out")); }, query.timeoutMs);
+      await process.spawned;
+      const exitCode = await Promise.race([closed, refused]);
+      return { ok: exitCode === 0, stdout: Buffer.concat(stdout).toString("utf8"), stderr: Buffer.concat(stderr).toString("utf8"), exitCode };
+    } finally { clearTimeout(timer); await process.dispose(); }
+  });
   try {
     const session = await acpSession({
       ...opencodeAcpProfile,
@@ -111,10 +145,10 @@ export const opencodeSession: StartSession = withSessionCredentials(async (insta
         }
         return Promise.resolve();
       },
-    })(installation, prepared.options, context);
+    })(spawn, terminal, installation, { ...prepared.options, env: prepared.options.env as Readonly<Record<string, string>> }, hooks);
     return withPromptCleanup(session, prepared.cleanup);
   } catch (error) {
     await prepared.cleanup();
     throw error;
   }
-});
+};
