@@ -1,3 +1,4 @@
+// BYOK change: Modified from OAR 95c6547 so the caller owns the ACP process and its explicit environment (Apache-2.0).
 import {
   ndJsonStream,
   RequestError,
@@ -6,13 +7,9 @@ import {
   type SendRequestOptions,
   type AnyMessage,
 } from "@agentclientprotocol/sdk";
-import { Readable, Writable } from "node:stream";
-import { spawnLineProcess } from "../executable/index.js";
-import type { CancellationObservation } from "../executable/process-cancellation.js";
-import type { ProcessDiagnostics } from "../executable/diagnostics.js";
+// BYOK change: no executable manager; the caller injects its owned JSONL process.
 import { AcpError, acpProcessExitedError, acpRequestTimeoutError } from "./errors.js";
 import { nativeErrorCause } from "../native-error.js";
-import type { SessionResources } from "../../contracts/session.js";
 import { observeAcpOpening, type AcpOpening } from "./opening.js";
 import { acpEofInput, drainingAcpInput } from "./input.js";
 
@@ -38,15 +35,33 @@ function processClosed(process: AcpProcess): boolean {
   return process.closed;
 }
 
+// BYOK change: the injected line process the caller creates, adopts and reaps.
+export interface AcpLineProcess {
+  readonly spawned: Promise<void>;
+  readonly exited: Promise<number | null>;
+  /** One complete line; settles when stdin accepted it, rejects when the process failed. */
+  writeAcknowledged(text: string): Promise<void>;
+  onLine(handler: (line: string) => void): void;
+  onExit(handler: (code: number | null) => void): void;
+  kill(): void;
+  /** Read the process table now and remember this process's descendants for its disposal; throws when the table cannot be read. */
+  observeDescendants(): void;
+}
+
+// BYOK change: the caller passes the complete filtered environment; nothing ambient is merged.
+export type SpawnAcpLineProcess = (
+  command: string,
+  args: readonly string[],
+  options: { readonly env: Readonly<Record<string, string>>; readonly cwd?: string },
+) => AcpLineProcess;
+
 export interface AcpProcessOptions {
   /** Apply credential-operation policy before the SDK can log a malformed native message. */
   readonly incoming?: (message: AnyMessage) => AnyMessage | undefined;
   /** Observe request ids when an incoming filter must discard unsolicited responses. */
   readonly outgoing?: (message: AnyMessage) => void;
   readonly cwd?: string;
-  readonly env?: NodeJS.ProcessEnv;
-  /** Authentication queries keep all native diagnostics private. */
-  readonly inheritStderr?: boolean;
+  readonly env: Readonly<Record<string, string>>; // BYOK change: required explicit environment.
   /** Session MCP credentials must not appear in protocol error messages, data or causes. */
   readonly redact?: (text: string) => string;
   /** Track notification arrival relative to the native session-open answer. */
@@ -63,16 +78,9 @@ export interface AcpProcess {
   readonly exitCode: number | null;
   readonly redact?: (text: string) => string;
   kill(): void;
-  /** Only immediately before stopping: memoizes capture before native cancel/close can orphan tools. */
-  prepareShutdown(): Promise<void>;
-  /** Record the actual native stop attempt, immediately before sending cancel/close. */
-  markNativeStop(): void;
-  /** Observe before isolated user cancellation; never use for a shared root. */
-  observeCancellation(): Promise<CancellationObservation>;
-  /** Bounded native diagnostics for the session-opening error boundary only. */
-  diagnostics(): ProcessDiagnostics;
-  /** The agent's memory with everything it started (`LineProcess.resources`). */
-  readonly resources: () => Promise<SessionResources | null>;
+  // BYOK change: no `resources` reader, native diagnostics or upstream shutdown/cancellation observation; the SDK process-tree authority owns the tree.
+  /** BYOK change: the injected line process's synchronous descendant read, taken before a native cancel. */
+  observeDescendants(): void;
 }
 
 /**
@@ -127,18 +135,44 @@ export async function withAcpDeadline<Response>(
 
 /** Spawn a stdio ACP agent and let the official SDK own the wire protocol. */
 export function startAcpProcess(
+  spawnLineProcess: SpawnAcpLineProcess, // BYOK change: caller-owned process.
   command: string,
   args: readonly string[],
   app: ClientApp,
-  options: AcpProcessOptions = {},
+  options: AcpProcessOptions,
 ): AcpProcess {
-  const child = spawnLineProcess(command, args, { ...options, killTree: true });
-  // Node and TypeScript model the same WHATWG byte streams with incompatible
-  // generic constraints.
-  // oxlint-disable-next-line typescript/consistent-type-assertions, typescript/no-unsafe-type-assertion -- Native WHATWG stream expected by the SDK.
-  const output = Writable.toWeb(child.stdin) as Parameters<typeof ndJsonStream>[0];
-  // oxlint-disable-next-line typescript/consistent-type-assertions, typescript/no-unsafe-type-assertion -- Native WHATWG stream expected by the SDK.
-  const input = Readable.toWeb(child.stdout) as Parameters<typeof ndJsonStream>[1];
+  const child = spawnLineProcess(command, args, { env: options.env, ...(options.cwd === undefined ? {} : { cwd: options.cwd }) });
+  // BYOK change: the owned process already splits stdout into bounded lines.
+  // Each line goes back to ndJsonStream with its newline, so the SDK keeps
+  // its own framing, parse-error answers and write ordering.
+  const encoder = new TextEncoder();
+  const decoder = new TextDecoder();
+  // A closed connection cancels the reader; later lines and the exit are then dropped.
+  let reading = true;
+  const input = new ReadableStream<Uint8Array>({
+    start(controller) {
+      child.onLine((line) => {
+        if (reading) {
+          controller.enqueue(encoder.encode(`${line}\n`));
+        }
+      });
+      child.onExit(() => {
+        if (reading) {
+          reading = false;
+          controller.close();
+        }
+      });
+    },
+    cancel() {
+      reading = false;
+    },
+  });
+  const output = new WritableStream<Uint8Array>({
+    write(chunk) {
+      // ndJsonStream writes one whole encoded message per chunk.
+      return child.writeAcknowledged(decoder.decode(chunk));
+    },
+  });
   const nativeStream = ndJsonStream(output, drainingAcpInput(input));
   const incoming = options.incoming;
   const writer = options.outgoing === undefined ? undefined : nativeStream.writable.getWriter();
@@ -159,9 +193,8 @@ export function startAcpProcess(
   const { readable, eof } = acpEofInput(observed.readable);
   const connection = app.connect({ writable: observed.writable, readable });
   // A protocol or stream failure can close the SDK without a host dispose.
-  // Draining stdout must not leave that disconnected agent running forever.
-  // Normal EOF preserves the native shutdown lifetime, including hooks that
-  // continue after stdout closes. It never starts an OAR cleanup on its own.
+  // Normal EOF preserves the native shutdown lifetime; it never starts an
+  // OAR cleanup on its own. The SDK process-tree owner reaps the child.
   const disconnected = (): void => { if (connection.signal.reason !== eof) { child.kill(); } };
   connection.signal.addEventListener("abort", disconnected, { once: true });
   if (connection.signal.aborted) { disconnected(); }
@@ -171,12 +204,8 @@ export function startAcpProcess(
     ended = true;
     exitCode = code;
     connection.close(acpProcessExitedError(code));
-    // Final cleanup is complete. An unobserved descendant may still hold the
-    // pipe, but must not keep the cancelled raw-byte drain or the host alive.
-    child.stdout.destroy();
   });
   return {
-    ...(child.pid === undefined ? {} : { pid: child.pid }),
     connection,
     ...(options.redact === undefined ? {} : { redact: options.redact }),
     spawned: child.spawned,
@@ -187,16 +216,12 @@ export function startAcpProcess(
     get exitCode() {
       return exitCode;
     },
+    observeDescendants: () => { child.observeDescendants(); },
     kill() {
       if (!ended) {
         connection.close(acpProcessExitedError(null));
         child.kill();
       }
     },
-    prepareShutdown: async () => { await child.prepareShutdown(); },
-    markNativeStop: () => { child.markNativeStop(); },
-    observeCancellation: async () => { const observation = await child.observeCancellation(); return observation; },
-    resources: child.resources,
-    diagnostics: () => child.diagnostics(),
   };
 }
