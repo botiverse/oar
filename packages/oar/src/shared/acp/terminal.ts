@@ -1,3 +1,4 @@
+// BYOK change: Modified from OAR 95c6547 so the caller spawns, adopts and reaps every hosted terminal process (Apache-2.0).
 /* oxlint-disable typescript/promise-function-async -- SDK handlers deliberately return terminal promises directly. */
 import {
   RequestError,
@@ -12,12 +13,11 @@ import {
   type WaitForTerminalExitRequest,
   type WaitForTerminalExitResponse,
 } from "@agentclientprotocol/sdk";
-import { terminalLaunch } from "./terminal-launch.js";
+import type { ChildProcess } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { StringDecoder } from "node:string_decoder";
-import spawn from "cross-spawn";
-import { spawnChecked, killProcessTree, OWN_PROCESS_GROUP, signalProcessGroup, trackOwnedProcess } from "../executable/index.js";
+// BYOK change: no cross-spawn and no executable manager; see SpawnAcpTerminal.
 
 const DEFAULT_OUTPUT_LIMIT = 4 * 1024 * 1024;
 const MAX_OUTPUT_LIMIT = 16 * 1024 * 1024;
@@ -27,8 +27,27 @@ interface ExitStatus {
   readonly signal: string | null;
 }
 
+// BYOK change: one hosted command inside the caller's process-tree authority.
+export interface AcpTerminalProcess {
+  readonly child: ChildProcess;
+  /** Settles once the caller owns the tree; rejects (with the process ended) when it cannot. */
+  readonly spawned: Promise<void>;
+  /** Ask the command and everything it started to stop; output stays readable. */
+  terminate(): void;
+  /** End the command's tree and resolve when it is gone. */
+  dispose(): Promise<void>;
+}
+
+// BYOK change: the caller spawns with this exact environment and no ambient merge.
+export type SpawnAcpTerminal = (
+  command: string,
+  args: readonly string[],
+  options: { readonly cwd: string; readonly env: Readonly<Record<string, string>>; readonly shell: boolean },
+) => AcpTerminalProcess;
+
 interface TerminalState {
-  readonly child: ReturnType<typeof spawn>;
+  readonly process: AcpTerminalProcess; // BYOK change: caller-owned process.
+  readonly child: ChildProcess;
   readonly exited: Promise<ExitStatus>;
   readonly sessionId: string;
   readonly stderrDecoder: StringDecoder;
@@ -121,25 +140,31 @@ function terminalFor(
 
 async function stopTerminal(state: TerminalState): Promise<void> {
   // Until `close`, something may still hold the output pipes: the command or
-  // a process it started (a shell's children). Killing the group reaches
-  // them all, so the pipes close and the wait below ends.
-  if (state.exitStatus === null) {
-    if (process.platform === "win32") {
-      killProcessTree(state.child);
-    } else {
-      signalProcessGroup(state.child, "SIGKILL");
-    }
-  }
+  // a process it started (a shell's children). BYOK change: the caller's
+  // disposal ends that whole tree, so the pipes close and the wait below ends.
+  await state.process.dispose();
   await state.exited;
 }
 
 /** Host implementation of ACP v1's typed terminal reverse-RPC surface. */
 export function createAcpTerminalHost(
+  spawnTerminal: SpawnAcpTerminal, // BYOK change: caller-owned terminal processes.
   cwd: string,
-  environment: NodeJS.ProcessEnv,
+  environment: Readonly<Record<string, string>>, // BYOK change: explicit environment.
   options: AcpTerminalHostOptions = {},
 ): OwnedAcpTerminalHost {
   const terminals = new Map<string, TerminalState>();
+  // BYOK change: a released or disposed terminal stays here until its tree is
+  // gone, so a later dispose (or its retry after a failed reap) still waits for it.
+  const stopping = new Map<string, TerminalState>();
+  let closing = false;
+  let disposal: Promise<void> | undefined; // BYOK change: shared by every dispose caller.
+  const stop = async (state: TerminalState): Promise<void> => {
+    terminals.delete(state.terminalId);
+    stopping.set(state.terminalId, state);
+    await stopTerminal(state);
+    stopping.delete(state.terminalId);
+  };
 
   const create = async (params: CreateTerminalRequest): Promise<CreateTerminalResponse> => {
     if (params.command.length === 0) {
@@ -148,30 +173,32 @@ export function createAcpTerminalHost(
     if (params.cwd !== undefined && params.cwd !== null && !path.isAbsolute(params.cwd)) {
       invalid("ACP terminal cwd must be an absolute path");
     }
+    if (closing) {
+      // BYOK change: a command started after the reap began would escape it.
+      throw RequestError.internalError(undefined, "ACP terminal host is disposed");
+    }
     const terminalId = randomUUID();
-    const commandCwd = params.cwd ?? cwd;
-    const env = { ...environment, ...Object.fromEntries((params.env ?? []).map(({ name, value }) => [name, value])) };
-    const launch = terminalLaunch(params.command, params.args ?? [], commandCwd, env,
-      options.shellCommand === true && params.args === undefined, options.agentPid?.());
-    const child = spawnChecked(() => spawn(launch.command, launch.args, {
-      cwd: commandCwd,
-      env,
-      shell: launch.shell,
-      stdio: ["ignore", "pipe", "pipe"],
-      // Its own process group (POSIX): kill and release reach the command and
-      // everything it started, not only the shell that launched it.
-      detached: OWN_PROCESS_GROUP,
-    }));
-    trackOwnedProcess(child);
+    // BYOK change: the caller's spawn puts the command in its own owned tree
+    // (a POSIX process group, a Windows job), so kill and release reach the
+    // command and everything it started, not only the shell that launched it.
+    // Upstream's OOM-score launch (#652) is omitted; see PROVENANCE.md.
+    const owned = spawnTerminal(params.command, params.args ?? [], {
+      cwd: params.cwd ?? cwd,
+      env: {
+        ...environment,
+        ...Object.fromEntries((params.env ?? []).map(({ name, value }) => [name, value])),
+      },
+      shell: options.shellCommand === true && params.args === undefined,
+    });
+    const { child } = owned;
     const { stdout, stderr } = child;
     if (stdout === null || stderr === null) {
-      child.kill("SIGKILL");
+      await owned.dispose();
       throw RequestError.internalError(undefined, "ACP terminal process has no output streams");
     }
-    const { promise: spawned, resolve: resolveSpawned, reject: rejectSpawned } =
-      Promise.withResolvers<void>();
     const { promise: exited, resolve: resolveExited } = Promise.withResolvers<ExitStatus>();
     const state: TerminalState = {
+      process: owned,
       child,
       exited,
       sessionId: params.sessionId,
@@ -199,16 +226,14 @@ export function createAcpTerminalHost(
       state.exitStatus = status;
       resolveExited(status);
     };
-    child.once("spawn", resolveSpawned);
     child.once("close", (exitCode, signal) => {
       finish({ exitCode, signal });
     });
-    child.once("error", (error) => {
-      rejectSpawned(error);
+    child.once("error", () => {
       finish({ exitCode: null, signal: null });
     });
     try {
-      await spawned;
+      await owned.spawned; // BYOK change: spawned and adopted by the caller.
     } catch (error) {
       terminals.delete(terminalId);
       throw RequestError.internalError(
@@ -237,19 +262,14 @@ export function createAcpTerminalHost(
   const kill = (params: KillTerminalRequest): KillTerminalResponse => {
     const state = terminalFor(terminals, params);
     if (state.exitStatus === null) {
-      if (process.platform === "win32") {
-        killProcessTree(state.child);
-      } else {
-        signalProcessGroup(state.child, "SIGTERM");
-      }
+      state.process.terminate(); // BYOK change: caller-owned tree termination.
     }
     return {};
   };
 
   const release = async (params: ReleaseTerminalRequest): Promise<ReleaseTerminalResponse> => {
     const state = terminalFor(terminals, params);
-    terminals.delete(state.terminalId);
-    await stopTerminal(state);
+    await stop(state); // BYOK change: tracked until the tree is gone.
     return {};
   };
 
@@ -259,6 +279,7 @@ export function createAcpTerminalHost(
     waitForExit,
     kill,
     release,
+    // BYOK change: stopTerminal ends each command's tree through the caller's disposal.
     async end(terminalIds) {
       const running = [...new Set(terminalIds)].flatMap((id) => {
         const state = terminals.get(id);
@@ -267,12 +288,17 @@ export function createAcpTerminalHost(
       await Promise.all(running.map(async (state) => { await stopTerminal(state); }));
       return { signalled: running.length };
     },
-    async dispose() {
-      const active = [...terminals.values()];
-      terminals.clear();
-      await Promise.all(active.map(async (state) => {
-        await stopTerminal(state);
-      }));
+    // BYOK change: one disposal for every concurrent caller. The exit observer
+    // starts it unawaited; the session's own dispose waits for the same reap.
+    // A failed reap is reported and a later call retries every tree still alive.
+    dispose() {
+      closing = true;
+      disposal ??= Promise.all([...terminals.values(), ...stopping.values()].map(stop))
+        .then(() => undefined, (error: unknown) => {
+          disposal = undefined;
+          throw error;
+        });
+      return disposal;
     },
   };
 }
