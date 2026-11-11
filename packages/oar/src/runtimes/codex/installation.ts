@@ -1,5 +1,6 @@
 import { environmentHome } from "../../shared/environment-home.js";
 import { environmentValue } from "../../shared/environment.js";
+import { readdirSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
 import { executableInstallation } from "../../shared/installation.js";
@@ -18,14 +19,19 @@ import { executableInstallation } from "../../shared/installation.js";
  * default prefix (`%APPDATA%\npm`; OAR runs the shim's Node script without
  * cmd.exe, windows-shim.ts), then the Codex Desktop app's CLI
  * (`%LOCALAPPDATA%\Programs\OpenAI\Codex\bin\codex.exe`, or without
- * `Programs` for a per-user install). Locations as Raft's own Codex driver
- * resolves them; the `codex-command-runner` sandbox helper beside them is
- * never a candidate.
+ * `Programs` for a per-user install). Newer Desktop builds keep the CLI one
+ * folder down, `bin\<build>\codex.exe` (a build hash; a user saw
+ * `bin\5449c1f0f26f1f98\codex.exe`, 2026-11-11), and older build folders can
+ * remain: after each fixed path come its build folders' CLIs, the most
+ * recently written first, so the probe settles on the newest that works.
+ * Locations as Raft's own Codex driver resolves them; the
+ * `codex-command-runner` sandbox helper beside them is never a candidate.
  */
 export function codexInstalledExecutableCandidates(
   platform: NodeJS.Platform = process.platform,
   home: string = homedir(),
   env: Readonly<NodeJS.ProcessEnv> = process.env,
+  builds: (bin: string) => readonly string[] = desktopBuildExecutables,
 ): readonly string[] {
   if (platform === "win32") {
     const win = path.win32;
@@ -36,11 +42,10 @@ export function codexInstalledExecutableCandidates(
     };
     const roaming = folder("APPDATA", win.join(home, "AppData", "Roaming"));
     const local = folder("LOCALAPPDATA", win.join(home, "AppData", "Local"));
-    return [
-      win.join(roaming, "npm", "codex.cmd"),
-      win.join(local, "Programs", "OpenAI", "Codex", "bin", "codex.exe"),
-      win.join(local, "OpenAI", "Codex", "bin", "codex.exe"),
-    ];
+    const desktop = [win.join(local, "Programs", "OpenAI", "Codex", "bin"), win.join(local, "OpenAI", "Codex", "bin")];
+    const candidates = [win.join(roaming, "npm", "codex.cmd")];
+    for (const bin of desktop) { candidates.push(win.join(bin, "codex.exe"), ...builds(bin)); }
+    return candidates;
   }
   const paths = path.posix;
   const bundles = platform === "darwin"
@@ -53,6 +58,26 @@ export function codexInstalledExecutableCandidates(
     : [];
   const installDir = env.CODEX_INSTALL_DIR === undefined || env.CODEX_INSTALL_DIR === "" ? [] : [paths.join(env.CODEX_INSTALL_DIR, "codex")];
   return [...bundles, ...installDir, paths.join(home, ".local", "bin", "codex")];
+}
+
+/** At most this many build folders are probed: Raft's own driver takes the newest three. */
+const DESKTOP_BUILDS = 3;
+
+/**
+ * `<bin>\<build>\codex.exe` for the newest build folders that have one (at
+ * most three, the most recently written first); none when `bin` cannot be
+ * read. A folder whose name starts with `.` (a sandbox helper's, like
+ * `.sandbox-bin`) is never a build.
+ */
+export function desktopBuildExecutables(bin: string): readonly string[] {
+  let folders: readonly string[] = [];
+  try { folders = readdirSync(bin, { withFileTypes: true }).filter((entry) => entry.isDirectory() && !entry.name.startsWith(".")).map((entry) => entry.name); }
+  catch { return []; }
+  return folders.flatMap((folder) => {
+    // The real filesystem: the host's own separator (Windows when it matters).
+    const file = path.join(bin, folder, "codex.exe");
+    try { return [{ file, written: statSync(file).mtimeMs }]; } catch { return []; }
+  }).toSorted((left, right) => right.written - left.written).slice(0, DESKTOP_BUILDS).map((entry) => entry.file);
 }
 
 // OAR drives Codex through its app-server surface; a codex without it is unsupported.
