@@ -32,7 +32,9 @@ increments, not a promise to add every feature listed.
   and a clean-install check of the published packages.
 - Placement as a declared runtime choice ([system](system.md#placement)):
   `Runtime.execution`, Pi through its own RPC process
-  (`createPiRuntime({ execution: "subprocess" })`), and `withPlacement` for
+  (`createPiRuntime({ execution: "subprocess" })`), Cursor's SDK in a Node
+  child per session with an environment the session chooses
+  (`createCursorRuntime({ execution: "subprocess", sdkModule, envBase })`), and `withPlacement` for
   shared or isolated runtime processes. No native runtime is admitted to
   shared placement today.
 - Interrupt delivery for runtimes without steer
