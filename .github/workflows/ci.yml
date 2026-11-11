@@ -130,7 +130,12 @@ jobs:
           node-version: "24"
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec playwright install --with-deps chromium
+      # The runner image already has Chromium's libraries; --with-deps only adds fonts
+      # from Ubuntu's mirrors, which the runner sometimes cannot resolve (2026-11-11).
+      # The smoke test decides whether the browser runs without them.
+      - run: pnpm exec playwright install chromium
+      - run: pnpm exec playwright install-deps chromium
+        continue-on-error: true
       - run: pnpm run durable-demo:smoke
 
   # OpenDAL-style behavior jobs: the shared behavior suite instantiated per
