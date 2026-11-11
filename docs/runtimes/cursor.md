@@ -355,6 +355,11 @@ tools. Node has no option to turn this off, so OAR cannot avoid it. A
 CI listing; which of the two added which is read from libuv's list, not
 traced).
 
+What macOS adds under `clean` (observed on macos-latest in CI run
+43082123497): `__CF_USER_TEXT_ENCODING`, which macOS sets in a process's
+environment itself (a text encoding and user id, like `0x1F5:0x0:0x0`, not
+a secret); OAR does not pass it.
+
 Under `clean`, what the host must pass, as far as verified: on Linux arm64
 with Node 24.18.1 and SDK 1.3.1, a session opened (`Agent.create`) and was
 disposed with `env: { HOME }` alone, with `{ HOME, PATH }`, and with `HOME`,

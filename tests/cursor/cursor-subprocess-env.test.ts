@@ -38,7 +38,13 @@ test("a host-only variable the session env removes is not visible to the agent's
  * and cmd.exe sets COMSPEC, PATHEXT and PROMPT.
  */
 const LIBUV_REQUIRED = ["HOMEDRIVE", "HOMEPATH", "LOGONSERVER", "PATH", "SYSTEMDRIVE", "SYSTEMROOT", "TEMP", "USERDOMAIN", "USERNAME", "USERPROFILE", "WINDIR"];
-const SHELL_SET: ReadonlySet<string> = new Set(process.platform === "win32" ? [...LIBUV_REQUIRED, "COMSPEC", "PATHEXT", "PROMPT"] : ["PWD", "OLDPWD", "SHLVL", "_"]);
+const POSIX_SHELL = ["PWD", "OLDPWD", "SHLVL", "_"];
+/** Set by the platform or the shell, not by OAR: libuv and cmd.exe on Windows; macOS sets `__CF_USER_TEXT_ENCODING` itself. */
+const PLATFORM_SET: Readonly<Partial<Record<NodeJS.Platform, readonly string[]>>> = {
+  win32: [...LIBUV_REQUIRED, "COMSPEC", "PATHEXT", "PROMPT"],
+  darwin: [...POSIX_SHELL, "__CF_USER_TEXT_ENCODING"],
+};
+const SHELL_SET: ReadonlySet<string> = new Set(PLATFORM_SET[process.platform] ?? POSIX_SHELL);
 /** What OAR may add to a clean child besides its marker: the SDK's native companion paths, when the SDK's companion package resolves. */
 const OAR_ADDED: ReadonlySet<string> = new Set(["CURSOR_TREE_SITTER_VENDOR_DIR", "CURSOR_RIPGREP_PATH"]);
 
