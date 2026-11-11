@@ -1,3 +1,4 @@
+import { nodeEvalExecutable } from "./node-eval.js";
 import { killGraceMs } from "./process-signals.js";
 
 /*
@@ -21,7 +22,11 @@ import { killGraceMs } from "./process-signals.js";
  * command's exit code (1 when a signal ended it). In an Electron host,
  * `process.execPath` is Electron, which runs `-e` only as Node with
  * `ELECTRON_RUN_AS_NODE=1`: the watchdog gets it, and the command gets the
- * environment's own value back.
+ * environment's own value back. A compiled single executable host (Node
+ * SEA, Bun standalone) cannot run the watchdog: its `process.execPath`
+ * would start the application again. There the command runs without one,
+ * so it stops with the host's own exit cleanup but outlives a SIGKILLed
+ * host.
  */
 
 const SCRIPT = String.raw`
@@ -70,9 +75,12 @@ export interface WatchdogTarget {
  * stdin open as a pipe for as long as the command should run: ending it
  * stops the command. The watchdog's own grace is half the host's
  * (`killGraceMs()`), so it escalates before the host's own SIGKILL would end
- * the watchdog first.
+ * the watchdog first. Null in a compiled single executable host, which
+ * cannot run it.
  */
-export function hostWatchdogTarget(target: { readonly command: string; readonly args: readonly string[]; readonly windowsVerbatimArguments?: true }, env: Readonly<NodeJS.ProcessEnv>): WatchdogTarget & { readonly env: NodeJS.ProcessEnv } {
+export function hostWatchdogTarget(target: { readonly command: string; readonly args: readonly string[]; readonly windowsVerbatimArguments?: true }, env: Readonly<NodeJS.ProcessEnv>): (WatchdogTarget & { readonly env: NodeJS.ProcessEnv }) | null {
+  const node = nodeEvalExecutable();
+  if (node === null) { return null; }
   const spec = [target.command, target.args, target.windowsVerbatimArguments === true, Math.floor(killGraceMs() / 2), env.ELECTRON_RUN_AS_NODE ?? null];
-  return { command: process.execPath, args: ["-e", SCRIPT, JSON.stringify(spec)], env: { ...env, ELECTRON_RUN_AS_NODE: "1" } };
+  return { command: node, args: ["-e", SCRIPT, JSON.stringify(spec)], env: { ...env, ELECTRON_RUN_AS_NODE: "1" } };
 }

@@ -441,7 +441,13 @@ host SIGKILLed right after creating the facade over 2.2.7 left no
 `opencode serve` running three seconds later
 ([native check](../../experiments/opencode-provider-auth/native-checks.ts));
 a [test](../../tests/opencode/provider-auth-host-death.test.ts) holds it on
-the fake server.
+the fake server, on Linux, macOS and Windows CI. On Windows OAR starts the
+watchdog detached: otherwise Node's job object ends it together with the
+host, and the server, started by a `.cmd` shim's own child, outlives both.
+A compiled single executable host (Node SEA, Bun standalone) cannot run the
+watchdog, because its `process.execPath` starts the application again; there
+the server runs without one and stops with the host's own exit cleanup, but
+outlives a SIGKILLed host.
 
 **Side effects.** Like any `opencode serve` started in the user's home, it
 loads and runs the user's global OpenCode configuration and plugins: it may

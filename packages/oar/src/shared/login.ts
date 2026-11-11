@@ -154,7 +154,7 @@ function stopTree(child: ChildProcess): void {
  * host's). Nothing it prints is logged or forwarded except through `handlers`. Throws when the command cannot be
  * spawned at all (an invalid path on Windows). With `stopWithHost`, it runs
  * under a watchdog that stops it when the host dies, SIGKILL included
- * (host-watchdog.ts): its stdin is then not connected, and `closeInput` stops it.
+ * (host-watchdog.ts; none in a compiled single executable host): its stdin is then not connected, and `closeInput` stops it.
  */
 export function spawnLoginProcess(
   command: string,
