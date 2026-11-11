@@ -149,8 +149,8 @@ function stopTree(child: ChildProcess): void {
 
 /**
  * Run a login command over pipes (no terminal), in its own process group on
- * POSIX, reading stdout and stderr alike. Nothing it prints is logged or
- * forwarded except through `handlers`. Throws when the command cannot be
+ * POSIX, reading stdout and stderr alike, in `options.cwd` (default: the
+ * host's). Nothing it prints is logged or forwarded except through `handlers`. Throws when the command cannot be
  * spawned at all (an invalid path on Windows).
  */
 export function spawnLoginProcess(
@@ -158,10 +158,12 @@ export function spawnLoginProcess(
   args: readonly string[],
   env: NodeJS.ProcessEnv,
   handlers: LoginOutputHandlers,
+  options: { readonly cwd?: string } = {},
 ): LoginProcess {
   const target = windowsSpawnTarget(command, args, { env });
   const child = spawn(target.command, [...target.args], {
     env,
+    ...(options.cwd === undefined ? {} : { cwd: options.cwd }),
     stdio: ["pipe", "pipe", "pipe"],
     detached: OWN_PROCESS_GROUP,
     windowsHide: true,

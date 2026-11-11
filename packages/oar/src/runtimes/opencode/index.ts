@@ -28,3 +28,6 @@ export const opencodeRuntime = defineRuntime({
     return createOpenCodeSharedSession();
   }),
 } });
+
+export { createOpencodeProviderAuth, OpencodeProviderAuthError } from "./provider-auth.js";
+export type { OpencodeProviderAuth, OpencodeProviderAuthErrorKind, OpencodeProviderAuthOptions } from "./provider-auth.js";

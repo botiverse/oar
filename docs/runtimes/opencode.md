@@ -383,6 +383,76 @@ covers 2.0.27.
 - **Interaction limits:** no elicitation capability is advertised. v2's
   question path remains outside the verified host-answer contract.
 
+## Provider authentication
+
+OpenCode 2 signs in per provider ("integration"): OpenAI, GitHub Copilot,
+xAI, API keys and so on. `createOpencodeProviderAuth(installation, { env?, timeoutMs? })`,
+exported from `@botiverse/oar` and `@botiverse/oar/runtimes/opencode`,
+returns the same `ProviderAuthFacade` as `createPiProviderAuth`, plus
+`close()`. It drives only OpenCode's own HTTP API and never reads or writes
+OpenCode's credential files. OpenCode 1 has no such API: it is refused with
+`OpencodeProviderAuthError` kind `version_unsupported` before anything
+starts, and a bundled installation with `unsupported_installation`.
+There is still no `opencodeRuntime.login`/`authStatus`.
+
+**Process.** The facade owns one `opencode serve --hostname 127.0.0.1 --port 0`,
+started in the environment's home directory (where OpenCode's own background
+service runs) with a random password in `OPENCODE_PASSWORD` and
+`OPENCODE_SERVER_PASSWORD`, so no password is printed. It waits for the
+`server listening on` line, then until both `/api/plugin` and
+`/api/integration` are non-empty: on 2.2.7 the registry fills in stages for
+about a second, and the plugin list appeared only once it was complete. The
+facade reads the registry once at creation; `loginProviders()` serves it.
+The server is shared by concurrent operations and stopped five seconds after
+the last one ends, or at once by `close()`; the next operation starts a new
+one. Its output is never forwarded. `timeoutMs` (default 30 s) bounds
+startup and each request; a login's wait for the person uses the same value
+when given, else 10 minutes (OpenCode's attempts expire after 600 s, xAI's
+after 1800 s).
+
+**Mapping.**
+
+| Facade | OpenCode 2 |
+| --- | --- |
+| `loginProviders()` | `integration.list` at creation, in OpenCode's order. Each `oauth` method is `{ method: "oauth", name: label, subscription: false }` (OpenCode marks none as a subscription, so none is claimed), then `key` as `api_key` named by its label or "`<name>` API key", then `env` as an ambient `api_key` named by its variables. `external` and `command` methods (Amazon Bedrock and Google Vertex profiles, Claude Agent) are omitted; an integration with nothing left is omitted (2.2.7: Claude Agent). |
+| `listProviders()` | Integrations with a stored credential connection. Environment-only connections are not listed, as the contract says. `resolve` makes no difference: OpenCode's connections carry no secret and nothing is refreshed. |
+| `status(id)` | `integration.get`: the first credential connection (OpenCode lists the newest first), else an environment connection. `label` is the credential's label or the variable's name; an `external` credential is configured with no `method`. |
+| `login(id, "oauth")` | Several OAuth methods: a `select` with their ids and labels. Then each required, visible form field that applies (`when`): `select` for options and booleans, `text` otherwise, an empty answer taking the field's default. Optional and hidden fields are left to OpenCode's defaults. `integration.oauth.connect`, then a `device_code` event when the instructions end in `enter code: X` (verification URI: the attempt's URL), else `auth_url` with the instructions. An attempt with `mode: "code"` or `paste` also gets a `manual_code` prompt, whose answer goes to `integration.oauth.complete`; the prompt's signal aborts when the attempt completes another way. `integration.oauth.status` is polled every second until `complete`, then `status(id)` is returned. |
+| `login(id, "api_key")` | A `secret` prompt for the key, then the key method's form fields, then as `setApiKey`. |
+| `setApiKey(id, key)` | `integration.connect.key` (OpenCode stores without validating, adding a credential and making it active), then `credential.remove` for each credential the integration had before, so the new key replaces them. A refused key removes nothing. A key method whose form asks more (Azure, Cloudflare, Snowflake Cortex) is refused with `method_unavailable` naming `login(id, "api_key", interaction)`; an integration with no key prompt (GitHub Copilot) names its environment variables. |
+| `logout(id)` | `credential.remove` for every credential connection; environment variables stay, so `status` may still read configured. |
+
+**Ending a sign-in.** `failed` rejects with kind `rejected` and OpenCode's
+message, `expired` with `expired`, the deadline with `timed_out`; aborting
+`interaction.signal` rejects with the signal's reason, as Pi's facade does,
+even while a prompt is pending. A host whose `onEvent` or `prompt` throws
+ends the sign-in with that error. Every unfinished attempt is cancelled
+with `integration.oauth.cancel`. Keys and pasted codes go only to OpenCode;
+OAR redacts them, and token shapes, from every error, and results carry
+only connection metadata.
+
+**Caveats.** Browser methods (OpenAI's ChatGPT sign-in, Poe, DigitalOcean,
+GitLab) redirect to a loopback port on the machine running `opencode serve`,
+so the browser must run on that machine unless the attempt accepts a pasted
+code. Whether `opencode serve` itself tries to open a browser was not
+checked. Like any `opencode serve`, it loads OpenCode's global configuration
+and plugins from the user's home; whether configured MCP servers start with
+it was not checked. After two `setApiKey` calls for xAI the remaining credential was
+labelled `xAI 2`: OpenCode made the default label unique while the earlier
+credential still existed.
+
+**Evidence.** Observed on 2.2.7 (Linux arm64, 2026-11-11, isolated HOME,
+synthetic keys): startup lines, readiness, the operations above, key storage
+and removal, form errors, and the start and cancel of the GitHub Copilot,
+xAI, OpenAI, Poe, DigitalOcean, GitLab and OpenCode console attempts
+([probe and evidence](../../experiments/opencode-provider-auth/README.md)).
+No sign-in was completed, so a completed attempt's stored connection,
+`mode: "code"`, `paste`, and real `failed` and `expired` statuses are
+inferred from the OpenAPI schema and bundled source and exercised only
+against the [fake server](../../tests/fixtures/fake-opencode-serve.mjs)
+([tests](../../tests/opencode/provider-auth.test.ts),
+[OAuth tests](../../tests/opencode/provider-auth-oauth.test.ts)).
+
 ## Image-only input
 
 OAR sends ACP image blocks without a text block when `input` is `""`.

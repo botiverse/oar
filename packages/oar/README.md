@@ -448,7 +448,8 @@ Codex, Cursor (through its SDK's own `Cursor.auth`), Qoder and Kimi (`kimi
 login`, with `KimiLoginOptions.region`) have both. Qwen has only
 `authStatus`, a local check of whether a provider credential is configured;
 its provider settings are on `createQwenProviderAuth`. Grok, OpenCode, DSH and Pi
-have neither yet (Pi's provider logins are on `createPiProviderAuth`).
+have neither yet (Pi's provider logins are on `createPiProviderAuth`, OpenCode 2's
+on `createOpencodeProviderAuth`).
 CodeBuddy supports login and a private native account-state read, but no logout
 ([mapping](https://github.com/botiverse/oar/blob/main/docs/runtimes/codebuddy.md#international-login)).
 Antigravity supports login (its own `agy acp --login`, with the person

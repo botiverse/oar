@@ -107,6 +107,21 @@ are not rewritten; resolved reads of those files retain Pi's command and
 environment-reference behavior. Stored metadata reads
 (`listProviders({ resolve: false })`) remain non-resolving.
 
+## OpenCode provider authentication
+
+`createOpencodeProviderAuth(installation, { env?, timeoutMs? })` is available
+from both `@botiverse/oar` and `@botiverse/oar/runtimes/opencode`, for
+OpenCode 2 only (OpenCode 1 is refused with `OpencodeProviderAuthError`
+kind `version_unsupported`). It returns a `ProviderAuthFacade` with `close()`,
+backed by an owned `opencode serve` and OpenCode's own `integration.*` and
+`credential.remove` operations; OAR never touches OpenCode's credential
+files. Cancellation, prompts and secrets follow the Pi facade above: an
+aborted `interaction.signal` rejects with its reason, and keys and pasted
+codes never appear in a result or an error. `setApiKey` replaces the
+integration's earlier stored credentials; `logout` removes them and leaves
+environment variables alone. The mapping, process lifetime and evidence are
+on the [OpenCode page](../runtimes/opencode.md#provider-authentication).
+
 ## Qwen provider configuration
 
 `createQwenProviderAuth(installation, { cwd?, env?, timeoutMs? })` is separate
@@ -335,7 +350,8 @@ declares no network, refresh or key-command execution. The
 | kimi | `kimi login [--region mainland-cn\|global]`: relays the device code; Kimi polls and provisions models | ACP `initialize` then `authenticate {methodId: "login"}`, no session; readiness, not proof of remote credential validity | 2.3.3 verified | 16 min |
 | qwen | none: native `qwen auth` removed; configure a provider externally | local user/system credential presence; configured means `unknown`, absent in scope means `logged_out` with a workspace caveat | 0.26.2 source verified | status: 20 s |
 | grok | `grok login --device-auth` over pipes: relays the device code from its `accounts.x.ai` URL; Grok waits for the browser confirmation ([login](../runtimes/grok.md#login)) | `grok models` (`You are logged in with <method>.` logged in, with that method; `You are not authenticated.` logged out; neither `unknown`) | 1.0.77 verified | 15 min |
-| opencode, pi | not yet | not yet | | |
+| opencode | none: OpenCode 2's per-provider sign-in is on `createOpencodeProviderAuth` | none | | |
+| pi | not yet | not yet | | |
 | dsh | none | none | | |
 
 The [runtime pages](../runtimes/README.md) record each login path's caveats.
@@ -354,6 +370,9 @@ launch. The other runtimes have no runtime login member.
 Pi's provider logins are on `createPiProviderAuth`, whose
 `loginProviders()` lists every provider pi's `/login` offers, with its methods
 ([pi page](../runtimes/pi.md#process-ownership-installation-login-and-account-usage)).
+OpenCode 2's are on `createOpencodeProviderAuth`, whose `loginProviders()`
+lists OpenCode's integrations with their OAuth, key and environment methods
+([OpenCode page](../runtimes/opencode.md#provider-authentication)).
 
 Kimi accepts `KimiLoginOptions.region` (`"mainland-cn"` or `"global"`) on
 `kimiRuntime.login`. Omission preserves native resolution: endpoint env
@@ -425,7 +444,7 @@ runtime oar does not sign in.
 | antigravity | ACP `initialize` then `logout`; reads `agy models` afterward | removes its stored token file; server-side revocation not observed | 1.5.5 verified | 60 s |
 | grok | `grok logout`, stdin closed; reads `grok models` afterward | clears its cached sign-in; server-side revocation not observed | 1.0.77 verified | 60 s |
 | codebuddy | stream-json control request `{subtype: "logout"}`; reads `initialize.account` afterward | clears the local sign-in; no server-side revocation | 2.183.0 verified | 60 s |
-| dsh, opencode, pi, qoder, qwen | no `logout` (pi's provider logouts are on `createPiProviderAuth`; qoder signs out only in its interactive UI) | | | |
+| dsh, opencode, pi, qoder, qwen | no `logout` (pi's provider logouts are on `createPiProviderAuth`, OpenCode 2's on `createOpencodeProviderAuth`; qoder signs out only in its interactive UI) | | | |
 
 ## CLI
 
