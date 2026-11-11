@@ -13,14 +13,20 @@ import { killGraceMs } from "./process-signals.js";
  * groups). A SIGTERM, SIGINT or SIGHUP to the watchdog does the same. The
  * command's stdout and stderr are the watchdog's, so the host reads them
  * unchanged; its stdin is not connected. The watchdog exits with the
- * command's exit code (1 when a signal ended it).
+ * command's exit code (1 when a signal ended it). In an Electron host,
+ * `process.execPath` is Electron, which runs `-e` only as Node with
+ * `ELECTRON_RUN_AS_NODE=1`: the watchdog gets it, and the command gets the
+ * environment's own value back.
  */
 
 const SCRIPT = String.raw`
 const { spawn, execFileSync } = require("node:child_process");
-const [command, args, verbatim, graceMs] = JSON.parse(process.argv[1]);
+const [command, args, verbatim, graceMs, electronRunAsNode] = JSON.parse(process.argv[1]);
 const windows = process.platform === "win32";
-const child = spawn(command, args, { stdio: ["ignore", "inherit", "inherit"], detached: !windows, windowsHide: true, windowsVerbatimArguments: verbatim });
+// The command gets the host's own ELECTRON_RUN_AS_NODE, not the one that made this watchdog run as Node.
+const env = { ...process.env };
+if (electronRunAsNode === null) { delete env.ELECTRON_RUN_AS_NODE; } else { env.ELECTRON_RUN_AS_NODE = electronRunAsNode; }
+const child = spawn(command, args, { env, stdio: ["ignore", "inherit", "inherit"], detached: !windows, windowsHide: true, windowsVerbatimArguments: verbatim });
 let stopping = false;
 const group = (signal) => { try { process.kill(-child.pid, signal); } catch { try { child.kill(signal); } catch {} } };
 const stop = () => {
@@ -61,7 +67,7 @@ export interface WatchdogTarget {
  * (`killGraceMs()`), so it escalates before the host's own SIGKILL would end
  * the watchdog first.
  */
-export function hostWatchdogTarget(target: { readonly command: string; readonly args: readonly string[]; readonly windowsVerbatimArguments?: true }): WatchdogTarget {
-  const spec = [target.command, target.args, target.windowsVerbatimArguments === true, Math.floor(killGraceMs() / 2)];
-  return { command: process.execPath, args: ["-e", SCRIPT, JSON.stringify(spec)] };
+export function hostWatchdogTarget(target: { readonly command: string; readonly args: readonly string[]; readonly windowsVerbatimArguments?: true }, env: Readonly<NodeJS.ProcessEnv>): WatchdogTarget & { readonly env: NodeJS.ProcessEnv } {
+  const spec = [target.command, target.args, target.windowsVerbatimArguments === true, Math.floor(killGraceMs() / 2), env.ELECTRON_RUN_AS_NODE ?? null];
+  return { command: process.execPath, args: ["-e", SCRIPT, JSON.stringify(spec)], env: { ...env, ELECTRON_RUN_AS_NODE: "1" } };
 }

@@ -164,9 +164,10 @@ export function spawnLoginProcess(
   options: { readonly cwd?: string; readonly stopWithHost?: boolean } = {},
 ): LoginProcess {
   const native = windowsSpawnTarget(command, args, { env });
-  const target = options.stopWithHost === true ? hostWatchdogTarget(native) : native;
+  const watched = options.stopWithHost === true ? hostWatchdogTarget(native, env) : null;
+  const target = watched ?? native;
   const child = spawn(target.command, [...target.args], {
-    env,
+    env: watched?.env ?? env,
     ...(options.cwd === undefined ? {} : { cwd: options.cwd }),
     stdio: ["pipe", "pipe", "pipe"],
     detached: OWN_PROCESS_GROUP,
