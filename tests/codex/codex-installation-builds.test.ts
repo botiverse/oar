@@ -29,13 +29,13 @@ test("Windows codex candidates include the Desktop CLI's build folders after eac
   assert.deepEqual(listed, [String.raw`D:\local\Programs\OpenAI\Codex\bin`, String.raw`D:\local\OpenAI\Codex\bin`]);
 });
 
-test("Desktop build folders are read newest first, skipping folders without a CLI and an unreadable bin", async () => {
+test("Desktop build folders are read newest first, at most three, skipping dot folders, folders without a CLI and an unreadable bin", async () => {
   const bin = await mkdtemp(path.join(tmpdir(), "oar-codex-builds-"));
   try {
-    await Promise.all([["older", 1_000_000], ["newer", 2_000_000]].map(async ([folder, at]) => { await build(bin, String(folder), Number(at)); }));
+    await Promise.all([["oldest", 1_000_000], ["older", 2_000_000], ["newer", 3_000_000], ["newest", 4_000_000], [".sandbox-bin", 5_000_000]].map(async ([folder, at]) => { await build(bin, String(folder), Number(at)); }));
     await mkdir(path.join(bin, "empty"));
     await writeFile(path.join(bin, "codex-command-runner.exe"), "");
-    assert.deepEqual(desktopBuildExecutables(bin), [path.join(bin, "newer", "codex.exe"), path.join(bin, "older", "codex.exe")]);
+    assert.deepEqual(desktopBuildExecutables(bin), [path.join(bin, "newest", "codex.exe"), path.join(bin, "newer", "codex.exe"), path.join(bin, "older", "codex.exe")]);
     assert.deepEqual(desktopBuildExecutables(path.join(bin, "missing")), []);
   } finally { await rm(bin, { recursive: true, force: true }); }
 });

@@ -1171,7 +1171,8 @@ are npm's global shim in its default prefix (`%APPDATA%\npm\codex.cmd`,
 whose Node script OAR runs without cmd.exe), then the Codex Desktop CLI
 (`%LOCALAPPDATA%\Programs\OpenAI\Codex\bin\codex.exe`, then
 `%LOCALAPPDATA%\OpenAI\Codex\bin\codex.exe`, each followed by its
-`bin\<build>\codex.exe` build folders, the most recently written first:
+`bin\<build>\codex.exe` build folders, the three most recently written first
+(a folder starting with `.` is never a build):
 newer Desktop builds keep the CLI one folder down, under a build hash, and
 can leave older build folders behind); these locations follow
 Raft's own Codex driver and have no native Windows run of their own here, so

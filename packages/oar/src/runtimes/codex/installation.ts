@@ -60,16 +60,24 @@ export function codexInstalledExecutableCandidates(
   return [...bundles, ...installDir, paths.join(home, ".local", "bin", "codex")];
 }
 
-/** `<bin>\<build>\codex.exe` for each build folder that has one, the most recently written first; none when `bin` cannot be read. */
+/** At most this many build folders are probed: Raft's own driver takes the newest three. */
+const DESKTOP_BUILDS = 3;
+
+/**
+ * `<bin>\<build>\codex.exe` for the newest build folders that have one (at
+ * most three, the most recently written first); none when `bin` cannot be
+ * read. A folder whose name starts with `.` (a sandbox helper's, like
+ * `.sandbox-bin`) is never a build.
+ */
 export function desktopBuildExecutables(bin: string): readonly string[] {
   let folders: readonly string[] = [];
-  try { folders = readdirSync(bin, { withFileTypes: true }).filter((entry) => entry.isDirectory()).map((entry) => entry.name); }
+  try { folders = readdirSync(bin, { withFileTypes: true }).filter((entry) => entry.isDirectory() && !entry.name.startsWith(".")).map((entry) => entry.name); }
   catch { return []; }
   return folders.flatMap((folder) => {
     // The real filesystem: the host's own separator (Windows when it matters).
     const file = path.join(bin, folder, "codex.exe");
     try { return [{ file, written: statSync(file).mtimeMs }]; } catch { return []; }
-  }).toSorted((left, right) => right.written - left.written).map((entry) => entry.file);
+  }).toSorted((left, right) => right.written - left.written).slice(0, DESKTOP_BUILDS).map((entry) => entry.file);
 }
 
 // OAR drives Codex through its app-server surface; a codex without it is unsupported.
