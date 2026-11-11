@@ -1,3 +1,4 @@
+// BYOK change: project current typed records only; no historical record translation (Apache-2.0).
 import type {
   ControlAction,
   Event,
@@ -6,7 +7,6 @@ import type {
   RawEventObserver,
   RequestBody,
 } from "../contracts/session.js";
-import { upgradeLegacyBody } from "./legacy.js";
 
 /**
  * A toRuntime request as `eventsOf` reads its response against it (a
@@ -41,7 +41,7 @@ export function eventsOf(record: RawEvent, actions: ReadonlyMap<string, KnownCon
   const envelope = { sessionId, agentPath, seq, receivedAt, ...(record.spanId === undefined ? {} : { spanId: record.spanId }) };
   switch (record.kind) {
     case "frame":
-      return record.body.events.map((event): Event => ({ ...upgradeLegacyBody(event), ...envelope, ...(record.body.elided === true ? { elided: true as const } : {}) }));
+      return record.body.events.map((event): Event => ({ ...event, ...envelope, ...(record.body.elided === true ? { elided: true as const } : {}) }));
     case "request":
       if (record.direction === "toApp") {
         const type = record.body.kind === "native" ? record.body.type : record.body.kind;
