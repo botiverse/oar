@@ -38,12 +38,30 @@ function finish(send, result, stopReason = "end_turn") {
   result(current.id, { stopReason, _meta: { promptId: current.promptId } });
 }
 
+let terminals = 0;
+/**
+ * Ask OAR for a terminal, as grok runs a command: `terminal <marker> <ms>`
+ * runs a command that writes `marker` after `ms` and then stays alive. The
+ * reply (its terminalId) is not needed here.
+ */
+function hostTerminal(send, marker, ms) {
+  terminals += 1;
+  const program = `setTimeout(() => { require("node:fs").writeFileSync(${JSON.stringify(marker)}, "alive"); }, ${String(ms)}); setInterval(() => {}, 1000);`;
+  send({ jsonrpc: "2.0", id: `fake-terminal-${String(terminals)}`, method: "terminal/create", params: { sessionId: SESSION, command: process.execPath, args: ["-e", program] } });
+}
+
 function grokNativePrompt(message, { send, result }) {
   const promptId = message.params?._meta?.promptId ?? "unnamed";
   const text = message.params?.prompt?.find((block) => block?.type === "text")?.text ?? "";
   send({ jsonrpc: "2.0", method: "_x.ai/queue/changed", params: { sessionId: SESSION, entries: [{ id: promptId, kind: "prompt", text }] } });
   queueChanged(send, promptId);
   running = { id: message.id, promptId, text };
+  // `terminal-hold <marker> <ms>` holds the turn with its command running; `terminal-done ...` ends the turn and leaves it running.
+  const [verb, marker, ms] = text.split(" ");
+  if (verb === "terminal-hold" || verb === "terminal-done") {
+    hostTerminal(send, marker, Number(ms));
+    if (verb === "terminal-hold") { return; }
+  }
   if (text === "hold" || text === "hold-buffer") { return; }
   chunk(send, `echo:${text}`);
   if (text === "race-long") {

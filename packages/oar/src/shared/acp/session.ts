@@ -32,6 +32,7 @@ import { AcpError, acpProcessExitedError } from "./errors.js";
 import { createAcpTurns, type ActiveTurn } from "./turns.js";
 import { acpTakesImages } from "./prompt.js";
 import { createAcpSessionState, type AcpSessionState } from "./session-state.js";
+import { acpTurnTerminals } from "./turn-terminals.js";
 import { sendAcpSteerRequest } from "./steer-request.js";
 
 export type { AcpSessionProfile } from "./profile.js";
@@ -116,6 +117,7 @@ export function finishAcpSession(
   } });
   // Bound only now: frames queued since the open answer may start a native turn, which needs the driver above.
   recorder.bind(kernel);
+  const turnTerminals = acpTurnTerminals(options.endTurnProcessesOnAbort === true, kernel, terminalHost, () => turns.active());
   const createCompaction = profile.compaction;
   if (createCompaction !== undefined) {
     compaction = manualCompaction(kernel, {
@@ -215,9 +217,13 @@ export function finishAcpSession(
     queue: (input, inputOptions?: InputOptions): Promise<ControlResult> => control({ kind: "queue", input, ...inputOptions }, (request) => turns.hold(input, inputOptions?.images, inputOptions?.inputId, request)),
     // The queue is held here (turns.ts), not by the vendor: an entry can be taken back until the drain sends it.
     withdraw: (inputId: string): Promise<ControlResult> => control({ kind: "withdraw", inputId }, () => turns.withdraw(inputId)),
-    abort: (): Promise<ControlResult> => control({ kind: "abort" }, (request): ResponseBody | Promise<ResponseBody> => {
+    abort: (): Promise<ControlResult> => control({ kind: "abort" }, async (request): Promise<ResponseBody> => {
       const state = turns.active();
-      return state === null ? { kind: "rejected", code: "no_active_turn", reason: "no active turn" } : turns.abort(state, request);
+      if (state === null) { return { kind: "rejected", code: "no_active_turn", reason: "no active turn" }; }
+      const claim = turnTerminals.aborting(state, request);
+      const answer = await turns.abort(state, request);
+      if (answer.kind !== "accepted") { claim.refused(); }
+      return answer;
     }),
     rawEvents: (observer, cursor) => kernel.rawEvents(observer, cursor),
     records: () => kernel.records(),

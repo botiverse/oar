@@ -49,6 +49,16 @@ export interface AcpTerminalHost {
   dispose(): Promise<void>;
 }
 
+/** The host a session owns: the runtime's terminal surface, plus ending chosen terminals. */
+export interface OwnedAcpTerminalHost extends AcpTerminalHost {
+  /**
+   * Stop these terminals' commands (their process groups; their trees on
+   * Windows) if still running, keeping the terminals so the runtime can still
+   * read and release them. Counts the commands it had to stop.
+   */
+  end(terminalIds: readonly string[]): Promise<{ readonly signalled: number }>;
+}
+
 export interface AcpTerminalHostOptions {
   readonly shellCommand?: boolean;
   /** Native process issuing reverse terminal requests. */
@@ -128,7 +138,7 @@ export function createAcpTerminalHost(
   cwd: string,
   environment: NodeJS.ProcessEnv,
   options: AcpTerminalHostOptions = {},
-): AcpTerminalHost {
+): OwnedAcpTerminalHost {
   const terminals = new Map<string, TerminalState>();
 
   const create = async (params: CreateTerminalRequest): Promise<CreateTerminalResponse> => {
@@ -249,6 +259,14 @@ export function createAcpTerminalHost(
     waitForExit,
     kill,
     release,
+    async end(terminalIds) {
+      const running = [...new Set(terminalIds)].flatMap((id) => {
+        const state = terminals.get(id);
+        return state === undefined || state.exitStatus !== null ? [] : [state];
+      });
+      await Promise.all(running.map(async (state) => { await stopTerminal(state); }));
+      return { signalled: running.length };
+    },
     async dispose() {
       const active = [...terminals.values()];
       terminals.clear();
