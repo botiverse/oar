@@ -485,13 +485,15 @@ bundled SDKs.
 [tests](../../tests/cursor/cursor-mcp-servers.test.ts)). An empty, repeated or
 reserved name is refused before the SDK is loaded, as on every runtime. The
 session opens under the shared
-[known-credential rule](../spec/record-stream.md#the-rules): entry `env`
-values under credential names (`*_TOKEN`, `*_KEY`, ...), `Authorization`
-and other credential-named header values (and the token after an
-authorization scheme), and URL passwords, at least eight characters long,
-are replaced with `[redacted]` in records, errors and control answers. Other
-`env` and header values stay readable there. The SDK itself gets every value
-unchanged.
+[known-credential rule](../spec/record-stream.md#the-rules): the values that
+rule recognizes as known credentials are replaced with `[redacted]` in
+records, errors and control answers. Its bounds hold here too: an `env` value
+counts only under a credential name (`*_TOKEN`, `*_KEY`, ...) and a header
+value only under `Authorization` or a credential-named header (plus the token
+after an authorization scheme); a value shorter than eight characters, or
+shaped like a path (`/...`, `~/...`, a Windows drive), is not one, even under
+`API_KEY`; URL passwords count under any name. Every other value stays
+readable there. The SDK itself gets every value unchanged.
 
 **Live evidence** ([probe](../../experiments/cursor-mcp.ts); SDK 1.3.1,
 Linux x64, `gpt-5.4-nano`, an existing login, 2026-11-11): one stdio and one
