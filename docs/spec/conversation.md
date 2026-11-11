@@ -27,7 +27,10 @@ prompt) and a `steer` refused because the turn just ended (`no_active_turn`,
 or the runtime's own refusal once the status shows that turn is over, as
 codex answers a steer that reaches it after the turn) are retried as the new
 state requires. A steer refused `unsupported` (images on a cursor steer) is
-queued instead. `steerOrQueue` stays as the running half
+queued instead. A final refusal is `landed: "rejected"` with the last
+control's `code`, `reason` and, for a classified `runtime_refused`, its
+`failure` (as on `ControlOutcome`); `steerOrQueue`'s rejection carries the
+same. `steerOrQueue` stays as the running half
 of `now`; unlike it, `deliver` never queues into an idle session, where some
 runtimes would hold the input without starting a turn. The host decides
 priority, persistence and when an interruption is worth its cost. OAR supplies

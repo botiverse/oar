@@ -2,6 +2,7 @@ import type { GoalSetOptions, GoalSnapshot } from "./goal.js";
 import type { InputImage, InputOrigin, InputReference, UserMessage } from "./input.js";
 import type { PlacementRequest, SessionCleanup, SessionPlacement, SessionRelease } from "./placement.js";
 import type { ToolCallProgress, ToolOutputPart } from "./tool-output.js";
+import type { ContextUsage } from "./context-usage.js";
 import type { FailureClass } from "./failure.js";
 import type { TaskEventBody } from "./tasks.js";
 import type { TurnOutcome } from "./turn-outcome.js";
@@ -273,8 +274,10 @@ export type RejectionCode =
   | "session_released"
   /** The stream already holds this session's dispose request. */
   | "disposed"
-  /** The runtime answered no (its typed refusal, an RPC error); `reason` is its message. */
+  /** The runtime answered no (its typed refusal, an RPC error); `reason` is its message, and `failure` its class where the runtime's code says one. */
   | "runtime_refused"
+  /** The runtime no longer has this session (codex: `thread not found`): no later control on this Session can succeed. Its native conversation may still be resumable: open a new Session with `resume` set to its id. */
+  | "session_not_found"
   /** The adapter could not deliver (a thrown transport error); `reason` is the exception message. */
   | "error";
 
@@ -286,15 +289,10 @@ export type ResponseBody =
   /** The adapter (or runtime) took the action over. For prompt/steer/queue this is ONE deliberately weak promise: the caller's delivery obligation ENDS; do not resubmit, unless the stream later reports the input dropped (`input_dropped`, `ConversationInput.state` "dropped"), which hands it back. No guarantee it lands in the current turn, that the model attends to it, or that any business outcome happened; where input landed is the event stream's job. For withdraw it is a strong one: the held input was removed before it was sent, and the caller owns it again. `native` is the runtime's own acknowledgement when it gave one. `queued: "adapter"` means OAR still holds this queue input; actual dispatch is a new prompt carrying its input identity, never a second response. */
   | { readonly kind: "accepted"; readonly native?: unknown; readonly queued?: "adapter" }
   /** Not taken over; the caller still owns the input. `code` says why in one word; `reason` is the prose. */
-  | { readonly kind: "rejected"; readonly code: RejectionCode; readonly reason: string; readonly native?: unknown }
+  | { readonly kind: "rejected"; readonly code: RejectionCode; readonly reason: string; readonly native?: unknown; readonly failure?: FailureClass }
   /** oar's reply to a `toApp` request (e.g. the automatic permission grant), verbatim. */
   | { readonly kind: "answered"; readonly native: unknown }
   /** The runtime process exited, an outcome the runtime cannot say itself. Answers a `dispose` request when oar caused it; also recorded for an unrequested exit, pointing at no request. Optional reason explains OAR termination or unverified descendant cleanup. */
   | { readonly kind: "exited"; readonly code: number | null; readonly reason?: string };
-/** Current context fullness, borrowed from pi's shape because it already models the hard case: `tokens` is null when unknown (right after compaction, before the next model response), and `percent` follows. */
-export interface ContextUsage {
-  readonly tokens: number | null;
-  readonly contextWindow: number | null;
-  readonly percent: number | null;
-}
+export type { ContextUsage } from "./context-usage.js";
 export type { Cursor, SessionEdge, SessionGraph, SessionNode } from "./graph.js";

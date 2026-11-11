@@ -1001,7 +1001,12 @@ pi's registry (`model_unavailable`). Pi's project-installation policy refusal
 uses `failure: "invalid_request"` and the stable OAR code
 `project_packages_blocked`; it never means the resumed session or cwd is
 missing. Its reason explains how to enable native offline mode or explicitly
-allow installation. Other open failures keep their errors
+allow installation. Codex adds two codes, both `invalid_request`
+([refusals](../runtimes/codex.md#refusals)): `runtime_outdated` when the
+selected codex is too old for what the open sends (its message names the
+version and the first release that has it), and `runtime_config_invalid`
+when codex cannot read its `config.toml` (its message keeps codex's file,
+line and column). Other open failures keep their errors
 (kimi's unknown model is a -32603 that only its words explain).
 `failureAdvice(failure)` (observe) turns any class into one retry policy.
 

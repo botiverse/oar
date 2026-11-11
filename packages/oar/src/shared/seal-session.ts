@@ -31,7 +31,8 @@ export function controlOutcomeOf(result: ControlResult): ControlOutcome {
   const { request, response } = result;
   const at = { request, response, seq: request.seq, requestId: request.id };
   if (response.body.kind === "rejected") {
-    return { kind: "rejected", code: response.body.code, reason: response.body.reason, ...at };
+    const { failure } = response.body;
+    return { kind: "rejected", code: response.body.code, reason: response.body.reason, ...(failure === undefined ? {} : { failure }), ...at };
   }
   if (response.body.kind === "exited" || response.body.kind === "released") {
     return { kind: "rejected", code: response.body.kind === "released" ? "session_released" : "runtime_exited", reason: response.body.kind === "released" ? "session released; native work may continue" : "runtime exited", ...at };
@@ -90,7 +91,7 @@ export function sealSession(adapterSession: AdapterSession): Session {
     const queued = await queue(input, identified);
     return queued.kind === "accepted"
       ? { landed: "queued", result: queued }
-      : { landed: "rejected", code: queued.code, reason: queued.reason, result: queued };
+      : { landed: "rejected", code: queued.code, reason: queued.reason, ...(queued.failure === undefined ? {} : { failure: queued.failure }), result: queued };
   };
   const adapterGoal = adapterSession.goal;
   const sealed: Session = {

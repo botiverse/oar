@@ -1,15 +1,7 @@
 /* oxlint-disable import/max-dependencies -- Session composes the independently owned control and observation contracts. */
 import type { AdapterGoalControl, GoalControl } from "./goal.js";
 import type { CompactionOptions, CompactionOutcome } from "./compaction.js";
-import type {
-  ContextUsage,
-  Cursor,
-  Event,
-  RawEvent,
-  RejectionCode,
-  SessionGraph,
-  TokenTotals,
-} from "./records.js";
+import type { ContextUsage, Cursor, Event, RawEvent, RejectionCode, SessionGraph, TokenTotals } from "./records.js";
 import type { ControlOutcome, ControlResult } from "./control.js";
 import type { DeliverOptions, DeliverResult } from "./deliver.js";
 import type { InputImage, InputOrigin } from "./input.js";
@@ -17,6 +9,7 @@ import type { SessionOpenContext, SessionPlacement } from "./placement.js";
 import type { AgentStatus } from "./status.js";
 import type { AvailableInstallation } from "./installation.js";
 import type { ContextBreakdown } from "./context-breakdown.js";
+import type { FailureClass } from "./failure.js";
 import type { SessionOptions } from "./session-options.js";
 
 export type { GoalControl, AdapterGoalControl, GoalSnapshot, GoalStatus, KnownGoalStatus, GoalSetOptions } from "./goal.js";
@@ -296,5 +289,5 @@ export interface SessionUsage {
 export type SteerOrQueueResult =
   | { readonly landed: "steered"; readonly result: ControlOutcome }
   | { readonly landed: "queued"; readonly result: ControlOutcome }
-  /** `result` is the last attempt, the queue; `code` / `reason` are its. */
-  | { readonly landed: "rejected"; readonly code: RejectionCode; readonly reason: string; readonly result: ControlOutcome };
+  /** `result` is the last attempt, the queue; `code` / `reason` / `failure` are its. */
+  | { readonly landed: "rejected"; readonly code: RejectionCode; readonly reason: string; readonly failure?: FailureClass; readonly result: ControlOutcome };

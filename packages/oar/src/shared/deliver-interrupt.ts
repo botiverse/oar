@@ -163,7 +163,8 @@ class InterruptBatch {
   private hasEnded(): boolean { return this.nativeEnd; }
 
   private failure(code: RejectionCode, reason: string, ids: readonly string[], result?: ControlOutcome): Extract<BatchResult, { landed: "rejected" }> {
-    return { landed: "rejected", code, reason, undeliveredInputIds: ids, ...(result === undefined ? {} : { result }) };
+    const failure = result?.kind === "rejected" ? result.failure : undefined;
+    return { landed: "rejected", code, reason, ...(failure === undefined ? {} : { failure }), undeliveredInputIds: ids, ...(result === undefined ? {} : { result }) };
   }
 
   private finish(result: BatchResult): void {

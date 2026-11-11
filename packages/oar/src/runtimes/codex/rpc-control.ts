@@ -12,6 +12,7 @@ import type {
 import { asRecord, type JsonRecord } from "../../shared/json.js";
 import type { SessionKernel } from "../../shared/session-kernel.js";
 import type { AppServerClient } from "./app-server-client.js";
+import { codexOpenFailure } from "./refusal.js";
 
 export interface RpcControlPlan {
   readonly body: RequestBody;
@@ -123,20 +124,37 @@ function resumeError(method: string, resumeId: string | undefined, cause: JsonRe
 export async function openThread(
   method: "thread/start" | "thread/resume",
   send: () => Promise<JsonRecord>,
-  serviceTier?: string,
-  resumeId?: string,
+  context: { readonly version: string | null; readonly serviceTier?: string | undefined; readonly resumeId?: string | undefined },
 ): Promise<JsonRecord> {
+  const { serviceTier, resumeId } = context;
   try {
     return await send();
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    const typed = resumeError(method, resumeId, asRecord(error instanceof Error ? error.cause : undefined), message);
+    const cause = asRecord(error instanceof Error ? error.cause : undefined);
+    const typed = resumeError(method, resumeId, cause, message) ?? codexOpenFailure(method, cause?.method === method ? asRecord(cause.native) : null, context);
     if (typed !== null) {
       throw typed;
     }
     const detail = serviceTier === undefined ? message : `serviceTier ${serviceTier} could not be confirmed (actual unreported): ${message}`;
     // oxlint-disable-next-line eslint/preserve-caught-error -- Keep the native diagnostic directly in cause, without another Error layer.
     throw new Error(`codex ${method} failed: ${detail}`, { cause: error instanceof Error ? error.cause ?? error : error });
+  }
+}
+
+/**
+ * A resume's `thread/settings/update {effort}`: null when codex took it, its
+ * error otherwise. A codex that does not know the method (before 0.133.0)
+ * fails the open as `runtime_outdated`.
+ */
+export async function updateThreadEffort(client: AppServerClient, threadId: string, effort: string, version: string | null): Promise<{ readonly error: string } | null> {
+  try {
+    await client.request("thread/settings/update", { threadId, effort });
+    return null;
+  } catch (error) {
+    const outdated = codexOpenFailure("thread/settings/update", asRecord(asRecord(error instanceof Error ? error.cause : undefined)?.native), { version });
+    if (outdated !== null) { throw outdated; }
+    return { error: error instanceof Error ? error.message : String(error) };
   }
 }
 

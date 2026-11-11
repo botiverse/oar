@@ -1,4 +1,5 @@
 import type { ControlOutcome, InputOptions } from "./session.js";
+import type { FailureClass } from "./failure.js";
 import type { RejectionCode } from "./records.js";
 
 /**
@@ -40,5 +41,5 @@ export type DeliverOptions = InputOptions & (
  */
 export type DeliverResult =
   | { readonly landed: "prompted" | "steered" | "queued"; readonly inputId: string; readonly result: ControlOutcome; readonly mergedInputIds?: readonly string[]; readonly undeliveredInputIds?: readonly string[] }
-  /** `result` is the last refused control; absent when the session changed state on every attempt and none was made to stick. */
-  | { readonly landed: "rejected"; readonly inputId: string; readonly code: RejectionCode; readonly reason: string; readonly result?: ControlOutcome; readonly undeliveredInputIds?: readonly string[] };
+  /** `result` is the last refused control; absent when the session changed state on every attempt and none was made to stick. `failure` is that control's (`ControlOutcome`). */
+  | { readonly landed: "rejected"; readonly inputId: string; readonly code: RejectionCode; readonly reason: string; readonly failure?: FailureClass; readonly result?: ControlOutcome; readonly undeliveredInputIds?: readonly string[] };
