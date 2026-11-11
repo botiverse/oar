@@ -86,6 +86,7 @@ export class OpencodeServer {
   #running: Promise<Running> | undefined;
   #users = 0;
   #idle: NodeJS.Timeout | undefined;
+  readonly #stopping = new Set<Promise<void>>();
 
   constructor(options: OpencodeServerOptions) {
     this.#options = options;
@@ -116,9 +117,16 @@ export class OpencodeServer {
     clearTimeout(this.#idle);
     const running = this.#running;
     this.#running = undefined;
-    if (running === undefined) {
-      return;
+    if (running !== undefined) {
+      const stopping = OpencodeServer.#stop(running);
+      this.#stopping.add(stopping);
+      void (async (): Promise<void> => { await stopping; this.#stopping.delete(stopping); })();
     }
+    // Also a stop already under way (the idle period's): close() settles once no server it started runs.
+    await Promise.all(this.#stopping);
+  }
+
+  static async #stop(running: Promise<Running>): Promise<void> {
     try {
       const settled = await running;
       settled.process.stop();

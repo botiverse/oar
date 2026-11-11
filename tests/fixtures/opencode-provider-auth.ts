@@ -96,9 +96,13 @@ export async function rejectionOf(promise: Promise<unknown>): Promise<unknown> {
 
 const directories: string[] = [];
 
-/** Remove every fixture directory made since the last call (an afterEach hook). */
+/**
+ * Remove every fixture directory made since the last call (an afterEach
+ * hook). Retried: on Windows a process that is still exiting (the host-death
+ * test's watchdog, after its server is gone) keeps its working directory busy.
+ */
 export async function removeOpencodeAuthFixtures(): Promise<void> {
-  await Promise.all(directories.splice(0).map(async (dir) => { await rm(dir, { recursive: true, force: true }); }));
+  await Promise.all(directories.splice(0).map(async (dir) => { await rm(dir, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 }); }));
 }
 
 export interface OpencodeAuthFixture {

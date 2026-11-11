@@ -427,8 +427,9 @@ and `/api/integration` are non-empty: on 2.2.7 the registry fills in stages
 for about a second, and the plugin list appeared only once it was complete.
 The facade reads the registry once at creation; `loginProviders()` serves
 it. The server is shared by concurrent operations and stopped `idleMs` after
-the last one ends, or at once by `close()`; the next operation starts a new
-one. Its output is never forwarded. A 401 from the server (2.2.7:
+the last one ends, or at once by `close()`, which settles only once the
+server has exited, an idle stop already under way included; the next
+operation starts a new one. Its output is never forwarded. A 401 from the server (2.2.7:
 `UnauthorizedError`, "Authentication required") rejects at once with kind
 `authentication_failed`, never as a timeout.
 
