@@ -61,8 +61,18 @@ export const cursorRefusedSessionOptions: RefusedSessionOptions = {
   serviceTier: "cursor exposes no verified per-session service-tier setting and readback",
   systemPrompt: "Cursor's SDK runs no system prompt override for a local agent",
   appendSystemPrompt: "Cursor's SDK runs no system prompt override for a local agent",
-  env: "Cursor runs in this process and its SDK takes no environment for the agent's tools; SessionOptions.env is unsupported",
+  env: "Cursor runs in this process and its SDK takes no environment for the agent's tools; SessionOptions.env is unsupported (the subprocess execution mode takes it)",
   launchArgs: "Cursor runs in this process through its SDK; there is no runtime command line to add arguments to",
+};
+
+/**
+ * The subprocess execution mode's refusals: the same, except `env`, which
+ * becomes the child's environment (docs/runtimes/cursor.md#execution-modes).
+ */
+export const cursorSubprocessRefusedSessionOptions: RefusedSessionOptions = {
+  ...Object.fromEntries(Object.entries(cursorRefusedSessionOptions).filter(([key]) => key !== "env")),
+  endTurnProcessesOnAbort: "Cursor's SDK starts its tools inside the session's own child process, and OAR reads no per-turn process tree there; only dispose ends that child's tree",
+  launchArgs: "Cursor runs through its SDK in a Node child process OAR starts; there is no Cursor command line to add arguments to",
 };
 
 /**

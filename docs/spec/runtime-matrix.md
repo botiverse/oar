@@ -150,7 +150,8 @@ child process ([report](../../experiments/runtime-resources-2026-10-28.md)):
 | grok 1.0.70 (ACP) | keeps running: native cancel and close leave the terminals grok created through the host | `dispose()` releases every terminal OAR hosted for the session, or [`endTurnProcessesOnAbort`](#ending-a-turns-processes-on-abort) stops the aborted turn's |
 | kimi 2.3.3, opencode 1.19.5 and 2.2.0, antigravity 1.4.3 (ACP) | stopped within 2 s of the cancel | |
 | claude, dsh, qwen, qoder, pi (RPC) | not measured | `dispose()`: OAR owns the process |
-| pi (in process), cursor | not measured | they run in the host process: `dispose()` ends the SDK session; whether its commands stop is not measured |
+| pi (in process), cursor (in process) | not measured | they run in the host process: `dispose()` ends the SDK session; whether its commands stop is not measured |
+| cursor (subprocess mode) | not measured | `dispose()` stops the session's child, its process group and the descendants found by parent pid (POSIX), plus on Linux every process that kept the child's environment marker, such as a finished command's background job (tested on Linux); a process that cleared the marker, or on macOS one reparented away from the child, is not reached; Windows: `taskkill /T` on its tree, not run ([execution modes](../runtimes/cursor.md#execution-modes)) |
 | pi-durable | not measured | the host owns the harness: `dispose()` ends observation only |
 
 A host that must know the command is gone ends a session whose process OAR
@@ -268,8 +269,11 @@ while selecting the session's provider endpoint.
 Claude, codex, dsh, grok, kimi, opencode, antigravity, codebuddy, qwen and qoder
 apply the overlay to their runtime process and its tool children; ACP client-hosted terminals receive it
 too. OpenCode's prompt preparation queries use the same environment. Pi
-applies it to its Bash tool's children, not its in-process provider. Cursor and Pi Durable
-refuse any non-empty `env`, including a removal-only map. Native tool shells
+applies it to its Bash tool's children, not its in-process provider. Cursor in
+process and Pi Durable refuse any non-empty `env`, including a removal-only map.
+Cursor's subprocess mode applies it to the session's Node child, which runs the
+SDK and its tools, over the host's environment or, with `envBase: "clean"`,
+over nothing ([child environment](../runtimes/cursor.md#child-environment)). Native tool shells
 or runtime configuration can subsequently set their own variables.
 
 An MCP server's own `env` remains a map of strings; `null` there is refused
@@ -403,7 +407,7 @@ again on resume.
 | qwen | after OAR's own flags, before `--include-directories` and `--exclude-tools` |
 | dsh | refused: OAR owns the launcher arguments and bridge overlay |
 | qoder | after OAR's own flags, before `--mcp-config`, `--add-dir` and `--disallowed-tools`; from 1.1.81 the same list is the daemon's `worker_args` |
-| pi, cursor | refused: they run in the host process through their SDKs, with no command line |
+| pi, cursor | refused: they run in the host process through their SDKs, with no command line; cursor's subprocess mode runs the SDK in a Node child of OAR's, with no Cursor command line either |
 
 For Claude, `--permission-mode` (`default`, `dontAsk`, `acceptEdits`, `plan`)
 replaces OAR's default bypass and adds `--permission-prompts none`. OAR
@@ -555,7 +559,7 @@ in [user configuration](#user-configuration).
 
 | runtime | refuses | why |
 |---|---|---|
-| cursor | `systemPrompt`, `appendSystemPrompt`, `env`, `launchArgs`, `serviceTier`, `outputSchema`, `name` | the SDK's local agent fails a run given a system prompt and has no append; it runs in the host process with no environment or command line of its own |
+| cursor | `systemPrompt`, `appendSystemPrompt`, `env` (in process only), `launchArgs`, `serviceTier`, `outputSchema`, `name` | the SDK's local agent fails a run given a system prompt and has no append; in process it runs in the host process with no environment or command line of its own; in subprocess mode `env` is its child's ([execution modes](../runtimes/cursor.md#execution-modes)) |
 | codebuddy | `appendSystemPrompt`, `serviceTier`, `additionalDirectories`, `outputSchema`, `name`, `userConfiguration: "exclude"` | no verified private prompt-append input; replacement uses a private file ([mapping](../runtimes/codebuddy.md)) |
 | kimi | `systemPrompt`, `appendSystemPrompt`, `disallowedTools`, `serviceTier`, `outputSchema`, `name`, `userConfiguration: "exclude"` | `kimi acp` has no per-session prompt input; its launcher does not forward the CLI's agent-profile flags, and has no session tool-denial overlay ([audit](../runtimes/kimi.md#models-instructions-and-context)) |
 | antigravity | `disallowedTools`, `systemPrompt`, `serviceTier`, `additionalDirectories`, `outputSchema`, `name`, `mcpServerCredentials`, `userConfiguration: "exclude"` | the CLI adapter has no verified system prompt replacement channel (append is supported) ([audit](../runtimes/antigravity.md#models-instructions-and-context)); it would store an entry's `env` and `headers` values in plain text in its conversation database ([antigravity](../runtimes/antigravity.md#session-mcp-servers)) |

@@ -14,8 +14,8 @@ import { withdrawControl } from "../../shared/held-input.js";
 import { withInputImages, type LoadedImage } from "../../shared/input-images.js";
 import { withSessionCredentials } from "../../shared/session-credentials.js";
 import { checkMcpServerNames } from "../../shared/mcp-servers.js";
-import { refuseSessionOptions } from "../../shared/session-options.js";
-import { cursorRefusedSessionOptions, openCursorAgent } from "./model.js";
+import { cursorSdkAccess, type CursorSdkSource } from "./access.js";
+import { cursorSessionEnd, openCursorSession } from "./session-process.js";
 import {
   cursorOpenedFrame,
   foldCursorDelta,
@@ -24,7 +24,7 @@ import {
   type CursorProjectionState,
 } from "./projection.js";
 import { giveUp, newLaunch, observeRun, steerRun, stopOrphan, type ActiveRun, type Launch } from "./run.js";
-import type { CursorDeltaListener, CursorRun, CursorSdk } from "./sdk.js";
+import type { CursorDeltaListener, CursorRun } from "./sdk.js";
 /**
  * One local SDK agent, one active run. Summary runs share the same lifecycle
  * and held input queue as ordinary runs. See docs/runtimes/cursor.md.
@@ -34,16 +34,15 @@ const message = (error: unknown): string => (error instanceof Error ? error.mess
 const DISPOSE_SETTLE_MS = 5000;
 /** How long a `send` may take to return its run (a cold start took about 4 s in the probes). */
 const SEND_TIMEOUT_MS = 60_000;
-export function cursorSessionWith(load: () => Promise<CursorSdk>): StartSession {
+export function cursorSessionWith(source: CursorSdkSource): StartSession {
+  const access = cursorSdkAccess(source);
   // MCP entries can carry credentials: records and errors go through the session's redactor.
   return withSessionCredentials(async (installation, options, credentials) => {
     checkMcpServerNames(options.mcpServers ?? []);
     if (installation.via !== "bundled") {
       throw new Error("The cursor session adapter needs the bundled @cursor/sdk installation");
     }
-    refuseSessionOptions(cursorRefusedSessionOptions, options);
-    const sdk = await load();
-    const agent = await openCursorAgent(sdk, options);
+    const { lease, agent } = await openCursorSession(access, options);
     const kernel = credentials.kernel(agent.agentId);
     let projection: CursorProjectionState = initialCursorProjection;
     // A turn is running from an accepted prompt (or a drained queue input)
@@ -59,6 +58,8 @@ export function cursorSessionWith(load: () => Promise<CursorSdk>): StartSession 
     let disposeRequest: RequestRecord | null = null;
     // Adapter-held queue, drained one input per run end; withdrawable by inputId until then.
     const held: { readonly input: string; readonly inputId: string | undefined; readonly images: readonly LoadedImage[] }[] = [];
+    // Subprocess mode: a child that exits drops the held inputs, and its exit is recorded once the turn ended.
+    const end = cursorSessionEnd(kernel, lease, async () => { held.splice(0); await active?.ended; });
     const record = (frame: CursorFrame): void => {
       // A failed SDK wait is lost observation, not the native end of a summary run.
       const foreignSummary = frame.type === "cursor/stream/summary" && asRecord(frame.native)?.agent_id !== kernel.sessionId;
@@ -272,6 +273,7 @@ export function cursorSessionWith(load: () => Promise<CursorSdk>): StartSession 
         held.splice(0);
         const request = kernel.request("toRuntime", { kind: "dispose" });
         disposeRequest = request;
+        end.disposing(request);
         if (launching !== null) {
           // A send still on its way: its run, if it comes, is stopped, not adopted.
           giveUp(launching, "the session was disposed before cursor started the run");
@@ -289,11 +291,9 @@ export function cursorSessionWith(load: () => Promise<CursorSdk>): StartSession 
           })]);
         }
         agent.close();
-        // The agent runs in this process: there is no process exit to
-        // observe, so the dispose is answered as taken over.
-        kernel.respond(request.id, { kind: "accepted" });
+        await end.disposed();
       },
     });
     return session;
-  }, "in_process");
+  }, access.execution === "subprocess" ? "isolated" : "in_process");
 }

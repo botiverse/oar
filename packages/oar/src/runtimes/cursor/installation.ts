@@ -14,12 +14,13 @@ const PLATFORMS: ReadonlySet<string> = new Set(["darwin-arm64", "darwin-x64", "l
  * needs its native companion package, which exists only for the platforms in
  * `PLATFORMS`.
  */
-export function cursorInstallationFor(platform: string, arch: string): InstallationProbe {
+export function cursorInstallationFor(platform: string, arch: string, execution: "in_process" | "subprocess" = "in_process"): InstallationProbe {
   const snapshot: InstallationSnapshot = PLATFORMS.has(`${platform}-${arch}`)
     ? { kind: "available", via: "bundled" }
     : { kind: "unsupported", reason: `@cursor/sdk has no native package for ${platform}-${arch}` };
   return async (options = {}) => {
-    refuseReaderEnvironment(options.env, "Cursor installation probes the host SDK");
+    // In subprocess mode a session's environment is the child's; this probe reads none either way.
+    if (execution === "in_process") { refuseReaderEnvironment(options.env, "Cursor installation probes the host SDK"); }
     await Promise.resolve();
     return snapshot;
   };

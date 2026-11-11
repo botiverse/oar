@@ -1,9 +1,9 @@
 import { UnsupportedOptionError } from "../../contracts/errors.js";
-import type { RuntimeLogout } from "../../contracts/login.js";
+import type { LogoutResult, RuntimeLogout } from "../../contracts/login.js";
 import { errorMessage, LoginSecrets } from "../../shared/login.js";
 import { confirmedLogout, logoutTimedOut, type NativeLogout } from "../../shared/logout.js";
 import { readCursorAuthStatus } from "./auth-status.js";
-import { loadedSdk, type CursorSdk } from "./sdk.js";
+import { callRedaction, cursorSdkAccess, IN_PROCESS_ENV, withLease, type CursorSdkSource } from "./access.js";
 
 /*
  * `Cursor.auth.logout(options?: { store? })` (@cursor/sdk 1.0.36, read in
@@ -38,27 +38,28 @@ async function sdkLogout(logout: () => Promise<void>, timeoutMs: number): Promis
   }
 }
 
-/** Signs cursor out with the SDK's own `Cursor.auth.logout`; `Cursor.auth.status` decides. */
-export function cursorLogoutWith(load: () => Promise<CursorSdk>): RuntimeLogout {
+/** Signs cursor out with the SDK's own `Cursor.auth.logout`; `Cursor.auth.status` decides. In subprocess mode both run in a child with `env`. */
+export function cursorLogoutWith(source: CursorSdkSource): RuntimeLogout {
+  const access = cursorSdkAccess(source);
   return async (installation, options = {}) => {
-    if (options.env !== undefined && Object.keys(options.env).length > 0) {
-      throw new UnsupportedOptionError("env", "Cursor authentication runs in the host process and cannot isolate env; configure the host environment before loading the SDK.");
+    if (access.execution === "in_process" && options.env !== undefined && Object.keys(options.env).length > 0) {
+      throw new UnsupportedOptionError("env", IN_PROCESS_ENV);
     }
     if (installation.via !== "bundled") {
       return { kind: "unsupported", reason: "unsupported_installation", detail: "cursor signs out through the bundled @cursor/sdk" };
     }
-    const sdk = await loadedSdk(load);
-    if ("failed" in sdk) {
-      return { kind: "failed", reason: "process_failed", detail: new LoginSecrets().line(sdk.failed) };
-    }
-    const { auth } = sdk.Cursor;
-    if (auth?.logout === undefined) {
-      return { kind: "unsupported", reason: "version_unsupported", detail: "@cursor/sdk 1.3.1 is required; this one has no Cursor.auth.logout" };
-    }
-    // With no store: the SDK's own default, the file `status()` reads.
-    const native = await sdkLogout(async () => {
-      await auth.logout?.();
-    }, options.timeoutMs ?? LOGOUT_TIMEOUT_MS);
-    return confirmedLogout(native, await readCursorAuthStatus(auth), LOGOUT_CALL);
+    const result = await withLease(access, options.env, async (sdk): Promise<LogoutResult> => {
+      const { auth } = sdk.Cursor;
+      if (auth?.logout === undefined) {
+        return { kind: "unsupported", reason: "version_unsupported", detail: "@cursor/sdk 1.3.1 is required; this one has no Cursor.auth.logout" };
+      }
+      // With no store: the SDK's own default, the file `status()` reads.
+      const native = await sdkLogout(async () => {
+        await auth.logout?.();
+      }, options.timeoutMs ?? LOGOUT_TIMEOUT_MS);
+      return confirmedLogout(native, await readCursorAuthStatus(auth), LOGOUT_CALL);
+    });
+    // Details can carry the SDK's or the child's words: redacted with the call's credentials too.
+    return callRedaction(options.env)("failed" in result ? { kind: "failed", reason: "process_failed", detail: new LoginSecrets().line(result.failed) } : result);
   };
 }

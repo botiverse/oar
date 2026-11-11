@@ -17,9 +17,10 @@ that pi's provider login already uses.
 - **The runtime's own login, its own store.** oar drives each runtime's login
   command, protocol or SDK call and never handles tokens: they land where the
   runtime keeps them (`~/.claude`, `$CODEX_HOME`, the macOS Keychain,
-  `~/.cursor/sdk/auth.json`). Cursor's SDK runs in the host process and saves
-  through a store oar passes, which hands what it saves to the SDK's own file
-  store unread.
+  `~/.cursor/sdk/auth.json`). Cursor's SDK saves through a store oar passes,
+  which hands what it saves to the SDK's own file store unread; in Cursor's
+  subprocess mode that store is in the login's child, and only the decision
+  to save crosses to the host.
 - **No secret leaves a login.** Events carry only what a person opens or
   types: a sign-in URL, a device code and its URL, guidance. A code the
   person pastes back is written to the runtime's stdin and nowhere else. A
@@ -167,9 +168,12 @@ OAR-owned overrides still win, including browser suppression and Claude's
 `CLAUDECODE` removal.
 
 Claude, Codex, CodeBuddy, Kimi and Qoder apply the overlay to their authentication processes.
-Cursor's SDK runs in the host process: its three authentication methods reject
-any nonempty `env` with `UnsupportedOptionError` (`option: "env"`) before
-loading the SDK, as its sessions do. An empty map is a no-op. A runtime whose
+Cursor's SDK runs in the host process by default: its three authentication
+methods then reject any nonempty `env` with `UnsupportedOptionError`
+(`option: "env"`) before loading the SDK, as its sessions do. An empty map is
+a no-op. In Cursor's subprocess mode each method runs the SDK in a one-shot
+Node child whose environment is the overlay over the runtime's `envBase`
+([execution modes](../runtimes/cursor.md#execution-modes)). A runtime whose
 sessions refuse `env` also refuses it for login, logout and authentication
 status.
 

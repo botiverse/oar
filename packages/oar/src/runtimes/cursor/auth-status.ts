@@ -4,7 +4,9 @@ import type { AuthStatus, AuthStatusReader, LoginAccount } from "../../contracts
 import { utcInstantFromDate } from "../../shared/instant.js";
 import { asNumber, asRecord } from "../../shared/json.js";
 import { errorMessage, LoginSecrets } from "../../shared/login.js";
-import { loadedSdk, type CursorAuth, type CursorSdk } from "./sdk.js";
+import { environmentValue } from "../../shared/environment.js";
+import { callRedaction, cursorSdkAccess, IN_PROCESS_ENV, withLease, type CursorSdkSource } from "./access.js";
+import type { CursorAuth } from "./sdk.js";
 
 const STATUS_TIMEOUT_MS = 20_000;
 const STATUS_SOURCE = "Cursor.auth.status";
@@ -58,32 +60,33 @@ export async function readCursorAuthStatus(auth: CursorAuth, timeoutMs = STATUS_
   }
 }
 
-/** Read only: asks the SDK's `Cursor.auth.status`, never a login flow, and returns no key. */
-export function cursorAuthStatusWith(load: () => Promise<CursorSdk>): AuthStatusReader {
+/** Read only: asks the SDK's `Cursor.auth.status`, never a login flow, and returns no key. In subprocess mode it asks in a child with `env`. */
+export function cursorAuthStatusWith(source: CursorSdkSource): AuthStatusReader {
+  const access = cursorSdkAccess(source);
   const reader: AuthStatusReader = async (installation, options = {}) => {
-    if (options.env !== undefined && Object.keys(options.env).length > 0) {
-      throw new UnsupportedOptionError("env", "Cursor authentication runs in the host process and cannot isolate env; configure the host environment before loading the SDK.");
+    if (access.execution === "in_process" && options.env !== undefined && Object.keys(options.env).length > 0) {
+      throw new UnsupportedOptionError("env", IN_PROCESS_ENV);
     }
     if (installation.via !== "bundled") {
       return { kind: "unknown", detail: "cursor's sign-in status needs the bundled @cursor/sdk" };
     }
-    if (process.env.CURSOR_API_KEY !== undefined) {
+    if (environmentValue(access.environment(options.env), "CURSOR_API_KEY") !== undefined) {
       return { kind: "unknown", configured: ["environment: CURSOR_API_KEY"], detail: "Sessions use CURSOR_API_KEY from the environment; Cursor.auth.status neither reads nor validates that key.", source: STATUS_SOURCE };
     }
     const result = await withQueryDeadline<AuthStatus>("Cursor auth status", options.timeoutMs ?? STATUS_TIMEOUT_MS, async (signal) => {
-      const sdk = await loadedSdk(load);
-      signal.throwIfAborted();
-      if ("failed" in sdk) {
-        return { kind: "unknown", detail: new LoginSecrets().line(sdk.failed) };
-      }
-      const { auth } = sdk.Cursor;
-      if (auth === undefined) {
-        return { kind: "unknown", detail: "this @cursor/sdk has no Cursor.auth; OAR needs 1.3.1" };
-      }
-      const status = await readCursorAuthStatus(auth, options.timeoutMs);
-      return status;
+      const status = await withLease(access, options.env, async (sdk): Promise<AuthStatus> => {
+        signal.throwIfAborted();
+        const { auth } = sdk.Cursor;
+        if (auth === undefined) {
+          return { kind: "unknown", detail: "this @cursor/sdk has no Cursor.auth; OAR needs 1.3.1" };
+        }
+        const read = await readCursorAuthStatus(auth, options.timeoutMs);
+        return read;
+      });
+      return "failed" in status ? { kind: "unknown", detail: new LoginSecrets().line(status.failed) } : status;
     }, { kind: "unknown", source: STATUS_SOURCE, detail: `Cursor.auth.status did not answer within ${String(options.timeoutMs ?? STATUS_TIMEOUT_MS)} ms` });
-    return result;
+    // Details can carry the SDK's or the child's words: redacted with the call's credentials too.
+    return callRedaction(options.env)(result);
   };
   // With no status options, the official SDK uses only its local file store.
   return Object.assign(reader, { localOnly: true as const });

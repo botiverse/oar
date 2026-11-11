@@ -1,6 +1,7 @@
 import { refuseReaderEnvironment } from "../../shared/refuse-environment.js";
 import type { ModelEntry, ModelLister } from "../../contracts/list-models.js";
 import { cursorEffortParameter } from "./model.js";
+import { callRedaction, cursorSdkAccess, type CursorSdkLease, type CursorSdkSource } from "./access.js";
 import type { CursorSdk, ModelListItem } from "./sdk.js";
 
 /**
@@ -34,31 +35,43 @@ function unauthenticated(error: unknown): string | null {
     : null;
 }
 
-export function cursorListModelsWith(load: () => Promise<CursorSdk>): ModelLister {
+async function listWithin(sdk: CursorSdk, timeoutMs: number): Promise<readonly ModelListItem[]> {
+  const deadline = Promise.withResolvers<never>();
+  const timer = setTimeout(() => {
+    deadline.reject(new Error(`Cursor.models.list() did not answer within ${String(timeoutMs)} ms`));
+  }, timeoutMs);
+  timer.unref();
+  try {
+    const models = await Promise.race([sdk.Cursor.models.list(), deadline.promise]);
+    return models;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** `Cursor.models.list()`; in subprocess mode in a child of its own with `env`, stopped when the call ends. */
+export function cursorListModelsWith(source: CursorSdkSource): ModelLister {
+  const access = cursorSdkAccess(source);
   return async (installation, options = {}) => {
-    refuseReaderEnvironment(options.env, "cursor model listing runs in the host process");
+    if (access.execution === "in_process") { refuseReaderEnvironment(options.env, "cursor model listing runs in the host process"); }
     if (installation.via !== "bundled") {
       return { kind: "unsupported", reason: "cursor model listing needs the bundled @cursor/sdk" };
     }
-    const timeoutMs = options.timeoutMs ?? 15_000;
+    // Its answer and errors (with their cause, and a child's stderr tail) go through the call's credentials.
+    const clean = callRedaction(options.env);
+    let lease: CursorSdkLease | null = null;
     try {
-      const sdk = await load();
-      const models = await Promise.race([
-        sdk.Cursor.models.list(),
-        new Promise<never>((_resolve, reject) => {
-          setTimeout(() => {
-            reject(new Error(`Cursor.models.list() did not answer within ${String(timeoutMs)} ms`));
-          }, timeoutMs).unref();
-        }),
-      ]);
+      lease = await access.lease(options.env);
+      const models = await listWithin(lease.sdk, options.timeoutMs ?? 15_000);
       return { kind: "ok", models: projectCursorModels(models) };
     } catch (error) {
       const detail = unauthenticated(error);
       if (detail !== null) {
-        return { kind: "unauthenticated", detail };
+        return clean({ kind: "unauthenticated", detail });
       }
-      throw new Error("Failed to list Cursor models", { cause: error });
+      throw clean(new Error("Failed to list Cursor models", { cause: error }));
+    } finally {
+      await lease?.release();
     }
   };
 }
-

@@ -46,9 +46,11 @@ never searches the working directory for a bare command. An unset PATH searches
 `/usr/bin:/bin` on POSIX; on Windows an unset or empty PATH finds no bare command.
 Explicit paths and supported installation fallbacks remain usable.
 
-CLI readers pass that environment to their native processes. Cursor, Pi
-Durable and community Morph direct readers reject nonempty overlays with
-`UnsupportedOptionError("env")`, matching their session refusals. `orient`
+CLI readers pass that environment to their native processes. Cursor (in its
+default in-process mode), Pi Durable and community Morph direct readers
+reject nonempty overlays with `UnsupportedOptionError("env")`, matching their
+session refusals; Cursor's subprocess mode passes the overlay to the
+one-shot child each reader starts. `orient`
 therefore calls those readers without an overlay and preserves their host facts.
 
 Pi's in-process readers accept the overlay with their session's meaning: the

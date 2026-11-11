@@ -2,15 +2,10 @@ import { UnsupportedOptionError } from "../../contracts/errors.js";
 import type { LoginResult, RuntimeLogin } from "../../contracts/login.js";
 import type { ProviderLoginInteraction } from "../../contracts/provider-auth.js";
 import { errorMessage, LoginSecrets, loginBounds, stoppedResult, type LoginStop } from "../../shared/login.js";
+import { environmentValue } from "../../shared/environment.js";
+import { callRedaction, cursorSdkAccess, IN_PROCESS_ENV, withLease, type CursorSdkSource } from "./access.js";
 import { readCursorAuthStatus } from "./auth-status.js";
-import {
-  loadedSdk,
-  type CursorAuth,
-  type CursorFileCredentialStore,
-  type CursorLoginOptions,
-  type CursorLoginStore,
-  type CursorSdk,
-} from "./sdk.js";
+import type { CursorAuth, CursorFileCredentialStore, CursorLoginOptions, CursorLoginStore } from "./sdk.js";
 
 /*
  * `Cursor.auth.login()` (@cursor/sdk 1.0.35, read in its bundle,
@@ -92,6 +87,7 @@ async function runCursorLogin(
   file: CursorFileCredentialStore,
   interaction: ProviderLoginInteraction,
   timeoutMs: number,
+  env: Readonly<NodeJS.ProcessEnv>,
 ): Promise<LoginResult> {
   const secrets = new LoginSecrets();
   const flow: FlowState = { phase: "waiting" };
@@ -130,7 +126,7 @@ async function runCursorLogin(
     try {
       interaction.onEvent({ kind: "auth_url", url, instructions: URL_INSTRUCTIONS });
       // The SDK prefers the variable over the stored login; its value is never read.
-      if (process.env.CURSOR_API_KEY !== undefined) {
+      if (environmentValue(env, "CURSOR_API_KEY") !== undefined) {
         interaction.onEvent({ kind: "info", message: ENV_KEY_NOTE });
       }
     } catch (error) {
@@ -171,11 +167,17 @@ async function runCursorLogin(
   }
 }
 
-/** Signs cursor in with the SDK's own `Cursor.auth.login`, relaying its URL; the key goes to the SDK's store only. */
-export function cursorLoginWith(load: () => Promise<CursorSdk>): RuntimeLogin {
+/**
+ * Signs cursor in with the SDK's own `Cursor.auth.login`, relaying its URL;
+ * the key goes to the SDK's store only. In subprocess mode the login runs in
+ * a child of its own with `env` over the host's environment, and the key
+ * never leaves that child (subprocess/child-script.ts).
+ */
+export function cursorLoginWith(source: CursorSdkSource): RuntimeLogin {
+  const access = cursorSdkAccess(source);
   return async (installation, interaction, options = {}) => {
-    if (options.env !== undefined && Object.keys(options.env).length > 0) {
-      throw new UnsupportedOptionError("env", "Cursor authentication runs in the host process and cannot isolate env; configure the host environment before loading the SDK.");
+    if (access.execution === "in_process" && options.env !== undefined && Object.keys(options.env).length > 0) {
+      throw new UnsupportedOptionError("env", IN_PROCESS_ENV);
     }
     if (installation.via !== "bundled") {
       return { kind: "unsupported", reason: "unsupported_installation", detail: "cursor signs in through the bundled @cursor/sdk" };
@@ -184,20 +186,20 @@ export function cursorLoginWith(load: () => Promise<CursorSdk>): RuntimeLogin {
     if (aborted()) {
       return { kind: "cancelled" };
     }
-    const sdk = await loadedSdk(load);
-    if ("failed" in sdk) {
-      return { kind: "failed", reason: "process_failed", detail: new LoginSecrets().line(sdk.failed) };
-    }
-    const { auth } = sdk.Cursor;
-    const Store = sdk.FileCredentialStore;
-    if (auth === undefined || Store === undefined) {
-      return { kind: "unsupported", reason: "version_unsupported", detail: "@cursor/sdk 1.3.1 is required; this one has no Cursor.auth" };
-    }
-    // The caller may have aborted while the SDK loaded.
-    if (aborted()) {
-      return { kind: "cancelled" };
-    }
-    const result = await runCursorLogin(auth, new Store(), interaction, options.timeoutMs ?? LOGIN_TIMEOUT_MS);
-    return result;
+    const result = await withLease(access, options.env, async (sdk, lease): Promise<LoginResult> => {
+      const { auth } = sdk.Cursor;
+      const Store = sdk.FileCredentialStore;
+      if (auth === undefined || Store === undefined) {
+        return { kind: "unsupported", reason: "version_unsupported", detail: "@cursor/sdk 1.3.1 is required; this one has no Cursor.auth" };
+      }
+      // The caller may have aborted while the SDK loaded.
+      if (aborted()) {
+        return { kind: "cancelled" };
+      }
+      const login = await runCursorLogin(auth, new Store(), interaction, options.timeoutMs ?? LOGIN_TIMEOUT_MS, lease.env);
+      return login;
+    });
+    // Details can carry the SDK's or the child's words: redacted with the call's credentials too.
+    return callRedaction(options.env)("failed" in result ? { kind: "failed", reason: "process_failed", detail: new LoginSecrets().line(result.failed) } : result);
   };
 }

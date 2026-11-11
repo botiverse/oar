@@ -3,6 +3,7 @@
 - [Codex inspection, 2026-11-11](codex-inspection-2026-11-11/README.md): real old/current version refusals, configuration admission boundaries, recovery and native credential echoes.
 
 - [Runtime version check: November 11](runtime-version-checks/2026-11-11.md): Cursor 1.3.1 live evidence, five changed native versions, retained protocol failures, upstream watch and Windows CI observations.
+- [Cursor subprocess mode memory](cursor-subprocess/results.md): host RSS and heap with one real SDK 1.3.1 session open, in process vs in a child, and minimal `envBase: "clean"` opens. Linux arm64, no key, no run.
 
 - [OpenCode structured failure names](opencode-error-names/README.md): six source-derived error names, native 2.2.6 rate-limit and billing evidence, and preserved text fallback on both release lines.
 
