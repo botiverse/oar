@@ -1,0 +1,111 @@
+import { spawn } from "node:child_process";
+import { StderrTail } from "./diagnostics.js";
+import { trackOwnedProcess } from "./ownership.js";
+import { killGraceMs, killProcessTree, OWN_PROCESS_GROUP, signalProcessGroup } from "./process-signals.js";
+
+/** How a Node script child ended, with the last 8 KiB of its stderr. */
+export interface NodeScriptExit {
+  readonly code: number | null;
+  readonly signal: NodeJS.Signals | null;
+  readonly stderr: string;
+}
+
+/** A Node child running a script given on its command line, talking over Node IPC. */
+export interface NodeScriptChild {
+  readonly pid: number | undefined;
+  /** False once the channel is gone; a message sent then is dropped, and the exit is what gets recorded. */
+  send(message: object): boolean;
+  onMessage(listener: (message: unknown) => void): void;
+  /** Settles once the child exited (or could not be spawned). */
+  readonly exited: Promise<NodeScriptExit>;
+  /**
+   * Stop the child and what it started: SIGTERM to its process group, SIGKILL
+   * to the group after the grace period (POSIX); `taskkill /T /F` on its tree
+   * (Windows). Idempotent; settles with the exit.
+   */
+  stop(): Promise<NodeScriptExit>;
+}
+
+/** How long the exit waits for stderr to drain after the process itself ended. */
+const STDERR_DRAIN_MS = 250;
+
+/**
+ * Run `script` with this host's own Node (`process.execPath -e script
+ * argument`), stdin ignored, stdout and stderr piped (stdout is drained
+ * unread, stderr kept as a tail), and a Node IPC channel with `advanced`
+ * serialization. The child is spawned detached on every platform: on POSIX
+ * it leads its own process group, so one signal reaches what it started; on
+ * Windows Node otherwise puts it in a job object that ends it together with
+ * a dying host, before it can end its own tree. The script itself must end
+ * its tree when its IPC channel disconnects (the host died, SIGKILL
+ * included). It is tracked with `trackOwnedProcess`, so a host that calls
+ * `process.exit` still ends it. The caller sets the environment, including
+ * `ELECTRON_RUN_AS_NODE=1` when `process.execPath` may be Electron.
+ */
+export function spawnNodeScript(script: string, argument: string, env: NodeJS.ProcessEnv): NodeScriptChild {
+  const child = spawn(process.execPath, ["-e", script, argument], {
+    env,
+    stdio: ["ignore", "pipe", "pipe", "ipc"],
+    serialization: "advanced",
+    detached: true,
+    windowsHide: true,
+  });
+  trackOwnedProcess(child);
+  const stderr = new StderrTail();
+  const stderrClosed = Promise.withResolvers<void>();
+  child.stdout?.resume();
+  // As for line processes, `OAR_CHILD_STDERR=inherit` also forwards it to the host's stderr.
+  const inherit = process.env.OAR_CHILD_STDERR === "inherit";
+  child.stderr?.on("data", (chunk: Buffer | string) => {
+    stderr.append(chunk);
+    if (inherit) { process.stderr.write(chunk); }
+  });
+  child.stderr?.once("close", () => { stderrClosed.resolve(); });
+  if (child.stderr === null) { stderrClosed.resolve(); }
+  const ended = Promise.withResolvers<{ readonly code: number | null; readonly signal: NodeJS.Signals | null }>();
+  let escalation: NodeJS.Timeout | undefined = undefined;
+  child.once("exit", (code, signal) => {
+    clearTimeout(escalation);
+    // What it started may still be in its group (POSIX); the group is ours to end.
+    if (OWN_PROCESS_GROUP && child.pid !== undefined) { signalProcessGroup(child, "SIGKILL"); }
+    ended.resolve({ code, signal });
+  });
+  child.on("error", (error) => {
+    if (child.pid === undefined) {
+      stderr.append(error.message);
+      stderrClosed.resolve();
+      ended.resolve({ code: null, signal: null });
+    }
+  });
+  const exited = (async (): Promise<NodeScriptExit> => {
+    const { code, signal } = await ended.promise;
+    const drained = Promise.withResolvers<void>();
+    const timer = setTimeout(drained.resolve, STDERR_DRAIN_MS);
+    await Promise.race([stderrClosed.promise, drained.promise]);
+    clearTimeout(timer);
+    return { code, signal, stderr: stderr.text() };
+  })();
+  const running = (): boolean => child.pid !== undefined && child.exitCode === null && child.signalCode === null;
+  let stopping = false;
+  return {
+    pid: child.pid,
+    send(message) {
+      if (!child.connected) { return false; }
+      return child.send(message, () => { /* A send error means the channel closed meanwhile: the exit is what gets recorded. */ });
+    },
+    onMessage(listener) { child.on("message", listener); },
+    exited,
+    async stop() {
+      if (!stopping && running()) {
+        stopping = true;
+        if (process.platform === "win32") { killProcessTree(child); }
+        else { signalProcessGroup(child, "SIGTERM"); }
+        escalation = setTimeout(() => {
+          if (running()) { signalProcessGroup(child, "SIGKILL"); }
+        }, killGraceMs());
+      }
+      const exit = await exited;
+      return exit;
+    },
+  };
+}

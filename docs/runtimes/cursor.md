@@ -49,7 +49,8 @@ Earlier baselines:
 ## Native concepts and calling interfaces
 
 The SDK runs Cursor's agent inside the calling process, locally or as a cloud
-agent; OAR uses the local runtime. A local **agent** (`agent-<uuid>`) is a
+agent; OAR uses the local runtime, in the host process or in a Node child of
+its own ([execution modes](#execution-modes)). A local **agent** (`agent-<uuid>`) is a
 persistent conversation bound to a working directory and stored under
 `~/.cursor/projects/<cwd>/` (`sdk-agent-store`, `agent-transcripts`). Each
 `agent.send` starts a **run** (`run-<uuid>`), the agent loop until it ends:
@@ -76,7 +77,7 @@ OAR reads out of it. Control calls are request/response record pairs.
 
 | Native concept or owner | Current OAR mapping |
 | --- | --- |
-| `@cursor/sdk` package | An optional peer dependency of `@botiverse/oar` that the host installs (`@cursor/sdk@1.3.1`) and hands over through `createCursorRuntime` ([installation](#installation-and-account-usage)); the agent runs in the host process. Cursor is not in `defaultRuntimes`; the `oar` CLI depends on the SDK and adds cursor itself ([CLI registry](../../packages/cli/src/runtimes.ts)). |
+| `@cursor/sdk` package | An optional peer dependency of `@botiverse/oar` that the host installs (`@cursor/sdk@1.3.1`) and hands over through `createCursorRuntime` ([installation](#installation-and-account-usage)); the agent runs in the host process, or in a Node child per session ([execution modes](#execution-modes)). Cursor is not in `defaultRuntimes`; the `oar` CLI depends on the SDK and adds cursor itself ([CLI registry](../../packages/cli/src/runtimes.ts)). |
 | Local agent | `Session.id` is the `agentId`; `SessionOptions.resume` reopens it with `Agent.resume`. |
 | Agent state after open | One `cursor/agent_opened` frame with the `model` (and `effort`) the SDK holds. |
 | Run | A turn: a prompt is one `send`; `run.wait()`'s answer is the `cursor/run_result` frame carrying `turn_ended`. The SDK run id is `spanId` on results, `run.stream()` frames and `onDelta` frames; early callbacks retain their ingress time while waiting for `send` to return that id. |
@@ -89,6 +90,168 @@ Sources: [session](../../packages/oar/src/runtimes/cursor/session.ts),
 [run observation](../../packages/oar/src/runtimes/cursor/run.ts),
 [model selection](../../packages/oar/src/runtimes/cursor/model.ts),
 [SDK surface](../../packages/oar/src/runtimes/cursor/sdk.ts).
+
+## Execution modes
+
+`createCursorRuntime` runs the SDK one of two ways. Both drive the same
+adapter (session, projection, model selection, login), so everything else on
+this page holds for both unless it says otherwise.
+
+| | In process (default) | Subprocess |
+| --- | --- | --- |
+| Option | `{ sdk: () => import("@cursor/sdk") }` | `{ execution: "subprocess", sdkModule, envBase? }` |
+| Where the SDK runs | The host process; one load shared by every session | A Node child per session, and a one-shot child per model listing, login, logout and status call |
+| `Runtime.execution`, `Session.placement` | `in_process`, `in_process` | `process`, `isolated` (no shared placement) |
+| Environment of the agent's tools | The host's whole `process.env` | The child's: `SessionOptions.env` over the host's environment, or over nothing ([child environment](#child-environment)) |
+| `SessionOptions.env`, and `env` on `listModels`, `login`, `logout`, `authStatus` | Refused when nonempty | Taken |
+| An SDK crash or leak | Is the host's | Ends that session's child only; recorded as `exited` |
+| Dispose answered | `accepted` | `exited` with the child's exit code |
+| Types checked at compile time | Yes, the host's `import()` is checked against `CursorSdk` | No: the host never loads the SDK |
+
+`sdkModule` is a string the child passes to `import()`: a file URL, such as
+`import.meta.resolve("@cursor/sdk")` written in the host's own code. The
+host never imports the SDK in this mode. The `oar` CLI uses the subprocess
+mode when `OAR_CURSOR_EXECUTION=subprocess` is set
+([CLI registry](../../packages/cli/src/runtimes.ts)).
+
+```ts
+const cursor = createCursorRuntime({
+  execution: "subprocess",
+  sdkModule: import.meta.resolve("@cursor/sdk"),
+  envBase: "clean",
+});
+```
+
+**How the child runs.** The child is the host's own executable
+(`process.execPath -e <script>`), with stdin ignored, stdout drained,
+stderr kept as an 8 KiB tail, and a Node IPC channel (`serialization:
+"advanced"`). The script is self-contained (Node built-ins only), because a
+host that bundles OAR may have no separate file to point at; it is under
+5 KB, well within the Windows command line limit (32767 characters). A host-side proxy implements
+`CursorSdk` over the channel: every SDK call is a request with an id and a
+reply; a run's `onDelta` updates and `run.stream()` messages arrive as
+events; `wait`, `cancel`, `steer`, `summarize` and `close` are requests.
+Only plain data crosses: values the SDK returns are copied through JSON in
+the child, and errors cross as their name, message and scalar fields
+(`code`, `status`, `operation`, `isRetryable`), which the adapter needs to
+tell an `AuthenticationError` (401) or `agent_not_found` apart
+([failure mapping](../../packages/oar/src/runtimes/cursor/failure.ts)).
+A session's child also answers the model and run lookups its open makes
+(`Cursor.models.list`, `Agent.listRuns`); an open that fails ends the
+child. Sources: [child script](../../packages/oar/src/runtimes/cursor/subprocess/child-script.ts),
+[channel](../../packages/oar/src/runtimes/cursor/subprocess/channel.ts),
+[proxy](../../packages/oar/src/runtimes/cursor/subprocess/proxy.ts),
+[spawn](../../packages/oar/src/shared/executable/node-script.ts).
+
+**Crash maps to `exited`.** When a session's child exits without being
+asked, its pending calls fail with the exit's reason, so a running turn ends
+with `cursor/run_failed` (and `cursor/stream_failed` for its stream view),
+held inputs are dropped, and then the session records `{ kind: "exited",
+code, reason }` the way process runtimes do. The reason names the code or
+signal and ends with up to 1000 characters of the child's stderr, with
+token shapes and the session's credentials redacted. Later controls are
+refused `runtime_exited`. Dispose closes the agent (waiting up to five
+seconds for the close), then stops the child and what it started (POSIX:
+SIGTERM to the child's process group, SIGKILL to the group after
+`OAR_KILL_GRACE_MS`, default 10 s, or as soon as the child exits; Windows:
+`taskkill /T /F`), and answers the dispose request with the `exited` it
+observed. The child exits 0 on SIGTERM, so a POSIX dispose records `code:
+0`. On POSIX a crashed child's group is also sent SIGKILL, so the tools it
+started do not outlive it; on Windows a crashed child's tree is not walked
+(open gap). Tested on Linux with a fake SDK module that SIGKILLs its own
+process mid-run ([tests](../../tests/cursor/cursor-subprocess-session.test.ts)).
+
+**Host death.** The child must not outlive the host, SIGKILL included. When
+its IPC channel disconnects (the host ended, or died without running any
+exit hook) the child ends its own tree: POSIX, SIGTERM to its process group
+(it leads one: it is spawned detached), then SIGKILL to the group after half
+of `OAR_KILL_GRACE_MS`; Windows, `taskkill /pid <its own pid> /T /F`. It is
+spawned detached on Windows too: Node otherwise puts a child in a job object
+that ends it together with a dying host, before it can end its own tree, as
+the login watchdog found. A host that calls `process.exit` ends it through
+OAR's exit hook (`trackOwnedProcess`). Tested on Linux: a host SIGKILLed with
+a session open whose run started a grandchild leaves neither the child nor
+the grandchild running ([test](../../tests/cursor/cursor-subprocess-host-death.test.ts)).
+The Windows path is written to the same pattern as the login watchdog but
+was not run.
+
+**Electron.** In an Electron host `process.execPath` is Electron, which runs
+`-e` as Node only with `ELECTRON_RUN_AS_NODE=1`. The child is started with
+it, and puts back the environment's own value (or removes it) before it
+imports the SDK, so tool shells see what the host's environment says. The
+restore is tested under Node (a value the environment sets is seen by the
+agent's shell; an unset one is absent); no Electron host was run.
+
+**What it does not isolate.** The child is the same user on the same
+machine: it reads and writes the same `~/.cursor` (unless `HOME` differs),
+the same working directory, and the same network. OAR reads no per-turn
+process tree in the child, so `endTurnProcessesOnAbort` stays refused; only
+dispose ends the tree. `launchArgs` stays refused: there is no Cursor
+command line, only OAR's Node child.
+
+### Child environment
+
+The child's environment is computed once per child, from
+`SessionOptions.env` (a session) or the call's `env` option (model listing,
+login, logout, status), with `sessionEnvironment`'s rules: a string sets, a
+`null` removes. What it starts from is `envBase`:
+
+- `inherit` (default): the host's whole `process.env`. A host variable the
+  host does not set to `null` reaches the agent's tools.
+- `clean`: nothing. The child gets exactly the string entries of `env`
+  (a `null` entry just means absent), plus only what OAR adds to run the
+  SDK, listed below. Nothing else comes from the host: no `PATH`, `HOME` or
+  `SystemRoot`. The host supplies those in `env`.
+
+What OAR adds, in both bases:
+
+- `ELECTRON_RUN_AS_NODE=1`, only to start the child; the child removes it
+  from its `process.env` (or puts back the value `env` gave it) before it
+  imports the SDK.
+- `CURSOR_TREE_SITTER_VENDOR_DIR` and `CURSOR_RIPGREP_PATH`, set by the child
+  before it imports the SDK to the native companion paths resolved from
+  `sdkModule` (the package `@cursor/sdk-<platform>-<arch>`, the way
+  [`cursorNativeEnvironment()`](#tools-permissions-and-environment) resolves
+  them), unless the environment already sets them, and only when that
+  package resolves.
+
+Under `clean`, what the host must pass, as far as verified: on Linux arm64
+with Node 24.18.1 and SDK 1.3.1, a session opened (`Agent.create`) with
+`env: { HOME }` alone and with `{ HOME, PATH }`
+([measurement](../../experiments/cursor-subprocess/results.md)). Without
+`HOME`, Node's `os.homedir()` falls back to the user's passwd entry, and the
+SDK wrote its agent store under that real home, so pass `HOME` (and
+`USERPROFILE` on Windows) for the home the agent should use. A run was not
+measured under `clean` (no key here): the agent's shell tool, ripgrep and
+MCP servers will likely need `PATH`, and the SDK reads `CURSOR_API_KEY`
+from this environment. On Windows, Node and child processes generally need
+`SystemRoot`, and `TEMP`/`TMP` for temporary files; this is not verified for
+this mode.
+
+Redaction: a session's `env` values whose names end in a credential word
+(`CURSOR_API_KEY` among them) are session credentials, redacted from
+records, errors and control answers like every runtime's
+([session credentials](../../packages/oar/src/shared/credential-redactor.ts)).
+A per-session key is just `CURSOR_API_KEY` in `SessionOptions.env`; tested by
+a run that prints it.
+
+**Credentials never cross IPC.** `Cursor.auth.login` runs in the login's
+one-shot child with a store of the child's own. When the SDK saves its
+minted key, that store asks the host whether it may (`save`); the host's
+login decides exactly as in process ([login](#login): a save that began
+stands, a save after OAR ended the login is refused), and on yes the child
+saves to its own `FileCredentialStore` (`commit`) and is told the outcome.
+The login's reply carries no value, so the key the SDK resolves with stays in
+the child; the host sees only the URL, the save request and the outcome.
+Tested by recording every IPC message in both directions during a login
+over a fake SDK and finding no key ([test](../../tests/login/cursor-subprocess-login.test.ts)).
+The `CURSOR_API_KEY` checks of `login` and `authStatus` read the call's
+child environment, not the host's.
+
+**Memory.** On Linux arm64 with the real SDK 1.3.1, opening one session
+grew the host by about 210 MB RSS and 48 MB V8 heap in process, and by
+at most 1 MB RSS in subprocess mode, whose child used about 120 MB RSS
+([measurement](../../experiments/cursor-subprocess/results.md)).
 
 ## Capability details
 
@@ -231,8 +394,10 @@ turn.
 **Dispose (mapped):** `dispose()` gives up a `send` still on its way,
 cancels a running run, waits up to five seconds for its `cancelled` answer,
 closes the agent, and answers the dispose request `accepted`: an in-process
-runtime has no exit to observe (`dispose-mid-turn`). The agent's stored
-conversation is kept.
+runtime has no exit to observe (`dispose-mid-turn`). In subprocess mode it
+then stops the session's child and answers with its `exited`
+([execution modes](#execution-modes)). The agent's stored conversation is
+kept.
 
 **Backgrounded shells (native):** a shell call moves to the background on
 a steer or on the call's own `timeout`, and the SDK arms a 24 hour hard
@@ -420,16 +585,20 @@ Cursor's backend, that default read neither MCP file
 ([session MCP servers](#session-mcp-servers)); rules were not part of that
 measurement.
 
-**Environment (unsupported):** the SDK has no per-agent environment for
-tools, and the agent shares the host's process, so a non-empty
-`SessionOptions.env` is refused at open the same way, including a map whose
-only entries are `null` removals. `refusedSessionOptions`
+**Environment (in process: unsupported; subprocess: the child's):** the SDK
+has no per-agent environment for tools. In process the agent shares the
+host's process, so a non-empty `SessionOptions.env` is refused at open,
+including a map whose only entries are `null` removals. In subprocess mode
+`env` is the session child's environment, over the host's or over nothing
+([child environment](#child-environment)), and the agent's tools inherit
+it. `refusedSessionOptions`
 declares these refusals, the `mcpServers` one
 ([below](#session-mcp-servers)), and `goals` and `endTurnProcessesOnAbort`
 ([refused session options](../spec/runtime-matrix.md#refused-session-options))
 before any session opens. The
 `@botiverse/oar/agents` crew passes its depth variable through `env`, so it
-refuses to spawn a cursor child.
+refuses to spawn an in-process cursor child; a subprocess-mode cursor is
+not refused there.
 
 **Native companion:** the agent's ripgrep and tree-sitter shell parser come
 from `@cursor/sdk-<platform>-<arch>`, which the SDK finds by walking up from
@@ -569,10 +738,13 @@ on this account (probed), and each run reports its own tokens.
 
 ### Login
 
-`login`, `logout` and `authStatus` reject any nonempty `env` with
-`UnsupportedOptionError` before loading the SDK. The SDK runs in the host
-process and cannot isolate a per-call environment; OAR never temporarily
-changes `process.env`. An empty map is a no-op, as for sessions. See
+In process, `login`, `logout` and `authStatus` reject any nonempty `env`
+with `UnsupportedOptionError` before loading the SDK. The SDK runs in the
+host process and cannot isolate a per-call environment; OAR never
+temporarily changes `process.env`. An empty map is a no-op, as for
+sessions. In subprocess mode each of these calls runs in a one-shot child
+whose environment is `env` over the runtime's `envBase`, and the minted key
+stays in the login's child ([child environment](#child-environment)). See
 [authentication environments](../spec/login.md#environment).
 
 **Mapped** ([runtime login](../spec/login.md)):
@@ -718,7 +890,17 @@ options, the SDK loader, the `run.stream()` view and its tail bound) and
 fold recorded updates (tools, usage, the subagent path, run outcomes). The
 [real-runtime CI matrix](../../.github/workflows/ci.yml) excludes Cursor.
 
-Open gaps: a crew child (no environment); tool calls the SDK runs without
+The subprocess mode is tested on Linux arm64 against a fake SDK module
+([tests](../../tests/cursor/), the `cursor-subprocess-*` files): env
+isolation under both bases, the same session tests in both modes, a crash,
+dispose of the child's tree, host death, login, logout and status over a
+child, and load failures. The real SDK 1.3.1 loaded and opened a session in
+a child on Linux arm64 without a key; no run was made in subprocess mode.
+
+Open gaps: a crew child of an in-process cursor (no environment); in
+subprocess mode, a live run, Windows and macOS (the Windows tree ending is
+written but not run), an Electron host, and a crashed child's tree on
+Windows; tool calls the SDK runs without
 updates; the cloud runtime; Windows and macOS live runs, the login's
 included; `mcpServers`, refused until a live run shows what
 [session MCP servers](#session-mcp-servers) lists (the stand-in backend
@@ -828,6 +1010,9 @@ of the native status options. No real credential or model request is used.
 
 ## Reader environment
 
-Installation and model listing reject a nonempty `env` before loading the
-SDK, just like the authentication methods. An empty map is a no-op. See
+In process, installation and model listing reject a nonempty `env` before
+loading the SDK, just like the authentication methods. An empty map is a
+no-op. In subprocess mode model listing runs in a one-shot child with
+`env` over the runtime's `envBase`, and installation, which loads nothing,
+takes `env` and ignores it. See
 [reader environments](../spec/orientation.md#environment).

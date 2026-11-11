@@ -10,7 +10,11 @@
  * must not name a package a host may not have. The host hands the module
  * over (`createCursorRuntime({ sdk: () => import("@cursor/sdk") })`), and
  * its compile checks the real module against `CursorSdk`; in this repo the
- * CLI and the sea trial do, so its typecheck catches drift.
+ * CLI and the sea trial do, so its typecheck catches drift. In the
+ * subprocess execution mode the host never loads the SDK: a proxy
+ * implements this interface over IPC to a child that does
+ * (subprocess/proxy.ts), and nothing checks the child's module against it
+ * at compile time.
  */
 
 export interface ModelParameterValue {
@@ -147,16 +151,6 @@ export interface CursorSdk {
     readonly auth?: CursorAuth;
   };
   readonly FileCredentialStore?: new () => CursorFileCredentialStore;
-}
-
-/** The SDK through the host's loader, or the loader's failure in words. */
-export async function loadedSdk(load: () => Promise<CursorSdk>): Promise<CursorSdk | { readonly failed: string }> {
-  try {
-    const sdk = await load();
-    return sdk;
-  } catch (error) {
-    return { failed: error instanceof Error ? error.message : String(error) };
-  }
 }
 
 /**
