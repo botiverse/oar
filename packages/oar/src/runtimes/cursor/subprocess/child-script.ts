@@ -1,3 +1,5 @@
+import path from "node:path";
+import { environmentValue, sessionEnvironment } from "../../../shared/environment.js";
 import { killGraceMs } from "../../../shared/executable/index.js";
 
 /*
@@ -5,7 +7,7 @@ import { killGraceMs } from "../../../shared/executable/index.js";
  * self-contained (Node built-ins only, nothing from OAR), because hosts bundle
  * OAR and a separate file next to OAR's code may not exist; it is kept small
  * for the Windows command line limit. SPEC is `[sdkModule, graceMs,
- * electronRunAsNode]`.
+ * electronRunAsNode, taskkill]`.
  *
  * Before the SDK loads, the child puts back the environment's own
  * `ELECTRON_RUN_AS_NODE` (the host set it to 1 only so an Electron
@@ -26,29 +28,84 @@ import { killGraceMs } from "../../../shared/executable/index.js";
  * `FileCredentialStore` in this process), then `saved`, or `refused` with
  * the reason, and the login's own reply carries no value.
  *
- * When the IPC channel disconnects (the host ended or died, SIGKILL
- * included) the child ends its own tree: SIGTERM to its process group, then
- * SIGKILL to it after the grace period (POSIX); `taskkill /T /F` on itself
- * (Windows). A SIGTERM from the host ends it at once with code 0; the host
- * then ends what is left of its group.
+ * Closing an agent awaits its `Symbol.asyncDispose` when it has one (SDK
+ * 1.3.1: `close()` only starts its async close work). Shutting down (the
+ * host's `shutdown` call, a SIGTERM, or the IPC channel disconnecting
+ * because the host ended or died, SIGKILL included) closes every open agent
+ * and waits for the closes for up to `graceMs`, then exits. On exit, also
+ * an exit after an uncaught exception, the child ends every descendant it
+ * has: found by parent pid (POSIX: `/proc/<pid>/stat` on Linux, `ps -A -o
+ * pid=,ppid=` elsewhere), so tools that lead process groups of their own
+ * are reached too, plus the ones seen when the shutdown began; Windows:
+ * `taskkill /T /F` on itself, which walks by parent. After a disconnect,
+ * with no host left to do it, it also SIGKILLs its own process group.
  */
 const SCRIPT = String.raw`
-const [sdkModule, graceMs, electron] = JSON.parse(process.argv[1]);
+const [sdkModule, graceMs, electron, taskkill] = JSON.parse(process.argv[1]);
 const path = require("node:path");
+const fs = require("node:fs");
+const { execFileSync } = require("node:child_process");
 const windows = process.platform === "win32";
 let stopping = false;
-const group = (signal) => { try { process.kill(-process.pid, signal); } catch {} };
-process.on("SIGTERM", () => { if (!stopping) { process.exit(0); } });
-process.on("disconnect", () => {
+let orphaned = false;
+let seen = new Map();
+const table = () => {
+  if (process.platform === "linux") {
+    const rows = [];
+    for (const name of fs.readdirSync("/proc")) {
+      if (!/^\d+$/.test(name)) { continue; }
+      try {
+        const stat = fs.readFileSync("/proc/" + name + "/stat", "utf8");
+        const fields = stat.slice(stat.lastIndexOf(")") + 2).split(" ");
+        rows.push([Number(name), Number(fields[1]), fields[19]]);
+      } catch {}
+    }
+    return rows;
+  }
+  return execFileSync("/bin/ps", ["-A", "-o", "pid=,ppid=,lstart="], { encoding: "utf8", timeout: 10000 }).split("\n")
+    .map((line) => line.trim().split(/\s+/)).filter((cells) => cells.length > 2).map((cells) => [Number(cells[0]), Number(cells[1]), cells.slice(2).join(" ")]);
+};
+const descendants = (rows) => {
+  const below = new Map();
+  for (const row of rows) { below.set(row[1], [...(below.get(row[1]) ?? []), row]); }
+  const found = new Map();
+  const pending = [process.pid];
+  while (pending.length > 0) {
+    for (const row of below.get(pending.pop()) ?? []) {
+      if (!found.has(row[0])) { found.set(row[0], row[2]); pending.push(row[0]); }
+    }
+  }
+  return found;
+};
+const remember = () => { if (!windows) { try { seen = descendants(table()); } catch {} } };
+process.on("exit", () => {
+  try {
+    if (windows) { execFileSync(taskkill, ["/pid", String(process.pid), "/T", "/F"], { stdio: "ignore", windowsHide: true, timeout: 10000 }); return; }
+    const rows = table();
+    const now = new Map(rows.map((row) => [row[0], row[2]]));
+    const targets = new Map([...[...seen].filter(([pid, start]) => now.get(pid) === start), ...descendants(rows)]);
+    for (const pid of targets.keys()) { try { process.kill(pid, "SIGKILL"); } catch {} }
+  } catch {}
+  if (orphaned) { try { process.kill(-process.pid, "SIGKILL"); } catch {} }
+});
+const agents = new Map();
+const closing = new Set();
+const closeAgent = (agent) => {
+  const done = (async () => { if (typeof agent[Symbol.asyncDispose] === "function") { await agent[Symbol.asyncDispose](); } else { agent.close(); } })();
+  closing.add(done);
+  return done;
+};
+const shutdown = async (code) => {
   if (stopping) { return; }
   stopping = true;
-  if (windows) {
-    try { require("node:child_process").execFileSync("taskkill", ["/pid", String(process.pid), "/T", "/F"], { stdio: "ignore", windowsHide: true, timeout: 10000 }); } catch {}
-    process.exit(1);
-  }
-  group("SIGTERM");
-  setTimeout(() => { group("SIGKILL"); process.exit(1); }, graceMs);
-});
+  remember();
+  for (const agent of agents.values()) { void closeAgent(agent); }
+  agents.clear();
+  await Promise.race([Promise.allSettled([...closing]), new Promise((resolve) => { setTimeout(resolve, graceMs); })]);
+  process.exit(code);
+};
+process.on("SIGTERM", () => { void shutdown(0); });
+process.on("disconnect", () => { orphaned = true; void shutdown(1); });
 if (electron === null) { delete process.env.ELECTRON_RUN_AS_NODE; } else { process.env.ELECTRON_RUN_AS_NODE = electron; }
 try {
   const root = path.dirname(require("node:module").createRequire(sdkModule).resolve("@cursor/sdk-" + process.platform + "-" + process.arch + "/package.json"));
@@ -68,7 +125,6 @@ const fault = (error) => {
 let sdk;
 let pending;
 let abort;
-const agents = new Map();
 const runs = new Map();
 const streams = new Map();
 const opened = async (id, opening) => {
@@ -88,7 +144,8 @@ const calls = {
   resume: (id, agentId, options) => opened(id, sdk.Agent.resume(agentId, options)),
   send: (id, agent, message, local) => started(id, agents.get(agent).send(message, { onDelta: ({ update }) => post({ t: "event", id, v: plain(update) }), ...(local ? { local } : {}) })),
   summarize: (id, agent) => started(id, agents.get(agent).summarize()),
-  close: (id, agent) => { agents.get(agent)?.close(); agents.delete(agent); },
+  close: async (id, key) => { const agent = agents.get(key); agents.delete(key); if (agent !== undefined) { await closeAgent(agent); } },
+  shutdown: () => { void shutdown(0); },
   wait: (id, run) => runs.get(run).wait(),
   cancel: (id, run) => runs.get(run).cancel(),
   steer: (id, run, text) => runs.get(run).steer(text),
@@ -131,8 +188,17 @@ import(sdkModule).then((module) => {
 }, (error) => { post({ t: "ready", e: fault(error) }); });
 `;
 
+/**
+ * Windows: taskkill by absolute path from the host's own `SystemRoot`, since
+ * the child's environment may have no PATH (`envBase: "clean"`).
+ */
+function taskkillPath(): string | null {
+  if (process.platform !== "win32") { return null; }
+  return path.win32.join(environmentValue(process.env, "SystemRoot") ?? String.raw`C:\Windows`, "System32", "taskkill.exe");
+}
+
 /** The launch of one cursor child: the script, its spec, and its environment with `ELECTRON_RUN_AS_NODE=1`. */
 export function cursorChildLaunch(sdkModule: string, env: Readonly<NodeJS.ProcessEnv>): { readonly script: string; readonly argument: string; readonly env: NodeJS.ProcessEnv } {
-  const spec = [sdkModule, Math.floor(killGraceMs() / 2), env.ELECTRON_RUN_AS_NODE ?? null];
-  return { script: SCRIPT, argument: JSON.stringify(spec), env: { ...env, ELECTRON_RUN_AS_NODE: "1" } };
+  const spec = [sdkModule, Math.floor(killGraceMs() / 2), environmentValue(env, "ELECTRON_RUN_AS_NODE") ?? null, taskkillPath()];
+  return { script: SCRIPT, argument: JSON.stringify(spec), env: sessionEnvironment({ ELECTRON_RUN_AS_NODE: "1" }, env) };
 }

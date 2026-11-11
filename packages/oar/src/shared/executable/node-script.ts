@@ -1,7 +1,8 @@
 import { spawn } from "node:child_process";
 import { StderrTail } from "./diagnostics.js";
 import { trackOwnedProcess } from "./ownership.js";
-import { killGraceMs, killProcessTree, OWN_PROCESS_GROUP, signalProcessGroup } from "./process-signals.js";
+import { processShutdown } from "./process-shutdown.js";
+import { killGraceMs, OWN_PROCESS_GROUP, signalProcessGroup } from "./process-signals.js";
 
 /** How a Node script child ended, with the last 8 KiB of its stderr. */
 export interface NodeScriptExit {
@@ -16,14 +17,20 @@ export interface NodeScriptChild {
   /** False once the channel is gone; a message sent then is dropped, and the exit is what gets recorded. */
   send(message: object): boolean;
   onMessage(listener: (message: unknown) => void): void;
-  /** Settles once the child exited (or could not be spawned). */
+  /** Settles once the child exited (or could not be spawned) and the descendants seen before a stop were ended. */
   readonly exited: Promise<NodeScriptExit>;
   /**
-   * Stop the child and what it started: SIGTERM to its process group, SIGKILL
-   * to the group after the grace period (POSIX); `taskkill /T /F` on its tree
-   * (Windows). Idempotent; settles with the exit.
+   * Stop the child and every descendant it has. First the process table is
+   * read and the child's descendants remembered (by parent pid, so also
+   * tools that lead process groups of their own). Then `ask` lets the child
+   * stop itself, if given; after the grace period (`killGraceMs()`), or at
+   * once without `ask`, SIGTERM to its process group, SIGKILL to the group
+   * and the remembered descendants after another grace period (POSIX);
+   * `taskkill /T /F` on its tree (Windows). Once the child exited, the
+   * remembered descendants still running are sent SIGKILL
+   * (process-shutdown.ts, `killTree`). Idempotent; settles with the exit.
    */
-  stop(): Promise<NodeScriptExit>;
+  stop(ask?: () => void): Promise<NodeScriptExit>;
 }
 
 /** How long the exit waits for stderr to drain after the process itself ended. */
@@ -33,14 +40,18 @@ const STDERR_DRAIN_MS = 250;
  * Run `script` with this host's own Node (`process.execPath -e script
  * argument`), stdin ignored, stdout and stderr piped (stdout is drained
  * unread, stderr kept as a tail), and a Node IPC channel with `advanced`
- * serialization. The child is spawned detached on every platform: on POSIX
- * it leads its own process group, so one signal reaches what it started; on
- * Windows Node otherwise puts it in a job object that ends it together with
- * a dying host, before it can end its own tree. The script itself must end
- * its tree when its IPC channel disconnects (the host died, SIGKILL
- * included). It is tracked with `trackOwnedProcess`, so a host that calls
- * `process.exit` still ends it. The caller sets the environment, including
- * `ELECTRON_RUN_AS_NODE=1` when `process.execPath` may be Electron.
+ * serialization. The child is spawned detached on every platform. On POSIX
+ * it leads its own process group. On Windows Node otherwise puts it in a job
+ * object that ends it together with a dying host, before it can end its own
+ * tree; the cost is that a detached Windows child has no console, so a
+ * console program it starts without `windowsHide` may open a visible window
+ * (process-signals.ts). The script itself must end its tree when its IPC
+ * channel disconnects (the host died, SIGKILL included): nothing in the host
+ * can then. It is tracked with `trackOwnedProcess`, so a host that calls
+ * `process.exit` still ends it and its descendants. On any exit the child's
+ * process group is sent SIGKILL (POSIX), which reaches what is left of it.
+ * The caller sets the environment, including `ELECTRON_RUN_AS_NODE=1` when
+ * `process.execPath` may be Electron.
  */
 export function spawnNodeScript(script: string, argument: string, env: NodeJS.ProcessEnv): NodeScriptChild {
   const child = spawn(process.execPath, ["-e", script, argument], {
@@ -51,6 +62,7 @@ export function spawnNodeScript(script: string, argument: string, env: NodeJS.Pr
     windowsHide: true,
   });
   trackOwnedProcess(child);
+  const shutdown = processShutdown(child, { killTree: true });
   const stderr = new StderrTail();
   const stderrClosed = Promise.withResolvers<void>();
   child.stdout?.resume();
@@ -63,22 +75,25 @@ export function spawnNodeScript(script: string, argument: string, env: NodeJS.Pr
   child.stderr?.once("close", () => { stderrClosed.resolve(); });
   if (child.stderr === null) { stderrClosed.resolve(); }
   const ended = Promise.withResolvers<{ readonly code: number | null; readonly signal: NodeJS.Signals | null }>();
-  let escalation: NodeJS.Timeout | undefined = undefined;
+  let backstop: NodeJS.Timeout | undefined = undefined;
   child.once("exit", (code, signal) => {
-    clearTimeout(escalation);
+    clearTimeout(backstop);
     // What it started may still be in its group (POSIX); the group is ours to end.
     if (OWN_PROCESS_GROUP && child.pid !== undefined) { signalProcessGroup(child, "SIGKILL"); }
     ended.resolve({ code, signal });
+    shutdown.nativeExited();
   });
   child.on("error", (error) => {
     if (child.pid === undefined) {
       stderr.append(error.message);
       stderrClosed.resolve();
       ended.resolve({ code: null, signal: null });
+      shutdown.nativeExited();
     }
   });
   const exited = (async (): Promise<NodeScriptExit> => {
     const { code, signal } = await ended.promise;
+    await shutdown.finished;
     const drained = Promise.withResolvers<void>();
     const timer = setTimeout(drained.resolve, STDERR_DRAIN_MS);
     await Promise.race([stderrClosed.promise, drained.promise]);
@@ -95,14 +110,18 @@ export function spawnNodeScript(script: string, argument: string, env: NodeJS.Pr
     },
     onMessage(listener) { child.on("message", listener); },
     exited,
-    async stop() {
+    async stop(ask) {
       if (!stopping && running()) {
         stopping = true;
-        if (process.platform === "win32") { killProcessTree(child); }
-        else { signalProcessGroup(child, "SIGTERM"); }
-        escalation = setTimeout(() => {
-          if (running()) { signalProcessGroup(child, "SIGKILL"); }
-        }, killGraceMs());
+        // Remember its descendants while it still runs: once it is gone they are no longer below it.
+        await shutdown.prepare();
+        if (ask !== undefined && running()) {
+          shutdown.markNativeStop();
+          ask();
+          backstop = setTimeout(() => { shutdown.stop(); }, killGraceMs());
+        } else {
+          shutdown.stop();
+        }
       }
       const exit = await exited;
       return exit;

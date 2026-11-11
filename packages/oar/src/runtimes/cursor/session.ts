@@ -273,6 +273,7 @@ export function cursorSessionWith(source: CursorSdkSource): StartSession {
         held.splice(0);
         const request = kernel.request("toRuntime", { kind: "dispose" });
         disposeRequest = request;
+        end.disposing(request);
         if (launching !== null) {
           // A send still on its way: its run, if it comes, is stopped, not adopted.
           giveUp(launching, "the session was disposed before cursor started the run");
@@ -290,7 +291,7 @@ export function cursorSessionWith(source: CursorSdkSource): StartSession {
           })]);
         }
         agent.close();
-        await end.disposed(request);
+        await end.disposed();
       },
     });
     return session;

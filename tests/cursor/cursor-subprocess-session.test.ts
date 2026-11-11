@@ -1,14 +1,13 @@
-import path from "node:path";
 import { expect, test } from "vitest";
 import type { Session } from "../../packages/oar/src/contracts/session.js";
 import { awaitTurnEnd } from "../../packages/oar/src/observe/turns.js";
-import { alive, bundled, fakeCursorRuntime, lastResult, reportedPids, responsesOf, tempDirectory, until, type CursorMode } from "../fixtures/cursor-subprocess.js";
+import { bundled, fakeCursorRuntime, lastResult, tempDirectory, until, type CursorMode } from "../fixtures/cursor-subprocess.js";
 
 /*
  * The same session tests in both execution modes, over the same fake SDK
  * module: in process (`sdk: () => module`) and in a child per session
- * (`sdkModule`). Then what only the subprocess mode has: a crash recorded
- * as `exited`, and dispose answered with the child's exit.
+ * (`sdkModule`). What only the subprocess mode has (crash, dispose, the
+ * child's tree) is in cursor-subprocess-lifecycle.test.ts.
  */
 
 const modes: readonly CursorMode[] = ["in_process", "subprocess"];
@@ -68,42 +67,4 @@ test.each(modes)("%s: queued input waits for the run to end, then runs as its ow
   } finally {
     await session.dispose();
   }
-});
-
-test("in process, dispose is answered accepted; in a child, by the child's exit", async () => {
-  const inProcess = await open("in_process");
-  await inProcess.dispose();
-  expect(responsesOf(inProcess, "accepted").at(-1)).toEqual({ kind: "accepted" });
-  const child = await open("subprocess");
-  await child.dispose();
-  expect(responsesOf(child, "exited")).toEqual([{ kind: "exited", code: 0 }]);
-  const after = await child.prompt("echo:after");
-  expect(after.response.body).toMatchObject({ kind: "rejected", code: "runtime_exited" });
-});
-
-// oxlint-disable-next-line eslint/max-statements -- the crash, its records, and each later control, in order.
-test("a child that dies mid-run is recorded as exited, ends the turn, and refuses later prompts", async () => {
-  const session = await open("subprocess");
-  const prompt = await session.prompt("crash");
-  const outcome = await awaitTurnEnd(session, prompt.seq);
-  expect(outcome).toMatchObject({ kind: "failed", reason: "cursor's SDK child process exited with signal SIGKILL" });
-  expect(responsesOf(session, "exited")).toEqual([{ kind: "exited", code: null, reason: "cursor's SDK child process exited with signal SIGKILL" }]);
-  expect(frameTypes(session)).toContain("cursor/run_failed");
-  expect(session.status().value.kind).toBe("idle");
-  const again = await session.prompt("echo:again");
-  const steer = await session.steer("too late");
-  expect([again.response.body, steer.response.body]).toMatchObject([{ kind: "rejected", code: "runtime_exited" }, { kind: "rejected", code: "runtime_exited" }]);
-  await session.dispose();
-  expect(responsesOf(session, "exited")).toHaveLength(1);
-});
-
-test("dispose ends what the child started, not only the child", async () => {
-  const session = await open("subprocess");
-  const file = path.join(tempDirectory(), "pids.json");
-  const prompt = await session.prompt(`spawn:${file}`);
-  await awaitTurnEnd(session, prompt.seq);
-  const { child, grandchild } = reportedPids(file);
-  await session.dispose();
-  await until(() => !alive(child) && !alive(grandchild));
-  expect({ child: alive(child), grandchild: alive(grandchild) }).toEqual({ child: false, grandchild: false });
 });

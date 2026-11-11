@@ -42,5 +42,13 @@ hand. The script no longer opens that case. Whether a run (tools, ripgrep,
 MCP servers, a key from the environment) works under `clean` with these
 minimal environments was not measured.
 
+A rerun the same day, after the child started awaiting the agent's
+`Symbol.asyncDispose` on close and ending its descendant tree: in process
+the host grew by 174 and 195 MB RSS and 48 MB heap; in subprocess mode by
+0 MB, with 121 MB in direct children both times. The spread between the
+in-process runs (174 to 215 MB) is run to run variation that was not
+looked into. Disposing such a real-SDK session (`inherit`, and `clean` with
+`HOME` and `PATH`) took 118 and 173 ms and was answered `exited`, code 0.
+
 Not measured: macOS, Windows, a run, more than one session, memory over a
 long session, and an Electron host.

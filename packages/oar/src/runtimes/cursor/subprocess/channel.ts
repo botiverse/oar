@@ -25,15 +25,15 @@ export interface CursorChannel {
   call(method: string, args: readonly unknown[], onEvent?: (value: unknown) => void): Promise<unknown>;
   /** Called once when the child exits, whether stopped or not. */
   onExit(listener: (exit: CursorChildExit) => void): void;
-  /** True once `stop()` began. */
+  /** True once `stop()` asked the child to end (after waiting for agent closes): an exit from then on was asked for. */
   stopping(): boolean;
-  /** Ends the child and its tree (`NodeScriptChild.stop`); settles with the exit. */
+  /** Waits for agent closes, asks the child to shut down, ends it and its descendants if it does not (`NodeScriptChild.stop`); settles with the exit. */
   stop(): Promise<CursorChildExit>;
 }
 
 /** How long the SDK may take to load in a fresh child (a cold import of the bundle). */
 const READY_TIMEOUT_MS = 60_000;
-/** How long stopping a child waits for an agent close it was asked first. */
+/** How long stopping a child waits for the agent closes asked before it (the SDK's own async close work). */
 const CLOSE_SETTLE_MS = 5000;
 /** The stderr tail kept in an exit reason. */
 const REASON_STDERR_CHARS = 1000;
@@ -104,14 +104,16 @@ export async function openCursorChannel(sdkModule: string, env: Readonly<NodeJS.
   // Agent closes still on their way: the child is stopped after them.
   const closing = new Set<Promise<unknown>>();
   const stop = async (): Promise<CursorChildExit> => {
-    stopping = true;
     if (closing.size > 0) {
       const settled = Promise.withResolvers<void>();
       const timer = setTimeout(settled.resolve, CLOSE_SETTLE_MS);
       await Promise.race([Promise.allSettled(closing), settled.promise]);
       clearTimeout(timer);
     }
-    const ended = await child.stop();
+    // From here on an exit is the one asked for; one before is a crash, with its reason.
+    stopping = exit === null;
+    // The child closes what is still open and exits on its own; the tree kill is the backstop.
+    const ended = await child.stop(() => { child.send({ id: 0, m: "shutdown", a: [] }); });
     return exit ?? { code: ended.code, reason: exitReason(ended) };
   };
   const timer = setTimeout(() => { ready.reject(new Error(`cursor's SDK child process did not load ${sdkModule} within ${String(READY_TIMEOUT_MS / 1000)} s`)); }, READY_TIMEOUT_MS);

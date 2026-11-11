@@ -29,14 +29,20 @@ export async function openCursorSession(access: CursorSdkAccess, options: Sessio
  * child's exit is recorded as `exited`, as process runtimes record theirs
  * (shared/process-session.ts): unasked (a crash), once the turn it cut short
  * has ended (`settle`), with the reason and a stderr tail; or as the answer
- * to the dispose that stopped it.
+ * to the dispose that stopped it. An exit that comes after the dispose began
+ * answers that dispose, a crash keeping its reason; one recorded before it
+ * leaves the dispose `accepted`.
  */
 export function cursorSessionEnd(kernel: SessionKernel, lease: CursorSdkLease, settle: () => Promise<void>): {
+  /** As the dispose begins, before it cancels anything. */
+  disposing(request: RequestRecord): void;
   /** After the agent was closed: end the child, if any, and answer the dispose. */
-  disposed(request: RequestRecord): Promise<void>;
+  disposed(): Promise<void>;
 } {
   let recorded = false;
   let disposeRequest: RequestRecord | null = null;
+  // The exit was recorded before the dispose began: the dispose finds nothing to stop.
+  let goneBefore = false;
   // An exit nobody asked for, kept for a dispose that comes before it is recorded.
   let unasked: CursorChildExit | null = null;
   const record = (exit: CursorChildExit, reason?: string): void => {
@@ -53,13 +59,17 @@ export function cursorSessionEnd(kernel: SessionKernel, lease: CursorSdkLease, s
     })();
   });
   return {
-    async disposed(request) {
-      if (lease.child === null || recorded) {
+    disposing(request) {
+      goneBefore = recorded;
+      if (!recorded) { disposeRequest = request; }
+    },
+    async disposed() {
+      if (disposeRequest === null) { return; }
+      if (lease.child === null || goneBefore) {
         // In process, or the child was already gone: nothing is left to stop.
-        kernel.respond(request.id, { kind: "accepted" });
+        kernel.respond(disposeRequest.id, { kind: "accepted" });
         return;
       }
-      disposeRequest = request;
       const exit = await lease.release();
       if (unasked !== null) { record(unasked, unasked.reason); }
       else if (exit !== null) { record(exit); }

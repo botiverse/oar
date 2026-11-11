@@ -3,6 +3,7 @@ import { execSync, spawn } from "node:child_process";
 import { once } from "node:events";
 import { existsSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { setTimeout as delay } from "node:timers/promises";
 
 /*
  * A stand-in for the part of `@cursor/sdk` 1.3.1 OAR uses, as a module: a
@@ -15,15 +16,24 @@ import path from "node:path";
  *   this process's environment, as the SDK's shell tool does, and finishes
  *   with its trimmed stdout as `result`.
  * - `hold`: runs until cancelled.
+ * - `crash-on-cancel`: runs until cancelled, and the cancel SIGKILLs this
+ *   process.
  * - `crash`: a text delta, then this process SIGKILLs itself.
- * - `spawn:<file>`: starts a grandchild (a Node process sleeping for 60 s,
- *   in this process's group), writes `{"child", "grandchild"}` pids to
- *   <file>, and finishes.
+ * - `throw`: a text delta, then an uncaught exception ends this process.
+ * - `spawn:<file>`: starts a grandchild (a Node process sleeping for 60 s)
+ *   detached, so it leads a process group of its own, as SDK 1.3.1 starts
+ *   its shell tool on POSIX (`detached: !win32`, bundle `dist/esm/305.js`),
+ *   writes `{"child", "grandchild"}` pids to <file>, and finishes.
+ * - `spawn-in-group:<file>`: the same, with the grandchild in this
+ *   process's group.
  * A steer is taken (`complete_delivered`) and echoed as a delta. With
  * `CURSOR_API_KEY=rejected-key-0123456789` the open and the model listing
  * fail the way the SDK refuses a key (`AuthenticationError`, status 401).
  * `Cursor.auth` keeps its login in `$OAR_FAKE_CURSOR_HOME/auth.json`;
- * `OAR_FAKE_CURSOR_LOGIN=hold` makes a login wait for its signal.
+ * `OAR_FAKE_CURSOR_LOGIN=hold` makes a login wait for its signal. Like SDK
+ * 1.3.1, `close()` only starts the agent's close work and
+ * `Symbol.asyncDispose` waits for it: 300 ms, after which it writes
+ * `$OAR_FAKE_CURSOR_CLOSED` (a file path), when set.
  */
 
 /** The minted key the fake login saves: never in IPC, a record or a result. */
@@ -71,7 +81,10 @@ class FakeRun {
     }
   }
 
-  async cancel() { this.end("cancelled"); }
+  async cancel() {
+    if (this.crashOnCancel === true) { process.kill(process.pid, "SIGKILL"); }
+    this.end("cancelled");
+  }
 
   async steer(text) {
     this.delta({ type: "user-message-appended", userMessage: { type: "user_message", text } });
@@ -91,8 +104,8 @@ function crash(run) {
   setTimeout(() => { process.kill(process.pid, "SIGKILL"); }, 20);
 }
 
-function startTool(run, file) {
-  const grandchild = spawn(process.execPath, ["-e", "setTimeout(() => {}, 60000)"], { stdio: "ignore" });
+function startTool(run, file, detached = true) {
+  const grandchild = spawn(process.execPath, ["-e", "setTimeout(() => {}, 60000)"], { stdio: "ignore", detached });
   grandchild.once("spawn", () => {
     writeFileSync(`${file}.tmp`, JSON.stringify({ child: process.pid, grandchild: grandchild.pid }));
     renameSync(`${file}.tmp`, file);
@@ -104,8 +117,14 @@ const behaviors = {
   echo,
   shell: (run, command) => { run.end("finished", execSync(command, { encoding: "utf8" }).trim()); },
   crash,
+  throw: (run) => {
+    run.delta({ type: "text-delta", text: "about to throw" });
+    setTimeout(() => { throw new Error("fake SDK failure"); }, 20);
+  },
   spawn: startTool,
+  "spawn-in-group": (run, file) => { startTool(run, file, false); },
   hold: () => {},
+  "crash-on-cancel": (run) => { run.crashOnCancel = true; },
 };
 
 function act(run, text) {
@@ -136,7 +155,18 @@ class FakeAgent {
     return this.send("echo:summary", { onDelta: () => {} });
   }
 
-  close() { this.closed = true; }
+  close() {
+    this.closing ??= (async () => {
+      await delay(300);
+      this.closed = true;
+      if (process.env.OAR_FAKE_CURSOR_CLOSED !== undefined) { writeFileSync(process.env.OAR_FAKE_CURSOR_CLOSED, this.agentId); }
+    })();
+  }
+
+  async [Symbol.asyncDispose]() {
+    this.close();
+    await this.closing;
+  }
 }
 
 async function opened(agentId, options) {
