@@ -32,9 +32,10 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
   credentials: CredentialRedactor, // BYOK change: the caller builds it with sessionCredentialRedactor.
   profile: StreamJsonSessionProfile<S>,
   hooks: StreamJsonSessionHooks = {},
+  retainedBytes?: number, // BYOK change: the caller's retained-record budget; old frame payloads are elided past it.
 ): Promise<AdapterSession> {
   // BYOK change: the upstream kernel with the redactor as its redact hook; the record consumer is registered before any record is appended.
-  const kernel = createSessionKernel(sessionId, credentials.redactValue);
+  const kernel = createSessionKernel(sessionId, credentials.redactValue, retainedBytes);
   if (hooks.onRecord !== undefined) { kernel.rawEvents(hooks.onRecord); }
   const tasks = profile.stopTask === undefined ? undefined : streamJsonTaskControl(kernel, child, profile.stopTask);
   const userMessage = profile.userMessage ?? streamJsonUserMessage;
