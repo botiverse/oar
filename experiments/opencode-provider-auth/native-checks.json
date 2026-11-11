@@ -1,0 +1,26 @@
+{
+  "readyMs": 1230,
+  "integrationsWithFlags": 239,
+  "wrongPassword": {
+    "status": 401,
+    "body": {
+      "_tag": "UnauthorizedError",
+      "message": "Authentication required"
+    }
+  },
+  "connects": {
+    "openai chatgpt-token-sharing": "200 redirect_uri=http://127.0.0.1:44179/auth/callback",
+    "openai chatgpt-browser": "200 redirect_uri=http://localhost:1455/auth/callback",
+    "gitlab pkce": "200 redirect_uri=http://127.0.0.1:8080/callback",
+    "poe browser": "200 redirect_uri=http://127.0.0.1:38529/callback",
+    "digitalocean browser": "200 redirect_uri=http://localhost:1456/auth/callback",
+    "snowflake-cortex browser": "200 redirect_uri=http://127.0.0.1:36353/"
+  },
+  "browserCalls": 0,
+  "host": {
+    "signal": "SIGKILL",
+    "loginProviders": 238
+  },
+  "serveRightAfterHostKill": 1,
+  "serveThreeSecondsLater": 0
+}

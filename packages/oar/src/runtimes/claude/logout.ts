@@ -1,7 +1,7 @@
 import type { AvailableInstallation } from "../../contracts/installation.js";
 import type { LogoutOptions, LogoutResult } from "../../contracts/login.js";
 import { loginExecutable } from "../../shared/login.js";
-import { commandLogout, confirmedLogout, runLogoutCommand } from "../../shared/logout.js";
+import { commandLogout, confirmedLogout, runLogoutCommand, statusAfterLogout } from "../../shared/logout.js";
 import { readClaudeAuthStatus } from "./auth-status.js";
 import { claudeEnv } from "./environment.js";
 
@@ -26,6 +26,7 @@ const FAILURE = /^Logout failed:\s*(.*)$/u;
 
 /** Signs claude out with `claude auth logout`; `claude auth status --json` decides. */
 export async function claudeLogout(installation: AvailableInstallation, options: LogoutOptions = {}): Promise<LogoutResult> {
+  const startedAt = Date.now();
   const target = loginExecutable(installation, "claude", LOGOUT_FLOOR, claudeEnv(options.env));
   if (target.kind === "settled") {
     return target.result;
@@ -36,6 +37,6 @@ export async function claudeLogout(installation: AvailableInstallation, options:
     return { kind: "failed", reason: "process_failed", detail: end.detail };
   }
   const native = commandLogout(end, LOGOUT_COMMAND, timeoutMs, FAILURE);
-  const read = await readClaudeAuthStatus(installation, { env: options.env });
+  const read = await readClaudeAuthStatus(installation, { env: options.env, ...statusAfterLogout(startedAt, options.timeoutMs) });
   return confirmedLogout(native, read.status, LOGOUT_COMMAND, read.apiKeySource === undefined ? [] : [`from ${read.apiKeySource}`]);
 }

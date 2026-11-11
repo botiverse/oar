@@ -519,6 +519,10 @@ Further rules:
   fallback, not a substitute for disposal: no graceful hooks run. Node
   does not emit `exit` for an unhandled terminating signal, including
   SIGKILL, so hosts must handle ordinary termination signals themselves.
+  The one exception is the `opencode serve` an OpenCode provider-auth facade
+  owns: it runs under a watchdog that stops it when its stdin pipe from the
+  host closes, which happens however the host ends, SIGKILL included
+  ([OpenCode page](../runtimes/opencode.md#provider-authentication)).
   Processes spawned internally by an embedded SDK are outside this registry.
 - **A runtime's memory is read, never recorded.** `Session.resources()`
   answers `{ rss, processes }`: the resident bytes of the runtime process,

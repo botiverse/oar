@@ -409,8 +409,12 @@ history. Omission and `"include"` retain existing behavior. See the
 
 ## Authentication status
 
-[source, 0.26.2] Native `qwen auth` was removed; OAR exposes no login or
-logout flow. Qwen says its OAuth free tier ended on **2026-04-15**. Configure
+[source, 0.26.2; re-checked on 0.27.2, 2026-11-11] Native `qwen auth` was
+removed; OAR exposes no login or logout flow. 0.27.2 still runs an
+unadvertised ACP `authenticate {methodId: "qwen-oauth"}` device flow, but it
+deletes the cached OAuth credential before it starts, and its token poll was
+refused (HTTP 401, then -32603 "Device code expired or invalid") in both
+tries; OAR does not drive it. Qwen says its OAuth free tier ended on **2026-04-15**. Configure
 a provider externally: `OPENAI_API_KEY`, `OPENAI_BASE_URL` and `OPENAI_MODEL`,
 a Bailian plan key and its regional plan endpoint, or an OpenRouter/Requesty
 key and provider endpoint. These are configuration instructions, not proof

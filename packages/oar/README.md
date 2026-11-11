@@ -443,22 +443,22 @@ back is answered through its `manual_code` prompt and written to the
 runtime's stdin only. It never logs the current account out first, and
 `interaction.signal` cancels it. `runtime.authStatus(installation)` reads the
 runtime's own status, never a secret, and never starts a login; a status read
-past its `timeoutMs` returns `unknown` without waiting for process cleanup. Claude,
-Codex, Cursor (through its SDK's own `Cursor.auth`), Qoder and Kimi (`kimi
-login`, with `KimiLoginOptions.region`) have both. Qwen has only
-`authStatus`, a local check of whether a provider credential is configured;
-its provider settings are on `createQwenProviderAuth`. Grok, OpenCode, DSH and Pi
-have neither yet (Pi's provider logins are on `createPiProviderAuth`).
-CodeBuddy supports login and a private native account-state read, but no logout
-([mapping](https://github.com/botiverse/oar/blob/main/docs/runtimes/codebuddy.md#international-login)).
-Antigravity supports login (its own `agy acp --login`, with the person
-pasting the code back) and status (`agy models`), but no logout, which the CLI
-allows only in its interactive UI. Its vendor warns that third-party access
-with a consumer login may break its terms; see
+past its `timeoutMs` returns `unknown` without waiting for process cleanup.
+Claude, Codex, Cursor (through its SDK's own `Cursor.auth`), Kimi (`kimi
+login`, with `KimiLoginOptions.region`), Grok (`grok login --device-auth`),
+Antigravity (its own `agy acp --login`, with the person pasting the code
+back), CodeBuddy and Qoder have both. Qwen has only `authStatus`, a local
+check of whether a provider credential is configured; its provider settings
+are on `createQwenProviderAuth`. OpenCode, DSH and Pi have neither (Pi's
+provider logins are on `createPiProviderAuth`, OpenCode 2's on
+`createOpencodeProviderAuth`). Antigravity's vendor warns that third-party
+access with a consumer login may break its terms; see
 [login](https://github.com/botiverse/oar/blob/main/docs/runtimes/antigravity.md#login).
-`runtime.logout(installation)` signs Claude, Codex, Cursor
-and Kimi out through their own logout (`claude auth logout`, `codex logout`,
-`Cursor.auth.logout`, Kimi's ACP `logout`) and resolves `logged_out` when
+`runtime.logout(installation)` signs Claude, Codex, Cursor, Kimi, Grok,
+Antigravity and CodeBuddy out through their own logout (`claude auth
+logout`, `codex logout`, `Cursor.auth.logout`, Kimi's and Antigravity's ACP
+`logout`, `grok logout`, CodeBuddy's stream-json `logout`); Qoder has no
+non-interactive logout. It resolves `logged_out` when
 `authStatus` then reads logged out (or, when it cannot tell, on the
 runtime's own report of success); an API key in the environment is not
 touched, and one the status still reads is `failed` / `still_logged_in`.

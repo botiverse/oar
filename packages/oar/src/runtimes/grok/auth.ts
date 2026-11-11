@@ -5,7 +5,7 @@ import { sessionEnvironment } from "../../shared/environment.js";
 import { runExecutable } from "../../shared/executable/index.js";
 import { withQueryDeadline } from "../../shared/executable/query.js";
 import { errorMessage, LoginSecrets, loginBounds, loginExecutable, spawnLoginProcess, stoppedResult, type LoginProcess, type LoginProcessExit, type LoginStop } from "../../shared/login.js";
-import { commandLogout, confirmedLogout, runLogoutCommand } from "../../shared/logout.js";
+import { commandLogout, confirmedLogout, runLogoutCommand, statusAfterLogout } from "../../shared/logout.js";
 
 /*
  * Grok Build's own sign-in (1.0.77, 2026-11-11; docs/runtimes/grok.md#login).
@@ -128,11 +128,12 @@ export async function grokLogin(installation: AvailableInstallation, interaction
 
 /** Signs Grok out with `grok logout`; `grok models` decides. */
 export async function grokLogout(installation: AvailableInstallation, options: LogoutOptions = {}): Promise<LogoutResult> {
+  const startedAt = Date.now();
   const env = sessionEnvironment(options.env);
   const target = loginExecutable(installation, "grok", undefined, env);
   if (target.kind === "settled") { return target.result; }
   const timeoutMs = options.timeoutMs ?? LOGOUT_TIMEOUT_MS;
   const end = await runLogoutCommand(target.installation.command, ["logout"], env, timeoutMs);
   if (end.kind === "not_started") { return { kind: "failed", reason: "process_failed", detail: end.detail }; }
-  return confirmedLogout(commandLogout(end, "grok logout", timeoutMs), await readGrokAuthStatus(installation, { env: options.env }), "grok logout");
+  return confirmedLogout(commandLogout(end, "grok logout", timeoutMs), await readGrokAuthStatus(installation, { env: options.env, ...statusAfterLogout(startedAt, options.timeoutMs) }), "grok logout");
 }

@@ -7,6 +7,15 @@ import { errorMessage, LoginSecrets, loginBounds, spawnLoginProcess, type LoginP
  * forwarded), and the rule that the runtime's status query decides.
  */
 
+/**
+ * The bound for the status read after a logout: the rest of the caller's
+ * `timeoutMs` (at least one second), so the logout and its confirmation fit
+ * the one budget; the reader's own default when the caller gave none.
+ */
+export function statusAfterLogout(startedAt: number, timeoutMs: number | undefined): { readonly timeoutMs?: number } {
+  return timeoutMs === undefined ? {} : { timeoutMs: Math.max(1000, startedAt + timeoutMs - Date.now()) };
+}
+
 /** How the runtime's own logout ended, before its status is read. */
 export type NativeLogout =
   /** The runtime reported success: an exit 0, a call that resolved. */

@@ -14,5 +14,6 @@ export const codebuddyRuntime = defineRuntime({
   listModels: onFirstCall(async () => { const { codebuddyListModels } = await import("./list-models.js"); return codebuddyListModels; }),
   login: onFirstCall(async () => { const { codebuddyLogin } = await import("./login.js"); return codebuddyLogin; }),
   authStatus: onFirstCall(async (): Promise<AuthStatusReader> => { const { codebuddyAuthStatus } = await import("./auth-status.js"); return codebuddyAuthStatus; }),
+  logout: onFirstCall(async () => { const { codebuddyLogout } = await import("./logout.js"); return codebuddyLogout; }),
   session: onFirstCall(async () => { const { codebuddySession } = await import("./session.js"); return codebuddySession; }),
 }, { execution: "process" });

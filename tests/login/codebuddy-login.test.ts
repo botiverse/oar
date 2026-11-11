@@ -5,12 +5,14 @@ import path from "node:path";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { codebuddyLogin } from "../../packages/oar/src/runtimes/codebuddy/login.js";
 import { codebuddyAuthStatus, readCodebuddyAuthStatus, projectCodebuddyAuthStatus } from "../../packages/oar/src/runtimes/codebuddy/auth-status.js";
+import { codebuddyLogout } from "../../packages/oar/src/runtimes/codebuddy/logout.js";
 import { fakeLoginCli } from "../fixtures/login-fixtures.js";
 import { recordedInteraction } from "../fixtures/login-interaction.js";
 
 const directories: string[] = [];
 beforeEach(() => { vi.stubEnv("CODEBUDDY_API_KEY", undefined); });
-afterEach(async () => { vi.unstubAllEnvs(); await Promise.all(directories.splice(0).map(async (dir) => { await rm(dir, { recursive: true, force: true }); })); });
+// A timed-out status query returns at its deadline, before its process is gone (#703): on Windows that process may still hold or write the directory.
+afterEach(async () => { vi.unstubAllEnvs(); await Promise.all(directories.splice(0).map(async (dir) => { await rm(dir, { recursive: true, force: true, maxRetries: 20, retryDelay: 100 }); })); });
 async function fixture(mode: string, loggedIn = false) {
 const dir = await mkdtemp(path.join(tmpdir(), "oar-codebuddy-login-")); directories.push(dir);
 const fake = fakeLoginCli({ dir, name: "codebuddy", script: "fake-codebuddy-login.mjs", state: { mode, loggedIn } });
@@ -175,3 +177,19 @@ it("a silent confirmation shares the whole login deadline and cannot contradict 
   expect(fake.read().pids).toHaveLength(2);
   expect(fake.read().loggedIn).toBe(true);
 }, 5000);
+
+it("logout is CodeBuddy's stream-json logout, confirmed by initialize.account", async () => {
+  const { fake, installation } = await fixture("success", true);
+  expect(await codebuddyLogout(installation)).toEqual({ kind: "logged_out" });
+  expect(fake.read().requests).toEqual([{ subtype: "logout" }, { subtype: "initialize" }]);
+  expect(fake.read().loggedIn).toBe(false);
+});
+
+it("a logout CodeBuddy refuses is rejected without its account details; one that leaves a sign-in is not called logged out", async () => {
+  const { installation: refusing } = await fixture("logout-error", true);
+  const refused = await codebuddyLogout(refusing);
+  expect(refused).toMatchObject({ kind: "failed", reason: "rejected" });
+  expect(JSON.stringify(refused)).not.toContain("private@example.invalid");
+  const { installation: sticky } = await fixture("sticky", true);
+  expect(await codebuddyLogout(sticky)).toMatchObject({ kind: "failed", reason: "still_logged_in" });
+});

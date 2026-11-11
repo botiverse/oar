@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { basename } from "node:path";
 import { UserShellEnvironmentError, type UserShellEnvironment, type UserShellEnvironmentOptions, type UserShellEnvironmentFailure } from "../contracts/shell-environment.js";
 import { asRecord, parseJson } from "./json.js";
+import { nodeEvalExecutable } from "./executable/node-eval.js";
 import { signalProcessGroup, trackOwnedProcess } from "./executable/process.js";
 
 const OUTPUT_LIMIT = 2 * 1024 * 1024;
@@ -98,15 +99,10 @@ async function capture(shell: string, args: readonly string[], env: NodeJS.Proce
 
 /** A compiled host cannot evaluate -e: starting it would reenter the application. */
 async function captureExecutable(): Promise<string> {
-  const bun = asRecord(Reflect.get(globalThis, "Bun"));
-  if (bun !== null) {
-    // Older Bun builds without the documented flag cannot establish this safely.
-    if (bun.isStandaloneExecutable !== false) { throw new UserShellEnvironmentError("no_node_runtime"); }
-  } else {
-    const { isSea } = await import("node:sea");
-    if (isSea()) { throw new UserShellEnvironmentError("no_node_runtime"); }
-  }
-  return process.execPath;
+  await Promise.resolve();
+  const executable = nodeEvalExecutable();
+  if (executable === null) { throw new UserShellEnvironmentError("no_node_runtime"); }
+  return executable;
 }
 
 /** Explicit, uncached and private: execute the configured login shell once without a terminal. */

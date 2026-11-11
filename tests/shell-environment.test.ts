@@ -3,13 +3,15 @@ import assert from "node:assert/strict";
 import { chmod, mkdtemp, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { afterEach, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { writeShellEnvironmentCapture } from "../packages/oar/src/index.js";
 import { UserShellEnvironmentError } from "../packages/oar/src/contracts/shell-environment.js";
 import { parseShellEnvironment, shellEnvironmentCommand, userShellEnvironment } from "../packages/oar/src/shared/shell-environment.js";
 
 const isSea = vi.hoisted(() => vi.fn(() => false));
-vi.mock("node:sea", () => ({ isSea }));
+// OAR reads `node:sea` through process.getBuiltinModule (shared/executable/node-eval.ts).
+const builtin = process.getBuiltinModule.bind(process);
+beforeEach(() => { vi.spyOn(process, "getBuiltinModule").mockImplementation((id: string) => (id === "node:sea" ? { isSea } : builtin(id))); });
 vi.mock("node:child_process", async (original) => {
   const actual = await original<{ spawn: typeof spawn }>();
   return { ...actual, spawn: vi.fn(actual.spawn) };

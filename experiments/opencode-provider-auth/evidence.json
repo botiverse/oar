@@ -1,0 +1,176 @@
+{
+  "createMs": 1595,
+  "loginProviders": 238,
+  "oauthProviders": [
+    "digitalocean",
+    "github-copilot",
+    "gitlab",
+    "openai",
+    "opencode",
+    "poe",
+    "snowflake-cortex",
+    "xai"
+  ],
+  "samples": [
+    {
+      "providerId": "azure",
+      "name": "Azure",
+      "methods": [
+        {
+          "method": "api_key",
+          "name": "API key"
+        },
+        {
+          "method": "api_key",
+          "name": "AZURE_API_KEY, AZURE_COGNITIVE_SERVICES_API_KEY",
+          "ambient": true
+        }
+      ]
+    },
+    {
+      "providerId": "github-copilot",
+      "name": "GitHub Copilot",
+      "methods": [
+        {
+          "method": "oauth",
+          "name": "Login with GitHub Copilot"
+        },
+        {
+          "method": "api_key",
+          "name": "GITHUB_TOKEN",
+          "ambient": true
+        }
+      ]
+    },
+    {
+      "providerId": "openai",
+      "name": "OpenAI",
+      "methods": [
+        {
+          "method": "oauth",
+          "name": "Sign in with ChatGPT"
+        },
+        {
+          "method": "oauth",
+          "name": "Codex browser (legacy)"
+        },
+        {
+          "method": "oauth",
+          "name": "Codex device code (legacy)"
+        },
+        {
+          "method": "api_key",
+          "name": "OpenAI API key"
+        },
+        {
+          "method": "api_key",
+          "name": "OPENAI_API_KEY",
+          "ambient": true
+        }
+      ]
+    },
+    {
+      "providerId": "xai",
+      "name": "xAI",
+      "methods": [
+        {
+          "method": "oauth",
+          "name": "SuperGrok Subscription"
+        },
+        {
+          "method": "api_key",
+          "name": "Manually enter API Key"
+        },
+        {
+          "method": "api_key",
+          "name": "XAI_API_KEY",
+          "ambient": true
+        }
+      ]
+    }
+  ],
+  "listBefore": [],
+  "xaiAfterTwoKeys": {
+    "providerId": "xai",
+    "configured": true,
+    "method": "api_key",
+    "label": "xAI 2"
+  },
+  "listAfterKeys": [
+    {
+      "providerId": "xai",
+      "configured": true,
+      "method": "api_key",
+      "label": "xAI 2"
+    }
+  ],
+  "azureSetApiKey": "OpencodeProviderAuthError: method_unavailable azure's API-key sign-in asks more than the key: use login(\"azure\", \"api_key\", interaction) instead of setApiKey",
+  "xaiAfterLogout": {
+    "providerId": "xai",
+    "configured": false
+  },
+  "copilotLogin": "Error:  cancelled by the probe",
+  "copilotEvents": [
+    {
+      "kind": "device_code",
+      "userCode": "<code>",
+      "verificationUri": "https://github.com/login/device",
+      "expiresInSeconds": 600
+    }
+  ],
+  "xaiLogin": "Error:  cancelled by the probe",
+  "xaiEvents": [
+    {
+      "kind": "device_code",
+      "userCode": "<code>",
+      "verificationUri": "https://accounts.x.ai/oauth2/device?user_code=<code>",
+      "expiresInSeconds": 1800
+    }
+  ],
+  "browserEvents": {
+    "openai chatgpt-token-sharing": [
+      {
+        "kind": "auth_url",
+        "url": "https://auth.openai.com/api/accounts/authorize redirect_uri=http://127.0.0.1:35013/auth/callback",
+        "instructions": "Complete authorization in your browser. This window will close automatically."
+      }
+    ],
+    "openai chatgpt-browser": [
+      {
+        "kind": "auth_url",
+        "url": "https://auth.openai.com/oauth/authorize redirect_uri=http://localhost:1455/auth/callback",
+        "instructions": "Complete authorization in your browser. This window will close automatically."
+      }
+    ],
+    "gitlab": [
+      {
+        "kind": "auth_url",
+        "url": "https://gitlab.com/oauth/authorize redirect_uri=http://127.0.0.1:8080/callback",
+        "instructions": "Complete authorization in your browser. This window will close automatically."
+      }
+    ],
+    "poe": [
+      {
+        "kind": "auth_url",
+        "url": "https://poe.com/oauth/authorize redirect_uri=http://127.0.0.1:44313/callback",
+        "instructions": "Complete authorization in your browser. This window will close automatically."
+      }
+    ],
+    "digitalocean": [
+      {
+        "kind": "auth_url",
+        "url": "https://cloud.digitalocean.com/v1/oauth/authorize redirect_uri=http://localhost:1456/auth/callback",
+        "instructions": "Complete authorization in your browser. This window will close automatically."
+      }
+    ]
+  },
+  "coldStatusMs": 1369,
+  "loopbackRefused": {
+    "openai chatgpt-token-sharing": "OpencodeProviderAuthError: loopback_required the openai sign-in \"Sign in with ChatGPT\" returns the browser to 127.0.0.1:43469 on the machine running opencode serve and takes no pasted code: the browser must run on that machine",
+    "openai chatgpt-browser": "OpencodeProviderAuthError: loopback_required the openai sign-in \"Codex browser (legacy)\" returns the browser to localhost:1455 on the machine running opencode serve and takes no pasted code: the browser must run on that machine",
+    "gitlab": "OpencodeProviderAuthError: loopback_required the gitlab sign-in \"Login with GitLab (OAuth)\" returns the browser to 127.0.0.1:8080 on the machine running opencode serve and takes no pasted code: the browser must run on that machine",
+    "poe": "OpencodeProviderAuthError: loopback_required the poe sign-in \"Login with Poe (browser)\" returns the browser to 127.0.0.1:46641 on the machine running opencode serve and takes no pasted code: the browser must run on that machine",
+    "digitalocean": "OpencodeProviderAuthError: loopback_required the digitalocean sign-in \"Login with DigitalOcean\" returns the browser to localhost:1456 on the machine running opencode serve and takes no pasted code: the browser must run on that machine"
+  },
+  "xaiLoginWhenRefusing": "Error:  cancelled by the probe"
+}

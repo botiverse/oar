@@ -60,6 +60,8 @@ export { opencodeRuntime } from "./runtimes/opencode/index.js";
 export { opencodeListModels, projectOpencodeModels } from "./runtimes/opencode/list-models.js";
 export { opencodeSession } from "./runtimes/opencode/session.js";
 export { opencodeInstallation } from "./runtimes/opencode/installation.js";
+export { createOpencodeProviderAuth, OpencodeProviderAuthError } from "./runtimes/opencode/provider-auth.js";
+export type { OpencodeProviderAuth, OpencodeProviderAuthErrorKind, OpencodeProviderAuthOptions } from "./runtimes/opencode/provider-auth.js";
 export { qwenRuntime, createQwenProviderAuth, QwenProviderAuthError } from "./runtimes/qwen/index.js";
 export type { QwenProvider, QwenProviderAuth, QwenProviderAuthOptions, QwenProviderAuthErrorKind, QwenProviderConnectOptions, QwenProviderConnectResult } from "./runtimes/qwen/index.js";
 export { qwenListModels, projectQwenModels } from "./runtimes/qwen/list-models.js";
