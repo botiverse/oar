@@ -1,28 +1,41 @@
+// BYOK change: Modified from OAR 95c6547 for a caller-owned process, a record consumer, caller-answered app requests and session credential redaction without sealSession (Apache-2.0).
 import { streamJsonTaskControl } from "./task-control.js";
 import { streamJsonCompaction } from "./compaction.js";
 /* oxlint-disable import/max-dependencies -- The driver composes protocol, input and process-lifetime mechanisms. */
-import type { ControlResult, InputOptions, RequestRecord, Session } from "../../contracts/session.js";
+import type { AdapterSession, ControlResult, InputOptions, RawEvent, RequestRecord } from "../../contracts/session.js";
 import { createAbortFallback } from "../abort-fallback.js";
 import { withInputImages, type LoadedImage } from "../input-images.js";
 import { withdrawControl } from "../held-input.js";
-import { asRecord, parseJson } from "../json.js";
-import type { SessionCredentials } from "../session-credentials.js";
-import { appendCleanupFailure, cleanupFailureReason } from "../executable/process-cleanup.js";
-import type { LineProcess } from "../executable/index.js";
-import type { CancellationObservation } from "../executable/process-cancellation.js";
+import { asRecord, parseJson, type JsonRecord } from "../json.js";
+// BYOK change: the injected line process, one credential redactor per open and the upstream kernel; no SessionCredentials or executable manager.
+import type { LineProcess } from "../../runtimes/codex/app-server-client.js";
+import type { CredentialRedactor } from "../credential-redactor.js";
+import { createSessionKernel } from "../session-kernel.js";
 import { streamJsonUserMessage, streamJsonPrompted } from "./input-lifecycle.js";
 import { foldStreamJsonStdout } from "./projection.js";
 import { streamJsonAbortRequested, type StreamJsonProjectionState, type StreamJsonSessionState } from "./state.js";
 import type { StreamJsonSessionProfile } from "./profile.js";
 
+/** BYOK change: caller hooks. The record consumer sees every record; the caller alone answers a runtime request. */
+export interface StreamJsonSessionHooks {
+  readonly onRecord?: (record: RawEvent) => void;
+  /** Every `toApp` request, whatever its type. `respond` writes the native reply and records it; a request never answered stays unanswered. */
+  readonly onAppRequest?: (request: { readonly id: string; readonly type: string; readonly native: JsonRecord }, respond: (reply: JsonRecord) => Promise<void>) => void;
+  /** Runs before the native interrupt is written; a throw rejects the abort with code `error` and writes no interrupt. */
+  readonly beforeInterrupt?: () => void;
+}
+
 /** Shared line protocol driver. A runtime launches its own process and supplies its own readbacks. */
 export async function streamJsonSession<S extends StreamJsonProjectionState>(
   child: LineProcess,
   sessionId: string,
-  credentials: SessionCredentials,
+  credentials: CredentialRedactor, // BYOK change: the caller builds it with sessionCredentialRedactor.
   profile: StreamJsonSessionProfile<S>,
-): Promise<Session> {
-  const kernel = credentials.kernel(sessionId);
+  hooks: StreamJsonSessionHooks = {},
+): Promise<AdapterSession> {
+  // BYOK change: the upstream kernel with the redactor as its redact hook; the record consumer is registered before any record is appended.
+  const kernel = createSessionKernel(sessionId, credentials.redactValue);
+  if (hooks.onRecord !== undefined) { kernel.rawEvents(hooks.onRecord); }
   const tasks = profile.stopTask === undefined ? undefined : streamJsonTaskControl(kernel, child, profile.stopTask);
   const userMessage = profile.userMessage ?? streamJsonUserMessage;
   const state: StreamJsonSessionState<S> = { child, active: null, spontaneous: false, projection: profile.initial, disposed: false };
@@ -37,26 +50,11 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
   const abortFallback = createAbortFallback(() => { child.kill(); });
   const pendingInterrupts = new Map<string, () => void>();
   let disposeRequest: RequestRecord | null = null;
-  let turnRevision = 0;
-  let observingCancellation: { readonly revision: number; readonly result: Promise<CancellationObservation> } | null = null;
-  let cancellation: CancellationObservation | null = null;
-  const waitForCancellation = async (): Promise<void> => {
-    try { await observingCancellation?.result; }
-    catch { /* The abort reports its observation failure; later input still proceeds. */ }
-  };
-  const sentInterrupts = new Set<string>();
-  const completeCancellation = (): void => {
-    cancellation?.complete(); cancellation = null; sentInterrupts.clear();
-  };
-  const refuseCancellation = (requestId: string): void => {
-    sentInterrupts.delete(requestId);
-    if (sentInterrupts.size === 0) { completeCancellation(); }
-  };
+  // BYOK change: no upstream cancellation observation window; the caller's beforeInterrupt runs synchronously before the interrupt.
   function drainHeld(): void {
-    if (state.disposed || busy() || observingCancellation !== null) { return; }
+    if (state.disposed || busy()) { return; }
     const next = heldQueue.shift();
     if (next === undefined) { return; }
-    turnRevision += 1;
     state.active = next.request;
     if (commandLifecycle && next.inputId !== undefined) { writtenQueues.set(next.inputId, next.request); }
     state.projection = streamJsonPrompted(state.projection, next.inputId, false, commandLifecycle);
@@ -91,14 +89,13 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
         case "frame": {
           // A spontaneous start can arrive at init or at a later queued receipt.
           if (command.agentPath.length === 0 && command.body.events.some((event) => event.kind === "turn_active" && event.inputId === undefined)) {
-            if (!busy()) { turnRevision += 1; }
             state.spontaneous = true;
           }
           const nativeResponse = profile.compaction?.responseTo?.(message);
           const correlated = command.agentPath.length === 0 && nativeResponse !== undefined && nativeResponse === compaction?.requestId();
           const closes = command.agentPath.length === 0 && (correlated || command.body.events.some((event) => event.kind === "turn_ended"));
           if (closes) {
-            abortFallback.clear(); completeCancellation(); turnRevision += 1;
+            abortFallback.clear();
             if (state.projection.pendingInputId === null) { state.active = null; }
             state.spontaneous = false;
           }
@@ -115,9 +112,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
           const refused = pendingInterrupts.get(command.requestId);
           if (refused !== undefined) {
             pendingInterrupts.delete(command.requestId);
-            if (command.body.kind === "rejected") {
-              refused(); refuseCancellation(command.requestId);
-            }
+            if (command.body.kind === "rejected") { refused(); }
             kernel.respond(command.requestId, command.body);
           } else {
             // Preserve late/duplicate stdout after exit without answering a request twice.
@@ -127,12 +122,12 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
         }
         case "toApp": {
           kernel.request("toApp", { kind: "native", type: command.type, native: command.native }, { id: command.id });
-          const request = asRecord(message.request);
-          const reply = command.type === "can_use_tool" && request !== null ? profile.permissionResponse?.(command.id, request) : undefined;
-          if (reply !== undefined && reply !== null) {
-            child.write(`${JSON.stringify(reply)}\n`);
+          // BYOK change: every runtime request goes to the caller, whatever its type; profile.permissionResponse is not read.
+          // Without a hook, or when the hook does not answer, the request stays unanswered: nothing here allows by default.
+          hooks.onAppRequest?.({ id: command.id, type: command.type, native: message }, async (reply) => {
+            await child.writeAcknowledged(`${JSON.stringify(reply)}\n`);
             kernel.respond(command.id, { kind: "accepted", native: reply });
-          }
+          });
           break;
         }
         default:
@@ -140,17 +135,17 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
       }
     }
     if (dropped && !ended && !busy()) {
-      abortFallback.clear(); completeCancellation(); turnRevision += 1;
+      abortFallback.clear();
       if (state.projection.pendingInputId === null) { state.active = null; }
       state.spontaneous = false;
     }
     if (ended || (dropped && !busy())) { drainHeld(); }
   });
-  child.onExit((code, cleanupReason) => {
-    abortFallback.clear(); completeCancellation(); turnRevision += 1;
+  // BYOK change: the injected line process reports no cleanup reason; only the profile's exit reason is recorded.
+  child.onExit((code) => {
+    abortFallback.clear();
     // An exit before fallback still precedes the rejected pending controls.
-    const reasons = [profile.exitReason?.(), cleanupReason].filter((value) => value !== undefined);
-    const reason = reasons.length === 0 ? undefined : reasons.join("; ");
+    const reason = profile.exitReason?.();
     kernel.respond(disposeRequest?.id ?? "", { kind: "exited", code, ...(reason === undefined ? {} : { reason }) });
     state.active = null;
     state.spontaneous = false;
@@ -161,33 +156,36 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
     tasks?.end();
     profile.exited(code);
   });
+  // BYOK change: an open failure is redacted; the caller owns the process and releases it.
   try {
     await profile.open({ current: () => state.projection, replace: (projection) => { state.projection = projection; }, report: (body) => { kernel.frame(body); } });
-  } catch (error) { throw appendCleanupFailure(error, cleanupFailureReason(child.diagnostics().cleanup)); }
+  } catch (error) { throw credentials.redactValue(error); }
   let interruptCounter = 0;
   const capabilities = profile.capabilities;
-  const session: Session = credentials.seal({
+  // BYOK change: the upstream credentials.seal guard without sealSession: a control's thrown error is redacted.
+  const guard = <Args extends unknown[], Result>(method: (...args: Args) => Promise<Result>, cleanResult = false) =>
+    async (...args: Args): Promise<Result> => {
+      try { const result = await method(...args); return cleanResult ? credentials.redactValue(result) : result; } catch (error) { throw credentials.redactValue(error); }
+    };
+  const session: AdapterSession = { // BYOK change: raw adapter session without sealSession.
     id: kernel.sessionId,
     capabilities,
-    ...(compaction === null ? {} : { compact: compaction.compact }),
-    ...(tasks === undefined ? {} : { stopTask: tasks.stop }),
-    prompt: async (input, inputOptions?: InputOptions): Promise<ControlResult> => {
-      if (observingCancellation !== null) { await waitForCancellation(); }
+    ...(compaction === null ? {} : { compact: guard(compaction.compact, true) }),
+    ...(tasks === undefined ? {} : { stopTask: guard(tasks.stop) }),
+    prompt: guard(async (input: string, inputOptions?: InputOptions): Promise<ControlResult> => {
       const body = { kind: "prompt" as const, input, ...inputOptions };
       return kernel.control(body, (request) => {
         if (busy() || heldQueue.length > 0) { return { kind: "rejected", code: "busy", reason: "busy" }; }
         return withInputImages(capabilities, inputOptions?.images, (images) => {
-          turnRevision += 1;
           state.active = request;
           state.projection = streamJsonPrompted(state.projection, inputOptions?.inputId, true, commandLifecycle);
           child.write(userMessage(input, inputOptions?.inputId, images));
           return { kind: "accepted" };
         });
       });
-    },
+    }),
     ...(profile.steer ? {
-      steer: async (input: string, inputOptions?: InputOptions): Promise<ControlResult> => {
-        if (observingCancellation !== null) { await waitForCancellation(); }
+      steer: guard(async (input: string, inputOptions?: InputOptions): Promise<ControlResult> => {
         return kernel.control({ kind: "steer", input, ...inputOptions }, () => {
           if (compaction?.busy() === true) { return { kind: "rejected", code: "busy", reason: "Manual compaction is still in progress" }; }
           if (!nativeBusy()) { return { kind: "rejected", code: "no_active_turn", reason: "not_steerable: no active turn" }; }
@@ -196,15 +194,14 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
             return { kind: "accepted" };
           });
         });
-      },
+      }),
     } : {}),
-    queue: async (input, inputOptions?: InputOptions): Promise<ControlResult> => {
+    queue: guard(async (input: string, inputOptions?: InputOptions): Promise<ControlResult> => {
       const result = await kernel.control({ kind: "queue", input, ...inputOptions }, (request) =>
         withInputImages(capabilities, inputOptions?.images, (images) => {
-          if (busy() || heldQueue.length > 0 || observingCancellation !== null) {
+          if (busy() || heldQueue.length > 0) {
             heldQueue.push({ request, input, ...(inputOptions?.inputId === undefined ? {} : { inputId: inputOptions.inputId }), images });
           } else {
-            turnRevision += 1;
             if (commandLifecycle && inputOptions?.inputId !== undefined) { writtenQueues.set(inputOptions.inputId, request); }
             state.projection = streamJsonPrompted(state.projection, inputOptions?.inputId, false, commandLifecycle);
             if (!commandLifecycle) { state.spontaneous = true; }
@@ -213,9 +210,9 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
           return { kind: "accepted" };
         }));
       return result;
-    },
-    withdraw: withdrawControl(kernel, heldQueue),
-    abort: async (): Promise<ControlResult> => {
+    }),
+    withdraw: guard(withdrawControl(kernel, heldQueue)),
+    abort: guard(async (): Promise<ControlResult> => {
       // The matching control_response answers interrupt; the result frame ends the turn.
       interruptCounter += 1;
       const requestId = `interrupt-${interruptCounter}`;
@@ -226,24 +223,11 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
       if (blocked !== null || (!nativeBusy() && compaction?.busy() !== true && !(canCancelQueued && state.projection.unstartedInputs.size > 0))) {
         return { request, response: kernel.respond(request.id, blocked ?? { kind: "rejected", code: "no_active_turn", reason: "no active turn" }) };
       }
-      const revision = turnRevision;
-      observingCancellation ??= { revision, result: cancellation === null ? child.observeCancellation() : Promise.resolve(cancellation) };
-      const window = observingCancellation;
-      let observation: CancellationObservation | null = null;
-      try { observation = await window.result; }
+      // BYOK change: the caller's synchronous hook replaces the upstream cancellation observation; no interrupt goes out unless it returns.
+      try { hooks.beforeInterrupt?.(); }
       catch (error) {
         return { request, response: kernel.respond(request.id, { kind: "rejected", code: "error", reason: error instanceof Error ? error.message : String(error) }) };
-      } finally {
-        // Preserve the observed turn until interrupt has been written. A
-        // drained arrival must not advance its revision before that check.
-        if (observingCancellation === window) { observingCancellation = null; queueMicrotask(drainHeld); }
       }
-      const afterObservation = kernel.unreachable();
-      if (turnRevision !== revision || window.revision !== revision || afterObservation !== null || state.disposed) {
-        observation.complete();
-        return { request, response: kernel.respond(request.id, afterObservation ?? { kind: "rejected", code: "no_active_turn", reason: "turn ended before cancellation was sent" }) };
-      }
-      cancellation = observation;
       state.projection = streamJsonAbortRequested(state.projection);
       const { promise, resolve } = Promise.withResolvers<ControlResult>();
       const unsubscribe = kernel.rawEvents((record) => {
@@ -259,7 +243,6 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
         }
       });
       if (pendingInterrupts.has(requestId)) { pendingInterrupts.set(requestId, refuse); }
-      observation.commit(); sentInterrupts.add(requestId);
       child.write(`${JSON.stringify({
         type: "control_request",
         request_id: requestId,
@@ -268,13 +251,13 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
       const result = await promise;
       unsubscribe();
       return result;
-    },
+    }),
     rawEvents: (observer, cursor) => kernel.rawEvents(observer, cursor),
     records: () => kernel.records(),
     graph: () => kernel.graph(),
-    resources: child.resources,
+    // BYOK change: the injected line process has no resources reader.
     ...(profile.contextBreakdown === undefined ? {} : { contextBreakdown: profile.contextBreakdown }),
-    dispose: async () => {
+    dispose: guard(async () => {
       if (state.disposed) { return; }
       state.disposed = true;
       // stdin ends now: no query may write to it any more.
@@ -290,7 +273,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
       if (profile.close === undefined) { child.kill(); }
       else { await profile.close(busy()); }
       await child.exited; // release point for anything the process held; the exit response is recorded by onExit
-    },
-  });
+    }),
+  };
   return session;
 }

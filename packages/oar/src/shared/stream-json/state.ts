@@ -1,4 +1,5 @@
-import type { LineProcess } from "../executable/index.js";
+// BYOK change: Modified from OAR 95c6547 to type the caller-injected line process (Apache-2.0).
+import type { LineProcess } from "../../runtimes/codex/app-server-client.js"; // BYOK change: the injected line process type.
 import type { RequestRecord } from "../../contracts/session.js";
 import type { StreamJsonPartials } from "./content.js";
 
