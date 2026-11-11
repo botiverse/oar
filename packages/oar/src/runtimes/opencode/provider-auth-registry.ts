@@ -141,8 +141,8 @@ export function parseIntegrations(body: unknown): OpencodeIntegration[] {
 
 /**
  * The ways OpenCode offers to sign in to one integration: each `oauth`
- * method under its own label (OpenCode 2.2.7 marks no method as a
- * subscription, so none is claimed), then its `key` prompt, then its `env`
+ * method under its own label, with no `subscription` (OpenCode does not
+ * say whether a sign-in is one), then its `key` prompt, then its `env`
  * variables as an ambient key. `external` and `command` methods read a
  * credential another tool keeps and are omitted.
  */
@@ -151,7 +151,7 @@ export function loginProviderOf(integration: OpencodeIntegration): LoginProvider
   const keys: LoginProviderMethod[] = [];
   for (const entry of integration.methods) {
     if (entry.type === "oauth") {
-      oauth.push({ method: "oauth", name: entry.label ?? entry.id, subscription: false });
+      oauth.push({ method: "oauth", name: entry.label ?? entry.id });
     } else if (entry.type === "key") {
       keys.push({ method: "api_key", name: entry.label ?? `${integration.name} API key` });
     } else if (entry.type === "env") {

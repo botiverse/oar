@@ -13,6 +13,8 @@ export interface OauthFlow {
   readonly secrets: LoginSecrets;
   readonly timeoutMs: number;
   readonly pollMs: number;
+  /** `refuse`: an attempt only a browser on the server's machine can finish is cancelled (`loopback_required`). */
+  readonly loopback: "allow" | "refuse";
 }
 
 /** `Integration.AttemptEncoded`, reduced to what the flow reads. */
@@ -42,7 +44,30 @@ function attemptOf(body: unknown): Attempt | undefined {
   };
 }
 
-async function chooseMethod(flow: OauthFlow): Promise<{ readonly id: string; readonly form: Parameters<typeof askForm>[1] }> {
+const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
+
+/**
+ * The loopback address an authorize URL sends the browser back to, from its
+ * `redirect_uri` (every browser method on 2.2.7: OpenAI, GitLab, Poe,
+ * DigitalOcean, Snowflake Cortex) or `redirect` query value; undefined for
+ * any other URL (a device page, a remote callback, an unparsable value).
+ */
+export function loopbackRedirect(url: string): string | undefined {
+  if (!URL.canParse(url)) {
+    return undefined;
+  }
+  const query = new URL(url).searchParams;
+  for (const key of ["redirect_uri", "redirect"]) {
+    const value = query.get(key);
+    const target = value === null || !URL.canParse(value) ? undefined : new URL(value);
+    if (target !== undefined && LOOPBACK_HOSTS.has(target.hostname)) {
+      return target.host;
+    }
+  }
+  return undefined;
+}
+
+async function chooseMethod(flow: OauthFlow): Promise<{ readonly id: string; readonly label?: string; readonly form: Parameters<typeof askForm>[1] }> {
   const { integration, interaction } = flow;
   const methods = integration.methods.flatMap((entry) => (entry.type === "oauth" ? [entry] : []));
   const [only] = methods;
@@ -168,6 +193,11 @@ export async function runOauth(flow: OauthFlow): Promise<void> {
   const path = `${base}/${encodeURIComponent(attempt.attemptID)}`;
   let complete = false;
   try {
+    const loopback = attempt.takesCode || flow.loopback === "allow" ? undefined : loopbackRedirect(attempt.url);
+    if (loopback !== undefined) {
+      throw new OpencodeProviderAuthError("loopback_required",
+        `the ${integration.id} sign-in "${method.label ?? method.id}" returns the browser to ${loopback} on the machine running opencode serve and takes no pasted code: the browser must run on that machine`);
+    }
     announce(flow, attempt);
     await wait(flow, attempt, path);
     complete = true;

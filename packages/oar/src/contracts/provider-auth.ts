@@ -29,7 +29,10 @@ export interface ProviderAuthStatus {
   readonly method?: ProviderLoginMethod;
   /** Human-readable source label, e.g. `"OAuth"` or `"ANTHROPIC_API_KEY"`. */
   readonly label?: string;
-  /** True when the credential is a subscription OAuth login rather than a metered key. */
+  /**
+   * True when the credential is a subscription OAuth login rather than a
+   * metered key. Absent when the backend does not say (OpenCode); Pi sets it.
+   */
   readonly subscription?: boolean;
 }
 
@@ -45,9 +48,10 @@ export type LoginProviderMethod =
       /**
        * True when the account behind it is a provider subscription (Claude
        * Pro/Max, ChatGPT, SuperGrok); false for a plain account sign-in
-       * (OpenRouter, Radius).
+       * (OpenRouter, Radius). Absent when the backend does not say: Pi sets
+       * it, OpenCode does not report it.
        */
-      readonly subscription: boolean;
+      readonly subscription?: boolean;
       /**
        * The vendor's own label for this sign-in, e.g. `"Sign in with ChatGPT"`;
        * absent when it has none. Pi shows it in place of "Sign in with an
@@ -132,7 +136,7 @@ export interface ProviderAuthFacade {
    * only, no credential read: `status` says how one is signed in.
    */
   loginProviders(): readonly LoginProvider[];
-  /** The status of one provider (`configured: false` when nothing is stored). */
+  /** The status of one provider (`configured: false` when nothing is stored, also for a provider the backend does not know). */
   status(providerId: string): Promise<ProviderAuthStatus>;
   /** Run the provider's OAuth or API-key login flow and persist the result. API keys are literal; rejects on cancellation. */
   login(

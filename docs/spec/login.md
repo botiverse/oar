@@ -107,20 +107,40 @@ are not rewritten; resolved reads of those files retain Pi's command and
 environment-reference behavior. Stored metadata reads
 (`listProviders({ resolve: false })`) remain non-resolving.
 
+`subscription` is optional in the contract, on an OAuth `LoginProviderMethod`
+and on `ProviderAuthStatus`, and absent when the backend does not say. Pi
+always says: each OAuth method carries Pi's `isSubscription`, and an OAuth
+status Pi's subscription check (`false` for an API key). `status(id)` of a
+provider the backend does not know is `{ providerId, configured: false }`
+on both facades, never an error.
+
 ## OpenCode provider authentication
 
-`createOpencodeProviderAuth(installation, { env?, timeoutMs? })` is available
-from both `@botiverse/oar` and `@botiverse/oar/runtimes/opencode`, for
-OpenCode 2 only (OpenCode 1 is refused with `OpencodeProviderAuthError`
+`createOpencodeProviderAuth(installation, { env?, timeoutMs?, loginTimeoutMs?, idleMs?, loopback? })`
+is available from both `@botiverse/oar` and `@botiverse/oar/runtimes/opencode`,
+for OpenCode 2 only (OpenCode 1 is refused with `OpencodeProviderAuthError`
 kind `version_unsupported`). It returns a `ProviderAuthFacade` with `close()`,
 backed by an owned `opencode serve` and OpenCode's own `integration.*` and
 `credential.remove` operations; OAR never touches OpenCode's credential
-files. Cancellation, prompts and secrets follow the Pi facade above: an
+files. `timeoutMs` (30 s) is one budget for startup and readiness and bounds
+each request, `loginTimeoutMs` (10 minutes) bounds the wait for the person,
+`idleMs` (5 s) is the idle shutdown. The server runs in the user's home, so
+it loads their global OpenCode configuration and plugins (it may install
+plugins and start MCP servers; OAR turns off its update check and model
+catalog fetch), and every call after an idle shutdown starts a new one
+first (1.4 to 2.5 s on 2.2.7). It stops when OAR's process dies, SIGKILL
+included. Cancellation, prompts and secrets follow the Pi facade above: an
 aborted `interaction.signal` rejects with its reason, and keys and pasted
-codes never appear in a result or an error. `setApiKey` replaces the
-integration's earlier stored credentials; `logout` removes them and leaves
-environment variables alone. The mapping, process lifetime and evidence are
-on the [OpenCode page](../runtimes/opencode.md#provider-authentication).
+codes never appear in a result or an error. OpenCode does not say whether
+an OAuth sign-in is a subscription, so `subscription` is always absent. A
+completed sign-in, OAuth or key, replaces the integration's earlier stored
+credentials; when removing one fails the sign-in still succeeds and an
+earlier credential may remain. `logout` removes them and leaves environment
+variables alone. `loopback: "refuse"` rejects, with kind
+`loopback_required`, an OAuth attempt whose browser must return to a
+loopback address on the server's machine, for hosts whose person signs in
+from elsewhere. The mapping, process lifetime and evidence are on the
+[OpenCode page](../runtimes/opencode.md#provider-authentication).
 
 ## Qwen provider configuration
 
@@ -418,7 +438,10 @@ runtime oar does not sign in.
   `options.timeoutMs` overrides it. Past it the logout process and everything
   it started are stopped (its process group on POSIX, its tree on Windows),
   and the status still decides. The status query after it has its own
-  deadline (20 s). There is no abort signal: a logout is short.
+  deadline (20 s) when `timeoutMs` is not given, else the rest of
+  `timeoutMs`, but at least one second; with that minimum and the kill
+  grace a process that ignores its stop request gets, a logout can end
+  slightly after `timeoutMs`. There is no abort signal: a logout is short.
 - **`logout` changes the machine.** oar never calls it on its own, and does
   not serialize it against a login; that is the host's policy.
 

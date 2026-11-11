@@ -15,12 +15,15 @@ state.cwd = process.cwd();
 state.calls = [];
 state.cancelled = [];
 state.serverPid = process.pid;
+const env = (name) => process.env[name] ?? null;
+state.env = { username: env("OPENCODE_SERVER_USERNAME"), browser: env("BROWSER"), autoupdate: env("OPENCODE_DISABLE_AUTOUPDATE"), modelsFetch: env("OPENCODE_DISABLE_MODELS_FETCH") };
 save();
 if (args[0] === "--version") { console.log("opencode v2.2.7"); process.exit(0); }
 if (args[0] !== "serve") { process.exit(2); }
 if (state.startup === "crash") { console.error("Error: database is locked"); process.exit(1); }
 
-const password = process.env.OPENCODE_PASSWORD;
+// `ignorePassword`: a server that does not take OAR's password answers every request 401.
+const password = state.ignorePassword ? "not-the-password" : process.env.OPENCODE_PASSWORD;
 let unready = state.unreadyReads ?? 2;
 let next = 1;
 const attempts = new Map();
@@ -65,12 +68,17 @@ async function handle(req, res) {
   }
   const parts = url.pathname.split("/").filter((part) => part !== "").map((part) => decodeURIComponent(part));
   if (url.pathname === "/api/plugin") {
+    if (state.hangPlugin) { return; }
     unready -= 1;
     send(res, 200, { location: {}, data: unready >= 0 ? [] : [{ id: "opencode.provider.xai", state: { status: "active" } }] });
     return;
   }
   if (url.pathname === "/api/integration") {
     send(res, 200, { location: {}, data: unready >= 0 ? [] : state.integrations });
+    return;
+  }
+  if (parts[0] === "api" && parts[1] === "credential" && req.method === "DELETE" && state.failRemove) {
+    send(res, 500, { _tag: "Defect", message: "database is locked" });
     return;
   }
   if (parts[0] === "api" && parts[1] === "credential" && req.method === "DELETE") {
@@ -139,6 +147,5 @@ const server = createServer(async (req, res) => {
 });
 server.listen(0, "127.0.0.1", () => {
   if (state.startup === "silent") { return; }
-  console.log(`server listening on http://127.0.0.1:${server.address().port}`);
+  setTimeout(() => { console.log(`server listening on http://127.0.0.1:${server.address().port}`); }, state.listenDelayMs ?? 0);
 });
-process.on("SIGTERM", () => { state.stopped = true; save(); process.exit(0); });

@@ -18,18 +18,29 @@ export interface OpencodeFacadeOptions extends OpencodeServerOptions {
   readonly loginTimeoutMs: number;
   /** How often a login reads its attempt's status. */
   readonly statusPollMs: number;
+  /** Whether an OAuth attempt only a browser on the server's machine can finish is offered or refused. */
+  readonly loopback: "allow" | "refuse";
 }
 
 const integrationPath = (id: string): string => `/api/integration/${encodeURIComponent(id)}`;
 
-async function readIntegration(call: ApiCall, id: string): Promise<OpencodeIntegration> {
+/** `integration.get`; undefined when OpenCode has no such integration (404). */
+async function findIntegration(call: ApiCall, id: string): Promise<OpencodeIntegration | undefined> {
   const response = await call("GET", integrationPath(id));
-  const integration = response.status === 200 ? parseIntegration(asRecord(response.body)?.data) : undefined;
   if (response.status === 404) {
-    throw new OpencodeProviderAuthError("unknown_provider", `OpenCode has no integration ${JSON.stringify(id)}`, 404);
+    return undefined;
   }
+  const integration = response.status === 200 ? parseIntegration(asRecord(response.body)?.data) : undefined;
   if (integration === undefined) {
     throw new OpencodeProviderAuthError("rejected", `OpenCode did not describe ${id} (${nativeDetail(response, new LoginSecrets())})`, response.status);
+  }
+  return integration;
+}
+
+async function readIntegration(call: ApiCall, id: string): Promise<OpencodeIntegration> {
+  const integration = await findIntegration(call, id);
+  if (integration === undefined) {
+    throw new OpencodeProviderAuthError("unknown_provider", `OpenCode has no integration ${JSON.stringify(id)}`, 404);
   }
   return integration;
 }
@@ -51,6 +62,29 @@ async function listIntegrations(call: ApiCall): Promise<OpencodeIntegration[]> {
 
 const credentialIds = (integration: OpencodeIntegration): string[] =>
   integration.connections.flatMap((entry) => (entry.type === "credential" ? [entry.id] : []));
+
+/**
+ * After a sign-in stored a credential, remove the integration's `earlier`
+ * ones, so the new one replaces them instead of piling up labels (`xAI 2`,
+ * `xAI 3`). Only when OpenCode now lists a credential it did not list
+ * before: one updated in place removes nothing. The new credential is active
+ * either way (OpenCode lists the newest first), so a failed removal is not
+ * reported and an earlier credential may remain. Returns the status after
+ * the sign-in.
+ */
+async function replaceEarlier(call: ApiCall, providerId: string, earlier: readonly string[]): Promise<ProviderAuthStatus> {
+  const after = await readIntegration(call, providerId);
+  const current = credentialIds(after);
+  const stale = earlier.filter((id) => current.includes(id));
+  if (stale.length > 0 && current.some((id) => !earlier.includes(id))) {
+    try {
+      await removeCredentials(call, providerId, stale);
+    } catch {
+      // Best effort, as above.
+    }
+  }
+  return statusOf(providerId, after.connections);
+}
 
 export class OpencodeProviderAuthFacade implements OpencodeProviderAuth {
   readonly #server: OpencodeServer;
@@ -87,21 +121,23 @@ export class OpencodeProviderAuthFacade implements OpencodeProviderAuth {
     return this.#registry.flatMap((integration) => loginProviderOf(integration) ?? []);
   }
 
+  /** An integration OpenCode does not know is not configured, as with Pi. */
   async status(providerId: string): Promise<ProviderAuthStatus> {
     const integration = await this.#server.run(async (call) => {
-      const read = await readIntegration(call, providerId);
-      return read;
+      const found = await findIntegration(call, providerId);
+      return found;
     });
-    return statusOf(providerId, integration.connections);
+    return statusOf(providerId, integration?.connections ?? []);
   }
 
   async login(providerId: string, method: ProviderLoginMethod, interaction: ProviderLoginInteraction): Promise<ProviderAuthStatus> {
     interaction.signal?.throwIfAborted();
     const secrets = new LoginSecrets();
+    const { loginTimeoutMs, statusPollMs, loopback } = this.#options;
     const status = await this.#server.run(async (call) => {
       const integration = await readIntegration(call, providerId);
       if (method === "oauth") {
-        await runOauth({ call, integration, interaction, secrets, timeoutMs: this.#options.loginTimeoutMs, pollMs: this.#options.statusPollMs });
+        await runOauth({ call, integration, interaction, secrets, timeoutMs: loginTimeoutMs, pollMs: statusPollMs, loopback });
       } else {
         const key = this.#keyMethod(integration);
         const signal = interaction.signal === undefined ? {} : { signal: interaction.signal };
@@ -111,12 +147,13 @@ export class OpencodeProviderAuthFacade implements OpencodeProviderAuth {
         interaction.signal?.throwIfAborted();
         await this.#storeKey(call, integration, apiKey, answer, secrets);
       }
-      const after = await readIntegration(call, providerId);
-      return statusOf(providerId, after.connections);
+      const after = await replaceEarlier(call, providerId, credentialIds(integration));
+      return after;
     });
     return status;
   }
 
+  /** Stores the key, then removes earlier credentials best effort: once the key is stored it resolves, and an earlier credential may remain. */
   async setApiKey(providerId: string, apiKey: string): Promise<void> {
     const secrets = new LoginSecrets();
     secrets.add(apiKey);
@@ -127,6 +164,11 @@ export class OpencodeProviderAuthFacade implements OpencodeProviderAuth {
           `${providerId}'s API-key sign-in asks more than the key: use login("${providerId}", "api_key", interaction) instead of setApiKey`);
       }
       await this.#storeKey(call, integration, apiKey, {}, secrets);
+      try {
+        await replaceEarlier(call, providerId, credentialIds(integration));
+      } catch {
+        // The new key is stored and active.
+      }
     });
   }
 
@@ -154,11 +196,9 @@ export class OpencodeProviderAuthFacade implements OpencodeProviderAuth {
 
   /**
    * `integration.connect.key` adds a credential and makes it active without
-   * validating it; the integration's earlier credentials are then removed, so
-   * the new key replaces them. A refused key removes nothing.
+   * validating it. A refused key stores nothing and removes nothing.
    */
   async #storeKey(call: ApiCall, integration: OpencodeIntegration, apiKey: string, answer: Readonly<Record<string, FormValue>>, secrets: LoginSecrets): Promise<void> {
-    const earlier = credentialIds(integration);
     const response = await call("POST", `${integrationPath(integration.id)}/connect/key`, {
       key: apiKey,
       ...(Object.keys(answer).length === 0 ? {} : { answer }),
@@ -166,6 +206,5 @@ export class OpencodeProviderAuthFacade implements OpencodeProviderAuth {
     if (response.status >= 300) {
       throw new OpencodeProviderAuthError("rejected", `OpenCode did not store the ${integration.id} key (${nativeDetail(response, secrets)})`, response.status);
     }
-    await removeCredentials(call, integration.id, earlier);
   }
 }

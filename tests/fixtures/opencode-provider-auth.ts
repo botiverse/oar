@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { OpencodeProviderAuthFacade, type OpencodeFacadeOptions } from "../../packages/oar/src/runtimes/opencode/provider-auth-facade.js";
 import { asRecordList, type JsonRecord } from "../../packages/oar/src/shared/json.js";
-import { fakeLoginCli, type FakeCli } from "./login-fixtures.js";
+import { fakeLoginCli, reportedPid, type FakeCli } from "./login-fixtures.js";
 
 /** Integrations shaped like opencode 2.2.7's `integration.list` entries (observed 2026-11-11), trimmed to what the provider-auth tests read. */
 export function opencodeIntegrations(): Record<string, unknown>[] {
@@ -47,13 +47,13 @@ export function opencodeIntegrations(): Record<string, unknown>[] {
   ];
 }
 
-/** Per-integration OAuth attempt plans for the fake server. */
+/** Per-integration OAuth attempt plans for the fake server; browser URLs carry 2.2.7's loopback `redirect_uri` shape. */
 export const opencodeOauthPlans = {
   "github-copilot": { url: "https://github.com/login/device", instructions: "Enter code: ABCD-1234", outcome: "complete" },
-  openai: { url: "https://auth.openai.com/api/accounts/authorize?state=s", instructions: "Complete authorization in your browser. This window will close automatically.", outcome: "complete" },
+  openai: { url: "https://auth.openai.com/api/accounts/authorize?client_id=dynamic_agent_client&response_type=code&redirect_uri=http%3A%2F%2F127.0.0.1%3A37807%2Fauth%2Fcallback&state=s", instructions: "Complete authorization in your browser. This window will close automatically.", outcome: "complete" },
   xai: { url: "https://accounts.x.ai/oauth2/device?user_code=WXYZ-9876", instructions: "Open https://accounts.x.ai/oauth2/device on any device and enter code: WXYZ-9876", outcome: "complete" },
-  poe: { url: "https://poe.com/oauth/authorize?state=s", instructions: "Paste the code shown after you authorize", mode: "code", code: "poe-code-SECRET-123456", outcome: "pending" },
-  gitlab: { url: "https://gitlab.com/oauth/authorize?state=s", instructions: "Complete authorization in your browser.", paste: true, code: "gitlab-code-SECRET-654321", outcome: "pending" },
+  poe: { url: "https://poe.com/oauth/authorize?response_type=code&redirect_uri=http%3A%2F%2F127.0.0.1%3A38203%2Fcallback&state=s", instructions: "Paste the code shown after you authorize", mode: "code", code: "poe-code-SECRET-123456", outcome: "pending" },
+  gitlab: { url: "https://gitlab.com/oauth/authorize?redirect_uri=http%3A%2F%2F127.0.0.1%3A8080%2Fcallback&state=s", instructions: "Complete authorization in your browser.", paste: true, code: "gitlab-code-SECRET-654321", outcome: "pending" },
 };
 
 /** What the fake recorded: its calls, a list it kept, or one integration's connections. */
@@ -68,6 +68,20 @@ export function fakeList(fake: FakeCli, key: string): unknown[] {
 
 export function fakeConnections(fake: FakeCli, id: string): unknown {
   return asRecordList(fake.read().integrations).find((entry) => entry.id === id)?.connections;
+}
+
+/**
+ * Whether the fake server process the fake last reported still runs, read
+ * from the test side: Windows ends it without running a signal handler, so
+ * nothing the fake writes as it stops is a platform-independent signal.
+ */
+export function serverRunning(fake: FakeCli): boolean {
+  try {
+    process.kill(reportedPid(fake, "serverPid"), 0);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /** The rejection of `promise`, for assertions on its fields and its text. */
@@ -106,7 +120,7 @@ export async function opencodeAuthFixture(state: Record<string, unknown> = {}, v
   const installation = { kind: "available", via: "executable", command: fake.command, version } as const;
   const env = { ...process.env, HOME: home, USERPROFILE: home };
   const create = async (options: Partial<OpencodeFacadeOptions> = {}): Promise<OpencodeProviderAuthFacade> => OpencodeProviderAuthFacade.create({
-    command: fake.command, env, cwd: home, timeoutMs: 10_000, loginTimeoutMs: 10_000, idleMs: 200, pollMs: 20, statusPollMs: 20, ...options,
+    command: fake.command, env, cwd: home, timeoutMs: 10_000, loginTimeoutMs: 10_000, idleMs: 200, pollMs: 20, statusPollMs: 20, loopback: "allow", ...options,
   });
   return {
     fake,

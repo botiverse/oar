@@ -1,7 +1,8 @@
 import { afterEach, expect, test } from "vitest";
 import type { FakeCli } from "../fixtures/login-fixtures.js";
 import { recordedInteraction } from "../fixtures/login-interaction.js";
-import { fakeCalls, fakeList, opencodeAuthFixture, opencodeOauthPlans, rejectionOf, removeOpencodeAuthFixtures } from "../fixtures/opencode-provider-auth.js";
+import { loopbackRedirect } from "../../packages/oar/src/runtimes/opencode/provider-auth-oauth.js";
+import { fakeCalls, fakeConnections, fakeList, opencodeAuthFixture, opencodeOauthPlans, rejectionOf, removeOpencodeAuthFixtures } from "../fixtures/opencode-provider-auth.js";
 
 afterEach(removeOpencodeAuthFixtures);
 
@@ -144,4 +145,49 @@ test("a host that throws from onEvent ends the sign-in and cancels the attempt",
     expect(String(error)).toContain("cannot show it");
     expect(fakeList(fake, "cancelled")).toHaveLength(1);
   });
+});
+
+test("a completed OAuth sign-in replaces the integration's earlier credentials; a failed removal still returns the new status", async () => {
+  const replaced = await opencodeAuthFixture();
+  await replaced.using(async (auth) => {
+    expect(await auth.login("openai", "oauth", recordedInteraction(["chatgpt-headless"]))).toEqual({ providerId: "openai", configured: true, method: "oauth", label: "OpenAI" });
+    expect(fakeConnections(replaced.fake, "openai")).toEqual([{ type: "credential", id: "cred_oauth2", label: "OpenAI", method: "oauth" }]);
+  });
+  const kept = await opencodeAuthFixture({ failRemove: true });
+  await kept.using(async (auth) => {
+    expect(await auth.login("openai", "oauth", recordedInteraction(["chatgpt-headless"]))).toMatchObject({ configured: true, method: "oauth" });
+    expect(fakeConnections(kept.fake, "openai")).toHaveLength(2);
+  });
+});
+
+test("loopback: refuse cancels a browser attempt that returns to this machine, before showing its URL", async () => {
+  const { using, fake } = await opencodeAuthFixture();
+  await using(async (auth) => {
+    const interaction = recordedInteraction(["chatgpt-token-sharing"]);
+    const error = await rejectionOf(auth.login("openai", "oauth", interaction));
+    expect(error).toMatchObject({ name: "OpencodeProviderAuthError", kind: "loopback_required" });
+    expect(String(error)).toContain("127.0.0.1:37807");
+    expect(String(error)).toContain("the browser must run on that machine");
+    expect(interaction.events).toEqual([]);
+    expect(fakeList(fake, "cancelled")).toHaveLength(1);
+    // A device code and a code-mode attempt need no browser on this machine.
+    await auth.login("xai", "oauth", recordedInteraction([]));
+    await auth.login("poe", "oauth", recordedInteraction([opencodeOauthPlans.poe.code]));
+    expect(fakeList(fake, "cancelled")).toHaveLength(1);
+  }, { loopback: "refuse" });
+});
+
+const authorize = (key: string, target: string): string => `https://auth.example/authorize?${key}=${encodeURIComponent(target)}&state=s`;
+
+test("loopbackRedirect reads redirect_uri or redirect and knows only localhost, 127.0.0.1 and ::1", () => {
+  expect([
+    loopbackRedirect(authorize("redirect_uri", "http://localhost:1455/auth/callback")),
+    loopbackRedirect(authorize("redirect_uri", "http://127.0.0.1:8080/callback")),
+    loopbackRedirect(authorize("redirect", "http://[::1]:9000/cb")),
+    loopbackRedirect(authorize("redirect_uri", "https://app.example/callback")),
+    loopbackRedirect(authorize("return_to", "http://127.0.0.1:1/")),
+    loopbackRedirect(authorize("redirect_uri", "not a url")),
+    loopbackRedirect("https://github.com/login/device"),
+    loopbackRedirect("not a url"),
+  ]).toEqual(["localhost:1455", "127.0.0.1:8080", "[::1]:9000", undefined, undefined, undefined, undefined, undefined]);
 });

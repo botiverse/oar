@@ -2,7 +2,7 @@ import { afterEach, expect, test } from "vitest";
 import type { LoginProvider } from "../../packages/oar/src/contracts/provider-auth.js";
 import { createOpencodeProviderAuth, OpencodeProviderAuthError } from "../../packages/oar/src/runtimes/opencode/provider-auth.js";
 import { recordedInteraction } from "../fixtures/login-interaction.js";
-import { fakeCalls, fakeConnections, fakeList, opencodeAuthFixture, rejectionOf, removeOpencodeAuthFixtures } from "../fixtures/opencode-provider-auth.js";
+import { fakeCalls, fakeConnections, fakeList, opencodeAuthFixture, rejectionOf, removeOpencodeAuthFixtures, serverRunning } from "../fixtures/opencode-provider-auth.js";
 
 afterEach(removeOpencodeAuthFixtures);
 
@@ -28,14 +28,15 @@ test("loginProviders maps the registry OpenCode loaded: OAuth before keys, env k
       "zai: key Z.AI API key | env ZHIPU_API_KEY",
     ]);
     expect(auth.loginProviders().find((provider) => provider.providerId === "xai")).toEqual({ providerId: "xai", name: "xAI", methods: [
-      { method: "oauth", name: "SuperGrok Subscription", subscription: false },
+      // OpenCode does not say whether a sign-in is a subscription, so `subscription` is absent.
+      { method: "oauth", name: "SuperGrok Subscription" },
       { method: "api_key", name: "Manually enter API Key" },
       { method: "api_key", name: "XAI_API_KEY", ambient: true },
     ] });
     // The fake lists its registry only after two empty reads: OAR waited for it.
     expect(fake.read()).toMatchObject({ argv: ["serve", "--hostname", "127.0.0.1", "--port", "0"], cwd: home });
   });
-  expect(fake.read().stopped).toBe(true);
+  await expect.poll(() => serverRunning(fake), { timeout: 5000 }).toBe(false);
 });
 
 test("status and listProviders read connections: credentials listed, environment-only keys only in status", async () => {
@@ -47,7 +48,8 @@ test("status and listProviders read connections: credentials listed, environment
     ]);
     expect(await auth.status("zai")).toEqual({ providerId: "zai", configured: true, method: "api_key", label: "ZHIPU_API_KEY" });
     expect(await auth.status("poe")).toEqual({ providerId: "poe", configured: false });
-    expect(await rejectionOf(auth.status("nope"))).toMatchObject({ name: "OpencodeProviderAuthError", kind: "unknown_provider" });
+    // As with Pi, a provider the backend does not know is simply not configured.
+    expect(await auth.status("nope")).toEqual({ providerId: "nope", configured: false });
   });
 });
 
@@ -63,6 +65,20 @@ test("setApiKey stores through OpenCode, then removes the integration's earlier 
     const status = await auth.status("xai");
     expect(status).toEqual({ providerId: "xai", configured: true, method: "api_key", label: "xAI" });
     expect(JSON.stringify(status)).not.toContain("SECRET");
+  });
+});
+
+test("a stored key whose earlier credentials cannot be removed still resolves: the new key is active", async () => {
+  const { using, fake } = await opencodeAuthFixture({ failRemove: true });
+  await using(async (auth) => {
+    await auth.setApiKey("xai", "xai-new-SECRET-key-0004");
+    expect(fakeConnections(fake, "xai")).toEqual([
+      { type: "credential", id: "cred_key1", label: "xAI", method: "key" },
+      { type: "credential", id: "cred_old_xai_2", label: "xAI", method: "key" },
+      { type: "credential", id: "cred_old_xai_1", label: "oar", method: "key" },
+      { type: "env", name: "XAI_API_KEY" },
+    ]);
+    expect(await auth.status("xai")).toEqual({ providerId: "xai", configured: true, method: "api_key", label: "xAI" });
   });
 });
 
@@ -128,15 +144,48 @@ test("OpenCode 1 and a bundled installation are refused before anything starts",
   expect(fake.read().argv).toBeUndefined();
 });
 
-test("the public entry starts OpenCode 2 in the overlay's home", async () => {
+test("the public entry starts OpenCode 2 in the overlay's home and passes its idle period", async () => {
   const { installation, home, fake } = await opencodeAuthFixture();
-  const auth = await createOpencodeProviderAuth(installation, { env: { HOME: home, USERPROFILE: home } });
+  const auth = await createOpencodeProviderAuth(installation, { env: { HOME: home, USERPROFILE: home }, idleMs: 50 });
   try {
     expect(menu(auth.loginProviders())).toContain("poe: oauth Login with Poe (browser)");
     expect(fake.read().cwd).toBe(home);
+    await expect.poll(() => serverRunning(fake), { timeout: 5000 }).toBe(false);
   } finally {
     await auth.close();
   }
+});
+
+test("serve gets OAR's password and no inherited username, update check, catalog fetch or browser", async () => {
+  const { create, fake, home } = await opencodeAuthFixture();
+  const env = { ...process.env, HOME: home, USERPROFILE: home, OPENCODE_SERVER_USERNAME: "someone", BROWSER: "firefox" };
+  const auth = await create({ env });
+  await auth.close();
+  expect(fake.read().env).toEqual({
+    username: null,
+    browser: process.platform === "win32" ? "firefox" : "true",
+    autoupdate: "1",
+    modelsFetch: "1",
+  });
+});
+
+test("a 401 from serve is an authentication failure at once, not a timeout", async () => {
+  const { create } = await opencodeAuthFixture({ ignorePassword: true });
+  const started = Date.now();
+  const error = await rejectionOf(create({ timeoutMs: 10_000 }));
+  expect(error).toMatchObject({ name: "OpencodeProviderAuthError", kind: "authentication_failed", status: 401 });
+  expect(String(error)).toContain("UnauthorizedError");
+  expect(Date.now() - started).toBeLessThan(5000);
+});
+
+test("startup and readiness share one timeoutMs: a late listen leaves readiness only the rest", async () => {
+  const { create } = await opencodeAuthFixture({ listenDelayMs: 1200, hangPlugin: true });
+  const started = Date.now();
+  const error = await rejectionOf(create({ timeoutMs: 2000 }));
+  const elapsed = Date.now() - started;
+  expect(error).toMatchObject({ kind: "timed_out" });
+  // A full timeoutMs for the hanging read would end after about 3.2 s.
+  expect(elapsed, `ended after ${String(elapsed)} ms`).toBeLessThan(2800);
 });
 
 test("a crashed or silent start is reported with OpenCode's first line", async () => {
@@ -152,7 +201,7 @@ test("the server stops after the idle period and the next operation starts anoth
   const { using, fake } = await opencodeAuthFixture();
   await using(async (auth) => {
     const first = fake.read().serverPid;
-    await expect.poll(() => fake.read().stopped, { timeout: 5000 }).toBe(true);
+    await expect.poll(() => serverRunning(fake), { timeout: 5000 }).toBe(false);
     expect(await auth.status("poe")).toEqual({ providerId: "poe", configured: false });
     expect(fake.read().serverPid).not.toBe(first);
   }, { idleMs: 50 });

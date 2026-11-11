@@ -12,19 +12,35 @@ export interface OpencodeProviderAuthOptions {
   /** Same overlay as sessions: strings override, null removes, and the host is untouched. */
   readonly env?: SessionOptions["env"];
   /**
-   * Bound for each operation: starting `opencode serve` until its
-   * integrations are loaded, and each request (default 30 s). A login's wait
-   * for the person uses the same value when given, else 10 minutes (OpenCode
-   * 2.2.7's own attempts expire after 600 s, xAI's after 1800 s).
+   * One budget for starting `opencode serve` until its integrations are
+   * loaded, and the bound for each request (default 30 s).
    */
   readonly timeoutMs?: number;
+  /**
+   * How long a login waits for the person to finish signing in (default
+   * 10 minutes; OpenCode 2.2.7's own attempts expire after 600 s, xAI's after
+   * 1800 s).
+   */
+  readonly loginTimeoutMs?: number;
+  /** How long the server stays up after the last operation ends (default 5 s). */
+  readonly idleMs?: number;
+  /**
+   * `"refuse"`: an OAuth attempt whose authorize URL returns the browser to
+   * a loopback address (`localhost`, `127.0.0.1`, `::1`) on the machine
+   * running `opencode serve`, and that takes no pasted code, is cancelled and
+   * rejected with kind `loopback_required`, before any URL is shown. For a
+   * host whose person signs in from another machine (a remote web UI).
+   * Default `"allow"`.
+   */
+  readonly loopback?: "allow" | "refuse";
 }
 
 /**
  * A {@link ProviderAuthFacade} over OpenCode 2's integrations. It owns one
- * `opencode serve` process, started on first use and stopped five seconds
- * after the last operation ends; `close()` stops it at once. An unclosed
- * facade never keeps its server longer than that idle period.
+ * `opencode serve` process, started on first use and stopped `idleMs` after
+ * the last operation ends; `close()` stops it at once. An unclosed facade
+ * never keeps its server longer than that idle period, and the server also
+ * stops when the host process dies, SIGKILL included.
  */
 export interface OpencodeProviderAuth extends ProviderAuthFacade {
   /** Stop the owned `opencode serve` now; a later operation starts a new one. */
@@ -33,7 +49,7 @@ export interface OpencodeProviderAuth extends ProviderAuthFacade {
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_LOGIN_TIMEOUT_MS = 600_000;
-const IDLE_MS = 5000;
+const DEFAULT_IDLE_MS = 5000;
 
 /**
  * Sign in to OpenCode 2's providers through OpenCode's own HTTP API
@@ -62,8 +78,9 @@ export async function createOpencodeProviderAuth(
     env,
     cwd,
     timeoutMs: options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
-    loginTimeoutMs: options.timeoutMs ?? DEFAULT_LOGIN_TIMEOUT_MS,
-    idleMs: IDLE_MS,
+    loginTimeoutMs: options.loginTimeoutMs ?? DEFAULT_LOGIN_TIMEOUT_MS,
+    idleMs: options.idleMs ?? DEFAULT_IDLE_MS,
+    loopback: options.loopback ?? "allow",
     pollMs: 100,
     statusPollMs: 1000,
   });

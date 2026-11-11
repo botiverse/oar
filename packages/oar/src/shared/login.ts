@@ -4,6 +4,7 @@ import spawn from "cross-spawn";
 import type { AvailableInstallation, ExecutableInstallation } from "../contracts/installation.js";
 import type { LoginResult, LoginUnsupportedReason } from "../contracts/login.js";
 import { killGraceMs, killProcessTree, OWN_PROCESS_GROUP, signalProcessGroup, trackOwnedProcess, windowsSpawnTarget } from "./executable/index.js";
+import { hostWatchdogTarget } from "./executable/host-watchdog.js";
 import { locateExecutable } from "./installation.js";
 import { releaseVersion, versionAtLeast } from "./update.js";
 import { redactTokenShapes } from "./token-redaction.js";
@@ -151,16 +152,19 @@ function stopTree(child: ChildProcess): void {
  * Run a login command over pipes (no terminal), in its own process group on
  * POSIX, reading stdout and stderr alike, in `options.cwd` (default: the
  * host's). Nothing it prints is logged or forwarded except through `handlers`. Throws when the command cannot be
- * spawned at all (an invalid path on Windows).
+ * spawned at all (an invalid path on Windows). With `stopWithHost`, it runs
+ * under a watchdog that stops it when the host dies, SIGKILL included
+ * (host-watchdog.ts): its stdin is then not connected, and `closeInput` stops it.
  */
 export function spawnLoginProcess(
   command: string,
   args: readonly string[],
   env: NodeJS.ProcessEnv,
   handlers: LoginOutputHandlers,
-  options: { readonly cwd?: string } = {},
+  options: { readonly cwd?: string; readonly stopWithHost?: boolean } = {},
 ): LoginProcess {
-  const target = windowsSpawnTarget(command, args, { env });
+  const native = windowsSpawnTarget(command, args, { env });
+  const target = options.stopWithHost === true ? hostWatchdogTarget(native) : native;
   const child = spawn(target.command, [...target.args], {
     env,
     ...(options.cwd === undefined ? {} : { cwd: options.cwd }),
