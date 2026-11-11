@@ -70,7 +70,7 @@ function features(value: unknown): CursorChildFeatures {
  */
 export async function openCursorChannel(sdkModule: string, env: Readonly<NodeJS.ProcessEnv>): Promise<CursorChannel> {
   const launch = cursorChildLaunch(sdkModule, env);
-  const child = spawnNodeScript(launch.script, launch.argument, launch.env);
+  const child = spawnNodeScript(launch.script, launch.argument, launch.env, launch.marker);
   const replies = new Map<number, { resolve(value: unknown): void; reject(error: Error): void }>();
   const events = new Map<number, (value: unknown) => void>();
   const exitListeners: ((exit: CursorChildExit) => void)[] = [];

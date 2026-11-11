@@ -1,9 +1,8 @@
-import { spawnSync, type SpawnSyncReturns } from "node:child_process";
 import { existsSync } from "node:fs";
 import path from "node:path";
-import { pathToFileURL } from "node:url";
 import { expect, test } from "vitest";
-import { alive, FAKE_SDK_MODULE, reportedPids, tempDirectory, until } from "../fixtures/cursor-subprocess.js";
+import { killedHost } from "../fixtures/cursor-killed-host.js";
+import { alive, reportedPids, tempDirectory, until } from "../fixtures/cursor-subprocess.js";
 
 /*
  * A host SIGKILLed while a subprocess-mode cursor session is open runs no
@@ -14,21 +13,6 @@ import { alive, FAKE_SDK_MODULE, reportedPids, tempDirectory, until } from "../f
  * group of its own, as SDK 1.3.1's shell tool does on POSIX, and one in the
  * child's group.
  */
-
-const source = path.join(import.meta.dirname, "../../packages/oar/src");
-
-/** A host that opens a session, has its run start a tool (`how`) that writes the pids to `file`, and SIGKILLs itself. */
-function killedHost(dir: string, file: string, how: string): SpawnSyncReturns<string> {
-  const script = `import { createCursorRuntime } from ${JSON.stringify(pathToFileURL(path.join(source, "index.ts")).href)};
-import { awaitTurnEnd } from ${JSON.stringify(pathToFileURL(path.join(source, "observe/turns.ts")).href)};
-const runtime = createCursorRuntime({ execution: "subprocess", sdkModule: ${JSON.stringify(FAKE_SDK_MODULE)} });
-const session = await runtime.session({ kind: "available", via: "bundled" }, { cwd: ${JSON.stringify(dir)}, env: { OAR_FAKE_CURSOR_CLOSED: ${JSON.stringify(path.join(dir, "closed"))} } });
-const prompt = await session.prompt(${JSON.stringify(`${how}:${file}`)});
-await awaitTurnEnd(session, prompt.seq);
-process.kill(process.pid, "SIGKILL");`;
-  // A short grace, so the child's own waits end well within the test.
-  return spawnSync(process.execPath, ["--import", "tsx", "--input-type=module", "-e", script], { encoding: "utf8", timeout: 30_000, env: { ...process.env, OAR_KILL_GRACE_MS: "2000" } });
-}
 
 // oxlint-disable-next-line eslint/max-statements -- the killed host, both pids, the agent's close, and the cleanup of a failed run, together.
 test.each(["spawn", "spawn-in-group"])("a SIGKILLed host's cursor child closes its agent and stops with what it started (%s)", async (how) => {

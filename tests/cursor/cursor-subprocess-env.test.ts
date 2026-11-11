@@ -32,7 +32,7 @@ test("a host-only variable the session env removes is not visible to the agent's
 
 /** Variables the shell itself sets (dash sets PWD; bash also SHLVL and _), not passed by anyone. */
 const SHELL_SET: ReadonlySet<string> = new Set(["PWD", "OLDPWD", "SHLVL", "_"]);
-/** What OAR may add to a clean child: the SDK's native companion paths, when the SDK's companion package resolves. */
+/** What OAR may add to a clean child besides its marker: the SDK's native companion paths, when the SDK's companion package resolves. */
 const OAR_ADDED: ReadonlySet<string> = new Set(["CURSOR_TREE_SITTER_VENDOR_DIR", "CURSOR_RIPGREP_PATH"]);
 
 async function shellSees(envBase: "inherit" | "clean", env: Readonly<Record<string, string | null>>, command: string): Promise<unknown> {
@@ -53,7 +53,9 @@ test("envBase clean: the agent's shell sees only what the session passed, plus w
   expect(Array.isArray(seen)).toBe(true);
   const listed: unknown[] = Array.isArray(seen) ? seen : [];
   const names = listed.filter((name): name is string => typeof name === "string" && !SHELL_SET.has(name));
-  expect(names.filter((name) => !OAR_ADDED.has(name))).toEqual(["OAR_TEST_SESSION_ONLY"]);
+  // The environment marker every process the child starts inherits, one per child.
+  expect(names.filter((name) => /^OAR_CURSOR_CHILD_[\da-f]{32}$/u.test(name))).toHaveLength(1);
+  expect(names.filter((name) => !OAR_ADDED.has(name) && !name.startsWith("OAR_CURSOR_CHILD_"))).toEqual(["OAR_TEST_SESSION_ONLY"]);
   // No PATH, HOME or Electron switch from the host, nor the variable that started the child as Node.
   expect(names).not.toContain("ELECTRON_RUN_AS_NODE");
 });

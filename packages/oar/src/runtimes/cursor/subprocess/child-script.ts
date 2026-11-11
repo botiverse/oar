@@ -1,5 +1,6 @@
 import path from "node:path";
 import { environmentValue, sessionEnvironment } from "../../../shared/environment.js";
+import { newEnvironmentMarker } from "../../../shared/executable/environment-marker.js";
 import { killGraceMs } from "../../../shared/executable/index.js";
 
 /*
@@ -7,7 +8,7 @@ import { killGraceMs } from "../../../shared/executable/index.js";
  * self-contained (Node built-ins only, nothing from OAR), because hosts bundle
  * OAR and a separate file next to OAR's code may not exist; it is kept small
  * for the Windows command line limit. SPEC is `[sdkModule, graceMs,
- * electronRunAsNode, taskkill]`.
+ * electronRunAsNode, taskkill, marker]`.
  *
  * Before the SDK loads, the child puts back the environment's own
  * `ELECTRON_RUN_AS_NODE` (the host set it to 1 only so an Electron
@@ -33,15 +34,22 @@ import { killGraceMs } from "../../../shared/executable/index.js";
  * host's `shutdown` call, a SIGTERM, or the IPC channel disconnecting
  * because the host ended or died, SIGKILL included) closes every open agent
  * and waits for the closes for up to `graceMs`, then exits. On exit, also
- * an exit after an uncaught exception, the child ends every descendant it
- * has: found by parent pid (POSIX: `/proc/<pid>/stat` on Linux, `ps -A -o
+ * an exit after an uncaught exception, the child ends the descendants it
+ * can find by parent pid (POSIX: `/proc/<pid>/stat` on Linux, `ps -A -o
  * pid=,ppid=` elsewhere), so tools that lead process groups of their own
  * are reached too, plus the ones seen when the shutdown began; Windows:
- * `taskkill /T /F` on itself, which walks by parent. After a disconnect,
+ * `taskkill /T /F` on itself, which walks by parent. On Linux it also
+ * SIGKILLs every process of this user whose environment holds `marker`
+ * (environment-marker.ts), which reaches what it started and was
+ * reparented away from it (a shell's background job after the shell
+ * exited), unless that process cleared the variable. After a disconnect,
  * with no host left to do it, it also SIGKILLs its own process group.
+ * Not reached: on macOS and Windows, a process reparented away from the
+ * child before its exit (no marker scan there); anywhere, a process that
+ * cleared the marker and left the child's tree or group.
  */
 const SCRIPT = String.raw`
-const [sdkModule, graceMs, electron, taskkill] = JSON.parse(process.argv[1]);
+const [sdkModule, graceMs, electron, taskkill, marker] = JSON.parse(process.argv[1]);
 const path = require("node:path");
 const fs = require("node:fs");
 const { execFileSync } = require("node:child_process");
@@ -86,6 +94,15 @@ process.on("exit", () => {
     const targets = new Map([...[...seen].filter(([pid, start]) => now.get(pid) === start), ...descendants(rows)]);
     for (const pid of targets.keys()) { try { process.kill(pid, "SIGKILL"); } catch {} }
   } catch {}
+  // What kept the marker, also reparented away from this process (Linux reads every environment).
+  if (process.platform === "linux") {
+    for (const name of fs.readdirSync("/proc")) {
+      try {
+        if (!/^\d+$/.test(name) || Number(name) === process.pid || fs.statSync("/proc/" + name).uid !== process.getuid()) { continue; }
+        if (fs.readFileSync("/proc/" + name + "/environ", "latin1").split("\0").includes(marker)) { process.kill(Number(name), "SIGKILL"); }
+      } catch {}
+    }
+  }
   if (orphaned) { try { process.kill(-process.pid, "SIGKILL"); } catch {} }
 });
 const agents = new Map();
@@ -197,8 +214,13 @@ function taskkillPath(): string | null {
   return path.win32.join(environmentValue(process.env, "SystemRoot") ?? String.raw`C:\Windows`, "System32", "taskkill.exe");
 }
 
-/** The launch of one cursor child: the script, its spec, and its environment with `ELECTRON_RUN_AS_NODE=1`. */
-export function cursorChildLaunch(sdkModule: string, env: Readonly<NodeJS.ProcessEnv>): { readonly script: string; readonly argument: string; readonly env: NodeJS.ProcessEnv } {
-  const spec = [sdkModule, Math.floor(killGraceMs() / 2), environmentValue(env, "ELECTRON_RUN_AS_NODE") ?? null, taskkillPath()];
-  return { script: SCRIPT, argument: JSON.stringify(spec), env: sessionEnvironment({ ELECTRON_RUN_AS_NODE: "1" }, env) };
+/**
+ * The launch of one cursor child: the script, its spec, and its environment
+ * with `ELECTRON_RUN_AS_NODE=1` and a fresh environment marker
+ * (`OAR_CURSOR_CHILD_<id>=1`), which everything the child starts inherits.
+ */
+export function cursorChildLaunch(sdkModule: string, env: Readonly<NodeJS.ProcessEnv>): { readonly script: string; readonly argument: string; readonly env: NodeJS.ProcessEnv; readonly marker: string } {
+  const marker = newEnvironmentMarker();
+  const spec = [sdkModule, Math.floor(killGraceMs() / 2), environmentValue(env, "ELECTRON_RUN_AS_NODE") ?? null, taskkillPath(), marker.entry];
+  return { script: SCRIPT, argument: JSON.stringify(spec), env: sessionEnvironment({ ELECTRON_RUN_AS_NODE: "1", [marker.name]: "1" }, env), marker: marker.entry };
 }

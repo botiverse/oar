@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import { StderrTail } from "./diagnostics.js";
+import { killMarked, trackEnvironmentMarker } from "./environment-marker.js";
 import { trackOwnedProcess } from "./ownership.js";
 import { processShutdown } from "./process-shutdown.js";
 import { killGraceMs, OWN_PROCESS_GROUP, signalProcessGroup } from "./process-signals.js";
@@ -20,7 +21,7 @@ export interface NodeScriptChild {
   /** Settles once the child exited (or could not be spawned) and the descendants seen before a stop were ended. */
   readonly exited: Promise<NodeScriptExit>;
   /**
-   * Stop the child and every descendant it has. First the process table is
+   * Stop the child and the descendants found below it. First the process table is
    * read and the child's descendants remembered (by parent pid, so also
    * tools that lead process groups of their own). Then `ask` lets the child
    * stop itself, if given; after the grace period (`killGraceMs()`), or at
@@ -50,10 +51,13 @@ const STDERR_DRAIN_MS = 250;
  * can then. It is tracked with `trackOwnedProcess`, so a host that calls
  * `process.exit` still ends it and its descendants. On any exit the child's
  * process group is sent SIGKILL (POSIX), which reaches what is left of it.
- * The caller sets the environment, including `ELECTRON_RUN_AS_NODE=1` when
+ * With `marker` (an `environment-marker.ts` entry the caller put in `env`),
+ * every process still carrying it is sent SIGKILL once the child exited, for
+ * whatever reason, and from the host's own `exit` hook (Linux only). The
+ * caller sets the environment, including `ELECTRON_RUN_AS_NODE=1` when
  * `process.execPath` may be Electron.
  */
-export function spawnNodeScript(script: string, argument: string, env: NodeJS.ProcessEnv): NodeScriptChild {
+export function spawnNodeScript(script: string, argument: string, env: NodeJS.ProcessEnv, marker?: string): NodeScriptChild {
   const child = spawn(process.execPath, ["-e", script, argument], {
     env,
     stdio: ["ignore", "pipe", "pipe", "ipc"],
@@ -62,6 +66,7 @@ export function spawnNodeScript(script: string, argument: string, env: NodeJS.Pr
     windowsHide: true,
   });
   trackOwnedProcess(child);
+  const releaseMarker = marker === undefined ? null : trackEnvironmentMarker(marker);
   const shutdown = processShutdown(child, { killTree: true });
   const stderr = new StderrTail();
   const stderrClosed = Promise.withResolvers<void>();
@@ -80,6 +85,9 @@ export function spawnNodeScript(script: string, argument: string, env: NodeJS.Pr
     clearTimeout(backstop);
     // What it started may still be in its group (POSIX); the group is ours to end.
     if (OWN_PROCESS_GROUP && child.pid !== undefined) { signalProcessGroup(child, "SIGKILL"); }
+    // And what it started that kept the marker, wherever it was reparented (Linux).
+    if (marker !== undefined) { killMarked(marker); }
+    releaseMarker?.();
     ended.resolve({ code, signal });
     shutdown.nativeExited();
   });
@@ -89,6 +97,7 @@ export function spawnNodeScript(script: string, argument: string, env: NodeJS.Pr
       stderrClosed.resolve();
       ended.resolve({ code: null, signal: null });
       shutdown.nativeExited();
+      releaseMarker?.();
     }
   });
   const exited = (async (): Promise<NodeScriptExit> => {

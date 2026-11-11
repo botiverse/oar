@@ -68,7 +68,8 @@ export type CursorRuntime = Runtime & Required<Pick<Runtime, "installation" | "l
  *   `SessionOptions.env` over the host's (`envBase: "inherit"`, the default)
  *   or over nothing (`envBase: "clean"`); a child that exits is recorded as
  *   `exited`, and a child whose host is gone, SIGKILL included, ends itself
- *   and its tree. Model listing, login, logout and the status each run in a
+ *   and what it started, as far as docs/runtimes/cursor.md#execution-modes
+ *   says per platform. Model listing, login, logout and the status each run in a
  *   one-shot child and take `env` the same way.
  *
  * Account usage is absent: the SDK's usage call is not available to every

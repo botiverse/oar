@@ -30,8 +30,9 @@ export async function openCursorSession(access: CursorSdkAccess, options: Sessio
  * (shared/process-session.ts): unasked (a crash), once the turn it cut short
  * has ended (`settle`), with the reason and a stderr tail; or as the answer
  * to the dispose that stopped it. An exit that comes after the dispose began
- * answers that dispose, a crash keeping its reason; one recorded before it
- * leaves the dispose `accepted`.
+ * answers that dispose, a crash keeping its reason. When the exit was
+ * recorded before the dispose began (against no request), the dispose is
+ * answered `accepted`, as shared/process-session.ts answers it.
  */
 export function cursorSessionEnd(kernel: SessionKernel, lease: CursorSdkLease, settle: () => Promise<void>): {
   /** As the dispose begins, before it cancels anything. */
@@ -60,8 +61,9 @@ export function cursorSessionEnd(kernel: SessionKernel, lease: CursorSdkLease, s
   });
   return {
     disposing(request) {
+      // An exit already recorded answered no request: this dispose is then answered `accepted` below.
       goneBefore = recorded;
-      if (!recorded) { disposeRequest = request; }
+      disposeRequest = request;
     },
     async disposed() {
       if (disposeRequest === null) { return; }

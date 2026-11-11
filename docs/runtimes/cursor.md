@@ -151,7 +151,9 @@ code, reason }` the way process runtimes do. The reason names the code or
 signal and ends with up to 1000 characters of the child's stderr, with
 token shapes and the session's credentials redacted. Later controls are
 refused `runtime_exited`. An exit that comes after a dispose began answers
-that dispose, keeping a crash's reason.
+that dispose, keeping a crash's reason; when the exit was recorded before
+the dispose began, the dispose is answered `accepted`, as process runtimes
+answer it.
 
 **Dispose.** Dispose cancels the run as in process, then closes the agent:
 the child awaits the agent's `Symbol.asyncDispose` when it has one (SDK
@@ -159,35 +161,54 @@ the child awaits the agent's `Symbol.asyncDispose` when it has one (SDK
 executor lease), and the host waits up to five seconds for that. Then the
 host reads the process table and remembers the child's descendants (by
 parent pid), asks the child to shut down over IPC, and the child exits on
-its own, code 0. If it has not exited after `OAR_KILL_GRACE_MS` (default
-10 s), the host stops it as it stops a process runtime with its tree
-(POSIX: SIGTERM to the child's process group, then SIGKILL to the group and
-the remembered descendants after another grace period; Windows: `taskkill
-/T /F`). The dispose request is answered with the `exited` observed.
+its own, code 0 on POSIX. If it has not exited after `OAR_KILL_GRACE_MS`
+(default 10 s), the host stops it as it stops a process runtime with its
+tree (POSIX: SIGTERM to the child's process group, then SIGKILL to the
+group and the remembered descendants after another grace period; Windows:
+`taskkill /T /F`). The dispose request is answered with the `exited` the
+host observed, or `accepted` when the child's exit was already recorded.
 
 **The child's tools.** SDK 1.3.1 starts its shell tool `detached` on POSIX
 (`detached: !win32` in its bundle, `dist/esm/305.js`), so each tool command
 leads a process group of its own and a signal to the child's group does not
-reach it. So the child is ended with its whole descendant tree, found by
-parent pid, not only its group:
+reach it. A background job such a command starts (`cmd &`, `nohup`) is
+reparented (to PID 1 or a subreaper) once its shell exits, in the dead shell's group, so a
+parent-pid walk does not find it either. What OAR ends, and where:
 
-- On every exit of its own (a shutdown, or an uncaught exception), the
-  child walks its descendants synchronously (Linux: `/proc/<pid>/stat`;
-  other POSIX: `ps -A -o pid=,ppid=,lstart=`) and sends each SIGKILL,
-  together with those it saw when its shutdown began that still run (same
-  start time). Windows: `taskkill /pid <its own pid> /T /F`.
-- On a stop, the host also SIGKILLs the descendants it remembered before
-  the stop, once the child exited (identity checked by start time).
-- On any exit, the host sends SIGKILL to the child's process group (POSIX).
+- **Descendants by parent pid**, on every exit of the child's own (a
+  shutdown, or an uncaught exception): the child walks its descendants
+  synchronously (Linux: `/proc/<pid>/stat`; macOS and other POSIX: `ps -A
+  -o pid=,ppid=,lstart=`) and sends each SIGKILL, together with those it saw
+  when its shutdown began that still run (same start time). Windows:
+  `taskkill /pid <its own pid> /T /F`. On a stop, the host also SIGKILLs the
+  descendants it remembered before the stop, once the child exited.
+- **The child's process group**: on any exit the host sends it SIGKILL
+  (POSIX).
+- **Everything that kept the environment marker** (Linux only): the child
+  is started with `OAR_CURSOR_CHILD_<id>=1`, a fresh random id per child,
+  which every process it starts inherits unless it clears its environment
+  ([environment marker](../../packages/oar/src/shared/executable/environment-marker.ts),
+  the approach of Jenkins' ProcessTreeKiller). The child as it exits, and
+  the host after the child exited for any reason (a SIGKILL or the OOM
+  killer included) and from its own `exit` hook, read `/proc/<pid>/environ`
+  of every process of the same user and SIGKILL those holding that exact
+  entry; unreadable entries are skipped. This reaches background jobs and
+  tools in groups of their own wherever they were reparented.
 
-Not covered: a child killed outright (SIGKILL, the OOM killer) runs no exit
-hook, so only the tools in its own process group are ended; a tool that
-leads a group of its own is then reparented and keeps running. On Windows a
-crashed child's tree is not walked. Tested on Linux with a fake SDK module
-whose tool is spawned `detached` like the SDK's, and one in the child's
-group: dispose ends both, an uncaught exception in the child ends the
-detached one, a SIGKILLed child's in-group tool ends
-([tests](../../tests/cursor/cursor-subprocess-lifecycle.test.ts)).
+Not covered: on any platform, a process that cleared the marker from its
+environment (or was started with an environment of its own without it) and
+left the child's tree and group; on macOS and Windows, which have no marker
+scan, a process reparented away from the child before the walk (a finished
+command's background job), and, when the child is killed outright, every
+tool that leads a group of its own. On Windows a crashed child's tree is not
+walked. Tested on Linux with a fake SDK module whose tool is spawned
+`detached` like the SDK's, one in the child's group, and a detached shell
+that backgrounds `sleep 300` and exits: dispose ends all three, an uncaught
+exception in the child ends the detached tool, a SIGKILLed child's
+in-group tool and background job end, and a background job started without
+the marker outlives dispose (the negative control)
+([lifecycle tests](../../tests/cursor/cursor-subprocess-lifecycle.test.ts),
+[background tests](../../tests/cursor/cursor-subprocess-background.test.ts)).
 
 **Host death.** The child must not outlive the host, SIGKILL included. When
 its IPC channel disconnects (the host ended, or died without running any
@@ -199,7 +220,8 @@ descendants through OAR's exit hook (`trackOwnedProcess`). Tested on Linux:
 a host SIGKILLed with a session open whose run started a tool, detached or
 in the child's group, leaves neither the child nor the tool running, and
 the fake agent's close work ran first
-([test](../../tests/cursor/cursor-subprocess-host-death.test.ts)).
+([test](../../tests/cursor/cursor-subprocess-host-death.test.ts)), and a
+finished command's background job is gone too (Linux, through the marker).
 
 **Windows (not run).** The child is spawned detached on Windows too. Node
 otherwise puts a child in a job object that ends it together with a dying
@@ -212,8 +234,11 @@ is why other OAR children are not detached on Windows). Node exposes no way
 to get a new process group without `DETACHED_PROCESS`
 (`CREATE_NEW_PROCESS_GROUP` alone), so OAR takes the tradeoff. The child
 runs `taskkill` by absolute path from the host's `SystemRoot`, since a
-`clean` environment may have no `PATH`. None of the Windows behavior was
-run.
+`clean` environment may have no `PATH`. Because the child's exit hook
+runs `taskkill /F` on the child itself, a normal Windows dispose probably
+records an exit code of 1, not 0; walking the child's children instead
+needs a process listing Node does not offer, so it is left as is. None of
+the Windows behavior was run.
 
 **Electron.** In an Electron host `process.execPath` is Electron, which runs
 `-e` as Node only with `ELECTRON_RUN_AS_NODE=1`. The child is started with
@@ -249,6 +274,10 @@ What OAR adds, in both bases:
 - `ELECTRON_RUN_AS_NODE=1`, only to start the child; the child removes it
   from its `process.env` (or puts back the value `env` gave it) before it
   imports the SDK.
+- `OAR_CURSOR_CHILD_<id>=1`, the environment marker, with a fresh random
+  id per child: tool shells see it, also under `clean`. It is not a secret;
+  OAR uses it to find what the child started ([the child's
+  tools](#execution-modes)).
 - `CURSOR_TREE_SITTER_VENDOR_DIR` and `CURSOR_RIPGREP_PATH`, set by the child
   before it imports the SDK to the native companion paths resolved from
   `sdkModule` (the package `@cursor/sdk-<platform>-<arch>`, the way
@@ -935,7 +964,8 @@ The subprocess mode is tested on Linux arm64 against a fake SDK module
 ([tests](../../tests/cursor/), the `cursor-subprocess-*` files): env
 isolation under both bases, the same session tests in both modes, a crash,
 dispose and an uncaught exception ending the child's tools (also ones in
-process groups of their own, as the SDK starts its shell tool), host death,
+process groups of their own, as the SDK starts its shell tool, and on Linux
+a finished command's background job), host death,
 the SDK's close work awaited, login, logout and status over a
 child, and load failures. The real SDK 1.3.1 loaded and opened a session in
 a child on Linux arm64 without a key; no run was made in subprocess mode.
@@ -943,8 +973,9 @@ a child on Linux arm64 without a key; no run was made in subprocess mode.
 Open gaps: a crew child of an in-process cursor (no environment); in
 subprocess mode, a live run, Windows and macOS (the Windows tree ending is
 written but not run), an Electron host, a crashed child's tree on Windows,
-and a tool in a process group of its own when the child is killed outright
-(SIGKILL, the OOM killer), which keeps running; tool calls the SDK runs without
+on macOS and Windows a tool in a group of its own or a background job when
+the child is killed outright, and anywhere a process that cleared the
+environment marker; tool calls the SDK runs without
 updates; the cloud runtime; Windows and macOS live runs, the login's
 included; `mcpServers`, refused until a live run shows what
 [session MCP servers](#session-mcp-servers) lists (the stand-in backend

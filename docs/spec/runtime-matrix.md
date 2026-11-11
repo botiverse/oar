@@ -151,7 +151,7 @@ child process ([report](../../experiments/runtime-resources-2026-10-28.md)):
 | kimi 2.3.3, opencode 1.19.5 and 2.2.0, antigravity 1.4.3 (ACP) | stopped within 2 s of the cancel | |
 | claude, dsh, qwen, qoder, pi (RPC) | not measured | `dispose()`: OAR owns the process |
 | pi (in process), cursor (in process) | not measured | they run in the host process: `dispose()` ends the SDK session; whether its commands stop is not measured |
-| cursor (subprocess mode) | not measured | `dispose()` stops the session's child and all its descendants, also tools in process groups of their own (POSIX, tested on Linux) or its tree (Windows, not run) ([execution modes](../runtimes/cursor.md#execution-modes)) |
+| cursor (subprocess mode) | not measured | `dispose()` stops the session's child, its process group and the descendants found by parent pid (POSIX), plus on Linux every process that kept the child's environment marker, such as a finished command's background job (tested on Linux); a process that cleared the marker, or on macOS one reparented away from the child, is not reached; Windows: `taskkill /T` on its tree, not run ([execution modes](../runtimes/cursor.md#execution-modes)) |
 | pi-durable | not measured | the host owns the harness: `dispose()` ends observation only |
 
 A host that must know the command is gone ends a session whose process OAR

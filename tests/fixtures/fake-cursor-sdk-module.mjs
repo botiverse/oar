@@ -26,6 +26,12 @@ import { setTimeout as delay } from "node:timers/promises";
  *   writes `{"child", "grandchild"}` pids to <file>, and finishes.
  * - `spawn-in-group:<file>`: the same, with the grandchild in this
  *   process's group.
+ * - `background:<file>`: runs `/bin/sh -c "sleep 300 & ..."` detached, as
+ *   the SDK runs a tool command, which writes the background sleep's pid to
+ *   <file> and exits; the run finishes once that shell exited. The sleep is
+ *   then reparented away from this process, outside its group.
+ * - `background-unmarked:<file>`: the same, with the shell started without
+ *   the `OAR_CURSOR_CHILD_<id>` marker OAR put in this process's environment.
  * A steer is taken (`complete_delivered`) and echoed as a delta. With
  * `CURSOR_API_KEY=rejected-key-0123456789` the open and the model listing
  * fail the way the SDK refuses a key (`AuthenticationError`, status 401).
@@ -113,6 +119,12 @@ function startTool(run, file, detached = true) {
   });
 }
 
+function background(run, file, unmarked = false) {
+  const env = unmarked ? Object.fromEntries(Object.entries(process.env).filter(([name]) => !name.startsWith("OAR_CURSOR_CHILD_"))) : process.env;
+  const shell = spawn("/bin/sh", ["-c", `sleep 300 & echo $! > "${file}.tmp" && mv "${file}.tmp" "${file}"`], { stdio: "ignore", detached: true, env });
+  shell.once("exit", () => { run.end("finished"); });
+}
+
 const behaviors = {
   echo,
   shell: (run, command) => { run.end("finished", execSync(command, { encoding: "utf8" }).trim()); },
@@ -123,6 +135,8 @@ const behaviors = {
   },
   spawn: startTool,
   "spawn-in-group": (run, file) => { startTool(run, file, false); },
+  background,
+  "background-unmarked": (run, file) => { background(run, file, true); },
   hold: () => {},
   "crash-on-cancel": (run) => { run.crashOnCancel = true; },
 };

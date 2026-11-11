@@ -31,6 +31,13 @@ async function startTool(session: Session, how: "spawn" | "spawn-in-group"): Pro
   return reportedPids(file);
 }
 
+/** The responses to the session's one dispose request. */
+function disposeAnswers(session: Session): unknown[] {
+  const requests = session.records().flatMap((record) => (record.kind === "request" && record.body.kind === "dispose" ? [record.id] : []));
+  expect(requests).toHaveLength(1);
+  return session.records().flatMap((record) => (record.kind === "response" && record.requestId === requests[0] ? [record.body] : []));
+}
+
 async function gone(pids: { readonly child: number; readonly grandchild: number }): Promise<{ readonly child: boolean; readonly grandchild: boolean }> {
   await until(() => !alive(pids.child) && !alive(pids.grandchild));
   return { child: !alive(pids.child), grandchild: !alive(pids.grandchild) };
@@ -76,6 +83,8 @@ test("a child SIGKILLed mid-run is recorded as exited, ends the turn, refuses la
   expect([again.response.body, steer.response.body]).toMatchObject([{ kind: "rejected", code: "runtime_exited" }, { kind: "rejected", code: "runtime_exited" }]);
   await session.dispose();
   expect(responsesOf(session, "exited")).toHaveLength(1);
+  // The exit was recorded before the dispose, against no request: the dispose itself is answered `accepted`.
+  expect(disposeAnswers(session)).toEqual([{ kind: "accepted" }]);
   expect(await gone(pids)).toEqual({ child: true, grandchild: true });
 });
 
@@ -95,8 +104,5 @@ test("a child that dies while dispose cancels its run answers that dispose, with
   const session = await open("subprocess");
   await session.prompt("crash-on-cancel");
   await session.dispose();
-  const dispose = session.records().flatMap((record) => (record.kind === "request" && record.body.kind === "dispose" ? [record.id] : []));
-  expect(dispose).toHaveLength(1);
-  const answers = session.records().flatMap((record) => (record.kind === "response" && record.requestId === dispose[0] ? [record.body] : []));
-  expect(answers).toEqual([{ kind: "exited", code: null, reason: "cursor's SDK child process exited with signal SIGKILL" }]);
+  expect(disposeAnswers(session)).toEqual([{ kind: "exited", code: null, reason: "cursor's SDK child process exited with signal SIGKILL" }]);
 });
