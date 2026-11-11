@@ -119,8 +119,10 @@ export interface LogoutOptions {
   readonly env?: SessionOptions["env"];
   /**
    * Bound for the runtime's logout; each runtime has its own default. When
-   * given, the status query that confirms it gets the rest of this budget (at
-   * least one second) instead of its own default, so both fit within it.
+   * given, the status query that confirms it gets the rest of this budget
+   * instead of its own default, so both share it. That query always gets at
+   * least one second, and a process that ignores its stop request gets the
+   * kill grace period, so a logout can end slightly after `timeoutMs`.
    */
   readonly timeoutMs?: number;
 }
