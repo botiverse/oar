@@ -1170,7 +1170,10 @@ per-user installs), then the standalone installer's launcher
 are npm's global shim in its default prefix (`%APPDATA%\npm\codex.cmd`,
 whose Node script OAR runs without cmd.exe), then the Codex Desktop CLI
 (`%LOCALAPPDATA%\Programs\OpenAI\Codex\bin\codex.exe`, then
-`%LOCALAPPDATA%\OpenAI\Codex\bin\codex.exe`); these locations follow
+`%LOCALAPPDATA%\OpenAI\Codex\bin\codex.exe`, each followed by its
+`bin\<build>\codex.exe` build folders, the most recently written first:
+newer Desktop builds keep the CLI one folder down, under a build hash, and
+can leave older build folders behind); these locations follow
 Raft's own Codex driver and have no native Windows run of their own here, so
 the `app-server --help` probe decides. The order compares no versions, and
 the Codex Desktop CLI can be older than the `codex` on PATH (a Raft machine
