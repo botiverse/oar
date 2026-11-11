@@ -1,0 +1,364 @@
+{
+  "date": "2026-11-11",
+  "sourceBase": "8135d1ff2a48e5fc29c1715f70f3a82a076cf4b7",
+  "oarSourceVersion": "0.98.0",
+  "platform": "Linux x64",
+  "node": "24.19.0",
+  "purpose": "Validate the ported repository reproducers, independently of the original 0.97.0 selection in results.json.",
+  "refusalCases": [
+    {
+      "version": "0.128.0",
+      "name": "tier-default",
+      "kind": null,
+      "code": "runtime_outdated",
+      "opened": null,
+      "outcome": null
+    },
+    {
+      "version": "0.128.0",
+      "name": "tier-priority",
+      "kind": null,
+      "code": "runtime_outdated",
+      "opened": null,
+      "outcome": null
+    },
+    {
+      "version": "0.128.0",
+      "name": "unknown-tier",
+      "kind": null,
+      "code": null,
+      "opened": null,
+      "outcome": null
+    },
+    {
+      "version": "0.128.0",
+      "name": "invalid-config-fresh",
+      "kind": null,
+      "code": "runtime_config_invalid",
+      "opened": null,
+      "outcome": null
+    },
+    {
+      "version": "0.128.0",
+      "name": "baseline-turn",
+      "kind": null,
+      "code": null,
+      "opened": null,
+      "outcome": {
+        "kind": "completed"
+      }
+    },
+    {
+      "version": "0.128.0",
+      "name": "oversize",
+      "kind": "rejected",
+      "code": "runtime_refused",
+      "opened": null,
+      "outcome": null
+    },
+    {
+      "version": "0.128.0",
+      "name": "unknown-thread",
+      "kind": "rejected",
+      "code": "session_not_found",
+      "opened": null,
+      "outcome": null
+    },
+    {
+      "version": "0.128.0",
+      "name": "recovered-turn",
+      "kind": null,
+      "code": null,
+      "opened": null,
+      "outcome": {
+        "kind": "completed"
+      }
+    },
+    {
+      "version": "0.128.0",
+      "name": "old-config-next-prompt",
+      "kind": "accepted",
+      "code": null,
+      "opened": null,
+      "outcome": null
+    },
+    {
+      "version": "0.128.0",
+      "name": "invalid-config-resume",
+      "kind": null,
+      "code": "runtime_config_invalid",
+      "opened": null,
+      "outcome": null
+    },
+    {
+      "version": "0.128.0",
+      "name": "resume-effort",
+      "kind": null,
+      "code": "runtime_outdated",
+      "opened": null,
+      "outcome": null
+    },
+    {
+      "version": "0.132.0",
+      "name": "tier-default",
+      "kind": null,
+      "code": null,
+      "opened": true,
+      "outcome": null
+    },
+    {
+      "version": "0.132.0",
+      "name": "tier-priority",
+      "kind": null,
+      "code": null,
+      "opened": true,
+      "outcome": null
+    },
+    {
+      "version": "0.132.0",
+      "name": "arbitrary-tier",
+      "kind": null,
+      "code": null,
+      "opened": true,
+      "outcome": null
+    },
+    {
+      "version": "0.132.0",
+      "name": "invalid-config-fresh",
+      "kind": null,
+      "code": "runtime_config_invalid",
+      "opened": null,
+      "outcome": null
+    },
+    {
+      "version": "0.132.0",
+      "name": "baseline-turn",
+      "kind": null,
+      "code": null,
+      "opened": null,
+      "outcome": {
+        "kind": "completed"
+      }
+    },
+    {
+      "version": "0.132.0",
+      "name": "oversize",
+      "kind": "rejected",
+      "code": "runtime_refused",
+      "opened": null,
+      "outcome": null
+    },
+    {
+      "version": "0.132.0",
+      "name": "unknown-thread",
+      "kind": "rejected",
+      "code": "session_not_found",
+      "opened": null,
+      "outcome": null
+    },
+    {
+      "version": "0.132.0",
+      "name": "recovered-turn",
+      "kind": null,
+      "code": null,
+      "opened": null,
+      "outcome": {
+        "kind": "completed"
+      }
+    },
+    {
+      "version": "0.132.0",
+      "name": "invalid-config-resume",
+      "kind": null,
+      "code": "runtime_config_invalid",
+      "opened": null,
+      "outcome": null
+    },
+    {
+      "version": "0.132.0",
+      "name": "resume-effort",
+      "kind": null,
+      "code": "runtime_outdated",
+      "opened": null,
+      "outcome": null
+    },
+    {
+      "version": "0.167.1",
+      "name": "tier-default",
+      "kind": null,
+      "code": null,
+      "opened": true,
+      "outcome": null
+    },
+    {
+      "version": "0.167.1",
+      "name": "tier-priority",
+      "kind": null,
+      "code": null,
+      "opened": false,
+      "outcome": null
+    },
+    {
+      "version": "0.167.1",
+      "name": "arbitrary-tier",
+      "kind": null,
+      "code": null,
+      "opened": false,
+      "outcome": null
+    },
+    {
+      "version": "0.167.1",
+      "name": "invalid-config-fresh",
+      "kind": null,
+      "code": "runtime_config_invalid",
+      "opened": null,
+      "outcome": null
+    },
+    {
+      "version": "0.167.1",
+      "name": "baseline-turn",
+      "kind": null,
+      "code": null,
+      "opened": null,
+      "outcome": {
+        "kind": "completed"
+      }
+    },
+    {
+      "version": "0.167.1",
+      "name": "oversize",
+      "kind": "rejected",
+      "code": "runtime_refused",
+      "opened": null,
+      "outcome": null
+    },
+    {
+      "version": "0.167.1",
+      "name": "invalid-config",
+      "kind": "rejected",
+      "code": "runtime_refused",
+      "opened": null,
+      "outcome": null
+    },
+    {
+      "version": "0.167.1",
+      "name": "missing-provider",
+      "kind": "rejected",
+      "code": "runtime_refused",
+      "opened": null,
+      "outcome": null
+    },
+    {
+      "version": "0.167.1",
+      "name": "unknown-thread",
+      "kind": "rejected",
+      "code": "session_not_found",
+      "opened": null,
+      "outcome": null
+    },
+    {
+      "version": "0.167.1",
+      "name": "recovered-turn",
+      "kind": null,
+      "code": null,
+      "opened": null,
+      "outcome": {
+        "kind": "completed"
+      }
+    },
+    {
+      "version": "0.167.1",
+      "name": "invalid-config-resume",
+      "kind": null,
+      "code": "runtime_config_invalid",
+      "opened": null,
+      "outcome": null
+    },
+    {
+      "version": "0.167.1",
+      "name": "resume-effort",
+      "kind": null,
+      "code": null,
+      "opened": true,
+      "outcome": null
+    }
+  ],
+  "credentialCases": [
+    {
+      "version": "0.128.0",
+      "name": "fresh-credential-echo",
+      "secretExposed": false
+    },
+    {
+      "version": "0.128.0",
+      "name": "resume-credential-echo",
+      "secretExposed": false
+    },
+    {
+      "version": "0.132.0",
+      "name": "fresh-credential-echo",
+      "secretExposed": false
+    },
+    {
+      "version": "0.132.0",
+      "name": "resume-credential-echo",
+      "secretExposed": false
+    },
+    {
+      "version": "0.167.1",
+      "name": "control-credential-echo",
+      "secretExposed": false
+    },
+    {
+      "version": "0.167.1",
+      "name": "fresh-credential-echo",
+      "secretExposed": false
+    },
+    {
+      "version": "0.167.1",
+      "name": "resume-credential-echo",
+      "secretExposed": false
+    }
+  ],
+  "cleanupAndNativeEcho": [
+    {
+      "version": "0.128.0",
+      "name": "cleanup",
+      "processCount": 14,
+      "remaining": []
+    },
+    {
+      "version": "0.132.0",
+      "name": "cleanup",
+      "processCount": 14,
+      "remaining": []
+    },
+    {
+      "version": "0.167.1",
+      "name": "cleanup",
+      "processCount": 14,
+      "remaining": []
+    },
+    {
+      "version": "0.128.0",
+      "name": "native-echo-and-cleanup",
+      "echoedNativeErrors": 2,
+      "processCount": 6,
+      "remaining": []
+    },
+    {
+      "version": "0.132.0",
+      "name": "native-echo-and-cleanup",
+      "echoedNativeErrors": 2,
+      "processCount": 6,
+      "remaining": []
+    },
+    {
+      "version": "0.167.1",
+      "name": "native-echo-and-cleanup",
+      "echoedNativeErrors": 3,
+      "processCount": 6,
+      "remaining": []
+    }
+  ]
+}

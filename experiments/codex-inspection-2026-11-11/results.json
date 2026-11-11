@@ -1,0 +1,973 @@
+{
+  "schema": 1,
+  "provenance": {
+    "date": "2026-11-11",
+    "platform": "Linux x64",
+    "node": "24.19.0",
+    "oar": "0.97.0",
+    "oarTarballSha1": "8da8e6444e438fa5f139d95a9657cabf85dfd366",
+    "binarySha256": {
+      "codex-cli 0.128.0": "ee37d1c34afdc84d4ede02e7593d968fb70e35f82780920a2fef861bf7c9f1d6",
+      "codex-cli 0.132.0": "db6388d892991f63193be10d432229b9511f0a5220d9452acc0cb62a84eca262",
+      "codex-cli 0.167.1": "dd5bfdf19d794dcc6fb482d2d5a2d9fb31d11f6caa44b303bb72890d461e8a02"
+    },
+    "provider": "local scripted Responses endpoint; isolated HOME and CODEX_HOME; synthetic API key",
+    "scope": "Original published-package run; selected fields from native captures and assertion results. Local paths and identifiers replaced, full stacks omitted."
+  },
+  "cases": [
+    {
+      "version": "0.128.0",
+      "name": "tier-default",
+      "elapsedMs": 339,
+      "error": {
+        "name": "RuntimeFailureError",
+        "message": "Codex 0.128.0 does not accept serviceTier default (it accepts fast and flex); update Codex to 0.129.0 or newer",
+        "code": "runtime_outdated",
+        "failure": "invalid_request",
+        "cause": {
+          "method": "thread/start",
+          "native": {
+            "code": -32600,
+            "message": "Invalid request: unknown variant `default`, expected `fast` or `flex`"
+          }
+        }
+      }
+    },
+    {
+      "version": "0.128.0",
+      "name": "tier-priority",
+      "elapsedMs": 208,
+      "error": {
+        "name": "RuntimeFailureError",
+        "message": "Codex 0.128.0 does not accept serviceTier priority (it accepts fast and flex); update Codex to 0.129.0 or newer",
+        "code": "runtime_outdated",
+        "failure": "invalid_request",
+        "cause": {
+          "method": "thread/start",
+          "native": {
+            "code": -32600,
+            "message": "Invalid request: unknown variant `priority`, expected `fast` or `flex`"
+          }
+        }
+      }
+    },
+    {
+      "version": "0.128.0",
+      "name": "unknown-tier",
+      "elapsedMs": 231,
+      "error": {
+        "name": "Error",
+        "message": "codex thread/start failed: serviceTier turbo could not be confirmed (actual unreported): Invalid request: unknown variant `turbo`, expected `fast` or `flex`",
+        "cause": {
+          "method": "thread/start",
+          "native": {
+            "code": -32600,
+            "message": "Invalid request: unknown variant `turbo`, expected `fast` or `flex`"
+          }
+        }
+      }
+    },
+    {
+      "version": "0.128.0",
+      "name": "invalid-config-fresh",
+      "elapsedMs": 219,
+      "error": {
+        "name": "RuntimeFailureError",
+        "message": "codex thread/start failed: failed to load configuration: <isolated-home>/config.toml:11:46: unclosed table, expected `]`",
+        "code": "runtime_config_invalid",
+        "failure": "invalid_request",
+        "cause": {
+          "method": "thread/start",
+          "native": {
+            "code": -32600,
+            "message": "failed to load configuration: <isolated-home>/config.toml:11:46: unclosed table, expected `]`"
+          }
+        }
+      }
+    },
+    {
+      "version": "0.128.0",
+      "name": "baseline-turn",
+      "outcome": {
+        "kind": "completed"
+      }
+    },
+    {
+      "version": "0.128.0",
+      "name": "oversize",
+      "status": "idle",
+      "secretExposed": false,
+      "result": {
+        "kind": "rejected",
+        "code": "runtime_refused",
+        "reason": "Input exceeds the maximum length of 1048576 characters.",
+        "failure": "input_too_large"
+      },
+      "native": {
+        "code": -32602,
+        "data": {
+          "input_error_code": "input_too_large",
+          "max_chars": 1048576,
+          "actual_chars": 1048577
+        },
+        "message": "Input exceeds the maximum length of 1048576 characters."
+      },
+      "newRecordKinds": [
+        "request",
+        "response"
+      ]
+    },
+    {
+      "version": "0.128.0",
+      "name": "unknown-thread",
+      "status": "idle",
+      "secretExposed": false,
+      "result": {
+        "kind": "rejected",
+        "code": "session_not_found",
+        "reason": "thread not found: <session-or-request-id>"
+      },
+      "native": {
+        "code": -32600,
+        "message": "thread not found: <session-or-request-id>"
+      },
+      "newRecordKinds": [
+        "request",
+        "response"
+      ]
+    },
+    {
+      "version": "0.128.0",
+      "name": "recovered-turn",
+      "outcome": {
+        "kind": "completed"
+      }
+    },
+    {
+      "version": "0.128.0",
+      "name": "invalid-config-resume",
+      "elapsedMs": 287,
+      "error": {
+        "name": "RuntimeFailureError",
+        "message": "codex thread/resume failed: failed to load configuration: <isolated-home>/config.toml:11:46: unclosed table, expected `]`",
+        "code": "runtime_config_invalid",
+        "failure": "invalid_request",
+        "cause": {
+          "method": "thread/resume",
+          "native": {
+            "code": -32600,
+            "message": "failed to load configuration: <isolated-home>/config.toml:11:46: unclosed table, expected `]`"
+          }
+        }
+      }
+    },
+    {
+      "version": "0.128.0",
+      "name": "resume-effort",
+      "elapsedMs": 432,
+      "error": {
+        "name": "RuntimeFailureError",
+        "message": "Codex 0.128.0 does not know thread/settings/update, which OAR needs to set the effort of a resumed thread; update Codex to 0.133.0 or newer",
+        "code": "runtime_outdated",
+        "failure": "invalid_request",
+        "cause": {
+          "method": "thread/settings/update",
+          "native": {
+            "code": -32600,
+            "message": "Invalid request: unknown variant `thread/settings/update`, expected one of `initialize`, `thread/start`, `thread/resume`, `thread/fork`, `thread/archive`, `thread/unsubscribe`, `thread/increment_elicitation`, `thread/decrement_elicitation`, `thread/name/set`, `thread/goal/set`, `thread/goal/get`, `thread/goal/clear`, `thread/metadata/update`, `thread/memoryMode/set`, `memory/reset`, `thread/unarchive`, `thread/compact/start`, `thread/shellCommand`, `thread/approveGuardianDeniedAction`, `thread/backgroundTerminals/clean`, `thread/rollback`, `thread/list`, `thread/loaded/list`, `thread/read`, `thread/turns/list`, `thread/inject_items`, `skills/list`, `hooks/list`, `marketplace/add`, `marketplace/remove`, `marketplace/upgrade`, `plugin/list`, `plugin/read`, `app/list`, `device/key/create`, `device/key/public`, `device/key/sign`, `fs/readFile`, `fs/writeFile`, `fs/createDirectory`, `fs/getMetadata`, `fs/readDirectory`, `fs/remove`, `fs/copy`, `fs/watch`, `fs/unwatch`, `skills/config/write`, `plugin/install`, `plugin/uninstall`, `turn/start`, `turn/steer`, `turn/interrupt`, `thread/realtime/start`, `thread/realtime/appendAudio`, `thread/realtime/appendText`, `thread/realtime/stop`, `thread/realtime/listVoices`, `review/start`, `model/list`, `modelProvider/capabilities/read`, `experimentalFeature/list`, `experimentalFeature/enablement/set`, `collaborationMode/list`, `mock/experimentalMethod`, `mcpServer/oauth/login`, `config/mcpServer/reload`, `mcpServerStatus/list`, `mcpServer/resource/read`, `mcpServer/tool/call`, `windowsSandbox/setupStart`, `account/login/start`, `account/login/cancel`, `account/logout`, `account/rateLimits/read`, `account/sendAddCreditsNudgeEmail`, `feedback/upload`, `command/exec`, `command/exec/write`, `command/exec/terminate`, `command/exec/resize`, `config/read`, `externalAgentConfig/detect`, `externalAgentConfig/import`, `config/value/write`, `config/batchWrite`, `configRequirements/read`, `account/read`, `getConversationSummary`, `gitDiffToRemote`, `getAuthStatus`, `fuzzyFileSearch`, `fuzzyFileSearch/sessionStart`, `fuzzyFileSearch/sessionUpdate`, `fuzzyFileSearch/sessionStop`"
+          }
+        }
+      }
+    },
+    {
+      "version": "0.132.0",
+      "name": "tier-default",
+      "opened": true
+    },
+    {
+      "version": "0.132.0",
+      "name": "tier-priority",
+      "opened": true
+    },
+    {
+      "version": "0.132.0",
+      "name": "arbitrary-tier",
+      "opened": true
+    },
+    {
+      "version": "0.132.0",
+      "name": "invalid-config-fresh",
+      "elapsedMs": 234,
+      "error": {
+        "name": "RuntimeFailureError",
+        "message": "codex thread/start failed: failed to load configuration: <isolated-home>/config.toml:11:46: unclosed table, expected `]`",
+        "code": "runtime_config_invalid",
+        "failure": "invalid_request",
+        "cause": {
+          "method": "thread/start",
+          "native": {
+            "code": -32600,
+            "message": "failed to load configuration: <isolated-home>/config.toml:11:46: unclosed table, expected `]`"
+          }
+        }
+      }
+    },
+    {
+      "version": "0.132.0",
+      "name": "baseline-turn",
+      "outcome": {
+        "kind": "completed"
+      }
+    },
+    {
+      "version": "0.132.0",
+      "name": "oversize",
+      "status": "idle",
+      "secretExposed": false,
+      "result": {
+        "kind": "rejected",
+        "code": "runtime_refused",
+        "reason": "Input exceeds the maximum length of 1048576 characters.",
+        "failure": "input_too_large"
+      },
+      "native": {
+        "code": -32602,
+        "data": {
+          "input_error_code": "input_too_large",
+          "max_chars": 1048576,
+          "actual_chars": 1048577
+        },
+        "message": "Input exceeds the maximum length of 1048576 characters."
+      },
+      "newRecordKinds": [
+        "request",
+        "response"
+      ]
+    },
+    {
+      "version": "0.132.0",
+      "name": "unknown-thread",
+      "status": "idle",
+      "secretExposed": false,
+      "result": {
+        "kind": "rejected",
+        "code": "session_not_found",
+        "reason": "thread not found: <session-or-request-id>"
+      },
+      "native": {
+        "code": -32600,
+        "message": "thread not found: <session-or-request-id>"
+      },
+      "newRecordKinds": [
+        "request",
+        "response"
+      ]
+    },
+    {
+      "version": "0.132.0",
+      "name": "recovered-turn",
+      "outcome": {
+        "kind": "completed"
+      }
+    },
+    {
+      "version": "0.132.0",
+      "name": "invalid-config-resume",
+      "elapsedMs": 253,
+      "error": {
+        "name": "RuntimeFailureError",
+        "message": "codex thread/resume failed: failed to load configuration: <isolated-home>/config.toml:11:46: unclosed table, expected `]`",
+        "code": "runtime_config_invalid",
+        "failure": "invalid_request",
+        "cause": {
+          "method": "thread/resume",
+          "native": {
+            "code": -32600,
+            "message": "failed to load configuration: <isolated-home>/config.toml:11:46: unclosed table, expected `]`"
+          }
+        }
+      }
+    },
+    {
+      "version": "0.132.0",
+      "name": "resume-effort",
+      "elapsedMs": 289,
+      "error": {
+        "name": "RuntimeFailureError",
+        "message": "Codex 0.132.0 does not know thread/settings/update, which OAR needs to set the effort of a resumed thread; update Codex to 0.133.0 or newer",
+        "code": "runtime_outdated",
+        "failure": "invalid_request",
+        "cause": {
+          "method": "thread/settings/update",
+          "native": {
+            "code": -32600,
+            "message": "Invalid request: unknown variant `thread/settings/update`, expected one of `initialize`, `thread/start`, `thread/resume`, `thread/fork`, `thread/archive`, `thread/unsubscribe`, `thread/increment_elicitation`, `thread/decrement_elicitation`, `thread/name/set`, `thread/goal/set`, `thread/goal/get`, `thread/goal/clear`, `thread/metadata/update`, `thread/memoryMode/set`, `memory/reset`, `thread/unarchive`, `thread/compact/start`, `thread/shellCommand`, `thread/approveGuardianDeniedAction`, `thread/backgroundTerminals/clean`, `thread/rollback`, `thread/list`, `thread/loaded/list`, `thread/read`, `thread/turns/list`, `thread/turns/items/list`, `thread/inject_items`, `skills/list`, `hooks/list`, `marketplace/add`, `marketplace/remove`, `marketplace/upgrade`, `plugin/list`, `plugin/installed`, `plugin/read`, `plugin/skill/read`, `plugin/share/save`, `plugin/share/updateTargets`, `plugin/share/list`, `plugin/share/checkout`, `plugin/share/delete`, `app/list`, `fs/readFile`, `fs/writeFile`, `fs/createDirectory`, `fs/getMetadata`, `fs/readDirectory`, `fs/remove`, `fs/copy`, `fs/watch`, `fs/unwatch`, `skills/config/write`, `plugin/install`, `plugin/uninstall`, `turn/start`, `turn/steer`, `turn/interrupt`, `thread/realtime/start`, `thread/realtime/appendAudio`, `thread/realtime/appendText`, `thread/realtime/stop`, `thread/realtime/listVoices`, `review/start`, `model/list`, `modelProvider/capabilities/read`, `experimentalFeature/list`, `experimentalFeature/enablement/set`, `remoteControl/enable`, `remoteControl/disable`, `remoteControl/status/read`, `collaborationMode/list`, `mock/experimentalMethod`, `environment/add`, `mcpServer/oauth/login`, `config/mcpServer/reload`, `mcpServerStatus/list`, `mcpServer/resource/read`, `mcpServer/tool/call`, `windowsSandbox/setupStart`, `windowsSandbox/readiness`, `account/login/start`, `account/login/cancel`, `account/logout`, `account/rateLimits/read`, `account/sendAddCreditsNudgeEmail`, `feedback/upload`, `command/exec`, `command/exec/write`, `command/exec/terminate`, `command/exec/resize`, `process/spawn`, `process/writeStdin`, `process/kill`, `process/resizePty`, `config/read`, `externalAgentConfig/detect`, `externalAgentConfig/import`, `config/value/write`, `config/batchWrite`, `configRequirements/read`, `account/read`, `getConversationSummary`, `gitDiffToRemote`, `getAuthStatus`, `fuzzyFileSearch`, `fuzzyFileSearch/sessionStart`, `fuzzyFileSearch/sessionUpdate`, `fuzzyFileSearch/sessionStop`"
+          }
+        }
+      }
+    },
+    {
+      "version": "0.167.1",
+      "name": "tier-default",
+      "opened": true
+    },
+    {
+      "version": "0.167.1",
+      "name": "tier-priority",
+      "opened": false,
+      "error": {
+        "name": "Error",
+        "message": "codex thread/start reports serviceTier default although priority was requested"
+      }
+    },
+    {
+      "version": "0.167.1",
+      "name": "arbitrary-tier",
+      "opened": false,
+      "error": {
+        "name": "Error",
+        "message": "codex thread/start reports serviceTier default although turbo was requested"
+      }
+    },
+    {
+      "version": "0.167.1",
+      "name": "invalid-config-fresh",
+      "elapsedMs": 212,
+      "error": {
+        "name": "RuntimeFailureError",
+        "message": "codex thread/start failed: failed to load configuration: <isolated-home>/config.toml:11:46: unclosed table, expected `]`",
+        "code": "runtime_config_invalid",
+        "failure": "invalid_request",
+        "cause": {
+          "method": "thread/start",
+          "native": {
+            "code": -32600,
+            "message": "failed to load configuration: <isolated-home>/config.toml:11:46: unclosed table, expected `]`"
+          }
+        }
+      }
+    },
+    {
+      "version": "0.167.1",
+      "name": "baseline-turn",
+      "outcome": {
+        "kind": "completed"
+      }
+    },
+    {
+      "version": "0.167.1",
+      "name": "oversize",
+      "status": "idle",
+      "secretExposed": false,
+      "result": {
+        "kind": "rejected",
+        "code": "runtime_refused",
+        "reason": "Input exceeds the maximum length of 1048576 characters.",
+        "failure": "input_too_large"
+      },
+      "native": {
+        "code": -32602,
+        "data": {
+          "input_error_code": "input_too_large",
+          "max_chars": 1048576,
+          "actual_chars": 1048577
+        },
+        "message": "Input exceeds the maximum length of 1048576 characters."
+      },
+      "newRecordKinds": [
+        "request",
+        "response"
+      ]
+    },
+    {
+      "version": "0.167.1",
+      "name": "invalid-config",
+      "status": "idle",
+      "secretExposed": false,
+      "result": {
+        "kind": "rejected",
+        "code": "runtime_refused",
+        "reason": "failed to load configuration: <isolated-home>/config.toml:11:46: unclosed table, expected `]`",
+        "failure": "invalid_request"
+      },
+      "native": {
+        "code": -32600,
+        "message": "failed to load configuration: <isolated-home>/config.toml:11:46: unclosed table, expected `]`"
+      },
+      "newRecordKinds": [
+        "request",
+        "response"
+      ]
+    },
+    {
+      "version": "0.167.1",
+      "name": "missing-provider",
+      "status": "idle",
+      "secretExposed": false,
+      "result": {
+        "kind": "rejected",
+        "code": "runtime_refused",
+        "reason": "This chat uses aimock, but your current provider is openai. Switch to aimock to continue.",
+        "failure": "invalid_request"
+      },
+      "native": {
+        "code": -32600,
+        "data": {
+          "type": "modelProviderMismatch",
+          "modelProvider": "aimock",
+          "currentModelProvider": "openai"
+        },
+        "message": "This chat uses aimock, but your current provider is openai. Switch to aimock to continue."
+      },
+      "newRecordKinds": [
+        "request",
+        "response"
+      ]
+    },
+    {
+      "version": "0.167.1",
+      "name": "unknown-thread",
+      "status": "idle",
+      "secretExposed": false,
+      "result": {
+        "kind": "rejected",
+        "code": "session_not_found",
+        "reason": "thread not found: <session-or-request-id>"
+      },
+      "native": {
+        "code": -32600,
+        "message": "thread not found: <session-or-request-id>"
+      },
+      "newRecordKinds": [
+        "request",
+        "response"
+      ]
+    },
+    {
+      "version": "0.167.1",
+      "name": "recovered-turn",
+      "outcome": {
+        "kind": "completed"
+      }
+    },
+    {
+      "version": "0.167.1",
+      "name": "invalid-config-resume",
+      "elapsedMs": 248,
+      "error": {
+        "name": "RuntimeFailureError",
+        "message": "codex thread/resume failed: failed to load configuration: <isolated-home>/config.toml:11:46: unclosed table, expected `]`",
+        "code": "runtime_config_invalid",
+        "failure": "invalid_request",
+        "cause": {
+          "method": "thread/resume",
+          "native": {
+            "code": -32600,
+            "message": "failed to load configuration: <isolated-home>/config.toml:11:46: unclosed table, expected `]`"
+          }
+        }
+      }
+    },
+    {
+      "version": "0.167.1",
+      "name": "resume-effort",
+      "opened": true
+    }
+  ],
+  "credentialEcho": [
+    {
+      "version": "0.128.0",
+      "name": "fresh-credential-echo",
+      "secretExposed": false,
+      "error": {
+        "name": "RuntimeFailureError",
+        "message": "codex thread/start failed: failed to load configuration: <isolated-home>/config.toml:1:14: unknown variant `[redacted]`, expected one of `disabled`, `cached`, `live`",
+        "code": "runtime_config_invalid",
+        "failure": "invalid_request",
+        "cause": {
+          "method": "thread/start",
+          "native": {
+            "code": -32600,
+            "message": "failed to load configuration: <isolated-home>/config.toml:1:14: unknown variant `[redacted]`, expected one of `disabled`, `cached`, `live`"
+          }
+        }
+      },
+      "checkedSurfaces": [
+        "message",
+        "stack",
+        "cause",
+        "inspect",
+        "JSON.stringify"
+      ]
+    },
+    {
+      "version": "0.128.0",
+      "name": "resume-credential-echo",
+      "secretExposed": false,
+      "error": {
+        "name": "RuntimeFailureError",
+        "message": "codex thread/resume failed: failed to load configuration: <isolated-home>/config.toml:1:14: unknown variant `[redacted]`, expected one of `disabled`, `cached`, `live`",
+        "code": "runtime_config_invalid",
+        "failure": "invalid_request",
+        "cause": {
+          "method": "thread/resume",
+          "native": {
+            "code": -32600,
+            "message": "failed to load configuration: <isolated-home>/config.toml:1:14: unknown variant `[redacted]`, expected one of `disabled`, `cached`, `live`"
+          }
+        }
+      },
+      "checkedSurfaces": [
+        "message",
+        "stack",
+        "cause",
+        "inspect",
+        "JSON.stringify"
+      ]
+    },
+    {
+      "version": "0.128.0",
+      "name": "native-echo-and-cleanup",
+      "echoedNativeErrors": 2
+    },
+    {
+      "version": "0.132.0",
+      "name": "fresh-credential-echo",
+      "secretExposed": false,
+      "error": {
+        "name": "RuntimeFailureError",
+        "message": "codex thread/start failed: failed to load configuration: <isolated-home>/config.toml:1:14: unknown variant `[redacted]`, expected one of `disabled`, `cached`, `live`",
+        "code": "runtime_config_invalid",
+        "failure": "invalid_request",
+        "cause": {
+          "method": "thread/start",
+          "native": {
+            "code": -32600,
+            "message": "failed to load configuration: <isolated-home>/config.toml:1:14: unknown variant `[redacted]`, expected one of `disabled`, `cached`, `live`"
+          }
+        }
+      },
+      "checkedSurfaces": [
+        "message",
+        "stack",
+        "cause",
+        "inspect",
+        "JSON.stringify"
+      ]
+    },
+    {
+      "version": "0.132.0",
+      "name": "resume-credential-echo",
+      "secretExposed": false,
+      "error": {
+        "name": "RuntimeFailureError",
+        "message": "codex thread/resume failed: failed to load configuration: <isolated-home>/config.toml:1:14: unknown variant `[redacted]`, expected one of `disabled`, `cached`, `live`",
+        "code": "runtime_config_invalid",
+        "failure": "invalid_request",
+        "cause": {
+          "method": "thread/resume",
+          "native": {
+            "code": -32600,
+            "message": "failed to load configuration: <isolated-home>/config.toml:1:14: unknown variant `[redacted]`, expected one of `disabled`, `cached`, `live`"
+          }
+        }
+      },
+      "checkedSurfaces": [
+        "message",
+        "stack",
+        "cause",
+        "inspect",
+        "JSON.stringify"
+      ]
+    },
+    {
+      "version": "0.132.0",
+      "name": "native-echo-and-cleanup",
+      "echoedNativeErrors": 2
+    },
+    {
+      "version": "0.167.1",
+      "name": "control-credential-echo",
+      "secretExposed": false,
+      "result": {
+        "kind": "rejected",
+        "code": "runtime_refused",
+        "reason": "failed to load configuration: <isolated-home>/config.toml:1:14: unknown variant `[redacted]`, expected one of `disabled`, `cached`, `indexed`, `live`",
+        "failure": "invalid_request"
+      },
+      "checkedSurfaces": [
+        "control result",
+        "retained records"
+      ]
+    },
+    {
+      "version": "0.167.1",
+      "name": "fresh-credential-echo",
+      "secretExposed": false,
+      "error": {
+        "name": "RuntimeFailureError",
+        "message": "codex thread/start failed: failed to load configuration: <isolated-home>/config.toml:1:14: unknown variant `[redacted]`, expected one of `disabled`, `cached`, `indexed`, `live`",
+        "code": "runtime_config_invalid",
+        "failure": "invalid_request",
+        "cause": {
+          "method": "thread/start",
+          "native": {
+            "code": -32600,
+            "message": "failed to load configuration: <isolated-home>/config.toml:1:14: unknown variant `[redacted]`, expected one of `disabled`, `cached`, `indexed`, `live`"
+          }
+        }
+      },
+      "checkedSurfaces": [
+        "message",
+        "stack",
+        "cause",
+        "inspect",
+        "JSON.stringify"
+      ]
+    },
+    {
+      "version": "0.167.1",
+      "name": "resume-credential-echo",
+      "secretExposed": false,
+      "error": {
+        "name": "RuntimeFailureError",
+        "message": "codex thread/resume failed: failed to load configuration: <isolated-home>/config.toml:1:14: unknown variant `[redacted]`, expected one of `disabled`, `cached`, `indexed`, `live`",
+        "code": "runtime_config_invalid",
+        "failure": "invalid_request",
+        "cause": {
+          "method": "thread/resume",
+          "native": {
+            "code": -32600,
+            "message": "failed to load configuration: <isolated-home>/config.toml:1:14: unknown variant `[redacted]`, expected one of `disabled`, `cached`, `indexed`, `live`"
+          }
+        }
+      },
+      "checkedSurfaces": [
+        "message",
+        "stack",
+        "cause",
+        "inspect",
+        "JSON.stringify"
+      ]
+    },
+    {
+      "version": "0.167.1",
+      "name": "native-echo-and-cleanup",
+      "echoedNativeErrors": 3
+    }
+  ],
+  "nativeSelections": [
+    {
+      "probe": "codex",
+      "version": "0.128.0",
+      "method": "thread/start",
+      "error": {
+        "code": -32600,
+        "message": "Invalid request: unknown variant `default`, expected `fast` or `flex`"
+      }
+    },
+    {
+      "probe": "codex",
+      "version": "0.128.0",
+      "method": "thread/start",
+      "error": {
+        "code": -32600,
+        "message": "Invalid request: unknown variant `priority`, expected `fast` or `flex`"
+      }
+    },
+    {
+      "probe": "codex",
+      "version": "0.128.0",
+      "method": "thread/start",
+      "error": {
+        "code": -32600,
+        "message": "Invalid request: unknown variant `turbo`, expected `fast` or `flex`"
+      }
+    },
+    {
+      "probe": "codex",
+      "version": "0.128.0",
+      "method": "thread/start",
+      "error": {
+        "code": -32600,
+        "message": "failed to load configuration: <isolated-home>/config.toml:11:46: unclosed table, expected `]`"
+      }
+    },
+    {
+      "probe": "codex",
+      "version": "0.128.0",
+      "method": "turn/start",
+      "error": {
+        "code": -32602,
+        "data": {
+          "input_error_code": "input_too_large",
+          "max_chars": 1048576,
+          "actual_chars": 1048577
+        },
+        "message": "Input exceeds the maximum length of 1048576 characters."
+      }
+    },
+    {
+      "probe": "codex",
+      "version": "0.128.0",
+      "method": "turn/start",
+      "error": {
+        "code": -32600,
+        "message": "thread not found: <session-or-request-id>"
+      }
+    },
+    {
+      "probe": "codex",
+      "version": "0.128.0",
+      "method": "thread/resume",
+      "error": {
+        "code": -32600,
+        "message": "failed to load configuration: <isolated-home>/config.toml:11:46: unclosed table, expected `]`"
+      }
+    },
+    {
+      "probe": "codex",
+      "version": "0.128.0",
+      "method": "thread/settings/update",
+      "error": {
+        "code": -32600,
+        "message": "Invalid request: unknown variant `thread/settings/update`, expected one of `initialize`, `thread/start`, `thread/resume`, `thread/fork`, `thread/archive`, `thread/unsubscribe`, `thread/increment_elicitation`, `thread/decrement_elicitation`, `thread/name/set`, `thread/goal/set`, `thread/goal/get`, `thread/goal/clear`, `thread/metadata/update`, `thread/memoryMode/set`, `memory/reset`, `thread/unarchive`, `thread/compact/start`, `thread/shellCommand`, `thread/approveGuardianDeniedAction`, `thread/backgroundTerminals/clean`, `thread/rollback`, `thread/list`, `thread/loaded/list`, `thread/read`, `thread/turns/list`, `thread/inject_items`, `skills/list`, `hooks/list`, `marketplace/add`, `marketplace/remove`, `marketplace/upgrade`, `plugin/list`, `plugin/read`, `app/list`, `device/key/create`, `device/key/public`, `device/key/sign`, `fs/readFile`, `fs/writeFile`, `fs/createDirectory`, `fs/getMetadata`, `fs/readDirectory`, `fs/remove`, `fs/copy`, `fs/watch`, `fs/unwatch`, `skills/config/write`, `plugin/install`, `plugin/uninstall`, `turn/start`, `turn/steer`, `turn/interrupt`, `thread/realtime/start`, `thread/realtime/appendAudio`, `thread/realtime/appendText`, `thread/realtime/stop`, `thread/realtime/listVoices`, `review/start`, `model/list`, `modelProvider/capabilities/read`, `experimentalFeature/list`, `experimentalFeature/enablement/set`, `collaborationMode/list`, `mock/experimentalMethod`, `mcpServer/oauth/login`, `config/mcpServer/reload`, `mcpServerStatus/list`, `mcpServer/resource/read`, `mcpServer/tool/call`, `windowsSandbox/setupStart`, `account/login/start`, `account/login/cancel`, `account/logout`, `account/rateLimits/read`, `account/sendAddCreditsNudgeEmail`, `feedback/upload`, `command/exec`, `command/exec/write`, `command/exec/terminate`, `command/exec/resize`, `config/read`, `externalAgentConfig/detect`, `externalAgentConfig/import`, `config/value/write`, `config/batchWrite`, `configRequirements/read`, `account/read`, `getConversationSummary`, `gitDiffToRemote`, `getAuthStatus`, `fuzzyFileSearch`, `fuzzyFileSearch/sessionStart`, `fuzzyFileSearch/sessionUpdate`, `fuzzyFileSearch/sessionStop`"
+      }
+    },
+    {
+      "probe": "refusal",
+      "version": "0.132.0",
+      "method": "thread/start",
+      "requestedServiceTier": "default",
+      "returnedServiceTier": "default"
+    },
+    {
+      "probe": "refusal",
+      "version": "0.132.0",
+      "method": "thread/start",
+      "requestedServiceTier": "priority",
+      "returnedServiceTier": "priority"
+    },
+    {
+      "probe": "refusal",
+      "version": "0.132.0",
+      "method": "thread/start",
+      "requestedServiceTier": "turbo",
+      "returnedServiceTier": "turbo"
+    },
+    {
+      "probe": "codex",
+      "version": "0.132.0",
+      "method": "thread/start",
+      "error": {
+        "code": -32600,
+        "message": "failed to load configuration: <isolated-home>/config.toml:11:46: unclosed table, expected `]`"
+      }
+    },
+    {
+      "probe": "codex",
+      "version": "0.132.0",
+      "method": "turn/start",
+      "error": {
+        "code": -32602,
+        "data": {
+          "input_error_code": "input_too_large",
+          "max_chars": 1048576,
+          "actual_chars": 1048577
+        },
+        "message": "Input exceeds the maximum length of 1048576 characters."
+      }
+    },
+    {
+      "probe": "codex",
+      "version": "0.132.0",
+      "method": "turn/start",
+      "error": {
+        "code": -32600,
+        "message": "thread not found: <session-or-request-id>"
+      }
+    },
+    {
+      "probe": "codex",
+      "version": "0.132.0",
+      "method": "thread/resume",
+      "error": {
+        "code": -32600,
+        "message": "failed to load configuration: <isolated-home>/config.toml:11:46: unclosed table, expected `]`"
+      }
+    },
+    {
+      "probe": "codex",
+      "version": "0.132.0",
+      "method": "thread/settings/update",
+      "error": {
+        "code": -32600,
+        "message": "Invalid request: unknown variant `thread/settings/update`, expected one of `initialize`, `thread/start`, `thread/resume`, `thread/fork`, `thread/archive`, `thread/unsubscribe`, `thread/increment_elicitation`, `thread/decrement_elicitation`, `thread/name/set`, `thread/goal/set`, `thread/goal/get`, `thread/goal/clear`, `thread/metadata/update`, `thread/memoryMode/set`, `memory/reset`, `thread/unarchive`, `thread/compact/start`, `thread/shellCommand`, `thread/approveGuardianDeniedAction`, `thread/backgroundTerminals/clean`, `thread/rollback`, `thread/list`, `thread/loaded/list`, `thread/read`, `thread/turns/list`, `thread/turns/items/list`, `thread/inject_items`, `skills/list`, `hooks/list`, `marketplace/add`, `marketplace/remove`, `marketplace/upgrade`, `plugin/list`, `plugin/installed`, `plugin/read`, `plugin/skill/read`, `plugin/share/save`, `plugin/share/updateTargets`, `plugin/share/list`, `plugin/share/checkout`, `plugin/share/delete`, `app/list`, `fs/readFile`, `fs/writeFile`, `fs/createDirectory`, `fs/getMetadata`, `fs/readDirectory`, `fs/remove`, `fs/copy`, `fs/watch`, `fs/unwatch`, `skills/config/write`, `plugin/install`, `plugin/uninstall`, `turn/start`, `turn/steer`, `turn/interrupt`, `thread/realtime/start`, `thread/realtime/appendAudio`, `thread/realtime/appendText`, `thread/realtime/stop`, `thread/realtime/listVoices`, `review/start`, `model/list`, `modelProvider/capabilities/read`, `experimentalFeature/list`, `experimentalFeature/enablement/set`, `remoteControl/enable`, `remoteControl/disable`, `remoteControl/status/read`, `collaborationMode/list`, `mock/experimentalMethod`, `environment/add`, `mcpServer/oauth/login`, `config/mcpServer/reload`, `mcpServerStatus/list`, `mcpServer/resource/read`, `mcpServer/tool/call`, `windowsSandbox/setupStart`, `windowsSandbox/readiness`, `account/login/start`, `account/login/cancel`, `account/logout`, `account/rateLimits/read`, `account/sendAddCreditsNudgeEmail`, `feedback/upload`, `command/exec`, `command/exec/write`, `command/exec/terminate`, `command/exec/resize`, `process/spawn`, `process/writeStdin`, `process/kill`, `process/resizePty`, `config/read`, `externalAgentConfig/detect`, `externalAgentConfig/import`, `config/value/write`, `config/batchWrite`, `configRequirements/read`, `account/read`, `getConversationSummary`, `gitDiffToRemote`, `getAuthStatus`, `fuzzyFileSearch`, `fuzzyFileSearch/sessionStart`, `fuzzyFileSearch/sessionUpdate`, `fuzzyFileSearch/sessionStop`"
+      }
+    },
+    {
+      "probe": "refusal",
+      "version": "0.167.1",
+      "method": "thread/start",
+      "requestedServiceTier": "default",
+      "returnedServiceTier": "default"
+    },
+    {
+      "probe": "refusal",
+      "version": "0.167.1",
+      "method": "thread/start",
+      "requestedServiceTier": "priority",
+      "returnedServiceTier": null
+    },
+    {
+      "probe": "refusal",
+      "version": "0.167.1",
+      "method": "thread/start",
+      "requestedServiceTier": "turbo",
+      "returnedServiceTier": null
+    },
+    {
+      "probe": "codex",
+      "version": "0.167.1",
+      "method": "thread/start",
+      "error": {
+        "code": -32600,
+        "message": "failed to load configuration: <isolated-home>/config.toml:11:46: unclosed table, expected `]`"
+      }
+    },
+    {
+      "probe": "codex",
+      "version": "0.167.1",
+      "method": "turn/start",
+      "error": {
+        "code": -32602,
+        "data": {
+          "input_error_code": "input_too_large",
+          "max_chars": 1048576,
+          "actual_chars": 1048577
+        },
+        "message": "Input exceeds the maximum length of 1048576 characters."
+      }
+    },
+    {
+      "probe": "codex",
+      "version": "0.167.1",
+      "method": "turn/start",
+      "error": {
+        "code": -32600,
+        "message": "failed to load configuration: <isolated-home>/config.toml:11:46: unclosed table, expected `]`"
+      }
+    },
+    {
+      "probe": "codex",
+      "version": "0.167.1",
+      "method": "turn/start",
+      "error": {
+        "code": -32600,
+        "data": {
+          "type": "modelProviderMismatch",
+          "modelProvider": "aimock",
+          "currentModelProvider": "openai"
+        },
+        "message": "This chat uses aimock, but your current provider is openai. Switch to aimock to continue."
+      }
+    },
+    {
+      "probe": "codex",
+      "version": "0.167.1",
+      "method": "turn/start",
+      "error": {
+        "code": -32600,
+        "message": "thread not found: <session-or-request-id>"
+      }
+    },
+    {
+      "probe": "codex",
+      "version": "0.167.1",
+      "method": "thread/resume",
+      "error": {
+        "code": -32600,
+        "message": "failed to load configuration: <isolated-home>/config.toml:11:46: unclosed table, expected `]`"
+      }
+    },
+    {
+      "probe": "credential",
+      "version": "0.128.0",
+      "method": "thread/start",
+      "error": {
+        "code": -32600,
+        "message": "failed to load configuration: <isolated-home>/config.toml:1:14: unknown variant `sk-lookout-synthetic-1111-no-real-credential`, expected one of `disabled`, `cached`, `live`"
+      }
+    },
+    {
+      "probe": "credential",
+      "version": "0.128.0",
+      "method": "thread/resume",
+      "error": {
+        "code": -32600,
+        "message": "failed to load configuration: <isolated-home>/config.toml:1:14: unknown variant `sk-lookout-synthetic-1111-no-real-credential`, expected one of `disabled`, `cached`, `live`"
+      }
+    },
+    {
+      "probe": "credential",
+      "version": "0.132.0",
+      "method": "thread/start",
+      "error": {
+        "code": -32600,
+        "message": "failed to load configuration: <isolated-home>/config.toml:1:14: unknown variant `sk-lookout-synthetic-1111-no-real-credential`, expected one of `disabled`, `cached`, `live`"
+      }
+    },
+    {
+      "probe": "credential",
+      "version": "0.132.0",
+      "method": "thread/resume",
+      "error": {
+        "code": -32600,
+        "message": "failed to load configuration: <isolated-home>/config.toml:1:14: unknown variant `sk-lookout-synthetic-1111-no-real-credential`, expected one of `disabled`, `cached`, `live`"
+      }
+    },
+    {
+      "probe": "credential",
+      "version": "0.167.1",
+      "method": "turn/start",
+      "error": {
+        "code": -32600,
+        "message": "failed to load configuration: <isolated-home>/config.toml:1:14: unknown variant `sk-lookout-synthetic-1111-no-real-credential`, expected one of `disabled`, `cached`, `indexed`, `live`"
+      }
+    },
+    {
+      "probe": "credential",
+      "version": "0.167.1",
+      "method": "thread/start",
+      "error": {
+        "code": -32600,
+        "message": "failed to load configuration: <isolated-home>/config.toml:1:14: unknown variant `sk-lookout-synthetic-1111-no-real-credential`, expected one of `disabled`, `cached`, `indexed`, `live`"
+      }
+    },
+    {
+      "probe": "credential",
+      "version": "0.167.1",
+      "method": "thread/resume",
+      "error": {
+        "code": -32600,
+        "message": "failed to load configuration: <isolated-home>/config.toml:1:14: unknown variant `sk-lookout-synthetic-1111-no-real-credential`, expected one of `disabled`, `cached`, `indexed`, `live`"
+      }
+    }
+  ],
+  "exploratoryOldConfigAdmission": {
+    "version": "0.128.0",
+    "action": "damage config.toml after open; send one prompt",
+    "result": {
+      "kind": "accepted",
+      "statusImmediatelyAfterReceipt": "running"
+    },
+    "completionObserved": false,
+    "boundary": "The harness expected a refusal and stopped at that assertion, then disposed. This proves admission of one prompt; it does not establish all reload semantics or completion of later turns."
+  },
+  "earlierHarnessAssumptions": [
+    "0.128.0 accepted the next prompt despite damaged config.",
+    "0.132.0 accepted and echoed turbo.",
+    "0.167.1 custom provider returned default for priority and turbo; OAR correctly refused the mismatch.",
+    "0.167.1 accepted an arbitrary model_reasoning_effort string; the credential-echo fixture was changed to web_search, which produced a real enum diagnostic."
+  ]
+}
