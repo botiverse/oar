@@ -1,3 +1,4 @@
+// BYOK change: Modified from OAR 95c6547 to mark a failure class taken from error text (Apache-2.0).
 import type { FailureClass } from "../contracts/session.js";
 import { asRecord, parseJson } from "./json.js";
 
@@ -13,6 +14,8 @@ import { asRecord, parseJson } from "./json.js";
 export interface Classified {
   readonly failure: FailureClass;
   readonly status?: number;
+  /** BYOK change: a text rule over the error's words chose `failure`. */
+  readonly fromText?: true;
 }
 
 /**
@@ -87,22 +90,25 @@ export function anthropicLimitText(message: string): FailureClass | null {
  * A provider's JSON error body, as Anthropic (`{type: "error", error: {type,
  * message}}`) and OpenAI (`{error: {code, type, message}}`) send it: the
  * class its code names, else its type's (Anthropic's 400 wording first).
- * Null when `text` is no such body or names nothing known.
+ * Null when `text` is no such body or names nothing known. BYOK change: a
+ * class from Anthropic's 400 wording is marked `fromText`.
  */
-export function failureFromErrorBody(text: string): FailureClass | null {
+export function failureFromErrorBody(text: string): Classified | null {
   const error = asRecord(asRecord(parseJson(text))?.error);
   if (error === null) {
     return null;
   }
   const code = typeof error.code === "string" ? failureFromErrorCode(error.code) : null;
   if (code !== null) {
-    return code;
+    return { failure: code };
   }
   const message = typeof error.message === "string" ? error.message : "";
   if (error.type === "invalid_request_error") {
-    return anthropicLimitText(message) ?? "invalid_request";
+    const limit = anthropicLimitText(message);
+    return limit === null ? { failure: "invalid_request" } : { failure: limit, fromText: true };
   }
-  return typeof error.type === "string" ? failureFromErrorCode(error.type) : null;
+  const type = typeof error.type === "string" ? failureFromErrorCode(error.type) : null;
+  return type === null ? null : { failure: type };
 }
 
 /**

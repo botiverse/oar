@@ -1,3 +1,4 @@
+// BYOK change: Modified from OAR 95c6547 to mark a failure class taken from error text (Apache-2.0).
 import { SessionNotFoundError } from "../../contracts/session-not-found-error.js";
 import { asRecord, type JsonRecord } from "../json.js";
 import { RuntimeFailureError } from "../../contracts/runtime-failure-error.js";
@@ -83,5 +84,6 @@ export function acpFailureOutcome(error: unknown, turnFrames: readonly FrameBody
   if (rpcErrorCode(error) === AUTH_REQUIRED) {
     return { kind: "failed", reason, failure: "auth" };
   }
-  return reader?.(error, turnFrames) ?? { kind: "failed", reason, failure: classifyFailure(reason) };
+  // BYOK change: the text rule's class is marked `fromText`.
+  return reader?.(error, turnFrames) ?? { kind: "failed", reason, failure: classifyFailure(reason), fromText: true };
 }

@@ -1,3 +1,4 @@
+// BYOK change: Modified from OAR 95c6547 to mark a failure class taken from error text (Apache-2.0).
 /* oxlint-disable import/prefer-default-export -- the package exports names only. */
 import type { UtcInstant } from "./account-usage.js";
 
@@ -44,7 +45,9 @@ export type CredentialProblem = "missing" | "rejected";
  * A failed turn's end (`TurnOutcome` `failed`), tagged by `failure`: a field
  * exists only on the failure it means something for, so a host checks
  * `failure` before reading it. `reason` is the runtime's own words; `status`
- * the provider's HTTP status, where the runtime reports one.
+ * the provider's HTTP status, where the runtime reports one. BYOK change:
+ * `fromText` is set when a text rule over the runtime's words chose the
+ * class, not a structured field.
  */
 export type FailedTurn =
   | {
@@ -52,6 +55,7 @@ export type FailedTurn =
     readonly failure: "auth";
     readonly reason: string;
     readonly status?: number;
+    readonly fromText?: true;
     /** Where the runtime says which (docs/spec/runtime-matrix.md#the-mapping). */
     readonly credential?: CredentialProblem;
   }
@@ -60,6 +64,7 @@ export type FailedTurn =
     readonly failure: "quota";
     readonly reason: string;
     readonly status?: number;
+    readonly fromText?: true;
     /**
      * When the limit resets, where the runtime reports that time for this
      * failure (claude's subscription limits; docs/spec/runtime-matrix.md#when-a-limit-resets).
@@ -76,4 +81,5 @@ export type FailedTurn =
     readonly failure: Exclude<FailureClass, "auth" | "quota">;
     readonly reason: string;
     readonly status?: number;
+    readonly fromText?: true;
   };

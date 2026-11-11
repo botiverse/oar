@@ -1,3 +1,4 @@
+// BYOK change: Modified from OAR 95c6547 to keep the text mark of a provider error body (Apache-2.0).
 import type { FailedTurn } from "../../contracts/session.js";
 import { failureFromErrorBody, failureFromStatus, type Classified } from "../../shared/failure-class.js";
 import { asNumber, asRecord } from "../../shared/json.js";
@@ -32,7 +33,8 @@ function fromInfo(info: unknown, message: string): Classified {
   if (typeof info === "string") {
     const named = Object.hasOwn(NAMED, info) ? NAMED[info] : undefined;
     if (named !== undefined) { return { failure: named }; }
-    return { failure: info === "other" ? failureFromErrorBody(message) ?? "unknown" : "unknown" };
+    // BYOK change: the body's classification, its `fromText` mark included.
+    return info === "other" ? failureFromErrorBody(message) ?? { failure: "unknown" } : { failure: "unknown" };
   }
   const record = asRecord(info);
   for (const variant of TRANSPORT) {
