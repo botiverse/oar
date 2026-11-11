@@ -50,5 +50,15 @@ in-process runs (174 to 215 MB) is run to run variation that was not
 looked into. Disposing such a real-SDK session (`inherit`, and `clean` with
 `HOME` and `PATH`) took 118 and 173 ms and was answered `exited`, code 0.
 
+A third check the same day, after `CURSOR_API_KEY` moved out of the child's
+environment into `apiKey` (a one-off script, not kept): with `envBase:
+"clean"` and exactly `HOME` (a temporary directory), `PATH`, `TMPDIR`,
+`LANG`, `LC_ALL`, `USER`, `LOGNAME` and `SHELL=/bin/sh`, a real-SDK session
+opened and its dispose was answered `exited`, code 0. With a made-up
+`CURSOR_API_KEY` in the session's `env` (and none in the host's), the open
+was refused `RuntimeFailureError` `auth` 401 "Invalid User API Key", and a
+model listing with it answered `unauthenticated` with the same words: the
+SDK checked the key it was handed as `apiKey`.
+
 Not measured: macOS, Windows, a run, more than one session, memory over a
 long session, and an Electron host.

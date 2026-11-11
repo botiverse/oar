@@ -1,5 +1,6 @@
 /* oxlint-disable typescript/no-unsafe-assignment, typescript/no-unsafe-member-access, typescript/no-unsafe-call, typescript/no-unsafe-argument, typescript/no-unsafe-return, typescript/strict-boolean-expressions, typescript/explicit-function-return-type, eslint/max-classes-per-file -- Standalone untyped module a cursor child imports. */
 import { execSync, spawn } from "node:child_process";
+import { createHash } from "node:crypto";
 import { once } from "node:events";
 import { existsSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
@@ -30,11 +31,21 @@ import { setTimeout as delay } from "node:timers/promises";
  *   the SDK runs a tool command, which writes the background sleep's pid to
  *   <file> and exits; the run finishes once that shell exited. The sleep is
  *   then reparented away from this process, outside its group.
+ * - `childenv`: finishes with `[process.env.CURSOR_API_KEY, whether
+ *   /proc/self/environ holds CURSOR_API_KEY]` as JSON (Linux).
+ * - `apikey`: finishes with the sha256 of the `apiKey` the agent was opened
+ *   with (`none` without one).
+ * - `deaf-spawn:<file>`: removes this process's `disconnect` listeners (a
+ *   child that does not see its host go), then as `spawn:`.
  * - `background-unmarked:<file>`: the same, with the shell started without
  *   the `OAR_CURSOR_CHILD_<id>` marker OAR put in this process's environment.
  * A steer is taken (`complete_delivered`) and echoed as a delta. With
- * `CURSOR_API_KEY=rejected-key-0123456789` the open and the model listing
+ * `rejected-key-0123456789` as the key (an explicit `apiKey`, else
+ * `CURSOR_API_KEY`, as SDK 1.3.1 resolves it) the open and the model listing
  * fail the way the SDK refuses a key (`AuthenticationError`, status 401).
+ * With `OAR_FAKE_LEAK` set, the model listing writes its key, and the status
+ * `OAR_FAKE_LEAK_SECRET`, to stderr and throws an error naming it
+ * (`OAR_FAKE_LEAK=exit`: exits 3 instead).
  * `Cursor.auth` keeps its login in `$OAR_FAKE_CURSOR_HOME/auth.json`;
  * `OAR_FAKE_CURSOR_LOGIN=hold` makes a login wait for its signal. Like SDK
  * 1.3.1, `close()` only starts the agent's close work and
@@ -133,19 +144,39 @@ const behaviors = {
     run.delta({ type: "text-delta", text: "about to throw" });
     setTimeout(() => { throw new Error("fake SDK failure"); }, 20);
   },
-  spawn: startTool,
+  spawn: (run, file) => { startTool(run, file); },
   "spawn-in-group": (run, file) => { startTool(run, file, false); },
-  background,
+  background: (run, file) => { background(run, file); },
+  // The sha256 of the `apiKey` the agent was opened with (none: "none"), so a test sees what the SDK got without the key in a record.
+  // Whether this process still has CURSOR_API_KEY: in process.env, and in /proc/self/environ (what a tool could read; Linux).
+  childenv: (run) => { run.end("finished", JSON.stringify([process.env.CURSOR_API_KEY ?? null, process.platform === "linux" ? readFileSync("/proc/self/environ", "latin1").includes("CURSOR_API_KEY=") : null])); },
+  apikey: (run, argument, agent) => { run.end("finished", agent.apiKey === undefined ? "none" : createHash("sha256").update(agent.apiKey).digest("hex")); },
+  // A child that no longer sees the host's disconnect: its listeners are gone. Then as `spawn`.
+  "deaf-spawn": (run, file) => { process.removeAllListeners("disconnect"); startTool(run, file); },
   "background-unmarked": (run, file) => { background(run, file, true); },
   hold: () => {},
   "crash-on-cancel": (run) => { run.crashOnCancel = true; },
 };
 
-function act(run, text) {
+/** What the SDK resolves as its key, as 1.3.1 does: an explicit `apiKey` wins over `CURSOR_API_KEY`. */
+function resolvedKey(options) {
+  return options?.apiKey ?? process.env.CURSOR_API_KEY;
+}
+
+/** With `OAR_FAKE_LEAK` set, a call that writes `secret` to stderr and throws an error naming it, as a careless SDK could (`exit`: exits 3 instead of throwing). */
+function leak(call, secret) {
+  const mode = process.env.OAR_FAKE_LEAK;
+  if (mode === undefined || secret === undefined) { return; }
+  process.stderr.write(`${call} failed for ${secret}\n`);
+  if (mode === "exit") { process.exit(3); }
+  throw new Error(`${call} failed for ${secret}`);
+}
+
+function act(run, text, agent) {
   const colon = text.indexOf(":");
   const [name, argument] = colon === -1 ? [text, ""] : [text.slice(0, colon), text.slice(colon + 1)];
   const behavior = behaviors[name];
-  if (behavior === undefined) { run.end("error"); } else { behavior(run, argument); }
+  if (behavior === undefined) { run.end("error"); } else { behavior(run, argument, agent); }
 }
 
 class FakeAgent {
@@ -161,7 +192,7 @@ class FakeAgent {
     this.#runs += 1;
     const run = new FakeRun(`run-${String(this.#runs)}`, options.onDelta);
     const text = typeof message === "string" ? message : message.text;
-    setImmediate(() => { act(run, text); });
+    setImmediate(() => { act(run, text, this); });
     return run;
   }
 
@@ -185,8 +216,10 @@ class FakeAgent {
 
 async function opened(agentId, options) {
   await Promise.resolve();
-  if (process.env.CURSOR_API_KEY === REJECTED_KEY) { throw refused(); }
-  return new FakeAgent(agentId, options.model);
+  if (resolvedKey(options) === REJECTED_KEY) { throw refused(); }
+  const agent = new FakeAgent(agentId, options.model);
+  agent.apiKey = options.apiKey;
+  return agent;
 }
 
 export const Agent = {
@@ -206,14 +239,16 @@ export class FileCredentialStore {
 
 export const Cursor = {
   models: {
-    async list() {
+    async list(options) {
       await Promise.resolve();
-      if (process.env.CURSOR_API_KEY === REJECTED_KEY) { throw refused(); }
+      leak("Cursor.models.list", resolvedKey(options));
+      if (resolvedKey(options) === REJECTED_KEY) { throw refused(); }
       return [{ id: "composer-2.5", displayName: "Composer 2.5", parameters: [{ id: "effort", values: [{ value: "low" }, { value: "high" }] }] }];
     },
   },
   auth: {
     async status() {
+      leak("Cursor.auth.status", process.env.OAR_FAKE_LEAK_SECRET);
       await Promise.resolve();
       if (!existsSync(authFile())) { return { status: "logged-out" }; }
       const { email } = JSON.parse(readFileSync(authFile(), "utf8"));

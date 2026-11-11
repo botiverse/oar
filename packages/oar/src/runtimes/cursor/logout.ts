@@ -3,7 +3,7 @@ import type { LogoutResult, RuntimeLogout } from "../../contracts/login.js";
 import { errorMessage, LoginSecrets } from "../../shared/login.js";
 import { confirmedLogout, logoutTimedOut, type NativeLogout } from "../../shared/logout.js";
 import { readCursorAuthStatus } from "./auth-status.js";
-import { cursorSdkAccess, IN_PROCESS_ENV, withLease, type CursorSdkSource } from "./access.js";
+import { callRedaction, cursorSdkAccess, IN_PROCESS_ENV, withLease, type CursorSdkSource } from "./access.js";
 
 /*
  * `Cursor.auth.logout(options?: { store? })` (@cursor/sdk 1.0.36, read in
@@ -59,6 +59,7 @@ export function cursorLogoutWith(source: CursorSdkSource): RuntimeLogout {
       }, options.timeoutMs ?? LOGOUT_TIMEOUT_MS);
       return confirmedLogout(native, await readCursorAuthStatus(auth), LOGOUT_CALL);
     });
-    return "failed" in result ? { kind: "failed", reason: "process_failed", detail: new LoginSecrets().line(result.failed) } : result;
+    // Details can carry the SDK's or the child's words: redacted with the call's credentials too.
+    return callRedaction(options.env)("failed" in result ? { kind: "failed", reason: "process_failed", detail: new LoginSecrets().line(result.failed) } : result);
   };
 }

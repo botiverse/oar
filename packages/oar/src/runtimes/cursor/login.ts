@@ -3,7 +3,7 @@ import type { LoginResult, RuntimeLogin } from "../../contracts/login.js";
 import type { ProviderLoginInteraction } from "../../contracts/provider-auth.js";
 import { errorMessage, LoginSecrets, loginBounds, stoppedResult, type LoginStop } from "../../shared/login.js";
 import { environmentValue } from "../../shared/environment.js";
-import { cursorSdkAccess, IN_PROCESS_ENV, withLease, type CursorSdkSource } from "./access.js";
+import { callRedaction, cursorSdkAccess, IN_PROCESS_ENV, withLease, type CursorSdkSource } from "./access.js";
 import { readCursorAuthStatus } from "./auth-status.js";
 import type { CursorAuth, CursorFileCredentialStore, CursorLoginOptions, CursorLoginStore } from "./sdk.js";
 
@@ -199,6 +199,7 @@ export function cursorLoginWith(source: CursorSdkSource): RuntimeLogin {
       const login = await runCursorLogin(auth, new Store(), interaction, options.timeoutMs ?? LOGIN_TIMEOUT_MS, lease.env);
       return login;
     });
-    return "failed" in result ? { kind: "failed", reason: "process_failed", detail: new LoginSecrets().line(result.failed) } : result;
+    // Details can carry the SDK's or the child's words: redacted with the call's credentials too.
+    return callRedaction(options.env)("failed" in result ? { kind: "failed", reason: "process_failed", detail: new LoginSecrets().line(result.failed) } : result);
   };
 }

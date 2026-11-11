@@ -30,8 +30,15 @@ test("a host-only variable the session env removes is not visible to the agent's
   }
 });
 
-/** Variables the shell itself sets (dash sets PWD; bash also SHLVL and _), not passed by anyone. */
-const SHELL_SET: ReadonlySet<string> = new Set(["PWD", "OLDPWD", "SHLVL", "_"]);
+/**
+ * Variables nobody passed that the platform adds. POSIX: the shell itself
+ * (dash sets PWD; bash also SHLVL and _). Windows (CI run 43075264385):
+ * libuv, under Node's spawn, copies its `required_vars` from the spawning
+ * process's environment into a child's when missing (src/win/process.c),
+ * and cmd.exe sets COMSPEC, PATHEXT and PROMPT.
+ */
+const LIBUV_REQUIRED = ["HOMEDRIVE", "HOMEPATH", "LOGONSERVER", "PATH", "SYSTEMDRIVE", "SYSTEMROOT", "TEMP", "USERDOMAIN", "USERNAME", "USERPROFILE", "WINDIR"];
+const SHELL_SET: ReadonlySet<string> = new Set(process.platform === "win32" ? [...LIBUV_REQUIRED, "COMSPEC", "PATHEXT", "PROMPT"] : ["PWD", "OLDPWD", "SHLVL", "_"]);
 /** What OAR may add to a clean child besides its marker: the SDK's native companion paths, when the SDK's companion package resolves. */
 const OAR_ADDED: ReadonlySet<string> = new Set(["CURSOR_TREE_SITTER_VENDOR_DIR", "CURSOR_RIPGREP_PATH"]);
 
@@ -84,19 +91,6 @@ test("without an overlay the child inherits the host's environment, as a process
     const prompt = await session.prompt(`shell:${printEnvironment(["OAR_TEST_DAEMON_ONLY"])}`);
     await awaitTurnEnd(session, prompt.seq);
     expect(lastResult(session)).toBe(JSON.stringify(["daemon-only-value"]));
-  } finally {
-    await session.dispose();
-  }
-});
-
-test("a per-session CURSOR_API_KEY reaches the child and is redacted from the records", async () => {
-  const key = "crsr_session_only_key_0123456789";
-  const session = await fakeCursorRuntime("subprocess").session(bundled, { cwd: tempDirectory(), env: { CURSOR_API_KEY: key } });
-  try {
-    const prompt = await session.prompt(`shell:${printEnvironment(["CURSOR_API_KEY"])}`);
-    await awaitTurnEnd(session, prompt.seq);
-    expect(lastResult(session)).toBe(JSON.stringify(["[redacted]"]));
-    expect(JSON.stringify(session.records())).not.toContain(key);
   } finally {
     await session.dispose();
   }

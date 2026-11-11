@@ -5,7 +5,7 @@ import { utcInstantFromDate } from "../../shared/instant.js";
 import { asNumber, asRecord } from "../../shared/json.js";
 import { errorMessage, LoginSecrets } from "../../shared/login.js";
 import { environmentValue } from "../../shared/environment.js";
-import { cursorSdkAccess, IN_PROCESS_ENV, withLease, type CursorSdkSource } from "./access.js";
+import { callRedaction, cursorSdkAccess, IN_PROCESS_ENV, withLease, type CursorSdkSource } from "./access.js";
 import type { CursorAuth } from "./sdk.js";
 
 const STATUS_TIMEOUT_MS = 20_000;
@@ -85,7 +85,8 @@ export function cursorAuthStatusWith(source: CursorSdkSource): AuthStatusReader 
       });
       return "failed" in status ? { kind: "unknown", detail: new LoginSecrets().line(status.failed) } : status;
     }, { kind: "unknown", source: STATUS_SOURCE, detail: `Cursor.auth.status did not answer within ${String(options.timeoutMs ?? STATUS_TIMEOUT_MS)} ms` });
-    return result;
+    // Details can carry the SDK's or the child's words: redacted with the call's credentials too.
+    return callRedaction(options.env)(result);
   };
   // With no status options, the official SDK uses only its local file store.
   return Object.assign(reader, { localOnly: true as const });

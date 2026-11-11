@@ -14,11 +14,20 @@ import { alive, reportedPids, tempDirectory, until } from "../fixtures/cursor-su
  * child's group.
  */
 
-// oxlint-disable-next-line eslint/max-statements -- the killed host, both pids, the agent's close, and the cleanup of a failed run, together.
-test.each(["spawn", "spawn-in-group"])("a SIGKILLed host's cursor child closes its agent and stops with what it started (%s)", async (how) => {
+/*
+ * `deaf-spawn` removes the child's disconnect listeners first: the child then
+ * notices its host is gone only by its parent pid changing (a check every
+ * second), as one whose event loop was too busy to see the disconnect would.
+ */
+test.each([
+  ["spawn", "inherit"], ["spawn-in-group", "inherit"], ["deaf-spawn", "inherit"],
+  ["spawn", "clean"], ["deaf-spawn", "clean"],
+] as const)(
+  // oxlint-disable-next-line eslint/max-statements -- the killed host, both pids, the agent's close, and the cleanup of a failed run, together.
+  "a SIGKILLed host's cursor child closes its agent and stops with what it started (%s, %s)", async (how, envBase) => {
   const dir = tempDirectory();
   const file = path.join(dir, "pids.json");
-  const host = killedHost(dir, file, how);
+  const host = killedHost(dir, file, { how, envBase });
   const { child, grandchild } = reportedPids(file);
   try {
     // Windows terminates the process outright (exit 1); the session was open either way, or stderr says why not.

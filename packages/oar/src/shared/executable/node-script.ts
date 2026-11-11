@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 import { nodeEvalExecutable } from "./node-eval.js";
 import { StderrTail } from "./diagnostics.js";
-import { killMarked, trackEnvironmentMarker } from "./environment-marker.js";
+import { killMarkedAsync, trackEnvironmentMarker } from "./environment-marker.js";
 import { trackOwnedProcess } from "./ownership.js";
 import { processShutdown } from "./process-shutdown.js";
 import { killGraceMs, OWN_PROCESS_GROUP, signalProcessGroup } from "./process-signals.js";
@@ -30,9 +30,10 @@ export interface NodeScriptChild {
    * and the remembered descendants after another grace period (POSIX);
    * `taskkill /T /F` on its tree (Windows). Once the child exited, the
    * remembered descendants still running are sent SIGKILL
-   * (process-shutdown.ts, `killTree`). Idempotent; settles with the exit.
+   * (process-shutdown.ts, `killTree`). `captureTree: false` skips the read,
+ * for a child that starts nothing. Idempotent; settles with the exit.
    */
-  stop(ask?: () => void): Promise<NodeScriptExit>;
+  stop(ask?: () => void, captureTree?: boolean): Promise<NodeScriptExit>;
 }
 
 /** How long the exit waits for stderr to drain after the process itself ended. */
@@ -53,8 +54,10 @@ const STDERR_DRAIN_MS = 250;
  * `process.exit` still ends it and its descendants. On any exit the child's
  * process group is sent SIGKILL (POSIX), which reaches what is left of it.
  * With `marker` (an `environment-marker.ts` entry the caller put in `env`),
- * every process still carrying it is sent SIGKILL once the child exited, for
- * whatever reason, and from the host's own `exit` hook (Linux only). The
+ * every process of this user still carrying it is sent SIGKILL once the
+ * child exited, for whatever reason (an asynchronous `/proc` scan, repeated
+ * until a pass finds none, at most five), and from the host's own `exit`
+ * hook (Linux only). The
  * caller sets the environment, including `ELECTRON_RUN_AS_NODE=1` when
  * `process.execPath` may be Electron. Throws in a compiled single executable
  * host (node-eval.ts), which cannot run one.
@@ -91,9 +94,6 @@ export function spawnNodeScript(script: string, argument: string, env: NodeJS.Pr
     clearTimeout(backstop);
     // What it started may still be in its group (POSIX); the group is ours to end.
     if (OWN_PROCESS_GROUP && child.pid !== undefined) { signalProcessGroup(child, "SIGKILL"); }
-    // And what it started that kept the marker, wherever it was reparented (Linux).
-    if (marker !== undefined) { killMarked(marker); }
-    releaseMarker?.();
     ended.resolve({ code, signal });
     shutdown.nativeExited();
   });
@@ -108,6 +108,9 @@ export function spawnNodeScript(script: string, argument: string, env: NodeJS.Pr
   });
   const exited = (async (): Promise<NodeScriptExit> => {
     const { code, signal } = await ended.promise;
+    // And what it started that kept the marker, wherever it was reparented (Linux; read without blocking the loop).
+    if (marker !== undefined && child.pid !== undefined) { await killMarkedAsync(marker); }
+    releaseMarker?.();
     await shutdown.finished;
     const drained = Promise.withResolvers<void>();
     const timer = setTimeout(drained.resolve, STDERR_DRAIN_MS);
@@ -125,11 +128,12 @@ export function spawnNodeScript(script: string, argument: string, env: NodeJS.Pr
     },
     onMessage(listener) { child.on("message", listener); },
     exited,
-    async stop(ask) {
+    async stop(ask, captureTree = true) {
       if (!stopping && running()) {
         stopping = true;
         // Remember its descendants while it still runs: once it is gone they are no longer below it.
-        await shutdown.prepare();
+        // A child known to start nothing skips the read (on Windows a process-table query of its own).
+        if (captureTree) { await shutdown.prepare(); }
         if (ask !== undefined && running()) {
           shutdown.markNativeStop();
           ask();

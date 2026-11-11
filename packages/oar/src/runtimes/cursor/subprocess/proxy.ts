@@ -187,8 +187,15 @@ async function decideSave(channel: CursorChannel, options: CursorLoginOptions): 
   }
 }
 
-/** `CursorSdk` over one cursor child. */
-export function proxySdk(channel: CursorChannel): CursorSdk {
+/**
+ * `CursorSdk` over one cursor child. `apiKey` is the `CURSOR_API_KEY` the
+ * lease took out of the child's environment: it goes to the SDK as
+ * `AgentOptions.apiKey` (create, resume) and `CursorRequestOptions.apiKey`
+ * (`Cursor.models.list`), which SDK 1.3.1 uses instead of the variable.
+ * Local `Agent.listRuns` reads the local store and takes none.
+ */
+export function proxySdk(channel: CursorChannel, apiKey?: string): CursorSdk {
+  const keyed = (options: object): object => (apiKey === undefined ? options : { ...options, apiKey });
   const open = async (method: "create" | "resume", args: readonly unknown[]): Promise<CursorAgent> => {
     const agent = await proxyAgent(channel, channel.start(method, args));
     return agent;
@@ -196,8 +203,8 @@ export function proxySdk(channel: CursorChannel): CursorSdk {
   const { features } = channel;
   return {
     Agent: {
-      create: async (options) => { const agent = await open("create", [options]); return agent; },
-      resume: async (agentId, options) => { const agent = await open("resume", [agentId, options]); return agent; },
+      create: async (options) => { const agent = await open("create", [keyed(options)]); return agent; },
+      resume: async (agentId, options) => { const agent = await open("resume", [agentId, keyed(options)]); return agent; },
       async listRuns(agentId, options) {
         const page = await channel.call("listRuns", [agentId, options]);
         if (!isListRunsPage(page)) { throw unexpected("Agent.listRuns"); }
@@ -207,7 +214,7 @@ export function proxySdk(channel: CursorChannel): CursorSdk {
     Cursor: {
       models: {
         async list() {
-          const models = await channel.call("models", []);
+          const models = await channel.call("models", apiKey === undefined ? [] : [{ apiKey }]);
           if (!isModelList(models)) { throw unexpected("Cursor.models.list"); }
           return models;
         },

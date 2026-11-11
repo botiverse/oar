@@ -13,7 +13,7 @@ import type { CursorChildExit } from "./subprocess/channel.js";
  */
 export async function openCursorSession(access: CursorSdkAccess, options: SessionOptions): Promise<{ readonly lease: CursorSdkLease; readonly agent: CursorAgent }> {
   refuseSessionOptions(access.refusedSessionOptions, options);
-  const lease = await access.lease(options.env);
+  const lease = await access.lease(options.env, "session");
   try {
     const agent = await openCursorAgent(lease.sdk, options);
     return { lease, agent };

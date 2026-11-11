@@ -19,6 +19,11 @@ async function open(mode: CursorMode, env: Readonly<Record<string, string>> = {}
   return { ...session, steer: session.steer.bind(session) };
 }
 
+/** A process that SIGKILLs itself: POSIX reports the signal; on Windows the kill is TerminateProcess, seen as exit code 1. */
+const SELF_KILLED = process.platform === "win32"
+  ? { code: 1, reason: "cursor's SDK child process exited with code 1" }
+  : { code: null, reason: "cursor's SDK child process exited with signal SIGKILL" };
+
 function frameTypes(session: Session): string[] {
   return session.records().flatMap((record) => (record.kind === "frame" ? [record.body.type] : []));
 }
@@ -74,8 +79,8 @@ test("a child SIGKILLed mid-run is recorded as exited, ends the turn, refuses la
   const pids = await startTool(session, "spawn-in-group");
   const prompt = await session.prompt("crash");
   const outcome = await awaitTurnEnd(session, prompt.seq);
-  expect(outcome).toMatchObject({ kind: "failed", reason: "cursor's SDK child process exited with signal SIGKILL" });
-  expect(responsesOf(session, "exited")).toEqual([{ kind: "exited", code: null, reason: "cursor's SDK child process exited with signal SIGKILL" }]);
+  expect(outcome).toMatchObject({ kind: "failed", reason: SELF_KILLED.reason });
+  expect(responsesOf(session, "exited")).toEqual([{ kind: "exited", ...SELF_KILLED }]);
   expect(frameTypes(session)).toContain("cursor/run_failed");
   expect(session.status().value.kind).toBe("idle");
   const again = await session.prompt("echo:again");
@@ -104,5 +109,5 @@ test("a child that dies while dispose cancels its run answers that dispose, with
   const session = await open("subprocess");
   await session.prompt("crash-on-cancel");
   await session.dispose();
-  expect(disposeAnswers(session)).toEqual([{ kind: "exited", code: null, reason: "cursor's SDK child process exited with signal SIGKILL" }]);
+  expect(disposeAnswers(session)).toEqual([{ kind: "exited", ...SELF_KILLED }]);
 });

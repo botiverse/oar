@@ -38,12 +38,19 @@ import { killGraceMs } from "../../../shared/executable/index.js";
  * can find by parent pid (POSIX: `/proc/<pid>/stat` on Linux, `ps -A -o
  * pid=,ppid=` elsewhere), so tools that lead process groups of their own
  * are reached too, plus the ones seen when the shutdown began; Windows:
- * `taskkill /T /F` on itself, which walks by parent. On Linux it also
+ * `taskkill /T /F` on itself, which walks by parent, except after a
+ * shutdown the host asked for (the host ends the tree it captured before,
+ * and the exit code stays 0). An uncaught exception is written to stderr
+ * synchronously first, so its text reaches the host. On Linux it also
  * SIGKILLs every process of this user whose environment holds `marker`
  * (environment-marker.ts), which reaches what it started and was
  * reparented away from it (a shell's background job after the shell
- * exited), unless that process cleared the variable. After a disconnect,
- * with no host left to do it, it also SIGKILLs its own process group.
+ * exited), unless that process cleared the variable; it scans again until
+ * a pass finds nothing, at most five times. After a disconnect, or once its
+ * parent pid changed (checked every second, for a host gone without the
+ * disconnect being seen), with no host left to do it, it also SIGKILLs its
+ * own process group. A child blocked in synchronous code runs neither
+ * check.
  * Not reached: on macOS and Windows, a process reparented away from the
  * child before its exit (no marker scan there); anywhere, a process that
  * cleared the marker and left the child's tree or group.
@@ -86,22 +93,31 @@ const descendants = (rows) => {
   return found;
 };
 const remember = () => { if (!windows) { try { seen = descendants(table()); } catch {} } };
+let asked = false;
 process.on("exit", () => {
+  // Windows, last: no process groups, so taskkill /T walks by parent, this process included (exit code 1).
+  // Not after a shutdown the host asked for: the host ends the tree it captured, and the exit stays 0.
+  if (windows) {
+    if (!asked) { try { execFileSync(taskkill, ["/pid", String(process.pid), "/T", "/F"], { stdio: "ignore", windowsHide: true, timeout: 10000 }); } catch {} }
+    return;
+  }
   try {
-    if (windows) { execFileSync(taskkill, ["/pid", String(process.pid), "/T", "/F"], { stdio: "ignore", windowsHide: true, timeout: 10000 }); return; }
     const rows = table();
     const now = new Map(rows.map((row) => [row[0], row[2]]));
     const targets = new Map([...[...seen].filter(([pid, start]) => now.get(pid) === start), ...descendants(rows)]);
     for (const pid of targets.keys()) { try { process.kill(pid, "SIGKILL"); } catch {} }
   } catch {}
   // What kept the marker, also reparented away from this process (Linux reads every environment).
-  if (process.platform === "linux") {
+  // Again until a pass finds nothing (at most 5): a marked process may fork between the read and the kill.
+  for (let pass = 0; process.platform === "linux" && pass < 5; pass += 1) {
+    let found = 0;
     for (const name of fs.readdirSync("/proc")) {
       try {
         if (!/^\d+$/.test(name) || Number(name) === process.pid || fs.statSync("/proc/" + name).uid !== process.getuid()) { continue; }
-        if (fs.readFileSync("/proc/" + name + "/environ", "latin1").split("\0").includes(marker)) { process.kill(Number(name), "SIGKILL"); }
+        if (fs.readFileSync("/proc/" + name + "/environ", "latin1").split("\0").includes(marker)) { process.kill(Number(name), "SIGKILL"); found += 1; }
       } catch {}
     }
+    if (found === 0) { break; }
   }
   if (orphaned) { try { process.kill(-process.pid, "SIGKILL"); } catch {} }
 });
@@ -115,6 +131,7 @@ const closeAgent = (agent) => {
 const shutdown = async (code) => {
   if (stopping) { return; }
   stopping = true;
+  asked = code === 0;
   remember();
   for (const agent of agents.values()) { void closeAgent(agent); }
   agents.clear();
@@ -122,7 +139,15 @@ const shutdown = async (code) => {
   process.exit(code);
 };
 process.on("SIGTERM", () => { void shutdown(0); });
+// Written synchronously, so the error reaches the host's stderr tail before the exit hook ends anything.
+process.on("uncaughtException", (error) => {
+  try { fs.writeSync(2, (error instanceof Error && error.stack ? error.stack : String(error)) + "\n"); } catch {}
+  process.exit(1);
+});
 process.on("disconnect", () => { orphaned = true; void shutdown(1); });
+// A host gone without the disconnect reaching this process: its parent changed. Needs an event loop that still yields.
+const parent = process.ppid;
+setInterval(() => { if (process.ppid !== parent) { orphaned = true; void shutdown(1); } }, 1000).unref();
 if (electron === null) { delete process.env.ELECTRON_RUN_AS_NODE; } else { process.env.ELECTRON_RUN_AS_NODE = electron; }
 try {
   const root = path.dirname(require("node:module").createRequire(sdkModule).resolve("@cursor/sdk-" + process.platform + "-" + process.arch + "/package.json"));
@@ -155,7 +180,7 @@ const started = async (id, starting) => {
   return { runId: run.id, steer: typeof run.steer === "function" };
 };
 const calls = {
-  models: () => sdk.Cursor.models.list(),
+  models: (id, options) => sdk.Cursor.models.list(options),
   listRuns: (id, agentId, options) => sdk.Agent.listRuns(agentId, options),
   create: (id, options) => opened(id, sdk.Agent.create(options)),
   resume: (id, agentId, options) => opened(id, sdk.Agent.resume(agentId, options)),

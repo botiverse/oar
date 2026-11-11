@@ -49,8 +49,9 @@ test.runIf(linux)("dispose ends a tool's background job that outlived its shell"
   expect(alive(sleep)).toBe(false);
 });
 
-test.runIf(linux)("a child SIGKILLed after such a job leaves nothing: the host ends the job", async () => {
-  const session = await fakeCursorRuntime("subprocess").session(bundled, { cwd: tempDirectory() });
+test.runIf(linux).each(["inherit", "clean"] as const)("a child SIGKILLed after such a job leaves nothing: the host ends the job (%s)", async (envBase) => {
+  const env = envBase === "clean" ? { PATH: process.env.PATH ?? "", HOME: process.env.HOME ?? "" } : {};
+  const session = await fakeCursorRuntime("subprocess", envBase).session(bundled, { cwd: tempDirectory(), env });
   const sleep = await backgroundJob(session, "background");
   const prompt = await session.prompt("crash");
   await awaitTurnEnd(session, prompt.seq);
@@ -60,10 +61,10 @@ test.runIf(linux)("a child SIGKILLed after such a job leaves nothing: the host e
   await session.dispose();
 });
 
-test.runIf(linux)("a SIGKILLed host's child ends such a job", async () => {
+test.runIf(linux).each(["inherit", "clean"] as const)("a SIGKILLed host's child ends such a job (%s)", async (envBase) => {
   const dir = tempDirectory();
   const file = path.join(dir, "sleep.pid");
-  const host = killedHost(dir, file, "background");
+  const host = killedHost(dir, file, { how: "background", envBase });
   expect(host.signal).toBe("SIGKILL");
   const sleep = sleepPid(file);
   await until(() => !alive(sleep), 10_000);

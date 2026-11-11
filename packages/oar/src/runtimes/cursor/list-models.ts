@@ -1,7 +1,7 @@
 import { refuseReaderEnvironment } from "../../shared/refuse-environment.js";
 import type { ModelEntry, ModelLister } from "../../contracts/list-models.js";
 import { cursorEffortParameter } from "./model.js";
-import { cursorSdkAccess, type CursorSdkLease, type CursorSdkSource } from "./access.js";
+import { callRedaction, cursorSdkAccess, type CursorSdkLease, type CursorSdkSource } from "./access.js";
 import type { CursorSdk, ModelListItem } from "./sdk.js";
 
 /**
@@ -57,6 +57,8 @@ export function cursorListModelsWith(source: CursorSdkSource): ModelLister {
     if (installation.via !== "bundled") {
       return { kind: "unsupported", reason: "cursor model listing needs the bundled @cursor/sdk" };
     }
+    // Its answer and errors (with their cause, and a child's stderr tail) go through the call's credentials.
+    const clean = callRedaction(options.env);
     let lease: CursorSdkLease | null = null;
     try {
       lease = await access.lease(options.env);
@@ -65,9 +67,9 @@ export function cursorListModelsWith(source: CursorSdkSource): ModelLister {
     } catch (error) {
       const detail = unauthenticated(error);
       if (detail !== null) {
-        return { kind: "unauthenticated", detail };
+        return clean({ kind: "unauthenticated", detail });
       }
-      throw new Error("Failed to list Cursor models", { cause: error });
+      throw clean(new Error("Failed to list Cursor models", { cause: error }));
     } finally {
       await lease?.release();
     }
