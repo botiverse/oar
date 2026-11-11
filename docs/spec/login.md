@@ -334,7 +334,8 @@ declares no network, refresh or key-command execution. The
 | antigravity | `agy acp --login` over pipes: relays the Google URL, prompts `manual_code` for the code or landing URL ([login](../runtimes/antigravity.md#login)) | `agy models` (exit 0 logged in; exit 1 with `Please sign in` logged out; a remote call) | 1.5.5 verified | 15 min |
 | kimi | `kimi login [--region mainland-cn\|global]`: relays the device code; Kimi polls and provisions models | ACP `initialize` then `authenticate {methodId: "login"}`, no session; readiness, not proof of remote credential validity | 2.3.3 verified | 16 min |
 | qwen | none: native `qwen auth` removed; configure a provider externally | local user/system credential presence; configured means `unknown`, absent in scope means `logged_out` with a workspace caveat | 0.26.2 source verified | status: 20 s |
-| grok, opencode, pi | not yet | not yet | | |
+| grok | `grok login --device-auth` over pipes: relays the device code from its `accounts.x.ai` URL; Grok waits for the browser confirmation ([login](../runtimes/grok.md#login)) | `grok models` (`You are logged in with <method>.` logged in, with that method; `You are not authenticated.` logged out; neither `unknown`) | 1.0.77 verified | 15 min |
+| opencode, pi | not yet | not yet | | |
 | dsh | none | none | | |
 
 The [runtime pages](../runtimes/README.md) record each login path's caveats.
@@ -422,7 +423,8 @@ runtime oar does not sign in.
 | cursor | `Cursor.auth.logout()` in process, with the SDK's own store | nothing: the minted key stays valid until it expires or is revoked in the dashboard | `@cursor/sdk` 1.3.1 | 20 s |
 | kimi | ACP `initialize` then `logout`; reads authentication again afterward | removes the native credential slot and managed model configuration; no server-side revocation | 2.3.3 verified | 60 s |
 | antigravity | ACP `initialize` then `logout`; reads `agy models` afterward | removes its stored token file; server-side revocation not observed | 1.5.5 verified | 60 s |
-| codebuddy, dsh, grok, opencode, pi, qoder, qwen | no `logout` (pi's provider logouts are on `createPiProviderAuth`) | | | |
+| grok | `grok logout`, stdin closed; reads `grok models` afterward | clears its cached sign-in; server-side revocation not observed | 1.0.77 verified | 60 s |
+| codebuddy, dsh, opencode, pi, qoder, qwen | no `logout` (pi's provider logouts are on `createPiProviderAuth`) | | | |
 
 ## CLI
 

@@ -30,6 +30,9 @@ export const grokRuntime = defineRuntime({
   }),
   checkUpdate: grokCheckUpdate,
   upgrade: grokUpgrade,
+  login: onFirstCall(async () => { const { grokLogin } = await import("./auth.js"); return grokLogin; }),
+  authStatus: onFirstCall(async () => { const { grokAuthStatus } = await import("./auth.js"); return grokAuthStatus; }),
+  logout: onFirstCall(async () => { const { grokLogout } = await import("./auth.js"); return grokLogout; }),
   session: onFirstCall(async () => {
     const { grokSession } = await import("./session.js");
     return grokSession;

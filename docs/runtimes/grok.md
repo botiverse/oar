@@ -434,6 +434,41 @@ stream, not an adapter flag) and a later `dispose` is answered `accepted`.
 (`live-contract/dispose-mid-turn`, `live-contract/kill-runtime`;
 [test](../../tests/acp/acp-session.test.ts).)
 
+### Login
+
+OAR drives Grok Build's own sign-in, reads its status and signs it out
+(1.0.77, Linux, 2026-11-11; OAR never reads or writes the credential).
+
+- `login` runs `grok login --device-auth` over pipes. Grok prints
+  `https://accounts.x.ai/oauth2/device?user_code=<CODE>` and the code, then
+  waits for the person to confirm it in a browser; nothing is pasted back.
+  OAR relays one `device_code` event (`userCode` from the URL's `user_code`,
+  `verificationUri` the URL). After exit 0, `grok models` decides: a login
+  without a sign-in is `not_logged_in`. A failing exit is `rejected` with
+  Grok's last line. Default deadline 15 minutes.
+- Grok starts a browser itself, also in device mode: `BROWSER` when set
+  (that command, given the URL), otherwise the desktop's launcher (`gio
+  open` was called here). `openBrowser: false` sets `BROWSER=true` for the
+  login child, so nothing opens. Whether Grok honours `BROWSER` on Windows is
+  not verified, so there `openBrowser: false` is `unsupported`
+  (`browser_suppression_unavailable`) before anything runs.
+- `authStatus` runs `grok models`. Without a sign-in it prints `You are not
+  authenticated.` (exit 0): `logged_out`. With one, its first line is `You
+  are logged in with grok.com.` (seen on a real 1.0.77 login): `logged_in`,
+  with `account.method` taken from that line. Neither line, or a failing
+  command, is `unknown`. It is not `localOnly`.
+- `logout` runs `grok logout` (`No cached session to log out of.` and exit 0
+  when there is none), then `grok models` decides; a sign-in that stays is
+  `still_logged_in`.
+
+Evidence: device flow and browser launch in an empty HOME (no account), and
+a [read-only status probe](../../experiments/grok-login/status-probe.mjs) on a
+real login: `grok models` and ACP `_x.ai/auth/info` (`methodId:
+cached_token`, an email present) agree. ACP `authenticate` was not used for
+status: with no sign-in it starts one and waits. A full device sign-in
+through OAR has not been run.
+[Tests](../../tests/login/grok-login.test.ts).
+
 ### Events, history, and child sessions
 
 **Mapped:** a basic one-word turn is 50 records: the handshake answers
