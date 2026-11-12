@@ -84,7 +84,9 @@ test("an unknown window name gives no duration, even one an object prototype hol
 });
 
 test("agy's /credits answer: the number, or null when it does not say", () => {
-  expect(projectAntigravityCredits({ status: "SUCCESS", command: { name: "credits", data: { remaining_credits: 0 } } })).toBe(0);
+  // agy 1.5.7's own `-p "/credits" --output-format json` answer on the same signed-in machine.
+  const credits: unknown = JSON.parse(readFileSync(path.join(import.meta.dirname, "agy-1.5.7-credits.json"), "utf8"));
+  expect(projectAntigravityCredits(credits)).toBe(0);
   expect(projectAntigravityCredits({ status: "ERROR" })).toBeNull();
 });
 

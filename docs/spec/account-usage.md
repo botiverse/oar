@@ -296,7 +296,9 @@ any other answer that does not confirm a login rejects without running
 command waits for a login and the read rejects at its deadline, its
 processes ended. A bucket with any quota left keeps `usedRatio` below 1.
 `rateLimited` means no model can run on quota or credits: every group has a
-used-up bucket and agy's own `/credits` answer reports none left (AI credits
+used-up bucket and agy's own `/credits` answer (`-p "/credits" --output-format json`,
+`command.data.remaining_credits`, recorded from the same signed-in 1.5.7)
+reports none left (AI credits
 can carry a model past its quota where the account turned them on). Only
 then is `/credits` asked; when it does not answer, `rateLimited` stays
 false. One used-up group shows in its windows, not in `rateLimited`.
