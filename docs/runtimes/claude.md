@@ -634,8 +634,9 @@ above, and also has a minimum version check: a row whose
 `min_claude_code_version` is above its own version is disabled with "Requires
 Claude Code v<version> or later" (static reading; no listing here exercised
 it). On another account, the three sampled listings from 2.1.284, 2.1.288 and
-2.1.292 held five rows, with no 5.2 row and no disabled hint. What decides that is not established, and a model missing from a
-listing is not shown to be unusable or to need an upgrade.
+2.1.292 held five rows, with no 5.2 row and no disabled hint. What decides
+that is not established, and a model missing from a listing is not shown to
+be unusable or to need an upgrade.
 The listing process starts with hooks and MCP servers switched off
 (`--settings '{"disableAllHooks":true}' --strict-mcp-config --mcp-config
 '{"mcpServers":{}}'`; claude 2.1.x measured: without them a listing fires the
