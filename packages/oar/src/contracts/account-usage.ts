@@ -24,7 +24,8 @@ export interface AccountUsageWindow {
   readonly durationMs?: number;
   /**
    * What the runtime ties the window to. `account`: it reports the window as
-   * the account's, not a model's. `model`: one model's, by the runtime's own
+   * the account's, not a model's. `models`: a group of models', by the
+   * runtime's name for the group. `model`: one model's, by the runtime's own
    * name for it, kept as given (claude "Opus", "Fable"; codex's `limitName`,
    * "GPT-5.3-Codex-Spark" or a quota alias such as "gpt-reserve"); not
    * promised to equal a `listModels` id or display name, so a host matches it
@@ -36,7 +37,9 @@ export interface AccountUsageWindow {
 
 export type AccountUsageWindowScope =
   | { readonly kind: "account" }
-  | { readonly kind: "model"; readonly name: string };
+  | { readonly kind: "model"; readonly name: string }
+  /** A group of models the runtime limits together, by its name for the group (antigravity "Gemini Models"). */
+  | { readonly kind: "models"; readonly name: string };
 
 /** One limit reset the account holds, as the runtime details it. */
 export interface AccountLimitReset {

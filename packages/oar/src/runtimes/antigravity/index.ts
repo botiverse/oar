@@ -26,6 +26,7 @@ export const antigravityRuntime = defineRuntime({
   login: antigravityLogin,
   logout: onFirstCall(async () => { const { antigravityLogout } = await import("./logout.js"); return antigravityLogout; }),
   authStatus: antigravityAuthStatus,
+  accountUsage: onFirstCall(async () => { const { antigravityAccountUsage } = await import("./account-usage.js"); return antigravityAccountUsage; }),
   refusedSessionOptions: antigravityRefusedSessionOptions,
   mcpToolsListChanged: "none",
 }, { execution: "process" });

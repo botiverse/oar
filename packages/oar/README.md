@@ -390,8 +390,8 @@ not list in a directory you do not trust.
 against the runtime's own report. Use `default` to explicitly clear a tier;
 it is not a model catalog entry. `Session.serviceTier()` reports the effective
 tier. Unsupported runtimes reject the option before opening.
-`runtime.accountUsage(installation)` reads account quota on claude,
-codex, grok and kimi; its failure semantics are in the
+`runtime.accountUsage(installation)` reads account quota on antigravity,
+claude, codex, grok and kimi; its failure semantics are in the
 [account usage reference](https://github.com/botiverse/oar/blob/main/docs/spec/account-usage.md).
 On codex it also reports the account's limit resets, and
 `runtime.redeemLimitReset(installation, { idempotencyKey })` spends one.
