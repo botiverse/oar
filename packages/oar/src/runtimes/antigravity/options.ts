@@ -19,5 +19,5 @@ export const antigravityRefusedSessionOptions: RefusedSessionOptions = {
   // cannot see or clear it through ACP;
   // credentials reach a runtime only through its native channel, never its
   // disk. An entry without `env` or `headers` attaches as usual.
-  mcpServerCredentials: "antigravity stores a session's MCP servers, env and header values included, in plain text in its conversation database, where they outlive the session; it attaches no entry with env or headers",
+  mcpServerCredentials: "antigravity stores a session's MCP servers, env and header values included, in plain text in its conversation database, where they outlive the session; it attaches no entry with env or headers (a stdio server inherits SessionOptions.env instead, which agy's own tools can read too: docs/runtimes/antigravity.md#session-mcp-servers)",
 };

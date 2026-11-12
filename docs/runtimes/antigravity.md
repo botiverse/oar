@@ -248,6 +248,19 @@ OAR refuses entries containing non-empty `env` or `headers` before launch
 still attach. The new directory does not remove the persistence problem
 tracked in [issue #392](https://github.com/botiverse/oar/issues/392).
 
+**A stdio server can take its credential from the session environment
+instead**, as a host's own choice. agy 1.5.6 starts a session's stdio
+servers on `session/new` with its own process environment, so a value in
+`SessionOptions.env` reaches a credential-free entry's process (a synthetic
+marker, on a signed-in machine, 2026-11-12). The same marker was not found
+afterwards in `~/.gemini` or `~/.cache/antigravity` (132 files read), which
+shows only that this run left no copy, not that agy never stores its
+environment. OAR does not move an entry's `env` there by itself: the
+session environment also reaches agy's own tools, so a shell command the
+model runs can read the value, which an entry's `env` would have kept to the
+server. A host that accepts that puts the value in `SessionOptions.env` and
+attaches the entry without `env`. HTTP `headers` have no such route.
+
 ### Process ownership, installation, and account usage
 
 OAR owns the CLI and its session workers, uses native close when available,
