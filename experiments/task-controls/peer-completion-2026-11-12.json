@@ -1,0 +1,188 @@
+{
+  "date": "2026-11-12",
+  "ci": {
+    "run": 43166685177,
+    "job": 131010096340,
+    "artifactId": 13919998379,
+    "artifactSha256": "04929998af3c7d0af48dfb01a616009318fcf11760db470813b6d134070a6e01"
+  },
+  "runs": [
+    {
+      "observation": "macOS CI, original assertion failed",
+      "cliVersions": [
+        "0.167.2"
+      ],
+      "rootCalls": 5,
+      "targetCalls": 2,
+      "followupReplies": 1,
+      "followupRequests": [
+        {
+          "request": 6,
+          "peerMessage": false,
+          "followupResult": false
+        },
+        {
+          "request": 7,
+          "peerMessage": true,
+          "followupResult": true
+        }
+      ],
+      "nativeTurns": {
+        "/root": [
+          {
+            "startSeq": 10,
+            "endSeq": 65,
+            "status": "completed"
+          },
+          {
+            "startSeq": 83,
+            "endSeq": 126,
+            "status": "completed"
+          }
+        ],
+        "/root/a": [
+          {
+            "startSeq": 38,
+            "endSeq": 78,
+            "status": "interrupted"
+          },
+          {
+            "startSeq": 113,
+            "endSeq": 139,
+            "status": "completed"
+          }
+        ],
+        "/root/b": [
+          {
+            "startSeq": 68,
+            "endSeq": 98,
+            "status": "completed"
+          }
+        ]
+      },
+      "taskActivities": [
+        {
+          "seq": 28,
+          "kind": "started",
+          "agent": "/root/a",
+          "isFollowup": false
+        },
+        {
+          "seq": 49,
+          "kind": "started",
+          "agent": "/root/b",
+          "isFollowup": false
+        },
+        {
+          "seq": 100,
+          "kind": "completed",
+          "agent": "/root/b",
+          "isFollowup": false
+        },
+        {
+          "seq": 107,
+          "kind": "interacted",
+          "agent": "/root/a",
+          "isFollowup": true
+        },
+        {
+          "seq": 141,
+          "kind": "completed",
+          "agent": "/root/a",
+          "isFollowup": false
+        }
+      ]
+    },
+    {
+      "observation": "Linux baseline, original assertion passed",
+      "cliVersions": [
+        "0.167.2"
+      ],
+      "rootCalls": 6,
+      "targetCalls": 2,
+      "followupReplies": 2,
+      "followupRequests": [
+        {
+          "request": 6,
+          "peerMessage": false,
+          "followupResult": false
+        },
+        {
+          "request": 7,
+          "peerMessage": true,
+          "followupResult": false
+        },
+        {
+          "request": 8,
+          "peerMessage": true,
+          "followupResult": true
+        }
+      ],
+      "nativeTurns": {
+        "/root": [
+          {
+            "startSeq": 10,
+            "endSeq": 79,
+            "status": "completed"
+          },
+          {
+            "startSeq": 83,
+            "endSeq": 132,
+            "status": "completed"
+          }
+        ],
+        "/root/a": [
+          {
+            "startSeq": 33,
+            "endSeq": 68,
+            "status": "interrupted"
+          },
+          {
+            "startSeq": 116,
+            "endSeq": 145,
+            "status": "completed"
+          }
+        ],
+        "/root/b": [
+          {
+            "startSeq": 54,
+            "endSeq": 99,
+            "status": "completed"
+          }
+        ]
+      },
+      "taskActivities": [
+        {
+          "seq": 28,
+          "kind": "started",
+          "agent": "/root/a",
+          "isFollowup": false
+        },
+        {
+          "seq": 48,
+          "kind": "started",
+          "agent": "/root/b",
+          "isFollowup": false
+        },
+        {
+          "seq": 100,
+          "kind": "completed",
+          "agent": "/root/b",
+          "isFollowup": false
+        },
+        {
+          "seq": 113,
+          "kind": "interacted",
+          "agent": "/root/a",
+          "isFollowup": true
+        },
+        {
+          "seq": 146,
+          "kind": "completed",
+          "agent": "/root/a",
+          "isFollowup": false
+        }
+      ]
+    }
+  ]
+}

@@ -78,6 +78,8 @@ test.skipIf(process.env.OAR_TEST !== "codex-aimock").each(["before", "during"])(
       const reply = codexTaskRootReply(request);
       if ("toolCalls" in reply && reply.toolCalls.some(call => call.id === "followup_a")) {
         followupReplies += 1;
+        // Completion activity precedes native mailbox delivery. Holding this reply
+        // overlaps the peer's completion, but does not guarantee a discarded proposal.
         if (timing === "during") { finishPeer.resolve(); await peerObserved.promise; }
       }
       return reply;
@@ -100,16 +102,25 @@ test.skipIf(process.env.OAR_TEST !== "codex-aimock").each(["before", "during"])(
     expect(await current.stopTask?.(target.taskId)).toMatchObject({ kind: "accepted" });
     await expect.poll(() => childTurns(current, target.taskId)[0]?.status, { timeout: 30_000 }).toBe("interrupted");
     expect(taskEvents(current).filter(e => e.kind === "task_ended" && e.taskId === target.taskId)).toEqual([]);
-    if (timing === "before") { await expect.poll(() => childTurns(current, peer.taskId)[0]?.status, { timeout: 30_000 }).toBe("completed"); }
+    if (timing === "before") { await expect.poll(() => taskEvents(current).find(e => e.kind === "task_ended" && e.taskId === peer.taskId), { timeout: 30_000 }).toMatchObject({ status: "completed" }); }
     await expect.poll(() => current.status().value.kind, { timeout: 30_000 }).toBe("idle");
+    const beforeFollowup = current.records().at(-1)?.seq; assert.ok(beforeFollowup !== undefined);
     expect(await promptAndWait(current, "PARENT_FOLLOWUP")).toMatchObject({ kind: "ended", outcome: { kind: "completed" } });
     await expect.poll(() => childTurns(current, peer.taskId)[0]?.status, { timeout: 30_000 }).toBe("completed");
     await expect.poll(() => childTurns(current, target.taskId)[1]?.status, { timeout: 30_000 }).toBe("completed");
     await expect.poll(() => taskEvents(current).find(e => e.kind === "task_ended" && e.taskId === target.taskId), { timeout: 30_000 }).toMatchObject({ status: "completed" });
     expect(targetCalls).toBe(2);
     expect(childTurns(current, target.taskId)[1]?.id).not.toBe(childTurns(current, target.taskId)[0]?.id);
-    expect(current.records().filter(record => record.kind === "frame" && record.body.type === "item/completed" && asRecord(asRecord(record.body.native)?.item)?.id === "followup_a")).toHaveLength(1);
-    if (timing === "during") { expect(followupReplies).toBeGreaterThanOrEqual(2); }
+    const followupActivity = current.records().filter(record => record.kind === "frame" && record.body.type === "item/completed" && asRecord(asRecord(record.body.native)?.item)?.id === "followup_a");
+    expect(followupActivity).toHaveLength(1);
+    const followupStart = current.records().find(record => record.seq > beforeFollowup && record.sessionId === current.id && record.kind === "frame" && record.body.type === "turn/started");
+    const peerEnd = taskEvents(current).find(e => e.kind === "task_ended" && e.taskId === peer.taskId);
+    assert.ok(followupStart !== undefined && peerEnd?.kind === "task_ended" && followupActivity[0] !== undefined);
+    expect(peerEnd.status).toBe("completed");
+    if (timing === "during") {
+      expect(peerEnd.seq).toBeGreaterThan(followupStart.seq);
+      expect(peerEnd.seq).toBeLessThan(followupActivity[0].seq);
+    } else { expect(peerEnd.seq).toBeLessThan(followupStart.seq); }
   } finally {
     finishPeer.resolve(); peerObserved.resolve();
     try { await session?.dispose(); }

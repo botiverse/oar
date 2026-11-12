@@ -146,10 +146,12 @@ HTTP regressions cover both spawn steps and follow-up before and after their
 results, including intervening peer messages. The native case runs both sibling
 completion orders and retains the exact two target requests, interrupted first
 turn, completed second turn, distinct turn IDs and usable parent and peer. It
-also requires exactly one native follow-up activity. The interrupted-proposal
-case requires at least two provider proposals but only that one execution.
-Both orders retain provider bodies and records on failure. No product behavior,
-assertion deadline or existing lifecycle assertion is relaxed.
+also requires exactly one native follow-up activity. The original overlap case
+required at least two provider proposals. The November 12 observation below
+replaces that unsupported count with the observed completion order. Both orders
+retain provider bodies and records, with proposal counts as diagnostics. Product
+behavior, assertion deadlines and the child, peer and parent lifecycle assertions
+are unchanged.
 
 Run the provider-only regressions with
 `pnpm vitest run tests/codex-task-script.test.ts`, and both native orders with
@@ -159,6 +161,70 @@ The native artifacts are `codex-task-stop-before.json` and
 On Linux, the corrected cases, direct native probe and all 77 Codex vendor
 checks pass with Codex 0.167.0. macOS and Windows results belong to the new CI
 run, not this local validation.
+
+### Peer completion does not guarantee another proposal (2026-11-12)
+
+PR #748's version-only
+[macOS run](https://github.com/botiverse/oar/actions/runs/43166685177/job/131010096340)
+failed only the `followupReplies >= 2` assertion. Its retained `thread/start`
+identifies Codex **0.167.2**. The peer completed during the parent follow-up,
+the proposal executed once, the target had an interrupted first turn and a
+distinct completed second turn, and the parent completed. All these assertions
+had passed before the proposal-count failure. A Linux run with the same Codex
+version and unchanged test instead made two proposals and executed one.
+
+[Selected results](peer-completion-2026-11-12.json) retain record sequence
+numbers and request contents as booleans, without local paths or session IDs:
+
+| Observation | Follow-up proposals | First parent request containing the peer's result |
+| --- | --- | --- |
+| macOS CI | 1 | Already contains the executed `followup_a` result |
+| Linux baseline | 2 | Has no `followup_a` result; the next request does |
+
+Both executions contain one native follow-up activity and two target provider
+requests. The evidence does not establish runner slowness as the cause, nor an
+operating-system-specific rule.
+
+The official [0.167.2 completion code](https://github.com/openai/codex/blob/ce21072c90d32c40af7a55b60b2fb35c84a43a6a/codex-rs/core/src/agent/control/completion.rs#L69-L126)
+emits `SubAgentActivity::Completed` before sending the result to the parent's
+queue. Its [stream handler](https://github.com/openai/codex/blob/ce21072c90d32c40af7a55b60b2fb35c84a43a6a/codex-rs/core/src/session/turn.rs#L3148-L3193)
+checks for pending mailbox input at output-item boundaries, with feature and
+transport conditions. Observing the completion activity is therefore not an
+acknowledgement that the parent has queued or consumed the message. The fixture
+releases its held reply at that observation, so it cannot require the native
+process to discard that proposal and ask again. The macOS request sequence is
+a direct counterexample to that requirement.
+
+The test now checks the boundary it actually controls: in `during`, the peer's
+completed activity must fall after the parent follow-up starts and before the
+single follow-up activity completes. In `before`, the peer's completed activity
+must precede the follow-up start. The provider-only HTTP regressions still force
+a request with a peer message and no tool result, require the proposal again,
+then prohibit another proposal after the tool result. They cover the discarded
+proposal without depending on native scheduling.
+
+To inspect a retained native artifact, run:
+
+```sh
+python3 experiments/task-controls/summarize-codex-stop.py /private/output/codex-task-stop-during.json
+```
+
+The script only reads that file. The selected CI data came from artifact
+`13919998379`, `sea-trial-codex-aimock-macos-latest`; its verified archive digest
+is recorded with the results. Run the two native cases using the command above,
+setting `OAR_CODEX_BIN` to the desired Codex executable and `OAR_TRIAL_RUN_DIR`
+to a fresh private output directory. The native provider is local and scripted;
+these runs do not use a logged-in model service.
+
+Local validation of the revision: both native orders pass on Linux with Codex
+0.167.2. `CI=1 pnpm run check` passes (3,965 unit tests and 18 mock behavior
+cases), including the four provider-only regressions. A counterfactual added
+`finishPeer.resolve(); await peerObserved.promise;` immediately before capturing
+`beforeFollowup` in the `during` case. All lifecycle assertions still passed,
+but the new order assertion failed: peer completion at sequence 93 preceded
+follow-up start at 97. That temporary change was removed. The revised test's
+macOS and Windows results remain for CI; the macOS evidence above is from the
+original failed run.
 
 ## Release-note draft
 
