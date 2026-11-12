@@ -199,6 +199,11 @@ test("codex candidates are the desktop app bundles, then the standalone installe
     String.raw`C:\Users\oar\AppData\Local\Programs\OpenAI\Codex\bin\codex.exe`,
     String.raw`C:\Users\oar\AppData\Local\OpenAI\Codex\bin\codex.exe`,
   ]);
+  // The same folder written with forward slashes, a dot segment and a trailing separator is searched once.
+  assert.deepEqual(codexInstalledExecutableCandidates("win32", String.raw`C:\Users\oar`, { LOCALAPPDATA: "c:/users/oar/./AppData/Local/", USERPROFILE: "C:\\Users\\oar\\" }).filter((candidate) => candidate.endsWith(String.raw`Codex\bin\codex.exe`)), [
+    String.raw`c:\users\oar\AppData\Local\Programs\OpenAI\Codex\bin\codex.exe`,
+    String.raw`c:\users\oar\AppData\Local\OpenAI\Codex\bin\codex.exe`,
+  ]);
   // LOCALAPPDATA naming another profile: the user's own profile is still searched, each root once.
   assert.deepEqual(codexInstalledExecutableCandidates("win32", String.raw`C:\Users\oar`, { LOCALAPPDATA: String.raw`C:\Windows\System32\config\systemprofile\AppData\Local`, USERPROFILE: String.raw`c:\users\OAR` }).filter((candidate) => candidate.endsWith(String.raw`Codex\bin\codex.exe`)), [
     String.raw`C:\Windows\System32\config\systemprofile\AppData\Local\Programs\OpenAI\Codex\bin\codex.exe`,

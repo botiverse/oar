@@ -59,7 +59,9 @@ export function codexInstalledExecutableCandidates(
       profile === undefined || profile === "" ? undefined : win.join(profile, "AppData", "Local"),
       win.join(home, "AppData", "Local"),
     ]) {
-      if (root !== undefined && root !== "" && !locals.some((seen) => seen.toLowerCase() === root.toLowerCase())) { locals.push(root); }
+      // One folder however it is written: slash direction, a trailing separator, letter case.
+      const key = (written: string): string => win.normalize(written).replace(/\\+$/u, "").toLowerCase();
+      if (root !== undefined && root !== "" && !locals.some((seen) => key(seen) === key(root))) { locals.push(root); }
     }
     const desktop = locals.flatMap((local) => [win.join(local, "Programs", "OpenAI", "Codex", "bin"), win.join(local, "OpenAI", "Codex", "bin")]);
     const candidates = [win.join(roaming, "npm", "codex.cmd")];
