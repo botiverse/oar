@@ -8,6 +8,8 @@ import { FACTORY_AIMOCK_MODEL, startFactoryAimock } from "./factory-aimock.js";
 import { pooledMockRuntime } from "../fixtures/pooled-mock-runtime.js";
 import type { RuntimePlacementOptions } from "../../packages/oar/src/contracts/placement.js";
 /* oxlint-disable import/max-dependencies -- This composition root selects the shared suite's native backends. */
+import { createBottegaRuntime } from "../../packages/oar/src/community/index.js";
+import { BOTTEGA_AIMOCK_ROUTE, startBottegaAimock } from "./bottega-aimock.js";
 import { measureQoderStartup } from "./qoder-startup.js";
 import { claudeInstallation, claudeRuntime, codexRuntime, defineRuntime, piRuntime, type AvailableInstallation, createPiRuntime, type Runtime } from "../../packages/oar/src/index.js";
 
@@ -170,6 +172,16 @@ export async function selectBackend(target: string): Promise<Backend> {
         return listed.kind === "ok" ? { kind: "ok", models: listed.models.filter(model => model.id === FACTORY_AIMOCK_MODEL) } : listed;
       };
       return { aimock, runtime: { ...factoryRuntime, id: target, session: open, listModels } };
+    }
+    case "bottega-aimock": {
+      // The real `bottega serve` (OAR_BOTTEGA_BIN or PATH) and adapter; only the model provider is scripted.
+      const aimock = await startBottegaAimock();
+      const bottega = createBottegaRuntime();
+      const open: Runtime["session"] = async (installation, options) => {
+        const session = await bottega.session(installation, { ...options, cwd: aimock.cwd, model: options.model ?? BOTTEGA_AIMOCK_ROUTE, env: { ...options.env, ...aimock.env } });
+        return session;
+      };
+      return { aimock, runtime: { ...bottega, id: target, session: open } };
     }
     case "antigravity-aimock": return acpBackend("antigravity");
     case "kimi-aimock": return acpBackend("kimi");

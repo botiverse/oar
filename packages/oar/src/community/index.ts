@@ -6,3 +6,4 @@
  */
 export { createMorphRuntime, type MorphRuntime } from "./morph/index.js";
 export { createCybionRuntime, type CybionOptions, type CybionRuntime } from "./cybion/index.js";
+export { BOTTEGA_SERVE_PROTOCOL, BOTTEGA_THINKING_LEVELS, createBottegaRuntime, type BottegaRuntime } from "./bottega/index.js";
