@@ -27,7 +27,8 @@ import { environmentValue } from "../../shared/environment.js";
  * default prefix (`%APPDATA%\npm`; OAR runs the shim's Node script without
  * cmd.exe, windows-shim.ts), then the Codex Desktop app's CLI
  * (`%LOCALAPPDATA%\Programs\OpenAI\Codex\bin\codex.exe`, or without
- * `Programs` for a per-user install). Newer Desktop builds keep the CLI one
+ * `Programs` for a per-user install), then the same under
+ * `%USERPROFILE%\AppData\Local` and the home folder's when those differ. Newer Desktop builds keep the CLI one
  * folder down, `bin\<build>\codex.exe` (a build hash; a user saw
  * `bin\5449c1f0f26f1f98\codex.exe`, 2026-11-11), and older build folders can
  * remain: after each fixed path come its build folders' CLIs, the most
@@ -49,8 +50,20 @@ export function codexInstalledExecutableCandidates(
       return value === undefined || value === "" ? fallback : value;
     };
     const roaming = folder("APPDATA", win.join(home, "AppData", "Roaming"));
-    const local = folder("LOCALAPPDATA", win.join(home, "AppData", "Local"));
-    const desktop = [win.join(local, "Programs", "OpenAI", "Codex", "bin"), win.join(local, "OpenAI", "Codex", "bin")];
+    // A process whose LOCALAPPDATA names another profile (a service, another
+    // user's shell) still finds the Desktop app in the user's own profile.
+    const profile = environmentValue(env, "USERPROFILE", platform);
+    const locals: string[] = [];
+    for (const root of [
+      environmentValue(env, "LOCALAPPDATA", platform),
+      profile === undefined || profile === "" ? undefined : win.join(profile, "AppData", "Local"),
+      win.join(home, "AppData", "Local"),
+    ]) {
+      // One folder however it is written: slash direction, a trailing separator, letter case.
+      const key = (written: string): string => win.normalize(written).replace(/\\+$/u, "").toLowerCase();
+      if (root !== undefined && root !== "" && !locals.some((seen) => key(seen) === key(root))) { locals.push(root); }
+    }
+    const desktop = locals.flatMap((local) => [win.join(local, "Programs", "OpenAI", "Codex", "bin"), win.join(local, "OpenAI", "Codex", "bin")]);
     const candidates = [win.join(roaming, "npm", "codex.cmd")];
     for (const bin of desktop) { candidates.push(win.join(bin, "codex.exe"), ...builds(bin)); }
     return candidates;

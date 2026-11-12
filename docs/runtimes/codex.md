@@ -1174,7 +1174,10 @@ whose Node script OAR runs without cmd.exe), then the Codex Desktop CLI
 `bin\<build>\codex.exe` build folders, the three most recently written first
 (a folder starting with `.` is never a build):
 newer Desktop builds keep the CLI one folder down, under a build hash, and
-can leave older build folders behind); these locations follow
+can leave older build folders behind), then the same two under
+`%USERPROFILE%\AppData\Local` and the home folder's `AppData\Local` when
+they differ from `%LOCALAPPDATA%` (a daemon whose `LOCALAPPDATA` names
+another profile still finds the user's Desktop app); these locations follow
 Raft's own Codex driver and have no native Windows run of their own here, so
 the `app-server --help` probe decides. The order compares no versions, and
 the Codex Desktop CLI can be older than the `codex` on PATH (a Raft machine
