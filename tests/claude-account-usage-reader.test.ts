@@ -51,7 +51,7 @@ test("native usage uses correlated control requests, never a prompt or credentia
   spawnLineProcess.mockReturnValue(fake);
   await expect(claudeAccountUsage(installation, { env: readerEnvironment() })).resolves.toEqual({
     kind: "available", email: "person@example.com", plan: "max", rateLimited: false,
-    windows: [{ label: "Current session", usedRatio: 0.25, resetsAt: "2026-09-16T04:00:00.000Z", id: "five_hour", durationMs: 18_000_000 }],
+    windows: [{ label: "Current session", usedRatio: 0.25, resetsAt: "2026-09-16T04:00:00.000Z", id: "five_hour", durationMs: 18_000_000, scope: { kind: "account" } }],
   });
   expect(fake.written.map((text) => asRecord(parseJson(text))?.request)).toEqual([
     { subtype: "initialize" }, { subtype: "get_usage", skip_behaviors: true },
@@ -192,10 +192,10 @@ test("native windows include model buckets without duplicating legacy model fiel
     seven_day_opus: { utilization: 100 },
     model_scoped: [{ display_name: "Fable", utilization: 105, resets_at: "invalid" }],
   } })).toEqual({ kind: "available", plan: "max", rateLimited: true, windows: [
-    { label: "Current session", usedRatio: 0.07, resetsAt: "2026-08-22T09:59:00.000Z", id: "five_hour", durationMs: 18_000_000 },
-    { label: "Current week (all models)", usedRatio: 0.14, id: "seven_day", durationMs: 604_800_000 },
+    { label: "Current session", usedRatio: 0.07, resetsAt: "2026-08-22T09:59:00.000Z", id: "five_hour", durationMs: 18_000_000, scope: { kind: "account" } },
+    { label: "Current week (all models)", usedRatio: 0.14, id: "seven_day", durationMs: 604_800_000, scope: { kind: "account" } },
     { label: "Current week (OAuth apps)", usedRatio: 0.03, id: "seven_day_oauth_apps", durationMs: 604_800_000 },
-    { label: "Current week (Fable)", usedRatio: 1, id: "model_scoped:Fable", durationMs: 604_800_000 },
+    { label: "Current week (Fable)", usedRatio: 1, id: "model_scoped:Fable", durationMs: 604_800_000, scope: { kind: "model", name: "Fable" } },
   ] });
 });
 
@@ -204,9 +204,9 @@ test("legacy native model windows and paid headroom remain distinct", () => {
     seven_day_opus: { utilization: 100 }, seven_day_sonnet: { utilization: 0 },
     extra_usage: { is_enabled: true, utilization: 25, monthly_limit: 100, used_credits: 25 },
   } })).toEqual({ kind: "available", rateLimited: false, windows: [
-    { label: "Current week (Opus)", usedRatio: 1, id: "seven_day_opus", durationMs: 604_800_000 },
-    { label: "Current week (Sonnet)", usedRatio: 0, id: "seven_day_sonnet", durationMs: 604_800_000 },
-    { label: "Extra usage", usedRatio: 0.25, id: "extra_usage" },
+    { label: "Current week (Opus)", usedRatio: 1, id: "seven_day_opus", durationMs: 604_800_000, scope: { kind: "model", name: "Opus" } },
+    { label: "Current week (Sonnet)", usedRatio: 0, id: "seven_day_sonnet", durationMs: 604_800_000, scope: { kind: "model", name: "Sonnet" } },
+    { label: "Extra usage", usedRatio: 0.25, id: "extra_usage", scope: { kind: "account" } },
   ] });
 });
 

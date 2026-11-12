@@ -90,6 +90,7 @@ test("grok reader matches native zero usage for billing without usage metrics", 
       label: "Weekly included usage",
       usedRatio: 0,
       resetsAt: "2026-10-08T00:00:00.000Z",
+      scope: { kind: "account" },
     }],
   });
   expect(acp.kill).toHaveBeenCalledOnce();
@@ -142,7 +143,7 @@ test("grok reader keeps billing when the optional auth-info extension fails", as
     kind: "available",
     plan: "SuperGrok",
     rateLimited: false,
-    windows: [{ label: "Included usage", usedRatio: 0.25 }],
+    windows: [{ label: "Included usage", usedRatio: 0.25, scope: { kind: "account" } }],
   });
 });
 
@@ -204,7 +205,7 @@ test("billing near the deadline skips optional identity instead of losing the re
   });
   await expect(grokAccountUsage(installation, { timeoutMs: 4000 })).resolves.toEqual({
     kind: "available", plan: "SuperGrok", rateLimited: false,
-    windows: [{ label: "Included usage", usedRatio: 0.25 }],
+    windows: [{ label: "Included usage", usedRatio: 0.25, scope: { kind: "account" } }],
   });
   vi.useRealTimers();
   expect(acp.request.mock.calls.map(([method]) => method)).toEqual(["initialize", "_x.ai/billing"]);
@@ -225,6 +226,6 @@ test("late optional identity cannot replace the timely billing-only result", asy
   await tick();
   expect(result).toEqual({
     kind: "available", plan: "SuperGrok", rateLimited: false,
-    windows: [{ label: "Included usage", usedRatio: 0.25 }],
+    windows: [{ label: "Included usage", usedRatio: 0.25, scope: { kind: "account" } }],
   });
 });

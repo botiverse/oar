@@ -49,6 +49,30 @@ start, which an even-burn line needs. Sources:
 | codex | `<limitId>:primary` or `<limitId>:secondary` | `windowDurationMins` as reported |
 | grok, kimi | none | none |
 
+`scope` says what the runtime ties a window to: `{ kind: "account" }` when
+it reports the window as the account's, `{ kind: "model", name }` when it
+reports it as one model's, with the runtime's own name for the model; it
+is omitted when the runtime says neither, which means unknown, not the
+whole account (Claude's OAuth apps window is one). `name` is the runtime's
+own name for the window's model, kept as given: it can be a quota alias
+(codex's `limitName` can be `gpt-reserve`), OAR does not rewrite it from a
+related field such as codex's `normalModelSlug`, and it is not promised to
+equal a `listModels` id or display name. A host matches it to its own
+models. The
+windows that concern a model are the `account` ones and the `model` ones
+whose name is that model's; a host that must decide about a window without
+`scope` can treat it as `account` as its own conservative choice. `scope` says what a window counts, not
+whether a full one stops work: extra usage can carry a Claude, Grok or Kimi
+account past a full subscription window, which the snapshot's
+`rateLimited` already weighs.
+
+| Runtime | `account` | `model` (name) | no `scope` |
+| --- | --- | --- | --- |
+| claude | `five_hour`, `seven_day`, extra usage | `seven_day_opus` ("Opus"), `seven_day_sonnet` ("Sonnet"), each `model_scoped` row (its display name, such as "Fable") | `seven_day_oauth_apps` (third-party apps' use) |
+| codex | the unnamed `codex` bucket | a bucket with a `limitName` (such as "GPT-5.3-Codex-Spark") | any other unnamed bucket |
+| grok | included usage, pay-as-you-go | none | none |
+| kimi | timed windows, Extra Usage | none | a row with only a name |
+
 ## Limit resets
 
 Some subscriptions grant resets an account can spend to restore its usage

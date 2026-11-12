@@ -22,7 +22,21 @@ export interface AccountUsageWindow {
   readonly id?: string;
   /** The window's length in milliseconds, when the runtime reports it or its key names it; with `resetsAt` it places the window's start. Omitted otherwise. */
   readonly durationMs?: number;
+  /**
+   * What the runtime ties the window to. `account`: it reports the window as
+   * the account's, not a model's. `model`: one model's, by the runtime's own
+   * name for it, kept as given (claude "Opus", "Fable"; codex's `limitName`,
+   * "GPT-5.3-Codex-Spark" or a quota alias such as "gpt-reserve"); not
+   * promised to equal a `listModels` id or display name, so a host matches it
+   * to its own models. Omitted when the runtime says neither: unknown, not
+   * the whole account.
+   */
+  readonly scope?: AccountUsageWindowScope;
 }
+
+export type AccountUsageWindowScope =
+  | { readonly kind: "account" }
+  | { readonly kind: "model"; readonly name: string };
 
 /** One limit reset the account holds, as the runtime details it. */
 export interface AccountLimitReset {

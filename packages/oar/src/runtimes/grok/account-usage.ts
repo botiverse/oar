@@ -80,10 +80,12 @@ export function projectGrokUsage(result: unknown, email?: string): AccountUsageS
     label: periodLabel(period?.type),
     usedRatio: Number(Math.min(1, usedPercent / 100).toFixed(6)),
     ...(resetsAt === undefined ? {} : { resetsAt }),
+    scope: { kind: "account" } as const,
   }, ...(onDemandRatio === null ? [] : [{
     label: "Pay-as-you-go",
     usedRatio: Number(onDemandRatio.toFixed(6)),
     ...(resetsAt === undefined ? {} : { resetsAt }),
+    scope: { kind: "account" } as const,
   }])];
   // The current ACP extension serializes its Rust top-level field as
   // `subscription_tier`; accept the earlier camel-case spelling as a

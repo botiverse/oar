@@ -138,12 +138,18 @@ export function projectCodexUsage(result: unknown, email?: string): AccountUsage
       const durationLabel = windowLabel(candidate.windowDurationMins);
       const minutes = asNumber(candidate.windowDurationMins);
       const limitId = text(bucket.limitId);
+      // A named bucket is one model's (`limitName` is the model's name); the
+      // unnamed `codex` bucket is the account's. Any other is neither, as far as codex says.
+      const modelName = text(bucket.limitName);
+      const scope = modelName !== undefined ? { kind: "model", name: modelName } as const
+        : (limitId === "codex" ? { kind: "account" } as const : undefined);
       windows.push({
         label: sourceLabel === undefined ? durationLabel : `${sourceLabel} · ${durationLabel}`,
         usedRatio: Number((usedPercent / 100).toFixed(6)),
         ...(resetsAt === null ? {} : { resetsAt }),
         ...(limitId === undefined ? {} : { id: `${limitId}:${kind}` }),
         ...(minutes === null || minutes <= 0 ? {} : { durationMs: minutes * 60_000 }),
+        ...(scope === undefined ? {} : { scope }),
       });
       rateLimited ||= usedPercent >= 100;
     }

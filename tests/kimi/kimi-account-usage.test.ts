@@ -50,11 +50,17 @@ test("kimi projection mirrors the managed quota rows rendered by /usage", () => 
         {
           "label": "Weekly limit",
           "resetsAt": "2026-08-31T00:00:00.000Z",
+          "scope": {
+            "kind": "account",
+          },
           "usedRatio": 0.225,
         },
         {
           "label": "5h limit",
           "resetsAt": "2026-08-27T10:00:00.000Z",
+          "scope": {
+            "kind": "account",
+          },
           "usedRatio": 0.5,
         },
         {
@@ -63,6 +69,9 @@ test("kimi projection mirrors the managed quota rows rendered by /usage", () => 
         },
         {
           "label": "Extra Usage monthly limit",
+          "scope": {
+            "kind": "account",
+          },
           "usedRatio": 0.25,
         },
       ],
@@ -107,10 +116,16 @@ test("kimi projection clamps exhausted windows and skips unusable limits", () =>
       "windows": [
         {
           "label": "Weekly limit",
+          "scope": {
+            "kind": "account",
+          },
           "usedRatio": 1,
         },
         {
           "label": "2d limit",
+          "scope": {
+            "kind": "account",
+          },
           "usedRatio": 0,
         },
       ],

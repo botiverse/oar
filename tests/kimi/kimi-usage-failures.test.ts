@@ -16,7 +16,7 @@ test.each([undefined, null, [], "broken", {}, { usage: {} }])("Kimi refuses a qu
 test.each([null, "broken", "", " ", false, {}, [], -1, -0.5, Number.NaN, Number.POSITIVE_INFINITY])("a damaged present metric is not zero usage (%#)", (used) => {
   expect(() => projectKimiUsage({ usage: { used, limit: "100" } })).toThrow(/no usable quota windows/u);
   expect(projectKimiUsage({ usage: exhausted, limits: [{ detail: { used, limit: "100" } }] })).toEqual({
-    kind: "available", rateLimited: true, windows: [{ label: "Weekly limit", usedRatio: 1 }],
+    kind: "available", rateLimited: true, windows: [{ label: "Weekly limit", usedRatio: 1, scope: { kind: "account" } }],
   });
 });
 
@@ -28,7 +28,7 @@ test("a valid secondary window survives a damaged primary window", () => {
 
 test.each([0, "0", undefined])("valid zero and native omitted usage remain readable (%#)", (used) => {
   expect(projectKimiUsage({ usage: { used, limit: "100" } })).toEqual({
-    kind: "available", rateLimited: false, windows: [{ label: "Weekly limit", usedRatio: 0 }],
+    kind: "available", rateLimited: false, windows: [{ label: "Weekly limit", usedRatio: 0, scope: { kind: "account" } }],
   });
 });
 
@@ -40,6 +40,6 @@ test.each([
   { ...wallet, balance: { ...wallet.balance, amountLeft: null } },
 ])("damaged Extra Usage does not invent headroom or a numeric window (%#)", (boosterWallet) => {
   expect(projectKimiUsage({ usage: exhausted, boosterWallet })).toEqual({
-    kind: "available", rateLimited: true, windows: [{ label: "Weekly limit", usedRatio: 1 }],
+    kind: "available", rateLimited: true, windows: [{ label: "Weekly limit", usedRatio: 1, scope: { kind: "account" } }],
   });
 });

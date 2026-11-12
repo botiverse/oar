@@ -98,7 +98,7 @@ test("kimi reader follows the CLI's resolved provider and stored token", async (
     email: "person@example.com",
     plan: "Vivace",
     rateLimited: false,
-    windows: [{ label: "Weekly limit", usedRatio: 0.25 }],
+    windows: [{ label: "Weekly limit", usedRatio: 0.25, scope: { kind: "account" } }],
   });
   expect(fetchMock.mock.calls.map(([input]) => input)).toEqual([
     "https://api.kimi.com/coding/v1/usages",
@@ -148,7 +148,7 @@ test("kimi reader keeps usage when the optional identity endpoint fails", async 
   })).resolves.toEqual({
     kind: "available",
     rateLimited: false,
-    windows: [{ label: "Weekly limit", usedRatio: 0.25 }],
+    windows: [{ label: "Weekly limit", usedRatio: 0.25, scope: { kind: "account" } }],
   });
 });
 
