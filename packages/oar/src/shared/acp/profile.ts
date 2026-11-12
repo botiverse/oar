@@ -32,6 +32,7 @@ export interface AcpSessionProfile {
   /** What this runtime's ACP surface lets the adapter carry (docs/spec attribution tier included). */
   readonly capabilities: Omit<SessionCapabilities, "images"> & { readonly images?: boolean }; // images: what `initialize` advertised, unless set on evidence that it is wrong
   readonly requestTimeoutMs?: number;
+  readonly maxInputBytes?: number; // OAR's bound on one input's UTF-8 bytes, for a runtime seen to cut long input silently: longer ones are refused (`unsupported`, `input_too_large`)
   /** Only session/new and session/resume, when native startup work needs a larger bound. */
   readonly sessionStartTimeoutMs?: number;
   readonly abortTimeoutMs?: number;

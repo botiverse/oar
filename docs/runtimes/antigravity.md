@@ -166,6 +166,21 @@ to completion. The common ACP fallback terminates the owned process when
 native cancellation does not settle within ten seconds. The behavior suite
 checks cancellation and disposal with the CLI/local provider.
 
+**OAR bounds one input at 185,000 bytes.** Observed on agy 1.5.6 (a
+signed-in machine, 2026-11-12): with the instruction at the top and a code
+word at each end, a 185,000-byte prompt got both words back and a
+200,000-byte one only the first; in an earlier round, `transcript_full` held
+a 250,110-byte input cut at 192,159 bytes with `<truncated 58527 bytes>`,
+while the conversation database kept it whole; a third-party bridge had
+reported a cut near 192,000 bytes on 1.5.4. Inferred: agy can drop the end
+of a long input without saying so. These observations do not show what the
+model saw at either size, and agy's cut point was not measured. So a prompt,
+steer or queued input whose text is longer than 185,000 UTF-8 bytes (the
+largest measured input whose two code words both came back) is refused
+before it is sent (`unsupported`, `failure: input_too_large`), and the
+caller keeps the whole input
+([probes and results](../../experiments/antigravity-input-size-2026-11-12/README.md)).
+
 ### Observation, children, and history
 
 Text and tool updates project through the shared ACP mapping; unrecognized
@@ -247,6 +262,20 @@ OAR refuses entries containing non-empty `env` or `headers` before launch
 `serveMcpTools` entries, which carry a bearer token. Credential-free entries
 still attach. The new directory does not remove the persistence problem
 tracked in [issue #392](https://github.com/botiverse/oar/issues/392).
+
+**A stdio server can take its credential from the session environment
+instead**, as a host's own choice. agy 1.5.6 starts a session's stdio
+servers on `session/new` with its own process environment, so a value in
+`SessionOptions.env` reaches a credential-free entry's process (a synthetic
+marker, on a signed-in machine, 2026-11-12). A read-only search of
+`~/.gemini` and `~/.cache/antigravity` afterwards (132 files) found no
+plain-text copy of the marker; that says nothing of other files, paths or
+encodings. OAR does not move an entry's `env` there by itself: the session
+environment reaches agy's own tools as well (a shell command the model runs
+can read it), a wider reach than one server's process, while an entry's
+`env` keeps the persistence risk above. A host that accepts the wider reach
+puts the value in `SessionOptions.env` and attaches the entry without `env`.
+HTTP `headers` have no such route.
 
 ### Process ownership, installation, and account usage
 

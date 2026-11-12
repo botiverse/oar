@@ -38,6 +38,10 @@ export const antigravityAcpProfile: AcpSessionProfile = {
   // Native invalid image prompts return invalid-params without entering the loop.
   isSteerRefusal: (error) => rpcErrorCode(error) === -32_602,
   requestTimeoutMs: 30_000,
+  // OAR's conservative bound: the largest measured input whose two code
+  // words both came back on agy 1.5.6; a 200,000-byte one lost its end word
+  // (2026-11-12, experiments/antigravity-input-size-2026-11-12).
+  maxInputBytes: 185_000,
   // Native CLI configuration and cached authentication select the provider.
   validateOptions: (options) => {
     refuseSessionOptions(antigravityRefusedSessionOptions, options);

@@ -196,3 +196,21 @@ test("a native worker failure after accepting steer retains the input and fails 
     expect([session.records().some(record => record.kind === "response" && record.body.kind === "exited"), session.status().value.kind]).toEqual([false, "idle"]);
   } finally { await session.dispose(); }
 });
+
+// oxlint-disable-next-line eslint/max-statements -- One refusal and one delivery at the limit, on one session.
+test("an input agy would cut without saying so is refused whole; one at the measured size goes", async () => {
+  // agy 1.5.6 kept 185,000 bytes whole and lost the end of 200,000 (signed-in machine, 2026-11-12).
+  const session = await startAntigravity();
+  const limit = antigravityAcpProfile.maxInputBytes ?? 0;
+  assert.equal(limit, 185_000);
+  // A multi-byte character, so the limit is in UTF-8 bytes, not characters.
+  const over = `${"é".repeat(Math.floor(limit / 2))}xx`;
+  const refused = await session.prompt(over);
+  assert.ok(refused.response.body.kind === "rejected");
+  assert.deepEqual({ code: refused.response.body.code, failure: refused.response.body.failure }, { code: "unsupported", failure: "input_too_large" });
+  assert.match(refused.response.body.reason, /^input is 185002 bytes, over OAR's 185000-byte bound /u);
+  const fits = "x".repeat(limit);
+  const run = await promptAndWait(session, fits);
+  assert.equal(run.kind, "ended");
+  await session.dispose();
+});

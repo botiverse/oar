@@ -1,10 +1,11 @@
-/* oxlint-disable import/max-dependencies -- The turn driver composes input, protocol, projection and cancellation ownership. */
+/* oxlint-disable import/max-dependencies, eslint/max-lines -- The turn driver composes input, protocol, projection and cancellation ownership, and reads as one state machine. */
 import type {
   InputImage, InputOptions, RuntimeEventBody, RequestRecord,
   ResponseBody, SessionCapabilities, TurnOutcome,
 } from "../../contracts/session.js";
 import { withdrawHeld } from "../held-input.js";
 import { withInputImages } from "../input-images.js";
+import { inputBytesRefusal } from "../control-input.js";
 import { asRecord, type JsonRecord } from "../json.js";
 import type { CancellationObservation } from "../executable/process-cancellation.js";
 import type { SessionKernel } from "../session-kernel.js";
@@ -196,7 +197,7 @@ export function createAcpTurns(deps: {
     return state;
   };
   const begin = (request: RequestRecord | null, input: string, images?: readonly InputImage[]): ResponseBody =>
-    withInputImages(capabilities, images, (loaded) => open(request, acpPrompt(input, loaded)));
+    inputBytesRefusal(profile.maxInputBytes, input) ?? withInputImages(capabilities, images, (loaded) => open(request, acpPrompt(input, loaded)));
   function drainHeld(): void {
     // Held input is dropped once the stream says the runtime is unreachable
     // (an `exited` response or a `dispose` request), not by an adapter flag.
@@ -232,7 +233,7 @@ export function createAcpTurns(deps: {
         return noActiveTurn();
       }
       // oxlint-disable-next-line typescript/promise-function-async -- Return the dispatch receipt promise without another async wrapper.
-      return withInputImages(capabilities, options?.images, (loaded) => {
+      return inputBytesRefusal(profile.maxInputBytes, input) ?? withInputImages(capabilities, options?.images, (loaded) => {
         const admission = Promise.withResolvers<ResponseBody>();
         startVendorPrompt(state, acpPrompt(input, loaded), extraParams, { inputId: options?.inputId, respond: admission.resolve });
         return admission.promise;
@@ -284,7 +285,7 @@ export function createAcpTurns(deps: {
       if (runtime.closed) {
         return gone();
       }
-      return withInputImages(capabilities, images, (loaded) => {
+      return inputBytesRefusal(profile.maxInputBytes, input) ?? withInputImages(capabilities, images, (loaded) => {
         held.push({ inputId, input, images, request, prompt: acpPrompt(input, loaded), accepted: false });
         return { kind: "accepted", queued: "adapter" };
       });
