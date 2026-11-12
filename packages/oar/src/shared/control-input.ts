@@ -11,6 +11,17 @@ export function emptyInputRefusal(body: RequestBody): ResponseBody | null {
   return null;
 }
 
+/**
+ * Refuse text longer than `maxBytes` (UTF-8) before contacting a runtime that
+ * would cut it without saying so: the caller keeps the whole input.
+ */
+export function inputBytesRefusal(maxBytes: number | undefined, input: string): ResponseBody | null {
+  if (maxBytes === undefined) { return null; }
+  const bytes = Buffer.byteLength(input, "utf8");
+  if (bytes <= maxBytes) { return null; }
+  return { kind: "rejected", code: "unsupported", failure: "input_too_large", reason: `input is ${String(bytes)} bytes; this runtime drops text past about ${String(maxBytes)} bytes of one input without saying so` };
+}
+
 /** Validate before publishing the attempt, while the original ownership is still visible. */
 export function carriesRefusal(body: RequestBody, records: readonly RawEvent[], sessionId: string, agentPath: readonly string[]): ResponseBody | null {
   if (body.kind !== "prompt" || (body.carries?.length ?? 0) === 0) { return null; }

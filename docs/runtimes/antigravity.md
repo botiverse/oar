@@ -166,6 +166,18 @@ to completion. The common ACP fallback terminates the owned process when
 native cancellation does not settle within ten seconds. The behavior suite
 checks cancellation and disposal with the CLI/local provider.
 
+**One input is limited to 185,000 bytes.** agy 1.5.6 drops the end of a
+single input past about 192,000 bytes and says nothing: with the
+instruction at the top and a code word at each end, a 185,000-byte prompt
+got both words back and a 200,000-byte one only the first (a signed-in
+machine, 2026-11-12). Its `transcript_full` showed the input cut at 192,159
+bytes with `<truncated 58527 bytes>`, while the conversation database kept
+it whole; a third-party bridge had reported the same limit for 1.5.4. So a
+prompt, steer or queued input whose text is longer than 185,000 UTF-8 bytes,
+the largest measured to arrive whole, is refused before it is sent
+(`unsupported`, `failure: input_too_large`), and the caller keeps the whole
+input.
+
 ### Observation, children, and history
 
 Text and tool updates project through the shared ACP mapping; unrecognized
