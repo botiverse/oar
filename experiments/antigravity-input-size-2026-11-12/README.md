@@ -20,7 +20,7 @@ That alone could not tell a cut model input from a cut transcript.
 
 At 185,000 bytes both code words came back; at 200,000 the end word did not. Together with the transcript cut at 192,159 bytes, and a third-party bridge's report of a cut near 192,000 bytes on agy 1.5.4 (it caps at 180,000), this supports a conservative bound. It does not prove that the model saw all of a 185,000-byte input, or none of the end of a 200,000-byte one, and the native cut point was not measured.
 
-**OAR's bound**: 185,000 UTF-8 bytes, the largest size measured to arrive whole. A longer prompt, steer or queued input is refused before it is sent (`unsupported`, `failure: input_too_large`). It is OAR's conservative bound, not agy's cut point; raising it needs a measurement between 185,000 and 192,000 bytes.
+**OAR's bound**: 185,000 UTF-8 bytes, the largest measured input whose two code words both came back. A longer prompt, steer or queued input is refused before it is sent (`unsupported`, `failure: input_too_large`). It is OAR's conservative bound, not agy's cut point; raising it needs a measurement between 185,000 and 192,000 bytes.
 
 ## MCP child environment
 
