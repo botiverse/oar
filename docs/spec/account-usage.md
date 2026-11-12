@@ -289,11 +289,17 @@ agent turn, quota or conversation (a signed-in 1.5.7 reported
 `num_turns: 0`, zero tokens and an empty `conversation_id`). Each group's
 buckets (`weekly`, `5h`) become windows: `usedRatio` is one minus
 `remaining_fraction`, `id` the bucket's `id`. Signed out, that command
-starts agy's interactive login and waits, so `agy models` is asked first
-and its "Please sign in" refusal is `reauth_required` / `not_authenticated`.
-`rateLimited` is true when any bucket is used up; agy's AI credits
-(`/credits`), which can carry a model past its quota when the account turned
-them on, are not read.
+starts agy's interactive login and waits, so `agy models` is asked first:
+its "Please sign in" refusal is `reauth_required` / `not_authenticated`, and
+any other answer that does not confirm a login rejects without running
+`/usage`. A confirmed login can still end before `/usage` runs; then that
+command waits for a login and the read rejects at its deadline, its
+processes ended. A bucket with any quota left keeps `usedRatio` below 1.
+`rateLimited` means no model can run on quota or credits: every group has a
+used-up bucket and agy's own `/credits` answer reports none left (AI credits
+can carry a model past its quota where the account turned them on). Only
+then is `/credits` asked; when it does not answer, `rateLimited` stays
+false. One used-up group shows in its windows, not in `rateLimited`.
 
 Claude account usage delegates to its native stream-json `get_usage` request
 (with `skip_behaviors: true`). OAR does not read Claude credentials or call its
