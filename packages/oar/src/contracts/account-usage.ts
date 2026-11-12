@@ -188,7 +188,7 @@ export type LimitResetResult =
 /** Why a limit-reset call or inspection is not available here. */
 export type LimitResetUnsupportedReason =
   | AccountUsageUnsupportedReason
-  /** The operation cannot run on this operating system (claude: Windows). */
+  /** The operation cannot run here (claude: anywhere but Linux, or without the system `script`). */
   | "unsupported_platform"
   /** The installed CLI drew a screen oar does not recognise, or no version banner. */
   | "unsupported_version"
