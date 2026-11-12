@@ -109,7 +109,6 @@ const READ_MIN_SUBMIT_MS = COMMAND_TIMEOUT_MS;
 const FIVE_HOUR_CHECK_TIMEOUT_MS = 15_000;
 /** Requests that may wait behind the running one; more are refused at once. */
 const MAX_WAITING = 2;
-const IDEMPOTENCY_CACHE_SIZE = 50;
 
 const ENTER = "\r";
 const ESCAPE = "\u001B";
@@ -686,8 +685,8 @@ async function readInSession(session: ClaudeSession, kinds: readonly ClaudeLimit
       found.set(kind, {
         id: kind,
         state: "available",
-        ...(shown.dialog.resetsLeft !== undefined ? { resetsLeft: shown.dialog.resetsLeft } : {}),
-        ...(shown.dialog.expiresText !== undefined ? { expiresText: shown.dialog.expiresText } : {}),
+        resetsLeft: shown.dialog.resetsLeft,
+        expiresText: shown.dialog.expiresText,
       });
       const kept = await cancelAndSeeKept(session, command);
       session.note(`cancel:${kind}`);
@@ -726,29 +725,47 @@ export function createClaudeLimitResetDriver(deps: ClaudeLimitResetDeps = {}): C
   // Nothing was spent either way; try again.
   let tail: Promise<void> = Promise.resolve();
   let queued = 0;
-  const exclusive = <T>(run: () => Promise<T>): Promise<T> | null => {
+  /**
+   * Runs `run` when the session slot is free. A call that is still waiting at
+   * `deadlineAt` answers `expired()` then and never starts; it frees its
+   * waiting place at once.
+   */
+  const exclusive = <T>(run: () => Promise<T>, deadlineAt: number, expired: () => T): Promise<T> | null => {
     if (queued > MAX_WAITING) { return null; }
     queued += 1;
-    // oxlint-disable-next-line promise/prefer-await-to-then -- A queue: the run is chained now, so the tail is set before this returns.
-    const next = tail.then(run).finally(() => {
+    // An object, so the timer's and the turn's changes are seen by each other's checks.
+    const entry: { state: "waiting" | "running" | "expired" } = { state: "waiting" };
+    const answer = Promise.withResolvers<T>();
+    const timer = setTimeout(() => {
+      if (entry.state !== "waiting") { return; }
+      entry.state = "expired";
       queued -= 1;
-    });
-    // oxlint-disable-next-line promise/prefer-await-to-then, promise/always-return -- the tail only waits; a failure is the request's own.
-    tail = next.then(() => {}, () => {});
-    return next;
+      answer.resolve(expired());
+    }, Math.max(0, deadlineAt - Date.now()));
+    const turn = async (): Promise<void> => {
+      if (entry.state === "expired") { return; }
+      entry.state = "running";
+      clearTimeout(timer);
+      try {
+        answer.resolve(await run());
+      } catch (error) {
+        answer.reject(error);
+      } finally {
+        queued -= 1;
+      }
+    };
+    // oxlint-disable-next-line promise/prefer-await-to-then -- A queue: the turn is chained now, so the tail is set before this returns.
+    tail = tail.then(turn, turn);
+    return answer.promise;
   };
   // The wire to Claude Code has no idempotency key, so this remembers each
   // key's attempt, in memory: a retry with the same key gets the first
   // attempt's answer instead of a second Yes. It does not survive the
   // process; after a restart, a retry of an attempt whose answer was lost is
-  // a new attempt. An attempt still running is never dropped to make room.
+  // a new attempt. Nothing is dropped: an attempt that may have spent a
+  // reset must never become executable again within the process. Only
+  // attempts that typed a command are kept, each one person's request.
   const attempts = new Map<string, RedeemAttempt>();
-  const trimAttempts = (): void => {
-    for (const [key, attempt] of attempts) {
-      if (attempts.size <= IDEMPOTENCY_CACHE_SIZE) { return; }
-      if (!attempt.inFlight) { attempts.delete(key); }
-    }
-  };
 
   const preflight = async (input: { command: string; env?: NodeJS.ProcessEnv }, needsNewerProgram: boolean): Promise<Preflight> => {
     const platform = deps.platform ?? process.platform;
@@ -837,13 +854,16 @@ export function createClaudeLimitResetDriver(deps: ClaudeLimitResetDeps = {}): C
         const { remember, ...outcome } = await redeemOnce(input, deadlineAt, timeoutMs).catch(() => ({ result: { kind: "unknown" } as const, remember: true }));
         attempt.inFlight = false;
         if (!remember && attempts.get(input.idempotencyKey) === attempt) { attempts.delete(input.idempotencyKey); }
-        trimAttempts();
         return outcome;
+      }, deadlineAt, (): RedeemReport => {
+        // Never started: nothing was sent, so the same key may try again.
+        attempt.inFlight = false;
+        if (attempts.get(input.idempotencyKey) === attempt) { attempts.delete(input.idempotencyKey); }
+        return { result: DEADLINE, step: "queue" };
       });
       if (!report) { return Promise.resolve({ result: BUSY, step: "queue" }); }
       attempt.report = report;
       attempts.set(input.idempotencyKey, attempt);
-      trimAttempts();
       return report;
     },
     // oxlint-disable-next-line typescript/promise-function-async -- Answers with the queued run's own promise, as redeem does.
@@ -875,7 +895,7 @@ export function createClaudeLimitResetDriver(deps: ClaudeLimitResetDeps = {}): C
         } catch {
           return { result: { kind: "unknown" } };
         }
-      });
+      }, deadlineAt, (): ClaudeLimitResetReport<LimitResetInspection> => ({ result: DEADLINE, step: "queue" }));
       return report ?? Promise.resolve({ result: BUSY, step: "queue" });
     },
   };

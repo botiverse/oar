@@ -111,12 +111,47 @@ export function isSignInScreen(screen: string): boolean {
   return screen.includes("Not logged in · Run /login");
 }
 
+/** A limit the effect line may name: the only words allowed in its list. */
+const LIMIT_NAME = "(?:5-hour|weekly|Opus|Sonnet|Fable)";
+/** "Nov 14, 5:33pm", "Nov 14, 5pm": claude's short date. */
+const SHORT_DATE = String.raw`[A-Z][a-z]{2} \d{1,2}, \d{1,2}(?::\d{2})?(?:am|pm)`;
+/** The limit each kind must say it refills. */
+const REFILLS: Record<ClaudeLimitResetKind, readonly string[]> = {
+  five_hour: ["5-hour"],
+  weekly: ["weekly"],
+  fable: ["Fable"],
+  full: ["5-hour", "weekly"],
+};
+
+/**
+ * The dialog's body, its lines joined (a long line wraps): an optional
+ * early-use warning, the effect line, and the count line, each exactly as
+ * recorded but for the dates, the count, the percentage and which known
+ * limits the effect line lists. Anything else, missing or added: null.
+ */
+function dialogBody(kind: ClaudeLimitResetKind, text: string): { resetsLeft: number; expiresText: string } | null {
+  const name = DIALOG_KIND_NAMES[kind];
+  const pattern = new RegExp(
+    String.raw`^(?:You still have \d{1,3}% of your ${LIMIT_NAME} limit left \u2014 use your ${name} reset anyway\? )?`
+    + String.raw`Refills your (${LIMIT_NAME}(?:, ${LIMIT_NAME})*(?: and ${LIMIT_NAME})?) limits? now · `
+    + (kind === "fable" ? "(?:returns what Fable used to your weekly limit · )?" : "")
+    + String.raw`your weekly reset day stays ${SHORT_DATE} `
+    + String.raw`(\d{1,3}) ${COUNT_KIND_NAMES[kind]} resets? left · use by (${SHORT_DATE})$`,
+    "u",
+  );
+  const [, refilled, count, expiresText] = pattern.exec(text) ?? [];
+  if (refilled === undefined || count === undefined || expiresText === undefined) { return null; }
+  const listed = refilled.split(/, | and /u);
+  if (!REFILLS[kind].every((limit) => listed.includes(limit))) { return null; }
+  return { resetsLeft: Number(count), expiresText };
+}
+
 export interface ClaudeConfirmDialog {
   kind: ClaudeLimitResetKind;
-  /** "2 five-hour resets left": the count the dialog shows, when it shows one. */
-  resetsLeft?: number;
+  /** "2 five-hour resets left": the count the dialog shows. */
+  resetsLeft: number;
   /** "use by Nov 19, 4:58pm", in Claude Code's words. */
-  expiresText?: string;
+  expiresText: string;
 }
 
 /**
@@ -144,15 +179,10 @@ export function confirmDialog(screen: string): ClaudeConfirmDialog | null {
   if (titleName === undefined || titleName !== yes[1]) { return null; }
   const kind = kindFromName(DIALOG_KIND_NAMES, titleName);
   if (!kind) { return null; }
-  const dialog: ClaudeConfirmDialog = { kind };
-  for (const line of lines.slice(titleAt + 1, footer - 2)) {
-    const count = /^(\d{1,3}) (.+) resets? left · use by (.+)$/u.exec(line);
-    const expiresText = count?.[3];
-    if (!count || count[2] !== COUNT_KIND_NAMES[kind] || expiresText === undefined) { continue; }
-    dialog.resetsLeft = Number(count[1]);
-    dialog.expiresText = expiresText;
-  }
-  return dialog;
+  // The whole body must be as recorded: what Yes would do decides whether it may be sent.
+  const body = dialogBody(kind, lines.slice(titleAt + 1, footer - 2).join(" "));
+  if (body === null) { return null; }
+  return { kind, resetsLeft: body.resetsLeft, expiresText: body.expiresText };
 }
 
 /** What Claude Code printed under a command instead of, or after, a dialog. */

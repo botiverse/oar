@@ -128,12 +128,19 @@ export interface LimitResetOptions {
    * The person accepted that on Claude's older reset program, opening any
    * `/limit-reset` at the 5-hour limit spends the 5-hour reset with no
    * confirmation. Without it, claude does not open the command while usage
-   * shows the 5-hour limit reached, or cannot rule it out. Codex ignores it.
+   * shows the 5-hour limit reached, or cannot rule it out; a `five_hour`
+   * request is itself consent to spending the 5-hour reset and is not
+   * checked. Codex ignores it.
    */
   readonly fiveHourLimitConsent?: boolean;
   /** Same overlay as sessions: strings override, null removes, and the host is untouched. */
   readonly env?: SessionOptions["env"];
-  /** Bounds the whole call, every process it starts included; each runtime has its own default. Past it the call rejects. */
+  /**
+   * Bounds the whole call, every process it starts included; each runtime
+   * has its own default. Past it codex rejects; claude answers
+   * `not_attempted` or `unknown` (a call still waiting for its single UI
+   * session answers at once).
+   */
   readonly timeoutMs?: number;
 }
 
@@ -157,7 +164,8 @@ export type LimitResetResult =
   | { readonly kind: "not_attempted"; readonly reason: LimitResetNotAttemptedReason }
   /**
    * The runtime may have spent a reset, and its answer was not seen (claude:
-   * Yes was sent and no recognised result followed). Never retried by oar.
+   * the command was submitted, or Yes was sent, and no recognised screen
+   * followed). Never retried by oar.
    * `fiveHourSpent`: claude's older program spent its 5-hour reset instead
    * of the kind asked for.
    */
@@ -208,7 +216,7 @@ export interface LimitResetInspectOptions {
   readonly includeFiveHour?: boolean;
   /** Same overlay as sessions: strings override, null removes, and the host is untouched. */
   readonly env?: SessionOptions["env"];
-  /** Bounds the whole call, every process it starts included; past it the call rejects. */
+  /** Bounds the whole call, every process it starts included; past it claude answers `not_attempted` or what it found so far. */
   readonly timeoutMs?: number;
 }
 

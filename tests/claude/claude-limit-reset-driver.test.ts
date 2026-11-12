@@ -308,6 +308,24 @@ test("a dialog that names another kind: Esc, no Yes, unknown", async () => {
   assert.equal(claude.writes.filter((write) => write.data === ESCAPE && write.during === "dialog").length, 1);
 });
 
+test("a dialog whose effect line or count line is not the recorded one: Esc, no Yes, unknown", async () => {
+  // Synthetic: what Yes would do changed under a newer banner; the Yes row and title did not.
+  for (const shows of ["altered-effect-five_hour", "no-count-five_hour"]) {
+    const claude = new FakeClaude({ commands: { "/limit-reset 5-hour": { shows, dialog: { afterEnter: "reset-five_hour" } } } });
+    const report = await finish(driverFor(claude).driver.redeem({ kind: "five_hour", idempotencyKey: KEY }));
+    assert.deepEqual(report.result, { kind: "unknown" }, shows);
+    assert.equal(claude.enters("dialog"), 0, shows);
+    assert.equal(claude.dialogEnters, 0, shows);
+  }
+});
+
+test("the early-use warning is part of the recorded dialog: Yes goes", async () => {
+  const claude = new FakeClaude({ commands: { "/limit-reset 5-hour": { shows: "early-use-five_hour", dialog: { afterEnter: "reset-five_hour" } } } });
+  const report = await finish(driverFor(claude).driver.redeem({ kind: "five_hour", idempotencyKey: KEY }));
+  assert.deepEqual(report.result, { kind: "reset" });
+  assert.equal(claude.dialogEnters, 1);
+});
+
 test("a dialog whose Yes row is not the recorded one: Esc, no Yes, unknown", async () => {
   const claude = new FakeClaude({ commands: { "/limit-reset 5-hour": { shows: "relabelled-dialog", dialog: { afterEnter: "reset-five_hour" } } } });
   const report = await finish(driverFor(claude).driver.redeem({ kind: "five_hour", idempotencyKey: KEY }));
@@ -736,31 +754,40 @@ test("at most two requests wait; a third is refused at once", async () => {
   assert.equal(claude.spawns, 4);
 });
 
-function cacheKey(index: number): string {
-  return `key-${String(index).padStart(4, "0")}-5c3a-4c55-9c1e-6a7b8c9d0e1f`;
-}
-
-test("the 51st key drops the oldest settled attempt, never one still running", async () => {
-  const none = Object.fromEntries((["five_hour", "weekly"] as const).map((kind) => [`/limit-reset ${KIND_ARGS[kind]}`, { shows: kind === "five_hour" ? "none" : "read-none-weekly" }]));
-  const claude = new FakeClaude({ startsAt: "prompt", commands: none });
-  const { driver } = driverFor(claude);
-  const key = cacheKey;
-  for (let index = 1; index <= 50; index += 1) {
-    const report = await finish(driver.redeem({ kind: "five_hour", idempotencyKey: key(index) }));
-    assert.deepEqual(report.result, { kind: "no_reset" });
+test("a key whose attempt may have spent is kept for the life of the process, however many come after", async () => {
+  // Otter's counterexample on #752: an unknown after Yes, then 50 other keys, then the first key again.
+  const stuck = new FakeClaude({ startsAt: "prompt", commands: { "/limit-reset 5-hour": { shows: "confirm-five_hour", dialog: {} }, "/limit-reset weekly": { shows: "read-none-weekly" } } });
+  const { driver } = driverFor(stuck);
+  const first = await finish(driver.redeem({ kind: "five_hour", idempotencyKey: KEY }));
+  assert.deepEqual(first.result, { kind: "unknown" });
+  for (let index = 1; index <= 60; index += 1) {
+    const other = await finish(driver.redeem({ kind: "weekly", idempotencyKey: `key-${String(index)}` }));
+    assert.deepEqual(other.result, { kind: "no_reset" });
   }
-  assert.equal(claude.spawns, 50);
-  const inFlight = driver.redeem({ kind: "weekly", idempotencyKey: key(51) });
-  const queued = driver.redeem({ kind: "weekly", idempotencyKey: key(52) });
-  // 52 keys now: the two that have not finished stay, the two oldest settled ones went.
-  assert.equal(driver.redeem({ kind: "weekly", idempotencyKey: key(51) }), inFlight, "the running attempt is still the key's attempt");
-  assert.equal(driver.redeem({ kind: "weekly", idempotencyKey: key(52) }), queued);
-  await finish(Promise.all([inFlight, queued]));
-  assert.equal(claude.spawns, 52);
-  await finish(driver.redeem({ kind: "five_hour", idempotencyKey: key(50) }));
-  assert.equal(claude.spawns, 52, "a recent settled key is still remembered");
-  await finish(driver.redeem({ kind: "five_hour", idempotencyKey: key(1) }));
-  assert.equal(claude.spawns, 53, "the oldest was dropped, so it is a new attempt");
+  const again = await finish(driver.redeem({ kind: "five_hour", idempotencyKey: KEY }));
+  assert.deepEqual(again.result, { kind: "unknown" });
+  assert.equal(stuck.dialogEnters, 1, "one Yes in the process for that key");
+  assert.equal(stuck.spawns, 61);
+});
+
+test("a call still waiting for the session slot answers at its own deadline and never starts later", async () => {
+  // Otter's counterexample on #752: behind an attempt whose Yes gets no answer, an inspection with 100 ms.
+  const claude = new FakeClaude({ commands: { "/limit-reset 5-hour": { shows: "confirm-five_hour", dialog: {} }, ...READ_ALL } });
+  const { driver } = driverFor(claude);
+  const first = driver.redeem({ kind: "five_hour", idempotencyKey: KEY });
+  const startedAt = Date.now();
+  let answeredAt = 0;
+  const waiting = (async () => {
+    const report = await driver.read({ atFiveHourLimit: false, timeoutMs: 100 });
+    answeredAt = Date.now();
+    return report;
+  })();
+  await vi.advanceTimersByTimeAsync(150);
+  assert.ok(answeredAt > 0 && answeredAt - startedAt <= 150, `answered ${String(answeredAt - startedAt)} ms after it was asked`);
+  assert.deepEqual(await waiting, { result: { kind: "not_attempted", reason: "deadline" }, step: "queue" });
+  await finish(first);
+  await vi.advanceTimersByTimeAsync(60_000);
+  assert.equal(claude.spawns, 1, "the expired call never opened a session");
 });
 
 test("one session at a time: a second request waits for the first", async () => {

@@ -90,8 +90,8 @@ offers no tool for it: a host calls it on the owner's explicit request.
   whether a reset was spent. Retry with the same key.
 
 Claude adds three outcomes: `not_attempted` (nothing that could spend was
-sent; try again), `unknown` (Yes was sent and no recognised answer
-followed; OAR does not retry it) and `unsupported` / `consent_required`.
+sent; try again), `unknown` (the command was submitted, or Yes was sent,
+and no recognised screen followed; OAR does not retry it) and `unsupported` / `consent_required`.
 
 No outcome says what the limits are now. Read `accountUsage` again after
 any of them; do not infer recovered windows from the outcome. The reset
@@ -108,9 +108,12 @@ Linux and macOS; Windows is `unsupported_platform`), in a new empty
 directory and the call's `env`, types the command, reads the screen, and
 ends the process. Why OAR does this at all:
 [decisions](../design/decisions.md#claude-limit-resets-through-its-interactive-ui).
-One UI runs at a time per process; a call that finds two waiting, or whose
-turn comes with too little of its `timeoutMs` (default 75 s) left, is
-`not_attempted` / `busy` or `deadline`.
+One UI runs at a time per process; a call that finds two waiting is
+`not_attempted` / `busy`, and one still waiting when its `timeoutMs`
+(default 75 s) runs out, or whose turn comes with too little of it left, is
+`not_attempted` / `deadline` and never starts. The UI runs with an
+environment marker on Linux, and ending it ends every process it started,
+including ones that outlived it (the same mechanism as Cursor's child).
 
 What keeps it from spending a reset the person did not ask for:
 
@@ -119,8 +122,11 @@ What keeps it from spending a reset the person did not ask for:
   can claim with no confirmation, so it is never typed.
 - Every screen must match text recorded from Claude Code 2.1.322 word for
   word: the prompt under a `Claude Code v<version>` banner, the
-  confirmation dialog for the kind asked (title, the selected Yes row naming
-  it, No below), the result lines. There is no version list: a Claude Code
+  confirmation dialog for the kind asked (title, the effect line, the
+  count line, an optional early-use warning, the selected Yes row naming
+  it, No below; only the dates, the count, the percentage and which of the
+  known limits the effect line lists may vary, and the list must include
+  the kind's own limit), the result lines. There is no version list: a Claude Code
   that draws the same screens works, and one that changed them ends the
   attempt at the first unrecognised screen with Esc. A prompt without a
   version banner is `unsupported_version`.
@@ -135,13 +141,15 @@ What keeps it from spending a reset the person did not ask for:
   through claude's own `accountUsage` right before the first command and
   types it only when the `five_hour` window is below 100%
   (`consent_required` at the limit, `not_attempted` / `usage_unread` when
-  the read fails). A redeem of any kind but `five_hour` also needs
+  the read fails). A `five_hour` redeem skips this: asking to spend the
+  5-hour reset is itself the consent. A redeem of any kind but `five_hour` also needs
   Claude Code's cached feature flags (`cachedGrowthBookFeatures` in its
   config, the one boolean) to say the newer program is on; a fresh flag
   fetch can still disagree, which is why the usage read stays.
 - The claim carries no key OAR can make Claude Code reuse. OAR keeps each
-  `idempotencyKey`'s outcome in memory for the life of the process: the
-  same key gets the first call's answer, never a second Yes; the same key
+  `idempotencyKey`'s outcome in memory for the life of the process, with no
+  limit on how many: the same key gets the first call's answer, never a
+  second Yes; the same key
   with another `resetId` rejects. After a restart a retry is a new attempt,
   so a host that got `unknown` reads usage before trying again. A call that
   sent nothing (`not_attempted`, a refusal) is not remembered.

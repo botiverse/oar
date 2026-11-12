@@ -1,8 +1,10 @@
+/* oxlint-disable eslint/max-lines -- One terminal: its launch, what it owns and how it ends it read together. */
 import { execFileSync, spawn } from "node:child_process";
 import { accessSync, constants, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { StringDecoder } from "node:string_decoder";
 import { spawnChecked } from "./diagnostics.js";
+import { killMarkedAsync, newEnvironmentMarker, trackEnvironmentMarker } from "./environment-marker.js";
 
 /** A program running in a pseudo-terminal: what it draws, and its keyboard. */
 export interface ClaudeLimitResetTerminal {
@@ -33,8 +35,11 @@ const KILL_GRACE_MS = 2000;
 const KILL_WAIT_MS = 1000;
 const KILL_POLL_MS = 50;
 
-/** One process as the kill sees it; `startedAt` tells it from a later process that reused the pid. */
-export interface TerminalProcess { pid: number; parentPid: number; startedAt: string }
+/**
+ * One process as the kill sees it; `startedAt` tells it from a later process
+ * that reused the pid. `groupId` is its process group, when the listing has it.
+ */
+export interface TerminalProcess { pid: number; parentPid: number; startedAt: string; groupId?: number }
 
 /** What the terminal needs of the host; injectable so tests start and signal nothing. */
 export interface ScriptTerminalHost {
@@ -45,6 +50,8 @@ export interface ScriptTerminalHost {
   /** `pid` below zero is a process group, as for `process.kill`. */
   signal(pid: number, signal: NodeJS.Signals): void;
   hostPid: number;
+  /** Ends the processes started with this environment entry (Linux; see environment-marker.ts). */
+  killMarked?(entry: string): Promise<void>;
 }
 
 /** The system `script` utility, which gives a child a pseudo-terminal with no native module. */
@@ -73,7 +80,7 @@ function listHostProcesses(): TerminalProcess[] {
         const stat = readFileSync(`/proc/${entry}/stat`, "utf8");
         const fields = stat.slice(stat.lastIndexOf(")") + 2).split(" ");
         if (fields[0] === "Z") { continue; }
-        processes.push({ pid: Number(entry), parentPid: Number(fields[1]), startedAt: fields[19] ?? "" });
+        processes.push({ pid: Number(entry), parentPid: Number(fields[1]), groupId: Number(fields[2]), startedAt: fields[19] ?? "" });
       } catch {
         // Gone between the listing and the read.
       }
@@ -81,12 +88,12 @@ function listHostProcesses(): TerminalProcess[] {
     return processes;
   }
   try {
-    const output = execFileSync("ps", ["-Ao", "pid=,ppid=,lstart="], { encoding: "utf8", timeout: 2000, env: process.env });
+    const output = execFileSync("ps", ["-Ao", "pid=,ppid=,pgid=,lstart="], { encoding: "utf8", timeout: 2000, env: process.env });
     for (const line of output.split("\n")) {
-      const match = /^\s*(\d+)\s+(\d+)\s+(.*)$/u.exec(line);
+      const match = /^\s*(\d+)\s+(\d+)\s+(\d+)\s+(.*)$/u.exec(line);
       // The last group always takes part in a match.
-      const startedAt = match?.[3];
-      if (match && startedAt !== undefined) { processes.push({ pid: Number(match[1]), parentPid: Number(match[2]), startedAt: startedAt.trim() }); }
+      const startedAt = match?.[4];
+      if (match && startedAt !== undefined) { processes.push({ pid: Number(match[1]), parentPid: Number(match[2]), groupId: Number(match[3]), startedAt: startedAt.trim() }); }
     }
   } catch {
     // No listing: only the process group can be signalled.
@@ -154,6 +161,21 @@ function descendantsOf(rootPid: number, processes: readonly TerminalProcess[]): 
   return found;
 }
 
+/**
+ * Whether `later` started no earlier than `earlier`: /proc start ticks
+ * compare as numbers, `ps` start times as dates. Unreadable is false, so a
+ * process is never taken for a group member on a guess.
+ */
+function startedNoEarlier(later: string, earlier: string): boolean {
+  const ticks = [Number(later), Number(earlier)];
+  if (/^\d+$/u.test(later) && /^\d+$/u.test(earlier)) { return (ticks[0] ?? 0) >= (ticks[1] ?? 0); }
+  const dates = [Date.parse(later), Date.parse(earlier)];
+  return Number.isFinite(dates[0]) && Number.isFinite(dates[1]) && (dates[0] ?? 0) >= (dates[1] ?? 0);
+}
+
+/** How often, at most, output prompts another look at the processes under `script`. */
+const OBSERVE_EVERY_MS = 500;
+
 /** Sessions still running, so a host that exits takes them with it. */
 const liveTerminals = new Set<() => void>();
 let exitHookInstalled = false;
@@ -163,12 +185,23 @@ let exitHookInstalled = false;
  *
  * `script` puts the program in a session of its own, so signalling `script`'s
  * process group does not reach it. `kill` therefore walks the process tree
- * under `script` and signals each process it finds.
+ * under `script` and signals each process it finds. A process whose parent
+ * exited first is no longer under `script`, so the terminal also keeps what
+ * it saw while running (as output arrives): the program's own process
+ * group, led by `script`'s child, and every process it found below `script`.
+ * At kill it also signals the processes still in that group that started no
+ * earlier than its leader, and the ones it saw that are still the same
+ * process (same start time); never a pid that may have been reused. On
+ * Linux the program also starts with an environment marker, so kill finally
+ * ends every process still carrying it, wherever it went, the way OAR ends
+ * a Cursor child's (environment-marker.ts); elsewhere the terminal looks
+ * below `script` on a timer too, since a program may exit before any output.
  */
 export function openScriptTerminal(input: OpenClaudeLimitResetTerminalInput, host: ScriptTerminalHost = HOST): ClaudeLimitResetTerminal | null {
   const script = host.findScript(input.env);
   if (script === null || script === "") { return null; }
-  const invocation = scriptInvocation(input, script, host.hostPid);
+  const marker = newEnvironmentMarker("OAR_TERMINAL_CHILD");
+  const invocation = scriptInvocation({ ...input, env: { ...input.env, [marker.name]: "1" } }, script, host.hostPid);
   // A value Node refuses (a NUL byte) is cut from the error: env may hold the account's secrets.
   const child = spawnChecked(() => host.spawn(invocation.file, invocation.args, {
     cwd: input.cwd,
@@ -188,13 +221,38 @@ export function openScriptTerminal(input: OpenClaudeLimitResetTerminalInput, hos
       // Already gone.
     }
   };
-  /** The processes under `script` right now, and `script`'s own group. */
+  /** Every process seen below `script` while it ran, by pid. */
+  const seen = new Map<number, TerminalProcess>();
+  let observedAt = 0;
+  const observe = (now: readonly TerminalProcess[]): void => {
+    if (child.pid === undefined) { return; }
+    observedAt = Date.now();
+    for (const each of descendantsOf(child.pid, now)) { seen.set(each.pid, each); }
+  };
+  /** Ours, now: below `script`, still the process seen earlier, or in the program's group since its leader started. */
+  const ours = (now: readonly TerminalProcess[]): TerminalProcess[] => {
+    if (child.pid === undefined) { return []; }
+    const rootPid = child.pid;
+    const leaders = [...seen.values()].filter((each) => each.parentPid === rootPid);
+    const found = new Map<number, TerminalProcess>();
+    for (const each of descendantsOf(rootPid, now)) { found.set(each.pid, each); }
+    for (const each of now) {
+      if (each.pid === rootPid || each.pid === host.hostPid || found.has(each.pid)) { continue; }
+      const same = seen.get(each.pid)?.startedAt === each.startedAt;
+      const grouped = leaders.some((leader) => each.groupId === leader.pid && startedNoEarlier(each.startedAt, leader.startedAt));
+      if (same || grouped) { found.set(each.pid, each); }
+    }
+    return [...found.values()];
+  };
+  /** Signals what is ours now, and `script`'s own group while it runs. */
   const signalTree = (name: NodeJS.Signals): TerminalProcess[] => {
     if (child.pid === undefined) { return []; }
-    const tree = descendantsOf(child.pid, host.listProcesses());
-    for (const each of tree) { signal(each.pid, name); }
+    const now = host.listProcesses();
+    observe(now);
+    const targets = ours(now);
+    for (const each of targets) { signal(each.pid, name); }
     if (!exited) { signal(-child.pid, name); }
-    return tree;
+    return targets;
   };
   const onDaemonExit = (): void => {
     signalTree("SIGKILL");
@@ -202,8 +260,15 @@ export function openScriptTerminal(input: OpenClaudeLimitResetTerminalInput, hos
   const markExited = (): void => {
     if (exited) { return; }
     exited = true;
+    if (watcher !== undefined) { clearInterval(watcher); }
     for (const listener of exitListeners) { listener(); }
   };
+  const releaseMarker = trackEnvironmentMarker(marker.entry);
+  // Without the marker's scan (not Linux), look below `script` while it runs.
+  const watcher = input.platform === "linux" ? undefined : setInterval(() => {
+    if (!exited) { observe(host.listProcesses()); }
+  }, OBSERVE_EVERY_MS);
+  watcher?.unref();
   child.once("exit", markExited);
   child.once("error", markExited);
   child.stdin.on("error", () => {});
@@ -235,7 +300,10 @@ export function openScriptTerminal(input: OpenClaudeLimitResetTerminalInput, hos
       if (!exited && child.stdin.writable) { child.stdin.write(data); }
     },
     onData: (listener) => {
-      child.stdout.on("data", (chunk: Buffer) => { listener(decoder.write(chunk)); });
+      child.stdout.on("data", (chunk: Buffer) => {
+        if (!exited && Date.now() - observedAt >= OBSERVE_EVERY_MS) { observe(host.listProcesses()); }
+        listener(decoder.write(chunk));
+      });
     },
     onExit: (listener) => {
       if (exited) { listener(); }
@@ -247,12 +315,17 @@ export function openScriptTerminal(input: OpenClaudeLimitResetTerminalInput, hos
         try {
           const asked = signalTree("SIGTERM");
           const left = await waitGone(asked, KILL_GRACE_MS);
-          if (left.length === 0 && exited) { return; }
-          // Whatever ignored the request, and anything started since.
-          for (const each of left) { signal(each.pid, "SIGKILL"); }
-          const late = signalTree("SIGKILL");
-          await waitGone([...left, ...late], KILL_WAIT_MS);
+          if (left.length > 0 || !exited) {
+            // Whatever ignored the request, and anything started since.
+            for (const each of left) { signal(each.pid, "SIGKILL"); }
+            const late = signalTree("SIGKILL");
+            await waitGone([...left, ...late], KILL_WAIT_MS);
+          }
+          // What left the tree and the group but still carries the marker.
+          await (host.killMarked === undefined ? killMarkedAsync(marker.entry) : host.killMarked(marker.entry));
         } finally {
+          if (watcher !== undefined) { clearInterval(watcher); }
+          releaseMarker();
           liveTerminals.delete(onDaemonExit);
         }
       })();

@@ -1,2 +1,4 @@
 # Keep distributed SVG bytes identical to the embedded brand resources.
 packages/oar/assets/brands/*.svg text eol=lf
+# Screens recorded from a Linux terminal: the recognisers match them byte for byte.
+tests/claude/limit-reset-fixtures/*.txt text eol=lf
