@@ -1,0 +1,2262 @@
+{
+  "date": "2026-11-12",
+  "checkedAt": "2026-11-12T19:08:48.366Z",
+  "platform": "linux-x64",
+  "node": "v24.19.0",
+  "oarNativeCheckBase": "fa3536a7cd1d531142550e9bf96c36c98bad0add",
+  "scope": "Core runtime inventory, changed native versions, CI observations and upstream watch. No real account or paid provider calls.",
+  "inventoryMeaning": "PATH/host-package discovery; native tests use separate exact binaries, not necessarily the discovered installations.",
+  "inventory": [
+    {
+      "runtime": "antigravity",
+      "source": "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app/manifests/linux_amd64.json",
+      "latest": "1.5.7",
+      "installed": null,
+      "installation": "not_found",
+      "status": "unavailable"
+    },
+    {
+      "runtime": "claude",
+      "source": "https://registry.npmjs.org/@anthropic-ai/claude-code/latest",
+      "latest": "2.1.322",
+      "installed": "2.1.292",
+      "installation": "available",
+      "status": "different"
+    },
+    {
+      "runtime": "codex",
+      "source": "https://registry.npmjs.org/@openai/codex/latest",
+      "latest": "0.167.2",
+      "installed": "0.162.0",
+      "installation": "available",
+      "status": "different"
+    },
+    {
+      "runtime": "cursor",
+      "source": "https://registry.npmjs.org/@cursor/sdk/latest",
+      "latest": "1.3.1",
+      "installed": "1.3.1",
+      "installation": "available",
+      "status": "current"
+    },
+    {
+      "runtime": "dsh",
+      "source": "https://registry.npmjs.org/@deepseek-ai/dsh/latest",
+      "latest": "0.2.2-rc.1",
+      "installed": null,
+      "installation": "not_found",
+      "status": "unavailable"
+    },
+    {
+      "runtime": "grok",
+      "source": "https://x.ai/cli/stable",
+      "latest": "1.0.77",
+      "installed": "1.0.77",
+      "installation": "available",
+      "status": "current"
+    },
+    {
+      "runtime": "kimi",
+      "source": "https://registry.npmjs.org/@moonshot-ai/kimi-code/latest",
+      "latest": "2.6.0",
+      "installed": "2.1.1",
+      "installation": "available",
+      "status": "different"
+    },
+    {
+      "runtime": "opencode",
+      "line": "v1",
+      "source": "https://registry.npmjs.org/opencode-ai/latest",
+      "latest": "1.19.5",
+      "installed": "1.18.30",
+      "installation": "available",
+      "status": "different"
+    },
+    {
+      "runtime": "opencode",
+      "line": "v2",
+      "source": "https://registry.npmjs.org/@opencode/cli/latest",
+      "latest": "2.2.7",
+      "installed": "1.18.30",
+      "installation": "available",
+      "status": "other_release_line"
+    },
+    {
+      "runtime": "codebuddy",
+      "source": "https://registry.npmjs.org/@tencent-ai/codebuddy-code/latest",
+      "latest": "2.183.0",
+      "installed": "2.173.0",
+      "installation": "available",
+      "status": "different"
+    },
+    {
+      "runtime": "qoder",
+      "source": "https://registry.npmjs.org/@qoder-ai/qodercli/latest",
+      "latest": "1.1.88",
+      "installed": "1.1.78",
+      "installation": "available",
+      "status": "different"
+    },
+    {
+      "runtime": "qwen",
+      "source": "https://registry.npmjs.org/@qwen-code/qwen-code/latest",
+      "latest": "0.27.2",
+      "installed": "0.26.0",
+      "installation": "available",
+      "status": "different"
+    },
+    {
+      "runtime": "pi",
+      "source": "https://registry.npmjs.org/@earendil-works/pi-coding-agent/latest",
+      "latest": "1.5.2",
+      "installed": "1.5.0",
+      "installation": "available",
+      "status": "different"
+    },
+    {
+      "runtime": "pi-durable",
+      "source": "https://registry.npmjs.org/@earendil-works/pi-durable/latest",
+      "latest": "1.5.2",
+      "installed": "1.4.0",
+      "installation": "host_supplied",
+      "status": "different"
+    }
+  ],
+  "checkExitCodeMeaning": "Runner exit status is distinct from observed outcomes and retained failed cases. Other-backend skips do not count as native passes.",
+  "checks": [
+    {
+      "name": "codex-version",
+      "exitCode": 0,
+      "elapsedSeconds": 0.115,
+      "failedCases": [],
+      "sourceLogSha256": "48911a95399ec3a3e8bc926b75ec76e122d85c40f0f3e63c2ed4b9a907174574"
+    },
+    {
+      "name": "antigravity-version",
+      "exitCode": 0,
+      "elapsedSeconds": 0.215,
+      "failedCases": [],
+      "sourceLogSha256": "2ba0c4acefd378988cd7a510eb0ab4a45857306a5f54c3627a688d7e48240a3e"
+    },
+    {
+      "name": "antigravity-behavior",
+      "exitCode": 0,
+      "elapsedSeconds": 18.664,
+      "cases": {
+        "passed": 17,
+        "skipped": 2,
+        "failed": 0
+      },
+      "failedCases": [],
+      "sourceLogSha256": "fa83278bf7c98a1460ca8b2b59edbee5d2af50a0bc5eb2b9c63d64d2ee4bf47f"
+    },
+    {
+      "name": "codex-behavior",
+      "exitCode": 0,
+      "elapsedSeconds": 30.395,
+      "cases": {
+        "passed": 16,
+        "skipped": 3,
+        "failed": 0
+      },
+      "failedCases": [],
+      "sourceLogSha256": "be6cd92b7de795fb83b5d441f5829cdac7cf9d3a02fb3ab5cd0322c5e05b1faa"
+    },
+    {
+      "name": "antigravity-vendor",
+      "exitCode": 0,
+      "elapsedSeconds": 101.02,
+      "cases": {
+        "passed": 12,
+        "skipped": 445
+      },
+      "failedCases": [],
+      "sourceLogSha256": "5ce49d84f782ca05e0621616b6a4b7fc8a9983bc670f6e02c553a8ca9ebd6c63"
+    },
+    {
+      "name": "kimi-version",
+      "exitCode": 0,
+      "elapsedSeconds": 1.318,
+      "failedCases": [],
+      "sourceLogSha256": "6693435eadb673dda297a0652d241e293e361200bc40db949cf2501d18dd01ee"
+    },
+    {
+      "name": "kimi-behavior",
+      "exitCode": 0,
+      "elapsedSeconds": 53.194,
+      "cases": {
+        "passed": 15,
+        "skipped": 4,
+        "failed": 0
+      },
+      "failedCases": [],
+      "sourceLogSha256": "f31f670ac5326bdf86720d924239cdab26c4a2bcee4829055f59148061ffb3a8"
+    },
+    {
+      "name": "codex-vendor",
+      "exitCode": 0,
+      "elapsedSeconds": 265.926,
+      "cases": {
+        "passed": 78,
+        "skipped": 379
+      },
+      "failedCases": [],
+      "sourceLogSha256": "946cff9cdbf2c681ae46fe5a4ea3dbaaa037288781f74f7f60ac60872df9e2df"
+    },
+    {
+      "name": "qoder-version",
+      "exitCode": 0,
+      "elapsedSeconds": 2.379,
+      "failedCases": [],
+      "sourceLogSha256": "a9e2d47ba5dc6522162d4df3f7a8435c8f836f67b3a8f15ad743b4b79d374645"
+    },
+    {
+      "name": "kimi-vendor",
+      "exitCode": 1,
+      "elapsedSeconds": 177.464,
+      "cases": {
+        "failed": 1,
+        "passed": 11,
+        "skipped": 445
+      },
+      "failedCases": [
+        "sea-trial/vendor/mcp-servers-acp.vendor.test.ts > kimi-aimock mcpServers > a stdio and an http server attach, the agent calls both, and a resume attaches them again"
+      ],
+      "sourceLogSha256": "7a3d77eb1d32159771082a3927ac3d285e5e6d0b9dff20f520bde1346cbf6ab1"
+    },
+    {
+      "name": "kimi-login",
+      "exitCode": 0,
+      "elapsedSeconds": 105.434,
+      "cases": {
+        "passed": 5
+      },
+      "failedCases": [],
+      "sourceLogSha256": "7d63ab507fc77d9c79e2b4d2b1f3814283d89334b0c608c2eb2bf7f1a4973a9e"
+    },
+    {
+      "name": "qoder-behavior",
+      "exitCode": 1,
+      "elapsedSeconds": 209.279,
+      "cases": {
+        "passed": 12,
+        "skipped": 2,
+        "failed": 5
+      },
+      "failedCases": [
+        "session.framing-and-attribution: Expected values to be strictly deep-equal:",
+        "session.observer-isolation: a throwing observer affected the run",
+        "session.multi-turn-conversation: Expected values to be strictly deep-equal:",
+        "session.steer-mid-turn: steer broke the turn: {\"kind\":\"failed\",\"failure\":\"unknown\",\"reason\":\"inference.remoteChat.stream failed: HTTP 500: Internal Server Error\"}",
+        "session.resume-or-loud-rejection: Expected values to be strictly deep-equal:"
+      ],
+      "sourceLogSha256": "464a3cb3afa1cbee79d5efb47ba6e432c6c179ca6f5d0f2defd637b09135567e"
+    },
+    {
+      "name": "qoder-vendor",
+      "exitCode": 1,
+      "elapsedSeconds": 275.937,
+      "cases": {
+        "failed": 10,
+        "passed": 4,
+        "skipped": 443
+      },
+      "failedCases": [
+        "sea-trial/vendor/manual-compaction-followup.vendor.test.ts > native followup manual compaction > native boundary proves completion, same-name command configured: false",
+        "sea-trial/vendor/manual-compaction-followup.vendor.test.ts > native followup manual compaction > native boundary proves completion, same-name command configured: true",
+        "sea-trial/vendor/qoder-permission.vendor.test.ts > native permission request crosses stdio and the production reply unlocks execution",
+        "sea-trial/vendor/qoder-prompts.vendor.test.ts > long private prompt files replace and append on native resume",
+        "sea-trial/vendor/qoder-steer.vendor.test.ts > next-priority steer preserves input identity at tool",
+        "sea-trial/vendor/qoder-steer.vendor.test.ts > next-priority steer preserves input identity at streaming",
+        "sea-trial/vendor/qoder.vendor.test.ts > Qoder native model replay > startup idle, consecutive prompts and current-open usage survive resume",
+        "sea-trial/vendor/qoder.vendor.test.ts > Qoder native model replay > applied effort is read back while native private settings stay private",
+        "sea-trial/vendor/qoder.vendor.test.ts > Qoder native model replay > MCP stdio and HTTP tools return real server results",
+        "sea-trial/vendor/qoder.vendor.test.ts > Qoder native model replay > an excluded shell tool cannot execute a forced native call"
+      ],
+      "sourceLogSha256": "b00988e3fc284389c224f531d86541777e55c1dc90686a711e9409379f3d1d84"
+    },
+    {
+      "name": "qoder-login",
+      "exitCode": 0,
+      "elapsedSeconds": 1.669,
+      "cases": {
+        "passed": 8
+      },
+      "failedCases": [],
+      "sourceLogSha256": "5bdb3e626350f1e5a80c740270335c5730914dd7da113680504872a3c1081bff",
+      "scope": "Synthetic executable fixture tests, not a real Qoder login or logout"
+    },
+    {
+      "name": "qoder-catalog",
+      "exitCode": 0,
+      "elapsedSeconds": 21.146,
+      "failedCases": [],
+      "sourceLogSha256": "33b05420c269b840b1e16b9d48dcf80ad0b99fb3613c9b8bf52f9ab7b596fc7e"
+    },
+    {
+      "name": "kimi-mcp-resume",
+      "exitCode": 0,
+      "elapsedSeconds": 18.898,
+      "failedCases": [],
+      "sourceLogSha256": "f72c1c43e4b58fc0b83355306c846d4b20dcf323dbebef1e78348ecee0b3bc98"
+    }
+  ],
+  "kimi": {
+    "version": "2.6.0",
+    "mcpResume": {
+      "versionOutput": "2.6.0",
+      "facts": [
+        {
+          "label": "omitted-seed",
+          "supplied": [
+            "echo",
+            "remote"
+          ],
+          "tools": [
+            "mcp__echo__echo",
+            "mcp__remote__echo"
+          ],
+          "toolResults": [
+            {
+              "toolCallId": "call_omitted-seed-echo",
+              "content": "echo:omitted-seed-echo via=stdio token=a73611a51869"
+            },
+            {
+              "toolCallId": "call_omitted-seed-remote",
+              "content": "echo:omitted-seed-remote via=http token=3a8cb02e22be"
+            }
+          ],
+          "stopReason": "end_turn"
+        },
+        {
+          "label": "omitted-resume",
+          "supplied": "omitted",
+          "tools": [
+            "mcp__echo__echo",
+            "mcp__remote__echo"
+          ],
+          "toolResults": [
+            {
+              "toolCallId": "call_omitted-resume-echo",
+              "content": "<system>ERROR: Tool execution failed.</system>\nTool \"mcp__echo__echo\" not found"
+            },
+            {
+              "toolCallId": "call_omitted-resume-remote",
+              "content": "<system>ERROR: Tool execution failed.</system>\nTool \"mcp__remote__echo\" not found"
+            }
+          ],
+          "stopReason": "end_turn"
+        },
+        {
+          "label": "empty-seed",
+          "supplied": [
+            "echo",
+            "remote"
+          ],
+          "tools": [
+            "mcp__echo__echo",
+            "mcp__remote__echo"
+          ],
+          "toolResults": [
+            {
+              "toolCallId": "call_empty-seed-echo",
+              "content": "echo:empty-seed-echo via=stdio token=a73611a51869"
+            },
+            {
+              "toolCallId": "call_empty-seed-remote",
+              "content": "echo:empty-seed-remote via=http token=3a8cb02e22be"
+            }
+          ],
+          "stopReason": "end_turn"
+        },
+        {
+          "label": "empty-resume",
+          "supplied": [],
+          "tools": [
+            "mcp__echo__echo",
+            "mcp__remote__echo"
+          ],
+          "toolResults": [
+            {
+              "toolCallId": "call_empty-resume-echo",
+              "content": "<system>ERROR: Tool execution failed.</system>\nTool \"mcp__echo__echo\" not found"
+            },
+            {
+              "toolCallId": "call_empty-resume-remote",
+              "content": "<system>ERROR: Tool execution failed.</system>\nTool \"mcp__remote__echo\" not found"
+            }
+          ],
+          "stopReason": "end_turn"
+        },
+        {
+          "label": "same-names-seed",
+          "supplied": [
+            "echo",
+            "remote"
+          ],
+          "tools": [
+            "mcp__echo__echo",
+            "mcp__remote__echo"
+          ],
+          "toolResults": [
+            {
+              "toolCallId": "call_same-names-seed-echo",
+              "content": "echo:same-names-seed-echo via=stdio token=a73611a51869"
+            },
+            {
+              "toolCallId": "call_same-names-seed-remote",
+              "content": "echo:same-names-seed-remote via=http token=3a8cb02e22be"
+            }
+          ],
+          "stopReason": "end_turn"
+        },
+        {
+          "label": "same-names-resume",
+          "supplied": [
+            "echo",
+            "remote"
+          ],
+          "tools": [
+            "mcp__echo__echo",
+            "mcp__remote__echo"
+          ],
+          "toolResults": [
+            {
+              "toolCallId": "call_same-names-resume-echo",
+              "content": "echo:same-names-resume-echo via=stdio token=9863b273cccc"
+            },
+            {
+              "toolCallId": "call_same-names-resume-remote",
+              "content": "echo:same-names-resume-remote via=http token=b5aa996cd8aa"
+            }
+          ],
+          "stopReason": "end_turn"
+        },
+        {
+          "label": "new-names-seed",
+          "supplied": [
+            "echo",
+            "remote"
+          ],
+          "tools": [
+            "mcp__echo__echo",
+            "mcp__remote__echo"
+          ],
+          "toolResults": [
+            {
+              "toolCallId": "call_new-names-seed-echo",
+              "content": "echo:new-names-seed-echo via=stdio token=a73611a51869"
+            },
+            {
+              "toolCallId": "call_new-names-seed-remote",
+              "content": "echo:new-names-seed-remote via=http token=3a8cb02e22be"
+            }
+          ],
+          "stopReason": "end_turn"
+        },
+        {
+          "label": "new-names-resume",
+          "supplied": [
+            "newstdio",
+            "newhttp"
+          ],
+          "tools": [
+            "mcp__echo__echo",
+            "mcp__remote__echo"
+          ],
+          "toolResults": [
+            {
+              "toolCallId": "call_new-names-resume-echo",
+              "content": "<system>ERROR: Tool execution failed.</system>\nTool \"mcp__echo__echo\" not found"
+            },
+            {
+              "toolCallId": "call_new-names-resume-remote",
+              "content": "<system>ERROR: Tool execution failed.</system>\nTool \"mcp__remote__echo\" not found"
+            },
+            {
+              "toolCallId": "call_new-names-resume-newstdio",
+              "content": "echo:new-names-resume-newstdio via=stdio token=9863b273cccc"
+            },
+            {
+              "toolCallId": "call_new-names-resume-newhttp",
+              "content": "echo:new-names-resume-newhttp via=http token=b5aa996cd8aa"
+            }
+          ],
+          "stopReason": "end_turn"
+        }
+      ],
+      "storedCanaryMatches": [],
+      "note": "Synthetic markers only; matching stored bytes does not characterize storage of other credentials or encoded values."
+    }
+  },
+  "qoder": {
+    "version": "1.1.88",
+    "catalog": {
+      "version": "1.1.88",
+      "syntheticReplay": true,
+      "requested": "efficient",
+      "rows": [
+        {
+          "fetchStrategy": "cache",
+          "initModel": "Efficient",
+          "selected": {
+            "keys": [
+              "availableContextWindows",
+              "defaultContextWindow",
+              "description",
+              "descriptionEn",
+              "displayName",
+              "format",
+              "isEnabled",
+              "isVl",
+              "maxInputTokens",
+              "modelId",
+              "priceFactor",
+              "serverScene",
+              "source",
+              "strategies",
+              "value"
+            ],
+            "value": "efficient",
+            "modelId": "efficient",
+            "displayName": "Efficient",
+            "nativeName": null
+          }
+        },
+        {
+          "fetchStrategy": "live",
+          "initModel": "Efficient",
+          "selected": {
+            "keys": [
+              "availableContextWindows",
+              "defaultContextWindow",
+              "description",
+              "descriptionEn",
+              "displayName",
+              "format",
+              "isEnabled",
+              "isVl",
+              "maxInputTokens",
+              "modelId",
+              "priceFactor",
+              "serverScene",
+              "source",
+              "strategies",
+              "value"
+            ],
+            "value": "efficient",
+            "modelId": "efficient",
+            "displayName": "Efficient",
+            "nativeName": null
+          }
+        }
+      ],
+      "opened": {
+        "kind": "opened",
+        "model": "Efficient"
+      }
+    },
+    "permissionReplay": {
+      "subtype": "error_during_execution",
+      "isError": true,
+      "errors": [
+        "inference.remoteChat.stream failed: HTTP 500: Internal Server Error"
+      ],
+      "usage": {
+        "input_tokens": 0,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "output_tokens": 0,
+        "server_tool_use": {
+          "web_search_requests": 0,
+          "web_fetch_requests": 0
+        },
+        "service_tier": "standard",
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "inference_geo": "",
+        "iterations": [],
+        "speed": "standard"
+      },
+      "permissionRequests": 0,
+      "permissionReplies": 0
+    }
+  },
+  "antigravity": {
+    "version": "1.5.7",
+    "archive": {
+      "runtime": "antigravity",
+      "version": "1.5.7",
+      "exitCode": 0,
+      "sha512": "60bca280414ed11723f58b3b671962ae394cc2d0c25e3f58e32e1c6847c978cbc77ec6f40e7f3992001c399d80aeb8b64c9ec892abddd591b12413c5ee6d9fce",
+      "files": [
+        "antigravity"
+      ]
+    }
+  },
+  "windows": {
+    "windowStart": "2026-11-11T19:08:00.203Z",
+    "windowEnd": "2026-11-12T19:08:48.366Z",
+    "windowDefinition": "Workflow run creation time; all pages and attempts inspected, unique job ids counted once. Results read after inventory cutoff.",
+    "ordinaryRunCount": 47,
+    "ordinaryAttempts": 50,
+    "piRpcVendorConclusions": {
+      "success": 50
+    },
+    "piRpcVendorJobs": [
+      {
+        "runId": 43279863485,
+        "attempt": 1,
+        "headSha": "4889830bea9eeb2e25c6380d925ba387800c4c9d",
+        "jobId": 131397960479,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43279863485/job/131397960479"
+      },
+      {
+        "runId": 43277356990,
+        "attempt": 1,
+        "headSha": "4889830bea9eeb2e25c6380d925ba387800c4c9d",
+        "jobId": 131389201350,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43277356990/job/131389201350"
+      },
+      {
+        "runId": 43276988385,
+        "attempt": 1,
+        "headSha": "b6957594e3d0f00e36bd2220acf1f37c3dc527ab",
+        "jobId": 131387909468,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43276988385/job/131387909468"
+      },
+      {
+        "runId": 43276376021,
+        "attempt": 1,
+        "headSha": "6164d6643968082c987b37bed67f699a092b3c66",
+        "jobId": 131385742634,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43276376021/job/131385742634"
+      },
+      {
+        "runId": 43273557741,
+        "attempt": 1,
+        "headSha": "9e58fe480276b38cbe5122cfc59a4db6facc79ef",
+        "jobId": 131375848379,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43273557741/job/131375848379"
+      },
+      {
+        "runId": 43268903824,
+        "attempt": 1,
+        "headSha": "658a7281dfa2ae87f19f8b39f6007e125ea39eec",
+        "jobId": 131359837140,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43268903824/job/131359837140"
+      },
+      {
+        "runId": 43268472400,
+        "attempt": 1,
+        "headSha": "658a7281dfa2ae87f19f8b39f6007e125ea39eec",
+        "jobId": 131358303984,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43268472400/job/131358303984"
+      },
+      {
+        "runId": 43267803581,
+        "attempt": 1,
+        "headSha": "c13fb359e11e2c2f591fdbb665b3730057ab180f",
+        "jobId": 131355975514,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43267803581/job/131355975514"
+      },
+      {
+        "runId": 43266767309,
+        "attempt": 1,
+        "headSha": "e6bd450b641dbe52c9d5c5e2dbc42cc35ee8a778",
+        "jobId": 131352288446,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43266767309/job/131352288446"
+      },
+      {
+        "runId": 43265455583,
+        "attempt": 1,
+        "headSha": "601c9dfba7d888cce9fd28df03796f19ba5fcc40",
+        "jobId": 131347687625,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43265455583/job/131347687625"
+      },
+      {
+        "runId": 43238371345,
+        "attempt": 1,
+        "headSha": "fa3536a7cd1d531142550e9bf96c36c98bad0add",
+        "jobId": 131251772711,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43238371345/job/131251772711"
+      },
+      {
+        "runId": 43233564711,
+        "attempt": 1,
+        "headSha": "46cb3f5366ab5a51d01d6674307b54d8ff539f35",
+        "jobId": 131234888498,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43233564711/job/131234888498"
+      },
+      {
+        "runId": 43233063481,
+        "attempt": 1,
+        "headSha": "f571d97172ed4517cef7480c5488b95c0519d796",
+        "jobId": 131233135535,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43233063481/job/131233135535"
+      },
+      {
+        "runId": 43224191580,
+        "attempt": 1,
+        "headSha": "75bf09232dd1181bd8e90b39223661d3f2da45c1",
+        "jobId": 131203030552,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43224191580/job/131203030552"
+      },
+      {
+        "runId": 43223642690,
+        "attempt": 1,
+        "headSha": "5fc70404768c5e4a8ffe3d23c68f2b1df23479a3",
+        "jobId": 131201183862,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43223642690/job/131201183862"
+      },
+      {
+        "runId": 43223477705,
+        "attempt": 1,
+        "headSha": "d87fd95d626191af6b68bb39ddb456bb54a78dbf",
+        "jobId": 131200633227,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43223477705/job/131200633227"
+      },
+      {
+        "runId": 43222793458,
+        "attempt": 1,
+        "headSha": "0906cce017f0cab7f9996b6a39a29c615b708fd1",
+        "jobId": 131198310563,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43222793458/job/131198310563"
+      },
+      {
+        "runId": 43222716477,
+        "attempt": 1,
+        "headSha": "479e319a12f6fdf8460c79e4bbe8cb2fb46a70f7",
+        "jobId": 131198042242,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43222716477/job/131198042242"
+      },
+      {
+        "runId": 43220008919,
+        "attempt": 1,
+        "headSha": "8e71eb1dcb75e4b40785f66db35a2480f1ea7d48",
+        "jobId": 131188830493,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43220008919/job/131188830493"
+      },
+      {
+        "runId": 43216586532,
+        "attempt": 1,
+        "headSha": "0ba3ce69e234cdd8d4427705172fef770c905946",
+        "jobId": 131177256149,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43216586532/job/131177256149"
+      },
+      {
+        "runId": 43214377362,
+        "attempt": 1,
+        "headSha": "183ca9336f80621803d86d381aa7eb72c9e73483",
+        "jobId": 131169755942,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43214377362/job/131169755942"
+      },
+      {
+        "runId": 43213883297,
+        "attempt": 1,
+        "headSha": "b09532383462096e1297fd5f81c7836eb9d6ea43",
+        "jobId": 131168110817,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43213883297/job/131168110817"
+      },
+      {
+        "runId": 43211789747,
+        "attempt": 1,
+        "headSha": "a5c26c0ada20936d7ca777493cfc0e748ad59191",
+        "jobId": 131160988028,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43211789747/job/131160988028"
+      },
+      {
+        "runId": 43171206285,
+        "attempt": 1,
+        "headSha": "db69905bb557f1a9e8253992c2bd6680e1cf5973",
+        "jobId": 131024677601,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43171206285/job/131024677601"
+      },
+      {
+        "runId": 43169095439,
+        "attempt": 1,
+        "headSha": "7a642b987f9c4b43f1b7c8e98debe50f28f3bfa8",
+        "jobId": 131017785114,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43169095439/job/131017785114"
+      },
+      {
+        "runId": 43169078094,
+        "attempt": 1,
+        "headSha": "925d36316cf5307d11cb55356966ee8d8167add0",
+        "jobId": 131017731006,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43169078094/job/131017731006"
+      },
+      {
+        "runId": 43166685177,
+        "attempt": 1,
+        "headSha": "9b8dabdf91b55803dcfe7c25dc7dd62e1269f7ef",
+        "jobId": 131010096346,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43166685177/job/131010096346"
+      },
+      {
+        "runId": 43166685177,
+        "attempt": 2,
+        "headSha": "9b8dabdf91b55803dcfe7c25dc7dd62e1269f7ef",
+        "jobId": 131015374615,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43166685177/job/131015374615"
+      },
+      {
+        "runId": 43165370201,
+        "attempt": 1,
+        "headSha": "3cf6b4b9754d6647f7a0d6cd8a117bd8a60ce706",
+        "jobId": 131005884962,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43165370201/job/131005884962"
+      },
+      {
+        "runId": 43163698745,
+        "attempt": 1,
+        "headSha": "3302c141101910ec6eb91a5dba566551c37490bb",
+        "jobId": 131000524916,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43163698745/job/131000524916"
+      },
+      {
+        "runId": 43162565451,
+        "attempt": 1,
+        "headSha": "ae35baa24cc7ba55b2a4ae081a5359d3336c5490",
+        "jobId": 130996920137,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43162565451/job/130996920137"
+      },
+      {
+        "runId": 43159381941,
+        "attempt": 1,
+        "headSha": "aecf88755ad5974914d31c846768f2da25066a00",
+        "jobId": 130986701652,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43159381941/job/130986701652"
+      },
+      {
+        "runId": 43155351512,
+        "attempt": 1,
+        "headSha": "a530ca6bdf9bb8b0197adb66dca64a5f8c32a247",
+        "jobId": 130973892832,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43155351512/job/130973892832"
+      },
+      {
+        "runId": 43154946855,
+        "attempt": 1,
+        "headSha": "c6ac3934836c1e206284fc27888c3d18b0a2a918",
+        "jobId": 130972594853,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43154946855/job/130972594853"
+      },
+      {
+        "runId": 43154287397,
+        "attempt": 1,
+        "headSha": "9f810442aa0d89cd5be4197d4b97157f491f9491",
+        "jobId": 130970491114,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43154287397/job/130970491114"
+      },
+      {
+        "runId": 43153486194,
+        "attempt": 1,
+        "headSha": "4d16d1e155b2fc1697ebdd9955d519bdf9c0fbc1",
+        "jobId": 130967927226,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43153486194/job/130967927226"
+      },
+      {
+        "runId": 43151836083,
+        "attempt": 1,
+        "headSha": "cb2702ca10001626f3bb0d0834406a71ea92c828",
+        "jobId": 130962606043,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43151836083/job/130962606043"
+      },
+      {
+        "runId": 43108792637,
+        "attempt": 1,
+        "headSha": "ea3269e830277c01d1a50bd4accb857fcb21e7d8",
+        "jobId": 130819012063,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43108792637/job/130819012063"
+      },
+      {
+        "runId": 43105003400,
+        "attempt": 1,
+        "headSha": "ee9c9d319a7b7adb1efef89028ac1d910d5b2e48",
+        "jobId": 130805922213,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43105003400/job/130805922213"
+      },
+      {
+        "runId": 43104931180,
+        "attempt": 1,
+        "headSha": "c471a5e83adfd018dbb50049c3c36b148e78f43b",
+        "jobId": 130805668189,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43104931180/job/130805668189"
+      },
+      {
+        "runId": 43101618511,
+        "attempt": 1,
+        "headSha": "c36c6aa02d39b94f630919457da36e5e51580b8e",
+        "jobId": 130794270446,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43101618511/job/130794270446"
+      },
+      {
+        "runId": 43101545285,
+        "attempt": 1,
+        "headSha": "bcda43afc6dee61d73367e0a0b574f28e2f40202",
+        "jobId": 130794005624,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43101545285/job/130794005624"
+      },
+      {
+        "runId": 43091861128,
+        "attempt": 1,
+        "headSha": "3d250b1f43b49a42cacc4cd9410b323b6f12acab",
+        "jobId": 130770684578,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43091861128/job/130770684578"
+      },
+      {
+        "runId": 43091759086,
+        "attempt": 1,
+        "headSha": "c413f9c5edbb49dcf8546daca8337d50f2607e65",
+        "jobId": 130770329826,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43091759086/job/130770329826"
+      },
+      {
+        "runId": 43091759086,
+        "attempt": 2,
+        "headSha": "c413f9c5edbb49dcf8546daca8337d50f2607e65",
+        "jobId": 130789941125,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43091759086/job/130789941125"
+      },
+      {
+        "runId": 43091640234,
+        "attempt": 1,
+        "headSha": "7d8b646079ebdee4078a936382bab49b90aa96a2",
+        "jobId": 130769918830,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43091640234/job/130769918830"
+      },
+      {
+        "runId": 43091640234,
+        "attempt": 2,
+        "headSha": "7d8b646079ebdee4078a936382bab49b90aa96a2",
+        "jobId": 130789307938,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43091640234/job/130789307938"
+      },
+      {
+        "runId": 43089892653,
+        "attempt": 1,
+        "headSha": "ddb1c93a23fb67188e506be5155e53e24859b622",
+        "jobId": 130763857334,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43089892653/job/130763857334"
+      },
+      {
+        "runId": 43089731527,
+        "attempt": 1,
+        "headSha": "8175a929334451476452a7983b4a12c03d42477d",
+        "jobId": 130763296143,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43089731527/job/130763296143"
+      },
+      {
+        "runId": 43088504744,
+        "attempt": 1,
+        "headSha": "6a5ab8a910c777a4bd56e79105c704aa385b3f8b",
+        "jobId": 130759055598,
+        "name": "pi-rpc-windows (vendor)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43088504744/job/130759055598"
+      }
+    ],
+    "historicalFullHangCount": 2,
+    "acpRunCount": 12,
+    "acpConclusions": {
+      "acp-windows (windows-latest, grok-aimock)": {
+        "success": 8,
+        "failure": 4
+      },
+      "acp-windows (windows-latest, kimi-aimock)": {
+        "success": 12
+      },
+      "acp-windows (windows-latest, opencode-aimock)": {
+        "success": 12
+      }
+    },
+    "acpJobs": [
+      {
+        "runId": 43238371330,
+        "attempt": 1,
+        "headSha": "fa3536a7cd1d531142550e9bf96c36c98bad0add",
+        "jobId": 131251771448,
+        "name": "acp-windows (windows-latest, grok-aimock)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43238371330/job/131251771448"
+      },
+      {
+        "runId": 43238371330,
+        "attempt": 1,
+        "headSha": "fa3536a7cd1d531142550e9bf96c36c98bad0add",
+        "jobId": 131251771849,
+        "name": "acp-windows (windows-latest, opencode-aimock)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43238371330/job/131251771849"
+      },
+      {
+        "runId": 43238371330,
+        "attempt": 1,
+        "headSha": "fa3536a7cd1d531142550e9bf96c36c98bad0add",
+        "jobId": 131251772390,
+        "name": "acp-windows (windows-latest, kimi-aimock)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43238371330/job/131251772390"
+      },
+      {
+        "runId": 43233063657,
+        "attempt": 1,
+        "headSha": "f571d97172ed4517cef7480c5488b95c0519d796",
+        "jobId": 131233137193,
+        "name": "acp-windows (windows-latest, kimi-aimock)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43233063657/job/131233137193"
+      },
+      {
+        "runId": 43233063657,
+        "attempt": 1,
+        "headSha": "f571d97172ed4517cef7480c5488b95c0519d796",
+        "jobId": 131233137584,
+        "name": "acp-windows (windows-latest, grok-aimock)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43233063657/job/131233137584"
+      },
+      {
+        "runId": 43233063657,
+        "attempt": 1,
+        "headSha": "f571d97172ed4517cef7480c5488b95c0519d796",
+        "jobId": 131233137696,
+        "name": "acp-windows (windows-latest, opencode-aimock)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43233063657/job/131233137696"
+      },
+      {
+        "runId": 43222793865,
+        "attempt": 1,
+        "headSha": "0906cce017f0cab7f9996b6a39a29c615b708fd1",
+        "jobId": 131198310317,
+        "name": "acp-windows (windows-latest, grok-aimock)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43222793865/job/131198310317"
+      },
+      {
+        "runId": 43222793865,
+        "attempt": 1,
+        "headSha": "0906cce017f0cab7f9996b6a39a29c615b708fd1",
+        "jobId": 131198310644,
+        "name": "acp-windows (windows-latest, kimi-aimock)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43222793865/job/131198310644"
+      },
+      {
+        "runId": 43222793865,
+        "attempt": 1,
+        "headSha": "0906cce017f0cab7f9996b6a39a29c615b708fd1",
+        "jobId": 131198310714,
+        "name": "acp-windows (windows-latest, opencode-aimock)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43222793865/job/131198310714"
+      },
+      {
+        "runId": 43214377232,
+        "attempt": 1,
+        "headSha": "183ca9336f80621803d86d381aa7eb72c9e73483",
+        "jobId": 131169754347,
+        "name": "acp-windows (windows-latest, opencode-aimock)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43214377232/job/131169754347"
+      },
+      {
+        "runId": 43214377232,
+        "attempt": 1,
+        "headSha": "183ca9336f80621803d86d381aa7eb72c9e73483",
+        "jobId": 131169754571,
+        "name": "acp-windows (windows-latest, kimi-aimock)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43214377232/job/131169754571"
+      },
+      {
+        "runId": 43214377232,
+        "attempt": 1,
+        "headSha": "183ca9336f80621803d86d381aa7eb72c9e73483",
+        "jobId": 131169754835,
+        "name": "acp-windows (windows-latest, grok-aimock)",
+        "status": "completed",
+        "conclusion": "failure",
+        "url": "https://github.com/botiverse/oar/actions/runs/43214377232/job/131169754835",
+        "head_branch": "main",
+        "event": "push",
+        "display_title": "fix(process): prevent credential echoes in spawn validation errors (#…",
+        "failedCases": [
+          "session.query-readbacks-carry-stream-seq: ACP request initialize timed out after 15000ms",
+          "session.framing-and-attribution: ACP request initialize timed out after 15000ms"
+        ],
+        "errors": [],
+        "sourceLogSha256": "cb3a6766870f5fb9980ea35ee70360704dd3082a5ec0c7988608db9425bcad80",
+        "category": "initialize_timeout"
+      },
+      {
+        "runId": 43171206160,
+        "attempt": 1,
+        "headSha": "db69905bb557f1a9e8253992c2bd6680e1cf5973",
+        "jobId": 131024675846,
+        "name": "acp-windows (windows-latest, kimi-aimock)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43171206160/job/131024675846"
+      },
+      {
+        "runId": 43171206160,
+        "attempt": 1,
+        "headSha": "db69905bb557f1a9e8253992c2bd6680e1cf5973",
+        "jobId": 131024676017,
+        "name": "acp-windows (windows-latest, opencode-aimock)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43171206160/job/131024676017"
+      },
+      {
+        "runId": 43171206160,
+        "attempt": 1,
+        "headSha": "db69905bb557f1a9e8253992c2bd6680e1cf5973",
+        "jobId": 131024676081,
+        "name": "acp-windows (windows-latest, grok-aimock)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43171206160/job/131024676081"
+      },
+      {
+        "runId": 43169095447,
+        "attempt": 1,
+        "headSha": "7a642b987f9c4b43f1b7c8e98debe50f28f3bfa8",
+        "jobId": 131017784731,
+        "name": "acp-windows (windows-latest, opencode-aimock)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43169095447/job/131017784731"
+      },
+      {
+        "runId": 43169095447,
+        "attempt": 1,
+        "headSha": "7a642b987f9c4b43f1b7c8e98debe50f28f3bfa8",
+        "jobId": 131017784917,
+        "name": "acp-windows (windows-latest, kimi-aimock)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43169095447/job/131017784917"
+      },
+      {
+        "runId": 43169095447,
+        "attempt": 1,
+        "headSha": "7a642b987f9c4b43f1b7c8e98debe50f28f3bfa8",
+        "jobId": 131017784963,
+        "name": "acp-windows (windows-latest, grok-aimock)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43169095447/job/131017784963"
+      },
+      {
+        "runId": 43165370218,
+        "attempt": 1,
+        "headSha": "3cf6b4b9754d6647f7a0d6cd8a117bd8a60ce706",
+        "jobId": 131005884855,
+        "name": "acp-windows (windows-latest, kimi-aimock)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43165370218/job/131005884855"
+      },
+      {
+        "runId": 43165370218,
+        "attempt": 1,
+        "headSha": "3cf6b4b9754d6647f7a0d6cd8a117bd8a60ce706",
+        "jobId": 131005885128,
+        "name": "acp-windows (windows-latest, opencode-aimock)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43165370218/job/131005885128"
+      },
+      {
+        "runId": 43165370218,
+        "attempt": 1,
+        "headSha": "3cf6b4b9754d6647f7a0d6cd8a117bd8a60ce706",
+        "jobId": 131005885255,
+        "name": "acp-windows (windows-latest, grok-aimock)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43165370218/job/131005885255"
+      },
+      {
+        "runId": 43159382092,
+        "attempt": 1,
+        "headSha": "aecf88755ad5974914d31c846768f2da25066a00",
+        "jobId": 130986701698,
+        "name": "acp-windows (windows-latest, opencode-aimock)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43159382092/job/130986701698"
+      },
+      {
+        "runId": 43159382092,
+        "attempt": 1,
+        "headSha": "aecf88755ad5974914d31c846768f2da25066a00",
+        "jobId": 130986702052,
+        "name": "acp-windows (windows-latest, kimi-aimock)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43159382092/job/130986702052"
+      },
+      {
+        "runId": 43159382092,
+        "attempt": 1,
+        "headSha": "aecf88755ad5974914d31c846768f2da25066a00",
+        "jobId": 130986702279,
+        "name": "acp-windows (windows-latest, grok-aimock)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43159382092/job/130986702279"
+      },
+      {
+        "runId": 43108792795,
+        "attempt": 1,
+        "headSha": "ea3269e830277c01d1a50bd4accb857fcb21e7d8",
+        "jobId": 130819012649,
+        "name": "acp-windows (windows-latest, grok-aimock)",
+        "status": "completed",
+        "conclusion": "failure",
+        "url": "https://github.com/botiverse/oar/actions/runs/43108792795/job/130819012649",
+        "head_branch": "main",
+        "event": "push",
+        "display_title": "chore: release v0.101.0 (#744)",
+        "failedCases": [
+          "session.query-readbacks-carry-stream-seq: ACP request initialize timed out after 15000ms",
+          "session.framing-and-attribution: ACP request initialize timed out after 15000ms"
+        ],
+        "errors": [],
+        "sourceLogSha256": "fa4dbe8f0ee6f1c6413f080b07d99fa192767b61c2d98328149d81ae994d92ab",
+        "category": "initialize_timeout"
+      },
+      {
+        "runId": 43108792795,
+        "attempt": 1,
+        "headSha": "ea3269e830277c01d1a50bd4accb857fcb21e7d8",
+        "jobId": 130819013013,
+        "name": "acp-windows (windows-latest, opencode-aimock)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43108792795/job/130819013013"
+      },
+      {
+        "runId": 43108792795,
+        "attempt": 1,
+        "headSha": "ea3269e830277c01d1a50bd4accb857fcb21e7d8",
+        "jobId": 130819013028,
+        "name": "acp-windows (windows-latest, kimi-aimock)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43108792795/job/130819013028"
+      },
+      {
+        "runId": 43104931239,
+        "attempt": 1,
+        "headSha": "c471a5e83adfd018dbb50049c3c36b148e78f43b",
+        "jobId": 130805667844,
+        "name": "acp-windows (windows-latest, opencode-aimock)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43104931239/job/130805667844"
+      },
+      {
+        "runId": 43104931239,
+        "attempt": 1,
+        "headSha": "c471a5e83adfd018dbb50049c3c36b148e78f43b",
+        "jobId": 130805668255,
+        "name": "acp-windows (windows-latest, kimi-aimock)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43104931239/job/130805668255"
+      },
+      {
+        "runId": 43104931239,
+        "attempt": 1,
+        "headSha": "c471a5e83adfd018dbb50049c3c36b148e78f43b",
+        "jobId": 130805668286,
+        "name": "acp-windows (windows-latest, grok-aimock)",
+        "status": "completed",
+        "conclusion": "failure",
+        "url": "https://github.com/botiverse/oar/actions/runs/43104931239/job/130805668286",
+        "head_branch": "main",
+        "event": "push",
+        "display_title": "feat(codex): export the installation candidates on their own subpath …",
+        "failedCases": [
+          "sea-trial/vendor/grok-prompts.vendor.test.ts > Grok's native override and rules reach the provider on creation and resume"
+        ],
+        "errors": [
+          "AcpError: ACP request initialize timed out after 15000ms"
+        ],
+        "sourceLogSha256": "845528630778b9e37e783bfeb72b5bca49c6b8ceed07808e72bdda54d2c9f391",
+        "category": "initialize_timeout"
+      },
+      {
+        "runId": 43101545184,
+        "attempt": 1,
+        "headSha": "bcda43afc6dee61d73367e0a0b574f28e2f40202",
+        "jobId": 130793991607,
+        "name": "acp-windows (windows-latest, opencode-aimock)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43101545184/job/130793991607"
+      },
+      {
+        "runId": 43101545184,
+        "attempt": 1,
+        "headSha": "bcda43afc6dee61d73367e0a0b574f28e2f40202",
+        "jobId": 130794002561,
+        "name": "acp-windows (windows-latest, kimi-aimock)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43101545184/job/130794002561"
+      },
+      {
+        "runId": 43101545184,
+        "attempt": 1,
+        "headSha": "bcda43afc6dee61d73367e0a0b574f28e2f40202",
+        "jobId": 130794015616,
+        "name": "acp-windows (windows-latest, grok-aimock)",
+        "status": "completed",
+        "conclusion": "failure",
+        "url": "https://github.com/botiverse/oar/actions/runs/43101545184/job/130794015616",
+        "head_branch": "main",
+        "event": "push",
+        "display_title": "feat(cursor): run the SDK in a Node child per session (execution: \"su…",
+        "failedCases": [
+          "sea-trial/vendor/grok-prompts.vendor.test.ts > Grok's native override and rules reach the provider on creation and resume",
+          "sea-trial/vendor/grok-structured-output.vendor.test.ts > Grok returns its validated native value on new/resume, steer and queue",
+          "sea-trial/vendor/grok-structured-output.vendor.test.ts > Grok's invalid-value is failed despite native end_turn"
+        ],
+        "errors": [
+          "Error: EBUSY: resource busy or locked, rmdir '[Windows path omitted]'",
+          "AcpError: ACP request initialize timed out after 15000ms"
+        ],
+        "sourceLogSha256": "c309eeaad61a08d4d2aa72d0f0b20459c75e778eeefce96120028a52cf94155f",
+        "category": "initialize_timeout"
+      },
+      {
+        "runId": 43091640222,
+        "attempt": 1,
+        "headSha": "7d8b646079ebdee4078a936382bab49b90aa96a2",
+        "jobId": 130769918447,
+        "name": "acp-windows (windows-latest, grok-aimock)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43091640222/job/130769918447"
+      },
+      {
+        "runId": 43091640222,
+        "attempt": 1,
+        "headSha": "7d8b646079ebdee4078a936382bab49b90aa96a2",
+        "jobId": 130769918717,
+        "name": "acp-windows (windows-latest, kimi-aimock)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43091640222/job/130769918717"
+      },
+      {
+        "runId": 43091640222,
+        "attempt": 1,
+        "headSha": "7d8b646079ebdee4078a936382bab49b90aa96a2",
+        "jobId": 130769918882,
+        "name": "acp-windows (windows-latest, opencode-aimock)",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/botiverse/oar/actions/runs/43091640222/job/130769918882"
+      }
+    ],
+    "grokVersion": "1.0.70",
+    "grokFailedJobs": [
+      {
+        "runId": 43214377232,
+        "attempt": 1,
+        "headSha": "183ca9336f80621803d86d381aa7eb72c9e73483",
+        "jobId": 131169754835,
+        "name": "acp-windows (windows-latest, grok-aimock)",
+        "status": "completed",
+        "conclusion": "failure",
+        "url": "https://github.com/botiverse/oar/actions/runs/43214377232/job/131169754835",
+        "head_branch": "main",
+        "event": "push",
+        "display_title": "fix(process): prevent credential echoes in spawn validation errors (#…",
+        "failedCases": [
+          "session.query-readbacks-carry-stream-seq: ACP request initialize timed out after 15000ms",
+          "session.framing-and-attribution: ACP request initialize timed out after 15000ms"
+        ],
+        "errors": [],
+        "sourceLogSha256": "cb3a6766870f5fb9980ea35ee70360704dd3082a5ec0c7988608db9425bcad80",
+        "category": "initialize_timeout"
+      },
+      {
+        "runId": 43108792795,
+        "attempt": 1,
+        "headSha": "ea3269e830277c01d1a50bd4accb857fcb21e7d8",
+        "jobId": 130819012649,
+        "name": "acp-windows (windows-latest, grok-aimock)",
+        "status": "completed",
+        "conclusion": "failure",
+        "url": "https://github.com/botiverse/oar/actions/runs/43108792795/job/130819012649",
+        "head_branch": "main",
+        "event": "push",
+        "display_title": "chore: release v0.101.0 (#744)",
+        "failedCases": [
+          "session.query-readbacks-carry-stream-seq: ACP request initialize timed out after 15000ms",
+          "session.framing-and-attribution: ACP request initialize timed out after 15000ms"
+        ],
+        "errors": [],
+        "sourceLogSha256": "fa4dbe8f0ee6f1c6413f080b07d99fa192767b61c2d98328149d81ae994d92ab",
+        "category": "initialize_timeout"
+      },
+      {
+        "runId": 43104931239,
+        "attempt": 1,
+        "headSha": "c471a5e83adfd018dbb50049c3c36b148e78f43b",
+        "jobId": 130805668286,
+        "name": "acp-windows (windows-latest, grok-aimock)",
+        "status": "completed",
+        "conclusion": "failure",
+        "url": "https://github.com/botiverse/oar/actions/runs/43104931239/job/130805668286",
+        "head_branch": "main",
+        "event": "push",
+        "display_title": "feat(codex): export the installation candidates on their own subpath …",
+        "failedCases": [
+          "sea-trial/vendor/grok-prompts.vendor.test.ts > Grok's native override and rules reach the provider on creation and resume"
+        ],
+        "errors": [
+          "AcpError: ACP request initialize timed out after 15000ms"
+        ],
+        "sourceLogSha256": "845528630778b9e37e783bfeb72b5bca49c6b8ceed07808e72bdda54d2c9f391",
+        "category": "initialize_timeout"
+      },
+      {
+        "runId": 43101545184,
+        "attempt": 1,
+        "headSha": "bcda43afc6dee61d73367e0a0b574f28e2f40202",
+        "jobId": 130794015616,
+        "name": "acp-windows (windows-latest, grok-aimock)",
+        "status": "completed",
+        "conclusion": "failure",
+        "url": "https://github.com/botiverse/oar/actions/runs/43101545184/job/130794015616",
+        "head_branch": "main",
+        "event": "push",
+        "display_title": "feat(cursor): run the SDK in a Node child per session (execution: \"su…",
+        "failedCases": [
+          "sea-trial/vendor/grok-prompts.vendor.test.ts > Grok's native override and rules reach the provider on creation and resume",
+          "sea-trial/vendor/grok-structured-output.vendor.test.ts > Grok returns its validated native value on new/resume, steer and queue",
+          "sea-trial/vendor/grok-structured-output.vendor.test.ts > Grok's invalid-value is failed despite native end_turn"
+        ],
+        "errors": [
+          "Error: EBUSY: resource busy or locked, rmdir '[Windows path omitted]'",
+          "AcpError: ACP request initialize timed out after 15000ms"
+        ],
+        "sourceLogSha256": "c309eeaad61a08d4d2aa72d0f0b20459c75e778eeefce96120028a52cf94155f",
+        "category": "initialize_timeout"
+      }
+    ],
+    "ordinaryFailedWindowsJobs": [
+      {
+        "runId": 43277356990,
+        "attempt": 1,
+        "headSha": "4889830bea9eeb2e25c6380d925ba387800c4c9d",
+        "jobId": 131389201593,
+        "name": "check (windows-latest)",
+        "status": "completed",
+        "conclusion": "failure",
+        "url": "https://github.com/botiverse/oar/actions/runs/43277356990/job/131389201593",
+        "head_branch": "cindy/antigravity-account-usage",
+        "event": "pull_request",
+        "display_title": "feat(antigravity): account usage from agy's own /usage answer",
+        "failedCases": [
+          "tests/claude-account-usage-reader.test.ts > a late help result cannot start a usage process after the deadline"
+        ],
+        "errors": [
+          "AssertionError: expected undefined to be true // Object.is equality"
+        ],
+        "sourceLogSha256": "f0ff215fd015af8807bae2ffbe6e498af4bcebf74b4f6e30e16996e0295d77cc"
+      },
+      {
+        "runId": 43273557741,
+        "attempt": 1,
+        "headSha": "9e58fe480276b38cbe5122cfc59a4db6facc79ef",
+        "jobId": 131375848535,
+        "name": "check (windows-latest)",
+        "status": "completed",
+        "conclusion": "failure",
+        "url": "https://github.com/botiverse/oar/actions/runs/43273557741/job/131375848535",
+        "head_branch": "cindy/antigravity-account-usage",
+        "event": "pull_request",
+        "display_title": "feat(antigravity): account usage from agy's own /usage answer",
+        "failedCases": [],
+        "errors": [],
+        "sourceLogSha256": "195c3b032f5db46751cb45ab64d630bf224d6d845b1e33e46f1a1990a649047f"
+      },
+      {
+        "runId": 43267803581,
+        "attempt": 1,
+        "headSha": "c13fb359e11e2c2f591fdbb665b3730057ab180f",
+        "jobId": 131355972818,
+        "name": "check (windows-latest)",
+        "status": "completed",
+        "conclusion": "failure",
+        "url": "https://github.com/botiverse/oar/actions/runs/43267803581/job/131355972818",
+        "head_branch": "cindy/antigravity-mcp-env-route",
+        "event": "pull_request",
+        "display_title": "fix(antigravity): refuse inputs agy would cut; document the MCP environment route",
+        "failedCases": [],
+        "errors": [],
+        "sourceLogSha256": "398c8befd0a52a5bdbba715918a351757c948ca89c79faaf9df4b12b36a97245"
+      },
+      {
+        "runId": 43265455583,
+        "attempt": 1,
+        "headSha": "601c9dfba7d888cce9fd28df03796f19ba5fcc40",
+        "jobId": 131347687956,
+        "name": "check (windows-latest)",
+        "status": "completed",
+        "conclusion": "failure",
+        "url": "https://github.com/botiverse/oar/actions/runs/43265455583/job/131347687956",
+        "head_branch": "cindy/antigravity-mcp-env-route",
+        "event": "pull_request",
+        "display_title": "fix(antigravity): refuse inputs agy would cut; document the MCP environment route",
+        "failedCases": [
+          "tests/cancellation-orphan-cleanup.test.ts > acp cancellation cleans captured tools when its root exits immediately"
+        ],
+        "errors": [
+          "AssertionError: expected false to be true // Object.is equality"
+        ],
+        "sourceLogSha256": "ee1f75c85b04886acad0c0f2586927a75e41f52f6c16215ca0e06fee88adeb91"
+      },
+      {
+        "runId": 43223642690,
+        "attempt": 1,
+        "headSha": "5fc70404768c5e4a8ffe3d23c68f2b1df23479a3",
+        "jobId": 131201184218,
+        "name": "check (windows-latest)",
+        "status": "completed",
+        "conclusion": "failure",
+        "url": "https://github.com/botiverse/oar/actions/runs/43223642690/job/131201184218",
+        "head_branch": "cindy/usage-window-scope",
+        "event": "pull_request",
+        "display_title": "feat(account-usage): say what each usage window is tied to",
+        "failedCases": [
+          "tests/account-query-deadlines.test.ts > 'Kimi status' settles at its deadline while owned cleanup continues"
+        ],
+        "errors": [
+          "AssertionError: expected [ 'started', 'initialize' ] to include 'authenticate'"
+        ],
+        "sourceLogSha256": "e4c55c9af8cec4a9daac397ad81970f9d7fb44645037d365ea7e89dbe7015c89"
+      },
+      {
+        "runId": 43222716477,
+        "attempt": 1,
+        "headSha": "479e319a12f6fdf8460c79e4bbe8cb2fb46a70f7",
+        "jobId": 131198042717,
+        "name": "check (windows-latest)",
+        "status": "completed",
+        "conclusion": "failure",
+        "url": "https://github.com/botiverse/oar/actions/runs/43222716477/job/131198042717",
+        "head_branch": "cindy/usage-window-scope",
+        "event": "pull_request",
+        "display_title": "feat(account-usage): say what each usage window is tied to",
+        "failedCases": [],
+        "errors": [],
+        "sourceLogSha256": "1c1b59bdbe0cbc4064ecb0c2489556ecb540cb9976da4dc95fc93a5a680ceb5c"
+      },
+      {
+        "runId": 43213883297,
+        "attempt": 1,
+        "headSha": "b09532383462096e1297fd5f81c7836eb9d6ea43",
+        "jobId": 131168110821,
+        "name": "check (windows-latest)",
+        "status": "completed",
+        "conclusion": "failure",
+        "url": "https://github.com/botiverse/oar/actions/runs/43213883297/job/131168110821",
+        "head_branch": "cindy/claude-limit-resets",
+        "event": "pull_request",
+        "display_title": "feat(claude): limit resets through Claude Code's interactive UI",
+        "failedCases": [
+          "tests/claude/claude-limit-reset-driver.test.ts > redeem five_hour: the command names the kind, Yes is sent once, after the key guard",
+          "tests/claude/claude-limit-reset-driver.test.ts > redeem weekly: the command names the kind, Yes is sent once, after the key guard",
+          "tests/claude/claude-limit-reset-driver.test.ts > redeem fable: the command names the kind, Yes is sent once, after the key guard",
+          "tests/claude/claude-limit-reset-driver.test.ts > redeem full: the command names the kind, Yes is sent once, after the key guard",
+          "tests/claude/claude-limit-reset-driver.test.ts > a picker instead of the confirmation: Esc, no Yes, unknown",
+          "tests/claude/claude-limit-reset-driver.test.ts > a dialog that names another kind: Esc, no Yes, unknown",
+          "tests/claude/claude-limit-reset-driver.test.ts > a dialog whose Yes row is not the recorded one: Esc, no Yes, unknown",
+          "tests/claude/claude-limit-reset-driver.test.ts > no reset to use, or none of that kind: no_reset, and nothing but the command is typed",
+          "tests/claude/claude-limit-reset-driver.test.ts > a reset saved for a limit the account is not at: nothing_to_reset",
+          "tests/claude/claude-limit-reset-driver.test.ts > Claude Code has no /limit-reset for this account: unsupported",
+          "tests/claude/claude-limit-reset-driver.test.ts > the older program, 5-hour click: its line without a dialog is the answer",
+          "tests/claude/claude-limit-reset-driver.test.ts > the older program, any other kind: refused unless the cached flags say the newer program is on",
+          "tests/claude/claude-limit-reset-driver.test.ts > the command never answers: no Yes, Esc only, unknown, and the process is ended",
+          "tests/claude/claude-limit-reset-driver.test.ts > too little left right before the command is submitted: nothing typed, not_attempted, and the key is not held",
+          "tests/claude/claude-limit-reset-driver.test.ts > a dialog that opens after the command timed out gets Esc only: no Enter is ever written again",
+          "tests/claude/claude-limit-reset-driver.test.ts > a stale 'not at the 5-hour limit': usage is read again right before the command; at the limit now, nothing is typed",
+          "tests/claude/claude-limit-reset-driver.test.ts > usage that cannot be read right before the command: not_attempted, nothing typed",
+          "tests/claude/claude-limit-reset-driver.test.ts > the fresh usage check: once per read, never for a 5-hour redeem, and not when the person consented",
+          "tests/claude/claude-limit-reset-driver.test.ts > no result after Yes: unknown, and Yes is not sent again",
+          "tests/claude/claude-limit-reset-driver.test.ts > a result line after Yes that is not this kind's success: unknown",
+          "tests/claude/claude-limit-reset-driver.test.ts > Windows and a missing script utility: unsupported, nothing started",
+          "tests/claude/claude-limit-reset-driver.test.ts > the same idempotency key again gets the first answer: one session, one Yes",
+          "tests/claude/claude-limit-reset-driver.test.ts > the same key naming another kind is refused, in flight or after: nothing runs and no answer is reused",
+          "tests/claude/claude-limit-reset-driver.test.ts > a request whose turn comes with too little of its budget left is not started",
+          "tests/claude/claude-limit-reset-driver.test.ts > at most two requests wait; a third is refused at once",
+          "tests/claude/claude-limit-reset-driver.test.ts > one session at a time: a second request waits for the first",
+          "tests/claude/claude-limit-reset-driver.test.ts > read: every kind is opened with its name and cancelled with Esc; what the dialog shows is the answer",
+          "tests/claude/claude-limit-reset-driver.test.ts > read: the 5-hour kind is not opened unless asked",
+          "tests/claude/claude-limit-reset-driver.test.ts > read: kinds the account does not hold are none",
+          "tests/claude/claude-limit-reset-driver.test.ts > read: a screen that is not recognised ends the sequence; the kinds after it are unknown and never typed",
+          "tests/claude/claude-limit-reset-driver.test.ts > read: a dialog for another kind, or one that will not close, also ends the sequence",
+          "tests/claude/claude-limit-reset-driver.test.ts > read: the older program's line stops the session at once and says legacy",
+          "tests/claude/claude-limit-reset-driver.test.ts > read: at the 5-hour limit without consent is refused before anything runs",
+          "tests/claude/claude-limit-reset-driver.test.ts > read: at the limit with consent, the older program spending its reset is reported, not hidden",
+          "tests/claude/claude-limit-reset-driver.test.ts > read: timeout, sign-in and a missing command",
+          "tests/claude/claude-limit-reset-driver.test.ts > a read and a redeem share the one session slot"
+        ],
+        "errors": [
+          "AssertionError: Expected values to be strictly deep-equal:",
+          "AssertionError: none",
+          "AssertionError: Expected values to be strictly equal:",
+          "AssertionError: macOS runs",
+          "AssertionError: The expression evaluated to a falsy value:"
+        ],
+        "sourceLogSha256": "633d24165a5f34e1765f98ec15bd7575ded73dc2336aadd2271a8bc5b61ff2f1"
+      }
+    ],
+    "codebuddyInstallFailures": [
+      {
+        "runId": 43222716477,
+        "artifactId": 13947057568,
+        "version": "2.183.0",
+        "attempt": 1,
+        "budgetMs": 180000,
+        "elapsedMs": 182657,
+        "result": {
+          "kind": "failed",
+          "exitCode": null
+        },
+        "sourceLogBytes": 35300,
+        "sourceLogSha256": "458e471ac83d68419fd9b9619e943097e0da1fbfbe35b9887be35d1c98bd0f70",
+        "timingFilePresent": false,
+        "mainPackageCompletionRecorded": false,
+        "tail": [
+          "354 timing reifyNode:node_modules/@tencent-ai/codebuddy-code/node_modules/@openai/agents-core Completed in 121380ms",
+          "355 http fetch GET 200 https://registry.npmjs.org/openai/-/openai-7.55.0.tgz 178269ms (cache miss)",
+          "356 timing reifyNode:node_modules/@tencent-ai/codebuddy-code/node_modules/openai Completed in 178308ms"
+        ],
+        "phases": [
+          {
+            "phase": "child_starting",
+            "at": "2026-11-12T13:05:12.976Z",
+            "timeoutMs": 240000
+          },
+          {
+            "phase": "discovery_started",
+            "at": "2026-11-12T13:05:13.198Z"
+          },
+          {
+            "phase": "discovery_completed",
+            "at": "2026-11-12T13:05:15.047Z"
+          },
+          {
+            "phase": "install_started",
+            "at": "2026-11-12T13:05:15.048Z",
+            "timeoutMs": 180000
+          },
+          {
+            "phase": "install_returned",
+            "at": "2026-11-12T13:08:17.705Z",
+            "kind": "failed"
+          },
+          {
+            "phase": "child_returned",
+            "at": "2026-11-12T13:08:17.724Z",
+            "exitCode": 1
+          },
+          {
+            "phase": "npm_logs",
+            "at": "2026-11-12T13:08:17.729Z"
+          },
+          {
+            "phase": "npm_log_saved",
+            "at": "2026-11-12T13:08:17.731Z",
+            "sourceBytes": 35300,
+            "savedBytes": 35300,
+            "truncated": false
+          },
+          {
+            "phase": "cleanup_started",
+            "at": "2026-11-12T13:08:17.731Z"
+          },
+          {
+            "phase": "cleanup_finished",
+            "at": "2026-11-12T13:08:22.916Z"
+          }
+        ],
+        "cause": "Not established. npm fetch/reify spans do not isolate transport from extraction or scheduling."
+      },
+      {
+        "runId": 43267803581,
+        "artifactId": 13966898658,
+        "version": "2.183.0",
+        "attempt": 1,
+        "budgetMs": 180000,
+        "elapsedMs": 182635,
+        "result": {
+          "kind": "failed",
+          "exitCode": null
+        },
+        "sourceLogBytes": 35108,
+        "sourceLogSha256": "cb008dd8e7d907e31d03540f4aaffb3b5779b80d8a69f7581203002c13af91a2",
+        "timingFilePresent": false,
+        "mainPackageCompletionRecorded": false,
+        "tail": [
+          "352 timing reifyNode:node_modules/@tencent-ai/codebuddy-code/node_modules/zod Completed in 70735ms",
+          "353 http fetch GET 200 https://registry.npmjs.org/@openai/agents-core/-/agents-core-0.20.0.tgz 85406ms (cache miss)",
+          "354 timing reifyNode:node_modules/@tencent-ai/codebuddy-code/node_modules/@openai/agents-core Completed in 85476ms"
+        ],
+        "phases": [
+          {
+            "phase": "child_starting",
+            "at": "2026-11-12T17:24:42.413Z",
+            "timeoutMs": 240000
+          },
+          {
+            "phase": "discovery_started",
+            "at": "2026-11-12T17:24:42.629Z"
+          },
+          {
+            "phase": "discovery_completed",
+            "at": "2026-11-12T17:24:47.328Z"
+          },
+          {
+            "phase": "install_started",
+            "at": "2026-11-12T17:24:47.329Z",
+            "timeoutMs": 180000
+          },
+          {
+            "phase": "install_returned",
+            "at": "2026-11-12T17:27:49.964Z",
+            "kind": "failed"
+          },
+          {
+            "phase": "child_returned",
+            "at": "2026-11-12T17:27:49.983Z",
+            "exitCode": 1
+          },
+          {
+            "phase": "npm_logs",
+            "at": "2026-11-12T17:27:49.987Z"
+          },
+          {
+            "phase": "npm_log_saved",
+            "at": "2026-11-12T17:27:49.989Z",
+            "sourceBytes": 35108,
+            "savedBytes": 35108,
+            "truncated": false
+          },
+          {
+            "phase": "cleanup_started",
+            "at": "2026-11-12T17:27:49.989Z"
+          },
+          {
+            "phase": "cleanup_finished",
+            "at": "2026-11-12T17:27:56.418Z"
+          }
+        ],
+        "cause": "Not established. npm fetch/reify spans do not isolate transport from extraction or scheduling."
+      },
+      {
+        "runId": 43273557741,
+        "artifactId": 13970151383,
+        "version": "2.183.0",
+        "attempt": 1,
+        "budgetMs": 180000,
+        "elapsedMs": 182629,
+        "result": {
+          "kind": "failed",
+          "exitCode": null
+        },
+        "sourceLogBytes": 35084,
+        "sourceLogSha256": "d5adca7620850c2d249c5806412df5c1fd3a154e2d4f431bce05cde1e19aaf13",
+        "timingFilePresent": false,
+        "mainPackageCompletionRecorded": false,
+        "tail": [
+          "352 timing reifyNode:node_modules/@tencent-ai/codebuddy-code/node_modules/zod Completed in 45826ms",
+          "353 http fetch GET 200 https://registry.npmjs.org/@openai/agents-core/-/agents-core-0.20.0.tgz 57067ms (cache miss)",
+          "354 timing reifyNode:node_modules/@tencent-ai/codebuddy-code/node_modules/@openai/agents-core Completed in 57113ms"
+        ],
+        "phases": [
+          {
+            "phase": "child_starting",
+            "at": "2026-11-12T17:57:40.736Z",
+            "timeoutMs": 240000
+          },
+          {
+            "phase": "discovery_started",
+            "at": "2026-11-12T17:57:40.945Z"
+          },
+          {
+            "phase": "discovery_completed",
+            "at": "2026-11-12T17:57:43.654Z"
+          },
+          {
+            "phase": "install_started",
+            "at": "2026-11-12T17:57:43.654Z",
+            "timeoutMs": 180000
+          },
+          {
+            "phase": "install_returned",
+            "at": "2026-11-12T18:00:46.283Z",
+            "kind": "failed"
+          },
+          {
+            "phase": "child_returned",
+            "at": "2026-11-12T18:00:46.300Z",
+            "exitCode": 1
+          },
+          {
+            "phase": "npm_logs",
+            "at": "2026-11-12T18:00:46.304Z"
+          },
+          {
+            "phase": "npm_log_saved",
+            "at": "2026-11-12T18:00:46.305Z",
+            "sourceBytes": 35084,
+            "savedBytes": 35084,
+            "truncated": false
+          },
+          {
+            "phase": "cleanup_started",
+            "at": "2026-11-12T18:00:46.306Z"
+          },
+          {
+            "phase": "cleanup_finished",
+            "at": "2026-11-12T18:00:56.098Z"
+          }
+        ],
+        "cause": "Not established. npm fetch/reify spans do not isolate transport from extraction or scheduling."
+      }
+    ],
+    "rerunsRequestedForThisReport": 0,
+    "mainCi": {
+      "runId": 43238371345,
+      "headSha": "fa3536a7cd1d531142550e9bf96c36c98bad0add",
+      "url": "https://github.com/botiverse/oar/actions/runs/43238371345",
+      "conclusions": {
+        "success": 39
+      },
+      "readAt": "2026-11-12T19:12:55.333349+00:00",
+      "scope": "Latest main CI at the inventory base; later main commits are outside this assertion."
+    }
+  },
+  "ciFollowups": [
+    {
+      "pr": 755,
+      "headSha": "658a7281dfa2ae87f19f8b39f6007e125ea39eec",
+      "firstRunId": 43268472400,
+      "failedJobId": 131358304047,
+      "firstFailureUrl": "https://github.com/botiverse/oar/actions/runs/43268472400/job/131358304047",
+      "sourceLogSha256": "4f288260576490686efec6734bd27272b200ab5c2916b332a9b2a13e8f746fe2",
+      "rerunId": 43268903824,
+      "rerunKind": "Author-dispatched workflow on the same head, not an Otter-triggered retry",
+      "rerunReadAt": "2026-11-12T19:09:44.896425+00:00",
+      "rerunConclusions": {
+        "success": 39
+      },
+      "firstFailure": "resume-or-loud-rejection assertion: a runtime without resume must reject loudly, naming resume",
+      "artifactId": 13967151796,
+      "traceFacts": [
+        "Initial session completed and was disposed.",
+        "Reopening with its id rejected, but the caught exception is absent from the retained trace.",
+        "No assertion about the underlying native failure or lack of resume support is justified from this artifact."
+      ],
+      "sameJobRerun": {
+        "id": 131359837556,
+        "name": "acp-behavior (ubuntu-latest, opencode-aimock)",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/43268903824/job/131359837556"
+      }
+    },
+    {
+      "pr": 756,
+      "headSha": "4889830bea9eeb2e25c6380d925ba387800c4c9d",
+      "firstRunId": 43277356990,
+      "failedJobId": 131389201593,
+      "firstFailureUrl": "https://github.com/botiverse/oar/actions/runs/43277356990/job/131389201593",
+      "sourceLogSha256": "f0ff215fd015af8807bae2ffbe6e498af4bcebf74b4f6e30e16996e0295d77cc",
+      "rerunId": 43279863485,
+      "rerunKind": "Author-dispatched workflow on the same head, not an Otter-triggered retry",
+      "rerunReadAt": "2026-11-12T19:13:49.745634+00:00",
+      "rerunConclusions": {
+        "success": 33,
+        "queued": 6
+      },
+      "firstFailure": "late-help test expected mock.calls[0]?.[2]?.signal?.aborted true, received undefined",
+      "sourceFacts": [
+        "Test uses a real 20 ms account-query deadline.",
+        "The optional chain result does not itself establish whether there was no call or a missing signal.",
+        "No direct timing trace establishes which stage used that budget."
+      ],
+      "sameJobRerun": {
+        "id": 131397960841,
+        "name": "check (windows-latest)",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/43279863485/job/131397960841"
+      }
+    },
+    {
+      "pr": 756,
+      "headSha": "bc6d04a5e82849940d48629ce84ea3a9afc089d6",
+      "runId": 43288137052,
+      "jobId": 131426894393,
+      "url": "https://github.com/botiverse/oar/actions/runs/43288137052/job/131426894393",
+      "artifactId": 13976761177,
+      "artifactFileCount": 22,
+      "nativeVersion": "codex-cli 0.167.2",
+      "nativeVersionSource": "codex-aimock-abort-processes-no-groups/trace.jsonl: no_groups_control, phase open",
+      "nodeVersion": "24.22.2",
+      "cases": {
+        "passed": 76,
+        "failed": 2
+      },
+      "failure": {
+        "file": "sea-trial/vendor/codex-abort-processes.vendor.test.ts",
+        "line": 166,
+        "phase": "After START_EARLIER completes, before the tested turn starts and before abort",
+        "expectedCount": 1,
+        "observedCounts": [
+          6,
+          4
+        ]
+      },
+      "localComparison": {
+        "version": "0.167.2",
+        "nodeVersion": "24.19.0",
+        "passed": 78,
+        "failed": 0,
+        "testAndCodexCleanupSourceUnchanged": true
+      },
+      "evidenceLimit": "The original log has matching PIDs but no command lines, parent or start time for these cases; the archive has no case-specific process snapshots. Counts do not establish duplicate launches, wrappers, scheduling or post-abort leftovers.",
+      "sourceLogSha256": "c5a96fd34cdcdf939bc4c0f91d73de9c03aa6ebfbfa10a6282a120801a563941",
+      "followup": "A separate test-only change will add matched process metadata to assertion failures without relaxing counts or deadlines. No original failure cause is claimed."
+    }
+  ],
+  "upstream": [
+    {
+      "key": "opencode-54794",
+      "ok": true,
+      "html_url": "https://github.com/anomalyco/opencode/issues/54794",
+      "state": "closed",
+      "updated_at": "2026-11-05T21:52:50Z",
+      "comments": 3
+    },
+    {
+      "key": "opencode-53879",
+      "ok": true,
+      "html_url": "https://github.com/anomalyco/opencode/issues/53879",
+      "state": "open",
+      "updated_at": "2026-10-29T17:18:46Z",
+      "comments": 4
+    },
+    {
+      "key": "kimi-2370",
+      "ok": true,
+      "html_url": "https://github.com/MoonshotAI/kimi-cli/issues/2370",
+      "state": "open",
+      "updated_at": "2026-09-12T16:09:18Z",
+      "comments": 1
+    },
+    {
+      "key": "qwen-15796",
+      "ok": true,
+      "html_url": "https://github.com/QwenLM/qwen-code/issues/15796",
+      "state": "open",
+      "updated_at": "2026-10-28T13:14:10Z",
+      "comments": 2
+    },
+    {
+      "key": "qwen-15875",
+      "ok": true,
+      "html_url": "https://github.com/QwenLM/qwen-code/issues/15875",
+      "state": "open",
+      "updated_at": "2026-11-08T03:54:29Z",
+      "comments": 5
+    },
+    {
+      "key": "qwen-16586",
+      "ok": true,
+      "html_url": "https://github.com/QwenLM/qwen-code/pull/16586",
+      "state": "open",
+      "updated_at": "2026-11-12T18:40:59Z",
+      "comments": 12,
+      "merged": false,
+      "merged_at": null,
+      "headSha": "f3da9e1820047a6eaccb779bb1e4e06cf48f3761"
+    },
+    {
+      "key": "qwen-16586-comments",
+      "ok": true,
+      "count": 12,
+      "commentIds": [
+        6721971304,
+        6722241218,
+        6722241500,
+        6722241759,
+        6780984902,
+        6781273232,
+        6789114622,
+        6822701647,
+        6822846222,
+        6824046131,
+        6825058842,
+        6825268563
+      ]
+    },
+    {
+      "key": "qwen-15875-comments",
+      "ok": true,
+      "count": 5,
+      "commentIds": [
+        6500170658,
+        6500361969,
+        6632408160,
+        6709946171,
+        6716941032
+      ]
+    },
+    {
+      "key": "dsh-master",
+      "ok": true,
+      "html_url": "https://github.com/deepseek-ai/deepseek-harness/commit/e8f7b93a344964de3dca1ace9e72b6e4d6de87cb",
+      "sha": "e8f7b93a344964de3dca1ace9e72b6e4d6de87cb"
+    },
+    {
+      "key": "agy-public-head",
+      "ok": true,
+      "html_url": "https://github.com/google-antigravity/antigravity-cli/commit/87bd97327a72d62d553c3aede8cf77752ae4c59a",
+      "sha": "87bd97327a72d62d553c3aede8cf77752ae4c59a"
+    },
+    {
+      "key": "codebuddy-issue",
+      "ok": true
+    },
+    {
+      "key": "dsh-discussion",
+      "ok": true
+    },
+    {
+      "key": "agy-install",
+      "ok": true
+    },
+    {
+      "key": "agy-headless",
+      "ok": true
+    },
+    {
+      "key": "codebuddy-1847",
+      "url": "https://cnb.cool/codebuddy/codebuddy-code/-/issues/1847",
+      "state": "open",
+      "comments": 0,
+      "updatedAt": "2026-10-28T06:32:16Z"
+    },
+    {
+      "key": "dsh-discussion-593",
+      "url": "https://github.com/deepseek-ai/deepseek-harness/discussions/593",
+      "commentIds": [
+        18089935,
+        18637238,
+        18831410,
+        19266464,
+        19311708,
+        19314203,
+        19490754
+      ],
+      "newReply": false
+    }
+  ],
+  "dsh": {
+    "head": "e8f7b93a344964de3dca1ace9e72b6e4d6de87cb",
+    "changedSincePreviousInventory": false,
+    "priorTreeComparison": "2026-11-11.json#/daily/dshWatchedTrees",
+    "noNewPatchAdopted": true
+  },
+  "repositoryValidation": {
+    "status": "passed",
+    "productCodeChanged": false,
+    "dependencyOrCiPinsChanged": false,
+    "assertionsOrDeadlinesChanged": false,
+    "checkBase": "986e2e94",
+    "testsPassed": 4065,
+    "mockBehaviorPassed": 18,
+    "mockBehaviorSkipped": 1,
+    "typecheck": true,
+    "lint": true,
+    "sourceLogSha256": "2a054e1457d830a69d20187c7c8a47b0a7ae8e9e9a04407d8a2fbcd8b05c68c4",
+    "packageBuilds": "Both packages built successfully before native checks at fa3536a7; full check also builds the library on the report base."
+  }
+}

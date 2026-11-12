@@ -1,5 +1,7 @@
 # experiments
 
+- [Runtime version check: November 12](runtime-version-checks/2026-11-12.md): four changed native versions, Kimi MCP resume mismatch, Qoder replay failures and CI process-count evidence.
+
 - [Codex inspection, 2026-11-11](codex-inspection-2026-11-11/README.md): real old/current version refusals, configuration admission boundaries, recovery and native credential echoes.
 
 - [Runtime version check: November 11](runtime-version-checks/2026-11-11.md): Cursor 1.3.1 live evidence, five changed native versions, retained protocol failures, upstream watch and Windows CI observations.
