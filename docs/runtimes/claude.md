@@ -618,6 +618,25 @@ the token-free `list_models` control request from a process started in
 `ListModelsOptions.cwd` (the host's cwd by default); the answer preserves
 selector versus resolved ID, disabled entries, and effort choices
 (`supportedEffortLevels` per model; Haiku 4.5 lists none).
+The list is not limited to the models the binary was built with: the server
+sends model rows, and claude decides which of them it can offer. Measured on
+2026-11-12 with one account: claude 2.1.319, whose built-in catalog stops at
+Fable 5.1, listed `claude-fable-5-2` enabled (effort low to max), and a turn
+with `--model claude-fable-5-2` succeeded; the only sign was a stderr line
+`[claude-code:unrecognized_model]`, meaning claude assumes a default context
+window for it. claude 2.1.283 on the same account listed `claude-fable-5-2`,
+`claude-sonnet-5-5` and `claude-haiku-5-5` as disabled, each with the
+description "Update Claude Code to use this model", which `listModels`
+returns as the entry's `disabled.reason`. That text is claude's own (static
+reading of 2.1.283): a server row whose model its catalog does not know is
+disabled with it. 2.1.319 offered the model outside its catalog measured
+above, and also has a minimum version check: a row whose
+`min_claude_code_version` is above its own version is disabled with "Requires
+Claude Code v<version> or later" (static reading; no listing here exercised
+it). On another account, the three sampled listings from 2.1.284, 2.1.288 and
+2.1.292 held five rows, with no 5.2 row and no disabled hint. What decides
+that is not established, and a model missing from a listing is not shown to
+be unusable or to need an upgrade.
 The listing process starts with hooks and MCP servers switched off
 (`--settings '{"disableAllHooks":true}' --strict-mcp-config --mcp-config
 '{"mcpServers":{}}'`; claude 2.1.x measured: without them a listing fires the

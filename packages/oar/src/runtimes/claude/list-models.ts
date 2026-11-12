@@ -24,8 +24,10 @@ function text(value: unknown): string | undefined {
  * Project the `list_models` control response. `value` is the selector the
  * session accepts (an alias such as `sonnet` or a concrete ID); `resolvedModel`
  * is what that alias means today. A `disabled` entry is still listed because
- * claude shows it, with its description as the reason (typically a required
- * CLI upgrade).
+ * claude shows it, with its description as the reason. Version gates arrive
+ * this way: claude 2.1.283 disables server rows its catalog does not know
+ * ("Update Claude Code to use this model"); 2.1.319 also checks a row's
+ * minimum claude version against its own (docs/runtimes/claude.md).
  */
 export function projectClaudeModels(payload: unknown): ModelEntry[] {
   const models = asRecordList(asRecord(payload)?.models);
