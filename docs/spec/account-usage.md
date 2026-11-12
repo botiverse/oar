@@ -52,11 +52,15 @@ start, which an even-burn line needs. Sources:
 `scope` says what the runtime ties a window to: `{ kind: "account" }` when
 it reports the window as the account's, `{ kind: "model", name }` when it
 reports it as one model's, with the runtime's own name for the model; it
-is omitted when the runtime says neither. No runtime names a model id here,
-so a host matches `name` to its own models (for example `listModels`
-display names); OAR does not guess. The windows that concern a model are
-the `account` ones and the `model` ones whose name is that model's; read a
-window without `scope` as `account`. `scope` says what a window counts, not
+is omitted when the runtime says neither, which means unknown, not the
+whole account (Claude's OAuth apps window is one). `name` is the runtime's
+display name only; OAR does not put a model id or slug here, even where a
+runtime has a related field (codex's protocol has `normalModelSlug`, and
+quota aliases such as `gpt-reserve` are not model ids), so a host matches
+`name` to its own models (for example `listModels` display names). The
+windows that concern a model are the `account` ones and the `model` ones
+whose name is that model's; a host that must decide about a window without
+`scope` can treat it as `account` as its own conservative choice. `scope` says what a window counts, not
 whether a full one stops work: extra usage can carry a Claude, Grok or Kimi
 account past a full subscription window, which the snapshot's
 `rateLimited` already weighs.
