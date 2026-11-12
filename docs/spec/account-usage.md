@@ -54,10 +54,11 @@ it reports the window as the account's, `{ kind: "model", name }` when it
 reports it as one model's, with the runtime's own name for the model; it
 is omitted when the runtime says neither, which means unknown, not the
 whole account (Claude's OAuth apps window is one). `name` is the runtime's
-display name only; OAR does not put a model id or slug here, even where a
-runtime has a related field (codex's protocol has `normalModelSlug`, and
-quota aliases such as `gpt-reserve` are not model ids), so a host matches
-`name` to its own models (for example `listModels` display names). The
+own name for the window's model, kept as given: it can be a quota alias
+(codex's `limitName` can be `gpt-reserve`), OAR does not rewrite it from a
+related field such as codex's `normalModelSlug`, and it is not promised to
+equal a `listModels` id or display name. A host matches it to its own
+models. The
 windows that concern a model are the `account` ones and the `model` ones
 whose name is that model's; a host that must decide about a window without
 `scope` can treat it as `account` as its own conservative choice. `scope` says what a window counts, not

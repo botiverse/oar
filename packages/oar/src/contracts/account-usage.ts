@@ -25,10 +25,11 @@ export interface AccountUsageWindow {
   /**
    * What the runtime ties the window to. `account`: it reports the window as
    * the account's, not a model's. `model`: one model's, by the runtime's own
-   * name for it (claude "Opus", "Fable"; codex "GPT-5.3-Codex-Spark"); only
-   * that display name, never a model id or slug, so a host matches it to its
-   * own models (for example `listModels` display names). Omitted when the
-   * runtime says neither: unknown, not the whole account.
+   * name for it, kept as given (claude "Opus", "Fable"; codex's `limitName`,
+   * "GPT-5.3-Codex-Spark" or a quota alias such as "gpt-reserve"); not
+   * promised to equal a `listModels` id or display name, so a host matches it
+   * to its own models. Omitted when the runtime says neither: unknown, not
+   * the whole account.
    */
   readonly scope?: AccountUsageWindowScope;
 }
