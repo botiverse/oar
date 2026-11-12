@@ -24,13 +24,11 @@ function text(value: unknown): string | undefined {
  * Project the `list_models` control response. `value` is the selector the
  * session accepts (an alias such as `sonnet` or a concrete ID); `resolvedModel`
  * is what that alias means today. A `disabled` entry is still listed because
- * claude shows it, with its description as the reason; claude 2.1.319 marks an
- * entry disabled from the account's model access or a notice the server sends,
- * not from its own version. A newer build's list also holds models its own
- * catalog does not know, added by the server, and they work (2026-11-12,
- * 2.1.319 listed and answered with `claude-fable-5-2`); 2.1.292 and older
- * leave such models out entirely, so in those builds "needs a newer claude"
- * did not show up as a disabled entry (docs/runtimes/claude.md).
+ * claude shows it, with its description as the reason. The server adds rows
+ * and can mark them disabled: on 2026-11-12 claude 2.1.283 listed Fable 5.2
+ * disabled with "Update Claude Code to use this model", while 2.1.319 on the
+ * same account listed it enabled. claude can also disable a row whose minimum
+ * claude version is above its own (docs/runtimes/claude.md).
  */
 export function projectClaudeModels(payload: unknown): ModelEntry[] {
   const models = asRecordList(asRecord(payload)?.models);

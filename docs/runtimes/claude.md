@@ -619,18 +619,23 @@ the token-free `list_models` control request from a process started in
 selector versus resolved ID, disabled entries, and effort choices
 (`supportedEffortLevels` per model; Haiku 4.5 lists none).
 The list is not limited to the models the binary was built with: the server
-adds entries. On 2026-11-12, claude 2.1.319, whose built-in catalog stops at
-Fable 5.1, listed `claude-fable-5-2` (enabled, effort low to max) and a turn
+adds entries and can mark them disabled with a reason. Measured on
+2026-11-12 with one account: claude 2.1.319, whose built-in catalog stops at
+Fable 5.1, listed `claude-fable-5-2` enabled (effort low to max), and a turn
 with `--model claude-fable-5-2` succeeded; the only sign was a stderr line
 `[claude-code:unrecognized_model]`, meaning claude assumes a default context
-window for it. In 2.1.319 a `disabled` entry's reason comes from the
-account's model access or a notice the server sends (static reading); no
-branch compares claude's own version. Older builds do not get the
-server's entries: on the same day 2.1.284, 2.1.288 and 2.1.292 (another
-account) listed five rows (Default, Opus, Fable 5.1, Sonnet, Haiku), with no
-Fable 5.2 and nothing disabled. A model too new for the installed claude is
-therefore absent from the listing, not flagged; a host that wants to say
-"update Claude Code" has to compare the listing against its own catalog.
+window for it. claude 2.1.283 on the same account listed `claude-fable-5-2`,
+`claude-sonnet-5-5` and `claude-haiku-5-5` as disabled, each with the
+description "Update Claude Code to use this model", which `listModels`
+returns as the entry's `disabled.reason`. claude also has a path of its own
+(static reading of 2.1.319): a catalog row whose `min_claude_code_version` is
+above the running version is disabled with "Requires Claude Code v<version>
+or later"; the 2.1.283 reasons above use other words, so they did not come
+from that path. On another account, the
+three sampled listings from 2.1.284, 2.1.288 and 2.1.292 held five rows with
+no server additions, so no 5.2 row and no disabled hint. What decides that is
+not established, and a model missing from a listing is not shown to be
+unusable or to need an upgrade.
 The listing process starts with hooks and MCP servers switched off
 (`--settings '{"disableAllHooks":true}' --strict-mcp-config --mcp-config
 '{"mcpServers":{}}'`; claude 2.1.x measured: without them a listing fires the
