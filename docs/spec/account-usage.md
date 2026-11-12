@@ -104,16 +104,25 @@ Claude Code offers its resets only through the hidden `/limit-reset` command
 of its interactive UI: not in `-p`, the SDK or the control protocol, whose
 `get_usage` reads usage without them (2.1.322). OAR therefore starts the
 installation's `claude` in a pseudo-terminal (the system `script`, on
-Linux and macOS; Windows is `unsupported_platform`), in a new empty
+Linux only), in a new empty
 directory and the call's `env`, types the command, reads the screen, and
 ends the process. Why OAR does this at all:
 [decisions](../design/decisions.md#claude-limit-resets-through-its-interactive-ui).
 One UI runs at a time per process; a call that finds two waiting is
 `not_attempted` / `busy`, and one still waiting when its `timeoutMs`
 (default 75 s) runs out, or whose turn comes with too little of it left, is
-`not_attempted` / `deadline` and never starts. The UI runs with an
-environment marker on Linux, and ending it ends every process it started,
-including ones that outlived it (the same mechanism as Cursor's child).
+`not_attempted` / `deadline` and never starts. macOS and Windows are
+`unsupported_platform`: macOS's BSD `script` exits at once when its stdin
+is a socket, which is what Node's pipes are there (macOS 27.0, #752).
+
+Ending a call ends its processes: the shell under `script` runs the program
+and, when it exits, ends its whole session; at the end OAR signals what it
+finds below `script` while that runs, what it saw there earlier that is
+still the same process, and the program's process group while a process
+seen earlier is still in it; and it ends every process still carrying the
+environment marker the UI was started with (as for Cursor's child). A
+process that both left the session and cleared its environment is not
+found.
 
 What keeps it from spending a reset the person did not ask for:
 

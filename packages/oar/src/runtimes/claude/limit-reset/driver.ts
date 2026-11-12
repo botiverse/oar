@@ -226,11 +226,13 @@ export interface ClaudeLimitResetDriver {
 }
 
 /**
- * `script` gives the CLI a terminal on Linux (util-linux) and macOS (BSD),
- * both of which ship it. Windows has neither `script` nor a POSIX shell.
+ * Linux only. macOS's BSD `script` refuses a socket as its stdin, which is
+ * what Node's pipes are there (seen on macOS 27.0, #752), so it exits
+ * before starting the program; Windows has neither `script` nor a POSIX
+ * shell.
  */
 function isDrivablePlatform(platform: NodeJS.Platform): boolean {
-  return platform === "linux" || platform === "darwin";
+  return platform === "linux";
 }
 
 /**

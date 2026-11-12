@@ -1326,7 +1326,8 @@ endpoint itself and never reads the credential. The hazards and what OAR
 does about each are in the spec section; the decision to drive the UI is in
 [decisions](../design/decisions.md#claude-limit-resets-through-its-interactive-ui).
 Screens were recorded from 2.1.322 against a fake backend; no real reset
-has been spent through OAR.
+has been spent through OAR. Linux only: macOS's `script` refuses the
+socket Node gives it as stdin.
 
 ### Logout
 

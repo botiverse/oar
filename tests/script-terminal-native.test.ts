@@ -7,21 +7,24 @@ import { findScriptUtility, openScriptTerminal } from "../packages/oar/src/share
 /*
  * The real `script` utility and a synthetic program, no Claude: a program
  * that starts a child ignoring HUP and TERM and exits before any output
- * (Otter's probe on #752). The child is reparented away from `script`, so
- * only what the terminal kept while running can find it.
+ * (Otter's probe on #752). The child is reparented away from the program
+ * before the terminal has looked at anything; the shell under `script` ends
+ * the program's session when the program exits.
  */
 
 async function startTicks(pid: number): Promise<string | undefined> {
   try {
     const stat = await readFile(`/proc/${String(pid)}/stat`, "utf8");
-    return stat.slice(stat.lastIndexOf(")") + 2).split(" ")[19];
+    const fields = stat.slice(stat.lastIndexOf(")") + 2).split(" ");
+    // A zombie has ended; only its parent has not collected it yet.
+    return fields[0] === "Z" ? undefined : fields[19];
   } catch {
     return undefined;
   }
 }
 
 // oxlint-disable-next-line eslint/max-statements -- One probe: start, wait for the exit, kill, check, and always clean up its own child.
-test.skipIf(process.platform !== "linux" || findScriptUtility() === null)("a child left behind by a program that exited first is ended by kill", async () => {
+test.skipIf(process.platform !== "linux" || findScriptUtility() === null)("a child left behind by a program that exited first is ended with its session", async () => {
   const dir = await mkdtemp(path.join(os.tmpdir(), "oar-script-terminal-"));
   const program = path.join(dir, "program.sh");
   const pidFile = path.join(dir, "child.pid");
@@ -37,7 +40,8 @@ test.skipIf(process.platform !== "linux" || findScriptUtility() === null)("a chi
     const written = await readFile(pidFile, "utf8");
     pid = Number(written.trim());
     started = await startTicks(pid);
-    expect(started).toBeDefined();
+    // The shell ended the program's session as soon as the program exited, before any kill.
+    expect(started).toBeUndefined();
     await terminal?.kill();
     expect(await startTicks(pid)).toBeUndefined();
   } finally {

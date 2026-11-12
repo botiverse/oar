@@ -649,7 +649,7 @@ test("a result line after Yes that is not this kind's success: unknown", async (
   assert.deepEqual(report.result, { kind: "unknown" });
 });
 
-test("Windows and a missing script utility: unsupported, nothing started", async () => {
+test("Windows, macOS and a missing script utility: unsupported, nothing started", async () => {
   const claude = new FakeClaude();
   const there = driverFor(claude, { platform: "win32" });
   const redeemReport = await finish(there.driver.redeem({ kind: "five_hour", idempotencyKey: KEY }));
@@ -660,7 +660,8 @@ test("Windows and a missing script utility: unsupported, nothing started", async
 
   const mac = new FakeClaude({ commands: confirmFor("five_hour") });
   const macReport = await finish(driverFor(mac, { platform: "darwin" }).driver.redeem({ kind: "five_hour", idempotencyKey: KEY }));
-  assert.deepEqual(macReport.result, { kind: "reset" }, "macOS runs");
+  assert.deepEqual(macReport.result, { kind: "unsupported", reason: "unsupported_platform" }, "macOS's script refuses Node's socket stdin");
+  assert.equal(mac.spawns, 0);
 
   const noScript = driverFor(new FakeClaude(), { openTerminal: () => null });
   assert.deepEqual(await finish(noScript.driver.redeem({ kind: "five_hour", idempotencyKey: KEY })), { result: { kind: "unsupported", reason: "unsupported_platform" }, step: "terminal" });

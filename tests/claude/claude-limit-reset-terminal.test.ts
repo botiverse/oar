@@ -61,6 +61,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+// oxlint-disable-next-line eslint/max-statements -- One shell line, each of its parts checked in order.
 test("util-linux script runs one shell line under /bin/sh: size, the host watchdog, then the quoted program", () => {
   const { file, args, env } = scriptInvocation(INPUT, "/usr/bin/script", 4242);
   assert.equal(file, "/usr/bin/script");
@@ -71,7 +72,8 @@ test("util-linux script runs one shell line under /bin/sh: size, the host watchd
   assert.ok(line.startsWith("stty rows 45 cols 120 2>/dev/null; ( trap '' TERM; while kill -0 4242 2>/dev/null && kill -0 $$ 2>/dev/null; do sleep 1; done; "));
   // The whole session (the program's children too), not only the program; the program alone without pkill.
   assert.ok(line.includes("kill -0 4242 2>/dev/null || { pkill -TERM -s $$ || kill -TERM $$; sleep 2; pkill -KILL -s $$ || kill -KILL $$; } ) </dev/null >/dev/null 2>&1 &"));
-  assert.ok(line.endsWith(` exec '/opt/claude code/it'\\''s/claude'`), "a path with a space and a quote stays one word");
+  assert.ok(line.includes(` '/opt/claude code/it'\\''s/claude'; if command -v pgrep`), "a path with a space and a quote stays one word; then the session is ended");
+  assert.ok(line.endsWith(`for p in $(pgrep -s $$); do [ "$p" = "$$" ] || kill -KILL "$p" 2>/dev/null; done; else kill -KILL 0; fi`));
   assert.deepEqual(
     { SHELL: env.SHELL, TERM: env.TERM, COLUMNS: env.COLUMNS, LINES: env.LINES, HOME: env.HOME, PATH: env.PATH },
     { SHELL: "/bin/sh", TERM: "xterm-256color", COLUMNS: "120", LINES: "45", HOME: "/home/person", PATH: "/usr/bin" },
@@ -158,4 +160,50 @@ test("a pid that now belongs to another process is left alone", async () => {
   await vi.advanceTimersByTimeAsync(4000);
   await killing;
   assert.ok(!fake.signals.some(([pid, signal]) => pid === 103 && signal === "SIGKILL"));
+});
+
+/** The program (101, its own group) and a child in that group (102), seen while running; then script and the program exit. */
+// oxlint-disable-next-line eslint/max-statements -- One early exit, from the first look to the kill.
+async function afterEarlyExit(later: (table: TerminalProcess[]) => TerminalProcess[]) {
+  const fake = fakeHost();
+  let table: TerminalProcess[] = [
+    { pid: 50, parentPid: 1, startedAt: "5", groupId: 50 },
+    { pid: 100, parentPid: 50, startedAt: "10", groupId: 100 },
+    { pid: 101, parentPid: 100, startedAt: "11", groupId: 101 },
+    { pid: 102, parentPid: 101, startedAt: "12", groupId: 101 },
+  ];
+  fake.host.listProcesses = () => table;
+  const marked: string[] = [];
+  fake.host.killMarked = async (entry) => { marked.push(entry); };
+  const terminal = opened(openScriptTerminal(INPUT, fake.host));
+  terminal.onData(() => {});
+  // Output prompts a look at the processes below script.
+  fake.child.stdout.emit("data", Buffer.from("❯"));
+  await vi.advanceTimersByTimeAsync(600);
+  // script and the program are gone; what is left was reparented, then `later` changes the table.
+  table = later([{ pid: 50, parentPid: 1, startedAt: "5", groupId: 50 }, { pid: 102, parentPid: 1, startedAt: "12", groupId: 101 }]);
+  fake.child.emit("exit", 0, null);
+  const killing = terminal.kill();
+  await vi.advanceTimersByTimeAsync(5000);
+  await killing;
+  return { signalled: new Set(fake.signals.map(([pid]) => pid)), marked };
+}
+
+test("after the program exits first: its group, while a process seen earlier is still in it, is ended", async () => {
+  const { signalled, marked } = await afterEarlyExit((left) => [...left, { pid: 103, parentPid: 1, startedAt: "13", groupId: 101 }]);
+  assert.ok(signalled.has(102), "the child seen while running");
+  assert.ok(signalled.has(103), "and one started in the same group since");
+  assert.equal(marked.length, 1, "and the environment marker is scanned");
+});
+
+test("after the program exits first: a reused group id or script pid is left alone", async () => {
+  // Every original member is gone; a new group took id 101, and a new process took script's pid 100 and has a child.
+  const { signalled } = await afterEarlyExit(() => [
+    { pid: 50, parentPid: 1, startedAt: "5", groupId: 50 },
+    { pid: 101, parentPid: 1, startedAt: "90", groupId: 101 },
+    { pid: 104, parentPid: 101, startedAt: "91", groupId: 101 },
+    { pid: 100, parentPid: 1, startedAt: "92", groupId: 100 },
+    { pid: 105, parentPid: 100, startedAt: "93", groupId: 100 },
+  ]);
+  for (const pid of [101, 104, 100, 105, -100]) { assert.ok(!signalled.has(pid), String(pid)); }
 });

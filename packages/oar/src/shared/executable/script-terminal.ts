@@ -128,7 +128,11 @@ function shellQuote(value: string): string {
  *   program and what it started: MCP servers, hooks), TERM first, then KILL,
  *   and the program alone where `pkill` is missing. It ignores TERM itself so
  *   it lives to send the KILL, which ends it too;
- * - then becomes the program.
+ * - then runs the program, and once it exits ends the whole session (each
+ *   member `pgrep -s` lists, else the shell's process group): whatever the program left
+ *   behind there, even when it exits before the terminal could look at its
+ *   processes. Only a process that left the session (`setsid`) escapes; on
+ *   Linux the environment marker still finds it.
  *
  * util-linux takes the line as one `-c` string and runs it with $SHELL, so
  * SHELL is forced to /bin/sh; BSD (macOS) takes the command as arguments.
@@ -136,7 +140,10 @@ function shellQuote(value: string): string {
 export function scriptInvocation(input: OpenClaudeLimitResetTerminalInput, scriptPath: string, hostPid: number): { file: string; args: string[]; env: NodeJS.ProcessEnv } {
   const watchdog = `( trap '' TERM; while kill -0 ${hostPid} 2>/dev/null && kill -0 $$ 2>/dev/null; do sleep 1; done; `
     + `kill -0 ${hostPid} 2>/dev/null || { pkill -TERM -s $$ || kill -TERM $$; sleep 2; pkill -KILL -s $$ || kill -KILL $$; } ) </dev/null >/dev/null 2>&1 &`;
-  const shellLine = `stty rows ${input.rows} cols ${input.cols} 2>/dev/null; ${watchdog} exec ${shellQuote(input.command)}`;
+  // Not `exec`: the shell outlives the program to end the session it leaves
+  // behind, every other member first, so they are gone before `script` exits.
+  const sessionEnd = `if command -v pgrep >/dev/null 2>&1; then for p in $(pgrep -s $$); do [ "$p" = "$$" ] || kill -KILL "$p" 2>/dev/null; done; else kill -KILL 0; fi`;
+  const shellLine = `stty rows ${input.rows} cols ${input.cols} 2>/dev/null; ${watchdog} ${shellQuote(input.command)}; ${sessionEnd}`;
   return {
     file: scriptPath,
     args: input.platform === "darwin"
@@ -161,18 +168,6 @@ function descendantsOf(rootPid: number, processes: readonly TerminalProcess[]): 
   return found;
 }
 
-/**
- * Whether `later` started no earlier than `earlier`: /proc start ticks
- * compare as numbers, `ps` start times as dates. Unreadable is false, so a
- * process is never taken for a group member on a guess.
- */
-function startedNoEarlier(later: string, earlier: string): boolean {
-  const ticks = [Number(later), Number(earlier)];
-  if (/^\d+$/u.test(later) && /^\d+$/u.test(earlier)) { return (ticks[0] ?? 0) >= (ticks[1] ?? 0); }
-  const dates = [Date.parse(later), Date.parse(earlier)];
-  return Number.isFinite(dates[0]) && Number.isFinite(dates[1]) && (dates[0] ?? 0) >= (dates[1] ?? 0);
-}
-
 /** How often, at most, output prompts another look at the processes under `script`. */
 const OBSERVE_EVERY_MS = 500;
 
@@ -189,13 +184,13 @@ let exitHookInstalled = false;
  * exited first is no longer under `script`, so the terminal also keeps what
  * it saw while running (as output arrives): the program's own process
  * group, led by `script`'s child, and every process it found below `script`.
- * At kill it also signals the processes still in that group that started no
- * earlier than its leader, and the ones it saw that are still the same
- * process (same start time); never a pid that may have been reused. On
+ * At kill it also signals the ones it saw that are still the same process
+ * (same start time), and the members of that group while one of them is
+ * such a process (a group id is not reused while any member lives); never a
+ * pid that may have been reused, and nothing below `script` once it exited. On
  * Linux the program also starts with an environment marker, so kill finally
  * ends every process still carrying it, wherever it went, the way OAR ends
- * a Cursor child's (environment-marker.ts); elsewhere the terminal looks
- * below `script` on a timer too, since a program may exit before any output.
+ * a Cursor child's (environment-marker.ts).
  */
 export function openScriptTerminal(input: OpenClaudeLimitResetTerminalInput, host: ScriptTerminalHost = HOST): ClaudeLimitResetTerminal | null {
   const script = host.findScript(input.env);
@@ -225,22 +220,32 @@ export function openScriptTerminal(input: OpenClaudeLimitResetTerminalInput, hos
   const seen = new Map<number, TerminalProcess>();
   let observedAt = 0;
   const observe = (now: readonly TerminalProcess[]): void => {
-    if (child.pid === undefined) { return; }
+    // Once `script` has exited its pid may belong to someone else: nothing is looked up below it.
+    if (child.pid === undefined || exited) { return; }
     observedAt = Date.now();
     for (const each of descendantsOf(child.pid, now)) { seen.set(each.pid, each); }
   };
-  /** Ours, now: below `script`, still the process seen earlier, or in the program's group since its leader started. */
+  /** A process seen earlier that is still that process (same start time). */
+  const stillSeen = (each: TerminalProcess): boolean => seen.get(each.pid)?.startedAt === each.startedAt;
+  /**
+   * Ours, now: below `script` while it runs; a process seen earlier that is
+   * still the same process; or a member of a process group led by
+   * `script`'s child, while that group still holds a process seen earlier
+   * (a group id is not reused while any member lives, so such a group is
+   * still the program's).
+   */
   const ours = (now: readonly TerminalProcess[]): TerminalProcess[] => {
     if (child.pid === undefined) { return []; }
     const rootPid = child.pid;
-    const leaders = [...seen.values()].filter((each) => each.parentPid === rootPid);
+    const leaders = new Set([...seen.values()].filter((each) => each.parentPid === rootPid).map((each) => each.pid));
+    const liveGroups = new Set(now.filter((each) => stillSeen(each) && each.groupId !== undefined && leaders.has(each.groupId)).map((each) => each.groupId));
     const found = new Map<number, TerminalProcess>();
-    for (const each of descendantsOf(rootPid, now)) { found.set(each.pid, each); }
+    if (!exited) {
+      for (const each of descendantsOf(rootPid, now)) { found.set(each.pid, each); }
+    }
     for (const each of now) {
       if (each.pid === rootPid || each.pid === host.hostPid || found.has(each.pid)) { continue; }
-      const same = seen.get(each.pid)?.startedAt === each.startedAt;
-      const grouped = leaders.some((leader) => each.groupId === leader.pid && startedNoEarlier(each.startedAt, leader.startedAt));
-      if (same || grouped) { found.set(each.pid, each); }
+      if (stillSeen(each) || (each.groupId !== undefined && liveGroups.has(each.groupId))) { found.set(each.pid, each); }
     }
     return [...found.values()];
   };
@@ -260,15 +265,9 @@ export function openScriptTerminal(input: OpenClaudeLimitResetTerminalInput, hos
   const markExited = (): void => {
     if (exited) { return; }
     exited = true;
-    if (watcher !== undefined) { clearInterval(watcher); }
     for (const listener of exitListeners) { listener(); }
   };
   const releaseMarker = trackEnvironmentMarker(marker.entry);
-  // Without the marker's scan (not Linux), look below `script` while it runs.
-  const watcher = input.platform === "linux" ? undefined : setInterval(() => {
-    if (!exited) { observe(host.listProcesses()); }
-  }, OBSERVE_EVERY_MS);
-  watcher?.unref();
   child.once("exit", markExited);
   child.once("error", markExited);
   child.stdin.on("error", () => {});
@@ -324,7 +323,6 @@ export function openScriptTerminal(input: OpenClaudeLimitResetTerminalInput, hos
           // What left the tree and the group but still carries the marker.
           await (host.killMarked === undefined ? killMarkedAsync(marker.entry) : host.killMarked(marker.entry));
         } finally {
-          if (watcher !== undefined) { clearInterval(watcher); }
           releaseMarker();
           liveTerminals.delete(onDaemonExit);
         }
