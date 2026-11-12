@@ -19,7 +19,7 @@ test("Windows codex candidates include the Desktop CLI's build folders after eac
   const listed: string[] = [];
   const builds = (bin: string): readonly string[] => {
     listed.push(bin);
-    return bin.includes("Programs") ? [] : [String.raw`D:\local\OpenAI\Codex\bin\5449c1f0f26f1f98\codex.exe`, String.raw`D:\local\OpenAI\Codex\bin\0aa11b22\codex.exe`];
+    return bin.includes("Programs") || !bin.startsWith("D:\\") ? [] : [String.raw`D:\local\OpenAI\Codex\bin\5449c1f0f26f1f98\codex.exe`, String.raw`D:\local\OpenAI\Codex\bin\0aa11b22\codex.exe`];
   };
   assert.deepEqual(codexInstalledExecutableCandidates("win32", String.raw`C:\Users\oar`, { LOCALAPPDATA: String.raw`D:\local`, APPDATA: String.raw`D:\roam` }, builds), [
     String.raw`D:\roam\npm\codex.cmd`,
@@ -27,8 +27,15 @@ test("Windows codex candidates include the Desktop CLI's build folders after eac
     String.raw`D:\local\OpenAI\Codex\bin\codex.exe`,
     String.raw`D:\local\OpenAI\Codex\bin\5449c1f0f26f1f98\codex.exe`,
     String.raw`D:\local\OpenAI\Codex\bin\0aa11b22\codex.exe`,
+    String.raw`C:\Users\oar\AppData\Local\Programs\OpenAI\Codex\bin\codex.exe`,
+    String.raw`C:\Users\oar\AppData\Local\OpenAI\Codex\bin\codex.exe`,
   ]);
-  assert.deepEqual(listed, [String.raw`D:\local\Programs\OpenAI\Codex\bin`, String.raw`D:\local\OpenAI\Codex\bin`]);
+  assert.deepEqual(listed, [
+    String.raw`D:\local\Programs\OpenAI\Codex\bin`,
+    String.raw`D:\local\OpenAI\Codex\bin`,
+    String.raw`C:\Users\oar\AppData\Local\Programs\OpenAI\Codex\bin`,
+    String.raw`C:\Users\oar\AppData\Local\OpenAI\Codex\bin`,
+  ]);
 });
 
 test("Desktop build folders are read newest first, at most three, skipping dot folders, folders without a CLI and an unreadable bin", async () => {
