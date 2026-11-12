@@ -17,7 +17,7 @@ import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { StringDecoder } from "node:string_decoder";
 import spawn from "cross-spawn";
-import { killProcessTree, OWN_PROCESS_GROUP, signalProcessGroup, trackOwnedProcess } from "../executable/index.js";
+import { spawnChecked, killProcessTree, OWN_PROCESS_GROUP, signalProcessGroup, trackOwnedProcess } from "../executable/index.js";
 
 const DEFAULT_OUTPUT_LIMIT = 4 * 1024 * 1024;
 const MAX_OUTPUT_LIMIT = 16 * 1024 * 1024;
@@ -153,7 +153,7 @@ export function createAcpTerminalHost(
     const env = { ...environment, ...Object.fromEntries((params.env ?? []).map(({ name, value }) => [name, value])) };
     const launch = terminalLaunch(params.command, params.args ?? [], commandCwd, env,
       options.shellCommand === true && params.args === undefined, options.agentPid?.());
-    const child = spawn(launch.command, launch.args, {
+    const child = spawnChecked(() => spawn(launch.command, launch.args, {
       cwd: commandCwd,
       env,
       shell: launch.shell,
@@ -161,7 +161,7 @@ export function createAcpTerminalHost(
       // Its own process group (POSIX): kill and release reach the command and
       // everything it started, not only the shell that launched it.
       detached: OWN_PROCESS_GROUP,
-    });
+    }));
     trackOwnedProcess(child);
     const { stdout, stderr } = child;
     if (stdout === null || stderr === null) {

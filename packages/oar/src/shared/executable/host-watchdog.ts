@@ -36,7 +36,17 @@ const windows = process.platform === "win32";
 // The command gets the host's own ELECTRON_RUN_AS_NODE, not the one that made this watchdog run as Node.
 const env = { ...process.env };
 if (electronRunAsNode === null) { delete env.ELECTRON_RUN_AS_NODE; } else { env.ELECTRON_RUN_AS_NODE = electronRunAsNode; }
-const child = spawn(command, args, { env, stdio: ["ignore", "inherit", "inherit"], detached: !windows, windowsHide: true, windowsVerbatimArguments: verbatim });
+// Standalone Node script: it cannot import the host's TS/module graph. Like the
+// host spawnChecked boundary, never let Node print a rejected argument or env
+// value. The parent observes the same failed exit as an async spawn error.
+const spawnChecked = (start) => {
+  try { return start(); }
+  catch {
+    process.stderr.write("oar watchdog: command spawn failed\n");
+    process.exit(1);
+  }
+};
+const child = spawnChecked(() => spawn(command, args, { env, stdio: ["ignore", "inherit", "inherit"], detached: !windows, windowsHide: true, windowsVerbatimArguments: verbatim }));
 let stopping = false;
 const group = (signal) => { try { process.kill(-child.pid, signal); } catch { try { child.kill(signal); } catch {} } };
 const stop = () => {

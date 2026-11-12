@@ -14,3 +14,4 @@ export {
   spawnLineProcess,
   trackOwnedProcess,
 } from "./process.js";
+export { spawnChecked } from "./diagnostics.js";

@@ -1,3 +1,4 @@
+import { spawnChecked } from "./diagnostics.js";
 import type { ChildProcess } from "node:child_process";
 import spawn from "cross-spawn";
 import { killGraceMs, killProcessTree, OWN_PROCESS_GROUP, signalProcessGroup, trackOwnedProcess } from "./process.js";
@@ -46,13 +47,13 @@ function stopTree(child: ChildProcess): void {
  */
 export async function runIsolated(command: string, args: readonly string[], options: IsolatedRunOptions): Promise<IsolatedResult> {
   const target = windowsSpawnTarget(command, args, options);
-  const child = spawn(target.command, [...target.args], {
+  const child = spawnChecked(() => spawn(target.command, [...target.args], {
     env: options.env,
     stdio: ["ignore", "pipe", "pipe"],
     detached: OWN_PROCESS_GROUP,
     windowsHide: true,
     windowsVerbatimArguments: target.windowsVerbatimArguments === true,
-  });
+  }));
   trackOwnedProcess(child);
   let stdout = "";
   let stderr = "";

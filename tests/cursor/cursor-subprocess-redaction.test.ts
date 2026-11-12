@@ -41,3 +41,20 @@ test.each(["throw", "exit"] as const)("a status read that fails with a secret of
   expect(seen).toContain("[redacted]");
   expect(seen).not.toContain(SECRET);
 });
+
+// Native Node validation quotes an escaped NUL, which no longer matches the
+// literal environment value. Guard the spawn before the SDK can be loaded.
+test.each(["session", "models", "status"] as const)("Cursor subprocess %s rejects NUL env without leaking its escaped value", async (operation) => {
+  const runtime = fakeCursorRuntime("subprocess", "clean");
+  const env = { OAR_TEST_SECRET: `${SECRET}\0` };
+  const calls = {
+    session: async () => runtime.session(bundled, { cwd: process.cwd(), env }),
+    models: async () => runtime.listModels(bundled, { env }),
+    status: async () => runtime.authStatus(bundled, { env }),
+  };
+  const result: unknown = await calls[operation]().catch((error: unknown) => error);
+  expect(everything(result)).not.toContain(SECRET);
+  if (operation === "status") { expect(result).toMatchObject({ kind: "unknown" }); }
+  else { expect(result).toBeInstanceOf(Error); }
+  expect(everything(result)).toContain("without null bytes");
+});
