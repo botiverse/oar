@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
-import { expect, type Assertion } from "vitest";
+import { readFile } from "node:fs/promises";
+import { expect, vi, type Assertion } from "vitest";
 
 interface Row {
   readonly pid: number;
@@ -23,5 +24,15 @@ export function processTable(): Row[] {
 export function expectRunning(marker: string): Assertion<number[]> {
   const matches = processTable().filter((row) => row.args.includes(marker));
   return expect(matches.map((row) => row.pid), JSON.stringify({ marker, processes: matches }, null, 2));
+}
+
+/** A yielded exec can still be in shell startup. The fixture itself appends its PID once it starts. */
+export async function expectStarted(file: string): Promise<void> {
+  await vi.waitFor(async () => {
+    const content = await readFile(file, "utf8");
+    const pids = content.trim().split("\n");
+    expect(pids, "fixture must start exactly once").toHaveLength(1);
+    expect(pids[0]).toMatch(/^\d+$/u);
+  }, { timeout: 10_000, interval: 50 });
 }
 

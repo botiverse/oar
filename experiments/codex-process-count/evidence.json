@@ -1,0 +1,207 @@
+{
+  "date": "2026-11-12",
+  "controlledShellDelay": {
+    "identity": {
+      "platform": "linux",
+      "arch": "x64",
+      "node": "v24.19.0",
+      "codex": "codex-cli 0.167.2",
+      "cleanHome": true,
+      "legacyFirst": true,
+      "slowShell": true,
+      "rounds": 2
+    },
+    "rounds": [
+      {
+        "round": 0,
+        "turnOutcome": {
+          "kind": "completed"
+        },
+        "providerRequests": 2,
+        "nativeCommandStarts": 1,
+        "legacyCountAtTurnEnd": 4,
+        "processesAtTurnEnd": [
+          " 400515  400381  400515 Thu Nov 12 21:02:25 2026 /bin/bash -c (sleep 3; :) & (sleep 3; :) & (sleep 3; :) & wait; exec \"<node>\" \"<fixture>/older.cjs\" \"<fixture>/fork-now\" <marker>",
+          " 400516  400515  400515 Thu Nov 12 21:02:25 2026 /bin/bash -c (sleep 3; :) & (sleep 3; :) & (sleep 3; :) & wait; exec \"<node>\" \"<fixture>/older.cjs\" \"<fixture>/fork-now\" <marker>",
+          " 400517  400515  400515 Thu Nov 12 21:02:25 2026 /bin/bash -c (sleep 3; :) & (sleep 3; :) & (sleep 3; :) & wait; exec \"<node>\" \"<fixture>/older.cjs\" \"<fixture>/fork-now\" <marker>",
+          " 400518  400515  400515 Thu Nov 12 21:02:25 2026 /bin/bash -c (sleep 3; :) & (sleep 3; :) & (sleep 3; :) & wait; exec \"<node>\" \"<fixture>/older.cjs\" \"<fixture>/fork-now\" <marker>"
+        ],
+        "subsequentCounts": [
+          4,
+          4,
+          4,
+          4,
+          4,
+          4,
+          1
+        ],
+        "fixtureLaunchPids": [
+          "400515"
+        ],
+        "laterProcesses": [
+          " 400515  400381  400515 Thu Nov 12 21:02:25 2026 <node> <fixture>/older.cjs <fixture>/fork-now <marker>"
+        ]
+      },
+      {
+        "round": 1,
+        "turnOutcome": {
+          "kind": "completed"
+        },
+        "providerRequests": 2,
+        "nativeCommandStarts": 1,
+        "legacyCountAtTurnEnd": 4,
+        "processesAtTurnEnd": [
+          " 401222  401085  401222 Thu Nov 12 21:02:30 2026 /bin/bash -c (sleep 3; :) & (sleep 3; :) & (sleep 3; :) & wait; exec \"<node>\" \"<fixture>/older.cjs\" \"<fixture>/fork-now\" <marker>",
+          " 401223  401222  401222 Thu Nov 12 21:02:30 2026 /bin/bash -c (sleep 3; :) & (sleep 3; :) & (sleep 3; :) & wait; exec \"<node>\" \"<fixture>/older.cjs\" \"<fixture>/fork-now\" <marker>",
+          " 401224  401222  401222 Thu Nov 12 21:02:30 2026 /bin/bash -c (sleep 3; :) & (sleep 3; :) & (sleep 3; :) & wait; exec \"<node>\" \"<fixture>/older.cjs\" \"<fixture>/fork-now\" <marker>",
+          " 401225  401222  401222 Thu Nov 12 21:02:30 2026 /bin/bash -c (sleep 3; :) & (sleep 3; :) & (sleep 3; :) & wait; exec \"<node>\" \"<fixture>/older.cjs\" \"<fixture>/fork-now\" <marker>"
+        ],
+        "subsequentCounts": [
+          4,
+          4,
+          4,
+          4,
+          4,
+          4,
+          1
+        ],
+        "fixtureLaunchPids": [
+          "401222"
+        ],
+        "laterProcesses": [
+          " 401222  401085  401222 Thu Nov 12 21:02:30 2026 <node> <fixture>/older.cjs <fixture>/fork-now <marker>"
+        ]
+      }
+    ]
+  },
+  "ordinaryControls": [
+    {
+      "control": "exact",
+      "rounds": 12,
+      "counts": [
+        [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ]
+      ],
+      "providerRequests": [
+        2
+      ],
+      "nativeCommandStarts": [
+        1
+      ],
+      "legacyCount": [
+        null
+      ]
+    },
+    {
+      "control": "node24222",
+      "rounds": 12,
+      "counts": [
+        [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ]
+      ],
+      "providerRequests": [
+        2
+      ],
+      "nativeCommandStarts": [
+        1
+      ],
+      "legacyCount": [
+        null
+      ]
+    },
+    {
+      "control": "clean-home",
+      "rounds": 12,
+      "counts": [
+        [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ]
+      ],
+      "providerRequests": [
+        2
+      ],
+      "nativeCommandStarts": [
+        1
+      ],
+      "legacyCount": [
+        null
+      ]
+    },
+    {
+      "control": "legacy",
+      "rounds": 12,
+      "counts": [
+        [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ]
+      ],
+      "providerRequests": [
+        2
+      ],
+      "nativeCommandStarts": [
+        1
+      ],
+      "legacyCount": [
+        1
+      ]
+    },
+    {
+      "control": "ubuntu26-container",
+      "rounds": 12,
+      "counts": [
+        [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ]
+      ],
+      "providerRequests": [
+        2
+      ],
+      "nativeCommandStarts": [
+        1
+      ]
+    }
+  ],
+  "validation": {
+    "linuxNativeAbortCases": {
+      "passed": 5,
+      "durationSeconds": 156.66
+    },
+    "forcedFailureCapture": {
+      "injectedExpectedCount": 2,
+      "actualCount": 1,
+      "retainedRecords": 42,
+      "providerMessages": 2,
+      "startupPids": 1,
+      "capturedMatchingProcesses": 2,
+      "requestHeadersIncluded": false,
+      "matchingProcessesAfterCleanup": 0
+    }
+  }
+}

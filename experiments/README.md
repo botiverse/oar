@@ -1,5 +1,7 @@
 # experiments
 
+- [Codex process counts before fixture startup](codex-process-count/README.md): native yielded-command counterexample, explicit fixture readiness, and the still-unconfirmed original CI cause.
+
 - [Runtime version check: November 12](runtime-version-checks/2026-11-12.md): four changed native versions, Kimi MCP resume mismatch, Qoder replay failures and CI process-count evidence.
 
 - [Codex inspection, 2026-11-11](codex-inspection-2026-11-11/README.md): real old/current version refusals, configuration admission boundaries, recovery and native credential echoes.
