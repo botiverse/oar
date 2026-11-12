@@ -65,7 +65,7 @@ test.each(cases)("$name settles at its deadline while owned cleanup continues", 
       expect(outcome.error).toBeNull();
       expect(outcome.value).toEqual({
         kind: "available", rateLimited: false,
-        windows: [{ label: "Included usage", usedRatio: 0.25 }],
+        windows: [{ label: "Included usage", usedRatio: 0.25, scope: { kind: "account" } }],
       });
     } else { expect(outcome.error).toBeInstanceOf(Error); }
     expect(outcome.elapsed).toBeGreaterThanOrEqual(TIMEOUT - (name === "Grok optional identity" ? 150 : 50));

@@ -49,6 +49,22 @@ start, which an even-burn line needs. Sources:
 | codex | `<limitId>:primary` or `<limitId>:secondary` | `windowDurationMins` as reported |
 | grok, kimi | none | none |
 
+`scope` says what the runtime ties a window to: `{ kind: "account" }` when
+it reports the window as the account's, `{ kind: "model", name }` when it
+reports it as one model's, with the runtime's own name for the model; it
+is omitted when the runtime says neither. No runtime names a model id here,
+so a host matches `name` to its own models (for example `listModels`
+display names); OAR does not guess. A model is held back by every
+`account` window and by the `model` windows whose name is that model's;
+treat a window without `scope` as `account`.
+
+| Runtime | `account` | `model` (name) | no `scope` |
+| --- | --- | --- | --- |
+| claude | `five_hour`, `seven_day`, extra usage | `seven_day_opus` ("Opus"), `seven_day_sonnet` ("Sonnet"), each `model_scoped` row (its display name, such as "Fable") | `seven_day_oauth_apps` (third-party apps' use) |
+| codex | the unnamed `codex` bucket | a bucket with a `limitName` (such as "GPT-5.3-Codex-Spark") | any other unnamed bucket |
+| grok | included usage, pay-as-you-go | none | none |
+| kimi | timed windows, Extra Usage | none | a row with only a name |
+
 ## Limit resets
 
 Some subscriptions grant resets an account can spend to restore its usage

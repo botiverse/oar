@@ -69,6 +69,9 @@ test("codex projection distinguishes windows from separate limits", () => {
           "id": "codex:primary",
           "label": "Codex · 1 week",
           "resetsAt": "2027-01-17T15:33:20.000Z",
+          "scope": {
+            "kind": "account",
+          },
           "usedRatio": 0.92,
         },
         {
@@ -76,6 +79,10 @@ test("codex projection distinguishes windows from separate limits", () => {
           "id": "codex_bengalfox:primary",
           "label": "GPT-5.3-Codex-Spark · 5 hours",
           "resetsAt": "2027-01-15T08:00:00.000Z",
+          "scope": {
+            "kind": "model",
+            "name": "GPT-5.3-Codex-Spark",
+          },
           "usedRatio": 0,
         },
         {
@@ -83,6 +90,10 @@ test("codex projection distinguishes windows from separate limits", () => {
           "id": "codex_bengalfox:secondary",
           "label": "GPT-5.3-Codex-Spark · 1 week",
           "resetsAt": "2027-01-16T11:46:40.000Z",
+          "scope": {
+            "kind": "model",
+            "name": "GPT-5.3-Codex-Spark",
+          },
           "usedRatio": 0,
         },
       ],
@@ -122,6 +133,10 @@ test("codex projection merges an extra-only indexed view", () => {
           "durationMs": 18000000,
           "label": "GPT-5.3-Codex-Spark · 5 hours",
           "resetsAt": "2027-01-16T11:46:40.000Z",
+          "scope": {
+            "kind": "model",
+            "name": "GPT-5.3-Codex-Spark",
+          },
           "usedRatio": 0,
         },
       ],
@@ -171,6 +186,9 @@ test("grok projection preserves the vendor billing window and authenticated emai
         {
           "label": "Weekly included usage",
           "resetsAt": "2026-08-31T00:00:00.000Z",
+          "scope": {
+            "kind": "account",
+          },
           "usedRatio": 0.225,
         },
       ],
@@ -199,6 +217,9 @@ test("grok projection falls back to legacy used/limit cents", () => {
         {
           "label": "Included usage",
           "resetsAt": "2026-09-01T00:00:00.000Z",
+          "scope": {
+            "kind": "account",
+          },
           "usedRatio": 0.25,
         },
       ],
@@ -210,7 +231,7 @@ test("grok projection falls back to legacy used/limit cents", () => {
 test("grok projection defaults omitted metrics to zero but rejects malformed usage", () => {
   const unused = {
     kind: "available", rateLimited: false,
-    windows: [{ label: "Included usage", usedRatio: 0 }],
+    windows: [{ label: "Included usage", usedRatio: 0, scope: { kind: "account" } }],
   };
   expect(projectGrokUsage({ config: {} })).toEqual(unused);
   expect(projectGrokUsage({
@@ -247,11 +268,17 @@ test("grok projection keeps paid headroom distinct from included usage", () => {
         {
           "label": "Monthly included usage",
           "resetsAt": "2026-09-01T00:00:00.000Z",
+          "scope": {
+            "kind": "account",
+          },
           "usedRatio": 1,
         },
         {
           "label": "Pay-as-you-go",
           "resetsAt": "2026-09-01T00:00:00.000Z",
+          "scope": {
+            "kind": "account",
+          },
           "usedRatio": 0.25,
         },
       ],

@@ -123,6 +123,8 @@ function projectWindow(row: UsageRow): AccountUsageWindow | null {
     label: usageLabel(row),
     usedRatio: Number(Math.max(0, Math.min(1, row.used / row.limit)).toFixed(6)),
     ...(row.resetsAt === undefined ? {} : { resetsAt: row.resetsAt }),
+    // A timed window is the subscription's; a row with only a name says nothing of what it covers.
+    ...(row.window === undefined ? {} : { scope: { kind: "account" } as const }),
   };
 }
 
@@ -191,6 +193,7 @@ export function projectKimiUsage(
     windows.push({
       label: "Extra Usage monthly limit",
       usedRatio: Number(Math.min(1, extraUsage.monthlyUsed / extraUsage.monthlyLimit).toFixed(6)),
+      scope: { kind: "account" },
     });
   }
   if (windows.length === 0) { throw new Error("Kimi usage response contains no usable quota windows"); }

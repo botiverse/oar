@@ -21,6 +21,7 @@ export type {
   AccountUsageReadOptions,
   AccountUsageSnapshot,
   AccountUsageWindow,
+  AccountUsageWindowScope,
   UtcInstant,
 } from "./account-usage.js";
 export type {
