@@ -57,6 +57,12 @@ flowchart TB
 - `shared/stream-json/` owns line-message projection, control pairing and session input/interrupt mechanics. Runtime profiles supply native result/usage meanings, launch policy, private readbacks and capabilities; the shared layer never selects policy by runtime ID. Its per-frame Claude baselines are in `tests/replay/claude-stream-json-equivalence.test.ts`.
 - Keep host dependencies as constructor inputs until multiple runtimes prove a stable shared boundary. Do not create empty architecture directories.
 - Test layers (`tests/`, `sea-trial/`, `experiments/`) are described in [`docs/development.md`](../../../docs/development.md#how-to-validate-the-changes).
+- Process launches use `shared/executable/diagnostics.ts`'s `spawnChecked`
+  boundary. Native validation errors can quote escaped argument or environment
+  values, which exact-value credential filters cannot match. The standalone
+  watchdog has its own fixed-message boundary because it cannot import the
+  host module graph. `tests/spawn-boundary.test.ts` checks host calls and
+  embedded scripts for unwrapped `spawn` calls.
 - Installation probing is local-only. Account usage is a separate authenticated observation capability.
 - Behavior invariants live as comments on the exact contract member they constrain; every must/never has (or gets) a sea-trial case.
 - The agent-facing dependency direction is discovery/capabilities → control →

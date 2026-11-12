@@ -1,3 +1,4 @@
+import { spawnChecked } from "./diagnostics.js";
 import { spawn, type ChildProcess } from "node:child_process";
 import { Socket } from "node:net";
 import { trackOwnedProcess } from "./ownership.js";
@@ -10,7 +11,7 @@ export interface ProcessTableReadOptions { readonly background?: boolean; }
 export async function processTableCommand(command: string, args: readonly string[], env?: NodeJS.ProcessEnv, options?: ProcessTableReadOptions): Promise<string> {
   const output = await new Promise<string>((resolve, reject) => {
     // Node's piped-stdio overload excludes the missing pipes of a failed spawn.
-    const child: ChildProcess = spawn(command, [...args], { env, windowsHide: true, stdio: ["ignore", "pipe", "ignore"] });
+    const child: ChildProcess = spawnChecked(() => spawn(command, [...args], { env, windowsHide: true, stdio: ["ignore", "pipe", "ignore"] }));
     trackOwnedProcess(child);
     const chunks: Buffer[] = [];
     let size = 0;

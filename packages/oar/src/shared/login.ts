@@ -3,7 +3,7 @@ import { StringDecoder } from "node:string_decoder";
 import spawn from "cross-spawn";
 import type { AvailableInstallation, ExecutableInstallation } from "../contracts/installation.js";
 import type { LoginResult, LoginUnsupportedReason } from "../contracts/login.js";
-import { killGraceMs, killProcessTree, OWN_PROCESS_GROUP, signalProcessGroup, trackOwnedProcess, windowsSpawnTarget } from "./executable/index.js";
+import { spawnChecked, killGraceMs, killProcessTree, OWN_PROCESS_GROUP, signalProcessGroup, trackOwnedProcess, windowsSpawnTarget } from "./executable/index.js";
 import { hostWatchdogTarget } from "./executable/host-watchdog.js";
 import { locateExecutable } from "./installation.js";
 import { releaseVersion, versionAtLeast } from "./update.js";
@@ -166,7 +166,7 @@ export function spawnLoginProcess(
   const native = windowsSpawnTarget(command, args, { env });
   const watched = options.stopWithHost === true ? hostWatchdogTarget(native, env) : null;
   const target = watched ?? native;
-  const child = spawn(target.command, [...target.args], {
+  const child = spawnChecked(() => spawn(target.command, [...target.args], {
     env: watched?.env ?? env,
     ...(options.cwd === undefined ? {} : { cwd: options.cwd }),
     stdio: ["pipe", "pipe", "pipe"],
@@ -175,7 +175,7 @@ export function spawnLoginProcess(
     detached: OWN_PROCESS_GROUP || watched !== null,
     windowsHide: true,
     windowsVerbatimArguments: target.windowsVerbatimArguments === true,
-  });
+  }));
   trackOwnedProcess(child);
   let running = true;
   let stopped = false;

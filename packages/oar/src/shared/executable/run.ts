@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { killGraceMs, killProcessTree, OWN_PROCESS_GROUP, signalProcessGroup, trackOwnedProcess } from "./process.js";
-import { nativeError, stderrTail, type ProcessDiagnostics, type ProcessExitObservation, type ProcessTimeoutObservation } from "./diagnostics.js";
+import { nativeError, spawnChecked, stderrTail, type ProcessDiagnostics, type ProcessExitObservation, type ProcessTimeoutObservation } from "./diagnostics.js";
 import { windowsSpawnTarget } from "./windows-shim.js";
 
 export interface ExecutableResult {
@@ -71,12 +71,12 @@ export const runExecutable: ExecutableRunner = async (executable, args, options 
       // Both the direct shim target and the escaped cmd.exe fallback are
       // explicit executables: Node must not add a shell or quote again.
       const target = windowsSpawnTarget(executable, args, options);
-      const child = spawn(target.command, [...target.args], {
+      const child = spawnChecked(() => spawn(target.command, [...target.args], {
         cwd: options.cwd, env: options.env,
         stdio: ["pipe", "pipe", "pipe"],
         detached: OWN_PROCESS_GROUP,
         windowsVerbatimArguments: target.windowsVerbatimArguments === true,
-      });
+      }));
       trackOwnedProcess(child);
       // An exited group leader can leave descendants holding the pipes.
       // Signal the group until close, and retain escalation until then.

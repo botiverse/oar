@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { nodeEvalExecutable } from "./node-eval.js";
-import { StderrTail } from "./diagnostics.js";
+import { spawnChecked, StderrTail } from "./diagnostics.js";
 import { killMarkedAsync, trackEnvironmentMarker } from "./environment-marker.js";
 import { trackOwnedProcess } from "./ownership.js";
 import { processShutdown } from "./process-shutdown.js";
@@ -67,13 +67,13 @@ export function spawnNodeScript(script: string, argument: string, env: NodeJS.Pr
   if (node === null) {
     throw new Error("this host is a compiled single executable (Node SEA or Bun standalone): its executable would start the application again instead of a Node script, so it cannot run a Node script child");
   }
-  const child = spawn(node, ["-e", script, argument], {
+  const child = spawnChecked(() => spawn(node, ["-e", script, argument], {
     env,
     stdio: ["ignore", "pipe", "pipe", "ipc"],
     serialization: "advanced",
     detached: true,
     windowsHide: true,
-  });
+  }));
   trackOwnedProcess(child);
   const releaseMarker = marker === undefined ? null : trackEnvironmentMarker(marker);
   const shutdown = processShutdown(child, { killTree: true });

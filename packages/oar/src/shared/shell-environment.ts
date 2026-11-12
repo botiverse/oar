@@ -1,3 +1,4 @@
+import { spawnChecked } from "./executable/diagnostics.js";
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { basename } from "node:path";
@@ -62,7 +63,7 @@ async function capture(shell: string, args: readonly string[], env: NodeJS.Proce
     const chunks: Buffer[] = [];
     let size = 0;
     let settled = false;
-    const child = spawn(shell, [...args], { env, detached: true, stdio: ["ignore", "pipe", "pipe"] });
+    const child = spawnChecked(() => spawn(shell, [...args], { env, detached: true, stdio: ["ignore", "pipe", "pipe"] }));
     trackOwnedProcess(child);
     const finish = (failure?: UserShellEnvironmentFailure): void => {
       if (settled) { return; }

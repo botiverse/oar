@@ -70,9 +70,9 @@ checks (there is no automatic tsc fallback). Incremental build caches live
 inside `dist` and are excluded from the npm packages; removing `dist` forces
 a complete rebuild.
 
-The official `typescript` dependency serves only `tests/clean-install.ts`,
-which checks that a TypeScript 6 host can consume the packed, tsrs-built
-declarations. An editor on that workspace TypeScript 6 can report different
+The official `typescript` dependency also parses source for the spawn-boundary
+check in `tests/spawn-boundary.test.ts`. `tests/clean-install.ts` checks that a
+TypeScript 6 host can consume the packed, tsrs-built declarations. An editor on that workspace TypeScript 6 can report different
 diagnostics from CI; tsrs has its own language server
 ([editor setup](https://github.com/oxc-project/tsrs/blob/main/docs/LSP.md#editor-setup)).
 Type-aware lint uses oxlint/oxlint-tsgolint; tsx, esbuild and vitest are
