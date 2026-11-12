@@ -54,9 +54,12 @@ it reports the window as the account's, `{ kind: "model", name }` when it
 reports it as one model's, with the runtime's own name for the model; it
 is omitted when the runtime says neither. No runtime names a model id here,
 so a host matches `name` to its own models (for example `listModels`
-display names); OAR does not guess. A model is held back by every
-`account` window and by the `model` windows whose name is that model's;
-treat a window without `scope` as `account`.
+display names); OAR does not guess. The windows that concern a model are
+the `account` ones and the `model` ones whose name is that model's; read a
+window without `scope` as `account`. `scope` says what a window counts, not
+whether a full one stops work: extra usage can carry a Claude, Grok or Kimi
+account past a full subscription window, which the snapshot's
+`rateLimited` already weighs.
 
 | Runtime | `account` | `model` (name) | no `scope` |
 | --- | --- | --- | --- |
