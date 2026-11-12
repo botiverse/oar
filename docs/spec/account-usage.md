@@ -1,8 +1,8 @@
 # Account usage
 
 `runtime.accountUsage(installation, options?)` reads account quota independently
-of session token usage. It is an optional member: claude, codex, grok and
-kimi have it; the other built-in runtimes do not. The
+of session token usage. It is an optional member: antigravity, claude,
+codex, grok and kimi have it; the other built-in runtimes do not. The
 [TypeScript contract](../../packages/oar/src/contracts/account-usage.ts)
 defines the snapshot and reader options. A custom runtime's reader (`defineRuntime` with `accountUsage`) builds each
 `resetsAt` with `utcInstantFromDate(date)`, which returns null for an invalid
@@ -58,16 +58,20 @@ own name for the window's model, kept as given: it can be a quota alias
 (codex's `limitName` can be `gpt-reserve`), OAR does not rewrite it from a
 related field such as codex's `normalModelSlug`, and it is not promised to
 equal a `listModels` id or display name. A host matches it to its own
-models. The
-windows that concern a model are the `account` ones and the `model` ones
-whose name is that model's; a host that must decide about a window without
+models. `{ kind: "models", name }` is a group of models the runtime limits
+together, by its name for the group (antigravity "Gemini Models"); which
+models it holds is the runtime's to say, and agy says it only in prose, so
+a host maps the group name itself. The
+windows that concern a model are the `account` ones, the `model` ones
+whose name is that model's and the `models` ones whose group holds it; a host that must decide about a window without
 `scope` can treat it as `account` as its own conservative choice. `scope` says what a window counts, not
 whether a full one stops work: extra usage can carry a Claude, Grok or Kimi
 account past a full subscription window, which the snapshot's
 `rateLimited` already weighs.
 
-| Runtime | `account` | `model` (name) | no `scope` |
+| Runtime | `account` | `model` / `models` (name) | no `scope` |
 | --- | --- | --- | --- |
+| antigravity | none | `models`: each bucket, by its group ("Gemini Models", "Claude and GPT models") | a bucket outside a named group |
 | claude | `five_hour`, `seven_day`, extra usage | `seven_day_opus` ("Opus"), `seven_day_sonnet` ("Sonnet"), each `model_scoped` row (its display name, such as "Fable") | `seven_day_oauth_apps` (third-party apps' use) |
 | codex | the unnamed `codex` bucket | a bucket with a `limitName` (such as "GPT-5.3-Codex-Spark") | any other unnamed bucket |
 | grok | included usage, pay-as-you-go | none | none |
@@ -278,6 +282,18 @@ Grok 1.0.46 on an unused account). OAR follows Grok's native `/usage`
 and defaults these omitted metrics to zero, preserving the plan and reset time.
 An absent config still returns `quota_unavailable`; present but malformed
 usage metrics still reject.
+
+Antigravity account usage is agy's own `-p "/usage" --output-format json`
+answer (agy 1.1.11 and later), which answers the read-only command with no
+agent turn, quota or conversation (a signed-in 1.5.7 reported
+`num_turns: 0`, zero tokens and an empty `conversation_id`). Each group's
+buckets (`weekly`, `5h`) become windows: `usedRatio` is one minus
+`remaining_fraction`, `id` the bucket's `id`. Signed out, that command
+starts agy's interactive login and waits, so `agy models` is asked first
+and its "Please sign in" refusal is `reauth_required` / `not_authenticated`.
+`rateLimited` is true when any bucket is used up; agy's AI credits
+(`/credits`), which can carry a model past its quota when the account turned
+them on, are not read.
 
 Claude account usage delegates to its native stream-json `get_usage` request
 (with `skip_behaviors: true`). OAR does not read Claude credentials or call its

@@ -9,7 +9,8 @@ See the [1.5.0 migration report](../../experiments/antigravity-cli-acp-2026-11-0
 for native controls, retained limitations and the host migration checklist.
 The new-version runs do not establish account-specific or macOS/Windows behavior.
 
-Independent inventories and account usage are not implemented. Login, status
+Independent inventories are not implemented. Account usage is agy's own
+`/usage` answer ([account usage](../spec/account-usage.md)). Login, status
 and logout drive agy's own ([login](#login)); see
 [account policy](#process-ownership-installation-and-account-usage). See the
 [query contract](../spec/inventory.md) and [native inventory evidence](inventory.md).
