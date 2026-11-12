@@ -18,7 +18,7 @@ That alone could not tell a cut model input from a cut transcript.
 {"check":"large_prompt_2","agyVersion":"1.5.6","promptBytes":200000,"outcome":"completed","sawStart":true,"sawEnd":false,"replyLength":9}
 ```
 
-At 200,000 bytes the model never saw the end of its input; at 185,000 it saw all of it. With the transcript cut at 192,159 bytes, the native cut is near 192,000 bytes, as a third-party bridge had reported for agy 1.5.4 (it caps at 180,000). The exact native point was not measured.
+At 185,000 bytes both code words came back; at 200,000 the end word did not. Together with the transcript cut at 192,159 bytes, and a third-party bridge's report of a cut near 192,000 bytes on agy 1.5.4 (it caps at 180,000), this supports a conservative bound. It does not prove that the model saw all of a 185,000-byte input, or none of the end of a 200,000-byte one, and the native cut point was not measured.
 
 **OAR's bound**: 185,000 UTF-8 bytes, the largest size measured to arrive whole. A longer prompt, steer or queued input is refused before it is sent (`unsupported`, `failure: input_too_large`). It is OAR's conservative bound, not agy's cut point; raising it needs a measurement between 185,000 and 192,000 bytes.
 
@@ -30,4 +30,4 @@ At 200,000 bytes the model never saw the end of its input; at 185,000 it saw all
 {"check":"mcp_child_inherits_agy_env","agyVersion":"1.5.6","serverStarted":true,"startedBy":"session_open","markerSeenByServer":"present-in-agy-env"}
 ```
 
-The server started on `session/new` with agy's own environment. A read-only search of `~/.gemini` and `~/.cache/antigravity` afterwards (132 files) found no copy of the marker. That shows only that this run left none. See [antigravity.md](../../docs/runtimes/antigravity.md#session-mcp-servers) for what OAR does with this.
+The server started on `session/new` with agy's own environment. A read-only search of `~/.gemini` and `~/.cache/antigravity` afterwards (132 files) found no plain-text copy of the marker; that says nothing of other files, paths or encodings. See [antigravity.md](../../docs/runtimes/antigravity.md#session-mcp-servers) for what OAR does with this.

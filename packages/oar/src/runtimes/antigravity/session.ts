@@ -38,8 +38,8 @@ export const antigravityAcpProfile: AcpSessionProfile = {
   // Native invalid image prompts return invalid-params without entering the loop.
   isSteerRefusal: (error) => rpcErrorCode(error) === -32_602,
   requestTimeoutMs: 30_000,
-  // agy 1.5.6 drops the end of one input past about 192,000 bytes and says
-  // nothing; 185,000 is the largest measured to arrive whole (2026-11-12).
+  // OAR's conservative bound: agy 1.5.6 lost the end of a 200,000-byte input
+  // without saying so, and 185,000 bytes came back whole (2026-11-12).
   maxInputBytes: 185_000,
   // Native CLI configuration and cached authentication select the provider.
   validateOptions: (options) => {
