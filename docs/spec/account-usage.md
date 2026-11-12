@@ -293,15 +293,17 @@ starts agy's interactive login and waits, so `agy models` is asked first:
 its "Please sign in" refusal is `reauth_required` / `not_authenticated`, and
 any other answer that does not confirm a login rejects without running
 `/usage`. A confirmed login can still end before `/usage` runs; then that
-command waits for a login and the read rejects at its deadline, its
-processes ended. A bucket with any quota left keeps `usedRatio` below 1.
+command waits for a login and the read rejects at its deadline, while
+the cleanup of its processes continues in the background (as for every
+reader, above). A bucket with any quota left keeps `usedRatio` below 1.
 `rateLimited` means no model can run on quota or credits: every group has a
 used-up bucket and agy's own `/credits` answer (`-p "/credits" --output-format json`,
 `command.data.remaining_credits`, recorded from the same signed-in 1.5.7)
 reports none left (AI credits
 can carry a model past its quota where the account turned them on). Only
-then is `/credits` asked; when it does not answer, `rateLimited` stays
-false. One used-up group shows in its windows, not in `rateLimited`.
+then is `/credits` asked; when it ends without a readable balance,
+`rateLimited` stays false, and when it hangs, the read rejects at its
+deadline like any other stalled query. One used-up group shows in its windows, not in `rateLimited`.
 
 Claude account usage delegates to its native stream-json `get_usage` request
 (with `skip_behaviors: true`). OAR does not read Claude credentials or call its
