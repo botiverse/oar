@@ -61,6 +61,7 @@ program
       install: runtime.install !== undefined,
       accountUsage: runtime.accountUsage !== undefined,
       redeemLimitReset: runtime.redeemLimitReset !== undefined,
+      inspectLimitResets: runtime.inspectLimitResets !== undefined,
       listModels: runtime.listModels !== undefined,
       checkUpdate: runtime.checkUpdate !== undefined,
       upgrade: runtime.upgrade !== undefined,

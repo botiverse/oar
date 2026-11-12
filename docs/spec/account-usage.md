@@ -66,16 +66,17 @@ A Codex too old for that parameter (0.131.0 refuses any) is read without it.
 
 `runtime.redeemLimitReset(installation, options)` spends one through the
 runtime's own call (codex `account/rateLimitResetCredit/consume`, the call
-its TUI makes). It is an optional member: only codex has it. It uses up a
-reset that belongs to the account owner, so OAR never calls it on its own,
-and its MCP server offers no tool for it: a host calls it on the owner's
-explicit request.
+its TUI makes; claude, see [below](#claude-limit-resets)). It is an
+optional member: codex and claude have it. It uses up a reset that belongs
+to the account owner, so OAR never calls it on its own, and its MCP server
+offers no tool for it: a host calls it on the owner's explicit request.
 
 - `idempotencyKey` is required and names one attempt. Make a fresh unique
   value (a UUID) when the person asks, and send the same value again when
   retrying that attempt. OAR does not make one, because a retry needs the
   first one.
-- `resetId` picks a reset from `resets`; omitted, the runtime chooses.
+- `resetId` picks a reset from `resets`; omitted, codex chooses. Claude
+  requires a kind (`unsupported` / `reset_id_required` without one).
 - The result is Codex's own outcome: `reset`, `nothing_to_reset` (no limit
   needed it; nothing spent), `no_reset` (the account holds none, or not the
   one named) or `already_redeemed` (this key's attempt already went through,
@@ -88,10 +89,117 @@ explicit request.
   backend; a network error; an outcome OAR does not know) leaves unknown
   whether a reset was spent. Retry with the same key.
 
+Claude adds three outcomes: `not_attempted` (nothing that could spend was
+sent; try again), `unknown` (the command was submitted, or Yes was sent,
+and no recognised screen followed; OAR does not retry it) and `unsupported` / `consent_required`.
+
 No outcome says what the limits are now. Read `accountUsage` again after
 any of them; do not infer recovered windows from the outcome. The reset
 applies to the account the call resolves, as for the read, so pass the same
 `env` as the session and the read.
+
+## Claude limit resets
+
+Claude Code offers its resets only through the hidden `/limit-reset` command
+of its interactive UI: not in `-p`, the SDK or the control protocol, whose
+`get_usage` reads usage without them (2.1.322). OAR therefore starts the
+installation's `claude` in a pseudo-terminal (the system `script`, on
+Linux only), in a new empty
+directory and the call's `env`, types the command, reads the screen, and
+ends the process. Why OAR does this at all:
+[decisions](../design/decisions.md#claude-limit-resets-through-its-interactive-ui).
+One UI runs at a time per process; a call that finds two waiting is
+`not_attempted` / `busy`, and one still waiting when its `timeoutMs`
+(default 75 s) runs out, or whose turn comes with too little of it left, is
+`not_attempted` / `deadline` and never starts. macOS and Windows are
+`unsupported_platform`: macOS's BSD `script` exits at once when its stdin
+is a socket, which is what Node's pipes are there (macOS 27.0, #752).
+
+Ending a call ends its processes: the shell under `script` runs the program
+and, when it exits, ends its whole session; at the end OAR signals what it
+finds below `script` while that runs, what it saw there earlier that is
+still the same process, and the program's process group while a process
+seen earlier is still in it; and it ends every process still carrying the
+environment marker the UI was started with (as for Cursor's child). A
+process that both left the session and cleared its environment is not
+found.
+
+What keeps it from spending a reset the person did not ask for:
+
+- The command always names a kind: `five_hour`, `weekly`, `fable` or
+  `full`, typed as `/limit-reset 5-hour` and so on. A bare `/limit-reset`
+  can claim with no confirmation, so it is never typed.
+- Every screen must match text recorded from Claude Code 2.1.322 word for
+  word: the prompt under a `Claude Code v<version>` banner, the
+  confirmation dialog for the kind asked (title, the effect line, the
+  count line, an optional early-use warning, the selected Yes row naming
+  it, No below; only the dates, the count, the percentage and which of the
+  known limits the effect line lists may vary, and the list must include
+  the kind's own limit), the result lines. There is no version list: a Claude Code
+  that draws the same screens works, and one that changed them ends the
+  attempt at the first unrecognised screen with Esc. A prompt without a
+  version banner is `unsupported_version`.
+- A key reaches a dialog only after the screen has held still for 600 ms
+  (Claude Code drops keys for 250 ms after a dialog opens). Yes is sent at
+  most once per call, only when at least 30 s are left for the answer;
+  `inspectLimitResets` never sends it.
+- On Claude's older reset program (one 5-hour reset a week, no kinds),
+  opening any `/limit-reset` while the account is at its 5-hour limit spends
+  that reset with no dialog, kind or no kind. So unless the caller passes
+  `fiveHourLimitConsent: true` (the person accepted that), OAR reads usage
+  through claude's own `accountUsage` right before the first command and
+  types it only when the `five_hour` window is below 100%
+  (`consent_required` at the limit, `not_attempted` / `usage_unread` when
+  the read fails). A `five_hour` redeem skips this: asking to spend the
+  5-hour reset is itself the consent. A redeem of any kind but `five_hour` also needs
+  Claude Code's cached feature flags (`cachedGrowthBookFeatures` in its
+  config, the one boolean) to say the newer program is on; a fresh flag
+  fetch can still disagree, which is why the usage read stays.
+- The claim carries no key OAR can make Claude Code reuse. OAR keeps each
+  `idempotencyKey`'s outcome in memory for the life of the process, with no
+  limit on how many: the same key gets the first call's answer, never a
+  second Yes; the same key
+  with another `resetId` rejects. After a restart a retry is a new attempt,
+  so a host that got `unknown` reads usage before trying again. A call that
+  sent nothing (`not_attempted`, a refusal) is not remembered.
+
+Each call has a cost of its own: the interactive UI sends one model request
+at startup (a 1-token check, `max_tokens: 1`; the offline harness recorded
+it, `-p` does not send it). On a subscription it most likely counts as
+usage and can open a 5-hour window on an idle account (magpie's notes for
+2.1.316; not verified on a real account). OAR does not suppress it:
+`CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` is reported to stop it but also
+usage reads, which `/limit-reset` needs.
+
+`runtime.inspectLimitResets(installation, options?)` (claude only) opens
+`/limit-reset <kind>` for `weekly`, `fable`, `full` and, with
+`includeFiveHour: true`, `five_hour`, reads each confirmation dialog, and
+cancels it with Esc. It is not part of `accountUsage` and must not be
+polled: it starts the CLI's UI, and on the older program it can spend (above).
+`kind: "inspected"` lists every kind with its `state`: `available` (with
+`resetsLeft` and `expiresText`, claude's own words such as "Nov 19,
+4:59pm", when the dialog shows them), `none`, `not_offered`, `unknown` (a
+screen after it was not recognised, so nothing more was typed) or
+`not_checked`. `program: "legacy"` says the older program answered (it has
+only the 5-hour reset and says nothing more); `fiveHourSpent: true` says it
+spent that reset when the command opened, which only consent allows.
+`version` is the banner's. The same `reauth_required` (no login),
+`unsupported` (`endpoint_unavailable` when this account's Claude Code
+answers "Unknown command: /limit-reset") and `not_attempted` outcomes apply.
+
+A redeem's `nothing_to_reset` is claude's "saved for when you reach a usage
+limit" line, or the older program's "isn't available right now" for a
+`five_hour` request; `no_reset` is its "No … reset to use" line. `unknown`
+with `fiveHourSpent: true` is the older program spending its 5-hour reset
+for a request of another kind (only with consent).
+
+Evidence: an offline harness drove the real 2.1.322 UI against a fake
+backend in a network namespace (Raft team, 2026-11-10, 21 scenarios);
+the recognisers are tested against its recorded screens
+([driver](../../packages/oar/src/runtimes/claude/limit-reset/driver.ts),
+[tests](../../tests/claude/claude-limit-reset-driver.test.ts)). No real
+account's reset has been spent through OAR, and the real server's labels
+for the Fable and full kinds are not verified.
 
 ## Failure reasons
 
@@ -121,7 +229,9 @@ request in it included. The call rejects at the deadline; processes it started
 continue their normal owned shutdown in the background and may remain alive
 for the stop grace period (10 seconds by default) before escalation to SIGKILL.
 This also applies to Codex `redeemLimitReset` (a timeout is a rejection, see
-above). Reasons do not include tokens, credential values, or raw provider responses.
+above). Claude's limit-reset calls instead answer with a typed outcome
+(`not_attempted` or `unknown`) when their `timeoutMs` runs out, after
+ending the UI process. Reasons do not include tokens, credential values, or raw provider responses.
 
 Kimi rejects an unreadable response body, invalid JSON, or a response with no
 usable quota windows. A window with a malformed present usage metric is omitted;

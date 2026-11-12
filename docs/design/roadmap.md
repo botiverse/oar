@@ -44,7 +44,8 @@ increments, not a promise to add every feature listed.
   `userShellEnvironment()`).
 - Native controls with attributable results: manual compaction
   (`Session.compact`, `Runtime.manualCompaction`), single-task stop
-  (`Session.stopTask`), account limit resets (`Runtime.redeemLimitReset`),
+  (`Session.stopTask`), account limit resets (`Runtime.redeemLimitReset`; claude's through its
+  interactive UI with `Runtime.inspectLimitResets`),
   ending an aborted turn's processes (`endTurnProcessesOnAbort`), measured
   resume timing (`Runtime.resumedSessionOptions`) and bounded retention by
   eliding old frame content (`retainedBytes`)

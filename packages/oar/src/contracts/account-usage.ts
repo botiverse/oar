@@ -118,11 +118,29 @@ export interface LimitResetOptions {
    * Required because only the caller can keep it across a retry.
    */
   readonly idempotencyKey: string;
-  /** Which reset to spend, an `id` from `limitResets.resets`; omitted lets the runtime choose. */
+  /**
+   * Which reset to spend: an `id` from `limitResets.resets` (codex) or from
+   * `inspectLimitResets` (claude, where it names a kind). Omitted lets codex
+   * choose; claude requires it (`reset_id_required`).
+   */
   readonly resetId?: string;
+  /**
+   * The person accepted that on Claude's older reset program, opening any
+   * `/limit-reset` at the 5-hour limit spends the 5-hour reset with no
+   * confirmation. Without it, claude does not open the command while usage
+   * shows the 5-hour limit reached, or cannot rule it out; a `five_hour`
+   * request is itself consent to spending the 5-hour reset and is not
+   * checked. Codex ignores it.
+   */
+  readonly fiveHourLimitConsent?: boolean;
   /** Same overlay as sessions: strings override, null removes, and the host is untouched. */
   readonly env?: SessionOptions["env"];
-  /** Bounds the whole call, every process it starts included; each runtime has its own default. Past it the call rejects. */
+  /**
+   * Bounds the whole call, every process it starts included; each runtime
+   * has its own default. Past it codex rejects; claude answers
+   * `not_attempted` or `unknown` (a call still waiting for its single UI
+   * session answers at once).
+   */
   readonly timeoutMs?: number;
 }
 
@@ -141,7 +159,95 @@ export type LimitResetResult =
   /** This attempt already went through: a retry with the key of an earlier call that reached the runtime. */
   | { readonly kind: "already_redeemed" }
   | { readonly kind: "reauth_required"; readonly reason: AccountUsageReauthReason }
-  | { readonly kind: "unsupported"; readonly reason: AccountUsageUnsupportedReason };
+  | { readonly kind: "unsupported"; readonly reason: LimitResetUnsupportedReason }
+  /** Nothing was sent that could spend a reset; the same attempt may be made again. */
+  | { readonly kind: "not_attempted"; readonly reason: LimitResetNotAttemptedReason }
+  /**
+   * The runtime may have spent a reset, and its answer was not seen (claude:
+   * the command was submitted, or Yes was sent, and no recognised screen
+   * followed). Never retried by oar.
+   * `fiveHourSpent`: claude's older program spent its 5-hour reset instead
+   * of the kind asked for.
+   */
+  | { readonly kind: "unknown"; readonly fiveHourSpent?: true };
+
+/** Why a limit-reset call or inspection is not available here. */
+export type LimitResetUnsupportedReason =
+  | AccountUsageUnsupportedReason
+  /** The operation cannot run on this operating system (claude: Windows). */
+  | "unsupported_platform"
+  /** The installed CLI drew a screen oar does not recognise, or no version banner. */
+  | "unsupported_version"
+  /** Claude needs `resetId` naming a kind; a bare command can spend with no confirmation. */
+  | "reset_id_required"
+  /** Usage shows the 5-hour limit reached and `fiveHourLimitConsent` was not given. */
+  | "consent_required";
+
+/** Why nothing was attempted; nothing was spent. */
+export type LimitResetNotAttemptedReason =
+  /** Another limit-reset call held the runtime's single UI session and too many waited, or too little of this call's time was left when its turn came. */
+  | "busy"
+  /** The usage read right before the first command failed, so the 5-hour limit could not be ruled out. */
+  | "usage_unread"
+  /** Too little time was left to finish safely. */
+  | "deadline"
+  /** The CLI did not reach its prompt with a screen oar recognises; nothing was typed but the folder-trust answer. */
+  | "startup_failed";
+
+/** One kind of reset, as `inspectLimitResets` found it. */
+export interface LimitResetKindStatus {
+  /** The kind, for `LimitResetOptions.resetId` (claude: `five_hour`, `weekly`, `fable`, `full`). */
+  readonly id: string;
+  /**
+   * `available`: held (and `resetsLeft` when the runtime showed a count).
+   * `none`: not held. `not_offered`: the account's program has no such kind.
+   * `unknown`: opened and not recognised. `not_checked`: not opened.
+   */
+  readonly state: "available" | "none" | "not_offered" | "unknown" | "not_checked";
+  readonly resetsLeft?: number;
+  /** The runtime's own words for when it expires ("use by Nov 19, 4:59pm"); it gives no instant. */
+  readonly expiresText?: string;
+}
+
+export interface LimitResetInspectOptions {
+  /** See `LimitResetOptions.fiveHourLimitConsent`. */
+  readonly fiveHourLimitConsent?: boolean;
+  /** Also open the 5-hour kind; otherwise it is `not_checked`. */
+  readonly includeFiveHour?: boolean;
+  /** Same overlay as sessions: strings override, null removes, and the host is untouched. */
+  readonly env?: SessionOptions["env"];
+  /** Bounds the whole call, every process it starts included; past it claude answers `not_attempted` or what it found so far. */
+  readonly timeoutMs?: number;
+}
+
+export type LimitResetInspection =
+  | {
+      readonly kind: "inspected";
+      /** Claude's older program (one 5-hour reset, no kinds) answered; it says nothing more. */
+      readonly program?: "legacy";
+      /** The older program spent its 5-hour reset when the command opened (only with consent). */
+      readonly fiveHourSpent?: true;
+      readonly resets: readonly LimitResetKindStatus[];
+      /** The CLI version whose screens were read. */
+      readonly version?: string;
+    }
+  | { readonly kind: "reauth_required"; readonly reason: AccountUsageReauthReason }
+  | { readonly kind: "unsupported"; readonly reason: LimitResetUnsupportedReason }
+  | { readonly kind: "not_attempted"; readonly reason: LimitResetNotAttemptedReason }
+  /** The first screen after the command was not recognised; nothing more was typed. */
+  | { readonly kind: "unknown" };
+
+/**
+ * Lists an account's limit resets by opening the runtime's own interactive
+ * command and cancelling it (claude). Not a passive read: it starts the CLI's
+ * UI, and on Claude's older program it can spend the 5-hour reset (see
+ * `fiveHourLimitConsent`). Only on the account owner's explicit request; never
+ * poll it.
+ */
+export type LimitResetInspector = (
+  installation: AvailableInstallation,
+  options?: LimitResetInspectOptions,
+) => Promise<LimitResetInspection>;
 
 /**
  * Spends one of the account's limit resets through the runtime's own call.

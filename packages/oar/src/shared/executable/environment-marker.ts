@@ -15,9 +15,9 @@ import { readdir, readFile, stat } from "node:fs/promises";
  * scanned.
  */
 
-/** A fresh marker: `NAME=1`, the name unique to one child. Not a secret. */
-export function newEnvironmentMarker(): { readonly name: string; readonly entry: string } {
-  const name = `OAR_CURSOR_CHILD_${randomUUID().replaceAll("-", "")}`;
+/** A fresh marker: `NAME=1`, the name unique to one child and starting with `prefix`. Not a secret. */
+export function newEnvironmentMarker(prefix = "OAR_CURSOR_CHILD"): { readonly name: string; readonly entry: string } {
+  const name = `${prefix}_${randomUUID().replaceAll("-", "")}`;
   return { name, entry: `${name}=1` };
 }
 
