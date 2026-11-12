@@ -13,6 +13,7 @@ import { removeFixtureDirectory } from "../harness/fixture-directory-cleanup.js"
 import { startCodexAimock, type AimockEnv } from "../harness/aimock.js";
 import { expectAvailable } from "./support/asserts.js";
 import { ECHO_SERVER } from "./support/echo-mcp.js";
+import { expectRunning, processTable } from "./support/codex-process-count.js";
 
 /*
  * SessionOptions.endTurnProcessesOnAbort on the real binary with a scripted
@@ -64,18 +65,9 @@ interface Markers {
 const workerOf = (marker: string): string => marker.replace(/^oar-(\w+)-/u, "oar-$1-worker-");
 const detachedWorkerOf = (marker: string): string => marker.replace(/^oar-(\w+)-/u, "oar-$1-detached-");
 
-interface Row { readonly pid: number; readonly ppid: number; readonly pgid: number; readonly args: string }
-
-function table(): Row[] {
-  return execFileSync("ps", ["-A", "-o", "pid=,ppid=,pgid=,args="], { encoding: "utf8" }).split("\n").flatMap((line) => {
-    const match = /^\s*(\d+)\s+(\d+)\s+(\d+)\s+(.*)$/u.exec(line);
-    return match === null ? [] : [{ pid: Number(match[1]), ppid: Number(match[2]), pgid: Number(match[3]), args: match[4] ?? "" }];
-  });
-}
-
 /** What the design rests on: the app-server's group holds neither an MCP server, nor an exec_command, and each leads its own. */
 function expectGroupsTellThemApart(markers: Markers, earlier: boolean): void {
-  const rows = table();
+  const rows = processTable();
   const root = rows.find((row) => row.ppid === process.pid && row.args.includes("app-server"));
   const leads = (marker: string): void => {
     const row = rows.find((candidate) => candidate.args.includes(marker));
@@ -163,7 +155,7 @@ async function abortedTurn({ options, markers, turn, earlier, after }: Scenario)
     });
     if (earlier) {
       expect(await promptAndWait(session, "START_EARLIER")).toMatchObject({ kind: "ended", outcome: { kind: "completed" } });
-      expect(running(markers.earlier)).toHaveLength(1);
+      expectRunning(markers.earlier).toHaveLength(1);
     }
     const requestsBefore = provider.mock.getRequests().length;
     const prompt = await session.prompt(turn);
@@ -179,8 +171,8 @@ async function abortedTurn({ options, markers, turn, earlier, after }: Scenario)
     await writeFile(trigger, "");
     await vi.waitFor(() => {
       for (const marker of [markers.mcp, ...(earlier ? [markers.earlier] : [])]) {
-        expect(running(workerOf(marker)), marker).toHaveLength(1);
-        expect(running(detachedWorkerOf(marker)), marker).toHaveLength(1);
+        expectRunning(workerOf(marker)).toHaveLength(1);
+        expectRunning(detachedWorkerOf(marker)).toHaveLength(1);
       }
     }, { timeout: 10_000, interval: 50 });
     const ended = awaitTurnEnd(session, prompt.request.seq);
@@ -192,8 +184,8 @@ async function abortedTurn({ options, markers, turn, earlier, after }: Scenario)
     // The app-server is untouched and answers the next prompt.
     expect(session.records().some((record) => record.kind === "response" && record.body.kind === "exited")).toBe(false);
     expect(await promptAndWait(session, "NEXT_PROMPT")).toMatchObject({ kind: "ended", outcome: { kind: "completed" } });
-    expect(running(markers.mcp)).toHaveLength(1);
-    expect(running(workerOf(markers.mcp))).toHaveLength(1);
+    expectRunning(markers.mcp).toHaveLength(1);
+    expectRunning(workerOf(markers.mcp)).toHaveLength(1);
   } finally {
     await session?.dispose();
     killAll(markers);
@@ -207,18 +199,18 @@ async function expectTurnProcessesEnded(session: Session, abort: ControlResult, 
   expect(cleanup.kind).toBe("completed");
   expect(cleanup.kind === "completed" ? cleanup.signalled : 0).toBeGreaterThan(0);
   await vi.waitFor(() => {
-    expect(running(markers.command)).toEqual([]);
-    expect(running(markers.detached)).toEqual([]);
+    expectRunning(markers.command).toEqual([]);
+    expectRunning(markers.detached).toEqual([]);
   }, { timeout: 5000, interval: 50 });
-  expect(running(markers.mcp)).toHaveLength(1);
-  expect(running(workerOf(markers.mcp))).toHaveLength(1);
-  expect(running(detachedWorkerOf(markers.mcp))).toHaveLength(1);
+  expectRunning(markers.mcp).toHaveLength(1);
+  expectRunning(workerOf(markers.mcp)).toHaveLength(1);
+  expectRunning(detachedWorkerOf(markers.mcp)).toHaveLength(1);
 }
 
 function expectEarlierKept(markers: Markers): void {
-  expect(running(markers.earlier)).toHaveLength(1);
-  expect(running(workerOf(markers.earlier))).toHaveLength(1);
-  expect(running(detachedWorkerOf(markers.earlier))).toHaveLength(1);
+  expectRunning(markers.earlier).toHaveLength(1);
+  expectRunning(workerOf(markers.earlier)).toHaveLength(1);
+  expectRunning(detachedWorkerOf(markers.earlier)).toHaveLength(1);
 }
 
 describe.skipIf(process.env.OAR_TEST !== "codex-aimock" || process.platform === "win32")("Codex endTurnProcessesOnAbort", () => {
@@ -261,7 +253,7 @@ describe.skipIf(process.env.OAR_TEST !== "codex-aimock" || process.platform === 
         await delay(1000);
         expect(running(markers.detached).length).toBeGreaterThan(0);
         if (turn === "START_YIELDED") { expect(running(markers.command).length).toBeGreaterThan(0); }
-        expect(running(markers.mcp)).toHaveLength(1);
+        expectRunning(markers.mcp).toHaveLength(1);
         expectEarlierKept(markers);
         expect(session.records().flatMap((record) => record.kind === "response" && record.requestId === abort.request.id ? [record.body.kind] : [])).toEqual(["accepted"]);
       },
