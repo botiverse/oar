@@ -176,7 +176,8 @@ it whole; a third-party bridge had reported the same limit for 1.5.4. So a
 prompt, steer or queued input whose text is longer than 185,000 UTF-8 bytes,
 the largest measured to arrive whole, is refused before it is sent
 (`unsupported`, `failure: input_too_large`), and the caller keeps the whole
-input.
+input. The bound is OAR's, not agy's cut point, which was not measured
+exactly ([probes and results](../../experiments/antigravity-input-size-2026-11-12/README.md)).
 
 ### Observation, children, and history
 

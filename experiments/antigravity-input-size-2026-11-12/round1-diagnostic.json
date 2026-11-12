@@ -1,0 +1,20 @@
+{
+ "check": "large_prompt",
+ "agyVersion": "1.5.6",
+ "promptBytes": 250110,
+ "outcome": "timeout",
+ "deadlineSeconds": 240,
+ "sawFinalWord": null,
+ "truncationEvidence": {
+  "transcript_full_first_input_bytes": 192159,
+  "truncated_bytes_notice": [
+   "58527"
+  ],
+  "tail_instruction_present": false,
+  "truncation_notice_present": true,
+  "sqlite_step0_payload_bytes": 501857,
+  "sqlite_step0_tail_instruction_present": true,
+  "sqlite_step0_truncation_notice_present": false
+ },
+ "note": "Original script produced no JSON before outer service deadline; this diagnostic is a separate post-timeout projection, not script stdout."
+}

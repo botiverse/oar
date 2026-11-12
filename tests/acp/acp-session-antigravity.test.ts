@@ -208,7 +208,7 @@ test("an input agy would cut without saying so is refused whole; one at the meas
   const refused = await session.prompt(over);
   assert.ok(refused.response.body.kind === "rejected");
   assert.deepEqual({ code: refused.response.body.code, failure: refused.response.body.failure }, { code: "unsupported", failure: "input_too_large" });
-  assert.match(refused.response.body.reason, /^input is 185002 bytes; /u);
+  assert.match(refused.response.body.reason, /^input is 185002 bytes, over OAR's 185000-byte bound /u);
   const fits = "x".repeat(limit);
   const run = await promptAndWait(session, fits);
   assert.equal(run.kind, "ended");

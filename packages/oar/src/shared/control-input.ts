@@ -19,7 +19,7 @@ export function inputBytesRefusal(maxBytes: number | undefined, input: string): 
   if (maxBytes === undefined) { return null; }
   const bytes = Buffer.byteLength(input, "utf8");
   if (bytes <= maxBytes) { return null; }
-  return { kind: "rejected", code: "unsupported", failure: "input_too_large", reason: `input is ${String(bytes)} bytes; this runtime drops text past about ${String(maxBytes)} bytes of one input without saying so` };
+  return { kind: "rejected", code: "unsupported", failure: "input_too_large", reason: `input is ${String(bytes)} bytes, over OAR's ${String(maxBytes)}-byte bound for one input to this runtime, which cuts a longer one without saying so` };
 }
 
 /** Validate before publishing the attempt, while the original ownership is still visible. */
