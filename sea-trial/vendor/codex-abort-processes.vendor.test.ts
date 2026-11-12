@@ -1,7 +1,6 @@
 /* oxlint-disable import/max-dependencies -- A real binary, a scripted provider, an MCP server and the process table meet in this test. */
-import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { mkdtemp, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
@@ -10,10 +9,11 @@ import type { ControlResult, Session, SessionOptions } from "../../packages/oar/
 import type { SessionCleanup } from "../../packages/oar/src/contracts/placement.js";
 import { awaitTurnEnd, codexInstallation, codexSession, promptAndWait } from "../../packages/oar/src/index.js";
 import { removeFixtureDirectory } from "../harness/fixture-directory-cleanup.js";
+import { resolveRunDir } from "../harness/trace.js";
 import { startCodexAimock, type AimockEnv } from "../harness/aimock.js";
 import { expectAvailable } from "./support/asserts.js";
 import { ECHO_SERVER } from "./support/echo-mcp.js";
-import { expectRunning, processTable } from "./support/codex-process-count.js";
+import { expectRunning, expectStarted, processTable } from "./support/codex-process-count.js";
 
 /*
  * SessionOptions.endTurnProcessesOnAbort on the real binary with a scripted
@@ -42,8 +42,9 @@ setInterval(() => {}, 1000);
  */
 const FORKS_ON_TRIGGER = `
 const { spawn } = require("node:child_process");
-const { existsSync } = require("node:fs");
+const { existsSync, appendFileSync } = require("node:fs");
 const [, , trigger, marker, server] = process.argv;
+appendFileSync(trigger + "." + marker + ".started", String(process.pid) + "\\n");
 const run = (detached, name) => spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)", name], { detached, stdio: "ignore" }).unref();
 const poll = setInterval(() => {
   if (existsSync(trigger)) {
@@ -83,10 +84,7 @@ function expectGroupsTellThemApart(markers: Markers, earlier: boolean): void {
 
 /** The pids whose command line holds `marker`. */
 function running(marker: string): number[] {
-  return execFileSync("ps", ["-A", "-o", "pid=,args="], { encoding: "utf8" }).split("\n").flatMap((line) => {
-    const match = /^\s*(\d+)\s+(.*)$/u.exec(line);
-    return match?.[2]?.includes(marker) === true ? [Number(match[1])] : [];
-  });
+  return processTable().filter(row => row.args.includes(marker)).map(row => row.pid);
 }
 
 function killAll(markers: Markers): void {
@@ -155,6 +153,7 @@ async function abortedTurn({ options, markers, turn, earlier, after }: Scenario)
     });
     if (earlier) {
       expect(await promptAndWait(session, "START_EARLIER")).toMatchObject({ kind: "ended", outcome: { kind: "completed" } });
+      await expectStarted(`${trigger}.${markers.earlier}.started`);
       expectRunning(markers.earlier).toHaveLength(1);
     }
     const requestsBefore = provider.mock.getRequests().length;
@@ -186,6 +185,18 @@ async function abortedTurn({ options, markers, turn, earlier, after }: Scenario)
     expect(await promptAndWait(session, "NEXT_PROMPT")).toMatchObject({ kind: "ended", outcome: { kind: "completed" } });
     expectRunning(markers.mcp).toHaveLength(1);
     expectRunning(workerOf(markers.mcp)).toHaveLength(1);
+  } catch (error) {
+    try {
+      let starts: string | { readonly error: string } = "";
+      try { starts = await readFile(`${trigger}.${markers.earlier}.started`, "utf8"); }
+      catch (readError) { starts = { error: String(readError) }; }
+      await writeFile(path.join(resolveRunDir(), `${markers.earlier}.json`), JSON.stringify({
+        error: String(error), markers, starts, records: session?.records(),
+        requests: provider.mock.getRequests().map(({ body, response }) => ({ body, response })),
+        processes: processTable().filter(row => [markers.mcp, markers.earlier, markers.command, markers.detached].some(marker => row.args.includes(marker))),
+      }, null, 2));
+    } catch (captureError) { console.error("Could not retain Codex process-count evidence", captureError); }
+    throw error;
   } finally {
     await session?.dispose();
     killAll(markers);
