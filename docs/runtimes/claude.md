@@ -629,12 +629,12 @@ window for it. claude 2.1.283 on the same account listed `claude-fable-5-2`,
 description "Update Claude Code to use this model", which `listModels`
 returns as the entry's `disabled.reason`. That text is claude's own (static
 reading of 2.1.283): a server row whose model its catalog does not know is
-disabled with it. 2.1.319 no longer has that rule; it disables a server row
-whose `min_claude_code_version` is above its own version, with "Requires
+disabled with it. 2.1.319 offered the model outside its catalog measured
+above, and also has a minimum version check: a row whose
+`min_claude_code_version` is above its own version is disabled with "Requires
 Claude Code v<version> or later" (static reading; no listing here exercised
 it). On another account, the three sampled listings from 2.1.284, 2.1.288 and
-2.1.292 held five rows with no server rows, so no 5.2 row and no disabled
-hint. What decides that is not established, and a model missing from a
+2.1.292 held five rows, with no 5.2 row and no disabled hint. What decides that is not established, and a model missing from a
 listing is not shown to be unusable or to need an upgrade.
 The listing process starts with hooks and MCP servers switched off
 (`--settings '{"disableAllHooks":true}' --strict-mcp-config --mcp-config

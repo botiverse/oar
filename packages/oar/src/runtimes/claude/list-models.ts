@@ -26,8 +26,8 @@ function text(value: unknown): string | undefined {
  * is what that alias means today. A `disabled` entry is still listed because
  * claude shows it, with its description as the reason. Version gates arrive
  * this way: claude 2.1.283 disables server rows its catalog does not know
- * ("Update Claude Code to use this model"), and 2.1.319 disables rows whose
- * minimum claude version is above its own (docs/runtimes/claude.md).
+ * ("Update Claude Code to use this model"); 2.1.319 also checks a row's
+ * minimum claude version against its own (docs/runtimes/claude.md).
  */
 export function projectClaudeModels(payload: unknown): ModelEntry[] {
   const models = asRecordList(asRecord(payload)?.models);
