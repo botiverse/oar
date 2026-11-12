@@ -394,8 +394,11 @@ tier. Unsupported runtimes reject the option before opening.
 codex, grok and kimi; its failure semantics are in the
 [account usage reference](https://github.com/botiverse/oar/blob/main/docs/spec/account-usage.md).
 On codex it also reports the account's limit resets, and
-`runtime.redeemLimitReset(installation, { idempotencyKey })` spends one;
-oar never spends one on its own
+`runtime.redeemLimitReset(installation, { idempotencyKey })` spends one.
+Claude has them only in its interactive UI: `runtime.inspectLimitResets`
+lists them and `redeemLimitReset` with a `resetId` kind spends one, by
+driving that UI on the person's request, never polled. oar never spends one
+on its own
 ([limit resets](https://github.com/botiverse/oar/blob/main/docs/spec/account-usage.md#limit-resets)).
 
 `runtime.checkUpdate(installation)` reports the version the runtime's own

@@ -6,6 +6,7 @@ import { defineRuntime } from "../../contracts/runtime.js";
 import { claudeAuthStatus, claudeLogin } from "./login.js";
 import { claudeLogout } from "./logout.js";
 import { claudeAccountUsage } from "./account-usage.js";
+import { claudeInspectLimitResets, claudeRedeemLimitReset } from "./limit-reset/index.js";
 import { claudeInstallation } from "./installation.js";
 import { claudeInstall, claudeInstallPlan } from "./install.js";
 import { claudeListModels } from "./list-models.js";
@@ -31,6 +32,8 @@ export const claudeRuntime = defineRuntime({
   installPlan: claudeInstallPlan,
   install: claudeInstall,
   accountUsage: claudeAccountUsage,
+  inspectLimitResets: claudeInspectLimitResets,
+  redeemLimitReset: claudeRedeemLimitReset,
   listModels: claudeListModels,
   checkUpdate: claudeCheckUpdate,
   upgrade: claudeUpgrade,

@@ -12,32 +12,46 @@ and contract member, (4) the cheapest regression test and resource cost, and
 (5) a sea-trial case for every new `must` or `never`. If any answer is missing,
 keep the idea in the [roadmap](roadmap.md) or an experiment.
 
-## Claude limit resets through its interactive UI (2026-11-10)
+## Claude limit resets through its interactive UI
 
-**Refused:** Claude `accountUsage.limitResets` and `redeemLimitReset` by
-driving Claude Code's hidden `/limit-reset [fable|full|5-hour|weekly]`
-command in a pseudo-terminal. A host would use them as it uses Codex's: show
-what is left and spend one on the person's request.
+**Was refused (2026-11-10), now provided (2026-11-12):** Claude
+`inspectLimitResets` and `redeemLimitReset` by driving Claude Code's hidden
+`/limit-reset [fable|full|5-hour|weekly]` command in a pseudo-terminal.
 
-Claude Code 2.1.322 offers the command only in its interactive UI: not in
-`-p`, the SDK or the control protocol. OAR never uses the subscription
-credential itself, so calling the service directly is not an option either.
-An offline probe of the real TUI against a fake backend, by the Raft team,
-found that keys in the first ~250 ms of the dialog are dropped; that a bare
-command at the 5-hour limit sent an old-style claim without asking for
-confirmation; that on accounts with only the old program merely opening the
-command is not known to be free; and that the request carries no
-idempotency key, so a lost answer after Yes leaves the outcome unknown. OAR
-could only time keystrokes against version-specific dialog text, and a
-mistake can spend a person's reset with no known way to undo it. Codex keeps
-both members because it has a non-interactive call and a retry key; Claude
-has neither. Upstream request:
+It was refused because Claude Code 2.1.322 offers the command only in its
+interactive UI (not in `-p`, the SDK or the control protocol; its
+`get_usage` request reads the plain usage endpoint, without resets), and
+OAR never uses the subscription credential itself. An offline probe of the
+real TUI against a fake backend, by the Raft team, found that keys in the
+first ~250 ms of the dialog are dropped; that a bare command at the 5-hour
+limit sent an old-style claim without asking for confirmation; that on
+accounts with only the old program opening any `/limit-reset` at the 5-hour
+limit spends the old reset, kind or no kind; and that nothing outside the UI
+can make a retry reuse the claim's request id, so a lost answer after Yes
+leaves the outcome unknown.
+
+The project owner reversed it for Raft: if a host offers this at all, the
+driver belongs in OAR. Raft had already built it inside its daemon, pinned
+to one Claude Code version and to Linux, and it broke at every Claude Code
+update; that version-bound work is what OAR exists to carry once for every
+host. The hazards did not go away, so the
+[contract](../spec/account-usage.md#claude-limit-resets) carries them
+instead of hiding them: the command always names a kind; a key is sent only
+on a screen recognised word for word, and anything else ends the attempt
+with Esc; listing is its own member, never part of the pollable
+`accountUsage`, and at the 5-hour limit it needs the caller's statement that
+the person accepted the old program's risk; OAR reads usage itself right
+before the first command; an answer lost after Yes is `unknown` and is
+never retried; and the idempotency key is kept only for the life of the
+process. Upstream request, still open:
 [anthropics/claude-code#108851](https://github.com/anthropics/claude-code/issues/108851).
 
-**What would reopen it:** a non-interactive form of the operation (a `-p`
-command, an SDK or control-protocol request, or a CLI subcommand) that reads
-what is left without spending it, redeems one kind at a time, and accepts an
-idempotency or retry key.
+**What would change it:** a non-interactive form of the operation (a `-p`
+command, an SDK or control-protocol request, or a CLI subcommand) that
+reads what is left without spending it and redeems one kind at a time. OAR
+then moves to it, as it does for Codex, and the pseudo-terminal driver is
+removed. The vendor prohibiting automated use of the command would remove
+the member instead.
 
 ## Antigravity consumer login
 

@@ -1,5 +1,5 @@
 /* oxlint-disable import/max-dependencies -- Runtime composes the independently owned capability contracts. */
-import type { AccountUsageReader, LimitResetRedeemer } from "./account-usage.js";
+import type { AccountUsageReader, LimitResetInspector, LimitResetRedeemer } from "./account-usage.js";
 import type { AuthStatusReader, RuntimeLogin, RuntimeLogout } from "./login.js";
 import type { InstallLine, InstallPlanner, Installer } from "./install.js";
 import type { InventoryResult, RuntimeInventories } from "./inventory.js";
@@ -124,6 +124,12 @@ export interface Runtime extends RuntimeInventories {
   readonly accountUsage?: AccountUsageReader;
   /** Spends one of the account's limit resets (`limitResets` in `accountUsage`); uses up the account owner's reset, so only on the host's explicit call. */
   readonly redeemLimitReset?: LimitResetRedeemer;
+  /**
+   * Lists the account's limit resets through the runtime's interactive UI
+   * (claude); not a passive read and can spend on Claude's older program, so
+   * only on the account owner's explicit request, never polled.
+   */
+  readonly inspectLimitResets?: LimitResetInspector;
   readonly listModels?: ModelLister;
   /** Read only: the version the runtime's own updater would install. */
   readonly checkUpdate?: UpdateChecker;

@@ -1,0 +1,19 @@
+ ▐▛███▛█   Claude Code v2.1.322
+▝▜██████▀  Opus 5.5 · Claude Max
+ ▝▝   ▝▝   ~/project
+
+▎ Auto mode is now Claude Code's default permission mode.
+▎ Auto mode lets Claude handle permission prompts automatically. Claude checks each tool call for risky actions and
+▎ prompt injection before executing, runs the ones it assesses as lower-risk, and blocks the rest.
+▎ https://code.claude.com/docs/en/permission-modes
+  1 more notice hidden
+
+❯ /limit-reset
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  Which reset do you want to use?
+
+  ❯ Use a weekly reset (1 left, until Nov 16)
+    Use a Fable reset (3 left, until Nov 22)
+
+  Enter to confirm · Esc to cancel

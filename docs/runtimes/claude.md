@@ -1312,6 +1312,22 @@ inference scope only, while the subscription login also has `user:profile`;
 no limits (`unsupported` / `quota_unavailable`). Not verified: making one
 takes a person signing in in a browser.
 
+### Limit resets
+
+**Driven through the interactive UI** ([Claude limit resets](../spec/account-usage.md#claude-limit-resets)):
+`inspectLimitResets` and `redeemLimitReset` type claude's hidden
+`/limit-reset <kind>` in a pseudo-terminal and read the screen, because
+2.1.322 has no other form of it (the `get_usage` control request reads
+`/api/oauth/usage` without the reset parameters; [bundle 2.1.322]). The
+claim is claude's own `POST /api/organizations/<org>/reset_rate_limits`
+with `program: "cedar_ember"`, a grant id and a fresh request id per Yes;
+the older `juniper_tide` program posts with no dialog. OAR never calls that
+endpoint itself and never reads the credential. The hazards and what OAR
+does about each are in the spec section; the decision to drive the UI is in
+[decisions](../design/decisions.md#claude-limit-resets-through-its-interactive-ui).
+Screens were recorded from 2.1.322 against a fake backend; no real reset
+has been spent through OAR.
+
 ### Logout
 
 **Mapped** ([runtime logout](../spec/login.md#logout)): `logout` runs
