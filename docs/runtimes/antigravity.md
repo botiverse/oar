@@ -2,9 +2,9 @@
 
 OAR uses the standalone **agy CLI's native ACP entry point**, available from
 1.5.0. It no longer launches the separate `agy_acp_server` archive or its
-companion harness. The latest Linux check is CLI **1.5.6**, 2026-11-11:
+companion harness. The latest Linux check is CLI **1.5.7**, 2026-11-12:
 17 behavior cases and all twelve vendor cases pass with an isolated HOME
-and a local scripted Gemini provider ([daily report](../../experiments/runtime-version-checks/2026-11-11.md#antigravity-156)).
+and a local scripted Gemini provider ([daily report](../../experiments/runtime-version-checks/2026-11-12.md#antigravity-157)).
 See the [1.5.0 migration report](../../experiments/antigravity-cli-acp-2026-11-05.md)
 for native controls, retained limitations and the host migration checklist.
 The new-version runs do not establish account-specific or macOS/Windows behavior.
