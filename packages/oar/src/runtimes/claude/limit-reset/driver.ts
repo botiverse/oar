@@ -1,6 +1,6 @@
 /* oxlint-disable eslint/max-lines -- One driver: the session, its key rules and both flows read together. */
 import { constants } from "node:fs";
-import { lstat, mkdtemp, open, rm } from "node:fs/promises";
+import { mkdtemp, open, rm, stat } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
@@ -246,14 +246,14 @@ async function readCachedFlags(env: NodeJS.ProcessEnv): Promise<ClaudeLimitReset
     ? path.join(configDir, ".claude.json")
     : path.join(env.HOME ?? os.homedir(), ".claude.json");
   try {
-    const entry = await lstat(configPath);
+    const entry = await stat(configPath);
     if (!entry.isFile()) { return { limitResets: null }; }
-    // Nonblocking open also handles a regular file replaced by a FIFO after lstat.
+    // Nonblocking open also handles a regular file replaced by a FIFO after stat.
     const file = await open(configPath, constants.O_RDONLY | constants.O_NONBLOCK);
     let text = "";
     try {
-      const stat = await file.stat();
-      if (!stat.isFile()) { return { limitResets: null }; }
+      const opened = await file.stat();
+      if (!opened.isFile()) { return { limitResets: null }; }
       text = await file.readFile("utf8");
     } finally {
       await file.close();

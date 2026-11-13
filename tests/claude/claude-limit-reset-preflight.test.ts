@@ -121,22 +121,27 @@ test("a directory arriving after the clock passes the deadline cannot beat a del
   assert.equal(calls.remove, 1);
 });
 
-for (const kind of ["regular", "directory", "missing", "fifo", "replaced-by-fifo"] as const) {
-  test.skipIf(process.platform === "win32" && (kind === "fifo" || kind === "replaced-by-fifo"))(`cached flags only read regular files: ${kind}`, async () => {
+for (const kind of ["regular", "symlink", "directory", "missing", "fifo", "replaced-by-fifo"] as const) {
+  test.skipIf(process.platform === "win32" && (kind === "fifo" || kind === "replaced-by-fifo" || kind === "symlink"))(`cached flags only read regular files: ${kind}`, async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "oar-reset-flags-"));
     const config = path.join(root, ".claude.json");
     const calls = { open: 0 };
     try {
       if (kind === "regular") { await fs.writeFile(config, JSON.stringify(FLAGS)); }
+      else if (kind === "symlink") {
+        const regular = path.join(root, "dotfiles-claude.json");
+        await fs.writeFile(regular, JSON.stringify(FLAGS));
+        await fs.symlink(regular, config);
+      }
       else if (kind === "directory") { await fs.mkdir(config); }
       else if (kind === "fifo" || kind === "replaced-by-fifo") {
         execFileSync("mkfifo", [config]);
         if (kind === "replaced-by-fifo") {
           const regular = path.join(root, "regular");
           await fs.writeFile(regular, "");
-          const stat = await fs.lstat(regular);
-          // A regular lstat observation, then open encounters a FIFO: fstat must reject it.
-          vi.spyOn(fs, "lstat").mockResolvedValueOnce(stat);
+          const stat = await fs.stat(regular);
+          // A regular stat observation, then open encounters a FIFO: fstat must reject it.
+          vi.spyOn(fs, "stat").mockResolvedValueOnce(stat);
         }
       }
       const driver = createClaudeLimitResetDriver({
@@ -145,8 +150,8 @@ for (const kind of ["regular", "directory", "missing", "fifo", "replaced-by-fifo
         openTerminal: () => { calls.open += 1; return null; },
       });
       const report = await driver.redeem({ ...INPUT, env: { CLAUDE_CONFIG_DIR: root } });
-      assert.deepEqual(report.result, { kind: "unsupported", reason: kind === "regular" ? "unsupported_platform" : "consent_required" });
-      assert.equal(calls.open, kind === "regular" ? 1 : 0);
+      assert.deepEqual(report.result, { kind: "unsupported", reason: kind === "regular" || kind === "symlink" ? "unsupported_platform" : "consent_required" });
+      assert.equal(calls.open, kind === "regular" || kind === "symlink" ? 1 : 0);
     } finally {
       await fs.rm(root, { recursive: true, force: true });
     }
