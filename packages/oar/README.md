@@ -1,6 +1,6 @@
 # @botiverse/oar
 
-Provider-independent TypeScript contracts and built-in implementations for controlling and observing Antigravity, Claude, Codex, CodeBuddy, Cursor, DeepSeek Harness, Grok, Kimi, OpenCode, Pi, Pi Durable, Qwen Code, and Qoder.
+Provider-independent TypeScript contracts and built-in implementations for controlling and observing Antigravity, Claude, Codex, CodeBuddy, Cursor, DeepSeek Harness, Devin, Grok, Kimi, OpenCode, Pi, Pi Durable, Qwen Code, and Qoder.
 
 ```ts
 import { defaultRuntimes, promptAndWait } from "@botiverse/oar";
@@ -80,7 +80,7 @@ root tools, withdraws the held inputs, aborts the turn and, after the
 runtime's own turn end, sends them as one merged prompt
 ([interrupting](https://github.com/botiverse/oar/blob/main/docs/spec/conversation.md#interrupting-and-merging-held-inputs)).
 `session.steer` exists only on a session whose runtime can steer (qwen,
-codebuddy, kimi and opencode v2 sessions have none; see
+codebuddy, devin, kimi and opencode v2 sessions have none; see
 [session controls](https://github.com/botiverse/oar/blob/main/docs/spec/runtime-matrix.md#session-controls)),
 so a host offers a steer control by reading the member, never a runtime
 name; `deliver` and `steerOrQueue` queue where it is absent. `session.withdraw(inputId)` takes a queued input back before it is
@@ -146,7 +146,7 @@ The package has these public entry points, plus `@botiverse/oar/pi-durable` ([be
 - `@botiverse/oar`: the runtime registry and adapters, bounded `orient` snapshots, `defineRuntime`, `UnsupportedOptionError`, `RuntimeFailureError`, `SessionNotFoundError`, `SessionUnavailableError`, `serveMcpTools`, `userShellEnvironment` and `writeShellEnvironmentCapture`, the `oar-voyage/3` recorder (`openVoyage`), and everything the brands and observe entry points below export. Node-only (adapters import `node:child_process` and runtime SDKs).
 - `@botiverse/oar/browser`: portable contracts, registry, session kernel, observe helpers, agent report formatting, and branding. No Node adapters, process helpers or local image-file loaders.
 - `@botiverse/oar/brands`: browser-safe runtime names and SVG icons.
-- `@botiverse/oar/runtimes/<id>` (`claude`, `codex`, `codebuddy`, `dsh`, `pi`, `cursor`, `opencode`, `kimi`, `grok`, `antigravity`, `qwen`, `qoder`): one built-in runtime (`claudeRuntime`, …; cursor's is `createCursorRuntime`) without the others, for a host that needs only some of them. Each entry stays at about 1 to 2.5 MB of heap where the root entry takes about 50 MB (Node 26, [#405](https://github.com/botiverse/oar/pull/405)): the ACP SDK (about 20 MB) loads only when an ACP runtime first opens a session, lists models (kimi, grok, antigravity, codebuddy), reads grok's usage, signs Kimi in or out or reads its status, or creates the Qwen provider facade, and the pi and cursor SDKs when theirs first run. Node-only.
+- `@botiverse/oar/runtimes/<id>` (`claude`, `codex`, `codebuddy`, `devin`, `dsh`, `pi`, `cursor`, `opencode`, `kimi`, `grok`, `antigravity`, `qwen`, `qoder`): one built-in runtime (`claudeRuntime`, …; cursor's is `createCursorRuntime`) without the others, for a host that needs only some of them. Each entry stays at about 1 to 2.5 MB of heap where the root entry takes about 50 MB (Node 26, [#405](https://github.com/botiverse/oar/pull/405)): the ACP SDK (about 20 MB) loads only when an ACP runtime first opens a session, lists models (kimi, grok, antigravity, codebuddy, devin), reads grok's usage, signs Kimi in or out or reads its status, or creates the Qwen provider facade, and the pi and cursor SDKs when theirs first run. Node-only.
 - `@botiverse/oar/observe`: the browser-safe pure derivations over `RawEvent`s and `Event`s (`eventsOf`, `graphOf`, `usageOf`, `coalesceText`, `observeAgent`, `reduceStatus`, `tasksOf`, `observeStalls`, `classifyTool`, `reduceConversation`, `viewOf`, …) with no Node or adapter imports, so a browser or Electron-renderer bundle can import it directly. The root export re-exports all of them.
   It also supplies `failureAdvice` (recovery timing per `FailureClass`) and `noticeText`, `noticeTone`, `phaseLabel`, `failureText` and `taskStatusLabel`, alongside `toolActionLabel` and `toolGroupSummary`: English display wording for OAR types, usable in JavaScriptCore too. Wording may change in a minor release; hosts must use the typed values for decisions, not parse the text ([display wording](https://github.com/botiverse/oar/blob/main/docs/spec/conversation.md#display-wording)).
 - `@botiverse/oar/kernel`: the runtime-author SPI. `createSessionKernel` is the record stream every built-in adapter is built on (dense `seq`, cursor replay, control recording, the reachability rule) and `sealSession` derives the `Session` API face over an adapter. Pair with `defineRuntime` to ship a custom runtime (a scripted runtime for a host's tests, an in-process agent) without re-implementing the stream contract. `inputImagesRefusal` and `withInputImages` are the image rules every built-in runtime keeps, so a custom runtime refuses the inputs they refuse. `withdrawHeld` is the decision behind `withdraw` for a runtime that holds its own queue.
@@ -157,7 +157,7 @@ The package has these public entry points, plus `@botiverse/oar/pi-durable` ([be
 
 Brand SVG files are exported at `@botiverse/oar/assets/brands/<runtime-id>.svg`. Any other deep import (`@botiverse/oar/dist/...`, source paths) is internal and may break without notice.
 
-Antigravity, CodeBuddy, Grok, Kimi, and OpenCode share an internal ACP v1 transport and session kernel, but only their concrete runtime identities are public. The registry deliberately does not expose a generic `acp` runtime. The pi SDK (`@earendil-works/pi-coding-agent`) is a dependency of this package. `@cursor/sdk` is an optional peer dependency, and cursor is not in `defaultRuntimes`: install the SDK (`npm install @cursor/sdk@1.3.1`) and hand it over, `createRuntimeRegistry([...defaultRuntimes.list(), createCursorRuntime({ sdk: () => import("@cursor/sdk") })])`. Written in your code, that import fails your compile if the package is missing. It is Cursor's own package under Cursor's terms, and it signs in with `CURSOR_API_KEY` or its own `Cursor.auth.login()`. `createCursorRuntime({ execution: "subprocess", sdkModule: import.meta.resolve("@cursor/sdk") })` instead runs the SDK in a Node child per session, which takes `SessionOptions.env` and whose crash is recorded as `exited` ([execution modes](https://github.com/botiverse/oar/blob/main/docs/runtimes/cursor.md#execution-modes)).
+Antigravity, CodeBuddy, Devin, Grok, Kimi, and OpenCode share an internal ACP v1 transport and session kernel, but only their concrete runtime identities are public. The registry deliberately does not expose a generic `acp` runtime. The pi SDK (`@earendil-works/pi-coding-agent`) is a dependency of this package. `@cursor/sdk` is an optional peer dependency, and cursor is not in `defaultRuntimes`: install the SDK (`npm install @cursor/sdk@1.3.1`) and hand it over, `createRuntimeRegistry([...defaultRuntimes.list(), createCursorRuntime({ sdk: () => import("@cursor/sdk") })])`. Written in your code, that import fails your compile if the package is missing. It is Cursor's own package under Cursor's terms, and it signs in with `CURSOR_API_KEY` or its own `Cursor.auth.login()`. `createCursorRuntime({ execution: "subprocess", sdkModule: import.meta.resolve("@cursor/sdk") })` instead runs the SDK in a Node child per session, which takes `SessionOptions.env` and whose crash is recorded as `exited` ([execution modes](https://github.com/botiverse/oar/blob/main/docs/runtimes/cursor.md#execution-modes)).
 
 Community runtimes are contributed and maintained outside the core team (each maintainer is named on its runtime page). They ship in this package from a separate entry point, `@botiverse/oar/community`, and are not in `defaultRuntimes`: `createRuntimeRegistry([...defaultRuntimes.list(), createMorphRuntime()])` adds [Mister Morph](https://github.com/botiverse/oar/blob/main/docs/runtimes/morph.md), driven through its Console Runtime API. The `oar` CLI includes them.
 
@@ -193,6 +193,11 @@ and [CodeBuddy](https://github.com/botiverse/oar/blob/main/docs/runtimes/codebud
 process per session, `DSH_MINIMUM_VERSION` `0.2.1-rc.5` or later) is too; it selects
 models as `provider/model`, takes stdio session MCP servers only, and most session
 options stay refused until probed ([mapping](https://github.com/botiverse/oar/blob/main/docs/runtimes/dsh.md)).
+`devinRuntime` (Devin CLI's `devin acp`, isolated process per session) is in
+`defaultRuntimes` too; it reads `authStatus` and `distribution` update markers,
+attaches stdio/HTTP session MCP entries, switches model and effort synchronously
+via `session/set_config_option`, and enforces the saved directory via `session/list`
+([mapping](https://github.com/botiverse/oar/blob/main/docs/runtimes/devin.md)).
 
 The command-line interface is a separate package: `@botiverse/oar-cli`.
 
@@ -376,7 +381,7 @@ can run now (`ok`, `unauthenticated` or `unsupported`); every built-in runtime
 has it. Entries include native `effortLevels` and `serviceTiers` where supported.
 `default: true` marks the model a session uses when no `model` is set, where
 the runtime says so (codex's configured model, else its catalog default; a new
-session's current model on grok, kimi, antigravity and codebuddy; the native
+session's current model on grok, kimi, antigravity, codebuddy and devin; the native
 default on qoder and dsh; the default saved in pi's settings). claude, cursor,
 opencode and qwen mark none: OAR never picks one.
 Where several providers serve models (pi, opencode, dsh), `provider: { id,
@@ -406,7 +411,7 @@ updater would install and where that answer came from;
 `runtime.upgrade(installation)` runs that updater without a terminal and
 judges the result by the version the same executable reports afterwards,
 never by its exit code. oar never upgrades on its own. Claude, Codex, Grok
-and Kimi have both; Antigravity has only the check; CodeBuddy, DSH, OpenCode, Qwen and Qoder
+and Kimi have both; Antigravity and Devin have only the check; CodeBuddy, DSH, OpenCode, Qwen and Qoder
 have neither yet; Pi and Cursor have neither, their SDK versions following oar's (Pi's
 SDK is a dependency, Cursor's an exact peer dependency).
 See [runtime updates](https://github.com/botiverse/oar/blob/main/docs/spec/update.md).
@@ -421,7 +426,7 @@ location configuration); `runtime.install()` runs
 it, without a terminal and never with sudo, when `installation()` finds no
 copy, and judges the result by `installation()` afterwards, never by the
 installer's exit code. oar never installs on its own. Claude, Codex, Grok,
-Kimi, OpenCode, Qwen, Qoder and Antigravity install through their vendors' macOS and Linux scripts;
+Kimi, OpenCode, Qwen, Qoder, Antigravity and Devin install through their vendors' macOS and Linux scripts;
 CodeBuddy and DSH use their official npm packages on Linux, macOS and Windows
 and check the configured global prefix; CodeBuddy's launcher is discovered even
 off PATH.
@@ -435,7 +440,9 @@ line is `already_installed`, never replaced. Antigravity uses `agy acp` from
 CLI 1.5.0 or newer, discovered on PATH or in the official install directory;
 its Windows plan provides the manual PowerShell command. An old selected CLI
 or missing pinned path must be corrected first (`configuration`), because the
-vendor installer does not replace it. Pi and Cursor have
+vendor installer does not replace it. Devin installs via its standalone shell
+script (rejecting an existing regular non-symlink file at `~/.local/bin/devin`)
+and returns the documented PowerShell command on Windows. Pi and Cursor have
 neither member.
 See [runtime install](https://github.com/botiverse/oar/blob/main/docs/spec/install.md).
 
@@ -450,9 +457,10 @@ past its `timeoutMs` returns `unknown` without waiting for process cleanup.
 Claude, Codex, Cursor (through its SDK's own `Cursor.auth`), Kimi (`kimi
 login`, with `KimiLoginOptions.region`), Grok (`grok login --device-auth`),
 Antigravity (its own `agy acp --login`, with the person pasting the code
-back), CodeBuddy and Qoder have both. Qwen has only `authStatus`, a local
-check of whether a provider credential is configured; its provider settings
-are on `createQwenProviderAuth`. OpenCode, DSH and Pi have neither (Pi's
+back), CodeBuddy and Qoder have both. Qwen and Devin have only `authStatus`:
+Qwen checks local provider configuration (its provider settings are on
+`createQwenProviderAuth`), while Devin reads `devin auth status` and flags
+`WINDSURF_API_KEY`. OpenCode, DSH and Pi have neither (Pi's
 provider logins are on `createPiProviderAuth`, OpenCode 2's on
 `createOpencodeProviderAuth`). Antigravity's vendor warns that third-party
 access with a consumer login may break its terms; see
@@ -540,7 +548,7 @@ exposes independent skills and MCP configuration discovery; Pi exposes skills
 and registered tools with active membership. Pi commands include extension
 commands and prompt templates; Claude commands come from native initialize.
 Other core runtimes return unsupported for independent command discovery.
-Antigravity, CodeBuddy, Cursor, DSH, Kimi, OpenCode, Qoder and Qwen inventory
+Antigravity, CodeBuddy, Cursor, Devin, DSH, Kimi, OpenCode, Qoder and Qwen inventory
 queries are unsupported.
 
 ```ts

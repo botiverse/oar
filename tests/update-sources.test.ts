@@ -5,6 +5,7 @@ import path from "node:path";
 import { afterAll, beforeAll, test } from "vitest";
 import { antigravityUpdateCheck } from "../packages/oar/src/runtimes/antigravity/update.js";
 import { claudeUpdateCheck } from "../packages/oar/src/runtimes/claude/update.js";
+import { devinReleaseSource, devinUpdateCheck } from "../packages/oar/src/runtimes/devin/update.js";
 import { kimiUpdateCheck } from "../packages/oar/src/runtimes/kimi/update.js";
 import { startReleaseServer, type ReleaseServer } from "./fixtures/update-fixtures.js";
 
@@ -108,5 +109,34 @@ test("antigravity counts only a newer CLI manifest version as an update", async 
   assert.equal(ahead.kind === "ok" && ahead.updateAvailable, false);
   const behind = await check(executable(path.join(dir, "agy"), "1.4.9"));
   assert.equal(behind.kind === "ok" && behind.updateAvailable, true);
+});
+
+test("devinReleaseSource maps standalone distribution markers to release manifests and rejects non-standalone markers", () => {
+  assert.equal(devinReleaseSource("curl-bash"), "https://static.devin.ai/cli/current/manifest.json");
+  assert.equal(devinReleaseSource("irm-iex"), "https://static.devin.ai/cli/current/manifest.json");
+  assert.equal(devinReleaseSource("curl-bash-enterprise"), "https://static.devinenterprise.com/cli/current/manifest-enterprise.json");
+  assert.equal(devinReleaseSource("irm-iex-enterprise"), "https://static.devinenterprise.com/cli/current/manifest-enterprise.json");
+  assert.equal(devinReleaseSource("curl-bash-windsurfcom"), "https://static.devin.ai/cli/current/manifest-windsurfcom.json");
+  assert.equal(devinReleaseSource("irm-iex-windsurfcom"), "https://static.devin.ai/cli/current/manifest-windsurfcom.json");
+  assert.equal(devinReleaseSource("homebrew"), undefined);
+  assert.equal(devinReleaseSource(undefined), undefined);
+});
+
+test("devinUpdateCheck verifies manifest version and refuses missing distribution markers", async () => {
+  const unsupported = await devinUpdateCheck({ readDistribution: () => undefined })(executable(path.join(dir, "devin"), "3000.12.57"));
+  assert.equal(unsupported.kind === "unavailable" ? unsupported.reason : unsupported.kind, "unsupported_installation");
+
+  routes.set("/devin-manifest.json", [200, JSON.stringify({ version: "3000.12.58" })]);
+  const check = devinUpdateCheck({ manifestUrl: `${base}/devin-manifest.json`, readDistribution: () => "curl-bash" });
+  const behind = await check(executable(path.join(dir, "devin"), "3000.12.57"));
+  assert.deepEqual(behind, {
+    kind: "ok",
+    installed: "3000.12.57",
+    latest: "3000.12.58",
+    updateAvailable: true,
+    source: `${base}/devin-manifest.json`,
+  });
+  const current = await check(executable(path.join(dir, "devin"), "3000.12.58"));
+  assert.equal(current.kind === "ok" && current.updateAvailable, false);
 });
 

@@ -30,12 +30,12 @@ original cwd before deciding the old conversation is gone. The table above
 records the historical native errors, not a global absence guarantee.
 
 A refusal is the runtime's error from `session()` (OAR's own for kimi,
-opencode, antigravity and dsh), so a host that tries a resume in B and falls
+opencode, antigravity, devin and dsh), so a host that tries a resume in B and falls
 back to a handoff on refusal never runs in a directory it did not ask for.
 OAR's refusal is an `UnsupportedOptionError` with `option: "cwd"`
 ([refused session options](../spec/runtime-matrix.md#refused-session-options)).
 
-The kimi, opencode and antigravity adapters require a positive native
+The kimi, opencode, antigravity and devin adapters require a positive native
 `session/list` entry with a non-empty saved cwd before sending resume/load,
 even when the requested cwd appears unchanged
 ([resume-cwd.ts](../../packages/oar/src/shared/acp/resume-cwd.ts)). Missing
@@ -46,6 +46,10 @@ unprompted sessions that native resume can still reopen. Hosts may start a
 new session, but must not infer `SessionNotFoundError` from this refusal.
 DSH compares the cwd in its saved session header instead, and a header
 without one refuses with `option: "resume"` ([DSH](dsh.md#oar-mapping)).
+Devin (`devin 3000.12.57`, 2026-11-13) records the session's `cwd` in
+`session/list` and enables `resumeKeepsSessionCwd: true`, so OAR applies the
+same `session/list` guard before `session/load`; cross-directory shell execution
+was not run without an authenticated model turn.
 Not measured here: qwen, qoder, codebuddy, dsh, pi-durable, and runtimes whose session
 store the host moved by hand.
 

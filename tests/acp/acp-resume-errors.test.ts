@@ -1,3 +1,4 @@
+/* oxlint-disable import/max-dependencies -- Covered ACP runtime profiles plus fixture/helper imports. */
 import { mkdtempSync, realpathSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -6,6 +7,7 @@ import { expect, test } from "vitest";
 import { UnsupportedOptionError } from "../../packages/oar/src/index.js";
 import { acpSession } from "../../packages/oar/src/shared/acp/session.js";
 import { antigravityAcpProfile } from "../../packages/oar/src/runtimes/antigravity/session.js";
+import { devinAcpProfile } from "../../packages/oar/src/runtimes/devin/session.js";
 import { kimiAcpProfile } from "../../packages/oar/src/runtimes/kimi/session.js";
 import { opencodeAcpProfile } from "../../packages/oar/src/runtimes/opencode/session.js";
 
@@ -16,7 +18,7 @@ const listingFailures = [
   { name: "RPC error", scenario: { pages: [{ error: { code: -32_603, message: "listing unavailable" } }] }, expected: { code: -32_603, message: "listing unavailable", cause: { method: "session/list", native: { code: -32_603 } } } },
   { name: "process exit", scenario: { exitOnList: 17 }, expected: { name: "AcpError", kind: "process_exited", exitCode: 17 } },
 ];
-for (const [name, native] of [["antigravity", antigravityAcpProfile], ["kimi", kimiAcpProfile], ["opencode", opencodeAcpProfile]] as const) {
+for (const [name, native] of [["antigravity", antigravityAcpProfile], ["devin", devinAcpProfile], ["kimi", kimiAcpProfile], ["opencode", opencodeAcpProfile]] as const) {
   test.each(listingFailures)(`${name} preserves listing $name and never resumes`, async ({ scenario, expected }) => {
     const temporary = mkdtempSync(path.join(tmpdir(), "oar-acp-cwd-list-error-"));
     const dir = realpathSync(temporary);

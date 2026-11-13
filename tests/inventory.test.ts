@@ -276,7 +276,7 @@ test("unavailable native surfaces return unsupported without starting a runtime"
   expect(spawnLineProcess).not.toHaveBeenCalled();
 });
 
-test.each(["codex", "grok", "kimi", "opencode", "antigravity"])("%s has no independent command query on its selected transport", async (id) => {
+test.each(["codex", "grok", "kimi", "opencode", "antigravity", "devin"])("%s has no independent command query on its selected transport", async (id) => {
   await expect(defaultRuntimes.require(id).commands(executable)).resolves.toMatchObject({ kind: "unsupported", code: "transport_unavailable" });
   expect(spawnLineProcess).not.toHaveBeenCalled();
 });

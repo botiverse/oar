@@ -10,6 +10,7 @@ test("the declarations say how a running session takes a change to an MCP server
     codebuddy: null,
     codex: "none",
     cursor: null,
+    devin: null,
     dsh: null,
     grok: "none",
     kimi: "none",

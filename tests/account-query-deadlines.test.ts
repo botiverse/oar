@@ -14,6 +14,7 @@ import { claudeAuthStatus } from "../packages/oar/src/runtimes/claude/auth-statu
 import { codexAuthStatus, readCodexAuthStatus } from "../packages/oar/src/runtimes/codex/login.js";
 import { qoderAuthStatus } from "../packages/oar/src/runtimes/qoder/auth-status.js";
 import { codebuddyAuthStatus } from "../packages/oar/src/runtimes/codebuddy/auth-status.js";
+import { devinAuthStatus } from "../packages/oar/src/runtimes/devin/auth.js";
 import { kimiAuthStatus } from "../packages/oar/src/runtimes/kimi/auth-status.js";
 import { fakeAgentBinary, gone, withTreeProbe } from "./fixtures/process-tree.js";
 
@@ -36,6 +37,7 @@ const cases: readonly { name: string; stage: string; read: Read }[] = [
   { name: "Codex status", stage: "started", read: codexAuthStatus },
   { name: "Qoder status", stage: "started", read: qoderAuthStatus },
   { name: "CodeBuddy status", stage: "initialize", read: codebuddyAuthStatus },
+  { name: "Devin status", stage: "started", read: devinAuthStatus },
   { name: "Kimi status", stage: "authenticate", read: kimiAuthStatus },
 ];
 afterEach(() => { vi.unstubAllEnvs(); });
@@ -52,7 +54,7 @@ test.each(cases)("$name settles at its deadline while owned cleanup continues", 
     const started = performance.now();
     // Observe rejection immediately, even while waiting for startup evidence.
     const result = read(installation, { timeoutMs: TIMEOUT, env: {
-      ...probe.env, HOME: probe.dir, CODEX_HOME: probe.dir, CODEBUDDY_API_KEY: null,
+      ...probe.env, HOME: probe.dir, CODEX_HOME: probe.dir, CODEBUDDY_API_KEY: null, WINDSURF_API_KEY: null,
       OAR_QUERY_STAGE: stage, OAR_QUERY_REQUESTS: requests,
     } }).then((value) => ({ value, error: null, elapsed: performance.now() - started }), (error: unknown) => ({ value: null, error, elapsed: performance.now() - started }));
     const tree = await probe.tree();

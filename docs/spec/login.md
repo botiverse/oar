@@ -167,7 +167,7 @@ consistent. Login and logout confirmation queries receive that map too.
 OAR-owned overrides still win, including browser suppression and Claude's
 `CLAUDECODE` removal.
 
-Claude, Codex, CodeBuddy, Kimi and Qoder apply the overlay to their authentication processes.
+Claude, Codex, CodeBuddy, Devin, Kimi and Qoder apply the overlay to their authentication processes.
 Cursor's SDK runs in the host process by default: its three authentication
 methods then reject any nonempty `env` with `UnsupportedOptionError`
 (`option: "env"`) before loading the SDK, as its sessions do. An empty map is
@@ -373,6 +373,7 @@ declares no network, refresh or key-command execution. The
 | antigravity | `agy acp --login` over pipes: relays the Google URL, prompts `manual_code` for the code or landing URL ([login](../runtimes/antigravity.md#login)) | `agy models` (exit 0 logged in; exit 1 with `Please sign in` logged out; a remote call) | 1.5.5 verified | 15 min |
 | kimi | `kimi login [--region mainland-cn\|global]`: relays the device code; Kimi polls and provisions models | ACP `initialize` then `authenticate {methodId: "login"}`, no session; readiness, not proof of remote credential validity | 2.3.3 verified | 16 min |
 | qwen | none: native `qwen auth` removed; configure a provider externally | local user/system credential presence; configured means `unknown`, absent in scope means `logged_out` with a workspace caveat | 0.26.2 source verified | status: 20 s |
+| devin | none: `devin auth login` opens `/dev/tty` in a `ratatui` TUI (even with `--force-manual-token-flow`) | `devin auth status` (exit 0 in both states; `Not logged in.` logged out; non-empty `WINDSURF_API_KEY` instead yields `unknown` with `configured: ["environment: WINDSURF_API_KEY"]`) | 3000.12.57 verified | status: 30 s |
 | grok | `grok login --device-auth` over pipes: relays the device code from its `accounts.x.ai` URL; Grok waits for the browser confirmation ([login](../runtimes/grok.md#login)) | `grok models` (`You are logged in with <method>.` logged in, with that method; `You are not authenticated.` logged out; neither `unknown`) | 1.0.77 verified | 15 min |
 | opencode | none: OpenCode 2's per-provider sign-in is on `createOpencodeProviderAuth` | none | | |
 | pi | not yet | not yet | | |
@@ -471,7 +472,7 @@ runtime oar does not sign in.
 | antigravity | ACP `initialize` then `logout`; reads `agy models` afterward | removes its stored token file; server-side revocation not observed | 1.5.5 verified | 60 s |
 | grok | `grok logout`, stdin closed; reads `grok models` afterward | clears its cached sign-in; server-side revocation not observed | 1.0.77 verified | 60 s |
 | codebuddy | stream-json control request `{subtype: "logout"}`; reads `initialize.account` afterward | clears the local sign-in; no server-side revocation | 2.183.0 verified | 60 s |
-| dsh, opencode, pi, qoder, qwen | no `logout` (pi's provider logouts are on `createPiProviderAuth`, OpenCode 2's on `createOpencodeProviderAuth`; qoder signs out only in its interactive UI) | | | |
+| devin, dsh, opencode, pi, qoder, qwen | no `logout` (pi's provider logouts are on `createPiProviderAuth`, OpenCode 2's on `createOpencodeProviderAuth`; qoder signs out only in its interactive UI) | | | |
 
 ## CLI
 
