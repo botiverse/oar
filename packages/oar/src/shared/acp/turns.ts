@@ -27,6 +27,14 @@ import {
  * Owns the active turn, replies, queue and cancellation. Native replies end
  * turns; refused steers drop only their input; process exit has its own response.
  */
+/**
+ * BYOK change: how long a turn waits for a runtime to honor `session/cancel`
+ * before the fallback stops it, when the profile names no `abortTimeoutMs`.
+ * The cancel write itself gets the same bound: a runtime that has not taken
+ * the cancel off its stdin by then would not honor it before the fallback.
+ */
+const DEFAULT_ABORT_TIMEOUT_MS = 10_000;
+
 export interface ActiveTurn {
   /** The prompt request that opened this turn; null for a spontaneous (queue-drained) turn. */
   readonly request: RequestRecord | null;
@@ -41,6 +49,8 @@ export interface ActiveTurn {
   cancelWrite?: Promise<ResponseBody>;
   /** BYOK change: settled when the turn closes, for an abort fenced after the prompt answer was decoded. */
   closed?: PromiseWithResolvers<void>;
+  /** BYOK change: a cancel write of this turn did not complete within its bound; this turn writes no second one. */
+  stdinUnwritable?: true;
   fallback: NodeJS.Timeout | null;
 }
 
@@ -275,6 +285,9 @@ export function createAcpTurns(deps: {
         return { kind: "rejected", code: "no_active_turn", reason: "turn ended before cancellation was sent" };
       }
       if (!state.abortRequested) {
+        if (state.stdinUnwritable === true) {
+          return { kind: "rejected", code: "error", reason: "an earlier session/cancel write of this turn did not complete; no second one is written" };
+        }
         // BYOK change: no upstream observation window. The injected process
         // remembers the agent's descendants synchronously before the native
         // cancel can orphan them; the SDK process-tree authority kills those
@@ -287,12 +300,26 @@ export function createAcpTurns(deps: {
         state.abortRequested = true;
         // BYOK change: a failed cancel write leaves the turn as it was, so a
         // retry sends the cancel again and a later prompt error stays a failure.
+        // A write that does not complete within the bound counts as failed, and
+        // the turn's stdin as not writable: the prompt's own end decides the turn.
+        const abortTimeoutMs = profile.abortTimeoutMs ?? DEFAULT_ABORT_TIMEOUT_MS;
         const write = (async (): Promise<ResponseBody> => {
-          try {
-            await runtime.connection.agent.notify(methods.agent.session.cancel, { sessionId: rootId });
-          } catch (error) {
+          let timer: NodeJS.Timeout | undefined;
+          const bound = new Promise<{ readonly timedOut: true }>((resolve) => {
+            timer = setTimeout(() => resolve({ timedOut: true }), abortTimeoutMs);
+            timer.unref();
+          });
+          const sent = runtime.connection.agent.notify(methods.agent.session.cancel, { sessionId: rootId })
+            .then(() => null, (error: unknown) => ({ error }));
+          const result = await Promise.race([sent, bound]);
+          clearTimeout(timer);
+          if (result !== null) {
             state.abortRequested = false;
-            return { kind: "rejected", code: "error", reason: error instanceof Error ? error.message : String(error) };
+            if ("timedOut" in result) {
+              state.stdinUnwritable = true;
+              return { kind: "rejected", code: "error", reason: `session/cancel write did not complete within ${abortTimeoutMs} ms` };
+            }
+            return { kind: "rejected", code: "error", reason: result.error instanceof Error ? result.error.message : String(result.error) };
           }
           // A stalled shared prompt releases only this root; isolated fallback
           // stops its own process and records the observed exit.
@@ -303,7 +330,7 @@ export function createAcpTurns(deps: {
                 void deps.fallback(request);
               } else { runtime.kill(); }
             }
-          }, profile.abortTimeoutMs ?? 10_000);
+          }, abortTimeoutMs);
           state.fallback.unref();
           return { kind: "accepted" };
         })();

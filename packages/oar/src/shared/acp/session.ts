@@ -284,9 +284,12 @@ async function openAcpRuntimeSession(
         }
         // BYOK change: no prepareShutdown/markNativeStop; the SDK process-tree
         // authority reads the descendants itself before it signals the tree.
+        // BYOK change: the abort records the descendants and starts the cancel
+        // write synchronously; dispose does not wait for that write, so a
+        // runtime that stopped reading its stdin is still killed below.
         const state = turns.active();
         if (state !== null && !runtime.closed) {
-          await turns.abort(state);
+          void turns.abort(state);
         }
         if (opened.supportsClose && !runtime.closed) {
           await closeAcpSession(runtime, kernel.sessionId).catch(() => {});
