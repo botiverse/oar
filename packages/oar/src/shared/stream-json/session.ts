@@ -50,6 +50,11 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
   let canCancelQueued = false;
   const abortFallback = createAbortFallback(() => { child.kill(); });
   const pendingInterrupts = new Map<string, () => void>();
+  // BYOK change: interrupts of this turn that were written and not refused; the abort mark stands while one remains.
+  const aborting = new Set<string>();
+  const withdrawAbort = (requestId: string): void => {
+    if (aborting.delete(requestId) && aborting.size === 0) { state.projection = { ...state.projection, abortRequested: false }; }
+  };
   let disposeRequest: RequestRecord | null = null;
   // BYOK change: no upstream cancellation observation window; the caller's beforeInterrupt runs synchronously before the interrupt.
   function drainHeld(): void {
@@ -97,6 +102,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
           const closes = command.agentPath.length === 0 && (correlated || command.body.events.some((event) => event.kind === "turn_ended"));
           if (closes) {
             abortFallback.clear();
+            aborting.clear();
             if (state.projection.pendingInputId === null) { state.active = null; }
             state.spontaneous = false;
           }
@@ -137,6 +143,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
     }
     if (dropped && !ended && !busy()) {
       abortFallback.clear();
+      aborting.clear();
       if (state.projection.pendingInputId === null) { state.active = null; }
       state.spontaneous = false;
     }
@@ -145,6 +152,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
   // BYOK change: the injected line process reports no cleanup reason; only the profile's exit reason is recorded.
   child.onExit((code) => {
     abortFallback.clear();
+    aborting.clear();
     // An exit before fallback still precedes the rejected pending controls.
     const reason = profile.exitReason?.();
     kernel.respond(disposeRequest?.id ?? "", { kind: "exited", code, ...(reason === undefined ? {} : { reason }) });
@@ -230,6 +238,7 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
         return { request, response: kernel.respond(request.id, { kind: "rejected", code: "error", reason: error instanceof Error ? error.message : String(error) }) };
       }
       state.projection = streamJsonAbortRequested(state.projection);
+      aborting.add(requestId);
       const { promise, resolve } = Promise.withResolvers<ControlResult>();
       const unsubscribe = kernel.rawEvents((record) => {
         if (record.kind === "response" && record.requestId === requestId) {
@@ -243,12 +252,25 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
           kernel.respond(requestId, { kind: "accepted" });
         }
       });
-      if (pendingInterrupts.has(requestId)) { pendingInterrupts.set(requestId, refuse); }
-      child.write(`${JSON.stringify({
-        type: "control_request",
-        request_id: requestId,
-        request: { subtype: "interrupt", ...(canCancelQueued && state.projection.unstartedInputs.size > 0 ? { cancel_queued: true } : {}) },
-      })}\n`);
+      // BYOK change: a refused interrupt withdraws its fallback attempt and its share of the abort mark.
+      if (pendingInterrupts.has(requestId)) { pendingInterrupts.set(requestId, () => { refuse(); withdrawAbort(requestId); }); }
+      try {
+        child.write(`${JSON.stringify({
+          type: "control_request",
+          request_id: requestId,
+          request: { subtype: "interrupt", ...(canCancelQueued && state.projection.unstartedInputs.size > 0 ? { cancel_queued: true } : {}) },
+        })}\n`);
+      } catch (error) {
+        // BYOK change: an interrupt that was never written leaves the turn as it was: no mark, no fallback kill.
+        // An abort already taken over by a fired fallback keeps that answer.
+        const refused = pendingInterrupts.get(requestId);
+        if (refused !== undefined) {
+          pendingInterrupts.delete(requestId);
+          refused();
+          unsubscribe();
+          return { request, response: kernel.respond(requestId, { kind: "rejected", code: "error", reason: error instanceof Error ? error.message : String(error) }) };
+        }
+      }
       const result = await promise;
       unsubscribe();
       return result;
