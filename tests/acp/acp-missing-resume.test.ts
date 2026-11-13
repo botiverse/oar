@@ -1,8 +1,10 @@
+/* oxlint-disable import/max-dependencies -- Covered ACP runtime profiles plus fixture/helper imports. */
 import { fileURLToPath } from "node:url";
 import { inspect } from "node:util";
 import { expect, test } from "vitest";
 import { SessionNotFoundError, RuntimeFailureError, UnsupportedOptionError } from "../../packages/oar/src/index.js";
 import { antigravityAcpProfile } from "../../packages/oar/src/runtimes/antigravity/session.js";
+import { devinAcpProfile } from "../../packages/oar/src/runtimes/devin/session.js";
 import { grokAcpProfile } from "../../packages/oar/src/runtimes/grok/session.js";
 import { kimiAcpProfile } from "../../packages/oar/src/runtimes/kimi/session.js";
 import { opencodeAcpProfile, opencodeV2AcpProfile } from "../../packages/oar/src/runtimes/opencode/session.js";
@@ -11,7 +13,7 @@ import errors from "../fixtures/missing-resume-errors.json" with { type: "json" 
 
 const nativeErrors: Readonly<Record<string, unknown>> = errors;
 const installation = { kind: "available", via: "executable", command: process.execPath } as const;
-const profiles = { antigravity: antigravityAcpProfile, grok: grokAcpProfile, kimi: kimiAcpProfile, opencode: opencodeAcpProfile, opencodeV2: opencodeV2AcpProfile };
+const profiles = { antigravity: antigravityAcpProfile, devin: devinAcpProfile, grok: grokAcpProfile, kimi: kimiAcpProfile, opencode: opencodeAcpProfile, opencodeV2: opencodeV2AcpProfile };
 const unlisted = { result: { sessions: [] } };
 const listed = { result: { sessions: [{ sessionId: "missing-session", cwd: process.cwd() }] } };
 async function open(profile: AcpSessionProfile, scenario: object, resume: string | null = "missing-session") {
@@ -21,11 +23,15 @@ async function open(profile: AcpSessionProfile, scenario: object, resume: string
 }
 
 // These recorded answers and versions are documented beside the mapping in runtime-matrix.md.
-test.each([["grok", profiles.grok]] as const)("%s maps its recorded missing resume error", async (runtime, profile) => {
+test.each([
+  ["grok", profiles.grok, "resume"],
+  ["devin", profiles.devin, "load"],
+] as const)("%s maps its recorded missing resume error", async (runtime, profile, capability) => {
+  const method = `session/${capability}`;
   const native = nativeErrors[runtime];
-  const failure: unknown = await open(profile, { error: native, pages: [listed] }).catch((error: unknown) => error);
+  const failure: unknown = await open(profile, { error: native, capability, errorMethod: method, pages: [listed] }).catch((error: unknown) => error);
   expect(failure).toBeInstanceOf(SessionNotFoundError);
-  expect(failure).toMatchObject({ name: "SessionNotFoundError", sessionId: "missing-session", cause: { method: "session/resume", native } });
+  expect(failure).toMatchObject({ name: "SessionNotFoundError", sessionId: "missing-session", cause: { method, native } });
 });
 
 test.each(["resume", "load"])("antigravity keeps a generic native %s failure when cwd is confirmed", async (capability) => {
@@ -44,7 +50,7 @@ test.each(Object.entries(profiles))("%s never classifies an initialize or new-se
   }
 });
 
-const listProfiles = [profiles.antigravity, profiles.kimi, profiles.opencode, profiles.opencodeV2];
+const listProfiles = [profiles.antigravity, profiles.devin, profiles.kimi, profiles.opencode, profiles.opencodeV2];
 test.each(listProfiles)("a listed id keeps a generic native resume failure, even on a later page", async (profile) => {
   const failure: unknown = await open(profile, { error: errors.opencode, pages: [{ result: { sessions: [], nextCursor: "next" } }, listed] }).catch((error: unknown) => error);
   expect(failure).not.toBeInstanceOf(SessionNotFoundError);
@@ -87,13 +93,16 @@ test.each(listProfiles)("a native authentication failure keeps its classificatio
 });
 
 test.each([
-  [profiles.antigravity, { ...errors.antigravity, code: -32_601 }],
-  [profiles.grok, { ...errors.grok, data: { code: "FS_ACCESS_DENIED" } }],
-  [{ args: [], capabilities: { queue: { durable: false }, attribution: "opaque" } } satisfies AcpSessionProfile, errors.antigravity],
-] as const)("other native failures and profiles without a rule stay unchanged", async (profile, native) => {
-  const failure: unknown = await open(profile, { error: native, pages: [listed] }).catch((error: unknown) => error);
+  [profiles.antigravity, { ...errors.antigravity, code: -32_601 }, "resume"],
+  [profiles.grok, { ...errors.grok, data: { code: "FS_ACCESS_DENIED" } }, "resume"],
+  [profiles.devin, { ...errors.devin, data: { "cognition.ai/errorKind": "session_locked", "cognition.ai/retryable": false } }, "load"],
+  [profiles.devin, { ...errors.devin, code: -32_603 }, "load"],
+  [{ args: [], capabilities: { queue: { durable: false }, attribution: "opaque" } } satisfies AcpSessionProfile, errors.antigravity, "resume"],
+] as const)("other native failures and profiles without a rule stay unchanged", async (profile, native, capability) => {
+  const method = `session/${capability}`;
+  const failure: unknown = await open(profile, { error: native, capability, errorMethod: method, pages: [listed] }).catch((error: unknown) => error);
   expect(failure).not.toBeInstanceOf(SessionNotFoundError);
-  expect(failure).toMatchObject({ cause: { native } });
+  expect(failure).toMatchObject({ cause: { method, native } });
 });
 
 test("a mapped error remains typed after credential redaction, with a JSON-safe native cause", async () => {
