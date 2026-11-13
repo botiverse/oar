@@ -25,7 +25,7 @@ const OPEN_TIMEOUT_MS = 60_000;
 const DISPOSE_TIMEOUT_MS = 8000;
 
 // BYOK change: the caller owns the process and the launch; the environment is required and explicit.
-export type DshSessionOptions = Pick<SessionOptions, "cwd" | "model" | "effort" | "resume" | "mcpServers"> & { readonly launch: DshLaunch };
+export type DshSessionOptions = Pick<SessionOptions, "cwd" | "model" | "effort" | "resume" | "mcpServers" | "retainedBytes"> & { readonly launch: DshLaunch };
 
 // BYOK change: the session always carries steer.
 export interface DshAdapterSession extends AdapterSession {
@@ -93,7 +93,7 @@ async function open(spawnLineProcess: SpawnDshLineProcess, command: string, opti
   const sessionId = options.resume ?? randomUUID();
   const agentOptions = dshAgentOptions(options);
   // BYOK change: the record consumer observes from seq 0: it registers before any frame.
-  const kernel = createSessionKernel(sessionId, credentials.redactValue);
+  const kernel = createSessionKernel(sessionId, credentials.redactValue, options.retainedBytes);
   if (hooks.onRecord !== undefined) { kernel.rawEvents(hooks.onRecord); }
   hooks.onReady?.(sessionId);
   let projection = initialDshProjection(sessionId);

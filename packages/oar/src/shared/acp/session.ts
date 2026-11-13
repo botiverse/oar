@@ -52,7 +52,7 @@ export type { AcpSessionProfile } from "./profile.js";
  */
 
 // BYOK change: the caller passes the complete filtered environment, so a value is never a null removal.
-export type AcpSessionOptions = Omit<SessionOptions, "env" | "endTurnProcessesOnAbort" | "retainedBytes"> & { readonly env: Readonly<Record<string, string>> };
+export type AcpSessionOptions = Omit<SessionOptions, "env" | "endTurnProcessesOnAbort"> & { readonly env: Readonly<Record<string, string>> };
 
 // BYOK change: the record consumer is registered before any record is appended.
 export interface AcpSessionHooks {
@@ -145,7 +145,7 @@ async function openAcpRuntimeSession(
       throw withoutCredentials(error);
     });
     // BYOK change: the record consumer observes from seq 0: it registers before the recorder binds.
-    const kernel = createSessionKernel(opened.sessionId, credentials.redactValue);
+    const kernel = createSessionKernel(opened.sessionId, credentials.redactValue, options.retainedBytes);
     if (hooks.onRecord !== undefined) kernel.rawEvents(hooks.onRecord);
     try {
       hooks.onReady?.(opened.sessionId);

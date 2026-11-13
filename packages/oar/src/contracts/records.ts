@@ -1,3 +1,4 @@
+// BYOK change: Modified from OAR 95c6547 so a request or reply whose native payload retention removed says so (Apache-2.0).
 import type { GoalSetOptions, GoalSnapshot } from "./goal.js";
 import type { InputImage, InputOrigin, InputReference, UserMessage } from "./input.js";
 import type { PlacementRequest, SessionCleanup, SessionPlacement, SessionRelease } from "./placement.js";
@@ -248,7 +249,7 @@ export type RequestBody =
   | { readonly kind: "abort" }
   | { readonly kind: "dispose" }
   /** A runtime→app request, verbatim; `type` is the runtime's method/subtype. */
-  | { readonly kind: "native"; readonly type: string; readonly native: unknown };
+  | { readonly kind: "native"; readonly type: string; readonly native: unknown; readonly elided?: true }; // BYOK change: `elided`: `retainedBytes` set `native` to null.
 
 /**
  * Why a control action was not taken over, as one word an application can
@@ -287,11 +288,11 @@ export type ResponseBody =
   | { readonly kind: "cleanup"; readonly result: SessionCleanup }
   | SessionRelease
   /** The adapter (or runtime) took the action over. For prompt/steer/queue this is ONE deliberately weak promise: the caller's delivery obligation ENDS; do not resubmit, unless the stream later reports the input dropped (`input_dropped`, `ConversationInput.state` "dropped"), which hands it back. No guarantee it lands in the current turn, that the model attends to it, or that any business outcome happened; where input landed is the event stream's job. For withdraw it is a strong one: the held input was removed before it was sent, and the caller owns it again. `native` is the runtime's own acknowledgement when it gave one. `queued: "adapter"` means OAR still holds this queue input; actual dispatch is a new prompt carrying its input identity, never a second response. */
-  | { readonly kind: "accepted"; readonly native?: unknown; readonly queued?: "adapter" }
+  | { readonly kind: "accepted"; readonly native?: unknown; readonly queued?: "adapter"; readonly elided?: true }
   /** Not taken over; the caller still owns the input. `code` says why in one word; `reason` is the prose. */
-  | { readonly kind: "rejected"; readonly code: RejectionCode; readonly reason: string; readonly native?: unknown; readonly failure?: FailureClass }
+  | { readonly kind: "rejected"; readonly code: RejectionCode; readonly reason: string; readonly native?: unknown; readonly failure?: FailureClass; readonly elided?: true }
   /** oar's reply to a `toApp` request (e.g. the automatic permission grant), verbatim. */
-  | { readonly kind: "answered"; readonly native: unknown }
+  | { readonly kind: "answered"; readonly native: unknown; readonly elided?: true }
   /** The runtime process exited, an outcome the runtime cannot say itself. Answers a `dispose` request when oar caused it; also recorded for an unrequested exit, pointing at no request. Optional reason explains OAR termination or unverified descendant cleanup. */
   | { readonly kind: "exited"; readonly code: number | null; readonly reason?: string };
 export type { ContextUsage } from "./context-usage.js";

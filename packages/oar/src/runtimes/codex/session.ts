@@ -57,7 +57,7 @@ export async function codexSession(
   spawnLineProcess: SpawnLineProcess,
   installation: AvailableInstallation,
   // BYOK change: the caller passes the complete filtered environment, so a value is never a null removal.
-  options: Omit<SessionOptions, "env" | "goals" | "endTurnProcessesOnAbort" | "retainedBytes"> & {
+  options: Omit<SessionOptions, "env" | "goals" | "endTurnProcessesOnAbort"> & {
     readonly env?: Readonly<Record<string, string>>;
     readonly approvalPolicy?: "never" | "on-request"; // BYOK change: explicit local interactive opt-in.
     // BYOK change: the caller passes OAR_CODEX_SANDBOX semantics explicitly.
@@ -169,7 +169,7 @@ async function openCodexSession(
 
   // BYOK change: The record consumer observes from seq 0: it registers before any record is appended.
   // Observer errors are swallowed by the kernel, so the consumer fails the session itself.
-  const kernel = createSessionKernel(threadId, redactValue);
+  const kernel = createSessionKernel(threadId, redactValue, options.retainedBytes);
   if (hooks.onRecord !== undefined) kernel.rawEvents(hooks.onRecord);
   hooks.onReady?.(threadId);
   const state: CodexSessionState = {
