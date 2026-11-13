@@ -243,10 +243,10 @@ test("devin projection reads configOptions model and thought_level for the curre
     configOptions: [
       {
         id: "model",
-        currentValue: "claude-sonnet-4-5",
+        currentValue: "swe-1-6-fast",
         options: [
-          { value: "claude-sonnet-4-5", name: "Claude Sonnet 4.5" },
-          { value: "gpt-5", name: "GPT-5" },
+          { value: "swe-1-6-fast", name: "SWE-1.6 Fast" },
+          { value: "swe-1-6", name: "SWE-1.6" },
         ],
       },
       {
@@ -258,13 +258,13 @@ test("devin projection reads configOptions model and thought_level for the curre
     ],
   })).toEqual([
     {
-      id: "claude-sonnet-4-5",
-      displayName: "Claude Sonnet 4.5",
+      id: "swe-1-6-fast",
+      displayName: "SWE-1.6 Fast",
       default: true,
       effortLevels: ["low", "medium", "high"],
       defaultEffort: "medium",
     },
-    { id: "gpt-5", displayName: "GPT-5" },
+    { id: "swe-1-6", displayName: "SWE-1.6" },
   ]);
   expect(projectDevinModels({ configOptions: [] })).toBeUndefined();
 });

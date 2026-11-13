@@ -8,7 +8,7 @@ import { createCursorRuntime, defaultRuntimes } from "../packages/oar/src/index.
 import { antigravityInstallMethod } from "../packages/oar/src/runtimes/antigravity/install.js";
 import { claudeInstallMethod } from "../packages/oar/src/runtimes/claude/install.js";
 import { codexInstallMethod } from "../packages/oar/src/runtimes/codex/install.js";
-import { devinInstallMethod, devinInstallPlan } from "../packages/oar/src/runtimes/devin/install.js";
+import { createDevinInstallPlan, devinInstallMethod, devinInstallPlan } from "../packages/oar/src/runtimes/devin/install.js";
 import { grokInstallMethod } from "../packages/oar/src/runtimes/grok/install.js";
 import { kimiInstallMethod } from "../packages/oar/src/runtimes/kimi/install.js";
 import { opencodeInstallMethods, opencodeInstallPlan, opencodeLineOf } from "../packages/oar/src/runtimes/opencode/install.js";
@@ -124,12 +124,22 @@ test("devin checks write privileges under XDG_DATA_HOME", () => {
   assert.equal(allowed.kind, "plan");
 });
 
+function writeStubbedTools(home: string): string {
+  const toolsDir = path.join(home, "tools");
+  mkdirSync(toolsDir, { recursive: true });
+  for (const tool of ["sh", "curl", "bash"]) {
+    const file = path.join(toolsDir, process.platform === "win32" ? `${tool}.cmd` : tool);
+    writeFileSync(file, process.platform === "win32" ? "@echo off\r\n" : "#!/bin/sh\n", { mode: 0o755 });
+  }
+  return toolsDir;
+}
+
 async function withStubbedHome(prefix: string, run: (home: string) => Promise<void>): Promise<void> {
   const home = mkdtempSync(path.join(tmpdir(), prefix));
   try {
     vi.stubEnv("HOME", home);
     vi.stubEnv("USERPROFILE", home);
-    vi.stubEnv("PATH", "");
+    vi.stubEnv("PATH", writeStubbedTools(home));
     await run(home);
   } finally {
     rmSync(home, { recursive: true, force: true });
@@ -165,5 +175,18 @@ test.skipIf(process.platform === "win32")("devinInstallPlan refuses a regular no
     assert.equal(plan.kind, "unsupported");
     assert.equal(plan.reason, "configuration");
     assert.match(plan.detail ?? "", /not a symlink/u);
+  });
+});
+
+test("devinInstallPlan preserves earlier unsupported base plans instead of overriding with local configuration checks", async () => {
+  await withStubbedHome("oar-devin-base-unsupported-", async (home) => {
+    mkdirSync(path.join(home, ".local", "bin"), { recursive: true });
+    writeFileSync(path.join(home, ".local", "bin", "devin"), "regular-file-not-a-symlink");
+    vi.stubEnv("OAR_DEVIN_BIN", path.join(home, "missing-devin"));
+    const winPlan = await createDevinInstallPlan({ ...linux, platform: "win32" })();
+    assert.equal(winPlan.kind === "unsupported" ? winPlan.reason : winPlan.kind, "platform");
+    vi.stubEnv("OAR_DEVIN_BIN", "");
+    const missingToolPlan = await createDevinInstallPlan({ ...linux, locate: () => null })();
+    assert.equal(missingToolPlan.kind === "unsupported" ? missingToolPlan.reason : missingToolPlan.kind, "missing_tool");
   });
 });

@@ -1,29 +1,33 @@
 # Devin
 
-OAR connects to the Devin CLI's native ACP server through `devin acp` over stdio JSON-RPC. The [isolated probe](../../experiments/devin-acp/README.md) ran against `devin 3000.12.57`, commit `96542e930752`, on macOS arm64 on 2026-11-13 in a temporary `HOME` with no credentials or model calls. Devin CLI offers no custom OpenAI or Anthropic base URL setting, so OAR wires no `aimock` sea-trial backend. Authenticated inference, streaming tool outcomes, and child attribution remain unverified against a live account.
-
-OAR implements `installation`, `install`, `installPlan`, `checkUpdate`, `authStatus`, `listModels`, and `session`. Independent inventory queries return `unsupported`, and `login`, `logout`, `upgrade`, `accountUsage`, `redeemLimitReset`, and provider-auth facades stay absent after checking the CLI and ACP commands below.
+The [isolated probe](../../experiments/devin-acp/README.md) ran against `devin 3000.12.57`, commit `96542e930752`, on macOS arm64 on 2026-11-13 in a temporary `HOME` with no credentials or model calls. Versions on this page are evidence baselines rather than a support range. Devin CLI offers no custom OpenAI or Anthropic base URL setting, so OAR wires no `aimock` sea-trial backend, and live authenticated inference remains unverified.
 
 ## Native concepts and calling interfaces
 
-`devin acp` serves persistent JSON-RPC over stdio. On `3000.12.57`, `initialize` reports `protocolVersion: 1`, `agentInfo` with `name: "affogato"` and `title: "Devin Agent"`, `loadSession: true`, `promptCapabilities` for `image` and `embeddedContext` with `audio: false`, `mcpCapabilities` for `http` and `sse`, `sessionCapabilities` for `list`, `delete`, `additionalDirectories`, and `close`, and `authMethods` containing `devin-browser`.
+`devin acp` serves persistent JSON-RPC over stdio. On `3000.12.57`, `initialize` reports `protocolVersion: 1`, `agentInfo` with `name: "affogato"`, `title: "Devin Agent"`, and `version: "0.0.0-dev"`, `loadSession: true`, `promptCapabilities` for `image` and `embeddedContext` with `audio: false`, `mcpCapabilities` for `http` and `sse`, `sessionCapabilities` for `list`, `delete`, `additionalDirectories`, and `close`, `_meta["cognition.ai/midTurnPrompts"]: true`, and `authMethods` containing `devin-browser`.
 
-A new session opens in `accept-edits` mode and lists `accept-edits`, `smart`, `ask`, `plan`, and `bypass` in both `modes` and `configOptions`. OAR starts `devin --permission-mode dangerous --respect-workspace-trust false acp` and switches the opened session to `bypass` through `session/set_mode` when the session advertises `bypass`.
+CLI flags `--permission-mode` and `--respect-workspace-trust` gate the CLI REPL and `-p` print runner rather than `devin acp`. Bare `devin acp` opens in untrusted directories without a trust prompt, starts every new session in `accept-edits` mode regardless of `--permission-mode`, lists `accept-edits`, `smart`, `ask`, `plan`, and `bypass` in both `modes` and `configOptions`, and switches to `bypass` through `session/set_mode`.
 
-`session/set_model` returns JSON-RPC `-32601 Method not found`. `devin acp` switches model and reasoning effort synchronously through `session/set_config_option`. `devin models list` prints variant IDs that ACP `session/set_config_option` rejects with `-32602 Invalid params`, so OAR reads the model catalog from ACP `session/new` `configOptions` instead.
+`session/load` emits `session_info_update`, `available_commands_update`, and message-cluster replay `session/update` notifications before returning its RPC result. Calling `session/load` on a missing session ID fails with JSON-RPC `-32016`, `Session not found`, and `data["cognition.ai/errorKind"] === "session_not_found"`. `session/delete` removes a session from both in-memory `session/list` and `$XDG_DATA_HOME/devin/cli/sessions.db`, whereas `session/close` unloads an unprompted session from memory while leaving persisted rows in `sessions.db`.
+
+`session/set_model` returns JSON-RPC `-32601` and `Method not found`. `devin acp` switches model and reasoning effort synchronously through `session/set_config_option`. `devin models list` prints variant IDs that ACP `session/set_config_option` rejects with `-32602` and `Invalid params`, so OAR reads the model catalog from ACP `session/new` `configOptions` instead.
+
+`WINDSURF_API_KEY` is the sole environment credential that `devin` reads. `DEVIN_API_KEY` does not appear in the binary, and `devin` ignores it.
 
 ## High-level mapping to OAR
 
-`devinRuntime` belongs to `defaultRuntimes` and `@botiverse/oar/runtimes/devin` exports it with `execution: "process"` for isolated placement. The runtime entry loads [`session.ts`](../../packages/oar/src/runtimes/devin/session.ts) and [`list-models.ts`](../../packages/oar/src/runtimes/devin/list-models.ts) on first call so importing `@botiverse/oar/runtimes/devin` does not load `@agentclientprotocol/sdk`.
+`devinRuntime` belongs to `defaultRuntimes`, and `@botiverse/oar/runtimes/devin` exports it with `execution: "process"` for isolated placement. The runtime entry loads [`session.ts`](../../packages/oar/src/runtimes/devin/session.ts) and [`list-models.ts`](../../packages/oar/src/runtimes/devin/list-models.ts) on first call so importing `@botiverse/oar/runtimes/devin` does not load `@agentclientprotocol/sdk`.
+
+OAR implements `installation`, `install`, `installPlan`, `checkUpdate`, `authStatus`, `listModels`, and `session`. Independent inventory queries return `unsupported`, and `login`, `logout`, `upgrade`, `accountUsage`, `redeemLimitReset`, and provider-auth facades stay absent after checking the CLI and ACP commands below.
 
 | Native concept | OAR mapping |
 | --- | --- |
-| Executable | One `devin --permission-mode dangerous --respect-workspace-trust false acp` process per Session, launched in `cwd` with the env overlay. |
-| Conversation | `Session.id` equals the native ACP `sessionId`. `resume` confirms the saved directory through `session/list` and opens the conversation with `session/load` without history replay. |
+| Executable | One `devin acp` process per Session, launched with `["acp"]` in `cwd` with the env overlay. |
+| Conversation | `Session.id` equals the native ACP `sessionId`. `resume` confirms the saved directory through `session/list` and opens the conversation with `session/load`, recording `session_info_update`, `available_commands_update`, and message-cluster replay `session/update` notifications on the opened session stream. |
 | Prompt and queue | `prompt()` sends `session/prompt`. `queue()` holds inputs in host memory with `durable: false` and supports `withdraw()` before dispatch. `Session.steer` is absent. |
-| Cancel and dispose | `abort()` sends `session/cancel` with a 10-second process-kill fallback. `dispose()` closes the session when supported and terminates the owned process tree and hosted terminals. |
+| Cancel and dispose | `abort()` sends `session/cancel` with a 10-second process-kill fallback. `dispose()` closes the session when `initialize` advertises `close` and terminates the owned process tree and hosted terminals. |
 | Model and effort | `modelViaConfigOption: true` sends synchronous `session/set_config_option` calls for `model` and `thought_level` without waiting for async config notifications. |
-| Turn limits and failures | Shared `acpFailureOutcome` maps `-32000` to `auth` and passes other prompt errors through `classifyFailure` for `rate_limited`, `quota`, and `billing`. |
+| Auth and turn failures | `openFailure` maps `-32603` authentication errors at open to `RuntimeFailureError` with `failure: "auth"`. `failureOutcome` maps `-32000` and `-32603` authentication errors on turns to `failure: "auth"`, while rate-limit, quota, and billing turn payloads under `data["cognition.ai/errorKind"]` remain unverified. |
 | Child attribution | `opaque`. OAR infers no child session identity or graph edges. |
 | Compaction | `Session.compact` is absent and `manualCompaction` is `unsupported`. Native `available_commands_update` lists `/compact` without a verified completion contract. |
 
@@ -33,26 +37,40 @@ The implementation spans [index.ts](../../packages/oar/src/runtimes/devin/index.
 
 ### Session creation and resume
 
-OAR launches ACP with `--permission-mode dangerous --respect-workspace-trust false acp` from `devinAcpArgs`. After `session/new` or `session/load`, `configureSession` sends `session/set_mode` with `modeId: "bypass"` when `supportsDevinBypass` finds `"bypass"` in `modes.availableModes` or `configOptions` for `mode`. Opening requests time out after 30 seconds.
+OAR launches `devin acp` with `["acp"]` from `devinAcpArgs`. After `session/new` or `session/load`, `configureSession` sends `session/set_mode` with `modeId: "bypass"` when `supportsDevinBypass` finds `"bypass"` in `modes.availableModes` or `configOptions` for `mode`. Opening requests time out after 30 seconds.
 
-Devin resumes a session in its saved `cwd` and ignores a different `cwd` passed on resume, so the profile sets `resumeKeepsSessionCwd: true`. Before sending `session/load`, OAR calls `session/list` and requires a matching entry with the same directory, as documented in [resume-cwd](resume-cwd.md). A different directory, missing list entry, or unconfirmed `cwd` rejects with `UnsupportedOptionError` on `cwd`. Calling `session/load` directly on a missing session ID returns JSON-RPC `-32016` with `Session not found`, and OAR's prior `session/list` check turns unlisted session IDs into the `cwd` refusal rather than `SessionNotFoundError`.
+`devinAcpProfile` maps `-32603` authentication errors matching `Authentication required`, `invalid api key`, or `not logged in` at session open to `RuntimeFailureError` with `failure: "auth"` through `openFailure`.
+
+Devin resumes a session in its saved `cwd` and ignores a different `cwd` passed on resume, so `devinAcpProfile` sets `resumeKeepsSessionCwd: true`. Before sending `session/load`, OAR calls `session/list` and requires a matching entry with the same directory, as documented in [resume-cwd](resume-cwd.md). A different directory, missing list entry, or unconfirmed `cwd` rejects with `UnsupportedOptionError` on `cwd`.
+
+`devinAcpProfile` sets `isResumeNotFound` for JSON-RPC `-32016` with `data["cognition.ai/errorKind"] === "session_not_found"`. That check maps to `SessionNotFoundError` if a session listed in `session/list` disappears before `session/load` completes, while unlisted session IDs still hit the prior `session/list` `cwd` refusal.
+
+When `session/load` runs, `devin acp` emits `session_info_update`, `available_commands_update`, and message-cluster replay `session/update` notifications before returning its RPC result, which OAR records on the opened session stream.
 
 ### Prompt, queueing, and abort
 
-`prompt()` resolves once OAR sends the RPC and rejects as `busy` while an active turn or queued input holds the slot. Image support follows `initialize.agentCapabilities.promptCapabilities.image`, which reports `true` on `3000.12.57`. OAR omits `Session.steer`. `queue()` buffers inputs in host memory with `durable: false`, and `withdraw()` removes queued entries before dispatch. `abort()` sends `session/cancel` and kills the process tree after 10 seconds if the turn does not settle.
+`prompt()` resolves once OAR sends the RPC and rejects as `busy` while an active turn or queued input holds the slot. Image support follows `initialize.agentCapabilities.promptCapabilities.image`, which reports `true` on `3000.12.57`.
+
+`initialize` advertises `_meta["cognition.ai/midTurnPrompts"]: true`, and OAR has verified neither a second `session/prompt` mid-turn nor `cognition.ai/midTurnPrompts` without a live authenticated turn, so `Session.steer` is absent.
+
+`queue()` buffers inputs in host memory with `durable: false`, and `withdraw()` removes queued entries before dispatch. `abort()` sends `session/cancel` and kills the process tree after 10 seconds if the turn does not settle.
+
+Logged-out `session/prompt` returns JSON-RPC `-32000`. `devinAcpProfile` maps `-32000` and `-32603` authentication errors on turns to `failure: "auth"` through `failureOutcome`. Devin turn errors carry `data["cognition.ai/errorKind"]`, and rate-limit, quota, and billing turn payloads remain unverified until a live account run captures them.
 
 ### Models and effort
 
-`listModels()` starts a temporary ACP process, runs `initialize` and `session/new` without a prompt, closes the session when `sessionCapabilities.close` is `true`, and projects `model` and `thought_level` from `configOptions` through `projectDevinModels`:
+`devinListModels` bounds `initialize`, `session/new`, cleanup, and fallback `authStatus` under one shared `timeoutMs` deadline that defaults to 30 seconds. After reading `session/new` without sending a prompt, `devinListModels` calls `session/delete` when `initialize` advertises `sessionCapabilities.delete` and falls back to `session/close` otherwise, removing the temporary session from `session/list` and `sessions.db`.
 
-- When logged out, `session/new` returns `configOptions` with `currentValue: "swe-1-6-fast"` and an empty `options: []` array on `model`. When `projectDevinModels` produces an empty list, `devinListModels` calls `readDevinAuthStatus` and returns `{ kind: "unauthenticated" }` if the CLI reports `logged_out`.
+`projectDevinModels` reads `model` and `thought_level` from `configOptions`:
+
+- When `projectDevinModels` returns an empty model list, `devinListModels` checks `readDevinAuthStatus` under the remaining deadline. `logged_out` maps to `unauthenticated`, `logged_in` returns an empty `ok` list, `unknown` with configured credentials returns `unsupported`, and unreadable status rejects.
 - When the environment sets an invalid `WINDSURF_API_KEY`, `session/new` fails with JSON-RPC `-32603` and `Authentication required: invalid api key`. `devinListModels` maps `-32000` and authentication error messages to `{ kind: "unauthenticated" }`.
 
 When opening a session with `model` or `effort`, OAR applies each value sequentially through `session/set_config_option` with `modelViaConfigOption: true` and leaves `confirmConfigOptionUpdates` unset.
 
 ### Session MCP servers
 
-ACP `session/new` and `session/load` accept stdio and HTTP `mcpServers` entries, including non-empty `env` and `headers`, so `serveMcpTools` entries attach without refusal. Isolated `3000.12.57` checks confirmed that Devin does not write HTTP or stdio MCP `env` values or credentials to its SQLite store under `~/.local/share/devin`. OAR leaves `mcpToolsListChanged` undeclared.
+ACP `session/new` and `session/load` accept stdio and HTTP `mcpServers` entries, including non-empty `env` and `headers`, so `serveMcpTools` entries attach without refusal. Isolated `3000.12.57` checks confirmed that Devin writes no HTTP or stdio MCP `env` values or credentials to its SQLite store under `$XDG_DATA_HOME/devin`. OAR leaves `mcpToolsListChanged` undeclared.
 
 ### Refused session options and launch arguments
 
@@ -60,13 +78,15 @@ ACP `session/new` and `session/load` accept stdio and HTTP `mcpServers` entries,
 
 `additionalDirectories`, `appendSystemPrompt`, `disallowedTools`, `endTurnProcessesOnAbort`, `goals`, `name`, `outputSchema`, `serviceTier`, `systemPrompt`, and `userConfiguration`.
 
+`initialize` advertises `sessionCapabilities.additionalDirectories`, and `devinRefusedSessionOptions` refuses `additionalDirectories` because OAR has not verified that primary `cwd` and tool scoping honor it.
+
 OAR appends `launchArgs` after `acp` without validation and never persists them. Callers must pass them again on resume.
 
 ### Process ownership, installation, and update checks
 
-**Discovery.** `devinInstallation` checks `OAR_DEVIN_BIN`, searches `PATH` for `devin`, and falls back to `~/.local/bin/devin` on POSIX or `%LOCALAPPDATA%\devin\cli\bin\devin.exe` and `%USERPROFILE%\AppData\Local\devin\cli\bin\devin.exe` on Windows. Readiness runs `devin acp --help`, and `readDevinVersion` parses `devin <semver>` with an optional commit hash.
+**Discovery.** `devinInstallation` checks `OAR_DEVIN_BIN`, searches `PATH` for `devin`, and falls back to `~/.local/bin/devin` on POSIX. On Windows, `devinInstallation` checks `%LOCALAPPDATA%\devin\cli\bin\devin.exe`, falling back to `%USERPROFILE%\AppData\Local\devin\cli\bin\devin.exe` only when `LOCALAPPDATA` is unset. Readiness runs `devin acp --help`, and `readDevinVersion` parses `devin <semver>` with an optional commit hash.
 
-**Installation.** `devinInstallPlan` and `devinInstall` run the official shell installer from https://docs.devin.ai/cli on macOS and Linux:
+**Installation.** `devinInstallPlan` and `devinInstall` run the official shell installer from the [Devin CLI documentation](https://docs.devin.ai/cli) on macOS and Linux:
 
 ```sh
 curl -fsSL https://cli.devin.ai/install.sh | bash
@@ -91,25 +111,35 @@ Installations from Homebrew `devin-cli`, the Devin Desktop bundle, or portal and
 
 ### Authentication, providers, usage, and inventories
 
+`WINDSURF_API_KEY` is the sole environment credential that `devin` reads. `DEVIN_API_KEY` does not appear in the binary, and `devin` ignores it.
+
 `devinAuthStatus` runs `devin auth status` with a 30-second deadline, accepts `timeoutMs`, and omits `localOnly`:
 
-- `devin auth status` exits `0` in both logged-in and logged-out states and ignores `WINDSURF_API_KEY`.
+- `devin auth status` exits `0` across logged-out, corrupt, rejected, and logged-in states and ignores `WINDSURF_API_KEY`.
 - When the effective environment sets a non-empty `WINDSURF_API_KEY`, OAR returns `{ kind: "unknown", source: "devin auth status", configured: ["environment: WINDSURF_API_KEY"] }` without validating or echoing the key.
-- Otherwise, `parseDevinAuthStatus` maps `Not logged in.` to `logged_out` and `Logged in...` to `logged_in`, and extracts optional `email`, `method` from `via <method>`, and `credential: "api_key"` from `with provided API key` while stripping `Credentials path:` lines and secrets.
+- Otherwise, `parseDevinAuthStatus` classifies observed `3000.12.57` outputs while stripping `Credentials path:` and `File:` lines:
+  - `Not logged in.` returns `logged_out`.
+  - `Failed to load credentials:` returns `unknown`.
+  - `Logged in (via Devin).` and `Logged in (via API key).` check `User / team info:` so server-rejected keys matching `Failed to fetch from server: ... Authentication required` or `invalid api key` return `logged_out`, unreachable server checks matching `Failed to fetch from server:` or `Unavailable:` return `unknown` with `configured: ["stored credentials"]`, and clean responses return `logged_in` with `method` and optional `credential: "api_key"`. Authenticated `User / team info:` account fields remain unverified pending live account capture.
 
 Checks on `devin 3000.12.57` account for the absent members:
 
-- **Login and logout.** `devin auth login` opens `/dev/tty` in a `ratatui` TUI even with `--force-manual-token-flow`. ACP `authenticate` advertises `devin-browser` without a non-browser URL relay or code prompt, and ACP `/login` takes an API key inside `session/prompt`. OAR omits `login`, and per [the login contract](../spec/login.md#logout) omits `logout` as well even though `devin auth logout` exists on the CLI.
-- **Providers.** `devin --help`, `devin doctor --json`, `~/.config/devin/config.json`, and ACP `available_commands_update` offer no third-party provider configuration or per-provider credential store. ACP `/billing` only toggles whether a linked provider plan pays for its models, so OAR exports no provider-auth facade.
-- **Account usage and limit resets.** `devin --help`, `devin auth --help`, `devin doctor --json`, and ACP `available_commands_update` offer no account quota window or limit-reset call. ACP `/context` and `/session-stats` report session-level state only, so `accountUsage` and `redeemLimitReset` stay absent. On turns, `openAcpSession` routes non-`-32000` JSON-RPC prompt errors through shared `classifyFailure`, which maps HTTP `429` and rate-limit codes to `rate_limited`, quota codes to `quota`, and `402` or credit-exhaustion errors to `billing`.
+- **Login and logout.** OAR checked every CLI and ACP sign-in route on `3000.12.57`:
+  - `devin auth login` without `--force-manual-token-flow` blocks on a 3-way `ratatui` mode selector over pipes with no URL printed, and browser login invokes `/usr/bin/open` directly on macOS through `open-5.3.3` without consulting `BROWSER` or `PATH`.
+  - `devin auth login --force-manual-token-flow` prints a PKCE URL with `cli_pkce_marker=1` without opening a browser, then requires a TTY for `crossterm` cursor-position queries and masked `Code:` input. Two obstacles block `Runtime.login` prior to live Linux verification. When `$XDG_DATA_HOME/devin/credentials.toml` already exists on disk, even with an expired or invalid key, `devin auth login --force-manual-token-flow` prints `You are already logged in. Use 'devin auth logout' first to re-authenticate.` and exits `0`, which conflicts with OAR's rule never to clear stored credentials before new ones exist. In addition, `openScriptTerminal` runs on Linux only because macOS BSD `script` fails on socketpair stdin in `#752` and Windows has no `script` utility, and PKCE code exchange requires a live account.
+  - ACP `authenticate` with `devin-browser` opens a loopback callback and invokes `/usr/bin/open` directly, never emits the sign-in URL over ACP, and fails with JSON-RPC `-32603` and `Could not open browser for authentication` when browser launch is unavailable.
+  - ACP `/login` accepts an API key only inside `session/prompt`.
+  - `devin auth logout` removes local `$XDG_DATA_HOME/devin/credentials.toml` and plugin caches with exit `0` and no remote revocation. OAR omits `logout` alongside `login` per [the login contract](../spec/login.md#logout).
+- **Providers.** `devin --help`, `devin doctor --json`, `$XDG_CONFIG_HOME/devin/config.json`, and ACP `available_commands_update` offer no third-party provider configuration or per-provider credential store. ACP `/billing` only toggles whether a linked provider plan pays for its models, so OAR exports no provider-auth facade.
+- **Account usage and limit resets.** `devin --help`, `devin auth --help`, `devin doctor --json`, and ACP `available_commands_update` offer no account quota window or limit-reset call. ACP `/context` and `/session-stats` report session-level state only, so `accountUsage` and `redeemLimitReset` stay absent.
 - **Independent inventories.** `skills`, `commands`, `mcpServers`, and `tools` return `unsupported` with `transport_unavailable` from `defineRuntime`. `devin skills list --json`, `devin mcp list --json`, `devin plugins list`, and session-scoped `available_commands_update` exist natively and remain unmapped.
 
 ## Orientation query costs and reader environment
 
-`listModels` opens a short-lived ACP process and calls `session/new` without sending a prompt. `OAR_DEVIN_BIN`, `HOME`, `XDG_*`, and `WINDSURF_API_KEY` in `env` overlays apply to installation checks, auth status, model listing, and sessions without mutating `process.env`.
+`listModels` runs `devin acp` in `listingCwd(options)`, which uses `options.cwd` or `process.cwd()`. That call initializes `$XDG_DATA_HOME/devin/cli/sessions.db`, `$XDG_CONFIG_HOME/devin/config.json`, and a lock file under `session_locks/`, and scans `cwd` rules and skills before `session/delete` removes the session entry. `OAR_DEVIN_BIN`, `HOME`, `XDG_*`, and `WINDSURF_API_KEY` in `env` overlays apply to installation checks, auth status, model listing, and sessions without mutating `process.env`.
 
 ## Verification and open gaps
 
 - [`experiments/devin-acp/probe.ts`](../../experiments/devin-acp/probe.ts) runs an isolated zero-token CLI and ACP handshake probe verified against `devin 3000.12.57` on macOS arm64 on 2026-11-13.
-- Unit and fake-ACP suites cover version and path discovery, installer preflight, `distribution` manifest resolution, `authStatus` parsing, `WINDSURF_API_KEY` handling, `listModels` auth fallback and `-32603` mapping, `bypass` mode switching, synchronous `model` and `thought_level` config options, `resumeKeepsSessionCwd` refusal, and refused session options.
-- Live authenticated inference, `session/prompt` turn and limit payloads, tool-call detail projection, child attribution, and Linux and Windows installer runs remain unverified.
+- Unit and fake-ACP suites cover version and path discovery, installer preflight, `distribution` manifest resolution, `authStatus` parsing across missing, corrupt, server-rejected, and unreachable credential states, `WINDSURF_API_KEY` handling, `listModels` shared deadline, `session/delete` cleanup, empty-catalog auth disambiguation, `-32603` open and turn auth mapping, `bypass` mode switching, synchronous `model` and `thought_level` config options, `resumeKeepsSessionCwd` refusal, `isResumeNotFound` `-32016` mapping, and refused session options.
+- Live authenticated inference, `session/prompt` rate-limit, quota, and billing payloads, mid-turn prompt behavior, authenticated `User / team info:` fields, tool-call detail projection, child attribution, and Linux and Windows installer runs remain unverified.

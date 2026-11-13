@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, expect, test } from "vitest";
-import { UnsupportedOptionError } from "../../packages/oar/src/index.js";
+import { RuntimeFailureError, SessionNotFoundError, UnsupportedOptionError } from "../../packages/oar/src/index.js";
 import {
   devinAcpArgs,
   devinAcpProfile,
@@ -75,18 +75,70 @@ test("devin switches model and effort via session/set_config_option rather than 
   const dir = scratchDir("oar-devin-model-");
   const log = path.join(dir, "calls.txt");
   await withDevinSession(
-    { cwd: dir, model: "gpt-5", effort: "high", env: { FAKE_DEVIN_CALL_LOG: log, FAKE_DEVIN_ADVERTISE_BYPASS: "1" } },
+    { cwd: dir, model: "swe-1-6", effort: "high", env: { FAKE_DEVIN_CALL_LOG: log, FAKE_DEVIN_ADVERTISE_BYPASS: "1" } },
     (session) => {
-      expect(session.model().value).toBe("gpt-5");
+      expect(session.model().value).toBe("swe-1-6");
       expect(session.effort().value).toBe("high");
       const calls = readCalls(log);
       expect(calls).not.toContain("session/set_model");
       expect(calls.filter((line) => line === "session/set_config_option")).toHaveLength(2);
       const opening = session.records().map((record) => describe(record));
-      expect(opening).toContain("event session/set_config_option → model:gpt-5, effort:medium");
-      expect(opening).toContain("event session/set_config_option → model:gpt-5, effort:high");
+      expect(opening).toContain("event session/set_config_option → model:swe-1-6, effort:medium");
+      expect(opening).toContain("event session/set_config_option → model:swe-1-6, effort:high");
     },
   );
+});
+
+test("devin maps -32603 sign-in errors at open to RuntimeFailureError('auth') with preserved native cause", async () => {
+  const dir = scratchDir("oar-devin-open-auth-");
+  const message = "Failed to load team settings: Failed to fetch team settings: Authentication required: invalid api key";
+  const native = { code: -32_603, message };
+  const failure: unknown = await startFakeDevin(fakeExecutable, {
+    cwd: dir,
+    env: { FAKE_DEVIN_NEW_ERROR: JSON.stringify(native) },
+  }).catch((error: unknown) => error);
+  expect(failure).toBeInstanceOf(RuntimeFailureError);
+  expect(failure).toMatchObject({
+    failure: "auth",
+    message,
+    cause: { method: "session/new", native },
+  });
+});
+
+test("devin maps -32603 sign-in errors on session/prompt to failure: 'auth'", async () => {
+  const dir = scratchDir("oar-devin-prompt-auth-");
+  const message = "Failed to fetch team settings: Authentication required: invalid api key";
+  await withDevinSession(
+    { cwd: dir, env: { FAKE_DEVIN_PROMPT_ERROR: JSON.stringify({ code: -32_603, message }) } },
+    async (session) => {
+      const run = await promptAndWait(session, "check");
+      expect(run).toMatchObject({
+        kind: "ended",
+        outcome: { kind: "failed", failure: "auth", reason: message },
+      });
+    },
+  );
+});
+
+test("devin maps -32016 session_not_found on session/load to SessionNotFoundError when listed in cwd", async () => {
+  const dir = scratchDir("oar-devin-missing-load-");
+  const failure: unknown = await startFakeDevin(fakeExecutable, {
+    cwd: dir,
+    resume: "devin-sess-1",
+    env: { FAKE_DEVIN_SESSION_CWD: dir, FAKE_DEVIN_MISSING_LOAD: "1" },
+  }).catch((error: unknown) => error);
+  expect(failure).toBeInstanceOf(SessionNotFoundError);
+  expect(failure).toMatchObject({
+    sessionId: "devin-sess-1",
+    cause: {
+      method: "session/load",
+      native: {
+        code: -32_016,
+        message: "Session not found",
+        data: { "cognition.ai/errorKind": "session_not_found", "cognition.ai/retryable": false },
+      },
+    },
+  });
 });
 
 test("devin refuses cross-directory resume before session/load", async () => {
@@ -121,7 +173,7 @@ test("devin allows same-directory resume via session/load", async () => {
 });
 
 test("devin refuses unsupported session options with UnsupportedOptionError before spawning", async () => {
-  expect(devinAcpArgs()).toEqual(["--permission-mode", "dangerous", "--respect-workspace-trust", "false", "acp"]);
+  expect(devinAcpArgs()).toEqual(["acp"]);
   const installation = { kind: "available", via: "executable", command: "/nonexistent/devin" } as const;
   const refusedCases: readonly { readonly option: string; readonly extra: Partial<DevinSessionOptions> }[] = [
     { option: "additionalDirectories", extra: { additionalDirectories: ["/extra"] } },

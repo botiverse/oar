@@ -23,11 +23,15 @@ async function open(profile: AcpSessionProfile, scenario: object, resume: string
 }
 
 // These recorded answers and versions are documented beside the mapping in runtime-matrix.md.
-test.each([["grok", profiles.grok]] as const)("%s maps its recorded missing resume error", async (runtime, profile) => {
+test.each([
+  ["grok", profiles.grok, "resume"],
+  ["devin", profiles.devin, "load"],
+] as const)("%s maps its recorded missing resume error", async (runtime, profile, capability) => {
+  const method = `session/${capability}`;
   const native = nativeErrors[runtime];
-  const failure: unknown = await open(profile, { error: native, pages: [listed] }).catch((error: unknown) => error);
+  const failure: unknown = await open(profile, { error: native, capability, errorMethod: method, pages: [listed] }).catch((error: unknown) => error);
   expect(failure).toBeInstanceOf(SessionNotFoundError);
-  expect(failure).toMatchObject({ name: "SessionNotFoundError", sessionId: "missing-session", cause: { method: "session/resume", native } });
+  expect(failure).toMatchObject({ name: "SessionNotFoundError", sessionId: "missing-session", cause: { method, native } });
 });
 
 test.each(["resume", "load"])("antigravity keeps a generic native %s failure when cwd is confirmed", async (capability) => {
@@ -35,12 +39,6 @@ test.each(["resume", "load"])("antigravity keeps a generic native %s failure whe
   const opening = open(profiles.antigravity, { error: errors.antigravity, capability, errorMethod: method, pages: [listed] });
   await expect(opening).rejects.not.toBeInstanceOf(SessionNotFoundError);
   await expect(opening).rejects.toMatchObject({ cause: { method, native: errors.antigravity } });
-});
-
-test("devin keeps its generic native load failure when cwd is confirmed", async () => {
-  const opening = open(profiles.devin, { error: errors.devin, capability: "load", errorMethod: "session/load", pages: [listed] });
-  await expect(opening).rejects.not.toBeInstanceOf(SessionNotFoundError);
-  await expect(opening).rejects.toMatchObject({ cause: { method: "session/load", native: errors.devin } });
 });
 
 test.each(Object.entries(profiles))("%s never classifies an initialize or new-session error as a missing resume", async (runtime, profile) => {
@@ -95,13 +93,16 @@ test.each(listProfiles)("a native authentication failure keeps its classificatio
 });
 
 test.each([
-  [profiles.antigravity, { ...errors.antigravity, code: -32_601 }],
-  [profiles.grok, { ...errors.grok, data: { code: "FS_ACCESS_DENIED" } }],
-  [{ args: [], capabilities: { queue: { durable: false }, attribution: "opaque" } } satisfies AcpSessionProfile, errors.antigravity],
-] as const)("other native failures and profiles without a rule stay unchanged", async (profile, native) => {
-  const failure: unknown = await open(profile, { error: native, pages: [listed] }).catch((error: unknown) => error);
+  [profiles.antigravity, { ...errors.antigravity, code: -32_601 }, "resume"],
+  [profiles.grok, { ...errors.grok, data: { code: "FS_ACCESS_DENIED" } }, "resume"],
+  [profiles.devin, { ...errors.devin, data: { "cognition.ai/errorKind": "session_locked", "cognition.ai/retryable": false } }, "load"],
+  [profiles.devin, { ...errors.devin, code: -32_603 }, "load"],
+  [{ args: [], capabilities: { queue: { durable: false }, attribution: "opaque" } } satisfies AcpSessionProfile, errors.antigravity, "resume"],
+] as const)("other native failures and profiles without a rule stay unchanged", async (profile, native, capability) => {
+  const method = `session/${capability}`;
+  const failure: unknown = await open(profile, { error: native, capability, errorMethod: method, pages: [listed] }).catch((error: unknown) => error);
   expect(failure).not.toBeInstanceOf(SessionNotFoundError);
-  expect(failure).toMatchObject({ cause: { native } });
+  expect(failure).toMatchObject({ cause: { method, native } });
 });
 
 test("a mapped error remains typed after credential redaction, with a JSON-safe native cause", async () => {

@@ -39,42 +39,135 @@ afterEach(() => {
   }
 });
 
-test("parseDevinAuthStatus parses logged-out output", () => {
-  expect(parseDevinAuthStatus("Not logged in.\nRun `devin auth login` to authenticate.\n")).toEqual({
-    kind: "logged_out",
-    source: "devin auth status",
-    detail: "Run `devin auth login` in a terminal or set WINDSURF_API_KEY.",
-  });
-});
-
-test("parseDevinAuthStatus parses browser login and never exposes Credentials path", () => {
-  const secretPath = "/home/synthetic-user/.local/share/devin/secret-credentials.json";
+test("parseDevinAuthStatus parses missing credentials.toml output without exposing Credentials path", () => {
+  const secretPath = "/tmp/devin-probe/data/devin/credentials.toml";
   const stdout = [
-    "Logged in (via browser).",
-    "  Email: alice@example.test",
+    "Not logged in.",
     `  Credentials path: ${secretPath}`,
+    "Run `devin auth login` to authenticate.",
     "",
   ].join("\n");
   const status = parseDevinAuthStatus(stdout);
   expect(status).toEqual({
-    kind: "logged_in",
-    account: { email: "alice@example.test", method: "browser" },
+    kind: "logged_out",
     source: "devin auth status",
+    detail: "Run `devin auth login` in a terminal or set WINDSURF_API_KEY.",
   });
   expect(JSON.stringify(status)).not.toContain(secretPath);
   expect(JSON.stringify(status)).not.toContain("Credentials path");
 });
 
-test("parseDevinAuthStatus parses provided API key login", () => {
-  const status = parseDevinAuthStatus("Logged in with provided API key.\n");
+test("parseDevinAuthStatus parses corrupt credentials.toml output as unknown without configured", () => {
+  const secretPath = "/tmp/devin-probe/data/devin/credentials.toml";
+  const stdout = [
+    "Failed to load credentials: TOML parse error at line 1, column 9",
+    "  |",
+    "1 | invalid =",
+    "  |         ^",
+    `  Credentials path: ${secretPath}`,
+    "Run `devin auth login` to (re-)authenticate.",
+    "",
+  ].join("\n");
+  const status = parseDevinAuthStatus(stdout);
   expect(status).toEqual({
+    kind: "unknown",
+    source: "devin auth status",
+    detail: "devin auth status reported unreadable stored credentials",
+  });
+  expect(JSON.stringify(status)).not.toContain(secretPath);
+});
+
+test("parseDevinAuthStatus maps server-rejected stored credentials to logged_out", () => {
+  const secretPath = "/tmp/devin-probe/data/devin/credentials.toml";
+  const stdout = [
+    "Logged in (via Devin).",
+    "",
+    "Credentials:",
+    `  File:              ${secretPath}`,
+    "  API server:        https://server.self-serve.windsurf.com",
+    "  Devin webapp:      https://app.devin.ai",
+    "  Devin API:         https://api.devin.ai",
+    "",
+    "User / team info:",
+    "  Failed to fetch from server: Authentication required: invalid api key",
+    "",
+  ].join("\n");
+  const status = parseDevinAuthStatus(stdout);
+  expect(status).toEqual({
+    kind: "logged_out",
+    source: "devin auth status",
+    detail: "Stored Devin credentials were rejected by the server. Run `devin auth logout` and `devin auth login` to re-authenticate.",
+  });
+  expect(JSON.stringify(status)).not.toContain(secretPath);
+});
+
+test.each([
+  "  Failed to fetch from server: error sending request for url",
+  "  Unavailable: service temporarily unreachable",
+])("parseDevinAuthStatus maps transient server check failure (%s) to unknown with stored credentials", (failureLine) => {
+  const secretPath = "/tmp/devin-probe/data/devin/credentials.toml";
+  const stdout = [
+    "Logged in (via Devin).",
+    "",
+    "Credentials:",
+    `  File:              ${secretPath}`,
+    "  API server:        https://server.self-serve.windsurf.com",
+    "",
+    "User / team info:",
+    failureLine,
+    "",
+  ].join("\n");
+  const status = parseDevinAuthStatus(stdout);
+  expect(status).toEqual({
+    kind: "unknown",
+    source: "devin auth status",
+    configured: ["stored credentials"],
+    detail: "devin auth status found stored credentials and could not verify them with the server",
+  });
+  expect(JSON.stringify(status)).not.toContain(secretPath);
+});
+
+test("parseDevinAuthStatus parses Logged in (via Devin). and Logged in (via API key). without exposing File path", () => {
+  const secretPath = "/tmp/devin-probe/data/devin/credentials.toml";
+  const devinStdout = [
+    "Logged in (via Devin).",
+    "",
+    "Credentials:",
+    `  File:              ${secretPath}`,
+    "  API server:        https://server.self-serve.windsurf.com",
+    "  Devin webapp:      https://app.devin.ai",
+    "  Devin API:         https://api.devin.ai",
+    "",
+  ].join("\n");
+  const devinStatus = parseDevinAuthStatus(devinStdout);
+  expect(devinStatus).toEqual({
     kind: "logged_in",
-    account: { credential: "api_key" },
+    account: { method: "Devin" },
+    source: "devin auth status",
+  });
+  expect(JSON.stringify(devinStatus)).not.toContain(secretPath);
+
+  const apiKeyStdout = [
+    "Logged in (via API key).",
+    "",
+    "Credentials:",
+    `  File:              ${secretPath}`,
+    "  API server:        https://server.self-serve.windsurf.com",
+    "",
+  ].join("\n");
+  expect(parseDevinAuthStatus(apiKeyStdout)).toEqual({
+    kind: "logged_in",
+    account: { method: "API key", credential: "api_key" },
     source: "devin auth status",
   });
 });
 
-test("parseDevinAuthStatus returns unknown for unexpected output", () => {
+test("parseDevinAuthStatus returns unknown for unexpected or unobserved REPL output", () => {
+  expect(parseDevinAuthStatus("Logged in with provided API key.\n")).toEqual({
+    kind: "unknown",
+    source: "devin auth status",
+    detail: "devin auth status ended without saying whether it is signed in",
+  });
   expect(parseDevinAuthStatus("checking auth...\n")).toEqual({
     kind: "unknown",
     source: "devin auth status",
@@ -104,7 +197,9 @@ test("devinAuthStatus returns unknown with WINDSURF_API_KEY configured without l
 });
 
 test("devinAuthStatus runs devin auth status cleanly for logged-out, logged-in, and failing exits", async () => {
-  const loggedOut = writeAuthFixture({ stdout: "Not logged in.\n" });
+  const loggedOut = writeAuthFixture({
+    stdout: "Not logged in.\n  Credentials path: /tmp/devin-probe/data/devin/credentials.toml\nRun `devin auth login` to authenticate.\n",
+  });
   expect(
     await devinAuthStatus(
       { kind: "available", via: "executable", command: loggedOut.command },
@@ -112,9 +207,9 @@ test("devinAuthStatus runs devin auth status cleanly for logged-out, logged-in, 
     ),
   ).toMatchObject({ kind: "logged_out", source: "devin auth status" });
 
-  const secretPath = "/tmp/synthetic-creds-path/auth.json";
+  const secretPath = "/tmp/synthetic-creds-path/credentials.toml";
   const loggedIn = writeAuthFixture({
-    stdout: `Logged in (via browser).\n  Email: bob@example.test\n  Credentials path: ${secretPath}\n`,
+    stdout: `Logged in (via Devin).\n\nCredentials:\n  File:              ${secretPath}\n  API server:        https://server.self-serve.windsurf.com\n`,
   });
   const loggedInResult = await devinAuthStatus(
     { kind: "available", via: "executable", command: loggedIn.command },
@@ -122,12 +217,12 @@ test("devinAuthStatus runs devin auth status cleanly for logged-out, logged-in, 
   );
   expect(loggedInResult).toEqual({
     kind: "logged_in",
-    account: { email: "bob@example.test", method: "browser" },
+    account: { method: "Devin" },
     source: "devin auth status",
   });
   expect(JSON.stringify(loggedInResult)).not.toContain(secretPath);
 
-  const failed = writeAuthFixture({ stdout: "Logged in.\n", exitCode: 1 });
+  const failed = writeAuthFixture({ stdout: "Logged in (via Devin).\n", exitCode: 1 });
   expect(
     await devinAuthStatus(
       { kind: "available", via: "executable", command: failed.command },

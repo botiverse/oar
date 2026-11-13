@@ -3,7 +3,7 @@ import type { RefusedSessionOptions } from "../../contracts/runtime.js";
 /* Declared refusals, apart from the session code so the runtime entry loads no ACP SDK until a session opens. */
 
 export const devinRefusedSessionOptions: RefusedSessionOptions = {
-  additionalDirectories: "Devin ACP does not advertise additionalDirectories",
+  additionalDirectories: "Devin ACP advertises sessionCapabilities.additionalDirectories, and OAR has not verified that primary cwd and tool scope honor it",
   appendSystemPrompt: "Devin ACP exposes no verified system prompt append channel",
   disallowedTools: "Devin ACP exposes no verified tool-denial channel",
   endTurnProcessesOnAbort: "OAR has not verified reading and ending one aborted Devin turn's processes while its session stays usable",

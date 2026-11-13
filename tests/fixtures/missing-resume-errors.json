@@ -38,7 +38,11 @@
   },
   "devin": {
     "code": -32016,
-    "message": "Session Load Error: Failed to load session missing-session: Session state file not found for session missing-session"
+    "message": "Session not found",
+    "data": {
+      "cognition.ai/errorKind": "session_not_found",
+      "cognition.ai/retryable": false
+    }
   },
   "cursor": {
     "name": "AgentNotFoundError",

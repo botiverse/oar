@@ -15,7 +15,7 @@ test("ACP agents: after the subcommand by default; grok's go before `stdio`, whe
   expect(acpLaunchArgs(opencodeAcpProfile, { cwd: "/work", launchArgs })).toEqual(["acp", "--flag", "value"]);
   expect(acpLaunchArgs(grokAcpProfile, { cwd: "/work", launchArgs })).toEqual(["agent", "--always-approve", "--no-leader", "--flag", "value", "stdio"]);
   expect(acpLaunchArgs(antigravityAcpProfile, { cwd: "/work", launchArgs }).slice(-2)).toEqual(launchArgs);
-  expect(acpLaunchArgs(devinAcpProfile, { cwd: "/work", launchArgs })).toEqual(["--permission-mode", "dangerous", "--respect-workspace-trust", "false", "acp", "--flag", "value"]);
+  expect(acpLaunchArgs(devinAcpProfile, { cwd: "/work", launchArgs })).toEqual(["acp", "--flag", "value"]);
 });
 
 test("omitted or empty launchArgs leave every argv as it was", () => {

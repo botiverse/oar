@@ -6,6 +6,7 @@ import type { FrameBody } from "../packages/oar/src/contracts/session.js";
 import { claudeFailure, claudeResultReason } from "../packages/oar/src/runtimes/claude/failure.js";
 import { codexFailure } from "../packages/oar/src/runtimes/codex/failure.js";
 import { cursorOpenFailure } from "../packages/oar/src/runtimes/cursor/failure.js";
+import { devinFailureOutcome, devinOpenFailure } from "../packages/oar/src/runtimes/devin/session.js";
 import { grokFailureOutcome } from "../packages/oar/src/runtimes/grok/failure.js";
 import { opencodeFailureOutcome } from "../packages/oar/src/runtimes/opencode/failure.js";
 import { piFailure } from "../packages/oar/src/runtimes/pi/failure.js";
@@ -193,4 +194,14 @@ test("cursor open: a refused key is auth, rejected, with its status", () => {
   expect(cursorOpenFailure(refused)).toMatchObject({ name: "RuntimeFailureError", failure: "auth", credential: "rejected", status: 401, reason: "Invalid User API Key" });
   const other = new Error("network down");
   expect(cursorOpenFailure(other)).toBe(other);
+});
+
+test("devin: -32603 sign-in refusals map to auth at open and on session/prompt without guessing unobserved errorKinds", () => {
+  const message = "Failed to load team settings: Failed to fetch team settings: Authentication required: invalid api key";
+  const openAuth = new RequestError(-32_603, message);
+  expect(acpOpenFailure(openAuth, "open", devinOpenFailure)).toMatchObject({ name: "RuntimeFailureError", failure: "auth", message });
+  expect(acpFailureOutcome(openAuth, [], devinFailureOutcome)).toEqual({ kind: "failed", reason: message, failure: "auth" });
+  const nonAuth = new RequestError(-32_603, "Provider error", { "cognition.ai/errorKind": "resource_exhausted", "cognition.ai/retryable": true });
+  expect(devinOpenFailure(nonAuth, "open")).toBeNull();
+  expect(devinFailureOutcome(nonAuth, [])).toBeNull();
 });
