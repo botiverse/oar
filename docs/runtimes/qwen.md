@@ -13,11 +13,11 @@ observed on Linux with a local scripted OpenAI provider on 2026-10-23.
 The source's `packages/cli/src/nonInteractive/session.ts` and
 `control/controllers/systemController.ts` define this interface.
 
-Current check: npm **0.27.2** on Linux, 2026-11-11. All 19 native vendor
+Current check: npm **0.27.3** on Linux, 2026-11-13. All 21 native vendor
 tests and 16 applicable behavior cases passed. The snapshot-id and
 extension-store limits below still reproduce, and all fourteen
 provider-preset credential variables remain covered by the local credential
-reader. See the [version check](../../experiments/runtime-version-checks/2026-11-11.md#qwen-0272).
+reader. See the [version check](../../experiments/runtime-version-checks/2026-11-13.md#qwen-0273).
 
 ## OAR mapping
 
@@ -102,7 +102,7 @@ not an additional OAR input or record.
 
 ### Streamed block snapshots
 
-With **0.26.3** through **0.26.5**, and again in **0.27.0** through **0.27.2**, a response
+With **0.26.3** through **0.26.5**, and again in **0.27.0** through **0.27.3**, a response
 containing thinking followed by text emits one `message_start`, reuses
 content-block index 0, and follows each `content_block_stop` with a
 single-block `assistant` snapshot. The text

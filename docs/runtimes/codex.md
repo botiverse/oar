@@ -15,12 +15,12 @@ later observations name their own version. Versions are evidence baselines,
 not a support range; a claim that holds only on a named binary is marked
 [env]. See the [runtime index](README.md) for evidence and status conventions.
 
-Newest release checked: **0.167.2** (Linux x64, 2026-11-12): all 78 native
+Newest release checked: **0.169.0** (Linux x64, 2026-11-13): all 80 native
 vendor cases and 16 applicable behavior cases passed against a local scripted
-provider ([November 12 report](../../experiments/runtime-version-checks/2026-11-12.md#codex-01672)).
-A separate Ubuntu CI run of the same version failed two process-count
-preconditions before abort; the report retains both results and the
-missing process-detail evidence.
+provider ([November 13 report](../../experiments/runtime-version-checks/2026-11-13.md#codex-01690)).
+Earlier Ubuntu CI runs of 0.167.2 failed process-count preconditions before
+abort. The fixture now waits for explicit startup; the original failures'
+cause remains unconfirmed ([evidence](../../experiments/codex-process-count/README.md)).
 The newest run on a real login is **0.162.1** (Linux x64, 2026-10-10, `gpt-6-luna`):
 conversation, tool detail and resume passed with no adapter change
 ([report](../../experiments/runtime-version-checks/2026-10-10.md)).

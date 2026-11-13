@@ -2,9 +2,9 @@
 
 OAR uses the standalone **agy CLI's native ACP entry point**, available from
 1.5.0. It no longer launches the separate `agy_acp_server` archive or its
-companion harness. The latest Linux check is CLI **1.5.7**, 2026-11-12:
-17 behavior cases and all twelve vendor cases pass with an isolated HOME
-and a local scripted Gemini provider ([daily report](../../experiments/runtime-version-checks/2026-11-12.md#antigravity-157)).
+companion harness. The latest Linux check is CLI **1.5.8**, 2026-11-13:
+17 behavior cases and all fourteen vendor cases pass with an isolated HOME
+and a local scripted Gemini provider ([daily report](../../experiments/runtime-version-checks/2026-11-13.md#antigravity-158)).
 See the [1.5.0 migration report](../../experiments/antigravity-cli-acp-2026-11-05.md)
 for native controls, retained limitations and the host migration checklist.
 The new-version runs do not establish account-specific or macOS/Windows behavior.
@@ -53,6 +53,7 @@ Control calls have request/response records.
 | Queue | OAR's volatile FIFO, not a durable native queue; withdrawal before dispatch is supported. |
 | Cancel and dispose | `session/cancel`; native close when available during disposal, then owned process-tree cleanup. |
 | Model and effort | Native config responses and updates; selectors `model` and `thought_level`. |
+| Context usage | Native `usage_update.used` and `.size` feed `usage.context` through the shared ACP projection. The 1.5.8 local-provider trace reports 0 of 1,048,576 tokens; nonzero accounting and every native update trigger were not verified. This is separate from account quota. |
 | Child attribution | `opaque`. No verified CLI child identity mapping; OAR does not invent child sessions or turn ids. |
 | Compaction | The CLI advertises `/compact`, but no structured completion/attribution contract has been verified. `manualCompaction` is declared `unsupported`; no `Session.compact` member. |
 
