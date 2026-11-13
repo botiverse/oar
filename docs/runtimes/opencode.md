@@ -234,12 +234,12 @@ not connect to or leave a persistent daemon. Latest recheck: **2.3.0**
 (Linux x64, 2026-11-13) passed fifteen behavior cases and the twelve-model
 catalog and prompt-option refusal controls. Its cleanup control stopped at
 the missing child graph edge, before abort, disposal and resume checks.
-Native background child updates now require an explicit capability and the
-`opencode/session/child_update` extension. The current adapter still uses
-the old standard-frame projection, so its declared `nested` capability does
-not describe late background child output on 2.3.0. A longer wait does not
-restore that output. [Paired native evidence](../../experiments/opencode-child-background/README.md).
-CI remains on 2.2.7; no product mapping or version pin changes in this check.
+Native background child updates require an explicit capability and the
+`opencode/session/child_update` extension
+([paired native evidence](../../experiments/opencode-child-background/README.md)).
+OAR now declares that capability on 2.3 and later and maps the extension
+([background children](#v2-session-behavior)); that cleanup control has not
+been rerun against the new mapping. CI remains on 2.2.7.
 
 The **2.2.7** recheck
 (Linux x64, 2026-11-10) passed all fifteen applicable behavior cases and
@@ -333,7 +333,7 @@ covers 2.0.27.
   `steer` member; `steerOrQueue` and `deliver` queue the input for another
   turn. Queueing remains an OAR memory FIFO, not durable native storage.
   Native abort and disposal during a shell call both ended as `aborted`.
-- **Children (verified through 2.2.7; see the 2.3.0 limitation above):**
+- **Children (verified through 2.2.7; 2.3.0 uses the background mapping below):**
   standard updates arrive on the parent's envelope with
   `update._meta["opencode/child-session"]` (`id`, `parentID`, `depth`,
   `title`). OAR records them under the named child session, links its real
@@ -344,6 +344,61 @@ covers 2.0.27.
   and usage do not become root output. Native notifications remain
   verbatim. The native tool `name` wins over its display title, so a
   child's `shell` stays `shell` even when its title has a child prefix.
+- **Background children (2.3.0), native interface:** `subagent` always
+  runs in the background and returns at once with
+  `rawOutput.metadata.sessionID` (the child) and `status: "running"`; a later
+  call with that `sessionID` sends the child a follow-up. The standard child
+  projection above only applies while the creating prompt is active. A client
+  that declares `clientCapabilities._meta["opencode/child-session-updates"]: true`
+  receives every child update as `opencode/session/child_update` instead,
+  never on both channels. Its params carry `rootSessionId`, `childSessionId`,
+  `parentSessionId`, `depth` and `title`; `type: "update"` holds a
+  SessionUpdate that keeps `_meta["opencode/child-session"]` and prefixes
+  child tool call IDs, and `type: "status"` reports `created`, `running`,
+  `completed`, `failed` or `interrupted`. There is no parent tool call ID.
+  The 2.2.5 and 2.2.7 sources already read the same capability and switch
+  channels, so OAR declares it only when the installed version is 2.3 or
+  later; older lines keep the mapping above. Sources at `a6b15d33`:
+  `packages/cli/src/acp/{capabilities,child,translate}.ts` and
+  `packages/core/src/tool/plugin/subagent.ts`
+  ([evidence](../../experiments/opencode-child-background/README.md#source)).
+- **Background children (2.3.0), OAR mapping:** each notification is one
+  frame (`type` is the method, `native` verbatim). An `update` is projected
+  by the shared ACP projection as the child's own `session/update` and
+  recorded under `childSessionId`, so child text and tools look as they do
+  above. A `status` is the parent's task, recorded on `parentSessionId`'s
+  envelope: `created` is `task_started` (`taskId` and `childSessionId` are
+  the child, `taskType: "agent"`, `background: true`, `title` as its
+  description), `running` is `task_updated` running (also for a follow-up
+  to a finished child), `completed` is `task_ended` completed, `failed` is
+  failed and `interrupted` is stopped. The task has no `toolCallId`. The
+  `session_linked` edge needs two native facts in either order: a tool call
+  in the parent session whose `rawOutput.metadata.sessionID` names the child,
+  and a child notification naming that parent. It is recorded on whichever
+  frame completes the pair; in the recorded run that is the `subagent`
+  call's completed update, one millisecond after `created`. Without that
+  output the child's records still carry its own session ID, a graph node,
+  but no edge is recorded and no tool ID is invented. Once a child has used
+  the extension, a standard copy of its update stays verbatim without
+  events (none was observed). Nested children use their `parentSessionId`
+  and the middle child's own tool output. In the
+  [recorded run](../../experiments/opencode-child-background/enabled.json)
+  the parent prompt answered at 1695 ms, then child text and completion
+  arrived at 1706 and 1707 ms; OAR records them after the root `turn_ended`,
+  under the child and as the parent's task, without reopening or ending the
+  root turn. Shared placement admits only 2.2.3 and 2.2.5 and never declares
+  the capability.
+- **Background children (2.3.0), verification:** the two recorded native
+  runs replay through the real session, projection and record stream in
+  [`background-child.test.ts`](../../tests/opencode/background-child.test.ts):
+  one level, text only. Tool calls inside a child, permissions, `failed`,
+  `interrupted`, resume and depth > 1 were not exercised natively; the
+  nested case is a synthetic test of the source's shape. **Known gap:** after
+  completion the parent model answers OpenCode's `<subagent>` report on
+  its own; that reply arrives as root standard updates after the prompt
+  answered, with or without the capability, and no native frame ends it.
+  The existing status fold therefore adopts a running root turn; in replay
+  a new prompt is still accepted.
 - **Tool names:** `shell` is a command with its reported `command` input;
   v1 `bash` remains supported. `subagent` classifies as `subagent`, with
   its `description` as the detail. Code Mode `execute` retains its name and

@@ -26,7 +26,10 @@ information is not stored twice.
   comes from the collaboration item naming it
   (`subAgentActivity.agentThreadId`, `receiverThreadIds`). [env 0.149.0]
 - OpenCode v2 (ACP): `update._meta["opencode/child-session"]` names the
-  child id and its actual `parentID`, including nested children.
+  child id and its actual `parentID`, including nested children. On 2.3.0,
+  `opencode/session/child_update` names the parent, and the edge is recorded
+  only once that parent's `subagent` output (`rawOutput.metadata.sessionID`)
+  names the same child.
 - dsh: the parent's durable `subagent/catalog` names the child session
   (`childId`) ([DSH mapping](../runtimes/dsh.md)).
 - claude: `parent_tool_use_id` is agent parent/child and produces no new

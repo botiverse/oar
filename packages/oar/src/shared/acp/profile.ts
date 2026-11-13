@@ -6,6 +6,7 @@ import { methods } from "@agentclientprotocol/sdk";
 import type { ContextUsage, RuntimeEventBody, SessionCapabilities, SessionOptions, TokenTotals, TurnOutcome } from "../../contracts/session.js";
 import { asRecord, type JsonRecord } from "../json.js";
 import { initializeAcpConnection } from "./initialize.js";
+import type { AcpDerivedSessionHooks } from "./derived-sessions.js";
 import { acpAdditionalDirectories } from "./additional-directories.js";
 import { applyAcpEffort, applyAcpModel } from "./effort.js";
 import type { AcpConfigUpdates } from "./config-updates.js";
@@ -17,12 +18,12 @@ import { refuseResumeElsewhere, unknownResumeCwd } from "./resume-cwd.js";
 export { promptAcp } from "./prompt.js";
 export { createUsageUpdateGate, type UsageUpdateGate } from "./usage-wait.js";
 export { acpMcpOpenGuard } from "./mcp-servers.js";
-export interface AcpSessionProfile {
+export interface AcpSessionProfile extends AcpDerivedSessionHooks {
   /** Native compaction control, absent when the installed protocol cannot prove completion. */
   readonly compaction?: (kernel: SessionKernel, runtime: AcpProcess, promptUsage: (response: JsonRecord) => RuntimeEventBody | null) => CompactionOperation;
-  /** Additional vendor facts on a session update; attribution remains the recorder's responsibility. */
   /** Vendor facts on an extension notification; its envelope retains native attribution. */
   readonly projectExtension?: (method: string, params: JsonRecord) => readonly RuntimeEventBody[];
+  /** Additional vendor facts on a session update; attribution remains the recorder's responsibility. */
   readonly projectUpdate?: (update: JsonRecord) => readonly RuntimeEventBody[];
   /** Vendor attribution for forwarded updates. The original notification is always recorded verbatim. */
   readonly attributeUpdate?: (notification: unknown) => { readonly sessionId: string; readonly parent: string } | null;
@@ -173,7 +174,6 @@ export async function closeAcpSession(process: AcpProcess, sessionId: string): P
     ),
   );
 }
-
 
 async function createOrResume(
   process: AcpProcess,

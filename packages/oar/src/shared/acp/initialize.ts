@@ -12,6 +12,7 @@ export async function initializeAcpConnection(
   observe: AcpOpenObserver,
 ): Promise<JsonRecord> {
   const meta = profile.initializeMeta?.(options);
+  const capabilitiesMeta = profile.clientCapabilitiesMeta?.(options);
   const method = methods.agent.initialize;
   const initialized = await withAcpDeadline(
     process,
@@ -22,6 +23,7 @@ export async function initializeAcpConnection(
       clientCapabilities: {
         fs: { readTextFile: false, writeTextFile: false },
         terminal: true,
+        ...(capabilitiesMeta === undefined ? {} : { _meta: capabilitiesMeta }),
       },
       clientInfo: { name: "oar", version: "0.0.0" },
       ...(meta === undefined ? {} : { _meta: meta }),

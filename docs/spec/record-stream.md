@@ -1094,6 +1094,11 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   the type is other. Child identity, background flags, and spend are not
   inferred from task notifications. Unknown native status values remain
   raw.
+  OpenCode 2.3.0 maps `opencode/session/child_update` status reports on the
+  parent's envelope, with the child session as task ID and `childSessionId`:
+  created starts an agent task, running updates it, completed, failed and
+  interrupted end it as completed, failed and stopped
+  ([mapping](../runtimes/opencode.md#v2-session-behavior)).
   DSH maps `subagent/start` / `subagent/end` by native `runId`, and durable
   `job/registered` / `job/settled` by native `jobId` on the owning session.
   `bash` and `pwsh` jobs are shell tasks, including foreground commands;

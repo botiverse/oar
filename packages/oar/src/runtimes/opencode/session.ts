@@ -3,8 +3,8 @@ import type { RefusedSessionOptions } from "../../contracts/runtime.js";
 import { withSessionCredentials } from "../../shared/session-credentials.js";
 import { opencodeRefusedSessionOptions, opencodeV1RefusedSessionOptions } from "./options.js";
 import { opencodeCompaction, opencodeCompactionEvents } from "./compaction.js";
-import { opencodeMajor } from "./version.js";
-import { opencodeChildAttribution } from "./attribution.js";
+import { hasBackgroundChildUpdates, opencodeRelease } from "./version.js";
+import { OPENCODE_CHILD_UPDATE, OPENCODE_CHILD_UPDATES, opencodeChildAttribution, opencodeChildTasks, opencodeChildUpdate, opencodeSpawnedSessions } from "./attribution.js";
 import { refuseSessionOptions } from "../../shared/session-options.js";
 import type { StartSession, Session } from "../../contracts/session.js";
 import { acpSession, type AcpSessionProfile } from "../../shared/acp/session.js";
@@ -55,7 +55,23 @@ export const opencodeV2AcpProfile: AcpSessionProfile = {
   attributeUpdate: opencodeChildAttribution,
   validateOptions: (options) => { refuseSessionOptions(opencodeV2RefusedSessionOptions, options); },
 };
+/**
+ * 2.3.0 runs subagents in the background and stops projecting a child on the
+ * standard channel once its creating prompt ends. Declaring the capability moves
+ * every child update to `opencode/session/child_update`. The 2.2.5 and 2.2.7
+ * sources already read the same capability and would move their children too,
+ * so only 2.3 and later declare it; older lines keep their verified projection.
+ */
+export const opencodeBackgroundChildProfile: AcpSessionProfile = {
+  ...opencodeV2AcpProfile,
+  clientCapabilitiesMeta: () => ({ [OPENCODE_CHILD_UPDATES]: true }),
+  extensionNotifications: [OPENCODE_CHILD_UPDATE],
+  childNotification: opencodeChildUpdate,
+  spawnedSessions: opencodeSpawnedSessions,
+  projectExtension: opencodeChildTasks,
+};
 const directV2Session = acpSession(opencodeV2AcpProfile);
+const backgroundChildSession = acpSession(opencodeBackgroundChildProfile);
 
 function withPromptCleanup(session: Session, cleanup: () => Promise<void>): Session {
   let unsubscribe: (() => void) | undefined = undefined;
@@ -90,8 +106,10 @@ export const opencodeSession: StartSession = withSessionCredentials(async (insta
   // Invalid MCP entries fail before even the release-line helper can start.
   checkMcpServerNames(options.mcpServers ?? []);
   if (installation.via !== "executable") { throw new Error("opencode requires an executable installation"); }
-  if (await opencodeMajor(installation, options) === 2) {
-    return directV2Session(installation, options, context);
+  const release = await opencodeRelease(installation, options);
+  if (release.major === 2) {
+    const start = hasBackgroundChildUpdates(release) ? backgroundChildSession : directV2Session;
+    return start(installation, options, context);
   }
   refuseSessionOptions(opencodeV1RefusedSessionOptions, options);
   if (options.systemPrompt === undefined && options.appendSystemPrompt === undefined) {

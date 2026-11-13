@@ -111,6 +111,9 @@ already show the degeneration (adapter red lines in
 - opencode v2 (ACP): nested; forwarded child updates carry
   `_meta["opencode/child-session"]`, whose `id` and `parentID` give the child
   session and its graph edge ([runtime-matrix.md](runtime-matrix.md#per-runtime-landing-matrix)). [src]
+  From 2.3.0, background children arrive on `opencode/session/child_update`
+  after OAR declares the capability; the edge also needs the parent's
+  `subagent` output naming the child ([mapping](../runtimes/opencode.md#v2-session-behavior)). [env]
 - kimi-cli (native wire): full attribution, recursively unbounded
   (`SubagentEvent(event=SubagentEvent(...))`). Both of its offline
   consumers flatten the wrappers and lose attribution, which is
