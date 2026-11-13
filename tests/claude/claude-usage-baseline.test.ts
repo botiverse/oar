@@ -55,6 +55,8 @@ function expectPrivateReadbacks(fake: FakeLineProcess, session: Session): void {
 }
 
 test("a resume asks get_usage once, after initialize, privately, and counts from its answer", async () => {
+  // Record timestamps can contain the synthetic account value 123456.
+  vi.useFakeTimers({ toFake: ["Date"] }).setSystemTime(1_794_612_345_600);
   const fake = scripted((id) => getUsageAnswer(id, savedModelUsage));
   const session = await claudeSession(installation, { cwd: process.cwd(), resume: "4026f386-50ce-46c3-ac8f-7d697183d262" });
   try {
@@ -62,7 +64,8 @@ test("a resume asks get_usage once, after initialize, privately, and counts from
     await turn(session, fake, resumedProcess);
     expect(session.usage().value).toEqual({ total: { input: 22_087, output: 36, cacheRead: 17_966, cacheWrite: 4111 } });
   } finally { await session.dispose(); }
-  const recorded = JSON.stringify(session.records());
+  // Account data would be in a body, not the envelope's clock or sequence.
+  const recorded = JSON.stringify(session.records().map((record) => record.body));
   expect(privateUsageValues.filter((value) => recorded.includes(value))).toEqual([]);
 });
 
