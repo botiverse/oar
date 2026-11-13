@@ -114,10 +114,11 @@ test("Antigravity's optional shell-profile update does not require write permiss
 });
 
 test("devin checks write privileges under XDG_DATA_HOME", () => {
-  vi.stubEnv("XDG_DATA_HOME", "/opt/xdg-data");
+  const xdgDataHome = path.resolve("/opt/xdg-data");
+  vi.stubEnv("XDG_DATA_HOME", xdgDataHome);
   const blocked = scriptInstallPlanOn(devinInstallMethod, {
     ...linux,
-    unwritable: (target) => (target.startsWith("/opt/xdg-data") ? "/opt/xdg-data" : null),
+    unwritable: (target) => (target.startsWith(xdgDataHome) ? xdgDataHome : null),
   });
   assert.equal(blocked.kind === "unsupported" ? blocked.reason : blocked.kind, "requires_privileges");
   const allowed = scriptInstallPlanOn(devinInstallMethod, linux);
@@ -149,19 +150,25 @@ async function withStubbedHome(prefix: string, run: (home: string) => Promise<vo
 test("devinInstallPlan refuses missing OAR_DEVIN_BIN override", async () => {
   await withStubbedHome("oar-devin-override-", async (home) => {
     vi.stubEnv("OAR_DEVIN_BIN", path.join(home, "missing-devin"));
+    const linuxMissing = await createDevinInstallPlan(linux)();
+    assert.equal(linuxMissing.kind, "unsupported");
+    assert.equal(linuxMissing.reason, "configuration");
+    assert.match(linuxMissing.detail ?? "", /OAR_DEVIN_BIN/u);
     const missing = await devinInstallPlan();
     assert.equal(missing.kind, "unsupported");
-    assert.equal(missing.reason, "configuration");
-    assert.match(missing.detail ?? "", /OAR_DEVIN_BIN/u);
+    assert.equal(missing.reason, process.platform === "win32" ? "platform" : "configuration");
   });
 });
 
 test("devinInstallPlan refuses non-Devin OAR_DEVIN_BIN override", async () => {
   await withStubbedHome("oar-devin-unsupported-", async () => {
     vi.stubEnv("OAR_DEVIN_BIN", process.execPath);
+    const linuxUnsupported = await createDevinInstallPlan(linux)();
+    assert.equal(linuxUnsupported.kind, "unsupported");
+    assert.equal(linuxUnsupported.reason, "configuration");
     const unsupported = await devinInstallPlan();
     assert.equal(unsupported.kind, "unsupported");
-    assert.equal(unsupported.reason, "configuration");
+    assert.equal(unsupported.reason, process.platform === "win32" ? "platform" : "configuration");
   });
 });
 
