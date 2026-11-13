@@ -12,6 +12,25 @@ and contract member, (4) the cheapest regression test and resource cost, and
 (5) a sea-trial case for every new `must` or `never`. If any answer is missing,
 keep the idea in the [roadmap](roadmap.md) or an experiment.
 
+## A new runtime's first version (2026-11-13)
+
+**Considered:** shipping a new runtime with sessions first and adding sign-in,
+usage and the other account-side members in later releases, as happened with
+several runtimes before.
+
+**Refused:** a host offers a runtime to its users as a whole: they sign in,
+pick a model and watch their limits in the same place they chat. A runtime
+whose sessions work but whose login or usage is missing pushes each host to
+build its own workaround or wait, which is the per-host integration OAR exists
+to remove. So the first version covers every surface the runtime natively
+offers, and states each one it does not offer, with what was checked. The
+order for finding them is the same as for sessions: the runtime's own
+interface first ([how](../development.md#how-to-add-a-new-runtime)).
+
+**What would reopen it:** a runtime whose account side cannot be verified
+without spending that the owner has not approved; ship sessions then and say
+so in the release notes, rather than deferring silently.
+
 ## Claude limit resets through its interactive UI
 
 **Was refused (2026-11-10), now provided (2026-11-12):** Claude

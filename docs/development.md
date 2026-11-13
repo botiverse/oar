@@ -409,7 +409,19 @@ per-case concurrency, assertions and deadlines.
    directory; reuse `shared/` mechanisms freely but never add runtime
    identity to `shared/` ([source layout](../packages/oar/src/README.md) has
    the import rules).
-3. **Register it in `src/index.ts`**, the only composition root: import, add
+3. **Cover the whole runtime in the first version, not just sessions.**
+   Hosts need the account side on day one: installation and version
+   (`installation`, `install`/`installPlan`, `checkUpdate`/`upgrade`),
+   sign-in (`login`, `logout`, `authStatus`, `providers`), `listModels`,
+   `accountUsage`, and limit resets where the runtime has them. For each, find
+   the runtime's own interface for it first (a CLI subcommand, a protocol
+   method, a read-only slash command) and implement it in the same change.
+   Where the runtime has none, leave the member absent or return its typed
+   `unsupported` with the reason, and say on the runtime page what was
+   checked, so the gap is a finding, not a deferral. A usage or rate limit the
+   runtime reports on a turn is classified as a limit from the start
+   ([why](design/decisions.md#a-new-runtimes-first-version-2026-11-13)).
+4. **Register it in `src/index.ts`**, the only composition root: import, add
    to the built-in `defaultRuntimes` registry, re-export. Give it a `runtimeBrands`
    entry in `src/brands.ts` with its SVG in `packages/oar/assets/brands/`
    (attribution in `NOTICE.md`). A runtime that needs something the host
@@ -419,16 +431,16 @@ per-case concurrency, assertions and deadlines.
    ([capabilities](design/capabilities.md#a-runtimes-own-settings)).
    A runtime with host-owned execution/storage, such as pi-durable, stays out
    of the default and CLI registries; test it with its configured fixture.
-4. **Make the behavior suite pass unchanged.** `OAR_TEST=<id> pnpm sea-trial`
+5. **Make the behavior suite pass unchanged.** `OAR_TEST=<id> pnpm sea-trial`
    against your real local installation. The cases in `sea-trial/cases/` are
    the contract: make the runtime pass them, don't loosen them to fit. A case
    that needs a capability skips on its absence (a session without `steer`),
    never on a runtime name.
-5. **Add an aimock backend if feasible** (`sea-trial/harness/aimock.ts`,
+6. **Add an aimock backend if feasible** (`sea-trial/harness/aimock.ts`,
    `backends.ts`, and the `behavior` or `acp-behavior` matrix in `.github/workflows/ci.yml`) so
    the contract stays verifiable without a login, and add vendor tests for the
    provider-side specifics worth pinning.
-6. **Update the docs in the same commit**: the runtime lists in the root and
+7. **Update the docs in the same commit**: the runtime lists in the root and
    `packages/oar` READMEs, a [runtime page](runtimes/README.md) and its index
    entry, and the experiments README for any probes you added. The runtime
    page starts with the vendor's programming interface and concepts, then maps
