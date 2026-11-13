@@ -37,6 +37,8 @@ export interface ActiveTurn {
   /** Replies received before the SDK notification flush and final record publication. */
   readonly answered: Set<number>;
   abortRequested: boolean;
+  /** BYOK change: the answer of the cancel write in flight, shared by an abort that arrives meanwhile. */
+  cancelWrite?: Promise<ResponseBody>;
   fallback: NodeJS.Timeout | null;
 }
 
@@ -254,6 +256,7 @@ export function createAcpTurns(deps: {
       });
     },
     async abort(state, request) {
+      if (state.cancelWrite !== undefined) { return state.cancelWrite; }
       if (!state.abortRequested) {
         // BYOK change: no upstream observation window. The injected process
         // remembers the agent's descendants synchronously before the native
@@ -265,22 +268,32 @@ export function createAcpTurns(deps: {
           return { kind: "rejected", code: "error", reason: error instanceof Error ? error.message : String(error) };
         }
         state.abortRequested = true;
-        try {
-          await runtime.connection.agent.notify(methods.agent.session.cancel, { sessionId: rootId });
-        } catch (error) {
-          return { kind: "rejected", code: "error", reason: error instanceof Error ? error.message : String(error) };
-        }
-        // A stalled shared prompt releases only this root; isolated fallback
-        // stops its own process and records the observed exit.
-        state.fallback = setTimeout(() => {
-          if (active === state) {
-            if (deps.fallback !== undefined && request !== undefined) {
-              closeTurn(state); held.splice(0);
-              void deps.fallback(request);
-            } else { runtime.kill(); }
+        // BYOK change: a failed cancel write leaves the turn as it was, so a
+        // retry sends the cancel again and a later prompt error stays a failure.
+        const write = (async (): Promise<ResponseBody> => {
+          try {
+            await runtime.connection.agent.notify(methods.agent.session.cancel, { sessionId: rootId });
+          } catch (error) {
+            state.abortRequested = false;
+            return { kind: "rejected", code: "error", reason: error instanceof Error ? error.message : String(error) };
           }
-        }, profile.abortTimeoutMs ?? 10_000);
-        state.fallback.unref();
+          // A stalled shared prompt releases only this root; isolated fallback
+          // stops its own process and records the observed exit.
+          state.fallback = setTimeout(() => {
+            if (active === state) {
+              if (deps.fallback !== undefined && request !== undefined) {
+                closeTurn(state); held.splice(0);
+                void deps.fallback(request);
+              } else { runtime.kill(); }
+            }
+          }, profile.abortTimeoutMs ?? 10_000);
+          state.fallback.unref();
+          return { kind: "accepted" };
+        })();
+        state.cancelWrite = write;
+        const answer = await write;
+        if (state.cancelWrite === write) { state.cancelWrite = undefined; }
+        return answer;
       }
       return { kind: "accepted" };
     },
