@@ -427,8 +427,8 @@ class ClaudeSession {
  * the folder-trust screen, which opens on "No, exit": Yes is selected first
  * and Enter sent only once the screen shows it selected. The directory is
  * one this driver just made empty. A sign-in screen means no usable login.
- * The prompt counts only under the banner of a tested version (the trust
- * screen comes before any banner).
+ * The prompt counts only under a banner that shows a version, any version
+ * (the trust screen comes before any banner).
  */
 async function openPrompt(session: ClaudeSession): Promise<"ready" | "sign_in" | "wrong_version" | "failed"> {
   let trustAccepted = false;
