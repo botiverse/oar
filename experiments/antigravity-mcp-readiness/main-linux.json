@@ -1,0 +1,156 @@
+{
+  "providerSha256": "4f5bfb92e26257d51eb38767ec2712dd20ced9acb2afa5d020b149899e117570",
+  "traceSha256": "f2b28ac622e92036bdfdef7466d062f0080490005145d19d5f23e6644d9c4e4d",
+  "requests": [
+    {
+      "at": 1794534463891,
+      "requestId": 1,
+      "toolCount": 0,
+      "mcpTools": [],
+      "unknownTools": [],
+      "echoMarkers": []
+    },
+    {
+      "at": 1794534463940,
+      "requestId": 2,
+      "toolCount": 16,
+      "mcpTools": [
+        "call_mcp_tool",
+        "list_resources",
+        "mcp_echo_echo",
+        "read_resource"
+      ],
+      "unknownTools": [],
+      "echoMarkers": []
+    },
+    {
+      "at": 1794534463958,
+      "requestId": 3,
+      "toolCount": 16,
+      "mcpTools": [
+        "call_mcp_tool",
+        "list_resources",
+        "mcp_echo_echo",
+        "read_resource"
+      ],
+      "unknownTools": [],
+      "echoMarkers": [
+        "clash-own"
+      ]
+    },
+    {
+      "at": 1794534463976,
+      "requestId": 4,
+      "toolCount": 16,
+      "mcpTools": [
+        "call_mcp_tool",
+        "list_resources",
+        "mcp_echo_echo",
+        "read_resource"
+      ],
+      "unknownTools": [],
+      "echoMarkers": [
+        "clash-own",
+        "clash-user"
+      ]
+    }
+  ],
+  "records": [
+    {
+      "at": 1794534463870,
+      "kind": "request",
+      "bodyKind": "prompt",
+      "events": []
+    },
+    {
+      "at": 1794534463871,
+      "kind": "response",
+      "bodyKind": "accepted",
+      "events": []
+    },
+    {
+      "at": 1794534463885,
+      "kind": "frame",
+      "bodyKind": "available_commands_update",
+      "events": []
+    },
+    {
+      "at": 1794534463932,
+      "kind": "frame",
+      "bodyKind": "user_message_chunk",
+      "events": []
+    },
+    {
+      "at": 1794534463951,
+      "kind": "frame",
+      "bodyKind": "tool_call",
+      "events": [
+        {
+          "kind": "tool_call_started"
+        }
+      ]
+    },
+    {
+      "at": 1794534463954,
+      "kind": "frame",
+      "bodyKind": "tool_call_update",
+      "events": [
+        {
+          "kind": "tool_call_ended"
+        }
+      ]
+    },
+    {
+      "at": 1794534463968,
+      "kind": "frame",
+      "bodyKind": "tool_call",
+      "events": [
+        {
+          "kind": "tool_call_started"
+        }
+      ]
+    },
+    {
+      "at": 1794534463973,
+      "kind": "frame",
+      "bodyKind": "tool_call_update",
+      "events": [
+        {
+          "kind": "tool_call_ended"
+        }
+      ]
+    },
+    {
+      "at": 1794534463980,
+      "kind": "frame",
+      "bodyKind": "agent_message_chunk",
+      "events": []
+    },
+    {
+      "at": 1794534463988,
+      "kind": "frame",
+      "bodyKind": "session/prompt",
+      "events": [
+        {
+          "kind": "turn_ended",
+          "outcome": {
+            "kind": "completed"
+          }
+        }
+      ]
+    },
+    {
+      "at": 1794534463988,
+      "kind": "request",
+      "bodyKind": "dispose",
+      "events": []
+    },
+    {
+      "at": 1794534464096,
+      "kind": "response",
+      "bodyKind": "exited",
+      "events": []
+    }
+  ],
+  "failureCaptures": []
+}

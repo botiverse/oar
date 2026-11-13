@@ -241,6 +241,18 @@ wrapper rejects an extra `toolSummary`. A session entry replaces a user
 entry of the same name; non-clashing user servers remain and their config
 file is unchanged.
 
+**The first prompt can lack MCP tools on macOS with CLI 1.5.0.** An
+intermittent native failure omitted the MCP tool catalog despite a successful
+session-server preload. The observed failures used the same-name replacement
+configuration above; whether other configurations are affected is unknown.
+Twelve Linux configuration/version controls on 1.5.0 and 1.5.7, repeated when
+publishing the probe, did not reproduce it. They do not establish a macOS fix
+in 1.5.7. No supported MCP readiness barrier has been verified: the observed
+`session/new` replies contain no tool catalog, and no MCP-ready notification
+was observed or found in the public ACP documentation. OAR therefore adds no
+unverified wait or retry; the existing vendor regression remains intact.
+See the [failure timeline and controls](../../experiments/antigravity-mcp-readiness/README.md).
+
 The [shared activity mappings](../spec/record-stream.md#the-rules) account
 for Antigravity's direct `mcp_<server>_<tool>` namespace and capitalized
 argument keys: `run_command` uses `CommandLine` / `toolSummary`, and its

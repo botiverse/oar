@@ -1,0 +1,304 @@
+{
+  "providerSha256": "7a039ed3eb908a691bc035421d36f75d8303fd6a0f8ae1b473485511626f511c",
+  "traceSha256": "302c813d4c44d093288ea3cc2f8847031b23a11692f848f1ecf3b78dd209c84b",
+  "requests": [
+    {
+      "at": 1794534587435,
+      "requestId": 1,
+      "toolCount": 0,
+      "mcpTools": [],
+      "unknownTools": [],
+      "echoMarkers": []
+    },
+    {
+      "at": 1794534587478,
+      "requestId": 2,
+      "toolCount": 12,
+      "mcpTools": [],
+      "unknownTools": [],
+      "echoMarkers": []
+    },
+    {
+      "at": 1794534587506,
+      "requestId": 3,
+      "toolCount": 12,
+      "mcpTools": [],
+      "unknownTools": [
+        "mcp_echo_echo"
+      ],
+      "echoMarkers": []
+    },
+    {
+      "at": 1794534587522,
+      "requestId": 4,
+      "toolCount": 12,
+      "mcpTools": [],
+      "unknownTools": [
+        "call_mcp_tool",
+        "mcp_echo_echo"
+      ],
+      "echoMarkers": []
+    }
+  ],
+  "records": [
+    {
+      "at": 1794534587419,
+      "kind": "request",
+      "bodyKind": "prompt",
+      "events": []
+    },
+    {
+      "at": 1794534587420,
+      "kind": "response",
+      "bodyKind": "accepted",
+      "events": []
+    },
+    {
+      "at": 1794534587444,
+      "kind": "frame",
+      "bodyKind": "available_commands_update",
+      "events": []
+    },
+    {
+      "at": 1794534587479,
+      "kind": "frame",
+      "bodyKind": "user_message_chunk",
+      "events": []
+    },
+    {
+      "at": 1794534587528,
+      "kind": "frame",
+      "bodyKind": "agent_message_chunk",
+      "events": []
+    },
+    {
+      "at": 1794534587534,
+      "kind": "frame",
+      "bodyKind": "session/prompt",
+      "events": [
+        {
+          "kind": "turn_ended",
+          "outcome": {
+            "kind": "completed"
+          }
+        }
+      ]
+    },
+    {
+      "at": 1794534587535,
+      "kind": "request",
+      "bodyKind": "dispose",
+      "events": []
+    },
+    {
+      "at": 1794534587614,
+      "kind": "response",
+      "bodyKind": "exited",
+      "events": []
+    }
+  ],
+  "failureCaptures": [
+    {
+      "manifest": {
+        "at": 1794534587627,
+        "case": "antigravity MCP name clash",
+        "nativeDirectoryReadable": true,
+        "omittedNativeFiles": 0,
+        "files": [
+          {
+            "file": "native-0.log",
+            "kind": "worker",
+            "sourceBytes": 13587,
+            "truncated": false
+          },
+          {
+            "file": "native-1.log",
+            "kind": "front",
+            "sourceBytes": 929,
+            "truncated": false
+          },
+          {
+            "file": "session-echo.jsonl",
+            "kind": "mcp",
+            "sourceBytes": 862,
+            "truncated": false
+          },
+          {
+            "file": "user-echo.jsonl",
+            "kind": "mcp",
+            "sourceBytes": 830,
+            "truncated": false
+          },
+          {
+            "file": "userecho.jsonl",
+            "kind": "mcp",
+            "sourceBytes": 830,
+            "truncated": false
+          }
+        ]
+      },
+      "servers": {
+        "session-echo": [
+          {
+            "at": 1794534587401,
+            "event": "started"
+          },
+          {
+            "at": 1794534587403,
+            "event": "received",
+            "method": "other"
+          },
+          {
+            "at": 1794534587404,
+            "event": "replied",
+            "method": "other"
+          },
+          {
+            "at": 1794534587404,
+            "event": "received",
+            "method": "initialize"
+          },
+          {
+            "at": 1794534587404,
+            "event": "replied",
+            "method": "initialize"
+          },
+          {
+            "at": 1794534587404,
+            "event": "received",
+            "method": "notifications/initialized"
+          },
+          {
+            "at": 1794534587405,
+            "event": "received",
+            "method": "tools/list"
+          },
+          {
+            "at": 1794534587405,
+            "event": "replied",
+            "method": "tools/list"
+          },
+          {
+            "at": 1794534587406,
+            "event": "stdin_closed"
+          },
+          {
+            "at": 1794534587406,
+            "event": "exit",
+            "code": 0
+          }
+        ],
+        "user-echo": [
+          {
+            "at": 1794534587561,
+            "event": "started"
+          },
+          {
+            "at": 1794534587566,
+            "event": "received",
+            "method": "other"
+          },
+          {
+            "at": 1794534587573,
+            "event": "received",
+            "method": "other"
+          },
+          {
+            "at": 1794534587573,
+            "event": "replied",
+            "method": "other"
+          },
+          {
+            "at": 1794534587573,
+            "event": "received",
+            "method": "initialize"
+          },
+          {
+            "at": 1794534587574,
+            "event": "replied",
+            "method": "initialize"
+          },
+          {
+            "at": 1794534587574,
+            "event": "received",
+            "method": "notifications/initialized"
+          },
+          {
+            "at": 1794534587574,
+            "event": "received",
+            "method": "tools/list"
+          },
+          {
+            "at": 1794534587574,
+            "event": "replied",
+            "method": "tools/list"
+          }
+        ],
+        "userecho": [
+          {
+            "at": 1794534587570,
+            "event": "started"
+          },
+          {
+            "at": 1794534587572,
+            "event": "received",
+            "method": "other"
+          },
+          {
+            "at": 1794534587581,
+            "event": "received",
+            "method": "other"
+          },
+          {
+            "at": 1794534587582,
+            "event": "replied",
+            "method": "other"
+          },
+          {
+            "at": 1794534587582,
+            "event": "received",
+            "method": "initialize"
+          },
+          {
+            "at": 1794534587582,
+            "event": "replied",
+            "method": "initialize"
+          },
+          {
+            "at": 1794534587582,
+            "event": "received",
+            "method": "notifications/initialized"
+          },
+          {
+            "at": 1794534587582,
+            "event": "received",
+            "method": "tools/list"
+          },
+          {
+            "at": 1794534587583,
+            "event": "replied",
+            "method": "tools/list"
+          }
+        ]
+      },
+      "native": [
+        {
+          "timeUtc": "01:49:47.174404",
+          "message": "ACP Request received: session/new"
+        },
+        {
+          "timeUtc": "01:49:47.176307",
+          "message": "Language server version: 1.5.0"
+        },
+        {
+          "timeUtc": "01:49:47.328565",
+          "message": "Preloading 1 MCP servers of the session"
+        },
+        {
+          "timeUtc": "01:49:47.420779",
+          "message": "ACP Request received: session/prompt"
+        }
+      ]
+    }
+  ]
+}
