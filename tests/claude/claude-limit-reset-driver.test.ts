@@ -14,7 +14,7 @@ import {
   type ClaudeLimitResetRedeemInput,
   type ClaudeLimitResetsReadInput,
 } from "../../packages/oar/src/runtimes/claude/limit-reset/driver.js";
-import { promptInput, type ClaudeLimitResetKind as RuntimeLimitResetKind } from "../../packages/oar/src/runtimes/claude/limit-reset/screens.js";
+import { promptInput, startupScreenOf, type ClaudeLimitResetKind as RuntimeLimitResetKind } from "../../packages/oar/src/runtimes/claude/limit-reset/screens.js";
 import type { OpenClaudeLimitResetTerminal } from "../../packages/oar/src/shared/executable/script-terminal.js";
 
 // Every screen here is one Claude Code 2.1.322 drew in the offline harness
@@ -393,7 +393,7 @@ test("the older program, any other kind: refused unless the cached flags say the
 test("a screen never seen at startup: no Enter, no command, not attempted, and the process is ended", async () => {
   const claude = new FakeClaude({ startsAt: "silent" });
   const report = await finish(driverFor(claude).driver.redeem({ kind: "five_hour", idempotencyKey: KEY }));
-  assert.deepEqual(report, { result: { kind: "not_attempted", reason: "startup_failed" }, step: "startup" });
+  assert.deepEqual(report, { result: { kind: "not_attempted", reason: "startup_failed", startup: { screen: "blank" } }, step: "startup" });
   assert.equal(claude.keys(), "");
   assert.equal(claude.kills, 1);
 });
@@ -665,6 +665,146 @@ test("a prompt with no version banner: nothing is typed, unsupported_version", a
   assert.deepEqual(readReport.result, { kind: "unsupported", reason: "unsupported_version" });
   assert.equal(claude.keys(), "");
   assert.equal(claude.kills, 2);
+});
+
+/** Text someone could have left in the box: it must never reach the result. */
+const BOX_TEXT = "fix the login for person@example.com in ~/private";
+const withBoxText = (text: string, mode: string): string => (mode === "prompt" ? text.replace(/^❯ $/mu, `❯ ${BOX_TEXT}`) : text);
+
+/** When `running` settled, on the fake clock. */
+async function endedAt<T>(running: Promise<T>): Promise<{ report: T; at: number }> {
+  const report = await running;
+  return { report, at: Date.now() };
+}
+
+test("text in the input box once the prompt holds still: the attempt ends at once, nothing typed into it, and the result says why without the text", async () => {
+  for (const startsAt of ["prompt", "trust"] as const) {
+    const claude = new FakeClaude({ startsAt, commands: confirmFor("weekly"), screenText: withBoxText });
+    const { driver } = driverFor(claude);
+    const startedAt = Date.now();
+    const running = endedAt(driver.redeem({ kind: "weekly", idempotencyKey: KEY }));
+    // The 30 s startup wait would still be running here.
+    await vi.advanceTimersByTimeAsync(6000);
+    const { report, at } = await running;
+    assert.ok(at - startedAt < 6000, `${startsAt}: ended ${at - startedAt} ms in`);
+    assert.deepEqual(report, { result: { kind: "not_attempted", reason: "startup_failed", startup: { screen: "prompt_with_text", version: "2.1.322" } }, step: "startup" }, startsAt);
+    assert.equal(claude.keys(), startsAt === "trust" ? `${ARROW_DOWN}${ENTER}` : "", `${startsAt}: only the trust answer`);
+    assert.equal(claude.enters("prompt"), 0);
+    assert.equal(claude.kills, 1);
+    assert.ok(!JSON.stringify(report).includes("example.com"));
+  }
+
+  const read = new FakeClaude({ startsAt: "prompt", commands: READ_ALL, screenText: withBoxText });
+  const readReport = await finish(driverFor(read).driver.read({ atFiveHourLimit: false }));
+  assert.deepEqual(readReport, { result: { kind: "not_attempted", reason: "startup_failed", startup: { screen: "prompt_with_text", version: "2.1.322" } }, step: "startup" });
+  assert.equal(read.keys(), "");
+});
+
+/**
+ * Claude Code's output through `rewrite`, repainted every `everyMs` for the
+ * life of the session: a screen that changes on its own.
+ */
+function repainting(claude: FakeClaude, rewrite: (chunk: string, sinceOpenMs: number) => string, everyMs: number): OpenClaudeLimitResetTerminal {
+  return (input) => {
+    const terminal = claude.open(input);
+    if (terminal === null) { return null; }
+    const openedAt = Date.now();
+    let last = "";
+    let timer: ReturnType<typeof setInterval> | undefined = undefined;
+    return {
+      ...terminal,
+      onData: (listener) => {
+        terminal.onData((chunk) => {
+          last = chunk;
+          listener(rewrite(chunk, Date.now() - openedAt));
+        });
+        timer = setInterval(() => { if (last) { listener(rewrite(last, Date.now() - openedAt)); } }, everyMs);
+      },
+      kill: async () => {
+        clearInterval(timer);
+        await terminal.kill();
+      },
+    };
+  };
+}
+
+test("text that leaves the box before the screen holds still is not decided on: the prompt is ready once it has been still for the settle time", async () => {
+  const claude = new FakeClaude({ startsAt: "prompt", commands: confirmFor("weekly") });
+  const transient = repainting(claude, (chunk, sinceOpenMs) => (sinceOpenMs < 1500 ? chunk.replace(/^❯ $/mu, `❯ ${BOX_TEXT}`) : chunk), 250);
+  const report = await finish(driverFor(claude, { openTerminal: transient }).driver.redeem({ kind: "weekly", idempotencyKey: KEY }));
+  assert.deepEqual(report, { result: { kind: "reset" }, claudeVersion: "2.1.322" });
+  assert.equal(claude.keys(), `/limit-reset weekly${ENTER}${ENTER}`);
+});
+
+test("a prompt that never holds still: startup_failed / unsettled, nothing typed", async () => {
+  const claude = new FakeClaude({ startsAt: "prompt", commands: confirmFor("weekly") });
+  const spinning = repainting(claude, (chunk, sinceOpenMs) => chunk.replace("◐ medium", `${"◐◓◑◒"[Math.floor(sinceOpenMs / 500) % 4] ?? "◐"} medium`), 500);
+  const report = await finish(driverFor(claude, { openTerminal: spinning }).driver.redeem({ kind: "weekly", idempotencyKey: KEY }));
+  assert.deepEqual(report, { result: { kind: "not_attempted", reason: "startup_failed", startup: { screen: "unsettled", version: "2.1.322" } }, step: "startup" });
+  assert.equal(claude.keys(), "");
+  assert.equal(claude.kills, 1);
+});
+
+test("the startup diagnostic for other screens: another dialog, text under no banner, an exit", async () => {
+  // A dialog where the trust screen would be: Esc, never Enter.
+  const dialog = new FakeClaude({ screenText: (text, mode) => (mode === "trust" ? fixture("picker") : text) });
+  assert.deepEqual(await finish(driverFor(dialog).driver.redeem({ kind: "weekly", idempotencyKey: KEY })), {
+    result: { kind: "not_attempted", reason: "startup_failed", startup: { screen: "dialog", version: "2.1.322" } },
+    step: "startup",
+  });
+  assert.equal(dialog.keys(), ESCAPE);
+
+  // Text in the box and no banner: not the main prompt, so it is waited on, then reported.
+  const unbannered = new FakeClaude({ startsAt: "prompt", screenText: (text, mode) => withBoxText(text, mode).replace("Claude Code v2.1.322", "Claude Code") });
+  assert.deepEqual(await finish(driverFor(unbannered).driver.redeem({ kind: "weekly", idempotencyKey: KEY })), {
+    result: { kind: "not_attempted", reason: "startup_failed", startup: { screen: "no_banner" } },
+    step: "startup",
+  });
+  assert.equal(unbannered.keys(), "");
+
+  const exits = new FakeClaude({ startsAt: "silent" });
+  const exiting: OpenClaudeLimitResetTerminal = (input) => {
+    const terminal = exits.open(input);
+    if (terminal === null) { return null; }
+    return { ...terminal, onExit: (listener) => { setTimeout(listener, 1000); } };
+  };
+  assert.deepEqual(await finish(driverFor(exits, { openTerminal: exiting }).driver.redeem({ kind: "weekly", idempotencyKey: KEY })), {
+    result: { kind: "not_attempted", reason: "startup_failed", startup: { screen: "exited" } },
+    step: "startup",
+  });
+});
+
+/** The banner and notices above the box in the recorded fixtures. */
+const RECORDED_HEADER = fixture("prompt").split("\n").slice(0, 8).join("\n");
+/** A real 2.1.323 start (Claude Ultra, at 90% of the 5-hour limit), transcribed; its folder path replaced. */
+const HEADER_2_1_323 = [
+  " ▐▛███▛█   Claude Code v2.1.323",
+  "▝▜██████▀  Opus 5.5 · Claude Ultra",
+  " ▝▝   ▝▝   /home/person/claude-limit-reset",
+  "  Fable 5.2 is here for your longest and toughest coding tasks. … Switch with /model.",
+  "                       You've used 90% of your 5-hour limit · resets 7:50pm (UTC) · /upgrade to keep using Claude Code",
+].join("\n");
+
+test("a 2.1.323 start as seen on a real account: other notices, the placeholder, a shorter status line; the prompt is ready", async () => {
+  const as2_1_323 = (text: string, mode: Mode): string => (mode === "prompt"
+    ? withPlaceholder(text.replace(RECORDED_HEADER, HEADER_2_1_323).replace(/^ {2}⏵⏵ auto mode on \(shift\+tab to cycle\).*$/mu, "  ⏵⏵ auto mode on (shift+tab to cycle)"))
+    : text);
+  const claude = new FakeClaude({ commands: confirmFor("weekly"), screenText: as2_1_323 });
+  const report = await finish(driverFor(claude).driver.redeem({ kind: "weekly", idempotencyKey: KEY }));
+  assert.deepEqual(report, { result: { kind: "reset" }, claudeVersion: "2.1.323" });
+  assert.equal(claude.keys(), `${ARROW_DOWN}${ENTER}/limit-reset weekly${ENTER}${ENTER}`);
+});
+
+test("the startup screen classifier names chrome only", () => {
+  const prompt = fixture("prompt");
+  assert.equal(startupScreenOf(""), "blank");
+  assert.equal(startupScreenOf(" \n  \n"), "blank");
+  assert.equal(startupScreenOf(fixture("trust")), "trust_unrecognised");
+  assert.equal(startupScreenOf(fixture("picker")), "dialog");
+  assert.equal(startupScreenOf(withBoxText(prompt, "prompt")), "prompt_with_text");
+  assert.equal(startupScreenOf(withPlaceholder(prompt)), "unsettled");
+  assert.equal(startupScreenOf(withBoxText(prompt, "prompt").replace("Claude Code v2.1.322", "Claude Code")), "no_banner");
+  assert.equal(startupScreenOf("Loading..."), "unknown");
 });
 
 test("no result after Yes: unknown, and Yes is not sent again", async () => {
@@ -977,7 +1117,7 @@ test("read: at the limit with consent, the older program spending its reset is r
 
 test("read: timeout, sign-in and a missing command", async () => {
   const silent = new FakeClaude({ startsAt: "silent" });
-  assert.deepEqual(await finish(driverFor(silent).driver.read({ atFiveHourLimit: false })), { result: { kind: "not_attempted", reason: "startup_failed" }, step: "startup" });
+  assert.deepEqual(await finish(driverFor(silent).driver.read({ atFiveHourLimit: false })), { result: { kind: "not_attempted", reason: "startup_failed", startup: { screen: "blank" } }, step: "startup" });
   assert.equal(silent.kills, 1);
 
   const signedOut = new FakeClaude({ startsAt: "sign-in" });
@@ -1038,7 +1178,7 @@ test("history before a recorded dialog and blank lines after it still allow one 
 test("a trust screen with content after its footer is never accepted", async () => {
   const claude = new FakeClaude({ screenText: (text, mode) => mode === "trust" ? `${text}\nAdditional permission requested.` : text });
   const report = await finish(driverFor(claude).driver.redeem({ kind: "five_hour", idempotencyKey: KEY }));
-  assert.deepEqual(report.result, { kind: "not_attempted", reason: "startup_failed" });
+  assert.deepEqual(report.result, { kind: "not_attempted", reason: "startup_failed", startup: { screen: "trust_unrecognised" } });
   assert.equal(claude.enters("trust"), 0);
   assert.equal(claude.keys(), ESCAPE);
   assert.equal(claude.enters("prompt"), 0);
