@@ -474,6 +474,10 @@ function startupFailed(session: ClaudeSession, screen = session.text()): Startup
  */
 async function openPrompt(session: ClaudeSession): Promise<StartupOutcome> {
   let trustAccepted = false;
+  // One cutoff for reaching a settled prompt: waiting, settling and waiting again share it.
+  // Accepting the folder-trust screen starts the next phase with a fresh one.
+  let cutoff = Date.now() + STARTUP_TIMEOUT_MS;
+  const left = (): number => Math.max(0, cutoff - Date.now());
   for (;;) {
     // Fixed for this wait; it changes only once the wait is over.
     const lookForTrust = !trustAccepted;
@@ -481,7 +485,7 @@ async function openPrompt(session: ClaudeSession): Promise<StartupOutcome> {
       if (isSignInScreen(screen)) { return "sign_in"; }
       if (lookForTrust && hasDialogFooter(screen)) { return "trust"; }
       return isMainPrompt(screen) ? "prompt" : null;
-    }, STARTUP_TIMEOUT_MS);
+    }, left());
     if (seen === null) { return startupFailed(session); }
     if (seen === "sign_in") { return { is: "sign_in" }; }
     if (seen === "trust") {
@@ -500,9 +504,10 @@ async function openPrompt(session: ClaudeSession): Promise<StartupOutcome> {
       }
       session.type(ENTER);
       trustAccepted = true;
+      cutoff = Date.now() + STARTUP_TIMEOUT_MS;
       continue;
     }
-    if (!await session.settle(STARTUP_SETTLE_MS, STARTUP_TIMEOUT_MS)) { return startupFailed(session); }
+    if (!await session.settle(STARTUP_SETTLE_MS, left())) { return startupFailed(session); }
     const screen = session.text();
     if (isSignInScreen(screen)) { return { is: "sign_in" }; }
     // Something was drawn over the prompt while it settled: wait again.

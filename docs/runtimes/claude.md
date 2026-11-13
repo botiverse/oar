@@ -1333,20 +1333,23 @@ driver reads a box holding only `Try "…"` as empty, and OAR 0.103.0 failed
 startup (`not_attempted` / `startup_failed`) on it, after the whole 30 s
 startup wait. OAR now starts claude with
 `CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false` and decides at the prompt
-as soon as the screen has held still for 3 s: an empty box (or one holding
-only the suggestion) is ready, and any other text in the box ends the call
-at once, nothing typed into it. A `startup_failed` result carries
+as soon as the screen has held still for 3 s, within one 30 s startup
+cutoff: an empty box (or one holding only the suggestion) is ready, and any
+other text in the box, on any of its rows, ends the call at once, nothing
+typed into it. A `startup_failed` result carries
 `startup`, OAR's own name for the last screen it recognised (such as
 `prompt_with_text` or `trust_unrecognised`) and the banner's version, never
 screen text ([spec](../spec/account-usage.md#claude-limit-resets)). Linux
 only: macOS's `script` refuses the socket Node gives it as stdin.
 
-**Each call costs one model request.** Every `inspectLimitResets` and
-`redeemLimitReset` call starts claude's interactive UI, and the UI sends one
-model request at startup (a 1-token check; the offline harness recorded it).
-On a subscription that request is reported to count as usage and may start
-the 5-hour window of an idle account: a third-party tool reported this for
-2.1.316, and OAR has not measured it. There is no route around the UI:
+**A call that launches the UI costs one model request.** When an
+`inspectLimitResets` or `redeemLimitReset` call starts claude's interactive
+UI, the UI sends one model request at startup (a 1-token check; OAR's
+offline harness recorded it against a fake backend). Calls that return
+before launching (a consent refusal, a queued deadline, a repeated
+idempotency key) send nothing. On a subscription that request is reported
+to count as usage and may start the 5-hour window of an idle account: a
+third-party tool reported this for 2.1.316, and OAR has not measured it. There is no route around the UI:
 `/limit-reset` has no `-p`, SDK or control-protocol form (2.1.322). So
 inspect only when the person asks, and never poll.
 

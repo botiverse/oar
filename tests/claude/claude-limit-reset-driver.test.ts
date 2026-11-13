@@ -621,6 +621,11 @@ test("no version list: a prompt under another version's banner is driven, and th
   assert.deepEqual(await finish(driver.redeem({ kind: "five_hour", idempotencyKey: KEY })), { result: { kind: "reset" }, claudeVersion: "2.1.400" });
 });
 
+/** Text left on the second row of an input box whose first row is empty. */
+const secondRow = (text: string): string => text.replace(/^❯\u00A0$/mu, "❯\u00A0\n  left over from before");
+/** A screen whose input box holds `rows`, closed by its rule. */
+const box = (rows: string): string => `Claude Code v2.1.322\n────\n${rows}\n────\n? for shortcuts`;
+
 /** The dimmed suggestion real 2.1.322 and 2.1.323 draw in an empty input box. */
 const withPlaceholder = (text: string): string => text.replace(/^❯\u00A0$/mu, '❯\u00A0Try "how do I log an error?"');
 
@@ -645,10 +650,61 @@ test("Claude Code is started with prompt suggestions off and without an inherite
   assert.equal(env.CLAUDECODE, undefined);
 });
 
+test("text on the second row of an otherwise empty input box: nothing is typed, startup_failed with prompt_with_text", async () => {
+  const claude = new FakeClaude({ startsAt: "prompt", commands: confirmFor("weekly"), screenText: secondRow });
+  const { driver } = driverFor(claude);
+  const redeemed = await finish(driver.redeem({ kind: "weekly", idempotencyKey: KEY }));
+  const read = await finish(driver.read({ atFiveHourLimit: false }));
+  for (const report of [redeemed, read]) {
+    assert.ok(report.result.kind === "not_attempted" && report.result.reason === "startup_failed" && report.result.startup?.screen === "prompt_with_text", JSON.stringify(report));
+    assert.ok(!JSON.stringify(report).includes("left over"), "no screen text in the result");
+  }
+  assert.equal(claude.keys(), "");
+});
+
+test("one startup cutoff: a prompt that first appears late and never holds still fails by the 30 s mark, not 30 s after it appeared", async () => {
+  const claude = new FakeClaude({ startsAt: "silent" });
+  const realOpen = claude.open;
+  let started = 0;
+  let failedAt = 0;
+  const redrawing: OpenClaudeLimitResetTerminal = (input) => {
+    const terminal = realOpen(input);
+    if (terminal === null) { return null; }
+    started = Date.now();
+    return { ...terminal, onData: (listener) => {
+      terminal.onData(listener);
+      let tick = 0;
+      setTimeout(() => {
+        const timer = setInterval(() => {
+          tick += 1;
+          listener(`\u001B[2J\u001B[H${fixture("prompt").replace("medium · /effort", `medium · /effort ${tick % 2 === 0 ? "a" : "b"}`).split("\n").join("\r\n")}`);
+        }, 500);
+        terminal.onExit(() => { clearInterval(timer); });
+      }, 29_000);
+    } };
+  };
+  const read = async (): Promise<Awaited<ReturnType<ReturnType<typeof driverFor>["driver"]["read"]>>> => {
+    const report = await driverFor(claude, { openTerminal: redrawing, timeoutMs: 120_000 }).driver.read({ atFiveHourLimit: false });
+    failedAt = Date.now() - started;
+    return report;
+  };
+  const report = await finish(read());
+  assert.equal(claude.keys(), "");
+  assert.ok(report.result.kind === "not_attempted" && report.result.reason === "startup_failed" && report.result.startup?.screen === "unsettled", JSON.stringify(report));
+  assert.ok(failedAt <= 31_000, `failed at ${failedAt} ms`);
+});
+
 test("text in the input box that is not the placeholder suggestion stays text, so the prompt is not empty", () => {
-  const prompt = "Claude Code v2.1.322\n❯\u00A0Try fixing this\n? for shortcuts";
+  const prompt = "Claude Code v2.1.322\n────\n❯\u00A0Try fixing this\n────\n? for shortcuts";
   assert.equal(promptInput(prompt), "Try fixing this");
   assert.equal(promptInput(prompt.replace("Try fixing this", 'Try "edit <filepath> to..."')), "");
+});
+
+test("the input box runs to its closing rule: text on a later row is input, and a box with no closing rule is not recognised", () => {
+  assert.equal(promptInput(box("❯\u00A0\n  second row")), "\nsecond row");
+  assert.equal(promptInput(box("❯\u00A0first\n  second")), "first\nsecond");
+  assert.equal(promptInput(box("❯\u00A0\n  ")), "");
+  assert.equal(promptInput("Claude Code v2.1.322\n❯\u00A0\n? for shortcuts"), null);
 });
 
 test("a prompt with no version banner: nothing is typed, unsupported_version", async () => {

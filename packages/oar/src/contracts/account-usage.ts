@@ -279,9 +279,9 @@ export type LimitResetInspection =
  * command and cancelling it (claude). Not a passive read: it starts the CLI's
  * UI, and on Claude's older program it can spend the 5-hour reset (see
  * `fiveHourLimitConsent`). Only on the account owner's explicit request; never
- * poll it. Each call costs a model request: the UI sends one at startup,
- * which on a subscription is reported to count as usage and may start an
- * idle account's 5-hour window (see `Runtime.inspectLimitResets`).
+ * poll it. A call that launches the UI costs a model request: the UI sends
+ * one at startup, reported to count as subscription usage and possibly to
+ * start an idle account's 5-hour window (see `Runtime.inspectLimitResets`).
  */
 export type LimitResetInspector = (
   installation: AvailableInstallation,

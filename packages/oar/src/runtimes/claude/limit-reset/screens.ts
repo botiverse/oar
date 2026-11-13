@@ -70,14 +70,21 @@ export function hasDialogFooter(screen: string): boolean {
 /**
  * The text in the input box, when there is one and no dialog over it. The box
  * is `❯` and a no-break space, which a submitted command's echo
- * (`❯ /limit-reset …`, a plain space) never has.
+ * (`❯ /limit-reset …`, a plain space) never has, and it runs to the rule line
+ * under it: text on any later row is input too (joined with newlines), and
+ * without that closing rule the box is not recognised.
  */
 export function inputLine(screen: string): string | null {
   if (hasDialogFooter(screen)) { return null; }
-  const inputs = screen.split("\n").filter((line) => line.startsWith("❯\u00A0"));
-  const [input] = inputs;
-  if (inputs.length !== 1 || input === undefined) { return null; }
-  return input.slice(2).trimEnd();
+  const lines = screen.split("\n");
+  const starts = lines.flatMap((line, index) => (line.startsWith("❯\u00A0") ? [index] : []));
+  const [start] = starts;
+  if (starts.length !== 1 || start === undefined) { return null; }
+  const end = lines.findIndex((line, index) => index > start && line.startsWith("─"));
+  if (end === -1) { return null; }
+  const rows = lines.slice(start, end).map((line, index) => (index === 0 ? line.slice(2).trimEnd() : line.trim()));
+  while (rows.length > 1 && rows.at(-1) === "") { rows.pop(); }
+  return rows.join("\n");
 }
 
 /**
