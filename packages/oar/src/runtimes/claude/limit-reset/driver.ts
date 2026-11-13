@@ -826,6 +826,9 @@ export function createClaudeLimitResetDriver(deps: ClaudeLimitResetDeps = {}): C
     const env = { ...(input.env ?? process.env) };
     // A host started from inside Claude Code must not hand that marker down.
     delete env.CLAUDECODE;
+    // No dimmed suggestion in the empty input box (2.1.323 honors this); the
+    // screen reader still treats a `Try "..."` box as empty if one is drawn.
+    env.CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION = "false";
     // Without consent, a kind but the 5-hour one goes only where Claude Code's
     // last fetched flags say the newer program is on (a fresh fetch can still
     // disagree, which the usage read before the command covers).

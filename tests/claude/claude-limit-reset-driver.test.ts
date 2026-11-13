@@ -632,6 +632,19 @@ test("the empty input box's placeholder suggestion (real 2.1.322 and 2.1.323) re
   assert.equal(claude.dialogEnters, 1);
 });
 
+test("Claude Code is started with prompt suggestions off and without an inherited CLAUDECODE marker", async () => {
+  const claude = new FakeClaude({ startsAt: "prompt", commands: confirmFor("weekly") });
+  let env: NodeJS.ProcessEnv = {};
+  const recording: OpenClaudeLimitResetTerminal = (input) => {
+    ({ env } = input);
+    return claude.open(input);
+  };
+  const { driver } = driverFor(claude, { openTerminal: recording });
+  await finish(driver.redeem({ kind: "weekly", idempotencyKey: KEY, env: { CLAUDECODE: "1" } }));
+  assert.equal(env.CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION, "false");
+  assert.equal(env.CLAUDECODE, undefined);
+});
+
 test("text in the input box that is not the placeholder suggestion stays text, so the prompt is not empty", () => {
   const prompt = "Claude Code v2.1.322\n❯\u00A0Try fixing this\n? for shortcuts";
   assert.equal(promptInput(prompt), "Try fixing this");
