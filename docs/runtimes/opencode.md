@@ -232,14 +232,18 @@ isolated tool-cleanup check (`@opencode/cli@2.2.7`).
 The v2 adapter's ACP subprocess owns a standalone native server; OAR does
 not connect to or leave a persistent daemon. Latest recheck: **2.3.0**
 (Linux x64, 2026-11-13) passed fifteen behavior cases and the twelve-model
-catalog and prompt-option refusal controls. Its cleanup control stopped at
-the missing child graph edge, before abort, disposal and resume checks.
-Native background child updates require an explicit capability and the
+catalog and prompt-option refusal controls. Native background child
+updates require an explicit capability and the
 `opencode/session/child_update` extension
 ([paired native evidence](../../experiments/opencode-child-background/README.md)).
-OAR now declares that capability on 2.3 and later and maps the extension
-([background children](#v2-session-behavior)); that cleanup control has not
-been rerun against the new mapping. CI remains on 2.2.7.
+OAR declares that capability on 2.3 and later and maps the extension
+([background children](#v2-session-behavior)). Before that mapping the
+cleanup control stopped at the missing child graph edge; with it (PR #775
+review, Linux x64, 2026-11-13) the unchanged control passed on 2.3.0 with
+only its version label changed: child edge, root cancellation, real tool
+parent and child process disposal, the surviving peer and same-id root
+resume. The unmodified 2.2.7 control passed on the same head. CI remains on
+2.2.7.
 
 The **2.2.7** recheck
 (Linux x64, 2026-11-10) passed all fifteen applicable behavior cases and
