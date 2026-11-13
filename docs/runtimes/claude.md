@@ -1326,7 +1326,11 @@ endpoint itself and never reads the credential. The hazards and what OAR
 does about each are in the spec section; the decision to drive the UI is in
 [decisions](../design/decisions.md#claude-limit-resets-through-its-interactive-ui).
 Screens were recorded from 2.1.322 against a fake backend; no real reset
-has been spent through OAR. Linux only: macOS's `script` refuses the
+has been spent through OAR. On real accounts (2.1.322 and 2.1.323, a new
+empty folder) the empty input box shows a dimmed suggestion such as
+`Try "how do I log an error?"`, which the fake backend never drew; the
+driver reads a box holding only `Try "…"` as empty, and OAR 0.103.0 failed
+startup (`not_attempted` / `startup_failed`) on it. Linux only: macOS's `script` refuses the
 socket Node gives it as stdin.
 
 ### Logout

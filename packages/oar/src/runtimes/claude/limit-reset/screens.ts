@@ -79,12 +79,22 @@ export function inputLine(screen: string): string | null {
 }
 
 /**
+ * The suggestion an empty input box shows in a new project (2.1.322 and
+ * 2.1.323 on real accounts: `Try "edit <filepath> to..."`). It is drawn
+ * dim, which the screen text does not keep, and the driver never types text
+ * of this shape, so it reads as an empty box.
+ */
+const PLACEHOLDER = /^Try ".+"$/u;
+
+/**
  * The input box's text when the main prompt is showing, ready for a command,
- * with its status line under it; null on any other screen.
+ * with its status line under it ("" when it is empty or shows only the
+ * placeholder suggestion); null on any other screen.
  */
 export function promptInput(screen: string): string | null {
   if (!screen.includes("shift+tab to cycle") && !screen.includes("? for shortcuts")) { return null; }
-  return inputLine(screen);
+  const input = inputLine(screen);
+  return input !== null && PLACEHOLDER.test(input) ? "" : input;
 }
 
 /**

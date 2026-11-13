@@ -14,7 +14,7 @@ import {
   type ClaudeLimitResetRedeemInput,
   type ClaudeLimitResetsReadInput,
 } from "../../packages/oar/src/runtimes/claude/limit-reset/driver.js";
-import type { ClaudeLimitResetKind as RuntimeLimitResetKind } from "../../packages/oar/src/runtimes/claude/limit-reset/screens.js";
+import { promptInput, type ClaudeLimitResetKind as RuntimeLimitResetKind } from "../../packages/oar/src/runtimes/claude/limit-reset/screens.js";
 import type { OpenClaudeLimitResetTerminal } from "../../packages/oar/src/shared/executable/script-terminal.js";
 
 // Every screen here is one Claude Code 2.1.322 drew in the offline harness
@@ -619,6 +619,36 @@ test("no version list: a prompt under another version's banner is driven, and th
   };
   const { driver } = driverFor(claude, { openTerminal: relabelled });
   assert.deepEqual(await finish(driver.redeem({ kind: "five_hour", idempotencyKey: KEY })), { result: { kind: "reset" }, claudeVersion: "2.1.400" });
+});
+
+/** The dimmed suggestion real 2.1.322 and 2.1.323 draw in an empty input box. */
+const withPlaceholder = (text: string): string => text.replace(/^❯\u00A0$/mu, '❯\u00A0Try "how do I log an error?"');
+
+test("the empty input box's placeholder suggestion (real 2.1.322 and 2.1.323) reads as an empty prompt, before the command and after its result", async () => {
+  const claude = new FakeClaude({ commands: confirmFor("weekly"), screenText: withPlaceholder });
+  const { driver } = driverFor(claude);
+  assert.deepEqual(await finish(driver.redeem({ kind: "weekly", idempotencyKey: KEY })), { result: { kind: "reset" }, claudeVersion: "2.1.322" });
+  assert.equal(claude.keys(), `${ARROW_DOWN}${ENTER}/limit-reset weekly${ENTER}${ENTER}`);
+  assert.equal(claude.dialogEnters, 1);
+});
+
+test("Claude Code is started with prompt suggestions off and without an inherited CLAUDECODE marker", async () => {
+  const claude = new FakeClaude({ startsAt: "prompt", commands: confirmFor("weekly") });
+  let env: NodeJS.ProcessEnv = {};
+  const recording: OpenClaudeLimitResetTerminal = (input) => {
+    ({ env } = input);
+    return claude.open(input);
+  };
+  const { driver } = driverFor(claude, { openTerminal: recording });
+  await finish(driver.redeem({ kind: "weekly", idempotencyKey: KEY, env: { CLAUDECODE: "1" } }));
+  assert.equal(env.CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION, "false");
+  assert.equal(env.CLAUDECODE, undefined);
+});
+
+test("text in the input box that is not the placeholder suggestion stays text, so the prompt is not empty", () => {
+  const prompt = "Claude Code v2.1.322\n❯\u00A0Try fixing this\n? for shortcuts";
+  assert.equal(promptInput(prompt), "Try fixing this");
+  assert.equal(promptInput(prompt.replace("Try fixing this", 'Try "edit <filepath> to..."')), "");
 });
 
 test("a prompt with no version banner: nothing is typed, unsupported_version", async () => {
