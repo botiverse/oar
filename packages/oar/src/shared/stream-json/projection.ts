@@ -23,23 +23,23 @@ function attributionOf(state: StreamJsonProjectionState, message: JsonRecord): r
 }
 
 function rememberToolUses<S extends StreamJsonProjectionState>(state: S, message: JsonRecord, agentPath: readonly string[]): S {
-  // BYOK change: a root tool use's attribution is its own id with no ancestors,
-  // which attributionOf derives without an entry; only tool uses inside an
-  // agent are remembered, so the map does not grow with every root tool call.
-  if (agentPath.length === 0) {
-    return state;
-  }
   const event = asRecord(message.event);
   const partial = event?.type === "content_block_start" ? asRecord(event.content_block) : null;
   const ids = (partial === null ? contentBlocks(message) : [partial])
     .filter((block) => block.type === "tool_use" && typeof block.id === "string")
     .map((block) => String(block.id));
-  if (ids.length === 0) {
+  // BYOK change: a root tool use's attribution is its own id with no ancestors,
+  // which attributionOf derives without an entry; only tool uses inside an
+  // agent are remembered, so the map does not grow with every root tool call.
+  // A root tool use that reuses a remembered id removes that entry, so its
+  // agents are not attributed to the old ancestors.
+  const root = agentPath.length === 0;
+  if (ids.length === 0 || (root && !ids.some((id) => state.agents.has(id)))) {
     return state;
   }
   const agents = new Map(state.agents);
   for (const id of ids) {
-    agents.set(id, agentPath);
+    if (root) { agents.delete(id); } else { agents.set(id, agentPath); }
   }
   return { ...state, agents };
 }
