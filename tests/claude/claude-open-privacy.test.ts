@@ -21,7 +21,7 @@ const options: SessionOptions[] = [
   { cwd: "/work", resume: "old-id", serviceTier: "fast", effort: "low" },
 ];
 
-afterEach(() => { spawnLineProcess.mockReset(); });
+afterEach(() => { spawnLineProcess.mockReset(); vi.useRealTimers(); });
 
 function script(fastMode = "on", effort = "low"): FakeLineProcess {
   const fake = fakeLineProcess((text, child) => {
@@ -40,6 +40,8 @@ function script(fastMode = "on", effort = "low"): FakeLineProcess {
 
 // oxlint-disable-next-line eslint/max-statements -- Keep open, replay, duplicate reply and disposal in one privacy scenario.
 test.each(options)("opening keeps account details out of records and replay: %o", async (option) => {
+  // Record timestamps can contain the synthetic account value 123456.
+  vi.useFakeTimers({ toFake: ["Date"] }).setSystemTime(1_794_612_345_600);
   const fake = script();
   const session = await claudeSession(installation, option);
   const observed: RawEvent[] = [];
@@ -52,9 +54,10 @@ test.each(options)("opening keeps account details out of records and replay: %o"
     expect(observed).toEqual([]);
     expect(session.serviceTier().value).toBeNull();
   } finally { await session.dispose(); }
+  // Account data would be in a body, not the envelope's clock or sequence.
   for (const value of privateValues) {
-    expect(JSON.stringify(session.records())).not.toContain(value);
-    expect(JSON.stringify(observed)).not.toContain(value);
+    expect(JSON.stringify(session.records().map((record) => record.body))).not.toContain(value);
+    expect(JSON.stringify(observed.map((record) => record.body))).not.toContain(value);
   }
 });
 
