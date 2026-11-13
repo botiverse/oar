@@ -26,13 +26,13 @@ darwin arm64, default model `kimi-code/k3`, no `--model`), 2026-09-11, through
 `kimi-usage-update-order.ts live`, `kimi-steer-or-queue.ts`. All of them pass
 on **kimi 2.0.0** (2026-09-18, live-contract 13/13; its `thinking` values are
 under [Effort](#models-instructions-and-context)). The latest check is
-**kimi 2.6.0** (2026-11-12, Linux): all 15 shared behavior cases and five
-local OAuth/login regressions pass; one of twelve native vendor cases fails:
+**kimi 2.6.2** (2026-11-13, Linux): all 15 shared behavior cases and five
+local OAuth/login regressions pass; one of fourteen native vendor cases fails:
 a fresh-process resume without MCP configuration still advertises the
 initial stdio and HTTP tool declarations
 ([session MCP servers](#session-mcp-servers)). That case passes on 2.4.1,
 which stays the CI pin until an upstream fix passes the same controls
-([results and limits](../../experiments/runtime-version-checks/2026-11-12.md#kimi-260)).
+([results and limits](../../experiments/runtime-version-checks/2026-11-13.md#kimi-262)).
 Facts from later binaries name their version. Versions are
 evidence baselines, not a support range. The [spec](../spec/README.md) is the
 contract the adapter implements, not evidence of this adapter's behavior; see

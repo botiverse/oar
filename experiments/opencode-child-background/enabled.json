@@ -1,0 +1,555 @@
+{
+  "rawSourceSha256": "d6ab6840e9a3bf721750166a6bca3e64868c6b67be1434bdf46372462aa0b341",
+  "redaction": "Temporary HOME and generated session/message IDs replaced consistently; protocol fields and relative millisecond timestamps retained. No real account used.",
+  "summary": {
+    "version": "opencode v2.3.0",
+    "capabilityEnabled": true,
+    "promptReturnedMs": 1695,
+    "waitAfterPromptMs": 60000,
+    "keys": [
+      {
+        "key": "A_child",
+        "stage": 0
+      },
+      {
+        "key": "A_child",
+        "stage": 1
+      },
+      {
+        "key": "A_childreply",
+        "stage": 0
+      },
+      {
+        "key": "A_child",
+        "stage": 2
+      }
+    ],
+    "childFrameCount": 0,
+    "extensionCount": 4,
+    "childStatuses": [
+      {
+        "atMs": 1658,
+        "status": "created"
+      },
+      {
+        "atMs": 1660,
+        "status": "running"
+      },
+      {
+        "atMs": 1707,
+        "status": "completed"
+      }
+    ],
+    "result": {
+      "stopReason": "end_turn",
+      "usage": {
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "totalTokens": 0
+      },
+      "_meta": {}
+    },
+    "nativeCompletedReportCount": 1
+  },
+  "wire": [
+    {
+      "atMs": 12,
+      "direction": "toRuntime",
+      "message": {
+        "jsonrpc": "2.0",
+        "id": 0,
+        "method": "initialize",
+        "params": {
+          "protocolVersion": 1,
+          "clientCapabilities": {
+            "fs": {},
+            "terminal": true,
+            "_meta": {
+              "opencode/child-session-updates": true
+            }
+          },
+          "clientInfo": {
+            "name": "oar-background-evidence",
+            "version": "1"
+          }
+        }
+      }
+    },
+    {
+      "atMs": 571,
+      "message": {
+        "jsonrpc": "2.0",
+        "id": 0,
+        "result": {
+          "protocolVersion": 1,
+          "agentCapabilities": {
+            "loadSession": true,
+            "mcpCapabilities": {
+              "http": true,
+              "sse": false
+            },
+            "promptCapabilities": {
+              "embeddedContext": true,
+              "image": true
+            },
+            "sessionCapabilities": {
+              "additionalDirectories": {},
+              "close": {},
+              "delete": {},
+              "fork": {},
+              "list": {},
+              "resume": {}
+            },
+            "_meta": {
+              "opencode/child-session-updates": true
+            }
+          },
+          "authMethods": [
+            {
+              "description": "Run `opencode auth login` in the terminal",
+              "name": "Login with opencode",
+              "id": "opencode-login"
+            }
+          ],
+          "_meta": {
+            "steering": {
+              "supported": true
+            }
+          },
+          "agentInfo": {
+            "name": "OpenCode",
+            "version": "2.3.0"
+          }
+        }
+      }
+    },
+    {
+      "atMs": 572,
+      "direction": "toRuntime",
+      "message": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "session/new",
+        "params": {
+          "cwd": "[isolated-home]/a",
+          "mcpServers": [],
+          "_meta": {}
+        }
+      }
+    },
+    {
+      "atMs": 1446,
+      "message": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": {
+          "sessionId": "session-1",
+          "configOptions": [
+            {
+              "id": "model",
+              "name": "Model",
+              "category": "model",
+              "type": "select",
+              "currentValue": "aimock/aimock-model",
+              "options": [
+                {
+                  "value": "aimock/aimock-model",
+                  "name": "aimock/aimock"
+                },
+                {
+                  "value": "opencode/beam-free",
+                  "name": "opencode/Beam Free"
+                },
+                {
+                  "value": "opencode/big-pickle",
+                  "name": "opencode/Big Pickle"
+                },
+                {
+                  "value": "opencode/deepseek-v4.1-flash-free",
+                  "name": "opencode/DeepSeek V4.1 Flash Free"
+                },
+                {
+                  "value": "opencode/flint-40b-free",
+                  "name": "opencode/Flint 40B Free"
+                },
+                {
+                  "value": "opencode/glm-5.3-flash-free",
+                  "name": "opencode/GLM-5.3-Flash Free"
+                },
+                {
+                  "value": "opencode/iceman-free",
+                  "name": "opencode/Iceman Free"
+                },
+                {
+                  "value": "opencode/inkling-2-small-free",
+                  "name": "opencode/Inkling 2 Small Free"
+                },
+                {
+                  "value": "opencode/longcat-2.5-free",
+                  "name": "opencode/LongCat 2.5 Free"
+                },
+                {
+                  "value": "opencode/mimo-v2.6-flash-free",
+                  "name": "opencode/MiMo-V2.6-Flash Free"
+                },
+                {
+                  "value": "opencode/minimax-m3.1-flash-free",
+                  "name": "opencode/MiniMax M3.1 Flash Free"
+                },
+                {
+                  "value": "opencode/nemotron-3.5-lightning-free",
+                  "name": "opencode/Nemotron 3.5 Lightning Free"
+                },
+                {
+                  "value": "opencode/nemotron-3.5-super-vl-free",
+                  "name": "opencode/Nemotron 3.5 Super VL Free"
+                }
+              ]
+            },
+            {
+              "id": "effort",
+              "name": "Effort",
+              "description": "Available effort levels for this model",
+              "category": "thought_level",
+              "type": "select",
+              "currentValue": "default",
+              "options": [
+                {
+                  "value": "low",
+                  "name": "Low"
+                },
+                {
+                  "value": "medium",
+                  "name": "Medium"
+                },
+                {
+                  "value": "high",
+                  "name": "High"
+                },
+                {
+                  "value": "xhigh",
+                  "name": "Xhigh"
+                },
+                {
+                  "value": "max",
+                  "name": "Max"
+                },
+                {
+                  "value": "default",
+                  "name": "Default"
+                }
+              ]
+            },
+            {
+              "id": "mode",
+              "name": "Session Mode",
+              "category": "mode",
+              "type": "select",
+              "currentValue": "build",
+              "options": [
+                {
+                  "value": "build",
+                  "name": "Build",
+                  "description": "The default agent. Executes tools based on configured permissions."
+                },
+                {
+                  "value": "plan",
+                  "name": "Plan",
+                  "description": "Read-only agent for exploring the codebase and planning work before implementation."
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "atMs": 1447,
+      "direction": "toRuntime",
+      "message": {
+        "jsonrpc": "2.0",
+        "id": 2,
+        "method": "session/prompt",
+        "params": {
+          "sessionId": "session-1",
+          "prompt": [
+            {
+              "type": "text",
+              "text": "ACP_SHARE_A_child"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "atMs": 1449,
+      "message": {
+        "jsonrpc": "2.0",
+        "method": "session/update",
+        "params": {
+          "sessionId": "session-1",
+          "update": {
+            "sessionUpdate": "available_commands_update",
+            "availableCommands": [
+              {
+                "name": "init",
+                "description": "guided AGENTS.md setup"
+              },
+              {
+                "name": "review",
+                "description": "review changes [commit|branch|pr], defaults to uncommitted"
+              },
+              {
+                "name": "goal",
+                "description": "keep working until an objective is met [pause|resume|clear]"
+              },
+              {
+                "name": "compact",
+                "description": "Compact the session"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "atMs": 1565,
+      "message": {
+        "jsonrpc": "2.0",
+        "method": "session/update",
+        "params": {
+          "sessionId": "session-1",
+          "update": {
+            "sessionUpdate": "tool_call",
+            "toolCallId": "call-A_child",
+            "name": "subagent",
+            "title": "subagent",
+            "kind": "think",
+            "status": "pending",
+            "locations": [],
+            "rawInput": {}
+          }
+        }
+      }
+    },
+    {
+      "atMs": 1569,
+      "message": {
+        "jsonrpc": "2.0",
+        "method": "session/update",
+        "params": {
+          "sessionId": "session-1",
+          "update": {
+            "sessionUpdate": "tool_call_update",
+            "toolCallId": "call-A_child",
+            "status": "in_progress",
+            "kind": "think",
+            "title": "subagent",
+            "locations": [],
+            "rawInput": {
+              "agent": "general",
+              "description": "Check child routing",
+              "prompt": "ACP_SHARE_A_childreply"
+            }
+          }
+        }
+      }
+    },
+    {
+      "atMs": 1658,
+      "message": {
+        "jsonrpc": "2.0",
+        "method": "opencode/session/child_update",
+        "params": {
+          "rootSessionId": "session-1",
+          "childSessionId": "session-2",
+          "parentSessionId": "session-1",
+          "depth": 1,
+          "title": "Check child routing",
+          "type": "status",
+          "status": "created"
+        }
+      }
+    },
+    {
+      "atMs": 1658,
+      "message": {
+        "jsonrpc": "2.0",
+        "method": "session/update",
+        "params": {
+          "sessionId": "session-1",
+          "update": {
+            "sessionUpdate": "tool_call_update",
+            "toolCallId": "call-A_child",
+            "status": "in_progress",
+            "kind": "think",
+            "title": "subagent",
+            "locations": [],
+            "rawInput": {
+              "agent": "general",
+              "description": "Check child routing",
+              "prompt": "ACP_SHARE_A_childreply"
+            }
+          }
+        }
+      }
+    },
+    {
+      "atMs": 1659,
+      "message": {
+        "jsonrpc": "2.0",
+        "method": "session/update",
+        "params": {
+          "sessionId": "session-1",
+          "update": {
+            "sessionUpdate": "tool_call_update",
+            "toolCallId": "call-A_child",
+            "status": "completed",
+            "locations": [],
+            "content": [
+              {
+                "type": "content",
+                "content": {
+                  "type": "text",
+                  "text": "The subagent is working in the background (sessionID: session-2). You will receive a <subagent> message when it goes idle, and again after each later round of work.\nDO NOT sleep, poll, proactively check on its progress, or duplicate this subagent's work.\nWork on non-overlapping tasks, or briefly tell the user what you launched and end your response.\nTo send it follow-ups or change its instructions while it runs, call subagent again with this sessionID."
+                }
+              }
+            ],
+            "rawOutput": {
+              "metadata": {
+                "sessionID": "session-2",
+                "status": "running",
+                "truncated": false
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "atMs": 1660,
+      "message": {
+        "jsonrpc": "2.0",
+        "method": "opencode/session/child_update",
+        "params": {
+          "rootSessionId": "session-1",
+          "childSessionId": "session-2",
+          "parentSessionId": "session-1",
+          "depth": 1,
+          "title": "Check child routing",
+          "type": "status",
+          "status": "running"
+        }
+      }
+    },
+    {
+      "atMs": 1684,
+      "message": {
+        "jsonrpc": "2.0",
+        "method": "session/update",
+        "params": {
+          "sessionId": "session-1",
+          "update": {
+            "sessionUpdate": "agent_message_chunk",
+            "messageId": "message-3",
+            "content": {
+              "type": "text",
+              "text": "ANSWER_A_child"
+            }
+          }
+        }
+      }
+    },
+    {
+      "atMs": 1695,
+      "message": {
+        "jsonrpc": "2.0",
+        "id": 2,
+        "result": {
+          "stopReason": "end_turn",
+          "usage": {
+            "inputTokens": 0,
+            "outputTokens": 0,
+            "totalTokens": 0
+          },
+          "_meta": {}
+        }
+      }
+    },
+    {
+      "atMs": 1706,
+      "message": {
+        "jsonrpc": "2.0",
+        "method": "opencode/session/child_update",
+        "params": {
+          "rootSessionId": "session-1",
+          "childSessionId": "session-2",
+          "parentSessionId": "session-1",
+          "depth": 1,
+          "title": "Check child routing",
+          "type": "update",
+          "update": {
+            "sessionUpdate": "agent_message_chunk",
+            "messageId": "message-4",
+            "content": {
+              "type": "text",
+              "text": "ANSWER_A_childreply"
+            },
+            "_meta": {
+              "opencode/child-session": {
+                "id": "session-2",
+                "parentID": "session-1",
+                "depth": 1,
+                "title": "Check child routing"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "atMs": 1707,
+      "message": {
+        "jsonrpc": "2.0",
+        "method": "opencode/session/child_update",
+        "params": {
+          "rootSessionId": "session-1",
+          "childSessionId": "session-2",
+          "parentSessionId": "session-1",
+          "depth": 1,
+          "title": "Check child routing",
+          "type": "status",
+          "status": "completed"
+        }
+      }
+    },
+    {
+      "atMs": 1766,
+      "message": {
+        "jsonrpc": "2.0",
+        "method": "session/update",
+        "params": {
+          "sessionId": "session-1",
+          "update": {
+            "sessionUpdate": "agent_message_chunk",
+            "messageId": "message-5",
+            "content": {
+              "type": "text",
+              "text": "ANSWER_A_child"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "nativeParentModelReports": [
+    {
+      "key": "A_child",
+      "stage": 2,
+      "message": {
+        "role": "user",
+        "content": "<subagent sessionID=\"session-2\" state=\"completed\" description=\"Check child routing\">\nANSWER_A_childreply\n</subagent>"
+      }
+    }
+  ]
+}

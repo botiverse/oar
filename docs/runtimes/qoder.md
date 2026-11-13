@@ -14,12 +14,12 @@ real account or paid provider
 The [model-selection probe](../../experiments/qoder-native/model-selection-report.md)
 uses an existing login for catalog reads and opens, without a model prompt.
 
-Latest check, **1.1.88** (Linux x64, 2026-11-12): cache and live catalogs and
+Latest check, **1.1.89** (Linux x64, 2026-11-13): cache and live catalogs and
 init confirm the selected `efficient` model through the ModelProvider mapping
 ([PR #624](https://github.com/botiverse/oar/pull/624)), and OAR opens. The
 permission replay still returns HTTP 500 before any permission request and
 the full replay suite fails, so CI stays on 1.1.81
-([latest check](../../experiments/runtime-version-checks/2026-11-12.md#qoder-1188);
+([latest check](../../experiments/runtime-version-checks/2026-11-13.md#qoder-1189);
 see [Evidence and limits](#evidence-and-limits)).
 
 ## Manual compaction

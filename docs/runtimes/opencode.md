@@ -230,7 +230,18 @@ isolated tool-cleanup check (`@opencode/cli@2.2.7`).
 ### Startup and compatibility
 
 The v2 adapter's ACP subprocess owns a standalone native server; OAR does
-not connect to or leave a persistent daemon. Latest recheck: **2.2.7**
+not connect to or leave a persistent daemon. Latest recheck: **2.3.0**
+(Linux x64, 2026-11-13) passed fifteen behavior cases and the twelve-model
+catalog and prompt-option refusal controls. Its cleanup control stopped at
+the missing child graph edge, before abort, disposal and resume checks.
+Native background child updates now require an explicit capability and the
+`opencode/session/child_update` extension. The current adapter still uses
+the old standard-frame projection, so its declared `nested` capability does
+not describe late background child output on 2.3.0. A longer wait does not
+restore that output. [Paired native evidence](../../experiments/opencode-child-background/README.md).
+CI remains on 2.2.7; no product mapping or version pin changes in this check.
+
+The **2.2.7** recheck
 (Linux x64, 2026-11-10) passed all fifteen applicable behavior cases and
 [the isolated native cleanup control](../../sea-trial/vendor/opencode-cleanup.vendor.test.ts)
 (routed roots, MCP, children, cancellation, peer survival and resume); the
@@ -244,7 +255,12 @@ full on 2.2.5 ([October 31](../../experiments/runtime-version-checks/2026-10-31.
 nine of ten checks passed, cold MCP resume failed.
 
 **Known limitation: concurrent first starts over a fresh native database can
-fail before readiness**, confirmed by native SQLite errors. On 2.2.7,
+fail before readiness**, confirmed by native SQLite errors. On 2.3.0,
+three of four native concurrent first starts failed with a table-creation
+conflict, while two serial and four prepared starts succeeded; both cold
+and both prepared ACP opens succeeded
+([November 13 report](../../experiments/runtime-version-checks/2026-11-13.md#opencode-230)).
+On 2.2.7,
 one of four concurrent native starts failed with `table account_state
 already exists`; two serial starts and four concurrent starts after
 initialization succeeded. The separate ACP probe failed one of two cold
@@ -317,7 +333,8 @@ covers 2.0.27.
   `steer` member; `steerOrQueue` and `deliver` queue the input for another
   turn. Queueing remains an OAR memory FIFO, not durable native storage.
   Native abort and disposal during a shell call both ended as `aborted`.
-- **Children:** standard updates arrive on the parent's envelope with
+- **Children (verified through 2.2.7; see the 2.3.0 limitation above):**
+  standard updates arrive on the parent's envelope with
   `update._meta["opencode/child-session"]` (`id`, `parentID`, `depth`,
   `title`). OAR records them under the named child session, links its real
   parent with `session_linked { parent, child, via: "tool_call" }` on the

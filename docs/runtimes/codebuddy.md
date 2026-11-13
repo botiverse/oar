@@ -16,9 +16,9 @@ pass. OAR adds no delay between turns. A future transport change requires both
 a fixed native reproduction and a capability comparison, not just an upstream
 version change. [Official ACP documentation](https://www.codebuddy.ai/docs/cli/acp).
 
-Current check: **2.183.0** (Linux x64, 2026-11-11): all 16 applicable
-behavior cases and six native vendor cases passed against local providers
-([daily evidence](../../experiments/runtime-version-checks/2026-11-11.md#codebuddy-21830)).
+Current check: **2.184.0** (Linux x64, 2026-11-13): all 16 applicable
+behavior cases and eight native vendor cases passed against local providers
+([daily evidence](../../experiments/runtime-version-checks/2026-11-13.md#codebuddy-21840)).
 CI remains pinned to 2.179.3.
 Unless marked otherwise, evidence below identifies CodeBuddy 2.178.1, Linux
 x64 local-provider tests and Linux arm64 international-account tests on
