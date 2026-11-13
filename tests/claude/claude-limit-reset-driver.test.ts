@@ -75,6 +75,8 @@ class FakeClaude {
     garble?: (typed: string) => string;
     /** How long the first screen takes (200 ms unless said). */
     startsAfterMs?: number;
+    /** Synthetic changes applied to recorded screens before painting. */
+    screenText?: (text: string, mode: Mode) => string;
   } = {}) {}
 
   readonly open: OpenClaudeLimitResetTerminal = () => {
@@ -123,6 +125,7 @@ class FakeClaude {
       text = text.replace(" ❯ No, exit\n   Yes, I trust this folder", "   No, exit\n ❯ Yes, I trust this folder");
     }
     if (this.mode === "prompt") { text = text.replace(/^❯\u00A0$/mu, `❯\u00A0${this.input && this.script.garble ? this.script.garble(this.input) : this.input}`); }
+    text = this.script.screenText?.(text, this.mode) ?? text;
     this.emit(`\u001B[2J\u001B[H${text.split("\n").join("\r\n")}`);
   }
 
@@ -977,4 +980,37 @@ test("a read and a redeem share the one session slot", async () => {
   const redeemReport = await finish(redeeming);
   assert.deepEqual(redeemReport.result, { kind: "reset" });
   assert.equal(claude.spawns, 2);
+});
+
+for (const kind of ["five_hour", "weekly", "fable", "full"] as const) {
+  test(`redeem ${kind}: extra content after the footer refuses with Esc, never Yes`, async () => {
+    const claude = new FakeClaude({
+      commands: confirmFor(kind),
+      screenText: (text, mode) => mode === "dialog" ? `${text}\nThis reset will also spend an additional weekly reset.` : text,
+    });
+    const report = await finish(driverFor(claude).driver.redeem({ kind, idempotencyKey: KEY }));
+    assert.equal(report.result.kind, "unknown");
+    assertNeverConfirmed(claude);
+    assert.equal(claude.writes.filter((write) => write.data === ESCAPE && write.during === "dialog").length, 1);
+  });
+}
+
+test("history before a recorded dialog and blank lines after it still allow one confirmation", async () => {
+  const claude = new FakeClaude({
+    commands: confirmFor("weekly"),
+    screenText: (text, mode) => mode === "dialog" ? `Previous command output\n${text}\n \n` : text,
+  });
+  const report = await finish(driverFor(claude).driver.redeem({ kind: "weekly", idempotencyKey: KEY }));
+  assert.equal(report.result.kind, "reset");
+  assert.equal(claude.dialogEnters, 1);
+});
+
+test("a trust screen with content after its footer is never accepted", async () => {
+  const claude = new FakeClaude({ screenText: (text, mode) => mode === "trust" ? `${text}\nAdditional permission requested.` : text });
+  const report = await finish(driverFor(claude).driver.redeem({ kind: "five_hour", idempotencyKey: KEY }));
+  assert.deepEqual(report.result, { kind: "not_attempted", reason: "startup_failed" });
+  assert.equal(claude.enters("trust"), 0);
+  assert.equal(claude.keys(), ESCAPE);
+  assert.equal(claude.enters("prompt"), 0);
+  assert.equal(claude.kills, 1);
 });

@@ -1,5 +1,6 @@
 /* oxlint-disable eslint/max-lines -- One driver: the session, its key rules and both flows read together. */
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { constants } from "node:fs";
+import { lstat, mkdtemp, open, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
@@ -245,7 +246,19 @@ async function readCachedFlags(env: NodeJS.ProcessEnv): Promise<ClaudeLimitReset
     ? path.join(configDir, ".claude.json")
     : path.join(env.HOME ?? os.homedir(), ".claude.json");
   try {
-    const config: unknown = JSON.parse(await readFile(configPath, "utf8"));
+    const entry = await lstat(configPath);
+    if (!entry.isFile()) { return { limitResets: null }; }
+    // Nonblocking open also handles a regular file replaced by a FIFO after lstat.
+    const file = await open(configPath, constants.O_RDONLY | constants.O_NONBLOCK);
+    let text = "";
+    try {
+      const stat = await file.stat();
+      if (!stat.isFile()) { return { limitResets: null }; }
+      text = await file.readFile("utf8");
+    } finally {
+      await file.close();
+    }
+    const config: unknown = JSON.parse(text);
     // cachedGrowthBookFeatures.tengu_cedar_ember.enabled; anything else on the way is no answer.
     const features = typeof config === "object" && config !== null && "cachedGrowthBookFeatures" in config ? config.cachedGrowthBookFeatures : undefined;
     const flag = typeof features === "object" && features !== null && "tengu_cedar_ember" in features ? features.tengu_cedar_ember : undefined;
@@ -424,7 +437,7 @@ async function openPrompt(session: ClaudeSession): Promise<"ready" | "sign_in" |
     const lookForTrust = !trustAccepted;
     const seen = await session.waitFor((screen) => {
       if (isSignInScreen(screen)) { return "sign_in"; }
-      if (lookForTrust && trustScreen(screen)) { return "trust"; }
+      if (lookForTrust && hasDialogFooter(screen)) { return "trust"; }
       return promptInput(screen) === "" ? "prompt" : null;
     }, STARTUP_TIMEOUT_MS);
     if (seen === null) { return "failed"; }
@@ -437,7 +450,7 @@ async function openPrompt(session: ClaudeSession): Promise<"ready" | "sign_in" |
         if (await session.waitFor((screen) => (trustScreen(screen) === "yes_selected" ? true : null), CLOSE_TIMEOUT_MS) === null) { return "failed"; }
         if (!await session.pauseUntilStable()) { return "failed"; }
       }
-      if (trustScreen(session.text()) !== "yes_selected") { return "failed"; }
+      if (trustScreen(session.text()) !== "yes_selected") { await cancelWithEscape(session); return "failed"; }
       session.type(ENTER);
       trustAccepted = true;
       continue;
@@ -709,7 +722,45 @@ async function readInSession(session: ClaudeSession, kinds: readonly ClaudeLimit
   };
 }
 
-interface Refusal { kind: "unsupported"; reason: "unsupported_platform" | "consent_required" }
+const PREPARATION_EXPIRED = Symbol("preparation expired");
+
+/** A late preparation result cannot resume the call; any resource it made is discarded. */
+// oxlint-disable-next-line typescript/promise-function-async -- Returns the deadline race directly; late work is handled separately.
+function prepareWithinDeadline<T>(run: () => Promise<T>, deadlineAt: number, discard?: (value: T) => Promise<void>): Promise<T | typeof PREPARATION_EXPIRED> {
+  if (Date.now() >= deadlineAt) { return Promise.resolve(PREPARATION_EXPIRED); }
+  const answer = Promise.withResolvers<T | typeof PREPARATION_EXPIRED>();
+  let finished = false;
+  const expire = (): void => {
+    if (finished) { return; }
+    finished = true;
+    answer.resolve(PREPARATION_EXPIRED);
+  };
+  const timer = setTimeout(expire, deadlineAt - Date.now());
+  const complete = async (): Promise<void> => {
+    try {
+      const value = await run();
+      // The clock may have passed the deadline before its timer got to run.
+      if (Date.now() >= deadlineAt) { expire(); }
+      if (finished) { await discard?.(value); }
+      else {
+        finished = true;
+        answer.resolve(value);
+      }
+    } catch (error) {
+      if (Date.now() >= deadlineAt) { expire(); }
+      if (!finished) {
+        finished = true;
+        answer.reject(error);
+      }
+    } finally {
+      clearTimeout(timer);
+    }
+  };
+  void complete();
+  return answer.promise;
+}
+
+type Refusal = { kind: "unsupported"; reason: "unsupported_platform" | "consent_required" } | typeof DEADLINE;
 type Preflight =
   | { ok: true; command: string; env: NodeJS.ProcessEnv; platform: NodeJS.Platform }
   | { ok: false; refusal: Refusal; step: ClaudeLimitResetStep };
@@ -769,7 +820,7 @@ export function createClaudeLimitResetDriver(deps: ClaudeLimitResetDeps = {}): C
   // attempts that typed a command are kept, each one person's request.
   const attempts = new Map<string, RedeemAttempt>();
 
-  const preflight = async (input: { command: string; env?: NodeJS.ProcessEnv }, needsNewerProgram: boolean): Promise<Preflight> => {
+  const preflight = async (input: { command: string; env?: NodeJS.ProcessEnv }, needsNewerProgram: boolean, deadlineAt: number): Promise<Preflight> => {
     const platform = deps.platform ?? process.platform;
     if (!isDrivablePlatform(platform)) { return { ok: false, refusal: { kind: "unsupported", reason: "unsupported_platform" }, step: "platform" }; }
     const env = { ...(input.env ?? process.env) };
@@ -779,7 +830,9 @@ export function createClaudeLimitResetDriver(deps: ClaudeLimitResetDeps = {}): C
     // last fetched flags say the newer program is on (a fresh fetch can still
     // disagree, which the usage read before the command covers).
     if (needsNewerProgram) {
-      const flags = await (deps.cachedFlags ?? readCachedFlags)(env);
+      const loadFlags = deps.cachedFlags ?? readCachedFlags;
+      const flags = await prepareWithinDeadline(loadFlags.bind(null, env), deadlineAt);
+      if (flags === PREPARATION_EXPIRED) { return { ok: false, refusal: DEADLINE, step: "flags" }; }
       if (flags.limitResets !== true) {
         return { ok: false, refusal: { kind: "unsupported", reason: "consent_required" }, step: "flags" };
       }
@@ -792,8 +845,14 @@ export function createClaudeLimitResetDriver(deps: ClaudeLimitResetDeps = {}): C
    * The session's processes are ended, and that is waited for, before the
    * directory is removed and before the next request's turn.
    */
-  const withSession = async <T>(ready: Extract<Preflight, { ok: true }>, deadlineAt: number, mayConfirm: boolean, drive: (session: ClaudeSession) => Promise<T>): Promise<T | null> => {
-    const workDir = await (deps.workDir ?? makeWorkDir)();
+  const withSession = async <T>(ready: Extract<Preflight, { ok: true }>, deadlineAt: number, mayConfirm: boolean, drive: (session: ClaudeSession) => Promise<T>): Promise<T | null | typeof PREPARATION_EXPIRED> => {
+    const workDir = await prepareWithinDeadline(deps.workDir ?? makeWorkDir, deadlineAt, async (late) => { await late.remove(); });
+    if (workDir === PREPARATION_EXPIRED) { return PREPARATION_EXPIRED; }
+    if (Date.now() >= deadlineAt) {
+      // oxlint-disable-next-line promise/prefer-await-to-then -- Cleanup must not delay an already expired call.
+      void workDir.remove().catch(() => {});
+      return PREPARATION_EXPIRED;
+    }
     try {
       const terminal = (deps.openTerminal ?? openScriptTerminal)({
         command: ready.command,
@@ -823,7 +882,7 @@ export function createClaudeLimitResetDriver(deps: ClaudeLimitResetDeps = {}): C
   const redeemOnce = async (input: ClaudeLimitResetRedeemInput, deadlineAt: number, timeoutMs: number): Promise<RedeemReport & { remember: boolean }> => {
     if (deadlineAt - Date.now() < Math.min(REDEEM_MIN_START_MS, timeoutMs)) { return { result: DEADLINE, step: "queue", remember: false }; }
     const consent = input.fiveHourLimitConsent === true;
-    const ready = await preflight(input, input.kind !== "five_hour" && !consent);
+    const ready = await preflight(input, input.kind !== "five_hour" && !consent, deadlineAt);
     if (!ready.ok) { return { result: ready.refusal, step: ready.step, remember: false }; }
     // oxlint-disable-next-line eslint/init-declarations -- Set in the session's finally; an initial undefined would read as always undefined to TypeScript.
     let version: string | undefined;
@@ -834,6 +893,7 @@ export function createClaudeLimitResetDriver(deps: ClaudeLimitResetDeps = {}): C
         version = session.version;
       }
     });
+    if (outcome === PREPARATION_EXPIRED) { return { result: DEADLINE, step: "terminal", remember: false }; }
     if (!outcome) { return { result: { kind: "unsupported", reason: "unsupported_platform" }, step: "terminal", remember: false }; }
     return { result: outcome.result, ...(outcome.step ? { step: outcome.step } : {}), ...(version === undefined || version === "" ? {} : { claudeVersion: version }), remember: outcome.remember };
   };
@@ -881,7 +941,7 @@ export function createClaudeLimitResetDriver(deps: ClaudeLimitResetDeps = {}): C
       const report = exclusive(async (): Promise<ClaudeLimitResetReport<LimitResetInspection>> => {
         try {
           if (deadlineAt - Date.now() < Math.min(READ_MIN_START_MS, timeoutMs)) { return { result: DEADLINE, step: "queue" }; }
-          const ready = await preflight(input, false);
+          const ready = await preflight(input, false, deadlineAt);
           if (!ready.ok) { return { result: ready.refusal, step: ready.step }; }
           // oxlint-disable-next-line eslint/init-declarations -- As in redeemOnce.
           let version: string | undefined;
@@ -892,6 +952,7 @@ export function createClaudeLimitResetDriver(deps: ClaudeLimitResetDeps = {}): C
               version = session.version;
             }
           });
+          if (outcome === PREPARATION_EXPIRED) { return { result: DEADLINE, step: "terminal" }; }
           if (!outcome) { return { result: { kind: "unsupported", reason: "unsupported_platform" }, step: "terminal" }; }
           return { result: outcome.result, ...(outcome.step ? { step: outcome.step } : {}), ...(version === undefined || version === "" ? {} : { claudeVersion: version }) };
         } catch {

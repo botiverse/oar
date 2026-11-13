@@ -94,7 +94,7 @@ export function promptInput(screen: string): string | null {
 export function trustScreen(screen: string): "no_selected" | "yes_selected" | null {
   const lines = trimmedLines(screen);
   const footer = lines.lastIndexOf(DIALOG_FOOTER);
-  if (footer < 2 || !lines.some((line) => line.startsWith("Quick safety check: Is this a project you created or one you trust?"))) { return null; }
+  if (footer !== lines.length - 1 || footer < 2 || !lines.some((line) => line.startsWith("Quick safety check: Is this a project you created or one you trust?"))) { return null; }
   const rows = `${lines[footer - 2]}\n${lines[footer - 1]}`;
   if (rows === `${SELECTED}No, exit\nYes, I trust this folder`) { return "no_selected"; }
   if (rows === `No, exit\n${SELECTED}Yes, I trust this folder`) { return "yes_selected"; }
@@ -157,13 +157,13 @@ export interface ClaudeConfirmDialog {
 /**
  * The confirmation dialog for one kind, only when everything about it is as
  * recorded: the title, the Yes row naming the same kind and selected, the No
- * row below it, and the footer.
+ * row below it, and the footer as the last nonempty line.
  */
 export function confirmDialog(screen: string): ClaudeConfirmDialog | null {
   const lines = trimmedLines(screen);
   const footer = lines.lastIndexOf(DIALOG_FOOTER);
   // `footer` is at least 3 here, so every line read below exists.
-  if (footer < 3 || lines[footer - 1] !== "No, keep it") { return null; }
+  if (footer !== lines.length - 1 || footer < 3 || lines[footer - 1] !== "No, keep it") { return null; }
   const yes = /^❯ Yes, use my (.+) reset$/u.exec(lines[footer - 2] ?? "");
   if (!yes) { return null; }
   let titleAt = -1;
