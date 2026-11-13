@@ -1,3 +1,5 @@
+import type { LimitResetStartupScreen } from "../../../contracts/account-usage.js";
+
 /** The kinds of reset `/limit-reset` takes, as OAR names them (the `resetId` values). */
 export type ClaudeLimitResetKind = "five_hour" | "weekly" | "fable" | "full";
 export const CLAUDE_LIMIT_RESET_KINDS: readonly ClaudeLimitResetKind[] = ["five_hour", "weekly", "fable", "full"];
@@ -68,14 +70,21 @@ export function hasDialogFooter(screen: string): boolean {
 /**
  * The text in the input box, when there is one and no dialog over it. The box
  * is `❯` and a no-break space, which a submitted command's echo
- * (`❯ /limit-reset …`, a plain space) never has.
+ * (`❯ /limit-reset …`, a plain space) never has, and it runs to the rule line
+ * under it: text on any later row is input too (joined with newlines), and
+ * without that closing rule the box is not recognised.
  */
 export function inputLine(screen: string): string | null {
   if (hasDialogFooter(screen)) { return null; }
-  const inputs = screen.split("\n").filter((line) => line.startsWith("❯\u00A0"));
-  const [input] = inputs;
-  if (inputs.length !== 1 || input === undefined) { return null; }
-  return input.slice(2).trimEnd();
+  const lines = screen.split("\n");
+  const starts = lines.flatMap((line, index) => (line.startsWith("❯\u00A0") ? [index] : []));
+  const [start] = starts;
+  if (starts.length !== 1 || start === undefined) { return null; }
+  const end = lines.findIndex((line, index) => index > start && /^─+$/u.test(line.trimEnd()));
+  if (end === -1) { return null; }
+  const rows = lines.slice(start, end).map((line, index) => (index === 0 ? line.slice(2).trimEnd() : line.trim()));
+  while (rows.length > 1 && rows.at(-1) === "") { rows.pop(); }
+  return rows.join("\n");
 }
 
 /**
@@ -97,6 +106,8 @@ export function promptInput(screen: string): string | null {
   return input !== null && PLACEHOLDER.test(input) ? "" : input;
 }
 
+const TRUST_QUESTION = "Quick safety check: Is this a project you created or one you trust?";
+
 /**
  * The "do you trust this folder" screen a working directory gets the first
  * time, and which of its two rows is selected ("No, exit" is, when it opens).
@@ -104,7 +115,7 @@ export function promptInput(screen: string): string | null {
 export function trustScreen(screen: string): "no_selected" | "yes_selected" | null {
   const lines = trimmedLines(screen);
   const footer = lines.lastIndexOf(DIALOG_FOOTER);
-  if (footer !== lines.length - 1 || footer < 2 || !lines.some((line) => line.startsWith("Quick safety check: Is this a project you created or one you trust?"))) { return null; }
+  if (footer !== lines.length - 1 || footer < 2 || !lines.some((line) => line.startsWith(TRUST_QUESTION))) { return null; }
   const rows = `${lines[footer - 2]}\n${lines[footer - 1]}`;
   if (rows === `${SELECTED}No, exit\nYes, I trust this folder`) { return "no_selected"; }
   if (rows === `No, exit\n${SELECTED}Yes, I trust this folder`) { return "yes_selected"; }
@@ -119,6 +130,32 @@ export function bannerVersion(screen: string): string | null {
 /** The prompt of a Claude Code with no login: its status line says so. */
 export function isSignInScreen(screen: string): boolean {
   return screen.includes("Not logged in · Run /login");
+}
+
+/**
+ * The main prompt a command may be decided at: the input box and its status
+ * line with no dialog over them, and a version banner. An empty box without
+ * a banner counts too, so that it is reported `unsupported_version`.
+ */
+export function isMainPrompt(screen: string): boolean {
+  const input = promptInput(screen);
+  return input !== null && (input === "" || bannerVersion(screen) !== null);
+}
+
+/**
+ * What a startup screen is, in OAR's own words only: the result carries this
+ * to the host, so no text from the screen (a path, an email, a conversation)
+ * goes into it, only which recorded piece of chrome was seen.
+ */
+export function startupScreenOf(screen: string): Exclude<LimitResetStartupScreen, "exited"> {
+  if (screen.trim() === "") { return "blank"; }
+  if (screen.includes(TRUST_QUESTION)) { return "trust_unrecognised"; }
+  if (hasDialogFooter(screen)) { return "dialog"; }
+  const input = promptInput(screen);
+  if (input === null) { return "unknown"; }
+  if (bannerVersion(screen) === null) { return "no_banner"; }
+  // An empty prompt under a banner is only given up on when it never held still in time.
+  return input === "" ? "unsettled" : "prompt_with_text";
 }
 
 /** A limit the effect line may name: the only words allowed in its list. */

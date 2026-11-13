@@ -9,6 +9,8 @@ import type {
   LimitResetInspection,
   LimitResetKindStatus,
   LimitResetResult,
+  LimitResetStartupDiagnostic,
+  LimitResetStartupFailed,
 } from "../../../contracts/account-usage.js";
 import {
   CLAUDE_LIMIT_RESET_KINDS,
@@ -19,8 +21,10 @@ import {
   confirmDialog,
   hasDialogFooter,
   inputLine,
+  isMainPrompt,
   isSignInScreen,
   promptInput,
+  startupScreenOf,
   trustScreen,
   type ClaudeCommandScreen,
 } from "./screens.js";
@@ -86,7 +90,7 @@ export const CLAUDE_DIALOG_KEY_GUARD_MS = 600;
  * deadline is a spent reset reported as unknown.
  */
 export const CLAUDE_CLAIM_WINDOW_MS = 30_000;
-/** After the prompt first shows, Claude Code is still fetching the flags that decide what `/limit-reset` does. */
+/** After the prompt first shows, Claude Code is still fetching the flags that decide what `/limit-reset` does: the screen must hold still this long before the prompt is decided. */
 const STARTUP_SETTLE_MS = 3000;
 const STARTUP_TIMEOUT_MS = 30_000;
 const TYPE_SETTLE_MS = 400;
@@ -416,10 +420,43 @@ class ClaudeSession {
     return false;
   }
 
+  /**
+   * Waits until nothing on the screen has changed for `quietMs`. False when
+   * that does not happen within `withinMs` or the attempt's deadline, or
+   * Claude Code exits.
+   */
+  async settle(quietMs: number, withinMs: number): Promise<boolean> {
+    const giveUpAt = Date.now() + withinMs;
+    for (;;) {
+      const quietFor = Date.now() - this.changedAt;
+      if (quietFor >= quietMs) { return !this.exited; }
+      const waitMs = quietMs - quietFor;
+      if (Date.now() + waitMs > giveUpAt || !await this.pause(waitMs)) { return false; }
+    }
+  }
+
+  /** Whether Claude Code has exited. */
+  hasExited(): boolean {
+    return this.exited;
+  }
+
   /** Ends the session by ending its processes; nothing is typed to leave. */
   async close(): Promise<void> {
     await this.terminal.kill();
   }
+}
+
+type StartupOutcome =
+  | { is: "ready" | "sign_in" | "wrong_version" }
+  | { is: "failed"; startup: LimitResetStartupDiagnostic };
+
+/** Startup failed: what the screen showed, in OAR's own words, and the banner's version if one was drawn. */
+function startupFailed(session: ClaudeSession, screen = session.text()): StartupOutcome {
+  const version = bannerVersion(screen);
+  return {
+    is: "failed",
+    startup: { screen: session.hasExited() ? "exited" : startupScreenOf(screen), ...(version === null ? {} : { version }) },
+  };
 }
 
 /**
@@ -427,42 +464,59 @@ class ClaudeSession {
  * the folder-trust screen, which opens on "No, exit": Yes is selected first
  * and Enter sent only once the screen shows it selected. The directory is
  * one this driver just made empty. A sign-in screen means no usable login.
- * The prompt counts only under a banner that shows a version, any version
- * (the trust screen comes before any banner).
+ *
+ * The prompt is decided once it is showing (`isMainPrompt`) and the screen
+ * has held still for the settle time: an empty box (or one with only the
+ * placeholder suggestion) under a banner that shows a version, any version,
+ * is ready; text in the box ends the attempt at once, nothing typed into it;
+ * an empty box with no banner is the wrong version. A box with text and no
+ * banner is waited on (the trust screen comes before any banner).
  */
-async function openPrompt(session: ClaudeSession): Promise<"ready" | "sign_in" | "wrong_version" | "failed"> {
+async function openPrompt(session: ClaudeSession): Promise<StartupOutcome> {
   let trustAccepted = false;
+  // One cutoff for reaching a settled prompt: waiting, settling and waiting again share it.
+  // Accepting the folder-trust screen starts the next phase with a fresh one.
+  let cutoff = Date.now() + STARTUP_TIMEOUT_MS;
+  const left = (): number => Math.max(0, cutoff - Date.now());
   for (;;) {
     // Fixed for this wait; it changes only once the wait is over.
     const lookForTrust = !trustAccepted;
     const seen = await session.waitFor((screen) => {
       if (isSignInScreen(screen)) { return "sign_in"; }
       if (lookForTrust && hasDialogFooter(screen)) { return "trust"; }
-      return promptInput(screen) === "" ? "prompt" : null;
-    }, STARTUP_TIMEOUT_MS);
-    if (seen === null) { return "failed"; }
-    if (seen === "sign_in") { return "sign_in"; }
+      return isMainPrompt(screen) ? "prompt" : null;
+    }, left());
+    if (seen === null) { return startupFailed(session); }
+    if (seen === "sign_in") { return { is: "sign_in" }; }
     if (seen === "trust") {
       session.note("trust");
-      if (!await session.pauseUntilStable()) { return "failed"; }
+      if (!await session.pauseUntilStable()) { return startupFailed(session); }
       if (trustScreen(session.text()) === "no_selected") {
         session.type(ARROW_DOWN);
-        if (await session.waitFor((screen) => (trustScreen(screen) === "yes_selected" ? true : null), CLOSE_TIMEOUT_MS) === null) { return "failed"; }
-        if (!await session.pauseUntilStable()) { return "failed"; }
+        if (await session.waitFor((screen) => (trustScreen(screen) === "yes_selected" ? true : null), CLOSE_TIMEOUT_MS) === null) { return startupFailed(session); }
+        if (!await session.pauseUntilStable()) { return startupFailed(session); }
       }
-      if (trustScreen(session.text()) !== "yes_selected") { await cancelWithEscape(session); return "failed"; }
+      if (trustScreen(session.text()) !== "yes_selected") {
+        // Classified before Esc closes it.
+        const shown = session.text();
+        await cancelWithEscape(session);
+        return startupFailed(session, shown);
+      }
       session.type(ENTER);
       trustAccepted = true;
+      cutoff = Date.now() + STARTUP_TIMEOUT_MS;
       continue;
     }
-    if (!await session.pause(STARTUP_SETTLE_MS)) { return "failed"; }
+    if (!await session.settle(STARTUP_SETTLE_MS, left())) { return startupFailed(session); }
     const screen = session.text();
-    if (isSignInScreen(screen)) { return "sign_in"; }
-    if (promptInput(screen) !== "") { continue; }
+    if (isSignInScreen(screen)) { return { is: "sign_in" }; }
+    // Something was drawn over the prompt while it settled: wait again.
+    if (!isMainPrompt(screen)) { continue; }
     const banner = bannerVersion(screen);
-    if (banner === null) { return "wrong_version"; }
+    if (banner === null) { return { is: "wrong_version" }; }
+    if (promptInput(screen) !== "") { return startupFailed(session, screen); }
     session.version = banner;
-    return "ready";
+    return { is: "ready" };
   }
 }
 
@@ -541,7 +595,9 @@ interface RedeemOutcome { result: LimitResetResult; step?: ClaudeLimitResetStep;
 
 const BUSY = { kind: "not_attempted", reason: "busy" } as const;
 const DEADLINE = { kind: "not_attempted", reason: "deadline" } as const;
-const STARTUP_FAILED = { kind: "not_attempted", reason: "startup_failed" } as const;
+function startupFailedResult(startup: LimitResetStartupDiagnostic): LimitResetStartupFailed {
+  return { kind: "not_attempted", reason: "startup_failed", startup };
+}
 const CONSENT_REQUIRED = { kind: "unsupported", reason: "consent_required" } as const;
 const NO_COMMAND = { kind: "unsupported", reason: "endpoint_unavailable" } as const;
 
@@ -557,9 +613,9 @@ function unknownAt(step: ClaudeLimitResetStep): RedeemOutcome {
 async function redeemInSession(session: ClaudeSession, kind: ClaudeLimitResetKind, fiveHourLimit: (() => Promise<ClaudeFiveHourLimit>) | null): Promise<RedeemOutcome> {
   const opened = await openPrompt(session);
   session.note("startup");
-  if (opened === "sign_in") { return { result: { kind: "reauth_required", reason: "not_authenticated" }, step: "sign_in", remember: false }; }
-  if (opened === "wrong_version") { return { result: { kind: "unsupported", reason: "unsupported_version" }, step: "version", remember: false }; }
-  if (opened === "failed") { return { result: STARTUP_FAILED, step: "startup", remember: false }; }
+  if (opened.is === "sign_in") { return { result: { kind: "reauth_required", reason: "not_authenticated" }, step: "sign_in", remember: false }; }
+  if (opened.is === "wrong_version") { return { result: { kind: "unsupported", reason: "unsupported_version" }, step: "version", remember: false }; }
+  if (opened.is === "failed") { return { result: startupFailedResult(opened.startup), step: "startup", remember: false }; }
   // Nothing has been typed yet: a refusal here spent nothing, and the same click may try again.
   const refused = await maySubmit(session, CLAUDE_REDEEM_MIN_SUBMIT_MS, kind === "five_hour" ? null : fiveHourLimit);
   if (refused) { return { result: refusalResult(refused), step: refused === "budget" ? "budget" : "usage", remember: false }; }
@@ -641,9 +697,9 @@ interface ReadOutcome { result: LimitResetInspection; step?: ClaudeLimitResetSte
 async function readInSession(session: ClaudeSession, kinds: readonly ClaudeLimitResetKind[], fiveHourLimit: (() => Promise<ClaudeFiveHourLimit>) | null): Promise<ReadOutcome> {
   const opened = await openPrompt(session);
   session.note("startup");
-  if (opened === "sign_in") { return { result: { kind: "reauth_required", reason: "not_authenticated" }, step: "sign_in" }; }
-  if (opened === "wrong_version") { return { result: { kind: "unsupported", reason: "unsupported_version" }, step: "version" }; }
-  if (opened === "failed") { return { result: STARTUP_FAILED, step: "startup" }; }
+  if (opened.is === "sign_in") { return { result: { kind: "reauth_required", reason: "not_authenticated" }, step: "sign_in" }; }
+  if (opened.is === "wrong_version") { return { result: { kind: "unsupported", reason: "unsupported_version" }, step: "version" }; }
+  if (opened.is === "failed") { return { result: startupFailedResult(opened.startup), step: "startup" }; }
   const found = new Map<ClaudeLimitResetKind, LimitResetKindStatus>();
   let stoppedAt: ClaudeLimitResetStep | undefined = undefined;
   for (const kind of kinds) {

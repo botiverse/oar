@@ -178,7 +178,8 @@ export type LimitResetResult =
   | { readonly kind: "reauth_required"; readonly reason: AccountUsageReauthReason }
   | { readonly kind: "unsupported"; readonly reason: LimitResetUnsupportedReason }
   /** Nothing was sent that could spend a reset; the same attempt may be made again. */
-  | { readonly kind: "not_attempted"; readonly reason: LimitResetNotAttemptedReason }
+  | { readonly kind: "not_attempted"; readonly reason: Exclude<LimitResetNotAttemptedReason, "startup_failed"> }
+  | LimitResetStartupFailed
   /**
    * The runtime may have spent a reset, and its answer was not seen (claude:
    * the command was submitted, or Yes was sent, and no recognised screen
@@ -208,8 +209,26 @@ export type LimitResetNotAttemptedReason =
   | "usage_unread"
   /** Too little time was left to finish safely. */
   | "deadline"
-  /** The CLI did not reach its prompt with a screen oar recognises; nothing was typed but the folder-trust answer. */
+  /** The CLI did not reach an empty prompt with a screen oar recognises; nothing was typed but the folder-trust answer. `startup` on the result says what was seen. */
   | "startup_failed";
+
+/** `not_attempted` / `startup_failed`, with what was recognised on the way when the runtime says. */
+export interface LimitResetStartupFailed {
+  readonly kind: "not_attempted";
+  readonly reason: "startup_failed";
+  /** What oar last recognised before the CLI's UI failed to reach a usable prompt (claude); omitted when the runtime reports nothing. */
+  readonly startup?: LimitResetStartupDiagnostic;
+}
+
+/**
+ * oar's own classification of the last startup screen: UI chrome only, never
+ * screen text (which can hold paths, an email, conversation text). `version`
+ * is the banner's (`Claude Code v2.1.323`), when one was drawn.
+ */
+export interface LimitResetStartupDiagnostic { readonly screen: LimitResetStartupScreen; readonly version?: string }
+
+/** Each value is described in docs/spec/account-usage.md (Claude limit resets). Values may be added: read one not listed here as `unknown`. */
+export type LimitResetStartupScreen = "blank" | "exited" | "trust_unrecognised" | "dialog" | "prompt_with_text" | "no_banner" | "unsettled" | "unknown";
 
 /** One kind of reset, as `inspectLimitResets` found it. */
 export interface LimitResetKindStatus {
@@ -250,7 +269,8 @@ export type LimitResetInspection =
     }
   | { readonly kind: "reauth_required"; readonly reason: AccountUsageReauthReason }
   | { readonly kind: "unsupported"; readonly reason: LimitResetUnsupportedReason }
-  | { readonly kind: "not_attempted"; readonly reason: LimitResetNotAttemptedReason }
+  | { readonly kind: "not_attempted"; readonly reason: Exclude<LimitResetNotAttemptedReason, "startup_failed"> }
+  | LimitResetStartupFailed
   /** The first screen after the command was not recognised; nothing more was typed. */
   | { readonly kind: "unknown" };
 
@@ -259,7 +279,9 @@ export type LimitResetInspection =
  * command and cancelling it (claude). Not a passive read: it starts the CLI's
  * UI, and on Claude's older program it can spend the 5-hour reset (see
  * `fiveHourLimitConsent`). Only on the account owner's explicit request; never
- * poll it.
+ * poll it. A call that launches the UI costs a model request: the UI sends
+ * one at startup, reported to count as subscription usage and possibly to
+ * start an idle account's 5-hour window (see `Runtime.inspectLimitResets`).
  */
 export type LimitResetInspector = (
   installation: AvailableInstallation,

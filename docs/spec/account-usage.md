@@ -191,13 +191,54 @@ What keeps it from spending a reset the person did not ask for:
   so a host that got `unknown` reads usage before trying again. A call that
   sent nothing (`not_attempted`, a refusal) is not remembered.
 
-Each call has a cost of its own: the interactive UI sends one model request
-at startup (a 1-token check, `max_tokens: 1`; the offline harness recorded
-it, `-p` does not send it). On a subscription it most likely counts as
-usage and can open a 5-hour window on an idle account (magpie's notes for
-2.1.316; not verified on a real account). OAR does not suppress it:
-`CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` is reported to stop it but also
-usage reads, which `/limit-reset` needs.
+A call that launches the interactive UI has a cost of its own: the UI sends
+one model request at startup (a 1-token check, `max_tokens: 1`; OAR's
+offline harness recorded it against a fake backend, and `-p` does not send
+it). A call that returns before launching (a consent refusal, a queued
+deadline, the same idempotency key answered again) sends nothing. On a
+subscription that startup request is reported to count as usage and may
+start the 5-hour window of an idle account: that is a third-party report
+(magpie, for 2.1.316), which OAR has not measured. There is no way to reach `/limit-reset` without the UI: it
+has no `-p`, SDK or control-protocol form (2.1.322). OAR does not suppress
+the request: `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` is reported to stop
+it but also usage reads, which `/limit-reset` needs.
+
+Startup. OAR answers the folder-trust screen of its new directory (Yes,
+then Enter, only once that row shows selected). Reaching a settled main
+prompt has one 30 s cutoff, counted from launch and again from the trust
+answer: waiting for the prompt and waiting for it to hold still share it.
+The main prompt is the input box (from the `❯` row to the rule under it,
+every row of it) and its status line, no dialog over them, under a
+`Claude Code v<version>` banner. Once that is showing and the screen has
+held still for 3 s it decides at once: an empty box, or one holding only
+the dimmed `Try "…"` suggestion, is ready; any other text in the box ends
+the call as `not_attempted` / `startup_failed` right away, and nothing is
+typed into it. (OAR also starts Claude Code with
+`CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false`.) A `startup_failed` result may
+carry `startup`, a description of the last screen OAR recognised, in its
+own words only: never any text from the screen, which can hold paths, the
+account's email or conversation text.
+
+```ts
+{ kind: "not_attempted", reason: "startup_failed",
+  startup?: { screen: LimitResetStartupScreen, version?: string } }
+```
+
+`version` is the banner's, when one was drawn. `screen` is one of:
+
+| `screen` | The last screen was |
+| --- | --- |
+| `blank` | nothing drawn at all |
+| `exited` | none: Claude Code exited before its prompt |
+| `trust_unrecognised` | the folder-trust screen, not as recorded, or its Yes row could not be selected |
+| `dialog` | another dialog (one that takes Enter) |
+| `prompt_with_text` | the main prompt with text in its input box |
+| `no_banner` | an input box holding text and a status line, with no version banner (an empty one is `unsupported_version`) |
+| `unsettled` | the main prompt, but the screen did not hold still for 3 s before the 30 s cutoff |
+| `unknown` | anything else |
+
+Values may be added; a host reads one it does not know as `unknown`. Not
+signed in is `reauth_required`, not a `startup` value.
 
 `runtime.inspectLimitResets(installation, options?)` (claude only) opens
 `/limit-reset <kind>` for `weekly`, `fable`, `full` and, with

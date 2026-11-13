@@ -128,6 +128,14 @@ export interface Runtime extends RuntimeInventories {
    * Lists the account's limit resets through the runtime's interactive UI
    * (claude); not a passive read and can spend on Claude's older program, so
    * only on the account owner's explicit request, never polled.
+   *
+   * A call that launches Claude Code's interactive UI costs a model request
+   * (claude): the UI sends one at startup (seen in oar's offline harness). A
+   * call that returns before launching sends nothing. On a subscription that
+   * request is reported to count as usage and may start an idle account's
+   * 5-hour window (a third-party report for 2.1.316; not measured by oar). `/limit-reset` has no `-p`, SDK or
+   * control-protocol form (2.1.322), so there is no route without the UI.
+   * `redeemLimitReset` starts the UI the same way.
    */
   readonly inspectLimitResets?: LimitResetInspector;
   readonly listModels?: ModelLister;
