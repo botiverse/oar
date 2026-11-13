@@ -562,14 +562,16 @@ Further rules:
   or `-1` before any record. `status()` is the one the control decisions
   must agree with: a prompt recorded while it says `running` is rejected
   `busy`, and one recorded while it says `idle` is not refused as `busy`,
-  with two known gaps
+  with three known gaps
   ([state exceptions](manual-compaction.md#ownership-records-and-state)):
   Claude, Qoder, Qwen and Cursor do not yet record held queue ownership,
-  including an input dequeued but awaiting native start/refusal; and Pi
+  including an input dequeued but awaiting native start/refusal; Pi
   SDK/RPC release their run gate after publishing ordinary `turn_ended`, so a
   synchronous observer can see `idle` while `prompt` returns `busy`, even with
-  no queue (submit after that observer returns). Neither gap permits
-  inferring a turn end. Outside them, terminal status and prompt admission
+  no queue (submit after that observer returns); and OpenCode 2.3's own root
+  reply to a background child's report has no native start or end, so status
+  says `running` from that reply until a later native end while `prompt` is
+  admitted. No gap permits inferring a turn end. Outside them, terminal status and prompt admission
   change on the same record.
 - **Folds scope to the root session.** A derived child session's records
   (own `sessionId`, a node in `graph()`) never satisfy the folds or
