@@ -36,6 +36,10 @@
     "code": -32603,
     "message": "Failed to read session missing-session; retry, or load it with session/load"
   },
+  "devin": {
+    "code": -32016,
+    "message": "Session Load Error: Failed to load session missing-session: Session state file not found for session missing-session"
+  },
   "cursor": {
     "name": "AgentNotFoundError",
     "message": "Agent agent-00000000-0000-4000-8000-000000000294 not found",

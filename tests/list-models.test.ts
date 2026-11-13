@@ -3,6 +3,7 @@ import { expect, test } from "vitest";
 import { effortLevelOf, effortLevelsOf } from "../packages/oar/src/shared/effort-levels.js";
 import { claudeListModels, projectClaudeModels } from "../packages/oar/src/runtimes/claude/list-models.js";
 import { codexDefaultModel, codexListModels, projectCodexModels } from "../packages/oar/src/runtimes/codex/list-models.js";
+import { devinListModels, projectDevinModels } from "../packages/oar/src/runtimes/devin/list-models.js";
 import { grokListModels, grokModelState, projectGrokModels } from "../packages/oar/src/runtimes/grok/list-models.js";
 import { kimiListModels } from "../packages/oar/src/runtimes/kimi/list-models.js";
 import { createPiListModels, piListModels, projectPiModels } from "../packages/oar/src/runtimes/pi/list-models.js";
@@ -237,10 +238,42 @@ test("pi lister reports a configured provider through the real SDK", async () =>
   }
 });
 
+test("devin projection reads configOptions model and thought_level for the current model", () => {
+  expect(projectDevinModels({
+    configOptions: [
+      {
+        id: "model",
+        currentValue: "claude-sonnet-4-5",
+        options: [
+          { value: "claude-sonnet-4-5", name: "Claude Sonnet 4.5" },
+          { value: "gpt-5", name: "GPT-5" },
+        ],
+      },
+      {
+        id: "thought_level",
+        category: "thought_level",
+        currentValue: "medium",
+        options: [{ value: "low" }, { value: "medium" }, { value: "high" }],
+      },
+    ],
+  })).toEqual([
+    {
+      id: "claude-sonnet-4-5",
+      displayName: "Claude Sonnet 4.5",
+      default: true,
+      effortLevels: ["low", "medium", "high"],
+      defaultEffort: "medium",
+    },
+    { id: "gpt-5", displayName: "GPT-5" },
+  ]);
+  expect(projectDevinModels({ configOptions: [] })).toBeUndefined();
+});
+
 test("executable listers refuse bundled installations and pi refuses executables", async () => {
   const results = await Promise.all([
     codexListModels(bundled),
     claudeListModels(bundled),
+    devinListModels(bundled),
     grokListModels(bundled),
     kimiListModels(bundled),
     piListModels(executable),

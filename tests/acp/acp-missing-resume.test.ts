@@ -1,8 +1,10 @@
+/* oxlint-disable import/max-dependencies -- Covered ACP runtime profiles plus fixture/helper imports. */
 import { fileURLToPath } from "node:url";
 import { inspect } from "node:util";
 import { expect, test } from "vitest";
 import { SessionNotFoundError, RuntimeFailureError, UnsupportedOptionError } from "../../packages/oar/src/index.js";
 import { antigravityAcpProfile } from "../../packages/oar/src/runtimes/antigravity/session.js";
+import { devinAcpProfile } from "../../packages/oar/src/runtimes/devin/session.js";
 import { grokAcpProfile } from "../../packages/oar/src/runtimes/grok/session.js";
 import { kimiAcpProfile } from "../../packages/oar/src/runtimes/kimi/session.js";
 import { opencodeAcpProfile, opencodeV2AcpProfile } from "../../packages/oar/src/runtimes/opencode/session.js";
@@ -11,7 +13,7 @@ import errors from "../fixtures/missing-resume-errors.json" with { type: "json" 
 
 const nativeErrors: Readonly<Record<string, unknown>> = errors;
 const installation = { kind: "available", via: "executable", command: process.execPath } as const;
-const profiles = { antigravity: antigravityAcpProfile, grok: grokAcpProfile, kimi: kimiAcpProfile, opencode: opencodeAcpProfile, opencodeV2: opencodeV2AcpProfile };
+const profiles = { antigravity: antigravityAcpProfile, devin: devinAcpProfile, grok: grokAcpProfile, kimi: kimiAcpProfile, opencode: opencodeAcpProfile, opencodeV2: opencodeV2AcpProfile };
 const unlisted = { result: { sessions: [] } };
 const listed = { result: { sessions: [{ sessionId: "missing-session", cwd: process.cwd() }] } };
 async function open(profile: AcpSessionProfile, scenario: object, resume: string | null = "missing-session") {
@@ -35,6 +37,12 @@ test.each(["resume", "load"])("antigravity keeps a generic native %s failure whe
   await expect(opening).rejects.toMatchObject({ cause: { method, native: errors.antigravity } });
 });
 
+test("devin keeps its generic native load failure when cwd is confirmed", async () => {
+  const opening = open(profiles.devin, { error: errors.devin, capability: "load", errorMethod: "session/load", pages: [listed] });
+  await expect(opening).rejects.not.toBeInstanceOf(SessionNotFoundError);
+  await expect(opening).rejects.toMatchObject({ cause: { method: "session/load", native: errors.devin } });
+});
+
 test.each(Object.entries(profiles))("%s never classifies an initialize or new-session error as a missing resume", async (runtime, profile) => {
   for (const errorMethod of ["initialize", "session/new"]) {
     // oxlint-disable-next-line no-await-in-loop -- Each independent open is fully cleaned up before the next.
@@ -44,7 +52,7 @@ test.each(Object.entries(profiles))("%s never classifies an initialize or new-se
   }
 });
 
-const listProfiles = [profiles.antigravity, profiles.kimi, profiles.opencode, profiles.opencodeV2];
+const listProfiles = [profiles.antigravity, profiles.devin, profiles.kimi, profiles.opencode, profiles.opencodeV2];
 test.each(listProfiles)("a listed id keeps a generic native resume failure, even on a later page", async (profile) => {
   const failure: unknown = await open(profile, { error: errors.opencode, pages: [{ result: { sessions: [], nextCursor: "next" } }, listed] }).catch((error: unknown) => error);
   expect(failure).not.toBeInstanceOf(SessionNotFoundError);

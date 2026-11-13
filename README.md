@@ -122,6 +122,14 @@ OAR (**O**pen **A**gent **R**untime) is a provider-independent programming inter
       </a>
     </td>
   </tr>
+  <tr>
+    <td align="center" width="112">
+      <a href="docs/runtimes/devin.md">
+        <img src="packages/oar/assets/brands/devin.svg" width="32" height="32" alt=""><br>
+        Devin
+      </a>
+    </td>
+  </tr>
 </table>
 
 [Pi Durable](docs/runtimes/pi-durable.md) also runs through a host-owned Harness,
