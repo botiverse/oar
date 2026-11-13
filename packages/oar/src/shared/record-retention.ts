@@ -57,9 +57,9 @@ export function checkRetainedBytes(retainedBytes: number | undefined): void {
  * `seq` stays dense and folds over kinds, usage and text are unchanged.
  */
 export function recordRetention(limit: number): (log: RawEvent[], appended: number) => void {
+  // Measured records not yet elided, by log index; a Map keeps insertion (index) order.
   const sizes = new Map<number, number>();
   let held = 0;
-  let oldest = 0;
   let measured = 0;
   let newestFrame = -1;
   return (log, appended) => {
@@ -72,14 +72,16 @@ export function recordRetention(limit: number): (log: RawEvent[], appended: numb
         held += size;
       }
     }
-    for (; held > limit && oldest < newestFrame; oldest += 1) {
-      const record = log[oldest];
-      const size = sizes.get(oldest);
-      if (record !== undefined && size !== undefined) {
-        log[oldest] = elidedRecord(record);
-        held -= size;
-        sizes.delete(oldest);
-      }
+    // BYOK change: every measured record is a candidate, oldest first, except the
+    // newest frame itself, so requests and replies after it, or in a log with no
+    // frame, are elided too.
+    for (const [index, size] of sizes) {
+      if (held <= limit) { break; }
+      const record = log[index];
+      if (index === newestFrame || record === undefined) { continue; }
+      log[index] = elidedRecord(record);
+      held -= size;
+      sizes.delete(index);
     }
   };
 }
