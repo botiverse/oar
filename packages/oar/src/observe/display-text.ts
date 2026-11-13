@@ -129,7 +129,9 @@ function authText(runtimeName: string, credential: CredentialProblem | undefined
 }
 
 /**
- * What the runtime reported, in English. The host supplies any sign-in or
+ * What the runtime reported, in English; `input_too_large` is worded without
+ * saying who found it, since OAR refuses some inputs itself before they reach
+ * the runtime (a rejected control's `failure`). The host supplies any sign-in or
  * recovery guidance. `credential` (a failed outcome's) words `auth` as a
  * missing login or a refused credential when the runtime said which.
  */
@@ -140,7 +142,8 @@ export function failureText(failure: FailureClass, runtimeName: string, credenti
     case "rate_limited": return `${runtimeName} was rate limited by its provider.`;
     case "billing": return `${runtimeName} reported a billing or credit problem.`;
     case "model_unavailable": return `${runtimeName} cannot use the selected model.`;
-    case "input_too_large": return `${runtimeName} reported that the input is too large for the model.`;
+    // Not "reported": OAR also refuses an input the runtime would cut without saying so (antigravity).
+    case "input_too_large": return `The input is too large for ${runtimeName}.`;
     case "limit_reached": return `${runtimeName} stopped at the turn or budget limit set for it.`;
     case "output_schema": return `${runtimeName} could not produce output matching the output schema.`;
     case "invalid_request": return `${runtimeName} rejected the request as invalid.`;

@@ -100,7 +100,7 @@ const failures = {
   rate_limited: ["rate_limited", "Claude Code was rate limited by its provider."],
   billing: ["billing", "Claude Code reported a billing or credit problem."],
   model_unavailable: ["model_unavailable", "Claude Code cannot use the selected model."],
-  input_too_large: ["input_too_large", "Claude Code reported that the input is too large for the model."],
+  input_too_large: ["input_too_large", "The input is too large for Claude Code."],
   invalid_request: ["invalid_request", "Claude Code rejected the request as invalid."],
   overloaded: ["overloaded", "Claude Code reported that its provider is overloaded."],
   provider: ["provider", "Claude Code reported a provider error."],
