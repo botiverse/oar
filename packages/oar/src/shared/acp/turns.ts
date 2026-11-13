@@ -39,6 +39,8 @@ export interface ActiveTurn {
   abortRequested: boolean;
   /** BYOK change: the answer of the cancel write in flight, shared by an abort that arrives meanwhile. */
   cancelWrite?: Promise<ResponseBody>;
+  /** BYOK change: settled when the turn closes, for an abort fenced after the prompt answer was decoded. */
+  closed?: PromiseWithResolvers<void>;
   fallback: NodeJS.Timeout | null;
 }
 
@@ -96,6 +98,7 @@ export function createAcpTurns(deps: {
     if (active === state) {
       active = null;
     }
+    state.closed?.resolve();
     queueMicrotask(drainHeld); return deps.native?.afterClose() ?? [];
   };
   const finishRequest = (
@@ -261,6 +264,16 @@ export function createAcpTurns(deps: {
     },
     async abort(state, request) {
       if (state.cancelWrite !== undefined) { return state.cancelWrite; }
+      // BYOK change: once every prompt of the turn has its answer decoded, the
+      // runtime has ended it, and a session-wide cancel would reach whatever it
+      // runs next. Send none; answer when the turn's closing frame is out.
+      if (!state.abortRequested && state.pending.size > 0 && [...state.pending].every((number) => state.answered.has(number))) {
+        if (active === state) {
+          state.closed ??= Promise.withResolvers<void>();
+          await state.closed.promise;
+        }
+        return { kind: "rejected", code: "no_active_turn", reason: "turn ended before cancellation was sent" };
+      }
       if (!state.abortRequested) {
         // BYOK change: no upstream observation window. The injected process
         // remembers the agent's descendants synchronously before the native
