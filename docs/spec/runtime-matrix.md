@@ -211,7 +211,10 @@ spontaneous turn; only its matching native start takes that pending input.
 This queue fact is reported by Claude, Qoder and Grok (an OAR prompt listed in
 Grok's `_x.ai/queue/changed` entries) and excludes steer writes. Child
 activity keeps its own attribution and never starts the root turn. Other
-adapters do not yet emit `turn_active`.
+adapters do not yet emit `turn_active`. OpenCode 2.3.0 runs a root reply of
+its own after a background child's report, but ACP exposes neither its start
+nor its end, so neither `turn_active` nor `turn_ended` is mapped for it
+([known gap](../runtimes/opencode.md#v2-session-behavior)).
 
 ## Tool outcomes
 

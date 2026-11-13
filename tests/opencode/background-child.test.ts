@@ -1,10 +1,6 @@
 /* oxlint-disable eslint/max-lines-per-function, eslint/max-statements -- Each recorded native run is one regression with its complete record assertions. */
 /* oxlint-disable import/max-dependencies -- Replays the same evidence through the live session and the bare recorder. */
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
-import os from "node:os";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { expect, test } from "vitest";
 import type { RawEvent } from "../../packages/oar/src/contracts/session.js";
 import { graphOf, promptAndWait, statusOf, tasksOf } from "../../packages/oar/src/observe/index.js";
@@ -12,50 +8,13 @@ import { opencodeChildAttribution } from "../../packages/oar/src/runtimes/openco
 import { opencodeBackgroundChildProfile, opencodeV2AcpProfile } from "../../packages/oar/src/runtimes/opencode/session.js";
 import { hasBackgroundChildUpdates, opencodeRelease } from "../../packages/oar/src/runtimes/opencode/version.js";
 import { createAcpRecorder } from "../../packages/oar/src/shared/acp/records.js";
-import { acpSession, type AcpSessionProfile } from "../../packages/oar/src/shared/acp/session.js";
 import { createUsageUpdateGate } from "../../packages/oar/src/shared/acp/usage-wait.js";
-import { asRecord, parseJson, type JsonRecord } from "../../packages/oar/src/shared/json.js";
+import { asRecord, type JsonRecord } from "../../packages/oar/src/shared/json.js";
 import type { SessionNotification } from "../../packages/oar/src/shared/acp/process.js";
 import { createSessionKernel } from "../../packages/oar/src/shared/session-kernel.js";
+import { eventsOf, frames, notificationsOf, replay } from "../fixtures/opencode-background-replay.js";
 
-const evidence = (name: string): string => fileURLToPath(new URL(`../../experiments/opencode-child-background/${name}`, import.meta.url));
-const replayAgent = fileURLToPath(new URL("../fixtures/fake-acp-opencode-replay.mjs", import.meta.url));
 const CHILD_UPDATE = "opencode/session/child_update";
-
-interface WireFrame { readonly atMs: number; readonly direction?: string; readonly message: JsonRecord }
-function wireOf(name: string): WireFrame[] {
-  const text = readFileSync(evidence(name), "utf8");
-  const recorded = asRecord(parseJson(text));
-  assert.ok(Array.isArray(recorded?.wire));
-  // oxlint-disable-next-line typescript/consistent-type-assertions, typescript/no-unsafe-type-assertion -- Recorded native evidence, read verbatim.
-  return recorded.wire as WireFrame[];
-}
-/** The native runtime→client notifications, in recorded order. */
-function notificationsOf(name: string): { readonly method: string; readonly params: JsonRecord }[] {
-  return wireOf(name).flatMap(({ direction, message }) => {
-    const params = asRecord(message.params);
-    return direction === undefined && typeof message.method === "string" && params !== null ? [{ method: message.method, params }] : [];
-  });
-}
-const frames = (log: readonly RawEvent[], sessionId: string) => log.flatMap((entry) => entry.kind === "frame" && entry.sessionId === sessionId ? [entry] : []);
-const eventsOf = (log: readonly RawEvent[], sessionId: string) => frames(log, sessionId).flatMap((entry) => entry.body.events);
-
-async function replay(profile: AcpSessionProfile, name: string) {
-  const directory = mkdtempSync(path.join(os.tmpdir(), "oar-opencode-child-"));
-  const capture = path.join(directory, "initialize.json");
-  const session = await acpSession({ ...profile, args: [replayAgent, evidence(name), capture] })(
-    { kind: "available", via: "executable", command: process.execPath }, { cwd: process.cwd() },
-  );
-  return {
-    session,
-    /** OAR's `initialize` params as the agent received them. */
-    clientCapabilities: () => {
-      const params = asRecord(parseJson(readFileSync(capture, "utf8")));
-      return asRecord(params?.clientCapabilities);
-    },
-    cleanup: async () => { await session.dispose(); rmSync(directory, { recursive: true, force: true }); },
-  };
-}
 
 test("2.3.0 replay: the declared capability delivers background child text and completion after the parent prompt returns", async () => {
   const { session, clientCapabilities, cleanup } = await replay(opencodeBackgroundChildProfile, "enabled.json");

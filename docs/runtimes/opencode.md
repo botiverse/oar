@@ -393,12 +393,44 @@ covers 2.0.27.
   [`background-child.test.ts`](../../tests/opencode/background-child.test.ts):
   one level, text only. Tool calls inside a child, permissions, `failed`,
   `interrupted`, resume and depth > 1 were not exercised natively; the
-  nested case is a synthetic test of the source's shape. **Known gap:** after
-  completion the parent model answers OpenCode's `<subagent>` report on
-  its own; that reply arrives as root standard updates after the prompt
-  answered, with or without the capability, and no native frame ends it.
-  The existing status fold therefore adopts a running root turn; in replay
-  a new prompt is still accepted.
+  nested case is a synthetic test of the source's shape.
+- **Background children (2.3.0), the parent's own reply (known gap):** after
+  a child completes, OpenCode gives the parent model a `<subagent>` report
+  and the parent answers on its own, with no `session/prompt`. That reply
+  arrives as ordinary root `session/update` frames after the prompt
+  answered, with or without the capability. ACP exposes neither its start
+  nor its end. In both recordings it is one `agent_message_chunk` with a new
+  `messageId` (`message-5` enabled, `message-4` disabled), followed by no
+  `usage_update`, `session_info_update`, extension notification or other
+  frame for the remaining 60 seconds. A new `messageId` also occurs inside
+  ordinary prompted turns, so it marks neither boundary. The source at
+  `a6b15d33` explains why: after the prompt answers, `turn.ts` `handoff`
+  keeps a background follower (`followChildren`) with no prompt start. It
+  forwards only the translated updates. The root `session.execution.*`
+  terminal in `translate.ts` `rootEvent` produces no ACP output, and
+  `sendUsageUpdate` runs only when a prompt settles. OAR therefore records
+  each frame verbatim and adds no turn boundary. The status fold adopts the
+  reply as a running turn with no `requestId` or `inputId` (`sinceSeq` is
+  the reply's first frame, `lastEventAt` its latest). That status stays
+  `running` until a later native end, which in practice is the answer to
+  the next host prompt. Consequences: `awaitIdle` and
+  `deliver({ when: "when_idle" })` wait until that answer; `stallOf`
+  reports the silence. No OpenCode profile maps runtime turns, so OAR's
+  turn driver has no open turn: `prompt()` is admitted although status
+  says `running`, and `deliver()` lands `queued` but the adapter queue
+  sends it at once. This is a
+  [documented exception](../spec/manual-compaction.md#ownership-records-and-state)
+  to status and prompt admission agreeing. OAR does not settle the reply
+  after silence or a deadline. Per the source, OpenCode submits every
+  prompt with `delivery: "steer"`; if the reply is still running, the
+  prompt joins it and is answered when that native execution ends (not
+  exercised natively). A native 2.3.0 control, with and without the
+  capability, sent a follow-up after the reply: it ended and status
+  returned to `idle`. The replay in
+  [`background-child.test.ts`](../../tests/opencode/background-child.test.ts)
+  pins this from the recorded wire, with a synthetic answer to the
+  follow-up. Closing the gap needs a native end report for runtime-started
+  root turns.
 - **Tool names:** `shell` is a command with its reported `command` input;
   v1 `bash` remains supported. `subagent` classifies as `subagent`, with
   its `description` as the detail. Code Mode `execute` retains its name and

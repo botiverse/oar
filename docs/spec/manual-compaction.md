@@ -132,6 +132,15 @@ occupancy, retaining independent native activity; see the
 The [design decision](../design/decisions.md#pi-synchronous-terminal-submission-2026-11-05)
 records why synchronous ordinary-turn submission is not supported.
 
+**OpenCode 2.3 own-reply exception:** after a background child completes,
+the parent model answers OpenCode's report on its own. ACP reports that
+reply as root updates after the prompt answered, with no native start or
+end. The fold adopts it as a running turn that stays `running` until a later
+native end, normally the next prompt's answer, while OAR's turn driver has no
+open turn: `prompt` is admitted although status says `running`. Status is
+not settled after silence or a deadline; `stallOf` reports the silence. See
+the [runtime mapping](../runtimes/opencode.md#v2-session-behavior).
+
 Claude's native queued receipt for the compact command is not a pending
 ordinary prompt. `turn_ended.inputId` and `inputIds`, when present, preserve
 native input identities without inference; see the
