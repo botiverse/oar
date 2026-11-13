@@ -704,6 +704,7 @@ test("the input box runs to its closing rule: text on a later row is input, and 
   assert.equal(promptInput(box("❯\u00A0\n  second row")), "\nsecond row");
   assert.equal(promptInput(box("❯\u00A0first\n  second")), "first\nsecond");
   assert.equal(promptInput(box("❯\u00A0\n  ")), "");
+  assert.equal(promptInput(box("❯\u00A0\n─ not a rule")), "\n─ not a rule");
   assert.equal(promptInput("Claude Code v2.1.322\n❯\u00A0\n? for shortcuts"), null);
 });
 

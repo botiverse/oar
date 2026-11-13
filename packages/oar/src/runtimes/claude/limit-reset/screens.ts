@@ -80,7 +80,7 @@ export function inputLine(screen: string): string | null {
   const starts = lines.flatMap((line, index) => (line.startsWith("❯\u00A0") ? [index] : []));
   const [start] = starts;
   if (starts.length !== 1 || start === undefined) { return null; }
-  const end = lines.findIndex((line, index) => index > start && line.startsWith("─"));
+  const end = lines.findIndex((line, index) => index > start && /^─+$/u.test(line.trimEnd()));
   if (end === -1) { return null; }
   const rows = lines.slice(start, end).map((line, index) => (index === 0 ? line.slice(2).trimEnd() : line.trim()));
   while (rows.length > 1 && rows.at(-1) === "") { rows.pop(); }
