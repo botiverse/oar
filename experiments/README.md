@@ -1,5 +1,7 @@
 # experiments
 
+- [Antigravity first-prompt MCP readiness](antigravity-mcp-readiness/README.md): macOS 1.5.0 missing-tool catalog, same-tree passing controls, Linux configuration probes and the unverified readiness boundary.
+
 - [Codex process counts before fixture startup](codex-process-count/README.md): native yielded-command counterexample, explicit fixture readiness, and the still-unconfirmed original CI cause.
 
 - [Runtime version check: November 12](runtime-version-checks/2026-11-12.md): four changed native versions, Kimi MCP resume mismatch, Qoder replay failures and CI process-count evidence.
