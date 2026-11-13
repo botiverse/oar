@@ -239,8 +239,9 @@ updates require an explicit capability and the
 OAR declares that capability on 2.3 and later and maps the extension
 ([background children](#v2-session-behavior)). Before that mapping the
 cleanup control stopped at the missing child graph edge; with it (PR #775
-review, Linux x64, 2026-11-13) the unchanged control passed on 2.3.0 with
-only its version label changed: child edge, root cancellation, real tool
+review, Linux x64, 2026-11-13) the control passed on 2.3.0 with only its
+test title and version assertion changed from 2.2.7 (lifecycle assertions
+and time limits unchanged): child edge, root cancellation, real tool
 parent and child process disposal, the surviving peer and same-id root
 resume. The unmodified 2.2.7 control passed on the same head. CI remains on
 2.2.7.
@@ -431,8 +432,9 @@ covers 2.0.27.
   exercised natively). A native 2.3.0 control, with and without the
   capability, sent a follow-up after the reply: it ended and status
   returned to `idle`. The replay in
-  [`background-child.test.ts`](../../tests/opencode/background-child.test.ts)
-  pins this from the recorded wire, with a synthetic answer to the
+  [`background-own-reply.test.ts`](../../tests/opencode/background-own-reply.test.ts)
+  pins this from the recorded wire (including a pending `awaitIdle` and a
+  `when_idle` delivery dispatched only after the follow-up's native end), with a synthetic answer to the
   follow-up. Closing the gap needs a native end report for runtime-started
   root turns.
 - **Tool names:** `shell` is a command with its reported `command` input;
