@@ -26,30 +26,16 @@ function writeFakeDevinCli(): { readonly command: string; readonly log: string }
   return { command: writeExecutable(dir), log: path.join(dir, "calls.txt") };
 }
 
-function sampleConfigOptions(): readonly Record<string, unknown>[] {
+function emptyModelConfigOptions(): readonly Record<string, unknown>[] {
   return [
     {
       id: "model",
       name: "Model",
+      description: "AI model to use",
       category: "model",
       type: "select",
-      currentValue: "claude-sonnet-4-5",
-      options: [
-        { value: "claude-sonnet-4-5", name: "Claude Sonnet 4.5" },
-        { value: "gpt-5", name: "GPT-5" },
-      ],
-    },
-    {
-      id: "thought_level",
-      name: "Thought Level",
-      category: "thought_level",
-      type: "select",
-      currentValue: "medium",
-      options: [
-        { value: "low", name: "Low" },
-        { value: "medium", name: "Medium" },
-        { value: "high", name: "High" },
-      ],
+      currentValue: "swe-1-6-fast",
+      options: [],
     },
   ];
 }
@@ -60,7 +46,7 @@ afterEach(() => {
   }
 });
 
-test("devinListModels projects model + thought_level configOptions and calls session/close", async () => {
+test("devinListModels projects realistic model + thought_level configOptions and prefers session/delete", async () => {
   const { command, log } = writeFakeDevinCli();
   const result = await devinListModels(
     { kind: "available", via: "executable", command, version: "3000.12.57" },
@@ -68,7 +54,6 @@ test("devinListModels projects model + thought_level configOptions and calls ses
       env: {
         FAKE_DEVIN_CALL_LOG: log,
         FAKE_DEVIN_SESSION_ID: "devin-list-1",
-        FAKE_DEVIN_CONFIG_OPTIONS: JSON.stringify(sampleConfigOptions()),
       },
     },
   );
@@ -76,58 +61,157 @@ test("devinListModels projects model + thought_level configOptions and calls ses
     kind: "ok",
     models: [
       {
-        id: "claude-sonnet-4-5",
-        displayName: "Claude Sonnet 4.5",
+        id: "swe-1-6-fast",
+        displayName: "SWE-1.6 Fast",
         default: true,
         effortLevels: ["low", "medium", "high"],
         defaultEffort: "medium",
       },
-      { id: "gpt-5", displayName: "GPT-5" },
+      { id: "swe-1-6", displayName: "SWE-1.6" },
     ],
   });
   expect(readFileSync(log, "utf8").trim().split("\n")).toEqual([
     "initialize",
     "session/new",
-    "session/close",
-    "close:devin-list-1",
+    "session/delete",
+    "delete:devin-list-1",
   ]);
 });
 
-test("devinListModels falls back to devin auth status when options is empty and maps logged_out to unauthenticated", async () => {
+test("devinListModels falls back to session/close when sessionCapabilities.delete is absent", async () => {
   const { command, log } = writeFakeDevinCli();
-  const configOptions = [
-    {
-      id: "model",
-      name: "Model",
-      category: "model",
-      type: "select",
-      currentValue: "",
-      options: [],
-    },
-  ];
   const result = await devinListModels(
     { kind: "available", via: "executable", command, version: "3000.12.57" },
     {
       env: {
-        WINDSURF_API_KEY: null,
         FAKE_DEVIN_CALL_LOG: log,
-        FAKE_DEVIN_SESSION_ID: "devin-list-1",
-        FAKE_DEVIN_CONFIG_OPTIONS: JSON.stringify(configOptions),
-        FAKE_DEVIN_AUTH_STDOUT: "Not logged in.\nRun `devin auth login` to authenticate.\n",
+        FAKE_DEVIN_SESSION_ID: "devin-list-close",
+        FAKE_DEVIN_SESSION_CAPABILITIES: JSON.stringify({ list: {}, close: {} }),
       },
     },
   );
-  expect(result).toEqual({
+  expect(result.kind).toBe("ok");
+  expect(readFileSync(log, "utf8").trim().split("\n")).toEqual([
+    "initialize",
+    "session/new",
+    "session/close",
+    "close:devin-list-close",
+  ]);
+});
+
+test("devinListModels maps empty options to unauthenticated when logged_out and ok when logged_in", async () => {
+  const { command, log } = writeFakeDevinCli();
+  const emptyJson = JSON.stringify(emptyModelConfigOptions());
+  const installation = { kind: "available", via: "executable", command, version: "3000.12.57" } as const;
+
+  const loggedOut = await devinListModels(installation, {
+    env: {
+      WINDSURF_API_KEY: null,
+      FAKE_DEVIN_CALL_LOG: log,
+      FAKE_DEVIN_SESSION_ID: "devin-list-1",
+      FAKE_DEVIN_CONFIG_OPTIONS: emptyJson,
+      FAKE_DEVIN_AUTH_STDOUT: "Not logged in.\n  Credentials path: /tmp/devin-probe/data/devin/credentials.toml\nRun `devin auth login` to authenticate.\n",
+    },
+  });
+  expect(loggedOut).toEqual({
     kind: "unauthenticated",
     detail: "Run `devin auth login` in a terminal or set WINDSURF_API_KEY.",
   });
   expect(readFileSync(log, "utf8").trim().split("\n")).toEqual([
     "initialize",
     "session/new",
-    "session/close",
-    "close:devin-list-1",
+    "session/delete",
+    "delete:devin-list-1",
     "auth status",
   ]);
+
+  const loggedIn = await devinListModels(installation, {
+    env: {
+      WINDSURF_API_KEY: null,
+      FAKE_DEVIN_CONFIG_OPTIONS: emptyJson,
+      FAKE_DEVIN_AUTH_STDOUT: "Logged in (via Devin).\n",
+    },
+  });
+  expect(loggedIn).toEqual({ kind: "ok", models: [] });
+});
+
+test("devinListModels maps empty options with unknown auth to unsupported when configured and rejects when unconfigured", async () => {
+  const { command } = writeFakeDevinCli();
+  const emptyJson = JSON.stringify(emptyModelConfigOptions());
+  const installation = { kind: "available", via: "executable", command, version: "3000.12.57" } as const;
+
+  const envConfigured = await devinListModels(installation, {
+    env: {
+      WINDSURF_API_KEY: "sk-unverified-windsurf-key",
+      FAKE_DEVIN_CONFIG_OPTIONS: emptyJson,
+    },
+  });
+  expect(envConfigured).toEqual({
+    kind: "unsupported",
+    reason: "WINDSURF_API_KEY is configured; devin auth status inspects stored login credentials and does not validate this environment key.",
+  });
+
+  const unverifiedStored = await devinListModels(installation, {
+    env: {
+      WINDSURF_API_KEY: null,
+      FAKE_DEVIN_CONFIG_OPTIONS: emptyJson,
+      FAKE_DEVIN_AUTH_STDOUT: "Logged in (via Devin).\n\nUser / team info:\n  Unavailable: offline\n",
+    },
+  });
+  expect(unverifiedStored).toEqual({
+    kind: "unsupported",
+    reason: "devin auth status found stored credentials and could not verify them with the server",
+  });
+
+  await expect(
+    devinListModels(installation, {
+      env: {
+        WINDSURF_API_KEY: null,
+        FAKE_DEVIN_CONFIG_OPTIONS: emptyJson,
+        FAKE_DEVIN_AUTH_STDOUT: "Failed to load credentials: TOML parse error at line 1, column 9\n",
+      },
+    }),
+  ).rejects.toThrow(/unreadable stored credentials/u);
+});
+
+test("devinListModels enforces one overall timeoutMs across ACP steps and auth status without hanging on runtime.exited", async () => {
+  const { command } = writeFakeDevinCli();
+  const emptyJson = JSON.stringify(emptyModelConfigOptions());
+
+  // Each step (250ms ACP + 250ms ACP + 250ms delete + 400ms auth) fits inside 600ms individually,
+  // yet exceeds the shared 600ms overall deadline together.
+  const startedShared = performance.now();
+  await expect(
+    devinListModels(
+      { kind: "available", via: "executable", command, version: "3000.12.57" },
+      {
+        timeoutMs: 600,
+        env: {
+          WINDSURF_API_KEY: null,
+          FAKE_DEVIN_CONFIG_OPTIONS: emptyJson,
+          FAKE_DEVIN_STEP_DELAY_MS: "250",
+          FAKE_DEVIN_AUTH_DELAY_MS: "400",
+        },
+      },
+    ),
+  ).rejects.toThrow(/timed out/u);
+  expect(performance.now() - startedShared).toBeLessThan(1500);
+
+  // Even when the ACP child ignores SIGTERM, timeout settles promptly at timeoutMs without waiting for SIGKILL grace.
+  const startedStall = performance.now();
+  await expect(
+    devinListModels(
+      { kind: "available", via: "executable", command, version: "3000.12.57" },
+      {
+        timeoutMs: 300,
+        env: {
+          FAKE_DEVIN_IGNORE_SIGTERM: "1",
+          FAKE_DEVIN_STALL_METHOD: "session/new",
+        },
+      },
+    ),
+  ).rejects.toThrow(/timed out/u);
+  expect(performance.now() - startedStall).toBeLessThan(1200);
 });
 
 test("devinListModels maps invalid WINDSURF_API_KEY -32603 RequestError to unauthenticated", async () => {
