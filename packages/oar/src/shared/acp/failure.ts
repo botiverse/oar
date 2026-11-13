@@ -25,8 +25,11 @@ export function rpcErrorCode(error: unknown): number | null {
   return typeof error.code === "number" ? error.code : null;
 }
 
+/** Reads a failed open or model switch the generic rules do not: vendor-specific auth or model codes. */
+export type AcpOpenFailureReader = (error: unknown, step: "open" | "model") => RuntimeFailureError | null;
+
 /** An open step's error, as `session()` rejects with it: a refused login or model becomes a `RuntimeFailureError`. */
-export function acpOpenFailure(error: unknown, step: "open" | "model"): unknown {
+export function acpOpenFailure(error: unknown, step: "open" | "model", reader?: AcpOpenFailureReader): unknown {
   const code = rpcErrorCode(error);
   if (!(error instanceof Error) || code === null) {
     return error;
@@ -37,13 +40,23 @@ export function acpOpenFailure(error: unknown, step: "open" | "model"): unknown 
   if (step === "model" && code === INVALID_PARAMS) {
     return new RuntimeFailureError("model_unavailable", error.message, { cause: error.cause ?? error });
   }
+  const mapped = reader?.(error, step) ?? null;
+  if (mapped !== null) {
+    return mapped;
+  }
   return error;
 }
 
 /** A failed native resume/load call, under its runtime's missing-target rule. */
-export function acpResumeFailure(error: unknown, method: string, sessionId: string, isNotFound: (native: JsonRecord) => boolean): unknown {
+export function acpResumeFailure(
+  error: unknown,
+  method: string,
+  sessionId: string,
+  isNotFound: (native: JsonRecord) => boolean,
+  openFailure?: AcpOpenFailureReader,
+): unknown {
   // Auth refusals retain their type even if a list was empty.
-  const failure = acpOpenFailure(error, "open");
+  const failure = acpOpenFailure(error, "open", openFailure);
   if (failure !== error) { return failure; }
   const cause = asRecord(error instanceof Error ? error.cause : undefined);
   const native = asRecord(cause?.native);
@@ -54,11 +67,11 @@ export function acpResumeFailure(error: unknown, method: string, sessionId: stri
 }
 
 /** `step` rejecting as `session()` does: through `acpOpenFailure`. */
-export async function acpOpenStep<T>(step: Promise<T>, kind: "open" | "model"): Promise<T> {
+export async function acpOpenStep<T>(step: Promise<T>, kind: "open" | "model", reader?: AcpOpenFailureReader): Promise<T> {
   try {
     return await step;
   } catch (error) {
-    throw acpOpenFailure(error, kind);
+    throw acpOpenFailure(error, kind, reader);
   }
 }
 

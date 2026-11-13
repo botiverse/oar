@@ -6,8 +6,10 @@ import { withQueryDeadline } from "../../shared/executable/query.js";
 
 const SOURCE = "devin auth status";
 const LOGGED_OUT = /^Not logged in\./mu;
-const LOGGED_IN = /^Logged in(?:\s+\(via ([^)\r\n]+)\)|(\s+with provided API key))?\./mu;
-const EMAIL_LINE = /^\s*Email:\s*(\S+)\s*$/mu;
+const FAILED_TO_LOAD = /^Failed to load credentials:/mu;
+const LOGGED_IN = /^Logged in(?:\s+\(via ([^)\r\n]+)\))?\./mu;
+const SERVER_AUTH_REJECTED = /^\s*Failed to fetch from server:\s*.*(?:authentication required|invalid api key)/imu;
+const SERVER_UNVERIFIED = /^\s*(?:Failed to fetch from server|Unavailable):/mu;
 
 /** Parse `devin auth status` stdout without retaining credential paths or tokens. */
 export function parseDevinAuthStatus(stdout: string): AuthStatus {
@@ -18,14 +20,34 @@ export function parseDevinAuthStatus(stdout: string): AuthStatus {
       detail: "Run `devin auth login` in a terminal or set WINDSURF_API_KEY.",
     };
   }
+  if (FAILED_TO_LOAD.test(stdout)) {
+    return {
+      kind: "unknown",
+      source: SOURCE,
+      detail: "devin auth status reported unreadable stored credentials",
+    };
+  }
   const loggedIn = LOGGED_IN.exec(stdout);
   if (loggedIn !== null) {
+    if (SERVER_AUTH_REJECTED.test(stdout)) {
+      return {
+        kind: "logged_out",
+        source: SOURCE,
+        detail: "Stored Devin credentials were rejected by the server. Run `devin auth logout` and `devin auth login` to re-authenticate.",
+      };
+    }
+    if (SERVER_UNVERIFIED.test(stdout)) {
+      return {
+        kind: "unknown",
+        source: SOURCE,
+        configured: ["stored credentials"],
+        detail: "devin auth status found stored credentials and could not verify them with the server",
+      };
+    }
     const rawMethod = loggedIn[1]?.trim();
     const method = rawMethod !== undefined && rawMethod.length > 0 ? rawMethod : undefined;
-    const credential = loggedIn[2] === undefined ? undefined : "api_key";
-    const email = EMAIL_LINE.exec(stdout)?.[1];
+    const credential = method === "API key" ? "api_key" : undefined;
     const account: LoginAccount = {
-      ...(email === undefined ? {} : { email }),
       ...(method === undefined ? {} : { method }),
       ...(credential === undefined ? {} : { credential }),
     };

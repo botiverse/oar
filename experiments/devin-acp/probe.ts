@@ -1,7 +1,7 @@
 /* oxlint-disable eslint/no-console -- CLI probe script writes its JSON report to stdout. */
 import { spawn, spawnSync } from "node:child_process";
 import { once } from "node:events";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import path from "node:path";
 
@@ -25,8 +25,6 @@ function asArray(value: unknown): readonly unknown[] {
 function isolatedEnv(home: string, apiKey?: string): NodeJS.ProcessEnv {
   const base: NodeJS.ProcessEnv = { ...process.env };
   delete base.WINDSURF_API_KEY;
-  delete base.DEVIN_API_KEY;
-  delete base.DEVIN_ORG_ID;
   return {
     ...base,
     HOME: home,
@@ -76,7 +74,7 @@ class AcpProbeClient {
   private buffer = "";
 
   public constructor(command: string, cwd: string, env: NodeJS.ProcessEnv) {
-    this.child = spawn(command, ["--permission-mode", "dangerous", "--respect-workspace-trust", "false", "acp"], {
+    this.child = spawn(command, ["acp"], {
       cwd,
       env,
       stdio: ["pipe", "pipe", "pipe"],
@@ -147,23 +145,35 @@ class AcpProbeClient {
 
 async function main(): Promise<void> {
   const command = resolveDevinCommand();
-  const tempHome = mkdtempSync(path.join(tmpdir(), "oar-devin-probe-"));
+  const rawTemp = mkdtempSync(path.join(tmpdir(), "oar-devin-probe-"));
+  const rootTemp = realpathSync(rawTemp);
   try {
-    const cleanEnv = isolatedEnv(tempHome);
-    const keyEnv = isolatedEnv(tempHome, "sk-synthetic-probe");
+    const cleanHome = path.join(rootTemp, "clean");
+    const corruptHome = path.join(rootTemp, "corrupt");
+    mkdirSync(cleanHome, { recursive: true });
+    const corruptCredsDir = path.join(corruptHome, ".local", "share", "devin");
+    mkdirSync(corruptCredsDir, { recursive: true });
+    writeFileSync(path.join(corruptCredsDir, "credentials.toml"), "not = [valid\n", "utf8");
+
+    const cleanEnv = isolatedEnv(cleanHome);
+    const keyEnv = isolatedEnv(cleanHome, "sk-synthetic-probe");
+    const corruptEnv = isolatedEnv(corruptHome);
 
     const versionRaw = runSyncCommand(command, ["--version"], cleanEnv);
-    const version = { exitCode: versionRaw.exitCode, stdout: sanitizeOutput(versionRaw.stdout, tempHome) };
+    const version = { exitCode: versionRaw.exitCode, stdout: sanitizeOutput(versionRaw.stdout, cleanHome) };
     const authCleanRaw = runSyncCommand(command, ["auth", "status"], cleanEnv);
-    const authStatusClean = { exitCode: authCleanRaw.exitCode, stdout: sanitizeOutput(authCleanRaw.stdout, tempHome) };
+    const authStatusClean = { exitCode: authCleanRaw.exitCode, stdout: sanitizeOutput(authCleanRaw.stdout, cleanHome) };
     const authKeyRaw = runSyncCommand(command, ["auth", "status"], keyEnv);
-    const authStatusSyntheticKey = { exitCode: authKeyRaw.exitCode, stdout: sanitizeOutput(authKeyRaw.stdout, tempHome) };
+    const authStatusSyntheticKey = { exitCode: authKeyRaw.exitCode, stdout: sanitizeOutput(authKeyRaw.stdout, cleanHome) };
+    const authCorruptRaw = runSyncCommand(command, ["auth", "status"], corruptEnv);
+    const authStatusCorrupt = { exitCode: authCorruptRaw.exitCode, stdout: sanitizeOutput(authCorruptRaw.stdout, corruptHome) };
 
-    const acp = new AcpProbeClient(command, tempHome, cleanEnv);
+    const acp = new AcpProbeClient(command, cleanHome, cleanEnv);
     let initializeResult: JsonRecord | undefined = undefined;
     let newSessionResult: JsonRecord | undefined = undefined;
     let setModeResult: JsonRecord | undefined = undefined;
     let setModelResult: JsonRecord | undefined = undefined;
+    let sessionDeleteResult: JsonRecord | undefined = undefined;
     let loadMissingResult: JsonRecord | undefined = undefined;
     try {
       const initReply = await acp.request("initialize", {
@@ -180,10 +190,12 @@ async function main(): Promise<void> {
         promptCapabilities: agentCaps?.promptCapabilities,
         mcpCapabilities: agentCaps?.mcpCapabilities,
         sessionCapabilities: agentCaps?.sessionCapabilities,
+        /* oxlint-disable-next-line eslint/no-underscore-dangle -- ACP protocol metadata key uses _meta. */
+        midTurnPrompts: asRecord(agentCaps?._meta)?.["cognition.ai/midTurnPrompts"],
         authMethods: initRes?.authMethods,
       };
 
-      const newReply = await acp.request("session/new", { cwd: tempHome, mcpServers: [] });
+      const newReply = await acp.request("session/new", { cwd: cleanHome, mcpServers: [] });
       const newRes = asRecord(newReply.result);
       const sessionId = typeof newRes?.sessionId === "string" ? newRes.sessionId : "";
       const modes = asRecord(newRes?.modes);
@@ -212,11 +224,25 @@ async function main(): Promise<void> {
         };
         const setModelReply = await acp.request("session/set_model", { sessionId, modelId: "swe-1-6-fast" });
         setModelResult = asRecord(setModelReply.error);
+
+        const listBeforeReply = await acp.request("session/list", { cwd: cleanHome });
+        const listedBeforeDelete = asArray(asRecord(listBeforeReply.result)?.sessions).some(
+          (item) => asRecord(item)?.sessionId === sessionId,
+        );
+        const deleteReply = await acp.request("session/delete", { sessionId });
+        const listAfterReply = await acp.request("session/list", { cwd: cleanHome });
+        const sessionCountAfterDelete = asArray(asRecord(listAfterReply.result)?.sessions).length;
+        sessionDeleteResult = {
+          listedBeforeDelete,
+          hasError: deleteReply.error !== undefined,
+          result: deleteReply.result,
+          sessionCountAfterDelete,
+        };
       }
 
       const loadReply = await acp.request("session/load", {
         sessionId: "00000000-0000-0000-0000-000000000000",
-        cwd: tempHome,
+        cwd: cleanHome,
         mcpServers: [],
       });
       loadMissingResult = asRecord(loadReply.error);
@@ -228,17 +254,19 @@ async function main(): Promise<void> {
       version,
       authStatusClean,
       authStatusSyntheticKey,
+      authStatusCorrupt,
       acp: {
         initialize: initializeResult,
         loggedOutNewSession: newSessionResult,
         setBypassMode: setModeResult,
         setModelError: setModelResult,
+        sessionDelete: sessionDeleteResult,
         missingSessionLoadError: loadMissingResult,
       },
     };
     console.log(JSON.stringify(report, null, 2));
   } finally {
-    rmSync(tempHome, { recursive: true, force: true });
+    rmSync(rootTemp, { recursive: true, force: true });
   }
 }
 

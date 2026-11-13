@@ -10,7 +10,7 @@ import type { AcpDerivedSessionHooks } from "./derived-sessions.js";
 import { acpAdditionalDirectories } from "./additional-directories.js";
 import { applyAcpEffort, applyAcpModel } from "./effort.js";
 import type { AcpConfigUpdates } from "./config-updates.js";
-import { acpResumeFailure, acpOpenStep, type AcpFailureReader } from "./failure.js";
+import { acpResumeFailure, acpOpenStep, type AcpFailureReader, type AcpOpenFailureReader } from "./failure.js";
 import { acpMcpServersParam } from "./mcp-servers.js";
 import { type AcpProcess, withAcpDeadline } from "./process.js";
 import { refuseResumeElsewhere, unknownResumeCwd } from "./resume-cwd.js";
@@ -107,16 +107,14 @@ export interface AcpSessionProfile extends AcpDerivedSessionHooks {
   /** Independent root ledger, never overlapping promptTokenUsage: `sentByOar` names prompts whose answer already carries their tokens. The native key deduplicates delivery; replayed reports only remember that identity. Child notifications are excluded by the recorder. */
   readonly spontaneousTokenUsage?: (method: string, params: JsonRecord, sentByOar: (promptId: string) => boolean) => { readonly key: string; readonly tokens: TokenTotals; readonly replayed?: boolean } | null;
   readonly promptOutcome?: (response: JsonRecord) => TurnOutcome | null;
+  /** Classify a rejected open or model-selection RPC; null leaves it to the generic rules (failure.ts). */
+  readonly openFailure?: AcpOpenFailureReader;
   /** Classify a prompt the agent answered with an error, from the error and the turn's frames; null leaves it to the generic rules (failure.ts). */
   readonly failureOutcome?: AcpFailureReader;
   /**
-   * The agent answers `session/prompt` BEFORE it pushes the turn's
-   * `usage_update` (kimi-code f9ca33376 packages/acp-server/src/session.ts:
-   * `onTurnEnded` resolves the prompt driver, then `void emitUsageUpdate()`
-   * awaits `listModels` + `getContext` and only then notifies, or skips the
-   * push when the catalog has no size for the model). When true, the session
-   * holds the prompt-answer event back until that update lands, bounded by
-   * `usageUpdateTimeoutMs`; on timeout it records the answer as-is.
+   * Hold the `session/prompt` answer back until a trailing `usage_update` lands
+   * (kimi-code f9ca33376 resolves the prompt before `void emitUsageUpdate()`),
+   * bounded by `usageUpdateTimeoutMs`; on timeout record the answer as-is.
    */
   readonly usageUpdateAfterPrompt?: boolean;
   /** Bound for `usageUpdateAfterPrompt`; default 500 ms. */
@@ -212,7 +210,7 @@ async function createOrResume(
       method, method === methods.agent.session.resume ? profile.sessionStartTimeoutMs ?? timeoutMs : timeoutMs,
       (requestOptions) => process.connection.agent.request(method, params, requestOptions),
     ).catch((error: unknown) => {
-      throw acpResumeFailure(error, method, sessionId, (native) => profile.isResumeNotFound?.(native) === true);
+      throw acpResumeFailure(error, method, sessionId, (native) => profile.isResumeNotFound?.(native) === true, profile.openFailure);
     });
     return { response: responseRecord(method, resumed), sessionId, openMethod: method };
   }
@@ -239,7 +237,7 @@ export async function openAcpSession(
   configUpdates?: AcpConfigUpdates,
 ): Promise<OpenedAcpSession> {
   // A refused login or model rejects the open as a RuntimeFailureError (failure.ts).
-  const initialized = await acpOpenStep(initializeAcpConnection(process, profile, options, observe), "open");
+  const initialized = await acpOpenStep(initializeAcpConnection(process, profile, options, observe), "open", profile.openFailure);
   return openInitializedAcpSession(process, profile, options, initialized, observe, undefined, configUpdates);
 }
 
@@ -257,7 +255,7 @@ export async function openInitializedAcpSession(
     throw new Error("ACP configuration confirmation requires a session notification observer");
   }
   const updates = profile.confirmConfigOptionUpdates === true ? configUpdates : undefined;
-  const opened = await acpOpenStep(createOrResume(process, profile, initialized, options, profile.sessionMeta?.(options, initialized)), "open");
+  const opened = await acpOpenStep(createOrResume(process, profile, initialized, options, profile.sessionMeta?.(options, initialized)), "open", profile.openFailure);
   bind(opened.sessionId);
   observe({ method: opened.openMethod, response: opened.response });
   const setModelResponse = options.model === undefined
@@ -266,7 +264,7 @@ export async function openInitializedAcpSession(
       viaConfigOption: profile.modelViaConfigOption === true,
       timeoutMs: profile.requestTimeoutMs ?? 15_000,
       observe, ...(updates === undefined ? {} : { updates }),
-    }), "model");
+    }), "model", profile.openFailure);
   if (options.effort !== undefined) {
     // The effort menu belongs to the model in effect: a model switch whose
     // answer lists the options (`set_config_option`, opencode 1.18.30 where
