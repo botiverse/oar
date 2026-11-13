@@ -95,12 +95,15 @@ export function sharedAcpSession(profile: AcpSessionProfile, shared: AcpSharedOp
     };
     runtime.connection.signal.addEventListener("abort", stop, { once: true });
     if (runtime.connection.signal.aborted) { stop(); }
-    const meta: unknown = JSON.parse(configuration.protocol ?? "null");
+    // The pool key holds both initialize metadata and declared client features.
+    const protocol = asRecord(JSON.parse(configuration.protocol ?? "null"));
+    const meta = asRecord(protocol?.initialize) ?? undefined;
+    const capabilitiesMeta = asRecord(protocol?.clientCapabilities) ?? undefined;
     let initialized: Promise<{ response: JsonRecord; refusal: string | null }> | null = null;
     const initialize = async (): Promise<{ response: JsonRecord; refusal: string | null }> => {
       initialized ??= (async (): Promise<{ response: JsonRecord; refusal: string | null }> => {
         try {
-          const response = await acpOpenStep(initializeAcpConnection(runtime, { ...profile, initializeMeta: () => asRecord(meta) ?? undefined },
+          const response = await acpOpenStep(initializeAcpConnection(runtime, { ...profile, initializeMeta: () => meta, clientCapabilitiesMeta: () => capabilitiesMeta },
             { cwd: configuration.cwd ?? process.cwd() }, () => {}), "open");
           const refusal = shared.initializationRefusal?.(response) ?? null;
           if (refusal !== null) { stop(); await runtime.exited; }
@@ -126,7 +129,9 @@ export function sharedAcpSession(profile: AcpSessionProfile, shared: AcpSharedOp
     const lease = await pool.acquire({
       command: installation.command, args: acpLaunchArgs(profile, options),
       env: Object.fromEntries(Object.entries(environment).filter((entry): entry is [string, string] => entry[1] !== undefined)),
-      cwd: shared.processCwd(options), protocol: JSON.stringify(profile.initializeMeta?.(options) ?? null),
+      cwd: shared.processCwd(options), protocol: JSON.stringify({
+        initialize: profile.initializeMeta?.(options) ?? null, clientCapabilities: profile.clientCapabilitiesMeta?.(options) ?? null,
+      }),
     }, "shared");
     const { runtime, routing, initialize } = lease.process;
     // Ownership conflicts must not become a directory-policy fallback to another controller.

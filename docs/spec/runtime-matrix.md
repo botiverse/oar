@@ -28,7 +28,7 @@ calls, resume semantics, and what each adapter still does not carry.
 | codebuddy (ACP) | `opaque` | standard updates and known vendor notifications are retained; no verified child mapping is inferred ([mapping](../runtimes/codebuddy.md)) |
 | kimi (ACP) | `opaque` | `kimi acp` subscribes to the main agent only; the adapter records what arrives and fabricates nothing |
 | opencode v1 (ACP) | `opaque` | `opencode acp` forwards only its own sessions' parts; a `task` subagent runs in a child session whose frames never reach the transport, so only the parent's tool call shows ([src] opencode 1.18.34 `acp/event.ts`) |
-| opencode v2 (ACP) | `nested` | forwarded child updates carry `_meta["opencode/child-session"]`; OAR uses its `id` and `parentID` for the child session and graph edge, retaining the original envelope in `native` |
+| opencode v2 (ACP) | `nested` | through 2.2.x, forwarded child updates carry `_meta["opencode/child-session"]`; OAR uses its `id` and `parentID` for the child session and graph edge, retaining the original envelope in `native`. From 2.3.0, OAR declares `opencode/child-session-updates` and reads background children from `opencode/session/child_update`; the edge needs the parent's `subagent` output to name the child ([mapping](../runtimes/opencode.md#v2-session-behavior)) |
 
 | runtime | sub-agent exposure | linkage | per-agent tokens | session graph | resume | evidence |
 |---|---|---|---|---|---|---|
@@ -45,7 +45,7 @@ calls, resume semantics, and what each adapter still does not carry.
 | codebuddy (ACP) | child identity mapping unverified | nothing inferred | context reports only; token ledger unknown | no inferred child edges | ACP session ID | [mapping](../runtimes/codebuddy.md) |
 | kimi (ACP) | opaque (#1): default subscribes main agent only | root `Agent` tool card only | no typed child usage exposed | nothing fabricated from display text | ACP `sessionId` | [native/current mapping](../runtimes/kimi.md) |
 | opencode v1 (ACP) | opaque (#1): child sessions not forwarded | root `task` tool card only | no child usage exposed | nothing fabricated | ACP `sessionId` (opencode `ses_` id) | [native/current mapping](../runtimes/opencode.md) |
-| opencode v2 (ACP) | child updates forwarded on the parent envelope | native child `id` / `parentID` metadata | children report context only, so there is no token total and no `withChildren` | native parent/child session edges | native ACP session id | [v2 mapping](../runtimes/opencode.md#opencode-v2) |
+| opencode v2 (ACP) | child updates forwarded on the parent envelope (2.2.x); background children on `opencode/session/child_update` (2.3.0) | native child `id` / `parentID` metadata; on 2.3.0 also the `subagent` call's `rawOutput.metadata.sessionID` | children report context only, so there is no token total and no `withChildren` | native parent/child session edges | native ACP session id | [v2 mapping](../runtimes/opencode.md#opencode-v2) |
 | kimi-cli (native wire) | wrapper records (#2): `SubagentEvent`, one stream | `parent_tool_call_id` + `agent_id` + `subagent_type` | child events self-attribute | `agentPath`, recursive (not in graph) | session / agent_id | [src] |
 | kimi-code (native KAP) | agent graph (#2): key = `(session_id, agent_id)` | `subagentId` + `parentAgentId` + `parentToolCallId` + `runInBackground` | `subagent.completed` carries usage | `agentPath` (not in graph) | session / agent_id | [src] |
 
@@ -123,6 +123,7 @@ dispatch; a steer waiting to send does not hold the original turn open.
 | Qoder | Native task starts, patches, progress and notifications | Native `stop_task`, verified on 1.1.83 foreground/background agents. |
 | Grok | Parent `subagent_spawned` / `subagent_finished` | Absent: child `session/cancel` left its work running on 1.0.77. |
 | Qwen | `system/task_started` / `task_notification` with nested `data`, verified on 0.26.8 | Absent: no verified host single-task control. |
+| OpenCode 2.3.0 | `opencode/session/child_update` status `created`, `running`, `completed`, `failed`, `interrupted` | Absent. |
 | DSH | `subagent/start` / `subagent/end`; durable `job/registered` / `job/settled` for shell and other jobs, including foreground commands ([mapping and completion boundaries](../runtimes/dsh.md#root-completion-and-background-work)) | Absent. |
 | Other runtimes | Existing runtime-specific observations only | Absent. |
 

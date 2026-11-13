@@ -5,9 +5,9 @@ import { newSessionLinks } from "../session-links.js";
 import { acpReportedEffort, acpReportedModel } from "./model.js";
 import { methods, type SessionNotification } from "./process.js";
 import { createAcpProjectionState, projectAcpUpdate, type AcpProjectionState } from "./projection.js";
-import type { UsageUpdateGate } from "./usage-wait.js";
-import type { AcpSessionProfile } from "./profile.js";
+import type { AcpSessionProfile, UsageUpdateGate } from "./profile.js";
 import type { AcpTokenUsage } from "./token-usage.js";
+import { createAcpChildLineage, type AcpDerivedSessionHooks } from "./derived-sessions.js";
 
 /**
  * How ACP wire traffic lands in the record stream. Every frame is recorded
@@ -73,8 +73,15 @@ export function acpLineageOf(params: JsonRecord): { readonly parent: string; rea
   return null;
 }
 
-export function createAcpRecorder(usageGate: UsageUpdateGate, attributeUpdate?: AcpSessionProfile["attributeUpdate"], tokenUsage?: AcpTokenUsage, associations?: (method: string, params: JsonRecord) => readonly { readonly parent: string; readonly child: string }[], projectUpdate?: AcpSessionProfile["projectUpdate"], projectExtension?: AcpSessionProfile["projectExtension"], nativeTurns?: { project: (method: string, params: JsonRecord, rootId: string, afterOpen: boolean) => readonly RuntimeEventBody[] }): AcpRecorder {
+export function createAcpRecorder(usageGate: UsageUpdateGate, attributeUpdate?: AcpSessionProfile["attributeUpdate"], tokenUsage?: AcpTokenUsage, associations?: (method: string, params: JsonRecord) => readonly { readonly parent: string; readonly child: string }[], projectUpdate?: AcpSessionProfile["projectUpdate"], projectExtension?: AcpSessionProfile["projectExtension"], nativeTurns?: { project: (method: string, params: JsonRecord, rootId: string, afterOpen: boolean) => readonly RuntimeEventBody[] }, derived: Pick<AcpDerivedSessionHooks, "childNotification" | "spawnedSessions"> = {}): AcpRecorder {
   const hostRequests = new Map<string, string>();
+  // Children reported on an extension channel: their standard copies stay native-only.
+  const notifiedChildren = new Set<string>();
+  const childLineage = createAcpChildLineage();
+  const spawnedLinks = (kernel: SessionKernel, sessionId: string, update: JsonRecord | null): RuntimeEventBody[] => {
+    const children = update === null ? [] : derived.spawnedSessions?.(update) ?? [];
+    return children.length === 0 ? [] : newSessionLinks(kernel, childLineage.spawned(sessionId, children));
+  };
   const projections = new Map<string, AcpProjectionState>();
   const projectionFor = (sessionId: string): AcpProjectionState => {
     let state = projections.get(sessionId);
@@ -117,12 +124,18 @@ export function createAcpRecorder(usageGate: UsageUpdateGate, attributeUpdate?: 
         }
         const sessionId = source?.sessionId ?? notification.sessionId;
         const foreign = sessionId !== kernel.sessionId;
+        const type = typeof update?.sessionUpdate === "string" ? update.sessionUpdate : methods.client.session.update;
+        if (source !== null && source !== undefined && notifiedChildren.has(sessionId)) {
+          // The extension channel already projects this child; a standard copy must not add events twice.
+          kernel.frame({ type, native: notification, events: [] }, { sessionId, ...(receivedAt === undefined ? {} : { receivedAt }) });
+          return;
+        }
         const events: RuntimeEventBody[] = update === null ? [] : [...projectAcpUpdate(projectionFor(sessionId), update), ...projectUpdate?.(update) ?? []];
         if (ownedLinks !== undefined) { events.push(...newSessionLinks(kernel, ownedLinks.map(({ parent, child }) => ({ parent, child, via: "tool_call" })))); }
         else if (source?.parent !== undefined) {
           events.push(...newSessionLinks(kernel, [{ parent: source.parent, child: sessionId, via: "tool_call" }]));
         }
-        const type = typeof update?.sessionUpdate === "string" ? update.sessionUpdate : methods.client.session.update;
+        events.push(...spawnedLinks(kernel, sessionId, update));
         const record = kernel.frame({ type, native: notification, events }, { ...(foreign ? { sessionId } : {}), ...(receivedAt === undefined ? {} : { receivedAt }) });
         if (!foreign) {
           usageGate.observe(events.some((event) => event.kind === "usage") ? record.seq : undefined);
@@ -131,6 +144,24 @@ export function createAcpRecorder(usageGate: UsageUpdateGate, attributeUpdate?: 
     },
     extension(method, params, afterOpen, receivedAt) {
       write((kernel) => {
+        const notice = derived.childNotification?.(method, params);
+        if (notice !== null && notice !== undefined) {
+          const at = receivedAt === undefined ? {} : { receivedAt };
+          if (associations !== undefined && !associations(method, params).some(link => link.parent === notice.parent && link.child === notice.sessionId)) {
+            // As for standard updates: an unowned claim stays native-only on the carrier.
+            kernel.frame({ type: method, native: params, events: [] }, at);
+            return;
+          }
+          notifiedChildren.add(notice.sessionId);
+          // A child's own update is its frame; a lifecycle report belongs to the parent that started it.
+          const sessionId = notice.update === null ? notice.parent : notice.sessionId;
+          const events: RuntimeEventBody[] = notice.update === null
+            ? [...projectExtension?.(method, params) ?? []]
+            : [...projectAcpUpdate(projectionFor(notice.sessionId), notice.update), ...projectUpdate?.(notice.update) ?? []];
+          events.push(...newSessionLinks(kernel, childLineage.claim(notice.sessionId, notice.parent)), ...spawnedLinks(kernel, notice.sessionId, notice.update));
+          kernel.frame({ type: method, native: params, events }, { ...(sessionId === kernel.sessionId ? {} : { sessionId }), ...at });
+          return;
+        }
         // The envelope says whose frame this is: a child session pushes its
         // own `response_completed` / `turn_completed` on grok's vendor method
         // with ITS id in `sessionId` (live-grok-c/subagent.voyage.jsonl seqs
