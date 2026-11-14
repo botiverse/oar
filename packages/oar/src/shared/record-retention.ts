@@ -1,4 +1,4 @@
-// BYOK change: Modified from OAR 95c6547 so the retention limit bounds the native payload of requests and replies too (Apache-2.0).
+// BYOK change: Modified from OAR 95c6547 so the retention limit bounds the native payload of requests and replies too, and a second limit bounds text and reasoning (Apache-2.0).
 import type { Frame, RawEvent, RuntimeEventBody } from "../contracts/records.js";
 import { UnsupportedOptionError } from "../contracts/errors.js";
 
@@ -50,38 +50,82 @@ export function checkRetainedBytes(retainedBytes: number | undefined): void {
   }
 }
 
+// BYOK change: text and reasoning have their own limit, so a task with much
+// text never elides earlier the native frames a failure scan reads (the Grok
+// retry_state of the current turn).
+/** Text and reasoning bytes a retaining session keeps besides its native and tool payloads. */
+export const RETAINED_TEXT_BYTES = 16 * 1024 * 1024;
+
+function withoutText(event: RuntimeEventBody): RuntimeEventBody {
+  if (event.kind === "text_delta") { return event.text === "" ? event : { ...event, text: "" }; }
+  return event.kind === "reasoning" && event.content.kind === "text" && event.content.text !== ""
+    ? { ...event, content: { kind: "text", text: "" } }
+    : event;
+}
+
+/** UTF-8 bytes of the frame's text_delta and readable reasoning text. */
+function textBytes(record: RawEvent): number {
+  if (record.kind !== "frame") { return 0; }
+  let bytes = 0;
+  for (const event of record.body.events) {
+    if (event.kind === "text_delta") { bytes += encoder.encode(event.text).length; }
+    if (event.kind === "reasoning" && event.content.kind === "text") { bytes += encoder.encode(event.content.text).length; }
+  }
+  return bytes;
+}
+
+function textElided(record: RawEvent): RawEvent {
+  return record.kind === "frame" ? { ...record, body: { ...record.body, events: record.body.events.map((event) => withoutText(event)), elided: true } } : record;
+}
+
+/** Records measured against one limit and not yet elided, by log index; a Map keeps insertion (index) order. */
+interface Ledger {
+  readonly limit: number;
+  readonly sizes: Map<number, number>;
+  held: number;
+}
+
+function hold(ledger: Ledger, index: number, size: number): void {
+  if (size === 0) { return; }
+  ledger.sizes.set(index, size);
+  ledger.held += size;
+}
+
+// BYOK change: every measured record is a candidate, oldest first, except the
+// newest frame itself, so requests and replies after it, or in a log with no
+// frame, are elided too.
+function trim(log: RawEvent[], ledger: Ledger, newestFrame: number, elide: (record: RawEvent) => RawEvent): void {
+  for (const [index, size] of ledger.sizes) {
+    if (ledger.held <= ledger.limit) { break; }
+    const record = log[index];
+    if (index === newestFrame || record === undefined) { continue; }
+    log[index] = elide(record);
+    ledger.held -= size;
+    ledger.sizes.delete(index);
+  }
+}
+
 /**
  * SessionOptions.retainedBytes: keeps the payloads of the newest frames within
- * the limit and elides older ones in place. It runs only after observers have
- * the records, so live delivery stays complete, and it keeps every record, so
- * `seq` stays dense and folds over kinds, usage and text are unchanged.
+ * the limit and elides older ones in place; text and reasoning are kept within
+ * `textLimit` the same way, as a separate budget. It runs only after observers
+ * have the records, so live delivery stays complete, and it keeps every record,
+ * so `seq` stays dense and folds over kinds and usage are unchanged.
  */
-export function recordRetention(limit: number): (log: RawEvent[], appended: number) => void {
-  // Measured records not yet elided, by log index; a Map keeps insertion (index) order.
-  const sizes = new Map<number, number>();
-  let held = 0;
+export function recordRetention(limit: number, textLimit: number = RETAINED_TEXT_BYTES): (log: RawEvent[], appended: number) => void {
+  const payload: Ledger = { limit, sizes: new Map(), held: 0 };
+  const text: Ledger = { limit: textLimit, sizes: new Map(), held: 0 };
   let measured = 0;
   let newestFrame = -1;
   return (log, appended) => {
     for (; measured < appended; measured += 1) {
       const record = log[measured];
-      if (record?.kind === "frame") { newestFrame = measured; }
-      if (record !== undefined && (record.kind === "frame" || nativeOf(record))) {
-        const size = nativeBytes(record);
-        sizes.set(measured, size);
-        held += size;
-      }
+      if (record === undefined) { continue; }
+      if (record.kind === "frame") { newestFrame = measured; }
+      if (record.kind === "frame" || nativeOf(record)) { hold(payload, measured, nativeBytes(record)); }
+      hold(text, measured, textBytes(record));
     }
-    // BYOK change: every measured record is a candidate, oldest first, except the
-    // newest frame itself, so requests and replies after it, or in a log with no
-    // frame, are elided too.
-    for (const [index, size] of sizes) {
-      if (held <= limit) { break; }
-      const record = log[index];
-      if (index === newestFrame || record === undefined) { continue; }
-      log[index] = elidedRecord(record);
-      held -= size;
-      sizes.delete(index);
-    }
+    trim(log, payload, newestFrame, elidedRecord);
+    trim(log, text, newestFrame, textElided);
   };
 }

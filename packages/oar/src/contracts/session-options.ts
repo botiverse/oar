@@ -1,3 +1,4 @@
+// BYOK change: Modified from OAR 95c6547 so retainedBytes says text and reasoning have their own limit (Apache-2.0).
 /*
  * How a session opens: the options every runtime's `session()` takes, and
  * the MCP servers one can attach. What a runtime cannot honor is refused
@@ -33,9 +34,11 @@ export interface SessionOptions {
   /**
    * Bound what this process retains for records(), the query folds and cursor
    * replay. Past this many bytes, the oldest frames lose `native` and tool
-   * input and output, and are marked `elided`. Records, `seq`, event kinds,
-   * usage and text remain. Live observers still receive every record complete,
-   * so a host wanting the full history persists it. Omitted: retain everything.
+   * input and output, and are marked `elided`. BYOK change: text and reasoning
+   * text have their own 16 MiB limit, past which the oldest frames lose them the
+   * same way; the newest frame is always whole. Records, `seq`, event kinds and
+   * usage remain. Live observers still receive every record complete, so a host
+   * wanting the full history persists it. Omitted: retain everything.
    */
   readonly retainedBytes?: number;
   /**

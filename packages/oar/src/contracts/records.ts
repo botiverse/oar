@@ -1,4 +1,4 @@
-// BYOK change: Modified from OAR 95c6547 so a request or reply whose native payload retention removed says so (Apache-2.0).
+// BYOK change: Modified from OAR 95c6547 so a request or reply whose native payload retention removed says so, and a frame elided says it may lack text (Apache-2.0).
 import type { GoalSetOptions, GoalSnapshot } from "./goal.js";
 import type { InputImage, InputOrigin, InputReference, UserMessage } from "./input.js";
 import type { PlacementRequest, SessionCleanup, SessionPlacement, SessionRelease } from "./placement.js";
@@ -86,7 +86,7 @@ export interface FrameBody {
   readonly native: unknown;
   /** What oar read out of the frame, in frame order; empty when oar read nothing. Only runtime-said kinds appear here. */
   readonly events: readonly RuntimeEventBody[];
-  readonly elided?: true; // `retainedBytes` removed `native` (now null) and tool input and output from this retained frame. Live observers received it complete.
+  readonly elided?: true; // BYOK change: retention trimmed this retained frame: `retainedBytes` removed `native` (now null) and tool input and output, or the text limit emptied its text and reasoning text, or both. Live observers received it complete.
 }
 export type ReasoningContent =
   | { readonly kind: "text"; readonly text: string }
@@ -231,7 +231,7 @@ export type EventBody = RuntimeEventBody | ControlEventBody;
  * `spanId` and `receivedAt` without the consumer touching the record. Lossy
  * by design (no `native`, no `type`), and always re-derivable from RawEvent via `eventsOf`.
  */
-export type Event = EventBody & RecordEnvelope & { readonly elided?: true }; // `elided`: its frame was trimmed, so tool input and output may be missing.
+export type Event = EventBody & RecordEnvelope & { readonly elided?: true }; // `elided`: its frame was trimmed, so tool input and output, text and reasoning text may be missing.
 export type RequestBody =
   | { readonly kind: "open"; readonly placement: PlacementRequest }
   | { readonly kind: "goal_set"; readonly options: GoalSetOptions }
