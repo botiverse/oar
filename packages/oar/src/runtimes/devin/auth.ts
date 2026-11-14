@@ -10,8 +10,35 @@ const FAILED_TO_LOAD = /^Failed to load credentials:/mu;
 const LOGGED_IN = /^Logged in(?:\s+\(via ([^)\r\n]+)\))?\./mu;
 const SERVER_AUTH_REJECTED = /^\s*Failed to fetch from server:\s*.*(?:authentication required|invalid api key)/imu;
 const SERVER_UNVERIFIED = /^\s*(?:Failed to fetch from server|Unavailable):/mu;
+const EMAIL_FIELD = /^\s+Email:\s*(.+)$/u;
+const PLAN_FIELD = /^\s+Plan:\s*(.+)$/u;
 
-/** Parse `devin auth status` stdout without retaining credential paths or tokens. */
+function devinCredential(method: string | undefined): LoginAccount["credential"] {
+  if (method === "Devin") {
+    return "account";
+  }
+  if (method === "API key") {
+    return "api_key";
+  }
+  return undefined;
+}
+
+function readDevinSectionField(stdout: string, sectionHeader: string, fieldPattern: RegExp): string | undefined {
+  let inSection = false;
+  for (const line of stdout.split(/\r?\n/u)) {
+    if (!line.startsWith(" ")) {
+      inSection = line.trimEnd() === sectionHeader;
+    } else if (inSection) {
+      const value = fieldPattern.exec(line)?.[1]?.trim();
+      if (value !== undefined && value.length > 0) {
+        return value;
+      }
+    }
+  }
+  return undefined;
+}
+
+/** Parse `devin auth status` stdout without retaining paths, IDs, URLs, or tokens. */
 export function parseDevinAuthStatus(stdout: string): AuthStatus {
   if (LOGGED_OUT.test(stdout)) {
     return {
@@ -46,10 +73,14 @@ export function parseDevinAuthStatus(stdout: string): AuthStatus {
     }
     const rawMethod = loggedIn[1]?.trim();
     const method = rawMethod !== undefined && rawMethod.length > 0 ? rawMethod : undefined;
-    const credential = method === "API key" ? "api_key" : undefined;
+    const credential = devinCredential(method);
+    const email = readDevinSectionField(stdout, "User:", EMAIL_FIELD);
+    const plan = readDevinSectionField(stdout, "Account:", PLAN_FIELD);
     const account: LoginAccount = {
       ...(method === undefined ? {} : { method }),
       ...(credential === undefined ? {} : { credential }),
+      ...(email === undefined ? {} : { email }),
+      ...(plan === undefined ? {} : { plan }),
     };
     return Object.keys(account).length > 0
       ? { kind: "logged_in", account, source: SOURCE }
