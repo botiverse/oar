@@ -2,12 +2,15 @@
 
 OAR uses the standalone **agy CLI's native ACP entry point**, available from
 1.5.0. It no longer launches the separate `agy_acp_server` archive or its
-companion harness. The latest Linux check is CLI **1.5.8**, 2026-11-13:
+companion harness. The latest Linux check is CLI **1.5.9**, 2026-11-14:
 17 behavior cases and all fourteen vendor cases pass with an isolated HOME
-and a local scripted Gemini provider ([daily report](../../experiments/runtime-version-checks/2026-11-13.md#antigravity-158)).
+and a local scripted Gemini provider ([daily report](../../experiments/runtime-version-checks/2026-11-14.md#antigravity-159)).
 See the [1.5.0 migration report](../../experiments/antigravity-cli-acp-2026-11-05.md)
 for native controls, retained limitations and the host migration checklist.
-The new-version runs do not establish account-specific or macOS/Windows behavior.
+The Linux runs do not establish account-specific or macOS/Windows behavior.
+A separate [macOS ARM64 1.5.9 control](../../experiments/runtime-version-checks/2026-11-14.md#one-macos-159-control)
+passed the same-name MCP case once; it does not establish a fix for the
+intermittent first-prompt catalog failure.
 
 Independent inventories are not implemented. Account usage is agy's own
 `/usage` answer ([account usage](../spec/account-usage.md)). Login, status
@@ -53,7 +56,7 @@ Control calls have request/response records.
 | Queue | OAR's volatile FIFO, not a durable native queue; withdrawal before dispatch is supported. |
 | Cancel and dispose | `session/cancel`; native close when available during disposal, then owned process-tree cleanup. |
 | Model and effort | Native config responses and updates; selectors `model` and `thought_level`. |
-| Context usage | Native `usage_update.used` and `.size` feed `usage.context` through the shared ACP projection. The 1.5.8 local-provider trace reports 0 of 1,048,576 tokens; nonzero accounting and every native update trigger were not verified. This is separate from account quota. |
+| Context usage | Native `usage_update.used` and `.size` feed `usage.context` through the shared ACP projection. The 1.5.9 local-provider trace reports 0 of 1,048,576 tokens; nonzero accounting and every native update trigger were not verified. This is separate from account quota. |
 | Child attribution | `opaque`. No verified CLI child identity mapping; OAR does not invent child sessions or turn ids. |
 | Compaction | The CLI advertises `/compact`, but no structured completion/attribution contract has been verified. `manualCompaction` is declared `unsupported`; no `Session.compact` member. |
 
@@ -193,8 +196,9 @@ the observed tool/text events under the parent's session id; no native child
 identity link was established. Attribution remains `opaque`, and no
 real-account child run was performed.
 
-No `usage_update` or prompt usage was observed in the local CLI controls.
-OAR does not fabricate token or context totals. A native `/compact`
+The earlier 1.5.0 local CLI controls did not observe `usage_update` or prompt
+usage. Later 1.5.8 and 1.5.9 controls do observe the context updates described
+above; OAR does not fabricate missing totals. A native `/compact`
 available-command entry alone does not prove compaction completion.
 The native failure regression still records the observed completed-looking
 turn after a rejected provider key, rather than reclassifying agent text as
