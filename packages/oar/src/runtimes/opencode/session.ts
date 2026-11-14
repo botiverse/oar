@@ -11,6 +11,7 @@ import { acpSession, type AcpSessionProfile } from "../../shared/acp/session.js"
 import { checkMcpServerNames } from "../../shared/mcp-servers.js";
 import { opencodeFailureOutcome } from "./failure.js";
 import { prepareOpenCodePrompts, validateOpenCodePrompts, verifyOpenCodeAgent } from "./prompt-config.js";
+import { opencodeSteering } from "./steering.js";
 
 export const opencodeAcpProfile: AcpSessionProfile = {
   args: ["acp"],
@@ -54,6 +55,8 @@ export const opencodeV2AcpProfile: AcpSessionProfile = {
   capabilities: { queue: { durable: false }, attribution: "nested" },
   attributeUpdate: opencodeChildAttribution,
   validateOptions: (options) => { refuseSessionOptions(opencodeV2RefusedSessionOptions, options); },
+  // A concurrent `session/prompt` is refused; `steer` exists only where `initialize` advertises `_session/steering`.
+  ...opencodeSteering,
 };
 /**
  * 2.3.0 runs subagents in the background and stops projecting a child on the

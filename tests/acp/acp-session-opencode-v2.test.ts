@@ -5,7 +5,7 @@ import { acpSession } from "../../packages/oar/src/shared/acp/session.js";
 import { fixture } from "../fixtures/acp-session-support.js";
 
 // oxlint-disable-next-line eslint/max-lines-per-function -- Keep the two delivery controls and their native results together.
-test("v2 omits steer; steerOrQueue and deliver both hold input for subsequent turns", async () => {
+test("v2 without an advertised steering extension omits steer; steerOrQueue and deliver both hold input for subsequent turns", async () => {
   const session = await acpSession({ ...opencodeV2AcpProfile, args: [fixture, "opencode"] })(
     { kind: "available", via: "executable", command: process.execPath }, { cwd: process.cwd() },
   );

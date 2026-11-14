@@ -101,13 +101,20 @@ test("2.3.0 replay: the parent's own reply has no native start or end, so status
   }
 });
 
-test("2.3.0 replay: deliver during the parent's own reply queues, and the adapter queue sends it at once because no OAR turn is open", async () => {
+test("2.3.0 replay: deliver during the parent's own reply sends no steer and queues, and the adapter queue sends it at once because no OAR turn is open", async () => {
   const { session, cleanup } = await replay(opencodeBackgroundChildProfile, "enabled-followup.json", withFollowUp());
   try {
     await ownReply(session);
     expect(session.status().value.kind).toBe("running");
+    // The recorded initialize advertises `_session/steering`, so the session has `steer`. With no
+    // OAR turn open, deliver's steer is refused `no_active_turn` before any native request.
+    expect(typeof session.steer).toBe("function");
     const delivered = await session.deliver("ACP_SHARE_A_followup");
     expect(delivered.landed).toBe("queued");
+    const steer = session.records().find((record) => record.kind === "request" && record.body.kind === "steer");
+    assert.ok(steer?.kind === "request");
+    expect(session.records().find((record) => record.kind === "response" && record.requestId === steer.id)?.body).toMatchObject({ kind: "rejected", code: "no_active_turn" });
+    expect(session.records().some((record) => record.kind === "frame" && record.body.type.startsWith("_session/steering"))).toBe(false);
     expect(await awaitIdle(session)).toEqual({ kind: "completed" });
     const prompts = session.records().flatMap((record) => record.kind === "request" && record.body.kind === "prompt" ? [record.body.carries] : []);
     expect(prompts).toEqual([undefined, [delivered.inputId]]);

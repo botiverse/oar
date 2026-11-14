@@ -6,6 +6,7 @@ import { createInterface } from "node:readline";
 import { grokMcpCredentials, grokNative, grokSteerAnswers, grokUsageAnswer, spawnChildGrok } from "./fake-acp-grok.mjs";
 import { answerConfigRequest, modelReport, setModelResponse } from "./fake-acp-model.mjs";
 import { answeredMcpOpen, mcpCapabilities } from "./fake-acp-mcp.mjs";
+import { mergedOpencodePrompt, opencodeSteering, opencodeSteeringMeta } from "./fake-acp-opencode.mjs";
 import refusePrompt from "./fake-acp-refusal.mjs";
 import grokBackgroundUsage, { grokUsageHistory } from "./fake-acp-grok-usage.mjs";
 
@@ -14,8 +15,6 @@ const pendingPrompts = new Map();
 const reverseRequests = new Map();
 let reverseId = 0;
 const antigravity = mode === "antigravity";
-// OpenCode v1: mid-turn prompts join its loop; all answers arrive at idle.
-const opencode = mode === "opencode";
 const sessionCapabilities = { "grok-usage-load": {}, opencode: { close: {}, fork: {}, list: {}, resume: {} }, antigravity: { list: {}, resume: {}, close: {}, additionalDirectories: {} }, listed: { list: {}, resume: {} } };
 let currentMode = "default";
 function send(message) { process.stdout.write(`${JSON.stringify(message)}\n`); }
@@ -98,16 +97,8 @@ function handleSessionPrompt(message) {
     return;
   }
   if (antigravity && replacingPrompt(text, message, { pendingPrompts, result, error })) { return; }
-  if (opencode && pendingPrompts.size > 0) {
-    update({ sessionUpdate: "agent_message_chunk", content: { type: "text", text: `merged:${[...pendingPrompts.values(), text].join("+")}` } });
-    for (const id of [...pendingPrompts.keys(), message.id]) {
-      update({ sessionUpdate: "usage_update", used: 300, size: 1000 });
-      result(id, { stopReason: "end_turn" });
-    }
-    pendingPrompts.clear();
-    return;
-  }
-  if (text === "hold" || text === "steer-base" || text === "grok-steer-base") {
+  if (mergedOpencodePrompt(mode, { text, message, pendingPrompts, update, result })) { return; }
+  if (text === "hold" || text === "hold-idle" || text === "steer-base" || text === "grok-steer-base") {
     pendingPrompts.set(message.id, text);
     return;
   }
@@ -202,7 +193,7 @@ function handleSessionRequest(message) {
           sessionCapabilities: { ...(sessionCapabilities[mode] ?? { resume: {}, close: {} }), ...(process.env.FAKE_ACP_DIRECTORIES === "1" ? { additionalDirectories: {} } : {}) },
           promptCapabilities: { image: mode !== "no-images" },
         },
-        authMethods: [{ id: "cached", name: "Cached login" }],
+        authMethods: [{ id: "cached", name: "Cached login" }], ...opencodeSteeringMeta(mode),
       });
       break;
     case "authenticate":
@@ -294,7 +285,7 @@ createInterface({ input: process.stdin }).on("line", (line) => {
   }
   if (mode === "rpc") {
     handleRpcRequest(message);
-  } else if (!(mode === "grok-native" && grokNative(message, { send, result })) && !answeredMcpOpen(message, error)) {
+  } else if (!(mode === "grok-native" && grokNative(message, { send, result })) && !answeredMcpOpen(message, error) && !opencodeSteering(mode, message, { pendingPrompts, send, result, error })) {
     handleSessionRequest(message);
   }
 });

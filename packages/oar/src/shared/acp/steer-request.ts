@@ -2,22 +2,38 @@ import { RequestError } from "@agentclientprotocol/sdk";
 import type { InputOptions, RequestRecord, ResponseBody, SessionCapabilities } from "../../contracts/session.js";
 import { withInputImages } from "../input-images.js";
 import type { SessionKernel } from "../session-kernel.js";
-import type { AcpSessionProfile } from "./profile.js";
+import type { JsonRecord } from "../json.js";
 import { acpProcessExitedError } from "./errors.js";
 import { acpPrompt } from "./prompt.js";
 import { withAcpDeadline, type AcpProcess } from "./process.js";
 import { acpErrorNative } from "./projection.js";
 
+/** Profile hooks for a native steer that is its own RPC, not another prompt (grok `_x.ai/interject`). Exclusive with `steerParams`. */
+export interface AcpSteerRequestHooks {
+  /** The request; an admitted input joins the running turn, which still ends with the original prompt's answer. */
+  readonly steerRequest?: (context: { readonly sessionId: string; readonly input: string; readonly prompt: readonly JsonRecord[]; readonly inputId: string }) => { readonly method: string; readonly params: JsonRecord };
+  /** Whether this connection's `initialize` answer advertises `steerRequest`; false leaves the session without `steer`. Absent: it always exists. */
+  readonly steerRequestAdvertised?: (initialized: JsonRecord) => boolean;
+  /**
+   * Reads the answer to `steerRequest`: `accepted` admits the input into the
+   * running turn; `no_active_turn` is the runtime's report that nothing was
+   * running to take it and that it started no turn; null is an answer OAR
+   * does not recognize. Absent: every answer admits (grok).
+   */
+  readonly steerRequestAnswer?: (answer: unknown) => "accepted" | "no_active_turn" | null;
+}
+
 /**
- * A profile's own steer RPC (grok `_x.ai/interject`): its answer admits the
- * input, recorded as a frame answering the steer request. An RPC error is the
- * runtime's refusal; anything else is a delivery failure.
+ * A profile's own steer RPC (grok `_x.ai/interject`): its answer, recorded as
+ * a frame answering the steer request, admits the input unless the profile
+ * reads it as the runtime's report of no running turn (`steerRequestAnswer`).
+ * An RPC error is the runtime's refusal; anything else is a delivery failure.
  */
 const noActiveTurn: ResponseBody = { kind: "rejected", code: "no_active_turn", reason: "not_steerable: no active turn" };
 const stale = new Error("not_steerable: no active turn");
 
 export async function sendAcpSteerRequest(
-  deps: { readonly kernel: SessionKernel; readonly runtime: AcpProcess; readonly profile: AcpSessionProfile; readonly capabilities: Pick<SessionCapabilities, "images">; readonly running: () => boolean },
+  deps: { readonly kernel: SessionKernel; readonly runtime: AcpProcess; readonly profile: AcpSteerRequestHooks & { readonly requestTimeoutMs?: number | undefined }; readonly capabilities: Pick<SessionCapabilities, "images">; readonly running: () => boolean },
   request: RequestRecord,
   input: string,
   options: InputOptions | undefined,
@@ -41,7 +57,11 @@ export async function sendAcpSteerRequest(
           return runtime.connection.agent.request(method, params, requestOptions);
         });
       kernel.frame({ type: method, native: native ?? null, responseTo: request.id, events: [] });
-      return { kind: "accepted" };
+      const read = profile.steerRequestAnswer;
+      const answer = read === undefined ? "accepted" : read(native);
+      if (answer === "accepted") { return { kind: "accepted" }; }
+      if (answer === "no_active_turn") { return { kind: "rejected", code: "no_active_turn", reason: "not_steerable: the runtime reports no running turn" }; }
+      return { kind: "rejected", code: "error", reason: `unrecognized ${method} answer; whether the runtime took the input is unknown` };
     } catch (error) {
       if (error === stale) { return noActiveTurn; }
       if (runtime.closed) { return gone; }

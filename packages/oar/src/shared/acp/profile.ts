@@ -7,6 +7,7 @@ import type { ContextUsage, RuntimeEventBody, SessionCapabilities, SessionOption
 import { asRecord, type JsonRecord } from "../json.js";
 import { initializeAcpConnection } from "./initialize.js";
 import type { AcpDerivedSessionHooks } from "./derived-sessions.js";
+import type { AcpSteerRequestHooks } from "./steer-request.js";
 import { acpAdditionalDirectories } from "./additional-directories.js";
 import { applyAcpEffort, applyAcpModel } from "./effort.js";
 import type { AcpConfigUpdates } from "./config-updates.js";
@@ -18,7 +19,7 @@ import { refuseResumeElsewhere, unknownResumeCwd } from "./resume-cwd.js";
 export { promptAcp } from "./prompt.js";
 export { createUsageUpdateGate, type UsageUpdateGate } from "./usage-wait.js";
 export { acpMcpOpenGuard } from "./mcp-servers.js";
-export interface AcpSessionProfile extends AcpDerivedSessionHooks {
+export interface AcpSessionProfile extends AcpDerivedSessionHooks, AcpSteerRequestHooks {
   /** Native compaction control, absent when the installed protocol cannot prove completion. */
   readonly compaction?: (kernel: SessionKernel, runtime: AcpProcess, promptUsage: (response: JsonRecord) => RuntimeEventBody | null) => CompactionOperation;
   /** Vendor facts on an extension notification; its envelope retains native attribution. */
@@ -76,15 +77,8 @@ export interface AcpSessionProfile extends AcpDerivedSessionHooks {
     readonly response: JsonRecord;
     readonly options: SessionOptions;
   }) => Promise<void>;
-  /** Return prompt-level extension fields for the runtime's native steer; absent when the runtime cannot steer, and then the session has no `steer`. */
+  /** Return prompt-level extension fields for the runtime's native steer; absent when the runtime cannot steer, and then the session has no `steer`. Exclusive with `steerRequest` (steer-request.ts). */
   readonly steerParams?: (input: string) => JsonRecord;
-  /**
-   * A native steer that is its own RPC, not another prompt (grok
-   * `_x.ai/interject`): the answer admits the input into the running turn,
-   * which still ends with the original prompt's answer. Exclusive with
-   * `steerParams`.
-   */
-  readonly steerRequest?: (context: { readonly sessionId: string; readonly input: string; readonly prompt: readonly JsonRecord[]; readonly inputId: string }) => { readonly method: string; readonly params: JsonRecord };
   /**
    * Turns the runtime runs without a prompt from OAR (grok: a sub-agent's
    * completion wake, a late interjection). OAR names each prompt it sends;
