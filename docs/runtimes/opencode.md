@@ -334,10 +334,63 @@ which separates observations from source findings.
 [October 12 evidence](../../experiments/runtime-version-checks/2026-10-12.md)
 covers 2.0.27.
 
-- **Control:** v2 refuses a concurrent `session/prompt`. The session has no
-  `steer` member; `steerOrQueue` and `deliver` queue the input for another
-  turn. Queueing remains an OAR memory FIFO, not durable native storage.
-  Native abort and disposal during a shell call both ended as `aborted`.
+- **Control:** v2 refuses a concurrent `session/prompt`. Mid-turn input
+  uses the steering extension below where `initialize` advertises it;
+  otherwise the session has no `steer` member and `steerOrQueue` and
+  `deliver` queue the input for another turn. Queueing remains an OAR memory
+  FIFO, not durable native storage. Native abort and disposal during a
+  shell call both ended as `aborted`.
+- **Steering (2.2.7 and later), native interface:** `_session/steering`
+  with `{ sessionId, prompt }` (ACP prompt blocks), which the source calls
+  an interim extension until ACP has native mid-turn steering. It is absent
+  from `packages/cli/src/acp/agent.ts` at tags v2.0.0, v2.0.16, v2.0.32,
+  v2.1.0, v2.1.4, v2.2.0, v2.2.4, v2.2.5 and v2.2.6, and present at v2.2.7
+  and v2.3.0. From v2.2.7, `initialize` advertises it in its top-level
+  `_meta: { steering: { supported: true } }` (`service.ts`); the recorded
+  native 2.3.0 answer in
+  [`enabled.json`](../../experiments/opencode-child-background/enabled.json)
+  carries it. Per `turn.ts` `steer` at `a6b15d33` [src]: when the server
+  lists no running turn for the session, the agent answers
+  `{ outcome: "promptRequired", reason: "noRunningTurn" }` and starts
+  nothing; otherwise it submits the input with `delivery: "steer"` and
+  `resume: false` and answers `{ outcome: "injected" }`. The request has no
+  input identity field, and `translate.ts` emits no echo of the steered
+  message.
+- **Steering, OAR mapping:** the gate is the advertised capability, not the
+  version: a v2 session has `steer` only when its `initialize` answer
+  carries `_meta.steering.supported: true`, so 2.2.6 and earlier, and the
+  shared 2.2.3/2.2.5 candidate, keep the host queue. `steer` sends the
+  request only while OAR's own turn runs without a pending abort, rechecked
+  at dispatch; otherwise it is `rejected` / `no_active_turn` with no native
+  request. The answer is one frame (`type: "_session/steering"`, `native`
+  verbatim, `responseTo` the steer request). `injected` is `accepted`: the
+  input joins the running turn, which still ends with the original prompt's
+  answer, and its `inputId` stays on OAR's steer request (no native
+  correlation). `promptRequired` is `rejected` / `no_active_turn`, so
+  `steerOrQueue` queues and `deliver` retries. A JSON-RPC error is
+  `runtime_refused` with a `_session/steering/error` frame; any other
+  outcome is `rejected` / `error`, since OAR cannot tell whether the input
+  was taken. With `steer` present, `deliver({ when: "now" })` and
+  `steerOrQueue` steer into a running OAR turn, and `when: "interrupt"`
+  steers instead of withdrawing, aborting and merging.
+- **Steering, races and limits:** a turn that ended before dispatch gets no
+  request. A native turn that ended while OAR's prompt is still unanswered
+  gives `promptRequired`; `deliver` then prompts once the status is idle, or
+  queues while the status still shows that turn. Per the source comment, a
+  session that goes idle between the agent's check and its submission keeps
+  the steer queued natively and still answers `injected`: OAR reports
+  `accepted`, but that input would wait for the next native turn (not
+  exercised). During the parent's own reply (below) OAR has no turn, so no
+  steering request is sent although the status says `running`; `deliver`
+  queues and the adapter queue sends the input at once, as before. The
+  [replay](../../tests/opencode/background-own-reply.test.ts) pins that
+  case from the recorded 2.3.0 wire, and
+  [`acp-session-opencode-v2-steer.test.ts`](../../tests/acp/acp-session-opencode-v2-steer.test.ts)
+  covers each answer against a scripted agent. Not yet verified against a
+  native 2.2.7 or 2.3.0 process: that an injected steer reaches the running
+  turn's next provider request, its timing against a long tool call,
+  whether it survives `session/cancel`, image blocks, and a slash command
+  sent as a steer.
 - **Children (verified through 2.2.7; 2.3.0 uses the background mapping below):**
   standard updates arrive on the parent's envelope with
   `update._meta["opencode/child-session"]` (`id`, `parentID`, `depth`,

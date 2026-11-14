@@ -39,11 +39,15 @@ async function intoRunning(session: Session, input: string, options: InputOption
     // The turn ended while the steer was in flight. The adapter's gate says
     // `no_active_turn`; past the gate the runtime refuses in its own words
     // (codex 0.158.0: "no active turn to steer"), so read the status too.
-    if (steered.code === "no_active_turn" || runningSince(session) !== target) {
+    const running = runningSince(session);
+    if (running === null || running !== target) {
       return null;
     }
-    // A steer that cannot take these inputs (images on a cursor steer) still queues.
-    if (steered.code !== "unsupported") {
+    // A steer that cannot take these inputs (images on a cursor steer) still
+    // queues, as does one with no turn to join while the status still shows
+    // the same turn running: a reply the runtime started on its own that the
+    // adapter cannot steer, or a turn whose abort is pending.
+    if (steered.code !== "unsupported" && steered.code !== "no_active_turn") {
       return refused(options.inputId, steered);
     }
   }

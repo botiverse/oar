@@ -5,7 +5,7 @@ configuration, so its code cannot know which runtime it holds. Runtimes
 differ: cursor takes no environment for its tools, kimi and opencode resume
 a session only in the directory it was created in, cursor, kimi,
 antigravity, dsh, opencode v2 and Pi Durable take no system prompt, and kimi,
-qwen, codebuddy and opencode v2 cannot steer. The design question is how a host
+qwen, codebuddy and opencode v2 before 2.2.7 cannot steer. The design question is how a host
 learns what it may ask for, and what happens when it asks for more.
 
 **The position: a host never gets something other than it asked for, never

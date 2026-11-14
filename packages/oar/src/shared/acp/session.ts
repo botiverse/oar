@@ -190,8 +190,10 @@ export function finishAcpSession(
     return kernel.control(body, decide);
   });
 
-  // A profile without a native steer cannot inject, so the session has no `steer`.
-  const { steerParams, steerRequest } = profile;
+  // A profile without a native steer cannot inject, so the session has no `steer`;
+  // neither does one whose connection did not advertise its steer request.
+  const { steerParams } = profile;
+  const steerRequest = profile.steerRequestAdvertised?.(opened.initialized) === false ? undefined : profile.steerRequest;
   const steer = steerParams === undefined && steerRequest === undefined
     ? {}
     : {

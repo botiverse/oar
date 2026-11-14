@@ -21,8 +21,11 @@ the echo correlates with the input. The implemented API (`inputId`,
 | Kimi Code 0.42.0 | From source: no ACP steer method, so the session has no `steer`; `steerOrQueue` and `deliver` queue in the adapter-held queue | No native steer mapping on the selected ACP transport | Do not show queued input as successfully steered |
 | Cursor `@cursor/sdk` 1.0.35 | `run.steer(text)`; `accepted` once the SDK answers `complete_delivered` (`native: {ack}`); `revert_to_followup` is rejected `runtime_refused` | A `user-message-appended` update with the text (live, real account, 2026-10-03); the steered text shaped the same turn's reply | Text only, no id. The acknowledgement itself waits for delivery, so the steer's `accepted` response is the correlation ([cursor](cursor.md#prompt-steering-queueing-and-abort)) |
 
-Qwen, CodeBuddy and OpenCode v2 sessions have no `steer`
+Qwen and CodeBuddy sessions, and OpenCode v2 sessions whose `initialize`
+does not advertise `_session/steering` (before 2.2.7), have no `steer`
 either ([session controls](../spec/runtime-matrix.md#session-controls)).
+The advertised OpenCode v2 steer is mapped from source and scripted tests
+only ([OpenCode](opencode.md#v2-session-behavior)).
 DSH's `steer` (present only when its native method inventory advertises it)
 was not probed here; see [DSH](dsh.md#oar-mapping).
 

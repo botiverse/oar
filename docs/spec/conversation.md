@@ -23,11 +23,13 @@ one `inputId` across attempts:
 | `interrupt` | `prompt` | `steer` when available; otherwise bounded tool wait, withdraw, abort, merge and `prompt` |
 
 A `prompt` refused `busy` (a turn opened between the status read and the
-prompt) and a `steer` refused because the turn just ended (`no_active_turn`,
-or the runtime's own refusal once the status shows that turn is over, as
+prompt) and a `steer` refused because the turn just ended (`no_active_turn`
+or the runtime's own refusal, once the status shows that turn is over, as
 codex answers a steer that reaches it after the turn) are retried as the new
 state requires. A steer refused `unsupported` (images on a cursor steer) is
-queued instead. A final refusal is `landed: "rejected"` with the last
+queued instead, as is one refused `no_active_turn` while the status still
+shows the same running turn: a reply the runtime started on its own that the
+adapter cannot steer (OpenCode 2.3.0) or a turn whose abort is pending. A final refusal is `landed: "rejected"` with the last
 control's `code`, `reason` and, for a classified `runtime_refused`, its
 `failure` (as on `ControlOutcome`); `steerOrQueue`'s rejection carries the
 same. `steerOrQueue` stays as the running half
