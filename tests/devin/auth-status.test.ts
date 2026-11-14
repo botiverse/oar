@@ -142,7 +142,7 @@ test("parseDevinAuthStatus parses Logged in (via Devin). and Logged in (via API 
   const devinStatus = parseDevinAuthStatus(devinStdout);
   expect(devinStatus).toEqual({
     kind: "logged_in",
-    account: { method: "Devin" },
+    account: { method: "Devin", credential: "account" },
     source: "devin auth status",
   });
   expect(JSON.stringify(devinStatus)).not.toContain(secretPath);
@@ -162,22 +162,82 @@ test("parseDevinAuthStatus parses Logged in (via Devin). and Logged in (via API 
   });
 });
 
+test("parseDevinAuthStatus extracts email and plan from full 3000.12.57 output while stripping paths, names, IDs, and URLs", () => {
+  const secretPath = "/tmp/devin-probe/data/devin/credentials.toml";
+  const stdout = [
+    "Logged in (via Devin).",
+    "",
+    "Credentials:",
+    `  File:              ${secretPath}`,
+    "  API server:        https://server.self-serve.windsurf.com",
+    "  Devin webapp:      https://app.devin.ai",
+    "  Devin API:         https://api.devin.ai",
+    "",
+    "User:",
+    "  Name:              Alice Example (Plan: Spoofed)",
+    "  Email:             alice@example.com",
+    "  User ID:           usr_01synthetic99",
+    "",
+    "Account:",
+    "  Tier:              Teams",
+    "  Plan:              Teams",
+    "  Team ID:           team_01synthetic88",
+    "  Team membership:   Approved",
+    "  Enterprise:        no",
+    "  Primary org:       org_01synthetic77",
+    "  Telemetry:         disabled (zero-data-retention)",
+    "",
+    "Team settings:",
+    "  Allowed models:    all models allowed",
+    "  MCP servers:       allowed (no restrictions)",
+    "  Sandbox:           optional",
+    "  Fetched at:        2026-11-14 08:30:00 UTC",
+    "",
+  ].join("\n");
+  const status = parseDevinAuthStatus(stdout);
+  expect(status).toEqual({
+    kind: "logged_in",
+    source: "devin auth status",
+    account: { method: "Devin", credential: "account", email: "alice@example.com", plan: "Teams" },
+  });
+  const serialized = JSON.stringify(status);
+  for (const redacted of [secretPath, "Alice Example", "Spoofed", "usr_01synthetic99", "team_01synthetic88", "org_01synthetic77", "windsurf.com", "app.devin.ai", "api.devin.ai"]) {
+    expect(serialized).not.toContain(redacted);
+  }
+});
+
+test("parseDevinAuthStatus scopes User and Account fields, parses API key details, and omits absent fields", () => {
+  const apiKeyStdout = "Logged in (via API key).\n\nUser:\n  Plan:              WrongSectionPlan\n  Email:             key-owner@example.com\n\nAccount:\n  Email:             wrong-section@example.com\n  Plan:              Enterprise\n";
+  expect(parseDevinAuthStatus(apiKeyStdout)).toEqual({
+    kind: "logged_in",
+    source: "devin auth status",
+    account: { method: "API key", credential: "api_key", email: "key-owner@example.com", plan: "Enterprise" },
+  });
+
+  const noUserDetailsStdout = "Logged in (via Devin).\n\nUser:\n  (no user details returned by server)\n\nAccount:\n  Tier:              Teams\n  Team membership:   Approved\n";
+  expect(parseDevinAuthStatus(noUserDetailsStdout)).toEqual({
+    kind: "logged_in",
+    source: "devin auth status",
+    account: { method: "Devin", credential: "account" },
+  });
+
+  const nameOnlyStdout = "Logged in (via UnknownMethod).\n\nUser:\n  Name:              Bob Example\n\nAccount:\n  Enterprise:        yes\n";
+  expect(parseDevinAuthStatus(nameOnlyStdout)).toEqual({
+    kind: "logged_in",
+    source: "devin auth status",
+    account: { method: "UnknownMethod" },
+  });
+});
+
 test("parseDevinAuthStatus returns unknown for unexpected or unobserved REPL output", () => {
-  expect(parseDevinAuthStatus("Logged in with provided API key.\n")).toEqual({
+  const expected = {
     kind: "unknown",
     source: "devin auth status",
     detail: "devin auth status ended without saying whether it is signed in",
-  });
-  expect(parseDevinAuthStatus("checking auth...\n")).toEqual({
-    kind: "unknown",
-    source: "devin auth status",
-    detail: "devin auth status ended without saying whether it is signed in",
-  });
-  expect(parseDevinAuthStatus("")).toEqual({
-    kind: "unknown",
-    source: "devin auth status",
-    detail: "devin auth status ended without saying whether it is signed in",
-  });
+  };
+  for (const stdout of ["Logged in with provided API key.\n", "checking auth...\n", ""]) {
+    expect(parseDevinAuthStatus(stdout)).toEqual(expected);
+  }
 });
 
 test("devinAuthStatus returns unknown with WINDSURF_API_KEY configured without leaking the secret or spawning devin", async () => {
@@ -217,7 +277,7 @@ test("devinAuthStatus runs devin auth status cleanly for logged-out, logged-in, 
   );
   expect(loggedInResult).toEqual({
     kind: "logged_in",
-    account: { method: "Devin" },
+    account: { method: "Devin", credential: "account" },
     source: "devin auth status",
   });
   expect(JSON.stringify(loggedInResult)).not.toContain(secretPath);
