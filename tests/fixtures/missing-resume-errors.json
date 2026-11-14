@@ -36,6 +36,14 @@
     "code": -32603,
     "message": "Failed to read session missing-session; retry, or load it with session/load"
   },
+  "devin": {
+    "code": -32016,
+    "message": "Session not found",
+    "data": {
+      "cognition.ai/errorKind": "session_not_found",
+      "cognition.ai/retryable": false
+    }
+  },
   "cursor": {
     "name": "AgentNotFoundError",
     "message": "Agent agent-00000000-0000-4000-8000-000000000294 not found",

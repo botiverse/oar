@@ -1,6 +1,7 @@
 import { inspect } from "node:util";
 import { expect, test } from "vitest";
 import { antigravityAcpProfile } from "../../packages/oar/src/runtimes/antigravity/session.js";
+import { devinAcpProfile } from "../../packages/oar/src/runtimes/devin/session.js";
 import { grokAcpProfile } from "../../packages/oar/src/runtimes/grok/session.js";
 import { kimiAcpProfile, kimiSession } from "../../packages/oar/src/runtimes/kimi/session.js";
 import { opencodeAcpProfile } from "../../packages/oar/src/runtimes/opencode/session.js";
@@ -14,10 +15,11 @@ test("ACP agents: after the subcommand by default; grok's go before `stdio`, whe
   expect(acpLaunchArgs(opencodeAcpProfile, { cwd: "/work", launchArgs })).toEqual(["acp", "--flag", "value"]);
   expect(acpLaunchArgs(grokAcpProfile, { cwd: "/work", launchArgs })).toEqual(["agent", "--always-approve", "--no-leader", "--flag", "value", "stdio"]);
   expect(acpLaunchArgs(antigravityAcpProfile, { cwd: "/work", launchArgs }).slice(-2)).toEqual(launchArgs);
+  expect(acpLaunchArgs(devinAcpProfile, { cwd: "/work", launchArgs })).toEqual(["acp", "--flag", "value"]);
 });
 
 test("omitted or empty launchArgs leave every argv as it was", () => {
-  for (const profile of [kimiAcpProfile, opencodeAcpProfile, grokAcpProfile]) {
+  for (const profile of [kimiAcpProfile, opencodeAcpProfile, grokAcpProfile, devinAcpProfile]) {
     const plain = acpLaunchArgs(profile, { cwd: "/work" });
     expect(acpLaunchArgs(profile, { cwd: "/work", launchArgs: [] })).toEqual(plain);
   }
