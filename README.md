@@ -1,6 +1,4 @@
-# OAR - *programming interface for all agent harnesses*
-
-[![Built with Raft](https://raw.githubusercontent.com/raft-builders/awesome-raft-build/main/badge/built-with-raft.svg)](https://raft.build)
+# OAR - *programming interface for all agent harnesses* [![Built with Raft](https://raw.githubusercontent.com/raft-builders/awesome-raft-build/main/badge/built-with-raft.svg)](https://raft.build)
 
 <div align="center">
   <img src="assets/logo.png" alt="OAR logo" width="120">
