@@ -24,8 +24,11 @@ the echo correlates with the input. The implemented API (`inputId`,
 Qwen and CodeBuddy sessions, and OpenCode v2 sessions whose `initialize`
 does not advertise `_session/steering` (before 2.2.7), have no `steer`
 either ([session controls](../spec/runtime-matrix.md#session-controls)).
-The advertised OpenCode v2 steer is mapped from source and scripted tests
-only ([OpenCode](opencode.md#v2-session-behavior)).
+The advertised OpenCode v2 steer was checked natively on 2.3.0 (Linux x64,
+local provider, 2026-11-14): steers during a reply and during a running tool
+reached the same turn's next model request; slash commands steer as plain
+text; an aborted turn keeps an accepted steer for the next prompt
+([OpenCode](opencode.md#v2-session-behavior)). 2.2.7 was not run natively.
 DSH's `steer` (present only when its native method inventory advertises it)
 was not probed here; see [DSH](dsh.md#oar-mapping).
 
