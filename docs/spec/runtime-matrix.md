@@ -106,7 +106,7 @@ false, the adapter holds queued input in this process.
 | kimi (ACP) | no | yes | no |
 | antigravity (CLI ACP) | yes | yes | no |
 | opencode v1 (ACP) | yes: a plain prompt RPC mid-turn, which joins the running loop at its next step; both prompts are answered at idle | yes | no |
-| opencode v2 (ACP) | yes where `initialize` advertises `_meta.steering.supported` (2.2.7 and later): `_session/steering`, `injected` is accepted into the running turn, `promptRequired` is `no_active_turn` ([mapping](../runtimes/opencode.md#v2-session-behavior); not yet checked natively). Otherwise absent: concurrent native prompts are refused; `steerOrQueue` and `deliver` use the host queue | yes | no |
+| opencode v2 (ACP) | yes where `initialize` advertises `_meta.steering.supported` (2.2.7 and later): `_session/steering`, `injected` is accepted into the running turn, `promptRequired` is `no_active_turn` ([mapping](../runtimes/opencode.md#v2-session-behavior); verified natively on 2.3.0, including that abort keeps an accepted steer and slash commands steer as text). Otherwise absent: concurrent native prompts are refused; `steerOrQueue` and `deliver` use the host queue | yes | no |
 
 For ACP runtimes with `steer` (Grok, Antigravity, OpenCode v1 and v2), OAR
 rechecks the original active turn after startup waits and at SDK dispatch.

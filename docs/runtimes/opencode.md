@@ -386,11 +386,20 @@ covers 2.0.27.
   [replay](../../tests/opencode/background-own-reply.test.ts) pins that
   case from the recorded 2.3.0 wire, and
   [`acp-session-opencode-v2-steer.test.ts`](../../tests/acp/acp-session-opencode-v2-steer.test.ts)
-  covers each answer against a scripted agent. Not yet verified against a
-  native 2.2.7 or 2.3.0 process: that an injected steer reaches the running
-  turn's next provider request, its timing against a long tool call,
-  whether it survives `session/cancel`, image blocks, and a slash command
-  sent as a steer.
+  covers each answer against a scripted agent.
+- **Steering, native 2.3.0 (Linux x64, local provider, 2026-11-14):** a
+  steer sent while the model was answering, and one sent while a tool was
+  still running, both reached the next model request of the same turn; the
+  original prompt and the steer ended together as one normally completed
+  turn. A valid PNG sent with text in a steer reached the next model
+  request. A steer is plain text: `/compact` and a registered
+  `/probe ...` command sent as steers were passed to the model as text, not
+  executed (send a slash command as a prompt instead). Abort does not
+  withdraw an accepted steer: a steer answered `injected`, then an
+  immediate `abort()`, ended the turn `aborted` as usual, but the steered
+  text was kept by OpenCode and appeared in the next prompt's model request
+  (no `input_dropped` is recorded), as on 1.18.35. Not exercised natively:
+  2.2.7, and the idle race above.
 - **Children (verified through 2.2.7; 2.3.0 uses the background mapping below):**
   standard updates arrive on the parent's envelope with
   `update._meta["opencode/child-session"]` (`id`, `parentID`, `depth`,
