@@ -204,6 +204,7 @@ export function openScriptTerminal(input: OpenClaudeLimitResetTerminalInput, hos
     // Its own process group, so ending it never reaches the host's.
     detached: true,
     stdio: ["pipe", "pipe", "ignore"],
+    windowsHide: true,
   }));
   const decoder = new StringDecoder("utf8");
   let exited = false;

@@ -76,6 +76,7 @@ export const runExecutable: ExecutableRunner = async (executable, args, options 
         stdio: ["pipe", "pipe", "pipe"],
         detached: OWN_PROCESS_GROUP,
         windowsVerbatimArguments: target.windowsVerbatimArguments === true,
+        windowsHide: true,
       }));
       trackOwnedProcess(child);
       // An exited group leader can leave descendants holding the pipes.

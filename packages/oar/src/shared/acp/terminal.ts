@@ -161,6 +161,7 @@ export function createAcpTerminalHost(
       // Its own process group (POSIX): kill and release reach the command and
       // everything it started, not only the shell that launched it.
       detached: OWN_PROCESS_GROUP,
+      windowsHide: true,
     }));
     trackOwnedProcess(child);
     const { stdout, stderr } = child;
