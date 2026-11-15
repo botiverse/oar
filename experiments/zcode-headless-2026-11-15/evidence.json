@@ -1,0 +1,918 @@
+{
+  "version": "3.18.2 source build",
+  "upstreamCommit": "fec975905a2abd4c07e35c40d51fa097a2258ec9",
+  "platform": "linux x64",
+  "node": "v24.19.0",
+  "redaction": "Only selected native frames, synthetic input actions, and explicitly labelled request excerpts. Fixture paths replaced; full prompts and tool catalogues stay local.",
+  "basic": [
+    {
+      "eventId": "6f119427-f44e-49f9-9051-0e84a92a2d42",
+      "payload": {
+        "executionStartedAt": 1794734482291.2646,
+        "turnNumber": 0,
+        "input": "OAR_PROBE_basic",
+        "messageId": "msg_mwhmklhc_15633030-6ff9-46b6-9af9-65b232eb49cb",
+        "inputId": "query_965c2089-ff91-40da-bb0b-96c303182b2b",
+        "foregroundExecutionId": "runtime_command_1",
+        "queryId": "query_965c2089-ff91-40da-bb0b-96c303182b2b",
+        "intent": {
+          "sourceCommandId": "query_965c2089-ff91-40da-bb0b-96c303182b2b",
+          "queueItemId": "query_965c2089-ff91-40da-bb0b-96c303182b2b",
+          "clientId": "cli",
+          "kind": "sendText",
+          "admissionSeq": 1,
+          "admittedAt": 1794734482281,
+          "requestedDelivery": "auto",
+          "admittedDelivery": "startNow",
+          "modelSelection": {
+            "providerId": "probe",
+            "modelId": "probe-model",
+            "options": {
+              "reasoningLevel": "enabled"
+            }
+          }
+        }
+      },
+      "seq": 2,
+      "sessionId": "sess_f255c5e4-dce1-412f-9c8e-7ca816d8cf89",
+      "timestamp": 1794734482368,
+      "traceId": "2fb2d4e6-17ec-43db-86be-a6e211c51b25",
+      "turnId": "turn_5c846759-f25c-4196-9e65-f872d4af0697",
+      "type": "turn.started"
+    },
+    {
+      "eventId": "f4553538-e03f-47ad-ae68-1a7eabcfd954",
+      "payload": {
+        "assistantMessageId": "msg_mwhmklk4_f1c1b43d-40d1-479a-8bdf-7e3662eab052",
+        "delta": "LOCAL_THINK",
+        "done": false,
+        "kind": "reasoning_delta"
+      },
+      "seq": 8,
+      "sessionId": "sess_f255c5e4-dce1-412f-9c8e-7ca816d8cf89",
+      "timestamp": 1794734482564,
+      "traceId": "2fb2d4e6-17ec-43db-86be-a6e211c51b25",
+      "turnId": "turn_5c846759-f25c-4196-9e65-f872d4af0697",
+      "type": "model.streaming"
+    },
+    {
+      "eventId": "b767b117-24dd-4799-af6e-6569b82eedb6",
+      "payload": {
+        "assistantMessageId": "msg_mwhmklk4_f1c1b43d-40d1-479a-8bdf-7e3662eab052",
+        "delta": "LOCAL_DONE",
+        "done": false,
+        "kind": "text_delta"
+      },
+      "seq": 11,
+      "sessionId": "sess_f255c5e4-dce1-412f-9c8e-7ca816d8cf89",
+      "timestamp": 1794734482565,
+      "traceId": "2fb2d4e6-17ec-43db-86be-a6e211c51b25",
+      "turnId": "turn_5c846759-f25c-4196-9e65-f872d4af0697",
+      "type": "model.streaming"
+    },
+    {
+      "type": "result",
+      "sessionId": "sess_f255c5e4-dce1-412f-9c8e-7ca816d8cf89",
+      "traceId": "2fb2d4e6-17ec-43db-86be-a6e211c51b25",
+      "turnId": "turn_5c846759-f25c-4196-9e65-f872d4af0697",
+      "response": "LOCAL_DONE",
+      "usage": {
+        "source": "provider",
+        "modelRequestCount": 1,
+        "inputTokens": 13,
+        "outputTokens": 7,
+        "totalTokens": 20,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "webFetchRequests": 0,
+        "webSearchRequests": 0
+      },
+      "eventCount": 14,
+      "projection": {
+        "status": "idle",
+        "turnCount": 1,
+        "totalTokenCount": 20,
+        "contextUsed": 20,
+        "contextWindow": 200000
+      }
+    }
+  ],
+  "tool": [
+    {
+      "eventId": "f3c6c18f-0d87-443e-bc52-23c5d2d7304e",
+      "payload": {
+        "toolCallId": "call_probe",
+        "assistantMessageId": "msg_mwhmknfl_b6a309a0-5108-4a81-a354-0dd147b885da",
+        "toolName": "Bash",
+        "input": {
+          "command": "printf OAR_ZCODE_TOOL",
+          "description": "Run a synthetic test command",
+          "timeout": 5000
+        },
+        "dependencies": [],
+        "parallelGroupIndex": 0,
+        "canRunParallel": false,
+        "schedule": {
+          "parallelGroups": [
+            [
+              "call_probe"
+            ]
+          ],
+          "executionOrder": [
+            "call_probe"
+          ]
+        },
+        "kind": "scheduled"
+      },
+      "seq": 15,
+      "sessionId": "sess_3f7a53bf-68b6-4387-939e-5bfa65dca52e",
+      "timestamp": 1794734485091,
+      "traceId": "8bd6ade6-74f9-4dc6-b559-b8b1abe4725b",
+      "turnId": "turn_2094b22d-b50e-4434-88bd-7541d1acfb1b",
+      "type": "tool.updated"
+    },
+    {
+      "eventId": "e46817aa-92ff-4fef-a0a3-e2cbde6bf4cf",
+      "payload": {
+        "toolCallId": "call_probe",
+        "result": {
+          "success": true,
+          "content": "OAR_ZCODE_TOOL",
+          "perf": {
+            "totalMs": 58,
+            "permissionWaitMs": 0,
+            "detail": {
+              "kind": "command",
+              "command": {
+                "runMs": 30,
+                "noOutputMs": 30,
+                "exitCode": 0,
+                "timedOut": false,
+                "outputBytes": 14,
+                "category": "other",
+                "count": 1,
+                "name": "other",
+                "status": "completed",
+                "hash": "dbc93761b3af8db5"
+              }
+            }
+          },
+          "truncated": false,
+          "originalBytes": 14,
+          "returnedBytes": 14,
+          "budgetStrategy": "artifact"
+        },
+        "duration": 48,
+        "kind": "result"
+      },
+      "seq": 19,
+      "sessionId": "sess_3f7a53bf-68b6-4387-939e-5bfa65dca52e",
+      "timestamp": 1794734485163,
+      "traceId": "8bd6ade6-74f9-4dc6-b559-b8b1abe4725b",
+      "turnId": "turn_2094b22d-b50e-4434-88bd-7541d1acfb1b",
+      "type": "tool.updated"
+    }
+  ],
+  "resume": {
+    "result": [
+      {
+        "type": "result",
+        "sessionId": "sess_f255c5e4-dce1-412f-9c8e-7ca816d8cf89",
+        "traceId": "c722ad04-47e5-48bf-bcf4-1695cb95d1f1",
+        "turnId": "turn_053f9f37-1ddb-42ac-a6aa-d20ee5fc9e5b",
+        "response": "RESUME_DONE",
+        "usage": {
+          "source": "provider",
+          "modelRequestCount": 1,
+          "inputTokens": 13,
+          "outputTokens": 7,
+          "totalTokens": 20,
+          "cacheReadTokens": 0,
+          "cacheWriteTokens": 0,
+          "reasoningTokens": 0,
+          "webFetchRequests": 0,
+          "webSearchRequests": 0
+        },
+        "eventCount": 14,
+        "projection": {
+          "status": "idle",
+          "turnCount": 1,
+          "totalTokenCount": 20,
+          "contextUsed": 20,
+          "contextWindow": 200000
+        }
+      }
+    ],
+    "requestMessageExcerpts": [
+      {
+        "role": "user",
+        "content": "OAR_PROBE_basic"
+      },
+      {
+        "role": "assistant",
+        "content": "LOCAL_DONE",
+        "reasoning_content": "LOCAL_THINK"
+      },
+      {
+        "role": "user",
+        "content": "OAR_PROBE_resume"
+      }
+    ]
+  },
+  "plan": [
+    {
+      "eventId": "00cf8919-17ce-4cb0-a2fa-72361e43f4d7",
+      "payload": {
+        "toolCallId": "call_probe",
+        "toolName": "Bash",
+        "reason": "Plan mode only allows read-only, non-destructive tools",
+        "inputSummary": {
+          "type": "object",
+          "keys": [
+            "command",
+            "description",
+            "timeout"
+          ]
+        },
+        "decision": "deny"
+      },
+      "seq": 18,
+      "sessionId": "sess_146951a2-f570-4395-ac06-a2acc4e1d925",
+      "timestamp": 1794734490466,
+      "traceId": "8214f6ef-f6e9-40c9-afc3-aba7b83a0c6c",
+      "turnId": "turn_a0c6fa10-5724-4971-8e02-767e80963a6a",
+      "type": "permission.resolved"
+    },
+    {
+      "type": "result",
+      "sessionId": "sess_146951a2-f570-4395-ac06-a2acc4e1d925",
+      "traceId": "8214f6ef-f6e9-40c9-afc3-aba7b83a0c6c",
+      "turnId": "turn_a0c6fa10-5724-4971-8e02-767e80963a6a",
+      "response": "LOCAL_DONE",
+      "usage": {
+        "source": "provider",
+        "modelRequestCount": 2,
+        "inputTokens": 26,
+        "outputTokens": 14,
+        "totalTokens": 40,
+        "cacheReadTokens": 0,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "webFetchRequests": 0,
+        "webSearchRequests": 0
+      },
+      "eventCount": 31,
+      "projection": {
+        "status": "idle",
+        "turnCount": 1,
+        "totalTokenCount": 40,
+        "contextUsed": 20,
+        "contextWindow": 200000
+      }
+    }
+  ],
+  "planFileCreated": false,
+  "question": [
+    {
+      "eventId": "8a152027-add8-4311-91fd-a49a9daa0d4f",
+      "payload": {
+        "requestId": "perm_5e0736d6-b145-4e15-9372-ffc8b317b6fd",
+        "toolCallId": "call_probe",
+        "toolName": "AskUserQuestion",
+        "riskLevel": "low",
+        "reason": "Tool AskUserQuestion requires user interaction",
+        "input": {
+          "questions": [
+            {
+              "question": "Choose a synthetic fixture option",
+              "header": "Fixture",
+              "options": [
+                {
+                  "label": "Alpha",
+                  "description": "Use alpha"
+                },
+                {
+                  "label": "Beta",
+                  "description": "Use beta"
+                }
+              ],
+              "multiSelect": false
+            }
+          ]
+        },
+        "suggestedPermissionUpdates": [
+          {
+            "behavior": "allow",
+            "rules": [
+              {
+                "toolName": "AskUserQuestion"
+              }
+            ],
+            "type": "addRules"
+          }
+        ],
+        "options": [
+          {
+            "kind": "allow_once",
+            "name": "Allow once",
+            "optionId": "allow_once",
+            "response": {
+              "decision": "allow",
+              "reason": "Approved once"
+            }
+          },
+          {
+            "description": "Do not ask again for matching requests in this project",
+            "kind": "allow_always",
+            "name": "Always allow in this project",
+            "optionId": "allow_project",
+            "response": {
+              "decision": "allow",
+              "permissionUpdates": [
+                {
+                  "behavior": "allow",
+                  "rules": [
+                    {
+                      "toolName": "AskUserQuestion"
+                    }
+                  ],
+                  "type": "addRules"
+                }
+              ],
+              "reason": "Approved for this project"
+            }
+          },
+          {
+            "kind": "deny",
+            "name": "Deny",
+            "optionId": "deny",
+            "response": {
+              "decision": "deny",
+              "reason": "The user doesn't want to proceed with this tool use. The tool use was rejected (eg. if it was a file edit, the new_string was NOT written to the file). STOP what you are doing and wait for the user to tell you how to proceed."
+            }
+          }
+        ]
+      },
+      "seq": 18,
+      "sessionId": "sess_177e7b8c-0df9-4f54-b5f0-f2ef07ba2d13",
+      "timestamp": 1794734493406,
+      "traceId": "bd16092d-06fe-42df-bd66-0e99518f07e2",
+      "turnId": "turn_751081f5-0e62-4b8b-8a7f-9fa40de643f1",
+      "type": "permission.requested"
+    },
+    {
+      "eventId": "e188deb8-f9f8-4665-9e7a-1d348b3dd327",
+      "payload": {
+        "requestId": "perm_5e0736d6-b145-4e15-9372-ffc8b317b6fd",
+        "toolCallId": "call_probe",
+        "decision": "deny",
+        "reason": "No permission client configured for AskUserQuestion"
+      },
+      "seq": 19,
+      "sessionId": "sess_177e7b8c-0df9-4f54-b5f0-f2ef07ba2d13",
+      "timestamp": 1794734493413,
+      "traceId": "bd16092d-06fe-42df-bd66-0e99518f07e2",
+      "turnId": "turn_751081f5-0e62-4b8b-8a7f-9fa40de643f1",
+      "type": "permission.resolved"
+    }
+  ],
+  "mcp": {
+    "mcp_a": [
+      {
+        "eventId": "2ec790a1-4984-4a2a-8603-dacf0842e373",
+        "payload": {
+          "toolCallId": "call_probe",
+          "result": {
+            "success": true,
+            "content": "mcp_a:MCP_PROBE",
+            "display": {
+              "kind": "mcp_tool",
+              "serverName": "probe",
+              "toolName": "echo",
+              "description": "Return a synthetic fixture marker"
+            },
+            "perf": {
+              "totalMs": 16,
+              "permissionWaitMs": 0
+            },
+            "truncated": false,
+            "originalBytes": 15,
+            "returnedBytes": 15,
+            "budgetStrategy": "truncate"
+          },
+          "duration": 11,
+          "kind": "result"
+        },
+        "seq": 19,
+        "sessionId": "sess_16606624-83a9-4d08-8a78-7a894410d53e",
+        "timestamp": 1794734496184,
+        "traceId": "7b9c6e16-daf6-4baf-888a-a543c4af51f3",
+        "turnId": "turn_fad2ed43-d58f-45ea-b6b2-74bbd4e3bf82",
+        "type": "tool.updated"
+      }
+    ],
+    "mcp_b": [
+      {
+        "eventId": "9bb70f48-8266-4087-92e9-e99f95c33895",
+        "payload": {
+          "toolCallId": "call_probe",
+          "result": {
+            "success": true,
+            "content": "mcp_b:MCP_PROBE",
+            "display": {
+              "kind": "mcp_tool",
+              "serverName": "probe",
+              "toolName": "echo",
+              "description": "Return a synthetic fixture marker"
+            },
+            "perf": {
+              "totalMs": 18,
+              "permissionWaitMs": 0
+            },
+            "truncated": false,
+            "originalBytes": 15,
+            "returnedBytes": 15,
+            "budgetStrategy": "truncate"
+          },
+          "duration": 12,
+          "kind": "result"
+        },
+        "seq": 19,
+        "sessionId": "sess_c4267a86-b7b3-4900-988a-4d36986b2a0b",
+        "timestamp": 1794734499007,
+        "traceId": "7c9c0c85-0485-433f-972e-e54e82040ca4",
+        "turnId": "turn_1b5023ad-80ec-4194-8d36-d38e4d21858f",
+        "type": "tool.updated"
+      }
+    ]
+  },
+  "stdin": {
+    "inputActions": [
+      {
+        "stdin": "FOLLOW_UP_MARKER",
+        "at": 2186
+      }
+    ],
+    "requestCount": 1,
+    "result": [
+      {
+        "type": "result",
+        "sessionId": "sess_3be3440d-864f-4f35-bc9f-981f663066de",
+        "traceId": "785ca91f-f149-4ee4-b9e6-46408d418a77",
+        "turnId": "turn_4a3bafad-3451-441c-9f5c-d2933d866d1f",
+        "response": "HOLD_DONE",
+        "usage": {
+          "source": "provider",
+          "modelRequestCount": 1,
+          "inputTokens": 13,
+          "outputTokens": 7,
+          "totalTokens": 20,
+          "cacheReadTokens": 0,
+          "cacheWriteTokens": 0,
+          "reasoningTokens": 0,
+          "webFetchRequests": 0,
+          "webSearchRequests": 0
+        },
+        "eventCount": 14,
+        "projection": {
+          "status": "idle",
+          "turnCount": 1,
+          "totalTokenCount": 20,
+          "contextUsed": 20,
+          "contextWindow": 200000
+        }
+      }
+    ]
+  },
+  "cancel": {
+    "inputActions": [
+      {
+        "signal": "SIGTERM",
+        "at": 2374
+      }
+    ],
+    "exit": {
+      "code": 143,
+      "signal": null
+    },
+    "hasResult": false,
+    "frames": [
+      {
+        "eventId": "c8ad0c52-d492-402d-b878-16e29cf30d6d",
+        "payload": {
+          "response": "",
+          "tokenCount": 0,
+          "toolCallCount": 0,
+          "historyRoundCount": 0,
+          "duration": 477,
+          "resultType": "cancelled",
+          "inputId": "query_376ab336-e66e-41c8-9155-f50c3a749b07"
+        },
+        "seq": 7,
+        "sessionId": "sess_a1238169-8dab-432d-8eac-e9caca720616",
+        "timestamp": 1794734505586,
+        "traceId": "ffca97e3-8182-48c0-88da-e57d1b91fef9",
+        "turnId": "turn_0e9329b0-b152-4c68-8266-fed352747dc1",
+        "type": "turn.completed"
+      }
+    ]
+  },
+  "app": {
+    "busyAndV4Responses": [
+      {
+        "error": {
+          "code": -32010,
+          "message": "A prompt is already running for this session"
+        },
+        "id": "7"
+      },
+      {
+        "id": "8",
+        "result": {
+          "commandId": "guide-probe",
+          "status": "accepted",
+          "revisionAtDecision": 14,
+          "result": {
+            "type": "inputAccepted",
+            "delivery": "queue",
+            "inputId": "guide-probe"
+          },
+          "memoryEnabled": false
+        }
+      }
+    ],
+    "frames": [
+      {
+        "method": "session/event",
+        "params": {
+          "deliveryKind": "desktop-continuous",
+          "eventId": "65c1a1a6-a3ac-4e6a-97cc-32dc7392c0af",
+          "payload": {
+            "response": "LOCAL_DONE",
+            "tokenCount": 20,
+            "usage": {
+              "source": "provider",
+              "modelRequestCount": 1,
+              "inputTokens": 13,
+              "outputTokens": 7,
+              "totalTokens": 20,
+              "cacheReadTokens": 0,
+              "cacheWriteTokens": 0,
+              "reasoningTokens": 0,
+              "webFetchRequests": 0,
+              "webSearchRequests": 0
+            },
+            "toolCallCount": 0,
+            "historyRoundCount": 1,
+            "duration": 466,
+            "resultType": "success",
+            "cacheStats": {
+              "totalMessages": 10,
+              "cachedMessages": 3,
+              "lastCacheHit": false
+            },
+            "inputId": "5ea9dea3-7275-4322-89ae-00a138d6b628"
+          },
+          "seq": 11,
+          "sessionId": "sess_963465f8-e876-45ac-a424-41ccd524b684",
+          "timestamp": 1794734508243,
+          "traceId": "f7320b1a-3821-4149-bbfe-7a09947f2ed2",
+          "turnId": "turn_60a8aa5e-048d-4052-b77f-f6893b6fba5d",
+          "type": "turn.completed"
+        }
+      },
+      {
+        "method": "session/event",
+        "params": {
+          "deliveryKind": "desktop-continuous",
+          "eventId": "4f9f1d1d-cf72-44bb-afdd-0ee024db992d",
+          "payload": {
+            "inputId": "guide-probe",
+            "queryId": "guide-probe",
+            "pendingInputId": "queue_guide-probe",
+            "input": "V4_GUIDE_MARKER",
+            "inputPreview": "V4_GUIDE_MARKER",
+            "inputSize": 15,
+            "inputPresentation": "user_steer",
+            "delivery": "guide",
+            "intent": {
+              "sourceCommandId": "guide-probe",
+              "queueItemId": "queue_guide-probe",
+              "clientId": "probe",
+              "kind": "sendText",
+              "text": "V4_GUIDE_MARKER",
+              "modelSelection": {
+                "providerId": "probe",
+                "modelId": "probe-model",
+                "options": {
+                  "reasoningLevel": "enabled"
+                }
+              },
+              "mode": "yolo",
+              "planEnabled": false,
+              "admissionSeq": 1,
+              "admittedAt": 1794734508489,
+              "requestedDelivery": "guide",
+              "admittedDelivery": "guide",
+              "queuePosition": 0
+            },
+            "targetTurnId": "turn_9191180f-ac59-4d44-a5b0-2f4655583319",
+            "queueLength": 1
+          },
+          "seq": 24,
+          "sessionId": "sess_963465f8-e876-45ac-a424-41ccd524b684",
+          "timestamp": 1794734508500,
+          "traceId": "f7320b1a-3821-4149-bbfe-7a09947f2ed2",
+          "turnId": "turn_9191180f-ac59-4d44-a5b0-2f4655583319",
+          "type": "turn.steerQueued"
+        }
+      },
+      {
+        "method": "session/event",
+        "params": {
+          "deliveryKind": "desktop-continuous",
+          "eventId": "a8a1b240-553e-4816-9038-79d5b31587a3",
+          "payload": {
+            "injectedMessageIds": [
+              "msg_mwhml6h7_b58bf1fa-5d93-4689-b5c9-84cd3b23714a"
+            ],
+            "pendingInputIds": [
+              "queue_guide-probe"
+            ],
+            "drainedInputs": [
+              {
+                "pendingInputId": "queue_guide-probe",
+                "messageId": "msg_mwhml6h7_b58bf1fa-5d93-4689-b5c9-84cd3b23714a",
+                "text": "V4_GUIDE_MARKER",
+                "delivery": "guide",
+                "intent": {
+                  "sourceCommandId": "guide-probe",
+                  "queueItemId": "queue_guide-probe",
+                  "clientId": "probe",
+                  "kind": "sendText",
+                  "text": "V4_GUIDE_MARKER",
+                  "modelSelection": {
+                    "providerId": "probe",
+                    "modelId": "probe-model",
+                    "options": {
+                      "reasoningLevel": "enabled"
+                    }
+                  },
+                  "mode": "yolo",
+                  "planEnabled": false,
+                  "admissionSeq": 1,
+                  "admittedAt": 1794734508489,
+                  "requestedDelivery": "guide",
+                  "admittedDelivery": "guide",
+                  "queuePosition": 0
+                }
+              }
+            ],
+            "queryIds": [
+              "guide-probe"
+            ],
+            "targetTurnId": "turn_9191180f-ac59-4d44-a5b0-2f4655583319"
+          },
+          "seq": 29,
+          "sessionId": "sess_963465f8-e876-45ac-a424-41ccd524b684",
+          "timestamp": 1794734509585,
+          "traceId": "f7320b1a-3821-4149-bbfe-7a09947f2ed2",
+          "turnId": "turn_9191180f-ac59-4d44-a5b0-2f4655583319",
+          "type": "turn.steerDrained"
+        }
+      },
+      {
+        "method": "session/event",
+        "params": {
+          "deliveryKind": "desktop-continuous",
+          "eventId": "2a9c77ef-5c40-446e-bc5d-4cd4a22b9540",
+          "payload": {
+            "response": "LOCAL_DONE",
+            "tokenCount": 40,
+            "usage": {
+              "source": "provider",
+              "modelRequestCount": 2,
+              "inputTokens": 26,
+              "outputTokens": 14,
+              "totalTokens": 40,
+              "cacheReadTokens": 0,
+              "cacheWriteTokens": 0,
+              "reasoningTokens": 0,
+              "webFetchRequests": 0,
+              "webSearchRequests": 0
+            },
+            "toolCallCount": 1,
+            "historyRoundCount": 2,
+            "duration": 1363,
+            "resultType": "success",
+            "cacheStats": {
+              "totalMessages": 17,
+              "cachedMessages": 3,
+              "lastCacheHit": false
+            },
+            "inputId": "0527129c-0f61-4d19-b7af-80c8b21aec0b"
+          },
+          "seq": 36,
+          "sessionId": "sess_963465f8-e876-45ac-a424-41ccd524b684",
+          "timestamp": 1794734509693,
+          "traceId": "f7320b1a-3821-4149-bbfe-7a09947f2ed2",
+          "turnId": "turn_9191180f-ac59-4d44-a5b0-2f4655583319",
+          "type": "turn.completed"
+        }
+      },
+      {
+        "method": "session/event",
+        "params": {
+          "deliveryKind": "desktop-continuous",
+          "eventId": "443c4bb2-180f-4664-a55c-253fd6240dc8",
+          "payload": {
+            "response": "",
+            "tokenCount": 0,
+            "toolCallCount": 0,
+            "historyRoundCount": 0,
+            "duration": 124,
+            "resultType": "cancelled",
+            "inputId": "0e38c997-9b51-4327-aef4-6338b8f9010b"
+          },
+          "seq": 42,
+          "sessionId": "sess_963465f8-e876-45ac-a424-41ccd524b684",
+          "timestamp": 1794734509906,
+          "traceId": "f7320b1a-3821-4149-bbfe-7a09947f2ed2",
+          "turnId": "turn_cb3bc66c-a88f-407a-89c8-6ab4d768a11d",
+          "type": "turn.completed"
+        }
+      }
+    ],
+    "createAndSendRequestExcerpts": [
+      {
+        "id": "2",
+        "method": "session/create",
+        "params": {
+          "workspace": {
+            "workspacePath": "<fixture>/project",
+            "workspaceKey": "<fixture>/project"
+          },
+          "model": {
+            "providerId": "probe",
+            "modelId": "probe-model",
+            "options": {
+              "reasoningLevel": "enabled"
+            }
+          },
+          "mode": "yolo",
+          "titleGenerationEnabled": false
+        }
+      },
+      {
+        "id": "4",
+        "method": "session/send",
+        "params": {
+          "sessionId": "sess_963465f8-e876-45ac-a424-41ccd524b684",
+          "content": "APP_BASIC",
+          "modelSelection": {
+            "providerId": "probe",
+            "modelId": "probe-model",
+            "options": {
+              "reasoningLevel": "enabled"
+            }
+          }
+        }
+      },
+      {
+        "id": "6",
+        "method": "session/send",
+        "params": {
+          "sessionId": "sess_963465f8-e876-45ac-a424-41ccd524b684",
+          "content": "APP_GUIDE_BOUNDARY",
+          "modelSelection": {
+            "providerId": "probe",
+            "modelId": "probe-model",
+            "options": {
+              "reasoningLevel": "enabled"
+            }
+          }
+        }
+      },
+      {
+        "id": "7",
+        "method": "session/send",
+        "params": {
+          "sessionId": "sess_963465f8-e876-45ac-a424-41ccd524b684",
+          "content": "LEGACY_BUSY",
+          "modelSelection": {
+            "providerId": "probe",
+            "modelId": "probe-model",
+            "options": {
+              "reasoningLevel": "enabled"
+            }
+          }
+        }
+      },
+      {
+        "id": "8",
+        "method": "v4/command",
+        "params": {
+          "workspace": {
+            "workspacePath": "<fixture>/project",
+            "workspaceKey": "<fixture>/project"
+          },
+          "commandId": "guide-probe",
+          "clientId": "probe",
+          "sessionId": "sess_963465f8-e876-45ac-a424-41ccd524b684",
+          "type": "sendText",
+          "issuedAt": 1794734508482,
+          "payload": {
+            "text": "V4_GUIDE_MARKER",
+            "requestedDelivery": "guide",
+            "modelSelection": {
+              "providerId": "probe",
+              "modelId": "probe-model",
+              "options": {
+                "reasoningLevel": "enabled"
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "10",
+        "method": "session/send",
+        "params": {
+          "sessionId": "sess_963465f8-e876-45ac-a424-41ccd524b684",
+          "content": "APP_STOP_BOUNDARY",
+          "modelSelection": {
+            "providerId": "probe",
+            "modelId": "probe-model",
+            "options": {
+              "reasoningLevel": "enabled"
+            }
+          }
+        }
+      },
+      {
+        "id": "11",
+        "method": "session/stop",
+        "params": {
+          "sessionId": "sess_963465f8-e876-45ac-a424-41ccd524b684"
+        }
+      },
+      {
+        "id": "12",
+        "method": "session/create",
+        "params": {
+          "workspace": {
+            "workspacePath": "<fixture>/project",
+            "workspaceKey": "<fixture>/project"
+          },
+          "model": {
+            "providerId": "probe",
+            "modelId": "probe-model",
+            "options": {
+              "reasoningLevel": "enabled"
+            }
+          },
+          "mode": "plan",
+          "titleGenerationEnabled": false
+        }
+      }
+    ],
+    "runtimePreferenceResponse": {
+      "id": "server-1",
+      "result": {
+        "nativeSearchEnhancementsEnabled": false,
+        "toolSearchMode": "off",
+        "memoryEnabled": false,
+        "askUserQuestionAutoResolutionEnabled": false
+      }
+    },
+    "twoSessionObservation": {
+      "createdIds": [
+        "sess_963465f8-e876-45ac-a424-41ccd524b684",
+        "sess_479b8080-3e02-4357-a77b-e926b4ed64b6"
+      ],
+      "listedIds": [
+        "sess_963465f8-e876-45ac-a424-41ccd524b684",
+        "sess_a1238169-8dab-432d-8eac-e9caca720616",
+        "sess_3be3440d-864f-4f35-bc9f-981f663066de",
+        "sess_c4267a86-b7b3-4900-988a-4d36986b2a0b",
+        "sess_16606624-83a9-4d08-8a78-7a894410d53e",
+        "sess_177e7b8c-0df9-4f54-b5f0-f2ef07ba2d13",
+        "sess_146951a2-f570-4395-ac06-a2acc4e1d925",
+        "sess_f255c5e4-dce1-412f-9c8e-7ca816d8cf89",
+        "sess_3f7a53bf-68b6-4387-939e-5bfa65dca52e",
+        "sess_479b8080-3e02-4357-a77b-e926b4ed64b6"
+      ]
+    },
+    "steeredRequestMessageExcerpts": [
+      {
+        "role": "user",
+        "content": "<system-reminder>\nThe user sent a new message while you were working:\nV4_GUIDE_MARKER\n\nThis is how ZCode surfaces messages the user sends mid-turn \u2014 within the running turn, often alongside the next tool result, rather than as a separate conversation turn. Address the message above as you continue this turn.\n</system-reminder>"
+      },
+      {
+        "role": "user",
+        "content": "<system-reminder>\nThe user sent a new message while you were working:\nV4_GUIDE_MARKER\n\nThis is how ZCode surfaces messages the user sends mid-turn \u2014 within the running turn, often alongside the next tool result, rather than as a separate conversation turn. Address the message above as you continue this turn.\n</system-reminder>"
+      }
+    ]
+  }
+}
