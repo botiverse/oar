@@ -249,8 +249,8 @@ test.each(["prompt", "queue"] as const)("Claude terminal observer %s cannot over
     f.fake.emit(line(end(first)));
     const next = await observed[0]?.control;
     expect(next).toMatchObject(method === "prompt" ? { kind: "rejected", code: "busy" } : { kind: "accepted" });
-    // The documented stream-json held-queue exception remains until its own follow-up.
-    expect(observed[0]?.kind).toBe("idle");
+    // The held queue owns the slot before its next native turn starts.
+    expect(observed[0]?.kind).toBe("running");
     assert.ok(queued.request.body.kind === "queue");
     const second = queued.request.body.inputId;
     assert.ok(typeof second === "string");

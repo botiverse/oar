@@ -54,12 +54,15 @@ test("a queued input withdrawn before the turn ends is never written to claude",
   await session.dispose();
 });
 
+// oxlint-disable-next-line max-statements -- Check the sent reservation, native completion, and release in one session.
 test("a queue while idle is written at once, so there is nothing to withdraw; after dispose the exit answers first", async () => {
   const { fake, session } = await open();
   const queued = await session.queue("now");
   expect(sent(fake)).toEqual(["now"]);
   expect(await withdraw(session, inputIdOf(queued))).toBe("not_queued");
-  await session.prompt("work");
+  expect(await session.prompt("overtake before start")).toMatchObject({ kind: "rejected", code: "busy" });
+  fake.emit(`${JSON.stringify({ type: "result", subtype: "success", is_error: false, user_message_uuid: inputIdOf(queued) })}\n`);
+  expect(await session.prompt("work")).toMatchObject({ kind: "accepted" });
   const held = await session.queue("held");
   await session.dispose();
   // The fake process exits as dispose kills it, so the stream already holds the exit.

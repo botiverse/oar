@@ -43,8 +43,17 @@ async function verifyIdentity(id: "codex" | "claude", mode: "steer" | "fallback"
       const steer = mode === "steer" ? await pending.steer : prompt;
       assert.ok(steer !== undefined);
       assert.equal(steer.response.body.kind, "accepted");
-      const input = [...conversationOf(session.records()).inputs.values()].find((entry) => entry.inputId === inputId);
-      assert.equal(input?.attempts.length, mode === "steer" ? 1 : 2);
+      const inputs = [...conversationOf(session.records()).inputs.values()].filter((entry) => entry.inputId === inputId);
+      assert.equal(inputs.length, 1);
+      const input = inputs[0];
+      assert.ok(input !== undefined);
+      assert.deepEqual(input.attempts.map(attempt => attempt.request.body.kind), mode === "steer" ? ["steer"]
+        : (id === "claude" ? ["steer", "queue", "prompt"] : ["steer", "queue"]));
+      if (mode === "fallback" && id === "claude") {
+        const dispatch = input.attempts.at(-1)?.request.body;
+        assert.ok(dispatch?.kind === "prompt");
+        assert.deepEqual(dispatch.carries, [inputId]);
+      }
       assert.equal(input.observations.length, 1);
       assert.equal(input.observations[0]?.evidence, id === "codex" ? "turn_item" : "acknowledged");
       // Haiku 5.5 carries mid-turn input in a messages[] system entry, which

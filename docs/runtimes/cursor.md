@@ -516,15 +516,32 @@ afterwards (probed); the steered text landed in the same turn (`steer`).
 `Session.deliver` does not fall back to the queue on a handed back steer;
 `steerOrQueue` does.
 
-**Queue (mapped):** `queue()` is an adapter-held FIFO
-(`capabilities.queue.durable: false`) sent as a new run when the current one
-ends, a spontaneous turn with no prompt request of its own (`queue`). A
-queued input whose `send` the SDK refuses, or that gets no run within the
-60 second send deadline, is recorded as a `cursor/send_rejected` frame, and
-the queue moves on to the next.
-`withdraw(inputId)` takes an input out of it before it is sent (`accepted`)
-and answers `not_queued` once it was
-([test](../../tests/cursor/cursor-session-withdraw.test.ts)).
+**Queue (mapped):** `queue()` accepts into an adapter-held FIFO with
+`queued: "adapter"` (`capabilities.queue.durable: false`). When the active
+run ends, dispatch records a new prompt whose `carries` names the original
+input id, or the queue request id if none was supplied. Its response belongs
+to that new request; the queue request is answered once and views show one
+logical input. The held reservation keeps status running and prevents a
+synchronous terminal observer's prompt from overtaking the queue.
+`withdraw(inputId)` takes an input out before dispatch (`accepted`) and
+answers `not_queued` after dispatch has begun.
+
+An SDK `send` refusal is recorded on `cursor/send_rejected` with
+`input_dropped`, associated with the dispatch request. This returns ownership
+to the host before the queue proceeds to the next item. A slow queued send
+has no fabricated 60-second refusal: its dispatch request stays unanswered,
+status stays running, and OAR neither retries nor cancels it automatically.
+A late run is adopted normally. Explicit `abort` can cancel it when it
+arrives, and `dispose` releases the session. The ordinary `prompt()` deadline
+and late-run cancellation described above are unchanged and do not apply to
+queued dispatch.
+
+The [queue regressions](../../tests/cursor/cursor-held-queues.test.ts) use a
+controlled SDK, including sends delayed past 60 seconds, immediate run ends,
+refusal, abort and disposal. The
+[shared queue tests](../../tests/adapter-held-queues.test.ts) cover records,
+withdrawal observers and replay; these synthetic cases make no claim about
+Cursor backend timing or delivery.
 
 **Abort (mapped):** `abort()` is `run.cancel()`; the run answers `cancelled`
 within about two seconds, recorded as `turn_ended: aborted` (`abort`). An

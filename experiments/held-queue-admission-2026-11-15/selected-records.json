@@ -1,0 +1,347 @@
+{
+  "scope": "Selected records from Linux synthetic-provider behavior runs; omitted records are not replay input.",
+  "samples": [
+    {
+      "backend": "claude-aimock",
+      "sourceSha256": "057126b6eda4899619485ce4d944e9d423f44560c579fcb8381b58b48bf13543",
+      "redactions": [],
+      "records": [
+        {
+          "sessionId": "0d31c2a7-9d45-4e4d-9a96-6a32abdc53bb",
+          "agentPath": [],
+          "seq": 4,
+          "receivedAt": 1794745844490,
+          "kind": "request",
+          "id": "f0af4002-807a-4484-8996-45450a026fa5",
+          "direction": "toRuntime",
+          "body": {
+            "kind": "queue",
+            "input": "and then this",
+            "inputId": "ee6fd6f3-ed0c-4c29-876b-7d16d46c25ab"
+          }
+        },
+        {
+          "sessionId": "0d31c2a7-9d45-4e4d-9a96-6a32abdc53bb",
+          "agentPath": [],
+          "seq": 5,
+          "receivedAt": 1794745844490,
+          "kind": "response",
+          "requestId": "f0af4002-807a-4484-8996-45450a026fa5",
+          "body": {
+            "kind": "accepted",
+            "queued": "adapter"
+          }
+        },
+        {
+          "sessionId": "0d31c2a7-9d45-4e4d-9a96-6a32abdc53bb",
+          "agentPath": [],
+          "seq": 19,
+          "receivedAt": 1794745852550,
+          "kind": "request",
+          "id": "82368af2-103f-47b1-b84d-3cda23ecdb50",
+          "direction": "toRuntime",
+          "body": {
+            "kind": "prompt",
+            "input": "and then this",
+            "carries": [
+              "ee6fd6f3-ed0c-4c29-876b-7d16d46c25ab"
+            ]
+          }
+        },
+        {
+          "sessionId": "0d31c2a7-9d45-4e4d-9a96-6a32abdc53bb",
+          "agentPath": [],
+          "seq": 20,
+          "receivedAt": 1794745852550,
+          "kind": "response",
+          "requestId": "82368af2-103f-47b1-b84d-3cda23ecdb50",
+          "body": {
+            "kind": "accepted"
+          }
+        },
+        {
+          "sessionId": "0d31c2a7-9d45-4e4d-9a96-6a32abdc53bb",
+          "agentPath": [],
+          "seq": 23,
+          "receivedAt": 1794745852560,
+          "kind": "frame",
+          "body": {
+            "type": "command_lifecycle",
+            "native": {
+              "type": "command_lifecycle",
+              "command_uuid": "ee6fd6f3-ed0c-4c29-876b-7d16d46c25ab",
+              "state": "started",
+              "uuid": "8b15d958-b22d-4c08-ba4d-5ef4b9c3fa1f",
+              "session_id": "0d31c2a7-9d45-4e4d-9a96-6a32abdc53bb"
+            },
+            "events": [
+              {
+                "kind": "turn_active",
+                "inputId": "ee6fd6f3-ed0c-4c29-876b-7d16d46c25ab"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "backend": "qoder-native",
+      "sourceSha256": "0639e7cbc7ff6bc02fff4d35f629bdb0be0ee40b3868763ad26ad697f3d28a3c",
+      "redactions": [],
+      "records": [
+        {
+          "sessionId": "d4ed244d-88d4-43dd-b0bd-951041509d18",
+          "agentPath": [],
+          "seq": 9,
+          "receivedAt": 1794745956189,
+          "kind": "request",
+          "id": "f7d9bb01-cce7-4eb1-818e-2552e46b9752",
+          "direction": "toRuntime",
+          "body": {
+            "kind": "queue",
+            "input": "and then this",
+            "inputId": "5ad2f476-a690-4421-8d26-d2346beb38b6"
+          }
+        },
+        {
+          "sessionId": "d4ed244d-88d4-43dd-b0bd-951041509d18",
+          "agentPath": [],
+          "seq": 10,
+          "receivedAt": 1794745956189,
+          "kind": "response",
+          "requestId": "f7d9bb01-cce7-4eb1-818e-2552e46b9752",
+          "body": {
+            "kind": "accepted",
+            "queued": "adapter"
+          }
+        },
+        {
+          "sessionId": "d4ed244d-88d4-43dd-b0bd-951041509d18",
+          "agentPath": [],
+          "seq": 20,
+          "receivedAt": 1794745957807,
+          "kind": "request",
+          "id": "841cf766-de2b-4616-be0d-804c0fb58142",
+          "direction": "toRuntime",
+          "body": {
+            "kind": "prompt",
+            "input": "and then this",
+            "carries": [
+              "5ad2f476-a690-4421-8d26-d2346beb38b6"
+            ]
+          }
+        },
+        {
+          "sessionId": "d4ed244d-88d4-43dd-b0bd-951041509d18",
+          "agentPath": [],
+          "seq": 21,
+          "receivedAt": 1794745957808,
+          "kind": "response",
+          "requestId": "841cf766-de2b-4616-be0d-804c0fb58142",
+          "body": {
+            "kind": "accepted"
+          }
+        },
+        {
+          "sessionId": "d4ed244d-88d4-43dd-b0bd-951041509d18",
+          "agentPath": [],
+          "seq": 25,
+          "receivedAt": 1794745957825,
+          "kind": "frame",
+          "body": {
+            "type": "command_lifecycle",
+            "native": {
+              "type": "command_lifecycle",
+              "command_uuid": "5ad2f476-a690-4421-8d26-d2346beb38b6",
+              "state": "started",
+              "uuid": "b19fc408-f18f-4124-950e-971092aae7d1",
+              "session_id": "d4ed244d-88d4-43dd-b0bd-951041509d18"
+            },
+            "events": [
+              {
+                "kind": "turn_active",
+                "inputId": "5ad2f476-a690-4421-8d26-d2346beb38b6"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "backend": "qwen-aimock",
+      "sourceSha256": "6434bd83b3d35dda0f1ebe495c419a1bf6304d1bd785caf43d5eaf466a30ce4f",
+      "redactions": [
+        "system/init.native.cwd replaced with <synthetic-project>"
+      ],
+      "records": [
+        {
+          "sessionId": "4813d883-aed5-4f63-90b9-8bfdb3807981",
+          "agentPath": [],
+          "seq": 5,
+          "receivedAt": 1794745908399,
+          "kind": "request",
+          "id": "0149c1e7-5061-4cf1-88b1-86c456d1cfbd",
+          "direction": "toRuntime",
+          "body": {
+            "kind": "queue",
+            "input": "and then this",
+            "inputId": "3b953be6-c41c-45f9-8645-e3fde36e6b93"
+          }
+        },
+        {
+          "sessionId": "4813d883-aed5-4f63-90b9-8bfdb3807981",
+          "agentPath": [],
+          "seq": 6,
+          "receivedAt": 1794745908399,
+          "kind": "response",
+          "requestId": "0149c1e7-5061-4cf1-88b1-86c456d1cfbd",
+          "body": {
+            "kind": "accepted",
+            "queued": "adapter"
+          }
+        },
+        {
+          "sessionId": "4813d883-aed5-4f63-90b9-8bfdb3807981",
+          "agentPath": [],
+          "seq": 16,
+          "receivedAt": 1794745911992,
+          "kind": "request",
+          "id": "6b93de39-fed3-452d-a8c5-cb12e46b6bf6",
+          "direction": "toRuntime",
+          "body": {
+            "kind": "prompt",
+            "input": "and then this",
+            "carries": [
+              "3b953be6-c41c-45f9-8645-e3fde36e6b93"
+            ]
+          }
+        },
+        {
+          "sessionId": "4813d883-aed5-4f63-90b9-8bfdb3807981",
+          "agentPath": [],
+          "seq": 17,
+          "receivedAt": 1794745911993,
+          "kind": "response",
+          "requestId": "6b93de39-fed3-452d-a8c5-cb12e46b6bf6",
+          "body": {
+            "kind": "accepted"
+          }
+        },
+        {
+          "sessionId": "4813d883-aed5-4f63-90b9-8bfdb3807981",
+          "agentPath": [],
+          "seq": 18,
+          "receivedAt": 1794745912298,
+          "kind": "frame",
+          "body": {
+            "type": "system/init",
+            "native": {
+              "type": "system",
+              "subtype": "init",
+              "uuid": "4813d883-aed5-4f63-90b9-8bfdb3807981",
+              "session_id": "4813d883-aed5-4f63-90b9-8bfdb3807981",
+              "cwd": "<synthetic-project>",
+              "tools": [
+                "read_mcp_resource",
+                "skill",
+                "read_file",
+                "search_memory",
+                "zoom_image",
+                "grep_search",
+                "cron_list",
+                "cron_delete",
+                "autofix_pr",
+                "web_fetch",
+                "tool_search",
+                "list_agents",
+                "task_stop",
+                "ask_user_question",
+                "enter_worktree",
+                "exit_worktree",
+                "get_goal",
+                "update_goal",
+                "tool_call",
+                "agent",
+                "send_message",
+                "glob",
+                "run_shell_command",
+                "report_findings",
+                "cron_create",
+                "loop_wakeup",
+                "monitor",
+                "manage_memory",
+                "edit",
+                "notebook_edit",
+                "write_file"
+              ],
+              "mcp_servers": [],
+              "model": "gpt-5.1",
+              "permission_mode": "yolo",
+              "slash_commands": [
+                "advisor",
+                "agent-delegation",
+                "auth",
+                "autofix-pr",
+                "batch",
+                "batch-api",
+                "bug",
+                "clear",
+                "compress",
+                "compress-fast",
+                "config",
+                "context",
+                "coordinate",
+                "curator",
+                "dataviz",
+                "diff",
+                "docs",
+                "doctor",
+                "effort",
+                "export",
+                "extension-creator",
+                "extensions",
+                "goal",
+                "goal-draft",
+                "hooks",
+                "import-config",
+                "init",
+                "insight",
+                "language",
+                "loop",
+                "model",
+                "new-app",
+                "output-style",
+                "pr",
+                "qc-helper",
+                "review",
+                "simplify",
+                "stats",
+                "status",
+                "stuck",
+                "summary",
+                "tasks",
+                "update",
+                "workflow-authoring",
+                "workflow-creator",
+                "workflows",
+                "zvec-grep-install"
+              ],
+              "qwen_code_version": "0.27.3",
+              "agents": []
+            },
+            "events": [
+              {
+                "kind": "turn_active",
+                "inputId": "3b953be6-c41c-45f9-8645-e3fde36e6b93"
+              },
+              {
+                "kind": "model",
+                "model": "gpt-5.1"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
