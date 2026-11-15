@@ -113,15 +113,12 @@ Factory, Grok, OpenCode and Qoder compact requests carry
 `responseTo` request id. Earlier `turn_ended` and `compaction_ended` events
 remain in place but do not release these operations. Other runtimes use the
 terminal records above. With no adapter-held input, a synchronous observer
-of the release record can submit another prompt when status is idle. ACP and
-Pi SDK/RPC held inputs instead keep status at `running / waiting_model` until
-their dispatch or withdrawal.
-
-**Held-queue exception:** Claude, Qoder, Qwen and Cursor do not
-yet record OAR's queue ownership and dispatch as ACP does. While OAR holds
-or dispatches a queued input, status can display `idle` although a new
-`prompt` returns `busy`. This includes the window after dequeue but before
-native start/refusal is recorded.
+of the release record can submit another prompt when status is idle. ACP, Pi
+SDK/RPC, Claude, Qoder, Qwen and Cursor held inputs instead keep status at
+`running / waiting_model` until their dispatch or withdrawal. The accepted
+`queued: "adapter"` response and carrying prompt request expose this
+reservation in the stream, including the interval before native start or
+refusal. Neither record invents a native turn start.
 
 **Pi ordinary-turn exception:** SDK and RPC release their run gate after
 publishing the native `turn_ended` frame. A synchronous observer can see

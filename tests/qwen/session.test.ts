@@ -106,7 +106,7 @@ test.each([["prompt", true], ["queue", true], ["prompt", false], ["queue", false
     const next = await observed[0]?.control;
     expect(next).toMatchObject(held && method === "prompt" ? { kind: "rejected", code: "busy" } : { kind: "accepted" });
     const second = queued?.request.body ?? next?.request.body;
-    expect(observed[0]?.kind).toBe("idle");
+    expect(observed[0]?.kind).toBe(held ? "running" : "idle");
     assert.ok(first.request.body.kind === "prompt");
     assert.ok(second?.kind === "queue" || second?.kind === "prompt");
     const writtenIds = () => child.written.map(text => asRecord(parseJson(text))).filter(message => message?.type === "user").map(message => message?.uuid);

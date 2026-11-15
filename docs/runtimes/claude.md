@@ -225,6 +225,21 @@ The before-start case has no init or result at all. Adjacent `.stdin.jsonl`
 files preserve each experiment's requests; the after-start experiment forced
 `cancel_queued`, whereas OAR sends an ordinary interrupt once `started` is known.
 
+### Held queue ownership
+
+`queue()` records acceptance with `queued: "adapter"`. Dispatch adds a
+separate prompt request with `carries: [originalInputId]` (the queue request
+id when no input id exists), preserves the original native input UUID and
+answers only that new request. The original queue response stays unchanged;
+conversation views retain one logical input. Held ownership keeps status
+running through the gap before dispatch, including synchronous terminal
+observers, so a new prompt cannot overtake the FIFO. Withdrawal remains
+possible until dispatch begins. A thrown transport write is not a native
+refusal: the input stays held and withdrawable without automatic retry.
+[Record and replay tests](../../tests/adapter-held-queues.test.ts) and
+[transport boundary tests](../../tests/adapter-held-queue-boundaries.test.ts)
+use controlled processes with the runtime's actual projection dialect.
+
 ### Manual compaction
 
 `manualCompaction` declares support with `activeTurn: "reject"`; opened
@@ -383,10 +398,13 @@ provider request; neither is an empty user-text block. Verified with the
 [image-only provider test](../../sea-trial/vendor/image-only.vendor.test.ts), without a login.
 
 **Queue (mapped):** `queue()` is adapter-held (`capabilities.queue.durable:
-false`), drained one message per turn end; the queued input runs as a
-turn with no prompt request of its own, its native start still naming it
-(input/turn attribution above). A queue while idle is
-written at once. `withdraw(inputId)` takes a held message back before a turn
+false`), drained one message per turn end. Its accepted response carries
+`queued: "adapter"`; dispatch records a prompt carrying the original input
+identity ([ownership](#held-queue-ownership)), and the native start still
+names that input. A queue while idle is written after its acceptance is
+recorded. Once written, its reservation prevents another prompt even before
+the native start. An accepted interrupt alone does not release it: the
+next held input waits for a native end or cancellation receipt. `withdraw(inputId)` takes a held message back before a turn
 end writes it (`accepted`) and answers `not_queued` once it is on stdin;
 this is independent of the native bulk cancellation used for a pending prompt
 ([input cancellation](input-cancellation.md),

@@ -45,6 +45,11 @@ test("interrupts native unstarted input before draining arrivals held during obs
     const aborted = await abort;
     expect(aborted.kind).toBe("accepted");
     expect(commit).toHaveBeenCalledOnce();
+    // Taking the interrupt over does not prove that the queued input was
+    // cancelled. The next input stays held until its native disposition.
+    expect(child.written).toHaveLength(2);
+    expect(session.status().value.kind).toBe("running");
+    child.emit(`${JSON.stringify({ type: "command_lifecycle", command_uuid: "10000000-0000-4000-8000-000000000001", state: "cancelled" })}\n`);
     const writes = child.written.map(text => asRecord(parseJson(text)));
     expect(writes.map(write => write?.type)).toEqual(["user", "control_request", "user"]);
     expect(writes[1]?.request).toEqual({ subtype: "interrupt", cancel_queued: true });

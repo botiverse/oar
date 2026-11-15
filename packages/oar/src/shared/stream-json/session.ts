@@ -1,9 +1,10 @@
+import { writeHeldInput, type HeldStreamJsonInput } from "./held-input.js";
 import { streamJsonTaskControl } from "./task-control.js";
 import { streamJsonCompaction } from "./compaction.js";
 /* oxlint-disable import/max-dependencies -- The driver composes protocol, input and process-lifetime mechanisms. */
 import type { ControlResult, InputOptions, RequestRecord, Session } from "../../contracts/session.js";
 import { createAbortFallback } from "../abort-fallback.js";
-import { withInputImages, type LoadedImage } from "../input-images.js";
+import { withInputImages } from "../input-images.js";
 import { withdrawControl } from "../held-input.js";
 import { asRecord, parseJson } from "../json.js";
 import type { SessionCredentials } from "../session-credentials.js";
@@ -29,10 +30,11 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
   // Hold queues until turn end; active-turn writes may steer or become an irreversible native queue.
   const commandLifecycle = profile.projection.commandLifecycle !== false;
   const writtenQueues = new Map<string, RequestRecord>();
-  const heldQueue: { request: RequestRecord; input: string; inputId?: string; images: readonly LoadedImage[] }[] = [];
+  const heldQueue: HeldStreamJsonInput[] = [];
+  let dispatching = false;
   const nativeBusy = (): boolean => state.active !== null || state.spontaneous;
   const compaction = streamJsonCompaction(kernel, profile, state, drainHeld, () => heldQueue.length > 0);
-  const busy = (): boolean => nativeBusy() || compaction?.busy() === true;
+  const busy = (): boolean => dispatching || nativeBusy() || compaction?.busy() === true;
   let canCancelQueued = false;
   const abortFallback = createAbortFallback(() => { child.kill(); });
   const pendingInterrupts = new Map<string, () => void>();
@@ -53,15 +55,16 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
     if (sentInterrupts.size === 0) { completeCancellation(); }
   };
   function drainHeld(): void {
-    if (state.disposed || busy() || observingCancellation !== null) { return; }
+    if (state.disposed || kernel.unreachable() !== null || busy() || observingCancellation !== null || heldQueue[0]?.accepted !== true) { return; }
     const next = heldQueue.shift();
     if (next === undefined) { return; }
-    turnRevision += 1;
-    state.active = next.request;
-    if (commandLifecycle && next.inputId !== undefined) { writtenQueues.set(next.inputId, next.request); }
-    state.projection = streamJsonPrompted(state.projection, next.inputId, false, commandLifecycle);
-    if (!commandLifecycle) { state.spontaneous = true; }
-    child.write(userMessage(next.input, next.inputId, next.images));
+    dispatching = true;
+    const { inputId: _inputId, ...options } = next.options;
+    const request = kernel.request("toRuntime", { kind: "prompt", input: next.input, ...options, carries: [next.inputId ?? next.request.id] });
+    const response = writeHeldInput(state, next, { kernel, commandLifecycle, writtenQueues, held: heldQueue, userMessage, advance: () => { turnRevision += 1; dispatching = false; } });
+    dispatching = false;
+    kernel.respond(request.id, response);
+    if (response.kind === "accepted") { drainHeld(); }
   }
   // The fold translates and attributes facts; this driver owns transport, busy and queue drain.
   child.onLine((line) => {
@@ -102,13 +105,15 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
             if (state.projection.pendingInputId === null) { state.active = null; }
             state.spontaneous = false;
           }
+          const cancelled = command.body.events.find((event) => event.kind === "input_dropped");
+          if (command.agentPath.length === 0 && cancelled?.kind === "input_dropped" && cancelled.inputId !== undefined) {
+            writtenQueues.delete(cancelled.inputId);
+            if (state.active !== null && cancelled.inputId === (state.active.body.kind === "compact" ? state.active.id : ("inputId" in state.active.body ? state.active.body.inputId : undefined))) { state.active = null; }
+          }
           const record = kernel.frame(correlated ? { ...command.body, responseTo: nativeResponse } : command.body, { agentPath: command.agentPath });
           if (record.agentPath.length > 0) { break; }
           ended ||= closes;
-          const cancelled = command.body.events.find((event) => event.kind === "input_dropped");
           dropped ||= cancelled !== undefined;
-          if (cancelled?.kind === "input_dropped" && cancelled.inputId !== undefined) { writtenQueues.delete(cancelled.inputId); }
-          if (cancelled?.kind === "input_dropped" && cancelled.inputId !== undefined && state.active !== null && cancelled.inputId === (state.active.body.kind === "compact" ? state.active.id : ("inputId" in state.active.body ? state.active.body.inputId : undefined))) { state.active = null; }
           break;
         }
         case "respond": {
@@ -201,20 +206,16 @@ export async function streamJsonSession<S extends StreamJsonProjectionState>(
     queue: async (input, inputOptions?: InputOptions): Promise<ControlResult> => {
       const result = await kernel.control({ kind: "queue", input, ...inputOptions }, (request) =>
         withInputImages(capabilities, inputOptions?.images, (images) => {
-          if (busy() || heldQueue.length > 0 || observingCancellation !== null) {
-            heldQueue.push({ request, input, ...(inputOptions?.inputId === undefined ? {} : { inputId: inputOptions.inputId }), images });
-          } else {
-            turnRevision += 1;
-            if (commandLifecycle && inputOptions?.inputId !== undefined) { writtenQueues.set(inputOptions.inputId, request); }
-            state.projection = streamJsonPrompted(state.projection, inputOptions?.inputId, false, commandLifecycle);
-            if (!commandLifecycle) { state.spontaneous = true; }
-            child.write(userMessage(input, inputOptions?.inputId, images));
-          }
-          return { kind: "accepted" };
+          heldQueue.push({ request, input, ...(inputOptions?.inputId === undefined ? {} : { inputId: inputOptions.inputId }), options: { ...inputOptions }, images });
+          heldQueue.sort((left, right) => left.request.seq - right.request.seq);
+          return { kind: "accepted", queued: "adapter" };
         }));
+      const entry = heldQueue.find(next => next.request.id === result.request.id);
+      if (entry !== undefined && result.response.body.kind === "accepted") { entry.accepted = true; }
+      drainHeld();
       return result;
     },
-    withdraw: withdrawControl(kernel, heldQueue),
+    withdraw: async inputId => { const result = await withdrawControl(kernel, heldQueue)(inputId); drainHeld(); return result; },
     abort: async (): Promise<ControlResult> => {
       // The matching control_response answers interrupt; the result frame ends the turn.
       interruptCounter += 1;

@@ -183,7 +183,7 @@ test("Cursor startup refusal releases the compact gate before observers see idle
   } finally { await f.session.dispose(); }
 });
 
-test.each(["compact", "prompt"])("Cursor %s terminal preserves queue FIFO despite the documented idle status gap", async mode => {
+test.each(["compact", "prompt"])("Cursor %s terminal keeps status busy while preserving queue FIFO", async mode => {
   const f = await open(); const observed: { kind: string; prompt: ReturnType<typeof f.session.prompt> }[] = [];
   try {
     const waiting = mode === "compact" ? f.compact() : f.session.prompt("A"); await settle(); const first = f.agent.latest();
@@ -194,7 +194,7 @@ test.each(["compact", "prompt"])("Cursor %s terminal preserves queue FIFO despit
     });
     if (mode === "compact") { first.streamMessage(summary(first.id, "completed")); }
     first.end("finished"); await waiting; await settle();
-    expect(observed[0]?.kind).toBe("idle");
+    expect(observed[0]?.kind).toBe("running");
     expect(await observed[0]?.prompt).toMatchObject({ kind: "rejected", code: "busy" });
     expect(f.agent.runs.map(run => run.message)).toEqual([mode === "compact" ? "native-summary" : "A", "B"]);
     f.agent.latest().end("finished"); await settle();

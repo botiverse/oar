@@ -1,4 +1,4 @@
-import { reduceAdapterQueue } from "./adapter-queue.js";
+import { dispatchStatus, isHeldOvertake, reduceAdapterQueue } from "./adapter-queue.js";
 import { reduceInputAdmission } from "./input-admission.js";
 import type { AgentStatus, QueryResult, RawEvent, RunningPhase, RuntimeEventBody } from "../contracts/session.js";
 
@@ -88,8 +88,9 @@ export function reduceStatus(previous: StatusState, record: RawEvent, sessionId?
   const root = (sessionId === undefined || record.sessionId === sessionId) && record.agentPath.length === 0;
   const queue = root ? reduceAdapterQueue(adapterQueue, record) : adapterQueue;
   const before = adapterQueue?.idle ?? inputAdmission?.nativeIdle ?? core;
-  const reduced = reduceCore(before, record, sessionId);
-  const status = root ? reduceInputAdmission(inputAdmission, before, reduced, record)
+  const coreStatus = root && isHeldOvertake(adapterQueue, record) ? before : reduceCore(before, record, sessionId);
+  const reduced = root ? dispatchStatus(adapterQueue, coreStatus, record) : coreStatus;
+  const status: StatusState = root ? reduceInputAdmission(inputAdmission, before, reduced, record)
     : (inputAdmission === undefined ? reduced : { ...reduced, inputAdmission });
   const admission = status.inputAdmission;
   const waiting = queue?.inputs.find(input => input.accepted === true);
@@ -131,9 +132,11 @@ function reduceCore(previous: StatusState, record: RawEvent, sessionId?: string)
       if (record.direction === "toRuntime" && record.body.kind === "compact" && previous.kind === "idle" && previous.pendingPrompt === undefined) {
         return { kind: "running", sinceSeq: record.seq, requestId: record.id, compaction: { requestId: record.id }, compactionState: { ...(record.body.settledBy === undefined ? {} : { settledBy: record.body.settledBy }), ...(previous.lastTurnOutcome === undefined ? {} : { lastTurnOutcome: previous.lastTurnOutcome }) }, phase: "compacting", lastEventAt: record.receivedAt };
       }
-      return record.direction === "toRuntime" && record.body.kind === "prompt" && previous.kind === "idle" && previous.pendingPrompt === undefined
-        ? { kind: "running", sinceSeq: record.seq, requestId: record.id, ...(record.body.inputId === undefined ? {} : { inputId: record.body.inputId }), phase: "waiting_model", lastEventAt: record.receivedAt }
-        : previous;
+      if (record.direction === "toRuntime" && record.body.kind === "prompt" && previous.kind === "idle" && previous.pendingPrompt === undefined) {
+        const inputId = record.body.inputId ?? (record.body.carries?.length === 1 ? record.body.carries[0] : undefined);
+        return { kind: "running", sinceSeq: record.seq, requestId: record.id, ...(inputId === undefined ? {} : { inputId }), phase: "waiting_model", lastEventAt: record.receivedAt };
+      }
+      return previous;
     case "response":
       if (record.body.kind === "accepted" && record.spanId !== undefined && previous.kind === "running" && previous.compaction?.requestId === record.requestId) {
         return { ...previous, compactionState: { ...previous.compactionState, nativeTurn: true, spanId: record.spanId } };

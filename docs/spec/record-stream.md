@@ -562,10 +562,9 @@ Further rules:
   or `-1` before any record. `status()` is the one the control decisions
   must agree with: a prompt recorded while it says `running` is rejected
   `busy`, and one recorded while it says `idle` is not refused as `busy`,
-  with three known gaps
+  with two known gaps
   ([state exceptions](manual-compaction.md#ownership-records-and-state)):
-  Claude, Qoder, Qwen and Cursor do not yet record held queue ownership,
-  including an input dequeued but awaiting native start/refusal; Pi
+  Pi
   SDK/RPC release their run gate after publishing ordinary `turn_ended`, so a
   synchronous observer can see `idle` while `prompt` returns `busy`, even with
   no queue (submit after that observer returns); and OpenCode 2.3's own root
@@ -813,7 +812,8 @@ protocol fields. Older readers may ignore the additive field.
 ### Adapter-held queue records
 
 Kimi, Grok, OpenCode, Antigravity and CodeBuddy use the shared ACP driver.
-Pi SDK/RPC use the same ownership records. A queue accepted with
+Pi SDK/RPC, Claude, Qoder, Qwen and Cursor use the same ownership records.
+A queue accepted with
 `queued: "adapter"` is still held by OAR. At
 actual dispatch the adapter records a new prompt carrying the original
 `inputId` (or the queue request id when absent), then that prompt's single
@@ -825,8 +825,19 @@ evidence. Persist the entire `StatusState` checkpoint to retain that ownership.
 
 Hosts counting or grouping requests by kind must not count the queue and
 this dispatch prompt as two user inputs: the prompt's `carries` points to the
-already accepted logical input. Qoder uses the stream-json driver and retains
-its existing queue record shape.
+already accepted logical input. Claude, Qoder and Qwen keep the original
+native input UUID when writing this dispatch; the new request id is only an
+OAR control identity.
+
+A Cursor SDK send refusal records `input_dropped` on `cursor/send_rejected`,
+associated with the dispatch request, before the rejection response and the
+next dispatch. An unresolved send is not a refusal: its internal dispatch
+request stays unanswered, and its accepted queue input retains occupancy
+until the run arrives or the session is released. Late runs proceed normally;
+only an explicit host abort or disposal requests cancellation. See the
+[Cursor mapping](../runtimes/cursor.md#prompt-steering-queueing-and-abort).
+A thrown stream-json write leaves the input held and withdrawable, without an
+automatic retry or a fabricated native refusal.
 
 Controls issued synchronously by a record observer can act before an adapter
 resumes draining its held queue. Reentrant records are retained immediately;

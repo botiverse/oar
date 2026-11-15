@@ -1,13 +1,7 @@
+import settleQueuedSend from "./held-input.js";
 import { asRecord } from "../../shared/json.js";
 /* oxlint-disable import/max-dependencies -- Session profiles and assembly wire the native control, projection and lifecycle helpers. */
-import type {
-  ControlResult,
-  InputOptions,
-  RequestRecord,
-  ResponseBody,
-  Session,
-  StartSession,
-} from "../../contracts/session.js";
+import type { ControlResult, InputOptions, RequestRecord, ResponseBody, Session, StartSession } from "../../contracts/session.js";
 import { manualCompaction } from "../../shared/manual-compaction.js";
 import { cursorCompaction } from "./compaction.js";
 import { withdrawControl } from "../../shared/held-input.js";
@@ -57,7 +51,8 @@ export function cursorSessionWith(source: CursorSdkSource): StartSession {
     let forceNext = options.resume !== undefined;
     let disposeRequest: RequestRecord | null = null;
     // Adapter-held queue, drained one input per run end; withdrawable by inputId until then.
-    const held: { readonly input: string; readonly inputId: string | undefined; readonly images: readonly LoadedImage[] }[] = [];
+    const held: { readonly request: RequestRecord; readonly input: string; readonly inputId: string | undefined; readonly options: InputOptions; readonly images: readonly LoadedImage[]; accepted?: true }[] = [];
+    let dispatching = false;
     // Subprocess mode: a child that exits drops the held inputs, and its exit is recorded once the turn ended.
     const end = cursorSessionEnd(kernel, lease, async () => { held.splice(0); await active?.ended; });
     const record = (frame: CursorFrame): void => {
@@ -136,14 +131,16 @@ export function cursorSessionWith(source: CursorSdkSource): StartSession {
       return attempt;
     };
 
-    const start = async (input: string, images: readonly LoadedImage[], compact?: { start(): Promise<CursorRun>; onRun(run: CursorRun): void }): Promise<ResponseBody> => {
+    const start = async (input: string, images: readonly LoadedImage[], compact?: { start(): Promise<CursorRun>; onRun(run: CursorRun): void }, queued = false): Promise<ResponseBody> => {
       gate.running = true;
       const attempt = launch(input, images, compact);
       launching = attempt;
-      const deadline = setTimeout(() => {
+      // queue() already returned ownership acceptance. A slow SDK send is
+      // still in flight, not a refusal; adopt its run whenever it arrives.
+      const deadline = queued ? undefined : setTimeout(() => {
         giveUp(attempt, `cursor did not start the run within ${String(SEND_TIMEOUT_MS / 1000)} s`);
       }, SEND_TIMEOUT_MS);
-      deadline.unref();
+      deadline?.unref();
       await attempt.decided;
       clearTimeout(deadline);
       if (launching === attempt) {
@@ -152,7 +149,7 @@ export function cursorSessionWith(source: CursorSdkSource): StartSession {
       const { current } = attempt;
       if (current === null) {
         gate.running = false;
-        return { kind: "rejected", code: "runtime_refused", reason: attempt.reason };
+        return (queued ? kernel.unreachable() : null) ?? { kind: "rejected", code: "runtime_refused", reason: attempt.reason };
       }
       if (attempt.abortRequested) {
         // The abort was accepted before the run existed; its outcome is the
@@ -167,21 +164,19 @@ export function cursorSessionWith(source: CursorSdkSource): StartSession {
     };
 
     function drainHeld(): void {
-      if (disposeRequest !== null || gate.running || compaction?.busy() === true) {
+      if (disposeRequest !== null || kernel.unreachable() !== null || dispatching || gate.running || compaction?.busy() === true || held[0]?.accepted !== true) {
         return;
       }
       const next = held.shift();
       if (next === undefined) {
         return;
       }
-      void (async (): Promise<void> => {
-        const decided = await start(next.input, next.images);
-        if (decided.kind === "rejected") {
-          // The queue took the input over; the SDK refusing it is not silent.
-          kernel.frame({ type: "cursor/send_rejected", native: { message: decided.reason, input: next.input }, events: [] });
-          drainHeld();
-        }
-      })();
+      dispatching = true;
+      const { inputId: _inputId, ...inputOptions } = next.options;
+      const request = kernel.request("toRuntime", { kind: "prompt", input: next.input, ...inputOptions, carries: [next.inputId ?? next.request.id] });
+      const decision = kernel.unreachable() ?? start(next.input, next.images, undefined, true);
+      dispatching = false;
+      void settleQueuedSend(kernel, { request, input: next.input, inputId: next.inputId, decision }, drainHeld);
     }
 
     /** The run in flight, waiting out a `send` that has not returned it yet. */
@@ -196,7 +191,7 @@ export function cursorSessionWith(source: CursorSdkSource): StartSession {
 
     if (summarize !== undefined) {
       compaction = manualCompaction(kernel, {
-        busy: () => gate.running || held.length > 0,
+        busy: () => dispatching || gate.running || held.length > 0,
         busyReason: "Wait until the Cursor run and held inputs finish before summarizing",
         released: drainHeld,
         create: () => cursorCompaction(async (onRun) => { const response = await start("", [], { start: summarize, onRun }); return response; }),
@@ -209,7 +204,7 @@ export function cursorSessionWith(source: CursorSdkSource): StartSession {
       ...(compaction === null ? {} : { compact: compaction.compact }),
       prompt: async (input, inputOptions?: InputOptions): Promise<ControlResult> => {
         const result = await kernel.control({ kind: "prompt", input, ...inputOptions }, async () => {
-          if (gate.running || held.length > 0 || compaction?.busy() === true) {
+          if (dispatching || gate.running || held.length > 0 || compaction?.busy() === true) {
             return { kind: "rejected", code: "busy", reason: "busy" };
           }
           const decided = await withInputImages(capabilities, inputOptions?.images, async (images) => {
@@ -236,12 +231,15 @@ export function cursorSessionWith(source: CursorSdkSource): StartSession {
         return result;
       },
       queue: async (input, inputOptions?: InputOptions): Promise<ControlResult> => {
-        const result = await kernel.control({ kind: "queue", input, ...inputOptions }, () =>
+        const result = await kernel.control({ kind: "queue", input, ...inputOptions }, request =>
           withInputImages(capabilities, inputOptions?.images, (images) => {
-            held.push({ input, inputId: inputOptions?.inputId, images });
-            drainHeld();
-            return { kind: "accepted" };
+            held.push({ request, input, inputId: inputOptions?.inputId, options: { ...inputOptions }, images });
+            held.sort((left, right) => left.request.seq - right.request.seq);
+            return { kind: "accepted", queued: "adapter" };
           }));
+        const entry = held.find(next => next.request.id === result.request.id);
+        if (entry !== undefined && result.response.body.kind === "accepted") { entry.accepted = true; }
+        drainHeld();
         return result;
       },
       withdraw: withdrawControl(kernel, held),
