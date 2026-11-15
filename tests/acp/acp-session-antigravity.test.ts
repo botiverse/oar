@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import assert from "node:assert/strict";
 import { expect, test } from "vitest";
+import { ModelConfirmationError } from "../../packages/oar/src/index.js";
 import type { Session, SessionOptions } from "../../packages/oar/src/contracts/session.js";
 import {
   antigravityAcpArgs,
@@ -151,6 +152,14 @@ test.each(["model", "effort"])("missing %s notification refuses open within the 
 
 test("an effort answer alone cannot override a contradictory native notification", async () => {
   await expect(startAntigravity({ model: "requested-y", effort: "high", env: { FAKE_ACP_WRONG_EFFORT_UPDATE: "1" } })).rejects.toThrow(/config_option_update left thought_level at low/u);
+});
+
+test("a contradictory model notification rejects with a typed error and no invented catalog", async () => {
+  const opening = startAntigravity({ model: "requested-y", env: { FAKE_ACP_WRONG_MODEL_UPDATE: "1" } });
+  await expect(opening).rejects.toBeInstanceOf(ModelConfirmationError);
+  await expect(opening).rejects.toMatchObject({ requested: "requested-y", reported: "other-model",
+    message: "ACP config_option_update left model at other-model although requested-y was requested" });
+  await expect(opening).rejects.not.toHaveProperty("catalogSelectorIds");
 });
 
 // oxlint-disable-next-line eslint/max-statements -- Follow only the rejected steer and original prompt, without a third prompt masking the outcome.

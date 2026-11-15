@@ -2,6 +2,7 @@ import { appendCleanupFailure, cleanupFailureReason } from "../../shared/executa
 /* oxlint-disable import/max-dependencies -- Native transport, controls, projection and credential boundary. */
 import { randomUUID } from "node:crypto";
 import type { StartSession } from "../../contracts/session.js";
+import { ModelConfirmationError } from "../../contracts/model-confirmation-error.js";
 import { withSessionCredentials } from "../../shared/session-credentials.js";
 import { streamJsonSession } from "../../shared/stream-json/session.js";
 import { asRecord, asRecordList, type JsonRecord } from "../../shared/json.js";
@@ -13,26 +14,37 @@ import { qoderStartupError, qoderTerminationReason, qoderVersionInfo } from "./p
 import { qoderPermissionResponse } from "./permission.js";
 import { qoderNativeModelName } from "./list-models.js";
 
-async function readModelCatalog(control: ReturnType<typeof qoderControl>, requested: string, fetchStrategy: "cache" | "live"): Promise<JsonRecord[]> {
+interface ConfirmationCatalog { readonly models: JsonRecord[]; readonly catalogSelectorIds?: readonly string[]; }
+
+async function readModelCatalog(control: ReturnType<typeof qoderControl>, requested: string, reported: string | null, fetchStrategy: "cache" | "live", previous?: ConfirmationCatalog): Promise<ConfirmationCatalog> {
   const catalog = await control.request({ subtype: "get_models", fetchStrategy }).catch((error: unknown) => {
-    throw new Error(`Qoder could not read ${fetchStrategy} model catalog to confirm ${JSON.stringify(requested)}: ${String(error)}`, { cause: error });
+    throw new ModelConfirmationError(`Qoder could not read ${fetchStrategy} model catalog to confirm ${JSON.stringify(requested)}: ${String(error)}`, {
+      requested, reported, ...(previous?.catalogSelectorIds === undefined ? {} : { catalogSelectorIds: previous.catalogSelectorIds }), cause: error,
+    });
   });
   const payload = asRecord(asRecord(catalog.response)?.response);
-  return asRecordList(payload?.models);
+  const models = asRecordList(payload?.models);
+  const catalogSelectorIds = Array.isArray(payload?.models)
+    ? models.flatMap(entry => typeof entry.value === "string" && entry.value.length > 0 ? [entry.value] : [])
+    : previous?.catalogSelectorIds;
+  return { models, ...(catalogSelectorIds === undefined ? {} : { catalogSelectorIds }) };
 }
 
 async function confirmModel(control: ReturnType<typeof qoderControl>, requested: string, reported: string | null, version: string): Promise<void> {
-  let models = await readModelCatalog(control, requested, "cache");
+  let catalog = await readModelCatalog(control, requested, reported, "cache");
+  let { models } = catalog;
   let selected = models.find(entry => entry.value === requested);
   if (qoderNativeModelName(selected, models, version) === undefined) {
-    models = await readModelCatalog(control, requested, "live");
+    catalog = await readModelCatalog(control, requested, reported, "live", catalog);
+    models = catalog.models;
     selected = models.find(entry => entry.value === requested);
   }
-  if (selected === undefined) { throw new Error(`Qoder model catalog did not contain requested selector ${JSON.stringify(requested)}`); }
+  const details = { requested, reported, ...(catalog.catalogSelectorIds === undefined ? {} : { catalogSelectorIds: catalog.catalogSelectorIds }) };
+  if (selected === undefined) { throw new ModelConfirmationError(`Qoder model catalog did not contain requested selector ${JSON.stringify(requested)}`, details); }
   const resolvedId = qoderNativeModelName(selected, models, version);
-  if (resolvedId === undefined) { throw new Error(`Qoder model catalog did not provide a resolved name for ${JSON.stringify(requested)}; reported ${JSON.stringify(reported)}`); }
+  if (resolvedId === undefined) { throw new ModelConfirmationError(`Qoder model catalog did not provide a resolved name for ${JSON.stringify(requested)}; reported ${JSON.stringify(reported)}`, details); }
   if (resolvedId !== reported) {
-    throw new Error(`Qoder did not confirm model ${JSON.stringify(requested)}; reported ${JSON.stringify(reported)}, catalog resolved ${JSON.stringify(resolvedId)}`);
+    throw new ModelConfirmationError(`Qoder did not confirm model ${JSON.stringify(requested)}; reported ${JSON.stringify(reported)}, catalog resolved ${JSON.stringify(resolvedId)}`, details);
   }
 }
 

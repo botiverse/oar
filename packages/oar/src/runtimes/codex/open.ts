@@ -1,4 +1,5 @@
 import { sessionCredentialRedactor } from "../../shared/credential-redactor.js";
+import { ModelConfirmationError } from "../../contracts/model-confirmation-error.js";
 import path from "node:path";
 import { resolvedAdditionalDirectories } from "../../shared/additional-directories.js";
 import { validateCodexToolDenials } from "./tool-denials.js";
@@ -176,7 +177,7 @@ export function codexOpenReadback(
   method: CodexOpenMethod,
   options: SessionOptions,
   reply: JsonRecord,
-): { readonly events: readonly RuntimeEventBody[]; readonly refusal: string | null; readonly resumeEffort: string | null } {
+): { readonly events: readonly RuntimeEventBody[]; readonly refusal: string | ModelConfirmationError | null; readonly resumeEffort: string | null } {
   const model = typeof reply.model === "string" ? reply.model : null;
   const effort = effortIn(reply);
   const events: RuntimeEventBody[] = [
@@ -190,7 +191,7 @@ export function codexOpenReadback(
     return { events, refusal: `codex ${method} did not confirm the requested additionalDirectories in runtimeWorkspaceRoots`, resumeEffort: null };
   }
   if (options.model !== undefined && model !== null && model !== options.model) {
-    return { events, refusal: `codex ${method} kept model ${model} although ${options.model} was requested`, resumeEffort: null };
+    return { events, refusal: new ModelConfirmationError(`codex ${method} kept model ${model} although ${options.model} was requested`, { requested: options.model, reported: model }), resumeEffort: null };
   }
   if (options.serviceTier !== undefined && codexServiceTier(reply) !== options.serviceTier) {
     const actual = codexServiceTier(reply) ?? "unreported";

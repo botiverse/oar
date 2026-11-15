@@ -1,4 +1,5 @@
 import { afterEach, expect, test, vi } from "vitest";
+import { ModelConfirmationError } from "../../packages/oar/src/index.js";
 import { qoderSession } from "../../packages/oar/src/runtimes/qoder/session.js";
 import { qoderListModels } from "../../packages/oar/src/runtimes/qoder/list-models.js";
 import type { SessionOptions, Session } from "../../packages/oar/src/contracts/session.js";
@@ -127,7 +128,7 @@ function failCatalog(child: FakeLineProcess, request: JsonRecord | null, failure
   return true;
 }
 
-function catalogProcesses(models: unknown = catalog, reported?: string, queries: { readonly failure?: CatalogFailure; readonly liveModels?: unknown } = {}) {
+function catalogProcesses(models: unknown = catalog, reported?: string | null, queries: { readonly failure?: CatalogFailure; readonly liveModels?: unknown } = {}) {
   const { failure, liveModels = models } = queries;
   const children: FakeLineProcess[] = [];
   launch.launchQoder.mockImplementation(async (_command: string, _id: string, options: SessionOptions) => {
@@ -136,7 +137,7 @@ function catalogProcesses(models: unknown = catalog, reported?: string, queries:
       const subtype = asRecord(request?.request)?.subtype;
       if (failCatalog(process, request, failure)) { return; }
       if (subtype === "initialize") {
-        const model = reported ?? catalog.find((entry) => entry.value === options.model)?.serverModel.display_name ?? "default-model";
+        const model = reported === null ? undefined : reported ?? catalog.find((entry) => entry.value === options.model)?.serverModel.display_name ?? "default-model";
         process.emit(`${JSON.stringify({ type: "system", subtype: "init", model })}\n`);
       }
       const rows = asRecord(request?.request)?.fetchStrategy === "live" ? liveModels : models;
@@ -155,18 +156,15 @@ function expectCatalogReadback(session: Session, resolvedId: string | undefined,
   const queries = child?.written.map((line) => asRecord(parseJson(line))?.request);
   expect(queries).toContainEqual({ subtype: "get_models", fetchStrategy: "cache" });
 }
-
 async function openListedModel(id: string, resolvedId: string | undefined, children: FakeLineProcess[]) {
   const session = await qoderSession(installation, { cwd: "/work", model: id });
   try { expectCatalogReadback(session, resolvedId, children.at(-1)); }
   finally { await session.dispose(); }
 }
-
 function catalogStrategies(child: FakeLineProcess | undefined) {
   return child?.written.map((line) => asRecord(asRecord(parseJson(line))?.request))
     .filter((request) => request?.subtype === "get_models").map((request) => request?.fetchStrategy);
 }
-
 test("every listed selector opens while model readback keeps the native name", async () => {
   const children = catalogProcesses();
   const listed = await qoderListModels(installation, { cwd: "/work" });
@@ -197,7 +195,11 @@ test.each([
   { name: "native name equal to selector but not init", models: [{ value: "qfmodel", serverModel: { display_name: "qfmodel" } }], error: "did not confirm model", strategies: ["cache"] },
 ])("$name cannot confirm a model and closes the process", async ({ models, error, strategies }) => {
   const children = catalogProcesses(models, "Qwen3.8-Flash");
-  await expect(qoderSession(installation, { cwd: "/work", model: "qfmodel" })).rejects.toThrow(error);
+  const opening = qoderSession(installation, { cwd: "/work", model: "qfmodel" });
+  await expect(opening).rejects.toThrow(error);
+  await expect(opening).rejects.toBeInstanceOf(ModelConfirmationError);
+  await expect(opening).rejects.toMatchObject({ name: "ModelConfirmationError", requested: "qfmodel", reported: "Qwen3.8-Flash",
+    catalogSelectorIds: models.length === 0 ? [] : ["qfmodel"] });
   expect(launch.closeQoder).toHaveBeenCalledWith(children[0]);
   expect(catalogStrategies(children[0])).toEqual(strategies);
 });
@@ -213,9 +215,35 @@ test.each([
 
 test.each(["cache", "live"] as const)("a failed %s catalog read refuses opening without leaking native details", async (strategy) => {
   const children = catalogProcesses([], "Qwen3.8-Flash", { failure: { kind: "refused", strategy } });
-  await expect(qoderSession(installation, { cwd: "/work", model: "qfmodel" })).rejects.toMatchObject({ message: `Qoder could not read ${strategy} model catalog to confirm "qfmodel": Error: Qoder refused get_models` });
+  const opening = qoderSession(installation, { cwd: "/work", model: "qfmodel" });
+  await expect(opening).rejects.toBeInstanceOf(ModelConfirmationError);
+  await expect(opening).rejects.toMatchObject({ requested: "qfmodel", reported: "Qwen3.8-Flash", cause: { message: "Qoder refused get_models" },
+    message: `Qoder could not read ${strategy} model catalog to confirm "qfmodel": Error: Qoder refused get_models` });
+  await (strategy === "cache" ? expect(opening).rejects.not.toHaveProperty("catalogSelectorIds") : expect(opening).rejects.toHaveProperty("catalogSelectorIds", []));
   expect(launch.closeQoder).toHaveBeenCalledWith(children[0]);
   expect(catalogStrategies(children[0])).toEqual(strategy === "cache" ? ["cache"] : ["cache", "live"]);
+});
+
+test("a missing native model stays null, and only live catalog selectors reach the error", async () => {
+  catalogProcesses([{ value: "cache-only" }], null, { liveModels: [{ value: "live-only", displayName: "Label", ...privateData }, { value: "" }, { value: 7 }, { displayName: "not-a-selector" }] });
+  const refused = await qoderSession(installation, { cwd: "/work", model: "requested" }).catch((error: unknown) => error);
+  expect(refused).toBeInstanceOf(ModelConfirmationError);
+  expect(refused).toMatchObject({ requested: "requested", reported: null, catalogSelectorIds: ["live-only"] });
+  expectPrivateDataAbsent(JSON.stringify(refused));
+});
+
+test.each([null, { models: "not a catalog" }])("an unreadable catalog payload does not invent an empty selector list: %j", async (models) => {
+  catalogProcesses(models, "native-model");
+  const opening = qoderSession(installation, { cwd: "/work", model: "requested" });
+  await expect(opening).rejects.toMatchObject({ name: "ModelConfirmationError", requested: "requested", reported: "native-model" });
+  await expect(opening).rejects.not.toHaveProperty("catalogSelectorIds");
+});
+
+test("a failed live query retains only the catalog actually read from cache", async () => {
+  catalogProcesses([{ value: "cache-only" }], "native-model", { failure: { kind: "refused", strategy: "live" } });
+  await expect(qoderSession(installation, { cwd: "/work", model: "requested" })).rejects.toMatchObject({
+    name: "ModelConfirmationError", requested: "requested", reported: "native-model", catalogSelectorIds: ["cache-only"],
+  });
 });
 
 test.each(["cache", "live"] as const)("a silent %s catalog read keeps the normal control deadline and cleans up", async (strategy) => {

@@ -219,6 +219,11 @@ answer and corresponding `config_option_update` must confirm the requested
 selection before open returns; an empty `session/set_model` acknowledgement
 would not establish model readback. See the
 [notification-order controls](../../experiments/antigravity-cli-acp-2026-11-05.md#model-notifications-must-settle-before-effort).
+A contradictory model notification throws
+[`ModelConfirmationError`](../spec/runtime-matrix.md#model-confirmation-failures),
+carrying `requested` and the notification's model string (`null` if absent).
+This check does not enumerate a model catalog, so `catalogSelectorIds` is
+absent. Missing notifications retain the configuration deadline error.
 The provider regression verifies `LOW` and `HIGH` thinking levels for the
 explicitly selected Gemini Flash family on creation and resume. Other
 families may encode effort as a thinking budget instead.

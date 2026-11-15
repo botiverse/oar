@@ -1,6 +1,7 @@
 /* oxlint-disable import/max-dependencies -- SDK startup owns option validation, native settings, credentials, model resolution and lifecycle. */
 import type { RefusedSessionOptions, SessionOptions } from "../../contracts/index.js";
 import { UnsupportedOptionError } from "../../contracts/errors.js";
+import { ModelConfirmationError } from "../../contracts/model-confirmation-error.js";
 import { checkSessionName, refuseSessionOptions } from "../../shared/session-options.js";
 import { sessionEnvironment } from "../../shared/environment.js";
 import type { AgentSession as PiAgentSession, CreateAgentSessionOptions } from "@earendil-works/pi-coding-agent";
@@ -239,7 +240,7 @@ export async function openPiAgentSession(options: SessionOptions, rememberKey?: 
   const effective = piEffectiveModel(session);
   if (options.model !== undefined && effective !== options.model) {
     session.dispose();
-    throw new Error(`pi did not apply model ${options.model}: the session reports ${effective ?? "no model"}`);
+    throw new ModelConfirmationError(`pi did not apply model ${options.model}: the session reports ${effective ?? "no model"}`, { requested: options.model, reported: effective });
   }
   const refusal = options.effort === undefined ? null : piEffortRefusal(options.effort, session);
   if (refusal !== null) {

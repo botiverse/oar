@@ -1,5 +1,5 @@
 import { afterEach, expect, test, vi } from "vitest";
-import { promptAndWait } from "../../packages/oar/src/index.js";
+import { ModelConfirmationError, promptAndWait } from "../../packages/oar/src/index.js";
 import { codexSession } from "../../packages/oar/src/runtimes/codex/session.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { fakeLineProcess, type FakeLineProcess } from "../fixtures/fake-line-process.js";
@@ -67,17 +67,22 @@ test("thread/resume without a model does not send one", async () => {
 // forwards the parameter would resolve here; ours must reject.
 test("resume that silently keeps the old model is rejected", async () => {
   const { fake } = fakeAppServer(() => "gpt-5.4-mini");
-  await expect(codexSession(installation, { cwd: "/work", resume: threadId, model: "gpt-5.5" })).rejects.toThrow(
-    "codex thread/resume kept model gpt-5.4-mini although gpt-5.5 was requested",
-  );
+  const opening = codexSession(installation, { cwd: "/work", resume: threadId, model: "gpt-5.5" });
+  await expect(opening).rejects.toBeInstanceOf(ModelConfirmationError);
+  await expect(opening).rejects.toMatchObject({ name: "ModelConfirmationError", requested: "gpt-5.5", reported: "gpt-5.4-mini",
+    message: "codex thread/resume kept model gpt-5.4-mini although gpt-5.5 was requested" });
+  await expect(opening).rejects.not.toHaveProperty("catalogSelectorIds");
   expect(fake.killed()).toBe(true);
 });
 
 test("thread/start that reports a different model is rejected too", async () => {
-  fakeAppServer(() => "gpt-5.4-mini");
-  await expect(codexSession(installation, { cwd: "/work", model: "gpt-5.5" })).rejects.toThrow(
-    "codex thread/start kept model gpt-5.4-mini although gpt-5.5 was requested",
-  );
+  const { fake, requests } = fakeAppServer(() => "gpt-5.4-mini");
+  const opening = codexSession(installation, { cwd: "/work", model: "gpt-5.5" });
+  await expect(opening).rejects.toMatchObject({ name: "ModelConfirmationError", requested: "gpt-5.5", reported: "gpt-5.4-mini",
+    message: "codex thread/start kept model gpt-5.4-mini although gpt-5.5 was requested" });
+  await expect(opening).rejects.not.toHaveProperty("catalogSelectorIds");
+  expect(requests.some(request => request.method === "model/list")).toBe(false);
+  expect(fake.killed()).toBe(true);
 });
 
 // Session.model is the response `model`, so a resume without a request still

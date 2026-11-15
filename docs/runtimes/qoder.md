@@ -448,6 +448,14 @@ keeps the normal 30-second control deadline; a query error or timeout closes
 the process without retrying. There is no second listing process, and private
 replies do not enter public records.
 
+These confirmation refusals throw
+[`ModelConfirmationError`](../spec/runtime-matrix.md#model-confirmation-failures),
+retaining the existing message. `requested` is the selector, `reported` is
+the init name (or `null`), and `catalogSelectorIds` contains only `value`
+strings from the last successfully read cache/live catalog. If neither read
+produced a catalog, the property is absent; a query failure also retains its
+`cause`. The list makes no claim about model availability.
+
 [src, env] The [2026-11-05 controls](../../experiments/qoder-native/model-provider-2026-11-05.md)
 assert the actual `modelId`/selector/name fields on 1.1.82 and 1.1.83 without
 submitting a prompt. An independent Free-account 1.1.83 read confirmed the

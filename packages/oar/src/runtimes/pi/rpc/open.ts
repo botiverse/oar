@@ -23,6 +23,7 @@ import { assertPiRpcVersion } from "./version.js";
 import { piRpcExtensionSource } from "./extension.js";
 import { piRpcPromptFiles } from "./prompt-files.js";
 import { RuntimeFailureError } from "../../../contracts/runtime-failure-error.js";
+import { ModelConfirmationError } from "../../../contracts/model-confirmation-error.js";
 
 export const piRpcRefusedSessionOptions: RefusedSessionOptions = {
   ...piRefusedSessionOptions,
@@ -120,7 +121,7 @@ export async function openPiRpc(options: SessionOptions, credentials: Credential
       }
       if (options.resume !== undefined && state.sessionId !== options.resume) { throw new Error(`Pi resumed a different session: ${state.sessionId}`); }
       const effective = state.model === undefined ? null : `${state.model.provider}/${state.model.id}`;
-      if (options.model !== undefined && options.model !== effective) { throw new Error(`pi did not apply model ${options.model}: the session reports ${effective ?? "no model"}`); }
+      if (options.model !== undefined && options.model !== effective) { throw new ModelConfirmationError(`pi did not apply model ${options.model}: the session reports ${effective ?? "no model"}`, { requested: options.model, reported: effective }); }
       if (options.effort !== undefined && options.effort !== state.thinkingLevel) {
         const { getSupportedThinkingLevels } = await import("@earendil-works/pi-ai");
         throw new Error(piEffortRefusal(options.effort, { model: state.model, thinkingLevel: state.thinkingLevel,

@@ -237,6 +237,48 @@ A frame without the corresponding native field leaves the key absent; the
 native frame stays verbatim beside the event. pi and pi-durable report a
 signal as 128 plus its number (SIGTERM is 143), never `null`.
 
+## Model confirmation failures
+
+When an adapter's existing model confirmation rejects a session open,
+including resume, it throws `ModelConfirmationError`, exported from the
+package root and portable entry. Hosts can distinguish this refusal with
+`instanceof ModelConfirmationError` without parsing the adapter's message.
+The message retains its runtime-specific explanation.
+
+- `requested` is the caller's model selector.
+- `reported` is the native model readback, or `null` if no model string was
+  supplied. It can be a display name rather than a selector; OAR does not
+  invent an alias or substitute the request for missing readback.
+- `catalogSelectorIds`, when present, contains selector strings from the
+  last catalog successfully read for this confirmation. An absent property
+  means no catalog was read successfully; `[]` means one was read with no
+  selector strings. A failed later read retains the earlier observed list.
+  Display labels, credentials and other catalog fields are not included.
+  These observations do not promise that the selectors are usable.
+
+| Runtime path | Existing confirmation that produces this error | Catalog in the error |
+|---|---|---|
+| Qoder | Native init name cannot be confirmed by the selector-to-name mapping, or the required catalog query fails | Last successful cache/live read of `get_models`, if any |
+| Codex | `thread/start` or `thread/resume` reports a model different from the explicit request | Absent; opening does not enumerate `model/list` |
+| Pi SDK, Pi RPC, Pi Durable | Opened session/agent state reports a different or missing model | Absent; resolving one requested model is not a catalog enumeration |
+| DSH | The reported `agent.model` route differs from the requested provider/model | Absent |
+| Antigravity | The ACP `config_option_update` model value contradicts the requested selection | Absent |
+
+This error adds no new confirmation reads or refusal rules. For example,
+Codex and DSH do not acquire a missing-readback refusal where they previously
+allowed opening. Explicit native model-unavailable errors and unsupported
+options keep their existing classifications. A Qoder catalog-query failure
+uses this confirmation error and retains its underlying `cause`; other
+transport/deadline failures retain their errors. A failure to confirm is not
+itself evidence for `RuntimeFailureError("model_unavailable")`.
+Runtime pages describe the native evidence and confirmation limits.
+
+Regression coverage includes creation and resume, missing values, failed
+catalog reads, selector provenance, credential redaction and cleanup:
+[`tests/model-confirmation-error.test.ts`](../../tests/model-confirmation-error.test.ts),
+[`tests/codex/codex-session-resume-model.test.ts`](../../tests/codex/codex-session-resume-model.test.ts),
+[`tests/qoder/session.test.ts`](../../tests/qoder/session.test.ts).
+
 ## Service tiers
 
 `SessionOptions.serviceTier` selects a runtime-native tier at open, including

@@ -139,6 +139,12 @@ and `producerReported` remain in the original frame.
 
 `Session.model()` and `effort()` are folds: null until a request header says them
 on 0.2.1-rc.5 (no `agent.model`), reported at open from 0.2.2-alpha.2.
+When that open-time route contradicts an explicit model request, OAR throws
+[`ModelConfirmationError`](../spec/runtime-matrix.md#model-confirmation-failures)
+with the original `requested` selector and reported `provider/model` (or
+`null` for an incomplete route). This check does not enumerate a catalog, so
+`catalogSelectorIds` is absent. A missing model-selection channel still uses
+`UnsupportedOptionError("model", ...)`.
 
 Tokens are native. `inputTokens` excludes the cache counts DSH reports beside it,
 so `input` adds them (60 fresh plus 40 cached is 100). A failed attempt's usage

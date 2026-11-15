@@ -7,7 +7,7 @@ import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { pathToFileURL } from "node:url";
 import { afterAll, describe, expect, test } from "vitest";
-import { dshRuntime, RuntimeFailureError, SessionNotFoundError, UnsupportedOptionError, type Session } from "../../packages/oar/src/index.js";
+import { dshRuntime, ModelConfirmationError, RuntimeFailureError, SessionNotFoundError, UnsupportedOptionError, type Session } from "../../packages/oar/src/index.js";
 import { awaitTurnEnd } from "../../packages/oar/src/observe/turns.js";
 import { dshBridgeSource } from "../../packages/oar/src/runtimes/dsh/bridge.js";
 import { dshAgentOptions } from "../../packages/oar/src/runtimes/dsh/options.js";
@@ -119,14 +119,22 @@ test.each([["open", {}], ["resume", { resume: "11111111-1111-4111-8111-111111111
 
 test("a selection the runtime reports differently from the request is refused, never run", async () => {
   const model = await failure({ FAKE_DSH_MODEL: JSON.stringify({ provider: "p", model: "other" }) }, { model: "p/m" });
-  expect(model).toBeInstanceOf(UnsupportedOptionError);
-  expect(model).toMatchObject({ option: "model", message: "DSH did not apply model p/m: it reports p/other" });
+  expect(model).toBeInstanceOf(ModelConfirmationError);
+  expect(model).toMatchObject({ requested: "p/m", reported: "p/other", message: "DSH did not apply model p/m: it reports p/other" });
+  expect(model).not.toHaveProperty("catalogSelectorIds");
   const effort = await failure({ FAKE_DSH_MODEL: JSON.stringify({ provider: "p", model: "m", reasoningEffort: "low" }) }, { model: "p/m", effort: "high" });
   expect(effort).toMatchObject({ option: "effort", message: "DSH did not apply effort high: it reports low" });
   const session = await open({ FAKE_DSH_MODEL: JSON.stringify({ provider: "p", model: "m", reasoningEffort: "high" }) }, { model: "p/m", effort: "high" });
   expect(session.model().value).toBe("p/m");
   expect(session.effort().value).toBe("high");
   await session.dispose();
+});
+
+test("incomplete DSH readback cannot fabricate a provider/model identifier", async () => {
+  expect(await failure({ FAKE_DSH_MODEL: JSON.stringify({ provider: "p" }) }, { model: "p/m" })).toMatchObject({
+    name: "ModelConfirmationError", requested: "p/m", reported: null,
+    message: "DSH did not apply model p/m: it reports p/undefined",
+  });
 });
 
 test("resume refuses another directory before taking the session over, and a missing session is SessionNotFoundError", async () => {

@@ -759,6 +759,10 @@ does not silently ignore a requested tier or alter a global default.
 extension-aware ModelRuntime. `Session.model()` folds the `model` event of
 the `pi/session_opened` frame, which carries `AgentSession.model` as the SDK
 reported it at open (pi exposes no later model-change event to OAR). The
+SDK and RPC adapters refuse a different or missing open-time model with
+[`ModelConfirmationError`](../spec/runtime-matrix.md#model-confirmation-failures):
+`requested` is the caller's selector, `reported` is `provider/model` or
+`null`. A lookup of one model supplies no `catalogSelectorIds`. The
 adapter checks the spelling before pi is asked: a bare
 `oar-no-such-model-xyz` fails the `provider/model` check, while
 `openai-codex/oar-no-such-model-xyz` or `no-such-provider/gpt-5.3-codex-spark`
