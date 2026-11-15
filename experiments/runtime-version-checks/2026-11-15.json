@@ -1,0 +1,941 @@
+{
+  "checkedAt": "2026-11-15T19:07:56.551Z",
+  "platform": "linux-x64",
+  "node": "v24.19.0",
+  "oarBase": "e9e1df1f3d623fd02d51516be7b23fafc415ce67",
+  "scope": "core runtimes; isolated local providers; no real credentials or paid inference",
+  "inventory": [
+    {
+      "runtime": "antigravity",
+      "source": "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app/manifests/linux_amd64.json",
+      "latest": "1.5.9",
+      "installed": null,
+      "installation": "not_found",
+      "status": "unavailable"
+    },
+    {
+      "runtime": "claude",
+      "source": "https://registry.npmjs.org/@anthropic-ai/claude-code/latest",
+      "latest": "2.1.325",
+      "installed": "2.1.292",
+      "installation": "available",
+      "status": "different"
+    },
+    {
+      "runtime": "codex",
+      "source": "https://registry.npmjs.org/@openai/codex/latest",
+      "latest": "0.169.0",
+      "installed": "0.162.0",
+      "installation": "available",
+      "status": "different"
+    },
+    {
+      "runtime": "cursor",
+      "source": "https://registry.npmjs.org/@cursor/sdk/latest",
+      "latest": "1.4.0",
+      "installed": "1.3.1",
+      "installation": "available",
+      "status": "different"
+    },
+    {
+      "runtime": "dsh",
+      "source": "https://registry.npmjs.org/@deepseek-ai/dsh/latest",
+      "latest": "0.2.2-rc.1",
+      "installed": null,
+      "installation": "not_found",
+      "status": "unavailable"
+    },
+    {
+      "runtime": "factory",
+      "source": "https://registry.npmjs.org/droid/latest",
+      "latest": "1.12.1",
+      "installed": null,
+      "installation": "not_found",
+      "status": "unavailable"
+    },
+    {
+      "runtime": "grok",
+      "source": "https://x.ai/cli/stable",
+      "latest": "1.0.77",
+      "installed": "1.0.77",
+      "installation": "available",
+      "status": "current"
+    },
+    {
+      "runtime": "kimi",
+      "source": "https://registry.npmjs.org/@moonshot-ai/kimi-code/latest",
+      "latest": "2.6.2",
+      "installed": "2.1.1",
+      "installation": "available",
+      "status": "different"
+    },
+    {
+      "runtime": "opencode",
+      "line": "v1",
+      "source": "https://registry.npmjs.org/opencode-ai/latest",
+      "latest": "1.19.5",
+      "installed": "1.18.30",
+      "installation": "available",
+      "status": "different"
+    },
+    {
+      "runtime": "opencode",
+      "line": "v2",
+      "source": "https://registry.npmjs.org/@opencode/cli/latest",
+      "latest": "2.3.0",
+      "installed": "1.18.30",
+      "installation": "available",
+      "status": "other_release_line"
+    },
+    {
+      "runtime": "codebuddy",
+      "source": "https://registry.npmjs.org/@tencent-ai/codebuddy-code/latest",
+      "latest": "2.184.0",
+      "installed": "2.173.0",
+      "installation": "available",
+      "status": "different"
+    },
+    {
+      "runtime": "qoder",
+      "source": "https://registry.npmjs.org/@qoder-ai/qodercli/latest",
+      "latest": "1.1.89",
+      "installed": "1.1.78",
+      "installation": "available",
+      "status": "different"
+    },
+    {
+      "runtime": "qwen",
+      "source": "https://registry.npmjs.org/@qwen-code/qwen-code/latest",
+      "latest": "0.27.4",
+      "installed": "0.26.0",
+      "installation": "available",
+      "status": "different"
+    },
+    {
+      "runtime": "pi",
+      "source": "https://registry.npmjs.org/@earendil-works/pi-coding-agent/latest",
+      "latest": "1.5.2",
+      "installed": "1.5.0",
+      "installation": "available",
+      "status": "different"
+    },
+    {
+      "runtime": "pi-durable",
+      "source": "https://registry.npmjs.org/@earendil-works/pi-durable/latest",
+      "latest": "1.5.2",
+      "installed": "1.4.0",
+      "installation": "host_supplied",
+      "status": "different"
+    }
+  ],
+  "cursor": {
+    "sdkVersion": "1.4.0",
+    "controls": {
+      "results": [
+        {
+          "name": "cursor-login",
+          "sdkVersion": "1.4.0",
+          "exitCode": 0,
+          "elapsedSeconds": 39.477
+        },
+        {
+          "name": "cursor-user-configuration",
+          "sdkVersion": "1.4.0",
+          "exitCode": 0,
+          "elapsedSeconds": 65.583
+        },
+        {
+          "name": "cursor-unit",
+          "sdkVersion": "1.4.0",
+          "exitCode": 0,
+          "elapsedSeconds": 36.73
+        }
+      ],
+      "restoredVersions": [
+        "1.3.1",
+        "1.3.1",
+        "1.3.1"
+      ]
+    },
+    "loginCases": [
+      "network guard",
+      "success",
+      "cancel while polling, empty home",
+      "cancel while polling, previous login",
+      "cancel while minting, empty home",
+      "cancel while minting, previous login",
+      "timeout while polling, empty home",
+      "timeout while polling, previous login",
+      "timeout while minting, empty home",
+      "timeout while minting, previous login",
+      "logout, previous login",
+      "logout with CURSOR_API_KEY set, previous login"
+    ],
+    "configurationObservations": [
+      {
+        "label": "oar default",
+        "userConfigurationRead": false,
+        "userMcpConnected": false,
+        "storedLoginUsed": true,
+        "authenticatedRunReachedLocalBackend": true,
+        "terminalStatus": "error"
+      },
+      {
+        "label": "native user positive control",
+        "userConfigurationRead": true,
+        "userMcpConnected": true,
+        "storedLoginUsed": true,
+        "authenticatedRunReachedLocalBackend": true,
+        "terminalStatus": "error"
+      },
+      {
+        "label": "oar exclude",
+        "userConfigurationRead": false,
+        "userMcpConnected": false,
+        "storedLoginUsed": true,
+        "authenticatedRunReachedLocalBackend": true,
+        "terminalStatus": "error"
+      },
+      {
+        "label": "oar exclude after reopen",
+        "userConfigurationRead": false,
+        "userMcpConnected": false,
+        "storedLoginUsed": true,
+        "authenticatedRunReachedLocalBackend": true,
+        "terminalStatus": "error"
+      },
+      {
+        "credentialFileUnchangedAfterDisposalAndReopen": true,
+        "originalLoginStillPresent": true,
+        "inferencePerformed": false
+      }
+    ],
+    "unitCasesPassed": 160,
+    "rootTypecheck": {
+      "sdk1.4.0": {
+        "exitCode": 2,
+        "errorCount": 15,
+        "logSha256": "0195956320dd847e762b5bd188ca96654c728e207545ad9f555466da161edb81"
+      },
+      "restoredSdk1.3.1": {
+        "exitCode": 0,
+        "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "minimalCompilerAndSourceDerivedReplay": [
+      {
+        "sdkVersion": "1.3.1",
+        "compilerExitCode": 0,
+        "diagnostics": "",
+        "sourceDerivedUsageReplay": {
+          "callEvents": [],
+          "turnEvents": [
+            {
+              "kind": "usage",
+              "usage": {
+                "tokens": {
+                  "input": 100,
+                  "output": 20,
+                  "cacheRead": 30,
+                  "cacheWrite": 10
+                }
+              }
+            }
+          ]
+        }
+      },
+      {
+        "sdkVersion": "1.4.0",
+        "compilerExitCode": 2,
+        "diagnostics": "host.mts(3,7): error TS2322: Type 'typeof import(\"<sdk>/dist/esm/index\")' is not assignable to type 'CursorSdk'.\n  The types of 'Agent.create(...)' are incompatible between these types.\n    Type 'Promise<SDKAgent>' is not assignable to type 'Promise<CursorAgent>'.\n      Type 'SDKAgent' is not assignable to type 'CursorAgent'.\n        The types returned by 'send(...)' are incompatible between these types.\n          Type 'Promise<Run>' is not assignable to type 'Promise<CursorRun>'.\n            Type 'Run' is not assignable to type 'CursorRun' with 'exactOptionalPropertyTypes: true'. Consider adding 'undefined' to the types of the target's properties.\n              The types returned by 'steer(...)' are incompatible between these types.\n                Type 'Promise<import(\"<sdk>/dist/esm/run\").SteerAckOutcome>' is not assignable to type 'Promise<import(\"<oar>/packages/oar/src/runtimes/cursor/sdk\").SteerAckOutcome>'.\n                  Type 'import(\"<sdk>/dist/esm/run\").SteerAckOutcome' is not assignable to type 'import(\"<oar>/packages/oar/src/runtimes/cursor/sdk\").SteerAckOutcome'.\n                    Type '{ outcome: \"queued\"; run?: Run; }' is not assignable to type 'SteerAckOutcome'.\n",
+        "sourceDerivedUsageReplay": {
+          "callEvents": [],
+          "turnEvents": [
+            {
+              "kind": "usage",
+              "usage": {
+                "tokens": {
+                  "input": 100,
+                  "output": 20,
+                  "cacheRead": 30,
+                  "cacheWrite": 10
+                }
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "sourceObservations": {
+      "queuedOutcome": "cloud Run.steer returns { outcome: \"queued\", run?: Run }; local implementation retains the two string outcomes",
+      "usage": "model-call-completed is per-call; turn-ended remains turn total",
+      "files": [
+        {
+          "file": "dist/esm/run.d.ts",
+          "sha256": "f11f8f1be0475d6cbd51133fd0e23842f7d5644e9cb727bfa427fe9a7812a478"
+        },
+        {
+          "file": "dist/esm/448.js",
+          "sha256": "3bf6212c6a5469f182deba646c0621bb0cc733cd5638056d4d426ee68dddfe19"
+        },
+        {
+          "file": "dist/esm/993.js",
+          "sha256": "197e2314468ac23f455dfe356e049b46f36c50a497152f9af12742fef199a244"
+        },
+        {
+          "file": "dist/esm/index.js",
+          "sha256": "8dbaf5a53f69c08b7845efad9ca1ef9d3c8fcf2e00051578edac3fea776459b4"
+        },
+        {
+          "file": "dist/esm/vendor/cursor-sdk-shared/delta-types.d.ts",
+          "sha256": "fadf4de9ca95256e846ecc88a6a0b8d5036d7a5f7dacb826769a11a4484ca4a0"
+        }
+      ]
+    }
+  },
+  "qwen": {
+    "version": "0.27.4",
+    "scenarios": {
+      "plain": {
+        "fresh": {
+          "sourceSha256": "2e60ff90af32b3da7b4f7bb792c0f23eac52a7d227b0e31ffc0c983286460d36",
+          "permissionRequests": 0,
+          "resultSubtypes": [
+            "success",
+            "success",
+            "error_during_execution",
+            "success"
+          ],
+          "modelCounts": [
+            0
+          ]
+        },
+        "resume": {
+          "sourceSha256": "17228d8e2c8720f272517361a42fdd1e9f832cb8a6ca394a8c3f621e0faff430",
+          "permissionRequests": 0,
+          "resultSubtypes": [
+            "success",
+            "success",
+            "error_during_execution",
+            "success"
+          ],
+          "modelCounts": [
+            0
+          ]
+        }
+      },
+      "reply-blocks": {
+        "fresh": {
+          "sourceSha256": "7e12a2ca98c53b777f92179c83724e8287e6177c90c5baceb07e53f164cf2fa2",
+          "permissionRequests": 0,
+          "resultSubtypes": [
+            "success",
+            "success",
+            "error_during_execution",
+            "success"
+          ],
+          "modelCounts": [
+            0
+          ]
+        },
+        "resume": {
+          "sourceSha256": "5d65f86bf8b4e563a0a9a0a37a8c25772cdd956b0cd05e6e2a7aff24c4c93940",
+          "permissionRequests": 0,
+          "resultSubtypes": [
+            "success",
+            "success",
+            "error_during_execution",
+            "success"
+          ],
+          "modelCounts": [
+            0
+          ]
+        }
+      },
+      "tools": {
+        "fresh": {
+          "sourceSha256": "c917f209f5ff1ddec5a4f4c1442f7597641dc22fc7ae5c56cc233104622c5718",
+          "permissionRequests": 0,
+          "resultSubtypes": [
+            "success",
+            "success",
+            "success",
+            "error_during_execution",
+            "success"
+          ],
+          "modelCounts": [
+            0
+          ],
+          "toolNames": [
+            "mcp__echo__echo"
+          ]
+        },
+        "resume": {
+          "sourceSha256": "fa3e3c25645afa467631e7c18de46704bc4b7fe6afee6b62b362f391c7abcbe6",
+          "permissionRequests": 0,
+          "resultSubtypes": [
+            "success",
+            "success",
+            "success",
+            "error_during_execution",
+            "success"
+          ],
+          "modelCounts": [
+            0
+          ],
+          "toolNames": [
+            "mcp__echo__echo"
+          ]
+        }
+      },
+      "permission": {
+        "fresh": {
+          "sourceSha256": "44edcd6a4f16eeff4d05b0b1e33dce54a3800eb5e7c9fc7040412e0f1a2ec635",
+          "permissionRequests": 1,
+          "resultSubtypes": [
+            "success",
+            "success",
+            "success",
+            "error_during_execution",
+            "success"
+          ],
+          "modelCounts": [
+            0
+          ],
+          "toolNames": [
+            "mcp__echo__echo"
+          ]
+        },
+        "resume": {
+          "sourceSha256": "84c7fc18e625c5a0e97d0ddedc85410925343118b5af59a77fd12063142cc297",
+          "permissionRequests": 1,
+          "resultSubtypes": [
+            "success",
+            "success",
+            "success",
+            "error_during_execution",
+            "success"
+          ],
+          "modelCounts": [
+            0
+          ],
+          "toolNames": [
+            "mcp__echo__echo"
+          ]
+        }
+      },
+      "catalog": {
+        "fresh": {
+          "sourceSha256": "50e2b2ee2288156cc3a5a276efb7418d936a7b9cecd9b05311861ea0e89291bb",
+          "permissionRequests": 0,
+          "resultSubtypes": [
+            "success",
+            "success",
+            "error_during_execution",
+            "success"
+          ],
+          "modelCounts": [
+            1
+          ]
+        },
+        "resume": {
+          "sourceSha256": "4c360d59a4760de2169782a316c165fa0e10a8f290d32a55ea7e1e2161795d53",
+          "permissionRequests": 0,
+          "resultSubtypes": [
+            "success",
+            "success",
+            "error_during_execution",
+            "success"
+          ],
+          "modelCounts": [
+            1
+          ]
+        }
+      }
+    },
+    "behavior": {
+      "passed": 16,
+      "failed": 0,
+      "skipped": 3
+    },
+    "vendor": {
+      "passed": 21,
+      "failed": 0,
+      "otherBackendSkipped": 446
+    },
+    "checks": [
+      {
+        "name": "qwen-version",
+        "exitCode": 0,
+        "elapsedSeconds": 0.065
+      },
+      {
+        "name": "qwen-behavior",
+        "exitCode": 0,
+        "elapsedSeconds": 57.361
+      },
+      {
+        "name": "qwen-vendor",
+        "exitCode": 0,
+        "elapsedSeconds": 160.657
+      },
+      {
+        "name": "qwen-native-plain",
+        "exitCode": 0,
+        "elapsedSeconds": 32.043
+      },
+      {
+        "name": "qwen-native-reply-blocks",
+        "exitCode": 0,
+        "elapsedSeconds": 18.936
+      },
+      {
+        "name": "qwen-native-tools",
+        "exitCode": 0,
+        "elapsedSeconds": 24.513
+      },
+      {
+        "name": "qwen-native-permission",
+        "exitCode": 0,
+        "elapsedSeconds": 24.708
+      },
+      {
+        "name": "qwen-native-catalog",
+        "exitCode": 0,
+        "elapsedSeconds": 23.504
+      },
+      {
+        "name": "qwen-lock-lifetime",
+        "exitCode": 0,
+        "elapsedSeconds": 14.371
+      }
+    ],
+    "lock": {
+      "runtime": "Qwen",
+      "facts": [
+        {
+          "phase": "warm-home initialize with held lock",
+          "elapsedMs": 1534,
+          "requests": 0
+        },
+        {
+          "phase": "first prompt blocked after initialize",
+          "lockHeld": true,
+          "requests": 0
+        },
+        {
+          "phase": "first prompt after releasing lock",
+          "outcome": "completed"
+        },
+        {
+          "phase": "ordinary later prompt with held lock",
+          "outcome": "completed"
+        }
+      ]
+    },
+    "credentialVariableCoverage": {
+      "version": "0.27.4",
+      "presetKeys": [
+        "BAILIAN_CODING_PLAN_API_KEY",
+        "BAILIAN_TOKEN_PLAN_API_KEY",
+        "DASHSCOPE_API_KEY",
+        "DEEPSEEK_API_KEY",
+        "IDEALAB_API_KEY",
+        "MINIMAX_API_KEY",
+        "MODELSCOPE_API_KEY",
+        "MOONSHOT_API_KEY",
+        "OPENROUTER_API_KEY",
+        "QWENCLOUD_API_KEY",
+        "QWENCLOUD_TOKEN_PLAN_API_KEY",
+        "REQUESTY_API_KEY",
+        "XAI_API_KEY",
+        "ZAI_API_KEY"
+      ],
+      "nativeAuthKeys": [
+        "ANTHROPIC_API_KEY",
+        "GEMINI_API_KEY",
+        "GOOGLE_API_KEY",
+        "OPENAI_API_KEY"
+      ],
+      "missingFromOar": [],
+      "presetSource": {
+        "file": "chunk-D7FTEPLO.js",
+        "sha256": "5506e5d922b08e5b89ba26661ba46660f6e51487666c606b49a07886fd10347a",
+        "resolvedConstants": {
+          "TOKEN_PLAN_ENV_KEY": "BAILIAN_TOKEN_PLAN_API_KEY",
+          "QWENCLOUD_TOKEN_PLAN_ENV_KEY": "QWENCLOUD_TOKEN_PLAN_API_KEY",
+          "OPENROUTER_ENV_KEY": "OPENROUTER_API_KEY",
+          "CODING_PLAN_ENV_KEY": "BAILIAN_CODING_PLAN_API_KEY",
+          "QWENCLOUD_ENV_KEY": "QWENCLOUD_API_KEY",
+          "REQUESTY_ENV_KEY": "REQUESTY_API_KEY",
+          "GROK_ENV_KEY": "XAI_API_KEY"
+        }
+      },
+      "nativeSource": {
+        "file": "acpAgent-DYVOMNZP.js",
+        "sha256": "76c9d14ebda816d2bcba07bda06b11138825d54966f85fe251c7fb0134538ae0",
+        "authPreflight": "{openai:[\"OPENAI_API_KEY\"],\"openai-responses\":[\"OPENAI_API_KEY\"],anthropic:[\"ANTHROPIC_API_KEY\"],gemini:[\"GEMINI_API_KEY\"],\"vertex-ai\":[\"GOOGLE_API_KEY\"]}"
+      }
+    },
+    "selectedReplyBlocks": {
+      "selection": "First thinking/text message only. Session/transport UUIDs omitted; native message ids consistently renamed m1/m2; content reduced to its native type. Other stream frames omitted.",
+      "phases": {
+        "fresh": {
+          "sourceSha256": "7e12a2ca98c53b777f92179c83724e8287e6177c90c5baceb07e53f164cf2fa2",
+          "frames": [
+            {
+              "type": "stream_event",
+              "event": {
+                "type": "message_start",
+                "message": {
+                  "id": "m1"
+                }
+              }
+            },
+            {
+              "type": "stream_event",
+              "event": {
+                "type": "content_block_start",
+                "index": 0,
+                "content_block": {
+                  "type": "thinking"
+                }
+              }
+            },
+            {
+              "type": "assistant",
+              "message": {
+                "id": "m1",
+                "content": [
+                  {
+                    "type": "thinking"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "stream_event",
+              "event": {
+                "type": "content_block_start",
+                "index": 0,
+                "content_block": {
+                  "type": "text"
+                }
+              }
+            },
+            {
+              "type": "assistant",
+              "message": {
+                "id": "m2",
+                "content": [
+                  {
+                    "type": "text"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "resume": {
+          "sourceSha256": "5d65f86bf8b4e563a0a9a0a37a8c25772cdd956b0cd05e6e2a7aff24c4c93940",
+          "frames": [
+            {
+              "type": "stream_event",
+              "event": {
+                "type": "message_start",
+                "message": {
+                  "id": "m1"
+                }
+              }
+            },
+            {
+              "type": "stream_event",
+              "event": {
+                "type": "content_block_start",
+                "index": 0,
+                "content_block": {
+                  "type": "thinking"
+                }
+              }
+            },
+            {
+              "type": "assistant",
+              "message": {
+                "id": "m1",
+                "content": [
+                  {
+                    "type": "thinking"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "stream_event",
+              "event": {
+                "type": "content_block_start",
+                "index": 0,
+                "content_block": {
+                  "type": "text"
+                }
+              }
+            },
+            {
+              "type": "assistant",
+              "message": {
+                "id": "m2",
+                "content": [
+                  {
+                    "type": "text"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "ci": {
+    "windowStart": "2026-11-14T19:08:00.865Z",
+    "windowEnd": "2026-11-15T19:07:56.551Z",
+    "method": "Workflow runs by creation time; all pages/attempts; unique job ids; read after cutoff. No rerun requested by this report.",
+    "summaries": [
+      {
+        "workflow": "ci.yml",
+        "runs": 51,
+        "attempts": 53,
+        "uniqueObservedJobs": 53,
+        "conclusions": {
+          "success": 53
+        }
+      },
+      {
+        "workflow": "acp-windows.yml",
+        "runs": 22,
+        "attempts": 22,
+        "uniqueObservedJobs": 66,
+        "conclusions": {
+          "success": 61,
+          "failure": 5
+        }
+      }
+    ],
+    "failedJobs": [
+      {
+        "run": 43742813613,
+        "attempt": 1,
+        "headSha": "24410bcdfb5eaceb927d37c19a4dce9e1021df60",
+        "job": 132899491476,
+        "name": "check (windows-latest)",
+        "url": "https://github.com/botiverse/oar/actions/runs/43742813613/job/132899491476",
+        "logSha256": "90eeb5ee050893c12f64a318ff9c6a2ff5610f0e2a2f00eb3a98f60addfe1ddb",
+        "observation": "Watchdog fixture did not enter intended block; reporter arrived at939ms after900ms readiness; same-head attempt2 passed."
+      },
+      {
+        "run": 43718466982,
+        "attempt": 1,
+        "headSha": "8d9cee43df52f577677879fce2c2186642ba5a4c",
+        "job": 132825020958,
+        "name": "check (windows-latest)",
+        "url": "https://github.com/botiverse/oar/actions/runs/43718466982/job/132825020958",
+        "logSha256": "8bfa4b274a1bcf6eb32742842e168efe893800d28840234bf7c317c0919175f3",
+        "observation": "OpenCode fixture expected two initialization groups, got one; PR806 separately records controlled PID-reuse counterexample."
+      },
+      {
+        "run": 43691334857,
+        "attempt": 1,
+        "headSha": "7cacea74e7c36f18a2bdb730ac64741b58f641ac",
+        "job": 132742437827,
+        "name": "check (windows-latest)",
+        "url": "https://github.com/botiverse/oar/actions/runs/43691334857/job/132742437827",
+        "logSha256": "71b8ef54e845930540591272dc48215beca24161d1ee4a54e9d97d0bb4ede854",
+        "observation": "Kimi browser-allowed native login succeeded and observed expected launch; no completion-code entry in execution snapshot at assertion. Same-head attempt2 passed; cause unknown."
+      },
+      {
+        "run": 43684728405,
+        "attempt": 1,
+        "headSha": "85976501b0ba43690291a7aba51d3bbfeae4cc7c",
+        "job": 132722699199,
+        "name": "check (windows-latest)",
+        "url": "https://github.com/botiverse/oar/actions/runs/43684728405/job/132722699199",
+        "logSha256": "544d1fac2e473dd25ab38edaaa20ef83a3c36d8f3a661e6fb9e7d4daf7b733f0",
+        "observation": "Six Factory account-usage assertions failed on earlier contribution head."
+      },
+      {
+        "run": 43696273726,
+        "attempt": 1,
+        "headSha": "945c6959338628d8837a21a69fcc1cc85e887907",
+        "job": 132757387631,
+        "name": "acp-windows (windows-latest, grok-aimock)",
+        "url": "https://github.com/botiverse/oar/actions/runs/43696273726/job/132757387631",
+        "logSha256": "acaa1898371291a889eab6e579824820dab1f46f78f413de30bae83d42800e7a",
+        "observation": "Grok ACP initialize timed out after15000ms."
+      },
+      {
+        "run": 43690903962,
+        "attempt": 1,
+        "headSha": "6dfd108b7ec707a718a72d3788ba1ffe84824c8c",
+        "job": 132741156296,
+        "name": "acp-windows (windows-latest, grok-aimock)",
+        "url": "https://github.com/botiverse/oar/actions/runs/43690903962/job/132741156296",
+        "logSha256": "dfb25cfe94ffe4db73742291225cdc087e8224a024ca9791d94d3d07ae7f0480",
+        "observation": "Grok ACP initialize timed out after15000ms."
+      },
+      {
+        "run": 43690455097,
+        "attempt": 1,
+        "headSha": "b09ff5fd87c80fa14f5402e736b1df4762e69d5d",
+        "job": 132739805824,
+        "name": "acp-windows (windows-latest, grok-aimock)",
+        "url": "https://github.com/botiverse/oar/actions/runs/43690455097/job/132739805824",
+        "logSha256": "64593bc4240bb452f5c5c213972111431d2f64e89c4d5b9ed9ae552a6455f0d2",
+        "observation": "Grok ACP initialize timed out after15000ms."
+      },
+      {
+        "run": 43689974509,
+        "attempt": 1,
+        "headSha": "a11f5847366ed167d7836f230721309e1387ae40",
+        "job": 132738375331,
+        "name": "acp-windows (windows-latest, grok-aimock)",
+        "url": "https://github.com/botiverse/oar/actions/runs/43689974509/job/132738375331",
+        "logSha256": "43f03abe7c7073b0e10f2ccc9ba662c28fb71fa1d120618fe7345c59a2756e9b",
+        "observation": "Grok ACP initialize timed out after15000ms. Descendant cleanup also unverified after5001ms capture."
+      },
+      {
+        "run": 43685846860,
+        "attempt": 1,
+        "headSha": "176923eb013a6325c9bedec7b52276a83387b0a1",
+        "job": 132726033121,
+        "name": "acp-windows (windows-latest, grok-aimock)",
+        "url": "https://github.com/botiverse/oar/actions/runs/43685846860/job/132726033121",
+        "logSha256": "64a744f7845fdf3c66068449ba51103d3e2146e896213f05288421906479b62c",
+        "observation": "Grok ACP initialize timed out after15000ms."
+      }
+    ],
+    "main": {
+      "run": 43727109546,
+      "headSha": "e9e1df1f3d623fd02d51516be7b23fafc415ce67",
+      "url": "https://github.com/botiverse/oar/actions/runs/43727109546",
+      "jobs": 41,
+      "conclusions": {
+        "success": 41
+      }
+    },
+    "historicalUnexplainedWindowsPiRpcFullJobHangs": 2
+  },
+  "upstream": {
+    "opencode-54794": {
+      "html_url": "https://github.com/anomalyco/opencode/issues/54794",
+      "state": "closed",
+      "comments": 3,
+      "updated_at": "2026-11-05T21:52:50Z"
+    },
+    "opencode-53879": {
+      "html_url": "https://github.com/anomalyco/opencode/issues/53879",
+      "state": "open",
+      "comments": 4,
+      "updated_at": "2026-10-29T17:18:46Z"
+    },
+    "kimi-2370": {
+      "html_url": "https://github.com/MoonshotAI/kimi-cli/issues/2370",
+      "state": "open",
+      "comments": 1,
+      "updated_at": "2026-09-12T16:09:18Z"
+    },
+    "qwen-15796": {
+      "html_url": "https://github.com/QwenLM/qwen-code/issues/15796",
+      "state": "open",
+      "comments": 2,
+      "updated_at": "2026-10-28T13:14:10Z"
+    },
+    "qwen-15875": {
+      "html_url": "https://github.com/QwenLM/qwen-code/issues/15875",
+      "state": "open",
+      "comments": 5,
+      "updated_at": "2026-11-08T03:54:29Z"
+    },
+    "agy-1534": {
+      "html_url": "https://github.com/google-antigravity/antigravity-cli/issues/1534",
+      "state": "open",
+      "comments": 0,
+      "updated_at": "2026-11-13T19:54:24Z"
+    },
+    "qwen-16586": {
+      "url": "https://github.com/QwenLM/qwen-code/pull/16586",
+      "state": "open",
+      "merged": false,
+      "head": "84069baadc82fbb7c9132512b5810fca42edae70",
+      "comments": 34,
+      "newComment": {
+        "url": "https://github.com/QwenLM/qwen-code/pull/16586#issuecomment-6883860959",
+        "meaning": "Contributor merged main into branch and reports187targetedpasses; not an upstream merge or stable release."
+      }
+    },
+    "dsh-master": {
+      "sha": "39163dd30f703a79079e2d2446545cff3c453738",
+      "url": "https://github.com/deepseek-ai/deepseek-harness/commit/39163dd30f703a79079e2d2446545cff3c453738"
+    },
+    "agy-public-head": {
+      "sha": "f51cb8dca4d1b493850accaafde06f8d9fa21764",
+      "url": "https://github.com/google-antigravity/antigravity-cli/commit/f51cb8dca4d1b493850accaafde06f8d9fa21764"
+    },
+    "dsh-discussion": {
+      "commentIds": [
+        "18089935",
+        "18637238",
+        "18831410",
+        "19266464",
+        "19311708",
+        "19314203",
+        "19490754"
+      ],
+      "newIds": []
+    },
+    "codebuddy-issue": {
+      "number": "1847",
+      "state": "open",
+      "comment_count": 0,
+      "updated_at": "2026-10-28T06:32:16Z",
+      "closed_at": ""
+    },
+    "zcode": {
+      "sourceUrl": "https://github.com/zai-org/ZCode/commit/fec975905a2abd4c07e35c40d51fa097a2258ec9",
+      "releaseUrl": "https://github.com/zai-org/ZCode/releases/tag/v3.17.2",
+      "release": "v3.17.2",
+      "sourceHead": "fec975905a2abd4c07e35c40d51fa097a2258ec9",
+      "unchangedSince": "2026-11-15 transport comparison",
+      "observation": "No new standalone app-server official-login support found in unchanged release/source/docs."
+    }
+  },
+  "sourceLogs": [
+    {
+      "file": "cursor-login.log",
+      "sha256": "7779f334c54199fa062871b8a9ebc3fc6b03ac628768f9efaed9563b3af3a813"
+    },
+    {
+      "file": "cursor-user-configuration.log",
+      "sha256": "49f8187ad029c78ea4a4b8d20f653e8dad5fbc8afbf9c725122f31dc32720e5a"
+    },
+    {
+      "file": "cursor-unit.log",
+      "sha256": "b2da2dec36137732903b4e185d8e4d7dc06b8202d59678e0494018332267c0ba"
+    },
+    {
+      "file": "qwen-behavior.log",
+      "sha256": "2b4bf2e4b9d60cff8a4c5c91f0f91e2b64928f84a047ece9cf7f9d4e1e4b839e"
+    },
+    {
+      "file": "qwen-vendor.log",
+      "sha256": "708bf17a3a08946e4ad45421e1407bc1db2237552035f4ec0e9e807b72945b49"
+    }
+  ],
+  "commitValidation": {
+    "command": "CI=1 pnpm run check",
+    "pinnedCursor": "1.3.1",
+    "testsPassed": 4371,
+    "testsSkipped": 581,
+    "mockPassed": 18,
+    "mockSkipped": 1,
+    "logSha256": "f89049db83b524d21fcd26ac0db94b75deb066805f71517d0499f564026e1513"
+  }
+}

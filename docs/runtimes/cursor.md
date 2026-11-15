@@ -36,6 +36,13 @@ macOS/Windows coverage
 The earlier November 4 controls were local/offline only
 ([evidence and limits](../../experiments/runtime-version-checks/2026-11-04.md#cursor-131)).
 
+SDK **1.4.0** was checked on November 15 without a real account. Login and
+configuration controls pass, but its new cloud queued-steer result widens
+the common `Run.steer` type and breaks assignment to OAR's `CursorSdk`.
+The local bundle still returns the original strings; this is insufficient
+to accept a typed upgrade. The required peer remains 1.3.1. See the
+[comparison and reproduction](../../experiments/runtime-version-checks/2026-11-15.md#cursor-140).
+
 Since SDK 1.1.0, `inputTokens` includes cache reads and writes and OAR does
 not add them again, so Cursor `input` can be smaller than in OAR releases
 before that change; whether 1.0.40's native input field had different
