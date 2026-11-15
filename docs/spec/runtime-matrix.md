@@ -24,7 +24,7 @@ calls, resume semantics, and what each adapter still does not carry.
 | pi | `none` | pi has no native sub-agents; `agentPath` is always root |
 | cursor (`@cursor/sdk`) | `attributed` | a child's updates arrive inside the parent's `task` call as `tool-call-delta {callId, taskUpdate}` and carry `agentPath = [...parentPath, taskCallId]` ([env] SDK 1.0.35) |
 | grok (ACP) | `nested` | `session/update` for other session ids are child-session records; vendor lifecycle notifications add edges when they name a parent ([sym], unverified live; see [open evidence](#boundaries-and-open-evidence-points)) |
-| antigravity (ACP) | `opaque` | the `start_subagent` tool call completes at once; the child's tool calls and text then arrive under the parent's session id (the child's own id survives only as the `toolCallId` prefix), so everything lands on root and nothing is fabricated ([env] agy_acp_server 1.2.1; CLI 1.5.0 child attribution is unverified) |
+| antigravity (ACP) | `opaque` | legacy `start_subagent` output stays on root ([env] agy_acp_server 1.2.1); native CLI child attribution is unverified. On CLI 1.5.9, a background command completed after `end_turn` without forwarding its completion or later model reply during a 12-second observation ([known gaps](../runtimes/antigravity.md#known-gaps-in-cli-159), upstream [#1461](https://github.com/google-antigravity/antigravity-cli/issues/1461)) |
 | codebuddy (ACP) | `opaque` | standard updates and known vendor notifications are retained; no verified child mapping is inferred ([mapping](../runtimes/codebuddy.md)) |
 | devin (ACP) | `opaque` | standard ACP updates are retained; no verified child identity mapping is inferred ([mapping](../runtimes/devin.md)) |
 | kimi (ACP) | `opaque` | `kimi acp` subscribes to the main agent only; the adapter records what arrives and fabricates nothing |
@@ -374,7 +374,7 @@ in CI. Keys belong in `SessionOptions.env` or the runtime's own config, never in
 | opencode | `$XDG_CONFIG_HOME/opencode/opencode.json` | a `provider.<id>` with its AI SDK `npm` package and `options.baseURL` / `apiKey`, chosen as `model` |
 | kimi | `SessionOptions.env` | `KIMI_MODEL_NAME`, `KIMI_MODEL_BASE_URL`, `KIMI_MODEL_API_KEY`, `KIMI_MODEL_PROVIDER_TYPE = "openai"` (chat completions) |
 | grok | `$GROK_HOME/config.toml` | `[models] default = "<id>"` and `[model.<id>]` with `base_url`, `api_key`, `api_backend = "chat_completions"` |
-| antigravity | `$GEMINI_HOME` and `SessionOptions.env` | `antigravity-cli/settings.json` with `modelProvider: "gemini"`, then `GEMINI_API_KEY` and `GOOGLE_GEMINI_BASE_URL` |
+| antigravity | OAR maps effective `GEMINI_HOME` to ACP `--gemini-dir`; CLI 1.5.9 ignores that variable itself. Auth-status and usage commands cannot select a nondefault directory: use HOME (Windows USERPROFILE) for all-operation state isolation ([limits](../runtimes/antigravity.md#session-creation-and-resume)) | `antigravity-cli/settings.json` with `modelProvider: "gemini"`, then `GEMINI_API_KEY` and `GOOGLE_GEMINI_BASE_URL` |
 | dsh | `$DSH_HOME/cordis.patch.yml` | an `llm-pi-ai` row with `config.providers.<id>` (`api: "openai-completions"`, `baseURL`, `apiKeyEnv`, `models`), and `agent-default-model` naming it, or `model` as `<id>/<model>` ([`dsh-aimock.ts`](../../sea-trial/harness/dsh-aimock.ts)) |
 | pi | `models.json` in pi's agent dir (`OAR_PI_AGENT_DIR`) | a `providers.<id>` with `baseUrl`, `apiKey`, `api` and its models; process-wide, since pi runs in-process |
 | pi-durable | the host's own `Harness` | `models.setProvider(createProvider({ baseUrl, ... }))` |
@@ -1242,8 +1242,20 @@ retryable}`, and `turn.step.retrying`), but answers the ACP prompt `end_turn`
 with no message, so oar records `completed`. That file is kimi's private
 storage, not an interface, and oar reads only the ACP stream. antigravity
 likewise ends most failed turns `end_turn`, some with the provider's text as
-agent text. Not tried on the ACP runtimes: errors inside a stream, and after
-a tool call.
+agent text. A [CLI 1.5.9 follow-up](../../experiments/antigravity-native-gaps-2026-11-15/README.md)
+now covers an interrupted SSE stream and 401/429/504 failures after a tool
+call: warning text, then `end_turn`, with native retries on stream cuts,
+rate limits and 504. No `refusal` or ACP error was observed. A stalled stream
+remained unanswered at 180 seconds, an observation bound, not a native
+timeout. These Gemini API-provider controls do not establish the signed-in
+Google provider's quota behavior.
+OAR consequently records these failed turns as `completed`, preserving the
+original warning text ([upstream #1570](https://github.com/google-antigravity/antigravity-cli/issues/1570)).
+The same 1.5.9 experiment observed a background command finishing after
+`end_turn` without forwarding its completion or later model reply during
+12 seconds of observation ([upstream #1461](https://github.com/google-antigravity/antigravity-cli/issues/1461)).
+OAR does not infer native idleness from that answer or read the CLI's
+internal database to fill these gaps.
 
 ### cursor
 

@@ -23,7 +23,7 @@ if (args[0] === "models") {
   console.log("Fetching available models...\nGemini 3.5 Pro\nGemini 3.5 Flash");
   process.exit(0);
 }
-if (args[0] === "acp" && args.length === 1) {
+if (args[0] === "acp" && !args.includes("--login")) {
   // agy 1.5.5's ACP server, as far as logout goes: it declares auth.logout and removes its token (experiments/antigravity-login/README.md#logout).
   createInterface({ input: process.stdin }).on("line", (line) => {
     const request = JSON.parse(line);

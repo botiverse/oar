@@ -1,5 +1,5 @@
 // Contributed by Otter in the #756 review: boundaries of the Antigravity usage reader.
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, expect, test } from "vitest";
@@ -54,7 +54,7 @@ function fakeAgy(mode: "unknown" | "logged_out" | "logged_in", stall?: "models" 
     `process.stdout.write(${JSON.stringify(reply)});`,
   ].join("\n"));
   return { installation: { kind: "available", via: "executable", command: fakeAgentBinary(dir, [script]) } as const,
-    calls: () => readFileSync(calls, "utf8").trim().split("\n"), pid: () => Number(readFileSync(pid, "utf8")) };
+    calls: () => existsSync(calls) ? readFileSync(calls, "utf8").trim().split("\n") : [], pid: () => Number(readFileSync(pid, "utf8")) };
 }
 
 test("unknown authentication does not dispatch the potentially interactive usage command", async () => {
@@ -82,4 +82,10 @@ test.each(["models", "usage"] as const)("the overall deadline bounds a stalled %
   expect(performance.now() - started).toBeLessThan(1500);
   expect(await gone(fake.pid())).toBe(true);
   expect(fake.calls()).toEqual(stage === "models" ? ["models"] : ["models", "-p /usage --output-format json"]);
+});
+
+test("usage refuses a separate GEMINI_HOME before any default-profile command", async () => {
+  const fake = fakeAgy("logged_in");
+  expect(await antigravityAccountUsage(fake.installation, { env: { GEMINI_HOME: path.resolve("isolated agy profile") } })).toEqual({ kind: "unsupported", reason: "unsupported_auth_storage" });
+  expect(fake.calls()).toEqual([]);
 });

@@ -19,12 +19,12 @@ export async function queryAcpAuth(
   command: string,
   call: { readonly method: "authenticate"; readonly methodId: string } | { readonly method: "logout" },
   name: string,
-  options: AuthStatusOptions & { readonly signal?: AbortSignal },
+  options: AuthStatusOptions & { readonly signal?: AbortSignal; readonly args?: readonly string[] },
 ): Promise<AcpAuthQuery> {
   const bounds = loginBounds(options.signal, options.timeoutMs ?? 20_000);
   let runtime: AcpProcess | undefined = undefined;
   try {
-    runtime = startAcpProcess(command, ["acp"], client({ name: "oar" }), {
+    runtime = startAcpProcess(command, options.args ?? ["acp"], client({ name: "oar" }), {
       env: sessionEnvironment(options.env), inheritStderr: false,
       redact: () => `${name} authentication query failed`,
     });

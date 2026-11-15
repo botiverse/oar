@@ -1,3 +1,4 @@
+import { antigravityUsesDefaultState } from "./state-directory.js";
 import type { AccountUsageReader, AccountUsageSnapshot, AccountUsageWindow } from "../../contracts/account-usage.js";
 import { sessionEnvironment } from "../../shared/environment.js";
 import { runExecutable } from "../../shared/executable/index.js";
@@ -98,6 +99,8 @@ export const antigravityAccountUsage: AccountUsageReader = async (installation, 
   if (installation.via !== "executable") {
     return { kind: "unsupported", reason: "unsupported_installation" };
   }
+  const env = sessionEnvironment(options.env);
+  if (!antigravityUsesDefaultState(env)) { return { kind: "unsupported", reason: "unsupported_auth_storage" }; }
   const timeoutMs = options.timeoutMs ?? 30_000;
   const deadline = Date.now() + timeoutMs;
   const snapshot = await withQueryDeadline<AccountUsageSnapshot>(USAGE, timeoutMs, async (signal) => {
@@ -110,7 +113,7 @@ export const antigravityAccountUsage: AccountUsageReader = async (installation, 
       throw new Error(`${USAGE}: agy models did not confirm a login`);
     }
     const result = await runExecutable(installation.command, ["-p", "/usage", "--output-format", "json"], {
-      env: sessionEnvironment(options.env), timeoutMs: remainingMs(deadline, USAGE), signal,
+      env, timeoutMs: remainingMs(deadline, USAGE), signal,
     });
     const reply = parseJson(result.stdout.trim());
     if (reply === undefined) {
@@ -119,7 +122,7 @@ export const antigravityAccountUsage: AccountUsageReader = async (installation, 
     // Credits matter only when no group has quota left; read them then.
     if (!readUsage(reply).everyGroupExhausted) { return projectAntigravityUsage(reply); }
     const credits = await runExecutable(installation.command, ["-p", "/credits", "--output-format", "json"], {
-      env: sessionEnvironment(options.env), timeoutMs: remainingMs(deadline, USAGE), signal,
+      env, timeoutMs: remainingMs(deadline, USAGE), signal,
     });
     const creditsReply = parseJson(credits.stdout.trim());
     return projectAntigravityUsage(reply, projectAntigravityCredits(creditsReply));

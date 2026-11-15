@@ -1,3 +1,5 @@
+import { sessionEnvironment } from "../../shared/environment.js";
+import { antigravityStateArgs } from "./state-directory.js";
 import type { SessionOptions } from "../../contracts/session.js";
 import { antigravityRefusedSessionOptions } from "./options.js";
 import { UnsupportedOptionError } from "../../contracts/errors.js";
@@ -7,8 +9,8 @@ import { asRecord, type JsonRecord } from "../../shared/json.js";
 import { refuseSessionOptions } from "../../shared/session-options.js";
 
 /** Native CLI ACP; a per-session worker is the vendor's required channel for HTTP MCP. */
-export function antigravityAcpArgs(): readonly string[] {
-  return ["acp", "--dangerously-skip-permissions", "--process-per-session"];
+export function antigravityAcpArgs(env: Readonly<NodeJS.ProcessEnv> = process.env): readonly string[] {
+  return ["acp", "--dangerously-skip-permissions", "--process-per-session", ...antigravityStateArgs(env)];
 }
 
 /** Native CLI 1.5.0 declares append metadata, but no tool-denial channel. */
@@ -27,7 +29,7 @@ function sessionMeta(options: SessionOptions, initialized: JsonRecord): JsonReco
 }
 
 export const antigravityAcpProfile: AcpSessionProfile = {
-  args: () => antigravityAcpArgs(),
+  args: (options) => antigravityAcpArgs(sessionEnvironment(options.env)),
   resumeKeepsSessionCwd: true,
   // Subagent transport attribution remains unverified. A second native
   // prompt steers the same loop and settles the preceding prompt early.
