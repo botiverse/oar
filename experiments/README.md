@@ -4,6 +4,8 @@
 
 - [Held queue admission and input ownership](held-queue-admission-2026-11-15/README.md): Claude, Qoder, Qwen and Cursor dispatch records, pending ownership, native identity and observer boundaries.
 
+- [ACP fixture process identity](acp-fixture-process-identity-2026-11-15.md): controlled PID-reuse counterexample, per-launch trace identities and the limits of the original Windows failure evidence.
+
 - [ZCode headless and app-server comparison](zcode-headless-2026-11-15/README.md): local-provider stream, resume, MCP, permission, cancellation and V4 input observations; native login ownership and first-adapter tradeoffs.
 
 - [Antigravity configuration notifications](antigravity-config-notifications-2026-11-15/README.md): new stale-before-correct reconstruction, native 1.5.0/1.5.9 field observations and bounded positive confirmation.

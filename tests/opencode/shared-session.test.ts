@@ -11,6 +11,7 @@ import { experimentalOpenCodeRuntime, opencodeCandidateRefusal } from "../../exp
 import { acpSession } from "../../packages/oar/src/shared/acp/session.js";
 import { promptAndWait } from "../../packages/oar/src/observe/turns.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
+import acpFixtureMethodsByInstance from "../fixtures/acp-trace.js";
 // oxlint-disable-next-line import/no-namespace -- Type of the complete module retained by Vitest importOriginal.
 import type * as OpenCodeSessionModule from "../../packages/oar/src/runtimes/opencode/session.js";
 
@@ -144,11 +145,10 @@ test.each(["2.2.4", "2.2.6", "2.2.5-dev", "opencode v2.2.5", ""])("a stale insta
     await expect(open("shared")).rejects.toMatchObject({ option: "placement" });
     expect(launches).toHaveBeenCalledTimes(3); expect(launched(launches, 2).closed).toBe(true);
     const contents = await readFile(traceFile, "utf8");
-    const trace = contents.trim().split("\n").map(line => asRecord(JSON.parse(line)));
-    const processes = new Map<unknown, unknown[]>();
-    for (const entry of trace) { const methods = processes.get(entry?.pid) ?? []; methods.push(entry?.method); processes.set(entry?.pid, methods); }
+    const processes = acpFixtureMethodsByInstance(contents);
+    expect(processes.size, contents).toBe(4);
     // Both refused native processes initialized only. Neither received new/resume or MCP credentials.
-    expect([...processes.values()].filter(methods => methods.length === 1 && methods[0] === "initialize")).toHaveLength(2);
+    expect([...processes.values()].filter(methods => methods.length === 1 && methods[0] === "initialize"), contents).toHaveLength(2);
     await b.dispose(); await writeFile(versionFile, "2.2.5");
     const recovered = await selected.session(installation, { cwd: path.join(f.root, "a"), env }); sessions.push(recovered);
     expect(recovered.placement).toBe("shared");
