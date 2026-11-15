@@ -262,15 +262,26 @@ The message retains its runtime-specific explanation.
 | Codex | `thread/start` or `thread/resume` reports a model different from the explicit request | Absent; opening does not enumerate `model/list` |
 | Pi SDK, Pi RPC, Pi Durable | Opened session/agent state reports a different or missing model | Absent; resolving one requested model is not a catalog enumeration |
 | DSH | The reported `agent.model` route differs from the requested provider/model | Absent |
-| Antigravity | The ACP `config_option_update` model value contradicts the requested selection | Absent |
+| Antigravity | The last ACP `config_option_update` model value still contradicts the requested selection at the configuration deadline | Absent |
 
-This error adds no new confirmation reads or refusal rules. For example,
+The error class itself imposes no shared confirmation policy. For example,
 Codex and DSH do not acquire a missing-readback refusal where they previously
 allowed opening. Explicit native model-unavailable errors and unsupported
 options keep their existing classifications. A Qoder catalog-query failure
 uses this confirmation error and retains its underlying `cause`; other
 transport/deadline failures retain their errors. A failure to confirm is not
 itself evidence for `RuntimeFailureError("model_unavailable")`.
+Antigravity waits for a successful config RPC and the last observed value
+for the requested option to match. A conflicting notification may be
+followed by a matching one within the original 30-second request deadline.
+If it still disagrees at the deadline, model uses `ModelConfirmationError`
+with the last reported value; effort keeps its existing plain refusal.
+This delays a genuine mismatch's refusal until the deadline. No notification
+naming the option remains a timeout, and RPC failures or process exits
+remain immediate failures. No new request, retry, quiet period, or deadline
+extension is added. This policy confirms an observed value, without claiming
+to identify stale notifications or prevent later native value changes.
+[Evidence and limitations](../../experiments/antigravity-config-notifications-2026-11-15/README.md).
 Runtime pages describe the native evidence and confirmation limits.
 
 Regression coverage includes creation and resume, missing values, failed

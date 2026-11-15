@@ -1,12 +1,15 @@
 import { asRecord, asRecordList, type JsonRecord } from "../json.js";
 import { ModelConfirmationError } from "../../contracts/model-confirmation-error.js";
+import { AcpError } from "./errors.js";
+
+type WaitForConfirmation = (signal: AbortSignal) => Promise<void>;
 
 export interface AcpConfigUpdates {
   observe(notification: unknown): void;
-  confirm<T>(sessionId: string, configId: string, value: string, signal: AbortSignal, send: () => Promise<T>): Promise<T>;
+  confirm<T>(sessionId: string, configId: string, value: string, run: (wait: WaitForConfirmation) => Promise<T>): Promise<T>;
 }
 
-/** A native answer and its configuration notification must both finish before the next setting. */
+/** Observe before sending; wait after the native answer, inside the same request deadline. */
 export function createAcpConfigUpdates(): AcpConfigUpdates {
   const listeners = new Set<(sessionId: string, update: JsonRecord) => void>();
   return {
@@ -15,30 +18,46 @@ export function createAcpConfigUpdates(): AcpConfigUpdates {
       if (typeof params?.sessionId !== "string" || update?.sessionUpdate !== "config_option_update") { return; }
       for (const listener of listeners) { listener(params.sessionId, update); }
     },
-    async confirm(sessionId, configId, value, signal, send) {
-      signal.throwIfAborted();
-      const seen = Promise.withResolvers<void>();
-      let current: unknown = null;
+    async confirm(sessionId, configId, value, run) {
+      const state: { observed: boolean; current: unknown; changed?: () => void } = { observed: false, current: null };
       const listener = (id: string, update: JsonRecord): void => {
         if (id !== sessionId) { return; }
         const option = asRecordList(update.configOptions).find(entry => entry.id === configId);
         if (option === undefined) { return; }
-        current = option.currentValue;
-        seen.resolve();
+        state.observed = true;
+        state.current = option.currentValue;
+        state.changed?.();
       };
-      const aborted = (): void => { seen.reject(signal.reason); };
       listeners.add(listener);
-      signal.addEventListener("abort", aborted, { once: true });
       try {
-        const [response] = await Promise.all([send(), seen.promise]);
-        if (current !== value) {
-          const message = `ACP config_option_update left ${configId} at ${String(current)} although ${value} was requested`;
-          throw configId === "model" ? new ModelConfirmationError(message, { requested: value, reported: typeof current === "string" ? current : null }) : new Error(message);
+        return await run(async signal => {
+          signal.throwIfAborted();
+          if (state.observed && state.current === value) { return; }
+          do {
+            signal.throwIfAborted();
+            const matched = Promise.withResolvers<void>();
+            // oxlint-disable-next-line eslint/no-loop-func -- Native callbacks update state; each iteration owns its own deferred.
+            state.changed = (): void => { if (state.current === value) { matched.resolve(); } };
+            const aborted = (): void => { matched.reject(signal.reason); };
+            signal.addEventListener("abort", aborted, { once: true });
+            // Recheck after draining the notification callback: another update
+            // in the same batch may already have replaced the matching value.
+            try { await matched.promise; }
+            finally { signal.removeEventListener("abort", aborted); }
+          // oxlint-disable-next-line eslint/no-unmodified-loop-condition -- Notifications update the observed state while awaiting.
+          } while (state.current !== value);
+        });
+      } catch (error) {
+        // An explicit RPC failure or process exit retains its own classification.
+        // A conflicting notification is an observation, not proof of refusal,
+        // until the request's existing deadline runs out.
+        if (error instanceof AcpError && error.kind === "timeout" && state.observed && state.current !== value) {
+          const message = `ACP config_option_update left ${configId} at ${String(state.current)} although ${value} was requested`;
+          throw configId === "model" ? new ModelConfirmationError(message, { requested: value, reported: typeof state.current === "string" ? state.current : null }) : new Error(message);
         }
-        return response;
+        throw error;
       } finally {
         listeners.delete(listener);
-        signal.removeEventListener("abort", aborted);
       }
     },
   };

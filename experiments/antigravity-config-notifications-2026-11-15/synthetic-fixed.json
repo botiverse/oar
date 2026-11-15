@@ -1,0 +1,926 @@
+{
+  "evidenceKind": "new synthetic reconstruction; no original review trace exists",
+  "outcome": [
+    {
+      "configId": "model",
+      "outcome": "confirmed"
+    },
+    {
+      "configId": "thought_level",
+      "outcome": "confirmed"
+    }
+  ],
+  "wire": {
+    "model": [
+      {
+        "kind": "request",
+        "message": {
+          "jsonrpc": "2.0",
+          "id": 0,
+          "method": "initialize",
+          "params": {
+            "protocolVersion": 1,
+            "clientCapabilities": {
+              "fs": {
+                "readTextFile": false,
+                "writeTextFile": false
+              },
+              "terminal": true
+            },
+            "clientInfo": {
+              "name": "oar",
+              "version": "0.0.0"
+            }
+          }
+        }
+      },
+      {
+        "kind": "delivered",
+        "message": {
+          "jsonrpc": "2.0",
+          "id": 0,
+          "result": {
+            "protocolVersion": 1,
+            "agentCapabilities": {
+              "loadSession": true,
+              "_meta": {
+                "antigravity": {
+                  "systemPrompt": {
+                    "append": true
+                  }
+                }
+              },
+              "sessionCapabilities": {
+                "list": {},
+                "resume": {},
+                "close": {},
+                "additionalDirectories": {}
+              },
+              "promptCapabilities": {
+                "image": true
+              }
+            },
+            "authMethods": [
+              {
+                "id": "cached",
+                "name": "Cached login"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "kind": "request",
+        "message": {
+          "jsonrpc": "2.0",
+          "id": 1,
+          "method": "session/new",
+          "params": {
+            "cwd": "<worktree>",
+            "mcpServers": []
+          }
+        }
+      },
+      {
+        "kind": "delivered",
+        "message": {
+          "jsonrpc": "2.0",
+          "id": 1,
+          "result": {
+            "sessionId": "fake-session",
+            "modes": {
+              "currentModeId": "default",
+              "availableModes": [
+                {
+                  "id": "default",
+                  "name": "Default"
+                },
+                {
+                  "id": "yolo",
+                  "name": "YOLO"
+                }
+              ]
+            },
+            "configOptions": [
+              {
+                "type": "select",
+                "id": "model",
+                "name": "Model",
+                "category": "model",
+                "currentValue": "fixture-model-x",
+                "options": [
+                  {
+                    "value": "fixture-model-x",
+                    "name": "Fixture X"
+                  },
+                  {
+                    "value": "requested-y",
+                    "name": "Requested Y"
+                  }
+                ]
+              },
+              {
+                "type": "select",
+                "id": "thought_level",
+                "name": "Effort",
+                "category": "thought_level",
+                "currentValue": "medium",
+                "options": [
+                  {
+                    "value": "low",
+                    "name": "low"
+                  },
+                  {
+                    "value": "medium",
+                    "name": "medium"
+                  },
+                  {
+                    "value": "high",
+                    "name": "high"
+                  }
+                ]
+              }
+            ],
+            "models": {
+              "currentModelId": "fixture-model-x",
+              "availableModels": [
+                {
+                  "modelId": "fixture-model-x",
+                  "name": "Fixture X"
+                },
+                {
+                  "modelId": "requested-y",
+                  "name": "Requested Y"
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "kind": "request",
+        "message": {
+          "jsonrpc": "2.0",
+          "id": 2,
+          "method": "session/set_config_option",
+          "params": {
+            "sessionId": "fake-session",
+            "configId": "model",
+            "value": "requested-y"
+          }
+        }
+      },
+      {
+        "kind": "delivered",
+        "message": {
+          "jsonrpc": "2.0",
+          "id": 2,
+          "result": {
+            "configOptions": [
+              {
+                "type": "select",
+                "id": "model",
+                "name": "Model",
+                "category": "model",
+                "currentValue": "requested-y",
+                "options": [
+                  {
+                    "value": "fixture-model-x",
+                    "name": "Fixture X"
+                  },
+                  {
+                    "value": "requested-y",
+                    "name": "Requested Y"
+                  }
+                ]
+              },
+              {
+                "type": "select",
+                "id": "thought_level",
+                "name": "Effort",
+                "category": "thought_level",
+                "currentValue": "medium",
+                "options": [
+                  {
+                    "value": "low",
+                    "name": "low"
+                  },
+                  {
+                    "value": "medium",
+                    "name": "medium"
+                  },
+                  {
+                    "value": "high",
+                    "name": "high"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      },
+      {
+        "kind": "scheduled-requested-update",
+        "delayMs": 50,
+        "message": {
+          "jsonrpc": "2.0",
+          "method": "session/update",
+          "params": {
+            "sessionId": "fake-session",
+            "update": {
+              "sessionUpdate": "config_option_update",
+              "configOptions": [
+                {
+                  "type": "select",
+                  "id": "model",
+                  "name": "Model",
+                  "category": "model",
+                  "currentValue": "requested-y",
+                  "options": [
+                    {
+                      "value": "fixture-model-x",
+                      "name": "Fixture X"
+                    },
+                    {
+                      "value": "requested-y",
+                      "name": "Requested Y"
+                    }
+                  ]
+                },
+                {
+                  "type": "select",
+                  "id": "thought_level",
+                  "name": "Effort",
+                  "category": "thought_level",
+                  "currentValue": "medium",
+                  "options": [
+                    {
+                      "value": "low",
+                      "name": "low"
+                    },
+                    {
+                      "value": "medium",
+                      "name": "medium"
+                    },
+                    {
+                      "value": "high",
+                      "name": "high"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "kind": "delivered",
+        "message": {
+          "jsonrpc": "2.0",
+          "method": "session/update",
+          "params": {
+            "sessionId": "fake-session",
+            "update": {
+              "sessionUpdate": "config_option_update",
+              "configOptions": [
+                {
+                  "type": "select",
+                  "id": "model",
+                  "name": "Model",
+                  "category": "model",
+                  "currentValue": "fixture-model-x",
+                  "options": [
+                    {
+                      "value": "fixture-model-x",
+                      "name": "Fixture X"
+                    },
+                    {
+                      "value": "requested-y",
+                      "name": "Requested Y"
+                    }
+                  ]
+                },
+                {
+                  "type": "select",
+                  "id": "thought_level",
+                  "name": "Effort",
+                  "category": "thought_level",
+                  "currentValue": "medium",
+                  "options": [
+                    {
+                      "value": "low",
+                      "name": "low"
+                    },
+                    {
+                      "value": "medium",
+                      "name": "medium"
+                    },
+                    {
+                      "value": "high",
+                      "name": "high"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "kind": "delivered",
+        "message": {
+          "jsonrpc": "2.0",
+          "method": "session/update",
+          "params": {
+            "sessionId": "fake-session",
+            "update": {
+              "sessionUpdate": "config_option_update",
+              "configOptions": [
+                {
+                  "type": "select",
+                  "id": "model",
+                  "name": "Model",
+                  "category": "model",
+                  "currentValue": "requested-y",
+                  "options": [
+                    {
+                      "value": "fixture-model-x",
+                      "name": "Fixture X"
+                    },
+                    {
+                      "value": "requested-y",
+                      "name": "Requested Y"
+                    }
+                  ]
+                },
+                {
+                  "type": "select",
+                  "id": "thought_level",
+                  "name": "Effort",
+                  "category": "thought_level",
+                  "currentValue": "medium",
+                  "options": [
+                    {
+                      "value": "low",
+                      "name": "low"
+                    },
+                    {
+                      "value": "medium",
+                      "name": "medium"
+                    },
+                    {
+                      "value": "high",
+                      "name": "high"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "kind": "request",
+        "message": {
+          "jsonrpc": "2.0",
+          "id": 3,
+          "method": "session/close",
+          "params": {
+            "sessionId": "fake-session"
+          }
+        }
+      },
+      {
+        "kind": "delivered",
+        "message": {
+          "jsonrpc": "2.0",
+          "method": "fixture/closed",
+          "params": {
+            "sessionId": "fake-session"
+          }
+        }
+      },
+      {
+        "kind": "delivered",
+        "message": {
+          "jsonrpc": "2.0",
+          "id": 3,
+          "result": {}
+        }
+      }
+    ],
+    "thought_level": [
+      {
+        "kind": "request",
+        "message": {
+          "jsonrpc": "2.0",
+          "id": 0,
+          "method": "initialize",
+          "params": {
+            "protocolVersion": 1,
+            "clientCapabilities": {
+              "fs": {
+                "readTextFile": false,
+                "writeTextFile": false
+              },
+              "terminal": true
+            },
+            "clientInfo": {
+              "name": "oar",
+              "version": "0.0.0"
+            }
+          }
+        }
+      },
+      {
+        "kind": "delivered",
+        "message": {
+          "jsonrpc": "2.0",
+          "id": 0,
+          "result": {
+            "protocolVersion": 1,
+            "agentCapabilities": {
+              "loadSession": true,
+              "_meta": {
+                "antigravity": {
+                  "systemPrompt": {
+                    "append": true
+                  }
+                }
+              },
+              "sessionCapabilities": {
+                "list": {},
+                "resume": {},
+                "close": {},
+                "additionalDirectories": {}
+              },
+              "promptCapabilities": {
+                "image": true
+              }
+            },
+            "authMethods": [
+              {
+                "id": "cached",
+                "name": "Cached login"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "kind": "request",
+        "message": {
+          "jsonrpc": "2.0",
+          "id": 1,
+          "method": "session/new",
+          "params": {
+            "cwd": "<worktree>",
+            "mcpServers": []
+          }
+        }
+      },
+      {
+        "kind": "delivered",
+        "message": {
+          "jsonrpc": "2.0",
+          "id": 1,
+          "result": {
+            "sessionId": "fake-session",
+            "modes": {
+              "currentModeId": "default",
+              "availableModes": [
+                {
+                  "id": "default",
+                  "name": "Default"
+                },
+                {
+                  "id": "yolo",
+                  "name": "YOLO"
+                }
+              ]
+            },
+            "configOptions": [
+              {
+                "type": "select",
+                "id": "model",
+                "name": "Model",
+                "category": "model",
+                "currentValue": "fixture-model-x",
+                "options": [
+                  {
+                    "value": "fixture-model-x",
+                    "name": "Fixture X"
+                  },
+                  {
+                    "value": "requested-y",
+                    "name": "Requested Y"
+                  }
+                ]
+              },
+              {
+                "type": "select",
+                "id": "thought_level",
+                "name": "Effort",
+                "category": "thought_level",
+                "currentValue": "medium",
+                "options": [
+                  {
+                    "value": "low",
+                    "name": "low"
+                  },
+                  {
+                    "value": "medium",
+                    "name": "medium"
+                  },
+                  {
+                    "value": "high",
+                    "name": "high"
+                  }
+                ]
+              }
+            ],
+            "models": {
+              "currentModelId": "fixture-model-x",
+              "availableModels": [
+                {
+                  "modelId": "fixture-model-x",
+                  "name": "Fixture X"
+                },
+                {
+                  "modelId": "requested-y",
+                  "name": "Requested Y"
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "kind": "request",
+        "message": {
+          "jsonrpc": "2.0",
+          "id": 2,
+          "method": "session/set_config_option",
+          "params": {
+            "sessionId": "fake-session",
+            "configId": "model",
+            "value": "requested-y"
+          }
+        }
+      },
+      {
+        "kind": "delivered",
+        "message": {
+          "jsonrpc": "2.0",
+          "id": 2,
+          "result": {
+            "configOptions": [
+              {
+                "type": "select",
+                "id": "model",
+                "name": "Model",
+                "category": "model",
+                "currentValue": "requested-y",
+                "options": [
+                  {
+                    "value": "fixture-model-x",
+                    "name": "Fixture X"
+                  },
+                  {
+                    "value": "requested-y",
+                    "name": "Requested Y"
+                  }
+                ]
+              },
+              {
+                "type": "select",
+                "id": "thought_level",
+                "name": "Effort",
+                "category": "thought_level",
+                "currentValue": "medium",
+                "options": [
+                  {
+                    "value": "low",
+                    "name": "low"
+                  },
+                  {
+                    "value": "medium",
+                    "name": "medium"
+                  },
+                  {
+                    "value": "high",
+                    "name": "high"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      },
+      {
+        "kind": "delivered",
+        "message": {
+          "jsonrpc": "2.0",
+          "method": "session/update",
+          "params": {
+            "sessionId": "fake-session",
+            "update": {
+              "sessionUpdate": "config_option_update",
+              "configOptions": [
+                {
+                  "type": "select",
+                  "id": "model",
+                  "name": "Model",
+                  "category": "model",
+                  "currentValue": "requested-y",
+                  "options": [
+                    {
+                      "value": "fixture-model-x",
+                      "name": "Fixture X"
+                    },
+                    {
+                      "value": "requested-y",
+                      "name": "Requested Y"
+                    }
+                  ]
+                },
+                {
+                  "type": "select",
+                  "id": "thought_level",
+                  "name": "Effort",
+                  "category": "thought_level",
+                  "currentValue": "medium",
+                  "options": [
+                    {
+                      "value": "low",
+                      "name": "low"
+                    },
+                    {
+                      "value": "medium",
+                      "name": "medium"
+                    },
+                    {
+                      "value": "high",
+                      "name": "high"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "kind": "request",
+        "message": {
+          "jsonrpc": "2.0",
+          "id": 3,
+          "method": "session/set_config_option",
+          "params": {
+            "sessionId": "fake-session",
+            "configId": "thought_level",
+            "value": "high"
+          }
+        }
+      },
+      {
+        "kind": "delivered",
+        "message": {
+          "jsonrpc": "2.0",
+          "id": 3,
+          "result": {
+            "configOptions": [
+              {
+                "type": "select",
+                "id": "model",
+                "name": "Model",
+                "category": "model",
+                "currentValue": "requested-y",
+                "options": [
+                  {
+                    "value": "fixture-model-x",
+                    "name": "Fixture X"
+                  },
+                  {
+                    "value": "requested-y",
+                    "name": "Requested Y"
+                  }
+                ]
+              },
+              {
+                "type": "select",
+                "id": "thought_level",
+                "name": "Effort",
+                "category": "thought_level",
+                "currentValue": "high",
+                "options": [
+                  {
+                    "value": "low",
+                    "name": "low"
+                  },
+                  {
+                    "value": "medium",
+                    "name": "medium"
+                  },
+                  {
+                    "value": "high",
+                    "name": "high"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      },
+      {
+        "kind": "scheduled-requested-update",
+        "delayMs": 50,
+        "message": {
+          "jsonrpc": "2.0",
+          "method": "session/update",
+          "params": {
+            "sessionId": "fake-session",
+            "update": {
+              "sessionUpdate": "config_option_update",
+              "configOptions": [
+                {
+                  "type": "select",
+                  "id": "model",
+                  "name": "Model",
+                  "category": "model",
+                  "currentValue": "requested-y",
+                  "options": [
+                    {
+                      "value": "fixture-model-x",
+                      "name": "Fixture X"
+                    },
+                    {
+                      "value": "requested-y",
+                      "name": "Requested Y"
+                    }
+                  ]
+                },
+                {
+                  "type": "select",
+                  "id": "thought_level",
+                  "name": "Effort",
+                  "category": "thought_level",
+                  "currentValue": "high",
+                  "options": [
+                    {
+                      "value": "low",
+                      "name": "low"
+                    },
+                    {
+                      "value": "medium",
+                      "name": "medium"
+                    },
+                    {
+                      "value": "high",
+                      "name": "high"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "kind": "delivered",
+        "message": {
+          "jsonrpc": "2.0",
+          "method": "session/update",
+          "params": {
+            "sessionId": "fake-session",
+            "update": {
+              "sessionUpdate": "config_option_update",
+              "configOptions": [
+                {
+                  "type": "select",
+                  "id": "model",
+                  "name": "Model",
+                  "category": "model",
+                  "currentValue": "requested-y",
+                  "options": [
+                    {
+                      "value": "fixture-model-x",
+                      "name": "Fixture X"
+                    },
+                    {
+                      "value": "requested-y",
+                      "name": "Requested Y"
+                    }
+                  ]
+                },
+                {
+                  "type": "select",
+                  "id": "thought_level",
+                  "name": "Effort",
+                  "category": "thought_level",
+                  "currentValue": "medium",
+                  "options": [
+                    {
+                      "value": "low",
+                      "name": "low"
+                    },
+                    {
+                      "value": "medium",
+                      "name": "medium"
+                    },
+                    {
+                      "value": "high",
+                      "name": "high"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "kind": "delivered",
+        "message": {
+          "jsonrpc": "2.0",
+          "method": "session/update",
+          "params": {
+            "sessionId": "fake-session",
+            "update": {
+              "sessionUpdate": "config_option_update",
+              "configOptions": [
+                {
+                  "type": "select",
+                  "id": "model",
+                  "name": "Model",
+                  "category": "model",
+                  "currentValue": "requested-y",
+                  "options": [
+                    {
+                      "value": "fixture-model-x",
+                      "name": "Fixture X"
+                    },
+                    {
+                      "value": "requested-y",
+                      "name": "Requested Y"
+                    }
+                  ]
+                },
+                {
+                  "type": "select",
+                  "id": "thought_level",
+                  "name": "Effort",
+                  "category": "thought_level",
+                  "currentValue": "high",
+                  "options": [
+                    {
+                      "value": "low",
+                      "name": "low"
+                    },
+                    {
+                      "value": "medium",
+                      "name": "medium"
+                    },
+                    {
+                      "value": "high",
+                      "name": "high"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "kind": "request",
+        "message": {
+          "jsonrpc": "2.0",
+          "id": 4,
+          "method": "session/close",
+          "params": {
+            "sessionId": "fake-session"
+          }
+        }
+      },
+      {
+        "kind": "delivered",
+        "message": {
+          "jsonrpc": "2.0",
+          "method": "fixture/closed",
+          "params": {
+            "sessionId": "fake-session"
+          }
+        }
+      },
+      {
+        "kind": "delivered",
+        "message": {
+          "jsonrpc": "2.0",
+          "id": 4,
+          "result": {}
+        }
+      }
+    ]
+  }
+}
