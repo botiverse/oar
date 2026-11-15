@@ -1,5 +1,7 @@
 # experiments
 
+- [ZCode headless and app-server comparison](zcode-headless-2026-11-15/README.md): local-provider stream, resume, MCP, permission, cancellation and V4 input observations; native login ownership and first-adapter tradeoffs.
+
 - [Antigravity configuration notifications](antigravity-config-notifications-2026-11-15/README.md): new stale-before-correct reconstruction, native 1.5.0/1.5.9 field observations and bounded positive confirmation.
 
 - [Executable probe cleanup after pipe closure](executable-probe-cleanup/README.md): synthetic root/descendant controls on source and published OAR, with retained identities and independent account deadlines.
