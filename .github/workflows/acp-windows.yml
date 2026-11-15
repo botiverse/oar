@@ -59,12 +59,14 @@ jobs:
         if: matrix.backend != 'grok-aimock'
         timeout-minutes: 12
       - name: Observe Grok behavior processes
+        id: grok_behavior
         if: matrix.backend == 'grok-aimock'
         run: pnpm tsx experiments/grok-startup/behavior-observed.ts
         timeout-minutes: 12
         env:
           OAR_GROK_PROCESS_TRACE: ${{ github.workspace }}/oar-trial-run/grok-processes/behavior
       - name: Observe Grok vendor processes
+        id: grok_vendor
         if: matrix.backend == 'grok-aimock'
         run: pnpm vitest run sea-trial/vendor --maxWorkers 2 --config experiments/grok-startup/vitest.config.ts
         timeout-minutes: 12
@@ -74,6 +76,9 @@ jobs:
         if: always() && matrix.backend == 'grok-aimock'
         run: pnpm tsx --test experiments/grok-startup/observer.test.ts
         timeout-minutes: 2
+      - name: Check Grok suite process evidence
+        if: always() && matrix.backend == 'grok-aimock'
+        run: pnpm tsx experiments/grok-startup/check-capture.ts "${{ steps.grok_behavior.outcome }}" "${{ steps.grok_vendor.outcome }}"
       - name: Measure Grok ACP launch paths
         if: always() && matrix.backend == 'grok-aimock'
         run: pnpm tsx experiments/grok-acp-startup.ts "$(npm root -g)"

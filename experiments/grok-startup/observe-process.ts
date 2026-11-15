@@ -55,6 +55,16 @@ function lines(receive: (line: string) => void, omitted: () => void, limit = LIN
   };
 }
 
+/** Recognize separate argv and cmd.exe's single escaped command string. Never execute the decoded text. */
+function grokStdioArguments(argv: readonly string[]): "argv" | "cmd-string" | null {
+  if (argv.includes("agent") && argv.includes("stdio")) { return "argv"; }
+  const commandIndex = argv.findIndex((value, index) => value.toLowerCase() === "/c"
+    && argv[index - 1]?.toLowerCase() === "/s" && argv[index - 2]?.toLowerCase() === "/d");
+  const command = commandIndex === -1 ? undefined : argv[commandIndex + 1];
+  const words = command?.replaceAll(/["^]/gu, "").split(/\s+/u) ?? [];
+  return words.includes("agent") && words.includes("stdio") ? "cmd-string" : null;
+}
+
 function observeSpawn(context: Context, args: Parameters<typeof childProcess.spawn>, launch: () => ReturnType<typeof childProcess.spawn>): ReturnType<typeof childProcess.spawn> {
   const options: childProcess.SpawnOptions | undefined = isArgv(args[1]) ? args[2] : args[1];
   // The native overload also permits omitted options at runtime.
@@ -62,7 +72,8 @@ function observeSpawn(context: Context, args: Parameters<typeof childProcess.spa
   const env = options?.env ?? process.env;
   const argv = isArgv(args[1]) ? args[1] : [];
   const directory = process.env.OAR_GROK_PROCESS_TRACE;
-  if (directory === undefined || directory === "" || env.GROK_HOME === undefined || env.GROK_HOME === "" || !argv.includes("agent") || !argv.includes("stdio")) { return launch(); }
+  const argumentForm = grokStdioArguments(argv);
+  if (directory === undefined || directory === "" || env.GROK_HOME === undefined || env.GROK_HOME === "" || argumentForm === null) { return launch(); }
   const startedAt = Date.now();
   const started = performance.now();
   const id = `${process.pid}-${randomUUID()}`;
@@ -95,7 +106,7 @@ function observeSpawn(context: Context, args: Parameters<typeof childProcess.spa
     });
   };
   safe(() => { mkdirSync(directory, { recursive: true }); });
-  record("spawn_requested", { hostPid: process.pid, startedAt, ...context(),
+  record("spawn_requested", { hostPid: process.pid, startedAt, argumentForm, ...context(),
     fixture: createHash("sha256").update(env.GROK_HOME).digest("hex").slice(0, 16) });
   const pending = new Map<string | number, { method: string; request: number }>();
   let request = 0;

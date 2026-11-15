@@ -3,6 +3,7 @@ import { spawn } from "node:child_process";
 import { once } from "node:events";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { windowsSpawnTarget } from "../../packages/oar/src/shared/executable/windows-shim.js";
 import { observeGrokProcesses } from "./observe-process.js";
 
 if (process.env.OBSERVE !== "0") { observeGrokProcesses(() => ({ suite: "synthetic" })); }
@@ -10,7 +11,10 @@ if (process.env.SCENARIO === "spawn-error") {
   spawn(path.join(process.cwd(), "missing-synthetic-grok"), ["agent", "stdio"], { env: process.env });
 } else {
   const fixture = fileURLToPath(new URL("observer-native-fixture.ts", import.meta.url));
-  const child = spawn(process.execPath, [fixture, "agent", "stdio"], { env: process.env, stdio: ["pipe", "pipe", "pipe"] });
+  const nativeArgs = process.env.SCENARIO === "escaped-argv"
+    ? windowsSpawnTarget(String.raw`C:\synthetic\grok.cmd`, ["agent", "--always-approve", "--no-leader", "stdio"], { platform: "win32", resolve: () => String.raw`C:\synthetic\grok.cmd` }).args
+    : ["agent", "stdio"];
+  const child = spawn(process.execPath, [fixture, ...nativeArgs], { env: process.env, stdio: ["pipe", "pipe", "pipe"] });
   let stdout = "";
   let stderr = "";
   let writes = 0;

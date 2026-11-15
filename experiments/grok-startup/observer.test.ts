@@ -1,12 +1,13 @@
 /* oxlint-disable import/max-dependencies -- Standalone cross-platform experiment validation. */
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { asRecord, parseJson } from "../../packages/oar/src/shared/json.js";
+import { verifyCapture } from "./verify-capture.js";
 
 const fixture = fileURLToPath(new URL("observer-fixture.ts", import.meta.url));
 function run(scenario: string, observe = true, failedLog = false): { code: number | null; stdout: string; stderr: string; rows: Record<string, unknown>[]; evidence: string; bytes: number } {
@@ -104,4 +105,31 @@ test("backpressure and callbacks remain native", () => {
   const output = asRecord(parseJson(result.stdout));
   assert.equal(output?.writes, 8);
   assert.ok(Array.isArray(output.returns) && output.returns.includes(false));
+});
+
+
+test("captures cmd.exe arguments combined and escaped by windowsSpawnTarget", () => {
+  const control = run("escaped-argv", false);
+  const result = run("escaped-argv");
+  assert.equal(result.stdout, control.stdout);
+  assert.equal(result.code, 0);
+  assert.equal(result.rows.find(row => row.phase === "spawn_requested")?.argumentForm, "cmd-string");
+  assert.deepEqual(result.rows.filter(row => row.phase === "request_sent").map(row => row.method), ["initialize", "authenticate", "session/new", "session/prompt"]);
+  assert.ok(result.rows.some(row => row.phase === "close"));
+});
+
+
+test("capture acceptance rejects absent, empty and non-ACP evidence", () => {
+  const directory = mkdtempSync(path.join(tmpdir(), "grok-capture-test-"));
+  const trace = path.join(directory, "trace");
+  try {
+    assert.throws(() => verifyCapture(trace));
+    mkdirSync(trace);
+    assert.throws(() => verifyCapture(trace));
+    const file = path.join(trace, "process.jsonl");
+    writeFileSync(file, `${JSON.stringify({ phase: "spawn_requested" })}\n`);
+    assert.throws(() => verifyCapture(trace));
+    writeFileSync(file, `${JSON.stringify({ phase: "spawn_requested" })}\n${JSON.stringify({ phase: "request_sent", method: "initialize" })}\n`);
+    assert.equal(verifyCapture(trace), 1);
+  } finally { rmSync(directory, { recursive: true, force: true }); }
 });
