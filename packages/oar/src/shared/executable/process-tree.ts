@@ -101,6 +101,7 @@ function readPs(): ProcessTableRead {
     encoding: "utf8",
     env: { ...process.env, LC_ALL: "C" },
     stdio: ["ignore", "pipe", "ignore"],
+    windowsHide: true,
     timeout: 5000,
     maxBuffer: 16 * 1024 * 1024,
   });
@@ -124,7 +125,7 @@ export function parseProcessPs(output: string): ProcessTableRead {
 function readWindows(): ProcessTableRead {
   const output = execFileSync("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command",
     "$ErrorActionPreference='Stop'; Get-CimInstance Win32_Process | Select-Object ProcessId,ParentProcessId,@{Name='Started';Expression={if ($null -ne $_.CreationDate) { $_.CreationDate.ToUniversalTime().ToString('o') }}} | ConvertTo-Json -Compress"], {
-    encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], timeout: 5000, maxBuffer: 16 * 1024 * 1024,
+    encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], timeout: 5000, maxBuffer: 16 * 1024 * 1024, windowsHide: true,
   });
   return parseProcessWindows(output);
 }

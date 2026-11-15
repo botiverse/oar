@@ -88,7 +88,7 @@ function listHostProcesses(): TerminalProcess[] {
     return processes;
   }
   try {
-    const output = execFileSync("ps", ["-Ao", "pid=,ppid=,pgid=,lstart="], { encoding: "utf8", timeout: 2000, env: process.env });
+    const output = execFileSync("ps", ["-Ao", "pid=,ppid=,pgid=,lstart="], { encoding: "utf8", timeout: 2000, env: process.env, windowsHide: true });
     for (const line of output.split("\n")) {
       const match = /^\s*(\d+)\s+(\d+)\s+(\d+)\s+(.*)$/u.exec(line);
       // The last group always takes part in a match.

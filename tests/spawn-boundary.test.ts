@@ -8,10 +8,11 @@ import { expect, test } from "vitest";
 // check, not a sandbox: process creation must visibly enter spawnChecked.
 // On Windows a console child without windowsHide opens a visible window
 // that takes focus (a Raft customer ticket, 2026-11-15).
+const EXEC_FILE = new Set(["execFile", "execFileSync"]);
 function hidesWindow(call: ts.CallExpression, file: ts.SourceFile): boolean {
-  const options = call.arguments.at(-1);
-  return options !== undefined && ts.isObjectLiteralExpression(options) && options.properties.some((property) =>
-    ts.isPropertyAssignment(property) && property.name.getText(file) === "windowsHide" && property.initializer.kind === ts.SyntaxKind.TrueKeyword);
+  // The options object, wherever it sits (execFile takes a callback after it).
+  return call.arguments.some((options) => ts.isObjectLiteralExpression(options) && options.properties.some((property) =>
+    ts.isPropertyAssignment(property) && property.name.getText(file) === "windowsHide" && property.initializer.kind === ts.SyntaxKind.TrueKeyword));
 }
 
 function unguardedSpawns(source: string, filename: string, windowless?: string[]): string[] {
@@ -41,7 +42,9 @@ function unguardedSpawns(source: string, filename: string, windowless?: string[]
       const callee = node.expression;
       const spawning = ts.isIdentifier(callee) ? names.has(callee.text)
         : ts.isPropertyAccessExpression(callee) && callee.name.text === "spawn";
-      if (spawning && windowless !== undefined && !hidesWindow(node, file)) {
+      const running = spawning || (ts.isIdentifier(callee) ? EXEC_FILE.has(callee.text)
+        : ts.isPropertyAccessExpression(callee) && EXEC_FILE.has(callee.name.text));
+      if (running && windowless !== undefined && !hidesWindow(node, file)) {
         windowless.push(`${filename}:${file.getLineAndCharacterOfPosition(node.getStart(file)).line + 1}`);
       }
       if (spawning) {
@@ -83,7 +86,7 @@ test("the guard accepts a directly protected native call", () => {
   expect(unguardedSpawns('import {spawn} from "node:child_process"; spawnChecked(() => spawn("node"));', "example.ts")).toEqual([]);
 });
 
-test("every package spawn hides its Windows console window", () => {
+test("every package spawn and execFile hides its Windows console window", () => {
   const root = path.resolve("packages/oar/src");
   const files = readdirSync(root, { recursive: true, encoding: "utf8" }).filter((name) => name.endsWith(".ts"));
   const windowless: string[] = [];
