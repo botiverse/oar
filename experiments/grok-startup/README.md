@@ -188,7 +188,7 @@ records absolute and monotonic-relative times for:
 `request_sent` means the host's stream write returned, including a buffered
 write with backpressure. It does not prove the native process consumed the
 bytes. `spawned` is the OS event for OAR's direct child; on Windows this may
-be the Node bootstrap, not the native Grok descendant. No authentication
+be cmd.exe or the Node bootstrap, not the native Grok descendant. No authentication
 request can mean the opening path never reached authentication, rather than
 an authentication failure. `first_session_update` can be a plan or other
 notification, not necessarily model text; `first_agent_output` separately
@@ -257,3 +257,45 @@ unsupported behavior cases and the 437 other-runtime vendor cases were
 skipped, not passed. An initial targeted command selected a different
 runtimes' structured-output file and skipped six cases; it is excluded from
 these counts. No Windows result is claimed by this Linux control.
+
+
+### First Windows suite run and missing-capture regression
+
+[Run 43708553907](https://github.com/botiverse/oar/actions/runs/43708553907/job/132794882227)
+on `b8f864e5` passed 17 behavior cases, 24 vendor cases and 11 observer
+self-tests with Grok 1.0.70 and Node 24.22.2. The downloaded artifact
+`sea-trial-grok-aimock-windows-latest` (ID 14159294299, SHA-256
+`bddcbde1795568507af72f64f4a1aae537a7674b9158c1c15f616c277631d977`)
+contains **no** `grok-processes` directory. The upload covers the correct
+parent directory. Passing tests without those records do not validate
+actual suite capture, and this run supplies no failing-process stages.
+
+The observer previously required separate `agent` and `stdio` argv entries.
+An unrecognized Windows npm shim passes through `cmd.exe /d /s /c`, where
+OAR combines the quoted, caret-escaped arguments into one command string.
+A synthetic launch using OAR's actual argument escaping reproduced the
+missing trace directory before the matcher correction. The observer now
+recognizes those command words in that shell form as well as separate argv.
+Decoding is for matching only; spawn receives the original arguments.
+It does not execute decoded text or log the command string. The spawn row
+records only the matched form (`argv` or `cmd-string`) so a Windows artifact
+can verify which form was actually used.
+
+The workflow also checks the actual behavior and vendor capture directories
+after the suites. Each suite that ran must retain process spawn evidence
+and at least one sent initialize request. An absent directory, an empty
+directory or only non-ACP records fails that observation check. A skipped
+suite is excluded, while a failed suite keeps its original failure. This
+check runs separately from the synthetic fixtures and the later launch
+comparison, so their logs cannot substitute for suite evidence. Artifact
+upload still runs on failure. Reproduce the capture check with:
+
+```sh
+pnpm tsx experiments/grok-startup/check-capture.ts success success
+```
+
+The synthetic observer suite now has 13 checks, including the escaped argv
+regression and rejection of absent, empty and non-ACP capture. Windows
+acceptance requires a run of this corrected workflow and inspection of its
+actual per-process artifacts; the synthetic regression alone is not proof
+of the precise command used by the earlier Windows run.
