@@ -58,6 +58,7 @@ export default function piPreflightFixture() {
       const run = Promise.withResolvers<void>(); runs.push(run);
       options?.preflightResult?.("started"); begin(); await run.promise;
     },
+    async bindExtensions() {},
     async waitForIdle() { if (sdk.isStreaming) { await idle.promise; } },
     async abort() { aborts += 1; sdk.isStreaming = false; settled(true); runs.at(-1)?.resolve(); idle.resolve(); idle = Promise.withResolvers<void>(); },
     dispose() {},

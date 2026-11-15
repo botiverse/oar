@@ -1,0 +1,566 @@
+{
+  "runtime": "@earendil-works/pi-coding-agent 1.5.0",
+  "platform": "Linux x64",
+  "provider": "loopback aimock only",
+  "cases": [
+    {
+      "case": "sdk-before",
+      "source": "sdk-baseline.json",
+      "sourceSha256": "e31728f17ec9a6a0fe31ae32225c566cfcd5d4569a80f9f94dae818ebc9de6c7",
+      "summary": {
+        "before": "idle",
+        "response": "pending",
+        "observedMs": 2116,
+        "after": "running",
+        "hooks": [
+          "BOOT",
+          "bootstrap-settling",
+          "compaction-entered",
+          "compaction-complete"
+        ]
+      },
+      "selectedRecords": [
+        {
+          "sessionId": "01a1e053-08f1-7695-abca-1757562d4b1f",
+          "agentPath": [],
+          "seq": 3,
+          "receivedAt": 1794764900764,
+          "kind": "request",
+          "id": "103e2560-667b-40ab-9eb2-aa59c37cffb9",
+          "direction": "toRuntime",
+          "body": {
+            "kind": "prompt",
+            "input": "D",
+            "inputId": "93d30f6a-f661-4e33-881c-2ef837167b8e",
+            "admission": "native"
+          }
+        },
+        {
+          "sessionId": "01a1e053-08f1-7695-abca-1757562d4b1f",
+          "agentPath": [],
+          "seq": 4,
+          "receivedAt": 1794764900873,
+          "kind": "frame",
+          "body": {
+            "type": "compaction_start",
+            "native": {
+              "type": "compaction_start",
+              "reason": "manual"
+            },
+            "events": [
+              {
+                "kind": "compaction_started",
+                "trigger": "manual"
+              }
+            ]
+          }
+        },
+        {
+          "sessionId": "01a1e053-08f1-7695-abca-1757562d4b1f",
+          "agentPath": [],
+          "seq": 5,
+          "receivedAt": 1794764900904,
+          "kind": "frame",
+          "body": {
+            "type": "agent_settled",
+            "native": {
+              "type": "agent_settled",
+              "aborted": false
+            },
+            "events": [
+              {
+                "kind": "usage",
+                "usage": {
+                  "context": {
+                    "tokens": 1889,
+                    "contextWindow": 200000,
+                    "percent": 0.9445
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "sessionId": "01a1e053-08f1-7695-abca-1757562d4b1f",
+          "agentPath": [],
+          "seq": 6,
+          "receivedAt": 1794764900904,
+          "kind": "frame",
+          "body": {
+            "type": "extension_error",
+            "native": {
+              "extensionPath": "<runtime>",
+              "event": "send_user_message",
+              "error": "Cannot submit a prompt while compaction is in progress. Wait for compaction to finish and retry."
+            },
+            "events": []
+          }
+        },
+        {
+          "sessionId": "01a1e053-08f1-7695-abca-1757562d4b1f",
+          "agentPath": [],
+          "seq": 7,
+          "receivedAt": 1794764901508,
+          "kind": "frame",
+          "body": {
+            "type": "compaction_end",
+            "native": {
+              "type": "compaction_end",
+              "reason": "manual",
+              "result": {
+                "summary": "No prior history.\n\n---\n\n**Turn Context (split turn):**\n\nreply",
+                "firstKeptEntryId": "ef0188b7",
+                "tokensBefore": 1889,
+                "estimatedTokensAfter": 1503,
+                "usage": {
+                  "input": 0,
+                  "output": 0,
+                  "cacheRead": 0,
+                  "cacheWrite": 0,
+                  "totalTokens": 0,
+                  "cost": {
+                    "input": 0,
+                    "output": 0,
+                    "cacheRead": 0,
+                    "cacheWrite": 0,
+                    "total": 0,
+                    "totalFromProvider": false
+                  },
+                  "cacheWrite1h": 0
+                },
+                "details": {
+                  "readFiles": [],
+                  "modifiedFiles": []
+                }
+              },
+              "aborted": false,
+              "willRetry": false
+            },
+            "events": [
+              {
+                "kind": "compaction_ended",
+                "outcome": "completed",
+                "trigger": "manual"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "case": "sdk-after",
+      "source": "final/pi-aimock.json",
+      "sourceSha256": "ce5c9c3a05bb6acc8b1e1ae8576190635528956eb6f69d9dc83727abca4fab3b",
+      "summary": {
+        "before": "running",
+        "response": {
+          "kind": "rejected",
+          "code": "busy",
+          "reason": "busy"
+        },
+        "observedMs": 0.7995379999997567,
+        "after": "idle",
+        "hooks": [
+          "BOOT",
+          "bootstrap-settling",
+          "compaction-entered",
+          "compaction-complete",
+          "NEXT"
+        ],
+        "exited": false,
+        "next": {
+          "kind": "ended",
+          "outcome": {
+            "kind": "completed"
+          }
+        }
+      },
+      "selectedRecords": [
+        {
+          "sessionId": "01a1e05e-0e8e-775f-9e7c-ab6a511037c9",
+          "agentPath": [],
+          "seq": 2,
+          "receivedAt": 1794765622940,
+          "kind": "frame",
+          "body": {
+            "type": "agent_start",
+            "native": {
+              "type": "agent_start"
+            },
+            "events": [
+              {
+                "kind": "turn_active"
+              }
+            ]
+          }
+        },
+        {
+          "sessionId": "01a1e05e-0e8e-775f-9e7c-ab6a511037c9",
+          "agentPath": [],
+          "seq": 16,
+          "receivedAt": 1794765623145,
+          "kind": "request",
+          "id": "b6e5a6bf-6783-428f-8bae-bed3e8f4999e",
+          "direction": "toRuntime",
+          "body": {
+            "kind": "prompt",
+            "input": "D",
+            "inputId": "407c42db-c994-48de-9430-28f46b55f8f2",
+            "admission": "native"
+          }
+        },
+        {
+          "sessionId": "01a1e05e-0e8e-775f-9e7c-ab6a511037c9",
+          "agentPath": [],
+          "seq": 17,
+          "receivedAt": 1794765623145,
+          "kind": "response",
+          "requestId": "b6e5a6bf-6783-428f-8bae-bed3e8f4999e",
+          "body": {
+            "kind": "rejected",
+            "code": "busy",
+            "reason": "busy"
+          }
+        },
+        {
+          "sessionId": "01a1e05e-0e8e-775f-9e7c-ab6a511037c9",
+          "agentPath": [],
+          "seq": 18,
+          "receivedAt": 1794765623254,
+          "kind": "frame",
+          "body": {
+            "type": "compaction_start",
+            "native": {
+              "type": "compaction_start",
+              "reason": "manual"
+            },
+            "events": [
+              {
+                "kind": "compaction_started",
+                "trigger": "manual"
+              }
+            ]
+          }
+        },
+        {
+          "sessionId": "01a1e05e-0e8e-775f-9e7c-ab6a511037c9",
+          "agentPath": [],
+          "seq": 19,
+          "receivedAt": 1794765623285,
+          "kind": "frame",
+          "body": {
+            "type": "agent_settled",
+            "native": {
+              "type": "agent_settled",
+              "aborted": false
+            },
+            "events": [
+              {
+                "kind": "turn_ended",
+                "outcome": {
+                  "kind": "completed"
+                }
+              },
+              {
+                "kind": "usage",
+                "usage": {
+                  "context": {
+                    "tokens": 1889,
+                    "contextWindow": 200000,
+                    "percent": 0.9445
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "sessionId": "01a1e05e-0e8e-775f-9e7c-ab6a511037c9",
+          "agentPath": [],
+          "seq": 20,
+          "receivedAt": 1794765623589,
+          "kind": "frame",
+          "body": {
+            "type": "compaction_end",
+            "native": {
+              "type": "compaction_end",
+              "reason": "manual",
+              "result": {
+                "summary": "No prior history.\n\n---\n\n**Turn Context (split turn):**\n\nreply",
+                "firstKeptEntryId": "810b5345",
+                "tokensBefore": 1889,
+                "estimatedTokensAfter": 1503,
+                "usage": {
+                  "input": 0,
+                  "output": 0,
+                  "cacheRead": 0,
+                  "cacheWrite": 0,
+                  "totalTokens": 0,
+                  "cost": {
+                    "input": 0,
+                    "output": 0,
+                    "cacheRead": 0,
+                    "cacheWrite": 0,
+                    "total": 0,
+                    "totalFromProvider": false
+                  },
+                  "cacheWrite1h": 0
+                },
+                "details": {
+                  "readFiles": [],
+                  "modifiedFiles": []
+                }
+              },
+              "aborted": false,
+              "willRetry": false
+            },
+            "events": [
+              {
+                "kind": "compaction_ended",
+                "outcome": "completed",
+                "trigger": "manual"
+              }
+            ]
+          }
+        },
+        {
+          "sessionId": "01a1e05e-0e8e-775f-9e7c-ab6a511037c9",
+          "agentPath": [],
+          "seq": 21,
+          "receivedAt": 1794765623591,
+          "kind": "request",
+          "id": "5ea08f16-90cb-49fe-9c8d-053b2f722811",
+          "direction": "toRuntime",
+          "body": {
+            "kind": "prompt",
+            "input": "NEXT",
+            "inputId": "e571ce3e-b42c-4287-9258-54f506c992c1",
+            "admission": "native"
+          }
+        },
+        {
+          "sessionId": "01a1e05e-0e8e-775f-9e7c-ab6a511037c9",
+          "agentPath": [],
+          "seq": 22,
+          "receivedAt": 1794765623593,
+          "kind": "frame",
+          "body": {
+            "type": "pi/preflight_result",
+            "native": {
+              "disposition": "started"
+            },
+            "responseTo": "5ea08f16-90cb-49fe-9c8d-053b2f722811",
+            "events": [
+              {
+                "kind": "turn_active",
+                "inputId": "e571ce3e-b42c-4287-9258-54f506c992c1"
+              }
+            ]
+          }
+        },
+        {
+          "sessionId": "01a1e05e-0e8e-775f-9e7c-ab6a511037c9",
+          "agentPath": [],
+          "seq": 23,
+          "receivedAt": 1794765623593,
+          "kind": "frame",
+          "body": {
+            "type": "agent_start",
+            "native": {
+              "type": "agent_start"
+            },
+            "events": [
+              {
+                "kind": "turn_active"
+              }
+            ]
+          }
+        },
+        {
+          "sessionId": "01a1e05e-0e8e-775f-9e7c-ab6a511037c9",
+          "agentPath": [],
+          "seq": 24,
+          "receivedAt": 1794765623593,
+          "kind": "response",
+          "requestId": "5ea08f16-90cb-49fe-9c8d-053b2f722811",
+          "body": {
+            "kind": "accepted"
+          }
+        },
+        {
+          "sessionId": "01a1e05e-0e8e-775f-9e7c-ab6a511037c9",
+          "agentPath": [],
+          "seq": 35,
+          "receivedAt": 1794765623634,
+          "kind": "frame",
+          "body": {
+            "type": "agent_settled",
+            "native": {
+              "type": "agent_settled",
+              "aborted": false
+            },
+            "events": [
+              {
+                "kind": "turn_ended",
+                "outcome": {
+                  "kind": "completed"
+                }
+              },
+              {
+                "kind": "usage",
+                "usage": {
+                  "context": {
+                    "tokens": null,
+                    "contextWindow": 200000,
+                    "percent": null
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "case": "rpc-unchanged",
+      "source": "final/pi-rpc-aimock.json",
+      "sourceSha256": "b9c676354d230482915e5c8f184ae4d10ce2b55e995605c32bca43b609005a81",
+      "summary": {
+        "before": "idle",
+        "response": {
+          "kind": "rejected",
+          "code": "error",
+          "reason": "Pi RPC prompt did not reply within 30 seconds: "
+        },
+        "observedMs": 30003.043795000005,
+        "after": "idle",
+        "hooks": [
+          "BOOT",
+          "bootstrap-settling",
+          "compaction-entered",
+          "compaction-complete"
+        ],
+        "exited": true,
+        "next": {
+          "kind": "rejected",
+          "code": "runtime_exited",
+          "reason": "runtime exited"
+        }
+      },
+      "selectedRecords": [
+        {
+          "sessionId": "01a1e059-9182-739f-b2b6-6f71fafe073b",
+          "agentPath": [],
+          "seq": 3,
+          "receivedAt": 1794765329247,
+          "kind": "request",
+          "id": "8c34a89a-42a3-4eeb-8393-eea780adf064",
+          "direction": "toRuntime",
+          "body": {
+            "kind": "prompt",
+            "input": "D",
+            "inputId": "def38f22-ff74-47fb-9617-3523dc76a95c",
+            "admission": "native"
+          }
+        },
+        {
+          "sessionId": "01a1e059-9182-739f-b2b6-6f71fafe073b",
+          "agentPath": [],
+          "seq": 5,
+          "receivedAt": 1794765329386,
+          "kind": "frame",
+          "body": {
+            "type": "agent_settled",
+            "native": {
+              "type": "agent_settled",
+              "aborted": false
+            },
+            "events": [
+              {
+                "kind": "usage",
+                "usage": {
+                  "context": {
+                    "tokens": 1889,
+                    "contextWindow": 200000,
+                    "percent": 0.9445
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "sessionId": "01a1e059-9182-739f-b2b6-6f71fafe073b",
+          "agentPath": [],
+          "seq": 6,
+          "receivedAt": 1794765329386,
+          "kind": "frame",
+          "body": {
+            "type": "extension_error",
+            "native": {
+              "type": "extension_error",
+              "extensionPath": "<runtime>",
+              "event": "send_user_message",
+              "error": "Cannot submit a prompt while compaction is in progress. Wait for compaction to finish and retry."
+            },
+            "events": []
+          }
+        },
+        {
+          "sessionId": "01a1e059-9182-739f-b2b6-6f71fafe073b",
+          "agentPath": [],
+          "seq": 9,
+          "receivedAt": 1794765359249,
+          "kind": "response",
+          "requestId": "8c34a89a-42a3-4eeb-8393-eea780adf064",
+          "body": {
+            "kind": "rejected",
+            "code": "error",
+            "reason": "Pi RPC prompt did not reply within 30 seconds: "
+          }
+        },
+        {
+          "sessionId": "01a1e059-9182-739f-b2b6-6f71fafe073b",
+          "agentPath": [],
+          "seq": 10,
+          "receivedAt": 1794765359292,
+          "kind": "response",
+          "requestId": "",
+          "body": {
+            "kind": "exited",
+            "code": 0
+          }
+        },
+        {
+          "sessionId": "01a1e059-9182-739f-b2b6-6f71fafe073b",
+          "agentPath": [],
+          "seq": 11,
+          "receivedAt": 1794765359301,
+          "kind": "request",
+          "id": "eb3990aa-7a28-4982-8c62-618af698c9f2",
+          "direction": "toRuntime",
+          "body": {
+            "kind": "prompt",
+            "input": "NEXT",
+            "inputId": "f02a1483-99d2-4483-a6f1-68b74187ab71",
+            "admission": "native"
+          }
+        },
+        {
+          "sessionId": "01a1e059-9182-739f-b2b6-6f71fafe073b",
+          "agentPath": [],
+          "seq": 12,
+          "receivedAt": 1794765359301,
+          "kind": "response",
+          "requestId": "eb3990aa-7a28-4982-8c62-618af698c9f2",
+          "body": {
+            "kind": "rejected",
+            "code": "runtime_exited",
+            "reason": "runtime exited"
+          }
+        }
+      ]
+    }
+  ]
+}

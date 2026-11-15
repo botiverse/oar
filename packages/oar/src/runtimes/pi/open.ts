@@ -123,9 +123,10 @@ export function checkPiSystemPrompt(prompt: string | undefined): void {
  * (createAgentSessionServices loads the agent dir's extensions and their
  * provider registrations into the ModelRuntime, exactly as `pi` itself does),
  * then the session against an explicit SessionManager so resume and creation
- * share one session directory.
+ * share one session directory. The controller subscribes before binding
+ * extensions, whose session_start hooks can immediately start native runs.
  */
-export async function openPiAgentSession(options: SessionOptions, rememberKey?: (key: string | undefined) => void, project: PiProjectOptions = {}, onError?: Parameters<PiAgentSession["bindExtensions"]>[0]["onError"]): Promise<PiAgentSession> {
+export async function openPiAgentSession(options: SessionOptions, rememberKey?: (key: string | undefined) => void, project: PiProjectOptions = {}): Promise<PiAgentSession> {
   refuseSessionOptions(piRefusedSessionOptions, options);
   checkSessionName(options);
   checkPiSystemPrompt(options.systemPrompt);
@@ -254,12 +255,8 @@ export async function openPiAgentSession(options: SessionOptions, rememberKey?: 
   if (options.name !== undefined && !sessionManager.getEntries().some((entry) => entry.type === "session_info")) {
     sessionManager.appendSessionInfo(options.name);
   }
-  // Like each CLI startup (including --resume/--continue), keep the SDK
-  // default session_start reason: startup. bindExtensions emits it and
-  // awaits resource discovery, whether or not MCP was requested.
   try {
     if (rememberKey !== undefined) { await rememberPiKey(new sdk.ModelRegistry(session.modelRuntime), session.model, rememberKey); }
-    await session.bindExtensions(onError === undefined ? {} : { onError });
   } catch (error) {
     await disposePiAgentSession(session);
     throw error;
