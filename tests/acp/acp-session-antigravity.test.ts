@@ -151,15 +151,40 @@ test.each(["model", "effort"])("missing %s notification refuses open within the 
 });
 
 test("an effort answer alone cannot override a contradictory native notification", async () => {
-  await expect(startAntigravity({ model: "requested-y", effort: "high", env: { FAKE_ACP_WRONG_EFFORT_UPDATE: "1" } })).rejects.toThrow(/config_option_update left thought_level at low/u);
+  await expect(startAntigravity({ model: "requested-y", effort: "high", env: { FAKE_ACP_WRONG_EFFORT_UPDATE: "1" } }, false, 1000)).rejects.toThrow(/config_option_update left thought_level at low/u);
 });
 
 test("a contradictory model notification rejects with a typed error and no invented catalog", async () => {
-  const opening = startAntigravity({ model: "requested-y", env: { FAKE_ACP_WRONG_MODEL_UPDATE: "1" } });
+  const opening = startAntigravity({ model: "requested-y", env: { FAKE_ACP_WRONG_MODEL_UPDATE: "1" } }, false, 1000);
   await expect(opening).rejects.toBeInstanceOf(ModelConfirmationError);
   await expect(opening).rejects.toMatchObject({ requested: "requested-y", reported: "other-model",
     message: "ACP config_option_update left model at other-model although requested-y was requested" });
   await expect(opening).rejects.not.toHaveProperty("catalogSelectorIds");
+});
+
+test.each(["model", "effort"])("a conflicting %s notification can be followed by positive confirmation within the deadline", async kind => {
+  const session = await startAntigravity({ model: "requested-y", effort: "high", env: { FAKE_ACP_CONFIG_PREFIX_WRONG: kind } }, false, 1000);
+  try {
+    expect(session.model().value).toBe("requested-y");
+    expect(session.effort().value).toBe("high");
+    const opening = session.records().map(record => describe(record));
+    expect(opening.some(line => line.includes(kind === "model" ? "model:previous" : "effort:previous"))).toBe(true);
+  } finally { await session.dispose(); }
+});
+
+test.each(["model", "effort"])("a native RPC refusal while waiting for %s confirmation remains an RPC failure", async kind => {
+  await expect(startAntigravity({ ...(kind === "model" ? { model: "requested-y" } : { effort: "high" }),
+    env: { FAKE_ACP_CONFIG_FAILURE: "rpc" } }, false, 1000)).rejects.toThrow(/configuration explicitly refused/u);
+});
+
+test.each(["model", "effort"])("a process exit while waiting for %s confirmation retains the exit failure", async kind => {
+  await expect(startAntigravity({ ...(kind === "model" ? { model: "requested-y" } : { effort: "high" }),
+    env: { FAKE_ACP_CONFIG_FAILURE: "exit" } }, false, 1000)).rejects.toThrow(/exited.*17/u);
+});
+
+test.each(["model", "effort"])("a process exit after the RPC answer interrupts pending %s confirmation", async kind => {
+  await expect(startAntigravity({ ...(kind === "model" ? { model: "requested-y" } : { effort: "high" }),
+    env: { FAKE_ACP_CONFIG_FAILURE: "exit-after-response" } }, false, 1000)).rejects.toThrow(/exited.*17/u);
 });
 
 // oxlint-disable-next-line eslint/max-statements -- Follow only the rejected steer and original prompt, without a third prompt masking the outcome.

@@ -79,12 +79,15 @@ login and history.
 
 OAR sends `cwd`, MCP servers and any supported append metadata on every open.
 Requested model and effort values are then applied through native config
-options. OAR waits for each option's response and matching configuration
-notification before applying the next setting, so a delayed model snapshot
-cannot overwrite the later effort selection. Missing or contradictory
-confirmation rejects the open within its deadline. Opening requests have a
-30-second deadline; an opening failure rejects construction and cleans up
-the process.
+options. OAR waits for each option's successful response and a matching
+configuration notification before applying the next setting. A conflicting
+notification keeps the same request waiting for a later positive value;
+it is not assumed to be stale. Opening requests have a 30-second deadline.
+At that deadline, a last observed conflicting value refuses the open, while
+no notification naming that option produces a timeout. A genuine mismatch
+therefore takes up to 30 seconds to surface instead of failing on its first
+notification. RPC failures and process exits still fail immediately. An
+opening failure rejects construction and cleans up the process.
 
 Resume retains native history but does **not** retain the previous open's
 model/effort or appended instructions in the measured CLI control: omission
@@ -215,16 +218,28 @@ already obtained catalog ([query costs](#orientation-query-costs)).
 
 1.5.0 reports grouped model ids such as `gemini-3.8-flash`, with a separate
 `thought_level` config option in category `thought_level`. OAR selects each
-through `session/set_config_option` and folds the returned values. Both its
-answer and corresponding `config_option_update` must confirm the requested
-selection before open returns; an empty `session/set_model` acknowledgement
+through `session/set_config_option` and folds the returned values. Its
+successful response and the last observed `config_option_update` for the
+requested option must be available before open returns, with that
+notification reporting the requested value. Effort also checks the
+response's reported value. An empty `session/set_model` acknowledgement
 would not establish model readback. See the
 [notification-order controls](../../experiments/antigravity-cli-acp-2026-11-05.md#model-notifications-must-settle-before-effort).
-A contradictory model notification throws
+If model notifications still disagree when the deadline expires, OAR throws
 [`ModelConfirmationError`](../spec/runtime-matrix.md#model-confirmation-failures),
-carrying `requested` and the notification's model string (`null` if absent).
+carrying `requested` and the last notification's model string (`null` if it
+is not a string).
 This check does not enumerate a model catalog, so `catalogSelectorIds` is
 absent. Missing notifications retain the configuration deadline error.
+Native 1.5.0 and 1.5.9 config notifications contain no request id, update
+sequence, timestamp or correlation metadata in the measured controls.
+OAR confirms an observed value, not which setting caused it. It does not
+add a quiet-period delay or retry. A conflicting update arriving after
+confirmation remains an ordinary recorded native observation; this rule
+cannot guarantee that the value will never change again. The
+[reconstruction and native evidence](../../experiments/antigravity-config-notifications-2026-11-15/README.md)
+distinguish the synthetic stale-before-correct scenario from native
+observations, where that scenario has not been reproduced.
 The provider regression verifies `LOW` and `HIGH` thinking levels for the
 explicitly selected Gemini Flash family on creation and resume. Other
 families may encode effort as a thinking budget instead.

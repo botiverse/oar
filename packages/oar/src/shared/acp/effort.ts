@@ -9,12 +9,17 @@ function setConfigOption(
   process: AcpProcess, sessionId: string, configId: string, value: string,
   context: { readonly timeoutMs: number; readonly updates?: AcpConfigUpdates },
 ): Promise<unknown> {
-  return withAcpDeadline(process, "session/set_config_option", context.timeoutMs, (requestOptions) => {
-    const send = (): Promise<unknown> => process.connection.agent.request("session/set_config_option", { sessionId, configId, value }, requestOptions);
-    const signals = [process.connection.signal, ...(requestOptions?.cancellationSignal === undefined ? [] : [requestOptions.cancellationSignal])];
-    return context.updates === undefined ? send()
-      : context.updates.confirm(sessionId, configId, value, AbortSignal.any(signals), send);
-  });
+  if (context.updates === undefined) {
+    return withAcpDeadline(process, "session/set_config_option", context.timeoutMs, requestOptions =>
+      process.connection.agent.request("session/set_config_option", { sessionId, configId, value }, requestOptions));
+  }
+  return context.updates.confirm(sessionId, configId, value, wait =>
+    withAcpDeadline(process, "session/set_config_option", context.timeoutMs, async requestOptions => {
+      const response = await process.connection.agent.request("session/set_config_option", { sessionId, configId, value }, requestOptions);
+      const signals = [process.connection.signal, ...(requestOptions?.cancellationSignal === undefined ? [] : [requestOptions.cancellationSignal])];
+      await wait(AbortSignal.any(signals));
+      return response;
+    }));
 }
 
 /** An RPC error's message plus its `data` (grok puts the reason there: "unknown reasoning_effort value"). */

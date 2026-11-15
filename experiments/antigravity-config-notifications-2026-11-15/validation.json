@@ -1,0 +1,93 @@
+{
+  "platform": "linux-x64",
+  "base": "6dfd108b7ec707a718a72d3788ba1ffe84824c8c",
+  "check": {
+    "command": "CI=1 pnpm run check",
+    "exitCode": 0,
+    "unitFilesPassed": 476,
+    "unitTestsPassed": 4281,
+    "unitTestsSkipped": 573,
+    "mockBehaviorPassed": 18,
+    "mockBehaviorSkipped": 1
+  },
+  "focused": {
+    "testsPassed": 38
+  },
+  "nativeVersions": {
+    "qoder": "1.1.81",
+    "dsh": "0.2.1-rc.5",
+    "opencode": "1.19.5",
+    "grok": "grok 1.0.70 (f50904eaee6c) [stable]",
+    "kimi": "2.4.1",
+    "codebuddy": "2.179.3",
+    "codex": "codex-cli 0.169.0",
+    "claude": "2.1.325 (Claude Code)",
+    "qwen": "0.27.3",
+    "antigravity": "1.5.0"
+  },
+  "nativeExecutions": [
+    {
+      "name": "all",
+      "exitCode": 0,
+      "elapsedSeconds": 231.347
+    },
+    {
+      "name": "antigravity-behavior",
+      "exitCode": 0,
+      "elapsedSeconds": 15.383
+    },
+    {
+      "name": "opencode-aimock-vendor",
+      "exitCode": 0,
+      "elapsedSeconds": 123.615
+    },
+    {
+      "name": "kimi-aimock-vendor",
+      "exitCode": 0,
+      "elapsedSeconds": 188.643
+    },
+    {
+      "name": "grok-aimock-vendor",
+      "exitCode": 0,
+      "elapsedSeconds": 164.83
+    },
+    {
+      "name": "antigravity-aimock-vendor",
+      "exitCode": 0,
+      "elapsedSeconds": 103.137
+    }
+  ],
+  "vendorTestsPassed": {
+    "kimi-aimock": 14,
+    "opencode-aimock": 12,
+    "grok-aimock": 29,
+    "antigravity-aimock": 14
+  },
+  "negativeControls": [
+    {
+      "control": "original-confirmation",
+      "exitCode": 1,
+      "caught": true
+    },
+    {
+      "control": "misclassify-conflict-as-timeout",
+      "exitCode": 1,
+      "caught": true
+    },
+    {
+      "control": "accept-without-notification",
+      "exitCode": 1,
+      "caught": true
+    },
+    {
+      "control": "ignore-process-exit",
+      "exitCode": 1,
+      "caught": true
+    },
+    {
+      "control": "replace-native-rpc-error",
+      "exitCode": 1,
+      "caught": true
+    }
+  ]
+}

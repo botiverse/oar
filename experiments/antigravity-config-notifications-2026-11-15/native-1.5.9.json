@@ -1,0 +1,1449 @@
+{
+  "platform": "linux-x64",
+  "version": "1.5.9",
+  "binarySha256": "39816d49d5ab92229952987225c23ea3fed7580699dcb4a444e0388e0ac1ce43",
+  "evidenceKind": "unmodified native CLI with local provider",
+  "sessionCount": 3,
+  "wire": [
+    {
+      "wireIndex": 0,
+      "direction": "client",
+      "message": {
+        "jsonrpc": "2.0",
+        "id": 0,
+        "method": "initialize",
+        "params": {
+          "protocolVersion": 1,
+          "clientCapabilities": {},
+          "clientInfo": {
+            "name": "oar",
+            "version": "0.0.0"
+          }
+        }
+      }
+    },
+    {
+      "wireIndex": 1,
+      "direction": "agent",
+      "message": {
+        "jsonrpc": "2.0",
+        "result": {
+          "protocolVersion": 1,
+          "agentCapabilities": {
+            "loadSession": true,
+            "load_session": true,
+            "promptCapabilities": {
+              "image": true,
+              "audio": false,
+              "embeddedContext": true
+            },
+            "sessionCapabilities": {
+              "resume": {},
+              "close": {},
+              "load": {},
+              "list": {},
+              "additionalDirectories": {}
+            },
+            "session_capabilities": {
+              "resume": {},
+              "close": {},
+              "load": {},
+              "list": {},
+              "additionalDirectories": {}
+            },
+            "mcpCapabilities": {
+              "http": true
+            },
+            "mcp_capabilities": {
+              "http": true
+            },
+            "auth": {
+              "logout": {}
+            },
+            "_meta": {
+              "antigravity": {
+                "tier": true,
+                "systemPrompt": {
+                  "append": true
+                }
+              }
+            }
+          },
+          "agentInfo": {
+            "name": "Antigravity ACP Server",
+            "version": "1.5.9"
+          },
+          "authMethods": [
+            {
+              "id": "oauth-personal",
+              "name": "Log in with Google",
+              "description": "Log in with your Google account"
+            },
+            {
+              "id": "oauth-business",
+              "name": "Log in with Gemini Enterprise",
+              "description": "Log in with your Gemini Enterprise account"
+            },
+            {
+              "id": "gemini-api-key",
+              "name": "Gemini API key",
+              "description": "Use an API key with Gemini Developer API"
+            },
+            {
+              "id": "agent-platform",
+              "name": "Gemini Enterprise Agent Platform",
+              "description": "Use Gemini Enterprise Agent Platform (formerly Vertex AI) with Application Default Credentials"
+            }
+          ]
+        },
+        "id": 0
+      }
+    },
+    {
+      "wireIndex": 4,
+      "direction": "client",
+      "message": {
+        "jsonrpc": "2.0",
+        "id": 2,
+        "method": "session/set_config_option",
+        "params": {
+          "sessionId": "<synthetic-session-1>",
+          "configId": "model",
+          "value": "gemini-3.8-flash"
+        }
+      }
+    },
+    {
+      "wireIndex": 5,
+      "direction": "agent",
+      "message": {
+        "jsonrpc": "2.0",
+        "result": {
+          "configOptions": [
+            {
+              "id": "model",
+              "name": "Model",
+              "category": "model",
+              "type": "select",
+              "currentValue": "gemini-3.8-flash",
+              "options": [
+                {
+                  "value": "gemini-4-carbon",
+                  "name": "Gemini 4 Carbon"
+                },
+                {
+                  "value": "gemini-4-hydrogen",
+                  "name": "Gemini 4 Hydrogen"
+                },
+                {
+                  "value": "gemini-4-argon",
+                  "name": "Gemini 4 Argon"
+                },
+                {
+                  "value": "gemini-3.8-flash",
+                  "name": "Gemini 3.8 Flash"
+                },
+                {
+                  "value": "gemini-3.7-flash",
+                  "name": "Gemini 3.7 Flash"
+                },
+                {
+                  "value": "gemini-3.6-flash",
+                  "name": "Gemini 3.6 Flash"
+                },
+                {
+                  "value": "gemini-3.1-pro",
+                  "name": "Gemini 3.1 Pro"
+                }
+              ]
+            },
+            {
+              "id": "thought_level",
+              "name": "Thinking Level",
+              "category": "thought_level",
+              "type": "select",
+              "currentValue": "low",
+              "options": [
+                {
+                  "value": "low",
+                  "name": "Low"
+                },
+                {
+                  "value": "medium",
+                  "name": "Medium"
+                },
+                {
+                  "value": "high",
+                  "name": "High"
+                }
+              ]
+            },
+            {
+              "id": "mode",
+              "name": "Mode",
+              "category": "mode",
+              "type": "select",
+              "currentValue": "default",
+              "options": [
+                {
+                  "value": "default",
+                  "name": "Default",
+                  "description": "Ask before edits and commands, per your permission settings."
+                },
+                {
+                  "value": "accept-edits",
+                  "name": "Accept edits",
+                  "description": "Approve file edits in the workspace without asking."
+                },
+                {
+                  "value": "plan",
+                  "name": "Plan",
+                  "description": "Plan carefully before executing a task."
+                }
+              ]
+            }
+          ]
+        },
+        "id": 2
+      }
+    },
+    {
+      "wireIndex": 6,
+      "direction": "agent",
+      "message": {
+        "jsonrpc": "2.0",
+        "method": "session/update",
+        "params": {
+          "sessionId": "<synthetic-session-1>",
+          "update": {
+            "sessionUpdate": "config_option_update",
+            "configOptions": [
+              {
+                "id": "model",
+                "name": "Model",
+                "category": "model",
+                "type": "select",
+                "currentValue": "gemini-3.8-flash",
+                "options": [
+                  {
+                    "value": "gemini-4-carbon",
+                    "name": "Gemini 4 Carbon"
+                  },
+                  {
+                    "value": "gemini-4-hydrogen",
+                    "name": "Gemini 4 Hydrogen"
+                  },
+                  {
+                    "value": "gemini-4-argon",
+                    "name": "Gemini 4 Argon"
+                  },
+                  {
+                    "value": "gemini-3.8-flash",
+                    "name": "Gemini 3.8 Flash"
+                  },
+                  {
+                    "value": "gemini-3.7-flash",
+                    "name": "Gemini 3.7 Flash"
+                  },
+                  {
+                    "value": "gemini-3.6-flash",
+                    "name": "Gemini 3.6 Flash"
+                  },
+                  {
+                    "value": "gemini-3.1-pro",
+                    "name": "Gemini 3.1 Pro"
+                  }
+                ]
+              },
+              {
+                "id": "thought_level",
+                "name": "Thinking Level",
+                "category": "thought_level",
+                "type": "select",
+                "currentValue": "low",
+                "options": [
+                  {
+                    "value": "low",
+                    "name": "Low"
+                  },
+                  {
+                    "value": "medium",
+                    "name": "Medium"
+                  },
+                  {
+                    "value": "high",
+                    "name": "High"
+                  }
+                ]
+              },
+              {
+                "id": "mode",
+                "name": "Mode",
+                "category": "mode",
+                "type": "select",
+                "currentValue": "default",
+                "options": [
+                  {
+                    "value": "default",
+                    "name": "Default",
+                    "description": "Ask before edits and commands, per your permission settings."
+                  },
+                  {
+                    "value": "accept-edits",
+                    "name": "Accept edits",
+                    "description": "Approve file edits in the workspace without asking."
+                  },
+                  {
+                    "value": "plan",
+                    "name": "Plan",
+                    "description": "Plan carefully before executing a task."
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "wireIndex": 7,
+      "direction": "client",
+      "message": {
+        "jsonrpc": "2.0",
+        "id": 3,
+        "method": "session/set_config_option",
+        "params": {
+          "sessionId": "<synthetic-session-1>",
+          "configId": "thought_level",
+          "value": "high"
+        }
+      }
+    },
+    {
+      "wireIndex": 11,
+      "direction": "agent",
+      "message": {
+        "jsonrpc": "2.0",
+        "result": {
+          "configOptions": [
+            {
+              "id": "model",
+              "name": "Model",
+              "category": "model",
+              "type": "select",
+              "currentValue": "gemini-3.8-flash",
+              "options": [
+                {
+                  "value": "gemini-4-carbon",
+                  "name": "Gemini 4 Carbon"
+                },
+                {
+                  "value": "gemini-4-hydrogen",
+                  "name": "Gemini 4 Hydrogen"
+                },
+                {
+                  "value": "gemini-4-argon",
+                  "name": "Gemini 4 Argon"
+                },
+                {
+                  "value": "gemini-3.8-flash",
+                  "name": "Gemini 3.8 Flash"
+                },
+                {
+                  "value": "gemini-3.7-flash",
+                  "name": "Gemini 3.7 Flash"
+                },
+                {
+                  "value": "gemini-3.6-flash",
+                  "name": "Gemini 3.6 Flash"
+                },
+                {
+                  "value": "gemini-3.1-pro",
+                  "name": "Gemini 3.1 Pro"
+                }
+              ]
+            },
+            {
+              "id": "thought_level",
+              "name": "Thinking Level",
+              "category": "thought_level",
+              "type": "select",
+              "currentValue": "high",
+              "options": [
+                {
+                  "value": "low",
+                  "name": "Low"
+                },
+                {
+                  "value": "medium",
+                  "name": "Medium"
+                },
+                {
+                  "value": "high",
+                  "name": "High"
+                }
+              ]
+            },
+            {
+              "id": "mode",
+              "name": "Mode",
+              "category": "mode",
+              "type": "select",
+              "currentValue": "default",
+              "options": [
+                {
+                  "value": "default",
+                  "name": "Default",
+                  "description": "Ask before edits and commands, per your permission settings."
+                },
+                {
+                  "value": "accept-edits",
+                  "name": "Accept edits",
+                  "description": "Approve file edits in the workspace without asking."
+                },
+                {
+                  "value": "plan",
+                  "name": "Plan",
+                  "description": "Plan carefully before executing a task."
+                }
+              ]
+            }
+          ]
+        },
+        "id": 3
+      }
+    },
+    {
+      "wireIndex": 12,
+      "direction": "agent",
+      "message": {
+        "jsonrpc": "2.0",
+        "method": "session/update",
+        "params": {
+          "sessionId": "<synthetic-session-1>",
+          "update": {
+            "sessionUpdate": "config_option_update",
+            "configOptions": [
+              {
+                "id": "model",
+                "name": "Model",
+                "category": "model",
+                "type": "select",
+                "currentValue": "gemini-3.8-flash",
+                "options": [
+                  {
+                    "value": "gemini-4-carbon",
+                    "name": "Gemini 4 Carbon"
+                  },
+                  {
+                    "value": "gemini-4-hydrogen",
+                    "name": "Gemini 4 Hydrogen"
+                  },
+                  {
+                    "value": "gemini-4-argon",
+                    "name": "Gemini 4 Argon"
+                  },
+                  {
+                    "value": "gemini-3.8-flash",
+                    "name": "Gemini 3.8 Flash"
+                  },
+                  {
+                    "value": "gemini-3.7-flash",
+                    "name": "Gemini 3.7 Flash"
+                  },
+                  {
+                    "value": "gemini-3.6-flash",
+                    "name": "Gemini 3.6 Flash"
+                  },
+                  {
+                    "value": "gemini-3.1-pro",
+                    "name": "Gemini 3.1 Pro"
+                  }
+                ]
+              },
+              {
+                "id": "thought_level",
+                "name": "Thinking Level",
+                "category": "thought_level",
+                "type": "select",
+                "currentValue": "high",
+                "options": [
+                  {
+                    "value": "low",
+                    "name": "Low"
+                  },
+                  {
+                    "value": "medium",
+                    "name": "Medium"
+                  },
+                  {
+                    "value": "high",
+                    "name": "High"
+                  }
+                ]
+              },
+              {
+                "id": "mode",
+                "name": "Mode",
+                "category": "mode",
+                "type": "select",
+                "currentValue": "default",
+                "options": [
+                  {
+                    "value": "default",
+                    "name": "Default",
+                    "description": "Ask before edits and commands, per your permission settings."
+                  },
+                  {
+                    "value": "accept-edits",
+                    "name": "Accept edits",
+                    "description": "Approve file edits in the workspace without asking."
+                  },
+                  {
+                    "value": "plan",
+                    "name": "Plan",
+                    "description": "Plan carefully before executing a task."
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "wireIndex": 19,
+      "direction": "client",
+      "message": {
+        "jsonrpc": "2.0",
+        "id": 5,
+        "method": "session/set_config_option",
+        "params": {
+          "sessionId": "<synthetic-session-1>",
+          "configId": "thought_level",
+          "value": "INVALID_CONFIG_ATTRIBUTION"
+        }
+      }
+    },
+    {
+      "wireIndex": 20,
+      "direction": "agent",
+      "message": {
+        "jsonrpc": "2.0",
+        "error": {
+          "code": -32602,
+          "message": "Thinking level \"INVALID_CONFIG_ATTRIBUTION\" is not offered for model \"Gemini 3.8 Flash\""
+        },
+        "id": 5
+      }
+    },
+    {
+      "wireIndex": 25,
+      "direction": "client",
+      "message": {
+        "jsonrpc": "2.0",
+        "id": 8,
+        "method": "session/set_config_option",
+        "params": {
+          "sessionId": "<synthetic-session-2>",
+          "configId": "model",
+          "value": "gemini-3.8-flash"
+        }
+      }
+    },
+    {
+      "wireIndex": 26,
+      "direction": "agent",
+      "message": {
+        "jsonrpc": "2.0",
+        "result": {
+          "configOptions": [
+            {
+              "id": "model",
+              "name": "Model",
+              "category": "model",
+              "type": "select",
+              "currentValue": "gemini-3.8-flash",
+              "options": [
+                {
+                  "value": "gemini-4-carbon",
+                  "name": "Gemini 4 Carbon"
+                },
+                {
+                  "value": "gemini-4-hydrogen",
+                  "name": "Gemini 4 Hydrogen"
+                },
+                {
+                  "value": "gemini-4-argon",
+                  "name": "Gemini 4 Argon"
+                },
+                {
+                  "value": "gemini-3.8-flash",
+                  "name": "Gemini 3.8 Flash"
+                },
+                {
+                  "value": "gemini-3.7-flash",
+                  "name": "Gemini 3.7 Flash"
+                },
+                {
+                  "value": "gemini-3.6-flash",
+                  "name": "Gemini 3.6 Flash"
+                },
+                {
+                  "value": "gemini-3.1-pro",
+                  "name": "Gemini 3.1 Pro"
+                }
+              ]
+            },
+            {
+              "id": "thought_level",
+              "name": "Thinking Level",
+              "category": "thought_level",
+              "type": "select",
+              "currentValue": "low",
+              "options": [
+                {
+                  "value": "low",
+                  "name": "Low"
+                },
+                {
+                  "value": "medium",
+                  "name": "Medium"
+                },
+                {
+                  "value": "high",
+                  "name": "High"
+                }
+              ]
+            },
+            {
+              "id": "mode",
+              "name": "Mode",
+              "category": "mode",
+              "type": "select",
+              "currentValue": "default",
+              "options": [
+                {
+                  "value": "default",
+                  "name": "Default",
+                  "description": "Ask before edits and commands, per your permission settings."
+                },
+                {
+                  "value": "accept-edits",
+                  "name": "Accept edits",
+                  "description": "Approve file edits in the workspace without asking."
+                },
+                {
+                  "value": "plan",
+                  "name": "Plan",
+                  "description": "Plan carefully before executing a task."
+                }
+              ]
+            }
+          ]
+        },
+        "id": 8
+      }
+    },
+    {
+      "wireIndex": 27,
+      "direction": "agent",
+      "message": {
+        "jsonrpc": "2.0",
+        "method": "session/update",
+        "params": {
+          "sessionId": "<synthetic-session-2>",
+          "update": {
+            "sessionUpdate": "config_option_update",
+            "configOptions": [
+              {
+                "id": "model",
+                "name": "Model",
+                "category": "model",
+                "type": "select",
+                "currentValue": "gemini-3.8-flash",
+                "options": [
+                  {
+                    "value": "gemini-4-carbon",
+                    "name": "Gemini 4 Carbon"
+                  },
+                  {
+                    "value": "gemini-4-hydrogen",
+                    "name": "Gemini 4 Hydrogen"
+                  },
+                  {
+                    "value": "gemini-4-argon",
+                    "name": "Gemini 4 Argon"
+                  },
+                  {
+                    "value": "gemini-3.8-flash",
+                    "name": "Gemini 3.8 Flash"
+                  },
+                  {
+                    "value": "gemini-3.7-flash",
+                    "name": "Gemini 3.7 Flash"
+                  },
+                  {
+                    "value": "gemini-3.6-flash",
+                    "name": "Gemini 3.6 Flash"
+                  },
+                  {
+                    "value": "gemini-3.1-pro",
+                    "name": "Gemini 3.1 Pro"
+                  }
+                ]
+              },
+              {
+                "id": "thought_level",
+                "name": "Thinking Level",
+                "category": "thought_level",
+                "type": "select",
+                "currentValue": "low",
+                "options": [
+                  {
+                    "value": "low",
+                    "name": "Low"
+                  },
+                  {
+                    "value": "medium",
+                    "name": "Medium"
+                  },
+                  {
+                    "value": "high",
+                    "name": "High"
+                  }
+                ]
+              },
+              {
+                "id": "mode",
+                "name": "Mode",
+                "category": "mode",
+                "type": "select",
+                "currentValue": "default",
+                "options": [
+                  {
+                    "value": "default",
+                    "name": "Default",
+                    "description": "Ask before edits and commands, per your permission settings."
+                  },
+                  {
+                    "value": "accept-edits",
+                    "name": "Accept edits",
+                    "description": "Approve file edits in the workspace without asking."
+                  },
+                  {
+                    "value": "plan",
+                    "name": "Plan",
+                    "description": "Plan carefully before executing a task."
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "wireIndex": 28,
+      "direction": "client",
+      "message": {
+        "jsonrpc": "2.0",
+        "id": 9,
+        "method": "session/set_config_option",
+        "params": {
+          "sessionId": "<synthetic-session-2>",
+          "configId": "thought_level",
+          "value": "high"
+        }
+      }
+    },
+    {
+      "wireIndex": 30,
+      "direction": "agent",
+      "message": {
+        "jsonrpc": "2.0",
+        "result": {
+          "configOptions": [
+            {
+              "id": "model",
+              "name": "Model",
+              "category": "model",
+              "type": "select",
+              "currentValue": "gemini-3.8-flash",
+              "options": [
+                {
+                  "value": "gemini-4-carbon",
+                  "name": "Gemini 4 Carbon"
+                },
+                {
+                  "value": "gemini-4-hydrogen",
+                  "name": "Gemini 4 Hydrogen"
+                },
+                {
+                  "value": "gemini-4-argon",
+                  "name": "Gemini 4 Argon"
+                },
+                {
+                  "value": "gemini-3.8-flash",
+                  "name": "Gemini 3.8 Flash"
+                },
+                {
+                  "value": "gemini-3.7-flash",
+                  "name": "Gemini 3.7 Flash"
+                },
+                {
+                  "value": "gemini-3.6-flash",
+                  "name": "Gemini 3.6 Flash"
+                },
+                {
+                  "value": "gemini-3.1-pro",
+                  "name": "Gemini 3.1 Pro"
+                }
+              ]
+            },
+            {
+              "id": "thought_level",
+              "name": "Thinking Level",
+              "category": "thought_level",
+              "type": "select",
+              "currentValue": "high",
+              "options": [
+                {
+                  "value": "low",
+                  "name": "Low"
+                },
+                {
+                  "value": "medium",
+                  "name": "Medium"
+                },
+                {
+                  "value": "high",
+                  "name": "High"
+                }
+              ]
+            },
+            {
+              "id": "mode",
+              "name": "Mode",
+              "category": "mode",
+              "type": "select",
+              "currentValue": "default",
+              "options": [
+                {
+                  "value": "default",
+                  "name": "Default",
+                  "description": "Ask before edits and commands, per your permission settings."
+                },
+                {
+                  "value": "accept-edits",
+                  "name": "Accept edits",
+                  "description": "Approve file edits in the workspace without asking."
+                },
+                {
+                  "value": "plan",
+                  "name": "Plan",
+                  "description": "Plan carefully before executing a task."
+                }
+              ]
+            }
+          ]
+        },
+        "id": 9
+      }
+    },
+    {
+      "wireIndex": 32,
+      "direction": "agent",
+      "message": {
+        "jsonrpc": "2.0",
+        "method": "session/update",
+        "params": {
+          "sessionId": "<synthetic-session-2>",
+          "update": {
+            "sessionUpdate": "config_option_update",
+            "configOptions": [
+              {
+                "id": "model",
+                "name": "Model",
+                "category": "model",
+                "type": "select",
+                "currentValue": "gemini-3.8-flash",
+                "options": [
+                  {
+                    "value": "gemini-4-carbon",
+                    "name": "Gemini 4 Carbon"
+                  },
+                  {
+                    "value": "gemini-4-hydrogen",
+                    "name": "Gemini 4 Hydrogen"
+                  },
+                  {
+                    "value": "gemini-4-argon",
+                    "name": "Gemini 4 Argon"
+                  },
+                  {
+                    "value": "gemini-3.8-flash",
+                    "name": "Gemini 3.8 Flash"
+                  },
+                  {
+                    "value": "gemini-3.7-flash",
+                    "name": "Gemini 3.7 Flash"
+                  },
+                  {
+                    "value": "gemini-3.6-flash",
+                    "name": "Gemini 3.6 Flash"
+                  },
+                  {
+                    "value": "gemini-3.1-pro",
+                    "name": "Gemini 3.1 Pro"
+                  }
+                ]
+              },
+              {
+                "id": "thought_level",
+                "name": "Thinking Level",
+                "category": "thought_level",
+                "type": "select",
+                "currentValue": "high",
+                "options": [
+                  {
+                    "value": "low",
+                    "name": "Low"
+                  },
+                  {
+                    "value": "medium",
+                    "name": "Medium"
+                  },
+                  {
+                    "value": "high",
+                    "name": "High"
+                  }
+                ]
+              },
+              {
+                "id": "mode",
+                "name": "Mode",
+                "category": "mode",
+                "type": "select",
+                "currentValue": "default",
+                "options": [
+                  {
+                    "value": "default",
+                    "name": "Default",
+                    "description": "Ask before edits and commands, per your permission settings."
+                  },
+                  {
+                    "value": "accept-edits",
+                    "name": "Accept edits",
+                    "description": "Approve file edits in the workspace without asking."
+                  },
+                  {
+                    "value": "plan",
+                    "name": "Plan",
+                    "description": "Plan carefully before executing a task."
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "wireIndex": 40,
+      "direction": "client",
+      "message": {
+        "jsonrpc": "2.0",
+        "id": 11,
+        "method": "session/set_config_option",
+        "params": {
+          "sessionId": "<synthetic-session-2>",
+          "configId": "thought_level",
+          "value": "INVALID_CONFIG_ATTRIBUTION"
+        }
+      }
+    },
+    {
+      "wireIndex": 41,
+      "direction": "agent",
+      "message": {
+        "jsonrpc": "2.0",
+        "error": {
+          "code": -32602,
+          "message": "Thinking level \"INVALID_CONFIG_ATTRIBUTION\" is not offered for model \"Gemini 3.8 Flash\""
+        },
+        "id": 11
+      }
+    },
+    {
+      "wireIndex": 46,
+      "direction": "client",
+      "message": {
+        "jsonrpc": "2.0",
+        "id": 14,
+        "method": "session/set_config_option",
+        "params": {
+          "sessionId": "<synthetic-session-3>",
+          "configId": "model",
+          "value": "gemini-3.8-flash"
+        }
+      }
+    },
+    {
+      "wireIndex": 47,
+      "direction": "agent",
+      "message": {
+        "jsonrpc": "2.0",
+        "result": {
+          "configOptions": [
+            {
+              "id": "model",
+              "name": "Model",
+              "category": "model",
+              "type": "select",
+              "currentValue": "gemini-3.8-flash",
+              "options": [
+                {
+                  "value": "gemini-4-carbon",
+                  "name": "Gemini 4 Carbon"
+                },
+                {
+                  "value": "gemini-4-hydrogen",
+                  "name": "Gemini 4 Hydrogen"
+                },
+                {
+                  "value": "gemini-4-argon",
+                  "name": "Gemini 4 Argon"
+                },
+                {
+                  "value": "gemini-3.8-flash",
+                  "name": "Gemini 3.8 Flash"
+                },
+                {
+                  "value": "gemini-3.7-flash",
+                  "name": "Gemini 3.7 Flash"
+                },
+                {
+                  "value": "gemini-3.6-flash",
+                  "name": "Gemini 3.6 Flash"
+                },
+                {
+                  "value": "gemini-3.1-pro",
+                  "name": "Gemini 3.1 Pro"
+                }
+              ]
+            },
+            {
+              "id": "thought_level",
+              "name": "Thinking Level",
+              "category": "thought_level",
+              "type": "select",
+              "currentValue": "low",
+              "options": [
+                {
+                  "value": "low",
+                  "name": "Low"
+                },
+                {
+                  "value": "medium",
+                  "name": "Medium"
+                },
+                {
+                  "value": "high",
+                  "name": "High"
+                }
+              ]
+            },
+            {
+              "id": "mode",
+              "name": "Mode",
+              "category": "mode",
+              "type": "select",
+              "currentValue": "default",
+              "options": [
+                {
+                  "value": "default",
+                  "name": "Default",
+                  "description": "Ask before edits and commands, per your permission settings."
+                },
+                {
+                  "value": "accept-edits",
+                  "name": "Accept edits",
+                  "description": "Approve file edits in the workspace without asking."
+                },
+                {
+                  "value": "plan",
+                  "name": "Plan",
+                  "description": "Plan carefully before executing a task."
+                }
+              ]
+            }
+          ]
+        },
+        "id": 14
+      }
+    },
+    {
+      "wireIndex": 48,
+      "direction": "agent",
+      "message": {
+        "jsonrpc": "2.0",
+        "method": "session/update",
+        "params": {
+          "sessionId": "<synthetic-session-3>",
+          "update": {
+            "sessionUpdate": "config_option_update",
+            "configOptions": [
+              {
+                "id": "model",
+                "name": "Model",
+                "category": "model",
+                "type": "select",
+                "currentValue": "gemini-3.8-flash",
+                "options": [
+                  {
+                    "value": "gemini-4-carbon",
+                    "name": "Gemini 4 Carbon"
+                  },
+                  {
+                    "value": "gemini-4-hydrogen",
+                    "name": "Gemini 4 Hydrogen"
+                  },
+                  {
+                    "value": "gemini-4-argon",
+                    "name": "Gemini 4 Argon"
+                  },
+                  {
+                    "value": "gemini-3.8-flash",
+                    "name": "Gemini 3.8 Flash"
+                  },
+                  {
+                    "value": "gemini-3.7-flash",
+                    "name": "Gemini 3.7 Flash"
+                  },
+                  {
+                    "value": "gemini-3.6-flash",
+                    "name": "Gemini 3.6 Flash"
+                  },
+                  {
+                    "value": "gemini-3.1-pro",
+                    "name": "Gemini 3.1 Pro"
+                  }
+                ]
+              },
+              {
+                "id": "thought_level",
+                "name": "Thinking Level",
+                "category": "thought_level",
+                "type": "select",
+                "currentValue": "low",
+                "options": [
+                  {
+                    "value": "low",
+                    "name": "Low"
+                  },
+                  {
+                    "value": "medium",
+                    "name": "Medium"
+                  },
+                  {
+                    "value": "high",
+                    "name": "High"
+                  }
+                ]
+              },
+              {
+                "id": "mode",
+                "name": "Mode",
+                "category": "mode",
+                "type": "select",
+                "currentValue": "default",
+                "options": [
+                  {
+                    "value": "default",
+                    "name": "Default",
+                    "description": "Ask before edits and commands, per your permission settings."
+                  },
+                  {
+                    "value": "accept-edits",
+                    "name": "Accept edits",
+                    "description": "Approve file edits in the workspace without asking."
+                  },
+                  {
+                    "value": "plan",
+                    "name": "Plan",
+                    "description": "Plan carefully before executing a task."
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "wireIndex": 49,
+      "direction": "client",
+      "message": {
+        "jsonrpc": "2.0",
+        "id": 15,
+        "method": "session/set_config_option",
+        "params": {
+          "sessionId": "<synthetic-session-3>",
+          "configId": "thought_level",
+          "value": "high"
+        }
+      }
+    },
+    {
+      "wireIndex": 50,
+      "direction": "agent",
+      "message": {
+        "jsonrpc": "2.0",
+        "result": {
+          "configOptions": [
+            {
+              "id": "model",
+              "name": "Model",
+              "category": "model",
+              "type": "select",
+              "currentValue": "gemini-3.8-flash",
+              "options": [
+                {
+                  "value": "gemini-4-carbon",
+                  "name": "Gemini 4 Carbon"
+                },
+                {
+                  "value": "gemini-4-hydrogen",
+                  "name": "Gemini 4 Hydrogen"
+                },
+                {
+                  "value": "gemini-4-argon",
+                  "name": "Gemini 4 Argon"
+                },
+                {
+                  "value": "gemini-3.8-flash",
+                  "name": "Gemini 3.8 Flash"
+                },
+                {
+                  "value": "gemini-3.7-flash",
+                  "name": "Gemini 3.7 Flash"
+                },
+                {
+                  "value": "gemini-3.6-flash",
+                  "name": "Gemini 3.6 Flash"
+                },
+                {
+                  "value": "gemini-3.1-pro",
+                  "name": "Gemini 3.1 Pro"
+                }
+              ]
+            },
+            {
+              "id": "thought_level",
+              "name": "Thinking Level",
+              "category": "thought_level",
+              "type": "select",
+              "currentValue": "high",
+              "options": [
+                {
+                  "value": "low",
+                  "name": "Low"
+                },
+                {
+                  "value": "medium",
+                  "name": "Medium"
+                },
+                {
+                  "value": "high",
+                  "name": "High"
+                }
+              ]
+            },
+            {
+              "id": "mode",
+              "name": "Mode",
+              "category": "mode",
+              "type": "select",
+              "currentValue": "default",
+              "options": [
+                {
+                  "value": "default",
+                  "name": "Default",
+                  "description": "Ask before edits and commands, per your permission settings."
+                },
+                {
+                  "value": "accept-edits",
+                  "name": "Accept edits",
+                  "description": "Approve file edits in the workspace without asking."
+                },
+                {
+                  "value": "plan",
+                  "name": "Plan",
+                  "description": "Plan carefully before executing a task."
+                }
+              ]
+            }
+          ]
+        },
+        "id": 15
+      }
+    },
+    {
+      "wireIndex": 51,
+      "direction": "agent",
+      "message": {
+        "jsonrpc": "2.0",
+        "method": "session/update",
+        "params": {
+          "sessionId": "<synthetic-session-3>",
+          "update": {
+            "sessionUpdate": "config_option_update",
+            "configOptions": [
+              {
+                "id": "model",
+                "name": "Model",
+                "category": "model",
+                "type": "select",
+                "currentValue": "gemini-3.8-flash",
+                "options": [
+                  {
+                    "value": "gemini-4-carbon",
+                    "name": "Gemini 4 Carbon"
+                  },
+                  {
+                    "value": "gemini-4-hydrogen",
+                    "name": "Gemini 4 Hydrogen"
+                  },
+                  {
+                    "value": "gemini-4-argon",
+                    "name": "Gemini 4 Argon"
+                  },
+                  {
+                    "value": "gemini-3.8-flash",
+                    "name": "Gemini 3.8 Flash"
+                  },
+                  {
+                    "value": "gemini-3.7-flash",
+                    "name": "Gemini 3.7 Flash"
+                  },
+                  {
+                    "value": "gemini-3.6-flash",
+                    "name": "Gemini 3.6 Flash"
+                  },
+                  {
+                    "value": "gemini-3.1-pro",
+                    "name": "Gemini 3.1 Pro"
+                  }
+                ]
+              },
+              {
+                "id": "thought_level",
+                "name": "Thinking Level",
+                "category": "thought_level",
+                "type": "select",
+                "currentValue": "high",
+                "options": [
+                  {
+                    "value": "low",
+                    "name": "Low"
+                  },
+                  {
+                    "value": "medium",
+                    "name": "Medium"
+                  },
+                  {
+                    "value": "high",
+                    "name": "High"
+                  }
+                ]
+              },
+              {
+                "id": "mode",
+                "name": "Mode",
+                "category": "mode",
+                "type": "select",
+                "currentValue": "default",
+                "options": [
+                  {
+                    "value": "default",
+                    "name": "Default",
+                    "description": "Ask before edits and commands, per your permission settings."
+                  },
+                  {
+                    "value": "accept-edits",
+                    "name": "Accept edits",
+                    "description": "Approve file edits in the workspace without asking."
+                  },
+                  {
+                    "value": "plan",
+                    "name": "Plan",
+                    "description": "Plan carefully before executing a task."
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "wireIndex": 61,
+      "direction": "client",
+      "message": {
+        "jsonrpc": "2.0",
+        "id": 17,
+        "method": "session/set_config_option",
+        "params": {
+          "sessionId": "<synthetic-session-3>",
+          "configId": "thought_level",
+          "value": "INVALID_CONFIG_ATTRIBUTION"
+        }
+      }
+    },
+    {
+      "wireIndex": 62,
+      "direction": "agent",
+      "message": {
+        "jsonrpc": "2.0",
+        "error": {
+          "code": -32602,
+          "message": "Thinking level \"INVALID_CONFIG_ATTRIBUTION\" is not offered for model \"Gemini 3.8 Flash\""
+        },
+        "id": 17
+      }
+    }
+  ],
+  "observations": [
+    {
+      "iteration": 0,
+      "providerThinkingLevels": [
+        "HIGH"
+      ]
+    },
+    {
+      "iteration": 0,
+      "invalidValue": "RequestError: Thinking level \"INVALID_CONFIG_ATTRIBUTION\" is not offered for model \"Gemini 3.8 Flash\""
+    },
+    {
+      "iteration": 1,
+      "providerThinkingLevels": [
+        "HIGH"
+      ]
+    },
+    {
+      "iteration": 1,
+      "invalidValue": "RequestError: Thinking level \"INVALID_CONFIG_ATTRIBUTION\" is not offered for model \"Gemini 3.8 Flash\""
+    },
+    {
+      "iteration": 2,
+      "providerThinkingLevels": [
+        "HIGH"
+      ]
+    },
+    {
+      "iteration": 2,
+      "invalidValue": "RequestError: Thinking level \"INVALID_CONFIG_ATTRIBUTION\" is not offered for model \"Gemini 3.8 Flash\""
+    }
+  ]
+}

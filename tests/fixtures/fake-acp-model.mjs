@@ -131,12 +131,23 @@ export function setConfigOption(params, mode) {
  * any push first (kimi pushes before it answers), then the answer, or the
  * refusal as a JSON-RPC error.
  */
+// oxlint-disable-next-line eslint/max-statements -- Keep the native rejection and exit controls adjacent to the response.
 export function answerConfigRequest(message, wire, mode) {
   const outcome = message.method === "session/set_model"
     ? setModelResponse(message.params?.modelId)
     : setConfigOption(message.params, mode);
   if (outcome.error !== undefined) {
     wire.error(message.id, outcome.error.code, outcome.error.message, outcome.error.data);
+    return;
+  }
+  if (mode === "antigravity" && process.env.FAKE_ACP_CONFIG_FAILURE !== undefined) {
+    wire.update({ sessionUpdate: "config_option_update", configOptions: [{ id: message.params.configId, currentValue: "previous" }] });
+    if (process.env.FAKE_ACP_CONFIG_FAILURE === "rpc") { wire.error(message.id, -32_602, "configuration explicitly refused"); }
+    else if (process.env.FAKE_ACP_CONFIG_FAILURE === "exit-after-response") {
+      wire.result(message.id, outcome.response);
+      setTimeout(() => { process.exit(17); }, 50);
+    }
+    else { process.exit(17); }
     return;
   }
   if (outcome.pushedUpdate !== undefined) {
@@ -146,6 +157,7 @@ export function answerConfigRequest(message, wire, mode) {
   publishDelayedConfig(message, wire, outcome);
 }
 
+// oxlint-disable-next-line eslint/max-statements -- Notification variants intentionally share the same configured response.
 function publishDelayedConfig(message, wire, outcome) {
   if (outcome.delayedUpdate !== undefined) {
     const model = message.params?.configId === "model";
@@ -156,6 +168,11 @@ function publishDelayedConfig(message, wire, outcome) {
     }
     if (!model && process.env.FAKE_ACP_WRONG_EFFORT_UPDATE === "1") {
       notification = { ...notification, configOptions: [modelOption(selectedAgyModel), effortOption("low", "antigravity")] };
+    }
+    if (process.env.FAKE_ACP_CONFIG_PREFIX_WRONG === (model ? "model" : "effort")) {
+      wire.update({ ...notification, configOptions: notification.configOptions.map(option => option.id === message.params.configId ? { ...option, currentValue: "previous" } : option) });
+      setTimeout(() => { wire.update(notification); }, 50);
+      return;
     }
     setTimeout(() => { wire.update(notification); }, model ? Number(process.env.FAKE_ACP_MODEL_UPDATE_DELAY_MS ?? "0") : 0);
   }
