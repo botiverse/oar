@@ -47,6 +47,7 @@ start, which an even-burn line needs. Sources:
 | --- | --- | --- |
 | claude | the native key (`five_hour`, `seven_day`, `seven_day_oauth_apps`, `seven_day_opus`, `seven_day_sonnet`, `extra_usage`), and `model_scoped:<display name>` for a model-scoped week (claude names it only by display name) | 5 h for `five_hour`, 7 days for the weekly keys (claude's own `limits[].group` says session or weekly); none for extra usage |
 | codex | `<limitId>:primary` or `<limitId>:secondary` | `windowDurationMins` as reported |
+| factory | `standard.<bucket>` and `core.<bucket>` (`fiveHour`, `weekly`, `monthly`), droid's own bucket keys | 5 h for `fiveHour`, 7 days for `weekly`; none for `monthly` (droid gives its end, not its length) |
 | grok, kimi | none | none |
 
 `scope` says what the runtime ties a window to: `{ kind: "account" }` when
@@ -74,6 +75,7 @@ account past a full subscription window, which the snapshot's
 | antigravity | none | `models`: each bucket, by its group ("Gemini Models", "Claude and GPT models") | a bucket outside a named group |
 | claude | `five_hour`, `seven_day`, extra usage | `seven_day_opus` ("Opus"), `seven_day_sonnet` ("Sonnet"), each `model_scoped` row (its display name, such as "Fable") | `seven_day_oauth_apps` (third-party apps' use) |
 | codex | the unnamed `codex` bucket | a bucket with a `limitName` (such as "GPT-5.3-Codex-Spark") | any other unnamed bucket |
+| factory | Standard Usage buckets | `models`: Droid Core buckets ("Droid Core") | none |
 | grok | included usage, pay-as-you-go | none | none |
 | kimi | timed windows, Extra Usage | none | a row with only a name |
 

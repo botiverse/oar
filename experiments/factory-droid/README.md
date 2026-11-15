@@ -20,6 +20,7 @@ JSON object with the scenarios below.
 | Does a session resume in a new process? | Yes: `load_session { sessionId }` returns `settings`, `cwd`, `tokenUsage` and more, and the next turn runs. An unknown id answers `-32004 "Session not found"`. |
 | Permissions under stream-jsonrpc? | Default autonomy is `medium`: a high-impact command sends `droid.request_permission` with options `proceed_once`, `proceed_always`, `cancel`. `skipPermissionsUnsafe: true` on `initialize_session` sends none. `load_session` takes no such flag and the resumed session asks again. |
 | Model and effort | `list_models` answers before any session, without a login, and includes custom models with their `supportedReasoningEfforts`. An unknown `modelId` falls back to droid's default (`gpt-6.1-sol`) without an error; an effort the model does not list is clamped (`high` on a `none`-only model reads back `none`); an effort outside droid's enum is a `-32602` error. |
+| Manual compaction | `compact_session {}` after two turns: `session_compacted { summaryId, removedCount }`, then `{ newSessionId, removedCount }` with `newSessionId` equal to the session id; a later `load_session` of that id holds the compacted history. During a turn: `-32602 "Wait for the current turn to finish before compacting."`. Empty conversation: `-32602 "Nothing to compact"`. |
 | Context | `get_context_stats` answers `{ used, remaining, limit, accuracy, updatedAt }`. |
 
 Further observations behind the adapter:
@@ -37,7 +38,9 @@ Further observations behind the adapter:
   cache parts droid reports beside it.
 - Usage limits: `droid exec` has no slash commands (`list_commands` is empty)
   and no account or limits method; the interactive UI reads
-  `/api/billing/limits` over HTTP.
+  `GET /api/billing/limits` over HTTP, which OAR's `accountUsage` reads the
+  same way (request, credential storage and answer shape from droid's bundle;
+  no account has answered it yet).
 
 ## Sign-in entry (no account used)
 

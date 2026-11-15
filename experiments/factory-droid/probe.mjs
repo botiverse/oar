@@ -145,4 +145,15 @@ await scenario("models-and-effort", () => {}, async (dir) => {
     requestedHighOnNoneOnlyModelReported: clamped.result.settings.reasoningEffort, unknownModelReported: unknown.result.settings.modelId, contextStatsKeys: Object.keys(context.result ?? {}).sort() };
 });
 
+await scenario("compaction", (mock) => { mock.onMessage(/[\s\S]*/u, { content: "ok" }, { latency: 50 }); }, async (dir) => {
+  const d = droid(dir);
+  const opened = await d.request("droid.initialize_session", { machineId: "default", cwd: path.join(dir, "cwd"), modelId: MODEL, skipPermissionsUnsafe: true });
+  const empty = await d.request("droid.compact_session", {});
+  for (const text of ["one", "two"]) { const id = randomUUID(); await d.request("droid.add_user_message", { text, messageId: id }); await d.until(turnEnd(id)); }
+  const compacted = await d.request("droid.compact_session", {});
+  await d.close();
+  return { emptyConversation: empty.error, sameSessionId: compacted.result?.newSessionId === opened.result.sessionId,
+    reportedSessionCompacted: d.seen.some((entry) => entry.type === "session_compacted"), removedCount: compacted.result?.removedCount };
+});
+
 console.log(JSON.stringify(results, null, 2));

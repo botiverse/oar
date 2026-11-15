@@ -5,6 +5,7 @@ import { createAbortFallback } from "../../shared/abort-fallback.js";
 import { appendCleanupFailure } from "../../shared/executable/process-cleanup.js";
 import { sessionEnvironment } from "../../shared/environment.js";
 import { withdrawHeld } from "../../shared/held-input.js";
+import { manualCompaction } from "../../shared/manual-compaction.js";
 import { withInputImages, type LoadedImage } from "../../shared/input-images.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
 import { checkMcpServerNames, givenMcpServers, mcpCredentialRedactor } from "../../shared/mcp-servers.js";
@@ -13,6 +14,7 @@ import { refuseSessionOptions } from "../../shared/session-options.js";
 import { startDroidClient, type DroidClient, type DroidOutcome } from "./client.js";
 import { checkFactoryLaunchArgs, factoryRefusedSessionOptions } from "./options.js";
 import { contextOf, droidImages, factoryOpenRequest, openFactory, serverReply, settingsRefusal } from "./open.js";
+import { factoryCompaction } from "./compaction.js";
 import { foldFactoryNotification, initialFactoryProjection, type FactoryProjection } from "./projection.js";
 
 /*
@@ -72,6 +74,8 @@ export const factorySession: StartSession = withSessionCredentials(async (instal
     let active: { readonly request: RequestRecord; readonly inputId: string; dropped: boolean } | null = null;
     /** droid reported work OAR did not prompt: a steer that arrived as its turn ended starts a turn of its own. */
     let spontaneous = false;
+    /** The OAR compact request whose `droid.compact_session` is pending: droid's `session_compacted` meanwhile is its completion. */
+    let compactRequestId: string | null = null;
     let disposeRequest: RequestRecord | null = null;
     let settingsWaiter: ((settings: JsonRecord) => void) | null = null;
     const held: Held[] = [];
@@ -96,11 +100,14 @@ export const factorySession: StartSession = withSessionCredentials(async (instal
     const onNotification = (message: JsonRecord): void => {
       const notification = asRecord(asRecord(message.params)?.notification);
       const extra: RuntimeEventBody[] = [];
-      if (notification?.type === "droid_working_state_changed" && notification.newState !== "idle" && active === null && !spontaneous && kernel.unreachable() === null) {
+      if (notification?.type === "droid_working_state_changed" && notification.newState !== "idle" && notification.newState !== "compacting_conversation" && active === null && !spontaneous && kernel.unreachable() === null) {
         spontaneous = true;
         extra.push({ kind: "turn_active" });
       }
-      const { state, body } = foldFactoryNotification(projection, message);
+      const { state, body: folded } = foldFactoryNotification(projection, message);
+      const compacted = compactRequestId;
+      const body = notification?.type === "session_compacted" && compacted !== null
+        ? { ...folded, events: folded.events.map(event => event.kind === "compaction_ended" ? { ...event, requestId: compacted } : event) } : folded;
       projection = state;
       kernel.frame(extra.length === 0 ? body : { ...body, events: [...extra, ...body.events] });
       const prompted = active;
@@ -149,6 +156,14 @@ export const factorySession: StartSession = withSessionCredentials(async (instal
     readContext();
 
     const capabilities = { queue: { durable: false }, attribution: "opaque", images: true } as const;
+    const compaction = manualCompaction(kernel, {
+      busy: () => busy() || dispatching || held.length > 0,
+      busyReason: "droid compacts only between turns, after OAR's held input has been sent",
+      // droid's compact_session answer (or refusal) is the end of the operation; its frame names the request.
+      settledBy: "native_response",
+      create: () => factoryCompaction(kernel, client, sessionId, (requestId) => { compactRequestId = requestId; }),
+      released: () => { queueMicrotask(drainHeld); },
+    });
     /** Send one input with `add_user_message`; the reply answers the control. */
     const send = async (request: RequestRecord, input: string, inputId: string, images: readonly LoadedImage[], starts: boolean): Promise<ResponseBody> => {
       projection = { ...projection, sent: new Map([...projection.sent, [request.id, { requestId: request.id, inputId }]]) };
@@ -165,7 +180,7 @@ export const factorySession: StartSession = withSessionCredentials(async (instal
       }
     };
     const drainHeld = (): void => {
-      if (kernel.unreachable() !== null || busy() || dispatching || disposeRequest !== null) { return; }
+      if (kernel.unreachable() !== null || busy() || dispatching || compaction.busy() || disposeRequest !== null) { return; }
       // Taken off `held` in the same step it is sent: a withdraw after this finds it gone.
       if (held[0]?.accepted !== true) { return; }
       const next = held.shift();
@@ -182,10 +197,11 @@ export const factorySession: StartSession = withSessionCredentials(async (instal
     const session: Session = credentials.seal({
       id: kernel.sessionId,
       capabilities,
+      compact: compaction.compact,
       prompt: async (input, inputOptions?: InputOptions): Promise<ControlResult> => {
         const inputId = inputOptions?.inputId ?? randomUUID();
         const result = await kernel.control({ kind: "prompt", input, ...inputOptions, inputId }, async (request) => {
-          if (busy() || dispatching || held.length > 0) { return { kind: "rejected", code: "busy", reason: "busy" }; }
+          if (busy() || dispatching || held.length > 0 || compaction.busy()) { return { kind: "rejected", code: "busy", reason: "busy" }; }
           const decided = await withInputImages(capabilities, inputOptions?.images, async (loaded) => { const sent = await send(request, input, inputId, loaded, true); return sent; });
           return decided;
         });
@@ -194,6 +210,7 @@ export const factorySession: StartSession = withSessionCredentials(async (instal
       steer: async (input, inputOptions?: InputOptions): Promise<ControlResult> => {
         const inputId = inputOptions?.inputId ?? randomUUID();
         const result = await kernel.control({ kind: "steer", input, ...inputOptions, inputId }, async (request) => {
+          if (compaction.busy()) { return { kind: "rejected", code: "busy", reason: "droid is compacting the conversation" }; }
           if (!busy()) { return { kind: "rejected", code: "no_active_turn", reason: "not_steerable: no active turn" }; }
           const decided = await withInputImages(capabilities, inputOptions?.images, async (loaded) => { const sent = await send(request, input, inputId, loaded, false); return sent; });
           return decided;

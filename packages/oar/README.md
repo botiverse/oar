@@ -93,7 +93,7 @@ dsh through native inbox removal where its method inventory advertises it, not o
 (claude, codex, qoder); acceptance is the native acknowledgement, never a task
 end ([single-task stop](https://github.com/botiverse/oar/blob/main/docs/spec/runtime-matrix.md#native-tasks-and-single-task-stop)).
 `session.compact()` is optional on Claude, Codex, Pi SDK/RPC, Grok, Qoder,
-Cursor and OpenCode v2 sessions. OpenCode v1 omits it.
+Cursor, Factory and OpenCode v2 sessions. OpenCode v1 omits it.
 `runtime.manualCompaction` describes support and active-turn policy; these
 implementations require idle sessions. The result distinguishes native
 completion, failure, cancellation, rejection and an unconfirmed wait.
@@ -401,7 +401,7 @@ against the runtime's own report. Use `default` to explicitly clear a tier;
 it is not a model catalog entry. `Session.serviceTier()` reports the effective
 tier. Unsupported runtimes reject the option before opening.
 `runtime.accountUsage(installation)` reads account quota on antigravity,
-claude, codex, grok and kimi; its failure semantics are in the
+claude, codex, factory, grok and kimi; its failure semantics are in the
 [account usage reference](https://github.com/botiverse/oar/blob/main/docs/spec/account-usage.md).
 On codex it also reports the account's limit resets, and
 `runtime.redeemLimitReset(installation, { idempotencyKey })` spends one.

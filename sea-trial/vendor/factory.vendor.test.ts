@@ -77,6 +77,28 @@ test.skipIf(!enabled)("an abort right after the prompt settles the input, and a 
   } finally { await session.dispose(); await provider.stop(); }
 }, 90_000);
 
+test.skipIf(!enabled)("compact summarizes in the same session between turns, and is refused during a turn or on an empty conversation", async () => {
+  const { provider, session } = await open((mock) => {
+    mock.onMessage(/SLOW_TURN/u, { content: "slow" }, { latency: 3000 });
+    mock.onMessage(/^(?![\s\S]*SLOW_TURN)[\s\S]*$/u, { content: "ok" }, { latency: 50 });
+  });
+  try {
+    const empty = await session.compact?.({ timeoutMs: 30_000 });
+    expect(empty).toMatchObject({ kind: "rejected", code: "runtime_refused" });
+    await promptAndWait(session, "first", { timeoutMs: 30_000 });
+    await promptAndWait(session, "second", { timeoutMs: 30_000 });
+    const compacted = await session.compact?.({ timeoutMs: 30_000 });
+    expect(compacted).toMatchObject({ kind: "completed", frame: { body: { type: "session_compacted" } } });
+    expect(events(session.records())).toContainEqual(expect.objectContaining({ kind: "compaction_ended", outcome: "completed", requestId: compacted?.request.id }));
+    const run = await promptAndWait(session, "after", { timeoutMs: 30_000 });
+    expect(run).toMatchObject({ kind: "ended", outcome: { kind: "completed" } });
+    await session.prompt("SLOW_TURN");
+    const busy = await session.compact?.({ timeoutMs: 30_000 });
+    expect(busy).toMatchObject({ kind: "rejected", code: "busy" });
+    await awaitIdle(session);
+  } finally { await session.dispose(); await provider.stop(); }
+}, 90_000);
+
 test.skipIf(!enabled)("tools run without a permission prompt, and an attached MCP server's tool is called", async () => {
   const { provider, session } = await open((mock) => {
     // One tool round, then a reply: the call's result is the last message the model sees.

@@ -103,11 +103,12 @@ adapter-held queue, including the exceptions below:
 | Codex | Completed native turn identified by its compaction item |
 | Pi SDK / RPC | Native manual `compaction_end` (or the SDK's observed rejection) |
 | Grok | The compact RPC answer, including refusal, failure or null result |
+| Factory | The `droid.compact_session` answer or refusal (its JSON-RPC id is the compact request id) |
 | OpenCode v2 | The compact prompt RPC answer, after recording preceding markers |
 | Qoder | Matching `command_lifecycle completed/cancelled`, with or without an ordinary result |
 | Cursor | The returned run's native terminal result, after the bounded stream drain |
 
-Grok, OpenCode and Qoder compact requests carry
+Factory, Grok, OpenCode and Qoder compact requests carry
 `settledBy: "native_response"`; their terminal frames carry the exact
 `responseTo` request id. Earlier `turn_ended` and `compaction_ended` events
 remain in place but do not release these operations. Other runtimes use the
@@ -185,6 +186,7 @@ its unit regressions use a controlled SDK stand-in.
 | OpenCode v1 | No session member: a project command can replace `/compact` and structural completion is unverified. The shared v1/v2 Runtime remains undeclared. |
 | OpenCode v2 | Session member supported, idle only; common v1/v2 Runtime undeclared. `/compact` emits native start/end metadata; the same `messageId` and the RPC answer are both required. Ordinary success is not proof. |
 | Grok | Supported, idle only. Dedicated `_x.ai/compact_conversation` response proves completion, with structured failure/cancellation. No native start or inferred trigger. Empty history is a native successful no-op. |
+| Factory | Supported, idle only. `droid.compact_session` keeps the session id (`newSessionId` equals it on 1.12.1); `session_compacted` while it is pending and the matching answer prove completion. During a turn droid refuses it and OAR answers busy first; an empty conversation is droid's refusal ("Nothing to compact"). An answer naming another session is a failure, since that id would break session identity. |
 | Qoder | Supported, idle only. `/compact` is intercepted before custom commands. Same-command UUID start, manual `compact_boundary`, and command completion/cancellation are required. A completed boundary wins later cancellation; a successful command without a boundary yields `not_compacted`. |
 | Cursor | Supported, idle only. `Agent.summarize()` returns a run id; its root summary status and terminal run result identify completion. An aborted run without a terminal summary returns aborted without inventing a compaction end. |
 | DSH | Undeclared; no session member. |

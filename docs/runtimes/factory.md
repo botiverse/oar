@@ -27,12 +27,12 @@ droid also has an ACP mode (`droid exec --output-format acp`). OAR uses it only
 for the account: the stream-jsonrpc protocol has no login, status or logout
 method, and the ACP entry is where droid offers them (see [Login](#login)).
 
-Current check: **droid 1.12.1** (Linux arm64, 2026-11-15): all 18 applicable
-behavior cases and seven native vendor cases pass against a local provider, with
+Current check: **droid 1.12.1** (Linux arm64, 2026-11-15): all 19
+behavior cases and eight native vendor cases pass against a local provider, with
 no Factory account ([probes](../../experiments/factory-droid/README.md)). CI
 runs them on Linux and macOS, pinned to droid 1.12.1. Windows is not yet
 verified. No Factory account has run a turn through OAR yet: Factory's own
-models, its usage limits and a completed sign-in are unverified.
+models, a real limits answer and a completed sign-in are unverified.
 
 ## OAR mapping
 
@@ -222,15 +222,76 @@ login up to the URL (then cancelled) and logout. A completed sign-in with a
 Factory account, and what `auth/status` reports for it (the account label is
 not mapped to an email until seen), are not yet verified.
 
+## Manual compaction
+
+`manualCompaction` is `{ kind: "supported", activeTurn: "reject" }`.
+`Session.compact()` sends `droid.compact_session {}` with the compact request
+id as its JSON-RPC id. Probed on 1.12.1 with a custom model: droid summarizes
+in the same session (`newSessionId` equals the session id, and a later
+`load_session` of that id holds the compacted history), reports
+`session_compacted { summaryId, removedCount }` and then answers `{
+newSessionId, removedCount }`. While that call is pending, OAR tags the
+`session_compacted` frame's `compaction_ended` with the request id, and the
+answer frame settles the operation (`settledBy: "native_response"`):
+`completed` with the `session_compacted` frame. droid refuses a compaction
+during a turn (-32602 "Wait for the current turn to finish before
+compacting.") and OAR answers `busy` before sending one; on an empty
+conversation droid's refusal ("Nothing to compact") is `rejected`
+`runtime_refused`. An answer naming another session would be a `failed`
+operation: that id would no longer name this session. A compaction droid
+starts on its own (its threshold) reports `session_compacted`, read as
+`compaction_ended` without a request id.
+
 ## Account usage and limit resets
 
-Absent. Factory's plans have usage limits, but droid exposes no way to read
-them programmatically: the stream-jsonrpc methods (1.12.1) include none,
-`list_commands` in `droid exec` is empty, the ACP entry has none, and the
-interactive UI reads them from Factory's HTTP API (`/api/billing/limits`),
-which OAR does not call. A turn that hits a limit ends with
-`model_usage_exhausted` or `model_rate_limited` and is classified as `quota`
-or `rate_limited`.
+`accountUsage` reads what droid's own usage screen reads: `GET
+<api>/api/billing/limits` with `Authorization: Bearer <credential>`,
+`X-Factory-Client: cli`, `X-Client-Version` and, for a signed-in user,
+`X-Factory-Org-Id`. `<api>` is `FACTORY_API_BASE_URL` (default
+`https://api.factory.ai`), or `FACTORY_API_BASE_URL_EU` (default
+`https://api.eu.factory.ai`) for a login droid routed to region `eu`; droid
+honors the same variables.
+
+The credential is the one droid would send, read as stored and never
+refreshed or written:
+
+- `FACTORY_API_KEY` when set (in `options.env` or the host's), which droid
+  uses over any stored login; its region comes from droid's own cache for that
+  key (`~/.factory/api-key-identity/seed.json`), else the global API.
+- Otherwise droid's "keyfile" login: `~/.factory/auth.v2.file`, AES-256-GCM
+  encrypted with `~/.factory/auth.v2.key`, holding `access_token`,
+  `active_organization_id` and droid's cached region. droid writes it when no
+  OS keyring is usable or with `FACTORY_DISABLE_KEYRING=1`.
+- A login sealed with an OS keyring key (`auth.v2.keyring`,
+  `auth.v2.loginkeychain`) is `unsupported` with `unsupported_auth_storage`.
+- No stored login is `reauth_required` with `credentials_missing`. A stored
+  access token droid would have refreshed is sent as it is; the API's 401 or
+  403 is `reauth_required` with `credentials_rejected`, and running droid once
+  refreshes it. 404 is `unsupported` with `endpoint_unavailable`.
+
+The answer has `limits.standard` (Standard Usage) and `limits.core` (Droid
+Core), each with `fiveHour`, `weekly` and `monthly` buckets of `{
+usedPercent, windowEnd, unlimited? }`. Each bucket becomes a window with
+droid's key as `id` (`standard.fiveHour`, `core.weekly`, ...), droid's label,
+`usedPercent / 100` as `usedRatio`, `windowEnd` as `resetsAt` and, for the
+5-hour and weekly buckets, their length as `durationMs`. Standard windows are
+the account's; Droid Core windows are `{ kind: "models", name: "Droid Core" }`.
+A bucket without a future `windowEnd` has reset, which droid shows as 0%, and
+so does OAR (no `resetsAt`). Unlimited buckets are left out, damaged ones are
+omitted, and an answer with none usable rejects. `rateLimited` is a full
+Standard window with no Extra Usage to continue on (`overagePreference`
+`extraUsage`, `extraUsageAllowed` and a positive `extraUsageBalanceCents`). No
+limits and `hasActiveSubscription: false` is `unsupported` with
+`quota_unavailable`. A customer-hosted ("prem") deployment is not handled.
+
+**The answer's shape comes from droid's own code** (its usage screen and the
+model-switch checks of droid 1.12.1; droid does not schema-check the answer
+itself) **and is unverified on a real account.** The tests use a local HTTP
+server through `FACTORY_API_BASE_URL`.
+
+There are no limit resets: droid's bundle has no reset or redeem endpoint. A
+turn that hits a limit ends with `model_usage_exhausted` or
+`model_rate_limited` and is classified as `quota` or `rate_limited`.
 
 ## Testing
 
@@ -243,7 +304,8 @@ on it with no Factory login.
 ## Open gaps
 
 - A real Factory account: Factory's models, `thinkingTokens`, the
-  `model_usage_exhausted` path, a completed sign-in and the logged-in status.
+  `model_usage_exhausted` path, a completed sign-in, the logged-in status, and
+  the `/api/billing/limits` answer.
 - Windows.
 - Child sessions as linked sessions (`child_session_available`).
 - `outputSchema` through `structuredOutputFormat`, `disallowedTools` through
