@@ -121,12 +121,15 @@ async function bounded<T>(timeoutMs: number, fallback: T, signal: AbortSignal | 
 export async function factoryAuthStatus(installation: AvailableInstallation, options: AuthStatusOptions & { readonly signal?: AbortSignal } = {}): Promise<AuthStatus> {
   if (installation.via !== "executable") { return { kind: "unknown", detail: "not a machine-installed executable" }; }
   const timeoutMs = options.timeoutMs ?? QUERY_TIMEOUT_MS;
-  try {
-    return await withDroidAcp(installation.command, sessionEnvironment(options.env), () => null, async (call) => {
-      const status = await bounded<AuthStatus>(timeoutMs, { kind: "unknown", source: SOURCE, detail: "droid auth status timed out" }, options.signal, async () => { const read = await readStatus(call); return read; });
+  const query = (async (): Promise<AuthStatus> => {
+    try {
+      const status = await withDroidAcp(installation.command, sessionEnvironment(options.env), () => null, async (call) => { const read = await readStatus(call); return read; });
       return status;
-    });
-  } catch { return { kind: "unknown", source: SOURCE, detail: "droid auth status could not run" }; }
+    } catch { return { kind: "unknown", source: SOURCE, detail: "droid auth status could not run" }; }
+  })();
+  // At the deadline the answer is unknown at once; stopping the process continues in the background (AuthStatusOptions.timeoutMs).
+  const status = await bounded<AuthStatus>(timeoutMs, { kind: "unknown", source: SOURCE, detail: "droid auth status timed out" }, options.signal, async () => { const read = await query; return read; });
+  return status;
 }
 
 /** Signs droid in through its device-pairing flow: the URL reaches the host as an `auth_url` event. */
@@ -162,6 +165,9 @@ export async function factoryLogin(installation: AvailableInstallation, interact
         // droid answered success: it has stored the login, so its own status decides from here.
         const status = interaction.signal?.aborted === true ? null : await statusQuery(call).catch(() => null);
         if (status?.kind === "logged_out") { return { kind: "failed", reason: "not_logged_in", detail: "droid reported sign-in success, yet its auth/status reads unauthenticated" }; }
+        if (status?.kind === "unknown" && status.configured !== undefined) {
+          return { kind: "failed", reason: "not_logged_in", detail: "droid stored the sign-in, but FACTORY_API_KEY is set and droid uses the key instead; OAR does not touch the environment" };
+        }
         return status?.kind === "logged_in" && status.account !== undefined ? { kind: "logged_in", account: status.account } : { kind: "logged_in" };
       };
       const ended = async (): Promise<LoginResult> => { await exited; return { kind: "failed", reason: "process_failed", detail: "droid ended before the sign-in finished" }; };

@@ -1,5 +1,6 @@
 import type { AccountUsageReader, AccountUsageSnapshot, AccountUsageWindow, AccountUsageWindowScope } from "../../contracts/account-usage.js";
 import { remainingMs } from "../../shared/deadline.js";
+import { credentialHeaderValue, requestFailure } from "../../shared/credential-http.js";
 import { environmentValue } from "../../shared/environment.js";
 import { utcInstantFromDate } from "../../shared/instant.js";
 import { asNumber, asRecord, parseJson } from "../../shared/json.js";
@@ -107,6 +108,8 @@ export const factoryAccountUsage: AccountUsageReader = async (installation, opti
   try {
     const credential = await factoryCredential(env, api);
     if (credential.kind === "snapshot") { return credential.snapshot; }
+    credentialHeaderValue(credential.token, "The Factory credential");
+    if (credential.organizationId !== null) { credentialHeaderValue(credential.organizationId, "droid's stored organization id"); }
     const base = credential.region === "eu" ? baseUrl(environmentValue(env, "FACTORY_API_BASE_URL_EU"), API_EU) : api;
     let response: Response | null = null;
     try {
@@ -118,7 +121,10 @@ export const factoryAccountUsage: AccountUsageReader = async (installation, opti
         },
         signal: AbortSignal.timeout(remainingMs(deadline, NAME)),
       });
-    } catch (error) { throw new Error("Failed to reach the Factory limits endpoint", { cause: error }); }
+    } catch (error) {
+      // Not the cause: fetch's errors can quote the Authorization header.
+      throw requestFailure("Failed to reach the Factory limits endpoint", error);
+    }
     if (response.status === 401 || response.status === 403) { return { kind: "reauth_required", reason: "credentials_rejected" }; }
     if (response.status === 404) { return { kind: "unsupported", reason: "endpoint_unavailable" }; }
     if (!response.ok) { throw new Error(`Factory limits endpoint returned HTTP ${String(response.status)}`); }

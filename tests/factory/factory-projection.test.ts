@@ -82,9 +82,15 @@ it("reads droid update --check, lists models with their effort menus, and guards
   expect(projectFactoryUpdateCheck("1.12.1", "Update error: offline")).toMatchObject({ kind: "unavailable", detail: "Update error: offline" });
   expect(projectFactoryModels({ models: [{ id: "custom:A-0", displayName: "A", supportedReasoningEfforts: ["none"], defaultReasoningEffort: "none" }, { id: "x", disabled: true, disabledReason: "plan" }] }))
     .toEqual([{ id: "custom:A-0", displayName: "A", effortLevels: ["none"], defaultEffort: "none" }, { id: "x", disabled: { reason: "plan" } }]);
+});
+
+it("guards launchArgs and answers droid's requests without standing grants", () => {
   expect(() => { checkFactoryLaunchArgs(["--output-format=json"]); }).toThrow(/launchArgs/u);
   expect(() => { checkFactoryLaunchArgs(["--settings", "x.json"]); }).not.toThrow();
   expect(serverReply("droid.request_permission", { options: [{ value: "proceed_always" }, { value: "proceed_once" }, { value: "cancel" }] })).toEqual({ result: { selectedOption: "proceed_once" } });
+  // A standing grant is never chosen: without proceed_once droid gets its own cancel, and without that an error.
+  expect(serverReply("droid.request_permission", { options: [{ value: "proceed_always" }, { value: "proceed_auto_run_high" }, { value: "cancel" }] })).toEqual({ result: { selectedOption: "cancel" } });
+  expect(serverReply("droid.request_permission", { options: [{ value: "proceed_always" }] })).toMatchObject({ error: { code: -32_602 } });
   expect(serverReply("droid.ask_user", {})).toEqual({ result: { cancelled: true, answers: [] } });
   expect(serverReply("droid.unknown", {})).toMatchObject({ error: { code: -32_601 } });
 });

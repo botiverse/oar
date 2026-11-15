@@ -5,6 +5,7 @@ import { once } from "node:events";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, expect, it } from "vitest";
+import { errorChain, rejectionOf } from "../fixtures/error-chain.js";
 import { decryptFactoryCredentials } from "../../packages/oar/src/runtimes/factory/account-credential.js";
 import { factoryAccountUsage, projectFactoryUsage } from "../../packages/oar/src/runtimes/factory/account-usage.js";
 
@@ -45,6 +46,11 @@ async function provider(status = 200, payload: unknown = limits) {
   return { url: `http://127.0.0.1:${String(address.port)}`, seen };
 }
 
+/** droid's home made explicit on every platform: HOME (POSIX), USERPROFILE (Windows), no override. */
+function homeEnv(dir: string): Record<string, string | null> {
+  return { HOME: dir, USERPROFILE: dir, FACTORY_HOME_OVERRIDE: null };
+}
+
 async function home(files: Readonly<Record<string, string>> = {}) {
   const dir = await mkdtemp(path.join(tmpdir(), "oar-factory-usage-"));
   cleanup.push(async () => { await rm(dir, { recursive: true, force: true }); });
@@ -61,7 +67,7 @@ async function storedLogin(credentials: Record<string, unknown>) {
 it("reads droid's keyfile login and projects the windows droid's usage screen shows", async () => {
   const api = await provider();
   const dir = await storedLogin({ access_token: "stored-access", refresh_token: "stored-refresh", active_organization_id: "org_1", whoami: { region: "global" } });
-  const read = await factoryAccountUsage(installation, { env: { HOME: dir, FACTORY_API_KEY: null, FACTORY_DISABLE_KEYRING: null, FACTORY_API_BASE_URL: api.url } });
+  const read = await factoryAccountUsage(installation, { env: { ...homeEnv(dir), FACTORY_API_KEY: null, FACTORY_DISABLE_KEYRING: null, FACTORY_API_BASE_URL: api.url } });
   expect(read).toMatchObject({ kind: "available", rateLimited: true });
   expect(read.kind === "available" ? read.windows : []).toEqual([
     { id: "standard.fiveHour", label: "5-hour", usedRatio: 0.42, resetsAt: future, durationMs: 18_000_000, scope: { kind: "account" } },
@@ -77,7 +83,7 @@ it("an EU login goes to the EU API", async () => {
   const global = await provider();
   const eu = await provider();
   const dir = await storedLogin({ access_token: "eu-access", refresh_token: "r", region: "eu" });
-  const env = { HOME: dir, FACTORY_API_KEY: null, FACTORY_DISABLE_KEYRING: null, FACTORY_API_BASE_URL: global.url, FACTORY_API_BASE_URL_EU: eu.url };
+  const env = { ...homeEnv(dir), FACTORY_API_KEY: null, FACTORY_DISABLE_KEYRING: null, FACTORY_API_BASE_URL: global.url, FACTORY_API_BASE_URL_EU: eu.url };
   expect(await factoryAccountUsage(installation, { env })).toMatchObject({ kind: "available" });
   expect([global.seen.length, eu.seen.length]).toEqual([0, 1]);
 });
@@ -87,7 +93,7 @@ it("FACTORY_API_KEY wins over a stored login and takes droid's cached region for
   const eu = await provider();
   const seed = JSON.stringify({ version: 2, apiBaseUrl: global.url, credentialId: createHash("sha256").update("fk-test-key").digest("hex"), routing: { region: "eu" } });
   const dir = await home({ "auth.v2.keyring": "x", "api-key-identity/seed.json": seed });
-  const env = { HOME: dir, FACTORY_API_KEY: "fk-test-key", FACTORY_API_BASE_URL: global.url, FACTORY_API_BASE_URL_EU: eu.url };
+  const env = { ...homeEnv(dir), FACTORY_API_KEY: "fk-test-key", FACTORY_API_BASE_URL: global.url, FACTORY_API_BASE_URL_EU: eu.url };
   expect(await factoryAccountUsage(installation, { env })).toMatchObject({ kind: "available" });
   expect(eu.seen[0]?.headers).toMatchObject({ authorization: "Bearer fk-test-key" });
   expect(eu.seen[0]?.headers["x-factory-org-id"]).toBeUndefined();
@@ -95,9 +101,11 @@ it("FACTORY_API_KEY wins over a stored login and takes droid's cached region for
 
 it("a keyring login is unsupported, no login asks for sign-in, and nothing is sent for either", async () => {
   const api = await provider();
-  expect(await factoryAccountUsage(installation, { env: { HOME: await home({ "auth.v2.keyring": "sealed" }), FACTORY_API_KEY: null, FACTORY_DISABLE_KEYRING: null, FACTORY_API_BASE_URL: api.url } }))
+  const sealed = await home({ "auth.v2.keyring": "sealed" });
+  expect(await factoryAccountUsage(installation, { env: { ...homeEnv(sealed), FACTORY_API_KEY: null, FACTORY_DISABLE_KEYRING: null, FACTORY_API_BASE_URL: api.url } }))
     .toEqual({ kind: "unsupported", reason: "unsupported_auth_storage" });
-  expect(await factoryAccountUsage(installation, { env: { HOME: await home(), FACTORY_API_KEY: null, FACTORY_DISABLE_KEYRING: null, FACTORY_API_BASE_URL: api.url } }))
+  const empty = await home();
+  expect(await factoryAccountUsage(installation, { env: { ...homeEnv(empty), FACTORY_API_KEY: null, FACTORY_DISABLE_KEYRING: null, FACTORY_API_BASE_URL: api.url } }))
     .toEqual({ kind: "reauth_required", reason: "credentials_missing" });
   expect(api.seen).toHaveLength(0);
 });
@@ -106,7 +114,7 @@ it("401 and 403 ask for sign-in, 404 is unsupported, other failures reject witho
   const dir = await storedLogin({ access_token: "secret-access-token", refresh_token: "r" });
   const read = async (status: number, payload?: unknown) => {
     const api = await provider(status, payload);
-    return factoryAccountUsage(installation, { env: { HOME: dir, FACTORY_API_KEY: null, FACTORY_DISABLE_KEYRING: null, FACTORY_API_BASE_URL: api.url } });
+    return factoryAccountUsage(installation, { env: { ...homeEnv(dir), FACTORY_API_KEY: null, FACTORY_DISABLE_KEYRING: null, FACTORY_API_BASE_URL: api.url } });
   };
   expect(await read(401)).toEqual({ kind: "reauth_required", reason: "credentials_rejected" });
   expect(await read(403)).toEqual({ kind: "reauth_required", reason: "credentials_rejected" });
@@ -122,7 +130,7 @@ it("401 and 403 ask for sign-in, 404 is unsupported, other failures reject witho
 
 it("a damaged keyfile rejects without its contents, and no subscription has no quota", async () => {
   const damaged = await home({ "auth.v2.key": randomBytes(32).toString("base64"), "auth.v2.file": "AAAA:BBBB:CCCC" });
-  await expect(factoryAccountUsage(installation, { env: { HOME: damaged, FACTORY_API_KEY: null, FACTORY_DISABLE_KEYRING: null } }))
+  await expect(factoryAccountUsage(installation, { env: { ...homeEnv(damaged), FACTORY_API_KEY: null, FACTORY_DISABLE_KEYRING: null } }))
     .rejects.toThrow(/Failed to read Factory account usage/u);
   const sealed = encrypt("{}", randomBytes(32));
   const otherKey = randomBytes(32);
@@ -130,4 +138,26 @@ it("a damaged keyfile rejects without its contents, and no subscription has no q
   expect(projectFactoryUsage({ hasActiveSubscription: false })).toEqual({ kind: "unsupported", reason: "quota_unavailable" });
   expect(projectFactoryUsage({ limits: { standard: { fiveHour: { usedPercent: 0, windowEnd: null, unlimited: true } } } })).toEqual({ kind: "available", rateLimited: false, windows: [] });
   expect(projectFactoryUsage({ ...limits, overagePreference: "extraUsage", extraUsageAllowed: true, extraUsageBalanceCents: 500 })).toMatchObject({ rateLimited: false });
+});
+
+it("a credential that cannot be a header value is refused before any request, without the credential in the error chain", async () => {
+  const api = await provider();
+  const keyHome = await home();
+  const keyRead = factoryAccountUsage(installation, { env: { ...homeEnv(keyHome), FACTORY_API_KEY: "fk-SECRET-KEY\nX", FACTORY_API_BASE_URL: api.url } });
+  const keyChain = errorChain(await rejectionOf(keyRead));
+  const loginHome = await storedLogin({ access_token: "SECRET-TOKEN\u0007", refresh_token: "r" });
+  const loginRead = factoryAccountUsage(installation, { env: { ...homeEnv(loginHome), FACTORY_API_KEY: null, FACTORY_DISABLE_KEYRING: null, FACTORY_API_BASE_URL: api.url } });
+  const loginChain = errorChain(await rejectionOf(loginRead));
+  expect(`${keyChain}${loginChain}`).not.toMatch(/SECRET/u);
+  expect([keyChain, loginChain]).toEqual([expect.stringMatching(/not a valid HTTP header value/u), expect.stringMatching(/not a valid HTTP header value/u)]);
+  expect(api.seen).toHaveLength(0);
+});
+
+it("FACTORY_HOME_OVERRIDE moves droid's directory, as droid itself reads it", async () => {
+  const dir = await storedLogin({ access_token: "override-access", refresh_token: "r" });
+  const api = await provider();
+  const elsewhere = await home();
+  expect(await factoryAccountUsage(installation, { env: { ...homeEnv(elsewhere), FACTORY_HOME_OVERRIDE: dir, FACTORY_API_KEY: null, FACTORY_DISABLE_KEYRING: null, FACTORY_API_BASE_URL: api.url } }))
+    .toMatchObject({ kind: "available" });
+  expect(api.seen[0]?.headers.authorization).toBe("Bearer override-access");
 });

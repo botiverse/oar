@@ -1,6 +1,6 @@
 /* oxlint-disable import/max-dependencies -- The adapter composes protocol, input, projection and process-lifetime mechanisms. */
 import { randomUUID } from "node:crypto";
-import type { ControlResult, InputImage, InputOptions, RequestRecord, ResponseBody, RuntimeEventBody, Session, StartSession } from "../../contracts/session.js";
+import type { ControlResult, InputOptions, RequestRecord, ResponseBody, RuntimeEventBody, Session, StartSession } from "../../contracts/session.js";
 import { createAbortFallback } from "../../shared/abort-fallback.js";
 import { appendCleanupFailure } from "../../shared/executable/process-cleanup.js";
 import { sessionEnvironment } from "../../shared/environment.js";
@@ -13,8 +13,10 @@ import { withSessionCredentials } from "../../shared/session-credentials.js";
 import { refuseSessionOptions } from "../../shared/session-options.js";
 import { startDroidClient, type DroidClient, type DroidOutcome } from "./client.js";
 import { checkFactoryLaunchArgs, factoryRefusedSessionOptions } from "./options.js";
-import { contextOf, droidImages, factoryOpenRequest, openFactory, serverReply, settingsRefusal } from "./open.js";
+import { contextOf, factoryOpenRequest, openFactory, serverReply } from "./open.js";
+import { effortRefusal, settingsRefusal } from "./settings.js";
 import { factoryCompaction } from "./compaction.js";
+import { droidImages, type FactorySessionTimings, type Held } from "./session-state.js";
 import { foldFactoryNotification, initialFactoryProjection, type FactoryProjection } from "./projection.js";
 
 /*
@@ -30,18 +32,8 @@ import { foldFactoryNotification, initialFactoryProjection, type FactoryProjecti
  * id, so droid's echoes name the exact attempt.
  */
 const SETTINGS_REPORT_MS = 10_000;
-const CONTEXT_READ_MS = 10_000;
 
-interface Held {
-  readonly inputId: string | undefined;
-  readonly input: string;
-  readonly images: readonly InputImage[] | undefined;
-  readonly loaded: readonly LoadedImage[];
-  readonly request: RequestRecord;
-  accepted: boolean;
-}
-
-export const factorySession: StartSession = withSessionCredentials(async (installation, options, credentials) => {
+export const createFactorySession = (timings: FactorySessionTimings = {}): StartSession => withSessionCredentials(async (installation, options, credentials) => {
   if (installation.via !== "executable") { throw new Error("The Factory droid session adapter needs an executable installation"); }
   refuseSessionOptions(factoryRefusedSessionOptions, options);
   checkFactoryLaunchArgs(options.launchArgs);
@@ -72,28 +64,37 @@ export const factorySession: StartSession = withSessionCredentials(async (instal
     let projection: FactoryProjection = initialFactoryProjection;
     /** The prompt OAR sent whose turn is running (its inputId is droid's turn id); null while idle or during a turn OAR did not prompt. */
     let active: { readonly request: RequestRecord; readonly inputId: string; dropped: boolean } | null = null;
-    /** droid reported work OAR did not prompt: a steer that arrived as its turn ended starts a turn of its own. */
+    /** droid runs a turn OAR did not prompt: a steer that missed its turn's end starts a turn of its own. */
     let spontaneous = false;
+    /** That turn's id when known: the missed steer's `messageId`. */
+    let spontaneousTurn: string | null = null;
+    /** The turn an accepted abort is waiting on; only its own end (or droid handing its prompt back) disarms the fallback. */
+    let abortingTurn: string | null | false = false;
     /** The OAR compact request whose `droid.compact_session` is pending: droid's `session_compacted` meanwhile is its completion. */
     let compactRequestId: string | null = null;
     let disposeRequest: RequestRecord | null = null;
     let settingsWaiter: ((settings: JsonRecord) => void) | null = null;
     const held: Held[] = [];
     let dispatching = false;
-    const abortFallback = createAbortFallback(() => { client.kill(); });
+    const abortFallback = createAbortFallback(() => { client.kill(); }, timings.abortFallbackMs);
+    const disarm = (): void => { abortFallback.clear(); abortingTurn = false; };
     // A prompt droid handed back before starting it (an interrupt right after it) no longer holds the session; its late turn end still arrives.
     const busy = (): boolean => (active !== null && !active.dropped) || spontaneous;
 
+    /** Record a reply OAR's own read received, whole and where it sat on the wire. */
+    const recordReply = (type: string, events: (result: JsonRecord) => readonly RuntimeEventBody[] = () => []): ((outcome: DroidOutcome) => void) => (outcome: DroidOutcome): void => {
+      if (outcome.kind === "exited") { return; }
+      client.mark(() => { kernel.frame({ type, native: outcome.native, events: outcome.kind === "result" ? events(outcome.result) : [] }); });
+    };
     const readContext = (): void => {
+      if (kernel.unreachable() !== null) { return; }
       void (async (): Promise<void> => {
-        if (kernel.unreachable() !== null) { return; }
         try {
-          const result = await Promise.race([client.request("droid.get_context_stats", {}),
-            new Promise<null>((resolve) => { setTimeout(() => { resolve(null); }, CONTEXT_READ_MS).unref(); })]);
-          if (result === null || kernel.unreachable() !== null) { return; }
-          const context = contextOf(result);
-          kernel.frame({ type: "droid.get_context_stats", native: result, events: context === null ? [] : [{ kind: "usage", usage: { context } }] });
-        } catch { /* An unanswered read records nothing: the next turn end reads again. */ }
+          await client.request("droid.get_context_stats", {}, recordReply("droid.get_context_stats", (result) => {
+            const context = contextOf(result);
+            return context === null ? [] : [{ kind: "usage", usage: { context } }];
+          }));
+        } catch { /* Its reply, an error included, is already a frame; an exit is the exited response. */ }
       })();
     };
 
@@ -109,13 +110,36 @@ export const factorySession: StartSession = withSessionCredentials(async (instal
       const body = notification?.type === "session_compacted" && compacted !== null
         ? { ...folded, events: folded.events.map(event => event.kind === "compaction_ended" ? { ...event, requestId: compacted } : event) } : folded;
       projection = state;
-      kernel.frame(extra.length === 0 ? body : { ...body, events: [...extra, ...body.events] });
+      const after: RuntimeEventBody[] = [];
       const prompted = active;
-      if (prompted !== null && body.events.some(event => event.kind === "input_dropped" && event.requestId === prompted.request.id)) { prompted.dropped = true; }
+      if (prompted !== null && body.events.some(event => event.kind === "input_dropped" && event.requestId === prompted.request.id)) {
+        prompted.dropped = true;
+        // droid handed the prompt back before starting it: the abort was honored, and that turn's late end can no longer stall anything.
+        if (abortingTurn === prompted.inputId) { disarm(); }
+      }
+      const ended = notification?.type === "agent_turn_completed";
+      if (ended) {
+        const turnId = typeof notification.turnId === "string" ? notification.turnId : undefined;
+        if (abortingTurn !== false && (abortingTurn === null || turnId === undefined || turnId === abortingTurn)) { disarm(); }
+        if (active !== null && (turnId === active.inputId || turnId === undefined)) { active = null; }
+        else if (turnId === undefined || spontaneousTurn === null || turnId === spontaneousTurn) { spontaneous = false; spontaneousTurn = null; }
+        // A steer droid neither echoed into this turn nor gave back missed it: droid starts a turn for it now, so the session stays busy until that turn ends.
+        const missed = active === null && !spontaneous ? [...state.sent.values()][0] : undefined;
+        if (missed !== undefined) {
+          spontaneous = true;
+          spontaneousTurn = missed.inputId;
+          after.push({ kind: "turn_active", inputId: missed.inputId });
+        }
+      }
+      const waiting = spontaneousTurn;
+      if (!ended && waiting !== null && body.events.some(event => event.kind === "input_dropped" && event.inputId === waiting)) {
+        // droid gave the missed steer back before its turn began.
+        spontaneous = false;
+        spontaneousTurn = null;
+      }
+      kernel.frame(extra.length === 0 && after.length === 0 ? body : { ...body, events: [...extra, ...body.events, ...after] });
       if (notification?.type === "settings_updated") { settingsWaiter?.(asRecord(notification.settings) ?? {}); }
-      if (notification?.type === "agent_turn_completed") {
-        abortFallback.clear();
-        if (active !== null && (notification.turnId === active.inputId || notification.turnId === undefined)) { active = null; } else { spontaneous = false; }
+      if (ended) {
         readContext();
         queueMicrotask(drainHeld);
       }
@@ -129,9 +153,9 @@ export const factorySession: StartSession = withSessionCredentials(async (instal
       client.respond(message.id, reply);
       kernel.respond(id, { kind: "answered", native: reply });
     };
-    client.handle({ onNotification, onServerRequest });
+    client.handle({ onNotification, onServerRequest, onUnmatched: (native) => { kernel.frame({ type: asRecord(native) === null ? "stdout" : "response", native, events: [] }); } });
     client.onExit((code, reason) => {
-      abortFallback.clear();
+      disarm();
       kernel.respond(disposeRequest?.id ?? "", { kind: "exited", code, ...(reason === undefined ? {} : { reason }) });
       active = null;
       spontaneous = false;
@@ -145,13 +169,16 @@ export const factorySession: StartSession = withSessionCredentials(async (instal
       settingsWaiter = resolve;
       const timer = setTimeout(() => { resolve(null); }, SETTINGS_REPORT_MS);
       try {
-        await client.request("droid.update_session_settings", { ...(options.model === undefined ? {} : { modelId: options.model }), ...(options.effort === undefined ? {} : { reasoningEffort: options.effort }) });
+        try {
+          await client.request("droid.update_session_settings", { ...(options.model === undefined ? {} : { modelId: options.model }), ...(options.effort === undefined ? {} : { reasoningEffort: options.effort }) },
+            recordReply("droid.update_session_settings"));
+        } catch (error) { throw effortRefusal(error, options) ?? error; }
         const refusal = settingsRefusal(options, await reported, " on resume");
-        if (refusal !== null) { throw new Error(refusal); }
+        if (refusal !== null) { throw refusal; }
       } finally { clearTimeout(timer); settingsWaiter = null; }
     } else {
       const refusal = settingsRefusal(options, settings, "");
-      if (refusal !== null) { throw new Error(refusal); }
+      if (refusal !== null) { throw refusal; }
     }
     readContext();
 
@@ -234,7 +261,8 @@ export const factorySession: StartSession = withSessionCredentials(async (instal
       abort: async (): Promise<ControlResult> => {
         const result = await kernel.control({ kind: "abort" }, async () => {
           if (!busy()) { return { kind: "rejected", code: "no_active_turn", reason: "no active turn" }; }
-          // Bounded: without droid's turn end in time, the process is stopped and its exit is recorded.
+          // Bounded: without droid's end of this turn in time, the process is stopped and its exit is recorded.
+          abortingTurn = active !== null && !active.dropped ? active.inputId : spontaneousTurn;
           const refused = abortFallback.arm();
           try {
             const reply = await client.request("droid.interrupt_session", {});
@@ -268,3 +296,5 @@ export const factorySession: StartSession = withSessionCredentials(async (instal
     throw appendCleanupFailure(error, cleanup.reason);
   }
 });
+
+export const factorySession: StartSession = createFactorySession();

@@ -67,3 +67,16 @@ it("logout runs droid's own logout and its status decides", async () => {
   expect(await factoryLogout(await installed("success"), { env: { FACTORY_API_KEY: "fk-test" } }))
     .toMatchObject({ kind: "failed", reason: "still_logged_in" });
 });
+
+it("a status read past its deadline answers unknown at once, while stopping droid continues", async () => {
+  const startedAt = Date.now();
+  expect(await factoryAuthStatus(await installed("hang-status"), { timeoutMs: 300 })).toMatchObject({ kind: "unknown", detail: "droid auth status timed out" });
+  expect(Date.now() - startedAt).toBeLessThan(1500);
+});
+
+it("a sign-in droid stores while FACTORY_API_KEY is set is not the login droid uses", async () => {
+  const { installation } = await fixture("success");
+  const result = await factoryLogin(installation, recordedInteraction([]), { env: { FACTORY_API_KEY: "fk-test" } });
+  expect(result).toMatchObject({ kind: "failed", reason: "not_logged_in" });
+  expect(result.kind === "failed" ? result.detail : "").toContain("FACTORY_API_KEY");
+});

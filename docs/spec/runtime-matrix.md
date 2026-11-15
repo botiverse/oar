@@ -267,6 +267,7 @@ The message retains its runtime-specific explanation.
 | Pi SDK, Pi RPC, Pi Durable | Opened session/agent state reports a different or missing model | Absent; resolving one requested model is not a catalog enumeration |
 | DSH | The reported `agent.model` route differs from the requested provider/model | Absent |
 | Antigravity | The last ACP `config_option_update` model value still contradicts the requested selection at the configuration deadline | Absent |
+| Factory | `initialize_session`, or on resume the `settings_updated` after `update_session_settings`, reports a `modelId` other than the request (droid runs its default in place of an unknown model) | Absent; opening reads no catalog |
 
 The error class itself imposes no shared confirmation policy. For example,
 Codex and DSH do not acquire a missing-readback refusal where they previously

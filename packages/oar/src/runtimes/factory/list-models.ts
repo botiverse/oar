@@ -30,7 +30,7 @@ export function projectFactoryModels(result: unknown): ModelEntry[] {
 export const factoryListModels: ModelLister = async (installation, options = {}) => {
   if (installation.via !== "executable") { return { kind: "unsupported", reason: "Factory droid lists models through its executable" }; }
   const client = startDroidClient(installation.command, { cwd: listingCwd(options), env: sessionEnvironment(options.env) });
-  client.handle({ onNotification: () => {}, onServerRequest: (message) => { client.respond(message.id, { error: { code: -32_601, message: "not handled" } }); } });
+  client.handle({ onNotification: () => {}, onUnmatched: () => {}, onServerRequest: (message) => { client.respond(message.id, { error: { code: -32_601, message: "not handled" } }); } });
   try {
     const result = await Promise.race([
       client.request("droid.list_models", {}),

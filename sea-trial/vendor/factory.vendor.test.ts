@@ -136,8 +136,9 @@ test.skipIf(!enabled)("an unknown resume id is SessionNotFoundError, and a model
     const installation = await factoryRuntime.installation();
     expectAvailable(installation, "Factory droid");
     await expect(factoryRuntime.session(installation, { cwd: provider.cwd, env: provider.env, resume: "00000000-0000-4000-8000-000000000000" })).rejects.toMatchObject({ name: "SessionNotFoundError" });
-    await expect(factoryRuntime.session(installation, { cwd: provider.cwd, env: provider.env, model: "no-such-model" })).rejects.toThrow(/did not apply model "no-such-model"/u);
-    await expect(factoryRuntime.session(installation, { cwd: provider.cwd, env: provider.env, model: FACTORY_AIMOCK_MODEL, effort: "high" })).rejects.toThrow(/did not apply effort "high"/u);
+    await expect(factoryRuntime.session(installation, { cwd: provider.cwd, env: provider.env, model: "no-such-model" })).rejects.toMatchObject({ name: "ModelConfirmationError", requested: "no-such-model" });
+    await expect(factoryRuntime.session(installation, { cwd: provider.cwd, env: provider.env, model: FACTORY_AIMOCK_MODEL, effort: "high" })).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "effort" });
+    await expect(factoryRuntime.session(installation, { cwd: provider.cwd, env: provider.env, model: FACTORY_AIMOCK_MODEL, effort: "bogus" })).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "effort" });
   } finally { await provider.stop(); }
 }, 90_000);
 

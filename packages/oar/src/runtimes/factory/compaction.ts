@@ -20,17 +20,22 @@ export function factoryCompaction(kernel: SessionKernel, client: DroidClient, se
     async start(request, reply) {
       requestId = request.id;
       pending(request.id);
+      const recorded: { frame: Frame | null } = { frame: null };
       try {
-        const answer = client.request("droid.compact_session", {}, undefined, request.id);
+        // The answer line, whole, is recorded where it sat on the wire; its frame settles the operation (observe below).
+        const answer = client.request("droid.compact_session", {}, (outcome) => {
+          if (outcome.kind === "exited") { return; }
+          client.mark(() => {
+            recorded.frame = kernel.frame({ type: outcome.kind === "result" ? "droid.compact_session" : "droid.compact_session/error", native: outcome.native, responseTo: request.id, events: [] });
+          });
+        }, request.id);
         reply({ kind: "accepted" });
-        // The answer's frame settles the operation (observe below sees it first).
-        const frame = kernel.frame({ type: "droid.compact_session", native: await answer, responseTo: request.id, events: [] });
-        return settle(frame) ?? { kind: "unconfirmed", code: "observation_failed", reason: "droid's compact_session answer was not recorded" };
+        await answer;
+        return (recorded.frame === null ? null : settle(recorded.frame)) ?? { kind: "unconfirmed", code: "observation_failed", reason: "droid's compact_session answer was not recorded" };
       } catch (error) {
-        const native = asRecord(asRecord(error instanceof Error ? error.cause : null)?.native);
-        if (native === null || kernel.unreachable() !== null) { throw error; }
-        kernel.frame({ type: "droid.compact_session/error", native, responseTo: request.id, events: [] });
-        return { kind: "rejected", code: "runtime_refused", reason: typeof native.message === "string" ? native.message : "droid refused compact_session" };
+        const refusal = asRecord(asRecord(recorded.frame?.body.native)?.error);
+        if (refusal === null || kernel.unreachable() !== null) { throw error; }
+        return { kind: "rejected", code: "runtime_refused", reason: typeof refusal.message === "string" ? refusal.message : "droid refused compact_session" };
       } finally { pending(null); }
     },
     observe: (frame) => settle(frame),
@@ -40,7 +45,7 @@ export function factoryCompaction(kernel: SessionKernel, client: DroidClient, se
     const ended = frame.body.events.find(event => event.kind === "compaction_ended");
     if (ended?.kind === "compaction_ended" && ended.requestId === requestId) { compacted = frame; return null; }
     if (frame.body.type !== "droid.compact_session" || frame.body.responseTo !== requestId) { return null; }
-    const answer = asRecord(frame.body.native);
+    const answer = asRecord(asRecord(frame.body.native)?.result);
     if (typeof answer?.newSessionId === "string" && answer.newSessionId !== sessionId) {
       return { kind: "failed", code: "native_failed", reason: `droid moved the conversation to session ${answer.newSessionId}; this session's id no longer names it`, frame };
     }

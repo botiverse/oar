@@ -3,11 +3,11 @@ import type { ContextUsage, SessionOptions } from "../../contracts/session.js";
 import type { McpServer } from "../../contracts/session-options.js";
 import { SessionNotFoundError } from "../../contracts/session-not-found-error.js";
 import { UnsupportedOptionError } from "../../contracts/errors.js";
-import type { LoadedImage } from "../../shared/input-images.js";
 import { asNumber, asRecord, asRecordList, type JsonRecord } from "../../shared/json.js";
 import { sameDirectory } from "../../shared/same-directory.js";
 import type { DroidClient, DroidOutcome } from "./client.js";
 import { factoryMcpServers } from "./options.js";
+import { effortRefusal } from "./settings.js";
 
 const OPEN_TIMEOUT_MS = 120_000;
 
@@ -56,32 +56,26 @@ export async function openFactory(client: DroidClient, options: SessionOptions, 
     if (options.resume !== undefined && native?.code === -32_004) {
       throw new SessionNotFoundError(options.resume, `droid has no session ${options.resume}`, { method, native });
     }
-    throw error;
+    throw effortRefusal(error, options) ?? error;
   }
 }
 
-/** Why droid's reported settings refuse the open: it ran another model or effort than requested (an unknown model falls back, an unlisted effort is clamped). */
-export function settingsRefusal(options: SessionOptions, settings: JsonRecord | null, when: string): string | null {
-  if (options.model !== undefined && settings?.modelId !== options.model) {
-    return `droid did not apply model ${JSON.stringify(options.model)}${when}; reported ${JSON.stringify(settings?.modelId ?? null)}`;
-  }
-  if (options.effort !== undefined && settings?.reasoningEffort !== options.effort) {
-    return `droid did not apply effort ${JSON.stringify(options.effort)}${when}; reported ${JSON.stringify(settings?.reasoningEffort ?? null)}`;
-  }
-  return null;
-}
 
-/** droid's image input: base64 with its media type. */
-export function droidImages(images: readonly LoadedImage[]): JsonRecord {
-  return images.length === 0 ? {} : { images: images.map(image => ({ type: "base64", data: image.data, mediaType: image.mediaType })) };
-}
-
-/** OAR's answer to a droid→client request. Nobody sits at a prompt in embedded use: a permission is allowed once (never a standing change), questions are declined. */
+/**
+ * OAR's answer to a droid→client request. Nobody sits at a prompt in embedded
+ * use: a permission is allowed once, and only once. A standing grant
+ * (`proceed_always`, `proceed_auto_run_*`, ...) is never chosen; without
+ * `proceed_once` OAR picks an offered `cancel`, and with neither it answers
+ * an error rather than a value droid did not offer. Questions are declined.
+ */
 export function serverReply(method: string, params: JsonRecord): { readonly result: JsonRecord } | { readonly error: { readonly code: number; readonly message: string } } {
   switch (method) {
     case "droid.request_permission": {
-      const offered = asRecordList(params.options).flatMap(option => typeof option.value === "string" ? [option.value] : []);
-      return { result: { selectedOption: offered.find(value => value === "proceed_once") ?? offered.find(value => value.startsWith("proceed_")) ?? "cancel" } };
+      const offered = new Set(asRecordList(params.options).flatMap(option => typeof option.value === "string" ? [option.value] : []));
+      const selected = ["proceed_once", "cancel"].find(value => offered.has(value));
+      return selected === undefined
+        ? { error: { code: -32_602, message: "OAR allows a permission only once; droid offered neither proceed_once nor cancel" } }
+        : { result: { selectedOption: selected } };
     }
     case "droid.ask_user": return { result: { cancelled: true, answers: [] } };
     case "droid.pick_options": return { result: { cancelled: true, selectedIds: [] } };

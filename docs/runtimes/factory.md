@@ -55,8 +55,14 @@ it from npm.
 ### Sessions
 
 One `droid exec` stream-jsonrpc process per session. Every native line is one
-frame; the frame `type` is the notification's `type` (or the method of any
-other line). The open answer is a frame of its own, in wire order.
+record, whole and in arrival order. A notification is a frame whose `type` is
+its notification `type` (or its method). A reply to a control OAR made
+(`add_user_message`, `interrupt_session`) is that control's response; a
+reply to OAR's own read (`initialize_session`, `load_session`,
+`update_session_settings`, `get_context_stats`, `compact_session`), error
+replies included, is a frame named after the method and recorded where it sat
+on the wire. A response no request owns is a `response` frame, and a line that
+is not JSON a `stdout` frame.
 
 - **Open.** `initialize_session` with the session's `cwd`, `modelId`,
   `reasoningEffort`, system prompt and MCP servers, and
@@ -65,7 +71,10 @@ other line). The open answer is a frame of its own, in wire order.
 - **Model and effort.** droid's reported `settings` decide. droid runs its
   default model in place of an unknown one and clamps an effort the model does
   not list, without an error, so OAR compares the reported `modelId` and
-  `reasoningEffort` with the request and refuses the open on a difference.
+  `reasoningEffort` with the request and refuses the open on a difference: a
+  model is `ModelConfirmationError` (`requested`, `reported`; no catalog is
+  read for this check), an effort `UnsupportedOptionError` on `effort`, and so
+  is droid's own -32602 refusal of an effort outside its enum.
   `model` and `effort` events come from the open answer and every
   `settings_updated`.
 - **Resume.** `load_session` in a new process. An unknown id is
@@ -99,11 +108,17 @@ other line). The open answer is a frame of its own, in wire order.
   back (`queued_message_handed_back`): OAR reports `input_dropped` for the
   prompt, and the session takes a new prompt before droid's late `cancelled`
   turn end arrives (turn ends are matched by turn id). If
-  droid does not end the turn within 10 seconds, OAR stops the process and
-  records its exit.
-- A steer that reaches droid just after its turn ended starts a turn of its
-  own; droid's non-idle working state is then a `turn_active` with no input
-  id, and its `agent_turn_completed` ends it.
+  droid does not end the aborted turn within 10 seconds, OAR stops the process
+  and records its exit; only that turn's end, or droid handing its prompt
+  back, disarms this, so another turn's end neither disarms it nor lets a
+  stale one stop a later turn.
+- A steer that reaches droid as its turn ends can miss it: droid ends the turn
+  without echoing the steer, then runs the steer as a turn of its own
+  (reproduced on 1.12.1 with a steer sent within about 50 ms of the turn's
+  end). When a turn ends while a steer OAR sent is neither echoed nor given
+  back, OAR records `turn_active` for that steer in the same frame and keeps
+  the session busy until droid ends the steer's turn: a prompt is `busy`, held
+  input waits.
 
 ### Events, tools and permissions
 
@@ -126,8 +141,11 @@ none is reported.
 
 Permission: new sessions open with `skipPermissionsUnsafe`, so droid asks
 nothing. A resumed session does ask (`load_session` has no such flag): OAR
-answers each `droid.request_permission` with `proceed_once`, never a standing
-change, and records the request and answer. `droid.ask_user` and
+answers each `droid.request_permission` with `proceed_once` and never with a
+standing grant (`proceed_always`, `proceed_auto_run_*`, ...). Without
+`proceed_once` on offer it chooses droid's `cancel`, and with neither it
+answers an error rather than a value droid did not offer. OAR records the
+request and its answer. `droid.ask_user` and
 `droid.pick_options` are answered as cancelled: nobody sits at a prompt in
 embedded use.
 
@@ -207,13 +225,15 @@ droid's sign-in is on its own ACP entry, `droid exec --output-format acp`
   `instructions`) and accepts it; droid polls until the person confirms, stores
   the login and answers the `authenticate`. droid opens no browser on this
   path. OAR then reads `auth/status` on the same process: logged out is
-  `not_logged_in`. A refusal is `rejected` with droid's words, any URL removed.
+  `not_logged_in`, and so is a sign-in stored while `FACTORY_API_KEY` is set,
+  since droid keeps using the key. A refusal is `rejected` with droid's words, any URL removed.
   Deadline 15 minutes.
 - **authStatus** reads `auth/status`: `unauthenticated` is `logged_out`,
   `authenticated` is `logged_in` (`credential: "account"`). With
   `FACTORY_API_KEY` set, droid uses the key instead of any stored login and
   reports it as authenticated without checking it, so OAR answers `unknown`
-  with `configured: ["FACTORY_API_KEY"]`.
+  with `configured: ["FACTORY_API_KEY"]`. At its deadline the read answers
+  `unknown` at once; stopping droid continues in the background.
 - **logout** sends droid's `logout` and reads `auth/status`: logged out is
   `logged_out`; a set `FACTORY_API_KEY` is `still_logged_in`.
 
@@ -253,7 +273,9 @@ starts on its own (its threshold) reports `session_compacted`, read as
 honors the same variables.
 
 The credential is the one droid would send, read as stored and never
-refreshed or written:
+refreshed or written. droid's directory is resolved as droid resolves it:
+`FACTORY_HOME_OVERRIDE` when set, else the home directory (`HOME`, or
+`USERPROFILE` on Windows), then `.factory`.
 
 - `FACTORY_API_KEY` when set (in `options.env` or the host's), which droid
   uses over any stored login; its region comes from droid's own cache for that
@@ -268,6 +290,10 @@ refreshed or written:
   access token droid would have refreshed is sent as it is; the API's 401 or
   403 is `reauth_required` with `credentials_rejected`, and running droid once
   refreshes it. 404 is `unsupported` with `endpoint_unavailable`.
+- A credential that cannot be an HTTP header value (a control character or
+  space) is refused before any request with a message that names no part of
+  it, and a failed request keeps no fetch error as its cause, since those can
+  quote header values.
 
 The answer has `limits.standard` (Standard Usage) and `limits.core` (Droid
 Core), each with `fiveHour`, `weekly` and `monthly` buckets of `{

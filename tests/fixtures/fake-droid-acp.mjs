@@ -22,6 +22,8 @@ createInterface({ input: process.stdin }).on("line", (line) => {
     write({ id: message.id, result: { protocolVersion: 1, agentCapabilities: { auth: { logout: {}, status: {} } },
       authMethods: [{ id: "device-pairing", name: "Login" }, { id: "factory-api-key", name: "Factory API Key" }] } });
   } else if (message.method === "auth/status") {
+    // A status that never answers, from a process that outlives SIGTERM: only the deadline ends the read.
+    if (state.mode === "hang-status") { process.on("SIGTERM", () => {}); return; }
     write({ id: message.id, result: status() });
   } else if (message.method === "logout") {
     state.loggedIn = state.mode === "sticky"; save();

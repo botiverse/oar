@@ -64,8 +64,18 @@ async function apiKeyRegion(directory: string, key: string, api: string): Promis
   return typeof region === "string" ? region : null;
 }
 
+/**
+ * droid's own directory, resolved as droid 1.12.1 does: `FACTORY_HOME_OVERRIDE`
+ * when set, else the user's home (`HOME`, or `USERPROFILE` on Windows), then
+ * `.factory`.
+ */
+export function factoryDirectory(env: NodeJS.ProcessEnv): string {
+  const override = environmentValue(env, "FACTORY_HOME_OVERRIDE")?.trim();
+  return path.join(override === undefined || override === "" ? environmentHome(env) : override, ".factory");
+}
+
 export async function factoryCredential(env: NodeJS.ProcessEnv, api: string): Promise<FactoryCredential> {
-  const directory = path.join(environmentHome(env), ".factory");
+  const directory = factoryDirectory(env);
   const key = environmentValue(env, "FACTORY_API_KEY")?.trim();
   if (key !== undefined && key !== "") {
     return { kind: "credential", token: key, region: await apiKeyRegion(directory, key, api), organizationId: null };

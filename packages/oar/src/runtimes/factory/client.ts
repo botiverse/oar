@@ -26,6 +26,8 @@ export interface DroidHandlers {
   readonly onNotification: (message: JsonRecord) => void;
   /** A droid→client request (`droid.request_permission`, `droid.ask_user`, ...), whole. */
   readonly onServerRequest: (message: JsonRecord) => void;
+  /** Anything else droid wrote: a response no pending request owns, or a line that is not a JSON object. Never dropped. */
+  readonly onUnmatched: (native: unknown) => void;
 }
 
 export interface DroidClient {
@@ -83,10 +85,13 @@ export function startDroidClient(command: string, options: DroidClientOptions): 
 
   child.onLine((line) => {
     const message = asRecord(parseJson(line));
-    if (message === null) { return; }
-    if (message.type === "response" && typeof message.id === "string") {
-      const waiter = pending.get(message.id);
-      if (waiter === undefined) { return; }
+    if (message === null) {
+      if (line.trim() !== "") { deliver((target) => { target.onUnmatched(line); }); }
+      return;
+    }
+    if (message.type === "response") {
+      const waiter = typeof message.id === "string" ? pending.get(message.id) : undefined;
+      if (waiter === undefined || typeof message.id !== "string") { deliver((target) => { target.onUnmatched(message); }); return; }
       pending.delete(message.id);
       const error = asRecord(message.error);
       if (error !== null) {
