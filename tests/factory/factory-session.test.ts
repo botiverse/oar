@@ -5,7 +5,7 @@ import { setTimeout as sleep } from "node:timers/promises";
 import { afterEach, expect, it } from "vitest";
 import { eventsOf } from "../../packages/oar/src/observe/events.js";
 import { awaitIdle, awaitTurnEnd } from "../../packages/oar/src/observe/turns.js";
-import { ModelConfirmationError, UnsupportedOptionError, type RawEvent, type Session } from "../../packages/oar/src/contracts/index.js";
+import { ModelConfirmationError, ResumeCwdError, UnsupportedOptionError, type RawEvent, type Session } from "../../packages/oar/src/contracts/index.js";
 import { createFactorySession } from "../../packages/oar/src/runtimes/factory/session.js";
 import { fakeAgentBinary } from "../fixtures/process-tree.js";
 
@@ -127,4 +127,11 @@ it("replies to add_user_message and interrupt_session are frames that name their
   const frames = opened.records().flatMap(record => record.kind === "frame" ? [record.body] : []);
   expect(frames.find(frame => frame.type === "droid.add_user_message")).toMatchObject({ responseTo: prompt.request.id, native: { type: "response", id: prompt.request.id, result: {} } });
   expect(frames.find(frame => frame.type === "droid.interrupt_session")).toMatchObject({ responseTo: abort.request.id, native: { type: "response", result: {} } });
+});
+
+it("resuming a droid session saved in another directory is a ResumeCwdError naming that directory", async () => {
+  const opened = await session("");
+  await expect(session("other-cwd", 0, { resume: opened.id })).rejects.toMatchObject({
+    constructor: ResumeCwdError, option: "cwd", reason: "other_cwd", sessionId: opened.id, savedCwd: "/saved/elsewhere",
+  });
 });

@@ -67,7 +67,7 @@ input.on("line", (line) => {
       sessionId = message.params.sessionId ?? sessionId;
       Object.assign(settings, message.params.modelId ? { modelId: message.params.modelId } : {}, message.params.reasoningEffort ? { reasoningEffort: message.params.reasoningEffort } : {});
       note({ type: "settings_updated", settings });
-      reply({ sessionId, session: { messages: [] }, settings, ...(message.params.cwd ? {} : { cwd: process.cwd() }) });
+      reply({ sessionId, session: { messages: [] }, settings, ...(message.params.cwd ? {} : { cwd: process.env.FAKE_DROID_MODE === "other-cwd" ? "/saved/elsewhere" : process.cwd() }) });
       return;
     case "droid.update_session_settings":
       Object.assign(settings, message.params);

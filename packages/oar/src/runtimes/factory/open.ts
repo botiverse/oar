@@ -1,8 +1,10 @@
+/* oxlint-disable import/max-dependencies -- Open owns native settings, resume identity, MCP mapping and typed refusals. */
 import { realpathSync } from "node:fs";
 import type { ContextUsage, SessionOptions } from "../../contracts/session.js";
 import type { McpServer } from "../../contracts/session-options.js";
 import { SessionNotFoundError } from "../../contracts/session-not-found-error.js";
 import { UnsupportedOptionError } from "../../contracts/errors.js";
+import { ResumeCwdError } from "../../contracts/resume-cwd-error.js";
 import { asNumber, asRecord, asRecordList, type JsonRecord } from "../../shared/json.js";
 import { sameDirectory } from "../../shared/same-directory.js";
 import type { DroidClient, DroidOutcome } from "./client.js";
@@ -48,7 +50,9 @@ export async function openFactory(client: DroidClient, options: SessionOptions, 
       new Promise<never>((_resolve, reject) => { setTimeout(() => { reject(new Error(`droid did not answer ${method} within ${String(OPEN_TIMEOUT_MS / 1000)}s`)); }, OPEN_TIMEOUT_MS).unref(); }),
     ]);
     if (options.resume !== undefined && typeof opened.cwd === "string" && !sameDirectory(realDirectory(opened.cwd), realDirectory(options.cwd))) {
-      throw new UnsupportedOptionError("cwd", `droid session ${options.resume} belongs to ${opened.cwd}; resume it from that directory`);
+      throw new ResumeCwdError(`droid session ${options.resume} belongs to ${opened.cwd}; resume it from that directory`, {
+        sessionId: options.resume, requestedCwd: options.cwd, reason: "other_cwd", savedCwd: opened.cwd,
+      });
     }
     return opened;
   } catch (error) {

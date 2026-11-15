@@ -69,6 +69,10 @@ produces `ResumeCwdError` with `reason: "other_cwd"`; a header without a
 string cwd still refuses the `resume` option with `UnsupportedOptionError`,
 not a `cwd` refusal ([DSH](dsh.md#oar-mapping)). Native missing-session and
 header-read errors also retain their existing classifications.
+
+Factory (droid 1.12.1) reads the saved directory from the `load_session`
+answer: a different one produces `ResumeCwdError` with `reason: "other_cwd"`
+([Factory](factory.md)). An unknown id is `SessionNotFoundError` (`-32004`).
 Devin (`devin 3000.12.57`, 2026-11-13) records the session's `cwd` in
 `session/list` and enables `resumeKeepsSessionCwd: true`, so OAR applies the
 same `session/list` guard before `session/load`; cross-directory shell execution

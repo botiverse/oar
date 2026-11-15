@@ -80,7 +80,8 @@ is not JSON a `stdout` frame.
   `settings_updated`.
 - **Resume.** `load_session` in a new process. An unknown id is
   `SessionNotFoundError` (`-32004`). A session saved for another directory is
-  refused with `UnsupportedOptionError` on `cwd`. When `model` or `effort`
+  refused with `ResumeCwdError` (`reason: "other_cwd"`, with `savedCwd`) after the
+  load answer names that directory. When `model` or `effort`
   differ from what the session saved, OAR sends `update_session_settings` and
   takes the next `settings_updated` as droid's word, refusing the open on a
   difference. `load_session` takes no system prompt, so `systemPrompt` and
