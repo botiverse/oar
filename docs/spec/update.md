@@ -74,6 +74,7 @@ instruction to run `brew upgrade`.
 | --- | --- | --- |
 | claude | `downloads.claude.ai/claude-code-releases/<channel>` (native) or the npm dist tag (npm copy, by layout or claude's recorded `installMethod`); channel from settings `autoUpdatesChannel`, held by `minimumVersion` | `claude update` |
 | codex | `codex doctor --json`, row `updates.status` (the JSON decides; doctor exits 1 when any row fails) | `codex update` |
+| factory | `droid update --check` (exits 0 either way: "Update available: X" or "Already up to date!" decides) | `droid update` |
 | grok | `grok update --check --json` (exit is always 0; `error` decides) | `grok update` |
 | kimi | `code.kimi.com/kimi-code/latest`, or `code.kimi.ai` for the `global` region; only a newer release counts | `kimi upgrade -y` (from 0.43.0) |
 | codebuddy, dsh, qwen, qoder | none: OAR exposes no `checkUpdate` for them | none |

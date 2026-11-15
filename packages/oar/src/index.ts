@@ -6,6 +6,7 @@ import { codebuddyRuntime } from "./runtimes/codebuddy/index.js";
 import { codexRuntime } from "./runtimes/codex/index.js";
 import { devinRuntime } from "./runtimes/devin/index.js";
 import { dshRuntime } from "./runtimes/dsh/index.js";
+import { factoryRuntime } from "./runtimes/factory/index.js";
 import { grokRuntime } from "./runtimes/grok/index.js";
 import { kimiRuntime } from "./runtimes/kimi/index.js";
 import { opencodeRuntime } from "./runtimes/opencode/index.js";
@@ -86,6 +87,7 @@ export const defaultRuntimes = new RuntimeRegistry([
   codebuddyRuntime,
   devinRuntime,
   dshRuntime,
+  factoryRuntime,
   grokRuntime,
   kimiRuntime,
   opencodeRuntime,
@@ -104,6 +106,11 @@ export { qoderListModels, projectQoderModels } from "./runtimes/qoder/list-model
 export { orient } from "./shared/orientation/index.js";
 export { userShellEnvironment } from "./shared/shell-environment.js";
 export { writeShellEnvironmentCapture } from "./shared/shell-environment-capture.js";
+
+export { factoryRuntime } from "./runtimes/factory/index.js";
+export { factorySession } from "./runtimes/factory/session.js";
+export { factoryInstallation } from "./runtimes/factory/installation.js";
+export { factoryListModels, projectFactoryModels } from "./runtimes/factory/list-models.js";
 
 export { dshRuntime } from "./runtimes/dsh/index.js";
 export { dshSession } from "./runtimes/dsh/session.js";

@@ -3,6 +3,8 @@ import { codebuddyRuntime } from "../../packages/oar/src/runtimes/codebuddy/inde
 import { dshRuntime } from "../../packages/oar/src/runtimes/dsh/index.js";
 import { startDshAimock } from "./dsh-aimock.js";
 import { startCodebuddyAimock } from "./codebuddy-aimock.js";
+import { factoryRuntime } from "../../packages/oar/src/runtimes/factory/index.js";
+import { FACTORY_AIMOCK_MODEL, startFactoryAimock } from "./factory-aimock.js";
 import { pooledMockRuntime } from "../fixtures/pooled-mock-runtime.js";
 import type { RuntimePlacementOptions } from "../../packages/oar/src/contracts/placement.js";
 /* oxlint-disable import/max-dependencies -- This composition root selects the shared suite's native backends. */
@@ -162,6 +164,18 @@ export async function selectBackend(target: string): Promise<Backend> {
         return listed;
       };
       return { aimock, runtime: { ...dshRuntime, id: target, session: open, listModels } };
+    }
+    case "factory-aimock": {
+      const aimock = await startFactoryAimock();
+      const open: Runtime["session"] = async (installation, options) => {
+        const session = await factoryRuntime.session(installation, { ...options, cwd: aimock.cwd, model: options.model ?? FACTORY_AIMOCK_MODEL, env: { ...options.env, ...aimock.env } });
+        return session;
+      };
+      const listModels: Runtime["listModels"] = async (installation, options) => {
+        const listed = await factoryRuntime.listModels(installation, { ...options, cwd: aimock.cwd, env: { ...options?.env, ...aimock.env } });
+        return listed.kind === "ok" ? { kind: "ok", models: listed.models.filter(model => model.id === FACTORY_AIMOCK_MODEL) } : listed;
+      };
+      return { aimock, runtime: { ...factoryRuntime, id: target, session: open, listModels } };
     }
     case "antigravity-aimock": return acpBackend("antigravity");
     case "kimi-aimock": return acpBackend("kimi");

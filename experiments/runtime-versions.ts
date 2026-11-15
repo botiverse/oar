@@ -39,6 +39,9 @@
  * kimi/logout.ts; keep the native login fixture's version aligned.
  * A changed Qoder binary also needs the qoder-native vendor/behavior suites
  * and login tests (native model replay, isolated HOME, no account).
+ * A changed Factory droid also needs the factory-aimock behavior and vendor
+ * suites and experiments/factory-droid/probe.mjs (custom model, isolated HOME,
+ * no account); keep the CI pin separate from this observation.
  * A version match is not a compatibility result. Pi, Pi Durable and Cursor are
  * the SDKs loaded by OAR, never an executable of the same name on the host's
  * PATH. Pi Durable's host-owned Harness is not opened by this inventory; check
@@ -78,6 +81,8 @@ const sources: readonly { id: string; url: string; major?: number }[] = [
   { id: "codex", url: "https://registry.npmjs.org/@openai/codex/latest" },
   { id: "cursor", url: `https://registry.npmjs.org/${CURSOR_PACKAGE}/latest` },
   { id: "dsh", url: "https://registry.npmjs.org/@deepseek-ai/dsh/latest" },
+  // The npm package mirrors the release the official https://app.factory.ai/cli script installs.
+  { id: "factory", url: "https://registry.npmjs.org/droid/latest" },
   // The stable pointer used by the official https://x.ai/cli/install.sh.
   { id: "grok", url: "https://x.ai/cli/stable" },
   { id: "kimi", url: "https://registry.npmjs.org/@moonshot-ai/kimi-code/latest" },

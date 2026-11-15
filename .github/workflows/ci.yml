@@ -147,16 +147,19 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        backend: [claude-aimock, codex-aimock, pi-aimock, pi-rpc-aimock, pi-durable-aimock, qwen-aimock, qoder-native, dsh-aimock]
+        backend: [claude-aimock, codex-aimock, pi-aimock, pi-rpc-aimock, pi-durable-aimock, qwen-aimock, qoder-native, dsh-aimock, factory-aimock]
         exclude:
           - os: windows-latest
             backend: pi-rpc-aimock
+          # droid's Windows build is not yet verified by OAR (docs/runtimes/factory.md).
+          - os: windows-latest
+            backend: factory-aimock
     runs-on: ${{ matrix.os }}
     env:
       OAR_TEST: ${{ matrix.backend }}
       # Bound native Qoder cold starts on all platforms without changing per-call deadlines.
       OAR_TEST_CONCURRENCY: ${{ (matrix.backend == 'qoder-native' || matrix.backend == 'dsh-aimock') && '2' || '' }}
-      OAR_TEST_REQUIRE_AVAILABLE: ${{ matrix.backend == 'dsh-aimock' && '1' || '' }}
+      OAR_TEST_REQUIRE_AVAILABLE: ${{ (matrix.backend == 'dsh-aimock' || matrix.backend == 'factory-aimock') && '1' || '' }}
       OAR_CHILD_STDERR: ${{ ((matrix.os == 'windows-latest' && matrix.backend == 'codex-aimock') || matrix.backend == 'qoder-native' || matrix.backend == 'dsh-aimock') && 'inherit' || '' }}
       # runner context is not allowed in job-level env; workspace-relative works everywhere
       OAR_TRIAL_RUN_DIR: ${{ github.workspace }}/oar-trial-run
@@ -174,7 +177,7 @@ jobs:
       # it is the bundled SDK already in node_modules.
       - name: Locate npm's download cache
         id: npm-cache
-        if: matrix.backend == 'claude-aimock' || matrix.backend == 'codex-aimock' || matrix.backend == 'qwen-aimock' || matrix.backend == 'qoder-native' || matrix.backend == 'dsh-aimock'
+        if: matrix.backend == 'claude-aimock' || matrix.backend == 'codex-aimock' || matrix.backend == 'qwen-aimock' || matrix.backend == 'qoder-native' || matrix.backend == 'dsh-aimock' || matrix.backend == 'factory-aimock'
         shell: pwsh
         run: |
           $npmCachePath = (npm config get cache).Trim()
@@ -183,7 +186,7 @@ jobs:
           }
           "path=$npmCachePath" >> $env:GITHUB_OUTPUT
       - uses: actions/cache@v4
-        if: matrix.backend == 'claude-aimock' || matrix.backend == 'codex-aimock' || matrix.backend == 'qwen-aimock' || matrix.backend == 'qoder-native' || matrix.backend == 'dsh-aimock'
+        if: matrix.backend == 'claude-aimock' || matrix.backend == 'codex-aimock' || matrix.backend == 'qwen-aimock' || matrix.backend == 'qoder-native' || matrix.backend == 'dsh-aimock' || matrix.backend == 'factory-aimock'
         with:
           path: ${{ steps.npm-cache.outputs.path }}
           key: npm-dl-${{ runner.os }}-${{ matrix.backend }}-${{ github.run_id }}
@@ -203,6 +206,9 @@ jobs:
       # constant together; daily version probes check newer releases.
       - run: npm install -g @deepseek-ai/dsh@0.2.1-rc.5
         if: matrix.backend == 'dsh-aimock'
+      # Pinned like the other native CLIs; daily version probes check newer releases.
+      - run: npm install -g droid@1.12.1
+        if: matrix.backend == 'factory-aimock'
       - run: pnpm run sea-trial
       # Vendor error-edge snapshots for this backend (vitest, OAR_TEST-gated).
       - run: pnpm vitest run sea-trial/vendor

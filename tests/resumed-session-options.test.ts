@@ -25,6 +25,7 @@ test("the complete resume declaration inventory is measured and never declares a
       cursor: null,
       devin: null,
       dsh: null,
+      factory: null,
       grok: null,
       kimi: null,
       opencode: null,
