@@ -32,20 +32,43 @@ records the historical native errors, not a global absence guarantee.
 A refusal is the runtime's error from `session()` (OAR's own for kimi,
 opencode, antigravity, devin and dsh), so a host that tries a resume in B and falls
 back to a handoff on refusal never runs in a directory it did not ask for.
-OAR's refusal is an `UnsupportedOptionError` with `option: "cwd"`
-([refused session options](../spec/runtime-matrix.md#refused-session-options)).
+For ACP directory guards and DSH's different-directory refusal, OAR throws the
+public `ResumeCwdError`, a subclass of `UnsupportedOptionError` with
+`option: "cwd"`. Existing `instanceof UnsupportedOptionError` checks still
+work and the messages are unchanged
+([refused session options](../spec/runtime-matrix.md#conditional-refusals)).
 
-The kimi, opencode, antigravity and devin adapters require a positive native
-`session/list` entry with a non-empty saved cwd before sending resume/load,
-even when the requested cwd appears unchanged
-([resume-cwd.ts](../../packages/oar/src/shared/acp/resume-cwd.ts)). Missing
-listing support, an incomplete list or an unlisted id also refuses with
-`option: "cwd"`; a native listing failure prevents resume and retains its
-error. Absence from a list is not absence of history: agy 1.5.0 omits
-unprompted sessions that native resume can still reopen. Hosts may start a
-new session, but must not infer `SessionNotFoundError` from this refusal.
-DSH compares the cwd in its saved session header instead, and a header
-without one refuses with `option: "resume"` ([DSH](dsh.md#oar-mapping)).
+The error carries `sessionId`, `requestedCwd`, and `reason`. `savedCwd` is
+present only for `other_cwd`, containing the directory the runtime reported.
+The root and portable entries export the same class and the
+`ResumeCwdReason` type.
+
+| Reason | Observation |
+|---|---|
+| `not_listed` | A valid, completed native listing did not contain the requested id. |
+| `other_cwd` | The saved cwd was read, but does not match the requested directory. |
+| `cwd_unreported` | The id was listed without a non-empty string cwd. |
+| `listing_unavailable` | No `session/list` capability, a malformed page, or an invalid or repeating pagination cursor prevented confirmation. |
+
+Kimi, OpenCode v1/v2 (including background-child sessions), Antigravity and
+Devin require a positive native `session/list` entry with a non-empty saved
+cwd before sending resume/load, even when the requested cwd appears unchanged
+([resume-cwd.ts](../../packages/oar/src/shared/acp/resume-cwd.ts)). Native
+listing errors, including authentication, RPC, deadline and process failures,
+keep their own error types and prevent resume; they are not converted to
+`listing_unavailable`.
+
+`not_listed` is not proof that history is gone: agy 1.5.0 omits sessions
+closed before their first prompt, even though native resume can reopen them.
+A host can distinguish an unlisted id from a check that could not finish,
+but must not translate either into `SessionNotFoundError`. OAR neither starts
+a replacement session nor selects a host fallback.
+
+DSH compares its saved session header instead of a list. A different cwd
+produces `ResumeCwdError` with `reason: "other_cwd"`; a header without a
+string cwd still refuses the `resume` option with `UnsupportedOptionError`,
+not a `cwd` refusal ([DSH](dsh.md#oar-mapping)). Native missing-session and
+header-read errors also retain their existing classifications.
 Devin (`devin 3000.12.57`, 2026-11-13) records the session's `cwd` in
 `session/list` and enables `resumeKeepsSessionCwd: true`, so OAR applies the
 same `session/list` guard before `session/load`; cross-directory shell execution

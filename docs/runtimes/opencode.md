@@ -775,14 +775,16 @@ options, plus `effort` when the model has variants.
 A resume naming another directory runs in the session's own: a session
 created in A and resumed with `cwd` B printed A for `pwd`, transcript intact.
 OAR reads the session's directory from `session/list` and refuses the resume
-with `UnsupportedOptionError` on `cwd` ([resume in another
+with `ResumeCwdError` (`reason: "other_cwd"`), an `UnsupportedOptionError`
+on `cwd` ([resume in another
 directory](resume-cwd.md)). Every non-git directory belongs to the one
 `global` project, yet `session/list` without a directory still found a
 session from a non-git directory when the resume named a git repository.
 
 On both release lines a resume needs a matching list entry with a confirmed
 saved cwd: missing list support, unlisted ids, a missing cwd and incomplete
-listings produce `UnsupportedOptionError` on `cwd`, never
+listings produce `ResumeCwdError` on `cwd` with their respective typed
+[reasons](resume-cwd.md), never
 `SessionNotFoundError`. Listing authentication, process-exit and other RPC
 failures keep their classification and prevent resume. After cwd
 confirmation, a native resume error keeps its original classification; v1's

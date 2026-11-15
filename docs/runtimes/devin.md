@@ -41,7 +41,7 @@ OAR launches `devin acp` with `["acp"]` from `devinAcpArgs`. After `session/new`
 
 `devinAcpProfile` maps `-32603` authentication errors matching `Authentication required`, `invalid api key`, or `not logged in` at session open to `RuntimeFailureError` with `failure: "auth"` through `openFailure`.
 
-Devin resumes a session in its saved `cwd` and ignores a different `cwd` passed on resume, so `devinAcpProfile` sets `resumeKeepsSessionCwd: true`. Before sending `session/load`, OAR calls `session/list` and requires a matching entry with the same directory, as documented in [resume-cwd](resume-cwd.md). A different directory, missing list entry, or unconfirmed `cwd` rejects with `UnsupportedOptionError` on `cwd`.
+Devin resumes a session in its saved `cwd` and ignores a different `cwd` passed on resume, so `devinAcpProfile` sets `resumeKeepsSessionCwd: true`. Before sending `session/load`, OAR calls `session/list` and requires a matching entry with the same directory, as documented in [resume-cwd](resume-cwd.md). A different directory, missing list entry, or unconfirmed `cwd` rejects with `ResumeCwdError` (an `UnsupportedOptionError` on `cwd`) carrying a typed reason. `not_listed` identifies an omitted id, not proof that history is gone.
 
 `devinAcpProfile` sets `isResumeNotFound` for JSON-RPC `-32016` with `data["cognition.ai/errorKind"] === "session_not_found"`. That check maps to `SessionNotFoundError` if a session listed in `session/list` disappears before `session/load` completes, while unlisted session IDs still hit the prior `session/list` `cwd` refusal.
 

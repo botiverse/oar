@@ -1,5 +1,5 @@
 /* oxlint-disable typescript/promise-function-async -- Deadline callbacks deliberately return the SDK's native promises. */
-import { UnsupportedOptionError } from "../../contracts/errors.js";
+import { ResumeCwdError, type ResumeCwdReason } from "../../contracts/resume-cwd-error.js";
 import { asRecord, asRecordList, type JsonRecord } from "../json.js";
 import { sameDirectory } from "../same-directory.js";
 import { type AcpProcess, methods, withAcpDeadline } from "./process.js";
@@ -21,27 +21,31 @@ export async function refuseResumeElsewhere(process: AcpProcess, sessionId: stri
     const sessions = asRecordList(page?.sessions);
     if (!Array.isArray(page?.sessions) || sessions.length !== page.sessions.length
       || sessions.some((session) => typeof session.sessionId !== "string" || session.sessionId.length === 0)) {
-      throw unknownResumeCwd(sessionId);
+      throw unknownResumeCwd(sessionId, cwd, "listing_unavailable");
     }
     const found = sessions.find((session) => session.sessionId === sessionId);
     if (found !== undefined) {
-      if (typeof found.cwd !== "string" || found.cwd.length === 0) { throw unknownResumeCwd(sessionId); }
+      if (typeof found.cwd !== "string" || found.cwd.length === 0) { throw unknownResumeCwd(sessionId, cwd, "cwd_unreported"); }
       if (!sameDirectory(found.cwd, cwd)) {
-        throw new UnsupportedOptionError("cwd", `session ${sessionId} lives in ${found.cwd} and this runtime resumes it only there; the resume names ${cwd}`);
+        throw new ResumeCwdError(`session ${sessionId} lives in ${found.cwd} and this runtime resumes it only there; the resume names ${cwd}`, {
+          sessionId, requestedCwd: cwd, reason: "other_cwd", savedCwd: found.cwd,
+        });
       }
       return;
     }
-    if (page.nextCursor !== undefined && page.nextCursor !== null && typeof page.nextCursor !== "string") { throw unknownResumeCwd(sessionId); }
+    if (page.nextCursor !== undefined && page.nextCursor !== null && typeof page.nextCursor !== "string") { throw unknownResumeCwd(sessionId, cwd, "listing_unavailable"); }
     cursor = typeof page.nextCursor === "string" && page.nextCursor !== "" ? page.nextCursor : null;
     if (cursor !== null) {
-      if (visited.has(cursor)) { throw unknownResumeCwd(sessionId); }
+      if (visited.has(cursor)) { throw unknownResumeCwd(sessionId, cwd, "listing_unavailable"); }
       visited.add(cursor);
     }
   } while (cursor !== null);
-  throw unknownResumeCwd(sessionId);
+  throw unknownResumeCwd(sessionId, cwd, "not_listed");
 }
 
 /** No filesystem or history inference can substitute for the native directory. */
-export function unknownResumeCwd(sessionId: string): UnsupportedOptionError {
-  return new UnsupportedOptionError("cwd", `cannot confirm the saved directory of session ${sessionId}; this runtime resumes in its saved directory, so open a new session instead`);
+export function unknownResumeCwd(sessionId: string, cwd: string, reason: Exclude<ResumeCwdReason, "other_cwd">): ResumeCwdError {
+  return new ResumeCwdError(`cannot confirm the saved directory of session ${sessionId}; this runtime resumes in its saved directory, so open a new session instead`, {
+    sessionId, requestedCwd: cwd, reason,
+  });
 }

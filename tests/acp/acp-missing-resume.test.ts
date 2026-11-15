@@ -59,8 +59,8 @@ test.each(listProfiles)("a listed id keeps a generic native resume failure, even
 
 test.each(listProfiles)("an unlisted session refuses cwd even if native resume would succeed", async (profile) => {
   const scenario = { error: errors.opencode, pages: [{ result: { sessions: [], nextCursor: "next" } }, unlisted] };
-  await expect(open(profile, scenario)).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "cwd" });
-  await expect(open(profile, { ...scenario, succeed: true })).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "cwd" });
+  await expect(open(profile, scenario)).rejects.toMatchObject({ name: "ResumeCwdError", option: "cwd", reason: "not_listed", sessionId: "missing-session", requestedCwd: process.cwd() });
+  await expect(open(profile, { ...scenario, succeed: true })).rejects.toMatchObject({ name: "ResumeCwdError", option: "cwd", reason: "not_listed", sessionId: "missing-session", requestedCwd: process.cwd() });
 });
 
 test.each(listProfiles)("a real id in another cwd is still an UnsupportedOptionError", async (profile) => {

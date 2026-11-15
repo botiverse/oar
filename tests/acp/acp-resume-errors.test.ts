@@ -4,12 +4,12 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "vitest";
-import { UnsupportedOptionError } from "../../packages/oar/src/index.js";
+import { ResumeCwdError, UnsupportedOptionError } from "../../packages/oar/src/index.js";
 import { acpSession } from "../../packages/oar/src/shared/acp/session.js";
 import { antigravityAcpProfile } from "../../packages/oar/src/runtimes/antigravity/session.js";
 import { devinAcpProfile } from "../../packages/oar/src/runtimes/devin/session.js";
 import { kimiAcpProfile } from "../../packages/oar/src/runtimes/kimi/session.js";
-import { opencodeAcpProfile } from "../../packages/oar/src/runtimes/opencode/session.js";
+import { opencodeAcpProfile, opencodeV2AcpProfile, opencodeBackgroundChildProfile } from "../../packages/oar/src/runtimes/opencode/session.js";
 
 const installation = { kind: "available", via: "executable", command: process.execPath } as const;
 const fixture = fileURLToPath(new URL("../fixtures/fake-acp-missing-resume.mjs", import.meta.url));
@@ -18,7 +18,32 @@ const listingFailures = [
   { name: "RPC error", scenario: { pages: [{ error: { code: -32_603, message: "listing unavailable" } }] }, expected: { code: -32_603, message: "listing unavailable", cause: { method: "session/list", native: { code: -32_603 } } } },
   { name: "process exit", scenario: { exitOnList: 17 }, expected: { name: "AcpError", kind: "process_exited", exitCode: 17 } },
 ];
-for (const [name, native] of [["antigravity", antigravityAcpProfile], ["devin", devinAcpProfile], ["kimi", kimiAcpProfile], ["opencode", opencodeAcpProfile]] as const) {
+function scratch(prefix: string): string {
+  const temporary = mkdtempSync(path.join(tmpdir(), prefix));
+  return realpathSync(temporary);
+}
+function expectTypedRefusal(failure: unknown, reason: string, dir: string): void {
+  expect(failure).toBeInstanceOf(ResumeCwdError);
+  expect(failure).toBeInstanceOf(UnsupportedOptionError);
+  expect(failure).toMatchObject({ reason, option: "cwd", sessionId: "missing-session", requestedCwd: dir });
+  if (reason === "other_cwd") { expect(failure).toHaveProperty("savedCwd", path.join(dir, "elsewhere")); }
+  else { expect(failure).not.toHaveProperty("savedCwd"); }
+}
+for (const [name, native] of [["antigravity", antigravityAcpProfile], ["devin", devinAcpProfile], ["kimi", kimiAcpProfile], ["opencode v1", opencodeAcpProfile], ["opencode v2", opencodeV2AcpProfile], ["opencode background", opencodeBackgroundChildProfile]] as const) {
+  test.each(["not_listed", "other_cwd", "cwd_unreported", "listing_unavailable"] as const)(`${name} exposes the typed %s refusal before resume/load`, async (reason) => {
+    const dir = scratch("oar-acp-cwd-reason-");
+    const log = path.join(dir, "calls.txt");
+    const rows = reason === "not_listed" ? [] : [{ sessionId: "missing-session", ...(reason === "other_cwd" ? { cwd: path.join(dir, "elsewhere") } : {}) }];
+    try {
+      expect(native.resumeKeepsSessionCwd).toBe(true);
+      const opening = acpSession({ ...native, args: [fixture] })(installation, { cwd: dir, resume: "missing-session", env: {
+        FAKE_RESUME_CASE: JSON.stringify({ succeed: true, list: reason !== "listing_unavailable", pages: [{ result: { sessions: rows } }] }), FAKE_ACP_CALL_LOG: log,
+      } });
+      const failure: unknown = await opening.then(async (session) => { await session.dispose(); return null; }, (error: unknown) => error);
+      expectTypedRefusal(failure, reason, dir);
+      expect(readFileSync(log, "utf8").trim().split("\n")).toEqual(reason === "listing_unavailable" ? ["initialize"] : ["initialize", "session/list"]);
+    } finally { rmSync(dir, { recursive: true, force: true }); }
+  });
   test.each(listingFailures)(`${name} preserves listing $name and never resumes`, async ({ scenario, expected }) => {
     const temporary = mkdtempSync(path.join(tmpdir(), "oar-acp-cwd-list-error-"));
     const dir = realpathSync(temporary);

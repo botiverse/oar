@@ -176,7 +176,8 @@ in the session's own: live (2.1.1, 2026-10-03), a resume naming B ran its
 shell as `cd <A> && pwd`. OAR therefore (profile flag
 `resumeKeepsSessionCwd`) pages through the advertised `session/list` before
 resuming, without recording it, and when the session is listed under another
-directory `session()` rejects with an `UnsupportedOptionError` on `cwd` whose
+directory `session()` rejects with `ResumeCwdError` (`reason: "other_cwd"`),
+an `UnsupportedOptionError` on `cwd` whose
 message names both directories ([resume in another directory](resume-cwd.md),
 [test](../../tests/acp/acp-resume-cwd.test.ts)). A missing list capability,
 an unlisted id, a listed session without a cwd, or an incomplete listing also
