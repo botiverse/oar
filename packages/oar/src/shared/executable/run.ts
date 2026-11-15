@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import { killGraceMs, killProcessTree, OWN_PROCESS_GROUP, signalProcessGroup, trackOwnedProcess } from "./process.js";
 import { nativeError, spawnChecked, stderrTail, type ProcessDiagnostics, type ProcessExitObservation, type ProcessTimeoutObservation } from "./diagnostics.js";
+import { stopProbe } from "./probe-cleanup.js";
 import { windowsSpawnTarget } from "./windows-shim.js";
 
 export interface ExecutableResult {
@@ -80,18 +81,18 @@ export const runExecutable: ExecutableRunner = async (executable, args, options 
       }));
       trackOwnedProcess(child);
       // An exited group leader can leave descendants holding the pipes.
-      // Signal the group until close, and retain escalation until then.
+      // POSIX cleanup retains start identities beyond close; Windows uses taskkill.
       stop = (): void => {
         if (stopped) { return; }
         stopped = true;
         clearTimeout(timer ?? undefined);
         if (process.platform === "win32") {
           killProcessTree(child);
+          escalation = setTimeout(() => { signalProcessGroup(child, "SIGKILL"); }, killGraceMs());
+          escalation.unref();
         } else {
-          signalProcessGroup(child, "SIGTERM");
+          stopProbe(child, killGraceMs());
         }
-        escalation = setTimeout(() => { signalProcessGroup(child, "SIGKILL"); }, killGraceMs());
-        escalation.unref();
       };
       const append = (output: Buffer, chunk: Buffer, stream: string): Buffer => {
         const remaining = OUTPUT_LIMIT - output.length;

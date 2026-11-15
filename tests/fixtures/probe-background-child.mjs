@@ -2,14 +2,14 @@
 import { spawn } from "node:child_process";
 import { renameSync, writeFileSync } from "node:fs";
 
-// The grandchild inherits the probe's output pipes and ignores SIGTERM.
+// The grandchild can close or inherit the probe's output pipes and ignores SIGTERM.
 // Report only after that handler is installed, then optionally exit the
 // group leader without waiting for the grandchild or closing its pipes.
 const grandchild = spawn(process.execPath, ["-e", `
 process.on("SIGTERM", () => {});
 process.send("ready");
 setTimeout(() => { process.exit(0); }, 60_000);
-`], { stdio: ["ignore", "inherit", "inherit", "ipc"] });
+`], { stdio: ["ignore", process.env.OAR_FIXTURE_CLOSED_PIPES === "1" ? "ignore" : "inherit", process.env.OAR_FIXTURE_CLOSED_PIPES === "1" ? "ignore" : "inherit", "ipc"] });
 grandchild.once("message", () => {
   const file = process.env.OAR_FIXTURE_PIDS;
   if (file === undefined) { throw new Error("missing pid file"); }
