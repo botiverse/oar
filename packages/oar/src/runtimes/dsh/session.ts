@@ -2,6 +2,7 @@
 /* oxlint-disable eslint/require-await -- Session controls return kernel promises directly. */
 import { randomUUID } from "node:crypto";
 import { UnsupportedOptionError } from "../../contracts/errors.js";
+import { ResumeCwdError } from "../../contracts/resume-cwd-error.js";
 import { RuntimeFailureError } from "../../contracts/runtime-failure-error.js";
 import { ModelConfirmationError } from "../../contracts/model-confirmation-error.js";
 import { SessionNotFoundError } from "../../contracts/session-not-found-error.js";
@@ -60,7 +61,9 @@ async function savedRoute(control: DshControl, sessionId: string, cwd: string): 
   const savedCwd = asRecord(saved.header)?.cwd;
   if (typeof savedCwd !== "string") { throw new UnsupportedOptionError("resume", `DSH's saved session ${sessionId} names no working directory to compare`); }
   if (!sameDirectory(savedCwd, cwd)) {
-    throw new UnsupportedOptionError("cwd", `session ${sessionId} lives in ${savedCwd} and DSH resumes it only there; the resume names ${cwd}`);
+    throw new ResumeCwdError(`session ${sessionId} lives in ${savedCwd} and DSH resumes it only there; the resume names ${cwd}`, {
+      sessionId, requestedCwd: cwd, reason: "other_cwd", savedCwd,
+    });
   }
   return asRecord(saved.route) ?? undefined;
 }

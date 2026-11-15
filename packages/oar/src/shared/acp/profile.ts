@@ -186,7 +186,7 @@ async function createOrResume(
   if (options.resume !== undefined) {
     const sessionId = options.resume;
     if (profile.resumeKeepsSessionCwd === true) {
-      if (!hasAcpCapability(sessionCapabilities?.list)) { throw unknownResumeCwd(sessionId); }
+      if (!hasAcpCapability(sessionCapabilities?.list)) { throw unknownResumeCwd(sessionId, options.cwd, "listing_unavailable"); }
       await refuseResumeElsewhere(process, sessionId, options.cwd, timeoutMs);
     }
     const params = { ...baseParams, sessionId };

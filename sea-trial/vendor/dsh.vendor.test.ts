@@ -106,7 +106,8 @@ describe.skipIf(!dshEnabled)("DSH native sessions", () => {
       await mkdir(elsewhere);
       const refused = await open({ resume: first.id, cwd: elsewhere }).catch((error: unknown) => error);
       expect(refused).toBeInstanceOf(UnsupportedOptionError);
-      expect(refused).toMatchObject({ option: "cwd" });
+      // oxlint-disable-next-line typescript/no-unsafe-assignment -- Vitest asymmetric matcher for the runtime-reported path spelling.
+      expect(refused).toMatchObject({ name: "ResumeCwdError", option: "cwd", reason: "other_cwd", sessionId: first.id, requestedCwd: elsewhere, savedCwd: expect.any(String) });
       expect(String(refused)).toContain(aimock.cwd);
       const resumed = await open({ resume: first.id });
       expect(resumed.id).toBe(first.id);

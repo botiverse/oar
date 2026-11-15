@@ -75,7 +75,7 @@ const agents = {
 const persistence = {
   ...(missing.has("open") ? {} : { open: async (id) => {
     if (id.startsWith("00000000")) { throw Object.assign(new Error(`session "${id}" not found`), { name: "SessionPersistenceNotFoundError", sessionId: id }); }
-    return { header: { id, cwd: process.env.FAKE_DSH_CWD ?? process.cwd() }, read: async () => ({ events: [] }), close: async () => {} };
+    return { header: { id, ...(mode === "no-saved-cwd" ? {} : { cwd: process.env.FAKE_DSH_CWD ?? process.cwd() }) }, read: async () => ({ events: [] }), close: async () => {} };
   } }),
   flush: async () => {},
 };

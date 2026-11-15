@@ -13,7 +13,7 @@ import type { SessionOptions } from "./session.js";
  * before starting the runtime or loading its SDK.
  */
 export class UnsupportedOptionError extends Error {
-  override readonly name = "UnsupportedOptionError";
+  override readonly name: string = "UnsupportedOptionError";
   readonly option: keyof SessionOptions | "placement";
 
   constructor(option: keyof SessionOptions | "placement", message: string) {

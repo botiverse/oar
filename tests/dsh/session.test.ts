@@ -7,7 +7,7 @@ import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { pathToFileURL } from "node:url";
 import { afterAll, describe, expect, test } from "vitest";
-import { dshRuntime, ModelConfirmationError, RuntimeFailureError, SessionNotFoundError, UnsupportedOptionError, type Session } from "../../packages/oar/src/index.js";
+import { dshRuntime, ModelConfirmationError, ResumeCwdError, RuntimeFailureError, SessionNotFoundError, UnsupportedOptionError, type Session } from "../../packages/oar/src/index.js";
 import { awaitTurnEnd } from "../../packages/oar/src/observe/turns.js";
 import { dshBridgeSource } from "../../packages/oar/src/runtimes/dsh/bridge.js";
 import { dshAgentOptions } from "../../packages/oar/src/runtimes/dsh/options.js";
@@ -140,12 +140,23 @@ test("incomplete DSH readback cannot fabricate a provider/model identifier", asy
 test("resume refuses another directory before taking the session over, and a missing session is SessionNotFoundError", async () => {
   const elsewhere = await failure({ FAKE_DSH_CWD: path.join(dir, "elsewhere") }, { resume: "11111111-1111-4111-8111-111111111111" });
   expect(elsewhere).toBeInstanceOf(UnsupportedOptionError);
-  expect(elsewhere).toMatchObject({ option: "cwd" });
+  expect(elsewhere).toBeInstanceOf(ResumeCwdError);
+  expect(elsewhere).toMatchObject({
+    option: "cwd", reason: "other_cwd", sessionId: "11111111-1111-4111-8111-111111111111", requestedCwd: cwd, savedCwd: path.join(dir, "elsewhere"),
+    message: `session 11111111-1111-4111-8111-111111111111 lives in ${path.join(dir, "elsewhere")} and DSH resumes it only there; the resume names ${cwd}`,
+  });
   const missing = await failure({}, { resume: "00000000-0000-4000-8000-000000000000" });
   expect(missing).toBeInstanceOf(SessionNotFoundError);
   const resumed = await open({}, { resume: "11111111-1111-4111-8111-111111111111" });
   expect(resumed.id).toBe("11111111-1111-4111-8111-111111111111");
   await resumed.dispose();
+});
+
+test("a DSH header without cwd retains its resume-option refusal", async () => {
+  const refused = await failure({ FAKE_DSH_MODE: "no-saved-cwd" }, { resume: "11111111-1111-4111-8111-111111111111" });
+  expect(refused).toBeInstanceOf(UnsupportedOptionError);
+  expect(refused).not.toBeInstanceOf(ResumeCwdError);
+  expect(refused).toMatchObject({ option: "resume", message: "DSH's saved session 11111111-1111-4111-8111-111111111111 names no working directory to compare" });
 });
 
 test("a missing inventory method removes or refuses its control, with the reason", async () => {

@@ -102,7 +102,8 @@ const resumed = await antigravityRuntime.session(installation, { ...options, res
 The native resume ignores a different supplied `cwd` and keeps the saved
 working directory. Before any resume/load request, OAR requires a native
 `session/list` entry with a non-empty saved cwd equal to the requested cwd.
-A different or unconfirmed directory gives `UnsupportedOptionError("cwd", ...)`.
+A different or unconfirmed directory gives `ResumeCwdError`, extending
+`UnsupportedOptionError` on `cwd` with a typed [reason](resume-cwd.md).
 Missing listing capability, an incomplete listing and an unlisted id all
 refuse construction rather than silently opening elsewhere
 ([resume-cwd contract](resume-cwd.md)). A listing transport/authentication

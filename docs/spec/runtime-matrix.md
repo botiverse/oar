@@ -703,7 +703,24 @@ override/rules fields; together they are supported on creation and resume
 Kimi, opencode, antigravity and devin refuse a `resume` that names another directory than
 the one their `session/list` says the session lives in (option `cwd`): they
 would run the session in its own directory instead, and only the runtime
-knows that directory ([resume in another directory](../runtimes/resume-cwd.md)).
+knows that directory. Their directory guard throws the public
+`ResumeCwdError`, extending `UnsupportedOptionError` with `option: "cwd"`
+and the original message. It carries `sessionId`, `requestedCwd` and a typed
+`reason`; only `other_cwd` includes `savedCwd`.
+
+| Directory check | `ResumeCwdError.reason` |
+|---|---|
+| Completed listing omits the id | `not_listed` |
+| Observed saved directory differs | `other_cwd` |
+| Listed id has no non-empty string cwd | `cwd_unreported` |
+| Missing list capability, malformed page or invalid/repeated cursor | `listing_unavailable` |
+
+DSH's saved-header directory mismatch also uses `other_cwd`; its missing
+header directory still refuses the separate `resume` option. Native listing
+and header-read errors keep their own types. `not_listed` is not proof that
+history is gone: agy 1.5.0 omits sessions closed before their first prompt.
+No replacement session is started by OAR
+([details and evidence](../runtimes/resume-cwd.md)).
 
 An ACP runtime whose session advertises no `thought_level` config option
 has no effort channel, so it refuses `effort` once its handshake shows that
@@ -910,12 +927,13 @@ existing types and causes; OAR never starts a replacement conversation.
 | dsh | `sessionPersistence.open` throws `SessionPersistenceNotFoundError` | The active `DSH_HOME`, across working directories. |
 | claude | During resume, before the `initialize` answer, `result/error_during_execution` with `errors[0]` starting `No conversation found with session ID` | The active Claude configuration; exact prose is the last resort. |
 | codex | `thread/resume` JSON-RPC error `-32600` with message starting `no rollout found for thread id` | The active Codex storage/configuration; exact prose is the last resort. |
-| devin | `session/load` JSON-RPC error `-32016` with `data["cognition.ai/errorKind"] === "session_not_found"` | Only after `session/list` confirms the saved cwd; an unlisted id hits the prior `cwd` refusal. |
+| devin | `session/load` JSON-RPC error `-32016` with `data["cognition.ai/errorKind"] === "session_not_found"` | Only after `session/list` confirms the saved cwd; an unlisted id hits the prior `ResumeCwdError` with reason `not_listed`. |
 
 Hosts should persist the cwd with the session id and reuse it on resume.
 Kimi, OpenCode v1/v2, Antigravity and Devin require a list entry confirming the saved
 cwd before resume/load. An unknown or different cwd gives
-`UnsupportedOptionError` on `cwd`, which does not mean missing. Antigravity
+`ResumeCwdError` (an `UnsupportedOptionError` on `cwd`), which does not mean
+missing even when its reason is `not_listed`. Antigravity
 CLI 1.5.0 omits unprompted sessions that can still resume; loading an absent
 id can even succeed. A listed session's generic native error is not mapped
 to missing ([cwd evidence and refusals](../runtimes/resume-cwd.md)). Codex's
