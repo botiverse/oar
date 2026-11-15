@@ -48,3 +48,25 @@ test.skipIf(process.platform === "win32").each(["exited", "running", "cancelled"
     });
   },
 );
+
+// Node emits close as soon as the terminated root's pipes close, even though
+// its tool is still alive. This must not cancel the tool's force cleanup.
+test.skipIf(process.platform === "win32").each(["timeout", "cancelled"])(
+  "a probe %s reclaims its stubborn descendant after the root closes all pipes",
+  async (mode) => {
+    vi.stubEnv("OAR_KILL_GRACE_MS", "100");
+    await withTreeProbe({ ignoreSigterm: false }, async (probe) => {
+      const controller = new AbortController();
+      const result = runExecutable(process.execPath, [fixture], {
+        env: { ...process.env, ...probe.env, OAR_FIXTURE_CLOSED_PIPES: "1" },
+        timeoutMs: mode === "cancelled" ? 60_000 : 2000,
+        signal: controller.signal,
+      });
+      const tree = await probe.tree();
+      if (mode === "cancelled") { controller.abort(); }
+      expect(await result).toMatchObject({ ok: false, exitCode: null });
+      expect(await gone(tree.agent)).toBe(true);
+      expect(await gone(tree.grandchild, 1500)).toBe(true);
+    });
+  },
+);

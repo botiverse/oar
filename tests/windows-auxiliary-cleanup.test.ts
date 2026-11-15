@@ -30,24 +30,25 @@ async function stopTerminal(
   return operation === "release" ? terminal.release(identity) : terminal.dispose();
 }
 
-windowsTest.each(["timeout", "cancelled", "stdout", "stderr"])("a %s probe ends its launcher and descendants", async (mode) => {
+windowsTest.each(["timeout", "cancelled", "stdout", "stderr", "closed-timeout", "closed-cancelled"])("a %s probe ends its launcher and descendants", async (mode) => {
   await withTreeProbe({ ignoreSigterm: false }, async (probe) => {
     const controller = new AbortController();
     const pending = runExecutable(fakeAgentBinary(probe.dir, [fixture]), [], {
       env: {
         ...process.env, ...probe.env,
+        ...(mode.startsWith("closed-") ? { OAR_FIXTURE_CLOSED_PIPES: "1" } : {}),
         ...(mode === "stdout" || mode === "stderr" ? { OAR_FIXTURE_FLOOD: mode } : {}),
       },
-      timeoutMs: mode === "timeout" ? 3000 : 60_000,
+      timeoutMs: mode.endsWith("timeout") ? 3000 : 60_000,
       signal: controller.signal,
     });
     const tree = await probe.tree();
-    if (mode === "cancelled") { controller.abort(); }
+    if (mode.endsWith("cancelled")) { controller.abort(); }
     const result = await bounded(pending);
     expect(result, "the stopped probe settles while its descendants would otherwise hold its pipes").not.toBeNull();
-    expect(result).toMatchObject({ ok: false, exitCode: null, diagnostics: mode === "timeout"
+    expect(result).toMatchObject({ ok: false, exitCode: null, diagnostics: mode.endsWith("timeout")
       ? { timeoutMs: 3000 }
-      : { error: { code: mode === "cancelled" ? "ABORT_ERR" : "ERR_CHILD_PROCESS_STDIO_MAXBUFFER" } } });
+      : { error: { code: mode.endsWith("cancelled") ? "ABORT_ERR" : "ERR_CHILD_PROCESS_STDIO_MAXBUFFER" } } });
     expect(await gone(tree.agent), `agent ${String(tree.agent)} exited`).toBe(true);
     expect(await gone(tree.grandchild), `descendant ${String(tree.grandchild)} exited`).toBe(true);
   });

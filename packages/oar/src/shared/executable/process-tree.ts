@@ -239,13 +239,13 @@ function signalCode(error: unknown): string {
 }
 
 /**
- * SIGKILL each of `entries` that `table` (read just before) shows still
+ * Signal each of `entries` that `table` (read just before) shows still
  * running, the same process (same start time), and the process group each
  * belongs to now: the runtime's own, or one a descendant made, which can hold
  * processes started since the entries were read. Never the host, nor its group,
  * nor a group `mayKillGroup` holds back. Says what was actually sent.
  */
-export function signalEntries(entries: Iterable<ProcessEntry>, table: ProcessTable, mayKillGroup: (group: number) => boolean = () => true): SignalReport {
+export function signalEntries(entries: Iterable<ProcessEntry>, table: ProcessTable, mayKillGroup: (group: number) => boolean = () => true, signal: NodeJS.Signals = "SIGKILL"): SignalReport {
   const hostGroup = table.get(process.pid)?.pgid;
   if (hostGroup === undefined) { return { hostIdentified: false, signalled: 0, failed: 0, codes: [] }; }
   const groups = new Set<number>();
@@ -263,7 +263,7 @@ export function signalEntries(entries: Iterable<ProcessEntry>, table: ProcessTab
   const reached = new Set<number>();
   for (const group of groups) {
     try {
-      process.kill(-group, "SIGKILL");
+      process.kill(-group, signal);
       reached.add(group);
     } catch {
       // The group emptied meanwhile, or is out of reach: each member's own signal settles it.
@@ -274,7 +274,7 @@ export function signalEntries(entries: Iterable<ProcessEntry>, table: ProcessTab
   const codes = new Set<string>();
   for (const [pid, group] of pids) {
     try {
-      process.kill(pid, "SIGKILL");
+      process.kill(pid, signal);
       signalled += 1;
     } catch (error) {
       const code = signalCode(error);

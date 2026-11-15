@@ -1,5 +1,7 @@
 # experiments
 
+- [Executable probe cleanup after pipe closure](executable-probe-cleanup/README.md): synthetic root/descendant controls on source and published OAR, with retained identities and independent account deadlines.
+
 - [Runtime version check: November 14](runtime-version-checks/2026-11-14.md): Claude 2.1.325 and Antigravity 1.5.9, another macOS 1.5.0 MCP catalog failure with one passing 1.5.9 control, and retained CI and upstream observations.
 
 - [OpenCode 2.3.0 background child attribution](opencode-child-background/README.md): paired native capability controls and completion after the parent prompt returns.
