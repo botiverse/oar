@@ -104,7 +104,7 @@ export function sharedAcpSession(profile: AcpSessionProfile, shared: AcpSharedOp
       initialized ??= (async (): Promise<{ response: JsonRecord; refusal: string | null }> => {
         try {
           const response = await acpOpenStep(initializeAcpConnection(runtime, { ...profile, initializeMeta: () => meta, clientCapabilitiesMeta: () => capabilitiesMeta },
-            { cwd: configuration.cwd ?? process.cwd() }, () => {}), "open");
+            { cwd: configuration.cwd ?? process.cwd() }, () => {}), "open", profile.openFailure);
           const refusal = shared.initializationRefusal?.(response) ?? null;
           if (refusal !== null) { stop(); await runtime.exited; }
           return { response, refusal };

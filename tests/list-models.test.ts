@@ -3,6 +3,7 @@ import { expect, test } from "vitest";
 import { effortLevelOf, effortLevelsOf } from "../packages/oar/src/shared/effort-levels.js";
 import { claudeListModels, projectClaudeModels } from "../packages/oar/src/runtimes/claude/list-models.js";
 import { codexDefaultModel, codexListModels, projectCodexModels } from "../packages/oar/src/runtimes/codex/list-models.js";
+import { devinListModels, projectDevinModels } from "../packages/oar/src/runtimes/devin/list-models.js";
 import { grokListModels, grokModelState, projectGrokModels } from "../packages/oar/src/runtimes/grok/list-models.js";
 import { kimiListModels } from "../packages/oar/src/runtimes/kimi/list-models.js";
 import { createPiListModels, piListModels, projectPiModels } from "../packages/oar/src/runtimes/pi/list-models.js";
@@ -237,10 +238,42 @@ test("pi lister reports a configured provider through the real SDK", async () =>
   }
 });
 
+test("devin projection reads configOptions model and thought_level for the current model", () => {
+  expect(projectDevinModels({
+    configOptions: [
+      {
+        id: "model",
+        currentValue: "swe-1-6-fast",
+        options: [
+          { value: "swe-1-6-fast", name: "SWE-1.6 Fast" },
+          { value: "swe-1-6", name: "SWE-1.6" },
+        ],
+      },
+      {
+        id: "thought_level",
+        category: "thought_level",
+        currentValue: "medium",
+        options: [{ value: "low" }, { value: "medium" }, { value: "high" }],
+      },
+    ],
+  })).toEqual([
+    {
+      id: "swe-1-6-fast",
+      displayName: "SWE-1.6 Fast",
+      default: true,
+      effortLevels: ["low", "medium", "high"],
+      defaultEffort: "medium",
+    },
+    { id: "swe-1-6", displayName: "SWE-1.6" },
+  ]);
+  expect(projectDevinModels({ configOptions: [] })).toBeUndefined();
+});
+
 test("executable listers refuse bundled installations and pi refuses executables", async () => {
   const results = await Promise.all([
     codexListModels(bundled),
     claudeListModels(bundled),
+    devinListModels(bundled),
     grokListModels(bundled),
     kimiListModels(bundled),
     piListModels(executable),

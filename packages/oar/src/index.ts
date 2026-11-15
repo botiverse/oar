@@ -4,6 +4,7 @@ import { antigravityRuntime } from "./runtimes/antigravity/index.js";
 import { claudeRuntime } from "./runtimes/claude/index.js";
 import { codebuddyRuntime } from "./runtimes/codebuddy/index.js";
 import { codexRuntime } from "./runtimes/codex/index.js";
+import { devinRuntime } from "./runtimes/devin/index.js";
 import { dshRuntime } from "./runtimes/dsh/index.js";
 import { grokRuntime } from "./runtimes/grok/index.js";
 import { kimiRuntime } from "./runtimes/kimi/index.js";
@@ -83,6 +84,7 @@ export const defaultRuntimes = new RuntimeRegistry([
   claudeRuntime,
   codexRuntime,
   codebuddyRuntime,
+  devinRuntime,
   dshRuntime,
   grokRuntime,
   kimiRuntime,
@@ -112,3 +114,8 @@ export { codebuddyRuntime } from "./runtimes/codebuddy/index.js";
 export { codebuddySession } from "./runtimes/codebuddy/session.js";
 export { codebuddyInstallation } from "./runtimes/codebuddy/installation.js";
 export { codebuddyListModels, projectCodebuddyModels } from "./runtimes/codebuddy/list-models.js";
+
+export { devinRuntime } from "./runtimes/devin/index.js";
+export { devinSession } from "./runtimes/devin/session.js";
+export { devinInstallation } from "./runtimes/devin/installation.js";
+export { devinListModels, projectDevinModels } from "./runtimes/devin/list-models.js";
