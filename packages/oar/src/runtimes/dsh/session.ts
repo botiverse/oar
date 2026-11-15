@@ -3,6 +3,7 @@
 import { randomUUID } from "node:crypto";
 import { UnsupportedOptionError } from "../../contracts/errors.js";
 import { RuntimeFailureError } from "../../contracts/runtime-failure-error.js";
+import { ModelConfirmationError } from "../../contracts/model-confirmation-error.js";
 import { SessionNotFoundError } from "../../contracts/session-not-found-error.js";
 import type { RequestRecord, ResponseBody, Session, SessionOptions, StartSession } from "../../contracts/session.js";
 import { createAbortFallback } from "../../shared/abort-fallback.js";
@@ -39,11 +40,14 @@ function openFailure(error: unknown, sessionId: string, resuming: boolean): unkn
 }
 
 /** Where the runtime already reports its selection, a request it did not take is refused rather than run on another route. */
-function refuseUnappliedRoute(opened: JsonRecord, requested: DshAgentOptions): void {
+function refuseUnappliedRoute(opened: JsonRecord, requested: DshAgentOptions, requestedModel: string | undefined): void {
   const reported = asRecord(opened.model);
   if (reported === null) { return; }
-  if (requested.provider !== undefined && (reported.provider !== requested.provider || reported.model !== requested.model)) {
-    throw new UnsupportedOptionError("model", `DSH did not apply model ${requested.provider}/${String(requested.model)}: it reports ${String(reported.provider)}/${String(reported.model)}`);
+  if (requestedModel !== undefined && requested.provider !== undefined && (reported.provider !== requested.provider || reported.model !== requested.model)) {
+    throw new ModelConfirmationError(`DSH did not apply model ${requested.provider}/${String(requested.model)}: it reports ${String(reported.provider)}/${String(reported.model)}`, {
+      requested: requestedModel,
+      reported: typeof reported.provider === "string" && typeof reported.model === "string" ? `${reported.provider}/${reported.model}` : null,
+    });
   }
   if (requested.reasoningEffort !== undefined && reported.reasoningEffort !== requested.reasoningEffort) {
     throw new UnsupportedOptionError("effort", `DSH did not apply effort ${requested.reasoningEffort}: it reports ${String(reported.reasoningEffort)}`);
@@ -101,7 +105,7 @@ async function open(command: string, options: SessionOptions, env: NodeJS.Proces
       const route = await savedRoute(control, sessionId, options.cwd);
       opened = await control.request("resume", { ...fields, ...(route === undefined ? {} : { route }) }, OPEN_TIMEOUT_MS);
     }
-    refuseUnappliedRoute(opened, agentOptions);
+    refuseUnappliedRoute(opened, agentOptions, options.model);
   } catch (error) {
     child.kill();
     await child.exited;

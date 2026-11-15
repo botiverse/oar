@@ -3,7 +3,7 @@ import { BACKGROUND_CONTEXT } from "@earendil-works/chord/context";
 import { createModels } from "@earendil-works/pi-ai-durable/models";
 import { fauxProvider } from "@earendil-works/pi-ai-durable/providers/faux";
 import { createRegistry, Harness, MemoryStorage } from "@earendil-works/pi-durable";
-import { orient, RuntimeRegistry } from "../../packages/oar/src/index.js";
+import { ModelConfirmationError, orient, RuntimeRegistry } from "../../packages/oar/src/index.js";
 import { createPiDurableRuntime } from "../../packages/oar/src/runtimes/pi-durable/index.js";
 import { openConversation } from "../../packages/oar/src/runtimes/pi-durable/options.js";
 import { SessionNotFoundError } from "../../packages/oar/src/contracts/session-not-found-error.js";
@@ -90,6 +90,23 @@ test("model catalog, effort and native readback agree", async () => {
   const session = await runtime.session(installation, { cwd: "/virtual", model: "faux/reasoning", effort: "high" });
   expect([session.model().value, session.effort().value]).toEqual(["faux/reasoning", "high"]);
   await session.dispose();
+});
+
+test.each([undefined, { provider: "faux", modelId: "other" }])("a contradictory Durable agent snapshot is a typed model refusal: %j", async (model) => {
+  const { harness, runtime } = await setup();
+  const create = harness.createConversation.bind(harness);
+  vi.spyOn(harness, "createConversation").mockImplementationOnce(async (...args) => {
+    const conversation = await create(...args);
+    const { model: _nativeModel, ...native } = await conversation.agent(BACKGROUND_CONTEXT);
+    vi.spyOn(conversation, "agent").mockResolvedValue({ ...native, ...(model === undefined ? {} : { model }) });
+    return conversation;
+  });
+  const opening = runtime.session({ kind: "available", via: "bundled" }, { cwd: "/virtual", model: "faux/plain" });
+  await expect(opening).rejects.toBeInstanceOf(ModelConfirmationError);
+  await expect(opening).rejects.toMatchObject({ requested: "faux/plain", reported: model === undefined ? null : "faux/other",
+    message: "pi-durable did not select model faux/plain" });
+  // A native getModel lookup is not a catalog enumeration.
+  await expect(opening).rejects.not.toHaveProperty("catalogSelectorIds");
 });
 
 test("failed effort validation rolls back saved options on resume", async () => {

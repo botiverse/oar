@@ -13,7 +13,8 @@ if (process.argv.includes("--version")) {
   input.on("line", (line) => {
     const message: unknown = JSON.parse(line);
     if (typeof message !== "object" || message === null || !("type" in message) || !("id" in message)) { return; }
-    const data = message.type === "get_state" ? { sessionId: "version-fixture", thinkingLevel: "off" } : {};
+    const model: unknown = process.env.OAR_TEST_PI_MODEL === undefined ? undefined : JSON.parse(process.env.OAR_TEST_PI_MODEL);
+    const data = message.type === "get_state" ? { sessionId: "version-fixture", thinkingLevel: "off", model } : {};
     process.stdout.write(`${JSON.stringify({ type: "response", command: message.type, id: message.id, success: true, data })}\n`);
   });
 }

@@ -186,6 +186,12 @@ menu. Both are applied and read back before returning. `listModels` reads
 it does not authenticate or turn an empty catalog into `unauthenticated`.
 OAR installs no providers or keys. The host owns those decisions.
 
+A different or missing model in the opened agent snapshot throws
+[`ModelConfirmationError`](../spec/runtime-matrix.md#model-confirmation-failures),
+with `requested` and the reported `provider/model` (or `null`). Resolving one
+model through `getModel` supplies no `catalogSelectorIds`; an unregistered
+model keeps its earlier `RuntimeFailureError("model_unavailable")` refusal.
+
 When `models` is a supplier, OAR calls it for every `listModels` query and
 every session open, including resume. Model selection and effort validation
 use that open's current catalog, including the saved model when resume

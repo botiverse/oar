@@ -3,6 +3,7 @@ import type { ModelThinkingLevel } from "@earendil-works/pi-ai";
 import { getSupportedThinkingLevels } from "@earendil-works/pi-ai/models";
 import { AgentDoc, LiveDoc, configure, type AgentChange, type AgentState, type Conversation, type ConversationId, type Harness, type HarnessOptions } from "@earendil-works/pi-durable";
 import { RuntimeFailureError } from "../../contracts/runtime-failure-error.js";
+import { ModelConfirmationError } from "../../contracts/model-confirmation-error.js";
 import { SessionNotFoundError } from "../../contracts/session-not-found-error.js";
 import type { RefusedSessionOptions } from "../../contracts/runtime.js";
 import type { SessionOptions } from "../../contracts/session.js";
@@ -100,6 +101,7 @@ export async function openConversation(harness: Harness, models: DurableModels, 
   if (options.resume !== undefined) { await configureResume(conversation, change, models, options); }
   const agent = await conversation.agent(BACKGROUND_CONTEXT);
   if (options.effort !== undefined && agent.thinkingLevel !== options.effort) { throw new Error(`pi-durable reported effort ${agent.thinkingLevel}, requested ${options.effort}`); }
-  if (options.model !== undefined && `${agent.model?.provider}/${agent.model?.modelId}` !== options.model) { throw new Error(`pi-durable did not select model ${options.model}`); }
+  const reported = agent.model === undefined ? null : `${agent.model.provider}/${agent.model.modelId}`;
+  if (options.model !== undefined && reported !== options.model) { throw new ModelConfirmationError(`pi-durable did not select model ${options.model}`, { requested: options.model, reported }); }
   return conversation;
 }

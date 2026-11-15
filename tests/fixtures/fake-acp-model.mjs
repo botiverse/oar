@@ -150,9 +150,13 @@ function publishDelayedConfig(message, wire, outcome) {
   if (outcome.delayedUpdate !== undefined) {
     const model = message.params?.configId === "model";
     if (process.env.FAKE_ACP_OMIT_CONFIG_UPDATE === (model ? "model" : "effort")) { return; }
-    const notification = !model && process.env.FAKE_ACP_WRONG_EFFORT_UPDATE === "1"
-      ? { ...outcome.delayedUpdate, configOptions: [modelOption(selectedAgyModel), effortOption("low", "antigravity")] }
-      : outcome.delayedUpdate;
+    let notification = outcome.delayedUpdate;
+    if (model && process.env.FAKE_ACP_WRONG_MODEL_UPDATE === "1") {
+      notification = { ...notification, configOptions: [modelOption("other-model"), effortOption("medium", "antigravity")] };
+    }
+    if (!model && process.env.FAKE_ACP_WRONG_EFFORT_UPDATE === "1") {
+      notification = { ...notification, configOptions: [modelOption(selectedAgyModel), effortOption("low", "antigravity")] };
+    }
     setTimeout(() => { wire.update(notification); }, model ? Number(process.env.FAKE_ACP_MODEL_UPDATE_DELAY_MS ?? "0") : 0);
   }
 }

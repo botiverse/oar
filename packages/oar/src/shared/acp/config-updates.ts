@@ -1,4 +1,5 @@
 import { asRecord, asRecordList, type JsonRecord } from "../json.js";
+import { ModelConfirmationError } from "../../contracts/model-confirmation-error.js";
 
 export interface AcpConfigUpdates {
   observe(notification: unknown): void;
@@ -31,7 +32,8 @@ export function createAcpConfigUpdates(): AcpConfigUpdates {
       try {
         const [response] = await Promise.all([send(), seen.promise]);
         if (current !== value) {
-          throw new Error(`ACP config_option_update left ${configId} at ${String(current)} although ${value} was requested`);
+          const message = `ACP config_option_update left ${configId} at ${String(current)} although ${value} was requested`;
+          throw configId === "model" ? new ModelConfirmationError(message, { requested: value, reported: typeof current === "string" ? current : null }) : new Error(message);
         }
         return response;
       } finally {

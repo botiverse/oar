@@ -78,7 +78,7 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
     // The reply is codex's word on the model and effort the thread runs (the
     // open frame's events); anything but what was requested refuses the open.
     const readback = codexOpenReadback(openMethod, options, started);
-    if (readback.refusal !== null) { throw new Error(readback.refusal); }
+    if (readback.refusal !== null) { throw typeof readback.refusal === "string" ? new Error(readback.refusal) : readback.refusal; }
     const kernel = credentials.kernel(threadId);
     const state: CodexSessionState = {
       active: null,

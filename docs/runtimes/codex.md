@@ -782,8 +782,12 @@ all six provider requests with a real executable and scripted provider.
 **Model (mapped):** `model` on open selects the model for `thread/start` /
 `thread/resume`; `model()` folds the open reply's `model` event (the runtime's
 readback, available at open), and a readback differing from an explicit
-request fails the open (`codex <method> kept model <readback> although
-<requested> was requested`). An unknown model opens: `thread/start` reads the
+request fails the open with
+[`ModelConfirmationError`](../spec/runtime-matrix.md#model-confirmation-failures)
+(`codex <method> kept model <readback> although <requested> was requested`).
+Its `requested` and `reported` fields retain those values; no
+`catalogSelectorIds` is added because this check does not enumerate models.
+An unknown model opens: `thread/start` reads the
 slug back (`model: "oar-no-such-model-xyz"`) with a `warning` "Model metadata
 … not found"; the first `turn/start` is accepted, then
 `thread/status/changed { type: "systemError" }`, an `error` notification and

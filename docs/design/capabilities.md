@@ -48,6 +48,14 @@ without reading the message. Where the
 runtime's own word decides (kimi's directory comes from its `session/list`),
 the adapter throws the same error.
 
+An existing model confirmation that cannot establish the requested selection
+throws `ModelConfirmationError`, with requested/reported values and catalog
+selectors only when actually read for that check. A host can offer another
+selection without parsing prose; this does not establish that the model is
+unavailable. The contract belongs to `contracts/`, while each adapter owns
+its native confirmation and matching policy. See
+[model confirmation failures](../spec/runtime-matrix.md#model-confirmation-failures).
+
 ## 3. A declaration only where a host must decide before acting
 
 Some decisions come before any call: rowrow passes `env` to every session

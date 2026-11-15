@@ -163,6 +163,7 @@ export type {
 } from "./session.js";
 export { defineRuntime } from "./runtime.js";
 export { UnsupportedOptionError } from "./errors.js";
+export { ModelConfirmationError } from "./model-confirmation-error.js";
 export { SessionNotFoundError } from "./session-not-found-error.js";
 export { SessionUnavailableError, type SessionUnavailableReason } from "./session-unavailable-error.js";
 export { RuntimeFailureError, type RuntimeFailureCode } from "./runtime-failure-error.js";
