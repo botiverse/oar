@@ -593,3 +593,30 @@ session shown idle while work continues, or a signed-in provider path that
 behaves differently. A reader would then be version-gated to the schema it
 was verified on, record every row it reads as a native frame, and treat an
 unknown schema as "not observed", never as success.
+
+## ZCode before it can name a session (2026-11-15)
+
+**Considered:** adding ZCode through its headless stream
+(`zcode -p --output-format stream-json`), the only entrance that uses the
+official `zcode login` (its app-server expects the host to supply account
+authentication, which would mean OAR handling the user's credential). An
+alternative was letting a session's id arrive with its first prompt.
+
+**Refused for now.** On 3.18.2 built from source, the headless session id first
+appears with the first prompt's events, and `--resume` with an id OAR chose
+fails with "Session not found" before any model request. No option for
+creating an empty session or choosing its id was found among the CLI's
+arguments (`apps/zcode-cli/packages/cli/src/arguments.ts`). OAR's session
+contract gives every open session its runtime-native id at once, which hosts
+persist and resume with (`Session.id`, part of the session identity
+[foundation](foundations.md)). Making that id optional for one runtime would
+leak into every host's data model, and the workarounds (spending a model call
+to obtain an id, or opening only sessions the user already created) are
+worse. The same source reading found no native model flag, model list, status
+or usage query, and the prompt is passed as a command-line argument. The
+comparison is in the
+[ZCode experiment](../../experiments/zcode-headless-2026-11-15/README.md).
+
+**What would reopen it:** ZCode adding a way to create or name a headless
+session up front (for example `--session-id`, which OAR already uses for
+Claude Code and Qoder), or letting `app-server` use the official login.
