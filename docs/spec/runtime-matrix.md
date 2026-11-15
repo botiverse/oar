@@ -16,6 +16,7 @@ calls, resume semantics, and what each adapter still does not carry.
 | runtime | declared tier | how children appear in the stream |
 |---|---|---|
 | dsh | `nested` | frames of other session ids are child-session records; the parent's durable `subagent/catalog` adds the `tool_call` edge ([mapping](../runtimes/dsh.md#children)) |
+| factory | `opaque` | droid runs `Task` sub-agents in child sessions; this adapter records what the root stream carries and links no child sessions yet ([mapping](../runtimes/factory.md#children)) |
 | qoder | `attributed` | native parent tool ids use the shared stream-json fold; live nested subagent interleavings remain unverified ([mapping](../runtimes/qoder.md)) |
 | qwen | `attributed` | stream-json `parent_tool_use_id` maps to agentPath through the shared fold; live nested subagent interleavings remain unverified ([mapping](../runtimes/qwen.md)) |
 | claude | `attributed` | frames with `parent_tool_use_id` carry `agentPath = [...parentPath, taskCallId]`, nested through the Task call's own agent; a child's spend is in the session total, `unattributed`: no frame carries its final usage ([env] 2.1.292) |
@@ -34,6 +35,7 @@ calls, resume semantics, and what each adapter still does not carry.
 | runtime | sub-agent exposure | linkage | per-agent tokens | session graph | resume | evidence |
 |---|---|---|---|---|---|---|
 | dsh | native child sessions on the process's event channel | `subagent/catalog` (`childId`) on the parent; `subagent/start` alone names no parent | each session's own durable usage; children add through `withChildren` | native parent/child session edges | native id; saved cwd required | [native/current mapping](../runtimes/dsh.md) |
+| factory | `Task` sub-agents in native child sessions (`child_session_available`) | not mapped | root `tokenUsage` per turn; `childTokenUsage` added to the session `total` only | no edges | native UUID; saved cwd required | [native/current mapping](../runtimes/factory.md) |
 | qoder | native parent tool ids on forwarded child frames | `parent_tool_use_id` | root per-query reports summed since open; no inferred child usage | no inferred child-session edges | native UUID in the same HOME/project | [native/current mapping](../runtimes/qoder.md) |
 | qwen | native parent tool ids on forwarded child frames | `parent_tool_use_id` | fresh total only; resumed totals unknown without a baseline | no inferred child-session edges | native UUID in the same HOME/project | [native/current mapping](../runtimes/qwen.md) |
 | claude | native subagent messages can share the stream | `parent_tool_use_id` | the root's main loop (`result.usage`); subagents and compaction in the session total (`modelUsage`), `unattributed` ([env] 2.1.292) | `agentPath` (not in graph) | native session id | [native/current mapping](../runtimes/claude.md) |
@@ -96,6 +98,7 @@ false, the adapter holds queued input in this process.
 | runtime | `steer` | `withdraw` | `capabilities.queue.durable` |
 |---|---|---|---|
 | dsh | yes: `agent.steer`, the native next-step inbox | yes: native `inbox.remove`, for input held for a later turn | no: native dispose clears the inbox; a crash can leave input that runs at the next wake ([mapping](../runtimes/dsh.md#session-options)) |
+| factory | yes: a second `droid.add_user_message`, queued `end_of_turn` and drained into the running turn, which ends once | yes, while held | no ([mapping](../runtimes/factory.md#prompting-steering-queueing-and-abort)) |
 | qoder | yes: stdin user message with `priority: next`, joining at a tool boundary or following a text-only turn | yes, while held | no |
 | qwen | no: native busy writes queue | yes, while held | no |
 | claude | yes: a user message written to stdin mid-turn | yes | no |
@@ -198,6 +201,7 @@ an observation from the runtime and carries no request id. It may name an
 | Runtime | Native activity source |
 |---|---|
 | dsh | the `next-turn` claim of an `agent/inbox/spliced` names the input; a `turn/start` with nothing waiting has no input id |
+| factory | a non-idle `droid_working_state_changed` while OAR prompted nothing (a steer that arrived as its turn ended); no input id |
 | qoder | `command_lifecycle started` identifies the input; startup `system/init` alone is idle |
 | qwen | root `system/init` for the sole submitted input; no native command_lifecycle acknowledgement |
 | claude | `command_lifecycle started` for a prompt-like write identifies its input; a spontaneous root `system/init` has no input id |
@@ -263,6 +267,7 @@ The message retains its runtime-specific explanation.
 | Pi SDK, Pi RPC, Pi Durable | Opened session/agent state reports a different or missing model | Absent; resolving one requested model is not a catalog enumeration |
 | DSH | The reported `agent.model` route differs from the requested provider/model | Absent |
 | Antigravity | The last ACP `config_option_update` model value still contradicts the requested selection at the configuration deadline | Absent |
+| Factory | `initialize_session`, or on resume the `settings_updated` after `update_session_settings`, reports a `modelId` other than the request (droid runs its default in place of an unknown model) | Absent; opening reads no catalog |
 
 The error class itself imposes no shared confirmation policy. For example,
 Codex and DSH do not acquire a missing-readback refusal where they previously
@@ -376,6 +381,7 @@ in CI. Keys belong in `SessionOptions.env` or the runtime's own config, never in
 | grok | `$GROK_HOME/config.toml` | `[models] default = "<id>"` and `[model.<id>]` with `base_url`, `api_key`, `api_backend = "chat_completions"` |
 | antigravity | `$GEMINI_HOME` and `SessionOptions.env` | `antigravity-cli/settings.json` with `modelProvider: "gemini"`, then `GEMINI_API_KEY` and `GOOGLE_GEMINI_BASE_URL` |
 | dsh | `$DSH_HOME/cordis.patch.yml` | an `llm-pi-ai` row with `config.providers.<id>` (`api: "openai-completions"`, `baseURL`, `apiKeyEnv`, `models`), and `agent-default-model` naming it, or `model` as `<id>/<model>` ([`dsh-aimock.ts`](../../sea-trial/harness/dsh-aimock.ts)) |
+| factory | `~/.factory/settings.json` | `customModels` entry (`provider: "generic-chat-completion-api"`, `baseUrl`, `apiKey`, `model`, `displayName`), opened as `custom:<displayName>-<index>` ([`factory-aimock.ts`](../../sea-trial/harness/factory-aimock.ts)) |
 | pi | `models.json` in pi's agent dir (`OAR_PI_AGENT_DIR`) | a `providers.<id>` with `baseUrl`, `apiKey`, `api` and its models; process-wide, since pi runs in-process |
 | pi-durable | the host's own `Harness` | `models.setProvider(createProvider({ baseUrl, ... }))` |
 | cursor | none | Cursor's SDK talks to Cursor's own backend only |
@@ -400,6 +406,7 @@ tool event), each pinned by its vendor tests. Antigravity CLI 1.5.0 ignores
 | cursor | SDK `disallowedTools`, including capability groups `shell` (shell plus stdin) and `mcp` (the whole MCP family) | unknown names, including individual MCP names, become `UnsupportedOptionError`; nested native subagents have their own toolset, so deny `task` to prevent spawning them |
 | codex | qualified `mcp__server__tool` on an unambiguously named configured or session MCP server, via session `config.mcp_servers.*.disabled_tools`; prior native denies are preserved | built-ins, unqualified names, missing/ambiguous or normalized server namespaces |
 | dsh | Refused at open; not verified through the bridge | `UnsupportedOptionError`, declared in `refusedSessionOptions` |
+| factory | Refused at open: droid's `disabledToolIds` is not yet verified against these names | `UnsupportedOptionError`, declared in `refusedSessionOptions` |
 | qwen, qoder, codebuddy | native `--exclude-tools` (qwen), `--disallowed-tools` (qoder) and `--disallowedTools` (codebuddy, on new and resumed opens) | nothing: OAR passes the names unvalidated and matching is native ([qwen](../runtimes/qwen.md), [codebuddy](../runtimes/codebuddy.md)) |
 | grok, kimi, opencode, antigravity, devin | none through the selected OAR transport | every non-empty list, declared in `Runtime.refusedSessionOptions` |
 
@@ -467,6 +474,7 @@ again on resume.
 | antigravity, codebuddy | after OAR's own arguments |
 | qwen | after OAR's own flags, before `--include-directories` and `--exclude-tools` |
 | dsh | refused: OAR owns the launcher arguments and bridge overlay |
+| factory | after `droid exec --input-format stream-jsonrpc --output-format stream-jsonrpc`; the protocol, session and cwd flags are refused |
 | qoder | after OAR's own flags, before `--mcp-config`, `--add-dir` and `--disallowed-tools`; from 1.1.81 the same list is the daemon's `worker_args` |
 | pi, cursor | refused: they run in the host process through their SDKs, with no command line; cursor's subprocess mode runs the SDK in a Node child of OAR's, with no Cursor command line either |
 
@@ -548,6 +556,7 @@ runtime and is not guaranteed by this option.
 | qwen | `--include-directories` | Pass the list again for the new process. |
 | qoder | `--add-dir` | Pass the list again for the new process. |
 | dsh | refused at open | Same refusal. |
+| factory | refused at open | Same refusal. |
 | opencode v1, grok, antigravity, codebuddy, devin, pi, pi-durable | Refused with `UnsupportedOptionError` | Same refusal. |
 
 The unconditional refusals are declared in `Runtime.refusedSessionOptions`.
@@ -631,6 +640,7 @@ in [user configuration](#user-configuration).
 | pi | `launchArgs`, `serviceTier`, `additionalDirectories`, `outputSchema`, `userConfiguration: "exclude"` | it runs in the host process through its SDK, with no command line |
 | qwen | `serviceTier`, `outputSchema`, `name`, `userConfiguration: "exclude"` | no verified tier, structured-output, session-name or user-configuration exclusion channel |
 | dsh | `systemPrompt`, `appendSystemPrompt`, `mcpServerCredentials`, `disallowedTools`, `launchArgs`, `serviceTier`, `additionalDirectories`, `outputSchema`, `name`, `userConfiguration: "exclude"` | MCP credentials have no verified persistence boundary; the other options remain unverified through the bridge ([mapping](../runtimes/dsh.md#session-options)) |
+| factory | `serviceTier`, `outputSchema`, `name`, `additionalDirectories`, `disallowedTools`, `userConfiguration: "exclude"` | no tier; structured output, session titles and tool denials not yet verified; no extra-directory or user-configuration exclusion channel ([mapping](../runtimes/factory.md#session-options)) |
 | qoder | `serviceTier`, `outputSchema`, `name`, `userConfiguration: "exclude"` | no verified tier, structured-output, session-name or user-configuration exclusion channel |
 | codex | `userConfiguration: "exclude"`; `endTurnProcessesOnAbort: true` only with shared placement | temporary clean homes break shared history paths after cleanup ([evidence](../runtimes/codex.md#user-configuration)); a shared app-server's process table does not say which session's turn started a process |
 | claude | nothing beyond `goals: true` and `endTurnProcessesOnAbort: true` | no structured native goal controls on the chosen transport; other value-specific refusals are described on its runtime page |
@@ -653,6 +663,7 @@ call an attached server's tool, with the evidence on its runtime page
 | qwen | per-session `initialize.mcpServers` (stdio command/args/env, HTTP `httpUrl`/headers) | yes | yes | the entries again | see [qwen](../runtimes/qwen.md) |
 | qoder | `--mcp-config <path>`: a 0600 file in a private 0700 directory removed on process exit or failed launch | yes | yes | the flag again | see [qoder](../runtimes/qoder.md) |
 | dsh | private invocation patch loads native MCP client plugins, checked active before open | command/args only | refused | supply entries again; omitted entries are absent | a native namespace collision refuses open ([dsh](../runtimes/dsh.md#session-mcp-servers)) |
+| factory | `mcpServers` on `initialize_session` and `load_session` (stdio `env` as a record, http `headers` as name/value pairs); droid offers the tools as `<server>___<tool>` | yes | yes | the param again | not measured ([factory](../runtimes/factory.md#session-mcp-servers)) |
 | pi | pi's MCP extension plus one registering the entries (`pi.registerMcpServer`); tools declared directly | yes | yes | registered again | oar's pi loads no `mcp.json`; a name another extension registered fails the open ([pi](../runtimes/pi.md#session-mcp-servers)) |
 
 Evidence: the vendor tests run the real CLI (pi: the bundled SDK) against a
@@ -780,6 +791,7 @@ this declaration; that is separate from changing the system prompt.
 | Qoder | Immediate (1.1.78 request-construction evidence) | Untested | No resume entries; [details](../runtimes/qoder.md#oar-mapping) |
 | DSH | Refused | Refused | No resume entries; both prompt options are refused at open |
 | Devin | Both refused | Refused | No resume entries; both prompt options are refused at open |
+| Factory | Refused on resume (`load_session` takes no prompt) | Refused on resume | No resume entries; new sessions take both ([details](../runtimes/factory.md#session-options)) |
 | CodeBuddy | Replacement reapplied; append refused | Replacement omission untested | No resume entries |
 
 **Supply the current prompts on every Claude/Codex resume.** Claude's saved
@@ -932,6 +944,7 @@ existing types and causes; OAR never starts a replacement conversation.
 | Runtime | Evidence required | Scope of "not found" |
 |---|---|---|
 | grok | Resume/load error `data.code === "FS_NOT_FOUND"` | This cwd, including a real id saved under another cwd. |
+| factory | `load_session` error `code === -32004` ("Session not found") | The active HOME; a session saved for another cwd is refused (`UnsupportedOptionError` on `cwd`). |
 | cursor | SDK error `code === "agent_not_found"` from `Agent.listRuns` or `Agent.resume` | Not found by the SDK with this configuration; the 1.0.37 probe had no `CURSOR_API_KEY`, and did not test a real id. |
 | pi | OAR's `SessionManager.list(cwd, sessionDir)` lookup has no matching id | This cwd and agent directory, including a real id saved under another cwd. The cause reports the lookup scope and count, not an invented native error. |
 | pi-durable | `Harness.conversation(id)` returns `undefined` for a valid native numeric id | The host's Harness and storage. Malformed ids and failed storage queries retain their ordinary errors; no replacement is created. |
@@ -1260,6 +1273,18 @@ then `status`. 401 `AUTH`, 429 `RATE_LIMIT`, 500 `SERVER` and 400 `INVALID_REQUE
 were observed from a scripted provider; a 402 arrives as `PI_AI_ERROR` with its status
 only in prose and stays `unknown`. An unknown model or effort is refused at open
 through `llm.resolveCallConfig`. [Table](../runtimes/dsh.md#records).
+
+### factory
+
+`agent_turn_completed.reason` is droid's own classification and decides first:
+`model_usage_exhausted` → `quota`, `model_rate_limited` → `rate_limited`,
+`model_authentication_failed` → `auth`, `model_request_rejected` and
+`prompt_rejected` → `invalid_request`, `model_provider_unreachable` and
+`model_provider_unavailable` → `provider`, `structured_output_*` →
+`output_schema`, `process_exit` → `runtime_exited`. Any other failing reason
+is classified from droid's last `error` notification of the turn, which is
+also the `reason` text. A scripted 401 ended `model_authentication_failed`
+with `error` "401 Invalid synthetic key". [Mapping](../runtimes/factory.md#failures).
 
 ### Where a class can come from
 

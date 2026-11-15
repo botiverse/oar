@@ -119,6 +119,15 @@ OAR (**O**pen **A**gent **R**untime) is a provider-independent programming inter
         DeepSeek Harness
       </a>
     </td>
+    <td align="center" width="112">
+      <a href="docs/runtimes/factory.md">
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="packages/oar/assets/brands/factory.svg">
+          <img src="packages/oar/assets/brands/factory.svg" width="32" height="32" alt="">
+        </picture><br>
+        Factory Droid
+      </a>
+    </td>
   </tr>
   <tr>
     <td align="center" width="112">

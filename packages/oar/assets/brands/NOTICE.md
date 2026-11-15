@@ -7,6 +7,8 @@ Brand names and marks belong to their respective owners.
 
 Mister Morph: `app_logo_dark.svg` from the Mister Morph website (quailyquaily/mistermorph-website, `public/`), the project's own mark. `morph-on-dark.svg` swaps its two colors (#1F1F1F and white) for dark backgrounds.
 
+Factory Droid: https://factory.com/favicon.svg (retrieved 2026-11-15), unmodified official site asset for identification. Factory branding belongs to its owner; the LobeHub MIT license below does not cover this asset. It carries its own dark background and is used on both backgrounds.
+
 Pi: https://pi.dev/logo-on-dark.svg (retrieved 2026-09-16), unmodified official site asset for identification on dark backgrounds. Pi branding belongs to its respective owner; the LobeHub MIT license below does not cover this asset.
 
 ## Theme variants

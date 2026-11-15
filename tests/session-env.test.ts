@@ -9,6 +9,7 @@ import { eventually, fakeAgent, fakeAgentBinary } from "./fixtures/process-tree.
 import { allRuntimes } from "../sea-trial/harness/runtimes.js";
 
 const fakeDsh = path.resolve(import.meta.dirname, "fixtures/fake-dsh.mjs");
+const fakeDroid = path.resolve(import.meta.dirname, "fixtures/fake-droid.mjs");
 
 const capture = new URL("fixtures/env-capture.mjs", import.meta.url).href;
 const runtimes = allRuntimes.list().filter((runtime) => runtime.id !== "pi" && runtime.id !== "cursor");
@@ -22,7 +23,8 @@ test.each(runtimes)("$id: deletion and overrides reach the runtime and its tools
     vi.stubEnv(key, "inherited");
   }
   const env: SessionOptions["env"] = { OAR_ENV_CAPTURE_PATH: file, OAR_ENV_REMOVE: null, OAR_ENV_OVERRIDE: "replacement", OAR_ENV_EMPTY: "" };
-  const command = fakeAgentBinary(dir, id === "dsh" ? ["--import", capture, fakeDsh] : ["--import", capture, ["claude", "codex", "qwen", "qoder"].includes(id) ? fakeAgent : acpFixture, "session"]);
+  const entries: Readonly<Record<string, readonly string[]>> = { dsh: ["--import", capture, fakeDsh], factory: ["--import", capture, fakeDroid] };
+  const command = fakeAgentBinary(dir, entries[id] ?? ["--import", capture, ["claude", "codex", "qwen", "qoder"].includes(id) ? fakeAgent : acpFixture, "session"]);
   try {
     // Fixtures emulate their stated protocol and do not implement a CLI version command.
     const session = await open({ kind: "available", via: "executable", command, ...(id === "opencode" ? { version: "1.18.35" } : {}), ...(id === "qoder" ? { version: "1.1.80" } : {}), ...(id === "dsh" ? { version: "0.2.1-rc.5" } : {}) }, { cwd: dir, env });

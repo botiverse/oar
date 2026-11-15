@@ -167,7 +167,7 @@ consistent. Login and logout confirmation queries receive that map too.
 OAR-owned overrides still win, including browser suppression and Claude's
 `CLAUDECODE` removal.
 
-Claude, Codex, CodeBuddy, Devin, Kimi and Qoder apply the overlay to their authentication processes.
+Claude, Codex, CodeBuddy, Devin, Factory, Kimi and Qoder apply the overlay to their authentication processes.
 Cursor's SDK runs in the host process by default: its three authentication
 methods then reject any nonempty `env` with `UnsupportedOptionError`
 (`option: "env"`) before loading the SDK, as its sessions do. An empty map is
@@ -375,6 +375,7 @@ declares no network, refresh or key-command execution. The
 | qwen | none: native `qwen auth` removed; configure a provider externally | local user/system credential presence; configured means `unknown`, absent in scope means `logged_out` with a workspace caveat | 0.26.2 source verified | status: 20 s |
 | devin | none: pipe `devin auth login` requires a TTY; `--force-manual-token-flow` exits `0` with `already logged in` when `credentials.toml` exists and `openScriptTerminal` is Linux-only; ACP `authenticate` (`devin-browser`) invokes the system browser without emitting a URL | `devin auth status` (exit 0 across states; `Not logged in.` and server-rejected keys logged out; corrupt credentials or unreachable server checks `unknown`; non-empty `WINDSURF_API_KEY` yields `unknown` with `configured: ["environment: WINDSURF_API_KEY"]`) | 3000.12.57 verified | status: 30 s |
 | grok | `grok login --device-auth` over pipes: relays the device code from its `accounts.x.ai` URL; Grok waits for the browser confirmation ([login](../runtimes/grok.md#login)) | `grok models` (`You are logged in with <method>.` logged in, with that method; `You are not authenticated.` logged out; neither `unknown`) | 1.0.77 verified | 15 min |
+| factory | droid's own ACP entry `droid exec --output-format acp`: `initialize` declaring `elicitation.url`, then `authenticate {methodId: "device-pairing"}`; relays the URL from `elicitation/create` as `auth_url`, accepts it, and droid polls until the person confirms ([login](../runtimes/factory.md#login)) | the same entry's `auth/status` (`unauthenticated` logged out; `authenticated` logged in; a `FACTORY_API_KEY` droid reports without checking it is `unknown` with that configured label) | 1.12.1 verified up to the URL; a real sign-in is not yet verified | 15 min |
 | opencode | none: OpenCode 2's per-provider sign-in is on `createOpencodeProviderAuth` | none | | |
 | pi | not yet | not yet | | |
 | dsh | none | none | | |
@@ -383,7 +384,7 @@ The [runtime pages](../runtimes/README.md) record each login path's caveats.
 Claude normally attempts to open a browser; from its login floor (2.1.126),
 `openBrowser: false` overrides `BROWSER` only for its login child process,
 using a harmless executable. Codex's device-code login
-never opens one, and OAR always passes `openBrowser: false` to Cursor's SDK,
+never opens one, nor does Factory's device pairing (droid hands the URL to OAR), and OAR always passes `openBrowser: false` to Cursor's SDK,
 regardless of this option. Qoder suppresses its browser with a per-login
 `BROWSER=www-browser` override. CodeBuddy uses a login-only `BROWSER=true`
 override on POSIX and `<SystemRoot>/System32/hostname.exe` on Windows; its native
@@ -471,6 +472,7 @@ runtime oar does not sign in.
 | kimi | ACP `initialize` then `logout`; reads authentication again afterward | removes the native credential slot and managed model configuration; no server-side revocation | 2.3.3 verified | 60 s |
 | antigravity | ACP `initialize` then `logout`; reads `agy models` afterward | removes its stored token file; server-side revocation not observed | 1.5.5 verified | 60 s |
 | grok | `grok logout`, stdin closed; reads `grok models` afterward | clears its cached sign-in; server-side revocation not observed | 1.0.77 verified | 60 s |
+| factory | ACP `initialize` then `logout`; reads `auth/status` afterward; a set `FACTORY_API_KEY` is `still_logged_in` | clears droid's stored sign-in; server-side revocation not observed | 1.12.1 verified (signed out) | 30 s |
 | codebuddy | stream-json control request `{subtype: "logout"}`; reads `initialize.account` afterward | clears the local sign-in; no server-side revocation | 2.183.0 verified | 60 s |
 | devin, dsh, opencode, pi, qoder, qwen | no `logout` (pi's provider logouts are on `createPiProviderAuth`, OpenCode 2's on `createOpencodeProviderAuth`; qoder signs out only in its interactive UI) | | | |
 

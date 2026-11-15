@@ -12,6 +12,7 @@ test("the declarations say how a running session takes a change to an MCP server
     cursor: null,
     devin: null,
     dsh: null,
+    factory: null,
     grok: "none",
     kimi: "none",
     opencode: "full",

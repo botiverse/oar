@@ -155,6 +155,14 @@ loopback route, plus native vendor tests with a scripted provider for held strea
 provider errors and native tools. It runs in Linux, macOS and Windows pull-request CI,
 pinned to 0.2.1-rc.5. See [its page](../docs/runtimes/dsh.md) for what has run where.
 
+Factory droid uses `OAR_TEST=factory-aimock`: the real `droid exec` stream-jsonrpc
+with a fresh HOME whose only model is a custom (BYOK) model served by aimock, so
+whole turns run with no Factory login. droid also asks that model for a session
+title on a session's first message. Native vendor tests pin steering, interrupt
+drops, permissions, MCP, provider failures and model/effort refusals. It runs in
+Linux and macOS pull-request CI, pinned to droid 1.12.1; Windows is not yet
+verified. See [its page](../docs/runtimes/factory.md).
+
 `OAR_TEST=opencode-shared` runs the session behavior suite through the real
 experimental OpenCode 2.2.5 adapter with a local provider; public production
 admission remains closed. Each fresh session

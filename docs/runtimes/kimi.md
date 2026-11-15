@@ -653,7 +653,9 @@ no such provider is `unsupported/auth_configuration_unavailable`, non-file
 credential storage `unsupported/unsupported_auth_storage`, a run that times
 out rejects), reads the stored OAuth token as-is (never refreshed), and calls
 the `/usages` and `/me` endpoints; 401/403 or an absent credential file read
-`reauth_required`, 404 `unsupported`. File I/O errors, malformed credential
+`reauth_required`, 404 `unsupported`. A stored token that cannot be an HTTP
+header value is refused before any request without quoting it, and a failed
+request keeps no fetch error as its cause (fetch errors can quote headers). File I/O errors, malformed credential
 contents, unreadable response bodies and invalid quota responses reject with
 safe reasons. Damaged quota windows are omitted rather than read as zero
 usage; if none remain, the read fails. Malformed Extra Usage data cannot

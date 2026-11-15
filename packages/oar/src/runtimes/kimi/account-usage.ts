@@ -7,6 +7,7 @@ import type {
 } from "../../contracts/account-usage.js";
 import { utcInstantFromDate } from "../../shared/instant.js";
 import { remainingMs } from "../../shared/deadline.js";
+import { credentialHeaderValue, requestFailure } from "../../shared/credential-http.js";
 import { asNumber, asRecord, parseJson } from "../../shared/json.js";
 import { KIMI_USAGE, resolveKimiAuth, type KimiAuthContext } from "./auth-config.js";
 import { KimiReauthError, storedKimiAccessToken } from "./oauth-token.js";
@@ -226,7 +227,8 @@ async function fetchUsage(
       signal: AbortSignal.timeout(remainingMs(deadline, KIMI_USAGE)),
     });
   } catch (error) {
-    throw new Error("Failed to reach Kimi usage endpoint", { cause: error });
+    // Not the cause: fetch's errors can quote the Authorization header.
+    throw requestFailure("Failed to reach Kimi usage endpoint", error);
   }
 }
 
@@ -254,7 +256,7 @@ export const kimiAccountUsage: AccountUsageReader = async (installation, options
     return { kind: "unsupported", reason: "unsupported_auth_storage" };
   }
   try {
-    const accessToken = await storedKimiAccessToken(auth);
+    const accessToken = credentialHeaderValue(await storedKimiAccessToken(auth), "Kimi's stored access token");
     const [response, identity] = await Promise.all([
       fetchUsage(auth, accessToken, deadline),
       fetchKimiAccountIdentity(auth, accessToken, deadline),
