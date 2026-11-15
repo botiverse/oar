@@ -34,8 +34,8 @@ opencode, antigravity, devin and dsh), so a host that tries a resume in B and fa
 back to a handoff on refusal never runs in a directory it did not ask for.
 For ACP directory guards and DSH's different-directory refusal, OAR throws the
 public `ResumeCwdError`, a subclass of `UnsupportedOptionError` with
-`option: "cwd"`. Existing `instanceof UnsupportedOptionError` checks still
-work and the messages are unchanged
+`option: "cwd"`. Its `name` stays `"UnsupportedOptionError"`, so existing
+`instanceof` checks and checks by name still work, and the messages are unchanged
 ([refused session options](../spec/runtime-matrix.md#conditional-refusals)).
 
 The error carries `sessionId`, `requestedCwd`, and `reason`. `savedCwd` is

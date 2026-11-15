@@ -87,7 +87,7 @@ describe.skipIf(process.env.OAR_TEST !== "antigravity-aimock")("agy native ACP",
       session = await antigravityRuntime.session(installation, { cwd, env: env.env });
       const unprompted = session.id;
       await session.dispose();
-      await expect(antigravityRuntime.session(installation, { cwd: extra, env: env.env, resume: unprompted })).rejects.toMatchObject({ name: "ResumeCwdError", option: "cwd", reason: "not_listed", sessionId: unprompted, requestedCwd: extra });
+      await expect(antigravityRuntime.session(installation, { cwd: extra, env: env.env, resume: unprompted })).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "cwd", reason: "not_listed", sessionId: unprompted, requestedCwd: extra });
       expect(env.raw).toHaveLength(0);
       session = await antigravityRuntime.session(installation, { cwd, env: env.env });
       expect(await promptAndWait(session, "AGY_WORKSPACE_INITIAL")).toMatchObject({ kind: "ended", outcome: { kind: "completed" } });
@@ -95,7 +95,7 @@ describe.skipIf(process.env.OAR_TEST !== "antigravity-aimock")("agy native ACP",
       await session.dispose();
       const before = env.raw.length;
       // oxlint-disable-next-line typescript/no-unsafe-assignment -- Vitest asymmetric matcher for the runtime-reported path spelling.
-      await expect(antigravityRuntime.session(installation, { cwd: extra, env: env.env, resume: id })).rejects.toMatchObject({ name: "ResumeCwdError", option: "cwd", reason: "other_cwd", sessionId: id, requestedCwd: extra, savedCwd: expect.any(String) });
+      await expect(antigravityRuntime.session(installation, { cwd: extra, env: env.env, resume: id })).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "cwd", reason: "other_cwd", sessionId: id, requestedCwd: extra, savedCwd: expect.any(String) });
       expect(env.raw).toHaveLength(before);
       session = await antigravityRuntime.session(installation, { cwd, env: env.env, resume: id });
       expect(await promptAndWait(session, "AGY_WORKSPACE_RESUME")).toMatchObject({ kind: "ended", outcome: { kind: "completed" } });
@@ -106,7 +106,7 @@ describe.skipIf(process.env.OAR_TEST !== "antigravity-aimock")("agy native ACP",
       assert.ok(nativeCwd !== undefined, "Native system instructions must report the command cwd");
       // macOS resolves /var to /private/var; Windows paths must not be JSON-escaped.
       expect(sameDirectory(nativeCwd, cwd)).toBe(true);
-      await expect(antigravityRuntime.session(installation, { cwd, env: env.env, resume: "oar-missing-session" })).rejects.toMatchObject({ name: "ResumeCwdError", option: "cwd", reason: "not_listed", sessionId: "oar-missing-session", requestedCwd: cwd });
+      await expect(antigravityRuntime.session(installation, { cwd, env: env.env, resume: "oar-missing-session" })).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "cwd", reason: "not_listed", sessionId: "oar-missing-session", requestedCwd: cwd });
     } finally { await session?.dispose(); await env.stop(); }
   }, 60_000);
 });

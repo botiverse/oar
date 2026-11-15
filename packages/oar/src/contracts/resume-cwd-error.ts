@@ -19,12 +19,15 @@ type ResumeCwdDetails = {
  * See docs/runtimes/resume-cwd.md.
  */
 export class ResumeCwdError extends UnsupportedOptionError {
-  override readonly name = "ResumeCwdError";
+  // Keeps the base name: hosts that recognize the refusal by `name` (for
+  // example after serialization) must still see an UnsupportedOptionError.
+  // Tell it apart with `instanceof ResumeCwdError` or its `reason`.
   readonly sessionId: string;
   readonly requestedCwd: string;
   readonly reason: ResumeCwdReason;
   declare readonly savedCwd?: string;
 
+  // oxlint-disable-next-line unicorn/custom-error-definition -- The name stays the base class name on purpose (see above).
   constructor(message: string, details: ResumeCwdDetails) {
     super("cwd", message);
     this.sessionId = details.sessionId;

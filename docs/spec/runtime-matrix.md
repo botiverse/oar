@@ -727,7 +727,8 @@ the one their `session/list` says the session lives in (option `cwd`): they
 would run the session in its own directory instead, and only the runtime
 knows that directory. Their directory guard throws the public
 `ResumeCwdError`, extending `UnsupportedOptionError` with `option: "cwd"`
-and the original message. It carries `sessionId`, `requestedCwd` and a typed
+and the original message; its `name` stays `"UnsupportedOptionError"`. It
+carries `sessionId`, `requestedCwd` and a typed
 `reason`; only `other_cwd` includes `savedCwd`.
 
 | Directory check | `ResumeCwdError.reason` |

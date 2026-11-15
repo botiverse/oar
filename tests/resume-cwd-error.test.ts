@@ -10,6 +10,8 @@ test("root and portable entries share the resume-cwd class and its existing base
   expect(error).toBeInstanceOf(UnsupportedOptionError);
   expect(error).not.toHaveProperty("savedCwd");
   expect(error.message).toBe("original message");
+  // Hosts that match on `name` (serialized errors) keep recognizing the refusal.
+  expect(error.name).toBe("UnsupportedOptionError");
 });
 
 test("redaction and cleanup preserve the refusal type and protect each path and id", () => {
@@ -21,7 +23,7 @@ test("redaction and cleanup preserve the refusal type and protect each path and 
   const redacted = clean(appendCleanupFailure(original, "cleanup incomplete"));
   expect(redacted).toBeInstanceOf(ResumeCwdError);
   expect(redacted).toBeInstanceOf(UnsupportedOptionError);
-  expect(redacted).toMatchObject({ name: "ResumeCwdError", option: "cwd", sessionId: "[redacted]", reason: "other_cwd",
+  expect(redacted).toMatchObject({ name: "UnsupportedOptionError", option: "cwd", sessionId: "[redacted]", reason: "other_cwd",
     requestedCwd: "/requested/[redacted]", savedCwd: "/saved/[redacted]", message: "cannot resume [redacted]; cleanup incomplete" });
   expect(JSON.stringify(redacted)).not.toContain(secret);
   expect(original.sessionId).toBe(secret);
