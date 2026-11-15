@@ -1,44 +1,38 @@
-import type { AgentEvent, AgentState, EntryRecord, SnapshotEvent, SubmissionId, SubmissionRecord, UsageState } from "@earendil-works/pi-durable";
+import type { AgentState, ConversationView, EntryRecord, LiveState, NestedToolSlot, SubmissionId, SubmissionRecord, ToolSlot, UsageState, WatchCall } from "@earendil-works/pi-durable";
 import type { FrameBody, RuntimeEventBody, TokenTotals, TurnOutcome } from "../../contracts/session.js";
 import { classifyFailure } from "../../shared/failure-class.js";
 import { toolContent } from "../../shared/tool-output.js";
-import { asRecord } from "../../shared/json.js";
 import { addTokens, subtractTokens } from "../../shared/token-totals.js";
-import { foldPiEvent, initialPiProjection } from "../pi/projection.js";
-import { emptyMessage, messageChanges, wholeMessage, type MessageProjection } from "./messages.js";
+import { emptyMessage, wholeMessage, type MessageProjection } from "./messages.js";
 
 export interface DurableProjection {
+  readonly view: ConversationView;
   readonly message: MessageProjection;
   readonly baseline: TokenTotals;
-  readonly submissions: ReadonlyMap<number, SubmissionRecord>;
-  readonly run: readonly SubmissionId[];
-  readonly tools: ReadonlyMap<string, string>;
+  readonly runInputs: readonly SubmissionId[];
+}
+
+// These built-in documents are materialized by the native Harness using its
+// own versioned definitions before it publishes a ConversationView.
+export function liveOf(view: ConversationView): LiveState { return view.docs["pi.live"] ?? {}; }
+function agentOf(view: ConversationView): AgentState { return view.docs["pi.agent"] ?? {}; }
+function usageOf(view: ConversationView): UsageState {
+  const usage = view.docs["pi.usage"];
+  return hasUsageLedgers(usage) ? usage : { models: {}, tools: {} };
+}
+function hasUsageLedgers(value: ConversationView["docs"][string] | undefined): value is UsageState {
+  return value !== undefined && typeof value.models === "object" && value.models !== null && typeof value.tools === "object" && value.tools !== null;
 }
 
 function usageTotal(usage: UsageState): TokenTotals {
   return [...Object.values(usage.models), ...Object.values(usage.tools)].reduce<TokenTotals>((total, item) => addTokens(total, {
-    input: item.input + item.cacheRead + item.cacheWrite,
-    output: item.output,
-    cacheRead: item.cacheRead,
-    cacheWrite: item.cacheWrite,
+    input: item.input + item.cacheRead + item.cacheWrite, output: item.output, cacheRead: item.cacheRead, cacheWrite: item.cacheWrite,
     ...(item.reasoning === undefined ? {} : { reasoning: item.reasoning }),
   }), { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 });
 }
 
-export function initialDurableProjection(snapshot: SnapshotEvent): DurableProjection {
-  return { message: emptyMessage, baseline: usageTotal(snapshot.usage), submissions: new Map(), run: [], tools: new Map() };
-}
-
-function agentEvents(agent: AgentState): RuntimeEventBody[] {
-  return [
-    ...(agent.model === undefined ? [] : [{ kind: "model" as const, model: `${agent.model.provider}/${agent.model.modelId}` }]),
-    ...(agent.thinkingLevel === undefined ? [] : [{ kind: "effort" as const, effort: agent.thinkingLevel }]),
-  ];
-}
-
-function usageEvent(state: DurableProjection, usage: UsageState): RuntimeEventBody {
-  const total = usageTotal(usage);
-  return { kind: "usage", usage: { tokens: subtractTokens(total, state.baseline) } };
+export function initialDurableProjection(view: ConversationView): DurableProjection {
+  return { view, message: emptyMessage, baseline: usageTotal(usageOf(view)), runInputs: liveOf(view).run?.inputs ?? [] };
 }
 
 /** The native run's terminal submission receipts, never the adapter's abort intent. */
@@ -52,107 +46,126 @@ export function submissionOutcome(records: readonly (SubmissionRecord | undefine
   return records.length > 0 && records.every((record) => record?.status === "done") ? { kind: "completed" } : undefined;
 }
 
-function entryEvents(state: DurableProjection, entry: EntryRecord): { readonly state: DurableProjection; readonly events: readonly RuntimeEventBody[] } {
-  let messageState = state.message;
+function settingsEvents(previous: DurableProjection, view: ConversationView, initial: boolean): RuntimeEventBody[] {
+  const agent = agentOf(view);
+  const before = agentOf(previous.view);
+  return [
+    ...(agent.model !== undefined && (initial || JSON.stringify(agent.model) !== JSON.stringify(before.model)) ? [{ kind: "model" as const, model: `${agent.model.provider}/${agent.model.modelId}` }] : []),
+    ...(agent.thinkingLevel !== undefined && (initial || agent.thinkingLevel !== before.thinkingLevel) ? [{ kind: "effort" as const, effort: agent.thinkingLevel }] : []),
+    { kind: "usage", usage: { tokens: subtractTokens(usageTotal(usageOf(view)), previous.baseline) } },
+  ];
+}
+
+function slots(view: ConversationView): readonly (ToolSlot | NestedToolSlot)[] {
+  const live = liveOf(view);
+  return [...live.tools ?? [], ...live.nestedTools ?? []];
+}
+
+function toolArguments(slot: ToolSlot | NestedToolSlot, view: ConversationView): unknown {
+  if ("arguments" in slot) { return slot.arguments; }
+  const block = view.entries.flatMap(entry => entry.model ?? []).flatMap(message => message.role === "assistant" ? message.content : [])
+    .find(item => item.type === "toolCall" && item.id === slot.callId);
+  return block?.type === "toolCall" ? block.arguments : undefined;
+}
+
+function toolEvents(previous: ConversationView, view: ConversationView, entries: readonly EntryRecord[], initial: boolean): RuntimeEventBody[] {
+  const before = new Map((initial ? [] : slots(previous)).map(slot => [slot.callId, slot]));
   const events: RuntimeEventBody[] = [];
-  for (const message of entry.model ?? []) {
-    if (message.role === "assistant") {
-      const next = wholeMessage(messageState, message);
-      events.push(...next.events);
-      messageState = emptyMessage;
-    } else if (message.role === "user") {
-      const input = typeof message.content === "string" ? message.content : message.content.filter((block) => block.type === "text").map((block) => block.text).join("");
-      const submission = [...state.submissions.values()].find((record) => record.entry === entry.id);
-      events.push({ kind: "user_message", input, nativeMessageId: String(entry.id), evidence: "conversation", ...(submission?.requestId === undefined ? {} : { inputId: submission.requestId }) });
+  for (const slot of slots(view)) {
+    const candidate = before.get(slot.callId);
+    const prior = candidate?.taskId === slot.taskId ? candidate : undefined;
+    if (slot.status === "pending" || (initial && slot.status === "done")) { continue; }
+    if (prior === undefined || prior.status === "pending") {
+      const args = toolArguments(slot, view);
+      events.push({ kind: "tool_call_started", callId: slot.callId, tool: slot.name,
+        ...(args === undefined ? {} : { arguments: args }) });
     }
-  }
-  return { state: { ...state, message: messageState }, events };
-}
-
-function snapshotEvents(state: DurableProjection, event: SnapshotEvent): { readonly state: DurableProjection; readonly events: readonly RuntimeEventBody[] } {
-  const tools = [...event.tools, ...event.nestedTools];
-  const partial = event.generation?.message;
-  const next = partial === undefined ? { state: emptyMessage, events: [] } : wholeMessage(state.message, partial);
-  return { state: { ...state, message: next.state, run: event.run?.inputs ?? [], tools: new Map(tools.filter((tool) => tool.status === "running").map((tool) => [tool.callId, tool.output ?? ""])) }, events: [
-    ...agentEvents(event.agent),
-    ...(event.run === undefined ? [] : [{ kind: "turn_active" as const }]),
-    ...next.events,
-    ...tools.filter((tool) => tool.status === "running" && !state.tools.has(tool.callId)).map((tool) => ({ kind: "tool_call_started" as const, callId: tool.callId, tool: tool.name })),
-    ...tools.flatMap((tool) => tool.status === "running" && tool.output !== undefined ? [{ kind: "tool_call_progress" as const, callId: tool.callId, output: tool.output }] : []),
-    usageEvent(state, event.usage),
-  ] };
-}
-
-function step(state: DurableProjection, event: AgentEvent): { readonly state: DurableProjection; readonly events: readonly RuntimeEventBody[] } {
-  switch (event.type) {
-    case "snapshot": return snapshotEvents(state, event);
-    case "run_start": return { state: { ...state, run: event.inputs }, events: [{ kind: "turn_active" }] };
-    case "run_end": {
-      const outcome = submissionOutcome(event.inputs.map((id) => state.submissions.get(id)));
-      return { state: { ...state, run: [] }, events: outcome === undefined ? [] : [{ kind: "turn_ended", outcome }] };
+    if (slot.status === "running" && slot.output !== undefined && slot.output !== prior?.output) {
+      events.push({ kind: "tool_call_progress", callId: slot.callId, output: slot.output });
     }
-    case "message_start": {
-      if (event.message.role !== "assistant") { return { state, events: [] }; }
-      const next = wholeMessage(emptyMessage, event.message);
-      return { state: { ...state, message: next.state }, events: next.events };
-    }
-    case "message_update": {
-      const next = messageChanges(state.message, event.changes);
-      return { state: { ...state, message: next.state }, events: next.events };
-    }
-    case "message_end": return entryEvents(state, event.entry);
-    case "tool_execution_start":
-      // This native event has precisely the coding SDK's shape. Reuse its pure reading,
-      // while the frame below always retains the original durable batch.
-      return { state: { ...state, tools: new Map(state.tools).set(event.toolCallId, "") }, events: foldPiEvent(initialPiProjection, event).commands.flatMap((command) => command.body.events) };
-    case "tool_execution_update": {
-      const before = state.tools.get(event.toolCallId) ?? "";
-      const output = event.output === undefined ? before : ("set" in event.output ? event.output.set : before.slice(event.output.trimStart ?? 0) + (event.output.append ?? ""));
-      return { state: { ...state, tools: new Map(state.tools).set(event.toolCallId, output) }, events: [{ kind: "tool_call_progress", callId: event.toolCallId, output }] };
-    }
-    case "tool_execution_end": {
-      const result = event.entry?.model?.find((message) => message.role === "toolResult");
-      const outcome = result ?? event.result;
-      const tools = new Map(state.tools);
-      tools.delete(event.toolCallId);
+    if (slot.status === "done" && prior?.status !== "done") {
+      const entry = "entry" in slot ? [...entries, ...view.entries].find(item => item.id === slot.entry) : undefined;
+      const result = entry?.model?.find(message => message.role === "toolResult");
+      const summary = "summary" in slot ? slot.summary : undefined;
+      const outcome = result ?? summary;
       const content = result === undefined ? undefined : toolContent(result.content);
-      // CodingTools' programmatic result is exposed on nested calls only.
-      // A model-issued call's entry omits it; diagnostic text is not an exit
-      // status. Preserve the reported number without interpreting it.
-      const exit = asRecord(event.result?.structuredOutput)?.exitCode;
-      const exitCode = typeof exit === "number" ? exit : undefined;
-      return { state: { ...state, tools }, events: [{ kind: "tool_call_ended", callId: event.toolCallId,
-        ...(content === undefined ? {} : { content }), ...(outcome === undefined ? {} : { result: outcome.isError ? "failed" : "ok" }),
-        ...(exitCode === undefined ? {} : { exitCode }) }] };
+      events.push({ kind: "tool_call_ended", callId: slot.callId,
+        ...(content === undefined ? {} : { content }),
+        ...(outcome === undefined ? {} : { result: (outcome.isError ? "failed" : "ok") }) });
     }
-    case "agent_changed": return { state, events: agentEvents(event.agent) };
-    case "usage_changed": return { state, events: [usageEvent(state, event.usage)] };
-    case "auto_retry_start": return { state, events: [{ kind: "retry", attempt: event.attempt, reason: event.errorMessage }] };
-    case "submission": return { state, events: [] };
-    case "compaction_start": return { state, events: event.blocking ? [{ kind: "compaction_started", trigger: event.reason }] : [] };
-    // Compaction receipts, including native error text, stay in the raw batch.
-    case "compaction_end":
-    case "turn_start":
-    case "turn_end":
-    case "inbox_update":
-    case "auto_retry_end":
-    case "deferred_poll":
-    case "entry_appended":
-    case "task_failed": return { state, events: [] };
   }
-  return { state, events: [] };
+  return events;
 }
 
-/** One complete native commit batch becomes one frame, including empty or unknown-only batches. */
-export function foldDurableBatch(previous: DurableProjection, native: readonly AgentEvent[]): { readonly state: DurableProjection; readonly frame: FrameBody } {
-  const submissions = new Map(previous.submissions);
-  for (const event of native) { if (event.type === "submission") { submissions.set(event.record.id, event.record); } }
-  let state = { ...previous, submissions };
+function entryEvents(previous: DurableProjection, entries: readonly EntryRecord[], inputs: readonly SubmissionRecord[]): { readonly message: MessageProjection; readonly events: RuntimeEventBody[] } {
+  let message = previous.message;
   const events: RuntimeEventBody[] = [];
-  for (const event of native) {
-    const next = step(state, event);
-    state = { ...next.state, submissions };
-    events.push(...next.events);
+  for (const entry of entries) {
+    for (const value of entry.model ?? []) {
+      if (value.role === "assistant") {
+        const current = entry.byTaskId === liveOf(previous.view).run?.taskId;
+        events.push(...wholeMessage(current ? message : emptyMessage, value).events);
+        if (current) { message = emptyMessage; }
+      } else if (value.role === "user") {
+        const input = typeof value.content === "string" ? value.content : value.content.filter(block => block.type === "text").map(block => block.text).join("");
+        const submission = inputs.find(record => record.entry === entry.id);
+        events.push({ kind: "user_message", input, nativeMessageId: String(entry.id), evidence: "conversation",
+          ...(submission?.requestId === undefined ? {} : { inputId: submission.requestId }) });
+      }
+    }
   }
-  return { state, frame: { type: "pi-durable/events", native, events } };
+  return { message, events };
+}
+
+/** Entry appends remain in the native ops even when the view immediately trims its window. */
+export function appendedEntries(previous: ConversationView, call: Extract<WatchCall<ConversationView>, { kind: "value" }>): readonly EntryRecord[] {
+  const appended = nativeEntryAppends(call);
+  if (appended.length > 0) { return appended; }
+  const last = previous.entries.at(-1)?.id ?? previous.before ?? 0;
+  return call.value.entries.filter(entry => entry.id > last);
+}
+
+function nativeEntryAppends(call: Extract<WatchCall<ConversationView>, { kind: "value" }>): readonly EntryRecord[] {
+  // The native conversation mount inserts EntryRecords at this exact path,
+  // before a separate splice trims the window. Keep those original entries.
+  return call.ops.flatMap(op => op[0] === "p" && op[1].length === 1 && op[1][0] === "entries" ? op[4].flatMap<EntryRecord>(value => isEntry(value) ? [value] : []) : []);
+}
+
+function isEntry(value: unknown): value is EntryRecord {
+  return typeof value === "object" && value !== null && "id" in value && Number.isSafeInteger(value.id)
+    && "conversationId" in value && Number.isSafeInteger(value.conversationId) && "kind" in value && typeof value.kind === "string";
+}
+
+export function runEnded(previous: DurableProjection, call: Extract<WatchCall<ConversationView>, { kind: "value" }>): boolean {
+  const before = liveOf(previous.view).run;
+  // A final boundary can delete the old run and start the queued run in one
+  // publication. A generation handover only changes run.taskId, not the run.
+  const removed = call.ops.some(op => op[0] === "d" && op[1].length === 3 && op[1][0] === "docs" && op[1][1] === "pi.live" && op[1][2] === "run");
+  return before !== undefined && (liveOf(call.value).run === undefined || removed);
+}
+
+/** One native state notification is one frame. No old AgentEvent is synthesized. */
+export function foldDurableView(previous: DurableProjection, native: Extract<WatchCall<ConversationView>, { kind: "value" }>, inputs: readonly SubmissionRecord[] = [], initial = false, outcome?: TurnOutcome): { readonly state: DurableProjection; readonly frame: FrameBody } {
+  const view = native.value;
+  const live = liveOf(view);
+  const before = liveOf(previous.view);
+  const entries = initial ? [] : appendedEntries(previous.view, native);
+  const entry = entryEvents(previous, entries, inputs);
+  const message = live.generation?.message;
+  const sameGeneration = before.run?.taskId === live.run?.taskId && before.generation?.attempt === live.generation?.attempt;
+  const nextMessage = message === undefined ? { state: emptyMessage, events: [] } : wholeMessage(sameGeneration ? entry.message : emptyMessage, message);
+  const newRun = live.run !== undefined && (initial || before.run === undefined || runEnded(previous, native));
+  const oldCompactions = initial ? [] : before.compactions ?? [];
+  const retry = live.generation?.retry;
+  const events: RuntimeEventBody[] = [
+    ...settingsEvents(previous, view, initial),
+    ...entry.events,
+    ...(outcome === undefined ? [] : [{ kind: "turn_ended" as const, outcome }]),
+    ...(newRun ? [{ kind: "turn_active" as const }] : []),
+    ...nextMessage.events, ...toolEvents(previous.view, view, entries, initial),
+    ...(live.compactions ?? []).flatMap(item => item.blocking && !oldCompactions.some(prior => prior.taskId === item.taskId) ? [{ kind: "compaction_started" as const, trigger: item.trigger }] : []),
+    ...(retry !== undefined && (initial || retry.at !== before.generation?.retry?.at) ? [{ kind: "retry" as const, attempt: live.generation?.attempt ?? 0, reason: retry.error }] : []),
+  ];
+  const runInputs = newRun ? live.run?.inputs ?? [] : (live.run === undefined ? [] : [...new Set([...previous.runInputs, ...live.run.inputs])]);
+  return { state: { view, message: nextMessage.state, baseline: previous.baseline, runInputs }, frame: { type: initial ? "snapshot" : "pi-durable/view", native, events } };
 }

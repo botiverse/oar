@@ -1,5 +1,6 @@
 /**
- * Probe the native restart limit with real process deaths and JSONL recovery.
+ * Probe Pi Durable 1.5.2 restart settlement with real process deaths and JSONL recovery.
+ * The 1.4 parking/retryTask probe remains in git history; those native APIs are gone.
  * No credentials or provider network calls. Kills only its own child processes.
  * Run: pnpm tsx experiments/pi-durable-parked-task.ts
  */
@@ -13,7 +14,7 @@ import { join } from "node:path";
 import { BACKGROUND_CONTEXT as context } from "@earendil-works/chord/context";
 import { createModels } from "@earendil-works/pi-ai-durable/models";
 import { fauxAssistantMessage, fauxProvider, type FauxProviderHandle } from "@earendil-works/pi-ai-durable/providers/faux";
-import { createRegistry, Harness, watchEvents, type ReportInfo } from "@earendil-works/pi-durable";
+import { createRegistry, Harness, type Report } from "@earendil-works/pi-durable";
 import { openNodeJsonlStorage } from "@earendil-works/pi-durable/storage/jsonl/node";
 import { createPiDurableRuntime } from "../packages/oar/src/runtimes/pi-durable/index.js";
 
@@ -24,7 +25,7 @@ function provider(): { models: ReturnType<typeof createModels>; faux: FauxProvid
   return { models, faux };
 }
 
-async function interruptedChild(directory: string): Promise<never> {
+async function interruptedChild(directory: string): Promise<void> {
   const { models, faux } = provider();
   faux.setResponses([async (): Promise<ReturnType<typeof fauxAssistantMessage>> => {
     process.stdout.write("provider_started\n");
@@ -36,22 +37,24 @@ async function interruptedChild(directory: string): Promise<never> {
   // Same durable input on every restart, so no new runs or submissions are created.
   await conversation.submit({ type: "input", requestId: "interrupted", content: "Stay pending", whenBusy: "reject" }, context);
   harness.resume();
-  process.stdin.resume();
-  return Promise.withResolvers<never>().promise;
+  await harness.waitForIdle(context);
+  const submission = await conversation.submit({ type: "input", requestId: "interrupted", content: "duplicate" }, context);
+  process.stdout.write(`${JSON.stringify({ terminal: await submission.status(context) })}\n`);
+  await harness.close(context);
 }
 
-async function killDuringGeneration(directory: string): Promise<void> {
+async function killDuringGeneration(directory: string): Promise<boolean> {
   const child = spawn(process.execPath, ["--import", "tsx", import.meta.filename, "--child", directory], { stdio: "pipe" });
   const closed = once(child, "close");
   let stdout = "";
   let stderr = "";
-  let interrupted = false;
+  const state = { interrupted: false };
   child.stdout.setEncoding("utf8");
   child.stderr.setEncoding("utf8");
   child.stdout.on("data", (chunk: string) => {
     stdout += chunk;
-    if (!interrupted && stdout.includes("provider_started\n")) {
-      interrupted = true;
+    if (!state.interrupted && stdout.includes("provider_started\n")) {
+      state.interrupted = true;
       child.kill("SIGKILL");
     }
   });
@@ -59,7 +62,9 @@ async function killDuringGeneration(directory: string): Promise<void> {
   const timeout = setTimeout(() => { child.kill("SIGKILL"); }, 15_000);
   try {
     await closed;
-    assert.ok(interrupted, `Child did not reach generation: code=${child.exitCode}, signal=${child.signalCode}, stderr=${stderr}`);
+    assert.ok(state.interrupted || (child.exitCode === 0 && stdout.includes('"terminal"')), `Child neither reached generation nor settled: code=${child.exitCode}, signal=${child.signalCode}, stdout=${stdout}, stderr=${stderr}`);
+    if (!state.interrupted) { process.stdout.write(stdout); }
+    return state.interrupted;
   } finally { clearTimeout(timeout); }
 }
 
@@ -67,52 +72,40 @@ async function probe(): Promise<void> {
   const directory = await mkdtemp(join(tmpdir(), "oar-durable-parked-"));
   let harness: Harness | undefined = undefined;
   try {
-    for (let i = 0; i < 5; i++) {
-      // oxlint-disable-next-line no-await-in-loop -- Each process reopens the storage left by the preceding crash.
-      await killDuringGeneration(directory);
+    let interruptions = 0;
+    for (let i = 0; i < 8; i++) {
+      // oxlint-disable-next-line no-await-in-loop -- Each restart observes the preceding process's persisted state.
+      if (!await killDuringGeneration(directory)) { break; }
+      interruptions += 1;
     }
+    assert.ok(interruptions > 0 && interruptions < 8, `No bounded native settlement after ${String(interruptions)} interruptions`);
     const { models, faux } = provider();
-    faux.setResponses([fauxAssistantMessage("Recovered after explicit host retry")]);
-    const reports: ReportInfo[] = [];
+    faux.setResponses([fauxAssistantMessage("Recovered with a new input")]);
+    const reports: Report[] = [];
     harness = await Harness.open(await openNodeJsonlStorage(directory, context), {
-      models, registry: createRegistry(), onReport: (_error, info) => { reports.push(info); },
+      models, registry: createRegistry(), onReport: report => { reports.push(report); },
     }, context);
     const conversation = await harness.root(context);
-    const inspection = await harness.inspect(context);
-    const parked = inspection.tasks.filter((task) => task.state.kind === "blocked" && task.state.reason === "restart_limit");
-    assert.equal(parked.length, 1, JSON.stringify(inspection));
-    const [task] = parked;
-    assert.ok(task);
-    assert.equal(task.record.restarts, 5);
-    assert.ok(reports.some((info) => info.type === "task_parked" && info.task.id === task.record.id), JSON.stringify(reports));
-    const watch = await watchEvents(harness, conversation.id, context);
-    assert.ok(watch.snapshot.run);
+    const watch = await conversation.watch(context);
+    const live = watch.value.docs["pi.live"];
     await watch.stop();
+    assert.equal(live?.run, undefined);
+    assert.notEqual(live?.runFailure, undefined);
     const runtime = createPiDurableRuntime({ harness, models });
     const session = await runtime.session({ kind: "available", via: "bundled" }, { cwd: "/virtual", resume: String(conversation.id) });
     try {
-      const attached = await harness.inspect(context);
-      assert.ok(attached.tasks.some((entry) => entry.record.id === task.record.id && entry.state.kind === "blocked" && entry.state.reason === "restart_limit"));
-      assert.equal(session.status().value.kind, "running");
+      assert.equal(session.status().value.kind, "idle");
       assert.equal(faux.state.callCount, 0);
-      const endedBeforeRetry = session.records().filter((record) => record.kind === "frame")
-        .flatMap((record) => record.body.events).filter((event) => event.kind === "turn_ended");
-      assert.equal(endedBeforeRetry.length, 0);
-      process.stdout.write(`${JSON.stringify({ phase: "parked", interruptions: 5, reports, tasks: parked.map((entry) => ({ kind: entry.record.kind, restarts: entry.record.restarts, state: entry.state })), snapshotHasRun: true, oarStatus: session.status().value.kind, oarTurnEnds: endedBeforeRetry.length, providerCalls: faux.state.callCount })}\n`);
-      await harness.retryTask(task.record.id, context);
+      const ends = session.records().flatMap(record => record.kind === "frame" ? record.body.events : []).filter(event => event.kind === "turn_ended");
+      assert.equal(ends.length, 0, "An attachment must not invent a new terminal turn from old history");
+      process.stdout.write(`${JSON.stringify({ phase: "settled", interruptions, live, oarStatus: session.status().value.kind, providerCalls: faux.state.callCount, reports })}\n`);
+      await session.prompt("new input after native failure");
       await harness.waitForIdle(context);
-      const completedWatch = await watchEvents(harness, conversation.id, context);
-      assert.equal(completedWatch.snapshot.run, undefined);
-      await completedWatch.stop();
-      // Opening a second observer reads the committed terminal state independently of listener delivery.
       const recovered = await runtime.session({ kind: "available", via: "bundled" }, { cwd: "/virtual", resume: session.id });
       try {
         assert.equal(recovered.status().value.kind, "idle");
         assert.equal(faux.state.callCount, 1);
-        const settled = await harness.inspect(context);
-        assert.equal(settled.tasks.length, 0, JSON.stringify(settled));
-        assert.equal(reports.filter((info) => info.type === "task_parked").length, 1);
-        process.stdout.write(`${JSON.stringify({ phase: "retried", snapshotHasRun: false, oarStatus: recovered.status().value.kind, providerCalls: faux.state.callCount, remainingTasks: settled.tasks.length, parkedReports: reports.length })}\n`);
+        process.stdout.write(`${JSON.stringify({ phase: "new_input", oarStatus: recovered.status().value.kind, providerCalls: faux.state.callCount })}\n`);
       } finally { await recovered.dispose(); }
     } finally { await session.dispose(); }
   } finally {

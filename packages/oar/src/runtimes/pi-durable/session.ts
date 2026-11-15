@@ -1,12 +1,12 @@
 import type { SessionOpenContext } from "../../contracts/placement.js";
 import { BACKGROUND_CONTEXT } from "@earendil-works/chord/context";
-import { watchEvents, type Conversation, type Harness, type SubmissionRecord, type WatchEnd } from "@earendil-works/pi-durable";
-import type { ControlResult, InputOptions, RequestRecord, ResponseBody, RuntimeEventBody, Session, SessionOptions } from "../../contracts/session.js";
+import { type Conversation, type ConversationView, type Harness, type SubmissionId, type SubmissionRecord, type WatchCall, type WatchEnd } from "@earendil-works/pi-durable";
+import type { ControlResult, InputOptions, RequestRecord, ResponseBody, RuntimeEventBody, Session, SessionOptions, TurnOutcome } from "../../contracts/session.js";
 import { createSessionKernel } from "../../shared/session-kernel.js";
 import { sealSession } from "../../shared/seal-session.js";
 import { statusOf } from "../../observe/agent-status.js";
 import { openConversation, type DurableModels } from "./options.js";
-import { foldDurableBatch, initialDurableProjection, submissionOutcome } from "./projection.js";
+import { appendedEntries, foldDurableView, initialDurableProjection, liveOf, runEnded, submissionOutcome } from "./projection.js";
 
 function settledOutcome(record: SubmissionRecord): readonly RuntimeEventBody[] {
   const outcome = submissionOutcome([record]);
@@ -20,7 +20,7 @@ function errorSummary(error: unknown): { readonly name: string; readonly message
 }
 
 function watchEndSummary(end: WatchEnd): unknown {
-  return "error" in end ? { reason: end.reason, error: errorSummary(end.error) } : end;
+  return "error" in end ? { kind: end.kind, error: errorSummary(end.error) } : end;
 }
 
 async function withdraw(harness: Harness, conversation: Conversation, inputId: string): Promise<ResponseBody> {
@@ -32,48 +32,101 @@ async function withdraw(harness: Harness, conversation: Conversation, inputId: s
 
 export async function piDurableSession(harness: Harness, models: DurableModels, options: SessionOptions, context?: SessionOpenContext): Promise<Session> {
   const conversation = await openConversation(harness, models, options);
-  const stream = await watchEvents(harness, conversation.id, BACKGROUND_CONTEXT);
   const kernel = createSessionKernel(String(conversation.id), undefined, options.retainedBytes);
   kernel.opened(context ?? { requested: "auto", placement: "in_process" });
-  let state = initialDurableProjection(stream.snapshot);
-  const initial = foldDurableBatch(state, [stream.snapshot]);
+  const pending: ({ readonly call: WatchCall<ConversationView> } | { readonly end: WatchEnd })[] = [];
+  let draining: Promise<void> | undefined = undefined;
+  let ready = false;
+  const schedule = (): void => {
+    if (!ready || draining !== undefined) { return; }
+    draining = drainScheduled();
+  };
+  async function drainScheduled(): Promise<void> {
+    await Promise.resolve();
+    try { await drain(); }
+    catch (error) {
+      observation.detach();
+      pending.length = 0;
+      kernel.frame({ type: "pi-durable/projection_error", native: errorSummary(error), events: [] });
+      kernel.respond("", { kind: "exited", code: null });
+    } finally { draining = undefined; if (pending.length > 0) { schedule(); } }
+  }
+  // A synchronous observer runs on the native transaction line. Only enqueue
+  // its immutable notification here: projection and native reads run later.
+  const observation = await harness.observeConversation(conversation.id, {
+    advance(call) { pending.push({ call }); schedule(); },
+    end(end) { pending.push({ end }); schedule(); },
+  }, BACKGROUND_CONTEXT);
+  let state = initialDurableProjection(observation.value);
+  const initial = foldDurableView(state, { kind: "value", value: observation.value, ops: [], retired: false }, [], true);
   state = initial.state;
-  kernel.frame({ ...initial.frame, type: "snapshot", native: stream.snapshot });
-  stream.start(async (events) => {
-    const priorRun = state.run;
-    const next = foldDurableBatch(state, events);
-    state = next.state;
-    kernel.frame(next.frame);
-    if (events.some((event) => event.type === "snapshot" && event.run === undefined) && priorRun.length > 0) {
-      try {
-        const native = await Promise.all(priorRun.map(async (id) => {
-          const handle = await harness.submission(id, BACKGROUND_CONTEXT);
-          return handle?.status(BACKGROUND_CONTEXT);
-        }));
-        const outcome = submissionOutcome(native);
-        kernel.frame({ type: "pi-durable/submissions", native, events: outcome === undefined ? [] : [{ kind: "turn_ended", outcome }] });
-      } catch (error) { kernel.frame({ type: "pi-durable/submissions_error", native: errorSummary(error), events: [] }); }
-    }
-  });
-  void (async (): Promise<void> => {
-    const native = await stream.closed;
-    kernel.frame({ type: "pi-durable/watch_closed", native: watchEndSummary(native), events: [] });
-    if (native.reason !== "stopped" || kernel.unreachable()?.code !== "disposed") { kernel.respond("", { kind: "exited", code: null }); }
-  })();
-  // The host owns scheduling, but opening an OAR Session asks to control work,
-  // unlike a read-only native watch. Recovery resumes unfinished tasks.
-  try { harness.resume(); } catch (error) { await stream.stop(); throw error; }
+  kernel.frame({ ...initial.frame, native: observation.value });
+  ready = true;
+  schedule();
+  // The host owns scheduling; opening a controller resumes saved native work.
+  try { harness.resume(); } catch (error) { observation.detach(); throw error; }
   let disposing: Promise<void> | undefined = undefined;
+
+  async function receipts(ids: readonly SubmissionId[]): Promise<readonly (SubmissionRecord | undefined)[]> {
+    const records = await Promise.all(ids.map(async id => {
+      const handle = await harness.submission(id, BACKGROUND_CONTEXT);
+      return handle?.status(BACKGROUND_CONTEXT);
+    }));
+    return records;
+  }
+
+  async function drain(): Promise<void> {
+    while (pending.length > 0) {
+      const item = pending.shift();
+      if (item === undefined) { break; }
+      if ("end" in item) {
+        kernel.frame({ type: "pi-durable/watch_closed", native: watchEndSummary(item.end), events: [] });
+        kernel.respond("", { kind: "exited", code: null });
+        continue;
+      }
+      if (item.call.kind === "failed") {
+        kernel.frame({ type: "pi-durable/watch_error", native: errorSummary(item.call.error), events: [] });
+        continue;
+      }
+      const prior = state;
+      const ended = runEnded(prior, item.call);
+      let inputs: readonly SubmissionRecord[] = [];
+      const hasUserEntry = appendedEntries(prior.view, item.call).some(entry => (entry.model ?? []).some(message => message.role === "user"));
+      if (hasUserEntry) {
+        try {
+          const records = await receipts(liveOf(item.call.value).run?.inputs ?? []);
+          inputs = records.filter(record => record !== undefined);
+        } catch (error) { kernel.frame({ type: "pi-durable/submissions_error", native: errorSummary(error), events: [] }); }
+      }
+      let outcome: TurnOutcome | undefined = undefined;
+      if (ended) {
+        if (liveOf(prior.view).run?.afterRun !== undefined) {
+          // The native run has already answered; it stayed busy only to await
+          // its afterRun tasks, including for an observer attached mid-wait.
+          outcome = { kind: "completed" };
+        } else {
+          try {
+            const native = await receipts(prior.runInputs);
+            outcome = submissionOutcome(native);
+            kernel.frame({ type: "pi-durable/submissions", native: native.map(record => record ?? null), events: [] });
+          } catch (error) { kernel.frame({ type: "pi-durable/submissions_error", native: errorSummary(error), events: [] }); }
+        }
+      }
+      const next = foldDurableView(prior, item.call, inputs, false, outcome);
+      state = next.state;
+      kernel.frame(next.frame);
+    }
+  }
 
   const submit = async (kind: "prompt" | "steer" | "queue", input: string, inputOptions: InputOptions, wasRunning: boolean): Promise<ResponseBody> => {
     if ((inputOptions.images?.length ?? 0) > 0) { return { kind: "rejected", code: "unsupported", reason: "pi-durable browser sessions do not read local image files" }; }
     const prior = inputOptions.inputId === undefined ? undefined : await harness.commit(async (tx) => { const value = await tx.submissionByRequest(conversation.id, inputOptions.inputId ?? ""); return value; }, BACKGROUND_CONTEXT);
     if (prior !== undefined) {
-      kernel.frame({ type: "pi-durable/submission", native: prior, events: !wasRunning && state.run.length === 0 && kind === "prompt" ? settledOutcome(prior) : [] });
+      kernel.frame({ type: "pi-durable/submission", native: prior, events: !wasRunning && liveOf(state.view).run === undefined && kind === "prompt" ? settledOutcome(prior) : [] });
       return { kind: "accepted", native: prior };
     }
     if (kind === "prompt" && wasRunning) { return { kind: "rejected", code: "busy", reason: "busy" }; }
-    if (kind === "steer" && state.run.length === 0) { return { kind: "rejected", code: "no_active_turn", reason: "no active turn" }; }
+    if (kind === "steer" && liveOf(state.view).run === undefined) { return { kind: "rejected", code: "no_active_turn", reason: "no active turn" }; }
     try {
       const submission = await conversation.submit({ type: "input", content: input, ...(inputOptions.inputId === undefined ? {} : { requestId: inputOptions.inputId }), whenBusy: kind === "prompt" ? "reject" : (kind === "steer" ? "steer" : "followUp") }, BACKGROUND_CONTEXT);
       const native = await submission.status(BACKGROUND_CONTEXT);
@@ -104,8 +157,9 @@ export async function piDurableSession(harness: Harness, models: DurableModels, 
     },
     abort: async () => {
       const result = await kernel.control({ kind: "abort" }, async () => {
-        if (state.run.length === 0) { return { kind: "rejected", code: "no_active_turn", reason: "no active turn" }; }
+        if (liveOf(state.view).run === undefined) { return { kind: "rejected", code: "no_active_turn", reason: "no active turn" }; }
         await conversation.abort(BACKGROUND_CONTEXT);
+        await flush();
         return { kind: "accepted" };
       });
       return result;
@@ -120,7 +174,13 @@ export async function piDurableSession(harness: Harness, models: DurableModels, 
   });
 
   async function stopWatching(request: RequestRecord): Promise<void> {
-    const native = await stream.stop();
-    kernel.respond(request.id, { kind: "accepted", native: watchEndSummary(native) });
+    observation.detach();
+    await flush();
+    kernel.respond(request.id, { kind: "accepted" });
+  }
+
+  async function flush(): Promise<void> {
+    let current = draining;
+    while (current !== undefined) { await current; current = draining; }
   }
 }

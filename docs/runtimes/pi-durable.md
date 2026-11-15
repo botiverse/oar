@@ -2,8 +2,8 @@
 
 Pi Durable runs an agent over a host-owned `Harness`, storage, model catalog,
 extension registry and execution environment. OAR uses
-`@earendil-works/pi-durable` **1.4.0**, including its experimental
-`watchEvents` interface. This is a separate runtime from the Pi coding-agent
+`@earendil-works/pi-durable` **1.5.2**, using its synchronous
+`Harness.observeConversation` interface. This is a separate runtime from the Pi coding-agent
 SDK: it does not load a Pi CLI login, settings directory or session file.
 
 ## Native objects and calling interface
@@ -18,15 +18,20 @@ submissions and can contain multiple model turns and tool rounds.
 `Harness.createConversation` creates an ownerless conversation;
 `Harness.conversation(id)` reopens one. `conversation.submit` returns a
 submission handle, not an answer. `submission.status`/`wait` read its receipt.
-`watchEvents` attaches atomically with an initial snapshot and then delivers
-ordered arrays of agent events, one per commit. A slow listener can receive a
-replacement snapshot instead of the intervening batches.
+`Harness.observeConversation` attaches atomically with an initial
+`ConversationView` and then delivers every native change as a `WatchCall`: the
+next value, delta operations and retirement flag. Unlike the asynchronous
+`Conversation.watch()` listener, this synchronous observer does not coalesce
+changes while a consumer is busy. OAR only queues notifications on the native
+publication line; projection, record listeners and submission queries run
+after that callback returns. Callbacks received before attachment resolves
+are buffered behind the initial snapshot.
 
 The host passes the **same `Models` instance or `() => Models` supplier** it
 supplied to `Harness.open`. A supplier lets the host replace its catalog
 without recreating either the Harness or OAR runtime. Harness exposes no
 public catalog getter, so OAR cannot verify this identity. Build this catalog
-with the Pi AI version matching the host Harness, currently 1.4.0, through a
+with the Pi AI version matching the host Harness, currently 1.5.2, through a
 version alias, keeping Pi AI 1.5.0 under its normal name for the bundled
 coding SDK:
 
@@ -34,44 +39,48 @@ coding SDK:
 {
   "dependencies": {
     "@earendil-works/pi-ai": "1.5.0",
-    "@earendil-works/pi-ai-durable": "npm:@earendil-works/pi-ai@1.4.0",
-    "@earendil-works/pi-durable": "~1.4.0",
-    "@earendil-works/chord": "~1.4.0"
+    "@earendil-works/pi-ai-durable": "npm:@earendil-works/pi-ai@1.5.2",
+    "@earendil-works/pi-durable": "~1.5.2",
+    "@earendil-works/chord": "~1.5.2"
   }
 }
 ```
 
 Use `import { createModels } from "@earendil-works/pi-ai-durable/models"`
-and the same alias for Durable provider/schema imports. Pinning the normal
-`@earendil-works/pi-ai` name to 1.4.0 instead can split the coding SDK's 1.5.0
+and the same alias for Durable provider imports. Tool parameter schemas are
+JSON Schema objects; Pi AI 1.5.2 no longer supplies the old `Type` export. Pinning the normal
+`@earendil-works/pi-ai` name to another version instead can split the coding SDK's 1.5.0
 registration instances, and a single-file host then fails OAuth derivation
 with `Cannot find module` for the provider module. The factory takes its
 catalog type from the Durable peer, independently of OAR's bundled Pi coding
 SDK 1.5.0.
-The host installs `@earendil-works/pi-durable@~1.4.0` and
-`@earendil-works/chord@~1.4.0`, both optional peers of OAR. OAR operates on
-the host's native package instances, without bundling another copy. Tests
-pin 1.4.0; upgrading this experimental API requires rerunning the native
-probe and vendor tests below. This adapter does not support Pi Durable 1.5.0,
-which removes `watchEvents` and changes the persisted `pi.live` document to
-v3, unreadable by 1.4.0. A fresh in-memory Harness on 1.5.2 still exposes
-`Conversation.watch()` but no `watchEvents` export
-([November 10 check](../../experiments/runtime-version-checks/2026-11-10.md#pi-152-and-durable-152));
-that version is also outside this adapter's supported peer selection. The
-[security update and coexistence evidence](../../experiments/pi-1.5.0-2026-11-02.md)
-keep both Durable peers on 1.4.0 and do not migrate host storage.
+The host installs `@earendil-works/pi-durable@~1.5.2` and
+`@earendil-works/chord@~1.5.2`, both optional peers of OAR. OAR operates on
+the host's native package instances, without bundling another copy. Tests pin
+1.5.2; this migration leaves the bundled Pi coding SDK and its Pi AI on 1.5.0.
+The [migration report](../../experiments/pi-durable-native-watch/README.md)
+records the native API, persistence and observation controls.
 
-**Upgrading from 1.3.0:** the host must upgrade both peers. The native
-[Durable 1.4.0 changelog](https://github.com/earendil-works/pi/blob/v1.4.0/packages/durable/CHANGELOG.md)
-specifies an automatic SQLite schema migration to version 2 on open; the
-migrated database cannot be opened by 1.3.0 or earlier. JSONL needs no schema
-migration, but older versions cannot resume the new sleeping tasks. Host
-extensions must also follow the native task/document API changes, including
-the replacement of `TaskRuntime.sleep()` and required `checkpointWhen`.
-Custom Chord contexts now require `telemetry`; see its
-[changelog](https://github.com/earendil-works/pi/blob/v1.4.0/packages/chord/CHANGELOG.md).
-OAR's event mapping needed no code change. The checks below cover native JSONL
-reopen and browser MemoryStorage, not SQLite migration or host extensions.
+**Upgrading from 1.4.0:** back up host storage before using the new Harness.
+Pi Durable 1.5 writes `pi.live` document version 3, which 1.4 cannot read. A
+read-only reopen need not rewrite that document; the JSONL control first
+became unreadable by 1.4 after new work was committed under 1.5.2. Restore the
+backup to roll back, rather than reopening migrated data with 1.4. OAR does
+not copy, migrate or restore host storage itself.
+
+Hosts with custom storage drivers must implement the native group-commit
+contract: `commit(batches, receive, context)` returns the stored prefix and
+any refusal; `receive(index, seq)` acknowledges each stored batch in order.
+A driver failure can leave an uncertain outcome and fails the Session.
+`subscribeCommits` sees stored commits. Conversation observations also see
+progress committed in memory before storage; by default, deferred progress
+can wait up to 1,000 ms before persistence. Hosts can choose
+`settings.progress.persistWithinMs: 0` when they require immediate storage.
+OAR's observation records are not a claim that every partial is already
+durable. Host extensions must follow the native 1.5 task, hook and document
+contracts. See the [native changelog](https://github.com/earendil-works/pi/blob/v1.5.2/packages/durable/CHANGELOG.md).
+The checks below cover JSONL migration and MemoryStorage, not arbitrary
+custom drivers, SQLite upgrades or host extensions.
 
 ```ts
 import { createPiDurableRuntime } from "@botiverse/oar/pi-durable";
@@ -104,13 +113,13 @@ original error rather than being classified as missing.
 
 | OAR operation | Native operation | Meaning |
 |---|---|---|
-| `session({ resume })` | conversation lookup, configure, `watchEvents`, `Harness.resume()` | Attaches to saved work and enables scheduling of unfinished tasks; no new input is submitted |
+| `session({ resume })` | conversation lookup, configure, `observeConversation`, `Harness.resume()` | Attaches to saved work and enables scheduling of unfinished tasks; no new input is submitted |
 | `prompt` | `submit({ whenBusy: "reject" })` | Fresh input while locally running is refused busy; an unseen native run is runtime_refused |
 | `steer` | `submit({ whenBusy: "steer" })` | Joins an active run at its next input boundary; idle requests are refused |
 | `queue` | `submit({ whenBusy: "followUp" })` | Durable follow-up input; `capabilities.queue.durable` is true |
 | `withdraw(inputId)` | lookup by request id, `submission.abort()` | Accepted only while native cancellation says `aborted`; already placed/settled or missing is `not_queued` |
 | `abort` | `conversation.abort()` | Stops the native run and its pending inputs; outcome comes from native submission receipts |
-| `dispose` | `watch.stop()` | Detaches this controller, preserving the conversation, running work, storage and Harness |
+| `dispose` | `observation.detach()` | Detaches this controller, preserving the conversation, running work, storage and Harness |
 
 Dispose is idempotent and records an accepted response. It emits no process
 exit and does not infer a turn outcome. To stop work, call `abort` before
@@ -120,18 +129,17 @@ Session resumes that scheduler. Recovery may repeat an interrupted provider
 request or a replayable tool, so submission deduplication is not a promise of
 exactly-once external side effects. Extension replay policy remains native.
 
-If the watch ends without this controller disposing it (stopped, cancelled,
-session_closed, session_failed, retired or listener_error), its native
-WatchEnd is retained in a frame, followed by an `exited` response with code
-null. This ends the observed turn and makes later control return
-`runtime_exited`; it does not claim that shared Harness execution stopped.
-Since 1.2.0 a storage failure closes the native session and ends its watch
-with `session_failed`; recovery requires reopening the host Harness from
-storage. A failed submission query during snapshot recovery is an error
-frame, preserving observation without guessing a turn outcome. API, storage
-and watch-listener errors retain JSON-safe `name`, `message` and a scalar
-`code` when present, without Error objects or cause chains, so the summary
-survives JSON persistence even when the original error has a cyclic cause.
+If observation ends without this controller disposing it (`stopped`,
+`aborted`, `ended`, `failed` or `listener_error`), its native `WatchEnd` is
+retained in a frame, followed by an `exited` response with code null. This
+ends the observed turn and makes later controls return `runtime_exited`; it
+does not claim that shared Harness execution stopped. A normal Harness close
+currently reports `failed` with `Error("session closed")`; a storage failure
+retains its actual error and requires reopening the host Harness.
+A failed submission query is an error frame, preserving observation without
+guessing a terminal outcome. API, storage and listener errors retain JSON-safe
+`name`, `message` and a scalar `code` when present, without Error objects or
+cause chains, including when the original cause is cyclic.
 
 Fresh prompts use the session status immediately before their request: running
 means local `busy`, without submitting; idle never returns `busy`. If another
@@ -140,13 +148,13 @@ is `runtime_refused` with the native message. A previously submitted inputId
 is instead accepted as a retry, even while running, without new submission.
 
 Admission uses native submissions and the record fold, not the SDK/RPC
-adapter's run flag or held FIFO: on Durable 1.4.0 an idle `turn_ended`
+adapter's run flag or held FIFO: on Durable 1.5.2 an idle `turn_ended`
 observer can submit the next prompt, which stays busy until the new native
 run ends ([native terminal-observer test](../../sea-trial/vendor/pi-turn-admission.vendor.test.ts)).
 
 An open or resumed snapshot with a run emits `turn_active`, making status
 running before any model output. It creates a view turn only if none is
-already open. A native `run_start` after an OAR prompt therefore does not
+already open. A native run appearing after an OAR prompt therefore does not
 create a second turn. The adapter does not invent a prompt or span id for
 adopted work. Session ids are native conversation ids serialized as decimal
 strings, not globally unique identifiers.
@@ -159,23 +167,24 @@ produces `turn_started`, but no old message content is replayed. The content
 is in the original records or native history. A queued/placed receipt does
 not imply completion. A completed retry never ends a different active run.
 
-### Liveness and parked tasks
+### Run liveness and recovery
 
-A running OAR status is evidence of an unfinished native run, not a guarantee
-that its tasks can make progress. In 1.4.0, the default `restartLimit` parks
-a task after five consecutive interruptions without task-state progress
-(crash, eviction or reset; a normal Harness close does not count). The host
-receives `onReport` with `type: "task_parked"`; `Harness.inspect()` shows the
-task as `blocked` with reason `restart_limit`.
+A run stays busy while native `afterRun` work finishes, even after its input
+receipts are already `done` and `run.inputs` is empty. OAR waits for that run
+to end; an observer attached during this wait also adopts it as running. A
+queued follow-up can replace the ending run in the same publication. OAR
+uses the native deletion of `pi.live.run` to separate the two turns; changing
+only `run.taskId` between model rounds is not a turn boundary.
 
-Parking does not end the run or close its `watchEvents` stream. The snapshot
-still contains the run, so OAR continues to report running and emits no
-invented `turn_ended`. Hosts must use their native `onReport` or `inspect()`
-to distinguish this condition from work that can progress. Reopening an OAR
-Session enables scheduling but does not unpark the task. Recovery is a host
-decision: native `Harness.retryTask(taskId, context)` clears the restart
-count and schedules it again. The [parking probe](../../experiments/pi-durable-parked-task.ts)
-verifies this with five actual process deaths, then one explicit retry.
+In 1.5.2, repeated process interruption settles built-in tasks instead of
+leaving the 1.4 parked state. The [restart probe](../../experiments/pi-durable-parked-task.ts)
+observed four interrupted provider attempts followed by a native
+`unanswered` receipt with reason `interrupted`. A new controller sees the
+saved conversation idle and does not replay that historical failure as a new
+turn. A new input can run normally. There is no `retryTask` recovery API in
+this version. The [1.4 parking report](../../experiments/pi-durable-parked-task.md)
+is historical evidence, not the current host contract. Retry and replay
+policy remain the host Harness's responsibility.
 
 ## Options, models and instructions
 
@@ -221,37 +230,40 @@ input is refused whole (`capabilities.images: false`).
 
 ## Records, snapshots and limits
 
-Every native batch is one `pi-durable/events` frame, with its array unchanged
-as `native`. Unknown events and events without an OAR projection remain there.
-The initial snapshot is its own `snapshot` frame. Stream closure is a native
-`pi-durable/watch_closed` frame; it is not evidence of a process exit.
+Every native value notification is one `pi-durable/view` frame, with the
+`WatchCall` unchanged as `native`. Unknown documents and operations remain
+there. The initial `ConversationView` is a `snapshot` frame. Observation
+closure is a `pi-durable/watch_closed` frame, not evidence of a process exit.
+Submission queries are separate `pi-durable/submissions` frames; their
+terminal receipts determine the ending run's outcome in the corresponding
+view frame. A missing receipt or failed query cannot prove completion.
 
 | Native fact | OAR reading |
 |---|---|
-| snapshot with run / `run_start` | `turn_active` |
-| `run_end` and its terminal submission receipts | `turn_ended`: done → completed; unanswered/aborted → aborted; other unanswered → failed |
-| assistant `message_start`, `message_update`, `message_end` | text and reasoning suffixes, without duplicating full blocks already streamed |
-| user `message_end` | `user_message`, native entry id, and inputId where a submission names that entry |
-| `tool_execution_start` | tool name, call id and arguments |
-| `tool_execution_update` | whole retained output window reconstructed from native trim/append or replacement; diagnostic/details fields stay raw |
-| `tool_execution_end` | model calls read content and ok/failed from the native tool-result entry; nested calls read ok/failed from native `result.isError` and a reported numeric `result.structuredOutput.exitCode`, without inventing content; no result means just ended |
-| `agent_changed` / snapshot agent | model and effort actually stored |
-| `usage_changed` / snapshot usage | conversation's own model and tool token ledgers minus the totals at attachment |
-| `auto_retry_start` | retry with native attempt and reason |
-| blocking `compaction_start` | compaction started; end receipts, including 1.2.0 error text, stay raw |
+| `pi.live.run` present at attachment or newly started | `turn_active` |
+| old run removed, terminal submission receipts | `turn_ended`: done → completed; unanswered/aborted → aborted; other unanswered → failed |
+| answered run's `afterRun` wait ends | completed, including for a controller attached after the input receipts settled |
+| `generation.message` and appended assistant entries | text and reasoning suffixes without duplicating completed blocks |
+| appended user entry | `user_message`, native entry id and inputId where a submission names that entry |
+| running model or nested tool slot | tool name, call id and available arguments |
+| changed running tool `output` | whole retained native output window; diagnostics/details stay raw |
+| tool slot changes to done | model call reads content and ok/failed from its result entry; nested call reads ok/failed from its summary; absent result stays unknown |
+| `pi.agent` | model and effort actually stored |
+| `pi.usage` | own model and tool ledgers minus totals at attachment |
+| `generation.retry` | retry with native attempt and reason |
+| new blocking `compactions` entry | compaction started with native trigger; failure detail stays raw |
 
-Since 1.2.0, native tool implementations return model content in
-`ToolExecutionResult.output`; the model-facing transcript still uses a
-tool-result message with `content`, which OAR reads. Nested calls have their
-own call ids and result summaries, and running nested calls are adopted from
-`snapshot.nestedTools`; parent task ids and the rest of structured tool output
-stay raw. CodingTools' structured exit is available only on nested calls in
-1.2.0 through 1.4.0. Model-issued calls omit it from `watchEvents`, even when the diagnostic
-text mentions an exit code, so OAR leaves `exitCode` absent for those calls.
-The local execution environment reports SIGTERM as 143, not null; OAR preserves
-the native value. The [native exit-code test](../../sea-trial/vendor/pi-durable-exit-code.vendor.test.ts)
-covers both paths, a non-command tool and JSON storage
-([1.3.0 observation](../../experiments/runtime-version-checks/2026-10-16.md#native-command-exits-numbers-and-a-durable-observation-limit)).
+Nested calls have their own call ids, parent task links, arguments and
+summaries. Their completed structured results belong to their caller's task
+documents and may be retired with that task. A conversation observation no
+longer includes `structuredOutput.exitCode`, even for nested CodingTools.
+OAR leaves `exitCode` absent for both nested and model-issued calls; it does
+not parse diagnostic text or race a retired task document. The
+[native exit-code test](../../sea-trial/vendor/pi-durable-exit-code.vendor.test.ts)
+verifies that actual caller results contain 0, 7 and POSIX SIGTERM's 143 while
+the projected events omit codes. Nested `isError` remains available in the
+live summary. The richer 1.4 event stream is preserved only in historical
+records, not synthesized by this adapter.
 
 The optional `reasoning` counter in each model or tool usage entry is part
 of its output. OAR sums the reported parts and subtracts the attachment
@@ -260,18 +272,19 @@ Missing counters stay absent; repeated cumulative ledger reports do not
 add the same spend again. This uses Pi Durable 1.2.0's native `UsageState`
 and pi-ai `Usage`, verified by projection tests.
 
-Native model `turn_start`/`turn_end` are internal rounds, not OAR turns.
-`run_end` precedes the terminal submission event in the same native batch;
-the fold reads all receipts in the batch before deciding the outcome.
+Native model rounds are internal to a run. OAR ends the old turn before
+activating its queued successor, even when both changes share a notification.
+It retains the old run's input ids when native `afterRun` clears that list.
 
-A snapshot keeps all native entries and current state, but completed history
-is **not** replayed as newly observed text or events. OAR projects current
-partial output and running tool state. On backlog overflow it preserves the
-replacement snapshot, without fabricating missed batches. If a previously
-observed run disappeared, OAR queries its actual submission receipts in a
-separate `pi-durable/submissions` frame before reporting a terminal outcome.
-A native text replacement that is not an extension of the observed text
-stays raw, since OAR has no text-replacement event.
+A view keeps a bounded entry window and current state. Completed history is
+**not** replayed as newly observed text or events on attachment. New entry
+appends remain in native delta operations even if that same notification
+trims the window; OAR reads those appends so trimming does not drop new text.
+Current partial output and running tools are adopted. Buffered callbacks
+retain their original order, without synthesizing the removed 1.4 events or
+substituting a latest snapshot for missing revisions. A native text correction
+that does not extend observed text stays raw because OAR has no
+text-replacement event.
 
 The chosen watch covers one conversation. Pi Durable can create child
 conversations, but this watch does not include their events; attribution is
@@ -283,33 +296,23 @@ remain distinct artifacts.
 
 ## Evidence and verification
 
-Native source: [v1.2.0 README](https://github.com/earendil-works/pi/blob/v1.2.0/packages/durable/README.md),
-[JSON example](https://github.com/earendil-works/pi/blob/v1.2.0/packages/durable/test/examples/19-json.ts)
-and [events](https://github.com/earendil-works/pi/blob/v1.2.0/packages/durable/src/harness/events.ts),
-checked against installed 1.2.0 on 2026-10-13
-([report](../../experiments/runtime-version-checks/2026-10-13.md#pi-durable-and-chord-120)).
-The [probe](../../experiments/pi-durable-probe.ts) prints actual batches and
-checks persisted instructions and request deduplication after JSONL reopen.
-On 1.4.0 (2026-10-22), all 23 native tests, 18 shared behavior cases (one
-skipped), that probe and the Chromium demo smoke test pass
-([report](../../experiments/runtime-version-checks/2026-10-22.md)). The
-exit-code test is named among the 23 on 1.3.0
-([report](../../experiments/runtime-version-checks/2026-10-16.md)).
-
-The [1.4.0 parking probe and findings](../../experiments/pi-durable-parked-task.md)
-(2026-10-23) cover the default restart limit with JSONL storage: the host sees
-`task_parked` while OAR sees an unfinished run, and explicit host retry lets
-that same run finish. Option tests replace the native model catalog after
-runtime construction and check listing, new and resumed model validation,
-and effort validation for a saved model.
+Native sources: [v1.5.2 README](https://github.com/earendil-works/pi/blob/v1.5.2/packages/durable/README.md),
+[conversation views](https://github.com/earendil-works/pi/blob/v1.5.2/packages/durable/src/harness/view.ts)
+and [live state](https://github.com/earendil-works/pi/blob/v1.5.2/packages/durable/src/harness/live.ts),
+checked against installed 1.5.2 on 2026-11-15. The
+[migration report and reproducer](../../experiments/pi-durable-native-watch/README.md)
+include a held async listener versus the synchronous observer, JSONL upgrade
+and old-version refusal, nested result visibility, run replacement and
+repeated process interruptions. The [native probe](../../experiments/pi-durable-probe.ts)
+checks persisted instructions and deduplication after JSONL reopen.
 
 `OAR_TEST=pi-durable-aimock pnpm sea-trial` runs the public contract against
 the real SDK with a local scripted provider.
 `OAR_TEST=pi-durable-aimock pnpm vitest run sea-trial/vendor/pi-durable*.test.ts`
 covers steering at a tool boundary, follow-ups, withdrawal, native abort,
 provider errors, active adoption, disposal, JSONL recovery, request
-deduplication, native backlog overflow, storage failure closure, nested tool
-results and adoption, and command exit codes. Pure projection, option and
+deduplication, buffered callbacks, afterRun adoption, storage failure closure, nested tool
+results and adoption, and unavailable structured command exit codes. Pure projection, option and
 browser-bundle checks live under `tests/pi-durable`, `tests/turn-active.test.ts` and
 `tests/browser-entry.test.ts`. These checks need no login or model quota;
 they do not establish behavior of an arbitrary host extension or provider.

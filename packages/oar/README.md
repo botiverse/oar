@@ -497,18 +497,16 @@ TypeScript hosts: keep `skipLibCheck` on. With `skipLibCheck: false` and `module
 
 ## Host-owned durable sessions
 
-Install the optional native peers in the host: `npm install @earendil-works/pi-durable@~1.4.0 @earendil-works/chord@~1.4.0`.
+Install the optional native peers in the host: `npm install @earendil-works/pi-durable@~1.5.2 @earendil-works/chord@~1.5.2`.
 For the host catalog, keep `@earendil-works/pi-ai@1.5.0` under its normal
-name and add `@earendil-works/pi-ai-durable` as an npm alias of Pi AI 1.4.0;
+name and add `@earendil-works/pi-ai-durable` as an npm alias of Pi AI 1.5.2;
 import Durable models/providers from that alias. See the
 [copyable host configuration](https://github.com/botiverse/oar/blob/main/docs/runtimes/pi-durable.md#native-objects-and-calling-interface).
-Installing Pi AI 1.4.0 under its normal name can split the coding SDK's
-registration instances and break OAuth loading in single-file hosts. Durable
-1.5.0 is not supported by this adapter.
-Upgrade both supported peers together. Native 1.4.0 migrates SQLite storage to schema 2,
-which cannot be reopened by 1.3.0 or earlier; see the
-[host upgrade notes](https://github.com/botiverse/oar/blob/main/docs/runtimes/pi-durable.md#native-objects-and-calling-interface)
-for storage and extension API changes.
+Using a different Pi AI version under its normal name can split the coding
+SDK's registration instances and break OAuth loading in single-file hosts.
+The native peers support `pi.live` document version 3 and the group-commit
+Storage interface. The host owns backups and storage compatibility; see the
+[host requirements](https://github.com/botiverse/oar/blob/main/docs/runtimes/pi-durable.md#native-objects-and-calling-interface).
 The factory lives only in `@botiverse/oar/pi-durable`, usable in Node and browsers.
 The root and browser core entries load without these peers.
 
@@ -525,7 +523,7 @@ session.rawEvents(() => render(viewOf(session.records())));
 await session.prompt("Hello", { inputId: crypto.randomUUID() });
 ```
 
-The host owns its Pi Durable 1.4.0 Harness, providers, credentials, extensions
+The host owns its Pi Durable 1.5.2 Harness, providers, credentials, extensions
 and storage. `resume: session.id` attaches to that storage's conversation and
 resumes unfinished work. Queue and input-id deduplication are native and
 durable. `dispose()` detaches the observer; it does not stop work or close the

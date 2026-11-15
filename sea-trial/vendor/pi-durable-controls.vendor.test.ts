@@ -1,6 +1,5 @@
 import { expect, test, vi } from "vitest";
 import { BACKGROUND_CONTEXT } from "@earendil-works/chord/context";
-import { Type } from "@earendil-works/pi-ai-durable";
 import { createRegistry, defineExtension, defineTool } from "@earendil-works/pi-durable";
 import { awaitTurnEnd, promptAndWait } from "../../packages/oar/src/observe/turns.js";
 import { startDurableFixture } from "../harness/pi-durable.js";
@@ -14,7 +13,7 @@ nativeTest("steer joins the tool run, follow-up starts another run, and tools re
   const release = Promise.withResolvers<void>();
   const registry = createRegistry();
   const hold = defineTool({
-    name: "hold", description: "hold until released", parameters: Type.Object({}), replay: "safe",
+    name: "hold", description: "hold until released", parameters: { type: "object", properties: {} }, replay: "safe",
     execute: async (_args, api) => {
       api.output("before"); entered.resolve(); await release.promise; api.output(" after");
       return { output: [{ type: "text", text: "tool result" }] };

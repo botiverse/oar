@@ -1,29 +1,29 @@
 import assert from "node:assert/strict";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { BACKGROUND_CONTEXT } from "@earendil-works/chord/context";
-import { watchEvents, MemoryStorage, type ConversationId, type WatchEnd } from "@earendil-works/pi-durable";
+import { MemoryStorage, type ConversationId, type WatchEnd } from "@earendil-works/pi-durable";
 import { startDurableFixture, type DurableFixture } from "../harness/pi-durable.js";
 import type { Session } from "../../packages/oar/src/contracts/session.js";
+
+import { captureDurableObserver, holdDurableObservation } from "./support/durable-observation.js";
 
 /** Generous on purpose: a native submission settles on its own clock, past `vi.waitFor`'s 1 s default on slow CI runners (macOS). */
 const WAIT = { timeout: 15_000 };
 
-vi.mock("@earendil-works/pi-durable", async (importOriginal) => {
-  const native = await importOriginal<{ watchEvents: typeof watchEvents }>();
-  return { ...native, watchEvents: vi.fn(native.watchEvents) };
-});
-const watch = vi.mocked(watchEvents);
-const nativeWatch = watch.getMockImplementation() ?? assert.fail("native watch implementation missing");
+
+let prepare: ((fixture: DurableFixture) => void) | undefined = undefined;
 const fixtures: DurableFixture[] = [];
 const releases: (() => void)[] = [];
 afterEach(async () => {
   for (const release of releases.splice(0)) { release(); }
-  watch.mockImplementation(nativeWatch);
+  prepare = undefined;
+  vi.restoreAllMocks();
   for (const fixture of fixtures.splice(0)) { await fixture.close(); }
 });
 async function setup(storage?: MemoryStorage): Promise<{ readonly fixture: DurableFixture; readonly session: Session }> {
   const fixture = await startDurableFixture(undefined, storage);
   fixtures.push(fixture);
+  prepare?.(fixture);
   const session = await fixture.runtime.session({ kind: "available", via: "bundled" }, { cwd: "/", model: "aimock/aimock-model" });
   return { fixture, session };
 }
@@ -36,15 +36,11 @@ async function conversation(fixture: DurableFixture, session: Session) {
   return value;
 }
 function delayWatch(): () => void {
-  const gate = Promise.withResolvers<void>();
-  releases.push(gate.resolve);
-  watch.mockImplementation(async (...args) => {
-    const stream = await nativeWatch(...args);
-    return { snapshot: stream.snapshot, closed: stream.closed, stop: async () => stream.stop(), start(listener) {
-      stream.start(async (batch, context) => { await gate.promise; await listener(batch, context); });
-    } };
-  });
-  return gate.resolve;
+  let release: (() => void) | undefined = undefined;
+  prepare = fixture => { release = holdDurableObservation(fixture.harness); };
+  const resume = (): void => { release?.(); };
+  releases.push(resume);
+  return resume;
 }
 const storageError = new Error("storage failed");
 storageError.cause = storageError;
@@ -98,7 +94,7 @@ suite("Pi Durable watch boundaries", () => {
     await vi.waitFor(() => { expect(session.status().value.kind).toBe("idle"); }, WAIT);
     const closed = session.records().find((record) => record.kind === "frame" && record.body.type === "pi-durable/watch_closed");
     assert.ok(closed?.kind === "frame");
-    expect(closed.body.native).toEqual({ reason: "session_closed" });
+    expect(closed.body.native).toEqual({ kind: "failed", error: { name: "Error", message: "session closed" } });
     expect(session.records().filter((record) => record.kind === "response" && record.body.kind === "exited").map((record) => record.body)).toEqual([{ kind: "exited", code: null }]);
     const refused = await session.prompt("unreachable");
     expect(refused.response.body).toEqual({ kind: "rejected", code: "runtime_exited", reason: "runtime exited" });
@@ -119,33 +115,30 @@ suite("Pi Durable watch boundaries", () => {
       const serialized = JSON.stringify(session.records());
       const persisted: unknown = JSON.parse(serialized);
       expect(persisted).toEqual(expect.arrayContaining([expect.objectContaining({ body: {
-        type: "pi-durable/watch_closed", native: { reason: "session_failed", error: { name: "Error", message: "storage failed" } }, events: [],
+        type: "pi-durable/watch_closed", native: { kind: "failed", error: { name: "Error", message: "storage failed" } }, events: [],
       } })]));
     } finally { commit.mockRestore(); }
   });
 
-  test.each<WatchEnd>([{ reason: "stopped" }, { reason: "cancelled" }, { reason: "retired" }, { reason: "listener_error", error: new Error("listener failed") }, { reason: "session_failed", error: storageError }])("unexpected watch end $reason rejects later controls", async (end) => {
-    const ended = Promise.withResolvers<WatchEnd>();
-    watch.mockImplementation(async (...args) => {
-      const stream = await nativeWatch(...args);
-      return { snapshot: stream.snapshot, closed: ended.promise, start: stream.start.bind(stream), stop: async () => { await stream.stop(); const result = await ended.promise; return result; } };
-    });
+  test.each<WatchEnd>([{ kind: "stopped" }, { kind: "aborted" }, { kind: "ended" }, { kind: "listener_error", error: new Error("listener failed") }, { kind: "failed", error: storageError }])("unexpected observer end $kind rejects later controls", async (end) => {
+    let captured: ReturnType<typeof captureDurableObserver> = {};
+    prepare = fixture => { captured = captureDurableObserver(fixture.harness); };
     const { session } = await setup();
-    ended.resolve(end);
-    await vi.waitFor(() => { expect(session.records().some((record) => record.kind === "response" && record.body.kind === "exited")).toBe(true); }, WAIT);
+    assert.ok(captured.current);
+    captured.current.end(end);
+    await vi.waitFor(() => { expect(session.records().some(record => record.kind === "response" && record.body.kind === "exited")).toBe(true); }, WAIT);
     const refused = await session.abort();
     expect(refused.response.body).toEqual({ kind: "rejected", code: "runtime_exited", reason: "runtime exited" });
-    const closed = session.records().find((record) => record.kind === "frame" && record.body.type === "pi-durable/watch_closed");
+    const closed = session.records().find(record => record.kind === "frame" && record.body.type === "pi-durable/watch_closed");
     assert.ok(closed?.kind === "frame");
-    const native = "error" in end ? { reason: end.reason, error: { name: "Error", message: end.error instanceof Error ? end.error.message : String(end.error) } } : end;
+    const native = "error" in end ? { kind: end.kind, error: { name: "Error", message: end.error instanceof Error ? end.error.message : String(end.error) } } : end;
     expect(closed.body.native).toEqual(native);
     await session.dispose();
-    // Exercise the persisted JSON format, not an in-memory structured clone.
     const serialized = JSON.stringify(session.records());
     const persisted: unknown = JSON.parse(serialized);
     expect(persisted).toEqual(expect.arrayContaining([
       expect.objectContaining({ body: { type: "pi-durable/watch_closed", native, events: [] } }),
-      expect.objectContaining({ body: { kind: "accepted", native } }),
+      expect.objectContaining({ body: { kind: "accepted" } }),
     ]));
   });
 });
