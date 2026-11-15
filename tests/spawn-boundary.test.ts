@@ -6,7 +6,16 @@ import { expect, test } from "vitest";
 
 // Audit both host code and embedded Node scripts. This is a source convention
 // check, not a sandbox: process creation must visibly enter spawnChecked.
-function unguardedSpawns(source: string, filename: string): string[] {
+// On Windows a console child without windowsHide opens a visible window
+// that takes focus (a Raft customer ticket, 2026-11-15).
+const EXEC_FILE = new Set(["execFile", "execFileSync"]);
+function hidesWindow(call: ts.CallExpression, file: ts.SourceFile): boolean {
+  // The options object, wherever it sits (execFile takes a callback after it).
+  return call.arguments.some((options) => ts.isObjectLiteralExpression(options) && options.properties.some((property) =>
+    ts.isPropertyAssignment(property) && property.name.getText(file) === "windowsHide" && property.initializer.kind === ts.SyntaxKind.TrueKeyword));
+}
+
+function unguardedSpawns(source: string, filename: string, windowless?: string[]): string[] {
   const file = ts.createSourceFile(filename, source, ts.ScriptTarget.Latest, true);
   const names = new Set(["spawn"]);
   const failures: string[] = [];
@@ -33,6 +42,11 @@ function unguardedSpawns(source: string, filename: string): string[] {
       const callee = node.expression;
       const spawning = ts.isIdentifier(callee) ? names.has(callee.text)
         : ts.isPropertyAccessExpression(callee) && callee.name.text === "spawn";
+      const running = spawning || (ts.isIdentifier(callee) ? EXEC_FILE.has(callee.text)
+        : ts.isPropertyAccessExpression(callee) && EXEC_FILE.has(callee.name.text));
+      if (running && windowless !== undefined && !hidesWindow(node, file)) {
+        windowless.push(`${filename}:${file.getLineAndCharacterOfPosition(node.getStart(file)).line + 1}`);
+      }
       if (spawning) {
         const arrow = node.parent;
         const call = arrow.parent;
@@ -43,7 +57,7 @@ function unguardedSpawns(source: string, filename: string): string[] {
       }
     }
     if (ts.isTaggedTemplateExpression(node) && node.tag.getText(file) === "String.raw" && ts.isNoSubstitutionTemplateLiteral(node.template)) {
-      failures.push(...unguardedSpawns(node.template.rawText ?? node.template.text, `${filename}:embedded`));
+      failures.push(...unguardedSpawns(node.template.rawText ?? node.template.text, `${filename}:embedded`, windowless));
     }
     ts.forEachChild(node, visit);
   };
@@ -70,4 +84,19 @@ test.each([
 
 test("the guard accepts a directly protected native call", () => {
   expect(unguardedSpawns('import {spawn} from "node:child_process"; spawnChecked(() => spawn("node"));', "example.ts")).toEqual([]);
+});
+
+test("every package spawn and execFile hides its Windows console window", () => {
+  const root = path.resolve("packages/oar/src");
+  const files = readdirSync(root, { recursive: true, encoding: "utf8" }).filter((name) => name.endsWith(".ts"));
+  const windowless: string[] = [];
+  for (const name of files) { unguardedSpawns(readFileSync(path.join(root, name), "utf8"), name, windowless); }
+  expect(windowless).toEqual([]);
+});
+
+test("the window guard rejects a spawn without windowsHide: true", () => {
+  const windowless: string[] = [];
+  unguardedSpawns('import {spawn} from "node:child_process"; spawnChecked(() => spawn("node", [], { detached: false }));', "example.ts", windowless);
+  unguardedSpawns('import {spawn} from "node:child_process"; spawnChecked(() => spawn("node", [], { windowsHide: true }));', "ok.ts", windowless);
+  expect(windowless).toEqual(["example.ts:1"]);
 });

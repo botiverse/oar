@@ -77,7 +77,7 @@ const table = () => {
     }
     return rows;
   }
-  return execFileSync("/bin/ps", ["-A", "-o", "pid=,ppid=,lstart="], { encoding: "utf8", timeout: 10000 }).split("\n")
+  return execFileSync("/bin/ps", ["-A", "-o", "pid=,ppid=,lstart="], { encoding: "utf8", timeout: 10000, windowsHide: true }).split("\n")
     .map((line) => line.trim().split(/\s+/)).filter((cells) => cells.length > 2).map((cells) => [Number(cells[0]), Number(cells[1]), cells.slice(2).join(" ")]);
 };
 const descendants = (rows) => {

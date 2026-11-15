@@ -99,6 +99,7 @@ export function spawnLineProcess(
     stdio: options.extraPipe === true ? ["pipe", "pipe", "pipe", "overlapped"] : ["pipe", "pipe", "pipe"], // Child async I/O needs Windows FILE_FLAG_OVERLAPPED.
     detached: OWN_PROCESS_GROUP,
     windowsVerbatimArguments: target.windowsVerbatimArguments === true,
+    windowsHide: true,
   }));
   trackOwnedProcess(child);
   const { stdin, stdout } = child;

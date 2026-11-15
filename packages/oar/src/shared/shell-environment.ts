@@ -63,7 +63,7 @@ async function capture(shell: string, args: readonly string[], env: NodeJS.Proce
     const chunks: Buffer[] = [];
     let size = 0;
     let settled = false;
-    const child = spawnChecked(() => spawn(shell, [...args], { env, detached: true, stdio: ["ignore", "pipe", "pipe"] }));
+    const child = spawnChecked(() => spawn(shell, [...args], { env, detached: true, stdio: ["ignore", "pipe", "pipe"], windowsHide: true }));
     trackOwnedProcess(child);
     const finish = (failure?: UserShellEnvironmentFailure): void => {
       if (settled) { return; }
