@@ -22,7 +22,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Version without the v (on main for publishing; at the existing tag for release_only)"
+        description: "Version without the v (dispatch from main for both publishing and release_only)"
         required: true
         type: string
       release_only:

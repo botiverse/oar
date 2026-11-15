@@ -515,8 +515,10 @@ already has a tag or differs from either package version, runs
 `pnpm -r publish`, which rewrites the CLI's `workspace:*` dependency to the
 real version. A separate `release` job, which runs no project code and is
 the only one with write access, then creates the annotated `vX.Y.Z` tag and
-the GitHub release, whose notes are the release pull request's body. If that
-job fails after the publish, "Re-run failed jobs" finishes it. If `ci.yml`
+the GitHub release, whose notes are the release pull request's body. For a
+transient failure after publishing, "Re-run failed jobs" retries only the
+failed release job. A workflow-permission refusal needs the recovery below;
+retrying does not grant the missing permission. If `ci.yml`
 flaked on the release commit, start a fresh run with
 `stamp workflow run ci.yml --repo botiverse/oar` and dispatch again once it
 passes. npm trusted
@@ -524,11 +526,65 @@ publishing (OIDC) authenticates the publish job; the repo holds no npm
 token. Pushing a `vX.Y.Z` tag by hand still publishes that commit, without
 the CI gate or the GitHub release.
 
+### Recover after npm publication
+
+If tag creation fails with `without workflows permission`, keep the original
+run's commit as the release target. This can happen when main gains workflow
+changes while the release waits for CI or publishes: the old commit's
+workflow files now differ from main. It does not mean every release that
+contains a workflow change will fail. The
+[0.108.1 investigation](../experiments/release-tag-permission-2026-11-15.md)
+records this ordering and the successful recovery.
+
+Changing the command to `gh release create --target <sha>` does not solve
+the permission problem: GitHub documents the same workflow-write requirement
+for [automatic tag creation by the releases API](https://docs.github.com/en/rest/releases/releases#create-a-release),
+which `GITHUB_TOKEN` cannot acquire. The
+[create-reference API](https://docs.github.com/en/rest/git/refs#create-a-reference)
+also lists workflow-write permission; it is not a verified bypass. Keep
+publication on the original commit rather than tagging a newer main or
+adding a more privileged credential to the job.
+
+Only Cindy performs this recovery:
+
+1. Save the failed run and its full commit SHA. Confirm the `publish` job
+   succeeded and both exact package versions are present on the public npm
+   registry (`npm view @botiverse/oar@X.Y.Z version` and
+   `npm view @botiverse/oar-cli@X.Y.Z version`, both with
+   `--registry=https://registry.npmjs.org`). Verify those names and versions
+   against the manifests at the original commit. Missing or inconsistent
+   publication evidence needs investigation, not this recovery.
+2. Read the remote tag, including the peeled commit for an annotated tag:
+   `git ls-remote origin refs/tags/vX.Y.Z 'refs/tags/vX.Y.Z^{}'`.
+   If it already points to the original commit, skip tag creation. If it
+   points elsewhere, stop; do not move or force-push it.
+3. Only if the remote tag is absent, create it at the verified original
+   commit and push through Stamp from a checkout configured with
+   `stamp repo use .`. Replace the placeholders before running:
+
+   ```bash
+   git tag -a vX.Y.Z ORIGINAL_RELEASE_COMMIT_SHA -m vX.Y.Z
+   stamp push origin refs/tags/vX.Y.Z
+   ```
+
+   An existing local tag must be checked against that commit too; do not
+   overwrite it. Check Stamp's publication receipt and re-read the remote
+   tag before continuing. Stamp has a different authorization path from
+   the workflow's `GITHUB_TOKEN`; if it refuses the push, keep the failure
+   and resolve that permission with the repository owner.
+4. An external tag push triggers the legacy tag-push publish workflow.
+   Record and inspect that run before dispatching recovery. It is not
+   suppressed like a push made with `GITHUB_TOKEN`: 0.108.1 reran the publish
+   command, which found no new packages. Do not promise that a manual tag
+   push runs only the release job, and do not start another normal publish
+   dispatch or rerun all jobs after npm publication succeeded.
+
 If npm publication succeeded and the correct tag already exists but the
-GitHub release is missing, Cindy can dispatch the recovery path from main:
+GitHub release is missing, dispatch the recovery path explicitly from main
+(also when recovering an older version; do not use the tag as `--ref`):
 
 ```bash
-stamp workflow run release.yml --repo botiverse/oar -f version=X.Y.Z -f release_only=true
+stamp workflow run release.yml --repo botiverse/oar --ref main -f version=X.Y.Z -f release_only=true
 ```
 
 Recovery does not publish packages, create or move tags, run package code,
