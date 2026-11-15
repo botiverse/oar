@@ -1,3 +1,4 @@
+import { antigravityStateArgs, antigravityUsesDefaultState, ANTIGRAVITY_STATE_QUERY_UNAVAILABLE } from "./state-directory.js";
 import type { AvailableInstallation } from "../../contracts/installation.js";
 import type { AuthStatus, AuthStatusOptions, LoginOptions, LoginResult } from "../../contracts/login.js";
 import type { ProviderLoginInteraction } from "../../contracts/provider-auth.js";
@@ -18,7 +19,7 @@ import { errorMessage, LoginSecrets, loginBounds, loginExecutable, spawnLoginPro
  *
  * and reads that line from stdin; with none it ends `login cancelled: no
  * authorization code was entered` (exit 1). The CLI decides where the token
- * goes (a 0600 file under `$GEMINI_HOME/antigravity-cli/`, or a keyring it
+ * goes (a 0600 file under `<gemini-directory>/antigravity-cli/`, or a keyring it
  * detects); OAR never reads or writes it. Status is `agy models`, which
  * refuses with "Please sign in" when there is no login. Logout is agy's ACP
  * `logout` (logout.ts); print mode refuses `/logout`.
@@ -31,8 +32,10 @@ const SIGNED_OUT = /Please sign in\b/iu;
 
 export async function readAntigravityAuthStatus(installation: AvailableInstallation, options: AuthStatusOptions & { readonly signal?: AbortSignal } = {}): Promise<AuthStatus> {
   if (installation.via !== "executable") { return { kind: "unknown", detail: "not a machine-installed executable" }; }
+  const env = sessionEnvironment(options.env);
+  if (!antigravityUsesDefaultState(env)) { return { kind: "unknown", detail: ANTIGRAVITY_STATE_QUERY_UNAVAILABLE }; }
   const result = await runExecutable(installation.command, ["models"], {
-    env: sessionEnvironment(options.env), timeoutMs: options.timeoutMs ?? 30_000, ...(options.signal === undefined ? {} : { signal: options.signal }),
+    env, timeoutMs: options.timeoutMs ?? 30_000, ...(options.signal === undefined ? {} : { signal: options.signal }),
   });
   if (result.ok) { return { kind: "logged_in", source: SOURCE }; }
   // Its refusal names the missing login; any other failure (network, a crash) says nothing about it.
@@ -106,7 +109,7 @@ async function runAntigravityLogin(installation: AvailableInstallation, command:
     child?.write(`${code}\n`);
   };
   try {
-    child = spawnLoginProcess(command, ["acp", "--login"], env, {
+    child = spawnLoginProcess(command, ["acp", "--login", ...antigravityStateArgs(env)], env, {
       onLine(line) {
         const url = URL_LINE.exec(line)?.[1];
         if (url !== undefined && !flow.urlSent) {

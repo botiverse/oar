@@ -126,3 +126,10 @@ test.each([false, true])("missing or refused close preserves the catalog: advert
   expect(acp.request.mock.calls.some(([method]) => method === "session/close")).toBe(advertised);
   expect(acp.kill).toHaveBeenCalledOnce();
 });
+
+test("the native catalog uses the requested GEMINI_HOME through its ACP flag", async () => {
+  acp.request.mockImplementation(async (method) => method === "session/new" ? newSessionResponse : {});
+  const gemini = path.resolve("isolated agy profile");
+  await antigravityListModels(installation, { env: { GEMINI_HOME: gemini } });
+  expect(vi.mocked(startAcpProcess).mock.calls.at(-1)?.[1]).toEqual(["acp", "--dangerously-skip-permissions", "--process-per-session", "--gemini-dir", gemini]);
+});

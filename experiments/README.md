@@ -2,6 +2,8 @@
 
 - [Antigravity configuration notifications](antigravity-config-notifications-2026-11-15/README.md): new stale-before-correct reconstruction, native 1.5.0/1.5.9 field observations and bounded positive confirmation.
 
+- [Antigravity 1.5.9 transport and state boundaries](antigravity-native-gaps-2026-11-15/README.md): mid-turn failures, question forms, background completion, MCP names and native state-directory isolation.
+
 - [Executable probe cleanup after pipe closure](executable-probe-cleanup/README.md): synthetic root/descendant controls on source and published OAR, with retained identities and independent account deadlines.
 - [Factory droid before the first adapter](factory-droid/README.md): stream-jsonrpc turns on a custom model without a login, native steering and interrupt drops, resume, permissions, model/effort readback and the ACP sign-in entry (droid 1.12.1, no account).
 

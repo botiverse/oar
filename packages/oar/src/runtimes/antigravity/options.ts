@@ -14,7 +14,7 @@ export const antigravityRefusedSessionOptions: RefusedSessionOptions = {
   disallowedTools: "agy CLI ACP exposes no verified tool-denial channel; _meta.antigravity.disabledTools is ignored in 1.5.0",
   // agy CLI 1.5.0 writes a session's `mcpServers`, `env` and `headers`
   // values included, in plain text into its conversation database
-  // (`$GEMINI_HOME/antigravity-cli/conversations/<id>.db`).
+  // (`<gemini-directory>/antigravity-cli/conversations/<id>.db`).
   // The database outlives the session and a host
   // cannot see or clear it through ACP;
   // credentials reach a runtime only through its native channel, never its

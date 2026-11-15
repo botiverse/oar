@@ -98,3 +98,32 @@ it("an agy without ACP logout is unsupported, and nothing is deleted", async () 
   expect(await antigravityRuntime.logout(installation)).toMatchObject({ kind: "unsupported", reason: "version_unsupported" });
   expect(fake.read()).toMatchObject({ calls: [["acp"]], loggedIn: true });
 });
+
+it("a separate GEMINI_HOME blocks the default-profile status query", async () => {
+  const { fake, installation } = await fixture("idle", true);
+  const result = await antigravityAuthStatus(installation, { env: { GEMINI_HOME: path.resolve("isolated agy profile") } });
+  expect(result).toEqual({ kind: "unknown", detail: "agy models cannot select GEMINI_HOME; isolate HOME (USERPROFILE on Windows) for authentication and usage queries" });
+  expect(fake.read().calls).toBeUndefined();
+});
+
+it("login selects GEMINI_HOME without checking another profile after success", async () => {
+  const { fake, installation } = await fixture("success");
+  const gemini = path.resolve("isolated agy profile");
+  expect(await antigravityLogin(installation, recordedInteraction(["synthetic-private-code"]), { env: { GEMINI_HOME: gemini } })).toEqual({ kind: "logged_in" });
+  expect(fake.read().calls).toEqual([["acp", "--login", "--gemini-dir", gemini]]);
+});
+
+it("logout selects GEMINI_HOME without checking another profile afterwards", async () => {
+  const { fake, installation } = await fixture("success", true);
+  const gemini = path.resolve("isolated agy profile");
+  expect(await antigravityRuntime.logout(installation, { env: { GEMINI_HOME: gemini } })).toEqual({ kind: "logged_out" });
+  expect(fake.read().calls).toEqual([["acp", "--gemini-dir", gemini]]);
+});
+
+it("status accepts GEMINI_HOME when it names the native default under the effective home", async () => {
+  const { fake, installation } = await fixture("idle", true);
+  const home = path.resolve("isolated home");
+  const env = { HOME: home, USERPROFILE: home, GEMINI_HOME: path.join(home, ".gemini") };
+  expect(await antigravityAuthStatus(installation, { env })).toEqual({ kind: "logged_in", source: "agy models" });
+  expect(fake.read().calls).toEqual([["models"]]);
+});

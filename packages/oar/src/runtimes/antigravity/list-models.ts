@@ -61,7 +61,7 @@ export function projectAntigravityModels(response: unknown): ModelEntry[] | unde
 }
 
 async function readNewSession(command: string, cwd: string, timeoutMs: number, env: NodeJS.ProcessEnv): Promise<JsonRecord> {
-  const runtime = startAcpProcess(command, antigravityAcpArgs(), createClient({ name: "oar" }), { cwd, env });
+  const runtime = startAcpProcess(command, antigravityAcpArgs(env), createClient({ name: "oar" }), { cwd, env });
   try {
     const initialize = methods.agent.initialize;
     const initialized = asRecord(await withAcpDeadline(

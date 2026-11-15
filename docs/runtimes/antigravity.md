@@ -65,15 +65,61 @@ Implementation: [profile](../../packages/oar/src/runtimes/antigravity/session.ts
 [turn handling](../../packages/oar/src/shared/acp/turns.ts) and
 [projection](../../packages/oar/src/shared/acp/projection.ts).
 
+## Known gaps in CLI 1.5.9
+
+The [Linux local-provider experiment](../../experiments/antigravity-native-gaps-2026-11-15/README.md)
+observed two transport gaps. These are Gemini API-provider controls, not
+Google-login account tests:
+
+- **Failed turns look completed.** After a successful MCP call, injected
+  401 `invalid_token`, 429 quota/rate-limit, HTTP 504 and cut SSE responses
+  produce warning text followed by `end_turn`. OAR records `completed` and
+  retains the original warning in its records. It does not classify text
+  warnings or map an unobserved `refusal` to quota. Tracked upstream in
+  [antigravity-cli#1570](https://github.com/google-antigravity/antigravity-cli/issues/1570).
+- **Background completion is absent from the observed ACP stream.** A
+  `run_command` outlived `end_turn`, finished, and triggered another model
+  request. Its completion and later model reply did not reach ACP during
+  the following 12 seconds, although a title notification did. The temporary
+  conversation database contained both. OAR cannot report these absent
+  updates; `end_turn` is not proof that all native work is idle. Related
+  upstream report:
+  [antigravity-cli#1461](https://github.com/google-antigravity/antigravity-cli/issues/1461).
+
+Product OAR reads ACP, not the CLI's internal SQLite/protobuf storage.
+Database inspection here is experiment-only and does not establish a
+supported event or completion interface ([design decision](../design/decisions.md#reading-a-runtimes-internal-conversation-database-2026-11-15)). Background-command observations
+do not establish every subagent/scheduler path; attribution remains `opaque`.
+A separate stalled stream had no answer within the experiment's 180-second
+bound, which is not a measured native timeout.
+
 ## Capability details
 
 ### Session creation and resume
 
-The CLI reads `$GEMINI_HOME/antigravity-cli/settings.json`, its native login
-and conversation state. `GEMINI_HOME` defaults to the user's `.gemini`
-directory. The local-provider fixture uses `modelProvider: "gemini"`, a
-dummy `GEMINI_API_KEY` and `GOOGLE_GEMINI_BASE_URL`; it never uses a real
-account. Give a session a separate HOME/GEMINI_HOME when isolation is needed.
+The CLI defaults to `~/.gemini/antigravity-cli/` for settings, native login
+and conversations. **CLI 1.5.9 ignores `GEMINI_HOME` itself.** OAR translates a
+non-empty effective `GEMINI_HOME` into `--gemini-dir <directory>` for every
+ACP launch: sessions and resume, model listing, login, and logout. Settings
+then live at `<directory>/antigravity-cli/settings.json`. Inherited values
+and the environment overlay both apply; `null` removes an inherited value.
+OAR leaves HOME and USERPROFILE unchanged.
+
+`agy models` and print mode do not accept `--gemini-dir`. When GEMINI_HOME
+names a different directory from the effective home plus `.gemini`, OAR
+returns `authStatus: unknown` with an explanation and `accountUsage:
+unsupported` with `reason: unsupported_auth_storage`, before launching
+those commands. Login and logout still use their ACP interface; without a
+status query, their native success report decides the result, without
+account details. No query silently inspects another profile. Directory
+comparison is lexical; a symlink alias can conservatively be unavailable.
+
+To isolate **all** these operations, set HOME on Linux/macOS or USERPROFILE
+on Windows, with GEMINI_HOME absent or naming that home's `.gemini`. This
+selects the native state directory; it does not promise to disable a
+platform keyring. The local-provider fixture uses `modelProvider: "gemini"`,
+a dummy `GEMINI_API_KEY` and `GOOGLE_GEMINI_BASE_URL`, never a real account.
+See the [1.5.9 directory and command controls](../../experiments/antigravity-native-gaps-2026-11-15/README.md).
 This adapter does not promise to exclude user configuration while retaining
 login and history.
 
@@ -204,9 +250,13 @@ The earlier 1.5.0 local CLI controls did not observe `usage_update` or prompt
 usage. Later 1.5.8 and 1.5.9 controls do observe the context updates described
 above; OAR does not fabricate missing totals. A native `/compact`
 available-command entry alone does not prove compaction completion.
-The native failure regression still records the observed completed-looking
-turn after a rejected provider key, rather than reclassifying agent text as
-an error. See the versioned
+A 1.5.9 `ask_question` call produced plain-text questions/options and
+`end_turn`, with no permission request and no automatically chosen answer.
+See [known gaps](#known-gaps-in-cli-159) for failed turns and background
+commands. The
+[experiment](../../experiments/antigravity-native-gaps-2026-11-15/README.md)
+retains warnings, native frames, directory controls and read-only database
+observations; see also the versioned
 [failure evidence](../spec/runtime-matrix.md#failure-evidence).
 
 ### Models, instructions, and context
@@ -259,9 +309,13 @@ and resume. HTTP needs the per-session worker flag included by OAR. Pass
 servers again on resume. Native CLI controls verified stdio and HTTP tool
 execution and the returned tool content.
 
+In 1.5.9, the native `name: mcp_<server>_<tool>` takes precedence over its
+`title: Run mcp_<server>_<tool>` in OAR; the recorded tool name and MCP
+activity classification retain the direct name.
+
 Session-provided tools use direct names `mcp_<server>_<tool>` and require
 the native `toolSummary` argument. User-configured servers from
-`$GEMINI_HOME/config/mcp_config.json` remain lazy, accessed through
+`<gemini-directory>/config/mcp_config.json` remain lazy, accessed through
 `call_mcp_tool {ServerName, ToolName, Arguments}`. The native schema for this
 wrapper rejects an extra `toolSummary`. A session entry replaces a user
 entry of the same name; non-clashing user servers remain and their config
@@ -295,7 +349,7 @@ The regression binds the declaration to both observations.
 
 **MCP credentials remain refused.** A direct native control found synthetic
 env/header values in
-`$GEMINI_HOME/antigravity-cli/conversations/<id>.db` and its WAL after close.
+`<gemini-directory>/antigravity-cli/conversations/<id>.db` and its WAL after close.
 OAR refuses entries containing non-empty `env` or `headers` before launch
 (`refusedSessionOptions.mcpServerCredentials`). This includes
 `serveMcpTools` entries, which carry a bearer token. Credential-free entries
@@ -403,7 +457,7 @@ confirmed.
   token itself.
 
 The CLI chooses where the token lives: on a machine without a keyring it was a
-0600 file, `$GEMINI_HOME/antigravity-cli/antigravity-oauth-token`, and its
+0600 file, `<gemini-directory>/antigravity-cli/antigravity-oauth-token`, and its
 binary names keyring detection, so a desktop may differ. OAR reads neither.
 
 The vendor's [FAQ](https://antigravity.google/docs/faq) warns that third-party
