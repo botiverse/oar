@@ -552,3 +552,44 @@ visible without selecting or validating a provider.
 specific workspace or launch configuration. Revisit the common contract then,
 with evidence across the affected runtimes, instead of adding Qwen-only
 options now.
+
+## Reading a runtime's internal conversation database (2026-11-15)
+
+**Considered:** reading Antigravity's local conversation database
+(`antigravity-cli/conversations/<session>.db`, SQLite) to learn what its ACP
+stream leaves out. On 1.5.9, with the Gemini API provider and synthetic
+failures, a turn that ends on a provider failure (401, quota, rate limit after
+retries, a broken stream) is reported over ACP only as warning text followed
+by `end_turn`. A background command that finishes after `end_turn`, and the
+model's later reply, produce no ACP update (only a late title notification
+arrives). The database holds both: a terminal error step, and the command's
+step moving from running to done. Other hosts read it: t3code for the first
+case and ADE for the second.
+
+**Refused for now.** The database is the runtime's private storage, not an
+interface. Its payloads are protobuf with no published schema, so a reader
+works from field numbers. The step type that carries the terminal error also
+carries recoverable retry warnings. In all four samples the terminal row was
+first observed after the prompt answer, and the measurement cannot show which
+was committed first. The background command updates its existing row in
+place. A reader built on this would decide the turn's outcome and the
+session's liveness, the two facts hosts trust most, and it would fail silently
+when Antigravity changes its storage. Parsing the warning text is refused for
+the reason in the earlier entry
+[Reading facts out of content text](#reading-facts-out-of-content-text-2026-10-12-2026-10-16).
+OAR therefore records what ACP says, keeps the warning text in the record,
+and states the gap on the [Antigravity page](../runtimes/antigravity.md),
+with the 2026-11-15 Antigravity experiment as evidence. The fix belongs in the
+runtime's own interface, and both gaps are reported upstream:
+[antigravity-cli#1570](https://github.com/google-antigravity/antigravity-cli/issues/1570)
+(failures over ACP) and
+[antigravity-cli#1461](https://github.com/google-antigravity/antigravity-cli/issues/1461)
+(updates after `end_turn`). The 1.5.9 changelog promises more specific
+failed-turn reporting; the measured ACP answer did not change.
+
+**What would reopen it:** Antigravity closing either issue without an ACP
+fix, a host reporting real harm from a failed turn shown as completed or a
+session shown idle while work continues, or a signed-in provider path that
+behaves differently. A reader would then be version-gated to the schema it
+was verified on, record every row it reads as a native frame, and treat an
+unknown schema as "not observed", never as success.
