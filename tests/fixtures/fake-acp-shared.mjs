@@ -1,7 +1,9 @@
 /* oxlint-disable typescript/no-unsafe-assignment, typescript/no-unsafe-call, typescript/no-unsafe-member-access, typescript/no-unsafe-argument, typescript/no-unsafe-return, typescript/strict-boolean-expressions, typescript/promise-function-async, eslint/max-statements, eslint/max-lines-per-function, promise/avoid-new, promise/prefer-await-to-then, promise/prefer-await-to-callbacks -- Standalone untyped ACP adversarial wire fixture, with independent reply scheduling and raw native payloads. */
 import readline from 'node:readline';
 import { appendFileSync, readFileSync } from 'node:fs';
+import { randomUUID } from 'node:crypto';
 
+const instanceId = randomUUID();
 const sessions = new Map();
 const requests = new Map();
 const lateNewReplies = new Map();
@@ -23,7 +25,7 @@ async function handle(message) {
     return;
   }
   const { id, method, params = {} } = message;
-  if (process.env.FIXTURE_TRACE_FILE) { appendFileSync(process.env.FIXTURE_TRACE_FILE, `${JSON.stringify({ pid: process.pid, method })}\n`); }
+  if (process.env.FIXTURE_TRACE_FILE) { appendFileSync(process.env.FIXTURE_TRACE_FILE, `${JSON.stringify({ instanceId, pid: process.pid, method })}\n`); }
   if (method === 'initialize') {
     initialized++;
     if (process.env.FAIL_INIT === '1') { send({ id, error: { code: -32_000, message: 'initialize refused' } }); return; }

@@ -8,7 +8,7 @@ import type { Session, SessionOptions } from "../../packages/oar/src/contracts/s
 import { experimentalGrokRuntime, grokCandidateRefusal } from "../../experiments/sharing/grok-candidate.js";
 import { promptAndWait, awaitTurnEnd } from "../../packages/oar/src/observe/turns.js";
 import { opening, text } from "../fixtures/acp-shared-support.js";
-import { asRecord } from "../../packages/oar/src/shared/json.js";
+import acpFixtureMethodsByInstance from "../fixtures/acp-trace.js";
 // oxlint-disable-next-line import/no-namespace -- Preserve the real profile with only its executable fixture substituted.
 import type * as GrokSessionModule from "../../packages/oar/src/runtimes/grok/session.js";
 
@@ -90,10 +90,10 @@ sharedTest.each(["", "1.0.71", "1.0.70-dev"])("stale installation cannot admit r
   const [a, b] = await Promise.all([f.open("a", { env }), f.open("b", { env })]);
   expect([a.placement, b.placement]).toEqual(["isolated", "isolated"]); expect(opening(a)?.pid).not.toBe(opening(b)?.pid);
   await expect(f.open("a", { env }, f.runtime.withPlacement("shared"))).rejects.toMatchObject({ option: "placement" });
-  const contents = await readFile(trace, "utf8"); const rows = contents.trim().split("\n").map(s => asRecord(JSON.parse(s)));
-  const byPid = new Map<unknown, unknown[]>();
-  for (const row of rows) { const methods = byPid.get(row?.pid) ?? []; methods.push(row?.method); byPid.set(row?.pid, methods); }
-  expect([...byPid.values()].filter(methods => methods.length === 1 && methods[0] === "initialize")).toHaveLength(2);
+  const contents = await readFile(trace, "utf8");
+  const processes = acpFixtureMethodsByInstance(contents);
+  expect(processes.size, contents).toBe(4);
+  expect([...processes.values()].filter(methods => methods.length === 1 && methods[0] === "initialize"), contents).toHaveLength(2);
 });
 
 sharedTest("same installation snapshot rechecks the native version after pool exit", async () => {
