@@ -1,0 +1,169 @@
+{
+  "date": "2026-11-15",
+  "platform": "linux x64",
+  "node": "24.19.0",
+  "grok": "1.0.70 (f50904eaee6c)",
+  "synthetic": {
+    "passed": 11,
+    "failed": 0
+  },
+  "nativeBehavior": {
+    "passed": 17,
+    "unsupported": 2
+  },
+  "nativeVendor": {
+    "passed": 29,
+    "skipped": 437
+  },
+  "finalStructuredOutput": {
+    "passed": 3
+  },
+  "limits": [
+    "No Windows-native run yet. The observation workflow includes the validation script.",
+    "No real account or model; native suites use the local scripted provider.",
+    "The first targeted selection was the other runtimes structured-output file; all 6 skipped and are not counted."
+  ],
+  "processCounts": {
+    "native-behavior": {
+      "observed": 17,
+      "closed": 17,
+      "initializeResponses": 17
+    },
+    "native-vendor": {
+      "observed": 31,
+      "closed": 31,
+      "initializeResponses": 31
+    },
+    "native-final-correct": {
+      "observed": 4,
+      "closed": 4,
+      "initializeResponses": 4
+    }
+  },
+  "selectedFinalTrace": [
+    {
+      "at": 1794739968240,
+      "elapsedMs": 0.472248000000036,
+      "phase": "spawn_requested",
+      "startedAt": 1794739968239,
+      "suite": "vendor",
+      "file": "grok-structured-output.vendor.test.ts"
+    },
+    {
+      "at": 1794739968244,
+      "elapsedMs": 4.174999999999272,
+      "phase": "spawn_returned"
+    },
+    {
+      "at": 1794739968245,
+      "elapsedMs": 5.852292999999918,
+      "phase": "spawned"
+    },
+    {
+      "at": 1794739968246,
+      "elapsedMs": 6.422257999998692,
+      "phase": "request_sent",
+      "method": "initialize",
+      "request": 1
+    },
+    {
+      "at": 1794739968514,
+      "elapsedMs": 274.5071579999985,
+      "phase": "first_stdout"
+    },
+    {
+      "at": 1794739968514,
+      "elapsedMs": 274.8616759999986,
+      "phase": "first_protocol_frame"
+    },
+    {
+      "at": 1794739968514,
+      "elapsedMs": 274.9033479999998,
+      "phase": "response_received",
+      "method": "initialize",
+      "request": 1,
+      "outcome": "result",
+      "errorCode": null
+    },
+    {
+      "at": 1794739968515,
+      "elapsedMs": 275.6147970000002,
+      "phase": "request_sent",
+      "method": "authenticate",
+      "request": 2
+    },
+    {
+      "at": 1794739968515,
+      "elapsedMs": 276.0069619999995,
+      "phase": "response_received",
+      "method": "authenticate",
+      "request": 2,
+      "outcome": "result",
+      "errorCode": null
+    },
+    {
+      "at": 1794739968516,
+      "elapsedMs": 276.4519709999986,
+      "phase": "request_sent",
+      "method": "session/new",
+      "request": 3
+    },
+    {
+      "at": 1794739968574,
+      "elapsedMs": 334.51309299999957,
+      "phase": "response_received",
+      "method": "session/new",
+      "request": 3,
+      "outcome": "result",
+      "errorCode": null
+    },
+    {
+      "at": 1794739968575,
+      "elapsedMs": 335.9079299999994,
+      "phase": "request_sent",
+      "method": "session/prompt",
+      "request": 4
+    },
+    {
+      "at": 1794739968576,
+      "elapsedMs": 336.82794999999896,
+      "phase": "first_session_update"
+    },
+    {
+      "at": 1794739968682,
+      "elapsedMs": 442.952890999999,
+      "phase": "first_agent_output",
+      "kind": "agent_message_chunk"
+    },
+    {
+      "at": 1794739968723,
+      "elapsedMs": 484.01592699999856,
+      "phase": "response_received",
+      "method": "session/prompt",
+      "request": 4,
+      "outcome": "result",
+      "errorCode": null
+    },
+    {
+      "at": 1794739970939,
+      "elapsedMs": 2699.231414,
+      "phase": "exit",
+      "exitCode": 143,
+      "exitSignal": null,
+      "pending": []
+    },
+    {
+      "at": 1794739970940,
+      "elapsedMs": 2700.1891719999985,
+      "phase": "close",
+      "exitCode": 143,
+      "exitSignal": null,
+      "pending": []
+    }
+  ],
+  "logSha256": {
+    "native-behavior.log": "319f58bee7c7ac4b113d8fbf3a1744e6aa27b92ecf7a090c7806f9f868033f03",
+    "native-vendor.log": "5659e3cbad970ff9fab2cfec71baa5702f4717ae19abceb2fbd744713c84f177",
+    "native-final-correct.log": "c34870e3137baaa661f651d7e94fb5936765db76aad7128347a4402bb5e18ed7"
+  }
+}
