@@ -56,12 +56,13 @@ it from npm.
 
 One `droid exec` stream-jsonrpc process per session. Every native line is one
 record, whole and in arrival order. A notification is a frame whose `type` is
-its notification `type` (or its method). A reply to a control OAR made
-(`add_user_message`, `interrupt_session`) is that control's response; a
-reply to OAR's own read (`initialize_session`, `load_session`,
-`update_session_settings`, `get_context_stats`, `compact_session`), error
-replies included, is a frame named after the method and recorded where it sat
-on the wire. A response no request owns is a `response` frame, and a line that
+its notification `type` (or its method). Every reply to a request OAR sent
+(`initialize_session`, `load_session`, `update_session_settings`,
+`add_user_message`, `interrupt_session`, `get_context_stats`,
+`compact_session`), error replies included, is a frame named after the method,
+recorded whole where it sat on the wire; replies to an input or an abort name
+that control's request in `responseTo`, and a refusal settles the input at
+that point, before any later line is read. A response no request owns is a `response` frame, and a line that
 is not JSON a `stdout` frame.
 
 - **Open.** `initialize_session` with the session's `cwd`, `modelId`,
@@ -118,7 +119,11 @@ is not JSON a `stdout` frame.
   end). When a turn ends while a steer OAR sent is neither echoed nor given
   back, OAR records `turn_active` for that steer in the same frame and keeps
   the session busy until droid ends the steer's turn: a prompt is `busy`, held
-  input waits.
+  input waits. An interrupt in that gap makes droid hand the steer back
+  (`queued_message_handed_back`) and, on 1.12.1, end the steer's turn about
+  20 ms later as `cancelled` under the steer's id (probed with the custom-model
+  setup). OAR frees the session at the handback and disarms that abort's
+  fallback there, so neither a late end nor its absence can stop a newer turn.
 
 ### Events, tools and permissions
 

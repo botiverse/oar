@@ -6,6 +6,9 @@
 //   then runs it as a turn of its own (droid's steer that missed its turn's end);
 // - handback: prompts are never echoed, and an interrupt hands the running prompt back and never ends its turn;
 // - stuck: an interrupt is acknowledged and the turn never ends;
+// - missed-steer-handback: like missed-steer, but an interrupt in the gap hands the steer back,
+//   and that steer's cancelled turn end comes 1.5 s later (droid 1.12.1 sends it about 20 ms later);
+// - refuse-steer: a message during a turn is refused, and the refusal and the turn's end arrive in one write;
 // - noisy: a non-JSON line and a response nobody asked for at startup, and get_context_stats fails.
 import { randomUUID } from "node:crypto";
 import { createInterface } from "node:readline";
@@ -20,6 +23,8 @@ const efforts = new Set(["low", "medium", "high"]);
 const settings = { modelId: "gpt-6.1-sol", reasoningEffort: "high", autonomyLevel: "medium" };
 /** The running turn: its id, the RPC id of the message that started it, and its pending end. */
 let running = null;
+/** A steer that missed its turn's end, waiting to run as its own turn. */
+let missed = null;
 
 function endTurn(reason = "completed") {
   if (running === null) { return; }
@@ -70,18 +75,34 @@ input.on("line", (line) => {
       note({ type: "settings_updated", settings });
       return;
     case "droid.add_user_message":
+      if (running !== null && mode === "refuse-steer") {
+        const { turnId } = running;
+        clearTimeout(running.timer);
+        running = null;
+        process.stdout.write(`${JSON.stringify({ ...envelope, type: "response", id: message.id, error: { code: -32_603, message: "steer refused" } })}\n${JSON.stringify({ ...envelope, type: "notification", method: "droid.session_notification", params: { sessionId, notification: { type: "agent_turn_completed", reason: "completed", turnId } } })}\n`);
+        return;
+      }
       reply({});
       if (running === null) { startTurn(message.id, message.params.messageId, message.params.text); return; }
-      if (mode === "missed-steer") {
+      if (mode === "missed-steer" || mode === "missed-steer-handback") {
         // The steer arrives as the turn ends: droid ends the turn without it, then runs it on its own.
         endTurn();
-        setTimeout(() => { startTurn(message.id, message.params.messageId, message.params.text, 300); }, 300);
+        missed = { rpcId: message.id, messageId: message.params.messageId, text: message.params.text,
+          timer: setTimeout(() => { missed = null; startTurn(message.id, message.params.messageId, message.params.text, 300); }, 300) };
         return;
       }
       note({ type: "create_message", requestId: message.id, message: { id: message.params.messageId, role: "user", content: [{ type: "text", text: message.params.text }] } });
       return;
     case "droid.interrupt_session":
       reply({});
+      if (missed !== null && mode === "missed-steer-handback") {
+        const steer = missed;
+        clearTimeout(steer.timer);
+        missed = null;
+        note({ type: "queued_message_handed_back", requestId: steer.rpcId, text: steer.text });
+        setTimeout(() => { note({ type: "agent_turn_completed", reason: "cancelled", turnId: steer.messageId }); }, 1500);
+        return;
+      }
       if (running === null) { return; }
       if (mode === "handback") {
         clearTimeout(running.timer);

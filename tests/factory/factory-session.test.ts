@@ -28,8 +28,8 @@ const LATE = "11111111-0000-4000-8000-000000000001";
 const endsLate = (records: readonly RawEvent[]): boolean => events(records).some(event => event.kind === "turn_ended" && event.inputId === LATE);
 
 /** The first turn ended without the late steer; droid will run it next. */
-async function missedSteer(): Promise<Session> {
-  const opened = await session("missed-steer", 10_000);
+async function missedSteer(mode = "missed-steer"): Promise<Session> {
+  const opened = await session(mode, 10_000);
   const first = await opened.prompt("first");
   const steer = await opened.steer?.("late steer", { inputId: LATE });
   expect(steer?.response.body.kind).toBe("accepted");
@@ -94,4 +94,37 @@ it("a model droid would not run is a ModelConfirmationError; an effort droid ref
   const refused = await session("", 0, { effort: "bogus" }).then(() => null, (error: unknown) => error);
   expect(refused).toBeInstanceOf(UnsupportedOptionError);
   expect(refused).toMatchObject({ option: "effort" });
+});
+
+it("a steer droid refuses in the same write as its turn's end leaves the session idle, and the refusal is a frame", async () => {
+  const opened = await session("refuse-steer", 10_000);
+  const first = await opened.prompt("first");
+  const steer = await opened.steer?.("refused", { inputId: "22222222-0000-4000-8000-000000000001" });
+  expect(steer?.response.body).toMatchObject({ kind: "rejected", code: "runtime_refused" });
+  await awaitTurnEnd(opened, first.request.seq);
+  const next = await opened.prompt("next");
+  expect(next.response.body.kind).toBe("accepted");
+  expect(opened.records().find(record => record.kind === "frame" && record.body.type === "droid.add_user_message" && record.body.responseTo === steer?.request.id)?.body)
+    .toMatchObject({ native: { type: "response", error: { message: "steer refused" } } });
+});
+
+it("an abort in the gap before a missed steer's turn is disarmed when droid hands that steer back", async () => {
+  const opened = await missedSteer("missed-steer-handback");
+  const abort = await opened.abort();
+  expect(abort.response.body.kind).toBe("accepted");
+  await expect.poll(() => events(opened.records()).some(event => event.kind === "input_dropped" && event.inputId === LATE), { timeout: 5000 }).toBe(true);
+  const next = await opened.prompt("newer turn");
+  expect(next.response.body.kind).toBe("accepted");
+  // Past the 300 ms fallback, before the steer's late cancelled end at 1.5 s.
+  await sleep(1000);
+  expect(opened.records().some(record => record.kind === "response" && record.body.kind === "exited")).toBe(false);
+});
+
+it("replies to add_user_message and interrupt_session are frames that name their request", async () => {
+  const opened = await session("", 10_000);
+  const prompt = await opened.prompt("first");
+  const abort = await opened.abort();
+  const frames = opened.records().flatMap(record => record.kind === "frame" ? [record.body] : []);
+  expect(frames.find(frame => frame.type === "droid.add_user_message")).toMatchObject({ responseTo: prompt.request.id, native: { type: "response", id: prompt.request.id, result: {} } });
+  expect(frames.find(frame => frame.type === "droid.interrupt_session")).toMatchObject({ responseTo: abort.request.id, native: { type: "response", result: {} } });
 });

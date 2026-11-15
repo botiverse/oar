@@ -14,7 +14,7 @@ import { refuseSessionOptions } from "../../shared/session-options.js";
 import { startDroidClient, type DroidClient, type DroidOutcome } from "./client.js";
 import { checkFactoryLaunchArgs, factoryRefusedSessionOptions } from "./options.js";
 import { contextOf, factoryOpenRequest, openFactory, serverReply } from "./open.js";
-import { effortRefusal, settingsRefusal } from "./settings.js";
+import { confirmSettings } from "./settings.js";
 import { factoryCompaction } from "./compaction.js";
 import { droidImages, type FactorySessionTimings, type Held } from "./session-state.js";
 import { foldFactoryNotification, initialFactoryProjection, type FactoryProjection } from "./projection.js";
@@ -31,7 +31,6 @@ import { foldFactoryNotification, initialFactoryProjection, type FactoryProjecti
  * Every RPC OAR sends for an input uses the OAR request id as its JSON-RPC
  * id, so droid's echoes name the exact attempt.
  */
-const SETTINGS_REPORT_MS = 10_000;
 
 export const createFactorySession = (timings: FactorySessionTimings = {}): StartSession => withSessionCredentials(async (installation, options, credentials) => {
   if (installation.via !== "executable") { throw new Error("The Factory droid session adapter needs an executable installation"); }
@@ -82,9 +81,9 @@ export const createFactorySession = (timings: FactorySessionTimings = {}): Start
     const busy = (): boolean => (active !== null && !active.dropped) || spontaneous;
 
     /** Record a reply OAR's own read received, whole and where it sat on the wire. */
-    const recordReply = (type: string, events: (result: JsonRecord) => readonly RuntimeEventBody[] = () => []): ((outcome: DroidOutcome) => void) => (outcome: DroidOutcome): void => {
+    const recordReply = (type: string, events: (result: JsonRecord) => readonly RuntimeEventBody[] = () => [], responseTo?: string): ((outcome: DroidOutcome) => void) => (outcome: DroidOutcome): void => {
       if (outcome.kind === "exited") { return; }
-      client.mark(() => { kernel.frame({ type, native: outcome.native, events: outcome.kind === "result" ? events(outcome.result) : [] }); });
+      client.mark(() => { kernel.frame({ type, native: outcome.native, events: outcome.kind === "result" ? events(outcome.result) : [], ...(responseTo === undefined ? {} : { responseTo }) }); });
     };
     const readContext = (): void => {
       if (kernel.unreachable() !== null) { return; }
@@ -113,9 +112,7 @@ export const createFactorySession = (timings: FactorySessionTimings = {}): Start
       const after: RuntimeEventBody[] = [];
       const prompted = active;
       if (prompted !== null && body.events.some(event => event.kind === "input_dropped" && event.requestId === prompted.request.id)) {
-        prompted.dropped = true;
-        // droid handed the prompt back before starting it: the abort was honored, and that turn's late end can no longer stall anything.
-        if (abortingTurn === prompted.inputId) { disarm(); }
+        prompted.dropped = true; // droid handed it back before starting it; its late cancelled end can no longer stall anything.
       }
       const ended = notification?.type === "agent_turn_completed";
       if (ended) {
@@ -133,10 +130,13 @@ export const createFactorySession = (timings: FactorySessionTimings = {}): Start
       }
       const waiting = spontaneousTurn;
       if (!ended && waiting !== null && body.events.some(event => event.kind === "input_dropped" && event.inputId === waiting)) {
-        // droid gave the missed steer back before its turn began.
+        // droid gave the missed steer back before its turn began (1.12.1 then still ends that turn, cancelled, under its id).
         spontaneous = false;
         spontaneousTurn = null;
       }
+      const awaited = abortingTurn;
+      // Any input droid hands back under the id an abort waits on: the abort was honored.
+      if (typeof awaited === "string" && body.events.some(event => event.kind === "input_dropped" && event.inputId === awaited)) { disarm(); }
       kernel.frame(extra.length === 0 && after.length === 0 ? body : { ...body, events: [...extra, ...body.events, ...after] });
       if (notification?.type === "settings_updated") { settingsWaiter?.(asRecord(notification.settings) ?? {}); }
       if (ended) {
@@ -162,24 +162,7 @@ export const createFactorySession = (timings: FactorySessionTimings = {}): Start
       held.splice(0);
     });
 
-    if (options.resume !== undefined && (options.model !== undefined || options.effort !== undefined)
-      && ((options.model !== undefined && settings?.modelId !== options.model) || (options.effort !== undefined && settings?.reasoningEffort !== options.effort))) {
-      // A resumed session runs what it saved; set the requested model and effort, and take droid's pushed settings as its word.
-      const { promise: reported, resolve } = Promise.withResolvers<JsonRecord | null>();
-      settingsWaiter = resolve;
-      const timer = setTimeout(() => { resolve(null); }, SETTINGS_REPORT_MS);
-      try {
-        try {
-          await client.request("droid.update_session_settings", { ...(options.model === undefined ? {} : { modelId: options.model }), ...(options.effort === undefined ? {} : { reasoningEffort: options.effort }) },
-            recordReply("droid.update_session_settings"));
-        } catch (error) { throw effortRefusal(error, options) ?? error; }
-        const refusal = settingsRefusal(options, await reported, " on resume");
-        if (refusal !== null) { throw refusal; }
-      } finally { clearTimeout(timer); settingsWaiter = null; }
-    } else {
-      const refusal = settingsRefusal(options, settings, "");
-      if (refusal !== null) { throw refusal; }
-    }
+    await confirmSettings(client, options, settings, recordReply("droid.update_session_settings"), (waiter) => { settingsWaiter = waiter; });
     readContext();
 
     const capabilities = { queue: { durable: false }, attribution: "opaque", images: true } as const;
@@ -195,14 +178,20 @@ export const createFactorySession = (timings: FactorySessionTimings = {}): Start
     const send = async (request: RequestRecord, input: string, inputId: string, images: readonly LoadedImage[], starts: boolean): Promise<ResponseBody> => {
       projection = { ...projection, sent: new Map([...projection.sent, [request.id, { requestId: request.id, inputId }]]) };
       if (starts) { active = { request, inputId, dropped: false }; projection = { ...projection, turnId: inputId }; }
+      // The reply line is a frame where it arrived; a refusal settles the input there too, before any later line (a turn end in the same chunk) is read.
+      const settled = (outcome: DroidOutcome): void => {
+        if (outcome.kind === "error" || outcome.kind === "exited") {
+          if (starts && active?.request === request) { active = null; projection = { ...projection, turnId: null }; }
+          const sent = new Map(projection.sent);
+          sent.delete(request.id);
+          projection = { ...projection, sent };
+        }
+        recordReply("droid.add_user_message", () => [], request.id)(outcome);
+      };
       try {
-        const reply = await client.request("droid.add_user_message", { text: input, messageId: inputId, ...droidImages(images) }, undefined, request.id);
-        return kernel.unreachable() ?? { kind: "accepted", native: reply };
+        await client.request("droid.add_user_message", { text: input, messageId: inputId, ...droidImages(images) }, settled, request.id);
+        return kernel.unreachable() ?? { kind: "accepted" };
       } catch (error) {
-        if (starts && active?.request === request) { active = null; projection = { ...projection, turnId: null }; }
-        const sent = new Map(projection.sent);
-        sent.delete(request.id);
-        projection = { ...projection, sent };
         return kernel.unreachable() ?? { kind: "rejected", code: "runtime_refused", reason: error instanceof Error ? error.message : String(error) };
       }
     };
@@ -259,14 +248,14 @@ export const createFactorySession = (timings: FactorySessionTimings = {}): Start
         return result;
       },
       abort: async (): Promise<ControlResult> => {
-        const result = await kernel.control({ kind: "abort" }, async () => {
+        const result = await kernel.control({ kind: "abort" }, async (request) => {
           if (!busy()) { return { kind: "rejected", code: "no_active_turn", reason: "no active turn" }; }
           // Bounded: without droid's end of this turn in time, the process is stopped and its exit is recorded.
           abortingTurn = active !== null && !active.dropped ? active.inputId : spontaneousTurn;
           const refused = abortFallback.arm();
           try {
-            const reply = await client.request("droid.interrupt_session", {});
-            return { kind: "accepted", native: reply };
+            await client.request("droid.interrupt_session", {}, recordReply("droid.interrupt_session", () => [], request.id));
+            return { kind: "accepted" };
           } catch (error) {
             refused();
             return kernel.unreachable() ?? { kind: "rejected", code: "runtime_refused", reason: error instanceof Error ? error.message : String(error) };
