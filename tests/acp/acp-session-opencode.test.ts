@@ -55,7 +55,7 @@ test("a resume is refused outside the session's own directory and opens inside i
   const other = scratch("oar-opencode-other-");
   const env = { FAKE_ACP_SESSION_CWD: own };
   await expect(startOpencode({ cwd: other, resume: "fake-session", env })).rejects.toMatchObject({
-    name: "ResumeCwdError", option: "cwd", reason: "other_cwd",
+    name: "UnsupportedOptionError", option: "cwd", reason: "other_cwd",
     sessionId: "fake-session", requestedCwd: other, savedCwd: own,
   });
   const session = await startOpencode({ cwd: own, resume: "fake-session", env });
