@@ -1361,3 +1361,8 @@ Agents directories are treated according to their actual home or project root.
 Unmatched custom/remote roots and unknown `skill://` identities remain unknown;
 no plugin identity is inferred. Raw source/path remain unchanged. See the
 [mapping and limits](inventory.md#skill-provenance).
+
+The built-in URI allowlist is version-bound to the verified 2.2.7/2.3.0
+catalog: `skill://opencode/SKILL.md` and `skill://report/SKILL.md`. New or
+renamed built-ins remain without scope until verified. Recheck these native
+identities during the daily runtime version check before updating the mapping.
