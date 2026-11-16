@@ -1,0 +1,133 @@
+{
+  "kind": "synthetic controls, not native video evidence",
+  "cases": [
+    {
+      "case": "500",
+      "route": "direct_acp",
+      "error": "RequestError: synthetic read_file HTTP 500",
+      "outcome": {},
+      "cleanupErrors": [],
+      "cleanupError": null,
+      "nativeExit": {
+        "code": null,
+        "signal": "SIGTERM"
+      },
+      "wireFrames": 12,
+      "rawFile": "500.json",
+      "rawSha256": "922f341d0c93f8932355c658c42c5fb768813dab76ec702a760d688fdab59417"
+    },
+    {
+      "case": "500",
+      "route": "oar",
+      "error": null,
+      "outcome": {
+        "kind": "failed",
+        "reason": "synthetic read_file HTTP 500",
+        "failure": "provider"
+      },
+      "cleanupErrors": [],
+      "cleanupError": null,
+      "nativeExit": {
+        "code": 0,
+        "signal": null
+      },
+      "wireFrames": 11,
+      "rawFile": "500.json",
+      "rawSha256": "922f341d0c93f8932355c658c42c5fb768813dab76ec702a760d688fdab59417"
+    },
+    {
+      "case": "refuse",
+      "route": "direct_acp",
+      "error": "AssertionError [ERR_ASSERTION]: native model response did not confirm probe-model",
+      "outcome": {},
+      "cleanupErrors": [],
+      "cleanupError": null,
+      "nativeExit": {
+        "code": null,
+        "signal": "SIGTERM"
+      },
+      "wireFrames": 10,
+      "rawFile": "refuse.json",
+      "rawSha256": "49f6dee57dcd42079affef4840e1ca8808b39b133068cd1fedb51512711f7574"
+    },
+    {
+      "case": "refuse",
+      "route": "oar",
+      "error": "ModelConfirmationError: ACP config_option_update left model at different-model although probe-model was requested",
+      "outcome": {},
+      "cleanupErrors": [],
+      "cleanupError": null,
+      "nativeExit": {
+        "code": null,
+        "signal": "SIGTERM"
+      },
+      "wireFrames": 9,
+      "rawFile": "refuse.json",
+      "rawSha256": "49f6dee57dcd42079affef4840e1ca8808b39b133068cd1fedb51512711f7574"
+    },
+    {
+      "case": "stall",
+      "route": "direct_acp",
+      "error": "AcpError: ACP request session/prompt timed out after 200ms",
+      "outcome": {},
+      "cleanupErrors": [],
+      "cleanupError": null,
+      "nativeExit": {
+        "code": null,
+        "signal": "SIGTERM"
+      },
+      "wireFrames": 12,
+      "rawFile": "stall.json",
+      "rawSha256": "c29b1fe8485f8f5b56f7d0b447ad070244636f03ae179fa7012aeb66c5b57dbf"
+    },
+    {
+      "case": "stall",
+      "route": "oar",
+      "error": "Error: OAR prompt observation deadline (200ms)",
+      "outcome": {},
+      "cleanupErrors": [],
+      "cleanupError": null,
+      "nativeExit": {
+        "code": null,
+        "signal": "SIGTERM"
+      },
+      "wireFrames": 11,
+      "rawFile": "stall.json",
+      "rawSha256": "c29b1fe8485f8f5b56f7d0b447ad070244636f03ae179fa7012aeb66c5b57dbf"
+    },
+    {
+      "case": "success",
+      "route": "direct_acp",
+      "error": null,
+      "outcome": {
+        "stopReason": "end_turn"
+      },
+      "cleanupErrors": [],
+      "cleanupError": null,
+      "nativeExit": {
+        "code": null,
+        "signal": "SIGTERM"
+      },
+      "wireFrames": 13,
+      "rawFile": "success.json",
+      "rawSha256": "d4b8579ee01cb8daf6d3c1d32a873a656602c9d448b7bfe0775e3f5e367a61e1"
+    },
+    {
+      "case": "success",
+      "route": "oar",
+      "error": null,
+      "outcome": {
+        "kind": "completed"
+      },
+      "cleanupErrors": [],
+      "cleanupError": null,
+      "nativeExit": {
+        "code": null,
+        "signal": "SIGTERM"
+      },
+      "wireFrames": 12,
+      "rawFile": "success.json",
+      "rawSha256": "d4b8579ee01cb8daf6d3c1d32a873a656602c9d448b7bfe0775e3f5e367a61e1"
+    }
+  ]
+}
