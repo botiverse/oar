@@ -48,10 +48,3 @@ export interface Orientation {
   readonly depth: OrientationDepth;
   readonly runtimes: readonly RuntimeOrientation[];
 }
-export type UnusableReason = "not_installed" | "version_unsupported" | "logged_out" | "rate_limited" | "auth_unknown" | "probe_failed";
-export interface RuntimeUsability {
-  readonly id: string;
-  readonly usable: boolean;
-  readonly because?: UnusableReason;
-}
-export interface UsabilityOptions { readonly minVersions?: Readonly<Record<string, string>> }

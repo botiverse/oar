@@ -1,7 +1,7 @@
 export type { CompactionOptions, CompactionOutcome, ManualCompaction } from "./compaction.js";
 export type { GoalControl, AdapterGoalControl, GoalSnapshot, GoalStatus, KnownGoalStatus, GoalSetOptions } from "./goal.js";
 export type { InventoryScope, InventoryOptions, SkillEntry, CommandEntry, McpServerEntry, ToolEntry, InventoryResult, InventoryReader, RuntimeInventories } from "./inventory.js";
-export type { Probe, OrientOptions, OrientationDepth, Orientation, RuntimeOrientation, Customization, RuntimeUsability, UsabilityOptions, UnusableReason } from "./orientation.js";
+export type { Probe, OrientOptions, OrientationDepth, Orientation, RuntimeOrientation, Customization } from "./orientation.js";
 
 export type {
   AccountLimitReset,

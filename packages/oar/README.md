@@ -617,8 +617,8 @@ evidence. Local is the default and skips auth readers without a proven local
 query. Account reads can refresh credentials or execute configured key commands;
 models can start native processes and run trusted configuration.
 `include: ["customization"]` explicitly opts into native inventory counts.
-`usability(snapshot, { minVersions? })` is a pure, browser-safe readiness
-projection from `@botiverse/oar/observe`. Hosts own freshness and selection.
+Hosts derive readiness from the returned probes using their own freshness
+and selection policy.
 See [orientation](https://github.com/botiverse/oar/blob/main/docs/spec/orientation.md).
 
 ### Runtime branding
