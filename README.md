@@ -207,18 +207,26 @@ for (const runtime of defaultRuntimes.list()) {
 }
 ```
 
-- **[Orientation](docs/spec/orientation.md):** one call for what is installed and usable.
-- **[Install](docs/spec/install.md) and [update](docs/spec/update.md):** through the vendor's own installer and updater.
-- **[Login](docs/spec/login.md):** through the runtime's own login, without a terminal. OAR never handles the tokens.
-- **[Account usage](docs/spec/account-usage.md):** plan and quota windows, and Codex and Claude limit resets.
+- **Installation:** whether each runtime is installed, its version and where;
+  [install](docs/spec/install.md) and [update](docs/spec/update.md) through the
+  vendor's own installer and updater, and the minimum version OAR supports
+  where a runtime has one.
+- **Account:** [log in, log out and status](docs/spec/login.md) through the
+  runtime's own login, without a terminal (OAR never handles the tokens);
+  [usage](docs/spec/account-usage.md): plan, quota windows and their resets, and
+  Codex and Claude limit resets.
 - **Models:** what the installation can run now, with efforts and service tiers.
 - **[Inventories](docs/spec/inventory.md):** configured skills, commands, MCP servers and tools.
 - **[Setup forms](docs/spec/config-form.md):** settings as data a UI renders.
+- **[Orientation](docs/spec/orientation.md):** all of the above for every runtime in one bounded call.
 
 ## CLI
 
 ```bash
-npx @botiverse/oar-cli list
+npx @botiverse/oar-cli installation
+oar install codex --plan
+oar account login claude
+oar account usage
 oar run claude "What does this repo do?" --record run.jsonl
 ```
 
