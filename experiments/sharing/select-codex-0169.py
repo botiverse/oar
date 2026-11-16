@@ -9,8 +9,25 @@ parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("artifact", type=Path)
 parser.add_argument("output", type=Path)
 parser.add_argument("--environment", action="store_true", help="Read one child-environment evidence file instead of an artifact directory")
+parser.add_argument("--resources", action="store_true", help="Read one resource evidence file, retaining every window")
 args = parser.parse_args()
 fingerprints = {}
+
+if args.resources:
+    raw = args.artifact.read_bytes()
+    evidence = json.loads(raw)
+    names = ["elapsedMs", "cpuPercentOneCore", "cpuIsLowerBound", "exitedDuringWindow", "rssBytes", "processes"]
+    selected = {"rawSha256": hashlib.sha256(raw).hexdigest(), "cohorts": [
+        {**{key: row[key] for key in ["mode", "count", "sampling", "at", "platform", "installation", "outcome"]},
+         "error": row.get("error"),
+         "opened": {key: row["opened"][key] for key in names},
+         "afterTurn": [{key: window[key] for key in names} for window in row["afterTurn"]]}
+        for row in evidence]}
+    for row in selected["cohorts"]:
+        row["installation"].pop("command", None)
+    args.output.write_text(json.dumps(selected, indent=2) + "\n")
+    sys.exit(0)
+
 
 if args.environment:
     raw = args.artifact.read_bytes()

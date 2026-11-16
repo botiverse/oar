@@ -1,0 +1,597 @@
+{
+  "rawSha256": "87e2b9bc33a169ad359cdfb786df9093a2a568f35da2dbb355bada8a2bb85b61",
+  "cohorts": [
+    {
+      "mode": "isolated",
+      "count": 10,
+      "sampling": {
+        "settlingMs": 30000,
+        "windowMs": 1000,
+        "windows": 15
+      },
+      "at": "2026-11-16T05:22:53.845Z",
+      "platform": "win32",
+      "installation": {
+        "kind": "available",
+        "via": "executable",
+        "version": "codex-cli 0.169.0"
+      },
+      "outcome": "failed",
+      "error": "AssertionError [ERR_ASSERTION]: incomplete CPU windows; retain every sample, do not select passing windows",
+      "opened": {
+        "elapsedMs": 6350.855199999998,
+        "cpuPercentOneCore": 30.99976204779477,
+        "cpuIsLowerBound": true,
+        "exitedDuringWindow": 3,
+        "rssBytes": 1132699648,
+        "processes": 30
+      },
+      "afterTurn": [
+        {
+          "elapsedMs": 2033.1591999999946,
+          "cpuPercentOneCore": 0.7685084375094701,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 1329766400,
+          "processes": 30
+        },
+        {
+          "elapsedMs": 2070.4691999999923,
+          "cpuPercentOneCore": 3.7732993081954707,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 1327509504,
+          "processes": 30
+        },
+        {
+          "elapsedMs": 2066.183600000004,
+          "cpuPercentOneCore": 0.7562251486266743,
+          "cpuIsLowerBound": true,
+          "exitedDuringWindow": 7,
+          "rssBytes": 1326747648,
+          "processes": 30
+        },
+        {
+          "elapsedMs": 2369.8462,
+          "cpuPercentOneCore": 54.72401542344816,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 1369317376,
+          "processes": 33
+        },
+        {
+          "elapsedMs": 2179.0852999999915,
+          "cpuPercentOneCore": 21.51131945133134,
+          "cpuIsLowerBound": true,
+          "exitedDuringWindow": 3,
+          "rssBytes": 1322844160,
+          "processes": 30
+        },
+        {
+          "elapsedMs": 2340.3666000000085,
+          "cpuPercentOneCore": 17.358391629755722,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 1323098112,
+          "processes": 30
+        },
+        {
+          "elapsedMs": 2023.0984000000026,
+          "cpuPercentOneCore": 0.7723302040078712,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 1321402368,
+          "processes": 30
+        },
+        {
+          "elapsedMs": 2067.6710999999923,
+          "cpuPercentOneCore": 2.267043341661069,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 1320165376,
+          "processes": 30
+        },
+        {
+          "elapsedMs": 2190.7060000000056,
+          "cpuPercentOneCore": 1.4264807783426858,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 1318813696,
+          "processes": 30
+        },
+        {
+          "elapsedMs": 2227.282600000006,
+          "cpuPercentOneCore": 18.94124257065533,
+          "cpuIsLowerBound": true,
+          "exitedDuringWindow": 4,
+          "rssBytes": 1345691648,
+          "processes": 33
+        },
+        {
+          "elapsedMs": 2294.1601999999984,
+          "cpuPercentOneCore": 22.475544645923172,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 1348911104,
+          "processes": 33
+        },
+        {
+          "elapsedMs": 2389.056799999991,
+          "cpuPercentOneCore": 15.696571132172386,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 1351553024,
+          "processes": 33
+        },
+        {
+          "elapsedMs": 2514.2139999999927,
+          "cpuPercentOneCore": 28.58746311968679,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 1344339968,
+          "processes": 33
+        },
+        {
+          "elapsedMs": 2333.75039999999,
+          "cpuPercentOneCore": 34.145682417451475,
+          "cpuIsLowerBound": true,
+          "exitedDuringWindow": 3,
+          "rssBytes": 1289912320,
+          "processes": 30
+        },
+        {
+          "elapsedMs": 2251.017499999987,
+          "cpuPercentOneCore": 11.800219234190827,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 1289523200,
+          "processes": 30
+        }
+      ]
+    },
+    {
+      "mode": "shared",
+      "count": 10,
+      "sampling": {
+        "settlingMs": 30000,
+        "windowMs": 1000,
+        "windows": 15
+      },
+      "at": "2026-11-16T05:25:10.085Z",
+      "platform": "win32",
+      "installation": {
+        "kind": "available",
+        "via": "executable",
+        "version": "codex-cli 0.169.0"
+      },
+      "outcome": "completed",
+      "error": null,
+      "opened": {
+        "elapsedMs": 6245.843900000007,
+        "cpuPercentOneCore": 27.76846536302321,
+        "cpuIsLowerBound": true,
+        "exitedDuringWindow": 3,
+        "rssBytes": 121393152,
+        "processes": 3
+      },
+      "afterTurn": [
+        {
+          "elapsedMs": 2019.8034000000043,
+          "cpuPercentOneCore": 0,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 156413952,
+          "processes": 3
+        },
+        {
+          "elapsedMs": 1990.5204000000085,
+          "cpuPercentOneCore": 0,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 156065792,
+          "processes": 3
+        },
+        {
+          "elapsedMs": 2010.9189999999944,
+          "cpuPercentOneCore": 0.777007925232197,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 155582464,
+          "processes": 3
+        },
+        {
+          "elapsedMs": 2008.7818000000261,
+          "cpuPercentOneCore": 0,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 154857472,
+          "processes": 3
+        },
+        {
+          "elapsedMs": 2012.5531000000192,
+          "cpuPercentOneCore": 0,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 153423872,
+          "processes": 3
+        },
+        {
+          "elapsedMs": 1991.3050000000221,
+          "cpuPercentOneCore": 0,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 151982080,
+          "processes": 3
+        },
+        {
+          "elapsedMs": 2008.9966999999888,
+          "cpuPercentOneCore": 0,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 151826432,
+          "processes": 3
+        },
+        {
+          "elapsedMs": 2005.6085999999777,
+          "cpuPercentOneCore": 0,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 151392256,
+          "processes": 3
+        },
+        {
+          "elapsedMs": 2011.3310999999812,
+          "cpuPercentOneCore": 0,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 151404544,
+          "processes": 3
+        },
+        {
+          "elapsedMs": 1995.7043000000122,
+          "cpuPercentOneCore": 0,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 151334912,
+          "processes": 3
+        },
+        {
+          "elapsedMs": 2018.419499999989,
+          "cpuPercentOneCore": 0,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 151187456,
+          "processes": 3
+        },
+        {
+          "elapsedMs": 1996.8679999999877,
+          "cpuPercentOneCore": 0,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 151130112,
+          "processes": 3
+        },
+        {
+          "elapsedMs": 2013.1167999999889,
+          "cpuPercentOneCore": 0.776159634652102,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 150319104,
+          "processes": 3
+        },
+        {
+          "elapsedMs": 2007.6806999999972,
+          "cpuPercentOneCore": 0,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 149245952,
+          "processes": 3
+        },
+        {
+          "elapsedMs": 1985.4885000000068,
+          "cpuPercentOneCore": 0,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 148811776,
+          "processes": 3
+        }
+      ]
+    },
+    {
+      "mode": "shared",
+      "count": 10,
+      "sampling": {
+        "settlingMs": 30000,
+        "windowMs": 1000,
+        "windows": 15
+      },
+      "at": "2026-11-16T05:26:41.116Z",
+      "platform": "win32",
+      "installation": {
+        "kind": "available",
+        "via": "executable",
+        "version": "codex-cli 0.169.0"
+      },
+      "outcome": "completed",
+      "error": null,
+      "opened": {
+        "elapsedMs": 6638.34169999999,
+        "cpuPercentOneCore": 26.5973804873588,
+        "cpuIsLowerBound": true,
+        "exitedDuringWindow": 3,
+        "rssBytes": 126746624,
+        "processes": 3
+      },
+      "afterTurn": [
+        {
+          "elapsedMs": 2006.189299999969,
+          "cpuPercentOneCore": 0,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 156643328,
+          "processes": 3
+        },
+        {
+          "elapsedMs": 1998.9119000000064,
+          "cpuPercentOneCore": 0,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 156131328,
+          "processes": 3
+        },
+        {
+          "elapsedMs": 1989.6252000000095,
+          "cpuPercentOneCore": 0,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 156004352,
+          "processes": 3
+        },
+        {
+          "elapsedMs": 2009.583500000008,
+          "cpuPercentOneCore": 0,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 155795456,
+          "processes": 3
+        },
+        {
+          "elapsedMs": 1980.4952000000048,
+          "cpuPercentOneCore": 0,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 155529216,
+          "processes": 3
+        },
+        {
+          "elapsedMs": 1981.1977000000188,
+          "cpuPercentOneCore": 0,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 155271168,
+          "processes": 3
+        },
+        {
+          "elapsedMs": 2008.8773999999976,
+          "cpuPercentOneCore": 0,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 155578368,
+          "processes": 3
+        },
+        {
+          "elapsedMs": 1991.969599999953,
+          "cpuPercentOneCore": 0,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 155127808,
+          "processes": 3
+        },
+        {
+          "elapsedMs": 2008.1373000000021,
+          "cpuPercentOneCore": 0,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 154501120,
+          "processes": 3
+        },
+        {
+          "elapsedMs": 2004.5054000000237,
+          "cpuPercentOneCore": 0.7794940337900719,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 153903104,
+          "processes": 3
+        },
+        {
+          "elapsedMs": 1996.2544000000344,
+          "cpuPercentOneCore": 0.7827158702818504,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 153284608,
+          "processes": 3
+        },
+        {
+          "elapsedMs": 2033.6535999999614,
+          "cpuPercentOneCore": 0,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 152670208,
+          "processes": 3
+        },
+        {
+          "elapsedMs": 2007.2872999999672,
+          "cpuPercentOneCore": 0.7784137328024869,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 152428544,
+          "processes": 3
+        },
+        {
+          "elapsedMs": 1988.9322999999858,
+          "cpuPercentOneCore": 0,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 152190976,
+          "processes": 3
+        },
+        {
+          "elapsedMs": 2002.7346000000252,
+          "cpuPercentOneCore": 0,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 152014848,
+          "processes": 3
+        }
+      ]
+    },
+    {
+      "mode": "isolated",
+      "count": 10,
+      "sampling": {
+        "settlingMs": 30000,
+        "windowMs": 1000,
+        "windows": 15
+      },
+      "at": "2026-11-16T05:28:12.253Z",
+      "platform": "win32",
+      "installation": {
+        "kind": "available",
+        "via": "executable",
+        "version": "codex-cli 0.169.0"
+      },
+      "outcome": "failed",
+      "error": "AssertionError [ERR_ASSERTION]: incomplete CPU windows; retain every sample, do not select passing windows",
+      "opened": {
+        "elapsedMs": 6127.417400000035,
+        "cpuPercentOneCore": 29.58016210875384,
+        "cpuIsLowerBound": true,
+        "exitedDuringWindow": 3,
+        "rssBytes": 1112260608,
+        "processes": 30
+      },
+      "afterTurn": [
+        {
+          "elapsedMs": 2031.9324999999953,
+          "cpuPercentOneCore": 0.7689723945062169,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 1302704128,
+          "processes": 30
+        },
+        {
+          "elapsedMs": 2125.294500000018,
+          "cpuPercentOneCore": 44.84672594786237,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 1387089920,
+          "processes": 37
+        },
+        {
+          "elapsedMs": 2122.0894000000553,
+          "cpuPercentOneCore": 27.243197199891057,
+          "cpuIsLowerBound": true,
+          "exitedDuringWindow": 7,
+          "rssBytes": 1329602560,
+          "processes": 33
+        },
+        {
+          "elapsedMs": 2646.866299999994,
+          "cpuPercentOneCore": 46.04501557181043,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 1342099456,
+          "processes": 33
+        },
+        {
+          "elapsedMs": 2447.2325999999885,
+          "cpuPercentOneCore": 8.9386681102565,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 1345343488,
+          "processes": 33
+        },
+        {
+          "elapsedMs": 2213.2599000000046,
+          "cpuPercentOneCore": 4.941805524059772,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 1344598016,
+          "processes": 33
+        },
+        {
+          "elapsedMs": 2515.9060999999638,
+          "cpuPercentOneCore": 8.073632000812864,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 1338892288,
+          "processes": 33
+        },
+        {
+          "elapsedMs": 3476.0278999999864,
+          "cpuPercentOneCore": 41.80418114595702,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 1277894656,
+          "processes": 30
+        },
+        {
+          "elapsedMs": 2629.7779000000446,
+          "cpuPercentOneCore": 1.1883132792316593,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 1271857152,
+          "processes": 30
+        },
+        {
+          "elapsedMs": 2191.2423000000417,
+          "cpuPercentOneCore": 0,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 1264422912,
+          "processes": 30
+        },
+        {
+          "elapsedMs": 2168.9039999999804,
+          "cpuPercentOneCore": 1.4408198795336393,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 1259999232,
+          "processes": 30
+        },
+        {
+          "elapsedMs": 2862.8255000000354,
+          "cpuPercentOneCore": 42.02578885789529,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 1345294336,
+          "processes": 37
+        },
+        {
+          "elapsedMs": 2507.899700000009,
+          "cpuPercentOneCore": 16.821844988457812,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 1281437696,
+          "processes": 33
+        },
+        {
+          "elapsedMs": 2329.240599999961,
+          "cpuPercentOneCore": 15.4288483551251,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 1279246336,
+          "processes": 33
+        },
+        {
+          "elapsedMs": 2363.0304999999935,
+          "cpuPercentOneCore": 33.061359131843716,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 1291714560,
+          "processes": 33
+        }
+      ]
+    }
+  ]
+}

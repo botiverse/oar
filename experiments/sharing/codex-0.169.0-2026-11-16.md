@@ -4,8 +4,9 @@ Linux x64, macOS arm64 and Windows x64 observations use native
 `codex-cli 0.169.0`, disposable `CODEX_HOME` directories and a loopback
 scripted provider. They use no real login or paid inference. Routing,
 lifetime, configuration and persisted-trust controls complete on all three
-platforms. Actual child cwd/environment controls currently complete on
-Linux only. Windows also needs a complete CPU comparison. Production Codex
+platforms. Actual child cwd/environment controls also complete on all three.
+Linux and macOS satisfy the observations required for an adapter proposal;
+Windows does not establish the CPU condition. Production Codex
 sharing remains disabled; adapter enablement is a separate change.
 
 Selected evidence for [Linux](codex-0.169.0-linux-selected.json),
@@ -34,15 +35,14 @@ probe also retains incomplete CPU windows. Full artifact SHA-256 values:
 | Same-directory MCP, including reuse after close | observed | observed | observed |
 | Later project/user configuration and per-session hook trust | observed | observed | observed |
 | Persisted hook grant/revoke | declared reload timing difference | same difference | same difference |
-| Actual tool, stdio MCP and hook cwd/environment vs isolated | observed | pending | pending |
+| Actual tool, stdio MCP and hook cwd/environment vs isolated | observed | observed | observed |
 | Cancellation, peer survival and scoped cleanup | observed | observed | observed |
 | Loaded resume and typed model refusal | observed | observed | observed |
 | Concurrent unsubscribe/resume and shared process exit | observed | observed | observed |
 | Lower memory without higher CPU | observed | observed | incomplete CPU windows |
 
-Linux has the native observations required for an adapter proposal. macOS
-still needs the actual child-environment control, and Windows needs that
-control plus complete resources. This table does not enable sharing or
+Linux and macOS have the native observations required for an adapter proposal.
+Windows still lacks the no-higher-CPU resource result. This table does not enable sharing or
 verify an OAR pooled Session implementation.
 
 ## Native routing and lifetime
@@ -128,14 +128,18 @@ same process-level marker, uses distinct A/B session directories, and
 executes real tools, stdio MCP servers and `PreToolUse` hooks. MCP receives
 the marker through its native inherited-variable allowlist, not a separate
 inline override. Each placement observes two tool commands, two MCP child
-starts and four hook invocations. On Linux every child uses its session's
-directory and receives the expected marker, with no native hook failures
-([selected result](codex-0.169.0-linux-environment-selected.json)).
+starts and four hook invocations. Every child on all three platforms uses its
+session's directory and receives the expected marker, with no native hook
+failures ([Linux](codex-0.169.0-linux-environment-selected.json),
+[macOS](codex-0.169.0-macos-environment-selected.json),
+[Windows](codex-0.169.0-windows-environment-selected.json)).
 
 The first probe attempt serialized a tool content array as `[object Object]`
 and failed its own marker check. The retained failed sample is not a native
 counterexample. Serializing the content correctly produces the result above.
-macOS/Windows follow-up remains pending. Distinct per-thread environments
+The macOS/Windows follow-up is [run 43809745923](https://github.com/botiverse/oar/actions/runs/43809745923)
+at `eb6c55240b121d0acbd626753a01ddd82729b763`. Its macOS job succeeds; the
+Windows environment step succeeds after the resource step fails. Distinct per-thread environments
 and credential access are a separate investigation: identical launch
 environments do not prove that different agent credentials can share safely.
 
@@ -170,6 +174,67 @@ now includes exited process identities to diagnose gaps. A two-session Linux
 result. An earlier local control accidentally used PATH version 0.162.0;
 that sample is retained separately and contributes no 0.169.0 evidence.
 
+### Windows follow-up: CPU comparison remains unresolved
+
+The follow-up retains [all 60 windows](codex-0.169.0-windows-resources-followup.json).
+Five CPU windows are lower bounds, all in the two isolated cohorts (4 and 1).
+Both shared cohorts have 15 complete windows. The workflow fails its explicit
+incomplete-window assertion, retains all four cohorts, and does not rerun.
+The requested windows are one second; each retained `elapsedMs` includes
+the actual sampling duration and process-table read overhead.
+
+A shared value no higher than an isolated lower bound would conservatively
+establish the comparison for that pair, because the true isolated CPU can
+only be higher. Compare matching window indices within the two successive
+isolated/shared pairs without omitting any window:
+
+| Pair | Window | Isolated CPU % | Shared CPU % | Isolated is lower bound | Shared <= isolated observation |
+| --- | ---: | ---: | ---: | --- | --- |
+| 1 | 1 | 0.768508 | 0.000000 | no | yes |
+| 1 | 2 | 3.773299 | 0.000000 | no | yes |
+| 1 | 3 | 0.756225 | 0.777008 | yes | no |
+| 1 | 4 | 54.724015 | 0.000000 | no | yes |
+| 1 | 5 | 21.511319 | 0.000000 | yes | yes |
+| 1 | 6 | 17.358392 | 0.000000 | no | yes |
+| 1 | 7 | 0.772330 | 0.000000 | no | yes |
+| 1 | 8 | 2.267043 | 0.000000 | no | yes |
+| 1 | 9 | 1.426481 | 0.000000 | no | yes |
+| 1 | 10 | 18.941243 | 0.000000 | yes | yes |
+| 1 | 11 | 22.475545 | 0.000000 | no | yes |
+| 1 | 12 | 15.696571 | 0.000000 | no | yes |
+| 1 | 13 | 28.587463 | 0.776160 | no | yes |
+| 1 | 14 | 34.145682 | 0.000000 | yes | yes |
+| 1 | 15 | 11.800219 | 0.000000 | no | yes |
+| 2 | 1 | 0.768972 | 0.000000 | no | yes |
+| 2 | 2 | 44.846726 | 0.000000 | no | yes |
+| 2 | 3 | 27.243197 | 0.000000 | yes | yes |
+| 2 | 4 | 46.045016 | 0.000000 | no | yes |
+| 2 | 5 | 8.938668 | 0.000000 | no | yes |
+| 2 | 6 | 4.941806 | 0.000000 | no | yes |
+| 2 | 7 | 8.073632 | 0.000000 | no | yes |
+| 2 | 8 | 41.804181 | 0.000000 | no | yes |
+| 2 | 9 | 1.188313 | 0.000000 | no | yes |
+| 2 | 10 | 0.000000 | 0.779494 | no | no |
+| 2 | 11 | 1.440820 | 0.782716 | no | yes |
+| 2 | 12 | 42.025789 | 0.000000 | no | yes |
+| 2 | 13 | 16.821845 | 0.778414 | no | yes |
+| 2 | 14 | 15.428848 | 0.000000 | no | yes |
+| 2 | 15 | 33.061359 | 0.000000 | no | yes |
+
+Pair 1, window 3 is unresolved: shared 0.777008% exceeds the isolated
+lower bound of 0.756225%. Pair 2, window 10 has complete observations but
+shared 0.779494% exceeds isolated 0%. The other 28 pairs satisfy the
+comparison. The evidence does not establish the required CPU condition for
+Windows; lower average memory alone does not admit it. No sample is dropped,
+and these sequential idle observations do not prove a causal CPU regression.
+
+Full follow-up artifact SHA-256 values:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| macOS arm64 | `e7ac389fbc06cc394a96f8327a1dee76bb48d23944b45500f1b19c7e290433f2` |
+| Windows x64 | `fc745289d0d80214b4f82310cc21e4853d641397f3d26ddd94953cb2b2d69370` |
+
 ## Reproduce
 
 Use Node 24+, `pnpm install --frozen-lockfile`, and the exact native
@@ -192,14 +257,17 @@ pins 0.169.0 and retains all raw artifacts even when a control fails.
 platforms and the shorter resource comparison on Windows only. It preserves
 the original routing, trust and resource samples. The
 [selection script](select-codex-0169.py) selects cited fields from an unpacked
-artifact; its `--environment` mode selects from one child-evidence file.
+artifact; `--environment` selects one child-evidence file and `--resources`
+selects every window from one resource-evidence file.
 
 ## Validation
 
 The initial `07e2e4ef` branch passed `CI=1 pnpm run check`: 4,385 unit tests
 and 18 mock behavior cases. The follow-up on base `2a98d63d` passed 4,389
 unit tests and 18 mock behavior cases, including type checking and lint.
-`actionlint` accepted the manual workflow. The final full check log has
-SHA-256 `c948080104bbb6dc6d91a7d12d02697ca768143d04681cde74375a2d9c306b6f`.
+`actionlint` accepted the manual workflow. After rebasing on `f249dbe9` and
+adding the follow-up evidence, the final check passed 4,405 unit tests and
+18 mock cases; log SHA-256
+`c06502e1ce5512791fc3fef0d16f5c3dfbadf4eba8ffdc18862324495f94e850`.
 The Linux 0.169.0 two-session sampling control retained all 60 complete
 windows across four cohorts; none is a CPU lower bound.
