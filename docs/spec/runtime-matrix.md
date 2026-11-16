@@ -920,6 +920,39 @@ writes, and no record holds the bearer token.
 [`tests/mcp-serve-tools.test.ts`](../../tests/mcp-serve-tools.test.ts) pins
 the protocol, authorization, cancellation, `setTools` and `close()`.
 
+## ACP opening deadlines
+
+All built-in ACP session adapters give `initialize` its own 60-second
+response deadline, starting when the spawned transport sends that request.
+The internal `AcpSessionProfile.initializeTimeoutMs` can override only that
+phase. It is independent of `requestTimeoutMs`, whose default remains
+15 seconds for other bounded requests. Existing profile overrides remain:
+Antigravity, CodeBuddy, Devin, Kimi and OpenCode use 30 seconds for ordinary
+bounded requests; Kimi gives `session/new` and `session/resume` 630 seconds
+for native SessionStart hooks. Each phase gets its own budget, so a slow
+initialize does not consume authentication or session creation time.
+Isolated and shared connections use the same initialization rule.
+
+A timeout rejects opening with an `AcpError`, `kind: "timeout"`, the
+`method` and `timeoutMs`; its message names the phase and wait, for example
+`ACP request initialize timed out after 60000ms`. It never turns silence
+into success or starts a retry. The failed opening still cleans up its
+process; native errors and early process exit still fail immediately.
+Prompts remain governed by cancellation, and account/model queries retain
+their separate whole-operation deadlines.
+
+The [November 16 Windows Grok control](../../experiments/grok-startup/README.md#windows-result-november-16)
+used Grok 1.0.70, Node 24.22.2 and isolated synthetic configuration, without
+real accounts or model calls. Four first starts in new HOME directories
+needed 8.36 to 11.49 seconds to answer initialize; four repeats in those
+homes needed 0.389 to 0.399 seconds. All eight answered before 15 seconds.
+Earlier suite failures included three replies at 15.18 to 16.49 seconds
+and seven processes with no stdout before cleanup. Cold-start overhead
+motivates a separate 60-second initialization default for every ACP
+runtime, not a Grok-specific retry. The seven unanswered cases remain
+unexplained; this successful control does not show whether they would
+finish within 60 seconds. CPU sampling does not establish their cause.
+
 ## ACP opening process failures
 
 If an ACP child exits before opening completes, the error retains its transport

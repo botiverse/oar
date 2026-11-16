@@ -124,7 +124,9 @@ Requested model and effort values are then applied through native config
 options. OAR waits for each option's successful response and a matching
 configuration notification before applying the next setting. A conflicting
 notification keeps the same request waiting for a later positive value;
-it is not assumed to be stale. Opening requests have a 30-second deadline.
+it is not assumed to be stale. Initialize has its own 60-second deadline;
+other bounded opening requests retain 30 seconds
+([shared deadlines](../spec/runtime-matrix.md#acp-opening-deadlines)).
 At that deadline, a last observed conflicting value refuses the open, while
 no notification naming that option produces a timeout. A genuine mismatch
 therefore takes up to 30 seconds to surface instead of failing on its first

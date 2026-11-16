@@ -211,7 +211,8 @@ state, and metadata. Credentials must be available in the runtime environment.
 startup hints in the `initialize` `_meta` (`clientIdentifier: "oar"`,
 `clientType: "generic"`, `startupHints: { nonInteractive, skipGitStatus,
 skipProjectLayout }`). It advertises terminal support, disables client
-filesystem methods, and gives each opening request a 15-second deadline. The
+filesystem methods, and gives initialize 60 seconds and other bounded opening
+requests 15 seconds ([shared deadlines](../spec/runtime-matrix.md#acp-opening-deadlines)). The
 session request supplies the session's `mcpServers` (`[]` without them; see
 [session MCP servers](#session-mcp-servers)) and `_meta: { yoloMode: true }`.
 The `authenticate` answer's `_meta` carries the account email and

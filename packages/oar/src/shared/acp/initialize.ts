@@ -17,7 +17,7 @@ export async function initializeAcpConnection(
   const initialized = await withAcpDeadline(
     process,
     method,
-    profile.requestTimeoutMs ?? 15_000,
+    profile.initializeTimeoutMs ?? 60_000,
     (requestOptions) => process.connection.agent.request(method, {
       protocolVersion: PROTOCOL_VERSION,
       clientCapabilities: {
