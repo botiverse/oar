@@ -54,7 +54,7 @@ export async function applyAcpEffort(
     readonly updates?: AcpConfigUpdates;
     readonly observe: (step: { readonly method: string; readonly response: JsonRecord }) => void;
   },
-): Promise<void> {
+): Promise<JsonRecord> {
   const configId = acpThoughtLevelOption(opened.response)?.id;
   if (typeof configId !== "string" || configId.length === 0) {
     // No effort channel at all: the option, not the level, is what this
@@ -74,6 +74,7 @@ export async function applyAcpEffort(
   if (applied !== effort) {
     throw new Error(`${method} left ${configId} at ${applied ?? "an unreported value"} although effort ${effort} was requested`);
   }
+  return response;
 }
 
 /**

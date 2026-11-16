@@ -1,5 +1,6 @@
 import { asRecord, asRecordList, type JsonRecord } from "../json.js";
 import { ModelConfirmationError } from "../../contracts/model-confirmation-error.js";
+import { acpReportedEffort } from "./model.js";
 import { AcpError } from "./errors.js";
 
 type WaitForConfirmation = (signal: AbortSignal) => Promise<void>;
@@ -19,13 +20,14 @@ export function createAcpConfigUpdates(): AcpConfigUpdates {
       for (const listener of listeners) { listener(params.sessionId, update); }
     },
     async confirm(sessionId, configId, value, run) {
-      const state: { observed: boolean; current: unknown; changed?: () => void } = { observed: false, current: null };
+      const state: { observed: boolean; current: unknown; effort?: string | null; changed?: () => void } = { observed: false, current: null };
       const listener = (id: string, update: JsonRecord): void => {
         if (id !== sessionId) { return; }
         const option = asRecordList(update.configOptions).find(entry => entry.id === configId);
         if (option === undefined) { return; }
         state.observed = true;
         state.current = option.currentValue;
+        state.effort = acpReportedEffort(update);
         state.changed?.();
       };
       listeners.add(listener);
@@ -52,7 +54,7 @@ export function createAcpConfigUpdates(): AcpConfigUpdates {
         // A conflicting notification is an observation, not proof of refusal,
         // until the request's existing deadline runs out.
         if (error instanceof AcpError && error.kind === "timeout" && state.observed && state.current !== value) {
-          const message = `ACP config_option_update left ${configId} at ${String(state.current)} although ${value} was requested`;
+          const message = `ACP config_option_update left ${configId} at ${String(state.current)} although ${value} was requested${configId === "model" && typeof state.effort === "string" ? ` (native thought_level=${state.effort})` : ""}`;
           throw configId === "model" ? new ModelConfirmationError(message, { requested: value, reported: typeof state.current === "string" ? state.current : null }) : new Error(message);
         }
         throw error;

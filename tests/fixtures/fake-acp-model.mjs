@@ -5,6 +5,8 @@
 // Reported in both upstream spellings: kimi's configOptions row and grok's
 // models.currentModelId.
 const EFFECTIVE_MODEL = "fixture-model-x";
+const MODEL_IDS = JSON.parse(process.env.FAKE_ACP_AGY_MODEL_MENU ?? '["fixture-model-x","requested-y"]');
+const EFFORT_MENUS = JSON.parse(process.env.FAKE_ACP_AGY_EFFORT_MENUS ?? "{}");
 let selectedAgyModel = EFFECTIVE_MODEL;
 
 function modelOption(currentValue) {
@@ -14,10 +16,7 @@ function modelOption(currentValue) {
     name: "Model",
     category: "model",
     currentValue,
-    options: [
-      { value: EFFECTIVE_MODEL, name: "Fixture X" },
-      { value: "requested-y", name: "Requested Y" },
-    ],
+    options: MODEL_IDS.map(value => ({ value, name: value })),
   };
 }
 
@@ -27,14 +26,14 @@ function modelOption(currentValue) {
 const EFFORT_ID = "fixture_effort";
 const EFFORT_LEVELS = ["low", "medium", "high"];
 
-function effortOption(currentValue, mode) {
+function effortOption(currentValue, mode, model = selectedAgyModel) {
   return {
     type: "select",
     id: mode === "antigravity" ? "thought_level" : EFFORT_ID,
     name: "Effort",
     category: "thought_level",
     currentValue,
-    options: EFFORT_LEVELS.map((value) => ({ value, name: value })),
+    options: (EFFORT_MENUS[model] ?? EFFORT_LEVELS).map((value) => ({ value, name: value })),
   };
 }
 
@@ -90,10 +89,10 @@ export function setModelResponse(modelId) {
  * the effort selector the open model lacked.
  */
 function setModelOption(value, mode) {
-  if (value !== EFFECTIVE_MODEL && value !== "requested-y") {
+  if (MODEL_IDS.includes(value) !== true) {
     return { error: { code: -32_602, message: "Invalid params", data: `unknown model ${String(value)}` } };
   }
-  const effort = mode === "antigravity" || (mode === "opencode" && value === "requested-y") ? [effortOption("medium", mode)] : [];
+  const effort = mode === "antigravity" || (mode === "opencode" && value === "requested-y") ? [effortOption("medium", mode, value)] : [];
   const response = { configOptions: [modelOption(value), ...effort] };
   if (mode === "antigravity") { selectedAgyModel = value; }
   return { response, ...(mode === "antigravity" ? { delayedUpdate: { sessionUpdate: "config_option_update", ...response } } : {}) };

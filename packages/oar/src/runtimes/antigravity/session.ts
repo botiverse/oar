@@ -1,3 +1,4 @@
+import { configureAntigravityModel } from "./model-selection.js";
 import { sessionEnvironment } from "../../shared/environment.js";
 import { antigravityStateArgs } from "./state-directory.js";
 import type { SessionOptions } from "../../contracts/session.js";
@@ -51,6 +52,7 @@ export const antigravityAcpProfile: AcpSessionProfile = {
   sessionMeta,
   // Only the config response confirms the selected family and thought level.
   modelViaConfigOption: true,
+  configureModel: configureAntigravityModel,
   confirmConfigOptionUpdates: true,
 };
 

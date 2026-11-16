@@ -280,12 +280,25 @@ them as described under [session creation](#session-creation-and-resume);
 effort also checks the response's reported value. An empty
 `session/set_model` acknowledgement would not establish model readback
 ([notification-order controls](../../experiments/antigravity-cli-acp-2026-11-05.md#model-notifications-must-settle-before-effort)).
+Saved selectors from older catalogs can combine model and effort, for example
+`gemini-3.8-flash-high`. An exact entry in the native model menu always wins
+and is sent unchanged. Otherwise OAR requires one unambiguous native model
+prefix, selects and confirms that model, then checks the suffix against that
+model's newly returned `thought_level` menu. It sets and confirms that effort
+only when advertised there. It never borrows the initial model's effort menu
+for a different target model. An explicit conflicting `effort` throws
+`UnsupportedOptionError`; an unknown or ambiguous selector or absent target
+level throws `ModelConfirmationError`, with the catalog actually read.
+`model()`, `effort()` and records retain the separate native values, not a
+reconstructed composite id. Both creation and resume use this rule.
+
 If model notifications still disagree when the deadline expires, OAR throws
 [`ModelConfirmationError`](../spec/runtime-matrix.md#model-confirmation-failures),
 carrying `requested` and the last notification's model string (`null` if it
-is not a string).
-This check does not enumerate a model catalog, so `catalogSelectorIds` is
-absent. Missing notifications retain the configuration deadline error.
+is not a string). The diagnostic includes native `thought_level` when
+the same notification reports it. For a composite selection, `requested`
+remains the caller's original selector. The ordinary notification check does
+not enumerate a catalog, so `catalogSelectorIds` is absent there. Missing notifications retain the configuration deadline error.
 Native 1.5.0 and 1.5.9 config notifications contain no request id, update
 sequence, timestamp or correlation metadata in the measured controls.
 OAR confirms an observed value, not which setting caused it. It does not
