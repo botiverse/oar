@@ -405,7 +405,7 @@ tool event), each pinned by its vendor tests. Antigravity CLI 1.5.0 ignores
 | pi | SDK `excludeTools`, built-ins such as `bash` and directly exposed MCP names `mcp__server__tool` | native SDK name/pattern semantics apply; unmatched names are accepted silently and disable nothing |
 | cursor | SDK `disallowedTools`, including capability groups `shell` (shell plus stdin) and `mcp` (the whole MCP family) | unknown names, including individual MCP names, become `UnsupportedOptionError`; nested native subagents have their own toolset, so deny `task` to prevent spawning them |
 | codex | qualified `mcp__server__tool` on an unambiguously named configured or session MCP server, via session `config.mcp_servers.*.disabled_tools`; prior native denies are preserved | built-ins, unqualified names, missing/ambiguous or normalized server namespaces |
-| dsh | Refused at open; not verified through the bridge | `UnsupportedOptionError`, declared in `refusedSessionOptions` |
+| dsh | agent-scoped native `tools.restrict({ deny })`, on new and resumed opens | unknown, scope-only and reserved transport names; creation-hook shadowing; children have separate scopes ([boundaries](../runtimes/dsh.md#session-name-and-tool-denial)) |
 | factory | Refused at open: droid's `disabledToolIds` is not yet verified against these names | `UnsupportedOptionError`, declared in `refusedSessionOptions` |
 | qwen, qoder, codebuddy | native `--exclude-tools` (qwen), `--disallowed-tools` (qoder) and `--disallowedTools` (codebuddy, on new and resumed opens) | nothing: OAR passes the names unvalidated and matching is native ([qwen](../runtimes/qwen.md), [codebuddy](../runtimes/codebuddy.md)) |
 | grok, kimi, opencode, antigravity, devin, pi-durable | none through the selected OAR transport | every non-empty list, declared in `Runtime.refusedSessionOptions` |
@@ -580,7 +580,8 @@ nothing. A blank name, or one with a NUL character, is refused with
 | claude | `--name` at launch | Left alone: `--name` on a resume replaces the session's name, and claude reports that name only once it has started (`session_title_changed`). |
 | codex | `thread/name/set` once the thread is open | Set only when the `thread/resume` reply shows no name. |
 | pi | a `session_info` entry, as pi's own `--name` writes it | Set only when the session never had one, so a name the user cleared stays cleared. |
-| cursor, devin, dsh, factory, kimi, grok, antigravity, opencode, codebuddy, qwen, qoder, pi-durable | Refused with `UnsupportedOptionError` | Same refusal. |
+| dsh | native `sessionTitle.rename` after opening checks | Preserve any native title; set only when none exists. |
+| cursor, devin, factory, kimi, grok, antigravity, opencode, codebuddy, qwen, qoder, pi-durable | Refused with `UnsupportedOptionError` | Same refusal. |
 
 Evidence: [`experiments/codex-session-name.ts`](../../experiments/codex-session-name.ts)
 (codex 0.162.0) and the vendor tests
@@ -637,7 +638,7 @@ in [user configuration](#user-configuration).
 | pi-durable | `systemPrompt`, `env`, `launchArgs`, `serviceTier`, `mcpServers`, `disallowedTools`, `additionalDirectories`, `outputSchema`, `name`, `userConfiguration: "exclude"` | native instructions append only; host-owned environment; no process arguments or verified per-conversation tier/MCP/tool-denial mapping |
 | pi | `launchArgs`, `serviceTier`, `additionalDirectories`, `outputSchema`, `userConfiguration: "exclude"` | it runs in the host process through its SDK, with no command line |
 | qwen | `serviceTier`, `outputSchema`, `name`, `userConfiguration: "exclude"` | no verified tier, structured-output, session-name or user-configuration exclusion channel |
-| dsh | `systemPrompt`, `appendSystemPrompt`, `mcpServerCredentials`, `disallowedTools`, `launchArgs`, `serviceTier`, `additionalDirectories`, `outputSchema`, `name`, `userConfiguration: "exclude"` | MCP credentials have no verified persistence boundary; the other options remain unverified through the bridge ([mapping](../runtimes/dsh.md#session-options)) |
+| dsh | `systemPrompt`, `appendSystemPrompt`, `mcpServerCredentials`, `launchArgs`, `serviceTier`, `additionalDirectories`, `outputSchema`, `userConfiguration: "exclude"` | MCP credentials have no verified persistence boundary; the other options remain unverified through the bridge ([mapping](../runtimes/dsh.md#session-options)) |
 | factory | `serviceTier`, `outputSchema`, `name`, `additionalDirectories`, `disallowedTools`, `userConfiguration: "exclude"` | no tier; structured output, session titles and tool denials not yet verified; no extra-directory or user-configuration exclusion channel ([mapping](../runtimes/factory.md#session-options)) |
 | qoder | `serviceTier`, `outputSchema`, `name`, `userConfiguration: "exclude"` | no verified tier, structured-output, session-name or user-configuration exclusion channel |
 | codex | `userConfiguration: "exclude"`; `endTurnProcessesOnAbort: true` only with shared placement | temporary clean homes break shared history paths after cleanup ([evidence](../runtimes/codex.md#user-configuration)); a shared app-server's process table does not say which session's turn started a process |

@@ -12,7 +12,7 @@ import { appendCleanupFailure, cleanupFailureReason } from "../../shared/executa
 import { withInputImages } from "../../shared/input-images.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
 import { sameDirectory } from "../../shared/same-directory.js";
-import { refuseSessionOptions } from "../../shared/session-options.js";
+import { checkSessionName, refuseSessionOptions } from "../../shared/session-options.js";
 import { withSessionCredentials, type SessionCredentials } from "../../shared/session-credentials.js";
 import { DshCommandError, dshControl, type DshControl } from "./control.js";
 import { dshEnvironment, dshExecutableRefusal, launchDsh } from "./launch.js";
@@ -28,6 +28,9 @@ function openFailure(error: unknown, sessionId: string, resuming: boolean): unkn
   if (!(error instanceof DshCommandError)) { return error; }
   if (error.native.name === "SessionPersistenceNotFoundError") {
     return new SessionNotFoundError(sessionId, `DSH has no saved session ${sessionId}`, { method: "sessionPersistence.open", native: error.native });
+  }
+  if ((error.code === "native_method_unavailable" || error.code === "option_not_applied") && (error.capability === "name" || error.capability === "disallowedTools")) {
+    return new UnsupportedOptionError(error.capability, error.message);
   }
   if (error.code === "native_method_unavailable") {
     if (error.capability === "confirming a reasoning effort") { return new UnsupportedOptionError("effort", error.message); }
@@ -99,7 +102,9 @@ async function open(command: string, options: SessionOptions, env: NodeJS.Proces
     fallback.clear();
     kernel.respond(disposeRequest?.id ?? "", { kind: "exited", code, ...(reason === undefined ? {} : { reason }) });
   });
-  const fields = { sessionId, agentOptions: { ...agentOptions } };
+  const fields = { sessionId, agentOptions: { ...agentOptions },
+    ...(options.disallowedTools === undefined ? {} : { disallowedTools: options.disallowedTools }),
+  };
   let opened: JsonRecord = {};
   try {
     await control.ready;
@@ -109,15 +114,12 @@ async function open(command: string, options: SessionOptions, env: NodeJS.Proces
       opened = await control.request("resume", { ...fields, ...(route === undefined ? {} : { route }) }, OPEN_TIMEOUT_MS);
     }
     refuseUnappliedRoute(opened, agentOptions, options.model);
+    if (opened.sessionId !== sessionId) { throw new Error(`DSH opened ${String(opened.sessionId)}, not ${sessionId}`); }
+    if (options.name !== undefined) { await control.request("name", { sessionId, name: options.name, resuming: options.resume !== undefined }, OPEN_TIMEOUT_MS); }
   } catch (error) {
     child.kill();
     await child.exited;
     throw appendCleanupFailure(openFailure(error, sessionId, options.resume !== undefined), cleanupFailureReason(child.diagnostics().cleanup));
-  }
-  if (opened.sessionId !== sessionId) {
-    child.kill();
-    await child.exited;
-    throw new Error(`DSH opened ${String(opened.sessionId)}, not ${sessionId}`);
   }
   kernel.frame(dshOpenedFrame(opened));
 
@@ -180,6 +182,7 @@ async function open(command: string, options: SessionOptions, env: NodeJS.Proces
 /** One owned DSH process per session, reached through a private bridge plugin. */
 export const dshSession: StartSession = withSessionCredentials(async (installation, options, credentials) => {
   refuseSessionOptions(dshRefusedSessionOptions, options);
+  checkSessionName(options);
   // Checked before spawning anything: both refusals name what they refuse.
   dshAgentOptions(options);
   const mcpRows = dshMcpRows(options.mcpServers, options.cwd);

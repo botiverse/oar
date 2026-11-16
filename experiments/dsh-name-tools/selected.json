@@ -1,0 +1,538 @@
+[
+  {
+    "source": "oar-trial-run/run-2026-11-16T08-15-24.782Z/dsh-name-existing.json",
+    "before": [
+      {
+        "title": "OAR named session",
+        "messageSeqs": [],
+        "source": {
+          "kind": "user"
+        }
+      }
+    ],
+    "after": [
+      {
+        "title": "OAR named session",
+        "messageSeqs": [],
+        "source": {
+          "kind": "user"
+        }
+      }
+    ],
+    "requests": [
+      {
+        "toolNames": [
+          "bash",
+          "create_goal",
+          "edit",
+          "exit_plan_mode",
+          "get_goal",
+          "glob",
+          "grep",
+          "interrupt_agent",
+          "job_kill",
+          "job_list",
+          "job_output",
+          "list_agents",
+          "read",
+          "read_image",
+          "send_message",
+          "skill",
+          "subagent",
+          "subagent_fork",
+          "todo_write",
+          "update_goal",
+          "web_fetch",
+          "web_search",
+          "workflow",
+          "working_directory",
+          "write"
+        ],
+        "toolResults": []
+      }
+    ]
+  },
+  {
+    "source": "oar-trial-run/run-2026-11-16T08-15-25.236Z/dsh-name-existing.json",
+    "before": [
+      {
+        "title": "OAR named session",
+        "messageSeqs": [],
+        "source": {
+          "kind": "user"
+        }
+      }
+    ],
+    "after": [
+      {
+        "title": "OAR named session",
+        "messageSeqs": [],
+        "source": {
+          "kind": "user"
+        }
+      }
+    ],
+    "requests": [
+      {
+        "toolNames": [
+          "bash",
+          "create_goal",
+          "edit",
+          "get_goal",
+          "glob",
+          "grep",
+          "interrupt_agent",
+          "job_kill",
+          "job_list",
+          "job_output",
+          "list_agents",
+          "read",
+          "read_image",
+          "send_message",
+          "skill",
+          "subagent",
+          "subagent_fork",
+          "todo_write",
+          "update_goal",
+          "web_fetch",
+          "workflow",
+          "working_directory",
+          "write"
+        ],
+        "toolResults": []
+      }
+    ]
+  },
+  {
+    "source": "oar-trial-run/run-2026-11-16T08-15-32.062Z/dsh-name-absent.json",
+    "after": [
+      {
+        "title": "First name on resume",
+        "messageSeqs": [],
+        "source": {
+          "kind": "user"
+        }
+      }
+    ]
+  },
+  {
+    "source": "oar-trial-run/run-2026-11-16T08-15-32.726Z/dsh-name-absent.json",
+    "after": [
+      {
+        "title": "First name on resume",
+        "messageSeqs": [],
+        "source": {
+          "kind": "user"
+        }
+      }
+    ]
+  },
+  {
+    "source": "oar-trial-run/run-2026-11-16T08-15-43.705Z/dsh-tool-denial.json",
+    "requests": [
+      {
+        "toolNames": [
+          "create_goal",
+          "edit",
+          "exit_plan_mode",
+          "get_goal",
+          "glob",
+          "grep",
+          "interrupt_agent",
+          "job_kill",
+          "job_list",
+          "job_output",
+          "list_agents",
+          "read",
+          "read_image",
+          "send_message",
+          "skill",
+          "subagent",
+          "subagent_fork",
+          "todo_write",
+          "update_goal",
+          "web_fetch",
+          "web_search",
+          "workflow",
+          "working_directory",
+          "write"
+        ],
+        "toolResults": []
+      },
+      {
+        "toolNames": [
+          "create_goal",
+          "edit",
+          "exit_plan_mode",
+          "get_goal",
+          "glob",
+          "grep",
+          "interrupt_agent",
+          "job_kill",
+          "job_list",
+          "job_output",
+          "list_agents",
+          "read",
+          "read_image",
+          "send_message",
+          "skill",
+          "subagent",
+          "subagent_fork",
+          "todo_write",
+          "update_goal",
+          "web_fetch",
+          "web_search",
+          "workflow",
+          "working_directory",
+          "write"
+        ],
+        "toolResults": [
+          "Error: unknown tool \"bash\""
+        ]
+      },
+      {
+        "toolNames": [
+          "create_goal",
+          "edit",
+          "exit_plan_mode",
+          "get_goal",
+          "glob",
+          "grep",
+          "interrupt_agent",
+          "job_kill",
+          "job_list",
+          "job_output",
+          "list_agents",
+          "read",
+          "read_image",
+          "send_message",
+          "skill",
+          "subagent",
+          "subagent_fork",
+          "todo_write",
+          "update_goal",
+          "web_fetch",
+          "web_search",
+          "workflow",
+          "working_directory",
+          "write"
+        ],
+        "toolResults": [
+          "Error: unknown tool \"bash\""
+        ]
+      },
+      {
+        "toolNames": [
+          "bash",
+          "create_goal",
+          "edit",
+          "exit_plan_mode",
+          "get_goal",
+          "glob",
+          "grep",
+          "interrupt_agent",
+          "job_kill",
+          "job_list",
+          "job_output",
+          "list_agents",
+          "read",
+          "read_image",
+          "send_message",
+          "skill",
+          "subagent",
+          "subagent_fork",
+          "todo_write",
+          "update_goal",
+          "web_fetch",
+          "web_search",
+          "workflow",
+          "working_directory",
+          "write"
+        ],
+        "toolResults": [
+          "Error: unknown tool \"bash\""
+        ]
+      }
+    ]
+  },
+  {
+    "source": "oar-trial-run/run-2026-11-16T08-15-44.606Z/dsh-tool-denial.json",
+    "requests": [
+      {
+        "toolNames": [
+          "create_goal",
+          "edit",
+          "get_goal",
+          "glob",
+          "grep",
+          "interrupt_agent",
+          "job_kill",
+          "job_list",
+          "job_output",
+          "list_agents",
+          "read",
+          "read_image",
+          "send_message",
+          "skill",
+          "subagent",
+          "subagent_fork",
+          "todo_write",
+          "update_goal",
+          "web_fetch",
+          "workflow",
+          "working_directory",
+          "write"
+        ],
+        "toolResults": []
+      },
+      {
+        "toolNames": [
+          "create_goal",
+          "edit",
+          "get_goal",
+          "glob",
+          "grep",
+          "interrupt_agent",
+          "job_kill",
+          "job_list",
+          "job_output",
+          "list_agents",
+          "read",
+          "read_image",
+          "send_message",
+          "skill",
+          "subagent",
+          "subagent_fork",
+          "todo_write",
+          "update_goal",
+          "web_fetch",
+          "workflow",
+          "working_directory",
+          "write"
+        ],
+        "toolResults": [
+          "Error: unknown tool \"bash\""
+        ]
+      },
+      {
+        "toolNames": [
+          "create_goal",
+          "edit",
+          "get_goal",
+          "glob",
+          "grep",
+          "interrupt_agent",
+          "job_kill",
+          "job_list",
+          "job_output",
+          "list_agents",
+          "read",
+          "read_image",
+          "send_message",
+          "skill",
+          "subagent",
+          "subagent_fork",
+          "todo_write",
+          "update_goal",
+          "web_fetch",
+          "workflow",
+          "working_directory",
+          "write"
+        ],
+        "toolResults": [
+          "Error: unknown tool \"bash\""
+        ]
+      },
+      {
+        "toolNames": [
+          "bash",
+          "create_goal",
+          "edit",
+          "get_goal",
+          "glob",
+          "grep",
+          "interrupt_agent",
+          "job_kill",
+          "job_list",
+          "job_output",
+          "list_agents",
+          "read",
+          "read_image",
+          "send_message",
+          "skill",
+          "subagent",
+          "subagent_fork",
+          "todo_write",
+          "update_goal",
+          "web_fetch",
+          "workflow",
+          "working_directory",
+          "write"
+        ],
+        "toolResults": [
+          "Error: unknown tool \"bash\""
+        ]
+      }
+    ]
+  },
+  {
+    "source": "oar-trial-run/run-2026-11-16T08-15-54.379Z/dsh-name-tools-siblings.json",
+    "firstTitles": [
+      {
+        "title": "First session",
+        "messageSeqs": [],
+        "source": {
+          "kind": "user"
+        }
+      }
+    ],
+    "secondTitles": [
+      {
+        "title": "Second session",
+        "messageSeqs": [],
+        "source": {
+          "kind": "user"
+        }
+      }
+    ],
+    "requests": [
+      {
+        "toolNames": [
+          "create_goal",
+          "edit",
+          "exit_plan_mode",
+          "get_goal",
+          "glob",
+          "grep",
+          "interrupt_agent",
+          "job_kill",
+          "job_list",
+          "job_output",
+          "list_agents",
+          "read",
+          "read_image",
+          "send_message",
+          "skill",
+          "subagent",
+          "subagent_fork",
+          "todo_write",
+          "update_goal",
+          "web_fetch",
+          "web_search",
+          "workflow",
+          "working_directory",
+          "write"
+        ],
+        "toolResults": []
+      },
+      {
+        "toolNames": [
+          "bash",
+          "create_goal",
+          "edit",
+          "exit_plan_mode",
+          "get_goal",
+          "glob",
+          "grep",
+          "interrupt_agent",
+          "job_kill",
+          "job_list",
+          "job_output",
+          "list_agents",
+          "read",
+          "read_image",
+          "send_message",
+          "skill",
+          "subagent",
+          "subagent_fork",
+          "todo_write",
+          "update_goal",
+          "web_fetch",
+          "web_search",
+          "workflow",
+          "working_directory",
+          "write"
+        ],
+        "toolResults": []
+      }
+    ]
+  },
+  {
+    "source": "oar-trial-run/run-2026-11-16T08-15-56.344Z/dsh-name-tools-siblings.json",
+    "firstTitles": [
+      {
+        "title": "First session",
+        "messageSeqs": [],
+        "source": {
+          "kind": "user"
+        }
+      }
+    ],
+    "secondTitles": [
+      {
+        "title": "Second session",
+        "messageSeqs": [],
+        "source": {
+          "kind": "user"
+        }
+      }
+    ],
+    "requests": [
+      {
+        "toolNames": [
+          "create_goal",
+          "edit",
+          "get_goal",
+          "glob",
+          "grep",
+          "interrupt_agent",
+          "job_kill",
+          "job_list",
+          "job_output",
+          "list_agents",
+          "read",
+          "read_image",
+          "send_message",
+          "skill",
+          "subagent",
+          "subagent_fork",
+          "todo_write",
+          "update_goal",
+          "web_fetch",
+          "workflow",
+          "working_directory",
+          "write"
+        ],
+        "toolResults": []
+      },
+      {
+        "toolNames": [
+          "bash",
+          "create_goal",
+          "edit",
+          "get_goal",
+          "glob",
+          "grep",
+          "interrupt_agent",
+          "job_kill",
+          "job_list",
+          "job_output",
+          "list_agents",
+          "read",
+          "read_image",
+          "send_message",
+          "skill",
+          "subagent",
+          "subagent_fork",
+          "todo_write",
+          "update_goal",
+          "web_fetch",
+          "workflow",
+          "working_directory",
+          "write"
+        ],
+        "toolResults": []
+      }
+    ]
+  }
+]

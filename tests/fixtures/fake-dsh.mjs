@@ -69,8 +69,8 @@ function handleFor(id) {
 }
 
 const agents = {
-  ...(missing.has("create") ? {} : { create: async ({ sessionId }) => { const handle = handleFor(mode === "wrong-id" ? "another-id" : sessionId); return handle; } }),
-  ...(missing.has("resume") ? {} : { resume: async ({ resumeSessionId }) => handleFor(resumeSessionId) }),
+  ...(missing.has("create") ? {} : { create: async ({ sessionId, setup }) => { const handle = handleFor(mode === "wrong-id" ? "another-id" : sessionId); await setup?.({}, handle.agent); return handle; } }),
+  ...(missing.has("resume") ? {} : { resume: async ({ resumeSessionId, setup }) => { const handle = handleFor(resumeSessionId); await setup?.({}, handle.agent); return handle; } }),
 };
 const persistence = {
   ...(missing.has("open") ? {} : { open: async (id) => {

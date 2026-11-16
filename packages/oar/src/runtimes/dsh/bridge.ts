@@ -131,12 +131,42 @@ function boot(ctx) {
     return typeof defaults?.currentSelection === "function" ? defaults.currentSelection() : {};
   };
 
+  const configureSession = (agent, request) => {
+    if (request.disallowedTools?.length > 0) {
+      const tools = agent.scope?.ctx?.tools;
+      requireMethod(tools, "restrict", "disallowedTools");
+      requireMethod(tools, "get", "disallowedTools");
+      requireMethod(agent.scope.ctx, "on", "disallowedTools");
+      try { tools.restrict({ deny: request.disallowedTools }); }
+      catch (error) { throw refusal("option_not_applied", String(error?.message ?? error), "disallowedTools"); }
+      agent.scope.ctx.on("agent/created", ({ agent: created }) => {
+        if (created !== agent) { return; }
+        for (const name of request.disallowedTools) {
+          if (tools.get(name, agent) !== undefined) {
+            throw refusal("option_not_applied", "The native tool remains available: " + name, "disallowedTools");
+          }
+        }
+      });
+    }
+  };
+
   const commands = {
+    name(request) {
+      const { agent } = owned(request.sessionId);
+      const title = ctx.get("sessionTitle");
+      requireMethod(title, "get", "name");
+      requireMethod(title, "rename", "name");
+      // Called only after every opening check. Preserve every saved native title.
+      const current = title.get(agent.session);
+      if (request.resuming && current !== undefined) { return current; }
+      try { return title.rename(agent.session, request.name); }
+      catch (error) { throw refusal("option_not_applied", String(error?.message ?? error), "name"); }
+    },
     async open(request) {
       requireMethod(agents, "create", "opening a session");
       const explicit = request.agentOptions ?? {};
       const route = await validated(explicit.provider === undefined ? { ...defaultRoute(), ...explicit } : explicit, explicit);
-      return opened(await agents.create({ sessionId: request.sessionId, meta: { cwd: request.cwd }, agentOptions: route }));
+      return opened(await agents.create({ sessionId: request.sessionId, meta: { cwd: request.cwd }, agentOptions: route, setup: (_ctx, agent) => configureSession(agent, request) }));
     },
     // The saved header and route, read without taking the session over.
     async peek(request) {
@@ -156,7 +186,7 @@ function boot(ctx) {
       const explicit = request.agentOptions ?? {};
       const saved = request.route ?? defaultRoute();
       const route = await validated(explicit.provider === undefined ? { ...saved, ...explicit } : explicit, explicit);
-      const handle = await agents.resume({ resumeSessionId: request.sessionId, agentOptions: route });
+      const handle = await agents.resume({ resumeSessionId: request.sessionId, agentOptions: route, setup: (_ctx, agent) => configureSession(agent, request) });
       // Releases with a recorded selection keep the saved route over these options unless told otherwise.
       if ((explicit.provider !== undefined || explicit.reasoningEffort !== undefined) && typeof handle.agent.model?.select === "function") { handle.agent.model.select(route); }
       return opened(handle);

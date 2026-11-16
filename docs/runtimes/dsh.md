@@ -242,7 +242,8 @@ report links those results; its manual Claude/Codex comparisons are Linux only.
 
 Supported: `cwd`, `resume`, `env`, `model` as `provider/model` (a bare name is
 refused at open: it has no route), `effort` as `reasoningEffort`, and stdio
-`mcpServers` with command/args ([MCP details](#session-mcp-servers)).
+`mcpServers` with command/args ([MCP details](#session-mcp-servers)), `name`, and
+`disallowedTools` ([native title and tool boundaries](#session-name-and-tool-denial)).
 
 `DSH_PERMISSION_MODE` is `danger-full-access` unless the host names its own for this
 session in `SessionOptions.env`: nobody sits at an approval prompt, and native reports
@@ -250,8 +251,8 @@ session in `SessionOptions.env`: nobody sits at an approval prompt, and native r
 tools run and the native `permission/preset` frame is recorded.
 
 Refused with `UnsupportedOptionError`, each until its own probe:
-`systemPrompt`, `appendSystemPrompt`, `disallowedTools`, `launchArgs`,
-`serviceTier`, `additionalDirectories`, `outputSchema`, `name`,
+`systemPrompt`, `appendSystemPrompt`, `launchArgs`,
+`serviceTier`, `additionalDirectories`, `outputSchema`,
 `userConfiguration: "exclude"`, `goals: true`, `endTurnProcessesOnAbort: true`
 ([`options.ts`](../../packages/oar/src/runtimes/dsh/options.ts)). Images are not
 sent: `capabilities.images` is false and an input with images is rejected
@@ -262,6 +263,33 @@ resume, `dsh/opened` reports it as `pending`, and it runs at the next wake, ahea
 the prompt that woke it. Flush timing has not been established, so OAR promises
 nothing here. Login, auth status and account usage are absent. Manual compaction
 is undeclared, meaning untested. Inventories answer `unsupported`.
+
+## Session name and tool denial
+
+`name` uses native `sessionTitle.rename` after the opening checks succeed and
+before the host receives its Session. A resumed session with any native title
+keeps it, including an automatically generated title; an unnamed one gets the
+supplied name. DSH normalizes the accepted title and records `session/title`
+with source `user`. OAR refuses blank names and NUL characters before launch.
+A refused opening does not rename the session. An unrelated plugin may start
+native work during creation; naming precedes the host's first prompt, not
+those autonomous hooks.
+
+`disallowedTools` calls native `agent.scope.ctx.tools.restrict({ deny })` in
+setup. Denied tools disappear from model declarations and a forged call is
+rejected by the native tool lookup. OAR checks after creation hooks that the
+requested tools remain unavailable before queued input can run. Unknown,
+scope-only or reserved transport names are refused with
+`UnsupportedOptionError`; use native global tool names such as `bash` or
+`pwsh`. A creation hook that shadows a denied tool also causes refusal.
+Supply the list again on resume. Omission or an empty list adds no OAR
+restriction. Native children have separate scopes; this is tool selection,
+not an OS sandbox or an inherited security boundary.
+
+[Native controls and review evidence](../../experiments/dsh-name-tools/README.md)
+cover both supported release lines on Linux, first host turns, resume,
+forged calls, opening failures and two agents in one process. Windows native
+execution is not part of this observation.
 
 ## Models
 
