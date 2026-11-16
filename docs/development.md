@@ -232,7 +232,15 @@ the backend you touched. Rebase on origin/main before pushing.
 
 CI ([`.github/workflows/ci.yml`](../.github/workflows/ci.yml)) skips a push
 or pull request whose changes are all Markdown files or under `docs/` or
-`assets/`. Otherwise it runs these jobs:
+`assets/`. Otherwise it runs these jobs. The `behavior`, `acp-behavior` and
+Pi RPC jobs are chosen by [`.github/scripts/ci-select.mjs`](../.github/scripts/ci-select.mjs):
+a pull request runs, on Linux only, the backends its changed files can reach
+(a runtime's own directory or its vendor tests reach that runtime; shared code,
+contracts, the behavior harness, CI or anything unrecognized reach all of them;
+docs, experiments, tests, the CLI and apps reach none). A push to main and a
+dispatch run every backend on every platform, and the release gate waits for
+that run on the released commit, so a platform regression found after merge
+still cannot ship.
 
 - `check`: `pnpm run check` and `pnpm run build` on Linux, macOS and Windows,
   plus offline Cursor SDK skill-loader parity against the same local fixtures,
@@ -509,7 +517,7 @@ per-case concurrency, assertions and deadlines.
    that needs a capability skips on its absence (a session without `steer`),
    never on a runtime name.
 6. **Add an aimock backend if feasible** (`sea-trial/harness/aimock.ts`,
-   `backends.ts`, and the `behavior` or `acp-behavior` matrix in `.github/workflows/ci.yml`) so
+   `backends.ts`, and the backend lists and runtime map in `.github/scripts/ci-select.mjs`) so
    the contract stays verifiable without a login, and add vendor tests for the
    provider-side specifics worth pinning.
 7. **Update the docs in the same commit**: the runtime lists in the root and

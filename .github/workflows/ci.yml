@@ -11,6 +11,26 @@ on:
   workflow_dispatch:
 
 jobs:
+  # Which behavior backends and platforms this run needs (.github/scripts/ci-select.mjs):
+  # a pull request runs only the backends its files can reach, on Linux; pushes to
+  # main and dispatches run every backend on every platform before a release.
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      behavior: ${{ steps.pick.outputs.behavior }}
+      acp: ${{ steps.pick.outputs.acp }}
+      os: ${{ steps.pick.outputs.os }}
+      acp_os: ${{ steps.pick.outputs.acp_os }}
+      pi_rpc: ${{ steps.pick.outputs.pi_rpc }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: pick
+        run: node .github/scripts/ci-select.mjs
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+
   check:
     strategy:
       fail-fast: false
@@ -175,11 +195,13 @@ jobs:
   # scripted local provider (no login, no tokens), so they can run on every
   # OS in CI. OAR_TEST selects the backend; an unavailable one skips.
   behavior:
+    needs: changes
+    if: needs.changes.outputs.behavior != '[]'
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        backend: [claude-aimock, codex-aimock, pi-aimock, pi-rpc-aimock, pi-durable-aimock, qwen-aimock, qoder-native, dsh-aimock, factory-aimock]
+        os: ${{ fromJSON(needs.changes.outputs.os) }}
+        backend: ${{ fromJSON(needs.changes.outputs.behavior) }}
         exclude:
           - os: windows-latest
             backend: pi-rpc-aimock
@@ -242,6 +264,8 @@ jobs:
   # Guard the explicit-command floor independently of OAR's bundled Pi version.
   # Raise this pin and PI_RPC_MINIMUM_VERSION together in the same change.
   pi-rpc-minimum:
+    needs: changes
+    if: needs.changes.outputs.pi_rpc == 'true'
     runs-on: ubuntu-latest
     env:
       OAR_TEST: pi-rpc-aimock
@@ -270,6 +294,8 @@ jobs:
   # Vendor groups expose progress through jobs API step names and timestamps.
   # CI ceilings may preserve a hung step's logs while its runner is alive.
   pi-rpc-windows:
+    needs: changes
+    if: needs.changes.outputs.pi_rpc == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -322,11 +348,13 @@ jobs:
   # Pin these versions with the daily compatibility evidence, including the v1
   # OpenCode package. Its v2 protocol needs separate vendor fixtures.
   acp-behavior:
+    needs: changes
+    if: needs.changes.outputs.acp != '[]'
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
-        backend: [kimi-aimock, grok-aimock, opencode-aimock, codebuddy-aimock]
+        os: ${{ fromJSON(needs.changes.outputs.acp_os) }}
+        backend: ${{ fromJSON(needs.changes.outputs.acp) }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     env:
