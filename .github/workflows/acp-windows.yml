@@ -5,11 +5,17 @@ on:
     branches: [main]
     paths-ignore: ["**/*.md", "docs/**", "assets/**"]
   workflow_dispatch:
+    inputs:
+      grok_long_initialize:
+        description: 'Run only the isolated 90-second Grok startup and CPU diagnostic'
+        type: boolean
+        default: false
 
 jobs:
   # Observations remain red on failure and retain artifacts. This workflow
   # never runs on pull requests; ci.yml remains the merge and release gate.
   acp-windows:
+    if: ${{ !inputs.grok_long_initialize }}
     strategy:
       fail-fast: false
       matrix:
@@ -89,3 +95,37 @@ jobs:
           name: sea-trial-${{ matrix.backend }}-${{ matrix.os }}
           path: ${{ github.workspace }}/oar-trial-run
           if-no-files-found: warn
+
+  grok-long-initialize:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.grok_long_initialize }}
+    runs-on: windows-latest
+    timeout-minutes: 15
+    env:
+      OAR_TRIAL_RUN_DIR: ${{ github.workspace }}/oar-trial-run
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: npm install -g @xai-official/grok@1.0.70
+      # Do not run grok --version or any suite before the numbered launches.
+      # npm lifecycle installation can still touch files or execute vendor code.
+      - name: Observe eight Grok starts with a 90-second initialize limit
+        run: pnpm tsx experiments/grok-startup/long-wait-probe.ts
+        timeout-minutes: 12
+      - name: Validate CPU sampler after native observations
+        if: always()
+        run: pnpm tsx --test experiments/grok-startup/wait-cpu.test.ts
+        timeout-minutes: 2
+      - name: Record installed native version after observations
+        if: always()
+        run: grok --version
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: grok-long-initialize-windows
+          path: ${{ github.workspace }}/oar-trial-run
+          if-no-files-found: error
