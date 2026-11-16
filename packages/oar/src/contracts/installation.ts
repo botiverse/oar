@@ -41,6 +41,9 @@ export type InstallationSnapshot =
   | {
       readonly kind: "unsupported";
       readonly reason: string;
+      readonly code?: "version_unsupported";
+      readonly installedVersion?: string;
+      readonly requiredVersion?: string;
     };
 
 export interface InstallationProbeOptions {

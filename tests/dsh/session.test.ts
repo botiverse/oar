@@ -184,7 +184,7 @@ test("a catalog with no provider that could list is unsupported with the native 
   const failing = await dshRuntime.listModels({ kind: "available", via: "executable", command, version: "0.2.1-rc.5" }, { cwd, env: { FAKE_DSH_MODE: "listing-fails" } });
   expect(failing).toEqual({ kind: "unsupported", reason: "DSH could not list any provider's models: local: no credential; broken: no credential" });
   const old = await dshRuntime.listModels({ kind: "available", via: "executable", command, version: "0.2.1-rc.4" }, { cwd });
-  expect(old).toEqual({ kind: "unsupported", reason: "DSH 0.2.1-rc.4 is below the supported floor; OAR requires 0.2.1-rc.5 or later" });
+  expect(old).toEqual({ kind: "unsupported", code: "version_unsupported", installedVersion: "0.2.1-rc.4", requiredVersion: "0.2.1-rc.5", reason: "DSH 0.2.1-rc.4 is below the supported floor; OAR requires 0.2.1-rc.5 or later" });
 });
 
 test.each([
@@ -192,7 +192,7 @@ test.each([
   ["unreadable", "nightly", 'DSH reported the unreadable version "nightly"; OAR requires 0.2.1-rc.5 or later'],
   ["empty", "", "DSH did not report a version; OAR requires 0.2.1-rc.5 or later"],
 ])("listModels reads the executable when the installation names no version: %s", async (_case, version, reason) => {
-  expect(await dshRuntime.listModels({ kind: "available", via: "executable", command }, { cwd, env: { FAKE_DSH_VERSION: version } })).toEqual({ kind: "unsupported", reason });
+  expect(await dshRuntime.listModels({ kind: "available", via: "executable", command }, { cwd, env: { FAKE_DSH_VERSION: version } })).toEqual({ kind: "unsupported", code: "version_unsupported", ...(version === "" || version === "nightly" ? {} : { installedVersion: version }), requiredVersion: "0.2.1-rc.5", reason });
 });
 
 test("listModels lists when the executable it read is at the floor", async () => {

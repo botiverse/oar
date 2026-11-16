@@ -1400,6 +1400,16 @@ query result during that grace. Startup that finishes after the deadline
 cannot launch a new process. Native startup can execute extension
 `session_start` hooks, including user code and credential commands.
 
+`Runtime.minVersion` on the subprocess runtime declares the explicit-command
+RPC floor, `1.4.0`. That floor only governs a native RPC process, not readers
+using the bundled SDK, even when the runtime has a custom `command`. The
+default RPC entry must still match the bundled Pi version exactly. A version
+preflight refusal returns `unsupported` with `code: "version_unsupported"`,
+`requiredVersion` (the floor or exact bundled requirement) and, when readable,
+`installedVersion` for models, skills and commands. No RPC query process
+starts after that refusal. Other native startup or query errors retain the
+failure behavior below.
+
 Models come from `get_available_models`, Pi's startup availability snapshot.
 The native models retain their effort menus; RPC supplies no provider display
 names or saved default, so those fields stay absent. Skills and commands come
@@ -1409,7 +1419,7 @@ entries retain their invocation names and source labels in `commands()`.
 RPC omits command `argumentHint` and skill `disableModelInvocation`; OAR does
 not fill them from the host SDK. Both inventories report `partial:true` because
 Pi RPC does not return loading diagnostics, so completeness cannot be confirmed.
-RPC startup or model-query failures, including timeouts, reject with a generic
+Other RPC startup or model-query failures, including timeouts, reject with a generic
 Error without native details. `orient()` records the rejection as `failed`, or
 `timed_out` if its own budget expires first. Inventory failures retain their
 `unavailable` result with `query_failed` or `timeout`.

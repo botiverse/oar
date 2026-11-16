@@ -284,6 +284,7 @@ reasons must be presented as unknown rather than guessed.
 | unsupported | capability_unavailable | The runtime has no account-usage reader (reported by the CLI/embedding app). |
 | unsupported | unsupported_installation | This reader cannot query this installation type. |
 | unsupported | unsupported_auth_mode | The selected authentication mode is not supported by the usage reader. This is the adapter's decision, not proof that a token was rejected. |
+| unsupported | version_unsupported | The reader cannot use the installed CLI version. Optional `installedVersion` and `requiredVersion` describe the refusal; an unreadable version omits `installedVersion`. |
 | unsupported | unsupported_auth_storage | The configured credential storage is not supported. |
 | unsupported | auth_configuration_unavailable | The reader could not resolve the provider/auth configuration; no more specific cause is known. |
 | unsupported | endpoint_unavailable | The provider/runtime does not expose the queried usage endpoint. |

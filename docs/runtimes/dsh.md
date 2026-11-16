@@ -265,6 +265,13 @@ is undeclared, meaning untested. Inventories answer `unsupported`.
 
 ## Models
 
+`Runtime.minVersion` exposes the existing `0.2.1-rc.5` floor. Installation
+and direct model listing both retain `unsupported.code: "version_unsupported"`
+with `requiredVersion` and an optional `installedVersion`. The model reader
+checks a versionless executable before starting the bridge; it does not rely
+on an earlier installation probe. This does not replace native method checks
+or add authentication, usage or inventory queries.
+
 `listModels` starts a short-lived process the way a session does and reads the native
 catalog: `id` is the `provider/model` selector, with display names, `effortLevels`
 and `defaultEffort` from `resolveModelInfo`, and `default` from

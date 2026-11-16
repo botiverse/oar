@@ -72,6 +72,8 @@ export interface Runtime extends RuntimeInventories {
   /** A new runtime instance, with its own pool. Refusals are checked at session open. */
   withPlacement(placement: PlacementRequest): Runtime;
   readonly id: string;
+  /** Minimum native version required by this adapter, when it has a numeric floor. Individual capabilities may require newer versions. Absence means no declared floor, not support for every version. */
+  readonly minVersion?: string;
   readonly brand: RuntimeBrand;
   readonly session: StartSession; // the core capability: a runtime without sessions is not usable
   /**

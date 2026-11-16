@@ -1,3 +1,5 @@
+import type { InstallationSnapshot } from "../../contracts/installation.js";
+
 /** The oldest release the native vendor suite ran against. A release above it still passes through the method inventory. */
 export const DSH_MINIMUM_VERSION = "0.2.1-rc.5";
 
@@ -45,4 +47,11 @@ export function dshVersionRefusal(version: string | undefined): string | null {
   const order = compareSemver(version, DSH_MINIMUM_VERSION);
   if (order === null) { return `DSH reported the unreadable version ${JSON.stringify(version)}; OAR requires ${DSH_MINIMUM_VERSION} or later`; }
   return order < 0 ? `DSH ${version} is below the supported floor; OAR requires ${DSH_MINIMUM_VERSION} or later` : null;
+}
+
+/** Structured reader refusal, using the same prerelease-aware floor as session open. */
+export function dshVersionUnsupported(version: string | undefined): Extract<InstallationSnapshot, { kind: "unsupported" }> | null {
+  const reason = dshVersionRefusal(version);
+  return reason === null ? null : { kind: "unsupported" as const, code: "version_unsupported" as const, reason,
+    ...(version === undefined || parse(version) === null ? {} : { installedVersion: version }), requiredVersion: DSH_MINIMUM_VERSION };
 }

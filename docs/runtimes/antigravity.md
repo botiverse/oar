@@ -257,6 +257,17 @@ observations; see also the versioned
 
 ### Models, instructions, and context
 
+`Runtime.minVersion` is `1.5.0`, requiring a stable release. Model listing,
+authentication status and account usage each enforce this floor before ACP,
+`models` or `/usage` queries, even when the caller bypasses `installation()`.
+If the executable snapshot lacks a version, only a bounded `--version`
+query runs first. Old, prerelease or unreadable versions return
+`version_unsupported` with `requiredVersion` and, when known,
+`installedVersion`; authentication remains `unknown`, not logged out.
+[The result fields](../spec/orientation.md#adapter-version-requirements)
+let a host offer an upgrade without parsing the explanation. Inventories
+remain unsupported on this interface and start no query process.
+
 `listModels()` initializes ACP and opens a temporary session without a
 prompt, reads its model selector, and terminates the process. It requests
 `session/close` only when advertised; a close failure does not discard an

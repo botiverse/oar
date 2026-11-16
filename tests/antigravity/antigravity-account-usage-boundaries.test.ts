@@ -53,7 +53,7 @@ function fakeAgy(mode: "unknown" | "logged_out" | "logged_in", stall?: "models" 
     `if (process.argv[2] === "models") { process.stderr.write(${JSON.stringify(mode === "logged_out" ? "Please sign in to view available models" : "unavailable")}); process.exit(${String(MODELS_EXIT[mode])}); }`,
     `process.stdout.write(${JSON.stringify(reply)});`,
   ].join("\n"));
-  return { installation: { kind: "available", via: "executable", command: fakeAgentBinary(dir, [script]) } as const,
+  return { installation: { kind: "available", via: "executable", command: fakeAgentBinary(dir, [script]), version: "1.5.7" } as const,
     calls: () => existsSync(calls) ? readFileSync(calls, "utf8").trim().split("\n") : [], pid: () => Number(readFileSync(pid, "utf8")) };
 }
 

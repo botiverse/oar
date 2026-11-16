@@ -5,6 +5,7 @@ import type { ProviderLoginInteraction } from "../../contracts/provider-auth.js"
 import { sessionEnvironment } from "../../shared/environment.js";
 import { runExecutable } from "../../shared/executable/index.js";
 import { withQueryDeadline } from "../../shared/executable/query.js";
+import { antigravityVersionPreflight } from "./version.js";
 import { antigravityNoBrowserEnv } from "./login-browser.js";
 import { errorMessage, LoginSecrets, loginBounds, loginExecutable, spawnLoginProcess, stoppedResult, type LoginProcess, type LoginProcessExit, type LoginStop } from "../../shared/login.js";
 
@@ -34,8 +35,14 @@ export async function readAntigravityAuthStatus(installation: AvailableInstallat
   if (installation.via !== "executable") { return { kind: "unknown", detail: "not a machine-installed executable" }; }
   const env = sessionEnvironment(options.env);
   if (!antigravityUsesDefaultState(env)) { return { kind: "unknown", detail: ANTIGRAVITY_STATE_QUERY_UNAVAILABLE }; }
+  const timeoutMs = options.timeoutMs ?? 30_000;
+  const version = await antigravityVersionPreflight(installation, env, { timeoutMs, ...(options.signal === undefined ? {} : { signal: options.signal }) });
+  if (version.kind === "unsupported") {
+    const { kind: _kind, reason, ...versions } = version;
+    return { kind: "unknown", ...versions, detail: reason };
+  }
   const result = await runExecutable(installation.command, ["models"], {
-    env, timeoutMs: options.timeoutMs ?? 30_000, ...(options.signal === undefined ? {} : { signal: options.signal }),
+    env, timeoutMs: version.timeoutMs, ...(options.signal === undefined ? {} : { signal: options.signal }),
   });
   if (result.ok) { return { kind: "logged_in", source: SOURCE }; }
   // Its refusal names the missing login; any other failure (network, a crash) says nothing about it.
@@ -45,11 +52,15 @@ export async function readAntigravityAuthStatus(installation: AvailableInstallat
 
 /** Whether Antigravity is signed in, by its own model listing (a remote call: not localOnly). */
 export async function antigravityAuthStatus(installation: AvailableInstallation, options: AuthStatusOptions = {}): Promise<AuthStatus> {
-  const status = await withQueryDeadline<AuthStatus>("Antigravity auth status", options.timeoutMs ?? 30_000, async (signal) => {
-    const read = await readAntigravityAuthStatus(installation, { ...options, signal });
-    return read;
-  }, { kind: "unknown", source: SOURCE, detail: "Antigravity auth status timed out" });
-  return status;
+  try {
+    const status = await withQueryDeadline<AuthStatus>("Antigravity auth status", options.timeoutMs ?? 30_000, async (signal) => {
+      const read = await readAntigravityAuthStatus(installation, { ...options, signal });
+      return read;
+    }, { kind: "unknown", source: SOURCE, detail: "Antigravity auth status timed out" });
+    return status;
+  } catch {
+    return { kind: "unknown", detail: "Antigravity authentication status could not be read" };
+  }
 }
 
 /** The secret query values of a pasted landing URL (`code`, also percent-decoded); none for a bare code. */

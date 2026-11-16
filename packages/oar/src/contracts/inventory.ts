@@ -63,8 +63,10 @@ export type InventoryResult<T> =
     }
   | {
       readonly kind: "unsupported";
-      readonly code: "native_query_unavailable" | "transport_unavailable" | "scope_unavailable" | "installation_unsupported";
+      readonly code: "native_query_unavailable" | "transport_unavailable" | "scope_unavailable" | "installation_unsupported" | "version_unsupported";
       readonly reason: string;
+      readonly installedVersion?: string;
+      readonly requiredVersion?: string;
     }
   | {
       readonly kind: "unavailable";

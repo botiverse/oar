@@ -68,6 +68,7 @@ export interface AccountLimitResets {
 
 /** Stable reason codes; no credentials or provider response bodies are included. */
 export type AccountUsageUnsupportedReason =
+  | "version_unsupported"
   | "capability_unavailable"
   | "unsupported_installation"
   | "unsupported_auth_mode"
@@ -77,10 +78,7 @@ export type AccountUsageUnsupportedReason =
   | "quota_unavailable";
 
 export type AccountUsageReauthReason =
-  | "not_authenticated"
-  | "credentials_missing"
-  | "scope_missing"
-  | "credentials_rejected";
+  | "not_authenticated" | "credentials_missing" | "scope_missing" | "credentials_rejected";
 
 export type AccountUsageSnapshot =
   | {
@@ -108,6 +106,8 @@ export type AccountUsageSnapshot =
       readonly kind: "unsupported";
       /** Unsupported for this installation/account does not imply missing capability. */
       readonly reason?: AccountUsageUnsupportedReason;
+      readonly installedVersion?: string;
+      readonly requiredVersion?: string;
     };
 
 export interface AccountUsageReadOptions {

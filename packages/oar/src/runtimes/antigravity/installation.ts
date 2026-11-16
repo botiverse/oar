@@ -3,12 +3,9 @@ import type { InstallationProbe } from "../../contracts/installation.js";
 import { environmentValue, sessionEnvironment } from "../../shared/environment.js";
 import { environmentHome } from "../../shared/environment-home.js";
 import { executableInstallation } from "../../shared/installation.js";
-import { versionAtLeast } from "../../shared/update.js";
+import { antigravityVersionRefusal, readAntigravityVersion } from "./version.js";
 
-/** The standalone CLI prints a bare release, unlike the retired ACP server's build stamp. */
-export function readAntigravityVersion(stdout: string): string | undefined {
-  return /^(\d+\.\d+\.\d+(?:-[A-Za-z\d.-]+)?)$/u.exec(stdout.trim())?.[1];
-}
+export { readAntigravityVersion } from "./version.js";
 
 /** Official installer locations, including GUI hosts whose PATH omits them. */
 export function antigravityInstalledExecutableCandidates(
@@ -36,7 +33,8 @@ export const antigravityInstallation: InstallationProbe = async (options) => {
   const env = sessionEnvironment(options?.env);
   const snapshot = await cliInstallation(options);
   if (snapshot.kind !== "available" || snapshot.via !== "executable") { return snapshot; }
-  if (supported(snapshot.version)) { return snapshot; }
+  const refusal = antigravityVersionRefusal(snapshot.version);
+  if (refusal === null) { return snapshot; }
   const pinned = environmentValue(env, "OAR_ANTIGRAVITY_BIN");
   if (pinned === undefined || pinned === "") {
     for (const candidate of antigravityInstalledExecutableCandidates(process.platform, environmentHome(env), env)) {
@@ -44,12 +42,8 @@ export const antigravityInstallation: InstallationProbe = async (options) => {
       // The official install may be newer than a copy earlier on PATH.
       // oxlint-disable-next-line no-await-in-loop -- Probe candidates in discovery order.
       const fallback = await cliInstallation({ env: { ...options?.env, OAR_ANTIGRAVITY_BIN: candidate } });
-      if (fallback.kind === "available" && fallback.via === "executable" && supported(fallback.version)) { return fallback; }
+      if (fallback.kind === "available" && fallback.via === "executable" && antigravityVersionRefusal(fallback.version) === null) { return fallback; }
     }
   }
-  return { kind: "unsupported", reason: `Antigravity requires a stable agy CLI 1.5.0 or newer with native ACP; ${snapshot.command} reports ${snapshot.version ?? "an unrecognized CLI version"}. Update that CLI or point OAR_ANTIGRAVITY_BIN at a supported agy, not agy_acp_server` };
-};
-
-function supported(version: string | undefined): boolean {
-  return version !== undefined && /^\d+\.\d+\.\d+$/u.test(version) && versionAtLeast(version, "1.5.0");
+  return { ...refusal, reason: `${refusal.reason} (${snapshot.command}). Update that CLI or point OAR_ANTIGRAVITY_BIN at a supported agy, not agy_acp_server` };
 };
