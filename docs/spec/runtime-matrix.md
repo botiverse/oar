@@ -1429,7 +1429,9 @@ root turn drops that turn's accepted, un-echoed steers before `turn_ended`.
 ACP also emits `runtime_refused` when an accepted steer's native RPC later
 fails, preserving its error frame without changing the active turn outcome.
 Claude, Pi and OpenCode v1 retain the tested interrupted steering input;
-Cursor hands undelivered steering back as a refused control. Grok can
+Cursor maps `revert_to_followup` to a refused control; SDK 1.4.0
+`queued` instead transfers ownership to Cursor, with any cloud follow-up
+[unobserved by OAR](../runtimes/cursor.md#prompt-steering-queueing-and-abort). Grok can
 lose a just-submitted steer, but its cancellation receipt cannot yet
 prove whether that input had been read, so OAR makes no discard claim.
 [The audit](../../experiments/input-interruption-2026-10-08.md) records

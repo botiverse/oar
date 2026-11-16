@@ -1,5 +1,7 @@
 # experiments
 
+- [Cursor SDK 1.4.0 steering](cursor-sdk-1.4/README.md): typed-loader compatibility, native local string acknowledgments, and queued ownership without observing cloud runs.
+
 - [Runtime version check: November 15](runtime-version-checks/2026-11-15.md): Cursor 1.4.0 typed-loader incompatibility with passing local auth controls, Qwen 0.27.4 native checks, and CI/upstream/ZCode observations.
 
 - [Release tag permission failure](release-tag-permission-2026-11-15.md): workflow changes merged during the 0.108.1 release, documented API permission limits, and the verified Stamp tag plus release-only recovery.

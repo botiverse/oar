@@ -13,7 +13,7 @@ import { cursorSessionWith } from "./session.js";
 export interface CursorInProcessOptions {
   readonly execution?: "in_process";
   /**
-   * Loads `@cursor/sdk` 1.3.1, which the host installs (an optional peer
+   * Loads `@cursor/sdk` 1.4.0, which the host installs (an optional peer
    * dependency of OAR): `() => import("@cursor/sdk")`. Written in the host's
    * own code, the import fails the host's compile when the package is
    * missing, checks the SDK's types against `CursorSdk`, and is visible to
@@ -29,7 +29,7 @@ export interface CursorInProcessOptions {
 export interface CursorSubprocessOptions {
   readonly execution: "subprocess";
   /**
-   * What the child passes to `import()` to load `@cursor/sdk` 1.3.1: a file
+   * What the child passes to `import()` to load `@cursor/sdk` 1.4.0: a file
    * URL, e.g. `import.meta.resolve("@cursor/sdk")` in the host's own code.
    * The host never loads the SDK itself in this mode, so nothing checks the
    * module's types against `CursorSdk` at compile time.

@@ -104,6 +104,11 @@ class FakeRun {
   }
 
   async steer(text) {
+    if (text === "native-queued") { return { outcome: "queued" }; }
+    if (text === "native-queued-with-run") {
+      // A cloud run must not be read, observed or serialized by OAR.
+      return { outcome: "queued", get run() { throw new Error("queued cloud run was accessed"); } };
+    }
     this.delta({ type: "user-message-appended", userMessage: { type: "user_message", text } });
     return "complete_delivered";
   }

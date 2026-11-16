@@ -14,7 +14,7 @@ beyond its types comes from those probes and its installed bundle, marked as
 such. Versions are evidence baselines, not a support range; see the
 [runtime index](README.md) for status conventions.
 
-Current required SDK: **1.3.1**, the exact optional peer version. Hosts
+Current required SDK: **1.4.0**, the exact optional peer version. Hosts
 using Cursor install that version alongside OAR; the CLI installs it itself.
 The pin matches CI and does not promise support for older SDKs. The SDK
 also requires a Zod peer (`^3.25.0 || ^4.0.0`); this workspace resolves 4.4.3.
@@ -30,18 +30,21 @@ on their first run, including tools, steering, queueing, cancellation,
 resume and child attribution; `kill-runtime` remains skipped. The native
 compaction probe also passes: matching text across both stream views, a
 completed summary, and a cancelled summary with no terminal summary event.
-This establishes the exact peer selection, not a support range or live
+This records the earlier peer selection, not a support range or live
 macOS/Windows coverage
 ([November 11 report](../../experiments/runtime-version-checks/2026-11-11.md#cursor-131)).
 The earlier November 4 controls were local/offline only
 ([evidence and limits](../../experiments/runtime-version-checks/2026-11-04.md#cursor-131)).
 
-SDK **1.4.0** was checked on November 15 without a real account. Login and
-configuration controls pass, but its new cloud queued-steer result widens
-the common `Run.steer` type and breaks assignment to OAR's `CursorSdk`.
-The local bundle still returns the original strings; this is insufficient
-to accept a typed upgrade. The required peer remains 1.3.1. See the
-[comparison and reproduction](../../experiments/runtime-version-checks/2026-11-15.md#cursor-140).
+SDK **1.4.0** is assignable to OAR's typed loader after adding its queued
+steer outcome. On November 16, a native local run on Linux x64 with
+`gpt-5.4-nano` confirmed `complete_delivered` during a shell call and
+`revert_to_followup` after completion. Queued acceptance and ignoring the
+optional cloud run are covered by stand-ins in both execution modes;
+cloud follow-up execution has not been tested. See the
+[adaptation and evidence](../../experiments/cursor-sdk-1.4/README.md).
+The [November 15 comparison](../../experiments/runtime-version-checks/2026-11-15.md#cursor-140)
+retains the original type incompatibility and passing local login controls.
 
 Since SDK 1.1.0, `inputTokens` includes cache reads and writes and OAR does
 not add them again, so Cursor `input` can be smaller than in OAR releases
@@ -84,7 +87,7 @@ OAR reads out of it. Control calls are request/response record pairs.
 
 | Native concept or owner | Current OAR mapping |
 | --- | --- |
-| `@cursor/sdk` package | An optional peer dependency of `@botiverse/oar` that the host installs (`@cursor/sdk@1.3.1`) and hands over through `createCursorRuntime` ([installation](#installation-and-account-usage)); the agent runs in the host process, or in a Node child per session ([execution modes](#execution-modes)). Cursor is not in `defaultRuntimes`; the `oar` CLI depends on the SDK and adds cursor itself ([CLI registry](../../packages/cli/src/runtimes.ts)). |
+| `@cursor/sdk` package | An optional peer dependency of `@botiverse/oar` that the host installs (`@cursor/sdk@1.4.0`) and hands over through `createCursorRuntime` ([installation](#installation-and-account-usage)); the agent runs in the host process, or in a Node child per session ([execution modes](#execution-modes)). Cursor is not in `defaultRuntimes`; the `oar` CLI depends on the SDK and adds cursor itself ([CLI registry](../../packages/cli/src/runtimes.ts)). |
 | Local agent | `Session.id` is the `agentId`; `SessionOptions.resume` reopens it with `Agent.resume`. |
 | Agent state after open | One `cursor/agent_opened` frame with the `model` (and `effort`) the SDK holds. |
 | Run | A turn: a prompt is one `send`; `run.wait()`'s answer is the `cursor/run_result` frame carrying `turn_ended`. The SDK run id is `spanId` on results, `run.stream()` frames and `onDelta` frames; early callbacks retain their ingress time while waiting for `send` to return that id. |
@@ -475,8 +478,8 @@ no verified session name setting
 
 ### Interrupted input
 
-SDK 1.0.36 keeps `run.steer()` pending on its internal
-`confirm_steering` acknowledgement. Only `complete_delivered` becomes
+The SDK 1.0.36 audit observed `run.steer()` pending on its internal
+`confirm_steering` acknowledgement. For those string outcomes, `complete_delivered` becomes
 OAR `accepted`; `revert_to_followup`, including the SDK's cleanup of
 undelivered steering when the run ends, is a refusal. OAR also races a
 pending steer against the recorded run end, so cancellation cannot leave
@@ -522,6 +525,14 @@ afterwards (probed); the steered text landed in the same turn (`steer`).
 `runtime_refused`: the session still has `steer`, the run declined.
 `Session.deliver` does not fall back to the queue on a handed back steer;
 `steerOrQueue` does.
+
+SDK 1.4.0 also permits `{ outcome: "queued", run? }`: Cursor owns that
+follow-up, so OAR answers `accepted` with `native: { ack: "queued" }`.
+This does not mean delivery in the current turn, and callers must not resend
+it. OAR neither follows the optional cloud run nor records its subsequent
+progress or completion. The subprocess bridge forwards only the queued
+acknowledgment, without reading or serializing that run. No cloud-run
+lifecycle or cancellation guarantee is inferred from this acceptance.
 
 **Queue (mapped):** `queue()` accepts into an adapter-held FIFO with
 `queued: "adapter"` (`capabilities.queue.durable: false`). When the active

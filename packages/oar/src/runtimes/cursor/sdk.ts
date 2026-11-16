@@ -46,7 +46,7 @@ export interface ModelListItem {
   }[];
 }
 
-export type SteerAckOutcome = "complete_delivered" | "revert_to_followup";
+export type SteerAckOutcome = "complete_delivered" | "revert_to_followup" | { readonly outcome: "queued"; readonly run?: CursorRun };
 
 interface CursorUserMessage {
   readonly text: string;
