@@ -237,6 +237,22 @@ test("reduceStatus: compaction and retry are running phases; tool progress only 
   assert.equal(status.kind === "running" ? status.phase : status.kind, "waiting_model");
 });
 
+test("reduceStatus: a tool call ending after its turn ended keeps the session idle", async () => {
+  // Codex 0.163: task_complete, then the item/completed of an exec_command
+  // background terminal session the model had already read in that turn.
+  const { initialStatus, reduceStatus, statusOf } = await import("../packages/oar/src/observe/agent-status.js");
+  const records = [
+    promptRecord,
+    event([{ kind: "tool_call_started", callId: "bg", tool: "exec_command" }], { receivedAt: 1 }),
+    event([{ kind: "turn_ended", outcome: { kind: "completed" } }], { receivedAt: 2 }),
+    event([{ kind: "tool_call_ended", callId: "bg" }], { receivedAt: 3 }),
+  ];
+  expect(statusOf(records).value).toEqual({ kind: "idle", lastTurnOutcome: { kind: "completed" } });
+  expect(reduceStatus(initialStatus, event([{ kind: "tool_call_ended", callId: "bg" }]))).toEqual(initialStatus);
+  // A tool start while idle still adopts a turn the stream did not open.
+  expect(statusOf([...records, event([{ kind: "tool_call_started", callId: "c2", tool: "bash" }], { receivedAt: 4 })]).value.kind).toBe("running");
+});
+
 test("coalesceText keeps two assistant messages apart by messageId", () => {
   const seen: string[] = [];
   const observer = flat(coalesceText((item) => {

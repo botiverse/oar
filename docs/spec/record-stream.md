@@ -246,7 +246,10 @@ Further rules:
   with no invented request id, and preserves the phase of an already running
   turn. The session view opens at most one turn across a prompt request
   (`turn_started`) and its native activity report. Only a native completion
-  report supplies `turn_ended`.
+  report supplies `turn_ended`. A `tool_call_ended` is the one turn-content
+  event that does not adopt: a call can end after its turn did (Codex reports
+  a background terminal session's completion with no turn open), so an idle
+  agent stays idle while the event is still recorded and delivered.
 - **Control never prunes facts.** There is no settled-gate anywhere:
   whatever the runtime said must enter the stream, even if it lands after a
   span has ended.

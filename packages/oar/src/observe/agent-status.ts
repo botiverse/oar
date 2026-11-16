@@ -32,7 +32,7 @@ export type { AgentStatus, RunningPhase } from "../contracts/session.js";
  *   event reasoning                   → running/thinking
  *   event text_delta                  → running/responding
  *   event tool_call_started           → running/{tool, callId}
- *   event tool_call_ended             → running/waiting_model   (the model consumes the result next)
+ *   event tool_call_ended             → running/waiting_model   (the model consumes the result next); idle stays idle
  *   event tool_call_progress          → running, phase unchanged (the clock moves)
  *   event tool_call_input_delta       → running/{tool, callId, writing} for that call's tool phase
  *   event tool_call_input             → running/{tool, callId} (arguments complete; the clock moves)
@@ -196,7 +196,8 @@ function reduceEvent(previous: StatusState, record: RawEvent, event: RuntimeEven
       return running(previous, record, "responding");
     case "tool_call_started":
       return running(previous, record, { tool: event.tool, callId: event.callId });
-    case "tool_call_ended":
+    case "tool_call_ended": // can arrive after its turn ended (codex background terminals): no turn to adopt
+      return previous.kind === "running" ? running(previous, record, "waiting_model") : previous;
     case "retry":
       return running(previous, record, "waiting_model");
     case "compaction_ended":
