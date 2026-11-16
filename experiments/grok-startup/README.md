@@ -299,3 +299,57 @@ regression and rejection of absent, empty and non-ACP capture. Windows
 acceptance requires a run of this corrected workflow and inspection of its
 actual per-process artifacts; the synthetic regression alone is not proof
 of the precise command used by the earlier Windows run.
+
+## Manual 90-second Windows observation
+
+Five November 16 Windows runs retained ten actual suite-process initialize
+failures: three responses arrived after 15 seconds (15.181, 15.528 and
+16.492 seconds), while seven had no stdout before close. All ten parent-side
+initialize writes happened within 43 milliseconds of the spawn request.
+No authenticate or session/new request followed. This localizes the delay
+but does not explain it. Passing processes also report direct-child exit
+code 1, so that value is not by itself evidence of a native crash.
+
+The `grok_long_initialize=true` input to `acp-windows.yml` selects a separate
+manual-only job. Normal push observations, OAR's default 15-second request
+limit and all original test assertions stay unchanged. Run it once with:
+
+```sh
+stamp workflow run acp-windows.yml --repo botiverse/oar \
+  --ref agent/lookout/grok-long-initialize -f grok_long_initialize=true
+```
+
+[`long-wait-probe.ts`](long-wait-probe.ts) sends only raw ACP initialize,
+using the same Windows shim resolution, arguments and isolated mock-provider
+configuration as the existing startup comparison. It waits up to 90 seconds.
+There are eight numbered launches, with two at a time: two new HOME fixtures,
+their second starts, then another pair of new fixtures and their second
+starts. No prompt, real login or model request is sent. This is an isolated
+startup comparison, not a replay of the original failed suite processes.
+A timeout means no response within the 90-second observation window, not
+proof of an infinite hang. A non-success remains a failed diagnostic job;
+all outcomes and artifacts survive.
+
+Each launch records `ordinal`, `firstProbeProcess`, fixture number and
+attempt. No version query or suite runs before the numbered launches.
+The npm installation can itself execute vendor code or warm file caches,
+so the first probe is not claimed to be the runner's first-ever Grok process
+or a cold OS cache. The binary version is queried after observations.
+
+[`wait-cpu.ps1`](wait-cpu.ps1) prepares one persistent CIM sampler before
+the first probe and records preparation/query durations. At roughly 500-ms
+intervals it attributes user plus kernel CPU milliseconds to the direct
+child and observed descendants, retaining PID and creation-time identities
+internally. It exports totals, deltas and native/Node subtotals without
+PIDs, paths, arguments, environments or a global process table. New
+children are admitted only under a live matching parent identity. Sampling
+can miss short-lived descendants; totals are observed lower bounds, not
+complete tree accounting. A missing identity or sample is not zero CPU.
+Compare sample timestamps with initialize send/response and observation end;
+a query can finish after the response. Sampling and CIM preparation change
+runner activity and cannot identify Defender or disk work as the cause.
+
+The Windows control test runs after the native observation. It checks real
+busy-process CPU and rejects an impossible start identity for the same PID.
+Linux skips this Windows-specific test. Diagnostic sampler or cleanup
+failure remains visible. Product code is never patched by this experiment.
