@@ -66,10 +66,12 @@ export function projectAntigravityModels(response: unknown): ModelEntry[] | unde
 function withCatalogEfforts(root: JsonRecord | null, entries: ModelEntry[]): ModelEntry[] {
   const available = asRecordList(asRecord(root?.models)?.availableModels);
   const levels = new Map<string, string[]>();
+  const bareModels = new Set<string>();
   const unparsed: ModelEntry[] = [];
   for (const item of available) {
     const id = text(item.modelId);
-    if (id === undefined || entries.some(entry => entry.id === id)) { continue; }
+    if (id === undefined) { continue; }
+    if (entries.some(entry => entry.id === id)) { bareModels.add(id); continue; }
     const candidates = entries.filter(entry => id.startsWith(`${entry.id}-`) && id.length > entry.id.length + 1);
     const [family] = candidates;
     if (candidates.length === 1 && family !== undefined) {
@@ -88,7 +90,7 @@ function withCatalogEfforts(root: JsonRecord | null, entries: ModelEntry[]): Mod
     if (entry.effortLevels !== undefined) { return entry; }
     const menu = levels.get(entry.id);
     if (menu !== undefined) { return { ...entry, effortLevels: menu }; }
-    return hasEfforts ? { ...entry, effortUnavailableReason: "Native catalog did not expose this model's effort menu." } : entry;
+    return hasEfforts && !bareModels.has(entry.id) ? { ...entry, effortUnavailableReason: "Native catalog did not expose this model's effort menu." } : entry;
   }), ...unparsed];
 }
 

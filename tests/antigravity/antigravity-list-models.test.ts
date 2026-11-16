@@ -195,3 +195,14 @@ test("an exposed but empty menu is a read gap, not a runtime without effort", ()
     { category: "thought_level", currentValue: "low", options: [] },
   ] })).toEqual([{ id: "model", default: true, effortUnavailableReason: "Native catalog did not expose this model's effort menu." }]);
 });
+
+
+test("a native bare model has no effort, while a missing model has an unavailable menu", () => {
+  const response = { ...catalogResponse, models: { availableModels: [
+    ...catalogResponse.models.availableModels.filter(item => !item.modelId.startsWith("hydrogen-")),
+    { modelId: "plain" },
+  ] } };
+  const models = projectAntigravityModels(response);
+  expect(models).toContainEqual({ id: "plain" });
+  expect(models).toContainEqual({ id: "hydrogen", effortUnavailableReason: "Native catalog did not expose this model's effort menu." });
+});
