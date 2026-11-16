@@ -1219,10 +1219,33 @@ Account usage is a
 separate reader on its own app-server process (`initialize`, `account/read`,
 `account/rateLimits/read`, with `reauth_required` / `unsupported` outcomes and
 rate-limit buckets merged as the codex TUI does); neither it nor installation
-discovery is inferred from turn token totals. The same read's
+discovery is inferred from turn token totals. A native non-null
+`rateLimitReachedType` contributes to `rateLimited` only when that bucket
+does not report `credits.hasCredits: true` or `credits.unlimited: true`.
+Missing or unrecognized credits leave the native refusal in place. OAR
+does not interpret the balance's units or infer available credits from it.
+Full windows still display 100%; a full window without the native flag
+does not make the account rate limited. The default account bucket's readable
+credits also appear as `credits: { available, unlimited?, balance? }` on the
+snapshot. The balance string is unchanged; absent or unrecognized credit
+information omits the field, and model buckets are not added to it. The same read's
 `rateLimitResetCredits` becomes `limitResets`, and `redeemLimitReset` sends
 `account/rateLimitResetCredit/consume` on its own app-server process the
-same way ([limit resets](../spec/account-usage.md#limit-resets)). Update checks read the
+same way ([limit resets](../spec/account-usage.md#limit-resets)).
+
+Codex 0.169.0's CLI, configuration schema and app-server protocol expose no
+method to read or change a switch for spending credits after included usage
+runs out. The protocol exposes balances and reset redemption, not control
+over credit spending ([native account requests](https://github.com/openai/codex/blob/d32063f96c2dff1dc96af839b3952abb6acfeda4/codex-rs/app-server-protocol/src/protocol/common.rs#L1435)).
+OpenAI documents that available credits can be used automatically after
+included limits are reached. Automatic reload controls purchases of new
+credits, not spending the existing balance; the documentation does not
+establish a separate personal-account disable-spending switch
+([credit guidance](https://help.openai.com/en/articles/12642688-using-credits-for-flexible-usage-in-chatgpt-personal-plans),
+checked November 16, 2026). OAR reports the balance and limit state and does
+not control whether the account spends credits.
+
+Update checks read the
 `updates.status` row of `codex doctor --json`, and upgrades run `codex update`
 with a version read-back ([runtime updaters](update.md)). Login is mapped
 [below](#login). An installation probe that cannot run keeps its native error
