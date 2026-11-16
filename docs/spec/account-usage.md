@@ -66,7 +66,7 @@ group names itself. The windows that concern a model are the `account` ones,
 the `model` ones naming it and the `models` ones whose group holds it; a host
 that must decide about a window without `scope` can treat it as `account` as
 its own conservative choice. `scope` says what a window counts, not whether a
-full one stops work: extra usage can carry a Claude, Factory, Grok or Kimi
+full one stops work: extra usage can carry a Claude, Codex, Factory, Grok or Kimi
 account past a full subscription window, which the snapshot's `rateLimited`
 already weighs.
 
@@ -78,6 +78,24 @@ already weighs.
 | factory | Standard Usage buckets | `models`: Droid Core buckets ("Droid Core") | none |
 | grok | included usage, pay-as-you-go | none | none |
 | kimi | timed windows, Extra Usage | none | a row with only a name |
+
+For Codex, a bucket contributes to `rateLimited` only when its native
+`rateLimitReachedType` is non-null and it has no reported usable credits.
+`credits.hasCredits === true` or `credits.unlimited === true` permits continued
+use of that bucket. Missing or unrecognized credits do not clear a native
+reached flag; OAR does not infer availability or units from `balance`.
+A 100% window remains visible but does not by itself imply `rateLimited`.
+Credits on one bucket do not clear another bucket's native refusal.
+
+An available snapshot may also carry `credits: { available, unlimited?, balance? }`
+when the runtime reports extra usage credits. `balance` is the exact native
+string, without unit or currency conversion. Missing or unrecognized credit
+information omits this field; it does not mean `available: false`. Codex
+currently supplies it from its default `codex` bucket (or the legacy unnamed
+account view), never by adding model buckets' balances. A host can display
+the full subscription window alongside remaining credits. Usable credits
+clear that bucket's limit flag even when the window remains full; a separate
+model bucket can still report its own refusal.
 
 ## Limit resets
 

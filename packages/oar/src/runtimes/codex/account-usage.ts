@@ -17,6 +17,18 @@ function text(value: unknown): string | undefined {
   return trimmed.length > 0 && trimmed.length <= 80 ? trimmed : undefined;
 }
 
+function projectCredits(value: unknown): Extract<AccountUsageSnapshot, { kind: "available" }>["credits"] {
+  const credits = asRecord(value);
+  if (credits === null || (typeof credits.hasCredits !== "boolean" && credits.unlimited !== true)) {
+    return undefined;
+  }
+  return {
+    available: credits.hasCredits === true || credits.unlimited === true,
+    ...(typeof credits.unlimited === "boolean" ? { unlimited: credits.unlimited } : {}),
+    ...(typeof credits.balance === "string" ? { balance: credits.balance } : {}),
+  };
+}
+
 function windowLabel(value: unknown): string {
   const minutes = asNumber(value);
   if (minutes === null || minutes <= 0) {
@@ -115,6 +127,10 @@ export function projectCodexUsage(result: unknown, email?: string): AccountUsage
   const historical = asRecord(root?.rateLimits);
   const indexed = asRecord(root?.rateLimitsByLimitId);
   const buckets = rateLimitBuckets(historical, indexed);
+  const accountBucket = buckets.find(bucket => bucket.limitId === "codex")
+    ?? (text(historical?.limitId) === undefined && text(historical?.limitName) === undefined ? historical : undefined)
+    ?? asRecord(indexed?.codex);
+  const accountCredits = projectCredits(accountBucket?.credits);
   const windows: AccountUsageWindow[] = [];
   let rateLimited = false;
   let plan: string | undefined = undefined;
@@ -122,8 +138,11 @@ export function projectCodexUsage(result: unknown, email?: string): AccountUsage
   for (const bucket of buckets) {
     const sourceLabel = limitLabel(bucket);
     plan ??= text(bucket.planType);
+    const credits = asRecord(bucket.credits);
+    const canUseCredits = credits?.hasCredits === true || credits?.unlimited === true;
     rateLimited ||= bucket.rateLimitReachedType !== null
-      && bucket.rateLimitReachedType !== undefined;
+      && bucket.rateLimitReachedType !== undefined
+      && !canUseCredits;
 
     for (const kind of ["primary", "secondary"] as const) {
       const candidate = asRecord(bucket[kind]);
@@ -151,7 +170,6 @@ export function projectCodexUsage(result: unknown, email?: string): AccountUsage
         ...(minutes === null || minutes <= 0 ? {} : { durationMs: minutes * 60_000 }),
         ...(scope === undefined ? {} : { scope }),
       });
-      rateLimited ||= usedPercent >= 100;
     }
   }
 
@@ -163,6 +181,7 @@ export function projectCodexUsage(result: unknown, email?: string): AccountUsage
     kind: "available",
     ...(plan === undefined ? {} : { plan }),
     ...(email === undefined ? {} : { email }),
+    ...(accountCredits === undefined ? {} : { credits: accountCredits }),
     rateLimited,
     windows,
     ...(limitResets === undefined ? {} : { limitResets }),

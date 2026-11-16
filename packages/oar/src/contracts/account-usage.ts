@@ -87,13 +87,12 @@ export type AccountUsageSnapshot =
       readonly plan?: string;
       /** Signed-in account email; omitted when the runtime does not expose one. */
       readonly email?: string;
-      /**
-       * Runtime-reported account display name (for example a profile nickname);
-       * omitted when not exposed. Lets callers identify accounts that have no email.
-       */
+      /** Runtime-reported account display name (for example a profile nickname); omitted when not exposed. Identifies accounts that have no email. */
       readonly displayName?: string;
       readonly rateLimited: boolean;
       readonly windows: readonly AccountUsageWindow[];
+      /** Extra usage credits; absent means unknown. `balance` is the runtime's string, with no unit conversion or inferred currency. */
+      readonly credits?: { readonly available: boolean; readonly unlimited?: boolean; readonly balance?: string };
       /** The account's limit resets, when the runtime reports them (codex); see `Runtime.redeemLimitReset`. */
       readonly limitResets?: AccountLimitResets;
     }
