@@ -65,14 +65,15 @@ jobs:
           name: opencode-cleanup-${{ matrix.os }}
           path: ${{ github.workspace }}/oar-trial-run/opencode-cleanup
           if-no-files-found: warn
-      # Real Kimi device login, local OAuth/model server, no account or browser.
+      # Real Kimi login and workspace skill discovery, no account or browser.
       - run: npm install -g @moonshot-ai/kimi-code@2.4.1
         id: kimi-login-install
         if: always() && !cancelled()
-      - run: pnpm vitest run sea-trial/vendor/kimi-login.vendor.test.ts
+      - run: pnpm vitest run sea-trial/vendor/kimi-login.vendor.test.ts sea-trial/vendor/kimi-skills.vendor.test.ts
         if: always() && !cancelled() && steps.kimi-login-install.outcome == 'success'
         env:
           OAR_TEST: kimi-login
+          OAR_KIMI_WORKSPACE_MODE: reuse
           OAR_TRIAL_RUN_DIR: ${{ github.workspace }}/oar-trial-run
       - uses: actions/upload-artifact@v4
         if: always()
@@ -80,6 +81,17 @@ jobs:
           name: kimi-login-${{ matrix.os }}
           path: ${{ github.workspace }}/oar-trial-run/kimi-login
           if-no-files-found: warn
+
+      - name: Install current Kimi for fresh workspace cleanup
+        id: kimi-skills-install
+        if: always() && !cancelled()
+        run: npm install -g @moonshot-ai/kimi-code@2.6.2
+      - name: Native Kimi skills with fresh workspace IDs
+        if: always() && !cancelled() && steps.kimi-skills-install.outcome == 'success'
+        run: pnpm vitest run sea-trial/vendor/kimi-skills.vendor.test.ts
+        env:
+          OAR_TEST: kimi-skills
+          OAR_KIMI_WORKSPACE_MODE: fresh
 
       - name: Install pinned agy CLI for native ACP regressions
         id: agy-install

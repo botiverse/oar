@@ -8,7 +8,8 @@ import { inventoryOk, inventoryRead, named, nativeRows, textField, unsupportedIn
 export function projectGrokSkills(payload: JsonRecord): SkillEntry[] {
   return nativeRows(payload.skills).map((skill) => ({
     name: named(skill), ...textField("description", skill.description),
-    ...textField("source", skill.source),
+    ...textField("source", typeof skill.source === "string" ? skill.source : asRecord(skill.source)?.type),
+    ...textField("path", asRecord(skill.source)?.path),
   }));
 }
 export function projectGrokServers(payload: JsonRecord): McpServerEntry[] {

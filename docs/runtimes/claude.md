@@ -931,6 +931,11 @@ MCP servers from `mcp_status` with bounded startup polling (view
 [Inventory reader](../../packages/oar/src/runtimes/claude/inventory.ts),
 [query contract](../spec/inventory.md),
 [native probe evidence](inventory.md).
+On Linux 2.1.325, a clean-home query includes 13 built-in skills, including
+`update-config` and `claude-api`, with native `source: "built-in"`. A project
+`.claude/skills` fixture appears separately as `projectSettings`. These are
+native context entries, not names inferred by OAR.
+[Built-in skill control](../../experiments/runtime-skills-2026-11-16/README.md#claude-built-ins-are-already-returned).
 
 ### Session MCP servers
 

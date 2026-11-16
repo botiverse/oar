@@ -236,7 +236,8 @@ or pull request whose changes are all Markdown files or under `docs/` or
   version and an idempotent second install); OpenCode 2.2.7 isolated native
   tool cleanup (readiness, surviving-peer and final residual-process
   assertions); and Kimi 2.4.1's native login tests against a local
-  OAuth/model server, including browser suppression and credential writes.
+  OAuth/model server, including browser suppression and credential writes,
+  plus native workspace skill discovery cleanup on success, error and timeout.
   The agy CLI 1.5.0 (Antigravity) is installed from official platform
   downloads with pinned SHA-512 digests
   ([`install-antigravity.mjs`](../.github/scripts/install-antigravity.mjs))

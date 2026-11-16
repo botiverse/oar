@@ -1,0 +1,641 @@
+{
+  "platform": "Linux x64",
+  "date": "2026-11-16",
+  "kimi": [
+    {
+      "version": "2.6.2",
+      "builtinProductSkills": true,
+      "startupMs": 1990,
+      "totalReadMs": 2259,
+      "configUnchanged": true,
+      "sessionsBefore": {
+        "items": [],
+        "has_more": false
+      },
+      "sessionsAfter": {
+        "items": [],
+        "has_more": false
+      },
+      "processExited": true,
+      "newFiles": [
+        "data/.projects-write-lock",
+        "data/cache/query-store/cluster.indexes.json",
+        "data/cache/query-store/cluster.meta.json",
+        "data/cache/query-store/shard-00/db.indexes.json",
+        "data/cache/query-store/shard-00/db.wal",
+        "data/cache/query-store/shard-01/db.indexes.json",
+        "data/cache/query-store/shard-01/db.wal",
+        "data/cache/query-store/shard-02/db.indexes.json",
+        "data/cache/query-store/shard-02/db.wal",
+        "data/cache/query-store/shard-03/db.indexes.json",
+        "data/cache/query-store/shard-03/db.wal",
+        "data/cache/query-store/shard-04/db.indexes.json",
+        "data/cache/query-store/shard-04/db.wal",
+        "data/cache/query-store/shard-05/db.indexes.json",
+        "data/cache/query-store/shard-05/db.wal",
+        "data/cache/query-store/shard-06/db.indexes.json",
+        "data/cache/query-store/shard-06/db.wal",
+        "data/cache/query-store/shard-07/db.indexes.json",
+        "data/cache/query-store/shard-07/db.wal",
+        "data/cache/query-store/shard-08/db.indexes.json",
+        "data/cache/query-store/shard-08/db.wal",
+        "data/cache/query-store/shard-09/db.indexes.json",
+        "data/cache/query-store/shard-09/db.wal",
+        "data/cache/query-store/shard-10/db.indexes.json",
+        "data/cache/query-store/shard-10/db.wal",
+        "data/cache/query-store/shard-11/CURRENT",
+        "data/cache/query-store/shard-11/db.indexes.json",
+        "data/cache/query-store/shard-11/db.wal",
+        "data/cache/query-store/shard-11/generations/g-000001/compound.index",
+        "data/cache/query-store/shard-11/generations/g-000001/dt.index",
+        "data/cache/query-store/shard-11/generations/g-000001/manifest.json",
+        "data/cache/query-store/shard-11/generations/g-000001/secondary.index",
+        "data/cache/query-store/shard-11/generations/g-000001/store",
+        "data/cache/query-store/shard-12/db.indexes.json",
+        "data/cache/query-store/shard-12/db.wal",
+        "data/cache/query-store/shard-13/db.indexes.json",
+        "data/cache/query-store/shard-13/db.wal",
+        "data/cache/query-store/shard-14/db.indexes.json",
+        "data/cache/query-store/shard-14/db.wal",
+        "data/cache/query-store/shard-15/db.indexes.json",
+        "data/cache/query-store/shard-15/db.wal",
+        "data/device_id",
+        "data/logs/kimi-code.log",
+        "data/projects.json",
+        "data/server.token",
+        "data/sessions/.index-cache/scan.json"
+      ],
+      "skills": [
+        {
+          "name": "check-kimi-code-docs",
+          "source": "builtin",
+          "path": "builtin://check-kimi-code-docs"
+        },
+        {
+          "name": "custom-theme",
+          "source": "builtin",
+          "path": "builtin://custom-theme",
+          "disable_model_invocation": true
+        },
+        {
+          "name": "import-from-cc-codex",
+          "source": "builtin",
+          "path": "builtin://import-from-cc-codex",
+          "disable_model_invocation": true
+        },
+        {
+          "name": "mcp-config",
+          "source": "builtin",
+          "path": "builtin://mcp-config",
+          "disable_model_invocation": true
+        },
+        {
+          "name": "project-fixture",
+          "source": "project",
+          "path": "<fixture>/project/.agents/skills/project-fixture/SKILL.md",
+          "disable_model_invocation": true
+        },
+        {
+          "name": "shared-fixture",
+          "source": "user",
+          "path": "<fixture>/home/.agents/skills/shared-fixture/SKILL.md",
+          "disable_model_invocation": true
+        },
+        {
+          "name": "sub-skill",
+          "source": "builtin",
+          "path": "builtin://sub-skill",
+          "disable_model_invocation": true
+        },
+        {
+          "name": "sub-skill.consolidate",
+          "source": "builtin",
+          "path": "builtin://sub-skill/consolidate",
+          "disable_model_invocation": true
+        },
+        {
+          "name": "sub-skill.review",
+          "source": "builtin",
+          "path": "builtin://sub-skill/review",
+          "disable_model_invocation": true
+        },
+        {
+          "name": "update-config",
+          "source": "builtin",
+          "path": "builtin://update-config"
+        },
+        {
+          "name": "user-fixture",
+          "source": "user",
+          "path": "<fixture>/data/skills/user-fixture/SKILL.md",
+          "disable_model_invocation": true
+        },
+        {
+          "name": "write-goal",
+          "source": "builtin",
+          "path": "builtin://write-goal"
+        }
+      ]
+    },
+    {
+      "version": "2.6.2",
+      "builtinProductSkills": false,
+      "startupMs": 1915,
+      "totalReadMs": 2185,
+      "configUnchanged": true,
+      "sessionsBefore": {
+        "items": [],
+        "has_more": false
+      },
+      "sessionsAfter": {
+        "items": [],
+        "has_more": false
+      },
+      "processExited": true,
+      "newFiles": [
+        "data/.projects-write-lock",
+        "data/cache/query-store/cluster.indexes.json",
+        "data/cache/query-store/cluster.meta.json",
+        "data/cache/query-store/shard-00/db.indexes.json",
+        "data/cache/query-store/shard-00/db.wal",
+        "data/cache/query-store/shard-01/db.indexes.json",
+        "data/cache/query-store/shard-01/db.wal",
+        "data/cache/query-store/shard-02/db.indexes.json",
+        "data/cache/query-store/shard-02/db.wal",
+        "data/cache/query-store/shard-03/db.indexes.json",
+        "data/cache/query-store/shard-03/db.wal",
+        "data/cache/query-store/shard-04/db.indexes.json",
+        "data/cache/query-store/shard-04/db.wal",
+        "data/cache/query-store/shard-05/db.indexes.json",
+        "data/cache/query-store/shard-05/db.wal",
+        "data/cache/query-store/shard-06/db.indexes.json",
+        "data/cache/query-store/shard-06/db.wal",
+        "data/cache/query-store/shard-07/db.indexes.json",
+        "data/cache/query-store/shard-07/db.wal",
+        "data/cache/query-store/shard-08/db.indexes.json",
+        "data/cache/query-store/shard-08/db.wal",
+        "data/cache/query-store/shard-09/db.indexes.json",
+        "data/cache/query-store/shard-09/db.wal",
+        "data/cache/query-store/shard-10/db.indexes.json",
+        "data/cache/query-store/shard-10/db.wal",
+        "data/cache/query-store/shard-11/CURRENT",
+        "data/cache/query-store/shard-11/db.indexes.json",
+        "data/cache/query-store/shard-11/db.wal",
+        "data/cache/query-store/shard-11/generations/g-000001/compound.index",
+        "data/cache/query-store/shard-11/generations/g-000001/dt.index",
+        "data/cache/query-store/shard-11/generations/g-000001/manifest.json",
+        "data/cache/query-store/shard-11/generations/g-000001/secondary.index",
+        "data/cache/query-store/shard-11/generations/g-000001/store",
+        "data/cache/query-store/shard-12/db.indexes.json",
+        "data/cache/query-store/shard-12/db.wal",
+        "data/cache/query-store/shard-13/db.indexes.json",
+        "data/cache/query-store/shard-13/db.wal",
+        "data/cache/query-store/shard-14/db.indexes.json",
+        "data/cache/query-store/shard-14/db.wal",
+        "data/cache/query-store/shard-15/db.indexes.json",
+        "data/cache/query-store/shard-15/db.wal",
+        "data/device_id",
+        "data/logs/kimi-code.log",
+        "data/projects.json",
+        "data/server.token",
+        "data/sessions/.index-cache/scan.json"
+      ],
+      "skills": [
+        {
+          "name": "project-fixture",
+          "source": "project",
+          "path": "<fixture>/project/.agents/skills/project-fixture/SKILL.md",
+          "disable_model_invocation": true
+        },
+        {
+          "name": "shared-fixture",
+          "source": "user",
+          "path": "<fixture>/home/.agents/skills/shared-fixture/SKILL.md",
+          "disable_model_invocation": true
+        },
+        {
+          "name": "sub-skill",
+          "source": "builtin",
+          "path": "builtin://sub-skill",
+          "disable_model_invocation": true
+        },
+        {
+          "name": "sub-skill.consolidate",
+          "source": "builtin",
+          "path": "builtin://sub-skill/consolidate",
+          "disable_model_invocation": true
+        },
+        {
+          "name": "sub-skill.review",
+          "source": "builtin",
+          "path": "builtin://sub-skill/review",
+          "disable_model_invocation": true
+        },
+        {
+          "name": "user-fixture",
+          "source": "user",
+          "path": "<fixture>/data/skills/user-fixture/SKILL.md",
+          "disable_model_invocation": true
+        },
+        {
+          "name": "write-goal",
+          "source": "builtin",
+          "path": "builtin://write-goal"
+        }
+      ]
+    }
+  ],
+  "claude": {
+    "version": "2.1.325",
+    "before": [
+      {
+        "name": "dataviz",
+        "source": "built-in"
+      },
+      {
+        "name": "update-config",
+        "source": "built-in"
+      },
+      {
+        "name": "keybindings-help",
+        "source": "built-in"
+      },
+      {
+        "name": "code-review",
+        "source": "built-in"
+      },
+      {
+        "name": "simplify",
+        "source": "built-in"
+      },
+      {
+        "name": "fewer-permission-prompts",
+        "source": "built-in"
+      },
+      {
+        "name": "loop",
+        "source": "built-in"
+      },
+      {
+        "name": "claude-api",
+        "source": "built-in"
+      },
+      {
+        "name": "workflow-authoring",
+        "source": "built-in"
+      },
+      {
+        "name": "run",
+        "source": "built-in"
+      },
+      {
+        "name": "plugin-authoring",
+        "source": "built-in"
+      },
+      {
+        "name": "init",
+        "source": "built-in"
+      },
+      {
+        "name": "security-review",
+        "source": "built-in"
+      }
+    ],
+    "after": [
+      {
+        "name": "oar-claude",
+        "source": "projectSettings"
+      },
+      {
+        "name": "dataviz",
+        "source": "built-in"
+      },
+      {
+        "name": "update-config",
+        "source": "built-in"
+      },
+      {
+        "name": "keybindings-help",
+        "source": "built-in"
+      },
+      {
+        "name": "code-review",
+        "source": "built-in"
+      },
+      {
+        "name": "simplify",
+        "source": "built-in"
+      },
+      {
+        "name": "fewer-permission-prompts",
+        "source": "built-in"
+      },
+      {
+        "name": "loop",
+        "source": "built-in"
+      },
+      {
+        "name": "claude-api",
+        "source": "built-in"
+      },
+      {
+        "name": "workflow-authoring",
+        "source": "built-in"
+      },
+      {
+        "name": "run",
+        "source": "built-in"
+      },
+      {
+        "name": "plugin-authoring",
+        "source": "built-in"
+      },
+      {
+        "name": "init",
+        "source": "built-in"
+      },
+      {
+        "name": "security-review",
+        "source": "built-in"
+      }
+    ]
+  },
+  "grok": {
+    "native": {
+      "version": "grok 1.0.77 (50ca579fa996) [stable]",
+      "nativeSkillCount": 32,
+      "bundled": [
+        {
+          "name": "build-with-ai",
+          "source": {
+            "type": "bundled",
+            "path": "<home>/.grok/bundled/skills/build-with-ai/SKILL.md"
+          }
+        },
+        {
+          "name": "code-review",
+          "source": {
+            "type": "bundled",
+            "path": "<home>/.grok/bundled/skills/code-review/SKILL.md"
+          }
+        },
+        {
+          "name": "create-skill",
+          "source": {
+            "type": "bundled",
+            "path": "<home>/.grok/bundled/skills/create-skill/SKILL.md"
+          }
+        },
+        {
+          "name": "create-workflow",
+          "source": {
+            "type": "bundled",
+            "path": "<home>/.grok/bundled/skills/create-workflow/SKILL.md"
+          }
+        },
+        {
+          "name": "design",
+          "source": {
+            "type": "bundled",
+            "path": "<home>/.grok/bundled/skills/design/SKILL.md"
+          }
+        },
+        {
+          "name": "docx",
+          "source": {
+            "type": "bundled",
+            "path": "<home>/.grok/bundled/skills/docx/SKILL.md"
+          }
+        },
+        {
+          "name": "execute-plan",
+          "source": {
+            "type": "bundled",
+            "path": "<home>/.grok/bundled/skills/execute-plan/SKILL.md"
+          }
+        },
+        {
+          "name": "game-assets",
+          "source": {
+            "type": "bundled",
+            "path": "<home>/.grok/bundled/skills/game-assets/SKILL.md"
+          }
+        },
+        {
+          "name": "imagine",
+          "source": {
+            "type": "bundled",
+            "path": "<home>/.grok/bundled/skills/imagine/SKILL.md"
+          }
+        },
+        {
+          "name": "implement",
+          "source": {
+            "type": "bundled",
+            "path": "<home>/.grok/bundled/skills/implement/SKILL.md"
+          }
+        },
+        {
+          "name": "learn",
+          "source": {
+            "type": "bundled",
+            "path": "<home>/.grok/bundled/skills/learn/SKILL.md"
+          }
+        },
+        {
+          "name": "long-running-background-tasks",
+          "source": {
+            "type": "bundled",
+            "path": "<home>/.grok/bundled/skills/long-running-background-tasks/SKILL.md"
+          }
+        },
+        {
+          "name": "pdf",
+          "source": {
+            "type": "bundled",
+            "path": "<home>/.grok/bundled/skills/pdf/SKILL.md"
+          }
+        },
+        {
+          "name": "pptx",
+          "source": {
+            "type": "bundled",
+            "path": "<home>/.grok/bundled/skills/pptx/SKILL.md"
+          }
+        },
+        {
+          "name": "pr-babysit",
+          "source": {
+            "type": "bundled",
+            "path": "<home>/.grok/bundled/skills/pr-babysit/SKILL.md"
+          }
+        },
+        {
+          "name": "resume-claude",
+          "source": {
+            "type": "bundled",
+            "path": "<home>/.grok/bundled/skills/resume-claude/SKILL.md"
+          }
+        },
+        {
+          "name": "resume-codex",
+          "source": {
+            "type": "bundled",
+            "path": "<home>/.grok/bundled/skills/resume-codex/SKILL.md"
+          }
+        },
+        {
+          "name": "resume-cursor",
+          "source": {
+            "type": "bundled",
+            "path": "<home>/.grok/bundled/skills/resume-cursor/SKILL.md"
+          }
+        },
+        {
+          "name": "review",
+          "source": {
+            "type": "bundled",
+            "path": "<home>/.grok/bundled/skills/review/SKILL.md"
+          }
+        },
+        {
+          "name": "skill-design-principles",
+          "source": {
+            "type": "bundled",
+            "path": "<home>/.grok/bundled/skills/skill-design-principles/SKILL.md"
+          }
+        },
+        {
+          "name": "statusline",
+          "source": {
+            "type": "bundled",
+            "path": "<home>/.grok/bundled/skills/statusline/SKILL.md"
+          }
+        },
+        {
+          "name": "threejs-frame-conventions",
+          "source": {
+            "type": "bundled",
+            "path": "<home>/.grok/bundled/skills/threejs-frame-conventions/SKILL.md"
+          }
+        }
+      ]
+    },
+    "projectedBundled": [
+      {
+        "name": "build-with-ai",
+        "source": "bundled",
+        "path": "<home>/.grok/bundled/skills/build-with-ai/SKILL.md"
+      },
+      {
+        "name": "code-review",
+        "source": "bundled",
+        "path": "<home>/.grok/bundled/skills/code-review/SKILL.md"
+      },
+      {
+        "name": "create-skill",
+        "source": "bundled",
+        "path": "<home>/.grok/bundled/skills/create-skill/SKILL.md"
+      },
+      {
+        "name": "create-workflow",
+        "source": "bundled",
+        "path": "<home>/.grok/bundled/skills/create-workflow/SKILL.md"
+      },
+      {
+        "name": "design",
+        "source": "bundled",
+        "path": "<home>/.grok/bundled/skills/design/SKILL.md"
+      },
+      {
+        "name": "docx",
+        "source": "bundled",
+        "path": "<home>/.grok/bundled/skills/docx/SKILL.md"
+      },
+      {
+        "name": "execute-plan",
+        "source": "bundled",
+        "path": "<home>/.grok/bundled/skills/execute-plan/SKILL.md"
+      },
+      {
+        "name": "game-assets",
+        "source": "bundled",
+        "path": "<home>/.grok/bundled/skills/game-assets/SKILL.md"
+      },
+      {
+        "name": "imagine",
+        "source": "bundled",
+        "path": "<home>/.grok/bundled/skills/imagine/SKILL.md"
+      },
+      {
+        "name": "implement",
+        "source": "bundled",
+        "path": "<home>/.grok/bundled/skills/implement/SKILL.md"
+      },
+      {
+        "name": "learn",
+        "source": "bundled",
+        "path": "<home>/.grok/bundled/skills/learn/SKILL.md"
+      },
+      {
+        "name": "long-running-background-tasks",
+        "source": "bundled",
+        "path": "<home>/.grok/bundled/skills/long-running-background-tasks/SKILL.md"
+      },
+      {
+        "name": "pdf",
+        "source": "bundled",
+        "path": "<home>/.grok/bundled/skills/pdf/SKILL.md"
+      },
+      {
+        "name": "pptx",
+        "source": "bundled",
+        "path": "<home>/.grok/bundled/skills/pptx/SKILL.md"
+      },
+      {
+        "name": "pr-babysit",
+        "source": "bundled",
+        "path": "<home>/.grok/bundled/skills/pr-babysit/SKILL.md"
+      },
+      {
+        "name": "resume-claude",
+        "source": "bundled",
+        "path": "<home>/.grok/bundled/skills/resume-claude/SKILL.md"
+      },
+      {
+        "name": "resume-codex",
+        "source": "bundled",
+        "path": "<home>/.grok/bundled/skills/resume-codex/SKILL.md"
+      },
+      {
+        "name": "resume-cursor",
+        "source": "bundled",
+        "path": "<home>/.grok/bundled/skills/resume-cursor/SKILL.md"
+      },
+      {
+        "name": "review",
+        "source": "bundled",
+        "path": "<home>/.grok/bundled/skills/review/SKILL.md"
+      },
+      {
+        "name": "skill-design-principles",
+        "source": "bundled",
+        "path": "<home>/.grok/bundled/skills/skill-design-principles/SKILL.md"
+      },
+      {
+        "name": "statusline",
+        "source": "bundled",
+        "path": "<home>/.grok/bundled/skills/statusline/SKILL.md"
+      },
+      {
+        "name": "threejs-frame-conventions",
+        "source": "bundled",
+        "path": "<home>/.grok/bundled/skills/threejs-frame-conventions/SKILL.md"
+      }
+    ],
+    "emptyIsolatedHomeCounts": {
+      "before": 0,
+      "after": 0
+    }
+  }
+}
