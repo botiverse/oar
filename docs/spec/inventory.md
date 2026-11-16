@@ -124,10 +124,16 @@ ACP session's `available_commands_update` is not an independent query.
 | Claude | `get_context_usage` skill frontmatter | `initialize.commands` | `mcp_status`, bounded startup polling | MCP names/descriptions when supplied; no invented schemas |
 | Grok | `inspect --json` skills | Unsupported for independent queries | `inspect --json` configured/compatibility entries | Unsupported for independent queries |
 | Pi | SDK resource loader | SDK extension runner and prompt templates | Unsupported | SDK registered tools, parameter schemas and active membership |
-| Kimi, Cursor, Antigravity, DSH, OpenCode, Pi Durable, Qwen, Qoder, CodeBuddy, Devin, Factory | Unsupported on the selected interface | Unsupported on the selected interface | Unsupported on the selected interface | Unsupported on the selected interface |
+| Kimi | Native Web workspace skills; temporary loopback service, native state writes | Unsupported | Unsupported | Unsupported |
+| Cursor, Antigravity, DSH, OpenCode, Pi Durable, Qwen, Qoder, CodeBuddy, Devin, Factory | Unsupported on the selected interface | Unsupported on the selected interface | Unsupported on the selected interface | Unsupported on the selected interface |
 
-Kimi's separate native Web API was probed but is not integrated. Grok's
-session-only MCP tool view is not used. Claude's historical session-init tool
+Kimi starts a private loopback Web service, reads the complete workspace skill
+catalog and stops its owned process tree. Native logs, indexes and the
+persistent Web token can be created; no session or prompt is submitted.
+Malformed skill files skipped by Kimi are absent from its catalog; a successful
+complete catalog still has `partial:false`, while malformed responses fail.
+See [Kimi's lifecycle and coverage](../runtimes/kimi.md#independent-skill-discovery).
+Grok's session-only MCP tool view is not used. Claude's historical session-init tool
 list is not used for these independent queries.
 [Native evidence and limits](../runtimes/inventory.md).
 

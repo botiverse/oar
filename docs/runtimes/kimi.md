@@ -10,8 +10,10 @@ opened after three seconds, whether A was live or closed; this establishes no
 refresh-delay bound. Same-directory MCP invocation passed, which does not
 establish configuration freshness. See the [native comparison and follow-up](../../experiments/sharing/same-directory-2026-10-30.md).
 
-Independent inventories: skills, commands, MCP servers and tools return unsupported on the selected interface. The separately probed Web API is not used.
-See the [query contract](../spec/inventory.md) and [native probe evidence](inventory.md).
+Independent inventories: `skills()` reads the native Web workspace catalog
+without a session or prompt. Commands, MCP servers and tools remain unsupported
+on the selected interfaces. See [skill discovery](#independent-skill-discovery),
+the [query contract](../spec/inventory.md) and [native probe evidence](inventory.md).
 
 Evidence baseline: native source
 [`kimi-code` `f9ca33376`](https://github.com/MoonshotAI/kimi-code/tree/f9ca33376)
@@ -60,6 +62,41 @@ separate submission from cancellation. ACP instead binds
 [`klient.session(sessionId).agent('main')`](https://github.com/MoonshotAI/kimi-code/blob/f9ca33376/packages/acp-server/src/session.ts#L249-L344)
 and translates that agent's event stream, so one ACP session does not expose
 every agent in the native session. OAR uses `kimi acp`.
+
+## Independent skill discovery
+
+`skills()` starts `kimi web --no-open --host 127.0.0.1 --port 0` with the
+reader's directory and environment. It registers a fresh owned workspace,
+reads `/api/v1/workspaces/{id}/skills`, unregisters that workspace and stops
+the process tree. It creates no session and submits no prompt. Success,
+error and timeout all wait for process cleanup; the default read deadline is
+15 seconds. The reader never forwards native stdout/stderr, follows redirects
+or returns the private startup bearer token.
+
+The result preserves native name, description, source, path and
+`disable_model_invocation` as `disableModelInvocation`. Its view is `discovered`
+and a complete native catalog has `partial:false`. Native built-in switches,
+plugins and precedence remain Kimi's decisions. A malformed-frontmatter file
+can be skipped by Kimi without a response diagnostic, so a successful catalog
+does not guarantee every disk file parsed. Malformed payloads or failed
+queries become `unavailable`, not empty success.
+
+This read starts a Web service and writes native state. Kimi can create
+`projects.json`, locks, logs, query/session indexes, a device ID and a persistent
+`server.token` (0600 on first creation, reused thereafter). OAR removes only
+its own workspace registration, not these native files; an interrupted read
+can leave its registration behind. It does not change trust settings or
+observe an existing agent's context. On Linux Kimi 2.6.2, startup took about
+1.9 to 2.0 seconds; the paired fixture reads left config bytes unchanged and
+created no sessions.
+
+The 2.6.2 CLI and ACP routes have no independent skill-list operation. The
+Node SDK's session method requires a session; `visibleBuiltinSkills` is an
+internal built-in filter, not a public full-catalog SDK query. Web already
+resolves built-ins and file/plugin catalogs together, so OAR uses that native
+interface instead of reproducing its resolver. Native cleanup tests pass on
+2.6.2 and the existing CI pin 2.4.1.
+[Interface comparison, probes and limits](../../experiments/runtime-skills-2026-11-16/README.md).
 
 ## High-level mapping to OAR
 

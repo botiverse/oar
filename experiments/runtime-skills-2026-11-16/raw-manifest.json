@@ -1,0 +1,100 @@
+{
+  "retention": "Full raw observations retained locally; only cited native fields appear in selected.json. No bearer token was recorded.",
+  "files": [
+    {
+      "name": "kimi-web.json",
+      "bytes": 12818,
+      "sha256": "76aa6f46713a2f77c88fc536a966007c1f52c21d6c4ca6fc4fcfc6dbb041ece8"
+    },
+    {
+      "name": "kimi-web-final.json",
+      "bytes": 12818,
+      "sha256": "411b62f8c23ee95188b20424048fdfd8151011d096ba7f3fc0e6c476f98ec477"
+    },
+    {
+      "name": "claude-grok-existing.json",
+      "bytes": 19455,
+      "sha256": "84357a23460ec1fe760a55b20b79357bbbac64ac617efe1d537d4724cc53e43c"
+    },
+    {
+      "name": "claude-grok-projected.json",
+      "bytes": 22957,
+      "sha256": "269ac33c57dfcb1b3fda1d56177242120276eff239192bf6c8edcadf2b10a8d8"
+    },
+    {
+      "name": "grok-native-bundled.json",
+      "bytes": 3686,
+      "sha256": "e495e6b08eacda0db88d1f985cd97e2a90a81c046d4f1ce4be6fadf0757ada9f"
+    },
+    {
+      "name": "red.log",
+      "bytes": 7071,
+      "sha256": "e5eb4a328bc5b32be2b5c306a727246c83f6b39deb4523ed1372ffff4df7a3e9"
+    },
+    {
+      "name": "grok-red.log",
+      "bytes": 1609,
+      "sha256": "6f461ce73f6ed1461637a6442cef12517f9510eaff30588230a6b738a56d68ce"
+    },
+    {
+      "name": "green2.log",
+      "bytes": 269,
+      "sha256": "4c2c7811fd58f2f207ffd7971c05a8ada7157f7454a7ef2133e87b8e71dd97bb"
+    },
+    {
+      "name": "vendor.log",
+      "bytes": 1259,
+      "sha256": "916fbc7c60e281deba8cca18d1d60a0b977d34a8d7870d9d32d5cd441d1b7fdc"
+    },
+    {
+      "name": "vendor-debug.log",
+      "bytes": 5139,
+      "sha256": "a357e9e63d644d109c03d40aaf4750d8b0b39d7c584ede80932a57a9506275ec"
+    },
+    {
+      "name": "vendor2.log",
+      "bytes": 269,
+      "sha256": "4f8747bcdbfa8e38d4578e65bc5d966b5626051cbae3fbad38b1973b2b69faca"
+    },
+    {
+      "name": "vendor-2.4.1.log",
+      "bytes": 269,
+      "sha256": "8db3de4de2cdc6b78cc7e41e0dca537618a02570218de79009f5f920771fb137"
+    },
+    {
+      "name": "vendor-final.log",
+      "bytes": 269,
+      "sha256": "3a97f37f8b5db08b4b1478437722e294fa22c48da748bb292561d8484ad449d7"
+    },
+    {
+      "name": "check1.log",
+      "bytes": 6212,
+      "sha256": "9c5198b119b1fa871370b45e33c8f123cb0660d70745726a08df8c5d5bd4fccd"
+    },
+    {
+      "name": "check2.log",
+      "bytes": 1480,
+      "sha256": "6cf5ecfc9501a04a7b77809f5f3b58f9f44bb729131bf17352cc689ad531c639"
+    },
+    {
+      "name": "check3.log",
+      "bytes": 1566,
+      "sha256": "89b426729d1e98704b2e6d4a1b189501d711afbe41554ce4e668f36ad9c8cd5b"
+    },
+    {
+      "name": "check4.log",
+      "bytes": 5725,
+      "sha256": "d335190a84340b41e8b49833e3563f9215d0d0236bfc12e9ccda54cc56897de4"
+    },
+    {
+      "name": "check5.log",
+      "bytes": 909,
+      "sha256": "6fb8e107ec4a6792dd3f9bba64e821dcb97824cfc75655dc7f89bc083bbb5a94"
+    },
+    {
+      "name": "check6.log",
+      "bytes": 5530,
+      "sha256": "ed4194af47b0c538afe562f2f7442e641fb1a88f5f2a16c9a4eb5f81d148e970"
+    }
+  ]
+}

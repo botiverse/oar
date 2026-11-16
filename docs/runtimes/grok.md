@@ -6,6 +6,14 @@ tools queries are unsupported. On timeout the reader stops its owned process
 tree (including a Windows npm launcher's children) and waits for the exit
 ([query contract](../spec/inventory.md), [native probe evidence](inventory.md)).
 
+On Linux 1.0.77, `inspect` includes cached bundled skills with native
+`source: {type: "bundled", path}`. OAR preserves that type as `source` and
+the native path as `path`; string sources are also retained. A clean home can
+return no skills before the bundled cache exists, and untrusted project
+skills can be excluded by Grok. The discovered list is not a promise that a
+running session loaded every entry.
+[Bundled-skill observations and provenance regression](../../experiments/runtime-skills-2026-11-16/README.md#grok-cached-bundled-skills-were-present-provenance-was-lost).
+
 Evidence baseline: native source
 [`grok-build` `bc7f02e`](https://github.com/xai-org/grok-build/tree/bc7f02e)
 (Grok 1.0.12); the [wire snapshot](../../tests/replay/fixtures/grok-acp-v1.vendor.json)

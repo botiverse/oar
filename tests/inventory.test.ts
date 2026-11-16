@@ -270,7 +270,7 @@ test("Grok independent discovery never authenticates or creates a session", asyn
 });
 
 test("unavailable native surfaces return unsupported without starting a runtime", async () => {
-  await expect(defaultRuntimes.require("kimi").skills(executable)).resolves.toMatchObject({ kind: "unsupported" });
+  await expect(defaultRuntimes.require("kimi").tools(executable)).resolves.toMatchObject({ kind: "unsupported" });
   await expect(defaultRuntimes.require("grok").tools(executable)).resolves.toMatchObject({ kind: "unsupported" });
   await expect(defaultRuntimes.require("pi").mcpServers({ kind: "available", via: "bundled" })).resolves.toMatchObject({ kind: "unsupported" });
   expect(spawnLineProcess).not.toHaveBeenCalled();

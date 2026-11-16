@@ -1,9 +1,21 @@
 # Native runtime inventories
 
-Local probes, **2026-09-16**, workspace `rao`. The survey calls installed native
+Original local probes, **2026-09-16**, workspace `rao`. The survey calls installed native
 interfaces; it does not scan configuration files, ask a model to describe its
 tools, or use online documentation.
 [Reproducible probes and sanitized observations](../../experiments/inventory/README.md).
+
+## November 16 update
+
+Kimi 2.6.2's native Web workspace skill catalog is now integrated. It requires
+a temporary loopback service and writes native logs/indexes/token state, but
+creates no session or prompt. Successful complete native catalogs are
+`partial:false`; malformed files skipped by Kimi remain absent. Claude
+2.1.325 already returns built-in skills with their native source. Grok
+1.0.77 returns cached bundled skills; OAR now preserves its object-shaped
+source and path. [Current mapping](../spec/inventory.md#implemented-mapping),
+[controls and limitations](../../experiments/runtime-skills-2026-11-16/README.md).
+The remaining sections retain the September observations.
 
 ## What each runtime actually exposes
 
@@ -20,7 +32,7 @@ alternate-transport capabilities below are not implicitly exposed.
 | Pi SDK 0.84.2 and 0.84.4 | Resource loader `getSkills()`, including source and diagnostics | No dedicated core MCP inventory API found in inspected SDK declarations; extensions may implement MCP | `getAllTools()` returns parameter schemas and provenance; `getActiveToolNames()` separately identifies active tools |
 
 Antigravity, CodeBuddy, Cursor, Devin, DSH, Factory, OpenCode, Qoder and Qwen were not probed;
-OAR answers all four of their inventory queries `unsupported`
+At that baseline OAR answered all four of their inventory queries `unsupported`
 (`transport_unavailable`), as it does for Kimi, Pi Durable and Mister Morph
 ([defineRuntime default](../../packages/oar/src/contracts/runtime.ts)). No full-fidelity three-way intersection is verified across the five
 probed **OAR-selected transports**. Skills are the broadest commonality, but Kimi

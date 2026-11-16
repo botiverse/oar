@@ -22,6 +22,7 @@ export const kimiRuntime = defineRuntime({
     const { kimiListModels } = await import("./list-models.js");
     return kimiListModels;
   }),
+  skills: onFirstCall(async () => { const { kimiSkills } = await import("./skills.js"); return kimiSkills; }),
   checkUpdate: kimiCheckUpdate,
   upgrade: kimiUpgrade,
   session: onFirstCall(async () => {
