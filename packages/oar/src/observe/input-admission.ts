@@ -13,10 +13,10 @@ export interface InputAdmission {
   readonly nativeSinceSeq?: number;
 }
 
-/** Only native activity, never a control acceptance, establishes a running turn. */
+/** Only native activity, never a control acceptance, establishes a running turn. A tool call's end can follow its turn's end, so it is not activity. */
 function startsActivity(event: RuntimeEventBody): boolean {
   return event.kind === "turn_active" || event.kind === "text_delta" || event.kind === "reasoning"
-    || event.kind === "tool_call_started" || event.kind === "tool_call_ended" || event.kind === "retry";
+    || event.kind === "tool_call_started" || event.kind === "retry";
 }
 
 function observeAdmission(admission: InputAdmission | undefined, before: AgentStatus, record: RawEvent): InputAdmission | undefined {

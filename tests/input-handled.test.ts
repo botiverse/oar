@@ -223,3 +223,13 @@ test("handling recorded after an independent turn ended removes its provisional 
   expect(await awaitTurnEnd(session, request.seq, inputId)).toMatchObject({ kind: "handled", requestId: request.id });
   assertCheckpoints(kernel.records());
 });
+
+test("a tool call ending while a prompt is pending is not native activity, so handling still releases to idle", () => {
+  const kernel = createSessionKernel("root");
+  const request = kernel.request("toRuntime", { kind: "prompt", input: "late end", inputId });
+  kernel.frame({ type: "late", native: null, events: [{ kind: "tool_call_ended", callId: "background" }] });
+  kernel.frame({ type: "receipt", native: { disposition: "handled" }, events: [handled(request)] });
+  kernel.respond(request.id, { kind: "accepted" });
+  expect(statusOf(kernel.records(), "root").value).toEqual({ kind: "idle" });
+  assertCheckpoints(kernel.records());
+});

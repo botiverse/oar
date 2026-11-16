@@ -45,7 +45,7 @@ export type { AgentStatus, RunningPhase } from "../contracts/session.js";
  *                                     → idle{failed runtime_exited} otherwise
  *   response released                 → idle/released, retaining the stop-based outcome
  *   later facts after release         → retain idle/released; native facts remain in the log
- * The fold is total: a mid-turn event while idle adopts that turn (a consumer
+ * The fold is total: a turn start or turn content while idle adopts that turn (a consumer
  * may subscribe mid-turn, and a queued input runs as a turn with no request).
  */
 

@@ -109,7 +109,8 @@ input still held by OAR can be withdrawn, edited or sent now (Commands).
 
 - **No synthesized boundaries.** A turn opens on its prompt request or on the
   first event of an adopted turn (queued input, a mid-turn subscriber), the
-  rule `reduceStatus` follows. Sub-agent sections come from observed lanes
+  rule `reduceStatus` follows. A tool call's end never adopts one for status:
+  it can arrive after its own turn ended. Sub-agent sections come from observed lanes
   and message IDs, never an invented start event. A steer enters the transcript
   at the runtime's own echo, never at a position guessed from a turn end;
   whether a stream echoes is read off the stream, never off a runtime name.
