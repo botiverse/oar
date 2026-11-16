@@ -43,7 +43,7 @@ jobs:
     timeout-minutes: 80
     env:
       EVIDENCE_RUNTIME: ${{ matrix.runtime }}
-      EVIDENCE_PACKAGE: ${{ matrix.runtime == 'opencode' && format('@opencode/cli@{0}', inputs.opencode_version) || fromJSON('{"codex":"@openai/codex@0.166.0","kimi":"@moonshot-ai/kimi-code@2.4.1","grok":"@xai-official/grok@1.0.70","opencode":"@opencode/cli@2.2.5","qoder":"@qoder-ai/qodercli@1.1.81"}')[matrix.runtime] }}
+      EVIDENCE_PACKAGE: ${{ matrix.runtime == 'opencode' && format('@opencode/cli@{0}', inputs.opencode_version) || fromJSON('{"codex":"@openai/codex@0.169.0","kimi":"@moonshot-ai/kimi-code@2.4.1","grok":"@xai-official/grok@1.0.70","opencode":"@opencode/cli@2.2.5","qoder":"@qoder-ai/qodercli@1.1.81"}')[matrix.runtime] }}
     defaults:
       run:
         shell: bash
@@ -101,6 +101,10 @@ jobs:
       - name: Native trust and cross-directory configuration controls
         if: ${{ !cancelled() && !inputs.execution_environment_only && !inputs.resources_only && steps.native-install.outcome == 'success' && contains(fromJSON('["grok","opencode"]'), matrix.runtime) }}
         run: pnpm tsx experiments/sharing/configuration-freshness.ts "$EVIDENCE_RUNTIME"
+        timeout-minutes: 12
+      - name: Codex persisted user hook trust controls
+        if: ${{ !cancelled() && !inputs.execution_environment_only && !inputs.resources_only && steps.native-install.outcome == 'success' && matrix.runtime == 'codex' }}
+        run: pnpm tsx experiments/sharing/codex-persisted-trust.ts
         timeout-minutes: 12
       - name: Native child working directory and environment controls
         if: ${{ !cancelled() && !inputs.resources_only && steps.native-install.outcome == 'success' && contains(fromJSON('["grok","opencode"]'), matrix.runtime) }}

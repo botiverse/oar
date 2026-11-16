@@ -62,11 +62,19 @@ Qoder 1.1.81 crosses same-directory MCP registrations and lacks instruction
 markers; Antigravity 1.4.5 lacks instruction markers. These gaps remain
 failures or missing evidence, never a complete pass.
 
+The [Codex 0.169.0 follow-up](codex-0.169.0-2026-11-16.md) adds actual
+persisted hook grant/revoke controls and the loaded-resume typed refusal
+rule. Linux routing, directory and resource observations are recorded;
+macOS and Windows are pending. User-level trust reload timing is a declared
+placement difference, not an equivalence pass. Production sharing remains
+disabled. The manual workflow now pins Codex 0.169.0.
+
 Run from the repository root with Node 24 and the pinned executable installed:
 
 ```sh
 OAR_CODEX_BIN=/absolute/codex pnpm tsx experiments/sharing/codex.ts
 OAR_CODEX_BIN=/absolute/codex pnpm tsx experiments/sharing/codex-resources.ts
+OAR_CODEX_BIN=/absolute/codex pnpm tsx experiments/sharing/codex-persisted-trust.ts
 OAR_KIMI_BIN=/absolute/kimi pnpm tsx experiments/sharing/acp.ts kimi
 OAR_KIMI_BIN=/absolute/kimi pnpm tsx experiments/sharing/acp-resources.ts kimi
 OAR_QODER_BIN=/absolute/qodercli pnpm tsx experiments/sharing/qoder.ts
