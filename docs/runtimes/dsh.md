@@ -251,7 +251,7 @@ session in `SessionOptions.env`: nobody sits at an approval prompt, and native r
 `approval/policy: never` so an action needing approval is rejected. Verified that
 tools run and the native `permission/preset` frame is recorded.
 
-Refused with `UnsupportedOptionError`, each until its own probe:
+Refused with `UnsupportedOptionError` until an effective native mapping is verified:
 `launchArgs`, `serviceTier`, `additionalDirectories`, `outputSchema`,
 `userConfiguration: "exclude"`, `goals: true`, `endTurnProcessesOnAbort: true`
 ([`options.ts`](../../packages/oar/src/runtimes/dsh/options.ts)). Images are not
@@ -263,6 +263,35 @@ resume, `dsh/opened` reports it as `pending`, and it runs at the next wake, ahea
 the prompt that woke it. Flush timing has not been established, so OAR promises
 nothing here. Login, auth status and account usage are absent. Manual compaction
 is undeclared, meaning untested. Inventories answer `unsupported`.
+
+## Launcher arguments
+
+`launchArgs` remains refused before a process starts. Native `--patch` can
+append an overlay successfully, but a later overlay can also disable OAR's
+bridge or re-enable the ACP transport. Arbitrary overlays need a verified
+check of the effective composition, including native dynamic configuration;
+OAR does not have that check. Both argument styles for a second `--profile`
+are rejected natively, and config-dump flags exit instead of starting the
+bridge. The ACP profile has no application options; `--plugin-dir` is unknown,
+not a way to change plugin resolution.
+
+[Successful and conflicting native controls](../../experiments/dsh-option-boundaries/README.md)
+cover both supported DSH versions. These probe-only launches bypass the public
+refusal. Reopen support when a host needs a concrete overlay, then verify that
+specific composition and its protocol boundary. There is no general overlay
+validation project until that use case exists.
+
+## Final-output schema boundary
+
+`outputSchema` remains refused. In DSH 0.2.1-rc.5 and 0.2.2-rc.1, passing it
+directly in root `agentOptions` did not install structured output: the provider
+received neither a response format nor a `structured_output` tool, and a
+plain-text response completed normally. A positive control using native
+`subagents.startActivation` with `outputSchema` did install that tool and
+returned a structured result. The child API is not a verified root-session
+output channel. This finding does not rule out another native integration;
+it establishes why simply forwarding this field would silently ignore it.
+See [selected native evidence](../../experiments/dsh-option-boundaries/selected.json).
 
 ## Session name and tool denial
 

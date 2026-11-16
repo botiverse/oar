@@ -1,0 +1,35 @@
+{
+  "scope": "Synthetic provider captures kept locally; no account credentials or identifiers. Only cited fields and native composed rows are published in selected.json.",
+  "files": [
+    {
+      "label": "0.2.2-rc.1/dsh-output-schema-rc1.json",
+      "bytes": 338613,
+      "sha256": "daabc71baf3ae8fac3ab635517c9f262746fcfd0c9f9381fa3240b2c12b44701"
+    },
+    {
+      "label": "0.2.2-rc.1/dsh-launch-args-guarded-rc1.json",
+      "bytes": 258405,
+      "sha256": "96c366d634c489bc339d49cf6bc4ff82a54f8c6bd3ea85f5dfce86c7a1f6bfe3"
+    },
+    {
+      "label": "0.2.2-rc.1/dsh-launch-conflicts-final-rc1.json",
+      "bytes": 85659,
+      "sha256": "f6b898f702b76a47e6a682c47141d59f9536c08ebc8653339d5561eefeced50e"
+    },
+    {
+      "label": "0.2.1-rc.5/dsh-output-schema-rc5.json",
+      "bytes": 349842,
+      "sha256": "d611a51e103d04a6f154afb8cb829f23c65836a52c97f4fce54be4d080607c60"
+    },
+    {
+      "label": "0.2.1-rc.5/dsh-launch-args-guarded-rc5.json",
+      "bytes": 268569,
+      "sha256": "1501fa827405196d3f5914b86f5380c184bf5ad9800ccab7236418266d4bede7"
+    },
+    {
+      "label": "0.2.1-rc.5/dsh-launch-conflicts-final-rc5.json",
+      "bytes": 84819,
+      "sha256": "cb122c6ac8f1041136a7e968c188c6ca35d02f4c4b5b7585b8a0773ef90f5ca1"
+    }
+  ]
+}

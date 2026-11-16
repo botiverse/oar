@@ -473,7 +473,7 @@ again on resume.
 | kimi, opencode, devin | after `acp` |
 | antigravity, codebuddy | after OAR's own arguments |
 | qwen | after OAR's own flags, before `--include-directories` and `--exclude-tools` |
-| dsh | refused: OAR owns the launcher arguments and bridge overlay |
+| dsh | refused: a later native overlay can disable OAR's bridge; effective composition has no verified guard ([evidence](../runtimes/dsh.md#launcher-arguments)) |
 | factory | after `droid exec --input-format stream-jsonrpc --output-format stream-jsonrpc`; the protocol, session and cwd flags are refused |
 | qoder | after OAR's own flags, before `--mcp-config`, `--add-dir` and `--disallowed-tools`; from 1.1.81 the same list is the daemon's `worker_args` |
 | pi, pi-durable, cursor | refused: they run in the host process through their SDKs, with no command line; cursor's subprocess mode runs the SDK in a Node child of OAR's, with no Cursor command line either |
@@ -638,7 +638,7 @@ in [user configuration](#user-configuration).
 | pi-durable | `systemPrompt`, `env`, `launchArgs`, `serviceTier`, `mcpServers`, `disallowedTools`, `additionalDirectories`, `outputSchema`, `name`, `userConfiguration: "exclude"` | native instructions append only; host-owned environment; no process arguments or verified per-conversation tier/MCP/tool-denial mapping |
 | pi | `launchArgs`, `serviceTier`, `additionalDirectories`, `outputSchema`, `userConfiguration: "exclude"` | it runs in the host process through its SDK, with no command line |
 | qwen | `serviceTier`, `outputSchema`, `name`, `userConfiguration: "exclude"` | no verified tier, structured-output, session-name or user-configuration exclusion channel |
-| dsh | `mcpServerCredentials`, `launchArgs`, `serviceTier`, `additionalDirectories`, `outputSchema`, `userConfiguration: "exclude"` | MCP credentials have no verified persistence boundary; the other options remain unverified through the bridge ([mapping](../runtimes/dsh.md#session-options)) |
+| dsh | `mcpServerCredentials`, `launchArgs`, `serviceTier`, `additionalDirectories`, `outputSchema`, `userConfiguration: "exclude"` | MCP credentials have no verified persistence boundary; launcher overlays can disable the bridge; root `agentOptions.outputSchema` is ignored while the native child API supports it; the other options remain unverified through the bridge ([mapping](../runtimes/dsh.md#session-options)) |
 | factory | `serviceTier`, `outputSchema`, `name`, `additionalDirectories`, `disallowedTools`, `userConfiguration: "exclude"` | no tier; structured output, session titles and tool denials not yet verified; no extra-directory or user-configuration exclusion channel ([mapping](../runtimes/factory.md#session-options)) |
 | qoder | `serviceTier`, `outputSchema`, `name`, `userConfiguration: "exclude"` | no verified tier, structured-output, session-name or user-configuration exclusion channel |
 | codex | `userConfiguration: "exclude"`; `endTurnProcessesOnAbort: true` only with shared placement | temporary clean homes break shared history paths after cleanup ([evidence](../runtimes/codex.md#user-configuration)); a shared app-server's process table does not say which session's turn started a process |

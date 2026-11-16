@@ -1,0 +1,338 @@
+[
+  {
+    "version": "0.2.2-rc.1",
+    "platform": "linux-x64",
+    "outputSchema": {
+      "publicFailure": "UnsupportedOptionError: DSH has no verified final-output schema channel",
+      "rootProviderRequest": {
+        "responseFormatPresent": false,
+        "toolNames": [
+          "bash",
+          "create_goal",
+          "edit",
+          "get_goal",
+          "glob",
+          "grep",
+          "interrupt_agent",
+          "job_kill",
+          "job_list",
+          "job_output",
+          "list_agents",
+          "read",
+          "read_image",
+          "schema_probe_child",
+          "send_message",
+          "skill",
+          "subagent",
+          "subagent_fork",
+          "todo_write",
+          "update_goal",
+          "web_fetch",
+          "workflow",
+          "working_directory",
+          "write"
+        ]
+      },
+      "rootAssistantContent": [
+        {
+          "type": "text",
+          "text": "not a JSON object"
+        }
+      ],
+      "rootTurnEnd": {
+        "type": "turn/end",
+        "seq": 15,
+        "time": 1794851228483,
+        "data": {
+          "turn": 1,
+          "reason": {
+            "kind": "completed"
+          }
+        }
+      },
+      "childProviderToolNames": [
+        "bash",
+        "create_goal",
+        "edit",
+        "get_goal",
+        "glob",
+        "grep",
+        "interrupt_agent",
+        "job_kill",
+        "job_list",
+        "job_output",
+        "list_agents",
+        "read",
+        "read_image",
+        "schema_probe_child",
+        "send_message",
+        "skill",
+        "structured_output",
+        "subagent",
+        "subagent_fork",
+        "todo_write",
+        "update_goal",
+        "web_fetch",
+        "workflow",
+        "working_directory",
+        "write"
+      ],
+      "childResult": {
+        "stopReason": "completed",
+        "structured": {
+          "answer": 42
+        }
+      },
+      "providerRequests": 4
+    },
+    "launchArgs": {
+      "publicFailure": "UnsupportedOptionError: DSH overlays can disable the OAR bridge; arbitrary launch overlays have no verified final-composition check",
+      "firstPrompt": "FIRST {{literal}}",
+      "resumedPrompt": "RESUMED {{literal}}",
+      "omittedResumeHasLiteralMarker": false,
+      "providerRequests": 3,
+      "missingOverlay": {
+        "diagnostic": "Error: dsh: failed to read overlay <temporary-directory>/project/missing.json: Error: ENOENT: no such file or directory, open '<temporary-directory>/project/missing.json'",
+        "additionalProviderRequests": 0
+      }
+    },
+    "launchConflicts": [
+      {
+        "case": "profile-separated",
+        "outcome": "Error: DSH exited (1): error: option '--profile <name>' argument 'headless' is invalid. select a profile only once",
+        "providerRequests": 0,
+        "diagnostic": "error: option '--profile <name>' argument 'headless' is invalid. select a profile only once",
+        "readySeen": false,
+        "replacementPluginLoaded": false
+      },
+      {
+        "case": "profile-equals",
+        "outcome": "Error: DSH exited (1): error: option '--profile <name>' argument 'headless' is invalid. select a profile only once",
+        "providerRequests": 0,
+        "diagnostic": "error: option '--profile <name>' argument 'headless' is invalid. select a profile only once",
+        "readySeen": false,
+        "replacementPluginLoaded": false
+      },
+      {
+        "case": "reset-profile",
+        "outcome": "Error: DSH exited (1): file://<workspace>/runtime-check-tools/dsh-0.2.2-rc.1/node_modules/@deepseek-ai/dsh/lib/profile-boot-e2mS45fC.js:155",
+        "providerRequests": 0,
+        "diagnostic": "Error: dsh: profile \"acp\" names shipped profile \"acp\" and cannot be a custom profile target; omit --from-default-profile to use it",
+        "readySeen": false,
+        "replacementPluginLoaded": false
+      },
+      {
+        "case": "disable-bridge",
+        "outcome": "observation deadline",
+        "providerRequests": 0,
+        "readySeen": false,
+        "replacementPluginLoaded": false,
+        "dumpSucceeded": true,
+        "composedEntry": "- id: oar-dsh-bridge\n  name: file://<temporary-directory>/bridge.mjs\n  config:\n    mcpEntries: []\n  disabled: true"
+      },
+      {
+        "case": "replace-bridge",
+        "outcome": "ready",
+        "providerRequests": 0,
+        "readySeen": true,
+        "replacementPluginLoaded": false,
+        "dumpSucceeded": true,
+        "composedEntry": "- id: oar-dsh-bridge\n  name: file://<temporary-directory>/bridge.mjs\n  config:\n    mcpEntries: []"
+      },
+      {
+        "case": "enable-acp",
+        "outcome": "ready",
+        "providerRequests": 0,
+        "readySeen": true,
+        "replacementPluginLoaded": false,
+        "dumpSucceeded": true,
+        "composedEntry": "- id: acp\n  name: '@deepseek-ai/dsh-acp'\n  inject:\n    - acpAppStartup\n  config:\n    provider: deepseek-official\n    model: deepseek-v4-flash\n  disabled: false"
+      },
+      {
+        "case": "plugin-directory",
+        "outcome": "DshCommandError: cannot create effect on inactive context",
+        "providerRequests": 0,
+        "diagnostic": "error: unknown option '--plugin-dir'",
+        "readySeen": false,
+        "replacementPluginLoaded": false
+      },
+      {
+        "case": "dump-config",
+        "outcome": "Error: DSH exited (0): ",
+        "providerRequests": 0,
+        "readySeen": false,
+        "replacementPluginLoaded": false
+      }
+    ]
+  },
+  {
+    "version": "0.2.1-rc.5",
+    "platform": "linux-x64",
+    "outputSchema": {
+      "publicFailure": "UnsupportedOptionError: DSH has no verified final-output schema channel",
+      "rootProviderRequest": {
+        "responseFormatPresent": false,
+        "toolNames": [
+          "bash",
+          "create_goal",
+          "edit",
+          "exit_plan_mode",
+          "get_goal",
+          "glob",
+          "grep",
+          "interrupt_agent",
+          "job_kill",
+          "job_list",
+          "job_output",
+          "list_agents",
+          "read",
+          "read_image",
+          "schema_probe_child",
+          "send_message",
+          "skill",
+          "subagent",
+          "subagent_fork",
+          "todo_write",
+          "update_goal",
+          "web_fetch",
+          "web_search",
+          "workflow",
+          "working_directory",
+          "write"
+        ]
+      },
+      "rootAssistantContent": [
+        {
+          "type": "text",
+          "text": "not a JSON object"
+        }
+      ],
+      "rootTurnEnd": {
+        "type": "turn/end",
+        "seq": 15,
+        "time": 1794851234776,
+        "data": {
+          "turn": 1,
+          "reason": {
+            "kind": "completed"
+          }
+        }
+      },
+      "childProviderToolNames": [
+        "bash",
+        "create_goal",
+        "edit",
+        "exit_plan_mode",
+        "get_goal",
+        "glob",
+        "grep",
+        "interrupt_agent",
+        "job_kill",
+        "job_list",
+        "job_output",
+        "list_agents",
+        "read",
+        "read_image",
+        "schema_probe_child",
+        "send_message",
+        "skill",
+        "structured_output",
+        "subagent",
+        "subagent_fork",
+        "todo_write",
+        "update_goal",
+        "web_fetch",
+        "web_search",
+        "workflow",
+        "working_directory",
+        "write"
+      ],
+      "childResult": {
+        "stopReason": "completed",
+        "structured": {
+          "answer": 42
+        }
+      },
+      "providerRequests": 4
+    },
+    "launchArgs": {
+      "publicFailure": "UnsupportedOptionError: DSH overlays can disable the OAR bridge; arbitrary launch overlays have no verified final-composition check",
+      "firstPrompt": "FIRST {{literal}}",
+      "resumedPrompt": "RESUMED {{literal}}",
+      "omittedResumeHasLiteralMarker": false,
+      "providerRequests": 3,
+      "missingOverlay": {
+        "diagnostic": "Error: dsh: failed to read overlay <temporary-directory>/project/missing.json: Error: ENOENT: no such file or directory, open '<temporary-directory>/project/missing.json'",
+        "additionalProviderRequests": 0
+      }
+    },
+    "launchConflicts": [
+      {
+        "case": "profile-separated",
+        "outcome": "Error: DSH exited (1): error: option '--profile <name>' argument 'headless' is invalid. select a profile only once",
+        "providerRequests": 0,
+        "diagnostic": "error: option '--profile <name>' argument 'headless' is invalid. select a profile only once",
+        "readySeen": false,
+        "replacementPluginLoaded": false
+      },
+      {
+        "case": "profile-equals",
+        "outcome": "Error: DSH exited (1): error: option '--profile <name>' argument 'headless' is invalid. select a profile only once",
+        "providerRequests": 0,
+        "diagnostic": "error: option '--profile <name>' argument 'headless' is invalid. select a profile only once",
+        "readySeen": false,
+        "replacementPluginLoaded": false
+      },
+      {
+        "case": "reset-profile",
+        "outcome": "Error: DSH exited (1): file://<workspace>/runtime-check-tools/dsh-0.2.1-rc.5/node_modules/@deepseek-ai/dsh/lib/profile-boot-C14i-8IN.js:154",
+        "providerRequests": 0,
+        "diagnostic": "Error: dsh: profile \"acp\" names shipped profile \"acp\" and cannot be a custom profile target; omit --from-default-profile to use it",
+        "readySeen": false,
+        "replacementPluginLoaded": false
+      },
+      {
+        "case": "disable-bridge",
+        "outcome": "observation deadline",
+        "providerRequests": 0,
+        "readySeen": false,
+        "replacementPluginLoaded": false,
+        "dumpSucceeded": true,
+        "composedEntry": "- id: oar-dsh-bridge\n  name: file://<temporary-directory>/bridge.mjs\n  config:\n    mcpEntries: []\n  disabled: true"
+      },
+      {
+        "case": "replace-bridge",
+        "outcome": "ready",
+        "providerRequests": 0,
+        "readySeen": true,
+        "replacementPluginLoaded": false,
+        "dumpSucceeded": true,
+        "composedEntry": "- id: oar-dsh-bridge\n  name: file://<temporary-directory>/bridge.mjs\n  config:\n    mcpEntries: []"
+      },
+      {
+        "case": "enable-acp",
+        "outcome": "ready",
+        "providerRequests": 0,
+        "readySeen": true,
+        "replacementPluginLoaded": false,
+        "dumpSucceeded": true,
+        "composedEntry": "- id: acp\n  name: '@deepseek-ai/dsh-acp'\n  inject:\n    - acpAppStartup\n  config:\n    provider: deepseek-official\n    model: deepseek-v4-flash\n  disabled: false"
+      },
+      {
+        "case": "plugin-directory",
+        "outcome": "DshCommandError: cannot create effect on inactive context",
+        "providerRequests": 0,
+        "diagnostic": "error: unknown option '--plugin-dir'",
+        "readySeen": false,
+        "replacementPluginLoaded": false
+      },
+      {
+        "case": "dump-config",
+        "outcome": "Error: DSH exited (0): ",
+        "providerRequests": 0,
+        "readySeen": false,
+        "replacementPluginLoaded": false
+      }
+    ]
+  }
+]
