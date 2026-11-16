@@ -25,7 +25,7 @@ const command = fakeAgentBinary(dir, [path.resolve(import.meta.dirname, "../fixt
 const cwd = dir;
 afterAll(() => { rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 }); });
 
-async function open(env: Readonly<Record<string, string>> = {}, options: { readonly resume?: string; readonly model?: string; readonly effort?: string } = {}): Promise<Session> {
+async function open(env: Readonly<Record<string, string>> = {}, options: { readonly resume?: string; readonly model?: string; readonly effort?: string; readonly name?: string; readonly disallowedTools?: readonly string[] } = {}): Promise<Session> {
   const session = await dshRuntime.session({ kind: "available", via: "executable", command, version: "0.2.1-rc.5" }, { cwd, env, ...options });
   return session;
 }
@@ -272,4 +272,20 @@ test("a line that is no command gets a protocol error frame, and the bridge keep
     child.kill();
     await child.exited;
   }
+});
+
+for (const resume of [undefined, "11111111-1111-4111-8111-111111111111"]) {
+  test(`missing native title or tool service refuses the option at ${resume === undefined ? "open" : "resume"}`, async () => {
+    for (const options of [{ name: "title" }, { disallowedTools: ["bash"] }]) {
+      // oxlint-disable-next-line no-await-in-loop -- Each process owns its native fault and cleanup before the next control.
+      const result = await failure({}, { ...options, ...(resume === undefined ? {} : { resume }) });
+      expect(result).toBeInstanceOf(UnsupportedOptionError);
+      expect(result).toMatchObject({ option: "name" in options ? "name" : "disallowedTools" });
+    }
+  });
+}
+
+test.each(["", "  ", "a\0b"])("invalid name %j is refused before launching the executable", async (name) => {
+  const options = { cwd, name, resume: "11111111-1111-4111-8111-111111111111" };
+  await expect(dshRuntime.session({ kind: "available", via: "executable", command: path.join(dir, "must-not-launch"), version: "0.2.1-rc.5" }, options)).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "name", message: "name must not be blank or contain NUL characters" });
 });

@@ -1,0 +1,34 @@
+[
+  {
+    "source": "oar-trial-run/run-2026-11-16T08-15-24.782Z/dsh-name-existing.json",
+    "sha256": "1fbb34d7a62dd8ae3aff4eae63031615e755931fe82e9575823807f88075b5f2"
+  },
+  {
+    "source": "oar-trial-run/run-2026-11-16T08-15-25.236Z/dsh-name-existing.json",
+    "sha256": "a4fd5ec1c7e5f2230dea8d6ad4dfe07606748a41c3e2e5e4ee0026726c3730b7"
+  },
+  {
+    "source": "oar-trial-run/run-2026-11-16T08-15-32.062Z/dsh-name-absent.json",
+    "sha256": "615f1a9091f710c5948889e42f56b681b43ab1a699bc56fa53e63fc3e7fc49de"
+  },
+  {
+    "source": "oar-trial-run/run-2026-11-16T08-15-32.726Z/dsh-name-absent.json",
+    "sha256": "615f1a9091f710c5948889e42f56b681b43ab1a699bc56fa53e63fc3e7fc49de"
+  },
+  {
+    "source": "oar-trial-run/run-2026-11-16T08-15-43.705Z/dsh-tool-denial.json",
+    "sha256": "e75a2262882863feb634aaf4fc5d8baa891b1d8267aa0e4e3812734ca9960ac3"
+  },
+  {
+    "source": "oar-trial-run/run-2026-11-16T08-15-44.606Z/dsh-tool-denial.json",
+    "sha256": "e7d981e327e480357be4acfb150a850176ff3a39e76bba8d62ee201b75c60f9c"
+  },
+  {
+    "source": "oar-trial-run/run-2026-11-16T08-15-54.379Z/dsh-name-tools-siblings.json",
+    "sha256": "5cc4ad7d479a364d081d06067d49e5c911283cf3d8d2b7c1a1a9b81db0526b34"
+  },
+  {
+    "source": "oar-trial-run/run-2026-11-16T08-15-56.344Z/dsh-name-tools-siblings.json",
+    "sha256": "00bed273dd93ff4327608706cfc40cf7c0d083f6ec2fae0389602a6de0136935"
+  }
+]

@@ -65,7 +65,7 @@ test("the declarations say which options each runtime refuses", () => {
     codex: ["userConfiguration"],
     cursor: ["appendSystemPrompt", "endTurnProcessesOnAbort", "env", "goals", "launchArgs", "name", "outputSchema", "serviceTier", "systemPrompt"],
     devin: ["additionalDirectories", "appendSystemPrompt", "disallowedTools", "endTurnProcessesOnAbort", "goals", "name", "outputSchema", "serviceTier", "systemPrompt", "userConfiguration"],
-    dsh: ["additionalDirectories", "appendSystemPrompt", "disallowedTools", "endTurnProcessesOnAbort", "goals", "launchArgs", "mcpServerCredentials", "name", "outputSchema", "serviceTier", "systemPrompt", "userConfiguration"],
+    dsh: ["additionalDirectories", "appendSystemPrompt", "endTurnProcessesOnAbort", "goals", "launchArgs", "mcpServerCredentials", "outputSchema", "serviceTier", "systemPrompt", "userConfiguration"],
     factory: ["additionalDirectories", "disallowedTools", "endTurnProcessesOnAbort", "goals", "name", "outputSchema", "serviceTier", "userConfiguration"],
     grok: ["additionalDirectories", "disallowedTools", "goals", "name", "serviceTier", "userConfiguration"],
     kimi: ["appendSystemPrompt", "disallowedTools", "endTurnProcessesOnAbort", "goals", "name", "outputSchema", "serviceTier", "systemPrompt", "userConfiguration"],
@@ -82,7 +82,7 @@ test.each(["", "   ", "a\0b"])("a blank name or one with a NUL is refused before
     // oxlint-disable-next-line no-await-in-loop -- one open at a time keeps the failure attributable.
     await expect(runtime.session(nowhere(runtime.id), { cwd: "/tmp", name }), runtime.id).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "name", message: "name must not be blank or contain NUL characters" });
   }
-  expect(allRuntimes.list().filter((runtime) => runtime.refusedSessionOptions?.name === undefined).map((runtime) => runtime.id).toSorted()).toEqual(["claude", "codex", "pi"]);
+  expect(allRuntimes.list().filter((runtime) => runtime.refusedSessionOptions?.name === undefined).map((runtime) => runtime.id).toSorted()).toEqual(["claude", "codex", "dsh", "pi"]);
 });
 
 test("omitted or false goals and endTurnProcessesOnAbort preserve native defaults on every declared runtime", () => {

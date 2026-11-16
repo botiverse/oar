@@ -133,10 +133,10 @@ export interface SessionOptions {
   readonly outputSchema?: Readonly<Record<string, unknown>>;
   /**
    * The session's display name in the runtime's own UI and session list
-   * (claude `--name`, codex `thread/name/set`, pi's session name), so a user
+   * (claude `--name`, codex `thread/name/set`, pi's session name, DSH's native title), so a user
    * can tell a host's sessions apart from their own. A new session gets it.
    * On resume it is set only where the runtime reports the current name and
-   * there is none (codex, pi), so a name the user gave is never replaced;
+   * there is none (codex, pi, dsh), so a name the user gave is never replaced;
    * claude keeps whatever name it has. A blank name, or one with a NUL
    * character, is refused (`UnsupportedOptionError`) before anything starts.
    * Other runtimes refuse this option.
