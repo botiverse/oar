@@ -12,6 +12,32 @@ and contract member, (4) the cheapest regression test and resource cost, and
 (5) a sea-trial case for every new `must` or `never`. If any answer is missing,
 keep the idea in the [roadmap](roadmap.md) or an experiment.
 
+## Bounded orientation without readiness policy (2026-11-16)
+
+**Considered:** removing both `orient()` and `usability()`. They were added
+in [#477](https://github.com/botiverse/oar/pull/477) to compose reader calls,
+deadlines, cost depths and a readiness verdict for hosts. Raft and Ferry
+read and cache individual surfaces at different cadences, so an aggregate
+was not needed by those hosts.
+
+**Retained:** Airwing depends on `orient()` for one total time budget,
+local/account/models depths and a separate outcome for each probe, including
+skipped, timed-out and unsupported results. That concrete host requirement
+keeps the function, its snapshot types and the
+[orientation contract](../spec/orientation.md). Independent readers remain
+available for hosts that own their scheduling and caching.
+
+**Removed:** `usability()` and its readiness types. Airwing can derive this
+policy itself; a boolean verdict is not another native fact. Hosts decide
+which observations are required, how fresh they must be, and how to select
+or suspend a runtime. Removing the projection does not change the snapshot
+or its readers.
+
+**Gate for future composition:** a host must explicitly need the combined
+operation. A new shared readiness policy would also need evidence that
+hosts require the same interpretation; having the underlying facts alone
+is not sufficient.
+
 ## A new runtime's first version (2026-11-13)
 
 **Considered:** shipping a new runtime with sessions first and adding sign-in,

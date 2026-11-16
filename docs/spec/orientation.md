@@ -4,19 +4,16 @@
 bounded snapshot. It does not call `Runtime.session`, submit a prompt, install
 software or start a login flow. Native readers still own their discovery,
 credential resolution and model catalogs. The aggregate has no runtime-name
-branches. `usability(snapshot, options?)`, from `@botiverse/oar/observe`, is a
-separate pure projection that also runs in a browser.
+branches. Hosts interpret the snapshot and own readiness and selection policy.
 
 ```ts
 import { defaultRuntimes, orient } from "@botiverse/oar";
-import { usability } from "@botiverse/oar/observe";
 
 const facts = await orient(defaultRuntimes, {
   runtimes: ["claude", "codex", "pi"],
   depth: "account",
   timeoutMs: 60_000,
 });
-const choices = usability(facts, { minVersions: { codex: "0.164.0" } });
 ```
 
 ## Adapter version requirements
@@ -223,22 +220,13 @@ An empty complete catalog yields zero; no countable categories is unsupported.
 The temporary directory is removed after all readers using it settle, including
 late readers after a snapshot timeout.
 
-## Usability is host policy
+## Readiness is host policy
 
-`usability` preserves runtime order and returns `{ id, usable, because? }`.
-Installation failure gives `probe_failed`, absence gives `not_installed`, and
-an unmet host-supplied semantic version floor gives `version_unsupported`.
-No floor is built in. An unreadable or unavailable version cannot prove a
-floor was met.
-
-Native rate limiting (`rate_limited`), reauthentication requirements and
-explicit logged-out answers (`logged_out`) prevent readiness. Otherwise a
-logged-in auth answer or a configured provider is sufficient; missing auth evidence gives `auth_unknown`, and failed
-or timed-out auth/provider probes give `probe_failed`. Optional failed quota,
-model or customization observations remain visible without inventing a logout.
-This is conservative selection guidance over the supplied facts, not a remote
-login test or quota guarantee. Hosts decide how old a snapshot may be and may
-apply their own policy instead.
+`orient()` preserves each probe's facts and missing evidence. It does not
+classify a runtime as usable or choose one for the host. Hosts decide which
+probes are required, how old a snapshot may be, and how installation, account,
+version and quota observations affect scheduling. A configured provider is
+not proof that its credentials work, and absent evidence is not a logout.
 
 A verdict describes the account selected by that observation's environment,
 not every account using the runtime. Hosts that suspend work for `rate_limited`
@@ -287,8 +275,8 @@ and two isolated synthetic accounts on Linux. It does not establish Windows
 runtime behavior.
 
 `tests/orientation.test.ts` covers depth, absence, independent failures, budgets,
-slots, cancellation, and truthful inventory counts. `tests/usability.test.ts`
-covers policy and version floors. `tests/providers/provider-local.test.ts`
+slots, cancellation, and truthful inventory counts.
+`tests/providers/provider-local.test.ts`
 uses the real Pi SDK with an expired OAuth entry and a key-command sentinel.
 The [native cost probe](../../experiments/orientation/README.md) runs the built
 CLI against isolated synthetic stores and records attempted network access.

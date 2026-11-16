@@ -54,18 +54,13 @@ increments, not a promise to add every feature listed.
   ([decisions](decisions.md)).
 - Mock, aimock, vendor, experiment and live validation layers, with voyage
   logs as durable evidence.
+- Bounded `orient()` snapshots with local, account and models depths, explicit
+  missing evidence and opt-in customization inventories. Hosts own readiness
+  policy. [Contract](../spec/orientation.md).
 
 ## Next increments, in dependency order
 
-### 1. Make orientation cheap
-
-**Shipped:** `orient` composes existing readers into bounded local, account and
-model snapshots. Unproven local auth readers are explicitly skipped, native
-provider metadata can be read without resolving credentials, and customization
-inventories remain opt-in. Pure `usability` applies host version floors without
-ranking or caching. [Contract](../spec/orientation.md).
-
-### 2. Make actions self-describing
+### 1. Make actions self-describing
 
 **Shipped for controls:** a rejected control carries a typed `code` beside the
 prose `reason` (`busy`, `no_active_turn`, `not_queued`, `unsupported`,
@@ -84,7 +79,7 @@ policy).
 **Acceptance:** a caller can choose retry, queue, hand off or stop without
 parsing prose; rejected input is provably caller-owned.
 
-### 3. Make continuation first-class
+### 2. Make continuation first-class
 
 If a consumer needs a handoff, define only a provider-independent shape for
 runtime identity, model, cursor, graph, capability decision and next action;
@@ -95,7 +90,7 @@ after a crash is measured per runtime in
 **Acceptance:** a new worker can resume or reject a handoff from the artifact
 alone and explain every irrecoverable gap.
 
-### 4. Make evidence economical
+### 3. Make evidence economical
 
 Add bounded replay and projection helpers only for measured needs. Prefer
 incremental folds and cursors to rescanning unbounded logs; keep the voyage
@@ -104,7 +99,7 @@ format versioned and forward compatible.
 **Acceptance:** live reconnect and offline replay produce equivalent
 projections without duplicate controls.
 
-### 5. Change model and effort without a restart
+### 4. Change model and effort without a restart
 
 **Shipped at open:** `SessionOptions.model` and `effort` apply at open and are
 read back against the runtime's own report; each adapter refuses an open the
@@ -135,7 +130,7 @@ global defaults.
 **Acceptance:** a change requested while input is queued lands before that
 input on every runtime, and no runtime reports a level it does not run.
 
-### 6. Extend control across placement
+### 5. Extend control across placement
 
 Only when a real host needs remote or multi-client operation: remote
 placement is `oar serve` on the agent host with a thin application-side

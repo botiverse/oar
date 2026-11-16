@@ -71,5 +71,5 @@ flowchart TB
 
 - `shared/orientation/` composes runtime readers with explicit cost depths,
   deadlines and two model/inventory slots. Adapters declare local auth evidence;
-  the aggregate never chooses behavior by runtime ID. `observe/usability.ts`
-  is the separate browser-safe readiness policy over those facts.
+  the aggregate never chooses behavior by runtime ID. Hosts derive readiness
+  and selection policy from the returned facts.
