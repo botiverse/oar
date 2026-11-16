@@ -83,7 +83,7 @@ const command = args.join(" ");
 if (command === "--version") {
   process.stdout.write(`codex-cli ${state.version}\n`);
 } else if (command === "app-server --help") {
-  // oar's installation probe, so `OAR_CODEX_BIN=<this> oar login codex` drives the fake end to end.
+  // oar's installation probe, so `OAR_CODEX_BIN=<this> oar account login codex` drives the fake end to end.
   process.stdout.write("Usage: codex app-server [OPTIONS]\n");
 } else if (command === "login status") {
   if (state.status === "broken") {

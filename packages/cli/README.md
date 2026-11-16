@@ -3,14 +3,14 @@
 Command-line interface for `@botiverse/oar`. It installs the `oar` executable without adding CLI dependencies to applications that only use the library.
 
 ```bash
-npx @botiverse/oar-cli list
-oar installation codex
-oar orient claude codex --depth account --json
-oar usage claude
+npx @botiverse/oar-cli --help
+oar installation
+oar install codex --plan
+oar account login claude
+oar account status
+oar account usage claude
 oar models claude
 oar upgrade --check
-oar login claude
-oar logout claude
 oar run claude "What does this repo do?"
 ```
 
@@ -26,19 +26,20 @@ when it is omitted (or `all`). A runtime whose probe or
 read fails (a timeout, a network error) reports its `error` in place of a
 result, the others still report, and the exit code is 1.
 
-- `oar orient [runtime...]`: one bounded snapshot, with `--depth local` (default),
-  `account`, or `models`. Local skips unproven local auth readers; deeper reads
-  can refresh credentials, run key commands and load trusted configuration.
-  `--json` preserves complete evidence, `--customization` opts into native
-  inventories in an empty directory, and `--timeout <ms>` bounds the whole
-  read. Unlike per-runtime query commands, a partial snapshot exits 0; invalid
-  arguments or a rejected call fail. See
-  [orientation](https://github.com/botiverse/oar/blob/main/docs/spec/orientation.md).
-- `oar list`: registered runtimes and their capabilities.
-- `oar installation [runtime]` (alias `detect`): probe local installation
-  and version, no account or usage I/O. `shadowed` lists the other copies of
-  the command on PATH after the one found, which never run.
-- `oar usage [runtime]`: account usage for each available installation.
+- `oar installation [runtime]`: which runtimes are installed here, one line
+  each with the version and the command that runs, with no account or usage
+  I/O. `--json` prints the full snapshots, where `shadowed` lists the other
+  copies of the command on PATH after the one found, which never run.
+- `oar install <runtime>`: install the runtime with its vendor's official
+  installer, non-interactively, when no usable installation is found; the
+  result is judged by the installation probe afterwards, not the installer's
+  exit code. `--plan` only prints the steps it would run and changes nothing;
+  `--line <line>` picks a release line where a runtime ships several
+  (opencode: `v1`, `v2`); `--timeout <ms>` bounds the installer. Where OAR will
+  not run the installer here (it needs privileges or a missing tool), it
+  prints the vendor's steps for you to run. The exit code is 1 when the
+  install failed or was refused. See
+  [installation](https://github.com/botiverse/oar/blob/main/docs/spec/install.md).
 - `oar models [runtime]`: models each available installation can run right
   now (login state, plan, and configured providers included). The first
   column after the runtime is the `id` to pass to `oar run --model`,
@@ -57,18 +58,24 @@ result, the others still report, and the exit code is 1.
   bounds each runtime's check and its updater run. The exit code is 1 when
   an upgrade failed or left the version unchanged, or when a runtime could
   not be probed. See [runtime updates](https://github.com/botiverse/oar/blob/main/docs/spec/update.md).
-- `oar login [runtime]`: log the named runtime in through its own login. It prints
-  the sign-in URL or device code and reads a pasted code from stdin, without
-  echoing it, when the runtime asks for one; Ctrl-C cancels. `--status` only
-  reports whether each runtime (or the named one) is logged in, `--json`
-  prints events, prompts and the result (or the status reports) as JSON,
-  `--timeout <ms>` bounds the login (or each status query). The exit code is
-  0 when logged in, 130 when cancelled, 1 otherwise. See [runtime login](https://github.com/botiverse/oar/blob/main/docs/spec/login.md).
-- `oar logout <runtime>`: log a runtime out through its own logout. It
+- `oar account login <runtime>`: log the named runtime in through its own
+  login. It prints the sign-in URL or device code and reads a pasted code
+  from stdin, without echoing it, when the runtime asks for one; Ctrl-C
+  cancels. `--json` prints events, prompts and the result as JSON lines,
+  `--timeout <ms>` bounds the login. The exit code is 0 when logged in, 130
+  when cancelled, 1 otherwise. See [runtime login](https://github.com/botiverse/oar/blob/main/docs/spec/login.md).
+- `oar account logout <runtime>`: log a runtime out through its own logout. It
   prints `logged out` when the runtime's status then reads logged out (or,
   when the status cannot tell, the runtime reported success); an API key in the environment that the status still reads is
   `still_logged_in`. `--json` prints the result as JSON, `--timeout <ms>`
   bounds the logout. The exit code is 0 when logged out, 1 otherwise.
+- `oar account status [runtime]`: whether each runtime (or the named one) is
+  logged in, and as whom; changes nothing. `--json` prints the reports,
+  `--timeout <ms>` bounds each query.
+- `oar account usage [runtime]`: account usage for each available
+  installation: who is signed in, the plan, each usage window's share used
+  and its reset, and limit resets where the runtime reports them. `--json`
+  prints the `AccountUsageSnapshot` per runtime.
 - `oar mcp`: serve subagents over MCP on stdio, so an agent (claude, codex,
   any MCP client) can delegate tasks to other runtimes: `run` waits for a
   subagent's turn, `spawn` / `send` / `wait` work in parallel, and
@@ -83,7 +90,7 @@ result, the others still report, and the exit code is 1.
   a reduced environment, so give its `oar` entry
   `env_vars = ["OAR_SUBAGENT_DEPTH"]` for the nesting limit to hold. See
   [subagents](https://github.com/botiverse/oar/blob/main/docs/spec/subagents.md).
-- `oar skills|commands|mcps|tools [runtime]`: native inventories, see
+- `oar inventory <kind> [runtime]`: native skills, commands, MCP servers or tools, see
   [below](#native-inventories).
 
 ## `oar run`: the run-and-verify entrypoint
@@ -185,13 +192,13 @@ a crashed run still leaves a readable prefix.
 ## Native inventories
 
 ```sh
-oar skills codex --cwd /path/to/project
-oar commands pi --cwd /path/to/project
-oar mcps claude --cwd /path/to/project --timeout 15000
-oar tools pi
+oar inventory skills codex --cwd /path/to/project
+oar inventory commands pi --cwd /path/to/project
+oar inventory mcps claude --cwd /path/to/project --timeout 15000
+oar inventory tools pi
 ```
 
-Each command prints JSON. `--cwd` defaults to the current working directory;
+`oar inventory <kind> [runtime]` prints JSON; `kind` is `skills`, `commands`, `mcps` or `tools`. `--cwd` defaults to the current working directory;
 `--timeout <ms>` bounds each runtime. These are independent discovery
 queries: no existing agent is inspected and no model prompt is sent, though
 native startup can load extensions and connect configured MCP servers. Check

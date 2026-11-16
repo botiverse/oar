@@ -1291,7 +1291,7 @@ exit 0 logged in (`Logged in using
 ChatGPT` or `... an API key`, read as the `method`; the masked key is never
 read), exit 1 with `Not logged in` logged out, anything else (an unreadable
 configuration) `unknown`. It names the method, not the account, so the status
-(`oar login codex --status`: `logged in (chatgpt)`) has no email or plan;
+(`oar account status codex`: `logged in (chatgpt)`) has no email or plan;
 only a login's own result carries the account, from `account/read`. OAR does
 not parse codex's credential file to fill it in. Verified against a fake
 app-server that answers with the 0.160.0 shapes

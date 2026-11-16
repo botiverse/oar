@@ -63,7 +63,7 @@ increments, not a promise to add every feature listed.
 model snapshots. Unproven local auth readers are explicitly skipped, native
 provider metadata can be read without resolving credentials, and customization
 inventories remain opt-in. Pure `usability` applies host version floors without
-ranking or caching. [Contract](../spec/orientation.md); CLI `oar orient`.
+ranking or caching. [Contract](../spec/orientation.md).
 
 ### 2. Make actions self-describing
 

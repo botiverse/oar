@@ -2,7 +2,7 @@ import { createInterface, type Interface } from "node:readline/promises";
 import { Writable } from "node:stream";
 import type { ProviderLoginEvent, ProviderLoginInteraction, ProviderLoginPrompt } from "@botiverse/oar";
 
-// The terminal side of `oar login`: events printed, prompts read from stdin,
+// The terminal side of `oar account login`: events printed, prompts read from stdin,
 // a pasted code typed blind.
 
 export function renderLoginEvent(event: ProviderLoginEvent): string[] {

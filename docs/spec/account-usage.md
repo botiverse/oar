@@ -25,9 +25,9 @@ Equal values and deleting an absent variable are not changes. The rejection is
 values. Other environment changes remain supported. `orient` records this as
 `unsupported`; explicit per-call proxy/CA handling is not provided.
 
-The CLI inherits its process environment, so `KIMI_CODE_HOME=/home/b oar usage
-kimi` selects that home without a CLI flag. Use the same environment for
-`oar orient kimi --depth account` and the agent session
+The CLI inherits its process environment, so `KIMI_CODE_HOME=/home/b oar account
+usage kimi` selects that home without a CLI flag. Use the same environment for
+`oar account status kimi` and the agent session
 ([CLI examples, including PowerShell](orientation.md#cli-and-verification)).
 
 A snapshot belongs to the account resolved by this read. It is not a quota limit

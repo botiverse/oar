@@ -249,18 +249,16 @@ not justify applying one account's limit to the others.
 
 ## CLI and verification
 
-`oar orient [runtime...] --depth local|account|models --json` prints the complete
-snapshot. Without JSON it prints a compact readiness table. `--customization`
-opts into inventories, and `--timeout <ms>` changes the overall bound. The
-command exits successfully when a snapshot was produced, including partial
-failures; invalid arguments and a rejected overall call fail the command.
+The CLI has no orientation command: `orient()` is for hosts that want one
+bounded snapshot. On a terminal, `oar installation`, `oar account status`,
+`oar account usage` and `oar models` read the same facts one surface at a time.
 
 The CLI inherits its process environment. A separate environment flag is not
 required to select another Kimi account:
 
 ```sh
-KIMI_CODE_HOME=/home/b oar usage kimi
-KIMI_CODE_HOME=/home/b oar orient kimi --depth account
+KIMI_CODE_HOME=/home/b oar account usage kimi
+KIMI_CODE_HOME=/home/b oar account status kimi
 ```
 
 In PowerShell, set the process variable before starting the commands, then restore
@@ -270,8 +268,8 @@ its previous value:
 $previousKimiHome = $env:KIMI_CODE_HOME
 try {
   $env:KIMI_CODE_HOME = 'C:\accounts\b'
-  oar usage kimi
-  oar orient kimi --depth account
+  oar account usage kimi
+  oar account status kimi
 } finally {
   $env:KIMI_CODE_HOME = $previousKimiHome
 }

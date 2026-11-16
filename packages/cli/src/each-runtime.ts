@@ -8,7 +8,7 @@ export interface RuntimeFailure {
 
 /**
  * Read every runtime at once. One that rejects reports its `error` while the
- * others still report, as `oar upgrade` and `oar login --status` do, so one
+ * others still report, as `oar upgrade` and `oar account status` do, so one
  * stuck runtime never hides the rest.
  */
 export async function readEach<T>(

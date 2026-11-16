@@ -1,7 +1,7 @@
 import type { Command } from "commander";
 import type { InstallationSnapshot, LogoutResult, Runtime } from "@botiverse/oar";
 
-// Pure shapes of `oar logout` output, as for `oar login`, so the mapping can
+// Pure shapes of `oar account logout` output, as for `oar account login`, so the mapping can
 // be pinned by tests without running any logout.
 export interface LogoutReport {
   readonly runtimeId: string;
@@ -59,14 +59,14 @@ export function renderLogoutReport(report: LogoutReport): string {
   return `${runtimeId}\tlogout unsupported: ${result.reason}${result.detail === undefined ? "" : ` (${result.detail})`}`;
 }
 
-/** As for `oar login`: 0 logged out, 1 otherwise (Ctrl-C ends the command with 130). */
+/** As for `oar account login`: 0 logged out, 1 otherwise (Ctrl-C ends the command with 130). */
 export function logoutExitCode(report: LogoutReport): number {
   return report.result?.kind === "logged_out" ? 0 : 1;
 }
 
-/** `oar logout <runtime>`: sign a runtime out through its own logout. */
-export function registerLogoutCommand(program: Command, selected: (id: string | undefined) => readonly Runtime[]): void {
-  program
+/** `oar account logout <runtime>`: sign a runtime out through its own logout. */
+export function registerLogoutCommand(account: Command, selected: (id: string | undefined) => readonly Runtime[]): void {
+  account
     .command("logout <runtime>")
     .description("Log a runtime out through its own logout; its status query must then read logged out")
     .option("--json", "print the result as JSON")
@@ -80,7 +80,7 @@ export function registerLogoutCommand(program: Command, selected: (id: string | 
       }
       const [runtime, ...others] = selected(id);
       if (runtime === undefined || others.length > 0) {
-        process.stderr.write("name one runtime to sign out, e.g. `oar logout claude`\n");
+        process.stderr.write("name one runtime to sign out, e.g. `oar account logout claude`\n");
         process.exitCode = 1;
         return;
       }

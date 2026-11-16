@@ -1,4 +1,4 @@
-/** The real CLI inherits an account home for both usage and orientation. */
+/** The real CLI inherits an account home for both account usage and account status. */
 import assert from "node:assert/strict";
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
@@ -35,22 +35,19 @@ export async function probeKimiAccountEnvironment(command: string, built = false
         assert.ok(result.ok, `CLI ${args.join(" ")} failed: ${result.stderr}`);
         return result.stdout;
       };
-      const reports = parseJson(await invoke(["usage", "kimi"]));
+      const reports = parseJson(await invoke(["account", "usage", "kimi", "--json"]));
       assert.ok(Array.isArray(reports) && reports.length === 1);
       const usage = asRecord(asRecord(reports[0])?.accountUsage);
       assert.equal(usage?.kind, "available", JSON.stringify(usage));
       assert.equal(usage.displayName, `Fixture ${account}`);
       assert.equal(usage.rateLimited, account === "A");
-      const snapshot: unknown = parseJson(await invoke(["orient", "kimi", "--depth", "account", "--json"]));
-      assert.ok(asRecord(snapshot)?.depth === "account");
-      const runtimes = asRecord(snapshot)?.runtimes;
-      assert.ok(Array.isArray(runtimes) && runtimes.length === 1);
-      const quota = asRecord(asRecord(runtimes[0])?.accountUsage);
-      assert.equal(quota?.kind, "ok");
-      assert.deepEqual(quota.value, usage);
-      const table = await invoke(["orient", "kimi", "--depth", "account"]);
-      assert.ok(table.includes(`\t${account === "A" ? "rate_limited" : "ready"}\t`), table);
-      observed.push({ account, usage, tableReadiness: account === "A" ? "rate_limited" : "ready" });
+      const statuses = parseJson(await invoke(["account", "status", "kimi", "--json"]));
+      assert.ok(Array.isArray(statuses) && statuses.length === 1);
+      assert.equal(asRecord(asRecord(statuses[0])?.status)?.kind, "logged_in", JSON.stringify(statuses));
+      const table = await invoke(["account", "usage", "kimi"]);
+      assert.ok(table.startsWith("kimi\t") && table.includes(`Fixture ${account}`), table);
+      assert.equal(table.includes("rate limited now"), account === "A", table);
+      observed.push({ account, usage, tableRateLimited: account === "A" });
     }
     assert.equal(fixture.requests.filter(entry => entry.path.startsWith("/api/oauth")).length, loginRequests);
     assert.ok(fixture.requests.every(entry => ["/api/oauth/device_authorization", "/api/oauth/token", "/models", "/me", "/usages"].includes(entry.path)));

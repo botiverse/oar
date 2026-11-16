@@ -12,7 +12,7 @@ import { terminalInteraction } from "./login-terminal.js";
 // Beside the login, so the CLI entry stays within its import limit.
 export { registerLogoutCommand } from "./logout.js";
 
-// Pure shapes of `oar login` output, so the action stays a print loop and the
+// Pure shapes of `oar account login` output, so the action stays a print loop and the
 // mapping can be pinned by tests without running any login.
 export interface AuthStatusReport {
   readonly runtimeId: string;
@@ -139,37 +139,56 @@ export function loginExitCode(report: LoginReport): number {
   return report.result?.kind === "cancelled" ? 130 : 1;
 }
 
-/** `oar login [runtime]`: sign a runtime in through its own login; `--status` only reports. */
-export function registerLoginCommand(program: Command, selected: (id: string | undefined) => readonly Runtime[]): void {
-  program
-    .command("login [runtime]")
-    .description("Log a runtime in through its own login; --status only reports whether each is logged in")
-    .option("--status", "report whether each runtime is logged in, change nothing")
-    .option("--json", "print events, prompts and the result as JSON lines")
-    .option("--timeout <ms>", "bound for the login (or each status query) in milliseconds")
-    .action(async (id: string | undefined, flags: { status?: boolean; json?: boolean; timeout?: string }) => {
-      const timeoutMs = flags.timeout === undefined ? undefined : Number(flags.timeout);
-      if (timeoutMs !== undefined && !(Number.isInteger(timeoutMs) && timeoutMs > 0)) {
-        process.stderr.write("--timeout must be a positive integer number of milliseconds\n");
+function timeoutOption(timeout: string | undefined): number | undefined | null {
+  const timeoutMs = timeout === undefined ? undefined : Number(timeout);
+  if (timeoutMs !== undefined && !(Number.isInteger(timeoutMs) && timeoutMs > 0)) {
+    process.stderr.write("--timeout must be a positive integer number of milliseconds\n");
+    process.exitCode = 1;
+    return null;
+  }
+  return timeoutMs;
+}
+
+/** `oar account status [runtime]`: whether each runtime is logged in; changes nothing. */
+export function registerStatusCommand(account: Command, selected: (id: string | undefined) => readonly Runtime[]): void {
+  account
+    .command("status [runtime]")
+    .description("Whether each runtime is logged in, and as whom; changes nothing")
+    .option("--json", "print the reports as JSON")
+    .option("--timeout <ms>", "bound for each status query in milliseconds")
+    .action(async (id: string | undefined, flags: { json?: boolean; timeout?: string }) => {
+      const timeoutMs = timeoutOption(flags.timeout);
+      if (timeoutMs === null) {
+        return;
+      }
+      const reports = await Promise.all(selected(id).map(async (runtime) => {
+        const report = await readAuthStatus(runtime, timeoutMs);
+        return report;
+      }));
+      if (reports.some((report) => report.error !== undefined)) {
         process.exitCode = 1;
+      }
+      process.stdout.write(flags.json === true
+        ? `${JSON.stringify(reports, null, 2)}\n`
+        : reports.map((report) => `${renderAuthStatus(report)}\n`).join(""));
+    });
+}
+
+/** `oar account login <runtime>`: sign a runtime in through its own login. */
+export function registerLoginCommand(account: Command, selected: (id: string | undefined) => readonly Runtime[]): void {
+  account
+    .command("login <runtime>")
+    .description("Log a runtime in through its own login")
+    .option("--json", "print events, prompts and the result as JSON lines")
+    .option("--timeout <ms>", "bound for the login in milliseconds")
+    .action(async (id: string, flags: { json?: boolean; timeout?: string }) => {
+      const timeoutMs = timeoutOption(flags.timeout);
+      if (timeoutMs === null) {
         return;
       }
-      if (flags.status === true) {
-        const reports = await Promise.all(selected(id).map(async (runtime) => {
-          const report = await readAuthStatus(runtime, timeoutMs);
-          return report;
-        }));
-        if (reports.some((report) => report.error !== undefined)) {
-          process.exitCode = 1;
-        }
-        process.stdout.write(flags.json === true
-          ? `${JSON.stringify(reports, null, 2)}\n`
-          : reports.map((report) => `${renderAuthStatus(report)}\n`).join(""));
-        return;
-      }
-      const [runtime, ...others] = id === undefined ? [] : selected(id);
+      const [runtime, ...others] = selected(id);
       if (runtime === undefined || others.length > 0) {
-        process.stderr.write("name one runtime to sign in, e.g. `oar login claude`; `oar login --status` reports them all\n");
+        process.stderr.write("name one runtime to sign in, e.g. `oar account login claude`; `oar account status` reports them all\n");
         process.exitCode = 1;
         return;
       }
