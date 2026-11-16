@@ -28,6 +28,10 @@ on:
         description: 'Run directory, trust and configuration controls only'
         type: boolean
         default: false
+      codex_followup_only:
+        description: 'Codex child environment plus complete shorter resource windows only'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -43,7 +47,7 @@ jobs:
     timeout-minutes: 80
     env:
       EVIDENCE_RUNTIME: ${{ matrix.runtime }}
-      EVIDENCE_PACKAGE: ${{ matrix.runtime == 'opencode' && format('@opencode/cli@{0}', inputs.opencode_version) || fromJSON('{"codex":"@openai/codex@0.166.0","kimi":"@moonshot-ai/kimi-code@2.4.1","grok":"@xai-official/grok@1.0.70","opencode":"@opencode/cli@2.2.5","qoder":"@qoder-ai/qodercli@1.1.81"}')[matrix.runtime] }}
+      EVIDENCE_PACKAGE: ${{ matrix.runtime == 'opencode' && format('@opencode/cli@{0}', inputs.opencode_version) || fromJSON('{"codex":"@openai/codex@0.169.0","kimi":"@moonshot-ai/kimi-code@2.4.1","grok":"@xai-official/grok@1.0.70","opencode":"@opencode/cli@2.2.5","qoder":"@qoder-ai/qodercli@1.1.81"}')[matrix.runtime] }}
     defaults:
       run:
         shell: bash
@@ -53,9 +57,14 @@ jobs:
           RESOURCES_ONLY: ${{ inputs.resources_only }}
           SAME_DIRECTORY_ONLY: ${{ inputs.same_directory_only }}
           EXECUTION_ENVIRONMENT_ONLY: ${{ inputs.execution_environment_only }}
+          CODEX_FOLLOWUP_ONLY: ${{ inputs.codex_followup_only }}
         run: |
           if [[ "$RESOURCES_ONLY" == true && "$SAME_DIRECTORY_ONLY" == true ]]; then
             echo 'resources_only and same_directory_only are mutually exclusive' >&2
+            exit 1
+          fi
+          if [[ "$CODEX_FOLLOWUP_ONLY" == true && ( "$EVIDENCE_RUNTIME" != codex || "$RESOURCES_ONLY" == true || "$SAME_DIRECTORY_ONLY" == true || "$EXECUTION_ENVIRONMENT_ONLY" == true ) ]]; then
+            echo 'codex_followup_only requires codex and no other scope restriction' >&2
             exit 1
           fi
           if [[ "$EXECUTION_ENVIRONMENT_ONLY" == true ]]; then
@@ -83,7 +92,7 @@ jobs:
         run: node .github/scripts/install-antigravity.mjs
 
       - name: Codex native observations
-        if: ${{ !inputs.execution_environment_only && !inputs.resources_only && !inputs.same_directory_only && matrix.runtime == 'codex' }}
+        if: ${{ !inputs.codex_followup_only && !inputs.execution_environment_only && !inputs.resources_only && !inputs.same_directory_only && matrix.runtime == 'codex' }}
         run: pnpm tsx experiments/sharing/codex.ts
         timeout-minutes: 12
       - name: ACP native observations
@@ -95,12 +104,16 @@ jobs:
         run: pnpm tsx experiments/sharing/qoder.ts
         timeout-minutes: 12
       - name: Same-directory MCP and separate-process control
-        if: ${{ !cancelled() && !inputs.execution_environment_only && !inputs.resources_only && (steps.native-install.outcome == 'success' || steps.antigravity-install.outcome == 'success') }}
+        if: ${{ !cancelled() && !inputs.codex_followup_only && !inputs.execution_environment_only && !inputs.resources_only && (steps.native-install.outcome == 'success' || steps.antigravity-install.outcome == 'success') }}
         run: pnpm tsx experiments/sharing/same-directory.ts "$EVIDENCE_RUNTIME"
         timeout-minutes: 12
       - name: Native trust and cross-directory configuration controls
         if: ${{ !cancelled() && !inputs.execution_environment_only && !inputs.resources_only && steps.native-install.outcome == 'success' && contains(fromJSON('["grok","opencode"]'), matrix.runtime) }}
         run: pnpm tsx experiments/sharing/configuration-freshness.ts "$EVIDENCE_RUNTIME"
+        timeout-minutes: 12
+      - name: Codex persisted user hook trust controls
+        if: ${{ !cancelled() && !inputs.codex_followup_only && !inputs.execution_environment_only && !inputs.resources_only && steps.native-install.outcome == 'success' && matrix.runtime == 'codex' }}
+        run: pnpm tsx experiments/sharing/codex-persisted-trust.ts
         timeout-minutes: 12
       - name: Native child working directory and environment controls
         if: ${{ !cancelled() && !inputs.resources_only && steps.native-install.outcome == 'success' && contains(fromJSON('["grok","opencode"]'), matrix.runtime) }}
@@ -108,7 +121,18 @@ jobs:
         timeout-minutes: 12
       - name: Codex resources
         if: ${{ !cancelled() && !inputs.execution_environment_only && !inputs.same_directory_only && (steps.native-install.outcome == 'success' || steps.antigravity-install.outcome == 'success') && matrix.runtime == 'codex' }}
-        run: pnpm tsx experiments/sharing/codex-resources.ts
+        env:
+          CODEX_FOLLOWUP_ONLY: ${{ inputs.codex_followup_only }}
+        run: |
+          if [[ "$CODEX_FOLLOWUP_ONLY" == true && "$RUNNER_OS" == Windows ]]; then
+            pnpm tsx experiments/sharing/codex-resources.ts oar-trial-run/codex-sharing-resources-short 10 short-windows
+          elif [[ "$CODEX_FOLLOWUP_ONLY" != true ]]; then
+            pnpm tsx experiments/sharing/codex-resources.ts
+          fi
+        timeout-minutes: 12
+      - name: Codex native child cwd and environment controls
+        if: ${{ !cancelled() && !inputs.resources_only && !inputs.same_directory_only && steps.native-install.outcome == 'success' && matrix.runtime == 'codex' }}
+        run: pnpm tsx experiments/sharing/codex-execution-environment.ts
         timeout-minutes: 12
       - name: ACP resources
         if: ${{ !cancelled() && !inputs.execution_environment_only && !inputs.same_directory_only && (steps.native-install.outcome == 'success' || steps.antigravity-install.outcome == 'success') && contains(fromJSON('["kimi","grok","opencode","antigravity"]'), matrix.runtime) }}

@@ -39,7 +39,7 @@ export async function directoryConfiguration({ runtime, cwd, home, env = {}, gro
   await writeFile(script, [
     "const {appendFileSync}=require('node:fs');let raw='';process.stdin.setEncoding('utf8');process.stdin.on('data',part=>raw+=part);",
     "process.stdin.on('end',()=>{const event=JSON.parse(raw);",
-    `appendFileSync(${JSON.stringify(journal)},JSON.stringify({revision:process.argv[2],cwd:process.cwd(),event})+'\\n');if(process.argv[3]==='antigravity')console.log('{"decision":"allow"}');});`,
+    `appendFileSync(${JSON.stringify(journal)},JSON.stringify({revision:process.argv[2],cwd:process.cwd(),environmentMarker:process.env.OAR_EXECUTION_ENV_MARKER??null,event})+'\\n');if(process.argv[3]==='antigravity')console.log('{"decision":"allow"}');});`,
   ].join("\n"), { mode: 0o600 });
   const projectRuleFile = runtime === "antigravity" ? "GEMINI.md" : "AGENTS.md";
   const userConfiguration = runtime === "opencode" && opencodeConfigurationScope === "user";

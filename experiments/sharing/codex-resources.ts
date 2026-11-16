@@ -15,13 +15,17 @@ import { ProbeTiming, prepareFixture } from "./observation.js";
 
 const out = path.resolve(process.argv[2] ?? "oar-trial-run/codex-sharing-resources");
 const count = Number(process.argv[3] ?? 10); assert.ok(count > 0 && count <= 26);
+const shortWindows = process.argv[4] === "short-windows";
+assert.ok(process.argv[4] === undefined || shortWindows, "unknown resource sampling profile");
+const sampling = shortWindows ? { settlingMs: 30_000, windowMs: 1000, windows: 15 }
+  : { settlingMs: 5000, windowMs: 5000, windows: 3 };
 await mkdir(out, { recursive: true });
 recordProcessTableReads(path.join(out, "process-table-reads.jsonl"));
 prepareWindowsProcessTable(path.join(out, "windows-process-table-preparation.jsonl"));
 const reports: Record<string, unknown>[] = [];
 for (const mode of ["isolated", "shared", "shared", "isolated"]) {
   const timing = new ProbeTiming();
-  const report: Record<string, unknown> = { mode, count, at: new Date().toISOString(), platform: process.platform, waits: timing.waits };
+  const report: Record<string, unknown> = { mode, count, sampling, at: new Date().toISOString(), platform: process.platform, waits: timing.waits };
   const fixture = await prepareFixture(out, report, async () => { const value = await codexFixture(timing); return value; }); report.installation = fixture.installation;
   try {
     const before = checkedProcessTable();
@@ -36,10 +40,11 @@ for (const mode of ["isolated", "shared", "shared", "isolated"]) {
     const roots = rootsSince(before); assert.equal(roots.length, mode === "shared" ? 1 : count);
     report.opened = await resourceSample(roots);
     await Promise.all(sessions.map(async (session) => { await fixture.turn(session.client, session.id, session.key); }));
-    await delay(5000);
+    await delay(sampling.settlingMs);
     const windows = [];
-    for (let i = 0; i < 3; i += 1) { windows.push(await resourceSample(roots)); }
+    for (let i = 0; i < sampling.windows; i += 1) { windows.push(await resourceSample(roots, sampling.windowMs)); }
     report.afterTurn = windows;
+    if (shortWindows) { assert.ok(windows.every((window) => window.cpuIsLowerBound === false), "incomplete CPU windows; retain every sample, do not select passing windows"); }
     report.outcome = "completed";
   } catch (error) { report.outcome = "failed"; report.error = String(error); }
   finally {

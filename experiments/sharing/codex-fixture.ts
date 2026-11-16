@@ -23,7 +23,7 @@ function quote(value: string): string {
 }
 
 // oxlint-disable-next-line typescript/explicit-function-return-type -- The exported fixture alias derives the complete native helper types.
-export async function codexFixture(timing = new ProbeTiming()) {
+export async function codexFixture(timing = new ProbeTiming(), environmentMarker?: string) {
   const managed = await probeFixture(async (defer) => {
     // The manual probe may wait longer on Windows; the host's installation limit stays unchanged.
     const installation = await timing.measure("installation", null, async () => { const value = process.platform === "win32"
@@ -37,7 +37,7 @@ export async function codexFixture(timing = new ProbeTiming()) {
     const tool = path.join(home, "tool.mjs");
     await writeFile(tool, [
       "import { spawn } from 'node:child_process'; import { writeFileSync } from 'node:fs';",
-      "if(process.argv[2]==='cwd')console.log('CWD_RESULT='+process.cwd());",
+      "if(process.argv[2]==='cwd'){console.log('CWD_RESULT='+process.cwd());console.log('ENV_RESULT='+(process.env.OAR_EXECUTION_ENV_MARKER??''));}",
       "else { const child=spawn(process.execPath,['-e','setTimeout(()=>{},300000)'],{stdio:'ignore'});",
       "writeFileSync(process.argv[3],JSON.stringify({parent:process.pid,child:child.pid}));",
       "console.log('OWNED_COMMAND_STARTED');setTimeout(()=>{},300000);}",
@@ -73,7 +73,8 @@ export async function codexFixture(timing = new ProbeTiming()) {
       .replaceAll('"name":"spawn_agent"', '"name":"spawn_agent","namespace":"collaboration"'), warmHome: false });
     defer(async () => { await provider.stop(); });
     const environment = { ...Object.fromEntries(Object.keys(process.env).map((key) => [key, null])), HOME: home, USERPROFILE: home,
-      PATH: process.env.PATH ?? "", ...Object.fromEntries(Object.entries(process.env).filter(([key]) => ["systemroot", "windir", "comspec", "pathext", "temp", "tmp"].includes(key.toLowerCase()))), NO_PROXY: "*", ...provider.env };
+      PATH: process.env.PATH ?? "", ...Object.fromEntries(Object.entries(process.env).filter(([key]) => ["systemroot", "windir", "comspec", "pathext", "temp", "tmp"].includes(key.toLowerCase()))), NO_PROXY: "*", ...provider.env,
+      ...(environmentMarker === undefined ? {} : { OAR_EXECUTION_ENV_MARKER: environmentMarker }) };
     const clients: AppServerClient[] = [];
     const crashDescendants: ProcessEntry[] = [];
     defer(async () => {
@@ -110,7 +111,8 @@ export async function codexFixture(timing = new ProbeTiming()) {
     };
     const open = async (client: AppServerClient, label: "A" | "B", options: { cwd?: string; withMcp?: boolean; bypassHookTrust?: boolean } = {}): Promise<string> => {
       const result = await request(client, "thread/start", { cwd: options.cwd ?? cwds[label === "A" ? 0 : 1], model: "gpt-5.1", approvalPolicy: "never",
-        config: { ...(options.bypassHookTrust === undefined ? {} : { bypass_hook_trust: options.bypassHookTrust }), mcp_servers: options.withMcp === false ? {} : { scope: { command: process.execPath, args: [mcp.script, label], enabled: true } } } });
+        config: { ...(options.bypassHookTrust === undefined ? {} : { bypass_hook_trust: options.bypassHookTrust }), mcp_servers: options.withMcp === false ? {} : { scope: { command: process.execPath, args: [mcp.script, label], enabled: true,
+          ...(environmentMarker === undefined ? {} : { env_vars: ["OAR_EXECUTION_ENV_MARKER"] }) } } } });
       const id = asRecord(result.thread)?.id; assert.equal(typeof id, "string"); return String(id);
     };
     const start = async (client: AppServerClient, threadId: string, key: string): Promise<string> => {
@@ -123,7 +125,7 @@ export async function codexFixture(timing = new ProbeTiming()) {
       const id = await start(client, threadId, key); await timing.until(() => ended(threadId, id) !== null, `${key} completed`);
       const result = ended(threadId, id); assert.ok(result); return result;
     };
-    return { timing, installation, home, cwds, seen, stages, gates, provider, clients, events, calls, processIdentities, connect, request, open, start, ended, turn, mcpCalls: mcp.calls,
+    return { timing, installation, home, cwds, seen, stages, gates, provider, clients, events, calls, processIdentities, connect, request, open, start, ended, turn, mcpCalls: mcp.calls, mcpStarts: mcp.starts,
       crash(client: AppServerClient): { identity: ProcessEntry; at: string } {
         const identity = nativeProcesses.get(client)?.selected; assert.ok(identity);
         const table = checkedProcessTable("codex-before-crash");

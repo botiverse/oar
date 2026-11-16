@@ -1,3 +1,4 @@
+/* oxlint-disable import/max-dependencies -- Native admission compares transport evidence with the adapter readback contract. */
 import { recordProcessTableReads } from "./process-table.js";
 /** Codex shared-process gates, native protocol with a local model substitute.
  * OAR_CODEX_BIN=/absolute/codex pnpm tsx experiments/sharing/codex.ts [output-dir]
@@ -10,6 +11,8 @@ import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { asRecord, type JsonRecord } from "../../packages/oar/src/shared/json.js";
 import { codexFixture, type CodexFixture } from "./codex-fixture.js";
+import { codexOpenReadback } from "../../packages/oar/src/runtimes/codex/open.js";
+import { ModelConfirmationError } from "../../packages/oar/src/contracts/model-confirmation-error.js";
 import { identities, running } from "./processes.js";
 import { ProbeTiming, cwdEvidence, prepareFixture } from "./observation.js";
 
@@ -74,11 +77,21 @@ try {
   });
   await check("loadedResumeOverride", async () => {
     const before = await fixture.request(client, "thread/loaded/list", {});
+    assert.ok(Array.isArray(before.data) && before.data.includes(a));
     const result = await fixture.request(client, "thread/resume", { threadId: a, model: "gpt-5.2", excludeTurns: true });
+    assert.equal(result.model, "gpt-5.1", "the loaded thread must report its actual model");
+    const readback = codexOpenReadback("thread/resume", { cwd: fixture.cwds[0] ?? fixture.home, model: "gpt-5.2" }, result);
+    assert.ok(readback.refusal instanceof ModelConfirmationError, "the adapter must refuse the mismatched native readback");
     const offset = fixture.provider.raw.length;
+    // Native-only diagnostic after the readback refusal, not an OAR prompt.
     const completed = await fixture.turn(client, a, "A_resumed");
+    const providerModels = fixture.provider.raw.slice(offset).map((entry) => asRecord(entry.body)?.model);
+    assert.equal(completed.status, "completed"); assert.deepEqual(providerModels, ["gpt-5.1"]);
+    const peer = await fixture.turn(client, b, "B_afterrefusal");
+    assert.equal(peer.status, "completed", "the peer remains usable after a refused open");
     return { before, returnedModel: result.model, requestedModel: "gpt-5.2", status: completed.status,
-      providerModels: fixture.provider.raw.slice(offset).map((entry) => asRecord(entry.body)?.model) };
+      providerModels, adapterRefusal: { name: readback.refusal.name, requested: readback.refusal.requested,
+        reported: readback.refusal.reported }, peerAfterRefusal: peer.status };
   });
   await check("unsubscribeAndResume", async () => {
     const before = await client.resources();
@@ -89,8 +102,12 @@ try {
     const result = await fixture.request(client, "thread/resume", { threadId: a, model: "gpt-5.2", excludeTurns: true });
     const offset = fixture.provider.raw.length;
     const completed = await fixture.turn(client, a, "A_reloaded");
+    const providerModels = fixture.provider.raw.slice(offset).map((entry) => asRecord(entry.body)?.model);
+    assert.equal(result.model, "gpt-5.2"); assert.equal(completed.status, "completed");
+    assert.deepEqual(providerModels, ["gpt-5.2"]);
+    assert.equal(codexOpenReadback("thread/resume", { cwd: fixture.cwds[0] ?? fixture.home, model: "gpt-5.2" }, result).refusal, null);
     return { unsubscribe, stillLoaded, before, after, returnedModel: result.model, status: completed.status,
-      providerModels: fixture.provider.raw.slice(offset).map((entry) => asRecord(entry.body)?.model) };
+      providerModels };
   });
   await check("scopedCleanup", async () => {
     await Promise.all([fixture.turn(client, a, "A_background"), fixture.turn(client, b, "B_background")]);
@@ -114,6 +131,10 @@ try {
     const survivors = markers.map((entries) => running(entries));
     const peerId = asRecord(Array.isArray(peer.data) ? peer.data[0] : null)?.processId;
     await fixture.request(client, "thread/backgroundTerminals/terminate", { threadId: b, processId: peerId });
+    assert.equal(wrongOwner.terminated, false);
+    assert.ok(wrongOwnerSurvivors.every((entries) => entries.length === 2), "wrong-owner termination must leave both process trees running");
+    assert.equal(terminated.terminated, true); assert.deepEqual(targetAfter.data, []);
+    assert.deepEqual(peerAfter.data, peer.data); assert.deepEqual(survivors[0], []); assert.equal(survivors[1]?.length, 2);
     return { target, peer, wrongOwner, targetAfterWrongOwner, wrongOwnerSurvivors, terminated, targetAfter, peerAfter, markers,
       survivors };
   });
@@ -126,6 +147,8 @@ try {
     const peerStillRunning = fixture.ended(b, peerTurn) === null;
     fixture.gates.get("A_hold")?.resolve(); fixture.gates.get("B_hold")?.resolve();
     await timing.until(() => fixture.ended(b, peerTurn) !== null, "peer completed");
+    assert.equal(fixture.ended(a, targetTurn)?.status, "interrupted");
+    assert.equal(peerStillRunning, true); assert.equal(fixture.ended(b, peerTurn)?.status, "completed");
     return { target: fixture.ended(a, targetTurn)?.status, peerStillRunning, peer: fixture.ended(b, peerTurn)?.status };
   });
   await check("concurrentUnsubscribeResume", async () => {
@@ -136,6 +159,7 @@ try {
     const loaded = await fixture.request(client, "thread/loaded/list", {});
     const resumed = await fixture.request(client, "thread/resume", { threadId: a, excludeTurns: true });
     const completed = await fixture.turn(client, a, "A_raced");
+    assert.equal(asRecord(resumed.thread)?.id, a); assert.equal(completed.status, "completed");
     return { results, loaded, model: resumed.model, threadId: asRecord(resumed.thread)?.id, turn: completed.status };
   });
   await check("processExitWithTwoActiveThreads", async () => {
@@ -145,6 +169,7 @@ try {
     const endOffset = fixture.events.length;
     const fault = fixture.crash(client); const exit = await timing.wait(client.exited, "app-server exit after fault");
     const reads = await Promise.allSettled([fixture.request(client, "thread/read", { threadId: a }), fixture.request(client, "thread/read", { threadId: b })]);
+    assert.ok(reads.every((entry) => entry.status === "rejected"));
     return { fault, exit, reads: reads.map((entry) => entry.status), targetTurn, peerTurn,
       completionsAfterExit: fixture.events.slice(endOffset).filter((event) => event.method === "turn/completed") };
   });
