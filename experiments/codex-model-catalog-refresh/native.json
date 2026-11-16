@@ -1,0 +1,82 @@
+{
+  "native": "0.169.0",
+  "platform": "linux",
+  "requests": [
+    {
+      "path": "/models",
+      "scenario": "dynamic",
+      "atMs": 2138.7316699999997
+    },
+    {
+      "path": "/models",
+      "scenario": "dynamic",
+      "atMs": 272164.54779599997
+    }
+  ],
+  "fixedProvider": "catalog_probe",
+  "fixedInitial": [
+    {
+      "model": "probe-fixed-a",
+      "displayName": "Fixed A",
+      "isDefault": true
+    }
+  ],
+  "fixedAfterFileEdit": [
+    {
+      "model": "probe-fixed-a",
+      "displayName": "Fixed A",
+      "isDefault": true
+    }
+  ],
+  "oarFreshListAfterEdit": {
+    "kind": "ok",
+    "models": [
+      {
+        "id": "probe-fixed-b",
+        "displayName": "Fixed B",
+        "effortLevels": [
+          "low"
+        ],
+        "defaultEffort": "low",
+        "serviceTiers": [],
+        "default": true
+      }
+    ]
+  },
+  "fixedHttpRequests": 0,
+  "oarConfigSessionModel": "probe-fixed-b",
+  "oarLaunchArgsSessionModel": "probe-fixed-a",
+  "apiKeyDiscoveryDisabled": [],
+  "dynamicInitial": [
+    {
+      "model": "probe-remote-a",
+      "displayName": "Remote A",
+      "isDefault": true
+    }
+  ],
+  "initialHttpCount": 1,
+  "dynamicBeforeRefresh": [
+    {
+      "model": "probe-remote-a",
+      "displayName": "Remote A",
+      "isDefault": true
+    }
+  ],
+  "dynamicAfterIdle": [
+    {
+      "model": "probe-remote-b",
+      "displayName": "Remote B",
+      "isDefault": true
+    }
+  ],
+  "fixedAfterIdle": [
+    {
+      "model": "probe-fixed-a",
+      "displayName": "Fixed A",
+      "isDefault": true
+    }
+  ],
+  "configCatalogPathStillPresent": true,
+  "elapsedMs": 278163.375094,
+  "status": "passed"
+}

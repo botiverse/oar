@@ -1,0 +1,111 @@
+{
+  "date": "2026-11-16",
+  "platform": "linux x64",
+  "base": "fff1928b0b7aede4584a22ec5f192fd10c506da4",
+  "native": {
+    "version": "0.169.0",
+    "sourceTag": "rust-v0.169.0",
+    "sourceCommit": "d32063f96c2dff1dc96af839b3952abb6acfeda4",
+    "archive": {
+      "bytes": 20118934,
+      "sha256": "c12b841c53c1794fe4a4fc424ef2e403cbabaa1ce3a47bb6cd08ff848dc2711f"
+    },
+    "sourceFiles": {
+      "codex-rs/app-server/src/models_refresh_worker.rs": {
+        "bytes": 1936,
+        "sha256": "645ed9c9915eb74dfa33434f55d686489a3cd6b6f9cb303f9944cdf80e8f1da3"
+      },
+      "codex-rs/app-server/src/message_processor.rs": {
+        "bytes": 88600,
+        "sha256": "ec09ff2f6a6f7a8fdfc769fb8d0738048c26a284839314230a4ac85ad1a7bced"
+      },
+      "codex-rs/models-manager/src/manager.rs": {
+        "bytes": 46577,
+        "sha256": "78bafaed08a8b32ccd0b7cb963a04c95b95ea266354aca7f47e69e9199a7000d"
+      },
+      "codex-rs/model-provider/src/provider.rs": {
+        "bytes": 29783,
+        "sha256": "575786b7240ee8f47de0524bde5782f59099fc963d31c6aa70a1c007604c6a9b"
+      },
+      "codex-rs/config/src/config_toml.rs": {
+        "bytes": 45457,
+        "sha256": "5f586dc94721ab5cf7b2f98c01436b9a40c7866c6a13f2977cac028a921bf10c"
+      },
+      "codex-rs/app-server/src/model_catalog.rs": {
+        "bytes": 6864,
+        "sha256": "a3377c4b949a89b2dbac6a81a9ddf75fa4c46f1bf85c3e6af45a205199a672dd"
+      },
+      "codex-rs/app-server/src/request_processors/catalog_processor.rs": {
+        "bytes": 30665,
+        "sha256": "8bce2b4ad1aa7fb67fbb583bedcd00e6dd1c78a756f7ccf2b194f9537b26deed"
+      }
+    }
+  },
+  "gate": {
+    "command": "CI=1 pnpm run check",
+    "exitCode": 0,
+    "unitFilesPassed": 488,
+    "unitFilesSkipped": 118,
+    "testsPassed": 4384,
+    "testsSkipped": 592,
+    "mockPassed": 18,
+    "mockSkipped": 1
+  },
+  "nativeProbe": {
+    "command": "OAR_CODEX_BIN=<0.169.0 binary> OAR_CATALOG_PROBE_OUTPUT=<output> pnpm tsx experiments/codex-model-catalog-refresh/probe.ts",
+    "exitCode": 0,
+    "selected": "native.json",
+    "inferenceTurns": 0,
+    "realCredentials": false,
+    "postRunEdits": [
+      "Lint scope comment and explicit await in client cleanup only; probe assertions and native requests unchanged."
+    ]
+  },
+  "retainedLocalFiles": {
+    "native-initial.log": {
+      "bytes": 618,
+      "sha256": "ec4b0df1fe198219d82a7415eff43e3505bb560985333f79bb1ee89cbe5cad41"
+    },
+    "native-initial.json": {
+      "bytes": 1159,
+      "sha256": "8edf6182105cc60547f88288957805dd0a39129a1f2a342353fea691b902a804"
+    },
+    "native-debug.log": {
+      "bytes": 2128,
+      "sha256": "3625b4fac11dbeb2784769dae7b6849f1aaab3ab0090c246b9814e3fb2a49da0"
+    },
+    "native-debug.json": {
+      "bytes": 376,
+      "sha256": "d4932ced46e8a1df82e0c7cc16ab2f462e170927c7087658693504fedeb4d60c"
+    },
+    "native-first-pass.log": {
+      "bytes": 739,
+      "sha256": "abe9673f0a2ea3f8e67af4d62487ad9d2c4dffc7e062d3c7ecb19e9af2a17015"
+    },
+    "native-first-pass.json": {
+      "bytes": 1482,
+      "sha256": "a7879b2cc32f3c91372bf34ced4eeda8834c5dec325ab60eb17e28e510445925"
+    },
+    "native-final.log": {
+      "bytes": 739,
+      "sha256": "4db8c4d56e7ba1cc2f9df99d1a60f5537d94942777a1a7dcd7cc99c938e894fd"
+    },
+    "native-final.json": {
+      "bytes": 1644,
+      "sha256": "be312771ac35ddddc1e50aee71f7264575c3d24fc50f5ac513257cbaac55140d"
+    },
+    "full-check.log": {
+      "bytes": 1167,
+      "sha256": "11191076d38e5a9dba9cd3c7389482ab0961b59b0e5cde7c527a9b34829c1ab2"
+    },
+    "full-check-final.log": {
+      "bytes": 5543,
+      "sha256": "2cab5386268a22faa85476cbd841abb4bf8d91d4ed8f3782d2d30dde516a373b"
+    }
+  },
+  "preparationFailures": [
+    "Initial model fixture omitted base_instructions; picker fallback failed the expected model assertion.",
+    "Diagnostic config/read confirmed the same malformed catalog.",
+    "Lint-only initial gates failed dependency count and async callback rules; corrected final gate passes."
+  ]
+}
