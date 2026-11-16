@@ -87,7 +87,7 @@ test("an installer oar will not run here shows the vendor steps for a person to 
 test("a runtime without an installer and a throwing planner are reported, not thrown", async () => {
   const none = await readInstall(runtime("bundled", {}), { install: true });
   assert.deepEqual(renderInstallReport(none), ["bundled\tbundled has no installer oar can run"]);
-  assert.equal(installFailed(none), false);
+  assert.equal(installFailed(none), true);
   const throwing = await readInstall(runtime("fake", {
     installPlan: async () => { await Promise.resolve(); throw new Error("boom"); },
     install: async () => { await Promise.resolve(); throw new Error("boom"); },

@@ -91,9 +91,10 @@ export function renderInstallReport(report: InstallReport, lines: readonly strin
   return [`${runtimeId}\tno result`];
 }
 
-/** An installer that ran and left nothing usable, or one that threw, fails the command. */
+/** No installer, a refused or failed install, or a throw fails the command; a plan that answers does not. */
 export function installFailed(report: InstallReport): boolean {
-  return report.error !== undefined || report.install?.kind === "failed" || report.install?.kind === "unsupported";
+  return report.error !== undefined || report.unsupported !== undefined
+    || report.install?.kind === "failed" || report.install?.kind === "unsupported";
 }
 
 /** `oar install <runtime>`: run the runtime's own official installer; --plan only shows it. */
