@@ -17,11 +17,13 @@ or serializes the optional run.
 
 The stand-in regression runs in both execution modes, with and without a
 returned run. A throwing `run` getter proves the run is untouched, including
-by serialization. The original turn still ends as aborted after cancellation;
+by serialization. An unknown acknowledgment object throws inside the adapter,
+matching the subprocess guard; the session records a rejected `error` response rather
+than accepting it. The original turn still ends as aborted after cancellation;
 the next explicit prompt starts the second SDK run, without a duplicate
 follow-up. On the original product code the two cases fail: in process the
 object is refused, and the subprocess proxy rejects its shape. With the fix,
-all 152 focused Cursor tests pass. Cloud execution itself was not exercised.
+all 153 focused Cursor tests pass. Cloud execution itself was not exercised.
 
 ## Native local result
 
@@ -64,7 +66,7 @@ pnpm tsx experiments/cursor-sdk-1.4/native-steer.ts node_modules/@cursor/sdk /tm
 Use a fresh output directory for each round. It retains native deltas and
 results, uses an isolated temporary working directory, and closes the agent.
 
-The complete local gate passed type checking, lint, 4,373 tests and 18 mock
+The complete local gate passed type checking, lint, 4,374 tests and 18 mock
 behavior cases. The initial lint failures were confined to the new probe
 and test formatting and are retained locally. Both package builds and the
 packed-host install check passed. The first packed check hit the unchanged

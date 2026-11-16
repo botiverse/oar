@@ -104,6 +104,7 @@ class FakeRun {
   }
 
   async steer(text) {
+    if (text === "native-unknown-ack") { return { outcome: "refused", reason: "future shape" }; }
     if (text === "native-queued") { return { outcome: "queued" }; }
     if (text === "native-queued-with-run") {
       // A cloud run must not be read, observed or serialized by OAR.

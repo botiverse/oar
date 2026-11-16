@@ -132,16 +132,19 @@ export async function steerRun(current: ActiveRun, input: string): Promise<Respo
     await current.ended;
     return null;
   })();
-  const ack = await Promise.race([delivery, runEnded]);
+  const ack: unknown = await Promise.race([delivery, runEnded]);
   if (ack instanceof Error) {
     throw ack;
   }
   if (ack === "complete_delivered") {
     return { kind: "accepted", native: { ack } };
   }
-  if (ack !== null && typeof ack === "object") {
+  if (ack !== null && typeof ack === "object" && "outcome" in ack && ack.outcome === "queued") {
     // The SDK owns this follow-up. OAR does not observe its optional cloud run.
     return { kind: "accepted", native: { ack: "queued" } };
+  }
+  if (ack !== null && ack !== "revert_to_followup") {
+    throw new Error("Cursor Run.steer() returned an unexpected acknowledgment");
   }
   return {
     kind: "rejected",

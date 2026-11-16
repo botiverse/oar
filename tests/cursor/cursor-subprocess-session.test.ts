@@ -91,3 +91,22 @@ test.each(modes)("%s: native queued steering is accepted without reading its clo
     await session.dispose();
   }
 });
+
+test("in_process: an unknown native steering object reports an error instead of accepting input", async () => {
+  const session = await open("in_process");
+  try {
+    await session.prompt("hold");
+    const result = await session.steer("native-unknown-ack");
+    expect(result.response.body).toMatchInlineSnapshot(`
+      {
+        "code": "error",
+        "kind": "rejected",
+        "reason": "Cursor Run.steer() returned an unexpected acknowledgment",
+      }
+    `);
+    const responses = session.records().flatMap(record => record.kind === "response" ? [record.body] : []);
+    expect(responses.filter(body => body.kind === "accepted")).toHaveLength(1);
+  } finally {
+    await session.dispose();
+  }
+});
