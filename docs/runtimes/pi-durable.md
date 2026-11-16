@@ -40,8 +40,8 @@ coding SDK:
   "dependencies": {
     "@earendil-works/pi-ai": "1.5.0",
     "@earendil-works/pi-ai-durable": "npm:@earendil-works/pi-ai@1.5.2",
-    "@earendil-works/pi-durable": "~1.5.2",
-    "@earendil-works/chord": "~1.5.2"
+    "@earendil-works/pi-durable": "1.5.2",
+    "@earendil-works/chord": "1.5.2"
   }
 }
 ```
@@ -303,6 +303,17 @@ background task projection, native history navigation, child subscriptions
 and manual compaction (`manualCompaction` is not declared) are not exposed.
 Host applications persist their OAR records to render a continuous transcript across controllers; native storage and OAR records
 remain distinct artifacts.
+
+Reconstructing the native view requires the initial snapshot and every later
+view delta. With `retainedBytes` configured, record retention clears the oldest
+frame payloads first, so the large initial snapshot can disappear early.
+Neither `records()` nor cursor replay can reconstruct the native view after
+that payload has been discarded. A cursor starting after the snapshot also
+lacks the starting view, even without a retention limit. Hosts that need native
+view reconstruction must observe records live from seq 0 and persist the
+snapshot and every delta themselves. Delta recording does not change OAR's
+projected events. The existing `retainedBytes` elision rules still apply to
+native and tool payloads.
 
 ## Evidence and verification
 

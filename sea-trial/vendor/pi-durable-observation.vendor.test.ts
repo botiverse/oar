@@ -80,7 +80,7 @@ nativeTest("initial projection failure detaches the already attached native obse
 });
 
 // oxlint-disable-next-line max-statements -- The two native receipts and same-publication handover must be checked together.
-nativeTest("a failed run and queued successor in the same publication have separate outcomes", async () => {
+nativeTest.each(["native ops", "whole-document set"])("a failed run and queued successor have separate outcomes with %s", async format => {
   const entered = Promise.withResolvers<void>();
   const release = Promise.withResolvers<void>();
   const fixture = await startDurableFixture(mock => {
@@ -92,9 +92,22 @@ nativeTest("a failed run and queued successor in the same publication have separ
     });
   }, undefined, undefined, undefined, { afterFailedRun: "continue" });
   const publications: Parameters<Parameters<typeof fixture.harness.observeConversation>[1]["advance"]>[0][] = [];
+  let replacements = 0;
   const native = fixture.harness.observeConversation.bind(fixture.harness);
   const observation = vi.spyOn(fixture.harness, "observeConversation").mockImplementation(async (id, observer, context, window) => native(id, {
-    ...observer, advance(...args) { publications.push(args[0]); observer.advance(...args); },
+    ...observer, advance(call, ctx) {
+      publications.push(call);
+      if (format === "whole-document set" && call.kind === "value" && call.ops.some(op => op[0] !== "r" && op[1][0] === "docs" && op[1][1] === "pi.live")) {
+        const ops: typeof call.ops = [
+          ...call.ops.filter(op => !(op[0] !== "r" && op[1][0] === "docs" && op[1][1] === "pi.live")),
+          ["s", ["docs", "pi.live"], call.value.docs["pi.live"] ?? {}],
+        ];
+        replacements += 1;
+        observer.advance({ ...call, ops }, ctx);
+        return;
+      }
+      observer.advance(call, ctx);
+    },
   }, context, window));
   const session = await fixture.runtime.session({ kind: "available", via: "bundled" }, options);
   try {
@@ -107,6 +120,8 @@ nativeTest("a failed run and queued successor in the same publication have separ
     expect(ends[0]?.outcome).toMatchObject({ kind: "failed", failure: "invalid_request" });
     expect(ends[0]?.outcome.kind === "failed" ? ends[0].outcome.reason : undefined).toContain("A failed");
     expect(ends[1]?.outcome).toEqual({ kind: "completed" });
+    expect(session.status().value.kind).toBe("idle");
+    expect(replacements > 0).toBe(format === "whole-document set");
     expect(publications.some(call => call.kind === "value" && call.ops.some(op => op[0] === "d" && op[1].join(".") === "docs.pi.live.run")
       && call.value.docs["pi.live"]?.run !== undefined)).toBe(true);
   } finally { release.resolve(); observation.mockRestore(); await session.dispose(); await fixture.close(); }

@@ -188,14 +188,29 @@ Whole-document replacement and retirement use run identity as a fallback to
 an explicit run deletion. A changed generation task alone remains the same
 run. The native `afterFailedRun: "continue"` control fails A, starts queued B
 in the same publication and verifies B succeeds. A mutation that retains A's
-input list makes B inherit A's failure and fails this test. Restoring the
+input list makes B inherit A's failure and fails this test. That native
+publication has a delete followed by a set, so the test alone also passes the
+original implementation. A second variant, supplied by independent review,
+replaces the `pi.live` operations in each callback with one whole-document set
+while keeping the native value. With the original `456bfcef` projection it
+fails because only one `turn_ended` is emitted; the revised projection emits
+A failed, B completed and settles idle. This is an intentionally transformed
+observer sample, not a claim that the native engine emitted compacted ops in
+this run. Restoring the
 original product also fails the new initial-observer cleanup, pending-tool
 result and delta-replay tests. These controls cover the previously missed
 regressions, not just successful paths.
 
-The revised complete gate passed type checking, lint, 4,377 tests and 18 mock
+The first revised complete gate passed type checking, lint, 4,377 tests and 18 mock
 behavior cases. The focused native/fold set passed 41 cases; all Durable vendor
 cases passed 35, with 18 public behavior cases passing. Package builds, packed
 installation and Chromium smoke passed again. The packed check includes
 normal Pi AI 1.5.0 beside the Durable host's aliased 1.5.2 and verifies OAuth
 registration identity. No real account, provider charge or host store was used.
+
+After adding the compacted observer variant and rebasing onto the Pi bootstrap
+test follow-up, the complete gate passed again with 4,379 tests and 18 mock
+behavior cases. All five native observation cases passed, including both
+delete/set and whole-document-set run transitions. The retention docs now
+state that `retainedBytes` can discard the initial snapshot; native-view
+reconstruction needs a live observer from seq 0 that persists every payload.

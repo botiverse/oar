@@ -1080,7 +1080,7 @@ versions pi-coding-agent resolves, checks that the bundle names a single
 `@earendil-works+pi-ai@` variant, and keeps a build check that derives auth
 for a dummy OAuth credential through pi-coding-agent's own `ModelRuntime`
 inside the bundle: it fails with that "Cannot find module" whenever the
-copies split again. A separate Durable 1.4.0 catalog uses its own Pi AI 1.4.0;
+copies split again. A separate Durable 1.5.2 catalog uses its own Pi AI 1.5.2;
 that older catalog is not the coding SDK registration target. The packed-host
 check also verifies OAR and the coding SDK still share Pi AI and undici after
 the host installs this Durable catalog. Each hand-over is

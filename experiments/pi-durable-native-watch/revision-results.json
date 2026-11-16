@@ -78,6 +78,33 @@
       "file": "pi-durable-task158-volume-revised-final/records.jsonl",
       "bytes": 84167,
       "sha256": "27ec337f218ffa6f18bd1104815ed473b6ebe73b78707d0b01281ced297cce62"
+    },
+    {
+      "file": "pi-durable-task158-compacted-baseline.log",
+      "bytes": 1316,
+      "sha256": "cf5f61a76855b19b0af2aa211c6d9b5cd05eadecbf77ff0e4d8c2330f31fde1e"
+    },
+    {
+      "file": "pi-durable-task158-compacted-final-native.log",
+      "bytes": 273,
+      "sha256": "4dc20b95d0f699e27726c9c72a295d1509726c479e3ca09894e2e2f037e9c09b"
+    },
+    {
+      "file": "pi-durable-task158-compacted-check-final.log",
+      "bytes": 5541,
+      "sha256": "a4d288b70060b45bd47602bade2b637f7c08a2b8e9cff4a78293dec40da59327"
     }
-  ]
+  ],
+  "compactedObserverControl": {
+    "source": "independent review variant, transformed observer sample",
+    "originalProjection": "456bfcef",
+    "originalTurnEnds": 1,
+    "expectedTurnEnds": 2,
+    "baselineExit": 1,
+    "revisedOutcomes": [
+      "failed",
+      "completed"
+    ],
+    "revisedStatus": "idle"
+  }
 }
