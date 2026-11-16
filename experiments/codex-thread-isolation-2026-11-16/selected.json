@@ -1,0 +1,537 @@
+{
+  "platform": "linux",
+  "nativeVersion": "codex-cli 0.169.0",
+  "rawSha256": "a3993eef658fe3cfd08a9d332c9df35f577f6f4d042eff9fbf1287867c830a84",
+  "rawBytes": 1975238,
+  "markers": [
+    "OAR_SYNTHETIC_THREAD_A_20261116",
+    "OAR_SYNTHETIC_THREAD_B_20261116"
+  ],
+  "tokens": [
+    "OAR_SYNTHETIC_THREAD_A_20261116_TOKEN",
+    "OAR_SYNTHETIC_THREAD_B_20261116_TOKEN"
+  ],
+  "rows": [
+    {
+      "mode": "shared-thread",
+      "children": [
+        {
+          "kind": "mcp-start",
+          "marker": null,
+          "token": null,
+          "label": "A"
+        },
+        {
+          "kind": "mcp-start",
+          "marker": null,
+          "token": null,
+          "label": "B"
+        },
+        {
+          "kind": "mcp-call",
+          "marker": null,
+          "token": null,
+          "label": "A"
+        },
+        {
+          "kind": "background",
+          "marker": "OAR_SYNTHETIC_THREAD_A_20261116",
+          "token": "OAR_SYNTHETIC_THREAD_A_20261116_TOKEN",
+          "label": "A"
+        },
+        {
+          "kind": "mcp-call",
+          "marker": null,
+          "token": null,
+          "label": "B"
+        },
+        {
+          "kind": "background",
+          "marker": "OAR_SYNTHETIC_THREAD_B_20261116",
+          "token": "OAR_SYNTHETIC_THREAD_B_20261116_TOKEN",
+          "label": "B"
+        },
+        {
+          "kind": "tool",
+          "marker": "OAR_SYNTHETIC_THREAD_A_20261116",
+          "token": "OAR_SYNTHETIC_THREAD_A_20261116_TOKEN",
+          "label": "A",
+          "processReads": [
+            {
+              "role": "app-server",
+              "readable": true,
+              "markers": []
+            },
+            {
+              "role": "background-A",
+              "readable": true,
+              "markers": [
+                "OAR_SYNTHETIC_THREAD_A_20261116",
+                "OAR_SYNTHETIC_THREAD_A_20261116_TOKEN"
+              ]
+            },
+            {
+              "role": "background-B",
+              "readable": true,
+              "markers": [
+                "OAR_SYNTHETIC_THREAD_B_20261116",
+                "OAR_SYNTHETIC_THREAD_B_20261116_TOKEN"
+              ]
+            }
+          ],
+          "fileReads": {
+            "rolloutsReadable": 2,
+            "stateDatabaseReadable": true,
+            "logDatabaseReadable": true,
+            "markerHits": []
+          }
+        },
+        {
+          "kind": "tool",
+          "marker": "OAR_SYNTHETIC_THREAD_B_20261116",
+          "token": "OAR_SYNTHETIC_THREAD_B_20261116_TOKEN",
+          "label": "B",
+          "processReads": [
+            {
+              "role": "app-server",
+              "readable": true,
+              "markers": []
+            },
+            {
+              "role": "background-A",
+              "readable": true,
+              "markers": [
+                "OAR_SYNTHETIC_THREAD_A_20261116",
+                "OAR_SYNTHETIC_THREAD_A_20261116_TOKEN"
+              ]
+            },
+            {
+              "role": "background-B",
+              "readable": true,
+              "markers": [
+                "OAR_SYNTHETIC_THREAD_B_20261116",
+                "OAR_SYNTHETIC_THREAD_B_20261116_TOKEN"
+              ]
+            }
+          ],
+          "fileReads": {
+            "rolloutsReadable": 2,
+            "stateDatabaseReadable": true,
+            "logDatabaseReadable": true,
+            "markerHits": []
+          }
+        }
+      ],
+      "hooks": [
+        {
+          "tool": "tool-A_mcp",
+          "marker": null,
+          "token": null
+        },
+        {
+          "tool": "tool-A_background",
+          "marker": null,
+          "token": null
+        },
+        {
+          "tool": "tool-B_mcp",
+          "marker": null,
+          "token": null
+        },
+        {
+          "tool": "tool-B_background",
+          "marker": null,
+          "token": null
+        },
+        {
+          "tool": "tool-A_cwd",
+          "marker": null,
+          "token": null
+        },
+        {
+          "tool": "tool-B_cwd",
+          "marker": null,
+          "token": null
+        }
+      ],
+      "beforePrompts": {
+        "filesRead": 19,
+        "markerHits": [],
+        "rolloutsWithLiteralToken": 0,
+        "sqliteFilesWithLiteralToken": 0
+      },
+      "afterPrompts": {
+        "filesRead": 25,
+        "markerHits": [],
+        "rolloutsWithLiteralToken": 0,
+        "sqliteFilesWithLiteralToken": 0
+      }
+    },
+    {
+      "mode": "isolated-thread",
+      "children": [
+        {
+          "kind": "mcp-start",
+          "marker": null,
+          "token": null,
+          "label": "A"
+        },
+        {
+          "kind": "mcp-start",
+          "marker": null,
+          "token": null,
+          "label": "B"
+        },
+        {
+          "kind": "mcp-call",
+          "marker": null,
+          "token": null,
+          "label": "A"
+        },
+        {
+          "kind": "background",
+          "marker": "OAR_SYNTHETIC_THREAD_A_20261116",
+          "token": "OAR_SYNTHETIC_THREAD_A_20261116_TOKEN",
+          "label": "A"
+        },
+        {
+          "kind": "mcp-call",
+          "marker": null,
+          "token": null,
+          "label": "B"
+        },
+        {
+          "kind": "background",
+          "marker": "OAR_SYNTHETIC_THREAD_B_20261116",
+          "token": "OAR_SYNTHETIC_THREAD_B_20261116_TOKEN",
+          "label": "B"
+        },
+        {
+          "kind": "tool",
+          "marker": "OAR_SYNTHETIC_THREAD_A_20261116",
+          "token": "OAR_SYNTHETIC_THREAD_A_20261116_TOKEN",
+          "label": "A",
+          "processReads": [
+            {
+              "role": "app-server-A",
+              "readable": true,
+              "markers": []
+            },
+            {
+              "role": "app-server-B",
+              "readable": true,
+              "markers": []
+            },
+            {
+              "role": "background-A",
+              "readable": true,
+              "markers": [
+                "OAR_SYNTHETIC_THREAD_A_20261116",
+                "OAR_SYNTHETIC_THREAD_A_20261116_TOKEN"
+              ]
+            },
+            {
+              "role": "background-B",
+              "readable": true,
+              "markers": [
+                "OAR_SYNTHETIC_THREAD_B_20261116",
+                "OAR_SYNTHETIC_THREAD_B_20261116_TOKEN"
+              ]
+            }
+          ],
+          "fileReads": {
+            "rolloutsReadable": 2,
+            "stateDatabaseReadable": true,
+            "logDatabaseReadable": true,
+            "markerHits": []
+          }
+        },
+        {
+          "kind": "tool",
+          "marker": "OAR_SYNTHETIC_THREAD_B_20261116",
+          "token": "OAR_SYNTHETIC_THREAD_B_20261116_TOKEN",
+          "label": "B",
+          "processReads": [
+            {
+              "role": "app-server-A",
+              "readable": true,
+              "markers": []
+            },
+            {
+              "role": "app-server-B",
+              "readable": true,
+              "markers": []
+            },
+            {
+              "role": "background-A",
+              "readable": true,
+              "markers": [
+                "OAR_SYNTHETIC_THREAD_A_20261116",
+                "OAR_SYNTHETIC_THREAD_A_20261116_TOKEN"
+              ]
+            },
+            {
+              "role": "background-B",
+              "readable": true,
+              "markers": [
+                "OAR_SYNTHETIC_THREAD_B_20261116",
+                "OAR_SYNTHETIC_THREAD_B_20261116_TOKEN"
+              ]
+            }
+          ],
+          "fileReads": {
+            "rolloutsReadable": 2,
+            "stateDatabaseReadable": true,
+            "logDatabaseReadable": true,
+            "markerHits": []
+          }
+        }
+      ],
+      "hooks": [
+        {
+          "tool": "tool-A_mcp",
+          "marker": null,
+          "token": null
+        },
+        {
+          "tool": "tool-A_background",
+          "marker": null,
+          "token": null
+        },
+        {
+          "tool": "tool-B_mcp",
+          "marker": null,
+          "token": null
+        },
+        {
+          "tool": "tool-B_background",
+          "marker": null,
+          "token": null
+        },
+        {
+          "tool": "tool-A_cwd",
+          "marker": null,
+          "token": null
+        },
+        {
+          "tool": "tool-B_cwd",
+          "marker": null,
+          "token": null
+        }
+      ],
+      "beforePrompts": {
+        "filesRead": 20,
+        "markerHits": [],
+        "rolloutsWithLiteralToken": 0,
+        "sqliteFilesWithLiteralToken": 0
+      },
+      "afterPrompts": {
+        "filesRead": 25,
+        "markerHits": [],
+        "rolloutsWithLiteralToken": 0,
+        "sqliteFilesWithLiteralToken": 0
+      }
+    },
+    {
+      "mode": "isolated-process",
+      "children": [
+        {
+          "kind": "mcp-start",
+          "marker": "OAR_SYNTHETIC_THREAD_A_20261116",
+          "token": "OAR_SYNTHETIC_THREAD_A_20261116_TOKEN",
+          "label": "A"
+        },
+        {
+          "kind": "mcp-start",
+          "marker": "OAR_SYNTHETIC_THREAD_B_20261116",
+          "token": "OAR_SYNTHETIC_THREAD_B_20261116_TOKEN",
+          "label": "B"
+        },
+        {
+          "kind": "mcp-call",
+          "marker": "OAR_SYNTHETIC_THREAD_A_20261116",
+          "token": "OAR_SYNTHETIC_THREAD_A_20261116_TOKEN",
+          "label": "A"
+        },
+        {
+          "kind": "background",
+          "marker": "OAR_SYNTHETIC_THREAD_A_20261116",
+          "token": "OAR_SYNTHETIC_THREAD_A_20261116_TOKEN",
+          "label": "A"
+        },
+        {
+          "kind": "mcp-call",
+          "marker": "OAR_SYNTHETIC_THREAD_B_20261116",
+          "token": "OAR_SYNTHETIC_THREAD_B_20261116_TOKEN",
+          "label": "B"
+        },
+        {
+          "kind": "background",
+          "marker": "OAR_SYNTHETIC_THREAD_B_20261116",
+          "token": "OAR_SYNTHETIC_THREAD_B_20261116_TOKEN",
+          "label": "B"
+        },
+        {
+          "kind": "tool",
+          "marker": "OAR_SYNTHETIC_THREAD_A_20261116",
+          "token": "OAR_SYNTHETIC_THREAD_A_20261116_TOKEN",
+          "label": "A",
+          "processReads": [
+            {
+              "role": "app-server-A",
+              "readable": true,
+              "markers": [
+                "OAR_SYNTHETIC_THREAD_A_20261116",
+                "OAR_SYNTHETIC_THREAD_A_20261116_TOKEN"
+              ]
+            },
+            {
+              "role": "app-server-B",
+              "readable": true,
+              "markers": [
+                "OAR_SYNTHETIC_THREAD_B_20261116",
+                "OAR_SYNTHETIC_THREAD_B_20261116_TOKEN"
+              ]
+            },
+            {
+              "role": "background-A",
+              "readable": true,
+              "markers": [
+                "OAR_SYNTHETIC_THREAD_A_20261116",
+                "OAR_SYNTHETIC_THREAD_A_20261116_TOKEN"
+              ]
+            },
+            {
+              "role": "background-B",
+              "readable": true,
+              "markers": [
+                "OAR_SYNTHETIC_THREAD_B_20261116",
+                "OAR_SYNTHETIC_THREAD_B_20261116_TOKEN"
+              ]
+            }
+          ],
+          "fileReads": {
+            "rolloutsReadable": 2,
+            "stateDatabaseReadable": true,
+            "logDatabaseReadable": true,
+            "markerHits": [
+              {
+                "category": "shell_snapshots",
+                "markers": [
+                  "OAR_SYNTHETIC_THREAD_B_20261116",
+                  "OAR_SYNTHETIC_THREAD_B_20261116_TOKEN"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "kind": "tool",
+          "marker": "OAR_SYNTHETIC_THREAD_B_20261116",
+          "token": "OAR_SYNTHETIC_THREAD_B_20261116_TOKEN",
+          "label": "B",
+          "processReads": [
+            {
+              "role": "app-server-A",
+              "readable": true,
+              "markers": [
+                "OAR_SYNTHETIC_THREAD_A_20261116",
+                "OAR_SYNTHETIC_THREAD_A_20261116_TOKEN"
+              ]
+            },
+            {
+              "role": "app-server-B",
+              "readable": true,
+              "markers": [
+                "OAR_SYNTHETIC_THREAD_B_20261116",
+                "OAR_SYNTHETIC_THREAD_B_20261116_TOKEN"
+              ]
+            },
+            {
+              "role": "background-A",
+              "readable": true,
+              "markers": [
+                "OAR_SYNTHETIC_THREAD_A_20261116",
+                "OAR_SYNTHETIC_THREAD_A_20261116_TOKEN"
+              ]
+            },
+            {
+              "role": "background-B",
+              "readable": true,
+              "markers": [
+                "OAR_SYNTHETIC_THREAD_B_20261116",
+                "OAR_SYNTHETIC_THREAD_B_20261116_TOKEN"
+              ]
+            }
+          ],
+          "fileReads": {
+            "rolloutsReadable": 2,
+            "stateDatabaseReadable": true,
+            "logDatabaseReadable": true,
+            "markerHits": [
+              {
+                "category": "shell_snapshots",
+                "markers": [
+                  "OAR_SYNTHETIC_THREAD_B_20261116",
+                  "OAR_SYNTHETIC_THREAD_B_20261116_TOKEN"
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "hooks": [
+        {
+          "tool": "tool-A_mcp",
+          "marker": "OAR_SYNTHETIC_THREAD_A_20261116",
+          "token": "OAR_SYNTHETIC_THREAD_A_20261116_TOKEN"
+        },
+        {
+          "tool": "tool-A_background",
+          "marker": "OAR_SYNTHETIC_THREAD_A_20261116",
+          "token": "OAR_SYNTHETIC_THREAD_A_20261116_TOKEN"
+        },
+        {
+          "tool": "tool-B_mcp",
+          "marker": "OAR_SYNTHETIC_THREAD_B_20261116",
+          "token": "OAR_SYNTHETIC_THREAD_B_20261116_TOKEN"
+        },
+        {
+          "tool": "tool-B_background",
+          "marker": "OAR_SYNTHETIC_THREAD_B_20261116",
+          "token": "OAR_SYNTHETIC_THREAD_B_20261116_TOKEN"
+        },
+        {
+          "tool": "tool-A_cwd",
+          "marker": "OAR_SYNTHETIC_THREAD_A_20261116",
+          "token": "OAR_SYNTHETIC_THREAD_A_20261116_TOKEN"
+        },
+        {
+          "tool": "tool-B_cwd",
+          "marker": "OAR_SYNTHETIC_THREAD_B_20261116",
+          "token": "OAR_SYNTHETIC_THREAD_B_20261116_TOKEN"
+        }
+      ],
+      "beforePrompts": {
+        "filesRead": 19,
+        "markerHits": [],
+        "rolloutsWithLiteralToken": 0,
+        "sqliteFilesWithLiteralToken": 0
+      },
+      "afterPrompts": {
+        "filesRead": 25,
+        "markerHits": [
+          {
+            "category": "shell_snapshots",
+            "markers": [
+              "OAR_SYNTHETIC_THREAD_B_20261116",
+              "OAR_SYNTHETIC_THREAD_B_20261116_TOKEN"
+            ]
+          }
+        ],
+        "rolloutsWithLiteralToken": 0,
+        "sqliteFilesWithLiteralToken": 0
+      }
+    }
+  ]
+}
