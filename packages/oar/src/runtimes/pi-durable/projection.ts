@@ -1,4 +1,4 @@
-import type { AgentState, ConversationView, EntryRecord, LiveState, NestedToolSlot, SubmissionId, SubmissionRecord, ToolSlot, UsageState, WatchCall } from "@earendil-works/pi-durable";
+import type { AgentState, ConversationView, EntryRecord, LiveRun, LiveState, NestedToolSlot, SubmissionId, SubmissionRecord, ToolSlot, UsageState, WatchCall } from "@earendil-works/pi-durable";
 import type { FrameBody, RuntimeEventBody, TokenTotals, TurnOutcome } from "../../contracts/session.js";
 import { classifyFailure } from "../../shared/failure-class.js";
 import { toolContent } from "../../shared/tool-output.js";
@@ -49,10 +49,12 @@ export function submissionOutcome(records: readonly (SubmissionRecord | undefine
 function settingsEvents(previous: DurableProjection, view: ConversationView, initial: boolean): RuntimeEventBody[] {
   const agent = agentOf(view);
   const before = agentOf(previous.view);
+  const total = usageTotal(usageOf(view));
+  const changed = JSON.stringify(total) !== JSON.stringify(usageTotal(usageOf(previous.view)));
   return [
     ...(agent.model !== undefined && (initial || JSON.stringify(agent.model) !== JSON.stringify(before.model)) ? [{ kind: "model" as const, model: `${agent.model.provider}/${agent.model.modelId}` }] : []),
     ...(agent.thinkingLevel !== undefined && (initial || agent.thinkingLevel !== before.thinkingLevel) ? [{ kind: "effort" as const, effort: agent.thinkingLevel }] : []),
-    { kind: "usage", usage: { tokens: subtractTokens(usageTotal(usageOf(view)), previous.baseline) } },
+    ...(initial || changed ? [{ kind: "usage" as const, usage: { tokens: subtractTokens(total, previous.baseline) } }] : []),
   ];
 }
 
@@ -66,6 +68,21 @@ function toolArguments(slot: ToolSlot | NestedToolSlot, view: ConversationView):
   const block = view.entries.flatMap(entry => entry.model ?? []).flatMap(message => message.role === "assistant" ? message.content : [])
     .find(item => item.type === "toolCall" && item.id === slot.callId);
   return block?.type === "toolCall" ? block.arguments : undefined;
+}
+
+/** Removing a live slot is an end, even if no terminal result was published. */
+function removedToolEvents(previous: ConversationView, view: ConversationView, entries: readonly EntryRecord[]): RuntimeEventBody[] {
+  const current = new Map(slots(view).map(slot => [slot.callId, slot]));
+  return slots(previous).flatMap(slot => {
+    if (slot.status === "done" || (current.has(slot.callId) && current.get(slot.callId)?.taskId === slot.taskId)) { return []; }
+    const result = entries.filter(entry => slot.taskId === undefined || entry.byTaskId === undefined || entry.byTaskId === slot.taskId)
+      .flatMap(entry => entry.model ?? []).find(message => message.role === "toolResult" && message.toolCallId === slot.callId);
+    if (slot.status === "pending" && result === undefined) { return []; }
+    const content = result?.role === "toolResult" ? toolContent(result.content) : undefined;
+    return [{ kind: "tool_call_ended", callId: slot.callId,
+      ...(content === undefined ? {} : { content }),
+      ...(result?.role === "toolResult" ? { result: result.isError ? "failed" : "ok" } : {}) }];
+  });
 }
 
 function toolEvents(previous: ConversationView, view: ConversationView, entries: readonly EntryRecord[], initial: boolean): RuntimeEventBody[] {
@@ -136,12 +153,27 @@ function isEntry(value: unknown): value is EntryRecord {
     && "conversationId" in value && Number.isSafeInteger(value.conversationId) && "kind" in value && typeof value.kind === "string";
 }
 
+function differentRun(before: LiveRun, after: LiveRun, current: LiveState): boolean {
+  if (before.taskId === after.taskId) { return false; }
+  // taskId alone is not identity: a tool round hands the same run to a new
+  // generation. Its first entry and inputs remain; afterRun only empties inputs.
+  return (before.first !== undefined && after.first !== undefined && before.first !== after.first)
+    || (before.inputs.length > 0 && after.inputs.length > 0 && !before.inputs.some(id => after.inputs.includes(id)))
+    || (before.afterRun !== undefined && after.afterRun === undefined)
+    || current.runFailure?.taskId === before.taskId;
+}
+
 export function runEnded(previous: DurableProjection, call: Extract<WatchCall<ConversationView>, { kind: "value" }>): boolean {
   const before = liveOf(previous.view).run;
-  // A final boundary can delete the old run and start the queued run in one
-  // publication. A generation handover only changes run.taskId, not the run.
+  const current = liveOf(call.value);
+  if (before === undefined) { return false; }
+  if (current.run === undefined) { return true; }
+  // A final boundary can delete the old run and start a queued run in one
+  // publication. Compacted/retired deltas can replace an entire document.
   const removed = call.ops.some(op => op[0] === "d" && op[1].length === 3 && op[1][0] === "docs" && op[1][1] === "pi.live" && op[1][2] === "run");
-  return before !== undefined && (liveOf(call.value).run === undefined || removed);
+  const replaced = call.retired || call.ops.some(op => op[0] === "r" || (op[0] === "s" && op[1].length <= 3
+    && op[1][0] === "docs" && (op[1].length === 1 || (op[1][1] === "pi.live" && (op[1].length === 2 || op[1][2] === "run")))));
+  return removed || (replaced && differentRun(before, current.run, current));
 }
 
 /** One native state notification is one frame. No old AgentEvent is synthesized. */
@@ -160,6 +192,7 @@ export function foldDurableView(previous: DurableProjection, native: Extract<Wat
   const events: RuntimeEventBody[] = [
     ...settingsEvents(previous, view, initial),
     ...entry.events,
+    ...(initial ? [] : removedToolEvents(previous.view, view, entries)),
     ...(outcome === undefined ? [] : [{ kind: "turn_ended" as const, outcome }]),
     ...(newRun ? [{ kind: "turn_active" as const }] : []),
     ...nextMessage.events, ...toolEvents(previous.view, view, entries, initial),
@@ -167,5 +200,5 @@ export function foldDurableView(previous: DurableProjection, native: Extract<Wat
     ...(retry !== undefined && (initial || retry.at !== before.generation?.retry?.at) ? [{ kind: "retry" as const, attempt: live.generation?.attempt ?? 0, reason: retry.error }] : []),
   ];
   const runInputs = newRun ? live.run?.inputs ?? [] : (live.run === undefined ? [] : [...new Set([...previous.runInputs, ...live.run.inputs])]);
-  return { state: { view, message: nextMessage.state, baseline: previous.baseline, runInputs }, frame: { type: initial ? "snapshot" : "pi-durable/view", native, events } };
+  return { state: { view, message: nextMessage.state, baseline: previous.baseline, runInputs }, frame: { type: initial ? "snapshot" : "pi-durable/view", native: initial ? view : { ops: native.ops, retired: native.retired }, events } };
 }

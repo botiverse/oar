@@ -109,7 +109,7 @@ suite("Pi Durable native conversations against aimock", () => {
   test.each([true, false])("append provided=%s agrees with the runtime resume declaration", async (provided) => {
     const compaction = resumeCompaction();
     const fixture = await startDurableFixture(compaction.configure, undefined, undefined, undefined, {
-      enabled: true, reserveTokens: 120_000, keepRecentTokens: 500, backgroundTokens: 0,
+      compaction: { enabled: true, reserveTokens: 120_000, keepRecentTokens: 500, backgroundTokens: 0 },
     });
     fixtures.push(fixture);
     const semantics = promptSemantics(fixture.runtime, "appendSystemPrompt");

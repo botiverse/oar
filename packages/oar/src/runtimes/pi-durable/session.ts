@@ -57,14 +57,19 @@ export async function piDurableSession(harness: Harness, models: DurableModels, 
     advance(call) { pending.push({ call }); schedule(); },
     end(end) { pending.push({ end }); schedule(); },
   }, BACKGROUND_CONTEXT);
-  let state = initialDurableProjection(observation.value);
-  const initial = foldDurableView(state, { kind: "value", value: observation.value, ops: [], retired: false }, [], true);
-  state = initial.state;
-  kernel.frame({ ...initial.frame, native: observation.value });
+  const initialize = (): ReturnType<typeof initialDurableProjection> => {
+    try {
+      const value = observation.value;
+      const initial = foldDurableView(initialDurableProjection(value), { kind: "value", value, ops: [], retired: false }, [], true);
+      kernel.frame(initial.frame);
+      // The host owns scheduling; opening a controller resumes saved native work.
+      harness.resume();
+      return initial.state;
+    } catch (error) { observation.detach(); pending.length = 0; throw error; }
+  };
+  let state = initialize();
   ready = true;
   schedule();
-  // The host owns scheduling; opening a controller resumes saved native work.
-  try { harness.resume(); } catch (error) { observation.detach(); throw error; }
   let disposing: Promise<void> | undefined = undefined;
 
   async function receipts(ids: readonly SubmissionId[]): Promise<readonly (SubmissionRecord | undefined)[]> {

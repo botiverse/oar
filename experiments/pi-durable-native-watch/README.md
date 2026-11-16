@@ -20,7 +20,7 @@ the comparison.
 The [native view implementation](https://github.com/earendil-works/pi/blob/v1.5.2/packages/durable/src/harness/view.ts)
 mounts built-in documents and a bounded entry window. It publishes every
 change to synchronous observers, including progress held in memory before
-persistence. The adapter keeps the original `value`, `ops` and `retired`,
+persistence. The adapter keeps the initial view once and then the original `ops` and `retired`,
 buffers callbacks that precede attachment resolution, and never calls native
 reads or record listeners from that synchronous callback. Entry append
 operations retain new entries even if the same update trims the view window.
@@ -84,7 +84,8 @@ the native transaction line.
 The host continues to own models, registry, scheduling, storage and execution
 environment. Disposal only detaches OAR. Model/tool rounds remain one run,
 child conversations remain opaque, and the browser entry adds no Node import.
-The supported optional peer selection is `~1.5.2` for Durable and Chord;
+The supported optional peer selection is `~1.5.2` for Durable and Chord,
+resolved to exactly the same version;
 custom extensions must follow their native migration instructions.
 
 ## Reproduce
@@ -128,7 +129,7 @@ stores, backup, logs and failed preliminary attempts are retained locally.
 
 ## Validation and limits
 
-The final `CI=1 pnpm run check` passed type checking, lint, 4,374 tests and
+The initial `CI=1 pnpm run check` passed type checking, lint, 4,374 tests and
 18 mock behavior cases.
 
 The native vendor run passed 30 cases; the focused run including pure folds
@@ -149,3 +150,52 @@ boundary and abort-projection timing; it also exposed the now-visible nested
 arguments and the actual normal-close Error name. The replacement
 assertions describe those measured native values, while retaining the
 original terminal, result, cleanup and no-fabrication checks.
+
+
+## Review revision, November 16
+
+View records now keep the initial snapshot once and each later native
+`{ ops, retired }` pair. Reconstructing a native view needs that snapshot and
+every following delta; an arbitrary record suffix cannot reconstruct it.
+The native replay test independently observes each view and compares it with
+the snapshot plus recorded operations after every publication.
+
+[record-volume.ts](record-volume.ts) drives 30 sequential short aimock prompts,
+saves every record and replays all native revisions. The same probe against
+the original PR implementation produced 1,027,060 bytes. The revised adapter
+produced 84,167 bytes; both captured 215 records and 91 views, and all 91
+revisions reconstructed exactly. This is a separate control from the reviewer's
+30-prompt workload, not a reproduction of its absolute byte count.
+[Revision results](revision-results.json) retain the summaries and fingerprints
+of complete local logs and record streams. No full raw stream is committed.
+
+```sh
+pnpm tsx experiments/pi-durable-native-watch/record-volume.ts /tmp/durable-revised
+# Against the original PR implementation, with a fresh output directory:
+pnpm tsx experiments/pi-durable-native-watch/record-volume.ts /tmp/durable-original with-values
+```
+
+Removing a running tool slot now emits its end before the old turn ends. A
+missing result leaves success unknown. Native abort and parent-return controls
+actually publish a failed nested summary, so those cases retain that native
+failure. A pending call that never starts can still have an aborted result
+entry; the adapter preserves it without inventing a start. The abort control
+also asserts that the final public state stays idle: an intermediate revision
+emitted the tool end after the turn end and incorrectly restored running state.
+That failure and its corrected regression are retained.
+
+Whole-document replacement and retirement use run identity as a fallback to
+an explicit run deletion. A changed generation task alone remains the same
+run. The native `afterFailedRun: "continue"` control fails A, starts queued B
+in the same publication and verifies B succeeds. A mutation that retains A's
+input list makes B inherit A's failure and fails this test. Restoring the
+original product also fails the new initial-observer cleanup, pending-tool
+result and delta-replay tests. These controls cover the previously missed
+regressions, not just successful paths.
+
+The revised complete gate passed type checking, lint, 4,377 tests and 18 mock
+behavior cases. The focused native/fold set passed 41 cases; all Durable vendor
+cases passed 35, with 18 public behavior cases passing. Package builds, packed
+installation and Chromium smoke passed again. The packed check includes
+normal Pi AI 1.5.0 beside the Durable host's aliased 1.5.2 and verifies OAuth
+registration identity. No real account, provider charge or host store was used.

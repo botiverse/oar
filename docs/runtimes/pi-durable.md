@@ -55,7 +55,9 @@ with `Cannot find module` for the provider module. The factory takes its
 catalog type from the Durable peer, independently of OAR's bundled Pi coding
 SDK 1.5.0.
 The host installs `@earendil-works/pi-durable@~1.5.2` and
-`@earendil-works/chord@~1.5.2`, both optional peers of OAR. OAR operates on
+`@earendil-works/chord@~1.5.2`, both optional peers of OAR. Resolve both to
+exactly the same native version; mismatched copies can split native identities.
+OAR operates on
 the host's native package instances, without bundling another copy. Tests pin
 1.5.2; this migration leaves the bundled Pi coding SDK and its Pi AI on 1.5.0.
 The [migration report](../../experiments/pi-durable-native-watch/README.md)
@@ -230,9 +232,12 @@ input is refused whole (`capabilities.images: false`).
 
 ## Records, snapshots and limits
 
-Every native value notification is one `pi-durable/view` frame, with the
-`WatchCall` unchanged as `native`. Unknown documents and operations remain
-there. The initial `ConversationView` is a `snapshot` frame. Observation
+Every native value notification is one `pi-durable/view` frame containing
+only the original `{ ops, retired }` as `native`. Unknown documents and
+operations remain in those deltas. Only the initial `snapshot` frame carries
+the complete `ConversationView`. To reconstruct native state, retain that
+starting snapshot and every subsequent delta in order; a retained suffix
+without its starting snapshot cannot reconstruct a complete view. Observation
 closure is a `pi-durable/watch_closed` frame, not evidence of a process exit.
 Submission queries are separate `pi-durable/submissions` frames; their
 terminal receipts determine the ending run's outcome in the corresponding
@@ -248,6 +253,8 @@ view frame. A missing receipt or failed query cannot prove completion.
 | running model or nested tool slot | tool name, call id and available arguments |
 | changed running tool `output` | whole retained native output window; diagnostics/details stay raw |
 | tool slot changes to done | model call reads content and ok/failed from its result entry; nested call reads ok/failed from its summary; absent result stays unknown |
+| running slot disappears | ends the call; result stays unknown unless a native result entry was published |
+| unstarted pending slot disappears with an aborted result entry | emits that result without inventing a tool start |
 | `pi.agent` | model and effort actually stored |
 | `pi.usage` | own model and tool ledgers minus totals at attachment |
 | `generation.retry` | retry with native attempt and reason |
@@ -268,13 +275,16 @@ records, not synthesized by this adapter.
 The optional `reasoning` counter in each model or tool usage entry is part
 of its output. OAR sums the reported parts and subtracts the attachment
 snapshot's reasoning total, just as it does for input, output and caches.
-Missing counters stay absent; repeated cumulative ledger reports do not
-add the same spend again. This uses Pi Durable 1.2.0's native `UsageState`
+Missing counters stay absent; unchanged totals emit no new usage event and
+repeated cumulative ledger reports do not add the same spend again. This uses Pi Durable 1.2.0's native `UsageState`
 and pi-ai `Usage`, verified by projection tests.
 
 Native model rounds are internal to a run. OAR ends the old turn before
 activating its queued successor, even when both changes share a notification.
-It retains the old run's input ids when native `afterRun` clears that list.
+It retains the old run's input ids when native `afterRun` clears that list,
+and resets them when the next run starts. Whole-document replacements and
+retired deltas use native first-entry/input identity to detect a handover;
+a changed task id alone is only a model-generation change.
 
 A view keeps a bounded entry window and current state. Completed history is
 **not** replayed as newly observed text or events on attachment. New entry

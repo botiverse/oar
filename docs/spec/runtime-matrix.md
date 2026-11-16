@@ -207,7 +207,7 @@ an observation from the runtime and carries no request id. It may name an
 | claude | `command_lifecycle started` for a prompt-like write identifies its input; a spontaneous root `system/init` has no input id |
 | codex | `turn/started`, including queued turns without another OAR prompt |
 | pi | `agent_start`, including runs started directly through the SDK |
-| pi-durable | Initial active snapshot and `run_start` |
+| pi-durable | Initial active snapshot or native `pi.live.run` appearing in a conversation delta |
 | grok | `_x.ai/queue/changed` `runningPromptId`: OAR names each prompt (`_meta.promptId`), so its own start carries the input id; any other name is Grok's own turn (no input id), ended by its root `turn_completed` |
 
 Status becomes running when idle and preserves the current phase when
@@ -783,7 +783,7 @@ this declaration; that is separate from changing the system prompt.
 | Codex, `appendSystemPrompt` | Next native compaction | Saved until compaction, then default | Declared; 0.166.0, local automatic compaction |
 | Qwen, both prompts | Immediate | Default, including after compaction | Both declared; 0.26.5, native `/compress` |
 | Pi SDK/RPC, both prompts | Immediate | Default, including current project resources and after compaction | Both declared; 1.4.0, native automatic compaction |
-| Pi Durable, `appendSystemPrompt` | Immediate | Saved, including after compaction | Declared; 1.4.0, native automatic compaction. Changing settings while adopting an active run is refused. Replacement is always refused. |
+| Pi Durable, `appendSystemPrompt` | Immediate | Saved, including after compaction | Declared; 1.5.2, native automatic compaction. Changing settings while adopting an active run is refused. Replacement is always refused. |
 | Cursor, Kimi | Both refused | Not applicable | Refusals declared, no resume entries |
 | Grok | Replacement and append together apply immediately; append-only resume is refused | Saved; append-only retention also verified across native compaction (1.0.70) | Conditional; no resume entries; host rule below. [Details](../runtimes/grok.md#models-and-instructions) |
 | OpenCode v1 | Both reapplied through native inline configuration | Omission across compaction untested | Version-dependent; no resume entries. [Details](../runtimes/opencode.md#models-effort-instructions-and-context) |
@@ -977,7 +977,7 @@ and [`claude-missing-resume.json`](../../tests/fixtures/claude-missing-resume.js
 Tests exercise the opening paths, full pagination, redaction and the
 must-not-match refusals.
 
-Pi Durable 1.4.0 is additionally covered by the real in-memory Harness tests
+Pi Durable 1.5.2 is additionally covered by the real in-memory Harness tests
 in `tests/pi-durable/options.test.ts`, including a storage-failure control.
 
 ## Unavailable resume targets

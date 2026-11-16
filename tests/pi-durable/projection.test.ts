@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { expect, test } from "vitest";
+import { copyJson } from "@earendil-works/chord/json";
 import type { Usage } from "@earendil-works/pi-ai-durable";
 import type { ConversationId, ConversationView, EntryId, LiveState, SubmissionId, TaskId, WatchCall } from "@earendil-works/pi-durable";
-import { appendedEntries, foldDurableView, initialDurableProjection, submissionOutcome } from "../../packages/oar/src/runtimes/pi-durable/projection.js";
+import { appendedEntries, foldDurableView, initialDurableProjection, runEnded, submissionOutcome } from "../../packages/oar/src/runtimes/pi-durable/projection.js";
 
 function isConversationId(value: number): value is ConversationId { return Number.isSafeInteger(value) && value > 0; }
 function isEntryId(value: number): value is EntryId { return Number.isSafeInteger(value) && value > 0; }
@@ -25,7 +26,7 @@ test("cumulative native ledgers subtract the attachment baseline without countin
   const later = { ...baseline, docs: { ...baseline.docs, "pi.usage": { models: { first: { ...usage, output: 9, reasoning: 5 }, second: usage }, tools: { embedded: { ...usage, reasoning: 1 } } } } };
   const next = foldDurableView(initialDurableProjection(baseline), call(later));
   expect(next.frame.events).toEqual([{ kind: "usage", usage: { tokens: { input: 30, output: 14, cacheRead: 4, cacheWrite: 6, reasoning: 3 } } }]);
-  expect(foldDurableView(next.state, call(later)).frame.events).toEqual(next.frame.events);
+  expect(foldDurableView(next.state, call(later)).frame.events).toEqual([]);
 });
 
 test("partials and the completed entry project each text and reasoning suffix once", () => {
@@ -48,7 +49,7 @@ test("attachment history and native corrections are retained without replaying o
   const partial = foldDurableView(first.state, call({ ...initial, docs: view({ generation: { attempt: 0, message } }).docs }));
   const correction = call({ ...initial, docs: view({ generation: { attempt: 0, message: { ...message, content: [{ type: "text", text: "corrected" }] } } }).docs });
   const result = foldDurableView(partial.state, correction);
-  expect(result.frame.native).toBe(correction);
+  expect(result.frame.native).toEqual({ ops: correction.ops, retired: false });
   expect(result.frame.events.filter(event => event.kind === "text_delta")).toEqual([]);
 });
 
@@ -69,13 +70,17 @@ test("entry appends survive an immediate native window trim in the same notifica
   expect(foldDurableView(initialDurableProjection(empty), native).frame.events.filter(event => event.kind === "text_delta")).toHaveLength(110);
 });
 
-test("unknown native documents and operations remain in the original frame", () => {
-  const native = call({ ...empty, docs: { ...empty.docs, future: { untouched: true } } });
+test("native operations retain unknown documents without storing every complete view", () => {
+  const native: Extract<WatchCall<ConversationView>, { kind: "value" }> = {
+    ...call({ ...empty, docs: { ...empty.docs, future: { untouched: true } } }),
+    ops: [["s", ["docs", "future"], { untouched: true }]],
+  };
   const next = foldDurableView(initialDurableProjection(empty), native);
-  expect(next.frame.native).toBe(native);
+  expect(next.frame.native).toEqual({ ops: native.ops, retired: false });
+  expect(next.frame.native).not.toHaveProperty("value");
   const serialized = JSON.stringify(next.frame.native);
   const persisted: unknown = JSON.parse(serialized);
-  expect(persisted).toEqual(native);
+  expect(persisted).toEqual({ ops: native.ops, retired: false });
 });
 
 test("a missing terminal receipt cannot turn a partly answered run into completion", () => {
@@ -104,4 +109,37 @@ test("a new generation attempt can repeat the same text without being mistaken f
   const initial = foldDurableView(initialDurableProjection(first), call(first), [], true);
   const next = foldDurableView(initial.state, call(view({ generation: { attempt: 1, message } })));
   expect(next.frame.events.filter(event => event.kind === "text_delta")).toEqual([{ kind: "text_delta", text: "hello" }]);
+});
+
+test("a removed running slot ends without inventing a result; a done slot does not end twice", () => {
+  const first = view({ tools: [{ callId: "running", name: "tool", status: "running" }, { callId: "done", name: "tool", status: "done" }] });
+  const initial = initialDurableProjection(first);
+  const next = foldDurableView(initial, call(empty));
+  expect(next.frame.events.filter(event => event.kind === "tool_call_ended")).toEqual([{ kind: "tool_call_ended", callId: "running" }]);
+});
+
+test("a removed pending slot preserves its native aborted result without inventing a start", () => {
+  const first = view({ tools: [{ callId: "pending", name: "tool", status: "pending" }] });
+  const entryId = 5;
+  assert.ok(isEntryId(entryId));
+  const done: ConversationView = { ...empty, entries: [{ id: entryId, conversationId: id, kind: "pi.tool", model: [
+    { role: "toolResult", toolCallId: "pending", toolName: "tool", content: [{ type: "text", text: "Tool tool was aborted" }], isError: true, timestamp: 1 },
+  ] }] };
+  const result = foldDurableView(initialDurableProjection(first), call(done));
+  expect(result.frame.events.filter(event => event.kind.startsWith("tool_call_"))).toEqual([
+    { kind: "tool_call_ended", callId: "pending", content: [{ type: "text", text: "Tool tool was aborted" }], result: "failed" },
+  ]);
+});
+
+// oxlint-disable-next-line max-statements -- Compare identical task handover and distinct run identity across two delta shapes.
+test("whole-document replacement distinguishes a new run from a generation handover", () => {
+  const a = 10; const b = 20; const inputA = 30; const inputB = 40; const firstA = 50; const firstB = 60;
+  assert.ok(isTaskId(a) && isTaskId(b) && isSubmissionId(inputA) && isSubmissionId(inputB) && isEntryId(firstA) && isEntryId(firstB));
+  const first = view({ run: { taskId: a, inputs: [inputA], first: firstA, turns: 0 } });
+  const previous = initialDurableProjection(first);
+  const handover = view({ run: { taskId: b, inputs: [inputA], first: firstA, turns: 1 } });
+  const next = view({ run: { taskId: b, inputs: [inputB], first: firstB, turns: 0 } });
+  expect(runEnded(previous, { ...call(handover), ops: [["s", ["docs", "pi.live"], handover.docs["pi.live"] ?? {}]] })).toBe(false);
+  expect(runEnded(previous, { ...call(next), ops: [["s", ["docs", "pi.live"], next.docs["pi.live"] ?? {}]] })).toBe(true);
+  expect(runEnded(previous, { ...call(next), ops: [["r", copyJson(next)]], retired: true })).toBe(true);
 });
