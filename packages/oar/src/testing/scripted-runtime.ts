@@ -1,10 +1,8 @@
 import type { RuntimeBrand } from "../contracts/brand.js";
 import { defineRuntime, type Runtime } from "../contracts/runtime.js";
 import type { InputImage, InputOptions, RuntimeEventBody, Session, SessionCapabilities, SessionOptions, StartSession, TokenTotals, TurnOutcome } from "../contracts/session.js";
-// The public runtime-author SPI owns recording and the Session face.
-import { createSessionKernel, sealSession } from "../kernel.js";
-import { inputImagesRefusal } from "../shared/input-images.js";
-import { withdrawHeld } from "../shared/held-input.js";
+// Built on the public runtime-author SPI (@botiverse/oar/kernel), like a host runtime.
+import { createSessionKernel, inputImagesRefusal, sealSession, withdrawHeld } from "../kernel.js";
 import { toolContent } from "../shared/tool-output.js";
 import { scriptedTasks, type ScriptedTask, type ScriptedTaskSpec } from "./scripted-tasks.js";
 

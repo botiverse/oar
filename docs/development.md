@@ -260,7 +260,7 @@ or pull request whose changes are all Markdown files or under `docs/` or
 - `behavior`: `pnpm run sea-trial` plus the backend's vendor tests on the
   same three systems for `claude-aimock`, `codex-aimock`, `pi-aimock`,
   `pi-rpc-aimock` (not on Windows, below), `pi-durable-aimock`, `qwen-aimock`,
-  `dsh-aimock` (DSH pinned to `DSH_MINIMUM_VERSION` 0.2.1-rc.5, a missing
+  `dsh-aimock` (DSH pinned to the runtime minimum, 0.2.1-rc.5, a missing
   installation fails), `qoder-native` (Qoder pinned to 1.1.81 because
   native replay stops driving inference from 1.1.82), these two at
   shared-case concurrency 2, and `factory-aimock` (droid pinned to 1.12.1

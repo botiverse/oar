@@ -1275,9 +1275,10 @@ root id when the first retained record belongs to a child; otherwise the
 first record's session id becomes the root. Start fresh lifecycle state
 for each runtime start or resume, even when the session id is reused.
 
-The existing `reduceTasks(TaskMap, record)` and `applyTaskEvent` still fold
-only native task events. They have no lifecycle evidence and do not infer
-exit endings; crew's own task fold continues using `applyTaskEvent`.
+The public `reduceTasks(TaskMap, record)` folds only native task events. It
+has no lifecycle evidence and does not infer exit endings. Crew uses the
+internal `applyTaskEvent` helper for its own native-event fold; that helper
+is not a public export.
 
 ## Example 1 · An ordinary turn (claude): both ends of the turn are real records
 

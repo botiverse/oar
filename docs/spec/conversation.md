@@ -129,8 +129,9 @@ the runtime takes images at all (ACP: what `initialize` advertised, unless a
 profile knows better from a live probe, as grok's does). An input
 whose images cannot go (no image input, not a png/jpeg/gif/webp, unreadable)
 is rejected whole, `unsupported` or `error`, before it reaches the runtime.
-A custom runtime keeps the same rule with
-`withInputImages` from `@botiverse/oar/kernel`; `scriptedRuntime` does.
+A custom runtime keeps the same rule with `withInputImages` from
+`@botiverse/oar/kernel` when it reads image bytes. `scriptedRuntime` uses the
+same entry's `inputImagesRefusal` guard and passes the validated paths to its script.
 Native echoes (`user_message.input`) remain text only.
 
 ## Native observations

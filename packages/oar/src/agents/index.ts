@@ -4,7 +4,6 @@
  * docs/spec/subagents.md.
  */
 export { createSubagents } from "./crew.js";
-
 export { formatReport, parseReport, reportOrigin } from "./report.js";
 export type { ParsedReport, ReportOutcome } from "./report.js";
 export type {

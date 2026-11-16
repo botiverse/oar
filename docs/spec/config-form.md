@@ -81,8 +81,8 @@ export interface ModelField extends FieldBase {
   /**
    * The selections the form offers, declared, not implied: `inherit` (the
    * runtime's default), `preset` (a listed model), `custom` (a typed id).
-   * `validateConfig` rejects a new value whose mode is not listed, and
-   * `toSessionOptions` one outside `launchModes`; hiding it in the UI is not
+   * Host validation rejects a new value whose mode is not listed, and
+   * launch mapping one outside `launchModes`; hiding it in the UI is not
    * enough.
    */
   readonly modes: readonly ModelMode[];
@@ -144,9 +144,9 @@ form no longer offers that mode.
 A field can be hidden for two different reasons, and they launch differently.
 
 - **Inactive branch.** Its `visibleWhen` is not met (an API key field while
-  the default provider is chosen): `isActive(field, values)` is true only
-  when the other field's value is a string in `in`. `validateConfig` does
-  not check an inactive field, and `toSessionOptions` does not launch it: by
+  the default provider is chosen): the branch is active only when the other
+  field's value is a string in `in`. Host validation does not check an
+  inactive field, and host launch mapping does not launch it: by
   the form's own rule it is not part of this configuration. A host may keep
   it in storage so switching back restores it, but it never launches.
 - **Unsupported on the machine.** The field is active by the form's rules but
@@ -171,22 +171,23 @@ export type ListingReason =
   | "unauthenticated" | "timeout" | "failed" | "empty" | "machine_offline" | "unsupported";
 ```
 
-`toModelListing(outcome, bundled?)` builds one. `outcome` is the
-`ListModelsResult`, or a `ListingFailure` the host saw instead
-(`{ kind: "error", reason: "timeout" | "failed" | "machine_offline" }`);
-`bundled` is a list the host supplies.
+The host builds this data from `ListModelsResult`, or from a failure it
+observed (`timeout`, `failed` or `machine_offline`), plus any bundled list
+it supplies. The historical `toModelListing` mapper and `ListingFailure`
+type are internal reference code, not public exports.
 
 | outcome | status | options |
 |---|---|---|
 | `ok` with models | `live` | the models |
-| `ok` with none (`empty`), `unauthenticated`, `unsupported`, or a `ListingFailure`, and a bundled list exists | `fallback`, `source: "bundled"`, the reason | the bundled list |
+| `ok` with none (`empty`), `unauthenticated`, `unsupported`, or a host-observed failure, and a bundled list exists | `fallback`, `source: "bundled"`, the reason | the bundled list |
 | the same, no bundled list | `unavailable`, the reason | none |
 
 A `fallback` always carries its reason and source, so an authentication
 failure is never shown as a live list. `ModelListing` is a shared, SDK-free
 type in the `forms` entry; acquiring the outcome (calling `listModels` on a
-machine) is separate and runtime-side. `listedModels(listing)` is the
-models a listing offers, none when `unavailable`.
+machine) is separate and runtime-side. A host reads `models` from the
+`live` or `fallback` variant; `unavailable` offers none. The historical
+`listedModels` convenience helper is internal.
 
 ### Validation
 
@@ -294,14 +295,15 @@ secrets go only into the launch; they are never returned to a form client.
 
 ### The baseline form
 
-The historical internal baseline is what a machine that sends no capability report gets
-(state `legacy` [below](#machine-states)). It is the **complete**
+The historical baseline is an internal migration fixture, not a form
+exported to hosts. The `legacy` behavior drafted [below](#machine-states)
+requires a host-owned frozen form. The internal fixture is a **complete**
 definition, not a list of field names: a full `RuntimeConfigForm` with its
 options, model modes and every rule, kept as its own literal beside the
-runtime's form (`grokBaselineForm` in `forms/runtimes/grok.ts`), so editing
-the form never reaches old daemons. Because `validateConfig` and
-`toSessionOptions` are pure functions of form data, freezing the form
-freezes their behavior for it. Two consequences:
+runtime's form (`grokBaselineForm` in `forms/runtimes/grok.ts`), so tests
+can compare the current form with the migration contract. The
+internal `validateConfig` and `toSessionOptions` reference functions are
+pure functions of form data. Two historical constraints remain testable:
 
 - A change to how those functions interpret an existing form is a protocol
   change: it bumps `protocol`, and the baseline keeps the old one.
@@ -394,13 +396,14 @@ first report arrives.
 
 ### Machine states
 
-Per machine, the host is in exactly one state. `effectiveForm(hostForm,
-state)` is a pure function in `@botiverse/oar/forms`, so every host computes
-the same result.
+In this draft, the host would keep exactly one state per machine. The
+proposed pure `effectiveForm(hostForm, state)` would compute the result; it
+is not implemented or exported by `@botiverse/oar/forms`. Any legacy
+baseline would be a frozen form supplied by the host, not an OAR export.
 
 | state | when | form served | submit (create / edit) | launch |
 |---|---|---|---|---|
-| **legacy** | no capability flag (old daemon) | the runtime's **baseline form**, unchanged | validated against the baseline form | daemon's own path, as today |
+| **legacy** | no capability flag (old daemon) | the host-owned **frozen baseline form**, unchanged | validated against that host form | daemon's own path, as today |
 | **pending** | flag, no current-connection report yet | none: the runtime shows "checking this computer" (`machine_capabilities_pending`) | rejected, retryable | daemon checks with its own form (below) |
 | **incompatible** | report, no protocol in common with the host form | none (`config_form_incompatible`, both OAR versions in the log) | rejected | daemon checks with its own form |
 | **reported** | current report, common protocol | the host form reduced by the report | validated against that reduced form | daemon checks with its own form |
@@ -443,16 +446,16 @@ The rules that keep data and the rules that refuse a launch are separate:
   **new** value outside the effective form is rejected
   (`field_unsupported_on_machine`).
 - **Refusing a launch.** Keeping a value does not make it launchable. At
-  launch credentials are resolved at the launch boundary, then the daemon calls
-  `toSessionOptions` with **its own** form. A field id, mode or
+  launch credentials are resolved at the launch boundary, then the daemon
+  maps values using **its own** form. A field id, mode or
   value it does not support fails the launch with a typed refusal naming the
   field. It is never dropped silently. This holds in every state, including
   `pending` and a stale host view.
 
 ### Required checks for the pull request that builds it
 
-1. `legacy` serves the baseline form exactly; a field, option or mode added
-   to the host form after migration does not appear.
+1. `legacy` serves the host-owned frozen baseline form exactly; a field,
+   option or mode added to the host form after migration does not appear.
 2. A report missing an optional field hides it; one missing a required
    field, or leaving it an empty domain, gives `config_form_unsupported`.
 3. Same `id`, different `kind` is unsupported.
@@ -468,7 +471,7 @@ The rules that keep data and the rules that refuse a launch are separate:
 8. A field whose id is unchanged but which later gains a mode (e.g. `custom`)
    or a select value: an old machine's report does not list it, so it is not
    offered, a new value using it is rejected, and a stored one is `needs_fix`.
-9. A branch-hidden stored value does not reach `toSessionOptions`; an
+9. A branch-hidden stored value does not reach launch mapping; an
    unsupported stored value is never silently omitted.
 10. A `needs_fix` agent can be fixed: an edit that clears the unsupported
     optional value, or replaces it with a supported one, is accepted and the
@@ -483,8 +486,9 @@ provider connections; credential storage; the stored `RuntimeConfig` format;
 the frozen v1 forms that installed apps still request.
 
 Moves to OAR: which fields a runtime has, their stable ids, English default
-copy and translation keys, where their options come from, validation, and
-the mapping to `SessionOptions`.
+copy and translation keys, and where their options come from. Validation
+and mapping to `SessionOptions` remain host responsibilities; OAR retains
+internal reference implementations and regression tests.
 
 The Raft server translates a form into a v2 form definition, fills
 the model source from the machine's `listModels` result, applies the machine
@@ -492,7 +496,7 @@ capability report, and translates copy by key. It maps `FormValues` to and
 from its own `RuntimeConfig`, applies secret edits to the credentials it
 stores, and validates with `mode` and `stored` from that storage. The daemon
 maps a stored `RuntimeConfig` and the resolved credentials to `LaunchValues`
-and calls `toSessionOptions` to launch.
+and maps them with its own form to `SessionOptions` before launch.
 
 Environment variables and a custom executable (`command`) stay host and
 construction inputs in this migration, not form fields: no current runtime
@@ -506,7 +510,7 @@ existing code. They are kept out of the migration pull requests:
 
 - **Migration pull requests run in `legacy` only.** Until the daemon sends
   capability reports, every machine is `legacy`, so the host serves the
-  runtime's baseline form, narrowed by the host ([host narrowing](#host-narrowing))
+  host-owned frozen baseline form, narrowed by the host ([host narrowing](#host-narrowing))
   to what Raft serves today. That is why fixture equality (Migration, item 1)
   can hold: no new state, outcome or error reaches a client in these pull
   requests.

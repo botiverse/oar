@@ -167,6 +167,8 @@ import * as testing from "@botiverse/oar/testing";
 import { createPiProviderAuth, createPiRuntime, type PiProviderAuthOptions } from "@botiverse/oar/runtimes/pi";
 
 export const entries = [oar, browser, forms, agents, report, brands, kernel, observe, testing];
+export const runtimeAuthorHelpers = [kernel.inputImagesRefusal, kernel.withdrawHeld, browser.withdrawHeld];
+export type RuntimeAuthorQueue = kernel.HeldInput[];
 export const hostEntrances = [oar.defaultRuntimes, oar.orient, oar.openVoyage, oar.createRuntimeRegistry, oar.defineRuntime, oar.promptAndWait, testing.scriptedRuntime, createPiRuntime];
 export type HostContracts = [oar.Runtime, oar.RuntimeRegistry, oar.Session, oar.SessionOptions, oar.Event, oar.DeliverResult, oar.TurnOutcome, oar.VoyageRecorder, oar.Orientation, oar.OrientationDepth, oar.OrientOptions, oar.RuntimeOrientation, oar.Probe<unknown>, testing.ScriptedTurn];
 export type HostSessionMembers = Pick<oar.Session, "deliver" | "steer" | "resources">;

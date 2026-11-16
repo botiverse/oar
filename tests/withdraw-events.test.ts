@@ -2,7 +2,7 @@ import { expect, test } from "vitest";
 import type { Event, RawEvent, RequestRecord, ResponseRecord } from "../packages/oar/src/index.js";
 import { controlActionsOf, eventsOf, eventsReader } from "../packages/oar/src/observe/events.js";
 import { conversationOf, reduceConversation, type ConversationInput } from "../packages/oar/src/observe/conversation.js";
-import { withdrawHeld } from "../packages/oar/src/shared/held-input.js";
+import { withdrawHeld } from "../packages/oar/src/kernel.js";
 
 /**
  * `withdraw` in the record stream (docs/spec/record-stream.md): a toRuntime

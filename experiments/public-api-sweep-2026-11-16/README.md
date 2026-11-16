@@ -1,6 +1,6 @@
 # Public API export cleanup (2026-11-16)
 
-Remove 112 unused or explicitly retired export names while preserving the
+Remove 109 unused or explicitly retired export names while preserving the
 Runtime and Session contracts that hosts use. This is a breaking import change:
 implementations remain internal, with their regression tests. No runtime
 behavior, record format or retained type shape changes.
@@ -35,10 +35,11 @@ The earlier survey records a public dsh-agent-team use of
 reader as unused, so this export remains. Public usage evidence is finite;
 this audit does not claim there are no unknown consumers.
 
-A separate read-only review resolved all 27 public source entrypoints. It
-confirmed the 112 unique removals and that all 772 retained export occurrences
-still resolve to unchanged declarations. None of the six retired helper types
-is used by the fresh Raft or Ferry snapshots.
+An independent read-only review resolved all 27 public source entrypoints.
+The final audit after restoring runtime-author SPI records 109 unique
+removals and 777 retained export occurrences. Retained declarations are
+unchanged. None of the five retired helper types is used by the fresh Raft
+or Ferry snapshots.
 
 ## Preserved host surface
 
@@ -49,6 +50,9 @@ Airwing's values `defaultRuntimes`, `orient`, `openVoyage`,
 `OrientationDepth`, `OrientOptions`, `RuntimeOrientation` and `Probe` remain,
 including `Session.deliver`, `steer`, `resources()` and orientation results.
 `scriptedRuntime`, `ScriptedTurn` and `createPiRuntime` also remain.
+Runtime-author SPI is retained independently of host import counts:
+`inputImagesRefusal`, `withdrawHeld` and its `HeldInput` type stay public,
+including the browser-safe queue helper.
 
 Other unapproved survey candidates stay public, including `graphOf`,
 `statusOf`, `usageOf`, `turnEndAfter`, `observeAgent`, `simpleStateOf`,
@@ -68,7 +72,6 @@ Internal module paths are for OAR's own tests, not a supported host migration.
 | --- | --- |
 | `DSH_MINIMUM_VERSION` | Use `dshRuntime.minVersion`. |
 | `FormSessionOptions` | Use the retained `SessionOptions` contract. |
-| `HeldInput` | Internal adapter queue entry; public input and control types are unchanged. |
 | `ListingFailure` | Internal listing classifier; use the retained `ModelListing` union. |
 | `PiModelCatalogOptions` | Catalog path options are internal; there is no public drop-in replacement. Use the runtime model reader for supported discovery. |
 | `SUBAGENT_DEPTH_ENV` | Internal subagent recursion transport detail; use `createSubagents` options. |
@@ -122,7 +125,6 @@ Internal module paths are for OAR's own tests, not a supported host migration.
 | `grokSession` | Use `grokRuntime.session`. |
 | `headerLine` | Use `openVoyage` to write the header. |
 | `initialTasks` | Use `initialTaskState` for records, or an empty `TaskMap` for `reduceTasks` over raw records. |
-| `inputImagesRefusal` | Use the retained `withInputImages` guard for custom runtimes. |
 | `isActive` | Evaluate the retained form field conditions in the host. |
 | `kimiAccountDisplayName` | Use the runtime authentication/provider reader result; this extraction helper is internal. |
 | `kimiAccountEmail` | Use the runtime authentication/provider reader result; this extraction helper is internal. |
@@ -177,7 +179,6 @@ Internal module paths are for OAR's own tests, not a supported host migration.
 | `toSessionOptions` | Map the retained form data to `SessionOptions` in the host. |
 | `validateConfig` | Validate the retained form data in the host; native runtime validation remains authoritative. |
 | `viewOf` | Fold raw records with `initialSessionView` and `reduceSessionView`. |
-| `withdrawHeld` | Internal adapter queue helper; use the public `Session.withdraw` operation. |
 
 ## Reproduce and validate
 

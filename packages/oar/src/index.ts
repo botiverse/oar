@@ -24,31 +24,22 @@ export type { HostTool, HostToolContent, HostToolResult, ServeMcpToolsOptions, S
 // Everything the browser-safe observe subpath exports, so the root is the full surface.
 export * from "./observe/index.js";
 export { claudeRuntime } from "./runtimes/claude/index.js";
-
 export { claudeInstallation } from "./runtimes/claude/installation.js";
 export { codexRuntime } from "./runtimes/codex/index.js";
-
 export { createPiProviderAuth } from "./runtimes/pi/auth.js";
 export type { PiProviderAuthOptions } from "./runtimes/pi/auth.js";
-
 export { antigravityRuntime } from "./runtimes/antigravity/index.js";
-
 export { createCursorRuntime, cursorNativeEnvironment } from "./runtimes/cursor/index.js";
 export type { CursorRuntime, CursorRuntimeOptions } from "./runtimes/cursor/index.js";
 export type { CursorSdk, ModelListItem as CursorModelListItem } from "./runtimes/cursor/sdk.js";
-
 export { grokRuntime } from "./runtimes/grok/index.js";
-
 export { kimiRuntime } from "./runtimes/kimi/index.js";
 export type { KimiLoginOptions } from "./runtimes/kimi/login.js";
-
 export { opencodeRuntime } from "./runtimes/opencode/index.js";
-
 export { createOpencodeProviderAuth, OpencodeProviderAuthError } from "./runtimes/opencode/provider-auth.js";
 export type { OpencodeProviderAuth, OpencodeProviderAuthErrorKind, OpencodeProviderAuthOptions } from "./runtimes/opencode/provider-auth.js";
 export { qwenRuntime, createQwenProviderAuth, QwenProviderAuthError } from "./runtimes/qwen/index.js";
 export type { QwenProvider, QwenProviderAuth, QwenProviderAuthOptions, QwenProviderAuthErrorKind, QwenProviderConnectOptions, QwenProviderConnectResult } from "./runtimes/qwen/index.js";
-
 export { piRuntime, createPiRuntime, type PiRuntimeOptions } from "./runtimes/pi/index.js";
 
 /**
@@ -72,20 +63,13 @@ export const defaultRuntimes = new RuntimeRegistry([
   qwenRuntime,
   qoderRuntime,
 ]);
-
 export { runtimeBrands, runtimeBrandIcon } from "./brands.js";
 export type { RuntimeBrand } from "./brands.js";
-
 export { qoderRuntime } from "./runtimes/qoder/index.js";
-
 export { orient } from "./shared/orientation/index.js";
 export { userShellEnvironment } from "./shared/shell-environment.js";
 export { writeShellEnvironmentCapture } from "./shared/shell-environment-capture.js";
-
 export { factoryRuntime } from "./runtimes/factory/index.js";
-
 export { dshRuntime } from "./runtimes/dsh/index.js";
-
 export { codebuddyRuntime } from "./runtimes/codebuddy/index.js";
-
 export { devinRuntime } from "./runtimes/devin/index.js";

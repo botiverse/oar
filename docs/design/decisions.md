@@ -661,6 +661,8 @@ record each removed name and the checked host revisions.
 
 Evidence overrides a broad removal category: `claudeInstallation` remains
 because a public dependent uses it, and Airwing's orientation imports remain.
+Runtime-author SPI is judged by its supported construction contract, not
+host import counts: the image guard and held-queue helper remain public.
 Other survey candidates that still need host confirmation remain public too.
 The form data and its types stay public; host validation and launch mapping
 are host responsibilities. This change only repairs references to retired

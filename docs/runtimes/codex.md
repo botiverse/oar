@@ -1215,7 +1215,7 @@ can list these fallbacks without probing or loading the runtime:
 `codexInstalledExecutableCandidates(platform?, home?, env?)` and
 `desktopBuildExecutables(bin)`, both synchronous, reading only the Desktop
 `bin` folders; the list leaves out `OAR_CODEX_BIN` and PATH, which
-`codexInstallation` tries first
+`codexRuntime.installation` tries first
 ([candidates](../../packages/oar/src/runtimes/codex/installation-candidates.ts)).
 Every candidate requires
 `codex app-server --help` to succeed; a codex without the app-server surface

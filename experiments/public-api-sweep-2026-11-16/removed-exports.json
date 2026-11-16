@@ -354,40 +354,10 @@
     "type": false
   },
   {
-    "file": "browser.ts",
-    "name": "withdrawHeld",
-    "module": "./shared/held-input.js",
-    "type": false
-  },
-  {
-    "file": "browser.ts",
-    "name": "HeldInput",
-    "module": "./shared/held-input.js",
-    "type": true
-  },
-  {
     "file": "kernel.ts",
     "name": "controlOutcomeOf",
     "module": "./shared/seal-session.js",
     "type": false
-  },
-  {
-    "file": "kernel.ts",
-    "name": "inputImagesRefusal",
-    "module": "./shared/input-images.js",
-    "type": false
-  },
-  {
-    "file": "kernel.ts",
-    "name": "withdrawHeld",
-    "module": "./shared/held-input.js",
-    "type": false
-  },
-  {
-    "file": "kernel.ts",
-    "name": "HeldInput",
-    "module": "./shared/held-input.js",
-    "type": true
   },
   {
     "file": "observe/index.ts",
