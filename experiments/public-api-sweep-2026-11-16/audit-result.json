@@ -4,8 +4,8 @@
   "package": {
     "name": "@botiverse/oar",
     "version": "0.111.0",
-    "revision": "8e7db6503054dfbbb054b4b13efb03e6de41e743",
-    "dirty": true,
+    "revision": "317cf5411455c1a8322d488ac7c716fceb4a4252",
+    "dirty": false,
     "entrypoints": [
       {
         "specifier": "@botiverse/oar",
@@ -33,8 +33,8 @@
       },
       {
         "specifier": "@botiverse/oar/browser",
-        "exports": 276,
-        "reExportAliases": 271,
+        "exports": 278,
+        "reExportAliases": 273,
         "typeAliases": 110
       },
       {
@@ -51,8 +51,8 @@
       },
       {
         "specifier": "@botiverse/oar/kernel",
-        "exports": 6,
-        "reExportAliases": 6,
+        "exports": 9,
+        "reExportAliases": 9,
         "typeAliases": 0
       },
       {
