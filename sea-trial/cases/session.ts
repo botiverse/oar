@@ -287,7 +287,7 @@ export const sessionCases: readonly TrialCase[] = [
         (error: unknown) => ({ kind: "rejected" as const, error }),
       );
       if (attempt.kind === "rejected") {
-        assert.match(String(attempt.error), /resume/iu, "a runtime without resume must reject loudly, naming resume");
+        assert.match(String(attempt.error), /resume/iu, `a runtime without resume must reject loudly, naming resume: ${String(attempt.error)}`);
         return;
       }
       const resumed = attempt.session;
