@@ -235,7 +235,7 @@ Every command: [packages/cli](packages/cli/README.md) (published as `@botiverse/
 ## Projects using OAR
 
 - [Raft](https://raft.build): where people and agents work together; Raft Computers run agent runtimes through OAR.
-- [Kaze](https://kaze.build)
+- [Kaze](https://kaze.build): a calm, quick browser for macOS and Windows, with an agent that works in your tabs ([source](https://github.com/jackwener/Kaze)).
 - [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness/tree/master/packages/experimental/subagent-oar): `subagent-oar` hands DeepSeek Harness subagents to other runtimes.
 - [repo-harness](https://github.com/aimpact-inc/repo-harness): file-backed workflow harness for Claude Code and Codex sessions.
 - [Eta](https://github.com/0xfe-project/eta): a self-contained multi-agent loop, runtime and app.
