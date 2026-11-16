@@ -7,6 +7,7 @@ import { errorMessage, LoginSecrets } from "../../shared/login.js";
 import { environmentValue } from "../../shared/environment.js";
 import { callRedaction, cursorSdkAccess, IN_PROCESS_ENV, withLease, type CursorSdkSource } from "./access.js";
 import type { CursorAuth } from "./sdk.js";
+import { CURSOR_SDK_VERSION } from "./sdk-version.js";
 
 const STATUS_TIMEOUT_MS = 20_000;
 const STATUS_SOURCE = "Cursor.auth.status";
@@ -78,7 +79,7 @@ export function cursorAuthStatusWith(source: CursorSdkSource): AuthStatusReader 
         signal.throwIfAborted();
         const { auth } = sdk.Cursor;
         if (auth === undefined) {
-          return { kind: "unknown", detail: "this @cursor/sdk has no Cursor.auth; OAR needs 1.3.1" };
+          return { kind: "unknown", detail: `this @cursor/sdk has no Cursor.auth; OAR needs ${CURSOR_SDK_VERSION}` };
         }
         const read = await readCursorAuthStatus(auth, options.timeoutMs);
         return read;

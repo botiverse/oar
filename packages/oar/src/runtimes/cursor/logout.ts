@@ -4,6 +4,7 @@ import { errorMessage, LoginSecrets } from "../../shared/login.js";
 import { confirmedLogout, logoutTimedOut, type NativeLogout } from "../../shared/logout.js";
 import { readCursorAuthStatus } from "./auth-status.js";
 import { callRedaction, cursorSdkAccess, IN_PROCESS_ENV, withLease, type CursorSdkSource } from "./access.js";
+import { CURSOR_SDK_VERSION } from "./sdk-version.js";
 
 /*
  * `Cursor.auth.logout(options?: { store? })` (@cursor/sdk 1.0.36, read in
@@ -51,7 +52,7 @@ export function cursorLogoutWith(source: CursorSdkSource): RuntimeLogout {
     const result = await withLease(access, options.env, async (sdk): Promise<LogoutResult> => {
       const { auth } = sdk.Cursor;
       if (auth?.logout === undefined) {
-        return { kind: "unsupported", reason: "version_unsupported", detail: "@cursor/sdk 1.3.1 is required; this one has no Cursor.auth.logout" };
+        return { kind: "unsupported", reason: "version_unsupported", detail: `@cursor/sdk ${CURSOR_SDK_VERSION} is required; this one has no Cursor.auth.logout` };
       }
       // With no store: the SDK's own default, the file `status()` reads.
       const native = await sdkLogout(async () => {

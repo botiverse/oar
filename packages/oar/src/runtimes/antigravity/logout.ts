@@ -11,7 +11,7 @@ import { readAntigravityAuthStatus } from "./auth.js";
  * Antigravity's own sign-out: ACP `logout` on `agy acp`, which agy 1.5.5
  * declares (`agentCapabilities.auth.logout`) and answers `{}` after removing
  * its stored sign-in (`antigravity-oauth-token`), checked in an empty HOME
- * (docs/runtimes/antigravity.md#logout). OAR never touches the file; `agy
+ * (docs/runtimes/antigravity.md#login). OAR never touches the file; `agy
  * models` then decides whether it is signed out. Print mode refuses `/logout`,
  * so this is the one non-interactive channel.
  */
