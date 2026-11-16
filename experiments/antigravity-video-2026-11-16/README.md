@@ -3,8 +3,8 @@
 A user reported `read_file` returning HTTP 500 for a video through OAR while
 Codex could read it. The first external control, on armbian-jojo with agy
 1.5.9 and `gemini-3.8-flash-high`, read a three-second 320x240 H.264/AAC video
-successfully through the native CLI. That is a reported CLI observation, not
-a result produced by this probe. Direct ACP and OAR results are still pending.
+successfully through the native CLI. That external control included additional
+shell commands and is not a result produced by this probe. The corrected direct ACP and OAR runs also completed without a 500.
 The original user's video size, format and model are not yet established.
 
 `probe.ts` runs two prompts sequentially against the existing login, once
@@ -90,9 +90,7 @@ probe/lint preparation attempts remain local; these selected controls are the
 final run, not a claim that preparation succeeded on its first attempt.
 
 Before the handoff, `CI=1 pnpm run check` passed on main `af929424`:
-4,407 unit tests and 18 mock behavior cases. The native video comparison is
-still to be run on the existing logged-in host; these checks do not establish
-whether its ACP or OAR route can read that video.
+4,407 unit tests and 18 mock behavior cases. These checks validate the probe, independently of the native observations below.
 
 ## First native attempt: stopped before video input
 
@@ -104,9 +102,9 @@ Both the direct probe and OAR refused the mismatched model, before sending
 The original result is retained locally and the cited handshake fields are
 in [first-native-selected.json](first-native-selected.json).
 
-The next run explicitly sets the advertised model and then the advertised
+The corrected run explicitly sets the advertised model and then the advertised
 effort option, and confirms both from native responses before prompting.
-It runs both routes again because neither original route reached the video.
+It ran both routes again because neither original route reached the video.
 OAR alias compatibility is a separate task and is not changed by this probe.
 
 The revised probe passed [ten synthetic route controls](controls-effort-selected.json),
@@ -114,3 +112,50 @@ including refusal of the requested effort before prompting on both paths.
 All ten native exit callbacks were observed; no cleanup failure was reported.
 
 The corrected probe also passed `CI=1 pnpm run check` on main `ce64b26a`: 4,407 unit tests and 18 mock behavior cases.
+
+## Corrected native comparison
+
+agy 1.5.9 on the same logged-in Linux host, probe `e7fbeb23`, explicit
+`gemini-3.8-flash` and `high`, same 42,267-byte synthetic video:
+
+| Route | UTC | Native tool | Turn and process | Model answer |
+|---|---|---|---|---|
+| CLI control | 05:17:46 tool step | Successful `read_file`, then five `run_command` calls | Reported completed | Reported pattern, counter and 440 Hz tone; not a shell-free audio control |
+| Direct ACP | 06:38:56 to 06:39:13 | One `read_file`, completed | `end_turn`, native exit 0 | Pattern and counter; says no sound detected |
+| Public OAR | 06:39:13 to 06:39:29 | One `read_file`, completed | Completed outcome, native exit 0 | Pattern and counter; says no sound detected |
+
+[Selected native evidence](native-canonical-selected.json) retains exact
+answer text, tool-notification field names, exit observations and the full
+local evidence fingerprint. No 500 occurred in either corrected trace. This
+42 KB, three-second H.264/AAC case does not reproduce the reported failure.
+The user's original file size, container/codecs and selected model remain
+necessary to narrow that report; other models and sizes have not been run.
+
+The ACP `tool_call_update` frames contain path, call identity and status, but
+neither `content` nor `rawOutput`. Neither image/video nor audio tool payload
+is exposed on that wire. The model's answer is an observation about its
+response, not proof of which media reached the provider. The native
+`promptCapabilities.audio=false` advertises prompt-input support; it does not
+establish whether an internal `read_file` forwards a video's audio. Direct
+ACP reproduces the no-sound answer independently of OAR's session mapping,
+but the available trace cannot establish an ACP audio-drop defect or its
+cause. No upstream audio-loss issue is warranted from these observations. No
+extraction workaround or audio substitution was used by either corrected
+ACP route. The earlier CLI control was not subject to that restriction.
+
+The external [CLI storage inspection](cli-media-selected.json) found one
+inline `video/mp4` in the stored `read_file` result, 42,267 bytes, identical
+to the source file. Container inspection reports H.264 video and mono AAC
+at 44.1 kHz. There is no separate audio MIME part in that stored tool step.
+The native CLI then made five `run_command` calls, so its final 440 Hz claim
+cannot serve as a clean observation of model hearing. The decoded protobuf
+field numbers have no schema, and a stored native tool result does not prove
+provider ingestion. The ACP traces do not expose corresponding stored media
+or provider payloads. All three paths used the same input file; the evidence
+does not establish identical provider-facing payloads or locate a model
+capability defect.
+
+**Disposition:** withdraw the audio-loss hypothesis, do not file upstream,
+and park the original 500 investigation until the user's video byte size,
+container/codecs and exact model/effort are available. The small baseline
+succeeded on all three paths; no claim is made about the failing user file.

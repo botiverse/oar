@@ -1,0 +1,89 @@
+{
+  "source_format": "SQLite with protobuf blobs; no events/updates files found in checked native directories",
+  "tool_step_index": 2,
+  "tool": "read_file",
+  "tool_payload_bytes": 43746,
+  "media": [
+    {
+      "protobuf_field_path": "140.2.4",
+      "mime_type": "video/mp4",
+      "storage": "inline bytes in field 140.2.4.2",
+      "bytes": 42267,
+      "sha256": "11f25b6f1c93da277e239e11a5bda5a3ce569ed60f0f7aa9a6fee77c5008c9c6",
+      "byte_identical_to_original": true
+    }
+  ],
+  "separate_audio_mime_present_in_tool_step": false,
+  "time_fields": {
+    "5.1": {
+      "utc": "2026-11-16T05:17:46+00:00",
+      "nanoseconds": 626193381
+    },
+    "5.6": {
+      "utc": "2026-11-16T05:17:46+00:00",
+      "nanoseconds": 718533023
+    },
+    "5.7": {
+      "utc": "2026-11-16T05:17:46+00:00",
+      "nanoseconds": 718533023
+    },
+    "5.8": {
+      "utc": "2026-11-16T05:17:46+00:00",
+      "nanoseconds": 741783054
+    },
+    "5.32": {
+      "utc": "2026-11-16T05:17:46+00:00",
+      "nanoseconds": 734190484
+    }
+  },
+  "tool_sequence": [
+    {
+      "step_index": 2,
+      "tool": "read_file"
+    },
+    {
+      "step_index": 4,
+      "tool": "run_command"
+    },
+    {
+      "step_index": 6,
+      "tool": "run_command"
+    },
+    {
+      "step_index": 8,
+      "tool": "run_command"
+    },
+    {
+      "step_index": 10,
+      "tool": "run_command"
+    },
+    {
+      "step_index": 12,
+      "tool": "run_command"
+    }
+  ],
+  "limitations": "Field numbers are decoded from protobuf wire without schema; stored tool result is not proof of provider ingestion or model audio perception. Text and credential contents omitted.",
+  "identical_original_container_streams": {
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "codec_name": "h264",
+        "codec_type": "video",
+        "width": 320,
+        "height": 240
+      },
+      {
+        "codec_name": "aac",
+        "codec_type": "audio",
+        "sample_rate": "44100",
+        "channels": 1
+      }
+    ],
+    "format": {
+      "duration": "3.000000",
+      "size": "42267"
+    }
+  },
+  "sourceSha256": "3d5410ebcca4db5d45e6935bfbe5a25aa22bead79056575c7287ca6b5623d3fe"
+}
