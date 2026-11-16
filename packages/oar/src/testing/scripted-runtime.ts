@@ -1,4 +1,5 @@
 import type { RuntimeBrand } from "../contracts/brand.js";
+import { UnsupportedOptionError } from "../contracts/errors.js";
 import { defineRuntime, type Runtime } from "../contracts/runtime.js";
 import type { InputImage, InputOptions, RuntimeEventBody, Session, SessionCapabilities, SessionOptions, StartSession, TokenTotals, TurnOutcome } from "../contracts/session.js";
 // Built only on the public runtime-author SPI (@botiverse/oar/kernel), like any host's runtime.
@@ -75,9 +76,10 @@ export function scriptedRuntime(options: ScriptedRuntimeOptions): Runtime {
   const model = options.model ?? "scripted-1";
   const start: StartSession = async (_installation, sessionOptions, context): Promise<Session> => {
     await Promise.resolve();
-    // SessionOptions.effort's contract: a runtime that lists no effort levels refuses one, never ignores it.
+    // SessionOptions.effort: no effort channel, so an UnsupportedOptionError on `effort`, never ignored. Not in
+    // refusedSessionOptions: `effort` is no declarable key; hosts learn who takes one from listModels' effortLevels.
     if (sessionOptions.effort !== undefined) {
-      throw new Error(`${id} lists no reasoning-effort levels; it cannot run at effort "${sessionOptions.effort}"`);
+      throw new UnsupportedOptionError("effort", `${id} lists no reasoning-effort levels; it cannot run at effort "${sessionOptions.effort}"`);
     }
     const kernel = createSessionKernel(sessionOptions.resume);
     kernel.opened(context ?? { requested: "auto", placement: "in_process" });

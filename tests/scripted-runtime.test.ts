@@ -4,8 +4,8 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
-import { afterAll, beforeAll, test } from "vitest";
-import type { Event, InputImage, Session } from "../packages/oar/src/index.js";
+import { afterAll, beforeAll, expect, test } from "vitest";
+import { UnsupportedOptionError, type Event, type InputImage, type Session } from "../packages/oar/src/index.js";
 import { awaitTurnEnd, toolResultText } from "../packages/oar/src/observe/index.js";
 import { scriptedRuntime, type ScriptedTurn } from "../packages/oar/src/testing/index.js";
 
@@ -167,6 +167,13 @@ test("a tool that returns after dispose ended its turn records nothing", async (
     [events.map((event) => event.kind), session.status().value],
     [["turn_started", "tool_call_started", "turn_ended", "usage", "exited"], { kind: "idle", lastTurnOutcome: { kind: "aborted" } }],
   );
+});
+
+// SessionOptions.effort: a runtime with no effort channel rejects with an UnsupportedOptionError on `effort`, as every other option it cannot honor.
+test("an effort is refused at open with an UnsupportedOptionError naming the option and the level", async () => {
+  const opening = scriptedRuntime({ turn: () => assert.fail("never opened") }).session({ kind: "available", via: "bundled" }, { cwd: process.cwd(), effort: "high" });
+  await expect(opening).rejects.toBeInstanceOf(UnsupportedOptionError);
+  await expect(opening).rejects.toMatchObject({ name: "UnsupportedOptionError", option: "effort", message: 'scripted lists no reasoning-effort levels; it cannot run at effort "high"' });
 });
 
 // The scripted runtime keeps the image rules every runtime keeps (@botiverse/oar/kernel), so a host's test sees the refusals a vendor session gives (issue #38).
