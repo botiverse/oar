@@ -353,3 +353,51 @@ The Windows control test runs after the native observation. It checks real
 busy-process CPU and rejects an impossible start identity for the same PID.
 Linux skips this Windows-specific test. Diagnostic sampler or cleanup
 failure remains visible. Product code is never patched by this experiment.
+
+### Windows result, November 16
+
+The [single manual run](https://github.com/botiverse/oar/actions/runs/43852135813/job/133247102599)
+on `33fe91f6` passed with Grok 1.0.70 (f50904eaee6c), Node 24.22.2 and
+Windows image `windows-2025-vs2026 20261103.298.1`. The ordinary observation
+job was skipped. [Numeric lifecycle records](windows-long-wait.jsonl) and
+[selected results with source hash](windows-long-wait-selected.json) retain
+all eight attempts. Initialize duration is response time minus send time;
+CPU uses the last valid sample completed before observation end.
+
+| Ordinal | HOME fixture | Attempt | Initialize ms | Observed CPU ms | CPU samples |
+| --- | --- | --- | ---: | ---: | ---: |
+| 1 | 1 | first | 11,480 | 2,359 | 21 |
+| 2 | 2 | first | 11,488 | 2,234 | 21 |
+| 3 | 1 | second | 389 | 219 | 1 |
+| 4 | 2 | second | 392 | 250 | 1 |
+| 5 | 3 | first | 8,357 | 1,922 | 15 |
+| 6 | 4 | first | 8,412 | 1,938 | 16 |
+| 7 | 3 | second | 396 | missing | 0 |
+| 8 | 4 | second | 399 | missing | 0 |
+
+All responses arrived before 15 seconds, so this run did not exercise the
+extended window or reproduce any of the seven earlier no-output failures.
+The four new-HOME starts took 8.36 to 11.49 seconds; repeating after cleanup
+in the same HOME took 0.389 to 0.399 seconds. All direct children emitted
+exit and close with code 1 during requested cleanup, with empty stderr
+tails; that exit code does not by itself indicate a native startup crash.
+The CPU control passed both positive busy-process accounting and rejection
+of a deliberately mismatched creation identity. Sampler preparation took
+118 ms and the run reported no incomplete launch or sampler failure.
+
+The first-start CPU totals, 1.92 to 2.36 seconds, sum observed process
+lifetimes and are lower bounds. They are not exact CPU consumption within
+the initialize request interval. Two repeats finished before a sample;
+missing CPU is not zero CPU. This run does not identify disk, security
+scanning, scheduling or shim work as the delay's cause. It runs two
+separate-HOME fixtures concurrently and does not test concurrent first
+starts sharing one HOME, as occurred in the earlier failing behavior runs.
+No behavior/vendor suite preceded these probes, but installation and the
+sampler can warm caches or change runner load. This is not evidence that
+the whole machine was otherwise idle.
+
+The measured first-start costs leave little margin under the existing
+15-second ACP request default. They support considering a separate startup
+budget; they do not establish whether the seven earlier unresponsive
+processes would eventually initialize. This experiment changes no product
+request limit, retries, original suite assertion or cleanup deadline.

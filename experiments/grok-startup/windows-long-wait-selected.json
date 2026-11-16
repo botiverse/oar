@@ -1,0 +1,131 @@
+{
+  "runUrl": "https://github.com/botiverse/oar/actions/runs/43852135813/job/133247102599",
+  "sourceCommit": "33fe91f63c9e63cf59ac31717a8697b602d6941b",
+  "version": "grok 1.0.70 (f50904eaee6c)",
+  "node": "24.22.2",
+  "runnerImage": "windows-2025-vs2026 20261103.298.1",
+  "rawSha256": "fab7ef6a854057d4022a613c1ffbf1ae1dbabe3f92e8dde77ddd8f364b73641c",
+  "cpuControl": "passed: busy-process CPU and same-PID impossible start identity",
+  "launches": [
+    {
+      "ordinal": 1,
+      "fixture": 1,
+      "attempt": 1,
+      "initializeMs": 11480.470800000001,
+      "outcome": "initialized",
+      "cpuSamples": 21,
+      "cpuMs": 2359.375,
+      "nativeCpuMs": 218.75,
+      "bootstrapCpuMs": 1187.5,
+      "observedProcesses": 6,
+      "stderrTail": [
+        ""
+      ]
+    },
+    {
+      "ordinal": 2,
+      "fixture": 2,
+      "attempt": 1,
+      "initializeMs": 11488.4779,
+      "outcome": "initialized",
+      "cpuSamples": 21,
+      "cpuMs": 2234.375,
+      "nativeCpuMs": 171.875,
+      "bootstrapCpuMs": 1140.625,
+      "observedProcesses": 8,
+      "stderrTail": [
+        ""
+      ]
+    },
+    {
+      "ordinal": 3,
+      "fixture": 1,
+      "attempt": 2,
+      "initializeMs": 389.0704999999998,
+      "outcome": "initialized",
+      "cpuSamples": 1,
+      "cpuMs": 218.75,
+      "nativeCpuMs": 156.25,
+      "bootstrapCpuMs": 46.875,
+      "observedProcesses": 4,
+      "stderrTail": [
+        ""
+      ]
+    },
+    {
+      "ordinal": 4,
+      "fixture": 2,
+      "attempt": 2,
+      "initializeMs": 392.02260000000024,
+      "outcome": "initialized",
+      "cpuSamples": 1,
+      "cpuMs": 250,
+      "nativeCpuMs": 140.625,
+      "bootstrapCpuMs": 62.5,
+      "observedProcesses": 4,
+      "stderrTail": [
+        ""
+      ]
+    },
+    {
+      "ordinal": 5,
+      "fixture": 3,
+      "attempt": 1,
+      "initializeMs": 8357.2997,
+      "outcome": "initialized",
+      "cpuSamples": 15,
+      "cpuMs": 1921.875,
+      "nativeCpuMs": 187.5,
+      "bootstrapCpuMs": 1093.75,
+      "observedProcesses": 6,
+      "stderrTail": [
+        ""
+      ]
+    },
+    {
+      "ordinal": 6,
+      "fixture": 4,
+      "attempt": 1,
+      "initializeMs": 8412.4319,
+      "outcome": "initialized",
+      "cpuSamples": 16,
+      "cpuMs": 1937.5,
+      "nativeCpuMs": 250,
+      "bootstrapCpuMs": 1109.375,
+      "observedProcesses": 8,
+      "stderrTail": [
+        ""
+      ]
+    },
+    {
+      "ordinal": 7,
+      "fixture": 3,
+      "attempt": 2,
+      "initializeMs": 395.5626999999986,
+      "outcome": "initialized",
+      "cpuSamples": 0,
+      "cpuMs": null,
+      "nativeCpuMs": null,
+      "bootstrapCpuMs": null,
+      "observedProcesses": null,
+      "stderrTail": [
+        ""
+      ]
+    },
+    {
+      "ordinal": 8,
+      "fixture": 4,
+      "attempt": 2,
+      "initializeMs": 398.8011000000006,
+      "outcome": "initialized",
+      "cpuSamples": 0,
+      "cpuMs": null,
+      "nativeCpuMs": null,
+      "bootstrapCpuMs": null,
+      "observedProcesses": null,
+      "stderrTail": [
+        ""
+      ]
+    }
+  ]
+}
