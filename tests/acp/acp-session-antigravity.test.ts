@@ -158,7 +158,7 @@ test("a contradictory model notification rejects with a typed error and no inven
   const opening = startAntigravity({ model: "requested-y", env: { FAKE_ACP_WRONG_MODEL_UPDATE: "1" } }, false, 1000);
   await expect(opening).rejects.toBeInstanceOf(ModelConfirmationError);
   await expect(opening).rejects.toMatchObject({ requested: "requested-y", reported: "other-model",
-    message: "ACP config_option_update left model at other-model although requested-y was requested" });
+    message: "ACP config_option_update left model at other-model although requested-y was requested (native thought_level=medium)" });
   await expect(opening).rejects.not.toHaveProperty("catalogSelectorIds");
 });
 

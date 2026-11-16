@@ -4,7 +4,7 @@ import path from "node:path";
 import { afterAll, describe, expect, test } from "vitest";
 import {
   antigravityInstallation, antigravitySession, defineRuntime, grokInstallation, grokSession, kimiInstallation, kimiSession,
-  opencodeInstallation, opencodeSession, RuntimeFailureError, type CredentialProblem, type FailureClass, type InstallationProbe, type StartSession, type TurnOutcome,
+  opencodeInstallation, opencodeSession, ModelConfirmationError, RuntimeFailureError, type CredentialProblem, type FailureClass, type InstallationProbe, type StartSession, type TurnOutcome,
 } from "../../packages/oar/src/index.js";
 import { asRecord, parseJson } from "../../packages/oar/src/shared/json.js";
 import { startOpencodeGitFixture, startAntigravityAimock, startGrokAimock, startKimiAimock, type AcpAimockEnv } from "../harness/aimock-acp.js";
@@ -36,7 +36,7 @@ interface AcpCell {
   readonly noLogin?: true;
   readonly model?: string;
   /** What the open rejects with, or what the turn ends as. */
-  readonly expected: { readonly open: Pick<RuntimeFailureError, "failure"> } | { readonly turn: Seen };
+  readonly expected: { readonly modelConfirmation: string } | { readonly open: Pick<RuntimeFailureError, "failure"> } | { readonly turn: Seen };
 }
 
 interface AcpRuntime {
@@ -111,7 +111,7 @@ const runtimes: readonly AcpRuntime[] = [
     withoutLogin: async (env) => ({ ...env.env, GEMINI_HOME: await freshDir("oar-antigravity-no-login-"), GEMINI_API_KEY: "" }),
     cells: [
       { name: "missing login", noLogin: true, expected: { open: { failure: "auth" } } },
-      { name: "unknown model", model: "oar-missing-model", expected: { open: { failure: "model_unavailable" } } },
+      { name: "unknown model", model: "oar-missing-model", expected: { modelConfirmation: "oar-missing-model" } },
       { name: "invalid key (reported as completed: a known gap)", reply: { status: 400, error: { type: "INVALID_ARGUMENT", message: "API key not valid. Please pass a valid API key." } }, expected: { turn: { kind: "completed" } } },
     ],
   },
@@ -136,6 +136,13 @@ for (const acp of runtimes) {
       try {
         const subject = runtimeUnderTest(runtime, cell.noLogin === true ? await acp.withoutLogin(env) : env.env, env.cwd);
         const opening = subject.startSession(cell.model === undefined ? {} : { model: cell.model });
+        if ("modelConfirmation" in cell.expected) {
+          const requested = cell.expected.modelConfirmation;
+          await expect(opening).rejects.toBeInstanceOf(ModelConfirmationError);
+          await expect(opening).rejects.toSatisfy((error: unknown) => error instanceof ModelConfirmationError && error.requested === requested && error.catalogSelectorIds?.includes("gemini-3.8-flash") === true);
+          expect(env.raw).toHaveLength(0);
+          return;
+        }
         if ("open" in cell.expected) {
           await expect(opening).rejects.toBeInstanceOf(RuntimeFailureError);
           await expect(opening).rejects.toMatchObject(cell.expected.open);

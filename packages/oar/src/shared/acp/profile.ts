@@ -9,7 +9,7 @@ import { initializeAcpConnection } from "./initialize.js";
 import type { AcpDerivedSessionHooks } from "./derived-sessions.js";
 import type { AcpSteerRequestHooks } from "./steer-request.js";
 import { acpAdditionalDirectories } from "./additional-directories.js";
-import { applyAcpEffort, applyAcpModel } from "./effort.js";
+import { configureAcpModel, type AcpModelConfiguration } from "./model-configuration.js";
 import type { AcpConfigUpdates } from "./config-updates.js";
 import { acpResumeFailure, acpOpenStep, type AcpFailureReader, type AcpOpenFailureReader } from "./failure.js";
 import { acpMcpServersParam } from "./mcp-servers.js";
@@ -53,6 +53,8 @@ export interface AcpSessionProfile extends AcpDerivedSessionHooks, AcpSteerReque
    * `{}` and pushes nothing (agy_acp_server 1.2.1): only that answer reports the applied model.
    */
   readonly modelViaConfigOption?: boolean;
+  /** Vendor selection policy; all native calls retain shared confirmation and recording. */
+  readonly configureModel?: AcpModelConfiguration;
   /** Wait for each native config notification before the next setting; agy publishes snapshots asynchronously. */
   readonly confirmConfigOptionUpdates?: boolean;
   /**
@@ -252,26 +254,7 @@ export async function openInitializedAcpSession(
   const opened = await acpOpenStep(createOrResume(process, profile, initialized, options, profile.sessionMeta?.(options, initialized)), "open", profile.openFailure);
   bind(opened.sessionId);
   observe({ method: opened.openMethod, response: opened.response });
-  const setModelResponse = options.model === undefined
-    ? undefined
-    : await acpOpenStep(applyAcpModel(process, opened.sessionId, options.model, {
-      viaConfigOption: profile.modelViaConfigOption === true,
-      timeoutMs: profile.requestTimeoutMs ?? 15_000,
-      observe, ...(updates === undefined ? {} : { updates }),
-    }), "model", profile.openFailure);
-  if (options.effort !== undefined) {
-    // The effort menu belongs to the model in effect: a model switch whose
-    // answer lists the options (`set_config_option`, opencode 1.18.30 where
-    // the open model has no effort option and the requested one does) is
-    // read instead of the open's.
-    const menu = setModelResponse !== undefined && Array.isArray(setModelResponse.configOptions)
-      ? { ...opened, response: setModelResponse, openMethod: "session/set_config_option" }
-      : opened;
-    await applyAcpEffort(process, menu, options.effort, {
-      timeoutMs: profile.requestTimeoutMs ?? 15_000,
-      observe, ...(updates === undefined ? {} : { updates }),
-    });
-  }
+  const setModelResponse = await configureAcpModel(process, profile, options, opened, observe, updates);
   const configure = profile.configureSession;
   if (configure !== undefined) {
     await configure({
