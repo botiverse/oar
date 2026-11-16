@@ -3,6 +3,7 @@
 - [Public API export cleanup (2026-11-16)](public-api-sweep-2026-11-16/README.md): confirmed removals, host audit and migration table.
 - [OpenCode independent skills](opencode-skills/README.md): native v1/v2 catalogs, cold-start activation barrier, directory provenance and owned-process cleanup.
 
+- [DSH launcher and output-schema boundaries](dsh-option-boundaries/README.md): successful overlays and protocol conflicts, retained launcher refusal, and root versus child structured-output controls.
 - [Antigravity model-specific effort menus](antigravity-model-menus/README.md): one-response discovery, distinct native model menus, zero additional requests and settings-value controls.
 - [Codex idle queue admission](codex-idle-queue/README.md): normal completion wakes queued input; interruption parks it until a new prompt, with native 0.169.0 evidence and adapter refusal.
 - [DSH session names and native tool denial](dsh-name-tools/README.md): native title persistence, scoped restrictions, resume and refused-open controls.
