@@ -35,7 +35,7 @@ The implementation spans [index.ts](../../packages/oar/src/runtimes/devin/index.
 
 ### Session creation and resume
 
-OAR launches `devin acp` with `["acp"]` from `devinAcpArgs`. After `session/new` or `session/load`, `configureSession` sends `session/set_mode` with `modeId: "bypass"` when `supportsDevinBypass` finds `"bypass"` in `modes.availableModes` or `configOptions` for `mode`. Opening requests time out after 30 seconds.
+OAR launches `devin acp` with `["acp"]` from `devinAcpArgs`. After `session/new` or `session/load`, `configureSession` sends `session/set_mode` with `modeId: "bypass"` when `supportsDevinBypass` finds `"bypass"` in `modes.availableModes` or `configOptions` for `mode`. Initialize has a separate 60-second deadline; other bounded opening requests retain 30 seconds ([shared deadlines](../spec/runtime-matrix.md#acp-opening-deadlines)).
 
 `devinAcpProfile` maps `-32603` authentication errors matching `Authentication required`, `invalid api key`, or `not logged in` at session open to `RuntimeFailureError` with `failure: "auth"` through `openFailure`.
 

@@ -81,7 +81,7 @@ test.each(["session/new", "session/resume"])("Kimi %s still fails at 630 seconds
   expect(vi.getTimerCount()).toBe(0);
 });
 
-test.each(["initialize", "authenticate", "session/list", "session/load", "session/set_model", "session/set_config_option", "session/set_mode"])("Kimi %s retains its 30-second bound", async (method) => {
+test.each(["authenticate", "session/list", "session/load", "session/set_model", "session/set_config_option", "session/set_mode"])("Kimi %s retains its 30-second bound", async (method) => {
   const run = setup(method);
   await vi.advanceTimersByTimeAsync(0);
   expect(run.calls.at(-1)).toBe(method);

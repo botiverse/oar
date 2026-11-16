@@ -125,8 +125,10 @@ method, passes the session's `mcpServers` (`[]` without them; see
 `session/set_model`, then selects yolo through `session/set_mode` when the
 answer advertises it (in `modes` or the `mode` config option). `session/new`
 and `session/resume` each have a 630-second deadline to allow SessionStart
-hooks. All other bounded ACP requests retain 30 seconds, including
-initialize, authentication, session/list, session/load, model and mode
+hooks. Initialize has its own 60-second deadline
+([shared deadlines](../spec/runtime-matrix.md#acp-opening-deadlines)). Other
+bounded ACP requests retain 30 seconds, including authentication,
+session/list, session/load, model and mode
 configuration; spawn, auth, and creation failures reject
 session construction with the process killed. The opening stream is six
 records: `initialize`, `authenticate` (`{}`), `session/new` (model event),
