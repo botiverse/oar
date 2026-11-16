@@ -83,3 +83,13 @@ Native startup can execute configured plugins, access configured remote skill
 sources and write its own logs, cache or database. OAR changes no user skill
 files or config and creates no persistent service registration. These are
 independent discovery results, not an existing session's live skill state.
+
+## Windows path spelling control
+
+The first PR #849 Windows run (43908361885, job 133443219205) returned all
+six fixtures, but two assertions failed because home skills used the long
+`runneradmin` path while the fixture used the equivalent `RUNNER~1` spelling.
+The reader preserves that native string. The vendor test now compares native
+and fixture paths through filesystem `realpath`, keeping identity assertions
+and all cleanup checks. This is a test correction, not a native retry or a
+change to returned paths. The original failed run remains visible in CI.

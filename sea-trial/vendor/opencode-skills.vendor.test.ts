@@ -1,6 +1,6 @@
 /* oxlint-disable import/no-namespace -- Observe the real process while retaining native behavior. */
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, realpath, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve as resolvePath } from "node:path";
 import { createConnection } from "node:net";
@@ -73,7 +73,12 @@ describe.skipIf(!enabled)("OpenCode native skill discovery", () => {
       if (mode === "success" || mode === "plugin-failure") {
         assert.equal(result.kind, "ok", JSON.stringify(result));
         expect(result.partial).toBe(mode === "plugin-failure"); expect(result.view).toBe("discovered");
-        for (const [name, path] of Object.entries(f.roots)) { expect(result.items).toContainEqual(expect.objectContaining({ name, path: join(path, name, "SKILL.md") })); }
+        await Promise.all(Object.entries(f.roots).map(async ([name, path]) => {
+          const item = result.items.find(skill => skill.name === name);
+          assert.ok(item?.path !== undefined, `Missing native skill ${name}`);
+          // Windows may report a long name for an input rooted at its 8.3 alias.
+          expect(await realpath(item.path)).toBe(await realpath(join(path, name, "SKILL.md")));
+        }));
         expect(result.items.some(skill => skill.name === "malformed")).toBe(false);
         expect(JSON.stringify(result)).not.toMatch(/PRIVATE SKILL BODY|PRIVATE PLUGIN FAILURE/u);
         expect(await readFile(join(f.roots["home-claude"], "home-claude", "SKILL.md"), "utf8")).toContain("PRIVATE SKILL BODY");
