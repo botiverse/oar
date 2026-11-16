@@ -3,7 +3,7 @@ import type { InventoryReader, SkillEntry } from "../../contracts/inventory.js";
 import { sessionEnvironment } from "../../shared/environment.js";
 import { spawnLineProcess, type LineProcess } from "../../shared/executable/index.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
-import { boolField, inventoryOk, inventoryRead, named, nativeRows, textField, unsupportedInventory, workspaceScope } from "../../shared/inventory.js";
+import { boolField, inventoryOk, inventoryRead, named, nativeRows, skillScope, textField, unsupportedInventory, workspaceScope } from "../../shared/inventory.js";
 
 interface WebEndpoint { readonly origin: string; readonly token: string }
 
@@ -42,6 +42,7 @@ function skills(payload: JsonRecord): SkillEntry[] {
   return nativeRows(payload.skills).map((skill) => ({
     name: named(skill), ...textField("description", skill.description),
     ...textField("path", skill.path), ...textField("source", skill.source),
+    ...skillScope(skill.source, { builtin: "builtin", user: "user", project: "project", extra: "other" }),
     ...boolField("disableModelInvocation", skill.disable_model_invocation),
   }));
 }

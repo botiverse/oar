@@ -1352,3 +1352,12 @@ Native startup still loads workspace plugins and can write native databases,
 logs and caches or access configured remote skill sources. The caller deadline
 bounds version detection, startup and HTTP reads; owned processes and listeners
 are stopped before returning. [Evidence, source and reproduction](../../experiments/opencode-skills/README.md).
+
+### Independent skill provenance
+
+Skill provenance adds `scope` for native built-ins and paths inside verified
+user/project loading roots, after canonical path comparison. Shared Claude and
+Agents directories are treated according to their actual home or project root.
+Unmatched custom/remote roots and unknown `skill://` identities remain unknown;
+no plugin identity is inferred. Raw source/path remain unchanged. See the
+[mapping and limits](inventory.md#skill-provenance).

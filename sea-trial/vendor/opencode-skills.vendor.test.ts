@@ -76,6 +76,7 @@ describe.skipIf(!enabled)("OpenCode native skill discovery", () => {
         await Promise.all(Object.entries(f.roots).map(async ([name, path]) => {
           const item = result.items.find(skill => skill.name === name);
           assert.ok(item?.path !== undefined, `Missing native skill ${name}`);
+          expect(item.scope).toBe(name.startsWith("project-") ? "project" : "user");
           // Windows may report a long name for an input rooted at its 8.3 alias.
           expect(await realpath(item.path)).toBe(await realpath(join(path, name, "SKILL.md")));
         }));

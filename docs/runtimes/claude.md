@@ -1861,3 +1861,10 @@ never proves existence or termination. Linux controls covered background
 Bash and foreground Agent tasks, a surviving sibling and a later parent prompt.
 
 [Native evidence and reproducible probes](../../experiments/task-controls/README.md).
+
+### Independent skill provenance
+
+Skill provenance retains native `source` and `pluginName` (as `plugin`).
+Settings and policy classifications map to the shared `scope`; plugin identity
+alone does not override a settings scope. Missing or new classifications remain
+unknown. See the [mapping table](../spec/inventory.md#skill-provenance).

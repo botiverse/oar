@@ -3,6 +3,7 @@ import type { AgentSession } from "@earendil-works/pi-coding-agent";
 import type { CommandEntry, RuntimeInventories, InventoryReader, InventoryScope, InventoryResult, SkillEntry, ToolEntry } from "../../contracts/inventory.js";
 import { asRecord } from "../../shared/json.js";
 import { inventoryOk, inventoryRead, unsupportedInventory, workspaceScope } from "../../shared/inventory.js";
+import { piSkillProvenance } from "./skill-provenance.js";
 import { piAgentDir } from "./resolve.js";
 import { checkPiProjectPackages, reportMissingPiPackages } from "./project.js";
 import type { PiProjectOptions } from "./options.js";
@@ -20,7 +21,7 @@ function piInventories(session: AgentSession, scope: InventoryScope): PiReaders 
       const result = session.resourceLoader.getSkills();
       const items: SkillEntry[] = result.skills.map((skill) => ({
         name: skill.name, description: skill.description, path: skill.filePath,
-        disableModelInvocation: skill.disableModelInvocation, source: skill.sourceInfo.source,
+        disableModelInvocation: skill.disableModelInvocation, ...piSkillProvenance(skill.sourceInfo),
       }));
       return inventoryOk(scope, "discovered", items, result.diagnostics.length > 0);
     },

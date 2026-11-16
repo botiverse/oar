@@ -12,15 +12,18 @@ test("Grok preserves native bundled source and path alongside legacy string sour
       {
         "name": "pptx",
         "path": "/fixture/.grok/bundled/skills/pptx/SKILL.md",
+        "scope": "builtin",
         "source": "bundled",
       },
       {
         "name": "project",
         "path": "/fixture/.agents/skills/project/SKILL.md",
+        "scope": "project",
         "source": "project",
       },
       {
         "name": "legacy",
+        "scope": "user",
         "source": "user",
       },
       {

@@ -1,5 +1,5 @@
 import { resolve as resolvePath } from "node:path";
-import type { InventoryOptions, InventoryResult, InventoryScope } from "../contracts/inventory.js";
+import type { InventoryOptions, InventoryResult, InventoryScope, SkillEntry } from "../contracts/inventory.js";
 import { asRecord, type JsonRecord } from "./json.js";
 
 export type NativeInventoryRequest = (method: string, params: JsonRecord) => Promise<JsonRecord>;
@@ -38,6 +38,11 @@ export function textField(key: string, value: unknown): Record<string, string> {
 }
 export function boolField(key: string, value: unknown): Record<string, boolean> {
   return typeof value === "boolean" ? { [key]: value } : {};
+}
+/** Only recognized native categories become a shared scope. */
+export function skillScope(value: unknown, mapping: Readonly<Record<string, NonNullable<SkillEntry["scope"]>>>): Pick<SkillEntry, "scope"> {
+  const scope = typeof value === "string" && Object.hasOwn(mapping, value) ? mapping[value] : undefined;
+  return scope === undefined ? {} : { scope };
 }
 /** Bound a read with a deadline; subprocess callers dispose their owned process in finally. */
 export async function inventoryRead<T>(read: () => Promise<InventoryResult<T>>, timeoutMs = 15_000): Promise<InventoryResult<T>> {

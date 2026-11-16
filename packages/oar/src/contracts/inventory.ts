@@ -16,6 +16,10 @@ export interface SkillEntry {
   readonly description?: string;
   readonly path?: string;
   readonly source?: string;
+  /** Shared provenance category; absent means unknown, not builtin or user. */
+  readonly scope?: "builtin" | "user" | "project" | "managed" | "other";
+  /** Native plugin/package identity, independent of scope. */
+  readonly plugin?: string;
   readonly enabled?: boolean;
   readonly disableModelInvocation?: boolean;
 }

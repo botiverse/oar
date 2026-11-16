@@ -156,3 +156,16 @@ test("native exit before readiness fails without sending HTTP requests", async (
   expect(fetch).not.toHaveBeenCalled();
   expect(fake.killed()).toBe(true);
 });
+
+
+test("Kimi source classifications preserve unknown values without assigning a scope", async () => {
+  serve(["builtin", "user", "project", "extra", "future"].map(source => ({ name: source, source })));
+  const result = await kimiRuntime.skills(installation);
+  expect(result.kind).toBe("ok");
+  if (result.kind !== "ok") { throw new Error("expected inventory"); }
+  expect(result.items).toEqual([
+    { name: "builtin", source: "builtin", scope: "builtin" }, { name: "user", source: "user", scope: "user" },
+    { name: "project", source: "project", scope: "project" }, { name: "extra", source: "extra", scope: "other" },
+    { name: "future", source: "future" },
+  ]);
+});

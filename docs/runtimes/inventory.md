@@ -17,6 +17,44 @@ source and path. [Current mapping](../spec/inventory.md#implemented-mapping),
 [controls and limitations](../../experiments/runtime-skills-2026-11-16/README.md).
 The remaining sections retain the September observations.
 
+## Skill provenance
+
+The [shared mapping table](../spec/inventory.md#skill-provenance) normalizes
+explicit classifications while retaining native `source`. These sources were
+checked on November 16; not every enum member has a live fixture observation.
+
+- Claude 2.1.325: `get_context_usage.skills.skillFrontmatter` reports `source`
+  and `pluginName`. The native source selector distinguishes built-in, settings,
+  policy, plugin, flag, memory-store and synced-skill entries. Existing native
+  controls observed built-in, project settings and plugin sources.
+- Codex 0.169.0: `SkillScope` in app-server protocol `v2/plugin.rs` is
+  system/user/repo/admin; `SkillMetadata.pluginId` is independent of that scope.
+- Grok 1.0.77: `inspect::skill_entry_source` preserves `ConfigSource` for
+  bundled/user/project/server/plugin/configToml. The tagged plugin variant uses
+  the field `plugin_name`, not `pluginName`. Existing bundled-cache observations
+  remain the evidence for why a cold empty list does not mean no bundled skills.
+- Kimi 2.6.2: native Web `skillSourceSchema` is builtin/user/project/extra.
+- Pi 1.5.2: `SourceInfo` has source, scope and origin in both SDK skill discovery
+  and RPC `get_commands`. Package source strings retain their native npm/git
+  identity; temporary does not imply builtin.
+- OpenCode 1.19.5 returns the `<built-in>` marker. In 2.2.7/2.3.0 the built-in
+  plugin registers `skill://opencode/SKILL.md`; 2.3.0 also registers
+  `skill://report/SKILL.md`. No general URI-prefix rule is used. Filesystem
+  classification uses real paths under home `.claude/skills`, `.agents/skills`,
+  XDG config `opencode/skill(s)` and project ancestor `.claude/skills`,
+  `.agents/skills`, `.opencode/skill(s)`. V1 stops at the repository root;
+  v2 follows native ancestor discovery. V2's `OPENCODE_CONFIG_DIR` replaces its
+  global config root. Unmatched roots stay unknown. Native definitions:
+  [`ConfigDiscovery`](https://github.com/anomalyco/opencode/blob/v2.3.0/packages/core/src/config/discovery.ts),
+  [`ConfigSkillPlugin`](https://github.com/anomalyco/opencode/blob/v2.3.0/packages/core/src/config/plugin/skill.ts),
+  [`SkillPlugin`](https://github.com/anomalyco/opencode/blob/v2.3.0/packages/core/src/plugin/skill.ts).
+
+Projection regressions cover explicit enum values, absent/future classifications,
+plugin identity with an independent user/project scope, Pi SDK/RPC parity and
+path boundary controls. OpenCode native fixtures verify all six measured roots
+in the [existing process/cleanup suite](../../sea-trial/vendor/opencode-skills.vendor.test.ts).
+No skill bodies, raw configuration or credential values are added to the result.
+
 ## What each runtime actually exposes
 
 These are **native capabilities**. The implemented subset is the
