@@ -19,6 +19,10 @@
 Layer rule (see docs/development.md): the assertion channel decides where a test
 lives. Artifacts land under ./oar-trial-run/ per run.
 
+When a resumed open rejects without naming resume, its original error is included
+in the failed case's reason, both in the job output and `case_failed` trace entry.
+The rejection still fails the same assertion.
+
 Pi Durable uses `OAR_TEST=pi-durable-aimock`: a real native Harness with host
 Models, memory or JSONL storage, and a scripted localhost provider. The
 vendor tests cover durable controls, reopen, adoption and watcher overflow.
