@@ -241,8 +241,6 @@ Every command: [packages/cli](packages/cli/README.md) (published as `@botiverse/
 - [Eta](https://github.com/0xfe-project/eta): a self-contained multi-agent loop, runtime and app.
 - [dsh-agent-team](https://github.com/Contexera/dsh-agent-team): agent teams for DeepSeek Harness.
 - [ducter](https://github.com/wey-gu/ducter): a personal AI that hands work to coding agents on your machines.
-- [rowrow](https://github.com/xxchan/rowrow): run a crew of coding agents in parallel and steer them from any browser.
-- [rao](https://github.com/botiverse/rao): a local desktop agent workspace.
 - [tmux-agent-deck](https://github.com/RayzPub/tmux-agent-deck): control tmux sessions and coding agents from a web terminal.
 
 Using OAR in a public project? Open a pull request to add it here.
