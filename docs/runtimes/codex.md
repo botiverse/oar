@@ -1125,6 +1125,31 @@ controllers of the persisted thread. The environment overlay applies to the
 child process; `null` removes an inherited variable
 ([environment contract](../spec/runtime-matrix.md#session-environment)).
 
+**Tool environment in shared placement (designed; applies once shared
+placement is admitted).** A session's `env` is process-level and keeps
+sessions with different values in different app-servers
+([rule 1](../design/system.md#shared-runtime-processes)). Variables a host
+marks as tool-only travel in the thread's configuration instead:
+`shell_environment_policy.set` for the shell tool and `mcp_servers.<name>.env`
+for each of the session's stdio MCP servers, applied on every open (a fresh
+process resuming without them has neither). They never enter the
+app-server's environment, because 0.169.0 copies process variables into live
+shell snapshots that every thread's shell can read. Measured on Linux only.
+Only an explicit shared request pools sessions whose tool-only variables
+differ; automatic placement keeps them apart. Declared differences from an
+isolated process: user hooks run with the app-server's environment (Codex
+snapshots it for them; a `PreToolUse` hook was measured, other hook kinds
+were not), so they do not see tool-only variables; MCP servers from user configuration that forward
+variables with `env_vars` read the app-server's environment; tool values
+appear in the recorded `thread/start` and `thread/resume` requests, where
+OAR redacts every one of them regardless of its name. A tool running as the same system user can read a peer's
+process environment through `/proc` in either placement, so this is not a
+credential boundary. A deliberately opened WebSocket listener let one
+thread's tool read another thread's history with `thread/read`, but none of
+its tool values; OAR's stdio connection was not tested that way. Evidence:
+[process environment](../../experiments/codex-thread-isolation-2026-11-16/README.md),
+[MCP environment](../../experiments/codex-thread-isolation-2026-11-16/mcp-env/README.md).
+
 On Windows, app-server disposal and the abort fallback force-terminate the
 whole process tree with `taskkill /T /F`, including any launcher, with a
 direct-child fallback if the tree walk fails. The host-exit hook runs this

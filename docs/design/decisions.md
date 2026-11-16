@@ -279,6 +279,46 @@ need requiring more than the per-option supplied/omitted distinction. Grok's
 conditional append and OpenCode's version-dependent support remain outside
 this declaration; remote Codex compaction is still an evidence gap.
 
+## Tool environment in a shared Codex process (2026-11-16)
+
+**Considered:** pooling Codex sessions whose `env` differs by moving each
+session's whole `env` into its thread's configuration. A host whose agents
+each carry their own credential shares nothing otherwise.
+
+**Refused for `env`, accepted for a tool-only scope.** Codex reads some
+variables at process level for itself (API keys, proxies, certificates,
+`CODEX_HOME`); thread configuration cannot change those, so a session's `env`
+moved there would silently run with another session's values. Variables a
+host means only for the tools started for a session are different. On Linux,
+Codex 0.169.0 delivered them per thread to the shell
+(`shell_environment_policy.set`) and to stdio MCP servers
+(`mcp_servers.<name>.env`); the first measurement had tried MCP `env_vars`,
+which forwards process variables and could not carry them
+([MCP environment](../../experiments/codex-thread-isolation-2026-11-16/mcp-env/README.md)).
+So the tool-only variables get their own session input (`toolEnv`), applied
+per thread in a shared Codex process and merged into the process environment
+when the session runs alone; `env` keeps splitting the pool
+([rule 1](system.md#shared-runtime-processes)). Only an explicit shared
+request pools sessions whose `toolEnv` differs, and only on a measured
+platform (Linux so far); automatic placement keeps them apart, so no host
+loses hook access to these values without asking for sharing. No session
+credential goes into the shared process environment, because Codex copies
+process variables into live shell snapshots.
+
+**Declared, not hidden:** hooks and user-configured MCP servers that forward
+variables with `env_vars` keep the process environment in a shared process;
+same-user tools can read a peer's environment through `/proc` in either
+placement; the values travel in the native requests OAR records, so every
+`toolEnv` value is redacted in records whatever its name (the record-stream
+contract gains that rule with the implementation). A fresh process resuming a thread without its configuration
+has none of them, so the input is applied on every open.
+
+**What would reopen it:** a Codex version on which a thread's tool values
+reach another thread's children, appear in a persisted file or a model
+request, or stop reaching the shell or MCP servers; a platform other than
+Linux, which needs the same measurement before it shares this way; and, for
+hooks, a native way to give them the thread's values.
+
 ## Noninteractive native permission modes, not host approvals (2026-10-28)
 
 **Accepted:** a Claude host can tighten native policy through `launchArgs`

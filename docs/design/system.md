@@ -200,7 +200,8 @@ Sharing follows five rules:
    refused for explicit shared placement, regardless of the MCP list.
    The same applies to what the runtime starts on a session's behalf: tools,
    stdio MCP servers and hooks must start in the working directory and
-   environment they would have in an isolated process. Where the shared
+   environment they would have in an isolated process (the tool-only
+   variables described below are the one declared exception). Where the shared
    process would start them differently, for example in its own home
    directory instead of the session's, a session that uses them does not
    share: automatic placement opens it its own process, and explicit shared
@@ -210,6 +211,42 @@ Sharing follows five rules:
    observed: OpenCode 2.2.3 and 2.2.5 [plugin children](../../experiments/sharing/opencode-plugin-environment-2026-10-31.md)
    and Grok 1.0.70 [stdio MCP children](../../experiments/sharing/execution-environment-2026-10-31.md)
    start in the shared process's home.
+
+   **Tool environment can be per session where the runtime carries it per
+   session.** A session's `env` stays a process-level setting and keeps
+   splitting the pool: the runtime itself reads it (API keys, proxies,
+   certificates, its home directory), and a thread cannot change what the
+   process it runs in has read. Variables meant only for the tools the
+   runtime starts for the session, such as each agent's own credential, are
+   a separate input with its own scope (`toolEnv`, defined in the spec with
+   its implementation). On Linux, Codex 0.169.0 carries that
+   scope in the thread's own configuration for two consumers: the shell tool
+   (`shell_environment_policy.set`) and stdio MCP servers
+   (`mcp_servers.<name>.env`). Each thread's values reached its own children,
+   not a peer's, and a literal scan of the files under `CODEX_HOME` and of the
+   model requests found none of them
+   ([process environment](../../experiments/codex-thread-isolation-2026-11-16/README.md),
+   [MCP environment](../../experiments/codex-thread-isolation-2026-11-16/mcp-env/README.md)).
+   Where that holds, an explicit shared request pools sessions whose tool
+   environment differs; automatic placement still splits them, and so does
+   every platform not yet measured. OAR never moves tool variables into the
+   process environment,
+   because Codex copies process variables into live shell snapshots. This is
+   not a credential boundary: any tool running as the same system user can
+   read a peer's process environment through `/proc`, shared or isolated, so
+   separating mutually untrusted agents needs a separate system user or
+   sandbox. Two consumers do not receive the tool environment in a shared
+   process, and that difference is declared, not a reason to refuse: hooks
+   (Codex snapshots the process environment for them; a user `PreToolUse`
+   hook was measured), and MCP servers from user configuration that forward
+   variables with `env_vars`. A host meets these differences only when it
+   both uses that input and asks for shared placement.
+   A Codex hook trust decision written through one session also takes effect
+   for the others in a shared process at once, where an isolated process reads
+   it at its next refresh; it is declared, because the decision is the user's
+   persisted configuration either way
+   ([Codex 0.169.0 sharing](../../experiments/sharing/codex-0.169.0-2026-11-16.md#persisted-hook-trust-declared-timing-difference),
+   [decision](decisions.md#tool-environment-in-a-shared-codex-process-2026-11-16)).
 2. **The fallback releases the session; it does not kill.** `abort` stays
    the runtime's own interrupt. If the turn has not ended within the fallback
    interval, OAR accepts the pending abort and records a release for that
