@@ -30,8 +30,9 @@ native process execution, `in_process` for an SDK running inside the host, or
 `null` when the adapter has not declared it. It is available before installation
 or session open, does not vary by installed version, and keeps the same value
 on every instance returned by `withPlacement()`. It does not declare sharing
-support; the adapter checks that separately at open. Pi's subprocess runtime
-declares `process`; Pi's SDK, Cursor and Pi Durable declare `in_process`.
+support; the adapter checks that separately at open. Pi's and Cursor's
+subprocess modes declare `process`; Pi's SDK, Cursor's default in-process
+mode and Pi Durable declare `in_process`.
 Morph and undeclared custom adapters report `null`.
 
 A host that wants no process sharing chooses by this declaration:
@@ -637,10 +638,10 @@ Further rules:
   background tasks retain their own lifecycles.
   `exitCode` follows the same rule for the process status of a command the
   runtime ran: present only when the runtime reported one (codex, grok,
-  antigravity, cursor, pi, and pi-durable for a nested call), `null` when it
-  reported an exit without a number (a signal), absent otherwise (claude,
-  and a tool that runs no command). pi and pi-durable report a signal as
-  128 plus its number, never `null`.
+  antigravity, cursor, pi), `null` when it reported an exit without a number
+  (a signal), absent otherwise (claude, pi-durable, whose 1.5 conversation
+  views carry no exit code, and a tool that runs no command). pi reports a
+  signal as 128 plus its number, never `null`.
 - **A tool result is its parts.** `tool_call_ended.content` is the result
   as the runtime reported it, in its order: `{type: "text", text}`,
   `{type: "image", mediaType, data}` (base64, normalized from Anthropic
@@ -811,8 +812,8 @@ protocol fields. Older readers may ignore the additive field.
 
 ### Adapter-held queue records
 
-Kimi, Grok, OpenCode, Antigravity and CodeBuddy use the shared ACP driver.
-Pi SDK/RPC, Claude, Qoder, Qwen and Cursor use the same ownership records.
+Kimi, Grok, OpenCode, Antigravity, CodeBuddy and Devin use the shared ACP driver.
+Pi SDK/RPC, Claude, Qoder, Qwen, Cursor and Factory use the same ownership records.
 A queue accepted with
 `queued: "adapter"` is still held by OAR. At
 actual dispatch the adapter records a new prompt carrying the original
@@ -857,7 +858,11 @@ tool parts built from them, carry `elided: true` too. The limit counts the UTF-8
 bytes of each frame's `native` and tool payloads.
 
 - Every observer receives each record complete before anything is elided. A host
-  wanting the full history persists it (`openVoyage` or its own log).
+  wanting the full history persists it (`openVoyage` or its own log). Pi
+  Durable's raw view needs its initial `snapshot` frame and every later delta,
+  and the large snapshot is among the first payloads elided, so a host
+  rebuilding that view persists live records from seq 0
+  ([Pi Durable](../runtimes/pi-durable.md#records-snapshots-and-limits)).
 - Records stay: `seq` stays dense, and frame `type`, event kinds, call ids,
   results, exit codes, usage, model and text remain, so `status()`, `usage()` and
   the model and effort queries do not change. Tool detail in a view does, which
@@ -895,7 +900,7 @@ or sent with `deliver` (send now): a new attempt, read by the ordinary
 rules ([conversation](conversation.md#withdrawing-held-input)).
 
 `withdraw` exists where OAR holds the queue: claude, qoder, qwen, pi, cursor,
-kimi, grok, antigravity, codebuddy and opencode. pi-durable's queue is native, and its `withdraw`
+factory, kimi, grok, antigravity, codebuddy, devin and opencode. pi-durable's queue is native, and its `withdraw`
 aborts the input's native submission before it runs (`submission.abort()`).
 dsh's queue is native too, and its `withdraw` is the native `inbox.remove`, answered
 from native state. codex holds its queue natively, and its `thread/queue/delete` is
@@ -943,8 +948,10 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   `started` admission receipts (SDK `preflightResult`, RPC prompt response), Pi Durable's
   adopted conversation activity, qwen's root `system/init` for its sole
   submitted input, claude `system/init` when the root starts a turn on
-  its own, and grok's `_x.ai/queue/changed` `runningPromptId` (with the
-  input id for a prompt OAR named, without it for Grok's own turn)
+  its own, grok's `_x.ai/queue/changed` `runningPromptId` (with the
+  input id for a prompt OAR named, without it for Grok's own turn), and
+  factory's turn of its own for a steer that missed the turn (with that
+  input id) or non-idle working state while OAR prompted nothing
   ([per runtime](runtime-matrix.md#native-active-turns)). An optional
   `inputId` means the runtime started its turn for that input; absent means
   unknown. Claude and Qoder map `command_lifecycle started` for prompt-like
@@ -1054,7 +1061,10 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   Proven Grok ends carry the OAR `requestId` they explicitly answer and no
   trigger; its `auto_compact_completed` notification alone supplies neither
   ownership nor a trigger. DSH `compaction/end` supplies failed with its
-  native `error` as reason, else completed, keeping its `compactionId`. An
+  native `error` as reason, else completed, keeping its `compactionId`.
+  Factory's `session_compacted` supplies completed with no trigger, carrying
+  the OAR `requestId` while a `droid.compact_session` is pending; Factory has
+  no projected start. An
   ended compaction starts no work: `statusOf` keeps an idle agent idle, and
   only moves an already-running ordinary agent to `waiting_model`. Which
   `compactionId`, `responseTo` or `requestId` can settle a manual operation
@@ -1068,7 +1078,8 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   ([native controls](../../experiments/qwen-compaction-attribution/README.md)).
 - `retry`: pi `auto_retry_start` and `summarization_retry_scheduled` (Pi
   Durable: `auto_retry_start`); codex
-  `error` with `willRetry: true`, whose `attempt` OAR counts within the turn. No
+  `error` with `willRetry: true`, whose `attempt` OAR counts within the turn;
+  factory `llm_retry` with its native `attempt` and `reason`. No
   other built-in runtime exposes a retry (claude retries silently); the
   community Morph adapter reads its own retry notice.
 - `task_started` / `task_updated` / `task_ended`: work the runtime tracks
@@ -1119,12 +1130,13 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   Native job `completed` / `failed` map directly and `killed` maps to stopped;
   unknown outcomes and copied history owned by another session stay raw.
   DSH does not provide `stopTask` ([mapping and completion boundaries](../runtimes/dsh.md#root-completion-and-background-work)).
-  Pi, cursor and the other ACP adapters report no task events. `tasksOf`
+  Pi, cursor, factory and the other ACP adapters report no task events. `tasksOf`
   folds them into one row per task, including endings inferred from runtime
   exit as described below.
 - `effort`: the reasoning-effort level the runtime reports in effect, in its
   own spelling. codex: the `thread/start` / `thread/resume` reply's
-  `reasoningEffort` and `thread/settings/updated`; ACP (grok, kimi; opencode
+  `reasoningEffort` and `thread/settings/updated`; factory: `reasoningEffort`
+  in droid's `settings_updated`; ACP (grok, kimi, devin; opencode
   and antigravity CLI 1.5.0 where the model has the option): the
   current value of the config option in ACP's `thought_level` category, in
   a handshake answer or a `config_option_update`; pi: `thinkingLevel` on

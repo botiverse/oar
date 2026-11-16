@@ -114,7 +114,7 @@ Factory, Grok, OpenCode and Qoder compact requests carry
 remain in place but do not release these operations. Other runtimes use the
 terminal records above. With no adapter-held input, a synchronous observer
 of the release record can submit another prompt when status is idle. ACP, Pi
-SDK/RPC, Claude, Qoder, Qwen and Cursor held inputs instead keep status at
+SDK/RPC, Claude, Qoder, Qwen, Cursor and Factory held inputs instead keep status at
 `running / waiting_model` until their dispatch or withdrawal. The accepted
 `queued: "adapter"` response and carrying prompt request expose this
 reservation in the stream, including the interval before native start or
@@ -145,7 +145,7 @@ native input identities without inference; see the
 [identity projection](record-stream.md).
 
 While compaction remains unresolved, a new `prompt`, `steer`, or `compact`
-returns `rejected` / `busy`. Claude, Pi, Grok, Qoder, Cursor and OpenCode v2
+returns `rejected` / `busy`. Claude, Pi, Grok, Factory, Qoder, Cursor and OpenCode v2
 retain `queue()` input in the OAR queue and drain it after native completion; Codex refuses new
 queue input `busy` because its native queue could start another turn during
 compaction. A submitted but not yet started input also prevents compact.
@@ -180,6 +180,7 @@ its unit regressions use a controlled SDK stand-in.
 | Qwen | Unsupported: stream-json lacks structural completion evidence and a user command can replace `/compress`. |
 | Antigravity | Unsupported: the `agy` CLI advertises `/compact`, but no structured completion and attribution contract is verified. |
 | CodeBuddy | Unsupported: the dedicated method in published types is refused by the CLI; slash-command completion/provenance is not established. |
+| Devin | Unsupported: `devin acp` lists `/compact` but exposes no verified manual compaction protocol or structured completion signal. |
 | OpenCode v1 | No session member: a project command can replace `/compact` and structural completion is unverified. The shared v1/v2 Runtime remains undeclared. |
 | OpenCode v2 | Session member supported, idle only; common v1/v2 Runtime undeclared. `/compact` emits native start/end metadata; the same `messageId` and the RPC answer are both required. Ordinary success is not proof. |
 | Grok | Supported, idle only. Dedicated `_x.ai/compact_conversation` response proves completion, with structured failure/cancellation. No native start or inferred trigger. Empty history is a native successful no-op. |
@@ -187,7 +188,7 @@ its unit regressions use a controlled SDK stand-in.
 | Qoder | Supported, idle only. `/compact` is intercepted before custom commands. Same-command UUID start, manual `compact_boundary`, and command completion/cancellation are required. A completed boundary wins later cancellation; a successful command without a boundary yields `not_compacted`. |
 | Cursor | Supported, idle only. `Agent.summarize()` returns a run id; its root summary status and terminal run result identify completion. An aborted run without a terminal summary returns aborted without inventing a compaction end. |
 | DSH | Undeclared; no session member. |
-| Pi Durable | Undeclared; handled with the separate Durable API migration. |
+| Pi Durable | Undeclared; no session member. |
 
 Claude's command-source read and dispatch are separate native messages, not
 an atomic server operation. OAR checks the current same-process catalog and

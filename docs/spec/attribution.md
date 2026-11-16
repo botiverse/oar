@@ -101,6 +101,11 @@ already show the degeneration (adapter red lines in
   retired agy_acp_server 1.2.1 flattened the child's tool calls and text onto
   the parent session (the child id survived only as a `toolCallId` prefix)
   and reported no usage. [env]
+- factory (droid stream-jsonrpc): opaque; droid runs `Task` sub-agents in
+  child sessions (`child_session_available`) that the adapter does not link
+  yet. Their `childTokenUsage` on the parent's turn end is added to the
+  session total, not the root's entry
+  ([factory](../runtimes/factory.md#usage-and-context)).
 - kimi (ACP): opaque; an internal graph exists, but the default ACP server
   subscribes only to the main agent. The protocol honestly marks root only;
   fabricating a child graph from display text is forbidden. [src]
@@ -264,7 +269,8 @@ SessionView preserve it through JSON replay.
 | pi-durable | model and tool ledger entries' `reasoning` | Pi Durable 1.1.0 `UsageState` uses pi-ai `Usage`; subtract attachment snapshot [src] |
 | cursor | `turn-ended.usage.reasoningTokens` | SDK 1.0.37 `TokenUsage` / `TurnUsageInput`; optional subset of output [src] |
 | dsh | `usage.reasoningTokens` of durable `assistant/message` | optional native field [src]; the tested pi-ai route drops the provider's count, so it was absent on the wire |
-| claude, kimi, opencode, antigravity, qwen, qoder, codebuddy | absent | no verified native reasoning counter on the integrated surface |
+| factory | absent: `tokenUsage.thinkingTokens` stays in the native frame | whether `outputTokens` includes it is not established without a Factory model ([factory](../runtimes/factory.md#usage-and-context)) |
+| claude, kimi, opencode, antigravity, qwen, qoder, codebuddy, devin | absent | no verified native reasoning counter on the integrated surface |
 
 [Accounting regressions](../../tests/reasoning-tokens.test.ts) pin absence,
 zero, agent/child totals and replay. The
@@ -305,7 +311,9 @@ without `input` changing under existing consumers
 | qwen | `result.usage.cache_read_input_tokens` | `result.usage.cache_creation_input_tokens` | copied without addition (native `input_tokens` already includes cache reads); a cumulative native total, so resumed sessions report no usage ([qwen](../runtimes/qwen.md)) [src] |
 | qoder | `result.usage.cache_read_input_tokens` | `result.usage.cache_creation_input_tokens` | both added into `input`; per-query reports summed since open; the local probe reported zero cache counts ([qoder](../runtimes/qoder.md#usage-and-failures)) [env] |
 | dsh | durable `usage.cacheReadTokens` | durable `usage.cacheWriteTokens` | both added into `input`: native `inputTokens` excludes them (60 plus 40 cached of a provider 100 [env]); `cacheWriteTokens` not yet seen on a wire |
+| factory | `agent_turn_completed.tokenUsage.cacheReadTokens` | `tokenUsage.cacheCreationTokens` | both added into `input` (droid reports them beside `inputTokens`); per-turn counts summed since open ([factory](../runtimes/factory.md#usage-and-context)) |
 | kimi, opencode, antigravity, codebuddy | absent | absent | no token totals reported, `usage().total` stays null |
+| devin | absent | absent | no usage ledger mapped; live authenticated turns are unverified ([devin](../runtimes/devin.md#verification-and-open-gaps)) |
 
 Codex fills `cachedInputTokens` and `cacheWriteInputTokens` from the
 Responses API's `input_tokens_details.cached_tokens` and

@@ -79,7 +79,7 @@ refer to files elsewhere. Host options retain their existing refusals, so
 | Cursor SDK | Explicit empty `local.settingSources` and `local.sandboxOptions.enabled: false`; SDK login and native store remain. Project layers are also absent, as in its default. |
 | Codex | Refused: the temporary-home workaround leaves shared history indexes pointing at paths deleted during cleanup. |
 | Kimi | Refused: native atomic writes replace the workspace-index symlink and split the workspace catalog. |
-| Pi, Pi Durable, Grok, OpenCode v1/v2, Qwen, Qoder, Antigravity, CodeBuddy, Devin | Refused: no verified separation preserving login and history. |
+| Pi, Pi Durable, Grok, OpenCode v1/v2, Qwen, Qoder, Antigravity, CodeBuddy, Devin, Factory | Refused: no verified separation preserving login and history. |
 | DSH | Refused: no verified exclusion that keeps its provider routes. |
 
 A refusal is `UnsupportedOptionError("userConfiguration", reason)` before
@@ -105,7 +105,7 @@ false, the adapter holds queued input in this process.
 | codex | yes: `turn/steer` with `expectedTurnId` | no: the queue is codex's own (`thread/queue/add`; [why](record-stream.md#withdrawing-held-input)) | yes |
 | pi-durable | yes: native `submit`, `whenBusy: steer` | yes: `submission.abort()` | yes |
 | pi | yes: the SDK session's `steer` | yes | no |
-| cursor (`@cursor/sdk`) | yes, text only: `run.steer` (images are rejected `unsupported`) | yes | no |
+| cursor (`@cursor/sdk`) | yes, text only: `run.steer` (images are rejected `unsupported`); `complete_delivered` and SDK 1.4.0 `queued` are accepted (a queued steer is Cursor's follow-up, unobserved by OAR), `revert_to_followup` is refused ([mapping](../runtimes/cursor.md#prompt-steering-queueing-and-abort)) | yes | no |
 | grok (ACP) | yes: `_x.ai/interject`, taken into the running turn at its next safe point without cancelling it; one that misses the turn runs as Grok's own ([mapping](../runtimes/grok.md#prompting-steering-queuing-and-cancellation)) | yes | no |
 | codebuddy (ACP) | absent: no verified injection interface | yes | no |
 | devin (ACP) | absent: no verified injection interface | yes | no |
@@ -156,7 +156,7 @@ child process ([report](../../experiments/runtime-resources-2026-10-28.md)):
 | codex 0.165.0 | keeps running until it exits by itself (about 45 s in the probe), both in an OAR session and in a shared app-server; OAR's 10 s fallback does not apply once codex has ended the turn | `dispose()`, or [`endTurnProcessesOnAbort`](#ending-a-turns-processes-on-abort) on a session that opted in. Native `thread/backgroundTerminals/terminate` and `thread/archive` also stop the probed command; OAR does not call them |
 | grok 1.0.70 (ACP) | keeps running: native cancel and close leave the terminals grok created through the host | `dispose()` releases every terminal OAR hosted for the session, or [`endTurnProcessesOnAbort`](#ending-a-turns-processes-on-abort) stops the aborted turn's |
 | kimi 2.3.3, opencode 1.19.5 and 2.2.0, antigravity 1.4.3 (ACP) | stopped within 2 s of the cancel | |
-| claude, dsh, qwen, qoder, pi (RPC) | not measured | `dispose()`: OAR owns the process |
+| claude, codebuddy, devin, dsh, factory, qwen, qoder, pi (RPC) | not measured | `dispose()`: OAR owns the process |
 | pi (in process), cursor (in process) | not measured | they run in the host process: `dispose()` ends the SDK session; whether its commands stop is not measured |
 | cursor (subprocess mode) | not measured | `dispose()` stops the session's child, its process group and the descendants found by parent pid (POSIX), plus on Linux every process that kept the child's environment marker, such as a finished command's background job (tested on Linux); a process that cleared the marker, or on macOS one reparented away from the child, is not reached; Windows: `taskkill /T` on its tree, not run ([execution modes](../runtimes/cursor.md#execution-modes)) |
 | pi-durable | not measured | the host owns the harness: `dispose()` ends observation only |
@@ -169,8 +169,10 @@ infers that from the turn end.
 
 `SessionOptions.endTurnProcessesOnAbort: true` makes an accepted abort also end
 what that turn started, keeping the runtime and session for the next prompt.
-Codex in an isolated app-server and Grok (isolated or shared) take it; every
-other runtime, and Codex in shared placement, refuses it before launch. Codex
+Codex in an isolated app-server and Grok take it; every other runtime, and
+Codex in shared placement, refuses it before launch (Grok's shared placement
+is not admitted; its experimental shared adapter accepts the option but has
+not been run with it). Codex
 compares process-table reads; Grok stops the terminals OAR hosted for that
 turn ([grok](../runtimes/grok.md#ending-a-turns-processes-on-abort)). Omitted or false
 changes nothing. On Windows Codex accepts it and ends nothing, with `failed`
@@ -201,7 +203,7 @@ an observation from the runtime and carries no request id. It may name an
 | Runtime | Native activity source |
 |---|---|
 | dsh | the `next-turn` claim of an `agent/inbox/spliced` names the input; a `turn/start` with nothing waiting has no input id |
-| factory | a non-idle `droid_working_state_changed` while OAR prompted nothing (a steer that arrived as its turn ended); no input id |
+| factory | a turn end that neither echoed nor gave back a steer OAR sent names that steer's input (droid runs it as a turn of its own); otherwise a non-idle `droid_working_state_changed` while OAR prompted nothing, with no input id ([mapping](../runtimes/factory.md#prompting-steering-queueing-and-abort)) |
 | qoder | `command_lifecycle started` identifies the input; startup `system/init` alone is idle |
 | qwen | root `system/init` for the sole submitted input; no native command_lifecycle acknowledgement |
 | claude | `command_lifecycle started` for a prompt-like write identifies its input; a spontaneous root `system/init` has no input id |
@@ -238,8 +240,8 @@ never derived is in [record-stream.md](record-stream.md#the-rules)):
 | cursor (`@cursor/sdk`) | a shell call's stdout and stderr (one empty text part when it printed nothing), a read's file text, an edit's or write's diff, an error's message, else one `other` part ([env] SDK 1.0.35) | `tool-call-completed` `toolCall.result.status` `success`/`error` ([env] SDK 1.0.35) | a shell call's `result.value.exitCode`, `null` when `signal` names one ([env]) |
 
 A frame without the corresponding native field leaves the key absent; the
-native frame stays verbatim beside the event. pi and pi-durable report a
-signal as 128 plus its number (SIGTERM is 143), never `null`.
+native frame stays verbatim beside the event. pi reports a signal as 128
+plus its number (SIGTERM is 143), never `null`.
 
 ## Model confirmation failures
 
@@ -269,24 +271,22 @@ The message retains its runtime-specific explanation.
 | Antigravity | The last ACP `config_option_update` model value still contradicts the requested selection at the configuration deadline | Absent |
 | Factory | `initialize_session`, or on resume the `settings_updated` after `update_session_settings`, reports a `modelId` other than the request (droid runs its default in place of an unknown model) | Absent; opening reads no catalog |
 
-The error class itself imposes no shared confirmation policy. For example,
-Codex and DSH do not acquire a missing-readback refusal where they previously
-allowed opening. Explicit native model-unavailable errors and unsupported
-options keep their existing classifications. A Qoder catalog-query failure
-uses this confirmation error and retains its underlying `cause`; other
-transport/deadline failures retain their errors. A failure to confirm is not
+The error class imposes no shared confirmation policy: Codex and DSH still
+open when the readback is missing. Explicit native model-unavailable errors and
+unsupported options keep their classifications. A Qoder catalog-query
+failure uses this error and keeps its underlying `cause`; other
+transport/deadline failures keep their errors. A failure to confirm is not
 itself evidence for `RuntimeFailureError("model_unavailable")`.
-Antigravity waits for a successful config RPC and the last observed value
-for the requested option to match. A conflicting notification may be
-followed by a matching one within the original 30-second request deadline.
-If it still disagrees at the deadline, model uses `ModelConfirmationError`
-with the last reported value; effort keeps its existing plain refusal.
-This delays a genuine mismatch's refusal until the deadline. No notification
-naming the option remains a timeout, and RPC failures or process exits
-remain immediate failures. No new request, retry, quiet period, or deadline
-extension is added. This policy confirms an observed value, without claiming
-to identify stale notifications or prevent later native value changes.
-[Evidence and limitations](../../experiments/antigravity-config-notifications-2026-11-15/README.md).
+Antigravity waits, within the original 30-second request deadline, for a
+successful config RPC and a matching last observed value for the requested
+option; a conflicting notification can still be followed by a matching one.
+A model still disagreeing at the deadline is a `ModelConfirmationError` with
+the last reported value (effort keeps its plain refusal), so a genuine
+mismatch is refused only then. No notification naming the option remains a
+timeout; RPC failures and process exits fail at once. OAR adds no request,
+retry, quiet period or deadline extension, and does not claim to identify
+stale notifications or prevent later native changes
+([evidence and limitations](../../experiments/antigravity-config-notifications-2026-11-15/README.md)).
 Runtime pages describe the native evidence and confirmation limits.
 
 Regression coverage includes creation and resume, missing values, failed
@@ -331,7 +331,7 @@ regard to case. For example, `env: { ANTHROPIC_API_KEY: null,
 ANTHROPIC_BASE_URL: "https://provider.example" }` removes an inherited key
 while selecting the session's provider endpoint.
 
-Claude, codex, devin, dsh, grok, kimi, opencode, antigravity, codebuddy, qwen and qoder
+Claude, codex, devin, dsh, factory, grok, kimi, opencode, antigravity, codebuddy, qwen and qoder
 apply the overlay to their runtime process and its tool children; ACP client-hosted terminals receive it
 too. OpenCode's prompt preparation queries use the same environment. Pi
 applies it to its Bash tool's children, not its in-process provider. Cursor in
@@ -408,7 +408,7 @@ tool event), each pinned by its vendor tests. Antigravity CLI 1.5.0 ignores
 | dsh | Refused at open; not verified through the bridge | `UnsupportedOptionError`, declared in `refusedSessionOptions` |
 | factory | Refused at open: droid's `disabledToolIds` is not yet verified against these names | `UnsupportedOptionError`, declared in `refusedSessionOptions` |
 | qwen, qoder, codebuddy | native `--exclude-tools` (qwen), `--disallowed-tools` (qoder) and `--disallowedTools` (codebuddy, on new and resumed opens) | nothing: OAR passes the names unvalidated and matching is native ([qwen](../runtimes/qwen.md), [codebuddy](../runtimes/codebuddy.md)) |
-| grok, kimi, opencode, antigravity, devin | none through the selected OAR transport | every non-empty list, declared in `Runtime.refusedSessionOptions` |
+| grok, kimi, opencode, antigravity, devin, pi-durable | none through the selected OAR transport | every non-empty list, declared in `Runtime.refusedSessionOptions` |
 
 Value-specific refusals identify the offending names. They are not listed
 as an always-refused option on codex or cursor. The native
@@ -476,7 +476,7 @@ again on resume.
 | dsh | refused: OAR owns the launcher arguments and bridge overlay |
 | factory | after `droid exec --input-format stream-jsonrpc --output-format stream-jsonrpc`; the protocol, session and cwd flags are refused |
 | qoder | after OAR's own flags, before `--mcp-config`, `--add-dir` and `--disallowed-tools`; from 1.1.81 the same list is the daemon's `worker_args` |
-| pi, cursor | refused: they run in the host process through their SDKs, with no command line; cursor's subprocess mode runs the SDK in a Node child of OAR's, with no Cursor command line either |
+| pi, pi-durable, cursor | refused: they run in the host process through their SDKs, with no command line; cursor's subprocess mode runs the SDK in a Node child of OAR's, with no Cursor command line either |
 
 For Claude, `--permission-mode` (`default`, `dontAsk`, `acceptEdits`, `plan`)
 replaces OAR's default bypass and adds `--permission-prompts none`. OAR
@@ -512,7 +512,7 @@ imitate a missing native channel. Unsupported runtimes refuse even `{}`.
 | claude | `--json-schema` for the process, including queued and spontaneous turns | A successful native `result.structured_output` is passed unchanged to `turn_ended.outcome.structuredOutput`. Exhausted validation retries fail the turn. |
 | codex | `turn/start.outputSchema` on every OAR prompt; steer retains the active turn's setting | Native text only, including text that violates the schema when the provider does not enforce it. No `structuredOutput` is synthesized. Provider schema refusals remain failed turns. |
 | grok | `session/prompt._meta.outputSchema` on prompt and held queue drain; a steer (`_x.ai/interject`) carries none and joins its turn under that turn's schema | Native `_meta.structuredOutput` becomes the completed outcome's value; `_meta.structuredOutputError` fails the turn even when native `stopReason` is `end_turn`. |
-| cursor, devin, dsh, kimi, opencode (both lines), antigravity, codebuddy, qwen, qoder, pi, pi-durable | Refused at open; no verified final-output schema channel through these adapters | `UnsupportedOptionError`, declared in `refusedSessionOptions`. |
+| cursor, devin, dsh, factory, kimi, opencode (both lines), antigravity, codebuddy, qwen, qoder, pi, pi-durable | Refused at open; no verified final-output schema channel through these adapters | `UnsupportedOptionError`, declared in `refusedSessionOptions`. |
 
 **Codex's native queue cannot carry a schema**, so `queue()` returns
 `rejected: unsupported` when `outputSchema` is set. Send a new prompt after
@@ -555,9 +555,7 @@ runtime and is not guaranteed by this option.
 | opencode v2 | ACP `additionalDirectories`, after capability advertisement | Pass again; a cold resume without it does not restore the extra roots. |
 | qwen | `--include-directories` | Pass the list again for the new process. |
 | qoder | `--add-dir` | Pass the list again for the new process. |
-| dsh | refused at open | Same refusal. |
-| factory | refused at open | Same refusal. |
-| opencode v1, grok, antigravity, codebuddy, devin, pi, pi-durable | Refused with `UnsupportedOptionError` | Same refusal. |
+| opencode v1, grok, antigravity, codebuddy, devin, dsh, factory, pi, pi-durable | Refused with `UnsupportedOptionError` | Same refusal. |
 
 The unconditional refusals are declared in `Runtime.refusedSessionOptions`.
 Kimi's resume restriction and OpenCode's release-line restriction are checked
@@ -582,7 +580,7 @@ nothing. A blank name, or one with a NUL character, is refused with
 | claude | `--name` at launch | Left alone: `--name` on a resume replaces the session's name, and claude reports that name only once it has started (`session_title_changed`). |
 | codex | `thread/name/set` once the thread is open | Set only when the `thread/resume` reply shows no name. |
 | pi | a `session_info` entry, as pi's own `--name` writes it | Set only when the session never had one, so a name the user cleared stays cleared. |
-| cursor, devin, dsh, kimi, grok, antigravity, opencode, codebuddy, qwen, qoder, pi-durable | Refused with `UnsupportedOptionError` | Same refusal. |
+| cursor, devin, dsh, factory, kimi, grok, antigravity, opencode, codebuddy, qwen, qoder, pi-durable | Refused with `UnsupportedOptionError` | Same refusal. |
 
 Evidence: [`experiments/codex-session-name.ts`](../../experiments/codex-session-name.ts)
 (codex 0.162.0) and the vendor tests
@@ -738,8 +736,9 @@ carries `sessionId`, `requestedCwd` and a typed
 | Listed id has no non-empty string cwd | `cwd_unreported` |
 | Missing list capability, malformed page or invalid/repeated cursor | `listing_unavailable` |
 
-DSH's saved-header directory mismatch also uses `other_cwd`; its missing
-header directory still refuses the separate `resume` option. Native listing
+DSH's saved-header directory mismatch and Factory's `load_session` answer
+naming another cwd also use `other_cwd`; DSH's missing header directory
+still refuses the separate `resume` option. Native listing
 and header-read errors keep their own types. `not_listed` is not proof that
 history is gone: agy 1.5.0 omits sessions closed before their first prompt.
 No replacement session is started by OAR
@@ -830,9 +829,9 @@ them from a streamable HTTP MCP server inside the host process, on
 `127.0.0.1` behind a random bearer token, and returns the `mcpServers` entry
 (`{ name, type: "http", url, headers: { Authorization } }`) and `close()`.
 Each runtime then attaches it through its own MCP channel above, so it
-behaves as any http entry does there: claude, codex, pi, grok, kimi,
-opencode, codebuddy, devin, qwen and qoder take it; cursor and pi-durable refuse `mcpServers`, and
-antigravity refuses an entry with `headers`; dsh accepts only stdio command/args.
+behaves as any http entry does there: claude, codex, cursor, pi, grok, kimi,
+opencode, codebuddy, devin, factory, qwen and qoder take it; pi-durable refuses `mcpServers`,
+antigravity refuses an entry with `headers`, and dsh accepts only stdio command/args.
 A host tells before opening:
 served tools attach unless `refusedSessionOptions` declares `mcpServers` or
 `mcpServerCredentials`. The runtime must reach the host's loopback address,
@@ -901,8 +900,8 @@ notification:
 | `additions` | claude | adds new tools; removed tools' already loaded schemas remain offered, though search withdraws their names and calls fail as unknown tools ([2.1.304 evidence](../../experiments/runtime-version-checks/2026-10-20.md#claude-21304)) |
 | `none` | codex, kimi, grok, antigravity CLI | keeps the opening set; the client never lists again (grok's `use_tool` answers "Tool not found" for an added tool) |
 
-cursor and pi-durable take no `mcpServers` and declare nothing; codebuddy,
-devin, dsh, qwen and qoder take it but are unmeasured, so they declare nothing either. The
+pi-durable takes no `mcpServers` and declares nothing; codebuddy, cursor,
+devin, dsh, factory, qwen and qoder take it but are unmeasured, so they declare nothing either. The
 declaration covers any attached MCP server that announces a change, so
 antigravity's matters only for credential-free servers: a `serveMcpTools`
 entry never attaches there. A change a session does not take applies when
@@ -945,7 +944,7 @@ existing types and causes; OAR never starts a replacement conversation.
 | Runtime | Evidence required | Scope of "not found" |
 |---|---|---|
 | grok | Resume/load error `data.code === "FS_NOT_FOUND"` | This cwd, including a real id saved under another cwd. |
-| factory | `load_session` error `code === -32004` ("Session not found") | The active HOME; a session saved for another cwd is refused (`UnsupportedOptionError` on `cwd`). |
+| factory | `load_session` error `code === -32004` ("Session not found") | The active HOME; a session saved for another cwd is refused (`ResumeCwdError`, `other_cwd`). |
 | cursor | SDK error `code === "agent_not_found"` from `Agent.listRuns` or `Agent.resume` | Not found by the SDK with this configuration; the 1.0.37 probe had no `CURSOR_API_KEY`, and did not test a real id. |
 | pi | OAR's `SessionManager.list(cwd, sessionDir)` lookup has no matching id | This cwd and agent directory, including a real id saved under another cwd. The cause reports the lookup scope and count, not an invented native error. |
 | pi-durable | `Harness.conversation(id)` returns `undefined` for a valid native numeric id | The host's Harness and storage. Malformed ids and failed storage queries retain their ordinary errors; no replacement is created. |
@@ -1256,20 +1255,17 @@ retryable}`, and `turn.step.retrying`), but answers the ACP prompt `end_turn`
 with no message, so oar records `completed`. That file is kimi's private
 storage, not an interface, and oar reads only the ACP stream. antigravity
 likewise ends most failed turns `end_turn`, some with the provider's text as
-agent text. A [CLI 1.5.9 follow-up](../../experiments/antigravity-native-gaps-2026-11-15/README.md)
-now covers an interrupted SSE stream and 401/429/504 failures after a tool
-call: warning text, then `end_turn`, with native retries on stream cuts,
-rate limits and 504. No `refusal` or ACP error was observed. A stalled stream
-remained unanswered at 180 seconds, an observation bound, not a native
-timeout. These Gemini API-provider controls do not establish the signed-in
-Google provider's quota behavior.
-OAR consequently records these failed turns as `completed`, preserving the
-original warning text ([upstream #1570](https://github.com/google-antigravity/antigravity-cli/issues/1570)).
-The same 1.5.9 experiment observed a background command finishing after
-`end_turn` without forwarding its completion or later model reply during
-12 seconds of observation ([upstream #1461](https://github.com/google-antigravity/antigravity-cli/issues/1461)).
-OAR does not infer native idleness from that answer or read the CLI's
-internal database to fill these gaps.
+agent text. On CLI 1.5.9 ([follow-up](../../experiments/antigravity-native-gaps-2026-11-15/README.md)),
+an interrupted SSE stream and 401/429/504 failures after a tool call give
+warning text, then `end_turn`, with native retries on stream cuts, rate
+limits and 504; no `refusal` or ACP error was observed, and a stalled stream
+was still unanswered at 180 seconds (an observation bound, not a native
+timeout). These Gemini API-provider controls do not establish the signed-in
+Google provider's quota behavior. OAR records these failed turns as
+`completed`, keeping the warning text ([upstream #1570](https://github.com/google-antigravity/antigravity-cli/issues/1570)).
+The same run's unforwarded background-command completion is in the
+[landing matrix](#per-runtime-landing-matrix). OAR infers no native idleness
+from `end_turn` and reads no CLI database to fill these gaps.
 
 ### cursor
 
@@ -1298,6 +1294,17 @@ through `llm.resolveCallConfig`. [Table](../runtimes/dsh.md#records).
 is classified from droid's last `error` notification of the turn, which is
 also the `reason` text. A scripted 401 ended `model_authentication_failed`
 with `error` "401 Invalid synthetic key". [Mapping](../runtimes/factory.md#failures).
+
+### devin
+
+ACP's -32000 is `auth` as for every ACP runtime (observed on a logged-out
+`session/prompt`: "Please log in to use Devin."). Any other JSON-RPC error
+(observed: -32603 at `session/new` with an invalid key) whose message says
+authentication is required, the API key is invalid or the user is not logged
+in is `auth` too: a `RuntimeFailureError` at open or model selection, a
+failed turn on `session/prompt`. `devin acp`
+speaks ConnectRPC, so aimock cannot script its provider and no other cause
+has been observed ([open gaps](../runtimes/devin.md#verification-and-open-gaps)).
 
 ### Where a class can come from
 
@@ -1333,6 +1340,7 @@ when it passes. Only claude reports one.
 | pi, pi-durable | the provider's error text; for a ChatGPT plan pi-ai words it "Try again in ~N min." `[src]` (pi-ai 1.1.0) | none |
 | opencode, kimi, grok, antigravity | nothing in the observed answers (above) | none |
 | cursor | `RateLimitError` has `code`, `status` and `isRetryable`, no time `[src]` (`errors.d.ts`, 1.0.37) | none |
+| factory, devin | nothing mapped; their limit paths are unverified without a real account | none |
 
 ## Adapter red lines
 
@@ -1426,6 +1434,8 @@ seq=122  ✓ frame  path=["bg-7"]  completed {usage:…}
 
 `input_dropped` with `turn_interrupted` is emitted by Codex: an interrupted
 root turn drops that turn's accepted, un-echoed steers before `turn_ended`.
+Factory and DSH emit it for input their runtime reports discarded on abort
+([conversation](conversation.md#dropped-input)).
 ACP also emits `runtime_refused` when an accepted steer's native RPC later
 fails, preserving its error frame without changing the active turn outcome.
 Claude, Pi and OpenCode v1 retain the tested interrupted steering input;

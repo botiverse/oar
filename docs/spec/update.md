@@ -74,6 +74,7 @@ instruction to run `brew upgrade`.
 | --- | --- | --- |
 | claude | `downloads.claude.ai/claude-code-releases/<channel>` (native) or the npm dist tag (npm copy, by layout or claude's recorded `installMethod`); channel from settings `autoUpdatesChannel`, held by `minimumVersion` | `claude update` |
 | codex | `codex doctor --json`, row `updates.status` (the JSON decides; doctor exits 1 when any row fails) | `codex update` |
+| devin | the release manifest named by the standalone installer's `distribution` marker beside the binary; Homebrew, Desktop and portal builds have none (`unsupported_installation`) | none: `devin update` asks for confirmation and has no `--yes` |
 | factory | `droid update --check` (exits 0 either way: "Update available: X" or "Already up to date!" decides) | `droid update` |
 | grok | `grok update --check --json` (exit is always 0; `error` decides) | `grok update` |
 | kimi | `code.kimi.com/kimi-code/latest`, or `code.kimi.ai` for the `global` region; only a newer release counts | `kimi upgrade -y` (from 0.43.0) |
@@ -82,7 +83,7 @@ instruction to run `brew upgrade`.
 | antigravity | The native CLI platform manifest; only a newer version counts | not implemented in OAR; native CLI provides `agy update` |
 | opencode | none yet: `opencode upgrade` picks its source by install method (npm, Homebrew, Scoop, Chocolatey or the install script) and has no check-only mode | none yet |
 | pi | none: bundled with oar | none |
-| cursor | none: `@cursor/sdk` is the host's to install and pin (OAR's optional peer dependency, 1.3.1) | none |
+| cursor | none: `@cursor/sdk` is the host's to install and pin (OAR's optional peer dependency, 1.4.0) | none |
 
 A kimi native install stages the new binary and swaps it in on its next
 start; the version read back after the upgrade is that start.

@@ -167,7 +167,7 @@ consistent. Login and logout confirmation queries receive that map too.
 OAR-owned overrides still win, including browser suppression and Claude's
 `CLAUDECODE` removal.
 
-Claude, Codex, CodeBuddy, Devin, Factory, Kimi and Qoder apply the overlay to their authentication processes.
+Antigravity, Claude, Codex, CodeBuddy, Devin, Factory, Grok, Kimi and Qoder apply the overlay to their authentication processes.
 Cursor's SDK runs in the host process by default: its three authentication
 methods then reject any nonempty `env` with `UnsupportedOptionError`
 (`option: "env"`) before loading the SDK, as its sessions do. An empty map is
@@ -367,7 +367,7 @@ declares no network, refresh or key-command execution. The
 | --- | --- | --- | --- | --- |
 | claude | `claude auth login` over pipes: relays the URL, prompts `manual_code` for the `code#state` the page shows | `claude auth status --json` (`loggedIn`; exit 0 logged in, 1 logged out) | 2.1.126 | 15 min |
 | codex | app-server `account/login/start { type: "chatgptDeviceCode" }`: relays the device code; codex polls | `codex login status` (exit 0 logged in; exit 1 with `Not logged in` logged out) | 0.118.0 | 16 min |
-| cursor | `Cursor.auth.login({ openBrowser: false })` in process: relays the URL from `onLoginUrl`; the SDK polls; its save goes through a store oar passes, which refuses it once the login has ended | `Cursor.auth.status` (the stored login only, not `CURSOR_API_KEY`; `email` and the key's expiry) | `@cursor/sdk` 1.3.1 | 15 min |
+| cursor | `Cursor.auth.login({ openBrowser: false })` in process: relays the URL from `onLoginUrl`; the SDK polls; its save goes through a store oar passes, which refuses it once the login has ended | `Cursor.auth.status` (the stored login only, not `CURSOR_API_KEY`; `email` and the key's expiry) | `@cursor/sdk` 1.4.0 (the pinned peer) | 15 min |
 | codebuddy | private stream-json `initialize` then `authenticate`, native URL callback | private `initialize.account`: object / null / absent; non-empty `CODEBUDDY_API_KEY` instead yields `unknown` with a configured source label | international 2.178.1, Linux arm64 verified; generic `auth_failed` is process failure, not user denial | 5 min |
 | qoder | `qodercli login` over pipes: relays the authorization URL | `qodercli status --output json` (`logged_in`) | native 1.1.78 verified | 5 min |
 | antigravity | `agy acp --login` over pipes: relays the Google URL, prompts `manual_code` for the code or landing URL ([login](../runtimes/antigravity.md#login)) | `agy models` (exit 0 logged in; exit 1 with `Please sign in` logged out; a remote call) | 1.5.5 verified | 15 min |
@@ -390,7 +390,10 @@ regardless of this option. Qoder suppresses its browser with a per-login
 override on POSIX and `<SystemRoot>/System32/hostname.exe` on Windows; its native
 URL helper honors this setting without launching a browser. Kimi ignores `BROWSER`: OAR places a private
 no-op `xdg-open`, `open` or `powershell.exe` first on only the login child
-PATH, then removes it after the child exits. Unsupported platforms or an
+PATH, then removes it after the child exits; Antigravity (which also ignores
+`BROWSER`) gets the same `xdg-open` or `open`, and Grok a login-only
+`BROWSER=true`. Neither is suppressed on Windows (agy starts `rundll32.exe` by
+absolute path; Grok's use of `BROWSER` there is unverified). Unsupported platforms or an
 unusable temporary location return `browser_suppression_unavailable` before
 launch. The other runtimes have no runtime login member.
 Pi's provider logins are on `createPiProviderAuth`, whose
@@ -468,7 +471,7 @@ runtime oar does not sign in.
 | --- | --- | --- | --- | --- |
 | claude | `claude auth logout`, stdin closed | revokes the stored claude.ai OAuth refresh token, best effort | 2.1.41 | 60 s |
 | codex | `codex logout`, stdin closed | revokes a stored ChatGPT login's token, best effort (from 0.122.0); an API key is only deleted | 0.15.0 | 60 s |
-| cursor | `Cursor.auth.logout()` in process, with the SDK's own store | nothing: the minted key stays valid until it expires or is revoked in the dashboard | `@cursor/sdk` 1.3.1 | 20 s |
+| cursor | `Cursor.auth.logout()` in process, with the SDK's own store | nothing: the minted key stays valid until it expires or is revoked in the dashboard | `@cursor/sdk` 1.4.0 (the pinned peer) | 20 s |
 | kimi | ACP `initialize` then `logout`; reads authentication again afterward | removes the native credential slot and managed model configuration; no server-side revocation | 2.3.3 verified | 60 s |
 | antigravity | ACP `initialize` then `logout`; reads `agy models` afterward | removes its stored token file; server-side revocation not observed | 1.5.5 verified | 60 s |
 | grok | `grok logout`, stdin closed; reads `grok models` afterward | clears its cached sign-in; server-side revocation not observed | 1.0.77 verified | 60 s |

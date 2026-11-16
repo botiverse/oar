@@ -97,9 +97,9 @@ extra process cost applies even at `local` depth on hosts without CodeBuddy.
 
 An auth reader without an evidenced `localOnly` declaration is skipped at
 `local` depth with `{ kind: "skipped", because: "depth" }`. An absent reader
-is `unsupported`. Cursor and Qwen declare local auth status; Claude, Codex,
-CodeBuddy, Kimi and Qoder require `account` depth. Antigravity, DSH, Grok,
-OpenCode, Pi and Pi Durable expose no auth reader. No direct credential-file
+is `unsupported`. Cursor and Qwen declare local auth status; Antigravity,
+Claude, Codex, CodeBuddy, Devin, Factory, Grok, Kimi and Qoder require
+`account` depth. DSH, OpenCode, Pi and Pi Durable expose no auth reader. No direct credential-file
 parser is added for the aggregate.
 
 When `CURSOR_API_KEY` is present, Cursor reports `unknown`: sessions use that

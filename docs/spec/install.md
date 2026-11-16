@@ -32,7 +32,8 @@ installer behaved when run.
   does not look is a probe to fix, so the probes also look where the
   installers put them (claude's `~/.local/bin`, codex's `~/.local/bin`, grok's
   `~/.grok/bin`, kimi's `~/.kimi-code/bin`, opencode's `~/.opencode/bin`,
-  antigravity's `~/.local/bin/agy`),
+  antigravity's `~/.local/bin/agy`, factory's `~/.local/bin/droid`, devin's
+  `~/.local/bin/devin`),
   which a GUI or service process's PATH can miss. CodeBuddy also queries npm's
   configured global prefix when ordinary discovery finds nothing.
 - **`installPlan` does not change installations or user configuration.** It
@@ -103,7 +104,7 @@ reason carries neither.
 | requires_gui | The vendor installs the runtime only from inside an app. No built-in runtime returns it. |
 | missing_tool | A program the documented command runs (`curl`, `bash`, `sh`, `npm`) is not on PATH; `detail` names it. `steps` and `source` carry the vendor's command, for the person to run once the tool is installed. |
 | location_unknown | OAR cannot determine where the installer would write. `detail` gives the failure category without native output; `steps` and `source` carry the vendor's command, for the person to run after checking the installer's location configuration. This does not establish missing tools or insufficient rights. |
-| configuration | An existing executable or pinned location needs manual adjustment before the installer can provide a usable runtime (antigravity: an existing `agy` OAR cannot use, which the installer would not replace, or an `OAR_ANTIGRAVITY_BIN` override naming a missing or unusable CLI). No installer or download starts; `detail` explains what to update or correct. |
+| configuration | An existing executable or pinned location needs manual adjustment before the installer can provide a usable runtime (antigravity: an existing `agy` OAR cannot use, which the installer would not replace, or an `OAR_ANTIGRAVITY_BIN` override naming a missing or unusable CLI; devin: a regular file at `~/.local/bin/devin`, which its installer refuses to overwrite, an existing `devin` OAR cannot use, or an `OAR_DEVIN_BIN` override naming a missing or unusable CLI). No installer or download starts; `detail` explains what to update or correct. |
 | bundled | Nothing to install: the runtime comes with the package that carries it. No built-in runtime returns it, since bundled ones have no `install` at all. |
 | line_required | The runtime has `installLines` and no `line` was given; `detail` lists them. |
 | unknown_line | `line` is not one of the runtime's `installLines`. |
@@ -123,6 +124,7 @@ method and stays on the line.
 | claude | `curl -fsSL https://claude.ai/install.sh \| bash` | [code.claude.com/docs/en/setup](https://code.claude.com/docs/en/setup) | `~/.local/bin/claude` → `~/.local/share/claude/versions/<v>` (native) |
 | codex | `curl -fsSL https://chatgpt.com/codex/install.sh \| CODEX_NON_INTERACTIVE=1 sh` | [github.com/openai/codex](https://github.com/openai/codex#installing-and-running-codex-cli) | `$CODEX_INSTALL_DIR/codex` (default `~/.local/bin/codex`) → `$CODEX_HOME/packages/standalone/current` |
 | codebuddy | `npm install -g @tencent-ai/codebuddy-code` | [codebuddy.ai/docs/cli/installation](https://www.codebuddy.ai/docs/cli/installation) | npm's configured global prefix: `bin/codebuddy` on POSIX, `codebuddy.cmd` on Windows |
+| devin | `curl -fsSL https://cli.devin.ai/install.sh \| bash` | [docs.devin.ai/cli](https://docs.devin.ai/cli) | `~/.local/bin/devin` → `$XDG_DATA_HOME/devin` (default `~/.local/share/devin`); on Windows the vendor's PowerShell command is returned for manual installation |
 | dsh | `npm install -g @deepseek-ai/dsh` | [npmjs.com/package/@deepseek-ai/dsh](https://www.npmjs.com/package/@deepseek-ai/dsh) | npm's configured global prefix: `bin/dsh` on POSIX; found only on PATH or through `OAR_DSH_BIN`, and judged against the version floor |
 | factory | `curl -fsSL https://app.factory.ai/cli \| sh` | [docs.factory.ai/cli/getting-started/quickstart](https://docs.factory.ai/cli/getting-started/quickstart) | `~/.local/bin/droid`, the release binary checked against its published SHA-256 |
 | grok | `curl -fsSL https://x.ai/cli/install.sh \| bash` | [docs.x.ai/build/overview](https://docs.x.ai/build/overview) | `$GROK_BIN_DIR/grok` (default `~/.grok/bin/grok`) → `~/.grok/downloads/grok-<v>-<platform>` |

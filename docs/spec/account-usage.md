@@ -2,7 +2,7 @@
 
 `runtime.accountUsage(installation, options?)` reads account quota independently
 of session token usage. It is an optional member: antigravity, claude,
-codex, grok and kimi have it; the other built-in runtimes do not. The
+codex, factory, grok and kimi have it; the other built-in runtimes do not. The
 [TypeScript contract](../../packages/oar/src/contracts/account-usage.ts)
 defines the snapshot and reader options. A custom runtime's reader (`defineRuntime` with `accountUsage`) builds each
 `resetsAt` with `utcInstantFromDate(date)`, which returns null for an invalid
@@ -11,10 +11,12 @@ date, rather than casting a string to `UtcInstant`.
 ## Environment
 
 `options.env` uses the [reader environment contract](orientation.md#environment).
-Claude, Codex and Grok run their native usage queries in that environment.
-Kimi runs its provider CLI with the overlay and resolves credential paths,
-including `KIMI_CODE_HOME` and its home-directory fallback, from the same map.
-Its HTTP requests still execute in the host process. It refuses actual changes
+Antigravity, Claude, Codex and Grok run their native usage queries in that
+environment; Antigravity answers `unsupported_auth_storage` for a `GEMINI_HOME`
+other than its default. Kimi runs its provider CLI with the overlay, and Kimi
+and Factory resolve credential paths (`KIMI_CODE_HOME` and its home-directory
+fallback; droid's `FACTORY_HOME_OVERRIDE` and `FACTORY_API_KEY`) from the same
+map. Their HTTP requests still execute in the host process, so both refuse actual changes
 (setting or deletion) to `HTTP_PROXY`, `HTTPS_PROXY`, `ALL_PROXY`, `NO_PROXY`
 (including their lowercase forms), `NODE_EXTRA_CA_CERTS`, `SSL_CERT_FILE`,
 `SSL_CERT_DIR` and `NODE_TLS_REJECT_UNAUTHORIZED` before starting the CLI or HTTP.
@@ -50,25 +52,23 @@ start, which an even-burn line needs. Sources:
 | factory | `standard.<bucket>` and `core.<bucket>` (`fiveHour`, `weekly`, `monthly`), droid's own bucket keys | 5 h for `fiveHour`, 7 days for `weekly`; none for `monthly` (droid gives its end, not its length) |
 | grok, kimi | none | none |
 
-`scope` says what the runtime ties a window to: `{ kind: "account" }` when
-it reports the window as the account's, `{ kind: "model", name }` when it
-reports it as one model's, with the runtime's own name for the model; it
-is omitted when the runtime says neither, which means unknown, not the
+`scope` says what the runtime ties a window to: `{ kind: "account" }`,
+`{ kind: "model", name }` for one model, or `{ kind: "models", name }` for a
+group of models the runtime limits together (antigravity "Gemini Models").
+It is omitted when the runtime says neither, which means unknown, not the
 whole account (Claude's OAuth apps window is one). `name` is the runtime's
-own name for the window's model, kept as given: it can be a quota alias
-(codex's `limitName` can be `gpt-reserve`), OAR does not rewrite it from a
-related field such as codex's `normalModelSlug`, and it is not promised to
-equal a `listModels` id or display name. A host matches it to its own
-models. `{ kind: "models", name }` is a group of models the runtime limits
-together, by its name for the group (antigravity "Gemini Models"); which
-models it holds is the runtime's to say, and agy says it only in prose, so
-a host maps the group name itself. The
-windows that concern a model are the `account` ones, the `model` ones
-whose name is that model's and the `models` ones whose group holds it; a host that must decide about a window without
-`scope` can treat it as `account` as its own conservative choice. `scope` says what a window counts, not
-whether a full one stops work: extra usage can carry a Claude, Grok or Kimi
-account past a full subscription window, which the snapshot's
-`rateLimited` already weighs.
+own, kept as given: it can be a quota alias (codex's `limitName` can be
+`gpt-reserve`), OAR does not rewrite it from a related field such as codex's
+`normalModelSlug`, and it is not promised to equal a `listModels` id or
+display name. A host matches it to its own models; which models a group
+holds is the runtime's to say (agy says it only in prose), so a host maps
+group names itself. The windows that concern a model are the `account` ones,
+the `model` ones naming it and the `models` ones whose group holds it; a host
+that must decide about a window without `scope` can treat it as `account` as
+its own conservative choice. `scope` says what a window counts, not whether a
+full one stops work: extra usage can carry a Claude, Factory, Grok or Kimi
+account past a full subscription window, which the snapshot's `rateLimited`
+already weighs.
 
 | Runtime | `account` | `model` / `models` (name) | no `scope` |
 | --- | --- | --- | --- |
@@ -200,8 +200,7 @@ it). A call that returns before launching (a consent refusal, a queued
 deadline, the same idempotency key answered again) sends nothing. On a
 subscription that startup request is reported to count as usage and may
 start the 5-hour window of an idle account: that is a third-party report
-(magpie, for 2.1.316), which OAR has not measured. There is no way to reach `/limit-reset` without the UI: it
-has no `-p`, SDK or control-protocol form (2.1.322). OAR does not suppress
+(magpie, for 2.1.316), which OAR has not measured. OAR does not suppress
 the request: `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` is reported to stop
 it but also usage reads, which `/limit-reset` needs.
 
@@ -347,6 +346,14 @@ can carry a model past its quota where the account turned them on). Only
 then is `/credits` asked; when it ends without a readable balance,
 `rateLimited` stays false, and when it hangs, the read rejects at its
 deadline like any other stalled query. One used-up group shows in its windows, not in `rateLimited`.
+
+Factory account usage is droid's own usage screen's `GET
+<api>/api/billing/limits` (droid 1.12.1 bundle), sent with the credential
+droid would use, read as stored and never refreshed: `FACTORY_API_KEY`, else
+droid's keyfile login; a keyring-sealed login is `unsupported_auth_storage`.
+`rateLimited` is a full Standard window with no Extra Usage to continue on.
+The answer's shape is unverified on a real account; droid has no limit
+resets ([mapping](../runtimes/factory.md#account-usage-and-limit-resets)).
 
 Claude account usage delegates to its native stream-json `get_usage` request
 (with `skip_behaviors: true`). OAR does not read Claude credentials or call its
