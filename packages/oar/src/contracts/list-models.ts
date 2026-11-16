@@ -51,7 +51,14 @@ export interface ModelEntry {
 export type ListModelsResult =
   | { readonly kind: "ok"; readonly models: readonly ModelEntry[] }
   | { readonly kind: "unauthenticated"; readonly detail?: string }
-  | { readonly kind: "unsupported"; readonly reason: string };
+  | {
+      readonly kind: "unsupported";
+      readonly reason: string;
+      readonly code?: "version_unsupported";
+      /** Reported native version, omitted when it could not be read. */
+      readonly installedVersion?: string;
+      readonly requiredVersion?: string;
+    };
 
 export interface ListModelsOptions {
   /** Same overlay as sessions: strings override, null removes, and the host is untouched. */

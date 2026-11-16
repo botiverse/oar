@@ -6,6 +6,7 @@ import { inventoryOk, unavailableInventory, unsupportedInventory, workspaceScope
 import { projectPiModels } from "../model-projection.js";
 import type { PiRuntimeOptions } from "../options.js";
 import { piRpcReadTimeout, readPiRpc } from "./read.js";
+import { PiRpcVersionError } from "./version.js";
 
 type RpcSlashCommand = Extract<RpcResponse, { command: "get_commands"; success: true }>["data"]["commands"][number];
 
@@ -37,6 +38,7 @@ function inventory<T>(runtime: PiRuntimeOptions, project: (commands: readonly Rp
         return inventoryOk(workspaceScope(options), "discovered", project(response.data.commands), true);
       });
     } catch (error) {
+      if (error instanceof PiRpcVersionError) { return error.refusal; }
       return error instanceof DOMException && error.name === "TimeoutError"
         ? unavailableInventory("timeout", "Native inventory query timed out")
         : unavailableInventory("query_failed", "Native inventory query failed");
@@ -58,6 +60,7 @@ export const piRpcModelLister = (runtime: PiRuntimeOptions): ModelLister => asyn
       return { kind: "ok", models: projectPiModels(response.data.models, getSupportedThinkingLevels) };
     });
   } catch (error) {
+    if (error instanceof PiRpcVersionError) { return error.refusal; }
     // oxlint-disable-next-line eslint/preserve-caught-error -- Native failures can contain credentials, including in cause.
     throw new Error(error instanceof DOMException && error.name === "TimeoutError"
       ? "Pi RPC model listing timed out" : "Pi RPC could not list available models");

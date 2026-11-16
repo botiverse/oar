@@ -10,6 +10,7 @@ import { createPiSession } from "./session.js";
 import { onFirstCall } from "../../shared/lazy.js";
 import { piRpcRefusedSessionOptions } from "./rpc/open.js";
 import { piReaderForEnvironment, refuseChangedPiReaderEnvironment } from "./reader-environment.js";
+import { PI_RPC_MINIMUM_VERSION } from "./rpc/version.js";
 
 import type { PiRuntimeOptions } from "./options.js";
 
@@ -39,6 +40,7 @@ export function createPiRuntime(options: PiRuntimeOptions = {}): Runtime & { rea
   };
   const runtime = defineRuntime({
     id: "pi",
+    ...(subprocess ? { minVersion: PI_RPC_MINIMUM_VERSION } : {}),
     manualCompaction: { kind: "supported", activeTurn: "reject" },
     brand: runtimeBrands.pi,
     refusedSessionOptions: subprocess ? piRpcRefusedSessionOptions : piRefusedSessionOptions,

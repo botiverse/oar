@@ -19,6 +19,37 @@ const facts = await orient(defaultRuntimes, {
 const choices = usability(facts, { minVersions: { codex: "0.164.0" } });
 ```
 
+## Adapter version requirements
+
+`Runtime.minVersion?: string` declares an existing minimum native version
+for the adapter. It is metadata, not an upgrade action or a promise that
+all newer builds support every capability. Omission means no adapter-wide
+numeric floor is declared. Feature-specific requirements, such as login,
+remain on that feature's refusal.
+
+The declared floors are Antigravity stable `1.5.0`, DSH `0.2.1-rc.5` and
+Pi subprocess explicit commands `1.4.0`. Readers check the requirement for
+the path they actually use, without assuming the caller first invoked
+`installation()`. For a machine executable whose installation has no
+version, a bounded `--version` query precedes the actual reader. An old or
+unreadable version never starts that unsupported query.
+
+Version refusals preserve the existing result kinds and human-readable
+explanations. Optional `installedVersion` and `requiredVersion` carry the
+observed version, when readable, and the required version. Model listing
+and installation use `unsupported` with optional `code: "version_unsupported"`;
+inventory uses the same code on `unsupported`. Account usage uses
+`unsupported.reason: "version_unsupported"`. Authentication status remains
+`unknown`, with optional `code: "version_unsupported"`, because an unsupported
+CLI says nothing about whether its account is signed in.
+
+Pi's floor only applies when the reader starts a native RPC command. A
+subprocess runtime can still read through the bundled SDK when the environment
+is unchanged; the custom command's version does not govern that SDK path.
+The default RPC entry must exactly match OAR's bundled Pi, so its refusal
+reports that exact version as `requiredVersion`. See
+[Pi reader environments](../runtimes/pi.md#reader-environment).
+
 ## Environment
 
 `OrientOptions.env` observes the environment a session can use. For each

@@ -165,6 +165,10 @@ export type AuthStatus =
   /** The status query failed, was unreadable, or local configuration cannot establish a login. */
   | {
     readonly kind: "unknown";
+    /** Version refusal says nothing about whether the account is signed in. */
+    readonly code?: "version_unsupported";
+    readonly installedVersion?: string;
+    readonly requiredVersion?: string;
     readonly detail?: string;
     readonly source?: string;
     /** Nonempty source labels for observed, unvalidated local configuration. No values. Omitted on query failure; absence does not mean no configuration. */

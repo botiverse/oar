@@ -6,9 +6,11 @@ import { antigravityInstall, antigravityInstallPlan } from "./install.js";
 import { antigravityCheckUpdate } from "./update.js";
 import { antigravityRefusedSessionOptions } from "./options.js";
 import { antigravityAuthStatus, antigravityLogin } from "./auth.js";
+import { ANTIGRAVITY_MINIMUM_VERSION } from "./version.js";
 
 export const antigravityRuntime = defineRuntime({
   id: "antigravity",
+  minVersion: ANTIGRAVITY_MINIMUM_VERSION,
   manualCompaction: { kind: "unsupported", reason: "The CLI advertises /compact, but no structured completion and attribution contract has been verified." },
   brand: runtimeBrands.antigravity,
   installation: antigravityInstallation,

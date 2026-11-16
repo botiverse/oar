@@ -398,6 +398,16 @@ session. The declaration covers any MCP server that announces a change, so
 antigravity declares `none`, though a served entry never attaches there. See
 [host-served tools](https://github.com/botiverse/oar/blob/main/docs/spec/runtime-matrix.md#host-served-tools).
 
+`runtime.minVersion`, when present, declares the adapter's minimum native
+version; it never installs or upgrades anything. Readers independently enforce
+their path's requirement, even when called without `installation()` first.
+A version refusal carries optional `installedVersion` and `requiredVersion`:
+model listing, installation and inventory use `unsupported.code:
+"version_unsupported"`; account usage uses that `reason`; authentication status
+uses `unknown` with that `code`. Pi's custom-command floor applies to RPC,
+not reads through its bundled SDK. See
+[version requirements](https://github.com/botiverse/oar/blob/main/docs/spec/orientation.md#adapter-version-requirements).
+
 `runtime.listModels(installation, options?)` lists the models an installation
 can run now (`ok`, `unauthenticated` or `unsupported`); every built-in runtime
 has it. Entries include native `effortLevels` and `serviceTiers` where supported.

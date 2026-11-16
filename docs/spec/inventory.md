@@ -57,6 +57,13 @@ runtime's configuration, so `mcpServers()` never lists them.
   Native error strings and raw server configuration are not copied into this
   result because they can contain credentials.
 
+Readers enforce applicable native version requirements independently of
+installation discovery. Pi's RPC skills and commands retain a version
+preflight refusal as `unsupported` with `code: "version_unsupported"` and
+optional `installedVersion` / `requiredVersion`, instead of a generic query
+failure. The custom-command floor does not apply to its bundled SDK reads.
+See [adapter version requirements](orientation.md#adapter-version-requirements).
+
 `view` describes the source's coverage:
 
 | View | Meaning |

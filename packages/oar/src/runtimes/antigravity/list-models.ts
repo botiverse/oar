@@ -13,6 +13,7 @@ import { acpThoughtLevelOption } from "../../shared/acp/model.js";
 import { asRecord, asRecordList, type JsonRecord } from "../../shared/json.js";
 import { listingCwd } from "../../shared/listing-cwd.js";
 import { antigravityAcpArgs } from "./session.js";
+import { antigravityVersionPreflight } from "./version.js";
 
 function text(value: unknown): string | undefined {
   if (typeof value !== "string") {
@@ -106,7 +107,11 @@ export const antigravityListModels: ModelLister = async (installation, options =
     return { kind: "unsupported", reason: "antigravity model listing requires the agy CLI executable" };
   }
   try {
-    const response = await readNewSession(installation.command, listingCwd(options), options.timeoutMs ?? 30_000, sessionEnvironment(options.env));
+    const env = sessionEnvironment(options.env);
+    const timeoutMs = options.timeoutMs ?? 30_000;
+    const version = await antigravityVersionPreflight(installation, env, { timeoutMs });
+    if (version.kind === "unsupported") { return version; }
+    const response = await readNewSession(installation.command, listingCwd(options), version.timeoutMs, env);
     const models = projectAntigravityModels(response);
     if (models === undefined) {
       return { kind: "unsupported", reason: "this agy CLI build returns no model config option on session/new" };

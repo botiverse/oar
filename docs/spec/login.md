@@ -74,6 +74,13 @@ that pi's provider login already uses.
   `unsupported` is only for what the machine decides, its
   installation or its version.
 
+A reader that cannot use the installed CLI version returns `unknown`, never
+`logged_out`, with optional `code: "version_unsupported"`, `installedVersion`
+and `requiredVersion`. Antigravity checks its stable `1.5.0` floor before
+`agy models`, independently of installation discovery. Missing version data
+causes a bounded local version query within the status call's deadline.
+See [adapter version requirements](orientation.md#adapter-version-requirements).
+
 ## Pi provider authentication
 
 `createPiProviderAuth({ authPath?, modelsPath? })` is available from both

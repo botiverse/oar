@@ -26,7 +26,13 @@ test.each([
   runExecutable.mockResolvedValue({ ok: true, exitCode: 0, stdout, stderr: "" });
   const result = await antigravityInstallation();
   expect(result.kind).toBe(kind);
-  if (result.kind === "unsupported") { expect(result.reason).toContain(process.execPath); }
+  if (result.kind === "unsupported") {
+    expect(result.reason).toContain(process.execPath);
+    expect(result).toMatchObject({ code: "version_unsupported", requiredVersion: "1.5.0" });
+    const version = readAntigravityVersion(stdout);
+    if (version === undefined) { expect(result).not.toHaveProperty("installedVersion"); }
+    else { expect(result.installedVersion).toBe(version); }
+  }
   expect(runExecutable).toHaveBeenCalledExactlyOnceWith(process.execPath, ["--version"], { timeoutMs: 30_000, env: process.env });
 });
 

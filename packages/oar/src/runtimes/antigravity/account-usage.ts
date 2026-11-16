@@ -105,6 +105,11 @@ export const antigravityAccountUsage: AccountUsageReader = async (installation, 
   const deadline = Date.now() + timeoutMs;
   const snapshot = await withQueryDeadline<AccountUsageSnapshot>(USAGE, timeoutMs, async (signal) => {
     const status = await readAntigravityAuthStatus(installation, { ...(options.env === undefined ? {} : { env: options.env }), timeoutMs: remainingMs(deadline, USAGE), signal });
+    if (status.kind === "unknown" && status.code === "version_unsupported") {
+      return { kind: "unsupported", reason: "version_unsupported",
+        ...(status.installedVersion === undefined ? {} : { installedVersion: status.installedVersion }),
+        ...(status.requiredVersion === undefined ? {} : { requiredVersion: status.requiredVersion }) };
+    }
     if (status.kind === "logged_out") {
       return { kind: "reauth_required", reason: "not_authenticated" };
     }

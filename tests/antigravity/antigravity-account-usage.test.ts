@@ -34,7 +34,7 @@ function fakeAgy(signedIn: boolean | "broken", reply: unknown = recorded) {
     `if [ "$1" = -p ] && [ "$2" = /credits ]; then echo '{"status":"SUCCESS","command":{"name":"credits","data":{"remaining_credits":0}}}'; exit 0; fi`,
     "exit 2",
   ].join("\n"), { mode: 0o700 });
-  return { installation: { kind: "available", via: "executable", command } as const, calls: () => readFileSync(calls, "utf8").trim().split("\n") };
+  return { installation: { kind: "available", via: "executable", command, version: "1.5.7" } as const, calls: () => readFileSync(calls, "utf8").trim().split("\n") };
 }
 
 test("antigravity declares account usage", () => {
