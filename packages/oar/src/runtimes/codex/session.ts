@@ -7,7 +7,7 @@ import { codexGoalControl, confirmCodexGoals } from "./goal.js";
 import { randomUUID } from "node:crypto";
 import type { ControlResult, InputOptions, RequestRecord, Session, StartSession } from "../../contracts/session.js";
 import { createAbortFallback } from "../../shared/abort-fallback.js";
-import { acceptCodexSteer, codexUserInput } from "./input-delivery.js";
+import { acceptCodexSteer, codexUserInput, codexQueueRefusal } from "./input-delivery.js";
 import { inputImagesRefusal } from "../../shared/input-images.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
 import { withSessionCredentials } from "../../shared/session-credentials.js";
@@ -32,6 +32,8 @@ interface CodexSessionState {
   spontaneous: boolean;
   /** The runtime's id for the active root turn; steer/abort identity. */
   codexTurnId: string | null;
+  /** Native interrupted completion pauses queue dispatch until another root turn starts. */
+  queuePausedAfterInterrupt: boolean;
   projection: CodexProjectionState;
 }
 export const codexSession: StartSession = withSessionCredentials(async (installation, options, credentials, context) => {
@@ -84,6 +86,7 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
       active: null,
       spontaneous: false,
       codexTurnId: null,
+      queuePausedAfterInterrupt: false,
       // A resume awaits codex's re-report of the thread's total so far: the
       // baseline this Session's token totals count from (projection.ts, #169).
       projection: initialCodexProjection(threadId, openMethod),
@@ -106,6 +109,7 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
       tasks.observe(method, params);
       const isRoot = typeof params.threadId !== "string" || params.threadId === threadId;
       if (isRoot && method === "turn/started") {
+        state.queuePausedAfterInterrupt = false;
         const startedTurn = asRecord(params.turn)?.id;
         if (!busy()) {
           // A turn we did not prompt (a drained queue submission): adopt it.
@@ -116,6 +120,7 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
         }
       }
       if (isRoot && method === "turn/completed") {
+        state.queuePausedAfterInterrupt = asRecord(params.turn)?.status === "interrupted";
         abortFallback.clear();
         state.active = null;
         state.spontaneous = false;
@@ -139,9 +144,7 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
         }
       }
       if (isRoot && method === "turn/completed") { turnProcesses.turnCompleted(params); }
-      if (isRoot && method === "thread/settings/updated") {
-        settingsWaiter?.(params);
-      }
+      if (isRoot && method === "thread/settings/updated") { settingsWaiter?.(params); }
     };
     const onServerRequest = codexServerRequests(kernel, client);
     // Registering flushes everything held so far in wire order: the frames
@@ -223,8 +226,7 @@ export const codexSession: StartSession = withSessionCredentials(async (installa
     };
     const queuePlan = (input: string, inputOptions?: InputOptions): RpcControlPlan => ({
       body: { kind: "queue", input, ...inputOptions },
-      gate: () => compaction.busy() ? { kind: "rejected", code: "busy", reason: "Wait for manual compaction before queuing another turn" } : (options.outputSchema === undefined ? inputImagesRefusal(capabilities, inputOptions?.images)
-        : { kind: "rejected", code: "unsupported", reason: "codex queued input cannot carry outputSchema; use prompt after the current turn ends" }),
+      gate: () => codexQueueRefusal({ compacting: compaction.busy(), interrupted: state.queuePausedAfterInterrupt, hasSchema: options.outputSchema !== undefined, images: inputOptions?.images }),
       method: "thread/queue/add",
       params: () => ({ threadId, input: codexUserInput(input, inputOptions?.images), clientUserMessageId: inputOptions?.inputId ?? randomUUID() }),
       onReply: (reply) => ({ kind: "accepted", native: reply }),

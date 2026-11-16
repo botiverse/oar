@@ -475,6 +475,20 @@ right after such a resume is rejected `busy` until that turn ends; a steer
 accepted but not yet read when the process died was lost in the same run.
 [Thread schema][thread-schema].
 
+**Idle queue admission ([env] Codex 0.169.0):** after a normally completed
+root turn, native `thread/queue/add` starts another turn without a later
+prompt. After native `turn/completed` reports `interrupted`, Codex accepts
+queue submissions but leaves them parked: the next explicit prompt runs
+first, then the old queue drains. OAR therefore rejects `queue()` with
+`no_active_turn` after an observed root interruption until a new root turn
+starts; the reason tells the host to use `prompt`. Child-thread completion
+does not pause the root queue. This follows native lifecycle notifications,
+not OAR's derived `status()`. Existing accepted queue entries remain native
+owned. If `deliver()` tries steer then queue while a stale status still says
+running, the queue refusal remains a rejected delivery.
+[Native probe and evidence](../../experiments/codex-idle-queue/README.md);
+scripted-provider regressions cover normal completion and interruption.
+
 **Withdraw (not exposed):** the session has no `withdraw`. The queue is codex's
 own, and its `thread/queue/delete` is experimental and not live-verified (its
 `deleted: false` cannot tell "already dispatched" from "never there"), so OAR

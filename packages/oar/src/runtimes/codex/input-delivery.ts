@@ -1,4 +1,5 @@
-import type { InputImage, RuntimeEventBody } from "../../contracts/session.js";
+import type { InputImage, RuntimeEventBody, ResponseBody } from "../../contracts/session.js";
+import { inputImagesRefusal } from "../../shared/input-images.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
 
 interface TurnInputs {
@@ -43,4 +44,15 @@ export function foldCodexInputs(inputs: CodexInputs, method: string, params: Jso
 /** Text followed by each local image, matching Codex's composer. */
 export function codexUserInput(input: string, images: readonly InputImage[] = []): JsonRecord[] {
   return [...(input === "" ? [] : [{ type: "text", text: input }]), ...images.map((image) => ({ type: "localImage", path: image.path }))];
+}
+
+/** A native interrupted completion suspends queue dispatch; acceptance would park input indefinitely. */
+export function codexQueueRefusal(context: { readonly compacting: boolean; readonly interrupted: boolean; readonly hasSchema: boolean; readonly images: readonly InputImage[] | undefined }): ResponseBody | null {
+  if (context.compacting) { return { kind: "rejected", code: "busy", reason: "Wait for manual compaction before queuing another turn" }; }
+  if (context.interrupted) {
+    return { kind: "rejected", code: "no_active_turn", reason: "Codex does not automatically consume queued input after interruption; use prompt to start a new turn" };
+  }
+  return context.hasSchema
+    ? { kind: "rejected", code: "unsupported", reason: "codex queued input cannot carry outputSchema; use prompt after the current turn ends" }
+    : inputImagesRefusal({ images: true }, context.images);
 }
