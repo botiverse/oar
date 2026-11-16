@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
-import type { AvailableInstallation } from "../../contracts/installation.js";
+import type { AvailableInstallation, VersionUnsupportedInstallation } from "../../contracts/installation.js";
 import type { UpdateCheck, UpdateCheckOptions, UpdateChecker, Upgrader, UpgradeOptions, UpgradeResult } from "../../contracts/update.js";
 import {
   CHECK_TIMEOUT_MS,
@@ -44,7 +44,7 @@ function region(home: string): string {
 }
 
 export function kimiUpdateCheck(from: KimiUpdateSources = sources): UpdateChecker {
-  return async (installation: AvailableInstallation, options: UpdateCheckOptions = {}): Promise<UpdateCheck> => {
+  return async (installation: AvailableInstallation | VersionUnsupportedInstallation, options: UpdateCheckOptions = {}): Promise<UpdateCheck> => {
     const update = executableUpdate(installation);
     if (update.kind === "unavailable") {
       return update.check;
@@ -66,7 +66,7 @@ export function kimiUpdateCheck(from: KimiUpdateSources = sources): UpdateChecke
 export const kimiCheckUpdate = kimiUpdateCheck();
 
 export function kimiUpgrader(check: UpdateChecker = kimiCheckUpdate): Upgrader {
-  return async (installation: AvailableInstallation, options?: UpgradeOptions): Promise<UpgradeResult> => {
+  return async (installation: AvailableInstallation | VersionUnsupportedInstallation, options?: UpgradeOptions): Promise<UpgradeResult> => {
     const update = executableUpdate(installation);
     if (update.kind === "executable" && !versionAtLeast(update.installed, NON_INTERACTIVE_UPGRADE)) {
       return {

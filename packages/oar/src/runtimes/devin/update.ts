@@ -1,6 +1,6 @@
 import { readFileSync, realpathSync } from "node:fs";
 import path from "node:path";
-import type { AvailableInstallation } from "../../contracts/installation.js";
+import type { AvailableInstallation, VersionUnsupportedInstallation } from "../../contracts/installation.js";
 import type { UpdateCheck, UpdateCheckOptions, UpdateChecker } from "../../contracts/update.js";
 import { asRecord, parseJson } from "../../shared/json.js";
 import { CHECK_TIMEOUT_MS, comparedCheck, executableUpdate, readReleaseSource, versionAtLeast } from "../../shared/update.js";
@@ -38,7 +38,7 @@ export function devinUpdateCheck(
   options: { readonly manifestUrl?: string; readonly readDistribution?: (command: string) => string | undefined } = {},
 ): UpdateChecker {
   const readDistribution = options.readDistribution ?? readDevinDistribution;
-  return async (installation: AvailableInstallation, checkOptions: UpdateCheckOptions = {}): Promise<UpdateCheck> => {
+  return async (installation: AvailableInstallation | VersionUnsupportedInstallation, checkOptions: UpdateCheckOptions = {}): Promise<UpdateCheck> => {
     const update = executableUpdate(installation);
     if (update.kind === "unavailable") {
       return update.check;

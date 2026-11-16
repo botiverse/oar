@@ -33,18 +33,22 @@ export interface BundledInstallation {
 
 export type AvailableInstallation = ExecutableInstallation | BundledInstallation;
 
+/** A located executable whose version the adapter refuses; only update operations accept it. */
+export interface VersionUnsupportedInstallation {
+  readonly kind: "unsupported";
+  readonly code: "version_unsupported";
+  readonly via: "executable";
+  readonly command: string;
+  readonly reason: string;
+  readonly installedVersion?: string;
+  readonly requiredVersion?: string;
+}
+
 export type InstallationSnapshot =
   | AvailableInstallation
-  | {
-      readonly kind: "not_found";
-    }
-  | {
-      readonly kind: "unsupported";
-      readonly reason: string;
-      readonly code?: "version_unsupported";
-      readonly installedVersion?: string;
-      readonly requiredVersion?: string;
-    };
+  | VersionUnsupportedInstallation
+  | { readonly kind: "not_found" }
+  | { readonly kind: "unsupported"; readonly reason: string; readonly code?: never };
 
 export interface InstallationProbeOptions {
   /** Same overlay as sessions: strings override, null removes, and the host is untouched. */

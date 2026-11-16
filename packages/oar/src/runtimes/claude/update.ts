@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
-import type { AvailableInstallation } from "../../contracts/installation.js";
+import type { AvailableInstallation, VersionUnsupportedInstallation } from "../../contracts/installation.js";
 import type { UpdateCheck, UpdateCheckOptions, UpdateChecker, UpgradeOptions, UpgradeResult } from "../../contracts/update.js";
 import { asRecord, parseJson } from "../../shared/json.js";
 import {
@@ -98,7 +98,7 @@ async function npmCheck(
 }
 
 export function claudeUpdateCheck(from: ClaudeUpdateSources = sources): UpdateChecker {
-  return async (installation: AvailableInstallation, options: UpdateCheckOptions = {}): Promise<UpdateCheck> => {
+  return async (installation: AvailableInstallation | VersionUnsupportedInstallation, options: UpdateCheckOptions = {}): Promise<UpdateCheck> => {
     const update = executableUpdate(installation);
     if (update.kind === "unavailable") {
       return update.check;
@@ -125,7 +125,7 @@ export function claudeUpdateCheck(from: ClaudeUpdateSources = sources): UpdateCh
 
 export const claudeCheckUpdate = claudeUpdateCheck();
 
-export async function claudeUpgrade(installation: AvailableInstallation, options?: UpgradeOptions): Promise<UpgradeResult> {
+export async function claudeUpgrade(installation: AvailableInstallation | VersionUnsupportedInstallation, options?: UpgradeOptions): Promise<UpgradeResult> {
   // Without the parent Claude Code session's markers, as every other claude OAR starts (environment.ts).
   const result = await upgradeExecutable(installation, { check: claudeCheckUpdate, args: ["update"], env: claudeEnv }, options);
   return result;

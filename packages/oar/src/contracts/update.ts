@@ -1,4 +1,4 @@
-import type { AvailableInstallation } from "./installation.js";
+import type { AvailableInstallation, VersionUnsupportedInstallation } from "./installation.js";
 
 /**
  * Why a check could not name the version the runtime's own updater would
@@ -43,7 +43,7 @@ export interface UpdateCheckOptions {
 
 /** Read only: never installs, never changes the runtime's update settings. */
 export type UpdateChecker = (
-  installation: AvailableInstallation,
+  installation: AvailableInstallation | VersionUnsupportedInstallation,
   options?: UpdateCheckOptions,
 ) => Promise<UpdateCheck>;
 
@@ -77,6 +77,6 @@ export interface UpgradeOptions {
  * installation. Changes the machine: oar never calls it on its own.
  */
 export type Upgrader = (
-  installation: AvailableInstallation,
+  installation: AvailableInstallation | VersionUnsupportedInstallation,
   options?: UpgradeOptions,
 ) => Promise<UpgradeResult>;

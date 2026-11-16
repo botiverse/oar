@@ -29,6 +29,8 @@ test.each([
   if (result.kind === "unsupported") {
     expect(result.reason).toContain(process.execPath);
     expect(result).toMatchObject({ code: "version_unsupported", requiredVersion: "1.5.0" });
+    assert.equal(result.code, "version_unsupported");
+    expect(result).toMatchObject({ via: "executable", command: process.execPath });
     const version = readAntigravityVersion(stdout);
     if (version === undefined) { expect(result).not.toHaveProperty("installedVersion"); }
     else { expect(result.installedVersion).toBe(version); }

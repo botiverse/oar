@@ -37,7 +37,7 @@ test("a refusal names the real version; an unreadable one is never assumed suppo
 });
 
 test("installation is unsupported below the floor, available at it, and pins exclusively through OAR_DSH_BIN", async () => {
-  expect(await dshInstallation({ env: { OAR_DSH_BIN: fake, FAKE_DSH_VERSION: "0.2.1-rc.4" } })).toEqual({ kind: "unsupported", code: "version_unsupported", installedVersion: "0.2.1-rc.4", requiredVersion: "0.2.1-rc.5", reason: "DSH 0.2.1-rc.4 is below the supported floor; OAR requires 0.2.1-rc.5 or later" });
+  expect(await dshInstallation({ env: { OAR_DSH_BIN: fake, FAKE_DSH_VERSION: "0.2.1-rc.4" } })).toEqual({ kind: "unsupported", code: "version_unsupported", via: "executable", command: fake, installedVersion: "0.2.1-rc.4", requiredVersion: "0.2.1-rc.5", reason: "DSH 0.2.1-rc.4 is below the supported floor; OAR requires 0.2.1-rc.5 or later" });
   expect(await dshInstallation({ env: { OAR_DSH_BIN: fake, FAKE_DSH_VERSION: "0.2.1-rc.5" } })).toEqual({ kind: "available", via: "executable", command: fake, version: "0.2.1-rc.5" });
   expect(await dshInstallation({ env: { OAR_DSH_BIN: fake, FAKE_DSH_VERSION: "0.2.2-alpha.2" } })).toMatchObject({ kind: "available", version: "0.2.2-alpha.2" });
   expect(await dshInstallation({ env: { OAR_DSH_BIN: path.join(dir, "missing") } })).toEqual({ kind: "not_found" });

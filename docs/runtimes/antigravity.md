@@ -441,9 +441,14 @@ verified a new installation, discovery with the install bin off PATH, and
 an idempotent second install.
 
 `checkUpdate` reads the CLI's platform manifest and counts only a newer
-release. OAR has no `upgrade` method for this runtime; the native CLI has
-`agy update`. Existing CLI auto-update behavior is not disabled by the
-product adapter (the test fixture disables it).
+release. `upgrade` runs native `agy update` without stdin or a terminal and
+reads the same executable's version before and after. A version refusal from
+`installation()` retains `via: "executable"` and `command`, so a CLI below the
+1.5.0 floor can be upgraded while remaining refused for sessions and readers.
+An isolated Linux probe upgraded 1.4.9 to 1.5.9 and then re-probed it as available
+([reproduction and evidence](../../experiments/old-cli-upgrade/README.md)).
+Existing CLI auto-update behavior is not disabled by the product adapter
+(the test fixture disables it).
 
 ### Login
 

@@ -103,3 +103,15 @@ test("a runtime whose probe throws is reported and fails the command without hid
   assert.deepEqual(renderUpgradeReport(report), ["broken\terror: Failed to run /bin/broken --version"]);
   assert.equal(upgradeFailed(report), true);
 });
+
+
+test.each([{ kind: "not_found" } as const, { kind: "unsupported", reason: "wrong platform" } as const])("other unavailable installations never call an updater: %j", async (installation) => {
+  let calls = 0;
+  const report = await readUpgrade(runtime("fake", {
+    installation: async () => installation,
+    checkUpdate: async () => { calls += 1; return newer; },
+    upgrade: async () => { calls += 1; return { kind: "failed", exitCode: 1, output: "must not run" }; },
+  }), { upgrade: true });
+  assert.deepEqual(report, { runtimeId: "fake", installation });
+  assert.equal(calls, 0);
+});

@@ -407,7 +407,9 @@ A version refusal carries optional `installedVersion` and `requiredVersion`:
 model listing, installation and inventory use `unsupported.code:
 "version_unsupported"`; account usage uses that `reason`; authentication status
 uses `unknown` with that `code`. Pi's custom-command floor applies to RPC,
-not reads through its bundled SDK. See
+not reads through its bundled SDK. A version-refused installation also retains
+its executable `command` and `via`, so a host can pass it to `checkUpdate` or
+`upgrade`; re-probe for availability before opening a session. See
 [version requirements](https://github.com/botiverse/oar/blob/main/docs/spec/orientation.md#adapter-version-requirements).
 
 `runtime.listModels(installation, options?)` lists the models an installation

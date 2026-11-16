@@ -1,4 +1,4 @@
-import type { ExecutableInstallation, InstallationSnapshot } from "../../contracts/installation.js";
+import type { ExecutableInstallation, VersionUnsupportedInstallation } from "../../contracts/installation.js";
 import { runExecutable } from "../../shared/executable/index.js";
 import { assertRan } from "../../shared/executable/diagnostics.js";
 import { remainingMs } from "../../shared/deadline.js";
@@ -12,7 +12,7 @@ export function readAntigravityVersion(stdout: string): string | undefined {
   return /^(\d+\.\d+\.\d+(?:-[A-Za-z\d.-]+)?)$/u.exec(stdout.trim())?.[1];
 }
 
-type VersionRefusal = Extract<InstallationSnapshot, { kind: "unsupported" }>;
+type VersionRefusal = Omit<VersionUnsupportedInstallation, "via" | "command">;
 
 export function antigravityVersionRefusal(version: string | undefined): VersionRefusal | null {
   if (version !== undefined && /^\d+\.\d+\.\d+$/u.test(version) && versionAtLeast(version, ANTIGRAVITY_MINIMUM_VERSION)) { return null; }

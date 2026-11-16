@@ -1,4 +1,4 @@
-import type { AvailableInstallation } from "../../contracts/installation.js";
+import type { AvailableInstallation, VersionUnsupportedInstallation } from "../../contracts/installation.js";
 import type { UpdateCheck, UpdateCheckOptions, UpgradeOptions, UpgradeResult } from "../../contracts/update.js";
 import { asRecord } from "../../shared/json.js";
 import {
@@ -33,7 +33,7 @@ export function projectGrokUpdateCheck(installed: string, report: unknown): Upda
   return check.kind === "ok" && typeof updateAvailable === "boolean" ? { ...check, updateAvailable } : check;
 }
 
-export async function grokCheckUpdate(installation: AvailableInstallation, options: UpdateCheckOptions = {}): Promise<UpdateCheck> {
+export async function grokCheckUpdate(installation: AvailableInstallation | VersionUnsupportedInstallation, options: UpdateCheckOptions = {}): Promise<UpdateCheck> {
   const update = executableUpdate(installation);
   if (update.kind === "unavailable") {
     return update.check;
@@ -42,7 +42,7 @@ export async function grokCheckUpdate(installation: AvailableInstallation, optio
   return projectGrokUpdateCheck(update.installed, json);
 }
 
-export async function grokUpgrade(installation: AvailableInstallation, options?: UpgradeOptions): Promise<UpgradeResult> {
+export async function grokUpgrade(installation: AvailableInstallation | VersionUnsupportedInstallation, options?: UpgradeOptions): Promise<UpgradeResult> {
   const result = await upgradeExecutable(installation, { check: grokCheckUpdate, args: ["update"] }, options);
   return result;
 }

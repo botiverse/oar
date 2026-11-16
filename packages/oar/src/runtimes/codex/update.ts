@@ -1,4 +1,4 @@
-import type { AvailableInstallation } from "../../contracts/installation.js";
+import type { AvailableInstallation, VersionUnsupportedInstallation } from "../../contracts/installation.js";
 import type { UpdateCheck, UpdateCheckOptions, UpgradeOptions, UpgradeResult } from "../../contracts/update.js";
 import { asRecord } from "../../shared/json.js";
 import {
@@ -39,7 +39,7 @@ export function projectCodexUpdateStatus(installed: string, doctor: unknown): Up
   return status.includes("not older") ? { ...check, updateAvailable: false } : check;
 }
 
-export async function codexCheckUpdate(installation: AvailableInstallation, options: UpdateCheckOptions = {}): Promise<UpdateCheck> {
+export async function codexCheckUpdate(installation: AvailableInstallation | VersionUnsupportedInstallation, options: UpdateCheckOptions = {}): Promise<UpdateCheck> {
   const update = executableUpdate(installation);
   if (update.kind === "unavailable") {
     return update.check;
@@ -52,7 +52,7 @@ export async function codexCheckUpdate(installation: AvailableInstallation, opti
 }
 
 /** `codex update` never checks and reports success even when its download failed, hence the version read-back. */
-export async function codexUpgrade(installation: AvailableInstallation, options?: UpgradeOptions): Promise<UpgradeResult> {
+export async function codexUpgrade(installation: AvailableInstallation | VersionUnsupportedInstallation, options?: UpgradeOptions): Promise<UpgradeResult> {
   const result = await upgradeExecutable(installation, { check: codexCheckUpdate, args: ["update"] }, options);
   return result;
 }

@@ -48,6 +48,7 @@ export function printingExecutable(spec: PrintingExecutable): string {
 export interface FakeState {
   readonly version: string;
   readonly target: string;
+  readonly bareVersion?: boolean;
   readonly mode: "upgrade" | "noop" | "fail" | "prompt" | "hang";
 }
 
