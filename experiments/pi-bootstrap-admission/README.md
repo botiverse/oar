@@ -122,3 +122,14 @@ passed type checking, lint, 4,371 tests and 18 mock behavior checks. Native
 SDK vendor checks passed 124 cases; RPC passed 115. The public behavior suite
 passed 17 cases with two capability-based skips for each mode. Cross-platform
 CI results belong to the pull request; these observations are Linux only.
+
+A [proposed upstream issue](upstream-issue-draft.md) records the minimal
+RPC sequence and requested correlated refusal; it has not been submitted.
+The follow-up unit coverage also emits bootstrap events directly from
+`bindExtensions` and checks model refusal at the session-construction layer.
+
+The follow-up unit cases retain both an active bootstrap run and one already
+completed during binding. Moving binding before the subscription makes both
+fail because no real start is retained; the product was restored afterward.
+The complete follow-up gate passed type checking, lint, 4,373 tests and
+18 mock behavior checks. No RPC code or cancellation behavior changed.

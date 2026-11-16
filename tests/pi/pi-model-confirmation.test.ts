@@ -1,5 +1,6 @@
 import { afterEach, expect, test, vi } from "vitest";
 import { ModelConfirmationError, RuntimeFailureError } from "../../packages/oar/src/index.js";
+import { createPiSession } from "../../packages/oar/src/runtimes/pi/session.js";
 import { openPiAgentSession } from "../../packages/oar/src/runtimes/pi/open.js";
 
 const sdk = vi.hoisted(() => ({
@@ -25,7 +26,7 @@ function fakeServices(model: { provider: string; id: string } | undefined) {
 
 test.each([undefined, { provider: "fixture", id: "other" }])("Pi disposes a session whose model readback did not confirm its selection: %j", async (model) => {
   const { selected, lookup, session } = fakeServices(model);
-  const opening = openPiAgentSession({ cwd: "/work", model: "fixture/requested" });
+  const opening = createPiSession()({ kind: "available", via: "bundled" }, { cwd: "/work", model: "fixture/requested" });
   await expect(opening).rejects.toBeInstanceOf(ModelConfirmationError);
   await expect(opening).rejects.toMatchObject({ requested: "fixture/requested", reported: model === undefined ? null : "fixture/other",
     message: `pi did not apply model fixture/requested: the session reports ${model === undefined ? "no model" : "fixture/other"}` });
