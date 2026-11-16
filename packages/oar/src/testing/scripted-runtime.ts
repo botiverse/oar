@@ -10,9 +10,9 @@ import { scriptedTasks, type ScriptedTask, type ScriptedTaskSpec } from "./scrip
  * What a script sees and does during one turn. Everything it emits enters the
  * record stream as frames of type `scripted/*`, read into the ordinary events
  * (`text_delta`, `reasoning`, `tool_call_*`), so a host exercises exactly the
- * paths a vendor runtime would drive. An abort or dispose ends the turn at
- * once, without waiting for the script; nothing the script emits after that
- * is recorded.
+ * paths a vendor runtime would drive. An abort, a dispose or the process's
+ * exit (`exit`) ends the turn at once, without waiting for the script;
+ * nothing the script emits after that is recorded.
  */
 export interface ScriptedTurn {
   /** The input that began the turn: a prompt, or a queued input when its turn starts. */
@@ -21,7 +21,7 @@ export interface ScriptedTurn {
   readonly images: readonly InputImage[];
   /** The options the host opened the session with (cwd, env, system prompts). */
   readonly options: SessionOptions;
-  /** Aborts when the host aborts the turn or disposes the session. */
+  /** Aborts when the host aborts the turn, disposes the session or the process exits (`exit`). */
   readonly signal: AbortSignal;
   /** Steer inputs delivered into this turn so far, oldest first. */
   readonly steered: readonly string[];
@@ -45,6 +45,12 @@ export interface ScriptedTurn {
    * turn, or reported after the session was disposed, nothing is recorded.
    */
   readonly task: (spec: ScriptedTaskSpec) => ScriptedTask;
+  /**
+   * The process exits on its own (`code`, default 1), recorded as a process adapter records an exit nobody
+   * requested: a standalone `exited` response, no `reason`, no `turn_ended` (the folds end a running turn
+   * `failed: runtime_exited`); queued inputs never run. Kept past the turn, it exits while idle; once exited or disposed, a no-op.
+   */
+  readonly exit: (code?: number | null) => void;
 }
 
 export interface ScriptedRuntimeOptions {
@@ -85,13 +91,10 @@ export function scriptedRuntime(options: ScriptedRuntimeOptions): Runtime {
     const totals: { input: number; output: number } = { input: 0, output: 0 };
     let active: { controller: AbortController; steered: string[] } | null = null;
     let disposed = false;
-    const startTask = scriptedTasks((type, native, events) => {
-      kernel.frame({ type, native, events });
-    }, () => !disposed);
-
     const frame = (type: string, native: unknown, events: readonly RuntimeEventBody[]): void => {
       kernel.frame({ type, native, events });
     };
+    const startTask = scriptedTasks(frame, () => kernel.unreachable() === null); // nothing after an exit or dispose
     const usage = (): TokenTotals => ({ input: totals.input, output: totals.output });
 
     function run(input: string, images: readonly InputImage[] = []): void {
@@ -122,6 +125,7 @@ export function scriptedRuntime(options: ScriptedRuntimeOptions): Runtime {
           frame("scripted/reasoning", { text }, [{ kind: "reasoning", content: { kind: "text", text } }]);
         },
         task: (spec) => startTask(spec, live()),
+        exit: (code = 1) => { exit(code); },
         tool: async (name, toolInput, work) => {
           if (!live()) {
             return;
@@ -182,6 +186,15 @@ export function scriptedRuntime(options: ScriptedRuntimeOptions): Runtime {
       if (next !== undefined && !disposed) {
         run(next.input, next.images);
       }
+    }
+
+    function exit(code: number | null): void {
+      if (kernel.unreachable() !== null) { return; } // already exited, or a dispose began
+      const turnState = active;
+      active = null;
+      queued.length = 0;
+      kernel.respond("", { kind: "exited", code });
+      turnState?.controller.abort(); // after the record: a script reacting to the signal finds the session exited
     }
 
     function abortActive(): void {
@@ -265,6 +278,7 @@ export function scriptedRuntime(options: ScriptedRuntimeOptions): Runtime {
         }
         disposed = true;
         const request = kernel.request("toRuntime", { kind: "dispose" });
+        if (kernel.unreachable()?.code === "runtime_exited") { kernel.respond(request.id, { kind: "accepted" }); return; } // nothing left to release
         queued.length = 0;
         abortActive();
         kernel.respond(request.id, { kind: "exited", code: 0 });
