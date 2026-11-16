@@ -398,11 +398,10 @@ provider request; neither is an empty user-text block. Verified with the
 [image-only provider test](../../sea-trial/vendor/image-only.vendor.test.ts), without a login.
 
 **Queue (mapped):** `queue()` is adapter-held (`capabilities.queue.durable:
-false`), drained one message per turn end. Its accepted response carries
-`queued: "adapter"`; dispatch records a prompt carrying the original input
-identity ([ownership](#held-queue-ownership)), and the native start still
-names that input. A queue while idle is written after its acceptance is
-recorded. Once written, its reservation prevents another prompt even before
+false`), drained one message per turn end; acceptance and dispatch records
+are under [held queue ownership](#held-queue-ownership), and the native
+start still names the original input. A queue while idle is written after
+its acceptance is recorded. Once written, its reservation prevents another prompt even before
 the native start. An accepted interrupt alone does not release it: the
 next held input waits for a native end or cancellation receipt. `withdraw(inputId)` takes a held message back before a turn
 end writes it (`accepted`) and answers `not_queued` once it is on stdin;
@@ -636,25 +635,22 @@ the token-free `list_models` control request from a process started in
 `ListModelsOptions.cwd` (the host's cwd by default); the answer preserves
 selector versus resolved ID, disabled entries, and effort choices
 (`supportedEffortLevels` per model; Haiku 4.5 lists none).
-The list is not limited to the models the binary was built with: the server
-sends model rows, and claude decides which of them it can offer. Measured on
-2026-11-12 with one account: claude 2.1.319, whose built-in catalog stops at
-Fable 5.1, listed `claude-fable-5-2` enabled (effort low to max), and a turn
-with `--model claude-fable-5-2` succeeded; the only sign was a stderr line
-`[claude-code:unrecognized_model]`, meaning claude assumes a default context
-window for it. claude 2.1.283 on the same account listed `claude-fable-5-2`,
-`claude-sonnet-5-5` and `claude-haiku-5-5` as disabled, each with the
-description "Update Claude Code to use this model", which `listModels`
-returns as the entry's `disabled.reason`. That text is claude's own (static
-reading of 2.1.283): a server row whose model its catalog does not know is
-disabled with it. 2.1.319 offered the model outside its catalog measured
-above, and also has a minimum version check: a row whose
-`min_claude_code_version` is above its own version is disabled with "Requires
-Claude Code v<version> or later" (static reading; no listing here exercised
-it). On another account, the three sampled listings from 2.1.284, 2.1.288 and
-2.1.292 held five rows, with no 5.2 row and no disabled hint. What decides
-that is not established, and a model missing from a listing is not shown to
-be unusable or to need an upgrade.
+The list is the server's model rows as claude filters them, not the
+binary's built-in catalog. On one account (2026-11-12), claude 2.1.319,
+whose catalog stops at Fable 5.1, listed `claude-fable-5-2` enabled (effort
+low to max), and a turn with `--model claude-fable-5-2` succeeded; the only sign was
+the stderr line `[claude-code:unrecognized_model]` (claude assumes a default
+context window). 2.1.283 on the same account listed `claude-fable-5-2`,
+`claude-sonnet-5-5` and `claude-haiku-5-5` disabled with "Update Claude Code
+to use this model", which `listModels` returns as the entry's
+`disabled.reason`; the text is claude's own (static reading of 2.1.283: a
+row whose model its catalog does not know is disabled with it). 2.1.319 also
+disables a row whose `min_claude_code_version` is above its own version with
+"Requires Claude Code v<version> or later" (static reading; not exercised).
+On another account, listings from 2.1.284, 2.1.288 and 2.1.292 held five
+rows, with no 5.2 row and no disabled hint. What decides that is not
+established, and a model missing from a listing is not shown to be unusable
+or to need an upgrade.
 The listing process starts with hooks and MCP servers switched off
 (`--settings '{"disableAllHooks":true}' --strict-mcp-config --mcp-config
 '{"mcpServers":{}}'`; claude 2.1.x measured: without them a listing fires the
@@ -1332,44 +1328,40 @@ takes a person signing in in a browser.
 
 ### Limit resets
 
-**Driven through the interactive UI** ([Claude limit resets](../spec/account-usage.md#claude-limit-resets)):
+**Driven through the interactive UI** ([contract](../spec/account-usage.md#claude-limit-resets),
+[decision](../design/decisions.md#claude-limit-resets-through-its-interactive-ui)):
 `inspectLimitResets` and `redeemLimitReset` type claude's hidden
 `/limit-reset <kind>` in a pseudo-terminal and read the screen, because
-2.1.322 has no other form of it (the `get_usage` control request reads
-`/api/oauth/usage` without the reset parameters; [bundle 2.1.322]). The
-claim is claude's own `POST /api/organizations/<org>/reset_rate_limits`
-with `program: "cedar_ember"`, a grant id and a fresh request id per Yes;
-the older `juniper_tide` program posts with no dialog. OAR never calls that
-endpoint itself and never reads the credential. The hazards and what OAR
-does about each are in the spec section; the decision to drive the UI is in
-[decisions](../design/decisions.md#claude-limit-resets-through-its-interactive-ui).
-Screens were recorded from 2.1.322 against a fake backend; no real reset
-has been spent through OAR. On real accounts (2.1.322 and 2.1.323, a new
-empty folder) the empty input box shows a dimmed suggestion such as
-`Try "how do I log an error?"`, which the fake backend never drew; the
-driver reads a box holding only `Try "…"` as empty, and OAR 0.103.0 failed
-startup (`not_attempted` / `startup_failed`) on it, after the whole 30 s
-startup wait. OAR now starts claude with
-`CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false` and decides at the prompt
-as soon as the screen has held still for 3 s, within one 30 s startup
-cutoff: an empty box (or one holding only the suggestion) is ready, and any
-other text in the box, on any of its rows, ends the call at once, nothing
-typed into it. A `startup_failed` result carries
-`startup`, OAR's own name for the last screen it recognised (such as
-`prompt_with_text` or `trust_unrecognised`) and the banner's version, never
-screen text ([spec](../spec/account-usage.md#claude-limit-resets)). Linux
-only: macOS's `script` refuses the socket Node gives it as stdin.
+`/limit-reset` has no `-p`, SDK or control-protocol form (2.1.322; the
+`get_usage` control request reads `/api/oauth/usage` without the reset
+parameters; [bundle 2.1.322]). The claim is claude's own
+`POST /api/organizations/<org>/reset_rate_limits` with
+`program: "cedar_ember"`, a grant id and a fresh request id per Yes; the
+older `juniper_tide` program posts with no dialog. OAR never calls that
+endpoint itself and never reads the credential. Linux only: macOS's
+`script` refuses the socket Node gives it as stdin. The spec section owns
+the hazards and what OAR does about each, and the startup rules: claude
+starts with `CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=false`, the prompt is
+decided once the screen has held still for 3 s within a 30 s startup
+cutoff, an empty box (or one holding only the dimmed suggestion) is ready
+and any other text in it ends the call at once with nothing typed, and a
+`startup_failed` result may carry `startup`, OAR's own name for the last
+screen it recognised and the banner's version, never screen text.
 
-**A call that launches the UI costs one model request.** When an
-`inspectLimitResets` or `redeemLimitReset` call starts claude's interactive
-UI, the UI sends one model request at startup (a 1-token check; OAR's
-offline harness recorded it against a fake backend). Calls that return
-before launching (a consent refusal, a queued deadline, a repeated
-idempotency key) send nothing. On a subscription that request is reported
-to count as usage and may start the 5-hour window of an idle account: a
-third-party tool reported this for 2.1.316, and OAR has not measured it. There is no route around the UI:
-`/limit-reset` has no `-p`, SDK or control-protocol form (2.1.322). So
-inspect only when the person asks, and never poll.
+**A call that launches the UI costs one model request** (a 1-token check
+at startup, recorded offline against a fake backend; calls that return
+before launching send nothing). On a subscription that request is reported
+to count as usage and may start an idle account's 5-hour window (a
+third-party report for 2.1.316, not measured by OAR). So inspect only when
+the person asks, and never poll.
+
+Evidence: screens recorded from 2.1.322 against a fake backend; no real
+reset has been spent through OAR. On real accounts (2.1.322 and 2.1.323, a
+new empty folder) the empty input box shows a dimmed suggestion such as
+`Try "how do I log an error?"`, which the fake backend never drew; the
+driver reads a box holding only `Try "…"` as empty (OAR 0.103.0 instead
+failed startup on it, `not_attempted` / `startup_failed`, after the whole
+30 s wait).
 
 ### Logout
 

@@ -560,31 +560,24 @@ answering `{}` for that API-key model, with no OAuth
   prompt, so the scripted fixtures match the current turn's user messages,
   not only the last one.
 
-**2.5.0 keeps the initial declarations across resume:** the model sees the
+**From 2.5.0, resume keeps the initial declarations:** the model sees the
 original tool list, while MCP execution follows the current resume
 configuration. Omitting `mcpServers` or passing an empty list leaves the old
 names advertised, but calls to them fail with `Tool ... not found`. New
 server names are executable without being listed to the model; the same
-names with new configuration execute against the new configuration. Hosts
-changing MCP configuration on resume must expect this mismatch on 2.5.0.
-OAR does not filter the native declarations or refuse the entire resumed MCP
-configuration. On 2.4.1 the same controls keep declarations and execution
-aligned. Evidence: fresh processes and local providers on Linux, not real
-models or other platforms
+names with new configuration execute against the new configuration (and
+receive the new credentials). Hosts changing MCP configuration on resume must
+expect this mismatch. OAR does not filter the native declarations or refuse
+the entire resumed MCP configuration. On 2.4.1 the same controls keep
+declarations and execution aligned. Evidence: fresh processes and local
+providers on Linux, not real models or other platforms
 ([native investigation](../../experiments/kimi-mcp-resume/2026-11-04.md),
 [2.5.0 comparison](../../experiments/runtime-version-checks/2026-11-04.md#kimi-250)).
-On 2.5.2 the omitted-configuration declaration mismatch reproduces; not every
-execution control above was repeated
-([2.5.2 check](../../experiments/runtime-version-checks/2026-11-06.md#kimi-252)).
-The full four-variant probe on 2.5.3 again retains the initial declarations
-when servers are omitted, explicitly empty, replaced under the same names,
-or renamed. Execution follows the current configuration: old names fail
-when absent, and replacement servers receive calls and the new credentials
-([2.5.3 check](../../experiments/runtime-version-checks/2026-11-10.md#kimi-253)).
-The same four variants reproduce on 2.6.0: omitted or empty configurations
-leave advertised names uncallable; replacement names execute but remain
-unadvertised, and same-name replacements use their new configuration
-([2.6.0 check](../../experiments/runtime-version-checks/2026-11-12.md#kimi-260)).
+The full four-variant probe (omitted, empty, same-name replacement, renamed)
+reproduces on 2.6.0
+([2026-11-12](../../experiments/runtime-version-checks/2026-11-12.md#kimi-260)),
+and the omitted-configuration case on 2.6.2
+([2026-11-13](../../experiments/runtime-version-checks/2026-11-13.md#kimi-262)).
 
 The credentials reach kimi only in the open request's params, which OAR does
 not record (it records the answers, every `session/update` and vendor

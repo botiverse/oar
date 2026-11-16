@@ -20,7 +20,7 @@ The [daily version inventory](../../experiments/runtime-versions.ts) compares
 `@deepseek-ai/dsh`'s npm `latest` with `OAR_DSH_BIN` or `dsh` on PATH. Each new
 version gets its own loopback-provider behavior and vendor runs; the CI pin
 remains separate. [November 5 evidence](../../experiments/runtime-version-checks/2026-11-05.md);
-`latest` is still 0.2.2-rc.1 in the [November 8 check](../../experiments/runtime-version-checks/2026-11-08.md).
+`latest` is still 0.2.2-rc.1 in the [November 15 check](../../experiments/runtime-version-checks/2026-11-15.md).
 
 Real provider (Bugen ran `d6e41da` on Linux, with a pay-per-use DeepSeek API
 key, not a first-party plan; model `deepseek-official/deepseek-flash`, effort low): inference,

@@ -12,8 +12,6 @@ CLI flags `--permission-mode` and `--respect-workspace-trust` gate the CLI REPL 
 
 `session/set_model` returns JSON-RPC `-32601` and `Method not found`. `devin acp` switches model and reasoning effort synchronously through `session/set_config_option`. `devin models list` prints variant IDs that ACP `session/set_config_option` rejects with `-32602` and `Invalid params`, so OAR reads the model catalog from ACP `session/new` `configOptions` instead.
 
-`WINDSURF_API_KEY` is the sole environment credential that `devin` reads. `DEVIN_API_KEY` does not appear in the binary, and `devin` ignores it.
-
 ## High-level mapping to OAR
 
 `devinRuntime` belongs to `defaultRuntimes`, and `@botiverse/oar/runtimes/devin` exports it with `execution: "process"` for isolated placement. The runtime entry loads [`session.ts`](../../packages/oar/src/runtimes/devin/session.ts) and [`list-models.ts`](../../packages/oar/src/runtimes/devin/list-models.ts) on first call so importing `@botiverse/oar/runtimes/devin` does not load `@agentclientprotocol/sdk`.
@@ -23,11 +21,11 @@ OAR implements `installation`, `install`, `installPlan`, `checkUpdate`, `authSta
 | Native concept | OAR mapping |
 | --- | --- |
 | Executable | One `devin acp` process per Session, launched with `["acp"]` in `cwd` with the env overlay. |
-| Conversation | `Session.id` equals the native ACP `sessionId`. `resume` confirms the saved directory through `session/list` and opens the conversation with `session/load`, recording `session_info_update`, `available_commands_update`, and message-cluster replay `session/update` notifications on the opened session stream. |
+| Conversation | `Session.id` equals the native ACP `sessionId`. `resume` confirms the saved directory through `session/list` and opens the conversation with `session/load`, recording its replay notifications on the opened session stream. |
 | Prompt and queue | `prompt()` sends `session/prompt`. `queue()` holds inputs in host memory with `durable: false` and supports `withdraw()` before dispatch. `Session.steer` is absent. |
 | Cancel and dispose | `abort()` sends `session/cancel` with a 10-second process-kill fallback. `dispose()` closes the session when `initialize` advertises `close` and terminates the owned process tree and hosted terminals. |
 | Model and effort | `modelViaConfigOption: true` sends synchronous `session/set_config_option` calls for `model` and `thought_level` without waiting for async config notifications. |
-| Auth and turn failures | `openFailure` maps `-32603` authentication errors at open to `RuntimeFailureError` with `failure: "auth"`. `failureOutcome` maps `-32000` and `-32603` authentication errors on turns to `failure: "auth"`, while rate-limit, quota, and billing turn payloads under `data["cognition.ai/errorKind"]` remain unverified. |
+| Auth and turn failures | Authentication errors at open are `RuntimeFailureError` with `failure: "auth"`, and on turns `failure: "auth"` ([details](#prompt-queueing-and-abort)); rate-limit, quota, and billing turn payloads remain unverified. |
 | Child attribution | `opaque`. OAR infers no child session identity or graph edges. |
 | Compaction | `Session.compact` is absent and `manualCompaction` is `unsupported`. Native `available_commands_update` lists `/compact` without a verified completion contract. |
 
@@ -45,7 +43,7 @@ Devin resumes a session in its saved `cwd` and ignores a different `cwd` passed 
 
 `devinAcpProfile` sets `isResumeNotFound` for JSON-RPC `-32016` with `data["cognition.ai/errorKind"] === "session_not_found"`. That check maps to `SessionNotFoundError` if a session listed in `session/list` disappears before `session/load` completes, while unlisted session IDs still hit the prior `session/list` `cwd` refusal.
 
-When `session/load` runs, `devin acp` emits `session_info_update`, `available_commands_update`, and message-cluster replay `session/update` notifications before returning its RPC result, which OAR records on the opened session stream.
+OAR records the notifications `session/load` emits before its RPC result on the opened session stream.
 
 ### Prompt, queueing, and abort
 
@@ -63,6 +61,7 @@ Logged-out `session/prompt` returns JSON-RPC `-32000`. `devinAcpProfile` maps `-
 
 `projectDevinModels` reads `model` and `thought_level` from `configOptions`:
 
+- When `session/new` carries no `model` config option, `devinListModels` returns `unsupported`.
 - When `projectDevinModels` returns an empty model list, `devinListModels` checks `readDevinAuthStatus` under the remaining deadline. `logged_out` maps to `unauthenticated`, `logged_in` returns an empty `ok` list, `unknown` with configured credentials returns `unsupported`, and unreadable status rejects.
 - When the environment sets an invalid `WINDSURF_API_KEY`, `session/new` fails with JSON-RPC `-32603` and `Authentication required: invalid api key`. `devinListModels` maps `-32000` and authentication error messages to `{ kind: "unauthenticated" }`.
 

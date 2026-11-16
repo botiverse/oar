@@ -1,9 +1,10 @@
 # Grok runtime
 
-Independent inventories (2026-09-16): inspect --json skills and configured/compatibility MCP entries. Independent tools queries are unsupported; no ACP session is created.
-See the [query contract](../spec/inventory.md) and [native probe evidence](inventory.md).
-The inspect reader stops its owned process tree on timeout, including a
-Windows npm launcher's children, and waits for the process exit before returning.
+Independent inventories (2026-09-16): `grok inspect --json` gives skills and
+configured or compatibility MCP entries, with no ACP session; independent
+tools queries are unsupported. On timeout the reader stops its owned process
+tree (including a Windows npm launcher's children) and waits for the exit
+([query contract](../spec/inventory.md), [native probe evidence](inventory.md)).
 
 Evidence baseline: native source
 [`grok-build` `bc7f02e`](https://github.com/xai-org/grok-build/tree/bc7f02e)
@@ -21,16 +22,19 @@ range; source-supported claims are not a live check of a newer binary. The
 [spec](../spec/README.md) is not current OAR behavior. See the
 [runtime index](README.md) for evidence and status conventions.
 
-The [October 9 check](../../experiments/runtime-version-checks/2026-10-09.md)
-passed live conversation, tool detail and resume on **1.0.50** (Linux x64,
-`grok-4.7`): focused validation, not a repeat of the full live battery. The
-newest check, on **1.0.70**
+The last real-model check passed conversation, tool detail and resume on
+**1.0.50** (Linux x64, `grok-4.7`,
+[2026-10-09](../../experiments/runtime-version-checks/2026-10-09.md)): focused
+validation, not a repeat of the full live battery. The
+last full scripted-provider check, on **1.0.70**
 ([2026-10-24](../../experiments/runtime-version-checks/2026-10-24.md#grok-1070)),
 passed the native vendor tests, the shared session behavior suite and the
-prompt-options probe against local scripted providers, without a real login.
-CI pins `@xai-official/grok@1.0.70`. The latest published 1.0.77 has only the
-[task-control probe](#native-task-control) and no new execution check
-([2026-11-08 inventory](../../experiments/runtime-version-checks/2026-11-08.md)).
+prompt-options probe without a real login; CI pins `@xai-official/grok@1.0.70`. The
+current release, 1.0.77
+([2026-11-15 inventory](../../experiments/runtime-version-checks/2026-11-15.md)),
+is the version of the steer, login, failure-class, abort-cleanup and
+[task-control](#native-task-control) evidence below (Linux), not of a full
+suite run.
 
 ## Shared launch, ownership and cleanup
 
@@ -292,9 +296,9 @@ tell an input the turn already took from one the abort cleared. It records no
 already-read input for duplicate delivery. Inputs remain placed at request, as
 for other ACP runtimes.
 
-OAR no longer steers with `_meta.sendNow`, which cancels the running prompt
-and starts another. On 1.0.46 an immediate abort could cancel that
-replacement before its input was read
+OAR does not steer with `_meta.sendNow`, which cancels the running prompt and
+starts another: on 1.0.46 an immediate abort could cancel that replacement
+before its input was read
 ([comparison, source and probe](../../experiments/input-interruption-2026-10-08.md)).
 
 ### Prompting, steering, queuing, and cancellation
@@ -456,7 +460,7 @@ OAR drives Grok Build's own sign-in, reads its status and signs it out
   authenticated.` (exit 0): `logged_out`. With one, its first line is `You
   are logged in with grok.com.` (seen on a real 1.0.77 login): `logged_in`,
   with `account.method` taken from that line. Neither line, or a failing
-  command, is `unknown`. It is not `localOnly`.
+  command, is `unknown`.
 - `logout` runs `grok logout` (`No cached session to log out of.` and exit 0
   when there is none), then `grok models` decides; a sign-in that stays is
   `still_logged_in`.
@@ -1108,12 +1112,13 @@ history. Omission and `"include"` retain existing behavior. See the
 `listModels()` starts an ACP process, initializes and authenticates it,
 and calls the native `_x.ai/models/list` extension. Authentication and catalog
 reads can use the network; workspace configuration is loaded, but no model
-prompt is submitted. Local orientation has no auth-status reader for Grok.
+prompt is submitted. `authStatus` runs `grok models` ([login](#login)) and is
+not `localOnly`, so local-depth orientation skips it.
 
 ## Reader environment
 
-Installation, model listing, usage and MCP inventory queries accept the
-session-style `env` overlay. Discovery uses its installation directory
+Installation, model listing, auth status, login, logout, usage and inventory
+queries accept the session-style `env` overlay. Discovery uses its installation directory
 variables and home fallback; native ACP queries use the same environment.
 See [reader environments](../spec/orientation.md#environment).
 

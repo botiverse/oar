@@ -19,21 +19,6 @@ extension-store limits below still reproduce, and all fourteen
 provider-preset credential variables remain covered by the local credential
 reader. See the [version check](../../experiments/runtime-version-checks/2026-11-15.md#qwen-0274).
 
-## Held queue ownership
-
-`queue()` records acceptance with `queued: "adapter"`. Dispatch adds a
-separate prompt request with `carries: [originalInputId]` (the queue request
-id when no input id exists), preserves the original native input UUID and
-answers only that new request. The original queue response stays unchanged;
-conversation views retain one logical input. Held ownership keeps status
-running through the gap before dispatch, including synchronous terminal
-observers, so a new prompt cannot overtake the FIFO. Withdrawal remains
-possible until dispatch begins. A thrown transport write is not a native
-refusal: the input stays held and withdrawable without automatic retry.
-[Record and replay tests](../../tests/adapter-held-queues.test.ts) and
-[transport boundary tests](../../tests/adapter-held-queue-boundaries.test.ts)
-use controlled processes with the runtime's actual projection dialect.
-
 ## OAR mapping
 
 `qwenRuntime` is in `defaultRuntimes` and available separately from
@@ -115,9 +100,25 @@ alongside a tool result or in a separate non-replay runtime user frame is also
 retained only in the native frame. The provider request is probe evidence,
 not an additional OAR input or record.
 
+### Held queue ownership
+
+`queue()` records acceptance with `queued: "adapter"`; dispatch is a separate
+prompt request with `carries: [originalInputId]` (the queue request id when no
+input id exists) that keeps the original native input UUID and answers only
+that new request (the original queue response stays unchanged), so views
+show one logical input
+([record contracts](../spec/record-stream.md#record-contracts)). Status stays
+running until dispatch, including for synchronous terminal observers, so a new
+prompt cannot overtake the FIFO; withdrawal works until dispatch begins. A
+thrown transport write is not a native refusal: the input stays held and
+withdrawable, without automatic retry
+([record and replay tests](../../tests/adapter-held-queues.test.ts),
+[transport boundary tests](../../tests/adapter-held-queue-boundaries.test.ts),
+controlled processes with the runtime's actual projection dialect).
+
 ### Streamed block snapshots
 
-With **0.26.3** through **0.26.5**, and again in **0.27.0** through **0.27.3**, a response
+With **0.26.3** through **0.26.5**, and again in **0.27.0** through **0.27.4**, a response
 containing thinking followed by text emits one `message_start`, reuses
 content-block index 0, and follows each `content_block_stop` with a
 single-block `assistant` snapshot. The text
@@ -137,7 +138,8 @@ it does not assert that every provider emits thinking or rewrite Qwen's ids.
 
 [Upstream PR #16586](https://github.com/QwenLM/qwen-code/pull/16586) proposes
 one message id and continuous thinking/text block indices. It is still
-unmerged as of November 11 and is not present in the verified 0.27.2 sequence.
+unmerged as of November 15 and is not present in the verified 0.27.4 sequence
+([upstream watch](../../experiments/runtime-version-checks/2026-11-15.md#upstream-watch)).
 Its review flags tool blocks that may reuse indices under the proposed
 shared id; that is an upstream review finding, not a released-version result.
 After a stable release includes the final fix, verify thinking, text and
@@ -320,9 +322,8 @@ the lock externally: `initialize` completes (1.65 seconds on 0.26.0, 1.859
 seconds on 0.26.5) while the first prompt reaches no provider until the lock
 is released. An ordinary later prompt completes with the lock held, which does
 not establish that extension refresh operations never acquire it again. The
-probe reproduced this on [0.26.1](../../experiments/runtime-version-checks/2026-10-25.md#qwen-0261),
-[0.26.3 and 0.26.4](../../experiments/runtime-version-checks/2026-10-29.md#qwen-0263-and-0264)
-and [0.26.5](../../experiments/runtime-version-checks/2026-11-01.md#qwen-0265).
+probe reproduces this on every checked release through 0.27.4 (1,534 ms
+`initialize`, [2026-11-15](../../experiments/runtime-version-checks/2026-11-15.md#qwen-0274)).
 Upstream's [source analysis](https://github.com/QwenLM/qwen-code/issues/15796#issuecomment-6469876861)
 confirms that initialization readiness follows the SDK initialize reply;
 it is not a released fix.

@@ -135,18 +135,19 @@ identity, organization data or authentication material.
 
 ## Held queue ownership
 
-`queue()` records acceptance with `queued: "adapter"`. Dispatch adds a
-separate prompt request with `carries: [originalInputId]` (the queue request
-id when no input id exists), preserves the original native input UUID and
-answers only that new request. The original queue response stays unchanged;
-conversation views retain one logical input. Held ownership keeps status
-running through the gap before dispatch, including synchronous terminal
-observers, so a new prompt cannot overtake the FIFO. Withdrawal remains
-possible until dispatch begins. A thrown transport write is not a native
-refusal: the input stays held and withdrawable without automatic retry.
-[Record and replay tests](../../tests/adapter-held-queues.test.ts) and
-[transport boundary tests](../../tests/adapter-held-queue-boundaries.test.ts)
-use controlled processes with the runtime's actual projection dialect.
+`queue()` records acceptance with `queued: "adapter"`; dispatch is a separate
+prompt request with `carries: [originalInputId]` (the queue request id when no
+input id exists) that keeps the original native input UUID and answers only
+that new request (the original queue response stays unchanged), so views
+show one logical input
+([record contracts](../spec/record-stream.md#record-contracts)). Status stays
+running until dispatch, including for synchronous terminal observers, so a new
+prompt cannot overtake the FIFO; withdrawal works until dispatch begins. A
+thrown transport write is not a native refusal: the input stays held and
+withdrawable, without automatic retry
+([record and replay tests](../../tests/adapter-held-queues.test.ts),
+[transport boundary tests](../../tests/adapter-held-queue-boundaries.test.ts),
+controlled processes with the runtime's actual projection dialect).
 
 ## OAR mapping
 

@@ -304,8 +304,8 @@ that has what OAR needs:
 
 Probed on 0.118.0, 0.125.0, 0.128.0, 0.129.0, 0.130.0, 0.132.0, 0.133.0,
 0.134.0 and 0.135.0. Every one of them reports `serviceTier` in the open
-reply (`null` without a tier), so an absent field still fails the readback
-as before ([service tiers](#service-tiers)). An unknown tier such as
+reply (`null` without a tier), so an absent field fails the readback
+([service tiers](#service-tiers)). An unknown tier such as
 `turbo` is not called outdated. 0.128.0 refused it natively (a plain error);
 0.132.0 accepted and echoed it, so the open succeeded; 0.167.1 with a custom
 provider read it, and `priority`, back as `default`, which the readback
@@ -1170,32 +1170,38 @@ retry decision
 ([exit diagnostics tests](../../tests/codex/codex-exit-diagnostics.test.ts),
 [spawn failure test](../../tests/codex/codex-startup-diagnostics.test.ts)).
 
-Installation checks `OAR_CODEX_BIN`, then `codex` on PATH, then the macOS
-desktop bundles (`ChatGPT.app` before the legacy `Codex.app`, system before
-per-user installs), then the standalone installer's launcher
-(`$CODEX_INSTALL_DIR/codex`, `~/.local/bin/codex`). On Windows the fallbacks
-are npm's global shim in its default prefix (`%APPDATA%\npm\codex.cmd`,
-whose Node script OAR runs without cmd.exe), then the Codex Desktop CLI
-(`%LOCALAPPDATA%\Programs\OpenAI\Codex\bin\codex.exe`, then
-`%LOCALAPPDATA%\OpenAI\Codex\bin\codex.exe`, each followed by its
-`bin\<build>\codex.exe` build folders, the three most recently written first
-(a folder starting with `.` is never a build):
-newer Desktop builds keep the CLI one folder down, under a build hash, and
-can leave older build folders behind), then the same two under
-`%USERPROFILE%\AppData\Local` and the home folder's `AppData\Local` when
-they differ from `%LOCALAPPDATA%` (a daemon whose `LOCALAPPDATA` names
-another profile still finds the user's Desktop app); these locations follow
-Raft's own Codex driver and have no native Windows run of their own here, so
-the `app-server --help` probe decides. The order compares no versions, and
-the Codex Desktop CLI can be older than the `codex` on PATH (a Raft machine
-ran Desktop's 0.130.0-alpha.5 while PATH had 0.165.0): set `OAR_CODEX_BIN`
-to choose, and see [refusals](#refusals) for what an old release cannot do. A host
-that arbitrates versions itself can list these fallbacks without probing or
-loading the runtime: `@botiverse/oar/runtimes/codex/installation-candidates`
-exports `codexInstalledExecutableCandidates(platform?, home?, env?)` and
+Installation checks `OAR_CODEX_BIN`, then `codex` on PATH, then:
+
+- macOS and Linux: on macOS the desktop bundles (`ChatGPT.app` before the
+  legacy `Codex.app`, system before per-user installs), then the standalone
+  installer's launcher (`$CODEX_INSTALL_DIR/codex`, `~/.local/bin/codex`).
+- Windows: npm's global shim in its default prefix
+  (`%APPDATA%\npm\codex.cmd`, whose Node script OAR runs without cmd.exe),
+  then the Codex Desktop CLI at
+  `%LOCALAPPDATA%\Programs\OpenAI\Codex\bin\codex.exe`, then
+  `%LOCALAPPDATA%\OpenAI\Codex\bin\codex.exe`, then the same two under
+  `%USERPROFILE%\AppData\Local` and the home folder's `AppData\Local` when
+  they differ from `%LOCALAPPDATA%` (a daemon whose `LOCALAPPDATA` names
+  another profile still finds the user's Desktop app). Each Desktop path is
+  followed by its `bin\<build>\codex.exe` build folders, the three most
+  recently written first (a folder starting with `.` is never a build):
+  newer Desktop builds keep the CLI one folder down, under a build hash, and
+  can leave older build folders behind. These locations follow Raft's own
+  Codex driver and have no native Windows run of their own here, so the
+  `app-server --help` probe decides.
+
+The order compares no versions, and the Codex Desktop CLI can be older than
+the `codex` on PATH (a Raft machine ran Desktop's 0.130.0-alpha.5 while PATH
+had 0.165.0): set `OAR_CODEX_BIN` to choose, and see [refusals](#refusals)
+for what an old release cannot do. A host that arbitrates versions itself
+can list these fallbacks without probing or loading the runtime:
+`@botiverse/oar/runtimes/codex/installation-candidates` exports
+`codexInstalledExecutableCandidates(platform?, home?, env?)` and
 `desktopBuildExecutables(bin)`, both synchronous, reading only the Desktop
 `bin` folders; the list leaves out `OAR_CODEX_BIN` and PATH, which
-`codexInstallation` tries first. Every candidate requires
+`codexInstallation` tries first
+([candidates](../../packages/oar/src/runtimes/codex/installation-candidates.ts)).
+Every candidate requires
 `codex app-server --help` to succeed; a codex without the app-server surface
 is unsupported. When none is found, `install` runs OpenAI's standalone
 installer (macOS and Linux),

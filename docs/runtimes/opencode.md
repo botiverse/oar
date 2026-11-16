@@ -52,17 +52,6 @@ own OpenCode configuration. The MCP and failure-class vendor fixtures use
 small temporary Git projects so they do not wait for snapshots of the OAR
 checkout; native snapshots stay enabled.
 
-For a prompt failure reported as JSON-RPC -32603, a known `data.errorName`
-decides the class before the words: `provider.free-limit`, `provider.go-limit`,
-`provider.budget-limit`, `provider.model-budget-limit` and `provider.quota` are
-`quota`, `provider.rate-limit` is `rate_limited` (names from the 2.2.6 source).
-Any other answer, `APIError` included, is classified by its words. PR #710
-reports a live `provider.free-limit` observation; the
-[November 9 local-provider check](../../experiments/opencode-error-names/README.md)
-also captured native 2.2.6's `provider.rate-limit`. The other four quota names
-remain source-derived, with synthetic mapping tests. The shared profile
-applies this rule to both release lines and leaves open-time errors unchanged.
-
 ## Manual compaction
 
 The v2 session exposes idle-only `compact()` through native `/compact`.
@@ -230,81 +219,62 @@ isolated tool-cleanup check (`@opencode/cli@2.2.7`).
 ### Startup and compatibility
 
 The v2 adapter's ACP subprocess owns a standalone native server; OAR does
-not connect to or leave a persistent daemon. Latest recheck: **2.3.0**
-(Linux x64, 2026-11-13) passed fifteen behavior cases and the twelve-model
-catalog and prompt-option refusal controls. Native background child
-updates require an explicit capability and the
-`opencode/session/child_update` extension
-([paired native evidence](../../experiments/opencode-child-background/README.md)).
-OAR declares that capability on 2.3 and later and maps the extension
-([background children](#v2-session-behavior)). Before that mapping the
-cleanup control stopped at the missing child graph edge; with it (PR #775
-review, Linux x64, 2026-11-13) the control passed on 2.3.0 with only its
-test title and version assertion changed from 2.2.7 (lifecycle assertions
-and time limits unchanged): child edge, root cancellation, real tool
-parent and child process disposal, the surviving peer and same-id root
-resume. The unmodified 2.2.7 control passed on the same head. CI remains on
-2.2.7.
-
-The **2.2.7** recheck
-(Linux x64, 2026-11-10) passed all fifteen applicable behavior cases and
+not connect to or leave a persistent daemon. Newest recheck: **2.3.0**
+(Linux x64, 2026-11-13): fifteen behavior cases, the twelve-model catalog
+and both prompt-option refusal controls passed
+([November 13 report](../../experiments/runtime-version-checks/2026-11-13.md#opencode-230)).
+Native background child updates on 2.3 need an explicit capability and the
+`opencode/session/child_update` extension, which OAR declares and maps on
+2.3 and later ([background children](#v2-session-behavior),
+[paired native evidence](../../experiments/opencode-child-background/README.md));
+without that mapping
 [the isolated native cleanup control](../../sea-trial/vendor/opencode-cleanup.vendor.test.ts)
-(routed roots, MCP, children, cancellation, peer survival and resume); the
-cold catalog returned twelve models and both prompt-option refusals passed.
-The [daily report](../../experiments/runtime-version-checks/2026-11-10.md#opencode-227)
-separates these checks from the known v1-only vendor failures and retains
-the cold-start failure below. Cold MCP resume passed on 2.2.7
-([v2 session behavior](#v2-session-behavior)). The
+stops at the missing child graph edge. With it (PR #775 review, Linux x64,
+2026-11-13) the control passed on 2.3.0 with only its test title and
+version assertion changed from 2.2.7 (lifecycle assertions and time limits
+unchanged): child edge, root cancellation, real tool parent and child
+process disposal, the surviving peer and same-id root resume. The
+unmodified 2.2.7 control passed on the same head; CI remains on 2.2.7.
+**2.2.7** (Linux x64, 2026-11-10) passed all fifteen applicable behavior
+cases, the cleanup control (routed roots, MCP, children, cancellation, peer
+survival and resume), a twelve-model cold catalog, both prompt-option
+refusals and cold MCP resume ([v2 session behavior](#v2-session-behavior));
+its [daily report](../../experiments/runtime-version-checks/2026-11-10.md#opencode-227)
+separates these checks from the known v1-only vendor failures. The
 [boundary probe](../../experiments/opencode-release-lines.ts) last ran in
 full on 2.2.5 ([October 31](../../experiments/runtime-version-checks/2026-10-31.md#opencode-225)):
 nine of ten checks passed, cold MCP resume failed.
 
 **Known limitation: concurrent first starts over a fresh native database can
-fail before readiness**, confirmed by native SQLite errors. On 2.3.0,
-three of four native concurrent first starts failed with a table-creation
-conflict, while two serial and four prepared starts succeeded; both cold
-and both prepared ACP opens succeeded
-([November 13 report](../../experiments/runtime-version-checks/2026-11-13.md#opencode-230)).
-On 2.2.7,
-one of four concurrent native starts failed with `table account_state
-already exists`; two serial starts and four concurrent starts after
-initialization succeeded. The separate ACP probe failed one of two cold
-opens with only a readiness error, while both prepared opens succeeded
-([November 10 report](../../experiments/runtime-version-checks/2026-11-10.md#opencode-227)).
-On 2.2.6, one
-of two concurrent fresh-database ACP opens exited before readiness and both
-opens after serial initialization succeeded
-([November 7 report](../../experiments/runtime-version-checks/2026-11-07.md#opencode-226));
-its retained stderr says `Standalone server exited before reporting
-readiness`, with no native SQLite error, so that sample does not establish
-the same cause. The OAR-free startup probe started four native servers
-simultaneously against a fresh database: on 2.2.5 two exited 1 with
-`table account_state already exists`
-([October 31 report](../../experiments/runtime-version-checks/2026-10-31.md#native-startup));
-on 2.2.3 two became ready, one exited 1 with `database is locked` and one
-with `table account_state already exists`
-([October 30 report](../../experiments/runtime-version-checks/2026-10-30.md#native-startup));
-the 2.2.1 batches failed one of four and three of four with the
-account-state error (2.2.2 not tested). On 2.2.3 and 2.2.5, two sequential
-starts and four concurrent starts over an initialized database succeeded. On 2.1.4 and 2.2.0 the first behavior-suite run failed one case
-before server readiness (2.2.0's saved native log reports `SQLiteError:
-database is locked`) and the unchanged recheck passed
-([2.1.4](../../experiments/runtime-version-checks/2026-10-23.md#opencode-startup-and-compatibility),
-[2.2.0](../../experiments/runtime-version-checks/2026-10-27.md#opencode-220)).
-See [upstream issue 53879](https://github.com/anomalyco/opencode/issues/53879).
+fail before readiness**, confirmed by native SQLite errors. Native starts are the
+OAR-free startup probe, which starts native servers simultaneously against
+a fresh database; ACP opens go through OAR.
+
+| Version | Failed | Succeeded | Evidence |
+| --- | --- | --- | --- |
+| 2.3.0 | 3 of 4 concurrent native first starts (table-creation conflict) | 2 serial and 4 prepared native starts; both cold and both prepared ACP opens | [November 13](../../experiments/runtime-version-checks/2026-11-13.md#opencode-230) |
+| 2.2.7 | 1 of 4 concurrent native starts (`table account_state already exists`); 1 of 2 cold ACP opens, with only a readiness error | 2 serial and 4 concurrent native starts after initialization; both prepared ACP opens | [November 10](../../experiments/runtime-version-checks/2026-11-10.md#opencode-227) |
+| 2.2.6 | 1 of 2 concurrent fresh-database ACP opens exited before readiness; stderr says `Standalone server exited before reporting readiness`, with no native SQLite error, so this sample does not establish the same cause | both ACP opens after serial initialization | [November 7](../../experiments/runtime-version-checks/2026-11-07.md#opencode-226) |
+| 2.2.5 | 2 of 4 native starts exited 1 (`table account_state already exists`) | 2 sequential and 4 concurrent starts over an initialized database | [October 31](../../experiments/runtime-version-checks/2026-10-31.md#native-startup) |
+| 2.2.3 | 2 of 4 native starts: one exited 1 with `database is locked`, one with `table account_state already exists` | the other two; 2 sequential and 4 concurrent starts over an initialized database | [October 30](../../experiments/runtime-version-checks/2026-10-30.md#native-startup) |
+| 2.2.1 | 1 of 4 and 3 of 4 native starts in two batches (account-state error) | | |
+| 2.2.0, 2.1.4 | the first behavior-suite run failed one case before server readiness (2.2.0's saved native log: `SQLiteError: database is locked`) | the unchanged recheck | [2.2.0](../../experiments/runtime-version-checks/2026-10-27.md#opencode-220), [2.1.4](../../experiments/runtime-version-checks/2026-10-23.md#opencode-startup-and-compatibility) |
+
+2.2.2 was not tested. See
+[upstream issue 53879](https://github.com/anomalyco/opencode/issues/53879).
 The inspected 2.2.1 bootstrap semaphore is process-local. These observations
 do not establish that every startup failure has this cause, or that warmup
 is a general fix. Hosts can serialize the first startup and wait for
 readiness before opening more sessions against the same data directory, as
 in the passing controls. OAR adds no retry or lock.
 
-v1 shows startup exits too. On 2026-10-30 a local Linux x64 run on xxwork
-with **1.19.5**, a fresh isolated HOME/XDG data directory and the scripted
-provider scheduled 17 applicable behavior cases concurrently (16 session
-cases and one installation probe). `session.queue-runs-after-turn` lost its
-native process before opening a session; it exited with code 1 and no
-signal. The bounded stderr captured by OAR's ACP opening diagnostics
-contained this excerpt (ANSI formatting removed, remaining schema omitted):
+v1 shows startup exits too. In a local Linux x64 run of **1.19.5**
+(2026-10-30, xxwork, fresh isolated HOME/XDG data directory, scripted
+provider, 17 applicable behavior cases scheduled concurrently: 16 session
+cases and one installation probe), `session.queue-runs-after-turn` lost its
+native process before opening a session (exit code 1, no signal). The
+bounded stderr kept by OAR's ACP opening diagnostics contained (ANSI
+formatting removed, remaining schema omitted):
 
 ```text
 Error: Unexpected error
@@ -453,8 +423,8 @@ covers 2.0.27.
   the parent prompt answered at 1695 ms, then child text and completion
   arrived at 1706 and 1707 ms; OAR records them after the root `turn_ended`,
   under the child and as the parent's task, without reopening or ending the
-  root turn. Shared placement admits only 2.2.3 and 2.2.5 and never declares
-  the capability.
+  root turn. The disabled experimental shared adapter accepts only 2.2.3 and
+  2.2.5 and never declares the capability.
 - **Background children (2.3.0), verification:** the two recorded native
   runs replay through the real session, projection and record stream in
   [`background-child.test.ts`](../../tests/opencode/background-child.test.ts):
@@ -507,13 +477,14 @@ covers 2.0.27.
 - **MCP:** stdio and HTTP servers supplied at new and resumed session open
   are callable through `execute`, whose input code, result and native metadata
   are retained, including the names of enclosed MCP calls.
-  **Cold resume:** on 2.2.6 the [November 7 local-provider check](../../experiments/opencode-mcp-resume-2026-11-07.md)
-  called echo on all 20 cold resumes per transport and in both warmed
-  initial sessions, with no model-visible catalog-removal notice (Linux x64,
-  immediate scripted tool calls; not a guarantee for every provider,
-  platform or catalog timing). The [2.2.7 recheck](../../experiments/runtime-version-checks/2026-11-10.md#opencode-227)
-  passed both initial sessions and six cold resumes per transport, again
-  without a removal notice. The
+  **Cold resume:** the reattached tool was called in both warmed initial
+  sessions and on every cold resume per transport, with no model-visible
+  catalog-removal notice, on 2.2.6 (20 cold resumes per transport,
+  [November 7 local-provider check](../../experiments/opencode-mcp-resume-2026-11-07.md))
+  and 2.2.7 (six per transport,
+  [recheck](../../experiments/runtime-version-checks/2026-11-10.md#opencode-227))
+  (Linux x64, immediate scripted tool calls; not a guarantee for every
+  provider, platform or catalog timing). The
   [same probe on 2.2.5](../../experiments/runtime-version-checks/2026-11-06.md#opencode-225-cold-mcp-resume-after-upstream-closure)
   called echo in both initial sessions but on none of six cold resumes, the
   model seeing a notice that removed the reattached tool. Earlier
@@ -817,6 +788,19 @@ OpenCode becomes idle.
 later, the running shell call is closed, and the turn ends `aborted` (abort).
 After an abort the `usage_update` reports `used: 0`, since it reads the
 latest assistant message, which the abort left empty.
+
+**Prompt failures (both lines):** for a JSON-RPC -32603 prompt failure, a
+known `data.errorName` decides the class before the words:
+`provider.free-limit`, `provider.go-limit`, `provider.budget-limit`,
+`provider.model-budget-limit` and `provider.quota` are `quota`,
+`provider.rate-limit` is `rate_limited` (names from the 2.2.6 source;
+[classifier](../../packages/oar/src/runtimes/opencode/failure.ts)). Any
+other answer, `APIError` included, is classified by its words; open-time
+errors are unchanged. PR #710 reports a live `provider.free-limit`
+observation, and the
+[November 9 local-provider check](../../experiments/opencode-error-names/README.md)
+captured native 2.2.6's `provider.rate-limit`; the other four quota names
+are source-derived, with synthetic mapping tests.
 
 OAR owns the ACP process. An exit ending a running turn after its accepted
 abort or dispose request is read as `aborted` by the folds; an unrequested
