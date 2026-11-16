@@ -2,8 +2,12 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { expect, test } from "vitest";
-import { grokInstallation, grokSession, promptAndWait, awaitTurnEnd, type Session } from "../../packages/oar/src/index.js";
+import { promptAndWait, awaitTurnEnd, type Session, grokRuntime } from "../../packages/oar/src/index.js";
+
 import { startGrokAimock } from "../harness/aimock-acp.js";
+
+const grokInstallation = grokRuntime.installation;
+const grokSession = grokRuntime.session;
 
 const outputSchema = { type: "object", properties: { answer: { type: "integer" } }, required: ["answer"], additionalProperties: false };
 

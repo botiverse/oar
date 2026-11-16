@@ -12,9 +12,12 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { setTimeout as delay } from "node:timers/promises";
-import { opencodeSession, opencodeRuntime, awaitTurnEnd, type Session, type SessionOptions, type RuntimeEventBody, type StartSession } from "../packages/oar/src/index.js";
+import { opencodeRuntime, awaitTurnEnd, type Session, type SessionOptions, type RuntimeEventBody, type StartSession } from "../packages/oar/src/index.js";
+
 import { acpSession } from "../packages/oar/src/shared/acp/session.js";
 import { opencodeV2AcpProfile } from "../packages/oar/src/runtimes/opencode/session.js";
+
+const opencodeSession = opencodeRuntime.session;
 
 const [binary, cwd, out] = process.argv.slice(2);
 assert.ok(binary !== undefined && cwd !== undefined && out !== undefined, "usage: <binary> <cwd> <output-directory>");

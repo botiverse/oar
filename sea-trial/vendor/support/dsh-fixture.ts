@@ -1,10 +1,13 @@
 import assert from "node:assert/strict";
 import { realpathSync } from "node:fs";
 import { setTimeout as delay } from "node:timers/promises";
-import { dshInstallation, dshRuntime, type AvailableInstallation, type RawEvent, type RuntimeEventBody, type Session, type SessionOptions } from "../../../packages/oar/src/index.js";
+import { dshRuntime, type AvailableInstallation, type RawEvent, type RuntimeEventBody, type Session, type SessionOptions } from "../../../packages/oar/src/index.js";
+
 import { asRecord } from "../../../packages/oar/src/shared/json.js";
 import { startDshAimock, type DshAimock, type DshAimockOptions } from "../../harness/dsh-aimock.js";
 import { startDshProvider, type DshProvider, type ProviderRequest, type Reply } from "./dsh-provider.js";
+
+const dshInstallation = dshRuntime.installation;
 
 export const dshEnabled = process.env.OAR_TEST === "dsh-aimock";
 export const posix = process.platform !== "win32";

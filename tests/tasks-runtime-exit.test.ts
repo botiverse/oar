@@ -1,6 +1,7 @@
 import { expect, test } from "vitest";
 import type { RawEvent, RequestBody, ResponseBody, RuntimeEventBody, TaskStatus } from "../packages/oar/src/contracts/session.js";
-import { initialTasks, initialTaskState, reduceTasks, reduceTaskState, tasksOf } from "../packages/oar/src/observe/index.js";
+import { initialTaskState, reduceTasks, reduceTaskState, tasksOf } from "../packages/oar/src/observe/index.js";
+import { initialTasks } from "../packages/oar/src/observe/tasks.js";
 
 const root = { sessionId: "root", agentPath: [] };
 interface Scope { readonly sessionId?: string; readonly agentPath?: readonly string[] }

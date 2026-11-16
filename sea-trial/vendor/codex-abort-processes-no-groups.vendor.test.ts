@@ -6,7 +6,8 @@ import { setTimeout as delay } from "node:timers/promises";
 import { expect, test, vi } from "vitest";
 import type { ControlResult, Session } from "../../packages/oar/src/contracts/session.js";
 import type { SessionCleanup } from "../../packages/oar/src/contracts/placement.js";
-import { awaitTurnEnd, codexInstallation, codexSession, promptAndWait } from "../../packages/oar/src/index.js";
+import { awaitTurnEnd, promptAndWait, codexRuntime } from "../../packages/oar/src/index.js";
+
 // oxlint-disable-next-line import/no-namespace -- Off Windows, stand in for its table source to exercise this control's own logic.
 import * as tables from "../../packages/oar/src/shared/executable/process-table-async.js";
 import { observeProcessTable } from "../../packages/oar/src/shared/executable/process-tree.js";
@@ -15,6 +16,9 @@ import { removeFixtureDirectory } from "../harness/fixture-directory-cleanup.js"
 import { startCodexAimock } from "../harness/aimock.js";
 import { openTrace, record } from "../harness/trace.js";
 import { expectAvailable } from "./support/asserts.js";
+
+const codexInstallation = codexRuntime.installation;
+const codexSession = codexRuntime.session;
 
 /*
  * The Windows control for SessionOptions.endTurnProcessesOnAbort. Windows has no

@@ -1,10 +1,14 @@
 import assert from "node:assert/strict";
 import { appendFile } from "node:fs/promises";
 import path from "node:path";
-import { promptAndWait, codexInstallation, codexSession } from "../../packages/oar/src/index.js";
+import { promptAndWait, codexRuntime } from "../../packages/oar/src/index.js";
+
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { startCodexAimock } from "../../sea-trial/harness/aimock.js";
 import { codexMessageReply } from "../../sea-trial/vendor/support/codex-messages.js";
+
+const codexInstallation = codexRuntime.installation;
+const codexSession = codexRuntime.session;
 
 const snapshot = await codexInstallation();
 assert.ok(snapshot.kind === "available");

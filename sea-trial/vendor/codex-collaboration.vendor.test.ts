@@ -4,13 +4,17 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { describe, expect, test } from "vitest";
-import { codexInstallation, codexSession } from "../../packages/oar/src/index.js";
+
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { removeFixtureDirectory } from "../harness/fixture-directory-cleanup.js";
 import { startCodexAimock } from "../harness/aimock.js";
 import { openTrace, record } from "../harness/trace.js";
 import { expectAvailable, runTurn } from "./support/asserts.js";
 import { codexTaskRecipient, codexTaskRequest } from "./support/codex-task-request.js";
+import { codexRuntime } from "../../packages/oar/src/index.js";
+
+const codexInstallation = codexRuntime.installation;
+const codexSession = codexRuntime.session;
 
 describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("Codex collaboration input", () => {
   test("wait_agent projects the native operation and null prompt without invented recipients", async () => {

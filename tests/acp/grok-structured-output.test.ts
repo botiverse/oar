@@ -5,7 +5,8 @@ import { acpSession } from "../../packages/oar/src/shared/acp/session.js";
 import { grokAcpProfile } from "../../packages/oar/src/runtimes/grok/session.js";
 import { grokPromptOutcome } from "../../packages/oar/src/runtimes/grok/failure.js";
 import { asRecord, parseJson } from "../../packages/oar/src/shared/json.js";
-import { awaitTurnEnd, promptAndWait, turnEndAfter, viewOf } from "../../packages/oar/src/observe/index.js";
+import { awaitTurnEnd, promptAndWait, turnEndAfter } from "../../packages/oar/src/observe/index.js";
+import { viewOf } from "../../packages/oar/src/observe/session-view.js";
 import { profile, start } from "../fixtures/acp-session-support.js";
 
 // Grok 1.0.50 + aimock, 2026-10-11. Native replies; session and prompt ids removed.

@@ -100,5 +100,4 @@ function cursorRuntime(access: CursorSdkAccess): CursorRuntime {
   return defineRuntime(definition, access.execution === "subprocess" ? { execution: "process" } : { execution: "in_process" });
 }
 
-export { projectCursorModels } from "./list-models.js";
 export { cursorNativeEnvironment } from "./native-environment.js";

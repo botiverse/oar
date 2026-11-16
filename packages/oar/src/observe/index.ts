@@ -5,10 +5,10 @@
  * adapters (node:child_process, the pi SDK, …) into a browser bundle. The
  * root `@botiverse/oar` re-exports these too, for Node consumers.
  */
-export { coalesceText, controlActionsOf, eventsOf, eventsReader } from "./events.js";
+export { eventsOf } from "./events.js";
 export { graphOf } from "./graph.js";
 export type { KnownControl } from "./events.js";
-export { initialStatus, reduceStatus, stallOf, statusOf, statusValue } from "./agent-status.js";
+export { initialStatus, reduceStatus, statusOf } from "./agent-status.js";
 export type { AgentStatus, RunningPhase, StatusState } from "./agent-status.js";
 export { observeStalls } from "./stall-observer.js";
 export type { StallInfo } from "./stall-observer.js";
@@ -29,21 +29,14 @@ export type { ToolAction, ToolActionKind } from "./tool-activity.js";
 export type { ReasoningPart, ToolGroup, ToolGroupSegment, ToolPart } from "./tool-groups.js";
 export { awaitIdle, awaitTurnEnd, promptAndWait, turnEndAfter } from "./turns.js";
 export type { PromptRun, PromptRunOptions, InputHandled } from "./turns.js";
-export { contextUsageOf, effortOf, modelOf, serviceTierOf, usageOf } from "./usage.js";
-export { applyTaskEvent, initialTasks, initialTaskState, reduceTasks, reduceTaskState, tasksOf } from "./tasks.js";
-export type { TaskEventOrigin, TaskMap, TaskState, TaskView } from "./tasks.js";
+export { contextUsageOf, usageOf } from "./usage.js";
+export { initialTaskState, reduceTasks, reduceTaskState, tasksOf } from "./tasks.js";
+export type { TaskMap, TaskState, TaskView } from "./tasks.js";
 
-export { initialConversation, reduceConversation, conversationOf, observeConversation } from "./conversation.js";
+export { initialConversation, reduceConversation } from "./conversation.js";
 export type { ConversationState, ConversationInput, ConversationUpdate, InputAttempt, InputDisposition } from "./conversation.js";
 
-export {
-  initialSessionView,
-  reduceSessionView,
-  reduceSessionViewEvent,
-  reduceSessionViewInput,
-  viewOf,
-  observeSessionView,
-} from "./session-view.js";
+export { initialSessionView, reduceSessionView } from "./session-view.js";
 export type {
   SessionView,
   ViewMessage,

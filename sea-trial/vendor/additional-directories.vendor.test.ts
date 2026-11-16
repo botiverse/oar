@@ -2,12 +2,19 @@ import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { expect, test } from "vitest";
-import { claudeInstallation, claudeSession, codexInstallation, codexSession, kimiInstallation, kimiSession, type AvailableInstallation, type Session, type SessionOptions } from "../../packages/oar/src/index.js";
+import { claudeInstallation, type AvailableInstallation, type Session, type SessionOptions, claudeRuntime, codexRuntime, kimiRuntime } from "../../packages/oar/src/index.js";
+
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { removeFixtureDirectory } from "../harness/fixture-directory-cleanup.js";
 import { startClaudeAimock, startCodexAimock } from "../harness/aimock.js";
 import { startKimiAimock } from "../harness/aimock-acp.js";
 import { runTurn } from "./support/asserts.js";
+
+const claudeSession = claudeRuntime.session;
+const codexInstallation = codexRuntime.installation;
+const codexSession = codexRuntime.session;
+const kimiInstallation = kimiRuntime.installation;
+const kimiSession = kimiRuntime.session;
 
 async function directories(): Promise<{ root: string; cwd: string; first: string; second: string }> {
   const root = await mkdtemp(path.join(tmpdir(), "oar-directories-"));

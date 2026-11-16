@@ -1,3 +1,4 @@
+/* oxlint-disable import/max-dependencies -- Attribution replay compares the native recorder with independent public and internal folds. */
 /* oxlint-disable eslint/max-lines-per-function -- Inline snapshots retain the complete native-derived event shapes. */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -7,7 +8,8 @@ import { createAcpRecorder } from "../../packages/oar/src/shared/acp/records.js"
 import { createUsageUpdateGate } from "../../packages/oar/src/shared/acp/usage-wait.js";
 import { createSessionKernel } from "../../packages/oar/src/shared/session-kernel.js";
 import { asRecord, parseJson, type JsonRecord } from "../../packages/oar/src/shared/json.js";
-import { classifyTool, graphOf, usageOf, viewOf } from "../../packages/oar/src/observe/index.js";
+import { classifyTool, graphOf, usageOf } from "../../packages/oar/src/observe/index.js";
+import { viewOf } from "../../packages/oar/src/observe/session-view.js";
 import type { SessionNotification } from "../../packages/oar/src/shared/acp/process.js";
 
 const fixtureText = readFileSync(new URL("../replay/fixtures/opencode-acp-v2-child.json", import.meta.url), "utf8");

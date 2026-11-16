@@ -4,10 +4,14 @@ import { DatabaseSync } from "node:sqlite";
 import { mkdtemp, readFile, writeFile, rm, symlink, realpath, readdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { codexInstallation, codexSession, promptAndWait, type Session } from "../../packages/oar/src/index.js";
+import { promptAndWait, type Session, codexRuntime } from "../../packages/oar/src/index.js";
+
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { startAppServerClient } from "../../packages/oar/src/runtimes/codex/app-server-client.js";
 import { startCodexAimock } from "../../sea-trial/harness/aimock.js";
+
+const codexInstallation = codexRuntime.installation;
+const codexSession = codexRuntime.session;
 
 async function completed(session: Session): Promise<void> {
   try {

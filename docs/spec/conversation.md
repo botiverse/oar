@@ -129,7 +129,7 @@ the runtime takes images at all (ACP: what `initialize` advertised, unless a
 profile knows better from a live probe, as grok's does). An input
 whose images cannot go (no image input, not a png/jpeg/gif/webp, unreadable)
 is rejected whole, `unsupported` or `error`, before it reaches the runtime.
-A custom runtime keeps the same rule with `inputImagesRefusal` or
+A custom runtime keeps the same rule with
 `withInputImages` from `@botiverse/oar/kernel`; `scriptedRuntime` does.
 Native echoes (`user_message.input`) remain text only.
 
@@ -201,7 +201,8 @@ folded seq values within each stream, allowing history snapshots and buffered
 live pushes to overlap safely. UUIDs can still link native echoes across resume.
 Inputs do not cross native sessions or agent paths even when IDs are equal.
 
-`conversationOf(records)` folds one stream. `observeConversation(session,
+The internal reference helper `conversationOf(records)` folds one stream.
+The internal `observeConversation(session,
 listener, cursor?)` folds the retained prefix and continues live using the same
 reducer; a cursor suppresses prefix callbacks without losing their state. Save
 raw records, not maps or Promise results, to reproduce the view after restart;
@@ -219,7 +220,7 @@ harnesses with a local scripted provider.
 
 ## Session view message grouping
 
-`reduceSessionView` and `viewOf` project the records into inputs and turn
+`reduceSessionView` projects the records into inputs and turn
 segments for a chat surface ([design](../design/chat-ui.md)). Each segment
 contains sections attributed to a lane: `(sessionId, agentPath)`.
 

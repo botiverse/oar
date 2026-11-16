@@ -4,13 +4,16 @@ import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
-import { codexInstallation } from "../../packages/oar/src/index.js";
+
 import { startAppServerClient } from "../../packages/oar/src/runtimes/codex/app-server-client.js";
 import { codexRequestReply } from "../../packages/oar/src/runtimes/codex/runtime-requests.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { removeFixtureDirectory } from "../harness/fixture-directory-cleanup.js";
 import { startCodexAimock } from "../harness/aimock.js";
 import { expectAvailable } from "./support/asserts.js";
+import { codexRuntime } from "../../packages/oar/src/index.js";
+
+const codexInstallation = codexRuntime.installation;
 
 /**
  * OAR opens with `approvalPolicy: never`, so this drives the app-server

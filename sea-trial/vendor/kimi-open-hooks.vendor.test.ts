@@ -2,11 +2,14 @@ import assert from "node:assert/strict";
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
 import { expect, test, vi } from "vitest";
-import { kimiInstallation, type Session } from "../../packages/oar/src/index.js";
+import { type Session, kimiRuntime } from "../../packages/oar/src/index.js";
+
 import { kimiAcpProfile } from "../../packages/oar/src/runtimes/kimi/session.js";
 import { acpSession } from "../../packages/oar/src/shared/acp/session.js";
 import { startKimiAimock } from "../harness/aimock-acp.js";
 import { hookMarks, processRunning, sessionStartHook } from "./support/session-start-hook.js";
+
+const kimiInstallation = kimiRuntime.installation;
 
 // Keep request timeout < hook delay < opening timeout: new and cold resume
 // must fail if either accidentally uses the ordinary request timeout. Allow

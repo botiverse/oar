@@ -1,10 +1,13 @@
 import { describe, expect, test } from "vitest";
-import { claudeInstallation, claudeSession, defineRuntime } from "../../packages/oar/src/index.js";
+import { claudeInstallation, defineRuntime, claudeRuntime } from "../../packages/oar/src/index.js";
+
 import { startClaudeAimock } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
 import { claudeConfigsGone, lateWriterServers } from "./support/claude-fifo.js";
 import { currentTurnSays, echoesReceived, echoFixtures, fingerprint, HTTP_AUTHORIZATION, leakedCredentials, startHttpEcho, stdioEcho, STDIO_TOKEN } from "./support/echo-mcp.js";
 import { structuralToolRound } from "./support/tool-round.js";
+
+const claudeSession = claudeRuntime.session;
 
 /*
  * The probe for every claude CI installs (it installs the latest): oar hands

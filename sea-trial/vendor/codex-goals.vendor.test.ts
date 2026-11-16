@@ -1,8 +1,12 @@
 import { describe, expect, test } from "vitest";
 import type { Event, GoalSnapshot, Session } from "../../packages/oar/src/contracts/session.js";
-import { codexInstallation, codexSession, promptAndWait } from "../../packages/oar/src/index.js";
+import { promptAndWait, codexRuntime } from "../../packages/oar/src/index.js";
+
 import { startCodexAimock } from "../harness/aimock.js";
 import { expectAvailable } from "./support/asserts.js";
+
+const codexInstallation = codexRuntime.installation;
+const codexSession = codexRuntime.session;
 
 function latest(events: readonly Event[]): GoalSnapshot | null | undefined {
   const event = events.findLast((item) => item.kind === "goal_changed");

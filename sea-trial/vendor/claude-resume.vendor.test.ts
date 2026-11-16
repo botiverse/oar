@@ -3,9 +3,12 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { expect, test } from "vitest";
-import { claudeInstallation, claudeSession, SessionNotFoundError, type Session } from "../../packages/oar/src/index.js";
+import { claudeInstallation, SessionNotFoundError, type Session, claudeRuntime } from "../../packages/oar/src/index.js";
+
 import { startClaudeAimock } from "../harness/aimock.js";
 import { runTurn } from "./support/asserts.js";
+
+const claudeSession = claudeRuntime.session;
 
 /** The main loop's spend in the session's last `result` frame, as OAR counts tokens. */
 function mainLoopOf(session: Session): unknown {

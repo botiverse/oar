@@ -1,9 +1,12 @@
 import { expect, test } from "vitest";
-import { claudeInstallation, claudeSession, defineRuntime, promptAndWait, type Event, type Session } from "../../packages/oar/src/index.js";
+import { claudeInstallation, defineRuntime, promptAndWait, type Event, type Session, claudeRuntime } from "../../packages/oar/src/index.js";
+
 import { initialSessionView, reduceSessionView, viewOf, type SessionView } from "../../packages/oar/src/observe/session-view.js";
 import { startClaudeAimock } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
 import { currentTurnSays, stdioEcho } from "./support/echo-mcp.js";
+
+const claudeSession = claudeRuntime.session;
 
 function tool(view: SessionView, callId: string) {
   return view.messages.flatMap((message) => message.kind === "turn" ? message.sections.flatMap((section) => section.parts) : []).find((part) => part.kind === "tool" && part.callId === callId);

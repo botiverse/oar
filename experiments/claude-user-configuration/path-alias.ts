@@ -7,8 +7,11 @@
 import assert from "node:assert/strict";
 import { symlink, rm } from "node:fs/promises";
 import path from "node:path";
-import { claudeInstallation, claudeSession, promptAndWait, UnsupportedOptionError } from "../../packages/oar/src/index.js";
+import { claudeInstallation, promptAndWait, UnsupportedOptionError, claudeRuntime } from "../../packages/oar/src/index.js";
+
 import { claudeConfigurationFixture } from "../../sea-trial/vendor/support/user-configuration/claude-fixture.js";
+
+const claudeSession = claudeRuntime.session;
 
 const installation = await claudeInstallation();
 assert.ok(installation.kind === "available" && installation.via === "executable");

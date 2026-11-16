@@ -6,8 +6,11 @@ import path from "node:path";
 import { inspect } from "node:util";
 import { expect, test } from "vitest";
 import { LLMock } from "@copilotkit/aimock";
-import { claudeInstallation, claudeSession, type RawEvent, type Session } from "../../packages/oar/src/index.js";
+import { claudeInstallation, type RawEvent, type Session, claudeRuntime } from "../../packages/oar/src/index.js";
+
 import { runTurn, withProcessEnv } from "./support/asserts.js";
+
+const claudeSession = claudeRuntime.session;
 
 const firstKey = "oar-provider-echo-secret-one";
 const secondKey = "oar-provider-echo-secret-two";
@@ -106,7 +109,6 @@ test.skipIf(!isPiBackend)("Pi provider-echoed SDK keys are removed at open and a
     await rm(directory, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
   }
 }, 120_000);
-
 
 test.skipIf(!isPiBackend)("Pi short local-provider keys preserve model IDs and response text", async () => {
   const mock = new LLMock({ port: 0 });

@@ -2,9 +2,12 @@ import assert from "node:assert/strict";
 import { watch } from "node:fs";
 import { claudeConfigurationFixture, type ClaudeConfigurationFixture } from "../user-configuration/claude-fixture.js";
 import { TOKEN, ROTATED } from "../user-configuration/claude-oauth.js";
-import { claudeSession, promptAndWait, type Session } from "../../../../packages/oar/src/index.js";
+import { promptAndWait, type Session, claudeRuntime } from "../../../../packages/oar/src/index.js";
+
 import { asRecord } from "../../../../packages/oar/src/shared/json.js";
 import { rotatingModelProxy } from "./model-rotation.js";
+
+const claudeSession = claudeRuntime.session;
 
 function observeLocks(fixture: ClaudeConfigurationFixture): { names: Set<string>; close(): void } {
   const names = new Set<string>();

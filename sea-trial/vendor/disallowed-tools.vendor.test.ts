@@ -5,11 +5,16 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
-import { claudeInstallation, claudeSession, defineRuntime, piInstallation, piSession, promptAndWait, type Session } from "../../packages/oar/src/index.js";
+import { claudeInstallation, defineRuntime, promptAndWait, type Session, claudeRuntime, piRuntime } from "../../packages/oar/src/index.js";
+
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { startClaudeAimock, startPiAimock, type AimockEnv, type RawProviderRequest } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
 import { echoesReceived, stdioEcho } from "./support/echo-mcp.js";
+
+const claudeSession = claudeRuntime.session;
+const piInstallation = piRuntime.installation;
+const piSession = piRuntime.session;
 
 /** Actual native harnesses, with only the model replaced. Inspect the tools
  * offered to the provider, not the model's description of its abilities. */

@@ -6,9 +6,13 @@ import { execFileSync } from "node:child_process";
 import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { codexInstallation, codexSession } from "../../packages/oar/src/index.js";
+
 import { promptAndWait } from "../../packages/oar/src/observe/turns.js";
 import { startCodexAimock } from "../../sea-trial/harness/aimock.js";
+import { codexRuntime } from "../../packages/oar/src/index.js";
+
+const codexInstallation = codexRuntime.installation;
+const codexSession = codexRuntime.session;
 
 const CUT_STREAM = `event: response.created\ndata: ${JSON.stringify({ type: "response.created", response: { id: "cut", object: "response", status: "in_progress", output: [] }, sequence_number: 0 })}\n\n`;
 const scenario = process.argv[2] ?? "dropped";

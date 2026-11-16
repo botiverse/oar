@@ -1,8 +1,9 @@
 # Runtime config form
 
 > **Status: SHIPPED in part.** `@botiverse/oar/forms` shipped in 0.67.0 with
-> Grok's form (#417 to #424): the form and value types, `configForms`,
-> `baselineForms`, `toModelListing`, `validateConfig` and `toSessionOptions`.
+> Grok's form (#417 to #424). The public entry now exports `configForms` and
+> shared form/value types. The historical baseline, validation, listing and
+> launch helpers below are internal reference implementations, not exports.
 > [Machine capability reporting](#machine-capability-reporting), with its
 > machine states and launch outcomes, is a draft (2026-10-16): nothing in it
 > is built.
@@ -17,9 +18,9 @@ and how do the chosen values become the options a session opens with.
 Without a form, each host answers it by hand, once per runtime, in its own
 code. The form keeps the answer next to the runtime that owns it.
 
-`configForms[runtimeId]` describes a runtime's settings. Pure functions
-beside it validate chosen values and turn them into `SessionOptions`. All
-of it lives in `@botiverse/oar/forms`, an entry that loads no runtime SDK.
+`configForms[runtimeId]` describes a runtime's settings. A host validates
+chosen values and maps them to `SessionOptions`. The data and shared types
+live in `@botiverse/oar/forms`, an entry that loads no runtime SDK.
 
 ## Principles
 
@@ -194,7 +195,8 @@ export type ValidationContext =
   | { readonly mode: "create"; readonly models: ModelListing }
   | { readonly mode: "edit"; readonly stored: FormValues; readonly models: ModelListing };
 
-export function validateConfig(
+// Internal reference signature, not a public export.
+declare function validateConfig(
   form: RuntimeConfigForm,
   values: FormValues,
   context: ValidationContext,
@@ -250,11 +252,12 @@ export type ResolvedSecret =
 
 export type LaunchValues = Readonly<Record<string, ModelValue | ResolvedSecret | string | boolean | null>>;
 
-export type FormSessionOptions = Partial<Pick<SessionOptions, "model" | "effort">>;
+type FormSessionOptions = Partial<Pick<SessionOptions, "model" | "effort">>;
 
-export function toSessionOptions(form: RuntimeConfigForm, values: LaunchValues): SessionMapping;
+// Internal reference signature, not a public export.
+declare function toSessionOptions(form: RuntimeConfigForm, values: LaunchValues): SessionMapping;
 
-export type SessionMapping =
+type SessionMapping =
   | { ok: true; options: FormSessionOptions; unmapped: Readonly<Record<string, string | boolean>>; secrets: Readonly<Record<string, string>> }
   | { ok: false; issues: readonly ConfigIssue[] };
 ```
@@ -274,16 +277,14 @@ secrets go only into the launch; they are never returned to a form client.
 
 ## The `forms` entry
 
-- `@botiverse/oar/forms` exports `configForms` (by `Runtime.id`), the frozen
-  `baselineForms`, the shared types (`ModelListing` included),
-  `toModelListing`, `listedModels`, `isActive`, `validateConfig` and
-  `toSessionOptions`. Each form lives in `forms/runtimes/<id>.ts`, so the
+- `@botiverse/oar/forms` exports `configForms` (by `Runtime.id`) and the
+  shared types (`ModelListing` included). Each form lives in `forms/runtimes/<id>.ts`, so the
   entry depends on no runtime; a runtime that needs its form imports it from
   there, not the other way round.
 - [`tests/config-form.test.ts`](../../tests/config-form.test.ts) bundles the
   entry for the browser and fails on any external or `node:` import and on
   any module outside `forms/`, so no runtime SDK can enter it. It also
-  imports the bundle in a fresh Node process, calls its functions, and fails
+  imports the bundle in a fresh Node process, reads its data, and fails
   when a global was written or a timer, socket or child process was left
   running; negative controls show both checks fire.
 
@@ -293,7 +294,7 @@ secrets go only into the launch; they are never returned to a form client.
 
 ### The baseline form
 
-`baselineForms[id]` is what a machine that sends no capability report gets
+The historical internal baseline is what a machine that sends no capability report gets
 (state `legacy` [below](#machine-states)). It is the **complete**
 definition, not a list of field names: a full `RuntimeConfigForm` with its
 options, model modes and every rule, kept as its own literal beside the

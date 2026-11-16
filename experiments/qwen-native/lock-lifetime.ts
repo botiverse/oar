@@ -3,8 +3,11 @@ import assert from "node:assert/strict";
 import { mkdir, rm } from "node:fs/promises";
 import path from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
-import { promptAndWait, qwenSession } from "../../packages/oar/src/index.js";
+import { promptAndWait, qwenRuntime } from "../../packages/oar/src/index.js";
+
 import { startQwenAimock } from "../../sea-trial/harness/qwen-aimock.js";
+
+const qwenSession = qwenRuntime.session;
 
 const [binary] = process.argv.slice(2);
 assert.ok(binary !== undefined && binary !== "", "usage: lock-lifetime.ts <qwen-binary>");

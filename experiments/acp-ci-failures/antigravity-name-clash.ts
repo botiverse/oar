@@ -2,12 +2,16 @@
 import assert from "node:assert/strict";
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
-import { antigravityInstallation, antigravitySession, defineRuntime } from "../../packages/oar/src/index.js";
+import { defineRuntime, antigravityRuntime } from "../../packages/oar/src/index.js";
+
 import { startAntigravityAimock } from "../../sea-trial/harness/aimock-acp.js";
 import { runtimeUnderTest } from "../../sea-trial/harness/subject.js";
 import { resolveRunDir } from "../../sea-trial/harness/trace.js";
 import { currentTurnSays, ECHO_SERVER, echoesReceived, echoFixtures, scriptEchoes, stdioEcho, type EchoCall } from "../../sea-trial/vendor/support/echo-mcp.js";
 import { structuralToolRound } from "../../sea-trial/vendor/support/tool-round.js";
+
+const antigravityInstallation = antigravityRuntime.installation;
+const antigravitySession = antigravityRuntime.session;
 
 const call: EchoCall = (server, text) => server === "userecho"
   ? { name: "call_mcp_tool", arguments: { ServerName: server, ToolName: "echo", Arguments: { text } } }

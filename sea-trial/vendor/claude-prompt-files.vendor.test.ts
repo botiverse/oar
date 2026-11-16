@@ -1,8 +1,11 @@
 import { expect, test } from "vitest";
-import { claudeInstallation, claudeSession } from "../../packages/oar/src/index.js";
+import { claudeInstallation, claudeRuntime } from "../../packages/oar/src/index.js";
+
 import { startClaudeAimock } from "../harness/aimock.js";
 import { expectAvailable, runTurn } from "./support/asserts.js";
 import { lastAgentSystem, systemCapture } from "./support/system-prompt.js";
+
+const claudeSession = claudeRuntime.session;
 
 test.skipIf(process.env.OAR_TEST !== "claude-aimock").each(["include", "exclude"] as const)("long multiline prompts reach the provider with user configuration %s", async (userConfiguration) => {
   const capture = systemCapture();

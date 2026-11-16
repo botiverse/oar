@@ -4,7 +4,8 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "vitest";
-import { awaitTurnEnd, conversationOf, type ControlResult } from "../../packages/oar/src/index.js";
+import { awaitTurnEnd, type ControlResult } from "../../packages/oar/src/index.js";
+import { conversationOf } from "../../packages/oar/src/observe/conversation.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { claudeMergedIdentity } from "./support/claude-merged-identity.js";
 import { removeFixtureDirectory } from "../harness/fixture-directory-cleanup.js";
@@ -66,7 +67,6 @@ async function verifyIdentity(id: "codex" | "claude", mode: "steer" | "fallback"
 for (const id of ["codex", "claude"] as const) {
   test.skipIf(process.env.OAR_TEST !== `${id}-aimock`).each(["steer", "fallback"] as const)(`${id} correlates native %s echo without a duplicate input`, async (mode) => { await verifyIdentity(id, mode); }, 60_000);
 }
-
 
 test.skipIf(process.env.OAR_TEST !== "claude-aimock")("Claude preserves both native queued input identities on their merged turn end", async () => {
   const observed = await claudeMergedIdentity();

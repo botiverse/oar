@@ -149,13 +149,13 @@ The package has these public entry points, plus `@botiverse/oar/pi-durable` ([be
 - `@botiverse/oar/browser`: portable contracts, registry, session kernel, observe helpers, agent report formatting, and branding. No Node adapters, process helpers or local image-file loaders.
 - `@botiverse/oar/brands`: browser-safe runtime names and SVG icons.
 - `@botiverse/oar/runtimes/<id>` (`claude`, `codex`, `codebuddy`, `devin`, `dsh`, `factory`, `pi`, `cursor`, `opencode`, `kimi`, `grok`, `antigravity`, `qwen`, `qoder`): one built-in runtime (`claudeRuntime`, …; cursor's is `createCursorRuntime`) without the others, for a host that needs only some of them. Each entry stays at about 1 to 2.5 MB of heap where the root entry takes about 50 MB (Node 26, [#405](https://github.com/botiverse/oar/pull/405)): the ACP SDK (about 20 MB) loads only on the first call that speaks ACP (a session, a model list, a usage, sign-in or status read on an ACP entry, the Qwen provider facade), and the pi and cursor SDKs when theirs first run. Node-only.
-- `@botiverse/oar/observe`: the browser-safe pure derivations over `RawEvent`s and `Event`s (`eventsOf`, `graphOf`, `usageOf`, `coalesceText`, `observeAgent`, `reduceStatus`, `tasksOf`, `observeStalls`, `classifyTool`, `reduceConversation`, `viewOf`, …) with no Node or adapter imports, so a browser or Electron-renderer bundle can import it directly. The root export re-exports all of them.
+- `@botiverse/oar/observe`: the browser-safe pure derivations over `RawEvent`s and `Event`s (`eventsOf`, `graphOf`, `usageOf`, `observeAgent`, `reduceStatus`, `tasksOf`, `observeStalls`, `classifyTool`, `reduceConversation`, `reduceSessionView`, …) with no Node or adapter imports, so a browser or Electron-renderer bundle can import it directly. The root export re-exports all of them.
   It also supplies `failureAdvice` (recovery timing per `FailureClass`) and `noticeText`, `noticeTone`, `phaseLabel`, `failureText` and `taskStatusLabel`, alongside `toolActionLabel` and `toolGroupSummary`: English display wording for OAR types, usable in JavaScriptCore too. Wording may change in a minor release; hosts must use the typed values for decisions, not parse the text ([display wording](https://github.com/botiverse/oar/blob/main/docs/spec/conversation.md#display-wording)).
-- `@botiverse/oar/kernel`: the runtime-author SPI. `createSessionKernel` is the record stream every built-in adapter is built on (dense `seq`, cursor replay, control recording, the reachability rule) and `sealSession` derives the `Session` API face over an adapter. Pair with `defineRuntime` to ship a custom runtime (a scripted runtime for a host's tests, an in-process agent) without re-implementing the stream contract. `inputImagesRefusal` and `withInputImages` are the image rules every built-in runtime keeps, so a custom runtime refuses the inputs they refuse. `withdrawHeld` is the decision behind `withdraw` for a runtime that holds its own queue.
+- `@botiverse/oar/kernel`: the runtime-author SPI. `createSessionKernel` is the record stream every built-in adapter is built on (dense `seq`, cursor replay, control recording, the reachability rule) and `sealSession` derives the `Session` API face over an adapter. Pair with `defineRuntime` to ship a custom runtime (a scripted runtime for a host's tests, an in-process agent) without re-implementing the stream contract. `withInputImages` applies the image rules every built-in runtime keeps, so a custom runtime refuses the inputs they refuse.
 - `@botiverse/oar/agents`: subagents. `createSubagents()` starts child sessions on any runtime that takes `SessionOptions.env` (not in-process cursor or pi-durable), returns a report for every turn they end, takes follow-ups, enforces depth and concurrency limits, and reports each child as a task. The host takes reports with `wait` / `next` or receives them through an `onReport` hook; with `formatReport` and `reportOrigin` it can `deliver` one into a parent session so it wakes. See [subagents](https://github.com/botiverse/oar/blob/main/docs/spec/subagents.md). Node-only.
 - `@botiverse/oar/agents/report`: `formatReport`, `parseReport`, `reportOrigin` and their types, with no Node or adapter imports, for a host forwarding or displaying reports. `parseReport` reads the existing report format into header fields, a structured outcome and the original body, or returns `null`. `@botiverse/oar/agents` loads every built-in runtime, because `createSubagents` defaults to them.
 - `@botiverse/oar/testing`: `scriptedRuntime({ turn })`, a ready-made runtime on the kernel SPI whose model is a script. It yields a real `Session` (same records, folds and control semantics) with no binary, login or provider, for hosts' tests and demos. A script can also start tasks (`turn.task`) that end after the turn, like a background command, and make the runtime's process exit on its own (`turn.exit`, during the turn or kept for later, while idle), recorded as a vendor process's unexpected exit is. Node-only.
-- `@botiverse/oar/forms`: runtime config forms for a host's agent-creation UI, as plain data (`configForms` and the frozen `baselineForms`, keyed by runtime id; grok only so far) with pure `validateConfig`, `toSessionOptions` and `toModelListing`. A form states what the runtime accepts; a host may only narrow it. Loads no runtime SDK and does nothing on import, so it runs in a browser. See [config form](https://github.com/botiverse/oar/blob/main/docs/spec/config-form.md).
+- `@botiverse/oar/forms`: runtime config forms for a host's agent-creation UI, as plain data (`configForms`, keyed by runtime id; grok only so far) and shared form types. Hosts validate and map selected values to session options. A form states what the runtime accepts; a host may only narrow it. Loads no runtime SDK and does nothing on import, so it runs in a browser. See [config form](https://github.com/botiverse/oar/blob/main/docs/spec/config-form.md).
 
 Brand SVG files are exported at `@botiverse/oar/assets/brands/<runtime-id>.svg`. Any other deep import (`@botiverse/oar/dist/...`, source paths) is internal and may break without notice.
 
@@ -545,7 +545,7 @@ The factory lives only in `@botiverse/oar/pi-durable`, usable in Node and browse
 The root and browser core entries load without these peers.
 
 ```ts
-import { viewOf } from "@botiverse/oar/browser";
+import { initialSessionView, reduceSessionView } from "@botiverse/oar/browser";
 import { createPiDurableRuntime } from "@botiverse/oar/pi-durable";
 
 // Use the same Models instance or () => Models supplier passed to Harness.open.
@@ -553,7 +553,11 @@ const runtime = createPiDurableRuntime({ harness, models });
 const session = await runtime.session({ kind: "available", via: "bundled" }, {
   cwd: "/workspace", model: "provider/model",
 });
-session.rawEvents(() => render(viewOf(session.records())));
+let view = initialSessionView();
+session.rawEvents(record => {
+  view = reduceSessionView(view, record, session.id);
+  render(view);
+}, { sessionId: session.id, afterSeq: -1 });
 await session.prompt("Hello", { inputId: crypto.randomUUID() });
 ```
 

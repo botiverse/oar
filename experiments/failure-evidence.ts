@@ -27,14 +27,27 @@ import { setTimeout as delay } from "node:timers/promises";
 import type { LLMock } from "@copilotkit/aimock";
 import type { InstallationProbe } from "../packages/oar/src/contracts/installation.js";
 import type { RawEvent, ResponseBody, Session, SessionOptions, StartSession, TurnOutcome } from "../packages/oar/src/contracts/session.js";
-import {
-  antigravityInstallation, antigravitySession, awaitTurnEnd, claudeInstallation, claudeSession, codexInstallation, codexSession,
-  createCursorRuntime, cursorInstallation, grokInstallation, grokSession, kimiInstallation, kimiSession, opencodeInstallation,
-  opencodeSession, piInstallation, piSession,
-} from "../packages/oar/src/index.js";
+import { awaitTurnEnd, claudeInstallation, createCursorRuntime, antigravityRuntime, claudeRuntime, codexRuntime, grokRuntime, kimiRuntime, opencodeRuntime, piRuntime } from "../packages/oar/src/index.js";
+
+import { cursorInstallation } from "../packages/oar/src/runtimes/cursor/installation.js";
+
 import { asRecord, parseJson } from "../packages/oar/src/shared/json.js";
 import { startClaudeAimock, startCodexAimock, startPiAimock, type AimockEnv } from "../sea-trial/harness/aimock.js";
 import { startAntigravityAimock, startGrokAimock, startKimiAimock, startOpencodeAimock } from "../sea-trial/harness/aimock-acp.js";
+
+const antigravityInstallation = antigravityRuntime.installation;
+const antigravitySession = antigravityRuntime.session;
+const claudeSession = claudeRuntime.session;
+const codexInstallation = codexRuntime.installation;
+const codexSession = codexRuntime.session;
+const grokInstallation = grokRuntime.installation;
+const grokSession = grokRuntime.session;
+const kimiInstallation = kimiRuntime.installation;
+const kimiSession = kimiRuntime.session;
+const opencodeInstallation = opencodeRuntime.installation;
+const opencodeSession = opencodeRuntime.session;
+const piInstallation = piRuntime.installation;
+const piSession = piRuntime.session;
 
 type Family = "anthropic" | "openai" | "gemini";
 type Env = Readonly<Record<string, string>>;

@@ -3,10 +3,13 @@ import { mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { expect, test } from "vitest";
-import { claudeInstallation, claudeSession, promptAndWait, type Session, type SessionOptions } from "../../packages/oar/src/index.js";
+import { claudeInstallation, promptAndWait, type Session, type SessionOptions, claudeRuntime } from "../../packages/oar/src/index.js";
+
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { startClaudeAimock } from "../harness/aimock.js";
 import { expectAvailable } from "./support/asserts.js";
+
+const claudeSession = claudeRuntime.session;
 
 function bashArgument(value: string): string {
   return `'${value.replaceAll("\\", "/").replaceAll("'", String.raw`'\''`)}'`;

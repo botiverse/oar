@@ -7,9 +7,12 @@ import { mkdir, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { startAntigravityAimock } from "../../sea-trial/harness/aimock-acp.js";
-import { antigravitySession, promptAndWait, type Session } from "../../packages/oar/src/index.js";
+import { promptAndWait, type Session, antigravityRuntime } from "../../packages/oar/src/index.js";
+
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { ECHO_SERVER } from "../../sea-trial/vendor/support/echo-mcp.js";
+
+const antigravitySession = antigravityRuntime.session;
 
 const [binary, mode, output, seconds = "120"] = process.argv.slice(2);
 assert.ok(binary !== undefined && mode !== undefined && output !== undefined);

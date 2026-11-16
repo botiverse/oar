@@ -473,7 +473,6 @@ where stored history and the wire share one shape. Then the choice is
 between the `HistoryEntry` vocabulary and the `Event` projection with a
 readback-aware `turn_started`, and it goes through the decision gates above.
 
-
 ## Recording claude's effort read-back (2026-09-29)
 
 **Asked for:** `SessionOptions.effort` promises that a requested level is
@@ -558,7 +557,6 @@ field (pi declined the same request upstream, pi#9007).
 **What would reopen it:** a runtime that documents a text form as its
 stable interface for the fact. When a runtime ships the fact as a field,
 OAR maps the field, as it did for pi's exit code.
-
 
 ## Authentication status scoped to a workspace (2026-10-28)
 
@@ -646,3 +644,29 @@ comparison is in the
 **What would reopen it:** ZCode adding a way to create or name a headless
 session up front (for example `--session-id`, which OAR already uses for
 Claude Code and Qoder), or letting `app-server` use the official login.
+
+## Duplicate public helpers without host use (2026-11-16)
+
+**Considered:** keeping every adapter function, parser and convenience fold
+public because it already had an export, even where hosts use the Runtime
+member or a shared reducer instead.
+
+**Decided:** remove the confirmed unused exports and the few test-only exports
+whose host agreed to migrate. Keep their implementations and regression tests
+internal. A smaller public surface lets a host choose the supported reader or
+reducer without choosing between equivalent adapter entrances. Runtime and
+Session members, record shapes and the types used by retained contracts do not
+change. The [migration table and audit](../../experiments/public-api-sweep-2026-11-16/README.md)
+record each removed name and the checked host revisions.
+
+Evidence overrides a broad removal category: `claudeInstallation` remains
+because a public dependent uses it, and Airwing's orientation imports remain.
+Other survey candidates that still need host confirmation remain public too.
+The form data and its types stay public; host validation and launch mapping
+are host responsibilities. This change only repairs references to retired
+exports in spec pages; reorganizing those pages is separate work.
+
+**What would reopen it:** a host needs a removed observation or operation that
+cannot be expressed through the retained contracts. Review the common need
+and native evidence before adding a public entrance; an internal helper's
+existence alone is not evidence that it belongs in the API.

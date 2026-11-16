@@ -2,7 +2,8 @@ import { chmodSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, expect, test } from "vitest";
-import { devinAuthStatus, devinRuntime, parseDevinAuthStatus } from "../../packages/oar/src/runtimes/devin/index.js";
+import { devinRuntime } from "../../packages/oar/src/runtimes/devin/index.js";
+import { devinAuthStatus, parseDevinAuthStatus } from "../../packages/oar/src/runtimes/devin/auth.js";
 
 const tempDirs: string[] = [];
 

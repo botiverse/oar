@@ -1,6 +1,7 @@
 import type { Runtime } from "../../packages/oar/src/contracts/runtime.js";
 import type { McpServer } from "../../packages/oar/src/contracts/session.js";
-import { claudeInstallation, claudeSession, codexInstallation, codexSession, defineRuntime, piInstallation, piSession } from "../../packages/oar/src/index.js";
+import { claudeInstallation, defineRuntime, claudeRuntime, codexRuntime, piRuntime } from "../../packages/oar/src/index.js";
+
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { namespaceMcpToolCalls, startClaudeAimock, startCodexAimock, startPiAimock, type AimockEnv } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
@@ -8,6 +9,12 @@ import { echoFixtures, startHttpEcho, stdioEcho } from "../vendor/support/echo-m
 import { structuralToolRound } from "../vendor/support/tool-round.js";
 import { scrub as scrubClaude, type RecordRequest } from "./claude.js";
 import { scrub as scrubCodex } from "./codex.js";
+
+const claudeSession = claudeRuntime.session;
+const codexInstallation = codexRuntime.installation;
+const codexSession = codexRuntime.session;
+const piInstallation = piRuntime.installation;
+const piSession = piRuntime.session;
 
 /*
  * `mcp-echo`: the real claude or codex, or the bundled pi SDK, against a

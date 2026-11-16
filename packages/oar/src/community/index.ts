@@ -4,4 +4,4 @@
  * in `defaultRuntimes`; a host adds the ones it wants to its own:
  * `createRuntimeRegistry([...defaultRuntimes.list(), createMorphRuntime()])`.
  */
-export { createMorphRuntime, morphBrand, projectMorphModels, type MorphRuntime } from "./morph/index.js";
+export { createMorphRuntime, type MorphRuntime } from "./morph/index.js";

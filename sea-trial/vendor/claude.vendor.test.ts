@@ -1,13 +1,16 @@
 import { setTimeout as sleep } from "node:timers/promises";
 import { describe, expect, test } from "vitest";
 import type { RawEvent } from "../../packages/oar/src/contracts/session.js";
-import { awaitTurnEnd, claudeInstallation, claudeSession, defineRuntime } from "../../packages/oar/src/index.js";
-import { claudeAccountUsage } from "../../packages/oar/src/runtimes/claude/index.js";
+import { awaitTurnEnd, claudeInstallation, defineRuntime, claudeRuntime } from "../../packages/oar/src/index.js";
+
+import { claudeAccountUsage } from "../../packages/oar/src/runtimes/claude/account-usage.js";
 import { assertContextUsage, expectAvailable, promptTurn, runTurn, withProcessEnv } from "./support/asserts.js";
 import { startClaudeAimock } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
 import { structuralToolRound, toolRoundFixtures } from "./support/tool-round.js";
 import { APPEND_MARKER, REPLACE_MARKER, lastAgentSystem, scrubSystem, systemCapture } from "./support/system-prompt.js";
+
+const claudeSession = claudeRuntime.session;
 
 /**
  * Vendor-specific error edges: what the REAL claude harness does, driven by a

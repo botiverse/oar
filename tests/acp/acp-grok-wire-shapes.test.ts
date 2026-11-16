@@ -2,7 +2,8 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import type { Frame, RawEvent } from "../../packages/oar/src/contracts/session.js";
-import { awaitTurnEnd, graphOf, promptAndWait, usageOf, viewOf } from "../../packages/oar/src/observe/index.js";
+import { awaitTurnEnd, graphOf, promptAndWait, usageOf } from "../../packages/oar/src/observe/index.js";
+import { viewOf } from "../../packages/oar/src/observe/session-view.js";
 import {
   GROK_EXTENSION_NOTIFICATIONS,
   grokContextUsage,

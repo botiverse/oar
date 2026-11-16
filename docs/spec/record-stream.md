@@ -499,7 +499,7 @@ Further rules:
   same result as replay. Persist its whole `StatusState` checkpoint (which
   also holds native compaction correlation, provisional input admission and
   adapter queue ownership) with the consumed cursor and continue the fold
-  from it unchanged. `statusValue(checkpoint)`, `Session.status()` and
+  from it unchanged. `Session.status().value` and
   `SessionView.status` give only the display `AgentStatus`, which cannot replace it
   ([checkpoint rules](manual-compaction.md#ownership-records-and-state)).
   `SessionView.statusState`, shared by all runtimes, appears when the fold
@@ -1160,7 +1160,7 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   readback confirms an open option privately, produces no event and is not
   recorded because it carries account details. The native turn frame
   retains the reason for a downgrade.
-  `Session.serviceTier()`, `serviceTierOf` and `SessionView.serviceTier` read
+  `Session.serviceTier()` and `SessionView.serviceTier` read
   the latest root report, with null before any. Child reports do not change
   the root's selection. The voyage header's optional `serviceTier` is the
   requested choice, kept separate from these reported facts.
@@ -1189,7 +1189,7 @@ The rules that make this a projection and not a second source of truth:
   `app_answered` for an answered response, `released` for OAR's release, and
   `exited` for the exit. `open`, `opened` and `cleanup` stay record-only. A
   response names only its `requestId`, so the reading takes the toRuntime
-  requests seen before it (`controlActionsOf(records)` builds them from a
+  requests seen before it (the internal `controlActionsOf(records)` reference builds them from a
   log). `events()` is `rawEvents()` with `eventsOf` applied to every
   record, so a retained log replays into exactly the events the live
   subscription delivered.
@@ -1318,7 +1318,6 @@ seq=57  ◆ request   root  id=rq-30  abort
           was not observed. Writing a guessed response after recovery is
           forbidden
 ```
-
 
 ### ACP raw parameters and child host requests
 

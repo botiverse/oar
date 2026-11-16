@@ -1,5 +1,6 @@
 import { expect, test } from "vitest";
-import { promptAndWait, usageOf, viewOf } from "../../packages/oar/src/observe/index.js";
+import { promptAndWait, usageOf } from "../../packages/oar/src/observe/index.js";
+import { viewOf } from "../../packages/oar/src/observe/session-view.js";
 import { grokAcpProfile } from "../../packages/oar/src/runtimes/grok/session.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { fixture, profile, start } from "../fixtures/acp-session-support.js";

@@ -3,10 +3,15 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
-import { defineRuntime, codexInstallation, codexSession, claudeInstallation, claudeSession } from "../../packages/oar/src/index.js";
+import { defineRuntime, claudeInstallation, codexRuntime, claudeRuntime } from "../../packages/oar/src/index.js";
+
 import { startCodexAimock, startClaudeAimock } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
 import { runTurn } from "./support/asserts.js";
+
+const codexInstallation = codexRuntime.installation;
+const codexSession = codexRuntime.session;
+const claudeSession = claudeRuntime.session;
 
 describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex native service tier", () => {
   test("resume preserves the saved tier and explicit choices reach every provider request", async () => {

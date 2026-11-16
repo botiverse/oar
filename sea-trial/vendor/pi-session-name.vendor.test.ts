@@ -4,10 +4,13 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { SessionManager } from "@earendil-works/pi-coding-agent";
 import { describe, expect, test } from "vitest";
-import { piInstallation, promptAndWait } from "../../packages/oar/src/index.js";
+import { promptAndWait, piRuntime } from "../../packages/oar/src/index.js";
+
 import { piSessionDir } from "../../packages/oar/src/runtimes/pi/resolve.js";
 import { startPiAimock } from "../harness/aimock.js";
 import { expectAvailable } from "./support/asserts.js";
+
+const piInstallation = piRuntime.installation;
 
 /** SessionOptions.name (#368) as pi's own session list reports it. */
 describe.skipIf(!isPiBackend)("pi session name", () => {

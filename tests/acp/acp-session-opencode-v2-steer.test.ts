@@ -2,7 +2,8 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "vitest";
 import type { RawEvent, Session } from "../../packages/oar/src/contracts/session.js";
-import { awaitTurnEnd, conversationOf } from "../../packages/oar/src/observe/index.js";
+import { awaitTurnEnd } from "../../packages/oar/src/observe/index.js";
+import { conversationOf } from "../../packages/oar/src/observe/conversation.js";
 import { opencodeV2AcpProfile } from "../../packages/oar/src/runtimes/opencode/session.js";
 import { acpSession } from "../../packages/oar/src/shared/acp/session.js";
 import { fixture } from "../fixtures/acp-session-support.js";

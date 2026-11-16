@@ -1,11 +1,15 @@
 import { describe, expect, test } from "vitest";
-import { awaitTurnEnd, codexInstallation, codexSession, defineRuntime } from "../../packages/oar/src/index.js";
-import { codexAccountUsage } from "../../packages/oar/src/runtimes/codex/index.js";
+import { awaitTurnEnd, defineRuntime, codexRuntime } from "../../packages/oar/src/index.js";
+
+import { codexAccountUsage } from "../../packages/oar/src/runtimes/codex/account-usage.js";
 import { assertContextUsage, expectAvailable, runTurn, withProcessEnv } from "./support/asserts.js";
 import { startCodexAimock } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
 import { structuralToolRound, toolRoundFixtures } from "./support/tool-round.js";
 import { APPEND_MARKER, REPLACE_MARKER, lastAgentSystem, scrubSystem, systemCapture } from "./support/system-prompt.js";
+
+const codexInstallation = codexRuntime.installation;
+const codexSession = codexRuntime.session;
 
 /** Vendor-specific error edges for the real codex app-server (scripted provider). */
 describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("codex vendor error edges", () => {

@@ -33,6 +33,4 @@ export const kimiRuntime = defineRuntime({
   mcpToolsListChanged: "none",
 }, { execution: "process" });
 
-export { kimiAccountUsage, projectKimiUsage } from "./account-usage.js";
-export { kimiAccountDisplayName, kimiAccountEmail } from "./profile.js";
 export type { KimiLoginOptions } from "./login.js";

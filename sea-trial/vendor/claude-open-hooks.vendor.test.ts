@@ -4,10 +4,13 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { expect, test, vi } from "vitest";
-import { claudeInstallation, claudeSession, type Session } from "../../packages/oar/src/index.js";
+import { claudeInstallation, type Session, claudeRuntime } from "../../packages/oar/src/index.js";
+
 import { startClaudeAimock } from "../harness/aimock.js";
 import { runTurn } from "./support/asserts.js";
 import { hookMarks, processRunning, sessionStartHook } from "./support/session-start-hook.js";
+
+const claudeSession = claudeRuntime.session;
 
 // Real hooks, short internal limits; no public option or environment override.
 vi.mock("../../packages/oar/src/runtimes/claude/open-settings.js", async (original) => {

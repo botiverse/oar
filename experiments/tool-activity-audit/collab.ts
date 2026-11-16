@@ -3,9 +3,13 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
-import { codexInstallation, codexSession, promptAndWait, type Session } from "../../packages/oar/src/index.js";
+import { promptAndWait, type Session, codexRuntime } from "../../packages/oar/src/index.js";
+
 import { startCodexAimock } from "../../sea-trial/harness/aimock.js";
 import { codexTaskRecipient, codexTaskRequest } from "../../sea-trial/vendor/support/codex-task-request.js";
+
+const codexInstallation = codexRuntime.installation;
+const codexSession = codexRuntime.session;
 
 const output = process.argv[2] ?? "oar-trial-run/tool-activity";
 await mkdir(output, { recursive: true });

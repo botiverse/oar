@@ -2,14 +2,21 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterAll, describe, expect, test } from "vitest";
-import {
-  antigravityInstallation, antigravitySession, defineRuntime, grokInstallation, grokSession, kimiInstallation, kimiSession,
-  opencodeInstallation, opencodeSession, ModelConfirmationError, RuntimeFailureError, type CredentialProblem, type FailureClass, type InstallationProbe, type StartSession, type TurnOutcome,
-} from "../../packages/oar/src/index.js";
+import { defineRuntime, ModelConfirmationError, RuntimeFailureError, type CredentialProblem, type FailureClass, type InstallationProbe, type StartSession, type TurnOutcome, antigravityRuntime, grokRuntime, kimiRuntime, opencodeRuntime } from "../../packages/oar/src/index.js";
+
 import { asRecord, parseJson } from "../../packages/oar/src/shared/json.js";
 import { startOpencodeGitFixture, startAntigravityAimock, startGrokAimock, startKimiAimock, type AcpAimockEnv } from "../harness/aimock-acp.js";
 import { runtimeUnderTest } from "../harness/subject.js";
 import { runTurn } from "./support/asserts.js";
+
+const antigravityInstallation = antigravityRuntime.installation;
+const antigravitySession = antigravityRuntime.session;
+const grokInstallation = grokRuntime.installation;
+const grokSession = grokRuntime.session;
+const kimiInstallation = kimiRuntime.installation;
+const kimiSession = kimiRuntime.session;
+const opencodeInstallation = opencodeRuntime.installation;
+const opencodeSession = opencodeRuntime.session;
 
 /*
  * The ACP cells of docs/spec/runtime-matrix.md#failure-evidence, each CLI

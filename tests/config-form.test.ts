@@ -1,3 +1,4 @@
+/* oxlint-disable import/max-dependencies -- Keep the public bundle boundary and internal form mapping regressions together. */
 import { execFileSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -5,11 +6,13 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { build } from "esbuild";
 import { expect, test } from "vitest";
-import {
-  baselineForms, configForms, toModelListing, toSessionOptions, validateConfig,
-  type FormValues, type ModelListing, type RuntimeConfigForm,
-} from "../packages/oar/src/forms/index.js";
+import { configForms, type FormValues, type ModelListing, type RuntimeConfigForm } from "../packages/oar/src/forms/index.js";
+import { grokBaselineForm } from "../packages/oar/src/forms/runtimes/grok.js";
+import { toModelListing } from "../packages/oar/src/forms/listing.js";
+import { toSessionOptions } from "../packages/oar/src/forms/map.js";
+import { validateConfig } from "../packages/oar/src/forms/validate.js";
 
+const baselineForms = { grok: grokBaselineForm };
 // docs/spec/config-form.md: the entry loads no runtime SDK and nothing outside forms/.
 test("the forms entry bundles with no externals, no Node imports, and nothing outside forms/", async () => {
   const result = await build({
@@ -24,18 +27,18 @@ test("the forms entry bundles with no externals, no Node imports, and nothing ou
 });
 
 /**
- * The side-effect boundary the entry promises: importing it and calling its
- * functions adds no global, and leaves no timer, socket or child process
+ * The side-effect boundary the entry promises: importing it and reading its
+ * form data adds no global, and leaves no timer, socket or child process
  * running. (Node builtins and outside modules are ruled out by the bundle test.)
  */
 const SIDE_EFFECT_PROBE = String.raw`
+import assert from "node:assert/strict";
 const before = new Set(Object.getOwnPropertyNames(globalThis));
 const resources = process.getActiveResourcesInfo().length;
 const forms = await import(process.argv[1]);
 const grok = forms.configForms.grok;
-const listing = forms.toModelListing({ kind: "ok", models: [{ id: "grok-4" }] });
-forms.validateConfig(grok, { model: { kind: "preset", id: "grok-4" } }, { mode: "create", models: listing });
-forms.toSessionOptions(grok, { model: { kind: "preset", id: "grok-4" } });
+assert.ok(grok && grok.fields.length > 0);
+assert.equal(typeof JSON.stringify(grok), "string");
 const added = Object.getOwnPropertyNames(globalThis).filter((name) => !before.has(name));
 if (added.length > 0) { console.error("global written: " + added.join(",")); process.exit(3); }
 if (process.getActiveResourcesInfo().length > resources) { console.error("left running: " + process.getActiveResourcesInfo().join(",")); process.exit(4); }
@@ -68,7 +71,6 @@ test("the side-effect probe fails when the entry writes a global or leaves a tim
   expect(await probeBundle("globalThis.__formsSideEffect = 1;")).toBe(3);
   expect(await probeBundle("setInterval(() => {}, 60_000);")).toBe(4);
 });
-
 const grokForm = configForms.grok;
 if (grokForm === undefined) {
   throw new Error("Grok has no config form");
@@ -217,7 +219,6 @@ test("an inactive branch is neither required nor launched", () => {
   expect(toSessionOptions(withSecret, { model: { kind: "custom", name: "m" }, provider: "default", apiKey: { present: false } }))
     .toEqual({ ok: true, options: { model: "m" }, unmapped: { provider: "default" }, secrets: {} });
 });
-
 // docs/spec/config-form.md: a form must never offer a selection its launch refuses.
 test("every form and baseline offers only model modes its launch accepts (modes ⊆ launchModes)", () => {
   const forms: [string, RuntimeConfigForm][] = [

@@ -1,11 +1,14 @@
 import { describe, expect, test, vi } from "vitest";
 import type { Event, Frame, Session } from "../../packages/oar/src/contracts/session.js";
-import { claudeInstallation, claudeSession, defineRuntime } from "../../packages/oar/src/index.js";
+import { claudeInstallation, defineRuntime, claudeRuntime } from "../../packages/oar/src/index.js";
+
 import { stallOf } from "../../packages/oar/src/observe/agent-status.js";
 import { promptAndWait } from "../../packages/oar/src/observe/turns.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { startClaudeAimock } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
+
+const claudeSession = claudeRuntime.session;
 
 const runtime = defineRuntime({ id: "claude-aimock", installation: claudeInstallation, session: claudeSession });
 function nativeContent(session: Session, type: "text" | "thinking"): string {
