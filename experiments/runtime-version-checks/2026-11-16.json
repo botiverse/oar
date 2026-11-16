@@ -1,0 +1,786 @@
+{
+  "checkedAt": "2026-11-16T19:08:26.184Z",
+  "platform": "linux-x64",
+  "node": "v24.19.0",
+  "oarBase": "9c1d6e0d1445899857137d854457afe4ee7ee4b1",
+  "scope": "Core runtime release inventory and CI/upstream observations. No new native inference, real account access or CI reruns for this report.",
+  "inventory": [
+    {
+      "runtime": "antigravity",
+      "source": "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app/manifests/linux_amd64.json",
+      "latest": "1.5.9",
+      "installed": null,
+      "installation": "not_found",
+      "status": "unavailable"
+    },
+    {
+      "runtime": "claude",
+      "source": "https://registry.npmjs.org/@anthropic-ai/claude-code/latest",
+      "latest": "2.1.325",
+      "installed": "2.1.292",
+      "installation": "available",
+      "status": "different"
+    },
+    {
+      "runtime": "codex",
+      "source": "https://registry.npmjs.org/@openai/codex/latest",
+      "latest": "0.169.0",
+      "installed": "0.162.0",
+      "installation": "available",
+      "status": "different"
+    },
+    {
+      "runtime": "cursor",
+      "source": "https://registry.npmjs.org/@cursor/sdk/latest",
+      "latest": "1.4.0",
+      "installed": "1.4.0",
+      "installation": "available",
+      "status": "current"
+    },
+    {
+      "runtime": "dsh",
+      "source": "https://registry.npmjs.org/@deepseek-ai/dsh/latest",
+      "latest": "0.2.2-rc.1",
+      "installed": null,
+      "installation": "not_found",
+      "status": "unavailable"
+    },
+    {
+      "runtime": "factory",
+      "source": "https://registry.npmjs.org/droid/latest",
+      "latest": "1.12.1",
+      "installed": null,
+      "installation": "not_found",
+      "status": "unavailable"
+    },
+    {
+      "runtime": "grok",
+      "source": "https://x.ai/cli/stable",
+      "latest": "1.0.77",
+      "installed": "1.0.77",
+      "installation": "available",
+      "status": "current"
+    },
+    {
+      "runtime": "kimi",
+      "source": "https://registry.npmjs.org/@moonshot-ai/kimi-code/latest",
+      "latest": "2.6.2",
+      "installed": "2.1.1",
+      "installation": "available",
+      "status": "different"
+    },
+    {
+      "runtime": "opencode",
+      "line": "v1",
+      "source": "https://registry.npmjs.org/opencode-ai/latest",
+      "latest": "1.19.5",
+      "installed": "1.18.30",
+      "installation": "available",
+      "status": "different"
+    },
+    {
+      "runtime": "opencode",
+      "line": "v2",
+      "source": "https://registry.npmjs.org/@opencode/cli/latest",
+      "latest": "2.3.0",
+      "installed": "1.18.30",
+      "installation": "available",
+      "status": "other_release_line"
+    },
+    {
+      "runtime": "codebuddy",
+      "source": "https://registry.npmjs.org/@tencent-ai/codebuddy-code/latest",
+      "latest": "2.184.0",
+      "installed": "2.173.0",
+      "installation": "available",
+      "status": "different"
+    },
+    {
+      "runtime": "qoder",
+      "source": "https://registry.npmjs.org/@qoder-ai/qodercli/latest",
+      "latest": "1.1.89",
+      "installed": "1.1.78",
+      "installation": "available",
+      "status": "different"
+    },
+    {
+      "runtime": "qwen",
+      "source": "https://registry.npmjs.org/@qwen-code/qwen-code/latest",
+      "latest": "0.27.4",
+      "installed": "0.26.0",
+      "installation": "available",
+      "status": "different"
+    },
+    {
+      "runtime": "pi",
+      "source": "https://registry.npmjs.org/@earendil-works/pi-coding-agent/latest",
+      "latest": "1.5.2",
+      "installed": "1.5.2",
+      "installation": "available",
+      "status": "current"
+    },
+    {
+      "runtime": "pi-durable",
+      "source": "https://registry.npmjs.org/@earendil-works/pi-durable/latest",
+      "latest": "1.5.2",
+      "installed": "1.5.2",
+      "installation": "host_supplied",
+      "status": "current"
+    }
+  ],
+  "changedReleaseSources": [],
+  "ci": {
+    "windowStart": "2026-11-15T19:07:56.551Z",
+    "windowEnd": "2026-11-16T19:08:26.184Z",
+    "method": "Runs by creation time; all pages and attempts; deduplicate job ids. States collected after cutoff with non-atomic separate API reads. Missing/skipped/queued/cancelled jobs are not passes.",
+    "summaries": [
+      {
+        "workflow": "ci.yml",
+        "runs": 98,
+        "attempts": 101,
+        "selectedJobs": "Windows Pi RPC vendor",
+        "uniqueObservedJobs": 100,
+        "conclusions": {
+          "success": 99,
+          "failure": 1
+        },
+        "allJobsConclusions": {
+          "success": 3919,
+          "queued": 80,
+          "in_progress": 4,
+          "failure": 20,
+          "cancelled": 78,
+          "skipped": 1
+        }
+      },
+      {
+        "workflow": "acp-windows.yml",
+        "runs": 31,
+        "attempts": 31,
+        "selectedJobs": "all Windows jobs",
+        "uniqueObservedJobs": 91,
+        "conclusions": {
+          "success": 80,
+          "failure": 10,
+          "skipped": 1
+        },
+        "allJobsConclusions": {
+          "success": 81,
+          "skipped": 9,
+          "failure": 10
+        }
+      }
+    ],
+    "failedJobs": [
+      {
+        "workflow": "acp-windows.yml",
+        "run": 43783016232,
+        "attempt": 1,
+        "headSha": "7b78f96c2b5d0eaf73bdb187dc6dd291e2b64e3c",
+        "job": 133024294722,
+        "name": "acp-windows (windows-latest, grok-aimock)",
+        "url": "https://github.com/botiverse/oar/actions/runs/43783016232/job/133024294722",
+        "failedSteps": [
+          "Observe Grok vendor processes"
+        ],
+        "observation": "Grok Windows ACP initialize timed out after 15,000 ms.",
+        "logAvailable": true,
+        "retainedLogOrUnavailableResponseSha256": "c175750895fea96f5f1f891cfcacb3a9d46ec8e12957cad566e5f003d782463a"
+      },
+      {
+        "workflow": "ci.yml",
+        "run": 43791812617,
+        "attempt": 1,
+        "headSha": "c0e831ed8dc420a615ae6fa7eebf3be2b0112476",
+        "job": 133051720106,
+        "name": "check (windows-latest)",
+        "url": "https://github.com/botiverse/oar/actions/runs/43791812617/job/133051720106",
+        "failedSteps": [
+          "Run pnpm run check"
+        ],
+        "observation": "Second pre-cancel Windows process-table capture exceeded 1,000 ms in ACP and stream orphan-cleanup cases (1,003/1,018 ms). No inference that termination itself slowed.",
+        "logAvailable": true,
+        "retainedLogOrUnavailableResponseSha256": "b24707ab2fc8c1704c9d981736cc02ae66ad8b9a124a7df1b97eaebe9a11b2b9"
+      },
+      {
+        "workflow": "acp-windows.yml",
+        "run": 43804272585,
+        "attempt": 1,
+        "headSha": "011dff10c146513db6e3d2be51e0d78f6ed13910",
+        "job": 133091324154,
+        "name": "acp-windows (windows-latest, grok-aimock)",
+        "url": "https://github.com/botiverse/oar/actions/runs/43804272585/job/133091324154",
+        "failedSteps": [
+          "Observe Grok vendor processes"
+        ],
+        "observation": "Grok Windows ACP initialize timed out after 15,000 ms.",
+        "logAvailable": true,
+        "retainedLogOrUnavailableResponseSha256": "c85338ba95d6c6d249044488359bfc972c3ac9a71d6410a0d98a3856fc906dea"
+      },
+      {
+        "workflow": "acp-windows.yml",
+        "run": 43804751705,
+        "attempt": 1,
+        "headSha": "3347d49248ad18cdefa096ea2060f1dcb125a480",
+        "job": 133092840440,
+        "name": "acp-windows (windows-latest, grok-aimock)",
+        "url": "https://github.com/botiverse/oar/actions/runs/43804751705/job/133092840440",
+        "failedSteps": [
+          "Observe Grok behavior processes"
+        ],
+        "observation": "Grok Windows ACP initialize timed out after 15,000 ms. Descendant cleanup also unverified after five-second process-table capture budget.",
+        "logAvailable": true,
+        "retainedLogOrUnavailableResponseSha256": "f8530fad66659ad288331921d1e0642902c91a7b8130e032e629b263eb6d27f0"
+      },
+      {
+        "workflow": "ci.yml",
+        "run": 43805173014,
+        "attempt": 1,
+        "headSha": "cd280de395fa07ddf99c56ccf9eefc7a55275df6",
+        "job": 133094172985,
+        "name": "check (windows-latest)",
+        "url": "https://github.com/botiverse/oar/actions/runs/43805173014/job/133094172985",
+        "failedSteps": [
+          "Run pnpm vitest run sea-trial/vendor/kimi-login.vendor.test.ts"
+        ],
+        "observation": "Earlier CLI-redesign head's Kimi vendor test invoked removed top-level usage command, received unknown command.",
+        "logAvailable": true,
+        "retainedLogOrUnavailableResponseSha256": "1267786d581dd2844ab36b3603197befad0fe8a59d4d8b4a2fa7b11d264f08e6"
+      },
+      {
+        "workflow": "ci.yml",
+        "run": 43805173014,
+        "attempt": 1,
+        "headSha": "cd280de395fa07ddf99c56ccf9eefc7a55275df6",
+        "job": 133094173002,
+        "name": "check (macos-latest)",
+        "url": "https://github.com/botiverse/oar/actions/runs/43805173014/job/133094173002",
+        "failedSteps": [
+          "Run pnpm vitest run sea-trial/vendor/kimi-login.vendor.test.ts"
+        ],
+        "observation": "Earlier CLI-redesign head's Kimi vendor test invoked removed top-level usage command, received unknown command.",
+        "logAvailable": true,
+        "retainedLogOrUnavailableResponseSha256": "38e19c6a8aa48d3e1f3deac4e72dfb0cb63c90bafc2149f52860c89c1943359c"
+      },
+      {
+        "workflow": "ci.yml",
+        "run": 43805173014,
+        "attempt": 1,
+        "headSha": "cd280de395fa07ddf99c56ccf9eefc7a55275df6",
+        "job": 133094173024,
+        "name": "check (ubuntu-latest)",
+        "url": "https://github.com/botiverse/oar/actions/runs/43805173014/job/133094173024",
+        "failedSteps": [
+          "Run pnpm vitest run sea-trial/vendor/kimi-login.vendor.test.ts"
+        ],
+        "observation": "Earlier CLI-redesign head's Kimi vendor test invoked removed top-level usage command, received unknown command.",
+        "logAvailable": true,
+        "retainedLogOrUnavailableResponseSha256": "9e66d51c838973266917bd401e22ab5b722d4d2799d849406dbc418b0a042d74"
+      },
+      {
+        "workflow": "ci.yml",
+        "run": 43805614801,
+        "attempt": 1,
+        "headSha": "178d7ae36e1401f5ad48ed4d4bc22e0f342bc5d7",
+        "job": 133095581596,
+        "name": "check (macos-latest)",
+        "url": "https://github.com/botiverse/oar/actions/runs/43805614801/job/133095581596",
+        "failedSteps": [
+          "Run pnpm vitest run sea-trial/vendor/kimi-login.vendor.test.ts"
+        ],
+        "observation": "Earlier CLI-redesign head's Kimi vendor test invoked removed top-level usage command, received unknown command.",
+        "logAvailable": true,
+        "retainedLogOrUnavailableResponseSha256": "2e7ce53abf40cb75a580131dadc403e20bed9139d6ebd0238398599e79c812eb"
+      },
+      {
+        "workflow": "ci.yml",
+        "run": 43805614801,
+        "attempt": 1,
+        "headSha": "178d7ae36e1401f5ad48ed4d4bc22e0f342bc5d7",
+        "job": 133095581639,
+        "name": "check (windows-latest)",
+        "url": "https://github.com/botiverse/oar/actions/runs/43805614801/job/133095581639",
+        "failedSteps": [
+          "Run pnpm vitest run sea-trial/vendor/kimi-login.vendor.test.ts"
+        ],
+        "observation": "Earlier CLI-redesign head's Kimi vendor test invoked removed top-level usage command, received unknown command.",
+        "logAvailable": true,
+        "retainedLogOrUnavailableResponseSha256": "fe12f69b7f0fabf7f75eb7ec48adcc3b5aec0a40cd8014c51c07be36f1f366e9"
+      },
+      {
+        "workflow": "ci.yml",
+        "run": 43805614801,
+        "attempt": 1,
+        "headSha": "178d7ae36e1401f5ad48ed4d4bc22e0f342bc5d7",
+        "job": 133095581726,
+        "name": "check (ubuntu-latest)",
+        "url": "https://github.com/botiverse/oar/actions/runs/43805614801/job/133095581726",
+        "failedSteps": [
+          "Run pnpm vitest run sea-trial/vendor/kimi-login.vendor.test.ts"
+        ],
+        "observation": "Earlier CLI-redesign head's Kimi vendor test invoked removed top-level usage command, received unknown command.",
+        "logAvailable": true,
+        "retainedLogOrUnavailableResponseSha256": "6565227f8d22c985c758f9d1feccd9ce06ad911c6d8146eec134d3d667d61d96"
+      },
+      {
+        "workflow": "acp-windows.yml",
+        "run": 43808686003,
+        "attempt": 1,
+        "headSha": "2a98d63d1c9c5c4eef03aaab02b47fa4ebeb4d9a",
+        "job": 133105235131,
+        "name": "acp-windows (windows-latest, grok-aimock)",
+        "url": "https://github.com/botiverse/oar/actions/runs/43808686003/job/133105235131",
+        "failedSteps": [
+          "Observe Grok behavior processes"
+        ],
+        "observation": "Grok Windows ACP initialize timed out after 15,000 ms.",
+        "logAvailable": true,
+        "retainedLogOrUnavailableResponseSha256": "06b5454cfb9f117279c231de7e62cdc2b99dba6dbcc6dc20b210cd4a1e841333"
+      },
+      {
+        "workflow": "acp-windows.yml",
+        "run": 43815043688,
+        "attempt": 1,
+        "headSha": "af9294245c644fd63ed9daee82887c37c88003ed",
+        "job": 133125063374,
+        "name": "acp-windows (windows-latest, opencode-aimock)",
+        "url": "https://github.com/botiverse/oar/actions/runs/43815043688/job/133125063374",
+        "failedSteps": [
+          "Run pnpm run sea-trial"
+        ],
+        "observation": "OpenCode Windows session.dispose-is-recorded failed with ACP exit 1; stderr contains EPIPE broken-pipe writes. Cause unconfirmed.",
+        "logAvailable": true,
+        "retainedLogOrUnavailableResponseSha256": "e3b757e0a5e6b52e2653a807c3257e25ebd8bbb9bdd59ab51d47ed28749e9aec"
+      },
+      {
+        "workflow": "acp-windows.yml",
+        "run": 43830031226,
+        "attempt": 1,
+        "headSha": "1980788a5da6f093ea69ddb3622728471186aba9",
+        "job": 133172874699,
+        "name": "acp-windows (windows-latest, grok-aimock)",
+        "url": "https://github.com/botiverse/oar/actions/runs/43830031226/job/133172874699",
+        "failedSteps": [
+          "Observe Grok behavior processes"
+        ],
+        "observation": "Grok Windows ACP initialize timed out after 15,000 ms. Descendant cleanup also unverified after five-second process-table capture budget.",
+        "logAvailable": true,
+        "retainedLogOrUnavailableResponseSha256": "73a4aea3039d1d3f7c2e74783450f38123e6510d1bd35c265a6aa9dbadd85ac5"
+      },
+      {
+        "workflow": "ci.yml",
+        "run": 43852078148,
+        "attempt": 1,
+        "headSha": "33fe91f63c9e63cf59ac31717a8697b602d6941b",
+        "job": 133246897712,
+        "name": "check (macos-latest)",
+        "url": "https://github.com/botiverse/oar/actions/runs/43852078148/job/133246897712",
+        "failedSteps": [
+          "Native agy ACP vendor regressions"
+        ],
+        "observation": "Native Antigravity 1.5.0 macOS same-name MCP case: session-owned server returned the synthetic user-token fingerprint, expected no token; configured user server also returned that fingerprint. Cause unconfirmed.",
+        "logAvailable": true,
+        "retainedLogOrUnavailableResponseSha256": "bb413a4fd9d325c7a2a5943601ba3f6bfecdac53ee3a6664ebd1748ac194cc4d"
+      },
+      {
+        "workflow": "ci.yml",
+        "run": 43861908842,
+        "attempt": 1,
+        "headSha": "26fca4d36a80a161d81fae6073cb925d607fe876",
+        "job": 133280586819,
+        "name": "acp-behavior (macos-latest, codebuddy-aimock)",
+        "url": "https://github.com/botiverse/oar/actions/runs/43861908842/job/133280586819",
+        "failedSteps": [],
+        "observation": "Job log unavailable; retained job has no failed test step. Separate runner investigation retained Illegal byte sequence annotation; cancelled superseded retry is not a pass.",
+        "logAvailable": false,
+        "retainedLogOrUnavailableResponseSha256": "fe8bfb0367b0a3d446975fd64662b95e22b8b63a9d7b46da6bf0e1ae74c4af90",
+        "runnerAnnotation": {
+          "message": "System.IO.IOException: Illegal byte sequence : '/Users/runner/actions-runner/cached/_diag/Worker_20261116-134002-utc.log'",
+          "sourceSha256": "b14f5ab9a2cbaaae652482cab781ce49eb6d2ad04fecc18f3b9c740ec17b25eb"
+        }
+      },
+      {
+        "workflow": "acp-windows.yml",
+        "run": 43861980067,
+        "attempt": 1,
+        "headSha": "f7ffc7e8a35924fce43917c64f3170f2c7927443",
+        "job": 133280815996,
+        "name": "acp-windows (windows-latest, opencode-aimock)",
+        "url": "https://github.com/botiverse/oar/actions/runs/43861980067/job/133280815996",
+        "failedSteps": [
+          "Run pnpm run sea-trial"
+        ],
+        "observation": "OpenCode Windows session.dispose-mid-turn-settles failed with ACP exit 1; stderr contains EPIPE broken-pipe writes. Cause unconfirmed.",
+        "logAvailable": true,
+        "retainedLogOrUnavailableResponseSha256": "a81f85672dc090fecb36b72a631fa276fbf33d3f62233a959c7455da7d4cc054"
+      },
+      {
+        "workflow": "acp-windows.yml",
+        "run": 43861980067,
+        "attempt": 1,
+        "headSha": "f7ffc7e8a35924fce43917c64f3170f2c7927443",
+        "job": 133280816452,
+        "name": "acp-windows (windows-latest, grok-aimock)",
+        "url": "https://github.com/botiverse/oar/actions/runs/43861980067/job/133280816452",
+        "failedSteps": [
+          "Observe Grok behavior processes"
+        ],
+        "observation": "Grok Windows ACP initialize timed out after 15,000 ms.",
+        "logAvailable": true,
+        "retainedLogOrUnavailableResponseSha256": "62a77104ca650aa02b7bb36d1a5eade58b7b2c66afbe60b345b3be7d2e21407a"
+      },
+      {
+        "workflow": "acp-windows.yml",
+        "run": 43881471357,
+        "attempt": 1,
+        "headSha": "a96dbc1badc4d07fdabd6a0bd006cf7295bfa2a6",
+        "job": 133348163782,
+        "name": "acp-windows (windows-latest, grok-aimock)",
+        "url": "https://github.com/botiverse/oar/actions/runs/43881471357/job/133348163782",
+        "failedSteps": [
+          "Observe Grok vendor processes"
+        ],
+        "observation": "Grok Windows ACP initialize timed out after 15,000 ms.",
+        "logAvailable": true,
+        "retainedLogOrUnavailableResponseSha256": "e6c7b53c3ae11754f45ae106870238633ee88d399b73811a2080aefe31d0a3c8"
+      },
+      {
+        "workflow": "ci.yml",
+        "run": 43898209540,
+        "attempt": 1,
+        "headSha": "91ea7b94780a2200fb28c3abcf12d46ee5de5661",
+        "job": 133407423215,
+        "name": "check (macos-latest)",
+        "url": "https://github.com/botiverse/oar/actions/runs/43898209540/job/133407423215",
+        "failedSteps": [
+          "Run actions/upload-artifact@v4"
+        ],
+        "observation": "4433 unit tests and 18 mock cases passed, then artifact FinalizeArtifact failed with ECONNRESET.",
+        "logAvailable": true,
+        "retainedLogOrUnavailableResponseSha256": "9b51c69181d92fddefebc6d8131664a463b4e6085a7ace140aa844d3cccc7022"
+      },
+      {
+        "workflow": "ci.yml",
+        "run": 43908361885,
+        "attempt": 1,
+        "headSha": "5d746b25dd4c7287cb567989c16950a2bb9c8a06",
+        "job": 133443218834,
+        "name": "check (macos-latest)",
+        "url": "https://github.com/botiverse/oar/actions/runs/43908361885/job/133443218834",
+        "failedSteps": [
+          "Native isolated OpenCode tool cleanup"
+        ],
+        "observation": "Earlier PR 849 OpenCode skill test compared lexical temporary paths with returned canonical paths; entries present. Revised head uses canonical comparisons.",
+        "logAvailable": true,
+        "retainedLogOrUnavailableResponseSha256": "a7f063112269af7f99871f56edc296283d4e67492e644d888efd98d282253b69"
+      },
+      {
+        "workflow": "ci.yml",
+        "run": 43908361885,
+        "attempt": 1,
+        "headSha": "5d746b25dd4c7287cb567989c16950a2bb9c8a06",
+        "job": 133443218959,
+        "name": "acp-behavior (macos-latest, opencode-aimock)",
+        "url": "https://github.com/botiverse/oar/actions/runs/43908361885/job/133443218959",
+        "failedSteps": [
+          "Run pnpm vitest run sea-trial/vendor --maxWorkers 2"
+        ],
+        "observation": "Earlier PR 849 OpenCode skill test compared lexical temporary paths with returned canonical paths; entries present. Revised head uses canonical comparisons.",
+        "logAvailable": true,
+        "retainedLogOrUnavailableResponseSha256": "b2466e29386fb5eb12031015bbccca9fa3563dc4f83467c10692e515121daed2"
+      },
+      {
+        "workflow": "ci.yml",
+        "run": 43908361885,
+        "attempt": 1,
+        "headSha": "5d746b25dd4c7287cb567989c16950a2bb9c8a06",
+        "job": 133443219205,
+        "name": "check (windows-latest)",
+        "url": "https://github.com/botiverse/oar/actions/runs/43908361885/job/133443219205",
+        "failedSteps": [
+          "Native isolated OpenCode tool cleanup"
+        ],
+        "observation": "Earlier PR 849 OpenCode skill test compared lexical temporary paths with returned canonical paths; entries present. Revised head uses canonical comparisons.",
+        "logAvailable": true,
+        "retainedLogOrUnavailableResponseSha256": "3e26312807ccf4d271c4670913b50fe936def7f250bf2d7ea232d0bacda3bfca"
+      },
+      {
+        "workflow": "ci.yml",
+        "run": 43914201359,
+        "attempt": 1,
+        "headSha": "9158106024be694e861b706ed7a7604ff045ee01",
+        "job": 133463853544,
+        "name": "pi-rpc-windows (vendor)",
+        "url": "https://github.com/botiverse/oar/actions/runs/43914201359/job/133463853544",
+        "failedSteps": [
+          "Pi RPC vendor - RPC protocol, files, readers and bundled host"
+        ],
+        "observation": "Earlier PR 850 Pi RPC reader expected shape omitted returned scope=user. Ordinary completed assertion failure, not a full-job hang.",
+        "logAvailable": true,
+        "retainedLogOrUnavailableResponseSha256": "b355b476d095f49cc557851874bb1f46a00f8ad95edddc943f496d488a14bdfc"
+      },
+      {
+        "workflow": "ci.yml",
+        "run": 43914201359,
+        "attempt": 1,
+        "headSha": "9158106024be694e861b706ed7a7604ff045ee01",
+        "job": 133463853622,
+        "name": "pi-rpc-minimum",
+        "url": "https://github.com/botiverse/oar/actions/runs/43914201359/job/133463853622",
+        "failedSteps": [
+          "Run pnpm vitest run sea-trial/vendor"
+        ],
+        "observation": "Earlier PR 850 Pi RPC reader expected shape omitted returned scope=user. Ordinary completed assertion failure, not a full-job hang.",
+        "logAvailable": true,
+        "retainedLogOrUnavailableResponseSha256": "30686b1fdb3604f9c52b5d3aeb4269556889cbd78ef749b2a35f62c982f0b3d1"
+      },
+      {
+        "workflow": "ci.yml",
+        "run": 43914201359,
+        "attempt": 1,
+        "headSha": "9158106024be694e861b706ed7a7604ff045ee01",
+        "job": 133463853624,
+        "name": "behavior (macos-latest, pi-rpc-aimock)",
+        "url": "https://github.com/botiverse/oar/actions/runs/43914201359/job/133463853624",
+        "failedSteps": [
+          "Run pnpm vitest run sea-trial/vendor"
+        ],
+        "observation": "Earlier PR 850 Pi RPC reader expected shape omitted returned scope=user. Ordinary completed assertion failure, not a full-job hang.",
+        "logAvailable": true,
+        "retainedLogOrUnavailableResponseSha256": "875505a2e7ab9bd886f02c894afd316ddb7985ec01f448ab5e1e6307ee6f0da8"
+      },
+      {
+        "workflow": "ci.yml",
+        "run": 43914201359,
+        "attempt": 1,
+        "headSha": "9158106024be694e861b706ed7a7604ff045ee01",
+        "job": 133463854449,
+        "name": "behavior (ubuntu-latest, pi-rpc-aimock)",
+        "url": "https://github.com/botiverse/oar/actions/runs/43914201359/job/133463854449",
+        "failedSteps": [
+          "Run pnpm vitest run sea-trial/vendor"
+        ],
+        "observation": "Earlier PR 850 Pi RPC reader expected shape omitted returned scope=user. Ordinary completed assertion failure, not a full-job hang.",
+        "logAvailable": true,
+        "retainedLogOrUnavailableResponseSha256": "6f5c6a750e538504a331eac91c8356499990eac221bee1cb2bd562302c35f85e"
+      },
+      {
+        "workflow": "acp-windows.yml",
+        "run": 43917435777,
+        "attempt": 1,
+        "headSha": "8e7db6503054dfbbb054b4b13efb03e6de41e743",
+        "job": 133475268125,
+        "name": "acp-windows (windows-latest, grok-aimock)",
+        "url": "https://github.com/botiverse/oar/actions/runs/43917435777/job/133475268125",
+        "failedSteps": [
+          "Measure Grok ACP launch paths"
+        ],
+        "observation": "Grok startup experiment failed child-exit-after-cleanup assertion. Retained raw logs; no inference of successful cleanup.",
+        "logAvailable": true,
+        "retainedLogOrUnavailableResponseSha256": "8f426357dfc27365b012ec7c6df799ea9c068173000a7b64b9ce796a564290bc"
+      },
+      {
+        "workflow": "ci.yml",
+        "run": 43917435816,
+        "attempt": 1,
+        "headSha": "8e7db6503054dfbbb054b4b13efb03e6de41e743",
+        "job": 133475269500,
+        "name": "check (windows-latest)",
+        "url": "https://github.com/botiverse/oar/actions/runs/43917435816/job/133475269500",
+        "failedSteps": [
+          "CodeBuddy npm installer in an isolated HOME and global prefix"
+        ],
+        "observation": "Windows CodeBuddy npm installation reached 180000ms deadline during dependency fetching; no completed installation. Complete-stall cause unconfirmed.",
+        "logAvailable": true,
+        "retainedLogOrUnavailableResponseSha256": "4daa11512230aa292a34bba9629c13f6c70b58c4b42aae2c456a005f25d95063"
+      },
+      {
+        "workflow": "ci.yml",
+        "run": 43918901565,
+        "attempt": 1,
+        "headSha": "2a99e94b925a4a2eb208c844702eb2994aa269cd",
+        "job": 133480522808,
+        "name": "check (macos-latest)",
+        "url": "https://github.com/botiverse/oar/actions/runs/43918901565/job/133480522808",
+        "failedSteps": [
+          "Run pnpm run check"
+        ],
+        "observation": "macOS Antigravity usage-deadline fixture PID file missing (ENOENT); log does not confirm fixture startup.",
+        "logAvailable": true,
+        "retainedLogOrUnavailableResponseSha256": "796cd69d145b22864e3ed8fb55a3a76ea7fc8f3de61b6f7499ebdffb7002e129"
+      },
+      {
+        "workflow": "ci.yml",
+        "run": 43925919826,
+        "attempt": 1,
+        "headSha": "761878f624799e85a3243e27903f8fe272f4d8ad",
+        "job": 133505225893,
+        "name": "check (windows-latest)",
+        "url": "https://github.com/botiverse/oar/actions/runs/43925919826/job/133505225893",
+        "failedSteps": [
+          "Run pnpm run check"
+        ],
+        "observation": "Grok absent-installation case ended at 20.8 s with blank stdout/stderr and null exitCode, 20 s budget. Intended source path checks absent executable before ACP; actual stalled phase unknown.",
+        "logAvailable": true,
+        "retainedLogOrUnavailableResponseSha256": "f907e291fe117a25665fd3af3c14a90c55b3ed1f4a2ed2ec87110f3e17d267c9"
+      }
+    ],
+    "main": {
+      "run": 43921090226,
+      "headSha": "c007c3d6a9c32f7dcc7655d971c417fe00e85d9e",
+      "url": "https://github.com/botiverse/oar/actions/runs/43921090226",
+      "jobs": 41,
+      "conclusions": {
+        "success": 27,
+        "queued": 14
+      }
+    },
+    "historicalUnexplainedWindowsPiRpcFullJobHangs": 2
+  },
+  "upstream": {
+    "opencode-54794": {
+      "html_url": "https://github.com/anomalyco/opencode/issues/54794",
+      "state": "closed",
+      "comments": 3,
+      "updated_at": "2026-11-05T21:52:50Z"
+    },
+    "opencode-53879": {
+      "html_url": "https://github.com/anomalyco/opencode/issues/53879",
+      "state": "open",
+      "comments": 4,
+      "updated_at": "2026-10-29T17:18:46Z"
+    },
+    "kimi-2370": {
+      "html_url": "https://github.com/MoonshotAI/kimi-cli/issues/2370",
+      "state": "open",
+      "comments": 1,
+      "updated_at": "2026-09-12T16:09:18Z"
+    },
+    "qwen-15796": {
+      "html_url": "https://github.com/QwenLM/qwen-code/issues/15796",
+      "state": "open",
+      "comments": 2,
+      "updated_at": "2026-10-28T13:14:10Z"
+    },
+    "qwen-15875": {
+      "html_url": "https://github.com/QwenLM/qwen-code/issues/15875",
+      "state": "open",
+      "comments": 5,
+      "updated_at": "2026-11-08T03:54:29Z"
+    },
+    "agy-1534": {
+      "html_url": "https://github.com/google-antigravity/antigravity-cli/issues/1534",
+      "state": "open",
+      "comments": 0,
+      "updated_at": "2026-11-13T19:54:24Z"
+    },
+    "qwen-16586": {
+      "url": "https://github.com/QwenLM/qwen-code/pull/16586",
+      "state": "open",
+      "merged": false,
+      "head": "84069baadc82fbb7c9132512b5810fca42edae70",
+      "comments": 34,
+      "commentIds": [
+        6721971304,
+        6722241218,
+        6722241500,
+        6722241759,
+        6780984902,
+        6781273232,
+        6789114622,
+        6822701647,
+        6822846222,
+        6824046131,
+        6825058842,
+        6825268563,
+        6838120496,
+        6841229314,
+        6841752118,
+        6841924273,
+        6845851072,
+        6847560011,
+        6847706311,
+        6848681414,
+        6848822162,
+        6850553762,
+        6851461568,
+        6853113635,
+        6859670580,
+        6860684724,
+        6861670757,
+        6861825592,
+        6861976875,
+        6871794238,
+        6871866783,
+        6874196041,
+        6875368764,
+        6883860959
+      ]
+    },
+    "dsh-master": {
+      "sha": "39163dd30f703a79079e2d2446545cff3c453738",
+      "url": "https://github.com/deepseek-ai/deepseek-harness/commit/39163dd30f703a79079e2d2446545cff3c453738"
+    },
+    "agy-public-head": {
+      "sha": "f51cb8dca4d1b493850accaafde06f8d9fa21764",
+      "url": "https://github.com/google-antigravity/antigravity-cli/commit/f51cb8dca4d1b493850accaafde06f8d9fa21764"
+    },
+    "dsh-discussion": {
+      "url": "https://github.com/deepseek-ai/deepseek-harness/discussions/593",
+      "commentIds": [
+        "18089935",
+        "18637238",
+        "18831410",
+        "19266464",
+        "19311708",
+        "19314203",
+        "19490754"
+      ],
+      "newIds": []
+    },
+    "codebuddy-issue": {
+      "url": "https://cnb.cool/codebuddy/codebuddy-code/-/issues/1847",
+      "number": "1847",
+      "state": "open",
+      "comment_count": 0,
+      "updated_at": "2026-10-28T06:32:16Z",
+      "closed_at": ""
+    },
+    "zcode": {
+      "releaseUrl": "https://github.com/zai-org/ZCode/releases/tag/v3.18.2",
+      "release": "v3.18.2",
+      "publishedAt": "2026-11-16T01:49:23Z",
+      "releaseTarget": "fec975905a2abd4c07e35c40d51fa097a2258ec9",
+      "releaseNotesBuildSource": "34c22de1bc8e51352a309b1e10931d6dbe599319",
+      "assetNames": [
+        "SHA256SUMS",
+        "ZCode-3.18.2-mac-arm64.dmg",
+        "ZCode-3.18.2-mac-arm64.zip",
+        "ZCode-3.18.2-mac-x64.dmg",
+        "ZCode-3.18.2-mac-x64.zip",
+        "ZCode-3.18.2-win-arm64.exe",
+        "ZCode-3.18.2-win-x64.exe"
+      ],
+      "sourceUrl": "https://github.com/zai-org/ZCode/commit/fec975905a2abd4c07e35c40d51fa097a2258ec9",
+      "sourceHead": "fec975905a2abd4c07e35c40d51fa097a2258ec9",
+      "readmeUnchanged": true,
+      "readmeSha256": "473b6e43b11f89d02c0987ae7a2a9ab31f45276b7faf406b39da8219c7aafa31",
+      "observation": "Desktop release changed; public source head and README unchanged. No new documented standalone app-server official-login entry found. No new native probe or assertion that desktop assets equal previous source build."
+    }
+  },
+  "preservation": {
+    "localManifest": "runtime-2026-11-16-raw-manifest.json",
+    "sha256": "b191890bbba5356f70014240956e2d95042bb5fea25128358d0615035e47c130",
+    "files": 194,
+    "failedJobLogsAvailable": 29,
+    "unavailableLogResponses": 1
+  },
+  "commitValidation": {
+    "command": "CI=1 pnpm run check",
+    "testsPassed": 4483,
+    "testsSkipped": 616,
+    "mockPassed": 18,
+    "mockSkipped": 1,
+    "logSha256": "14ade9f586b303753957f7dfefe8dfbeb36577c923f56cf007dfcdbd46d7e971"
+  }
+}
