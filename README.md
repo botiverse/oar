@@ -222,6 +222,8 @@ for (const runtime of defaultRuntimes.list()) {
 
 ## CLI
 
+The same API on the command line: set up runtimes on a machine (install, sign in, check usage and models) and run a turn to see what a runtime does, for setup, debugging and verifying OAR itself. `oar mcp` also lets an agent hand tasks to other runtimes.
+
 ```bash
 npx @botiverse/oar-cli installation
 oar install codex --plan
