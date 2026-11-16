@@ -1,0 +1,124 @@
+{
+  "sourceSha256": "b151d8e3dd08e34b77b8590c4e81c744508a52d2d5e5769d2d780b5c16af5ba5",
+  "version": "1.5.9",
+  "model": "gemini-3.8-flash",
+  "effort": "high",
+  "video": {
+    "bytes": 42267,
+    "sha256": "11f25b6f1c93da277e239e11a5bda5a3ce569ed60f0f7aa9a6fee77c5008c9c6"
+  },
+  "routes": [
+    {
+      "route": "direct_acp",
+      "startedAt": "2026-11-16T06:38:56.723Z",
+      "endedAt": "2026-11-16T06:39:13.660Z",
+      "toolNotifications": [
+        {
+          "at": "2026-11-16T06:39:04.730Z",
+          "sessionUpdate": "tool_call",
+          "name": "read_file",
+          "status": "in_progress",
+          "keys": [
+            "args",
+            "kind",
+            "locations",
+            "name",
+            "rawInput",
+            "sessionUpdate",
+            "status",
+            "title",
+            "toolCallId"
+          ],
+          "contentPresent": false,
+          "rawOutputPresent": false
+        },
+        {
+          "at": "2026-11-16T06:39:04.738Z",
+          "sessionUpdate": "tool_call_update",
+          "name": "read_file",
+          "status": "completed",
+          "keys": [
+            "args",
+            "kind",
+            "locations",
+            "name",
+            "rawInput",
+            "sessionUpdate",
+            "status",
+            "title",
+            "toolCallId"
+          ],
+          "contentPresent": false,
+          "rawOutputPresent": false
+        }
+      ],
+      "answer": "Based on reading [probe.mp4](file://<synthetic-video.mp4>):\n\n### What Was Seen\nThe video is a test calibration pattern featuring:\n- **Visuals:** A circular framing displaying vertical SMPTE/EBU-style color bars (black, red, cyan, magenta, blue, yellow, green, and red bars) on a black background, crossed near the bottom by a horizontal color spectrum/gradient bar.\n- **Counter:** On the right-hand side, a white digital 7-segment style counter increments second-by-second:\n  - `00:00`: displays `0`\n  - `00:01`: displays `1`\n  - `00:02`: displays `2`\n\n### What Was Heard\n- **Audio:** No audio output or sound was detected/rendered from the file.",
+      "nativeExit": {
+        "at": "2026-11-16T06:39:13.520Z",
+        "kind": "native_exit",
+        "body": {
+          "code": 0,
+          "signal": null
+        }
+      },
+      "outcome": "end_turn"
+    },
+    {
+      "route": "oar",
+      "startedAt": "2026-11-16T06:39:13.663Z",
+      "endedAt": "2026-11-16T06:39:29.388Z",
+      "toolNotifications": [
+        {
+          "at": "2026-11-16T06:39:20.416Z",
+          "sessionUpdate": "tool_call",
+          "name": "read_file",
+          "status": "in_progress",
+          "keys": [
+            "args",
+            "kind",
+            "locations",
+            "name",
+            "rawInput",
+            "sessionUpdate",
+            "status",
+            "title",
+            "toolCallId"
+          ],
+          "contentPresent": false,
+          "rawOutputPresent": false
+        },
+        {
+          "at": "2026-11-16T06:39:20.423Z",
+          "sessionUpdate": "tool_call_update",
+          "name": "read_file",
+          "status": "completed",
+          "keys": [
+            "args",
+            "kind",
+            "locations",
+            "name",
+            "rawInput",
+            "sessionUpdate",
+            "status",
+            "title",
+            "toolCallId"
+          ],
+          "contentPresent": false,
+          "rawOutputPresent": false
+        }
+      ],
+      "answer": "Based on reading [probe.mp4](file://<synthetic-video.mp4>):\n\n### Visuals\n- **Test Pattern:** The video shows a television test pattern card featuring vertical color bars (SMPTE-style) inside a circular cutout against a black-and-white background.\n- **Horizontal Band:** A rainbow/color-gradient strip runs horizontally across the lower portion of the screen, shifting horizontally as playback progresses.\n- **Digital Counter:** On the right side, a 7-segment digital display counts upwards second-by-second:\n  - `00:00`: Displays `0`\n  - `00:01`: Displays `1`\n  - `00:02`: Displays `2`\n\n### Audio\n- No audio or sound was detected/heard (the file provided no audible track or tone in the tool output).",
+      "nativeExit": {
+        "at": "2026-11-16T06:39:29.244Z",
+        "kind": "native_exit",
+        "body": {
+          "code": 0,
+          "signal": null
+        }
+      },
+      "outcome": {
+        "kind": "completed"
+      }
+    }
+  ]
+}

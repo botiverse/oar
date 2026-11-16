@@ -1,0 +1,263 @@
+{
+  "synthetic": true,
+  "model": "probe-model",
+  "effort": "high",
+  "results": [
+    {
+      "case": "500",
+      "route": "direct_acp",
+      "error": "RequestError: synthetic read_file HTTP 500",
+      "outcome": null,
+      "nativeExit": {
+        "at": "2026-11-16T06:28:38.476Z",
+        "kind": "native_exit",
+        "body": {
+          "code": null,
+          "signal": "SIGTERM"
+        }
+      },
+      "promptSent": true,
+      "cleanupErrors": [],
+      "rawFile": "500.json",
+      "rawSha256": "42afa1ff09cf78284cba4b323a6855b350dc38d1a80c38f331dc2c4901e0d5de"
+    },
+    {
+      "case": "500",
+      "route": "oar",
+      "error": null,
+      "outcome": {
+        "kind": "ended",
+        "result": {
+          "kind": "accepted",
+          "request": {
+            "sessionId": "fixture-session",
+            "agentPath": [],
+            "seq": 8,
+            "receivedAt": 1794810523141,
+            "kind": "request",
+            "id": "495ccbce-fd08-415d-b48a-b941286e8efb",
+            "direction": "toRuntime",
+            "body": {
+              "kind": "prompt",
+              "input": "Use your native read_file tool exactly once to read the video at /home/exedev/.slock/agents/ab8a64d7-ad9d-4bca-a2f3-c251bdbed762/artifacts/antigravity-video-effort-controls/synthetic.mp4. Then describe what you saw and heard. If the tool fails, report its original error. Do not extract frames, transcode, call ffmpeg, use a shell, or substitute another file.",
+              "inputId": "74aabf09-39ea-4d28-8624-5d53a3172020"
+            }
+          },
+          "response": {
+            "sessionId": "fixture-session",
+            "agentPath": [],
+            "seq": 9,
+            "receivedAt": 1794810523141,
+            "kind": "response",
+            "requestId": "495ccbce-fd08-415d-b48a-b941286e8efb",
+            "body": {
+              "kind": "accepted"
+            }
+          },
+          "seq": 8,
+          "requestId": "495ccbce-fd08-415d-b48a-b941286e8efb"
+        },
+        "outcome": {
+          "kind": "failed",
+          "reason": "synthetic read_file HTTP 500",
+          "failure": "provider"
+        },
+        "text": ""
+      },
+      "nativeExit": {
+        "at": "2026-11-16T06:28:43.191Z",
+        "kind": "native_exit",
+        "body": {
+          "code": null,
+          "signal": "SIGTERM"
+        }
+      },
+      "promptSent": true,
+      "cleanupErrors": [],
+      "rawFile": "500.json",
+      "rawSha256": "42afa1ff09cf78284cba4b323a6855b350dc38d1a80c38f331dc2c4901e0d5de"
+    },
+    {
+      "case": "effort-refuse",
+      "route": "direct_acp",
+      "error": "AssertionError [ERR_ASSERTION]: native thought-level response did not confirm high",
+      "outcome": null,
+      "nativeExit": {
+        "at": "2026-11-16T06:29:43.953Z",
+        "kind": "native_exit",
+        "body": {
+          "code": null,
+          "signal": "SIGTERM"
+        }
+      },
+      "promptSent": false,
+      "cleanupErrors": [],
+      "rawFile": "effort-refuse.json",
+      "rawSha256": "a38a699a0278c4313d2e783d78353406532a8647e4de9b6c8cc04a3dd03a303d"
+    },
+    {
+      "case": "effort-refuse",
+      "route": "oar",
+      "error": "Error: session/set_config_option thought_level=high was refused: ACP config_option_update left thought_level at low although high was requested",
+      "outcome": null,
+      "nativeExit": {
+        "at": "2026-11-16T06:30:18.948Z",
+        "kind": "native_exit",
+        "body": {
+          "code": null,
+          "signal": "SIGTERM"
+        }
+      },
+      "promptSent": false,
+      "cleanupErrors": [],
+      "rawFile": "effort-refuse.json",
+      "rawSha256": "a38a699a0278c4313d2e783d78353406532a8647e4de9b6c8cc04a3dd03a303d"
+    },
+    {
+      "case": "refuse",
+      "route": "direct_acp",
+      "error": "AssertionError [ERR_ASSERTION]: native model response did not confirm probe-model",
+      "outcome": null,
+      "nativeExit": {
+        "at": "2026-11-16T06:29:01.834Z",
+        "kind": "native_exit",
+        "body": {
+          "code": null,
+          "signal": "SIGTERM"
+        }
+      },
+      "promptSent": false,
+      "cleanupErrors": [],
+      "rawFile": "refuse.json",
+      "rawSha256": "4a0a0b904b7e409948bc6e696950064fc99d7a6830b1021436214d2eba525218"
+    },
+    {
+      "case": "refuse",
+      "route": "oar",
+      "error": "ModelConfirmationError: ACP config_option_update left model at different-model although probe-model was requested",
+      "outcome": null,
+      "nativeExit": {
+        "at": "2026-11-16T06:29:36.422Z",
+        "kind": "native_exit",
+        "body": {
+          "code": null,
+          "signal": "SIGTERM"
+        }
+      },
+      "promptSent": false,
+      "cleanupErrors": [],
+      "rawFile": "refuse.json",
+      "rawSha256": "4a0a0b904b7e409948bc6e696950064fc99d7a6830b1021436214d2eba525218"
+    },
+    {
+      "case": "stall",
+      "route": "direct_acp",
+      "error": "AcpError: ACP request session/prompt timed out after 200ms",
+      "outcome": null,
+      "nativeExit": {
+        "at": "2026-11-16T06:28:50.263Z",
+        "kind": "native_exit",
+        "body": {
+          "code": null,
+          "signal": "SIGTERM"
+        }
+      },
+      "promptSent": true,
+      "cleanupErrors": [],
+      "rawFile": "stall.json",
+      "rawSha256": "bb8d24c1df9c6ebdeaf08b037b5423c3d79aa9bd9abca1bc959af300ac715936"
+    },
+    {
+      "case": "stall",
+      "route": "oar",
+      "error": "Error: OAR prompt observation deadline (200ms)",
+      "outcome": null,
+      "nativeExit": {
+        "at": "2026-11-16T06:28:54.862Z",
+        "kind": "native_exit",
+        "body": {
+          "code": null,
+          "signal": "SIGTERM"
+        }
+      },
+      "promptSent": true,
+      "cleanupErrors": [],
+      "rawFile": "stall.json",
+      "rawSha256": "bb8d24c1df9c6ebdeaf08b037b5423c3d79aa9bd9abca1bc959af300ac715936"
+    },
+    {
+      "case": "success",
+      "route": "direct_acp",
+      "error": null,
+      "outcome": {
+        "stopReason": "end_turn"
+      },
+      "nativeExit": {
+        "at": "2026-11-16T06:28:26.999Z",
+        "kind": "native_exit",
+        "body": {
+          "code": null,
+          "signal": "SIGTERM"
+        }
+      },
+      "promptSent": true,
+      "cleanupErrors": [],
+      "rawFile": "success.json",
+      "rawSha256": "2614d321563eb8e10a324e047598acd2fb060c606646c6eba3953d8ce8a1784a"
+    },
+    {
+      "case": "success",
+      "route": "oar",
+      "error": null,
+      "outcome": {
+        "kind": "ended",
+        "result": {
+          "kind": "accepted",
+          "request": {
+            "sessionId": "fixture-session",
+            "agentPath": [],
+            "seq": 8,
+            "receivedAt": 1794810511380,
+            "kind": "request",
+            "id": "b96446ae-3072-4f82-94ac-fe888ce68c89",
+            "direction": "toRuntime",
+            "body": {
+              "kind": "prompt",
+              "input": "Use your native read_file tool exactly once to read the video at /home/exedev/.slock/agents/ab8a64d7-ad9d-4bca-a2f3-c251bdbed762/artifacts/antigravity-video-effort-controls/synthetic.mp4. Then describe what you saw and heard. If the tool fails, report its original error. Do not extract frames, transcode, call ffmpeg, use a shell, or substitute another file.",
+              "inputId": "e72eaf5e-6dc6-4b72-bc15-b5137935bed0"
+            }
+          },
+          "response": {
+            "sessionId": "fixture-session",
+            "agentPath": [],
+            "seq": 9,
+            "receivedAt": 1794810511381,
+            "kind": "response",
+            "requestId": "b96446ae-3072-4f82-94ac-fe888ce68c89",
+            "body": {
+              "kind": "accepted"
+            }
+          },
+          "seq": 8,
+          "requestId": "b96446ae-3072-4f82-94ac-fe888ce68c89"
+        },
+        "outcome": {
+          "kind": "completed"
+        },
+        "text": "SYNTHETIC_VIDEO_RESULT"
+      },
+      "nativeExit": {
+        "at": "2026-11-16T06:28:31.449Z",
+        "kind": "native_exit",
+        "body": {
+          "code": null,
+          "signal": "SIGTERM"
+        }
+      },
+      "promptSent": true,
+      "cleanupErrors": [],
+      "rawFile": "success.json",
+      "rawSha256": "2614d321563eb8e10a324e047598acd2fb060c606646c6eba3953d8ce8a1784a"
+    }
+  ]
+}
