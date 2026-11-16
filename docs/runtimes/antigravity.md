@@ -269,7 +269,16 @@ let a host offer an upgrade without parsing the explanation. Inventories
 remain unsupported on this interface and start no query process.
 
 `listModels()` initializes ACP and opens a temporary session without a
-prompt, reads its model selector, and terminates the process. It requests
+prompt, reads its model selector and the same response's `models.availableModels`,
+and terminates the process. The latter lists native model/effort combinations;
+OAR groups entries with a unique listed model prefix into that model's effort
+menu. It does not switch models or write settings. No extra ACP request is needed.
+Only the current model's explicit `thought_level.currentValue` establishes a
+default effort. An unparseable or ambiguous combination remains an original
+model selector with `effortUnavailableReason`; an unavailable family menu gets
+the same optional explanation, never another family's levels or `disabled`.
+[Native menu comparison and query timings](../../experiments/antigravity-model-menus/README.md)
+cover 1.5.9 and distinguish byte formatting changes from configuration changes. It requests
 `session/close` only when advertised; a close failure does not discard an
 already obtained catalog ([query costs](#orientation-query-costs)).
 

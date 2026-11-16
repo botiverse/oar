@@ -17,6 +17,12 @@ export interface ModelEntry {
   /** Runtime-enumerated reasoning effort menu; omitted when not exposed. */
   readonly effortLevels?: readonly string[];
   readonly defaultEffort?: string;
+  /**
+   * This query could not determine the model's effort menu. A short explanation,
+   * never a raw native error. Omitted when a menu is available or the runtime
+   * does not expose effort at all; does not mean the model is disabled.
+   */
+  readonly effortUnavailableReason?: string;
   /** Native service-tier menu; the explicit opt-out `default` is not a tier. */
   readonly serviceTiers?: readonly string[];
   /** Native catalog default, when the runtime reports one. */

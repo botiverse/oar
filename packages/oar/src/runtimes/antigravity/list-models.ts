@@ -28,7 +28,8 @@ function text(value: unknown): string | undefined {
  * method; the account's models ride on every new session as the
  * `configOptions` entry with id `model`, the option the session switches
  * through `session/set_config_option`. Its `thought_level` menu belongs only
- * to the current model, so only that entry gets levels and a default.
+ * to the current model. The legacy availableModels catalog enumerates
+ * model/effort combinations for the other families without switching sessions.
  */
 export function projectAntigravityModels(response: unknown): ModelEntry[] | undefined {
   const root = asRecord(response);
@@ -55,10 +56,42 @@ export function projectAntigravityModels(response: unknown): ModelEntry[] | unde
       ...(displayName === undefined || displayName === id ? {} : { displayName }),
       ...(id === current ? { default: true as const } : {}),
       ...(id === current && effortLevels.length > 0 ? { effortLevels } : {}),
-      ...(id === current && defaultEffort !== undefined ? { defaultEffort } : {}),
+      ...(id === current && defaultEffort !== undefined && effortLevels.includes(defaultEffort) ? { defaultEffort } : {}),
     });
   }
-  return entries;
+  return withCatalogEfforts(root, entries);
+}
+
+/** Never infer another model's menu from the current model's thought_level. */
+function withCatalogEfforts(root: JsonRecord | null, entries: ModelEntry[]): ModelEntry[] {
+  const available = asRecordList(asRecord(root?.models)?.availableModels);
+  const levels = new Map<string, string[]>();
+  const bareModels = new Set<string>();
+  const unparsed: ModelEntry[] = [];
+  for (const item of available) {
+    const id = text(item.modelId);
+    if (id === undefined) { continue; }
+    if (entries.some(entry => entry.id === id)) { bareModels.add(id); continue; }
+    const candidates = entries.filter(entry => id.startsWith(`${entry.id}-`) && id.length > entry.id.length + 1);
+    const [family] = candidates;
+    if (candidates.length === 1 && family !== undefined) {
+      const value = id.slice(family.id.length + 1);
+      const menu = levels.get(family.id) ?? [];
+      if (!menu.includes(value)) { menu.push(value); }
+      levels.set(family.id, menu);
+    } else if (!unparsed.some(entry => entry.id === id)) {
+      const displayName = text(item.name);
+      unparsed.push({ id, ...(displayName === undefined || displayName === id ? {} : { displayName }),
+        effortUnavailableReason: "Native model entry could not be associated with a unique model and effort." });
+    }
+  }
+  const hasEfforts = levels.size > 0 || acpThoughtLevelOption(root) !== null;
+  return [...entries.map(entry => {
+    if (entry.effortLevels !== undefined) { return entry; }
+    const menu = levels.get(entry.id);
+    if (menu !== undefined) { return { ...entry, effortLevels: menu }; }
+    return hasEfforts && !bareModels.has(entry.id) ? { ...entry, effortUnavailableReason: "Native catalog did not expose this model's effort menu." } : entry;
+  }), ...unparsed];
 }
 
 async function readNewSession(command: string, cwd: string, timeoutMs: number, env: NodeJS.ProcessEnv): Promise<JsonRecord> {

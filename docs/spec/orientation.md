@@ -292,3 +292,14 @@ covers policy and version floors. `tests/providers/provider-local.test.ts`
 uses the real Pi SDK with an expired OAuth entry and a key-command sentinel.
 The [native cost probe](../../experiments/orientation/README.md) runs the built
 CLI against isolated synthetic stores and records attempted network access.
+
+## Model effort discovery
+
+`ModelEntry.effortLevels` is the runtime's menu for that particular model;
+`defaultEffort` is present only when the runtime reports its default.
+`effortUnavailableReason?: string` explains when this query could not determine
+a model's menu. It is a short adapter explanation, never raw native error text,
+and is mutually exclusive with `effortLevels` and `defaultEffort`. It does not
+mean the model is disabled. When a runtime has no effort facility, all three
+fields are absent. Hosts must distinguish that absence from a failed menu read
+and must not copy another model's menu to fill a gap.
