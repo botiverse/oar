@@ -4,12 +4,14 @@ import { setTimeout as delay } from "node:timers/promises";
 import type { CommandEntry, InventoryReader, InventoryResult, InventoryScope, McpServerEntry, SkillEntry, ToolEntry } from "../../contracts/inventory.js";
 import { spawnLineProcess } from "../../shared/executable/index.js";
 import { asRecord, parseJson, type JsonRecord } from "../../shared/json.js";
-import { inventoryOk, inventoryRead, named, nativeRows, textField, unsupportedInventory, workspaceScope, type NativeInventoryRequest } from "../../shared/inventory.js";
+import { inventoryOk, inventoryRead, named, nativeRows, skillScope, textField, unsupportedInventory, workspaceScope, type NativeInventoryRequest } from "../../shared/inventory.js";
 import { claudeEnv } from "./environment.js";
 
 export function projectClaudeSkills(payload: JsonRecord): SkillEntry[] {
   return nativeRows(asRecord(payload.skills)?.skillFrontmatter).map((skill) => ({
     name: named(skill), ...textField("source", skill.source),
+    ...skillScope(skill.source, { "built-in": "builtin", userSettings: "user", projectSettings: "project", localSettings: "project", policySettings: "managed", plugin: "other", flagSettings: "other", memoryStore: "other", syncedSkills: "other" }),
+    ...textField("plugin", skill.pluginName),
   }));
 }
 export function projectClaudeCommands(payload: JsonRecord): CommandEntry[] {

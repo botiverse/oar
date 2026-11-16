@@ -912,3 +912,10 @@ Account usage also uses it for the provider CLI and credential paths, but
 rejects actual changes to its fixed host HTTP/TLS variable list before any
 process or request ([usage environment](../spec/account-usage.md#environment)).
 No host environment is temporarily changed.
+
+### Independent skill provenance
+
+Native skill sources builtin/user/project map directly to `scope`; extra maps
+to other. The original `source` remains present. This catalog supplies no
+plugin identity, so `plugin` remains absent. See
+[skill provenance](../spec/inventory.md#skill-provenance).

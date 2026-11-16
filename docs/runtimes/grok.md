@@ -1143,3 +1143,10 @@ a `session/cancel` notification named that child, so `stopTask` is absent;
 parent cancellation is a different operation and is not used as a substitute.
 
 [Native evidence and reproducible probes](../../experiments/task-controls/README.md).
+
+### Independent skill provenance
+
+Skill `scope` maps bundled → builtin, user/project unchanged and
+server/plugin/configToml → other. Tagged plugin `plugin_name` is retained as
+`plugin`; raw source type and path remain unchanged. Unknown source types do
+not gain a scope. See [skill provenance](../spec/inventory.md#skill-provenance).

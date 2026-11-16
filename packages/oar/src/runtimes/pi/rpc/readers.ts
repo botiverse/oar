@@ -4,6 +4,7 @@ import type { CommandEntry, InventoryReader, SkillEntry } from "../../../contrac
 import type { ModelLister } from "../../../contracts/list-models.js";
 import { inventoryOk, unavailableInventory, unsupportedInventory, workspaceScope } from "../../../shared/inventory.js";
 import { projectPiModels } from "../model-projection.js";
+import { piSkillProvenance } from "../skill-provenance.js";
 import type { PiRuntimeOptions } from "../options.js";
 import { piRpcReadTimeout, readPiRpc } from "./read.js";
 import { PiRpcVersionError } from "./version.js";
@@ -21,7 +22,7 @@ export function piRpcCommands(commands: readonly RpcSlashCommand[]): CommandEntr
 export function piRpcSkills(commands: readonly RpcSlashCommand[]): SkillEntry[] {
   return commands.filter((command) => command.source === "skill").map((command) => ({
     name: command.name.replace(/^skill:/u, ""),
-    path: command.sourceInfo.path, source: command.sourceInfo.source,
+    path: command.sourceInfo.path, ...piSkillProvenance(command.sourceInfo),
     ...(command.description === undefined ? {} : { description: command.description }),
   }));
 }

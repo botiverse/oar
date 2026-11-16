@@ -26,7 +26,7 @@ function session() {
       getExtensions: (): { errors: unknown[] } => ({ errors: [] }),
       getSkills: () => ({
         skills: [{ name: "review", description: "Review", filePath: "/skills/review",
-          disableModelInvocation: true, sourceInfo: { source: "project" } }],
+          disableModelInvocation: true, sourceInfo: { source: "local", scope: "project", origin: "top-level" } }],
         diagnostics: [{ message: "private diagnostic" }],
       }),
     },
@@ -53,7 +53,7 @@ test("Pi independently discovers skills, retaining invocation restrictions and d
   const result = await piSkills(bundled, { cwd: "/project-b" });
   expect(result).toMatchObject({
     kind: "ok", partial: true, view: "discovered", scope: { kind: "workspace", cwd },
-    items: [{ name: "review", description: "Review", path: "/skills/review", source: "project", disableModelInvocation: true }],
+    items: [{ name: "review", description: "Review", path: "/skills/review", source: "local", scope: "project", disableModelInvocation: true }],
   });
   expect(sdk.createAgentSessionServices.mock.calls[0]?.[0]).toMatchObject({ cwd, agentDir: "/fake/agent", settingsManager: { cwd } });
   // pi's theme from that directory's settings, before extensions load, without the watcher.
@@ -163,5 +163,17 @@ test("Pi inventory accepts env without changing SDK configuration and applies it
   const hook = sdk.createBashToolDefinition.mock.calls[0]?.[1].spawnHook;
   expect(hook?.({ env: { KEEP: "inherited", REMOVE: "remove" } }).env).toEqual({ KEEP: "inherited", OAR_PI_AGENT_DIR: "child-only-dir" });
   expect(process.env.OAR_PI_AGENT_DIR).toBe(host);
+  expect(agent.dispose).toHaveBeenCalledOnce();
+});
+
+
+test("Pi SDK keeps package identity and native scope separate", async () => {
+  const agent = session();
+  const [skill] = agent.resourceLoader.getSkills().skills;
+  if (skill === undefined) { throw new Error("missing fixture"); }
+  agent.resourceLoader.getSkills = () => ({ skills: [{ ...skill, sourceInfo: { source: "npm:fixture", scope: "user", origin: "package" } }], diagnostics: [] });
+  sdk.createAgentSessionFromServices.mockResolvedValue({ session: agent });
+  const result = await piSkills(bundled);
+  expect(result).toMatchObject({ kind: "ok", items: [{ name: "review", source: "npm:fixture", scope: "user", plugin: "npm:fixture" }] });
   expect(agent.dispose).toHaveBeenCalledOnce();
 });

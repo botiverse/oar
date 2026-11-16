@@ -72,7 +72,7 @@ describe.skipIf(process.env.OAR_TEST !== "pi-rpc-aimock")("native Pi RPC readers
       const skills = await runtime.skills(installed, options);
       assert.ok(skills.kind === "ok");
       expect(skills.partial).toBe(true);
-      expect(skills.items).toEqual([{ name: "reader", description: "Reader skill", source: "auto", path: path.join(f.agentDir, "skills", "reader", "SKILL.md") }]);
+      expect(skills.items).toEqual([{ name: "reader", description: "Reader skill", source: "auto", scope: "user", path: path.join(f.agentDir, "skills", "reader", "SKILL.md") }]);
       expect(commands.items.find((command) => command.name === "child-prompt")).not.toHaveProperty("argumentHint");
       expect(JSON.stringify([models, commands, skills])).not.toContain("PRIVATE");
       expect(process.env.OAR_PI_AGENT_DIR).toBe(f.hostDir);

@@ -2050,3 +2050,10 @@ child `turn/completed` never becomes a parent task ending; only native
 `subAgentActivity` has that authority.
 
 [Native evidence and reproducible probes](../../experiments/task-controls/README.md).
+
+### Independent skill provenance
+
+Independent skills preserve native `scope` in `source` and normalize it as
+system → builtin, user → user, repo → project, admin → managed. `pluginId`
+is returned as `plugin` independently of scope; missing fields stay absent.
+See [skill provenance](../spec/inventory.md#skill-provenance).

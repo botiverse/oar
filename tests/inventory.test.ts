@@ -58,7 +58,7 @@ test("Codex forwards resolved cwd and preserves disabled skills without creating
   expect(result).toEqual({
     kind: "ok", scope: { kind: "workspace", cwd: resolve("./project-b") },
     observedAt: "2026-09-16T00:00:00.000Z", view: "discovered", partial: true,
-    items: [{ name: "review", enabled: false, path: "/skills/review", source: "user", description: "Review" }],
+    items: [{ name: "review", enabled: false, path: "/skills/review", source: "user", scope: "user", description: "Review" }],
   });
   expect(calls).toEqual([
     ["initialize", { clientInfo: { name: "oar-inventory", version: "0.0.0" }, capabilities: { experimentalApi: true } }],

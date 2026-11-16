@@ -1437,3 +1437,11 @@ native RPC gains those queries or a host needs them under another environment.
 remains in the host and independent of env.
 See [reader environments](../spec/orientation.md#environment) and the
 [native regressions](../../sea-trial/vendor/pi-rpc-readers.vendor.test.ts).
+
+### Independent skill provenance
+
+Both SDK skills and RPC `get_commands` preserve `SourceInfo.source` and map
+its user/project scope directly, temporary to other. When origin is package,
+`plugin` carries the native package source identifier; top-level has no plugin.
+These fields do not change RPC's partial-coverage result or supply its missing
+invocation restriction. See [skill provenance](../spec/inventory.md#skill-provenance).

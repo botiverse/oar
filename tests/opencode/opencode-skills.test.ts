@@ -1,4 +1,7 @@
-import { resolve } from "node:path";
+import { execFileSync } from "node:child_process";
+import { mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import { afterEach, expect, test, vi } from "vitest";
 import { opencodeRuntime } from "../../packages/oar/src/runtimes/opencode/index.js";
 import { fakeLineProcess, type FakeLineProcess } from "../fixtures/fake-line-process.js";
@@ -12,14 +15,14 @@ const versionRun = vi.hoisted(() => vi.fn());
 vi.mock("../../packages/oar/src/shared/executable/run.js", () => ({ runExecutable: versionRun }));
 const paths: string[] = [];
 let fake = fakeLineProcess();
-function serve(skills: unknown = [], plugins: unknown = [{ state: { status: "active" } }]) {
+function serve(skills: unknown = [], plugins: unknown = [{ state: { status: "active" } }], directory = "/project") {
   fake = fakeLineProcess();
   spawn.mockImplementation(() => { queueMicrotask(() => { fake.emit("server listening on http://127.0.0.1:45678\n"); }); return fake; });
   // oxlint-disable-next-line max-statements -- Validate the entire private HTTP exchange before returning its fixture.
   vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
     expect(new URL(url).origin).toBe("http://127.0.0.1:45678");
     expect(init?.redirect).toBe("error");
-    expect(new Headers(init?.headers).get("x-opencode-directory")).toBe(encodeURIComponent(resolve("/project")));
+    expect(new Headers(init?.headers).get("x-opencode-directory")).toBe(encodeURIComponent(resolve(directory)));
     const password = spawn.mock.calls[0]?.[2]?.env?.OPENCODE_PASSWORD;
     expect(new Headers(init?.headers).get("authorization")).toBe(`Basic ${Buffer.from(`opencode:${password}`).toString("base64")}`);
     const path = new URL(url).pathname;
@@ -27,7 +30,7 @@ function serve(skills: unknown = [], plugins: unknown = [{ state: { status: "act
     let data: unknown = [];
     if (path === "/api/skill") { data = skills; }
     if (path === "/api/plugin") { data = plugins; }
-    return Response.json({ location: { directory: resolve("/project") }, data });
+    return Response.json({ location: { directory: resolve(directory) }, data });
   }));
 }
 afterEach(() => { versionRun.mockReset(); spawn.mockReset(); vi.unstubAllGlobals(); vi.useRealTimers(); paths.length = 0; });
@@ -121,4 +124,34 @@ test("the deadline also cancels and settles version detection before any invento
   await vi.advanceTimersByTimeAsync(25);
   await expect(reading).resolves.toMatchObject({ kind: "unavailable", code: "timeout" });
   expect(observation.stopped).toBe(true); expect(spawn).not.toHaveBeenCalled();
+});
+
+
+// oxlint-disable-next-line max-statements -- Exercise actual Windows aliases through the public reader in both directions.
+test.skipIf(process.platform !== "win32")("Windows skill scope resolves 8.3 aliases while preserving the native path string", async context => {
+  const root = await mkdtemp(join(tmpdir(), "oar skill provenance "));
+  try {
+    const home = join(root, "home"); const cwd = join(root, "project");
+    const user = join(home, ".claude", "skills", "fixture", "SKILL.md");
+    const project = join(cwd, ".agents", "skills", "fixture", "SKILL.md");
+    await Promise.all([user, project].map(async path => { await mkdir(join(path, ".."), { recursive: true }); await writeFile(path, "fixture"); }));
+    const longRoot = await realpath(root);
+    const shortRoot = execFileSync("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", [
+      "$ErrorActionPreference = 'Stop'",
+      "[Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)",
+      "(New-Object -ComObject Scripting.FileSystemObject).GetFolder($env:OAR_SKILL_LONG_PATH).ShortPath",
+    ].join("; ")], { env: { ...process.env, OAR_SKILL_LONG_PATH: longRoot }, encoding: "utf8", timeout: 15_000, windowsHide: true }).trim();
+    if (shortRoot.toLowerCase() === longRoot.toLowerCase()) { context.skip("This volume exposes no distinct Windows 8.3 alias"); }
+    for (const [native, launch] of [[longRoot, shortRoot], [shortRoot, longRoot]] as const) {
+      const userPath = join(native, "home", ".claude", "skills", "fixture", "SKILL.md");
+      const projectPath = join(native, "project", ".agents", "skills", "fixture", "SKILL.md");
+      spawn.mockClear();
+      serve([{ name: "user", path: userPath }, { name: "project", path: projectPath }], undefined, join(launch, "project"));
+      // oxlint-disable-next-line no-await-in-loop -- Each direction owns and disposes its discovery process before the next.
+      const result = await opencodeRuntime.skills(installation, { cwd: join(launch, "project"), env: { HOME: join(launch, "home"), USERPROFILE: join(launch, "home"), OPENCODE_TEST_HOME: null, OPENCODE_CONFIG_DIR: null } });
+      expect(result).toMatchObject({ kind: "ok", items: [
+        { name: "user", path: userPath, scope: "user" }, { name: "project", path: projectPath, scope: "project" },
+      ] });
+    }
+  } finally { await rm(root, { recursive: true, force: true }); }
 });

@@ -1,7 +1,7 @@
 /* oxlint-disable oxc/no-map-spread -- Project immutable native entries into credential-free records. */
 import type { InventoryResult, InventoryReader, InventoryScope, McpServerEntry, SkillEntry, ToolEntry } from "../../contracts/inventory.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
-import { boolField, inventoryOk, inventoryRead, named, nativeRows, textField, unsupportedInventory, workspaceScope, type NativeInventoryRequest } from "../../shared/inventory.js";
+import { boolField, inventoryOk, inventoryRead, named, nativeRows, skillScope, textField, unsupportedInventory, workspaceScope, type NativeInventoryRequest } from "../../shared/inventory.js";
 import { startAppServerClient } from "./app-server-client.js";
 
 export function projectCodexSkills(payload: JsonRecord): SkillEntry[] {
@@ -10,6 +10,8 @@ export function projectCodexSkills(payload: JsonRecord): SkillEntry[] {
     ...textField("description", skill.description),
     ...textField("path", skill.path),
     ...textField("source", skill.scope),
+    ...skillScope(skill.scope, { system: "builtin", user: "user", repo: "project", admin: "managed" }),
+    ...textField("plugin", skill.pluginId),
     ...boolField("enabled", skill.enabled),
   })));
 }

@@ -81,6 +81,33 @@ are separate concepts. Names and descriptions are native strings; OAR never
 manufactures parameter schemas. A tool can reference its server through
 `mcpServerId`.
 
+## Skill provenance
+
+`SkillEntry.source` keeps the native source string. Optional `scope` provides
+one shared category: `builtin`, `user`, `project`, `managed` or `other`.
+**An absent scope means unknown.** A recognized source that does not fit the
+first four categories is `other`; an unrecognized or missing source is omitted.
+Optional `plugin` preserves a native plugin or package identifier independently
+of scope. A plugin skill can still be user-, project- or managed-scoped when
+the native catalog says so. A plugin identity alone does not establish scope.
+
+| Runtime | Native provenance → shared `scope` | `plugin` |
+|---|---|---|
+| Claude | `built-in` → builtin; `userSettings` → user; `projectSettings`/`localSettings` → project; `policySettings` → managed; `plugin`/`flagSettings`/`memoryStore`/`syncedSkills` → other | Native `pluginName` |
+| Codex | `system` → builtin; `user` → user; `repo` → project; `admin` → managed | Native `pluginId` |
+| Grok | `bundled` → builtin; `user` → user; `project` → project; `server`/`plugin`/`configToml` → other | Tagged source's `plugin_name` |
+| Kimi | `builtin`/`user`/`project` unchanged; `extra` → other | Not supplied by this catalog |
+| Pi SDK and RPC | `SourceInfo.scope` user/project unchanged; temporary → other | `SourceInfo.source` when `origin` is package; absent for top-level |
+| OpenCode | Native built-in marker or verified built-in URI → builtin; verified user loading root → user; verified cwd/ancestor loading root → project | Not supplied by this catalog |
+
+OpenCode preserves the returned path and compares its canonical filesystem path
+with the native loading roots, including shared `.claude/skills` and
+`.agents/skills`. It does not classify by a brand name appearing anywhere in a
+path. Missing paths, unmatched custom/remote roots, ambiguous overlapping roots
+and unknown `skill://` identities remain unclassified. The catalog still decides
+which skills exist; OAR does not discover extra files or override native entries.
+See [source evidence and version boundaries](../runtimes/inventory.md#skill-provenance).
+
 ## Commands
 
 `CommandEntry` carries the native invocation `name`, with `description`,
