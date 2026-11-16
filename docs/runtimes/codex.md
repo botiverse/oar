@@ -1144,9 +1144,13 @@ variables with `env_vars` read the app-server's environment; tool values
 appear in the recorded `thread/start` and `thread/resume` requests, where
 OAR redacts every one of them regardless of its name. A tool running as the same system user can read a peer's
 process environment through `/proc` in either placement, so this is not a
-credential boundary. A deliberately opened WebSocket listener let one
-thread's tool read another thread's history with `thread/read`, but none of
-its tool values; OAR's stdio connection was not tested that way. Evidence:
+credential boundary. In a shared process a session's tools can also read the
+other sessions' conversation history: a deliberately opened WebSocket
+listener let one thread's tool read another thread's history with
+`thread/read` (but none of its tool values), and a tool running as the same
+user can reach OAR's stdio connection the same way through the app-server's
+pipes under `/proc/<pid>/fd` (not measured). A host shares only sessions
+whose users may see each other's conversations. Evidence:
 [process environment](../../experiments/codex-thread-isolation-2026-11-16/README.md),
 [MCP environment](../../experiments/codex-thread-isolation-2026-11-16/mcp-env/README.md).
 

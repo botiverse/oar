@@ -235,7 +235,9 @@ Sharing follows five rules:
    not a credential boundary: any tool running as the same system user can
    read a peer's process environment through `/proc`, shared or isolated, so
    separating mutually untrusted agents needs a separate system user or
-   sandbox. Two consumers do not receive the tool environment in a shared
+   sandbox. In a shared process a session's tools can also read the other
+   sessions' conversations through the app-server itself, so a host pools
+   only sessions whose users may see each other's history. Two consumers do not receive the tool environment in a shared
    process, and that difference is declared, not a reason to refuse: hooks
    (Codex snapshots the process environment for them; a user `PreToolUse`
    hook was measured), and MCP servers from user configuration that forward

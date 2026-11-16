@@ -308,7 +308,9 @@ process variables into live shell snapshots.
 **Declared, not hidden:** hooks and user-configured MCP servers that forward
 variables with `env_vars` keep the process environment in a shared process;
 same-user tools can read a peer's environment through `/proc` in either
-placement; the values travel in the native requests OAR records, so every
+placement, and in a shared process also the other sessions' conversation
+history through the app-server (its WebSocket listener was measured; its
+stdio pipes are reachable the same way); the values travel in the native requests OAR records, so every
 `toolEnv` value is redacted in records whatever its name (the record-stream
 contract gains that rule with the implementation). A fresh process resuming a thread without its configuration
 has none of them, so the input is applied on every open.
