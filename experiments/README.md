@@ -1,5 +1,6 @@
 # experiments
 
+- [Antigravity model-specific effort menus](antigravity-model-menus/README.md): one-response discovery, distinct native model menus, zero additional requests and settings-value controls.
 - [Codex idle queue admission](codex-idle-queue/README.md): normal completion wakes queued input; interruption parks it until a new prompt, with native 0.169.0 evidence and adapter refusal.
 
 - [Antigravity video read comparison](antigravity-video-2026-11-16/README.md): same-file CLI/direct ACP/OAR baseline has no 500; raw tool visibility and audio-claim limits, reproducible probe.

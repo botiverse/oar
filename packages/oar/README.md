@@ -411,6 +411,8 @@ not reads through its bundled SDK. See
 `runtime.listModels(installation, options?)` lists the models an installation
 can run now (`ok`, `unauthenticated` or `unsupported`); every built-in runtime
 has it. Entries include native `effortLevels` and `serviceTiers` where supported.
+`effortUnavailableReason` distinguishes a menu that could not be determined from
+a runtime that has no effort menu; it does not mean the model is disabled.
 `default: true` marks the model a session uses when no `model` is set, where
 the runtime says so (codex's configured model, else its catalog default; a new
 session's current model on grok, kimi, antigravity, codebuddy and devin; the native

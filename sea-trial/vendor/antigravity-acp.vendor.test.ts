@@ -22,6 +22,9 @@ describe.skipIf(process.env.OAR_TEST !== "antigravity-aimock")("agy native ACP",
       const result = await antigravityRuntime.listModels(installation, { cwd, env: env.env });
       assert.ok(result.kind === "ok", JSON.stringify(result));
       expect(result.models.some((model) => model.id === "gemini-3.8-flash")).toBe(true);
+      expect(result.models.find((model) => model.id === "gemini-3.8-flash")?.effortLevels?.toSorted()).toEqual(["high", "low", "medium"]);
+      expect(result.models.find((model) => model.id === "gemini-3.1-pro")?.effortLevels?.toSorted()).toEqual(["high", "low"]);
+      expect(result.models.find((model) => model.id === "gemini-3.8-flash")?.defaultEffort).toBeUndefined();
       expect(result.models.filter((model) => model.default)).toHaveLength(1);
       expect(result.models.find((model) => model.default)?.effortLevels).toContain("low");
       expect(env.raw).toHaveLength(0);

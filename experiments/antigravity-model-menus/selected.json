@@ -1,0 +1,472 @@
+[
+  {
+    "nativeVersion": "1.5.9",
+    "rawSha256": "195d1601fc8498bc858f58ebfd49b840cc1f127f686fe896358667b5b532d77e",
+    "rawBytes": 101756,
+    "availableModels": [
+      {
+        "modelId": "gemini-4-carbon-high",
+        "name": "Gemini 4 Carbon (High)"
+      },
+      {
+        "modelId": "gemini-4-carbon-medium",
+        "name": "Gemini 4 Carbon (Medium)"
+      },
+      {
+        "modelId": "gemini-4-carbon-low",
+        "name": "Gemini 4 Carbon (Low)"
+      },
+      {
+        "modelId": "gemini-4-hydrogen-high",
+        "name": "Gemini 4 Hydrogen (High)"
+      },
+      {
+        "modelId": "gemini-4-hydrogen-xhigh",
+        "name": "Gemini 4 Hydrogen (XHigh)"
+      },
+      {
+        "modelId": "gemini-4-hydrogen-medium",
+        "name": "Gemini 4 Hydrogen (Medium)"
+      },
+      {
+        "modelId": "gemini-4-hydrogen-low",
+        "name": "Gemini 4 Hydrogen (Low)"
+      },
+      {
+        "modelId": "gemini-4-argon-high",
+        "name": "Gemini 4 Argon (High)"
+      },
+      {
+        "modelId": "gemini-4-argon-medium",
+        "name": "Gemini 4 Argon (Medium)"
+      },
+      {
+        "modelId": "gemini-4-argon-low",
+        "name": "Gemini 4 Argon (Low)"
+      },
+      {
+        "modelId": "gemini-3.8-flash-high",
+        "name": "Gemini 3.8 Flash (High)"
+      },
+      {
+        "modelId": "gemini-3.8-flash-medium",
+        "name": "Gemini 3.8 Flash (Medium)"
+      },
+      {
+        "modelId": "gemini-3.8-flash-low",
+        "name": "Gemini 3.8 Flash (Low)"
+      },
+      {
+        "modelId": "gemini-3.7-flash-high",
+        "name": "Gemini 3.7 Flash (High)"
+      },
+      {
+        "modelId": "gemini-3.7-flash-medium",
+        "name": "Gemini 3.7 Flash (Medium)"
+      },
+      {
+        "modelId": "gemini-3.7-flash-low",
+        "name": "Gemini 3.7 Flash (Low)"
+      },
+      {
+        "modelId": "gemini-3.6-flash-high",
+        "name": "Gemini 3.6 Flash (High)"
+      },
+      {
+        "modelId": "gemini-3.6-flash-medium",
+        "name": "Gemini 3.6 Flash (Medium)"
+      },
+      {
+        "modelId": "gemini-3.6-flash-low",
+        "name": "Gemini 3.6 Flash (Low)"
+      },
+      {
+        "modelId": "gemini-3.1-pro-high",
+        "name": "Gemini 3.1 Pro (High)"
+      },
+      {
+        "modelId": "gemini-3.1-pro-low",
+        "name": "Gemini 3.1 Pro (Low)"
+      }
+    ],
+    "currentModel": "gemini-3.1-pro",
+    "oarModels": [
+      {
+        "id": "gemini-4-carbon",
+        "displayName": "Gemini 4 Carbon",
+        "effortLevels": [
+          "high",
+          "medium",
+          "low"
+        ]
+      },
+      {
+        "id": "gemini-4-hydrogen",
+        "displayName": "Gemini 4 Hydrogen",
+        "effortLevels": [
+          "high",
+          "xhigh",
+          "medium",
+          "low"
+        ]
+      },
+      {
+        "id": "gemini-4-argon",
+        "displayName": "Gemini 4 Argon",
+        "effortLevels": [
+          "high",
+          "medium",
+          "low"
+        ]
+      },
+      {
+        "id": "gemini-3.8-flash",
+        "displayName": "Gemini 3.8 Flash",
+        "effortLevels": [
+          "high",
+          "medium",
+          "low"
+        ]
+      },
+      {
+        "id": "gemini-3.7-flash",
+        "displayName": "Gemini 3.7 Flash",
+        "effortLevels": [
+          "high",
+          "medium",
+          "low"
+        ]
+      },
+      {
+        "id": "gemini-3.6-flash",
+        "displayName": "Gemini 3.6 Flash",
+        "effortLevels": [
+          "high",
+          "medium",
+          "low"
+        ]
+      },
+      {
+        "id": "gemini-3.1-pro",
+        "displayName": "Gemini 3.1 Pro",
+        "default": true,
+        "effortLevels": [
+          "low",
+          "high"
+        ],
+        "defaultEffort": "low"
+      }
+    ],
+    "perModelControl": [
+      {
+        "id": "gemini-4-carbon",
+        "levels": [
+          "low",
+          "medium",
+          "high"
+        ]
+      },
+      {
+        "id": "gemini-4-hydrogen",
+        "levels": [
+          "low",
+          "medium",
+          "high",
+          "xhigh"
+        ]
+      },
+      {
+        "id": "gemini-4-argon",
+        "levels": [
+          "low",
+          "medium",
+          "high"
+        ]
+      },
+      {
+        "id": "gemini-3.8-flash",
+        "levels": [
+          "low",
+          "medium",
+          "high"
+        ]
+      },
+      {
+        "id": "gemini-3.7-flash",
+        "levels": [
+          "low",
+          "medium",
+          "high"
+        ]
+      },
+      {
+        "id": "gemini-3.6-flash",
+        "levels": [
+          "low",
+          "medium",
+          "high"
+        ]
+      },
+      {
+        "id": "gemini-3.1-pro",
+        "levels": [
+          "low",
+          "high"
+        ]
+      }
+    ],
+    "listingElapsedMs": 747.601834,
+    "settingsValuesUnchanged": true,
+    "providerRequests": 0,
+    "controlTimings": [
+      {
+        "method": "initialize",
+        "model": null,
+        "elapsedMs": 11.09317800000008
+      },
+      {
+        "method": "session/new",
+        "model": null,
+        "elapsedMs": 285.2188249999999
+      },
+      {
+        "method": "session/set_config_option",
+        "model": "gemini-4-carbon",
+        "elapsedMs": 2.2890259999999216
+      },
+      {
+        "method": "session/set_config_option",
+        "model": "gemini-4-hydrogen",
+        "elapsedMs": 2.394637999999759
+      },
+      {
+        "method": "session/set_config_option",
+        "model": "gemini-4-argon",
+        "elapsedMs": 2.40624200000002
+      },
+      {
+        "method": "session/set_config_option",
+        "model": "gemini-3.8-flash",
+        "elapsedMs": 1.8232069999999112
+      },
+      {
+        "method": "session/set_config_option",
+        "model": "gemini-3.7-flash",
+        "elapsedMs": 6.004105999999865
+      },
+      {
+        "method": "session/set_config_option",
+        "model": "gemini-3.6-flash",
+        "elapsedMs": 3.789520999999695
+      },
+      {
+        "method": "session/set_config_option",
+        "model": "gemini-3.1-pro",
+        "elapsedMs": 1.6875480000003336
+      },
+      {
+        "method": "session/close",
+        "model": null,
+        "elapsedMs": 0.760649000000285
+      }
+    ]
+  },
+  {
+    "nativeVersion": "1.5.0",
+    "rawSha256": "3be84c064069186a87480f25ce38fc7593a08555993b2760fca97ab576c2ebc7",
+    "rawBytes": 70921,
+    "availableModels": [
+      {
+        "modelId": "gemini-4-argon-high",
+        "name": "Gemini 4 Argon (High)"
+      },
+      {
+        "modelId": "gemini-4-argon-medium",
+        "name": "Gemini 4 Argon (Medium)"
+      },
+      {
+        "modelId": "gemini-4-argon-low",
+        "name": "Gemini 4 Argon (Low)"
+      },
+      {
+        "modelId": "gemini-3.8-flash-high",
+        "name": "Gemini 3.8 Flash (High)"
+      },
+      {
+        "modelId": "gemini-3.8-flash-medium",
+        "name": "Gemini 3.8 Flash (Medium)"
+      },
+      {
+        "modelId": "gemini-3.8-flash-low",
+        "name": "Gemini 3.8 Flash (Low)"
+      },
+      {
+        "modelId": "gemini-3.7-flash-high",
+        "name": "Gemini 3.7 Flash (High)"
+      },
+      {
+        "modelId": "gemini-3.7-flash-medium",
+        "name": "Gemini 3.7 Flash (Medium)"
+      },
+      {
+        "modelId": "gemini-3.7-flash-low",
+        "name": "Gemini 3.7 Flash (Low)"
+      },
+      {
+        "modelId": "gemini-3.6-flash-high",
+        "name": "Gemini 3.6 Flash (High)"
+      },
+      {
+        "modelId": "gemini-3.6-flash-medium",
+        "name": "Gemini 3.6 Flash (Medium)"
+      },
+      {
+        "modelId": "gemini-3.6-flash-low",
+        "name": "Gemini 3.6 Flash (Low)"
+      },
+      {
+        "modelId": "gemini-3.1-pro-high",
+        "name": "Gemini 3.1 Pro (High)"
+      },
+      {
+        "modelId": "gemini-3.1-pro-low",
+        "name": "Gemini 3.1 Pro (Low)"
+      }
+    ],
+    "currentModel": "gemini-3.1-pro",
+    "oarModels": [
+      {
+        "id": "gemini-4-argon",
+        "displayName": "Gemini 4 Argon",
+        "effortLevels": [
+          "high",
+          "medium",
+          "low"
+        ]
+      },
+      {
+        "id": "gemini-3.8-flash",
+        "displayName": "Gemini 3.8 Flash",
+        "effortLevels": [
+          "high",
+          "medium",
+          "low"
+        ]
+      },
+      {
+        "id": "gemini-3.7-flash",
+        "displayName": "Gemini 3.7 Flash",
+        "effortLevels": [
+          "high",
+          "medium",
+          "low"
+        ]
+      },
+      {
+        "id": "gemini-3.6-flash",
+        "displayName": "Gemini 3.6 Flash",
+        "effortLevels": [
+          "high",
+          "medium",
+          "low"
+        ]
+      },
+      {
+        "id": "gemini-3.1-pro",
+        "displayName": "Gemini 3.1 Pro",
+        "default": true,
+        "effortLevels": [
+          "low",
+          "high"
+        ],
+        "defaultEffort": "low"
+      }
+    ],
+    "perModelControl": [
+      {
+        "id": "gemini-4-argon",
+        "levels": [
+          "low",
+          "medium",
+          "high"
+        ]
+      },
+      {
+        "id": "gemini-3.8-flash",
+        "levels": [
+          "low",
+          "medium",
+          "high"
+        ]
+      },
+      {
+        "id": "gemini-3.7-flash",
+        "levels": [
+          "low",
+          "medium",
+          "high"
+        ]
+      },
+      {
+        "id": "gemini-3.6-flash",
+        "levels": [
+          "low",
+          "medium",
+          "high"
+        ]
+      },
+      {
+        "id": "gemini-3.1-pro",
+        "levels": [
+          "low",
+          "high"
+        ]
+      }
+    ],
+    "listingElapsedMs": 546.9475710000002,
+    "settingsValuesUnchanged": true,
+    "providerRequests": 0,
+    "controlTimings": [
+      {
+        "method": "initialize",
+        "model": null,
+        "elapsedMs": 12.459920000000011
+      },
+      {
+        "method": "session/new",
+        "model": null,
+        "elapsedMs": 309.6401000000001
+      },
+      {
+        "method": "session/set_config_option",
+        "model": "gemini-4-argon",
+        "elapsedMs": 2.3488259999999173
+      },
+      {
+        "method": "session/set_config_option",
+        "model": "gemini-3.8-flash",
+        "elapsedMs": 2.336913999999979
+      },
+      {
+        "method": "session/set_config_option",
+        "model": "gemini-3.7-flash",
+        "elapsedMs": 2.0636619999995673
+      },
+      {
+        "method": "session/set_config_option",
+        "model": "gemini-3.6-flash",
+        "elapsedMs": 2.184820999999829
+      },
+      {
+        "method": "session/set_config_option",
+        "model": "gemini-3.1-pro",
+        "elapsedMs": 2.3780940000001465
+      },
+      {
+        "method": "session/close",
+        "model": null,
+        "elapsedMs": 0.8089139999997315
+      }
+    ]
+  }
+]
