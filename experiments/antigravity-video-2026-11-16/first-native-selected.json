@@ -1,0 +1,241 @@
+{
+  "version": "1.5.9",
+  "requestedModel": "gemini-3.8-flash-high",
+  "rawSha256": "dd66de36aad2ecd7279af570fc8f3d3fac9d7f837df4e1189d7adb88de3c132b",
+  "routes": [
+    {
+      "route": "direct_acp",
+      "error": "AssertionError [ERR_ASSERTION]: native model response did not confirm gemini-3.8-flash-high",
+      "promptSent": false,
+      "configurationResponses": [
+        {
+          "at": "2026-11-16T06:23:52.303Z",
+          "configOptions": [
+            {
+              "id": "model",
+              "name": "Model",
+              "category": "model",
+              "type": "select",
+              "currentValue": "gemini-3.8-flash",
+              "options": [
+                {
+                  "value": "gemini-3.8-flash",
+                  "name": "Gemini 3.8 Flash"
+                },
+                {
+                  "value": "claude-sonnet-4-6",
+                  "name": "Claude Sonnet 4.6 (Thinking)"
+                },
+                {
+                  "value": "claude-opus-4-6-thinking",
+                  "name": "Claude Opus 4.6 (Thinking)"
+                },
+                {
+                  "value": "gpt-oss-120b-medium",
+                  "name": "GPT-OSS 120B (Medium)"
+                }
+              ]
+            },
+            {
+              "id": "thought_level",
+              "name": "Thinking Level",
+              "category": "thought_level",
+              "type": "select",
+              "currentValue": "high",
+              "options": [
+                {
+                  "value": "low",
+                  "name": "Low"
+                },
+                {
+                  "value": "medium",
+                  "name": "Medium"
+                },
+                {
+                  "value": "high",
+                  "name": "High"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "at": "2026-11-16T06:23:52.321Z",
+          "configOptions": [
+            {
+              "id": "model",
+              "name": "Model",
+              "category": "model",
+              "type": "select",
+              "currentValue": "gemini-3.8-flash",
+              "options": [
+                {
+                  "value": "gemini-3.8-flash",
+                  "name": "Gemini 3.8 Flash"
+                },
+                {
+                  "value": "claude-sonnet-4-6",
+                  "name": "Claude Sonnet 4.6 (Thinking)"
+                },
+                {
+                  "value": "claude-opus-4-6-thinking",
+                  "name": "Claude Opus 4.6 (Thinking)"
+                },
+                {
+                  "value": "gpt-oss-120b-medium",
+                  "name": "GPT-OSS 120B (Medium)"
+                }
+              ]
+            },
+            {
+              "id": "thought_level",
+              "name": "Thinking Level",
+              "category": "thought_level",
+              "type": "select",
+              "currentValue": "high",
+              "options": [
+                {
+                  "value": "low",
+                  "name": "Low"
+                },
+                {
+                  "value": "medium",
+                  "name": "Medium"
+                },
+                {
+                  "value": "high",
+                  "name": "High"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "nativeExit": {
+        "at": "2026-11-16T06:23:55.446Z",
+        "kind": "native_exit",
+        "body": {
+          "code": 0,
+          "signal": null
+        }
+      }
+    },
+    {
+      "route": "oar",
+      "error": "ModelConfirmationError: ACP config_option_update left model at gemini-3.8-flash although gemini-3.8-flash-high was requested",
+      "promptSent": false,
+      "configurationResponses": [
+        {
+          "at": "2026-11-16T06:23:59.131Z",
+          "configOptions": [
+            {
+              "id": "model",
+              "name": "Model",
+              "category": "model",
+              "type": "select",
+              "currentValue": "gemini-3.8-flash",
+              "options": [
+                {
+                  "value": "gemini-3.8-flash",
+                  "name": "Gemini 3.8 Flash"
+                },
+                {
+                  "value": "claude-sonnet-4-6",
+                  "name": "Claude Sonnet 4.6 (Thinking)"
+                },
+                {
+                  "value": "claude-opus-4-6-thinking",
+                  "name": "Claude Opus 4.6 (Thinking)"
+                },
+                {
+                  "value": "gpt-oss-120b-medium",
+                  "name": "GPT-OSS 120B (Medium)"
+                }
+              ]
+            },
+            {
+              "id": "thought_level",
+              "name": "Thinking Level",
+              "category": "thought_level",
+              "type": "select",
+              "currentValue": "high",
+              "options": [
+                {
+                  "value": "low",
+                  "name": "Low"
+                },
+                {
+                  "value": "medium",
+                  "name": "Medium"
+                },
+                {
+                  "value": "high",
+                  "name": "High"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "at": "2026-11-16T06:23:59.138Z",
+          "configOptions": [
+            {
+              "id": "model",
+              "name": "Model",
+              "category": "model",
+              "type": "select",
+              "currentValue": "gemini-3.8-flash",
+              "options": [
+                {
+                  "value": "gemini-3.8-flash",
+                  "name": "Gemini 3.8 Flash"
+                },
+                {
+                  "value": "claude-sonnet-4-6",
+                  "name": "Claude Sonnet 4.6 (Thinking)"
+                },
+                {
+                  "value": "claude-opus-4-6-thinking",
+                  "name": "Claude Opus 4.6 (Thinking)"
+                },
+                {
+                  "value": "gpt-oss-120b-medium",
+                  "name": "GPT-OSS 120B (Medium)"
+                }
+              ]
+            },
+            {
+              "id": "thought_level",
+              "name": "Thinking Level",
+              "category": "thought_level",
+              "type": "select",
+              "currentValue": "high",
+              "options": [
+                {
+                  "value": "low",
+                  "name": "Low"
+                },
+                {
+                  "value": "medium",
+                  "name": "Medium"
+                },
+                {
+                  "value": "high",
+                  "name": "High"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "nativeExit": {
+        "at": "2026-11-16T06:24:29.368Z",
+        "kind": "native_exit",
+        "body": {
+          "code": 0,
+          "signal": null
+        }
+      }
+    }
+  ]
+}

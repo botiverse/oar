@@ -78,8 +78,8 @@ async function wrapper(directory: string, binary: string, wire: string): Promise
   return filename;
 }
 
-interface RouteOptions { readonly command: string; readonly cwd: string; readonly model: string; readonly prompt: string; readonly limit: number }
-async function direct({ command, cwd, model, prompt, limit }: RouteOptions): Promise<unknown> {
+interface RouteOptions { readonly command: string; readonly cwd: string; readonly model: string; readonly effort: string; readonly prompt: string; readonly limit: number }
+async function direct({ command, cwd, model, effort, prompt, limit }: RouteOptions): Promise<unknown> {
   const observed: unknown[] = [];
   const terminal = createAcpTerminalHost(cwd, process.env);
   const client = createAcpClientApp(terminal, {
@@ -100,6 +100,13 @@ async function direct({ command, cwd, model, prompt, limit }: RouteOptions): Pro
     const options = configuration?.configOptions;
     assert.ok(Array.isArray(options), "native configuration response missing options");
     assert.ok(options.some((option: unknown) => { const record = asRecord(option); return record?.id === "model" && record.currentValue === model; }), `native model response did not confirm ${model}`);
+    const thinking = options.map((option: unknown) => asRecord(option)).find(option => option?.category === "thought_level");
+    assert.ok(typeof thinking?.id === "string", "native configuration omitted thought_level option");
+    const thinkingResponse = asRecord(await call("session/set_config_option", { sessionId, configId: thinking.id, value: effort }));
+    const thinkingOptions = thinkingResponse?.configOptions;
+    assert.ok(Array.isArray(thinkingOptions), "native thought-level response missing options");
+    assert.ok(thinkingOptions.some((option: unknown) => { const record = asRecord(option); return record?.category === "thought_level" && record.currentValue === effort; }), `native thought-level response did not confirm ${effort}`);
+    assert.ok(thinkingOptions.some((option: unknown) => { const record = asRecord(option); return record?.id === "model" && record.currentValue === model; }), "setting effort changed the native model");
     result = await call("session/prompt", { sessionId, prompt: [{ type: "text", text: prompt }] }, limit);
   } catch (error) { failure = safe(String(error)); }
   finally {
@@ -113,13 +120,13 @@ async function direct({ command, cwd, model, prompt, limit }: RouteOptions): Pro
   }
   return { result, error: failure, observed, cleanup, wrapperExitCode: runtime.exitCode, diagnostics: runtime.diagnostics() };
 }
-async function throughOar({ command, cwd, model, prompt, limit }: RouteOptions): Promise<unknown> {
+async function throughOar({ command, cwd, model, effort, prompt, limit }: RouteOptions): Promise<unknown> {
   let session: Session | undefined = undefined;
   let result: unknown = undefined;
   let failure: string | undefined = undefined;
   let cleanupError: string | undefined = undefined;
   try {
-    session = await antigravitySession({ kind: "available", via: "executable", command }, { cwd, model });
+    session = await antigravitySession({ kind: "available", via: "executable", command }, { cwd, model, effort });
     result = await bound(promptAndWait(session, prompt), limit, "OAR prompt");
   } catch (error) { failure = safe(String(error)); }
   finally {
@@ -131,8 +138,8 @@ async function throughOar({ command, cwd, model, prompt, limit }: RouteOptions):
   return { result, error: failure, cleanupError, records: session?.records(), status: session?.status() };
 }
 
-interface Measurement { readonly binary: string; readonly video: string; readonly model: string; readonly output: string; readonly limit: number }
-async function measure({ binary, video, model, output, limit }: Measurement): Promise<void> {
+interface Measurement { readonly binary: string; readonly video: string; readonly model: string; readonly effort: string; readonly output: string; readonly limit: number }
+async function measure({ binary, video, model, effort, output, limit }: Measurement): Promise<void> {
   assert.ok(process.platform !== "win32", "This handoff targets POSIX hosts");
   assert.ok(path.isAbsolute(binary) && path.isAbsolute(video) && path.isAbsolute(output));
   assert.ok(Number.isFinite(limit) && limit > 0 && limit <= 600_000);
@@ -144,14 +151,14 @@ async function measure({ binary, video, model, output, limit }: Measurement): Pr
   await mkdir(path.dirname(output), { recursive: true });
   const directory = await mkdtemp(path.join(os.tmpdir(), "oar-video-probe-"));
   await chmod(directory, 0o700);
-  const report: Record<string, unknown> = { startedAt: new Date().toISOString(), version: safe(version.stdout.trim()), video: { path: video, bytes: bytes.length, sha256: createHash("sha256").update(bytes).digest("hex") }, model, cwd, prompt, limitMs: limit, evidenceDirectory: directory, routes: [] };
+  const report: Record<string, unknown> = { startedAt: new Date().toISOString(), version: safe(version.stdout.trim()), video: { path: video, bytes: bytes.length, sha256: createHash("sha256").update(bytes).digest("hex") }, model, effort, cwd, prompt, limitMs: limit, evidenceDirectory: directory, routes: [] };
   const routes: unknown[] = [];
   report.routes = routes;
   for (const route of ["direct_acp", "oar"] as const) {
     const wire = path.join(directory, `${route}.jsonl`);
     const command = await wrapper(directory, binary, wire);
     const startedAt = new Date().toISOString();
-    const result = route === "direct_acp" ? await direct({ command, cwd, model, prompt, limit }) : await throughOar({ command, cwd, model, prompt, limit });
+    const result = route === "direct_acp" ? await direct({ command, cwd, model, effort, prompt, limit }) : await throughOar({ command, cwd, model, effort, prompt, limit });
     const frames = await readWire(wire);
     const nativeExit = frames.findLast(frame => asRecord(frame)?.kind === "native_exit");
     routes.push({ route, startedAt, endedAt: new Date().toISOString(), result, nativeExit: nativeExit ?? { observed: false, reason: "No native exit callback was retained; wrapper exit is separate evidence" }, wire: frames });
@@ -166,6 +173,7 @@ const send = (value: unknown): void => { process.stdout.write(`${JSON.stringify(
 async function fixture(mode: string): Promise<void> {
   if (process.argv.includes("--version")) { console.log("1.5.9 synthetic ACP fixture"); return; }
   const option = { id: "model", name: "Model", category: "model", type: "select", currentValue: "probe-model", options: [{ value: "probe-model", name: "Probe" }] };
+  const thinking = { id: "thought_level", name: "Thinking", category: "thought_level", type: "select", currentValue: "low", options: [{ value: "low", name: "Low" }, { value: "high", name: "High" }] };
   const input = createInterface({ input: process.stdin });
   input.on("line", line => {
     const message = asRecord(JSON.parse(line));
@@ -174,12 +182,13 @@ async function fixture(mode: string): Promise<void> {
     let result: unknown = {};
     switch (message.method) {
       case "initialize": result = { protocolVersion: 1, agentCapabilities: { loadSession: false, promptCapabilities: {} }, authMethods: [] }; break;
-      case "session/new": result = { sessionId: "fixture-session", configOptions: [option] }; break;
+      case "session/new": result = { sessionId: "fixture-session", configOptions: [option, thinking] }; break;
       case "session/set_config_option":
-        if (mode === "refuse") { option.currentValue = "different-model"; }
+        if (params?.configId === "thought_level") { thinking.currentValue = mode === "effort-refuse" ? "low" : String(params.value); }
+        else if (mode === "refuse") { option.currentValue = "different-model"; }
         else if (typeof params?.value === "string") { option.currentValue = params.value; }
-        result = { configOptions: [option] };
-        send({ jsonrpc: "2.0", method: "session/update", params: { sessionId: "fixture-session", update: { sessionUpdate: "config_option_update", configOptions: [option] } } }); break;
+        result = { configOptions: [option, thinking] };
+        send({ jsonrpc: "2.0", method: "session/update", params: { sessionId: "fixture-session", update: { sessionUpdate: "config_option_update", configOptions: [option, thinking] } } }); break;
       case "session/prompt":
         if (mode === "stall") { return; }
         if (mode === "500") { send({ jsonrpc: "2.0", id: message.id, error: { code: -32_603, message: "synthetic read_file HTTP 500" } }); return; }
@@ -196,11 +205,11 @@ async function fixture(mode: string): Promise<void> {
 async function selfTest(output: string): Promise<void> {
   await mkdir(output, { recursive: true });
   const video = path.join(output, "synthetic.mp4"); await writeFile(video, "synthetic fixture, not a video");
-  for (const mode of ["success", "500", "stall", "refuse"]) {
+  for (const mode of ["success", "500", "stall", "refuse", "effort-refuse"]) {
     const binary = path.join(output, `${mode}.sh`);
     await writeFile(binary, `#!/bin/sh\nexec ${quote(process.execPath)} --import ${quote(tsx)} ${quote(entry)} --fixture ${quote(mode)} "$@"\n`, { mode: 0o700 });
     const file = path.join(output, `${mode}.json`);
-    await measure({ binary, video, model: "probe-model", output: file, limit: mode === "stall" ? 200 : 5000 });
+    await measure({ binary, video, model: "probe-model", effort: "high", output: file, limit: mode === "stall" ? 200 : 5000 });
     const report = asRecord(JSON.parse(await readFile(file, "utf8")));
     assert.ok(Array.isArray(report?.routes));
     for (const raw of report.routes) {
@@ -208,7 +217,7 @@ async function selfTest(output: string): Promise<void> {
       assert.ok(Array.isArray(route?.wire) && route.wire.length > 0);
       if (mode === "success") { assert.equal(result?.error, undefined, json(result)); }
       if (mode === "500") { assert.ok(JSON.stringify(route.wire).includes("synthetic read_file HTTP 500")); }
-      if (mode === "stall" || mode === "refuse") { assert.equal(typeof result?.error, "string"); }
+      if (mode === "stall" || mode === "refuse" || mode === "effort-refuse") { assert.equal(typeof result?.error, "string"); }
       assert.equal(result?.cleanupError, undefined, json(result));
     }
   }
@@ -221,7 +230,7 @@ if (mode === "--bridge") {
 } else if (mode === "--fixture") { await fixture(args[0] ?? "success"); }
 else if (mode === "--self-test") { assert.ok(args[0] !== undefined); await selfTest(path.resolve(args[0])); }
 else {
-  const [video, model, output, seconds = "180"] = args;
-  assert.ok(mode !== undefined && video !== undefined && model !== undefined && output !== undefined, "Usage: probe.ts /absolute/agy /absolute/video model /absolute/output.json [seconds]");
-  await measure({ binary: mode, video, model, output, limit: Number(seconds) * 1000 });
+  const [video, model, effort, output, seconds = "180"] = args;
+  assert.ok(mode !== undefined && video !== undefined && model !== undefined && effort !== undefined && output !== undefined, "Usage: probe.ts /absolute/agy /absolute/video model effort /absolute/output.json [seconds]");
+  await measure({ binary: mode, video, model, effort, output, limit: Number(seconds) * 1000 });
 }
