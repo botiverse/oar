@@ -27,9 +27,10 @@ Source inspected at
 
 The [probe](../inventory/kimi-skills.py) starts
 `kimi web --no-open --host 127.0.0.1 --port 0`, registers an owned workspace,
-queries its skills and unregisters it. The native registration contract
-creates a fresh ID per call. It neither reuses nor removes a user's existing
-workspace. Startup output includes a bearer token; the probe and adapter
+queries its skills and unregisters it. Its disposable home starts empty.
+The reader also lists existing workspace IDs before POST and never unregisters
+a returned ID already present in that list. Kimi 2.4.1 reuses an existing
+same-root ID; 2.6.2 creates a fresh one. No version threshold is needed. Startup output includes a bearer token; the probe and adapter
 consume it privately and never forward stdout/stderr or include it in results.
 
 The final paired samples took 1,990/1,915 ms to start and 2,259/2,185 ms
@@ -100,18 +101,24 @@ pnpm tsx experiments/skills-builtins.ts /absolute/claude /absolute/grok output.j
 # Optional existing-home read, still no prompt; output may contain local user paths.
 OAR_SKILLS_EXISTING_GROK=1 pnpm tsx experiments/skills-builtins.ts /absolute/claude /absolute/grok output.json
 python3 experiments/inventory/grok-bundled-skills.py /absolute/grok output-bundled.json
-OAR_TEST=kimi-skills OAR_KIMI_BIN=/absolute/kimi pnpm vitest run sea-trial/vendor/kimi-skills.vendor.test.ts
+# fresh for 2.6.2; reuse for 2.4.1. This asserts native semantics, not adapter policy.
+OAR_TEST=kimi-skills OAR_KIMI_WORKSPACE_MODE=fresh OAR_KIMI_BIN=/absolute/kimi pnpm vitest run sea-trial/vendor/kimi-skills.vendor.test.ts
 ```
 
 Kimi's unit regression failed before adding the runtime reader; Grok's source
 regression failed before projecting object sources. Both pass afterward.
 The native Kimi suite passed on 2.6.2 and the existing CI pin 2.4.1: normal
 query, transport failure and timeout each leave no observed child process or
-listening port. It runs alongside the existing Kimi login tests in the
-three-platform check jobs. Local observations here are Linux only; the new
-macOS and Windows CI outcomes must be read from the pull request.
+listening port. Another native control first registers a user workspace, runs
+the reader against the same root, and confirms the original registration
+survives. This control initially failed on 2.4.1: POST reused the user's ID
+and the old adapter deleted it. The failing sample is retained. With the
+existing-ID guard, 2.4.1 now asserts reuse and no DELETE; 2.6.2 asserts a
+fresh ID, deletion of only that ID and preservation of the user's registration.
+Both versions run in the three-platform check jobs. Local observations here
+are Linux only; the new macOS and Windows CI outcomes must be read from the pull request.
 
-Full local checks passed: 4,443 unit tests and 18 mock behavior cases.
+Full local checks passed: 4,450 unit tests and 18 mock behavior cases.
 No inference quota was used for these controls. A lighter independent native
 query is requested in the [upstream issue draft](upstream-issue-draft.md),
 which has not been submitted.

@@ -12,7 +12,7 @@ const token = "synthetic-private-startup-token";
 const calls: { path: string; method: string; body: unknown }[] = [];
 let fake: FakeLineProcess = fakeLineProcess();
 
-function serve(skills: unknown = [{ name: "update-config", source: "builtin", path: "builtin://update-config", description: "Configure", disable_model_invocation: true, body: "private body" }]): void {
+function serve(skills: unknown = [{ name: "update-config", source: "builtin", path: "builtin://update-config", description: "Configure", disable_model_invocation: true, body: "private body" }], existing: unknown = [], id = "wm-owned"): void {
   fake = fakeLineProcess();
   spawn.mockImplementation(() => {
     queueMicrotask(() => { fake.emit(`http://127.0.0.1:45678/#token=${token}\n`); });
@@ -25,7 +25,8 @@ function serve(skills: unknown = [{ name: "update-config", source: "builtin", pa
     expect(new Headers(init?.headers).get("authorization")).toBe(`Bearer ${token}`);
     const path = new URL(input).pathname;
     calls.push({ path, method: init?.method ?? "GET", body: typeof init?.body === "string" ? JSON.parse(init.body) : undefined });
-    let data: unknown = { id: "wm-owned" };
+    let data: unknown = { id };
+    if (path.endsWith("/workspaces") && init?.method === "GET") { data = { items: existing }; }
     if (path.endsWith("/skills")) { data = { skills }; }
     if (init?.method === "DELETE") { expect(new Headers(init.headers).has("content-type")).toBe(false); data = { deleted: true }; }
     return Response.json({ code: 0, data, msg: "success", request_id: "native" });
@@ -41,6 +42,7 @@ test("Kimi discovers native metadata without a session and keeps its token priva
     { name: "update-config", source: "builtin", path: "builtin://update-config", description: "Configure", disableModelInvocation: true },
   ] });
   expect(calls).toEqual([
+    { path: "/api/v1/workspaces", method: "GET", body: undefined },
     { path: "/api/v1/workspaces", method: "POST", body: { root: resolve("/project") } },
     { path: "/api/v1/workspaces/wm-owned/skills", method: "GET", body: undefined },
     { path: "/api/v1/workspaces/wm-owned", method: "DELETE", body: undefined },
@@ -49,6 +51,22 @@ test("Kimi discovers native metadata without a session and keeps its token priva
   expect(spawn.mock.calls[0]?.[2]).toMatchObject({ killTree: true, inheritStderr: false });
   expectReaderEnvironment(spawn.mock.calls[0]?.[2]?.env);
   expect(JSON.stringify(result)).not.toMatch(/synthetic-private|private body/u);
+  expect(fake.killed()).toBe(true);
+});
+
+test.each([[], null])("reused workspace survives a successful or failed skill read: %j", async (payload) => {
+  serve(payload, [{ id: "wd-user", name: "User workspace" }], "wd-user");
+  const result = await kimiRuntime.skills(installation);
+  expect(result.kind).toBe(payload === null ? "unavailable" : "ok");
+  expect(calls.map((call) => call.method)).toEqual(["GET", "POST", "GET"]);
+  expect(calls.at(-1)?.path).toBe("/api/v1/workspaces/wd-user/skills");
+  expect(fake.killed()).toBe(true);
+});
+
+test.each([null, {}, [null], [{}], [{ id: "" }]])("invalid workspace catalog fails before registration: %j", async (existing) => {
+  serve([], existing);
+  await expect(kimiRuntime.skills(installation)).resolves.toMatchObject({ kind: "unavailable", code: "query_failed" });
+  expect(calls.map((call) => call.method)).toEqual(["GET"]);
   expect(fake.killed()).toBe(true);
 });
 

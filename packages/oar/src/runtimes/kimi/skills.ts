@@ -46,6 +46,11 @@ function skills(payload: JsonRecord): SkillEntry[] {
   }));
 }
 
+function workspaceId(workspace: JsonRecord): string {
+  if (typeof workspace.id !== "string" || workspace.id.length === 0) { throw new TypeError("Kimi workspace has no identity"); }
+  return workspace.id;
+}
+
 /** Native workspace catalog; no session, model prompt or authentication flow. */
 export const kimiSkills: InventoryReader<SkillEntry> = async (installation, options = {}) => {
   if (installation.via !== "executable") {
@@ -66,16 +71,17 @@ export const kimiSkills: InventoryReader<SkillEntry> = async (installation, opti
     return await inventoryRead(async () => {
       await child.spawned;
       const web = await ready;
-      const workspace = await request(web, controller.signal, "/workspaces", "POST", { root: scope.cwd });
-      if (typeof workspace.id !== "string" || workspace.id.length === 0) { throw new TypeError("Kimi workspace has no identity"); }
-      const path = `/workspaces/${encodeURIComponent(workspace.id)}`;
+      const catalog = await request(web, controller.signal, "/workspaces");
+      const existing = new Set(nativeRows(catalog.items).map((row) => workspaceId(row)));
+      const id = workspaceId(await request(web, controller.signal, "/workspaces", "POST", { root: scope.cwd }));
+      const path = `/workspaces/${encodeURIComponent(id)}`;
       try {
         const payload = await request(web, controller.signal, `${path}/skills`);
         return inventoryOk(scope, "discovered", skills(payload));
       } finally {
         // Only unregister the workspace this read created. Native logs/indexes
         // and the persistent server token remain; interruption can leave registration.
-        await request(web, controller.signal, path, "DELETE");
+        if (!existing.has(id)) { await request(web, controller.signal, path, "DELETE"); }
       }
     }, timeoutMs);
   } finally {

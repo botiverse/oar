@@ -128,7 +128,9 @@ ACP session's `available_commands_update` is not an independent query.
 | Cursor, Antigravity, DSH, OpenCode, Pi Durable, Qwen, Qoder, CodeBuddy, Devin, Factory | Unsupported on the selected interface | Unsupported on the selected interface | Unsupported on the selected interface | Unsupported on the selected interface |
 
 Kimi starts a private loopback Web service, reads the complete workspace skill
-catalog and stops its owned process tree. Native logs, indexes and the
+catalog and stops its owned process tree. A workspace ID returned by registration
+is unregistered only if absent from the preceding native workspace list;
+existing registrations are retained. Native logs, indexes and the
 persistent Web token can be created; no session or prompt is submitted.
 Malformed skill files skipped by Kimi are absent from its catalog; a successful
 complete catalog still has `partial:false`, while malformed responses fail.

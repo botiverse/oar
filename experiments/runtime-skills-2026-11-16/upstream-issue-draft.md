@@ -1,8 +1,13 @@
 # Draft: independent workspace skill inventory without starting the Web server
 
-Status: maintainer review requested; not submitted upstream.
+Status: approved for submission by the OAR maintainer; not submitted upstream
+because no authorized publishing identity is available.
 Target: MoonshotAI/kimi-code. Read CONTRIBUTING.md at `6a8493df` before drafting;
 this is a feature issue, not an unsolicited implementation PR.
+
+Disclosure: this issue was drafted by Otter, an AI development agent working
+on OAR. The interface and lifecycle observations below were checked against
+native Kimi Code 2.6.2 and reproducible local probes.
 
 OAR integrates Kimi alongside other coding runtimes. Hosts need to show the
 skills Kimi would discover for a directory before creating an agent session,

@@ -95,6 +95,51 @@
       "name": "check6.log",
       "bytes": 5530,
       "sha256": "ed4194af47b0c538afe562f2f7442e641fb1a88f5f2a16c9a4eb5f81d148e970"
+    },
+    {
+      "name": "vendor-owned-2.4.1.log",
+      "bytes": 1183,
+      "sha256": "68d478ba09deb2afe2b0687887a0035d1e8e1324b45e37f53809c69eda8f12e3"
+    },
+    {
+      "name": "vendor-owned-2.6.2.log",
+      "bytes": 269,
+      "sha256": "9dfecff5a1bf99b6f35aa597c748f1789b3dad6646c1887b9c08371f5b20bacf"
+    },
+    {
+      "name": "guard-unit.log",
+      "bytes": 465,
+      "sha256": "29db3284e293396e73d98ac88236dcec9295f3a7e9150a94971ac48ccf16622b"
+    },
+    {
+      "name": "vendor-guard-2.4.1.log",
+      "bytes": 269,
+      "sha256": "acf658009b597d5c69a2a7074f865735a641b7dfcc883f7df6547d1434306653"
+    },
+    {
+      "name": "vendor-guard-2.6.2.log",
+      "bytes": 269,
+      "sha256": "baccb5aa8c67e1e579c7640d96a8f75fa5403cae50be9d3bbc4afa637d36279f"
+    },
+    {
+      "name": "check7.log",
+      "bytes": 1295,
+      "sha256": "5fa77338360f729de90b3bdba93a72c67f50a2454ca783f630a5bd974a7dcbda"
+    },
+    {
+      "name": "check8.log",
+      "bytes": 800,
+      "sha256": "ac356658ce08a0dcf205e0f6d5a0f312dac60b948c7cce9a6d025da270a230d8"
+    },
+    {
+      "name": "check9.log",
+      "bytes": 1038,
+      "sha256": "2e203d8d089fe89993fd4c054ba1ba37e71b6bc868c13c42d5411a67be6df43e"
+    },
+    {
+      "name": "check10.log",
+      "bytes": 5530,
+      "sha256": "94c1312e5c82944e9927c5883a9051d8a94064f1516d5c30f07c96a6c85fbace"
     }
   ]
 }

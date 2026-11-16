@@ -66,9 +66,10 @@ every agent in the native session. OAR uses `kimi acp`.
 ## Independent skill discovery
 
 `skills()` starts `kimi web --no-open --host 127.0.0.1 --port 0` with the
-reader's directory and environment. It registers a fresh owned workspace,
-reads `/api/v1/workspaces/{id}/skills`, unregisters that workspace and stops
-the process tree. It creates no session and submits no prompt. Success,
+reader's directory and environment. It lists existing workspace IDs before
+registering the requested root, reads `/api/v1/workspaces/{id}/skills` and
+unregisters the returned ID only if it was absent from that list. A reused
+registration is retained. It then stops the process tree. It creates no session and submits no prompt. Success,
 error and timeout all wait for process cleanup; the default read deadline is
 15 seconds. The reader never forwards native stdout/stderr, follows redirects
 or returns the private startup bearer token.
@@ -95,7 +96,11 @@ Node SDK's session method requires a session; `visibleBuiltinSkills` is an
 internal built-in filter, not a public full-catalog SDK query. Web already
 resolves built-ins and file/plugin catalogs together, so OAR uses that native
 interface instead of reproducing its resolver. Native cleanup tests pass on
-2.6.2 and the existing CI pin 2.4.1.
+2.6.2 and the existing CI pin 2.4.1, including a user registration at the same
+root: 2.4.1 reuses and preserves that ID; 2.6.2 creates a fresh ID that OAR
+removes while preserving the user's registration. This is decided by the
+native ID, without a version threshold. An invalid workspace list fails
+before registration.
 [Interface comparison, probes and limits](../../experiments/runtime-skills-2026-11-16/README.md).
 
 ## High-level mapping to OAR
