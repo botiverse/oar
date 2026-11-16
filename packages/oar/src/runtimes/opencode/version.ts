@@ -8,12 +8,12 @@ import { sessionEnvironment } from "../../shared/environment.js";
 export interface OpencodeRelease { readonly major: 1 | 2; readonly minor: number; readonly patch: number }
 
 /** The two independently maintained native lines share one command name. */
-export async function opencodeRelease(installation: ExecutableInstallation, options?: Pick<SessionOptions, "cwd" | "env">): Promise<OpencodeRelease> {
+export async function opencodeRelease(installation: ExecutableInstallation, options?: Pick<SessionOptions, "cwd" | "env"> & { readonly signal?: AbortSignal }): Promise<OpencodeRelease> {
   let version = installation.version;
   if (version === undefined) {
     const result = await runExecutable(installation.command, ["--version"], {
       timeoutMs: 15_000,
-      ...(options === undefined ? {} : { cwd: options.cwd, env: sessionEnvironment(options.env) }),
+      ...(options === undefined ? {} : { cwd: options.cwd, env: sessionEnvironment(options.env), ...(options.signal === undefined ? {} : { signal: options.signal }) }),
     });
     if (!result.ok) {
       throw processFailure("Failed to identify the opencode release line", result.diagnostics ?? { exitCode: result.exitCode, signal: null, stderr: result.stderr });

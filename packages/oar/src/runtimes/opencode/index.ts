@@ -21,6 +21,10 @@ export const opencodeRuntime = defineRuntime({
     return opencodeSession;
   }),
   listModels: opencodeListModels,
+  skills: onFirstCall(async () => {
+    const { opencodeSkills } = await import("./skills.js");
+    return opencodeSkills;
+  }),
 }, { execution: "process", shared: {
   refusal: opencodeSharedRefusal,
   session: () => onFirstCall(async () => {

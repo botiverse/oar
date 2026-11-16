@@ -1,6 +1,7 @@
 # OpenCode
 
-Independent inventories: not implemented for OpenCode yet.
+Independent inventories: `skills()` reads the native v1 CLI or v2 HTTP catalog;
+other inventory members remain unsupported. See [skill discovery](#independent-skill-discovery).
 See the [query contract](../spec/inventory.md) and [native probe evidence](inventory.md).
 
 The installed executable selects the adapter behavior: v1 (`opencode-ai`)
@@ -1323,3 +1324,31 @@ Installation and model listing accept the session-style `env` overlay.
 The model reader uses it both when identifying an unknown native version and
 when querying that version's catalog. See
 [reader environments](../spec/orientation.md#environment).
+
+
+## Independent skill discovery
+
+`skills()` runs v1 `debug skill`, or starts an owned v2 loopback HTTP service.
+The v2 reader first calls `provider.list`, whose verified 2.2.7/2.3.0 implementation
+waits for plugin activation, then reads plugin states and `skill.list`. The
+skill endpoint alone can return a successful empty list before registration
+finishes. The v2 reader requires 2.2.7 or newer for this verified barrier;
+older v2 installations return `version_unsupported` from this reader only.
+
+Results have `view: "discovered"`. Native names, descriptions and paths are
+preserved, including shared `.claude/skills` and `.agents/skills` paths. V1's
+explicit builtin marker supplies `source: "builtin"`; v2 does not expose an
+origin field and OAR does not invent one. Native `autoinvoke: false` maps to
+`disableModelInvocation: true`. No skill body is returned.
+
+An empty catalog is accepted after readiness, without requiring a nonempty
+provider or skill list. V2 failed plugins mark the result partial; activation
+failures, malformed responses and failed processes are unavailable. Malformed
+files skipped by native discovery remain absent; this catalog is not a disk
+validation report. V1 offers no plugin failure diagnostics.
+
+The reader creates no session, prompt or persistent service registration.
+Native startup still loads workspace plugins and can write native databases,
+logs and caches or access configured remote skill sources. The caller deadline
+bounds version detection, startup and HTTP reads; owned processes and listeners
+are stopped before returning. [Evidence, source and reproduction](../../experiments/opencode-skills/README.md).
