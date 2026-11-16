@@ -242,8 +242,9 @@ report links those results; its manual Claude/Codex comparisons are Linux only.
 
 Supported: `cwd`, `resume`, `env`, `model` as `provider/model` (a bare name is
 refused at open: it has no route), `effort` as `reasoningEffort`, and stdio
-`mcpServers` with command/args ([MCP details](#session-mcp-servers)), `name`, and
-`disallowedTools` ([native title and tool boundaries](#session-name-and-tool-denial)).
+`mcpServers` with command/args ([MCP details](#session-mcp-servers)), `name`,
+`disallowedTools` ([native title and tool boundaries](#session-name-and-tool-denial)),
+`systemPrompt` and `appendSystemPrompt` ([prompt boundaries](#system-prompts)).
 
 `DSH_PERMISSION_MODE` is `danger-full-access` unless the host names its own for this
 session in `SessionOptions.env`: nobody sits at an approval prompt, and native reports
@@ -251,8 +252,7 @@ session in `SessionOptions.env`: nobody sits at an approval prompt, and native r
 tools run and the native `permission/preset` frame is recorded.
 
 Refused with `UnsupportedOptionError`, each until its own probe:
-`systemPrompt`, `appendSystemPrompt`, `launchArgs`,
-`serviceTier`, `additionalDirectories`, `outputSchema`,
+`launchArgs`, `serviceTier`, `additionalDirectories`, `outputSchema`,
 `userConfiguration: "exclude"`, `goals: true`, `endTurnProcessesOnAbort: true`
 ([`options.ts`](../../packages/oar/src/runtimes/dsh/options.ts)). Images are not
 sent: `capabilities.images` is false and an input with images is rejected
@@ -290,6 +290,37 @@ not an OS sandbox or an inherited security boundary.
 cover both supported release lines on Linux, first host turns, resume,
 forged calls, opening failures and two agents in one process. Windows native
 execution is not part of this observation.
+
+## System prompts
+
+The bridge registers a literal section in the agent's own native scope, inside
+DSH's setup barrier before creation hooks can start a turn. `systemPrompt` is a
+complete section replacing the native system text. `appendSystemPrompt` alone
+adds a section immediately after the deployment persona suffix. When both are
+supplied, the complete section contains the replacement, two newlines, and the
+append text: DSH otherwise discards ordinary sections beside a complete one.
+`{{...}}` remains literal. Tool declarations and the separate user-role runtime
+context (cwd, sandbox and approval policy) are not replaced.
+
+The bridge confirms the native assembled sections after existing creation
+listeners, while publication still holds queued input, to check that the literal
+contribution survives. A native complete prompt that conflicts with replacement
+or suppresses an append is refused at open with `UnsupportedOptionError`, before
+a provider request. It is not silently combined with a competing complete prompt.
+
+On ordinary resume, supplied text takes effect at the first resumed request;
+omitting both options restores the native default prompt. The scoped registration
+is rebuilt on every open, not recovered from the saved prompt event. Hosts must
+supply their intended options on each resume. Native sibling agents in the same
+process keep independent prompts. A native `subagent` starts with its own default
+prompt and does not inherit the parent's OAR section.
+
+These are Linux observations on DSH 0.2.1-rc.5 and 0.2.2-rc.1 against local
+providers, checked against native durable `system/message` events and outgoing
+provider messages. Compaction and other platforms have not been measured for
+these options. `resumedSessionOptions` declares both prompt options as
+`provided: "immediate"`, `omitted: "default"`. See the
+[reproduction and review evidence](../../experiments/dsh-system-prompt/README.md).
 
 ## Models
 

@@ -193,8 +193,10 @@ too; see the [Qoder](https://github.com/botiverse/oar/blob/main/docs/runtimes/qo
 and [CodeBuddy](https://github.com/botiverse/oar/blob/main/docs/runtimes/codebuddy.md) mappings.
 `dshRuntime` (DeepSeek Harness through a private plugin on its native services, one
 process per session, `DSH_MINIMUM_VERSION` `0.2.1-rc.5` or later) is too; it selects
-models as `provider/model`, takes stdio session MCP servers only, and most session
-options stay refused until probed; native session names and tool denial are supported ([mapping](https://github.com/botiverse/oar/blob/main/docs/runtimes/dsh.md)).
+models as `provider/model`, takes stdio session MCP servers, and supports native
+session names, tool denial, and literal system prompt replacement and append.
+Supply prompt and tool-denial options on every resume; native child agents use
+their own defaults. Other session options stay refused until probed ([mapping](https://github.com/botiverse/oar/blob/main/docs/runtimes/dsh.md)).
 `devinRuntime` (Devin CLI's `devin acp`, isolated process per session) is in
 `defaultRuntimes` too; it reads `authStatus` and `distribution` update markers,
 attaches stdio/HTTP session MCP entries, switches model and effort synchronously

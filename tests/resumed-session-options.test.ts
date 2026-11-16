@@ -24,7 +24,7 @@ test("the complete resume declaration inventory is measured and never declares a
       codex: ["appendSystemPrompt", "systemPrompt"],
       cursor: null,
       devin: null,
-      dsh: null,
+      dsh: ["appendSystemPrompt", "systemPrompt"],
       factory: null,
       grok: null,
       kimi: null,

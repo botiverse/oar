@@ -25,7 +25,7 @@ const command = fakeAgentBinary(dir, [path.resolve(import.meta.dirname, "../fixt
 const cwd = dir;
 afterAll(() => { rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 }); });
 
-async function open(env: Readonly<Record<string, string>> = {}, options: { readonly resume?: string; readonly model?: string; readonly effort?: string; readonly name?: string; readonly disallowedTools?: readonly string[] } = {}): Promise<Session> {
+async function open(env: Readonly<Record<string, string>> = {}, options: { readonly resume?: string; readonly model?: string; readonly effort?: string; readonly systemPrompt?: string; readonly appendSystemPrompt?: string; readonly name?: string; readonly disallowedTools?: readonly string[] } = {}): Promise<Session> {
   const session = await dshRuntime.session({ kind: "available", via: "executable", command, version: "0.2.1-rc.5" }, { cwd, env, ...options });
   return session;
 }
@@ -64,6 +64,15 @@ test("an installation that names no version is checked against the executable be
   expect(refused).toMatchObject({ failure: "invalid_request", message: "DSH 0.2.1-rc.1 is below the supported floor; OAR requires 0.2.1-rc.5 or later" });
   const session = await dshRuntime.session({ kind: "available", via: "executable", command }, { cwd });
   await session.dispose();
+});
+
+test.each(["systemPrompt", "appendSystemPrompt"] as const)("missing native prompt service refuses %s on open and resume", async (option) => {
+  for (const resume of [undefined, "11111111-1111-4111-8111-111111111111"]) {
+    // oxlint-disable-next-line no-await-in-loop -- Exercise both lifecycle paths against the same missing native capability.
+    const error = await failure({}, { [option]: "literal {{text}}", ...(resume === undefined ? {} : { resume }) });
+    expect(error).toBeInstanceOf(UnsupportedOptionError);
+    expect(error).toMatchObject({ option, message: `This DSH does not provide section(), which ${option} requires` });
+  }
 });
 
 test("a model that is not provider/model is refused before anything starts", () => {

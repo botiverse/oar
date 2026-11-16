@@ -65,7 +65,7 @@ test("the declarations say which options each runtime refuses", () => {
     codex: ["userConfiguration"],
     cursor: ["appendSystemPrompt", "endTurnProcessesOnAbort", "env", "goals", "launchArgs", "name", "outputSchema", "serviceTier", "systemPrompt"],
     devin: ["additionalDirectories", "appendSystemPrompt", "disallowedTools", "endTurnProcessesOnAbort", "goals", "name", "outputSchema", "serviceTier", "systemPrompt", "userConfiguration"],
-    dsh: ["additionalDirectories", "appendSystemPrompt", "endTurnProcessesOnAbort", "goals", "launchArgs", "mcpServerCredentials", "outputSchema", "serviceTier", "systemPrompt", "userConfiguration"],
+    dsh: ["additionalDirectories", "endTurnProcessesOnAbort", "goals", "launchArgs", "mcpServerCredentials", "outputSchema", "serviceTier", "userConfiguration"],
     factory: ["additionalDirectories", "disallowedTools", "endTurnProcessesOnAbort", "goals", "name", "outputSchema", "serviceTier", "userConfiguration"],
     grok: ["additionalDirectories", "disallowedTools", "goals", "name", "serviceTier", "userConfiguration"],
     kimi: ["appendSystemPrompt", "disallowedTools", "endTurnProcessesOnAbort", "goals", "name", "outputSchema", "serviceTier", "systemPrompt", "userConfiguration"],
