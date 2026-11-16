@@ -1,0 +1,115 @@
+{
+  "localRoot": "artifacts/skills-discovery-2026-11-16",
+  "files": [
+    {
+      "file": "final-1.19.5.log",
+      "bytes": 478,
+      "sha256": "551c96c9d636a5d846711ec550afc9a6d15d6436ae0dcca07bd4825ab7846b4a"
+    },
+    {
+      "file": "final-1.19.5/opencode-skills/1-success.json",
+      "bytes": 2058,
+      "sha256": "755596a28bfc0809505d91afa0d622ea97260b5c39707422aa643f8ebac00573"
+    },
+    {
+      "file": "final-2.2.7.log",
+      "bytes": 468,
+      "sha256": "67e412147da87af85f102615d896bff8ba79ddc638c0a4c9ae707f7be3cbbd48"
+    },
+    {
+      "file": "final-2.2.7/opencode-skills/2-failure.json",
+      "bytes": 225,
+      "sha256": "5036602b779388e56b955ef6ddc48527cf88e523fa79adfc3ac7d007e05bb0e6"
+    },
+    {
+      "file": "final-2.2.7/opencode-skills/2-plugin-failure.json",
+      "bytes": 2739,
+      "sha256": "da972091f08734a019c03277248d9518390494708032e3dcd53bf07c2e74d766"
+    },
+    {
+      "file": "final-2.2.7/opencode-skills/2-success.json",
+      "bytes": 2733,
+      "sha256": "2a6c778923c9c5f3cd28b54386c5c02f11f99f6d252d848304b4ae3755e2e74f"
+    },
+    {
+      "file": "final-2.2.7/opencode-skills/2-timeout.json",
+      "bytes": 223,
+      "sha256": "dbf47c15e673cdd156c4eaa7c66f0acc5f894adc3c7db1c8bfe8efaf5b542be4"
+    },
+    {
+      "file": "final-2.3.0.log",
+      "bytes": 468,
+      "sha256": "df7296529d95182e5571631e913d8334b9ae0358685a6792d3470a829930575d"
+    },
+    {
+      "file": "final-2.3.0/opencode-skills/2-failure.json",
+      "bytes": 225,
+      "sha256": "f7d305d457d633b8974a80077508efdf3c205bbce08eec20f3d895ed493abc0b"
+    },
+    {
+      "file": "final-2.3.0/opencode-skills/2-plugin-failure.json",
+      "bytes": 2739,
+      "sha256": "d9bc3ac3ea3b183a7c493b8c166d07296ec876e7bf6a41ecb00c9c2819e79cc5"
+    },
+    {
+      "file": "final-2.3.0/opencode-skills/2-success.json",
+      "bytes": 2733,
+      "sha256": "b5e505ade2dbc3d27fc72757164a40e46b8b2b6b1b65fd63f406fdd078f4d083"
+    },
+    {
+      "file": "final-2.3.0/opencode-skills/2-timeout.json",
+      "bytes": 223,
+      "sha256": "1bc86e853398f6d591502a502d995df8f3d54ca93b0d25e5209798a00c32907c"
+    },
+    {
+      "file": "native-v1-isolated.json",
+      "bytes": 20576,
+      "sha256": "11c728cae3514a7280a4eb646aa644c370471eb5a201ec87e730f9e101346824"
+    },
+    {
+      "file": "native-v1.json",
+      "bytes": 197,
+      "sha256": "f96f8a244650872689fef0086f5bd8d01d7b0e03719c6b6a58a180e33c4016fe"
+    },
+    {
+      "file": "native-v2-ready.json",
+      "bytes": 60570,
+      "sha256": "841fb22da45c69c48fa2d12f0f64c9691df49c372d9e4b9ff2df83520061a30e"
+    },
+    {
+      "file": "native-v2.json",
+      "bytes": 239,
+      "sha256": "51d701d528ee875b17e6c3ad7113e0aea70405826bb8818295fa084cd7c8c10d"
+    },
+    {
+      "file": "plugin-failure-2.2.7.log",
+      "bytes": 281,
+      "sha256": "b2c6a79ea63902c6d54616cf0df4fc99f0b04453e3b75708e16435c70ad5233b"
+    },
+    {
+      "file": "plugin-failure-2.3.0.log",
+      "bytes": 478,
+      "sha256": "420170df9839929c0781b210af275f8cca862af66367bb2e68e4e0826ea08d00"
+    },
+    {
+      "file": "unit-red.log",
+      "bytes": 8148,
+      "sha256": "f1f15518c94d549c9b3f485366d92aba459f0e2c347cd387043d155293661949"
+    },
+    {
+      "file": "vendor-1.19.5.log",
+      "bytes": 1553,
+      "sha256": "18dcae967f2f65d903db88900c41f6f9c27c6176b8c3a615a3d4b4c39fa79d01"
+    },
+    {
+      "file": "vendor-2.2.7.log",
+      "bytes": 271,
+      "sha256": "4bb8c40c8f3ebe9de35c67c7e3d378cbc3e98a3b14195cc6a12809ae010bd280"
+    },
+    {
+      "file": "vendor-2.3.0.log",
+      "bytes": 468,
+      "sha256": "eeaaede562f18ab49b29a10ec141f9dd8c3660fefdc3a87346d9701b14cce3c1"
+    }
+  ]
+}

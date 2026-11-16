@@ -125,7 +125,8 @@ ACP session's `available_commands_update` is not an independent query.
 | Grok | `inspect --json` skills | Unsupported for independent queries | `inspect --json` configured/compatibility entries | Unsupported for independent queries |
 | Pi | SDK resource loader | SDK extension runner and prompt templates | Unsupported | SDK registered tools, parameter schemas and active membership |
 | Kimi | Native Web workspace skills; temporary loopback service, native state writes | Unsupported | Unsupported | Unsupported |
-| Cursor, Antigravity, DSH, OpenCode, Pi Durable, Qwen, Qoder, CodeBuddy, Devin, Factory | Unsupported on the selected interface | Unsupported on the selected interface | Unsupported on the selected interface | Unsupported on the selected interface |
+| OpenCode | v1 `debug skill`; v2 native HTTP catalog after plugin activation | Unsupported | Unsupported | Unsupported |
+| Cursor, Antigravity, DSH, Pi Durable, Qwen, Qoder, CodeBuddy, Devin, Factory | Unsupported on the selected interface | Unsupported on the selected interface | Unsupported on the selected interface | Unsupported on the selected interface |
 
 Kimi starts a private loopback Web service, reads the complete workspace skill
 catalog and stops its owned process tree. A workspace ID returned by registration

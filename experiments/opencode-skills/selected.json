@@ -1,0 +1,390 @@
+{
+  "normalization": "Temporary fixture roots replaced with <fixture>; no bodies or credentials included.",
+  "coldV2": [
+    {
+      "path": "/api/skill",
+      "elapsedSeconds": 0.5406131539493799,
+      "entryCount": 0,
+      "skillNames": []
+    },
+    {
+      "path": "/api/provider",
+      "elapsedSeconds": 1.4575721183791757,
+      "entryCount": 1,
+      "skillNames": null
+    },
+    {
+      "path": "/api/skill",
+      "elapsedSeconds": 1.4599909563548863,
+      "entryCount": 9,
+      "skillNames": [
+        "OpenCode",
+        "Report",
+        "Browser",
+        "home-claude",
+        "project-claude",
+        "home-agents",
+        "project-agents",
+        "config-opencode",
+        "project-opencode"
+      ]
+    },
+    {
+      "path": "/api/plugin",
+      "elapsedSeconds": 1.463189413305372,
+      "entryCount": 94,
+      "skillNames": null
+    }
+  ],
+  "nativeAdapterControls": [
+    {
+      "version": "1.19.5",
+      "mode": "success",
+      "result": {
+        "kind": "ok",
+        "scope": {
+          "kind": "workspace",
+          "cwd": "<fixture>/project"
+        },
+        "observedAt": "2026-11-16T16:19:03.270Z",
+        "view": "discovered",
+        "items": [
+          {
+            "name": "customize-opencode",
+            "description": "Use ONLY when the user is editing or creating opencode's own configuration: opencode.json, opencode.jsonc, files under .opencode/, or files under ~/.config/opencode/. Also use when creating or fixing opencode agents, subagents, skills, plugins, MCP servers, or permission rules. Do not use for the user's own application code, or for any project that is not configuring opencode itself.",
+            "source": "builtin"
+          },
+          {
+            "name": "home-claude",
+            "description": "Native fixture home-claude",
+            "path": "<fixture>/home/.claude/skills/home-claude/SKILL.md"
+          },
+          {
+            "name": "home-agents",
+            "description": "Native fixture home-agents",
+            "path": "<fixture>/home/.agents/skills/home-agents/SKILL.md"
+          },
+          {
+            "name": "project-claude",
+            "description": "Native fixture project-claude",
+            "path": "<fixture>/project/.claude/skills/project-claude/SKILL.md"
+          },
+          {
+            "name": "project-opencode",
+            "description": "Native fixture project-opencode",
+            "path": "<fixture>/project/.opencode/skills/project-opencode/SKILL.md"
+          },
+          {
+            "name": "config-opencode",
+            "description": "Native fixture config-opencode",
+            "path": "<fixture>/config/opencode/skills/config-opencode/SKILL.md"
+          },
+          {
+            "name": "project-agents",
+            "description": "Native fixture project-agents",
+            "path": "<fixture>/project/.agents/skills/project-agents/SKILL.md"
+          }
+        ],
+        "partial": false
+      },
+      "processesExited": true,
+      "portsClosed": true
+    },
+    {
+      "version": "opencode v2.2.7",
+      "mode": "failure",
+      "result": {
+        "kind": "unavailable",
+        "code": "query_failed",
+        "reason": "Native inventory query failed"
+      },
+      "processesExited": true,
+      "portsClosed": true
+    },
+    {
+      "version": "opencode v2.2.7",
+      "mode": "plugin-failure",
+      "result": {
+        "kind": "ok",
+        "scope": {
+          "kind": "workspace",
+          "cwd": "<fixture>/project"
+        },
+        "observedAt": "2026-11-16T16:22:27.951Z",
+        "view": "discovered",
+        "items": [
+          {
+            "name": "OpenCode",
+            "description": "Use this skill for any question about OpenCode itself, including how OpenCode works, using or configuring it, migrating from V1 to V2, troubleshooting it, developing plugins or integrations, using the OpenCode SDK, clients, server, or API, and contributing to the OpenCode codebase. Also use it for OpenCode agents, commands, skills, tools, permissions, MCP servers, providers, models, themes, keybinds, formatters, the CLI, TUI, desktop app, and web app.",
+            "path": "skill://opencode/SKILL.md"
+          },
+          {
+            "name": "Report",
+            "description": "Use when the user wants to report an opencode issue or bug. Collect standard diagnostics, add user-specific reproduction context, and publish the issue with GitHub CLI.",
+            "path": "skill://report/SKILL.md"
+          },
+          {
+            "name": "Browser",
+            "description": "Use the in-app browser: open and read pages, click and fill forms, take screenshots, check console and network logs, and profile performance and memory. Load it before your first browser tool call.",
+            "path": "skill://browser/SKILL.md"
+          },
+          {
+            "name": "home-claude",
+            "description": "Native fixture home-claude",
+            "path": "<fixture>/home/.claude/skills/home-claude/SKILL.md"
+          },
+          {
+            "name": "project-claude",
+            "description": "Native fixture project-claude",
+            "path": "<fixture>/project/.claude/skills/project-claude/SKILL.md"
+          },
+          {
+            "name": "home-agents",
+            "description": "Native fixture home-agents",
+            "path": "<fixture>/home/.agents/skills/home-agents/SKILL.md"
+          },
+          {
+            "name": "project-agents",
+            "description": "Native fixture project-agents",
+            "path": "<fixture>/project/.agents/skills/project-agents/SKILL.md"
+          },
+          {
+            "name": "config-opencode",
+            "description": "Native fixture config-opencode",
+            "path": "<fixture>/config/opencode/skills/config-opencode/SKILL.md"
+          },
+          {
+            "name": "project-opencode",
+            "description": "Native fixture project-opencode",
+            "path": "<fixture>/project/.opencode/skills/project-opencode/SKILL.md"
+          }
+        ],
+        "partial": true
+      },
+      "processesExited": true,
+      "portsClosed": true
+    },
+    {
+      "version": "opencode v2.2.7",
+      "mode": "success",
+      "result": {
+        "kind": "ok",
+        "scope": {
+          "kind": "workspace",
+          "cwd": "<fixture>/project"
+        },
+        "observedAt": "2026-11-16T16:19:02.521Z",
+        "view": "discovered",
+        "items": [
+          {
+            "name": "OpenCode",
+            "description": "Use this skill for any question about OpenCode itself, including how OpenCode works, using or configuring it, migrating from V1 to V2, troubleshooting it, developing plugins or integrations, using the OpenCode SDK, clients, server, or API, and contributing to the OpenCode codebase. Also use it for OpenCode agents, commands, skills, tools, permissions, MCP servers, providers, models, themes, keybinds, formatters, the CLI, TUI, desktop app, and web app.",
+            "path": "skill://opencode/SKILL.md"
+          },
+          {
+            "name": "Report",
+            "description": "Use when the user wants to report an opencode issue or bug. Collect standard diagnostics, add user-specific reproduction context, and publish the issue with GitHub CLI.",
+            "path": "skill://report/SKILL.md"
+          },
+          {
+            "name": "Browser",
+            "description": "Use the in-app browser: open and read pages, click and fill forms, take screenshots, check console and network logs, and profile performance and memory. Load it before your first browser tool call.",
+            "path": "skill://browser/SKILL.md"
+          },
+          {
+            "name": "home-claude",
+            "description": "Native fixture home-claude",
+            "path": "<fixture>/home/.claude/skills/home-claude/SKILL.md"
+          },
+          {
+            "name": "project-claude",
+            "description": "Native fixture project-claude",
+            "path": "<fixture>/project/.claude/skills/project-claude/SKILL.md"
+          },
+          {
+            "name": "home-agents",
+            "description": "Native fixture home-agents",
+            "path": "<fixture>/home/.agents/skills/home-agents/SKILL.md"
+          },
+          {
+            "name": "project-agents",
+            "description": "Native fixture project-agents",
+            "path": "<fixture>/project/.agents/skills/project-agents/SKILL.md"
+          },
+          {
+            "name": "config-opencode",
+            "description": "Native fixture config-opencode",
+            "path": "<fixture>/config/opencode/skills/config-opencode/SKILL.md"
+          },
+          {
+            "name": "project-opencode",
+            "description": "Native fixture project-opencode",
+            "path": "<fixture>/project/.opencode/skills/project-opencode/SKILL.md"
+          }
+        ],
+        "partial": false
+      },
+      "processesExited": true,
+      "portsClosed": true
+    },
+    {
+      "version": "opencode v2.2.7",
+      "mode": "timeout",
+      "result": {
+        "kind": "unavailable",
+        "code": "timeout",
+        "reason": "Native inventory query timed out"
+      },
+      "processesExited": true,
+      "portsClosed": true
+    },
+    {
+      "version": "opencode v2.3.0",
+      "mode": "failure",
+      "result": {
+        "kind": "unavailable",
+        "code": "query_failed",
+        "reason": "Native inventory query failed"
+      },
+      "processesExited": true,
+      "portsClosed": true
+    },
+    {
+      "version": "opencode v2.3.0",
+      "mode": "plugin-failure",
+      "result": {
+        "kind": "ok",
+        "scope": {
+          "kind": "workspace",
+          "cwd": "<fixture>/project"
+        },
+        "observedAt": "2026-11-16T16:22:09.083Z",
+        "view": "discovered",
+        "items": [
+          {
+            "name": "OpenCode",
+            "description": "Use this skill for any question about OpenCode itself, including how OpenCode works, using or configuring it, migrating from V1 to V2, troubleshooting it, developing plugins or integrations, using the OpenCode SDK, clients, server, or API, and contributing to the OpenCode codebase. Also use it for OpenCode agents, commands, skills, tools, permissions, MCP servers, providers, models, themes, keybinds, formatters, the CLI, TUI, desktop app, and web app.",
+            "path": "skill://opencode/SKILL.md"
+          },
+          {
+            "name": "Report",
+            "description": "Use when the user wants to report an opencode issue or bug. Collect standard diagnostics, add user-specific reproduction context, and publish the issue with GitHub CLI.",
+            "path": "skill://report/SKILL.md"
+          },
+          {
+            "name": "Browser",
+            "description": "Use the in-app browser: open and read pages, click and fill forms, take screenshots, check console and network logs, and profile performance and memory. Load it before your first browser tool call.",
+            "path": "skill://browser/SKILL.md"
+          },
+          {
+            "name": "home-claude",
+            "description": "Native fixture home-claude",
+            "path": "<fixture>/home/.claude/skills/home-claude/SKILL.md"
+          },
+          {
+            "name": "project-claude",
+            "description": "Native fixture project-claude",
+            "path": "<fixture>/project/.claude/skills/project-claude/SKILL.md"
+          },
+          {
+            "name": "home-agents",
+            "description": "Native fixture home-agents",
+            "path": "<fixture>/home/.agents/skills/home-agents/SKILL.md"
+          },
+          {
+            "name": "project-agents",
+            "description": "Native fixture project-agents",
+            "path": "<fixture>/project/.agents/skills/project-agents/SKILL.md"
+          },
+          {
+            "name": "config-opencode",
+            "description": "Native fixture config-opencode",
+            "path": "<fixture>/config/opencode/skills/config-opencode/SKILL.md"
+          },
+          {
+            "name": "project-opencode",
+            "description": "Native fixture project-opencode",
+            "path": "<fixture>/project/.opencode/skills/project-opencode/SKILL.md"
+          }
+        ],
+        "partial": true
+      },
+      "processesExited": true,
+      "portsClosed": true
+    },
+    {
+      "version": "opencode v2.3.0",
+      "mode": "success",
+      "result": {
+        "kind": "ok",
+        "scope": {
+          "kind": "workspace",
+          "cwd": "<fixture>/project"
+        },
+        "observedAt": "2026-11-16T16:19:02.567Z",
+        "view": "discovered",
+        "items": [
+          {
+            "name": "OpenCode",
+            "description": "Use this skill for any question about OpenCode itself, including how OpenCode works, using or configuring it, migrating from V1 to V2, troubleshooting it, developing plugins or integrations, using the OpenCode SDK, clients, server, or API, and contributing to the OpenCode codebase. Also use it for OpenCode agents, commands, skills, tools, permissions, MCP servers, providers, models, themes, keybinds, formatters, the CLI, TUI, desktop app, and web app.",
+            "path": "skill://opencode/SKILL.md"
+          },
+          {
+            "name": "Report",
+            "description": "Use when the user wants to report an opencode issue or bug. Collect standard diagnostics, add user-specific reproduction context, and publish the issue with GitHub CLI.",
+            "path": "skill://report/SKILL.md"
+          },
+          {
+            "name": "Browser",
+            "description": "Use the in-app browser: open and read pages, click and fill forms, take screenshots, check console and network logs, and profile performance and memory. Load it before your first browser tool call.",
+            "path": "skill://browser/SKILL.md"
+          },
+          {
+            "name": "home-claude",
+            "description": "Native fixture home-claude",
+            "path": "<fixture>/home/.claude/skills/home-claude/SKILL.md"
+          },
+          {
+            "name": "project-claude",
+            "description": "Native fixture project-claude",
+            "path": "<fixture>/project/.claude/skills/project-claude/SKILL.md"
+          },
+          {
+            "name": "home-agents",
+            "description": "Native fixture home-agents",
+            "path": "<fixture>/home/.agents/skills/home-agents/SKILL.md"
+          },
+          {
+            "name": "project-agents",
+            "description": "Native fixture project-agents",
+            "path": "<fixture>/project/.agents/skills/project-agents/SKILL.md"
+          },
+          {
+            "name": "config-opencode",
+            "description": "Native fixture config-opencode",
+            "path": "<fixture>/config/opencode/skills/config-opencode/SKILL.md"
+          },
+          {
+            "name": "project-opencode",
+            "description": "Native fixture project-opencode",
+            "path": "<fixture>/project/.opencode/skills/project-opencode/SKILL.md"
+          }
+        ],
+        "partial": false
+      },
+      "processesExited": true,
+      "portsClosed": true
+    },
+    {
+      "version": "opencode v2.3.0",
+      "mode": "timeout",
+      "result": {
+        "kind": "unavailable",
+        "code": "timeout",
+        "reason": "Native inventory query timed out"
+      },
+      "processesExited": true,
+      "portsClosed": true
+    }
+  ]
+}

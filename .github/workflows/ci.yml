@@ -54,7 +54,7 @@ jobs:
       - name: Install pinned OpenCode for native isolated cleanup
         run: npm install -g @opencode/cli@2.2.7
       - name: Native isolated OpenCode tool cleanup
-        run: pnpm vitest run sea-trial/vendor/opencode-cleanup.vendor.test.ts
+        run: pnpm vitest run sea-trial/vendor/opencode-cleanup.vendor.test.ts sea-trial/vendor/opencode-skills.vendor.test.ts
         timeout-minutes: 5
         env:
           OAR_TEST: opencode-cleanup
