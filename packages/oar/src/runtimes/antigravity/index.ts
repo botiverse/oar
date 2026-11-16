@@ -3,7 +3,7 @@ import { defineRuntime } from "../../contracts/runtime.js";
 import { onFirstCall } from "../../shared/lazy.js";
 import { antigravityInstallation } from "./installation.js";
 import { antigravityInstall, antigravityInstallPlan } from "./install.js";
-import { antigravityCheckUpdate } from "./update.js";
+import { antigravityCheckUpdate, antigravityUpgrade } from "./update.js";
 import { antigravityRefusedSessionOptions } from "./options.js";
 import { antigravityAuthStatus, antigravityLogin } from "./auth.js";
 import { ANTIGRAVITY_MINIMUM_VERSION } from "./version.js";
@@ -25,6 +25,7 @@ export const antigravityRuntime = defineRuntime({
     return antigravityListModels;
   }),
   checkUpdate: antigravityCheckUpdate,
+  upgrade: antigravityUpgrade,
   login: antigravityLogin,
   logout: onFirstCall(async () => { const { antigravityLogout } = await import("./logout.js"); return antigravityLogout; }),
   authStatus: antigravityAuthStatus,

@@ -60,8 +60,13 @@ installer behaved when run.
   everything it started, in the host environment minus package script
   markers. It never uses sudo and involves no credentials.
 
-An installation probe can refuse a version as `unsupported` with optional
-`code: "version_unsupported"`, `installedVersion` and `requiredVersion`.
+A located executable whose version is refused returns
+`VersionUnsupportedInstallation`: `kind: "unsupported"`,
+`code: "version_unsupported"`, `via: "executable"`, `command`, `reason`, and
+optional `installedVersion` and `requiredVersion`. Keeping the selected command
+lets the host pass this refusal to `checkUpdate()` or `upgrade()` on an explicit
+request. It does not admit sessions or other readers: those still require
+`AvailableInstallation`. Other unsupported installations carry only their reason.
 These describe discovery, not installer results. `Runtime.minVersion` exposes
 the adapter's declared floor before discovery; it grants no install or upgrade
 action. See [version requirements](orientation.md#adapter-version-requirements).

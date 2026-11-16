@@ -1,0 +1,20 @@
+[
+  {
+    "command": [
+      "dsh",
+      "--version"
+    ],
+    "exitCode": 0,
+    "stdout": "0.2.1-rc.4\n",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "dsh",
+      "--help"
+    ],
+    "exitCode": 0,
+    "stdout": "Usage: dsh [--profile] <name> [options] [app-args...]\n       dsh plugin --profile <name> <pnpm-args...>\n\ndsh: boot a DeepSeek Harness profile \u2014 an ordered stack of plugin-bundle patch\nlayers under your own overrides.\n\nArguments:\n  args                           arguments for the booted profile's app (see:\n                                 dsh --profile <name> --help)\n\nOptions:\n  -V, --version                  output the version number\n  --profile <name>               the profile under $DSH_HOME/profiles to boot\n  --from-default-profile <name>  replace a custom profile with a fresh copy of a\n                                 shipped profile template\n  --patch <path>                 extra patch-list overlay applied after the\n                                 profile layer (repeatable)\n  --dump-config                  print the composed profile tree and exit\n  --dump-config-schema           print JSON Schema for profile entries and\n                                 patches without mounting\n  --dump-default-config          print the profile tree without its user layer\n                                 or --patch overlays and exit\n\nExamples:\n  dsh web                                   boot the web profile (same as: dsh --profile web)\n  dsh rescue --from-default-profile web\n                                            recreate rescue from the shipped web template, then boot it\n  dsh headless \"run the tests\"              answer one task, print the result, and exit\n  dsh tui --patch ./extra.yml               boot a custom profile with one extra overlay\n  dsh tui --resume <session>                arguments after the launcher flags reach the app\n  dsh web --help                            the web app's own flags and help\n  dsh plugin --profile tui add <package>    install a plugin into the tui profile\n\n",
+    "stderr": ""
+  }
+]

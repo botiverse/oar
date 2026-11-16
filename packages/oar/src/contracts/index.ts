@@ -34,6 +34,7 @@ export type {
   InstallationProbe,
   InstallationProbeOptions,
   InstallationSnapshot,
+  VersionUnsupportedInstallation,
 } from "./installation.js";
 export type {
   LoginProvider,

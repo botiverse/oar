@@ -61,7 +61,9 @@ interactive TUI.
 **antigravity.** OAR runs `agy acp` (CLI 1.5.0+). `checkUpdate` reads
 Google's CLI platform manifest, the source the official installer uses
 ([update.ts](../../packages/oar/src/runtimes/antigravity/update.ts)). The
-native `agy update` exists; OAR has no `upgrade` for it. The 2026-10-01
+native `agy update` is exposed as `upgrade`, including located executables
+refused for an old version. The [2026-11-16 isolated probe](../../experiments/old-cli-upgrade/README.md)
+upgraded 1.4.9 to 1.5.9 and confirmed availability afterwards. The 2026-10-01
 antigravity results on this page measured the former separate ACP server
 ([migration evidence](../../experiments/antigravity-cli-acp-2026-11-05.md)).
 

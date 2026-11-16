@@ -9,6 +9,13 @@ runs that updater. Both are independent of sessions, like
 results. The [runtime evidence](../runtimes/update.md) records how each
 updater behaved when probed.
 
+Both operations accept `AvailableInstallation | VersionUnsupportedInstallation`.
+An old CLI remains refused for sessions and readers, but its located `command`
+and `installedVersion` let a host offer the action that repairs it. Other
+unsupported results and `not_found` are not update inputs. After upgrading,
+probe again: a changed version does not by itself prove the adapter's floor
+is satisfied. [Installation discovery](install.md) defines this distinction.
+
 ## Principles
 
 - **Only the runtime's own updater installs.** Each updater knows how its copy
@@ -80,9 +87,9 @@ instruction to run `brew upgrade`.
 | kimi | `code.kimi.com/kimi-code/latest`, or `code.kimi.ai` for the `global` region; only a newer release counts | `kimi upgrade -y` (from 0.43.0) |
 | codebuddy, dsh, qwen, qoder | none: OAR exposes no `checkUpdate` for them | none |
 | pi-durable | none: `@earendil-works/pi-durable` is the host's to install | none |
-| antigravity | The native CLI platform manifest; only a newer version counts | not implemented in OAR; native CLI provides `agy update` |
+| antigravity | The native CLI platform manifest; only a newer version counts | `agy update` |
 | opencode | none yet: `opencode upgrade` picks its source by install method (npm, Homebrew, Scoop, Chocolatey or the install script) and has no check-only mode | none yet |
-| pi | none: bundled with oar | none |
+| pi | none: bundled with oar, including the current subprocess installation probe | native `pi update --self` exists; OAR has not connected it to selected executable discovery yet |
 | cursor | none: `@cursor/sdk` is the host's to install and pin (OAR's optional peer dependency, 1.4.0) | none |
 
 A kimi native install stages the new binary and swaps it in on its next

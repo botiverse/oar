@@ -138,6 +138,15 @@ inspection exercises the latest explicit command and records protocol or
 behavior changes.
 A single-file host without a separate Node executable must provide a command.
 
+Pi has native `pi update --self --no-approve`: an isolated npm installation
+successfully moved from 1.3.0 to 1.5.2 without stdin
+([evidence](../../experiments/old-cli-upgrade/README.md)). OAR has not exposed
+that updater yet. Its installation probe still reports `bundled` even for
+an explicit subprocess command, which may be a host executable with prefix
+arguments. Correct selected-executable discovery must precede upgrade support;
+upgrading the host or Node executable would be wrong. Bundled SDK dependencies
+remain the embedding application's responsibility.
+
 With a normal package tree OAR reads the dependency's package metadata directly.
 For a bundled host it uses Pi's source `PI_AI_VERSION` constant; the test suite
 checks that it equals the coding-agent package version in OAR's build. The

@@ -8,5 +8,6 @@ const located = executableInstallation("OAR_DSH_BIN", "dsh");
 export const dshInstallation: InstallationProbe = async (options = {}) => {
   const snapshot = await located(options);
   if (snapshot.kind !== "available" || snapshot.via !== "executable") { return snapshot; }
-  return dshVersionUnsupported(snapshot.version) ?? snapshot;
+  const refusal = dshVersionUnsupported(snapshot.version);
+  return refusal === null ? snapshot : { ...refusal, via: "executable", command: snapshot.command };
 };

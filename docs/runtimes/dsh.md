@@ -448,3 +448,12 @@ configured servers, resume with supplied/omitted entries, failure and disposal.
 Image input, the flush timing of pending input before a crash and
 pipe backpressure with a slow host are unverified. Only the test that kills the
 process from a tool skips on Windows.
+
+### Updating the CLI
+
+DSH 0.2.1-rc.4's `--help` and published `lib/bin.js` command parser expose
+profile boot and plugin management, with no CLI self-updater. A bare `update`
+is parsed as a profile name. OAR leaves `checkUpdate` and `upgrade` absent;
+use the documented npm installation method to manage the package. The
+[isolated command inventory](../../experiments/old-cli-upgrade/README.md)
+records the version and source checked.

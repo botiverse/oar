@@ -1,4 +1,4 @@
-import type { InstallationSnapshot } from "../../contracts/installation.js";
+import type { VersionUnsupportedInstallation } from "../../contracts/installation.js";
 
 /** The oldest release the native vendor suite ran against. A release above it still passes through the method inventory. */
 export const DSH_MINIMUM_VERSION = "0.2.1-rc.5";
@@ -50,7 +50,7 @@ export function dshVersionRefusal(version: string | undefined): string | null {
 }
 
 /** Structured reader refusal, using the same prerelease-aware floor as session open. */
-export function dshVersionUnsupported(version: string | undefined): Extract<InstallationSnapshot, { kind: "unsupported" }> | null {
+export function dshVersionUnsupported(version: string | undefined): Omit<VersionUnsupportedInstallation, "via" | "command"> | null {
   const reason = dshVersionRefusal(version);
   return reason === null ? null : { kind: "unsupported" as const, code: "version_unsupported" as const, reason,
     ...(version === undefined || parse(version) === null ? {} : { installedVersion: version }), requiredVersion: DSH_MINIMUM_VERSION };

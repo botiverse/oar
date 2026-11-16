@@ -10,7 +10,7 @@ import type {
 // the mapping can be pinned by tests without running any updater.
 export interface UpgradeReport {
   readonly runtimeId: string;
-  /** Present only when the runtime is installed but not `available`. */
+  /** Present when discovery cannot produce an available or version-refused update target. */
   readonly installation?: InstallationSnapshot;
   readonly check?: UpdateCheck;
   readonly upgrade?: UpgradeResult;
@@ -41,7 +41,7 @@ async function reportUpgrade(runtime: Runtime, request: UpgradeRequest): Promise
     return { runtimeId, unsupported: `${runtimeId} exposes no installation probe` };
   }
   const installation = await runtime.installation();
-  if (installation.kind !== "available") {
+  if (installation.kind !== "available" && !(installation.kind === "unsupported" && installation.code === "version_unsupported")) {
     return { runtimeId, installation };
   }
   if (runtime.checkUpdate === undefined) {

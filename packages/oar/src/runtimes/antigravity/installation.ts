@@ -45,5 +45,5 @@ export const antigravityInstallation: InstallationProbe = async (options) => {
       if (fallback.kind === "available" && fallback.via === "executable" && antigravityVersionRefusal(fallback.version) === null) { return fallback; }
     }
   }
-  return { ...refusal, reason: `${refusal.reason} (${snapshot.command}). Update that CLI or point OAR_ANTIGRAVITY_BIN at a supported agy, not agy_acp_server` };
+  return { ...refusal, via: "executable", command: snapshot.command, reason: `${refusal.reason} (${snapshot.command}). Update that CLI or point OAR_ANTIGRAVITY_BIN at a supported agy, not agy_acp_server` };
 };

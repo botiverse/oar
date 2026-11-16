@@ -1,5 +1,5 @@
 import { realpathSync } from "node:fs";
-import type { AvailableInstallation, ExecutableInstallation } from "../contracts/installation.js";
+import type { AvailableInstallation, ExecutableInstallation, VersionUnsupportedInstallation } from "../contracts/installation.js";
 import type { UpdateCheck, UpdateChecker, UpgradeOptions, UpgradeResult } from "../contracts/update.js";
 import { isolatedOutput, readExecutableVersion, runIsolated, type IsolatedResult } from "./executable/index.js";
 import { parseJson } from "./json.js";
@@ -46,18 +46,19 @@ export function updaterEnv(env: NodeJS.ProcessEnv = process.env): NodeJS.Process
 }
 
 export type ExecutableUpdate =
-  | { readonly kind: "executable"; readonly installation: ExecutableInstallation; readonly installed: string }
+  | { readonly kind: "executable"; readonly installation: ExecutableInstallation | VersionUnsupportedInstallation; readonly installed: string }
   | { readonly kind: "unavailable"; readonly check: UpdateCheck };
 
 /** The executable and its installed release version, or why a check cannot start. */
-export function executableUpdate(installation: AvailableInstallation): ExecutableUpdate {
+export function executableUpdate(installation: AvailableInstallation | VersionUnsupportedInstallation): ExecutableUpdate {
   if (installation.via !== "executable") {
     return {
       kind: "unavailable",
       check: { kind: "unavailable", reason: "unsupported_installation", detail: "an in-process SDK; it moves with the package that carries it" },
     };
   }
-  const installed = installation.version === undefined ? undefined : releaseVersion(installation.version);
+  const version = installation.kind === "available" ? installation.version : installation.installedVersion;
+  const installed = version === undefined ? undefined : releaseVersion(version);
   if (installed === undefined) {
     return {
       kind: "unavailable",
@@ -146,7 +147,7 @@ export interface NativeUpdater {
  * from what the executable says now.
  */
 export async function upgradeExecutable(
-  installation: AvailableInstallation,
+  installation: AvailableInstallation | VersionUnsupportedInstallation,
   updater: NativeUpdater,
   options: UpgradeOptions = {},
 ): Promise<UpgradeResult> {
@@ -154,7 +155,8 @@ export async function upgradeExecutable(
     return { kind: "unsupported", reason: "unsupported_installation", detail: "an in-process SDK; it moves with the package that carries it" };
   }
   const now = await versionNow(installation.command);
-  const current = now === undefined ? installation : { ...installation, version: now };
+  const current = now === undefined ? installation : (installation.kind === "available"
+    ? { ...installation, version: now } : { ...installation, installedVersion: now });
   const check = await updater.check(current, options.timeoutMs === undefined ? {} : { timeoutMs: options.timeoutMs });
   if (check.kind === "ok" && !check.updateAvailable) {
     return { kind: "current", version: check.installed, check };

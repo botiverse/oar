@@ -1,0 +1,32 @@
+{
+  "platform": "linux",
+  "arch": "x64",
+  "before": {
+    "kind": "unsupported",
+    "code": "version_unsupported",
+    "reason": "Antigravity requires a stable agy CLI 1.5.0 or newer with native ACP; this installation reports 1.4.9 (<isolated>/agy). Update that CLI or point OAR_ANTIGRAVITY_BIN at a supported agy, not agy_acp_server",
+    "installedVersion": "1.4.9",
+    "requiredVersion": "1.5.0",
+    "via": "executable",
+    "command": "<isolated>/agy"
+  },
+  "check": {
+    "kind": "ok",
+    "installed": "1.4.9",
+    "latest": "1.5.9",
+    "updateAvailable": true,
+    "source": "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app/manifests/linux_amd64.json"
+  },
+  "upgrade": {
+    "kind": "upgraded",
+    "from": "1.4.9",
+    "to": "1.5.9",
+    "output": "\u27f3 Checking for updates... (current version 1.4.9)\n\u2713 Found new version 1.5.9.\n\u27f3 Downloading update...\n\u27f3 Extracting files...\n\u2713 Verification successful.\n\u27f3 Installing update...\n\u2713 Update successful! Please restart agy.\n"
+  },
+  "after": {
+    "kind": "available",
+    "via": "executable",
+    "command": "<isolated>/agy",
+    "version": "1.5.9"
+  }
+}

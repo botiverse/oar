@@ -1,8 +1,8 @@
 import { existsSync } from "node:fs";
-import type { AvailableInstallation } from "../../contracts/installation.js";
-import type { UpdateCheck, UpdateCheckOptions, UpdateChecker } from "../../contracts/update.js";
+import type { AvailableInstallation, VersionUnsupportedInstallation } from "../../contracts/installation.js";
+import type { UpdateCheck, UpdateCheckOptions, UpdateChecker, Upgrader } from "../../contracts/update.js";
 import { asRecord, parseJson } from "../../shared/json.js";
-import { CHECK_TIMEOUT_MS, comparedCheck, executableUpdate, readReleaseSource, versionAtLeast } from "../../shared/update.js";
+import { CHECK_TIMEOUT_MS, comparedCheck, executableUpdate, readReleaseSource, upgradeExecutable, versionAtLeast } from "../../shared/update.js";
 
 /** The same platform names and musl loader check used by the official installer. */
 export function antigravityReleaseSource(platform: NodeJS.Platform, arch: string, musl = false): string | undefined {
@@ -18,7 +18,7 @@ export function antigravityReleaseSource(platform: NodeJS.Platform, arch: string
 export function antigravityUpdateCheck(
   registry = antigravityReleaseSource(process.platform, process.arch, existsSync("/lib/libc.musl-x86_64.so.1") || existsSync("/lib/libc.musl-aarch64.so.1")),
 ): UpdateChecker {
-  return async (installation: AvailableInstallation, options: UpdateCheckOptions = {}): Promise<UpdateCheck> => {
+  return async (installation: AvailableInstallation | VersionUnsupportedInstallation, options: UpdateCheckOptions = {}): Promise<UpdateCheck> => {
     const update = executableUpdate(installation);
     if (update.kind === "unavailable") {
       return update.check;
@@ -39,3 +39,9 @@ export function antigravityUpdateCheck(
 }
 
 export const antigravityCheckUpdate = antigravityUpdateCheck();
+
+/** Native `agy update` replaces this executable without stdin or a terminal. */
+export const antigravityUpgrade: Upgrader = async (installation, options) => {
+  const result = await upgradeExecutable(installation, { check: antigravityCheckUpdate, args: ["update"] }, options);
+  return result;
+};

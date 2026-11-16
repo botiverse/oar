@@ -34,8 +34,11 @@ unreadable version never starts that unsupported query.
 Version refusals preserve the existing result kinds and human-readable
 explanations. Optional `installedVersion` and `requiredVersion` carry the
 observed version, when readable, and the required version. Model listing
-and installation use `unsupported` with optional `code: "version_unsupported"`;
-inventory uses the same code on `unsupported`. Account usage uses
+uses `unsupported` with optional `code: "version_unsupported"`; inventory uses
+the same code on `unsupported`. Installation returns a
+[`VersionUnsupportedInstallation`](install.md) with the selected executable
+`command` and `via: "executable"`, so update operations can accept it without
+admitting sessions or other readers. Account usage uses
 `unsupported.reason: "version_unsupported"`. Authentication status remains
 `unknown`, with optional `code: "version_unsupported"`, because an unsupported
 CLI says nothing about whether its account is signed in.

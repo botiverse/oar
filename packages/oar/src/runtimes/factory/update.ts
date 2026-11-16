@@ -1,4 +1,4 @@
-import type { AvailableInstallation } from "../../contracts/installation.js";
+import type { AvailableInstallation, VersionUnsupportedInstallation } from "../../contracts/installation.js";
 import type { UpdateCheck, UpdateCheckOptions, UpgradeOptions, UpgradeResult } from "../../contracts/update.js";
 import { CHECK_TIMEOUT_MS, comparedCheck, executableUpdate, updaterEnv, upgradeExecutable } from "../../shared/update.js";
 import { runExecutable } from "../../shared/executable/index.js";
@@ -17,7 +17,7 @@ export function projectFactoryUpdateCheck(installed: string, output: string): Up
   return { kind: "unavailable", reason: "lookup_failed", detail: line ?? "droid update --check reported no version", source: SOURCE };
 }
 
-export async function factoryCheckUpdate(installation: AvailableInstallation, options: UpdateCheckOptions = {}): Promise<UpdateCheck> {
+export async function factoryCheckUpdate(installation: AvailableInstallation | VersionUnsupportedInstallation, options: UpdateCheckOptions = {}): Promise<UpdateCheck> {
   const update = executableUpdate(installation);
   if (update.kind === "unavailable") { return update.check; }
   const result = await runExecutable(update.installation.command, ["update", "--check"], { env: updaterEnv(), timeoutMs: options.timeoutMs ?? CHECK_TIMEOUT_MS });
@@ -25,7 +25,7 @@ export async function factoryCheckUpdate(installation: AvailableInstallation, op
   return projectFactoryUpdateCheck(update.installed, `${result.stdout}\n${result.stderr}`);
 }
 
-export async function factoryUpgrade(installation: AvailableInstallation, options?: UpgradeOptions): Promise<UpgradeResult> {
+export async function factoryUpgrade(installation: AvailableInstallation | VersionUnsupportedInstallation, options?: UpgradeOptions): Promise<UpgradeResult> {
   const result = await upgradeExecutable(installation, { check: factoryCheckUpdate, args: ["update"] }, options);
   return result;
 }
