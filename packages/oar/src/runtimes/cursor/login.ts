@@ -6,6 +6,7 @@ import { environmentValue } from "../../shared/environment.js";
 import { callRedaction, cursorSdkAccess, IN_PROCESS_ENV, withLease, type CursorSdkSource } from "./access.js";
 import { readCursorAuthStatus } from "./auth-status.js";
 import type { CursorAuth, CursorFileCredentialStore, CursorLoginOptions, CursorLoginStore } from "./sdk.js";
+import { CURSOR_SDK_VERSION } from "./sdk-version.js";
 
 /*
  * `Cursor.auth.login()` (@cursor/sdk 1.0.35, read in its bundle,
@@ -190,7 +191,7 @@ export function cursorLoginWith(source: CursorSdkSource): RuntimeLogin {
       const { auth } = sdk.Cursor;
       const Store = sdk.FileCredentialStore;
       if (auth === undefined || Store === undefined) {
-        return { kind: "unsupported", reason: "version_unsupported", detail: "@cursor/sdk 1.3.1 is required; this one has no Cursor.auth" };
+        return { kind: "unsupported", reason: "version_unsupported", detail: `@cursor/sdk ${CURSOR_SDK_VERSION} is required; this one has no Cursor.auth` };
       }
       // The caller may have aborted while the SDK loaded.
       if (aborted()) {
