@@ -1,0 +1,122 @@
+[
+  {
+    "version": "0.2.2-rc.1",
+    "case": "dsh-prompt-replacement",
+    "source": "oar-trial-run/run-2026-11-16T07-59-01.607Z/dsh-prompt-replacement.json",
+    "sha256": "aa73a4fe6ceb3ec839eced52b348e53a19a6fcf15e76a838e36b0b7e7c7cc908"
+  },
+  {
+    "version": "0.2.2-rc.1",
+    "case": "dsh-prompt-append",
+    "source": "oar-trial-run/run-2026-11-16T07-59-10.273Z/dsh-prompt-append.json",
+    "sha256": "cb36a43787ffadb59a1aacb3b678f8a22faa8acfa2ea69987389912486886ace"
+  },
+  {
+    "version": "0.2.2-rc.1",
+    "case": "dsh-prompt-both",
+    "source": "oar-trial-run/run-2026-11-16T07-59-19.507Z/dsh-prompt-both.json",
+    "sha256": "425b54d82900be17bdcbe57919cbf0a96a2555bcc46413060b50c36415fbe079"
+  },
+  {
+    "version": "0.2.2-rc.1",
+    "case": "dsh-prompt-creation-hook",
+    "source": "oar-trial-run/run-2026-11-16T07-59-25.379Z/dsh-prompt-creation-hook.json",
+    "sha256": "3c63964564acb29f0dcc41098764258c388de28b78b248a5ccc809ef7e0ec406"
+  },
+  {
+    "version": "0.2.2-rc.1",
+    "case": "dsh-prompt-conflict-systemPrompt",
+    "source": "oar-trial-run/run-2026-11-16T07-59-28.152Z/dsh-prompt-conflict-systemPrompt.json",
+    "sha256": "940a8d9785d565565666ea805e601e0da4e9e82f000961e6132f62c3c1cc0da5"
+  },
+  {
+    "version": "0.2.2-rc.1",
+    "case": "dsh-prompt-conflict-appendSystemPrompt",
+    "source": "oar-trial-run/run-2026-11-16T07-59-30.940Z/dsh-prompt-conflict-appendSystemPrompt.json",
+    "sha256": "e0a14f89cec30410cea330efdd8cfa089b119098a86b0493bd3a3bbae994e339"
+  },
+  {
+    "version": "0.2.2-rc.1",
+    "case": "dsh-prompt-created-conflict-systemPrompt",
+    "source": "oar-trial-run/run-2026-11-16T07-59-33.719Z/dsh-prompt-created-conflict-systemPrompt.json",
+    "sha256": "a556ceea9184df22b4a35577b93840a2b2ad11909cd058d347a914ebddc07811"
+  },
+  {
+    "version": "0.2.2-rc.1",
+    "case": "dsh-prompt-created-conflict-appendSystemPrompt",
+    "source": "oar-trial-run/run-2026-11-16T07-59-36.461Z/dsh-prompt-created-conflict-appendSystemPrompt.json",
+    "sha256": "e0a14f89cec30410cea330efdd8cfa089b119098a86b0493bd3a3bbae994e339"
+  },
+  {
+    "version": "0.2.2-rc.1",
+    "case": "dsh-prompt-scopes",
+    "source": "oar-trial-run/run-2026-11-16T07-59-39.697Z/dsh-prompt-scopes.json",
+    "sha256": "b64c2302719a655f957adf7e86bc1874cf93d02dafd03f39fda6e0959ca54cc9"
+  },
+  {
+    "version": "0.2.1-rc.5",
+    "case": "dsh-prompt-replacement",
+    "source": "oar-trial-run/run-2026-11-16T08-00-19.407Z/dsh-prompt-replacement.json",
+    "sha256": "1f12156389ad88da013bd190cdf66553d8cd4fe6b9941518ec8541a5813c8f10"
+  },
+  {
+    "version": "0.2.1-rc.5",
+    "case": "dsh-prompt-append",
+    "source": "oar-trial-run/run-2026-11-16T08-00-29.876Z/dsh-prompt-append.json",
+    "sha256": "2a9f981638bc7c0805dbd59a1282bb9ef4b37d4e8c440f4390b6fa2b93be9dec"
+  },
+  {
+    "version": "0.2.1-rc.5",
+    "case": "dsh-prompt-both",
+    "source": "oar-trial-run/run-2026-11-16T08-00-41.906Z/dsh-prompt-both.json",
+    "sha256": "751621315fad41fb4b5e91cb0d52b1d55675d3603b8a528f0d0fa7607c26615f"
+  },
+  {
+    "version": "0.2.1-rc.5",
+    "case": "dsh-prompt-creation-hook",
+    "source": "oar-trial-run/run-2026-11-16T08-00-49.472Z/dsh-prompt-creation-hook.json",
+    "sha256": "e72fd28683707fe315db49365601e2aa26a7682a93dd9379249d4920d6e5c21a"
+  },
+  {
+    "version": "0.2.1-rc.5",
+    "case": "dsh-prompt-conflict-systemPrompt",
+    "source": "oar-trial-run/run-2026-11-16T08-00-52.854Z/dsh-prompt-conflict-systemPrompt.json",
+    "sha256": "940a8d9785d565565666ea805e601e0da4e9e82f000961e6132f62c3c1cc0da5"
+  },
+  {
+    "version": "0.2.1-rc.5",
+    "case": "dsh-prompt-conflict-appendSystemPrompt",
+    "source": "oar-trial-run/run-2026-11-16T08-00-56.272Z/dsh-prompt-conflict-appendSystemPrompt.json",
+    "sha256": "e0a14f89cec30410cea330efdd8cfa089b119098a86b0493bd3a3bbae994e339"
+  },
+  {
+    "version": "0.2.1-rc.5",
+    "case": "dsh-prompt-created-conflict-systemPrompt",
+    "source": "oar-trial-run/run-2026-11-16T08-00-59.875Z/dsh-prompt-created-conflict-systemPrompt.json",
+    "sha256": "a556ceea9184df22b4a35577b93840a2b2ad11909cd058d347a914ebddc07811"
+  },
+  {
+    "version": "0.2.1-rc.5",
+    "case": "dsh-prompt-created-conflict-appendSystemPrompt",
+    "source": "oar-trial-run/run-2026-11-16T08-01-03.403Z/dsh-prompt-created-conflict-appendSystemPrompt.json",
+    "sha256": "e0a14f89cec30410cea330efdd8cfa089b119098a86b0493bd3a3bbae994e339"
+  },
+  {
+    "version": "0.2.1-rc.5",
+    "case": "dsh-prompt-scopes",
+    "source": "oar-trial-run/run-2026-11-16T08-01-07.626Z/dsh-prompt-scopes.json",
+    "sha256": "096320b40f8c8a40673fdedd0f4ad447f2ad938eca86fe333a299234e5e95854"
+  },
+  {
+    "version": "0.2.2-rc.1",
+    "case": "dsh-prompt-combined-setup",
+    "source": "oar-trial-run/run-2026-11-16T13-37-28.619Z/dsh-prompt-combined-setup.json",
+    "sha256": "efc89ecf442d224355a8b19ec31b322dfb78af598573d0a05b75b65e4a06090f"
+  },
+  {
+    "version": "0.2.1-rc.5",
+    "case": "dsh-prompt-combined-setup",
+    "source": "oar-trial-run/run-2026-11-16T13-38-32.089Z/dsh-prompt-combined-setup.json",
+    "sha256": "a3ea5c67fde7a78557040046e35b775f32fdb065cd02f59e71e942132539f20a"
+  }
+]

@@ -10,6 +10,10 @@ export const dshRuntime = defineRuntime({
   id: "dsh", brand: runtimeBrands.dsh,
   minVersion: DSH_MINIMUM_VERSION,
   refusedSessionOptions: dshRefusedSessionOptions,
+  resumedSessionOptions: {
+    systemPrompt: { provided: "immediate", omitted: "default" },
+    appendSystemPrompt: { provided: "immediate", omitted: "default" },
+  },
   installation: dshInstallation, install: dshInstall, installPlan: dshInstallPlan,
   listModels: onFirstCall(async () => { const { dshListModels } = await import("./list-models.js"); return dshListModels; }),
   session: onFirstCall(async () => { const { dshSession } = await import("./session.js"); return dshSession; }),

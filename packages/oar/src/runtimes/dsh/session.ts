@@ -32,8 +32,12 @@ function openFailure(error: unknown, sessionId: string, resuming: boolean): unkn
   if ((error.code === "native_method_unavailable" || error.code === "option_not_applied") && (error.capability === "name" || error.capability === "disallowedTools")) {
     return new UnsupportedOptionError(error.capability, error.message);
   }
+  if (error.code === "prompt_not_applied" && (error.capability === "systemPrompt" || error.capability === "appendSystemPrompt")) {
+    return new UnsupportedOptionError(error.capability, error.message);
+  }
   if (error.code === "native_method_unavailable") {
     if (error.capability === "confirming a reasoning effort") { return new UnsupportedOptionError("effort", error.message); }
+    if (error.capability === "systemPrompt" || error.capability === "appendSystemPrompt") { return new UnsupportedOptionError(error.capability, error.message); }
     if (error.capability === "session MCP") { return new UnsupportedOptionError("mcpServers", error.message); }
     if (error.capability === "confirming a model") { return new UnsupportedOptionError("model", error.message); }
     return resuming ? new UnsupportedOptionError("resume", error.message) : new RuntimeFailureError("invalid_request", error.message, { cause: error });
@@ -104,6 +108,8 @@ async function open(command: string, options: SessionOptions, env: NodeJS.Proces
   });
   const fields = { sessionId, agentOptions: { ...agentOptions },
     ...(options.disallowedTools === undefined ? {} : { disallowedTools: options.disallowedTools }),
+    ...(options.systemPrompt === undefined ? {} : { systemPrompt: options.systemPrompt }),
+    ...(options.appendSystemPrompt === undefined ? {} : { appendSystemPrompt: options.appendSystemPrompt }),
   };
   let opened: JsonRecord = {};
   try {

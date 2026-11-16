@@ -1,10 +1,12 @@
+import { dshPromptSource } from "./bridge-prompt.js";
+
 /** Revision of the internal transport between this source and `control.ts`. Both ship together; it is not a public protocol. */
 export const DSH_BRIDGE_PROTOCOL = 1;
 
 /**
  * The plugin DSH loads into its own process. It reaches DSH only through the
  * services the running process injects, so it imports no DSH package (a package
- * outside a profile cannot resolve them, and `tests/dsh/bridge.test.ts` greps
+ * outside a profile cannot resolve them, and `tests/dsh/session.test.ts` greps
  * this text). Kept as source so a single-file host can write it to a private
  * directory without its own source tree. The vendor suite runs this exact text.
  *
@@ -131,7 +133,7 @@ function boot(ctx) {
     return typeof defaults?.currentSelection === "function" ? defaults.currentSelection() : {};
   };
 
-  const configureSession = (agent, request) => {
+  const configureTools = (agent, request) => {
     if (request.disallowedTools?.length > 0) {
       const tools = agent.scope?.ctx?.tools;
       requireMethod(tools, "restrict", "disallowedTools");
@@ -148,6 +150,11 @@ function boot(ctx) {
         }
       });
     }
+  };
+
+${dshPromptSource}  const configureSession = (agent, request) => {
+    configureTools(agent, request);
+    configurePrompt(agent, request);
   };
 
   const commands = {
