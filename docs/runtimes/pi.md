@@ -7,8 +7,8 @@ templates (SDK 1.1.0, 2026-10-11). Core MCP discovery is unsupported. See the
 [native probe evidence](inventory.md).
 
 Evidence baseline: OAR source as of 2026-09-11; bundled
-`@earendil-works/pi-coding-agent` SDK **1.5.0**, with `@earendil-works/pi-ai`;
-OAR depends on both at `^1.5.0`. Native source references are pinned to pi
+`@earendil-works/pi-coding-agent` SDK **1.5.2**, with `@earendil-works/pi-ai`;
+OAR depends on both at `^1.5.2`. Native source references are pinned to pi
 **v0.84.2** (commit prefix `914cf1472`; former `badlogic/pi-mono` URLs
 redirect to `earendil-works/pi`). Live observations below are from SDK
 **0.84.2** unless they name a version or date (the bundled SDK moved to
@@ -41,7 +41,9 @@ An independent Linux probe also checked SDK/RPC 1.5.2, Durable 1.4.0
 coexistence and resuming completed 1.5.0 sessions; it did not change the
 workspace's locked SDK version. See the [November 10 compatibility
 report](../../experiments/pi-1.5.2-2026-11-10.md) for results and the RPC
-launch test's version-dependent expectation.
+launch test's version-dependent expectation. The [lazy Bedrock update](../../experiments/pi-lazy-bedrock/README.md)
+now adopts 1.5.2 for the bundled SDK and Pi AI, with local-provider SDK/RPC
+checks and single-file OAuth/Bedrock controls.
 At every upgrade from 0.99.2 through 1.5.0, a separate-process probe
 ([`pi-upgrade-resume.ts`](../../experiments/pi-upgrade-resume.ts)) resumed a
 session created by the previous SDK: native id, saved model and prior
@@ -1023,7 +1025,7 @@ a session, model listing, login or catalog reaches a provider, it sets
 undici's global dispatcher itself to an `EnvHttpProxyAgent` built from the
 settings manager those entry points read (`OAR_PI_AGENT_DIR`, else `getAgentDir()`).
 `undici` is a direct dependency of `@botiverse/oar`, pinned to the version pi
-uses (8.12.3 in Pi 1.5.0, one instance shared by OAR and the coding SDK). An env proxy wins; pi's `httpProxy`
+uses (8.12.3 in Pi 1.5.2, one instance shared by OAR and the coding SDK). An env proxy wins; pi's `httpProxy`
 setting fills both http and https when the env names none (pi's own `??=`
 precedence, but the env is not written); pi's `httpIdleTimeoutMs` setting is
 the dispatcher's headers/body timeout (pi's default equals undici's). Nothing
@@ -1055,18 +1057,20 @@ implementation through a computed path, so that a browser bundler does not
 follow them into Node-only code. A host bundled into one file, such as a Node
 single executable, has no such files beside it: every pi sign-in, OAuth turn
 and Bedrock call failed with "Cannot find module" (#328). At the same points
-as the HTTP plane, OAR hands pi-ai the modules itself, with the two calls pi's
-own standalone binary makes (`registerBunOAuthFlows()` from
-`@earendil-works/pi-ai/bun-oauth` and `setBedrockProviderModule` from
-`@earendil-works/pi-ai/compat`). The imports are literal, so a bundler
-follows them, and dynamic, so a host that never uses pi does not load them.
+as the HTTP plane, OAR registers `registerBunOAuthFlows()` from
+`@earendil-works/pi-ai/bun-oauth` and `registerLazyBedrockProvider()` from
+`@earendil-works/pi-ai/lazy-bedrock-provider`. The latter installs the native
+literal-import loader; the Bedrock implementation and AWS SDK are evaluated
+only on the first Bedrock request. Opening a Pi session and querying provider
+auth do not load them. Bundlers can include the implementation in one file or
+follow the literal dynamic import into a separate chunk.
 A bundled host needs no pi dependency of its own for this. The hand-over only
 works when OAR and the coding SDK share **one copy of pi-ai**: OAR hands the modules to
 the pi-ai its own import resolves to, and pi-coding-agent runs sessions on
 the pi-ai it resolves to. A package manager can resolve pi-ai twice at the
 same version when the optional peers of its `openai` dependency resolve
 differently in the two places, `undici` above all: pi-coding-agent pins
-`undici` (8.12.3 in Pi 1.5.0, and OAR pins the same), so a host
+`undici` (8.12.3 in Pi 1.5.2, and OAR pins the same), so a host
 that depends on another `undici` gets a second pi-ai copy for its own imports. The bundle
 then carries two copies, the hand-over lands on the one no session uses, and
 every OAuth turn fails with "Cannot find module" again
@@ -1081,14 +1085,16 @@ versions pi-coding-agent resolves, checks that the bundle names a single
 `@earendil-works+pi-ai@` variant, and keeps a build check that derives auth
 for a dummy OAuth credential through pi-coding-agent's own `ModelRuntime`
 inside the bundle: it fails with that "Cannot find module" whenever the
-copies split again. A separate Durable 1.5.2 catalog uses its own Pi AI 1.5.2;
-that older catalog is not the coding SDK registration target. The packed-host
-check also verifies OAR and the coding SDK still share Pi AI and undici after
-the host installs this Durable catalog. Each hand-over is
-best effort: a host that leaves Bedrock out of its bundle (its AWS SDK adds
-about 1.4 MB) keeps every sign-in, gets one `OAR_PI_MODULES` process warning,
-and Bedrock loads pi's own way; a failed hand-over is tried again on the next
-call. One thing OAR does
+copies split again. The current Durable catalog and bundled coding SDK both
+use Pi AI 1.5.2, including when the host imports the catalog through the
+`pi-ai-durable` alias. The packed-host check verifies OAuth derivation and
+one normal Pi AI/undici instance before and after adding Durable peers.
+Registration is best effort: a missing registration module emits one
+`OAR_PI_MODULES` warning and retries on the next call. A failed lazy Bedrock
+implementation import instead appears as the native request error. The
+single-file test makes a first Bedrock request to a loopback server and
+checks its diagnostic response, without AWS credentials or a cloud request.
+One thing OAR does
 not cover: pi reads images through photon, which loads `photon_rs_bg.wasm`
 from its own directory, so a single-file host ships that file beside it or
 embeds it. [Static modules](../../packages/oar/src/runtimes/pi/static-modules.ts),

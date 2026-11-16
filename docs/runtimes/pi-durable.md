@@ -32,13 +32,12 @@ supplied to `Harness.open`. A supplier lets the host replace its catalog
 without recreating either the Harness or OAR runtime. Harness exposes no
 public catalog getter, so OAR cannot verify this identity. Build this catalog
 with the Pi AI version matching the host Harness, currently 1.5.2, through a
-version alias, keeping Pi AI 1.5.0 under its normal name for the bundled
-coding SDK:
+version alias. The bundled coding SDK and normal Pi AI now also use 1.5.2:
 
 ```json
 {
   "dependencies": {
-    "@earendil-works/pi-ai": "1.5.0",
+    "@earendil-works/pi-ai": "1.5.2",
     "@earendil-works/pi-ai-durable": "npm:@earendil-works/pi-ai@1.5.2",
     "@earendil-works/pi-durable": "1.5.2",
     "@earendil-works/chord": "1.5.2"
@@ -49,17 +48,17 @@ coding SDK:
 Use `import { createModels } from "@earendil-works/pi-ai-durable/models"`
 and the same alias for Durable provider imports. Tool parameter schemas are
 JSON Schema objects; Pi AI 1.5.2 no longer supplies the old `Type` export. Pinning the normal
-`@earendil-works/pi-ai` name to another version instead can split the coding SDK's 1.5.0
+`@earendil-works/pi-ai` name to another version instead can split the coding SDK's 1.5.2
 registration instances, and a single-file host then fails OAuth derivation
 with `Cannot find module` for the provider module. The factory takes its
 catalog type from the Durable peer, independently of OAR's bundled Pi coding
-SDK 1.5.0.
+SDK 1.5.2.
 The host installs `@earendil-works/pi-durable@~1.5.2` and
 `@earendil-works/chord@~1.5.2`, both optional peers of OAR. Resolve both to
 exactly the same native version; mismatched copies can split native identities.
 OAR operates on
 the host's native package instances, without bundling another copy. Tests pin
-1.5.2; this migration leaves the bundled Pi coding SDK and its Pi AI on 1.5.0.
+1.5.2, the same version as the bundled Pi coding SDK and normal Pi AI.
 The [migration report](../../experiments/pi-durable-native-watch/README.md)
 records the native API, persistence and observation controls.
 

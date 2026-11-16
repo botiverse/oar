@@ -166,7 +166,7 @@ Community runtimes are contributed and maintained outside the core team (each ma
 `SessionOptions.model`. When resuming an old Azure session, pass
 `model: "azure/<model>"` explicitly; without it, Pi can retain the
 conversation while selecting a different default model. The opening `model`
-event and `Session.model()` report the effective selection. OAR's `^1.5.0`
+event and `Session.model()` report the effective selection. OAR's `^1.5.2`
 dependency range includes this change
 ([migration evidence and limits](https://github.com/botiverse/oar/blob/main/experiments/runtime-version-checks/2026-10-05.md)).
 
@@ -499,7 +499,7 @@ TypeScript hosts: keep `skipLibCheck` on. With `skipLibCheck: false` and `module
 
 Install the optional native peers in the host: `npm install @earendil-works/pi-durable@~1.5.2 @earendil-works/chord@~1.5.2`.
 Resolve Durable and Chord to exactly the same version.
-For the host catalog, keep `@earendil-works/pi-ai@1.5.0` under its normal
+For the host catalog, keep `@earendil-works/pi-ai@1.5.2` under its normal
 name and add `@earendil-works/pi-ai-durable` as an npm alias of Pi AI 1.5.2;
 import Durable models/providers from that alias. See the
 [copyable host configuration](https://github.com/botiverse/oar/blob/main/docs/runtimes/pi-durable.md#native-objects-and-calling-interface).
