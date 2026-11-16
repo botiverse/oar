@@ -3,6 +3,7 @@ import { processTreeCleanup, cleanupFailureReason, type ProcessCleanupDiagnostic
 import { observeBeforeCancellation, type CancellationObservation } from "./process-cancellation.js";
 import { trackPendingCleanup } from "./ownership.js";
 import { killGraceMs, killProcessTree, signalProcessGroup } from "./process-signals.js";
+import { processTiming, processTimingId } from "./process-timing.js";
 
 interface ShutdownOptions { readonly killTree?: boolean; readonly shutdown?: "stdin"; }
 
@@ -18,6 +19,7 @@ export function processShutdown(child: ChildProcess, options: ShutdownOptions): 
   diagnostics(): ProcessCleanupDiagnostics | undefined;
   reason(): string | undefined;
 } {
+  const shutdownId = processTimingId();
   let stopping = false;
   let ended = false;
   let stopAction = false;
@@ -87,9 +89,11 @@ export function processShutdown(child: ChildProcess, options: ShutdownOptions): 
     // Native exit can arrive during capture or force. Finish after that phase,
     // not concurrently with a mutation of the remembered identity set.
     await phase;
+    processTiming({ kind: "cleanup_started", shutdownId });
     try { await cleanup?.finish(); }
     catch (error) { cleanup?.failed(error, "after_exit"); }
     releaseCleanup?.();
+    processTiming({ kind: "cleanup_finished", shutdownId });
   };
   const finished = finish();
   return {
@@ -98,7 +102,9 @@ export function processShutdown(child: ChildProcess, options: ShutdownOptions): 
     markNativeStop() { if (alive()) { stopAction = true; } },
     async observeCancellation() {
       if (options.killTree !== true || !alive() || child.pid === undefined) { return { commit() {}, complete() {} }; }
-      const result = await observeBeforeCancellation();
+      const requestId = processTimingId();
+      processTiming({ kind: "cancel_requested", shutdownId, requestId });
+      const result = await observeBeforeCancellation(requestId);
       const attempt = Symbol("native cancellation");
       let committed = false, completed = false;
       return {
@@ -108,14 +114,19 @@ export function processShutdown(child: ChildProcess, options: ShutdownOptions): 
           committed = true;
           ownedCleanup().rememberCancellation(result);
           cancellations.add(attempt);
+          processTiming({ kind: "cancel_committed", shutdownId, requestId });
         },
-        complete() { completed = true; cancellations.delete(attempt); },
+        complete() {
+          if (!completed) { processTiming({ kind: "cancel_completed", shutdownId, requestId }); }
+          completed = true; cancellations.delete(attempt);
+        },
       };
     },
     stopping: () => stopping,
     diagnostics: () => cleanup?.diagnostics(),
     reason: () => cleanupFailureReason(cleanup?.diagnostics()),
     nativeExited() {
+      processTiming({ kind: "root_exited", shutdownId });
       ended = true;
       clearTimeout(escalation);
       if (!stopAction && cancellations.size === 0) {
@@ -128,6 +139,7 @@ export function processShutdown(child: ChildProcess, options: ShutdownOptions): 
     },
     stop() {
       if (!alive() || stopping) { return; }
+      processTiming({ kind: "stop_requested", shutdownId });
       stopping = true;
       if (options.killTree !== true || child.pid === undefined) { close(); return; }
       // Capture before EOF/taskkill too: an intermediate Windows parent may

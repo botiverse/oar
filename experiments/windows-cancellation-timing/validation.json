@@ -1,0 +1,202 @@
+{
+  "base": "a6206bba805f36a8953f330e138c5dbe6d49e1ae",
+  "platform": "linux",
+  "node": "24.19.0",
+  "backends": [
+    {
+      "target": "mock",
+      "code": 0,
+      "summary": [
+        "SKIPPED account-usage.snapshot (missing: accountUsage)",
+        "mock: 18 passed, 1 skipped, 0 failed"
+      ]
+    },
+    {
+      "target": "mock-shared",
+      "code": 0,
+      "summary": [
+        "SKIPPED account-usage.snapshot (missing: accountUsage)",
+        "mock-shared: 18 passed, 1 skipped, 0 failed"
+      ]
+    },
+    {
+      "target": "mock-isolated",
+      "code": 0,
+      "summary": [
+        "SKIPPED account-usage.snapshot (missing: accountUsage)",
+        "mock-isolated: 18 passed, 1 skipped, 0 failed"
+      ]
+    },
+    {
+      "target": "claude-aimock",
+      "code": 0,
+      "summary": [
+        "SKIPPED account-usage.snapshot (missing: accountUsage)",
+        "SKIPPED session.effort-listed-levels-apply-across-resume (missing: listModels)",
+        "claude-aimock: 17 passed, 2 skipped, 0 failed"
+      ]
+    },
+    {
+      "target": "codex-aimock",
+      "code": 0,
+      "summary": [
+        "SKIPPED account-usage.snapshot (missing: accountUsage)",
+        "SKIPPED session.effort-listed-levels-apply-across-resume (missing: listModels)",
+        "SKIPPED session.withdraw-before-dispatch (missing: withdraw)",
+        "codex-aimock: 16 passed, 3 skipped, 0 failed"
+      ]
+    },
+    {
+      "target": "pi-aimock",
+      "code": 0,
+      "summary": [
+        "SKIPPED account-usage.snapshot (missing: accountUsage)",
+        "SKIPPED session.effort-listed-levels-apply-across-resume (missing: listModels)",
+        "pi-aimock: 17 passed, 2 skipped, 0 failed"
+      ]
+    },
+    {
+      "target": "pi-rpc-aimock",
+      "code": 0,
+      "summary": [
+        "SKIPPED account-usage.snapshot (missing: accountUsage)",
+        "SKIPPED session.effort-listed-levels-apply-across-resume (missing: listModels)",
+        "pi-rpc-aimock: 17 passed, 2 skipped, 0 failed"
+      ]
+    },
+    {
+      "target": "pi-durable-aimock",
+      "code": 0,
+      "summary": [
+        "SKIPPED account-usage.snapshot (missing: accountUsage)",
+        "pi-durable-aimock: 18 passed, 1 skipped, 0 failed"
+      ]
+    },
+    {
+      "target": "qwen-aimock",
+      "code": 0,
+      "summary": [
+        "SKIPPED account-usage.snapshot (missing: accountUsage)",
+        "SKIPPED session.steer-after-end (missing: steer)",
+        "SKIPPED session.steer-mid-turn (missing: steer)",
+        "qwen-aimock: 16 passed, 3 skipped, 0 failed"
+      ]
+    },
+    {
+      "target": "qoder-native",
+      "code": 0,
+      "summary": [
+        "SKIPPED account-usage.snapshot (missing: accountUsage)",
+        "SKIPPED session.effort-listed-levels-apply-across-resume (missing: listModels)",
+        "qoder-native: 17 passed, 2 skipped, 0 failed"
+      ]
+    },
+    {
+      "target": "codebuddy-aimock",
+      "code": 0,
+      "summary": [
+        "SKIPPED account-usage.snapshot (missing: accountUsage)",
+        "SKIPPED session.steer-after-end (missing: steer)",
+        "SKIPPED session.steer-mid-turn (missing: steer)",
+        "codebuddy-aimock: 16 passed, 3 skipped, 0 failed"
+      ]
+    },
+    {
+      "target": "dsh-aimock",
+      "code": 0,
+      "summary": [
+        "SKIPPED account-usage.snapshot (missing: accountUsage)",
+        "dsh-aimock: 18 passed, 1 skipped, 0 failed"
+      ]
+    },
+    {
+      "target": "factory-aimock",
+      "code": 0,
+      "summary": [
+        "factory-aimock: 19 passed, 0 skipped, 0 failed"
+      ]
+    },
+    {
+      "target": "grok-aimock",
+      "code": 0,
+      "summary": [
+        "SKIPPED account-usage.snapshot (missing: accountUsage)",
+        "SKIPPED session.effort-listed-levels-apply-across-resume (missing: listModels)",
+        "grok-aimock: 17 passed, 2 skipped, 0 failed"
+      ]
+    },
+    {
+      "target": "kimi-aimock",
+      "code": 0,
+      "summary": [
+        "SKIPPED account-usage.snapshot (missing: accountUsage)",
+        "SKIPPED session.steer-after-end (missing: steer)",
+        "SKIPPED session.steer-mid-turn (missing: steer)",
+        "SKIPPED session.effort-listed-levels-apply-across-resume (missing: listModels)",
+        "kimi-aimock: 15 passed, 4 skipped, 0 failed"
+      ]
+    },
+    {
+      "target": "opencode-aimock",
+      "code": 0,
+      "summary": [
+        "SKIPPED account-usage.snapshot (missing: accountUsage)",
+        "SKIPPED session.effort-listed-levels-apply-across-resume (missing: listModels)",
+        "opencode-aimock: 17 passed, 2 skipped, 0 failed"
+      ]
+    }
+  ],
+  "counts": {
+    "passed": 274,
+    "skipped_capability": 30,
+    "failed": 0
+  },
+  "native_pins": {
+    "claude": "2.1.325",
+    "codex": "0.169.0",
+    "qwen": "0.27.4",
+    "qoder": "1.1.81",
+    "codebuddy": "2.179.3",
+    "grok": "1.0.70",
+    "kimi": "2.4.1",
+    "opencode": "1.19.5",
+    "dsh": "0.2.1-rc.5",
+    "factory": "1.12.1",
+    "pi": "1.5.0",
+    "pi-durable": "1.5.2"
+  },
+  "backend_concurrency": "sea-trial/all.ts default bounded scheduler",
+  "case_concurrency": 2,
+  "require_available": true,
+  "retained_logs": [
+    {
+      "file": "windows-cancellation-timing-all-backends.log",
+      "bytes": 3395,
+      "sha256": "b4c544724856534bbb306e557e12eb67e3bbb41f6a7d66b103e64c964dad06dc"
+    },
+    {
+      "file": "windows-cancellation-timing-final-native.log",
+      "bytes": 282,
+      "sha256": "995744c5aa34081a2d820e47237aea1baa9c248c9835ea7d471e1a0745330473"
+    },
+    {
+      "file": "windows-cancellation-timing-final-check.log",
+      "bytes": 1228,
+      "sha256": "daa83eb7b5489410fad1a3f233a53919e0b2cf7e1cc488795817efc261f24a8e"
+    },
+    {
+      "file": "windows-cancellation-timing-final-check-2.log",
+      "bytes": 5555,
+      "sha256": "10e1565a3debaba189ad4ea04b05430b524021c1227b04ee006be01b2add7a84"
+    }
+  ],
+  "full_check": {
+    "exit_code": 0,
+    "tests_passed": 4386,
+    "tests_skipped": 592,
+    "mock_behavior_passed": 18,
+    "mock_behavior_capability_skips": 1
+  },
+  "actionlint": "passed",
+  "earlier_gate_failure": "The new synthetic ProcessEntry fixture lacked required pgid; corrected before the successful final gate."
+}

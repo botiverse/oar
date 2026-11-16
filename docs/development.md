@@ -113,6 +113,15 @@ sampler, returned initial resource queries, a launched child and an entered
 test; a missing checkpoint is an evidence gap, not a cause. The diagnostics
 change no time limit or termination assertion.
 
+Windows cancellation cleanup cases also retain bounded, process-local timing
+under `oar-trial-run/cancellation-timing`, uploaded as
+`windows-cancellation-timing` even on failure. Caller deadlines, query entry
+and return, cancellation and post-exit cleanup share one monotonic clock;
+local correlation IDs contain no PIDs or process tables. The same capture
+covers immediate root exit and kill fallback. Missing or dropped events are
+evidence gaps, not proof of zero work. Reproduction and interpretation:
+[cancellation phase timing](../experiments/windows-cancellation-timing/README.md).
+
 ### Behavior: does the public contract still hold?
 
 One suite in `sea-trial/cases/`, run against interchangeable backends that

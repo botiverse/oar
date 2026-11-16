@@ -57,6 +57,8 @@
 - [Codex native signals](codex-native-signals/README.md): reconnects in the notification stream and not on stderr, a bad tool argument completing the turn, and an OOM score set through a command wrapper.
 - [Windows dispose timing](windows-dispose-timing/README.md): Claude 2.1.316 cold/prepared Windows phases, batched-query waiting, and separate bounded cleanup observations.
 
+- [Windows cancellation phase timing](windows-cancellation-timing/README.md): distinguish queued expiry from a late process-table query while retaining cancellation and cleanup boundaries without process identities.
+
 Manual experiment records against real runtimes, the analogue of OpenDAL's
 `core/edge/`. Each is a standalone script that may burn real tokens, never
 runs in the normal CI change-validation gate, and deliberately avoids repo

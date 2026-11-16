@@ -2,6 +2,7 @@ import { readdir, readFile } from "node:fs/promises";
 import { asRecord } from "../json.js";
 import { InvalidProcessTableError, parseProcessPs, parseProcessStat, parseProcessWindows, processTableFailure, type ProcessEntry, type ProcessTableObservation, type ProcessTableRead, type ProcessTableSource } from "./process-tree.js";
 import { processTableCommand, type ProcessTableReadOptions } from "./process-table-command.js";
+import { processTiming, processTimingId } from "./process-timing.js";
 
 const BATCH = 64;
 export const processTableSource = (): ProcessTableSource => process.platform === "linux" ? "procfs" : (process.platform === "win32" ? "windows" : "ps");
@@ -55,6 +56,7 @@ export interface ProcessTableRequestOptions extends ProcessTableReadOptions {
 }
 type Request = (source: ProcessTableSource, options?: ProcessTableRequestOptions) => Promise<ProcessTableObservation>;
 interface WaitingBatch {
+  readonly queryId: number;
   started: boolean;
   readonly callers: ProcessTableRequestOptions[];
   readonly result: Promise<ProcessTableObservation>;
@@ -67,9 +69,13 @@ export function batchProcessTableReads(read: Reader): Request {
     const previous = batches.get(source);
     if (previous !== undefined && !previous.started) {
       previous.callers.push({ ...options });
+      if (options?.requestId !== undefined) { processTiming({ kind: "query_joined", queryId: previous.queryId, requestId: options.requestId }); }
       return previous.result;
     }
     const requested = performance.now();
+    const queryId = processTimingId();
+    processTiming({ kind: "query_queued", queryId, source, ...(previous === undefined ? {} : { behindQueryId: previous.queryId }) }, requested);
+    if (options?.requestId !== undefined) { processTiming({ kind: "query_joined", queryId, requestId: options.requestId }, requested); }
     const observe = async (): Promise<ProcessTableObservation> => {
       // A pending generation waits for its predecessor, then admits every
       // caller that arrived before this query actually begins.
@@ -80,19 +86,33 @@ export function batchProcessTableReads(read: Reader): Request {
         batch.started = true;
         started = performance.now();
         const live = batch.callers.filter(caller => caller.deadline === undefined || started < caller.deadline);
+        for (const caller of batch.callers) {
+          if (caller.deadline !== undefined && started >= caller.deadline && caller.requestId !== undefined) {
+            processTiming({ kind: "query_caller_expired", queryId, requestId: caller.requestId }, started);
+          }
+        }
         batch.callers.length = 0;
         // Expired callers cannot start a query or keep a background read alive.
         // A query already started still runs to completion under its own limit.
-        if (live.length === 0) { return { ok: false, source, reason: "timeout", elapsedMs: started - requested }; }
+        if (live.length === 0) {
+          processTiming({ kind: "query_skipped", queryId }, started);
+          return { ok: false, source, reason: "timeout", elapsedMs: started - requested };
+        }
         const background = live.every(caller => caller.background === true);
-        return await read(source, background ? { background: true } : undefined);
+        processTiming({ kind: "query_started", queryId });
+        const result = await read(source, background ? { background: true } : undefined);
+        processTiming({ kind: "query_finished", queryId, outcome: result.ok ? "ok" : "failed" });
+        return result;
       }
-      catch (error) { return processTableFailure(error, source, performance.now() - started); }
+      catch (error) {
+        processTiming({ kind: "query_finished", queryId, outcome: "failed" });
+        return processTableFailure(error, source, performance.now() - started);
+      }
       finally { if (batches.get(source) === batch) { batches.delete(source); } }
     };
     // The observed promise is the same one callers await, with every read
     // failure converted into metadata. There is no detached worker promise.
-    const batch: WaitingBatch = { started: false, callers: [{ ...options }], result: observe() };
+    const batch: WaitingBatch = { queryId, started: false, callers: [{ ...options }], result: observe() };
     batches.set(source, batch);
     const result = await batch.result;
     return result;

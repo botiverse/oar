@@ -29,6 +29,12 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always() && runner.os == 'Windows'
         with:
+          name: windows-cancellation-timing
+          path: ${{ github.workspace }}/oar-trial-run/cancellation-timing
+          if-no-files-found: warn
+      - uses: actions/upload-artifact@v4
+        if: always() && runner.os == 'Windows'
+        with:
           name: windows-watchdog-diagnostics
           path: ${{ github.workspace }}/oar-trial-run/pi-rpc-diagnostics
           if-no-files-found: warn

@@ -1,0 +1,780 @@
+{
+  "platform": "linux",
+  "node": "v24.19.0",
+  "observed_at": "2026-11-16",
+  "base": "907405759f166af8a4ca5711474533c20bc26951",
+  "samples": [
+    {
+      "source_sha256": "22816b281592d03dddde8ca5af9578b89e9589079e486ab1a5867b4a2b62d188",
+      "test": "acp cancellation cleans captured tools when its root exits immediately",
+      "clock": "performance.now",
+      "openedAtMs": 2434.792217,
+      "observedThroughMs": 2729.256294,
+      "dropped": 0,
+      "events": [
+        {
+          "kind": "cancel_requested",
+          "shutdownId": 15,
+          "requestId": 16,
+          "atMs": 2654.35985
+        },
+        {
+          "kind": "observation_requested",
+          "requestId": 16,
+          "source": "procfs",
+          "deadlineMs": 3654.392762,
+          "atMs": 2654.392762
+        },
+        {
+          "kind": "query_queued",
+          "queryId": 17,
+          "source": "procfs",
+          "atMs": 2654.439978
+        },
+        {
+          "kind": "query_joined",
+          "queryId": 17,
+          "requestId": 16,
+          "atMs": 2654.439978
+        },
+        {
+          "kind": "query_started",
+          "queryId": 17,
+          "atMs": 2654.518702
+        },
+        {
+          "kind": "query_finished",
+          "queryId": 17,
+          "outcome": "ok",
+          "atMs": 2677.669028
+        },
+        {
+          "kind": "observation_returned",
+          "requestId": 16,
+          "outcome": "ok",
+          "atMs": 2677.719377
+        },
+        {
+          "kind": "cancel_committed",
+          "shutdownId": 15,
+          "requestId": 16,
+          "atMs": 2677.893113
+        },
+        {
+          "kind": "root_exited",
+          "shutdownId": 15,
+          "atMs": 2692.892506
+        },
+        {
+          "kind": "cleanup_started",
+          "shutdownId": 15,
+          "atMs": 2692.955082
+        },
+        {
+          "kind": "query_queued",
+          "queryId": 18,
+          "source": "procfs",
+          "atMs": 2692.971132
+        },
+        {
+          "kind": "query_started",
+          "queryId": 18,
+          "atMs": 2693.00848
+        },
+        {
+          "kind": "query_finished",
+          "queryId": 18,
+          "outcome": "ok",
+          "atMs": 2724.758076
+        },
+        {
+          "kind": "cleanup_finished",
+          "shutdownId": 15,
+          "atMs": 2724.916659
+        },
+        {
+          "kind": "cancel_completed",
+          "shutdownId": 15,
+          "requestId": 16,
+          "atMs": 2725.089932
+        }
+      ]
+    },
+    {
+      "source_sha256": "f5498c7dfd1701268eab6366d5844d40a4d41d001ca179e5163716fd3dd0d700",
+      "test": "acp cancellation retains orphan identities across two resumed turns",
+      "clock": "performance.now",
+      "openedAtMs": 1038.05876,
+      "observedThroughMs": 1758.383411,
+      "dropped": 0,
+      "events": [
+        {
+          "kind": "cancel_requested",
+          "shutdownId": 1,
+          "requestId": 2,
+          "atMs": 1261.425971
+        },
+        {
+          "kind": "observation_requested",
+          "requestId": 2,
+          "source": "procfs",
+          "deadlineMs": 2261.768189,
+          "atMs": 1261.768189
+        },
+        {
+          "kind": "query_queued",
+          "queryId": 3,
+          "source": "procfs",
+          "atMs": 1262.077872
+        },
+        {
+          "kind": "query_joined",
+          "queryId": 3,
+          "requestId": 2,
+          "atMs": 1262.077872
+        },
+        {
+          "kind": "query_started",
+          "queryId": 3,
+          "atMs": 1262.436821
+        },
+        {
+          "kind": "query_finished",
+          "queryId": 3,
+          "outcome": "ok",
+          "atMs": 1319.912023
+        },
+        {
+          "kind": "observation_returned",
+          "requestId": 2,
+          "outcome": "ok",
+          "atMs": 1320.023605
+        },
+        {
+          "kind": "cancel_committed",
+          "shutdownId": 1,
+          "requestId": 2,
+          "atMs": 1321.227032
+        },
+        {
+          "kind": "cancel_completed",
+          "shutdownId": 1,
+          "requestId": 2,
+          "atMs": 1328.814527
+        },
+        {
+          "kind": "cancel_requested",
+          "shutdownId": 1,
+          "requestId": 4,
+          "atMs": 1553.383708
+        },
+        {
+          "kind": "observation_requested",
+          "requestId": 4,
+          "source": "procfs",
+          "deadlineMs": 2553.427347,
+          "atMs": 1553.427347
+        },
+        {
+          "kind": "query_queued",
+          "queryId": 5,
+          "source": "procfs",
+          "atMs": 1553.468712
+        },
+        {
+          "kind": "query_joined",
+          "queryId": 5,
+          "requestId": 4,
+          "atMs": 1553.468712
+        },
+        {
+          "kind": "query_started",
+          "queryId": 5,
+          "atMs": 1553.508226
+        },
+        {
+          "kind": "query_finished",
+          "queryId": 5,
+          "outcome": "ok",
+          "atMs": 1581.154286
+        },
+        {
+          "kind": "observation_returned",
+          "requestId": 4,
+          "outcome": "ok",
+          "atMs": 1581.183742
+        },
+        {
+          "kind": "cancel_committed",
+          "shutdownId": 1,
+          "requestId": 4,
+          "atMs": 1581.47897
+        },
+        {
+          "kind": "cancel_completed",
+          "shutdownId": 1,
+          "requestId": 4,
+          "atMs": 1587.813689
+        },
+        {
+          "kind": "query_queued",
+          "queryId": 6,
+          "source": "procfs",
+          "atMs": 1649.720353
+        },
+        {
+          "kind": "query_started",
+          "queryId": 6,
+          "atMs": 1649.792564
+        },
+        {
+          "kind": "query_finished",
+          "queryId": 6,
+          "outcome": "ok",
+          "atMs": 1705.739722
+        },
+        {
+          "kind": "stop_requested",
+          "shutdownId": 1,
+          "atMs": 1706.59197
+        },
+        {
+          "kind": "root_exited",
+          "shutdownId": 1,
+          "atMs": 1712.190347
+        },
+        {
+          "kind": "cleanup_started",
+          "shutdownId": 1,
+          "atMs": 1712.287454
+        },
+        {
+          "kind": "query_queued",
+          "queryId": 7,
+          "source": "procfs",
+          "atMs": 1712.330664
+        },
+        {
+          "kind": "query_started",
+          "queryId": 7,
+          "atMs": 1712.360415
+        },
+        {
+          "kind": "query_finished",
+          "queryId": 7,
+          "outcome": "ok",
+          "atMs": 1734.774538
+        },
+        {
+          "kind": "cleanup_finished",
+          "shutdownId": 1,
+          "atMs": 1735.411778
+        }
+      ]
+    },
+    {
+      "source_sha256": "9d7bd4fbd1a1785793b4aeaa05abe20c5449d9825577b038e674cd21dc6de049",
+      "test": "acp kill fallback retains ownership from before the native cancel",
+      "clock": "performance.now",
+      "openedAtMs": 5663.604967,
+      "observedThroughMs": 6256.420662,
+      "dropped": 0,
+      "events": [
+        {
+          "kind": "cancel_requested",
+          "shutdownId": 30,
+          "requestId": 31,
+          "atMs": 5869.759671
+        },
+        {
+          "kind": "observation_requested",
+          "requestId": 31,
+          "source": "procfs",
+          "deadlineMs": 6869.792191,
+          "atMs": 5869.792191
+        },
+        {
+          "kind": "query_queued",
+          "queryId": 32,
+          "source": "procfs",
+          "atMs": 5869.835023
+        },
+        {
+          "kind": "query_joined",
+          "queryId": 32,
+          "requestId": 31,
+          "atMs": 5869.835023
+        },
+        {
+          "kind": "query_started",
+          "queryId": 32,
+          "atMs": 5869.907109
+        },
+        {
+          "kind": "query_finished",
+          "queryId": 32,
+          "outcome": "ok",
+          "atMs": 5906.203645
+        },
+        {
+          "kind": "observation_returned",
+          "requestId": 31,
+          "outcome": "ok",
+          "atMs": 5906.241278
+        },
+        {
+          "kind": "cancel_committed",
+          "shutdownId": 30,
+          "requestId": 31,
+          "atMs": 5906.433984
+        },
+        {
+          "kind": "stop_requested",
+          "shutdownId": 30,
+          "atMs": 6158.013137
+        },
+        {
+          "kind": "query_queued",
+          "queryId": 33,
+          "source": "procfs",
+          "atMs": 6158.039583
+        },
+        {
+          "kind": "query_started",
+          "queryId": 33,
+          "atMs": 6158.188265
+        },
+        {
+          "kind": "query_finished",
+          "queryId": 33,
+          "outcome": "ok",
+          "atMs": 6195.879038
+        },
+        {
+          "kind": "root_exited",
+          "shutdownId": 30,
+          "atMs": 6200.032025
+        },
+        {
+          "kind": "cleanup_started",
+          "shutdownId": 30,
+          "atMs": 6200.083829
+        },
+        {
+          "kind": "query_queued",
+          "queryId": 34,
+          "source": "procfs",
+          "atMs": 6200.096371
+        },
+        {
+          "kind": "query_started",
+          "queryId": 34,
+          "atMs": 6200.160469
+        },
+        {
+          "kind": "query_finished",
+          "queryId": 34,
+          "outcome": "ok",
+          "atMs": 6233.50823
+        },
+        {
+          "kind": "cleanup_finished",
+          "shutdownId": 30,
+          "atMs": 6233.706319
+        },
+        {
+          "kind": "cancel_completed",
+          "shutdownId": 30,
+          "requestId": 31,
+          "atMs": 6234.161889
+        }
+      ]
+    },
+    {
+      "source_sha256": "08749889c2a6994ade545dd374a10c0d079967e34707468d8298864409fa5ce2",
+      "test": "stream cancellation cleans captured tools when its root exits immediately",
+      "clock": "performance.now",
+      "openedAtMs": 2730.794196,
+      "observedThroughMs": 3054.133984,
+      "dropped": 0,
+      "events": [
+        {
+          "kind": "cancel_requested",
+          "shutdownId": 19,
+          "requestId": 20,
+          "atMs": 2947.126943
+        },
+        {
+          "kind": "observation_requested",
+          "requestId": 20,
+          "source": "procfs",
+          "deadlineMs": 3947.154316,
+          "atMs": 2947.154316
+        },
+        {
+          "kind": "query_queued",
+          "queryId": 21,
+          "source": "procfs",
+          "atMs": 2947.22087
+        },
+        {
+          "kind": "query_joined",
+          "queryId": 21,
+          "requestId": 20,
+          "atMs": 2947.22087
+        },
+        {
+          "kind": "query_started",
+          "queryId": 21,
+          "atMs": 2947.277746
+        },
+        {
+          "kind": "query_finished",
+          "queryId": 21,
+          "outcome": "ok",
+          "atMs": 2977.316952
+        },
+        {
+          "kind": "observation_returned",
+          "requestId": 20,
+          "outcome": "ok",
+          "atMs": 2977.344164
+        },
+        {
+          "kind": "cancel_committed",
+          "shutdownId": 19,
+          "requestId": 20,
+          "atMs": 2977.548161
+        },
+        {
+          "kind": "root_exited",
+          "shutdownId": 19,
+          "atMs": 2993.691974
+        },
+        {
+          "kind": "cleanup_started",
+          "shutdownId": 19,
+          "atMs": 2993.726633
+        },
+        {
+          "kind": "query_queued",
+          "queryId": 22,
+          "source": "procfs",
+          "atMs": 2993.737218
+        },
+        {
+          "kind": "query_started",
+          "queryId": 22,
+          "atMs": 2993.753674
+        },
+        {
+          "kind": "query_finished",
+          "queryId": 22,
+          "outcome": "ok",
+          "atMs": 3032.759929
+        },
+        {
+          "kind": "cleanup_finished",
+          "shutdownId": 19,
+          "atMs": 3032.929767
+        },
+        {
+          "kind": "cancel_completed",
+          "shutdownId": 19,
+          "requestId": 20,
+          "atMs": 3032.966452
+        }
+      ]
+    },
+    {
+      "source_sha256": "ebecd751c272630263f5a2624c5102367f66c3e90c5937356d55f9bf8e983482",
+      "test": "stream cancellation retains orphan identities across two resumed turns",
+      "clock": "performance.now",
+      "openedAtMs": 1761.316868,
+      "observedThroughMs": 2429.793424,
+      "dropped": 0,
+      "events": [
+        {
+          "kind": "cancel_requested",
+          "shutdownId": 8,
+          "requestId": 9,
+          "atMs": 1980.633769
+        },
+        {
+          "kind": "observation_requested",
+          "requestId": 9,
+          "source": "procfs",
+          "deadlineMs": 2980.698458,
+          "atMs": 1980.698458
+        },
+        {
+          "kind": "query_queued",
+          "queryId": 10,
+          "source": "procfs",
+          "atMs": 1980.751174
+        },
+        {
+          "kind": "query_joined",
+          "queryId": 10,
+          "requestId": 9,
+          "atMs": 1980.751174
+        },
+        {
+          "kind": "query_started",
+          "queryId": 10,
+          "atMs": 1980.795333
+        },
+        {
+          "kind": "query_finished",
+          "queryId": 10,
+          "outcome": "ok",
+          "atMs": 2007.135795
+        },
+        {
+          "kind": "observation_returned",
+          "requestId": 9,
+          "outcome": "ok",
+          "atMs": 2007.153566
+        },
+        {
+          "kind": "cancel_committed",
+          "shutdownId": 8,
+          "requestId": 9,
+          "atMs": 2007.629731
+        },
+        {
+          "kind": "cancel_completed",
+          "shutdownId": 8,
+          "requestId": 9,
+          "atMs": 2014.956794
+        },
+        {
+          "kind": "cancel_requested",
+          "shutdownId": 8,
+          "requestId": 11,
+          "atMs": 2239.830385
+        },
+        {
+          "kind": "observation_requested",
+          "requestId": 11,
+          "source": "procfs",
+          "deadlineMs": 3239.882632,
+          "atMs": 2239.882632
+        },
+        {
+          "kind": "query_queued",
+          "queryId": 12,
+          "source": "procfs",
+          "atMs": 2239.930389
+        },
+        {
+          "kind": "query_joined",
+          "queryId": 12,
+          "requestId": 11,
+          "atMs": 2239.930389
+        },
+        {
+          "kind": "query_started",
+          "queryId": 12,
+          "atMs": 2239.971597
+        },
+        {
+          "kind": "query_finished",
+          "queryId": 12,
+          "outcome": "ok",
+          "atMs": 2287.907469
+        },
+        {
+          "kind": "observation_returned",
+          "requestId": 11,
+          "outcome": "ok",
+          "atMs": 2287.92691
+        },
+        {
+          "kind": "cancel_committed",
+          "shutdownId": 8,
+          "requestId": 11,
+          "atMs": 2288.146372
+        },
+        {
+          "kind": "cancel_completed",
+          "shutdownId": 8,
+          "requestId": 11,
+          "atMs": 2293.791728
+        },
+        {
+          "kind": "stop_requested",
+          "shutdownId": 8,
+          "atMs": 2356.221906
+        },
+        {
+          "kind": "query_queued",
+          "queryId": 13,
+          "source": "procfs",
+          "atMs": 2356.253518
+        },
+        {
+          "kind": "query_started",
+          "queryId": 13,
+          "atMs": 2356.295903
+        },
+        {
+          "kind": "query_finished",
+          "queryId": 13,
+          "outcome": "ok",
+          "atMs": 2378.418314
+        },
+        {
+          "kind": "root_exited",
+          "shutdownId": 8,
+          "atMs": 2382.478104
+        },
+        {
+          "kind": "cleanup_started",
+          "shutdownId": 8,
+          "atMs": 2382.623069
+        },
+        {
+          "kind": "query_queued",
+          "queryId": 14,
+          "source": "procfs",
+          "atMs": 2382.635504
+        },
+        {
+          "kind": "query_started",
+          "queryId": 14,
+          "atMs": 2382.672222
+        },
+        {
+          "kind": "query_finished",
+          "queryId": 14,
+          "outcome": "ok",
+          "atMs": 2408.375744
+        },
+        {
+          "kind": "cleanup_finished",
+          "shutdownId": 8,
+          "atMs": 2408.742866
+        }
+      ]
+    },
+    {
+      "source_sha256": "9e062e8c80c390f45cad4521b4cf4109e43038ac61ef6a374c47b022088d337d",
+      "test": "stream kill fallback retains ownership from before the native cancel",
+      "clock": "performance.now",
+      "openedAtMs": 6257.986079,
+      "observedThroughMs": 16603.339705,
+      "dropped": 0,
+      "events": [
+        {
+          "kind": "cancel_requested",
+          "shutdownId": 35,
+          "requestId": 36,
+          "atMs": 6476.38386
+        },
+        {
+          "kind": "observation_requested",
+          "requestId": 36,
+          "source": "procfs",
+          "deadlineMs": 7476.415301,
+          "atMs": 6476.415301
+        },
+        {
+          "kind": "query_queued",
+          "queryId": 37,
+          "source": "procfs",
+          "atMs": 6476.474442
+        },
+        {
+          "kind": "query_joined",
+          "queryId": 37,
+          "requestId": 36,
+          "atMs": 6476.474442
+        },
+        {
+          "kind": "query_started",
+          "queryId": 37,
+          "atMs": 6476.523734
+        },
+        {
+          "kind": "query_finished",
+          "queryId": 37,
+          "outcome": "ok",
+          "atMs": 6511.115148
+        },
+        {
+          "kind": "observation_returned",
+          "requestId": 36,
+          "outcome": "ok",
+          "atMs": 6511.179722
+        },
+        {
+          "kind": "cancel_committed",
+          "shutdownId": 35,
+          "requestId": 36,
+          "atMs": 6511.624936
+        },
+        {
+          "kind": "stop_requested",
+          "shutdownId": 35,
+          "atMs": 16512.384761
+        },
+        {
+          "kind": "query_queued",
+          "queryId": 38,
+          "source": "procfs",
+          "atMs": 16512.430712
+        },
+        {
+          "kind": "query_started",
+          "queryId": 38,
+          "atMs": 16512.511806
+        },
+        {
+          "kind": "query_finished",
+          "queryId": 38,
+          "outcome": "ok",
+          "atMs": 16552.333314
+        },
+        {
+          "kind": "root_exited",
+          "shutdownId": 35,
+          "atMs": 16555.695271
+        },
+        {
+          "kind": "cleanup_started",
+          "shutdownId": 35,
+          "atMs": 16555.750456
+        },
+        {
+          "kind": "query_queued",
+          "queryId": 39,
+          "source": "procfs",
+          "atMs": 16555.763546
+        },
+        {
+          "kind": "query_started",
+          "queryId": 39,
+          "atMs": 16555.781528
+        },
+        {
+          "kind": "query_finished",
+          "queryId": 39,
+          "outcome": "ok",
+          "atMs": 16581.274693
+        },
+        {
+          "kind": "cleanup_finished",
+          "shutdownId": 35,
+          "atMs": 16581.474108
+        },
+        {
+          "kind": "cancel_completed",
+          "shutdownId": 35,
+          "requestId": 36,
+          "atMs": 16581.663267
+        }
+      ]
+    }
+  ]
+}
