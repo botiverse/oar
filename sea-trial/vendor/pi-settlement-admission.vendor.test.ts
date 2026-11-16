@@ -48,11 +48,11 @@ describe.skipIf(!isPiBackend)("Pi settlement and native admission", () => {
     } finally { await f.close(); }
   }, 15_000);
 
-  test.skipIf(piRpc)("SDK settles a bootstrap run whose agent_start preceded subscription", async () => {
+  test.skipIf(piRpc)("SDK retains bootstrap agent_start and refuses overtaking through settlement", async () => {
     const f = await fixture('pi.on("session_start", () => { pi.sendUserMessage("BOOT"); });', /^BOOT$/u);
     try {
       expect(await until(() => f.requests.includes("BOOT"))).toBe(true);
-      expect(f.session.records().some(record => record.kind === "frame" && record.body.type === "agent_start")).toBe(false);
+      expect(f.session.records().some(record => record.kind === "frame" && record.body.type === "agent_start")).toBe(true);
       const captured: { idle?: ReturnType<typeof awaitIdle>; prompt?: ReturnType<typeof f.session.prompt> } = {};
       f.session.rawEvents(record => {
         if (captured.idle === undefined && record.kind === "frame" && record.body.events.some(event => event.kind === "text_delta")) {

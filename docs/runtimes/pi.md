@@ -385,9 +385,11 @@ The directory formula, lookup and error are pinned by
 [`tests/pi/pi-session-resume.test.ts`](../../tests/pi/pi-session-resume.test.ts).
 [Resolver](../../packages/oar/src/runtimes/pi/resolve.ts).
 
-**Extension lifecycle (SDK 1.1.0):** every OAR session, new or resumed,
-awaits `session.bindExtensions({})` after construction and option readback,
-before returning it to the host. Pi emits `{ type: "session_start", reason:
+**Extension lifecycle:** every OAR SDK session, new or resumed, subscribes
+the controller to native events before awaiting `session.bindExtensions(...)`,
+after construction and option readback and before returning it to the host.
+This retains runs that a `session_start` extension starts or completes while
+binding is still in progress. Pi emits `{ type: "session_start", reason:
 "startup" }` from that call and awaits extension resource discovery. This
 matches CLI startup, including `--resume` and `--continue`: `dist/main.js`
 selects the session manager but passes no `sessionStartEvent` to the initial
@@ -500,9 +502,8 @@ on Pi 1.5.0; 1.4.0 observations are in the
 native `started` or `handled` preflight receipt, or `rejected`
 (`runtime_refused`, with pi's own message) when the promise rejects first
 (e.g. "Cannot submit a prompt while compaction is in progress"). A run with
-native run evidence (message, tool or turn activity, even when a
-`session_start` extension started it before OAR subscribed and its
-`agent_start` was missed) ends at pi's `agent_settled`, whose `turn_ended`
+native run evidence (message, tool or turn activity, including RPC startup
+activity whose `agent_start` was missed) ends at pi's `agent_settled`, whose `turn_ended`
 event carries completed, aborted or failed. Settlement without any run
 evidence emits no turn end, even with native `aborted: true`. `agent_end` is
 recorded but does not end the turn: pi runs threshold compaction and auto-retries between `agent_end`
@@ -538,6 +539,25 @@ active, not inside `agent_settled`, where `isIdle` is already true (calling
 `prompt` inside settlement would detach its promise and charge a later
 refusal to the preceding run). Fast and slow extension input hooks keep the
 tested A → EXT → B order.
+
+SDK subscribes before `bindExtensions`, so a bootstrap run held in an awaited
+`agent_settled` extension hook remains busy even when Pi's public
+`isStreaming` is already false. A direct prompt is refused `busy` before
+native submission; queued work waits through settlement and compaction.
+Runs that finish entirely during startup retain their real start and end.
+
+**RPC startup limitation (native 1.5.0):** Pi's RPC server subscribes after
+binding extensions. If a bootstrap run has already finished its model work
+and is waiting in a settlement hook, neither `get_state.isStreaming` nor
+its event stream identifies that pending hook. A prompt sent in that window
+can be deferred; if the hook starts compaction, Pi rejects the deferred
+prompt through the bootstrap extension's error channel, without a prompt
+response or request ID. OAR preserves the uncorrelated `extension_error`.
+After the existing 30-second command deadline it reports an `error` refusal
+and cleans up the child, followed by the actual `exited` response. This is
+not a correlated native refusal, and the session cannot continue after exit.
+Native 1.5.2 source still has this ordering; it was inspected, not exercised
+in this probe. See the [reproduction and selected evidence](../../experiments/pi-bootstrap-admission/README.md).
 
 Custom-message start/end frames alone are not run evidence: Pi also emits
 them for idle extension notices and when failed preparation flushes held

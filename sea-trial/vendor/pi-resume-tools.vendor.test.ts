@@ -35,6 +35,7 @@ async function fixture(extension: string, emptyDefaults: boolean) {
   return {
     async open(options: Partial<SessionOptions> = {}) {
       const session = await openPiAgentSession({ cwd, model: "aimock/aimock-model", ...options });
+      await session.bindExtensions({});
       sessions.push(session);
       return session;
     },
@@ -72,7 +73,7 @@ describe.skipIf(process.env.OAR_TEST !== "pi-aimock")("Pi resumed tool selection
       const fresh = await setup.open();
       const resume = await setup.savedTools(emptyDefaults ? ["inactive_probe"] : ["read", "inactive_probe"]);
       const resumed = await setup.open({ resume });
-      // openPiAgentSession has awaited session_start. Check open state here;
+      // The fixture has bound extensions and awaited session_start. Check open state here;
       // the provider-request regression below also covers the first turn.
       expect(fresh.getAllTools().map((tool) => tool.name)).toContain("inactive_probe");
       expect(resumed.getAllTools().map((tool) => tool.name)).toContain("inactive_probe");

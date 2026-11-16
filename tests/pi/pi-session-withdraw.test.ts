@@ -67,6 +67,8 @@ class FakePiSession {
 
   dispose(): void {}
 
+  async bindExtensions(): Promise<void> {}
+
   async compact(): Promise<void> { this.emit({ type: "compaction_start", reason: "manual" }); }
 
   emit(event: unknown): void {

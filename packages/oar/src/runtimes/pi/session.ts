@@ -25,23 +25,16 @@ const piImages = (images: readonly LoadedImage[]): { type: "image"; data: string
 export { piEffectiveModel, piEnvBashTool, type PiModelSource } from "./open.js";
 
 /*
- * Bundled pi SDK mapping (in-process, no fork; settled 2026-08-21, record
- * stream 2026-09-11): every SDK event is one frame; pi's own
- * `agent_settled` is the turn end; steer acceptance means entry into pi's queue;
- * abort is cooperative. Resume opens the cwd's session file by id and
- * options.model resolves through the ModelRuntime (see resolve.ts);
- * options.effort is pi's creation-time thinking level (open.ts).
- * Process-global lazy env reads mean another embedded pi cannot safely share
- * this process.
+ * Bundled Pi SDK, in process: preserve each native event and end turns only
+ * at agent_settled. Admission, projection and compaction own separate gates.
+ * Process-global lazy env reads prevent sharing with another embedded Pi.
  */
 
 export const createPiSession = (project: PiProjectOptions = {}): StartSession => withSessionCredentials(async (installation, options, credentials) => {
   if (installation.via !== "bundled") {
     throw new Error("The pi session adapter needs the bundled sdk installation");
   }
-  const earlyErrors: unknown[] = [];
-  let extensionError = (native: unknown): void => { earlyErrors.push(native); };
-  const piAgentSession = await openPiAgentSession(options, credentials.add, project, native => { extensionError(native); });
+  const piAgentSession = await openPiAgentSession(options, credentials.add, project);
   // pi-ai's own test for an oversized context, on a failed assistant message (failure.ts).
   const { isContextOverflow } = await import("@earendil-works/pi-ai");
   const overflowOf = (event: Parameters<Parameters<typeof piAgentSession.subscribe>[0]>[0]): boolean => {
@@ -52,8 +45,6 @@ export const createPiSession = (project: PiProjectOptions = {}): StartSession =>
   };
 
   const kernel = credentials.kernel(piAgentSession.sessionId);
-  extensionError = (native): void => { kernel.frame({ type: "extension_error", native, events: [] }); };
-  earlyErrors.forEach(native => { extensionError(native); });
   // abort() signals synchronously, then waits for idle. Accept delivery now;
   // its later settlement is a native event, never a control-intent inference.
   const abortNative = async (): Promise<void> => {
@@ -192,6 +183,15 @@ export const createPiSession = (project: PiProjectOptions = {}): StartSession =>
     }
   });
 
+  // session_start may start a run and await its settlement hook before binding
+  // returns. Subscribe first so its real activity keeps prompt admission busy.
+  // Model validation and credential registration have already completed.
+  try {
+    await piAgentSession.bindExtensions({ onError: native => { kernel.frame({ type: "extension_error", native, events: [] }); } });
+  } catch (error) {
+    await disposePiAgentSession(piAgentSession, piAgentSession.isStreaming);
+    throw error;
+  }
   queueBarrier.observeRun();
   const openedModel = piEffectiveModel(piAgentSession);
   if (openedModel !== null) {
