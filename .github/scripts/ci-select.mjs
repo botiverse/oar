@@ -20,7 +20,7 @@ const backendsOf = {
 const runtimes = Object.keys(backendsOf).sort((a, b) => b.length - a.length);
 
 /** Paths that cannot change behavior: the `check` job still covers them. */
-const inert = [/^docs\//u, /\.md$/u, /^experiments\//u, /^assets\//u, /^apps\//u, /^packages\/cli\//u, /^packages\/oar\/assets\//u, /^tests\//u, /^\.stamp\//u];
+const inert = [/^docs\//u, /\.md$/u, /^experiments\//u, /^assets\//u, /^apps\//u, /^packages\/cli\//u, /^packages\/oar\/assets\//u, /^tests\/(?!fixtures\/)/u, /^\.stamp\//u]; // tests/fixtures feeds vendor tests
 
 /** The backends one changed file can reach; `null` means it may reach any of them. */
 function reach(file) {
@@ -40,7 +40,7 @@ function reach(file) {
 function changedFiles() {
   const base = process.env.BASE_SHA;
   if (base === undefined || base === "") { return null; }
-  return execFileSync("git", ["diff", "--name-only", `${base}...HEAD`], { encoding: "utf8" }).split("\n").filter((line) => line !== "");
+  return execFileSync("git", ["diff", "--name-only", "--no-renames", `${base}...HEAD`], { encoding: "utf8" }).split("\n").filter((line) => line !== "");
 }
 
 const pullRequest = process.env.GITHUB_EVENT_NAME === "pull_request";
@@ -62,6 +62,8 @@ const out = {
   os: JSON.stringify(os),
   acp_os: JSON.stringify(os.filter((name) => name !== "windows-latest")),
   pi_rpc: String(selected.includes("pi-rpc-aimock")),
+  // The Windows-only Pi RPC job runs after merge, like the other non-Linux jobs.
+  pi_rpc_windows: String(!pullRequest && selected.includes("pi-rpc-aimock")),
 };
 for (const [key, value] of Object.entries(out)) {
   process.stdout.write(`${key}=${value}\n`);

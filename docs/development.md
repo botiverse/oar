@@ -237,7 +237,8 @@ Pi RPC jobs are chosen by [`.github/scripts/ci-select.mjs`](../.github/scripts/c
 a pull request runs, on Linux only, the backends its changed files can reach
 (a runtime's own directory or its vendor tests reach that runtime; shared code,
 contracts, the behavior harness, CI or anything unrecognized reach all of them;
-docs, experiments, tests, the CLI and apps reach none). A push to main and a
+docs, experiments, tests other than `tests/fixtures/`, the CLI and apps reach
+none). The Windows-only Pi RPC job also waits for main. A push to main and a
 dispatch run every backend on every platform, and the release gate waits for
 that run on the released commit, so a platform regression found after merge
 still cannot ship.

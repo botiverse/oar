@@ -22,6 +22,7 @@ jobs:
       os: ${{ steps.pick.outputs.os }}
       acp_os: ${{ steps.pick.outputs.acp_os }}
       pi_rpc: ${{ steps.pick.outputs.pi_rpc }}
+      pi_rpc_windows: ${{ steps.pick.outputs.pi_rpc_windows }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -295,7 +296,7 @@ jobs:
   # CI ceilings may preserve a hung step's logs while its runner is alive.
   pi-rpc-windows:
     needs: changes
-    if: needs.changes.outputs.pi_rpc == 'true'
+    if: needs.changes.outputs.pi_rpc_windows == 'true'
     strategy:
       fail-fast: false
       matrix:
