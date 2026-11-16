@@ -481,7 +481,7 @@ runtime oar does not sign in.
 
 ## CLI
 
-`oar login`, `oar login --status` and `oar logout` run these from a
+`oar account login`, `oar account status` and `oar account logout` run these from a
 terminal; their flags, output and exit codes are in the
 [CLI reference](../../packages/cli/README.md#commands).
 

@@ -124,7 +124,7 @@ session-only MCP tool view is not used. Claude's historical session-init tool
 list is not used for these independent queries.
 [Native evidence and limits](../runtimes/inventory.md).
 
-The CLI's `oar skills|commands|mcps|tools` print the same results as JSON
+The CLI's `oar inventory skills|commands|mcps|tools` prints the same results as JSON
 ([CLI reference](../../packages/cli/README.md#native-inventories)).
 
 ## Extension and verification

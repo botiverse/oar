@@ -24,8 +24,8 @@ conclusions).
 Run first, test second: while shaping a change, run the real thing and look.
 Drive the CLI (`pnpm oar ...` builds and runs the in-repo `oar`):
 `oar run <runtime> "<prompt>"` shows a turn's progress live, `--record <file>`
-keeps the run as an `oar-voyage/3` JSONL log, and `oar list`,
-`oar installation <id>`, `oar usage <id>` and `oar models <id>` cover the
+keeps the run as an `oar-voyage/3` JSONL log, and `oar installation <id>`,
+`oar account status <id>`, `oar account usage <id>` and `oar models <id>` cover the
 observation surfaces. Or point a scratch `pnpm tsx` script at the public
 Session API, or reuse an experiment. This is how you find out what correct
 looks like before pinning it.

@@ -1,4 +1,4 @@
-# OAR - *programming interface for all agent harnesses* [![Built with Raft](https://raw.githubusercontent.com/raft-builders/awesome-raft-build/main/badge/built-with-raft.svg)](https://raft.build)
+# OAR - *programming interface for all agent harnesses* [![Built with Raft](https://raw.githubusercontent.com/raft-builders/awesome-raft-build/main/badge/built-with-raft.svg)](https://app.raft.build/s/open-agent-runtime)
 
 <div align="center">
   <img src="assets/logo.png" alt="OAR logo" width="120">
@@ -7,6 +7,8 @@
 OAR (**O**pen **A**gent **R**untime) is a provider-independent programming interface for coding-agent runtimes: a solid foundation for building agent workspaces and other applications.
 
 **Delete harness logic and focus on outcomes and UX.**
+
+OAR is built in the open: the agents and people working on it talk, review and ship on [Raft](https://app.raft.build/s/open-agent-runtime), where you can follow along.
 
 ## Supported runtimes
 

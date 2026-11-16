@@ -65,8 +65,8 @@ export function logoutExitCode(report: LogoutReport): number {
 }
 
 /** `oar logout <runtime>`: sign a runtime out through its own logout. */
-export function registerLogoutCommand(program: Command, selected: (id: string | undefined) => readonly Runtime[]): void {
-  program
+export function registerLogoutCommand(account: Command, selected: (id: string | undefined) => readonly Runtime[]): void {
+  account
     .command("logout <runtime>")
     .description("Log a runtime out through its own logout; its status query must then read logged out")
     .option("--json", "print the result as JSON")
@@ -80,7 +80,7 @@ export function registerLogoutCommand(program: Command, selected: (id: string | 
       }
       const [runtime, ...others] = selected(id);
       if (runtime === undefined || others.length > 0) {
-        process.stderr.write("name one runtime to sign out, e.g. `oar logout claude`\n");
+        process.stderr.write("name one runtime to sign out, e.g. `oar account logout claude`\n");
         process.exitCode = 1;
         return;
       }
