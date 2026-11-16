@@ -1,0 +1,110 @@
+{
+  "rawSha256": "781605db509c4b21991a32a061c874bccbf26c16967a29f049b718e6d1d40ef5",
+  "at": "2026-11-16T04:56:32.925Z",
+  "platform": "linux",
+  "architecture": "x64",
+  "scope": "Identical launch environment in both placements; not per-thread credential isolation",
+  "passed": true,
+  "cohorts": [
+    {
+      "mode": "shared",
+      "observed": true,
+      "tools": [
+        {
+          "label": "A_cwd",
+          "environmentMarker": "OAR_CODEX_SAME_PROCESS_ENVIRONMENT",
+          "cwdMatchesSession": true
+        },
+        {
+          "label": "B_cwd",
+          "environmentMarker": "OAR_CODEX_SAME_PROCESS_ENVIRONMENT",
+          "cwdMatchesSession": true
+        }
+      ],
+      "stdioMcp": [
+        {
+          "label": "A",
+          "environmentMarker": "OAR_CODEX_SAME_PROCESS_ENVIRONMENT",
+          "cwdMatchesSession": true
+        },
+        {
+          "label": "B",
+          "environmentMarker": "OAR_CODEX_SAME_PROCESS_ENVIRONMENT",
+          "cwdMatchesSession": true
+        }
+      ],
+      "hooks": [
+        {
+          "label": "A_cwd",
+          "environmentMarker": "OAR_CODEX_SAME_PROCESS_ENVIRONMENT",
+          "cwdMatchesSession": true
+        },
+        {
+          "label": "A_mcpbaseline",
+          "environmentMarker": "OAR_CODEX_SAME_PROCESS_ENVIRONMENT",
+          "cwdMatchesSession": true
+        },
+        {
+          "label": "B_cwd",
+          "environmentMarker": "OAR_CODEX_SAME_PROCESS_ENVIRONMENT",
+          "cwdMatchesSession": true
+        },
+        {
+          "label": "B_mcpbaseline",
+          "environmentMarker": "OAR_CODEX_SAME_PROCESS_ENVIRONMENT",
+          "cwdMatchesSession": true
+        }
+      ]
+    },
+    {
+      "mode": "separate",
+      "observed": true,
+      "tools": [
+        {
+          "label": "A_cwd",
+          "environmentMarker": "OAR_CODEX_SAME_PROCESS_ENVIRONMENT",
+          "cwdMatchesSession": true
+        },
+        {
+          "label": "B_cwd",
+          "environmentMarker": "OAR_CODEX_SAME_PROCESS_ENVIRONMENT",
+          "cwdMatchesSession": true
+        }
+      ],
+      "stdioMcp": [
+        {
+          "label": "A",
+          "environmentMarker": "OAR_CODEX_SAME_PROCESS_ENVIRONMENT",
+          "cwdMatchesSession": true
+        },
+        {
+          "label": "B",
+          "environmentMarker": "OAR_CODEX_SAME_PROCESS_ENVIRONMENT",
+          "cwdMatchesSession": true
+        }
+      ],
+      "hooks": [
+        {
+          "label": "A_cwd",
+          "environmentMarker": "OAR_CODEX_SAME_PROCESS_ENVIRONMENT",
+          "cwdMatchesSession": true
+        },
+        {
+          "label": "A_mcpbaseline",
+          "environmentMarker": "OAR_CODEX_SAME_PROCESS_ENVIRONMENT",
+          "cwdMatchesSession": true
+        },
+        {
+          "label": "B_cwd",
+          "environmentMarker": "OAR_CODEX_SAME_PROCESS_ENVIRONMENT",
+          "cwdMatchesSession": true
+        },
+        {
+          "label": "B_mcpbaseline",
+          "environmentMarker": "OAR_CODEX_SAME_PROCESS_ENVIRONMENT",
+          "cwdMatchesSession": true
+        }
+      ]
+    }
+  ]
+}

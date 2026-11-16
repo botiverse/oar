@@ -71,5 +71,6 @@ export async function resourceSample(roots: readonly ProcessEntry[], windowMs = 
   const exited = before.rows.filter((row) => !after.rows.some((entry) => entry.identity.pid === row.identity.pid && entry.identity.start === row.identity.start));
   return { elapsedMs: after.at - before.at, cpuPercentOneCore: cpuMs / (after.at - before.at) * 100,
     cpuIsLowerBound: exited.length > 0, exitedDuringWindow: exited.length,
+    exitedIdentities: exited.map((row) => row.identity),
     rssBytes: after.rows.reduce((sum, row) => sum + row.rss, 0), processes: after.rows.length };
 }

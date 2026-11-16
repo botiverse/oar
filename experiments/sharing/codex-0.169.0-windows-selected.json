@@ -1,0 +1,864 @@
+{
+  "version": "codex-cli 0.169.0",
+  "platform": "win32",
+  "architecture": "x64",
+  "at": "2026-11-16T04:23:12.383Z",
+  "rawSha256": {
+    "codex-sharing": "29940a8cc85af17971cb063a113ae0185c479a2b8766e044edd6c43ad560484c",
+    "same-directory-codex": "2a8b51cc8781e15ff4c094cc2a1f22e1a83c9d4885995d642f4d43e7875d6dda",
+    "codex-persisted-trust": "1dedccf0311bbb3aa3eb5033a61efce31d2c1aa76411d5c0f3802016753b5e2b",
+    "codex-sharing-resources": "f5eb0a18f253cf17321099338e0ca10f4072b7ad49d7b620b1bc964577ff2a61"
+  },
+  "nativeGates": {
+    "cwdIsolation": true,
+    "mcpIsolation": true,
+    "childAttribution": true,
+    "loadedResumeOverride": true,
+    "unsubscribeAndResume": true,
+    "scopedCleanup": true,
+    "cancelDoesNotStopPeer": true,
+    "concurrentUnsubscribeResume": true,
+    "processExitWithTwoActiveThreads": true
+  },
+  "loadedResume": {
+    "returnedModel": "gpt-5.1",
+    "requestedModel": "gpt-5.2",
+    "status": "completed",
+    "providerModels": [
+      "gpt-5.1"
+    ],
+    "adapterRefusal": {
+      "name": "ModelConfirmationError",
+      "requested": "gpt-5.2",
+      "reported": "gpt-5.1"
+    },
+    "peerAfterRefusal": "completed"
+  },
+  "unsubscribedResume": {
+    "returnedModel": "gpt-5.2",
+    "status": "completed",
+    "providerModels": [
+      "gpt-5.2"
+    ]
+  },
+  "directory": {
+    "cohorts": [
+      {
+        "mode": "shared",
+        "observed": true,
+        "isolated": true
+      },
+      {
+        "mode": "separate",
+        "observed": true,
+        "isolated": true
+      }
+    ],
+    "configurationComparison": {
+      "projectMarkersMatch": true,
+      "hookRevisionsMatch": true,
+      "missingEvidence": false,
+      "passed": true,
+      "differenceObserved": false,
+      "limitation": "Only the later B session's observed instruction markers and exercised hook revisions are compared; each cohort records the project or user scope. Null means missing evidence, not fresh configuration."
+    },
+    "trustFollowupComparison": [
+      {
+        "projectMarkersMatch": true,
+        "hookRevisionsMatch": true,
+        "missingEvidence": false,
+        "passed": true,
+        "differenceObserved": false,
+        "limitation": "Compares B's instruction markers and all three exercised hook outcomes; empty hooks count only for a verified untrusted session, with a positive trusted-peer control.",
+        "scenario": "untrusted_then_trusted"
+      },
+      {
+        "projectMarkersMatch": true,
+        "hookRevisionsMatch": true,
+        "missingEvidence": false,
+        "passed": true,
+        "differenceObserved": false,
+        "limitation": "Compares B's instruction markers and all three exercised hook outcomes; empty hooks count only for a verified untrusted session, with a positive trusted-peer control.",
+        "scenario": "trusted_then_untrusted"
+      }
+    ],
+    "failureReasons": [],
+    "missingEvidence": false
+  },
+  "persistedTrust": {
+    "comparison": {
+      "observed": true,
+      "sameHookOutcomes": false,
+      "classification": "Declared difference: user-level trust reload reaches all loaded threads in the receiving process; other processes need their own reload",
+      "admission": "This timing difference is documented, not an equivalence pass or an admission failure"
+    },
+    "cohorts": [
+      {
+        "mode": "shared",
+        "observed": true,
+        "turns": [
+          {
+            "phase": "initial",
+            "input": "A_mcpinitial",
+            "trustStatus": [
+              "untrusted"
+            ],
+            "turnStatus": "completed",
+            "invocation": {
+              "input": "A_mcpinitial",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpinitial",
+                  "output": "MCP_RESULT=A input=A_mcpinitial"
+                }
+              ],
+              "isolated": true
+            },
+            "hookRevisions": []
+          },
+          {
+            "phase": "initial",
+            "input": "B_mcpinitial",
+            "trustStatus": [
+              "untrusted"
+            ],
+            "turnStatus": "completed",
+            "invocation": {
+              "input": "B_mcpinitial",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpinitial",
+                  "output": "MCP_RESULT=B input=B_mcpinitial"
+                }
+              ],
+              "isolated": true
+            },
+            "hookRevisions": []
+          },
+          {
+            "phase": "grant",
+            "input": "A_mcpgrant",
+            "trustStatus": [
+              "trusted"
+            ],
+            "turnStatus": "completed",
+            "invocation": {
+              "input": "A_mcpgrant",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpgrant",
+                  "output": "MCP_RESULT=A input=A_mcpgrant"
+                }
+              ],
+              "isolated": true
+            },
+            "hookRevisions": [
+              "A"
+            ]
+          },
+          {
+            "phase": "grant",
+            "input": "B_mcpgrant",
+            "trustStatus": [
+              "trusted"
+            ],
+            "turnStatus": "completed",
+            "invocation": {
+              "input": "B_mcpgrant",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpgrant",
+                  "output": "MCP_RESULT=B input=B_mcpgrant"
+                }
+              ],
+              "isolated": true
+            },
+            "hookRevisions": [
+              "A"
+            ]
+          },
+          {
+            "phase": "grantpeer",
+            "input": "A_mcpgrantpeer",
+            "trustStatus": [
+              "trusted"
+            ],
+            "turnStatus": "completed",
+            "invocation": {
+              "input": "A_mcpgrantpeer",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpgrantpeer",
+                  "output": "MCP_RESULT=A input=A_mcpgrantpeer"
+                }
+              ],
+              "isolated": true
+            },
+            "hookRevisions": [
+              "A"
+            ]
+          },
+          {
+            "phase": "grantpeer",
+            "input": "B_mcpgrantpeer",
+            "trustStatus": [
+              "trusted"
+            ],
+            "turnStatus": "completed",
+            "invocation": {
+              "input": "B_mcpgrantpeer",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpgrantpeer",
+                  "output": "MCP_RESULT=B input=B_mcpgrantpeer"
+                }
+              ],
+              "isolated": true
+            },
+            "hookRevisions": [
+              "A"
+            ]
+          },
+          {
+            "phase": "revoke",
+            "input": "A_mcprevoke",
+            "trustStatus": [
+              "untrusted"
+            ],
+            "turnStatus": "completed",
+            "invocation": {
+              "input": "A_mcprevoke",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcprevoke",
+                  "output": "MCP_RESULT=A input=A_mcprevoke"
+                }
+              ],
+              "isolated": true
+            },
+            "hookRevisions": []
+          },
+          {
+            "phase": "revoke",
+            "input": "B_mcprevoke",
+            "trustStatus": [
+              "untrusted"
+            ],
+            "turnStatus": "completed",
+            "invocation": {
+              "input": "B_mcprevoke",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcprevoke",
+                  "output": "MCP_RESULT=B input=B_mcprevoke"
+                }
+              ],
+              "isolated": true
+            },
+            "hookRevisions": []
+          },
+          {
+            "phase": "revokepeer",
+            "input": "A_mcprevokepeer",
+            "trustStatus": [
+              "untrusted"
+            ],
+            "turnStatus": "completed",
+            "invocation": {
+              "input": "A_mcprevokepeer",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcprevokepeer",
+                  "output": "MCP_RESULT=A input=A_mcprevokepeer"
+                }
+              ],
+              "isolated": true
+            },
+            "hookRevisions": []
+          },
+          {
+            "phase": "revokepeer",
+            "input": "B_mcprevokepeer",
+            "trustStatus": [
+              "untrusted"
+            ],
+            "turnStatus": "completed",
+            "invocation": {
+              "input": "B_mcprevokepeer",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcprevokepeer",
+                  "output": "MCP_RESULT=B input=B_mcprevokepeer"
+                }
+              ],
+              "isolated": true
+            },
+            "hookRevisions": []
+          }
+        ],
+        "hookJournal": [
+          {
+            "revision": "A",
+            "event": {
+              "hook_event_name": "PreToolUse",
+              "tool_name": "mcp__scope__echo",
+              "tool_input": {
+                "text": "A_mcpgrant"
+              },
+              "tool_use_id": "tool-A_mcpgrant"
+            }
+          },
+          {
+            "revision": "A",
+            "event": {
+              "hook_event_name": "PreToolUse",
+              "tool_name": "mcp__scope__echo",
+              "tool_input": {
+                "text": "B_mcpgrant"
+              },
+              "tool_use_id": "tool-B_mcpgrant"
+            }
+          },
+          {
+            "revision": "A",
+            "event": {
+              "hook_event_name": "PreToolUse",
+              "tool_name": "mcp__scope__echo",
+              "tool_input": {
+                "text": "A_mcpgrantpeer"
+              },
+              "tool_use_id": "tool-A_mcpgrantpeer"
+            }
+          },
+          {
+            "revision": "A",
+            "event": {
+              "hook_event_name": "PreToolUse",
+              "tool_name": "mcp__scope__echo",
+              "tool_input": {
+                "text": "B_mcpgrantpeer"
+              },
+              "tool_use_id": "tool-B_mcpgrantpeer"
+            }
+          }
+        ],
+        "nativeHookCompletions": [
+          {
+            "eventName": "preToolUse",
+            "handlerType": "command",
+            "status": "completed",
+            "durationMs": 686,
+            "exitCode": null,
+            "exitCodeSource": null
+          },
+          {
+            "eventName": "preToolUse",
+            "handlerType": "command",
+            "status": "completed",
+            "durationMs": 293,
+            "exitCode": null,
+            "exitCodeSource": null
+          },
+          {
+            "eventName": "preToolUse",
+            "handlerType": "command",
+            "status": "completed",
+            "durationMs": 288,
+            "exitCode": null,
+            "exitCodeSource": null
+          },
+          {
+            "eventName": "preToolUse",
+            "handlerType": "command",
+            "status": "completed",
+            "durationMs": 300,
+            "exitCode": null,
+            "exitCodeSource": null
+          }
+        ]
+      },
+      {
+        "mode": "separate",
+        "observed": true,
+        "turns": [
+          {
+            "phase": "initial",
+            "input": "A_mcpinitial",
+            "trustStatus": [
+              "untrusted"
+            ],
+            "turnStatus": "completed",
+            "invocation": {
+              "input": "A_mcpinitial",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpinitial",
+                  "output": "MCP_RESULT=A input=A_mcpinitial"
+                }
+              ],
+              "isolated": true
+            },
+            "hookRevisions": []
+          },
+          {
+            "phase": "initial",
+            "input": "B_mcpinitial",
+            "trustStatus": [
+              "untrusted"
+            ],
+            "turnStatus": "completed",
+            "invocation": {
+              "input": "B_mcpinitial",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpinitial",
+                  "output": "MCP_RESULT=B input=B_mcpinitial"
+                }
+              ],
+              "isolated": true
+            },
+            "hookRevisions": []
+          },
+          {
+            "phase": "grant",
+            "input": "A_mcpgrant",
+            "trustStatus": [
+              "trusted"
+            ],
+            "turnStatus": "completed",
+            "invocation": {
+              "input": "A_mcpgrant",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpgrant",
+                  "output": "MCP_RESULT=A input=A_mcpgrant"
+                }
+              ],
+              "isolated": true
+            },
+            "hookRevisions": [
+              "A"
+            ]
+          },
+          {
+            "phase": "grant",
+            "input": "B_mcpgrant",
+            "trustStatus": [
+              "untrusted"
+            ],
+            "turnStatus": "completed",
+            "invocation": {
+              "input": "B_mcpgrant",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpgrant",
+                  "output": "MCP_RESULT=B input=B_mcpgrant"
+                }
+              ],
+              "isolated": true
+            },
+            "hookRevisions": []
+          },
+          {
+            "phase": "grantpeer",
+            "input": "A_mcpgrantpeer",
+            "trustStatus": [
+              "trusted"
+            ],
+            "turnStatus": "completed",
+            "invocation": {
+              "input": "A_mcpgrantpeer",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcpgrantpeer",
+                  "output": "MCP_RESULT=A input=A_mcpgrantpeer"
+                }
+              ],
+              "isolated": true
+            },
+            "hookRevisions": [
+              "A"
+            ]
+          },
+          {
+            "phase": "grantpeer",
+            "input": "B_mcpgrantpeer",
+            "trustStatus": [
+              "trusted"
+            ],
+            "turnStatus": "completed",
+            "invocation": {
+              "input": "B_mcpgrantpeer",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcpgrantpeer",
+                  "output": "MCP_RESULT=B input=B_mcpgrantpeer"
+                }
+              ],
+              "isolated": true
+            },
+            "hookRevisions": [
+              "A"
+            ]
+          },
+          {
+            "phase": "revoke",
+            "input": "A_mcprevoke",
+            "trustStatus": [
+              "untrusted"
+            ],
+            "turnStatus": "completed",
+            "invocation": {
+              "input": "A_mcprevoke",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcprevoke",
+                  "output": "MCP_RESULT=A input=A_mcprevoke"
+                }
+              ],
+              "isolated": true
+            },
+            "hookRevisions": []
+          },
+          {
+            "phase": "revoke",
+            "input": "B_mcprevoke",
+            "trustStatus": [
+              "trusted"
+            ],
+            "turnStatus": "completed",
+            "invocation": {
+              "input": "B_mcprevoke",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcprevoke",
+                  "output": "MCP_RESULT=B input=B_mcprevoke"
+                }
+              ],
+              "isolated": true
+            },
+            "hookRevisions": [
+              "A"
+            ]
+          },
+          {
+            "phase": "revokepeer",
+            "input": "A_mcprevokepeer",
+            "trustStatus": [
+              "untrusted"
+            ],
+            "turnStatus": "completed",
+            "invocation": {
+              "input": "A_mcprevokepeer",
+              "expectedServer": "A",
+              "calls": [
+                {
+                  "server": "A",
+                  "input": "A_mcprevokepeer",
+                  "output": "MCP_RESULT=A input=A_mcprevokepeer"
+                }
+              ],
+              "isolated": true
+            },
+            "hookRevisions": []
+          },
+          {
+            "phase": "revokepeer",
+            "input": "B_mcprevokepeer",
+            "trustStatus": [
+              "untrusted"
+            ],
+            "turnStatus": "completed",
+            "invocation": {
+              "input": "B_mcprevokepeer",
+              "expectedServer": "B",
+              "calls": [
+                {
+                  "server": "B",
+                  "input": "B_mcprevokepeer",
+                  "output": "MCP_RESULT=B input=B_mcprevokepeer"
+                }
+              ],
+              "isolated": true
+            },
+            "hookRevisions": []
+          }
+        ],
+        "hookJournal": [
+          {
+            "revision": "A",
+            "event": {
+              "hook_event_name": "PreToolUse",
+              "tool_name": "mcp__scope__echo",
+              "tool_input": {
+                "text": "A_mcpgrant"
+              },
+              "tool_use_id": "tool-A_mcpgrant"
+            }
+          },
+          {
+            "revision": "A",
+            "event": {
+              "hook_event_name": "PreToolUse",
+              "tool_name": "mcp__scope__echo",
+              "tool_input": {
+                "text": "A_mcpgrantpeer"
+              },
+              "tool_use_id": "tool-A_mcpgrantpeer"
+            }
+          },
+          {
+            "revision": "A",
+            "event": {
+              "hook_event_name": "PreToolUse",
+              "tool_name": "mcp__scope__echo",
+              "tool_input": {
+                "text": "B_mcpgrantpeer"
+              },
+              "tool_use_id": "tool-B_mcpgrantpeer"
+            }
+          },
+          {
+            "revision": "A",
+            "event": {
+              "hook_event_name": "PreToolUse",
+              "tool_name": "mcp__scope__echo",
+              "tool_input": {
+                "text": "B_mcprevoke"
+              },
+              "tool_use_id": "tool-B_mcprevoke"
+            }
+          }
+        ],
+        "nativeHookCompletions": [
+          {
+            "eventName": "preToolUse",
+            "handlerType": "command",
+            "status": "completed",
+            "durationMs": 643,
+            "exitCode": null,
+            "exitCodeSource": null
+          },
+          {
+            "eventName": "preToolUse",
+            "handlerType": "command",
+            "status": "completed",
+            "durationMs": 302,
+            "exitCode": null,
+            "exitCodeSource": null
+          },
+          {
+            "eventName": "preToolUse",
+            "handlerType": "command",
+            "status": "completed",
+            "durationMs": 290,
+            "exitCode": null,
+            "exitCodeSource": null
+          },
+          {
+            "eventName": "preToolUse",
+            "handlerType": "command",
+            "status": "completed",
+            "durationMs": 271,
+            "exitCode": null,
+            "exitCodeSource": null
+          }
+        ]
+      }
+    ]
+  },
+  "resources": [
+    {
+      "mode": "isolated",
+      "count": 10,
+      "outcome": "completed",
+      "opened": {
+        "elapsedMs": 5958.559800000003,
+        "cpuPercentOneCore": 30.680652059579888,
+        "cpuIsLowerBound": false,
+        "exitedDuringWindow": 0,
+        "rssBytes": 1187196928,
+        "processes": 33
+      },
+      "afterTurn": [
+        {
+          "elapsedMs": 6344.367999999995,
+          "cpuPercentOneCore": 12.31407131490482,
+          "cpuIsLowerBound": true,
+          "exitedDuringWindow": 3,
+          "rssBytes": 1340608512,
+          "processes": 30
+        },
+        {
+          "elapsedMs": 6107.899700000002,
+          "cpuPercentOneCore": 27.883971310137913,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 1391968256,
+          "processes": 33
+        },
+        {
+          "elapsedMs": 5997.372900000002,
+          "cpuPercentOneCore": 28.39785066558058,
+          "cpuIsLowerBound": true,
+          "exitedDuringWindow": 3,
+          "rssBytes": 1376747520,
+          "processes": 33
+        }
+      ]
+    },
+    {
+      "mode": "shared",
+      "count": 10,
+      "outcome": "completed",
+      "opened": {
+        "elapsedMs": 6648.138900000005,
+        "cpuPercentOneCore": 2.350281820976994,
+        "cpuIsLowerBound": false,
+        "exitedDuringWindow": 0,
+        "rssBytes": 150614016,
+        "processes": 6
+      },
+      "afterTurn": [
+        {
+          "elapsedMs": 6185.8033,
+          "cpuPercentOneCore": 5.3044848677939695,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 196661248,
+          "processes": 6
+        },
+        {
+          "elapsedMs": 6109.263399999996,
+          "cpuPercentOneCore": 5.626701248468026,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 196743168,
+          "processes": 6
+        },
+        {
+          "elapsedMs": 7197.599799999996,
+          "cpuPercentOneCore": 22.79405698549676,
+          "cpuIsLowerBound": true,
+          "exitedDuringWindow": 2,
+          "rssBytes": 189833216,
+          "processes": 3
+        }
+      ]
+    },
+    {
+      "mode": "shared",
+      "count": 10,
+      "outcome": "completed",
+      "opened": {
+        "elapsedMs": 6469.9463000000105,
+        "cpuPercentOneCore": 10.143051728265487,
+        "cpuIsLowerBound": true,
+        "exitedDuringWindow": 3,
+        "rssBytes": 121556992,
+        "processes": 3
+      },
+      "afterTurn": [
+        {
+          "elapsedMs": 6048.421000000002,
+          "cpuPercentOneCore": 19.63322328257242,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 158814208,
+          "processes": 3
+        },
+        {
+          "elapsedMs": 5753.9331999999995,
+          "cpuPercentOneCore": 0,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 158806016,
+          "processes": 3
+        },
+        {
+          "elapsedMs": 5754.002700000012,
+          "cpuPercentOneCore": 0,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 157036544,
+          "processes": 3
+        }
+      ]
+    },
+    {
+      "mode": "isolated",
+      "count": 10,
+      "outcome": "completed",
+      "opened": {
+        "elapsedMs": 5967.310600000026,
+        "cpuPercentOneCore": 11.782946240472164,
+        "cpuIsLowerBound": true,
+        "exitedDuringWindow": 2,
+        "rssBytes": 1142341632,
+        "processes": 30
+      },
+      "afterTurn": [
+        {
+          "elapsedMs": 5960.218200000003,
+          "cpuPercentOneCore": 22.54531553895123,
+          "cpuIsLowerBound": true,
+          "exitedDuringWindow": 3,
+          "rssBytes": 1376366592,
+          "processes": 33
+        },
+        {
+          "elapsedMs": 6051.6836000000185,
+          "cpuPercentOneCore": 16.266134600956285,
+          "cpuIsLowerBound": true,
+          "exitedDuringWindow": 3,
+          "rssBytes": 1352646656,
+          "processes": 30
+        },
+        {
+          "elapsedMs": 6398.822100000019,
+          "cpuPercentOneCore": 27.10459789153999,
+          "cpuIsLowerBound": false,
+          "exitedDuringWindow": 0,
+          "rssBytes": 1403305984,
+          "processes": 33
+        }
+      ]
+    }
+  ]
+}
