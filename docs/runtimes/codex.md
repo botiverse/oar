@@ -888,6 +888,8 @@ configuration sets for `ListModelsOptions.cwd` (`config/read`, user and
 project config) when it is listed, or the catalog's `isDefault` when none is
 configured; a configured model that is not listed marks nothing.
 [Model listing][oar-models], [regressions](../../tests/codex/codex-service-tier.test.ts).
+An explicit static catalog has different update costs for running sessions
+and fresh queries ([idle model catalog refresh](#idle-model-catalog-refresh)).
 
 An empty `CODEX_HOME` without credentials still returns the built-in fallback
 catalog: with Codex 0.161.0, `account/read` reported no account and OAR returned
@@ -1923,6 +1925,46 @@ passes `enable_codex_api_key_env: false`, as `login status` does. OAR uses this
 app-server, so `CODEX_API_KEY` alone does not override its stored account.
 This statement concerns the native account resolver, not a custom provider's
 separately configured `env_key`.
+
+## Idle model catalog refresh
+
+Codex 0.169.0's app-server refreshes its model catalog in the background,
+with a hard-coded 270-second delay after each refresh. There is no public
+interval or stop setting for that worker; its `Online` requests bypass the
+ordinary 300-second cache freshness check. OAR preserves this native default.
+[Pinned source, native loopback observations and reproduction](../../experiments/codex-model-catalog-refresh/README.md).
+
+A host can opt into Codex's native `model_catalog_json` without changing OAR.
+Put this top-level setting in the host's chosen `CODEX_HOME/config.toml`:
+
+```toml
+model_catalog_json = "/absolute/path/model-catalog.json"
+```
+
+The file must be a valid native `ModelsResponse` catalog (`models` with
+native model metadata), not a `model/list` picker response. Pass the same
+absolute `CODEX_HOME` in `SessionOptions.env` and `ListModelsOptions.env` so
+both processes use it. Alternatively, a session can set
+`launchArgs: ["-c", 'model_catalog_json="/absolute/path/model-catalog.json"']`.
+These are startup arguments, not per-thread overrides. Model listing has no
+`launchArgs` option, so session-only arguments do not configure that query.
+
+Both session entry points and the shared-home listing were checked on native
+0.169.0 without a model call. The static manager makes no catalog HTTP
+requests, but the host now owns catalog freshness, including model defaults,
+reasoning/tool metadata, context limits and instructions. Editing the file
+did not update an already running app-server, even after the next 270-second
+cycle; a fresh OAR `listModels` process and newly opened session read the new
+file. The host must choose when to update and reopen its sessions. Explicit
+native catalog invalidation can reload configuration too, so this is not a
+promise that every account/configuration change preserves the old catalog.
+Listing success does not establish account entitlement.
+
+`features.api_key_model_discovery = false` is a narrower API-key discovery
+gate, not a general ChatGPT refresh control; a custom-provider probe returned
+an empty picker with it. `model_providers.<id>.auth.refresh_interval_ms`
+controls command-based credential refresh, not the catalog worker. OAR does
+not silently set either switch or fix a catalog for the host.
 
 ## Reader environment
 

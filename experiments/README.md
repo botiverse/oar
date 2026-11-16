@@ -1,5 +1,7 @@
 # experiments
 
+- [Codex idle model catalog refresh](codex-model-catalog-refresh/README.md): native 0.169.0's fixed 270-second worker, static catalog tradeoffs, and existing host configuration entries.
+
 - [Pi lazy Bedrock registration](pi-lazy-bedrock/README.md): module-load controls, a single-file first request, OAuth instance checks and the SDK 1.5.2 upgrade.
 - [Cursor SDK 1.4.0 steering](cursor-sdk-1.4/README.md): typed-loader compatibility, native local string acknowledgments, and queued ownership without observing cloud runs.
 
