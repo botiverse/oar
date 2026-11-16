@@ -18,39 +18,33 @@ Current required SDK: **1.4.0**, the exact optional peer version. Hosts
 using Cursor install that version alongside OAR; the CLI installs it itself.
 The pin matches CI and does not promise support for older SDKs. The SDK
 also requires a Zod peer (`^3.25.0 || ^4.0.0`); this workspace resolves 4.4.3.
-On **1.2.0** (2026-10-28; Linux x64, Node 24.19.0, `gpt-5.4-nano`,
-reusing an existing login), all 12 applicable live session scenarios and
-three root tool-selection scenarios passed; `kill-runtime` remains skipped
-([October 28 report](../../experiments/runtime-version-checks/2026-10-28.md#cursor-120)).
-With the compaction adapter the live battery passed again, `abort` on an
-unchanged rerun ([compaction probe](../../experiments/cursor-compaction.md#validation-and-retained-failure)).
-On **1.3.1** (2026-11-11; Linux x64, Node 24.19.0, `gpt-5.4-nano`,
-reusing an existing login), all 12 applicable live session scenarios pass
-on their first run, including tools, steering, queueing, cancellation,
-resume and child attribution; `kill-runtime` remains skipped. The native
-compaction probe also passes: matching text across both stream views, a
-completed summary, and a cancelled summary with no terminal summary event.
-This records the earlier peer selection, not a support range or live
-macOS/Windows coverage
-([November 11 report](../../experiments/runtime-version-checks/2026-11-11.md#cursor-131)).
-The earlier November 4 controls were local/offline only
-([evidence and limits](../../experiments/runtime-version-checks/2026-11-04.md#cursor-131)).
 
-SDK **1.4.0** is assignable to OAR's typed loader after adding its queued
-steer outcome. On November 16, a native local run on Linux x64 with
-`gpt-5.4-nano` confirmed `complete_delivered` during a shell call and
-`revert_to_followup` after completion. Queued acceptance and ignoring the
-optional cloud run are covered by stand-ins in both execution modes;
-cloud follow-up execution has not been tested. See the
-[adaptation and evidence](../../experiments/cursor-sdk-1.4/README.md).
-The [November 15 comparison](../../experiments/runtime-version-checks/2026-11-15.md#cursor-140)
-retains the original type incompatibility and passing local login controls.
+- **1.4.0:** OAR's typed loader accepts it after adding its queued steer
+  outcome. A native local run (Linux x64, `gpt-5.4-nano`, November 16)
+  confirmed `complete_delivered` during a shell call and `revert_to_followup`
+  after completion; queued acceptance and ignoring the optional cloud run are
+  covered by stand-ins in both execution modes, and cloud follow-up execution
+  is untested ([adaptation and evidence](../../experiments/cursor-sdk-1.4/README.md)).
+  The [November 15 comparison](../../experiments/runtime-version-checks/2026-11-15.md#cursor-140)
+  keeps the original type incompatibility and the passing local login and
+  user-configuration controls. The full live battery has not been rerun on 1.4.0.
+- **1.3.1** (2026-11-11; Linux x64, Node 24.19.0, `gpt-5.4-nano`, an existing
+  login): the newest full live battery. All 12 applicable session scenarios
+  pass on their first run, including tools, steering, queueing,
+  cancellation, resume and child attribution (`kill-runtime` skipped); the
+  native compaction probe passes (matching text across both stream views, a
+  completed summary, and a cancelled summary with no terminal summary
+  event). No live macOS/Windows coverage
+  ([November 11 report](../../experiments/runtime-version-checks/2026-11-11.md#cursor-131)).
 
 Since SDK 1.1.0, `inputTokens` includes cache reads and writes and OAR does
 not add them again, so Cursor `input` can be smaller than in OAR releases
 before that change; whether 1.0.40's native input field had different
 semantics is not established ([usage](#observation-children-and-history)).
 Earlier baselines:
+[1.3.1 offline controls](../../experiments/runtime-version-checks/2026-11-04.md#cursor-131),
+[1.2.0](../../experiments/runtime-version-checks/2026-10-28.md#cursor-120)
+(with the [compaction adapter rerun](../../experiments/cursor-compaction.md#validation-and-retained-failure)),
 [1.1.0](../../experiments/runtime-version-checks/2026-10-27.md#cursor-110),
 [1.0.40](../../experiments/runtime-version-checks/2026-10-21.md#cursor-1040),
 [1.0.38](../../experiments/runtime-version-checks/2026-10-17.md#cursor-1038),
@@ -478,19 +472,16 @@ no verified session name setting
 
 ### Interrupted input
 
-The SDK 1.0.36 audit observed `run.steer()` pending on its internal
-`confirm_steering` acknowledgement. For those string outcomes, `complete_delivered` becomes
-OAR `accepted`; `revert_to_followup`, including the SDK's cleanup of
-undelivered steering when the run ends, is a refusal. OAR also races a
-pending steer against the recorded run end, so cancellation cannot leave
-an unanswered control. No accepted unread steering was established and
-no `input_dropped` rule is added.
-
-This audit inspected installed `run.d.ts` and `dist/esm/867.js` and exercised
-the SDK-facing adapter tests. The Cursor agent streaming backend was not
-reproduced locally, and no account was used; backend delivery behavior in
-this abort race remains unverified.
-[Audit](../../experiments/input-interruption-2026-10-08.md).
+`run.steer()` stays pending on the SDK's internal `confirm_steering`
+acknowledgement (SDK 1.0.36 audit); `revert_to_followup`, including the SDK's
+cleanup of undelivered steering when the run ends, is a refusal
+([steer](#prompt-steering-queueing-and-abort)). OAR races a pending steer
+against the recorded run end, so cancellation cannot leave an unanswered
+control. No accepted unread steering was established, so there is no
+`input_dropped` rule. The audit read the installed `run.d.ts` and
+`dist/esm/867.js` and ran the adapter tests, without an account or the
+streaming backend; backend delivery in this abort race is unverified
+([audit](../../experiments/input-interruption-2026-10-08.md)).
 
 ### Prompt, steering, queueing, and abort
 
@@ -596,17 +587,13 @@ process exited about one second after `agent.close()`, which aborted the
 backgrounded command, and no `sleep` was left. `oar run` still exits
 explicitly after disposal.
 
-SDK 1.0.35 to 1.0.37 never clear that timer, neither at the command's end
-nor on `agent.close()` (the shell executor's `hardTimeout`, in their bundled
-`689.js`, `867.js` and `464.js`), and do not unref it, so after such a turn
-the host process does not exit on its own, even with every session
-disposed: hosts still on those SDKs need to exit explicitly when meant to
-end. Probed on SDK 1.0.35 (2026-10-04): a `sleep 20` that a 3 second tool
-timeout moved to the background left one 86400000 ms timer, and `oar run`
-was still running 150 seconds after `[turn completed]` until it exited
-explicitly. Reported upstream on 2026-10-07
-([forum post](https://forum.cursor.com/t/cursor-sdk-1-0-35-and-1-0-36-a-backgrounded-shell-call-keeps-the-node-process-alive-for-24-hours/173928));
-Cursor reproduced it the same day and called it unintended.
+SDK 1.0.35 to 1.0.37 never clear or unref that timer, neither at the
+command's end nor on `agent.close()` (the shell executor's `hardTimeout`, in
+their bundled `689.js`, `867.js` and `464.js`), so after such a turn a host on
+them does not exit on its own, even with every session disposed (probed on
+1.0.35, 2026-10-04: one 86400000 ms timer, `oar run` still running 150 seconds
+after `[turn completed]`; [reported upstream](https://forum.cursor.com/t/cursor-sdk-1-0-35-and-1-0-36-a-backgrounded-shell-call-keeps-the-node-process-alive-for-24-hours/173928),
+reproduced by Cursor as unintended).
 
 ### Observation, children, and history
 
@@ -777,10 +764,10 @@ host's process, so a non-empty `SessionOptions.env` is refused at open,
 including a map whose only entries are `null` removals. In subprocess mode
 `env` is the session child's environment, over the host's or over nothing
 ([child environment](#child-environment)), and the agent's tools inherit
-it. `refusedSessionOptions`
-declares these refusals, the `mcpServers` one
-([below](#session-mcp-servers)), and `goals` and `endTurnProcessesOnAbort`
-([refused session options](../spec/runtime-matrix.md#refused-session-options))
+it. `refusedSessionOptions` declares the in-process `env` refusal, and in
+both modes `goals`, `endTurnProcessesOnAbort`, `outputSchema`, `name`,
+`serviceTier`, `systemPrompt`, `appendSystemPrompt` and `launchArgs`
+([refused session options](../spec/runtime-matrix.md#refused-session-options)),
 before any session opens. The
 `@botiverse/oar/agents` crew passes its depth variable through `env`, so it
 refuses to spawn an in-process cursor child; a subprocess-mode cursor is
@@ -1093,9 +1080,9 @@ on macOS and Windows a tool in a group of its own or a background job when
 the child is killed outright, and anywhere a process that cleared the
 environment marker; tool calls the SDK runs without
 updates; the cloud runtime; Windows and macOS live runs, the login's
-included; `mcpServers`, refused until a live run shows what
-[session MCP servers](#session-mcp-servers) lists (the stand-in backend
-measurement is not in the repo and not repeatable from it).
+included; [session MCP servers](#session-mcp-servers) on macOS, Windows and
+other models (the stand-in backend measurement is not in the repo and not
+repeatable from it).
 Keep native API capabilities, SDK limitations, OAR omissions and unexecuted
 checks separate when designing or claiming support.
 
@@ -1118,7 +1105,7 @@ Evidence and verification limits: [tool-denial audit](../../experiments/disallow
 
 ## Launch arguments
 
-`SessionOptions.launchArgs` is refused with `UnsupportedOptionError`: the SDK's local agent runs in the host process, so a session has no command line. See [launch arguments](../spec/runtime-matrix.md#launch-arguments).
+`SessionOptions.launchArgs` is refused with `UnsupportedOptionError` in both execution modes: the SDK runs in the host process or in OAR's own Node child, so there is no Cursor command line. See [launch arguments](../spec/runtime-matrix.md#launch-arguments).
 
 ## Additional directories
 

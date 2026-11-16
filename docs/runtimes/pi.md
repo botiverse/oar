@@ -540,7 +540,8 @@ active, not inside `agent_settled`, where `isIdle` is already true (calling
 refusal to the preceding run). Fast and slow extension input hooks keep the
 tested A → EXT → B order.
 
-SDK subscribes before `bindExtensions`, so a bootstrap run held in an awaited
+Because the SDK controller subscribes before `bindExtensions` (extension
+lifecycle above), a bootstrap run held in an awaited
 `agent_settled` extension hook remains busy even when Pi's public
 `isStreaming` is already false. A direct prompt is refused `busy` before
 native submission; queued work waits through settlement and compaction.
@@ -553,7 +554,7 @@ its event stream identifies that pending hook. A prompt sent in that window
 can be deferred; if the hook starts compaction, Pi rejects the deferred
 prompt through the bootstrap extension's error channel, without a prompt
 response or request ID. OAR preserves the uncorrelated `extension_error`.
-After the existing 30-second command deadline it reports an `error` refusal
+After the 30-second command deadline OAR reports an `error` refusal
 and cleans up the child, followed by the actual `exited` response. This is
 not a correlated native refusal, and the session cannot continue after exit.
 Native 1.5.2 source still has this ordering; it was inspected, not exercised

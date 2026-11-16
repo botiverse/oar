@@ -1,22 +1,18 @@
 # Antigravity
 
-OAR uses the standalone **agy CLI's native ACP entry point**, available from
-1.5.0. It no longer launches the separate `agy_acp_server` archive or its
-companion harness. The latest Linux check is CLI **1.5.9**, 2026-11-14:
-17 behavior cases and all fourteen vendor cases pass with an isolated HOME
-and a local scripted Gemini provider ([daily report](../../experiments/runtime-version-checks/2026-11-14.md#antigravity-159)).
-See the [1.5.0 migration report](../../experiments/antigravity-cli-acp-2026-11-05.md)
-for native controls, retained limitations and the host migration checklist.
-The Linux runs do not establish account-specific or macOS/Windows behavior.
-A separate [macOS ARM64 1.5.9 control](../../experiments/runtime-version-checks/2026-11-14.md#one-macos-159-control)
-passed the same-name MCP case once; it does not establish a fix for the
-intermittent first-prompt catalog failure.
+OAR uses the standalone **agy CLI's native ACP entry point** (1.5.0 and
+later), not the retired `agy_acp_server` archive or its companion harness.
+Newest check: CLI **1.5.9** on Linux, 2026-11-14, 17 behavior cases and all
+fourteen vendor cases with an isolated HOME and a local scripted Gemini
+provider ([daily report](../../experiments/runtime-version-checks/2026-11-14.md#antigravity-159));
+it does not establish account-specific or macOS/Windows behavior. The
+[1.5.0 migration report](../../experiments/antigravity-cli-acp-2026-11-05.md)
+has the native controls, retained limitations and host migration checklist.
 
-Independent inventories are not implemented. Account usage is agy's own
-`/usage` answer ([account usage](../spec/account-usage.md)). Login, status
-and logout drive agy's own ([login](#login)); see
-[account policy](#process-ownership-installation-and-account-usage). See the
-[query contract](../spec/inventory.md) and [native inventory evidence](inventory.md).
+Independent inventories are not implemented ([query contract](../spec/inventory.md),
+[native inventory evidence](inventory.md)). Account usage is agy's own
+`/usage` answer ([account usage](../spec/account-usage.md)). Login,
+status and logout drive agy's own ([login](#login)).
 
 ## Native concepts and calling interfaces
 
@@ -246,9 +242,9 @@ the observed tool/text events under the parent's session id; no native child
 identity link was established. Attribution remains `opaque`, and no
 real-account child run was performed.
 
-The earlier 1.5.0 local CLI controls did not observe `usage_update` or prompt
-usage. Later 1.5.8 and 1.5.9 controls do observe the context updates described
-above; OAR does not fabricate missing totals. A native `/compact`
+1.5.8 and 1.5.9 controls observe the context updates described above (1.5.0
+controls observed neither `usage_update` nor prompt usage); OAR does not fabricate
+missing totals. A native `/compact`
 available-command entry alone does not prove compaction completion.
 A 1.5.9 `ask_question` call produced plain-text questions/options and
 `end_turn`, with no permission request and no automatically chosen answer.
@@ -268,13 +264,11 @@ already obtained catalog ([query costs](#orientation-query-costs)).
 
 1.5.0 reports grouped model ids such as `gemini-3.8-flash`, with a separate
 `thought_level` config option in category `thought_level`. OAR selects each
-through `session/set_config_option` and folds the returned values. Its
-successful response and the last observed `config_option_update` for the
-requested option must be available before open returns, with that
-notification reporting the requested value. Effort also checks the
-response's reported value. An empty `session/set_model` acknowledgement
-would not establish model readback. See the
-[notification-order controls](../../experiments/antigravity-cli-acp-2026-11-05.md#model-notifications-must-settle-before-effort).
+through `session/set_config_option`, folds the returned values and confirms
+them as described under [session creation](#session-creation-and-resume);
+effort also checks the response's reported value. An empty
+`session/set_model` acknowledgement would not establish model readback
+([notification-order controls](../../experiments/antigravity-cli-acp-2026-11-05.md#model-notifications-must-settle-before-effort)).
 If model notifications still disagree when the deadline expires, OAR throws
 [`ModelConfirmationError`](../spec/runtime-matrix.md#model-confirmation-failures),
 carrying `requested` and the last notification's model string (`null` if it
@@ -325,9 +319,9 @@ file is unchanged.
 intermittent native failure omitted the MCP tool catalog despite a successful
 session-server preload. The observed failures used the same-name replacement
 configuration above; whether other configurations are affected is unknown.
-Twelve Linux configuration/version controls on 1.5.0 and 1.5.7, repeated when
-publishing the probe, did not reproduce it. They do not establish a macOS fix
-in 1.5.7. No supported MCP readiness barrier has been verified: the observed
+Twelve Linux configuration/version controls on 1.5.0 and 1.5.7 did not
+reproduce it, and one [macOS ARM64 1.5.9 control](../../experiments/runtime-version-checks/2026-11-14.md#one-macos-159-control)
+passed the same-name case once; neither establishes a macOS fix. No supported MCP readiness barrier has been verified: the observed
 `session/new` replies contain no tool catalog, and no MCP-ready notification
 was observed or found in the public ACP documentation. OAR therefore adds no
 unverified wait or retry; the existing vendor regression remains intact.
@@ -517,14 +511,20 @@ before launch: this adapter has no verified native channel for them
 ## Orientation query costs
 
 Model listing creates a temporary native session, and can do native
-configuration or account/catalog I/O, but submits no prompt. There is no
-local auth-status reader or substitute login flow.
+configuration or account/catalog I/O, but submits no prompt. `authStatus`
+runs `agy models`, a remote call (not `localOnly`). `accountUsage` runs `agy
+models`, then `agy -p "/usage" --output-format json` (no agent turn, signed-in
+1.5.7), and `agy -p "/credits"` only when every model group has a used-up
+bucket ([account usage](../spec/account-usage.md)).
 
 ## Reader environment
 
-`OAR_ANTIGRAVITY_BIN`, HOME and native config variables in the env overlay
-apply to installation and model listing just as to sessions
-([reader environments](../spec/orientation.md#environment)). An overlay
+`OAR_ANTIGRAVITY_BIN`, HOME, `GEMINI_HOME` and native config variables in the
+env overlay apply to installation, model listing, login, logout, auth status
+and account usage just as to sessions
+([reader environments](../spec/orientation.md#environment)); a non-default
+`GEMINI_HOME` limits auth status and account usage as described under
+[session creation](#session-creation-and-resume). An overlay
 never rewrites the host process environment.
 
 ## Verification and open gaps

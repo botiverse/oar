@@ -214,32 +214,19 @@ real account login.
 ## Consecutive-prompt evidence and transport choice
 
 [env] The standalone stream-json reproduction (custom provider, synthetic
-credentials) returned `first, second, second` in all three immediate runs on
-2.178.1 and on 2.179.3 (2026-11-03). On 2.181.0 (Linux x64, 2026-11-06) two of
-three immediate runs duplicated the second input and the third timed out after
-the first result ([selected results](../../experiments/runtime-version-checks/2026-11-06.md#codebuddy-21810)).
-On each version, three controls delaying the second input by one second
-returned one request per input (`first, second`), and on 2.179.3 and 2.181.0
-the immediate ACP control kept one conversation request per input (2.181.0
-completed both turns, with two separate title requests). On 2.178.1, slowing the provider's
-responses did not remove the failure: at 500 ms, two runs duplicated and one
-timed out after the first result; at 1,000 and 2,000 ms, all three runs at each
-delay duplicated. These local-provider results do not extend the account
-observations below.
-
-The [2.182.0 recheck](../../experiments/runtime-version-checks/2026-11-09.md#codebuddy-21820)
-(Linux x64, November 9) has the same boundary: two of three immediate
-standalone stream-json runs duplicate the second input, and one times out
-after the first result. A one-second-delay control completes both inputs
-once. Immediate ACP completes both inputs once, with two separate title
-requests. The npm installation passes the sixteen applicable OAR behavior
-cases and six ACP vendor cases.
-
-On [2.183.0, November 11](../../experiments/runtime-version-checks/2026-11-11.md#codebuddy-21830),
-one of three immediate standalone runs duplicates the second input and two
-time out after the first result. The one-second-delay control and immediate
-ACP control each complete both conversation inputs once. This retains the
-transport boundary; it does not identify the cause of the different outcomes.
+credentials) fails on every checked release from 2.178.1 through 2.184.0
+(Linux x64): of three immediate runs, each either duplicates the second input
+(`first, second, second`) or times out after the first result (2.178.1 and
+2.179.3: all three duplicated; 2.184.0, 2026-11-13: two duplicated, one timed
+out; [newest report](../../experiments/runtime-version-checks/2026-11-13.md#codebuddy-21840)).
+On each version, delaying the second input by one second returns one request
+per input (`first, second`), and from 2.179.3 the immediate ACP control keeps
+one conversation request per input and completes both turns (two separate
+title requests counted apart). On 2.178.1, slowing the provider's responses
+did not remove the failure: at 500 ms, two runs duplicated and one timed out
+after the first result; at 1,000 and 2,000 ms, all three runs at each delay
+duplicated. The cause of the varying outcomes is not identified. These
+local-provider results do not extend the account observations below.
 
 A separate operator's official-account stream-json controls did not reproduce
 it: four immediate runs (two with partial-message output) and a one-second
