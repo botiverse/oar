@@ -18,8 +18,10 @@ branches), and Windows for these script installers (`platform`). Qwen's and
 Qoder's script installers are recorded on their pages
 ([Qwen](qwen.md#oar-mapping), [Qoder](qoder.md#installation-and-login)), as
 are the native agy CLI script that OAR's antigravity installer now runs
-([Antigravity](antigravity.md#process-ownership-installation-and-account-usage))
-and DSH's npm package ([DSH](dsh.md#installation-and-configuration)).
+([Antigravity](antigravity.md#process-ownership-installation-and-account-usage)),
+DSH's npm package ([DSH](dsh.md#installation-and-configuration)), and the
+Factory and Devin scripts ([Factory](factory.md#installation-and-updates),
+[Devin](devin.md#process-ownership-installation-and-update-checks)).
 
 ## Per runtime
 
@@ -88,7 +90,7 @@ No login, account read, conversation or model request was involved.
 
 The [official installation page](https://www.codebuddy.ai/docs/cli/installation)
 documents the npm package for Linux, macOS and Windows. The native script is
-still labeled Beta, so OAR uses npm. It adds no updater or logout support.
+still labeled Beta, so OAR uses npm. OAR has no updater for CodeBuddy.
 The runtime's [mapping](codebuddy.md#oar-mapping) describes discovery and errors.
 
 [`tests/codebuddy/install-smoke.ts`](../../tests/codebuddy/install-smoke.ts)

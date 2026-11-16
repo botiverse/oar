@@ -44,9 +44,10 @@ start and end, usage, model, effort, compaction start / end, retry, background
 tasks and subagents started, updated and ended, runtime→app requests and oar's
 answers, control rejections, withdrawn and natively handled inputs, the process
 exit), each carrying the `seq` and `agentPath` of the record it was read from.
-Kinds a runtime never says never appear (claude has no compaction start;
-kimi, codebuddy and antigravity no compaction; of the core runtimes only
-codex, pi and pi-durable report retry); the runtime pages say which. It is a
+Kinds a runtime never says never appear (claude and factory have no
+compaction start; kimi, codebuddy, antigravity and devin no compaction; of the
+core runtimes only codex, factory, pi and pi-durable report retry); the
+runtime pages say which. It is a
 projection over the record stream, which `session.rawEvents()` and
 `session.records()` expose (`RawEvent`: `Frame` with the native payload
 verbatim, `RequestRecord`, `ResponseRecord`) for consumers who need the
@@ -80,14 +81,15 @@ root tools, withdraws the held inputs, aborts the turn and, after the
 runtime's own turn end, sends them as one merged prompt
 ([interrupting](https://github.com/botiverse/oar/blob/main/docs/spec/conversation.md#interrupting-and-merging-held-inputs)).
 `session.steer` exists only on a session whose runtime can steer (qwen,
-codebuddy, devin, kimi and opencode v2 sessions have none; see
+codebuddy, devin and kimi sessions have none, nor opencode v2 sessions whose
+`initialize` does not advertise steering; see
 [session controls](https://github.com/botiverse/oar/blob/main/docs/spec/runtime-matrix.md#session-controls)),
 so a host offers a steer control by reading the member, never a runtime
 name; `deliver` and `steerOrQueue` queue where it is absent. `session.withdraw(inputId)` takes a queued input back before it is
 sent (`accepted`), or answers `not_queued` once it went; with it a UI offers
 withdraw, edit (withdraw, then `queue` again) and send now (withdraw, then
-`deliver`). It exists where OAR holds the queue itself (claude, pi, qwen, qoder, cursor
-and the ACP runtimes), on pi-durable through native submission cancellation and on
+`deliver`). It exists where OAR holds the queue itself (claude, pi, qwen, qoder, cursor,
+factory and the ACP runtimes), on pi-durable through native submission cancellation and on
 dsh through native inbox removal where its method inventory advertises it, not on codex.
 `session.stopTask(taskId)` stops one native task without aborting its parent
 (claude, codex, qoder); acceptance is the native acknowledgement, never a task
@@ -107,8 +109,8 @@ marking a merged native turn's inputs complete; neither field is inferred.
 `session.resources()` reads the memory a runtime takes on the host: resident
 bytes and a process count over the runtime process, its group and its
 descendants, `null` once it has exited (and on Windows). It is a reading only,
-never a handle: no pid leaves OAR. Sessions whose runtime runs in the host
-process (Pi's default SDK mode, pi-durable, cursor) have none.
+never a handle: no pid leaves OAR. Pi's default SDK mode, pi-durable and
+cursor (in either execution mode) have none.
 
 For conversation UIs, use the browser-safe `reduceConversation` projection
 over `session.rawEvents()`. It joins input requests, responses and native
@@ -143,10 +145,10 @@ See [dropped input](https://github.com/botiverse/oar/blob/main/docs/spec/convers
 
 The package has these public entry points, plus `@botiverse/oar/pi-durable` ([below](#host-owned-durable-sessions)) and `@botiverse/oar/community` for community runtimes (below):
 
-- `@botiverse/oar`: the runtime registry and adapters, bounded `orient` snapshots, `defineRuntime`, `UnsupportedOptionError`, `RuntimeFailureError`, `SessionNotFoundError`, `SessionUnavailableError`, `serveMcpTools`, `userShellEnvironment` and `writeShellEnvironmentCapture`, the `oar-voyage/3` recorder (`openVoyage`), and everything the brands and observe entry points below export. Node-only (adapters import `node:child_process` and runtime SDKs).
+- `@botiverse/oar`: the runtime registry and adapters, bounded `orient` snapshots, `defineRuntime`, `UnsupportedOptionError` (and its `ResumeCwdError` subclass), `ModelConfirmationError`, `RuntimeFailureError`, `SessionNotFoundError`, `SessionUnavailableError`, `serveMcpTools`, `userShellEnvironment` and `writeShellEnvironmentCapture`, the `oar-voyage/3` recorder (`openVoyage`), and everything the brands and observe entry points below export. Node-only (adapters import `node:child_process` and runtime SDKs).
 - `@botiverse/oar/browser`: portable contracts, registry, session kernel, observe helpers, agent report formatting, and branding. No Node adapters, process helpers or local image-file loaders.
 - `@botiverse/oar/brands`: browser-safe runtime names and SVG icons.
-- `@botiverse/oar/runtimes/<id>` (`claude`, `codex`, `codebuddy`, `devin`, `dsh`, `factory`, `pi`, `cursor`, `opencode`, `kimi`, `grok`, `antigravity`, `qwen`, `qoder`): one built-in runtime (`claudeRuntime`, …; cursor's is `createCursorRuntime`) without the others, for a host that needs only some of them. Each entry stays at about 1 to 2.5 MB of heap where the root entry takes about 50 MB (Node 26, [#405](https://github.com/botiverse/oar/pull/405)): the ACP SDK (about 20 MB) loads only when an ACP runtime first opens a session, lists models (kimi, grok, antigravity, codebuddy, devin), reads grok's usage, signs Kimi in or out or reads its status, or creates the Qwen provider facade, and the pi and cursor SDKs when theirs first run. Node-only.
+- `@botiverse/oar/runtimes/<id>` (`claude`, `codex`, `codebuddy`, `devin`, `dsh`, `factory`, `pi`, `cursor`, `opencode`, `kimi`, `grok`, `antigravity`, `qwen`, `qoder`): one built-in runtime (`claudeRuntime`, …; cursor's is `createCursorRuntime`) without the others, for a host that needs only some of them. Each entry stays at about 1 to 2.5 MB of heap where the root entry takes about 50 MB (Node 26, [#405](https://github.com/botiverse/oar/pull/405)): the ACP SDK (about 20 MB) loads only on the first call that speaks ACP (a session, a model list, a usage, sign-in or status read on an ACP entry, the Qwen provider facade), and the pi and cursor SDKs when theirs first run. Node-only.
 - `@botiverse/oar/observe`: the browser-safe pure derivations over `RawEvent`s and `Event`s (`eventsOf`, `graphOf`, `usageOf`, `coalesceText`, `observeAgent`, `reduceStatus`, `tasksOf`, `observeStalls`, `classifyTool`, `reduceConversation`, `viewOf`, …) with no Node or adapter imports, so a browser or Electron-renderer bundle can import it directly. The root export re-exports all of them.
   It also supplies `failureAdvice` (recovery timing per `FailureClass`) and `noticeText`, `noticeTone`, `phaseLabel`, `failureText` and `taskStatusLabel`, alongside `toolActionLabel` and `toolGroupSummary`: English display wording for OAR types, usable in JavaScriptCore too. Wording may change in a minor release; hosts must use the typed values for decisions, not parse the text ([display wording](https://github.com/botiverse/oar/blob/main/docs/spec/conversation.md#display-wording)).
 - `@botiverse/oar/kernel`: the runtime-author SPI. `createSessionKernel` is the record stream every built-in adapter is built on (dense `seq`, cursor replay, control recording, the reachability rule) and `sealSession` derives the `Session` API face over an adapter. Pair with `defineRuntime` to ship a custom runtime (a scripted runtime for a host's tests, an in-process agent) without re-implementing the stream contract. `inputImagesRefusal` and `withInputImages` are the image rules every built-in runtime keeps, so a custom runtime refuses the inputs they refuse. `withdrawHeld` is the decision behind `withdraw` for a runtime that holds its own queue.
@@ -239,10 +241,20 @@ back on it. `runtime.refusedSessionOptions` names the options a runtime
 refuses at open, each with the reason, so a host can leave them out before
 opening. One key names a value rather than an option: `mcpServerCredentials`,
 an `mcpServers` entry carrying `env` or `headers` (below). Some refusals
-depend on the value or operation: Kimi and OpenCode
-refuse a `resume` in another directory than the session's own (`option:
-"cwd"`). See
+depend on the value or operation: Kimi, OpenCode, Antigravity, Devin,
+Factory and DSH refuse a `resume` in another directory than the session's own
+(the first four also one whose directory `session/list` cannot confirm)
+with `ResumeCwdError` (an `UnsupportedOptionError` with `option: "cwd"`, whose
+`name` stays `"UnsupportedOptionError"`), carrying `sessionId`,
+`requestedCwd`, a typed `reason` and, for `other_cwd`, `savedCwd`
+([resume in another directory](https://github.com/botiverse/oar/blob/main/docs/runtimes/resume-cwd.md)). See
 [refused session options](https://github.com/botiverse/oar/blob/main/docs/spec/runtime-matrix.md#refused-session-options).
+
+Where an adapter confirms the requested `model` from native readback, an
+open (or resume) it cannot confirm rejects with `ModelConfirmationError` (`requested`, `reported`,
+and `catalogSelectorIds` when a catalog was read); it is not a
+`FailureClass` and not evidence that the model is unavailable. See
+[model confirmation failures](https://github.com/botiverse/oar/blob/main/docs/spec/runtime-matrix.md#model-confirmation-failures).
 
 `runtime.resumedSessionOptions` declares measured behavior for accepted
 options on resume: when a different supplied value takes effect, and whether
@@ -283,14 +295,19 @@ project configuration stays runtime-specific. Claude and Cursor support it;
 other runtimes refuse it. Give it again on resume. See
 [user configuration](https://github.com/botiverse/oar/blob/main/docs/spec/runtime-matrix.md#user-configuration).
 
-`SessionOptions.endTurnProcessesOnAbort: true` (Codex only; other runtimes
-and shared placement refuse it) makes an accepted `abort()` also end the
-processes that turn started, where native `turn/interrupt` leaves a detached
-child running. MCP servers and earlier background commands are kept with what
-they start, and the session stays usable. A `cleanup` response on the abort
-request says what happened; a failed or unfinished process-table read ends
-nothing, and so does Windows, which has no process groups to tell them apart. See
-[Codex](https://github.com/botiverse/oar/blob/main/docs/runtimes/codex.md#ending-a-turns-processes-on-abort).
+`SessionOptions.endTurnProcessesOnAbort: true` (Codex in an isolated
+app-server, and Grok; other runtimes and Codex in shared placement refuse it)
+makes an accepted `abort()` also end the processes that turn started, where
+the native interrupt leaves them running. Codex compares process-table reads;
+Grok stops the terminals OAR hosted for that turn. MCP servers and earlier
+background commands are kept with what they start, and the session stays
+usable. A `cleanup` response on the abort request says what happened. On
+Codex a failed or unfinished process-table read ends nothing, and so does
+Windows, which has no process groups to tell them apart; Grok uses a
+process-tree kill there, not yet run. See
+[ending a turn's processes](https://github.com/botiverse/oar/blob/main/docs/spec/runtime-matrix.md#ending-a-turns-processes-on-abort),
+[Codex](https://github.com/botiverse/oar/blob/main/docs/runtimes/codex.md#ending-a-turns-processes-on-abort)
+and [Grok](https://github.com/botiverse/oar/blob/main/docs/runtimes/grok.md#ending-a-turns-processes-on-abort).
 
 `SessionOptions.outputSchema` supplies a JSON Schema object for final output.
 Claude and Grok report their native validated value on a completed
@@ -328,7 +345,7 @@ fails: [structured output](https://github.com/botiverse/oar/blob/main/docs/spec/
 args?, env?}` or streamable HTTP `{name, type: "http", url, headers?}`) to
 one session, on top of the runtime's own, through each runtime's own channel
 (claude reads them from a 0600 FIFO that never puts them on a disk, a
-temporary file on Windows); cursor and pi-durable refuse them, and dsh takes
+temporary file on Windows); pi-durable refuses them, and dsh takes
 stdio `command` and `args` only. Give them again on `resume`. Their `env` and
 `headers` values never appear in a record or an error; antigravity, which would
 store them in its conversation database, and dsh refuse an entry carrying them
@@ -342,7 +359,7 @@ and each runtime page's "Session MCP servers".
 Tools the host implements itself go through the same option. `serveMcpTools`
 serves them from an MCP server inside the host process and returns the
 `mcpServers` entry to pass, so one implementation reaches every runtime that
-takes an http entry with `headers` (all but cursor, pi-durable, antigravity and dsh):
+takes an http entry with `headers` (all but pi-durable, antigravity and dsh):
 
 ```ts
 import { serveMcpTools } from "@botiverse/oar";
@@ -554,8 +571,8 @@ exposes independent skills and MCP configuration discovery; Pi exposes skills
 and registered tools with active membership. Pi commands include extension
 commands and prompt templates; Claude commands come from native initialize.
 Other core runtimes return unsupported for independent command discovery.
-Antigravity, CodeBuddy, Cursor, Devin, DSH, Kimi, OpenCode, Qoder and Qwen inventory
-queries are unsupported.
+Antigravity, CodeBuddy, Cursor, Devin, DSH, Factory, Kimi, OpenCode, Qoder and Qwen
+inventory queries are unsupported.
 
 ```ts
 const catalog = await runtime.commands(installation, { cwd: "/my/project" });

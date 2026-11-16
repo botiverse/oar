@@ -30,9 +30,9 @@ original cwd before deciding the old conversation is gone. The table above
 records the historical native errors, not a global absence guarantee.
 
 A refusal is the runtime's error from `session()` (OAR's own for kimi,
-opencode, antigravity, devin and dsh), so a host that tries a resume in B and falls
+opencode, antigravity, devin, factory and dsh), so a host that tries a resume in B and falls
 back to a handoff on refusal never runs in a directory it did not ask for.
-For ACP directory guards and DSH's different-directory refusal, OAR throws the
+For ACP directory guards and the DSH and Factory different-directory refusals, OAR throws the
 public `ResumeCwdError`, a subclass of `UnsupportedOptionError` with
 `option: "cwd"`. Its `name` stays `"UnsupportedOptionError"`, so existing
 `instanceof` checks and checks by name still work, and the messages are unchanged
@@ -74,13 +74,13 @@ Factory (droid 1.12.1) reads the saved directory from the `load_session`
 answer: a different one produces `ResumeCwdError` with `reason: "other_cwd"`
 ([Factory](factory.md)). An unknown id is `SessionNotFoundError` (`-32004`).
 Devin (`devin 3000.12.57`, 2026-11-13) records the session's `cwd` in
-`session/list` and enables `resumeKeepsSessionCwd: true`, so OAR applies the
-same `session/list` guard before `session/load`; cross-directory shell execution
-was not run without an authenticated model turn.
+`session/list`, which the guard above reads (profile
+`resumeKeepsSessionCwd: true`); cross-directory shell execution was not run
+without an authenticated model turn.
 Not measured here: qwen, qoder, codebuddy, dsh, pi-durable, and runtimes whose session
 store the host moved by hand.
 
-The directory comparison shared by these ACP adapters and DSH
+The directory comparison shared by these ACP adapters, DSH and Factory
 ([same-directory.ts](../../packages/oar/src/shared/same-directory.ts))
 compares existing paths through the native filesystem lookup. Links, Windows
 8.3 short names and casing differences that refer to the same directory are

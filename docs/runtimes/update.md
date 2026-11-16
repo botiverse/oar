@@ -65,9 +65,16 @@ native `agy update` exists; OAR has no `upgrade` for it. The 2026-10-01
 antigravity results on this page measured the former separate ACP server
 ([migration evidence](../../experiments/antigravity-cli-acp-2026-11-05.md)).
 
+**factory and devin** were not in these probes. Factory's `checkUpdate`
+reads `droid update --check` and `upgrade` runs `droid update`
+([Factory](factory.md#installation-and-updates)). Devin has only
+`checkUpdate`, from the manifest its `distribution` marker names; OAR omits
+`upgrade` because `devin update` prompts without a `--yes` flag
+([Devin](devin.md#process-ownership-installation-and-update-checks)).
+
 **pi and cursor.** In process through their SDKs: the pi SDK is a
 dependency of oar (`^1.5.0`), and `@cursor/sdk` an optional peer dependency
-(`1.2.0`) that the host installs and hands to `createCursorRuntime` (the oar
+(`1.4.0`) that the host installs and hands to `createCursorRuntime` (the oar
 CLI depends on it). Both installations are `via: "bundled"`; neither runtime
 has `checkUpdate` or `upgrade`, so `oar upgrade` reports each as bundled with
 oar and moving with the oar version.

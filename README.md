@@ -28,21 +28,21 @@ OAR (**O**pen **A**gent **R**untime) is a provider-independent programming inter
       </a>
     </td>
     <td align="center" width="112">
-      <a href="docs/runtimes/codex.md">
-        <picture>
-          <source media="(prefers-color-scheme: dark)" srcset="packages/oar/assets/brands/codex-on-dark.svg">
-          <img src="packages/oar/assets/brands/codex-on-light.svg" width="32" height="32" alt="">
-        </picture><br>
-        Codex
-      </a>
-    </td>
-    <td align="center" width="112">
       <a href="docs/runtimes/codebuddy.md">
         <picture>
           <source media="(prefers-color-scheme: dark)" srcset="packages/oar/assets/brands/codebuddy-on-dark.svg">
           <img src="packages/oar/assets/brands/codebuddy-on-light.svg" width="32" height="32" alt="">
         </picture><br>
         CodeBuddy Code
+      </a>
+    </td>
+    <td align="center" width="112">
+      <a href="docs/runtimes/codex.md">
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="packages/oar/assets/brands/codex-on-dark.svg">
+          <img src="packages/oar/assets/brands/codex-on-light.svg" width="32" height="32" alt="">
+        </picture><br>
+        Codex
       </a>
     </td>
     <td align="center" width="112">
@@ -55,6 +55,32 @@ OAR (**O**pen **A**gent **R**untime) is a provider-independent programming inter
       </a>
     </td>
     <td align="center" width="112">
+      <a href="docs/runtimes/dsh.md">
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="packages/oar/assets/brands/dsh-on-dark.svg">
+          <img src="packages/oar/assets/brands/dsh-on-light.svg" width="32" height="32" alt="">
+        </picture><br>
+        DeepSeek Harness
+      </a>
+    </td>
+    <td align="center" width="112">
+      <a href="docs/runtimes/devin.md">
+        <img src="packages/oar/assets/brands/devin.svg" width="32" height="32" alt=""><br>
+        Devin
+      </a>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="112">
+      <a href="docs/runtimes/factory.md">
+        <picture>
+          <source media="(prefers-color-scheme: dark)" srcset="packages/oar/assets/brands/factory.svg">
+          <img src="packages/oar/assets/brands/factory.svg" width="32" height="32" alt="">
+        </picture><br>
+        Factory Droid
+      </a>
+    </td>
+    <td align="center" width="112">
       <a href="docs/runtimes/grok.md">
         <picture>
           <source media="(prefers-color-scheme: dark)" srcset="packages/oar/assets/brands/grok-on-dark.svg">
@@ -63,8 +89,6 @@ OAR (**O**pen **A**gent **R**untime) is a provider-independent programming inter
         Grok Build
       </a>
     </td>
-  </tr>
-  <tr>
     <td align="center" width="112">
       <a href="docs/runtimes/kimi.md">
         <picture>
@@ -93,15 +117,6 @@ OAR (**O**pen **A**gent **R**untime) is a provider-independent programming inter
       </a>
     </td>
     <td align="center" width="112">
-      <a href="docs/runtimes/qwen.md">
-        <picture>
-          <source media="(prefers-color-scheme: dark)" srcset="packages/oar/assets/brands/qwen-on-dark.svg">
-          <img src="packages/oar/assets/brands/qwen-on-light.svg" width="32" height="32" alt="">
-        </picture><br>
-        Qwen Code
-      </a>
-    </td>
-    <td align="center" width="112">
       <a href="docs/runtimes/qoder.md">
         <picture>
           <source media="(prefers-color-scheme: dark)" srcset="packages/oar/assets/brands/qoder-on-dark.svg">
@@ -111,29 +126,12 @@ OAR (**O**pen **A**gent **R**untime) is a provider-independent programming inter
       </a>
     </td>
     <td align="center" width="112">
-      <a href="docs/runtimes/dsh.md">
+      <a href="docs/runtimes/qwen.md">
         <picture>
-          <source media="(prefers-color-scheme: dark)" srcset="packages/oar/assets/brands/dsh-on-dark.svg">
-          <img src="packages/oar/assets/brands/dsh-on-light.svg" width="32" height="32" alt="">
+          <source media="(prefers-color-scheme: dark)" srcset="packages/oar/assets/brands/qwen-on-dark.svg">
+          <img src="packages/oar/assets/brands/qwen-on-light.svg" width="32" height="32" alt="">
         </picture><br>
-        DeepSeek Harness
-      </a>
-    </td>
-    <td align="center" width="112">
-      <a href="docs/runtimes/factory.md">
-        <picture>
-          <source media="(prefers-color-scheme: dark)" srcset="packages/oar/assets/brands/factory.svg">
-          <img src="packages/oar/assets/brands/factory.svg" width="32" height="32" alt="">
-        </picture><br>
-        Factory Droid
-      </a>
-    </td>
-  </tr>
-  <tr>
-    <td align="center" width="112">
-      <a href="docs/runtimes/devin.md">
-        <img src="packages/oar/assets/brands/devin.svg" width="32" height="32" alt=""><br>
-        Devin
+        Qwen Code
       </a>
     </td>
   </tr>
@@ -210,7 +208,7 @@ for (const runtime of defaultRuntimes.list()) {
 - **[Orientation](docs/spec/orientation.md):** one call for what is installed and usable.
 - **[Install](docs/spec/install.md) and [update](docs/spec/update.md):** through the vendor's own installer and updater.
 - **[Login](docs/spec/login.md):** through the runtime's own login, without a terminal. OAR never handles the tokens.
-- **[Account usage](docs/spec/account-usage.md):** plan and quota windows, and Codex limit resets.
+- **[Account usage](docs/spec/account-usage.md):** plan and quota windows, and Codex and Claude limit resets.
 - **Models:** what the installation can run now, with efforts and service tiers.
 - **[Inventories](docs/spec/inventory.md):** configured skills, commands, MCP servers and tools.
 - **[Setup forms](docs/spec/config-form.md):** settings as data a UI renders.
