@@ -1,6 +1,8 @@
 import { describe, expect, test } from "vitest";
-import { awaitIdle, awaitTurnEnd, promptAndWait, turnEndAfter, conversationOf, viewOf,
-  initialStatus, reduceStatus, statusValue } from "../../packages/oar/src/observe/index.js";
+import { awaitIdle, awaitTurnEnd, promptAndWait, turnEndAfter, initialStatus, reduceStatus } from "../../packages/oar/src/observe/index.js";
+import { conversationOf } from "../../packages/oar/src/observe/conversation.js";
+import { viewOf } from "../../packages/oar/src/observe/session-view.js";
+import { statusValue } from "../../packages/oar/src/observe/agent-status.js";
 import { isPiBackend, piRpc } from "./support/pi-runtime.js";
 import { inputId, until, ends, fixture } from "./support/pi-input-disposition.js";
 

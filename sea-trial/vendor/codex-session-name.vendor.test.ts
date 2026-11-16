@@ -2,12 +2,16 @@ import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
-import { codexInstallation, codexSession, promptAndWait, SessionUnavailableError } from "../../packages/oar/src/index.js";
+import { promptAndWait, SessionUnavailableError, codexRuntime } from "../../packages/oar/src/index.js";
+
 import { startAppServerClient, type AppServerClient } from "../../packages/oar/src/runtimes/codex/app-server-client.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { removeFixtureDirectory } from "../harness/fixture-directory-cleanup.js";
 import { startCodexAimock } from "../harness/aimock.js";
 import { expectAvailable } from "./support/asserts.js";
+
+const codexInstallation = codexRuntime.installation;
+const codexSession = codexRuntime.session;
 
 function nameOf(reply: unknown): unknown {
   return asRecord(asRecord(reply)?.thread)?.name;

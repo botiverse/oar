@@ -2,10 +2,13 @@ import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
-import { claudeInstallation, claudeSession, promptAndWait } from "../../packages/oar/src/index.js";
+import { claudeInstallation, promptAndWait, claudeRuntime } from "../../packages/oar/src/index.js";
+
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { claudeConfigurationFixture } from "./support/user-configuration/claude-fixture.js";
 import { ROTATED, TOKEN } from "./support/user-configuration/claude-oauth.js";
+
+const claudeSession = claudeRuntime.session;
 
 type Fixture = Awaited<ReturnType<typeof claudeConfigurationFixture>>;
 

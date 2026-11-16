@@ -2,12 +2,15 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, test, vi } from "vitest";
-import { claudeInstallation, claudeSession, serveMcpTools, type HostTool } from "../../packages/oar/src/index.js";
+import { claudeInstallation, serveMcpTools, type HostTool, claudeRuntime } from "../../packages/oar/src/index.js";
+
 import { startClaudeAimock, type LLMock } from "../harness/aimock.js";
 import { expectAvailable, runTurn } from "./support/asserts.js";
 import { awaitClaudeMcpCatalog, claudeMcpCatalog, claudePromptRequest, claudeToolResultRequest, claudeToolResult as resultOf } from "./support/claude-tools.js";
 import { currentTurnSays } from "./support/echo-mcp.js";
 import { ALPHA, BETA, SERVER, loggingProxy } from "./support/tools-list-changed.js";
+
+const claudeSession = claudeRuntime.session;
 
 const UNUSED = "oar_probe_unused";
 const nameOf = (name: string): string => `mcp__${SERVER}__${name}`;

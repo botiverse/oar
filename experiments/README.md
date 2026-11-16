@@ -1,5 +1,7 @@
 # experiments
 
+- [Public API export cleanup (2026-11-16)](public-api-sweep-2026-11-16/README.md): confirmed removals, host audit and migration table.
+
 - [Antigravity model-specific effort menus](antigravity-model-menus/README.md): one-response discovery, distinct native model menus, zero additional requests and settings-value controls.
 - [Codex idle queue admission](codex-idle-queue/README.md): normal completion wakes queued input; interruption parks it until a new prompt, with native 0.169.0 evidence and adapter refusal.
 - [DSH session names and native tool denial](dsh-name-tools/README.md): native title persistence, scoped restrictions, resume and refused-open controls.

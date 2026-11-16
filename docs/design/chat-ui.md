@@ -37,8 +37,9 @@ framework:
   runtime has not taken yet; a withdrawn one leaves it), `openTurn`, `status`, `model`, `effort`,
   `context`, `usage`, `usageByAgent`, `pendingRequests`, `exited`, and the
   underlying `conversation` fold.
-- `reduceSessionView(view, record, streamId?)` folds one record;
-  `viewOf(records)` replays a log; `initialSessionView()` starts one.
+- `initialSessionView()` creates the initial view;
+  `reduceSessionView(view, record, streamId?)` folds each raw record, including
+  when replaying a saved log.
 
 The framework binding (a React hook, an assistant-ui runtime) is the
 application's, and is small: rowrow folds its timeline with

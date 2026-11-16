@@ -1,10 +1,14 @@
 import { describe, expect, test } from "vitest";
-import { codexInstallation, codexSession } from "../../packages/oar/src/index.js";
+
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { startCodexAimock } from "../harness/aimock.js";
 import { expectAvailable, runTurn } from "./support/asserts.js";
 import { codexMessageReply } from "./support/codex-messages.js";
 import { openTrace, record } from "../harness/trace.js";
+import { codexRuntime } from "../../packages/oar/src/index.js";
+
+const codexInstallation = codexRuntime.installation;
+const codexSession = codexRuntime.session;
 
 describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("Codex message projection", () => {
   test.each([false, true])("completed text and phase survive (text deltas: %s)", async (deltas) => {

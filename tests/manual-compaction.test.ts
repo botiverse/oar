@@ -1,7 +1,8 @@
 /* oxlint-disable eslint/max-statements -- Keep each ordered native control and its negative assertions together. */
 import { afterEach, expect, test, vi } from "vitest";
 import type { FrameBody, RuntimeEventBody } from "../packages/oar/src/contracts/session.js";
-import { statusOf, initialStatus, reduceStatus, statusValue, type StatusState, initialSessionView, reduceSessionView } from "../packages/oar/src/observe/index.js";
+import { statusOf, initialStatus, reduceStatus, type StatusState, initialSessionView, reduceSessionView } from "../packages/oar/src/observe/index.js";
+import { statusValue } from "../packages/oar/src/observe/agent-status.js";
 import { manualCompaction } from "../packages/oar/src/shared/manual-compaction.js";
 import { createSessionKernel } from "../packages/oar/src/shared/session-kernel.js";
 import { piCompaction } from "../packages/oar/src/runtimes/pi/compaction.js";
@@ -12,7 +13,6 @@ afterEach(() => { vi.useRealTimers(); });
 const start: RuntimeEventBody = { kind: "compaction_started", trigger: "manual" };
 const end: RuntimeEventBody = { kind: "compaction_ended", trigger: "manual", outcome: "completed" };
 const body = (...events: RuntimeEventBody[]): FrameBody => ({ type: "native-test", native: { events }, events });
-
 
 function setup(run: () => Promise<unknown> = async () => {}) {
   const kernel = createSessionKernel("root");
@@ -122,7 +122,6 @@ test("Pi RPC's ordinary 30 second transport deadline cannot kill a compact opera
   expect(await pending).toMatchObject({ success: true });
 });
 
-
 test("an already aborted signal records refusal without creating or sending an operation", async () => {
   const run = vi.fn(async () => {}); const f = setup(run);
   const controller = new AbortController(); controller.abort();
@@ -145,7 +144,6 @@ test("zero timeout still dispatches, and preserves the previous turn outcome aft
   f.kernel.frame(body(end));
   expect(statusOf(f.kernel.records()).value).toEqual({ kind: "idle", lastTurnOutcome: outcome });
 });
-
 
 test("public status omits fold correlation and cloned checkpoints ignore unrelated automatic turns", () => {
   const kernel = createSessionKernel("root");

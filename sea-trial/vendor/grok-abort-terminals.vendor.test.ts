@@ -5,9 +5,13 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { expect, test } from "vitest";
-import { awaitTurnEnd, grokInstallation, grokSession, promptAndWait, type RawEvent, type Session } from "../../packages/oar/src/index.js";
+import { awaitTurnEnd, promptAndWait, type RawEvent, type Session, grokRuntime } from "../../packages/oar/src/index.js";
+
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { startGrokAimock } from "../harness/aimock-acp.js";
+
+const grokInstallation = grokRuntime.installation;
+const grokSession = grokRuntime.session;
 
 /*
  * SessionOptions.endTurnProcessesOnAbort on Grok, against a scripted provider.

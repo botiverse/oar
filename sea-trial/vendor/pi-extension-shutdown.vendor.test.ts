@@ -1,9 +1,13 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, test, vi } from "vitest";
-import { defineRuntime, piInstallation, piSession, type Session } from "../../packages/oar/src/index.js";
+import { defineRuntime, type Session, piRuntime } from "../../packages/oar/src/index.js";
+
 import { startPiAimock } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
+
+const piInstallation = piRuntime.installation;
+const piSession = piRuntime.session;
 
 const runtime = defineRuntime({ id: "pi-aimock", session: piSession, installation: piInstallation });
 

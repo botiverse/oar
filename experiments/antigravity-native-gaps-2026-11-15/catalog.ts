@@ -2,8 +2,11 @@ import assert from "node:assert/strict";
 import { writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { startAntigravityAimock } from "../../sea-trial/harness/aimock-acp.js";
-import { antigravitySession, promptAndWait } from "../../packages/oar/src/index.js";
+import { promptAndWait, antigravityRuntime } from "../../packages/oar/src/index.js";
+
 import { ECHO_SERVER } from "../../sea-trial/vendor/support/echo-mcp.js";
+
+const antigravitySession = antigravityRuntime.session;
 
 const [binary, output] = process.argv.slice(2);
 assert.ok(binary !== undefined && output !== undefined);

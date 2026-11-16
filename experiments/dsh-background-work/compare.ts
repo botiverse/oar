@@ -5,10 +5,15 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
-import { awaitTurnEnd, claudeInstallation, claudeSession, codexInstallation, codexSession, tasksOf, type Session } from "../../packages/oar/src/index.js";
+import { awaitTurnEnd, claudeInstallation, tasksOf, type Session, claudeRuntime, codexRuntime } from "../../packages/oar/src/index.js";
+
 import { asRecord, parseJson } from "../../packages/oar/src/shared/json.js";
 import { startClaudeAimock, startCodexAimock } from "../../sea-trial/harness/aimock.js";
 import { codexTaskRecipient, codexTaskRequest } from "../../sea-trial/vendor/support/codex-task-request.js";
+
+const claudeSession = claudeRuntime.session;
+const codexInstallation = codexRuntime.installation;
+const codexSession = codexRuntime.session;
 
 function qualify(value: unknown): unknown {
   const item = asRecord(value);

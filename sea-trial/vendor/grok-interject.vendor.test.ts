@@ -3,9 +3,13 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { expect, test } from "vitest";
-import { awaitTurnEnd, grokInstallation, grokSession, type RawEvent, type Session } from "../../packages/oar/src/index.js";
+import { awaitTurnEnd, type RawEvent, type Session, grokRuntime } from "../../packages/oar/src/index.js";
+
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { startGrokAimock, type AcpAimockEnv } from "../harness/aimock-acp.js";
+
+const grokInstallation = grokRuntime.installation;
+const grokSession = grokRuntime.session;
 
 /*
  * Grok's `_x.ai/interject` through OAR's steer, against a scripted provider.

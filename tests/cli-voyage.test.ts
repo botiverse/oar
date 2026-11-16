@@ -3,13 +3,8 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, expect, test, vi } from "vitest";
-import {
-  endLine,
-  headerLine,
-  openVoyage,
-  recordLine,
-  type RawEvent,
-} from "../packages/oar/src/index.js";
+import { openVoyage, type RawEvent } from "../packages/oar/src/index.js";
+import { endLine, headerLine, recordLine } from "../packages/oar/src/voyage.js";
 
 afterEach(() => {
   vi.useRealTimers();
@@ -121,7 +116,6 @@ test("openVoyage writes header, records, end as ordered JSONL", () => {
     rmSync(dir, { recursive: true, force: true });
   }
 });
-
 
 test("voyage header keeps the requested tier separate from native reports", () => {
   const header: unknown = JSON.parse(headerLine({ runtime: "codex", serviceTier: "priority", cwd: "/work", sessionId: "t", startedAt: 0, recorder: "test" }));

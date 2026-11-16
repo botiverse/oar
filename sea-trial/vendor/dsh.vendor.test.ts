@@ -3,11 +3,14 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
 import { awaitTurnEnd } from "../../packages/oar/src/observe/turns.js";
-import { dshInstallation, dshRuntime, SessionNotFoundError, UnsupportedOptionError } from "../../packages/oar/src/index.js";
+import { dshRuntime, SessionNotFoundError, UnsupportedOptionError } from "../../packages/oar/src/index.js";
+
 import { DSH_MINIMUM_VERSION, compareSemver } from "../../packages/oar/src/runtimes/dsh/version.js";
 import { dshEnabled, eventsOf, expectedDirectory, nativeOf, nativeShell, reportsSelection, say, shellDirectory, untilCount, untilEvent, withDshFixture } from "./support/dsh-fixture.js";
 import { resolveRunDir } from "../harness/trace.js";
 import { durableEvents, lastInput, toolResults } from "./support/dsh-provider.js";
+
+const dshInstallation = dshRuntime.installation;
 
 describe.skipIf(!dshEnabled)("DSH native sessions", () => {
   test("the installed version is at or above the floor, by semver", async () => {

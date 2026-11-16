@@ -2,9 +2,13 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { expect, test } from "vitest";
-import { grokInstallation, grokSession, promptAndWait, type Session } from "../../packages/oar/src/index.js";
+import { promptAndWait, type Session, grokRuntime } from "../../packages/oar/src/index.js";
+
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { startGrokAimock } from "../harness/aimock-acp.js";
+
+const grokInstallation = grokRuntime.installation;
+const grokSession = grokRuntime.session;
 
 test.skipIf(process.env.OAR_TEST !== "grok-aimock")("Grok's native override and rules reach the provider on creation and resume", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "oar-grok-prompts-"));

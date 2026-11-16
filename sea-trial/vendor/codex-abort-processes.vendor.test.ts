@@ -7,13 +7,17 @@ import { setTimeout as delay } from "node:timers/promises";
 import { describe, expect, test, vi } from "vitest";
 import type { ControlResult, Session, SessionOptions } from "../../packages/oar/src/contracts/session.js";
 import type { SessionCleanup } from "../../packages/oar/src/contracts/placement.js";
-import { awaitTurnEnd, codexInstallation, codexSession, promptAndWait } from "../../packages/oar/src/index.js";
+import { awaitTurnEnd, promptAndWait, codexRuntime } from "../../packages/oar/src/index.js";
+
 import { removeFixtureDirectory } from "../harness/fixture-directory-cleanup.js";
 import { resolveRunDir } from "../harness/trace.js";
 import { startCodexAimock, type AimockEnv } from "../harness/aimock.js";
 import { expectAvailable } from "./support/asserts.js";
 import { ECHO_SERVER } from "./support/echo-mcp.js";
 import { expectRunning, expectStarted, processTable } from "./support/codex-process-count.js";
+
+const codexInstallation = codexRuntime.installation;
+const codexSession = codexRuntime.session;
 
 /*
  * SessionOptions.endTurnProcessesOnAbort on the real binary with a scripted

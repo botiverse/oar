@@ -5,8 +5,12 @@ import assert from "node:assert/strict";
 import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { codexInstallation, codexSession, awaitIdle, type Session } from "../../packages/oar/src/index.js";
+import { awaitIdle, type Session, codexRuntime } from "../../packages/oar/src/index.js";
+
 import { startCodexAimock } from "../../sea-trial/harness/aimock.js";
+
+const codexInstallation = codexRuntime.installation;
+const codexSession = codexRuntime.session;
 
 async function bounded<T>(work: Promise<T>): Promise<T> {
   const stop = new AbortController();

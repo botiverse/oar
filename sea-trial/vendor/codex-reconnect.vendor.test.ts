@@ -1,8 +1,12 @@
 import { describe, expect, test } from "vitest";
-import { codexInstallation, codexSession } from "../../packages/oar/src/index.js";
+
 import { promptAndWait } from "../../packages/oar/src/observe/turns.js";
 import { startCodexAimock } from "../harness/aimock.js";
 import { expectAvailable } from "./support/asserts.js";
+import { codexRuntime } from "../../packages/oar/src/index.js";
+
+const codexInstallation = codexRuntime.installation;
+const codexSession = codexRuntime.session;
 
 /** A stream that ends before `response.completed`: what codex retries and reports as "Reconnecting". */
 const CUT_STREAM = `event: response.created\ndata: ${JSON.stringify({ type: "response.created", response: { id: "cut", object: "response", status: "in_progress", output: [] }, sequence_number: 0 })}\n\n`;

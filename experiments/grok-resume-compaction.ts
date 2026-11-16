@@ -8,11 +8,14 @@ import assert from "node:assert/strict";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { grokInstallation, promptAndWait, type Session } from "../packages/oar/src/index.js";
+import { promptAndWait, type Session, grokRuntime } from "../packages/oar/src/index.js";
+
 import { grokAcpProfile } from "../packages/oar/src/runtimes/grok/session.js";
 import { acpSession, type AcpSessionProfile } from "../packages/oar/src/shared/acp/session.js";
 import { startGrokAimock } from "../sea-trial/harness/aimock-acp.js";
 import { requestsForTurn } from "../sea-trial/vendor/support/resumed-prompts.js";
+
+const grokInstallation = grokRuntime.installation;
 
 const old = "GROK_OLD_APPEND_7319";
 const next = "GROK_NEW_APPEND_8420";

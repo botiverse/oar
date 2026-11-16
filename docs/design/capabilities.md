@@ -96,8 +96,7 @@ A host that lets a person set up an agent asks every runtime the same
 question: which settings it takes, which values each may have, and how the
 chosen values become `SessionOptions`. The runtime that owns a setting
 answers, as plain data: `configForms` in `@botiverse/oar/forms` (Grok so
-far), with `validateConfig` and `toSessionOptions` as pure functions beside
-it. The entry loads no runtime SDK, so a server or a browser can render the
+far). Hosts validate selected values and map them to session options. The entry loads no runtime SDK, so a server or a browser can render the
 form for a runtime that is not installed there.
 
 The form keeps the rules above:
@@ -116,7 +115,7 @@ The form keeps the rules above:
   offers nothing for it rather than guess.
 - **A saved value survives a change it did not cause.** An edit keeps an
   unchanged stored value after the runtime's list or default moves. A launch
-  never drops one: `toSessionOptions` names a field it cannot map, and
+  never drops one: the host names a field it cannot map, and
   `session()` refuses a value the runtime no longer accepts.
 
 How a host stores a configuration stays the host's. Contract:

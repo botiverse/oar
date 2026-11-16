@@ -1,0 +1,738 @@
+[
+  {
+    "file": "index.ts",
+    "name": "VOYAGE_FORMAT",
+    "module": "./voyage.js",
+    "type": false
+  },
+  {
+    "file": "index.ts",
+    "name": "endLine",
+    "module": "./voyage.js",
+    "type": false
+  },
+  {
+    "file": "index.ts",
+    "name": "headerLine",
+    "module": "./voyage.js",
+    "type": false
+  },
+  {
+    "file": "index.ts",
+    "name": "recordLine",
+    "module": "./voyage.js",
+    "type": false
+  },
+  {
+    "file": "index.ts",
+    "name": "claudeListModels",
+    "module": "./runtimes/claude/list-models.js",
+    "type": false
+  },
+  {
+    "file": "index.ts",
+    "name": "projectClaudeModels",
+    "module": "./runtimes/claude/list-models.js",
+    "type": false
+  },
+  {
+    "file": "index.ts",
+    "name": "claudeSession",
+    "module": "./runtimes/claude/session.js",
+    "type": false
+  },
+  {
+    "file": "index.ts",
+    "name": "codexListModels",
+    "module": "./runtimes/codex/list-models.js",
+    "type": false
+  },
+  {
+    "file": "index.ts",
+    "name": "projectCodexModels",
+    "module": "./runtimes/codex/list-models.js",
+    "type": false
+  },
+  {
+    "file": "index.ts",
+    "name": "codexSession",
+    "module": "./runtimes/codex/session.js",
+    "type": false
+  },
+  {
+    "file": "index.ts",
+    "name": "codexInstallation",
+    "module": "./runtimes/codex/installation.js",
+    "type": false
+  },
+  {
+    "file": "index.ts",
+    "name": "createPiModelCatalog",
+    "module": "./runtimes/pi/catalog.js",
+    "type": false
+  },
+  {
+    "file": "index.ts",
+    "name": "PiModelCatalogOptions",
+    "module": "./runtimes/pi/catalog.js",
+    "type": true
+  },
+  {
+    "file": "index.ts",
+    "name": "antigravitySession",
+    "module": "./runtimes/antigravity/session.js",
+    "type": false
+  },
+  {
+    "file": "index.ts",
+    "name": "antigravityInstallation",
+    "module": "./runtimes/antigravity/installation.js",
+    "type": false
+  },
+  {
+    "file": "index.ts",
+    "name": "antigravityListModels",
+    "module": "./runtimes/antigravity/list-models.js",
+    "type": false
+  },
+  {
+    "file": "index.ts",
+    "name": "projectAntigravityModels",
+    "module": "./runtimes/antigravity/list-models.js",
+    "type": false
+  },
+  {
+    "file": "index.ts",
+    "name": "projectCursorModels",
+    "module": "./runtimes/cursor/index.js",
+    "type": false
+  },
+  {
+    "file": "index.ts",
+    "name": "cursorInstallation",
+    "module": "./runtimes/cursor/installation.js",
+    "type": false
+  },
+  {
+    "file": "index.ts",
+    "name": "grokListModels",
+    "module": "./runtimes/grok/list-models.js",
+    "type": false
+  },
+  {
+    "file": "index.ts",
+    "name": "projectGrokModels",
+    "module": "./runtimes/grok/list-models.js",
+    "type": false
+  },
+  {
+    "file": "index.ts",
+    "name": "grokSession",
+    "module": "./runtimes/grok/session.js",
+    "type": false
+  },
+  {
+    "file": "index.ts",
+    "name": "grokInstallation",
+    "module": "./runtimes/grok/installation.js",
+    "type": false
+  },
+  {
+    "file": "index.ts",
+    "name": "kimiListModels",
+    "module": "./runtimes/kimi/list-models.js",
+    "type": false
+  },
+  {
+    "file": "index.ts",
+    "name": "projectKimiModels",
+    "module": "./runtimes/kimi/list-models.js",
+    "type": false
+  },
+  {
+    "file": "index.ts",
+    "name": "kimiSession",
+    "module": "./runtimes/kimi/session.js",
+    "type": false
+  },
+  {
+    "file": "index.ts",
+    "name": "kimiInstallation",
+    "module": "./runtimes/kimi/installation.js",
+    "type": false
+  },
+  {
+    "file": "index.ts",
+    "name": "opencodeListModels",
+    "module": "./runtimes/opencode/list-models.js",
+    "type": false
+  },
+  {
+    "file": "index.ts",
+    "name": "projectOpencodeModels",
+    "module": "./runtimes/opencode/list-models.js",
+    "type": false
+  },
+  {
+    "file": "index.ts",
+    "name": "opencodeSession",
+    "module": "./runtimes/opencode/session.js",
+    "type": false
+  },
+  {
+    "file": "index.ts",
+    "name": "opencodeInstallation",
+    "module": "./runtimes/opencode/installation.js",
+    "type": false
+  },
+  {
+    "file": "index.ts",
+    "name": "qwenListModels",
+    "module": "./runtimes/qwen/list-models.js",
+    "type": false
+  },
+  {
+    "file": "index.ts",
+    "name": "projectQwenModels",
+    "module": "./runtimes/qwen/list-models.js",
+    "type": false
+  },
+  {
+    "file": "index.ts",
+    "name": "qwenSession",
+    "module": "./runtimes/qwen/session.js",
+    "type": false
+  },
+  {
+    "file": "index.ts",
+    "name": "qwenInstallation",
+    "module": "./runtimes/qwen/installation.js",
+    "type": false
+  },
+  {
+    "file": "index.ts",
+    "name": "piListModels",
+    "module": "./runtimes/pi/list-models.js",
+    "type": false
+  },
+  {
+    "file": "index.ts",
+    "name": "projectPiModels",
+    "module": "./runtimes/pi/list-models.js",
+    "type": false
+  },
+  {
+    "file": "index.ts",
+    "name": "piSession",
+    "module": "./runtimes/pi/session.js",
+    "type": false
+  },
+  {
+    "file": "index.ts",
+    "name": "piInstallation",
+    "module": "./runtimes/pi/installation.js",
+    "type": false
+  },
+  {
+    "file": "index.ts",
+    "name": "qoderSession",
+    "module": "./runtimes/qoder/session.js",
+    "type": false
+  },
+  {
+    "file": "index.ts",
+    "name": "qoderInstallation",
+    "module": "./runtimes/qoder/installation.js",
+    "type": false
+  },
+  {
+    "file": "index.ts",
+    "name": "qoderListModels",
+    "module": "./runtimes/qoder/list-models.js",
+    "type": false
+  },
+  {
+    "file": "index.ts",
+    "name": "projectQoderModels",
+    "module": "./runtimes/qoder/list-models.js",
+    "type": false
+  },
+  {
+    "file": "index.ts",
+    "name": "factorySession",
+    "module": "./runtimes/factory/session.js",
+    "type": false
+  },
+  {
+    "file": "index.ts",
+    "name": "factoryInstallation",
+    "module": "./runtimes/factory/installation.js",
+    "type": false
+  },
+  {
+    "file": "index.ts",
+    "name": "factoryListModels",
+    "module": "./runtimes/factory/list-models.js",
+    "type": false
+  },
+  {
+    "file": "index.ts",
+    "name": "projectFactoryModels",
+    "module": "./runtimes/factory/list-models.js",
+    "type": false
+  },
+  {
+    "file": "index.ts",
+    "name": "dshSession",
+    "module": "./runtimes/dsh/session.js",
+    "type": false
+  },
+  {
+    "file": "index.ts",
+    "name": "dshInstallation",
+    "module": "./runtimes/dsh/installation.js",
+    "type": false
+  },
+  {
+    "file": "index.ts",
+    "name": "DSH_MINIMUM_VERSION",
+    "module": "./runtimes/dsh/version.js",
+    "type": false
+  },
+  {
+    "file": "index.ts",
+    "name": "codebuddySession",
+    "module": "./runtimes/codebuddy/session.js",
+    "type": false
+  },
+  {
+    "file": "index.ts",
+    "name": "codebuddyInstallation",
+    "module": "./runtimes/codebuddy/installation.js",
+    "type": false
+  },
+  {
+    "file": "index.ts",
+    "name": "codebuddyListModels",
+    "module": "./runtimes/codebuddy/list-models.js",
+    "type": false
+  },
+  {
+    "file": "index.ts",
+    "name": "projectCodebuddyModels",
+    "module": "./runtimes/codebuddy/list-models.js",
+    "type": false
+  },
+  {
+    "file": "index.ts",
+    "name": "devinSession",
+    "module": "./runtimes/devin/session.js",
+    "type": false
+  },
+  {
+    "file": "index.ts",
+    "name": "devinInstallation",
+    "module": "./runtimes/devin/installation.js",
+    "type": false
+  },
+  {
+    "file": "index.ts",
+    "name": "devinListModels",
+    "module": "./runtimes/devin/list-models.js",
+    "type": false
+  },
+  {
+    "file": "index.ts",
+    "name": "projectDevinModels",
+    "module": "./runtimes/devin/list-models.js",
+    "type": false
+  },
+  {
+    "file": "browser.ts",
+    "name": "controlOutcomeOf",
+    "module": "./shared/seal-session.js",
+    "type": false
+  },
+  {
+    "file": "kernel.ts",
+    "name": "controlOutcomeOf",
+    "module": "./shared/seal-session.js",
+    "type": false
+  },
+  {
+    "file": "observe/index.ts",
+    "name": "coalesceText",
+    "module": "./events.js",
+    "type": false
+  },
+  {
+    "file": "observe/index.ts",
+    "name": "controlActionsOf",
+    "module": "./events.js",
+    "type": false
+  },
+  {
+    "file": "observe/index.ts",
+    "name": "eventsReader",
+    "module": "./events.js",
+    "type": false
+  },
+  {
+    "file": "observe/index.ts",
+    "name": "stallOf",
+    "module": "./agent-status.js",
+    "type": false
+  },
+  {
+    "file": "observe/index.ts",
+    "name": "statusValue",
+    "module": "./agent-status.js",
+    "type": false
+  },
+  {
+    "file": "observe/index.ts",
+    "name": "effortOf",
+    "module": "./usage.js",
+    "type": false
+  },
+  {
+    "file": "observe/index.ts",
+    "name": "modelOf",
+    "module": "./usage.js",
+    "type": false
+  },
+  {
+    "file": "observe/index.ts",
+    "name": "serviceTierOf",
+    "module": "./usage.js",
+    "type": false
+  },
+  {
+    "file": "observe/index.ts",
+    "name": "applyTaskEvent",
+    "module": "./tasks.js",
+    "type": false
+  },
+  {
+    "file": "observe/index.ts",
+    "name": "initialTasks",
+    "module": "./tasks.js",
+    "type": false
+  },
+  {
+    "file": "observe/index.ts",
+    "name": "TaskEventOrigin",
+    "module": "./tasks.js",
+    "type": true
+  },
+  {
+    "file": "observe/index.ts",
+    "name": "conversationOf",
+    "module": "./conversation.js",
+    "type": false
+  },
+  {
+    "file": "observe/index.ts",
+    "name": "observeConversation",
+    "module": "./conversation.js",
+    "type": false
+  },
+  {
+    "file": "observe/index.ts",
+    "name": "reduceSessionViewEvent",
+    "module": "./session-view.js",
+    "type": false
+  },
+  {
+    "file": "observe/index.ts",
+    "name": "reduceSessionViewInput",
+    "module": "./session-view.js",
+    "type": false
+  },
+  {
+    "file": "observe/index.ts",
+    "name": "viewOf",
+    "module": "./session-view.js",
+    "type": false
+  },
+  {
+    "file": "observe/index.ts",
+    "name": "observeSessionView",
+    "module": "./session-view.js",
+    "type": false
+  },
+  {
+    "file": "forms/index.ts",
+    "name": "toModelListing",
+    "module": "./listing.js",
+    "type": false
+  },
+  {
+    "file": "forms/index.ts",
+    "name": "listedModels",
+    "module": "./listing.js",
+    "type": false
+  },
+  {
+    "file": "forms/index.ts",
+    "name": "ListingFailure",
+    "module": "./listing.js",
+    "type": true
+  },
+  {
+    "file": "forms/index.ts",
+    "name": "isActive",
+    "module": "./fields.js",
+    "type": false
+  },
+  {
+    "file": "forms/index.ts",
+    "name": "validateConfig",
+    "module": "./validate.js",
+    "type": false
+  },
+  {
+    "file": "forms/index.ts",
+    "name": "toSessionOptions",
+    "module": "./map.js",
+    "type": false
+  },
+  {
+    "file": "forms/index.ts",
+    "name": "FormSessionOptions",
+    "module": "./map.js",
+    "type": true
+  },
+  {
+    "file": "forms/index.ts",
+    "name": "SessionMapping",
+    "module": "./map.js",
+    "type": true
+  },
+  {
+    "file": "forms/index.ts",
+    "name": "baselineForms",
+    "definition": true
+  },
+  {
+    "file": "agents/index.ts",
+    "name": "SUBAGENT_DEPTH_ENV",
+    "module": "./helpers.js",
+    "type": false
+  },
+  {
+    "file": "community/index.ts",
+    "name": "morphBrand",
+    "module": "./morph/index.js",
+    "type": false
+  },
+  {
+    "file": "community/index.ts",
+    "name": "projectMorphModels",
+    "module": "./morph/index.js",
+    "type": false
+  },
+  {
+    "file": "community/morph/index.ts",
+    "name": "morphBrand",
+    "definition": true
+  },
+  {
+    "file": "community/morph/index.ts",
+    "name": "projectMorphModels",
+    "module": "./list-models.js",
+    "type": false
+  },
+  {
+    "file": "runtimes/claude/index.ts",
+    "name": "claudeAccountUsage",
+    "module": "./account-usage.js",
+    "type": false
+  },
+  {
+    "file": "runtimes/claude/index.ts",
+    "name": "claudeListModels",
+    "module": "./list-models.js",
+    "type": false
+  },
+  {
+    "file": "runtimes/claude/index.ts",
+    "name": "projectClaudeModels",
+    "module": "./list-models.js",
+    "type": false
+  },
+  {
+    "file": "runtimes/claude/index.ts",
+    "name": "claudeSession",
+    "module": "./session.js",
+    "type": false
+  },
+  {
+    "file": "runtimes/codex/index.ts",
+    "name": "codexAccountUsage",
+    "module": "./account-usage.js",
+    "type": false
+  },
+  {
+    "file": "runtimes/codex/index.ts",
+    "name": "projectCodexUsage",
+    "module": "./account-usage.js",
+    "type": false
+  },
+  {
+    "file": "runtimes/codex/index.ts",
+    "name": "codexRedeemLimitReset",
+    "module": "./limit-reset.js",
+    "type": false
+  },
+  {
+    "file": "runtimes/codex/index.ts",
+    "name": "codexListModels",
+    "module": "./list-models.js",
+    "type": false
+  },
+  {
+    "file": "runtimes/codex/index.ts",
+    "name": "projectCodexModels",
+    "module": "./list-models.js",
+    "type": false
+  },
+  {
+    "file": "runtimes/codex/index.ts",
+    "name": "codexSession",
+    "module": "./session.js",
+    "type": false
+  },
+  {
+    "file": "runtimes/cursor/index.ts",
+    "name": "projectCursorModels",
+    "module": "./list-models.js",
+    "type": false
+  },
+  {
+    "file": "runtimes/devin/index.ts",
+    "name": "devinAuthStatus",
+    "module": "./auth.js",
+    "type": false
+  },
+  {
+    "file": "runtimes/devin/index.ts",
+    "name": "parseDevinAuthStatus",
+    "module": "./auth.js",
+    "type": false
+  },
+  {
+    "file": "runtimes/devin/index.ts",
+    "name": "readDevinAuthStatus",
+    "module": "./auth.js",
+    "type": false
+  },
+  {
+    "file": "runtimes/devin/index.ts",
+    "name": "devinInstall",
+    "module": "./install.js",
+    "type": false
+  },
+  {
+    "file": "runtimes/devin/index.ts",
+    "name": "devinInstallMethod",
+    "module": "./install.js",
+    "type": false
+  },
+  {
+    "file": "runtimes/devin/index.ts",
+    "name": "devinInstallPlan",
+    "module": "./install.js",
+    "type": false
+  },
+  {
+    "file": "runtimes/devin/index.ts",
+    "name": "devinInstallation",
+    "module": "./installation.js",
+    "type": false
+  },
+  {
+    "file": "runtimes/devin/index.ts",
+    "name": "devinInstalledExecutableCandidates",
+    "module": "./installation.js",
+    "type": false
+  },
+  {
+    "file": "runtimes/devin/index.ts",
+    "name": "readDevinVersion",
+    "module": "./installation.js",
+    "type": false
+  },
+  {
+    "file": "runtimes/devin/index.ts",
+    "name": "devinRefusedSessionOptions",
+    "module": "./options.js",
+    "type": false
+  },
+  {
+    "file": "runtimes/devin/index.ts",
+    "name": "devinCheckUpdate",
+    "module": "./update.js",
+    "type": false
+  },
+  {
+    "file": "runtimes/devin/index.ts",
+    "name": "devinReleaseSource",
+    "module": "./update.js",
+    "type": false
+  },
+  {
+    "file": "runtimes/devin/index.ts",
+    "name": "devinUpdateCheck",
+    "module": "./update.js",
+    "type": false
+  },
+  {
+    "file": "runtimes/devin/index.ts",
+    "name": "readDevinDistribution",
+    "module": "./update.js",
+    "type": false
+  },
+  {
+    "file": "runtimes/kimi/index.ts",
+    "name": "kimiAccountUsage",
+    "module": "./account-usage.js",
+    "type": false
+  },
+  {
+    "file": "runtimes/kimi/index.ts",
+    "name": "projectKimiUsage",
+    "module": "./account-usage.js",
+    "type": false
+  },
+  {
+    "file": "runtimes/kimi/index.ts",
+    "name": "kimiAccountDisplayName",
+    "module": "./profile.js",
+    "type": false
+  },
+  {
+    "file": "runtimes/kimi/index.ts",
+    "name": "kimiAccountEmail",
+    "module": "./profile.js",
+    "type": false
+  },
+  {
+    "file": "runtimes/pi/index.ts",
+    "name": "piListModels",
+    "module": "./list-models.js",
+    "type": false
+  },
+  {
+    "file": "runtimes/pi/index.ts",
+    "name": "projectPiModels",
+    "module": "./list-models.js",
+    "type": false
+  },
+  {
+    "file": "runtimes/pi/index.ts",
+    "name": "piSession",
+    "module": "./session.js",
+    "type": false
+  }
+]

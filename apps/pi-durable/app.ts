@@ -2,7 +2,7 @@ import { BACKGROUND_CONTEXT } from "@earendil-works/chord/context";
 import { createModels } from "@earendil-works/pi-ai-durable/models";
 import { anthropicProvider } from "@earendil-works/pi-ai-durable/providers/anthropic";
 import { createRegistry, Harness, MemoryStorage } from "@earendil-works/pi-durable";
-import { observeSessionView, phaseLabel, type Session, type SessionView, type Unsubscribe } from "../../packages/oar/src/browser.js";
+import { initialSessionView, reduceSessionView, phaseLabel, type Session, type SessionView, type Unsubscribe } from "../../packages/oar/src/browser.js";
 import { createPiDurableRuntime } from "../../packages/oar/src/pi-durable.js";
 import { renderView } from "./render.js";
 
@@ -52,7 +52,11 @@ async function connect(): Promise<void> {
     try {
       const runtime = createPiDurableRuntime({ harness, models });
       const session = await runtime.session({ kind: "available", via: "bundled" }, { cwd: "/", model: ui.model.value });
-      const unsubscribe = observeSessionView(session, render);
+      let view = initialSessionView();
+      const unsubscribe = session.rawEvents(record => {
+        view = reduceSessionView(view, record, session.id);
+        render(view);
+      }, { sessionId: session.id, afterSeq: -1 });
       active = { harness, session, unsubscribe };
     } catch (error) { await harness.close(BACKGROUND_CONTEXT); throw error; }
     ui.key.value = "";

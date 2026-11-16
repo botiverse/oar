@@ -4,10 +4,13 @@ import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { expect, test } from "vitest";
-import { awaitTurnEnd, defineRuntime, piInstallation, defaultRuntimes, type Session } from "../../packages/oar/src/index.js";
+import { awaitTurnEnd, defineRuntime, defaultRuntimes, type Session, piRuntime } from "../../packages/oar/src/index.js";
+
 import { startClaudeAimock, startCodexAimock, startPiAimock, type AimockEnv } from "../harness/aimock.js";
 import { removeFixtureDirectory } from "../harness/fixture-directory-cleanup.js";
 import { runtimeUnderTest } from "../harness/subject.js";
+
+const piInstallation = piRuntime.installation;
 
 /** A 1×1 PNG. */
 const PNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";

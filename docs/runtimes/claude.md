@@ -110,7 +110,7 @@ there (2.1.288, 2026-10-03, [resume in another directory](resume-cwd.md)).
 Resume restores context for new requests, not a prior process.
 [SDK sessions][native-sessions].
 
-**Mapped:** `await claudeSession(installation, { cwd, resume: sessionId })`
+**Mapped:** `await claudeRuntime.session(installation, { cwd, resume: sessionId })`
 sends the native `initialize` control request and waits for success within
 a 30-second active readback budget, with the bounded
 [SessionStart hook pause](#opening-with-sessionstart-hooks) described below.

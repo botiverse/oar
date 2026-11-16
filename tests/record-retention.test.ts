@@ -1,6 +1,7 @@
 import { expect, test } from "vitest";
 import type { Frame, RawEvent, RuntimeEventBody } from "../packages/oar/src/contracts/records.js";
-import { eventsOf, statusOf, usageOf, viewOf } from "../packages/oar/src/observe/index.js";
+import { eventsOf, statusOf, usageOf } from "../packages/oar/src/observe/index.js";
+import { viewOf } from "../packages/oar/src/observe/session-view.js";
 import { checkRetainedBytes } from "../packages/oar/src/shared/record-retention.js";
 import { createSessionKernel, type SessionKernel } from "../packages/oar/src/shared/session-kernel.js";
 

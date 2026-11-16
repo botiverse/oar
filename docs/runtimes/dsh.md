@@ -57,7 +57,7 @@ command.
 
 ## Version policy
 
-Floor, not an exact list: `DSH_MINIMUM_VERSION` is `0.2.1-rc.5`, compared by
+Floor, not an exact list: `dshRuntime.minVersion` is `0.2.1-rc.5`, compared by
 semver prerelease ordering. Below it, or with an unreadable version,
 `installation` answers `unsupported` naming the version and `session()` rejects
 `RuntimeFailureError` (`invalid_request`). Above it, the startup and per-agent

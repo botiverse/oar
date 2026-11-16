@@ -9,21 +9,8 @@ import { pooledMockRuntime } from "../fixtures/pooled-mock-runtime.js";
 import type { RuntimePlacementOptions } from "../../packages/oar/src/contracts/placement.js";
 /* oxlint-disable import/max-dependencies -- This composition root selects the shared suite's native backends. */
 import { measureQoderStartup } from "./qoder-startup.js";
-import {
-  claudeInstallation,
-  claudeRuntime,
-  claudeSession,
-  codexInstallation,
-  codexRuntime,
-  codexSession,
-  defineRuntime,
-  piInstallation,
-  piRuntime,
-  piSession,
-  type AvailableInstallation,
-  createPiRuntime,
-  type Runtime,
-} from "../../packages/oar/src/index.js";
+import { claudeInstallation, claudeRuntime, codexRuntime, defineRuntime, piRuntime, type AvailableInstallation, createPiRuntime, type Runtime } from "../../packages/oar/src/index.js";
+
 import { qoderRefusedSessionOptions } from "../../packages/oar/src/runtimes/qoder/options.js";
 import { qoderRuntime } from "../../packages/oar/src/runtimes/qoder/index.js";
 import { startQoderNative } from "./qoder-native.js";
@@ -39,6 +26,12 @@ import { startClaudeAimock, startCodexAimock, startPiAimock, type AimockEnv } fr
 import { acpBackend } from "./acp-backends.js";
 import { grokSharedBackend } from "./grok-shared.js";
 import { opencodeSharedBackend } from "./opencode-shared.js";
+
+const claudeSession = claudeRuntime.session;
+const codexInstallation = codexRuntime.installation;
+const codexSession = codexRuntime.session;
+const piInstallation = piRuntime.installation;
+const piSession = piRuntime.session;
 
 /**
  * OAR_TEST backend selection. Every entry answers: which runtime, and does

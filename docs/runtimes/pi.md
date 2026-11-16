@@ -252,7 +252,7 @@ sections describe the default SDK path unless the RPC differences above apply.
 | Session file header ID | `Session.id`; resume resolves it to a file in the cwd's session directory. Every open starts a new record stream at seq 0; history is not rebuilt. |
 | Agent run | One OAR turn: from the `prompt` request (accepted once pi emits `agent_start`) to pi's `agent_settled`, whose `turn_ended` event carries the outcome. Several native `turn_start`/`turn_end` pairs, threshold compaction and auto-retries sit inside it. |
 | History tree and replacement APIs | Resume is mapped; branch navigation, fork, import and history access are not exposed. |
-| ModelRuntime and ResourceLoader | Native services determine models/resources; OAR exposes selected startup options and catalog results. The `pi/session_opened` frame reports the effective model and thinking level as `model` and `effort` events. Outside sessions, `createPiProviderAuth` wraps `ModelRuntime.login`/`logout`/auth status and lists the providers pi's `/login` offers (`loginProviders`), and `createPiModelCatalog` wraps `ModelRegistry` (providers, model metadata, refresh). |
+| ModelRuntime and ResourceLoader | Native services determine models/resources; OAR exposes selected startup options and catalog results. The `pi/session_opened` frame reports the effective model and thinking level as `model` and `effort` events. Outside sessions, `createPiProviderAuth` wraps `ModelRuntime.login`/`logout`/auth status and lists the providers pi's `/login` offers (`loginProviders`), and the internal model catalog wraps `ModelRegistry`; hosts discover models through `piRuntime.listModels`. |
 | SDK event stream | Every `AgentSessionEvent` is exactly one Frame record, verbatim as `native`, with the events OAR reads from it ([table](#observation-history-and-children)). No `spanId` (pi has no native turn id); `agentPath` is always root; capabilities declare `attribution: "none"`. |
 | Control | `prompt`/`steer`/`queue`/`withdraw`/`abort`/`dispose` are request records answered accepted/rejected ([details](#prompt-steering-queueing-and-abort)). |
 | Provider HTTP | The adapter sets undici's global dispatcher to an `EnvHttpProxyAgent`: the proxy half of what every pi entry point installs, without pi's global fetch replacement ([details](#http-plane-and-proxies)). |
@@ -368,7 +368,7 @@ Construction returns an `AgentSession`, not a completed run.
 [SDK][native-sdk], [services source][native-services-source].
 
 **Mapped:** OAR adds ID lookup through
-`await piSession(installation, { cwd, resume: sessionId })`. The session
+`await piRuntime.session(installation, { cwd, resume: sessionId })`. The session
 directory is pi's per-cwd formula, `<agentDir>/sessions/--<cwd slug>--`,
 mirrored so the agent-dir pin and pi's own CLI land sessions in the same
 place. The adapter calls `SessionManager.list(cwd, sessionDir)`, matches the
@@ -799,8 +799,8 @@ no session, no tokens (`bad-model` scenario;
 configured" is an `ok` empty list. It builds them for `ListModelsOptions.cwd`
 as a session there would: that project's settings can save another default,
 and its extensions under `.pi/extensions` load and run. Live model setters and detailed model
-metadata are **not exposed** on the session (`createPiModelCatalog` reads
-metadata outside it).
+metadata are **not exposed** on the session. Hosts use `piRuntime.listModels`
+for supported discovery; the separate detailed catalog facade is internal.
 
 **Effort (mapped):** `SessionOptions.effort` is pi's thinking level, the
 creation-time `thinkingLevel` of `createAgentSessionFromServices`, spelled in
@@ -1117,10 +1117,11 @@ regular dependency of OAR and moves with the OAR version, so Pi has no
 support API keys and OAuth; `createPiProviderAuth` exposes per-provider
 status, interactive login (auth-URL / device-code / prompt events bridged from
 pi's `AuthInteraction`), `setApiKey` and logout through `ModelRuntime`,
-outside the session interface. It and `createPiModelCatalog` read
+outside the session interface. It and the internal model catalog read
 `auth.json` and `models.json` from the agent dir sessions use
 (`OAR_PI_AGENT_DIR`, else pi's own), unless `authPath` or `modelsPath`
-name others, so a login reaches the next session; before OAR 0.50.0 they
+name others inside those facades (catalog path options are not public),
+so a login reaches the next session; before OAR 0.50.0 they
 used pi's own dir even with `OAR_PI_AGENT_DIR` set.
 [Facade paths](../../packages/oar/src/runtimes/pi/facade-runtime.ts).
 The catalog's `providers()` counts a provider with a key or login in

@@ -57,13 +57,13 @@ Logged-out `session/prompt` returns JSON-RPC `-32000`. `devinAcpProfile` maps `-
 
 ### Models and effort
 
-`devinListModels` bounds `initialize`, `session/new`, cleanup, and fallback `authStatus` under one shared `timeoutMs` deadline that defaults to 30 seconds. After reading `session/new` without sending a prompt, `devinListModels` calls `session/delete` when `initialize` advertises `sessionCapabilities.delete` and falls back to `session/close` otherwise, removing the temporary session from `session/list` and `sessions.db`.
+`devinRuntime.listModels` bounds `initialize`, `session/new`, cleanup, and fallback `authStatus` under one shared `timeoutMs` deadline that defaults to 30 seconds. After reading `session/new` without sending a prompt, `devinRuntime.listModels` calls `session/delete` when `initialize` advertises `sessionCapabilities.delete` and falls back to `session/close` otherwise, removing the temporary session from `session/list` and `sessions.db`.
 
-`projectDevinModels` reads `model` and `thought_level` from `configOptions`:
+The internal `projectDevinModels` mapper reads `model` and `thought_level` from `configOptions`:
 
-- When `session/new` carries no `model` config option, `devinListModels` returns `unsupported`.
-- When `projectDevinModels` returns an empty model list, `devinListModels` checks `readDevinAuthStatus` under the remaining deadline. `logged_out` maps to `unauthenticated`, `logged_in` returns an empty `ok` list, `unknown` with configured credentials returns `unsupported`, and unreadable status rejects.
-- When the environment sets an invalid `WINDSURF_API_KEY`, `session/new` fails with JSON-RPC `-32603` and `Authentication required: invalid api key`. `devinListModels` maps `-32000` and authentication error messages to `{ kind: "unauthenticated" }`.
+- When `session/new` carries no `model` config option, `devinRuntime.listModels` returns `unsupported`.
+- When `projectDevinModels` returns an empty model list, `devinRuntime.listModels` checks the internal `readDevinAuthStatus` helper under the remaining deadline. `logged_out` maps to `unauthenticated`, `logged_in` returns an empty `ok` list, `unknown` with configured credentials returns `unsupported`, and unreadable status rejects.
+- When the environment sets an invalid `WINDSURF_API_KEY`, `session/new` fails with JSON-RPC `-32603` and `Authentication required: invalid api key`. `devinRuntime.listModels` maps `-32000` and authentication error messages to `{ kind: "unauthenticated" }`.
 
 When opening a session with `model` or `effort`, OAR applies each value sequentially through `session/set_config_option` with `modelViaConfigOption: true` and leaves `confirmConfigOptionUpdates` unset.
 
@@ -73,19 +73,19 @@ ACP `session/new` and `session/load` accept stdio and HTTP `mcpServers` entries,
 
 ### Refused session options and launch arguments
 
-`devinRefusedSessionOptions` refuses 10 `SessionOptions` keys before spawning a process:
+`devinRuntime.refusedSessionOptions` refuses 10 `SessionOptions` keys before spawning a process:
 
 `additionalDirectories`, `appendSystemPrompt`, `disallowedTools`, `endTurnProcessesOnAbort`, `goals`, `name`, `outputSchema`, `serviceTier`, `systemPrompt`, and `userConfiguration`.
 
-`initialize` advertises `sessionCapabilities.additionalDirectories`, and `devinRefusedSessionOptions` refuses `additionalDirectories` because OAR has not verified that primary `cwd` and tool scoping honor it.
+`initialize` advertises `sessionCapabilities.additionalDirectories`, and `devinRuntime.refusedSessionOptions` refuses `additionalDirectories` because OAR has not verified that primary `cwd` and tool scoping honor it.
 
 OAR appends `launchArgs` after `acp` without validation and never persists them. Callers must pass them again on resume.
 
 ### Process ownership, installation, and update checks
 
-**Discovery.** `devinInstallation` checks `OAR_DEVIN_BIN`, searches `PATH` for `devin`, and falls back to `~/.local/bin/devin` on POSIX. On Windows, `devinInstallation` checks `%LOCALAPPDATA%\devin\cli\bin\devin.exe`, falling back to `%USERPROFILE%\AppData\Local\devin\cli\bin\devin.exe` only when `LOCALAPPDATA` is unset. Readiness runs `devin acp --help`, and `readDevinVersion` parses `devin <semver>` with an optional commit hash.
+**Discovery.** `devinRuntime.installation` checks `OAR_DEVIN_BIN`, searches `PATH` for `devin`, and falls back to `~/.local/bin/devin` on POSIX. On Windows, `devinRuntime.installation` checks `%LOCALAPPDATA%\devin\cli\bin\devin.exe`, falling back to `%USERPROFILE%\AppData\Local\devin\cli\bin\devin.exe` only when `LOCALAPPDATA` is unset. Readiness runs `devin acp --help`, and the internal `readDevinVersion` helper parses `devin <semver>` with an optional commit hash.
 
-**Installation.** `devinInstallPlan` and `devinInstall` run the official shell installer from the [Devin CLI documentation](https://docs.devin.ai/cli) on macOS and Linux:
+**Installation.** `devinRuntime.installPlan` and `devinRuntime.install` run the official shell installer from the [Devin CLI documentation](https://docs.devin.ai/cli) on macOS and Linux:
 
 ```sh
 curl -fsSL https://cli.devin.ai/install.sh | bash
@@ -95,10 +95,10 @@ Preflight checks `curl`, `bash`, and write access to `~/.local/bin`, `$XDG_DATA_
 
 Two vendor installer behaviors shape preflight and completion:
 
-- The vendor script refuses to overwrite a regular non-symlink file at `~/.local/bin/devin`, so `devinInstallPlan` rejects an existing regular file at the unpinned POSIX install path with `unsupported` and reason `configuration` before downloading.
-- In non-interactive runs without a TTY, the trailing `devin setup` wizard exits `1` after linking `~/.local/bin/devin`. `planInstaller` verifies installation by re-running `devinInstallation()` afterward rather than checking the script exit code, so OAR recognizes the linked binary when `devin --version` and `devin acp --help` pass.
+- The vendor script refuses to overwrite a regular non-symlink file at `~/.local/bin/devin`, so `devinRuntime.installPlan` rejects an existing regular file at the unpinned POSIX install path with `unsupported` and reason `configuration` before downloading.
+- In non-interactive runs without a TTY, the trailing `devin setup` wizard exits `1` after linking `~/.local/bin/devin`. `planInstaller` verifies installation by re-running `devinRuntime.installation()` afterward rather than checking the script exit code, so OAR recognizes the linked binary when `devin --version` and `devin acp --help` pass.
 
-**Update checks.** `devinCheckUpdate` resolves `realpath(command)`, reads the sibling `../distribution` marker file through `readDevinDistribution`, and fetches the matching manifest:
+**Update checks.** `devinRuntime.checkUpdate` resolves `realpath(command)`, reads the sibling `../distribution` marker file through the internal `readDevinDistribution` helper, and fetches the matching manifest:
 
 | `distribution` marker | Manifest URL |
 | --- | --- |
@@ -112,11 +112,11 @@ Installations from Homebrew `devin-cli`, the Devin Desktop bundle, or portal and
 
 `WINDSURF_API_KEY` is the sole environment credential that `devin` reads. `DEVIN_API_KEY` does not appear in the binary, and `devin` ignores it.
 
-`devinAuthStatus` runs `devin auth status` with a 30-second deadline, accepts `timeoutMs`, and omits `localOnly`:
+`devinRuntime.authStatus` runs `devin auth status` with a 30-second deadline, accepts `timeoutMs`, and omits `localOnly`:
 
 - `devin auth status` exits `0` across logged-out, corrupt, rejected, and logged-in states and ignores `WINDSURF_API_KEY`.
 - When the effective environment sets a non-empty `WINDSURF_API_KEY`, OAR returns `{ kind: "unknown", source: "devin auth status", configured: ["environment: WINDSURF_API_KEY"] }` without validating or echoing the key.
-- Otherwise, `parseDevinAuthStatus` classifies `3000.12.57` outputs without retaining file paths, names, user or org IDs, or server URLs:
+- Otherwise, the internal `parseDevinAuthStatus` helper classifies `3000.12.57` outputs without retaining file paths, names, user or org IDs, or server URLs:
   - `Not logged in.` returns `logged_out`.
   - `Failed to load credentials:` returns `unknown`.
   - `User / team info:` appears only when the server status fetch fails after loading stored credentials. Lines matching `Failed to fetch from server: ... Authentication required` or `invalid api key` return `logged_out`, and transient failures matching `Failed to fetch from server:` or `Unavailable:` return `unknown` with `configured: ["stored credentials"]`.

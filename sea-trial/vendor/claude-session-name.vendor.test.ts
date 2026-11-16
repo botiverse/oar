@@ -2,10 +2,13 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
-import { claudeInstallation, claudeSession, promptAndWait, type Session } from "../../packages/oar/src/index.js";
+import { claudeInstallation, promptAndWait, type Session, claudeRuntime } from "../../packages/oar/src/index.js";
+
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { startClaudeAimock } from "../harness/aimock.js";
 import { expectAvailable } from "./support/asserts.js";
+
+const claudeSession = claudeRuntime.session;
 
 /** The titles claude reports for the session (`session_title_changed`, at startup and on a rename). */
 function titles(session: Session): unknown[] {

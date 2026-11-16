@@ -2,7 +2,8 @@
 import { describe, expect, test } from "vitest";
 import type { InstallationProbe } from "../../packages/oar/src/contracts/installation.js";
 import type { McpServer, Session, StartSession } from "../../packages/oar/src/contracts/session.js";
-import { antigravityInstallation, antigravitySession, defineRuntime, grokInstallation, grokSession, kimiInstallation, kimiSession, opencodeInstallation, opencodeSession } from "../../packages/oar/src/index.js";
+import { defineRuntime, antigravityRuntime, grokRuntime, kimiRuntime, opencodeRuntime } from "../../packages/oar/src/index.js";
+
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import type { LLMock, RawProviderRequest } from "../harness/aimock.js";
 import { startOpencodeGitFixture, startAntigravityAimock, startGrokAimock, startKimiAimock, type AcpAimockEnv } from "../harness/aimock-acp.js";
@@ -10,6 +11,15 @@ import { runtimeUnderTest } from "../harness/subject.js";
 import { currentTurnSays, ECHO_SERVER, echoesReceived, echoFixtures, echoServers, EXPECTED_ECHOES, expectedEchoes, fingerprint, leakedCredentials, scriptEchoes, startHttpEcho, stdioEcho, STDIO_TOKEN, type EchoCall } from "./support/echo-mcp.js";
 import { structuralToolRound } from "./support/tool-round.js";
 import { createAntigravityMcpEvidence, type AntigravityMcpEvidence } from "./support/antigravity-mcp-evidence.js";
+
+const antigravityInstallation = antigravityRuntime.installation;
+const antigravitySession = antigravityRuntime.session;
+const grokInstallation = grokRuntime.installation;
+const grokSession = grokRuntime.session;
+const kimiInstallation = kimiRuntime.installation;
+const kimiSession = kimiRuntime.session;
+const opencodeInstallation = opencodeRuntime.installation;
+const opencodeSession = opencodeRuntime.session;
 
 /**
  * SessionOptions.mcpServers on the ACP runtimes that attach them (ACP

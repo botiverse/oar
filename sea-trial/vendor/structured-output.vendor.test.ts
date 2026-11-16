@@ -2,10 +2,15 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { expect, test } from "vitest";
-import { claudeInstallation, claudeSession, codexInstallation, codexSession, promptAndWait, type Session } from "../../packages/oar/src/index.js";
+import { claudeInstallation, promptAndWait, type Session, claudeRuntime, codexRuntime } from "../../packages/oar/src/index.js";
+
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { removeFixtureDirectory } from "../harness/fixture-directory-cleanup.js";
 import { startClaudeAimock, startCodexAimock } from "../harness/aimock.js";
+
+const claudeSession = claudeRuntime.session;
+const codexInstallation = codexRuntime.installation;
+const codexSession = codexRuntime.session;
 
 const outputSchema = { type: "object", properties: { answer: { type: "integer" } }, required: ["answer"], additionalProperties: false };
 

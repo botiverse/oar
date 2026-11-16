@@ -4,9 +4,12 @@ import { randomUUID } from "node:crypto";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { qoderSession, promptAndWait, type Session } from "../../packages/oar/src/index.js";
+import { promptAndWait, type Session, qoderRuntime } from "../../packages/oar/src/index.js";
+
 import { asRecord, asRecordList } from "../../packages/oar/src/shared/json.js";
 import { nativeControl, NativeFailureError } from "./native-control.js";
+
+const qoderSession = qoderRuntime.session;
 
 type Facts = Record<string, unknown>;
 async function turn(session: Session, input: string): Promise<{ text: string }> {

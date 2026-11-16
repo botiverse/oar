@@ -3,8 +3,11 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
-import { awaitTurnEnd, piInstallation, } from "../../packages/oar/src/index.js";
+import { awaitTurnEnd, piRuntime } from "../../packages/oar/src/index.js";
+
 import { startPiAimock } from "../harness/aimock.js";
+
+const piInstallation = piRuntime.installation;
 
 // An extension tool that colors its result through `ctx.ui.theme`, as pi's own
 // extensions do. pi's CLI initializes the theme in every mode; before OAR did

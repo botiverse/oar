@@ -2,7 +2,7 @@ import type { RuntimeBrand } from "../contracts/brand.js";
 import { UnsupportedOptionError } from "../contracts/errors.js";
 import { defineRuntime, type Runtime } from "../contracts/runtime.js";
 import type { InputImage, InputOptions, RuntimeEventBody, Session, SessionCapabilities, SessionOptions, StartSession, TokenTotals, TurnOutcome } from "../contracts/session.js";
-// Built only on the public runtime-author SPI (@botiverse/oar/kernel), like any host's runtime.
+// Built on the public runtime-author SPI (@botiverse/oar/kernel), like a host runtime.
 import { createSessionKernel, inputImagesRefusal, sealSession, withdrawHeld } from "../kernel.js";
 import { toolContent } from "../shared/tool-output.js";
 import { scriptedTasks, type ScriptedTask, type ScriptedTaskSpec } from "./scripted-tasks.js";

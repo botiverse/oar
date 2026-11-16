@@ -1,0 +1,344 @@
+{
+  "schemaVersion": 1,
+  "typescriptVersion": "6.0.3",
+  "package": {
+    "name": "@botiverse/oar",
+    "version": "0.111.0",
+    "revision": "317cf5411455c1a8322d488ac7c716fceb4a4252",
+    "dirty": false,
+    "entrypoints": [
+      {
+        "specifier": "@botiverse/oar",
+        "exports": 318,
+        "reExportAliases": 317,
+        "typeAliases": 117
+      },
+      {
+        "specifier": "@botiverse/oar/agents",
+        "exports": 19,
+        "reExportAliases": 19,
+        "typeAliases": 7
+      },
+      {
+        "specifier": "@botiverse/oar/agents/report",
+        "exports": 6,
+        "reExportAliases": 1,
+        "typeAliases": 1
+      },
+      {
+        "specifier": "@botiverse/oar/brands",
+        "exports": 3,
+        "reExportAliases": 1,
+        "typeAliases": 0
+      },
+      {
+        "specifier": "@botiverse/oar/browser",
+        "exports": 278,
+        "reExportAliases": 273,
+        "typeAliases": 110
+      },
+      {
+        "specifier": "@botiverse/oar/community",
+        "exports": 2,
+        "reExportAliases": 2,
+        "typeAliases": 1
+      },
+      {
+        "specifier": "@botiverse/oar/forms",
+        "exports": 22,
+        "reExportAliases": 0,
+        "typeAliases": 12
+      },
+      {
+        "specifier": "@botiverse/oar/kernel",
+        "exports": 9,
+        "reExportAliases": 9,
+        "typeAliases": 0
+      },
+      {
+        "specifier": "@botiverse/oar/observe",
+        "exports": 72,
+        "reExportAliases": 72,
+        "typeAliases": 16
+      },
+      {
+        "specifier": "@botiverse/oar/pi-durable",
+        "exports": 2,
+        "reExportAliases": 2,
+        "typeAliases": 0
+      },
+      {
+        "specifier": "@botiverse/oar/runtimes/antigravity",
+        "exports": 1,
+        "reExportAliases": 0,
+        "typeAliases": 0
+      },
+      {
+        "specifier": "@botiverse/oar/runtimes/claude",
+        "exports": 1,
+        "reExportAliases": 0,
+        "typeAliases": 0
+      },
+      {
+        "specifier": "@botiverse/oar/runtimes/claude/limit-reset",
+        "exports": 2,
+        "reExportAliases": 0,
+        "typeAliases": 0
+      },
+      {
+        "specifier": "@botiverse/oar/runtimes/codebuddy",
+        "exports": 1,
+        "reExportAliases": 0,
+        "typeAliases": 0
+      },
+      {
+        "specifier": "@botiverse/oar/runtimes/codex",
+        "exports": 1,
+        "reExportAliases": 0,
+        "typeAliases": 0
+      },
+      {
+        "specifier": "@botiverse/oar/runtimes/codex/installation-candidates",
+        "exports": 2,
+        "reExportAliases": 0,
+        "typeAliases": 0
+      },
+      {
+        "specifier": "@botiverse/oar/runtimes/cursor",
+        "exports": 6,
+        "reExportAliases": 1,
+        "typeAliases": 2
+      },
+      {
+        "specifier": "@botiverse/oar/runtimes/devin",
+        "exports": 1,
+        "reExportAliases": 0,
+        "typeAliases": 0
+      },
+      {
+        "specifier": "@botiverse/oar/runtimes/dsh",
+        "exports": 1,
+        "reExportAliases": 0,
+        "typeAliases": 0
+      },
+      {
+        "specifier": "@botiverse/oar/runtimes/factory",
+        "exports": 1,
+        "reExportAliases": 0,
+        "typeAliases": 0
+      },
+      {
+        "specifier": "@botiverse/oar/runtimes/grok",
+        "exports": 1,
+        "reExportAliases": 0,
+        "typeAliases": 0
+      },
+      {
+        "specifier": "@botiverse/oar/runtimes/kimi",
+        "exports": 2,
+        "reExportAliases": 1,
+        "typeAliases": 0
+      },
+      {
+        "specifier": "@botiverse/oar/runtimes/opencode",
+        "exports": 6,
+        "reExportAliases": 5,
+        "typeAliases": 1
+      },
+      {
+        "specifier": "@botiverse/oar/runtimes/pi",
+        "exports": 5,
+        "reExportAliases": 3,
+        "typeAliases": 2
+      },
+      {
+        "specifier": "@botiverse/oar/runtimes/qoder",
+        "exports": 1,
+        "reExportAliases": 0,
+        "typeAliases": 0
+      },
+      {
+        "specifier": "@botiverse/oar/runtimes/qwen",
+        "exports": 9,
+        "reExportAliases": 8,
+        "typeAliases": 1
+      },
+      {
+        "specifier": "@botiverse/oar/testing",
+        "exports": 5,
+        "reExportAliases": 5,
+        "typeAliases": 0
+      }
+    ],
+    "nonCodeExports": [
+      "./assets/brands/*"
+    ],
+    "blockedExports": [
+      "./runtimes/pi-durable"
+    ]
+  },
+  "hosts": [
+    {
+      "name": "raft",
+      "revision": "1d689caf34442247cab70580d7feac1b8c302d60",
+      "dirty": false,
+      "scannedFiles": 8347,
+      "importingFiles": 64,
+      "namedReferences": 197,
+      "typeOnlyReferences": 168,
+      "nonCodeImports": 11,
+      "skippedSymlinks": 0,
+      "unreadableFiles": 0,
+      "parseErrors": 0,
+      "missing": [
+        {
+          "module": "@botiverse/oar",
+          "name": "projectAntigravityModels",
+          "references": 1,
+          "typeOnlyReferences": 0
+        },
+        {
+          "module": "@botiverse/oar",
+          "name": "projectClaudeModels",
+          "references": 1,
+          "typeOnlyReferences": 0
+        },
+        {
+          "module": "@botiverse/oar",
+          "name": "projectOpencodeModels",
+          "references": 1,
+          "typeOnlyReferences": 0
+        },
+        {
+          "module": "@botiverse/oar/forms",
+          "name": "toModelListing",
+          "references": 1,
+          "typeOnlyReferences": 0
+        },
+        {
+          "module": "@botiverse/oar/forms",
+          "name": "validateConfig",
+          "references": 1,
+          "typeOnlyReferences": 0
+        },
+        {
+          "module": "@botiverse/oar/runtimes/claude",
+          "name": "claudeAccountUsage",
+          "references": 1,
+          "typeOnlyReferences": 0
+        }
+      ],
+      "missingEntrypoints": [],
+      "reviewNeeded": [
+        {
+          "module": "@botiverse/oar",
+          "counts": {
+            "dynamicImports": 1
+          }
+        },
+        {
+          "module": "@botiverse/oar/observe",
+          "counts": {
+            "dynamicImports": 3,
+            "namespaceTypeQueries": 1
+          }
+        },
+        {
+          "module": "@botiverse/oar/runtimes/antigravity",
+          "counts": {
+            "dynamicImports": 1
+          }
+        },
+        {
+          "module": "@botiverse/oar/runtimes/claude",
+          "counts": {
+            "dynamicImports": 1
+          }
+        },
+        {
+          "module": "@botiverse/oar/runtimes/codebuddy",
+          "counts": {
+            "dynamicImports": 1
+          }
+        },
+        {
+          "module": "@botiverse/oar/runtimes/codex",
+          "counts": {
+            "dynamicImports": 1
+          }
+        },
+        {
+          "module": "@botiverse/oar/runtimes/cursor",
+          "counts": {
+            "dynamicImports": 1
+          }
+        },
+        {
+          "module": "@botiverse/oar/runtimes/grok",
+          "counts": {
+            "dynamicImports": 2
+          }
+        },
+        {
+          "module": "@botiverse/oar/runtimes/kimi",
+          "counts": {
+            "dynamicImports": 1
+          }
+        },
+        {
+          "module": "@botiverse/oar/runtimes/opencode",
+          "counts": {
+            "dynamicImports": 2
+          }
+        },
+        {
+          "module": "@botiverse/oar/runtimes/pi",
+          "counts": {
+            "dynamicImports": 1
+          }
+        },
+        {
+          "module": "@botiverse/oar/runtimes/qoder",
+          "counts": {
+            "dynamicImports": 1
+          }
+        },
+        {
+          "module": "@botiverse/oar/runtimes/qwen",
+          "counts": {
+            "dynamicImports": 2
+          }
+        },
+        {
+          "module": "@botiverse/oar/testing",
+          "counts": {
+            "dynamicImports": 2
+          }
+        }
+      ]
+    },
+    {
+      "name": "ferry",
+      "revision": "117037bad0f9e6e51a5dc80adc66c3a7ed7b51c1",
+      "dirty": false,
+      "scannedFiles": 786,
+      "importingFiles": 91,
+      "namedReferences": 272,
+      "typeOnlyReferences": 194,
+      "nonCodeImports": 0,
+      "skippedSymlinks": 0,
+      "unreadableFiles": 0,
+      "parseErrors": 0,
+      "missing": [],
+      "missingEntrypoints": [],
+      "reviewNeeded": [
+        {
+          "module": "@botiverse/oar",
+          "counts": {
+            "dynamicImports": 2
+          }
+        }
+      ]
+    }
+  ]
+}

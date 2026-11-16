@@ -1,12 +1,17 @@
 import type { spawnLineProcess } from "../../packages/oar/src/shared/executable/index.js";
 import type { createAbortFallback } from "../../packages/oar/src/shared/abort-fallback.js";
 import { expect, test, vi } from "vitest";
-import { awaitTurnEnd, claudeInstallation, claudeSession, codexInstallation, codexSession, defineRuntime } from "../../packages/oar/src/index.js";
+import { awaitTurnEnd, claudeInstallation, defineRuntime, claudeRuntime, codexRuntime } from "../../packages/oar/src/index.js";
+
 import { asRecord, parseJson } from "../../packages/oar/src/shared/json.js";
 import { startClaudeAimock, startCodexAimock } from "../harness/aimock.js";
 import { openTrace, record } from "../harness/trace.js";
 import { runtimeUnderTest } from "../harness/subject.js";
 import { withProcessEnv } from "./support/asserts.js";
+
+const claudeSession = claudeRuntime.session;
+const codexInstallation = codexRuntime.installation;
+const codexSession = codexRuntime.session;
 
 const fault = vi.hoisted(() => ({ interrupts: 0 }));
 

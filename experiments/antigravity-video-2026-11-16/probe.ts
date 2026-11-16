@@ -8,12 +8,15 @@ import os from "node:os";
 import path from "node:path";
 import { createInterface } from "node:readline";
 import { setTimeout as delay } from "node:timers/promises";
-import { antigravitySession, promptAndWait, type Session } from "../../packages/oar/src/index.js";
+import { promptAndWait, type Session, antigravityRuntime } from "../../packages/oar/src/index.js";
+
 import { antigravityAcpArgs } from "../../packages/oar/src/runtimes/antigravity/session.js";
 import { createAcpClientApp } from "../../packages/oar/src/shared/acp/client-app.js";
 import { startAcpProcess, withAcpDeadline } from "../../packages/oar/src/shared/acp/process.js";
 import { createAcpTerminalHost } from "../../packages/oar/src/shared/acp/terminal.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
+
+const antigravitySession = antigravityRuntime.session;
 
 const entry = import.meta.filename;
 const tsx = import.meta.resolve("tsx");

@@ -1,13 +1,26 @@
 import { piTestRuntime } from "./support/pi-runtime.js";
 import type { LLMock } from "@copilotkit/aimock";
 import { describe, expect, test } from "vitest";
-import { claudeInstallation, claudeSession, codexInstallation, codexSession, defineRuntime, grokInstallation, grokSession, kimiInstallation, kimiSession, opencodeInstallation, opencodeSession, piInstallation, piSession, serveMcpTools, type HostTool, type Runtime } from "../../packages/oar/src/index.js";
+import { claudeInstallation, defineRuntime, serveMcpTools, type HostTool, type Runtime, claudeRuntime, codexRuntime, grokRuntime, kimiRuntime, opencodeRuntime, piRuntime } from "../../packages/oar/src/index.js";
+
 import { namespaceMcpToolCalls, startClaudeAimock, startCodexAimock, startPiAimock } from "../harness/aimock.js";
 import { startOpencodeGitFixture, startGrokAimock, startKimiAimock } from "../harness/aimock-acp.js";
 import { runtimeUnderTest } from "../harness/subject.js";
 import { echoesReceived, echoFixtures, type EchoCall } from "./support/echo-mcp.js";
 import { structuralToolRound } from "./support/tool-round.js";
 import { record } from "../harness/trace.js";
+
+const claudeSession = claudeRuntime.session;
+const codexInstallation = codexRuntime.installation;
+const codexSession = codexRuntime.session;
+const grokInstallation = grokRuntime.installation;
+const grokSession = grokRuntime.session;
+const kimiInstallation = kimiRuntime.installation;
+const kimiSession = kimiRuntime.session;
+const opencodeInstallation = opencodeRuntime.installation;
+const opencodeSession = opencodeRuntime.session;
+const piInstallation = piRuntime.installation;
+const piSession = piRuntime.session;
 
 /**
  * serveMcpTools (#341) on the real harnesses, against a scripted provider:

@@ -1,9 +1,14 @@
 import { execFileSync } from "node:child_process";
 import { expect, test, vi } from "vitest";
-import { claudeInstallation, claudeSession, codexInstallation, codexSession, defineRuntime } from "../../packages/oar/src/index.js";
+import { claudeInstallation, defineRuntime, claudeRuntime, codexRuntime } from "../../packages/oar/src/index.js";
+
 import { startClaudeAimock, startCodexAimock } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
 import { withProcessEnv } from "./support/asserts.js";
+
+const claudeSession = claudeRuntime.session;
+const codexInstallation = codexRuntime.installation;
+const codexSession = codexRuntime.session;
 
 /*
  * oar#210, with the real binaries: the runtime runs a tool command, cannot

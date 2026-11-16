@@ -5,12 +5,17 @@ import path from "node:path";
 import { test, expect } from "vitest";
 import { setTimeout as delay } from "node:timers/promises";
 import type { Session, Event } from "../../packages/oar/src/contracts/session.js";
-import { claudeInstallation, claudeSession, codexInstallation, codexSession, eventsOf, promptAndWait } from "../../packages/oar/src/index.js";
+import { claudeInstallation, eventsOf, promptAndWait, claudeRuntime, codexRuntime } from "../../packages/oar/src/index.js";
+
 import { asRecord, parseJson, type JsonRecord } from "../../packages/oar/src/shared/json.js";
 import { startClaudeAimock, startCodexAimock } from "../harness/aimock.js";
 import { resolveRunDir } from "../harness/trace.js";
 import { codexTaskIsResumed, codexTaskRecipient, codexTaskRequest } from "./support/codex-task-request.js";
 import { codexTaskRootReply } from "./support/codex-task-script.js";
+
+const claudeSession = claudeRuntime.session;
+const codexInstallation = codexRuntime.installation;
+const codexSession = codexRuntime.session;
 
 function taskEvents(session: Session): Event[] { return session.records().flatMap(record => eventsOf(record)).filter(e => e.kind.startsWith("task_")); }
 

@@ -4,9 +4,13 @@ import assert from "node:assert/strict";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { promptAndWait, qoderInstallation, qoderSession, type Session } from "../../packages/oar/src/index.js";
+import { promptAndWait, type Session, qoderRuntime } from "../../packages/oar/src/index.js";
+
 import { startQoderNative } from "../../sea-trial/harness/qoder-native.js";
 import { callFor } from "./calls.js";
+
+const qoderInstallation = qoderRuntime.installation;
+const qoderSession = qoderRuntime.session;
 
 const output = process.argv[2] ?? "oar-trial-run/tool-activity";
 const files = process.argv[3] === "files";

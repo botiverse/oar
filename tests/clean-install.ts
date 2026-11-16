@@ -146,10 +146,9 @@ const marker = "/node_modules/@botiverse/oar/";
 const outside = loaded.filter((url) => !url.includes(marker + "dist/forms/"));
 assert.deepEqual(outside, [], "forms loaded something outside dist/forms: " + outside.join(", "));
 const grok = forms.configForms.grok;
-const listing = forms.toModelListing({ kind: "ok", models: [{ id: "grok-4", effortLevels: ["high"] }] });
-assert.deepEqual(forms.validateConfig(grok, { model: { kind: "preset", id: "grok-4" }, reasoningEffort: "high" }, { mode: "create", models: listing }), []);
-assert.deepEqual(forms.toSessionOptions(grok, { model: { kind: "preset", id: "grok-4" }, reasoningEffort: "high" }),
-  { ok: true, options: { model: "grok-4", effort: "high" }, unmapped: {}, secrets: {} });
+assert.ok(grok && grok.fields.length > 0);
+assert.equal(typeof JSON.stringify(grok), "string");
+assert.deepEqual(Object.keys(forms), ["configForms"]);
 assert.deepEqual(Object.getOwnPropertyNames(globalThis).filter((name) => !before.has(name)), [], "forms wrote a global");
 assert.equal(process.getActiveResourcesInfo().length, resources, "forms left something running");
 `;
@@ -165,14 +164,20 @@ import * as brands from "@botiverse/oar/brands";
 import * as kernel from "@botiverse/oar/kernel";
 import * as observe from "@botiverse/oar/observe";
 import * as testing from "@botiverse/oar/testing";
-import { createPiProviderAuth, type PiProviderAuthOptions } from "@botiverse/oar/runtimes/pi";
+import { createPiProviderAuth, createPiRuntime, type PiProviderAuthOptions } from "@botiverse/oar/runtimes/pi";
 
 export const entries = [oar, browser, forms, agents, report, brands, kernel, observe, testing];
+export const runtimeAuthorHelpers = [kernel.inputImagesRefusal, kernel.withdrawHeld, browser.withdrawHeld];
+export type RuntimeAuthorQueue = kernel.HeldInput[];
+export const hostEntrances = [oar.defaultRuntimes, oar.orient, oar.openVoyage, oar.createRuntimeRegistry, oar.defineRuntime, oar.promptAndWait, testing.scriptedRuntime, createPiRuntime];
+export type HostContracts = [oar.Runtime, oar.RuntimeRegistry, oar.Session, oar.SessionOptions, oar.Event, oar.DeliverResult, oar.TurnOutcome, oar.VoyageRecorder, oar.Orientation, oar.OrientationDepth, oar.OrientOptions, oar.RuntimeOrientation, oar.Probe<unknown>, testing.ScriptedTurn];
+export type HostSessionMembers = Pick<oar.Session, "deliver" | "steer" | "resources">;
+
 export const compactPolicy: oar.ManualCompaction | undefined = oar.claudeRuntime.manualCompaction;
 export const compact = (session: oar.Session, options: oar.CompactionOptions): Promise<oar.CompactionOutcome> | undefined => session.compact?.(options);
 export const checkpoint: observe.StatusState = oar.initialStatus;
 export const resumeStatus = (saved: oar.StatusState, record: oar.RawEvent): observe.StatusState => observe.reduceStatus(saved, record);
-export const displayStatus: oar.AgentStatus = observe.statusValue(checkpoint);
+export const displayStatus = (session: oar.Session): oar.AgentStatus => session.status().value;
 export const resumedOptions: oar.ResumedSessionOptions | undefined = oar.claudeRuntime.resumedSessionOptions;
 export const promptTiming: oar.ResumeOptionSemantics | undefined = resumedOptions?.systemPrompt;
 export const writeCapture: (marker: string) => void = oar.writeShellEnvironmentCapture;

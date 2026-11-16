@@ -1,7 +1,8 @@
 /* oxlint-disable eslint/max-statements, eslint/max-params -- Kernel fixtures pin ordered record sequences and their persistence checkpoints. */
 import { expect, test } from "vitest";
 import type { RawEvent, SessionEdge, UsageReport } from "../packages/oar/src/contracts/session.js";
-import { eventsOf, graphOf, initialSessionView, reduceSessionView, reduceSessionViewEvent, usageOf, viewOf } from "../packages/oar/src/observe/index.js";
+import { eventsOf, graphOf, initialSessionView, reduceSessionView, usageOf } from "../packages/oar/src/observe/index.js";
+import { reduceSessionViewEvent, viewOf } from "../packages/oar/src/observe/session-view.js";
 import { createSessionKernel, type SessionKernel } from "../packages/oar/src/shared/session-kernel.js";
 
 function report(kernel: SessionKernel, sessionId: string, usage: UsageReport, agentPath: readonly string[] = []): void {
@@ -132,7 +133,6 @@ test("unknown totals stay unknown; child agents sum once and a reported session 
   expect(viewOf(kernel.records()).usage).toEqual(usageOf(kernel.records(), "root").value);
   expect(viewOf(kernel.records()).context).toBeNull();
 });
-
 
 test("a lineage frame reported by a foreign session advances the usage cursor without counting its own usage", () => {
   const kernel = createSessionKernel("root");

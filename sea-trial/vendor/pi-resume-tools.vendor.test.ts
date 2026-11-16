@@ -3,11 +3,15 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, test, vi } from "vitest";
 import type { AgentSession } from "@earendil-works/pi-coding-agent";
-import { piInstallation, piSession, UnsupportedOptionError, type SessionOptions } from "../../packages/oar/src/index.js";
+import { UnsupportedOptionError, type SessionOptions, piRuntime } from "../../packages/oar/src/index.js";
+
 import { openPiAgentSession } from "../../packages/oar/src/runtimes/pi/open.js";
 import { piSessionDir } from "../../packages/oar/src/runtimes/pi/resolve.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { startPiAimock } from "../harness/aimock.js";
+
+const piInstallation = piRuntime.installation;
+const piSession = piRuntime.session;
 
 const inactiveTools = [
   { kind: "default-inactive", flags: { defaultActive: false } },

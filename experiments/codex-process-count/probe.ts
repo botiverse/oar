@@ -6,9 +6,13 @@ import { mkdir, mkdtemp, writeFile, rm, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
-import { codexInstallation, codexSession, promptAndWait, type Session } from "../../packages/oar/src/index.js";
+import { promptAndWait, type Session, codexRuntime } from "../../packages/oar/src/index.js";
+
 import { startCodexAimock } from "../../sea-trial/harness/aimock.js";
 import { ECHO_SERVER } from "../../sea-trial/vendor/support/echo-mcp.js";
+
+const codexInstallation = codexRuntime.installation;
+const codexSession = codexRuntime.session;
 
 const [destination] = process.argv.slice(2);
 const cleanHome = process.argv.includes("--clean-home");

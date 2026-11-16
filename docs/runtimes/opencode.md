@@ -94,8 +94,8 @@ that CI runs.
 
 `opencodeRuntime` opens an isolated process for every `auto` request and
 refuses explicit `shared` with `UnsupportedOptionError`, option `placement`,
-on all versions and platforms. The standalone `opencodeSession` export is
-isolated. Sharing for 2.2.3 and 2.2.5 was withdrawn in 0.83.0
+on all versions and platforms. Use its `session` member to open a session.
+Sharing for 2.2.3 and 2.2.5 was withdrawn in 0.83.0
 ([#587](https://github.com/botiverse/oar/pull/587)): configured user or
 project plugins can start children that inherit the shared process HOME
 instead of the session directory, and OAR cannot discover all such
@@ -451,7 +451,7 @@ covers 2.0.27.
   the reply's first frame, `lastEventAt` its latest). That status stays
   `running` until a later native end, which in practice is the answer to
   the next host prompt. Consequences: `awaitIdle` and
-  `deliver({ when: "when_idle" })` wait until that answer; `stallOf`
+  `deliver({ when: "when_idle" })` wait until that answer; `observeStalls`
   reports the silence. No OpenCode profile maps runtime turns, so OAR's
   turn driver has no open turn: `prompt()` is admitted although status
   says `running`, and `deliver()` lands `queued` but the adapter queue

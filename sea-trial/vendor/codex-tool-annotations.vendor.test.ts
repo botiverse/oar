@@ -4,12 +4,16 @@ import { mkdtemp, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
-import { codexInstallation, codexSession, serveMcpTools } from "../../packages/oar/src/index.js";
+import { serveMcpTools, codexRuntime } from "../../packages/oar/src/index.js";
+
 import { promptAndWait } from "../../packages/oar/src/observe/turns.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { removeFixtureDirectory } from "../harness/fixture-directory-cleanup.js";
 import { namespaceMcpToolCalls, startCodexAimock } from "../harness/aimock.js";
 import { expectAvailable, withProcessEnv } from "./support/asserts.js";
+
+const codexInstallation = codexRuntime.installation;
+const codexSession = codexRuntime.session;
 
 const APPROVAL_REFUSAL = "MCP tool call requires approval, but approval policy is never";
 const PATCH_REFUSAL = "patch rejected: writing is blocked by read-only sandbox; rejected by user approval settings";

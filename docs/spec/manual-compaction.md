@@ -72,9 +72,9 @@ Incremental hosts use the exported `StatusState` checkpoint type from
 `@botiverse/oar/observe` (also exported at the root). Save the **entire** value
 returned by `reduceStatus`, unchanged, together with the last consumed cursor;
 continue with that value and records after the cursor. `initialStatus` starts
-a new fold. `statusValue(checkpoint)` extracts `AgentStatus` for display, but
-that display value and `Session.status().value` are not resumable checkpoints:
-they omit correlation needed to match Claude's final command result.
+a new fold. `Session.status().value` supplies the display `AgentStatus`, which
+is not a resumable checkpoint: it omits correlation needed to match Claude's
+final command result.
 Likewise preserve the entire `SessionView`, including optional `statusState`,
 and the entire `TaskState`, whose `status` is a `StatusState`. Do not rebuild
 either from only its displayed status.
@@ -136,7 +136,7 @@ reply as root updates after the prompt answered, with no native start or
 end. The fold adopts it as a running turn that stays `running` until a later
 native end, normally the next prompt's answer, while OAR's turn driver has no
 open turn: `prompt` is admitted although status says `running`. Status is
-not settled after silence or a deadline; `stallOf` reports the silence. See
+not settled after silence or a deadline; `observeStalls` reports the silence. See
 the [runtime mapping](../runtimes/opencode.md#v2-session-behavior).
 
 Claude's native queued receipt for the compact command is not a pending

@@ -2,12 +2,17 @@ import { appendFile, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
-import { claudeInstallation, claudeSession, codexInstallation, codexSession, defineRuntime, type RawEvent } from "../../packages/oar/src/index.js";
+import { claudeInstallation, defineRuntime, type RawEvent, claudeRuntime, codexRuntime } from "../../packages/oar/src/index.js";
+
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { namespaceMcpToolCalls, startClaudeAimock, startCodexAimock, type RawProviderRequest } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
 import { CLASH_ECHO, ECHO_SERVER, echoesReceived, echoServers, EXPECTED_ECHOES, leakedCredentials, scriptEchoes, startHttpEcho, stdioEcho, STDIO_TOKEN } from "./support/echo-mcp.js";
 import { structuralToolRound } from "./support/tool-round.js";
+
+const claudeSession = claudeRuntime.session;
+const codexInstallation = codexRuntime.installation;
+const codexSession = codexRuntime.session;
 
 /**
  * SessionOptions.mcpServers on the real harness, against a scripted provider:

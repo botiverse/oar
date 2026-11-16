@@ -13,7 +13,7 @@
  */
 export { createSessionKernel } from "./shared/session-kernel.js";
 export type { RecordAt, SessionKernel } from "./shared/session-kernel.js";
-export { controlOutcomeOf, sealSession } from "./shared/seal-session.js";
+export { sealSession } from "./shared/seal-session.js";
 export { inputImagesRefusal, withInputImages } from "./shared/input-images.js";
 export type { LoadedImage } from "./shared/input-images.js";
 export { withdrawHeld } from "./shared/held-input.js";

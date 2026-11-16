@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterAll, expect, test } from "vitest";
-import { dshInstallation } from "../../packages/oar/src/index.js";
+import { dshInstallation } from "../../packages/oar/src/runtimes/dsh/installation.js";
 import { DSH_MINIMUM_VERSION, compareSemver, dshVersionRefusal } from "../../packages/oar/src/runtimes/dsh/version.js";
 import { fakeAgentBinary } from "../fixtures/process-tree.js";
 

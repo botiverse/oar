@@ -1,9 +1,13 @@
 import { describe, expect, test } from "vitest";
-import { codexInstallation, codexSession, defineRuntime, usageOf, type Session } from "../../packages/oar/src/index.js";
+import { defineRuntime, usageOf, type Session, codexRuntime } from "../../packages/oar/src/index.js";
+
 import { asRecord, parseJson } from "../../packages/oar/src/shared/json.js";
 import { startCodexAimock } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
 import { runTurn } from "./support/asserts.js";
+
+const codexInstallation = codexRuntime.installation;
+const codexSession = codexRuntime.session;
 
 /** aimock does not script Responses output_tokens_details yet; supply the provider's native field. */
 function reasoningUsage(body: string): string {

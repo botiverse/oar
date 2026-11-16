@@ -1,8 +1,12 @@
 import { describe, expect, test } from "vitest";
-import { awaitTurnEnd, codexInstallation, codexSession, defineRuntime } from "../../packages/oar/src/index.js";
+import { awaitTurnEnd, defineRuntime, codexRuntime } from "../../packages/oar/src/index.js";
+
 import { startCodexAimock } from "../harness/aimock.js";
 import { runtimeUnderTest } from "../harness/subject.js";
 import { runTurn } from "./support/asserts.js";
+
+const codexInstallation = codexRuntime.installation;
+const codexSession = codexRuntime.session;
 
 describe.skipIf(process.env.OAR_TEST !== "codex-aimock")("Codex idle queue admission", () => {
   test("queue after a completed turn starts and finishes without a later prompt", async () => {

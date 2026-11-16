@@ -5,11 +5,14 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
 import { awaitTurnEnd } from "../../packages/oar/src/observe/turns.js";
-import { dshInstallation, dshRuntime, RuntimeFailureError, UnsupportedOptionError } from "../../packages/oar/src/index.js";
+import { dshRuntime, RuntimeFailureError, UnsupportedOptionError } from "../../packages/oar/src/index.js";
+
 import { parseJson } from "../../packages/oar/src/shared/json.js";
 import { startDshAimock } from "../harness/dsh-aimock.js";
 import { dshEnabled, eventsOf, nativeOf, posix, reportsSelection, say, untilCount, untilEvent, withDshFixture } from "./support/dsh-fixture.js";
 import { lastInput, startDshProvider, toolResults, type Reply } from "./support/dsh-provider.js";
+
+const dshInstallation = dshRuntime.installation;
 
 const held = (request: Parameters<typeof lastInput>[0]): Reply => lastInput(request).includes("HOLD") ? { kind: "hold", text: "partial" } : say("fine");
 

@@ -4,11 +4,15 @@ import { execFileSync } from "node:child_process";
 import { appendFile, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { awaitTurnEnd, opencodeInstallation, opencodeSession, type AvailableInstallation, type Session } from "../../packages/oar/src/index.js";
+import { awaitTurnEnd, type AvailableInstallation, type Session, opencodeRuntime } from "../../packages/oar/src/index.js";
+
 import { startOpencodeAimock, type AcpAimockEnv } from "../../sea-trial/harness/aimock-acp.js";
 import { resolveRunDir } from "../../sea-trial/harness/trace.js";
 import { echoFixtures, stdioEcho } from "../../sea-trial/vendor/support/echo-mcp.js";
 import { retainOpencodeLogs } from "./opencode-evidence.js";
+
+const opencodeInstallation = opencodeRuntime.installation;
+const opencodeSession = opencodeRuntime.session;
 
 const output = resolveRunDir();
 

@@ -37,10 +37,14 @@
  * `usage().total` is null (rechecked on 0.118.0, 0.130.0 and 0.149.0 after
  * that rule, and 1200 / 7 on 0.151.0 and 0.160.1).
  */
-import { codexInstallation, codexSession, promptAndWait } from "../packages/oar/src/index.js";
+import { promptAndWait, codexRuntime } from "../packages/oar/src/index.js";
+
 import type { Frame, RawEvent, Session, TokenTotals } from "../packages/oar/src/contracts/session.js";
 import { asNumber, asRecord } from "../packages/oar/src/shared/json.js";
 import { startCodexAimock } from "../sea-trial/harness/aimock.js";
+
+const codexInstallation = codexRuntime.installation;
+const codexSession = codexRuntime.session;
 
 const env = await startCodexAimock((mock) => {
   mock.onMessage(/first/u, { content: "pong", usage: { input_tokens: 1000, output_tokens: 5 } });

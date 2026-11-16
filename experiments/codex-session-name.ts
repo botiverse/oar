@@ -22,10 +22,14 @@
  *   `codex unarchive <id>` to unarchive it first."
  * - After `thread/unarchive`, the resume opens and a turn completes.
  */
-import { codexInstallation, codexSession, promptAndWait } from "../packages/oar/src/index.js";
+import { promptAndWait, codexRuntime } from "../packages/oar/src/index.js";
+
 import { startAppServerClient, type AppServerClient } from "../packages/oar/src/runtimes/codex/app-server-client.js";
 import { asRecord } from "../packages/oar/src/shared/json.js";
 import { startCodexAimock } from "../sea-trial/harness/aimock.js";
+
+const codexInstallation = codexRuntime.installation;
+const codexSession = codexRuntime.session;
 
 const env = await startCodexAimock((mock) => {
   mock.onMessage(/[\s\S]*/u, { content: "pong" });

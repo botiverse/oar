@@ -24,7 +24,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { grokInstallation, kimiInstallation, opencodeInstallation } from "../packages/oar/src/index.js";
+
 import { grokAcpProfile } from "../packages/oar/src/runtimes/grok/session.js";
 import { kimiAcpProfile } from "../packages/oar/src/runtimes/kimi/session.js";
 import { opencodeAcpProfile } from "../packages/oar/src/runtimes/opencode/session.js";
@@ -41,6 +41,11 @@ import {
 } from "../packages/oar/src/shared/acp/process.js";
 import { createAcpTerminalHost } from "../packages/oar/src/shared/acp/terminal.js";
 import { asRecord, type JsonRecord } from "../packages/oar/src/shared/json.js";
+import { grokRuntime, kimiRuntime, opencodeRuntime } from "../packages/oar/src/index.js";
+
+const grokInstallation = grokRuntime.installation;
+const kimiInstallation = kimiRuntime.installation;
+const opencodeInstallation = opencodeRuntime.installation;
 
 interface Target {
   readonly id: "grok" | "kimi" | "opencode";

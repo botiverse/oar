@@ -1,7 +1,8 @@
 import { setTimeout as delay } from "node:timers/promises";
 import { expect, test } from "vitest";
 import type { ControlOutcome, Session } from "../packages/oar/src/index.js";
-import { awaitTurnEnd, conversationOf } from "../packages/oar/src/observe/index.js";
+import { awaitTurnEnd } from "../packages/oar/src/observe/index.js";
+import { conversationOf } from "../packages/oar/src/observe/conversation.js";
 import { scriptedRuntime } from "../packages/oar/src/testing/index.js";
 import { startMockSession } from "../sea-trial/fixtures/mock-session.js";
 import { inputIdOf, withdraw } from "./fixtures/withdraw.js";

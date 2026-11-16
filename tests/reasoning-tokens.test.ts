@@ -1,6 +1,7 @@
 import { expect, test } from "vitest";
 import type { RawEvent, TokenTotals } from "../packages/oar/src/contracts/session.js";
-import { usageOf, viewOf } from "../packages/oar/src/observe/index.js";
+import { usageOf } from "../packages/oar/src/observe/index.js";
+import { viewOf } from "../packages/oar/src/observe/session-view.js";
 import { createSessionKernel } from "../packages/oar/src/shared/session-kernel.js";
 import { addTokens, subtractTokens } from "../packages/oar/src/shared/token-totals.js";
 import { grokPromptTokens } from "../packages/oar/src/runtimes/grok/session.js";

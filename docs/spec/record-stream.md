@@ -499,7 +499,7 @@ Further rules:
   same result as replay. Persist its whole `StatusState` checkpoint (which
   also holds native compaction correlation, provisional input admission and
   adapter queue ownership) with the consumed cursor and continue the fold
-  from it unchanged. `statusValue(checkpoint)`, `Session.status()` and
+  from it unchanged. `Session.status().value` and
   `SessionView.status` give only the display `AgentStatus`, which cannot replace it
   ([checkpoint rules](manual-compaction.md#ownership-records-and-state)).
   `SessionView.statusState`, shared by all runtimes, appears when the fold
@@ -1160,7 +1160,7 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   readback confirms an open option privately, produces no event and is not
   recorded because it carries account details. The native turn frame
   retains the reason for a downgrade.
-  `Session.serviceTier()`, `serviceTierOf` and `SessionView.serviceTier` read
+  `Session.serviceTier()` and `SessionView.serviceTier` read
   the latest root report, with null before any. Child reports do not change
   the root's selection. The voyage header's optional `serviceTier` is the
   requested choice, kept separate from these reported facts.
@@ -1189,7 +1189,7 @@ The rules that make this a projection and not a second source of truth:
   `app_answered` for an answered response, `released` for OAR's release, and
   `exited` for the exit. `open`, `opened` and `cleanup` stay record-only. A
   response names only its `requestId`, so the reading takes the toRuntime
-  requests seen before it (`controlActionsOf(records)` builds them from a
+  requests seen before it (the internal `controlActionsOf(records)` reference builds them from a
   log). `events()` is `rawEvents()` with `eventsOf` applied to every
   record, so a retained log replays into exactly the events the live
   subscription delivered.
@@ -1275,9 +1275,10 @@ root id when the first retained record belongs to a child; otherwise the
 first record's session id becomes the root. Start fresh lifecycle state
 for each runtime start or resume, even when the session id is reused.
 
-The existing `reduceTasks(TaskMap, record)` and `applyTaskEvent` still fold
-only native task events. They have no lifecycle evidence and do not infer
-exit endings; crew's own task fold continues using `applyTaskEvent`.
+The public `reduceTasks(TaskMap, record)` folds only native task events. It
+has no lifecycle evidence and does not infer exit endings. Crew uses the
+internal `applyTaskEvent` helper for its own native-event fold; that helper
+is not a public export.
 
 ## Example 1 · An ordinary turn (claude): both ends of the turn are real records
 
@@ -1318,7 +1319,6 @@ seq=57  ◆ request   root  id=rq-30  abort
           was not observed. Writing a guessed response after recovery is
           forbidden
 ```
-
 
 ### ACP raw parameters and child host requests
 
