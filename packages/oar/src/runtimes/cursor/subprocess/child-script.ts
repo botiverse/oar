@@ -196,7 +196,11 @@ const calls = {
   shutdown: () => { void shutdown(0); },
   wait: (id, run) => runs.get(run).wait(),
   cancel: (id, run) => runs.get(run).cancel(),
-  steer: (id, run, text) => runs.get(run).steer(text),
+  steer: async (id, run, text) => {
+    const ack = await runs.get(run).steer(text);
+    // Do not serialize or register the optional cloud run: OAR does not observe it.
+    return ack !== null && typeof ack === "object" && ack.outcome === "queued" ? { outcome: "queued" } : ack;
+  },
   stream: async (id, run) => {
     const iterator = runs.get(run).stream()[Symbol.asyncIterator]();
     streams.set(id, iterator);

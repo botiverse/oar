@@ -117,8 +117,8 @@ export async function steerRun(current: ActiveRun, input: string): Promise<Respo
   if (steer === undefined) {
     return { kind: "rejected", code: "runtime_refused", reason: "not_steerable: this cursor run takes no mid-run input" };
   }
-  // `run.steer` settles once the agent took the text ("complete_delivered")
-  // or handed it back ("revert_to_followup"); a run that ends first must
+  // `run.steer` settles once the agent took or queued the text, or handed
+  // it back ("revert_to_followup"); a run that ends first must
   // not leave the request unanswered, and a steer it outran must not reject
   // unobserved.
   const delivery = (async (): Promise<SteerAckOutcome | Error> => {
@@ -132,12 +132,19 @@ export async function steerRun(current: ActiveRun, input: string): Promise<Respo
     await current.ended;
     return null;
   })();
-  const ack = await Promise.race([delivery, runEnded]);
+  const ack: unknown = await Promise.race([delivery, runEnded]);
   if (ack instanceof Error) {
     throw ack;
   }
   if (ack === "complete_delivered") {
     return { kind: "accepted", native: { ack } };
+  }
+  if (ack !== null && typeof ack === "object" && "outcome" in ack && ack.outcome === "queued") {
+    // The SDK owns this follow-up. OAR does not observe its optional cloud run.
+    return { kind: "accepted", native: { ack: "queued" } };
+  }
+  if (ack !== null && ack !== "revert_to_followup") {
+    throw new Error("Cursor Run.steer() returned an unexpected acknowledgment");
   }
   return {
     kind: "rejected",

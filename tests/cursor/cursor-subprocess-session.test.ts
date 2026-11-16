@@ -68,3 +68,45 @@ test.each(modes)("%s: queued input waits for the run to end, then runs as its ow
     await session.dispose();
   }
 });
+
+// A native queued acknowledgment owns this input; the host must not resend it.
+// oxlint-disable-next-line eslint/max-statements -- One active run, two acknowledgments, then one explicit next run.
+test.each(modes)("%s: native queued steering is accepted without reading its cloud run", async (mode) => {
+  const session = await open(mode);
+  try {
+    const prompt = await session.prompt("hold");
+    for (const text of ["native-queued", "native-queued-with-run"]) {
+      // oxlint-disable-next-line eslint/no-await-in-loop -- Test two acknowledgments in the same active run, in order.
+      const steer = await session.steer(text);
+      expect(steer.response.body).toEqual({ kind: "accepted", native: { ack: "queued" } });
+    }
+    expect(frameTypes(session)).toEqual(["cursor/agent_opened"]);
+    await session.abort();
+    expect(await awaitTurnEnd(session, prompt.seq)).toMatchObject({ kind: "aborted" });
+    const next = await session.prompt("echo:next");
+    expect(next.response.body).toEqual({ kind: "accepted", native: { runId: "run-2" } });
+    expect(await awaitTurnEnd(session, next.seq)).toEqual({ kind: "completed" });
+    expect(lastResult(session)).toBe("next");
+  } finally {
+    await session.dispose();
+  }
+});
+
+test("in_process: an unknown native steering object reports an error instead of accepting input", async () => {
+  const session = await open("in_process");
+  try {
+    await session.prompt("hold");
+    const result = await session.steer("native-unknown-ack");
+    expect(result.response.body).toMatchInlineSnapshot(`
+      {
+        "code": "error",
+        "kind": "rejected",
+        "reason": "Cursor Run.steer() returned an unexpected acknowledgment",
+      }
+    `);
+    const responses = session.records().flatMap(record => record.kind === "response" ? [record.body] : []);
+    expect(responses.filter(body => body.kind === "accepted")).toHaveLength(1);
+  } finally {
+    await session.dispose();
+  }
+});

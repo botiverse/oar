@@ -1,0 +1,135 @@
+{
+  "native": {
+    "sdk": "1.4.0",
+    "model": "gpt-5.4-nano",
+    "platform": "linux",
+    "duringTool": true,
+    "delivered": "complete_delivered",
+    "handback": "revert_to_followup",
+    "result": "ALPHA MANGO.",
+    "status": "finished",
+    "usage": {
+      "inputTokens": 17001,
+      "outputTokens": 300,
+      "cacheReadTokens": 7680,
+      "cacheWriteTokens": 0,
+      "totalTokens": 17301,
+      "reasoningTokens": 213
+    },
+    "elapsedMs": 6460
+  },
+  "selectedDeltas": [
+    {
+      "elapsedMs": 4288,
+      "update": {
+        "type": "tool-call-started",
+        "callId": "call_4kJAyNPbNgKnmqgbdvQHaTiK\nfc_0189c26dbd132402016afa56231d2c87d1aa318974aa6d498f",
+        "toolCall": {
+          "type": "shell",
+          "args": {
+            "command": "sleep 8; echo ALPHA",
+            "timeout": 30000
+          }
+        },
+        "modelCallId": "ea014707-c540-4d06-a5ac-67caf0b127d3-0-m19d"
+      }
+    },
+    {
+      "elapsedMs": 4650,
+      "update": {
+        "type": "tool-call-completed",
+        "callId": "call_4kJAyNPbNgKnmqgbdvQHaTiK\nfc_0189c26dbd132402016afa56231d2c87d1aa318974aa6d498f",
+        "toolCall": {
+          "type": "shell",
+          "args": {
+            "command": "sleep 8; echo ALPHA",
+            "timeout": 30000
+          },
+          "result": {
+            "status": "success",
+            "value": {
+              "exitCode": 0,
+              "signal": "",
+              "stdout": "",
+              "stderr": "",
+              "executionTime": 366
+            }
+          }
+        },
+        "modelCallId": "ea014707-c540-4d06-a5ac-67caf0b127d3-0-m19d"
+      }
+    },
+    {
+      "elapsedMs": 4669,
+      "update": {
+        "type": "user-message-appended",
+        "userMessage": {
+          "type": "user_message",
+          "session_id": "<agent>",
+          "text": "Append MANGO."
+        }
+      }
+    },
+    {
+      "elapsedMs": 5577,
+      "update": {
+        "type": "turn-ended",
+        "usage": {
+          "inputTokens": 17001,
+          "outputTokens": 300,
+          "cacheReadTokens": 7680,
+          "cacheWriteTokens": 0,
+          "reasoningTokens": 213
+        }
+      }
+    }
+  ],
+  "typecheck": {
+    "sdkVersion": "1.4.0",
+    "compilerExitCode": 0,
+    "diagnostics": "",
+    "sourceDerivedUsageReplay": {
+      "callEvents": [],
+      "turnEvents": [
+        {
+          "kind": "usage",
+          "usage": {
+            "tokens": {
+              "input": 100,
+              "output": 20,
+              "cacheRead": 30,
+              "cacheWrite": 10
+            }
+          }
+        }
+      ]
+    }
+  },
+  "rawFiles": [
+    {
+      "file": "artifacts/cursor-sdk-1.4-native-round1/native.jsonl",
+      "sha256": "0d6033dfc789c32bea7ec7054a7134b7a5034ab47819a3a9fb4d5664519d1b22",
+      "bytes": 6710
+    },
+    {
+      "file": "artifacts/cursor-sdk-1.4-native-round1/result.json",
+      "sha256": "708d763baaf22f3967e4097b33ef287a6d342ee39cd472dbd37bbc8f914e6c04",
+      "bytes": 417
+    },
+    {
+      "file": "artifacts/cursor-sdk-1.4-queued-baseline.log",
+      "sha256": "32155535ce6aababd48e08a07b331fbffab29407e0ee5ad24d2f7635abe6e606",
+      "bytes": 2572
+    },
+    {
+      "file": "artifacts/cursor-sdk-1.4-focused.log",
+      "sha256": "2daffeae1dfd3d8af5720acad6519c796b204fbefa08701efd08aecf28f967e4",
+      "bytes": 277
+    },
+    {
+      "file": "artifacts/cursor-sdk-1.4-typecheck.json",
+      "sha256": "39ec6f1cda673a77749f608fe8127be9fce57f4974fc5647791783d7dcc17f69",
+      "bytes": 373
+    }
+  ]
+}

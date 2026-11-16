@@ -42,7 +42,8 @@ function isAuthStatus(value: unknown): value is CursorAuthStatus {
 }
 
 function isSteerAck(value: unknown): value is SteerAckOutcome {
-  return value === "complete_delivered" || value === "revert_to_followup";
+  return value === "complete_delivered" || value === "revert_to_followup"
+    || (asRecord(value)?.outcome === "queued" && asRecord(value)?.run === undefined);
 }
 
 function unexpected(call: string): Error {
