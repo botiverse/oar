@@ -21,7 +21,7 @@ calls, resume semantics, and what each adapter still does not carry.
 | qwen | `attributed` | stream-json `parent_tool_use_id` maps to agentPath through the shared fold; live nested subagent interleavings remain unverified ([mapping](../runtimes/qwen.md)) |
 | claude | `attributed` | frames with `parent_tool_use_id` carry `agentPath = [...parentPath, taskCallId]`, nested through the Task call's own agent; a child's spend is in the session total, `unattributed`: no frame carries its final usage ([env] 2.1.292) |
 | codex (app-server) | `nested` | notifications for other thread ids are child-session records (`sessionId` = the thread); a collab item naming the child adds a `tool_call` edge (`subAgentActivity.agentThreadId`). [env] codex 0.149.0: child-thread notifications arrive on the parent's connection (experiments/codex-child-threads.ts) |
-| pi-durable | `opaque` | native `watchEvents` covers one conversation; child conversations are not included in that watch |
+| pi-durable | `opaque` | native `observeConversation` covers one conversation; child conversations are not included in that watch |
 | pi | `none` | pi has no native sub-agents; `agentPath` is always root |
 | cursor (`@cursor/sdk`) | `attributed` | a child's updates arrive inside the parent's `task` call as `tool-call-delta {callId, taskUpdate}` and carry `agentPath = [...parentPath, taskCallId]` ([env] SDK 1.0.35) |
 | grok (ACP) | `nested` | `session/update` for other session ids are child-session records; vendor lifecycle notifications add edges when they name a parent ([sym], unverified live; see [open evidence](#boundaries-and-open-evidence-points)) |
@@ -207,7 +207,7 @@ an observation from the runtime and carries no request id. It may name an
 | claude | `command_lifecycle started` for a prompt-like write identifies its input; a spontaneous root `system/init` has no input id |
 | codex | `turn/started`, including queued turns without another OAR prompt |
 | pi | `agent_start`, including runs started directly through the SDK |
-| pi-durable | Initial active snapshot and `run_start` |
+| pi-durable | Initial active snapshot or native `pi.live.run` appearing in a conversation delta |
 | grok | `_x.ai/queue/changed` `runningPromptId`: OAR names each prompt (`_meta.promptId`), so its own start carries the input id; any other name is Grok's own turn (no input id), ended by its root `turn_completed` |
 
 Status becomes running when idle and preserves the current phase when
@@ -232,7 +232,7 @@ never derived is in [record-stream.md](record-stream.md#the-rules)):
 |---|---|---|---|
 | claude | `tool_result.content` (a string or blocks) | stream-json `tool_result.is_error`, optional and false by default in the Messages API, so an absent field is `ok` ([src]; 2.1.288 omits it on successful Read, Write and Edit) | none (`tool_use_result` carries no exit status) |
 | codex | `commandExecution.aggregatedOutput`; an MCP call's result blocks (an error as its message); `webSearch` results as one `other` part; else the item's status word | `item/completed.status` `completed`/`failed` ([src]) | `commandExecution` items' `exitCode` ([src]) |
-| pi-durable | native result entry's toolResult content | toolResult `isError`, else a nested call's `result.isError`, only with an actual result | a nested CodingTools call's `result.structuredOutput.exitCode`; a model-issued call carries none in `watchEvents` ([env] Durable 1.2.0 and 1.3.0, [test](../../sea-trial/vendor/pi-durable-exit-code.vendor.test.ts)) |
+| pi-durable | native result entry's toolResult content | toolResult `isError`, else a nested call's `summary.isError`, only with an actual result | absent for both model and nested calls in Durable 1.5.2 conversation views, even when the tool caller receives a structured code ([test](../../sea-trial/vendor/pi-durable-exit-code.vendor.test.ts), [migration](../../experiments/pi-durable-native-watch/README.md)) |
 | pi | `tool_execution_end.result.content` blocks, else the whole result | `tool_execution_end.isError` false/true ([src]) | CodingTools' `result.structuredContent.exit_code` ([env] Pi 1.3.0, [test](../../sea-trial/vendor/pi-exit-code.vendor.test.ts)) |
 | grok, kimi, antigravity, opencode (ACP) | the closing `tool_call_update.content` blocks, else `rawOutput`; text parts are cut at 10,000 characters (`native` keeps them whole) | `tool_call_update.status` `completed`/`failed` ([src]) | `rawOutput.exit_code` on the closing `tool_call_update`: grok ([src] grok 1.0.25), antigravity ([env] agy_acp_server 1.2.1) |
 | cursor (`@cursor/sdk`) | a shell call's stdout and stderr (one empty text part when it printed nothing), a read's file text, an edit's or write's diff, an error's message, else one `other` part ([env] SDK 1.0.35) | `tool-call-completed` `toolCall.result.status` `success`/`error` ([env] SDK 1.0.35) | a shell call's `result.value.exitCode`, `null` when `signal` names one ([env]) |
@@ -783,7 +783,7 @@ this declaration; that is separate from changing the system prompt.
 | Codex, `appendSystemPrompt` | Next native compaction | Saved until compaction, then default | Declared; 0.166.0, local automatic compaction |
 | Qwen, both prompts | Immediate | Default, including after compaction | Both declared; 0.26.5, native `/compress` |
 | Pi SDK/RPC, both prompts | Immediate | Default, including current project resources and after compaction | Both declared; 1.4.0, native automatic compaction |
-| Pi Durable, `appendSystemPrompt` | Immediate | Saved, including after compaction | Declared; 1.4.0, native automatic compaction. Changing settings while adopting an active run is refused. Replacement is always refused. |
+| Pi Durable, `appendSystemPrompt` | Immediate | Saved, including after compaction | Declared; 1.5.2, native automatic compaction. Changing settings while adopting an active run is refused. Replacement is always refused. |
 | Cursor, Kimi | Both refused | Not applicable | Refusals declared, no resume entries |
 | Grok | Replacement and append together apply immediately; append-only resume is refused | Saved; append-only retention also verified across native compaction (1.0.70) | Conditional; no resume entries; host rule below. [Details](../runtimes/grok.md#models-and-instructions) |
 | OpenCode v1 | Both reapplied through native inline configuration | Omission across compaction untested | Version-dependent; no resume entries. [Details](../runtimes/opencode.md#models-effort-instructions-and-context) |
@@ -977,7 +977,7 @@ and [`claude-missing-resume.json`](../../tests/fixtures/claude-missing-resume.js
 Tests exercise the opening paths, full pagination, redaction and the
 must-not-match refusals.
 
-Pi Durable 1.4.0 is additionally covered by the real in-memory Harness tests
+Pi Durable 1.5.2 is additionally covered by the real in-memory Harness tests
 in `tests/pi-durable/options.test.ts`, including a storage-failure control.
 
 ## Unavailable resume targets

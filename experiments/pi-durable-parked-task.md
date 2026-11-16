@@ -1,5 +1,8 @@
 # Pi Durable task parking: 2026-10-23
 
+Historical 1.4.0 report. The script now exercises the 1.5.2 settlement behavior;
+see [current migration findings](pi-durable-native-watch/README.md).
+
 Pi Durable 1.4.0 can park an unfinished task while OAR continues to observe
 its run as running. This is native liveness information outside the
 `watchEvents` conversation stream; OAR must not manufacture a terminal

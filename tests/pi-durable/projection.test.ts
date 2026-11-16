@@ -1,158 +1,145 @@
+import assert from "node:assert/strict";
 import { expect, test } from "vitest";
-import type { AssistantMessage, Usage } from "@earendil-works/pi-ai-durable";
-import type { AgentEvent, SnapshotEvent, TaskId } from "@earendil-works/pi-durable";
-import { foldDurableBatch, initialDurableProjection } from "../../packages/oar/src/runtimes/pi-durable/projection.js";
+import { copyJson } from "@earendil-works/chord/json";
+import type { Usage } from "@earendil-works/pi-ai-durable";
+import type { ConversationId, ConversationView, EntryId, LiveState, SubmissionId, TaskId, WatchCall } from "@earendil-works/pi-durable";
+import { appendedEntries, foldDurableView, initialDurableProjection, runEnded, submissionOutcome } from "../../packages/oar/src/runtimes/pi-durable/projection.js";
 
-const usage: Usage = { input: 10, output: 5, cacheRead: 2, cacheWrite: 3, totalTokens: 20, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } };
-const empty: SnapshotEvent = { type: "snapshot", entries: [], agent: {}, inbox: [], tools: [], nestedTools: [], compactions: [], usage: { models: {}, tools: {} } };
-const message: AssistantMessage = { role: "assistant", content: [{ type: "text", text: "hello" }], api: "anthropic-messages", provider: "test", model: "model", usage, stopReason: "stop", timestamp: 1 };
-
+function isConversationId(value: number): value is ConversationId { return Number.isSafeInteger(value) && value > 0; }
+function isEntryId(value: number): value is EntryId { return Number.isSafeInteger(value) && value > 0; }
 function isTaskId(value: number): value is TaskId { return Number.isSafeInteger(value) && value > 0; }
+function isSubmissionId(value: number): value is SubmissionId { return Number.isSafeInteger(value) && value > 0; }
+const id = 1;
+assert.ok(isConversationId(id));
+const empty: ConversationView = { conversation: { id }, entries: [], docs: { "pi.live": {}, "pi.agent": {}, "pi.usage": { models: {}, tools: {} } } };
+const usage = { input: 10, output: 5, cacheRead: 2, cacheWrite: 3, totalTokens: 20, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } } satisfies Usage;
+const message: NonNullable<NonNullable<LiveState["generation"]>["message"]> = { role: "assistant", content: [{ type: "text", text: "hello" }], api: "anthropic-messages", provider: "test", model: "model", usage, stopReason: "stop", timestamp: 1 };
+function view(live: LiveState): ConversationView { return { ...empty, docs: { ...empty.docs, "pi.live": live } }; }
+function call(value: ConversationView): Extract<WatchCall<ConversationView>, { kind: "value" }> { return { kind: "value", value, ops: [], retired: false }; }
+function entry(index: number, text: string) {
+  assert.ok(isEntryId(index));
+  return { id: index, conversationId: empty.conversation.id, kind: "pi.assistant", model: [{ ...message, content: [{ type: "text" as const, text }] }] };
+}
 
-test("nested tool exits preserve native numbers; absent or nonnumeric values stay absent", () => {
-  const taskId = 1;
-  if (!isTaskId(taskId)) { throw new Error("invalid fixture task id"); }
-  for (const exit of [0, 7, 143, undefined, "7"]) {
-    const native: AgentEvent[] = [{ type: "tool_execution_end", toolCallId: "outer/bash", toolName: "bash", result: {
-      taskId, isError: true, diagnostics: [], durationMs: 1,
-      ...(exit === undefined ? {} : { structuredOutput: { exitCode: exit } }),
-    } }];
-    const { frame } = foldDurableBatch(initialDurableProjection(empty), native);
-    expect(frame.events).toEqual([{ kind: "tool_call_ended", callId: "outer/bash", result: "failed",
-      ...(typeof exit === "number" ? { exitCode: exit } : {}) }]);
-    const json = JSON.stringify(frame);
-    expect(JSON.parse(json)).toEqual(frame);
-  }
+test("cumulative native ledgers subtract the attachment baseline without counting repeated state twice", () => {
+  const baseline = { ...empty, docs: { ...empty.docs, "pi.usage": { models: { first: { ...usage, reasoning: 3 } }, tools: {} } } };
+  const later = { ...baseline, docs: { ...baseline.docs, "pi.usage": { models: { first: { ...usage, output: 9, reasoning: 5 }, second: usage }, tools: { embedded: { ...usage, reasoning: 1 } } } } };
+  const next = foldDurableView(initialDurableProjection(baseline), call(later));
+  expect(next.frame.events).toEqual([{ kind: "usage", usage: { tokens: { input: 30, output: 14, cacheRead: 4, cacheWrite: 6, reasoning: 3 } } }]);
+  expect(foldDurableView(next.state, call(later)).frame.events).toEqual([]);
 });
 
-test("durable reasoning sums model and tool ledgers and subtracts the attachment baseline", () => {
-  const baseline: SnapshotEvent = { ...empty, usage: { models: { first: { ...usage, reasoning: 3 } }, tools: {} } };
-  const later: SnapshotEvent = { ...baseline, usage: { models: { first: { ...usage, output: 9, reasoning: 5 }, second: usage }, tools: { embedded: { ...usage, reasoning: 1 } } } };
-  const projected = foldDurableBatch(initialDurableProjection(baseline), [later]);
-  expect(projected.frame.events).toEqual([{ kind: "usage", usage: { tokens: { input: 30, output: 14, cacheRead: 4, cacheWrite: 6, reasoning: 3 } } }]);
-  expect(foldDurableBatch(projected.state, [later]).frame.events).toEqual(projected.frame.events);
-  expect(foldDurableBatch(initialDurableProjection(baseline), [baseline]).frame.events).toEqual([{ kind: "usage", usage: { tokens: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, reasoning: 0 } } }]);
+test("partials and the completed entry project each text and reasoning suffix once", () => {
+  const first = view({ generation: { attempt: 0, message } });
+  const initial = foldDurableView(initialDurableProjection(first), call(first), [], true);
+  expect(initial.frame.events.filter(event => event.kind === "text_delta")).toEqual([{ kind: "text_delta", text: "hello" }]);
+  const longer = view({ generation: { attempt: 0, message: { ...message, content: [{ type: "text", text: "hello world" }, { type: "thinking", thinking: "thought" }] } } });
+  const next = foldDurableView(initial.state, call(longer));
+  expect(next.frame.events.filter(event => event.kind !== "usage")).toEqual([{ kind: "text_delta", text: " world" }, { kind: "reasoning", content: { kind: "text", text: "thought" } }]);
+  const done = { ...empty, entries: [{ ...entry(5, "hello world!"), model: [{ ...message, content: [{ type: "text" as const, text: "hello world!" }, { type: "thinking" as const, thinking: "thought" }] }] }] };
+  const final = foldDurableView(next.state, call(done));
+  expect(final.frame.events.filter(event => event.kind !== "usage")).toEqual([{ kind: "text_delta", text: "!" }]);
+  expect(foldDurableView(final.state, call(done)).frame.events.filter(event => event.kind !== "usage")).toEqual([]);
 });
 
-test("batched partials and whole blocks project each suffix once", () => {
-  const native: AgentEvent[] = [
-    { type: "message_start", message },
-    { type: "message_update", usage, changes: [
-      { type: "text_delta", contentIndex: 0, delta: " world" },
-      { type: "block", contentIndex: 0, block: { type: "text", text: "hello world!" } },
-      { type: "thinking_start", contentIndex: 1, block: { type: "thinking", thinking: "" } },
-      { type: "thinking_delta", contentIndex: 1, delta: "thought" },
-      { type: "block", contentIndex: 1, block: { type: "thinking", thinking: "thought" } },
-    ] },
-  ];
-  const next = foldDurableBatch(initialDurableProjection(empty), native);
-  expect(next.frame.native).toBe(native);
-  expect(next.frame.events).toMatchInlineSnapshot(`
-    [
-      {
-        "kind": "text_delta",
-        "text": "hello",
-      },
-      {
-        "kind": "text_delta",
-        "text": " world",
-      },
-      {
-        "kind": "text_delta",
-        "text": "!",
-      },
-      {
-        "content": {
-          "kind": "empty",
-        },
-        "kind": "reasoning",
-      },
-      {
-        "content": {
-          "kind": "text",
-          "text": "thought",
-        },
-        "kind": "reasoning",
-      },
-    ]
-  `);
-  const snapshot = { ...empty, generation: { attempt: 0, message: { ...message, content: [{ type: "text" as const, text: "hello world!" }, { type: "thinking" as const, thinking: "thought" }] } } };
-  const caughtUp = foldDurableBatch(next.state, [snapshot]);
-  expect(caughtUp.frame.native).toEqual([snapshot]);
-  expect(caughtUp.frame.events.filter((event) => event.kind === "text_delta" || event.kind === "reasoning")).toEqual([]);
+test("attachment history and native corrections are retained without replaying old text", () => {
+  const initial = { ...empty, entries: [entry(5, "history")] };
+  const first = foldDurableView(initialDurableProjection(initial), call(initial), [], true);
+  expect(first.frame.events.filter(event => event.kind === "text_delta")).toEqual([]);
+  const partial = foldDurableView(first.state, call({ ...initial, docs: view({ generation: { attempt: 0, message } }).docs }));
+  const correction = call({ ...initial, docs: view({ generation: { attempt: 0, message: { ...message, content: [{ type: "text", text: "corrected" }] } } }).docs });
+  const result = foldDurableView(partial.state, correction);
+  expect(result.frame.native).toEqual({ ops: correction.ops, retired: false });
+  expect(result.frame.events.filter(event => event.kind === "text_delta")).toEqual([]);
 });
 
-test("retained tool output trims, appends and replaces; an absent result stays unknown", () => {
-  const snapshot: SnapshotEvent = { ...empty, tools: [{ callId: "call", name: "test", status: "running", output: "abcdef" }] };
-  const initial = foldDurableBatch(initialDurableProjection(snapshot), [snapshot]);
-  expect(initial.frame.events.filter((event) => event.kind !== "usage")).toMatchInlineSnapshot(`
-    [
-      {
-        "callId": "call",
-        "kind": "tool_call_started",
-        "tool": "test",
-      },
-      {
-        "callId": "call",
-        "kind": "tool_call_progress",
-        "output": "abcdef",
-      },
-    ]
-  `);
-  const next = foldDurableBatch(initial.state, [
-    { type: "tool_execution_update", toolCallId: "call", toolName: "test", output: { trimStart: 3, append: "ghi" } },
-    { type: "tool_execution_update", toolCallId: "call", toolName: "test", output: { set: "replacement" } },
-    { type: "tool_execution_end", toolCallId: "call", toolName: "test" },
+test("tool output is the native retained window, and an absent terminal result remains unknown", () => {
+  const first = view({ tools: [{ callId: "call", name: "tool", status: "running", output: "abcdef" }] });
+  const initial = foldDurableView(initialDurableProjection(first), call(first), [], true);
+  expect(initial.frame.events.filter(event => event.kind !== "usage")).toEqual([{ kind: "tool_call_started", callId: "call", tool: "tool" }, { kind: "tool_call_progress", callId: "call", output: "abcdef" }]);
+  const next = foldDurableView(initial.state, call(view({ tools: [{ callId: "call", name: "tool", status: "running", output: "defghi" }] })));
+  expect(next.frame.events.filter(event => event.kind !== "usage")).toEqual([{ kind: "tool_call_progress", callId: "call", output: "defghi" }]);
+  const end = foldDurableView(next.state, call(view({ tools: [{ callId: "call", name: "tool", status: "done" }] })));
+  expect(end.frame.events.filter(event => event.kind !== "usage")).toEqual([{ kind: "tool_call_ended", callId: "call" }]);
+});
+
+test("entry appends survive an immediate native window trim in the same notification", () => {
+  const entries = Array.from({ length: 110 }, (_, index) => entry(index + 5, String(index)));
+  const native: Extract<WatchCall<ConversationView>, { kind: "value" }> = { ...call({ ...empty, entries: entries.slice(-50) }), ops: [["p", ["entries"], 0, 0, entries], ["p", ["entries"], 0, 60, []]] };
+  expect(appendedEntries(empty, native)).toEqual(entries);
+  expect(foldDurableView(initialDurableProjection(empty), native).frame.events.filter(event => event.kind === "text_delta")).toHaveLength(110);
+});
+
+test("native operations retain unknown documents without storing every complete view", () => {
+  const native: Extract<WatchCall<ConversationView>, { kind: "value" }> = {
+    ...call({ ...empty, docs: { ...empty.docs, future: { untouched: true } } }),
+    ops: [["s", ["docs", "future"], { untouched: true }]],
+  };
+  const next = foldDurableView(initialDurableProjection(empty), native);
+  expect(next.frame.native).toEqual({ ops: native.ops, retired: false });
+  expect(next.frame.native).not.toHaveProperty("value");
+  const serialized = JSON.stringify(next.frame.native);
+  const persisted: unknown = JSON.parse(serialized);
+  expect(persisted).toEqual({ ops: native.ops, retired: false });
+});
+
+test("a missing terminal receipt cannot turn a partly answered run into completion", () => {
+  const submissionId = 9;
+  const answer = 11;
+  assert.ok(isSubmissionId(submissionId));
+  assert.ok(isEntryId(answer));
+  expect(submissionOutcome([{ id: submissionId, conversationId: empty.conversation.id, type: "input", status: "done", entry: answer, answer }, undefined])).toBeUndefined();
+  expect(submissionOutcome([])).toBeUndefined();
+});
+
+test("unrelated assistant entries do not consume the current generation's partial prefix", () => {
+  const taskId = 10;
+  assert.ok(isTaskId(taskId));
+  const first = view({ run: { taskId, inputs: [], turns: 0 }, generation: { attempt: 0, message } });
+  const initial = foldDurableView(initialDurableProjection(first), call(first), [], true);
+  const written = { ...first, entries: [entry(12, "external assistant message")] };
+  const next = foldDurableView(initial.state, call(written));
+  expect(next.frame.events.filter(event => event.kind === "text_delta")).toEqual([{ kind: "text_delta", text: "external assistant message" }]);
+  const end = foldDurableView(next.state, call({ ...empty, entries: [...written.entries, { ...entry(13, "hello!"), byTaskId: taskId }] }));
+  expect(end.frame.events.filter(event => event.kind === "text_delta")).toEqual([{ kind: "text_delta", text: "!" }]);
+});
+
+test("a new generation attempt can repeat the same text without being mistaken for an old partial", () => {
+  const first = view({ generation: { attempt: 0, message } });
+  const initial = foldDurableView(initialDurableProjection(first), call(first), [], true);
+  const next = foldDurableView(initial.state, call(view({ generation: { attempt: 1, message } })));
+  expect(next.frame.events.filter(event => event.kind === "text_delta")).toEqual([{ kind: "text_delta", text: "hello" }]);
+});
+
+test("a removed running slot ends without inventing a result; a done slot does not end twice", () => {
+  const first = view({ tools: [{ callId: "running", name: "tool", status: "running" }, { callId: "done", name: "tool", status: "done" }] });
+  const initial = initialDurableProjection(first);
+  const next = foldDurableView(initial, call(empty));
+  expect(next.frame.events.filter(event => event.kind === "tool_call_ended")).toEqual([{ kind: "tool_call_ended", callId: "running" }]);
+});
+
+test("a removed pending slot preserves its native aborted result without inventing a start", () => {
+  const first = view({ tools: [{ callId: "pending", name: "tool", status: "pending" }] });
+  const entryId = 5;
+  assert.ok(isEntryId(entryId));
+  const done: ConversationView = { ...empty, entries: [{ id: entryId, conversationId: id, kind: "pi.tool", model: [
+    { role: "toolResult", toolCallId: "pending", toolName: "tool", content: [{ type: "text", text: "Tool tool was aborted" }], isError: true, timestamp: 1 },
+  ] }] };
+  const result = foldDurableView(initialDurableProjection(first), call(done));
+  expect(result.frame.events.filter(event => event.kind.startsWith("tool_call_"))).toEqual([
+    { kind: "tool_call_ended", callId: "pending", content: [{ type: "text", text: "Tool tool was aborted" }], result: "failed" },
   ]);
-  expect(next.frame.events).toMatchInlineSnapshot(`
-    [
-      {
-        "callId": "call",
-        "kind": "tool_call_progress",
-        "output": "defghi",
-      },
-      {
-        "callId": "call",
-        "kind": "tool_call_progress",
-        "output": "replacement",
-      },
-      {
-        "callId": "call",
-        "kind": "tool_call_ended",
-      },
-    ]
-  `);
 });
 
-test("usage starts at attachment and counts native model and tool ledgers once", () => {
-  const snapshot: SnapshotEvent = { ...empty, usage: { models: { previous: usage }, tools: {} } };
-  const initial = initialDurableProjection(snapshot);
-  const later = { ...snapshot, usage: { models: { previous: usage, current: usage }, tools: { embedded: usage } } };
-  const next = foldDurableBatch(initial, [later]);
-  expect(next.frame.events).toMatchInlineSnapshot(`
-    [
-      {
-        "kind": "usage",
-        "usage": {
-          "tokens": {
-            "cacheRead": 4,
-            "cacheWrite": 6,
-            "input": 30,
-            "output": 10,
-          },
-        },
-      },
-    ]
-  `);
-  expect(foldDurableBatch(next.state, [later]).frame.events).toEqual(next.frame.events);
-});
-
-test("native-only and future events remain in their original batch", () => {
-  const native: AgentEvent[] = [{ type: "turn_start" }, { type: "inbox_update", items: [] },
-    // @ts-expect-error A future SDK event is intentionally outside the pinned union.
-    { type: "future_event", payload: "verbatim" },
-  ];
-  const next = foldDurableBatch(initialDurableProjection(empty), native);
-  expect(next.frame.native).toBe(native);
-  expect(next.frame.events).toEqual([]);
+// oxlint-disable-next-line max-statements -- Compare identical task handover and distinct run identity across two delta shapes.
+test("whole-document replacement distinguishes a new run from a generation handover", () => {
+  const a = 10; const b = 20; const inputA = 30; const inputB = 40; const firstA = 50; const firstB = 60;
+  assert.ok(isTaskId(a) && isTaskId(b) && isSubmissionId(inputA) && isSubmissionId(inputB) && isEntryId(firstA) && isEntryId(firstB));
+  const first = view({ run: { taskId: a, inputs: [inputA], first: firstA, turns: 0 } });
+  const previous = initialDurableProjection(first);
+  const handover = view({ run: { taskId: b, inputs: [inputA], first: firstA, turns: 1 } });
+  const next = view({ run: { taskId: b, inputs: [inputB], first: firstB, turns: 0 } });
+  expect(runEnded(previous, { ...call(handover), ops: [["s", ["docs", "pi.live"], handover.docs["pi.live"] ?? {}]] })).toBe(false);
+  expect(runEnded(previous, { ...call(next), ops: [["s", ["docs", "pi.live"], next.docs["pi.live"] ?? {}]] })).toBe(true);
+  expect(runEnded(previous, { ...call(next), ops: [["r", copyJson(next)]], retired: true })).toBe(true);
 });

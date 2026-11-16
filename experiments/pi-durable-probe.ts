@@ -1,7 +1,7 @@
 /**
- * Pi Durable 1.1.0, observed 2026-10-09: native run_end precedes terminal
- * submission receipts within the same batch. Instructions and requestId
- * deduplication survive JSONL close/open. Rechecked on 1.2.0, 2026-10-13.
+ * Pi Durable 1.5.2: native conversation revisions and durable receipts.
+ * Instructions and requestId deduplication survive JSONL close/open.
+ * The historical event-stream probe is retained in git before this migration.
  * No credentials or paid calls.
  * Run: pnpm tsx experiments/pi-durable-probe.ts > durable-native.jsonl
  */
@@ -13,7 +13,7 @@ import { openNodeJsonlStorage } from "@earendil-works/pi-durable/storage/jsonl/n
 import { BACKGROUND_CONTEXT as context } from "@earendil-works/chord/context";
 import { createModels } from "@earendil-works/pi-ai-durable/models";
 import { fauxAssistantMessage, fauxProvider } from "@earendil-works/pi-ai-durable/providers/faux";
-import { createRegistry, Harness, watchEvents } from "@earendil-works/pi-durable";
+import { createRegistry, Harness } from "@earendil-works/pi-durable";
 
 const models = createModels();
 const faux = fauxProvider({ tokensPerSecond: 100 });
@@ -24,9 +24,11 @@ const storage = await openNodeJsonlStorage(directory, context);
 const options = { models, registry: createRegistry(), settings: { progress: { partialIntervalMs: 0 } } };
 const harness = await Harness.open(storage, options, context);
 const conversation = await harness.createConversation({ ownership: { kind: "ownerless" }, agent: { model: { provider: "faux", modelId: "faux-1" }, instructions: "APPEND_MARKER", cwd: "/virtual" } }, context);
-const stream = await watchEvents(harness, conversation.id, context);
-process.stdout.write(`${JSON.stringify({ type: "initial", value: stream.snapshot })}\n`);
-stream.start(async (events) => { process.stdout.write(`${JSON.stringify(events)}\n`); await Promise.resolve(); });
+const stream = await harness.observeConversation(conversation.id, {
+  advance(call) { process.stdout.write(`${JSON.stringify(call)}\n`); },
+  end(end) { process.stdout.write(`${JSON.stringify({ type: "closed", value: end })}\n`); },
+}, context);
+process.stdout.write(`${JSON.stringify({ type: "initial", value: stream.value })}\n`);
 const first = await conversation.submit({ type: "input", requestId: "first", content: "first", whenBusy: "reject" }, context);
 await first.wait(context);
 const duplicate = await conversation.submit({ type: "input", requestId: "first", content: "different", whenBusy: "reject" }, context);
@@ -36,14 +38,16 @@ const queued = await conversation.submit({ type: "input", requestId: "queued", c
 assert.equal(await queued.abort(context), "aborted");
 await conversation.abort(context);
 process.stdout.write(`${JSON.stringify({ type: "abort", value: await slow.status(context) })}\n`);
-await stream.stop();
+stream.detach();
 await harness.close(context);
 const reopened = await Harness.open(await openNodeJsonlStorage(directory, context), options, context);
 const restored = await reopened.conversation(conversation.id, context);
 assert.ok(restored);
-process.stdout.write(`${JSON.stringify({ type: "restored", value: await restored.agent(context) })}\n`);
-const restoredAgent = await restored.agent(context);
-assert.equal(restoredAgent.instructions, "APPEND_MARKER");
+const restoredWatch = await restored.watch(context);
+const restoredAgent = restoredWatch.value.docs["pi.agent"];
+process.stdout.write(`${JSON.stringify({ type: "restored", value: restoredAgent })}\n`);
+await restoredWatch.stop();
+assert.equal(restoredAgent?.instructions, "APPEND_MARKER");
 const retry = await restored.submit({ type: "input", requestId: "first", content: "retry" }, context);
 assert.equal(retry.id, first.id);
 await reopened.close(context);

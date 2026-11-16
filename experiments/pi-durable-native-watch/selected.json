@@ -1,0 +1,1693 @@
+{
+  "runtime": {
+    "durable": "1.5.2",
+    "chord": "1.5.2",
+    "nativePiAI": "1.5.2",
+    "unchangedCodingSDK": "1.5.0",
+    "node": "24.19.0",
+    "platform": "linux-x64",
+    "provider": "faux or loopback aimock; no account"
+  },
+  "observerComparison": {
+    "summary": {
+      "mode": "create",
+      "conversationId": 1,
+      "observeConversation": true,
+      "watchEvents": "undefined",
+      "observerFrames": 6,
+      "watchFrames": 2,
+      "observerSawRun": true,
+      "watchSawRun": false,
+      "receipt": {
+        "conversationId": 1,
+        "requestId": "original",
+        "type": "input",
+        "status": "done",
+        "entry": 9,
+        "id": 10,
+        "answer": 13
+      }
+    },
+    "notifications": [
+      {
+        "kind": "observer",
+        "value": {
+          "kind": "value",
+          "value": {
+            "conversation": {
+              "id": 1
+            },
+            "entries": [
+              {
+                "kind": "probe.note",
+                "data": {
+                  "marker": "hold"
+                },
+                "id": 7,
+                "conversationId": 1
+              }
+            ],
+            "docs": {
+              "pi.agent": {
+                "model": {
+                  "provider": "faux",
+                  "modelId": "faux-1"
+                },
+                "instructions": "STORED_INSTRUCTIONS",
+                "cwd": "/virtual"
+              },
+              "pi.live": {},
+              "pi.inbox": {
+                "items": []
+              },
+              "pi.provider": {
+                "sessionId": "01a1e045-6f4c-76c5-a8a0-65b9189272ac"
+              },
+              "pi.usage": {
+                "models": {},
+                "tools": {}
+              }
+            }
+          },
+          "ops": [
+            [
+              "p",
+              [
+                "entries"
+              ],
+              0,
+              0,
+              [
+                {
+                  "kind": "probe.note",
+                  "data": {
+                    "marker": "hold"
+                  },
+                  "id": 7,
+                  "conversationId": 1
+                }
+              ]
+            ]
+          ],
+          "retired": false
+        }
+      },
+      {
+        "kind": "watch",
+        "value": {
+          "kind": "value",
+          "value": {
+            "conversation": {
+              "id": 1
+            },
+            "entries": [
+              {
+                "kind": "probe.note",
+                "data": {
+                  "marker": "hold"
+                },
+                "id": 7,
+                "conversationId": 1
+              }
+            ],
+            "docs": {
+              "pi.agent": {
+                "model": {
+                  "provider": "faux",
+                  "modelId": "faux-1"
+                },
+                "instructions": "STORED_INSTRUCTIONS",
+                "cwd": "/virtual"
+              },
+              "pi.live": {},
+              "pi.inbox": {
+                "items": []
+              },
+              "pi.provider": {
+                "sessionId": "01a1e045-6f4c-76c5-a8a0-65b9189272ac"
+              },
+              "pi.usage": {
+                "models": {},
+                "tools": {}
+              }
+            }
+          },
+          "ops": [
+            [
+              "p",
+              [
+                "entries"
+              ],
+              0,
+              0,
+              [
+                {
+                  "kind": "probe.note",
+                  "data": {
+                    "marker": "hold"
+                  },
+                  "id": 7,
+                  "conversationId": 1
+                }
+              ]
+            ]
+          ],
+          "retired": false
+        }
+      },
+      {
+        "kind": "observer",
+        "value": {
+          "kind": "value",
+          "value": {
+            "conversation": {
+              "id": 1
+            },
+            "entries": [
+              {
+                "kind": "probe.note",
+                "data": {
+                  "marker": "hold"
+                },
+                "id": 7,
+                "conversationId": 1
+              },
+              {
+                "model": [
+                  {
+                    "role": "user",
+                    "content": "synthetic",
+                    "timestamp": 1794764009308
+                  }
+                ],
+                "kind": "pi.user",
+                "id": 9,
+                "conversationId": 1
+              }
+            ],
+            "docs": {
+              "pi.agent": {
+                "model": {
+                  "provider": "faux",
+                  "modelId": "faux-1"
+                },
+                "instructions": "STORED_INSTRUCTIONS",
+                "cwd": "/virtual"
+              },
+              "pi.live": {
+                "run": {
+                  "taskId": 11,
+                  "inputs": [
+                    10
+                  ],
+                  "turns": 0,
+                  "first": 9
+                }
+              },
+              "pi.inbox": {
+                "items": []
+              },
+              "pi.provider": {
+                "sessionId": "01a1e045-6f4c-76c5-a8a0-65b9189272ac"
+              },
+              "pi.usage": {
+                "models": {},
+                "tools": {}
+              }
+            }
+          },
+          "ops": [
+            [
+              "s",
+              [
+                "docs",
+                "pi.live",
+                "run"
+              ],
+              {
+                "taskId": 11,
+                "inputs": [
+                  10
+                ],
+                "turns": 0,
+                "first": 9
+              }
+            ],
+            [
+              "p",
+              [
+                "entries"
+              ],
+              1,
+              0,
+              [
+                {
+                  "model": [
+                    {
+                      "role": "user",
+                      "content": "synthetic",
+                      "timestamp": 1794764009308
+                    }
+                  ],
+                  "kind": "pi.user",
+                  "id": 9,
+                  "conversationId": 1
+                }
+              ]
+            ]
+          ],
+          "retired": false
+        }
+      },
+      {
+        "kind": "observer",
+        "value": {
+          "kind": "value",
+          "value": {
+            "conversation": {
+              "id": 1
+            },
+            "entries": [
+              {
+                "kind": "probe.note",
+                "data": {
+                  "marker": "hold"
+                },
+                "id": 7,
+                "conversationId": 1
+              },
+              {
+                "model": [
+                  {
+                    "role": "user",
+                    "content": "synthetic",
+                    "timestamp": 1794764009308
+                  }
+                ],
+                "kind": "pi.user",
+                "id": 9,
+                "conversationId": 1
+              },
+              {
+                "model": [
+                  {
+                    "role": "system",
+                    "content": "",
+                    "sections": {
+                      "instructions": "<instructions>\nSTORED_INSTRUCTIONS\n</instructions>"
+                    },
+                    "timestamp": 1794764009324
+                  }
+                ],
+                "kind": "pi.system",
+                "id": 12,
+                "conversationId": 1,
+                "byTaskId": 11
+              }
+            ],
+            "docs": {
+              "pi.agent": {
+                "model": {
+                  "provider": "faux",
+                  "modelId": "faux-1"
+                },
+                "instructions": "STORED_INSTRUCTIONS",
+                "cwd": "/virtual"
+              },
+              "pi.live": {
+                "run": {
+                  "taskId": 11,
+                  "inputs": [
+                    10
+                  ],
+                  "turns": 0,
+                  "first": 9
+                }
+              },
+              "pi.inbox": {
+                "items": []
+              },
+              "pi.provider": {
+                "sessionId": "01a1e045-6f4c-76c5-a8a0-65b9189272ac"
+              },
+              "pi.usage": {
+                "models": {},
+                "tools": {}
+              }
+            }
+          },
+          "ops": [
+            [
+              "p",
+              [
+                "entries"
+              ],
+              2,
+              0,
+              [
+                {
+                  "model": [
+                    {
+                      "role": "system",
+                      "content": "",
+                      "sections": {
+                        "instructions": "<instructions>\nSTORED_INSTRUCTIONS\n</instructions>"
+                      },
+                      "timestamp": 1794764009324
+                    }
+                  ],
+                  "kind": "pi.system",
+                  "id": 12,
+                  "conversationId": 1,
+                  "byTaskId": 11
+                }
+              ]
+            ]
+          ],
+          "retired": false
+        }
+      },
+      {
+        "kind": "observer",
+        "value": {
+          "kind": "value",
+          "value": {
+            "conversation": {
+              "id": 1
+            },
+            "entries": [
+              {
+                "kind": "probe.note",
+                "data": {
+                  "marker": "hold"
+                },
+                "id": 7,
+                "conversationId": 1
+              },
+              {
+                "model": [
+                  {
+                    "role": "user",
+                    "content": "synthetic",
+                    "timestamp": 1794764009308
+                  }
+                ],
+                "kind": "pi.user",
+                "id": 9,
+                "conversationId": 1
+              },
+              {
+                "model": [
+                  {
+                    "role": "system",
+                    "content": "",
+                    "sections": {
+                      "instructions": "<instructions>\nSTORED_INSTRUCTIONS\n</instructions>"
+                    },
+                    "timestamp": 1794764009324
+                  }
+                ],
+                "kind": "pi.system",
+                "id": 12,
+                "conversationId": 1,
+                "byTaskId": 11
+              }
+            ],
+            "docs": {
+              "pi.agent": {
+                "model": {
+                  "provider": "faux",
+                  "modelId": "faux-1"
+                },
+                "instructions": "STORED_INSTRUCTIONS",
+                "cwd": "/virtual"
+              },
+              "pi.live": {
+                "run": {
+                  "taskId": 11,
+                  "inputs": [
+                    10
+                  ],
+                  "turns": 0,
+                  "first": 9
+                },
+                "generation": {
+                  "attempt": 1
+                }
+              },
+              "pi.inbox": {
+                "items": []
+              },
+              "pi.provider": {
+                "sessionId": "01a1e045-6f4c-76c5-a8a0-65b9189272ac"
+              },
+              "pi.usage": {
+                "models": {},
+                "tools": {}
+              }
+            }
+          },
+          "ops": [
+            [
+              "s",
+              [
+                "docs",
+                "pi.live",
+                "generation"
+              ],
+              {
+                "attempt": 1
+              }
+            ]
+          ],
+          "retired": false
+        }
+      },
+      {
+        "kind": "observer",
+        "value": {
+          "kind": "value",
+          "value": {
+            "conversation": {
+              "id": 1
+            },
+            "entries": [
+              {
+                "kind": "probe.note",
+                "data": {
+                  "marker": "hold"
+                },
+                "id": 7,
+                "conversationId": 1
+              },
+              {
+                "model": [
+                  {
+                    "role": "user",
+                    "content": "synthetic",
+                    "timestamp": 1794764009308
+                  }
+                ],
+                "kind": "pi.user",
+                "id": 9,
+                "conversationId": 1
+              },
+              {
+                "model": [
+                  {
+                    "role": "system",
+                    "content": "",
+                    "sections": {
+                      "instructions": "<instructions>\nSTORED_INSTRUCTIONS\n</instructions>"
+                    },
+                    "timestamp": 1794764009324
+                  }
+                ],
+                "kind": "pi.system",
+                "id": 12,
+                "conversationId": 1,
+                "byTaskId": 11
+              }
+            ],
+            "docs": {
+              "pi.agent": {
+                "model": {
+                  "provider": "faux",
+                  "modelId": "faux-1"
+                },
+                "instructions": "STORED_INSTRUCTIONS",
+                "cwd": "/virtual"
+              },
+              "pi.live": {
+                "run": {
+                  "taskId": 11,
+                  "inputs": [
+                    10
+                  ],
+                  "turns": 0,
+                  "first": 9
+                },
+                "generation": {
+                  "attempt": 1,
+                  "message": {
+                    "role": "assistant",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": ""
+                      }
+                    ],
+                    "api": "faux:1794764009280:0yomu4e9uhpe",
+                    "provider": "faux",
+                    "model": "faux-1",
+                    "usage": {
+                      "input": 0,
+                      "output": 4,
+                      "cacheRead": 0,
+                      "cacheWrite": 19,
+                      "totalTokens": 23,
+                      "cost": {
+                        "input": 0,
+                        "output": 0,
+                        "cacheRead": 0,
+                        "cacheWrite": 0,
+                        "total": 0
+                      }
+                    },
+                    "stopReason": "pending",
+                    "timestamp": 1794764009281
+                  }
+                }
+              },
+              "pi.inbox": {
+                "items": []
+              },
+              "pi.provider": {
+                "sessionId": "01a1e045-6f4c-76c5-a8a0-65b9189272ac"
+              },
+              "pi.usage": {
+                "models": {},
+                "tools": {}
+              }
+            }
+          },
+          "ops": [
+            [
+              "s",
+              [
+                "docs",
+                "pi.live",
+                "generation",
+                "message"
+              ],
+              {
+                "role": "assistant",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": ""
+                  }
+                ],
+                "api": "faux:1794764009280:0yomu4e9uhpe",
+                "provider": "faux",
+                "model": "faux-1",
+                "usage": {
+                  "input": 0,
+                  "output": 4,
+                  "cacheRead": 0,
+                  "cacheWrite": 19,
+                  "totalTokens": 23,
+                  "cost": {
+                    "input": 0,
+                    "output": 0,
+                    "cacheRead": 0,
+                    "cacheWrite": 0,
+                    "total": 0
+                  }
+                },
+                "stopReason": "pending",
+                "timestamp": 1794764009281
+              }
+            ]
+          ],
+          "retired": false
+        }
+      },
+      {
+        "kind": "observer",
+        "value": {
+          "kind": "value",
+          "value": {
+            "conversation": {
+              "id": 1
+            },
+            "entries": [
+              {
+                "kind": "probe.note",
+                "data": {
+                  "marker": "hold"
+                },
+                "id": 7,
+                "conversationId": 1
+              },
+              {
+                "model": [
+                  {
+                    "role": "user",
+                    "content": "synthetic",
+                    "timestamp": 1794764009308
+                  }
+                ],
+                "kind": "pi.user",
+                "id": 9,
+                "conversationId": 1
+              },
+              {
+                "model": [
+                  {
+                    "role": "system",
+                    "content": "",
+                    "sections": {
+                      "instructions": "<instructions>\nSTORED_INSTRUCTIONS\n</instructions>"
+                    },
+                    "timestamp": 1794764009324
+                  }
+                ],
+                "kind": "pi.system",
+                "id": 12,
+                "conversationId": 1,
+                "byTaskId": 11
+              },
+              {
+                "model": [
+                  {
+                    "role": "assistant",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "NATIVE_COMPLETE"
+                      }
+                    ],
+                    "api": "faux:1794764009280:0yomu4e9uhpe",
+                    "provider": "faux",
+                    "model": "faux-1",
+                    "usage": {
+                      "input": 0,
+                      "output": 4,
+                      "cacheRead": 0,
+                      "cacheWrite": 19,
+                      "totalTokens": 23,
+                      "cost": {
+                        "input": 0,
+                        "output": 0,
+                        "cacheRead": 0,
+                        "cacheWrite": 0,
+                        "total": 0
+                      }
+                    },
+                    "stopReason": "stop",
+                    "timestamp": 1794764009281,
+                    "thinkingLevel": "off"
+                  }
+                ],
+                "kind": "pi.assistant",
+                "id": 13,
+                "conversationId": 1,
+                "byTaskId": 11
+              }
+            ],
+            "docs": {
+              "pi.agent": {
+                "model": {
+                  "provider": "faux",
+                  "modelId": "faux-1"
+                },
+                "instructions": "STORED_INSTRUCTIONS",
+                "cwd": "/virtual"
+              },
+              "pi.live": {},
+              "pi.inbox": {
+                "items": []
+              },
+              "pi.provider": {
+                "sessionId": "01a1e045-6f4c-76c5-a8a0-65b9189272ac"
+              },
+              "pi.usage": {
+                "models": {
+                  "faux/faux-1": {
+                    "input": 0,
+                    "output": 4,
+                    "cacheRead": 0,
+                    "cacheWrite": 19,
+                    "totalTokens": 23,
+                    "cost": {
+                      "input": 0,
+                      "output": 0,
+                      "cacheRead": 0,
+                      "cacheWrite": 0,
+                      "total": 0
+                    }
+                  }
+                },
+                "tools": {}
+              }
+            }
+          },
+          "ops": [
+            [
+              "d",
+              [
+                "docs",
+                "pi.live",
+                "run"
+              ]
+            ],
+            [
+              "d",
+              [
+                "docs",
+                "pi.live",
+                "generation"
+              ]
+            ],
+            [
+              "s",
+              [
+                "docs",
+                "pi.usage",
+                "models",
+                "faux/faux-1"
+              ],
+              {
+                "input": 0,
+                "output": 4,
+                "cacheRead": 0,
+                "cacheWrite": 19,
+                "totalTokens": 23,
+                "cost": {
+                  "input": 0,
+                  "output": 0,
+                  "cacheRead": 0,
+                  "cacheWrite": 0,
+                  "total": 0
+                }
+              }
+            ],
+            [
+              "p",
+              [
+                "entries"
+              ],
+              3,
+              0,
+              [
+                {
+                  "model": [
+                    {
+                      "role": "assistant",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "NATIVE_COMPLETE"
+                        }
+                      ],
+                      "api": "faux:1794764009280:0yomu4e9uhpe",
+                      "provider": "faux",
+                      "model": "faux-1",
+                      "usage": {
+                        "input": 0,
+                        "output": 4,
+                        "cacheRead": 0,
+                        "cacheWrite": 19,
+                        "totalTokens": 23,
+                        "cost": {
+                          "input": 0,
+                          "output": 0,
+                          "cacheRead": 0,
+                          "cacheWrite": 0,
+                          "total": 0
+                        }
+                      },
+                      "stopReason": "stop",
+                      "timestamp": 1794764009281,
+                      "thinkingLevel": "off"
+                    }
+                  ],
+                  "kind": "pi.assistant",
+                  "id": 13,
+                  "conversationId": 1,
+                  "byTaskId": 11
+                }
+              ]
+            ]
+          ],
+          "retired": false
+        }
+      },
+      {
+        "kind": "watch",
+        "value": {
+          "kind": "value",
+          "value": {
+            "conversation": {
+              "id": 1
+            },
+            "entries": [
+              {
+                "kind": "probe.note",
+                "data": {
+                  "marker": "hold"
+                },
+                "id": 7,
+                "conversationId": 1
+              },
+              {
+                "model": [
+                  {
+                    "role": "user",
+                    "content": "synthetic",
+                    "timestamp": 1794764009308
+                  }
+                ],
+                "kind": "pi.user",
+                "id": 9,
+                "conversationId": 1
+              },
+              {
+                "model": [
+                  {
+                    "role": "system",
+                    "content": "",
+                    "sections": {
+                      "instructions": "<instructions>\nSTORED_INSTRUCTIONS\n</instructions>"
+                    },
+                    "timestamp": 1794764009324
+                  }
+                ],
+                "kind": "pi.system",
+                "id": 12,
+                "conversationId": 1,
+                "byTaskId": 11
+              },
+              {
+                "model": [
+                  {
+                    "role": "assistant",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "NATIVE_COMPLETE"
+                      }
+                    ],
+                    "api": "faux:1794764009280:0yomu4e9uhpe",
+                    "provider": "faux",
+                    "model": "faux-1",
+                    "usage": {
+                      "input": 0,
+                      "output": 4,
+                      "cacheRead": 0,
+                      "cacheWrite": 19,
+                      "totalTokens": 23,
+                      "cost": {
+                        "input": 0,
+                        "output": 0,
+                        "cacheRead": 0,
+                        "cacheWrite": 0,
+                        "total": 0
+                      }
+                    },
+                    "stopReason": "stop",
+                    "timestamp": 1794764009281,
+                    "thinkingLevel": "off"
+                  }
+                ],
+                "kind": "pi.assistant",
+                "id": 13,
+                "conversationId": 1,
+                "byTaskId": 11
+              }
+            ],
+            "docs": {
+              "pi.agent": {
+                "model": {
+                  "provider": "faux",
+                  "modelId": "faux-1"
+                },
+                "instructions": "STORED_INSTRUCTIONS",
+                "cwd": "/virtual"
+              },
+              "pi.live": {},
+              "pi.inbox": {
+                "items": []
+              },
+              "pi.provider": {
+                "sessionId": "01a1e045-6f4c-76c5-a8a0-65b9189272ac"
+              },
+              "pi.usage": {
+                "models": {
+                  "faux/faux-1": {
+                    "input": 0,
+                    "output": 4,
+                    "cacheRead": 0,
+                    "cacheWrite": 19,
+                    "totalTokens": 23,
+                    "cost": {
+                      "input": 0,
+                      "output": 0,
+                      "cacheRead": 0,
+                      "cacheWrite": 0,
+                      "total": 0
+                    }
+                  }
+                },
+                "tools": {}
+              }
+            }
+          },
+          "ops": [
+            [
+              "s",
+              [
+                "docs",
+                "pi.live",
+                "run"
+              ],
+              {
+                "taskId": 11,
+                "inputs": [
+                  10
+                ],
+                "turns": 0,
+                "first": 9
+              }
+            ],
+            [
+              "p",
+              [
+                "entries"
+              ],
+              1,
+              0,
+              [
+                {
+                  "model": [
+                    {
+                      "role": "user",
+                      "content": "synthetic",
+                      "timestamp": 1794764009308
+                    }
+                  ],
+                  "kind": "pi.user",
+                  "id": 9,
+                  "conversationId": 1
+                }
+              ]
+            ],
+            [
+              "p",
+              [
+                "entries"
+              ],
+              2,
+              0,
+              [
+                {
+                  "model": [
+                    {
+                      "role": "system",
+                      "content": "",
+                      "sections": {
+                        "instructions": "<instructions>\nSTORED_INSTRUCTIONS\n</instructions>"
+                      },
+                      "timestamp": 1794764009324
+                    }
+                  ],
+                  "kind": "pi.system",
+                  "id": 12,
+                  "conversationId": 1,
+                  "byTaskId": 11
+                }
+              ]
+            ],
+            [
+              "s",
+              [
+                "docs",
+                "pi.live",
+                "generation"
+              ],
+              {
+                "attempt": 1
+              }
+            ],
+            [
+              "s",
+              [
+                "docs",
+                "pi.live",
+                "generation",
+                "message"
+              ],
+              {
+                "role": "assistant",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": ""
+                  }
+                ],
+                "api": "faux:1794764009280:0yomu4e9uhpe",
+                "provider": "faux",
+                "model": "faux-1",
+                "usage": {
+                  "input": 0,
+                  "output": 4,
+                  "cacheRead": 0,
+                  "cacheWrite": 19,
+                  "totalTokens": 23,
+                  "cost": {
+                    "input": 0,
+                    "output": 0,
+                    "cacheRead": 0,
+                    "cacheWrite": 0,
+                    "total": 0
+                  }
+                },
+                "stopReason": "pending",
+                "timestamp": 1794764009281
+              }
+            ],
+            [
+              "d",
+              [
+                "docs",
+                "pi.live",
+                "run"
+              ]
+            ],
+            [
+              "d",
+              [
+                "docs",
+                "pi.live",
+                "generation"
+              ]
+            ],
+            [
+              "s",
+              [
+                "docs",
+                "pi.usage",
+                "models",
+                "faux/faux-1"
+              ],
+              {
+                "input": 0,
+                "output": 4,
+                "cacheRead": 0,
+                "cacheWrite": 19,
+                "totalTokens": 23,
+                "cost": {
+                  "input": 0,
+                  "output": 0,
+                  "cacheRead": 0,
+                  "cacheWrite": 0,
+                  "total": 0
+                }
+              }
+            ],
+            [
+              "p",
+              [
+                "entries"
+              ],
+              3,
+              0,
+              [
+                {
+                  "model": [
+                    {
+                      "role": "assistant",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": "NATIVE_COMPLETE"
+                        }
+                      ],
+                      "api": "faux:1794764009280:0yomu4e9uhpe",
+                      "provider": "faux",
+                      "model": "faux-1",
+                      "usage": {
+                        "input": 0,
+                        "output": 4,
+                        "cacheRead": 0,
+                        "cacheWrite": 19,
+                        "totalTokens": 23,
+                        "cost": {
+                          "input": 0,
+                          "output": 0,
+                          "cacheRead": 0,
+                          "cacheWrite": 0,
+                          "total": 0
+                        }
+                      },
+                      "stopReason": "stop",
+                      "timestamp": 1794764009281,
+                      "thinkingLevel": "off"
+                    }
+                  ],
+                  "kind": "pi.assistant",
+                  "id": 13,
+                  "conversationId": 1,
+                  "byTaskId": 11
+                }
+              ]
+            ]
+          ],
+          "retired": false
+        }
+      }
+    ]
+  },
+  "migration": [
+    {
+      "phase": "fresh152",
+      "exitCode": 0,
+      "summary": {
+        "mode": "create",
+        "conversationId": 1,
+        "observeConversation": true,
+        "watchEvents": "undefined",
+        "observerFrames": 6,
+        "watchFrames": 2,
+        "observerSawRun": true,
+        "watchSawRun": false,
+        "receipt": {
+          "conversationId": 1,
+          "requestId": "original",
+          "type": "input",
+          "status": "done",
+          "entry": 9,
+          "id": 10,
+          "answer": 13
+        }
+      }
+    },
+    {
+      "phase": "old140-create",
+      "exitCode": 0,
+      "summary": {
+        "mode": "create",
+        "conversationId": 1,
+        "observeConversation": false,
+        "watchEvents": "function",
+        "observerFrames": 0,
+        "watchFrames": 0,
+        "observerSawRun": false,
+        "watchSawRun": false,
+        "receipt": {
+          "conversationId": 1,
+          "requestId": "original",
+          "type": "input",
+          "status": "done",
+          "entry": 7,
+          "id": 8,
+          "answer": 11
+        }
+      }
+    },
+    {
+      "phase": "new152-reopen",
+      "exitCode": 0,
+      "summary": {
+        "mode": "reopen",
+        "conversationId": 1,
+        "observeConversation": true,
+        "watchEvents": "undefined",
+        "observerFrames": 0,
+        "watchFrames": 0,
+        "observerSawRun": false,
+        "watchSawRun": false,
+        "receipt": {
+          "conversationId": 1,
+          "requestId": "original",
+          "type": "input",
+          "status": "done",
+          "entry": 7,
+          "id": 8,
+          "answer": 11
+        }
+      }
+    },
+    {
+      "phase": "old140-before-write",
+      "exitCode": 0,
+      "summary": {
+        "mode": "reopen",
+        "conversationId": 1,
+        "observeConversation": false,
+        "watchEvents": "function",
+        "observerFrames": 0,
+        "watchFrames": 0,
+        "observerSawRun": false,
+        "watchSawRun": false,
+        "receipt": {
+          "conversationId": 1,
+          "requestId": "original",
+          "type": "input",
+          "status": "done",
+          "entry": 7,
+          "id": 8,
+          "answer": 11
+        }
+      }
+    },
+    {
+      "phase": "new152-advance",
+      "exitCode": 0,
+      "summary": {
+        "mode": "advance",
+        "conversationId": 1,
+        "observeConversation": true,
+        "watchEvents": "undefined",
+        "observerFrames": 5,
+        "watchFrames": 2,
+        "observerSawRun": true,
+        "watchSawRun": false,
+        "receipt": {
+          "conversationId": 1,
+          "requestId": "upgraded",
+          "type": "input",
+          "status": "done",
+          "entry": 14,
+          "id": 15,
+          "answer": 17
+        }
+      }
+    },
+    {
+      "phase": "old140-refused",
+      "exitCode": 1,
+      "summary": {
+        "mode": "reopen",
+        "error": {
+          "name": "Error",
+          "message": "Document 2 (pi.live) has newer version 3 than 1"
+        }
+      }
+    },
+    {
+      "phase": "old140-backup-restored",
+      "exitCode": 0,
+      "summary": {
+        "mode": "reopen",
+        "conversationId": 1,
+        "observeConversation": false,
+        "watchEvents": "function",
+        "observerFrames": 0,
+        "watchFrames": 0,
+        "observerSawRun": false,
+        "watchSawRun": false,
+        "receipt": {
+          "conversationId": 1,
+          "requestId": "original",
+          "type": "input",
+          "status": "done",
+          "entry": 7,
+          "id": 8,
+          "answer": 11
+        }
+      }
+    }
+  ],
+  "nestedResult": {
+    "callerResult": {
+      "taskId": 15,
+      "structuredOutput": {
+        "exitCode": 7
+      },
+      "isError": true,
+      "diagnostics": [],
+      "durationMs": 0
+    },
+    "lastSummary": {
+      "isError": true,
+      "durationMs": 0,
+      "error": "leaf done"
+    },
+    "postRunDocument": null,
+    "completedNativeCall": {
+      "kind": "value",
+      "value": {
+        "conversation": {
+          "id": 2
+        },
+        "entries": [
+          {
+            "model": [
+              {
+                "role": "user",
+                "content": "test",
+                "timestamp": 1794764029817
+              }
+            ],
+            "kind": "pi.user",
+            "id": 8,
+            "conversationId": 2
+          },
+          {
+            "model": [
+              {
+                "role": "system",
+                "content": "",
+                "toolsAdded": [
+                  {
+                    "name": "leaf",
+                    "description": "leaf",
+                    "parameters": {
+                      "type": "object",
+                      "properties": {}
+                    }
+                  },
+                  {
+                    "name": "outer",
+                    "description": "outer",
+                    "parameters": {
+                      "type": "object",
+                      "properties": {}
+                    }
+                  }
+                ],
+                "timestamp": 1794764029828
+              }
+            ],
+            "kind": "pi.system",
+            "id": 11,
+            "conversationId": 2,
+            "byTaskId": 10
+          },
+          {
+            "model": [
+              {
+                "role": "assistant",
+                "content": [
+                  {
+                    "type": "toolCall",
+                    "id": "outer-call",
+                    "name": "outer",
+                    "arguments": {}
+                  }
+                ],
+                "api": "faux:1794764029794:lw8jloqf4ej",
+                "provider": "faux",
+                "model": "faux-1",
+                "usage": {
+                  "input": 0,
+                  "output": 2,
+                  "cacheRead": 0,
+                  "cacheWrite": 50,
+                  "totalTokens": 52,
+                  "cost": {
+                    "input": 0,
+                    "output": 0,
+                    "cacheRead": 0,
+                    "cacheWrite": 0,
+                    "total": 0
+                  }
+                },
+                "stopReason": "toolUse",
+                "timestamp": 1794764029795,
+                "thinkingLevel": "off"
+              }
+            ],
+            "kind": "pi.assistant",
+            "id": 12,
+            "conversationId": 2,
+            "byTaskId": 10
+          }
+        ],
+        "docs": {
+          "pi.agent": {
+            "model": {
+              "provider": "faux",
+              "modelId": "faux-1"
+            }
+          },
+          "pi.live": {
+            "run": {
+              "taskId": 10,
+              "inputs": [
+                9
+              ],
+              "turns": 1,
+              "first": 8
+            },
+            "tools": [
+              {
+                "callId": "outer-call",
+                "name": "outer",
+                "taskId": 13,
+                "status": "running"
+              }
+            ],
+            "nestedTools": [
+              {
+                "callId": "outer-call/leaf",
+                "parentCallId": "outer-call",
+                "parentTaskId": 13,
+                "name": "leaf",
+                "taskId": 15,
+                "arguments": {},
+                "status": "done",
+                "summary": {
+                  "isError": true,
+                  "durationMs": 0,
+                  "error": "leaf done"
+                }
+              }
+            ]
+          },
+          "pi.inbox": {
+            "items": []
+          },
+          "pi.provider": {
+            "sessionId": "01a1e045-bf6b-73d2-b869-a68ab367855a"
+          },
+          "pi.usage": {
+            "models": {
+              "faux/faux-1": {
+                "input": 0,
+                "output": 2,
+                "cacheRead": 0,
+                "cacheWrite": 50,
+                "totalTokens": 52,
+                "cost": {
+                  "input": 0,
+                  "output": 0,
+                  "cacheRead": 0,
+                  "cacheWrite": 0,
+                  "total": 0
+                }
+              }
+            },
+            "tools": {}
+          }
+        }
+      },
+      "ops": [
+        [
+          "s",
+          [
+            "docs",
+            "pi.live",
+            "nestedTools",
+            0,
+            "status"
+          ],
+          "done"
+        ],
+        [
+          "s",
+          [
+            "docs",
+            "pi.live",
+            "nestedTools",
+            0,
+            "summary"
+          ],
+          {
+            "isError": true,
+            "durationMs": 0,
+            "error": "leaf done"
+          }
+        ]
+      ],
+      "retired": false
+    }
+  },
+  "queuedBoundary": {
+    "sourceRecordSeq": 27,
+    "originalOps": [
+      [
+        "p",
+        [
+          "docs",
+          "pi.inbox",
+          "items"
+        ],
+        0,
+        1,
+        []
+      ],
+      [
+        "d",
+        [
+          "docs",
+          "pi.live",
+          "run"
+        ]
+      ],
+      [
+        "s",
+        [
+          "docs",
+          "pi.live",
+          "run"
+        ],
+        {
+          "taskId": 25,
+          "inputs": [
+            15
+          ],
+          "turns": 0,
+          "first": 24
+        }
+      ],
+      [
+        "d",
+        [
+          "docs",
+          "pi.live",
+          "generation"
+        ]
+      ],
+      [
+        "p",
+        [
+          "entries"
+        ],
+        7,
+        0,
+        [
+          {
+            "model": [
+              {
+                "role": "assistant",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "done"
+                  }
+                ],
+                "api": "anthropic-messages",
+                "provider": "aimock",
+                "model": "aimock-model",
+                "usage": {
+                  "input": 0,
+                  "output": 0,
+                  "cacheRead": 0,
+                  "cacheWrite": 0,
+                  "totalTokens": 0,
+                  "cost": {
+                    "input": 0,
+                    "output": 0,
+                    "cacheRead": 0,
+                    "cacheWrite": 0,
+                    "total": 0,
+                    "totalFromProvider": false
+                  },
+                  "cacheWrite1h": 0
+                },
+                "stopReason": "stop",
+                "timestamp": 1794763171271,
+                "responseId": "msg_jLjUfxj-9I-I85qk",
+                "rawStopReason": "end_turn",
+                "durationMs": 6,
+                "thinkingLevel": "off"
+              }
+            ],
+            "kind": "pi.assistant",
+            "id": 23,
+            "conversationId": 2,
+            "byTaskId": 22
+          },
+          {
+            "model": [
+              {
+                "role": "user",
+                "content": "next",
+                "timestamp": 1794763171277
+              }
+            ],
+            "kind": "pi.user",
+            "id": 24,
+            "conversationId": 2,
+            "byTaskId": 22
+          }
+        ]
+      ]
+    ],
+    "nextNativeRun": {
+      "taskId": 25,
+      "inputs": [
+        15
+      ],
+      "turns": 0,
+      "first": 24
+    }
+  },
+  "restart": [
+    {
+      "terminal": {
+        "conversationId": 1,
+        "requestId": "interrupted",
+        "type": "input",
+        "status": "unanswered",
+        "entry": 7,
+        "id": 8,
+        "reason": "interrupted",
+        "detail": "The host stopped while the model was answering, on attempt 4"
+      }
+    },
+    {
+      "phase": "settled",
+      "interruptions": 4,
+      "live": {
+        "runFailure": {
+          "taskId": 9,
+          "inputs": [
+            8
+          ],
+          "reason": "interrupted",
+          "detail": "The host stopped while the model was answering, on attempt 4",
+          "first": 7
+        }
+      },
+      "oarStatus": "idle",
+      "providerCalls": 0,
+      "reports": []
+    },
+    {
+      "phase": "new_input",
+      "oarStatus": "idle",
+      "providerCalls": 1
+    }
+  ],
+  "sources": [
+    {
+      "file": "polished/fresh152.json",
+      "bytes": 34585,
+      "sha256": "1db7834da54779d052e8313e0e9e149f13051e41e0da47a621c001587f178260"
+    },
+    {
+      "file": "polished/summary.json",
+      "bytes": 3295,
+      "sha256": "b10899955d28efb157db35002700a839e4494c4c706af2601e71b2dec08aa33f"
+    },
+    {
+      "file": "polished/nested.json",
+      "bytes": 53781,
+      "sha256": "9bcdfe71330072d3274596f4667f3166723232faa76779470c887de98ab75c93"
+    },
+    {
+      "file": "queue-before-2.jsonl",
+      "bytes": 77356,
+      "sha256": "613f7dced5f44b65b011b719918b9ac48ad45509cc6fddab75aa231df37421b8"
+    },
+    {
+      "file": "restart-first.jsonl",
+      "bytes": 509,
+      "sha256": "f4787dd5f4fa692889894530dee261790e1c7cecd2309242f482756e0db9eaf5"
+    }
+  ]
+}
