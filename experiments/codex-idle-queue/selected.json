@@ -1,0 +1,332 @@
+{
+  "rawEvidenceSha256": "51dcbedbb6e33675818fe33c2d2b01f91d7f7d899f4e18d2d527c2ef4e4ec6c1",
+  "at": "2026-11-16T09:26:17.413Z",
+  "version": "codex-cli 0.169.0",
+  "normalCompletions": [
+    {
+      "inputId": "idle-queue-0",
+      "added": {
+        "queuedSubmission": {
+          "id": "01a1e3ad-c228-7a21-864e-64bcf8c89002",
+          "input": [
+            {
+              "type": "text",
+              "text": "OAR_SHARE_A_idle0",
+              "text_elements": []
+            }
+          ],
+          "clientUserMessageId": "idle-queue-0",
+          "responsesapiClientMetadata": null
+        }
+      },
+      "replyMs": 8.047547000000122,
+      "observationMs": 28.179671999999982,
+      "pollMs": 20,
+      "turnStartedWithoutPrompt": {
+        "id": "01a1e3ad-c229-7023-800f-e2df0b6aec24",
+        "rootTurnId": "01a1e3ad-c229-7023-800f-e2df0b6aec24",
+        "items": [],
+        "itemsView": "notLoaded",
+        "status": "inProgress",
+        "error": null,
+        "startedAt": 1794821177,
+        "completedAt": null,
+        "durationMs": null
+      },
+      "queueAfterObservation": {
+        "data": [],
+        "nextCursor": null
+      },
+      "completed": {
+        "id": "01a1e3ad-c229-7023-800f-e2df0b6aec24",
+        "rootTurnId": "01a1e3ad-c229-7023-800f-e2df0b6aec24",
+        "items": [
+          {
+            "type": "agentMessage",
+            "moderation": null,
+            "id": "msg-RvAe6JAb9OhRDVNc",
+            "text": "ANSWER_A_idle",
+            "phase": null,
+            "memoryCitation": null,
+            "delivery": null,
+            "questions": null,
+            "startedAtMs": 1794821177940,
+            "completedAtMs": 1794821177941
+          }
+        ],
+        "itemsView": "summary",
+        "status": "completed",
+        "error": null,
+        "startedAt": 1794821177,
+        "completedAt": 1794821177,
+        "durationMs": 45
+      }
+    },
+    {
+      "inputId": "idle-queue-1",
+      "added": {
+        "queuedSubmission": {
+          "id": "01a1e3ad-c26f-7803-a65a-60963484c8e0",
+          "input": [
+            {
+              "type": "text",
+              "text": "OAR_SHARE_A_idle1",
+              "text_elements": []
+            }
+          ],
+          "clientUserMessageId": "idle-queue-1",
+          "responsesapiClientMetadata": null
+        }
+      },
+      "replyMs": 6.60029099999997,
+      "observationMs": 26.021956000000046,
+      "pollMs": 20,
+      "turnStartedWithoutPrompt": {
+        "id": "01a1e3ad-c270-7920-9e3c-c623c827f6e2",
+        "rootTurnId": "01a1e3ad-c270-7920-9e3c-c623c827f6e2",
+        "items": [],
+        "itemsView": "notLoaded",
+        "status": "inProgress",
+        "error": null,
+        "startedAt": 1794821177,
+        "completedAt": null,
+        "durationMs": null
+      },
+      "queueAfterObservation": {
+        "data": [],
+        "nextCursor": null
+      },
+      "completed": {
+        "id": "01a1e3ad-c270-7920-9e3c-c623c827f6e2",
+        "rootTurnId": "01a1e3ad-c270-7920-9e3c-c623c827f6e2",
+        "items": [
+          {
+            "type": "agentMessage",
+            "moderation": null,
+            "id": "msg-K3xu98uccbaRUojA",
+            "text": "ANSWER_A_idle",
+            "phase": null,
+            "memoryCitation": null,
+            "delivery": null,
+            "questions": null,
+            "startedAtMs": 1794821178006,
+            "completedAtMs": 1794821178006
+          }
+        ],
+        "itemsView": "summary",
+        "status": "completed",
+        "error": null,
+        "startedAt": 1794821177,
+        "completedAt": 1794821178,
+        "durationMs": 42
+      }
+    },
+    {
+      "inputId": "idle-queue-2",
+      "added": {
+        "queuedSubmission": {
+          "id": "01a1e3ad-c2b3-7e13-a9d9-767626844c79",
+          "input": [
+            {
+              "type": "text",
+              "text": "OAR_SHARE_A_idle2",
+              "text_elements": []
+            }
+          ],
+          "clientUserMessageId": "idle-queue-2",
+          "responsesapiClientMetadata": null
+        }
+      },
+      "replyMs": 7.767585000000054,
+      "observationMs": 28.688871000000063,
+      "pollMs": 20,
+      "turnStartedWithoutPrompt": {
+        "id": "01a1e3ad-c2b4-7f60-9e9c-40a029ce4f71",
+        "rootTurnId": "01a1e3ad-c2b4-7f60-9e9c-40a029ce4f71",
+        "items": [],
+        "itemsView": "notLoaded",
+        "status": "inProgress",
+        "error": null,
+        "startedAt": 1794821178,
+        "completedAt": null,
+        "durationMs": null
+      },
+      "queueAfterObservation": {
+        "data": [],
+        "nextCursor": null
+      },
+      "completed": {
+        "id": "01a1e3ad-c2b4-7f60-9e9c-40a029ce4f71",
+        "rootTurnId": "01a1e3ad-c2b4-7f60-9e9c-40a029ce4f71",
+        "items": [
+          {
+            "type": "agentMessage",
+            "moderation": null,
+            "id": "msg-VDKGqJsv2Srok36k",
+            "text": "ANSWER_A_idle",
+            "phase": null,
+            "memoryCitation": null,
+            "delivery": null,
+            "questions": null,
+            "startedAtMs": 1794821178075,
+            "completedAtMs": 1794821178075
+          }
+        ],
+        "itemsView": "summary",
+        "status": "completed",
+        "error": null,
+        "startedAt": 1794821178,
+        "completedAt": 1794821178,
+        "durationMs": 42
+      }
+    }
+  ],
+  "afterInterrupted": {
+    "precedingTurn": {
+      "id": "01a1e3ad-c33f-7291-878e-8b71cb41d4cf",
+      "rootTurnId": "01a1e3ad-c33f-7291-878e-8b71cb41d4cf",
+      "items": [],
+      "itemsView": "notLoaded",
+      "status": "interrupted",
+      "error": null,
+      "startedAt": 1794821178,
+      "completedAt": 1794821178,
+      "durationMs": 47
+    },
+    "added": {
+      "queuedSubmission": {
+        "id": "01a1e3ad-c38a-7470-bacd-71b01751766e",
+        "input": [
+          {
+            "type": "text",
+            "text": "OAR_SHARE_A_afterinterrupt",
+            "text_elements": []
+          }
+        ],
+        "clientUserMessageId": "after-interrupt",
+        "responsesapiClientMetadata": null
+      }
+    },
+    "observationMs": 10004.165807000001,
+    "startedBeforeNextPrompt": [],
+    "queueBeforeNextPrompt": {
+      "data": [
+        {
+          "id": "01a1e3ad-c38a-7470-bacd-71b01751766e",
+          "input": [
+            {
+              "type": "text",
+              "text": "OAR_SHARE_A_afterinterrupt",
+              "text_elements": []
+            }
+          ],
+          "clientUserMessageId": "after-interrupt",
+          "responsesapiClientMetadata": null
+        }
+      ],
+      "nextCursor": null
+    },
+    "nextPrompt": {
+      "id": "01a1e3ad-eaa2-7281-a88f-85b7b0dc45bb",
+      "rootTurnId": "01a1e3ad-eaa2-7281-a88f-85b7b0dc45bb",
+      "items": [
+        {
+          "type": "agentMessage",
+          "moderation": null,
+          "id": "msg-3KI6Kk4GNRnci3Pr",
+          "text": "ANSWER_A_wake",
+          "phase": null,
+          "memoryCitation": null,
+          "delivery": null,
+          "questions": null,
+          "startedAtMs": 1794821188298,
+          "completedAtMs": 1794821188298
+        }
+      ],
+      "itemsView": "summary",
+      "status": "completed",
+      "error": null,
+      "startedAt": 1794821188,
+      "completedAt": 1794821188,
+      "durationMs": 45
+    },
+    "turns": [
+      {
+        "client": 0,
+        "method": "turn/completed",
+        "params": {
+          "threadId": "01a1e3ad-c18f-7350-af4b-d9ee8316375b",
+          "turn": {
+            "id": "01a1e3ad-eaa2-7281-a88f-85b7b0dc45bb",
+            "rootTurnId": "01a1e3ad-eaa2-7281-a88f-85b7b0dc45bb",
+            "items": [
+              {
+                "type": "agentMessage",
+                "moderation": null,
+                "id": "msg-3KI6Kk4GNRnci3Pr",
+                "text": "ANSWER_A_wake",
+                "phase": null,
+                "memoryCitation": null,
+                "delivery": null,
+                "questions": null,
+                "startedAtMs": 1794821188298,
+                "completedAtMs": 1794821188298
+              }
+            ],
+            "itemsView": "summary",
+            "status": "completed",
+            "error": null,
+            "startedAt": 1794821188,
+            "completedAt": 1794821188,
+            "durationMs": 45
+          }
+        }
+      },
+      {
+        "client": 0,
+        "method": "turn/completed",
+        "params": {
+          "threadId": "01a1e3ad-c18f-7350-af4b-d9ee8316375b",
+          "turn": {
+            "id": "01a1e3ad-ead3-7c52-945c-4281a3619d86",
+            "rootTurnId": "01a1e3ad-ead3-7c52-945c-4281a3619d86",
+            "items": [
+              {
+                "type": "agentMessage",
+                "moderation": null,
+                "id": "msg-4ueWuJgjNacm23Fn",
+                "text": "ANSWER_A_afterinterrupt",
+                "phase": null,
+                "memoryCitation": null,
+                "delivery": null,
+                "questions": null,
+                "startedAtMs": 1794821188350,
+                "completedAtMs": 1794821188350
+              }
+            ],
+            "itemsView": "summary",
+            "status": "completed",
+            "error": null,
+            "startedAt": 1794821188,
+            "completedAt": 1794821188,
+            "durationMs": 45
+          }
+        }
+      }
+    ]
+  },
+  "providerOrder": [
+    "A_initial",
+    "A_idle",
+    "A_idle",
+    "A_idle",
+    "A_final",
+    "A_hold",
+    "A_wake",
+    "A_afterinterrupt"
+  ],
+  "finalQueue": {
+    "data": [],
+    "nextCursor": null
+  }
+}

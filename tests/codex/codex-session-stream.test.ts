@@ -7,6 +7,7 @@ import { viewOf } from "../../packages/oar/src/observe/session-view.js";
 import { awaitTurnEnd } from "../../packages/oar/src/observe/turns.js";
 import { codexSession } from "../../packages/oar/src/runtimes/codex/session.js";
 import { asRecord, type JsonRecord } from "../../packages/oar/src/shared/json.js";
+import { deliverInto } from "../../packages/oar/src/shared/deliver.js";
 import { fakeLineProcess, type FakeLineProcess } from "../fixtures/fake-line-process.js";
 import { steer } from "../fixtures/steer.js";
 import { abortStartedCodexCompaction } from "../../sea-trial/vendor/support/codex-compaction.js";
@@ -189,6 +190,52 @@ test("busy while a turn runs; steer, queue and abort answer through the RPC repl
   // dispose awaited the exit, so the stream holds an exited response and the
   // kernel's reachability answer reads that first.
   expect(await bodiesOf([session.prompt("dead")])).toEqual([{ kind: "rejected", code: "runtime_exited", reason: "runtime exited" }]);
+});
+
+// oxlint-disable-next-line eslint/max-statements -- Pin stale delivery, its two recorded refusals, and later recovery in one lifecycle.
+test("deliver with stale running status reports the interrupted idle queue refusal", async () => {
+  const fake = scriptedAppServer();
+  const session = await codexSession(installation, { cwd: "/work" });
+  try {
+    await session.prompt("hold");
+    const stale = session.status();
+    expect(stale.value.kind).toBe("running");
+    await session.abort();
+    const written = fake.written.length;
+    const inputId = "00000000-0000-4000-8000-000000000004";
+    const result = await deliverInto({ ...session, status: () => stale }, "follow-up", { inputId });
+    expect(result).toMatchObject({ landed: "rejected", inputId, code: "no_active_turn",
+      reason: "Codex does not automatically consume queued input after interruption; use prompt to start a new turn" });
+    expect(fake.written).toHaveLength(written);
+    expect(session.records().slice(-4).map((record) => record.body)).toMatchObject([
+      { kind: "steer", inputId }, { kind: "rejected", code: "no_active_turn" },
+      { kind: "queue", inputId }, { kind: "rejected", code: "no_active_turn" },
+    ]);
+    const continued = await session.prompt("continue");
+    expect(continued.response.body.kind).toBe("accepted");
+    const afterCompletion = await session.queue("after normal completion");
+    expect(afterCompletion.response.body.kind).toBe("accepted");
+  } finally { await session.dispose(); }
+});
+
+// oxlint-disable-next-line eslint/max-statements -- Contrast child and root lifecycle signals without reopening the session.
+test("only root interrupted completion pauses idle queue admission", async () => {
+  const fake = scriptedAppServer();
+  const session = await codexSession(installation, { cwd: "/work" });
+  try {
+    notify(fake, "turn/completed", { threadId: "child", turn: { id: "child-turn", status: "interrupted" } });
+    const afterChild = await session.queue("child interruption is unrelated");
+    expect(afterChild.response.body.kind).toBe("accepted");
+    notify(fake, "turn/completed", { threadId, turn: { id: "root-turn", status: "interrupted" } });
+    const paused = await session.queue("paused");
+    expect(paused.response.body).toMatchObject({ kind: "rejected", code: "no_active_turn" });
+    notify(fake, "turn/started", { threadId: "child", turn: { id: "next-child" } });
+    const stillPaused = await session.queue("still paused");
+    expect(stillPaused.response.body).toMatchObject({ kind: "rejected", code: "no_active_turn" });
+    notify(fake, "turn/started", { threadId, turn: { id: "next-root" } });
+    const runningAgain = await session.queue("root running again");
+    expect(runningAgain.response.body.kind).toBe("accepted");
+  } finally { await session.dispose(); }
 });
 
 test("an interrupt the runtime refuses is a rejected abort, not an error", async () => {
