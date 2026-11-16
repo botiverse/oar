@@ -1,9 +1,10 @@
 /* oxlint-disable import/max-dependencies -- Both protocol drivers share the same actual process-tree transition. */
 import { fileURLToPath } from "node:url";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { afterEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import type { Session } from "../packages/oar/src/contracts/session.js";
 import { awaitTurnEnd } from "../packages/oar/src/observe/turns.js";
 import { acpSession } from "../packages/oar/src/shared/acp/session.js";
@@ -19,10 +20,24 @@ import type { ProcessTableObservation } from "../packages/oar/src/shared/executa
 import * as cancellation from "../packages/oar/src/shared/executable/process-cancellation.js";
 import { processTablePreparation } from "../packages/oar/src/shared/executable/process-table-preparation.js";
 import { gone } from "./fixtures/process-tree.js";
+import captureProcessTiming from "./fixtures/process-timing.js";
 
 const fixture = fileURLToPath(new URL("fixtures/cancellation-orphan-agent.mjs", import.meta.url));
 const installation = { kind: "available", via: "executable", command: process.execPath } as const;
-afterEach(() => { vi.restoreAllMocks(); vi.unstubAllEnvs(); });
+let timing: ReturnType<typeof captureProcessTiming> | undefined = undefined;
+beforeEach(() => { timing = captureProcessTiming(); });
+afterEach(async context => {
+  timing?.stop();
+  try {
+    if (process.platform === "win32" || process.env.OAR_CANCELLATION_TIMING === "1" || context.task.result?.state === "fail") {
+      const report = JSON.stringify({ test: context.task.name, ...timing?.snapshot() });
+      const dir = path.join(process.env.OAR_TRIAL_RUN_DIR ?? "oar-trial-run", "cancellation-timing");
+      await mkdir(dir, { recursive: true });
+      await writeFile(path.join(dir, `${randomUUID()}.json`), `${report}\n`);
+      console.log("OAR_CANCELLATION_TIMING", report);
+    }
+  } finally { vi.restoreAllMocks(); vi.unstubAllEnvs(); }
+});
 async function open(protocol: string, resume: boolean): Promise<Session> {
   if (protocol === "acp") {
     return acpSession({ args: [fixture, protocol], abortTimeoutMs: 250, capabilities: { queue: { durable: false }, attribution: "opaque" } })(installation,
@@ -43,9 +58,9 @@ function messages(session: Session, since: number): readonly Record<string, unkn
 function cancellationDiagnostics(): Record<string, unknown>[] {
   const observations: Record<string, unknown>[] = [];
   const observe = cancellation.observeBeforeCancellation;
-  vi.spyOn(cancellation, "observeBeforeCancellation").mockImplementation(async () => {
+  vi.spyOn(cancellation, "observeBeforeCancellation").mockImplementation(async requestId => {
     const preparation = processTablePreparation(), started = performance.now();
-    const result = await observe();
+    const result = await observe(requestId);
     const { table: _table, ...metadata } = result.ok ? result : { ...result, table: undefined };
     observations.push({ preparationAtRequest: preparation, preparationAtReturn: processTablePreparation(), waitMs: performance.now() - started, ...metadata });
     return result;

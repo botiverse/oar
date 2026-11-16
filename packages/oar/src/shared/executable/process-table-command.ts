@@ -5,7 +5,11 @@ import { trackOwnedProcess } from "./ownership.js";
 
 export const PROCESS_TABLE_TIMEOUT_MS = 5000;
 const MAX_OUTPUT = 16 * 1024 * 1024;
-export interface ProcessTableReadOptions { readonly background?: boolean; }
+export interface ProcessTableReadOptions {
+  readonly background?: boolean;
+  /** Internal timing correlation only, never a native process identity. */
+  readonly requestId?: number;
+}
 
 /** A query deadline includes pipe drain; a dead root cannot leave this read waiting on close. */
 export async function processTableCommand(command: string, args: readonly string[], env?: NodeJS.ProcessEnv, options?: ProcessTableReadOptions): Promise<string> {

@@ -48,8 +48,8 @@ test.each([false, true])("ACP background query queue: wait before cancelling = %
     }
     vi.spyOn(tables, "observeProcessTableAsync").mockImplementation(async (selected, options) => batch(selected ?? source, options));
     const observe = cancellation.observeBeforeCancellation;
-    vi.spyOn(cancellation, "observeBeforeCancellation").mockImplementation(async () => {
-      const requested = performance.now(), result = await observe();
+    vi.spyOn(cancellation, "observeBeforeCancellation").mockImplementation(async requestId => {
+      const requested = performance.now(), result = await observe(requestId);
       const { table: _table, ...metadata } = result.ok ? result : { ...result, table: undefined };
       observations.push({ requested, returned: performance.now(), ...metadata });
       return result;
