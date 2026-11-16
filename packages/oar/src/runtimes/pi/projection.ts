@@ -246,8 +246,9 @@ export function foldPiEvent(
   event: AgentSessionEvent,
   extra: PiFoldExtra = {},
 ): { readonly state: PiProjectionState; readonly commands: readonly ProjectionCommand[] } {
-  // A session_start extension can launch a run before we subscribe. Its
-  // message/tool/turn events still prove a run. Custom messages can also be
+  // RPC can subscribe after a session_start extension has launched a run.
+  // Later message/tool/turn events still prove a run. SDK startup subscribes
+  // before binding extensions. Custom messages can also be
   // appended while idle or on failed preparation, so they do not prove one;
   // neither do configuration, persistence, queue or standalone compaction.
   const runEvidence = event.type === "agent_start" || event.type === "agent_end"
