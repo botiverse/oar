@@ -145,7 +145,9 @@ Native echoes (`user_message.input`) remain text only.
   native item ID and turn ID are retained. Item completion does not create a
   second user message event. DSH's `user/message` also uses this evidence;
   its native message id is the input ID
-  ([DSH mapping](../runtimes/dsh.md)).
+  ([DSH mapping](../runtimes/dsh.md)), as is Factory's user `create_message`
+  under the `messageId` OAR sent
+  ([Factory mapping](../runtimes/factory.md#prompting-steering-queueing-and-abort)).
 - `conversation`: Pi's user `message_start`, and cursor's
   `user-message-appended` for a delivered steer. There is no proven native
   request association, so `inputId` is absent. Template expansion and
@@ -153,7 +155,7 @@ Native echoes (`user_message.input`) remain text only.
 
 No evidence kind promises model consumption or semantic effect. Request
 acceptance and native observation are independent facts. The ACP runtimes
-(grok, kimi, antigravity, opencode, codebuddy) carry logical input identity only; no native
+(grok, kimi, antigravity, opencode, codebuddy, devin) carry logical input identity only; no native
 message correlation has been verified for them. Raw payloads remain
 unmodified on frames. OAR never adds markers to a user's input text to
 correlate it, and never derives a universal "consumed" event from turn
@@ -257,7 +259,13 @@ Only an adapter with native evidence of discard emits it, on the frame
 that proves the discard. A turn ending alone says nothing about unread input.
 Codex emits it on an interrupted root `turn/completed`, before `turn_ended`,
 for accepted steers to that turn with no user-message echo. It does not
-apply to Codex's durable queue, another turn, or an echoed steer.
+apply to Codex's durable queue, another turn, or an echoed steer. Factory
+emits it for steers droid reports discarded on interrupt
+(`queued_messages_discarded`, naming their RPC ids) and for input droid hands
+back unstarted (`queued_message_handed_back`), and DSH for inbox
+entries its native `agent/inbox/spliced` reports `canceled` on abort, never
+for a withdraw ([Factory](../runtimes/factory.md#prompting-steering-queueing-and-abort),
+[DSH](../runtimes/dsh.md)).
 [Runtime evidence](../../experiments/input-interruption-2026-10-08.md)
 distinguishes runtimes that retain input and the remaining Grok ambiguity.
 
