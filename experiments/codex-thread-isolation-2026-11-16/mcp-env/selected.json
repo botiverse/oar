@@ -1,0 +1,682 @@
+{
+  "runtime": "codex-cli 0.169.0",
+  "platform": "linux",
+  "syntheticTokens": {
+    "mcpA": "OAR_SYNTHETIC_243_mcpA_20261116_TOKEN",
+    "mcpB": "OAR_SYNTHETIC_243_mcpB_20261116_TOKEN",
+    "shellA": "OAR_SYNTHETIC_243_shellA_20261116_TOKEN",
+    "shellB": "OAR_SYNTHETIC_243_shellB_20261116_TOKEN",
+    "processDefault": "OAR_SYNTHETIC_243_processDefault_20261116_TOKEN",
+    "unlisted": "OAR_SYNTHETIC_243_unlisted_20261116_TOKEN",
+    "allowed": "OAR_SYNTHETIC_243_allowed_20261116_TOKEN"
+  },
+  "phases": [
+    {
+      "phase": "start",
+      "turnsCompleted": 4,
+      "children": [
+        {
+          "at": "2026-11-16T10:48:59.571Z",
+          "instance": "5d3f993f-0585-4bf6-a4fb-96743333cc8a",
+          "env": {
+            "OAR_MCP_TOKEN": "OAR_SYNTHETIC_243_mcpA_20261116_TOKEN",
+            "OAR_SHELL_TOKEN": null,
+            "OAR_UNLISTED_CONTROL": null,
+            "OAR_ALLOWED_CONTROL": "OAR_SYNTHETIC_243_allowed_20261116_TOKEN"
+          },
+          "kind": "mcp-start"
+        },
+        {
+          "at": "2026-11-16T10:48:59.599Z",
+          "instance": "5d5a3641-4cb8-4ff4-b661-7333edd55ad6",
+          "env": {
+            "OAR_MCP_TOKEN": "OAR_SYNTHETIC_243_mcpB_20261116_TOKEN",
+            "OAR_SHELL_TOKEN": null,
+            "OAR_UNLISTED_CONTROL": null,
+            "OAR_ALLOWED_CONTROL": "OAR_SYNTHETIC_243_allowed_20261116_TOKEN"
+          },
+          "kind": "mcp-start"
+        },
+        {
+          "at": "2026-11-16T10:48:59.720Z",
+          "instance": "5d3f993f-0585-4bf6-a4fb-96743333cc8a",
+          "env": {
+            "OAR_MCP_TOKEN": "OAR_SYNTHETIC_243_mcpA_20261116_TOKEN",
+            "OAR_SHELL_TOKEN": null,
+            "OAR_UNLISTED_CONTROL": null,
+            "OAR_ALLOWED_CONTROL": "OAR_SYNTHETIC_243_allowed_20261116_TOKEN"
+          },
+          "kind": "mcp-call",
+          "input": "A"
+        },
+        {
+          "at": "2026-11-16T10:48:59.955Z",
+          "instance": "10e26c11-aef7-4fcc-8751-7f56541242a9",
+          "env": {
+            "OAR_MCP_TOKEN": "OAR_SYNTHETIC_243_processDefault_20261116_TOKEN",
+            "OAR_SHELL_TOKEN": "OAR_SYNTHETIC_243_shellA_20261116_TOKEN",
+            "OAR_UNLISTED_CONTROL": "OAR_SYNTHETIC_243_unlisted_20261116_TOKEN",
+            "OAR_ALLOWED_CONTROL": "OAR_SYNTHETIC_243_allowed_20261116_TOKEN"
+          },
+          "kind": "shell"
+        },
+        {
+          "at": "2026-11-16T10:49:00.101Z",
+          "instance": "5d5a3641-4cb8-4ff4-b661-7333edd55ad6",
+          "env": {
+            "OAR_MCP_TOKEN": "OAR_SYNTHETIC_243_mcpB_20261116_TOKEN",
+            "OAR_SHELL_TOKEN": null,
+            "OAR_UNLISTED_CONTROL": null,
+            "OAR_ALLOWED_CONTROL": "OAR_SYNTHETIC_243_allowed_20261116_TOKEN"
+          },
+          "kind": "mcp-call",
+          "input": "B"
+        },
+        {
+          "at": "2026-11-16T10:49:00.263Z",
+          "instance": "d48ed795-b53f-49b9-ac8c-8671c9b5d209",
+          "env": {
+            "OAR_MCP_TOKEN": "OAR_SYNTHETIC_243_processDefault_20261116_TOKEN",
+            "OAR_SHELL_TOKEN": "OAR_SYNTHETIC_243_shellB_20261116_TOKEN",
+            "OAR_UNLISTED_CONTROL": "OAR_SYNTHETIC_243_unlisted_20261116_TOKEN",
+            "OAR_ALLOWED_CONTROL": "OAR_SYNTHETIC_243_allowed_20261116_TOKEN"
+          },
+          "kind": "shell"
+        }
+      ]
+    },
+    {
+      "phase": "resume-omitted",
+      "turnsCompleted": 4,
+      "children": [
+        {
+          "at": "2026-11-16T10:49:01.107Z",
+          "instance": "abda03e0-8ad4-4a59-b0bd-13f1ef3845d8",
+          "env": {
+            "OAR_MCP_TOKEN": "OAR_SYNTHETIC_243_processDefault_20261116_TOKEN",
+            "OAR_SHELL_TOKEN": null,
+            "OAR_UNLISTED_CONTROL": "OAR_SYNTHETIC_243_unlisted_20261116_TOKEN",
+            "OAR_ALLOWED_CONTROL": "OAR_SYNTHETIC_243_allowed_20261116_TOKEN"
+          },
+          "kind": "shell"
+        },
+        {
+          "at": "2026-11-16T10:49:01.387Z",
+          "instance": "2742d215-b041-4f66-aaf9-6c87cffb4509",
+          "env": {
+            "OAR_MCP_TOKEN": "OAR_SYNTHETIC_243_processDefault_20261116_TOKEN",
+            "OAR_SHELL_TOKEN": null,
+            "OAR_UNLISTED_CONTROL": "OAR_SYNTHETIC_243_unlisted_20261116_TOKEN",
+            "OAR_ALLOWED_CONTROL": "OAR_SYNTHETIC_243_allowed_20261116_TOKEN"
+          },
+          "kind": "shell"
+        }
+      ]
+    },
+    {
+      "phase": "resume-supplied",
+      "turnsCompleted": 4,
+      "children": [
+        {
+          "at": "2026-11-16T10:49:01.915Z",
+          "instance": "068f6062-d79d-4c4c-a47e-510f6d3d1d5e",
+          "env": {
+            "OAR_MCP_TOKEN": "OAR_SYNTHETIC_243_mcpA_20261116_TOKEN",
+            "OAR_SHELL_TOKEN": null,
+            "OAR_UNLISTED_CONTROL": null,
+            "OAR_ALLOWED_CONTROL": "OAR_SYNTHETIC_243_allowed_20261116_TOKEN"
+          },
+          "kind": "mcp-start"
+        },
+        {
+          "at": "2026-11-16T10:49:02.010Z",
+          "instance": "4149b618-f944-42c0-bfcb-7c7efa853c4b",
+          "env": {
+            "OAR_MCP_TOKEN": "OAR_SYNTHETIC_243_mcpB_20261116_TOKEN",
+            "OAR_SHELL_TOKEN": null,
+            "OAR_UNLISTED_CONTROL": null,
+            "OAR_ALLOWED_CONTROL": "OAR_SYNTHETIC_243_allowed_20261116_TOKEN"
+          },
+          "kind": "mcp-start"
+        },
+        {
+          "at": "2026-11-16T10:49:02.157Z",
+          "instance": "068f6062-d79d-4c4c-a47e-510f6d3d1d5e",
+          "env": {
+            "OAR_MCP_TOKEN": "OAR_SYNTHETIC_243_mcpA_20261116_TOKEN",
+            "OAR_SHELL_TOKEN": null,
+            "OAR_UNLISTED_CONTROL": null,
+            "OAR_ALLOWED_CONTROL": "OAR_SYNTHETIC_243_allowed_20261116_TOKEN"
+          },
+          "kind": "mcp-call",
+          "input": "A"
+        },
+        {
+          "at": "2026-11-16T10:49:02.332Z",
+          "instance": "0845af69-c12b-490e-816b-3ee294a83b72",
+          "env": {
+            "OAR_MCP_TOKEN": "OAR_SYNTHETIC_243_processDefault_20261116_TOKEN",
+            "OAR_SHELL_TOKEN": "OAR_SYNTHETIC_243_shellA_20261116_TOKEN",
+            "OAR_UNLISTED_CONTROL": "OAR_SYNTHETIC_243_unlisted_20261116_TOKEN",
+            "OAR_ALLOWED_CONTROL": "OAR_SYNTHETIC_243_allowed_20261116_TOKEN"
+          },
+          "kind": "shell"
+        },
+        {
+          "at": "2026-11-16T10:49:02.470Z",
+          "instance": "4149b618-f944-42c0-bfcb-7c7efa853c4b",
+          "env": {
+            "OAR_MCP_TOKEN": "OAR_SYNTHETIC_243_mcpB_20261116_TOKEN",
+            "OAR_SHELL_TOKEN": null,
+            "OAR_UNLISTED_CONTROL": null,
+            "OAR_ALLOWED_CONTROL": "OAR_SYNTHETIC_243_allowed_20261116_TOKEN"
+          },
+          "kind": "mcp-call",
+          "input": "B"
+        },
+        {
+          "at": "2026-11-16T10:49:02.638Z",
+          "instance": "28b4aa43-cc21-477f-a191-86622e6c48c4",
+          "env": {
+            "OAR_MCP_TOKEN": "OAR_SYNTHETIC_243_processDefault_20261116_TOKEN",
+            "OAR_SHELL_TOKEN": "OAR_SYNTHETIC_243_shellB_20261116_TOKEN",
+            "OAR_UNLISTED_CONTROL": "OAR_SYNTHETIC_243_unlisted_20261116_TOKEN",
+            "OAR_ALLOWED_CONTROL": "OAR_SYNTHETIC_243_allowed_20261116_TOKEN"
+          },
+          "kind": "shell"
+        }
+      ]
+    }
+  ],
+  "recursiveHomeScans": [
+    {
+      "phase": "start-before-prompts",
+      "filesRead": 73,
+      "bytesRead": 1004735,
+      "matches": [
+        {
+          "file": "shell_snapshots/THREAD_1.1794826139544729655.sh",
+          "bytes": 8008,
+          "sha256": "13843d07841652ff8a452348e80d0f9d08bbcb2c5b78da16f09d7f5bc5f1ea3f",
+          "hits": [
+            "processDefault",
+            "unlisted",
+            "allowed"
+          ]
+        }
+      ],
+      "sqliteFiles": [
+        "goals_1.sqlite",
+        "goals_1.sqlite-shm",
+        "goals_1.sqlite-wal",
+        "logs_2.sqlite",
+        "logs_2.sqlite-shm",
+        "logs_2.sqlite-wal",
+        "memories_1.sqlite",
+        "memories_1.sqlite-shm",
+        "memories_1.sqlite-wal",
+        "queue_1.sqlite",
+        "queue_1.sqlite-shm",
+        "queue_1.sqlite-wal",
+        "state_5.sqlite",
+        "state_5.sqlite-shm",
+        "state_5.sqlite-wal"
+      ]
+    },
+    {
+      "phase": "start-live",
+      "filesRead": 98,
+      "bytesRead": 8000868,
+      "matches": [
+        {
+          "file": "shell_snapshots/THREAD_1.1794826139544729655.sh",
+          "bytes": 8008,
+          "sha256": "13843d07841652ff8a452348e80d0f9d08bbcb2c5b78da16f09d7f5bc5f1ea3f",
+          "hits": [
+            "processDefault",
+            "unlisted",
+            "allowed"
+          ]
+        }
+      ],
+      "sqliteFiles": [
+        "goals_1.sqlite",
+        "goals_1.sqlite-shm",
+        "goals_1.sqlite-wal",
+        "logs_2.sqlite",
+        "logs_2.sqlite-shm",
+        "logs_2.sqlite-wal",
+        "memories_1.sqlite",
+        "memories_1.sqlite-shm",
+        "memories_1.sqlite-wal",
+        "queue_1.sqlite",
+        "queue_1.sqlite-shm",
+        "queue_1.sqlite-wal",
+        "state_5.sqlite",
+        "state_5.sqlite-shm",
+        "state_5.sqlite-wal",
+        "thread_history_1.sqlite",
+        "thread_history_1.sqlite-shm",
+        "thread_history_1.sqlite-wal"
+      ]
+    },
+    {
+      "phase": "start-stopped",
+      "filesRead": 74,
+      "bytesRead": 3297131,
+      "matches": [],
+      "sqliteFiles": [
+        "goals_1.sqlite",
+        "goals_1.sqlite-shm",
+        "goals_1.sqlite-wal",
+        "logs_2.sqlite",
+        "logs_2.sqlite-shm",
+        "logs_2.sqlite-wal",
+        "memories_1.sqlite",
+        "memories_1.sqlite-shm",
+        "memories_1.sqlite-wal",
+        "queue_1.sqlite",
+        "queue_1.sqlite-shm",
+        "queue_1.sqlite-wal",
+        "state_5.sqlite",
+        "state_5.sqlite-shm",
+        "state_5.sqlite-wal",
+        "thread_history_1.sqlite",
+        "thread_history_1.sqlite-shm",
+        "thread_history_1.sqlite-wal"
+      ]
+    },
+    {
+      "phase": "resume-omitted-before-prompts",
+      "filesRead": 79,
+      "bytesRead": 3313168,
+      "matches": [
+        {
+          "file": "shell_snapshots/THREAD_0.1794826140753624344.sh",
+          "bytes": 8008,
+          "sha256": "13843d07841652ff8a452348e80d0f9d08bbcb2c5b78da16f09d7f5bc5f1ea3f",
+          "hits": [
+            "processDefault",
+            "unlisted",
+            "allowed"
+          ]
+        },
+        {
+          "file": "shell_snapshots/THREAD_1.1794826140799474569.sh",
+          "bytes": 8008,
+          "sha256": "13843d07841652ff8a452348e80d0f9d08bbcb2c5b78da16f09d7f5bc5f1ea3f",
+          "hits": [
+            "processDefault",
+            "unlisted",
+            "allowed"
+          ]
+        }
+      ],
+      "sqliteFiles": [
+        "goals_1.sqlite",
+        "goals_1.sqlite-shm",
+        "goals_1.sqlite-wal",
+        "logs_2.sqlite",
+        "logs_2.sqlite-shm",
+        "logs_2.sqlite-wal",
+        "memories_1.sqlite",
+        "memories_1.sqlite-shm",
+        "memories_1.sqlite-wal",
+        "queue_1.sqlite",
+        "queue_1.sqlite-shm",
+        "queue_1.sqlite-wal",
+        "state_5.sqlite",
+        "state_5.sqlite-shm",
+        "state_5.sqlite-wal",
+        "thread_history_1.sqlite",
+        "thread_history_1.sqlite-shm",
+        "thread_history_1.sqlite-wal"
+      ]
+    },
+    {
+      "phase": "resume-omitted-live",
+      "filesRead": 97,
+      "bytesRead": 5217057,
+      "matches": [
+        {
+          "file": "shell_snapshots/THREAD_0.1794826140753624344.sh",
+          "bytes": 8008,
+          "sha256": "13843d07841652ff8a452348e80d0f9d08bbcb2c5b78da16f09d7f5bc5f1ea3f",
+          "hits": [
+            "processDefault",
+            "unlisted",
+            "allowed"
+          ]
+        },
+        {
+          "file": "shell_snapshots/THREAD_1.1794826140799474569.sh",
+          "bytes": 8008,
+          "sha256": "13843d07841652ff8a452348e80d0f9d08bbcb2c5b78da16f09d7f5bc5f1ea3f",
+          "hits": [
+            "processDefault",
+            "unlisted",
+            "allowed"
+          ]
+        }
+      ],
+      "sqliteFiles": [
+        "goals_1.sqlite",
+        "goals_1.sqlite-shm",
+        "goals_1.sqlite-wal",
+        "logs_2.sqlite",
+        "logs_2.sqlite-shm",
+        "logs_2.sqlite-wal",
+        "memories_1.sqlite",
+        "memories_1.sqlite-shm",
+        "memories_1.sqlite-wal",
+        "queue_1.sqlite",
+        "queue_1.sqlite-shm",
+        "queue_1.sqlite-wal",
+        "state_5.sqlite",
+        "state_5.sqlite-shm",
+        "state_5.sqlite-wal",
+        "thread_history_1.sqlite",
+        "thread_history_1.sqlite-shm",
+        "thread_history_1.sqlite-wal"
+      ]
+    },
+    {
+      "phase": "resume-omitted-stopped",
+      "filesRead": 94,
+      "bytesRead": 5381264,
+      "matches": [],
+      "sqliteFiles": [
+        "goals_1.sqlite",
+        "goals_1.sqlite-shm",
+        "goals_1.sqlite-wal",
+        "logs_2.sqlite",
+        "logs_2.sqlite-shm",
+        "logs_2.sqlite-wal",
+        "memories_1.sqlite",
+        "memories_1.sqlite-shm",
+        "memories_1.sqlite-wal",
+        "queue_1.sqlite",
+        "queue_1.sqlite-shm",
+        "queue_1.sqlite-wal",
+        "state_5.sqlite",
+        "state_5.sqlite-shm",
+        "state_5.sqlite-wal",
+        "thread_history_1.sqlite",
+        "thread_history_1.sqlite-shm",
+        "thread_history_1.sqlite-wal"
+      ]
+    },
+    {
+      "phase": "resume-supplied-before-prompts",
+      "filesRead": 99,
+      "bytesRead": 5397301,
+      "matches": [
+        {
+          "file": "shell_snapshots/THREAD_0.1794826141859908458.sh",
+          "bytes": 8008,
+          "sha256": "13843d07841652ff8a452348e80d0f9d08bbcb2c5b78da16f09d7f5bc5f1ea3f",
+          "hits": [
+            "processDefault",
+            "unlisted",
+            "allowed"
+          ]
+        },
+        {
+          "file": "shell_snapshots/THREAD_1.1794826141915926006.sh",
+          "bytes": 8008,
+          "sha256": "13843d07841652ff8a452348e80d0f9d08bbcb2c5b78da16f09d7f5bc5f1ea3f",
+          "hits": [
+            "processDefault",
+            "unlisted",
+            "allowed"
+          ]
+        }
+      ],
+      "sqliteFiles": [
+        "goals_1.sqlite",
+        "goals_1.sqlite-shm",
+        "goals_1.sqlite-wal",
+        "logs_2.sqlite",
+        "logs_2.sqlite-shm",
+        "logs_2.sqlite-wal",
+        "memories_1.sqlite",
+        "memories_1.sqlite-shm",
+        "memories_1.sqlite-wal",
+        "queue_1.sqlite",
+        "queue_1.sqlite-shm",
+        "queue_1.sqlite-wal",
+        "state_5.sqlite",
+        "state_5.sqlite-shm",
+        "state_5.sqlite-wal",
+        "thread_history_1.sqlite",
+        "thread_history_1.sqlite-shm",
+        "thread_history_1.sqlite-wal"
+      ]
+    },
+    {
+      "phase": "resume-supplied-live",
+      "filesRead": 119,
+      "bytesRead": 10592700,
+      "matches": [
+        {
+          "file": "shell_snapshots/THREAD_0.1794826141859908458.sh",
+          "bytes": 8008,
+          "sha256": "13843d07841652ff8a452348e80d0f9d08bbcb2c5b78da16f09d7f5bc5f1ea3f",
+          "hits": [
+            "processDefault",
+            "unlisted",
+            "allowed"
+          ]
+        },
+        {
+          "file": "shell_snapshots/THREAD_1.1794826141915926006.sh",
+          "bytes": 8008,
+          "sha256": "13843d07841652ff8a452348e80d0f9d08bbcb2c5b78da16f09d7f5bc5f1ea3f",
+          "hits": [
+            "processDefault",
+            "unlisted",
+            "allowed"
+          ]
+        }
+      ],
+      "sqliteFiles": [
+        "goals_1.sqlite",
+        "goals_1.sqlite-shm",
+        "goals_1.sqlite-wal",
+        "logs_2.sqlite",
+        "logs_2.sqlite-shm",
+        "logs_2.sqlite-wal",
+        "memories_1.sqlite",
+        "memories_1.sqlite-shm",
+        "memories_1.sqlite-wal",
+        "queue_1.sqlite",
+        "queue_1.sqlite-shm",
+        "queue_1.sqlite-wal",
+        "state_5.sqlite",
+        "state_5.sqlite-shm",
+        "state_5.sqlite-wal",
+        "thread_history_1.sqlite",
+        "thread_history_1.sqlite-shm",
+        "thread_history_1.sqlite-wal"
+      ]
+    },
+    {
+      "phase": "resume-supplied-stopped",
+      "filesRead": 115,
+      "bytesRead": 16413439,
+      "matches": [],
+      "sqliteFiles": [
+        "goals_1.sqlite",
+        "goals_1.sqlite-shm",
+        "goals_1.sqlite-wal",
+        "logs_2.sqlite",
+        "logs_2.sqlite-shm",
+        "logs_2.sqlite-wal",
+        "memories_1.sqlite",
+        "memories_1.sqlite-shm",
+        "memories_1.sqlite-wal",
+        "queue_1.sqlite",
+        "queue_1.sqlite-shm",
+        "queue_1.sqlite-wal",
+        "state_5.sqlite",
+        "state_5.sqlite-shm",
+        "state_5.sqlite-wal",
+        "thread_history_1.sqlite",
+        "thread_history_1.sqlite-shm",
+        "thread_history_1.sqlite-wal"
+      ]
+    }
+  ],
+  "providerPayloads": {
+    "stdioRequests": 24,
+    "socketRequests": 3,
+    "tokenHits": []
+  },
+  "socketTransport": "explicit loopback WebSocket, no transport authentication",
+  "modelInvokedShellReads": [
+    {
+      "method": "initialize",
+      "includeTurns": null,
+      "responseKeys": [
+        "userAgent",
+        "codexHome",
+        "platformFamily",
+        "platformOs"
+      ],
+      "containsPeerPrompt": false,
+      "tokenHits": [],
+      "peerTurns": null
+    },
+    {
+      "method": "thread/list",
+      "includeTurns": null,
+      "responseKeys": [
+        "data",
+        "readStates",
+        "nextCursor",
+        "backwardsCursor"
+      ],
+      "containsPeerPrompt": true,
+      "tokenHits": [],
+      "peerTurns": null
+    },
+    {
+      "method": "thread/read",
+      "includeTurns": false,
+      "responseKeys": [
+        "thread",
+        "readState"
+      ],
+      "containsPeerPrompt": true,
+      "tokenHits": [],
+      "peerTurns": []
+    },
+    {
+      "method": "thread/read",
+      "includeTurns": true,
+      "responseKeys": [
+        "thread",
+        "readState"
+      ],
+      "containsPeerPrompt": true,
+      "tokenHits": [],
+      "peerTurns": [
+        {
+          "id": "01a1e3f9-8d30-7e63-92f5-392845e2b873",
+          "rootTurnId": "01a1e3f9-8d30-7e63-92f5-392845e2b873",
+          "items": [
+            {
+              "type": "userMessage",
+              "id": "01a1e3f9-8d6e-77d1-8ca8-9444c7db9f3d",
+              "clientId": null,
+              "content": [
+                {
+                  "type": "text",
+                  "text": "OAR_SHARE_B_echo",
+                  "text_elements": []
+                }
+              ],
+              "startedAtMs": 1794826145135,
+              "completedAtMs": 1794826145135
+            },
+            {
+              "type": "reasoning",
+              "id": "rs--7AtxeJCJusxT-jL",
+              "summary": [],
+              "content": [],
+              "startedAtMs": 1794826145183,
+              "completedAtMs": 1794826145183
+            },
+            {
+              "type": "agentMessage",
+              "moderation": null,
+              "id": "msg-Vl6myRhfohzM3TE1",
+              "text": "ANSWER_B_echo",
+              "phase": null,
+              "memoryCitation": null,
+              "delivery": null,
+              "questions": null,
+              "startedAtMs": 1794826145186,
+              "completedAtMs": 1794826145186
+            }
+          ],
+          "itemsView": "full",
+          "status": "completed",
+          "error": null,
+          "startedAt": 1794826145,
+          "completedAt": 1794826145,
+          "durationMs": 120
+        }
+      ]
+    },
+    {
+      "method": "config/read",
+      "includeTurns": null,
+      "responseKeys": [
+        "config",
+        "origins",
+        "layers"
+      ],
+      "containsPeerPrompt": false,
+      "tokenHits": [],
+      "peerTurns": null
+    }
+  ],
+  "sourceComparison": [
+    {
+      "path": "codex-rs/rmcp-client/src/utils.rs",
+      "sameBytes": true,
+      "mainSHA256": "29e49df7365ecdd1f718c8c3e2d084c1a4aea5787bf8cf1f337e05f20ebfdcbf",
+      "pinnedSHA256": "29e49df7365ecdd1f718c8c3e2d084c1a4aea5787bf8cf1f337e05f20ebfdcbf"
+    },
+    {
+      "path": "codex-rs/codex-mcp/src/server.rs",
+      "sameBytes": false,
+      "mainSHA256": "2159a7e4472d44cda3e0b6c6242ed7b2d10cdd0108356572bd44b4038ef0f926",
+      "pinnedSHA256": "0f29f7458c4ccbf6ece9408cb5e24cb98f431f1b79433ce2ad13f0432e529eee"
+    },
+    {
+      "path": "codex-rs/hooks/src/registry.rs",
+      "sameBytes": false,
+      "mainSHA256": "1875149dc3fbe79ecf667009f3fcde7b655961b0451840aec85dcb7879e58a8e",
+      "pinnedSHA256": "06e349e62e53eee6c3a7418667868d57119cbf52be99271137b7f8c14dea4d85"
+    }
+  ],
+  "rawManifest": [
+    {
+      "name": "stdio-evidence.json",
+      "bytes": 1765998,
+      "sha256": "3bbac601724f16dc64f722e73dd8fcfe19bc5dc43260bdf271dae4e2fcc7f072"
+    },
+    {
+      "name": "socket-evidence.json",
+      "bytes": 223277,
+      "sha256": "b5ebaf43dfde9f7225a11fe7f0203c241fd0299239dc62ac9b72f9cf8bb47698"
+    },
+    {
+      "name": "source-comparison.json",
+      "bytes": 762,
+      "sha256": "a9475d0db23f33556f48f6a7fad1ae7514d637515128aafa282516bd1a1b972b"
+    }
+  ]
+}
