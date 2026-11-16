@@ -95,9 +95,9 @@ export async function codexFixture(timing = new ProbeTiming()) {
       catch (error) { row.error = String(error); throw error; }
       finally { clearTimeout(timer); }
     };
-    const connect = async (): Promise<AppServerClient> => {
+    const connect = async (launchEnvironment: Readonly<Record<string, string>> = {}): Promise<AppServerClient> => {
       const before = checkedProcessTable();
-      const client = startAppServerClient(process.env.OAR_CODEX_BIN ?? "codex", environment,
+      const client = startAppServerClient(process.env.OAR_CODEX_BIN ?? "codex", { ...environment, ...launchEnvironment },
         { sandbox_mode: '"danger-full-access"', "features.code_mode": "false", "features.multi_agent_v2": "true" }, home);
       const index = clients.length; clients.push(client);
       client.handle({ onNotification: (method, params) => { events.push({ client: index, method, params }); },
