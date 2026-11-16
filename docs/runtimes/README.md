@@ -23,25 +23,25 @@ Pi Durable SDKs before selecting live probes.
 | [Claude Code](claude.md) | CLI print mode, bidirectional `stream-json` | Persistent conversations, user turns versus model steps, input delivery, native children, usage |
 | [Codex](codex.md) | App-server v2 over stdio | Thread/turn/item identity, bidirectional requests, native queue, collaboration threads |
 | [CodeBuddy Code](codebuddy.md) | Native CLI ACP sessions; private stream-json account controls | Consecutive turns, model/effort readback, native context 0/0 and token-ledger limits |
+| [Cursor](cursor.md) | Embedded `@cursor/sdk` (local agent) | Agent versus run, steer acknowledgement, subagent updates inside the task call, per-family effort parameters, the SDK's own credential |
 | [DeepSeek Harness](dsh.md) | `dsh --profile acp` with a private plugin over injected native services, no ACP | Durable log versus transient stream, native inbox, version floor and method inventory, child catalog edges, resume by saved directory |
 | [Devin](devin.md) | `devin acp`, native CLI (`3000.12.57` probed) | `bypass` mode selection, synchronous `session/set_config_option` model/effort, `session/list` resume-cwd guard, `WINDSURF_API_KEY` status boundary, `distribution` update markers |
 | [Factory Droid](factory.md) | `droid exec` stream-jsonrpc; sign-in on droid's own ACP entry | Native steering drained into the running turn, interrupt drops by RPC id, model/effort readback against silent fallback, custom models for login-free tests |
-| [Cursor](cursor.md) | Embedded `@cursor/sdk` (local agent) | Agent versus run, steer acknowledgement, subagent updates inside the task call, per-family effort parameters, the SDK's own credential |
 | [Grok](grok.md) | `grok agent stdio`, ACP plus vendor extensions | Shared-placement refusal, independent child sessions, client execution, context versus billing |
 | [Kimi](kimi.md) | TypeScript kimi-code's `kimi acp` | Session/agent/turn distinctions, native KAP versus ACP visibility, completion and compaction |
-| [OpenCode](opencode.md) | `opencode acp`, ACP | Installed v1/v2 line selection, native steering differences, child attribution, model queries and prompt-option limits |
 | [Mister Morph](morph.md) | **Community runtime** (`@botiverse/oar/community`); Console Runtime API over loopback HTTP + WebSocket | Topic as session, snapshot stream versus authoritative task query, steer by submission, attached versus started Console |
-| [Qwen Code](qwen.md) | CLI SDK channel, bidirectional `stream-json` | Native initialization, held input queue, restored usage boundary and cold extension-store lock |
-| [Qoder](qoder.md) | `qodercli --sdk` daemon protocol from 1.1.81 (bidirectional `stream-json` worker on 1.1.78 to 1.1.80) | Private login/status, native input cancellation, next-priority steering, per-query token visibility and current-open totals |
+| [OpenCode](opencode.md) | `opencode acp`, ACP | Installed v1/v2 line selection, native steering differences, child attribution, model queries and prompt-option limits |
 | [Pi](pi.md) | Embedded `@earendil-works/pi-coding-agent` SDK, or its optional native RPC process | Agent run versus internal turns, history tree, session replacement, extension-dependent capabilities |
 | [Pi Durable](pi-durable.md) | Host-owned `@earendil-works/pi-durable` Harness and `observeConversation` | Durable submissions, adopted runs, ordered view revisions, controller-only disposal and browser use |
+| [Qoder](qoder.md) | `qodercli --sdk` daemon protocol from 1.1.81 (bidirectional `stream-json` worker on 1.1.78 to 1.1.80) | Private login/status, native input cancellation, next-priority steering, per-query token visibility and current-open totals |
+| [Qwen Code](qwen.md) | CLI SDK channel, bidirectional `stream-json` | Native initialization, held input queue, restored usage boundary and cold extension-store lock |
 | [Maka](maka.md) | **Reference only; no OAR adapter** | Runtime Host client calls, continuation query/start, recovery identities and caller obligations |
 | [OpenAI Agents API](agents-api.md) | **Reference only; no OAR adapter** | Managed Codex harness over HTTP: session/turn/item model, input events as control, no-replay stream, environment as a separate object, subagent attribution fields |
 
 Cross-runtime investigations:
 
 - [Steer, queue and cancellation](input-cancellation.md) (local probes without model turns, 2026-09-16): native withdrawal surfaces, adapter-held queues, abort semantics.
-- [Resume in another directory](resume-cwd.md) (live, 2026-10-03; antigravity 2026-11-05): which runtimes keep a conversation when it moves to another working directory, and which refuse.
+- [Resume in another directory](resume-cwd.md) (live, 2026-10-03; antigravity 2026-11-05, devin 2026-11-13): which runtimes keep a conversation when it moves to another working directory, which refuse, and the typed `ResumeCwdError`.
 - [Steer delivery](steer-delivery.md) (scripted-provider probes, 2026-09-16): what each runtime echoes for a steer and how the echo correlates with the input.
 - [Native runtime inventories](inventory.md) (skills, commands, MCP servers and tools): what each runtime's own discovery calls return.
 - [Live model and effort changes](live-configure.md) (local probes, 2026-09-29): native setters that change a running session without a restart, and the adapter queues they meet.

@@ -65,7 +65,7 @@ export interface SessionOptions {
    * Supply again on resume. This launch choice is not recorded.
    */
   readonly endTurnProcessesOnAbort?: boolean;
-  /** Working directory the runtime operates in. With `resume`, a directory other than the session's own is refused where the runtime would run in its own instead (kimi, opencode: `UnsupportedOptionError` on `cwd`); pi and grok can report SessionNotFoundError for that cwd; Cursor reports what its SDK can find with this configuration (docs/runtimes/resume-cwd.md). */
+  /** Working directory the runtime operates in. With `resume`, a directory other than the session's own is refused where the runtime would run in its own instead (kimi, opencode, antigravity, devin, factory, dsh: `ResumeCwdError`, an `UnsupportedOptionError` on `cwd`); pi and grok can report SessionNotFoundError for that cwd; Cursor reports what its SDK can find with this configuration (docs/runtimes/resume-cwd.md). */
   readonly cwd: string;
   /**
    * Additional workspace directories, resolved relative to cwd. Uses the

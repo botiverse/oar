@@ -23,7 +23,9 @@ increments, not a promise to add every feature listed.
   settings as data a host renders and may only narrow
   ([capabilities](capabilities.md#a-form-for-choosing-settings)).
 - Capabilities as types ([capabilities](capabilities.md)): absent members for
-  missing operations, `UnsupportedOptionError` for refused options, and
+  missing operations, `UnsupportedOptionError` for refused options
+  (`ResumeCwdError` when a resume cannot honor or confirm its directory),
+  `ModelConfirmationError` when opening cannot confirm the requested model, and
   declarations only for pre-action decisions; native payload reachability and
   read-backs.
 - Runtimes whose SDK or engine the host installs and hands over

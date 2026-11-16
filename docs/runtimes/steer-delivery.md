@@ -21,16 +21,18 @@ the echo correlates with the input. The implemented API (`inputId`,
 | Kimi Code 0.42.0 | From source: no ACP steer method, so the session has no `steer`; `steerOrQueue` and `deliver` queue in the adapter-held queue | No native steer mapping on the selected ACP transport | Do not show queued input as successfully steered |
 | Cursor `@cursor/sdk` 1.4.0 | `run.steer(text)`; `accepted` for `complete_delivered` or `{ outcome: "queued" }`, with `native.ack` naming that outcome; `revert_to_followup` is rejected `runtime_refused` | A `user-message-appended` update for local delivery (native 1.4.0, 2026-11-16); queued means the SDK owns a follow-up, whose cloud run OAR does not observe | Text only, no id. Delivered and queued transfer ownership; only delivered establishes same-turn delivery ([Cursor evidence](../../experiments/cursor-sdk-1.4/README.md)) |
 
-Qwen and CodeBuddy sessions, and OpenCode v2 sessions whose `initialize`
-does not advertise `_session/steering` (before 2.2.7), have no `steer`
-either ([session controls](../spec/runtime-matrix.md#session-controls)).
+Qwen, CodeBuddy and Devin sessions, and OpenCode v2 sessions whose
+`initialize` does not advertise `_session/steering` (before 2.2.7), have no
+`steer` either ([session controls](../spec/runtime-matrix.md#session-controls)).
 The advertised OpenCode v2 steer was checked natively on 2.3.0 (Linux x64,
 local provider, 2026-11-14): steers during a reply and during a running tool
 reached the same turn's next model request; slash commands steer as plain
 text; an aborted turn keeps an accepted steer for the next prompt
 ([OpenCode](opencode.md#v2-session-behavior)). 2.2.7 was not run natively.
 DSH's `steer` (present only when its native method inventory advertises it)
-was not probed here; see [DSH](dsh.md#oar-mapping).
+and Factory's (a second `droid.add_user_message`, drained into the running
+turn) were not probed here; see [DSH](dsh.md#oar-mapping) and
+[Factory](factory.md#prompting-steering-queueing-and-abort).
 
 The Codex, Claude and Pi probes ran real installed harnesses against a
 **scripted local model endpoint**, not real accounts, each sending exactly one

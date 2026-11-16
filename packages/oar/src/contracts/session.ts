@@ -194,7 +194,7 @@ export interface AdapterSession {
   rawEvents(observer: RawEventObserver, cursor?: Cursor): Unsubscribe; // the stream itself, one record at a time. Side-tap: sync, never awaited; a throwing observer must not affect the run or other observers. With a cursor: replays every retained record after `afterSeq` synchronously, then continues live: no loss, no duplication.
   records(): readonly RawEvent[]; // every record this process observed, in seq order
   graph(): SessionGraph;
-  resources?(): Promise<SessionResources | null>; // the runtime's memory, read now (`SessionResources`); null once its process has exited, and on Windows (no reader yet). ABSENT where the runtime has no process of its own (in-process pi, cursor: its memory is the host's).
+  resources?(): Promise<SessionResources | null>; // the runtime's memory, read now (`SessionResources`); null once its process has exited, and on Windows (no reader yet). ABSENT where the runtime has no process of its own (in-process pi, in-process cursor: its memory is the host's) and for cursor's subprocess mode (no reader).
   contextBreakdown?(): Promise<ContextBreakdown | null>; // what fills the context window, by the runtime's own categories, asked of the runtime now and never recorded (`ContextBreakdown`); null from the start of a dispose and once its process has exited. A read can cost provider requests (claude counts tokens), so read on demand, never poll. ABSENT where the runtime cannot itemize its context (all but claude): a host then shows `contextUsage()`.
   /**
    * Bounded, recorded disposal. Success is idempotent; a failed close records rejected and can be retried.

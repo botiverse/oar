@@ -138,7 +138,7 @@ runtimes may legitimately differ.
 - `OAR_TEST=<runtime>-aimock pnpm sea-trial` (`claude-aimock`, `codex-aimock`,
   `pi-aimock`, `pi-rpc-aimock`, `pi-durable-aimock`, `qwen-aimock`,
   `grok-aimock`, `kimi-aimock`, `opencode-aimock`, `codebuddy-aimock`,
-  `dsh-aimock`, `antigravity-aimock`; Qoder uses `qoder-native`): the real
+  `dsh-aimock`, `factory-aimock`, `antigravity-aimock`; Qoder uses `qoder-native`): the real
   vendor binary and adapter with only the model provider scripted, no login. Use it when you touched a runtime's adapter: it
   catches real-process integration mistakes the mock cannot.
 - `OAR_TEST=scripted pnpm sea-trial`: the public `scriptedRuntime`
@@ -155,8 +155,8 @@ runtimes may legitimately differ.
   Pin local native binaries to the CI versions before comparing results (for
   example, `OAR_CODEBUDDY_BIN=/absolute/path/to/2.179.3/codebuddy`): an old
   installation found on PATH is not evidence about the pinned version.
-- `OAR_TEST=<real id>` (`antigravity`, `claude`, `codebuddy`, `codex`, `cursor`, `dsh`, `grok`,
-  `kimi`, `opencode`, `pi`, `qoder`, `qwen`): your local installation and login. The final word when
+- `OAR_TEST=<real id>` (`antigravity`, `claude`, `codebuddy`, `codex`, `cursor`, `devin`, `dsh`,
+  `factory`, `grok`, `kimi`, `opencode`, `pi`, `qoder`, `qwen`): your local installation and login. The final word when
   vendor reality is in doubt; it costs quota, so never run it by default.
 
 ### Vendor: is the runtime-specific integration right?
@@ -260,9 +260,11 @@ or pull request whose changes are all Markdown files or under `docs/` or
   same three systems for `claude-aimock`, `codex-aimock`, `pi-aimock`,
   `pi-rpc-aimock` (not on Windows, below), `pi-durable-aimock`, `qwen-aimock`,
   `dsh-aimock` (DSH pinned to `DSH_MINIMUM_VERSION` 0.2.1-rc.5, a missing
-  installation fails) and `qoder-native` (Qoder pinned to 1.1.81 because
-  native replay stops driving inference from 1.1.82), the last two at
-  shared-case concurrency 2.
+  installation fails), `qoder-native` (Qoder pinned to 1.1.81 because
+  native replay stops driving inference from 1.1.82), these two at
+  shared-case concurrency 2, and `factory-aimock` (droid pinned to 1.12.1
+  from npm, a missing installation fails; not on Windows, where OAR has not
+  verified droid's build).
 - `pi-rpc-minimum`: Ubuntu behavior and vendor suites with a separately
   installed Pi CLI 1.4.0 selected through `OAR_PI_RPC_COMMAND`. This guards the
   explicit-command floor while OAR keeps its current bundled dependency.
@@ -538,21 +540,18 @@ the CI gate or the GitHub release.
 ### Recover after npm publication
 
 If tag creation fails with `without workflows permission`, keep the original
-run's commit as the release target. This can happen when main gains workflow
-changes while the release waits for CI or publishes: the old commit's
-workflow files now differ from main. It does not mean every release that
-contains a workflow change will fail. The
-[0.108.1 investigation](../experiments/release-tag-permission-2026-11-15.md)
-records this ordering and the successful recovery.
+run's commit as the release target. This can happen when main gained workflow
+changes while the release waited for CI or published, so the release
+commit's workflow files differ from main's; containing a workflow change
+does not by itself make a release fail
+([0.108.1 investigation and recovery](../experiments/release-tag-permission-2026-11-15.md)).
 
-Changing the command to `gh release create --target <sha>` does not solve
-the permission problem: GitHub documents the same workflow-write requirement
-for [automatic tag creation by the releases API](https://docs.github.com/en/rest/releases/releases#create-a-release),
-which `GITHUB_TOKEN` cannot acquire. The
-[create-reference API](https://docs.github.com/en/rest/git/refs#create-a-reference)
-also lists workflow-write permission; it is not a verified bypass. Keep
-publication on the original commit rather than tagging a newer main or
-adding a more privileged credential to the job.
+`gh release create --target <sha>` does not avoid the problem: GitHub
+documents the same workflow-write requirement, which `GITHUB_TOKEN` cannot
+acquire, for [automatic tag creation by the releases API](https://docs.github.com/en/rest/releases/releases#create-a-release),
+and lists it for the [create-reference API](https://docs.github.com/en/rest/git/refs#create-a-reference)
+too (not a verified bypass). Do not tag a newer main or add a more
+privileged credential to the job.
 
 Only Cindy performs this recovery:
 
@@ -581,12 +580,12 @@ Only Cindy performs this recovery:
    tag before continuing. Stamp has a different authorization path from
    the workflow's `GITHUB_TOKEN`; if it refuses the push, keep the failure
    and resolve that permission with the repository owner.
-4. An external tag push triggers the legacy tag-push publish workflow.
-   Record and inspect that run before dispatching recovery. It is not
-   suppressed like a push made with `GITHUB_TOKEN`: 0.108.1 reran the publish
-   command, which found no new packages. Do not promise that a manual tag
-   push runs only the release job, and do not start another normal publish
-   dispatch or rerun all jobs after npm publication succeeded.
+4. An external tag push, unlike one made with `GITHUB_TOKEN`, triggers the
+   legacy tag-push publish workflow (on 0.108.1 it reran the publish
+   command, which found no new packages). Record and inspect that run before
+   dispatching recovery. Do not promise that a manual tag push runs only the
+   release job, and do not start another normal publish dispatch or rerun
+   all jobs after npm publication succeeded.
 
 If npm publication succeeded and the correct tag already exists but the
 GitHub release is missing, dispatch the recovery path explicitly from main
