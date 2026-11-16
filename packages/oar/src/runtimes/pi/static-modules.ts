@@ -2,22 +2,16 @@ import { configurePiHttp, type PiHttpSettings } from "./http.js";
 import { preparePiTheme, type PiThemeSettings } from "./theme.js";
 
 /*
- * pi's provider modules for a bundled host (#328). pi-ai loads its sign-in
- * flows (`auth/oauth/load.js`) and Bedrock (`bedrock-converse-stream.lazy.js`)
- * through a computed path, so that a browser bundler does not follow them
- * into Node-only code. A host bundled into one file (a Node single
- * executable) has no such files beside it, and every pi sign-in, OAuth turn
- * and Bedrock call failed with "Cannot find module". pi's own standalone
- * binary hands pi-ai the modules instead
- * (`pi-coding-agent/dist/bun/runtime-setup.js`); OAR makes the same two
- * calls. OAR runs pi in-process on Node only, so the browser reason does not
- * apply. The imports are literal, so a bundler follows them, and dynamic, so
- * a host that never uses pi does not load them (Bedrock's AWS SDK alone takes
- * about 60 to 140 ms).
+ * Pi's computed imports cannot find provider files beside a single-file
+ * Node host (#328). Register the OAuth table and the native lazy Bedrock
+ * loader through literal imports so bundlers retain both implementations.
+ * Pi 1.5.2's loader waits for the first Bedrock request before importing the
+ * AWS SDK, including when a host opens Pi or queries provider auth first.
  *
- * Each is best effort: a host may leave Bedrock out of its bundle. A failed
- * one warns once and is tried again on the next call, and pi keeps its own
- * loading for it, as before.
+ * Registration is best effort: a host may omit a module from its bundle.
+ * A failed registration warns once and retries on the next call; Pi retains
+ * its own fallback loader. A later Bedrock import failure is its native
+ * request error, not an OAR startup failure.
  */
 let provided: Promise<void> | null = null;
 let warned = false;
@@ -28,11 +22,8 @@ async function registerSignInFlows(): Promise<void> {
 }
 
 async function registerBedrock(): Promise<void> {
-  const [{ bedrockProviderModule }, { setBedrockProviderModule }] = await Promise.all([
-    import("@earendil-works/pi-ai/bedrock-provider"),
-    import("@earendil-works/pi-ai/compat"),
-  ]);
-  setBedrockProviderModule(bedrockProviderModule);
+  const { registerLazyBedrockProvider } = await import("@earendil-works/pi-ai/lazy-bedrock-provider");
+  registerLazyBedrockProvider();
 }
 
 function warnOnce(reason: unknown): void {
@@ -53,7 +44,7 @@ async function provide(): Promise<void> {
   }
 }
 
-/** Hand pi-ai its sign-in flows and Bedrock module, once per process; never throws. */
+/** Register Pi's sign-in flows and lazy Bedrock loader once per process; never throws. */
 export async function providePiModules(): Promise<void> {
   provided ??= provide();
   await provided;

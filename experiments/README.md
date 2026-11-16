@@ -1,5 +1,6 @@
 # experiments
 
+- [Pi lazy Bedrock registration](pi-lazy-bedrock/README.md): module-load controls, a single-file first request, OAuth instance checks and the SDK 1.5.2 upgrade.
 - [Cursor SDK 1.4.0 steering](cursor-sdk-1.4/README.md): typed-loader compatibility, native local string acknowledgments, and queued ownership without observing cloud runs.
 
 - [Runtime version check: November 15](runtime-version-checks/2026-11-15.md): Cursor 1.4.0 typed-loader incompatibility with passing local auth controls, Qwen 0.27.4 native checks, and CI/upstream/ZCode observations.

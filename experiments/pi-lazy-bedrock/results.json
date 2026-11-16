@@ -1,0 +1,116 @@
+{
+  "date": "2026-11-16",
+  "platform": "Linux x64",
+  "node": "24.19.0",
+  "normalPiSdk": "1.5.2",
+  "normalPiAi": "1.5.2",
+  "durablePiAiAlias": "1.5.2",
+  "undici": "8.12.3",
+  "eagerControl": {
+    "matchingLoadedModules": 2,
+    "regressionExit": 1
+  },
+  "lazyControl": {
+    "afterOpen": 0,
+    "afterAuth": 0
+  },
+  "bundledFirstRequest": {
+    "method": "POST",
+    "path": "/model/probe-model/converse-stream",
+    "requests": 1,
+    "deliberateStatus": 400,
+    "nativeErrorIncludes": "local-bedrock-probe"
+  },
+  "resume": {
+    "before": {
+      "version": "1.5.0",
+      "id": "01a1e208-c5ea-77b6-8288-6526d5dcf41d",
+      "model": "aimock/aimock-model",
+      "firstSeq": 0,
+      "text": "OAR_PI_BEFORE_UPGRADE_REPLY"
+    },
+    "after": {
+      "version": "1.5.2",
+      "id": "01a1e208-c5ea-77b6-8288-6526d5dcf41d",
+      "model": "aimock/aimock-model",
+      "firstSeq": 0,
+      "text": "OAR_PI_AFTER_UPGRADE_REPLY"
+    },
+    "priorTranscriptSent": true,
+    "separateProcesses": true,
+    "passed": true
+  },
+  "rawFiles": [
+    {
+      "file": "pi-lazy-bedrock-baseline.log",
+      "bytes": 2643,
+      "sha256": "3ba3552257edf0dc67130d9021b2d4e927b1ce91f676ada1fc8d7291dc1a878c"
+    },
+    {
+      "file": "pi-lazy-bedrock-focused.log",
+      "bytes": 267,
+      "sha256": "b5f365b69229753628d897e21e30f81b9caee960935b2bdf4cd644a6c952df0c"
+    },
+    {
+      "file": "pi-lazy-bedrock-check-third.log",
+      "bytes": 5727,
+      "sha256": "3e039686dd7247c31cc07f65a8399be0610a9609dc385f54be023fe932723768"
+    },
+    {
+      "file": "pi-lazy-bedrock-sdk-vendor.log",
+      "bytes": 506,
+      "sha256": "2ea25b4da3f2f581d1c0064d0f8776068eb6cb65f4beca6d277bf5057ce9067b"
+    },
+    {
+      "file": "pi-lazy-bedrock-sdk-behavior.log",
+      "bytes": 1231,
+      "sha256": "ac20e29f49f4b29e7d88ed551e6a4c73de5af1dd8b2b10d225dbf1ef68fc05b0"
+    },
+    {
+      "file": "pi-lazy-bedrock-rpc-vendor.log",
+      "bytes": 394,
+      "sha256": "2c1921c0df1f2aa2bfe4a1c727c61ada2623ef157865eff6ee851a6fa3bc9e62"
+    },
+    {
+      "file": "pi-lazy-bedrock-rpc-behavior.log",
+      "bytes": 1042,
+      "sha256": "3959e752abc68ef219008032edc660dcc98087344b91ffec0624388cd2b70c1e"
+    },
+    {
+      "file": "pi-lazy-bedrock-build.log",
+      "bytes": 139,
+      "sha256": "963dfc8f78cfca95582c13a0e61228bd69258ef64435d7da6630031d760b2209"
+    },
+    {
+      "file": "pi-lazy-bedrock-clean-install.log",
+      "bytes": 2645,
+      "sha256": "a00ad4afb85b39450e668a1a74ed2712c6a168ba3e1bfa2f8a2008a39738cea3"
+    },
+    {
+      "file": "pi-lazy-bedrock-resume.log",
+      "bytes": 459,
+      "sha256": "c1ad6f0b22cbd3953c966e4c5486768a7bf0b90cad7be3ba874ec80ef9b7f6ed"
+    },
+    {
+      "file": "pi-lazy-bedrock-resume/report.json",
+      "bytes": 459,
+      "sha256": "c1ad6f0b22cbd3953c966e4c5486768a7bf0b90cad7be3ba874ec80ef9b7f6ed"
+    },
+    {
+      "file": "pi-lazy-bedrock-resume/before.records.json",
+      "bytes": 46120,
+      "sha256": "a7ee746492a8f80e8c61c48cf0294e0494b8b3c02dc7afb0616bcb036d7c52a4"
+    },
+    {
+      "file": "pi-lazy-bedrock-resume/after.records.json",
+      "bytes": 26331,
+      "sha256": "73f1dc5cec8f171ca09ca78f80675981b975a3f7d50dd8c8c823e8c896c9036c"
+    }
+  ],
+  "final_rebase_check": {
+    "base": "a6206bba805f36a8953f330e138c5dbe6d49e1ae",
+    "unit_tests": 4384,
+    "mock_behaviors": 18,
+    "log_sha256": "abf910697849baa6307cf03a2e58b1b9c35ee0c7c5f8f6a6b387b282e3929b08"
+  }
+}
