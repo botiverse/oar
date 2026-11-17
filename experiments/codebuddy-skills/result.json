@@ -1,0 +1,103 @@
+{
+  "version": "2.184.0",
+  "platform": "linux",
+  "controlMarkerSkills": [],
+  "acpSkillMetadata": [
+    {
+      "name": "loop",
+      "description": "Run a prompt or slash command repeatedly at a fixed interval (e.g. /loop 5m /foo; default 10m)",
+      "_meta": {
+        "type": "skill",
+        "source": "bundled",
+        "isBuiltIn": true
+      }
+    },
+    {
+      "name": "oar-manual",
+      "description": "Synthetic oar-manual",
+      "_meta": {
+        "type": "skill",
+        "source": "project",
+        "isBuiltIn": false
+      }
+    },
+    {
+      "name": "oar-project",
+      "description": "Synthetic oar-project",
+      "_meta": {
+        "type": "skill",
+        "source": "project",
+        "isBuiltIn": false
+      }
+    },
+    {
+      "name": "oar-user",
+      "description": "Synthetic oar-user",
+      "_meta": {
+        "type": "skill",
+        "source": "user",
+        "isBuiltIn": false
+      }
+    },
+    {
+      "name": "__PLUGIN_NAME__-review",
+      "description": "Review the selected workspace on explicit request.",
+      "_meta": {
+        "type": "skill",
+        "source": "bundled",
+        "isBuiltIn": true
+      }
+    }
+  ],
+  "librarySkills": [
+    {
+      "name": "oar-hidden",
+      "description": "Synthetic oar-hidden",
+      "source": "project",
+      "userInvocable": false
+    },
+    {
+      "name": "oar-manual",
+      "description": "Synthetic oar-manual",
+      "source": "project",
+      "disableModelInvocation": true
+    },
+    {
+      "name": "oar-project",
+      "description": "Synthetic oar-project",
+      "source": "project"
+    },
+    {
+      "name": "oar-user",
+      "description": "Synthetic oar-user",
+      "source": "user"
+    },
+    {
+      "name": "loop",
+      "description": "Run a prompt or slash command repeatedly at a fixed interval (e.g. /loop 5m /foo; default 10m)",
+      "source": "bundled",
+      "userInvocable": true
+    }
+  ],
+  "printSkills": {
+    "exitCode": 0,
+    "stdoutBytes": 0,
+    "providerAttempts": 1
+  },
+  "providerAttemptsBeforePrint": 0,
+  "rawSha256": {
+    "acp-stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "acp-stdout.txt": "71613bc82f50bfb4853acb8decd20b50a816fb662afea0007110a604ccd8cf11",
+    "control-stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "control-stdout.txt": "cd144cff2c790596ab2dbdb4d0a9e4663d10de7c6006f070d7fe5b27229c2bab",
+    "library-stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "library-stdout.txt": "7009966613110db1cdc8e44d392c70e5b51ef2d330afae91d82d540c16aa69ea",
+    "print-stderr.txt": "e732f788c0533868c5ac01a85199d14fe9357ed84f3e3bf1544c8e6a590ce13a",
+    "print-stdout.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "provider-requests.txt": "ed980ff8fe571491d1da601a7eec3a9d3cbe69367b7aee8cc2d5e31b50f2bd21",
+    "version-stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "version-stdout.txt": "cf3773091210fb70d97ed19226a4d2aaf0c37db428484525896302e3747755b0"
+  },
+  "binarySha256": "33c4dbd9aa5db3719c74cb5f267904370cac897e9809ba5b17a0fe758003ffb9",
+  "serverFacadeSha256": "7e114d0513955a43b2c286c4070fbd73502d01927fddf2ed7ee60c3900da1d57"
+}

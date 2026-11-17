@@ -25,6 +25,18 @@ x64 local-provider tests and Linux arm64 international-account tests on
 2026-10-29; account observations remain on 2.178.1. These are observation
 baselines, not a compatibility range.
 
+## Skill discovery
+
+`skills()` remains unsupported. On 2.184.0, stream-json initialization returns
+commands without skill descriptors, ACP command completion omits hidden
+skills, and headless `/skills` attempts the model provider instead of returning
+an offline catalog. The installed npm
+`readSessionCatalog({cwd, fs})` export sees local markers but differs from the
+standalone CLI's built-in catalog. OAR does not reconstruct CLI loading or
+import a different installation's library to answer for a selected binary.
+The [reproduction and selected evidence](../../experiments/codebuddy-skills/README.md)
+record these boundaries; other platforms and plugin parity are unverified.
+
 ## OAR mapping
 
 `codebuddyRuntime` is in `defaultRuntimes` and has the dedicated
