@@ -14,11 +14,18 @@ beyond its types comes from those probes and its installed bundle, marked as
 such. Versions are evidence baselines, not a support range; see the
 [runtime index](README.md) for status conventions.
 
-Current required SDK: **1.4.0**, the exact optional peer version. Hosts
+Current required SDK: **1.4.1**, the exact optional peer version. Hosts
 using Cursor install that version alongside OAR; the CLI installs it itself.
 The pin matches CI and does not promise support for older SDKs. The SDK
 also requires a Zod peer (`^3.25.0 || ^4.0.0`); this workspace resolves 4.4.3.
 
+- **1.4.1:** the exact host and CLI dependency. On November 17, Linux x64
+  with an existing login and `gpt-5.4-nano`, all 12 applicable live scenarios
+  passed once (`kill-runtime` skipped), as did native shell/MCP denial on
+  new and resumed sessions. Offline checks passed for login, user
+  configuration and user/project skill discovery in git and non-git projects.
+  The skill observer finds its private loader by unique content after the
+  bundle filename changed. See the [acceptance evidence and limits](../../experiments/cursor-sdk-1.4.1/README.md).
 - **1.4.0:** OAR's typed loader accepts it after adding its queued steer
   outcome. A native local run (Linux x64, `gpt-5.4-nano`, November 16)
   confirmed `complete_delivered` during a shell call and `revert_to_followup`
@@ -29,7 +36,7 @@ also requires a Zod peer (`^3.25.0 || ^4.0.0`); this workspace resolves 4.4.3.
   keeps the original type incompatibility and the passing local login and
   user-configuration controls. The full live battery has not been rerun on 1.4.0.
 - **1.3.1** (2026-11-11; Linux x64, Node 24.19.0, `gpt-5.4-nano`, an existing
-  login): the newest full live battery. All 12 applicable session scenarios
+  login): a prior full live battery. All 12 applicable session scenarios
   pass on their first run, including tools, steering, queueing,
   cancellation, resume and child attribution (`kill-runtime` skipped); the
   native compaction probe passes (matching text across both stream views, a
@@ -81,7 +88,7 @@ OAR reads out of it. Control calls are request/response record pairs.
 
 | Native concept or owner | Current OAR mapping |
 | --- | --- |
-| `@cursor/sdk` package | An optional peer dependency of `@botiverse/oar` that the host installs (`@cursor/sdk@1.4.0`) and hands over through `createCursorRuntime` ([installation](#installation-and-account-usage)); the agent runs in the host process, or in a Node child per session ([execution modes](#execution-modes)). Cursor is not in `defaultRuntimes`; the `oar` CLI depends on the SDK and adds cursor itself ([CLI registry](../../packages/cli/src/runtimes.ts)). |
+| `@cursor/sdk` package | An optional peer dependency of `@botiverse/oar` that the host installs (`@cursor/sdk@1.4.1`) and hands over through `createCursorRuntime` ([installation](#installation-and-account-usage)); the agent runs in the host process, or in a Node child per session ([execution modes](#execution-modes)). Cursor is not in `defaultRuntimes`; the `oar` CLI depends on the SDK and adds cursor itself ([CLI registry](../../packages/cli/src/runtimes.ts)). |
 | Local agent | `Session.id` is the `agentId`; `SessionOptions.resume` reopens it with `Agent.resume`. |
 | Agent state after open | One `cursor/agent_opened` frame with the `model` (and `effort`) the SDK holds. |
 | Run | A turn: a prompt is one `send`; `run.wait()`'s answer is the `cursor/run_result` frame carrying `turn_ended`. The SDK run id is `spanId` on results, `run.stream()` frames and `onDelta` frames; early callbacks retain their ingress time while waiting for `send` to return that id. |

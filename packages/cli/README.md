@@ -17,7 +17,7 @@ oar run claude "What does this repo do?"
 ## Commands
 
 The registered runtimes are OAR's `defaultRuntimes`, cursor, which the CLI
-adds itself on the `@cursor/sdk` 1.4.0 it depends on (in process, or in a
+adds itself on the `@cursor/sdk` 1.4.1 it depends on (in process, or in a
 Node child per session and call with `OAR_CURSOR_EXECUTION=subprocess`), and the
 community runtimes (Mister Morph) from `@botiverse/oar/community`
 (`src/runtimes.ts`).

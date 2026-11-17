@@ -96,7 +96,7 @@
     "which": "^2.0.2"
   },
   "peerDependencies": {
-    "@cursor/sdk": "1.4.0",
+    "@cursor/sdk": "1.4.1",
     "@earendil-works/pi-durable": "~1.5.2",
     "@earendil-works/chord": "~1.5.2"
   },
@@ -112,7 +112,7 @@
     }
   },
   "devDependencies": {
-    "@cursor/sdk": "1.4.0",
+    "@cursor/sdk": "1.4.1",
     "@types/cross-spawn": "^6.0.6",
     "@types/which": "^2.0.2",
     "@earendil-works/pi-durable": "1.5.2",
