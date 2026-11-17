@@ -57,9 +57,10 @@ user and project fixtures. Only `Builtin` becomes a shared scope. Non-empty
 identity was observed, so that field remains absent.
 
 The per-row diagnostic arrays cannot reveal malformed files omitted before
-rows are emitted. OAR therefore reports `partial: true` even with no returned
-diagnostics. This preserves useful entries without promising a complete
-filesystem inventory. Invalid JSON, malformed rows, nonzero process exit and
+rows are emitted. OAR sets `partial: true` only when a returned row has native
+`errors`; warnings alone do not. Silently rejected files are also absent from
+the native runtime's loaded catalog. `partial: false` describes that catalog,
+not a promise that every file on disk is valid. Invalid JSON, malformed rows, nonzero process exit and
 timeout are query failures. Tests also cover empty catalogs, diagnostic text
 redaction, invalid deadlines and waiting for process termination after timeout.
 
@@ -87,5 +88,22 @@ Default `orient()` depths do not call inventory readers. Explicit
 `include: ["customization"]` can call them at any depth and already permits
 native process, configuration and network side effects. `localOnly` is an auth
 reader declaration, not an inventory property. This query is not added to the
-default local path, and partial catalogs cannot produce complete customization
-counts. See the [orientation contract](../../docs/spec/orientation.md#optional-customization-counts).
+default local path. Its brand source labels do not establish user-owned
+customization counts. See the [orientation contract](../../docs/spec/orientation.md#optional-customization-counts).
+
+## Pi RPC consistency check
+
+Pi 1.5.2's published `dist/modes/rpc/rpc-mode.js`, `get_commands` handler,
+enumerates `extensionRunner.getRegisteredCommands()`, `promptTemplates` and
+`resourceLoader.getSkills().skills` without pagination, filtering or truncation.
+Its response lacks some metadata and loading diagnostics, but the loaded
+catalog itself is complete. The previous OAR rule always returned partial
+because diagnostics were absent. That is corrected to `partial: false` for a
+successful native response; query errors still fail the reader.
+
+The existing [native reader cases](../../sea-trial/vendor/pi-rpc-readers.vendor.test.ts)
+now include a malformed skill beside a valid one. Both bundled-entry and
+explicit-command paths on Linux Pi 1.5.2 returned the valid skill, extension
+command and prompt template; the malformed skill was omitted. Both processes
+used the fixture environment and exited without persistent sessions. This
+checks the same distinction between rejected files and an incomplete catalog.

@@ -41,7 +41,7 @@ describe.skipIf(process.env.OAR_TEST !== "devin-skills")("Devin native skill cat
       });
       expect(discovered.items).toEqual(expected);
       expect(discovered.view).toBe("discovered");
-      expect(discovered.partial).toBe(true);
+      expect(discovered.partial).toBe(false);
       expect(discovered.items.filter(item => item.scope === "builtin")).toHaveLength(3);
       expect(discovered.items.filter(item => item.source === "Devin" && item.scope === undefined)).toHaveLength(4);
       expect(JSON.stringify(discovered)).not.toContain("PRIVATE SKILL BODY");

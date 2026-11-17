@@ -39,6 +39,8 @@ async function fixture() {
   await writeFile(path.join(agentDir, "settings.json"), JSON.stringify({ defaultProvider: "reader-fixture", defaultModel: "child-model" }));
   await writeFile(path.join(agentDir, "prompts", "child-prompt.md"), "---\ndescription: Child prompt\nargument-hint: <file>\n---\nPRIVATE TEMPLATE BODY\n");
   await writeFile(path.join(agentDir, "skills", "reader", "SKILL.md"), "---\nname: reader\ndescription: Reader skill\ndisable-model-invocation: true\n---\nPRIVATE SKILL BODY\n");
+  await mkdir(path.join(agentDir, "skills", "broken"));
+  await writeFile(path.join(agentDir, "skills", "broken", "SKILL.md"), "---\nname: [invalid\n---\nPRIVATE BROKEN SKILL\n");
   await writeFile(path.join(agentDir, "extensions", "reader.ts"), `import { appendFileSync } from "node:fs";
 export default function(pi) {
   pi.registerCommand(process.env.OAR_READER_COMMAND, { description: "Environment command", handler: async () => {} });
@@ -66,12 +68,12 @@ describe.skipIf(process.env.OAR_TEST !== "pi-rpc-aimock")("native Pi RPC readers
       expect(models.models).toContainEqual({ id: "reader-fixture/child-model", displayName: "Child model", provider: { id: "reader-fixture" } });
       const commands = await runtime.commands(installed, options);
       assert.ok(commands.kind === "ok");
-      expect(commands.partial).toBe(true);
+      expect(commands.partial).toBe(false);
       expect(commands.items).toContainEqual({ name: "child-command", description: "Environment command", source: "extension" });
       expect(commands.items).toContainEqual({ name: "child-prompt", description: "Child prompt", source: "prompt" });
       const skills = await runtime.skills(installed, options);
       assert.ok(skills.kind === "ok");
-      expect(skills.partial).toBe(true);
+      expect(skills.partial).toBe(false);
       expect(skills.items).toEqual([{ name: "reader", description: "Reader skill", source: "auto", scope: "user", path: path.join(f.agentDir, "skills", "reader", "SKILL.md") }]);
       expect(commands.items.find((command) => command.name === "child-prompt")).not.toHaveProperty("argumentHint");
       expect(JSON.stringify([models, commands, skills])).not.toContain("PRIVATE");

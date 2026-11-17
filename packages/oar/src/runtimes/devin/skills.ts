@@ -42,8 +42,8 @@ export const devinSkills: InventoryReader<SkillEntry> = async (installation, opt
       const code = await child.exited;
       if (code !== 0) { throw new Error("Devin skill query failed"); }
       const rows = nativeRows(parseJson(stdout));
-      // Malformed skill files are silently omitted; per-row diagnostics cannot prove completeness.
-      return inventoryOk(scope, "discovered", rows.map(row => project(row)), true);
+      const items = rows.map(row => project(row));
+      return inventoryOk(scope, "discovered", items, rows.some(row => (strings(row.errors)?.length ?? 0) > 0));
     }, timeoutMs);
   } finally {
     child.kill();

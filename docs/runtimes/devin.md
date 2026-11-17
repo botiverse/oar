@@ -152,8 +152,9 @@ this catalog supplies no plugin identity. No path-based ownership guess is added
 The [Linux 3000.12.57 comparison](../../experiments/devin-skills/README.md)
 found three bundled skills in an empty home and eight user/project fixtures
 through native discovery. It also found malformed YAML silently omitted from
-the native list. Per-entry warnings/errors cannot reveal those missing rows,
-so the reader always reports `partial: true` instead of claiming completeness.
+the native list. Only non-empty native `errors` on returned rows set
+`partial: true`; warnings alone do not. Silently rejected files are not part of
+the native catalog and cannot be diagnosed from this result.
 An empty native list is still a successful query; invalid JSON, malformed rows,
 nonzero exit and timeout remain `unavailable`, never a successful empty list.
 The reader terminates and awaits its owned process on success and failure.
@@ -170,7 +171,7 @@ switch was found in 3000.12.57 CLI help or the official
 [command](https://docs.devin.ai/cli/reference/commands) and
 [configuration](https://docs.devin.ai/cli/reference/configuration/config-file)
 references. The test blocks those attempts with a closed loopback proxy; OAR
-does not impose a proxy or change the user's native configuration.
+does not impose a proxy or override the user's native settings.
 
 Default `orient()` depths do not read skills. Explicit
 `include: ["customization"]` can do so at any depth and already opts into native

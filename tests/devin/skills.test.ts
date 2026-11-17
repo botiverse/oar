@@ -27,7 +27,7 @@ test("Devin reads native metadata without a session or skill body and preserves 
     { name: "missing-fields" },
   ]);
   const result = await devinRuntime.skills(installation, { cwd: "/project", env: readerEnvironment() });
-  expect(result).toMatchObject({ kind: "ok", view: "discovered", partial: true, scope: { kind: "workspace", cwd: resolve("/project") }, items: [
+  expect(result).toMatchObject({ kind: "ok", view: "discovered", partial: false, scope: { kind: "workspace", cwd: resolve("/project") }, items: [
     { name: "devin-cli", source: "Builtin", scope: "builtin", disableModelInvocation: false },
     { name: "project", description: "Fixture", source: "Devin", path: "/project/.devin/skills/project", disableModelInvocation: true },
     { name: "compat", source: "Claude", disableModelInvocation: false },
@@ -40,10 +40,10 @@ test("Devin reads native metadata without a session or skill body and preserves 
   expectReaderEnvironment(spawn.mock.calls[0]?.[2]?.env);
 });
 
-test.each(["warnings", "errors"])("Devin retains entries but marks %s partial without exposing native diagnostics", async (key) => {
+test.each(["warnings", "errors"])("Devin retains entries and maps %s without exposing native diagnostics", async (key) => {
   serve([{ name: "diagnostic", [key]: ["PRIVATE_DIAGNOSTIC"] }]);
   const result = await devinRuntime.skills(installation);
-  expect(result).toMatchObject({ kind: "ok", partial: true, items: [{ name: "diagnostic" }] });
+  expect(result).toMatchObject({ kind: "ok", partial: key === "errors", items: [{ name: "diagnostic" }] });
   expect(JSON.stringify(result)).not.toContain("PRIVATE_DIAGNOSTIC");
 });
 
@@ -54,7 +54,7 @@ test.each([null, {}, [null], [{}], [{ name: "x", errors: "PRIVATE_ERROR" }], [{ 
 
 test("Devin accepts an empty native catalog", async () => {
   serve([]);
-  await expect(devinRuntime.skills(installation)).resolves.toMatchObject({ kind: "ok", items: [], partial: true });
+  await expect(devinRuntime.skills(installation)).resolves.toMatchObject({ kind: "ok", items: [], partial: false });
 });
 
 test("Devin native failure does not expose output", async () => {

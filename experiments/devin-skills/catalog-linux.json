@@ -223,7 +223,7 @@
         "disableModelInvocation": false
       }
     ],
-    "partial": true
+    "partial": false
   },
   "configUnchanged": true,
   "noSessionOrCredentialFile": true,

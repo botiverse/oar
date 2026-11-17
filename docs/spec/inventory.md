@@ -78,10 +78,13 @@ See [adapter version requirements](orientation.md#adapter-version-requirements).
 `partial:true` signals a native discovery error or pending/failed MCP startup.
 Cursor directory discovery also marks unreadable or malformed metadata and
 unavailable nested discovery partial.
-Pi RPC also reports `partial:true` because it provides no loading diagnostics:
-discovery completeness cannot be confirmed. It is independent of coverage: a complete MCP catalog is still `mcp-only`.
-Devin also always reports `partial:true`: its per-entry diagnostics omit malformed
-files that never become rows, so they cannot establish directory completeness.
+Devin sets `partial:true` when a returned entry has non-empty native `errors`;
+warnings alone do not set it. Native files silently omitted before catalog
+creation are not an OAR-observed discovery error. Pi RPC returns the complete
+loaded skill/command catalog with `partial:false`; its missing metadata and
+loading diagnostics do not make that source incomplete. Neither result promises
+that every file on disk is valid or loaded. Coverage is independent: a complete
+MCP catalog is still `mcp-only`.
 Unknown fields are omitted. Enabled, active, loaded, auth and connection state
 are separate concepts. Names and descriptions are native strings; OAR never
 manufactures parameter schemas. A tool can reference its server through
@@ -136,7 +139,7 @@ does run those hooks, then read `get_commands`. This path separates
 `source: "skill"` entries into `skills()` and retains extension/prompt source
 labels for commands. RPC does not expose `argumentHint`, skill
 `disableModelInvocation`, or loading diagnostics; those metadata fields are
-absent and both inventories have `partial:true`.
+absent; their absence does not make the returned catalog partial.
 Neither path executes a command or observes an existing session's later changes.
 
 Claude lists `initialize.commands`, including native aliases and argument
