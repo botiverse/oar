@@ -1,4 +1,5 @@
-import { kimiUsageEnvironment } from "./usage-environment.js";
+import { kimiNativeUsage } from "./native-usage.js";
+import { kimiUsageEnvironment, kimiUsageHasNativeLock } from "./usage-environment.js";
 import type {
   AccountUsageReader,
   AccountUsageSnapshot,
@@ -10,7 +11,7 @@ import { remainingMs } from "../../shared/deadline.js";
 import { credentialHeaderValue, requestFailure } from "../../shared/credential-http.js";
 import { asNumber, asRecord, parseJson } from "../../shared/json.js";
 import { KIMI_USAGE, resolveKimiAuth, type KimiAuthContext } from "./auth-config.js";
-import { KimiReauthError, storedKimiAccessToken } from "./oauth-token.js";
+import { readKimiToken } from "./oauth-token.js";
 import { fetchKimiAccountIdentity } from "./profile.js";
 
 interface UsageWindowSpec {
@@ -256,7 +257,15 @@ export const kimiAccountUsage: AccountUsageReader = async (installation, options
     return { kind: "unsupported", reason: "unsupported_auth_storage" };
   }
   try {
-    const accessToken = credentialHeaderValue(await storedKimiAccessToken(auth), "Kimi's stored access token");
+    const token = await readKimiToken(auth);
+    if (token === undefined) { return { kind: "reauth_required", reason: "credentials_missing" }; }
+    if (token.revoked) { return { kind: "reauth_required", reason: "credentials_rejected" }; }
+    const expired = token.expiresAt !== undefined && token.expiresAt <= Date.now() / 1000;
+    if (expired && !token.refreshable) { return { kind: "reauth_required", reason: "credentials_missing" }; }
+    const nativeLock = kimiUsageHasNativeLock(env);
+    if (nativeLock) { return await kimiNativeUsage(installation.command, auth, env, deadline); }
+    if (expired) { return { kind: "unavailable", reason: "access_token_expired" }; }
+    const accessToken = credentialHeaderValue(token.accessToken, "Kimi's stored access token");
     const [response, identity] = await Promise.all([
       fetchUsage(auth, accessToken, deadline),
       fetchKimiAccountIdentity(auth, accessToken, deadline),
@@ -272,9 +281,6 @@ export const kimiAccountUsage: AccountUsageReader = async (installation, options
     }
     return projectKimiUsage(await usagePayload(response), identity.email, identity.plan, identity.displayName);
   } catch (error) {
-    if (error instanceof KimiReauthError) {
-      return { kind: "reauth_required", reason: "credentials_missing" };
-    }
     throw new Error("Failed to read Kimi account usage", { cause: error });
   }
 };

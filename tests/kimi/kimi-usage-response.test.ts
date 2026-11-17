@@ -2,13 +2,15 @@ import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { inspect } from "node:util";
-import { afterEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { kimiAccountUsage } from "../../packages/oar/src/runtimes/kimi/account-usage.js";
 import type { ExecutableRunner } from "../../packages/oar/src/shared/executable/index.js";
 
+beforeEach(() => { vi.stubEnv("KIMI_DISABLE_OAUTH_LOCK", "1"); });
+
 const runExecutable = vi.hoisted(() => vi.fn<ExecutableRunner>());
 vi.mock("../../packages/oar/src/shared/executable/index.js", () => ({ runExecutable }));
-afterEach(() => { vi.unstubAllGlobals(); runExecutable.mockReset(); });
+afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); runExecutable.mockReset(); });
 
 async function readWith(response: () => Promise<Response>) {
   const home = await mkdtemp(join(tmpdir(), "oar-kimi-usage-response-"));

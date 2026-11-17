@@ -1,0 +1,296 @@
+[
+  {
+    "sample": "latest-success.json",
+    "version": "2.6.2",
+    "mode": "success",
+    "lockDisabled": false,
+    "parallel": 1,
+    "startupMs": 2074,
+    "totalMs": 2554,
+    "results": [
+      {
+        "kind": "ok",
+        "quota": {
+          "usages": {
+            "limit7d": {
+              "usedRatio": 0.25,
+              "resetAt": "2026-12-01T00:00:00Z"
+            }
+          },
+          "extraUsage": null
+        }
+      }
+    ],
+    "events": [
+      {
+        "method": "POST",
+        "path": "/api/oauth/token",
+        "refresh": true
+      },
+      {
+        "method": "GET",
+        "path": "/coding/v1/usages",
+        "fresh": true
+      }
+    ],
+    "credentialState": {
+      "rotated": true,
+      "tombstoned": false,
+      "unchanged": false
+    },
+    "processesExited": true
+  },
+  {
+    "sample": "2.6.2-reject-locked-1.json",
+    "version": "2.6.2",
+    "mode": "reject",
+    "lockDisabled": false,
+    "parallel": 1,
+    "startupMs": 1839,
+    "totalMs": 2012,
+    "results": [
+      {
+        "kind": "error"
+      }
+    ],
+    "events": [
+      {
+        "method": "POST",
+        "path": "/api/oauth/token",
+        "refresh": true
+      }
+    ],
+    "credentialState": {
+      "rotated": false,
+      "tombstoned": true,
+      "unchanged": false
+    },
+    "processesExited": true
+  },
+  {
+    "sample": "2.6.2-network-locked-1.json",
+    "version": "2.6.2",
+    "mode": "network",
+    "lockDisabled": false,
+    "parallel": 1,
+    "startupMs": 1890,
+    "totalMs": 4965,
+    "results": [
+      {
+        "kind": "error"
+      }
+    ],
+    "events": [
+      {
+        "method": "POST",
+        "path": "/api/oauth/token",
+        "refresh": true
+      },
+      {
+        "method": "POST",
+        "path": "/api/oauth/token",
+        "refresh": true
+      },
+      {
+        "method": "POST",
+        "path": "/api/oauth/token",
+        "refresh": true
+      }
+    ],
+    "credentialState": {
+      "rotated": false,
+      "tombstoned": false,
+      "unchanged": true
+    },
+    "processesExited": true
+  },
+  {
+    "sample": "2.6.2-success-locked-2.json",
+    "version": "2.6.2",
+    "mode": "success",
+    "lockDisabled": false,
+    "parallel": 2,
+    "startupMs": 2610,
+    "totalMs": 3213,
+    "results": [
+      {
+        "kind": "ok",
+        "quota": {
+          "usages": {
+            "limit7d": {
+              "usedRatio": 0.25,
+              "resetAt": "2026-12-01T00:00:00Z"
+            }
+          },
+          "extraUsage": null
+        }
+      },
+      {
+        "kind": "ok",
+        "quota": {
+          "usages": {
+            "limit7d": {
+              "usedRatio": 0.25,
+              "resetAt": "2026-12-01T00:00:00Z"
+            }
+          },
+          "extraUsage": null
+        }
+      }
+    ],
+    "events": [
+      {
+        "method": "POST",
+        "path": "/api/oauth/token",
+        "refresh": true
+      },
+      {
+        "method": "GET",
+        "path": "/coding/v1/usages",
+        "fresh": true
+      },
+      {
+        "method": "GET",
+        "path": "/coding/v1/usages",
+        "fresh": true
+      }
+    ],
+    "credentialState": {
+      "rotated": true,
+      "tombstoned": false,
+      "unchanged": false
+    },
+    "processesExited": true
+  },
+  {
+    "sample": "2.6.2-success-nolock-2.json",
+    "version": "2.6.2",
+    "mode": "success",
+    "lockDisabled": true,
+    "parallel": 2,
+    "startupMs": 2746,
+    "totalMs": 3252,
+    "results": [
+      {
+        "kind": "ok",
+        "quota": {
+          "usages": {
+            "limit7d": {
+              "usedRatio": 0.25,
+              "resetAt": "2026-12-01T00:00:00Z"
+            }
+          },
+          "extraUsage": null
+        }
+      },
+      {
+        "kind": "ok",
+        "quota": {
+          "usages": {
+            "limit7d": {
+              "usedRatio": 0.25,
+              "resetAt": "2026-12-01T00:00:00Z"
+            }
+          },
+          "extraUsage": null
+        }
+      }
+    ],
+    "events": [
+      {
+        "method": "POST",
+        "path": "/api/oauth/token",
+        "refresh": true
+      },
+      {
+        "method": "POST",
+        "path": "/api/oauth/token",
+        "refresh": true
+      },
+      {
+        "method": "GET",
+        "path": "/coding/v1/usages",
+        "fresh": true
+      },
+      {
+        "method": "GET",
+        "path": "/coding/v1/usages",
+        "fresh": true
+      }
+    ],
+    "credentialState": {
+      "rotated": true,
+      "tombstoned": false,
+      "unchanged": false
+    },
+    "processesExited": true
+  },
+  {
+    "sample": "2.4.1-success-locked-1.json",
+    "version": "2.4.1",
+    "mode": "success",
+    "lockDisabled": false,
+    "parallel": 1,
+    "startupMs": 2026,
+    "totalMs": 2508,
+    "results": [
+      {
+        "kind": "ok",
+        "quota": {
+          "usages": {
+            "limit7d": {
+              "usedRatio": 0.25,
+              "resetAt": "2026-12-01T00:00:00Z"
+            }
+          },
+          "extraUsage": null
+        }
+      }
+    ],
+    "events": [
+      {
+        "method": "POST",
+        "path": "/api/oauth/token",
+        "refresh": true
+      },
+      {
+        "method": "GET",
+        "path": "/coding/v1/usages",
+        "fresh": true
+      }
+    ],
+    "credentialState": {
+      "rotated": true,
+      "tombstoned": false,
+      "unchanged": false
+    },
+    "processesExited": true
+  },
+  {
+    "sample": "2.4.1-reject-locked-1.json",
+    "version": "2.4.1",
+    "mode": "reject",
+    "lockDisabled": false,
+    "parallel": 1,
+    "startupMs": 1880,
+    "totalMs": 2055,
+    "results": [
+      {
+        "kind": "error"
+      }
+    ],
+    "events": [
+      {
+        "method": "POST",
+        "path": "/api/oauth/token",
+        "refresh": true
+      }
+    ],
+    "credentialState": {
+      "rotated": false,
+      "tombstoned": true,
+      "unchanged": false
+    },
+    "processesExited": true
+  }
+]

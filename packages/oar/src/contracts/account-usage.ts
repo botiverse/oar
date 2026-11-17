@@ -76,11 +76,12 @@ export type AccountUsageUnsupportedReason =
   | "auth_configuration_unavailable"
   | "endpoint_unavailable"
   | "quota_unavailable";
-
+export type AccountUsageUnavailableReason = "access_token_expired";
 export type AccountUsageReauthReason =
   | "not_authenticated" | "credentials_missing" | "scope_missing" | "credentials_rejected";
 
 export type AccountUsageSnapshot =
+  | { readonly kind: "unavailable"; readonly reason: AccountUsageUnavailableReason }
   | {
       readonly kind: "available";
       /** Runtime-reported subscription plan or tier; omitted when not exposed. */

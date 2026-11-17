@@ -16,7 +16,9 @@ environment; Antigravity answers `unsupported_auth_storage` for a `GEMINI_HOME`
 other than its default. Kimi runs its provider CLI with the overlay, and Kimi
 and Factory resolve credential paths (`KIMI_CODE_HOME` and its home-directory
 fallback; droid's `FACTORY_HOME_OVERRIDE` and `FACTORY_API_KEY`) from the same
-map. Their HTTP requests still execute in the host process, so both refuse actual changes
+map. Kimi uses a native Web usage query where native credential locking is
+available, and direct HTTP otherwise; Factory uses direct HTTP. Both retain
+the restriction on actual changes
 (setting or deletion) to `HTTP_PROXY`, `HTTPS_PROXY`, `ALL_PROXY`, `NO_PROXY`
 (including their lowercase forms), `NODE_EXTRA_CA_CERTS`, `SSL_CERT_FILE`,
 `SSL_CERT_DIR` and `NODE_TLS_REJECT_UNAUTHORIZED` before starting the CLI or HTTP.
@@ -291,11 +293,13 @@ for the Fable and full kinds are not verified.
 
 ## Failure reasons
 
-Unsuccessful account-usage snapshots retain `kind: "unsupported"` or
-`kind: "reauth_required"` and include a stable `reason` from built-in readers.
+Unsuccessful account-usage snapshots use `kind: "unsupported"`,
+`kind: "unavailable"` or `kind: "reauth_required"` and include a stable `reason`
+from built-in readers.
 Consumers should use `reason` rather than infer a cause from the runtime name.
-The field is optional for compatibility with older/custom adapters; absent
-reasons must be presented as unknown rather than guessed.
+The field remains optional on `unsupported` and `reauth_required` for
+compatibility with older/custom adapters; absent reasons must be presented as
+unknown rather than guessed. It is required on the new `unavailable` branch.
 
 | Kind | Reason | Meaning |
 | --- | --- | --- |
@@ -307,10 +311,17 @@ reasons must be presented as unknown rather than guessed.
 | unsupported | auth_configuration_unavailable | The reader could not resolve the provider/auth configuration; no more specific cause is known. |
 | unsupported | endpoint_unavailable | The provider/runtime does not expose the queried usage endpoint. |
 | unsupported | quota_unavailable | The response does not expose a quota configuration. |
+| unavailable | access_token_expired | This read has no current access token and cannot safely refresh it. No sign-in action is requested; retry after the runtime refreshes it. |
 | reauth_required | not_authenticated | The runtime requires a login. |
 | reauth_required | credentials_missing | No usable persisted credential was found. |
 | reauth_required | scope_missing | The credential lacks the scope needed for usage queries. |
-| reauth_required | credentials_rejected | The usage endpoint rejected the credential (401/403). |
+| reauth_required | credentials_rejected | The usage endpoint rejected the credential (401/403), or the runtime persisted a native revocation marker. |
+
+`unavailable` is temporary and requires no user action; it can recover when
+the native runtime refreshes its token. It does not promise the refresh token
+is valid. `reauth_required` requests a fresh login; `unsupported` means this
+runtime/installation/account cannot provide the query. The additional union
+branch requires exhaustive consumers to handle `unavailable`.
 
 Operational failures (network errors, timeouts, malformed responses) still reject
 the promise. `options.timeoutMs` bounds the whole read, every process and
@@ -326,8 +337,9 @@ Kimi rejects an unreadable response body, invalid JSON, or a response with no
 usable quota windows. A window with a malformed present usage metric is omitted;
 other valid windows remain. A missing native `used` metric retains its zero
 meaning, while an invalid value never becomes zero. Malformed Extra Usage data
-does not supply a window or override exhausted subscription limits. Only an
-absent credential file is `credentials_missing`; file I/O failures and malformed
+does not supply a window or override exhausted subscription limits. An
+absent credential file or an expired access token without a refresh token is
+`credentials_missing`; file I/O failures and malformed
 credential contents reject with a safe reason, without token bytes or file paths.
 
 Grok's email lookup is optional. After billing has arrived, its identity query

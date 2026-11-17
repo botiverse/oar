@@ -21,11 +21,11 @@ function text(value: unknown): string | undefined {
 
 /**
  * Read Kimi's stored OAuth access token as-is. The credential store belongs to
- * the Kimi CLI, so oar never refreshes or rewrites it; a stale token surfaces
- * as the usage endpoint's 401/403, which callers map to reauth_required.
+ * the Kimi CLI, so oar never refreshes or rewrites it.
  */
 export async function storedKimiAccessToken(auth: KimiAuthContext): Promise<string> {
-  const accessToken = await readAccessToken(auth.credentialPath);
+  const token = await readKimiToken(auth);
+  const accessToken = token?.revoked === true ? undefined : token?.accessToken;
   if (accessToken === undefined) {
     throw new KimiReauthError("No Kimi OAuth token is stored");
   }
@@ -34,7 +34,11 @@ export async function storedKimiAccessToken(auth: KimiAuthContext): Promise<stri
 
 const systemErrorCodes = new Set([...getSystemErrorMap().values()].map(([code]) => code));
 
-async function readAccessToken(path: string): Promise<string | undefined> {
+export interface KimiStoredToken { readonly accessToken: string; readonly refreshable: boolean; readonly expiresAt?: number; readonly revoked: boolean }
+
+/** Read only: Kimi owns refresh, locking and writes to this file. */
+export async function readKimiToken(auth: KimiAuthContext): Promise<KimiStoredToken | undefined> {
+  const path = auth.credentialPath;
   let raw = "";
   try { raw = await readFile(path, "utf8"); }
   catch (error) {
@@ -47,7 +51,10 @@ async function readAccessToken(path: string): Promise<string | undefined> {
   }
   const parsed = parseJson(raw);
   if (parsed === undefined) { throw new Error("Kimi OAuth credential file is not valid JSON"); }
-  const token = text(asRecord(parsed)?.access_token);
-  if (token === undefined) { throw new Error("Kimi OAuth credential file has no usable access_token"); }
-  return token;
+  const row = asRecord(parsed);
+  if (row?.access_token === "" && row.refresh_token === "" && row.expires_at === 0) { return { accessToken: "", refreshable: false, expiresAt: 0, revoked: true }; }
+  const accessToken = text(row?.access_token);
+  if (accessToken === undefined) { throw new Error("Kimi OAuth credential file has no usable access_token"); }
+  return { accessToken, refreshable: text(row?.refresh_token) !== undefined, revoked: false,
+    ...(typeof row?.expires_at === "number" && Number.isFinite(row.expires_at) ? { expiresAt: row.expires_at } : {}) };
 }

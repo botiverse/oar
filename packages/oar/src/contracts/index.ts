@@ -19,6 +19,7 @@ export type {
   LimitResetStartupScreen,
   LimitResetUnsupportedReason,
   AccountUsageUnsupportedReason,
+  AccountUsageUnavailableReason,
   AccountUsageReauthReason,
   AccountUsageReader,
   AccountUsageReadOptions,

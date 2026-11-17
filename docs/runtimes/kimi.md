@@ -688,23 +688,46 @@ resolves the managed `kimi-code` provider through `kimi provider list --json`
 (honouring `KIMI_CODE_BASE_URL`, `KIMI_CODE_OAUTH_HOST`, `KIMI_CODE_HOME`;
 no such provider is `unsupported/auth_configuration_unavailable`, non-file
 credential storage `unsupported/unsupported_auth_storage`, a run that times
-out rejects), reads the stored OAuth token as-is (never refreshed), and calls
-the `/usages` and `/me` endpoints; 401/403 or an absent credential file read
-`reauth_required`, 404 `unsupported`. A stored token that cannot be an HTTP
-header value is refused before any request without quoting it, and a failed
-request keeps no fetch error as its cause (fetch errors can quote headers). File I/O errors, malformed credential
-contents, unreadable response bodies and invalid quota responses reject with
-safe reasons. Damaged quota windows are omitted rather than read as zero
-usage; if none remain, the read fails. Malformed Extra Usage data cannot
-override exhausted subscription limits. Malformed quota responses and
-credential permission failures were checked on Kimi 2.4.1 and 2.5.0 (Linux
-x64, real provider discovery, local HTTP responses, synthetic credentials).
-[`/me`](../../packages/oar/src/runtimes/kimi/profile.ts) is a
-best-effort identity add-on: it supplies `plan` (`user_level_name`), `email`,
-and `displayName` (`nickname`). Phone or WeChat sign-ins return no `email`, so
-`displayName` is often their only readable identity. Account quota and
-session context occupancy are distinct APIs; neither supplies the missing
-child-agent usage stream.
+out rejects). On Linux and macOS, with native OAuth locking enabled, it starts
+an owned loopback Kimi Web service and reads `/api/v1/oauth/usage` and the
+best-effort `/api/v1/oauth/userinfo`. Kimi calls its own `ensureFresh`, locks
+its credential slot, re-reads it under the lock and performs any refresh and
+credential writes. OAR never rotates or writes these credentials. The native
+quota response supplies five-hour, weekly and monthly ratios and Extra Usage
+headroom. Empty or malformed quota data rejects rather than reporting zero.
+
+Kimi deliberately skips this lock on Windows and when
+`KIMI_DISABLE_OAUTH_LOCK=1`. OAR does not launch the refreshing Web path in
+those cases. It reads `expires_at` locally: an expired access token with a
+refresh token returns `unavailable/access_token_expired` without HTTP; that
+result does not assert that the refresh token is valid or ask the user to
+sign in. An expired token with no refresh token requires reauthentication.
+A fresh or unknown-expiry token uses the existing direct `/usages` and `/me`
+path, without a refresh. A malformed HTTP header is rejected without quoting
+it. Unknown expiry is not evidence of expiry.
+
+An absent credential is `reauth_required/credentials_missing`. A native
+persisted revocation marker, or a usage endpoint's explicit 401/403, is
+`reauth_required/credentials_rejected`. Native refresh errors lose their HTTP
+status in the Web envelope, so OAR reads the native revocation marker after
+an error instead of parsing its message; network/other failures preserve
+credentials and reject. Endpoint 404 remains unsupported. Raw native error
+messages and credential paths are not exposed.
+
+The Web process writes native logs, indexes and its persistent server token;
+it creates no model session or prompt for these queries. Cold Web startup
+measured about two seconds on Linux, in addition to provider discovery.
+The whole reader deadline covers discovery, Web startup and HTTP; owned
+shutdown continues if the deadline expires. Native lock acquisition is not
+reimplemented by OAR. Two native processes with the lock refreshed once;
+with the native lock disabled they both sent refresh requests. This is not
+Windows platform evidence. The same source enables locking on macOS, whose
+native CI exercises this reader. [Reproduction and measured versions](../../experiments/kimi-expired-usage/README.md).
+
+Profile identity remains best effort: plan, email and nickname are projected
+without phone/account IDs. Phone sign-ins may expose a display name without
+an email. Account quota and ACP `/usage` (session token/context accounting)
+are distinct APIs; neither supplies the missing child-agent usage stream.
 
 ## Runtime login and logout
 

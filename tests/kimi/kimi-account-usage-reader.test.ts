@@ -1,13 +1,15 @@
 import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import type {
   ExecutableRunner,
   ExecutableRunOptions,
 } from "../../packages/oar/src/shared/executable/index.js";
 import { kimiAccountUsage } from "../../packages/oar/src/runtimes/kimi/account-usage.js";
 import { resolveKimiAuth } from "../../packages/oar/src/runtimes/kimi/auth-config.js";
+
+beforeEach(() => { vi.stubEnv("KIMI_DISABLE_OAUTH_LOCK", "1"); });
 
 const runExecutable = vi.hoisted(() => vi.fn<ExecutableRunner>());
 vi.mock("../../packages/oar/src/shared/executable/index.js", () => ({ runExecutable }));
@@ -170,7 +172,7 @@ test("kimi auth resolution scopes environment overrides to their own credential"
   expect(auth?.credentialPath).toBe(join(home, "credentials", `${auth?.storageName}.json`));
 });
 
-test("kimi reader sends the stored token as-is and maps a stale 401 to reauth", async () => {
+test("kimi reader avoids HTTP for an expired refreshable token without native locking", async () => {
   const home = await temporaryKimiHome();
   vi.stubEnv("KIMI_CODE_HOME", home);
   await writeToken(home, Math.floor(Date.now() / 1000) - 60);
@@ -187,7 +189,8 @@ test("kimi reader sends the stored token as-is and maps a stale 401 to reauth", 
     via: "executable",
     command: "kimi",
     version: "0.38.0",
-  })).resolves.toEqual({ kind: "reauth_required", reason: "credentials_rejected" });
+  })).resolves.toEqual({ kind: "unavailable", reason: "access_token_expired" });
+  expect(fetchMock).not.toHaveBeenCalled();
 });
 
 test("kimi reader reports reauth without any request when no token is stored", async () => {

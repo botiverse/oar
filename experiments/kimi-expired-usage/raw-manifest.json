@@ -1,0 +1,37 @@
+[
+  {
+    "file": "latest-success.json",
+    "bytes": 2849,
+    "sha256": "ac5cc56891fb3767b3342fcc62dcaa8ed44b3169e9cceeff999e8529ea4b3863"
+  },
+  {
+    "file": "2.6.2-reject-locked-1.json",
+    "bytes": 2593,
+    "sha256": "a424f81fa280b45588a7de1e88b13a6b7b677bcddc5e38c70826c7c75bf1efd7"
+  },
+  {
+    "file": "2.6.2-network-locked-1.json",
+    "bytes": 2851,
+    "sha256": "52bc85a2aae7a16581654ce6a8db5e96c3b2b8175d41d2b06776e9ead2161aaa"
+  },
+  {
+    "file": "2.6.2-success-locked-2.json",
+    "bytes": 3771,
+    "sha256": "0e8a154249289035dc27ae88a486ab31cb53f48ba5abbcbc1bb91da14d4dbf8f"
+  },
+  {
+    "file": "2.6.2-success-nolock-2.json",
+    "bytes": 3761,
+    "sha256": "4f1d5b7d331de884f39e52869eefa333cb85198fa6b9c878ba4d4599d4a54e0e"
+  },
+  {
+    "file": "2.4.1-success-locked-1.json",
+    "bytes": 2818,
+    "sha256": "38aa43effa0a69377f2a4833fe5cd12374507d53f0eb2225ddc1bd5e32703bfb"
+  },
+  {
+    "file": "2.4.1-reject-locked-1.json",
+    "bytes": 2562,
+    "sha256": "2eb97c3b874695f77742e8eefe2344c102d880b964a443e0c63e93696de311a4"
+  }
+]

@@ -50,6 +50,8 @@ export function renderUsageReport(report: UsageReport | RuntimeFailure): string[
         ...resets,
       ];
     }
+    case "unavailable":
+      return [`${runtimeId}\tusage temporarily unavailable (${usage.reason}); no sign-in required`];
     case "reauth_required":
       return [`${runtimeId}\tsign in again${usage.reason === undefined ? "" : ` (${usage.reason})`}`];
     case "unsupported":
