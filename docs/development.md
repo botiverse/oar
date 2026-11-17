@@ -333,6 +333,16 @@ or pull request whose changes are all Markdown files or under `docs/` or
   cursor's models through the SDK it depends on itself. It needs the npm
   registry.
 
+The Claude, Codex and Qwen behavior jobs install exact accepted versions from
+[`.github/runtime-versions.json`](../.github/runtime-versions.json), with links
+to the native CI evidence that established each baseline. The
+[`runtime-version.mjs`](../.github/scripts/runtime-version.mjs) reader fails
+on a missing pin, invalid manifest or non-exact version before npm runs. A
+runtime upgrade changes this table through a reviewed pull request. This is
+a partial fix for moving CI inputs: CodeBuddy's live installer and the packed
+host's published Pi dependency ranges still resolve from npm, and pinning a
+top-level CLI does not freeze its transitive dependency ranges.
+
 Outside ci.yml and its pull-request and release gates:
 
 - [`acp-windows.yml`](../.github/workflows/acp-windows.yml) runs the Kimi,

@@ -203,8 +203,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       # npm's download cache for the CLI installs below (content-addressed,
-      # so a stale restore never pins an old CLI version: latest still
-      # resolves, only unchanged tarballs are reused). pi needs no install:
+      # so restored downloads do not select a version: the explicit specs
+      # below do, and unchanged tarballs are reused). pi needs no install:
       # it is the bundled SDK already in node_modules.
       - name: Locate npm's download cache
         id: npm-cache
@@ -222,12 +222,15 @@ jobs:
           path: ${{ steps.npm-cache.outputs.path }}
           key: npm-dl-${{ runner.os }}-${{ matrix.backend }}-${{ github.run_id }}
           restore-keys: npm-dl-${{ runner.os }}-${{ matrix.backend }}-
-      - run: npm install -g @anthropic-ai/claude-code
-        if: matrix.backend == 'claude-aimock'
-      - run: npm install -g @openai/codex
-        if: matrix.backend == 'codex-aimock'
-      - run: npm install -g @qwen-code/qwen-code
-        if: matrix.backend == 'qwen-aimock'
+      - name: Install accepted Claude, Codex or Qwen version
+        if: matrix.backend == 'claude-aimock' || matrix.backend == 'codex-aimock' || matrix.backend == 'qwen-aimock'
+        shell: pwsh
+        run: |
+          $package = node .github/scripts/runtime-version.mjs '${{ matrix.backend }}'
+          if ($LASTEXITCODE -ne 0 -or !$package) {
+            throw 'Could not read the accepted CI runtime version.'
+          }
+          npm install -g $package
       # Native replay stops driving inference from 1.1.82. Keep execution checks on 1.1.81.
       # Unpin only when replay works again, or an officially supported local provider
       # passes all native cases. Daily version probes still check the latest release.
