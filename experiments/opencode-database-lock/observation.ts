@@ -1,0 +1,1 @@
+export interface Observation { adapter?: boolean; cleanup?: boolean; startedAtMs?: number; queueMs?: number; initializeMs?: number; closedMs?: number; guarded?: boolean; name: string; pid?: number; initialized: boolean; opened: boolean; startedAt: string; elapsedMs: number; exitCode: number | null; signal: NodeJS.Signals | null; error?: string; version?: string; }

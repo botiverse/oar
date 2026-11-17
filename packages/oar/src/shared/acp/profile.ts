@@ -37,6 +37,8 @@ export interface AcpSessionProfile extends AcpDerivedSessionHooks, AcpSteerReque
   readonly requestTimeoutMs?: number;
   /** Only initialize; default 60 seconds, independent of requestTimeoutMs. */
   readonly initializeTimeoutMs?: number;
+  /** Isolated process startup only. Returns an idempotent release for initialize, exit or failed open. */
+  readonly acquireStartup?: (options: SessionOptions, timeoutMs: number) => Promise<() => void>;
   readonly maxInputBytes?: number; // OAR's bound on one input's UTF-8 bytes, for a runtime seen to cut long input silently: longer ones are refused (`unsupported`, `input_too_large`)
   /** Only session/new and session/resume, when native startup work needs a larger bound. */
   readonly sessionStartTimeoutMs?: number;
@@ -234,9 +236,10 @@ export async function openAcpSession(
   options: SessionOptions,
   observe: AcpOpenObserver = () => {},
   configUpdates?: AcpConfigUpdates,
+  initializeStartedAt?: number,
 ): Promise<OpenedAcpSession> {
   // A refused login or model rejects the open as a RuntimeFailureError (failure.ts).
-  const initialized = await acpOpenStep(initializeAcpConnection(process, profile, options, observe), "open", profile.openFailure);
+  const initialized = await acpOpenStep(initializeAcpConnection(process, profile, options, observe, initializeStartedAt), "open", profile.openFailure);
   return openInitializedAcpSession(process, profile, options, initialized, observe, undefined, configUpdates);
 }
 

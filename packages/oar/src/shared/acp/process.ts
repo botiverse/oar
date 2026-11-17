@@ -24,12 +24,12 @@ interface Deadline {
   readonly timer: NodeJS.Timeout;
 }
 
-function deadline(method: string, timeoutMs: number, controller: AbortController): Deadline {
+function deadline(method: string, timeoutMs: number, controller: AbortController, startedAt?: number): Deadline {
   const { promise, reject } = Promise.withResolvers<never>();
   const timer = setTimeout(() => {
     controller.abort();
     reject(acpRequestTimeoutError(method, timeoutMs));
-  }, timeoutMs);
+  }, startedAt === undefined ? timeoutMs : Math.max(0, timeoutMs - (performance.now() - startedAt)));
   timer.unref();
   return { promise, timer };
 }
@@ -84,16 +84,23 @@ export async function withAcpDeadline<Response>(
   method: string,
   timeoutMs: number | null,
   send: (options?: SendRequestOptions) => Promise<Response>,
+  startedAt?: number,
 ): Promise<Response> {
-  await process.spawned;
-  if (processClosed(process)) {
-    throw acpProcessExitedError(process.exitCode);
+  // A startup gate supplies the original clock so queue and spawn use this same budget.
+  if (startedAt === undefined) {
+    await process.spawned;
+    if (processClosed(process)) { throw acpProcessExitedError(process.exitCode); }
   }
   const controller = timeoutMs === null ? undefined : new AbortController();
   const limit = timeoutMs === null || controller === undefined
     ? undefined
-    : deadline(method, timeoutMs, controller);
+    : deadline(method, timeoutMs, controller, startedAt);
   try {
+    if (startedAt !== undefined) {
+      await (limit === undefined ? process.spawned : Promise.race([process.spawned, limit.promise]));
+      if (timeoutMs !== null && performance.now() - startedAt >= timeoutMs) { throw acpRequestTimeoutError(method, timeoutMs); }
+      if (processClosed(process)) { throw acpProcessExitedError(process.exitCode); }
+    }
     const request = send(controller === undefined
       ? undefined
       : { cancellationSignal: controller.signal });
