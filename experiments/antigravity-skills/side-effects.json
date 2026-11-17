@@ -1,0 +1,162 @@
+{
+  "version": "1.5.10",
+  "binarySha256": "20d6f74672ce28084f50296a26860c143590b76d128d422919ef4931fbb83432",
+  "results": [
+    {
+      "mode": "signed-out-models",
+      "args": [
+        "models"
+      ],
+      "exit": 1,
+      "timedOut": false,
+      "binaryUnchanged": true,
+      "conversationTables": {
+        ".gemini/antigravity-cli/conversation_summaries.db": {
+          "conversation_summaries": 0,
+          "search_schema_version": 1,
+          "conversations_fts": 0,
+          "conversations_fts_data": 2,
+          "conversations_fts_idx": 0,
+          "conversations_fts_content": 0,
+          "conversations_fts_docsize": 0,
+          "conversations_fts_config": 1,
+          "conversation_parents": 0
+        }
+      },
+      "createdFiles": [
+        ".gemini/antigravity-cli/builtin/.checksum",
+        ".gemini/antigravity-cli/builtin/.manifest",
+        ".gemini/antigravity-cli/builtin/keep.txt",
+        ".gemini/antigravity-cli/builtin/plugins/swarm/README.md",
+        ".gemini/antigravity-cli/builtin/plugins/swarm/assets/logo.svg",
+        ".gemini/antigravity-cli/builtin/plugins/swarm/plugin.json",
+        ".gemini/antigravity-cli/builtin/plugins/swarm/sidecars/swarm_board/README.md",
+        ".gemini/antigravity-cli/builtin/plugins/swarm/sidecars/swarm_board/app.js",
+        ".gemini/antigravity-cli/builtin/plugins/swarm/sidecars/swarm_board/channels.mjs",
+        ".gemini/antigravity-cli/builtin/plugins/swarm/sidecars/swarm_board/hive.css",
+        ".gemini/antigravity-cli/builtin/plugins/swarm/sidecars/swarm_board/hive.js",
+        ".gemini/antigravity-cli/builtin/plugins/swarm/sidecars/swarm_board/index.html",
+        ".gemini/antigravity-cli/builtin/plugins/swarm/sidecars/swarm_board/main.mjs",
+        ".gemini/antigravity-cli/builtin/plugins/swarm/sidecars/swarm_board/narrator_bootstrap.js",
+        ".gemini/antigravity-cli/builtin/plugins/swarm/sidecars/swarm_board/package.json",
+        ".gemini/antigravity-cli/builtin/plugins/swarm/sidecars/swarm_board/sidecar.json",
+        ".gemini/antigravity-cli/builtin/plugins/swarm/sidecars/swarm_board/styles.css",
+        ".gemini/antigravity-cli/builtin/skills/agy-customizations/SKILL.md",
+        ".gemini/antigravity-cli/builtin/skills/agy-customizations/docs/hooks.md",
+        ".gemini/antigravity-cli/builtin/skills/agy-customizations/docs/json_configs.md",
+        ".gemini/antigravity-cli/builtin/skills/agy-customizations/docs/mcp_servers.md",
+        ".gemini/antigravity-cli/builtin/skills/agy-customizations/docs/plugins.md",
+        ".gemini/antigravity-cli/builtin/skills/agy-customizations/docs/rules.md",
+        ".gemini/antigravity-cli/builtin/skills/agy-customizations/docs/skills.md",
+        ".gemini/antigravity-cli/builtin/skills/antigravity_guide/SKILL.md",
+        ".gemini/antigravity-cli/builtin/skills/antigravity_guide/references/app.md",
+        ".gemini/antigravity-cli/builtin/skills/antigravity_guide/references/cli.md",
+        ".gemini/antigravity-cli/builtin/skills/antigravity_guide/references/ide.md",
+        ".gemini/antigravity-cli/builtin/skills/antigravity_guide/references/sdk.md",
+        ".gemini/antigravity-cli/builtin/skills/automation/SKILL.md",
+        ".gemini/antigravity-cli/builtin/skills/generative_ui/SKILL.md",
+        ".gemini/antigravity-cli/builtin/skills/mcp-app-development/SKILL.md",
+        ".gemini/antigravity-cli/builtin/skills/migrate-agent-settings/SKILL.md",
+        ".gemini/antigravity-cli/builtin/skills/migrate-workflows/SKILL.md",
+        ".gemini/antigravity-cli/builtin/skills/native_swarm/SKILL.md",
+        ".gemini/antigravity-cli/builtin/skills/native_swarm/logo.svg",
+        ".gemini/antigravity-cli/builtin/skills/permissioned-github/SKILL.md",
+        ".gemini/antigravity-cli/builtin/skills/plugin/SKILL.md",
+        ".gemini/antigravity-cli/builtin/skills/run-workflow/SKILL.md",
+        ".gemini/antigravity-cli/builtin/skills/swarm_monitor/SKILL.md",
+        ".gemini/antigravity-cli/builtin/skills/swarm_narrator/SKILL.md",
+        ".gemini/antigravity-cli/builtin/skills/swarm_pane/SKILL.md",
+        ".gemini/antigravity-cli/builtin/skills/ui-plugin-navigation/SKILL.md",
+        ".gemini/antigravity-cli/cache/default_project_id.txt",
+        ".gemini/antigravity-cli/cli.log",
+        ".gemini/antigravity-cli/conversation_summaries.db",
+        ".gemini/antigravity-cli/conversation_summaries.db-shm",
+        ".gemini/antigravity-cli/conversation_summaries.db-wal",
+        ".gemini/antigravity-cli/installation_id",
+        ".gemini/antigravity-cli/jetski_state.pbtxt",
+        ".gemini/antigravity-cli/log/cli-20261117_063000.log",
+        ".gemini/config/.migrated",
+        ".gemini/config/config.json",
+        ".gemini/config/mcp_config.json",
+        ".gemini/config/projects/default-cli-project.json"
+      ],
+      "changedFiles": [],
+      "dnsAndConnectEvidence": [
+        "<pid> write(14, \"y<\\1\\0\\0\\1\\0\\0\\0\\0\\0\\1\\4play\\ngoogleapis\\3com\\0\\0\\1\\0\\1\\0\\0)\\4\\320\\0\\0\\0\\0\\0\\0\", 48 <unfinished ...>",
+        "<pid> connect(12, {sa_family=AF_INET, sin_port=htons(443), sin_addr=inet_addr(\"172.217.119.4\")}, 16) = -1 EINPROGRESS (Operation now in progress)"
+      ]
+    },
+    {
+      "mode": "configured-cold-skills",
+      "args": [
+        "--output-format",
+        "json",
+        "--print=/skills"
+      ],
+      "exit": 0,
+      "timedOut": false,
+      "binaryUnchanged": true,
+      "conversationTables": {
+        ".gemini/antigravity-cli/conversation_summaries.db": {
+          "conversation_summaries": 0,
+          "search_schema_version": 1,
+          "conversations_fts": 0,
+          "conversations_fts_data": 2,
+          "conversations_fts_idx": 0,
+          "conversations_fts_content": 0,
+          "conversations_fts_docsize": 0,
+          "conversations_fts_config": 1,
+          "conversation_parents": 0
+        }
+      },
+      "createdFiles": [
+        ".gemini/antigravity-cli/cache/onboarding.json",
+        ".gemini/antigravity-cli/implicit/36127a18-396f-4947-b456-da6c84149d53.pb",
+        ".gemini/antigravity-cli/log/cli-20261117_063001.log"
+      ],
+      "changedFiles": [
+        ".gemini/antigravity-cli/cli.log",
+        ".gemini/antigravity-cli/conversation_summaries.db",
+        ".gemini/antigravity-cli/settings.json"
+      ],
+      "dnsAndConnectEvidence": [
+        "<pid> write(9, \"vT\\1\\0\\0\\1\\0\\0\\0\\0\\0\\1\\4play\\ngoogleapis\\3com\\0\\0\\34\\0\\1\\0\\0)\\4\\320\\0\\0\\0\\0\\0\\0\", 48 <unfinished ...>",
+        "<pid> connect(9, {sa_family=AF_INET, sin_port=htons(443), sin_addr=inet_addr(\"172.217.117.4\")}, 16) = -1 EINPROGRESS (Operation now in progress)"
+      ]
+    },
+    {
+      "mode": "configured-warm-skills",
+      "args": [
+        "--output-format",
+        "json",
+        "--print=/skills"
+      ],
+      "exit": 0,
+      "timedOut": false,
+      "binaryUnchanged": true,
+      "conversationTables": {
+        ".gemini/antigravity-cli/conversation_summaries.db": {
+          "conversation_summaries": 0,
+          "search_schema_version": 1,
+          "conversations_fts": 0,
+          "conversations_fts_data": 2,
+          "conversations_fts_idx": 0,
+          "conversations_fts_content": 0,
+          "conversations_fts_docsize": 0,
+          "conversations_fts_config": 1,
+          "conversation_parents": 0
+        }
+      },
+      "createdFiles": [
+        ".gemini/antigravity-cli/log/cli-20261117_063003.log"
+      ],
+      "changedFiles": [
+        ".gemini/antigravity-cli/cli.log"
+      ],
+      "dnsAndConnectEvidence": [
+        "<pid> write(12, \"\\r1\\1\\0\\0\\1\\0\\0\\0\\0\\0\\1\\4play\\ngoogleapis\\3com\\0\\0\\1\\0\\1\\0\\0)\\4\\320\\0\\0\\0\\0\\0\\0\", 48 <unfinished ...>",
+        "<pid> connect(9, {sa_family=AF_INET, sin_port=htons(443), sin_addr=inet_addr(\"172.217.117.4\")}, 16) = -1 EINPROGRESS (Operation now in progress)"
+      ]
+    }
+  ]
+}

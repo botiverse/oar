@@ -25,6 +25,7 @@ export const antigravityRuntime = defineRuntime({
     const { antigravityListModels } = await import("./list-models.js");
     return antigravityListModels;
   }),
+  skills: onFirstCall(async () => { const { antigravitySkills } = await import("./skills.js"); return antigravitySkills; }),
   checkUpdate: antigravityCheckUpdate,
   upgrade: antigravityUpgrade,
   login: antigravityLogin,

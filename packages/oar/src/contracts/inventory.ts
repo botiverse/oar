@@ -74,7 +74,7 @@ export type InventoryResult<T> =
     }
   | {
       readonly kind: "unavailable";
-      readonly code: "timeout" | "query_failed";
+      readonly code: "timeout" | "query_failed" | "not_authenticated";
       readonly reason: string;
     };
 

@@ -588,3 +588,44 @@ Historical evidence stays versioned: the
 [native settings probe](../../experiments/antigravity-native-settings.ts) and
 [MCP permissions comparison](../../experiments/runtime-version-checks/2026-10-24.md#settings-persistence-and-tool-list-changes).
 Their old service conclusions do not describe the new CLI adapter.
+
+## Independent skill discovery
+
+`skills()` uses `agy --output-format json --print=/skills`, verified on
+1.5.0 and 1.5.10. The native result has `status: "SUCCESS"`, an empty
+`conversation_id`, `num_turns: 0` and `command.data.skills`. OAR checks that
+shape and maps only metadata: name, description, path, explicit plugin,
+`builtin: true` to `scope: "builtin"`, and the inverse of `model_invocable`.
+Other scope stays unknown. No skill body is returned or executed by OAR.
+
+This is the CLI's disclosed catalog (`view: "discovered", partial: false`),
+not all files on disk or a live model's context. Native
+`disable-slash-command: true` entries are omitted; entries with
+`disable-model-invocation: true` remain with that flag. A malformed response
+fails the query rather than becoming an empty list. OAR does not scan fallback
+roots or parse a plugin name out of a skill name.
+
+Print mode can initiate login when signed out, so the reader first uses the
+existing `agy models` authentication check. A native signed-out refusal becomes
+`{ kind: "unavailable", code: "not_authenticated", reason: "Sign in to Antigravity to read its skills." }`.
+An unknown status remains `query_failed`, without entering print mode. Both
+steps share the caller's deadline. A custom GEMINI_HOME that differs from the
+effective home's `.gemini` is `unsupported/scope_unavailable`, because this
+print command cannot select that directory.
+
+The reader sets `AGY_CLI_DISABLE_AUTO_UPDATE=true` for its own child processes;
+`1` does not disable the native updater. Session behavior and the host's
+environment stay unchanged. This avoids a metadata read replacing the selected
+executable. It does not make native startup free of side effects: the measured
+CLI initializes builtin skill files, logs and an empty history database, and
+can reformat settings without changing their values. With the synthetic model
+provider, it made no model requests or saved conversations, but still resolved
+`play.googleapis.com` and attempted HTTPS. A real account's authentication
+query may also access account services. The reader is not a no-network local
+operation. `orient({include:["customization"]})` explicitly opts into these
+costs, including at local depth.
+
+[Reproduction and selected evidence](../../experiments/antigravity-skills/README.md)
+include the signed-out guard, native catalog comparison, binary fingerprints,
+history table counts and limits of the observations. Commands, tools and MCP
+inventories remain unsupported on this adapter.

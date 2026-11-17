@@ -1,5 +1,7 @@
 # experiments
 
+- [Antigravity native skill catalog](antigravity-skills/README.md): guarded JSON query, native metadata, no model requests, startup side effects and disabled automatic updates.
+
 - [Kimi expired access tokens](kimi-expired-usage/README.md): native locked refresh, concurrent readers, rejected credentials and read-only platform fallback.
 
 - [DSH native skill catalog](dsh-skills/README.md): native completeness, user/project/bundled sources and process cleanup without a session.

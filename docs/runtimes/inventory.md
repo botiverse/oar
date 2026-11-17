@@ -7,6 +7,12 @@ tools, or use online documentation.
 
 ## November 17 update
 
+Antigravity uses native JSON print `/skills`, guarded by `agy models` to avoid
+print-mode login. It preserves native plugin identity, builtin classification
+and model-invocation flags, without inferring user/project scope from paths.
+[Native controls](../../experiments/antigravity-skills/README.md) cover the
+1.5.0 minimum and 1.5.10, unsigned queries, startup writes and network access.
+
 DSH now queries its native global `skills.snapshot({cwd})` through the existing
 plugin bridge, preserving the native completeness flag and source categories.
 It creates no agent and makes no prompt. [Native comparison](../../experiments/dsh-skills/README.md)
