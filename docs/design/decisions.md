@@ -38,6 +38,37 @@ operation. A new shared readiness policy would also need evidence that
 hosts require the same interpretation; having the underlying facts alone
 is not sufficient.
 
+## CI installs accepted runtime versions, not latest (2026-11-17)
+
+**Considered:** keeping PR and main CI on each runtime's latest release, so
+every change is tested against what users install today.
+
+**Refused:** on 2026-11-17 Qwen 0.28.0 was advertised on npm while its
+tarball returned 404. The Qwen jobs of PRs open at the time failed before
+any test ran, and the release gate waits on the same jobs. The failure said
+nothing about OAR. A red PR or release gate should be about the change;
+one caused by an upstream release blocks unrelated work and teaches people
+to rerun instead of read.
+
+**Accepted:** PR and main CI install Claude, Codex and Qwen at exact
+versions from `.github/runtime-versions.json`
+([#887](https://github.com/botiverse/oar/pull/887)). A version is meant to
+enter that file only through a reviewed bump PR whose exact head passed the
+supported matrix. Other native CLIs keep their inline pins in `ci.yml`, and
+minimum, replay and other purpose-specific pins never move automatically.
+SDK versions stay in the package manifests and lockfile. CodeBuddy's live
+installer, the packed host's Pi ranges and transitive dependency ranges
+still float ([development notes](../development.md)). Latest releases will
+be tested by a separate scheduled run, not yet added, that nominates
+candidates and fails on its own when a release breaks; until then the
+maintainer-run [daily version inventory](../../experiments/runtime-versions.ts)
+covers them. Cost: CI can lag what users install until a bump merges, and
+each runtime release needs a bump PR.
+
+**What would reopen it:** once the scheduled run exists, it failing to
+catch upstream breakage before users report it, or bump PRs lagging far
+enough that hosts routinely run versions CI has not seen.
+
 ## Extending sessions OAR did not start (2026-11-17)
 
 **Considered:** one extension description (tools, startup instructions,
