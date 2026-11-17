@@ -20,6 +20,7 @@ One process serves one current session; no method names the session.
 | Events | `droid.session_notification { sessionId?, notification: { type, ... } }`: text and thinking deltas, `tool_call`, `tool_result`, `create_message`, settings, queue, working state, errors, retries |
 | Cancel | `droid.interrupt_session {}` |
 | Requests to the client | `droid.request_permission`, `droid.ask_user`, `droid.pick_options` |
+| Skills | `droid.list_skills { includeContent: false }`, before any session |
 | Models | `droid.list_models` (also before any session, without a login) |
 | Context | `droid.get_context_stats` answers `{ used, remaining, limit, accuracy }` |
 
@@ -51,6 +52,24 @@ installer, which OAR does not run. `checkUpdate()` reads `droid update
 --check` ("Update available: X" or "Already up to date!"); `upgrade()` runs
 `droid update`. The npm package `droid` is the same release; OAR's CI installs
 it from npm.
+
+### Skills
+
+`skills()` reads `droid.list_skills { includeContent: false }` in a separate
+native process without initializing a session or sending a prompt. It returns
+`view: "discovered"`, including builtins and disabled or non-user-invocable
+skills. Native location is preserved as `source`; personal, project, builtin
+and automation map to user, project, builtin and other scopes. Native plugin
+identity and enabled state are copied when present. User invocation is not
+model invocation, so `disableModelInvocation` remains absent.
+
+The answer is complete unless native `projectAvailable` is false. Native
+method absence is unsupported; malformed answers and query failures are
+unavailable, without exposing raw diagnostics. Startup can access the network
+and create caches, logs and other native state. It is not a local-only read.
+Both droid 1.12.1 and 1.13.0 were checked on Linux, including pre/post-session
+parity, unchanged settings and no provider requests. The reader owns and
+awaits its process cleanup. [Evidence and reproduction](../../experiments/factory-skills/README.md).
 
 ### Sessions
 

@@ -1,6 +1,7 @@
 # experiments
 
 - [CodeBuddy skill catalog boundaries](codebuddy-skills/README.md): incomplete process catalogs, library versus CLI differences and retained unsupported discovery.
+- [Factory skill metadata](factory-skills/README.md): session-free native catalog, disabled entries, provenance, and startup effects on droid 1.12.1/1.13.0.
 
 - [Antigravity native skill catalog](antigravity-skills/README.md): guarded JSON query, native metadata, no model requests, startup side effects and disabled automatic updates.
 

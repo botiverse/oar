@@ -19,5 +19,6 @@ export const factoryRuntime = defineRuntime({
   authStatus: onFirstCall(async () => { const { factoryAuthStatus } = await import("./account.js"); return factoryAuthStatus; }),
   accountUsage: onFirstCall(async () => { const { factoryAccountUsage } = await import("./account-usage.js"); return factoryAccountUsage; }),
   listModels: onFirstCall(async () => { const { factoryListModels } = await import("./list-models.js"); return factoryListModels; }),
+  skills: onFirstCall(async () => { const { factorySkills } = await import("./skills.js"); return factorySkills; }),
   session: onFirstCall(async () => { const { factorySession } = await import("./session.js"); return factorySession; }),
 }, { execution: "process" });
