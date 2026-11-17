@@ -21,6 +21,7 @@ import * as cancellation from "../packages/oar/src/shared/executable/process-can
 import { processTablePreparation } from "../packages/oar/src/shared/executable/process-table-preparation.js";
 import { gone } from "./fixtures/process-tree.js";
 import captureProcessTiming from "./fixtures/process-timing.js";
+import { captureCleanupEvidence, expectCleanupEvidence, expectOrphanReclaimed } from "./fixtures/cleanup-evidence.js";
 
 const fixture = fileURLToPath(new URL("fixtures/cancellation-orphan-agent.mjs", import.meta.url));
 const installation = { kind: "available", via: "executable", command: process.execPath } as const;
@@ -70,12 +71,13 @@ function cancellationDiagnostics(): Record<string, unknown>[] {
 
 // oxlint-disable-next-line eslint/max-statements -- Two native turns must leave different orphaned tools before one final disposal.
 test.each(["acp", "stream"])("%s cancellation retains orphan identities across two resumed turns", async protocol => {
+  const cleanupEvidence = captureCleanupEvidence();
   const observations = cancellationDiagnostics();
   const session = await open(protocol, true);
   const owned: number[] = [];
   try {
-    // This case requires successful capture. Cold/queued expiry has its own
-    // unverified-cleanup control; preparation never supplies identity evidence.
+    // Preparation removes cold startup work, but a fresh capture can still
+    // exceed its deadline. Only that operation's timeout can explain a miss.
     if (process.platform === "win32") {
       await expect.poll(() => processTablePreparation(), { timeout: 6000 }).toMatchObject({ ok: true });
     }
@@ -101,8 +103,15 @@ test.each(["acp", "stream"])("%s cancellation retains orphan identities across t
     await session.dispose();
     const exit = session.records().findLast(record => record.kind === "response" && record.body.kind === "exited");
     const diagnostic = JSON.stringify({ observations, exited: exit?.kind === "response" ? exit.body : null });
-    expect(observations.map(entry => entry.ok), diagnostic).toEqual([true, true]);
-    expect(await Promise.all(owned.map(async pid => gone(pid))), diagnostic).toEqual(owned.map(() => true));
+    const evidence = cleanupEvidence();
+    expectCleanupEvidence(evidence, exit?.kind === "response" && exit.body.kind === "exited" ? exit.body.reason : undefined);
+    const captures = evidence.observations.filter(entry => entry.phase === "before_cancel");
+    expect(captures, diagnostic).toHaveLength(2);
+    expect(observations.map(entry => entry.ok), diagnostic).toEqual(captures.map(entry => entry.ok));
+    await Promise.all(captures.map(async (capture, round) => {
+      await expectOrphanReclaimed(owned[round * 2], evidence, capture);
+      expect(await gone(Number(owned[round * 2 + 1])), diagnostic).toBe(true);
+    }));
     expect(session.records().filter(record => record.kind === "response" && record.body.kind === "exited")).toHaveLength(1);
   } finally {
     await session.dispose();
@@ -113,6 +122,7 @@ test.each(["acp", "stream"])("%s cancellation retains orphan identities across t
 // oxlint-disable-next-line eslint/max-statements -- Root exit is deliberately immediate after cancel, before a normal prompt reply.
 test.each(["acp", "stream"])("%s cancellation cleans captured tools when its root exits immediately", async protocol => {
   vi.stubEnv("OAR_CANCEL_EXIT", "1");
+  const cleanupEvidence = captureCleanupEvidence();
   const session = await open(protocol, false);
   let tool: number | undefined = undefined;
   try {
@@ -122,7 +132,12 @@ test.each(["acp", "stream"])("%s cancellation cleans captured tools when its roo
     expect(await gone(tool, 50)).toBe(false);
     await session.abort();
     await expect.poll(() => session.records().some(record => record.kind === "response" && record.body.kind === "exited"), { timeout: 10_000 }).toBe(true);
-    expect(await gone(tool)).toBe(true);
+    const evidence = cleanupEvidence();
+    const exit = session.records().findLast(record => record.kind === "response" && record.body.kind === "exited");
+    expectCleanupEvidence(evidence, exit?.kind === "response" && exit.body.kind === "exited" ? exit.body.reason : undefined);
+    const captures = evidence.observations.filter(entry => entry.phase === "before_cancel");
+    expect(captures).toHaveLength(1);
+    await expectOrphanReclaimed(tool, evidence, captures[0]);
   } finally {
     await session.dispose();
     if (tool !== undefined) { try { process.kill(tool, "SIGKILL"); } catch { /* Already reclaimed. */ } }
@@ -190,6 +205,7 @@ test("ACP sends cancel after one observation timeout and preserves unverified cl
 // oxlint-disable-next-line eslint/max-statements -- Native cancel orphans the tool and never completes, so the actual fallback must reclaim it.
 test.each(["acp", "stream"])("%s kill fallback retains ownership from before the native cancel", async protocol => {
   vi.stubEnv("OAR_CANCEL_HANG", "1");
+  const cleanupEvidence = captureCleanupEvidence();
   const session = await open(protocol, false);
   let tool: number | undefined = undefined;
   try {
@@ -200,7 +216,12 @@ test.each(["acp", "stream"])("%s kill fallback retains ownership from before the
     const abortResult = await session.abort();
     expect(abortResult.kind).toBe("accepted");
     expect(await awaitTurnEnd(session, prompt.seq)).toEqual({ kind: "aborted" });
-    expect(await gone(tool)).toBe(true);
+    const evidence = cleanupEvidence();
+    const exit = session.records().findLast(record => record.kind === "response" && record.body.kind === "exited");
+    expectCleanupEvidence(evidence, exit?.kind === "response" && exit.body.kind === "exited" ? exit.body.reason : undefined);
+    const captures = evidence.observations.filter(entry => entry.phase === "before_cancel");
+    expect(captures).toHaveLength(1);
+    await expectOrphanReclaimed(tool, evidence, captures[0]);
     expect(session.records().filter(record => record.kind === "response" && record.body.kind === "exited")).toHaveLength(1);
   } finally {
     await session.dispose();

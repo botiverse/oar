@@ -135,3 +135,10 @@ that fixture was corrected, and the failed log remains retained.
 
 Windows samples from the unchanged CI budgets are the next evidence needed
 before considering a product policy change.
+
+## Follow-up assertion audit
+
+The [November 17 assertion audit](assertion-audit.md) applies the captured
+Windows timeout evidence to the native cleanup controls. It preserves the
+one-second cancellation budget and distinguishes unverified cleanup from
+actual descendant reclamation.

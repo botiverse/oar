@@ -12,6 +12,7 @@ import * as tables from "../packages/oar/src/shared/executable/process-table-asy
 import * as cancellation from "../packages/oar/src/shared/executable/process-cancellation.js";
 import { processTablePreparation } from "../packages/oar/src/shared/executable/process-table-preparation.js";
 import { gone } from "./fixtures/process-tree.js";
+import { captureCleanupEvidence, expectCleanupEvidence, expectOrphanReclaimed } from "./fixtures/cleanup-evidence.js";
 
 afterEach(() => { vi.restoreAllMocks(); });
 const fixture = fileURLToPath(new URL("fixtures/cancellation-orphan-agent.mjs", import.meta.url));
@@ -23,6 +24,7 @@ function ready(session: Session, since: number): Record<string, unknown> | undef
 
 // oxlint-disable-next-line eslint/max-statements, eslint/max-lines-per-function -- Two real turns span a held background query and an expired foreground read.
 test.each([false, true])("ACP background query queue: wait before cancelling = %s", async waitBeforeCancel => {
+  const cleanupEvidence = captureCleanupEvidence();
   const session = await acpSession({ args: [fixture, "acp"], capabilities: { queue: { durable: false }, attribution: "opaque" } })(
     { kind: "available", via: "executable", command: process.execPath }, { cwd: process.cwd(), resume: "cancel-root" });
   const entered = Promise.withResolvers<void>(), release = Promise.withResolvers<void>();
@@ -101,11 +103,16 @@ test.each([false, true])("ACP background query queue: wait before cancelling = %
     const exit = session.records().findLast(record => record.kind === "response" && record.body.kind === "exited");
     const reason = exit?.kind === "response" && exit.body.kind === "exited" ? exit.body.reason : undefined;
     const diagnostic = JSON.stringify({ waitBeforeCancel, queries, observations, exited: exit?.kind === "response" ? exit.body : null });
-    expect(observations.map(observation => observation.ok), diagnostic).toEqual([waitBeforeCancel, true]);
-    const reclaimed = await Promise.all(owned.map(async (pid, index) => gone(pid, index === 0 && !waitBeforeCancel ? 100 : 5000)));
-    expect(reclaimed, diagnostic).toEqual([waitBeforeCancel, true, true, true]);
-    if (waitBeforeCancel) { expect(reason, diagnostic).toBeUndefined(); }
-    else { expect(reason, diagnostic).toMatch(/before_cancel (?:procfs|windows|ps): timeout/u); }
+    const evidence = cleanupEvidence();
+    expectCleanupEvidence(evidence, reason, { injectedTimeouts: waitBeforeCancel ? [] : [0] });
+    const captures = evidence.observations.filter(entry => entry.phase === "before_cancel");
+    expect(captures, diagnostic).toHaveLength(2);
+    expect(observations.map(observation => observation.ok), diagnostic).toEqual(captures.map(entry => entry.ok));
+    if (!waitBeforeCancel) { expect(captures[0], diagnostic).toMatchObject({ ok: false, reason: "timeout", timeoutMs: 1000 }); }
+    await Promise.all(captures.map(async (capture, round) => {
+      await expectOrphanReclaimed(owned[round * 2], evidence, capture);
+      expect(await gone(Number(owned[round * 2 + 1])), diagnostic).toBe(true);
+    }));
   } finally {
     release.resolve(); await preparation;
     vi.restoreAllMocks(); await session.dispose();
