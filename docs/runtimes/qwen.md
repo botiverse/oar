@@ -47,7 +47,7 @@ its runtime. OAR itself requires Node 24 or newer.
 | Install | Official standalone installer on macOS/Linux, checksum verification by the vendor script, with `--method standalone --no-modify-path`. No npm fallback or shell-profile change. Windows returns unsupported with the official PowerShell instructions. |
 | Login / provider setup | No runtime `login` member or browser flow; native `qwen auth` was removed. `createQwenProviderAuth` drives native ACP provider list/connect. Environment configuration also remains available. |
 | Authentication status | Local user/system credential presence only. Configured or indeterminate sources return `unknown`; none in scope returns `logged_out` with setup guidance and a workspace caveat. No credential validation, native process, network request or write. |
-| Other surfaces | `serviceTier`, `name`, `goals` and `endTurnProcessesOnAbort` are refused ([declarations](../../packages/oar/src/runtimes/qwen/options.ts)); `launchArgs` cannot override the protocol, session identity, approval mode or output schema flags OAR owns. No account quota, inventory, updater, live configure or context breakdown mapping. |
+| Other surfaces | `serviceTier`, `name`, `goals` and `endTurnProcessesOnAbort` are refused ([declarations](../../packages/oar/src/runtimes/qwen/options.ts)); `launchArgs` cannot override the protocol, session identity, approval mode or output schema flags OAR owns. No account quota, command/MCP/tool inventory, updater, live configure or context breakdown mapping. Skill discovery uses the independent native query described below. |
 
 On resume, pass `systemPrompt` and `appendSystemPrompt` again to retain or
 replace them (`resumedSessionOptions`: provided `immediate`, omitted `default`).
