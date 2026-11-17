@@ -27,7 +27,7 @@ darwin arm64, default model `kimi-code/k3`, no `--model`), 2026-09-11, through
 [experiments index](../../experiments/README.md): `kimi-wire-tap.ts`,
 `kimi-usage-update-order.ts live`, `kimi-steer-or-queue.ts`. All of them pass
 on **kimi 2.0.0** (2026-09-18, live-contract 13/13; its `thinking` values are
-under [Effort](#models-instructions-and-context)). The latest check is
+under [Effort](#models-instructions-and-context)). The November 13 check is
 **kimi 2.6.2** (2026-11-13, Linux): all 15 shared behavior cases and five
 local OAuth/login regressions pass; one of fourteen native vendor cases fails:
 a fresh-process resume without MCP configuration still advertises the
@@ -35,6 +35,11 @@ initial stdio and HTTP tool declarations
 ([session MCP servers](#session-mcp-servers)). That case passes on 2.4.1,
 which stays the CI pin until an upstream fix passes the same controls
 ([results and limits](../../experiments/runtime-version-checks/2026-11-13.md#kimi-262)).
+A November 17 direct native comparison confirms the same declaration/execution
+mismatch on **2.6.2 and 2.6.3**, with current connections and stale advertised
+tools. Workspace registration returns a fresh ID on both; OAR preserves the
+user registration and cleans up its own new ID
+([source and controls](../../experiments/kimi-mcp-resume/2026-11-17.md)).
 Facts from later binaries name their version. Versions are
 evidence baselines, not a support range. The [spec](../spec/README.md) is the
 contract the adapter implements, not evidence of this adapter's behavior; see
@@ -101,7 +106,11 @@ interface instead of reproducing its resolver. Native cleanup tests pass on
 root: 2.4.1 reuses and preserves that ID; 2.6.2 creates a fresh ID that OAR
 removes while preserving the user's registration. This is decided by the
 native ID, without a version threshold. An invalid workspace list fails
-before registration.
+before registration. The 2.6.3 native workspace route explicitly gives a fresh
+ID per registration; only an explicit idempotency key requests reuse
+([native source](https://github.com/MoonshotAI/kimi-code/blob/b0de2fbd2de04d87689225aafd3912e5d193b62d/packages/agent-core-v2/src/app/workspace/workspaceService.ts#L133)).
+The native test selects the expectation from the installed version while
+retaining both user-preservation assertions.
 [Interface comparison, probes and limits](../../experiments/runtime-skills-2026-11-16/README.md).
 
 ## High-level mapping to OAR
@@ -623,6 +632,12 @@ reproduces on 2.6.0
 ([2026-11-12](../../experiments/runtime-version-checks/2026-11-12.md#kimi-260)),
 and the omitted-configuration case on 2.6.2
 ([2026-11-13](../../experiments/runtime-version-checks/2026-11-13.md#kimi-262)).
+The full four-variant direct native probe also reproduces on **2.6.2 and
+2.6.3**: old names remain advertised after removal and return native
+`Tool ... not found`; new names are callable but missing from the model
+catalog. Same-name replacements use the new configuration. This can send
+the model toward removed tools while hiding newly supplied tools
+([November 17 evidence and source](../../experiments/kimi-mcp-resume/2026-11-17.md)).
 
 The credentials reach kimi only in the open request's params, which OAR does
 not record (it records the answers, every `session/update` and vendor

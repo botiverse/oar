@@ -1,11 +1,13 @@
+/* oxlint-disable import/max-dependencies -- Native version comparison joins the Web lifecycle and preservation fixture. */
 import assert from "node:assert/strict";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve as resolvePath } from "node:path";
 import { createConnection } from "node:net";
 import { describe, expect, test, vi } from "vitest";
+import { versionAtLeast } from "../../packages/oar/src/shared/update.js";
 import { sessionEnvironment } from "../../packages/oar/src/shared/environment.js";
-import { spawnLineProcess } from "../../packages/oar/src/shared/executable/index.js";
+import { readExecutableVersion, spawnLineProcess } from "../../packages/oar/src/shared/executable/index.js";
 import { asRecord, parseJson, type JsonRecord } from "../../packages/oar/src/shared/json.js";
 import { kimiRuntime } from "../../packages/oar/src/runtimes/kimi/index.js";
 
@@ -131,8 +133,9 @@ describe.skipIf(!["kimi-skills", "kimi-login"].includes(process.env.OAR_TEST ?? 
       assert.equal(typeof user.id, "string");
       const created: unknown[] = [];
       const deleted: string[] = [];
-      const mode = process.env.OAR_KIMI_WORKSPACE_MODE;
-      assert.ok(mode === "reuse" || mode === "fresh", "Set OAR_KIMI_WORKSPACE_MODE for the pinned native version");
+      const version = await readExecutableVersion(command, 30_000, undefined, sessionEnvironment(f.env));
+      assert.ok(version !== undefined && /^\d+\.\d+\.\d+$/u.test(version), "Workspace control requires the native version");
+      const mode = versionAtLeast(version, "2.6.2") ? "fresh" : "reuse";
       const nativeFetch = globalThis.fetch;
       vi.spyOn(globalThis, "fetch").mockImplementation(async (url, init) => {
         const response = await nativeFetch(url, init);
