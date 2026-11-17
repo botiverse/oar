@@ -78,6 +78,8 @@ See [adapter version requirements](orientation.md#adapter-version-requirements).
 `partial:true` signals a native discovery error or pending/failed MCP startup.
 Cursor directory discovery also marks unreadable or malformed metadata and
 unavailable nested discovery partial.
+DSH maps its native snapshot `complete` to `partial:!complete`, including
+provider failures while preserving the remaining entries.
 Devin sets `partial:true` when a returned entry has non-empty native `errors`;
 warnings alone do not set it. Native files silently omitted before catalog
 creation are not an OAR-observed discovery error. Pi RPC returns the complete
@@ -107,6 +109,7 @@ the native catalog says so. A plugin identity alone does not establish scope.
 | Grok | `bundled` → builtin; `user` → user; `project` → project; `server`/`plugin`/`configToml` → other | Tagged source's `plugin_name` |
 | Kimi | `builtin`/`user`/`project` unchanged; `extra` → other | Not supplied by this catalog |
 | Pi SDK and RPC | `SourceInfo.scope` user/project unchanged; temporary → other | `SourceInfo.source` when `origin` is package; absent for top-level |
+| DSH | Native `bundled` → builtin; `user-dsh`/`user-agents` → user; `project-dsh`/`project-agents` → project; `custom`/`runtime` → other | Provider labels are not plugin identities |
 | Devin | Native `Builtin` → builtin; brand providers remain unknown | Not supplied by this catalog |
 | Cursor | Measured SDK home loading roots → user; workspace/nested loading roots → project | Not inferred |
 | OpenCode | Native built-in marker or verified built-in URI → builtin; verified user loading root → user; verified cwd/ancestor loading root → project | Not supplied by this catalog |
@@ -166,7 +169,8 @@ ACP session's `available_commands_update` is not an independent query.
 | OpenCode | v1 `debug skill`; v2 native HTTP catalog after plugin activation | Unsupported | Unsupported | Unsupported |
 | Cursor | Measured SDK user/project directory discovery | Unsupported | Unsupported | Unsupported |
 | Devin | Native `skills list --json`; can attempt network and write native state | Unsupported | Unsupported | Unsupported |
-| Antigravity, DSH, Pi Durable, Qwen, Qoder, CodeBuddy, Factory | Unsupported on the selected interface | Unsupported on the selected interface | Unsupported on the selected interface | Unsupported on the selected interface |
+| DSH | Native global `skills.snapshot({cwd})` through its bridge; native profile/plugin startup costs | Unsupported | Unsupported | Unsupported |
+| Antigravity, Pi Durable, Qwen, Qoder, CodeBuddy, Factory | Unsupported on the selected interface | Unsupported on the selected interface | Unsupported on the selected interface | Unsupported on the selected interface |
 
 Kimi starts a private loopback Web service, reads the complete workspace skill
 catalog and stops its owned process tree. A workspace ID returned by registration

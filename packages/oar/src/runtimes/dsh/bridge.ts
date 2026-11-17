@@ -240,6 +240,11 @@ ${dshGoalSource}
       agent.cancel({ kind: "user" }, { keepInbox: false });
       return {};
     },
+    async skills(request) {
+      const skills = ctx.get("skills");
+      requireMethod(skills, "snapshot", "listing skills");
+      return await skills.snapshot({ cwd: request.cwd });
+    },
     async models() {
       const llm = ctx.get("llm");
       requireMethod(llm, "listProviders", "listing models");

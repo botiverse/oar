@@ -1,0 +1,60 @@
+{
+  "rawLocation": "agent workspace artifacts/dsh-skills",
+  "files": [
+    {
+      "file": "final-minimum/dsh-skills/catalog.json",
+      "sha256": "6483e47a378c8e4e27418f60599d02e102d576b10ff71e82020d6bfdde8a53cf",
+      "bytes": 4602
+    },
+    {
+      "file": "final-minimum/dsh-skills/partial.json",
+      "sha256": "4b18e4c503d40e1c9997f364c0c02b77d67606ad77a84e80a1c3444253c67474",
+      "bytes": 3991
+    },
+    {
+      "file": "final-minimum.log",
+      "sha256": "7cf89ba5cbac1a0373b9a85c5ec94840014d5b1f72fb87d1e4da876f23561b17",
+      "bytes": 470
+    },
+    {
+      "file": "final-next/dsh-skills/catalog.json",
+      "sha256": "c9652e85c672600e7e75a340d8c0129aa46e9bd41e7aecff0bee965c1c4942f8",
+      "bytes": 4602
+    },
+    {
+      "file": "final-next/dsh-skills/partial.json",
+      "sha256": "676a2f1606c6d1817797fec1d571db989fed8d7d4ffacf25406f59555320c105",
+      "bytes": 3991
+    },
+    {
+      "file": "final-next.log",
+      "sha256": "c363920c41350dee8c065a5a0d63fdae3e9f09fbc24872c3a0d5b6577682e0ba",
+      "bytes": 470
+    },
+    {
+      "file": "final-latest/dsh-skills/catalog.json",
+      "sha256": "b7c63434f1f0e6a5ed83290d24beeb0f2618e3a279f19958565315ad9fbd0dfc",
+      "bytes": 4602
+    },
+    {
+      "file": "final-latest/dsh-skills/partial.json",
+      "sha256": "c1973f43b641ec16b96264ab84bb4e59b528f433eacb6b70d87d664be2b79c83",
+      "bytes": 3991
+    },
+    {
+      "file": "final-latest.log",
+      "sha256": "a967ecf646a50318222ef3e56a33e9788924c6c1a28d149c5bfd5aca407992e2",
+      "bytes": 274
+    },
+    {
+      "file": "behavior-minimum.log",
+      "sha256": "cda2f7a1c528a1b2cf2ef4c5b66e9b2c0088c5511bc606a7df18fdc4f61087cb",
+      "bytes": 928
+    },
+    {
+      "file": "full-check.log",
+      "sha256": "9efa13559f71d10fd4f203c2893dc9cf699f3c862c2b7b4407724ef35de0ffcb",
+      "bytes": 5724
+    }
+  ]
+}

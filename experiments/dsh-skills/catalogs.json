@@ -1,0 +1,904 @@
+{
+  "date": "2026-11-17",
+  "platform": "linux-x64",
+  "measurements": [
+    {
+      "version": "0.2.1-rc.5",
+      "catalog": {
+        "native": {
+          "skills": [
+            {
+              "name": "bundled-fixture",
+              "path": "<fixture>/dsh/fixture-bundled/bundled-fixture/SKILL.md",
+              "description": "bundled-fixture fixture",
+              "invocation": {
+                "modelInvocable": false,
+                "userInvocable": true
+              },
+              "source": "bundled",
+              "provider": "filesystem",
+              "resourceBase": {
+                "kind": "directory",
+                "path": "<fixture>/dsh/fixture-bundled/bundled-fixture"
+              }
+            },
+            {
+              "name": "project-agents",
+              "path": "<fixture>/project/.agents/skills/project-agents/SKILL.md",
+              "description": "project-agents fixture",
+              "invocation": {
+                "modelInvocable": false,
+                "userInvocable": true
+              },
+              "source": "project-agents",
+              "provider": "filesystem",
+              "resourceBase": {
+                "kind": "directory",
+                "path": "<fixture>/project/.agents/skills/project-agents"
+              }
+            },
+            {
+              "name": "project-dsh",
+              "path": "<fixture>/project/.dsh/skills/project-dsh/SKILL.md",
+              "description": "project-dsh fixture",
+              "invocation": {
+                "modelInvocable": false,
+                "userInvocable": true
+              },
+              "source": "project-dsh",
+              "provider": "filesystem",
+              "resourceBase": {
+                "kind": "directory",
+                "path": "<fixture>/project/.dsh/skills/project-dsh"
+              }
+            },
+            {
+              "name": "user-agents",
+              "path": "<fixture>/dsh/fixture-agents/skills/user-agents/SKILL.md",
+              "description": "user-agents fixture",
+              "invocation": {
+                "modelInvocable": false,
+                "userInvocable": true
+              },
+              "source": "user-agents",
+              "provider": "filesystem",
+              "resourceBase": {
+                "kind": "directory",
+                "path": "<fixture>/dsh/fixture-agents/skills/user-agents"
+              }
+            },
+            {
+              "name": "user-dsh",
+              "path": "<fixture>/dsh/skills/user-dsh/SKILL.md",
+              "description": "user-dsh fixture",
+              "invocation": {
+                "modelInvocable": false,
+                "userInvocable": true
+              },
+              "source": "user-dsh",
+              "provider": "filesystem",
+              "resourceBase": {
+                "kind": "directory",
+                "path": "<fixture>/dsh/skills/user-dsh"
+              }
+            }
+          ],
+          "complete": true
+        },
+        "public": {
+          "kind": "ok",
+          "scope": {
+            "kind": "workspace",
+            "cwd": "<fixture>/project"
+          },
+          "observedAt": "2026-11-17T03:56:41.975Z",
+          "view": "discovered",
+          "items": [
+            {
+              "name": "bundled-fixture",
+              "description": "bundled-fixture fixture",
+              "path": "<fixture>/dsh/fixture-bundled/bundled-fixture/SKILL.md",
+              "source": "bundled",
+              "scope": "builtin",
+              "disableModelInvocation": true
+            },
+            {
+              "name": "project-agents",
+              "description": "project-agents fixture",
+              "path": "<fixture>/project/.agents/skills/project-agents/SKILL.md",
+              "source": "project-agents",
+              "scope": "project",
+              "disableModelInvocation": true
+            },
+            {
+              "name": "project-dsh",
+              "description": "project-dsh fixture",
+              "path": "<fixture>/project/.dsh/skills/project-dsh/SKILL.md",
+              "source": "project-dsh",
+              "scope": "project",
+              "disableModelInvocation": true
+            },
+            {
+              "name": "user-agents",
+              "description": "user-agents fixture",
+              "path": "<fixture>/dsh/fixture-agents/skills/user-agents/SKILL.md",
+              "source": "user-agents",
+              "scope": "user",
+              "disableModelInvocation": true
+            },
+            {
+              "name": "user-dsh",
+              "description": "user-dsh fixture",
+              "path": "<fixture>/dsh/skills/user-dsh/SKILL.md",
+              "source": "user-dsh",
+              "scope": "user",
+              "disableModelInvocation": true
+            }
+          ],
+          "partial": false
+        }
+      },
+      "configUnchanged": true,
+      "providerRequests": 0,
+      "nativeFiles": [
+        "cordis.patch.yml",
+        "fixture-agents",
+        "fixture-bundled",
+        "profiles",
+        "skills",
+        "storages",
+        "skills/malformed.md",
+        "skills/user-dsh",
+        "skills/user-dsh/SKILL.md",
+        "profiles/acp",
+        "profiles/acp/cordis.patch.yml",
+        "profiles/acp/cordis.yml",
+        "profiles/acp/package.json",
+        "profiles/acp/pnpm-workspace.yaml",
+        "fixture-bundled/bundled-fixture",
+        "fixture-bundled/bundled-fixture/SKILL.md",
+        "fixture-agents/skills",
+        "fixture-agents/skills/user-agents",
+        "fixture-agents/skills/user-agents/SKILL.md"
+      ],
+      "partial": {
+        "native": {
+          "skills": [
+            {
+              "name": "bundled-fixture",
+              "path": "<fixture>/dsh/fixture-bundled/bundled-fixture/SKILL.md",
+              "description": "bundled-fixture fixture",
+              "invocation": {
+                "modelInvocable": false,
+                "userInvocable": true
+              },
+              "source": "bundled",
+              "provider": "filesystem",
+              "resourceBase": {
+                "kind": "directory",
+                "path": "<fixture>/dsh/fixture-bundled/bundled-fixture"
+              }
+            },
+            {
+              "name": "project-agents",
+              "path": "<fixture>/project/.agents/skills/project-agents/SKILL.md",
+              "description": "project-agents fixture",
+              "invocation": {
+                "modelInvocable": false,
+                "userInvocable": true
+              },
+              "source": "project-agents",
+              "provider": "filesystem",
+              "resourceBase": {
+                "kind": "directory",
+                "path": "<fixture>/project/.agents/skills/project-agents"
+              }
+            },
+            {
+              "name": "project-dsh",
+              "path": "<fixture>/project/.dsh/skills/project-dsh/SKILL.md",
+              "description": "project-dsh fixture",
+              "invocation": {
+                "modelInvocable": false,
+                "userInvocable": true
+              },
+              "source": "project-dsh",
+              "provider": "filesystem",
+              "resourceBase": {
+                "kind": "directory",
+                "path": "<fixture>/project/.dsh/skills/project-dsh"
+              }
+            },
+            {
+              "name": "user-agents",
+              "path": "<fixture>/dsh/fixture-agents/skills/user-agents/SKILL.md",
+              "description": "user-agents fixture",
+              "invocation": {
+                "modelInvocable": false,
+                "userInvocable": true
+              },
+              "source": "user-agents",
+              "provider": "filesystem",
+              "resourceBase": {
+                "kind": "directory",
+                "path": "<fixture>/dsh/fixture-agents/skills/user-agents"
+              }
+            },
+            {
+              "name": "user-dsh",
+              "path": "<fixture>/dsh/skills/user-dsh/SKILL.md",
+              "description": "user-dsh fixture",
+              "invocation": {
+                "modelInvocable": false,
+                "userInvocable": true
+              },
+              "source": "user-dsh",
+              "provider": "filesystem",
+              "resourceBase": {
+                "kind": "directory",
+                "path": "<fixture>/dsh/skills/user-dsh"
+              }
+            }
+          ],
+          "complete": false
+        },
+        "public": {
+          "kind": "ok",
+          "scope": {
+            "kind": "workspace",
+            "cwd": "<fixture>/project"
+          },
+          "observedAt": "2026-11-17T03:56:44.787Z",
+          "view": "discovered",
+          "items": [
+            {
+              "name": "bundled-fixture",
+              "description": "bundled-fixture fixture",
+              "path": "<fixture>/dsh/fixture-bundled/bundled-fixture/SKILL.md",
+              "source": "bundled",
+              "scope": "builtin",
+              "disableModelInvocation": true
+            },
+            {
+              "name": "project-agents",
+              "description": "project-agents fixture",
+              "path": "<fixture>/project/.agents/skills/project-agents/SKILL.md",
+              "source": "project-agents",
+              "scope": "project",
+              "disableModelInvocation": true
+            },
+            {
+              "name": "project-dsh",
+              "description": "project-dsh fixture",
+              "path": "<fixture>/project/.dsh/skills/project-dsh/SKILL.md",
+              "source": "project-dsh",
+              "scope": "project",
+              "disableModelInvocation": true
+            },
+            {
+              "name": "user-agents",
+              "description": "user-agents fixture",
+              "path": "<fixture>/dsh/fixture-agents/skills/user-agents/SKILL.md",
+              "source": "user-agents",
+              "scope": "user",
+              "disableModelInvocation": true
+            },
+            {
+              "name": "user-dsh",
+              "description": "user-dsh fixture",
+              "path": "<fixture>/dsh/skills/user-dsh/SKILL.md",
+              "source": "user-dsh",
+              "scope": "user",
+              "disableModelInvocation": true
+            }
+          ],
+          "partial": true
+        }
+      },
+      "providerTimeout": {
+        "outcome": "unavailable/timeout",
+        "providerEntered": true,
+        "processGoneBeforeReturn": true
+      }
+    },
+    {
+      "version": "0.2.2-rc.3",
+      "catalog": {
+        "native": {
+          "skills": [
+            {
+              "name": "bundled-fixture",
+              "path": "<fixture>/dsh/fixture-bundled/bundled-fixture/SKILL.md",
+              "description": "bundled-fixture fixture",
+              "invocation": {
+                "modelInvocable": false,
+                "userInvocable": true
+              },
+              "source": "bundled",
+              "provider": "filesystem",
+              "resourceBase": {
+                "kind": "directory",
+                "path": "<fixture>/dsh/fixture-bundled/bundled-fixture"
+              }
+            },
+            {
+              "name": "project-agents",
+              "path": "<fixture>/project/.agents/skills/project-agents/SKILL.md",
+              "description": "project-agents fixture",
+              "invocation": {
+                "modelInvocable": false,
+                "userInvocable": true
+              },
+              "source": "project-agents",
+              "provider": "filesystem",
+              "resourceBase": {
+                "kind": "directory",
+                "path": "<fixture>/project/.agents/skills/project-agents"
+              }
+            },
+            {
+              "name": "project-dsh",
+              "path": "<fixture>/project/.dsh/skills/project-dsh/SKILL.md",
+              "description": "project-dsh fixture",
+              "invocation": {
+                "modelInvocable": false,
+                "userInvocable": true
+              },
+              "source": "project-dsh",
+              "provider": "filesystem",
+              "resourceBase": {
+                "kind": "directory",
+                "path": "<fixture>/project/.dsh/skills/project-dsh"
+              }
+            },
+            {
+              "name": "user-agents",
+              "path": "<fixture>/dsh/fixture-agents/skills/user-agents/SKILL.md",
+              "description": "user-agents fixture",
+              "invocation": {
+                "modelInvocable": false,
+                "userInvocable": true
+              },
+              "source": "user-agents",
+              "provider": "filesystem",
+              "resourceBase": {
+                "kind": "directory",
+                "path": "<fixture>/dsh/fixture-agents/skills/user-agents"
+              }
+            },
+            {
+              "name": "user-dsh",
+              "path": "<fixture>/dsh/skills/user-dsh/SKILL.md",
+              "description": "user-dsh fixture",
+              "invocation": {
+                "modelInvocable": false,
+                "userInvocable": true
+              },
+              "source": "user-dsh",
+              "provider": "filesystem",
+              "resourceBase": {
+                "kind": "directory",
+                "path": "<fixture>/dsh/skills/user-dsh"
+              }
+            }
+          ],
+          "complete": true
+        },
+        "public": {
+          "kind": "ok",
+          "scope": {
+            "kind": "workspace",
+            "cwd": "<fixture>/project"
+          },
+          "observedAt": "2026-11-17T03:56:43.488Z",
+          "view": "discovered",
+          "items": [
+            {
+              "name": "bundled-fixture",
+              "description": "bundled-fixture fixture",
+              "path": "<fixture>/dsh/fixture-bundled/bundled-fixture/SKILL.md",
+              "source": "bundled",
+              "scope": "builtin",
+              "disableModelInvocation": true
+            },
+            {
+              "name": "project-agents",
+              "description": "project-agents fixture",
+              "path": "<fixture>/project/.agents/skills/project-agents/SKILL.md",
+              "source": "project-agents",
+              "scope": "project",
+              "disableModelInvocation": true
+            },
+            {
+              "name": "project-dsh",
+              "description": "project-dsh fixture",
+              "path": "<fixture>/project/.dsh/skills/project-dsh/SKILL.md",
+              "source": "project-dsh",
+              "scope": "project",
+              "disableModelInvocation": true
+            },
+            {
+              "name": "user-agents",
+              "description": "user-agents fixture",
+              "path": "<fixture>/dsh/fixture-agents/skills/user-agents/SKILL.md",
+              "source": "user-agents",
+              "scope": "user",
+              "disableModelInvocation": true
+            },
+            {
+              "name": "user-dsh",
+              "description": "user-dsh fixture",
+              "path": "<fixture>/dsh/skills/user-dsh/SKILL.md",
+              "source": "user-dsh",
+              "scope": "user",
+              "disableModelInvocation": true
+            }
+          ],
+          "partial": false
+        }
+      },
+      "configUnchanged": true,
+      "providerRequests": 0,
+      "nativeFiles": [
+        "cordis.patch.yml",
+        "fixture-agents",
+        "fixture-bundled",
+        "profiles",
+        "skills",
+        "storages",
+        "skills/malformed.md",
+        "skills/user-dsh",
+        "skills/user-dsh/SKILL.md",
+        "profiles/acp",
+        "profiles/acp/cordis.patch.yml",
+        "profiles/acp/cordis.yml",
+        "profiles/acp/package.json",
+        "profiles/acp/pnpm-workspace.yaml",
+        "fixture-bundled/bundled-fixture",
+        "fixture-bundled/bundled-fixture/SKILL.md",
+        "fixture-agents/skills",
+        "fixture-agents/skills/user-agents",
+        "fixture-agents/skills/user-agents/SKILL.md"
+      ],
+      "partial": {
+        "native": {
+          "skills": [
+            {
+              "name": "bundled-fixture",
+              "path": "<fixture>/dsh/fixture-bundled/bundled-fixture/SKILL.md",
+              "description": "bundled-fixture fixture",
+              "invocation": {
+                "modelInvocable": false,
+                "userInvocable": true
+              },
+              "source": "bundled",
+              "provider": "filesystem",
+              "resourceBase": {
+                "kind": "directory",
+                "path": "<fixture>/dsh/fixture-bundled/bundled-fixture"
+              }
+            },
+            {
+              "name": "project-agents",
+              "path": "<fixture>/project/.agents/skills/project-agents/SKILL.md",
+              "description": "project-agents fixture",
+              "invocation": {
+                "modelInvocable": false,
+                "userInvocable": true
+              },
+              "source": "project-agents",
+              "provider": "filesystem",
+              "resourceBase": {
+                "kind": "directory",
+                "path": "<fixture>/project/.agents/skills/project-agents"
+              }
+            },
+            {
+              "name": "project-dsh",
+              "path": "<fixture>/project/.dsh/skills/project-dsh/SKILL.md",
+              "description": "project-dsh fixture",
+              "invocation": {
+                "modelInvocable": false,
+                "userInvocable": true
+              },
+              "source": "project-dsh",
+              "provider": "filesystem",
+              "resourceBase": {
+                "kind": "directory",
+                "path": "<fixture>/project/.dsh/skills/project-dsh"
+              }
+            },
+            {
+              "name": "user-agents",
+              "path": "<fixture>/dsh/fixture-agents/skills/user-agents/SKILL.md",
+              "description": "user-agents fixture",
+              "invocation": {
+                "modelInvocable": false,
+                "userInvocable": true
+              },
+              "source": "user-agents",
+              "provider": "filesystem",
+              "resourceBase": {
+                "kind": "directory",
+                "path": "<fixture>/dsh/fixture-agents/skills/user-agents"
+              }
+            },
+            {
+              "name": "user-dsh",
+              "path": "<fixture>/dsh/skills/user-dsh/SKILL.md",
+              "description": "user-dsh fixture",
+              "invocation": {
+                "modelInvocable": false,
+                "userInvocable": true
+              },
+              "source": "user-dsh",
+              "provider": "filesystem",
+              "resourceBase": {
+                "kind": "directory",
+                "path": "<fixture>/dsh/skills/user-dsh"
+              }
+            }
+          ],
+          "complete": false
+        },
+        "public": {
+          "kind": "ok",
+          "scope": {
+            "kind": "workspace",
+            "cwd": "<fixture>/project"
+          },
+          "observedAt": "2026-11-17T03:56:46.984Z",
+          "view": "discovered",
+          "items": [
+            {
+              "name": "bundled-fixture",
+              "description": "bundled-fixture fixture",
+              "path": "<fixture>/dsh/fixture-bundled/bundled-fixture/SKILL.md",
+              "source": "bundled",
+              "scope": "builtin",
+              "disableModelInvocation": true
+            },
+            {
+              "name": "project-agents",
+              "description": "project-agents fixture",
+              "path": "<fixture>/project/.agents/skills/project-agents/SKILL.md",
+              "source": "project-agents",
+              "scope": "project",
+              "disableModelInvocation": true
+            },
+            {
+              "name": "project-dsh",
+              "description": "project-dsh fixture",
+              "path": "<fixture>/project/.dsh/skills/project-dsh/SKILL.md",
+              "source": "project-dsh",
+              "scope": "project",
+              "disableModelInvocation": true
+            },
+            {
+              "name": "user-agents",
+              "description": "user-agents fixture",
+              "path": "<fixture>/dsh/fixture-agents/skills/user-agents/SKILL.md",
+              "source": "user-agents",
+              "scope": "user",
+              "disableModelInvocation": true
+            },
+            {
+              "name": "user-dsh",
+              "description": "user-dsh fixture",
+              "path": "<fixture>/dsh/skills/user-dsh/SKILL.md",
+              "source": "user-dsh",
+              "scope": "user",
+              "disableModelInvocation": true
+            }
+          ],
+          "partial": true
+        }
+      },
+      "providerTimeout": {
+        "outcome": "unavailable/timeout",
+        "providerEntered": true,
+        "processGoneBeforeReturn": true
+      }
+    },
+    {
+      "version": "0.2.2-rc.1",
+      "catalog": {
+        "native": {
+          "skills": [
+            {
+              "name": "bundled-fixture",
+              "path": "<fixture>/dsh/fixture-bundled/bundled-fixture/SKILL.md",
+              "description": "bundled-fixture fixture",
+              "invocation": {
+                "modelInvocable": false,
+                "userInvocable": true
+              },
+              "source": "bundled",
+              "provider": "filesystem",
+              "resourceBase": {
+                "kind": "directory",
+                "path": "<fixture>/dsh/fixture-bundled/bundled-fixture"
+              }
+            },
+            {
+              "name": "project-agents",
+              "path": "<fixture>/project/.agents/skills/project-agents/SKILL.md",
+              "description": "project-agents fixture",
+              "invocation": {
+                "modelInvocable": false,
+                "userInvocable": true
+              },
+              "source": "project-agents",
+              "provider": "filesystem",
+              "resourceBase": {
+                "kind": "directory",
+                "path": "<fixture>/project/.agents/skills/project-agents"
+              }
+            },
+            {
+              "name": "project-dsh",
+              "path": "<fixture>/project/.dsh/skills/project-dsh/SKILL.md",
+              "description": "project-dsh fixture",
+              "invocation": {
+                "modelInvocable": false,
+                "userInvocable": true
+              },
+              "source": "project-dsh",
+              "provider": "filesystem",
+              "resourceBase": {
+                "kind": "directory",
+                "path": "<fixture>/project/.dsh/skills/project-dsh"
+              }
+            },
+            {
+              "name": "user-agents",
+              "path": "<fixture>/dsh/fixture-agents/skills/user-agents/SKILL.md",
+              "description": "user-agents fixture",
+              "invocation": {
+                "modelInvocable": false,
+                "userInvocable": true
+              },
+              "source": "user-agents",
+              "provider": "filesystem",
+              "resourceBase": {
+                "kind": "directory",
+                "path": "<fixture>/dsh/fixture-agents/skills/user-agents"
+              }
+            },
+            {
+              "name": "user-dsh",
+              "path": "<fixture>/dsh/skills/user-dsh/SKILL.md",
+              "description": "user-dsh fixture",
+              "invocation": {
+                "modelInvocable": false,
+                "userInvocable": true
+              },
+              "source": "user-dsh",
+              "provider": "filesystem",
+              "resourceBase": {
+                "kind": "directory",
+                "path": "<fixture>/dsh/skills/user-dsh"
+              }
+            }
+          ],
+          "complete": true
+        },
+        "public": {
+          "kind": "ok",
+          "scope": {
+            "kind": "workspace",
+            "cwd": "<fixture>/project"
+          },
+          "observedAt": "2026-11-17T03:58:15.795Z",
+          "view": "discovered",
+          "items": [
+            {
+              "name": "bundled-fixture",
+              "description": "bundled-fixture fixture",
+              "path": "<fixture>/dsh/fixture-bundled/bundled-fixture/SKILL.md",
+              "source": "bundled",
+              "scope": "builtin",
+              "disableModelInvocation": true
+            },
+            {
+              "name": "project-agents",
+              "description": "project-agents fixture",
+              "path": "<fixture>/project/.agents/skills/project-agents/SKILL.md",
+              "source": "project-agents",
+              "scope": "project",
+              "disableModelInvocation": true
+            },
+            {
+              "name": "project-dsh",
+              "description": "project-dsh fixture",
+              "path": "<fixture>/project/.dsh/skills/project-dsh/SKILL.md",
+              "source": "project-dsh",
+              "scope": "project",
+              "disableModelInvocation": true
+            },
+            {
+              "name": "user-agents",
+              "description": "user-agents fixture",
+              "path": "<fixture>/dsh/fixture-agents/skills/user-agents/SKILL.md",
+              "source": "user-agents",
+              "scope": "user",
+              "disableModelInvocation": true
+            },
+            {
+              "name": "user-dsh",
+              "description": "user-dsh fixture",
+              "path": "<fixture>/dsh/skills/user-dsh/SKILL.md",
+              "source": "user-dsh",
+              "scope": "user",
+              "disableModelInvocation": true
+            }
+          ],
+          "partial": false
+        }
+      },
+      "configUnchanged": true,
+      "providerRequests": 0,
+      "nativeFiles": [
+        "cordis.patch.yml",
+        "fixture-agents",
+        "fixture-bundled",
+        "profiles",
+        "skills",
+        "storages",
+        "skills/malformed.md",
+        "skills/user-dsh",
+        "skills/user-dsh/SKILL.md",
+        "profiles/acp",
+        "profiles/acp/cordis.patch.yml",
+        "profiles/acp/cordis.yml",
+        "profiles/acp/package.json",
+        "profiles/acp/pnpm-workspace.yaml",
+        "fixture-bundled/bundled-fixture",
+        "fixture-bundled/bundled-fixture/SKILL.md",
+        "fixture-agents/skills",
+        "fixture-agents/skills/user-agents",
+        "fixture-agents/skills/user-agents/SKILL.md"
+      ],
+      "partial": {
+        "native": {
+          "skills": [
+            {
+              "name": "bundled-fixture",
+              "path": "<fixture>/dsh/fixture-bundled/bundled-fixture/SKILL.md",
+              "description": "bundled-fixture fixture",
+              "invocation": {
+                "modelInvocable": false,
+                "userInvocable": true
+              },
+              "source": "bundled",
+              "provider": "filesystem",
+              "resourceBase": {
+                "kind": "directory",
+                "path": "<fixture>/dsh/fixture-bundled/bundled-fixture"
+              }
+            },
+            {
+              "name": "project-agents",
+              "path": "<fixture>/project/.agents/skills/project-agents/SKILL.md",
+              "description": "project-agents fixture",
+              "invocation": {
+                "modelInvocable": false,
+                "userInvocable": true
+              },
+              "source": "project-agents",
+              "provider": "filesystem",
+              "resourceBase": {
+                "kind": "directory",
+                "path": "<fixture>/project/.agents/skills/project-agents"
+              }
+            },
+            {
+              "name": "project-dsh",
+              "path": "<fixture>/project/.dsh/skills/project-dsh/SKILL.md",
+              "description": "project-dsh fixture",
+              "invocation": {
+                "modelInvocable": false,
+                "userInvocable": true
+              },
+              "source": "project-dsh",
+              "provider": "filesystem",
+              "resourceBase": {
+                "kind": "directory",
+                "path": "<fixture>/project/.dsh/skills/project-dsh"
+              }
+            },
+            {
+              "name": "user-agents",
+              "path": "<fixture>/dsh/fixture-agents/skills/user-agents/SKILL.md",
+              "description": "user-agents fixture",
+              "invocation": {
+                "modelInvocable": false,
+                "userInvocable": true
+              },
+              "source": "user-agents",
+              "provider": "filesystem",
+              "resourceBase": {
+                "kind": "directory",
+                "path": "<fixture>/dsh/fixture-agents/skills/user-agents"
+              }
+            },
+            {
+              "name": "user-dsh",
+              "path": "<fixture>/dsh/skills/user-dsh/SKILL.md",
+              "description": "user-dsh fixture",
+              "invocation": {
+                "modelInvocable": false,
+                "userInvocable": true
+              },
+              "source": "user-dsh",
+              "provider": "filesystem",
+              "resourceBase": {
+                "kind": "directory",
+                "path": "<fixture>/dsh/skills/user-dsh"
+              }
+            }
+          ],
+          "complete": false
+        },
+        "public": {
+          "kind": "ok",
+          "scope": {
+            "kind": "workspace",
+            "cwd": "<fixture>/project"
+          },
+          "observedAt": "2026-11-17T03:58:19.559Z",
+          "view": "discovered",
+          "items": [
+            {
+              "name": "bundled-fixture",
+              "description": "bundled-fixture fixture",
+              "path": "<fixture>/dsh/fixture-bundled/bundled-fixture/SKILL.md",
+              "source": "bundled",
+              "scope": "builtin",
+              "disableModelInvocation": true
+            },
+            {
+              "name": "project-agents",
+              "description": "project-agents fixture",
+              "path": "<fixture>/project/.agents/skills/project-agents/SKILL.md",
+              "source": "project-agents",
+              "scope": "project",
+              "disableModelInvocation": true
+            },
+            {
+              "name": "project-dsh",
+              "description": "project-dsh fixture",
+              "path": "<fixture>/project/.dsh/skills/project-dsh/SKILL.md",
+              "source": "project-dsh",
+              "scope": "project",
+              "disableModelInvocation": true
+            },
+            {
+              "name": "user-agents",
+              "description": "user-agents fixture",
+              "path": "<fixture>/dsh/fixture-agents/skills/user-agents/SKILL.md",
+              "source": "user-agents",
+              "scope": "user",
+              "disableModelInvocation": true
+            },
+            {
+              "name": "user-dsh",
+              "description": "user-dsh fixture",
+              "path": "<fixture>/dsh/skills/user-dsh/SKILL.md",
+              "source": "user-dsh",
+              "scope": "user",
+              "disableModelInvocation": true
+            }
+          ],
+          "partial": true
+        },
+        "processExited": true
+      },
+      "providerTimeout": {
+        "outcome": "unavailable/timeout",
+        "providerEntered": true,
+        "processGoneBeforeReturn": true
+      }
+    }
+  ]
+}

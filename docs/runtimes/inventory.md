@@ -7,6 +7,11 @@ tools, or use online documentation.
 
 ## November 17 update
 
+DSH now queries its native global `skills.snapshot({cwd})` through the existing
+plugin bridge, preserving the native completeness flag and source categories.
+It creates no agent and makes no prompt. [Native comparison](../../experiments/dsh-skills/README.md)
+records profile costs, malformed-file omission and provider failures.
+
 Devin 3000.12.57 now uses its native `skills list --json` catalog, including
 bundled skills. Brand labels do not identify user/project ownership. The
 [Linux comparison](../../experiments/devin-skills/README.md) records malformed
