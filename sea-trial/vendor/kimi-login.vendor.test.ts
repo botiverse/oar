@@ -33,7 +33,9 @@ describe.skipIf(process.env.OAR_TEST !== "kimi-login")("Kimi native device login
         expect(path.basename(path.dirname(executable))).toMatch(/^oar-kimi-browser-/u);
         expect(existsSync(executable)).toBe(false);
       }
-      expect(calls.some((entry) => entry.file === executable && entry.code !== undefined)).toBe(true);
+      const pid = launched[0]?.pid; assert.ok(pid !== undefined);
+      // Kimi can exit before its browser callback runs. Check the actual helper.
+      expect(fixture.processRunning(pid)).toBe(false);
       const config = await readFile(path.join(fixture.home, "config.toml"), "utf8");
       expect(config).toContain("synthetic-model");
       expect(config).toContain("managed:kimi-code");

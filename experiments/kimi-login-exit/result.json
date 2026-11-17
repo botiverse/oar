@@ -1,0 +1,30 @@
+{
+  "platform": "linux",
+  "kimi": "2.4.1",
+  "rows": [
+    {
+      "delayMs": 0,
+      "login": "logged_in",
+      "callbackRecorded": true,
+      "browserRunning": false,
+      "observerRunning": false,
+      "observerExitCode": 0
+    },
+    {
+      "delayMs": 100,
+      "login": "logged_in",
+      "callbackRecorded": false,
+      "browserRunning": false,
+      "observerRunning": false,
+      "observerExitCode": 0
+    },
+    {
+      "delayMs": 1000,
+      "login": "logged_in",
+      "callbackRecorded": false,
+      "browserRunning": false,
+      "observerRunning": false,
+      "observerExitCode": 0
+    }
+  ]
+}

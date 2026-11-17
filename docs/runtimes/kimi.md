@@ -788,7 +788,10 @@ browser-command execution both permitted and suppressed, native model and
 credential writes, status without login, logout, cancellation and a failure
 after the credential write. Linux passed on 2026-10-28; macOS and Windows
 evidence comes from the same test in the three-platform CI check job. These
-tests use synthetic credentials. Run locally with
+tests use synthetic credentials. The browser helper must be gone after login;
+its exit is checked from the surviving test process because native Kimi can
+exit before its own browser callback runs
+([controlled evidence](../../experiments/kimi-login-exit/README.md)). Run locally with
 `OAR_TEST=kimi-login pnpm vitest run sea-trial/vendor/kimi-login.vendor.test.ts`
 and an installed Kimi 2.3.3 or later (CI pins 2.4.1; `OAR_KIMI_LOGIN_COMMAND`
 selects its executable).
