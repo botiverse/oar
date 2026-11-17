@@ -37,6 +37,42 @@ function fakeRegistry(url) {
   return metadata(name, version, name === "@earendil-works/pi-coding-agent" ? { undici: workspace.devDependencies.undici } : {});
 }
 
+test("manifest identity ignores checkout line endings but still detects changed pins", () => {
+  const directory = mkdtempSync(path.join(tmpdir(), "oar-ci-manifest-"));
+  try {
+    const manifest = { schemaVersion: 1, runtimes: { fixture: { package: "fixture", version: "1.2.3" } } };
+    const lf = path.join(directory, "lf.json");
+    const crlf = path.join(directory, "crlf.json");
+    const changed = path.join(directory, "changed.json");
+    const text = JSON.stringify(manifest, null, 2) + "\n";
+    writeFileSync(lf, text);
+    writeFileSync(crlf, text.replaceAll("\n", "\r\n"));
+    writeFileSync(changed, text.replace("1.2.3", "1.2.4"));
+    assert.deepEqual(readManifest(lf).manifest, readManifest(crlf).manifest);
+    assert.equal(readManifest(lf).sha256, readManifest(crlf).sha256);
+    assert.notEqual(readManifest(lf).sha256, readManifest(changed).sha256);
+  } finally { rmSync(directory, { recursive: true, force: true }); }
+});
+
+test("a candidate from changed accepted pins fails before installation or publication", async () => {
+  const directory = mkdtempSync(path.join(tmpdir(), "oar-ci-stale-"));
+  try {
+    const manifestFile = path.join(directory, "candidate.json");
+    const current = readManifest();
+    const changed = { ...current.manifest, schemaVersion: 1, baselineSha256: "0".repeat(64) };
+    writeFileSync(manifestFile, JSON.stringify(changed));
+    const githubEnv = path.join(directory, "github-env");
+    const githubPath = path.join(directory, "github-path");
+    const reportDirectory = path.join(directory, "reports");
+    await assert.rejects(installRuntime("opencode-cleanup", manifestFile, { directory, githubEnv, githubPath, reportDirectory }), /another baseline/u);
+    assert.equal(existsSync(githubEnv), false);
+    assert.equal(existsSync(githubPath), false);
+    const report = JSON.parse(readFileSync(path.join(reportDirectory, readdirSync(reportDirectory)[0])));
+    assert.equal(report.stage, "read-pin");
+    assert.equal(report.status, "failed");
+  } finally { rmSync(directory, { recursive: true, force: true }); }
+});
+
 test("native versions compare complete tokens, including prereleases", () => {
   for (const output of ["1.2.3", "codex-cli 1.2.3", "1.2.3 (Claude Code)", "opencode v1.2.3"]) assert.equal(nativeVersion(output), "1.2.3");
   assert.equal(nativeVersion("dsh 0.2.1-rc.5"), "0.2.1-rc.5");
@@ -179,7 +215,7 @@ test("SDK candidate rewrites stay in the disposable checkout and preserve packag
   } finally { rmSync(directory, { recursive: true, force: true }); }
 });
 
-for (const mismatch of [false, true]) test(`real offline npm install publishes only a verified native version (mismatch=${mismatch})`, async () => {
+for (const candidate of [false, true]) for (const mismatch of [false, true]) test(`real offline npm install publishes only a verified native version (candidate=${candidate}, mismatch=${mismatch})`, async () => {
   const directory = mkdtempSync(path.join(tmpdir(), "oar-runtime install-test-"));
   try {
     const fixture = path.join(directory, "package");
@@ -193,7 +229,7 @@ for (const mismatch of [false, true]) test(`real offline npm install publishes o
     const bytes = readFileSync(path.join(directory, "oar-ci-fixture-1.2.3.tgz"));
     await serverFor((_request, response) => response.end(bytes), async url => {
       const manifestFile = path.join(directory, "pins.json");
-      writeFileSync(manifestFile, JSON.stringify({ schemaVersion: 1, runtimes: { fixture: {
+      writeFileSync(manifestFile, JSON.stringify({ schemaVersion: 1, ...(candidate ? { baselineSha256: readManifest().sha256 } : {}), runtimes: { fixture: {
         package: "oar-ci-fixture", version: "1.2.3", command: "oar-ci-fixture", env: "OAR_CI_FIXTURE_BIN", dist: { url, integrity: hash(bytes) },
       } } }));
       const githubEnv = path.join(directory, "github-env");
@@ -208,7 +244,9 @@ for (const mismatch of [false, true]) test(`real offline npm install publishes o
         const report = await install();
         assert.equal(report.actualVersion, "1.2.3");
         assert.equal(report.status, "verified");
-        assert.match(readFileSync(githubEnv, "utf8"), /^OAR_CI_FIXTURE_BIN=/u);
+        const published = readFileSync(githubEnv, "utf8");
+        assert.match(published, /^OAR_CI_FIXTURE_BIN=/u);
+        assert.equal(published.includes("OAR_CI_CANDIDATE_VERSION=1.2.3\n"), candidate);
       }
       const report = JSON.parse(readFileSync(path.join(reportDirectory, readdirSync(reportDirectory)[0])));
       assert.equal(report.status, mismatch ? "failed" : "verified");

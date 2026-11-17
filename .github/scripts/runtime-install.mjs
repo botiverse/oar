@@ -120,6 +120,7 @@ export async function installRuntime(key, file = baselineFile, options = {}) {
     githubValue(options.githubEnv ?? process.env.GITHUB_ENV, pin.env, binary);
     githubValue(options.githubPath ?? process.env.GITHUB_PATH, "", path.dirname(binary));
     if (npmRoot) githubValue(options.githubEnv ?? process.env.GITHUB_ENV, "OAR_CI_NPM_ROOT", npmRoot);
+    if (manifest.baselineSha256) githubValue(options.githubEnv ?? process.env.GITHUB_ENV, "OAR_CI_CANDIDATE_VERSION", pin.version);
     report.status = "verified";
     return report;
   } catch (error) {
