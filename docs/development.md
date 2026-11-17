@@ -199,6 +199,16 @@ records mean startup was not observed, not that no process was launched.
 This changes neither the assertion nor the deadline or retry policy.
 [Capture validation and replay](../experiments/antigravity-mcp-evidence/README.md).
 
+The Antigravity skill query also writes `antigravity-skills/query-attempt.json`
+on failure before deleting its fixture. It retains bounded native output,
+truncation flags, the fixture file list and model-request count. Kimi's
+concurrent expired-token usage cases write both readers' outcomes and
+allowlisted failure labels, fixture HTTP statuses, native local Web statuses,
+process count and credential-state booleans. The observations retain no
+credential values, request headers or response bodies. Both captures run
+before fixture cleanup and preserve the existing assertions and deadlines.
+
+
 ### Experiment: what does the real runtime actually do?
 
 `experiments/`, run by `pnpm tsx experiments/<name>.ts`. A live probe that

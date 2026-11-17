@@ -9,6 +9,16 @@ import { kimiExpiredUsageFixture } from "./support/kimi-expired-usage.js";
 const command = process.env.OAR_KIMI_LOGIN_COMMAND ?? "kimi";
 const installation = { kind: "available", via: "executable", command, version: "2.4.1" } as const;
 const windows = process.platform === "win32";
+/** Only OAR's fixed error labels are retained, never native errors or response bodies. */
+function failureMessages(error: unknown): string[] {
+  const labels = new Set(["Failed to read Kimi account usage", "Kimi discovery HTTP failure", "Kimi native usage query failed", "Kimi account usage timed out", "Kimi discovery stopped", "Kimi discovery exited", "Kimi Web request failed"]);
+  const result: string[] = [];
+  for (let current = error, depth = 0; current instanceof Error && depth < 5; current = current.cause, depth++) {
+    result.push(labels.has(current.message) ? current.message : "unclassified error");
+  }
+  return result;
+}
+
 async function stopped(trace: string): Promise<void> {
   const content = await readFile(trace, "utf8");
   const rows = content.trim().split("\n");
@@ -20,8 +30,10 @@ async function stopped(trace: string): Promise<void> {
 describe.skipIf(process.env.OAR_TEST !== "kimi-login")("Kimi native expired-token usage", () => {
   test.each([1, 2])("%s concurrent readers leave credential refresh to native locking", { timeout: 60_000 }, async count => {
     const f = await kimiExpiredUsageFixture("success");
+    const pending = Array.from({ length: count }, async () => kimiRuntime.accountUsage(installation, { env: f.env, timeoutMs: 30_000 }));
+    const outcomes = Promise.allSettled(pending);
     try {
-      const results = await Promise.all(Array.from({ length: count }, async () => kimiRuntime.accountUsage(installation, { env: f.env, timeoutMs: 30_000 })));
+      const results = await Promise.all(pending);
       if (windows) {
         expect(results).toEqual(Array.from({ length: count }, () => ({ kind: "unavailable", reason: "access_token_expired" })));
         expect(f.calls).toHaveLength(0); expect(await readFile(f.file, "utf8")).toBe(f.before);
@@ -31,9 +43,20 @@ describe.skipIf(process.env.OAR_TEST !== "kimi-login")("Kimi native expired-toke
         expect(f.calls.filter(call => call.path === "/usages").every(call => call.fresh)).toBe(true);
         const token = asRecord(parseJson(await readFile(f.file, "utf8"))); expect(token?.access_token).toBe("synthetic-fresh");
       }
-      const dir = path.join(resolveRunDir(), "kimi-expired-usage"); await mkdir(dir, { recursive: true });
-      await writeFile(path.join(dir, `concurrent-${String(count)}.json`), JSON.stringify({ platform: process.platform, count, results, calls: f.calls }, null, 2));
-    } finally { await stopped(f.trace); await f.dispose(); }
+    } finally {
+      try {
+        const settled = await outcomes;
+        try {
+          const dir = path.join(resolveRunDir(), "kimi-expired-usage"); await mkdir(dir, { recursive: true });
+          await writeFile(path.join(dir, `concurrent-${String(count)}.json`), JSON.stringify({ platform: process.platform, count,
+            outcomes: settled.map(result => result.status === "fulfilled" ? result : { status: result.status, errors: failureMessages(result.reason) }),
+            observation: await f.observe() }, null, 2));
+        } catch (error) {
+          console.error("Kimi usage evidence could not be saved:", error instanceof Error ? error.name : "unknown");
+        }
+        await stopped(f.trace);
+      } finally { await f.dispose(); }
+    }
   });
   test.each(["rejected", "network"] as const)("native refresh %s preserves the auth/failure distinction", { timeout: 60_000 }, async mode => {
     const f = await kimiExpiredUsageFixture(mode);
