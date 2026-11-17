@@ -5,6 +5,7 @@ import { getTextContent, type LLMock } from "@copilotkit/aimock";
 import type { Session, RuntimeEventBody } from "../../../packages/oar/src/contracts/session.js";
 import { startPiAimock } from "../../harness/aimock.js";
 import { runtimeUnderTest } from "../../harness/subject.js";
+import { openTrace } from "../../harness/trace.js";
 import { piTestRuntime } from "./pi-runtime.js";
 
 export const inputId = (n: number): string => `11111111-1111-4111-8111-${String(n).padStart(12, "0")}`;
@@ -23,6 +24,7 @@ interface PiInputFixture {
   close(): Promise<void>;
 }
 export async function fixture(extension: string, hold: RegExp | null = null, latency = 30, settings?: Record<string, unknown>): Promise<PiInputFixture> {
+  openTrace(`vendor-${process.env.OAR_TEST ?? "unset"}`);
   const requests: string[] = [];
   const gates = new Map<string, PromiseWithResolvers<void>>();
   const gate = (text: string): PromiseWithResolvers<void> => {
