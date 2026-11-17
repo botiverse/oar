@@ -383,7 +383,9 @@ Outside ci.yml and its pull-request and release gates:
   (including DSH and Qoder) are excluded from this daily matrix and still
   need the separate upgrade checks in the version inventory. Pi, Pi Durable,
   Chord and Pi's exact undici move together in a disposable SDK checkout; Cursor is
-  separate. SDK manifests and the newly resolved lockfile are retained.
+  separate. Its candidate checkout updates the SDK version constant alongside the
+  exact peer, so the ordinary peer-consistency assertion still applies. SDK
+  manifests and the newly resolved lockfile are retained.
   Discovery, download, install and native-version failures stay red; a partial
   discovery failure still lets other frozen candidates run. The workflow has
   read-only permissions, leaves no checkout token on disk, and never updates

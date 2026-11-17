@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { setTimeout as sleep } from "node:timers/promises";
 import { expect, test, vi } from "vitest";
 import { createCursorRuntime } from "../../packages/oar/src/index.js";
+import { CURSOR_SDK_VERSION } from "../../packages/oar/src/runtimes/cursor/sdk-version.js";
 import { bundled, FakeCursor, leaks, PREVIOUS, REFUSED, startLogin, unused } from "../fixtures/fake-cursor-auth.js";
 import { recordedInteraction } from "../fixtures/login-interaction.js";
 
@@ -226,7 +227,7 @@ test("nothing runs for an aborted signal; another installation, an SDK without C
       },
     }).login(bundled, recordedInteraction([])),
   ]);
-  expect(results).toMatchInlineSnapshot(`
+  expect(results).toEqual(
     [
       {
         "kind": "cancelled",
@@ -237,7 +238,7 @@ test("nothing runs for an aborted signal; another installation, an SDK without C
         "reason": "unsupported_installation",
       },
       {
-        "detail": "@cursor/sdk 1.4.0 is required; this one has no Cursor.auth",
+        "detail": `@cursor/sdk ${CURSOR_SDK_VERSION} is required; this one has no Cursor.auth`,
         "kind": "unsupported",
         "reason": "version_unsupported",
       },
@@ -247,6 +248,6 @@ test("nothing runs for an aborted signal; another installation, an SDK without C
         "reason": "process_failed",
       },
     ]
-  `);
+  );
   assert.deepEqual([fake.loads, fake.logins.length], [0, 0]);
 });

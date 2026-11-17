@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { afterEach, expect, test, vi } from "vitest";
 import { createCursorRuntime } from "../../packages/oar/src/index.js";
+import { CURSOR_SDK_VERSION } from "../../packages/oar/src/runtimes/cursor/sdk-version.js";
 import { bundled, EXPIRES_MS, FakeCursor, KEY, leaks, PREVIOUS, unused } from "../fixtures/fake-cursor-auth.js";
 
 afterEach(() => {
@@ -70,15 +71,15 @@ test("an SDK without Cursor.auth.logout, an installation that is not bundled, or
       },
     }).logout(bundled),
   ]);
-  expect(results).toMatchInlineSnapshot(`
+  expect(results).toEqual(
     [
       {
-        "detail": "@cursor/sdk 1.4.0 is required; this one has no Cursor.auth.logout",
+        "detail": `@cursor/sdk ${CURSOR_SDK_VERSION} is required; this one has no Cursor.auth.logout`,
         "kind": "unsupported",
         "reason": "version_unsupported",
       },
       {
-        "detail": "@cursor/sdk 1.4.0 is required; this one has no Cursor.auth.logout",
+        "detail": `@cursor/sdk ${CURSOR_SDK_VERSION} is required; this one has no Cursor.auth.logout`,
         "kind": "unsupported",
         "reason": "version_unsupported",
       },
@@ -93,6 +94,6 @@ test("an SDK without Cursor.auth.logout, an installation that is not bundled, or
         "reason": "process_failed",
       },
     ]
-  `);
+  );
   assert.ok(!leaks(results));
 });

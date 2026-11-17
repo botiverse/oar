@@ -12,6 +12,15 @@ const require = createRequire(new URL("../../packages/oar/package.json", import.
 export function rewriteSdkManifests(group, packages, directory) {
   assert.ok(group === "pi" || group === "cursor", "Unknown SDK candidate group");
   for (const entry of Object.values(packages)) assert.ok(exactVersion(entry.version), "SDK candidate must be exact");
+  if (group === "cursor") {
+    const version = packages["@cursor/sdk"]?.version;
+    assert.ok(exactVersion(version), "Missing exact Cursor SDK candidate version");
+    const file = path.join(directory, "packages/oar/src/runtimes/cursor/sdk-version.ts");
+    const source = readFileSync(file, "utf8");
+    const declaration = /^export const CURSOR_SDK_VERSION = "[^"\r\n]*";/gmu;
+    assert.equal([...source.matchAll(declaration)].length, 1, "Expected one Cursor SDK version declaration");
+    writeFileSync(file, source.replace(declaration, `export const CURSOR_SDK_VERSION = "${version}";`));
+  }
   for (const relative of ["package.json", "packages/oar/package.json", "packages/cli/package.json"]) {
     const file = path.join(directory, relative);
     const manifest = JSON.parse(readFileSync(file));
