@@ -1,0 +1,2456 @@
+{
+  "checkedAt": "2026-11-17T21:10:09.434Z",
+  "sourceHead": "2b11517cffc233e2c21dac7fc67502a5ab4537de",
+  "inventory": {
+    "checkedAt": "2026-11-17T21:10:09.434Z",
+    "platform": "linux-x64",
+    "node": "v24.19.0",
+    "script": "experiments/runtime-versions.ts",
+    "results": [
+      {
+        "runtime": "antigravity",
+        "source": "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app/manifests/linux_amd64.json",
+        "latest": "1.5.10",
+        "installed": "1.5.10",
+        "installation": "available",
+        "status": "current"
+      },
+      {
+        "runtime": "claude",
+        "source": "https://registry.npmjs.org/@anthropic-ai/claude-code/latest",
+        "latest": "2.1.326",
+        "installed": "2.1.292",
+        "installation": "available",
+        "status": "different"
+      },
+      {
+        "runtime": "codex",
+        "source": "https://registry.npmjs.org/@openai/codex/latest",
+        "latest": "0.169.0",
+        "installed": "0.162.0",
+        "installation": "available",
+        "status": "different"
+      },
+      {
+        "runtime": "cursor",
+        "source": "https://registry.npmjs.org/@cursor/sdk/latest",
+        "latest": "1.4.1",
+        "installed": "1.4.0",
+        "installation": "available",
+        "status": "different"
+      },
+      {
+        "runtime": "dsh",
+        "source": "https://registry.npmjs.org/@deepseek-ai/dsh/latest",
+        "latest": "0.2.2-rc.1",
+        "installed": null,
+        "installation": "not_found",
+        "status": "unavailable"
+      },
+      {
+        "runtime": "factory",
+        "source": "https://registry.npmjs.org/droid/latest",
+        "latest": "1.13.0",
+        "installed": null,
+        "installation": "not_found",
+        "status": "unavailable"
+      },
+      {
+        "runtime": "grok",
+        "source": "https://x.ai/cli/stable",
+        "latest": "1.0.88",
+        "installed": "1.0.88",
+        "installation": "available",
+        "status": "current"
+      },
+      {
+        "runtime": "kimi",
+        "source": "https://registry.npmjs.org/@moonshot-ai/kimi-code/latest",
+        "latest": "2.6.3",
+        "installed": "2.1.1",
+        "installation": "available",
+        "status": "different"
+      },
+      {
+        "runtime": "opencode",
+        "line": "v1",
+        "source": "https://registry.npmjs.org/opencode-ai/latest",
+        "latest": "1.19.6",
+        "installed": "1.18.30",
+        "installation": "available",
+        "status": "different"
+      },
+      {
+        "runtime": "opencode",
+        "line": "v2",
+        "source": "https://registry.npmjs.org/@opencode/cli/latest",
+        "latest": "2.3.0",
+        "installed": "1.18.30",
+        "installation": "available",
+        "status": "other_release_line"
+      },
+      {
+        "runtime": "codebuddy",
+        "source": "https://registry.npmjs.org/@tencent-ai/codebuddy-code/latest",
+        "latest": "2.185.0",
+        "installed": "2.173.0",
+        "installation": "available",
+        "status": "different"
+      },
+      {
+        "runtime": "qoder",
+        "source": "https://registry.npmjs.org/@qoder-ai/qodercli/latest",
+        "latest": "1.1.91",
+        "installed": "1.1.78",
+        "installation": "available",
+        "status": "different"
+      },
+      {
+        "runtime": "qwen",
+        "source": "https://registry.npmjs.org/@qwen-code/qwen-code/latest",
+        "latest": "0.28.0",
+        "installed": "0.26.0",
+        "installation": "available",
+        "status": "different"
+      },
+      {
+        "runtime": "pi",
+        "source": "https://registry.npmjs.org/@earendil-works/pi-coding-agent/latest",
+        "latest": "1.5.2",
+        "installed": "1.5.2",
+        "installation": "available",
+        "status": "current"
+      },
+      {
+        "runtime": "pi-durable",
+        "source": "https://registry.npmjs.org/@earendil-works/pi-durable/latest",
+        "latest": "1.5.2",
+        "installed": "1.5.2",
+        "installation": "host_supplied",
+        "status": "current"
+      }
+    ]
+  },
+  "changesPromoted": false,
+  "ci": {
+    "windowStart": "2026-11-16T19:08:26.184Z",
+    "windowEnd": "2026-11-17T21:10:09.434Z",
+    "selection": "Run creation time, all pages and attempts; each job ID counted once; state fetched afterward in separate snapshots.",
+    "workflows": [
+      {
+        "workflow": "ci.yml",
+        "runs": 106,
+        "attempts": 118,
+        "jobs": 4592,
+        "conclusions": {
+          "success": 4551,
+          "skipped": 15,
+          "failure": 26
+        },
+        "windowsPiRpcVendor": {
+          "success": 104,
+          "failure": 2
+        },
+        "newUnexplainedFullJobHangs": 0
+      },
+      {
+        "workflow": "acp-windows.yml",
+        "runs": 43,
+        "attempts": 43,
+        "jobs": 172,
+        "conclusions": {
+          "success": 128,
+          "skipped": 43,
+          "failure": 1
+        },
+        "windowsJobs": {
+          "success": 128,
+          "failure": 1
+        },
+        "grokJobs": {
+          "success": 43
+        },
+        "observedGrokInitializeTimeouts": 0
+      },
+      {
+        "workflow": "runtime-latest.yml",
+        "runs": 2,
+        "attempts": 2,
+        "jobs": 65,
+        "conclusions": {
+          "success": 44,
+          "failure": 19,
+          "skipped": 2
+        }
+      }
+    ],
+    "failedJobs": [
+      {
+        "id": 134250660948,
+        "run": 44143001746,
+        "attempt": 1,
+        "wf": "ci.yml",
+        "head": "609f3478ccc4328ba965f1aa9077c0c18948f797",
+        "name": "acp-behavior (ubuntu-latest, opencode-aimock)",
+        "failedSteps": [
+          "Run pnpm run sea-trial"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44143001746/job/134250660948",
+        "observation": "OpenCode 1.19.5 Linux image open exited 1 with database is locked. PR 905 later adds per-data-directory startup coordination; the exact historical SQLite operation remains unobserved.",
+        "log": {
+          "file": "runtime-2026-11-17-job-134250660948.log",
+          "bytes": 27824,
+          "sha256": "0b30795734b80997c35d630fcb34b34baef54b1a700489e8341c8a7e99741acb"
+        }
+      },
+      {
+        "id": 134182136033,
+        "run": 44123788080,
+        "attempt": 1,
+        "wf": "ci.yml",
+        "head": "a9ff7f3f3911e4f3755c5d187caaca3a33856f49",
+        "name": "pi-rpc-windows (vendor)",
+        "failedSteps": [
+          "Pi RPC vendor - native Pi extensions, projects and errors"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44123788080/job/134182136033",
+        "observation": "Windows Pi /spawnwait input_handled waitFor returned false. Issue 897 remains open; PR 898 adds persistent spawnwait observations.",
+        "log": {
+          "file": "runtime-2026-11-17-job-134182136033.log",
+          "bytes": 80854,
+          "sha256": "56e68c2d826b20c4a2d536a872f2c332e72fb1d141ec7e6ffc32890ce3ff80f7"
+        }
+      },
+      {
+        "id": 134159984574,
+        "run": 44117638926,
+        "attempt": 1,
+        "wf": "ci.yml",
+        "head": "09b466a9b46f7f5e8e4f1bafeeea628a40d116e6",
+        "name": "check (windows-latest)",
+        "failedSteps": [
+          "Install pinned agy CLI for native ACP regressions"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44117638926/job/134159984574",
+        "observation": "Windows agy installer download terminated with UND_ERR_SOCKET after the peer closed the connection, before native tests.",
+        "log": {
+          "file": "runtime-2026-11-17-job-134159984574.log",
+          "bytes": 304309,
+          "sha256": "e9b41b3394d98868b0fcca52252ea8c45f81c38518fe81c24272e656cd93d2f2"
+        }
+      },
+      {
+        "id": 134158026216,
+        "run": 44117093333,
+        "attempt": 1,
+        "wf": "ci.yml",
+        "head": "523dac6a3a68be039580b0d25de6828607b28870",
+        "name": "check (windows-latest)",
+        "failedSteps": [
+          "Run pnpm run check"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44117093333/job/134158026216",
+        "observation": "Windows watchdog outer 35-second control expected exit 124 but observed null. Issue 894 retains the late sampler checkpoint; cause remains open.",
+        "log": {
+          "file": "runtime-2026-11-17-job-134158026216.log",
+          "bytes": 318568,
+          "sha256": "ebcd5d0bf8c171891333d5802407143dbd9d827cd44c4355e66fcd57a8266c8e"
+        }
+      },
+      {
+        "id": 134132233014,
+        "run": 44109873156,
+        "attempt": 1,
+        "wf": "ci.yml",
+        "head": "36b2341d27e55fb2294ffa1b049c8a2df006ca5a",
+        "name": "check (windows-latest)",
+        "failedSteps": [
+          "CodeBuddy npm installer in an isolated HOME and global prefix"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44109873156/job/134132233014",
+        "observation": "Windows CodeBuddy installation exceeded 180 seconds during npm fetches; no native test result.",
+        "log": {
+          "file": "runtime-2026-11-17-job-134132233014.log",
+          "bytes": 336059,
+          "sha256": "ccee368ad55a2564c8ff8bce5413a3b5984f70bdcbcac597f27d0bd1991c0c72"
+        }
+      },
+      {
+        "id": 134117047861,
+        "run": 44105619514,
+        "attempt": 1,
+        "wf": "ci.yml",
+        "head": "81e4607c0959b7d12211bdeb9853f13d03f73810",
+        "name": "check (windows-latest)",
+        "failedSteps": [
+          "Run pnpm run check"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44105619514/job/134117047861",
+        "observation": "Windows cleanup timer control observed 999.9204 ms against a >=1000 assertion. PR 891 subsequently corrects the timer boundary.",
+        "log": {
+          "file": "runtime-2026-11-17-job-134117047861.log",
+          "bytes": 308585,
+          "sha256": "c16b1bf0f567192c3c72f98e275190e6e6fadccc0eee09b414ae8c2b7caa8ea4"
+        }
+      },
+      {
+        "id": 134117047891,
+        "run": 44105619514,
+        "attempt": 1,
+        "wf": "ci.yml",
+        "head": "81e4607c0959b7d12211bdeb9853f13d03f73810",
+        "name": "check (macos-latest)",
+        "failedSteps": [
+          "Native agy ACP vendor regressions"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44105619514/job/134117047891",
+        "observation": "macOS Antigravity 1.5.0 same-name MCP echo returned an empty list where two results were expected. Issue 871 remains open.",
+        "log": {
+          "file": "runtime-2026-11-17-job-134117047891.log",
+          "bytes": 222198,
+          "sha256": "85e475d64ea4b1e8699da55867ba6c79634cb60542438205f26e78ebff2d9d26"
+        }
+      },
+      {
+        "id": 134032080502,
+        "run": 44081240259,
+        "attempt": 1,
+        "wf": "ci.yml",
+        "head": "ea8b1ab5a1992570a1236b5cecf5db4349772a88",
+        "name": "behavior (ubuntu-latest, qwen-aimock)",
+        "failedSteps": [
+          "Run npm install -g @qwen-code/qwen-code"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44081240259/job/134032080502",
+        "observation": "Qwen 0.28.0 candidate npm tarball returned HTTP 404 during installation; no native behavior result.",
+        "log": {
+          "file": "runtime-2026-11-17-job-134032080502.log",
+          "bytes": 25424,
+          "sha256": "62ea090fb842f6c9d8f4ab28fd83fb32969c24d490a6b55e064a4c3326fb98af"
+        }
+      },
+      {
+        "id": 134032080735,
+        "run": 44081240259,
+        "attempt": 1,
+        "wf": "ci.yml",
+        "head": "ea8b1ab5a1992570a1236b5cecf5db4349772a88",
+        "name": "behavior (windows-latest, qwen-aimock)",
+        "failedSteps": [
+          "Run npm install -g @qwen-code/qwen-code"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44081240259/job/134032080735",
+        "observation": "Qwen 0.28.0 candidate npm tarball returned HTTP 404 during installation; no native behavior result.",
+        "log": {
+          "file": "runtime-2026-11-17-job-134032080735.log",
+          "bytes": 25750,
+          "sha256": "38d5aff235998136cdcf399669453b75b53e63a11cdcce051f287d4a1230c58c"
+        }
+      },
+      {
+        "id": 134030951698,
+        "run": 44080912462,
+        "attempt": 1,
+        "wf": "ci.yml",
+        "head": "2723c0145bff8401e7f585806bff08dced295ff4",
+        "name": "behavior (windows-latest, qwen-aimock)",
+        "failedSteps": [
+          "Run npm install -g @qwen-code/qwen-code"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44080912462/job/134030951698",
+        "observation": "Qwen 0.28.0 candidate npm tarball returned HTTP 404 during installation; no native behavior result.",
+        "log": {
+          "file": "runtime-2026-11-17-job-134030951698.log",
+          "bytes": 26033,
+          "sha256": "84376162228aeb1ce21ff9f2c77c1d21bec34fcb35c46171eb45d61209044cec"
+        }
+      },
+      {
+        "id": 134030952561,
+        "run": 44080912462,
+        "attempt": 1,
+        "wf": "ci.yml",
+        "head": "2723c0145bff8401e7f585806bff08dced295ff4",
+        "name": "behavior (ubuntu-latest, qwen-aimock)",
+        "failedSteps": [
+          "Run npm install -g @qwen-code/qwen-code"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44080912462/job/134030952561",
+        "observation": "Qwen 0.28.0 candidate npm tarball returned HTTP 404 during installation; no native behavior result.",
+        "log": {
+          "file": "runtime-2026-11-17-job-134030952561.log",
+          "bytes": 25430,
+          "sha256": "e086c4fbaddb2a58074fb8f3ece65e08a62f2503496173afdab431b8dff45b85"
+        }
+      },
+      {
+        "id": 133994084903,
+        "run": 44070175170,
+        "attempt": 1,
+        "wf": "ci.yml",
+        "head": "fbd4faf10d5828f4dc110e44eeec0a0358e6acb5",
+        "name": "behavior (macos-latest, pi-durable-aimock)",
+        "failedSteps": [
+          "Run actions/upload-artifact@v4"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44070175170/job/133994084903",
+        "observation": "macOS Pi Durable tests passed, then artifact upload failed with ENOTFOUND for the blob host. The job remains failed.",
+        "log": {
+          "file": "runtime-2026-11-17-job-133994084903.log",
+          "bytes": 47565,
+          "sha256": "4a7ed0e6d5798a908501b6b1161f0d22f268f9e1b0c2da865a1a77c81812e9d9"
+        }
+      },
+      {
+        "id": 133994085024,
+        "run": 44070175170,
+        "attempt": 1,
+        "wf": "ci.yml",
+        "head": "fbd4faf10d5828f4dc110e44eeec0a0358e6acb5",
+        "name": "check (windows-latest)",
+        "failedSteps": [
+          "Run pnpm run check"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44070175170/job/133994085024",
+        "observation": "Windows background cancellation second process query took 1026.86 ms against 1000 ms; assertion expected successful capture. PR 885 subsequently retains race timing without weakening termination.",
+        "log": {
+          "file": "runtime-2026-11-17-job-133994085024.log",
+          "bytes": 309720,
+          "sha256": "21fdf97caf57c84b461d0ba235bae464bb82ef839c76ae68659533a79769f4ae"
+        }
+      },
+      {
+        "id": 133966157975,
+        "run": 44062053299,
+        "attempt": 1,
+        "wf": "ci.yml",
+        "head": "68cb2d493f6896bdf62f46a5d91f048e9cd28e47",
+        "name": "check (windows-latest)",
+        "failedSteps": [
+          "Run pnpm run check"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44062053299/job/133966157975",
+        "observation": "Windows orphan second pre-cancellation capture timed out at 1000.51 ms. This does not establish slower process termination.",
+        "log": {
+          "file": "runtime-2026-11-17-job-133966157975.log",
+          "bytes": 304408,
+          "sha256": "7866c74ff4658391f0dfdde8afc8c1d94343d5bed6b198fbd3881d47e7f2c9f6"
+        }
+      },
+      {
+        "id": 133924186302,
+        "run": 44049721116,
+        "attempt": 1,
+        "wf": "ci.yml",
+        "head": "7792878768248f8c97f6459551ac9ec500e25bfc",
+        "name": "acp-behavior (macos-latest, opencode-aimock)",
+        "failedSteps": [
+          "Run pnpm run sea-trial"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44049721116/job/133924186302",
+        "observation": "macOS OpenCode 1.19.5 dispose-recorded open exited 1 with database is locked; issue 876, later startup mitigation PR 905.",
+        "log": {
+          "file": "runtime-2026-11-17-job-133924186302.log",
+          "bytes": 28607,
+          "sha256": "6faf33f7976379a92266e0086ab96be8a923bb2b23b48aa74c2a5400878703bc"
+        }
+      },
+      {
+        "id": 133893137935,
+        "run": 44040349792,
+        "attempt": 1,
+        "wf": "ci.yml",
+        "head": "9cc841be96a68f14cc9ece488e236db6559ff0c3",
+        "name": "check (windows-latest)",
+        "failedSteps": [
+          "Run pnpm vitest run sea-trial/vendor/kimi-login.vendor.test.ts sea-trial/vendor/kimi-skills.vendor.test.ts sea-trial/vendor/kimi-expired-usage.vendor.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44040349792/job/133893137935",
+        "observation": "Windows Kimi synthetic browser-login test did not observe the browser process at line 36. This assertion alone does not establish authentication failure.",
+        "log": {
+          "file": "runtime-2026-11-17-job-133893137935.log",
+          "bytes": 323687,
+          "sha256": "831bebbf02eda6e10890d5e0881823590a850f35a03ed650ed3c78b01d80b8e9"
+        }
+      },
+      {
+        "id": 133877857874,
+        "run": 44035678076,
+        "attempt": 1,
+        "wf": "ci.yml",
+        "head": "d18f5be042d0de6611acdcffe9bfdc1c56470bda",
+        "name": "check (windows-latest)",
+        "failedSteps": [
+          "Run pnpm vitest run sea-trial/vendor/kimi-login.vendor.test.ts sea-trial/vendor/kimi-skills.vendor.test.ts sea-trial/vendor/kimi-expired-usage.vendor.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44035678076/job/133877857874",
+        "observation": "Windows Kimi synthetic browser-login test did not observe the browser process at line 36. This assertion alone does not establish authentication failure.",
+        "log": {
+          "file": "runtime-2026-11-17-job-133877857874.log",
+          "bytes": 322170,
+          "sha256": "d471108cf97a7836d4c298d4b5c5981c560b3807a4dd677cb169396d9f76ab1a"
+        }
+      },
+      {
+        "id": 133855969733,
+        "run": 44028958607,
+        "attempt": 1,
+        "wf": "ci.yml",
+        "head": "ee2f6ccf3109502d4054e87324ed70f8c17693e4",
+        "name": "check (macos-latest)",
+        "failedSteps": [
+          "Native agy ACP vendor regressions"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44028958607/job/133855969733",
+        "observation": "macOS Antigravity same-name MCP echo returned an empty list where two results were expected; issue 871.",
+        "log": {
+          "file": "runtime-2026-11-17-job-133855969733.log",
+          "bytes": 207111,
+          "sha256": "d8f7d59c6da6605d7f784dcebeedb339c14fb442a7f8577312405cac1febabf3"
+        }
+      },
+      {
+        "id": 133855969877,
+        "run": 44028958607,
+        "attempt": 1,
+        "wf": "ci.yml",
+        "head": "ee2f6ccf3109502d4054e87324ed70f8c17693e4",
+        "name": "check (windows-latest)",
+        "failedSteps": [
+          "Run pnpm vitest run sea-trial/vendor/kimi-login.vendor.test.ts sea-trial/vendor/kimi-skills.vendor.test.ts sea-trial/vendor/kimi-expired-usage.vendor.test.ts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44028958607/job/133855969877",
+        "observation": "Windows Kimi synthetic browser-login test did not observe the browser process at line 36. This assertion alone does not establish authentication failure.",
+        "log": {
+          "file": "runtime-2026-11-17-job-133855969877.log",
+          "bytes": 321097,
+          "sha256": "c72cc99b3a25e5e73563fc85d598ac76b52d50197e0e80704b0d0d9bf0c071c1"
+        }
+      },
+      {
+        "id": 133816822735,
+        "run": 44016881551,
+        "attempt": 1,
+        "wf": "ci.yml",
+        "head": "10314a778126242e5786445c1651d71fb624c26b",
+        "name": "check (macos-latest)",
+        "failedSteps": [
+          "Run pnpm run check"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44016881551/job/133816822735",
+        "observation": "macOS Codex synthetic app-server initialize-rejection cleanup test exceeded its 30-second test timeout; stalled phase unobserved.",
+        "log": {
+          "file": "runtime-2026-11-17-job-133816822735.log",
+          "bytes": 201916,
+          "sha256": "be99e81fd4e640f7abb293c03971bde188aabf19778cec9bb2a870420ca243dd"
+        }
+      },
+      {
+        "id": 133809062396,
+        "run": 44014501905,
+        "attempt": 1,
+        "wf": "ci.yml",
+        "head": "8e08da22b8eda8cc7637ec064444bc9aa198b6b4",
+        "name": "behavior (windows-latest, dsh-aimock)",
+        "failedSteps": [
+          "Run pnpm vitest run sea-trial/vendor"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44014501905/job/133809062396",
+        "observation": "Windows DSH skill catalog contains diagnose-windows-sandbox-acl beyond the five expected fixture entries; two count assertions failed.",
+        "log": {
+          "file": "runtime-2026-11-17-job-133809062396.log",
+          "bytes": 65850,
+          "sha256": "155a3be3fd61d6c4751596ad2803ccc5dc900737274f23f6718c7ffcb4d80e28"
+        }
+      },
+      {
+        "id": 133766669196,
+        "run": 44001569277,
+        "attempt": 1,
+        "wf": "ci.yml",
+        "head": "b8014a819c088139debd50845f74ba28795d2266",
+        "name": "pi-rpc-windows (vendor)",
+        "failedSteps": [
+          "Pi RPC vendor - RPC protocol, files, readers and bundled host"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44001569277/job/133766669196",
+        "observation": "Windows Pi RPC explicit-host-command reader test did not observe child exit at line 86. Completed assertion failure, not a full-job hang.",
+        "log": {
+          "file": "runtime-2026-11-17-job-133766669196.log",
+          "bytes": 81040,
+          "sha256": "e91f74a8e6f9f754ff78b12a15e14adb8faed3cf6e47e635876e54ba55b56ff4"
+        }
+      },
+      {
+        "id": 133766669278,
+        "run": 44001569277,
+        "attempt": 1,
+        "wf": "ci.yml",
+        "head": "b8014a819c088139debd50845f74ba28795d2266",
+        "name": "check (windows-latest)",
+        "failedSteps": [
+          "Cursor SDK skill loader parity (offline)"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44001569277/job/133766669278",
+        "observation": "Earlier Cursor copied-SDK observer could not resolve @bufbuild/protobuf. PR 881 later fixes dependency resolution for the copied SDK.",
+        "log": {
+          "file": "runtime-2026-11-17-job-133766669278.log",
+          "bytes": 304045,
+          "sha256": "14de9a735b779177df6680726d4459dd33182ae0809f36478684cdfb2090730a"
+        }
+      },
+      {
+        "id": 133758056224,
+        "run": 43998995413,
+        "attempt": 1,
+        "wf": "ci.yml",
+        "head": "8ab53f8f2e96d8708582ffe85248d029aa02fd84",
+        "name": "check (windows-latest)",
+        "failedSteps": [
+          "Cursor SDK skill loader parity (offline)"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/43998995413/job/133758056224",
+        "observation": "Earlier Cursor copied-SDK observer could not resolve @bufbuild/protobuf. PR 881 later fixes dependency resolution for the copied SDK.",
+        "log": {
+          "file": "runtime-2026-11-17-job-133758056224.log",
+          "bytes": 315750,
+          "sha256": "c4c607bc183f3baad7afdea7b28ec34db282f7047c415aba6ac939c0e9775ef0"
+        }
+      },
+      {
+        "id": 133596492187,
+        "run": 43951959021,
+        "attempt": 1,
+        "wf": "ci.yml",
+        "head": "e01aa609810c8d70e1a944fe57e9837dbc17fbc7",
+        "name": "acp-behavior (macos-latest, opencode-aimock)",
+        "failedSteps": [
+          "Run pnpm run sea-trial"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/43951959021/job/133596492187",
+        "observation": "macOS OpenCode resume case expected a loud rejection. The printed assertion does not expose the underlying cause.",
+        "log": {
+          "file": "runtime-2026-11-17-job-133596492187.log",
+          "bytes": 28654,
+          "sha256": "67fd96030e75b6389b4433570ba94e02c698e45b9eba64206ad06ff7e36ab2a6"
+        }
+      },
+      {
+        "id": 133595311933,
+        "run": 43951626796,
+        "attempt": 1,
+        "wf": "ci.yml",
+        "head": "9ecb9ff9dfe7a1d4d78845203632645adc30ddff",
+        "name": "check (windows-latest)",
+        "failedSteps": [
+          "Run pnpm run check"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/43951626796/job/133595311933",
+        "observation": "Windows orphan first pre-cancellation capture timed out at 999.47 ms; retained native query timing is analyzed separately in the cancellation report.",
+        "log": {
+          "file": "runtime-2026-11-17-job-133595311933.log",
+          "bytes": 289664,
+          "sha256": "2c123efc8aff700e166432812cd0c88c8505c5ea9145cd162321f9244090f0e3"
+        }
+      },
+      {
+        "id": 133972499742,
+        "run": 44063900087,
+        "attempt": 1,
+        "wf": "acp-windows.yml",
+        "head": "589562a2792281ad9b3d243576f6c2eb712f4b28",
+        "name": "acp-windows (windows-latest, opencode-aimock)",
+        "failedSteps": [
+          "Run pnpm run sea-trial"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44063900087/job/133972499742",
+        "observation": "Windows ACP OpenCode cursor replay exited 1 with disk I/O error. Distinct signature from database is locked.",
+        "log": {
+          "file": "runtime-2026-11-17-job-133972499742.log",
+          "bytes": 40561,
+          "sha256": "fbcd2fb667cc85088f855728beee287ec803437f0f698c783c899c4b9fc9b4b7"
+        }
+      },
+      {
+        "id": 134193199018,
+        "run": 44126892829,
+        "attempt": 1,
+        "wf": "runtime-latest.yml",
+        "head": "dde6de0494e7e3c2cd97a54a7b4a7ef87799a79e",
+        "name": "native (kimi-login, windows-latest, kimi-login)",
+        "failedSteps": [
+          "Kimi login and reused workspace"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44126892829/job/134193199018",
+        "observation": "Kimi 2.6.3 reused-workspace open returned a different session ID; issue 899, all three platforms.",
+        "log": {
+          "file": "runtime-2026-11-17-job-134193199018.log",
+          "bytes": 33536,
+          "sha256": "618129e24823bcacb4ddf480ef6f0ef55c3626af70b1e15c23b6ae15e1f05c9b"
+        }
+      },
+      {
+        "id": 134193199075,
+        "run": 44126892829,
+        "attempt": 1,
+        "wf": "runtime-latest.yml",
+        "head": "dde6de0494e7e3c2cd97a54a7b4a7ef87799a79e",
+        "name": "native (kimi-login, ubuntu-latest, kimi-login)",
+        "failedSteps": [
+          "Kimi login and reused workspace"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44126892829/job/134193199075",
+        "observation": "Kimi 2.6.3 reused-workspace open returned a different session ID; issue 899, all three platforms.",
+        "log": {
+          "file": "runtime-2026-11-17-job-134193199075.log",
+          "bytes": 33002,
+          "sha256": "5a82ec92a7a14288bb699655dd668917d95550a9bba8a923cc0b875764d0c3c7"
+        }
+      },
+      {
+        "id": 134193199091,
+        "run": 44126892829,
+        "attempt": 1,
+        "wf": "runtime-latest.yml",
+        "head": "dde6de0494e7e3c2cd97a54a7b4a7ef87799a79e",
+        "name": "native (kimi-aimock, windows-latest, acp)",
+        "failedSteps": [
+          "Native ACP vendor contracts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44126892829/job/134193199091",
+        "observation": "Kimi 2.6.3 MCP-free resume still offered both previous stdio and HTTP tools; issue 899, all three platforms.",
+        "log": {
+          "file": "runtime-2026-11-17-job-134193199091.log",
+          "bytes": 55882,
+          "sha256": "074f69bd671a7e9688d3959c21e0eddaf9d3103bfda58429a3c0126ddae86504"
+        }
+      },
+      {
+        "id": 134193199105,
+        "run": 44126892829,
+        "attempt": 1,
+        "wf": "runtime-latest.yml",
+        "head": "dde6de0494e7e3c2cd97a54a7b4a7ef87799a79e",
+        "name": "native (kimi-aimock, ubuntu-latest, acp)",
+        "failedSteps": [
+          "Native ACP vendor contracts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44126892829/job/134193199105",
+        "observation": "Kimi 2.6.3 MCP-free resume still offered both previous stdio and HTTP tools; issue 899, all three platforms.",
+        "log": {
+          "file": "runtime-2026-11-17-job-134193199105.log",
+          "bytes": 55294,
+          "sha256": "0c594eb9b30dd67590afbcf65c5fd0465c91489080d4cea608b014f2ef1c4582"
+        }
+      },
+      {
+        "id": 134193200020,
+        "run": 44126892829,
+        "attempt": 1,
+        "wf": "runtime-latest.yml",
+        "head": "dde6de0494e7e3c2cd97a54a7b4a7ef87799a79e",
+        "name": "native (kimi-login, macos-latest, kimi-login)",
+        "failedSteps": [
+          "Kimi login and reused workspace"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44126892829/job/134193200020",
+        "observation": "Kimi 2.6.3 reused-workspace open returned a different session ID; issue 899, all three platforms.",
+        "log": {
+          "file": "runtime-2026-11-17-job-134193200020.log",
+          "bytes": 34310,
+          "sha256": "08de64d7cae5183e01eb6f32d2940fb14e5e8a685d74c09fb8ef8f1e12331d6b"
+        }
+      },
+      {
+        "id": 134193207987,
+        "run": 44126892829,
+        "attempt": 1,
+        "wf": "runtime-latest.yml",
+        "head": "dde6de0494e7e3c2cd97a54a7b4a7ef87799a79e",
+        "name": "native (kimi-aimock, macos-latest, acp)",
+        "failedSteps": [
+          "Native ACP vendor contracts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44126892829/job/134193207987",
+        "observation": "Kimi 2.6.3 MCP-free resume still offered both previous stdio and HTTP tools; issue 899, all three platforms.",
+        "log": {
+          "file": "runtime-2026-11-17-job-134193207987.log",
+          "bytes": 56392,
+          "sha256": "20d0a36246e727aba1f7119e0b5a22d462c79cf8abee0f5c77854f4ed9a06b36"
+        }
+      },
+      {
+        "id": 134143742555,
+        "run": 44113058818,
+        "attempt": 1,
+        "wf": "runtime-latest.yml",
+        "head": "7730a1542ba092dd2eb341988bdec9f96f3709da",
+        "name": "native (qwen-aimock, windows-latest, behavior)",
+        "failedSteps": [
+          "Download, install and verify the frozen candidate"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44113058818/job/134143742555",
+        "observation": "First candidate workflow Windows record failed baseline identity due to CRLF-sensitive hashing. Workflow correction PR 893 precedes the second run.",
+        "log": {
+          "file": "runtime-2026-11-17-job-134143742555.log",
+          "bytes": 25086,
+          "sha256": "ed6e6f3e42b060d695a710021f001690cde9f190ed7c1dda8793262516df13d9"
+        }
+      },
+      {
+        "id": 134143742656,
+        "run": 44113058818,
+        "attempt": 1,
+        "wf": "runtime-latest.yml",
+        "head": "7730a1542ba092dd2eb341988bdec9f96f3709da",
+        "name": "native (opencode-aimock, windows-latest, acp)",
+        "failedSteps": [
+          "Download, install and verify the frozen candidate"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44113058818/job/134143742656",
+        "observation": "First candidate workflow Windows record failed baseline identity due to CRLF-sensitive hashing. Workflow correction PR 893 precedes the second run.",
+        "log": {
+          "file": "runtime-2026-11-17-job-134143742656.log",
+          "bytes": 25399,
+          "sha256": "acd2dd85225f878edad71cdf93fde89fafecee1301a35771ca1b39959abd8caf"
+        }
+      },
+      {
+        "id": 134143742657,
+        "run": 44113058818,
+        "attempt": 1,
+        "wf": "runtime-latest.yml",
+        "head": "7730a1542ba092dd2eb341988bdec9f96f3709da",
+        "name": "native (grok-aimock, windows-latest, acp)",
+        "failedSteps": [
+          "Download, install and verify the frozen candidate"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44113058818/job/134143742657",
+        "observation": "First candidate workflow Windows record failed baseline identity due to CRLF-sensitive hashing. Workflow correction PR 893 precedes the second run.",
+        "log": {
+          "file": "runtime-2026-11-17-job-134143742657.log",
+          "bytes": 26274,
+          "sha256": "3449cb0f056eb2e4dd0974fcc3f9fb6ddac7488cb2efdd7e44f769b365d89bba"
+        }
+      },
+      {
+        "id": 134143742681,
+        "run": 44113058818,
+        "attempt": 1,
+        "wf": "runtime-latest.yml",
+        "head": "7730a1542ba092dd2eb341988bdec9f96f3709da",
+        "name": "native (kimi-aimock, windows-latest, acp)",
+        "failedSteps": [
+          "Download, install and verify the frozen candidate"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44113058818/job/134143742681",
+        "observation": "First candidate workflow Windows record failed baseline identity due to CRLF-sensitive hashing. Workflow correction PR 893 precedes the second run.",
+        "log": {
+          "file": "runtime-2026-11-17-job-134143742681.log",
+          "bytes": 25256,
+          "sha256": "425f90186d9ee4098ca010b76dfc3cab185f37a17f12aaeb3d23e4b9a0405de3"
+        }
+      },
+      {
+        "id": 134143742729,
+        "run": 44113058818,
+        "attempt": 1,
+        "wf": "runtime-latest.yml",
+        "head": "7730a1542ba092dd2eb341988bdec9f96f3709da",
+        "name": "native (kimi-aimock, ubuntu-latest, acp)",
+        "failedSteps": [
+          "Native ACP vendor contracts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44113058818/job/134143742729",
+        "observation": "Kimi 2.6.2 MCP-free resume retained previous tools on Linux/macOS; separate version evidence in issue 899.",
+        "log": {
+          "file": "runtime-2026-11-17-job-134143742729.log",
+          "bytes": 55189,
+          "sha256": "b3d81361e3714967d1f82987d8c56df089ff6b10ff87b490a6c748df14c10bda"
+        }
+      },
+      {
+        "id": 134143742797,
+        "run": 44113058818,
+        "attempt": 1,
+        "wf": "runtime-latest.yml",
+        "head": "7730a1542ba092dd2eb341988bdec9f96f3709da",
+        "name": "native (kimi-login, windows-latest, kimi-login)",
+        "failedSteps": [
+          "Download, install and verify the frozen candidate"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44113058818/job/134143742797",
+        "observation": "First candidate workflow Windows record failed baseline identity due to CRLF-sensitive hashing. Workflow correction PR 893 precedes the second run.",
+        "log": {
+          "file": "runtime-2026-11-17-job-134143742797.log",
+          "bytes": 25421,
+          "sha256": "1b5d6d4ec9d77dfafcbf16b4c56a5bca374befe5e29d1df78cbf05a34a6983dc"
+        }
+      },
+      {
+        "id": 134143742822,
+        "run": 44113058818,
+        "attempt": 1,
+        "wf": "runtime-latest.yml",
+        "head": "7730a1542ba092dd2eb341988bdec9f96f3709da",
+        "name": "native (opencode-cleanup, macos-latest, opencode-cleanup)",
+        "failedSteps": [
+          "OpenCode cleanup and skills"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44113058818/job/134143742822",
+        "observation": "First candidate workflow installed OpenCode 2.3.0 but cleanup test expected 2.2.7. Candidate version injection corrected in PR 893.",
+        "log": {
+          "file": "runtime-2026-11-17-job-134143742822.log",
+          "bytes": 32439,
+          "sha256": "378f9cd19e674bb92b4b176a1cd959b6828515789144da7f5e9a5490794e03bc"
+        }
+      },
+      {
+        "id": 134143742875,
+        "run": 44113058818,
+        "attempt": 1,
+        "wf": "runtime-latest.yml",
+        "head": "7730a1542ba092dd2eb341988bdec9f96f3709da",
+        "name": "native (kimi-aimock, macos-latest, acp)",
+        "failedSteps": [
+          "Native ACP vendor contracts"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44113058818/job/134143742875",
+        "observation": "Kimi 2.6.2 MCP-free resume retained previous tools on Linux/macOS; separate version evidence in issue 899.",
+        "log": {
+          "file": "runtime-2026-11-17-job-134143742875.log",
+          "bytes": 56548,
+          "sha256": "9ebebe37e7658fe6097e66650e911043edbff62fd86b7e8b1f69d34881cb836d"
+        }
+      },
+      {
+        "id": 134143742915,
+        "run": 44113058818,
+        "attempt": 1,
+        "wf": "runtime-latest.yml",
+        "head": "7730a1542ba092dd2eb341988bdec9f96f3709da",
+        "name": "native (kimi-login, ubuntu-latest, kimi-login)",
+        "failedSteps": [
+          "Kimi login and reused workspace"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44113058818/job/134143742915",
+        "observation": "Kimi 2.6.2 helper had both missing built OAR dist and reused-workspace ID mismatch. PR 893 fixes setup; the native session observation remains separate.",
+        "log": {
+          "file": "runtime-2026-11-17-job-134143742915.log",
+          "bytes": 38090,
+          "sha256": "fa010b455568702aa2d911c2cfedd9e938c13f7c24b534af4631a9de5a28d61a"
+        }
+      },
+      {
+        "id": 134143742963,
+        "run": 44113058818,
+        "attempt": 1,
+        "wf": "runtime-latest.yml",
+        "head": "7730a1542ba092dd2eb341988bdec9f96f3709da",
+        "name": "native (kimi-login, macos-latest, kimi-login)",
+        "failedSteps": [
+          "Kimi login and reused workspace"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44113058818/job/134143742963",
+        "observation": "Kimi 2.6.2 helper had both missing built OAR dist and reused-workspace ID mismatch. PR 893 fixes setup; the native session observation remains separate.",
+        "log": {
+          "file": "runtime-2026-11-17-job-134143742963.log",
+          "bytes": 39145,
+          "sha256": "7124ca188038dbd2f2f85bb19070d9760902a7ad59d965e768a774277a7a81cc"
+        }
+      },
+      {
+        "id": 134143742974,
+        "run": 44113058818,
+        "attempt": 1,
+        "wf": "runtime-latest.yml",
+        "head": "7730a1542ba092dd2eb341988bdec9f96f3709da",
+        "name": "native (antigravity-aimock, windows-latest, acp)",
+        "failedSteps": [
+          "Download, install and verify the frozen candidate"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44113058818/job/134143742974",
+        "observation": "First candidate workflow Windows record failed baseline identity due to CRLF-sensitive hashing. Workflow correction PR 893 precedes the second run.",
+        "log": {
+          "file": "runtime-2026-11-17-job-134143742974.log",
+          "bytes": 25436,
+          "sha256": "e270fea59ea4f294a8f1a81a1517ba7b54b3142c1fdaea01a1d65efbc9eb2cca"
+        }
+      },
+      {
+        "id": 134143743055,
+        "run": 44113058818,
+        "attempt": 1,
+        "wf": "runtime-latest.yml",
+        "head": "7730a1542ba092dd2eb341988bdec9f96f3709da",
+        "name": "native (opencode-cleanup, windows-latest, opencode-cleanup)",
+        "failedSteps": [
+          "Download, install and verify the frozen candidate"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44113058818/job/134143743055",
+        "observation": "First candidate workflow Windows record failed baseline identity due to CRLF-sensitive hashing. Workflow correction PR 893 precedes the second run.",
+        "log": {
+          "file": "runtime-2026-11-17-job-134143743055.log",
+          "bytes": 25523,
+          "sha256": "0d11b466d03f0b91ade1423d04959f7a332de8695442de14abf442724ba2d8d2"
+        }
+      },
+      {
+        "id": 134143743577,
+        "run": 44113058818,
+        "attempt": 1,
+        "wf": "runtime-latest.yml",
+        "head": "7730a1542ba092dd2eb341988bdec9f96f3709da",
+        "name": "native (opencode-cleanup, ubuntu-latest, opencode-cleanup)",
+        "failedSteps": [
+          "OpenCode cleanup and skills"
+        ],
+        "url": "https://github.com/botiverse/oar/actions/runs/44113058818/job/134143743577",
+        "observation": "First candidate workflow installed OpenCode 2.3.0 but cleanup test expected 2.2.7. Candidate version injection corrected in PR 893.",
+        "log": {
+          "file": "runtime-2026-11-17-job-134143743577.log",
+          "bytes": 31145,
+          "sha256": "85aa5130f6cdbcfa1caff0ea1279480ffcc77b6a282f506460665785ac62d24c"
+        }
+      }
+    ],
+    "allFailureLogsRetrieved": true,
+    "historicalUnexplainedFullJobHangs": 2,
+    "latestMain": {
+      "run": 44159595745,
+      "head": "2b11517cffc233e2c21dac7fc67502a5ab4537de",
+      "conclusions": {
+        "success": 42
+      }
+    }
+  },
+  "frozenCandidates": {
+    "run": 44126892829,
+    "head": "dde6de04",
+    "generatedAt": "2026-11-17T16:32:25.873Z",
+    "record": {
+      "file": "runtime-2026-11-17-frozen-44126892829/candidates.json",
+      "bytes": 16215,
+      "sha256": "ff41b5e0826fa345fb5912024f03d28646f5e3d72982701c795a66e010ef5633"
+    },
+    "versions": {
+      "claude-aimock": {
+        "version": "2.1.326",
+        "policy": "accepted",
+        "acceptedVersion": "2.1.326"
+      },
+      "codex-aimock": {
+        "version": "0.169.0",
+        "policy": "accepted",
+        "acceptedVersion": "0.169.0"
+      },
+      "qwen-aimock": {
+        "version": "0.28.0",
+        "policy": "accepted",
+        "acceptedVersion": "0.27.4"
+      },
+      "factory-aimock": {
+        "version": "1.13.0",
+        "policy": "accepted",
+        "acceptedVersion": "1.12.1"
+      },
+      "kimi-aimock": {
+        "version": "2.6.3",
+        "policy": "helper",
+        "acceptedVersion": "2.4.1"
+      },
+      "grok-aimock": {
+        "version": "1.0.88",
+        "policy": "accepted",
+        "acceptedVersion": "1.0.70"
+      },
+      "codebuddy-aimock": {
+        "version": "2.185.0",
+        "policy": "accepted",
+        "acceptedVersion": "2.179.3"
+      },
+      "opencode-aimock": {
+        "version": "1.19.6",
+        "policy": "helper",
+        "acceptedVersion": "1.19.5"
+      },
+      "opencode-cleanup": {
+        "version": "2.3.0",
+        "policy": "helper",
+        "acceptedVersion": "2.2.7"
+      },
+      "kimi-login": {
+        "version": "2.6.3",
+        "policy": "helper",
+        "acceptedVersion": "2.4.1"
+      },
+      "kimi-skills": {
+        "version": "2.6.3",
+        "policy": "helper",
+        "acceptedVersion": "2.6.2"
+      },
+      "antigravity-aimock": {
+        "version": "1.5.10",
+        "policy": "accepted",
+        "acceptedVersion": "1.5.0"
+      }
+    },
+    "sdkVersions": {
+      "cursor": null,
+      "pi": null
+    },
+    "jobs": [
+      {
+        "id": 134193043140,
+        "name": "published-host",
+        "conclusion": "success",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/44126892829/job/134193043140"
+      },
+      {
+        "id": 134193043530,
+        "name": "codebuddy-installer (ubuntu-latest)",
+        "conclusion": "success",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/44126892829/job/134193043530"
+      },
+      {
+        "id": 134193043674,
+        "name": "discover",
+        "conclusion": "success",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/44126892829/job/134193043674"
+      },
+      {
+        "id": 134193044131,
+        "name": "codebuddy-installer (macos-latest)",
+        "conclusion": "success",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/44126892829/job/134193044131"
+      },
+      {
+        "id": 134193044167,
+        "name": "codebuddy-installer (windows-latest)",
+        "conclusion": "success",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/44126892829/job/134193044167"
+      },
+      {
+        "id": 134193198940,
+        "name": "native (codebuddy-aimock, ubuntu-latest, acp)",
+        "conclusion": "success",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/44126892829/job/134193198940"
+      },
+      {
+        "id": 134193199018,
+        "name": "native (kimi-login, windows-latest, kimi-login)",
+        "conclusion": "failure",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/44126892829/job/134193199018"
+      },
+      {
+        "id": 134193199059,
+        "name": "native (grok-aimock, macos-latest, acp)",
+        "conclusion": "success",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/44126892829/job/134193199059"
+      },
+      {
+        "id": 134193199062,
+        "name": "native (grok-aimock, ubuntu-latest, acp)",
+        "conclusion": "success",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/44126892829/job/134193199062"
+      },
+      {
+        "id": 134193199068,
+        "name": "native (factory-aimock, macos-latest, behavior)",
+        "conclusion": "success",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/44126892829/job/134193199068"
+      },
+      {
+        "id": 134193199075,
+        "name": "native (kimi-login, ubuntu-latest, kimi-login)",
+        "conclusion": "failure",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/44126892829/job/134193199075"
+      },
+      {
+        "id": 134193199091,
+        "name": "native (kimi-aimock, windows-latest, acp)",
+        "conclusion": "failure",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/44126892829/job/134193199091"
+      },
+      {
+        "id": 134193199102,
+        "name": "native (opencode-cleanup, ubuntu-latest, opencode-cleanup)",
+        "conclusion": "success",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/44126892829/job/134193199102"
+      },
+      {
+        "id": 134193199104,
+        "name": "native (codebuddy-aimock, macos-latest, acp)",
+        "conclusion": "success",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/44126892829/job/134193199104"
+      },
+      {
+        "id": 134193199105,
+        "name": "native (kimi-aimock, ubuntu-latest, acp)",
+        "conclusion": "failure",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/44126892829/job/134193199105"
+      },
+      {
+        "id": 134193199125,
+        "name": "native (kimi-skills, macos-latest, kimi-skills)",
+        "conclusion": "success",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/44126892829/job/134193199125"
+      },
+      {
+        "id": 134193199127,
+        "name": "native (kimi-skills, ubuntu-latest, kimi-skills)",
+        "conclusion": "success",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/44126892829/job/134193199127"
+      },
+      {
+        "id": 134193199217,
+        "name": "native (grok-aimock, windows-latest, acp)",
+        "conclusion": "success",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/44126892829/job/134193199217"
+      },
+      {
+        "id": 134193199280,
+        "name": "native (antigravity-aimock, ubuntu-latest, acp)",
+        "conclusion": "success",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/44126892829/job/134193199280"
+      },
+      {
+        "id": 134193199309,
+        "name": "native (opencode-aimock, ubuntu-latest, acp)",
+        "conclusion": "success",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/44126892829/job/134193199309"
+      },
+      {
+        "id": 134193199362,
+        "name": "native (antigravity-aimock, windows-latest, acp)",
+        "conclusion": "success",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/44126892829/job/134193199362"
+      },
+      {
+        "id": 134193199607,
+        "name": "native (opencode-cleanup, windows-latest, opencode-cleanup)",
+        "conclusion": "success",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/44126892829/job/134193199607"
+      },
+      {
+        "id": 134193199715,
+        "name": "native (factory-aimock, ubuntu-latest, behavior)",
+        "conclusion": "success",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/44126892829/job/134193199715"
+      },
+      {
+        "id": 134193199857,
+        "name": "native (qwen-aimock, ubuntu-latest, behavior)",
+        "conclusion": "success",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/44126892829/job/134193199857"
+      },
+      {
+        "id": 134193199914,
+        "name": "native (opencode-aimock, windows-latest, acp)",
+        "conclusion": "success",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/44126892829/job/134193199914"
+      },
+      {
+        "id": 134193200020,
+        "name": "native (kimi-login, macos-latest, kimi-login)",
+        "conclusion": "failure",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/44126892829/job/134193200020"
+      },
+      {
+        "id": 134193201286,
+        "name": "native (opencode-aimock, macos-latest, acp)",
+        "conclusion": "success",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/44126892829/job/134193201286"
+      },
+      {
+        "id": 134193201338,
+        "name": "native (opencode-cleanup, macos-latest, opencode-cleanup)",
+        "conclusion": "success",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/44126892829/job/134193201338"
+      },
+      {
+        "id": 134193201891,
+        "name": "native (qwen-aimock, macos-latest, behavior)",
+        "conclusion": "success",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/44126892829/job/134193201891"
+      },
+      {
+        "id": 134193202074,
+        "name": "native (kimi-skills, windows-latest, kimi-skills)",
+        "conclusion": "success",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/44126892829/job/134193202074"
+      },
+      {
+        "id": 134193203209,
+        "name": "native (qwen-aimock, windows-latest, behavior)",
+        "conclusion": "success",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/44126892829/job/134193203209"
+      },
+      {
+        "id": 134193203267,
+        "name": "native (antigravity-aimock, macos-latest, acp)",
+        "conclusion": "success",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/44126892829/job/134193203267"
+      },
+      {
+        "id": 134193204061,
+        "name": "sdk",
+        "conclusion": "skipped",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/44126892829/job/134193204061"
+      },
+      {
+        "id": 134193207987,
+        "name": "native (kimi-aimock, macos-latest, acp)",
+        "conclusion": "failure",
+        "html_url": "https://github.com/botiverse/oar/actions/runs/44126892829/job/134193207987"
+      }
+    ]
+  },
+  "localProbes": [
+    {
+      "name": "claude-login",
+      "exitCode": 0,
+      "timedOut": false,
+      "elapsedSeconds": 6.61,
+      "log": {
+        "file": "runtime-2026-11-17-probes2/claude-login.log",
+        "bytes": 1052,
+        "sha256": "b6ffa4b08d9c0003b752bfb6c64ee0e2d34f0460fb4862cbda6401d3ebc02b7f"
+      }
+    },
+    {
+      "name": "grok-prompt",
+      "exitCode": 0,
+      "timedOut": false,
+      "elapsedSeconds": 6.8,
+      "log": {
+        "file": "runtime-2026-11-17-probes2/grok-prompt.log",
+        "bytes": 158,
+        "sha256": "db5ff7baf3b5cf717ca905bd75ef4d36011d5e3e0f35aa6caecf077e4c57765f"
+      }
+    },
+    {
+      "name": "factory-native",
+      "exitCode": 0,
+      "timedOut": false,
+      "elapsedSeconds": 61.99,
+      "log": {
+        "file": "runtime-2026-11-17-probes2/factory-native.log",
+        "bytes": 1894,
+        "sha256": "3adc5fc0546548ee0b90ff9be30d0a4664414dcc87b34cf90a496d65a7c37146"
+      }
+    },
+    {
+      "name": "opencode-prompt",
+      "exitCode": 0,
+      "timedOut": false,
+      "elapsedSeconds": 31.35,
+      "log": {
+        "file": "runtime-2026-11-17-probes2/opencode-prompt.log",
+        "bytes": 186,
+        "sha256": "dd8e031f3cb06db0a025aafcde251a5e81a35e701db6e85190dbddd88042d02f"
+      }
+    },
+    {
+      "name": "qwen-plain",
+      "exitCode": 0,
+      "timedOut": false,
+      "elapsedSeconds": 32.39,
+      "log": {
+        "file": "runtime-2026-11-17-probes2/qwen-plain.log",
+        "bytes": 137,
+        "sha256": "5028c199df6761bcd9acc77f1ac75588ce8679a2c3d115bd325a8e0b40bb7079"
+      }
+    },
+    {
+      "name": "qwen-reply-blocks",
+      "exitCode": 0,
+      "timedOut": false,
+      "elapsedSeconds": 27.62,
+      "log": {
+        "file": "runtime-2026-11-17-probes2/qwen-reply-blocks.log",
+        "bytes": 144,
+        "sha256": "e97ebe4fb856b42f4a7c635d8d91aedf87d67ac8348c486ee60969b28e43220e"
+      }
+    },
+    {
+      "name": "qwen-tools",
+      "exitCode": 0,
+      "timedOut": false,
+      "elapsedSeconds": 25.11,
+      "log": {
+        "file": "runtime-2026-11-17-probes2/qwen-tools.log",
+        "bytes": 137,
+        "sha256": "f77a85ec0f3666d54d781df58a58f013d52c2c0688748e240ae8427c6bc50e51"
+      }
+    },
+    {
+      "name": "qwen-lock",
+      "exitCode": 0,
+      "timedOut": false,
+      "elapsedSeconds": 13.17,
+      "log": {
+        "file": "runtime-2026-11-17-probes2/qwen-lock.log",
+        "bytes": 457,
+        "sha256": "d365da68df10183c34a5261d2b0bfc6dc8c2d7dd40c104dec3a96da990c82c1a"
+      }
+    },
+    {
+      "name": "cursor-login",
+      "exitCode": 0,
+      "timedOut": false,
+      "elapsedSeconds": 37.73,
+      "log": {
+        "file": "runtime-2026-11-17-probes2/cursor-login.log",
+        "bytes": 2352,
+        "sha256": "181b4bf74aff506b7d2e309a81f313691f827ec1d9265662d6b3ae1bc9f87096"
+      }
+    },
+    {
+      "name": "cursor-configuration",
+      "exitCode": 0,
+      "timedOut": false,
+      "elapsedSeconds": 96.06,
+      "log": {
+        "file": "runtime-2026-11-17-probes2/cursor-configuration.log",
+        "bytes": 3370,
+        "sha256": "0f703afb9cd69c37b00e4b117da5fbcac6f99e96cc1c20086ffe466dc58941bb"
+      }
+    }
+  ],
+  "qwen": {
+    "version": "0.28.0",
+    "lockFacts": [
+      {
+        "phase": "warm-home initialize with held lock",
+        "elapsedMs": 1806,
+        "requests": 0
+      },
+      {
+        "phase": "first prompt blocked after initialize",
+        "lockHeld": true,
+        "requests": 0
+      },
+      {
+        "phase": "first prompt after releasing lock",
+        "outcome": "completed"
+      },
+      {
+        "phase": "ordinary later prompt with held lock",
+        "outcome": "completed"
+      }
+    ],
+    "providerCredentialNames": {
+      "version": "0.28.0",
+      "presetEnvKeys": [
+        "DASHSCOPE_API_KEY",
+        "DEEPSEEK_API_KEY",
+        "IDEALAB_API_KEY",
+        "MINIMAX_API_KEY",
+        "MODELSCOPE_API_KEY",
+        "MOONSHOT_API_KEY",
+        "ZAI_API_KEY"
+      ],
+      "missingFromOarKeyNames": [],
+      "files": {
+        "chunk-S6UXV6IV.js": [
+          "QWEN_CODE_API_TIMEOUT_MS"
+        ],
+        "chunk-NPDJTWNF.js": [
+          "DASHSCOPE_API_KEY",
+          "DEEPSEEK_API_KEY",
+          "IDEALAB_API_KEY",
+          "MINIMAX_API_KEY",
+          "MODELSCOPE_API_KEY",
+          "MOONSHOT_API_KEY",
+          "ZAI_API_KEY"
+        ],
+        "chunk-AWMUNGSS.js": [
+          "DASHSCOPE_API_KEY"
+        ]
+      },
+      "nonCredentialEnvKeys": [
+        "QWEN_CODE_API_TIMEOUT_MS"
+      ],
+      "note": "The timeout envKey configures a duration and is not a credential source. Seven static credential preset names found in the shipped chunks are already covered; OAR also reads dynamically configured modelProviders envKey names."
+    },
+    "scenarios": {
+      "plain": {
+        "selectedResults": [
+          {
+            "resume": false,
+            "stage": "first",
+            "type": "result",
+            "subtype": "success",
+            "is_error": false,
+            "usage": {
+              "input_tokens": 8767,
+              "output_tokens": 4,
+              "cache_read_input_tokens": 0,
+              "total_tokens": 8771
+            }
+          },
+          {
+            "resume": false,
+            "stage": "second",
+            "type": "result",
+            "subtype": "success",
+            "is_error": false,
+            "usage": {
+              "input_tokens": 21660,
+              "output_tokens": 12,
+              "cache_read_input_tokens": 0,
+              "total_tokens": 21672
+            }
+          },
+          {
+            "resume": false,
+            "stage": "interrupted",
+            "type": "result",
+            "subtype": "error_during_execution",
+            "is_error": true,
+            "usage": {
+              "input_tokens": 25786,
+              "output_tokens": 16,
+              "cache_read_input_tokens": 0,
+              "total_tokens": 25802
+            }
+          },
+          {
+            "resume": false,
+            "stage": "afterAbort",
+            "type": "result",
+            "subtype": "success",
+            "is_error": false,
+            "usage": {
+              "input_tokens": 34570,
+              "output_tokens": 19,
+              "cache_read_input_tokens": 0,
+              "total_tokens": 34589
+            }
+          },
+          {
+            "resume": true,
+            "stage": "first",
+            "type": "result",
+            "subtype": "success",
+            "is_error": false,
+            "usage": {
+              "input_tokens": 43403,
+              "output_tokens": 23,
+              "cache_read_input_tokens": 0,
+              "total_tokens": 43426
+            }
+          },
+          {
+            "resume": true,
+            "stage": "second",
+            "type": "result",
+            "subtype": "success",
+            "is_error": false,
+            "usage": {
+              "input_tokens": 56386,
+              "output_tokens": 31,
+              "cache_read_input_tokens": 0,
+              "total_tokens": 56417
+            }
+          },
+          {
+            "resume": true,
+            "stage": "interrupted",
+            "type": "result",
+            "subtype": "error_during_execution",
+            "is_error": true,
+            "usage": {
+              "input_tokens": 60535,
+              "output_tokens": 35,
+              "cache_read_input_tokens": 0,
+              "total_tokens": 60570
+            }
+          },
+          {
+            "resume": true,
+            "stage": "afterAbort",
+            "type": "result",
+            "subtype": "success",
+            "is_error": false,
+            "usage": {
+              "input_tokens": 69385,
+              "output_tokens": 38,
+              "cache_read_input_tokens": 0,
+              "total_tokens": 69423
+            }
+          }
+        ],
+        "raw": {
+          "file": "runtime-2026-11-17-probes2/qwen-plain/facts.json",
+          "bytes": 18906,
+          "sha256": "576429d58c78881c3f05041449d1bbd4f8e9c13a6c38a2a40b79b2e10194bab6"
+        }
+      },
+      "reply-blocks": {
+        "selectedResults": [
+          {
+            "resume": false,
+            "stage": "first",
+            "type": "result",
+            "subtype": "success",
+            "is_error": false,
+            "usage": {
+              "input_tokens": 8767,
+              "output_tokens": 11,
+              "cache_read_input_tokens": 0,
+              "total_tokens": 8778
+            }
+          },
+          {
+            "resume": false,
+            "stage": "second",
+            "type": "result",
+            "subtype": "success",
+            "is_error": false,
+            "usage": {
+              "input_tokens": 21675,
+              "output_tokens": 33,
+              "cache_read_input_tokens": 0,
+              "total_tokens": 21708
+            }
+          },
+          {
+            "resume": false,
+            "stage": "interrupted",
+            "type": "result",
+            "subtype": "error_during_execution",
+            "is_error": true,
+            "usage": {
+              "input_tokens": 25816,
+              "output_tokens": 44,
+              "cache_read_input_tokens": 0,
+              "total_tokens": 25860
+            }
+          },
+          {
+            "resume": false,
+            "stage": "afterAbort",
+            "type": "result",
+            "subtype": "success",
+            "is_error": false,
+            "usage": {
+              "input_tokens": 34613,
+              "output_tokens": 55,
+              "cache_read_input_tokens": 0,
+              "total_tokens": 34668
+            }
+          },
+          {
+            "resume": true,
+            "stage": "first",
+            "type": "result",
+            "subtype": "success",
+            "is_error": false,
+            "usage": {
+              "input_tokens": 43470,
+              "output_tokens": 66,
+              "cache_read_input_tokens": 0,
+              "total_tokens": 43536
+            }
+          },
+          {
+            "resume": true,
+            "stage": "second",
+            "type": "result",
+            "subtype": "success",
+            "is_error": false,
+            "usage": {
+              "input_tokens": 56514,
+              "output_tokens": 88,
+              "cache_read_input_tokens": 0,
+              "total_tokens": 56602
+            }
+          },
+          {
+            "resume": true,
+            "stage": "interrupted",
+            "type": "result",
+            "subtype": "error_during_execution",
+            "is_error": true,
+            "usage": {
+              "input_tokens": 60701,
+              "output_tokens": 99,
+              "cache_read_input_tokens": 0,
+              "total_tokens": 60800
+            }
+          },
+          {
+            "resume": true,
+            "stage": "afterAbort",
+            "type": "result",
+            "subtype": "success",
+            "is_error": false,
+            "usage": {
+              "input_tokens": 69590,
+              "output_tokens": 102,
+              "cache_read_input_tokens": 0,
+              "total_tokens": 69692
+            }
+          }
+        ],
+        "raw": {
+          "file": "runtime-2026-11-17-probes2/qwen-reply-blocks/facts.json",
+          "bytes": 19079,
+          "sha256": "1fc57794fa616260c0b061f24f7e388b793a326deefbd8044292691a32840a94"
+        }
+      },
+      "tools": {
+        "selectedResults": [
+          {
+            "resume": false,
+            "stage": "mcp",
+            "type": "result",
+            "subtype": "success",
+            "is_error": false,
+            "usage": {
+              "input_tokens": 17799,
+              "output_tokens": 14,
+              "cache_read_input_tokens": 0,
+              "total_tokens": 17813
+            }
+          },
+          {
+            "resume": false,
+            "stage": "first",
+            "type": "result",
+            "subtype": "success",
+            "is_error": false,
+            "usage": {
+              "input_tokens": 30840,
+              "output_tokens": 22,
+              "cache_read_input_tokens": 0,
+              "total_tokens": 30862
+            }
+          },
+          {
+            "resume": false,
+            "stage": "second",
+            "type": "result",
+            "subtype": "success",
+            "is_error": false,
+            "usage": {
+              "input_tokens": 43893,
+              "output_tokens": 30,
+              "cache_read_input_tokens": 0,
+              "total_tokens": 43923
+            }
+          },
+          {
+            "resume": false,
+            "stage": "interrupted",
+            "type": "result",
+            "subtype": "error_during_execution",
+            "is_error": true,
+            "usage": {
+              "input_tokens": 48036,
+              "output_tokens": 34,
+              "cache_read_input_tokens": 0,
+              "total_tokens": 48070
+            }
+          },
+          {
+            "resume": false,
+            "stage": "afterAbort",
+            "type": "result",
+            "subtype": "success",
+            "is_error": false,
+            "usage": {
+              "input_tokens": 56961,
+              "output_tokens": 38,
+              "cache_read_input_tokens": 0,
+              "total_tokens": 56999
+            }
+          },
+          {
+            "resume": true,
+            "stage": "mcp",
+            "type": "result",
+            "subtype": "success",
+            "is_error": false,
+            "usage": {
+              "input_tokens": 74673,
+              "output_tokens": 52,
+              "cache_read_input_tokens": 0,
+              "total_tokens": 74725
+            }
+          },
+          {
+            "resume": true,
+            "stage": "first",
+            "type": "result",
+            "subtype": "success",
+            "is_error": false,
+            "usage": {
+              "input_tokens": 87712,
+              "output_tokens": 60,
+              "cache_read_input_tokens": 0,
+              "total_tokens": 87772
+            }
+          },
+          {
+            "resume": true,
+            "stage": "second",
+            "type": "result",
+            "subtype": "success",
+            "is_error": false,
+            "usage": {
+              "input_tokens": 100765,
+              "output_tokens": 68,
+              "cache_read_input_tokens": 0,
+              "total_tokens": 100833
+            }
+          },
+          {
+            "resume": true,
+            "stage": "interrupted",
+            "type": "result",
+            "subtype": "error_during_execution",
+            "is_error": true,
+            "usage": {
+              "input_tokens": 104949,
+              "output_tokens": 72,
+              "cache_read_input_tokens": 0,
+              "total_tokens": 105021
+            }
+          },
+          {
+            "resume": true,
+            "stage": "afterAbort",
+            "type": "result",
+            "subtype": "success",
+            "is_error": false,
+            "usage": {
+              "input_tokens": 113834,
+              "output_tokens": 75,
+              "cache_read_input_tokens": 0,
+              "total_tokens": 113909
+            }
+          }
+        ],
+        "raw": {
+          "file": "runtime-2026-11-17-probes2/qwen-tools/facts.json",
+          "bytes": 20076,
+          "sha256": "3af522b75d5894b2b740dbf14a2e8f64c733350c17c18f25e80d18964f95351e"
+        }
+      }
+    }
+  },
+  "cursor": {
+    "version": "1.4.1",
+    "decision": "unconfirmed_for_promotion",
+    "dependencyUnchanged": "1.4.0",
+    "probeFixPr": 906,
+    "check": {
+      "file": "runtime-2026-11-17-cursor-check.log",
+      "bytes": 5861,
+      "sha256": "327c909626beeaef4fe27958bf022a69a60f56be196db3598c025b5d492f8209"
+    },
+    "skills": [
+      {
+        "git": false,
+        "version": "1.4.0",
+        "parity": true,
+        "sourceSha256": "197e2314468ac23f455dfe356e049b46f36c50a497152f9af12742fef199a244",
+        "nativeRows": 20,
+        "blockedConnections": 4,
+        "raw": {
+          "file": "runtime-2026-11-17-cursor-loader-baseline-final/cursor-skills/false.json",
+          "bytes": 12301,
+          "sha256": "4dde505853e38a44eb3a7c1253b6a2fad332bfc0fdc223c5547ba9b886a01379"
+        }
+      },
+      {
+        "git": true,
+        "version": "1.4.0",
+        "parity": true,
+        "sourceSha256": "197e2314468ac23f455dfe356e049b46f36c50a497152f9af12742fef199a244",
+        "nativeRows": 24,
+        "blockedConnections": 4,
+        "raw": {
+          "file": "runtime-2026-11-17-cursor-loader-baseline-final/cursor-skills/true.json",
+          "bytes": 14308,
+          "sha256": "2aeff81775b093f808155119a3ae79a1f98ee15e482aab19ee016da1d91ac90d"
+        }
+      },
+      {
+        "git": false,
+        "version": "1.4.1",
+        "parity": true,
+        "sourceSha256": "442a4b8a9ac1983c9d5836c782b9cdf70458d4c484ac1efd7aac50c0830b720b",
+        "nativeRows": 20,
+        "blockedConnections": 4,
+        "raw": {
+          "file": "runtime-2026-11-17-cursor-loader-candidate-final/cursor-skills/false.json",
+          "bytes": 12301,
+          "sha256": "61f0be63bf65c6774a5560637fcfac8347e374aa5384883ecfbd8c71cf609653"
+        }
+      },
+      {
+        "git": true,
+        "version": "1.4.1",
+        "parity": true,
+        "sourceSha256": "442a4b8a9ac1983c9d5836c782b9cdf70458d4c484ac1efd7aac50c0830b720b",
+        "nativeRows": 24,
+        "blockedConnections": 4,
+        "raw": {
+          "file": "runtime-2026-11-17-cursor-loader-candidate-final/cursor-skills/true.json",
+          "bytes": 14308,
+          "sha256": "60c1c19af4f7248c83025bed328cbb17a0e4a4f32083cee320dd7a491edcc16a"
+        }
+      }
+    ]
+  },
+  "qoder": {
+    "version": "1.1.91",
+    "decision": "unconfirmed_requires_real_account",
+    "replayBaseline": "1.1.81",
+    "firstWithoutReplayConsumer": "1.1.82",
+    "flagRetained": true,
+    "audit": [
+      {
+        "version": "1.1.78",
+        "sha256": "ec7b2a2c1be206f525ca974c3b9455fbec9ce7411bc5dfdee55f1e82eb90df38",
+        "bytes": 34562870,
+        "counts": {
+          "fake-responses <path>": 1,
+          "getNextResponse(": 3,
+          "getFakeResponseStore": 3,
+          "generateContentStream": 1
+        },
+        "source": "https://registry.npmjs.org/@qoder-ai/qodercli/-/qodercli-1.1.78.tgz"
+      },
+      {
+        "version": "1.1.79",
+        "sha256": "23d0f128a4c8aeafe762da74c7f461cf67db87b0ce8734dadd477c6b042f5f4b",
+        "bytes": 34677604,
+        "counts": {
+          "fake-responses <path>": 1,
+          "getNextResponse(": 3,
+          "getFakeResponseStore": 3,
+          "generateContentStream": 1
+        },
+        "source": "https://registry.npmjs.org/@qoder-ai/qodercli/-/qodercli-1.1.79.tgz"
+      },
+      {
+        "version": "1.1.80",
+        "sha256": "b844d8195db333ea491ab7b58f13c66bd7b75412a982bceb409a0905265bea2c",
+        "bytes": 34834595,
+        "counts": {
+          "fake-responses <path>": 1,
+          "getNextResponse(": 3,
+          "getFakeResponseStore": 3,
+          "generateContentStream": 1
+        },
+        "source": "https://registry.npmjs.org/@qoder-ai/qodercli/-/qodercli-1.1.80.tgz"
+      },
+      {
+        "version": "1.1.81",
+        "sha256": "dcabbcaece1c0683ee4929ac7c0cf0ea00bbea4d319f5abeaae8216088b9888f",
+        "bytes": 35653383,
+        "counts": {
+          "fake-responses <path>": 1,
+          "getNextResponse(": 3,
+          "getFakeResponseStore": 3,
+          "generateContentStream": 1
+        },
+        "source": "https://registry.npmjs.org/@qoder-ai/qodercli/-/qodercli-1.1.81.tgz"
+      },
+      {
+        "version": "1.1.82",
+        "sha256": "723550e7f3d746b2074140e995083f6646b721f4f870b00a31e82d0af0e26eaf",
+        "bytes": 35168647,
+        "counts": {
+          "fake-responses <path>": 1,
+          "getNextResponse(": 1,
+          "getFakeResponseStore": 1,
+          "generateContentStream": 0
+        },
+        "source": "https://registry.npmjs.org/@qoder-ai/qodercli/-/qodercli-1.1.82.tgz"
+      },
+      {
+        "version": "1.1.83",
+        "sha256": "66699ea0d17b4080445a8b22e628f150bbfbe137ee4acb57a4041fbc3a50f4d6",
+        "bytes": 35117732,
+        "counts": {
+          "fake-responses <path>": 1,
+          "getNextResponse(": 1,
+          "getFakeResponseStore": 1,
+          "generateContentStream": 0
+        },
+        "source": "https://registry.npmjs.org/@qoder-ai/qodercli/-/qodercli-1.1.83.tgz"
+      },
+      {
+        "version": "1.1.84",
+        "sha256": "4269479aa05c991fb8bd365bc0e0238bf39faf501036d60e57e6e7e2260bc163",
+        "bytes": 35146350,
+        "counts": {
+          "fake-responses <path>": 1,
+          "getNextResponse(": 1,
+          "getFakeResponseStore": 1,
+          "generateContentStream": 0
+        },
+        "source": "https://registry.npmjs.org/@qoder-ai/qodercli/-/qodercli-1.1.84.tgz"
+      },
+      {
+        "version": "1.1.85",
+        "sha256": "4d294e5927f36a3cf59ced9547d2bd45b5298897f0406bf5383a5447a2c16542",
+        "bytes": 35144945,
+        "counts": {
+          "fake-responses <path>": 1,
+          "getNextResponse(": 1,
+          "getFakeResponseStore": 1,
+          "generateContentStream": 0
+        },
+        "source": "https://registry.npmjs.org/@qoder-ai/qodercli/-/qodercli-1.1.85.tgz"
+      },
+      {
+        "version": "1.1.86",
+        "sha256": "5de5026ee8a9e381b58798ccd3259bcc06d206e14e36d3dcb94da85ebe4fb731",
+        "bytes": 35168078,
+        "counts": {
+          "fake-responses <path>": 1,
+          "getNextResponse(": 1,
+          "getFakeResponseStore": 1,
+          "generateContentStream": 0
+        },
+        "source": "https://registry.npmjs.org/@qoder-ai/qodercli/-/qodercli-1.1.86.tgz"
+      },
+      {
+        "version": "1.1.87",
+        "sha256": "7fc1640ce51ecafaa86775d5f271fde86d08c739504461629bee23f34f69a1c3",
+        "bytes": 35178447,
+        "counts": {
+          "fake-responses <path>": 1,
+          "getNextResponse(": 1,
+          "getFakeResponseStore": 1,
+          "generateContentStream": 0
+        },
+        "source": "https://registry.npmjs.org/@qoder-ai/qodercli/-/qodercli-1.1.87.tgz"
+      },
+      {
+        "version": "1.1.88",
+        "sha256": "1858e47ccf930ea91f30cfb9d2889e3cfb55c34beb1cf7b66a9a5e1a18efacb3",
+        "bytes": 35246246,
+        "counts": {
+          "fake-responses <path>": 1,
+          "getNextResponse(": 1,
+          "getFakeResponseStore": 1,
+          "generateContentStream": 0
+        },
+        "source": "https://registry.npmjs.org/@qoder-ai/qodercli/-/qodercli-1.1.88.tgz"
+      },
+      {
+        "version": "1.1.89",
+        "sha256": "b7a2d6d54bf868f7226abc759c10c6361ea4ab04ddd4c0615eb90ccef3524377",
+        "bytes": 35250342,
+        "counts": {
+          "fake-responses <path>": 1,
+          "getNextResponse(": 1,
+          "getFakeResponseStore": 1,
+          "generateContentStream": 0
+        },
+        "source": "https://registry.npmjs.org/@qoder-ai/qodercli/-/qodercli-1.1.89.tgz"
+      },
+      {
+        "version": "1.1.90",
+        "sha256": "aadcfffa16cd8f582af2f3452b933d6e1a124ee87bf27161575104a7ab8c17b4",
+        "bytes": 35254453,
+        "counts": {
+          "fake-responses <path>": 1,
+          "getNextResponse(": 1,
+          "getFakeResponseStore": 1,
+          "generateContentStream": 0
+        },
+        "source": "https://registry.npmjs.org/@qoder-ai/qodercli/-/qodercli-1.1.90.tgz"
+      },
+      {
+        "version": "1.1.91",
+        "sha256": "1289a4d8c36e0299dbcca66c25c23dd9ef0951697f5c3a76ee774b01feb3fa26",
+        "bytes": 35758651,
+        "counts": {
+          "fake-responses <path>": 1,
+          "getNextResponse(": 1,
+          "getFakeResponseStore": 1,
+          "generateContentStream": 0
+        },
+        "source": "https://registry.npmjs.org/@qoder-ai/qodercli/-/qodercli-1.1.91.tgz"
+      }
+    ],
+    "readonly": {
+      "platform": "linux-x64",
+      "mode": "read-only",
+      "submittedPrompts": 0,
+      "configurationCreated": false,
+      "checks": [],
+      "version": "1.1.91",
+      "deepseek": {
+        "provider": "deepseek",
+        "enabled": true,
+        "types": [
+          {
+            "type": "pg",
+            "models": [
+              {
+                "key": "deepseek-v4-pro-pg",
+                "displayName": "DeepSeek-V4-Pro",
+                "format": "openai"
+              },
+              {
+                "key": "deepseek-flash-pg",
+                "displayName": "DeepSeek-Flash",
+                "format": "openai"
+              }
+            ]
+          }
+        ]
+      },
+      "emptyParametersCheck": {
+        "success": false,
+        "code": "BYOK_CONFIG_INVALID",
+        "emptyParameters": true
+      },
+      "nativeExit": {
+        "code": 0,
+        "signal": null
+      }
+    },
+    "candidateGate": {
+      "version": "1.1.91",
+      "status": "no_offline_replay_requires_real_account",
+      "submittedPrompts": 0
+    },
+    "realSubmittedPrompts": 0,
+    "realPrerequisite": "Private provider credential setup and Free-plan confirmation pending; no account identifiers retained.",
+    "stoppedReplay": "Synthetic-identity 1.1.91 replay unexpectedly reached remote inference and returned HTTP 500. Controller stopped; this is not real-account compatibility evidence.",
+    "sourceLocations": [
+      {
+        "version": "1.1.82",
+        "bundle": "package/bundle/qodercli.js",
+        "offsetUnit": "Unicode character index, zero based",
+        "locations": {
+          "--fake-responses <path>": [
+            32293158
+          ],
+          "getNextResponse(": [
+            22263538
+          ],
+          "getFakeResponseStore": [
+            26658893
+          ],
+          "generateContentStream": []
+        }
+      },
+      {
+        "version": "1.1.81",
+        "bundle": "package/bundle/qodercli.js",
+        "offsetUnit": "Unicode character index, zero based",
+        "locations": {
+          "--fake-responses <path>": [
+            32884507
+          ],
+          "getNextResponse(": [
+            23034768,
+            23771800,
+            25452216
+          ],
+          "getFakeResponseStore": [
+            23771772,
+            25452165,
+            27111357
+          ],
+          "generateContentStream": [
+            23771817
+          ]
+        }
+      },
+      {
+        "version": "1.1.91",
+        "bundle": "package/bundle/qodercli.js",
+        "offsetUnit": "Unicode character index, zero based",
+        "locations": {
+          "--fake-responses <path>": [
+            14278945
+          ],
+          "getNextResponse(": [
+            6138314
+          ],
+          "getFakeResponseStore": [
+            9856883
+          ],
+          "generateContentStream": []
+        }
+      }
+    ],
+    "byokSourceLocations": {
+      "version": "1.1.91",
+      "bundle": "package/bundle/qodercli.js",
+      "offsetUnit": "Unicode character index, zero based",
+      "daemonCheckByokConfig": 35644482,
+      "managerCheck": 35531048,
+      "requireByokConfigAccess": 35532997,
+      "emptyParametersGuard": 35529227,
+      "order": [
+        "requireByokConfigAccess",
+        "WXr(parameters)",
+        "checkModelOrThrow"
+      ]
+    }
+  },
+  "upstream": [
+    {
+      "key": "codex-changelog",
+      "ok": false,
+      "error": "HTTP Error 404: Not Found"
+    },
+    {
+      "key": "zcode-release",
+      "ok": true,
+      "html_url": "https://github.com/zai-org/ZCode/releases/tag/v3.18.2",
+      "updated_at": "2026-11-16T01:49:23Z"
+    },
+    {
+      "key": "zcode-main",
+      "ok": true,
+      "sha": "fec975905a2abd4c07e35c40d51fa097a2258ec9",
+      "html_url": "https://github.com/zai-org/ZCode/commit/fec975905a2abd4c07e35c40d51fa097a2258ec9"
+    },
+    {
+      "key": "zcode-readme",
+      "ok": true,
+      "bytes": 11860
+    },
+    {
+      "key": "zcode-tree",
+      "ok": true,
+      "sha": "fec975905a2abd4c07e35c40d51fa097a2258ec9"
+    },
+    {
+      "key": "agy-1534",
+      "ok": true,
+      "html_url": "https://github.com/google-antigravity/antigravity-cli/issues/1534",
+      "state": "open",
+      "updated_at": "2026-11-13T19:54:24Z",
+      "comments": 0
+    },
+    {
+      "key": "opencode-54794",
+      "ok": true,
+      "html_url": "https://github.com/anomalyco/opencode/issues/54794",
+      "state": "closed",
+      "updated_at": "2026-11-05T21:52:50Z",
+      "comments": 3
+    },
+    {
+      "key": "opencode-53879",
+      "ok": true,
+      "html_url": "https://github.com/anomalyco/opencode/issues/53879",
+      "state": "open",
+      "updated_at": "2026-10-29T17:18:46Z",
+      "comments": 4
+    },
+    {
+      "key": "kimi-2370",
+      "ok": true,
+      "html_url": "https://github.com/MoonshotAI/kimi-cli/issues/2370",
+      "state": "open",
+      "updated_at": "2026-09-12T16:09:18Z",
+      "comments": 1
+    },
+    {
+      "key": "qwen-15796",
+      "ok": true,
+      "html_url": "https://github.com/QwenLM/qwen-code/issues/15796",
+      "state": "open",
+      "updated_at": "2026-10-28T13:14:10Z",
+      "comments": 2
+    },
+    {
+      "key": "qwen-15875",
+      "ok": true,
+      "html_url": "https://github.com/QwenLM/qwen-code/issues/15875",
+      "state": "open",
+      "updated_at": "2026-11-08T03:54:29Z",
+      "comments": 5
+    },
+    {
+      "key": "qwen-16586",
+      "ok": true,
+      "html_url": "https://github.com/QwenLM/qwen-code/pull/16586",
+      "state": "open",
+      "updated_at": "2026-11-15T01:56:46Z",
+      "comments": 34,
+      "merged": false,
+      "merged_at": null,
+      "merge_commit_sha": "3923dbc96103878ec4e3295d44918d2f81da1e21",
+      "head": "84069baadc82fbb7c9132512b5810fca42edae70"
+    },
+    {
+      "key": "qwen-16586-comments",
+      "ok": true,
+      "count": 34,
+      "commentIds": [
+        6721971304,
+        6722241218,
+        6722241500,
+        6722241759,
+        6780984902,
+        6781273232,
+        6789114622,
+        6822701647,
+        6822846222,
+        6824046131,
+        6825058842,
+        6825268563,
+        6838120496,
+        6841229314,
+        6841752118,
+        6841924273,
+        6845851072,
+        6847560011,
+        6847706311,
+        6848681414,
+        6848822162,
+        6850553762,
+        6851461568,
+        6853113635,
+        6859670580,
+        6860684724,
+        6861670757,
+        6861825592,
+        6861976875,
+        6871794238,
+        6871866783,
+        6874196041,
+        6875368764,
+        6883860959
+      ]
+    },
+    {
+      "key": "qwen-15875-comments",
+      "ok": true,
+      "count": 5,
+      "commentIds": [
+        6500170658,
+        6500361969,
+        6632408160,
+        6709946171,
+        6716941032
+      ]
+    },
+    {
+      "key": "dsh-master",
+      "ok": true,
+      "sha": "ca33fd6843b205e279c7ccb6cb73a472c78f5760",
+      "html_url": "https://github.com/deepseek-ai/deepseek-harness/commit/ca33fd6843b205e279c7ccb6cb73a472c78f5760"
+    },
+    {
+      "key": "agy-public-head",
+      "ok": true,
+      "sha": "bd3ea5b9bedbe39c3849166da8f334ac8537d938",
+      "html_url": "https://github.com/google-antigravity/antigravity-cli/commit/bd3ea5b9bedbe39c3849166da8f334ac8537d938"
+    },
+    {
+      "key": "codebuddy-issue",
+      "ok": true,
+      "bytes": 188515
+    },
+    {
+      "key": "dsh-discussion",
+      "ok": true,
+      "bytes": 326436
+    },
+    {
+      "key": "agy-install",
+      "ok": true,
+      "bytes": 7643
+    },
+    {
+      "key": "agy-headless",
+      "ok": true,
+      "bytes": 258262
+    },
+    {
+      "key": "codex-changelog-retry",
+      "ok": true,
+      "url": "https://learn.chatgpt.com/docs/changelog",
+      "cliVersion": "0.169.0",
+      "modelAnnouncement": "GPT-6.2 availability is distinct from CLI version."
+    }
+  ],
+  "upstreamDetails": {
+    "zcodeReadmeByteIdentical": true,
+    "dshOarFiles": [
+      {
+        "path": "package.json",
+        "old": "cce2a504775a3c41cdde959bd1c416b31013876a",
+        "new": "01d900ed3947fce8539b63a6b86cb2b75e0d613f"
+      },
+      {
+        "path": "packages/experimental/subagent-oar/package.json",
+        "old": "870fb770c0c4f2cf174d7e653dd793d4e291b5be",
+        "new": "98b6b61e0107e12ecb0a717f7a0b3c32c84764da"
+      },
+      {
+        "path": "packages/experimental/tool-subagent-oar/README.i18n.yaml",
+        "old": "71a03aff53f8f280ee75b3ab9daccb7b6c4c6528",
+        "new": "ad6e5cd8c734593b48543642085767cbbdf5d8e2"
+      },
+      {
+        "path": "packages/experimental/tool-subagent-oar/README.md",
+        "old": "50e49f8d8e73c537833d3adf3148e6d2d3d107e1",
+        "new": "c7b22265cbd6499ebe117271f94ab3cefe9de007"
+      },
+      {
+        "path": "packages/experimental/tool-subagent-oar/README.zh.md",
+        "old": "6df88718e76f9f3520977e43f78d87a47e05ed53",
+        "new": "b5674f681f5a6da3a9f5ff8a2292302ba1b1cc84"
+      },
+      {
+        "path": "packages/experimental/tool-subagent-oar/package.json",
+        "old": "b6e08adead46d826fa877c672ce28cf14db4352e",
+        "new": "a5107cff328f6271ead56f06ae3db528827536c7"
+      },
+      {
+        "path": "packages/experimental/tool-subagent-oar/src/index.ts",
+        "old": "f3eb638958271d1a32c260d07e458b2fc2d602f6",
+        "new": "7b17a37c4fe4f76d35787c26256b6ca610772d25"
+      },
+      {
+        "path": "packages/experimental/tool-subagent-oar/tests/tool-subagent-oar.spec.ts",
+        "old": "534b51b3351e86c74b5f95c5e4a2bf607395f810",
+        "new": "f2815cc856a65904c767343ab6b159bf4fb22468"
+      },
+      {
+        "path": "snapshots/session/product-subagent-oar/tool-schemas.expected.json",
+        "old": "c42658816f8f34013609132088a502a352070508",
+        "new": "52a8caaf5d916da64f963e52e7e4d05d1a3fd484"
+      }
+    ],
+    "opencode1196": "journal_mode WAL still precedes busy_timeout in packages/core/src/database/database.ts; native Bun layer also sets WAL before timeout. No gate removal justified."
+  },
+  "preparationErrors": [
+    "First runner launched pnpm under isolated HOME and triggered dependency recreation; controller stopped and worktree dependencies restored. Aborted preparation is not a native-runtime result.",
+    "First Claude probe referenced a nonexistent .bin link. Corrected to the existing exact-version platform binary and reran successfully.",
+    "Initial Cursor skills observer required 993.js, absent from 1.4.1. PR 906 locates the unchanged anchor in 144.js; both workspaces then passed."
+  ],
+  "validation": {
+    "command": "CI=1 pnpm run check",
+    "exitCode": 0,
+    "unitPassed": 4799,
+    "unitSkipped": 640,
+    "mockPassed": 19,
+    "mockSkipped": 1,
+    "log": {
+      "file": "runtime-2026-11-17-daily-check2.log",
+      "bytes": 5596,
+      "sha256": "a14565fab7901a2af807974f1be631e8a01d348c6e48910c63fabb254ad17779"
+    }
+  }
+}

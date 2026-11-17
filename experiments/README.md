@@ -1,5 +1,7 @@
 # experiments
 
+- [Runtime version check: 2026-11-17](runtime-version-checks/2026-11-17.md): changed releases, complete CI failure observations, Cursor loader follow-up and the Qoder replay boundary.
+
 - [OpenCode warm WAL recovery](opencode-database-lock/README.md): native lock traces, timeout-order counterfactual and bounded per-data-directory ACP startup gate.
 
 - [Qwen workspace skill catalog](qwen-skills/README.md): unsigned ACP metadata, native provenance and disabled flags, settings migration and query cleanup.

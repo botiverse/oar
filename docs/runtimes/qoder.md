@@ -278,8 +278,11 @@ From 1.1.82, the native replay path no longer drives the suite's scripted
 inference, so a model-catalog compatibility fix alone cannot restore these
 checks. Assertions and timeouts remain unchanged. Lift the pin only after
 native replay works again, or an officially supported local provider passes
-all native cases. Daily version probes run the latest release and report
-differences; they do not turn failed probes into execution-level coverage.
+all native cases. The [November 17 package audit](../../experiments/runtime-version-checks/2026-11-17.md#qoder-1191)
+confirms the replay consumer is absent from 1.1.82 through 1.1.91 even though
+the hidden flag remains. Daily candidate checks report "no offline replay,
+requires real account" for these versions without launching replay; a
+read-only catalog check does not establish execution compatibility.
 
 A separate [2026-11-05 real-flow probe](../../experiments/qoder-deepseek/README.md)
 passed inference, native Read/Write tools and cross-process resume on Linux

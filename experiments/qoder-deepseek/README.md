@@ -41,14 +41,15 @@ local path. The source locations for the access-check inference are
 
 ## Repeat the read-only check
 
-Use a native 1.1.83 installation and an existing Qoder login. From the OAR
+Use a source-reviewed native 1.1.83 or 1.1.91 installation and an existing
+Qoder login. From the OAR
 checkout:
 
 ```sh
 QODER_PROBE_COMMAND=/path/to/qodercli pnpm exec tsx experiments/qoder-deepseek/probe.ts
 ```
 
-The script deliberately checks the reviewed native version before relying
+The script accepts source-reviewed native versions 1.1.83 and 1.1.91 before relying
 on the empty-parameters check's ordering. The read-only run and a missing
 executable failure were exercised; the latter exits with `SPAWN_FAILED`
 without hanging. The script passes repository typechecking and lint, and the OAR package builds.
@@ -118,3 +119,15 @@ Credential validation itself may contact the provider. The successful result
 demonstrates this third-party API-key path only, not Qoder's own paid
 model catalog, quota, rate limits or subscription login behavior. The probe
 is manual evidence and is not part of CI.
+
+## 1.1.91 follow-up, November 17
+
+The published 1.1.91 bundle still routes `daemonCheckByokConfig` through
+`byokConfigManager.check`, whose `requireByokConfigAccess` precedes
+`WXr(parameters)` and provider validation. The source-reviewed version guard
+now accepts 1.1.91. Its isolated read-only run found DeepSeek-Flash and the
+expected empty-parameters error, with zero model submissions and no new
+configuration. [Selected evidence and package locations](../runtime-version-checks/2026-11-17.json)
+record this check. The three real flows remain unconfirmed on 1.1.91 until
+private provider credentials and the Free-plan prerequisite are ready. The
+1.1.83 result above remains version-specific.
