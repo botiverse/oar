@@ -1333,6 +1333,10 @@ takes a person signing in in a browser.
 
 ### Limit resets
 
+[Remote-label evidence](../../experiments/claude-reset-remote-text/README.md)
+verifies that changed native confirmation labels return unknown promptly
+without confirming or making a redemption request.
+
 **Driven through the interactive UI** ([contract](../spec/account-usage.md#claude-limit-resets),
 [decision](../design/decisions.md#claude-limit-resets-through-its-interactive-ui)):
 `inspectLimitResets` and `redeemLimitReset` type claude's hidden

@@ -1,0 +1,252 @@
+{
+  "date": "2026-11-17",
+  "platform": "linux-x64",
+  "oarMain": "c2b42d5571ce95de0a2d918a9b3311aa67ac8ec0",
+  "cases": [
+    {
+      "version": "2.1.322 (Claude Code)",
+      "altered": false,
+      "operation": "read",
+      "elapsedMs": 9299,
+      "report": {
+        "result": {
+          "kind": "inspected",
+          "resets": [
+            {
+              "id": "five_hour",
+              "state": "not_checked"
+            },
+            {
+              "id": "weekly",
+              "state": "available",
+              "resetsLeft": 2,
+              "expiresText": "Nov 18, 10:14am"
+            },
+            {
+              "id": "fable",
+              "state": "none"
+            },
+            {
+              "id": "full",
+              "state": "none"
+            }
+          ],
+          "version": "2.1.322"
+        },
+        "claudeVersion": "2.1.322"
+      },
+      "dialogs": [
+        "Use a weekly reset?\n\n  Refills your weekly limit now \u00b7 your weekly reset day stays Nov 18, 10:14am\n  2 weekly resets left \u00b7 use by Nov 18, 10:14am\n\n  \u276f Yes, use my weekly reset\n    No, keep it"
+      ],
+      "keys": [
+        "Down",
+        "Enter",
+        "/limit-reset weekly",
+        "Enter",
+        "Esc",
+        "/limit-reset fable",
+        "Enter",
+        "/limit-reset full",
+        "Enter"
+      ],
+      "remoteFlagsFetched": true,
+      "nativeUsageFetched": true,
+      "claimRequests": 0,
+      "modelRequests": 1
+    },
+    {
+      "version": "2.1.322 (Claude Code)",
+      "altered": true,
+      "operation": "read",
+      "elapsedMs": 8270,
+      "report": {
+        "result": {
+          "kind": "inspected",
+          "resets": [
+            {
+              "id": "five_hour",
+              "state": "not_checked"
+            },
+            {
+              "id": "weekly",
+              "state": "unknown"
+            },
+            {
+              "id": "fable",
+              "state": "unknown"
+            },
+            {
+              "id": "full",
+              "state": "unknown"
+            }
+          ],
+          "version": "2.1.322"
+        },
+        "step": "dialog",
+        "claudeVersion": "2.1.322"
+      },
+      "dialogs": [
+        "REMOTE CHANGED: spend weekly reset?\n\n  Refills your weekly limit now \u00b7 your weekly reset day stays Nov 18, 10:14am\n  2 weekly resets left \u00b7 use by Nov 18, 10:14am\n\n  \u276f REMOTE CHANGED: spend it\n    No, keep it"
+      ],
+      "keys": [
+        "Down",
+        "Enter",
+        "/limit-reset weekly",
+        "Enter",
+        "Esc"
+      ],
+      "remoteFlagsFetched": true,
+      "nativeUsageFetched": true,
+      "claimRequests": 0,
+      "modelRequests": 1
+    },
+    {
+      "version": "2.1.322 (Claude Code)",
+      "altered": true,
+      "operation": "redeem",
+      "elapsedMs": 8538,
+      "report": {
+        "result": {
+          "kind": "unknown"
+        },
+        "step": "dialog",
+        "claudeVersion": "2.1.322"
+      },
+      "dialogs": [
+        "REMOTE CHANGED: spend weekly reset?\n\n  Refills your weekly limit now \u00b7 your weekly reset day stays Nov 18, 10:14am\n  2 weekly resets left \u00b7 use by Nov 18, 10:14am\n\n  \u276f REMOTE CHANGED: spend it\n    No, keep it"
+      ],
+      "keys": [
+        "Down",
+        "Enter",
+        "/limit-reset weekly",
+        "Enter",
+        "Esc"
+      ],
+      "remoteFlagsFetched": true,
+      "nativeUsageFetched": true,
+      "claimRequests": 0,
+      "modelRequests": 1
+    },
+    {
+      "version": "2.1.326 (Claude Code)",
+      "altered": false,
+      "operation": "read",
+      "elapsedMs": 11484,
+      "report": {
+        "result": {
+          "kind": "inspected",
+          "resets": [
+            {
+              "id": "five_hour",
+              "state": "not_checked"
+            },
+            {
+              "id": "weekly",
+              "state": "available",
+              "resetsLeft": 2,
+              "expiresText": "Nov 18, 10:14am"
+            },
+            {
+              "id": "fable",
+              "state": "unknown"
+            },
+            {
+              "id": "full",
+              "state": "unknown"
+            }
+          ],
+          "version": "2.1.326"
+        },
+        "step": "dialog",
+        "claudeVersion": "2.1.326"
+      },
+      "dialogs": [
+        "Use a weekly reset?\n\n  Refills your weekly limit now \u00b7 your weekly reset day stays Nov 18, 10:14am\n  2 weekly resets left \u00b7 use by Nov 18, 10:14am\n\n  \u276f Yes, use my weekly reset\n    No, keep it"
+      ],
+      "keys": [
+        "Down",
+        "Enter",
+        "/limit-reset weekly",
+        "Enter",
+        "Esc"
+      ],
+      "remoteFlagsFetched": true,
+      "nativeUsageFetched": true,
+      "claimRequests": 0,
+      "modelRequests": 1
+    },
+    {
+      "version": "2.1.326 (Claude Code)",
+      "altered": true,
+      "operation": "read",
+      "elapsedMs": 8547,
+      "report": {
+        "result": {
+          "kind": "inspected",
+          "resets": [
+            {
+              "id": "five_hour",
+              "state": "not_checked"
+            },
+            {
+              "id": "weekly",
+              "state": "unknown"
+            },
+            {
+              "id": "fable",
+              "state": "unknown"
+            },
+            {
+              "id": "full",
+              "state": "unknown"
+            }
+          ],
+          "version": "2.1.326"
+        },
+        "step": "dialog",
+        "claudeVersion": "2.1.326"
+      },
+      "dialogs": [
+        "REMOTE CHANGED: spend weekly reset?\n\n  Refills your weekly limit now \u00b7 your weekly reset day stays Nov 18, 10:14am\n  2 weekly resets left \u00b7 use by Nov 18, 10:14am\n\n  \u276f REMOTE CHANGED: spend it\n    No, keep it"
+      ],
+      "keys": [
+        "Down",
+        "Enter",
+        "/limit-reset weekly",
+        "Enter",
+        "Esc"
+      ],
+      "remoteFlagsFetched": true,
+      "nativeUsageFetched": true,
+      "claimRequests": 0,
+      "modelRequests": 1
+    },
+    {
+      "version": "2.1.326 (Claude Code)",
+      "altered": true,
+      "operation": "redeem",
+      "elapsedMs": 7263,
+      "report": {
+        "result": {
+          "kind": "unknown"
+        },
+        "step": "dialog",
+        "claudeVersion": "2.1.326"
+      },
+      "dialogs": [
+        "REMOTE CHANGED: spend weekly reset?\n\n  Refills your weekly limit now \u00b7 your weekly reset day stays Nov 18, 10:14am\n  2 weekly resets left \u00b7 use by Nov 18, 10:14am\n\n  \u276f REMOTE CHANGED: spend it\n    No, keep it"
+      ],
+      "keys": [
+        "Down",
+        "Enter",
+        "/limit-reset weekly",
+        "Enter",
+        "Esc"
+      ],
+      "remoteFlagsFetched": true,
+      "nativeUsageFetched": true,
+      "claimRequests": 0,
+      "modelRequests": 1
+    }
+  ]
+}
