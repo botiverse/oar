@@ -62,22 +62,31 @@ export function acpSession(profile: AcpSessionProfile): StartSession {
     const withoutCredentials = acpMcpOpenGuard(options.mcpServers, credentials.redact);
     const args = acpLaunchArgs(profile, options);
     const environment = sessionEnvironment(options.env);
-    const state = createAcpSessionState(profile, options, environment, undefined, () => runtime.pid);
-    const { terminalHost, recorder, opening } = state;
-    const client = createAcpClientApp(terminalHost, state.hooks);
-    const runtime: AcpProcess = startAcpProcess(installation.command, args, client, { cwd: options.cwd, env: environment, redact: credentials.redact, opening });
-    const opened = await openAcpSession(runtime, profile, options, (step) => {
-      recorder.step(step.method, step.response);
-    }, state.configUpdates).catch(async (error: unknown) => {
-      runtime.kill();
-      await runtime.exited;
-      await terminalHost.dispose();
-      const failure = error instanceof AcpError && error.kind === "process_exited"
-        ? acpProcessExitedError(error.exitCode, runtime.diagnostics(), credentials.redact) : error;
-      const reason = cleanupFailureReason(runtime.diagnostics().cleanup);
-      throw withoutCredentials(appendCleanupFailure(failure, reason));
-    });
-    return finishAcpSession(profile, options, credentials, runtime, opened, state);
+    const initializeStartedAt = profile.acquireStartup === undefined ? undefined : performance.now();
+    const releaseStartup = profile.acquireStartup === undefined ? undefined : await profile.acquireStartup(options, profile.initializeTimeoutMs ?? 60_000);
+    try {
+      const state = createAcpSessionState(profile, options, environment, undefined, () => runtime.pid);
+      const { terminalHost, recorder, opening } = state;
+      const client = createAcpClientApp(terminalHost, state.hooks);
+      const runtime: AcpProcess = startAcpProcess(installation.command, args, client, { cwd: options.cwd, env: environment, redact: credentials.redact, opening });
+      // Process exit can precede the SDK's failed-open settlement.
+      // oxlint-disable-next-line promise/prefer-await-to-then -- Observe exit independently of the opening RPC.
+      if (releaseStartup !== undefined) { void runtime.exited.then(releaseStartup, releaseStartup); }
+      const opened = await openAcpSession(runtime, profile, options, (step) => {
+        if (step.method === "initialize") { releaseStartup?.(); }
+        recorder.step(step.method, step.response);
+      }, state.configUpdates, initializeStartedAt).catch(async (error: unknown) => {
+        releaseStartup?.();
+        runtime.kill();
+        await runtime.exited;
+        await terminalHost.dispose();
+        const failure = error instanceof AcpError && error.kind === "process_exited"
+          ? acpProcessExitedError(error.exitCode, runtime.diagnostics(), credentials.redact) : error;
+        const reason = cleanupFailureReason(runtime.diagnostics().cleanup);
+        throw withoutCredentials(appendCleanupFailure(failure, reason));
+      });
+      return finishAcpSession(profile, options, credentials, runtime, opened, state);
+    } finally { releaseStartup?.(); }
   });
 }
 

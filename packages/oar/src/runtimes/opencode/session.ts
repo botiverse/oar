@@ -11,10 +11,12 @@ import { acpSession, type AcpSessionProfile } from "../../shared/acp/session.js"
 import { checkMcpServerNames } from "../../shared/mcp-servers.js";
 import { opencodeFailureOutcome } from "./failure.js";
 import { prepareOpenCodePrompts, validateOpenCodePrompts, verifyOpenCodeAgent } from "./prompt-config.js";
+import { acquireOpenCodeStartup } from "./startup-gate.js";
 import { opencodeSteering } from "./steering.js";
 
 export const opencodeAcpProfile: AcpSessionProfile = {
   args: ["acp"],
+  acquireStartup: acquireOpenCodeStartup,
   failureOutcome: opencodeFailureOutcome,
   validateOptions: (options) => { refuseSessionOptions(opencodeV1RefusedSessionOptions, options); },
   // The ACP layer forwards only its own sessions' parts: a `task` subagent

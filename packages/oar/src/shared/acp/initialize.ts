@@ -10,6 +10,7 @@ export async function initializeAcpConnection(
   profile: AcpSessionProfile,
   options: SessionOptions,
   observe: AcpOpenObserver,
+  startedAt?: number,
 ): Promise<JsonRecord> {
   const meta = profile.initializeMeta?.(options);
   const capabilitiesMeta = profile.clientCapabilitiesMeta?.(options);
@@ -28,6 +29,7 @@ export async function initializeAcpConnection(
       clientInfo: { name: "oar", version: "0.0.0" },
       ...(meta === undefined ? {} : { _meta: meta }),
     }, requestOptions),
+    startedAt,
   );
   const response = asRecord(initialized);
   if (response === null) { throw new TypeError(`ACP ${method} returned a non-object response`); }

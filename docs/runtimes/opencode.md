@@ -265,9 +265,28 @@ a fresh database; ACP opens go through OAR.
 [upstream issue 53879](https://github.com/anomalyco/opencode/issues/53879).
 The inspected 2.2.1 bootstrap semaphore is process-local. These observations
 do not establish that every startup failure has this cause, or that warmup
-is a general fix. Hosts can serialize the first startup and wait for
-readiness before opening more sessions against the same data directory, as
-in the passing controls. OAR adds no retry or lock.
+is a general fix.
+
+OAR serializes isolated ACP process startup in-process, per resolved
+OpenCode data directory (XDG_DATA_HOME/opencode, or the native HOME fallback).
+The gate starts before spawn and ends at the ACP initialize response, process
+exit or failed open, whichever comes first. Sessions then run concurrently;
+a failed start is never retried. Symlink aliases share the gate, including
+not-yet-created paths. Queue time and spawn consume the same 60-second
+initialization budget. Session opening currently has no public abort signal;
+the internal waiter supports cancellation without releasing another owner.
+This does not coordinate other host processes, non-ACP readers, or a custom
+OPENCODE_DB shared across different data directories.
+
+The [warm-WAL recovery probe](../../experiments/opencode-database-lock/README.md)
+found an additional v1.19.5 failure: its SQLite layer requests WAL mode before
+installing its busy timeout. Six pairs over a warmed schema with a deliberately
+retained WAL produced 5/12 failed starts without the gate and 0/12 with it.
+The waiting process paid a median 1.66 s (1.56 to 2.14 s); all six pairs overlapped
+after initialize. The actual adapter also passed 12/12 recovery opens. These
+Linux observations do not identify the exact failed operation in historical CI.
+Once an upstream release fixes the early busy-timeout ordering, remeasure it
+and restrict this gate to versions below that fixed release.
 
 v1 shows startup exits too. In a local Linux x64 run of **1.19.5**
 (2026-10-30, xxwork, fresh isolated HOME/XDG data directory, scripted

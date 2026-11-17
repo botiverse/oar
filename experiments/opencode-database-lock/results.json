@@ -1,0 +1,564 @@
+{
+  "direct-warm-1": {
+    "rawReportSha256": "7feaec3095cdae9889adb66b05f0a8f9adf8f2c8207e59229d702b466ea54edf",
+    "providerRequests": 0,
+    "groups": {
+      "shared": {
+        "opens": 20,
+        "failed": 0
+      },
+      "separate": {
+        "opens": 20,
+        "failed": 0
+      },
+      "serial": {
+        "opens": 20,
+        "failed": 0
+      }
+    }
+  },
+  "direct-term-2": {
+    "rawReportSha256": "adb54388faa0ef7de001371089ea6a48ebe80c957c595b6196c3056523fbefdb",
+    "providerRequests": 0,
+    "groups": {
+      "shared": {
+        "opens": 60,
+        "failed": 0
+      }
+    }
+  },
+  "direct-recovery-1": {
+    "rawReportSha256": "5f440e22f2781b89e94e71559be7a5cab5792d45d26e50a9fdd7435c7f528d3d",
+    "providerRequests": 0,
+    "groups": {
+      "recovery": {
+        "opens": 12,
+        "failed": 3
+      }
+    }
+  },
+  "direct-recovery-trace": {
+    "rawReportSha256": "6c7b9f86c4483590fd2fb61b675a4881a3688427424138ac44fe9e4c814c3b67",
+    "providerRequests": 0,
+    "groups": {
+      "recovery": {
+        "opens": 12,
+        "failed": 6
+      }
+    }
+  },
+  "direct-recovery-patched": {
+    "rawReportSha256": "c23e659b3f5715f52c07abd74f4f88f6208207b377e1a728891c589f03617d0a",
+    "providerRequests": 0,
+    "groups": {
+      "recovery": {
+        "opens": 12,
+        "failed": 0
+      }
+    }
+  },
+  "startup-guard": {
+    "rawReportSha256": "ce2b78ec8b6badb9d90f9a607d5eb1a66e66602f2846f16bccaf73c13407c58d",
+    "providerRequests": 0,
+    "groups": {
+      "recovery": {
+        "opens": 12,
+        "failed": 5
+      },
+      "guarded": {
+        "opens": 12,
+        "failed": 0
+      }
+    },
+    "observations": [
+      {
+        "name": "recovery-0-0",
+        "initialized": true,
+        "opened": true,
+        "elapsedMs": 2674.6715129999975,
+        "exitCode": 0,
+        "signal": null,
+        "startedAtMs": 20605.940877,
+        "guarded": false,
+        "queueMs": 0.047180999998090556,
+        "initializeMs": 1599.6505589999979,
+        "version": "1.19.5",
+        "closedMs": 2728.681808999998
+      },
+      {
+        "name": "recovery-0-1",
+        "initialized": false,
+        "opened": false,
+        "elapsedMs": 823.6786539999994,
+        "exitCode": 1,
+        "signal": null,
+        "startedAtMs": 20608.879377,
+        "guarded": false,
+        "queueMs": 0.018563999998150393,
+        "error": "Native exit 1 null",
+        "closedMs": 823.7133979999999
+      },
+      {
+        "name": "recovery-1-0",
+        "initialized": true,
+        "opened": true,
+        "elapsedMs": 2725.3077569999987,
+        "exitCode": 0,
+        "signal": null,
+        "startedAtMs": 23675.061695,
+        "guarded": false,
+        "queueMs": 0.042174999998678686,
+        "initializeMs": 1549.732035000001,
+        "version": "1.19.5",
+        "closedMs": 2797.433885999999
+      },
+      {
+        "name": "recovery-1-1",
+        "initialized": false,
+        "opened": false,
+        "elapsedMs": 834.353239,
+        "exitCode": 1,
+        "signal": null,
+        "startedAtMs": 23678.317148,
+        "guarded": false,
+        "queueMs": 0.02088000000003376,
+        "error": "Native exit 1 null",
+        "closedMs": 834.3816820000029
+      },
+      {
+        "name": "recovery-2-0",
+        "initialized": false,
+        "opened": false,
+        "elapsedMs": 795.4990030000008,
+        "exitCode": 1,
+        "signal": null,
+        "startedAtMs": 26855.469952,
+        "guarded": false,
+        "queueMs": 0.03836000000228523,
+        "error": "Native exit 1 null",
+        "closedMs": 795.5364279999994
+      },
+      {
+        "name": "recovery-2-1",
+        "initialized": true,
+        "opened": true,
+        "elapsedMs": 2544.58309,
+        "exitCode": 0,
+        "signal": null,
+        "startedAtMs": 26858.267953,
+        "guarded": false,
+        "queueMs": 0.021474000001035165,
+        "initializeMs": 1490.8285570000007,
+        "version": "1.19.5",
+        "closedMs": 2596.4122540000026
+      },
+      {
+        "name": "recovery-3-0",
+        "initialized": true,
+        "opened": true,
+        "elapsedMs": 2793.1146499999995,
+        "exitCode": 0,
+        "signal": null,
+        "startedAtMs": 29821.542093,
+        "guarded": false,
+        "queueMs": 0.0419980000006035,
+        "initializeMs": 1578.808638999999,
+        "version": "1.19.5",
+        "closedMs": 2838.8092800000013
+      },
+      {
+        "name": "recovery-3-1",
+        "initialized": true,
+        "opened": true,
+        "elapsedMs": 2629.027599000001,
+        "exitCode": 0,
+        "signal": null,
+        "startedAtMs": 29824.292907,
+        "guarded": false,
+        "queueMs": 0.01878500000020722,
+        "initializeMs": 1388.335862,
+        "version": "1.19.5",
+        "closedMs": 2684.82546
+      },
+      {
+        "name": "recovery-4-0",
+        "initialized": false,
+        "opened": false,
+        "elapsedMs": 870.4494829999967,
+        "exitCode": 1,
+        "signal": null,
+        "startedAtMs": 33041.4026,
+        "guarded": false,
+        "queueMs": 0.02431300000171177,
+        "error": "Native exit 1 null",
+        "closedMs": 870.4841129999986
+      },
+      {
+        "name": "recovery-4-1",
+        "initialized": true,
+        "opened": true,
+        "elapsedMs": 2897.058211000003,
+        "exitCode": 0,
+        "signal": null,
+        "startedAtMs": 33043.967182,
+        "guarded": false,
+        "queueMs": 0.010434999996505212,
+        "initializeMs": 1752.8408490000002,
+        "version": "1.19.5",
+        "closedMs": 3191.828693999996
+      },
+      {
+        "name": "recovery-5-0",
+        "initialized": true,
+        "opened": true,
+        "elapsedMs": 2727.5725200000015,
+        "exitCode": 0,
+        "signal": null,
+        "startedAtMs": 36628.633847,
+        "guarded": false,
+        "queueMs": 0.03609800000413088,
+        "initializeMs": 1534.8141220000034,
+        "version": "1.19.5",
+        "closedMs": 2799.2229120000047
+      },
+      {
+        "name": "recovery-5-1",
+        "initialized": false,
+        "opened": false,
+        "elapsedMs": 816.3631139999998,
+        "exitCode": 1,
+        "signal": null,
+        "startedAtMs": 36631.179614,
+        "guarded": false,
+        "queueMs": 0.012352999998256564,
+        "error": "Native exit 1 null",
+        "closedMs": 816.3871389999986
+      },
+      {
+        "name": "guarded-0-0",
+        "initialized": true,
+        "opened": true,
+        "elapsedMs": 3433.992210000004,
+        "exitCode": 0,
+        "signal": null,
+        "startedAtMs": 39840.36541,
+        "guarded": true,
+        "queueMs": 0.24177900000358932,
+        "initializeMs": 2143.4410439999992,
+        "version": "1.19.5",
+        "closedMs": 3497.201645000001
+      },
+      {
+        "name": "guarded-0-1",
+        "initialized": true,
+        "opened": true,
+        "elapsedMs": 4629.903451999999,
+        "exitCode": 0,
+        "signal": null,
+        "startedAtMs": 39840.589966,
+        "guarded": true,
+        "queueMs": 2143.3457160000034,
+        "initializeMs": 3573.08627,
+        "version": "1.19.5",
+        "closedMs": 4679.794178000004
+      },
+      {
+        "name": "guarded-1-0",
+        "initialized": true,
+        "opened": true,
+        "elapsedMs": 3115.842289,
+        "exitCode": 0,
+        "signal": null,
+        "startedAtMs": 44870.774682,
+        "guarded": true,
+        "queueMs": 0.05095599999913247,
+        "initializeMs": 1733.014943999995,
+        "version": "1.19.5",
+        "closedMs": 3177.0045739999987
+      },
+      {
+        "name": "guarded-1-1",
+        "initialized": true,
+        "opened": true,
+        "elapsedMs": 4484.476121,
+        "exitCode": 0,
+        "signal": null,
+        "startedAtMs": 44870.811056,
+        "guarded": true,
+        "queueMs": 1733.0873290000018,
+        "initializeMs": 3342.889403000001,
+        "version": "1.19.5",
+        "closedMs": 4547.836432000004
+      },
+      {
+        "name": "guarded-2-0",
+        "initialized": true,
+        "opened": true,
+        "elapsedMs": 2775.908856000002,
+        "exitCode": 0,
+        "signal": null,
+        "startedAtMs": 49782.258598,
+        "guarded": true,
+        "queueMs": 0.050589999998919666,
+        "initializeMs": 1561.9621830000033,
+        "version": "1.19.5",
+        "closedMs": 2831.211614
+      },
+      {
+        "name": "guarded-2-1",
+        "initialized": true,
+        "opened": true,
+        "elapsedMs": 4105.045566000001,
+        "exitCode": 0,
+        "signal": null,
+        "startedAtMs": 49782.295944,
+        "guarded": true,
+        "queueMs": 1562.0334690000018,
+        "initializeMs": 3035.4055640000006,
+        "version": "1.19.5",
+        "closedMs": 4154.145765000001
+      },
+      {
+        "name": "guarded-3-0",
+        "initialized": true,
+        "opened": true,
+        "elapsedMs": 2762.775429000001,
+        "exitCode": 0,
+        "signal": null,
+        "startedAtMs": 54268.841896,
+        "guarded": true,
+        "queueMs": 0.050554000001284294,
+        "initializeMs": 1582.7534410000007,
+        "version": "1.19.5",
+        "closedMs": 2819.978142
+      },
+      {
+        "name": "guarded-3-1",
+        "initialized": true,
+        "opened": true,
+        "elapsedMs": 4163.720929000003,
+        "exitCode": 0,
+        "signal": null,
+        "startedAtMs": 54268.877465,
+        "guarded": true,
+        "queueMs": 1582.833666999999,
+        "initializeMs": 3004.7637630000027,
+        "version": "1.19.5",
+        "closedMs": 4215.503085000004
+      },
+      {
+        "name": "guarded-4-0",
+        "initialized": true,
+        "opened": true,
+        "elapsedMs": 2760.463932999999,
+        "exitCode": 0,
+        "signal": null,
+        "startedAtMs": 58888.039498,
+        "guarded": true,
+        "queueMs": 0.08462400000280468,
+        "initializeMs": 1585.2015840000022,
+        "version": "1.19.5",
+        "closedMs": 2826.857662000002
+      },
+      {
+        "name": "guarded-4-1",
+        "initialized": true,
+        "opened": true,
+        "elapsedMs": 4273.571979,
+        "exitCode": 0,
+        "signal": null,
+        "startedAtMs": 58888.094326,
+        "guarded": true,
+        "queueMs": 1585.2838520000005,
+        "initializeMs": 3023.827176999999,
+        "version": "1.19.5",
+        "closedMs": 4330.302988000003
+      },
+      {
+        "name": "guarded-5-0",
+        "initialized": true,
+        "opened": true,
+        "elapsedMs": 3121.801599999999,
+        "exitCode": 0,
+        "signal": null,
+        "startedAtMs": 63772.796687,
+        "guarded": true,
+        "queueMs": 0.08076499999879161,
+        "initializeMs": 1923.296454999996,
+        "version": "1.19.5",
+        "closedMs": 3161.617978999995
+      },
+      {
+        "name": "guarded-5-1",
+        "initialized": true,
+        "opened": true,
+        "elapsedMs": 5245.924104000005,
+        "exitCode": 0,
+        "signal": null,
+        "startedAtMs": 63772.862383,
+        "guarded": true,
+        "queueMs": 1923.337069000001,
+        "initializeMs": 4095.5480099999986,
+        "version": "1.19.5",
+        "closedMs": 5309.417507999999
+      }
+    ]
+  },
+  "adapter": {
+    "rawReportSha256": "e866e56fcb5ca1e71b11505169e7dbde2ccce4fab463009214b7f10c1dbbcde9",
+    "providerRequests": 0,
+    "observations": [
+      {
+        "name": "adapter-0-0",
+        "adapter": true,
+        "initialized": true,
+        "opened": true,
+        "elapsedMs": 2764.987583,
+        "exitCode": null,
+        "signal": null,
+        "version": "1.19.5",
+        "cleanup": true,
+        "closedMs": 2885.2598670000007
+      },
+      {
+        "name": "adapter-0-1",
+        "adapter": true,
+        "initialized": true,
+        "opened": true,
+        "elapsedMs": 4076.5829239999985,
+        "exitCode": null,
+        "signal": null,
+        "version": "1.19.5",
+        "cleanup": true,
+        "closedMs": 4149.105806
+      },
+      {
+        "name": "adapter-1-0",
+        "adapter": true,
+        "initialized": true,
+        "opened": true,
+        "elapsedMs": 2818.027056000001,
+        "exitCode": null,
+        "signal": null,
+        "version": "1.19.5",
+        "cleanup": true,
+        "closedMs": 2935.8908539999993
+      },
+      {
+        "name": "adapter-1-1",
+        "adapter": true,
+        "initialized": true,
+        "opened": true,
+        "elapsedMs": 4163.004720000003,
+        "exitCode": null,
+        "signal": null,
+        "version": "1.19.5",
+        "cleanup": true,
+        "closedMs": 4229.899960000001
+      },
+      {
+        "name": "adapter-2-0",
+        "adapter": true,
+        "initialized": true,
+        "opened": true,
+        "elapsedMs": 2718.3973000000005,
+        "exitCode": null,
+        "signal": null,
+        "version": "1.19.5",
+        "cleanup": true,
+        "closedMs": 2855.481856999999
+      },
+      {
+        "name": "adapter-2-1",
+        "adapter": true,
+        "initialized": true,
+        "opened": true,
+        "elapsedMs": 4258.364351,
+        "exitCode": null,
+        "signal": null,
+        "version": "1.19.5",
+        "cleanup": true,
+        "closedMs": 4347.532780999998
+      },
+      {
+        "name": "adapter-3-0",
+        "adapter": true,
+        "initialized": true,
+        "opened": true,
+        "elapsedMs": 8643.13722,
+        "exitCode": null,
+        "signal": null,
+        "version": "1.19.5",
+        "cleanup": true,
+        "closedMs": 8716.076765000002
+      },
+      {
+        "name": "adapter-3-1",
+        "adapter": true,
+        "initialized": true,
+        "opened": true,
+        "elapsedMs": 11264.151646000002,
+        "exitCode": null,
+        "signal": null,
+        "version": "1.19.5",
+        "cleanup": true,
+        "closedMs": 11332.296723000003
+      },
+      {
+        "name": "adapter-4-0",
+        "adapter": true,
+        "initialized": true,
+        "opened": true,
+        "elapsedMs": 2553.386064999999,
+        "exitCode": null,
+        "signal": null,
+        "version": "1.19.5",
+        "cleanup": true,
+        "closedMs": 2647.6692239999975
+      },
+      {
+        "name": "adapter-4-1",
+        "adapter": true,
+        "initialized": true,
+        "opened": true,
+        "elapsedMs": 3892.8668770000004,
+        "exitCode": null,
+        "signal": null,
+        "version": "1.19.5",
+        "cleanup": true,
+        "closedMs": 3962.8392899999963
+      },
+      {
+        "name": "adapter-5-0",
+        "adapter": true,
+        "initialized": true,
+        "opened": true,
+        "elapsedMs": 2636.4382079999996,
+        "exitCode": null,
+        "signal": null,
+        "version": "1.19.5",
+        "cleanup": true,
+        "closedMs": 2726.4117869999973
+      },
+      {
+        "name": "adapter-5-1",
+        "adapter": true,
+        "initialized": true,
+        "opened": true,
+        "elapsedMs": 3999.4302949999983,
+        "exitCode": null,
+        "signal": null,
+        "version": "1.19.5",
+        "cleanup": true,
+        "closedMs": 4068.5680809999976
+      }
+    ]
+  },
+  "runtime": {
+    "version": "1.19.5",
+    "platform": "linux-x64",
+    "node": "v24.19.0",
+    "executableSha256": "7df4e4136301f16589b0f30bf91a61380fca5f8ef22dd36570f5ebe1d4ec802c",
+    "sourceCommit": "810c0eba1a7348036f8bdf61e6632d0c36c6876c"
+  }
+}

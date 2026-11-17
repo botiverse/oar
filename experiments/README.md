@@ -1,5 +1,7 @@
 # experiments
 
+- [OpenCode warm WAL recovery](opencode-database-lock/README.md): native lock traces, timeout-order counterfactual and bounded per-data-directory ACP startup gate.
+
 - [Qwen workspace skill catalog](qwen-skills/README.md): unsigned ACP metadata, native provenance and disabled flags, settings migration and query cleanup.
 - [Qoder skill catalog ambiguity](qoder-skills/README.md): unescaped descriptions can print apparent catalog entries, so independent discovery remains unsupported.
 - [Claude reset onboarding](claude-reset-onboarding/README.md): native default theme and notice completion, exact-screen refusal, and config writes (2.1.322, Linux).
