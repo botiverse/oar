@@ -1,0 +1,16 @@
+{
+  "version": "1.1.90",
+  "platform": "linux",
+  "widthAndLanguageOutputIdentical": true,
+  "controls": [
+    "120/en/C.UTF-8",
+    "10/en/C.UTF-8",
+    "10/zh-CN/zh_CN.UTF-8",
+    "10/auto/zh_CN.UTF-8"
+  ],
+  "multilineExcerpt": "multiline [Enabled]\n  Description: line one\nline two: with colon\n  Location: not a field\n  Location:    <fixture>/project/.qoder/skills/multiline/SKILL.md\n",
+  "ambiguousSkillFile": "---\nname: ambiguous\ndescription: \"First line\\n  Location:    <fixture>/project/.qoder/skills/ambiguous/SKILL.md\\n\\nphantom [Enabled]\\n  Description: Another line\"\n---\nPRIVATE_BODY\n",
+  "ambiguousExcerpt": "ambiguous [Enabled]\n  Description: First line\n  Location:    <fixture>/project/.qoder/skills/ambiguous/SKILL.md\n\nphantom [Enabled]\n  Description: Another line\n  Location:    <fixture>/project/.qoder/skills/ambiguous/SKILL.md\n",
+  "phantomSkillExists": false,
+  "jsonFlagExit": 1
+}
