@@ -1,5 +1,14 @@
 # Qoder
 
+`qoderRuntime.minVersion` is `1.1.78`, the first verified worker release.
+`installation()` enforces this stable-version floor using its existing
+`--version` query, before a host opens a session. An older, prerelease or
+unreadable version returns `kind: "unsupported", code: "version_unsupported"`,
+with `requiredVersion`, the executable `command`, and `installedVersion` when
+reported. For example, 1.0.22 is found but unsupported, and 1.1.78 is available.
+This prevents an old CLI from being advertised as usable before it refuses the
+mandatory `get_settings` readback ([reported failure](https://github.com/botiverse/oar/issues/900)).
+
 OAR uses Qoder's native bidirectional JSON-line SDK protocol, with one
 owned process per open session. From 1.1.81, OAR uses `--sdk` and the official
 SDK's daemon protocol (verified 2026-10-29,

@@ -1,6 +1,7 @@
 import { afterEach, expect, test, vi } from "vitest";
 import type { ExecutableRunner } from "../../packages/oar/src/shared/executable/run.js";
 import { qoderInstallation } from "../../packages/oar/src/runtimes/qoder/installation.js";
+import { qoderRuntime } from "../../packages/oar/src/runtimes/qoder/index.js";
 
 const runExecutable = vi.hoisted(() => vi.fn<ExecutableRunner>());
 vi.mock("../../packages/oar/src/shared/executable/run.js", () => ({ runExecutable }));
@@ -20,4 +21,30 @@ test("a timed out installed executable throws a probe failure, never not_found",
   const probing = qoderInstallation();
   await expect(probing).rejects.toThrow("timeout after 15000 ms");
   await expect(probing).rejects.toMatchObject({ cause: { timeoutMs: 15_000, stderr: "startup incomplete" } });
+});
+
+test("Qoder 1.0.22 is found but unsupported before a host opens a session", async () => {
+  vi.stubEnv("OAR_QODER_BIN", process.execPath);
+  runExecutable.mockResolvedValue({ ok: true, exitCode: 0, stdout: "1.0.22\n", stderr: "" });
+  expect(qoderRuntime.minVersion).toBe("1.1.78");
+  await expect(qoderRuntime.installation()).resolves.toMatchObject({
+    kind: "unsupported", code: "version_unsupported", via: "executable", command: process.execPath,
+    installedVersion: "1.0.22", requiredVersion: "1.1.78",
+  });
+  expect(runExecutable).toHaveBeenCalledExactlyOnceWith(process.execPath, ["--version"], { env: process.env });
+});
+
+test.each(["1.1.78", "1.1.81"])("Qoder %s remains available", async version => {
+  vi.stubEnv("OAR_QODER_BIN", process.execPath);
+  runExecutable.mockResolvedValue({ ok: true, exitCode: 0, stdout: `${version}\n`, stderr: "" });
+  await expect(qoderRuntime.installation()).resolves.toMatchObject({ kind: "available", via: "executable", version });
+  expect(runExecutable).toHaveBeenCalledExactlyOnceWith(process.execPath, ["--version"], { env: process.env });
+});
+
+test.each(["1.1.77", "1.1.78-rc.1", ""])("an unverified Qoder version cannot bypass the floor: %s", async version => {
+  vi.stubEnv("OAR_QODER_BIN", process.execPath);
+  runExecutable.mockResolvedValue({ ok: true, exitCode: 0, stdout: version, stderr: "" });
+  await expect(qoderRuntime.installation()).resolves.toMatchObject({
+    kind: "unsupported", code: "version_unsupported", command: process.execPath, requiredVersion: "1.1.78",
+  });
 });
