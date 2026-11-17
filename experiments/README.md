@@ -1,6 +1,7 @@
 # experiments
 
 - [Qwen workspace skill catalog](qwen-skills/README.md): unsigned ACP metadata, native provenance and disabled flags, settings migration and query cleanup.
+- [Qoder skill catalog ambiguity](qoder-skills/README.md): unescaped descriptions can print apparent catalog entries, so independent discovery remains unsupported.
 
 - [Kimi login browser exit observation](kimi-login-exit/README.md): native parent exit can lose the callback; independently observe the helper PID.
 

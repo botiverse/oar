@@ -515,3 +515,19 @@ reliably correlated and an additional native error result lacked saved
 details, so that outcome remains unconfirmed, not a claimed parent success.
 
 [Native evidence and reproducible probes](../../experiments/task-controls/README.md).
+
+## Independent skill discovery
+
+Independent `skills()` remains unsupported. Qoder CLI 1.1.90 can run
+`skills list --all` without signing in, but prints description newlines
+without escaping them. A single skill description containing
+`phantom [Enabled]` followed by `Description` and `Location` lines produces
+what looks like another catalog entry, even though no such skill exists.
+Strict line-shape validation cannot distinguish that text from native entries.
+The command has no `--json` flag in this version.
+
+The [native probe and selected output](../../experiments/qoder-skills/README.md)
+include the concrete fixture, ordinary multiline descriptions, narrow/wide
+output and language controls. OAR adds neither a text parser nor a substitute
+directory loader. Reopen support when an escaped or structured native catalog
+works without signing in.
