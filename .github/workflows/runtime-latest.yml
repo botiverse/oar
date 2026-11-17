@@ -85,6 +85,9 @@ jobs:
         if: matrix.suite == 'opencode-cleanup'
         run: pnpm vitest run sea-trial/vendor/opencode-cleanup.vendor.test.ts sea-trial/vendor/opencode-skills.vendor.test.ts
         timeout-minutes: 5
+      - name: Build CLI dependencies for the Kimi account probe
+        if: matrix.suite == 'kimi-login'
+        run: pnpm run build
       - name: Kimi login and reused workspace
         if: matrix.suite == 'kimi-login'
         run: pnpm vitest run sea-trial/vendor/kimi-login.vendor.test.ts sea-trial/vendor/kimi-skills.vendor.test.ts sea-trial/vendor/kimi-expired-usage.vendor.test.ts

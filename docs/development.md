@@ -368,7 +368,11 @@ Outside ci.yml and its pull-request and release gates:
 
 - [`runtime-latest.yml`](../.github/workflows/runtime-latest.yml) runs daily
   at 06:17 UTC and by manual dispatch. One discovery job freezes candidate
-  versions, URLs, digests, timestamp and accepted-manifest hash. Changed
+  versions, URLs, digests, timestamp and accepted-manifest hash. Manifest
+  hashes normalize CRLF to LF so Windows checkout preserves the same identity;
+  changed pin content still rejects the frozen record. After native version
+  verification, `OAR_CI_CANDIDATE_VERSION` supplies helper suites with the
+  frozen expected version; ordinary CI retains its accepted expectation. Changed
   candidates run supported native behavior/vendor or helper suites on the
   existing OS matrix with local scripted providers. Minimum and replay keys
   (including DSH and Qoder) are excluded from this daily matrix and still

@@ -14,11 +14,12 @@ import { cwdEvidence } from "../../experiments/sharing/observation.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 
 const enabled = process.env.OAR_TEST === "opencode-cleanup";
+const expectedVersion = process.env.OAR_CI_CANDIDATE_VERSION ?? "2.2.7";
 function alive(pid: number): boolean { try { process.kill(pid, 0); return true; } catch { return false; } }
 function text(session: Session): string { return session.records().flatMap(r => r.kind === "frame" ? r.body.events.filter(e => e.kind === "text_delta").map(e => e.text) : []).join(""); }
 
 for (const placement of ["isolated"] as const) {
-  test.skipIf(!enabled)(`OpenCode 2.2.7 ${placement}: routed roots, MCP, children, cancel, cleanup and resume`, async () => {
+  test.skipIf(!enabled)(`OpenCode ${expectedVersion} ${placement}: routed roots, MCP, children, cancel, cleanup and resume`, async () => {
     const f = await acpFixture("opencode");
     const sessions: Session[] = [];
     const runtimes: acp.AcpProcess[] = [];
@@ -55,7 +56,7 @@ for (const placement of ["isolated"] as const) {
         config.provider = { ...asRecord(config.provider), aimock: provider };
         await writeFile(configPath, JSON.stringify(config));
       }
-      expect(f.installation.version).toMatch(/^(?:opencode\s+)?v?2\.2\.7$/u);
+      expect(f.installation.version?.replace(/^(?:opencode\s+)?v?/u, "")).toBe(expectedVersion);
       // Independent processes start sequentially to avoid the separately documented cold DB race.
       const [a, b] = [await open("A"), await open("B", { model: "aimock/aimock-other" })];
       expect(runtimes).toHaveLength(2);

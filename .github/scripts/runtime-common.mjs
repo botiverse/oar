@@ -12,11 +12,12 @@ export function exactVersion(value) {
 }
 
 export function readManifest(file = baselineFile) {
-  const bytes = readFileSync(file);
-  const manifest = JSON.parse(bytes);
+  // Git checkout may use CRLF on Windows. Identity follows the LF source text.
+  const source = readFileSync(file, "utf8").replaceAll("\r\n", "\n");
+  const manifest = JSON.parse(source);
   assert.equal(manifest?.schemaVersion, 1, "Unsupported runtime-versions.json schemaVersion");
   assert.ok(manifest.runtimes && typeof manifest.runtimes === "object" && !Array.isArray(manifest.runtimes), "Missing runtime pins");
-  return { manifest, sha256: createHash("sha256").update(bytes).digest("hex") };
+  return { manifest, sha256: createHash("sha256").update(source).digest("hex") };
 }
 
 export function runtimePin(manifest, key) {
