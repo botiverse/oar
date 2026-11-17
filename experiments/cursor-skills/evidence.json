@@ -4,6 +4,7 @@
   "controls": [
     {
       "gitWorkspace": false,
+      "preserveSymlinks": true,
       "sdkVersion": "1.4.0",
       "sourceSha256": "197e2314468ac23f455dfe356e049b46f36c50a497152f9af12742fef199a244",
       "nativeCount": 20,
@@ -136,6 +137,7 @@
     },
     {
       "gitWorkspace": true,
+      "preserveSymlinks": true,
       "sdkVersion": "1.4.0",
       "sourceSha256": "197e2314468ac23f455dfe356e049b46f36c50a497152f9af12742fef199a244",
       "nativeCount": 24,
@@ -293,26 +295,6 @@
   ],
   "rawManifest": [
     {
-      "path": "oar-trial-run/cursor-skills/false-native.log",
-      "bytes": 236,
-      "sha256": "b35a5a026a02149a61577b26ea3e476803689a62c93fe65560a0ae102d4e980c"
-    },
-    {
-      "path": "oar-trial-run/cursor-skills/true-native.log",
-      "bytes": 236,
-      "sha256": "4c530fe6cc1c060d3c36b855dce2349d411ef0d8cbac873e8489d2942af3fede"
-    },
-    {
-      "path": "oar-trial-run/cursor-skills/false.json",
-      "bytes": 12301,
-      "sha256": "9e8f0649aa0f8e31707c4920d0c91e7b043eb0a009d8c29fbd67cc5bbad53989"
-    },
-    {
-      "path": "oar-trial-run/cursor-skills/true.json",
-      "bytes": 14308,
-      "sha256": "0e82e5812a951b4895774fd0173f67c0b95b6d60e665a2d500a229ee8cd53e88"
-    },
-    {
       "path": "../artifacts/cursor-skills/parity-first.log",
       "bytes": 266,
       "sha256": "bfc515539f46f99888e9ca8657c58926be80f427813402532eb3524072bdd30f"
@@ -356,6 +338,66 @@
       "path": "../artifacts/cursor-skills/skills-build.log",
       "bytes": 336,
       "sha256": "c308f869359d1c1d530daf359abde9f3d3b5e31c45d2691ee1e1eeeb87886ee8"
+    },
+    {
+      "path": "../artifacts/cursor-skills/parity-canonical/cursor-skills/false-native.log",
+      "bytes": 236,
+      "sha256": "cf050f3dcb3ce71a9565c047d16fb6fc2b64e6318fe0b55719a20701dea4e8d4"
+    },
+    {
+      "path": "../artifacts/cursor-skills/parity-canonical/cursor-skills/false.json",
+      "bytes": 12301,
+      "sha256": "430951d9f9cb7eb1ebb940469b347a127b5f588b33fc633e9b530f5f0eabb90c"
+    },
+    {
+      "path": "../artifacts/cursor-skills/parity-canonical/cursor-skills/true-native.log",
+      "bytes": 236,
+      "sha256": "17061691c117026afbd0426a4ed77ebe9b8017316ee4513af300877e3fb97ad6"
+    },
+    {
+      "path": "../artifacts/cursor-skills/parity-canonical/cursor-skills/true.json",
+      "bytes": 14308,
+      "sha256": "7c495206bdc0337185152c9a6c2fbf6b02f60e4c7bfe4affcdf8c4c149842df2"
+    },
+    {
+      "path": "../artifacts/cursor-skills/windows-133758056224/false-native.log",
+      "bytes": 1270,
+      "sha256": "ff61f75bc8371e2af8bbd2dc67012aa39c3a2c76c6a8efe52e3d3ef23f2c3595"
+    },
+    {
+      "path": "../artifacts/cursor-skills/windows-133758056224/true-native.log",
+      "bytes": 1270,
+      "sha256": "56e2b7bea21e5723d844d13fc03817ed546ac24a1b4167ffd0fbc2030bb0885c"
+    },
+    {
+      "path": "../artifacts/cursor-skills/parity-preserve-links-red.log",
+      "bytes": 5218,
+      "sha256": "63f4f4615130b67671876a1f4531eab80504d9159247a1df34bdd4adcfbfe34e"
+    },
+    {
+      "path": "../artifacts/cursor-skills/parity-canonical.log",
+      "bytes": 266,
+      "sha256": "a2a563b8902bbb576331ef9386dae538bb7ac6fee9b1fa82597424a9b58051d2"
+    },
+    {
+      "path": "../artifacts/cursor-skills/ci-windows-133758056224.log",
+      "bytes": 315750,
+      "sha256": "c4c607bc183f3baad7afdea7b28ec34db282f7047c415aba6ac939c0e9775ef0"
+    },
+    {
+      "path": "../artifacts/cursor-skills/skills-full-canonical.log",
+      "bytes": 5508,
+      "sha256": "36425901864093281fb3c863430574e73ab84389f7c1155f61ecc561a120e5d3"
     }
-  ]
+  ],
+  "windowsCiFailure": {
+    "head": "8ab53f8f2e96d8708582ffe85248d029aa02fd84",
+    "run": 43998995413,
+    "job": 133758056224,
+    "stage": "copied SDK import, before skill loading",
+    "code": "ERR_MODULE_NOT_FOUND",
+    "dependency": "@bufbuild/protobuf",
+    "unitAndBuild": "passed",
+    "correction": "Canonicalize installed SDK entry before deriving dependency roots; preserved-link Linux control passes; Windows verification pending."
+  }
 }

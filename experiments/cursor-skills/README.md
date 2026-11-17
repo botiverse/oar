@@ -68,7 +68,8 @@ and ignored paths, hidden paths, rule-only entries, SDK/IDE filtering,
 duplicate brands, malformed duplicates, symlink aliases, external symlink
 targets, depth limits and surrogate-boundary descriptions.
 
-The test copies the installed SDK and adds one read-only observer at the
+The test resolves the installed SDK entry with `realpath` before locating its
+dependencies, copies that SDK and adds one read-only observer at the
 existing merged-loader result. No discovery/filter/parser logic is replaced;
 the installed SDK stays unchanged. The public `prewarmLocalWorkspace` drives
 the real loader. The observer's exact anchor must occur once, otherwise the
@@ -87,3 +88,16 @@ other-platform success depends on those CI results.
 Selected metadata and raw fingerprints are in [evidence.json](evidence.json).
 Full local evidence remains under `artifacts/cursor-skills/` and the owned
 worktree's `oar-trial-run/cursor-skills/`.
+
+## Windows test bootstrap correction
+
+The first Windows run at `8ab53f8f` passed the unit suite and build, but both
+native comparisons stopped while importing the copied SDK, before skill
+loading: `ERR_MODULE_NOT_FOUND` for `@bufbuild/protobuf`
+([job 133758056224](https://github.com/botiverse/oar/actions/runs/43998995413/job/133758056224)).
+The observer derived its dependency directory from an entry path that could
+still name a package link. A Linux control preserving symlinks also failed
+at dependency resolution, for the native SDK companion. Canonicalizing the
+entry before deriving paths made both controls pass. The vendor child now
+always preserves links to retain that regression; Windows verification of
+the correction remains a CI requirement. Product discovery is unchanged.

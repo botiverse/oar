@@ -3,7 +3,7 @@ import { asRecord, parseJson } from "../../../packages/oar/src/shared/json.js";
 import type { createAgentPlatform } from "@cursor/sdk";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { cp, mkdir, readFile, symlink, writeFile } from "node:fs/promises";
+import { cp, mkdir, readFile, realpath, symlink, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { Socket } from "node:net";
 import { dirname, join } from "node:path";
@@ -11,7 +11,8 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const [cwd, copy, output] = process.argv.slice(2);
 assert.ok(cwd !== undefined && copy !== undefined && output !== undefined);
-const sdkEntry = fileURLToPath(import.meta.resolve("@cursor/sdk"));
+// Canonicalize pnpm links/junctions before finding the SDK dependency directory.
+const sdkEntry = await realpath(fileURLToPath(import.meta.resolve("@cursor/sdk")));
 const sdkRoot = dirname(dirname(dirname(sdkEntry)));
 const fromSdk = createRequire(sdkEntry);
 const nativeRoot = dirname(fromSdk.resolve(`@cursor/sdk-${process.platform}-${process.arch}/package.json`));

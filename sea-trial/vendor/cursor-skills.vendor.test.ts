@@ -17,7 +17,8 @@ describe.skipIf(process.env.OAR_TEST !== "cursor-skills")("Cursor SDK native ski
     const output = join(copy, "result.json");
     const dir = resolve(process.env.OAR_TRIAL_RUN_DIR ?? "oar-trial-run", "cursor-skills");
     try {
-      const native = await runExecutable(process.execPath, ["--import", import.meta.resolve("tsx"), resolve("sea-trial/vendor/support/cursor-skills-native.ts"), f.cwd, copy, output], { cwd: f.cwd, env: f.env, timeoutMs: 45_000 });
+      // Exercise unresolved package links as well as canonical pnpm paths.
+      const native = await runExecutable(process.execPath, ["--preserve-symlinks", "--import", import.meta.resolve("tsx"), resolve("sea-trial/vendor/support/cursor-skills-native.ts"), f.cwd, copy, output], { cwd: f.cwd, env: f.env, timeoutMs: 45_000 });
       await mkdir(dir, { recursive: true });
       await writeFile(join(dir, `${String(git)}-native.log`), `${native.stdout}\n${native.stderr}`);
       assert.ok(native.ok, JSON.stringify(native));
