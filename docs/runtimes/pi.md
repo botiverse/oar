@@ -1427,8 +1427,11 @@ from `get_commands`: skill entries use their native name without the `skill:`
 invocation prefix and retain `sourceInfo.path`/`source`; extension and prompt
 entries retain their invocation names and source labels in `commands()`.
 RPC omits command `argumentHint` and skill `disableModelInvocation`; OAR does
-not fill them from the host SDK. Both inventories report `partial:true` because
-Pi RPC does not return loading diagnostics, so completeness cannot be confirmed.
+not fill them from the host SDK. Both inventories report `partial:false` on a successful
+query: native `get_commands` enumerates every loaded skill, registered extension
+command and prompt template without pagination or truncation. Missing diagnostic
+fields alone do not make that source incomplete. Files silently rejected by the
+native loader remain absent, just as they are from its loaded catalog.
 Other RPC startup or model-query failures, including timeouts, reject with a generic
 Error without native details. `orient()` records the rejection as `failed`, or
 `timed_out` if its own budget expires first. Inventory failures retain their

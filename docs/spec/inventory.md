@@ -78,8 +78,13 @@ See [adapter version requirements](orientation.md#adapter-version-requirements).
 `partial:true` signals a native discovery error or pending/failed MCP startup.
 Cursor directory discovery also marks unreadable or malformed metadata and
 unavailable nested discovery partial.
-Pi RPC also reports `partial:true` because it provides no loading diagnostics:
-discovery completeness cannot be confirmed. It is independent of coverage: a complete MCP catalog is still `mcp-only`.
+Devin sets `partial:true` when a returned entry has non-empty native `errors`;
+warnings alone do not set it. Native files silently omitted before catalog
+creation are not an OAR-observed discovery error. Pi RPC returns the complete
+loaded skill/command catalog with `partial:false`; its missing metadata and
+loading diagnostics do not make that source incomplete. Neither result promises
+that every file on disk is valid or loaded. Coverage is independent: a complete
+MCP catalog is still `mcp-only`.
 Unknown fields are omitted. Enabled, active, loaded, auth and connection state
 are separate concepts. Names and descriptions are native strings; OAR never
 manufactures parameter schemas. A tool can reference its server through
@@ -102,6 +107,7 @@ the native catalog says so. A plugin identity alone does not establish scope.
 | Grok | `bundled` → builtin; `user` → user; `project` → project; `server`/`plugin`/`configToml` → other | Tagged source's `plugin_name` |
 | Kimi | `builtin`/`user`/`project` unchanged; `extra` → other | Not supplied by this catalog |
 | Pi SDK and RPC | `SourceInfo.scope` user/project unchanged; temporary → other | `SourceInfo.source` when `origin` is package; absent for top-level |
+| Devin | Native `Builtin` → builtin; brand providers remain unknown | Not supplied by this catalog |
 | Cursor | Measured SDK home loading roots → user; workspace/nested loading roots → project | Not inferred |
 | OpenCode | Native built-in marker or verified built-in URI → builtin; verified user loading root → user; verified cwd/ancestor loading root → project | Not supplied by this catalog |
 
@@ -133,7 +139,7 @@ does run those hooks, then read `get_commands`. This path separates
 `source: "skill"` entries into `skills()` and retains extension/prompt source
 labels for commands. RPC does not expose `argumentHint`, skill
 `disableModelInvocation`, or loading diagnostics; those metadata fields are
-absent and both inventories have `partial:true`.
+absent; their absence does not make the returned catalog partial.
 Neither path executes a command or observes an existing session's later changes.
 
 Claude lists `initialize.commands`, including native aliases and argument
@@ -159,7 +165,8 @@ ACP session's `available_commands_update` is not an independent query.
 | Kimi | Native Web workspace skills; temporary loopback service, native state writes | Unsupported | Unsupported | Unsupported |
 | OpenCode | v1 `debug skill`; v2 native HTTP catalog after plugin activation | Unsupported | Unsupported | Unsupported |
 | Cursor | Measured SDK user/project directory discovery | Unsupported | Unsupported | Unsupported |
-| Antigravity, DSH, Pi Durable, Qwen, Qoder, CodeBuddy, Devin, Factory | Unsupported on the selected interface | Unsupported on the selected interface | Unsupported on the selected interface | Unsupported on the selected interface |
+| Devin | Native `skills list --json`; can attempt network and write native state | Unsupported | Unsupported | Unsupported |
+| Antigravity, DSH, Pi Durable, Qwen, Qoder, CodeBuddy, Factory | Unsupported on the selected interface | Unsupported on the selected interface | Unsupported on the selected interface | Unsupported on the selected interface |
 
 Kimi starts a private loopback Web service, reads the complete workspace skill
 catalog and stops its owned process tree. A workspace ID returned by registration

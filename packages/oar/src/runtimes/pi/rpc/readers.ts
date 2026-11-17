@@ -35,8 +35,8 @@ function inventory<T>(runtime: PiRuntimeOptions, project: (commands: readonly Rp
       return await readPiRpc(runtime, options, async (rpc) => {
         const response = await rpc.control.request({ type: "get_commands" });
         if (!response.success || response.command !== "get_commands") { throw new Error("Pi did not return its command catalog"); }
-        // RPC omits discovery diagnostics, so it cannot prove a complete load.
-        return inventoryOk(workspaceScope(options), "discovered", project(response.data.commands), true);
+        // RPC lists every loaded entry; absent diagnostics or metadata do not make that catalog partial.
+        return inventoryOk(workspaceScope(options), "discovered", project(response.data.commands));
       });
     } catch (error) {
       if (error instanceof PiRpcVersionError) { return error.refusal; }

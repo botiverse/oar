@@ -1,0 +1,16 @@
+{
+  "platform": "linux-x64",
+  "version": "3000.12.57",
+  "unblockedObserved": [
+    "DNS request for unleash.codeium.com",
+    "DNS request for Sentry ingest",
+    "TCP connections on port 443"
+  ],
+  "blockedProxy": "http://127.0.0.1:9",
+  "proxyTcpConnections": [
+    "connect(5, {sa_family=AF_INET, sin_port=htons(9), sin_addr=inet_addr(\"127.0.0.1\")}, 16) = -1 EINPROGRESS (Operation now in progress)",
+    "connect(3, {sa_family=AF_INET, sin_port=htons(9), sin_addr=inet_addr(\"127.0.0.1\")}, 16) = -1 EINPROGRESS (Operation now in progress)"
+  ],
+  "catalogEqual": true,
+  "claim": "The proxy control reached only loopback TCP; this does not prove every possible native configuration is network-free."
+}

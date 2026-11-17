@@ -1,5 +1,7 @@
 # experiments
 
+- [Devin native skill catalog](devin-skills/README.md): builtin and user/project metadata, omitted malformed files, state writes and background network attempts.
+
 - [Cursor skill discovery](cursor-skills/README.md): measured SDK 1.4.0 roots, native filtering, independent metadata reads and a real-loader parity gate.
 
 - [Old CLI upgrade path](old-cli-upgrade/README.md): native AGY 1.4.9 to 1.5.9, Pi self-update, and DSH command boundaries.

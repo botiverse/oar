@@ -5,6 +5,13 @@ interfaces; it does not scan configuration files, ask a model to describe its
 tools, or use online documentation.
 [Reproducible probes and sanitized observations](../../experiments/inventory/README.md).
 
+## November 17 update
+
+Devin 3000.12.57 now uses its native `skills list --json` catalog, including
+bundled skills. Brand labels do not identify user/project ownership. The
+[Linux comparison](../../experiments/devin-skills/README.md) records malformed
+file omission, native state writes and attempted background network access.
+
 ## November 16 update
 
 Kimi 2.6.2's native Web workspace skill catalog is now integrated. It requires
