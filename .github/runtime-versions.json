@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "runtimes": {
+    "claude-aimock": {
+      "package": "@anthropic-ai/claude-code",
+      "version": "2.1.326",
+      "evidence": "https://github.com/botiverse/oar/actions/runs/44071060592/job/133997095524"
+    },
+    "codex-aimock": {
+      "package": "@openai/codex",
+      "version": "0.169.0",
+      "evidence": "https://github.com/botiverse/oar/actions/runs/44071060592/job/133997095568"
+    },
+    "qwen-aimock": {
+      "package": "@qwen-code/qwen-code",
+      "version": "0.27.4",
+      "evidence": "https://github.com/botiverse/oar/actions/runs/44071060592/job/133997095536"
+    }
+  }
+}
