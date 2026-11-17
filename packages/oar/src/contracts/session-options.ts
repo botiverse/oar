@@ -23,6 +23,20 @@ export type McpServer =
   | { readonly name: string; readonly type: "http"; readonly url: string; readonly headers?: Readonly<Record<string, string>> };
 
 /**
+ * SessionOptions.fork. `through` cuts the copy after one turn: the
+ * runtime-native anchor of that turn, read from its root `turn_ended`
+ * event's `forkAnchor` (`ViewTurn.forkAnchor` in the session view, which
+ * also holds for a log persisted from an earlier process). Turns after it are
+ * not in the copy. Omitted: the whole conversation is copied, the same as
+ * cutting after the last turn. Only an anchor of a turn the source holds is
+ * meaningful (forks keep the source's anchors); one the runtime cannot find
+ * rejects the open with its own error. A blank or NUL anchor is refused first.
+ */
+export interface SessionFork {
+  readonly through?: string;
+}
+
+/**
  * How a session opens. What a runtime cannot honor is refused, never
  * dropped: `session()` rejects with an `UnsupportedOptionError` naming the
  * option rather than open a session that runs without it. A host that must
@@ -153,6 +167,25 @@ export interface SessionOptions {
    * UnsupportedOptionError. See docs/spec/runtime-matrix.md#missing-resume-targets.
    */
   readonly resume?: string;
+  /**
+   * Open a NEW native session that starts as a copy of the saved session
+   * `resume` names, instead of continuing that session. Requires `resume`;
+   * without it the open rejects with `UnsupportedOptionError` on `fork`. The
+   * opened Session reports the copy's own id (`Session.id`), read back from
+   * the runtime, never the source's; later resumes name that id. The source
+   * is not modified and stays resumable on its own. See SessionFork.
+   *
+   * Other options behave as on a resume of the source, not as on a new
+   * session: claude forks with `--resume`, so `systemPrompt` and
+   * `appendSystemPrompt` follow `Runtime.resumedSessionOptions`. Exceptions:
+   * `name` names the copy as a new session; a codex fork runs the configured
+   * default model and effort unless `model` and `effort` are given (it does
+   * not keep the source's), and its instruction timing is untested. Claude
+   * and Codex support it; other runtimes refuse it
+   * (`Runtime.refusedSessionOptions`). See
+   * docs/spec/runtime-matrix.md#forking-a-session.
+   */
+  readonly fork?: SessionFork;
   /** Environment changes for the processes THIS session spawns: a string sets the variable (including an empty string); null removes it from the inherited environment. The host environment is never changed. Subprocess runtimes: the runtime process itself (tools inherit). In-process runtimes: only the agent's tool subprocesses; provider config needs the runtime's native channel there. CAVEAT for PATH-like entries: a runtime that runs tools through a login shell (codex: zsh/bash -lc) lets profile scripts reorder or rebuild PATH (probed: codex demotes injected entries on Linux and macOS path_helper/.zprofile can drop them). Injected CLIs should be invoked by ABSOLUTE path. Pi refuses removals combined with stdio mcpServers because its MCP transport re-inherits the host environment. Refused when non-empty by cursor in its default in-process mode, whose tools run in the host process with no environment of their own (its subprocess mode applies it to the session's child): `session()` rejects with `UnsupportedOptionError` (`Runtime.refusedSessionOptions`, docs/spec/runtime-matrix.md#refused-session-options).
    *
    * Credential-like names with non-path values of at least eight characters,

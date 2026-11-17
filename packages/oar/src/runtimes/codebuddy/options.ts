@@ -3,6 +3,7 @@ import type { SessionOptions } from "../../contracts/session.js";
 import { UnsupportedOptionError } from "../../contracts/errors.js";
 
 export const codebuddyRefusedSessionOptions: RefusedSessionOptions = {
+  fork: "OAR has not verified a native CodeBuddy fork that opens a copy of a saved session under a new id, cut after a chosen turn",
   goals: "CodeBuddy ACP has no verified structured goal controls",
   endTurnProcessesOnAbort: "OAR has not verified reading and ending one aborted CodeBuddy turn's processes while its session stays usable",
   appendSystemPrompt: "CodeBuddy ACP prompt append has no verified private input channel",

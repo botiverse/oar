@@ -632,6 +632,95 @@ Evidence: [`experiments/codex-session-name.ts`](../../experiments/codex-session-
 and [`pi-session-name`](../../sea-trial/vendor/pi-session-name.vendor.test.ts),
 which read the name back through each runtime's own interface.
 
+## Forking a session
+
+`SessionOptions.fork` opens a NEW native session that starts as a copy of
+the saved session `resume` names, so a host can branch a conversation (a
+"new chat from this reply" button) without touching the original. The
+opened Session reports the copy's own id; later resumes name that id, and
+the source stays resumable on its own. `fork.through` cuts the copy after
+one turn; omitted, the whole conversation is copied, which is the same as
+cutting after the last turn. `fork` without `resume`, or a blank `through`
+or one with a NUL character, is refused with `UnsupportedOptionError` on
+`fork` before anything starts.
+
+The anchor is runtime-native and opaque. Hosts read it from the root
+`turn_ended` event's `forkAnchor` ([record stream](record-stream.md)), or
+from `ViewTurn.forkAnchor` in the session view (`reduceSessionView`,
+`@botiverse/oar/observe`), and never parse native frames for it. OAR
+retains no records across processes, so a host that offers a fork on an
+earlier process's turn keeps those records or the anchors itself. Only an
+anchor of a turn the source holds is meaningful; one the runtime cannot
+find fails the open with its own error. Both runtimes keep the source's
+anchors on the turns a fork copies, so an anchor read from the source also
+forks the fork.
+
+The fork's id is the runtime's own report, never assumed: claude must
+confirm the id OAR assigned at open, codex names the new thread in its reply.
+
+| runtime | native mapping | `through` anchor | missing anchor | token totals |
+|---|---|---|---|---|
+| claude | `--resume <source> --fork-session --session-id <OAR's new id>`, plus the hidden `--resume-session-at=<anchor>`; the open fails unless the private `get_status` answer reports that id | `uuid` of the turn's last root assistant message (a failed turn's is the saved `API Error` message); none on an aborted turn or one with no assistant message | `No message found with message.uuid of: <anchor>` at startup, an `Error` with that text | the fork's own, from the resume's `get_usage` baseline |
+| codex | `thread/fork { threadId: <source>, lastTurnId?, excludeTurns: true, cwd, model?, … }`; the reply's `thread.id` is `Session.id` (one naming the source fails the open); effort set afterwards as on a resume | the turn id (the records' `spanId`), on completed, failed and aborted turns | `codex thread/fork failed: turn not found: <anchor>` | unreported: the fork's total includes the source's turns and codex sends no re-report to baseline it |
+| every other runtime | refused (`Runtime.refusedSessionOptions.fork`) | none | | |
+
+**Other options on a fork.** They behave as on a resume of the source, not
+as on a new session. A claude fork is a `--resume`, so `systemPrompt` and
+`appendSystemPrompt` follow claude's `Runtime.resumedSessionOptions`
+(a changed value takes effect at the next compaction; an omitted one keeps
+the saved value until then). Exceptions: `name` names the copy as a new
+session on both runtimes. A codex fork does not keep the source's model and
+effort: without `model` and `effort` it runs the configured default, with or
+without `mcpServers` (0.169.0: a `gpt-5.2`/`high` source forked onto
+`gpt-5.1` with no effort), so a host that wants the source's settings gives
+them again. When a codex fork applies `baseInstructions` and
+`developerInstructions` is untested; codex's `resumedSessionOptions`
+describe `thread/resume` only.
+
+**Aborted and failed turns.** A claude fork through a failed turn's anchor
+carries what the source's next prompt carried. An aborted claude turn gets
+no anchor: when an abort interrupts a tool call, the turn's last assistant
+message is the `tool_use`, and a fork through it drops the saved
+interruption, so claude answers the dangling call with `[Tool result missing
+due to internal error]` instead of the source's `[Request interrupted by
+user for tool use]` (2.1.323). Codex forks through a failed or an aborted
+turn (`interrupted`, with the aborted tool output and `<turn_aborted>`)
+carry what the source's next prompt carried. A turn in progress has no
+anchor yet.
+
+**Versions.** Claude's `--resume-session-at` is hidden and verified on
+2.1.323 only; OAR does not gate it. A claude without the flag would refuse it
+as an unknown option and exit, which fails the open (it is not silently
+ignored); not observed on an older release. Codex `lastTurnId` arrived in
+0.143.0: earlier releases ignore the field and copy the whole thread, so
+`through` on them is `runtime_outdated` before the fork is sent; a fork
+without `through` works from the login floor.
+
+A missing source is `SessionNotFoundError` on both, read with the resume's
+words. Claude keeps rejecting `--fork-session` in `launchArgs` (use this
+option), and with a fork also `--resume-session-at`. Codex forks carry no
+`experimentalRawEvents` and are ordinary threads (not `ephemeral`, not
+`attachToSource`). They do not send `deferGoalContinuation`: with
+`goals: true` and an active goal on the source, codex may start the goal's
+automatic continuation turn as the fork opens (untested).
+
+Evidence: [`session-fork.vendor.test.ts`](../../sea-trial/vendor/session-fork.vendor.test.ts)
+runs claude (2.1.323) and codex (0.169.0) against a scripted provider, with
+a two-turn source and three forks (through the first turn, through the last,
+whole). Each fork's id is new and the only one the runtime reports in its
+frames; the source's native transcript is byte-identical after the forks
+and it resumes with its own two turns; the history the provider receives
+from the first-turn fork equals what the source's second prompt carried;
+the last-turn fork, the whole fork and the resumed source carry the same
+history; a fork resumes later under its own id, and forks again through a
+source anchor. Further cases cover failed and aborted turns and the codex
+model and effort. A real claude login (haiku, 2026-11-17) answered "APPLE"
+in a fork through the first of "remember APPLE", "remember BANANA", while
+the source answered both and its transcript was unchanged. Codex `lastTurnId`
+floor: bisected over the npm releases' generated app-server schemas
+(`codex app-server generate-json-schema --experimental`): 0.142.5 has no
+such field, 0.143.0 has it; `thread/fork` itself is in 0.118.0's.
+
 ## Refused session options
 
 What a runtime cannot honor is refused, never dropped: `session()` rejects
@@ -643,7 +732,7 @@ reading the message.
 
 `Runtime.refusedSessionOptions` declares, before any session opens, the
 `SessionOptions` a runtime refuses when given (`env`, `mcpServers`, `disallowedTools`, `launchArgs`, `additionalDirectories`: a
-non-empty one; `userConfiguration`: `"exclude"`; `goals`, `endTurnProcessesOnAbort`: `true`), each with that reason. The adapter checks the same map, so
+non-empty one; `userConfiguration`: `"exclude"`; `goals`, `endTurnProcessesOnAbort`: `true`; `fork`: any value), each with that reason. The adapter checks the same map, so
 the declaration and the refusal cannot drift
 (`tests/refused-session-options.test.ts`). A host leaves a declared option
 out instead of naming runtimes. `outputSchema` is considered given even
@@ -659,7 +748,10 @@ and `endTurnProcessesOnAbort: true` everywhere except Codex in an isolated
 app-server and Grok ([ending a turn's processes](#ending-a-turns-processes-on-abort)),
 for want of a verified way to end one aborted turn's processes while the
 session stays usable (in the host process, no process tree of its own to
-read). The table omits both, apart from Codex's shared-placement refusal.
+read). `fork` is refused everywhere except Claude and Codex, for want of a
+verified native fork that opens a copy under a new id cut after a chosen turn
+([forking a session](#forking-a-session)). The table omits all three, apart
+from Codex's shared-placement refusal.
 These refusals have one reason wherever the table lists them: `serviceTier`,
 no verified per-session tier setting and readback; `outputSchema`, no
 verified final-output schema channel; `name`, no verified session name

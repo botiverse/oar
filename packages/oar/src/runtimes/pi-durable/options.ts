@@ -13,6 +13,7 @@ import { refuseSessionOptions } from "../../shared/session-options.js";
 export type DurableModels = Exclude<HarnessOptions["models"], () => unknown>;
 
 export const piDurableRefusedSessionOptions: RefusedSessionOptions = {
+  fork: "OAR has not verified a native Pi Durable fork that opens a copy of a saved session under a new id, cut after a chosen turn",
   goals: "This runtime interface exposes no structured native goal controls",
   endTurnProcessesOnAbort: "pi-durable runs in the host process, so OAR owns no runtime process tree to read for one turn",
   userConfiguration: "pi-durable uses host-owned harness configuration, with no per-conversation user-configuration exclusion",

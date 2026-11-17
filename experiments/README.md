@@ -26,6 +26,7 @@
 
 - [OpenCode warm WAL recovery](opencode-database-lock/README.md): native lock traces, timeout-order counterfactual and bounded per-data-directory ACP startup gate; [v2 WAL and fresh-database comparison](opencode-database-lock/v2-2026-11-18.md) keeps the v2 gate for #53879; [upstream #64590](https://github.com/anomalyco/opencode/issues/64590).
 
+- [Session fork](session-fork.ts): a real Claude fork through the first turn holds only that turn under a new id while the source transcript stays unchanged (2.1.323); Codex `thread/fork { lastTurnId }` arrived in 0.143.0.
 - [Qwen workspace skill catalog](qwen-skills/README.md): unsigned ACP metadata, native provenance and disabled flags, settings migration and query cleanup.
 - [Qoder skill catalog ambiguity](qoder-skills/README.md): unescaped descriptions can print apparent catalog entries, so independent discovery remains unsupported.
 - [Claude reset onboarding](claude-reset-onboarding/README.md): native default theme and notice completion, exact-screen refusal, and config writes (2.1.322, Linux).

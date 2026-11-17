@@ -54,6 +54,7 @@ function findModel(models: readonly ModelListItem[], id: string): ModelListItem 
  * '--system-prompt'" (probed 2026-10-03), and there is no append.
  */
 export const cursorRefusedSessionOptions: RefusedSessionOptions = {
+  fork: "OAR has not verified a native Cursor fork that opens a copy of a saved session under a new id, cut after a chosen turn",
   goals: "This runtime interface exposes no structured native goal controls",
   endTurnProcessesOnAbort: "Cursor runs in the host process through its SDK, so OAR owns no runtime process tree to read for one turn",
   outputSchema: "Cursor SDK exposes no final-output schema option",

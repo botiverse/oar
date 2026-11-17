@@ -9,7 +9,7 @@ function credentialEntries(options: SessionOptions): readonly string[] {
   return (options.mcpServers ?? []).filter((server) => hasMcpCredentials(server)).map((server) => server.name);
 }
 
-/** Whether `options` gives `key`: any defined value (including an empty schema), a non-empty map for `env`, a non-empty list for list options, an entry carrying a credential for `mcpServerCredentials`, `exclude` for `userConfiguration`, true for `goals` and `endTurnProcessesOnAbort`. */
+/** Whether `options` gives `key`: any defined value (including an empty schema), a non-empty map for `env`, a non-empty list for list options, an entry carrying a credential for `mcpServerCredentials`, `exclude` for `userConfiguration`, true for `goals` and `endTurnProcessesOnAbort`, any value for `fork`. */
 export function sessionOptionGiven(options: SessionOptions, key: RefusableSessionOption): boolean {
   if (key === "goals") { return options.goals === true; }
   if (key === "endTurnProcessesOnAbort") { return options.endTurnProcessesOnAbort === true; }
@@ -35,7 +35,7 @@ export function sessionOptionGiven(options: SessionOptions, key: RefusableSessio
  */
 export function refuseSessionOptions(refused: RefusedSessionOptions, options: SessionOptions): void {
   checkRetainedBytes(options.retainedBytes);
-  for (const key of ["systemPrompt", "appendSystemPrompt", "env", "mcpServers", "mcpServerCredentials", "disallowedTools", "launchArgs", "serviceTier", "additionalDirectories", "outputSchema", "name", "userConfiguration", "goals", "endTurnProcessesOnAbort"] as const) {
+  for (const key of ["systemPrompt", "appendSystemPrompt", "env", "mcpServers", "mcpServerCredentials", "disallowedTools", "launchArgs", "serviceTier", "additionalDirectories", "outputSchema", "name", "userConfiguration", "goals", "endTurnProcessesOnAbort", "fork"] as const) {
     const reason = refused[key];
     if (reason === undefined || !sessionOptionGiven(options, key)) {
       continue;
@@ -44,6 +44,24 @@ export function refuseSessionOptions(refused: RefusedSessionOptions, options: Se
       throw new UnsupportedOptionError("mcpServers", `${reason}: ${JSON.stringify(credentialEntries(options))}`);
     }
     throw new UnsupportedOptionError(key, key === "disallowedTools" ? `${reason}: ${JSON.stringify(options.disallowedTools)}` : reason);
+  }
+  checkFork(options);
+}
+
+/**
+ * SessionOptions.fork on a runtime that takes it: `resume` names the source,
+ * and a given `through` is a non-blank anchor without NUL characters (no
+ * command line can carry one). Refused with `UnsupportedOptionError` on
+ * `fork` before anything starts.
+ */
+function checkFork(options: SessionOptions): void {
+  if (options.fork === undefined) { return; }
+  if (options.resume === undefined) {
+    throw new UnsupportedOptionError("fork", "fork copies the saved session resume names; give resume with the source session id");
+  }
+  const through = options.fork.through;
+  if (through !== undefined && (through.trim().length === 0 || through.includes("\0"))) {
+    throw new UnsupportedOptionError("fork", "fork.through must not be blank or contain NUL characters");
   }
 }
 

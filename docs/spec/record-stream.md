@@ -718,7 +718,7 @@ interface FrameBody {
 //   tool_call_input_delta {callId, delta} |
 //   tool_call_progress {callId, output?, outputDelta?} |
 //   tool_call_ended {callId, content?: ToolOutputPart[], result?: "ok" | "failed", exitCode?: number | null} |
-//   turn_ended {outcome, inputId?, inputIds?} | usage {usage: {context?, tokens?: {input, output, reasoning?, cacheRead?, cacheWrite?}, total?: <same>}} | model {model} |
+//   turn_ended {outcome, inputId?, inputIds?, forkAnchor?} | usage {usage: {context?, tokens?: {input, output, reasoning?, cacheRead?, cacheWrite?}, total?: <same>}} | model {model} |
 //   goal_changed {goal: GoalSnapshot | null} |
 //   effort {effort} | service_tier {serviceTier} | app_request_cancelled {requestId} |
 //   compaction_started {compactionId?, trigger?} |
@@ -1032,6 +1032,13 @@ Which runtimes say which kinds (runtime pages hold the evidence):
   not an ever-growing input. It may be incomplete JSON; it is separate from
   both complete `tool_call_input` and tool output `tool_call_progress`.
   Codex 0.162.0 exposes no corresponding native argument notification.
+- `turn_ended.forkAnchor?`: on a root turn of a runtime that takes
+  `SessionOptions.fork`, the opaque native anchor `fork.through` takes to
+  copy the conversation through this turn: claude, the `uuid` of the turn's
+  last root assistant message (absent when it had none, and on an aborted
+  turn); codex, the turn id.
+  Absent on other runtimes, child turns and older records
+  ([forking a session](runtime-matrix.md#forking-a-session)).
 - `turn_ended.inputId?` and `inputIds?`: the shared stream-json fold copies native
   `result.user_message_uuid` and `user_message_uuids` respectively, each only
   when reported. OAR neither derives one from the other nor adds identities

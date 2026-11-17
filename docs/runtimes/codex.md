@@ -261,6 +261,39 @@ the resume runs again is unobserved. [Baseline][oar-token-usage],
 [tests](../../tests/codex/codex-token-usage.test.ts),
 [recorded resume](../../tests/replay/codex-resume.test.ts).
 
+**Fork (mapped).** `SessionOptions.fork` with `resume: <source>` sends
+`thread/fork { threadId: <source>, lastTurnId?, excludeTurns: true, cwd,
+runtimeWorkspaceRoots?, model?, serviceTier?, approvalPolicy: "never",
+…instructions, config?: { mcp_servers } }` instead of `thread/resume`; the
+reply's `thread.id` is the new thread and becomes `Session.id` (a reply
+naming the source is refused). `lastTurnId` is `fork.through`, the turn id
+carried as the root `turn_ended.forkAnchor` (and as the records' `spanId`):
+turns after it are not in the copy, and the source is untouched ([env] 0.169.0,
+scripted provider). It arrived in 0.143.0 (the 0.142.5 schema has no such
+field and serde ignores unknown ones), so `through` on an older or
+unreported version is `runtime_outdated` before anything is sent; a whole
+fork works on every release from the login floor. A missing source reads
+`no rollout found for thread id …` and is `SessionNotFoundError`; an unknown
+turn is `turn not found: <id>` (-32600), kept as codex's words. Unlike a cold
+resume, a fork does not keep the source's model and effort: without `model`
+and `effort` it runs the configured default, with or without a `config`
+override (0.169.0: a `gpt-5.2`/`high` source forked onto `gpt-5.1` with no
+effort). A given effort is set afterwards with `thread/settings/update`; no
+`experimentalRawEvents`; `name` is set as on a new thread; when
+`baseInstructions` and `developerInstructions` take effect on a fork is
+untested. Failed and aborted turns carry anchors, and a fork through one
+carries what the source's next prompt carried; copied turns keep their ids,
+so a source anchor also forks the fork. `deferGoalContinuation` is not sent,
+so with `goals: true` an active source goal may start its continuation turn
+as the fork opens (untested). The fork's `tokenUsage.total` includes the source's turns and is
+not re-reported before its first turn (a fork of 1,000 + 1,100 input tokens
+reported 3,400 after its own 1,300), so its baseline stays unknown and its
+`tokens` unreported. `beforeTurnId`, `ephemeral`, `attachToSource` and
+`path` are not sent
+([forking a session](../spec/runtime-matrix.md#forking-a-session),
+[unit](../../tests/codex/codex-session-fork.test.ts),
+[vendor](../../sea-trial/vendor/session-fork.vendor.test.ts)).
+
 A thread whose rollout was never written (no turn yet) cannot be resumed
 ([session identity](#matrix-columns), [floors](#resumability-floors)).
 A refused resume, typed or not, reads `codex thread/resume failed:
@@ -647,9 +680,10 @@ or translate these controls into text commands for other runtimes.
 
 ### Observation, children, and history
 
-**Mapped:** native thread read/list/fork operations expose stored state, and
+**Mapped:** native thread read/list operations expose stored state, and
 resume can return history; OAR exposes none of those and does not hydrate the
-stream from the resume result. Every notification enters the stream verbatim
+stream from the resume or fork result (`thread/fork` is mapped as
+[`SessionOptions.fork`](#connection-session-creation-and-resume)). Every notification enters the stream verbatim
 (`native` is the params object) with a session-local `seq`, ingress
 `receivedAt`, and the native turn id as `spanId`; `rawEvents(observer,
 { sessionId, afterSeq })` replays the retained records of this process, then
@@ -1457,7 +1491,7 @@ material" row describes the former only.
 1. **Entry.** See [connection](#connection-session-creation-and-resume).
    Present upstream but not on OAR's path: `--listen ws://`,
    `--listen unix://`, `codex app-server daemon`, `codex app-server proxy`,
-   `thread/fork`, `ephemeral`, `thread/resume { path }` and `{ history }`
+   `ephemeral`, `thread/resume { path }` and `{ history }`
    (vendor README).
 2. **Session and state storage.** Thread identity, rollout, and the sqlite
    index are codex's, under `CODEX_HOME`. OAR owns no storage: its record

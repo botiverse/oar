@@ -30,6 +30,8 @@ export interface StreamJsonProjectionProfile<S extends StreamJsonProjectionState
     readonly outcome: TurnOutcome;
     readonly before: readonly RuntimeEventBody[];
     readonly after: readonly RuntimeEventBody[];
+    /** The turn's `SessionOptions.fork.through` anchor, stamped on its `turn_ended`; absent where the dialect has none. */
+    readonly forkAnchor?: string;
   };
   readonly init: (message: JsonRecord) => readonly RuntimeEventBody[];
   readonly compacted: (state: S, root: boolean) => S;

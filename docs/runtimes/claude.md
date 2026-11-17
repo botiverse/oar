@@ -157,7 +157,34 @@ is not used). A blank name, or one with a NUL character, is refused before
 launch ([session name](../spec/runtime-matrix.md#session-name)).
 [Vendor test](../../sea-trial/vendor/claude-session-name.vendor.test.ts).
 
-Fork, session listing, history retrieval, rewind, and reset identity management
+**Fork (mapped).** `SessionOptions.fork` with `resume: <source>` launches
+`--resume <source> --fork-session --session-id <OAR's new id>`, so the copy
+runs under the id `Session.id` reports; `fork.through` adds the hidden
+`--resume-session-at=<uuid>`, which keeps the history through that assistant
+message ([env] 2.1.323: the source transcript is unchanged, the copy resumes
+later under its id). Before the open returns, the private `get_status`
+readback must report that id in its `Session ID` row (claude names its
+session in no other answer at open; the same answer carries the account
+email, so it is not recorded); another id, none, or no answer within 30
+seconds fails the open and stops the process. The first turn's
+`system/init` repeats it as `session_id`. The anchor is the `uuid` of the turn's last root
+assistant message, carried as `turn_ended.forkAnchor`; a failed turn's is
+the synthetic `API Error` message claude saves, and an aborted turn gets
+none (a fork through an interrupted `tool_use` loses the saved interruption
+and claude reports the call's result as an internal error). The copy keeps
+the source's message uuids, so source anchors also fork the fork. Other
+options follow `resumedSessionOptions`, as on a resume. `--resume-session-at`
+is hidden and verified on 2.1.323 only. An unknown uuid ends
+startup with `result/error_during_execution` and `No message found with
+message.uuid of: <uuid>`, which fails the open with that text. `--name` is
+passed as on a new session (the copy gets the host's name; the source keeps
+its own), and the open reads the usage baseline as a resume does, so token
+totals count the fork's own turns
+([forking a session](../spec/runtime-matrix.md#forking-a-session),
+[unit](../../tests/claude/claude-session-fork.test.ts),
+[vendor](../../sea-trial/vendor/session-fork.vendor.test.ts)).
+
+Session listing, history retrieval, rewind, and reset identity management
 are **not exposed**. Duplicate transcripts and concurrent controllers resuming
 one ID are **unverified**.
 
@@ -1481,7 +1508,9 @@ former only.
 
 1. **Entry.** `claude -p --input-format stream-json --output-format stream-json
    --verbose --replay-user-messages --include-partial-messages`, then
-   `--session-id <uuid>` (and `--name`) or `--resume <id>`, and optional
+   `--session-id <uuid>` (and `--name`) or `--resume <id>` (a fork:
+   `--resume <source> --fork-session --session-id <uuid>`, optionally
+   `--resume-session-at=<uuid>`, and `--name`), and optional
    `--model`, `--effort` (then a `get_settings` control request before the
    first turn) and one `--settings` object (service tier and
    [user configuration](#user-configuration)); then
@@ -1494,7 +1523,7 @@ former only.
    the child environment, as is an inherited `CLAUDE_CODE_ENTRYPOINT` (an explicit
    host entrypoint wins). Prompts are `user` message lines on stdin. Present
    in 2.1.261 help but not on the session path:
-   `--fork-session`, `--no-session-persistence` (the inventory and account
+   `--no-session-persistence` (the inventory and account
    usage readers pass it), `--tools`, `--agents`, `--bg`, `--cloud`, `--teleport`,
    `--remote-control`. Source:
    [launch](../../packages/oar/src/runtimes/claude/launch.ts).
@@ -1687,7 +1716,7 @@ Evidence and verification limits: [tool-denial audit](../../experiments/disallow
 
 ## Launch arguments
 
-`SessionOptions.launchArgs` go on claude's command line after OAR's own flags and before `--add-dir`, `--mcp-config` and `--disallowed-tools`. Each takes several values until the next argument that starts with `-`, so a bare host value (one that is neither a flag nor a flag's value) after them would be read as theirs. OAR refuses at open (`UnsupportedOptionError` on `launchArgs`) a flag it manages itself, whose use would break the session or be silently overridden: `--continue`/`-c` and `--session-id` (claude exits next to OAR's own session id), `--resume`/`-r` (use `SessionOptions.resume`), `--fork-session` (claude would run under a new id that `Session.id` does not report), `--permission-prompt-tool` (OAR has no interface for answering permission requests), `--print`/`-p`, `--input-format`, `--output-format`, and `--json-schema` (use `SessionOptions.outputSchema`), also in the `--flag=value` form ([#336](https://github.com/botiverse/oar/issues/336), [launch-args.ts](../../packages/oar/src/runtimes/claude/launch-args.ts)). Each argument is compared whole, so a flag's value that happens to equal one of these (`["--append-system-prompt", "-p"]`) is refused too; pass such text through the matching `SessionOptions` field instead. `--no-session-persistence` is allowed, but claude then keeps no transcript, so resuming the session later fails with `SessionNotFoundError`. Everything else passes unchecked: an unknown flag makes claude exit at once, so a fresh session without a readback can open with the exit as its first record; resume and settings readbacks reject at open if it exits before answering. Never recorded; give them again on resume. See [launch arguments](../spec/runtime-matrix.md#launch-arguments).
+`SessionOptions.launchArgs` go on claude's command line after OAR's own flags and before `--add-dir`, `--mcp-config` and `--disallowed-tools`. Each takes several values until the next argument that starts with `-`, so a bare host value (one that is neither a flag nor a flag's value) after them would be read as theirs. OAR refuses at open (`UnsupportedOptionError` on `launchArgs`) a flag it manages itself, whose use would break the session or be silently overridden: `--continue`/`-c` and `--session-id` (claude exits next to OAR's own session id), `--resume`/`-r` (use `SessionOptions.resume`), `--fork-session` (use `SessionOptions.fork`, which passes it with the id OAR assigns so `Session.id` reports the fork's; with a fork also `--resume-session-at`, use `fork.through`), `--permission-prompt-tool` (OAR has no interface for answering permission requests), `--print`/`-p`, `--input-format`, `--output-format`, and `--json-schema` (use `SessionOptions.outputSchema`), also in the `--flag=value` form ([#336](https://github.com/botiverse/oar/issues/336), [launch-args.ts](../../packages/oar/src/runtimes/claude/launch-args.ts)). Each argument is compared whole, so a flag's value that happens to equal one of these (`["--append-system-prompt", "-p"]`) is refused too; pass such text through the matching `SessionOptions` field instead. `--no-session-persistence` is allowed, but claude then keeps no transcript, so resuming the session later fails with `SessionNotFoundError`. Everything else passes unchecked: an unknown flag makes claude exit at once, so a fresh session without a readback can open with the exit as its first record; resume and settings readbacks reject at open if it exits before answering. Never recorded; give them again on resume. See [launch arguments](../spec/runtime-matrix.md#launch-arguments).
 
 `--permission-mode` (`default`, `dontAsk`, `acceptEdits` or `plan`) replaces
 OAR's default bypass and forces `--permission-prompts none`; its refusals,
@@ -1786,7 +1815,8 @@ Where an SDK option has a counterpart:
 | `priority: "now"` | `session.abort()`, then `prompt` |
 | `q.interrupt()` | `session.abort()` |
 | `options.resume` | `SessionOptions.resume` |
-| `options.continue`, `forkSession` | not offered; `--continue` and `--fork-session` in `launchArgs` are refused |
+| `forkSession`, `resumeSessionAt` | `SessionOptions.fork` (with `resume`), `fork.through` ([fork](#session-creation-and-resume)) |
+| `options.continue` | not offered; `--continue` and `--fork-session` in `launchArgs` are refused |
 | `options.model`, `options.effort` | `SessionOptions.model`, `SessionOptions.effort` (the open fails when claude would apply another level, or none: [effort](#models-instructions-and-context)) |
 | `q.setModel`, `applyFlagSettings` mid-session | not yet ([live configuration](live-configure.md)); reopen with `resume` |
 | `options.cwd`, `options.env` | `SessionOptions.cwd`, `SessionOptions.env` (parent-session markers dropped) |

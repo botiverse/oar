@@ -21,6 +21,17 @@ export interface ClaudeProjectionState extends StreamJsonProjectionState {
   readonly taskDescriptions: ReadonlyMap<string, string>;
   readonly failureCategory: string | null;
   readonly limitResetsAt: UtcInstant | null;
+  /**
+   * The `uuid` of the latest root assistant message since the last root
+   * result: the turn's fork anchor (`--resume-session-at`, launch.ts),
+   * stamped on its `turn_ended` and cleared there. A failed turn's is the
+   * synthetic `API Error` message claude saves under that uuid; a fork
+   * through it carries the source's history. An aborted turn gets none
+   * ([env] 2.1.323: a fork through the tool_use an abort interrupted drops
+   * the saved interruption, and claude answers the dangling call with
+   * `[Tool result missing due to internal error]` instead).
+   */
+  readonly lastAssistantUuid: string | null;
 }
 
 export const initialClaudeProjection: ClaudeProjectionState = {
@@ -31,6 +42,7 @@ export const initialClaudeProjection: ClaudeProjectionState = {
   taskDescriptions: new Map(),
   failureCategory: null,
   limitResetsAt: null,
+  lastAssistantUuid: null,
 };
 
 /** A resumed session's fold: it counts no tokens until `claudeUsageBaselined` says where its share starts. */
@@ -93,7 +105,8 @@ function accumulate(state: ClaudeProjectionState, agentPath: readonly string[], 
 export const claudeProjectionProfile: StreamJsonProjectionProfile<ClaudeProjectionState> = {
   name: "claude",
   duplicateReason: "claude ignored the input: its inputId was already used in this session",
-  assistant: (state, message, root) => root ? { ...state, failureCategory: typeof message.error === "string" ? message.error : state.failureCategory, context: claudeContextSent(state.context, message) } : state,
+  assistant: (state, message, root) => root ? { ...state, failureCategory: typeof message.error === "string" ? message.error : state.failureCategory, context: claudeContextSent(state.context, message),
+    lastAssistantUuid: typeof message.uuid === "string" && message.uuid.length > 0 ? message.uuid : state.lastAssistantUuid } : state,
   result: (state, message, agentPath) => {
     const accumulated = accumulate(state, agentPath, message);
     const running = foldModelUsage(state.modelUsage, message);
@@ -106,8 +119,12 @@ export const claudeProjectionProfile: StreamJsonProjectionProfile<ClaudeProjecti
         ...(running.total === null ? {} : { total: running.total }),
       } });
     }
-    return { state: { ...(accumulated?.state ?? state), modelUsage: running.usage, context: reading, failureCategory: null },
-      outcome: resultOutcome(state, message), before: claudeServiceTierEvents(message), after };
+    const root = agentPath.length === 0;
+    const outcome = resultOutcome(state, message);
+    // No anchor on an aborted turn: a fork through it loses the interruption (lastAssistantUuid).
+    const anchor = root && outcome.kind !== "aborted" ? state.lastAssistantUuid : null;
+    return { state: { ...(accumulated?.state ?? state), modelUsage: running.usage, context: reading, failureCategory: null, ...(root ? { lastAssistantUuid: null } : {}) },
+      outcome, before: claudeServiceTierEvents(message), after, ...(anchor === null ? {} : { forkAnchor: anchor }) };
   },
   init: claudeServiceTierEvents,
   compacted: (state, root) => root ? { ...state, context: claudeContextCompacted(state.context) } : state,

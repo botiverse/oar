@@ -28,6 +28,7 @@ test("an interrupted root turn drops only its accepted un-echoed steers, before 
               "reason": "turn_interrupted",
             },
             {
+              "forkAnchor": "turn-1",
               "kind": "turn_ended",
               "outcome": {
                 "kind": "aborted",

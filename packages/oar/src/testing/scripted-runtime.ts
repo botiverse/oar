@@ -69,7 +69,7 @@ export interface ScriptedRuntimeOptions {
 }
 
 const tokensOf = (text: string): number => Math.ceil(text.length / 4);
-
+const SCRIPTED_FORK_REFUSAL = "a scripted runtime keeps no saved conversation to fork"; // SessionOptions.fork: declared and refused at open.
 /**
  * A runtime whose model is a script: for hosts' tests and demos that need a
  * real `Session` (the same records, folds and control semantics as a vendor
@@ -87,6 +87,7 @@ export function scriptedRuntime(options: ScriptedRuntimeOptions): Runtime {
     if (sessionOptions.effort !== undefined) {
       throw new UnsupportedOptionError("effort", `${id} lists no reasoning-effort levels; it cannot run at effort "${sessionOptions.effort}"`);
     }
+    if (sessionOptions.fork !== undefined) { throw new UnsupportedOptionError("fork", SCRIPTED_FORK_REFUSAL); }
     const kernel = createSessionKernel(sessionOptions.resume);
     kernel.opened(context ?? { requested: "auto", placement: "in_process" });
     const queued: { readonly input: string; readonly inputId: string | undefined; readonly images: readonly InputImage[] }[] = [];
@@ -292,6 +293,7 @@ export function scriptedRuntime(options: ScriptedRuntimeOptions): Runtime {
     id,
     ...(options.brand === undefined ? {} : { brand: options.brand }),
     session: start,
+    refusedSessionOptions: { fork: SCRIPTED_FORK_REFUSAL },
     sessionCapabilities: () => ({ steer: true, images: true }),
     installation: async () => { await Promise.resolve(); return { kind: "available" as const, via: "bundled" as const }; },
   }, { execution: "in_process" });
