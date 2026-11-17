@@ -4,6 +4,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { createCursorRuntime, orient, RuntimeRegistry } from "../../packages/oar/src/index.js";
 import { projectCursorAuthStatus } from "../../packages/oar/src/runtimes/cursor/auth-status.js";
 import type { CursorAuthStatus, CursorSdk } from "../../packages/oar/src/runtimes/cursor/sdk.js";
+import { CURSOR_SDK_VERSION } from "../../packages/oar/src/runtimes/cursor/sdk-version.js";
 import { bundled, EXPIRES_MS, FakeCursor, KEY, leaks, unused } from "../fixtures/fake-cursor-auth.js";
 
 beforeEach(() => { vi.stubEnv("CURSOR_API_KEY", undefined); });
@@ -65,7 +66,7 @@ test("a status that fails, never answers or cannot be read is unknown, never a g
       },
     }).authStatus(bundled),
   ]);
-  expect([...statuses, projectCursorAuthStatus({ status: "expired" }), projectCursorAuthStatus(null)]).toMatchInlineSnapshot(`
+  expect([...statuses, projectCursorAuthStatus({ status: "expired" }), projectCursorAuthStatus(null)]).toStrictEqual(
     [
       {
         "detail": "Unexpected token in JSON, near [redacted]",
@@ -82,7 +83,7 @@ test("a status that fails, never answers or cannot be read is unknown, never a g
         "kind": "unknown",
       },
       {
-        "detail": "this @cursor/sdk has no Cursor.auth; OAR needs 1.4.0",
+        "detail": `this @cursor/sdk has no Cursor.auth; OAR needs ${CURSOR_SDK_VERSION}`,
         "kind": "unknown",
       },
       {
@@ -100,7 +101,7 @@ test("a status that fails, never answers or cannot be read is unknown, never a g
         "source": "Cursor.auth.status",
       },
     ]
-  `);
+  );
 });
 
 

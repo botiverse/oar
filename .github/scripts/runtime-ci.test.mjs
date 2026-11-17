@@ -7,6 +7,7 @@ import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { test } from "node:test";
+import { pathToFileURL } from "node:url";
 import { downloadVerified, exactVersion, nativeVersion, packageDist, readManifest } from "./runtime-common.mjs";
 import { freezeCandidates } from "./runtime-candidates.mjs";
 import { installRuntime, isolatedEnvironment } from "./runtime-install.mjs";
@@ -330,17 +331,26 @@ test("SDK candidates retain all supported OS cases and the two Windows Pi RPC ph
   assert.deepEqual(frozen.sdkMatrix.include.filter(entry => entry.os === "windows-latest" && entry.backend === "pi-rpc-aimock").map(entry => entry.phase), ["behavior", "vendor"]);
 });
 
-test("SDK candidate rewrites stay in the disposable checkout and preserve package releases", () => {
+const cursorVersionPath = "packages/oar/src/runtimes/cursor/sdk-version.ts";
+
+function sdkCheckout() {
   const directory = mkdtempSync(path.join(tmpdir(), "oar-sdk-candidate-test-"));
+  for (const relative of ["package.json", "packages/oar/package.json", "packages/cli/package.json", cursorVersionPath]) {
+    mkdirSync(path.dirname(path.join(directory, relative)), { recursive: true });
+    copyFileSync(new URL(`../../${relative}`, import.meta.url), path.join(directory, relative));
+  }
+  return directory;
+}
+
+test("SDK candidate rewrites stay in the disposable checkout and preserve package releases", () => {
+  const directory = sdkCheckout();
   try {
-    for (const relative of ["package.json", "packages/oar/package.json", "packages/cli/package.json"]) {
-      mkdirSync(path.dirname(path.join(directory, relative)), { recursive: true });
-      copyFileSync(new URL(`../../${relative}`, import.meta.url), path.join(directory, relative));
-    }
     const versions = Object.fromEntries(["@earendil-works/pi-coding-agent", "@earendil-works/pi-ai", "@earendil-works/pi-durable", "@earendil-works/chord"].map(name => [name, { version: "9.0.0" }]));
     versions.undici = { version: "9.1.0" };
+    const cursorBefore = readFileSync(path.join(directory, cursorVersionPath), "utf8");
     const original = JSON.parse(readFileSync(path.join(directory, "packages/oar/package.json")));
     rewriteSdkManifests("pi", versions, directory);
+    assert.equal(readFileSync(path.join(directory, cursorVersionPath), "utf8"), cursorBefore);
     const changed = JSON.parse(readFileSync(path.join(directory, "packages/oar/package.json")));
     assert.equal(changed.version, original.version);
     assert.equal(changed.dependencies["@earendil-works/pi-ai"], "9.0.0");
@@ -348,6 +358,39 @@ test("SDK candidate rewrites stay in the disposable checkout and preserve packag
     assert.equal(changed.peerDependencies["@cursor/sdk"], original.peerDependencies["@cursor/sdk"]);
     const root = JSON.parse(readFileSync(path.join(directory, "package.json")));
     assert.equal(root.devDependencies["@earendil-works/pi-ai-durable"], "npm:@earendil-works/pi-ai@9.0.0");
+  } finally { rmSync(directory, { recursive: true, force: true }); }
+});
+
+for (const eol of ["\n", "\r\n"]) test(`Cursor candidate keeps its imported SDK version equal to the exact peer (${JSON.stringify(eol)})`, async () => {
+  const directory = sdkCheckout();
+  const sourceFile = new URL(`../../${cursorVersionPath}`, import.meta.url);
+  const sourceBefore = readFileSync(sourceFile, "utf8");
+  try {
+    const versionFile = path.join(directory, cursorVersionPath);
+    writeFileSync(versionFile, sourceBefore.replaceAll("\r\n", "\n").replaceAll("\n", eol));
+    const before = JSON.parse(readFileSync(path.join(directory, "packages/oar/package.json")));
+    rewriteSdkManifests("cursor", { "@cursor/sdk": { version: "9.0.0" } }, directory);
+    const { CURSOR_SDK_VERSION } = await import(pathToFileURL(versionFile).href);
+    const manifest = JSON.parse(readFileSync(path.join(directory, "packages/oar/package.json")));
+    assert.equal(CURSOR_SDK_VERSION, "9.0.0");
+    assert.equal(CURSOR_SDK_VERSION, manifest.peerDependencies["@cursor/sdk"]);
+    assert.equal(manifest.version, before.version);
+    assert.equal(JSON.parse(readFileSync(path.join(directory, "package.json"))).devDependencies["@cursor/sdk"], CURSOR_SDK_VERSION);
+    assert.equal(JSON.parse(readFileSync(path.join(directory, "packages/cli/package.json"))).dependencies["@cursor/sdk"], CURSOR_SDK_VERSION);
+    assert.equal(readFileSync(sourceFile, "utf8"), sourceBefore);
+    const candidateText = readFileSync(versionFile, "utf8");
+    assert.equal(candidateText.split(eol)[0], sourceBefore.split(/\r?\n/u)[0]);
+    assert.equal(candidateText.endsWith(eol), true);
+  } finally { rmSync(directory, { recursive: true, force: true }); }
+});
+
+for (const declarations of [0, 2]) test(`Cursor candidate refuses ${declarations} SDK version declarations before rewriting manifests`, () => {
+  const directory = sdkCheckout();
+  try {
+    writeFileSync(path.join(directory, cursorVersionPath), 'export const CURSOR_SDK_VERSION = "1.0.0";\n'.repeat(declarations));
+    const original = readFileSync(path.join(directory, "package.json"), "utf8");
+    assert.throws(() => rewriteSdkManifests("cursor", { "@cursor/sdk": { version: "9.0.0" } }, directory), /Expected one Cursor SDK version declaration/u);
+    assert.equal(readFileSync(path.join(directory, "package.json"), "utf8"), original);
   } finally { rmSync(directory, { recursive: true, force: true }); }
 });
 
