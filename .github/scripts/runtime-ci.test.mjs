@@ -110,6 +110,142 @@ test("a missing or corrupt tarball fails instead of selecting another version", 
   });
 });
 
+function attemptRecorder() {
+  const attempts = [];
+  return { attempts, retryDelayMs: 0, onAttempt: record => { attempts[record.attempt - 1] = record; } };
+}
+
+test("download retries discard a partial socket response and verify the complete retry", async () => {
+  const bytes = Buffer.from("complete frozen archive");
+  const records = attemptRecorder();
+  let calls = 0;
+  await serverFor((_request, response) => {
+    if (++calls === 1) {
+      response.writeHead(200, { "Content-Length": bytes.length });
+      response.write(bytes.subarray(0, 3));
+      setTimeout(() => response.destroy(), 20);
+    } else response.end(bytes);
+  }, async url => {
+    assert.deepEqual(await downloadVerified({ url, integrity: hash(bytes) }, records), bytes);
+  });
+  assert.equal(calls, 2);
+  assert.equal(records.attempts[0].failure, "UND_ERR_SOCKET");
+  assert.equal(records.attempts[0].retrying, true);
+  assert.equal(records.attempts[1].status, "verified");
+});
+
+for (const recover of [true, false]) test(`HTTP 5xx downloads stop within three attempts (recover=${recover})`, async () => {
+  const bytes = Buffer.from("fixed artifact");
+  const records = attemptRecorder();
+  let calls = 0;
+  await serverFor((_request, response) => {
+    response.statusCode = ++calls === 3 && recover ? 200 : 503;
+    response.end(bytes);
+  }, async url => {
+    const download = downloadVerified({ url, integrity: hash(bytes) }, records);
+    if (recover) assert.deepEqual(await download, bytes);
+    else await assert.rejects(download, /HTTP 503/u);
+  });
+  assert.equal(calls, 3);
+  assert.deepEqual(records.attempts.map(record => record.attempt), [1, 2, 3]);
+  assert.deepEqual(records.attempts.map(record => record.retrying ?? false), [true, true, false]);
+  assert.ok(records.attempts.every(record => record.startedAt && record.endedAt));
+});
+
+test("stalled response bodies time out on all three attempts", async () => {
+  const records = { ...attemptRecorder(), timeoutMs: 500 };
+  let calls = 0;
+  await serverFor((_request, response) => {
+    calls++;
+    response.writeHead(200, { "Content-Length": 100 });
+    response.write("partial");
+  }, async url => {
+    await assert.rejects(downloadVerified({ url, integrity: hash(Buffer.from("expected")) }, records), { name: "TimeoutError" });
+  });
+  assert.equal(calls, 3);
+  assert.deepEqual(records.attempts.map(record => record.failure), ["TIMEOUT", "TIMEOUT", "TIMEOUT"]);
+  assert.equal(records.attempts[2].retrying, false);
+});
+
+for (const status of [401, 404, 429]) test(`HTTP ${status} is never retried`, async () => {
+  const records = attemptRecorder();
+  let calls = 0;
+  await serverFor((_request, response) => { calls++; response.statusCode = status; response.end(); }, async url => {
+    await assert.rejects(downloadVerified({ url, integrity: hash(Buffer.from("expected")) }, records), new RegExp(`HTTP ${status}`, "u"));
+  });
+  assert.equal(calls, 1);
+  assert.equal(records.attempts[0].retrying, false);
+});
+
+for (const recover of [false, true]) test(`a checksum mismatch never starts another download (after recovery=${recover})`, async () => {
+  const records = attemptRecorder();
+  let calls = 0;
+  await serverFor((_request, response) => {
+    calls++;
+    response.statusCode = recover && calls === 1 ? 502 : 200;
+    response.end("corrupt");
+  }, async url => {
+    await assert.rejects(downloadVerified({ url, integrity: hash(Buffer.from("expected")) }, records), /integrity mismatch/u);
+  });
+  assert.equal(calls, recover ? 2 : 1);
+  assert.equal(records.attempts.at(-1).failure, "INTEGRITY");
+  assert.equal(records.attempts.at(-1).retrying, false);
+});
+
+test("recognized socket and timeout causes have a three-attempt ceiling", async t => {
+  for (const code of ["ECONNRESET", "EPIPE", "ETIMEDOUT", "UND_ERR_SOCKET", "UND_ERR_CONNECT_TIMEOUT", "UND_ERR_HEADERS_TIMEOUT", "UND_ERR_BODY_TIMEOUT"]) {
+    const records = attemptRecorder();
+    let calls = 0;
+    const error = new TypeError("fetch failed", { cause: Object.assign(new Error("fixture"), { code }) });
+    const mock = t.mock.method(globalThis, "fetch", async () => { calls++; throw error; });
+    try {
+      await assert.rejects(downloadVerified({ url: "https://example.invalid", integrity: hash(Buffer.from("expected")) }, records), value => value === error);
+      assert.equal(calls, 3);
+      assert.deepEqual(records.attempts.map(record => record.failure), [code, code, code]);
+      assert.deepEqual(records.attempts.map(record => record.retrying), [true, true, false]);
+    } finally { mock.mock.restore(); }
+  }
+});
+
+test("unclassified fetch and certificate failures do not retry", async t => {
+  for (const code of [undefined, "CERT_HAS_EXPIRED", "ENOTFOUND", "ABORT_ERR"]) {
+    const records = attemptRecorder();
+    let calls = 0;
+    const error = new TypeError("fetch failed", { cause: Object.assign(new Error("fixture"), { code }) });
+    const mock = t.mock.method(globalThis, "fetch", async () => { calls++; throw error; });
+    try {
+      await assert.rejects(downloadVerified({ url: "https://example.invalid", integrity: hash(Buffer.from("expected")) }, records), value => value === error);
+      assert.equal(calls, 1);
+      assert.equal(records.attempts[0].retrying, false);
+    } finally { mock.mock.restore(); }
+  }
+});
+
+test("archive installer persists retries and stops at a checksum mismatch without publishing a path", async () => {
+  const directory = mkdtempSync(path.join(tmpdir(), "oar-archive-retry-test-"));
+  let calls = 0;
+  try {
+    await serverFor((_request, response) => { response.statusCode = ++calls === 1 ? 503 : 200; response.end("corrupt"); }, async url => {
+      const manifestFile = path.join(directory, "pins.json");
+      const platform = `${process.env.RUNNER_OS ?? ({ linux: "Linux", darwin: "macOS", win32: "Windows" })[process.platform]}-${process.env.RUNNER_ARCH ?? process.arch.toUpperCase()}`;
+      writeFileSync(manifestFile, JSON.stringify({ schemaVersion: 1, runtimes: { agy: {
+        version: "1.2.3", command: "agy", env: "OAR_AGY_BIN", archives: { [platform]: { url, sha512: "a".repeat(128) } },
+      } } }));
+      const githubEnv = path.join(directory, "env");
+      const githubPath = path.join(directory, "path");
+      const reportDirectory = path.join(directory, "reports");
+      await assert.rejects(installRuntime("agy", manifestFile, { directory, githubEnv, githubPath, reportDirectory }), /integrity mismatch/u);
+      assert.equal(calls, 2);
+      const report = JSON.parse(readFileSync(path.join(reportDirectory, readdirSync(reportDirectory)[0])));
+      assert.equal(report.stage, "download");
+      assert.deepEqual(report.downloadAttempts.map(record => record.failure), ["HTTP", "INTEGRITY"]);
+      assert.deepEqual(report.downloadAttempts.map(record => record.retrying), [true, false]);
+      assert.equal(existsSync(githubEnv), false);
+      assert.equal(existsSync(githubPath), false);
+    });
+  } finally { rmSync(directory, { recursive: true, force: true }); }
+});
+
 test("one package is resolved once for multiple purposes and never mutates accepted pins", async () => {
   const entry = { package: "fixture", version: "1.0.0", platforms: ["ubuntu-latest", "windows-latest"], suite: "behavior", policy: "accepted" };
   const baseline = { sha256: "fixture", manifest: { schemaVersion: 1, runtimes: { first: entry, second: { ...entry, version: "1.1.0", policy: "helper" } } } };
@@ -227,7 +363,8 @@ for (const candidate of [false, true]) for (const mismatch of [false, true]) tes
     const packed = spawnSync("npm", ["pack", "--ignore-scripts", "--pack-destination", directory, fixture], { env: isolatedEnvironment(home), encoding: "utf8", timeout: 30_000 });
     assert.equal(packed.status, 0, packed.stderr);
     const bytes = readFileSync(path.join(directory, "oar-ci-fixture-1.2.3.tgz"));
-    await serverFor((_request, response) => response.end(bytes), async url => {
+    let downloads = 0;
+    await serverFor((_request, response) => { downloads++; response.end(bytes); }, async url => {
       const manifestFile = path.join(directory, "pins.json");
       writeFileSync(manifestFile, JSON.stringify({ schemaVersion: 1, ...(candidate ? { baselineSha256: readManifest().sha256 } : {}), runtimes: { fixture: {
         package: "oar-ci-fixture", version: "1.2.3", command: "oar-ci-fixture", env: "OAR_CI_FIXTURE_BIN", dist: { url, integrity: hash(bytes) },
@@ -250,6 +387,9 @@ for (const candidate of [false, true]) for (const mismatch of [false, true]) tes
       }
       const report = JSON.parse(readFileSync(path.join(reportDirectory, readdirSync(reportDirectory)[0])));
       assert.equal(report.status, mismatch ? "failed" : "verified");
+      assert.equal(downloads, 1, "Native version mismatch must not retry the download");
+      assert.equal(report.downloadAttempts.length, 1);
+      assert.equal(report.downloadAttempts[0].status, "verified");
       assert.equal(report.manifestSha256, readManifest(manifestFile).sha256);
     });
   } finally { rmSync(directory, { recursive: true, force: true }); }

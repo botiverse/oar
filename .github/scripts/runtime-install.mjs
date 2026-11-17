@@ -46,6 +46,11 @@ export async function installRuntime(key, file = baselineFile, options = {}) {
   const reportFile = path.join(reportDirectory, `${key}-${randomUUID()}.json`);
   const report = { key, platform: `${process.platform}-${process.arch}`, startedAt: new Date().toISOString(), status: "failed", stage: "read-pin" };
   const save = () => writeFileSync(reportFile, `${JSON.stringify(report, null, 2)}\n`);
+  const onAttempt = attempt => {
+    report.downloadAttempts ??= [];
+    report.downloadAttempts[attempt.attempt - 1] = attempt;
+    save();
+  };
   save();
   try {
     const { manifest, sha256 } = readManifest(file);
@@ -75,7 +80,7 @@ export async function installRuntime(key, file = baselineFile, options = {}) {
       report.artifact = dist;
       report.stage = "download";
       save();
-      const content = await downloadVerified(dist);
+      const content = await downloadVerified(dist, { onAttempt });
       const downloaded = path.join(directory, "download");
       writeFileSync(downloaded, content);
       report.stage = "extract";
@@ -98,7 +103,7 @@ export async function installRuntime(key, file = baselineFile, options = {}) {
       report.artifact = dist;
       report.stage = "download";
       save();
-      const content = await downloadVerified(dist);
+      const content = await downloadVerified(dist, { onAttempt });
       const tarball = path.join(directory, "runtime.tgz");
       writeFileSync(tarball, content);
       report.stage = "npm-install";
