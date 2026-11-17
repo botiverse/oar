@@ -5,20 +5,31 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { resolveRunDir } from "../../harness/trace.js";
 import { environmentValue } from "../../../packages/oar/src/shared/environment.js";
+import { processRunning } from "./session-start-hook.js";
 
-interface BrowserExecution { readonly file: string; readonly pid?: number; readonly code?: number | null }
+interface BrowserExecution { readonly file: string; readonly observerPid: number; readonly pid?: number; readonly code?: number | null }
+interface ObserverExit { readonly pid: number; readonly code: number }
 interface KimiLoginFixture {
   readonly dir: string; readonly home: string; readonly origin: string; readonly controlBrowser: string;
   readonly requests: readonly { method: string; path: string }[];
   readonly env: Readonly<Record<string, string | null>>;
   executions(): Promise<readonly BrowserExecution[]>;
+  observerExits(): Promise<readonly ObserverExit[]>;
+  processRunning(pid: number): boolean;
   dispose(): Promise<void>;
 }
 
 function parseExecution(line: string): BrowserExecution {
   const parsed: unknown = JSON.parse(line);
   assert.ok(typeof parsed === "object" && parsed !== null && "file" in parsed && typeof parsed.file === "string");
-  return { file: parsed.file, ...("pid" in parsed && typeof parsed.pid === "number" ? { pid: parsed.pid } : {}), ...("code" in parsed && (typeof parsed.code === "number" || parsed.code === null) ? { code: parsed.code } : {}) };
+  assert.ok("observerPid" in parsed && typeof parsed.observerPid === "number");
+  return { file: parsed.file, observerPid: parsed.observerPid, ...("pid" in parsed && typeof parsed.pid === "number" ? { pid: parsed.pid } : {}), ...("code" in parsed && (typeof parsed.code === "number" || parsed.code === null) ? { code: parsed.code } : {}) };
+}
+
+function parseObserverExit(line: string): ObserverExit {
+  const parsed: unknown = JSON.parse(line);
+  assert.ok(typeof parsed === "object" && parsed !== null && "pid" in parsed && typeof parsed.pid === "number" && "code" in parsed && typeof parsed.code === "number");
+  return { pid: parsed.pid, code: parsed.code };
 }
 
 /** Real Kimi, synthetic local OAuth and models, isolated credentials and browser commands. */
@@ -32,13 +43,16 @@ export async function kimiLoginFixture(mode: "success" | "pending" | "denied" | 
   await (process.platform === "win32"
     ? copyFile(path.join(process.env.SystemRoot ?? String.raw`C:\Windows`, "System32", "hostname.exe"), controlBrowser)
     : writeFile(controlBrowser, "#!/bin/sh\nexit 0\n", { mode: 0o700 }));
-  // Observe the original execFile call and its exit without replacing it. Record
-  // executable paths only, never OAuth arguments, headers or environment values.
+  // These callbacks live inside Kimi and may disappear when it calls process.exit.
+  // Record paths and process metadata, never OAuth arguments, headers or env values.
   const preload = path.join(dir, "observe.cjs");
   const executions = path.join(dir, "executions.jsonl");
+  const exits = path.join(dir, "observer-exits.jsonl");
+  const processes: { pid: number; running: boolean }[] = [];
   await writeFile(preload, `const cp = require('node:child_process');
 const fs = require('node:fs');
-const log = value => fs.appendFileSync(process.env.OAR_KIMI_EXEC_LOG, JSON.stringify(value)+'\\n');
+const log = value => fs.appendFileSync(process.env.OAR_KIMI_EXEC_LOG, JSON.stringify({...value, observerPid:process.pid})+'\\n');
+process.on('exit', code => fs.appendFileSync(process.env.OAR_KIMI_EXIT_LOG, JSON.stringify({pid:process.pid, code})+'\\n'));
 const original = cp.execFile;
 cp.execFile = function(file, ...args) {
   const child = Reflect.apply(original, this, [file, ...args]);
@@ -81,21 +95,32 @@ require('node:module').syncBuiltinESMExports();
     const content = await readFile(executions, "utf8").catch(() => "");
     return content.trim() === "" ? [] : content.trim().split("\n").map((line) => parseExecution(line));
   }
+  async function readObserverExits(): Promise<readonly ObserverExit[]> {
+    const content = await readFile(exits, "utf8").catch(() => "");
+    return content.trim() === "" ? [] : content.trim().split("\n").map((line) => parseObserverExit(line));
+  }
   return {
     dir, home, origin, requests, controlBrowser,
     env: {
       KIMI_CODE_HOME: home, KIMI_CODE_OAUTH_HOST: origin, KIMI_CODE_BASE_URL: origin,
       KIMI_DISABLE_TELEMETRY: "1", KIMI_CODE_API_KEY: null, KIMI_API_KEY: null, MOONSHOT_API_KEY: null,
       PATH: helpers + path.delimiter + (environmentValue(process.env, "PATH") ?? ""),
-      NODE_OPTIONS: `--require ${JSON.stringify(preload)}`, OAR_KIMI_EXEC_LOG: executions,
+      NODE_OPTIONS: `--require ${JSON.stringify(preload)}`, OAR_KIMI_EXEC_LOG: executions, OAR_KIMI_EXIT_LOG: exits,
     },
     executions: readExecutions,
+    observerExits: readObserverExits,
+    processRunning(pid): boolean {
+      // Observe from the surviving test process, independently of Kimi's event loop.
+      const running = processRunning(pid);
+      processes.push({ pid, running });
+      return running;
+    },
     async dispose(): Promise<void> {
       server.closeAllConnections();
       await new Promise<void>((resolve, reject) => { server.close((error) => { if (error) { reject(error); } else { resolve(); } }); });
       const evidence = path.join(resolveRunDir(), "kimi-login");
       await mkdir(evidence, { recursive: true });
-      await writeFile(path.join(evidence, `${path.basename(dir)}.json`), JSON.stringify({ platform: process.platform, mode, requests, executions: await readExecutions() }, null, 2));
+      await writeFile(path.join(evidence, `${path.basename(dir)}.json`), JSON.stringify({ platform: process.platform, mode, requests, executions: await readExecutions(), observerExits: await readObserverExits(), processes }, null, 2));
       await rm(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
     },
   };
