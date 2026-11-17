@@ -1,3 +1,4 @@
+import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { readerEnvironment, expectReaderEnvironment } from "../fixtures/reader-environment.js";
 import selection from "../fixtures/antigravity-cli-1.5.0-config.json" with { type: "json" };
 import { RequestError } from "../../packages/oar/node_modules/@agentclientprotocol/sdk/dist/acp.js";
@@ -72,17 +73,17 @@ test("antigravity lister initializes and opens a session, closes it, then kills 
       case "session/close":
         return {};
       default:
-        throw new Error(`unexpected ${method}`);
+        throw new RequestError(-32_601, `unsupported ${method}`);
     }
   });
   await expect(antigravityListModels(installation)).resolves.toMatchObject({ kind: "ok" });
-  expect(acp.request.mock.calls.map(([method]) => method)).toEqual(["initialize", "session/new", "session/close"]);
+  expect(acp.request.mock.calls.map(([method]) => method)).toEqual(["initialize", "session/new", "session/set_config_option", "session/close"]);
   expect(acp.kill).toHaveBeenCalledOnce();
   expect(acp.request.mock.calls[1]?.[1]).toEqual({ cwd: process.cwd(), mcpServers: [] });
 });
 
 test("antigravity lister opens its throwaway session in the requested directory", async () => {
-  acp.request.mockImplementation(async (method) => (method === "session/new" ? newSessionResponse : {}));
+  acp.request.mockImplementation(async (method) => { if (method === "session/new") { return newSessionResponse; } if (method === "session/set_config_option") { throw new RequestError(-32_601, "unsupported"); } return {}; });
   await antigravityListModels(installation, { env: readerEnvironment(), cwd: "workspace" });
   expectReaderEnvironment(vi.mocked(startAcpProcess).mock.calls.at(-1)?.[3]?.env);
   const cwd = path.resolve("workspace");
@@ -128,7 +129,7 @@ test.each([false, true])("missing or refused close preserves the catalog: advert
 });
 
 test("the native catalog uses the requested GEMINI_HOME through its ACP flag", async () => {
-  acp.request.mockImplementation(async (method) => method === "session/new" ? newSessionResponse : {});
+  acp.request.mockImplementation(async (method) => { if (method === "session/new") { return newSessionResponse; } if (method === "session/set_config_option") { throw new RequestError(-32_601, "unsupported"); } return {}; });
   const gemini = path.resolve("isolated agy profile");
   await antigravityListModels(installation, { env: { GEMINI_HOME: gemini } });
   expect(vi.mocked(startAcpProcess).mock.calls.at(-1)?.[1]).toEqual(["acp", "--dangerously-skip-permissions", "--process-per-session", "--gemini-dir", gemini]);
@@ -175,12 +176,12 @@ test("an invalid current effort is not advertised as a default", () => {
     { category: "thought_level", currentValue: "invalid", options: [{ value: "low" }] }] })?.[0]).toEqual({ id: "pro", default: true, effortLevels: ["low"] });
 });
 
-test("all menus come from one session/new without setting models or sending prompts", async () => {
+test("an unrestorable initial effort uses the catalog without setting models or sending prompts", async () => {
   acp.request.mockImplementation(async method => {
     if (method === "initialize") { return { agentCapabilities: { sessionCapabilities: { close: {} } } }; }
     if (method === "session/new") { return { sessionId: "catalog", ...catalogResponse }; }
     if (method === "session/close") { return {}; }
-    throw new Error(`unexpected ${method}`);
+    throw new RequestError(-32_601, `unsupported ${method}`);
   });
   const result = await antigravityListModels(installation);
   expect(result).toEqual({ kind: "ok", models: projectAntigravityModels(catalogResponse) });
@@ -205,4 +206,30 @@ test("a native bare model has no effort, while a missing model has an unavailabl
   const models = projectAntigravityModels(response);
   expect(models).toContainEqual({ id: "plain" });
   expect(models).toContainEqual({ id: "hydrogen", effortUnavailableReason: "Native catalog did not expose this model's effort menu." });
+});
+
+test.each([false, true])("listing closes after restoring and kills even when restoration fails: %s", async failRestore => {
+  let switches = 0;
+  // oxlint-disable-next-line max-statements -- Exercise selection, failed restoration and cleanup in the real lister.
+  acp.request.mockImplementation(async (method, params) => {
+    if (method === "initialize") { return { agentCapabilities: { sessionCapabilities: { close: {} } } }; }
+    if (method === "session/new") { return newSessionResponse; }
+    if (method === "session/close") { return {}; }
+    const request = asRecord(params) ?? {};
+    expect(request.sessionId).toBe("sess-1");
+    switches += 1;
+    if (failRestore && switches > 5) { throw new RequestError(-32_000, "Authentication required"); }
+    // oxlint-disable-next-line oxc/no-map-spread -- Keep the captured native fixture immutable across cases.
+    return { configOptions: selection.configOptions.map(option => option.id === request.configId ? { ...option, currentValue: request.value } : option) };
+  });
+  if (failRestore) {
+    await expect(antigravityListModels(installation)).rejects.toThrow("Failed to list Antigravity models");
+  } else {
+    await expect(antigravityListModels(installation)).resolves.toMatchObject({ kind: "ok" });
+    expect(acp.request.mock.calls.at(-2)?.[1]).toMatchObject({ configId: "thought_level", value: "low" });
+  }
+  expect(acp.request.mock.calls.at(-1)?.[0]).toBe("session/close");
+  expect(acp.kill).toHaveBeenCalledOnce();
+  expect(acp.request.mock.invocationCallOrder.at(-1)).toBeLessThan(acp.kill.mock.invocationCallOrder[0] ?? 0);
+  expect(acp.request.mock.calls.some(([method]) => method === "session/prompt")).toBe(false);
 });

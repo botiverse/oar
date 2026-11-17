@@ -3,13 +3,13 @@
 With the isolated local Gemini provider used in #834, native agy 1.5.9 supplies
 every model's effort combinations in `session/new.models.availableModels`. The
 same IDs appear in `agy models` for that provider. This is not a guarantee for
-signed-in Antigravity accounts: a reported 1.5.10 account catalog omits the
-non-default combinations, leaving the current OAR projection incomplete there.
+signed-in Antigravity accounts: the signed-in 1.5.10 result below has a different catalog and must be read
+through its own selected menus.
 OAR previously read only `configOptions.thought_level`, which describes the
 current model, so other models lacked their effort menus in host forms.
 
-OAR now uses the same session/new response to associate each combination with a
-unique canonical model prefix from `configOptions.model.options`. It keeps the
+The #834 implementation used the same session/new response to associate each combination with a
+unique canonical model prefix from `configOptions.model.options`. It kept the
 native suffixes as that model's effort menu, with no hardcoded list of levels.
 The current model's own thought-level menu remains authoritative for that model.
 Only its explicitly reported current effort is a default; other models get no
@@ -20,9 +20,9 @@ selectors, with an `effortUnavailableReason`. They are not marked disabled.
 
 The [probe](native.ts) uses an isolated local provider and no real login. It reads
 `agy models`, opens an ACP session, and compares the one-response projection with
-each model's own menu after a temporary native switch. These switches are controls
-in the experiment only. Product listing sends initialize, session/new, and close
-when advertised; it sends no prompt or model-setting request.
+each model's own menu after a temporary native switch. In #834 these switches were diagnostic controls only; that product revision
+sent initialize, session/new and close. The current implementation below also
+switches models within that same temporary session.
 
 [Selected evidence](selected.json), produced by [select.py](select.py), includes
 all cited model menus, native version, timings and a fingerprint of each complete
@@ -33,15 +33,14 @@ control lists five families and likewise matches all five menus.
 
 On this Linux machine the one-shot OAR 1.5.9 listing took about 748 ms; the seven
 individual model switches in the diagnostic control added seven ACP requests.
-Their separate durations are retained in the selected results. Product request
-count is unchanged, so the extra catalog information costs **zero additional
+Their separate durations are retained in the selected results. For the historical #834 implementation the request
+count was unchanged, so the catalog information cost **zero additional
 ACP requests**, not a fresh CLI catalog invocation. Both samples made zero model
 provider requests. Timings are observations, not performance guarantees.
 
 The measured `antigravity-cli/settings.json` values were equal before and after
 listing in these two synthetic-provider samples. Other config files were not
-measured by #834. OAR neither
-switches models nor writes settings. Native startup can rewrite JSON formatting:
+measured by #834. That product implementation did not switch models or write settings. Native startup can rewrite JSON formatting:
 the first diagnostic compared file bytes and incorrectly treated a difference as
 configuration mutation. A second comparison using JSON.stringify was also sensitive
 to key ordering. Both preparatory failures remain locally; the final probe compares
@@ -165,8 +164,7 @@ category was observed only in the switch run after grouping per-process log name
 this is not proof of unchanged protobuf contents. Parsed settings/config remained
 equal during selection; an unparseable MCP file remains unknown. The selected
 [control evidence](local-control.json) retains the per-run changes and timings.
-This is not the signed-in measurement. The armbian signed-in result is still
-required; no production switching behavior is introduced by this probe.
+This is the synthetic control. The separately measured signed-in result follows.
 
 Reproduce the isolated control, without selecting the machine's account:
 
@@ -181,3 +179,48 @@ initial effort is unknown, restoration on success and switch
 failure, rejected restoration readback, parsed equality independent of key order,
 invalid JSON, metadata-only file changes and incomplete scans, and redaction of
 account data and malformed native diagnostics.
+
+## Signed-in result and product readback
+
+[Account evidence](account-1.5.10.json) was produced on Linux arm64 with agy
+1.5.10 and probe commit a58c7e77. It records zero prompt requests, successful
+restoration of Flash/high before close, and `persistence.status: default_unchanged`
+after leaving GPT-OSS selected and opening a fresh process. It does not prove
+that no files were written: conversation state, summaries and logs changed in
+both paired runs. The inventory is incomplete because a symlink was not traversed;
+invalid MCP JSON also remains unknown. No path category occurred only in the
+switch run, which is not proof of identical protobuf contents.
+
+| Selected canonical model | Native thought-level menu |
+| --- | --- |
+| gemini-3.8-flash | low, medium, high; original current value high |
+| claude-sonnet-4-6 | absent |
+| claude-opus-4-6-thinking | absent |
+| gpt-oss-120b-medium | absent |
+
+The four selections took 4.40, 1.48, 1.63 and 8.53 ms respectively. Model and
+effort restoration took another 24.64 and 14.33 ms. These are one account's
+observations, not latency guarantees. It listed no non-default Gemini model:
+Hydrogen's signed-in menu remains unverified, while its synthetic control is
+recorded above.
+
+Product listing now selects every canonical model on the existing temporary
+session and projects only that model's confirmed returned menu. It preserves an
+absent selector as no effort, clears stale catalog-derived fields on failed or
+unconfirmed switches, and reports the read gap on that model. It assigns a default
+effort only to the original current model, from its initial explicit value. It
+restores and confirms the original model and effort before close, rejecting the
+entire listing if restoration cannot be confirmed. No model prompt is sent.
+
+The normal product cost is initialize/new/close, N selection requests, and one
+model restoration plus one effort restoration when effort was initially exposed.
+Thus the four-model account uses nine ACP requests in one conversation, not the
+four sessions used by the diagnostic persistence probe. When initial state is not
+restorable, or the first selection is natively unsupported (method-not-found),
+the original catalog is the fallback. An individual failed switch does not invoke
+that fallback. Unit controls cover these boundaries and cleanup after failure.
+
+The product readback control passes on native 1.5.10 and minimum 1.5.0: Flash
+and Pro keep their distinct menus, a fresh session retains the original default,
+and the provider receives no requests. The 1.5.10 ACP vendor suite passes three
+cases; its shared behavior suite passes 18 with two capability skips.

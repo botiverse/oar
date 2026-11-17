@@ -30,7 +30,7 @@
 
 - [DSH goals and remaining session options](dsh-option-boundaries/remaining.md): native goal controls and pause behavior; measured extra-directory, config-exclusion and abort-job limits.
 - [DSH launcher and output-schema boundaries](dsh-option-boundaries/README.md): successful overlays and protocol conflicts, retained launcher refusal, and root versus child structured-output controls.
-- [Antigravity model-specific effort menus](antigravity-model-menus/README.md): synthetic-provider one-response menus and a separate no-prompt signed-in probe for per-model menus, request costs and parsed configuration changes.
+- [Antigravity model-specific effort menus](antigravity-model-menus/README.md): selected per-model menus, signed-in 1.5.10 evidence, confirmed restoration and request/persistence costs; historical synthetic catalog fallback.
 - [Codex idle queue admission](codex-idle-queue/README.md): normal completion wakes queued input; interruption parks it until a new prompt, with native 0.169.0 evidence and adapter refusal.
 - [DSH session names and native tool denial](dsh-name-tools/README.md): native title persistence, scoped restrictions, resume and refused-open controls.
 - [Native skill catalogs](runtime-skills-2026-11-16/README.md): Kimi Web workspace discovery and cleanup, Claude built-ins, Grok bundled-source projection and the limits of empty-home controls.
