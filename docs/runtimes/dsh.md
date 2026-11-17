@@ -244,7 +244,8 @@ Supported: `cwd`, `resume`, `env`, `model` as `provider/model` (a bare name is
 refused at open: it has no route), `effort` as `reasoningEffort`, and stdio
 `mcpServers` with command/args ([MCP details](#session-mcp-servers)), `name`,
 `disallowedTools` ([native title and tool boundaries](#session-name-and-tool-denial)),
-`systemPrompt` and `appendSystemPrompt` ([prompt boundaries](#system-prompts)).
+`systemPrompt` and `appendSystemPrompt` ([prompt boundaries](#system-prompts)),
+and `goals: true` ([native goals](#native-goals)).
 
 `DSH_PERMISSION_MODE` is `danger-full-access` unless the host names its own for this
 session in `SessionOptions.env`: nobody sits at an approval prompt, and native reports
@@ -253,7 +254,7 @@ tools run and the native `permission/preset` frame is recorded.
 
 Refused with `UnsupportedOptionError` until an effective native mapping is verified:
 `launchArgs`, `serviceTier`, `additionalDirectories`, `outputSchema`,
-`userConfiguration: "exclude"`, `goals: true`, `endTurnProcessesOnAbort: true`
+`userConfiguration: "exclude"`, `endTurnProcessesOnAbort: true`
 ([`options.ts`](../../packages/oar/src/runtimes/dsh/options.ts)). Images are not
 sent: `capabilities.images` is false and an input with images is rejected
 `unsupported`. `queue.durable` is false: native dispose clears the inbox
@@ -263,6 +264,45 @@ resume, `dsh/opened` reports it as `pending`, and it runs at the next wake, ahea
 the prompt that woke it. Flush timing has not been established, so OAR promises
 nothing here. Login, auth status and account usage are absent. Manual compaction
 is undeclared, meaning untested. Inventories answer `unsupported`.
+
+## Native goals
+
+With `goals: true`, the bridge verifies the native goal service before opening
+and exposes `Session.goal`. Set, read and clear use native controls; durable
+`goal/change` events and explicit read observations become `goal_changed` at
+their original stream positions. Omitted or false exposes no controls and
+changes no native feature configuration. Resume needs the opt-in again.
+
+Set supports objective and the native `active`, `paused`, `complete` statuses.
+DSH requires a reason for `blocked`, which the shared setter does not carry,
+so that request is refused. Native blocked state is still observed. DSH's
+budget is measured in rounds; `tokenBudget` is rejected before mutation and
+snapshots omit token budgets/counters. Native timestamps are converted from
+milliseconds to seconds; raw frames retain round and activation fields.
+
+DSH's goal-round-driver cancels a running goal turn when the host pauses it.
+OAR records the native ending as `aborted`. Clearing does not interrupt the
+current turn. Paused goals survive a process restart; an explicit active set
+rearms native continuation. The runtime owns continuation and completion.
+The [shared contract](../spec/goals.md) makes the pause difference visible to
+hosts without requiring a runtime-specific assumption.
+
+The [remaining-option probes](../../experiments/dsh-option-boundaries/remaining.md)
+cover DSH 0.2.1-rc.5 and 0.2.2-rc.1 on Linux with synthetic providers. They also
+explain three retained refusals:
+
+- Extra writable roots work in 0.2.2-rc.1's native sandbox policy, but the
+  minimum version ignores them. A roots-only overlay replaces the whole
+  policy config and resets its mode; preserving the effective policy is
+  not yet verified, so `additionalDirectories` stays refused.
+- Default-config dumping omits user provider routes and cannot be combined
+  with `--patch`. It is not a verified configuration-exclusion launch that
+  preserves providers, login and history.
+- Native cancellation leaves background jobs alive. Killing a selected
+  Linux job preserves another session's job and an earlier turn's job,
+  and the session accepts further input. This does not establish complete
+  process cleanup for a turn across platforms, so
+  `endTurnProcessesOnAbort: true` stays refused.
 
 ## Launcher arguments
 

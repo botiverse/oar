@@ -1,0 +1,86 @@
+{
+  "date": "2026-11-17",
+  "note": "Full synthetic captures retained locally. Only cited fields are published; paths are replaced by cwd/extra placeholders. Hashes identify files, not accounts.",
+  "files": [
+    {
+      "file": "dsh-goals-rc1.json",
+      "bytes": 14677,
+      "sha256": "d8c5b998f67c7509cd961f9e60459607968a389f47d8564e404c454be31ae081"
+    },
+    {
+      "file": "dsh-directories-complete-rc1.json",
+      "bytes": 6956,
+      "sha256": "a3a199cd5b3367251790be086056506c9425851c5d19a1f7f8481725a382427c"
+    },
+    {
+      "file": "dsh-abort-jobs-final3-rc1.json",
+      "bytes": 488784,
+      "sha256": "c7f3801f77da0817b76b0a33e2a1b214f4196adfd6612f411968d0a22e330b3f"
+    },
+    {
+      "file": "dsh-user-config-current-rc1.json",
+      "bytes": 26848,
+      "sha256": "8d77eb1bb7c15e85d0b9b586061dadaa5070a19c08ed5cb69676c7a9fa1c8751"
+    },
+    {
+      "file": "dsh-goal-pause-rc1.json",
+      "bytes": 56811,
+      "sha256": "6d48d2c297ac951681cecf5447e2eb33a45b529cd190fb2035e51d4df7ba7753"
+    },
+    {
+      "file": "dsh-goal-clear-rc1.json",
+      "bytes": 60121,
+      "sha256": "1bf763d5e051462d749fbcf23aa90656da6038a96754fa286d06b577eb1cb265"
+    },
+    {
+      "file": "dsh-goals-rc5.json",
+      "bytes": 14677,
+      "sha256": "b70dea50454e233ad4a0e3bbb92392af2e5d635ca78399b7f5584ca88153b83d"
+    },
+    {
+      "file": "dsh-directories-complete-rc5.json",
+      "bytes": 5898,
+      "sha256": "cf1e7a0cb4bf64c70595c7558ba43a9a68bc1dff34f23b387b6e023048d0e101"
+    },
+    {
+      "file": "dsh-abort-jobs-final-rc5.json",
+      "bytes": 507800,
+      "sha256": "879c819dd8ce85a710f59a1464e03889af0829d4dd745389c7325351727e5f12"
+    },
+    {
+      "file": "dsh-user-config-current-rc5.json",
+      "bytes": 26602,
+      "sha256": "3f5f095c0c38c20dfd0840ff29a87d45d735fea1957efa5fdd8e07ab4fc5043c"
+    },
+    {
+      "file": "dsh-goal-pause-rc5.json",
+      "bytes": 58305,
+      "sha256": "dc291acbd80dbbb15ced4530e541cddb1ea8afa7af83e3c4dcf9ea08a6810f54"
+    },
+    {
+      "file": "dsh-goal-clear-rc5.json",
+      "bytes": 61617,
+      "sha256": "ad28d88269f0806539376c2757ec7beb7dae68ca341d232ef4cf8332bad70311"
+    },
+    {
+      "file": "dsh-goals-verified-rc1.log",
+      "bytes": 276,
+      "sha256": "ebc1b4232ffc1e4b9d99064bd43dc02e7a7db2b8767b31daf927283b02481571"
+    },
+    {
+      "file": "dsh-goals-verified-rc5.log",
+      "bytes": 276,
+      "sha256": "f572088b201c807c8492713a75ff8e5d89dccf2bebfaa8ca9e546639d7672faa"
+    },
+    {
+      "file": "dsh-directories-attempt.vendor.test.ts",
+      "bytes": 2651,
+      "sha256": "5bb99dcb51f16cb267ec4110e2f57a939f1e1023aa929937f4d7d177434a7f4e"
+    },
+    {
+      "file": "dsh-directory-vendor-debug.json",
+      "bytes": 153015,
+      "sha256": "ecf39e4e0e8a4f5e75c22947c51e223537686bcc23d7b2e52f0f9b21200a9426"
+    }
+  ]
+}
