@@ -401,3 +401,57 @@ The measured first-start costs leave little margin under the existing
 budget; they do not establish whether the seven earlier unresponsive
 processes would eventually initialize. This experiment changes no product
 request limit, retries, original suite assertion or cleanup deadline.
+
+## Optional launch comparison cleanup evidence, November 17
+
+[Windows run 43917435777](https://github.com/botiverse/oar/actions/runs/43917435777/job/133475268125)
+passed the Grok behavior, vendor and observer tests. Its 45 suite processes
+all received initialize replies, slowest 14.104 seconds after spawn. The
+separate launch comparison failed `The startup probe child must exit after
+cleanup`. It had written only the first start row: the assertion in
+`finally` prevented the caller from writing the returned result. Neither
+that missing result nor the passing suite processes identifies the failed
+diagnostic child's exit state or explains the cleanup delay.
+
+The comparison now writes its result inside `finally`, before a confirmed
+leak can throw. The row retains start and elapsed times, direct-child PID,
+exit code and signal (null if unobserved), bounded redacted stderr, close
+observation, and cleanup lifecycle. Two process-table reads, each bounded
+to one second, bracket cleanup. Only a process captured under the live
+root and observed again with the same PID and start identity establishes
+a survivor, including captured descendants after the root closes. No
+process arguments, environment or global process table are recorded.
+Missing identities, incomplete reads and missing close are explicit evidence
+gaps. A reused PID does not establish a leak. This observes captured
+processes only; it cannot prove the absence of an uncaptured descendant.
+
+A confirmed survivor still fails the job after its lifecycle is written.
+Other diagnostic outcomes, including setup and cleanup uncertainty, are
+recorded without failing the job. A file-write failure falls back to the
+job log. Windows taskkill itself has the same five-second cleanup bound;
+its failure and direct-child fallback are recorded. An attempt without
+close or an observation that its captured processes disappeared does not
+repeat in the same HOME. Fixture cleanup cannot replace an already proven
+leak failure. The seven normal comparisons, original 15-second diagnostic
+initialize limit, product 60-second initialize limit, behavior/vendor
+assertions and manual 90-second investigation are unchanged.
+
+The regression is part of the required cross-platform unit gate:
+
+```sh
+pnpm vitest run tests/grok/launch-probe.test.ts
+```
+
+It includes actual child initialization/termination, a deliberately surviving
+native child, snapshot-query failure, PID reuse and descendant-survival
+snapshot controls, cleanup exceptions, nonzero native exit, spawn failure,
+and the standalone command's nonfatal setup failure. Synthetic snapshot
+controls establish the decision rule; they do not reproduce the unknown
+cause of the Windows diagnostic's missing close.
+
+Local validation on Linux x64, Node 24.19.0 and isolated Grok 1.0.70
+(f50904eaee6c) passed all seven comparisons, with initialize replies, exit
+and close records, and no matching captured process identity remaining.
+The eight regression tests and full check passed (4,641 tests and 19 mock
+behavior cases). This does not claim a new native Windows result or explain
+the original diagnostic cleanup failure.
