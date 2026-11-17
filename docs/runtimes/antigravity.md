@@ -290,15 +290,20 @@ remain unsupported on this interface and start no query process.
 
 `listModels()` initializes ACP and opens a temporary session without a
 prompt, reads its model selector and the same response's `models.availableModels`,
-and terminates the process. The latter lists native model/effort combinations;
-OAR groups entries with a unique listed model prefix into that model's effort
-menu. It does not switch models or write settings. No extra ACP request is needed.
+and terminates the process. When the latter supplies native model/effort
+combinations, OAR groups entries with a unique listed model prefix into that
+model's effort menu. It does not switch models or write settings. No extra ACP request is needed.
 Only the current model's explicit `thought_level.currentValue` establishes a
 default effort. An unparseable or ambiguous combination remains an original
 model selector with `effortUnavailableReason`; an unavailable family menu gets
 the same optional explanation, never another family's levels or `disabled`.
 [Native menu comparison and query timings](../../experiments/antigravity-model-menus/README.md)
-cover 1.5.9 and distinguish byte formatting changes from configuration changes. It requests
+cover isolated local Gemini providers on 1.5.9 and 1.5.0, not signed-in account
+catalogs. A reported signed-in 1.5.10 catalog lacks the non-default combinations,
+so its per-model effort menus remain incomplete in this projection. The linked
+no-prompt account probe measures model switching and persistence before a product
+change; the earlier one-file settings comparison does not establish safety for
+that provider. Listing requests
 `session/close` only when advertised; a close failure does not discard an
 already obtained catalog ([query costs](#orientation-query-costs)).
 
