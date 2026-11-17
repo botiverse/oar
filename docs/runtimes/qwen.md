@@ -515,3 +515,27 @@ There is no verified host control for stopping one task; the model-facing
 member.
 
 [Native evidence and reproducible probes](../../experiments/task-controls/README.md).
+
+## Independent skills
+
+`skills()` starts a short-lived `qwen --acp`, sends `initialize` and
+`qwen/status/workspace/skills`, then terminates its owned process tree. It does
+not create a session, authenticate, connect a provider or send a prompt. This
+works unsigned on 0.27.4 and reads Qwen's structured workspace catalog, including
+hidden and disabled skills, rather than the filtered slash-command menu.
+
+The result is `view: "discovered"`. Native `level` remains `source`; bundled,
+user and project map to the corresponding shared scopes. Extensions map to
+`other`, with native `extensionName` in `plugin`; unknown levels leave scope
+absent. Paths, enabled state and model-invocation flags come from native
+metadata. Bodies are never returned. Uninitialized, malformed or failed queries
+are unavailable; a missing native method is unsupported. Only native discovery
+errors make an otherwise initialized catalog partial.
+
+The query has a 30-second default deadline and private diagnostics. Native ACP
+startup can migrate user settings and write installation, language and
+extension-store metadata. It is not filesystem-read-only or guaranteed to avoid
+network access. Explicit orientation customization has this same native-startup
+cost. [Evidence and repeatable native parity test](../../experiments/qwen-skills/README.md)
+cover user/project compatibility directories, precedence, hidden/disabled skills,
+bundled metadata and zero model calls.
