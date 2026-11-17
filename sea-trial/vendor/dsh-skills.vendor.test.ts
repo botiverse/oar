@@ -24,7 +24,7 @@ describe.skipIf(!dshEnabled)("DSH native skill discovery", () => {
       await withNativeProbe(nativeFixture, { source, rows: [] }, async (control, frames) => {
         const native = await control.request("nativeSkills", { cwd: f.aimock.cwd });
         const rows = nativeRows(native.skills);
-        expect(rows.map(row => row.name)).toEqual(["bundled-fixture", "project-agents", "project-dsh", "user-agents", "user-dsh"]);
+        expect(rows.map(row => row.name)).toEqual(expect.arrayContaining(["bundled-fixture", "project-agents", "project-dsh", "user-agents", "user-dsh"]));
         expect(native.complete).toBe(true);
         const result = await dshRuntime.skills(f.installation, { cwd: f.aimock.cwd, env });
         assert.equal(result.kind, "ok", JSON.stringify(result));
@@ -59,11 +59,14 @@ describe.skipIf(!dshEnabled)("DSH native skill discovery", () => {
       if (mode === "failure") {
         assert.equal(result.kind, "ok");
         expect(result.partial).toBe(true);
-        expect(result.items).toHaveLength(5);
         await withNativeProbe({ ...f, aimock: { ...f.aimock, env } }, { source, rows: [] }, async control => {
           const native = await control.request("nativeSkills", { cwd: f.aimock.cwd });
           expect(native.complete).toBe(false);
-          expect(nativeRows(native.skills)).toHaveLength(5);
+          const skills = nativeRows(native.skills);
+          expect(skills.map(row => row.name)).toEqual(expect.arrayContaining(["bundled-fixture", "project-agents", "project-dsh", "user-agents", "user-dsh"]));
+          expect(result.items).toEqual(skills.map(row => ({ name: row.name, description: row.description, path: row.path, source: row.source,
+            scope: row.source === "bundled" ? "builtin" : (String(row.source).startsWith("user-") ? "user" : "project"),
+            disableModelInvocation: asRecord(row.invocation)?.modelInvocable === false })));
           const directory = path.resolve(process.env.OAR_TRIAL_RUN_DIR ?? "oar-trial-run", "dsh-skills");
           await mkdir(directory, { recursive: true });
           await writeFile(path.join(directory, "partial.json"), JSON.stringify({ native, result, processExited: true, providerRequests: 0 }, null, 2)

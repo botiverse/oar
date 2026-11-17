@@ -13,7 +13,11 @@ and `.agents/skills`, user `$DSH_HOME/skills` and `$DSH_AGENTS_HOME/skills`, and
 an explicitly configured `DSH_BUNDLED_SKILL_DIR`. The last is a test fixture
 for the native bundled source, not a claim that these ACP profiles ship a
 particular builtin skill. The unmodified ACP profile in the initial empty
-fixture had no bundled entries.
+fixture on Linux had no bundled entries. Windows CI at head `8e08da22`
+also discovered the native `diagnose-windows-sandbox-acl` skill, so the test
+now requires the five fixtures and compares the entire same-platform native
+catalog with OAR instead of fixing the catalog size at five. The failed run
+was [44014501905, job 133809062396](https://github.com/botiverse/oar/actions/runs/44014501905/job/133809062396).
 
 Native `source` distinguishes these roots. OAR preserves it and maps
 `project-dsh`/`project-agents` to project, `user-dsh`/`user-agents` to user,
@@ -26,7 +30,7 @@ or active in a session. Paths come directly from the snapshot. Bodies,
 resource locators and provider diagnostics are not exposed.
 
 The native snapshot supplies `complete`. OAR maps `partial` to its inverse:
-a provider throwing an error leaves five valid entries and `complete:false`;
+a provider throwing an error leaves the valid entries and `complete:false`;
 a malformed YAML skill omitted by the native loader leaves `complete:true`.
 A provider that never settles reaches the caller deadline; the reader kills
 and waits for the owned process. The test records that the provider actually
