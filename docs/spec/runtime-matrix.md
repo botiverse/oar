@@ -182,9 +182,9 @@ saying why; Grok uses the process-tree kill there, not yet run. A `cleanup` resp
 
 ## Native goals
 
-`SessionOptions.goals: true` exposes optional `Session.goal` on Codex and
-is refused before launch by all other runtimes. Omitted or false exposes no
-member. [Contract and boundaries](goals.md), [Codex evidence](../runtimes/codex.md#native-goals).
+`SessionOptions.goals: true` exposes optional `Session.goal` on Codex and DSH;
+other runtimes refuse before launch. Omitted or false exposes no
+member. [Contract and boundaries](goals.md), [Codex evidence](../runtimes/codex.md#native-goals), [DSH evidence](../runtimes/dsh.md#native-goals).
 
 ## Context breakdown
 
@@ -612,7 +612,7 @@ entry, non-empty `headers` on an http one). Its error names `mcpServers`
 and ends with the entries' names
 ([#392](https://github.com/botiverse/oar/issues/392)).
 
-`goals: true` is refused everywhere except Codex ([native goals](#native-goals)),
+`goals: true` is refused everywhere except Codex and DSH ([native goals](#native-goals)),
 and `endTurnProcessesOnAbort: true` everywhere except Codex in an isolated
 app-server and Grok ([ending a turn's processes](#ending-a-turns-processes-on-abort)),
 for want of a verified way to end one aborted turn's processes while the

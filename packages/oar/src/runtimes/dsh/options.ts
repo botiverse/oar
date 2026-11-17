@@ -7,11 +7,10 @@ export const dshRefusedSessionOptions: RefusedSessionOptions = {
   mcpServerCredentials: "DSH MCP env and header persistence has not been audited; only stdio command and args are supported",
   launchArgs: "DSH overlays can disable the OAR bridge; arbitrary launch overlays have no verified final-composition check",
   serviceTier: "DSH has no verified per-session service-tier setting and readback",
-  additionalDirectories: "DSH has no verified effective additional workspace directory channel",
+  additionalDirectories: "DSH 0.2.1 lacks extra writable roots; newer overlays replace the whole sandbox policy, and preserving its effective settings is not verified",
   outputSchema: "DSH has no verified final-output schema channel",
-  userConfiguration: "DSH has no verified way to exclude user configuration while keeping its provider routes",
-  goals: "This runtime interface exposes no verified structured native goal controls",
-  endTurnProcessesOnAbort: "OAR has not verified reading and ending one aborted DSH turn's processes while its session stays usable",
+  userConfiguration: "DSH default-config dumping omits provider routes with user patches; no verified boot filter preserves providers, login and history",
+  endTurnProcessesOnAbort: "DSH cancellation leaves background jobs alive; selected Linux jobs can be killed natively, but complete per-turn process cleanup is not verified",
 };
 
 export interface DshAgentOptions {

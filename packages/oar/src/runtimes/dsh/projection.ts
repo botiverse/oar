@@ -3,6 +3,7 @@ import { asNumber, asRecord, asRecordList, type JsonRecord } from "../../shared/
 import { failureFromStatus } from "../../shared/failure-class.js";
 import { addTokens, noTokens } from "../../shared/token-totals.js";
 import { toolContent } from "../../shared/tool-output.js";
+import { dshGoal, dshGoalEvents } from "./goal.js";
 import { dshJobEvents } from "./jobs.js";
 
 /** What one session's native log has said so far. An input without a native id keeps its position as null. */
@@ -155,6 +156,8 @@ function sessionEvent(state: DshProjection, sessionId: string, session: DshSessi
   const data = asRecord(event.data) ?? {};
   const unchanged = { session, links: state.links };
   switch (event.type) {
+    case "goal/change":
+      return { ...unchanged, events: dshGoalEvents(data) };
     case "job/registered":
     case "job/settled":
       return { ...unchanged, events: dshJobEvents(event.type, data, sessionId) };
@@ -259,6 +262,10 @@ export function foldDsh(state: DshProjection, message: JsonRecord): DshFolded {
       state: { ...state, links: next.links, sessions: { ...state.sessions, [sessionId]: next.session } },
       frame: { ...at, body: { type: `session/event:${String(event.type)}`, native, events: next.events } },
     };
+  }
+  if (message.channel === "goal/read") {
+    const goal = dshGoal(asRecord(native)?.goal);
+    return { state, frame: { ...at, body: { type: "goal/read", native, events: goal === undefined ? [] : [{ kind: "goal_changed", goal }] } } };
   }
   const events = message.channel === "agent/assistant-stream" ? streamEvents(asRecord(native) ?? {})
     : (message.channel === "subagent/start" || message.channel === "subagent/end" ? subagentEvents(message.channel, asRecord(native) ?? {}) : []);

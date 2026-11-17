@@ -3,7 +3,7 @@
 Measured on Linux x64 on 2026-11-16 with DSH 0.2.1-rc.5 and 0.2.2-rc.1,
 separate temporary homes and a local scripted provider. No account login or
 paid request was used. These are two independent SessionOptions probes;
-other refused options are outside this report.
+other refused options are covered by [the remaining-option report](remaining.md).
 
 ## Result and adapter decision
 

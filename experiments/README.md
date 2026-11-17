@@ -6,6 +6,7 @@
 - [OpenCode independent skills](opencode-skills/README.md): native v1/v2 catalogs, cold-start activation barrier, directory provenance and owned-process cleanup.
 - [Runtime version check: November 16](runtime-version-checks/2026-11-16.md): unchanged release inventory, retained CI failures and queued work, and ZCode 3.18.2 desktop release limits.
 
+- [DSH goals and remaining session options](dsh-option-boundaries/remaining.md): native goal controls and pause behavior; measured extra-directory, config-exclusion and abort-job limits.
 - [DSH launcher and output-schema boundaries](dsh-option-boundaries/README.md): successful overlays and protocol conflicts, retained launcher refusal, and root versus child structured-output controls.
 - [Antigravity model-specific effort menus](antigravity-model-menus/README.md): one-response discovery, distinct native model menus, zero additional requests and settings-value controls.
 - [Codex idle queue admission](codex-idle-queue/README.md): normal completion wakes queued input; interruption parks it until a new prompt, with native 0.169.0 evidence and adapter refusal.

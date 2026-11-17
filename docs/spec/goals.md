@@ -7,14 +7,14 @@ or infer goal completion from an ordinary completed turn.
 
 ## Enabling and using the controls
 
-Open with `SessionOptions.goals: true`. Codex enables its native goals feature
-and exposes `goal`; all other runtimes refuse this option with
+Open with `SessionOptions.goals: true`. Codex enables its native goals feature;
+DSH confirms its native goal service. Both expose `goal`; other runtimes refuse this option with
 `UnsupportedOptionError("goals", reason)` before starting. The refusal is
 also declared in `Runtime.refusedSessionOptions`.
 
 Omission and `false` add no native override and expose no `goal` member.
-They do not disable goals already enabled by native configuration. Codex
-then still controls its own model tools and continuation, and any observed
+They do not disable goals already enabled by native configuration. The runtime
+still controls its own model tools and continuation, and any observed
 goal notifications remain in the record stream. Supply `goals: true` again
 on resume to expose the controls; OAR does not persist this launch choice.
 
@@ -75,9 +75,14 @@ repeat a snapshot; both observations stay. Malformed replies remain frames
 without events and are rejected without fabricating a snapshot. Rejections,
 requests and ordinary turn endings never change goal state optimistically.
 
-Goal changes neither begin nor end an OAR turn. Native `turn/started` and
+OAR does not synthesize turn boundaries from goal changes. Native `turn/started` and
 `turn/completed` still decide activity and completion, including spontaneous
 turns. Goal events do not add transcript messages or alter `Session.status()`.
+`set({ status: "paused" })` may interrupt a running goal turn, depending on
+the runtime: Codex leaves it running; DSH cancels it. Its native turn ending
+is recorded as `turn_ended`. Hosts must not assume that pausing only affects
+future continuation.
+
 A host waiting for the goal watches its own session's goal snapshots rather
 than treating `promptAndWait` or `awaitIdle` as goal-completion helpers.
 
@@ -101,3 +106,23 @@ Claude's `/goal` command does not provide the structured state on its chosen
 transport, so it has no `Session.goal`. OAR never translates this API into
 that command. See the [Codex mapping](../runtimes/codex.md#native-goals) and
 [native boundary evidence](../../experiments/codex-goal-boundaries-2026-10-29.md).
+
+## DSH boundary
+
+DSH uses the bridge's native `goals` service: `get`, `create`, `edit`,
+`pause`, `resume`, `complete` and `clear`. `set` supports `active`, `paused`
+and `complete`; a requested `blocked` status is refused because DSH requires
+a structured reason absent from `GoalSetOptions`. Native blocked observations
+remain visible. A completed goal is replaced through native creation, and
+an active request rearms a goal that native resume loaded disarmed.
+
+DSH budgets count rounds. Supplying any `tokenBudget` is a recorded
+`rejected/unsupported` before a native call; snapshots omit `tokenBudget`
+and token counters. Native `goal/change` events and explicit reads report
+objective, phase and available timestamps, converted from milliseconds to
+seconds. Round counts and activation details remain in the raw frame.
+
+Host pause cancels the running native goal turn; clear does not. Paused state
+survives a native process restart. OAR adds no continuation loop or completion
+heuristic. See the [DSH mapping](../runtimes/dsh.md#native-goals) and
+[probes](../../experiments/dsh-option-boundaries/remaining.md).

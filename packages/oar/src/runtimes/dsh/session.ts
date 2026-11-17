@@ -16,6 +16,7 @@ import { checkSessionName, refuseSessionOptions } from "../../shared/session-opt
 import { withSessionCredentials, type SessionCredentials } from "../../shared/session-credentials.js";
 import { DshCommandError, dshControl, type DshControl } from "./control.js";
 import { dshEnvironment, dshExecutableRefusal, launchDsh } from "./launch.js";
+import { dshGoalControl } from "./goal.js";
 import { dshMcpRows } from "./mcp.js";
 import { dshAgentOptions, dshRefusedSessionOptions, type DshAgentOptions } from "./options.js";
 import { dshOpenedFrame, foldDsh, initialDshProjection } from "./projection.js";
@@ -39,6 +40,7 @@ function openFailure(error: unknown, sessionId: string, resuming: boolean): unkn
     if (error.capability === "confirming a reasoning effort") { return new UnsupportedOptionError("effort", error.message); }
     if (error.capability === "systemPrompt" || error.capability === "appendSystemPrompt") { return new UnsupportedOptionError(error.capability, error.message); }
     if (error.capability === "session MCP") { return new UnsupportedOptionError("mcpServers", error.message); }
+    if (error.capability === "goals") { return new UnsupportedOptionError(error.capability, error.message); }
     if (error.capability === "confirming a model") { return new UnsupportedOptionError("model", error.message); }
     return resuming ? new UnsupportedOptionError("resume", error.message) : new RuntimeFailureError("invalid_request", error.message, { cause: error });
   }
@@ -114,6 +116,7 @@ async function open(command: string, options: SessionOptions, env: NodeJS.Proces
   let opened: JsonRecord = {};
   try {
     await control.ready;
+    if (options.goals === true) { await control.request("goalConfirm"); }
     if (options.resume === undefined) { opened = await control.request("open", { ...fields, cwd: options.cwd }, OPEN_TIMEOUT_MS); }
     else {
       const route = await savedRoute(control, sessionId, options.cwd);
@@ -140,6 +143,7 @@ async function open(command: string, options: SessionOptions, env: NodeJS.Proces
 
   return credentials.seal({
     id: sessionId, capabilities, resources: child.resources,
+    ...(options.goals === true ? { goal: dshGoalControl(kernel, control, sessionId, refusalOf) } : {}),
     prompt: async (text, inputOptions) => kernel.control({ kind: "prompt", input: text, ...inputOptions }, async () => {
       if (active()) { return { kind: "rejected", code: "busy", reason: "busy" }; }
       return withInputImages(capabilities, inputOptions?.images, async () => send("prompt", inputFields(text, inputOptions?.inputId)));

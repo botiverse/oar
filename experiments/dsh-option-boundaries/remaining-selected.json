@@ -1,0 +1,1133 @@
+{
+  "0.2.2-rc.1": {
+    "goals": {
+      "calls": [
+        {
+          "op": "get",
+          "sessionId": "11111111-1111-4111-8111-111111111111",
+          "result": {
+            "goal": null
+          }
+        },
+        {
+          "op": "create",
+          "sessionId": "11111111-1111-4111-8111-111111111111",
+          "result": {
+            "goal": {
+              "id": "goal-9a5fc572-3060-4216-8c8b-f829682b8314",
+              "revision": 1,
+              "objective": "Synthetic goal",
+              "phase": "active",
+              "maxGoalRounds": 256,
+              "roundsStarted": 0,
+              "createdAt": 1794874780381,
+              "updatedAt": 1794874780381,
+              "activation": "armed"
+            }
+          }
+        },
+        {
+          "op": "get",
+          "sessionId": "22222222-2222-4222-8222-222222222222",
+          "result": {
+            "goal": null
+          }
+        },
+        {
+          "op": "pause",
+          "sessionId": "11111111-1111-4111-8111-111111111111",
+          "result": {
+            "goal": {
+              "id": "goal-9a5fc572-3060-4216-8c8b-f829682b8314",
+              "revision": 2,
+              "objective": "Synthetic goal",
+              "phase": "paused",
+              "maxGoalRounds": 256,
+              "roundsStarted": 0,
+              "createdAt": 1794874780381,
+              "updatedAt": 1794874780386,
+              "activation": "disarmed"
+            }
+          }
+        },
+        {
+          "op": "edit",
+          "sessionId": "11111111-1111-4111-8111-111111111111",
+          "result": {
+            "goal": {
+              "id": "goal-9a5fc572-3060-4216-8c8b-f829682b8314",
+              "revision": 3,
+              "objective": "Edited goal",
+              "phase": "paused",
+              "maxGoalRounds": 256,
+              "roundsStarted": 0,
+              "createdAt": 1794874780381,
+              "updatedAt": 1794874780389,
+              "activation": "disarmed"
+            }
+          }
+        },
+        {
+          "op": "resume",
+          "sessionId": "11111111-1111-4111-8111-111111111111",
+          "result": {
+            "goal": {
+              "id": "goal-9a5fc572-3060-4216-8c8b-f829682b8314",
+              "revision": 4,
+              "objective": "Edited goal",
+              "phase": "active",
+              "maxGoalRounds": 256,
+              "roundsStarted": 0,
+              "createdAt": 1794874780381,
+              "updatedAt": 1794874780393,
+              "activation": "armed"
+            }
+          }
+        },
+        {
+          "op": "block",
+          "sessionId": "11111111-1111-4111-8111-111111111111",
+          "result": {
+            "goal": {
+              "id": "goal-9a5fc572-3060-4216-8c8b-f829682b8314",
+              "revision": 5,
+              "objective": "Edited goal",
+              "phase": "blocked",
+              "maxGoalRounds": 256,
+              "blockedReason": {
+                "code": "probe-block",
+                "message": "Synthetic control"
+              },
+              "roundsStarted": 0,
+              "createdAt": 1794874780381,
+              "updatedAt": 1794874780395,
+              "activation": "disarmed"
+            }
+          }
+        },
+        {
+          "op": "resume",
+          "sessionId": "11111111-1111-4111-8111-111111111111",
+          "result": {
+            "goal": {
+              "id": "goal-9a5fc572-3060-4216-8c8b-f829682b8314",
+              "revision": 6,
+              "objective": "Edited goal",
+              "phase": "active",
+              "maxGoalRounds": 256,
+              "roundsStarted": 0,
+              "createdAt": 1794874780381,
+              "updatedAt": 1794874780398,
+              "activation": "armed"
+            }
+          }
+        },
+        {
+          "op": "complete",
+          "sessionId": "11111111-1111-4111-8111-111111111111",
+          "result": {
+            "goal": {
+              "id": "goal-9a5fc572-3060-4216-8c8b-f829682b8314",
+              "revision": 7,
+              "objective": "Edited goal",
+              "phase": "complete",
+              "maxGoalRounds": 256,
+              "roundsStarted": 0,
+              "createdAt": 1794874780381,
+              "updatedAt": 1794874780400,
+              "activation": "disarmed"
+            }
+          }
+        },
+        {
+          "op": "clear",
+          "sessionId": "11111111-1111-4111-8111-111111111111",
+          "result": {
+            "ref": {
+              "id": "goal-9a5fc572-3060-4216-8c8b-f829682b8314",
+              "revision": 8
+            },
+            "goal": null
+          }
+        },
+        {
+          "op": "create",
+          "sessionId": "11111111-1111-4111-8111-111111111111",
+          "result": {
+            "goal": {
+              "id": "goal-4fd8d300-958f-4fc6-9850-2976b665a527",
+              "revision": 1,
+              "objective": "Saved paused goal",
+              "phase": "active",
+              "maxGoalRounds": 256,
+              "roundsStarted": 0,
+              "createdAt": 1794874780402,
+              "updatedAt": 1794874780402,
+              "activation": "armed"
+            }
+          }
+        },
+        {
+          "op": "pause",
+          "sessionId": "11111111-1111-4111-8111-111111111111",
+          "result": {
+            "goal": {
+              "id": "goal-4fd8d300-958f-4fc6-9850-2976b665a527",
+              "revision": 2,
+              "objective": "Saved paused goal",
+              "phase": "paused",
+              "maxGoalRounds": 256,
+              "roundsStarted": 0,
+              "createdAt": 1794874780402,
+              "updatedAt": 1794874780403,
+              "activation": "disarmed"
+            }
+          }
+        },
+        {
+          "op": "resumed-get",
+          "result": {
+            "goal": {
+              "id": "goal-4fd8d300-958f-4fc6-9850-2976b665a527",
+              "revision": 2,
+              "objective": "Saved paused goal",
+              "phase": "paused",
+              "maxGoalRounds": 256,
+              "roundsStarted": 0,
+              "createdAt": 1794874780402,
+              "updatedAt": 1794874780403,
+              "activation": "disarmed"
+            }
+          }
+        }
+      ],
+      "runningTurnControls": {
+        "pause": [
+          {
+            "type": "session/event:goal/change",
+            "native": {
+              "type": "goal/change",
+              "seq": 3,
+              "time": 1794875832812,
+              "data": {
+                "kind": "goal/change",
+                "version": 1,
+                "operation": "create",
+                "goal": {
+                  "id": "goal-0243ee62-2805-4dcd-8542-7b24ded2da9c",
+                  "revision": 1,
+                  "objective": "Continue natively",
+                  "phase": "active",
+                  "maxGoalRounds": 256
+                },
+                "roundsStarted": 0,
+                "createdAt": 1794875832811,
+                "updatedAt": 1794875832811
+              }
+            },
+            "events": [
+              {
+                "kind": "goal_changed",
+                "goal": {
+                  "objective": "Continue natively",
+                  "status": "active",
+                  "createdAt": 1794875832.811,
+                  "updatedAt": 1794875832.811
+                }
+              }
+            ]
+          },
+          {
+            "type": "session/event:goal/change",
+            "native": {
+              "type": "goal/change",
+              "seq": 13,
+              "time": 1794875833065,
+              "data": {
+                "kind": "goal/change",
+                "version": 1,
+                "operation": "pause",
+                "goal": {
+                  "id": "goal-0243ee62-2805-4dcd-8542-7b24ded2da9c",
+                  "revision": 2,
+                  "objective": "Continue natively",
+                  "phase": "paused",
+                  "maxGoalRounds": 256
+                },
+                "roundsStarted": 1,
+                "createdAt": 1794875832811,
+                "updatedAt": 1794875833065
+              }
+            },
+            "events": [
+              {
+                "kind": "goal_changed",
+                "goal": {
+                  "objective": "Continue natively",
+                  "status": "paused",
+                  "createdAt": 1794875832.811,
+                  "updatedAt": 1794875833.065
+                }
+              }
+            ]
+          },
+          {
+            "type": "session/event:turn/end",
+            "native": {
+              "type": "turn/end",
+              "seq": 16,
+              "time": 1794875833078,
+              "data": {
+                "turn": 1,
+                "reason": {
+                  "kind": "aborted",
+                  "reason": {
+                    "kind": "user"
+                  }
+                }
+              }
+            },
+            "events": [
+              {
+                "kind": "turn_ended",
+                "outcome": {
+                  "kind": "aborted"
+                }
+              }
+            ]
+          }
+        ],
+        "clear": [
+          {
+            "type": "session/event:goal/change",
+            "native": {
+              "type": "goal/change",
+              "seq": 3,
+              "time": 1794875835721,
+              "data": {
+                "kind": "goal/change",
+                "version": 1,
+                "operation": "create",
+                "goal": {
+                  "id": "goal-b9abb3ed-3794-4ef3-9fe5-55ac3bd62904",
+                  "revision": 1,
+                  "objective": "Continue natively",
+                  "phase": "active",
+                  "maxGoalRounds": 256
+                },
+                "roundsStarted": 0,
+                "createdAt": 1794875835721,
+                "updatedAt": 1794875835721
+              }
+            },
+            "events": [
+              {
+                "kind": "goal_changed",
+                "goal": {
+                  "objective": "Continue natively",
+                  "status": "active",
+                  "createdAt": 1794875835.721,
+                  "updatedAt": 1794875835.721
+                }
+              }
+            ]
+          },
+          {
+            "type": "session/event:goal/change",
+            "native": {
+              "type": "goal/change",
+              "seq": 13,
+              "time": 1794875835968,
+              "data": {
+                "kind": "goal/change",
+                "version": 1,
+                "operation": "clear",
+                "cleared": {
+                  "id": "goal-b9abb3ed-3794-4ef3-9fe5-55ac3bd62904",
+                  "revision": 2
+                },
+                "clearedAt": 1794875835968
+              }
+            },
+            "events": [
+              {
+                "kind": "goal_changed",
+                "goal": null
+              }
+            ]
+          },
+          {
+            "type": "session/event:turn/end",
+            "native": {
+              "type": "turn/end",
+              "seq": 16,
+              "time": 1794875835985,
+              "data": {
+                "turn": 1,
+                "reason": {
+                  "kind": "completed"
+                }
+              }
+            },
+            "events": [
+              {
+                "kind": "turn_ended",
+                "outcome": {
+                  "kind": "completed"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "directories": [
+      {
+        "requestedMode": "workspace-write",
+        "requestedRoots": [],
+        "rootsOnlyOverlay": false,
+        "primary": {
+          "policy": {
+            "mode": "workspace-write",
+            "workspaceRoot": "<cwd>"
+          },
+          "content": "directory control"
+        },
+        "secondary": {
+          "policy": {
+            "mode": "workspace-write",
+            "workspaceRoot": "<cwd>"
+          },
+          "error": {
+            "name": "FsError",
+            "code": "FS_SANDBOX_DENIED"
+          }
+        }
+      },
+      {
+        "requestedMode": "workspace-write",
+        "requestedRoots": [
+          "<extra>"
+        ],
+        "rootsOnlyOverlay": false,
+        "primary": {
+          "policy": {
+            "mode": "workspace-write",
+            "workspaceRoot": "<cwd>",
+            "additionalWritableRoots": [
+              "<extra>"
+            ]
+          },
+          "content": "directory control"
+        },
+        "secondary": {
+          "policy": {
+            "mode": "workspace-write",
+            "workspaceRoot": "<cwd>",
+            "additionalWritableRoots": [
+              "<extra>"
+            ]
+          },
+          "content": "directory control"
+        }
+      },
+      {
+        "requestedMode": "read-only",
+        "requestedRoots": [
+          "<extra>"
+        ],
+        "rootsOnlyOverlay": false,
+        "primary": {
+          "policy": {
+            "mode": "read-only",
+            "workspaceRoot": "<cwd>",
+            "additionalWritableRoots": [
+              "<extra>"
+            ]
+          },
+          "error": {
+            "name": "FsError",
+            "code": "FS_SANDBOX_DENIED"
+          }
+        },
+        "secondary": {
+          "policy": {
+            "mode": "read-only",
+            "workspaceRoot": "<cwd>",
+            "additionalWritableRoots": [
+              "<extra>"
+            ]
+          },
+          "error": {
+            "name": "FsError",
+            "code": "FS_SANDBOX_DENIED"
+          }
+        }
+      },
+      {
+        "requestedMode": "workspace-write",
+        "requestedRoots": [
+          "<extra>"
+        ],
+        "rootsOnlyOverlay": true,
+        "primary": {
+          "policy": {
+            "mode": "read-only",
+            "workspaceRoot": "<cwd>",
+            "additionalWritableRoots": [
+              "<extra>"
+            ]
+          },
+          "error": {
+            "name": "FsError",
+            "code": "FS_SANDBOX_DENIED"
+          }
+        },
+        "secondary": {
+          "policy": {
+            "mode": "read-only",
+            "workspaceRoot": "<cwd>",
+            "additionalWritableRoots": [
+              "<extra>"
+            ]
+          },
+          "error": {
+            "name": "FsError",
+            "code": "FS_SANDBOX_DENIED"
+          }
+        }
+      },
+      {
+        "requestedMode": "workspace-write",
+        "requestedRoots": [],
+        "rootsOnlyOverlay": false,
+        "primary": {
+          "policy": {
+            "mode": "workspace-write",
+            "workspaceRoot": "<cwd>"
+          },
+          "content": "directory control"
+        },
+        "secondary": {
+          "policy": {
+            "mode": "workspace-write",
+            "workspaceRoot": "<cwd>"
+          },
+          "error": {
+            "name": "FsError",
+            "code": "FS_SANDBOX_DENIED"
+          }
+        }
+      }
+    ],
+    "jobs": {
+      "cancelLeftAllAlive": true,
+      "kill": {
+        "result": "requested"
+      },
+      "settled": {
+        "job": {
+          "id": "bash-500b83a8fcaa42e6",
+          "kind": "bash",
+          "label": "echo $$ > ABORT_JOB.pid; while [ ! -f release-jobs ]; do sleep 0.05; done",
+          "owner": "11111111-1111-4111-8111-111111111111",
+          "status": "killed",
+          "detail": "signal: SIGTERM; OAR native probe",
+          "startedAt": 1794875123677,
+          "finishedAt": 1794875123877,
+          "output": {
+            "total": 0,
+            "earliest": 0
+          }
+        }
+      },
+      "selectedJobGoneOtherJobsAlive": true,
+      "nextPrompt": {
+        "messageId": "f735d210-4428-4e25-8b23-bd20e33104dd"
+      },
+      "nextInputSeen": true
+    },
+    "configuration": {
+      "included": {
+        "ok": true,
+        "hasSyntheticProviderRoute": true
+      },
+      "defaults": {
+        "ok": true,
+        "hasSyntheticProviderRoute": false
+      },
+      "defaultWithPatch": {
+        "ok": false,
+        "stderr": "error: --dump-default-config prints the bundle layers and takes no --patch"
+      },
+      "publicFailure": "UnsupportedOptionError: DSH default-config dumping omits provider routes with user patches; no verified boot filter preserves providers, login and history"
+    }
+  },
+  "0.2.1-rc.5": {
+    "goals": {
+      "calls": [
+        {
+          "op": "get",
+          "sessionId": "11111111-1111-4111-8111-111111111111",
+          "result": {
+            "goal": null
+          }
+        },
+        {
+          "op": "create",
+          "sessionId": "11111111-1111-4111-8111-111111111111",
+          "result": {
+            "goal": {
+              "id": "goal-c9a1c202-96b1-4bba-8948-f45451c7ab8d",
+              "revision": 1,
+              "objective": "Synthetic goal",
+              "phase": "active",
+              "maxGoalRounds": 256,
+              "roundsStarted": 0,
+              "createdAt": 1794875013819,
+              "updatedAt": 1794875013819,
+              "activation": "armed"
+            }
+          }
+        },
+        {
+          "op": "get",
+          "sessionId": "22222222-2222-4222-8222-222222222222",
+          "result": {
+            "goal": null
+          }
+        },
+        {
+          "op": "pause",
+          "sessionId": "11111111-1111-4111-8111-111111111111",
+          "result": {
+            "goal": {
+              "id": "goal-c9a1c202-96b1-4bba-8948-f45451c7ab8d",
+              "revision": 2,
+              "objective": "Synthetic goal",
+              "phase": "paused",
+              "maxGoalRounds": 256,
+              "roundsStarted": 0,
+              "createdAt": 1794875013819,
+              "updatedAt": 1794875013825,
+              "activation": "disarmed"
+            }
+          }
+        },
+        {
+          "op": "edit",
+          "sessionId": "11111111-1111-4111-8111-111111111111",
+          "result": {
+            "goal": {
+              "id": "goal-c9a1c202-96b1-4bba-8948-f45451c7ab8d",
+              "revision": 3,
+              "objective": "Edited goal",
+              "phase": "paused",
+              "maxGoalRounds": 256,
+              "roundsStarted": 0,
+              "createdAt": 1794875013819,
+              "updatedAt": 1794875013829,
+              "activation": "disarmed"
+            }
+          }
+        },
+        {
+          "op": "resume",
+          "sessionId": "11111111-1111-4111-8111-111111111111",
+          "result": {
+            "goal": {
+              "id": "goal-c9a1c202-96b1-4bba-8948-f45451c7ab8d",
+              "revision": 4,
+              "objective": "Edited goal",
+              "phase": "active",
+              "maxGoalRounds": 256,
+              "roundsStarted": 0,
+              "createdAt": 1794875013819,
+              "updatedAt": 1794875013831,
+              "activation": "armed"
+            }
+          }
+        },
+        {
+          "op": "block",
+          "sessionId": "11111111-1111-4111-8111-111111111111",
+          "result": {
+            "goal": {
+              "id": "goal-c9a1c202-96b1-4bba-8948-f45451c7ab8d",
+              "revision": 5,
+              "objective": "Edited goal",
+              "phase": "blocked",
+              "maxGoalRounds": 256,
+              "blockedReason": {
+                "code": "probe-block",
+                "message": "Synthetic control"
+              },
+              "roundsStarted": 0,
+              "createdAt": 1794875013819,
+              "updatedAt": 1794875013834,
+              "activation": "disarmed"
+            }
+          }
+        },
+        {
+          "op": "resume",
+          "sessionId": "11111111-1111-4111-8111-111111111111",
+          "result": {
+            "goal": {
+              "id": "goal-c9a1c202-96b1-4bba-8948-f45451c7ab8d",
+              "revision": 6,
+              "objective": "Edited goal",
+              "phase": "active",
+              "maxGoalRounds": 256,
+              "roundsStarted": 0,
+              "createdAt": 1794875013819,
+              "updatedAt": 1794875013836,
+              "activation": "armed"
+            }
+          }
+        },
+        {
+          "op": "complete",
+          "sessionId": "11111111-1111-4111-8111-111111111111",
+          "result": {
+            "goal": {
+              "id": "goal-c9a1c202-96b1-4bba-8948-f45451c7ab8d",
+              "revision": 7,
+              "objective": "Edited goal",
+              "phase": "complete",
+              "maxGoalRounds": 256,
+              "roundsStarted": 0,
+              "createdAt": 1794875013819,
+              "updatedAt": 1794875013838,
+              "activation": "disarmed"
+            }
+          }
+        },
+        {
+          "op": "clear",
+          "sessionId": "11111111-1111-4111-8111-111111111111",
+          "result": {
+            "ref": {
+              "id": "goal-c9a1c202-96b1-4bba-8948-f45451c7ab8d",
+              "revision": 8
+            },
+            "goal": null
+          }
+        },
+        {
+          "op": "create",
+          "sessionId": "11111111-1111-4111-8111-111111111111",
+          "result": {
+            "goal": {
+              "id": "goal-c9829359-0a2d-480e-92f8-7d6d2f7beb4a",
+              "revision": 1,
+              "objective": "Saved paused goal",
+              "phase": "active",
+              "maxGoalRounds": 256,
+              "roundsStarted": 0,
+              "createdAt": 1794875013859,
+              "updatedAt": 1794875013859,
+              "activation": "armed"
+            }
+          }
+        },
+        {
+          "op": "pause",
+          "sessionId": "11111111-1111-4111-8111-111111111111",
+          "result": {
+            "goal": {
+              "id": "goal-c9829359-0a2d-480e-92f8-7d6d2f7beb4a",
+              "revision": 2,
+              "objective": "Saved paused goal",
+              "phase": "paused",
+              "maxGoalRounds": 256,
+              "roundsStarted": 0,
+              "createdAt": 1794875013859,
+              "updatedAt": 1794875013861,
+              "activation": "disarmed"
+            }
+          }
+        },
+        {
+          "op": "resumed-get",
+          "result": {
+            "goal": {
+              "id": "goal-c9829359-0a2d-480e-92f8-7d6d2f7beb4a",
+              "revision": 2,
+              "objective": "Saved paused goal",
+              "phase": "paused",
+              "maxGoalRounds": 256,
+              "roundsStarted": 0,
+              "createdAt": 1794875013859,
+              "updatedAt": 1794875013861,
+              "activation": "disarmed"
+            }
+          }
+        }
+      ],
+      "runningTurnControls": {
+        "pause": [
+          {
+            "type": "session/event:goal/change",
+            "native": {
+              "type": "goal/change",
+              "seq": 3,
+              "time": 1794875849033,
+              "data": {
+                "kind": "goal/change",
+                "version": 1,
+                "operation": "create",
+                "goal": {
+                  "id": "goal-d1796072-019d-486d-8095-14da846641ad",
+                  "revision": 1,
+                  "objective": "Continue natively",
+                  "phase": "active",
+                  "maxGoalRounds": 256
+                },
+                "roundsStarted": 0,
+                "createdAt": 1794875849033,
+                "updatedAt": 1794875849033
+              }
+            },
+            "events": [
+              {
+                "kind": "goal_changed",
+                "goal": {
+                  "objective": "Continue natively",
+                  "status": "active",
+                  "createdAt": 1794875849.033,
+                  "updatedAt": 1794875849.033
+                }
+              }
+            ]
+          },
+          {
+            "type": "session/event:goal/change",
+            "native": {
+              "type": "goal/change",
+              "seq": 13,
+              "time": 1794875849280,
+              "data": {
+                "kind": "goal/change",
+                "version": 1,
+                "operation": "pause",
+                "goal": {
+                  "id": "goal-d1796072-019d-486d-8095-14da846641ad",
+                  "revision": 2,
+                  "objective": "Continue natively",
+                  "phase": "paused",
+                  "maxGoalRounds": 256
+                },
+                "roundsStarted": 1,
+                "createdAt": 1794875849033,
+                "updatedAt": 1794875849280
+              }
+            },
+            "events": [
+              {
+                "kind": "goal_changed",
+                "goal": {
+                  "objective": "Continue natively",
+                  "status": "paused",
+                  "createdAt": 1794875849.033,
+                  "updatedAt": 1794875849.28
+                }
+              }
+            ]
+          },
+          {
+            "type": "session/event:turn/end",
+            "native": {
+              "type": "turn/end",
+              "seq": 16,
+              "time": 1794875849291,
+              "data": {
+                "turn": 1,
+                "reason": {
+                  "kind": "aborted",
+                  "reason": {
+                    "kind": "user"
+                  }
+                }
+              }
+            },
+            "events": [
+              {
+                "kind": "turn_ended",
+                "outcome": {
+                  "kind": "aborted"
+                }
+              }
+            ]
+          }
+        ],
+        "clear": [
+          {
+            "type": "session/event:goal/change",
+            "native": {
+              "type": "goal/change",
+              "seq": 3,
+              "time": 1794875851683,
+              "data": {
+                "kind": "goal/change",
+                "version": 1,
+                "operation": "create",
+                "goal": {
+                  "id": "goal-93689dea-1bdf-4922-abb8-bd9eeed9ec6c",
+                  "revision": 1,
+                  "objective": "Continue natively",
+                  "phase": "active",
+                  "maxGoalRounds": 256
+                },
+                "roundsStarted": 0,
+                "createdAt": 1794875851683,
+                "updatedAt": 1794875851683
+              }
+            },
+            "events": [
+              {
+                "kind": "goal_changed",
+                "goal": {
+                  "objective": "Continue natively",
+                  "status": "active",
+                  "createdAt": 1794875851.683,
+                  "updatedAt": 1794875851.683
+                }
+              }
+            ]
+          },
+          {
+            "type": "session/event:goal/change",
+            "native": {
+              "type": "goal/change",
+              "seq": 13,
+              "time": 1794875851927,
+              "data": {
+                "kind": "goal/change",
+                "version": 1,
+                "operation": "clear",
+                "cleared": {
+                  "id": "goal-93689dea-1bdf-4922-abb8-bd9eeed9ec6c",
+                  "revision": 2
+                },
+                "clearedAt": 1794875851927
+              }
+            },
+            "events": [
+              {
+                "kind": "goal_changed",
+                "goal": null
+              }
+            ]
+          },
+          {
+            "type": "session/event:turn/end",
+            "native": {
+              "type": "turn/end",
+              "seq": 16,
+              "time": 1794875851937,
+              "data": {
+                "turn": 1,
+                "reason": {
+                  "kind": "completed"
+                }
+              }
+            },
+            "events": [
+              {
+                "kind": "turn_ended",
+                "outcome": {
+                  "kind": "completed"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "directories": [
+      {
+        "requestedMode": "workspace-write",
+        "requestedRoots": [],
+        "rootsOnlyOverlay": false,
+        "primary": {
+          "policy": {
+            "mode": "workspace-write",
+            "workspaceRoot": "<cwd>"
+          },
+          "content": "directory control"
+        },
+        "secondary": {
+          "policy": {
+            "mode": "workspace-write",
+            "workspaceRoot": "<cwd>"
+          },
+          "error": {
+            "name": "FsError",
+            "code": "FS_SANDBOX_DENIED"
+          }
+        }
+      },
+      {
+        "requestedMode": "workspace-write",
+        "requestedRoots": [
+          "<extra>"
+        ],
+        "rootsOnlyOverlay": false,
+        "primary": {
+          "policy": {
+            "mode": "workspace-write",
+            "workspaceRoot": "<cwd>"
+          },
+          "content": "directory control"
+        },
+        "secondary": {
+          "policy": {
+            "mode": "workspace-write",
+            "workspaceRoot": "<cwd>"
+          },
+          "error": {
+            "name": "FsError",
+            "code": "FS_SANDBOX_DENIED"
+          }
+        }
+      },
+      {
+        "requestedMode": "read-only",
+        "requestedRoots": [
+          "<extra>"
+        ],
+        "rootsOnlyOverlay": false,
+        "primary": {
+          "policy": {
+            "mode": "read-only",
+            "workspaceRoot": "<cwd>"
+          },
+          "error": {
+            "name": "FsError",
+            "code": "FS_SANDBOX_DENIED"
+          }
+        },
+        "secondary": {
+          "policy": {
+            "mode": "read-only",
+            "workspaceRoot": "<cwd>"
+          },
+          "error": {
+            "name": "FsError",
+            "code": "FS_SANDBOX_DENIED"
+          }
+        }
+      },
+      {
+        "requestedMode": "workspace-write",
+        "requestedRoots": [
+          "<extra>"
+        ],
+        "rootsOnlyOverlay": true,
+        "primary": {
+          "policy": {
+            "mode": "read-only",
+            "workspaceRoot": "<cwd>"
+          },
+          "error": {
+            "name": "FsError",
+            "code": "FS_SANDBOX_DENIED"
+          }
+        },
+        "secondary": {
+          "policy": {
+            "mode": "read-only",
+            "workspaceRoot": "<cwd>"
+          },
+          "error": {
+            "name": "FsError",
+            "code": "FS_SANDBOX_DENIED"
+          }
+        }
+      },
+      {
+        "requestedMode": "workspace-write",
+        "requestedRoots": [],
+        "rootsOnlyOverlay": false,
+        "primary": {
+          "policy": {
+            "mode": "workspace-write",
+            "workspaceRoot": "<cwd>"
+          },
+          "content": "directory control"
+        },
+        "secondary": {
+          "policy": {
+            "mode": "workspace-write",
+            "workspaceRoot": "<cwd>"
+          },
+          "error": {
+            "name": "FsError",
+            "code": "FS_SANDBOX_DENIED"
+          }
+        }
+      }
+    ],
+    "jobs": {
+      "cancelLeftAllAlive": true,
+      "kill": {
+        "result": "requested"
+      },
+      "settled": {
+        "job": {
+          "id": "bash-e918c78401ab44f5",
+          "kind": "bash",
+          "label": "echo $$ > ABORT_JOB.pid; while [ ! -f release-jobs ]; do sleep 0.05; done",
+          "owner": "11111111-1111-4111-8111-111111111111",
+          "status": "killed",
+          "detail": "signal: SIGTERM; OAR native probe",
+          "startedAt": 1794875243501,
+          "finishedAt": 1794875243708,
+          "output": {
+            "total": 0,
+            "earliest": 0
+          }
+        }
+      },
+      "selectedJobGoneOtherJobsAlive": true,
+      "nextPrompt": {
+        "messageId": "9e141b4c-939e-4496-aec5-94d02e8963c4"
+      },
+      "nextInputSeen": true
+    },
+    "configuration": {
+      "included": {
+        "ok": true,
+        "hasSyntheticProviderRoute": true
+      },
+      "defaults": {
+        "ok": true,
+        "hasSyntheticProviderRoute": false
+      },
+      "defaultWithPatch": {
+        "ok": false,
+        "stderr": "error: --dump-default-config prints the bundle layers and takes no --patch"
+      },
+      "publicFailure": "UnsupportedOptionError: DSH default-config dumping omits provider routes with user patches; no verified boot filter preserves providers, login and history"
+    }
+  },
+  "withdrawnPublicDirectoryAttempt": [
+    {
+      "type": "session/event:tool/result",
+      "events": [
+        {
+          "kind": "tool_call_ended",
+          "callId": "call-1",
+          "content": [
+            {
+              "type": "text",
+              "text": "Error: [sandbox: file access denied under read-only mode]\n[sandbox: escalation available \u2014 retry this exact operation once with sandbox_permissions (the narrowest wider mode that suffices) + justification; the approval prompt asks the user]"
+            }
+          ],
+          "result": "failed"
+        }
+      ]
+    }
+  ]
+}
