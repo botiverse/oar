@@ -591,8 +591,11 @@ exposes independent skills and MCP configuration discovery; Pi exposes skills
 and registered tools with active membership. Pi commands include extension
 commands and prompt templates; Claude commands come from native initialize.
 Other core runtimes return unsupported for independent command discovery.
-Antigravity, CodeBuddy, Cursor, Devin, DSH, Factory, Kimi, OpenCode, Qoder and Qwen
-inventory queries are unsupported.
+Kimi and OpenCode expose native skill catalogs. Cursor discovers the measured
+SDK user/project skill directories with `view: "discovered"`, without loading
+hooks or MCP servers; malformed/unreadable metadata makes the result partial.
+Antigravity, CodeBuddy, Devin, DSH, Factory, Qoder and Qwen inventory queries
+are unsupported.
 
 ```ts
 const catalog = await runtime.commands(installation, { cwd: "/my/project" });

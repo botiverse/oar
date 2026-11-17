@@ -71,7 +71,10 @@ alternate-transport capabilities below are not implicitly exposed.
 
 OpenCode skill discovery is now measured separately: [v1 CLI and v2 HTTP catalogs](../../experiments/opencode-skills/README.md), including cold-start readiness and cleanup.
 
-Antigravity, CodeBuddy, Cursor, Devin, DSH, Factory, Qoder and Qwen were not probed;
+Cursor SDK 1.4.0 discovery was subsequently measured in the
+[Cursor directory study](../../experiments/cursor-skills/README.md).
+Antigravity, CodeBuddy, Cursor, Devin, DSH, Factory, Qoder and Qwen were not probed
+in the original baseline;
 At that baseline OAR answered all four of their inventory queries `unsupported`
 (`transport_unavailable`), as it does for Kimi, Pi Durable and Mister Morph
 ([defineRuntime default](../../packages/oar/src/contracts/runtime.ts)). No full-fidelity three-way intersection is verified across the five
@@ -238,3 +241,13 @@ unsupported for this independent query; their interactive or session-bound
 commands are not guessed from files or terminal help.
 [Current mapping](../spec/inventory.md#commands),
 [per-interface evidence and reproduction](../../experiments/commands-2026-10-11.md).
+
+## Cursor directory discovery
+
+Cursor SDK 1.4.0 has no independent query. OAR lists the measured SDK user/project
+roots with `view: "discovered"`, preserves directory names and invocation flags,
+and labels scope by loading root. It starts no SDK, hooks or MCP servers.
+Git workspaces reuse the SDK's ripgrep companion for nested ignore behavior;
+missing nested discovery or malformed/unreadable metadata makes the result
+partial. The [native parity case](../../experiments/cursor-skills/README.md)
+compares the real SDK loader and OAR on identical fixtures on every CI platform.

@@ -1,6 +1,6 @@
 # Independent runtime inventories
 
-OAR exposes four independent native queries on every runtime:
+OAR exposes four independent inventory readers on every runtime:
 
 ```ts
 const runtime = defaultRuntimes.require("codex");
@@ -26,6 +26,8 @@ plus `--no-session`. Tools still use the host SDK and reject actual environment
 changes before loading it. Omission, unchanged values and removal of absent
 variables keep the SDK path and its richer metadata and loading diagnostics.
 See [Pi reader environments](../runtimes/pi.md#reader-environment).
+
+Cursor uses measured local discovery where its SDK exposes no independent query.
 
 These operations discover native information independently of existing agents.
 There are **no Session inventory methods, session IDs, or session query mode**.
@@ -74,6 +76,8 @@ See [adapter version requirements](orientation.md#adapter-version-requirements).
 | `mcp-only` | MCP tools only; built-in and other extension tools are not included |
 
 `partial:true` signals a native discovery error or pending/failed MCP startup.
+Cursor directory discovery also marks unreadable or malformed metadata and
+unavailable nested discovery partial.
 Pi RPC also reports `partial:true` because it provides no loading diagnostics:
 discovery completeness cannot be confirmed. It is independent of coverage: a complete MCP catalog is still `mcp-only`.
 Unknown fields are omitted. Enabled, active, loaded, auth and connection state
@@ -98,6 +102,7 @@ the native catalog says so. A plugin identity alone does not establish scope.
 | Grok | `bundled` → builtin; `user` → user; `project` → project; `server`/`plugin`/`configToml` → other | Tagged source's `plugin_name` |
 | Kimi | `builtin`/`user`/`project` unchanged; `extra` → other | Not supplied by this catalog |
 | Pi SDK and RPC | `SourceInfo.scope` user/project unchanged; temporary → other | `SourceInfo.source` when `origin` is package; absent for top-level |
+| Cursor | Measured SDK home loading roots → user; workspace/nested loading roots → project | Not inferred |
 | OpenCode | Native built-in marker or verified built-in URI → builtin; verified user loading root → user; verified cwd/ancestor loading root → project | Not supplied by this catalog |
 
 OpenCode preserves the returned path and compares its canonical filesystem path
@@ -153,7 +158,8 @@ ACP session's `available_commands_update` is not an independent query.
 | Pi | SDK resource loader | SDK extension runner and prompt templates | Unsupported | SDK registered tools, parameter schemas and active membership |
 | Kimi | Native Web workspace skills; temporary loopback service, native state writes | Unsupported | Unsupported | Unsupported |
 | OpenCode | v1 `debug skill`; v2 native HTTP catalog after plugin activation | Unsupported | Unsupported | Unsupported |
-| Cursor, Antigravity, DSH, Pi Durable, Qwen, Qoder, CodeBuddy, Devin, Factory | Unsupported on the selected interface | Unsupported on the selected interface | Unsupported on the selected interface | Unsupported on the selected interface |
+| Cursor | Measured SDK user/project directory discovery | Unsupported | Unsupported | Unsupported |
+| Antigravity, DSH, Pi Durable, Qwen, Qoder, CodeBuddy, Devin, Factory | Unsupported on the selected interface | Unsupported on the selected interface | Unsupported on the selected interface | Unsupported on the selected interface |
 
 Kimi starts a private loopback Web service, reads the complete workspace skill
 catalog and stops its owned process tree. A workspace ID returned by registration

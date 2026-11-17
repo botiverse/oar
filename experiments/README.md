@@ -1,5 +1,7 @@
 # experiments
 
+- [Cursor skill discovery](cursor-skills/README.md): measured SDK 1.4.0 roots, native filtering, independent metadata reads and a real-loader parity gate.
+
 - [Old CLI upgrade path](old-cli-upgrade/README.md): native AGY 1.4.9 to 1.5.9, Pi self-update, and DSH command boundaries.
 
 - [Public API export cleanup (2026-11-16)](public-api-sweep-2026-11-16/README.md): confirmed removals, host audit and migration table.

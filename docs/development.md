@@ -231,6 +231,7 @@ or pull request whose changes are all Markdown files or under `docs/` or
 `assets/`. Otherwise it runs these jobs:
 
 - `check`: `pnpm run check` and `pnpm run build` on Linux, macOS and Windows,
+  plus offline Cursor SDK skill-loader parity against the same local fixtures,
   then native checks: CodeBuddy's official npm installation in an
   isolated HOME and global prefix with its bin directory off PATH (installed
   version and an idempotent second install); OpenCode 2.2.7 isolated native

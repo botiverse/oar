@@ -1,0 +1,361 @@
+{
+  "platform": "linux-x64",
+  "date": "2026-11-17",
+  "controls": [
+    {
+      "gitWorkspace": false,
+      "sdkVersion": "1.4.0",
+      "sourceSha256": "197e2314468ac23f455dfe356e049b46f36c50a497152f9af12742fef199a244",
+      "nativeCount": 20,
+      "validCount": 17,
+      "partial": true,
+      "parity": true,
+      "blockedConnections": 4,
+      "nativeMetadata": [
+        {
+          "path": "<fixture>/home/.cursor/skills/user-cursor/SKILL.md",
+          "description": "fixture user-cursor",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/home/.claude/skills/user-claude/SKILL.md",
+          "description": "fixture user-claude",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/home/.codex/skills/user-codex/SKILL.md",
+          "description": "fixture user-codex",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/home/.grok/skills/user-grok/SKILL.md",
+          "description": "fixture user-grok",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/home/.agents/skills/user-agents/SKILL.md",
+          "description": "fixture user-agents",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/project/.cursor/rules/in-rules/SKILL.md",
+          "description": "rule folder",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/project/.cursor/skills/disabled/SKILL.md",
+          "description": "",
+          "disableModelInvocation": true,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/project/.cursor/skills/duplicate/SKILL.md",
+          "description": "cursor duplicate",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/project/.cursor/skills/folder-name/SKILL.md",
+          "description": "metadata description",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/project/.cursor/skills/invalid-duplicate/SKILL.md",
+          "description": "",
+          "disableModelInvocation": false,
+          "invalid": true
+        },
+        {
+          "path": "<fixture>/project/.cursor/skills/invalid/SKILL.md",
+          "description": "",
+          "disableModelInvocation": false,
+          "invalid": true
+        },
+        {
+          "path": "<fixture>/project/.cursor/skills/long-description/SKILL.md",
+          "disableModelInvocation": false,
+          "invalid": false,
+          "descriptionLength": 1535
+        },
+        {
+          "path": "<fixture>/project/.cursor/skills/missing-description/SKILL.md",
+          "description": "",
+          "disableModelInvocation": false,
+          "invalid": true
+        },
+        {
+          "path": "<fixture>/project/.cursor/skills/project-cursor/SKILL.md",
+          "description": "fixture project-cursor",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/project/.cursor/skills/sdk-only/SKILL.md",
+          "description": "sdk",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/project/.claude/skills/imagegen/SKILL.md",
+          "description": "not filtered",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/project/.claude/skills/project-claude/SKILL.md",
+          "description": "fixture project-claude",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/project/.codex/skills/project-codex/SKILL.md",
+          "description": "fixture project-codex",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/project/.grok/skills/project-grok/SKILL.md",
+          "description": "fixture project-grok",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/project/.agents/skills/project-agents/SKILL.md",
+          "description": "fixture project-agents",
+          "disableModelInvocation": false,
+          "invalid": false
+        }
+      ]
+    },
+    {
+      "gitWorkspace": true,
+      "sdkVersion": "1.4.0",
+      "sourceSha256": "197e2314468ac23f455dfe356e049b46f36c50a497152f9af12742fef199a244",
+      "nativeCount": 24,
+      "validCount": 21,
+      "partial": true,
+      "parity": true,
+      "blockedConnections": 4,
+      "nativeMetadata": [
+        {
+          "path": "<fixture>/home/.cursor/skills/user-cursor/SKILL.md",
+          "description": "fixture user-cursor",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/home/.claude/skills/user-claude/SKILL.md",
+          "description": "fixture user-claude",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/home/.codex/skills/user-codex/SKILL.md",
+          "description": "fixture user-codex",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/home/.grok/skills/user-grok/SKILL.md",
+          "description": "fixture user-grok",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/home/.agents/skills/user-agents/SKILL.md",
+          "description": "fixture user-agents",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/project/.cursor/rules/in-rules/SKILL.md",
+          "description": "rule folder",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/project/.cursor/skills/disabled/SKILL.md",
+          "description": "",
+          "disableModelInvocation": true,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/project/.cursor/skills/duplicate/SKILL.md",
+          "description": "cursor duplicate",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/project/.cursor/skills/folder-name/SKILL.md",
+          "description": "metadata description",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/project/.cursor/skills/invalid-duplicate/SKILL.md",
+          "description": "",
+          "disableModelInvocation": false,
+          "invalid": true
+        },
+        {
+          "path": "<fixture>/project/.cursor/skills/invalid/SKILL.md",
+          "description": "",
+          "disableModelInvocation": false,
+          "invalid": true
+        },
+        {
+          "path": "<fixture>/project/.cursor/skills/long-description/SKILL.md",
+          "disableModelInvocation": false,
+          "invalid": false,
+          "descriptionLength": 1535
+        },
+        {
+          "path": "<fixture>/project/.cursor/skills/missing-description/SKILL.md",
+          "description": "",
+          "disableModelInvocation": false,
+          "invalid": true
+        },
+        {
+          "path": "<fixture>/project/.cursor/skills/project-cursor/SKILL.md",
+          "description": "fixture project-cursor",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/project/.cursor/skills/sdk-only/SKILL.md",
+          "description": "sdk",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/project/.claude/skills/imagegen/SKILL.md",
+          "description": "not filtered",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/project/.claude/skills/project-claude/SKILL.md",
+          "description": "fixture project-claude",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/project/.codex/skills/project-codex/SKILL.md",
+          "description": "fixture project-codex",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/project/.grok/skills/project-grok/SKILL.md",
+          "description": "fixture project-grok",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/project/.agents/skills/project-agents/SKILL.md",
+          "description": "fixture project-agents",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/project/nested-root/.cursor/skills/SKILL.md",
+          "description": "skill at nested root",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/project/.hidden/.cursor/skills/hidden-parent/SKILL.md",
+          "description": "hidden parent",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/project/nested/.cursor/skills/nested-cursor/SKILL.md",
+          "description": "nested cursor",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/project/nested/.agents/skills/nested-agents/SKILL.md",
+          "description": "nested agents",
+          "disableModelInvocation": false,
+          "invalid": false
+        }
+      ]
+    }
+  ],
+  "rawManifest": [
+    {
+      "path": "oar-trial-run/cursor-skills/false-native.log",
+      "bytes": 236,
+      "sha256": "b35a5a026a02149a61577b26ea3e476803689a62c93fe65560a0ae102d4e980c"
+    },
+    {
+      "path": "oar-trial-run/cursor-skills/true-native.log",
+      "bytes": 236,
+      "sha256": "4c530fe6cc1c060d3c36b855dce2349d411ef0d8cbac873e8489d2942af3fede"
+    },
+    {
+      "path": "oar-trial-run/cursor-skills/false.json",
+      "bytes": 12301,
+      "sha256": "9e8f0649aa0f8e31707c4920d0c91e7b043eb0a009d8c29fbd67cc5bbad53989"
+    },
+    {
+      "path": "oar-trial-run/cursor-skills/true.json",
+      "bytes": 14308,
+      "sha256": "0e82e5812a951b4895774fd0173f67c0b95b6d60e665a2d500a229ee8cd53e88"
+    },
+    {
+      "path": "../artifacts/cursor-skills/parity-first.log",
+      "bytes": 266,
+      "sha256": "bfc515539f46f99888e9ca8657c58926be80f427813402532eb3524072bdd30f"
+    },
+    {
+      "path": "../artifacts/cursor-skills/parity-second.log",
+      "bytes": 462,
+      "sha256": "0317922ae37d3572672b3bb4b89a0007bafbe045a080777749f36cc0095927b8"
+    },
+    {
+      "path": "../artifacts/cursor-skills/parity-final.log",
+      "bytes": 266,
+      "sha256": "575128bda1cfd5ceccb558daa59fedae0be9faf48318b914573d561cdf8f0acd"
+    },
+    {
+      "path": "../artifacts/cursor-skills/parity-nested-root.log",
+      "bytes": 266,
+      "sha256": "a91cf7b9816f18f059d0de380d10cf617d7e747d0c2ab3e1b7303a8871469b5b"
+    },
+    {
+      "path": "../artifacts/cursor-skills/unit-green.log",
+      "bytes": 266,
+      "sha256": "9031c90286ffdc980853dca272724b52bbb0a02f258d9cfa1f40c541ac06aa45"
+    },
+    {
+      "path": "../artifacts/cursor-skills/unit-red.log",
+      "bytes": 2511,
+      "sha256": "526e3e65b60bf99e89caee0b5ddac3c28e09a59200b91b7ffe487c36dd4b3c73"
+    },
+    {
+      "path": "../artifacts/cursor-skills/skills-full-final.log",
+      "bytes": 5504,
+      "sha256": "bd53b5010fe459d710e5f00827ff3ecb61bcf0730edf5ba5a41541ed67991ca9"
+    },
+    {
+      "path": "../artifacts/cursor-skills/skills-full-final2.log",
+      "bytes": 5706,
+      "sha256": "428e039ddca2106ef500e995703f2f3b46e46a8002a3caaf69a9e7bf5c672da0"
+    },
+    {
+      "path": "../artifacts/cursor-skills/skills-build.log",
+      "bytes": 336,
+      "sha256": "c308f869359d1c1d530daf359abde9f3d3b5e31c45d2691ee1e1eeeb87886ee8"
+    }
+  ]
+}

@@ -39,6 +39,17 @@ jobs:
           path: ${{ github.workspace }}/oar-trial-run/pi-rpc-diagnostics
           if-no-files-found: warn
       - run: pnpm run build
+      - name: Cursor SDK skill loader parity (offline)
+        run: pnpm vitest run sea-trial/vendor/cursor-skills.vendor.test.ts
+        timeout-minutes: 3
+        env:
+          OAR_TEST: cursor-skills
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cursor-skills-${{ matrix.os }}
+          path: ${{ github.workspace }}/oar-trial-run/cursor-skills
+          if-no-files-found: warn
       - name: CodeBuddy npm installer in an isolated HOME and global prefix
         run: pnpm tsx tests/codebuddy/install-smoke.ts
         timeout-minutes: 5
