@@ -219,10 +219,14 @@ query also makes native startup connections and creates cache/log files. These
 optional reads do not inherit the default local-depth no-network guarantee.
 
 Only complete `discovered` or `registered` catalogs with explicit recognized
-provenance produce counts. Entries whose native `source` is `user` are counted;
-built-in, project and local entries are not. Unknown or missing source labels,
-context-derived and MCP-only catalogs leave that category absent. Plugin
-content is counted only when its catalog identifies it as user-owned. An
+provenance produce counts. Skills count entries whose `scope` is `user`;
+`builtin`, `project`, `managed` and `other` scopes are not counted. If any skill
+has no `scope`, the skills count is absent. Native `source` labels are preserved
+and do not affect the skills count. Commands, MCP servers and tools still count
+`source: "user"`, exclude `builtin`, `project` and `local`, and omit their count
+if any source is unknown or missing. Context-derived and MCP-only catalogs
+leave that category absent. Plugin content is counted only when its catalog
+identifies it as user-owned. An
 unsupported category is absent, never guessed to be zero. A failed, partial or
 timed-out inventory makes the whole customization probe fail or time out.
 An empty complete catalog yields zero; no countable categories is unsupported.
