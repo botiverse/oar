@@ -25,6 +25,7 @@ function serve(skills: unknown = [{ name: "update-config", source: "builtin", pa
     expect(new Headers(init?.headers).get("authorization")).toBe(`Bearer ${token}`);
     const path = new URL(input).pathname;
     calls.push({ path, method: init?.method ?? "GET", body: typeof init?.body === "string" ? JSON.parse(init.body) : undefined });
+    if (path.endsWith("/shutdown")) { fake.end(0); }
     let data: unknown = { id };
     if (path.endsWith("/workspaces") && init?.method === "GET") { data = { items: existing }; }
     if (path.endsWith("/skills")) { data = { skills }; }
@@ -46,35 +47,39 @@ test("Kimi discovers native metadata without a session and keeps its token priva
     { path: "/api/v1/workspaces", method: "POST", body: { root: resolve("/project") } },
     { path: "/api/v1/workspaces/wm-owned/skills", method: "GET", body: undefined },
     { path: "/api/v1/workspaces/wm-owned", method: "DELETE", body: undefined },
+    { path: "/api/v1/shutdown", method: "POST", body: undefined },
   ]);
   expect(spawn.mock.calls[0]?.[1]).toEqual(["web", "--no-open", "--host", "127.0.0.1", "--port", "0"]);
   expect(spawn.mock.calls[0]?.[2]).toMatchObject({ killTree: true, inheritStderr: false });
   expectReaderEnvironment(spawn.mock.calls[0]?.[2]?.env);
   expect(JSON.stringify(result)).not.toMatch(/synthetic-private|private body/u);
-  expect(fake.killed()).toBe(true);
+  expect(fake.killed()).toBe(false);
 });
 
 test.each([[], null])("reused workspace survives a successful or failed skill read: %j", async (payload) => {
   serve(payload, [{ id: "wd-user", name: "User workspace" }], "wd-user");
   const result = await kimiRuntime.skills(installation);
   expect(result.kind).toBe(payload === null ? "unavailable" : "ok");
-  expect(calls.map((call) => call.method)).toEqual(["GET", "POST", "GET"]);
-  expect(calls.at(-1)?.path).toBe("/api/v1/workspaces/wd-user/skills");
-  expect(fake.killed()).toBe(true);
+  expect(calls.map((call) => call.method)).toEqual(["GET", "POST", "GET", "POST"]);
+  expect(calls.at(-2)?.path).toBe("/api/v1/workspaces/wd-user/skills");
+  expect(calls.at(-1)?.path).toBe("/api/v1/shutdown");
+  expect(fake.killed()).toBe(false);
 });
 
 test.each([null, {}, [null], [{}], [{ id: "" }]])("invalid workspace catalog fails before registration: %j", async (existing) => {
   serve([], existing);
   await expect(kimiRuntime.skills(installation)).resolves.toMatchObject({ kind: "unavailable", code: "query_failed" });
-  expect(calls.map((call) => call.method)).toEqual(["GET"]);
-  expect(fake.killed()).toBe(true);
+  expect(calls.map((call) => call.method)).toEqual(["GET", "POST"]);
+  expect(calls.at(-1)?.path).toBe("/api/v1/shutdown");
+  expect(fake.killed()).toBe(false);
 });
 
 test.each([undefined, {}, [{ description: "missing name" }]])("malformed skills are unavailable, not empty", async (payload) => {
   serve(payload ?? null);
   await expect(kimiRuntime.skills(installation)).resolves.toMatchObject({ kind: "unavailable", code: "query_failed" });
-  expect(fake.killed()).toBe(true);
-  expect(calls.at(-1)?.method).toBe("DELETE");
+  expect(fake.killed()).toBe(false);
+  expect(calls.at(-2)?.method).toBe("DELETE");
+  expect(calls.at(-1)?.path).toBe("/api/v1/shutdown");
 });
 
 test("empty native list succeeds", async () => {
@@ -83,7 +88,7 @@ test("empty native list succeeds", async () => {
 });
 
 // oxlint-disable-next-line max-statements -- The teardown timeline must retain each observation.
-test("startup timeout waits for process teardown", async () => {
+test("startup timeout returns while bounded process teardown continues", async () => {
   vi.useFakeTimers();
   fake = fakeLineProcess();
   const kill = vi.spyOn(fake, "kill").mockImplementation(() => {});
@@ -92,9 +97,9 @@ test("startup timeout waits for process teardown", async () => {
   const reading = (async () => { try { return await kimiRuntime.skills(installation, { timeoutMs: 25 }); } finally { settled = true; } })();
   await vi.advanceTimersByTimeAsync(25);
   expect(kill).toHaveBeenCalledOnce();
-  expect(settled).toBe(false);
-  fake.end(null);
   await expect(reading).resolves.toMatchObject({ kind: "unavailable", code: "timeout" });
+  expect(settled).toBe(true);
+  fake.end(null); await fake.exited;
 });
 
 // oxlint-disable-next-line max-statements -- Observe the deadline, fetch signal, process and redacted result together.
@@ -102,7 +107,9 @@ test("query timeout aborts fetch, stops the owned process and does not expose er
   vi.useFakeTimers();
   serve();
   const requests: AbortSignal[] = [];
-  vi.stubGlobal("fetch", vi.fn(async (_input: string, init?: RequestInit) => {
+  // oxlint-disable-next-line max-statements -- Record cancellation and the separate native shutdown signal together.
+  vi.stubGlobal("fetch", vi.fn(async (input: string, init?: RequestInit) => {
+    if (input.endsWith("/shutdown")) { expect(init?.signal?.aborted).toBe(false); fake.end(0); return Response.json({ code: 0, data: {} }); }
     const signal = init?.signal;
     if (signal === undefined || signal === null) { throw new Error("Missing deadline"); }
     requests.push(signal);
@@ -115,7 +122,7 @@ test("query timeout aborts fetch, stops the owned process and does not expose er
   const result = await reading;
   expect(result).toMatchObject({ kind: "unavailable", code: "timeout" });
   expect(requests.every((signal) => signal.aborted)).toBe(true);
-  expect(fake.killed()).toBe(true);
+  expect(fake.killed()).toBe(false);
   expect(JSON.stringify(result)).not.toContain(token);
 });
 

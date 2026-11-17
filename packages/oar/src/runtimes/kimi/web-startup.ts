@@ -106,6 +106,9 @@ export async function startKimiWeb(command: string, env: NodeJS.ProcessEnv, sign
     void ready.catch(() => {});
     await owned.spawned;
     const web = await ready;
+    signal.throwIfAborted();
+    // After readiness, the reader owns native shutdown even when its query aborts.
+    signal.removeEventListener("abort", stop);
     return { child: owned, web };
   } catch (error) {
     stop();

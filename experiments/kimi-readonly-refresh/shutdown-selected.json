@@ -1,0 +1,414 @@
+{
+  "graceMs": 2000,
+  "queryDeadlineMs": 50,
+  "rows": [
+    {
+      "mode": "cancel-kill",
+      "round": 0,
+      "refreshReplyDelayMs": 600,
+      "answer": "cancelled",
+      "answerMs": 42.99524900000006,
+      "killedAtAnswer": false,
+      "cleanupAfterAnswerMs": 74.3094799999999,
+      "killed": true,
+      "exitCode": 0,
+      "observation": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "submittedGeneration": 0,
+            "expectedGeneration": 0
+          }
+        ],
+        "processCount": 1,
+        "web": [],
+        "credential": {
+          "present": true,
+          "unchanged": true,
+          "fresh": false,
+          "revoked": false,
+          "refreshCurrent": false,
+          "refreshEmpty": false
+        }
+      }
+    },
+    {
+      "mode": "cancel-kill",
+      "round": 1,
+      "refreshReplyDelayMs": 600,
+      "answer": "cancelled",
+      "answerMs": 39.376031000000694,
+      "killedAtAnswer": false,
+      "cleanupAfterAnswerMs": 79.70371299999988,
+      "killed": true,
+      "exitCode": 0,
+      "observation": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "submittedGeneration": 0,
+            "expectedGeneration": 0
+          }
+        ],
+        "processCount": 1,
+        "web": [],
+        "credential": {
+          "present": true,
+          "unchanged": true,
+          "fresh": false,
+          "revoked": false,
+          "refreshCurrent": false,
+          "refreshEmpty": false
+        }
+      }
+    },
+    {
+      "mode": "cancel-kill",
+      "round": 2,
+      "refreshReplyDelayMs": 600,
+      "answer": "cancelled",
+      "answerMs": 32.51493500000015,
+      "killedAtAnswer": false,
+      "cleanupAfterAnswerMs": 72.58892699999979,
+      "killed": true,
+      "exitCode": 0,
+      "observation": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "submittedGeneration": 0,
+            "expectedGeneration": 0
+          }
+        ],
+        "processCount": 1,
+        "web": [],
+        "credential": {
+          "present": true,
+          "unchanged": true,
+          "fresh": false,
+          "revoked": false,
+          "refreshCurrent": false,
+          "refreshEmpty": false
+        }
+      }
+    },
+    {
+      "mode": "cancel-shutdown",
+      "round": 0,
+      "refreshReplyDelayMs": 600,
+      "answer": "cancelled",
+      "answerMs": 37.058132000000114,
+      "killedAtAnswer": false,
+      "cleanupAfterAnswerMs": 707.3622209999994,
+      "killed": false,
+      "exitCode": 0,
+      "observation": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "submittedGeneration": 0,
+            "expectedGeneration": 0,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          }
+        ],
+        "processCount": 1,
+        "web": [],
+        "credential": {
+          "present": true,
+          "unchanged": false,
+          "fresh": true,
+          "revoked": false,
+          "refreshCurrent": true,
+          "refreshEmpty": false
+        }
+      }
+    },
+    {
+      "mode": "cancel-shutdown",
+      "round": 1,
+      "refreshReplyDelayMs": 600,
+      "answer": "cancelled",
+      "answerMs": 33.086247999999614,
+      "killedAtAnswer": false,
+      "cleanupAfterAnswerMs": 717.6641770000006,
+      "killed": false,
+      "exitCode": 0,
+      "observation": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "submittedGeneration": 0,
+            "expectedGeneration": 0,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          }
+        ],
+        "processCount": 1,
+        "web": [],
+        "credential": {
+          "present": true,
+          "unchanged": false,
+          "fresh": true,
+          "revoked": false,
+          "refreshCurrent": true,
+          "refreshEmpty": false
+        }
+      }
+    },
+    {
+      "mode": "cancel-shutdown",
+      "round": 2,
+      "refreshReplyDelayMs": 600,
+      "answer": "cancelled",
+      "answerMs": 42.53193300000021,
+      "killedAtAnswer": false,
+      "cleanupAfterAnswerMs": 741.1753489999992,
+      "killed": false,
+      "exitCode": 0,
+      "observation": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "submittedGeneration": 0,
+            "expectedGeneration": 0,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          }
+        ],
+        "processCount": 1,
+        "web": [],
+        "credential": {
+          "present": true,
+          "unchanged": false,
+          "fresh": true,
+          "revoked": false,
+          "refreshCurrent": true,
+          "refreshEmpty": false
+        }
+      }
+    },
+    {
+      "mode": "deadline-shutdown",
+      "round": 0,
+      "refreshReplyDelayMs": 600,
+      "answer": "deadline",
+      "answerMs": 51.58205200000157,
+      "killedAtAnswer": false,
+      "cleanupAfterAnswerMs": 742.7225380000018,
+      "killed": false,
+      "exitCode": 0,
+      "observation": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "submittedGeneration": 0,
+            "expectedGeneration": 0,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          }
+        ],
+        "processCount": 1,
+        "web": [],
+        "credential": {
+          "present": true,
+          "unchanged": false,
+          "fresh": true,
+          "revoked": false,
+          "refreshCurrent": true,
+          "refreshEmpty": false
+        }
+      }
+    },
+    {
+      "mode": "deadline-shutdown",
+      "round": 1,
+      "refreshReplyDelayMs": 600,
+      "answer": "deadline",
+      "answerMs": 50.8088650000027,
+      "killedAtAnswer": false,
+      "cleanupAfterAnswerMs": 693.003252999999,
+      "killed": false,
+      "exitCode": 0,
+      "observation": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "submittedGeneration": 0,
+            "expectedGeneration": 0,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          }
+        ],
+        "processCount": 1,
+        "web": [],
+        "credential": {
+          "present": true,
+          "unchanged": false,
+          "fresh": true,
+          "revoked": false,
+          "refreshCurrent": true,
+          "refreshEmpty": false
+        }
+      }
+    },
+    {
+      "mode": "deadline-shutdown",
+      "round": 2,
+      "refreshReplyDelayMs": 600,
+      "answer": "deadline",
+      "answerMs": 51.04363899999953,
+      "killedAtAnswer": false,
+      "cleanupAfterAnswerMs": 673.7742029999972,
+      "killed": false,
+      "exitCode": 0,
+      "observation": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "submittedGeneration": 0,
+            "expectedGeneration": 0,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          }
+        ],
+        "processCount": 1,
+        "web": [],
+        "credential": {
+          "present": true,
+          "unchanged": false,
+          "fresh": true,
+          "revoked": false,
+          "refreshCurrent": true,
+          "refreshEmpty": false
+        }
+      }
+    },
+    {
+      "mode": "deadline-exceeds-grace",
+      "round": 0,
+      "refreshReplyDelayMs": 4000,
+      "answer": "deadline",
+      "answerMs": 51.405061999998,
+      "killedAtAnswer": false,
+      "cleanupAfterAnswerMs": 2036.4242200000008,
+      "killed": true,
+      "exitCode": 0,
+      "observation": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "submittedGeneration": 0,
+            "expectedGeneration": 0
+          }
+        ],
+        "processCount": 1,
+        "web": [],
+        "credential": {
+          "present": true,
+          "unchanged": true,
+          "fresh": false,
+          "revoked": false,
+          "refreshCurrent": false,
+          "refreshEmpty": false
+        }
+      }
+    },
+    {
+      "mode": "deadline-exceeds-grace",
+      "round": 1,
+      "refreshReplyDelayMs": 4000,
+      "answer": "deadline",
+      "answerMs": 52.035492000002705,
+      "killedAtAnswer": false,
+      "cleanupAfterAnswerMs": 2039.2960929999972,
+      "killed": true,
+      "exitCode": 0,
+      "observation": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "submittedGeneration": 0,
+            "expectedGeneration": 0
+          }
+        ],
+        "processCount": 1,
+        "web": [],
+        "credential": {
+          "present": true,
+          "unchanged": true,
+          "fresh": false,
+          "revoked": false,
+          "refreshCurrent": false,
+          "refreshEmpty": false
+        }
+      }
+    },
+    {
+      "mode": "deadline-exceeds-grace",
+      "round": 2,
+      "refreshReplyDelayMs": 4000,
+      "answer": "deadline",
+      "answerMs": 51.19307000000117,
+      "killedAtAnswer": false,
+      "cleanupAfterAnswerMs": 2040.9444079999957,
+      "killed": true,
+      "exitCode": 0,
+      "observation": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "submittedGeneration": 0,
+            "expectedGeneration": 0
+          }
+        ],
+        "processCount": 1,
+        "web": [],
+        "credential": {
+          "present": true,
+          "unchanged": true,
+          "fresh": false,
+          "revoked": false,
+          "refreshCurrent": false,
+          "refreshEmpty": false
+        }
+      }
+    }
+  ]
+}

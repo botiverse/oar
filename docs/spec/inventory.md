@@ -188,7 +188,9 @@ filesystem to infer the Harness's effective skills. See the
 [host-owned inventory boundary](../runtimes/pi-durable.md#skill-inventory).
 
 Kimi starts a private loopback Web service, reads the complete workspace skill
-catalog and stops its owned process tree. A workspace ID returned by registration
+catalog and requests native shutdown of its owned process. Its caller deadline
+returns a timeout while bounded owned cleanup continues in the background.
+A workspace ID returned by registration
 is unregistered only if absent from the preceding native workspace list;
 existing registrations are retained. Native logs, indexes and the
 persistent Web token can be created; no session or prompt is submitted.

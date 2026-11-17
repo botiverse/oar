@@ -7,6 +7,7 @@ import { KIMI_USAGE, type KimiAuthContext } from "./auth-config.js";
 import { readKimiToken } from "./oauth-token.js";
 import { kimiWebRequest } from "./web-query.js";
 import { startKimiWeb } from "./web-startup.js";
+import { stopKimiWeb } from "./web-shutdown.js";
 
 const buckets = { limit5h: "5h limit", limit7d: "Weekly limit", monthTotal: "Monthly limit", monthCode: "Monthly code limit" } as const;
 
@@ -58,7 +59,7 @@ export async function kimiNativeUsage(command: string, auth: KimiAuthContext, en
       return { ...result, ...(typeof user.email === "string" && user.email.length > 0 ? { email: user.email } : {}),
         ...(typeof user.nickname === "string" && user.nickname.length > 0 ? { displayName: user.nickname } : {}),
         ...(typeof user.userLevelName === "string" && user.userLevelName.length > 0 ? { plan: user.userLevelName } : {}) };
-    } finally { if (!child.stopping()) { child.kill(); } await child.exited; }
+    } finally { await stopKimiWeb(child, web); }
   });
   return snapshot;
 }

@@ -83,6 +83,7 @@ The script creates isolated homes and removes them after retaining its results.
 Unit regressions cover shared ownership, queued cancellation, stale releases,
 pre-abort, symlink/fallback resolution, token states, warm bypass, readiness
 release, failed spawn/exit, and one deadline across queue and startup for both
-reader paths. The existing startup-timeout test still requires joined skills
-cleanup. Native 2.4.1 login, account environment, expired usage and skill
+reader paths. Startup-timeout cleanup remains owned; the later
+[shutdown change](../kimi-readonly-refresh/README.md#native-shutdown-and-deadlines)
+separates the caller deadline from background cleanup. Native 2.4.1 login, account environment, expired usage and skill
 inventory checks passed (15 cases).
