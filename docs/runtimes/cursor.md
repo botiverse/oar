@@ -750,13 +750,12 @@ Cursor runs its own tools in the host process tree; no request reaches the
 application, and none of the scenarios asked for permission. OAR opens every
 agent with the SDK's sandbox off (`sandboxOptions.enabled: false`), as every
 OAR session runs by default; otherwise a `~/.cursor/sandbox.json` would turn
-one on. Unless `userConfiguration` is `"exclude"`
-([user configuration](#user-configuration)), OAR sets no `settingSources`,
-so the SDK's default decides which of the user's and project's Cursor
-settings the agent loads. Measured only against a hand-scripted stand-in for
-Cursor's backend, that default read neither MCP file
-([session MCP servers](#session-mcp-servers)); rules were not part of that
-measurement.
+one on. OAR passes `local.settingSources: ["project", "user"]` by default
+and for `userConfiguration: "include"`; `"exclude"` passes `[]`.
+This enables the SDK's project and user skills, hooks and MCP configuration,
+and project rules. Hooks can execute and configured MCP servers can connect
+before inference. See [user configuration](#user-configuration) for the
+measured paths and model-selection boundary.
 
 **Environment (in process: unsupported; subprocess: the child's):** the SDK
 has no per-agent environment for tools. In process the agent shares the
@@ -859,7 +858,7 @@ Earlier, against a hand-scripted stand-in for Cursor's backend
 - The SDK starts nothing at `Agent.create`. It spawns a stdio server at the
   first `send`.
 - A server with a bad command is dropped silently.
-- Under the SDK's default `settingSources` the agent read neither
+- In this earlier probe, under the SDK's omitted `settingSources`, the agent read neither
   `~/.cursor/mcp.json` nor `.cursor/mcp.json`; with `["project", "user"]`
   the inline entry won a name clash. Not re-checked live.
 
@@ -1135,27 +1134,46 @@ answer; OAR does not substitute that unrelated field or a prompt instruction.
 
 ## User configuration
 
-`userConfiguration: "exclude"` explicitly passes `local.settingSources: []`
-and keeps `local.sandboxOptions: { enabled: false }`. SDK 1.2.0, like
-1.0.40 and 1.1.0, loads no ambient settings when setting sources are
-omitted, so omission and `"include"` retain that native default. Project
-settings are absent too.
-The SDK still reads `~/.cursor/sandbox.json`, but the explicit sandbox option
-takes precedence. Managed organization controls remain native.
+OAR passes `local.settingSources: ["project", "user"]` when
+`userConfiguration` is omitted or `"include"`, on both create and resume,
+in process and in subprocess mode. `"exclude"` passes `[]`. SDK 1.4.0
+itself defaults to no setting sources when the field is omitted. OAR selects
+the two sources explicitly so a default session uses the user's installed
+configuration, as the shared session contract requires.
 
-The SDK's stored login and session store stay in their original locations.
-Its stored API key is static, so there is no refresh-token rotation to
-emulate. The [local probe](../../experiments/cursor-user-configuration/README.md)
-uses a synthetic stored key, observes actual file reads and authenticated
-requests, and blocks external connections. A native user-source positive
-control reads user skills, hooks and MCP and connects that MCP server;
-OAR's default and exclusion opens do not. A subsequent exclusion open
-reuses the original login and leaves its file unchanged. The stand-in
-rejects inference deliberately; this proves local configuration and
-credential use, not a successful model turn or remote account-rule behavior.
-All four controls passed on 1.0.40, 1.1.0 and 1.2.0; on 1.2.0 only once the
-probe also observed the SDK's new `FileHandle.readFile` reads
-([October 28 report](../../experiments/runtime-version-checks/2026-10-28.md#configuration-observer)).
+The [native configuration probe](../../experiments/cursor-user-configuration/README.md)
+uses isolated sibling home/project directories and the unmodified SDK 1.4.0
+with a synthetic local backend. With both sources selected it confirms:
+
+- Skills are read from both fixture `.cursor/skills` directories.
+- Project `.cursor/rules/*.mdc` and `AGENTS.md` are read. The corresponding
+  home fixtures are not read; this does not claim all user rule sources are
+  supported or absent.
+- Both `.cursor/hooks.json` files are read and their `beforeSubmitPrompt`
+  hooks execute. Both `.cursor/mcp.json` servers connect.
+- Conflicting model values in `.cursor/cli-config.json` are not read. OAR's
+  explicit SDK model selection remains selected. OAR still chooses Auto
+  (`default`) when opening without a model, or the latest stored run's model
+  when resuming without an override; enabling settings does not delegate
+  that choice to a CLI configuration file.
+
+Native omission and OAR exclusion load none of those fixture settings.
+The explicit `local.sandboxOptions: { enabled: false }` still overrides the
+user sandbox file. This setting-source list does not opt into SDK `team`,
+`mdm` or `plugins` sources; remote organization enforcement is not measured
+by the local backend.
+
+The SDK's login and session store stay in their original locations.
+All six controls use the original synthetic stored key, and the login file
+remains unchanged after disposal and reopen. The local backend deliberately
+rejects inference; the probe verifies configuration reads, hook execution,
+MCP connections and credential use, not successful model generation.
+
+**Behavior change for release notes:** before this fix, OAR omitted
+`settingSources` and silently excluded the user's and project's settings.
+Default sessions now load them, including executable hooks and MCP servers.
+Hosts that intentionally require the old exclusion must pass
+`userConfiguration: "exclude"`. No skill-listing API is added by this fix.
 
 ## Orientation query costs
 

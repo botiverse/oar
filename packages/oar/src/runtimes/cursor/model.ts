@@ -4,7 +4,7 @@ import { resolvedAdditionalDirectories } from "../../shared/additional-directori
 import type { McpServer, SessionOptions } from "../../contracts/session.js";
 import { checkMcpServerNames, givenMcpServers, isHttpMcpServer } from "../../shared/mcp-servers.js";
 import { cursorOpenFailure, cursorResumeFailure } from "./failure.js";
-import type { CursorAgent, CursorMcpServerConfig, CursorSdk, ModelListItem, ModelSelection } from "./sdk.js";
+import type { CursorAgent, CursorAgentOptions, CursorMcpServerConfig, CursorSdk, ModelListItem, ModelSelection } from "./sdk.js";
 
 /**
  * Cursor's catalog (`Cursor.models.list()`, SDK 1.0.35) gives each model its
@@ -161,14 +161,14 @@ export function cursorMcpServers(servers: readonly McpServer[]): Record<string, 
 export async function openCursorAgent(sdk: CursorSdk, options: SessionOptions): Promise<CursorAgent> {
   const directories = resolvedAdditionalDirectories(options);
   const mcpServers = givenMcpServers(options.mcpServers);
-  const agentOptions = {
+  const agentOptions: CursorAgentOptions = {
     model: await cursorModelSelection(sdk, options),
     ...(options.disallowedTools === undefined ? {} : { disallowedTools: [...options.disallowedTools] }),
     ...(mcpServers === null ? {} : { mcpServers: cursorMcpServers(mcpServers) }),
     local: {
       cwd: options.cwd,
       ...(directories.length === 0 ? {} : { dirs: directories }),
-      ...(options.userConfiguration === "exclude" ? { settingSources: [] } : {}),
+      settingSources: options.userConfiguration === "exclude" ? [] : ["project", "user"],
       sandboxOptions: { enabled: false },
     },
   };

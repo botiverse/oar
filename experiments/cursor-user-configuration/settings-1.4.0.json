@@ -1,0 +1,187 @@
+{
+  "sdk": "1.4.0",
+  "platform": "linux x64",
+  "node": "24.19.0",
+  "date": "2026-11-17",
+  "controls": [
+    {
+      "label": "oar default",
+      "configuration": [
+        {
+          "scope": "user",
+          "included": true,
+          "ruleRead": false,
+          "agentsRead": false,
+          "mcpConnected": true,
+          "hookExecuted": true,
+          "modelConfigRead": false
+        },
+        {
+          "scope": "project",
+          "included": true,
+          "ruleRead": true,
+          "agentsRead": true,
+          "mcpConnected": true,
+          "hookExecuted": true,
+          "modelConfigRead": false
+        }
+      ],
+      "model": {
+        "id": "gpt-5.4-nano"
+      },
+      "storedLoginUsed": true,
+      "authenticatedRunReachedLocalBackend": true,
+      "terminalStatus": "error"
+    },
+    {
+      "label": "oar include",
+      "configuration": [
+        {
+          "scope": "user",
+          "included": true,
+          "ruleRead": false,
+          "agentsRead": false,
+          "mcpConnected": true,
+          "hookExecuted": true,
+          "modelConfigRead": false
+        },
+        {
+          "scope": "project",
+          "included": true,
+          "ruleRead": true,
+          "agentsRead": true,
+          "mcpConnected": true,
+          "hookExecuted": true,
+          "modelConfigRead": false
+        }
+      ],
+      "model": {
+        "id": "gpt-5.4-nano"
+      },
+      "storedLoginUsed": true,
+      "authenticatedRunReachedLocalBackend": true,
+      "terminalStatus": "error"
+    },
+    {
+      "label": "native omitted control",
+      "configuration": [
+        {
+          "scope": "user",
+          "included": false,
+          "ruleRead": false,
+          "agentsRead": false,
+          "mcpConnected": false,
+          "hookExecuted": false,
+          "modelConfigRead": false
+        },
+        {
+          "scope": "project",
+          "included": false,
+          "ruleRead": false,
+          "agentsRead": false,
+          "mcpConnected": false,
+          "hookExecuted": false,
+          "modelConfigRead": false
+        }
+      ],
+      "model": {
+        "id": "gpt-5.4-nano"
+      },
+      "storedLoginUsed": true,
+      "authenticatedRunReachedLocalBackend": true,
+      "terminalStatus": "error"
+    },
+    {
+      "label": "native user positive control",
+      "configuration": [
+        {
+          "scope": "user",
+          "included": true,
+          "ruleRead": false,
+          "agentsRead": false,
+          "mcpConnected": true,
+          "hookExecuted": true,
+          "modelConfigRead": false
+        },
+        {
+          "scope": "project",
+          "included": false,
+          "ruleRead": false,
+          "agentsRead": false,
+          "mcpConnected": false,
+          "hookExecuted": false,
+          "modelConfigRead": false
+        }
+      ],
+      "model": {
+        "id": "gpt-5.4-nano"
+      },
+      "storedLoginUsed": true,
+      "authenticatedRunReachedLocalBackend": true,
+      "terminalStatus": "error"
+    },
+    {
+      "label": "oar exclude",
+      "configuration": [
+        {
+          "scope": "user",
+          "included": false,
+          "ruleRead": false,
+          "agentsRead": false,
+          "mcpConnected": false,
+          "hookExecuted": false,
+          "modelConfigRead": false
+        },
+        {
+          "scope": "project",
+          "included": false,
+          "ruleRead": false,
+          "agentsRead": false,
+          "mcpConnected": false,
+          "hookExecuted": false,
+          "modelConfigRead": false
+        }
+      ],
+      "model": {
+        "id": "gpt-5.4-nano"
+      },
+      "storedLoginUsed": true,
+      "authenticatedRunReachedLocalBackend": true,
+      "terminalStatus": "error"
+    },
+    {
+      "label": "oar exclude after reopen",
+      "configuration": [
+        {
+          "scope": "user",
+          "included": false,
+          "ruleRead": false,
+          "agentsRead": false,
+          "mcpConnected": false,
+          "hookExecuted": false,
+          "modelConfigRead": false
+        },
+        {
+          "scope": "project",
+          "included": false,
+          "ruleRead": false,
+          "agentsRead": false,
+          "mcpConnected": false,
+          "hookExecuted": false,
+          "modelConfigRead": false
+        }
+      ],
+      "model": {
+        "id": "gpt-5.4-nano"
+      },
+      "storedLoginUsed": true,
+      "authenticatedRunReachedLocalBackend": true,
+      "terminalStatus": "error"
+    },
+    {
+      "credentialFileUnchangedAfterDisposalAndReopen": true,
+      "originalLoginStillPresent": true,
+      "inferencePerformed": false
+    }
+  ]
+}
