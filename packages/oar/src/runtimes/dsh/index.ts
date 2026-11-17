@@ -16,5 +16,6 @@ export const dshRuntime = defineRuntime({
   },
   installation: dshInstallation, install: dshInstall, installPlan: dshInstallPlan,
   listModels: onFirstCall(async () => { const { dshListModels } = await import("./list-models.js"); return dshListModels; }),
+  skills: onFirstCall(async () => { const { dshSkills } = await import("./skills.js"); return dshSkills; }),
   session: onFirstCall(async () => { const { dshSession } = await import("./session.js"); return dshSession; }),
 }, { execution: "process" });

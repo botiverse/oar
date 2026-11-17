@@ -42,6 +42,7 @@ DSH is a Cordis plugin tree. Injected services, with no package import:
 - `agent`: `status`, `followup(message)`, `steer(message)`, `cancel(cause, {keepInbox})`, `inbox.nextTurn`, `inbox.nextStep`, `inbox.remove(id)`; `agent.model.current()` and `select()` from 0.2.2-alpha.2, absent on 0.2.1-rc.5.
 - `llm.resolveCallConfig(route)`: validates a route and effort before any provider request; `llm.listProviders()`, `listModels(provider)`, `resolveModelInfo(provider, model)`: the catalog; `agentDefaultModel.currentSelection()`: the configured default.
 - `sessionPersistence.open(id, "read")`: the saved header and log without taking the session over.
+- `skills.snapshot({cwd})`: global invocation-neutral catalog and completeness flag, without an agent scope.
 - Events: `session/event` (the durable log), `agent/assistant-stream` (transient chunks), `agent/status`, `agent/error`, `subagent/start`, `subagent/end`.
 
 A package outside a profile cannot import `@deepseek-ai/*`
@@ -497,3 +498,25 @@ is parsed as a profile name. OAR leaves `checkUpdate` and `upgrade` absent;
 use the documented npm installation method to manage the package. The
 [isolated command inventory](../../experiments/old-cli-upgrade/README.md)
 records the version and source checked.
+
+## Independent skill catalog
+
+`skills()` calls the native `skills.snapshot({cwd})` after the plugin loader
+barrier in a short-lived process launched like a session. It creates no agent
+and submits no prompt. The result is `discovered`, with `partial:!complete`;
+provider failures preserve valid entries, while files the native loader rejects
+remain absent. Source, optional path and model invocation policy are projected
+without bodies or diagnostics. Known user/project/bundled sources map to the
+shared scope; provider labels do not establish plugin identity.
+
+This is the global catalog of the selected ACP profile, not any existing
+agent's preset or active skills. Native startup can create profile/storage
+state and activate user plugins; their providers can access the network.
+OAR preserves the caller's environment and native configuration. A missing
+`snapshot` method is unsupported, and failed queries remain unavailable.
+The reader bounds the query and waits for process cleanup on success, error
+and timeout. Other independent inventories remain unsupported.
+
+[Linux native comparison and reproduction](../../experiments/dsh-skills/README.md)
+cover 0.2.1-rc.5, 0.2.2-rc.1 and 0.2.2-rc.3, including malformed files, native provider
+failure, configuration preservation and a provider that never settles.

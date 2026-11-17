@@ -92,7 +92,14 @@ const llm = {
     return route;
   } }),
 };
-const services = { agents, sessionPersistence: persistence, llm, ...(mode === "no-default" ? {} : { agentDefaultModel: { currentSelection: () => ({ provider: "local", model: "thinks" }) } }) };
+const skills = { ...(missing.has("snapshot") ? {} : { snapshot: async ({ cwd }) => {
+  if (mode === "skills-error") { throw new Error("PRIVATE_SKILL_ERROR"); }
+  if (mode === "skills-hang") { await new Promise(() => {}); }
+  if (process.env.FAKE_DSH_SKILLS !== undefined) { return JSON.parse(process.env.FAKE_DSH_SKILLS); }
+  return { skills: [{ name: "fixture", path: cwd, source: "project-dsh", description: process.env.OAR_SKILL_DESCRIPTION,
+    invocation: { modelInvocable: false, userInvocable: true }, content: "PRIVATE_SKILL_BODY", provider: "filesystem" }], complete: true };
+} }) };
+const services = { agents, sessionPersistence: persistence, llm, skills, ...(mode === "no-default" ? {} : { agentDefaultModel: { currentSelection: () => ({ provider: "local", model: "thinks" }) } }) };
 const loader = {
   await: async () => { if (mode === "barrier-fails") { throw new Error("barrier failed"); } },
   ...(mode === "mcp-inactive" ? { entries: () => patch[1].insert.map(options => ({ options, fiber: { state: 0, await: async () => {} } })) } : {}),
