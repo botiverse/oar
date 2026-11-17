@@ -44,7 +44,7 @@ let stage = "initialize";
 try {
   const init = await native.initialize();
   const version = init.daemon_version;
-  assert.equal(version, "1.1.83", "Review the no-key access check before probing a different native version.");
+  assert.ok(version === "1.1.83" || version === "1.1.91", "Review the no-key access check before probing a different native version.");
   report.version = version;
   stage = "catalog";
   const catalog = await native.request("daemon.get_byok_config");
@@ -57,7 +57,7 @@ try {
   stage = "access";
   const access = await native.request("daemon.check_byok_config", { config: { provider: "deepseek", model: "deepseek-flash-pg", type: "pg", parameters: {} } });
   report.emptyParametersCheck = { success: access.success, code: access.code, emptyParameters: access.error === "parameters must not be empty" };
-  // In 1.1.83 this error follows the native account-access guard and precedes
+  // In 1.1.83 and 1.1.91 this error follows the native account-access guard and precedes
   // its provider check. It neither sends a provider key nor performs inference.
   assert.equal(access.code, "BYOK_CONFIG_INVALID");
   assert.equal(access.error, "parameters must not be empty");

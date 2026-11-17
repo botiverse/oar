@@ -39,8 +39,10 @@
  * with OAR_TEST=kimi-login (local OAuth stand-in, no account). Recheck all three platforms before updating the CI login pin
  * and the minimum version accepted by loginExecutable in kimi/login.ts and
  * kimi/logout.ts; keep the native login fixture's version aligned.
- * A changed Qoder binary also needs the qoder-native vendor/behavior suites
- * and login tests (native model replay, isolated HOME, no account).
+ * Check a changed Qoder binary with runtime-version-checks/qoder-candidate.ts.
+ * From 1.1.82, report no offline replay and require a separately authorized
+ * real-account check. Do not run --fake-responses on those versions: the flag
+ * remains, but its inference consumer was removed. Keep CI replay at 1.1.81.
  * A changed Factory droid also needs the factory-aimock behavior and vendor
  * suites and experiments/factory-droid/probe.mjs (custom model, isolated HOME,
  * no account); keep the CI pin separate from this observation.
@@ -71,6 +73,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { findPackageJSON } from "node:module";
 import path from "node:path";
+import { versionAtLeast } from "../packages/oar/src/shared/update.js";
 import { allRuntimes } from "../sea-trial/harness/runtimes.js";
 
 const PI_PACKAGE = "@earendil-works/pi-coding-agent";
@@ -163,6 +166,7 @@ const results = await Promise.all(sources.map(async ({ id, url, major }) => {
       runtime: id, line, source: url, latest, installed,
       installation: id === "pi-durable" ? "host_supplied" : installation?.kind ?? "unsupported",
       status,
+      candidateProbe: id === "qoder" && versionAtLeast(latest, "1.1.82") ? "no_offline_replay_requires_real_account" : undefined,
     };
   } catch (error) {
     process.exitCode = 1;
