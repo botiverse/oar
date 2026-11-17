@@ -1,12 +1,12 @@
 /* oxlint-disable import/max-dependencies -- Runtime composes the independently owned capability contracts. */
 import type { AccountUsageReader, LimitResetInspector, LimitResetRedeemer } from "./account-usage.js";
 import type { AuthStatusReader, RuntimeLogin, RuntimeLogout } from "./login.js";
+import type { AvailableInstallation, InstallationProbe } from "./installation.js";
 import type { InstallLine, InstallPlanner, Installer } from "./install.js";
 import type { InventoryResult, RuntimeInventories } from "./inventory.js";
 // oxlint-disable-next-line import/consistent-type-specifier-style -- Keep types and implementation from the same contract in one import.
 import { type PlacementRequest, type RuntimePlacementOptions, placementSession } from "./placement.js";
 import type { UpdateChecker, Upgrader } from "./update.js";
-import type { InstallationProbe } from "./installation.js";
 import type { ManualCompaction } from "./compaction.js";
 import type { ModelLister } from "./list-models.js";
 import type { ProviderAuthReader } from "./provider-auth.js";
@@ -31,6 +31,20 @@ export type RefusableSessionOption = "systemPrompt" | "appendSystemPrompt" | "en
  * a tool name the native filter cannot disable); see the runtime page.
  */
 export type RefusedSessionOptions = Readonly<Partial<Record<RefusableSessionOption, string>>>;
+
+/**
+ * What a session opened from this installation will offer, known without
+ * opening one. Each field mirrors the opened session: `steer` is whether
+ * `Session.steer` exists, `images` is `capabilities.images`. A field is
+ * absent when only the native handshake at open can tell (an ACP agent's
+ * advertised image input, OpenCode 2's steering extension, DSH's agent); a
+ * host treats absent as unknown, never as false. The opened session stays
+ * authoritative.
+ */
+export interface SessionCapabilityDeclaration {
+  readonly steer?: boolean;
+  readonly images?: boolean;
+}
 
 /** Native behavior of an accepted option when reopening a saved session. */
 export interface ResumeOptionSemantics {
@@ -107,6 +121,12 @@ export interface Runtime extends RuntimeInventories {
    * (experiments/mcp-tools-list-changed.ts, docs/spec/runtime-matrix.md#host-served-tools).
    */
   readonly mcpToolsListChanged?: McpToolsListChanged;
+  /**
+   * Pure and synchronous: no process, no I/O. Takes the installation because
+   * the answer can depend on its version (OpenCode 1 vs 2). Absent member:
+   * nothing is declared (docs/spec/runtime-matrix.md#session-capabilities-before-open).
+   */
+  readonly sessionCapabilities?: (installation: AvailableInstallation) => SessionCapabilityDeclaration;
   readonly installation?: InstallationProbe;
   /** Read only: what `install` would run here, or why it would run nothing. Present exactly when `install` is. */
   readonly installPlan?: InstallPlanner;

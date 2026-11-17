@@ -20,9 +20,9 @@ export async function acpBackend(id: keyof typeof backends): Promise<{
     mock.onMessage(/^(?![\s\S]*slow)[\s\S]*$/u, { content: "ok" }, { latency: 80 });
   });
   // No account or catalog reads: those cases skip by capability, as in the daily probe.
-  const { installation, session, execution } = backend.runtime;
+  const { installation, session, sessionCapabilities, execution } = backend.runtime;
   return {
-    runtime: defineRuntime({ id: `${id}-aimock`, installation, session }, execution === null ? {} : { execution }), aimock,
+    runtime: defineRuntime({ id: `${id}-aimock`, installation, session, sessionCapabilities }, execution === null ? {} : { execution }), aimock,
     ...(id === "opencode" ? { beforeSuite: opencodePreparation(aimock.env) } : {}),
   };
 }

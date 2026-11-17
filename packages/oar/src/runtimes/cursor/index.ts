@@ -89,6 +89,7 @@ export function createCursorRuntime(options: CursorRuntimeOptions): CursorRuntim
 function cursorRuntime(access: CursorSdkAccess): CursorRuntime {
   const definition = {
     id: "cursor",
+    sessionCapabilities: () => ({ steer: true, images: true }),
     refusedSessionOptions: access.refusedSessionOptions,
     brand: runtimeBrands.cursor,
     manualCompaction: { kind: "supported", activeTurn: "reject" },

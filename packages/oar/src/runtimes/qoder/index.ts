@@ -6,7 +6,8 @@ import { qoderInstall, qoderInstallPlan } from "./install.js";
 import { qoderRefusedSessionOptions } from "./options.js";
 
 export const qoderRuntime = defineRuntime({
-  id: "qoder", brand: runtimeBrands.qoder,
+  id: "qoder",
+  sessionCapabilities: () => ({ steer: true, images: false }), brand: runtimeBrands.qoder,
   manualCompaction: { kind: "supported", activeTurn: "reject" },
   refusedSessionOptions: qoderRefusedSessionOptions,
   installation: qoderInstallation, install: qoderInstall, installPlan: qoderInstallPlan,

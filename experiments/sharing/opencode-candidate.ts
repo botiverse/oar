@@ -19,7 +19,7 @@ export function opencodeCandidateRefusal(installation: AvailableInstallation, pl
 }
 
 export function experimentalOpenCodeRuntime(refusal = opencodeCandidateRefusal): Runtime {
-  return defineRuntime({ id: "opencode", installation: opencodeRuntime.installation,
+  return defineRuntime({ id: "opencode", installation: opencodeRuntime.installation, sessionCapabilities: opencodeRuntime.sessionCapabilities,
     session: onFirstCall(async () => { const { opencodeSession } = await import("../../packages/oar/src/runtimes/opencode/session.js"); return opencodeSession; }) },
     { execution: "process", shared: { refusal,
       session: () => onFirstCall(async () => { const { createOpenCodeSharedSession } = await import("../../packages/oar/src/runtimes/opencode/shared-session.js"); return createOpenCodeSharedSession(); }) } });

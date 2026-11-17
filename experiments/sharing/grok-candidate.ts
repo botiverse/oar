@@ -14,6 +14,6 @@ export function grokCandidateRefusal(installation: AvailableInstallation, platfo
 }
 
 export function experimentalGrokRuntime(): Runtime {
-  return defineRuntime({ id: "grok", installation: grokRuntime.installation, session: grokSession },
+  return defineRuntime({ id: "grok", installation: grokRuntime.installation, sessionCapabilities: grokRuntime.sessionCapabilities, session: grokSession },
     { execution: "process", shared: { refusal: grokCandidateRefusal, session: () => createGrokSharedSession() } });
 }

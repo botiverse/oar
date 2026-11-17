@@ -10,6 +10,7 @@ export type { QwenProvider, QwenProviderAuth, QwenProviderAuthOptions, QwenProvi
 
 export const qwenRuntime = defineRuntime({
   id: "qwen",
+  sessionCapabilities: () => ({ steer: false, images: false }),
   manualCompaction: { kind: "unsupported", reason: "stream-json has no structural compaction completion signal and a user compress command can override the native operation." }, brand: runtimeBrands.qwen,
   refusedSessionOptions: qwenRefusedSessionOptions,
   resumedSessionOptions: {

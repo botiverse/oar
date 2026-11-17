@@ -14,7 +14,7 @@ export async function grokSharedBackend(): Promise<Backend> {
   const runtime = experimentalGrokRuntime().withPlacement("auto");
   return {
     concurrency: 2, aimock,
-    runtime: defineRuntime({ id: "grok-shared", installation: grokRuntime.installation,
+    runtime: defineRuntime({ id: "grok-shared", installation: grokRuntime.installation, sessionCapabilities: grokRuntime.sessionCapabilities,
       session: async (installation, options) => {
         const session = await runtime.session(installation, { ...options, cwd: aimock.env.HOME ?? process.cwd(), env: { ...options.env,
           PATH: (process.env.PATH ?? "").split(path.delimiter).filter(entry => path.isAbsolute(entry)).join(path.delimiter),

@@ -40,6 +40,7 @@ export function createPiRuntime(options: PiRuntimeOptions = {}): Runtime & { rea
   };
   const runtime = defineRuntime({
     id: "pi",
+    sessionCapabilities: () => ({ steer: true, images: true }),
     ...(subprocess ? { minVersion: PI_RPC_MINIMUM_VERSION } : {}),
     manualCompaction: { kind: "supported", activeTurn: "reject" },
     brand: runtimeBrands.pi,

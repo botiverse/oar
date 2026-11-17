@@ -15,6 +15,7 @@ import { codexSession } from "./session.js";
 
 export const codexRuntime = defineRuntime({
   id: "codex",
+  sessionCapabilities: () => ({ steer: true, images: true }),
   manualCompaction: { kind: "supported", activeTurn: "reject" },
   refusedSessionOptions: codexRefusedSessionOptions,
   resumedSessionOptions: {

@@ -2,6 +2,7 @@ import type { TrialCase } from "../harness/runner.js";
 import { accountUsageCases } from "./account-usage.js";
 import { installationCases } from "./installation.js";
 import { sessionCases } from "./session.js";
+import { sessionCapabilitiesCases } from "./session-capabilities.js";
 import { sessionDisposeCases } from "./session-dispose.js";
 import { sessionEffortCases } from "./session-effort.js";
 import { sessionImagesCases } from "./session-images.js";
@@ -12,6 +13,7 @@ export const trialCases: readonly TrialCase[] = [
   ...installationCases,
   ...accountUsageCases,
   ...sessionCases,
+  ...sessionCapabilitiesCases,
   ...sessionDisposeCases,
   ...sessionEffortCases,
   ...sessionImagesCases,
