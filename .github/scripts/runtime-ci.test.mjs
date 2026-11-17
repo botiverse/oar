@@ -394,3 +394,110 @@ for (const candidate of [false, true]) for (const mismatch of [false, true]) tes
     });
   } finally { rmSync(directory, { recursive: true, force: true }); }
 });
+
+// Exercise the installed Vitest API as well as pure matching: a new reporter
+// must preserve the child's exit status and keep unrelated failures visible.
+async function candidateFixture({ key = "kimi-aimock", version = "2.6.3", source, file = "mcp-servers-acp.vendor.test.ts" }) {
+  const directory = mkdtempSync(path.join(tmpdir(), "oar-candidate-reporter-"));
+  const { fileURLToPath, pathToFileURL } = await import("node:url");
+  const { candidateSummary } = await import("./runtime-candidate-summary.mjs");
+  try {
+    mkdirSync(path.join(directory, "sea-trial/vendor"), { recursive: true });
+    const vitestImport = pathToFileURL(require.resolve("vitest").replace(/index\.cjs$/u, "dist/index.js")).href;
+    writeFileSync(path.join(directory, "sea-trial/vendor", file), `import { beforeAll, describe, expect, test } from ${JSON.stringify(vitestImport)};\n${source}`);
+    const config = path.join(directory, "vitest.config.mjs");
+    writeFileSync(config, 'export default { test: { include: ["sea-trial/vendor/*.test.ts"], maxWorkers: 1 } };');
+    const reporter = fileURLToPath(new URL("runtime-candidate-reporter.mjs", import.meta.url));
+    const result = spawnSync(process.execPath, [path.join(path.dirname(require.resolve("vitest/package.json")), "vitest.mjs"), "run", "--root", directory,
+      "--config", config, "--reporter", "default", "--reporter", reporter], {
+      cwd: directory, encoding: "utf8", timeout: 30_000,
+      env: { ...process.env, OAR_TEST: key, OAR_CI_CANDIDATE_VERSION: version,
+        OAR_CANDIDATE_TEST_STEP: "vendor", OAR_TRIAL_RUN_DIR: directory },
+    });
+    assert.ok(!result.error, result.stdout + result.stderr);
+    assert.ok(existsSync(path.join(directory, "candidate-tests.json")), result.stdout + result.stderr);
+    const raw = readFileSync(path.join(directory, "candidate-tests.json"), "utf8");
+    const report = JSON.parse(raw);
+    const summary = candidateSummary({ key, version, os: "fixture", report,
+      steps: { vendor: { outcome: result.status === 0 ? "success" : "failure" } } });
+    return { status: result.status, report, raw, summary, output: result.stdout + result.stderr };
+  } finally { rmSync(directory, { recursive: true, force: true }); }
+}
+
+const mcpFailure = `describe("kimi-aimock mcpServers", () => {
+  test("a stdio and an http server attach, the agent calls both, and a resume attaches them again", () => {
+    expect({ opened: ["mcp__echo__echo", "mcp__remote__echo"], resumedWithout: ["mcp__echo__echo", "mcp__remote__echo"] })
+      .toEqual({ opened: ["mcp__echo__echo", "mcp__remote__echo"], resumedWithout: [] });
+  });
+});`;
+const workspaceFailure = `describe("Kimi native Web skill inventory", () => {
+  test("discovery preserves an existing user workspace with the same root", () => {
+    expect("wm_01234567-89ab-cdef-0123-456789abcdef").toBe("wm_11111111-89ab-cdef-0123-456789abcdef");
+  });
+});`;
+
+test("real Vitest keeps known and new failures red without copying assertion secrets", async () => {
+  const result = await candidateFixture({ source: mcpFailure + '\ntest("new failure", () => { throw new Error("synthetic-private-error"); });' });
+  assert.equal(result.status, 1, result.output);
+  assert.equal(result.report.complete, true);
+  assert.equal(result.report.failures.length, 2);
+  assert.equal(result.report.failures.filter(failure => failure.known).length, 1, result.raw);
+  assert.match(result.summary, /KNOWN.*issue #899/u);
+  assert.match(result.summary, /NEW \/ UNCLASSIFIED.*new failure/u);
+  assert.doesNotMatch(result.raw, /synthetic-private-error|mcp__echo__echo/u);
+});
+
+test("real Vitest recognizes both observed workspace versions and refuses an unobserved one", async () => {
+  for (const version of ["2.6.2", "2.6.3", "2.6.4"]) {
+    const result = await candidateFixture({ key: "kimi-login", version, file: "kimi-skills.vendor.test.ts", source: workspaceFailure });
+    assert.equal(result.status, 1, result.output);
+    assert.equal(result.report.failures.length, 1);
+    assert.equal(!!result.report.failures[0].known, version !== "2.6.4", result.raw);
+    assert.doesNotMatch(result.raw, /wm_01234567/u);
+  }
+});
+
+test("changed assertions and additional hook failures remain unclassified", async () => {
+  const changed = await candidateFixture({ source: mcpFailure.replace('resumedWithout: ["mcp__echo__echo", "mcp__remote__echo"]', 'resumedWithout: ["mcp__echo__ echo", "mcp__remote__echo"]') });
+  assert.equal(changed.status, 1, changed.output);
+  assert.equal(changed.report.failures[0].known, undefined);
+  const hooked = await candidateFixture({ source: mcpFailure + '\ndescribe("broken setup", () => { beforeAll(() => { throw new Error("synthetic-hook-secret"); }); test("unreached", () => {}); });' });
+  assert.equal(hooked.status, 1, hooked.output);
+  assert.equal(hooked.report.failures.filter(failure => failure.known).length, 1);
+  assert.ok(hooked.report.unclassifiedErrors > 0, hooked.raw);
+  assert.match(hooked.summary, /NEW \/ UNCLASSIFIED.*collection, hook or unhandled errors/u);
+  assert.doesNotMatch(hooked.raw, /synthetic-hook-secret/u);
+  const passed = await candidateFixture({ source: 'test("pass", () => expect(true).toBe(true));' });
+  assert.equal(passed.status, 0, passed.output);
+  assert.equal(passed.report.failures.length, 0);
+});
+
+test("classification requires the observed runtime, file, case and one exact assertion", async () => {
+  const { knownCandidateFailure, mcpCase } = await import("./runtime-candidate-failures.mjs");
+  const tools = ["mcp__echo__echo", "mcp__remote__echo"];
+  const failure = { key: "kimi-aimock", version: "2.6.2", file: "sea-trial/vendor/mcp-servers-acp.vendor.test.ts", name: mcpCase,
+    errors: [{ name: "AssertionError", expected: JSON.stringify({ opened: tools, resumedWithout: [] }), actual: JSON.stringify({ opened: tools, resumedWithout: tools }) }] };
+  assert.ok(knownCandidateFailure(failure));
+  for (const change of [{ key: "other" }, { file: "other.ts" }, { name: "other case" }, { errors: [] },
+    { errors: [...failure.errors, ...failure.errors] }, { errors: [{ ...failure.errors[0], name: "Error" }] },
+    { errors: [{ ...failure.errors[0], actual: failure.errors[0].actual.replace("mcp__echo__echo", "mcp__other__tool") }] }]) {
+    assert.equal(knownCandidateFailure({ ...failure, ...change }), undefined);
+  }
+});
+
+test("summary preserves setup, cancellation and incomplete-report failures beside a known test", async () => {
+  const { candidateSummary } = await import("./runtime-candidate-summary.mjs");
+  const { kimiIssue } = await import("./runtime-candidate-failures.mjs");
+  const report = { schemaVersion: 1, key: "kimi-aimock", version: "2.6.3", step: "vendor", complete: true,
+    failures: [{ file: "fixture.ts", name: "known", known: { issue: kimiIssue } }], unclassifiedErrors: 0 };
+  const input = { key: report.key, version: report.version, os: "fixture", report,
+    steps: { vendor: { outcome: "failure" }, dependencies: { outcome: "failure" }, native_behavior: { outcome: "failure" }, upload_candidate: { outcome: "failure" } } };
+  const summary = candidateSummary(input);
+  assert.match(summary, /KNOWN.*issue #899/u);
+  for (const step of ["dependencies", "native_behavior", "upload_candidate"]) assert.match(summary, new RegExp(`NEW / UNCLASSIFIED.*Step ${step}`, "u"));
+  assert.doesNotMatch(summary, /Step vendor/u);
+  for (const other of [undefined, { ...report, complete: false }, { ...report, version: "2.6.2" }, { ...report, failures: [] }]) {
+    assert.match(candidateSummary({ ...input, report: other }), /NEW \/ UNCLASSIFIED.*Step vendor/u);
+  }
+  assert.match(candidateSummary({ ...input, steps: { vendor: { outcome: "cancelled" } } }), /NEW \/ UNCLASSIFIED.*Step vendor: cancelled/u);
+});

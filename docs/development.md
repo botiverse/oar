@@ -387,8 +387,13 @@ Outside ci.yml and its pull-request and release gates:
   Discovery, download, install and native-version failures stay red; a partial
   discovery failure still lets other frozen candidates run. The workflow has
   read-only permissions, leaves no checkout token on disk, and never updates
-  accepted pins or opens bump PRs. Native and SDK candidate jobs use no shared
-  pnpm cache, so they cannot save candidate packages under the gate's cache key.
+  accepted pins or opens bump PRs. Native job summaries link exact known candidate
+  failures to their tracking issue while keeping every failed step red. The
+  Kimi 2.6.2/2.6.3 signatures are tracked in [issue 899](https://github.com/botiverse/oar/issues/899);
+  a different version, test or assertion and unrelated failed steps remain
+  new or unclassified. The additional test report omits assertion values and
+  exception messages. Native and SDK candidate jobs use no shared pnpm cache,
+  so they cannot save candidate packages under the gate's cache key.
   A focused bump PR also needs the version-specific probes in
   [`experiments/runtime-versions.ts`](../experiments/runtime-versions.ts),
   maintainer review and ordinary CI. A daily pass alone is not acceptance.
