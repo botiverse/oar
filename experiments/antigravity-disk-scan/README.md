@@ -70,7 +70,7 @@ The active-abort case holds the provider's second response to keep the
 root turn active after backgrounding. The foreground control changes only
 `WaitMsBeforeAsync` to 30000 and cancels after verifying that `du` has
 started. This distinguishes turn cancellation from background-process
-termination. `Session.status().idle` describes the root turn, not a claim
+termination. `session.status()` reporting `idle` describes the root turn, not a claim
 that every native task has stopped. A native background command can remain
 live without an active root turn to abort.
 
