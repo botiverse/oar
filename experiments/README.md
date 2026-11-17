@@ -1,5 +1,7 @@
 # experiments
 
+- [Kimi read-only refresh](kimi-readonly-refresh/README.md): synthetic rotation loss during skill-query shutdown, native background-refresh switches and Raft lock-disabled controls.
+
 - [Kimi first Web startup](kimi-web-startup/README.md): native first-token race, readiness gate, warm bypass and reader deadlines.
 
 - [Runtime version check: 2026-11-17](runtime-version-checks/2026-11-17.md): changed releases, complete CI failure observations, Cursor loader follow-up and the Qoder replay boundary.

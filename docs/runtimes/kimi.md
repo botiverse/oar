@@ -740,6 +740,26 @@ or solve background OAuth refresh shutdown. Once an upstream release fixes
 first-token creation, remeasure and restrict or remove this gate.
 [Reproduction, warm controls and timing](../../experiments/kimi-web-startup/README.md).
 
+Both read-only Web entrypoints set
+`KIMI_CODE_MODEL_CATALOG_REFRESH_ON_START=0` and
+`KIMI_CODE_MODEL_CATALOG_REFRESH_INTERVAL_MS=0` in the child environment,
+including when caller settings enable them. They do not change caller
+variables or user configuration. These native switches disable unrelated
+background model-directory refresh; `/oauth/usage` still explicitly refreshes
+credentials under Kimi's native lock when needed. Source and measured scope:
+[read-only refresh experiment](../../experiments/kimi-readonly-refresh/README.md).
+
+Without these switches, even a single skills query can start a background
+OAuth refresh and stop the process after the server rotates its refresh token
+but before Kimi saves the replacement. A later refresh submits the old value;
+Kimi may clear both credentials after rejection. In synthetic 2.6.3 controls,
+this happened in 3/3 sequential reads; the actual adapter with the switches
+passed 3/3 sequential and 3/3 concurrent reads. Disabling the OAuth lock only
+for a later usage read avoids another refresh but cannot recover a token lost
+by earlier skill discovery. This fix does not guarantee credential preservation
+when an explicit usage refresh is interrupted, and does not change session
+processes or native processes started by other hosts.
+
 Profile identity remains best effort: plan, email and nickname are projected
 without phone/account IDs. Phone sign-ins may expose a display name without
 an email. Account quota and ACP `/usage` (session token/context accounting)

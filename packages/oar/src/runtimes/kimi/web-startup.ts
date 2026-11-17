@@ -92,7 +92,12 @@ export async function startKimiWeb(command: string, env: NodeJS.ProcessEnv, sign
   };
   try {
     signal.throwIfAborted();
-    child = spawnLineProcess(command, ["web", "--no-open", "--host", "127.0.0.1", "--port", "0"], { cwd, env, killTree: true, inheritStderr: false });
+    // These read-only processes must not rotate OAuth credentials in an unjoined
+    // background catalog refresh. Explicit /oauth/usage refresh stays enabled.
+    // Native 2.6.3: packages/kap-server/src/services/modelCatalog/modelCatalogRefreshScheduler.ts
+    // at b0de2fbd2de04d87689225aafd3912e5d193b62d. Override only this child's env.
+    const queryEnv = { ...env, KIMI_CODE_MODEL_CATALOG_REFRESH_ON_START: "0", KIMI_CODE_MODEL_CATALOG_REFRESH_INTERVAL_MS: "0" };
+    child = spawnLineProcess(command, ["web", "--no-open", "--host", "127.0.0.1", "--port", "0"], { cwd, env: queryEnv, killTree: true, inheritStderr: false });
     const owned = child;
     signal.addEventListener("abort", stop, { once: true });
     owned.onExit(() => { release(); signal.removeEventListener("abort", stop); });

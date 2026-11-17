@@ -58,6 +58,24 @@ describe.skipIf(process.env.OAR_TEST !== "kimi-login")("Kimi native expired-toke
       } finally { await f.dispose(); }
     }
   });
+  test("skill discovery leaves expired OAuth untouched before a later usage read", { timeout: 60_000 }, async () => {
+    const f = await kimiExpiredUsageFixture("success");
+    try {
+      const config = path.join(f.home, "config.toml"); const configBefore = await readFile(config, "utf8");
+      const env = { ...f.env, KIMI_CODE_MODEL_CATALOG_REFRESH_ON_START: "1", KIMI_CODE_MODEL_CATALOG_REFRESH_INTERVAL_MS: "1" };
+      const skills = await kimiRuntime.skills(installation, { env, cwd: f.dir, timeoutMs: 30_000 });
+      expect(skills.kind).toBe("ok"); expect(f.calls).toHaveLength(0);
+      expect(await readFile(f.file, "utf8")).toBe(f.before);
+      const result = await kimiRuntime.accountUsage(installation, { env, timeoutMs: 30_000 });
+      if (windows) { expect(result).toEqual({ kind: "unavailable", reason: "access_token_expired" }); expect(f.calls).toHaveLength(0); }
+      else {
+        expect(result.kind).toBe("available");
+        expect(f.calls.filter(call => call.path === "/api/oauth/token")).toStrictEqual([{ path: "/api/oauth/token", fresh: false, status: 200, submittedGeneration: 0, expectedGeneration: 0 }]);
+        expect(await f.observe()).toMatchObject({ credential: { fresh: true, revoked: false, refreshCurrent: true, refreshEmpty: false } });
+      }
+      expect(await readFile(config, "utf8")).toBe(configBefore);
+    } finally { await stopped(f.trace); await f.dispose(); }
+  });
   test.each(["rejected", "network"] as const)("native refresh %s preserves the auth/failure distinction", { timeout: 60_000 }, async mode => {
     const f = await kimiExpiredUsageFixture(mode);
     try {
