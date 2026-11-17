@@ -31,6 +31,7 @@ export function pooledMockRuntime(): Runtime {
   return defineRuntime({
     id: "pooled-mock",
     session: sessionFactory("isolated"),
+    sessionCapabilities: () => ({ steer: true, images: true }),
     installation: async () => { await Promise.resolve(); return { kind: "available", via: "bundled" }; },
     listModels: async () => { await Promise.resolve(); return { kind: "ok", models: [{ id: "mock-1", effortLevels: MOCK_EFFORT_LEVELS, defaultEffort: MOCK_DEFAULT_EFFORT }] }; },
   }, { execution: "process", shared: { refusal: () => null, session: () => sessionFactory("shared") } });

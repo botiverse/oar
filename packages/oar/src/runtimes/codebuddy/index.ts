@@ -8,6 +8,7 @@ import { codebuddyRefusedSessionOptions } from "./options.js";
 
 export const codebuddyRuntime = defineRuntime({
   id: "codebuddy",
+  sessionCapabilities: () => ({ steer: false }),
   manualCompaction: { kind: "unsupported", reason: "The published compact method is not implemented by the tested CLI; slash-command completion is unverified." }, brand: runtimeBrands.codebuddy,
   refusedSessionOptions: codebuddyRefusedSessionOptions,
   installation: codebuddyInstallation, install: codebuddyInstall, installPlan: codebuddyInstallPlan,

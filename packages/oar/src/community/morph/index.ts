@@ -26,6 +26,7 @@ export type MorphRuntime = Runtime & Required<Pick<Runtime, "installation" | "li
 export function createMorphRuntime(): MorphRuntime {
   return defineRuntime({
     id: "morph",
+    sessionCapabilities: () => ({ steer: true, images: false }),
     brand: morphBrand,
     installation: morphInstallation,
     listModels: morphListModels,

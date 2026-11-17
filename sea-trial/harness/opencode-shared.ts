@@ -19,7 +19,7 @@ export async function opencodeSharedBackend(): Promise<Backend> {
   let next = 0;
   return {
     concurrency: 2, aimock,
-    runtime: defineRuntime({ id: "opencode-shared", installation: opencodeRuntime.installation,
+    runtime: defineRuntime({ id: "opencode-shared", installation: opencodeRuntime.installation, sessionCapabilities: opencodeRuntime.sessionCapabilities,
       session: async (installation, options) => {
         const cwd = options.resume === undefined ? path.join(root, String(next++)) : directories.get(options.resume);
         assert.ok(cwd !== undefined, "resume retains the observed native directory");

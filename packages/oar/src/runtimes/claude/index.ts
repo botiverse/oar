@@ -15,6 +15,7 @@ import { claudeSession } from "./session.js";
 
 export const claudeRuntime = defineRuntime({
   id: "claude",
+  sessionCapabilities: () => ({ steer: true, images: true }),
   manualCompaction: { kind: "supported", activeTurn: "reject" },
   refusedSessionOptions: claudeRefusedSessionOptions,
   resumedSessionOptions: {

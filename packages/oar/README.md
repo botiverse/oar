@@ -85,7 +85,12 @@ codebuddy, devin and kimi sessions have none, nor opencode v2 sessions whose
 `initialize` does not advertise steering; see
 [session controls](https://github.com/botiverse/oar/blob/main/docs/spec/runtime-matrix.md#session-controls)),
 so a host offers a steer control by reading the member, never a runtime
-name; `deliver` and `steerOrQueue` queue where it is absent. `session.withdraw(inputId)` takes a queued input back before it is
+name; `deliver` and `steerOrQueue` queue where it is absent. Before any session
+exists, `runtime.sessionCapabilities?.(installation)` answers `steer` and
+`images` synchronously where they are known without opening one; an absent
+field is unknown, not false
+([before open](https://github.com/botiverse/oar/blob/main/docs/spec/runtime-matrix.md#session-capabilities-before-open)).
+`session.withdraw(inputId)` takes a queued input back before it is
 sent (`accepted`), or answers `not_queued` once it went; with it a UI offers
 withdraw, edit (withdraw, then `queue` again) and send now (withdraw, then
 `deliver`). It exists where OAR holds the queue itself (claude, pi, qwen, qoder, cursor,

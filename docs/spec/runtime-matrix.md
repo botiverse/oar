@@ -97,7 +97,7 @@ false, the adapter holds queued input in this process.
 
 | runtime | `steer` | `withdraw` | `capabilities.queue.durable` |
 |---|---|---|---|
-| dsh | yes: `agent.steer`, the native next-step inbox | yes: native `inbox.remove`, for input held for a later turn | no: native dispose clears the inbox; a crash can leave input that runs at the next wake ([mapping](../runtimes/dsh.md#session-options)) |
+| dsh | yes where the bridge reports the agent's `steer` at open: `agent.steer`, the native next-step inbox | yes: native `inbox.remove`, for input held for a later turn | no: native dispose clears the inbox; a crash can leave input that runs at the next wake ([mapping](../runtimes/dsh.md#session-options)) |
 | factory | yes: a second `droid.add_user_message`, queued `end_of_turn` and drained into the running turn, which ends once | yes, while held | no ([mapping](../runtimes/factory.md#prompting-steering-queueing-and-abort)) |
 | qoder | yes: stdin user message with `priority: next`, joining at a tool boundary or following a text-only turn | yes, while held | no |
 | qwen | no: native busy writes queue | yes, while held | no |
@@ -119,6 +119,37 @@ rechecks the original active turn after startup waits and at SDK dispatch.
 A turn that ended, was replaced or has an abort in progress yields
 `rejected` / `no_active_turn`, with no native prompt sent. Acceptance follows
 dispatch; a steer waiting to send does not hold the original turn open.
+
+### Session capabilities before open
+
+A host that lays out a composer before any session exists (a steer button,
+an image picker) reads `Runtime.sessionCapabilities(installation)`. It is
+pure and synchronous: no process, no I/O. Each field mirrors the session
+that installation would open: `steer` is whether `Session.steer` exists,
+`images` is `capabilities.images`. A field is absent where only the native
+handshake at open can tell; a host treats absent as unknown, never as false,
+and the opened session stays authoritative.
+
+| runtime | `steer` | `images` |
+|---|---|---|
+| antigravity | true | absent: advertised by `initialize` |
+| claude | true | true |
+| codebuddy | false | absent: advertised by `initialize` |
+| codex | true | true |
+| cursor | true (an individual steer can still be rejected: `unsupported` with images, `runtime_refused` when the run cannot take it, as above) | true |
+| devin | false | absent: advertised by `initialize` |
+| dsh | absent: the bridge reports the agent's methods at open | false |
+| factory | true | true |
+| grok | true | true |
+| kimi | false | absent: advertised by `initialize` |
+| opencode | true on a v1 installation; absent on v2 or an unreadable version (`initialize` advertises steering) | absent: advertised by `initialize` |
+| pi | true | true |
+| pi-durable | true | false |
+| qoder | true | false |
+| qwen | false | false |
+
+A runtime without the member declares nothing. Community runtimes declare
+their own (morph: steer true, images false).
 
 ### Native tasks and single-task stop
 

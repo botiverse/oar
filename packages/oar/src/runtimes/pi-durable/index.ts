@@ -23,6 +23,7 @@ export function createPiDurableRuntime({ harness, models }: PiDurableRuntimeOpti
   const currentModels = typeof models === "function" ? models : (): DurableModels => models;
   const runtime = defineRuntime({
     id: "pi-durable",
+    sessionCapabilities: () => ({ steer: true, images: false }),
     brand: runtimeBrands["pi-durable"],
     refusedSessionOptions: piDurableRefusedSessionOptions,
     resumedSessionOptions: {

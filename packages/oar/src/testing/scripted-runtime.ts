@@ -292,9 +292,7 @@ export function scriptedRuntime(options: ScriptedRuntimeOptions): Runtime {
     id,
     ...(options.brand === undefined ? {} : { brand: options.brand }),
     session: start,
-    installation: async () => {
-      await Promise.resolve();
-      return { kind: "available" as const, via: "bundled" as const };
-    },
+    sessionCapabilities: () => ({ steer: true, images: true }),
+    installation: async () => { await Promise.resolve(); return { kind: "available" as const, via: "bundled" as const }; },
   }, { execution: "in_process" });
 }

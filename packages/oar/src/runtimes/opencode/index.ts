@@ -6,9 +6,12 @@ import { opencodeInstall, opencodeInstallLines, opencodeInstallPlan } from "./in
 import { opencodeListModels } from "./list-models.js";
 import { opencodeRefusedSessionOptions } from "./options.js";
 import { opencodeSharedRefusal } from "./sharing-admission.js";
+import { parseOpencodeRelease } from "./version.js";
 
 export const opencodeRuntime = defineRuntime({
   id: "opencode",
+  // v1 always steers; v2 steers only when initialize advertises it. Images come from initialize.
+  sessionCapabilities: (installation) => (installation.via === "executable" && installation.version !== undefined && parseOpencodeRelease(installation.version)?.major === 1 ? { steer: true } : {}),
   brand: runtimeBrands.opencode,
   refusedSessionOptions: opencodeRefusedSessionOptions,
   mcpToolsListChanged: "full",

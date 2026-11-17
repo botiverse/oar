@@ -7,7 +7,8 @@ import { factoryRefusedSessionOptions } from "./options.js";
 
 /** Factory's droid CLI over its native stream-jsonrpc; sign-in through droid's own ACP entry (docs/runtimes/factory.md). */
 export const factoryRuntime = defineRuntime({
-  id: "factory", brand: runtimeBrands.factory,
+  id: "factory",
+  sessionCapabilities: () => ({ steer: true, images: true }), brand: runtimeBrands.factory,
   manualCompaction: { kind: "supported", activeTurn: "reject" },
   refusedSessionOptions: factoryRefusedSessionOptions,
   installation: factoryInstallation, install: factoryInstall, installPlan: factoryInstallPlan,

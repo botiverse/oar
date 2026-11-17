@@ -93,6 +93,7 @@ export async function selectBackend(target: string): Promise<Backend> {
         runtime: defineRuntime({
           id: "mock",
           session: startMockSession,
+          sessionCapabilities: () => ({ steer: true, images: true }),
           installation: async () => {
             await Promise.resolve();
             return { kind: "available" as const, via: "bundled" as const };
@@ -126,7 +127,7 @@ export async function selectBackend(target: string): Promise<Backend> {
     case "claude-aimock": {
       // Real binary + real adapter; only the model provider is scripted.
       const aimock = await startClaudeAimock();
-      return { runtime: defineRuntime({ id: target, session: claudeSession, installation: claudeInstallation }, executionOptions(claudeRuntime)), aimock };
+      return { runtime: defineRuntime({ id: target, session: claudeSession, installation: claudeInstallation, sessionCapabilities: claudeRuntime.sessionCapabilities }, executionOptions(claudeRuntime)), aimock };
     }
     case "qwen-aimock": return qwenBackend();
     case "codebuddy-aimock": {
@@ -177,7 +178,7 @@ export async function selectBackend(target: string): Promise<Backend> {
     case "qoder-native": {
       const fixture = await startQoderNative(Array.from({ length: 100 }, () => ({ chunks: ["o", "k"] })), 900);
       const runtime = defineRuntime({
-        id: target, installation: qoderRuntime.installation, refusedSessionOptions: qoderRefusedSessionOptions,
+        id: target, installation: qoderRuntime.installation, refusedSessionOptions: qoderRefusedSessionOptions, sessionCapabilities: qoderRuntime.sessionCapabilities,
         session: async (installation, options) => {
           const session = await qoderRuntime.session(installation, { ...options, ...fixture.options, model: options.model ?? "efficient" });
           return session;
@@ -187,7 +188,7 @@ export async function selectBackend(target: string): Promise<Backend> {
     }
     case "codex-aimock": {
       const aimock = await startCodexAimock();
-      return { runtime: defineRuntime({ id: target, session: codexSession, installation: codexInstallation }, executionOptions(codexRuntime)), aimock };
+      return { runtime: defineRuntime({ id: target, session: codexSession, installation: codexInstallation, sessionCapabilities: codexRuntime.sessionCapabilities }, executionOptions(codexRuntime)), aimock };
     }
     case "pi-durable-aimock": {
       const fixture = await startDurableFixture();
@@ -200,7 +201,7 @@ export async function selectBackend(target: string): Promise<Backend> {
     case "pi-aimock": {
       const aimock = await startPiAimock(undefined, { imageInput: true });
       const native = target === "pi-rpc-aimock" ? createPiRuntime(piRpcTestOptions()) : piRuntime;
-      return { runtime: defineRuntime({ id: target, session: target === "pi-rpc-aimock" ? native.session : piSession, installation: piInstallation }, executionOptions(native)), aimock };
+      return { runtime: defineRuntime({ id: target, session: target === "pi-rpc-aimock" ? native.session : piSession, installation: piInstallation, ...(native.sessionCapabilities === undefined ? {} : { sessionCapabilities: native.sessionCapabilities }) }, executionOptions(native)), aimock };
     }
     default:
       return { runtime: allRuntimes.require(target), aimock: null };

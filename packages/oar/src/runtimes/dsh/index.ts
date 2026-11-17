@@ -7,7 +7,8 @@ import { dshRefusedSessionOptions } from "./options.js";
 import { DSH_MINIMUM_VERSION } from "./version.js";
 
 export const dshRuntime = defineRuntime({
-  id: "dsh", brand: runtimeBrands.dsh,
+  id: "dsh",
+  sessionCapabilities: () => ({ images: false }), brand: runtimeBrands.dsh,
   minVersion: DSH_MINIMUM_VERSION,
   refusedSessionOptions: dshRefusedSessionOptions,
   resumedSessionOptions: {
