@@ -434,6 +434,15 @@ per-case concurrency, assertions and deadlines.
    checked, so the gap is a finding, not a deferral. A usage or rate limit the
    runtime reports on a turn is classified as a limit from the start
    ([why](design/decisions.md#a-new-runtimes-first-version-2026-11-13)).
+
+   **Per-model facts are checked for every model.** Effort menus and
+   default effort, service tiers, `disabled` and any other `ModelEntry`
+   value that can differ between models are compared, for each model
+   `listModels` returns, with what the runtime itself reports after that
+   model is selected. Testing only the default model is not evidence for
+   the others: Antigravity's adapter before
+   [#834](https://github.com/botiverse/oar/pull/834) read only the current
+   model's effort menu, so every other model showed none.
 4. **Register it in `src/index.ts`**, the only composition root: import, add
    to the built-in `defaultRuntimes` registry, re-export. Give it a `runtimeBrands`
    entry in `src/brands.ts` with its SVG in `packages/oar/assets/brands/`
