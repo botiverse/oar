@@ -1,0 +1,54 @@
+{
+  "waitBeforeCancel": true,
+  "queries": [
+    {
+      "background": true,
+      "started": 5610.5525,
+      "finished": 6450.6111
+    },
+    {
+      "background": false,
+      "started": 6450.9017,
+      "finished": 7015.9778
+    },
+    {
+      "background": false,
+      "started": 7314.5618,
+      "finished": 8508.509
+    },
+    {
+      "background": false,
+      "started": 8508.6068,
+      "finished": 9294.6363
+    },
+    {
+      "background": false,
+      "started": 9359.1888,
+      "finished": 10205.5616
+    }
+  ],
+  "observations": [
+    {
+      "requested": 6450.7877,
+      "returned": 7016.0449,
+      "ok": true,
+      "source": "windows",
+      "elapsedMs": 565.0659000000005,
+      "skipped": 2
+    },
+    {
+      "requested": 7314.4125,
+      "returned": 8341.3234,
+      "ok": false,
+      "source": "windows",
+      "reason": "timeout",
+      "timeoutMs": 1000,
+      "elapsedMs": 1026.8635999999997
+    }
+  ],
+  "exited": {
+    "kind": "exited",
+    "code": 0,
+    "reason": "Descendant cleanup could not be verified: before_cancel windows: timeout (1027 ms)"
+  }
+}

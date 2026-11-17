@@ -8,6 +8,7 @@ import * as tree from "../packages/oar/src/shared/executable/process-tree.js";
 // oxlint-disable-next-line import/no-namespace -- Spy on asynchronous cleanup observations.
 import * as asyncTree from "../packages/oar/src/shared/executable/process-table-async.js";
 import { gone } from "./fixtures/process-tree.js";
+import { expectCleanupEvidence } from "./fixtures/cleanup-evidence.js";
 
 vi.mock("node:child_process", async (original) => ({ ...await original<object>(), execFile: vi.fn() }));
 
@@ -111,7 +112,7 @@ const nativeTree = String.raw`
   process.stdin.on('end', () => { console.log('hook-complete'); process.exit(0); });
 `;
 
-// oxlint-disable-next-line eslint/max-statements -- Real EOF, surviving descendant, diagnostics and independent cleanup form one regression.
+// oxlint-disable-next-line eslint/max-statements, eslint/max-lines-per-function -- Real EOF, surviving descendant, diagnostics and independent cleanup form one regression.
 test.each(["capture-fails", "retry-recovers", "revalidation-fails"])("native graceful shutdown and detached descendant: %s", async (scenario) => {
   const sentinel = spawnLineProcess(process.execPath, ["-e", "setTimeout(() => {}, 60000)"]);
   const child = spawnLineProcess(process.execPath, ["-e", nativeTree], { killTree: true, shutdown: "stdin" });
@@ -135,13 +136,25 @@ test.each(["capture-fails", "retry-recovers", "revalidation-fails"])("native gra
     expect(await child.exited).toBe(0);
     expect(lines).toContain("hook-complete");
     expect(exits).toHaveLength(1);
-    const recovered = scenario === "retry-recovers";
-    expect(child.diagnostics().cleanup?.status).toBe(recovered ? "observed" : "unverified");
-    expect(exits[0]?.reason === undefined).toBe(recovered);
-    expect(await gone(tool, recovered ? 5000 : 50)).toBe(recovered);
+    const recoveryCase = scenario === "retry-recovers";
+    const evidence = child.diagnostics().cleanup;
+    if (recoveryCase) {
+      // Only the deliberate first EIO is excluded; every native failure after
+      // it still needs its own timeout evidence and matching exit warning.
+      expect(evidence?.observations[0]).toEqual({ ...failure, reason: "command_failed", code: "EIO", phase: "before_eof" });
+      if (exits[0]?.reason !== undefined) { expect(exits[0].reason).toContain("before_eof windows: command_failed (5004 ms, EIO); "); }
+      expectCleanupEvidence(evidence === undefined ? undefined : { ...evidence, observations: evidence.observations.slice(1) },
+        exits[0]?.reason?.replace("before_eof windows: command_failed (5004 ms, EIO); ", ""));
+    } else {
+      expect(evidence?.status).toBe("unverified");
+      expect(exits[0]?.reason).toBeDefined();
+    }
+    const recovered = recoveryCase && evidence?.status === "observed";
+    const reclaimed = await gone(tool, recovered ? 5000 : 50);
+    expect(reclaimed, JSON.stringify({ evidence, reclaimed })).toBe(recovered);
     expect(sentinelExited).toBe(false);
     const observations = child.diagnostics().cleanup?.observations ?? [];
-    expect(observations.some((entry) => !entry.ok && entry.code === (recovered ? "EIO" : "ETIMEDOUT"))).toBe(true);
+    expect(observations.some((entry) => !entry.ok && entry.code === (recoveryCase ? "EIO" : "ETIMEDOUT"))).toBe(true);
     const readsBeforeLateKill = read.mock.calls.length;
     child.kill();
     expect(read.mock.calls).toHaveLength(readsBeforeLateKill);

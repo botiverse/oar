@@ -1,12 +1,16 @@
 import { fileURLToPath } from "node:url";
-import { expect, test } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
 import { acpSession } from "../../packages/oar/src/shared/acp/session.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { gone } from "../fixtures/process-tree.js";
+import { captureCleanupEvidence, expectCleanupEvidence, expectOrphanReclaimed } from "../fixtures/cleanup-evidence.js";
+
+afterEach(() => { vi.restoreAllMocks(); });
 
 // Cancellation can orphan tools outside the process group on every platform.
 // oxlint-disable-next-line eslint/max-statements -- Drive the public isolated session through a cancel that orphans a real tool.
 test("ACP disposal captures tools before native cancellation severs their parent chain", async () => {
+  const cleanupEvidence = captureCleanupEvidence();
   const session = await acpSession({ args: [fileURLToPath(new URL("../fixtures/shutdown-orphan-tree.mjs", import.meta.url)), "acp"], capabilities: { queue: { durable: false }, attribution: "opaque" } })(
     { kind: "available", via: "executable", command: process.execPath }, { cwd: process.cwd() },
   );
@@ -20,9 +24,15 @@ test("ACP disposal captures tools before native cancellation severs their parent
     owned = { middle: Number(value?.middle), tool: Number(value?.tool) };
     expect(await gone(owned.middle, 50)).toBe(false); expect(await gone(owned.tool, 50)).toBe(false);
     await session.dispose();
-    expect(await gone(owned.middle)).toBe(true); expect(await gone(owned.tool)).toBe(true);
+    expect(await gone(owned.middle)).toBe(true);
     const exits = session.records().filter(r => r.kind === "response" && r.body.kind === "exited");
-    expect(exits).toHaveLength(1); expect(exits[0]?.body).not.toHaveProperty("reason");
+    expect(exits).toHaveLength(1);
+    const [exit] = exits;
+    const evidence = cleanupEvidence();
+    expectCleanupEvidence(evidence, exit?.kind === "response" && exit.body.kind === "exited" ? exit.body.reason : undefined);
+    const capture = evidence.observations.findLast(entry => entry.phase === "before_eof");
+    expect(capture).toBeDefined();
+    await expectOrphanReclaimed(owned.tool, evidence, capture);
   } finally {
     await session.dispose();
     for (const pid of owned === undefined ? [] : [owned.middle, owned.tool]) { try { process.kill(pid, "SIGKILL"); } catch { /* Already reclaimed. */ } }

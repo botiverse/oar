@@ -120,7 +120,11 @@ and return, cancellation and post-exit cleanup share one monotonic clock;
 local correlation IDs contain no PIDs or process tables. The same capture
 covers immediate root exit and kill fallback. Missing or dropped events are
 evidence gaps, not proof of zero work. Reproduction and interpretation:
-[cancellation phase timing](../experiments/windows-cancellation-timing/README.md).
+[cancellation phase timing](../experiments/windows-cancellation-timing/README.md). The native cleanup controls
+also retain their own cleanup observations and orphan-liveness results. An
+unverified Windows exit is accepted only with that operation's recorded
+snapshot timeout and matching warning; actual roots must still exit.
+[Assertion audit](../experiments/windows-cancellation-timing/assertion-audit.md).
 
 ### Behavior: does the public contract still hold?
 

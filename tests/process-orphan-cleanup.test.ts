@@ -5,6 +5,7 @@ import { asRecord } from "../packages/oar/src/shared/json.js";
 // oxlint-disable-next-line import/no-namespace -- Inject unreadable observations while retaining real native lifetimes.
 import * as tables from "../packages/oar/src/shared/executable/process-table-async.js";
 import { gone } from "./fixtures/process-tree.js";
+import { expectCleanupEvidence, expectOrphanReclaimed } from "./fixtures/cleanup-evidence.js";
 
 const fixture = fileURLToPath(new URL("fixtures/shutdown-orphan-tree.mjs", import.meta.url));
 afterEach(() => { vi.restoreAllMocks(); });
@@ -33,10 +34,12 @@ test.each([false, true])("prepared cleanup follows a tool after its intermediate
     expect(await gone(owned.middle)).toBe(true); expect(await gone(owned.tool, 50)).toBe(false);
     child.kill(); await child.exited;
     expect(exits).toHaveLength(1);
-    expect(child.diagnostics().cleanup?.status).toBe(unreadable ? "unverified" : "observed");
-    if (unreadable) { expect(exits[0]?.reason).toContain("before_eof windows: timeout"); }
-    else { expect(exits[0]?.reason).toBeUndefined(); }
-    expect(await gone(owned.tool, unreadable ? 50 : 5000)).toBe(!unreadable);
+    const evidence = child.diagnostics().cleanup;
+    expectCleanupEvidence(evidence, exits[0]?.reason, { injectedTimeouts: unreadable ? [0, 1] : [] });
+    const capture = evidence.observations.findLast(entry => entry.phase === "before_eof");
+    expect(capture).toBeDefined();
+    if (unreadable) { expect(capture?.ok).toBe(false); }
+    await expectOrphanReclaimed(owned.tool, evidence, capture);
   } finally {
     vi.restoreAllMocks(); child.kill(); await child.exited;
     for (const pid of owned === undefined ? [] : [owned.middle, owned.tool]) { try { process.kill(pid, "SIGKILL"); } catch { /* Already reclaimed. */ } }
@@ -53,8 +56,11 @@ test("ordinary tree shutdown observes descendants before closing the root", asyn
     owned = await ready.promise;
     expect(await gone(owned.middle, 50)).toBe(false); expect(await gone(owned.tool, 50)).toBe(false);
     child.kill(); await child.exited;
-    expect(child.diagnostics().cleanup?.status).toBe("observed");
-    expect(child.diagnostics().cleanup?.observations[0]).toMatchObject({ ok: true, phase: "before_eof" });
+    const evidence = child.diagnostics().cleanup;
+    const exited = Promise.withResolvers<string | undefined>();
+    child.onExit((_code, reason) => { exited.resolve(reason); });
+    expectCleanupEvidence(evidence, await exited.promise);
+    expect(evidence.observations[0]?.phase).toBe("before_eof");
     expect(await gone(owned.middle)).toBe(true); expect(await gone(owned.tool)).toBe(true);
   } finally {
     child.kill(); await child.exited;
