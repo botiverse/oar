@@ -236,9 +236,7 @@ or pull request whose changes are all Markdown files or under `docs/` or
 
 - `check`: `pnpm run check` and `pnpm run build` on Linux, macOS and Windows,
   plus offline Cursor SDK skill-loader parity against the same local fixtures,
-  then native checks: CodeBuddy's official npm installation in an
-  isolated HOME and global prefix with its bin directory off PATH (installed
-  version and an idempotent second install); OpenCode 2.2.7 isolated native
+  then native checks: OpenCode 2.2.7 isolated native
   tool cleanup (readiness, surviving-peer and final residual-process
   assertions); and Kimi 2.4.1's native login tests against a local
   OAuth/model server, including browser suppression and credential writes,
@@ -250,14 +248,9 @@ or pull request whose changes are all Markdown files or under `docs/` or
   local Gemini provider in an isolated home (concurrency 2, a missing
   installation fails). Each suite requires a successful
   install; an earlier unrelated check failure does not skip installation.
-  CodeBuddy, OpenCode, Kimi and Antigravity upload diagnostic artifacts, failures included.
-  CodeBuddy records discovery, install, verification and cleanup phases under
-  `oar-trial-run/codebuddy-install`, enables npm verbose and timing logs in
-  its isolated environment, and saves the latest ten debug/timing files before
-  deleting that HOME (last 1 MiB per file, with truncation marked). A killed
-  npm process may not finish its timing file; the partial debug log and phase
-  records remain useful. The install limit is 180 seconds and the enclosing
-  child limit 240 seconds. [Evidence](../experiments/codebuddy-install-diagnostics/README.md).
+  OpenCode, Kimi and Antigravity upload diagnostic artifacts, failures included.
+  CodeBuddy's fake-npm installer unit tests remain here; its real public
+  installer runs daily, below.
   The browser-entry unit test bundles the complete portable entry for a
   browser and refuses Node imports or unresolved externals. Synthetic
   sharing routing and public placement-refusal regressions stay in these
@@ -320,7 +313,7 @@ or pull request whose changes are all Markdown files or under `docs/` or
 - `browser-demo`: `pnpm durable-demo:smoke` in headless Chromium on Linux.
   The real Pi Durable Harness and native fetch provider run in the browser;
   provider requests go to local scripted responses using a synthetic key.
-- `clean-install`: `pnpm run clean-install`
+- `clean-install`: `pnpm run clean-install -- --mode=gate`
   ([`tests/clean-install.ts`](../tests/clean-install.ts)) on Linux. Both
   packages are packed and `npm install`ed into an empty project: without the
   optional peers, the root entry and the `browser`, `forms`, `observe`,
@@ -331,20 +324,52 @@ or pull request whose changes are all Markdown files or under `docs/` or
   peers added, a pi-durable session opens and its entry bundles for a
   browser. The CLI, installed after the host's SDK is removed again, lists
   cursor's models through the SDK it depends on itself. It needs the npm
-  registry.
+  registry. The temporary host's root overrides hold the Pi family and undici
+  at the accepted workspace versions, derived from `package.json` and the
+  installed lockfile graph. The check refuses a baseline outside OAR's
+  published ranges. It preserves the imports, type checks, bundles and
+  single-copy assertions; only this temporary host receives overrides.
+  The resolved versions are retained in `oar-trial-run/clean-install`.
 
-The Claude, Codex and Qwen behavior jobs install exact accepted versions from
+Native CLI jobs in the ordinary gate and Windows ACP observation install from
 [`.github/runtime-versions.json`](../.github/runtime-versions.json), with links
-to the native CI evidence that established each baseline. The
+to their acceptance evidence. Distinct keys preserve each test's purpose:
+DSH and Pi RPC minimums, Qoder replay, Kimi login/skills, and OpenCode v1/v2
+helpers do not automatically follow upstream releases. SDK baselines remain
+in the workspace manifests and lockfile. The
 [`runtime-version.mjs`](../.github/scripts/runtime-version.mjs) reader fails
-on a missing pin, invalid manifest or non-exact version before npm runs. A
-runtime upgrade changes this table through a reviewed pull request. This is
-a partial fix for moving CI inputs: CodeBuddy's live installer and the packed
-host's published Pi dependency ranges still resolve from npm, and pinning a
-top-level CLI does not freeze its transitive dependency ranges.
+on a missing pin, invalid manifest or non-exact version. The
+[`runtime-install.mjs`](../.github/scripts/runtime-install.mjs) installer
+checks the downloaded artifact's digest, installs in a private prefix and
+HOME, and requires the native `--version` to equal the selected version
+before publishing an executable path. Reports retain the manifest hash,
+artifact identity, native version and failure stage. Antigravity keeps its
+platform-specific SHA-512 pins. Manual historical experiments retain their
+explicit controls. Pin changes require a reviewed pull request; top-level
+CLI pins do not freeze npm transitive ranges, runner images or OS packages.
 
 Outside ci.yml and its pull-request and release gates:
 
+- [`runtime-latest.yml`](../.github/workflows/runtime-latest.yml) runs daily
+  at 06:17 UTC and by manual dispatch. One discovery job freezes candidate
+  versions, URLs, digests, timestamp and accepted-manifest hash. Changed
+  candidates run supported native behavior/vendor or helper suites on the
+  existing OS matrix with local scripted providers. Pi, Pi Durable, Chord and
+  Pi's exact undici move together in a disposable SDK checkout; Cursor is
+  separate. SDK manifests and the newly resolved lockfile are retained.
+  Discovery, download, install and native-version failures stay red; a partial
+  discovery failure still lets other frozen candidates run. The workflow has
+  read-only permissions and never updates accepted pins or opens bump PRs.
+  A focused bump PR also needs the version-specific probes in
+  [`experiments/runtime-versions.ts`](../experiments/runtime-versions.ts),
+  maintainer review and ordinary CI. A daily pass alone is not acceptance.
+  Two daily checks run even when top-level versions are unchanged: CodeBuddy's
+  real public npm installer on all three systems, and
+  `pnpm run clean-install -- --mode=published` on Linux, which resolves OAR's
+  original published Pi ranges without host overrides. CodeBuddy retains
+  install phases and npm debug/timing tails before cleaning its isolated
+  HOME; its 180-second install and 240-second child limits are unchanged
+  ([details](../experiments/codebuddy-install-diagnostics/README.md)).
 - [`acp-windows.yml`](../.github/workflows/acp-windows.yml) runs the Kimi,
   Grok and OpenCode v1 ACP backends on Windows after main pushes. All three
   had intermittent Windows startup or MCP timeouts whose causes remain

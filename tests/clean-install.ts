@@ -6,6 +6,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import PI_AUTH_PROBE from "./fixtures/pi-auth-entry-probe.js";
 import { checkPiHost, DURABLE_PROBE, DURABLE_TYPES } from "./fixtures/pi-clean-install.js";
+import { cleanInstallPolicy } from "./fixtures/clean-install-pins.js";
 
 /*
  * The published packages installed the way a host installs them: packed by
@@ -23,6 +24,8 @@ import { checkPiHost, DURABLE_PROBE, DURABLE_TYPES } from "./fixtures/pi-clean-i
  */
 
 const root = path.resolve(import.meta.dirname, "..");
+const policy = cleanInstallPolicy(root, process.argv.slice(2));
+const { accepted } = policy;
 const work = mkdtempSync(path.join(tmpdir(), "oar-clean-install-"));
 const host = path.join(work, "host");
 
@@ -43,7 +46,7 @@ function pack(directory: string, tarball: RegExp): string {
 }
 
 function npmInstall(...specs: readonly string[]): void {
-  run("npm", ["install", "--no-audit", "--no-fund", ...specs], host);
+  run("npm", ["install", "--no-audit", "--no-fund", ...policy.npmOptions, ...specs], host);
   for (const name of ["oar", "oar-cli"]) {
     assert.equal(existsSync(path.join(host, "node_modules/@botiverse", name, "dist/.tsbuildinfo")), false, `${name} publishes its build cache`);
   }
@@ -236,11 +239,14 @@ function typecheck(source: string): string[] {
 const library = pack("packages/oar", /^botiverse-oar-\d.*\.tgz$/u);
 const cli = pack("packages/cli", /^botiverse-oar-cli-.*\.tgz$/u);
 mkdirSync(host);
-writeFileSync(path.join(host, "package.json"), JSON.stringify({ name: "host", private: true, type: "module" }));
+writeFileSync(path.join(host, "package.json"), JSON.stringify({ name: "host", private: true, type: "module",
+  ...policy.hostFields,
+}));
 writeFileSync(path.join(host, "probe.mjs"), PROBE);
 
 npmInstall(library);
 const piAiVersion = await checkPiHost(host);
+policy.record(host);
 const browser = await build({
   stdin: { contents: 'export * from "@botiverse/oar/browser";', resolveDir: host },
   bundle: true, platform: "browser", format: "esm", write: false, metafile: true,
@@ -261,8 +267,8 @@ assert.equal(forgotten.length, 1, forgotten.join("\n"));
 assert.match(forgotten[0] ?? "", /^check\.ts\(\d+,\d+\): error TS2307: Cannot find module '@cursor\/sdk'/u);
 
 // The host supplies the native peers only when it opts into this subpath.
-npmInstall("@earendil-works/pi-durable@1.5.2", "@earendil-works/chord@1.5.2",
-  `@earendil-works/pi-ai@${piAiVersion}`, "@earendil-works/pi-ai-durable@npm:@earendil-works/pi-ai@1.5.2");
+npmInstall(`@earendil-works/pi-durable@${accepted["@earendil-works/pi-durable"]}`, `@earendil-works/chord@${accepted["@earendil-works/chord"]}`,
+  `@earendil-works/pi-ai@${piAiVersion}`, `@earendil-works/pi-ai-durable@npm:@earendil-works/pi-ai@${accepted["@earendil-works/pi-ai"]}`);
 await checkPiHost(host);
 assert.deepEqual(typecheck(DURABLE_TYPES), []);
 run(process.execPath, ["--input-type=module", "-e", DURABLE_PROBE], host);
@@ -287,4 +293,5 @@ assert.ok(Array.isArray(listed) && listed.length === 1, JSON.stringify(listed));
 assert.match(JSON.stringify(listed[0]), /"runtimeId":"cursor","models":\{"kind":"(?:ok|unauthenticated)"/u);
 
 rmSync(work, { recursive: true, force: true });
-process.stdout.write(`clean install ok: built in ${JSON.stringify(bare.kinds)}; forgetting @cursor/sdk fails the host's compile\n`);
+policy.passed();
+process.stdout.write(`clean install ${policy.mode} ok: built in ${JSON.stringify(bare.kinds)}; forgetting @cursor/sdk fails the host's compile\n`);

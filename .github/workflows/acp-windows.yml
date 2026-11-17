@@ -21,16 +21,6 @@ jobs:
       matrix:
         os: [windows-latest]
         backend: [kimi-aimock, grok-aimock, opencode-aimock]
-        include:
-          - backend: kimi-aimock
-            package: '@moonshot-ai/kimi-code@2.4.1'
-            command: kimi
-          - backend: grok-aimock
-            package: '@xai-official/grok@1.0.70'
-            command: grok
-          - backend: opencode-aimock
-            package: opencode-ai@1.19.5
-            command: opencode
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     env:
@@ -55,9 +45,9 @@ jobs:
           path: |
             ~/.npm
             ~/AppData/Local/npm-cache
-          key: npm-acp-${{ runner.os }}-${{ runner.arch }}-${{ matrix.package }}
-      - run: npm install -g ${{ matrix.package }}
-      - run: ${{ matrix.command }} --version
+          key: npm-acp-${{ runner.os }}-${{ runner.arch }}-${{ matrix.backend }}-${{ hashFiles('.github/runtime-versions.json') }}
+      - name: Install and verify accepted native runtime
+        run: node .github/scripts/runtime-install.mjs '${{ matrix.backend }}'
       - run: pnpm run sea-trial
         if: matrix.backend != 'grok-aimock'
         timeout-minutes: 12
@@ -87,7 +77,7 @@ jobs:
         run: pnpm tsx experiments/grok-startup/check-capture.ts "${{ steps.grok_behavior.outcome }}" "${{ steps.grok_vendor.outcome }}"
       - name: Measure Grok ACP launch paths
         if: always() && matrix.backend == 'grok-aimock'
-        run: pnpm tsx experiments/grok-acp-startup.ts "$(npm root -g)"
+        run: pnpm tsx experiments/grok-acp-startup.ts "$env:OAR_CI_NPM_ROOT"
         timeout-minutes: 3
       - uses: actions/upload-artifact@v4
         if: always()

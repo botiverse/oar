@@ -50,20 +50,8 @@ jobs:
           name: cursor-skills-${{ matrix.os }}
           path: ${{ github.workspace }}/oar-trial-run/cursor-skills
           if-no-files-found: warn
-      - name: CodeBuddy npm installer in an isolated HOME and global prefix
-        run: pnpm tsx tests/codebuddy/install-smoke.ts
-        timeout-minutes: 5
-        env:
-          OAR_TEST: codebuddy-install
-          OAR_TRIAL_RUN_DIR: ${{ github.workspace }}/oar-trial-run
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: codebuddy-install-${{ matrix.os }}
-          path: ${{ github.workspace }}/oar-trial-run/codebuddy-install
-          if-no-files-found: warn
       - name: Install pinned OpenCode for native isolated cleanup
-        run: npm install -g @opencode/cli@2.2.7
+        run: node .github/scripts/runtime-install.mjs opencode-cleanup
       - name: Native isolated OpenCode tool cleanup
         run: pnpm vitest run sea-trial/vendor/opencode-cleanup.vendor.test.ts sea-trial/vendor/opencode-skills.vendor.test.ts
         timeout-minutes: 5
@@ -77,7 +65,7 @@ jobs:
           path: ${{ github.workspace }}/oar-trial-run/opencode-cleanup
           if-no-files-found: warn
       # Real Kimi login and workspace skill discovery, no account or browser.
-      - run: npm install -g @moonshot-ai/kimi-code@2.4.1
+      - run: node .github/scripts/runtime-install.mjs kimi-login
         id: kimi-login-install
         if: always() && !cancelled()
       - run: pnpm vitest run sea-trial/vendor/kimi-login.vendor.test.ts sea-trial/vendor/kimi-skills.vendor.test.ts sea-trial/vendor/kimi-expired-usage.vendor.test.ts
@@ -98,7 +86,7 @@ jobs:
       - name: Install current Kimi for fresh workspace cleanup
         id: kimi-skills-install
         if: always() && !cancelled()
-        run: npm install -g @moonshot-ai/kimi-code@2.6.2
+        run: node .github/scripts/runtime-install.mjs kimi-skills
       - name: Native Kimi skills with fresh workspace IDs
         if: always() && !cancelled() && steps.kimi-skills-install.outcome == 'success'
         run: pnpm vitest run sea-trial/vendor/kimi-skills.vendor.test.ts
@@ -135,6 +123,13 @@ jobs:
           path: ${{ github.workspace }}/oar-trial-run/agy
           if-no-files-found: warn
 
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: runtime-install-check-${{ matrix.os }}
+          path: ${{ github.workspace }}/oar-trial-run/runtime-install
+          if-no-files-found: warn
+
   # The packed packages installed into an empty project the way a host
   # installs them: OAR without its optional peer @cursor/sdk must load,
   # type-check and probe every other runtime (tests/clean-install.ts).
@@ -148,7 +143,13 @@ jobs:
           node-version: "24"
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm run clean-install
+      - run: pnpm run clean-install -- --mode=gate
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: accepted-host
+          path: oar-trial-run/clean-install
+          if-no-files-found: error
 
   # Real browser and SDK, with provider HTTP routed to a local scripted server.
   browser-demo:
@@ -222,27 +223,10 @@ jobs:
           path: ${{ steps.npm-cache.outputs.path }}
           key: npm-dl-${{ runner.os }}-${{ matrix.backend }}-${{ github.run_id }}
           restore-keys: npm-dl-${{ runner.os }}-${{ matrix.backend }}-
-      - name: Install accepted Claude, Codex or Qwen version
-        if: matrix.backend == 'claude-aimock' || matrix.backend == 'codex-aimock' || matrix.backend == 'qwen-aimock'
-        shell: pwsh
-        run: |
-          $package = node .github/scripts/runtime-version.mjs '${{ matrix.backend }}'
-          if ($LASTEXITCODE -ne 0 -or !$package) {
-            throw 'Could not read the accepted CI runtime version.'
-          }
-          npm install -g $package
-      # Native replay stops driving inference from 1.1.82. Keep execution checks on 1.1.81.
-      # Unpin only when replay works again, or an officially supported local provider
-      # passes all native cases. Daily version probes still check the latest release.
-      - run: npm install -g @qoder-ai/qodercli@1.1.81
-        if: matrix.backend == 'qoder-native'
-      # The oldest release the floor admits (DSH_MINIMUM_VERSION). Raise this pin and that
-      # constant together; daily version probes check newer releases.
-      - run: npm install -g @deepseek-ai/dsh@0.2.1-rc.5
-        if: matrix.backend == 'dsh-aimock'
-      # Pinned like the other native CLIs; daily version probes check newer releases.
-      - run: npm install -g droid@1.12.1
-        if: matrix.backend == 'factory-aimock'
+      # Minimum and replay purposes remain separate entries in the version table.
+      - name: Install and verify accepted native runtime
+        if: matrix.backend == 'claude-aimock' || matrix.backend == 'codex-aimock' || matrix.backend == 'qwen-aimock' || matrix.backend == 'qoder-native' || matrix.backend == 'dsh-aimock' || matrix.backend == 'factory-aimock'
+        run: node .github/scripts/runtime-install.mjs '${{ matrix.backend }}'
       - run: pnpm run sea-trial
       # Vendor error-edge snapshots for this backend (vitest, OAR_TEST-gated).
       - run: pnpm vitest run sea-trial/vendor
@@ -271,11 +255,8 @@ jobs:
           node-version: "24"
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Install the minimum supported explicit Pi CLI
-        run: |
-          npm install --prefix "$RUNNER_TEMP/pi-rpc-minimum" --no-save --package-lock=false @earendil-works/pi-coding-agent@1.4.0
-          echo "OAR_PI_RPC_COMMAND=$RUNNER_TEMP/pi-rpc-minimum/node_modules/.bin/pi" >> "$GITHUB_ENV"
-      - run: '"$OAR_PI_RPC_COMMAND" --version'
+      - name: Install and verify the minimum supported explicit Pi CLI
+        run: node .github/scripts/runtime-install.mjs pi-rpc-minimum
       - run: pnpm run sea-trial
       - run: pnpm vitest run sea-trial/vendor
       - uses: actions/upload-artifact@v4
@@ -346,19 +327,6 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
         backend: [kimi-aimock, grok-aimock, opencode-aimock, codebuddy-aimock]
-        include:
-          - backend: kimi-aimock
-            package: '@moonshot-ai/kimi-code@2.4.1'
-            command: kimi
-          - backend: grok-aimock
-            package: '@xai-official/grok@1.0.70'
-            command: grok
-          - backend: codebuddy-aimock
-            package: '@tencent-ai/codebuddy-code@2.179.3'
-            command: codebuddy
-          - backend: opencode-aimock
-            package: opencode-ai@1.19.5
-            command: opencode
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     env:
@@ -382,9 +350,9 @@ jobs:
           path: |
             ~/.npm
             ~/AppData/Local/npm-cache
-          key: npm-acp-${{ runner.os }}-${{ runner.arch }}-${{ matrix.package }}
-      - run: npm install -g ${{ matrix.package }}
-      - run: ${{ matrix.command }} --version
+          key: npm-acp-${{ runner.os }}-${{ runner.arch }}-${{ matrix.backend }}-${{ hashFiles('.github/runtime-versions.json') }}
+      - name: Install and verify accepted native runtime
+        run: node .github/scripts/runtime-install.mjs '${{ matrix.backend }}'
       - run: pnpm run sea-trial
         timeout-minutes: 12
       - run: pnpm vitest run sea-trial/vendor --maxWorkers 2

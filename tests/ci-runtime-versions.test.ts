@@ -16,7 +16,8 @@ async function fixture(manifest: unknown, args = ["fixture"]) {
     const scripts = path.join(directory, "scripts");
     await mkdir(scripts);
     const script = path.join(scripts, "runtime-version.mjs");
-    await copyFile(reader, script);
+    await Promise.all([copyFile(reader, script),
+      copyFile(path.resolve(".github/scripts/runtime-common.mjs"), path.join(scripts, "runtime-common.mjs"))]);
     if (manifest !== undefined) {
       await writeFile(path.join(directory, "runtime-versions.json"),
         typeof manifest === "string" ? manifest : JSON.stringify(manifest));
