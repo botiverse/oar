@@ -18,7 +18,7 @@ function imageFile(name: string, bytes: string): string {
 
 test("a session is one SDK agent, opened without a sandbox, reporting the model the SDK holds", async () => {
   const { session, opened } = await openFakeCursor();
-  assert.deepEqual(opened, [{ how: "create", options: { model: { id: "composer" }, local: { cwd: "/w", sandboxOptions: { enabled: false } } } }]);
+  assert.deepEqual(opened, [{ how: "create", options: { model: { id: "composer" }, local: { cwd: "/w", settingSources: ["project", "user"], sandboxOptions: { enabled: false } } } }]);
   assert.equal(session.id, "agent-1");
   assert.equal(session.model().value, "composer");
   assert.deepEqual(session.capabilities, { queue: { durable: false }, attribution: "attributed", images: true });
@@ -156,7 +156,7 @@ test("dispose cancels the run, releases the agent and answers; control after it 
 test("resume reopens the agent by id with the model its latest run ran", async () => {
   const { session, opened } = await openFakeCursor({ resume: "agent-9" });
   assert.equal(session.id, "agent-9");
-  assert.deepEqual(opened, [{ how: "resume", id: "agent-9", options: { model: { id: "composer-2.5" }, local: { cwd: "/w", sandboxOptions: { enabled: false } } } }]);
+  assert.deepEqual(opened, [{ how: "resume", id: "agent-9", options: { model: { id: "composer-2.5" }, local: { cwd: "/w", settingSources: ["project", "user"], sandboxOptions: { enabled: false } } } }]);
   await session.dispose();
 });
 

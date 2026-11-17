@@ -1,0 +1,49 @@
+{
+  "retention": "Full raw logs retained locally; only asserted observations are published.",
+  "raw": [
+    {
+      "file": "native-settings.log",
+      "bytes": 1230,
+      "sha256": "b9389455ced207297439b1f1613e2fd0d7887bf1b7bc05d575cc9c943f5304e4"
+    },
+    {
+      "file": "native-settings-sibling-home.log",
+      "bytes": 3569,
+      "sha256": "fedb93f1c241c2ebe1850ea70e92e9a37467732cb2b997e63eb046f9c2efffdb"
+    },
+    {
+      "file": "native-settings-verified.log",
+      "bytes": 3570,
+      "sha256": "6f08a7f3826cac766b8afb3bf3ae82bc9ce1fc91b58536b8954019c6e7a6b861"
+    },
+    {
+      "file": "unit-red.log",
+      "bytes": 3561,
+      "sha256": "2c06de81a37bc3ba46c54c8f58ab5fe6540f003ee75cd5351795f7a7ce4d4b4b"
+    },
+    {
+      "file": "unit-green.log",
+      "bytes": 473,
+      "sha256": "454aa7ec2395a71e6a4a100b727f936415cd055bbc7bccc6d7885ab24c7aa6ac"
+    },
+    {
+      "file": "full-check-final.log",
+      "bytes": 5724,
+      "sha256": "59f86af4bba70f125e6dcaabc04d3980cfc81510f4156dd2f271ff7dc7a82a3b"
+    }
+  ],
+  "sdk": {
+    "package": "@cursor/sdk",
+    "version": "1.4.0",
+    "sourceFiles": [
+      {
+        "file": "dist/esm/993.js",
+        "sha256": "197e2314468ac23f455dfe356e049b46f36c50a497152f9af12742fef199a244"
+      },
+      {
+        "file": "dist/esm/options.d.ts",
+        "sha256": "97ac181c046e775cfbfdbbc1185448eb1e38b8ccd1cfdd2b0babaf6e3ece4e23"
+      }
+    ]
+  }
+}

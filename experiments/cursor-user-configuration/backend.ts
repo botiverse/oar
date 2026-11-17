@@ -21,7 +21,7 @@ export async function configurationBackend(): Promise<{
     if (request.url === "/auth/exchange_user_api_key") {
       response.writeHead(200, { "content-type": "application/json" });
       response.end(JSON.stringify({ accessToken: ACCESS }));
-    } else if (request.url === "/user-mcp") {
+    } else if (request.url === "/user-mcp" || request.url === "/project-mcp") {
       mcp(Buffer.concat(chunks), response);
     } else if (request.url?.includes("/Run") === true) {
       response.writeHead(400, { "content-type": "application/json" });
