@@ -13,7 +13,7 @@ import { runtimeUnderTest } from "../harness/subject.js";
 import { ECHO_SERVER } from "./support/echo-mcp.js";
 
 describe.skipIf(process.env.OAR_TEST !== "antigravity-aimock")("agy native ACP", () => {
-  test("model discovery reads the native catalog without sending a prompt", async () => {
+  test("model discovery reads selected native menus without changing fresh defaults or sending a prompt", async () => {
     const env = await startAntigravityAimock(() => {});
     try {
       const installation = await antigravityRuntime.installation();
@@ -27,6 +27,11 @@ describe.skipIf(process.env.OAR_TEST !== "antigravity-aimock")("agy native ACP",
       expect(result.models.find((model) => model.id === "gemini-3.8-flash")?.defaultEffort).toBeUndefined();
       expect(result.models.filter((model) => model.default)).toHaveLength(1);
       expect(result.models.find((model) => model.default)?.effortLevels).toContain("low");
+      const fresh = await antigravityRuntime.session(installation, { cwd, env: env.env });
+      try {
+        expect(fresh.model().value).toBe(result.models.find(model => model.default)?.id);
+        expect(fresh.effort().value).toBe(result.models.find(model => model.default)?.defaultEffort);
+      } finally { await fresh.dispose(); }
       expect(env.raw).toHaveLength(0);
     } finally { await env.stop(); }
   }, 60_000);

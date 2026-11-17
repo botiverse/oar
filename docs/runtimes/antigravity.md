@@ -288,24 +288,35 @@ query runs first. Old, prerelease or unreadable versions return
 let a host offer an upgrade without parsing the explanation. Inventories
 remain unsupported on this interface and start no query process.
 
-`listModels()` initializes ACP and opens a temporary session without a
-prompt, reads its model selector and the same response's `models.availableModels`,
-and terminates the process. When the latter supplies native model/effort
-combinations, OAR groups entries with a unique listed model prefix into that
-model's effort menu. It does not switch models or write settings. No extra ACP request is needed.
-Only the current model's explicit `thought_level.currentValue` establishes a
-default effort. An unparseable or ambiguous combination remains an original
-model selector with `effortUnavailableReason`; an unavailable family menu gets
-the same optional explanation, never another family's levels or `disabled`.
-[Native menu comparison and query timings](../../experiments/antigravity-model-menus/README.md)
-cover isolated local Gemini providers on 1.5.9 and 1.5.0, not signed-in account
-catalogs. A reported signed-in 1.5.10 catalog lacks the non-default combinations,
-so its per-model effort menus remain incomplete in this projection. The linked
-no-prompt account probe measures model switching and persistence before a product
-change; the earlier one-file settings comparison does not establish safety for
-that provider. Listing requests
-`session/close` only when advertised; a close failure does not discard an
-already obtained catalog ([query costs](#orientation-query-costs)).
+`listModels()` initializes ACP and opens one temporary session without a prompt.
+It selects every canonical model from `configOptions.model.options` through
+`session/set_config_option`, confirms the selected model, and reads that
+response's `thought_level` menu. A confirmed absent menu means no effort fields;
+a failed switch, unconfirmed selection or empty exposed menu yields that model's
+`effortUnavailableReason`, never another model's levels. Only the original
+current model's explicit effort can establish `defaultEffort`.
+
+Before closing, listing restores the original model and effort and confirms both
+through native readback. Unconfirmed restoration fails the entire listing.
+When the initial selection cannot be restored from its reported fields, or the
+first selection returns method-not-found, listing uses the original
+`models.availableModels` combinations instead. Ambiguous combinations remain
+native selectors with an explanation. This fallback is not used to conceal an
+individual switch failure.
+
+The cost is N selection requests for N canonical models, plus one model restoration
+and, when initially exposed, one effort restoration. This still creates one native
+conversation per listing. A signed-in Linux 1.5.10 account measured 1.5 to 8.5 ms per
+selection, confirmed restoration, and unchanged defaults in a fresh session after
+a separate leave-selected control. Flash exposed low/medium/high; Sonnet, Opus
+thinking and GPT-OSS exposed no thought-level selector. That account had no
+non-default Gemini model, so Hydrogen remains unverified there. Native startup
+writes conversation state, summaries and logs and may access the network; this is
+not a promise of no persistent writes. See the
+[account evidence, costs and persistence limits](../../experiments/antigravity-model-menus/README.md#signed-in-result-and-product-readback).
+Listing requests `session/close` only when advertised. Close failure alone does
+not discard an obtained catalog; restoration failure always does
+([query costs](#orientation-query-costs)).
 
 1.5.0 reports grouped model ids such as `gemini-3.8-flash`, with a separate
 `thought_level` config option in category `thought_level`. OAR selects each
