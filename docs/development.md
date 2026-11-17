@@ -359,7 +359,12 @@ ceiling within the enclosing job's budget. These jobs exercise the explicit
 `OAR_*_BIN` path (`OAR_PI_RPC_COMMAND` for the Pi floor), so they do not
 establish PATH discovery coverage. Reports retain the manifest hash,
 artifact identity, native version and failure stage. Antigravity keeps its
-platform-specific SHA-512 pins. Manual historical experiments retain their
+platform-specific SHA-512 pins. Artifact downloads allow three total attempts
+for socket resets, timeouts and HTTP 5xx, with a 120-second limit per attempt
+and one second between retries. CI output and installation reports retain each
+attempt. Other HTTP errors, integrity mismatches and native-version mismatches
+fail immediately; discovery and package installation are not retried by this helper.
+Manual historical experiments retain their
 own controls, separate from upgrade candidates. Pin changes require a reviewed
 pull request; top-level CLI pins do not freeze npm transitive ranges, runner
 images or OS packages.

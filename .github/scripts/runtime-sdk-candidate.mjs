@@ -42,8 +42,11 @@ if (process.argv[1] && pathToFileURL(path.resolve(process.argv[1])).href === imp
   save();
   try {
     for (const [name, entry] of Object.entries(selected.packages)) {
-      await downloadVerified(entry.dist);
-      report.packages[name] = { expectedVersion: entry.version, integrity: entry.dist.integrity };
+      report.packages[name] = { expectedVersion: entry.version, integrity: entry.dist.integrity, downloadAttempts: [] };
+      await downloadVerified(entry.dist, { onAttempt: attempt => {
+        report.packages[name].downloadAttempts[attempt.attempt - 1] = attempt;
+        save();
+      } });
       save();
     }
     rewriteSdkManifests(group, selected.packages, root);
