@@ -50,23 +50,25 @@ nothing about OAR. A red PR or release gate should be about the change;
 one caused by an upstream release blocks unrelated work and teaches people
 to rerun instead of read.
 
-**Accepted:** PR and main CI install Claude, Codex and Qwen at exact
-versions from `.github/runtime-versions.json`
-([#887](https://github.com/botiverse/oar/pull/887)). A version is meant to
-enter that file only through a reviewed bump PR whose exact head passed the
-supported matrix. Other native CLIs keep their inline pins in `ci.yml`, and
-minimum, replay and other purpose-specific pins never move automatically.
-SDK versions stay in the package manifests and lockfile. CodeBuddy's live
-installer, the packed host's Pi ranges and transitive dependency ranges
-still float ([development notes](../development.md)). Latest releases will
-be tested by a separate scheduled run, not yet added, that nominates
-candidates and fails on its own when a release breaks; until then the
-maintainer-run [daily version inventory](../../experiments/runtime-versions.ts)
-covers them. Cost: CI can lag what users install until a bump merges, and
-each runtime release needs a bump PR.
+**Accepted:** PR and main CI install every native CLI at an exact
+version from `.github/runtime-versions.json`
+([#887](https://github.com/botiverse/oar/pull/887),
+[#890](https://github.com/botiverse/oar/pull/890)) and fail if the
+installed CLI reports another version. A version is meant to enter that
+file only through a reviewed bump PR whose exact head passed the supported
+matrix. Minimum, replay and historical pins never move automatically. SDK
+versions stay in the package manifests and lockfile, and the clean-install
+gate constrains the Pi SDK family to them. The scheduled
+`runtime-latest.yml` resolves the newest releases once into a frozen
+candidate record, runs the suites against them, and fails on its own when a
+release breaks; it never edits the accepted file. The live CodeBuddy npm
+installer and the published Pi ranges are checked there instead of in the
+gate. Transitive dependency ranges of the pinned CLIs still float
+([development notes](../development.md)). Cost: CI can lag what users
+install until a bump merges, and each runtime release needs a bump PR.
 
-**What would reopen it:** once the scheduled run exists, it failing to
-catch upstream breakage before users report it, or bump PRs lagging far
+**What would reopen it:** the scheduled run failing to catch upstream
+breakage before users report it, or bump PRs lagging far
 enough that hosts routinely run versions CI has not seen.
 
 ## Extending sessions OAR did not start (2026-11-17)
