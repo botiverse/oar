@@ -80,6 +80,8 @@ describe.skipIf(process.env.OAR_TEST !== "antigravity-aimock")("Antigravity nati
         const files = await readdir(f.home, { recursive: true });
         await writeFile(output, JSON.stringify({ version: installation.version, query: queryEvidence, files, modelRequests: f.raw.length }, null, 2)
           .replaceAll(f.home, "<home>").replaceAll(JSON.stringify(f.home).slice(1, -1), "<home>"));
+      } catch (error) {
+        console.error("Antigravity skill evidence could not be saved:", error instanceof Error ? error.name : "unknown");
       } finally { await f.stop(); }
     }
   });

@@ -46,10 +46,14 @@ describe.skipIf(process.env.OAR_TEST !== "kimi-login")("Kimi native expired-toke
     } finally {
       try {
         const settled = await outcomes;
-        const dir = path.join(resolveRunDir(), "kimi-expired-usage"); await mkdir(dir, { recursive: true });
-        await writeFile(path.join(dir, `concurrent-${String(count)}.json`), JSON.stringify({ platform: process.platform, count,
-          outcomes: settled.map(result => result.status === "fulfilled" ? result : { status: result.status, errors: failureMessages(result.reason) }),
-          observation: await f.observe() }, null, 2));
+        try {
+          const dir = path.join(resolveRunDir(), "kimi-expired-usage"); await mkdir(dir, { recursive: true });
+          await writeFile(path.join(dir, `concurrent-${String(count)}.json`), JSON.stringify({ platform: process.platform, count,
+            outcomes: settled.map(result => result.status === "fulfilled" ? result : { status: result.status, errors: failureMessages(result.reason) }),
+            observation: await f.observe() }, null, 2));
+        } catch (error) {
+          console.error("Kimi usage evidence could not be saved:", error instanceof Error ? error.name : "unknown");
+        }
         await stopped(f.trace);
       } finally { await f.dispose(); }
     }
