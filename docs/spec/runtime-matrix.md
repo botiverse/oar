@@ -179,14 +179,15 @@ runtime's process, it stops that process tree and, for ACP runtimes, every
 terminal OAR hosted for the session. A Pi Durable session on a host-owned
 harness is the exception: `dispose()` ends OAR's observation and leaves the
 harness's work running.
-Observed on Linux on 2026-10-28 with a command that starts a parent and a
-child process ([report](../../experiments/runtime-resources-2026-10-28.md)):
+Unless dated separately, observed on Linux on 2026-10-28 with a command
+that starts a parent and a child process ([report](../../experiments/runtime-resources-2026-10-28.md)):
 
 | runtime | after `abort` | how the command is stopped |
 |---|---|---|
 | codex 0.165.0 | keeps running until it exits by itself (about 45 s in the probe), both in an OAR session and in a shared app-server; OAR's 10 s fallback does not apply once codex has ended the turn | `dispose()`, or [`endTurnProcessesOnAbort`](#ending-a-turns-processes-on-abort) on a session that opted in. Native `thread/backgroundTerminals/terminate` and `thread/archive` also stop the probed command; OAR does not call them |
 | grok 1.0.70 (ACP) | keeps running: native cancel and close leave the terminals grok created through the host | `dispose()` releases every terminal OAR hosted for the session, or [`endTurnProcessesOnAbort`](#ending-a-turns-processes-on-abort) stops the aborted turn's |
 | kimi 2.3.3, opencode 1.19.5 and 2.2.0, antigravity 1.4.3 (ACP) | stopped within 2 s of the cancel | |
+| antigravity 1.5.9 (ACP, Linux 2026-11-17) | foreground `du` stopped; already-backgrounded `du` survived the native cancelled turn; after ordinary turn end, abort returns `no_active_turn` | `dispose()` cleared all observed native and shell process groups ([report](../../experiments/antigravity-disk-scan/README.md)); natural completion is independent of abort |
 | claude, codebuddy, devin, dsh, factory, qwen, qoder, pi (RPC) | not measured | `dispose()`: OAR owns the process |
 | pi (in process), cursor (in process) | not measured | they run in the host process: `dispose()` ends the SDK session; whether its commands stop is not measured |
 | cursor (subprocess mode) | not measured | `dispose()` stops the session's child, its process group and the descendants found by parent pid (POSIX), plus on Linux every process that kept the child's environment marker, such as a finished command's background job (tested on Linux); a process that cleared the marker, or on macOS one reparented away from the child, is not reached; Windows: `taskkill /T` on its tree, not run ([execution modes](../runtimes/cursor.md#execution-modes)) |

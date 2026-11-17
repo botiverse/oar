@@ -78,7 +78,10 @@ Google-login account tests:
   request. Its completion and later model reply did not reach ACP during
   the following 12 seconds, although a title notification did. The temporary
   conversation database contained both. OAR cannot report these absent
-  updates; `end_turn` is not proof that all native work is idle. Related
+  updates; `end_turn` is not proof that all native work is idle. A later
+  [slow disk-scan probe](../../experiments/antigravity-disk-scan/README.md)
+  observed the missing completion and background reply delivered immediately
+  after a new prompt, while subsequent prompts remained usable. Related
   upstream report:
   [antigravity-cli#1461](https://github.com/google-antigravity/antigravity-cli/issues/1461).
 
@@ -218,6 +221,21 @@ lost when their owning OAR process exits.
 to completion. The common ACP fallback terminates the owned process when
 native cancellation does not settle within ten seconds. The behavior suite
 checks cancellation and disposal with the CLI/local provider.
+
+On Linux with 1.5.9, a slow foreground `du` stopped on cancellation, but a
+command already moved to the background survived an accepted abort even
+though the native turn ended as `cancelled`. After an ordinary `end_turn`,
+OAR rejects abort with `no_active_turn`; it does not treat the still-running
+background command as an active root turn. A late `tool_call_ended` alone
+also cannot reopen an idle turn, verified by replaying the captured frame.
+In the live control it arrived after a new prompt was accepted, so the
+session was already running; the report keeps that ordering explicit.
+The scan runs in agy's worker process tree, with no OAR-hosted ACP terminal
+requests. `dispose()` cleaned up the observed native and shell process
+groups in all five
+[disk-scan controls](../../experiments/antigravity-disk-scan/README.md).
+These are CLI/local-provider observations, not a reproduction of the
+reported macOS desktop UI hang.
 
 **OAR bounds one input at 185,000 bytes.** Observed on agy 1.5.6 (a
 signed-in machine, 2026-11-12): with the instruction at the top and a code
