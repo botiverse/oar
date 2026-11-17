@@ -7,11 +7,13 @@ const { timeoutMs: _budget, ...withoutBudget } = timeout;
 const reason = "Descendant cleanup could not be verified: before_cancel windows: timeout (1027 ms)";
 const evidence: ProcessCleanupDiagnostics = { status: "unverified", observations: [timeout] };
 
-test("accepts the recorded Windows timeout while retaining its unverified exit", () => {
+test.each([1027, 999.9204, 999])("accepts the recorded Windows timeout at %s ms while retaining its unverified exit", elapsedMs => {
+  const recorded: ProcessCleanupDiagnostics = { ...evidence, observations: [{ ...timeout, elapsedMs }] };
+  const exitReason = `Descendant cleanup could not be verified: before_cancel windows: timeout (${elapsedMs.toFixed(0)} ms)`;
   const log = vi.spyOn(console, "log").mockImplementation(() => {});
   try {
-    expectCleanupEvidence(evidence, reason, { platform: "win32" });
-    expect(log).toHaveBeenCalledWith("OAR_CLEANUP_EVIDENCE", JSON.stringify({ evidence, reason }));
+    expectCleanupEvidence(recorded, exitReason, { platform: "win32" });
+    expect(log).toHaveBeenCalledWith("OAR_CLEANUP_EVIDENCE", JSON.stringify({ evidence: recorded, reason: exitReason }));
   } finally { log.mockRestore(); }
 });
 
@@ -29,6 +31,7 @@ test.each([
   ["larger product budget", { ...evidence, observations: [{ ...timeout, timeoutMs: 2000 }] }, reason],
   ["missing budget", { ...evidence, observations: [withoutBudget] }, reason],
   ["not expired", { ...evidence, observations: [{ ...timeout, elapsedMs: 1 }] }, reason],
+  ["outside timer tolerance", { ...evidence, observations: [{ ...timeout, elapsedMs: 998.999 }] }, "Descendant cleanup could not be verified: before_cancel windows: timeout (999 ms)"],
 ] satisfies readonly [string, ProcessCleanupDiagnostics | undefined, string | undefined][])("rejects %s", (_name, recorded, exitReason) => {
   expect(() => { expectCleanupEvidence(recorded, exitReason, { platform: "win32" }); }).toThrow();
 });

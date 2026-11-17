@@ -60,7 +60,8 @@ export function expectCleanupEvidence(
       expect(entry.timeoutMs, diagnostic).toBeLessThanOrEqual(5000);
     } else { expect(entry.timeoutMs, diagnostic).toBe(entry.phase === "before_cancel" ? 1000 : 5000); }
     expect(Number.isFinite(entry.elapsedMs), diagnostic).toBe(true);
-    expect(entry.elapsedMs, diagnostic).toBeGreaterThanOrEqual(entry.timeoutMs ?? Infinity);
+    // Node timers can fire a fraction of a millisecond early compared with performance.now().
+    expect(entry.elapsedMs, diagnostic).toBeGreaterThanOrEqual((entry.timeoutMs ?? Infinity) - 1);
   });
   expect(evidence.status, diagnostic).toBe(failures.length === 0 ? "observed" : "unverified");
   const expectedReason = failures.length === 0 ? undefined : `Descendant cleanup could not be verified: ${failures.map(entry =>
