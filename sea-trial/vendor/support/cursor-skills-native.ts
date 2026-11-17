@@ -1,17 +1,19 @@
 // Test-only observer. The installed SDK is never changed and no loader logic is replaced.
+import { copiedSdkImports } from "./copied-sdk-imports.js";
 import { asRecord, parseJson } from "../../../packages/oar/src/shared/json.js";
 import type { createAgentPlatform } from "@cursor/sdk";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { cp, mkdir, readFile, realpath, symlink, writeFile } from "node:fs/promises";
+import { cp, mkdir, readFile, realpath, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { Socket } from "node:net";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-const [cwd, copy, output] = process.argv.slice(2);
-assert.ok(cwd !== undefined && copy !== undefined && output !== undefined);
-// Canonicalize pnpm links/junctions before finding the SDK dependency directory.
+const [cwd, copyPath, output] = process.argv.slice(2);
+assert.ok(cwd !== undefined && copyPath !== undefined && output !== undefined);
+const copy = await realpath(copyPath);
+// Keep the original SDK as the source of dependency resolution.
 const sdkEntry = await realpath(fileURLToPath(import.meta.resolve("@cursor/sdk")));
 const sdkRoot = dirname(dirname(dirname(sdkEntry)));
 const fromSdk = createRequire(sdkEntry);
@@ -20,7 +22,8 @@ process.env.CURSOR_TREE_SITTER_VENDOR_DIR = join(nativeRoot, "vendor");
 process.env.CURSOR_RIPGREP_PATH = join(nativeRoot, "bin", process.platform === "win32" ? "rg.exe" : "rg");
 await mkdir(copy, { recursive: true });
 await cp(sdkRoot, copy, { recursive: true, filter: path => !path.endsWith("node_modules") });
-await symlink(dirname(dirname(sdkRoot)), join(copy, "node_modules"), "junction");
+const imports = copiedSdkImports(sdkEntry, copy);
+process.stderr.write(`${JSON.stringify({ kind: "sdk_observer_bootstrap", sdkEntry, copy })}\n`);
 const bundle = join(copy, "dist", "esm", "993.js");
 const original = await readFile(bundle, "utf8");
 const anchor = "const P={cursorRulesService:C,getAgentSkills:e=>E.getAllAgentSkills(e),subagentsService:x};return P";
@@ -43,7 +46,7 @@ try {
   const packageJson = asRecord(parseJson(packageText));
   assert.ok(packageJson !== null);
   await writeFile(output, JSON.stringify({ version: packageJson.version, sourceSha256: createHash("sha256").update(original).digest("hex"), blockedConnections, skills: skills.map(skill => { const value = asRecord(skill.toJson()); assert.ok(value !== null); return { path: value.fullPath, description: value.description ?? "", disableModelInvocation: value.disableModelInvocation ?? false, invalid: value.parseError !== undefined }; }) }, null, 2));
-} finally { await release?.(); }
+} finally { await release?.(); imports.deregister(); }
 process.exit(0);
 
 function hasPlatform(value: unknown): value is { createAgentPlatform: typeof createAgentPlatform } { return typeof asRecord(value)?.createAgentPlatform === "function"; }

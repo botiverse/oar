@@ -68,9 +68,13 @@ and ignored paths, hidden paths, rule-only entries, SDK/IDE filtering,
 duplicate brands, malformed duplicates, symlink aliases, external symlink
 targets, depth limits and surrogate-boundary descriptions.
 
-The test resolves the installed SDK entry with `realpath` before locating its
-dependencies, copies that SDK and adds one read-only observer at the
-existing merged-loader result. No discovery/filter/parser logic is replaced;
+The test canonicalizes the SDK and temporary-copy paths, copies that SDK
+and adds one read-only observer at the existing merged-loader result.
+A test-only Node module-resolution hook resolves the copy's external package
+imports from the original SDK entry, preserving Node's import conditions,
+subpaths and the installed dependency graph. Relative imports still load
+the copy. No package-manager directory layout or cross-volume junction is
+assumed. No discovery/filter/parser logic is replaced;
 the installed SDK stays unchanged. The public `prewarmLocalWorkspace` drives
 the real loader. The observer's exact anchor must occur once, otherwise the
 test fails before querying. The pinned SDK version and bundle fingerprint
@@ -95,9 +99,20 @@ The first Windows run at `8ab53f8f` passed the unit suite and build, but both
 native comparisons stopped while importing the copied SDK, before skill
 loading: `ERR_MODULE_NOT_FOUND` for `@bufbuild/protobuf`
 ([job 133758056224](https://github.com/botiverse/oar/actions/runs/43998995413/job/133758056224)).
-The observer derived its dependency directory from an entry path that could
-still name a package link. A Linux control preserving symlinks also failed
-at dependency resolution, for the native SDK companion. Canonicalizing the
-entry before deriving paths made both controls pass. The vendor child now
-always preserves links to retain that regression; Windows verification of
-the correction remains a CI requirement. Product discovery is unchanged.
+Canonicalizing the entry fixed a preserved-link Linux control, but the same
+Windows import failure remained at `b8014a81`
+([job 133766669278](https://github.com/botiverse/oar/actions/runs/44001569277/job/133766669278)).
+That run passed the Windows unit suite and build; Linux and macOS checks
+passed. The original failing dependency layout was not retained, so its
+precise Windows cause is unconfirmed.
+
+The observer no longer guesses a dependency directory or links it into the
+copy. Its external imports now use the original SDK's resolution context.
+A synthetic fixture with dependencies nested inside the SDK reproduced the
+old strategy's missing-package failure; the replacement passed that layout
+and sibling dependencies. These controls also verify import-versus-require
+conditions, package subpaths, transitive dependencies and unchanged local
+observer modules. They establish the removed layout assumption, not the
+unrecorded Windows root cause. Both real SDK comparisons pass locally with
+preserved links and the replacement. Windows verification remains a new-CI
+requirement. Product discovery is unchanged.

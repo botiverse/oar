@@ -5,6 +5,7 @@
     {
       "gitWorkspace": false,
       "preserveSymlinks": true,
+      "dependencyResolution": "original SDK entry via Node hook",
       "sdkVersion": "1.4.0",
       "sourceSha256": "197e2314468ac23f455dfe356e049b46f36c50a497152f9af12742fef199a244",
       "nativeCount": 20,
@@ -138,6 +139,7 @@
     {
       "gitWorkspace": true,
       "preserveSymlinks": true,
+      "dependencyResolution": "original SDK entry via Node hook",
       "sdkVersion": "1.4.0",
       "sourceSha256": "197e2314468ac23f455dfe356e049b46f36c50a497152f9af12742fef199a244",
       "nativeCount": 24,
@@ -388,6 +390,56 @@
       "path": "../artifacts/cursor-skills/skills-full-canonical.log",
       "bytes": 5508,
       "sha256": "36425901864093281fb3c863430574e73ab84389f7c1155f61ecc561a120e5d3"
+    },
+    {
+      "path": "../artifacts/cursor-skills/copy-layout-red-process.log",
+      "bytes": 3081,
+      "sha256": "c43d51764be66d862e241cfe4876e062a2516322a3475d9cb857b1bb54e894e8"
+    },
+    {
+      "path": "../artifacts/cursor-skills/copy-layout-green.log",
+      "bytes": 266,
+      "sha256": "33f044593ac37da233f05fb448b6164e2f886586f49689a8369d54c6b37a44da"
+    },
+    {
+      "path": "../artifacts/cursor-skills/parity-import-hook.log",
+      "bytes": 462,
+      "sha256": "285f28edff2db5981a7d722b332efef8a4d134e9e5319163130c99fce0fa784e"
+    },
+    {
+      "path": "../artifacts/cursor-skills/ci-windows-133766669278.log",
+      "bytes": 304045,
+      "sha256": "14de9a735b779177df6680726d4459dd33182ae0809f36478684cdfb2090730a"
+    },
+    {
+      "path": "../artifacts/cursor-skills/parity-import-hook-final.log",
+      "bytes": 266,
+      "sha256": "5540d7a59d0ca9a2e85093baff21075ae995d56d23b3ee424b72b663732f21c4"
+    },
+    {
+      "path": "../artifacts/cursor-skills/parity-import-hook-final/cursor-skills/false-native.log",
+      "bytes": 500,
+      "sha256": "3654a30f21d8ac2ea839b89fc038470b8a402f6100d8ebe87cdd40468a977236"
+    },
+    {
+      "path": "../artifacts/cursor-skills/parity-import-hook-final/cursor-skills/true-native.log",
+      "bytes": 500,
+      "sha256": "1001aa9424a06a44c15612260d4ee1dd8c9196409a35d9c06272feba93ed5aa0"
+    },
+    {
+      "path": "../artifacts/cursor-skills/parity-import-hook-final/cursor-skills/false.json",
+      "bytes": 12301,
+      "sha256": "82558524dfc75814b4627f56c7f0c8da1911eba95e22dd13589f4f383d7c3627"
+    },
+    {
+      "path": "../artifacts/cursor-skills/parity-import-hook-final/cursor-skills/true.json",
+      "bytes": 14308,
+      "sha256": "46abe5804f60b7a5eb52da702d8b18d8d2094eea7ea9c2e15bf9325700c70c87"
+    },
+    {
+      "path": "../artifacts/cursor-skills/skills-full-import-hook-final3.log",
+      "bytes": 5507,
+      "sha256": "987ea66fbf937b38efe0f8d0fe280c1975c4536c6ae796d4e23ea54700813ef8"
     }
   ],
   "windowsCiFailure": {
@@ -398,6 +450,34 @@
     "code": "ERR_MODULE_NOT_FOUND",
     "dependency": "@bufbuild/protobuf",
     "unitAndBuild": "passed",
-    "correction": "Canonicalize installed SDK entry before deriving dependency roots; preserved-link Linux control passes; Windows verification pending."
+    "correction": "Canonicalization alone did not fix Windows; see windowsCiFollowup."
+  },
+  "windowsCiFollowup": {
+    "head": "b8014a819c088139debd50845f74ba28795d2266",
+    "run": 44001569277,
+    "job": 133766669278,
+    "stage": "copied SDK import, before skill loading",
+    "code": "ERR_MODULE_NOT_FOUND",
+    "dependency": "@bufbuild/protobuf",
+    "unitAndBuild": "passed",
+    "rootCause": "Original Windows dependency layout was not retained; precise cause unconfirmed.",
+    "correction": "Resolve external imports from original SDK entry with a test-only Node hook; remove dependency-directory and junction assumptions. Windows verification pending."
+  },
+  "layoutControl": {
+    "oldStrategy": {
+      "sibling": "passed",
+      "nested": "ERR_MODULE_NOT_FOUND"
+    },
+    "newStrategy": {
+      "sibling": "passed",
+      "nested": "passed"
+    },
+    "assertions": [
+      "import condition",
+      "package subpath",
+      "installed transitive dependency",
+      "copy-local observer module"
+    ],
+    "limit": "Synthetic layout, not the unrecorded Windows layout."
   }
 }
