@@ -12,13 +12,19 @@ export interface Snapshot {
   readonly value?: unknown;
 }
 
-export function configFiles(cwd: string, env: NodeJS.ProcessEnv): ConfigFile[] {
+type Roots = readonly [ConfigFile, ConfigFile];
+export function configRoots(cwd: string, env: NodeJS.ProcessEnv): Roots {
   const configuredHome = env[process.platform === "win32" ? "USERPROFILE" : "HOME"];
   const home = configuredHome === undefined || configuredHome === "" ? homedir() : configuredHome;
   const root = paths.resolve(cwd, env.GEMINI_HOME === undefined || env.GEMINI_HOME === "" ? paths.join(home, ".gemini") : env.GEMINI_HOME);
+  return [{ label: "profile", path: root }, { label: "workspace/.gemini", path: paths.resolve(cwd, ".gemini") }];
+}
+
+export function configFiles(roots: Roots): ConfigFile[] {
+  const root = roots[0].path;
   const files = ["antigravity-cli/settings.json", "antigravity-acp/settings.json", "config/config.json", "config/mcp_config.json", "settings.json"]
     .map(relative => ({ label: `profile/${relative}`, path: paths.join(root, relative) }));
-  return [...files, { label: "workspace/.gemini/settings.json", path: paths.resolve(cwd, ".gemini/settings.json") }];
+  return [...files, { label: "workspace/.gemini/settings.json", path: paths.join(roots[1].path, "settings.json") }];
 }
 
 export async function snapshot(files: readonly ConfigFile[]): Promise<Snapshot[]> {

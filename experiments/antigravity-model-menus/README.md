@@ -79,9 +79,12 @@ model request. Run it only on the deliberately selected profile, using the exact
 OAR_TEST=antigravity pnpm tsx experiments/antigravity-model-menus/real-account.ts /absolute/path/to/agy output.json /absolute/workspace
 ```
 
-It opens one ACP session, records only the raw `availableModels` IDs and selected
-model/configuration fields, then selects each canonical model and records its
-returned `thought_level` options, current value and request duration. It sends no
+It runs two separate native processes in order against the same profile and workspace:
+first initialize/new/close with no selection requests, then initialize/new followed
+by every canonical model selection and restoration/close. Each run records only
+raw `availableModels` IDs and selected model/configuration fields. The second run
+records each returned `thought_level` menu, current value and request duration.
+A failed baseline or failed close prevents the second run. It sends no
 `session/prompt`, exposes no filesystem/terminal capability, and drops native
 notifications and reverse requests. Native initialization can still access the
 network and write configuration. The process uses the same ACP arguments as OAR
@@ -95,7 +98,27 @@ after every model selection, after restoration and after exit:
   and `settings.json`.
 - Under the selected workspace: `.gemini/settings.json`.
 
-Each phase compares with the initial snapshot. `changesSincePrevious` lists only
+For each run, `fileInventory` scans every file beneath the selected profile root and
+workspace `.gemini/` before startup and after exit. It lists created, removed,
+size-changed or mtime-changed entries, with relative paths, sizes and mtimes only;
+no file contents are read by this inventory. Email-, UUID- and long hex-shaped
+filename components become `[redacted-name]`. Nested symlink targets are not
+traversed. Scan errors and unscanned links set `complete: false`, so an incomplete
+scan cannot establish absence of writes. Changes outside these roots, or writes
+that preserve both size and mtime, are outside this metadata comparison.
+
+`difference` compares the two runs' changed paths, retaining the metadata for
+baseline-only, switch-run-only and shared changes. It groups already-redacted
+UUID filenames and native timestamp/PID log names; each run retains its separate
+entries. It also checks whether both sessions began with equal selection and
+catalog fields. These are observations, not a causal proof: the second run starts
+with a warmed profile, and two new sessions create different session files.
+A protobuf or settings file changed only in the switch run needs investigation;
+a file changed in both can also contain extra switch state. Metadata alone cannot
+establish its contents or prove restoration. Native readback and parsed settings
+comparisons remain separate evidence.
+
+Each phase compares with that run's initial snapshot. `changesSincePrevious` lists only
 changed or uncomparable files since the preceding phase, to distinguish startup
 writes from selection writes. `equal: null` means unreadable or invalid JSON,
 not evidence of equality. This is a bounded list of known files, not a claim
@@ -104,25 +127,46 @@ only menu values under known menu keys; all other values and object keys are
 redacted, without account fingerprints. Native diagnostics, session IDs and
 absolute paths are not emitted. Inspect the resulting report before sharing it.
 
-It refuses to switch when the initial model or an exposed effort selection is
-unknown. In `finally`, the script selects the initial model and effort through ACP and
-checks native readback, even after a failed switch. It never rewrites settings or
-credentials itself. A failed restoration is explicit and causes a nonzero exit;
+After that pair, `persistence` tests defaults through behavior. A third process
+selects the last listed model different from the original, leaves it selected and
+closes. A fourth process opens a fresh session and reads its initial model and
+effort. Matching the original is reported as `default_unchanged`; matching the
+selected model is `selected_model_persisted`; another difference is
+`other_default_change`. An unknown or failed observation is `inconclusive`.
+If fresh defaults differ or cannot be observed, the probe opens another process
+to restore the original model and effort through ACP, closes, and verifies both
+with one more fresh process. It reports restoration separately from persistence.
+A changed default is still reported even when restoration succeeds. No alternative
+model means this behavioral control is inconclusive. Avoid concurrent use of the
+selected profile during the measurement.
+
+The initial paired switch run retains restoration before close. It refuses to
+switch when the initial model or an exposed effort selection is unknown. In `finally`, the script selects the initial model and effort through ACP and
+checks native readback, even after a failed switch. The deliberate leave-selected
+control skips this cleanup only after a successful switch; its enclosing control
+performs the fresh-process observation and any required restoration. It never rewrites settings or
+credentials itself. A failed restoration or inconclusive behavioral result causes a nonzero exit;
 process termination outside that cleanup path cannot guarantee restoration.
 Successful session restoration alone does not prove unchanged persistent values:
 inspect the final parsed comparisons too. Saved defaults must either stay equal
 or be exactly restorable before enabling per-model switching in product listing.
 
-A Linux 1.5.10 control with an isolated Gemini provider validated this probe:
-seven model selections, two restoration requests, initialize/new/close (12 ACP
-requests total), zero provider requests, and confirmed model/effort restoration.
-The expanded file check also observed startup creating `config/config.json` and
-an unparseable `config/mcp_config.json`. The parsed config file did not change during model
-selection; the unparseable file remains unknown. This distinguishes measured
-startup writes from selection effects without treating unknown data as equal. Its measured
-selection/restoration cost is recorded in [local-control.json](local-control.json).
-This control is not the signed-in measurement. The armbian signed-in result is
-still required; no production switching behavior is introduced by this probe.
+A Linux 1.5.10 control with an isolated Gemini provider validated the pair:
+the baseline used three ACP requests; the second run used seven model selections,
+two restoration requests and initialize/new/close (12 requests). The behavioral
+control added four requests to leave another model selected and three to read a
+fresh session. The fresh default was the original `gemini-3.1-pro` with `low`
+effort, so no further restoration was needed. All four sessions together used
+22 ACP requests and zero provider requests, plus four version queries; the
+restore-before-close path also confirmed model/effort restoration.
+Both runs wrote conversation state, summaries and logs. The baseline also created
+bundled assets and configuration files in the fresh profile. No additional path
+category was observed only in the switch run after grouping per-process log names;
+this is not proof of unchanged protobuf contents. Parsed settings/config remained
+equal during selection; an unparseable MCP file remains unknown. The selected
+[control evidence](local-control.json) retains the per-run changes and timings.
+This is not the signed-in measurement. The armbian signed-in result is still
+required; no production switching behavior is introduced by this probe.
 
 Reproduce the isolated control, without selecting the machine's account:
 
@@ -130,7 +174,10 @@ Reproduce the isolated control, without selecting the machine's account:
 pnpm tsx experiments/antigravity-model-menus/local-control.ts /absolute/path/to/agy experiments/antigravity-model-menus/local-control.json
 ```
 
-Regression controls cover distinct menus, refusal before switching when the
+Regression controls cover the baseline-first request sequence, refusal to continue
+a failed baseline, extra file writes, volatile and persisted defaults, verified
+restoration in a fresh process, failed restoration, distinct menus, refusal before switching when the
 initial effort is unknown, restoration on success and switch
 failure, rejected restoration readback, parsed equality independent of key order,
-invalid JSON, and redaction of account data.
+invalid JSON, metadata-only file changes and incomplete scans, and redaction of
+account data and malformed native diagnostics.

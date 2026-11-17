@@ -3,6 +3,8 @@ import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, expect, test, vi } from "vitest";
+import { probeDefaultPersistence } from "../../experiments/antigravity-model-menus/default-persistence.js";
+import { probeMenuPersistence } from "../../experiments/antigravity-model-menus/paired-probe.js";
 import { probeRealMenus } from "../../experiments/antigravity-model-menus/probe.js";
 import { compareSnapshots, snapshot } from "../../experiments/antigravity-model-menus/config-diff.js";
 import { asRecord, type JsonRecord } from "../../packages/oar/src/shared/json.js";
@@ -49,7 +51,7 @@ test.each(["none", "switch", "restoration"])("probe restores native selection or
     return options(model, effort);
   });
   try {
-    const result = await probeRealMenus("agy", home, { HOME: home, USERPROFILE: home });
+    const result = await probeRealMenus({ command: "agy", cwd: home, env: { HOME: home, USERPROFILE: home }, mode: "switches" });
     expect(result.availableModelIds).toEqual(["pro", "flash"]);
     expect(result.methods).toEqual(["initialize", "session/new", "session/set_config_option", "session/set_config_option", "session/set_config_option", "session/set_config_option", "session/close"]);
     expect(result.restoration).toEqual(failure === "restoration" ? { confirmed: false } : { model: true, effort: true });
@@ -91,7 +93,7 @@ test("unknown initial effort stops before changing native selection", async () =
     ],
   });
   try {
-    const result = await probeRealMenus("agy", home, { HOME: home, USERPROFILE: home });
+    const result = await probeRealMenus({ command: "agy", cwd: home, env: { HOME: home, USERPROFILE: home }, mode: "switches" });
     expect(result.methods).toEqual(["initialize", "session/new"]);
     expect(result.failure).toEqual({ phase: "session/new", code: null });
     expect(result.restoration).toBeNull();
@@ -110,4 +112,86 @@ test("invalid or unreadable config is unknown, not an unchanged parsed file", as
     expect(asRecord(compared[0])?.equal).toBeNull();
     expect(asRecord(compared[1])?.equal).toBe(true);
   } finally { await rm(root, { recursive: true, force: true }); }
+});
+
+test("paired probe closes a creation-only baseline before switching and reports additional observed files", async () => {
+  const home = await mkdtemp(path.join(tmpdir(), "oar-menu-paired-"));
+  const root = path.join(home, ".gemini");
+  await mkdir(root);
+  let sessions = 0;
+  let model = "pro";
+  let effort = "high";
+  const methods: string[] = [];
+  acp.request.mockImplementation(async (method, params) => {
+    methods.push(method);
+    if (method === "initialize") { return { agentCapabilities: { sessionCapabilities: { close: {} } } }; }
+    if (method === "session/new") {
+      sessions += 1; model = "pro"; effort = "high";
+      await writeFile(path.join(root, "session.log"), "entry".repeat(sessions));
+      return { sessionId: `PRIVATE_SESSION_${sessions}`, ...options(model, effort) };
+    }
+    if (method === "session/close") { return {}; }
+    expect(sessions).toBeGreaterThanOrEqual(2);
+    if (params.configId === "model") { model = String(params.value); effort = "low"; }
+    else { effort = String(params.value); }
+    await writeFile(path.join(root, "selection.pb"), "PRIVATE_PROTOBUF");
+    return options(model, effort);
+  });
+  try {
+    const report = await probeMenuPersistence("agy", home, { HOME: home, USERPROFILE: home });
+    expect(methods.slice(0, 5)).toEqual(["initialize", "session/new", "session/close", "initialize", "session/new"]);
+    expect(report.baseline.methods).toEqual(["initialize", "session/new", "session/close"]);
+    expect(report.baseline.restoration).toBeNull();
+    expect(report.baseline.switches).toEqual([]);
+    expect(report.switches?.restoration).toEqual({ model: true, effort: true });
+    expect(report.difference).toMatchObject({ complete: true, baselineOnly: [], switchesOnly: [
+      { path: "profile/selection.pb", before: null }, { path: "workspace/.gemini/selection.pb", before: null },
+    ], changedInBoth: [{ path: "profile/session.log" }, { path: "workspace/.gemini/session.log" }] });
+    expect(JSON.stringify(report)).not.toMatch(/PRIVATE|oar-menu-paired-/u);
+    expect(acp.kill).toHaveBeenCalledTimes(4);
+    expect(report.persistence?.status).toBe("default_unchanged");
+  } finally { await rm(home, { recursive: true, force: true }); }
+});
+
+test("a failed baseline prevents the switch run", async () => {
+  const home = await mkdtemp(path.join(tmpdir(), "oar-menu-baseline-failure-"));
+  acp.request.mockRejectedValue(new Error("PRIVATE_FAILURE"));
+  try {
+    const report = await probeMenuPersistence("agy", home, { HOME: home, USERPROFILE: home });
+    expect(report.baseline.failure).toEqual({ phase: "initialize", code: null });
+    expect(report.switches).toBeNull();
+    expect(report.difference).toBeNull();
+    expect(acp.kill).toHaveBeenCalledOnce();
+  } finally { await rm(home, { recursive: true, force: true }); }
+});
+
+
+test.each(["volatile", "persisted", "restore_failed"])("fresh native sessions identify default persistence and verify restoration: %s", async behavior => {
+  const home = await mkdtemp(path.join(tmpdir(), "oar-menu-persistence-"));
+  let effort = "high", model = "pro", savedEffort = "high", savedModel = "pro", sessions = 0;
+  acp.request.mockImplementation(async (method, params) => {
+    if (method === "initialize") { return { agentCapabilities: { sessionCapabilities: { close: {} } } }; }
+    if (method === "session/new") {
+      sessions += 1; model = savedModel; effort = savedEffort;
+      return { sessionId: "PRIVATE_SESSION", ...options(model, effort) };
+    }
+    if (method === "session/close") { return {}; }
+    if (!(behavior === "restore_failed" && sessions === 3)) {
+      if (params.configId === "model") { model = String(params.value); effort = "low"; }
+      else { effort = String(params.value); }
+      if (behavior !== "volatile") { savedModel = model; savedEffort = effort; }
+    }
+    return options(model, effort);
+  });
+  try {
+    const baseline = { failure: null, initial: { model: "pro", thoughtLevel: { currentValue: "high" } }, modelIds: ["pro", "flash"] };
+    const report = await probeDefaultPersistence({ command: "agy", cwd: home, env: { HOME: home, USERPROFILE: home } }, baseline);
+    expect(report.status).toBe(behavior === "volatile" ? "default_unchanged" : "selected_model_persisted");
+    expect(report.observed).toEqual(behavior === "volatile" ? { model: "pro", effort: "high" } : { model: "flash", effort: "low" });
+    if (behavior === "volatile") { expect(report.restoration).toBeNull(); expect(sessions).toBe(2); }
+    else { expect(report.restoration).toMatchObject({ confirmed: behavior !== "restore_failed" }); expect(sessions).toBe(4); }
+    expect(savedModel).toBe(behavior === "restore_failed" ? "flash" : "pro");
+    expect(savedEffort).toBe(behavior === "restore_failed" ? "low" : "high");
+    expect(JSON.stringify(report)).not.toContain("PRIVATE_SESSION");
+  } finally { await rm(home, { recursive: true, force: true }); }
 });

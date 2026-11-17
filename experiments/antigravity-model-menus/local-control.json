@@ -1,171 +1,60 @@
 {
-  "schema": 1,
-  "provider": "isolated local Gemini provider, synthetic credential",
-  "platform": "linux",
-  "promptRequests": 0,
-  "timings": [
-    {
-      "method": "initialize",
-      "phase": "initialize",
-      "ok": true,
-      "elapsedMs": 153.756306
-    },
-    {
-      "method": "session/new",
-      "phase": "session/new",
-      "ok": true,
-      "elapsedMs": 332.6794560000001
-    },
-    {
-      "method": "session/set_config_option",
-      "phase": "switch/0",
-      "ok": true,
-      "elapsedMs": 2.2448859999999513
-    },
-    {
-      "method": "session/set_config_option",
-      "phase": "switch/1",
-      "ok": true,
-      "elapsedMs": 1.9309339999999793
-    },
-    {
-      "method": "session/set_config_option",
-      "phase": "switch/2",
-      "ok": true,
-      "elapsedMs": 3.618558000000121
-    },
-    {
-      "method": "session/set_config_option",
-      "phase": "switch/3",
-      "ok": true,
-      "elapsedMs": 8.440406999999823
-    },
-    {
-      "method": "session/set_config_option",
-      "phase": "switch/4",
-      "ok": true,
-      "elapsedMs": 6.634952000000112
-    },
-    {
-      "method": "session/set_config_option",
-      "phase": "switch/5",
-      "ok": true,
-      "elapsedMs": 8.756259999999884
-    },
-    {
-      "method": "session/set_config_option",
-      "phase": "switch/6",
-      "ok": true,
-      "elapsedMs": 3.080603999999994
-    },
-    {
-      "method": "session/set_config_option",
-      "phase": "restore/model",
-      "ok": true,
-      "elapsedMs": 7.79404599999998
-    },
-    {
-      "method": "session/set_config_option",
-      "phase": "restore/effort",
-      "ok": true,
-      "elapsedMs": 5.348442000000205
-    },
-    {
-      "method": "session/close",
-      "phase": "close",
-      "ok": true,
-      "elapsedMs": 1.638103000000001
-    }
-  ],
-  "switches": [
-    {
-      "modelId": "gemini-4-carbon",
-      "reportedModel": "gemini-4-carbon",
-      "thoughtLevel": {
-        "id": "thought_level",
-        "currentValue": "low",
-        "options": [
-          "low",
-          "medium",
-          "high"
-        ]
+  "schema": 2,
+  "baseline": {
+    "schema": 1,
+    "mode": "baseline",
+    "provider": "isolated local Gemini provider, synthetic credential",
+    "platform": "linux",
+    "promptRequests": 0,
+    "timings": [
+      {
+        "method": "initialize",
+        "phase": "initialize",
+        "ok": true,
+        "elapsedMs": 252.20738200000005
       },
-      "elapsedMs": 2.2448859999999513
-    },
-    {
-      "modelId": "gemini-4-hydrogen",
-      "reportedModel": "gemini-4-hydrogen",
-      "thoughtLevel": {
-        "id": "thought_level",
-        "currentValue": "low",
-        "options": [
-          "low",
-          "medium",
-          "high",
-          "xhigh"
-        ]
+      {
+        "method": "session/new",
+        "phase": "session/new",
+        "ok": true,
+        "elapsedMs": 427.17580399999997
       },
-      "elapsedMs": 1.9309339999999793
-    },
-    {
-      "modelId": "gemini-4-argon",
-      "reportedModel": "gemini-4-argon",
-      "thoughtLevel": {
-        "id": "thought_level",
-        "currentValue": "low",
-        "options": [
-          "low",
-          "medium",
-          "high"
-        ]
-      },
-      "elapsedMs": 3.618558000000121
-    },
-    {
-      "modelId": "gemini-3.8-flash",
-      "reportedModel": "gemini-3.8-flash",
-      "thoughtLevel": {
-        "id": "thought_level",
-        "currentValue": "low",
-        "options": [
-          "low",
-          "medium",
-          "high"
-        ]
-      },
-      "elapsedMs": 8.440406999999823
-    },
-    {
-      "modelId": "gemini-3.7-flash",
-      "reportedModel": "gemini-3.7-flash",
-      "thoughtLevel": {
-        "id": "thought_level",
-        "currentValue": "low",
-        "options": [
-          "low",
-          "medium",
-          "high"
-        ]
-      },
-      "elapsedMs": 6.634952000000112
-    },
-    {
-      "modelId": "gemini-3.6-flash",
-      "reportedModel": "gemini-3.6-flash",
-      "thoughtLevel": {
-        "id": "thought_level",
-        "currentValue": "low",
-        "options": [
-          "low",
-          "medium",
-          "high"
-        ]
-      },
-      "elapsedMs": 8.756259999999884
-    },
-    {
-      "modelId": "gemini-3.1-pro",
-      "reportedModel": "gemini-3.1-pro",
+      {
+        "method": "session/close",
+        "phase": "close",
+        "ok": true,
+        "elapsedMs": 1.900367999999844
+      }
+    ],
+    "switches": [],
+    "failure": null,
+    "restoration": null,
+    "version": "1.5.10",
+    "availableModelIds": [
+      "gemini-4-carbon-high",
+      "gemini-4-carbon-medium",
+      "gemini-4-carbon-low",
+      "gemini-4-hydrogen-high",
+      "gemini-4-hydrogen-xhigh",
+      "gemini-4-hydrogen-medium",
+      "gemini-4-hydrogen-low",
+      "gemini-4-argon-high",
+      "gemini-4-argon-medium",
+      "gemini-4-argon-low",
+      "gemini-3.8-flash-high",
+      "gemini-3.8-flash-medium",
+      "gemini-3.8-flash-low",
+      "gemini-3.7-flash-high",
+      "gemini-3.7-flash-medium",
+      "gemini-3.7-flash-low",
+      "gemini-3.6-flash-high",
+      "gemini-3.6-flash-medium",
+      "gemini-3.6-flash-low",
+      "gemini-3.1-pro-high",
+      "gemini-3.1-pro-low"
+    ],
+    "initial": {
+      "model": "gemini-3.1-pro",
       "thoughtLevel": {
         "id": "thought_level",
         "currentValue": "low",
@@ -173,285 +62,2627 @@
           "low",
           "high"
         ]
-      },
-      "elapsedMs": 3.080603999999994
-    }
-  ],
-  "failure": null,
-  "restoration": {
-    "model": true,
-    "effort": true
-  },
-  "version": "1.5.10",
-  "availableModelIds": [
-    "gemini-4-carbon-high",
-    "gemini-4-carbon-medium",
-    "gemini-4-carbon-low",
-    "gemini-4-hydrogen-high",
-    "gemini-4-hydrogen-xhigh",
-    "gemini-4-hydrogen-medium",
-    "gemini-4-hydrogen-low",
-    "gemini-4-argon-high",
-    "gemini-4-argon-medium",
-    "gemini-4-argon-low",
-    "gemini-3.8-flash-high",
-    "gemini-3.8-flash-medium",
-    "gemini-3.8-flash-low",
-    "gemini-3.7-flash-high",
-    "gemini-3.7-flash-medium",
-    "gemini-3.7-flash-low",
-    "gemini-3.6-flash-high",
-    "gemini-3.6-flash-medium",
-    "gemini-3.6-flash-low",
-    "gemini-3.1-pro-high",
-    "gemini-3.1-pro-low"
-  ],
-  "initial": {
-    "model": "gemini-3.1-pro",
-    "thoughtLevel": {
-      "id": "thought_level",
-      "currentValue": "low",
-      "options": [
-        "low",
-        "high"
-      ]
-    }
-  },
-  "modelIds": [
-    "gemini-4-carbon",
-    "gemini-4-hydrogen",
-    "gemini-4-argon",
-    "gemini-3.8-flash",
-    "gemini-3.7-flash",
-    "gemini-3.6-flash",
-    "gemini-3.1-pro"
-  ],
-  "elapsedMs": 848.710396,
-  "requestCount": 12,
-  "methods": [
-    "initialize",
-    "session/new",
-    "session/set_config_option",
-    "session/set_config_option",
-    "session/set_config_option",
-    "session/set_config_option",
-    "session/set_config_option",
-    "session/set_config_option",
-    "session/set_config_option",
-    "session/set_config_option",
-    "session/set_config_option",
-    "session/close"
-  ],
-  "providerRequests": 0,
-  "phaseChanges": [
-    {
-      "phase": "before",
-      "changesSincePrevious": []
+      }
     },
-    {
-      "phase": "initialize",
-      "changesSincePrevious": []
-    },
-    {
-      "phase": "session/new",
-      "changesSincePrevious": [
+    "modelIds": [
+      "gemini-4-carbon",
+      "gemini-4-hydrogen",
+      "gemini-4-argon",
+      "gemini-3.8-flash",
+      "gemini-3.7-flash",
+      "gemini-3.6-flash",
+      "gemini-3.1-pro"
+    ],
+    "fileInventory": {
+      "complete": true,
+      "beforeFileCount": 2,
+      "afterFileCount": 57,
+      "changed": [
         {
-          "file": "profile/config/config.json",
-          "before": "missing",
-          "after": "parsed",
-          "equal": false,
-          "changes": [
-            {
-              "path": [
-                "[redacted-field]",
-                "[redacted-field]",
-                "[redacted-field]"
-              ],
-              "before": {
-                "present": false
-              },
-              "after": {
-                "present": true,
-                "value": "[redacted]"
+          "path": "profile/antigravity-cli/builtin/.checksum",
+          "before": null,
+          "after": {
+            "size": 72,
+            "mtimeMs": 1794932894710.6182,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/antigravity-cli/builtin/.manifest",
+          "before": null,
+          "after": {
+            "size": 1534,
+            "mtimeMs": 1794932894710.6182,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/antigravity-cli/builtin/keep.txt",
+          "before": null,
+          "after": {
+            "size": 0,
+            "mtimeMs": 1794932894706.6182,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/antigravity-cli/builtin/plugins/swarm/README.md",
+          "before": null,
+          "after": {
+            "size": 15,
+            "mtimeMs": 1794932894706.6182,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/antigravity-cli/builtin/plugins/swarm/assets/logo.svg",
+          "before": null,
+          "after": {
+            "size": 9427,
+            "mtimeMs": 1794932894706.6182,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/antigravity-cli/builtin/plugins/swarm/plugin.json",
+          "before": null,
+          "after": {
+            "size": 131,
+            "mtimeMs": 1794932894706.6182,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/antigravity-cli/builtin/plugins/swarm/sidecars/swarm_board/README.md",
+          "before": null,
+          "after": {
+            "size": 21773,
+            "mtimeMs": 1794932894706.6182,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/antigravity-cli/builtin/plugins/swarm/sidecars/swarm_board/app.js",
+          "before": null,
+          "after": {
+            "size": 92860,
+            "mtimeMs": 1794932894706.6182,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/antigravity-cli/builtin/plugins/swarm/sidecars/swarm_board/channels.mjs",
+          "before": null,
+          "after": {
+            "size": 10421,
+            "mtimeMs": 1794932894706.6182,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/antigravity-cli/builtin/plugins/swarm/sidecars/swarm_board/hive.css",
+          "before": null,
+          "after": {
+            "size": 34524,
+            "mtimeMs": 1794932894706.6182,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/antigravity-cli/builtin/plugins/swarm/sidecars/swarm_board/hive.js",
+          "before": null,
+          "after": {
+            "size": 74346,
+            "mtimeMs": 1794932894706.6182,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/antigravity-cli/builtin/plugins/swarm/sidecars/swarm_board/index.html",
+          "before": null,
+          "after": {
+            "size": 15430,
+            "mtimeMs": 1794932894706.6182,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/antigravity-cli/builtin/plugins/swarm/sidecars/swarm_board/main.mjs",
+          "before": null,
+          "after": {
+            "size": 60079,
+            "mtimeMs": 1794932894706.6182,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/antigravity-cli/builtin/plugins/swarm/sidecars/swarm_board/narrator_bootstrap.js",
+          "before": null,
+          "after": {
+            "size": 6593,
+            "mtimeMs": 1794932894706.6182,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/antigravity-cli/builtin/plugins/swarm/sidecars/swarm_board/package.json",
+          "before": null,
+          "after": {
+            "size": 117,
+            "mtimeMs": 1794932894706.6182,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/antigravity-cli/builtin/plugins/swarm/sidecars/swarm_board/sidecar.json",
+          "before": null,
+          "after": {
+            "size": 686,
+            "mtimeMs": 1794932894706.6182,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/antigravity-cli/builtin/plugins/swarm/sidecars/swarm_board/styles.css",
+          "before": null,
+          "after": {
+            "size": 40648,
+            "mtimeMs": 1794932894710.6182,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/antigravity-cli/builtin/skills/agy-customizations/SKILL.md",
+          "before": null,
+          "after": {
+            "size": 5465,
+            "mtimeMs": 1794932894710.6182,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/antigravity-cli/builtin/skills/agy-customizations/docs/hooks.md",
+          "before": null,
+          "after": {
+            "size": 15551,
+            "mtimeMs": 1794932894710.6182,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/antigravity-cli/builtin/skills/agy-customizations/docs/json_configs.md",
+          "before": null,
+          "after": {
+            "size": 4904,
+            "mtimeMs": 1794932894710.6182,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/antigravity-cli/builtin/skills/agy-customizations/docs/mcp_servers.md",
+          "before": null,
+          "after": {
+            "size": 3378,
+            "mtimeMs": 1794932894710.6182,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/antigravity-cli/builtin/skills/agy-customizations/docs/plugins.md",
+          "before": null,
+          "after": {
+            "size": 4714,
+            "mtimeMs": 1794932894710.6182,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/antigravity-cli/builtin/skills/agy-customizations/docs/rules.md",
+          "before": null,
+          "after": {
+            "size": 1757,
+            "mtimeMs": 1794932894710.6182,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/antigravity-cli/builtin/skills/agy-customizations/docs/skills.md",
+          "before": null,
+          "after": {
+            "size": 2650,
+            "mtimeMs": 1794932894710.6182,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/antigravity-cli/builtin/skills/antigravity_guide/SKILL.md",
+          "before": null,
+          "after": {
+            "size": 3023,
+            "mtimeMs": 1794932894710.6182,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/antigravity-cli/builtin/skills/antigravity_guide/references/app.md",
+          "before": null,
+          "after": {
+            "size": 3636,
+            "mtimeMs": 1794932894710.6182,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/antigravity-cli/builtin/skills/antigravity_guide/references/cli.md",
+          "before": null,
+          "after": {
+            "size": 1686,
+            "mtimeMs": 1794932894710.6182,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/antigravity-cli/builtin/skills/antigravity_guide/references/ide.md",
+          "before": null,
+          "after": {
+            "size": 3399,
+            "mtimeMs": 1794932894710.6182,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/antigravity-cli/builtin/skills/antigravity_guide/references/sdk.md",
+          "before": null,
+          "after": {
+            "size": 3130,
+            "mtimeMs": 1794932894710.6182,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/antigravity-cli/builtin/skills/automation/SKILL.md",
+          "before": null,
+          "after": {
+            "size": 12572,
+            "mtimeMs": 1794932894710.6182,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/antigravity-cli/builtin/skills/generative_ui/SKILL.md",
+          "before": null,
+          "after": {
+            "size": 6400,
+            "mtimeMs": 1794932894710.6182,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/antigravity-cli/builtin/skills/mcp-app-development/SKILL.md",
+          "before": null,
+          "after": {
+            "size": 13326,
+            "mtimeMs": 1794932894710.6182,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/antigravity-cli/builtin/skills/migrate-agent-settings/SKILL.md",
+          "before": null,
+          "after": {
+            "size": 10476,
+            "mtimeMs": 1794932894710.6182,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/antigravity-cli/builtin/skills/migrate-workflows/SKILL.md",
+          "before": null,
+          "after": {
+            "size": 6039,
+            "mtimeMs": 1794932894710.6182,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/antigravity-cli/builtin/skills/native_swarm/SKILL.md",
+          "before": null,
+          "after": {
+            "size": 20819,
+            "mtimeMs": 1794932894710.6182,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/antigravity-cli/builtin/skills/native_swarm/logo.svg",
+          "before": null,
+          "after": {
+            "size": 9427,
+            "mtimeMs": 1794932894710.6182,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/antigravity-cli/builtin/skills/permissioned-github/SKILL.md",
+          "before": null,
+          "after": {
+            "size": 8293,
+            "mtimeMs": 1794932894710.6182,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/antigravity-cli/builtin/skills/plugin/SKILL.md",
+          "before": null,
+          "after": {
+            "size": 17208,
+            "mtimeMs": 1794932894710.6182,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/antigravity-cli/builtin/skills/run-workflow/SKILL.md",
+          "before": null,
+          "after": {
+            "size": 10315,
+            "mtimeMs": 1794932894710.6182,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/antigravity-cli/builtin/skills/swarm_monitor/SKILL.md",
+          "before": null,
+          "after": {
+            "size": 5784,
+            "mtimeMs": 1794932894710.6182,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/antigravity-cli/builtin/skills/swarm_narrator/SKILL.md",
+          "before": null,
+          "after": {
+            "size": 11626,
+            "mtimeMs": 1794932894710.6182,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/antigravity-cli/builtin/skills/swarm_pane/SKILL.md",
+          "before": null,
+          "after": {
+            "size": 1987,
+            "mtimeMs": 1794932894710.6182,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/antigravity-cli/builtin/skills/ui-plugin-navigation/SKILL.md",
+          "before": null,
+          "after": {
+            "size": 3811,
+            "mtimeMs": 1794932894710.6182,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/antigravity-cli/cache/onboarding.json",
+          "before": null,
+          "after": {
+            "size": 111,
+            "mtimeMs": 1794932894802.618,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/antigravity-cli/conversation_summaries.db",
+          "before": null,
+          "after": {
+            "size": 20480,
+            "mtimeMs": 1794932894850.6177,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/antigravity-cli/conversations/[redacted-name]",
+          "before": null,
+          "after": {
+            "size": 393216,
+            "mtimeMs": 1794932894830.618,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/antigravity-cli/implicit/[redacted-name]",
+          "before": null,
+          "after": {
+            "size": 285,
+            "mtimeMs": 1794932894798.618,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/antigravity-cli/installation_id",
+          "before": null,
+          "after": {
+            "size": 36,
+            "mtimeMs": 1794932894650.6182,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/antigravity-cli/jetbox_summaries_proto.pb",
+          "before": null,
+          "after": {
+            "size": 401,
+            "mtimeMs": 1794932894846.6177,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/antigravity-cli/jetski_state.pbtxt",
+          "before": null,
+          "after": {
+            "size": 518,
+            "mtimeMs": 1794932894726.6182,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/antigravity-cli/log/acp-front-20261117_162814-1061721.log",
+          "before": null,
+          "after": {
+            "size": 872,
+            "mtimeMs": 1794932897062.6128,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/antigravity-cli/log/acp-worker-20261117_162814-1061783.log",
+          "before": null,
+          "after": {
+            "size": 10783,
+            "mtimeMs": 1794932894974.6174,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/config/.migrated",
+          "before": null,
+          "after": {
+            "size": 0,
+            "mtimeMs": 1794932894710.6182,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/config/config.json",
+          "before": null,
+          "after": {
+            "size": 65,
+            "mtimeMs": 1794932894714.6182,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/config/mcp_config.json",
+          "before": null,
+          "after": {
+            "size": 0,
+            "mtimeMs": 1794932894706.6182,
+            "kind": "file"
+          }
+        }
+      ],
+      "beforeErrors": [],
+      "afterErrors": [],
+      "unscannedLinks": []
+    },
+    "elapsedMs": 2964.1984260000004,
+    "requestCount": 3,
+    "methods": [
+      "initialize",
+      "session/new",
+      "session/close"
+    ],
+    "phaseChanges": [
+      {
+        "phase": "before",
+        "changesSincePrevious": []
+      },
+      {
+        "phase": "initialize",
+        "changesSincePrevious": []
+      },
+      {
+        "phase": "session/new",
+        "changesSincePrevious": [
+          {
+            "file": "profile/config/config.json",
+            "before": "missing",
+            "after": "parsed",
+            "equal": false,
+            "changes": [
+              {
+                "path": [
+                  "[redacted-field]",
+                  "[redacted-field]",
+                  "[redacted-field]"
+                ],
+                "before": {
+                  "present": false
+                },
+                "after": {
+                  "present": true,
+                  "value": "[redacted]"
+                }
               }
+            ]
+          },
+          {
+            "file": "profile/config/mcp_config.json",
+            "before": "missing",
+            "after": "invalid_json",
+            "equal": null,
+            "changes": []
+          }
+        ]
+      },
+      {
+        "phase": "after_exit",
+        "changesSincePrevious": [
+          {
+            "file": "profile/config/mcp_config.json",
+            "before": "invalid_json",
+            "after": "invalid_json",
+            "equal": null,
+            "changes": []
+          }
+        ]
+      }
+    ],
+    "finalFiles": [
+      {
+        "file": "profile/antigravity-cli/settings.json",
+        "before": "parsed",
+        "after": "parsed",
+        "equal": true,
+        "changes": []
+      },
+      {
+        "file": "profile/antigravity-acp/settings.json",
+        "before": "parsed",
+        "after": "parsed",
+        "equal": true,
+        "changes": []
+      },
+      {
+        "file": "profile/config/config.json",
+        "before": "missing",
+        "after": "parsed",
+        "equal": false,
+        "changes": [
+          {
+            "path": [
+              "[redacted-field]",
+              "[redacted-field]",
+              "[redacted-field]"
+            ],
+            "before": {
+              "present": false
+            },
+            "after": {
+              "present": true,
+              "value": "[redacted]"
+            }
+          }
+        ]
+      },
+      {
+        "file": "profile/config/mcp_config.json",
+        "before": "missing",
+        "after": "invalid_json",
+        "equal": null,
+        "changes": []
+      },
+      {
+        "file": "profile/settings.json",
+        "before": "missing",
+        "after": "missing",
+        "equal": true,
+        "changes": []
+      },
+      {
+        "file": "workspace/.gemini/settings.json",
+        "before": "missing",
+        "after": "missing",
+        "equal": true,
+        "changes": []
+      }
+    ]
+  },
+  "switches": {
+    "schema": 1,
+    "mode": "switches",
+    "provider": "isolated local Gemini provider, synthetic credential",
+    "platform": "linux",
+    "promptRequests": 0,
+    "timings": [
+      {
+        "method": "initialize",
+        "phase": "initialize",
+        "ok": true,
+        "elapsedMs": 273.66899100000046
+      },
+      {
+        "method": "session/new",
+        "phase": "session/new",
+        "ok": true,
+        "elapsedMs": 333.4538419999999
+      },
+      {
+        "method": "session/set_config_option",
+        "phase": "switch/0",
+        "ok": true,
+        "elapsedMs": 2.645414999999957
+      },
+      {
+        "method": "session/set_config_option",
+        "phase": "switch/1",
+        "ok": true,
+        "elapsedMs": 14.02305400000023
+      },
+      {
+        "method": "session/set_config_option",
+        "phase": "switch/2",
+        "ok": true,
+        "elapsedMs": 2.205826000000343
+      },
+      {
+        "method": "session/set_config_option",
+        "phase": "switch/3",
+        "ok": true,
+        "elapsedMs": 2.1787169999997786
+      },
+      {
+        "method": "session/set_config_option",
+        "phase": "switch/4",
+        "ok": true,
+        "elapsedMs": 1.617960999999923
+      },
+      {
+        "method": "session/set_config_option",
+        "phase": "switch/5",
+        "ok": true,
+        "elapsedMs": 6.693736000000172
+      },
+      {
+        "method": "session/set_config_option",
+        "phase": "switch/6",
+        "ok": true,
+        "elapsedMs": 3.0299779999995735
+      },
+      {
+        "method": "session/set_config_option",
+        "phase": "restore/model",
+        "ok": true,
+        "elapsedMs": 1.8578539999998611
+      },
+      {
+        "method": "session/set_config_option",
+        "phase": "restore/effort",
+        "ok": true,
+        "elapsedMs": 2.2160109999995257
+      },
+      {
+        "method": "session/close",
+        "phase": "close",
+        "ok": true,
+        "elapsedMs": 1.969054999999571
+      }
+    ],
+    "switches": [
+      {
+        "modelId": "gemini-4-carbon",
+        "reportedModel": "gemini-4-carbon",
+        "thoughtLevel": {
+          "id": "thought_level",
+          "currentValue": "low",
+          "options": [
+            "low",
+            "medium",
+            "high"
+          ]
+        },
+        "elapsedMs": 2.645414999999957
+      },
+      {
+        "modelId": "gemini-4-hydrogen",
+        "reportedModel": "gemini-4-hydrogen",
+        "thoughtLevel": {
+          "id": "thought_level",
+          "currentValue": "low",
+          "options": [
+            "low",
+            "medium",
+            "high",
+            "xhigh"
+          ]
+        },
+        "elapsedMs": 14.02305400000023
+      },
+      {
+        "modelId": "gemini-4-argon",
+        "reportedModel": "gemini-4-argon",
+        "thoughtLevel": {
+          "id": "thought_level",
+          "currentValue": "low",
+          "options": [
+            "low",
+            "medium",
+            "high"
+          ]
+        },
+        "elapsedMs": 2.205826000000343
+      },
+      {
+        "modelId": "gemini-3.8-flash",
+        "reportedModel": "gemini-3.8-flash",
+        "thoughtLevel": {
+          "id": "thought_level",
+          "currentValue": "low",
+          "options": [
+            "low",
+            "medium",
+            "high"
+          ]
+        },
+        "elapsedMs": 2.1787169999997786
+      },
+      {
+        "modelId": "gemini-3.7-flash",
+        "reportedModel": "gemini-3.7-flash",
+        "thoughtLevel": {
+          "id": "thought_level",
+          "currentValue": "low",
+          "options": [
+            "low",
+            "medium",
+            "high"
+          ]
+        },
+        "elapsedMs": 1.617960999999923
+      },
+      {
+        "modelId": "gemini-3.6-flash",
+        "reportedModel": "gemini-3.6-flash",
+        "thoughtLevel": {
+          "id": "thought_level",
+          "currentValue": "low",
+          "options": [
+            "low",
+            "medium",
+            "high"
+          ]
+        },
+        "elapsedMs": 6.693736000000172
+      },
+      {
+        "modelId": "gemini-3.1-pro",
+        "reportedModel": "gemini-3.1-pro",
+        "thoughtLevel": {
+          "id": "thought_level",
+          "currentValue": "low",
+          "options": [
+            "low",
+            "high"
+          ]
+        },
+        "elapsedMs": 3.0299779999995735
+      }
+    ],
+    "failure": null,
+    "restoration": {
+      "model": true,
+      "effort": true
+    },
+    "version": "1.5.10",
+    "availableModelIds": [
+      "gemini-4-carbon-high",
+      "gemini-4-carbon-medium",
+      "gemini-4-carbon-low",
+      "gemini-4-hydrogen-high",
+      "gemini-4-hydrogen-xhigh",
+      "gemini-4-hydrogen-medium",
+      "gemini-4-hydrogen-low",
+      "gemini-4-argon-high",
+      "gemini-4-argon-medium",
+      "gemini-4-argon-low",
+      "gemini-3.8-flash-high",
+      "gemini-3.8-flash-medium",
+      "gemini-3.8-flash-low",
+      "gemini-3.7-flash-high",
+      "gemini-3.7-flash-medium",
+      "gemini-3.7-flash-low",
+      "gemini-3.6-flash-high",
+      "gemini-3.6-flash-medium",
+      "gemini-3.6-flash-low",
+      "gemini-3.1-pro-high",
+      "gemini-3.1-pro-low"
+    ],
+    "initial": {
+      "model": "gemini-3.1-pro",
+      "thoughtLevel": {
+        "id": "thought_level",
+        "currentValue": "low",
+        "options": [
+          "low",
+          "high"
+        ]
+      }
+    },
+    "modelIds": [
+      "gemini-4-carbon",
+      "gemini-4-hydrogen",
+      "gemini-4-argon",
+      "gemini-3.8-flash",
+      "gemini-3.7-flash",
+      "gemini-3.6-flash",
+      "gemini-3.1-pro"
+    ],
+    "fileInventory": {
+      "complete": true,
+      "beforeFileCount": 57,
+      "afterFileCount": 60,
+      "changed": [
+        {
+          "path": "profile/antigravity-cli/cache/onboarding.json",
+          "before": {
+            "size": 111,
+            "mtimeMs": 1794932894802.618,
+            "kind": "file"
+          },
+          "after": {
+            "size": 111,
+            "mtimeMs": 1794932897918.6108,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/antigravity-cli/conversation_summaries.db",
+          "before": {
+            "size": 20480,
+            "mtimeMs": 1794932894850.6177,
+            "kind": "file"
+          },
+          "after": {
+            "size": 20480,
+            "mtimeMs": 1794932898014.6106,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/antigravity-cli/conversations/[redacted-name]",
+          "before": null,
+          "after": {
+            "size": 393216,
+            "mtimeMs": 1794932897942.6108,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/antigravity-cli/jetbox_summaries_proto.pb",
+          "before": {
+            "size": 401,
+            "mtimeMs": 1794932894846.6177,
+            "kind": "file"
+          },
+          "after": {
+            "size": 802,
+            "mtimeMs": 1794932897998.6106,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/antigravity-cli/log/acp-front-20261117_162817-1062001.log",
+          "before": null,
+          "after": {
+            "size": 1574,
+            "mtimeMs": 1794932898174.6104,
+            "kind": "file"
+          }
+        },
+        {
+          "path": "profile/antigravity-cli/log/acp-worker-20261117_162817-1062016.log",
+          "before": null,
+          "after": {
+            "size": 16589,
+            "mtimeMs": 1794932898050.6106,
+            "kind": "file"
+          }
+        }
+      ],
+      "beforeErrors": [],
+      "afterErrors": [],
+      "unscannedLinks": []
+    },
+    "elapsedMs": 922.261458,
+    "requestCount": 12,
+    "methods": [
+      "initialize",
+      "session/new",
+      "session/set_config_option",
+      "session/set_config_option",
+      "session/set_config_option",
+      "session/set_config_option",
+      "session/set_config_option",
+      "session/set_config_option",
+      "session/set_config_option",
+      "session/set_config_option",
+      "session/set_config_option",
+      "session/close"
+    ],
+    "phaseChanges": [
+      {
+        "phase": "before",
+        "changesSincePrevious": [
+          {
+            "file": "profile/config/mcp_config.json",
+            "before": "invalid_json",
+            "after": "invalid_json",
+            "equal": null,
+            "changes": []
+          }
+        ]
+      },
+      {
+        "phase": "initialize",
+        "changesSincePrevious": [
+          {
+            "file": "profile/config/mcp_config.json",
+            "before": "invalid_json",
+            "after": "invalid_json",
+            "equal": null,
+            "changes": []
+          }
+        ]
+      },
+      {
+        "phase": "session/new",
+        "changesSincePrevious": [
+          {
+            "file": "profile/config/mcp_config.json",
+            "before": "invalid_json",
+            "after": "invalid_json",
+            "equal": null,
+            "changes": []
+          }
+        ]
+      },
+      {
+        "phase": "switch/0",
+        "changesSincePrevious": [
+          {
+            "file": "profile/config/mcp_config.json",
+            "before": "invalid_json",
+            "after": "invalid_json",
+            "equal": null,
+            "changes": []
+          }
+        ]
+      },
+      {
+        "phase": "switch/1",
+        "changesSincePrevious": [
+          {
+            "file": "profile/config/mcp_config.json",
+            "before": "invalid_json",
+            "after": "invalid_json",
+            "equal": null,
+            "changes": []
+          }
+        ]
+      },
+      {
+        "phase": "switch/2",
+        "changesSincePrevious": [
+          {
+            "file": "profile/config/mcp_config.json",
+            "before": "invalid_json",
+            "after": "invalid_json",
+            "equal": null,
+            "changes": []
+          }
+        ]
+      },
+      {
+        "phase": "switch/3",
+        "changesSincePrevious": [
+          {
+            "file": "profile/config/mcp_config.json",
+            "before": "invalid_json",
+            "after": "invalid_json",
+            "equal": null,
+            "changes": []
+          }
+        ]
+      },
+      {
+        "phase": "switch/4",
+        "changesSincePrevious": [
+          {
+            "file": "profile/config/mcp_config.json",
+            "before": "invalid_json",
+            "after": "invalid_json",
+            "equal": null,
+            "changes": []
+          }
+        ]
+      },
+      {
+        "phase": "switch/5",
+        "changesSincePrevious": [
+          {
+            "file": "profile/config/mcp_config.json",
+            "before": "invalid_json",
+            "after": "invalid_json",
+            "equal": null,
+            "changes": []
+          }
+        ]
+      },
+      {
+        "phase": "switch/6",
+        "changesSincePrevious": [
+          {
+            "file": "profile/config/mcp_config.json",
+            "before": "invalid_json",
+            "after": "invalid_json",
+            "equal": null,
+            "changes": []
+          }
+        ]
+      },
+      {
+        "phase": "after_restore",
+        "changesSincePrevious": [
+          {
+            "file": "profile/config/mcp_config.json",
+            "before": "invalid_json",
+            "after": "invalid_json",
+            "equal": null,
+            "changes": []
+          }
+        ]
+      },
+      {
+        "phase": "after_exit",
+        "changesSincePrevious": [
+          {
+            "file": "profile/config/mcp_config.json",
+            "before": "invalid_json",
+            "after": "invalid_json",
+            "equal": null,
+            "changes": []
+          }
+        ]
+      }
+    ],
+    "finalFiles": [
+      {
+        "file": "profile/antigravity-cli/settings.json",
+        "before": "parsed",
+        "after": "parsed",
+        "equal": true,
+        "changes": []
+      },
+      {
+        "file": "profile/antigravity-acp/settings.json",
+        "before": "parsed",
+        "after": "parsed",
+        "equal": true,
+        "changes": []
+      },
+      {
+        "file": "profile/config/config.json",
+        "before": "parsed",
+        "after": "parsed",
+        "equal": true,
+        "changes": []
+      },
+      {
+        "file": "profile/config/mcp_config.json",
+        "before": "invalid_json",
+        "after": "invalid_json",
+        "equal": null,
+        "changes": []
+      },
+      {
+        "file": "profile/settings.json",
+        "before": "missing",
+        "after": "missing",
+        "equal": true,
+        "changes": []
+      },
+      {
+        "file": "workspace/.gemini/settings.json",
+        "before": "missing",
+        "after": "missing",
+        "equal": true,
+        "changes": []
+      }
+    ]
+  },
+  "persistence": {
+    "status": "default_unchanged",
+    "original": {
+      "model": "gemini-3.1-pro",
+      "effort": "low"
+    },
+    "targetModel": "gemini-3.6-flash",
+    "restoration": null,
+    "leaveSelected": {
+      "schema": 1,
+      "mode": "leave_selected",
+      "provider": "operator-selected profile",
+      "platform": "linux",
+      "promptRequests": 0,
+      "timings": [
+        {
+          "method": "initialize",
+          "phase": "initialize",
+          "ok": true,
+          "elapsedMs": 184.4899089999999
+        },
+        {
+          "method": "session/new",
+          "phase": "session/new",
+          "ok": true,
+          "elapsedMs": 305.9544829999995
+        },
+        {
+          "method": "session/set_config_option",
+          "phase": "switch/0",
+          "ok": true,
+          "elapsedMs": 6.979270999999244
+        },
+        {
+          "method": "session/close",
+          "phase": "close",
+          "ok": true,
+          "elapsedMs": 1.3841599999996106
+        }
+      ],
+      "phases": [
+        {
+          "phase": "before",
+          "files": [
+            {
+              "file": "profile/antigravity-cli/settings.json",
+              "before": "parsed",
+              "after": "parsed",
+              "equal": true,
+              "changes": []
+            },
+            {
+              "file": "profile/antigravity-acp/settings.json",
+              "before": "parsed",
+              "after": "parsed",
+              "equal": true,
+              "changes": []
+            },
+            {
+              "file": "profile/config/config.json",
+              "before": "parsed",
+              "after": "parsed",
+              "equal": true,
+              "changes": []
+            },
+            {
+              "file": "profile/config/mcp_config.json",
+              "before": "invalid_json",
+              "after": "invalid_json",
+              "equal": null,
+              "changes": []
+            },
+            {
+              "file": "profile/settings.json",
+              "before": "missing",
+              "after": "missing",
+              "equal": true,
+              "changes": []
+            },
+            {
+              "file": "workspace/.gemini/settings.json",
+              "before": "missing",
+              "after": "missing",
+              "equal": true,
+              "changes": []
+            }
+          ],
+          "changesSincePrevious": [
+            {
+              "file": "profile/config/mcp_config.json",
+              "before": "invalid_json",
+              "after": "invalid_json",
+              "equal": null,
+              "changes": []
             }
           ]
         },
         {
-          "file": "profile/config/mcp_config.json",
-          "before": "missing",
-          "after": "invalid_json",
-          "equal": null,
-          "changes": []
-        }
-      ]
-    },
-    {
-      "phase": "switch/0",
-      "changesSincePrevious": [
-        {
-          "file": "profile/config/mcp_config.json",
-          "before": "invalid_json",
-          "after": "invalid_json",
-          "equal": null,
-          "changes": []
-        }
-      ]
-    },
-    {
-      "phase": "switch/1",
-      "changesSincePrevious": [
-        {
-          "file": "profile/config/mcp_config.json",
-          "before": "invalid_json",
-          "after": "invalid_json",
-          "equal": null,
-          "changes": []
-        }
-      ]
-    },
-    {
-      "phase": "switch/2",
-      "changesSincePrevious": [
-        {
-          "file": "profile/config/mcp_config.json",
-          "before": "invalid_json",
-          "after": "invalid_json",
-          "equal": null,
-          "changes": []
-        }
-      ]
-    },
-    {
-      "phase": "switch/3",
-      "changesSincePrevious": [
-        {
-          "file": "profile/config/mcp_config.json",
-          "before": "invalid_json",
-          "after": "invalid_json",
-          "equal": null,
-          "changes": []
-        }
-      ]
-    },
-    {
-      "phase": "switch/4",
-      "changesSincePrevious": [
-        {
-          "file": "profile/config/mcp_config.json",
-          "before": "invalid_json",
-          "after": "invalid_json",
-          "equal": null,
-          "changes": []
-        }
-      ]
-    },
-    {
-      "phase": "switch/5",
-      "changesSincePrevious": [
-        {
-          "file": "profile/config/mcp_config.json",
-          "before": "invalid_json",
-          "after": "invalid_json",
-          "equal": null,
-          "changes": []
-        }
-      ]
-    },
-    {
-      "phase": "switch/6",
-      "changesSincePrevious": [
-        {
-          "file": "profile/config/mcp_config.json",
-          "before": "invalid_json",
-          "after": "invalid_json",
-          "equal": null,
-          "changes": []
-        }
-      ]
-    },
-    {
-      "phase": "after_restore",
-      "changesSincePrevious": [
-        {
-          "file": "profile/config/mcp_config.json",
-          "before": "invalid_json",
-          "after": "invalid_json",
-          "equal": null,
-          "changes": []
-        }
-      ]
-    },
-    {
-      "phase": "after_exit",
-      "changesSincePrevious": [
-        {
-          "file": "profile/config/mcp_config.json",
-          "before": "invalid_json",
-          "after": "invalid_json",
-          "equal": null,
-          "changes": []
-        }
-      ]
-    }
-  ],
-  "finalFiles": [
-    {
-      "file": "profile/antigravity-cli/settings.json",
-      "before": "parsed",
-      "after": "parsed",
-      "equal": true,
-      "changes": []
-    },
-    {
-      "file": "profile/antigravity-acp/settings.json",
-      "before": "parsed",
-      "after": "parsed",
-      "equal": true,
-      "changes": []
-    },
-    {
-      "file": "profile/config/config.json",
-      "before": "missing",
-      "after": "parsed",
-      "equal": false,
-      "changes": [
-        {
-          "path": [
-            "[redacted-field]",
-            "[redacted-field]",
-            "[redacted-field]"
+          "phase": "initialize",
+          "files": [
+            {
+              "file": "profile/antigravity-cli/settings.json",
+              "before": "parsed",
+              "after": "parsed",
+              "equal": true,
+              "changes": []
+            },
+            {
+              "file": "profile/antigravity-acp/settings.json",
+              "before": "parsed",
+              "after": "parsed",
+              "equal": true,
+              "changes": []
+            },
+            {
+              "file": "profile/config/config.json",
+              "before": "parsed",
+              "after": "parsed",
+              "equal": true,
+              "changes": []
+            },
+            {
+              "file": "profile/config/mcp_config.json",
+              "before": "invalid_json",
+              "after": "invalid_json",
+              "equal": null,
+              "changes": []
+            },
+            {
+              "file": "profile/settings.json",
+              "before": "missing",
+              "after": "missing",
+              "equal": true,
+              "changes": []
+            },
+            {
+              "file": "workspace/.gemini/settings.json",
+              "before": "missing",
+              "after": "missing",
+              "equal": true,
+              "changes": []
+            }
           ],
-          "before": {
-            "present": false
-          },
-          "after": {
-            "present": true,
-            "value": "[redacted]"
-          }
+          "changesSincePrevious": [
+            {
+              "file": "profile/config/mcp_config.json",
+              "before": "invalid_json",
+              "after": "invalid_json",
+              "equal": null,
+              "changes": []
+            }
+          ]
+        },
+        {
+          "phase": "session/new",
+          "files": [
+            {
+              "file": "profile/antigravity-cli/settings.json",
+              "before": "parsed",
+              "after": "parsed",
+              "equal": true,
+              "changes": []
+            },
+            {
+              "file": "profile/antigravity-acp/settings.json",
+              "before": "parsed",
+              "after": "parsed",
+              "equal": true,
+              "changes": []
+            },
+            {
+              "file": "profile/config/config.json",
+              "before": "parsed",
+              "after": "parsed",
+              "equal": true,
+              "changes": []
+            },
+            {
+              "file": "profile/config/mcp_config.json",
+              "before": "invalid_json",
+              "after": "invalid_json",
+              "equal": null,
+              "changes": []
+            },
+            {
+              "file": "profile/settings.json",
+              "before": "missing",
+              "after": "missing",
+              "equal": true,
+              "changes": []
+            },
+            {
+              "file": "workspace/.gemini/settings.json",
+              "before": "missing",
+              "after": "missing",
+              "equal": true,
+              "changes": []
+            }
+          ],
+          "changesSincePrevious": [
+            {
+              "file": "profile/config/mcp_config.json",
+              "before": "invalid_json",
+              "after": "invalid_json",
+              "equal": null,
+              "changes": []
+            }
+          ]
+        },
+        {
+          "phase": "switch/0",
+          "files": [
+            {
+              "file": "profile/antigravity-cli/settings.json",
+              "before": "parsed",
+              "after": "parsed",
+              "equal": true,
+              "changes": []
+            },
+            {
+              "file": "profile/antigravity-acp/settings.json",
+              "before": "parsed",
+              "after": "parsed",
+              "equal": true,
+              "changes": []
+            },
+            {
+              "file": "profile/config/config.json",
+              "before": "parsed",
+              "after": "parsed",
+              "equal": true,
+              "changes": []
+            },
+            {
+              "file": "profile/config/mcp_config.json",
+              "before": "invalid_json",
+              "after": "invalid_json",
+              "equal": null,
+              "changes": []
+            },
+            {
+              "file": "profile/settings.json",
+              "before": "missing",
+              "after": "missing",
+              "equal": true,
+              "changes": []
+            },
+            {
+              "file": "workspace/.gemini/settings.json",
+              "before": "missing",
+              "after": "missing",
+              "equal": true,
+              "changes": []
+            }
+          ],
+          "changesSincePrevious": [
+            {
+              "file": "profile/config/mcp_config.json",
+              "before": "invalid_json",
+              "after": "invalid_json",
+              "equal": null,
+              "changes": []
+            }
+          ]
+        },
+        {
+          "phase": "after_exit",
+          "files": [
+            {
+              "file": "profile/antigravity-cli/settings.json",
+              "before": "parsed",
+              "after": "parsed",
+              "equal": true,
+              "changes": []
+            },
+            {
+              "file": "profile/antigravity-acp/settings.json",
+              "before": "parsed",
+              "after": "parsed",
+              "equal": true,
+              "changes": []
+            },
+            {
+              "file": "profile/config/config.json",
+              "before": "parsed",
+              "after": "parsed",
+              "equal": true,
+              "changes": []
+            },
+            {
+              "file": "profile/config/mcp_config.json",
+              "before": "invalid_json",
+              "after": "invalid_json",
+              "equal": null,
+              "changes": []
+            },
+            {
+              "file": "profile/settings.json",
+              "before": "missing",
+              "after": "missing",
+              "equal": true,
+              "changes": []
+            },
+            {
+              "file": "workspace/.gemini/settings.json",
+              "before": "missing",
+              "after": "missing",
+              "equal": true,
+              "changes": []
+            }
+          ],
+          "changesSincePrevious": [
+            {
+              "file": "profile/config/mcp_config.json",
+              "before": "invalid_json",
+              "after": "invalid_json",
+              "equal": null,
+              "changes": []
+            }
+          ]
         }
+      ],
+      "switches": [
+        {
+          "modelId": "gemini-3.6-flash",
+          "reportedModel": "gemini-3.6-flash",
+          "thoughtLevel": {
+            "id": "thought_level",
+            "currentValue": "low",
+            "options": [
+              "low",
+              "medium",
+              "high"
+            ]
+          },
+          "elapsedMs": 6.979270999999244
+        }
+      ],
+      "failure": null,
+      "restoration": null,
+      "version": "1.5.10",
+      "availableModelIds": [
+        "gemini-4-carbon-high",
+        "gemini-4-carbon-medium",
+        "gemini-4-carbon-low",
+        "gemini-4-hydrogen-high",
+        "gemini-4-hydrogen-xhigh",
+        "gemini-4-hydrogen-medium",
+        "gemini-4-hydrogen-low",
+        "gemini-4-argon-high",
+        "gemini-4-argon-medium",
+        "gemini-4-argon-low",
+        "gemini-3.8-flash-high",
+        "gemini-3.8-flash-medium",
+        "gemini-3.8-flash-low",
+        "gemini-3.7-flash-high",
+        "gemini-3.7-flash-medium",
+        "gemini-3.7-flash-low",
+        "gemini-3.6-flash-high",
+        "gemini-3.6-flash-medium",
+        "gemini-3.6-flash-low",
+        "gemini-3.1-pro-high",
+        "gemini-3.1-pro-low"
+      ],
+      "initial": {
+        "model": "gemini-3.1-pro",
+        "thoughtLevel": {
+          "id": "thought_level",
+          "currentValue": "low",
+          "options": [
+            "low",
+            "high"
+          ]
+        }
+      },
+      "modelIds": [
+        "gemini-4-carbon",
+        "gemini-4-hydrogen",
+        "gemini-4-argon",
+        "gemini-3.8-flash",
+        "gemini-3.7-flash",
+        "gemini-3.6-flash",
+        "gemini-3.1-pro"
+      ],
+      "fileInventory": {
+        "complete": true,
+        "beforeFileCount": 60,
+        "afterFileCount": 63,
+        "changed": [
+          {
+            "path": "profile/antigravity-cli/cache/onboarding.json",
+            "before": {
+              "size": 111,
+              "mtimeMs": 1794932897918.6108,
+              "kind": "file"
+            },
+            "after": {
+              "size": 111,
+              "mtimeMs": 1794932898930.6086,
+              "kind": "file"
+            }
+          },
+          {
+            "path": "profile/antigravity-cli/conversation_summaries.db",
+            "before": {
+              "size": 20480,
+              "mtimeMs": 1794932898014.6106,
+              "kind": "file"
+            },
+            "after": {
+              "size": 20480,
+              "mtimeMs": 1794932898978.6084,
+              "kind": "file"
+            }
+          },
+          {
+            "path": "profile/antigravity-cli/conversations/[redacted-name]",
+            "before": null,
+            "after": {
+              "size": 393216,
+              "mtimeMs": 1794932898950.6084,
+              "kind": "file"
+            }
+          },
+          {
+            "path": "profile/antigravity-cli/jetbox_summaries_proto.pb",
+            "before": {
+              "size": 802,
+              "mtimeMs": 1794932897998.6106,
+              "kind": "file"
+            },
+            "after": {
+              "size": 1203,
+              "mtimeMs": 1794932898974.6084,
+              "kind": "file"
+            }
+          },
+          {
+            "path": "profile/antigravity-cli/log/acp-front-20261117_162818-1062099.log",
+            "before": null,
+            "after": {
+              "size": 950,
+              "mtimeMs": 1794932899226.608,
+              "kind": "file"
+            }
+          },
+          {
+            "path": "profile/antigravity-cli/log/acp-worker-20261117_162818-1062116.log",
+            "before": null,
+            "after": {
+              "size": 10060,
+              "mtimeMs": 1794932899014.6084,
+              "kind": "file"
+            }
+          }
+        ],
+        "beforeErrors": [],
+        "afterErrors": [],
+        "unscannedLinks": []
+      },
+      "elapsedMs": 831.7496820000006,
+      "requestCount": 4,
+      "methods": [
+        "initialize",
+        "session/new",
+        "session/set_config_option",
+        "session/close"
       ]
     },
-    {
-      "file": "profile/config/mcp_config.json",
-      "before": "missing",
-      "after": "invalid_json",
-      "equal": null,
-      "changes": []
+    "freshAfterSelection": {
+      "schema": 1,
+      "mode": "baseline",
+      "provider": "operator-selected profile",
+      "platform": "linux",
+      "promptRequests": 0,
+      "timings": [
+        {
+          "method": "initialize",
+          "phase": "initialize",
+          "ok": true,
+          "elapsedMs": 160.23560499999985
+        },
+        {
+          "method": "session/new",
+          "phase": "session/new",
+          "ok": true,
+          "elapsedMs": 279.24295299999994
+        },
+        {
+          "method": "session/close",
+          "phase": "close",
+          "ok": true,
+          "elapsedMs": 1.3184549999996307
+        }
+      ],
+      "phases": [
+        {
+          "phase": "before",
+          "files": [
+            {
+              "file": "profile/antigravity-cli/settings.json",
+              "before": "parsed",
+              "after": "parsed",
+              "equal": true,
+              "changes": []
+            },
+            {
+              "file": "profile/antigravity-acp/settings.json",
+              "before": "parsed",
+              "after": "parsed",
+              "equal": true,
+              "changes": []
+            },
+            {
+              "file": "profile/config/config.json",
+              "before": "parsed",
+              "after": "parsed",
+              "equal": true,
+              "changes": []
+            },
+            {
+              "file": "profile/config/mcp_config.json",
+              "before": "invalid_json",
+              "after": "invalid_json",
+              "equal": null,
+              "changes": []
+            },
+            {
+              "file": "profile/settings.json",
+              "before": "missing",
+              "after": "missing",
+              "equal": true,
+              "changes": []
+            },
+            {
+              "file": "workspace/.gemini/settings.json",
+              "before": "missing",
+              "after": "missing",
+              "equal": true,
+              "changes": []
+            }
+          ],
+          "changesSincePrevious": [
+            {
+              "file": "profile/config/mcp_config.json",
+              "before": "invalid_json",
+              "after": "invalid_json",
+              "equal": null,
+              "changes": []
+            }
+          ]
+        },
+        {
+          "phase": "initialize",
+          "files": [
+            {
+              "file": "profile/antigravity-cli/settings.json",
+              "before": "parsed",
+              "after": "parsed",
+              "equal": true,
+              "changes": []
+            },
+            {
+              "file": "profile/antigravity-acp/settings.json",
+              "before": "parsed",
+              "after": "parsed",
+              "equal": true,
+              "changes": []
+            },
+            {
+              "file": "profile/config/config.json",
+              "before": "parsed",
+              "after": "parsed",
+              "equal": true,
+              "changes": []
+            },
+            {
+              "file": "profile/config/mcp_config.json",
+              "before": "invalid_json",
+              "after": "invalid_json",
+              "equal": null,
+              "changes": []
+            },
+            {
+              "file": "profile/settings.json",
+              "before": "missing",
+              "after": "missing",
+              "equal": true,
+              "changes": []
+            },
+            {
+              "file": "workspace/.gemini/settings.json",
+              "before": "missing",
+              "after": "missing",
+              "equal": true,
+              "changes": []
+            }
+          ],
+          "changesSincePrevious": [
+            {
+              "file": "profile/config/mcp_config.json",
+              "before": "invalid_json",
+              "after": "invalid_json",
+              "equal": null,
+              "changes": []
+            }
+          ]
+        },
+        {
+          "phase": "session/new",
+          "files": [
+            {
+              "file": "profile/antigravity-cli/settings.json",
+              "before": "parsed",
+              "after": "parsed",
+              "equal": true,
+              "changes": []
+            },
+            {
+              "file": "profile/antigravity-acp/settings.json",
+              "before": "parsed",
+              "after": "parsed",
+              "equal": true,
+              "changes": []
+            },
+            {
+              "file": "profile/config/config.json",
+              "before": "parsed",
+              "after": "parsed",
+              "equal": true,
+              "changes": []
+            },
+            {
+              "file": "profile/config/mcp_config.json",
+              "before": "invalid_json",
+              "after": "invalid_json",
+              "equal": null,
+              "changes": []
+            },
+            {
+              "file": "profile/settings.json",
+              "before": "missing",
+              "after": "missing",
+              "equal": true,
+              "changes": []
+            },
+            {
+              "file": "workspace/.gemini/settings.json",
+              "before": "missing",
+              "after": "missing",
+              "equal": true,
+              "changes": []
+            }
+          ],
+          "changesSincePrevious": [
+            {
+              "file": "profile/config/mcp_config.json",
+              "before": "invalid_json",
+              "after": "invalid_json",
+              "equal": null,
+              "changes": []
+            }
+          ]
+        },
+        {
+          "phase": "after_exit",
+          "files": [
+            {
+              "file": "profile/antigravity-cli/settings.json",
+              "before": "parsed",
+              "after": "parsed",
+              "equal": true,
+              "changes": []
+            },
+            {
+              "file": "profile/antigravity-acp/settings.json",
+              "before": "parsed",
+              "after": "parsed",
+              "equal": true,
+              "changes": []
+            },
+            {
+              "file": "profile/config/config.json",
+              "before": "parsed",
+              "after": "parsed",
+              "equal": true,
+              "changes": []
+            },
+            {
+              "file": "profile/config/mcp_config.json",
+              "before": "invalid_json",
+              "after": "invalid_json",
+              "equal": null,
+              "changes": []
+            },
+            {
+              "file": "profile/settings.json",
+              "before": "missing",
+              "after": "missing",
+              "equal": true,
+              "changes": []
+            },
+            {
+              "file": "workspace/.gemini/settings.json",
+              "before": "missing",
+              "after": "missing",
+              "equal": true,
+              "changes": []
+            }
+          ],
+          "changesSincePrevious": [
+            {
+              "file": "profile/config/mcp_config.json",
+              "before": "invalid_json",
+              "after": "invalid_json",
+              "equal": null,
+              "changes": []
+            }
+          ]
+        }
+      ],
+      "switches": [],
+      "failure": null,
+      "restoration": null,
+      "version": "1.5.10",
+      "availableModelIds": [
+        "gemini-4-carbon-high",
+        "gemini-4-carbon-medium",
+        "gemini-4-carbon-low",
+        "gemini-4-hydrogen-high",
+        "gemini-4-hydrogen-xhigh",
+        "gemini-4-hydrogen-medium",
+        "gemini-4-hydrogen-low",
+        "gemini-4-argon-high",
+        "gemini-4-argon-medium",
+        "gemini-4-argon-low",
+        "gemini-3.8-flash-high",
+        "gemini-3.8-flash-medium",
+        "gemini-3.8-flash-low",
+        "gemini-3.7-flash-high",
+        "gemini-3.7-flash-medium",
+        "gemini-3.7-flash-low",
+        "gemini-3.6-flash-high",
+        "gemini-3.6-flash-medium",
+        "gemini-3.6-flash-low",
+        "gemini-3.1-pro-high",
+        "gemini-3.1-pro-low"
+      ],
+      "initial": {
+        "model": "gemini-3.1-pro",
+        "thoughtLevel": {
+          "id": "thought_level",
+          "currentValue": "low",
+          "options": [
+            "low",
+            "high"
+          ]
+        }
+      },
+      "modelIds": [
+        "gemini-4-carbon",
+        "gemini-4-hydrogen",
+        "gemini-4-argon",
+        "gemini-3.8-flash",
+        "gemini-3.7-flash",
+        "gemini-3.6-flash",
+        "gemini-3.1-pro"
+      ],
+      "fileInventory": {
+        "complete": true,
+        "beforeFileCount": 63,
+        "afterFileCount": 66,
+        "changed": [
+          {
+            "path": "profile/antigravity-cli/cache/onboarding.json",
+            "before": {
+              "size": 111,
+              "mtimeMs": 1794932898930.6086,
+              "kind": "file"
+            },
+            "after": {
+              "size": 111,
+              "mtimeMs": 1794932899930.6064,
+              "kind": "file"
+            }
+          },
+          {
+            "path": "profile/antigravity-cli/conversation_summaries.db",
+            "before": {
+              "size": 20480,
+              "mtimeMs": 1794932898978.6084,
+              "kind": "file"
+            },
+            "after": {
+              "size": 20480,
+              "mtimeMs": 1794932899970.6062,
+              "kind": "file"
+            }
+          },
+          {
+            "path": "profile/antigravity-cli/conversations/[redacted-name]",
+            "before": null,
+            "after": {
+              "size": 393216,
+              "mtimeMs": 1794932899946.6062,
+              "kind": "file"
+            }
+          },
+          {
+            "path": "profile/antigravity-cli/jetbox_summaries_proto.pb",
+            "before": {
+              "size": 1203,
+              "mtimeMs": 1794932898974.6084,
+              "kind": "file"
+            },
+            "after": {
+              "size": 1604,
+              "mtimeMs": 1794932899958.6062,
+              "kind": "file"
+            }
+          },
+          {
+            "path": "profile/antigravity-cli/log/acp-front-20261117_162819-1062154.log",
+            "before": null,
+            "after": {
+              "size": 872,
+              "mtimeMs": 1794932900194.6057,
+              "kind": "file"
+            }
+          },
+          {
+            "path": "profile/antigravity-cli/log/acp-worker-20261117_162819-1062170.log",
+            "before": null,
+            "after": {
+              "size": 9282,
+              "mtimeMs": 1794932899998.6062,
+              "kind": "file"
+            }
+          }
+        ],
+        "beforeErrors": [],
+        "afterErrors": [],
+        "unscannedLinks": []
+      },
+      "elapsedMs": 743.1106259999997,
+      "requestCount": 3,
+      "methods": [
+        "initialize",
+        "session/new",
+        "session/close"
+      ]
     },
-    {
-      "file": "profile/settings.json",
-      "before": "missing",
-      "after": "missing",
-      "equal": true,
-      "changes": []
-    },
-    {
-      "file": "workspace/.gemini/settings.json",
-      "before": "missing",
-      "after": "missing",
-      "equal": true,
-      "changes": []
+    "observed": {
+      "model": "gemini-3.1-pro",
+      "effort": "low"
     }
-  ]
+  },
+  "difference": {
+    "complete": true,
+    "sameInitialSelection": true,
+    "sameInitialCatalog": true,
+    "baselineOnly": [
+      {
+        "path": "profile/antigravity-cli/builtin/.checksum",
+        "before": null,
+        "after": {
+          "size": 72,
+          "mtimeMs": 1794932894710.6182,
+          "kind": "file"
+        }
+      },
+      {
+        "path": "profile/antigravity-cli/builtin/.manifest",
+        "before": null,
+        "after": {
+          "size": 1534,
+          "mtimeMs": 1794932894710.6182,
+          "kind": "file"
+        }
+      },
+      {
+        "path": "profile/antigravity-cli/builtin/keep.txt",
+        "before": null,
+        "after": {
+          "size": 0,
+          "mtimeMs": 1794932894706.6182,
+          "kind": "file"
+        }
+      },
+      {
+        "path": "profile/antigravity-cli/builtin/plugins/swarm/README.md",
+        "before": null,
+        "after": {
+          "size": 15,
+          "mtimeMs": 1794932894706.6182,
+          "kind": "file"
+        }
+      },
+      {
+        "path": "profile/antigravity-cli/builtin/plugins/swarm/assets/logo.svg",
+        "before": null,
+        "after": {
+          "size": 9427,
+          "mtimeMs": 1794932894706.6182,
+          "kind": "file"
+        }
+      },
+      {
+        "path": "profile/antigravity-cli/builtin/plugins/swarm/plugin.json",
+        "before": null,
+        "after": {
+          "size": 131,
+          "mtimeMs": 1794932894706.6182,
+          "kind": "file"
+        }
+      },
+      {
+        "path": "profile/antigravity-cli/builtin/plugins/swarm/sidecars/swarm_board/README.md",
+        "before": null,
+        "after": {
+          "size": 21773,
+          "mtimeMs": 1794932894706.6182,
+          "kind": "file"
+        }
+      },
+      {
+        "path": "profile/antigravity-cli/builtin/plugins/swarm/sidecars/swarm_board/app.js",
+        "before": null,
+        "after": {
+          "size": 92860,
+          "mtimeMs": 1794932894706.6182,
+          "kind": "file"
+        }
+      },
+      {
+        "path": "profile/antigravity-cli/builtin/plugins/swarm/sidecars/swarm_board/channels.mjs",
+        "before": null,
+        "after": {
+          "size": 10421,
+          "mtimeMs": 1794932894706.6182,
+          "kind": "file"
+        }
+      },
+      {
+        "path": "profile/antigravity-cli/builtin/plugins/swarm/sidecars/swarm_board/hive.css",
+        "before": null,
+        "after": {
+          "size": 34524,
+          "mtimeMs": 1794932894706.6182,
+          "kind": "file"
+        }
+      },
+      {
+        "path": "profile/antigravity-cli/builtin/plugins/swarm/sidecars/swarm_board/hive.js",
+        "before": null,
+        "after": {
+          "size": 74346,
+          "mtimeMs": 1794932894706.6182,
+          "kind": "file"
+        }
+      },
+      {
+        "path": "profile/antigravity-cli/builtin/plugins/swarm/sidecars/swarm_board/index.html",
+        "before": null,
+        "after": {
+          "size": 15430,
+          "mtimeMs": 1794932894706.6182,
+          "kind": "file"
+        }
+      },
+      {
+        "path": "profile/antigravity-cli/builtin/plugins/swarm/sidecars/swarm_board/main.mjs",
+        "before": null,
+        "after": {
+          "size": 60079,
+          "mtimeMs": 1794932894706.6182,
+          "kind": "file"
+        }
+      },
+      {
+        "path": "profile/antigravity-cli/builtin/plugins/swarm/sidecars/swarm_board/narrator_bootstrap.js",
+        "before": null,
+        "after": {
+          "size": 6593,
+          "mtimeMs": 1794932894706.6182,
+          "kind": "file"
+        }
+      },
+      {
+        "path": "profile/antigravity-cli/builtin/plugins/swarm/sidecars/swarm_board/package.json",
+        "before": null,
+        "after": {
+          "size": 117,
+          "mtimeMs": 1794932894706.6182,
+          "kind": "file"
+        }
+      },
+      {
+        "path": "profile/antigravity-cli/builtin/plugins/swarm/sidecars/swarm_board/sidecar.json",
+        "before": null,
+        "after": {
+          "size": 686,
+          "mtimeMs": 1794932894706.6182,
+          "kind": "file"
+        }
+      },
+      {
+        "path": "profile/antigravity-cli/builtin/plugins/swarm/sidecars/swarm_board/styles.css",
+        "before": null,
+        "after": {
+          "size": 40648,
+          "mtimeMs": 1794932894710.6182,
+          "kind": "file"
+        }
+      },
+      {
+        "path": "profile/antigravity-cli/builtin/skills/agy-customizations/SKILL.md",
+        "before": null,
+        "after": {
+          "size": 5465,
+          "mtimeMs": 1794932894710.6182,
+          "kind": "file"
+        }
+      },
+      {
+        "path": "profile/antigravity-cli/builtin/skills/agy-customizations/docs/hooks.md",
+        "before": null,
+        "after": {
+          "size": 15551,
+          "mtimeMs": 1794932894710.6182,
+          "kind": "file"
+        }
+      },
+      {
+        "path": "profile/antigravity-cli/builtin/skills/agy-customizations/docs/json_configs.md",
+        "before": null,
+        "after": {
+          "size": 4904,
+          "mtimeMs": 1794932894710.6182,
+          "kind": "file"
+        }
+      },
+      {
+        "path": "profile/antigravity-cli/builtin/skills/agy-customizations/docs/mcp_servers.md",
+        "before": null,
+        "after": {
+          "size": 3378,
+          "mtimeMs": 1794932894710.6182,
+          "kind": "file"
+        }
+      },
+      {
+        "path": "profile/antigravity-cli/builtin/skills/agy-customizations/docs/plugins.md",
+        "before": null,
+        "after": {
+          "size": 4714,
+          "mtimeMs": 1794932894710.6182,
+          "kind": "file"
+        }
+      },
+      {
+        "path": "profile/antigravity-cli/builtin/skills/agy-customizations/docs/rules.md",
+        "before": null,
+        "after": {
+          "size": 1757,
+          "mtimeMs": 1794932894710.6182,
+          "kind": "file"
+        }
+      },
+      {
+        "path": "profile/antigravity-cli/builtin/skills/agy-customizations/docs/skills.md",
+        "before": null,
+        "after": {
+          "size": 2650,
+          "mtimeMs": 1794932894710.6182,
+          "kind": "file"
+        }
+      },
+      {
+        "path": "profile/antigravity-cli/builtin/skills/antigravity_guide/SKILL.md",
+        "before": null,
+        "after": {
+          "size": 3023,
+          "mtimeMs": 1794932894710.6182,
+          "kind": "file"
+        }
+      },
+      {
+        "path": "profile/antigravity-cli/builtin/skills/antigravity_guide/references/app.md",
+        "before": null,
+        "after": {
+          "size": 3636,
+          "mtimeMs": 1794932894710.6182,
+          "kind": "file"
+        }
+      },
+      {
+        "path": "profile/antigravity-cli/builtin/skills/antigravity_guide/references/cli.md",
+        "before": null,
+        "after": {
+          "size": 1686,
+          "mtimeMs": 1794932894710.6182,
+          "kind": "file"
+        }
+      },
+      {
+        "path": "profile/antigravity-cli/builtin/skills/antigravity_guide/references/ide.md",
+        "before": null,
+        "after": {
+          "size": 3399,
+          "mtimeMs": 1794932894710.6182,
+          "kind": "file"
+        }
+      },
+      {
+        "path": "profile/antigravity-cli/builtin/skills/antigravity_guide/references/sdk.md",
+        "before": null,
+        "after": {
+          "size": 3130,
+          "mtimeMs": 1794932894710.6182,
+          "kind": "file"
+        }
+      },
+      {
+        "path": "profile/antigravity-cli/builtin/skills/automation/SKILL.md",
+        "before": null,
+        "after": {
+          "size": 12572,
+          "mtimeMs": 1794932894710.6182,
+          "kind": "file"
+        }
+      },
+      {
+        "path": "profile/antigravity-cli/builtin/skills/generative_ui/SKILL.md",
+        "before": null,
+        "after": {
+          "size": 6400,
+          "mtimeMs": 1794932894710.6182,
+          "kind": "file"
+        }
+      },
+      {
+        "path": "profile/antigravity-cli/builtin/skills/mcp-app-development/SKILL.md",
+        "before": null,
+        "after": {
+          "size": 13326,
+          "mtimeMs": 1794932894710.6182,
+          "kind": "file"
+        }
+      },
+      {
+        "path": "profile/antigravity-cli/builtin/skills/migrate-agent-settings/SKILL.md",
+        "before": null,
+        "after": {
+          "size": 10476,
+          "mtimeMs": 1794932894710.6182,
+          "kind": "file"
+        }
+      },
+      {
+        "path": "profile/antigravity-cli/builtin/skills/migrate-workflows/SKILL.md",
+        "before": null,
+        "after": {
+          "size": 6039,
+          "mtimeMs": 1794932894710.6182,
+          "kind": "file"
+        }
+      },
+      {
+        "path": "profile/antigravity-cli/builtin/skills/native_swarm/SKILL.md",
+        "before": null,
+        "after": {
+          "size": 20819,
+          "mtimeMs": 1794932894710.6182,
+          "kind": "file"
+        }
+      },
+      {
+        "path": "profile/antigravity-cli/builtin/skills/native_swarm/logo.svg",
+        "before": null,
+        "after": {
+          "size": 9427,
+          "mtimeMs": 1794932894710.6182,
+          "kind": "file"
+        }
+      },
+      {
+        "path": "profile/antigravity-cli/builtin/skills/permissioned-github/SKILL.md",
+        "before": null,
+        "after": {
+          "size": 8293,
+          "mtimeMs": 1794932894710.6182,
+          "kind": "file"
+        }
+      },
+      {
+        "path": "profile/antigravity-cli/builtin/skills/plugin/SKILL.md",
+        "before": null,
+        "after": {
+          "size": 17208,
+          "mtimeMs": 1794932894710.6182,
+          "kind": "file"
+        }
+      },
+      {
+        "path": "profile/antigravity-cli/builtin/skills/run-workflow/SKILL.md",
+        "before": null,
+        "after": {
+          "size": 10315,
+          "mtimeMs": 1794932894710.6182,
+          "kind": "file"
+        }
+      },
+      {
+        "path": "profile/antigravity-cli/builtin/skills/swarm_monitor/SKILL.md",
+        "before": null,
+        "after": {
+          "size": 5784,
+          "mtimeMs": 1794932894710.6182,
+          "kind": "file"
+        }
+      },
+      {
+        "path": "profile/antigravity-cli/builtin/skills/swarm_narrator/SKILL.md",
+        "before": null,
+        "after": {
+          "size": 11626,
+          "mtimeMs": 1794932894710.6182,
+          "kind": "file"
+        }
+      },
+      {
+        "path": "profile/antigravity-cli/builtin/skills/swarm_pane/SKILL.md",
+        "before": null,
+        "after": {
+          "size": 1987,
+          "mtimeMs": 1794932894710.6182,
+          "kind": "file"
+        }
+      },
+      {
+        "path": "profile/antigravity-cli/builtin/skills/ui-plugin-navigation/SKILL.md",
+        "before": null,
+        "after": {
+          "size": 3811,
+          "mtimeMs": 1794932894710.6182,
+          "kind": "file"
+        }
+      },
+      {
+        "path": "profile/antigravity-cli/implicit/[redacted-name]",
+        "before": null,
+        "after": {
+          "size": 285,
+          "mtimeMs": 1794932894798.618,
+          "kind": "file"
+        }
+      },
+      {
+        "path": "profile/antigravity-cli/installation_id",
+        "before": null,
+        "after": {
+          "size": 36,
+          "mtimeMs": 1794932894650.6182,
+          "kind": "file"
+        }
+      },
+      {
+        "path": "profile/antigravity-cli/jetski_state.pbtxt",
+        "before": null,
+        "after": {
+          "size": 518,
+          "mtimeMs": 1794932894726.6182,
+          "kind": "file"
+        }
+      },
+      {
+        "path": "profile/config/.migrated",
+        "before": null,
+        "after": {
+          "size": 0,
+          "mtimeMs": 1794932894710.6182,
+          "kind": "file"
+        }
+      },
+      {
+        "path": "profile/config/config.json",
+        "before": null,
+        "after": {
+          "size": 65,
+          "mtimeMs": 1794932894714.6182,
+          "kind": "file"
+        }
+      },
+      {
+        "path": "profile/config/mcp_config.json",
+        "before": null,
+        "after": {
+          "size": 0,
+          "mtimeMs": 1794932894706.6182,
+          "kind": "file"
+        }
+      }
+    ],
+    "switchesOnly": [],
+    "changedInBoth": [
+      {
+        "path": "profile/antigravity-cli/cache/onboarding.json",
+        "baseline": [
+          {
+            "path": "profile/antigravity-cli/cache/onboarding.json",
+            "before": null,
+            "after": {
+              "size": 111,
+              "mtimeMs": 1794932894802.618,
+              "kind": "file"
+            }
+          }
+        ],
+        "switches": [
+          {
+            "path": "profile/antigravity-cli/cache/onboarding.json",
+            "before": {
+              "size": 111,
+              "mtimeMs": 1794932894802.618,
+              "kind": "file"
+            },
+            "after": {
+              "size": 111,
+              "mtimeMs": 1794932897918.6108,
+              "kind": "file"
+            }
+          }
+        ]
+      },
+      {
+        "path": "profile/antigravity-cli/conversation_summaries.db",
+        "baseline": [
+          {
+            "path": "profile/antigravity-cli/conversation_summaries.db",
+            "before": null,
+            "after": {
+              "size": 20480,
+              "mtimeMs": 1794932894850.6177,
+              "kind": "file"
+            }
+          }
+        ],
+        "switches": [
+          {
+            "path": "profile/antigravity-cli/conversation_summaries.db",
+            "before": {
+              "size": 20480,
+              "mtimeMs": 1794932894850.6177,
+              "kind": "file"
+            },
+            "after": {
+              "size": 20480,
+              "mtimeMs": 1794932898014.6106,
+              "kind": "file"
+            }
+          }
+        ]
+      },
+      {
+        "path": "profile/antigravity-cli/conversations/[redacted-name]",
+        "baseline": [
+          {
+            "path": "profile/antigravity-cli/conversations/[redacted-name]",
+            "before": null,
+            "after": {
+              "size": 393216,
+              "mtimeMs": 1794932894830.618,
+              "kind": "file"
+            }
+          }
+        ],
+        "switches": [
+          {
+            "path": "profile/antigravity-cli/conversations/[redacted-name]",
+            "before": null,
+            "after": {
+              "size": 393216,
+              "mtimeMs": 1794932897942.6108,
+              "kind": "file"
+            }
+          }
+        ]
+      },
+      {
+        "path": "profile/antigravity-cli/jetbox_summaries_proto.pb",
+        "baseline": [
+          {
+            "path": "profile/antigravity-cli/jetbox_summaries_proto.pb",
+            "before": null,
+            "after": {
+              "size": 401,
+              "mtimeMs": 1794932894846.6177,
+              "kind": "file"
+            }
+          }
+        ],
+        "switches": [
+          {
+            "path": "profile/antigravity-cli/jetbox_summaries_proto.pb",
+            "before": {
+              "size": 401,
+              "mtimeMs": 1794932894846.6177,
+              "kind": "file"
+            },
+            "after": {
+              "size": 802,
+              "mtimeMs": 1794932897998.6106,
+              "kind": "file"
+            }
+          }
+        ]
+      },
+      {
+        "path": "profile/antigravity-cli/log/acp-front-[run].log",
+        "baseline": [
+          {
+            "path": "profile/antigravity-cli/log/acp-front-20261117_162814-1061721.log",
+            "before": null,
+            "after": {
+              "size": 872,
+              "mtimeMs": 1794932897062.6128,
+              "kind": "file"
+            }
+          }
+        ],
+        "switches": [
+          {
+            "path": "profile/antigravity-cli/log/acp-front-20261117_162817-1062001.log",
+            "before": null,
+            "after": {
+              "size": 1574,
+              "mtimeMs": 1794932898174.6104,
+              "kind": "file"
+            }
+          }
+        ]
+      },
+      {
+        "path": "profile/antigravity-cli/log/acp-worker-[run].log",
+        "baseline": [
+          {
+            "path": "profile/antigravity-cli/log/acp-worker-20261117_162814-1061783.log",
+            "before": null,
+            "after": {
+              "size": 10783,
+              "mtimeMs": 1794932894974.6174,
+              "kind": "file"
+            }
+          }
+        ],
+        "switches": [
+          {
+            "path": "profile/antigravity-cli/log/acp-worker-20261117_162817-1062016.log",
+            "before": null,
+            "after": {
+              "size": 16589,
+              "mtimeMs": 1794932898050.6106,
+              "kind": "file"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "elapsedMs": 6392.834718,
+  "providerRequests": 0
 }
