@@ -1,12 +1,13 @@
 import { runtimeBrands } from "../../brands.js";
 import { defineRuntime } from "../../contracts/runtime.js";
 import { onFirstCall } from "../../shared/lazy.js";
-import { qoderInstallation } from "./installation.js";
+import { qoderInstallation, QODER_MINIMUM_VERSION } from "./installation.js";
 import { qoderInstall, qoderInstallPlan } from "./install.js";
 import { qoderRefusedSessionOptions } from "./options.js";
 
 export const qoderRuntime = defineRuntime({
   id: "qoder",
+  minVersion: QODER_MINIMUM_VERSION,
   sessionCapabilities: () => ({ steer: true, images: false }), brand: runtimeBrands.qoder,
   manualCompaction: { kind: "supported", activeTurn: "reject" },
   refusedSessionOptions: qoderRefusedSessionOptions,
