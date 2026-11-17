@@ -1,0 +1,789 @@
+{
+  "sdk": "1.4.1",
+  "platform": "linux x64",
+  "node": "24.19.0",
+  "model": "gpt-5.4-nano",
+  "startedAt": "2026-11-17T21-56-17.340Z",
+  "selection": "Projected report facts and native run-result fields; session, run, request and model-call identifiers and machine paths omitted. Each run is counted once; cumulative session views and duplicate stream usage are excluded. Full raw logs stay local.",
+  "scenarios": [
+    {
+      "id": "basic",
+      "status": "pass",
+      "facts": {
+        "outcome": {
+          "kind": "completed"
+        },
+        "text": "PLUM",
+        "everyEventHasNative": true,
+        "seqDense": true,
+        "model": "gpt-5.4-nano",
+        "contextUsage": null,
+        "capabilities": {
+          "queue": {
+            "durable": false
+          },
+          "attribution": "attributed",
+          "images": true
+        },
+        "disposeAnswer": {
+          "kind": "accepted"
+        }
+      },
+      "notes": []
+    },
+    {
+      "id": "multi-turn",
+      "status": "pass",
+      "facts": {
+        "turnEndsPerTurn": [
+          1,
+          1,
+          1
+        ],
+        "promptRequests": 3,
+        "seqDense": true
+      },
+      "notes": []
+    },
+    {
+      "id": "tool-detail",
+      "status": "pass",
+      "facts": {
+        "outcome": {
+          "kind": "completed"
+        },
+        "callIdsMatch": true,
+        "text": "Running the requested shell command exactly as specified, then I\u2019ll echo back the single printed line.TOOL-MARK-4412"
+      },
+      "notes": []
+    },
+    {
+      "id": "busy-and-late-control",
+      "status": "pass",
+      "facts": {
+        "secondPrompt": {
+          "kind": "rejected",
+          "code": "busy",
+          "reason": "busy"
+        },
+        "outcome": {
+          "kind": "completed"
+        },
+        "lateAbort": {
+          "kind": "rejected",
+          "code": "no_active_turn",
+          "reason": "no active turn"
+        },
+        "lateSteer": {
+          "kind": "rejected",
+          "code": "no_active_turn",
+          "reason": "not_steerable: no active turn"
+        },
+        "rootTurnEnds": 1
+      },
+      "notes": []
+    },
+    {
+      "id": "steer",
+      "status": "pass",
+      "facts": {
+        "steer": {
+          "kind": "accepted",
+          "native": {
+            "ack": "complete_delivered"
+          }
+        },
+        "outcome": {
+          "kind": "completed"
+        },
+        "sameTurnText": "Running the first requested shell command.Running the second requested shell command now.ALPHA BRAVO MANGO",
+        "landedSameTurn": true
+      },
+      "notes": []
+    },
+    {
+      "id": "queue",
+      "status": "pass",
+      "facts": {
+        "queue": {
+          "kind": "accepted",
+          "queued": "adapter"
+        },
+        "durable": false,
+        "firstOutcome": {
+          "kind": "completed"
+        },
+        "spontaneousTurnEnded": true,
+        "promptRequestsAfterFirst": 1,
+        "queuedText": "ok-q"
+      },
+      "notes": []
+    },
+    {
+      "id": "abort",
+      "status": "pass",
+      "facts": {
+        "abort": {
+          "kind": "accepted"
+        },
+        "abortAnswerHasNative": false,
+        "outcome": {
+          "kind": "aborted"
+        },
+        "acceptedBeforeTurnEnd": true,
+        "lateAbort": {
+          "kind": "rejected",
+          "code": "no_active_turn",
+          "reason": "no active turn"
+        }
+      },
+      "notes": []
+    },
+    {
+      "id": "dispose-mid-turn",
+      "status": "pass",
+      "facts": {
+        "disposeAnswer": {
+          "kind": "accepted"
+        },
+        "turnEndAfterPrompt": {
+          "kind": "aborted"
+        },
+        "promptAfterDispose": {
+          "kind": "rejected",
+          "code": "disposed",
+          "reason": "session disposed"
+        }
+      },
+      "notes": []
+    },
+    {
+      "id": "cursor",
+      "status": "pass",
+      "facts": {
+        "replayedCount": 2,
+        "liveCount": 168,
+        "contiguous": true,
+        "fullReplayMatchesLog": true,
+        "outcome": {
+          "kind": "completed"
+        }
+      },
+      "notes": []
+    },
+    {
+      "id": "resume",
+      "status": "pass",
+      "facts": {
+        "firstModel": "gpt-5.4-nano",
+        "sameId": true,
+        "firstSeqOfResumedStream": 0,
+        "resumedModelAtOpen": "gpt-5.4-nano",
+        "recalledText": "PLUM-42",
+        "recalled": true,
+        "resumedModel": "gpt-5.4-nano",
+        "outcome": {
+          "kind": "completed"
+        }
+      },
+      "notes": []
+    },
+    {
+      "id": "subagent",
+      "status": "pass",
+      "facts": {
+        "outcome": {
+          "kind": "completed"
+        },
+        "graphEdges": 0,
+        "eventTypesByOrigin": {
+          "root:cursor/agent_opened": 1,
+          "root:cursor/stream/status": 2,
+          "root:text-delta": 66,
+          "root:cursor/stream/assistant": 66,
+          "root:token-delta": 143,
+          "root:tool-requests-listed": 3,
+          "root:model-call-completed": 4,
+          "root:partial-tool-call": 1,
+          "root:cursor/stream/tool_call": 3,
+          "root:tool-call-started": 1,
+          "agentPath:tool-call-delta": 11,
+          "root:tool-call-completed": 1,
+          "root:step-completed": 1,
+          "root:turn-ended": 1,
+          "root:cursor/stream/usage": 1,
+          "root:cursor/run_result": 1
+        },
+        "tier": "attributed",
+        "childAgentPathCount": 1
+      },
+      "notes": []
+    },
+    {
+      "id": "kill-runtime",
+      "status": "skip",
+      "facts": {},
+      "notes": [
+        "in-process runtime, no process to kill"
+      ]
+    },
+    {
+      "id": "bad-model",
+      "status": "pass",
+      "facts": {
+        "refusedAtOpen": true
+      },
+      "notes": []
+    }
+  ],
+  "liveRunResults": [
+    {
+      "scenario": "basic",
+      "recordSeq": 16,
+      "native": {
+        "status": "finished",
+        "model": {
+          "id": "gpt-5.4-nano"
+        },
+        "usage": {
+          "inputTokens": 13452,
+          "outputTokens": 22,
+          "cacheReadTokens": 0,
+          "cacheWriteTokens": 0,
+          "totalTokens": 13474,
+          "reasoningTokens": 14
+        }
+      }
+    },
+    {
+      "scenario": "multi-turn",
+      "recordSeq": 13,
+      "native": {
+        "status": "finished",
+        "model": {
+          "id": "gpt-5.4-nano"
+        },
+        "usage": {
+          "inputTokens": 13448,
+          "outputTokens": 16,
+          "cacheReadTokens": 0,
+          "cacheWriteTokens": 0,
+          "totalTokens": 13464,
+          "reasoningTokens": 9
+        }
+      }
+    },
+    {
+      "scenario": "multi-turn",
+      "recordSeq": 26,
+      "native": {
+        "status": "finished",
+        "model": {
+          "id": "gpt-5.4-nano"
+        },
+        "usage": {
+          "inputTokens": 13508,
+          "outputTokens": 6,
+          "cacheReadTokens": 12800,
+          "cacheWriteTokens": 0,
+          "totalTokens": 13514
+        }
+      }
+    },
+    {
+      "scenario": "multi-turn",
+      "recordSeq": 40,
+      "native": {
+        "status": "finished",
+        "model": {
+          "id": "gpt-5.4-nano"
+        },
+        "usage": {
+          "inputTokens": 13558,
+          "outputTokens": 6,
+          "cacheReadTokens": 12800,
+          "cacheWriteTokens": 0,
+          "totalTokens": 13564
+        }
+      }
+    },
+    {
+      "scenario": "tool-detail",
+      "recordSeq": 104,
+      "native": {
+        "status": "finished",
+        "model": {
+          "id": "gpt-5.4-nano"
+        },
+        "usage": {
+          "inputTokens": 27060,
+          "outputTokens": 89,
+          "cacheReadTokens": 12800,
+          "cacheWriteTokens": 0,
+          "totalTokens": 27149,
+          "reasoningTokens": 20
+        }
+      }
+    },
+    {
+      "scenario": "busy-and-late-control",
+      "recordSeq": 126,
+      "native": {
+        "status": "finished",
+        "model": {
+          "id": "gpt-5.4-nano"
+        },
+        "usage": {
+          "inputTokens": 27193,
+          "outputTokens": 216,
+          "cacheReadTokens": 25600,
+          "cacheWriteTokens": 0,
+          "totalTokens": 27409,
+          "reasoningTokens": 136
+        }
+      }
+    },
+    {
+      "scenario": "steer",
+      "recordSeq": 129,
+      "native": {
+        "status": "finished",
+        "model": {
+          "id": "gpt-5.4-nano"
+        },
+        "usage": {
+          "inputTokens": 41514,
+          "outputTokens": 322,
+          "cacheReadTokens": 26624,
+          "cacheWriteTokens": 0,
+          "totalTokens": 41836,
+          "reasoningTokens": 198
+        }
+      }
+    },
+    {
+      "scenario": "queue",
+      "recordSeq": 92,
+      "native": {
+        "status": "finished",
+        "model": {
+          "id": "gpt-5.4-nano"
+        },
+        "usage": {
+          "inputTokens": 27127,
+          "outputTokens": 150,
+          "cacheReadTokens": 25600,
+          "cacheWriteTokens": 0,
+          "totalTokens": 27277,
+          "reasoningTokens": 82
+        }
+      }
+    },
+    {
+      "scenario": "queue",
+      "recordSeq": 106,
+      "native": {
+        "status": "finished",
+        "model": {
+          "id": "gpt-5.4-nano"
+        },
+        "usage": {
+          "inputTokens": 13713,
+          "outputTokens": 6,
+          "cacheReadTokens": 12800,
+          "cacheWriteTokens": 0,
+          "totalTokens": 13719
+        }
+      }
+    },
+    {
+      "scenario": "abort",
+      "recordSeq": 109,
+      "native": {
+        "status": "cancelled",
+        "model": {
+          "id": "gpt-5.4-nano"
+        }
+      }
+    },
+    {
+      "scenario": "dispose-mid-turn",
+      "recordSeq": 407,
+      "native": {
+        "status": "cancelled",
+        "model": {
+          "id": "gpt-5.4-nano"
+        }
+      }
+    },
+    {
+      "scenario": "cursor",
+      "recordSeq": 173,
+      "native": {
+        "status": "finished",
+        "model": {
+          "id": "gpt-5.4-nano"
+        },
+        "usage": {
+          "inputTokens": 43944,
+          "outputTokens": 838,
+          "cacheReadTokens": 41472,
+          "cacheWriteTokens": 0,
+          "totalTokens": 44782,
+          "reasoningTokens": 723
+        }
+      }
+    },
+    {
+      "scenario": "resume",
+      "recordSeq": 13,
+      "native": {
+        "status": "finished",
+        "model": {
+          "id": "gpt-5.4-nano"
+        },
+        "usage": {
+          "inputTokens": 13456,
+          "outputTokens": 34,
+          "cacheReadTokens": 12800,
+          "cacheWriteTokens": 0,
+          "totalTokens": 13490,
+          "reasoningTokens": 27
+        }
+      }
+    },
+    {
+      "scenario": "resume",
+      "recordSeq": 20,
+      "native": {
+        "status": "finished",
+        "model": {
+          "id": "gpt-5.4-nano"
+        },
+        "usage": {
+          "inputTokens": 13542,
+          "outputTokens": 39,
+          "cacheReadTokens": 12800,
+          "cacheWriteTokens": 0,
+          "totalTokens": 13581,
+          "reasoningTokens": 29
+        }
+      }
+    },
+    {
+      "scenario": "subagent",
+      "recordSeq": 309,
+      "native": {
+        "status": "finished",
+        "model": {
+          "id": "gpt-5.4-nano"
+        },
+        "usage": {
+          "inputTokens": 58693,
+          "outputTokens": 646,
+          "cacheReadTokens": 54272,
+          "cacheWriteTokens": 0,
+          "totalTokens": 59339,
+          "reasoningTokens": 406
+        }
+      }
+    }
+  ],
+  "toolDenial": [
+    {
+      "phase": "baseline",
+      "nativeRuns": [
+        {
+          "status": "finished",
+          "model": {
+            "id": "gpt-5.4-nano"
+          },
+          "usage": {
+            "inputTokens": 68972,
+            "outputTokens": 675,
+            "cacheReadTokens": 53248,
+            "cacheWriteTokens": 0,
+            "totalTokens": 69647,
+            "reasoningTokens": 412
+          }
+        }
+      ],
+      "tools": [
+        "shell",
+        "mcp",
+        "read"
+      ],
+      "echoCalls": 1
+    },
+    {
+      "phase": "restricted",
+      "nativeRuns": [
+        {
+          "status": "finished",
+          "model": {
+            "id": "gpt-5.4-nano"
+          },
+          "usage": {
+            "inputTokens": 28331,
+            "outputTokens": 392,
+            "cacheReadTokens": 13824,
+            "cacheWriteTokens": 0,
+            "totalTokens": 28723,
+            "reasoningTokens": 239
+          }
+        }
+      ],
+      "tools": [
+        "read"
+      ],
+      "echoCalls": 1
+    },
+    {
+      "phase": "resume",
+      "nativeRuns": [
+        {
+          "status": "finished",
+          "model": {
+            "id": "gpt-5.4-nano"
+          },
+          "usage": {
+            "inputTokens": 29182,
+            "outputTokens": 195,
+            "cacheReadTokens": 27648,
+            "cacheWriteTokens": 0,
+            "totalTokens": 29377,
+            "reasoningTokens": 49
+          }
+        }
+      ],
+      "tools": [
+        "read"
+      ],
+      "echoCalls": 1
+    }
+  ],
+  "reportedUsage": {
+    "totals": {
+      "inputTokens": 446693,
+      "outputTokens": 3652,
+      "cacheReadTokens": 345088,
+      "cacheWriteTokens": 0,
+      "reasoningTokens": 2344
+    },
+    "runsWithUsage": 16,
+    "runsWithoutUsage": 2,
+    "completeBill": false
+  },
+  "candidate": {
+    "generatedAt": "2026-11-17T21:48:04.821Z",
+    "baselineSha256": "590743f82cb660f58c1bc3e8e471212b6a191cd42189c632b21ba246f726ccf0",
+    "source": "local execution of the repository candidate freezer, before dependency changes",
+    "package": {
+      "version": "1.4.1",
+      "acceptedVersion": "1.4.0",
+      "dist": {
+        "url": "https://registry.npmjs.org/@cursor/sdk/-/sdk-1.4.1.tgz",
+        "integrity": "sha512-+/be5Dh+MSk3KHwVWv2l7rCKemxd6ducLO+X7u43GE+jL9Md00bxwMciP+WMzVu4qcn5Yh0y/Ij+UT+W5FbtQg=="
+      }
+    }
+  },
+  "offline": {
+    "login": {
+      "passed": 11,
+      "externalConnections": false
+    },
+    "configuration": [
+      {
+        "label": "oar default",
+        "configuration": [
+          {
+            "scope": "user",
+            "included": true,
+            "ruleRead": false,
+            "agentsRead": false,
+            "mcpConnected": true,
+            "hookExecuted": true,
+            "modelConfigRead": false
+          },
+          {
+            "scope": "project",
+            "included": true,
+            "ruleRead": true,
+            "agentsRead": true,
+            "mcpConnected": true,
+            "hookExecuted": true,
+            "modelConfigRead": false
+          }
+        ],
+        "model": {
+          "id": "gpt-5.4-nano"
+        },
+        "storedLoginUsed": true,
+        "authenticatedRunReachedLocalBackend": true,
+        "terminalStatus": "error"
+      },
+      {
+        "label": "oar include",
+        "configuration": [
+          {
+            "scope": "user",
+            "included": true,
+            "ruleRead": false,
+            "agentsRead": false,
+            "mcpConnected": true,
+            "hookExecuted": true,
+            "modelConfigRead": false
+          },
+          {
+            "scope": "project",
+            "included": true,
+            "ruleRead": true,
+            "agentsRead": true,
+            "mcpConnected": true,
+            "hookExecuted": true,
+            "modelConfigRead": false
+          }
+        ],
+        "model": {
+          "id": "gpt-5.4-nano"
+        },
+        "storedLoginUsed": true,
+        "authenticatedRunReachedLocalBackend": true,
+        "terminalStatus": "error"
+      },
+      {
+        "label": "native omitted control",
+        "configuration": [
+          {
+            "scope": "user",
+            "included": false,
+            "ruleRead": false,
+            "agentsRead": false,
+            "mcpConnected": false,
+            "hookExecuted": false,
+            "modelConfigRead": false
+          },
+          {
+            "scope": "project",
+            "included": false,
+            "ruleRead": false,
+            "agentsRead": false,
+            "mcpConnected": false,
+            "hookExecuted": false,
+            "modelConfigRead": false
+          }
+        ],
+        "model": {
+          "id": "gpt-5.4-nano"
+        },
+        "storedLoginUsed": true,
+        "authenticatedRunReachedLocalBackend": true,
+        "terminalStatus": "error"
+      },
+      {
+        "label": "native user positive control",
+        "configuration": [
+          {
+            "scope": "user",
+            "included": true,
+            "ruleRead": false,
+            "agentsRead": false,
+            "mcpConnected": true,
+            "hookExecuted": true,
+            "modelConfigRead": false
+          },
+          {
+            "scope": "project",
+            "included": false,
+            "ruleRead": false,
+            "agentsRead": false,
+            "mcpConnected": false,
+            "hookExecuted": false,
+            "modelConfigRead": false
+          }
+        ],
+        "model": {
+          "id": "gpt-5.4-nano"
+        },
+        "storedLoginUsed": true,
+        "authenticatedRunReachedLocalBackend": true,
+        "terminalStatus": "error"
+      },
+      {
+        "label": "oar exclude",
+        "configuration": [
+          {
+            "scope": "user",
+            "included": false,
+            "ruleRead": false,
+            "agentsRead": false,
+            "mcpConnected": false,
+            "hookExecuted": false,
+            "modelConfigRead": false
+          },
+          {
+            "scope": "project",
+            "included": false,
+            "ruleRead": false,
+            "agentsRead": false,
+            "mcpConnected": false,
+            "hookExecuted": false,
+            "modelConfigRead": false
+          }
+        ],
+        "model": {
+          "id": "gpt-5.4-nano"
+        },
+        "storedLoginUsed": true,
+        "authenticatedRunReachedLocalBackend": true,
+        "terminalStatus": "error"
+      },
+      {
+        "label": "oar exclude after reopen",
+        "configuration": [
+          {
+            "scope": "user",
+            "included": false,
+            "ruleRead": false,
+            "agentsRead": false,
+            "mcpConnected": false,
+            "hookExecuted": false,
+            "modelConfigRead": false
+          },
+          {
+            "scope": "project",
+            "included": false,
+            "ruleRead": false,
+            "agentsRead": false,
+            "mcpConnected": false,
+            "hookExecuted": false,
+            "modelConfigRead": false
+          }
+        ],
+        "model": {
+          "id": "gpt-5.4-nano"
+        },
+        "storedLoginUsed": true,
+        "authenticatedRunReachedLocalBackend": true,
+        "terminalStatus": "error"
+      },
+      {
+        "credentialFileUnchangedAfterDisposalAndReopen": true,
+        "originalLoginStillPresent": true,
+        "inferencePerformed": false
+      }
+    ],
+    "skills": {
+      "passed": 2,
+      "projects": [
+        "git",
+        "non-git"
+      ]
+    },
+    "fullCheck": {
+      "tests": 4803,
+      "mockPassed": 19,
+      "mockSkipped": 1
+    }
+  }
+}

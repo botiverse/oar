@@ -76,7 +76,7 @@ reads `droid update --check` and `upgrade` runs `droid update`
 
 **pi and cursor.** In process through their SDKs: the pi SDK is a
 dependency of oar (`^1.5.0`), and `@cursor/sdk` an optional peer dependency
-(`1.4.0`) that the host installs and hands to `createCursorRuntime` (the oar
+(`1.4.1`) that the host installs and hands to `createCursorRuntime` (the oar
 CLI depends on it). Both installations are `via: "bundled"`; neither runtime
 has `checkUpdate` or `upgrade`, so `oar upgrade` reports each as bundled with
 oar and moving with the oar version.

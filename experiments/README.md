@@ -1,6 +1,7 @@
 # experiments
 
 - [Runtime version check: 2026-11-17](runtime-version-checks/2026-11-17.md): changed releases, complete CI failure observations, Cursor loader follow-up and the Qoder replay boundary.
+- [Cursor SDK 1.4.1 acceptance](cursor-sdk-1.4.1/README.md): full live session battery, native tool denial and offline login/configuration/skills checks.
 
 - [OpenCode warm WAL recovery](opencode-database-lock/README.md): native lock traces, timeout-order counterfactual and bounded per-data-directory ACP startup gate.
 
