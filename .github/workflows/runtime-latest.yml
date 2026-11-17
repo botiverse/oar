@@ -1,0 +1,274 @@
+name: Runtime latest candidates
+
+on:
+  schedule:
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: runtime-latest-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      matrix: ${{ steps.freeze.outputs.matrix }}
+      has-candidates: ${{ steps.freeze.outputs.has-candidates }}
+      sdk-matrix: ${{ steps.freeze.outputs.sdk-matrix }}
+      has-sdk-candidates: ${{ steps.freeze.outputs.has-sdk-candidates }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Resolve each candidate once
+        id: freeze
+        run: node .github/scripts/runtime-candidates.mjs runtime-candidates
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: runtime-candidates
+          path: runtime-candidates
+          if-no-files-found: error
+
+  native:
+    needs: discover
+    if: ${{ !cancelled() && needs.discover.outputs.has-candidates == 'true' }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.discover.outputs.matrix) }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 35
+    env:
+      OAR_TEST: ${{ matrix.key }}
+      OAR_TEST_REQUIRE_AVAILABLE: '1'
+      OAR_TEST_CONCURRENCY: ${{ (matrix.suite == 'acp' || matrix.key == 'dsh-aimock' || matrix.key == 'qoder-native') && '2' || '' }}
+      OAR_TRIAL_RUN_DIR: ${{ github.workspace }}/oar-trial-run
+      OAR_TEST_MCP_PROGRESS: '1'
+      OAR_CHILD_STDERR: ${{ (matrix.os == 'windows-latest' || matrix.key == 'dsh-aimock' || matrix.key == 'qoder-native') && 'inherit' || '' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@v4
+        with:
+          name: runtime-candidates
+          path: runtime-candidates
+      - name: Download, install and verify the frozen candidate
+        id: install
+        run: node .github/scripts/runtime-install.mjs '${{ matrix.key }}' runtime-candidates/candidates.json
+      - name: Native behavior
+        if: ${{ (matrix.suite == 'behavior' || matrix.suite == 'acp') && !(matrix.os == 'windows-latest' && matrix.key == 'grok-aimock') }}
+        run: pnpm run sea-trial
+        timeout-minutes: 12
+      - name: Native vendor contracts
+        if: ${{ !cancelled() && steps.install.outcome == 'success' && matrix.suite == 'behavior' }}
+        run: pnpm vitest run sea-trial/vendor
+        timeout-minutes: 12
+      - name: Native ACP vendor contracts
+        if: ${{ !cancelled() && steps.install.outcome == 'success' && matrix.suite == 'acp' && !(matrix.os == 'windows-latest' && matrix.key == 'grok-aimock') }}
+        run: pnpm vitest run sea-trial/vendor --maxWorkers 2
+        timeout-minutes: 12
+      - name: OpenCode cleanup and skills
+        if: matrix.suite == 'opencode-cleanup'
+        run: pnpm vitest run sea-trial/vendor/opencode-cleanup.vendor.test.ts sea-trial/vendor/opencode-skills.vendor.test.ts
+        timeout-minutes: 5
+      - name: Kimi login and reused workspace
+        if: matrix.suite == 'kimi-login'
+        run: pnpm vitest run sea-trial/vendor/kimi-login.vendor.test.ts sea-trial/vendor/kimi-skills.vendor.test.ts sea-trial/vendor/kimi-expired-usage.vendor.test.ts
+        timeout-minutes: 12
+        env:
+          OAR_KIMI_WORKSPACE_MODE: reuse
+      - name: Kimi fresh workspace skills
+        if: matrix.suite == 'kimi-skills'
+        run: pnpm vitest run sea-trial/vendor/kimi-skills.vendor.test.ts
+        timeout-minutes: 12
+        env:
+          OAR_KIMI_WORKSPACE_MODE: fresh
+      - name: Observe Windows Grok behavior processes
+        id: grok_behavior
+        if: matrix.os == 'windows-latest' && matrix.key == 'grok-aimock'
+        run: pnpm tsx experiments/grok-startup/behavior-observed.ts
+        timeout-minutes: 12
+        env:
+          OAR_GROK_PROCESS_TRACE: ${{ github.workspace }}/oar-trial-run/grok-processes/behavior
+      - name: Observe Windows Grok vendor processes
+        id: grok_vendor
+        if: ${{ !cancelled() && steps.install.outcome == 'success' && matrix.os == 'windows-latest' && matrix.key == 'grok-aimock' }}
+        run: pnpm vitest run sea-trial/vendor --maxWorkers 2 --config experiments/grok-startup/vitest.config.ts
+        timeout-minutes: 12
+        env:
+          OAR_GROK_PROCESS_TRACE: ${{ github.workspace }}/oar-trial-run/grok-processes/vendor
+      - name: Check Windows Grok process evidence
+        if: ${{ always() && matrix.os == 'windows-latest' && matrix.key == 'grok-aimock' }}
+        run: pnpm tsx experiments/grok-startup/check-capture.ts '${{ steps.grok_behavior.outcome }}' '${{ steps.grok_vendor.outcome }}'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: candidate-${{ matrix.key }}-${{ matrix.os }}
+          path: oar-trial-run
+          if-no-files-found: error
+
+  sdk:
+    needs: discover
+    if: ${{ !cancelled() && needs.discover.outputs.has-sdk-candidates == 'true' }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.discover.outputs.sdk-matrix) }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 35
+    env:
+      OAR_TRIAL_RUN_DIR: ${{ github.workspace }}/oar-trial-run
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@v4
+        with:
+          name: runtime-candidates
+          path: runtime-candidates
+      - name: Install the frozen SDK set in this disposable checkout
+        id: install
+        run: node .github/scripts/runtime-sdk-candidate.mjs '${{ matrix.group }}' runtime-candidates/candidates.json
+      - name: SDK types and unit contracts
+        if: matrix.backend == 'pi-aimock' || matrix.backend == 'cursor-skills'
+        run: pnpm run check
+        timeout-minutes: 12
+      - name: Build the candidate SDK consumers
+        if: matrix.backend == 'pi-aimock' || matrix.backend == 'cursor-skills'
+        run: pnpm run build
+      - name: Cursor offline native skill parity
+        if: matrix.backend == 'cursor-skills'
+        run: pnpm vitest run sea-trial/vendor/cursor-skills.vendor.test.ts
+        timeout-minutes: 3
+        env:
+          OAR_TEST: cursor-skills
+      - name: Pi behavior contracts
+        if: ${{ matrix.backend != 'cursor-skills' && !(matrix.os == 'windows-latest' && matrix.backend == 'pi-rpc-aimock') }}
+        run: pnpm run sea-trial
+        timeout-minutes: 12
+        env:
+          OAR_TEST: ${{ matrix.backend }}
+          OAR_TEST_REQUIRE_AVAILABLE: '1'
+      - name: Pi vendor contracts
+        if: ${{ !cancelled() && steps.install.outcome == 'success' && matrix.backend != 'cursor-skills' && !(matrix.os == 'windows-latest' && matrix.backend == 'pi-rpc-aimock') }}
+        run: pnpm vitest run sea-trial/vendor
+        timeout-minutes: 12
+        env:
+          OAR_TEST: ${{ matrix.backend }}
+          OAR_TEST_REQUIRE_AVAILABLE: '1'
+      - name: Windows Pi RPC behavior with resource samples
+        if: matrix.os == 'windows-latest' && matrix.backend == 'pi-rpc-aimock' && matrix.phase == 'behavior'
+        shell: pwsh
+        run: ./sea-trial/windows-resources.ps1 -Stage behavior -Command 'pnpm run sea-trial'
+        env:
+          OAR_TEST: pi-rpc-aimock
+      - name: Windows Pi RPC vendor protocol and files
+        if: ${{ !cancelled() && steps.install.outcome == 'success' && matrix.phase == 'vendor' }}
+        shell: pwsh
+        run: ./sea-trial/windows-pi-vendor.ps1 -Group rpc
+        timeout-minutes: 6
+        env:
+          OAR_TEST: pi-rpc-aimock
+      - name: Windows Pi RPC vendor native extensions
+        if: ${{ !cancelled() && steps.install.outcome == 'success' && matrix.phase == 'vendor' }}
+        shell: pwsh
+        run: ./sea-trial/windows-pi-vendor.ps1 -Group pi
+        timeout-minutes: 6
+        env:
+          OAR_TEST: pi-rpc-aimock
+      - name: Windows Pi RPC vendor MCP
+        if: ${{ !cancelled() && steps.install.outcome == 'success' && matrix.phase == 'vendor' }}
+        shell: pwsh
+        run: ./sea-trial/windows-pi-vendor.ps1 -Group mcp
+        timeout-minutes: 6
+        env:
+          OAR_TEST: pi-rpc-aimock
+      - name: Windows Pi RPC vendor shared contracts
+        if: ${{ !cancelled() && steps.install.outcome == 'success' && matrix.phase == 'vendor' }}
+        shell: pwsh
+        run: ./sea-trial/windows-pi-vendor.ps1 -Group shared
+        timeout-minutes: 6
+        env:
+          OAR_TEST: pi-rpc-aimock
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: candidate-sdk-${{ matrix.group }}-${{ matrix.backend }}-${{ matrix.os }}-${{ matrix.phase }}
+          path: |
+            oar-trial-run
+            pnpm-lock.yaml
+            package.json
+            packages/oar/package.json
+            packages/cli/package.json
+          if-no-files-found: error
+
+  # These intentionally exercise fresh public resolution every day, including
+  # unchanged top-level versions. They are not frozen candidate acceptance jobs.
+  codebuddy-installer:
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: CodeBuddy npm installer in an isolated HOME and global prefix
+        run: pnpm tsx tests/codebuddy/install-smoke.ts
+        timeout-minutes: 5
+        env:
+          OAR_TEST: codebuddy-install
+          OAR_TRIAL_RUN_DIR: ${{ github.workspace }}/oar-trial-run
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: codebuddy-install-${{ matrix.os }}
+          path: oar-trial-run/codebuddy-install
+          if-no-files-found: warn
+
+  published-host:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run clean-install -- --mode=published
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: published-host
+          path: oar-trial-run/clean-install
+          if-no-files-found: error

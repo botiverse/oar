@@ -4,17 +4,258 @@
     "claude-aimock": {
       "package": "@anthropic-ai/claude-code",
       "version": "2.1.326",
-      "evidence": "https://github.com/botiverse/oar/actions/runs/44071060592/job/133997095524"
+      "evidence": "https://github.com/botiverse/oar/actions/runs/44071060592/job/133997095524",
+      "command": "claude",
+      "env": "OAR_CLAUDE_BIN",
+      "platforms": [
+        "ubuntu-latest",
+        "macos-latest",
+        "windows-latest"
+      ],
+      "suite": "behavior",
+      "policy": "accepted",
+      "purpose": "Native behavior and vendor contracts"
     },
     "codex-aimock": {
       "package": "@openai/codex",
       "version": "0.169.0",
-      "evidence": "https://github.com/botiverse/oar/actions/runs/44071060592/job/133997095568"
+      "evidence": "https://github.com/botiverse/oar/actions/runs/44071060592/job/133997095568",
+      "command": "codex",
+      "env": "OAR_CODEX_BIN",
+      "platforms": [
+        "ubuntu-latest",
+        "macos-latest",
+        "windows-latest"
+      ],
+      "suite": "behavior",
+      "policy": "accepted",
+      "purpose": "Native behavior and vendor contracts"
     },
     "qwen-aimock": {
       "package": "@qwen-code/qwen-code",
       "version": "0.27.4",
-      "evidence": "https://github.com/botiverse/oar/actions/runs/44071060592/job/133997095536"
+      "evidence": "https://github.com/botiverse/oar/actions/runs/44071060592/job/133997095536",
+      "command": "qwen",
+      "env": "OAR_QWEN_BIN",
+      "platforms": [
+        "ubuntu-latest",
+        "macos-latest",
+        "windows-latest"
+      ],
+      "suite": "behavior",
+      "policy": "accepted",
+      "purpose": "Native behavior and vendor contracts"
+    },
+    "qoder-native": {
+      "package": "@qoder-ai/qodercli",
+      "version": "1.1.81",
+      "command": "qodercli",
+      "env": "OAR_QODER_BIN",
+      "platforms": [
+        "ubuntu-latest",
+        "macos-latest",
+        "windows-latest"
+      ],
+      "suite": "behavior",
+      "policy": "replay",
+      "purpose": "Native model replay",
+      "evidence": "https://github.com/botiverse/oar/actions/runs/44091499481"
+    },
+    "dsh-aimock": {
+      "package": "@deepseek-ai/dsh",
+      "version": "0.2.1-rc.5",
+      "command": "dsh",
+      "env": "OAR_DSH_BIN",
+      "platforms": [
+        "ubuntu-latest",
+        "macos-latest",
+        "windows-latest"
+      ],
+      "suite": "behavior",
+      "policy": "minimum",
+      "purpose": "DSH_MINIMUM_VERSION contract",
+      "evidence": "https://github.com/botiverse/oar/actions/runs/44091499481"
+    },
+    "factory-aimock": {
+      "package": "droid",
+      "version": "1.12.1",
+      "command": "droid",
+      "env": "OAR_FACTORY_BIN",
+      "platforms": [
+        "ubuntu-latest",
+        "macos-latest"
+      ],
+      "suite": "behavior",
+      "policy": "accepted",
+      "purpose": "Native behavior and vendor contracts",
+      "evidence": "https://github.com/botiverse/oar/actions/runs/44091499481"
+    },
+    "kimi-aimock": {
+      "package": "@moonshot-ai/kimi-code",
+      "version": "2.4.1",
+      "command": "kimi",
+      "env": "OAR_KIMI_BIN",
+      "platforms": [
+        "ubuntu-latest",
+        "macos-latest",
+        "windows-latest"
+      ],
+      "suite": "acp",
+      "policy": "helper",
+      "purpose": "ACP and workspace baseline",
+      "evidence": "https://github.com/botiverse/oar/actions/runs/44091499481"
+    },
+    "grok-aimock": {
+      "package": "@xai-official/grok",
+      "version": "1.0.70",
+      "command": "grok",
+      "env": "OAR_GROK_BIN",
+      "platforms": [
+        "ubuntu-latest",
+        "macos-latest",
+        "windows-latest"
+      ],
+      "suite": "acp",
+      "policy": "accepted",
+      "purpose": "Native ACP contracts",
+      "evidence": "https://github.com/botiverse/oar/actions/runs/44091499481",
+      "channel": "https://x.ai/cli/stable"
+    },
+    "grok-long-initialize": {
+      "package": "@xai-official/grok",
+      "version": "1.0.70",
+      "command": "grok",
+      "env": "OAR_GROK_BIN",
+      "platforms": [
+        "windows-latest"
+      ],
+      "suite": null,
+      "policy": "historical",
+      "purpose": "Manual 90-second cold-start control; probe the version only after numbered observations",
+      "evidence": "https://github.com/botiverse/oar/blob/ace02a467b30884e0b5f89c15b59111d13cae5b5/.github/workflows/acp-windows.yml"
+    },
+    "codebuddy-aimock": {
+      "package": "@tencent-ai/codebuddy-code",
+      "version": "2.179.3",
+      "command": "codebuddy",
+      "env": "OAR_CODEBUDDY_BIN",
+      "platforms": [
+        "ubuntu-latest",
+        "macos-latest"
+      ],
+      "suite": "acp",
+      "policy": "accepted",
+      "purpose": "Native ACP contracts",
+      "evidence": "https://github.com/botiverse/oar/actions/runs/44091499481"
+    },
+    "opencode-aimock": {
+      "package": "opencode-ai",
+      "version": "1.19.5",
+      "command": "opencode",
+      "env": "OAR_OPENCODE_BIN",
+      "platforms": [
+        "ubuntu-latest",
+        "macos-latest",
+        "windows-latest"
+      ],
+      "suite": "acp",
+      "policy": "helper",
+      "purpose": "OpenCode v1 ACP contracts",
+      "evidence": "https://github.com/botiverse/oar/actions/runs/44091499481"
+    },
+    "opencode-cleanup": {
+      "package": "@opencode/cli",
+      "version": "2.2.7",
+      "command": "opencode",
+      "env": "OAR_OPENCODE_BIN",
+      "platforms": [
+        "ubuntu-latest",
+        "macos-latest",
+        "windows-latest"
+      ],
+      "suite": "opencode-cleanup",
+      "policy": "helper",
+      "purpose": "OpenCode v2 isolated cleanup and skills",
+      "evidence": "https://github.com/botiverse/oar/actions/runs/44091499481"
+    },
+    "kimi-login": {
+      "package": "@moonshot-ai/kimi-code",
+      "version": "2.4.1",
+      "command": "kimi",
+      "env": "OAR_KIMI_BIN",
+      "platforms": [
+        "ubuntu-latest",
+        "macos-latest",
+        "windows-latest"
+      ],
+      "suite": "kimi-login",
+      "policy": "helper",
+      "purpose": "Login and reused workspace skills",
+      "evidence": "https://github.com/botiverse/oar/actions/runs/44091499481"
+    },
+    "kimi-skills": {
+      "package": "@moonshot-ai/kimi-code",
+      "version": "2.6.2",
+      "command": "kimi",
+      "env": "OAR_KIMI_BIN",
+      "platforms": [
+        "ubuntu-latest",
+        "macos-latest",
+        "windows-latest"
+      ],
+      "suite": "kimi-skills",
+      "policy": "helper",
+      "purpose": "Fresh workspace skills",
+      "evidence": "https://github.com/botiverse/oar/actions/runs/44091499481"
+    },
+    "pi-rpc-minimum": {
+      "package": "@earendil-works/pi-coding-agent",
+      "version": "1.4.0",
+      "command": "pi",
+      "env": "OAR_PI_RPC_COMMAND",
+      "platforms": [
+        "ubuntu-latest"
+      ],
+      "suite": null,
+      "policy": "minimum",
+      "purpose": "PI_RPC_MINIMUM_VERSION contract; latest Pi is tested with the SDK set",
+      "evidence": "https://github.com/botiverse/oar/actions/runs/44091499481"
+    },
+    "antigravity-aimock": {
+      "version": "1.5.0",
+      "command": "agy",
+      "env": "OAR_ANTIGRAVITY_BIN",
+      "platforms": [
+        "ubuntu-latest",
+        "macos-latest",
+        "windows-latest"
+      ],
+      "suite": "acp",
+      "policy": "accepted",
+      "purpose": "Official native ACP CLI",
+      "evidence": "https://github.com/botiverse/oar/actions/runs/44091499481",
+      "archives": {
+        "Linux-X64": {
+          "url": "https://storage.googleapis.com/antigravity-public/antigravity-cli/1.5.0-5269980577660928/linux-x64/cli_linux_x64.tar.gz",
+          "sha512": "e6031f850929210705d8c2393a5665b82b8c3b19684a6d3c556cafa31f26f77acbf164dfee96ca84a5ae7670ac0cc238a974c981c517b269194bdccff271cbd5",
+          "source": "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app/manifests/linux_amd64.json"
+        },
+        "macOS-ARM64": {
+          "url": "https://storage.googleapis.com/antigravity-public/antigravity-cli/1.5.0-5269980577660928/darwin-arm/cli_mac_arm64.tar.gz",
+          "sha512": "833a0a18a418f70b9fb8b2b1a4c4dc571f1b168b5104aa30379463695946ccc0201cd48f9cfd30231eb668ae6d07efe1b49a619ccaa14f7ee2861f9e049ee2be",
+          "source": "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app/manifests/darwin_arm64.json"
+        },
+        "macOS-X64": {
+          "url": "https://storage.googleapis.com/antigravity-public/antigravity-cli/1.5.0-5269980577660928/darwin-x64/cli_mac_x64.tar.gz",
+          "sha512": "00525e7fd227dd3dd258cf43a2f9adff73d6fe2afe5ca1c1fb1f0b0624cbd4af4b2891b8281868d4dc7c33b4f5f509e96d2e9d319657c56a147a55de5d411272",
+          "source": "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app/manifests/darwin_amd64.json"
+        },
+        "Windows-X64": {
+          "url": "https://storage.googleapis.com/antigravity-public/antigravity-cli/1.5.0-5269980577660928/windows-x64/cli_windows_x64.exe",
+          "sha512": "9877ace806be37a3b8a8165ce1f61016d07955ec4306219051f90f4749a38727d61ef2d1a6441270684cea7fd2733c8a8524170ec9ff301b1b6a6b9c543d864e",
+          "source": "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app/manifests/windows_amd64.json"
+        }
+      }
     }
   }
 }
