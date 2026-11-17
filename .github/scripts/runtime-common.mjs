@@ -55,12 +55,10 @@ export function registryUrl(name, version) {
 export function packageDist(metadata, name, version) {
   assert.equal(metadata.name, name, "Registry package name mismatch");
   assert.equal(metadata.version, version, "Registry package version mismatch");
-  const { tarball, integrity, shasum } = metadata.dist ?? {};
-  assert.ok(typeof tarball === "string" && /^https?:\/\//u.test(tarball), "Missing package tarball URL");
-  const digest = integrity ?? (typeof shasum === "string" && /^[a-f0-9]{40}$/u.test(shasum)
-    ? `sha1-${Buffer.from(shasum, "hex").toString("base64")}` : undefined);
-  assert.ok(typeof digest === "string" && /^(?:sha512|sha384|sha256|sha1)-[A-Za-z0-9+/]+=*$/u.test(digest), "Missing supported package integrity");
-  return { url: tarball, integrity: digest };
+  const { tarball, integrity } = metadata.dist ?? {};
+  assert.ok(typeof tarball === "string" && /^https:\/\//u.test(tarball), "Expected an HTTPS package tarball URL");
+  assert.ok(typeof integrity === "string" && /^sha512-[A-Za-z0-9+/]{86}==$/u.test(integrity), "Expected SHA-512 package integrity");
+  return { url: tarball, integrity };
 }
 
 export async function downloadVerified(dist) {

@@ -338,15 +338,21 @@ DSH and Pi RPC minimums, Qoder replay, Kimi login/skills, and OpenCode v1/v2
 helpers do not automatically follow upstream releases. SDK baselines remain
 in the workspace manifests and lockfile. The
 [`runtime-version.mjs`](../.github/scripts/runtime-version.mjs) reader fails
-on a missing pin, invalid manifest or non-exact version. The
+on a missing pin, invalid manifest or non-exact version. The manual Grok
+cold-start experiment uses it to read its separate historical control,
+without running `--version` before the numbered observations. The
 [`runtime-install.mjs`](../.github/scripts/runtime-install.mjs) installer
-checks the downloaded artifact's digest, installs in a private prefix and
-HOME, and requires the native `--version` to equal the selected version
-before publishing an executable path. Reports retain the manifest hash,
+requires HTTPS npm tarballs and SHA-512 integrity, checks the downloaded
+artifact's digest, installs in a private prefix and HOME, and requires the native `--version` to equal the selected version
+before publishing an executable path. Its npm install has a 600-second
+ceiling within the enclosing job's budget. These jobs exercise the explicit
+`OAR_*_BIN` path (`OAR_PI_RPC_COMMAND` for the Pi floor), so they do not
+establish PATH discovery coverage. Reports retain the manifest hash,
 artifact identity, native version and failure stage. Antigravity keeps its
 platform-specific SHA-512 pins. Manual historical experiments retain their
-explicit controls. Pin changes require a reviewed pull request; top-level
-CLI pins do not freeze npm transitive ranges, runner images or OS packages.
+own controls, separate from upgrade candidates. Pin changes require a reviewed
+pull request; top-level CLI pins do not freeze npm transitive ranges, runner
+images or OS packages.
 
 Outside ci.yml and its pull-request and release gates:
 
@@ -354,12 +360,16 @@ Outside ci.yml and its pull-request and release gates:
   at 06:17 UTC and by manual dispatch. One discovery job freezes candidate
   versions, URLs, digests, timestamp and accepted-manifest hash. Changed
   candidates run supported native behavior/vendor or helper suites on the
-  existing OS matrix with local scripted providers. Pi, Pi Durable, Chord and
-  Pi's exact undici move together in a disposable SDK checkout; Cursor is
+  existing OS matrix with local scripted providers. Minimum and replay keys
+  (including DSH and Qoder) are excluded from this daily matrix and still
+  need the separate upgrade checks in the version inventory. Pi, Pi Durable,
+  Chord and Pi's exact undici move together in a disposable SDK checkout; Cursor is
   separate. SDK manifests and the newly resolved lockfile are retained.
   Discovery, download, install and native-version failures stay red; a partial
   discovery failure still lets other frozen candidates run. The workflow has
-  read-only permissions and never updates accepted pins or opens bump PRs.
+  read-only permissions, leaves no checkout token on disk, and never updates
+  accepted pins or opens bump PRs. Native and SDK candidate jobs use no shared
+  pnpm cache, so they cannot save candidate packages under the gate's cache key.
   A focused bump PR also needs the version-specific probes in
   [`experiments/runtime-versions.ts`](../experiments/runtime-versions.ts),
   maintainer review and ordinary CI. A daily pass alone is not acceptance.
@@ -370,6 +380,7 @@ Outside ci.yml and its pull-request and release gates:
   install phases and npm debug/timing tails before cleaning its isolated
   HOME; its 180-second install and 240-second child limits are unchanged
   ([details](../experiments/codebuddy-install-diagnostics/README.md)).
+  The CodeBuddy and published-host jobs have 15- and 20-minute ceilings.
 - [`acp-windows.yml`](../.github/workflows/acp-windows.yml) runs the Kimi,
   Grok and OpenCode v1 ACP backends on Windows after main pushes. All three
   had intermittent Windows startup or MCP timeouts whose causes remain

@@ -23,6 +23,8 @@ jobs:
       has-sdk-candidates: ${{ steps.freeze.outputs.has-sdk-candidates }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
@@ -53,11 +55,12 @@ jobs:
       OAR_CHILD_STDERR: ${{ (matrix.os == 'windows-latest' || matrix.key == 'dsh-aimock' || matrix.key == 'qoder-native') && 'inherit' || '' }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-          cache: pnpm
       - run: pnpm install --frozen-lockfile
       - uses: actions/download-artifact@v4
         with:
@@ -130,11 +133,12 @@ jobs:
       OAR_TRIAL_RUN_DIR: ${{ github.workspace }}/oar-trial-run
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-          cache: pnpm
       - run: pnpm install --frozen-lockfile
       - uses: actions/download-artifact@v4
         with:
@@ -219,6 +223,7 @@ jobs:
   # These intentionally exercise fresh public resolution every day, including
   # unchanged top-level versions. They are not frozen candidate acceptance jobs.
   codebuddy-installer:
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -226,6 +231,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
@@ -247,8 +254,11 @@ jobs:
 
   published-host:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:

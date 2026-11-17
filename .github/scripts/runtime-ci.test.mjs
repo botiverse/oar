@@ -51,6 +51,17 @@ test("registry identity and integrity are required", () => {
   assert.throws(() => packageDist({ name: "expected", version: "1.2.3", dist: { tarball: "https://example.invalid/a" } }, "expected", "1.2.3"));
 });
 
+test("package metadata requires HTTPS and a complete SHA-512 digest", () => {
+  const valid = metadata("fixture", "1.2.3");
+  assert.deepEqual(packageDist(valid, "fixture", "1.2.3"), { url: valid.dist.tarball, integrity: valid.dist.integrity });
+  for (const tarball of ["http://example.invalid/pkg.tgz", "file:///tmp/pkg.tgz", "//example.invalid/pkg.tgz"]) {
+    assert.throws(() => packageDist({ ...valid, dist: { ...valid.dist, tarball } }, "fixture", "1.2.3"), /HTTPS/u);
+  }
+  for (const integrity of [undefined, "sha1-" + "a".repeat(28), "sha256-" + "a".repeat(44), "sha512-YQ=="]) {
+    assert.throws(() => packageDist({ ...valid, dist: { ...valid.dist, integrity, shasum: "a".repeat(40) } }, "fixture", "1.2.3"), /SHA-512/u);
+  }
+});
+
 test("a missing or corrupt tarball fails instead of selecting another version", async () => {
   const bytes = Buffer.from("frozen package");
   await serverFor((request, response) => {
@@ -64,8 +75,8 @@ test("a missing or corrupt tarball fails instead of selecting another version", 
 });
 
 test("one package is resolved once for multiple purposes and never mutates accepted pins", async () => {
-  const entry = { package: "fixture", version: "1.0.0", platforms: ["ubuntu-latest", "windows-latest"], suite: "behavior", policy: "minimum" };
-  const baseline = { sha256: "fixture", manifest: { schemaVersion: 1, runtimes: { first: entry, second: { ...entry, version: "1.1.0", policy: "replay" } } } };
+  const entry = { package: "fixture", version: "1.0.0", platforms: ["ubuntu-latest", "windows-latest"], suite: "behavior", policy: "accepted" };
+  const baseline = { sha256: "fixture", manifest: { schemaVersion: 1, runtimes: { first: entry, second: { ...entry, version: "1.1.0", policy: "helper" } } } };
   const original = JSON.stringify(baseline);
   let calls = 0;
   const frozen = await freezeCandidates({ baseline, request: async url => {
@@ -76,11 +87,26 @@ test("one package is resolved once for multiple purposes and never mutates accep
   assert.equal(frozen.runtimes.first.version, "2.0.0");
   assert.equal(frozen.runtimes.second.version, "2.0.0");
   assert.equal(frozen.matrix.include.length, 4);
-  assert.equal(frozen.runtimes.first.policy, "minimum");
-  assert.equal(frozen.runtimes.second.policy, "replay");
+  assert.equal(frozen.runtimes.first.policy, "accepted");
+  assert.equal(frozen.runtimes.second.policy, "helper");
   assert.equal(JSON.stringify(baseline), original);
   assert.deepEqual(frozen.errors, []);
   assert.equal(frozen.sdkMatrix.include.length, 0);
+});
+
+test("minimum and replay purposes are excluded even if they have native suites", async () => {
+  const entry = { package: "must-not-resolve", version: "1.0.0", platforms: ["ubuntu-latest"], suite: "behavior" };
+  const baseline = { sha256: "fixture", manifest: { schemaVersion: 1, runtimes: {
+    floor: { ...entry, policy: "minimum" }, replay: { ...entry, policy: "replay" },
+  } } };
+  const frozen = await freezeCandidates({ baseline, request: async url => {
+    assert.ok(!url.includes("must-not-resolve"));
+    return fakeRegistry(url);
+  } });
+  assert.deepEqual(frozen.errors, []);
+  assert.deepEqual(frozen.runtimes, {});
+  assert.deepEqual(frozen.matrix.include, []);
+  assert.deepEqual(frozen.excluded.map(entry => entry.key), ["floor", "replay"]);
 });
 
 test("discovery retains errors while other candidates keep their frozen matrix", async () => {

@@ -121,6 +121,19 @@
       "evidence": "https://github.com/botiverse/oar/actions/runs/44091499481",
       "channel": "https://x.ai/cli/stable"
     },
+    "grok-long-initialize": {
+      "package": "@xai-official/grok",
+      "version": "1.0.70",
+      "command": "grok",
+      "env": "OAR_GROK_BIN",
+      "platforms": [
+        "windows-latest"
+      ],
+      "suite": null,
+      "policy": "historical",
+      "purpose": "Manual 90-second cold-start control; probe the version only after numbered observations",
+      "evidence": "https://github.com/botiverse/oar/blob/ace02a467b30884e0b5f89c15b59111d13cae5b5/.github/workflows/acp-windows.yml"
+    },
     "codebuddy-aimock": {
       "package": "@tencent-ai/codebuddy-code",
       "version": "2.179.3",

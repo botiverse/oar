@@ -100,7 +100,14 @@ jobs:
           node-version: '24'
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: npm install -g @xai-official/grok@1.0.70
+      - name: Install the historical Grok control without a version probe
+        shell: pwsh
+        run: |
+          $package = node .github/scripts/runtime-version.mjs grok-long-initialize
+          if ($LASTEXITCODE -ne 0 -or !$package) {
+            throw 'Could not read the historical Grok version.'
+          }
+          npm install -g $package
       # Do not run grok --version or any suite before the numbered launches.
       # npm lifecycle installation can still touch files or execute vendor code.
       - name: Observe eight Grok starts with a 90-second initialize limit

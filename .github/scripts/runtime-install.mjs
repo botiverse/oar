@@ -103,7 +103,7 @@ export async function installRuntime(key, file = baselineFile, options = {}) {
       writeFileSync(tarball, content);
       report.stage = "npm-install";
       save();
-      run("npm", ["install", "--global", "--prefix", prefix, "--no-audit", "--no-fund", "--registry=https://registry.npmjs.org", tarball], env);
+      run("npm", ["install", "--global", "--prefix", prefix, "--no-audit", "--no-fund", "--registry=https://registry.npmjs.org", tarball], env, 600_000);
       const bin = process.platform === "win32" ? prefix : path.join(prefix, "bin");
       binary = path.join(bin, `${pin.command}${process.platform === "win32" ? ".cmd" : ""}`);
       npmRoot = path.join(prefix, ...(process.platform === "win32" ? [] : ["lib"]), "node_modules");

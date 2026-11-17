@@ -8,7 +8,7 @@ const platforms = ["ubuntu-latest", "macos-latest", "windows-latest"];
 
 export async function freezeCandidates({ baseline = readManifest(), request = jsonResponse, stableVersion } = {}) {
   const result = { schemaVersion: 1, generatedAt: new Date().toISOString(), baselineSha256: baseline.sha256,
-    runtimes: {}, sdks: {}, unchanged: [], errors: [], matrix: { include: [] }, sdkMatrix: { include: [] } };
+    runtimes: {}, sdks: {}, excluded: [], unchanged: [], errors: [], matrix: { include: [] }, sdkMatrix: { include: [] } };
   const metadata = new Map();
   const resolve = (name, selector = "latest") => {
     const key = `${name}@${selector}`;
@@ -16,8 +16,12 @@ export async function freezeCandidates({ baseline = readManifest(), request = js
     return metadata.get(key);
   };
   for (const [key, accepted] of Object.entries(baseline.manifest.runtimes)) {
-    // The explicit Pi floor stays fixed; newer Pi is tested as an SDK set.
-    if (!accepted.suite) continue;
+    // Floors and known replay boundaries need separate upgrade evidence.
+    // Do not turn their intentional lag into a permanently red daily run.
+    if (!accepted.suite || accepted.policy === "minimum" || accepted.policy === "replay") {
+      result.excluded.push({ key, policy: accepted.policy, version: accepted.version });
+      continue;
+    }
     try {
       const candidate = structuredClone(accepted);
       if (accepted.archives) {
@@ -101,6 +105,7 @@ if (process.argv[1] && pathToFileURL(path.resolve(process.argv[1])).href === imp
     "| Entry | Accepted | Candidate |", "| --- | --- | --- |",
     ...Object.entries(result.runtimes).map(([key, pin]) => `| ${key} | ${pin.acceptedVersion} | ${pin.version} |`),
     ...Object.entries(result.sdks).flatMap(([group, sdk]) => Object.entries(sdk.packages).map(([name, pin]) => `| SDK ${group}: ${name} | ${pin.acceptedVersion} | ${pin.version} |`)), "",
+    ...result.excluded.map(entry => `- Excluded ${entry.key} (${entry.policy}, ${entry.version}); requires a separate upgrade check.`), "",
     ...result.errors.map(error => `- Discovery failed for ${error.key}: ${error.error}`), ""].join("\n");
   writeFileSync(path.join(directory, "summary.md"), summary);
   if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, summary);

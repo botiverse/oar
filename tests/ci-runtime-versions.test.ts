@@ -32,6 +32,7 @@ test.each([
   ["claude-aimock", "@anthropic-ai/claude-code@2.1.326"],
   ["codex-aimock", "@openai/codex@0.169.0"],
   ["qwen-aimock", "@qwen-code/qwen-code@0.27.4"],
+  ["grok-long-initialize", "@xai-official/grok@1.0.70"],
 ])("reads the accepted %s package independently of cwd", (backend, spec) => {
   const result = run(reader, [backend], os.tmpdir());
   expect(result.status, result.stderr).toBe(0);
