@@ -1,0 +1,39 @@
+{
+  "manifest.json": {
+    "bytes": 1961,
+    "sha256": "dabf46afda9861b0bb9791f426933e71f15a8e6d9d1865c4d4f190cf4c89a709"
+  },
+  "version.stdout": {
+    "bytes": 32,
+    "sha256": "853959ce8d41e320a0934dc0c843caa1263562672ffbf9427e38300dea5cbeb3"
+  },
+  "empty.stdout": {
+    "bytes": 1145,
+    "sha256": "737a65d7dd8bf0bdd227530cad013b7aa3066616889c10ffa8f4c3d63ee3e72c"
+  },
+  "populated.stdout": {
+    "bytes": 3685,
+    "sha256": "f590ab9ee60e42b3115138a11a056108f3e5ce0417635aaf3a6ac9427218591d"
+  },
+  "diagnostics.stdout": {
+    "bytes": 4873,
+    "sha256": "af9934fb2e657d27bf4fa2d77756e9ff19ab019d73c39bb56cf6281698161eb9"
+  },
+  "network.log": {
+    "bytes": 12420,
+    "sha256": "9a423da2e6b730c496efca3e2d95ff23bfe5d064bbe229dd422ca7c69472731f"
+  },
+  "network-proxy.log": {
+    "bytes": 8511,
+    "sha256": "7ffa5a3eb7fcf6f704c36ef6fb996aa105cc8f5725f49d064d458c12d19e109f"
+  },
+  "proxy.stdout": {
+    "bytes": 4873,
+    "sha256": "af9934fb2e657d27bf4fa2d77756e9ff19ab019d73c39bb56cf6281698161eb9"
+  },
+  "vendor-final.log": {
+    "bytes": 468,
+    "sha256": "6f78d8a16d7fa5dff3385b9a010dc4d5360e51aa18cf7117c139d8d35eb7646c"
+  },
+  "native-tar-sha256": "0946784ef886d716e82a8026f76933bf0a6e4f0a804a23722bb62047e8c07d4a"
+}

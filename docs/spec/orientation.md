@@ -210,7 +210,9 @@ cross-call scheduling and credential-operation coordination.
 inventories in a canonical empty temporary directory. This is an explicit
 additional cost at any depth, including local: native inventories can execute
 user code, start runtimes and connect MCP servers. The empty directory excludes
-ordinary project content; it does not sandbox the user's configuration.
+ordinary project content; it does not sandbox the user's configuration. Devin's
+CLI skill query, for example, attempts feature-flag and telemetry connections
+without a model prompt; it is not part of the default local-depth reads.
 
 Only complete `discovered` or `registered` catalogs with explicit recognized
 provenance produce counts. Entries whose native `source` is `user` are counted;

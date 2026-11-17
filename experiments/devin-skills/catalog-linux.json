@@ -1,0 +1,288 @@
+{
+  "version": "devin 3000.12.57 (96542e930752)",
+  "native": [
+    {
+      "name": "user-agents",
+      "description": "Synthetic user-agents metadata",
+      "triggers": [
+        "user"
+      ],
+      "provider": "Devin",
+      "base_dir": "<fixture>/home/.agents/skills/user-agents",
+      "display_name": "user-agents",
+      "warnings": [],
+      "errors": []
+    },
+    {
+      "name": "user-claude",
+      "description": "Synthetic user-claude metadata",
+      "triggers": [
+        "user"
+      ],
+      "provider": "Claude",
+      "base_dir": "<fixture>/home/.claude/skills/user-claude",
+      "display_name": "user-claude",
+      "warnings": [],
+      "errors": []
+    },
+    {
+      "name": "user-windsurf",
+      "description": "Synthetic user-windsurf metadata",
+      "triggers": [
+        "user"
+      ],
+      "provider": "Windsurf",
+      "base_dir": "<fixture>/home/.codeium/windsurf/skills/user-windsurf",
+      "display_name": "user-windsurf",
+      "warnings": [],
+      "errors": []
+    },
+    {
+      "name": "user-devin",
+      "description": "Synthetic user-devin metadata",
+      "triggers": [
+        "user"
+      ],
+      "provider": "Devin",
+      "base_dir": "<fixture>/home/config/devin/skills/user-devin",
+      "display_name": "user-devin",
+      "warnings": [],
+      "errors": []
+    },
+    {
+      "name": "project-agents",
+      "description": "Synthetic project-agents metadata",
+      "triggers": [
+        "user"
+      ],
+      "provider": "Devin",
+      "base_dir": "<fixture>/project/.agents/skills/project-agents",
+      "display_name": "project-agents",
+      "warnings": [],
+      "errors": []
+    },
+    {
+      "name": "project-claude",
+      "description": "Synthetic project-claude metadata",
+      "triggers": [
+        "user"
+      ],
+      "provider": "Claude",
+      "base_dir": "<fixture>/project/.claude/skills/project-claude",
+      "display_name": "project-claude",
+      "warnings": [],
+      "errors": []
+    },
+    {
+      "name": "project-devin",
+      "description": "Synthetic project-devin metadata",
+      "triggers": [
+        "user"
+      ],
+      "provider": "Devin",
+      "base_dir": "<fixture>/project/.devin/skills/project-devin",
+      "display_name": "project-devin",
+      "warnings": [],
+      "errors": []
+    },
+    {
+      "name": "project-windsurf",
+      "description": "Synthetic project-windsurf metadata",
+      "triggers": [
+        "user"
+      ],
+      "provider": "Windsurf",
+      "base_dir": "<fixture>/project/.windsurf/skills/project-windsurf",
+      "display_name": "project-windsurf",
+      "warnings": [],
+      "errors": []
+    },
+    {
+      "name": "devin-cli",
+      "description": "Look up Devin CLI documentation (skills, extensibility, configuration, commands, models, troubleshooting)",
+      "triggers": [
+        "model"
+      ],
+      "provider": "Builtin",
+      "base_dir": "<installation>/share/devin",
+      "display_name": "devin-cli",
+      "warnings": [],
+      "errors": []
+    },
+    {
+      "name": "declarative-repo-setup",
+      "description": "Generate and verify a working environment.yaml (Devin snapshot-setup blueprint) for a repo",
+      "triggers": [
+        "model",
+        "user"
+      ],
+      "provider": "Builtin",
+      "base_dir": "",
+      "display_name": "declarative-repo-setup",
+      "warnings": [],
+      "errors": []
+    },
+    {
+      "name": "upload-secrets",
+      "description": "Securely upload local secrets (dotenv files, env vars, API keys) to the Devin Cloud secrets manager \u2014 values never enter the conversation",
+      "triggers": [
+        "model",
+        "user"
+      ],
+      "provider": "Builtin",
+      "base_dir": "",
+      "display_name": "upload-secrets",
+      "warnings": [],
+      "errors": []
+    }
+  ],
+  "discovered": {
+    "kind": "ok",
+    "scope": {
+      "kind": "workspace",
+      "cwd": "<fixture>/project"
+    },
+    "view": "discovered",
+    "items": [
+      {
+        "name": "user-agents",
+        "description": "Synthetic user-agents metadata",
+        "source": "Devin",
+        "path": "<fixture>/home/.agents/skills/user-agents",
+        "disableModelInvocation": true
+      },
+      {
+        "name": "user-claude",
+        "description": "Synthetic user-claude metadata",
+        "source": "Claude",
+        "path": "<fixture>/home/.claude/skills/user-claude",
+        "disableModelInvocation": true
+      },
+      {
+        "name": "user-windsurf",
+        "description": "Synthetic user-windsurf metadata",
+        "source": "Windsurf",
+        "path": "<fixture>/home/.codeium/windsurf/skills/user-windsurf",
+        "disableModelInvocation": true
+      },
+      {
+        "name": "user-devin",
+        "description": "Synthetic user-devin metadata",
+        "source": "Devin",
+        "path": "<fixture>/home/config/devin/skills/user-devin",
+        "disableModelInvocation": true
+      },
+      {
+        "name": "project-agents",
+        "description": "Synthetic project-agents metadata",
+        "source": "Devin",
+        "path": "<fixture>/project/.agents/skills/project-agents",
+        "disableModelInvocation": true
+      },
+      {
+        "name": "project-claude",
+        "description": "Synthetic project-claude metadata",
+        "source": "Claude",
+        "path": "<fixture>/project/.claude/skills/project-claude",
+        "disableModelInvocation": true
+      },
+      {
+        "name": "project-devin",
+        "description": "Synthetic project-devin metadata",
+        "source": "Devin",
+        "path": "<fixture>/project/.devin/skills/project-devin",
+        "disableModelInvocation": true
+      },
+      {
+        "name": "project-windsurf",
+        "description": "Synthetic project-windsurf metadata",
+        "source": "Windsurf",
+        "path": "<fixture>/project/.windsurf/skills/project-windsurf",
+        "disableModelInvocation": true
+      },
+      {
+        "name": "devin-cli",
+        "description": "Look up Devin CLI documentation (skills, extensibility, configuration, commands, models, troubleshooting)",
+        "source": "Builtin",
+        "scope": "builtin",
+        "path": "<installation>/share/devin",
+        "disableModelInvocation": false
+      },
+      {
+        "name": "declarative-repo-setup",
+        "description": "Generate and verify a working environment.yaml (Devin snapshot-setup blueprint) for a repo",
+        "source": "Builtin",
+        "scope": "builtin",
+        "disableModelInvocation": false
+      },
+      {
+        "name": "upload-secrets",
+        "description": "Securely upload local secrets (dotenv files, env vars, API keys) to the Devin Cloud secrets manager \u2014 values never enter the conversation",
+        "source": "Builtin",
+        "scope": "builtin",
+        "disableModelInvocation": false
+      }
+    ],
+    "partial": true
+  },
+  "configUnchanged": true,
+  "noSessionOrCredentialFile": true,
+  "bodyNotExecuted": true,
+  "files": [
+    "home",
+    "home/.agents",
+    "home/.agents/skills",
+    "home/.agents/skills/user-agents",
+    "home/.agents/skills/user-agents/SKILL.md",
+    "home/.claude",
+    "home/.claude/skills",
+    "home/.claude/skills/user-claude",
+    "home/.claude/skills/user-claude/SKILL.md",
+    "home/.codeium",
+    "home/.codeium/windsurf",
+    "home/.codeium/windsurf/skills",
+    "home/.codeium/windsurf/skills/user-windsurf",
+    "home/.codeium/windsurf/skills/user-windsurf/SKILL.md",
+    "home/cache",
+    "home/cache/devin",
+    "home/cache/devin/cli",
+    "home/cache/devin/telemetry_state.json",
+    "home/config",
+    "home/config/devin",
+    "home/config/devin/cli",
+    "home/config/devin/config.json",
+    "home/config/devin/skills",
+    "home/config/devin/skills/user-devin",
+    "home/config/devin/skills/user-devin/SKILL.md",
+    "home/data",
+    "home/data/devin",
+    "home/data/devin/cli",
+    "home/data/devin/cli/installation_id",
+    "home/data/devin/cli/logs",
+    "home/data/devin/cli/logs/.log-maintenance.lock",
+    "home/data/devin/cli/logs/devin_<time>_<pid>.log",
+    "home/data/devin/cli/plugins",
+    "home/data/devin/cli/plugins/lock.json",
+    "home/data/devin/cli/plugins/lock.json.lock",
+    "project",
+    "project/.agents",
+    "project/.agents/skills",
+    "project/.agents/skills/project-agents",
+    "project/.agents/skills/project-agents/SKILL.md",
+    "project/.claude",
+    "project/.claude/skills",
+    "project/.claude/skills/project-claude",
+    "project/.claude/skills/project-claude/SKILL.md",
+    "project/.devin",
+    "project/.devin/skills",
+    "project/.devin/skills/broken-yaml",
+    "project/.devin/skills/broken-yaml/SKILL.md",
+    "project/.devin/skills/project-devin",
+    "project/.devin/skills/project-devin/SKILL.md",
+    "project/.windsurf",
+    "project/.windsurf/skills",
+    "project/.windsurf/skills/project-windsurf",
+    "project/.windsurf/skills/project-windsurf/SKILL.md"
+  ],
+  "nativeStderr": ""
+}

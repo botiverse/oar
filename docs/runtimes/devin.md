@@ -16,7 +16,7 @@ CLI flags `--permission-mode` and `--respect-workspace-trust` gate the CLI REPL 
 
 `devinRuntime` belongs to `defaultRuntimes`, and `@botiverse/oar/runtimes/devin` exports it with `execution: "process"` for isolated placement. The runtime entry loads [`session.ts`](../../packages/oar/src/runtimes/devin/session.ts) and [`list-models.ts`](../../packages/oar/src/runtimes/devin/list-models.ts) on first call so importing `@botiverse/oar/runtimes/devin` does not load `@agentclientprotocol/sdk`.
 
-OAR implements `installation`, `install`, `installPlan`, `checkUpdate`, `authStatus`, `listModels`, and `session`. Independent inventory queries return `unsupported`, and `login`, `logout`, `upgrade`, `accountUsage`, `redeemLimitReset`, and provider-auth facades stay absent after checking the CLI and ACP commands below.
+OAR implements `installation`, `install`, `installPlan`, `checkUpdate`, `authStatus`, `listModels`, `skills`, and `session`. The other independent inventory queries return `unsupported`, and `login`, `logout`, `upgrade`, `accountUsage`, `redeemLimitReset`, and provider-auth facades stay absent after checking the CLI and ACP commands below.
 
 | Native concept | OAR mapping |
 | --- | --- |
@@ -132,13 +132,55 @@ Checks on `devin 3000.12.57` account for the absent members:
   - `devin auth logout` removes local `$XDG_DATA_HOME/devin/credentials.toml` and plugin caches with exit `0` and no remote revocation. OAR omits `logout` alongside `login` per [the login contract](../spec/login.md#logout).
 - **Providers.** `devin --help`, `devin doctor --json`, `$XDG_CONFIG_HOME/devin/config.json`, and ACP `available_commands_update` offer no third-party provider configuration or per-provider credential store. ACP `/billing` only toggles whether a linked provider plan pays for its models, so OAR exports no provider-auth facade.
 - **Account usage and limit resets.** `devin --help`, `devin auth --help`, `devin doctor --json`, and ACP `available_commands_update` offer no account quota window or limit-reset call. ACP `/context` and `/session-stats` report session-level state only, so `accountUsage` and `redeemLimitReset` stay absent.
-- **Independent inventories.** `skills`, `commands`, `mcpServers`, and `tools` return `unsupported` with `transport_unavailable` from `defineRuntime`. `devin skills list --json`, `devin mcp list --json`, `devin plugins list`, and session-scoped `available_commands_update` exist natively and remain unmapped.
+- **Independent inventories.** `skills` runs the native CLI catalog described below. `commands`, `mcpServers`, and `tools` remain `unsupported` with `transport_unavailable`. `devin mcp list --json`, `devin plugins list`, and session-scoped `available_commands_update` remain unmapped.
+
+### Independent skills
+
+`skills(installation, { cwd, env, timeoutMs })` runs `devin skills list --json`
+without starting ACP or submitting a prompt. The reader returns `discovered`
+metadata: `name`, `description`, native `provider` as `source`, and non-empty
+`base_dir` as `path`. That path is the native skill directory, not a fabricated
+`SKILL.md` filename. `triggers` determines `disableModelInvocation`: it is true
+when the native list does not contain `model`, and absent if the list is absent.
+Skill bodies and native warning/error text are not returned.
+
+`provider: "Builtin"` maps to `scope: "builtin"`. Other measured providers
+(`Devin`, `Claude`, `Windsurf`) identify a configuration format, not ownership:
+the same label occurs in user and project roots. Their scope remains absent;
+this catalog supplies no plugin identity. No path-based ownership guess is added.
+
+The [Linux 3000.12.57 comparison](../../experiments/devin-skills/README.md)
+found three bundled skills in an empty home and eight user/project fixtures
+through native discovery. It also found malformed YAML silently omitted from
+the native list. Per-entry warnings/errors cannot reveal those missing rows,
+so the reader always reports `partial: true` instead of claiming completeness.
+An empty native list is still a successful query; invalid JSON, malformed rows,
+nonzero exit and timeout remain `unavailable`, never a successful empty list.
+The reader terminates and awaits its owned process on success and failure.
 
 ## Orientation query costs and reader environment
 
 `listModels` runs `devin acp` in `listingCwd(options)`, which uses `options.cwd` or `process.cwd()`. That call initializes `$XDG_DATA_HOME/devin/cli/sessions.db`, `$XDG_CONFIG_HOME/devin/config.json`, and a lock file under `session_locks/`, and scans `cwd` rules and skills before `session/delete` removes the session entry. `OAR_DEVIN_BIN`, `HOME`, `XDG_*`, and `WINDSURF_API_KEY` in `env` overlays apply to installation checks, auth status, model listing, and sessions without mutating `process.env`.
 
+`skills` can create the native config, installation identifier, telemetry state,
+logs and plugin lock files. The isolated fixture retained its existing config
+bytes and created no session database or credential file. The command attempts
+feature-flag and telemetry connections even without an account. No disabling
+switch was found in 3000.12.57 CLI help or the official
+[command](https://docs.devin.ai/cli/reference/commands) and
+[configuration](https://docs.devin.ai/cli/reference/configuration/config-file)
+references. The test blocks those attempts with a closed loopback proxy; OAR
+does not impose a proxy or change the user's native configuration.
+
+Default `orient()` depths do not read skills. Explicit
+`include: ["customization"]` can do so at any depth and already opts into native
+side effects, including network attempts; the auth reader's `localOnly`
+declaration does not apply to inventory readers. Devin's brand source labels
+do not establish user-owned customization counts.
+
 ## Verification and open gaps
+
+- [Native skill catalog comparison](../../experiments/devin-skills/README.md): Linux 3000.12.57, empty and populated homes, native/public metadata parity, malformed-file omission, environment isolation and side effects. Native macOS and Windows skill queries remain unmeasured.
 
 - [`experiments/devin-acp/probe.ts`](../../experiments/devin-acp/probe.ts) runs an isolated zero-token CLI and ACP handshake probe verified against `devin 3000.12.57` on macOS arm64 on 2026-11-13.
 - [`experiments/devin-acp/login-probe.ts`](../../experiments/devin-acp/login-probe.ts) exercises the CLI login, `authStatus`, and `logout` flows against a local synthetic PKCE and ConnectRPC server on `devin 3000.12.57` on macOS arm64 on 2026-11-14. It verifies detached non-TTY failure, PTY `--force-manual-token-flow` PKCE sign-in, authenticated `Credentials:`, `User:`, `Account:`, and `Team settings:` status output, `401`-rejected `credentials.toml` re-login refusal, and `devin auth logout`.

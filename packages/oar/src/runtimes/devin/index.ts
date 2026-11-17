@@ -22,6 +22,7 @@ export const devinRuntime = defineRuntime({
     const { devinListModels } = await import("./list-models.js");
     return devinListModels;
   }),
+  skills: onFirstCall(async () => { const { devinSkills } = await import("./skills.js"); return devinSkills; }),
   checkUpdate: devinCheckUpdate,
   authStatus: devinAuthStatus,
   refusedSessionOptions: devinRefusedSessionOptions,
