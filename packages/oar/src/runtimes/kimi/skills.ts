@@ -1,11 +1,12 @@
 /* oxlint-disable oxc/no-map-spread -- Preserve only native skill metadata in the public result. */
 import type { InventoryReader, SkillEntry } from "../../contracts/inventory.js";
 import { sessionEnvironment } from "../../shared/environment.js";
-import { spawnLineProcess } from "../../shared/executable/index.js";
+import { type LineProcess } from "../../shared/executable/index.js";
 import { type JsonRecord } from "../../shared/json.js";
 import { boolField, inventoryOk, inventoryRead, named, nativeRows, skillScope, textField, unsupportedInventory, workspaceScope } from "../../shared/inventory.js";
 
-import { kimiWebEndpoint, kimiWebRequest } from "./web-query.js";
+import { kimiWebRequest } from "./web-query.js";
+import { startKimiWeb } from "./web-startup.js";
 
 function skills(payload: JsonRecord): SkillEntry[] {
   return nativeRows(payload.skills).map((skill) => ({
@@ -30,17 +31,13 @@ export const kimiSkills: InventoryReader<SkillEntry> = async (installation, opti
   const timeoutMs = options.timeoutMs ?? 15_000;
   if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) { throw new RangeError("timeoutMs must be positive and finite"); }
   const controller = new AbortController();
-  const child = spawnLineProcess(installation.command, ["web", "--no-open", "--host", "127.0.0.1", "--port", "0"], {
-    cwd: scope.cwd, env: sessionEnvironment(options.env), killTree: true, inheritStderr: false,
-  });
-  const ready = kimiWebEndpoint(child, controller.signal);
-  // A spawn failure can occur before the readiness promise is awaited.
-  // oxlint-disable-next-line promise/prefer-await-to-then -- Observe early rejection without blocking process startup.
-  void ready.catch(() => {});
+  const state: { child?: LineProcess; starting?: ReturnType<typeof startKimiWeb> } = {};
   try {
     return await inventoryRead(async () => {
-      await child.spawned;
-      const web = await ready;
+      state.starting = startKimiWeb(installation.command, sessionEnvironment(options.env), controller.signal, scope.cwd);
+      const started = await state.starting;
+      state.child = started.child;
+      const web = started.web;
       const catalog = await kimiWebRequest(web, controller.signal, "/workspaces");
       const existing = new Set(nativeRows(catalog.items).map((row) => workspaceId(row)));
       const id = workspaceId(await kimiWebRequest(web, controller.signal, "/workspaces", "POST", { root: scope.cwd }));
@@ -56,7 +53,9 @@ export const kimiSkills: InventoryReader<SkillEntry> = async (installation, opti
     }, timeoutMs);
   } finally {
     controller.abort();
-    child.kill();
-    await child.exited;
+    // Inventory reads retain their existing joined-startup cleanup contract.
+    await state.starting?.catch(() => {});
+    if (state.child !== undefined && !state.child.stopping()) { state.child.kill(); }
+    if (state.child !== undefined) { await state.child.exited; }
   }
 };
