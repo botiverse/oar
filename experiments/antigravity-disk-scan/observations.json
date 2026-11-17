@@ -1,0 +1,2154 @@
+{
+  "selection": "Control results, state transitions, relevant native frames, and process groups. Repeated polling is compressed to changes. Provider bodies, command arguments, local paths and absolute timestamps are omitted.",
+  "cases": [
+    {
+      "mode": "complete",
+      "version": "1.5.9",
+      "platform": "linux",
+      "base": "bcaf599b",
+      "error": null,
+      "rawSha256": "6046295b40c6dd9c92ecaceae0fa9775872b1d026e7709109d1b3596c203462b",
+      "providerRequests": [
+        {
+          "atMs": 880,
+          "call": 1
+        },
+        {
+          "atMs": 1405,
+          "call": 2
+        },
+        {
+          "atMs": 10556,
+          "call": 3
+        },
+        {
+          "atMs": 13135,
+          "call": 4
+        }
+      ],
+      "ticks": [
+        {
+          "atMs": 865,
+          "kind": "waiting-du",
+          "value": {
+            "processes": [
+              {
+                "pid": 239019,
+                "name": "antigravity",
+                "state": "S",
+                "pgid": 239019,
+                "ppid": 238975,
+                "start": "260082746"
+              }
+            ],
+            "status": {
+              "value": {
+                "kind": "running",
+                "sinceSeq": 6,
+                "requestId": "1f580f1f-30c1-4ea1-a0ed-7371a394a6e0",
+                "inputId": "85bfcfd8-8418-459f-9152-745a58b77911",
+                "phase": "waiting_model"
+              },
+              "seq": 10
+            }
+          }
+        },
+        {
+          "atMs": 890,
+          "kind": "record",
+          "value": {
+            "seq": 12,
+            "frameType": "tool_call",
+            "native": {
+              "sessionUpdate": "tool_call",
+              "status": "in_progress",
+              "toolCallId": "f61645d2-24d0-44bc-8903-81b9a0e5a66a"
+            },
+            "events": [
+              {
+                "kind": "tool_call_started",
+                "callId": "f61645d2-24d0-44bc-8903-81b9a0e5a66a",
+                "tool": "run_command"
+              }
+            ]
+          }
+        },
+        {
+          "atMs": 966,
+          "kind": "waiting-du",
+          "value": {
+            "processes": [
+              {
+                "pid": 239063,
+                "name": "du",
+                "state": "S",
+                "pgid": 239061,
+                "ppid": 239061,
+                "start": "260082802"
+              },
+              {
+                "pid": 239019,
+                "name": "antigravity",
+                "state": "S",
+                "pgid": 239019,
+                "ppid": 238975,
+                "start": "260082746"
+              }
+            ],
+            "status": {
+              "value": {
+                "kind": "running",
+                "sinceSeq": 6,
+                "requestId": "1f580f1f-30c1-4ea1-a0ed-7371a394a6e0",
+                "inputId": "85bfcfd8-8418-459f-9152-745a58b77911",
+                "phase": {
+                  "tool": "run_command",
+                  "callId": "f61645d2-24d0-44bc-8903-81b9a0e5a66a"
+                }
+              },
+              "seq": 12
+            }
+          }
+        },
+        {
+          "atMs": 1409,
+          "kind": "record",
+          "value": {
+            "seq": 13,
+            "frameType": "agent_message_chunk",
+            "native": {
+              "sessionUpdate": "agent_message_chunk"
+            },
+            "events": [
+              {
+                "kind": "text_delta",
+                "text": "ROOT_OR_BACKGROUND_R"
+              }
+            ]
+          }
+        },
+        {
+          "atMs": 1409,
+          "kind": "record",
+          "value": {
+            "seq": 14,
+            "frameType": "agent_message_chunk",
+            "native": {
+              "sessionUpdate": "agent_message_chunk"
+            },
+            "events": [
+              {
+                "kind": "text_delta",
+                "text": "EPLY"
+              }
+            ]
+          }
+        },
+        {
+          "atMs": 1415,
+          "kind": "record",
+          "value": {
+            "seq": 15,
+            "frameType": "session/prompt",
+            "native": {
+              "stopReason": "end_turn"
+            },
+            "events": [
+              {
+                "kind": "turn_ended",
+                "outcome": {
+                  "kind": "completed"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "atMs": 1415,
+          "kind": "turn-result",
+          "value": {
+            "kind": "completed"
+          }
+        },
+        {
+          "atMs": 1416,
+          "kind": "after-initial-end",
+          "value": {
+            "processes": [
+              {
+                "pid": 239063,
+                "name": "du",
+                "state": "S",
+                "pgid": 239061,
+                "ppid": 239061,
+                "start": "260082802"
+              },
+              {
+                "pid": 239019,
+                "name": "antigravity",
+                "state": "S",
+                "pgid": 239019,
+                "ppid": 238975,
+                "start": "260082746"
+              }
+            ],
+            "status": {
+              "value": {
+                "kind": "idle",
+                "lastTurnOutcome": {
+                  "kind": "completed"
+                }
+              },
+              "seq": 15
+            }
+          }
+        },
+        {
+          "atMs": 1417,
+          "kind": "waiting-scan-end",
+          "value": {
+            "processes": [
+              {
+                "pid": 239063,
+                "name": "du",
+                "state": "S",
+                "pgid": 239061,
+                "ppid": 239061,
+                "start": "260082802"
+              },
+              {
+                "pid": 239019,
+                "name": "antigravity",
+                "state": "S",
+                "pgid": 239019,
+                "ppid": 238975,
+                "start": "260082746"
+              }
+            ],
+            "status": {
+              "value": {
+                "kind": "idle",
+                "lastTurnOutcome": {
+                  "kind": "completed"
+                }
+              },
+              "seq": 15
+            }
+          }
+        },
+        {
+          "atMs": 1724,
+          "kind": "waiting-scan-end",
+          "value": {
+            "processes": [
+              {
+                "pid": 239063,
+                "name": "du",
+                "state": "S",
+                "pgid": 239061,
+                "ppid": 239061,
+                "start": "260082802"
+              },
+              {
+                "pid": 239019,
+                "name": "antigravity",
+                "state": "S",
+                "pgid": 239019,
+                "ppid": 238975,
+                "start": "260082746"
+              }
+            ],
+            "status": {
+              "value": {
+                "kind": "idle",
+                "lastTurnOutcome": {
+                  "kind": "completed"
+                }
+              },
+              "seq": 16
+            }
+          }
+        },
+        {
+          "atMs": 5287,
+          "kind": "waiting-scan-end",
+          "value": {
+            "processes": [
+              {
+                "pid": 239063,
+                "name": "du",
+                "state": "R",
+                "pgid": 239061,
+                "ppid": 239061,
+                "start": "260082802"
+              },
+              {
+                "pid": 239019,
+                "name": "antigravity",
+                "state": "S",
+                "pgid": 239019,
+                "ppid": 238975,
+                "start": "260082746"
+              }
+            ],
+            "status": {
+              "value": {
+                "kind": "idle",
+                "lastTurnOutcome": {
+                  "kind": "completed"
+                }
+              },
+              "seq": 16
+            }
+          }
+        },
+        {
+          "atMs": 5388,
+          "kind": "waiting-scan-end",
+          "value": {
+            "processes": [
+              {
+                "pid": 239063,
+                "name": "du",
+                "state": "S",
+                "pgid": 239061,
+                "ppid": 239061,
+                "start": "260082802"
+              },
+              {
+                "pid": 239019,
+                "name": "antigravity",
+                "state": "S",
+                "pgid": 239019,
+                "ppid": 238975,
+                "start": "260082746"
+              }
+            ],
+            "status": {
+              "value": {
+                "kind": "idle",
+                "lastTurnOutcome": {
+                  "kind": "completed"
+                }
+              },
+              "seq": 16
+            }
+          }
+        },
+        {
+          "atMs": 10593,
+          "kind": "waiting-scan-end",
+          "value": {
+            "processes": [
+              {
+                "pid": 239019,
+                "name": "antigravity",
+                "state": "S",
+                "pgid": 239019,
+                "ppid": 238975,
+                "start": "260082746"
+              }
+            ],
+            "status": {
+              "value": {
+                "kind": "idle",
+                "lastTurnOutcome": {
+                  "kind": "completed"
+                }
+              },
+              "seq": 16
+            }
+          }
+        },
+        {
+          "atMs": 13096,
+          "kind": "after-natural-completion",
+          "value": {
+            "processes": [
+              {
+                "pid": 239019,
+                "name": "antigravity",
+                "state": "S",
+                "pgid": 239019,
+                "ppid": 238975,
+                "start": "260082746"
+              }
+            ],
+            "status": {
+              "value": {
+                "kind": "idle",
+                "lastTurnOutcome": {
+                  "kind": "completed"
+                }
+              },
+              "seq": 16
+            }
+          }
+        },
+        {
+          "atMs": 13097,
+          "kind": "later-submission",
+          "value": {
+            "kind": "accepted",
+            "code": null,
+            "requestSeq": 17,
+            "response": {
+              "kind": "accepted"
+            }
+          }
+        },
+        {
+          "atMs": 13102,
+          "kind": "record",
+          "value": {
+            "seq": 19,
+            "frameType": "tool_call_update",
+            "native": {
+              "sessionUpdate": "tool_call_update",
+              "status": "completed",
+              "toolCallId": "f61645d2-24d0-44bc-8903-81b9a0e5a66a",
+              "exitCode": 0
+            },
+            "events": [
+              {
+                "kind": "tool_call_ended",
+                "callId": "f61645d2-24d0-44bc-8903-81b9a0e5a66a",
+                "result": "ok",
+                "exitCode": 0
+              }
+            ]
+          }
+        },
+        {
+          "atMs": 13102,
+          "kind": "record",
+          "value": {
+            "seq": 20,
+            "frameType": "agent_message_chunk",
+            "native": {
+              "sessionUpdate": "agent_message_chunk"
+            },
+            "events": [
+              {
+                "kind": "text_delta",
+                "text": "ROOT_OR_BACKGROUND_REPLY"
+              }
+            ]
+          }
+        },
+        {
+          "atMs": 13138,
+          "kind": "record",
+          "value": {
+            "seq": 22,
+            "frameType": "agent_message_chunk",
+            "native": {
+              "sessionUpdate": "agent_message_chunk"
+            },
+            "events": [
+              {
+                "kind": "text_delta",
+                "text": "LATER_ACCEPTED"
+              }
+            ]
+          }
+        },
+        {
+          "atMs": 13145,
+          "kind": "record",
+          "value": {
+            "seq": 23,
+            "frameType": "session/prompt",
+            "native": {
+              "stopReason": "end_turn"
+            },
+            "events": [
+              {
+                "kind": "turn_ended",
+                "outcome": {
+                  "kind": "completed"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "atMs": 13145,
+          "kind": "later-result",
+          "value": {
+            "kind": "completed"
+          }
+        },
+        {
+          "atMs": 13146,
+          "kind": "late-tool-status",
+          "value": {
+            "live": {
+              "value": {
+                "kind": "running",
+                "sinceSeq": 17,
+                "requestId": "9ef6e910-897e-4e97-951d-89e33e0cff91",
+                "inputId": "c7f35bc1-9480-4385-b2e3-9b0ce7bad3fc",
+                "phase": "waiting_model"
+              },
+              "seq": 19
+            },
+            "replay": {
+              "value": {
+                "kind": "idle",
+                "lastTurnOutcome": {
+                  "kind": "completed"
+                }
+              },
+              "seq": 19
+            },
+            "replayOmitsNextPrompt": true
+          }
+        },
+        {
+          "atMs": 13146,
+          "kind": "hosted-terminal-requests",
+          "value": []
+        },
+        {
+          "atMs": 13147,
+          "kind": "before-dispose",
+          "value": {
+            "processes": [
+              {
+                "pid": 239019,
+                "name": "antigravity",
+                "state": "S",
+                "pgid": 239019,
+                "ppid": 238975,
+                "start": "260082746"
+              }
+            ],
+            "status": {
+              "value": {
+                "kind": "idle",
+                "lastTurnOutcome": {
+                  "kind": "completed"
+                }
+              },
+              "seq": 23
+            }
+          }
+        },
+        {
+          "atMs": 13207,
+          "kind": "groups-before-dispose",
+          "value": [
+            {
+              "pid": 239019,
+              "name": "antigravity",
+              "state": "S",
+              "pgid": 239019,
+              "ppid": 238975,
+              "start": "260082746"
+            },
+            {
+              "pid": 239039,
+              "name": "antigravity",
+              "state": "S",
+              "pgid": 239019,
+              "ppid": 239019,
+              "start": "260082764"
+            }
+          ]
+        },
+        {
+          "atMs": 13564,
+          "kind": "dispose-returned",
+          "value": {
+            "value": {
+              "kind": "idle",
+              "lastTurnOutcome": {
+                "kind": "completed"
+              }
+            },
+            "seq": 25
+          }
+        },
+        {
+          "atMs": 13566,
+          "kind": "after-dispose",
+          "value": {
+            "processes": [],
+            "status": {
+              "value": {
+                "kind": "idle",
+                "lastTurnOutcome": {
+                  "kind": "completed"
+                }
+              },
+              "seq": 25
+            }
+          }
+        },
+        {
+          "atMs": 13635,
+          "kind": "groups-after-dispose",
+          "value": []
+        },
+        {
+          "atMs": 13636,
+          "kind": "final-survivors",
+          "value": {
+            "processes": [],
+            "status": {
+              "value": {
+                "kind": "idle",
+                "lastTurnOutcome": {
+                  "kind": "completed"
+                }
+              },
+              "seq": 25
+            }
+          }
+        }
+      ]
+    },
+    {
+      "mode": "idle-abort",
+      "version": "1.5.9",
+      "platform": "linux",
+      "base": "bcaf599b",
+      "error": null,
+      "rawSha256": "f0b6af5d56146c96da12411814d09da795604ea96e24036bfffb7db10f52daa9",
+      "providerRequests": [
+        {
+          "atMs": 1102,
+          "call": 1
+        },
+        {
+          "atMs": 1631,
+          "call": 2
+        },
+        {
+          "atMs": 1683,
+          "call": 3
+        }
+      ],
+      "ticks": [
+        {
+          "atMs": 1082,
+          "kind": "waiting-du",
+          "value": {
+            "processes": [
+              {
+                "pid": 238771,
+                "name": "antigravity",
+                "state": "S",
+                "pgid": 238771,
+                "ppid": 238499,
+                "start": "260078311"
+              }
+            ],
+            "status": {
+              "value": {
+                "kind": "running",
+                "sinceSeq": 6,
+                "requestId": "9bdff95e-4d56-44a8-94ce-189aaef0c420",
+                "inputId": "343317b0-81c1-4347-a138-b7f31fe5c653",
+                "phase": "waiting_model"
+              },
+              "seq": 10
+            }
+          }
+        },
+        {
+          "atMs": 1111,
+          "kind": "record",
+          "value": {
+            "seq": 12,
+            "frameType": "tool_call",
+            "native": {
+              "sessionUpdate": "tool_call",
+              "status": "in_progress",
+              "toolCallId": "bef77a5d-ea1a-42c4-ba89-ecadc6f606fb"
+            },
+            "events": [
+              {
+                "kind": "tool_call_started",
+                "callId": "bef77a5d-ea1a-42c4-ba89-ecadc6f606fb",
+                "tool": "run_command"
+              }
+            ]
+          }
+        },
+        {
+          "atMs": 1183,
+          "kind": "waiting-du",
+          "value": {
+            "processes": [
+              {
+                "pid": 238915,
+                "name": "du",
+                "state": "S",
+                "pgid": 238913,
+                "ppid": 238913,
+                "start": "260078374"
+              },
+              {
+                "pid": 238771,
+                "name": "antigravity",
+                "state": "S",
+                "pgid": 238771,
+                "ppid": 238499,
+                "start": "260078311"
+              }
+            ],
+            "status": {
+              "value": {
+                "kind": "running",
+                "sinceSeq": 6,
+                "requestId": "9bdff95e-4d56-44a8-94ce-189aaef0c420",
+                "inputId": "343317b0-81c1-4347-a138-b7f31fe5c653",
+                "phase": {
+                  "tool": "run_command",
+                  "callId": "bef77a5d-ea1a-42c4-ba89-ecadc6f606fb"
+                }
+              },
+              "seq": 12
+            }
+          }
+        },
+        {
+          "atMs": 1635,
+          "kind": "record",
+          "value": {
+            "seq": 13,
+            "frameType": "agent_message_chunk",
+            "native": {
+              "sessionUpdate": "agent_message_chunk"
+            },
+            "events": [
+              {
+                "kind": "text_delta",
+                "text": "ROOT_OR_BACKGROUND_R"
+              }
+            ]
+          }
+        },
+        {
+          "atMs": 1636,
+          "kind": "record",
+          "value": {
+            "seq": 14,
+            "frameType": "agent_message_chunk",
+            "native": {
+              "sessionUpdate": "agent_message_chunk"
+            },
+            "events": [
+              {
+                "kind": "text_delta",
+                "text": "EPLY"
+              }
+            ]
+          }
+        },
+        {
+          "atMs": 1642,
+          "kind": "record",
+          "value": {
+            "seq": 15,
+            "frameType": "session/prompt",
+            "native": {
+              "stopReason": "end_turn"
+            },
+            "events": [
+              {
+                "kind": "turn_ended",
+                "outcome": {
+                  "kind": "completed"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "atMs": 1643,
+          "kind": "turn-result",
+          "value": {
+            "kind": "completed"
+          }
+        },
+        {
+          "atMs": 1644,
+          "kind": "after-initial-end",
+          "value": {
+            "processes": [
+              {
+                "pid": 238915,
+                "name": "du",
+                "state": "S",
+                "pgid": 238913,
+                "ppid": 238913,
+                "start": "260078374"
+              },
+              {
+                "pid": 238771,
+                "name": "antigravity",
+                "state": "S",
+                "pgid": 238771,
+                "ppid": 238499,
+                "start": "260078311"
+              }
+            ],
+            "status": {
+              "value": {
+                "kind": "idle",
+                "lastTurnOutcome": {
+                  "kind": "completed"
+                }
+              },
+              "seq": 15
+            }
+          }
+        },
+        {
+          "atMs": 1644,
+          "kind": "abort-after-end",
+          "value": {
+            "kind": "rejected",
+            "code": "no_active_turn",
+            "requestSeq": 16,
+            "response": {
+              "kind": "rejected",
+              "code": "no_active_turn",
+              "reason": "no active turn"
+            }
+          }
+        },
+        {
+          "atMs": 1645,
+          "kind": "after-idle-abort",
+          "value": {
+            "processes": [
+              {
+                "pid": 238915,
+                "name": "du",
+                "state": "S",
+                "pgid": 238913,
+                "ppid": 238913,
+                "start": "260078374"
+              },
+              {
+                "pid": 238771,
+                "name": "antigravity",
+                "state": "S",
+                "pgid": 238771,
+                "ppid": 238499,
+                "start": "260078311"
+              }
+            ],
+            "status": {
+              "value": {
+                "kind": "idle",
+                "lastTurnOutcome": {
+                  "kind": "completed"
+                }
+              },
+              "seq": 17
+            }
+          }
+        },
+        {
+          "atMs": 1646,
+          "kind": "later-submission",
+          "value": {
+            "kind": "accepted",
+            "code": null,
+            "requestSeq": 18,
+            "response": {
+              "kind": "accepted"
+            }
+          }
+        },
+        {
+          "atMs": 1686,
+          "kind": "record",
+          "value": {
+            "seq": 21,
+            "frameType": "agent_message_chunk",
+            "native": {
+              "sessionUpdate": "agent_message_chunk"
+            },
+            "events": [
+              {
+                "kind": "text_delta",
+                "text": "LATER_ACCEPTED"
+              }
+            ]
+          }
+        },
+        {
+          "atMs": 1691,
+          "kind": "record",
+          "value": {
+            "seq": 22,
+            "frameType": "session/prompt",
+            "native": {
+              "stopReason": "end_turn"
+            },
+            "events": [
+              {
+                "kind": "turn_ended",
+                "outcome": {
+                  "kind": "completed"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "atMs": 1691,
+          "kind": "later-result",
+          "value": {
+            "kind": "completed"
+          }
+        },
+        {
+          "atMs": 1691,
+          "kind": "hosted-terminal-requests",
+          "value": []
+        },
+        {
+          "atMs": 1692,
+          "kind": "before-dispose",
+          "value": {
+            "processes": [
+              {
+                "pid": 238915,
+                "name": "du",
+                "state": "S",
+                "pgid": 238913,
+                "ppid": 238913,
+                "start": "260078374"
+              },
+              {
+                "pid": 238771,
+                "name": "antigravity",
+                "state": "S",
+                "pgid": 238771,
+                "ppid": 238499,
+                "start": "260078311"
+              }
+            ],
+            "status": {
+              "value": {
+                "kind": "idle",
+                "lastTurnOutcome": {
+                  "kind": "completed"
+                }
+              },
+              "seq": 22
+            }
+          }
+        },
+        {
+          "atMs": 1791,
+          "kind": "groups-before-dispose",
+          "value": [
+            {
+              "pid": 238771,
+              "name": "antigravity",
+              "state": "S",
+              "pgid": 238771,
+              "ppid": 238499,
+              "start": "260078311"
+            },
+            {
+              "pid": 238848,
+              "name": "antigravity",
+              "state": "S",
+              "pgid": 238771,
+              "ppid": 238771,
+              "start": "260078328"
+            },
+            {
+              "pid": 238913,
+              "name": "bash",
+              "state": "S",
+              "pgid": 238913,
+              "ppid": 238848,
+              "start": "260078374"
+            },
+            {
+              "pid": 238915,
+              "name": "du",
+              "state": "S",
+              "pgid": 238913,
+              "ppid": 238913,
+              "start": "260078374"
+            },
+            {
+              "pid": 238916,
+              "name": "sort",
+              "state": "S",
+              "pgid": 238913,
+              "ppid": 238913,
+              "start": "260078374"
+            },
+            {
+              "pid": 238917,
+              "name": "head",
+              "state": "S",
+              "pgid": 238913,
+              "ppid": 238913,
+              "start": "260078374"
+            }
+          ]
+        },
+        {
+          "atMs": 2248,
+          "kind": "dispose-returned",
+          "value": {
+            "value": {
+              "kind": "idle",
+              "lastTurnOutcome": {
+                "kind": "completed"
+              }
+            },
+            "seq": 24
+          }
+        },
+        {
+          "atMs": 2249,
+          "kind": "after-dispose",
+          "value": {
+            "processes": [],
+            "status": {
+              "value": {
+                "kind": "idle",
+                "lastTurnOutcome": {
+                  "kind": "completed"
+                }
+              },
+              "seq": 24
+            }
+          }
+        },
+        {
+          "atMs": 2299,
+          "kind": "groups-after-dispose",
+          "value": []
+        },
+        {
+          "atMs": 2300,
+          "kind": "final-survivors",
+          "value": {
+            "processes": [],
+            "status": {
+              "value": {
+                "kind": "idle",
+                "lastTurnOutcome": {
+                  "kind": "completed"
+                }
+              },
+              "seq": 24
+            }
+          }
+        }
+      ]
+    },
+    {
+      "mode": "active-abort",
+      "version": "1.5.9",
+      "platform": "linux",
+      "base": "bcaf599b",
+      "error": null,
+      "rawSha256": "a361f1c8225b44860bf6dfb7e82a5e899e87c001f3ecfce495e9ef60e58fad8e",
+      "providerRequests": [
+        {
+          "atMs": 1033,
+          "call": 1
+        },
+        {
+          "atMs": 1559,
+          "call": 2
+        },
+        {
+          "atMs": 3689,
+          "call": 3
+        }
+      ],
+      "ticks": [
+        {
+          "atMs": 989,
+          "kind": "waiting-du",
+          "value": {
+            "processes": [
+              {
+                "pid": 238728,
+                "name": "antigravity",
+                "state": "S",
+                "pgid": 238728,
+                "ppid": 238523,
+                "start": "260078301"
+              }
+            ],
+            "status": {
+              "value": {
+                "kind": "running",
+                "sinceSeq": 6,
+                "requestId": "71c32a2d-151d-4d53-8f98-c9ea182fb2f8",
+                "inputId": "58799bd9-b13d-4c9c-8cd8-77e89e8f696a",
+                "phase": "waiting_model"
+              },
+              "seq": 10
+            }
+          }
+        },
+        {
+          "atMs": 1043,
+          "kind": "record",
+          "value": {
+            "seq": 12,
+            "frameType": "tool_call",
+            "native": {
+              "sessionUpdate": "tool_call",
+              "status": "in_progress",
+              "toolCallId": "fae55b10-e877-4d64-a3da-d72358a84a40"
+            },
+            "events": [
+              {
+                "kind": "tool_call_started",
+                "callId": "fae55b10-e877-4d64-a3da-d72358a84a40",
+                "tool": "run_command"
+              }
+            ]
+          }
+        },
+        {
+          "atMs": 1091,
+          "kind": "waiting-du",
+          "value": {
+            "processes": [
+              {
+                "pid": 238903,
+                "name": "du",
+                "state": "S",
+                "pgid": 238901,
+                "ppid": 238901,
+                "start": "260078364"
+              },
+              {
+                "pid": 238728,
+                "name": "antigravity",
+                "state": "S",
+                "pgid": 238728,
+                "ppid": 238523,
+                "start": "260078301"
+              }
+            ],
+            "status": {
+              "value": {
+                "kind": "running",
+                "sinceSeq": 6,
+                "requestId": "71c32a2d-151d-4d53-8f98-c9ea182fb2f8",
+                "inputId": "58799bd9-b13d-4c9c-8cd8-77e89e8f696a",
+                "phase": {
+                  "tool": "run_command",
+                  "callId": "fae55b10-e877-4d64-a3da-d72358a84a40"
+                }
+              },
+              "seq": 12
+            }
+          }
+        },
+        {
+          "atMs": 1636,
+          "kind": "abort",
+          "value": {
+            "kind": "accepted",
+            "code": null,
+            "requestSeq": 13,
+            "response": {
+              "kind": "accepted"
+            }
+          }
+        },
+        {
+          "atMs": 1643,
+          "kind": "record",
+          "value": {
+            "seq": 15,
+            "frameType": "session/prompt",
+            "native": {
+              "stopReason": "cancelled"
+            },
+            "events": [
+              {
+                "kind": "turn_ended",
+                "outcome": {
+                  "kind": "aborted"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "atMs": 1643,
+          "kind": "turn-result",
+          "value": {
+            "kind": "aborted"
+          }
+        },
+        {
+          "atMs": 1646,
+          "kind": "after-abort",
+          "value": {
+            "processes": [
+              {
+                "pid": 238903,
+                "name": "du",
+                "state": "S",
+                "pgid": 238901,
+                "ppid": 238901,
+                "start": "260078364"
+              },
+              {
+                "pid": 238728,
+                "name": "antigravity",
+                "state": "S",
+                "pgid": 238728,
+                "ppid": 238523,
+                "start": "260078301"
+              }
+            ],
+            "status": {
+              "value": {
+                "kind": "idle",
+                "lastTurnOutcome": {
+                  "kind": "aborted"
+                }
+              },
+              "seq": 15
+            }
+          }
+        },
+        {
+          "atMs": 3649,
+          "kind": "two-seconds-after-abort",
+          "value": {
+            "processes": [
+              {
+                "pid": 238903,
+                "name": "du",
+                "state": "S",
+                "pgid": 238901,
+                "ppid": 238901,
+                "start": "260078364"
+              },
+              {
+                "pid": 238728,
+                "name": "antigravity",
+                "state": "S",
+                "pgid": 238728,
+                "ppid": 238523,
+                "start": "260078301"
+              }
+            ],
+            "status": {
+              "value": {
+                "kind": "idle",
+                "lastTurnOutcome": {
+                  "kind": "aborted"
+                }
+              },
+              "seq": 16
+            }
+          }
+        },
+        {
+          "atMs": 3650,
+          "kind": "later-submission",
+          "value": {
+            "kind": "accepted",
+            "code": null,
+            "requestSeq": 17,
+            "response": {
+              "kind": "accepted"
+            }
+          }
+        },
+        {
+          "atMs": 3693,
+          "kind": "record",
+          "value": {
+            "seq": 20,
+            "frameType": "agent_message_chunk",
+            "native": {
+              "sessionUpdate": "agent_message_chunk"
+            },
+            "events": [
+              {
+                "kind": "text_delta",
+                "text": "LATER_ACCEPTED"
+              }
+            ]
+          }
+        },
+        {
+          "atMs": 3698,
+          "kind": "record",
+          "value": {
+            "seq": 21,
+            "frameType": "session/prompt",
+            "native": {
+              "stopReason": "end_turn"
+            },
+            "events": [
+              {
+                "kind": "turn_ended",
+                "outcome": {
+                  "kind": "completed"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "atMs": 3698,
+          "kind": "later-result",
+          "value": {
+            "kind": "completed"
+          }
+        },
+        {
+          "atMs": 3698,
+          "kind": "hosted-terminal-requests",
+          "value": []
+        },
+        {
+          "atMs": 3700,
+          "kind": "before-dispose",
+          "value": {
+            "processes": [
+              {
+                "pid": 238903,
+                "name": "du",
+                "state": "S",
+                "pgid": 238901,
+                "ppid": 238901,
+                "start": "260078364"
+              },
+              {
+                "pid": 238728,
+                "name": "antigravity",
+                "state": "S",
+                "pgid": 238728,
+                "ppid": 238523,
+                "start": "260078301"
+              }
+            ],
+            "status": {
+              "value": {
+                "kind": "idle",
+                "lastTurnOutcome": {
+                  "kind": "completed"
+                }
+              },
+              "seq": 21
+            }
+          }
+        },
+        {
+          "atMs": 3754,
+          "kind": "groups-before-dispose",
+          "value": [
+            {
+              "pid": 238728,
+              "name": "antigravity",
+              "state": "S",
+              "pgid": 238728,
+              "ppid": 238523,
+              "start": "260078301"
+            },
+            {
+              "pid": 238801,
+              "name": "antigravity",
+              "state": "S",
+              "pgid": 238728,
+              "ppid": 238728,
+              "start": "260078320"
+            },
+            {
+              "pid": 238901,
+              "name": "bash",
+              "state": "S",
+              "pgid": 238901,
+              "ppid": 238801,
+              "start": "260078364"
+            },
+            {
+              "pid": 238903,
+              "name": "du",
+              "state": "S",
+              "pgid": 238901,
+              "ppid": 238901,
+              "start": "260078364"
+            },
+            {
+              "pid": 238904,
+              "name": "sort",
+              "state": "S",
+              "pgid": 238901,
+              "ppid": 238901,
+              "start": "260078364"
+            },
+            {
+              "pid": 238905,
+              "name": "head",
+              "state": "S",
+              "pgid": 238901,
+              "ppid": 238901,
+              "start": "260078364"
+            }
+          ]
+        },
+        {
+          "atMs": 4055,
+          "kind": "dispose-returned",
+          "value": {
+            "value": {
+              "kind": "idle",
+              "lastTurnOutcome": {
+                "kind": "completed"
+              }
+            },
+            "seq": 23
+          }
+        },
+        {
+          "atMs": 4058,
+          "kind": "after-dispose",
+          "value": {
+            "processes": [],
+            "status": {
+              "value": {
+                "kind": "idle",
+                "lastTurnOutcome": {
+                  "kind": "completed"
+                }
+              },
+              "seq": 23
+            }
+          }
+        },
+        {
+          "atMs": 4151,
+          "kind": "groups-after-dispose",
+          "value": []
+        },
+        {
+          "atMs": 4153,
+          "kind": "final-survivors",
+          "value": {
+            "processes": [],
+            "status": {
+              "value": {
+                "kind": "idle",
+                "lastTurnOutcome": {
+                  "kind": "completed"
+                }
+              },
+              "seq": 23
+            }
+          }
+        }
+      ]
+    },
+    {
+      "mode": "foreground-abort",
+      "version": "1.5.9",
+      "platform": "linux",
+      "base": "bcaf599b",
+      "error": null,
+      "rawSha256": "73319cad108c2469861e64916e83b2d1cc8dfa81f76d8cab6301d7ca2c97f3c4",
+      "providerRequests": [
+        {
+          "atMs": 1023,
+          "call": 1
+        },
+        {
+          "atMs": 3188,
+          "call": 2
+        }
+      ],
+      "ticks": [
+        {
+          "atMs": 994,
+          "kind": "waiting-du",
+          "value": {
+            "processes": [
+              {
+                "pid": 238722,
+                "name": "antigravity",
+                "state": "S",
+                "pgid": 238722,
+                "ppid": 238524,
+                "start": "260078298"
+              }
+            ],
+            "status": {
+              "value": {
+                "kind": "running",
+                "sinceSeq": 6,
+                "requestId": "1d610b22-9be0-40a8-a141-b220c738909e",
+                "inputId": "fd5c5252-d61d-4b87-82c3-5b78ae9aa52d",
+                "phase": "waiting_model"
+              },
+              "seq": 10
+            }
+          }
+        },
+        {
+          "atMs": 1036,
+          "kind": "record",
+          "value": {
+            "seq": 12,
+            "frameType": "tool_call",
+            "native": {
+              "sessionUpdate": "tool_call",
+              "status": "in_progress",
+              "toolCallId": "dfb2d68d-2b66-4046-a81d-f9765ce40cfd"
+            },
+            "events": [
+              {
+                "kind": "tool_call_started",
+                "callId": "dfb2d68d-2b66-4046-a81d-f9765ce40cfd",
+                "tool": "run_command"
+              }
+            ]
+          }
+        },
+        {
+          "atMs": 1096,
+          "kind": "waiting-du",
+          "value": {
+            "processes": [
+              {
+                "pid": 238897,
+                "name": "du",
+                "state": "S",
+                "pgid": 238895,
+                "ppid": 238895,
+                "start": "260078363"
+              },
+              {
+                "pid": 238722,
+                "name": "antigravity",
+                "state": "S",
+                "pgid": 238722,
+                "ppid": 238524,
+                "start": "260078298"
+              }
+            ],
+            "status": {
+              "value": {
+                "kind": "running",
+                "sinceSeq": 6,
+                "requestId": "1d610b22-9be0-40a8-a141-b220c738909e",
+                "inputId": "fd5c5252-d61d-4b87-82c3-5b78ae9aa52d",
+                "phase": {
+                  "tool": "run_command",
+                  "callId": "dfb2d68d-2b66-4046-a81d-f9765ce40cfd"
+                }
+              },
+              "seq": 12
+            }
+          }
+        },
+        {
+          "atMs": 1137,
+          "kind": "abort",
+          "value": {
+            "kind": "accepted",
+            "code": null,
+            "requestSeq": 13,
+            "response": {
+              "kind": "accepted"
+            }
+          }
+        },
+        {
+          "atMs": 1141,
+          "kind": "record",
+          "value": {
+            "seq": 15,
+            "frameType": "tool_call_update",
+            "native": {
+              "sessionUpdate": "tool_call_update",
+              "status": "failed",
+              "toolCallId": "dfb2d68d-2b66-4046-a81d-f9765ce40cfd"
+            },
+            "events": [
+              {
+                "kind": "tool_call_ended",
+                "callId": "dfb2d68d-2b66-4046-a81d-f9765ce40cfd",
+                "result": "failed"
+              }
+            ]
+          }
+        },
+        {
+          "atMs": 1142,
+          "kind": "record",
+          "value": {
+            "seq": 16,
+            "frameType": "session/prompt",
+            "native": {
+              "stopReason": "cancelled"
+            },
+            "events": [
+              {
+                "kind": "turn_ended",
+                "outcome": {
+                  "kind": "aborted"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "atMs": 1142,
+          "kind": "turn-result",
+          "value": {
+            "kind": "aborted"
+          }
+        },
+        {
+          "atMs": 1148,
+          "kind": "after-abort",
+          "value": {
+            "processes": [
+              {
+                "pid": 238722,
+                "name": "antigravity",
+                "state": "S",
+                "pgid": 238722,
+                "ppid": 238524,
+                "start": "260078298"
+              }
+            ],
+            "status": {
+              "value": {
+                "kind": "idle",
+                "lastTurnOutcome": {
+                  "kind": "aborted"
+                }
+              },
+              "seq": 16
+            }
+          }
+        },
+        {
+          "atMs": 3151,
+          "kind": "two-seconds-after-abort",
+          "value": {
+            "processes": [
+              {
+                "pid": 238722,
+                "name": "antigravity",
+                "state": "S",
+                "pgid": 238722,
+                "ppid": 238524,
+                "start": "260078298"
+              }
+            ],
+            "status": {
+              "value": {
+                "kind": "idle",
+                "lastTurnOutcome": {
+                  "kind": "aborted"
+                }
+              },
+              "seq": 17
+            }
+          }
+        },
+        {
+          "atMs": 3152,
+          "kind": "later-submission",
+          "value": {
+            "kind": "accepted",
+            "code": null,
+            "requestSeq": 18,
+            "response": {
+              "kind": "accepted"
+            }
+          }
+        },
+        {
+          "atMs": 3192,
+          "kind": "record",
+          "value": {
+            "seq": 21,
+            "frameType": "agent_message_chunk",
+            "native": {
+              "sessionUpdate": "agent_message_chunk"
+            },
+            "events": [
+              {
+                "kind": "text_delta",
+                "text": "LATER_ACCEPTED"
+              }
+            ]
+          }
+        },
+        {
+          "atMs": 3196,
+          "kind": "record",
+          "value": {
+            "seq": 22,
+            "frameType": "session/prompt",
+            "native": {
+              "stopReason": "end_turn"
+            },
+            "events": [
+              {
+                "kind": "turn_ended",
+                "outcome": {
+                  "kind": "completed"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "atMs": 3196,
+          "kind": "later-result",
+          "value": {
+            "kind": "completed"
+          }
+        },
+        {
+          "atMs": 3196,
+          "kind": "hosted-terminal-requests",
+          "value": []
+        },
+        {
+          "atMs": 3197,
+          "kind": "before-dispose",
+          "value": {
+            "processes": [
+              {
+                "pid": 238722,
+                "name": "antigravity",
+                "state": "S",
+                "pgid": 238722,
+                "ppid": 238524,
+                "start": "260078298"
+              }
+            ],
+            "status": {
+              "value": {
+                "kind": "idle",
+                "lastTurnOutcome": {
+                  "kind": "completed"
+                }
+              },
+              "seq": 22
+            }
+          }
+        },
+        {
+          "atMs": 3268,
+          "kind": "groups-before-dispose",
+          "value": [
+            {
+              "pid": 238722,
+              "name": "antigravity",
+              "state": "S",
+              "pgid": 238722,
+              "ppid": 238524,
+              "start": "260078298"
+            },
+            {
+              "pid": 238790,
+              "name": "antigravity",
+              "state": "S",
+              "pgid": 238722,
+              "ppid": 238722,
+              "start": "260078317"
+            }
+          ]
+        },
+        {
+          "atMs": 3519,
+          "kind": "dispose-returned",
+          "value": {
+            "value": {
+              "kind": "idle",
+              "lastTurnOutcome": {
+                "kind": "completed"
+              }
+            },
+            "seq": 24
+          }
+        },
+        {
+          "atMs": 3520,
+          "kind": "after-dispose",
+          "value": {
+            "processes": [],
+            "status": {
+              "value": {
+                "kind": "idle",
+                "lastTurnOutcome": {
+                  "kind": "completed"
+                }
+              },
+              "seq": 24
+            }
+          }
+        },
+        {
+          "atMs": 3579,
+          "kind": "groups-after-dispose",
+          "value": []
+        },
+        {
+          "atMs": 3580,
+          "kind": "final-survivors",
+          "value": {
+            "processes": [],
+            "status": {
+              "value": {
+                "kind": "idle",
+                "lastTurnOutcome": {
+                  "kind": "completed"
+                }
+              },
+              "seq": 24
+            }
+          }
+        }
+      ]
+    },
+    {
+      "mode": "dispose",
+      "version": "1.5.9",
+      "platform": "linux",
+      "base": "bcaf599b",
+      "error": null,
+      "rawSha256": "d02080a930515087c719bb869ec47a15d51d4ab4c3b6a4a394c96650b116e432",
+      "providerRequests": [
+        {
+          "atMs": 988,
+          "call": 1
+        },
+        {
+          "atMs": 1513,
+          "call": 2
+        }
+      ],
+      "ticks": [
+        {
+          "atMs": 967,
+          "kind": "waiting-du",
+          "value": {
+            "processes": [
+              {
+                "pid": 238721,
+                "name": "antigravity",
+                "state": "S",
+                "pgid": 238721,
+                "ppid": 238497,
+                "start": "260078297"
+              }
+            ],
+            "status": {
+              "value": {
+                "kind": "running",
+                "sinceSeq": 6,
+                "requestId": "b29be23b-de38-44b6-aef0-1910ae82693d",
+                "inputId": "73bca513-1c81-4740-bf7e-8d2c01e29ccc",
+                "phase": "waiting_model"
+              },
+              "seq": 10
+            }
+          }
+        },
+        {
+          "atMs": 998,
+          "kind": "record",
+          "value": {
+            "seq": 12,
+            "frameType": "tool_call",
+            "native": {
+              "sessionUpdate": "tool_call",
+              "status": "in_progress",
+              "toolCallId": "d263b986-c553-4b16-a2ad-3d8b06ba7c5c"
+            },
+            "events": [
+              {
+                "kind": "tool_call_started",
+                "callId": "d263b986-c553-4b16-a2ad-3d8b06ba7c5c",
+                "tool": "run_command"
+              }
+            ]
+          }
+        },
+        {
+          "atMs": 1069,
+          "kind": "waiting-du",
+          "value": {
+            "processes": [
+              {
+                "pid": 238891,
+                "name": "du",
+                "state": "S",
+                "pgid": 238889,
+                "ppid": 238889,
+                "start": "260078360"
+              },
+              {
+                "pid": 238721,
+                "name": "antigravity",
+                "state": "S",
+                "pgid": 238721,
+                "ppid": 238497,
+                "start": "260078297"
+              }
+            ],
+            "status": {
+              "value": {
+                "kind": "running",
+                "sinceSeq": 6,
+                "requestId": "b29be23b-de38-44b6-aef0-1910ae82693d",
+                "inputId": "73bca513-1c81-4740-bf7e-8d2c01e29ccc",
+                "phase": {
+                  "tool": "run_command",
+                  "callId": "d263b986-c553-4b16-a2ad-3d8b06ba7c5c"
+                }
+              },
+              "seq": 12
+            }
+          }
+        },
+        {
+          "atMs": 1530,
+          "kind": "record",
+          "value": {
+            "seq": 13,
+            "frameType": "agent_message_chunk",
+            "native": {
+              "sessionUpdate": "agent_message_chunk"
+            },
+            "events": [
+              {
+                "kind": "text_delta",
+                "text": "ROOT_OR_BACKGROUND_REPLY"
+              }
+            ]
+          }
+        },
+        {
+          "atMs": 1530,
+          "kind": "record",
+          "value": {
+            "seq": 14,
+            "frameType": "session/prompt",
+            "native": {
+              "stopReason": "end_turn"
+            },
+            "events": [
+              {
+                "kind": "turn_ended",
+                "outcome": {
+                  "kind": "completed"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "atMs": 1530,
+          "kind": "turn-result",
+          "value": {
+            "kind": "completed"
+          }
+        },
+        {
+          "atMs": 1536,
+          "kind": "after-initial-end",
+          "value": {
+            "processes": [
+              {
+                "pid": 238891,
+                "name": "du",
+                "state": "S",
+                "pgid": 238889,
+                "ppid": 238889,
+                "start": "260078360"
+              },
+              {
+                "pid": 238721,
+                "name": "antigravity",
+                "state": "S",
+                "pgid": 238721,
+                "ppid": 238497,
+                "start": "260078297"
+              }
+            ],
+            "status": {
+              "value": {
+                "kind": "idle",
+                "lastTurnOutcome": {
+                  "kind": "completed"
+                }
+              },
+              "seq": 14
+            }
+          }
+        },
+        {
+          "atMs": 1536,
+          "kind": "hosted-terminal-requests",
+          "value": []
+        },
+        {
+          "atMs": 1538,
+          "kind": "before-dispose",
+          "value": {
+            "processes": [
+              {
+                "pid": 238891,
+                "name": "du",
+                "state": "S",
+                "pgid": 238889,
+                "ppid": 238889,
+                "start": "260078360"
+              },
+              {
+                "pid": 238721,
+                "name": "antigravity",
+                "state": "S",
+                "pgid": 238721,
+                "ppid": 238497,
+                "start": "260078297"
+              }
+            ],
+            "status": {
+              "value": {
+                "kind": "idle",
+                "lastTurnOutcome": {
+                  "kind": "completed"
+                }
+              },
+              "seq": 14
+            }
+          }
+        },
+        {
+          "atMs": 1627,
+          "kind": "groups-before-dispose",
+          "value": [
+            {
+              "pid": 238721,
+              "name": "antigravity",
+              "state": "S",
+              "pgid": 238721,
+              "ppid": 238497,
+              "start": "260078297"
+            },
+            {
+              "pid": 238787,
+              "name": "antigravity",
+              "state": "S",
+              "pgid": 238721,
+              "ppid": 238721,
+              "start": "260078316"
+            },
+            {
+              "pid": 238889,
+              "name": "bash",
+              "state": "S",
+              "pgid": 238889,
+              "ppid": 238787,
+              "start": "260078360"
+            },
+            {
+              "pid": 238891,
+              "name": "du",
+              "state": "S",
+              "pgid": 238889,
+              "ppid": 238889,
+              "start": "260078360"
+            },
+            {
+              "pid": 238892,
+              "name": "sort",
+              "state": "S",
+              "pgid": 238889,
+              "ppid": 238889,
+              "start": "260078360"
+            },
+            {
+              "pid": 238893,
+              "name": "head",
+              "state": "S",
+              "pgid": 238889,
+              "ppid": 238889,
+              "start": "260078360"
+            }
+          ]
+        },
+        {
+          "atMs": 1901,
+          "kind": "dispose-returned",
+          "value": {
+            "value": {
+              "kind": "idle",
+              "lastTurnOutcome": {
+                "kind": "completed"
+              }
+            },
+            "seq": 16
+          }
+        },
+        {
+          "atMs": 1902,
+          "kind": "after-dispose",
+          "value": {
+            "processes": [],
+            "status": {
+              "value": {
+                "kind": "idle",
+                "lastTurnOutcome": {
+                  "kind": "completed"
+                }
+              },
+              "seq": 16
+            }
+          }
+        },
+        {
+          "atMs": 1956,
+          "kind": "groups-after-dispose",
+          "value": []
+        },
+        {
+          "atMs": 1957,
+          "kind": "final-survivors",
+          "value": {
+            "processes": [],
+            "status": {
+              "value": {
+                "kind": "idle",
+                "lastTurnOutcome": {
+                  "kind": "completed"
+                }
+              },
+              "seq": 16
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

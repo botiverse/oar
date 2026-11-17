@@ -3,6 +3,9 @@
 - [Kimi expired access tokens](kimi-expired-usage/README.md): native locked refresh, concurrent readers, rejected credentials and read-only platform fallback.
 
 - [DSH native skill catalog](dsh-skills/README.md): native completeness, user/project/bundled sources and process cleanup without a session.
+
+- [Antigravity background disk scan](antigravity-disk-scan/README.md): slow real du, native turn end before background completion, foreground versus background cancellation, and disposal cleanup.
+
 - [Devin native skill catalog](devin-skills/README.md): builtin and user/project metadata, omitted malformed files, state writes and background network attempts.
 
 - [Cursor skill discovery](cursor-skills/README.md): measured SDK 1.4.0 roots, native filtering, independent metadata reads and a real-loader parity gate.
