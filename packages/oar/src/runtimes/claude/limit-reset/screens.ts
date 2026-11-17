@@ -1,3 +1,4 @@
+import { onboardingScreen } from "./onboarding.js";
 import type { LimitResetStartupScreen } from "../../../contracts/account-usage.js";
 
 /** The kinds of reset `/limit-reset` takes, as OAR names them (the `resetId` values). */
@@ -10,7 +11,6 @@ export const CLAUDE_LIMIT_RESET_KINDS: readonly ClaudeLimitResetKind[] = ["five_
  * version drew against a fake backend; nothing is matched loosely, because a
  * screen that is not positively recognised must end the attempt.
  */
-
 /** The argument `/limit-reset` takes for each kind. */
 export const CLAUDE_LIMIT_RESET_KIND_ARGS: Record<ClaudeLimitResetKind, string> = {
   five_hour: "5-hour",
@@ -18,7 +18,6 @@ export const CLAUDE_LIMIT_RESET_KIND_ARGS: Record<ClaudeLimitResetKind, string> 
   fable: "fable",
   full: "full",
 };
-
 /** The kind's name as the confirmation dialog writes it ("Use a Fable reset?"). */
 const DIALOG_KIND_NAMES: Record<ClaudeLimitResetKind, string> = {
   five_hour: "5-hour",
@@ -26,7 +25,6 @@ const DIALOG_KIND_NAMES: Record<ClaudeLimitResetKind, string> = {
   fable: "Fable",
   full: "full",
 };
-
 /** The kind's name in the dialog's count line ("2 five-hour resets left"). */
 const COUNT_KIND_NAMES: Record<ClaudeLimitResetKind, string> = {
   five_hour: "five-hour",
@@ -149,6 +147,7 @@ export function isMainPrompt(screen: string): boolean {
  */
 export function startupScreenOf(screen: string): Exclude<LimitResetStartupScreen, "exited"> {
   if (screen.trim() === "") { return "blank"; }
+  if (onboardingScreen(screen) !== null) { return "onboarding"; }
   if (screen.includes(TRUST_QUESTION)) { return "trust_unrecognised"; }
   if (hasDialogFooter(screen)) { return "dialog"; }
   const input = promptInput(screen);

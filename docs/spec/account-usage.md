@@ -224,7 +224,26 @@ start the 5-hour window of an idle account: that is a third-party report
 the request: `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` is reported to stop
 it but also usage reads, which `/limit-reset` needs.
 
-Startup. OAR answers the folder-trust screen of its new directory (Yes,
+Startup. Inspecting or redeeming may complete Claude's first-run onboarding:
+OAR sends Enter once on the complete recorded default Dark theme page and
+once on the recorded Security notes (a notice with no choices), after each
+has held still for 3 s. It accepts no additional text, changed option,
+login choice, terms agreement or data-sharing consent. Such a page ends the
+call as `startup_failed`, with `startup.screen: "onboarding"`, without any
+key sent on that page. A repeated page is never accepted again. The first
+startup cutoff includes onboarding; accepting it does not restart the clock.
+
+Both result unions add optional `onboardingCompleted?: true`, set only when
+the accepted notice has advanced to a recognised trust screen or empty main
+prompt. It reports this call's observed completion, not a passive reading
+of the config. It is omitted when onboarding was skipped or completion was
+not observed, including a changed page after the notice. Claude itself
+writes `hasCompletedOnboarding` and `lastOnboardingVersion`; the default
+Dark theme adds no `theme` field. OAR never edits Claude's config. Ordinary
+native initialization and profile updates can write other fields before
+the theme screen. [Native evidence](../../experiments/claude-reset-onboarding/README.md).
+
+OAR then answers the folder-trust screen of its new directory (Yes,
 then Enter, only once that row shows selected). Reaching a settled main
 prompt has one 30 s cutoff, counted from launch and again from the trust
 answer: waiting for the prompt and waiting for it to hold still share it.
@@ -251,6 +270,7 @@ account's email or conversation text.
 | --- | --- |
 | `blank` | nothing drawn at all |
 | `exited` | none: Claude Code exited before its prompt |
+| `onboarding` | an unknown, changed, repeated or unfinished first-run page; no key sent on an unrecognised page |
 | `trust_unrecognised` | the folder-trust screen, not as recorded, or its Yes row could not be selected |
 | `dialog` | another dialog (one that takes Enter) |
 | `prompt_with_text` | the main prompt with text in its input box |

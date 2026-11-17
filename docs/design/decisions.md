@@ -106,8 +106,8 @@ update; that version-bound work is what OAR exists to carry once for every
 host. The hazards did not go away, so the
 [contract](../spec/account-usage.md#claude-limit-resets) carries them
 instead of hiding them: the command always names a kind; a key is sent only
-on a screen recognised word for word, and anything else ends the attempt
-with Esc; listing is its own member, never part of the pollable
+on a screen recognised word for word, and an unknown command dialog ends
+the attempt with Esc; unknown onboarding ends it without keys; listing is its own member, never part of the pollable
 `accountUsage`, and at the 5-hour limit it needs the caller's statement that
 the person accepted the old program's risk; OAR reads usage itself right
 before the first command; an answer lost after Yes is `unknown` and is

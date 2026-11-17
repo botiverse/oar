@@ -1,0 +1,92 @@
+{
+  "date": "2026-11-17",
+  "platform": "linux-x64",
+  "observations": [
+    {
+      "mode": "stored",
+      "version": "2.1.322 (Claude Code)",
+      "elapsedMs": 13818,
+      "report": {
+        "result": {
+          "kind": "not_attempted",
+          "reason": "usage_unread",
+          "onboardingCompleted": true
+        },
+        "step": "usage",
+        "claudeVersion": "2.1.322"
+      },
+      "screens": [
+        "onboarding:theme",
+        "onboarding:security",
+        "trust",
+        "startup"
+      ],
+      "keys": [
+        "Enter",
+        "Enter",
+        "Down",
+        "Enter"
+      ],
+      "initializationFields": [
+        "firstStartTime",
+        "firstStartVersion",
+        "hasResetAutoModeOptInForDefaultOffer",
+        "machineID",
+        "migrationVersion",
+        "oauthAccount",
+        "opusProMigrationComplete",
+        "opusProMigrationTimestamp",
+        "seenNotifications",
+        "sonnet1m45MigrationComplete"
+      ],
+      "themeFields": [],
+      "onboardingFields": [
+        "hasCompletedOnboarding",
+        "lastOnboardingVersion"
+      ],
+      "completed": true,
+      "onboardingVersion": "2.1.322"
+    },
+    {
+      "mode": "environment",
+      "version": "2.1.322 (Claude Code)",
+      "elapsedMs": 13484,
+      "report": {
+        "result": {
+          "kind": "not_attempted",
+          "reason": "startup_failed",
+          "startup": {
+            "screen": "onboarding",
+            "version": "2.1.322"
+          }
+        },
+        "step": "startup"
+      },
+      "screens": [
+        "onboarding:theme",
+        "onboarding:unrecognised",
+        "startup"
+      ],
+      "keys": [
+        "Enter"
+      ]
+    },
+    {
+      "routes": [
+        "GET /api/oauth/profile",
+        "GET /api/hello",
+        "GET /v1/oauth/hello",
+        "GET /api/claude_code/settings",
+        "GET /api/claude_code/policy_limits",
+        "GET /api/claude_code/policy_limits",
+        "GET /api/claude_code/settings",
+        "GET /api/claude_code/policy_limits",
+        "GET /api/claude_code/policy_limits",
+        "GET /api/claude_code/policy_limits",
+        "GET /api/hello",
+        "GET /v1/oauth/hello",
+        "GET /api/claude_code/policy_limits"
+      ]
+    }
+  ]
+}
