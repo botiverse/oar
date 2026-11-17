@@ -1,5 +1,7 @@
 # experiments
 
+- [Qwen workspace skill catalog](qwen-skills/README.md): unsigned ACP metadata, native provenance and disabled flags, settings migration and query cleanup.
+
 - [Kimi login browser exit observation](kimi-login-exit/README.md): native parent exit can lose the callback; independently observe the helper PID.
 
 - [CodeBuddy skill catalog boundaries](codebuddy-skills/README.md): incomplete process catalogs, library versus CLI differences and retained unsupported discovery.

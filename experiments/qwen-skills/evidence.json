@@ -1,0 +1,183 @@
+{
+  "version": "0.27.4",
+  "calls": [
+    "initialize",
+    "qwen/status/workspace/skills"
+  ],
+  "providerRequests": 0,
+  "nativeSettingsMigration": 4,
+  "warmConfigUnchanged": true,
+  "skillBodiesUnchanged": true,
+  "native": {
+    "v": 1,
+    "initialized": true,
+    "skills": [
+      {
+        "kind": "skill",
+        "status": "ok",
+        "name": "batch-api",
+        "level": "bundled",
+        "modelInvocable": false,
+        "installedPath": "<qwen-package>/bundled/batch-api/SKILL.md",
+        "argumentHint": "<task>"
+      },
+      {
+        "kind": "skill",
+        "status": "disabled",
+        "name": "disabled-marker",
+        "description": "Disabled metadata",
+        "level": "project",
+        "modelInvocable": true,
+        "disabledReason": "hard",
+        "lockedScope": "user",
+        "installedPath": "<fixture>/project/.qwen/skills/disabled-marker/SKILL.md"
+      },
+      {
+        "kind": "skill",
+        "status": "ok",
+        "name": "hidden-marker",
+        "description": "Hidden metadata",
+        "level": "project",
+        "modelInvocable": true,
+        "userInvocable": false,
+        "installedPath": "<fixture>/project/.qwen/skills/hidden-marker/SKILL.md"
+      },
+      {
+        "kind": "skill",
+        "status": "ok",
+        "name": "no-model-marker",
+        "description": "Manual metadata",
+        "level": "project",
+        "modelInvocable": false,
+        "installedPath": "<fixture>/project/.qwen/skills/no-model-marker/SKILL.md"
+      },
+      {
+        "kind": "skill",
+        "status": "ok",
+        "name": "precedence",
+        "description": "Project wins",
+        "level": "project",
+        "modelInvocable": true,
+        "installedPath": "<fixture>/project/.qwen/skills/precedence/SKILL.md"
+      },
+      {
+        "kind": "skill",
+        "status": "ok",
+        "name": "project-compat",
+        "description": "Project compatibility metadata",
+        "level": "project",
+        "modelInvocable": true,
+        "installedPath": "<fixture>/project/.agents/skills/project-compat/SKILL.md"
+      },
+      {
+        "kind": "skill",
+        "status": "ok",
+        "name": "user-compat",
+        "description": "User compatibility metadata",
+        "level": "user",
+        "modelInvocable": true,
+        "installedPath": "<fixture>/.agents/skills/user-compat/SKILL.md"
+      },
+      {
+        "kind": "skill",
+        "status": "ok",
+        "name": "user-marker",
+        "description": "User metadata",
+        "level": "user",
+        "modelInvocable": true,
+        "installedPath": "<fixture>/.qwen/skills/user-marker/SKILL.md"
+      }
+    ]
+  },
+  "public": {
+    "kind": "ok",
+    "view": "discovered",
+    "partial": false,
+    "items": [
+      {
+        "name": "batch-api",
+        "path": "<qwen-package>/bundled/batch-api/SKILL.md",
+        "source": "bundled",
+        "scope": "builtin",
+        "enabled": true,
+        "disableModelInvocation": true
+      },
+      {
+        "name": "disabled-marker",
+        "description": "Disabled metadata",
+        "path": "<fixture>/project/.qwen/skills/disabled-marker/SKILL.md",
+        "source": "project",
+        "scope": "project",
+        "enabled": false,
+        "disableModelInvocation": false
+      },
+      {
+        "name": "hidden-marker",
+        "description": "Hidden metadata",
+        "path": "<fixture>/project/.qwen/skills/hidden-marker/SKILL.md",
+        "source": "project",
+        "scope": "project",
+        "enabled": true,
+        "disableModelInvocation": false
+      },
+      {
+        "name": "no-model-marker",
+        "description": "Manual metadata",
+        "path": "<fixture>/project/.qwen/skills/no-model-marker/SKILL.md",
+        "source": "project",
+        "scope": "project",
+        "enabled": true,
+        "disableModelInvocation": true
+      },
+      {
+        "name": "precedence",
+        "description": "Project wins",
+        "path": "<fixture>/project/.qwen/skills/precedence/SKILL.md",
+        "source": "project",
+        "scope": "project",
+        "enabled": true,
+        "disableModelInvocation": false
+      },
+      {
+        "name": "project-compat",
+        "description": "Project compatibility metadata",
+        "path": "<fixture>/project/.agents/skills/project-compat/SKILL.md",
+        "source": "project",
+        "scope": "project",
+        "enabled": true,
+        "disableModelInvocation": false
+      },
+      {
+        "name": "user-compat",
+        "description": "User compatibility metadata",
+        "path": "<fixture>/.agents/skills/user-compat/SKILL.md",
+        "source": "user",
+        "scope": "user",
+        "enabled": true,
+        "disableModelInvocation": false
+      },
+      {
+        "name": "user-marker",
+        "description": "User metadata",
+        "path": "<fixture>/.qwen/skills/user-marker/SKILL.md",
+        "source": "user",
+        "scope": "user",
+        "enabled": true,
+        "disableModelInvocation": false
+      }
+    ]
+  },
+  "createdNativePaths": [
+    ".qwen/extension-store",
+    ".qwen/extensions",
+    ".qwen/installation_id",
+    ".qwen/output-language.md",
+    ".qwen/settings.json",
+    ".qwen/extensions/extension-enablement.json",
+    ".qwen/extension-store/lock",
+    ".qwen/extension-store/rollback",
+    ".qwen/extension-store/staging",
+    ".qwen/extension-store/state.json",
+    ".qwen/extension-store/transactions"
+  ]
+}

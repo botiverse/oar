@@ -18,6 +18,7 @@ export const qwenRuntime = defineRuntime({
     appendSystemPrompt: { provided: "immediate", omitted: "default" },
   },
   installation: qwenInstallation,
+  skills: onFirstCall(async () => { const { qwenSkills } = await import("./skills.js"); return qwenSkills; }),
   authStatus: Object.assign(onFirstCall(async () => {
     const { qwenAuthStatus } = await import("./auth-status.js");
     return qwenAuthStatus;
