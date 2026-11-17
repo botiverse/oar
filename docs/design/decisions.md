@@ -38,6 +38,30 @@ operation. A new shared readiness policy would also need evidence that
 hosts require the same interpretation; having the underlying facts alone
 is not sufficient.
 
+## Extending sessions OAR did not start (2026-11-17)
+
+**Considered:** one extension description (tools, startup instructions,
+notifications that wake the agent) that OAR translates into each runtime's
+own plugin, extension or hook format, so a host can add the same behavior to
+a Claude Code or Pi session the user opened outside OAR. A host that runs a
+supervising agent (Airwing) asked.
+
+**Refused.** OAR's record, status and controls all rest on holding the native
+connection of a session it started. Reaching a session someone else started
+means writing into the user's plugin, hook or configuration directories,
+which changes their own runtime for every later session and cannot be taken
+back reliably; OAR does not write user configuration anywhere else. Each
+vendor's plugin format also differs, so a shared description would be a
+separate packaging product, not this layer. For sessions OAR starts, the same
+three needs are already per-session and write nothing:
+`serveMcpTools` with `SessionOptions.mcpServers`, `appendSystemPrompt` or
+`systemPrompt`, and `Session.deliver()`. What each runtime refuses is in
+`Runtime.refusedSessionOptions`.
+
+**What would reopen it:** runtimes that offer a native way to attach tools,
+instructions or input to an existing session without writing user
+configuration, and a host that needs it.
+
 ## A new runtime's first version (2026-11-13)
 
 **Considered:** shipping a new runtime with sessions first and adding sign-in,
