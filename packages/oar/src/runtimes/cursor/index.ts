@@ -1,3 +1,5 @@
+/* oxlint-disable import/max-dependencies -- Cursor composes independent lazy readers and session transport. */
+import { onFirstCall } from "../../shared/lazy.js";
 import { runtimeBrands } from "../../brands.js";
 import { defineRuntime, type Runtime } from "../../contracts/runtime.js";
 import { inProcessAccess, subprocessAccess, type CursorSdkAccess } from "./access.js";
@@ -50,7 +52,7 @@ export interface CursorSubprocessOptions {
 export type CursorRuntimeOptions = CursorInProcessOptions | CursorSubprocessOptions;
 
 /** A cursor runtime: its probe, model listing, login, logout, status and refusals are always there. */
-export type CursorRuntime = Runtime & Required<Pick<Runtime, "installation" | "listModels" | "login" | "logout" | "authStatus" | "refusedSessionOptions">>;
+export type CursorRuntime = Runtime & Required<Pick<Runtime, "installation" | "listModels" | "login" | "logout" | "authStatus" | "skills" | "refusedSessionOptions">>;
 
 /**
  * Cursor, embedded through its official SDK (`@cursor/sdk`). It is not in
@@ -95,6 +97,7 @@ function cursorRuntime(access: CursorSdkAccess): CursorRuntime {
     login: cursorLoginWith(access),
     logout: cursorLogoutWith(access),
     authStatus: cursorAuthStatusWith(access),
+    skills: onFirstCall(async () => { const { cursorSkillsWith } = await import("./skills.js"); return cursorSkillsWith(access); }),
     session: cursorSessionWith(access),
   } as const;
   return defineRuntime(definition, access.execution === "subprocess" ? { execution: "process" } : { execution: "in_process" });

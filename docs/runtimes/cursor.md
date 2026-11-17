@@ -1212,3 +1212,30 @@ no-op. In subprocess mode model listing runs in a one-shot child with
 `env` over the runtime's `envBase`, and installation, which loads nothing,
 takes `env` and ignores it. See
 [reader environments](../spec/orientation.md#environment).
+
+## Skill discovery
+
+`skills(installation, { cwd, env?, timeoutMs? })` provides `view: "discovered"`
+metadata for the SDK 1.4.0 user/project sources selected by default OAR sessions.
+It is independent of existing sessions and does not describe one opened with
+`userConfiguration: "exclude"`. No SDK, hooks or MCP servers are started.
+In-process readers use the host environment and reject changes; subprocess-mode
+readers scan with the same inherited/clean environment overlay as that mode.
+
+The measured roots are `.cursor/skills`, `.claude/skills`, `.codex/skills`,
+`.grok/skills` and `.agents/skills` under home and cwd, plus `SKILL.md` files
+under cwd's `.cursor/rules`. Git workspaces also use the SDK's ripgrep companion
+for nested discovery and native ignore semantics. Canonical containment,
+real-path and cross-brand deduplication, depth/hidden-file filters, SDK surface
+metadata and rule-only `alwaysApply` handling follow the measured loader.
+Managed/plugin sources are not selected. Source/scope come from the loading
+root, not the directory brand. Native directory names, descriptions and
+`disableModelInvocation` are retained; bodies and parser errors are omitted.
+
+Unreadable or malformed metadata, unsupported encodings and unavailable nested
+scanning make `partial:true`. Non-UTF-8 entries are not claimed, although the
+SDK supports additional encodings. No enabled state or plugin identity is
+inferred. An empty, successfully scanned catalog is complete. See the
+[source inventory, limitations and native parity test](../../experiments/cursor-skills/README.md).
+That test runs the real SDK loader against the same fixture and must stay green
+when updating the pinned SDK; OAR never uses its test observer in production.

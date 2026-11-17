@@ -1,0 +1,483 @@
+{
+  "platform": "linux-x64",
+  "date": "2026-11-17",
+  "controls": [
+    {
+      "gitWorkspace": false,
+      "preserveSymlinks": true,
+      "dependencyResolution": "original SDK entry via Node hook",
+      "sdkVersion": "1.4.0",
+      "sourceSha256": "197e2314468ac23f455dfe356e049b46f36c50a497152f9af12742fef199a244",
+      "nativeCount": 20,
+      "validCount": 17,
+      "partial": true,
+      "parity": true,
+      "blockedConnections": 4,
+      "nativeMetadata": [
+        {
+          "path": "<fixture>/home/.cursor/skills/user-cursor/SKILL.md",
+          "description": "fixture user-cursor",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/home/.claude/skills/user-claude/SKILL.md",
+          "description": "fixture user-claude",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/home/.codex/skills/user-codex/SKILL.md",
+          "description": "fixture user-codex",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/home/.grok/skills/user-grok/SKILL.md",
+          "description": "fixture user-grok",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/home/.agents/skills/user-agents/SKILL.md",
+          "description": "fixture user-agents",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/project/.cursor/rules/in-rules/SKILL.md",
+          "description": "rule folder",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/project/.cursor/skills/disabled/SKILL.md",
+          "description": "",
+          "disableModelInvocation": true,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/project/.cursor/skills/duplicate/SKILL.md",
+          "description": "cursor duplicate",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/project/.cursor/skills/folder-name/SKILL.md",
+          "description": "metadata description",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/project/.cursor/skills/invalid-duplicate/SKILL.md",
+          "description": "",
+          "disableModelInvocation": false,
+          "invalid": true
+        },
+        {
+          "path": "<fixture>/project/.cursor/skills/invalid/SKILL.md",
+          "description": "",
+          "disableModelInvocation": false,
+          "invalid": true
+        },
+        {
+          "path": "<fixture>/project/.cursor/skills/long-description/SKILL.md",
+          "disableModelInvocation": false,
+          "invalid": false,
+          "descriptionLength": 1535
+        },
+        {
+          "path": "<fixture>/project/.cursor/skills/missing-description/SKILL.md",
+          "description": "",
+          "disableModelInvocation": false,
+          "invalid": true
+        },
+        {
+          "path": "<fixture>/project/.cursor/skills/project-cursor/SKILL.md",
+          "description": "fixture project-cursor",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/project/.cursor/skills/sdk-only/SKILL.md",
+          "description": "sdk",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/project/.claude/skills/imagegen/SKILL.md",
+          "description": "not filtered",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/project/.claude/skills/project-claude/SKILL.md",
+          "description": "fixture project-claude",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/project/.codex/skills/project-codex/SKILL.md",
+          "description": "fixture project-codex",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/project/.grok/skills/project-grok/SKILL.md",
+          "description": "fixture project-grok",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/project/.agents/skills/project-agents/SKILL.md",
+          "description": "fixture project-agents",
+          "disableModelInvocation": false,
+          "invalid": false
+        }
+      ]
+    },
+    {
+      "gitWorkspace": true,
+      "preserveSymlinks": true,
+      "dependencyResolution": "original SDK entry via Node hook",
+      "sdkVersion": "1.4.0",
+      "sourceSha256": "197e2314468ac23f455dfe356e049b46f36c50a497152f9af12742fef199a244",
+      "nativeCount": 24,
+      "validCount": 21,
+      "partial": true,
+      "parity": true,
+      "blockedConnections": 4,
+      "nativeMetadata": [
+        {
+          "path": "<fixture>/home/.cursor/skills/user-cursor/SKILL.md",
+          "description": "fixture user-cursor",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/home/.claude/skills/user-claude/SKILL.md",
+          "description": "fixture user-claude",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/home/.codex/skills/user-codex/SKILL.md",
+          "description": "fixture user-codex",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/home/.grok/skills/user-grok/SKILL.md",
+          "description": "fixture user-grok",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/home/.agents/skills/user-agents/SKILL.md",
+          "description": "fixture user-agents",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/project/.cursor/rules/in-rules/SKILL.md",
+          "description": "rule folder",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/project/.cursor/skills/disabled/SKILL.md",
+          "description": "",
+          "disableModelInvocation": true,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/project/.cursor/skills/duplicate/SKILL.md",
+          "description": "cursor duplicate",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/project/.cursor/skills/folder-name/SKILL.md",
+          "description": "metadata description",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/project/.cursor/skills/invalid-duplicate/SKILL.md",
+          "description": "",
+          "disableModelInvocation": false,
+          "invalid": true
+        },
+        {
+          "path": "<fixture>/project/.cursor/skills/invalid/SKILL.md",
+          "description": "",
+          "disableModelInvocation": false,
+          "invalid": true
+        },
+        {
+          "path": "<fixture>/project/.cursor/skills/long-description/SKILL.md",
+          "disableModelInvocation": false,
+          "invalid": false,
+          "descriptionLength": 1535
+        },
+        {
+          "path": "<fixture>/project/.cursor/skills/missing-description/SKILL.md",
+          "description": "",
+          "disableModelInvocation": false,
+          "invalid": true
+        },
+        {
+          "path": "<fixture>/project/.cursor/skills/project-cursor/SKILL.md",
+          "description": "fixture project-cursor",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/project/.cursor/skills/sdk-only/SKILL.md",
+          "description": "sdk",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/project/.claude/skills/imagegen/SKILL.md",
+          "description": "not filtered",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/project/.claude/skills/project-claude/SKILL.md",
+          "description": "fixture project-claude",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/project/.codex/skills/project-codex/SKILL.md",
+          "description": "fixture project-codex",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/project/.grok/skills/project-grok/SKILL.md",
+          "description": "fixture project-grok",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/project/.agents/skills/project-agents/SKILL.md",
+          "description": "fixture project-agents",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/project/nested-root/.cursor/skills/SKILL.md",
+          "description": "skill at nested root",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/project/.hidden/.cursor/skills/hidden-parent/SKILL.md",
+          "description": "hidden parent",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/project/nested/.cursor/skills/nested-cursor/SKILL.md",
+          "description": "nested cursor",
+          "disableModelInvocation": false,
+          "invalid": false
+        },
+        {
+          "path": "<fixture>/project/nested/.agents/skills/nested-agents/SKILL.md",
+          "description": "nested agents",
+          "disableModelInvocation": false,
+          "invalid": false
+        }
+      ]
+    }
+  ],
+  "rawManifest": [
+    {
+      "path": "../artifacts/cursor-skills/parity-first.log",
+      "bytes": 266,
+      "sha256": "bfc515539f46f99888e9ca8657c58926be80f427813402532eb3524072bdd30f"
+    },
+    {
+      "path": "../artifacts/cursor-skills/parity-second.log",
+      "bytes": 462,
+      "sha256": "0317922ae37d3572672b3bb4b89a0007bafbe045a080777749f36cc0095927b8"
+    },
+    {
+      "path": "../artifacts/cursor-skills/parity-final.log",
+      "bytes": 266,
+      "sha256": "575128bda1cfd5ceccb558daa59fedae0be9faf48318b914573d561cdf8f0acd"
+    },
+    {
+      "path": "../artifacts/cursor-skills/parity-nested-root.log",
+      "bytes": 266,
+      "sha256": "a91cf7b9816f18f059d0de380d10cf617d7e747d0c2ab3e1b7303a8871469b5b"
+    },
+    {
+      "path": "../artifacts/cursor-skills/unit-green.log",
+      "bytes": 266,
+      "sha256": "9031c90286ffdc980853dca272724b52bbb0a02f258d9cfa1f40c541ac06aa45"
+    },
+    {
+      "path": "../artifacts/cursor-skills/unit-red.log",
+      "bytes": 2511,
+      "sha256": "526e3e65b60bf99e89caee0b5ddac3c28e09a59200b91b7ffe487c36dd4b3c73"
+    },
+    {
+      "path": "../artifacts/cursor-skills/skills-full-final.log",
+      "bytes": 5504,
+      "sha256": "bd53b5010fe459d710e5f00827ff3ecb61bcf0730edf5ba5a41541ed67991ca9"
+    },
+    {
+      "path": "../artifacts/cursor-skills/skills-full-final2.log",
+      "bytes": 5706,
+      "sha256": "428e039ddca2106ef500e995703f2f3b46e46a8002a3caaf69a9e7bf5c672da0"
+    },
+    {
+      "path": "../artifacts/cursor-skills/skills-build.log",
+      "bytes": 336,
+      "sha256": "c308f869359d1c1d530daf359abde9f3d3b5e31c45d2691ee1e1eeeb87886ee8"
+    },
+    {
+      "path": "../artifacts/cursor-skills/parity-canonical/cursor-skills/false-native.log",
+      "bytes": 236,
+      "sha256": "cf050f3dcb3ce71a9565c047d16fb6fc2b64e6318fe0b55719a20701dea4e8d4"
+    },
+    {
+      "path": "../artifacts/cursor-skills/parity-canonical/cursor-skills/false.json",
+      "bytes": 12301,
+      "sha256": "430951d9f9cb7eb1ebb940469b347a127b5f588b33fc633e9b530f5f0eabb90c"
+    },
+    {
+      "path": "../artifacts/cursor-skills/parity-canonical/cursor-skills/true-native.log",
+      "bytes": 236,
+      "sha256": "17061691c117026afbd0426a4ed77ebe9b8017316ee4513af300877e3fb97ad6"
+    },
+    {
+      "path": "../artifacts/cursor-skills/parity-canonical/cursor-skills/true.json",
+      "bytes": 14308,
+      "sha256": "7c495206bdc0337185152c9a6c2fbf6b02f60e4c7bfe4affcdf8c4c149842df2"
+    },
+    {
+      "path": "../artifacts/cursor-skills/windows-133758056224/false-native.log",
+      "bytes": 1270,
+      "sha256": "ff61f75bc8371e2af8bbd2dc67012aa39c3a2c76c6a8efe52e3d3ef23f2c3595"
+    },
+    {
+      "path": "../artifacts/cursor-skills/windows-133758056224/true-native.log",
+      "bytes": 1270,
+      "sha256": "56e2b7bea21e5723d844d13fc03817ed546ac24a1b4167ffd0fbc2030bb0885c"
+    },
+    {
+      "path": "../artifacts/cursor-skills/parity-preserve-links-red.log",
+      "bytes": 5218,
+      "sha256": "63f4f4615130b67671876a1f4531eab80504d9159247a1df34bdd4adcfbfe34e"
+    },
+    {
+      "path": "../artifacts/cursor-skills/parity-canonical.log",
+      "bytes": 266,
+      "sha256": "a2a563b8902bbb576331ef9386dae538bb7ac6fee9b1fa82597424a9b58051d2"
+    },
+    {
+      "path": "../artifacts/cursor-skills/ci-windows-133758056224.log",
+      "bytes": 315750,
+      "sha256": "c4c607bc183f3baad7afdea7b28ec34db282f7047c415aba6ac939c0e9775ef0"
+    },
+    {
+      "path": "../artifacts/cursor-skills/skills-full-canonical.log",
+      "bytes": 5508,
+      "sha256": "36425901864093281fb3c863430574e73ab84389f7c1155f61ecc561a120e5d3"
+    },
+    {
+      "path": "../artifacts/cursor-skills/copy-layout-red-process.log",
+      "bytes": 3081,
+      "sha256": "c43d51764be66d862e241cfe4876e062a2516322a3475d9cb857b1bb54e894e8"
+    },
+    {
+      "path": "../artifacts/cursor-skills/copy-layout-green.log",
+      "bytes": 266,
+      "sha256": "33f044593ac37da233f05fb448b6164e2f886586f49689a8369d54c6b37a44da"
+    },
+    {
+      "path": "../artifacts/cursor-skills/parity-import-hook.log",
+      "bytes": 462,
+      "sha256": "285f28edff2db5981a7d722b332efef8a4d134e9e5319163130c99fce0fa784e"
+    },
+    {
+      "path": "../artifacts/cursor-skills/ci-windows-133766669278.log",
+      "bytes": 304045,
+      "sha256": "14de9a735b779177df6680726d4459dd33182ae0809f36478684cdfb2090730a"
+    },
+    {
+      "path": "../artifacts/cursor-skills/parity-import-hook-final.log",
+      "bytes": 266,
+      "sha256": "5540d7a59d0ca9a2e85093baff21075ae995d56d23b3ee424b72b663732f21c4"
+    },
+    {
+      "path": "../artifacts/cursor-skills/parity-import-hook-final/cursor-skills/false-native.log",
+      "bytes": 500,
+      "sha256": "3654a30f21d8ac2ea839b89fc038470b8a402f6100d8ebe87cdd40468a977236"
+    },
+    {
+      "path": "../artifacts/cursor-skills/parity-import-hook-final/cursor-skills/true-native.log",
+      "bytes": 500,
+      "sha256": "1001aa9424a06a44c15612260d4ee1dd8c9196409a35d9c06272feba93ed5aa0"
+    },
+    {
+      "path": "../artifacts/cursor-skills/parity-import-hook-final/cursor-skills/false.json",
+      "bytes": 12301,
+      "sha256": "82558524dfc75814b4627f56c7f0c8da1911eba95e22dd13589f4f383d7c3627"
+    },
+    {
+      "path": "../artifacts/cursor-skills/parity-import-hook-final/cursor-skills/true.json",
+      "bytes": 14308,
+      "sha256": "46abe5804f60b7a5eb52da702d8b18d8d2094eea7ea9c2e15bf9325700c70c87"
+    },
+    {
+      "path": "../artifacts/cursor-skills/skills-full-import-hook-final3.log",
+      "bytes": 5507,
+      "sha256": "987ea66fbf937b38efe0f8d0fe280c1975c4536c6ae796d4e23ea54700813ef8"
+    }
+  ],
+  "windowsCiFailure": {
+    "head": "8ab53f8f2e96d8708582ffe85248d029aa02fd84",
+    "run": 43998995413,
+    "job": 133758056224,
+    "stage": "copied SDK import, before skill loading",
+    "code": "ERR_MODULE_NOT_FOUND",
+    "dependency": "@bufbuild/protobuf",
+    "unitAndBuild": "passed",
+    "correction": "Canonicalization alone did not fix Windows; see windowsCiFollowup."
+  },
+  "windowsCiFollowup": {
+    "head": "b8014a819c088139debd50845f74ba28795d2266",
+    "run": 44001569277,
+    "job": 133766669278,
+    "stage": "copied SDK import, before skill loading",
+    "code": "ERR_MODULE_NOT_FOUND",
+    "dependency": "@bufbuild/protobuf",
+    "unitAndBuild": "passed",
+    "rootCause": "Original Windows dependency layout was not retained; precise cause unconfirmed.",
+    "correction": "Resolve external imports from original SDK entry with a test-only Node hook; remove dependency-directory and junction assumptions. Windows verification pending."
+  },
+  "layoutControl": {
+    "oldStrategy": {
+      "sibling": "passed",
+      "nested": "ERR_MODULE_NOT_FOUND"
+    },
+    "newStrategy": {
+      "sibling": "passed",
+      "nested": "passed"
+    },
+    "assertions": [
+      "import condition",
+      "package subpath",
+      "installed transitive dependency",
+      "copy-local observer module"
+    ],
+    "limit": "Synthetic layout, not the unrecorded Windows layout."
+  }
+}
