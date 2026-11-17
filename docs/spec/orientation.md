@@ -214,8 +214,9 @@ ordinary project content; it does not sandbox the user's configuration. Devin's
 CLI skill query, for example, attempts feature-flag and telemetry connections
 without a model prompt; it is not part of the default local-depth reads.
 Antigravity likewise uses a native authentication query and skill command
-that can access the network and initialize state. These optional reads do
-not inherit the default local-depth no-network guarantee.
+that can access the network and initialize state. Factory's session-free skill
+query also makes native startup connections and creates cache/log files. These
+optional reads do not inherit the default local-depth no-network guarantee.
 
 Only complete `discovered` or `registered` catalogs with explicit recognized
 provenance produce counts. Entries whose native `source` is `user` are counted;

@@ -1,0 +1,102 @@
+{
+  "platform": "linux-x64",
+  "date": "2026-11-17",
+  "runs": [
+    {
+      "version": "1.12.1",
+      "nativeCount": 25,
+      "markerEntries": [
+        {
+          "name": "oar-hidden",
+          "description": "Synthetic oar-hidden",
+          "path": "<fixture>/project/.factory/skills/oar-hidden/SKILL.md",
+          "source": "project",
+          "scope": "project",
+          "enabled": true
+        },
+        {
+          "name": "oar-manual",
+          "description": "Synthetic oar-manual",
+          "path": "<fixture>/project/.factory/skills/oar-manual/SKILL.md",
+          "source": "project",
+          "scope": "project",
+          "enabled": true
+        },
+        {
+          "name": "oar-project",
+          "description": "Synthetic oar-project",
+          "path": "<fixture>/project/.factory/skills/oar-project/SKILL.md",
+          "source": "project",
+          "scope": "project",
+          "enabled": true
+        },
+        {
+          "name": "oar-user",
+          "description": "Synthetic oar-user",
+          "path": "<fixture>/.factory/skills/oar-user/SKILL.md",
+          "source": "personal",
+          "scope": "user",
+          "enabled": false
+        }
+      ],
+      "queryCreatedNoSession": true,
+      "configUnchanged": true,
+      "providerRequests": 0,
+      "preinitEqualsPostinit": true,
+      "contentOmitted": true,
+      "projectAvailable": true,
+      "rawSha256": "c2c09b5c85f0b61f7993e8a0ab14713c759c088df4a1b35fe7512ba8c77c665b"
+    },
+    {
+      "version": "1.13.0",
+      "nativeCount": 26,
+      "markerEntries": [
+        {
+          "name": "oar-hidden",
+          "description": "Synthetic oar-hidden",
+          "path": "<fixture>/project/.factory/skills/oar-hidden/SKILL.md",
+          "source": "project",
+          "scope": "project",
+          "enabled": true
+        },
+        {
+          "name": "oar-manual",
+          "description": "Synthetic oar-manual",
+          "path": "<fixture>/project/.factory/skills/oar-manual/SKILL.md",
+          "source": "project",
+          "scope": "project",
+          "enabled": true
+        },
+        {
+          "name": "oar-project",
+          "description": "Synthetic oar-project",
+          "path": "<fixture>/project/.factory/skills/oar-project/SKILL.md",
+          "source": "project",
+          "scope": "project",
+          "enabled": true
+        },
+        {
+          "name": "oar-user",
+          "description": "Synthetic oar-user",
+          "path": "<fixture>/.factory/skills/oar-user/SKILL.md",
+          "source": "personal",
+          "scope": "user",
+          "enabled": false
+        }
+      ],
+      "queryCreatedNoSession": true,
+      "configUnchanged": true,
+      "providerRequests": 0,
+      "preinitEqualsPostinit": true,
+      "contentOmitted": true,
+      "projectAvailable": true,
+      "rawSha256": "ca2b30de750f0ecf3d357ad51d43abd7b4afcf90982e09e6ce65f9b76a32619e"
+    }
+  ],
+  "queryOnlyTrace": {
+    "version": "1.13.0",
+    "observedOutboundDnsAndHttps": true,
+    "createdSessionOrCredentials": false,
+    "rawSha256": "b4b4ab9989e631f12dff33cabda3722c6ff0b2122cf6de4f090fd02e072b5f0f"
+  }
+}
