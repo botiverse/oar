@@ -227,7 +227,7 @@ test("nothing runs for an aborted signal; another installation, an SDK without C
       },
     }).login(bundled, recordedInteraction([])),
   ]);
-  expect(results).toEqual(
+  expect(results).toStrictEqual(
     [
       {
         "kind": "cancelled",

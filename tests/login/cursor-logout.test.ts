@@ -71,7 +71,7 @@ test("an SDK without Cursor.auth.logout, an installation that is not bundled, or
       },
     }).logout(bundled),
   ]);
-  expect(results).toEqual(
+  expect(results).toStrictEqual(
     [
       {
         "detail": `@cursor/sdk ${CURSOR_SDK_VERSION} is required; this one has no Cursor.auth.logout`,

@@ -66,7 +66,7 @@ test("a status that fails, never answers or cannot be read is unknown, never a g
       },
     }).authStatus(bundled),
   ]);
-  expect([...statuses, projectCursorAuthStatus({ status: "expired" }), projectCursorAuthStatus(null)]).toEqual(
+  expect([...statuses, projectCursorAuthStatus({ status: "expired" }), projectCursorAuthStatus(null)]).toStrictEqual(
     [
       {
         "detail": "Unexpected token in JSON, near [redacted]",
