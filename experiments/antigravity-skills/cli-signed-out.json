@@ -1,0 +1,14 @@
+{
+  "exit": 0,
+  "output": [
+    {
+      "runtimeId": "antigravity",
+      "inventory": {
+        "kind": "unavailable",
+        "code": "not_authenticated",
+        "reason": "Sign in to Antigravity to read its skills."
+      }
+    }
+  ],
+  "stderr": ""
+}

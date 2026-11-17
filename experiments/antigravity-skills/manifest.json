@@ -1,0 +1,14 @@
+{
+  "sha256": {
+    "native-minimum/antigravity-skills/catalog.json": "3c72e80edc37c53f0e71d568c0ad337935c171c28fe55a4c73ab7244a8714a1f",
+    "native-minimum/antigravity-skills/signed-out.json": "69e9616a3d015c8490531383d13ff0c81c8e20429b7f012a3463674ebf89b175",
+    "native-latest/antigravity-skills/catalog.json": "4dc391a8a9268b09f53db911d002a7c2f7cd8dcf98bde1e72497ad58d7c2ddeb",
+    "native-latest/antigravity-skills/signed-out.json": "26497feaf7b46256c2175b05f9cbbab7c31f177e2cc008f5c199dc8612cdf090",
+    "effects-latest-detailed/result.json": "ab86b0302e2d859f2a38f57b1aca6f2cf5e101e8455fe39a10ec636152b99614",
+    "effects-latest-detailed/signed-out-models.strace": "0cc55ea7314e326701d4b94cb65ebff9844dd0b1da83774b5daf1033cf5b5f8a",
+    "effects-latest-detailed/configured-cold-skills.strace": "78ebe43674f47c08a0d19108eb264d67804066d214ff5f7af1a86eaef0d3c2ac",
+    "effects-latest-detailed/configured-warm-skills.strace": "514e49af18a18f56f2efef5871ec9800cb19a3a5ae55bc57b15d874a15682c89",
+    "cli-signed-out.json": "a5c3ca282e0627c3b6d6f6f952b5a0a20a8180ba03b79d55d1c597165065bd30"
+  },
+  "rawLocation": "Author workspace artifacts/antigravity-skills; raw traces contain synthetic fixture file contents and are not published."
+}

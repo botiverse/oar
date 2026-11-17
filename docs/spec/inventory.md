@@ -52,9 +52,11 @@ runtime's configuration, so `mcpServers()` never lists them.
 * `unsupported`: stable `code` and explanatory `reason`. The codes are
   `native_query_unavailable` (no native query), `transport_unavailable`
   (the default supplied by `defineRuntime`), `scope_unavailable` and
-  `installation_unsupported`. No built-in runtime returns
-  `scope_unavailable` today.
-* `unavailable`: `timeout` or `query_failed`. Malformed payloads, process
+  `installation_unsupported`. Antigravity returns `scope_unavailable` for
+  a GEMINI_HOME override that its print command cannot select.
+* `unavailable`: `timeout`, `query_failed` or `not_authenticated`. The last
+  means the native query requires a login; signing in restores discovery.
+  Malformed payloads, process
   failures and failed native requests must not become successful empty lists.
   Native error strings and raw server configuration are not copied into this
   result because they can contain credentials.
@@ -170,7 +172,8 @@ ACP session's `available_commands_update` is not an independent query.
 | Cursor | Measured SDK user/project directory discovery | Unsupported | Unsupported | Unsupported |
 | Devin | Native `skills list --json`; can attempt network and write native state | Unsupported | Unsupported | Unsupported |
 | DSH | Native global `skills.snapshot({cwd})` through its bridge; native profile/plugin startup costs | Unsupported | Unsupported | Unsupported |
-| Antigravity, Pi Durable, Qwen, Qoder, CodeBuddy, Factory | Unsupported on the selected interface | Unsupported on the selected interface | Unsupported on the selected interface | Unsupported on the selected interface |
+| Antigravity | Native JSON print `/skills`, guarded by `agy models`; native startup can write state and use network | Unsupported | Unsupported | Unsupported |
+| Pi Durable, Qwen, Qoder, CodeBuddy, Factory | Unsupported on the selected interface | Unsupported on the selected interface | Unsupported on the selected interface | Unsupported on the selected interface |
 
 Kimi starts a private loopback Web service, reads the complete workspace skill
 catalog and stops its owned process tree. A workspace ID returned by registration

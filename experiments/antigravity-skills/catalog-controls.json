@@ -1,0 +1,232 @@
+[
+  {
+    "run": "native-minimum",
+    "file": "catalog.json",
+    "result": {
+      "version": "1.5.0",
+      "native": [
+        {
+          "name": "agy-customizations",
+          "description": "Comprehensive guide and reference for the Antigravity Customization System. Use to explain how customizations work, their loading priority, discovery mechanisms, and to guide the creation of skills, rules, plugins, hooks, and MCP servers.",
+          "path": "<home>/.gemini/antigravity-cli/builtin/skills/agy-customizations/SKILL.md",
+          "builtin": true,
+          "model_invocable": true
+        },
+        {
+          "name": "oar-manual",
+          "description": "Synthetic oar-manual metadata",
+          "path": "<home>/project/.agents/skills/manual/SKILL.md",
+          "builtin": false,
+          "model_invocable": false
+        },
+        {
+          "name": "oar-plugin:child",
+          "description": "Synthetic child metadata",
+          "path": "<home>/.gemini/config/plugins/oar-plugin/skills/child/SKILL.md",
+          "plugin": "oar-plugin",
+          "builtin": false,
+          "model_invocable": true
+        },
+        {
+          "name": "oar-workspace",
+          "description": "Synthetic oar-workspace metadata",
+          "path": "<home>/project/.agents/skills/workspace/SKILL.md",
+          "builtin": false,
+          "model_invocable": true
+        }
+      ],
+      "result": {
+        "kind": "ok",
+        "scope": {
+          "kind": "workspace",
+          "cwd": "<home>/project"
+        },
+        "observedAt": "2026-11-17T06:23:04.058Z",
+        "view": "discovered",
+        "items": [
+          {
+            "name": "agy-customizations",
+            "description": "Comprehensive guide and reference for the Antigravity Customization System. Use to explain how customizations work, their loading priority, discovery mechanisms, and to guide the creation of skills, rules, plugins, hooks, and MCP servers.",
+            "path": "<home>/.gemini/antigravity-cli/builtin/skills/agy-customizations/SKILL.md",
+            "scope": "builtin",
+            "disableModelInvocation": false
+          },
+          {
+            "name": "oar-manual",
+            "description": "Synthetic oar-manual metadata",
+            "path": "<home>/project/.agents/skills/manual/SKILL.md",
+            "disableModelInvocation": true
+          },
+          {
+            "name": "oar-plugin:child",
+            "description": "Synthetic child metadata",
+            "path": "<home>/.gemini/config/plugins/oar-plugin/skills/child/SKILL.md",
+            "plugin": "oar-plugin",
+            "disableModelInvocation": false
+          },
+          {
+            "name": "oar-workspace",
+            "description": "Synthetic oar-workspace metadata",
+            "path": "<home>/project/.agents/skills/workspace/SKILL.md",
+            "disableModelInvocation": false
+          }
+        ],
+        "partial": false
+      },
+      "conversations": 0,
+      "modelRequests": 0,
+      "configValuesUnchanged": true,
+      "configBytesChanged": true,
+      "binaryUnchanged": true,
+      "files": [
+        ".gemini/antigravity-cli/conversation_summaries.db",
+        ".gemini/antigravity-cli/conversation_summaries.db-shm",
+        ".gemini/antigravity-cli/conversation_summaries.db-wal",
+        ".gemini/antigravity-cli/conversations",
+        ".gemini/antigravity-cli/settings.json",
+        ".gemini/antigravity-acp/settings.json"
+      ],
+      "listedFixtureNames": [
+        "oar-cli",
+        "oar-manual",
+        "oar-personal",
+        "oar-plugin:child",
+        "oar-shared",
+        "oar-workspace"
+      ]
+    }
+  },
+  {
+    "run": "native-minimum",
+    "file": "signed-out.json",
+    "result": {
+      "result": {
+        "kind": "unavailable",
+        "code": "not_authenticated",
+        "reason": "Sign in to Antigravity to read its skills."
+      },
+      "files": [
+        ".gemini/antigravity-cli/conversation_summaries.db",
+        ".gemini/antigravity-cli/conversation_summaries.db-shm",
+        ".gemini/antigravity-cli/conversation_summaries.db-wal",
+        ".gemini/antigravity-cli/conversations"
+      ],
+      "modelRequests": 0
+    }
+  },
+  {
+    "run": "native-latest",
+    "file": "catalog.json",
+    "result": {
+      "version": "1.5.10",
+      "native": [
+        {
+          "name": "agy-customizations",
+          "description": "Comprehensive guide and reference for the Antigravity Customization System. Use to explain how customizations work, their loading priority, discovery mechanisms, and to guide the creation of skills, rules, plugins, hooks, and MCP servers.",
+          "path": "<home>/.gemini/antigravity-cli/builtin/skills/agy-customizations/SKILL.md",
+          "builtin": true,
+          "model_invocable": true
+        },
+        {
+          "name": "oar-manual",
+          "description": "Synthetic oar-manual metadata",
+          "path": "<home>/project/.agents/skills/manual/SKILL.md",
+          "builtin": false,
+          "model_invocable": false
+        },
+        {
+          "name": "oar-plugin:child",
+          "description": "Synthetic child metadata",
+          "path": "<home>/.gemini/config/plugins/oar-plugin/skills/child/SKILL.md",
+          "plugin": "oar-plugin",
+          "builtin": false,
+          "model_invocable": true
+        },
+        {
+          "name": "oar-workspace",
+          "description": "Synthetic oar-workspace metadata",
+          "path": "<home>/project/.agents/skills/workspace/SKILL.md",
+          "builtin": false,
+          "model_invocable": true
+        }
+      ],
+      "result": {
+        "kind": "ok",
+        "scope": {
+          "kind": "workspace",
+          "cwd": "<home>/project"
+        },
+        "observedAt": "2026-11-17T06:23:05.314Z",
+        "view": "discovered",
+        "items": [
+          {
+            "name": "agy-customizations",
+            "description": "Comprehensive guide and reference for the Antigravity Customization System. Use to explain how customizations work, their loading priority, discovery mechanisms, and to guide the creation of skills, rules, plugins, hooks, and MCP servers.",
+            "path": "<home>/.gemini/antigravity-cli/builtin/skills/agy-customizations/SKILL.md",
+            "scope": "builtin",
+            "disableModelInvocation": false
+          },
+          {
+            "name": "oar-manual",
+            "description": "Synthetic oar-manual metadata",
+            "path": "<home>/project/.agents/skills/manual/SKILL.md",
+            "disableModelInvocation": true
+          },
+          {
+            "name": "oar-plugin:child",
+            "description": "Synthetic child metadata",
+            "path": "<home>/.gemini/config/plugins/oar-plugin/skills/child/SKILL.md",
+            "plugin": "oar-plugin",
+            "disableModelInvocation": false
+          },
+          {
+            "name": "oar-workspace",
+            "description": "Synthetic oar-workspace metadata",
+            "path": "<home>/project/.agents/skills/workspace/SKILL.md",
+            "disableModelInvocation": false
+          }
+        ],
+        "partial": false
+      },
+      "conversations": 0,
+      "modelRequests": 0,
+      "configValuesUnchanged": true,
+      "configBytesChanged": true,
+      "binaryUnchanged": true,
+      "files": [
+        ".gemini/antigravity-cli/conversation_summaries.db",
+        ".gemini/antigravity-cli/conversation_summaries.db-shm",
+        ".gemini/antigravity-cli/conversation_summaries.db-wal",
+        ".gemini/antigravity-cli/conversations",
+        ".gemini/antigravity-cli/settings.json",
+        ".gemini/antigravity-acp/settings.json"
+      ],
+      "listedFixtureNames": [
+        "oar-cli",
+        "oar-manual",
+        "oar-personal",
+        "oar-plugin:child",
+        "oar-shared",
+        "oar-workspace"
+      ]
+    }
+  },
+  {
+    "run": "native-latest",
+    "file": "signed-out.json",
+    "result": {
+      "result": {
+        "kind": "unavailable",
+        "code": "not_authenticated",
+        "reason": "Sign in to Antigravity to read its skills."
+      },
+      "files": [
+        ".gemini/antigravity-cli/conversation_summaries.db",
+        ".gemini/antigravity-cli/conversation_summaries.db-shm",
+        ".gemini/antigravity-cli/conversation_summaries.db-wal",
+        ".gemini/antigravity-cli/conversations"
+      ],
+      "modelRequests": 0
+    }
+  }
+]
