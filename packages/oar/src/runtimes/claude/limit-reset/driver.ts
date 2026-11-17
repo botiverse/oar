@@ -29,6 +29,7 @@ import {
   type ClaudeCommandScreen,
 } from "./screens.js";
 import { openScriptTerminal, type ClaudeLimitResetTerminal, type OpenClaudeLimitResetTerminal } from "../../../shared/executable/script-terminal.js";
+import { onboardingScreen } from "./onboarding.js";
 import { TerminalScreen } from "./terminal-screen.js";
 
 /**
@@ -46,10 +47,10 @@ import { TerminalScreen } from "./terminal-screen.js";
  *   `unsupported_version` before the command).
  * - The command always names a kind. A bare `/limit-reset` can spend a reset
  *   with no confirmation.
- * - Enter is sent in three places only (`ClaudeSession`): to accept the
+ * - Enter is sent only on the recorded onboarding defaults, to accept the
  *   folder-trust screen, to submit a command whose text the input box shows
  *   exactly, and (redeem only) once on the confirmation dialog for the kind
- *   the person chose. A read's session cannot send the third.
+ *   the person chose. A read's session cannot send that confirmation.
  * - From the moment a command is submitted until a screen that is positively
  *   recognised shows it finished, the only key that can be sent is Esc (or
  *   that one Yes). A session is ended by killing it, never by typing.
@@ -306,6 +307,8 @@ class ClaudeSession {
   private changedAt = 0;
   private commandOutstanding = false;
   private yesSent = false;
+  /** True only once the security notice has advanced to trust or the prompt. */
+  onboardingCompleted = false;
   /** The version the banner showed, once the prompt was reached. */
   version: string | undefined;
 
@@ -345,7 +348,7 @@ class ClaudeSession {
     return this.deadlineAt - Date.now();
   }
 
-  /** Keys at a screen that is not a command's: the folder-trust screen, or text into the empty prompt. Refused while a command is outstanding. */
+  /** Keys outside a command: recorded onboarding, folder trust, or text into the empty prompt. Refused while a command is outstanding. */
   type(keys: string): boolean {
     if (this.exited || this.commandOutstanding) { return false; }
     this.terminal.write(keys);
@@ -460,7 +463,9 @@ function startupFailed(session: ClaudeSession, screen = session.text()): Startup
 }
 
 /**
- * Brings Claude Code to its prompt. A working directory it has not seen gets
+ * Completes only the recorded default theme and security notice, then brings
+ * Claude Code to its prompt. Changed or extra onboarding stops without keys.
+ * A working directory it has not seen gets
  * the folder-trust screen, which opens on "No, exit": Yes is selected first
  * and Enter sent only once the screen shows it selected. The directory is
  * one this driver just made empty. A sign-in screen means no usable login.
@@ -474,6 +479,7 @@ function startupFailed(session: ClaudeSession, screen = session.text()): Startup
  */
 async function openPrompt(session: ClaudeSession): Promise<StartupOutcome> {
   let trustAccepted = false;
+  const onboardingSent = new Set<"theme" | "security">();
   // One cutoff for reaching a settled prompt: waiting, settling and waiting again share it.
   // Accepting the folder-trust screen starts the next phase with a fresh one.
   let cutoff = Date.now() + STARTUP_TIMEOUT_MS;
@@ -482,12 +488,35 @@ async function openPrompt(session: ClaudeSession): Promise<StartupOutcome> {
     // Fixed for this wait; it changes only once the wait is over.
     const lookForTrust = !trustAccepted;
     const seen = await session.waitFor((screen) => {
+      if (onboardingScreen(screen) !== null) { return "onboarding"; }
       if (isSignInScreen(screen)) { return "sign_in"; }
-      if (lookForTrust && hasDialogFooter(screen)) { return "trust"; }
-      return isMainPrompt(screen) ? "prompt" : null;
+      if (lookForTrust && hasDialogFooter(screen)) {
+        return onboardingSent.size > 0 && trustScreen(screen) === null ? "onboarding" : "trust";
+      }
+      if (isMainPrompt(screen)) { return "prompt"; }
+      return onboardingSent.size > 0 && screen.trim() !== "" ? "onboarding" : null;
     }, left());
     if (seen === null) { return startupFailed(session); }
     if (seen === "sign_in") { return { is: "sign_in" }; }
+    if (seen === "onboarding") {
+      // A changed page, a repeated page or another choice receives no keys.
+      if (!await session.settle(STARTUP_SETTLE_MS, left())) { return startupFailed(session); }
+      const page = onboardingScreen(session.text());
+      if (page === null) {
+        if (trustScreen(session.text()) !== null || isMainPrompt(session.text()) || isSignInScreen(session.text())) { continue; }
+        return { is: "failed", startup: { screen: "onboarding" } };
+      }
+      session.note(`onboarding:${page}`);
+      if (page === "unrecognised" || onboardingSent.has(page)
+        || (page === "theme" && onboardingSent.size > 0)) { return startupFailed(session); }
+      if (!session.type(ENTER)) { return startupFailed(session); }
+      onboardingSent.add(page);
+      // Never send the same Enter twice while the old screen remains visible.
+      if (await session.waitFor((screen) => onboardingScreen(screen) !== page ? true : null, left()) === null) {
+        return startupFailed(session);
+      }
+      continue;
+    }
     if (seen === "trust") {
       session.note("trust");
       if (!await session.pauseUntilStable()) { return startupFailed(session); }
@@ -499,9 +528,11 @@ async function openPrompt(session: ClaudeSession): Promise<StartupOutcome> {
       if (trustScreen(session.text()) !== "yes_selected") {
         // Classified before Esc closes it.
         const shown = session.text();
+        if (onboardingSent.size > 0) { return { is: "failed", startup: { screen: "onboarding" } }; }
         await cancelWithEscape(session);
         return startupFailed(session, shown);
       }
+      session.onboardingCompleted = onboardingSent.has("security");
       session.type(ENTER);
       trustAccepted = true;
       cutoff = Date.now() + STARTUP_TIMEOUT_MS;
@@ -516,6 +547,7 @@ async function openPrompt(session: ClaudeSession): Promise<StartupOutcome> {
     if (banner === null) { return { is: "wrong_version" }; }
     if (promptInput(screen) !== "") { return startupFailed(session, screen); }
     session.version = banner;
+    session.onboardingCompleted = onboardingSent.has("security");
     return { is: "ready" };
   }
 }
@@ -689,8 +721,8 @@ interface ReadOutcome { result: LimitResetInspection; step?: ClaudeLimitResetSte
 /**
  * Opens each kind's command and cancels it with Esc. Its session is made
  * with `mayConfirm` off, so `confirmOnce` sends nothing, and this function
- * does not call it. The Enters it does send are the folder-trust accept and
- * `submitCommand`'s at a prompt that shows exactly the typed command; neither
+ * does not call it. Its Enters accept recorded onboarding defaults, folder
+ * trust, or `submitCommand` at a prompt showing exactly the typed command; none
  * can be sent while a command is outstanding. (On Claude's older program the
  * submission itself is what spends: see the consent in `read`.)
  */
@@ -947,7 +979,10 @@ export function createClaudeLimitResetDriver(deps: ClaudeLimitResetDeps = {}): C
     let version: string | undefined;
     const outcome = await withSession(ready, deadlineAt, true, async (session) => {
       try {
-        return await redeemInSession(session, input.kind, consent ? null : fiveHourCheck(input, ready));
+        const report = await redeemInSession(session, input.kind, consent ? null : fiveHourCheck(input, ready))
+          .catch((): RedeemOutcome => ({ result: { kind: "unknown" }, remember: true }));
+        if (session.onboardingCompleted) { report.result = { ...report.result, onboardingCompleted: true }; }
+        return report;
       } finally {
         version = session.version;
       }
@@ -1006,7 +1041,10 @@ export function createClaudeLimitResetDriver(deps: ClaudeLimitResetDeps = {}): C
           let version: string | undefined;
           const outcome = await withSession(ready, deadlineAt, false, async (session) => {
             try {
-              return await readInSession(session, kinds, input.atFiveHourLimitConsent === true ? null : fiveHourCheck(input, ready));
+              const readResult = await readInSession(session, kinds, input.atFiveHourLimitConsent === true ? null : fiveHourCheck(input, ready))
+                .catch((): ReadOutcome => ({ result: { kind: "unknown" } }));
+              if (session.onboardingCompleted) { readResult.result = { ...readResult.result, onboardingCompleted: true }; }
+              return readResult;
             } finally {
               version = session.version;
             }

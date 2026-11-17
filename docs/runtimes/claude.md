@@ -1353,6 +1353,17 @@ and any other text in it ends the call at once with nothing typed, and a
 `startup_failed` result may carry `startup`, OAR's own name for the last
 screen it recognised and the banner's version, never screen text.
 
+When first-run onboarding blocks that prompt, OAR accepts only the exact
+recorded default Dark theme and Security notes pages, each once after a
+stable screen. Any other or changed page, including sign-in choices or
+consent, stops as `startup_failed` with `startup.screen: "onboarding"` and
+no key sent on that page. Inspect and redeem results add optional
+`onboardingCompleted: true` when the notice advances to recognised trust
+or the empty prompt. Claude writes its own onboarding completion/version;
+OAR writes no config and does not choose a new theme. The
+[synthetic native probe](../../experiments/claude-reset-onboarding/README.md)
+records the two onboarding writes separately from ordinary startup writes.
+
 **A call that launches the UI costs one model request** (a 1-token check
 at startup, recorded offline against a fake backend; calls that return
 before launching send nothing). On a subscription that request is reported
