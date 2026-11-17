@@ -30,6 +30,7 @@ describe.skipIf(process.env.OAR_TEST !== "antigravity-aimock")("Antigravity nati
   test("native metadata, plugin identity and invocation flags without a saved conversation", { timeout: 60_000 }, async () => {
     const installation = await antigravityRuntime.installation(); assert.equal(installation.kind, "available"); assert.equal(installation.via, "executable");
     const f = await fixture();
+    let queryEvidence: unknown = null;
     try {
       const config = join(f.home, ".gemini/antigravity-cli/settings.json"); const beforeConfig = await readFile(config, "utf8");
       const beforeBinary = createHash("sha256").update(await readFile(installation.command)).digest("hex");
@@ -43,6 +44,8 @@ describe.skipIf(process.env.OAR_TEST !== "antigravity-aimock")("Antigravity nati
       await writeFile(join(plugin, "plugin.json"), JSON.stringify({ name: "oar-plugin", description: "Synthetic plugin", version: "1.0.0" }));
       await skill(join(plugin, "skills/child"), "child");
       const native = await runExecutable(installation.command, ["--output-format", "json", "--print=/skills"], { cwd: f.cwd, env: f.nativeEnv });
+      queryEvidence = { ok: native.ok, stdout: native.stdout.slice(0, 65_536), stderr: native.stderr.slice(0, 65_536),
+        stdoutTruncated: native.stdout.length > 65_536, stderrTruncated: native.stderr.length > 65_536 };
       assert.ok(native.ok, JSON.stringify(native));
       const reply = asRecord(parseJson(native.stdout)); const rows = nativeRows(asRecord(asRecord(reply?.command)?.data)?.skills);
       expect(reply).toMatchObject({ status: "SUCCESS", conversation_id: "", num_turns: 0 });
@@ -70,7 +73,15 @@ describe.skipIf(process.env.OAR_TEST !== "antigravity-aimock")("Antigravity nati
       const output = resolve(process.env.OAR_TRIAL_RUN_DIR ?? "oar-trial-run", "antigravity-skills", "catalog.json");
       await mkdir(dirname(output), { recursive: true });
       await writeFile(output, JSON.stringify({ version: installation.version, native: rows, result, conversations, modelRequests: f.raw.length, configValuesUnchanged: true, configBytesChanged: afterConfig !== beforeConfig, binaryUnchanged: true, files }, null, 2).replaceAll(f.home, "<home>"));
-    } finally { await f.stop(); }
+    } finally {
+      try {
+        const output = resolve(process.env.OAR_TRIAL_RUN_DIR ?? "oar-trial-run", "antigravity-skills", "query-attempt.json");
+        await mkdir(dirname(output), { recursive: true });
+        const files = await readdir(f.home, { recursive: true });
+        await writeFile(output, JSON.stringify({ version: installation.version, query: queryEvidence, files, modelRequests: f.raw.length }, null, 2)
+          .replaceAll(f.home, "<home>").replaceAll(JSON.stringify(f.home).slice(1, -1), "<home>"));
+      } finally { await f.stop(); }
+    }
   });
 
   test("no login refuses before print-mode login, without saving a conversation", { timeout: 30_000 }, async () => {
