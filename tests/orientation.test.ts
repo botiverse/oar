@@ -141,7 +141,7 @@ test("abort stops waiting and does not start model queries queued behind native 
 test("customization uses an empty directory and excludes explicitly non-user entries", async () => {
   const skills: Runtime["skills"] = async (_installation, options) => {
     expect(await readdir(options?.cwd ?? "")).toEqual([]);
-    return catalog([{ name: "personal", source: "user" }, { name: "built-in", source: "builtin" }, { name: "project", source: "project" }]);
+    return catalog([{ name: "personal", source: "user", scope: "user" }, { name: "built-in", source: "builtin", scope: "builtin" }, { name: "project", source: "project", scope: "project" }]);
   };
   const report = await orient(new RuntimeRegistry([runtime({ skills })]), { include: ["customization"] });
   expect(report.runtimes[0]?.customization).toMatchObject({ kind: "ok", value: { skills: 1 } });

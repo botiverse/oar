@@ -3,18 +3,22 @@ import { mkdtemp, realpath, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { AvailableInstallation } from "../../contracts/installation.js";
-import type { InventoryResult } from "../../contracts/inventory.js";
+import type { InventoryResult, SkillEntry } from "../../contracts/inventory.js";
 import type { Customization, Probe } from "../../contracts/orientation.js";
 import type { Runtime } from "../../contracts/runtime.js";
 import { observedNow, type ProbeBudget } from "./budget.js";
 import type { ProbeSlots } from "./slots.js";
 
-interface Sourced { readonly source?: string }
+type Sourced = Pick<SkillEntry, "source" | "scope">;
 const categories = ["skills", "commands", "mcpServers", "tools"] as const;
 type Category = typeof categories[number];
 
-function count(result: InventoryResult<Sourced>): number | undefined {
+function count(category: Category, result: InventoryResult<Sourced>): number | undefined {
   if (result.kind !== "ok" || result.view === "mcp-only" || result.view === "context") { return undefined; }
+  if (category === "skills") {
+    if (result.items.some(item => item.scope === undefined)) { return undefined; }
+    return result.items.filter(item => item.scope === "user").length;
+  }
   // Source is the native label, not an OAR guess from a file path or runtime id.
   if (result.items.some((item) => item.source === undefined || !["user", "builtin", "project", "local"].includes(item.source))) { return undefined; }
   return result.items.filter((item) => item.source === "user").length;
@@ -27,7 +31,7 @@ function summarize(results: readonly (readonly [Category, Probe<InventoryResult<
   }
   const value: Partial<Record<Category, number>> = {};
   for (const [category, result] of results) {
-    const total = result.kind === "ok" ? count(result.value) : undefined;
+    const total = result.kind === "ok" ? count(category, result.value) : undefined;
     if (total !== undefined) { value[category] = total; }
   }
   return Object.keys(value).length === 0 ? { kind: "unsupported" } : { kind: "ok", value, observedAt: observedNow() };
