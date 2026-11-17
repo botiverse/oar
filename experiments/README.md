@@ -1,5 +1,7 @@
 # experiments
 
+- [CodeBuddy skill catalog boundaries](codebuddy-skills/README.md): incomplete process catalogs, library versus CLI differences and retained unsupported discovery.
+
 - [Antigravity native skill catalog](antigravity-skills/README.md): guarded JSON query, native metadata, no model requests, startup side effects and disabled automatic updates.
 
 - [Kimi expired access tokens](kimi-expired-usage/README.md): native locked refresh, concurrent readers, rejected credentials and read-only platform fallback.
