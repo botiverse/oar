@@ -3,6 +3,7 @@
 - [Qwen workspace skill catalog](qwen-skills/README.md): unsigned ACP metadata, native provenance and disabled flags, settings migration and query cleanup.
 - [Qoder skill catalog ambiguity](qoder-skills/README.md): unescaped descriptions can print apparent catalog entries, so independent discovery remains unsupported.
 - [Claude reset onboarding](claude-reset-onboarding/README.md): native default theme and notice completion, exact-screen refusal, and config writes (2.1.322, Linux).
+- [Claude remote limit-reset labels](claude-reset-remote-text/README.md): real remote-flag overrides are rejected promptly without confirmation on 2.1.322/2.1.326.
 
 - [Kimi login browser exit observation](kimi-login-exit/README.md): native parent exit can lose the callback; independently observe the helper PID.
 
