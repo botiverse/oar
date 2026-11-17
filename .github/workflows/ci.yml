@@ -80,7 +80,7 @@ jobs:
       - run: npm install -g @moonshot-ai/kimi-code@2.4.1
         id: kimi-login-install
         if: always() && !cancelled()
-      - run: pnpm vitest run sea-trial/vendor/kimi-login.vendor.test.ts sea-trial/vendor/kimi-skills.vendor.test.ts
+      - run: pnpm vitest run sea-trial/vendor/kimi-login.vendor.test.ts sea-trial/vendor/kimi-skills.vendor.test.ts sea-trial/vendor/kimi-expired-usage.vendor.test.ts
         if: always() && !cancelled() && steps.kimi-login-install.outcome == 'success'
         env:
           OAR_TEST: kimi-login
@@ -90,7 +90,9 @@ jobs:
         if: always()
         with:
           name: kimi-login-${{ matrix.os }}
-          path: ${{ github.workspace }}/oar-trial-run/kimi-login
+          path: |
+            ${{ github.workspace }}/oar-trial-run/kimi-login
+            ${{ github.workspace }}/oar-trial-run/kimi-expired-usage
           if-no-files-found: warn
 
       - name: Install current Kimi for fresh workspace cleanup

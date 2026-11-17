@@ -33,3 +33,7 @@ test("reauth, unsupported, missing installation and a failed read each get one l
   assert.deepEqual(renderUsageReport({ runtimeId: "d", error: "timeout" }), ["d\terror: timeout"]);
   assert.deepEqual(renderUsageReport({ runtimeId: "e", accountUsage: { kind: "available", rateLimited: false, windows: [] } }), ["e\tsigned in"]);
 });
+
+test("temporarily unavailable usage does not ask the user to sign in", () => {
+  assert.deepEqual(renderUsageReport({ runtimeId: "kimi", accountUsage: { kind: "unavailable", reason: "access_token_expired" } }), ["kimi\tusage temporarily unavailable (access_token_expired); no sign-in required"]);
+});

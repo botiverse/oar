@@ -69,7 +69,7 @@ require('node:module').syncBuiltinESMExports();
         : (request.headers.authorization === "Bearer synthetic-access-b" ? "B" : null);
       if (account === null) { status = 401; body = { error: "unknown synthetic account" }; }
       else { body = url.pathname === "/usages"
-        ? { usage: { used: account === "A" ? "100" : "25", limit: "100" } }
+        ? { usages: { limit_7d: { used_ratio: account === "A" ? 1 : 0.25 } }, usage: { used: account === "A" ? "100" : "25", limit: "100" } }
         : { user_id: `synthetic-${account}`, nickname: `Fixture ${account}`, user_level_name: "Synthetic" }; }
     } else { status = 404; body = { error: "unexpected request" }; }
     response.writeHead(status, { "Content-Type": "application/json" }); response.end(JSON.stringify(body));
