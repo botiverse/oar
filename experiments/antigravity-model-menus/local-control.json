@@ -1,0 +1,457 @@
+{
+  "schema": 1,
+  "provider": "isolated local Gemini provider, synthetic credential",
+  "platform": "linux",
+  "promptRequests": 0,
+  "timings": [
+    {
+      "method": "initialize",
+      "phase": "initialize",
+      "ok": true,
+      "elapsedMs": 153.756306
+    },
+    {
+      "method": "session/new",
+      "phase": "session/new",
+      "ok": true,
+      "elapsedMs": 332.6794560000001
+    },
+    {
+      "method": "session/set_config_option",
+      "phase": "switch/0",
+      "ok": true,
+      "elapsedMs": 2.2448859999999513
+    },
+    {
+      "method": "session/set_config_option",
+      "phase": "switch/1",
+      "ok": true,
+      "elapsedMs": 1.9309339999999793
+    },
+    {
+      "method": "session/set_config_option",
+      "phase": "switch/2",
+      "ok": true,
+      "elapsedMs": 3.618558000000121
+    },
+    {
+      "method": "session/set_config_option",
+      "phase": "switch/3",
+      "ok": true,
+      "elapsedMs": 8.440406999999823
+    },
+    {
+      "method": "session/set_config_option",
+      "phase": "switch/4",
+      "ok": true,
+      "elapsedMs": 6.634952000000112
+    },
+    {
+      "method": "session/set_config_option",
+      "phase": "switch/5",
+      "ok": true,
+      "elapsedMs": 8.756259999999884
+    },
+    {
+      "method": "session/set_config_option",
+      "phase": "switch/6",
+      "ok": true,
+      "elapsedMs": 3.080603999999994
+    },
+    {
+      "method": "session/set_config_option",
+      "phase": "restore/model",
+      "ok": true,
+      "elapsedMs": 7.79404599999998
+    },
+    {
+      "method": "session/set_config_option",
+      "phase": "restore/effort",
+      "ok": true,
+      "elapsedMs": 5.348442000000205
+    },
+    {
+      "method": "session/close",
+      "phase": "close",
+      "ok": true,
+      "elapsedMs": 1.638103000000001
+    }
+  ],
+  "switches": [
+    {
+      "modelId": "gemini-4-carbon",
+      "reportedModel": "gemini-4-carbon",
+      "thoughtLevel": {
+        "id": "thought_level",
+        "currentValue": "low",
+        "options": [
+          "low",
+          "medium",
+          "high"
+        ]
+      },
+      "elapsedMs": 2.2448859999999513
+    },
+    {
+      "modelId": "gemini-4-hydrogen",
+      "reportedModel": "gemini-4-hydrogen",
+      "thoughtLevel": {
+        "id": "thought_level",
+        "currentValue": "low",
+        "options": [
+          "low",
+          "medium",
+          "high",
+          "xhigh"
+        ]
+      },
+      "elapsedMs": 1.9309339999999793
+    },
+    {
+      "modelId": "gemini-4-argon",
+      "reportedModel": "gemini-4-argon",
+      "thoughtLevel": {
+        "id": "thought_level",
+        "currentValue": "low",
+        "options": [
+          "low",
+          "medium",
+          "high"
+        ]
+      },
+      "elapsedMs": 3.618558000000121
+    },
+    {
+      "modelId": "gemini-3.8-flash",
+      "reportedModel": "gemini-3.8-flash",
+      "thoughtLevel": {
+        "id": "thought_level",
+        "currentValue": "low",
+        "options": [
+          "low",
+          "medium",
+          "high"
+        ]
+      },
+      "elapsedMs": 8.440406999999823
+    },
+    {
+      "modelId": "gemini-3.7-flash",
+      "reportedModel": "gemini-3.7-flash",
+      "thoughtLevel": {
+        "id": "thought_level",
+        "currentValue": "low",
+        "options": [
+          "low",
+          "medium",
+          "high"
+        ]
+      },
+      "elapsedMs": 6.634952000000112
+    },
+    {
+      "modelId": "gemini-3.6-flash",
+      "reportedModel": "gemini-3.6-flash",
+      "thoughtLevel": {
+        "id": "thought_level",
+        "currentValue": "low",
+        "options": [
+          "low",
+          "medium",
+          "high"
+        ]
+      },
+      "elapsedMs": 8.756259999999884
+    },
+    {
+      "modelId": "gemini-3.1-pro",
+      "reportedModel": "gemini-3.1-pro",
+      "thoughtLevel": {
+        "id": "thought_level",
+        "currentValue": "low",
+        "options": [
+          "low",
+          "high"
+        ]
+      },
+      "elapsedMs": 3.080603999999994
+    }
+  ],
+  "failure": null,
+  "restoration": {
+    "model": true,
+    "effort": true
+  },
+  "version": "1.5.10",
+  "availableModelIds": [
+    "gemini-4-carbon-high",
+    "gemini-4-carbon-medium",
+    "gemini-4-carbon-low",
+    "gemini-4-hydrogen-high",
+    "gemini-4-hydrogen-xhigh",
+    "gemini-4-hydrogen-medium",
+    "gemini-4-hydrogen-low",
+    "gemini-4-argon-high",
+    "gemini-4-argon-medium",
+    "gemini-4-argon-low",
+    "gemini-3.8-flash-high",
+    "gemini-3.8-flash-medium",
+    "gemini-3.8-flash-low",
+    "gemini-3.7-flash-high",
+    "gemini-3.7-flash-medium",
+    "gemini-3.7-flash-low",
+    "gemini-3.6-flash-high",
+    "gemini-3.6-flash-medium",
+    "gemini-3.6-flash-low",
+    "gemini-3.1-pro-high",
+    "gemini-3.1-pro-low"
+  ],
+  "initial": {
+    "model": "gemini-3.1-pro",
+    "thoughtLevel": {
+      "id": "thought_level",
+      "currentValue": "low",
+      "options": [
+        "low",
+        "high"
+      ]
+    }
+  },
+  "modelIds": [
+    "gemini-4-carbon",
+    "gemini-4-hydrogen",
+    "gemini-4-argon",
+    "gemini-3.8-flash",
+    "gemini-3.7-flash",
+    "gemini-3.6-flash",
+    "gemini-3.1-pro"
+  ],
+  "elapsedMs": 848.710396,
+  "requestCount": 12,
+  "methods": [
+    "initialize",
+    "session/new",
+    "session/set_config_option",
+    "session/set_config_option",
+    "session/set_config_option",
+    "session/set_config_option",
+    "session/set_config_option",
+    "session/set_config_option",
+    "session/set_config_option",
+    "session/set_config_option",
+    "session/set_config_option",
+    "session/close"
+  ],
+  "providerRequests": 0,
+  "phaseChanges": [
+    {
+      "phase": "before",
+      "changesSincePrevious": []
+    },
+    {
+      "phase": "initialize",
+      "changesSincePrevious": []
+    },
+    {
+      "phase": "session/new",
+      "changesSincePrevious": [
+        {
+          "file": "profile/config/config.json",
+          "before": "missing",
+          "after": "parsed",
+          "equal": false,
+          "changes": [
+            {
+              "path": [
+                "[redacted-field]",
+                "[redacted-field]",
+                "[redacted-field]"
+              ],
+              "before": {
+                "present": false
+              },
+              "after": {
+                "present": true,
+                "value": "[redacted]"
+              }
+            }
+          ]
+        },
+        {
+          "file": "profile/config/mcp_config.json",
+          "before": "missing",
+          "after": "invalid_json",
+          "equal": null,
+          "changes": []
+        }
+      ]
+    },
+    {
+      "phase": "switch/0",
+      "changesSincePrevious": [
+        {
+          "file": "profile/config/mcp_config.json",
+          "before": "invalid_json",
+          "after": "invalid_json",
+          "equal": null,
+          "changes": []
+        }
+      ]
+    },
+    {
+      "phase": "switch/1",
+      "changesSincePrevious": [
+        {
+          "file": "profile/config/mcp_config.json",
+          "before": "invalid_json",
+          "after": "invalid_json",
+          "equal": null,
+          "changes": []
+        }
+      ]
+    },
+    {
+      "phase": "switch/2",
+      "changesSincePrevious": [
+        {
+          "file": "profile/config/mcp_config.json",
+          "before": "invalid_json",
+          "after": "invalid_json",
+          "equal": null,
+          "changes": []
+        }
+      ]
+    },
+    {
+      "phase": "switch/3",
+      "changesSincePrevious": [
+        {
+          "file": "profile/config/mcp_config.json",
+          "before": "invalid_json",
+          "after": "invalid_json",
+          "equal": null,
+          "changes": []
+        }
+      ]
+    },
+    {
+      "phase": "switch/4",
+      "changesSincePrevious": [
+        {
+          "file": "profile/config/mcp_config.json",
+          "before": "invalid_json",
+          "after": "invalid_json",
+          "equal": null,
+          "changes": []
+        }
+      ]
+    },
+    {
+      "phase": "switch/5",
+      "changesSincePrevious": [
+        {
+          "file": "profile/config/mcp_config.json",
+          "before": "invalid_json",
+          "after": "invalid_json",
+          "equal": null,
+          "changes": []
+        }
+      ]
+    },
+    {
+      "phase": "switch/6",
+      "changesSincePrevious": [
+        {
+          "file": "profile/config/mcp_config.json",
+          "before": "invalid_json",
+          "after": "invalid_json",
+          "equal": null,
+          "changes": []
+        }
+      ]
+    },
+    {
+      "phase": "after_restore",
+      "changesSincePrevious": [
+        {
+          "file": "profile/config/mcp_config.json",
+          "before": "invalid_json",
+          "after": "invalid_json",
+          "equal": null,
+          "changes": []
+        }
+      ]
+    },
+    {
+      "phase": "after_exit",
+      "changesSincePrevious": [
+        {
+          "file": "profile/config/mcp_config.json",
+          "before": "invalid_json",
+          "after": "invalid_json",
+          "equal": null,
+          "changes": []
+        }
+      ]
+    }
+  ],
+  "finalFiles": [
+    {
+      "file": "profile/antigravity-cli/settings.json",
+      "before": "parsed",
+      "after": "parsed",
+      "equal": true,
+      "changes": []
+    },
+    {
+      "file": "profile/antigravity-acp/settings.json",
+      "before": "parsed",
+      "after": "parsed",
+      "equal": true,
+      "changes": []
+    },
+    {
+      "file": "profile/config/config.json",
+      "before": "missing",
+      "after": "parsed",
+      "equal": false,
+      "changes": [
+        {
+          "path": [
+            "[redacted-field]",
+            "[redacted-field]",
+            "[redacted-field]"
+          ],
+          "before": {
+            "present": false
+          },
+          "after": {
+            "present": true,
+            "value": "[redacted]"
+          }
+        }
+      ]
+    },
+    {
+      "file": "profile/config/mcp_config.json",
+      "before": "missing",
+      "after": "invalid_json",
+      "equal": null,
+      "changes": []
+    },
+    {
+      "file": "profile/settings.json",
+      "before": "missing",
+      "after": "missing",
+      "equal": true,
+      "changes": []
+    },
+    {
+      "file": "workspace/.gemini/settings.json",
+      "before": "missing",
+      "after": "missing",
+      "equal": true,
+      "changes": []
+    }
+  ]
+}
