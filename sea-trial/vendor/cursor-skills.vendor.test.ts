@@ -24,7 +24,10 @@ describe.skipIf(process.env.OAR_TEST !== "cursor-skills")("Cursor SDK native ski
       assert.ok(native.ok, JSON.stringify(native));
       const report = asRecord(parseJson(await readFile(output, "utf8")));
       assert.ok(report !== null);
-      expect(report.version).toBe("1.4.0");
+      const manifest = new URL("../../package.json", import.meta.resolve("@cursor/sdk"));
+      const installed = asRecord(parseJson(await readFile(manifest, "utf8")));
+      assert.ok(typeof installed?.version === "string");
+      expect(report.version).toBe(installed.version);
       const rows = nativeRows(report.skills);
       const runtime = createCursorRuntime({ execution: "subprocess", sdkModule: import.meta.resolve("@cursor/sdk"), envBase: "clean" });
       const env = Object.fromEntries(Object.entries(f.env).filter((entry): entry is [string, string] => typeof entry[1] === "string"));

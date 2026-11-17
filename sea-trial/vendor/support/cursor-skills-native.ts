@@ -1,5 +1,7 @@
+/* oxlint-disable import/max-dependencies -- Native observation needs copied SDK discovery, import resolution, offline transport and fixture reports. */
 // Test-only observer. The installed SDK is never changed and no loader logic is replaced.
 import { copiedSdkImports } from "./copied-sdk-imports.js";
+import { copiedSdkBundle } from "./copied-sdk-bundle.js";
 import { asRecord, parseJson } from "../../../packages/oar/src/shared/json.js";
 import type { createAgentPlatform } from "@cursor/sdk";
 import assert from "node:assert/strict";
@@ -24,10 +26,8 @@ await mkdir(copy, { recursive: true });
 await cp(sdkRoot, copy, { recursive: true, filter: path => !path.endsWith("node_modules") });
 const imports = copiedSdkImports(sdkEntry, copy);
 process.stderr.write(`${JSON.stringify({ kind: "sdk_observer_bootstrap", sdkEntry, copy })}\n`);
-const bundle = join(copy, "dist", "esm", "993.js");
-const original = await readFile(bundle, "utf8");
 const anchor = "const P={cursorRulesService:C,getAgentSkills:e=>E.getAllAgentSkills(e),subagentsService:x};return P";
-assert.equal(original.split(anchor).length, 2, "SDK loader observation anchor changed; remeasure before updating the scanner");
+const { file: bundle, source: original } = await copiedSdkBundle(join(copy, "dist", "esm"), anchor);
 const observation = ";globalThis.oarNativeSkills=()=>E.getAllAgentSkills((0,y.q6)())";
 await writeFile(bundle, original.replace(anchor, anchor.replace(";return P", `${observation};return P`)));
 let blockedConnections = 0;
