@@ -6,6 +6,25 @@ extension registry and execution environment. OAR uses
 `Harness.observeConversation` interface. This is a separate runtime from the Pi coding-agent
 SDK: it does not load a Pi CLI login, settings directory or session file.
 
+## Skill inventory
+
+Skills and any directories that provide them belong to the host's Harness
+setup. Pi Durable 1.5.2 exposes a host-owned extension registry and execution
+environment, not a native skill catalog or a skill-directory getter.
+[OAR's factory](../../packages/oar/src/runtimes/pi-durable/index.ts) accepts an
+already-open `harness` and `models`; it receives no skill directories or
+loader. `runtime.skills()` therefore returns `unsupported`, not an empty
+catalog or a claim that the host has no skills.
+
+A reader over host-supplied directories is not added: paths alone do not
+establish which files the host loads, its precedence and filtering rules, or
+whether they are accessible through the host's execution environment.
+Scanning OAR's local filesystem would duplicate that policy and could list
+skills the Harness never uses. The host should expose its resolved catalog
+from the same loader it uses to configure the Harness. Revisit an OAR reader
+when a host needs this through `runtime.skills()` and can supply that catalog
+or its actual loader, rather than a second directory interpretation.
+
 ## Native objects and calling interface
 
 A Harness is an open scheduler and storage connection. A conversation is a

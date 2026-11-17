@@ -177,7 +177,15 @@ ACP session's `available_commands_update` is not an independent query.
 | DSH | Native global `skills.snapshot({cwd})` through its bridge; native profile/plugin startup costs | Unsupported | Unsupported | Unsupported |
 | Antigravity | Native JSON print `/skills`, guarded by `agy models`; native startup can write state and use network | Unsupported | Unsupported | Unsupported |
 | Factory | Native `droid.list_skills` before session initialization; native startup costs | Unsupported | Unsupported | Unsupported |
-| Pi Durable, Qwen, Qoder, CodeBuddy | Unsupported on the selected interface | Unsupported on the selected interface | Unsupported on the selected interface | Unsupported on the selected interface |
+| Qwen | Native `qwen/status/workspace/skills`; starts an ACP process in the requested cwd, without a session or prompt | Unsupported | Unsupported | Unsupported |
+| Pi Durable | Host-provided skill directories; no OAR native catalog reader (`unsupported`) | Unsupported | Unsupported | Unsupported |
+| Qoder, CodeBuddy | Unsupported on the selected interface | Unsupported on the selected interface | Unsupported on the selected interface | Unsupported on the selected interface |
+
+Pi Durable's host supplies any skill directories and the policy that loads them
+into its Harness. OAR receives the already-open Harness and model supplier,
+not those directories or a native skill catalog. It does not scan the host
+filesystem to infer the Harness's effective skills. See the
+[host-owned inventory boundary](../runtimes/pi-durable.md#skill-inventory).
 
 Kimi starts a private loopback Web service, reads the complete workspace skill
 catalog and stops its owned process tree. A workspace ID returned by registration
