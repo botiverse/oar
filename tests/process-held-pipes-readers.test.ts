@@ -47,8 +47,13 @@ async function readAll(extra: AsyncIterable<unknown>, busy: Promise<void> = Prom
 
 /** The root leaves a holder on its private pipe only, which writes `first` and then `second` after the root has exited; the root prints its pid and exits. */
 const leaveLateWriter = ["-c", `(sleep 0.3; printf first >&3; sleep 0.3; printf second >&3; exec sleep 60) >/dev/null 2>&1 & echo "$!"; exit 0`];
-/** The root leaves a holder on its private pipe only (stdout and stderr close), prints its pid and exits. */
-const leaveExtraHolder = ["-c", `printf data >&3; sleep 60 >/dev/null 2>&1 & echo "$!"; exit 0`];
+/**
+ * The root leaves a holder on its private pipe only (stdout and stderr close), prints its pid and exits.
+ * The redirect is on a subshell that execs `sleep`: a shell that runs `sleep` itself (an applet as a
+ * builtin) keeps saved copies of the redirected stdout and stderr open in the holder, so they would
+ * really be held.
+ */
+const leaveExtraHolder = ["-c", `printf data >&3; (exec sleep 60) >/dev/null 2>&1 & echo "$!"; exit 0`];
 
 // Review round 2 (B5): `readableFlowing` is false for a reader that reads normally too; only unread data keeps a pipe open.
 test.skipIf(!posix)("a pipe a `for await` reader is reading is closed like any other held pipe", async () => {
