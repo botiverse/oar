@@ -36,7 +36,7 @@ its runtime. OAR itself requires Node 24 or newer.
 | Dispose | Idle sessions close stdin and allow up to five seconds for native cleanup, then terminate the process tree. Active turns are terminated with their process tree. No synthetic completion is reported. |
 | Model | Optional `--model`; readback is the model in each native `system/init`, never the requested selector echoed back. |
 | Effort | Optional `initialize.effort`. Open requires `effort_status` to name the requested level with `applied: true`, `override: null`. Without a report it remains null. No model-name-based effort table. |
-| Models | `initialize`, then `get_available_models`, without a prompt. Native ids, labels and explicit reasoning menus are projected. Environment-only model configuration can produce an empty catalog; OAR does not invent an entry. |
+| Models | `initialize`, then `get_available_models`, without a prompt. Native ids, labels and explicit reasoning menus are projected. Native's missing-auth-type startup result maps to `unauthenticated`. Environment-only model configuration can produce an empty catalog; OAR does not invent an entry. |
 | Instructions / directories | `--system-prompt`, `--append-system-prompt`, `--include-directories`. Additional directories are resolved against the session cwd. |
 | Tool denial | Native `--exclude-tools`; matching and aliases are Qwen's. |
 | MCP | Per-session `initialize.mcpServers`: stdio command/args/env or streamable HTTP `httpUrl`/headers. Pass again on resume. Credentials do not enter the Qwen command line or OAR records. |
@@ -421,6 +421,16 @@ Kimi, Antigravity and OpenCode. Hosts can still pass
 `listModels(installation, { timeoutMs })` for a different per-control-request
 bound. A timeout closes stdin and then force-cleans an unresponsive process
 after the normal cleanup grace; it never retries.
+
+When no authentication type is selected, native Qwen emits a structured
+zero-turn error result before answering `initialize`, then exits. Model listing
+recognizes that exact root startup refusal and returns `unauthenticated` with
+setup guidance. The exact English refusal was checked on 0.26.0, 0.27.4 and
+0.28.0; a changed message remains an error until verified. Other startup
+failures are not relabeled, and a successful
+empty catalog remains `ok`. This is an authentication boundary, not a version
+floor: configured catalogs work on 0.26.0, 0.27.4 and 0.28.0
+([native controls](../../experiments/qwen-native/model-auth-2026-11-18.md)).
 
 ## Evidence and verification
 
