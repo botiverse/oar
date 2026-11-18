@@ -1,5 +1,7 @@
 # experiments
 
+- [Cursor per-call context](cursor-context-1.4.1/README.md): SDK 1.4.1 native model-call input, inclusive cache counts and unchanged turn spend.
+
 - [Kimi empty quota response](kimi-empty-quota/README.md): native no-data display and `quota_unavailable`, without inferring account plan or zero usage.
 
 - [Kimi 2.6.2/2.6.3 resume and workspace controls](kimi-mcp-resume/2026-11-17.md): stale model declarations, current MCP execution and version-specific workspace registration expectations; [upstream #5036](https://github.com/MoonshotAI/kimi-code/issues/5036).

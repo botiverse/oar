@@ -224,7 +224,10 @@ member. [Contract and boundaries](goals.md), [Codex evidence](../runtimes/codex.
 itemizes its context (`get_context_usage`,
 [claude.md](../runtimes/claude.md)). codex, pi and the ACP runtimes report a
 total and a window at most, which `contextUsage()` folds; a host shows that
-where the member is absent.
+where the member is absent. Cursor SDK 1.4.1 supplies current model-input
+count through `model-call-completed`, with no window or percentage; cache
+parts are already included. Completed compaction makes that count unknown
+until a later call ([source and limits](../runtimes/cursor.md#observation-children-and-history)).
 
 ## Native active turns
 

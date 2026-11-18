@@ -14,7 +14,8 @@ import type { ModelSelection } from "./sdk.js";
  * bookkeeping kinds OAR reads nothing from: `token-delta`,
  * `thinking-completed`, `partial-tool-call`, `tool-requests-listed`,
  * `step-started`, `step-completed`, `shell-output-delta`). Every update is
- * one frame. SDK 1.2.0 drops `summary*` updates before `onDelta`, but exposes
+ * one frame. SDK 1.4.1 also reports model-call-completed for current context.
+ * SDK 1.2.0 drops `summary*` updates before `onDelta`, but exposes
  * their statuses through `run.stream()`. Its messages are separate frames;
  * only summaries add events, so text, tools and usage are not counted twice.
  * The run's end is not an update: `run.wait()` answers with the run's status,
@@ -36,7 +37,7 @@ export function cursorStreamFrame(message: unknown): CursorFrame {
   if (type === "summary") {
     switch (value?.status) {
       case "running": events.push({ kind: "compaction_started" }); break;
-      case "completed": events.push({ kind: "compaction_ended", outcome: "completed" }); break;
+      case "completed": events.push({ kind: "compaction_ended", outcome: "completed" }, { kind: "usage", usage: { context: { tokens: null, contextWindow: null, percent: null } } }); break;
       case "error": events.push({ kind: "compaction_ended", outcome: "failed" }); break;
     }
   }
@@ -184,6 +185,13 @@ function eventsOf(
       // text only, so no input id is claimed (docs/spec/conversation.md).
       const input = asRecord(update.userMessage)?.text;
       return { state, events: typeof input === "string" ? [{ kind: "user_message", input, evidence: "conversation" }] : [] };
+    }
+    case "model-call-completed": {
+      // SDK 1.4.1: one call's full prompt, including cache reads and writes.
+      const tokens = asNumber(asRecord(update.usage)?.inputTokens);
+      const events: RuntimeEventBody[] = tokens === null || !Number.isFinite(tokens) || tokens < 0 ? []
+        : [{ kind: "usage", usage: { context: { tokens, contextWindow: null, percent: null } } }];
+      return { state, events };
     }
     case "turn-ended": {
       const usage = asRecord(update.usage);

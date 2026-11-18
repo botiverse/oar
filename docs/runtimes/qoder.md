@@ -225,6 +225,13 @@ usage is not added again. Cache read and write follow the native usage fields;
 the successful local probe reported zero cache counts. No account spend or
 context fullness is inferred from token totals.
 
+Current context remains unknown. The 1.1.91 serializer contains per-call
+input and cache counts, but no current native consumer or real run has
+confirmed those frames. Mapping waits on the approved cases in Raft task
+`#core:#277`; retain their native usage frames without extra model requests.
+The replay consumer is absent from 1.1.82 onward, so older replay evidence
+does not establish current support.
+
 The two real-account requests attempted during validation were rejected with
 native error code 118 and exhausted personal Credits. OAR classifies that
 result as `billing`, retaining the exact native reason. Their raw zero counts
