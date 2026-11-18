@@ -968,11 +968,27 @@ arrives per model call, so a tool turn reports twice.
 10080-min windows, reflecting the thread model's own windows: a Spark thread
 reported 0-4 % / 0-2 % while the account's main Codex weekly window stood at
 88 %). [Thread schema][thread-schema], [usage projection][oar-token-usage].
-A usage-limit failure (`codexErrorInfo: "usageLimitExceeded"`) gets no
-`resetsAt`: the value carries no data, and the time is only in the message,
-in codex's local time ("Try again at 3:05 PM."), which oar does not parse.
-Nor does oar match these snapshots to the failure: that would be inference
-([when a limit resets](../spec/runtime-matrix.md#when-a-limit-resets)).
+A named usage-limit failure (`codexErrorInfo: "usageLimitExceeded"`) remains
+`quota`. Its error carries no reset field. Native 0.169.0 and 0.169.1 send
+an exhausted account window before a normal HTTP-429 failure; OAR attaches
+that reset only from the current observed root turn, before its terminal
+error, when all exhausted windows agree. It clears this state at turn
+boundaries and compaction, and disables account-update attribution once
+child-thread or collaboration activity appears because the notification
+has no thread ID. Earlier turns and separate account reads never supply a
+failure reset.
+
+An HTTP-400 error preserves the provider's JSON body under
+`codexErrorInfo: "other"`, including a remote-compaction prefix. OAR reads
+that body's `error.type` or `error.code` and numeric `error.resets_at` (Unix
+seconds): a structured quota body yields `quota` with its reported reset.
+A streamed `response.failed` usage-limit error loses its JSON before
+reaching OAR and stays `unknown`, even with an exhausted account window.
+Compaction can omit the failed response's rate-limit update; OAR does not
+attach its earlier snapshot or parse the local time in the error sentence.
+A host can request fresh `accountUsage()` windows separately. See the
+[native controls](../../experiments/codex-quota-errors/README.md) and
+[reset contract](../spec/runtime-matrix.md#when-a-limit-resets).
 
 **Compaction:** a `contextCompaction` item yields `compaction_started` on
 `item/started` and `compaction_ended` (completed, no trigger) on

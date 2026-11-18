@@ -1,6 +1,7 @@
 import type { FailedTurn } from "../../contracts/session.js";
 import { failureFromErrorBody, failureFromStatus, type Classified } from "../../shared/failure-class.js";
-import { asNumber, asRecord } from "../../shared/json.js";
+import { asNumber, asRecord, parseJson } from "../../shared/json.js";
+import { utcInstantFromDate } from "../../shared/instant.js";
 
 /*
  * A failed codex turn, classified from its `turn.error.codexErrorInfo`
@@ -48,5 +49,16 @@ function fromInfo(info: unknown, message: string): Classified {
 export function codexFailure(reason: string, turnError: unknown): FailedTurn {
   const error = asRecord(turnError);
   const message = typeof error?.message === "string" ? error.message : "";
-  return { kind: "failed", reason, ...fromInfo(error?.codexErrorInfo, message) };
+  // Native 0.169.0 prefixes remote-compaction HTTP bodies with this exact envelope.
+  // Parse only the remaining JSON, never the usage-limit sentence or its local time.
+  const prefix = "Error running remote compact task: ";
+  const body = message.startsWith(prefix) ? message.slice(prefix.length) : message;
+  const classified = fromInfo(error?.codexErrorInfo, body);
+  if (error?.codexErrorInfo === "other" && classified.failure === "quota") {
+    const provider = asRecord(asRecord(parseJson(body))?.error);
+    const seconds = asNumber(provider?.resets_at);
+    const resetsAt = seconds === null ? null : utcInstantFromDate(new Date(seconds * 1000));
+    if (resetsAt !== null) { return { kind: "failed", reason, failure: "quota", resetsAt }; }
+  }
+  return { kind: "failed", reason, ...classified };
 }
