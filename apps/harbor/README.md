@@ -73,7 +73,7 @@ Turn numbers count per session, as `trace --session N --turn T` does.
 | `dispose_failed` | `dispose()` threw |
 | `input_dropped` | the stream handed an accepted input back; harbor delivers it again |
 | `delivery_rejected`, `delivery_dropped` | `deliver` was rejected; harbor retries with backoff and drops the messages after 5 rejections |
-| `no_reply` | the agent went idle after a delivery without posting anything |
+| `no_reply` | the agent went idle after a delivery that included a message from a person (not another agent) without posting anything |
 | `leftover_processes` | processes still had the agent's working directory after dispose (agents sharing a `cwd` make this noisy) |
 
 A finding is a lead, not a verdict: `no_reply` can be correct behaviour and

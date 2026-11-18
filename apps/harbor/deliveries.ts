@@ -31,6 +31,8 @@ export class Deliveries {
   private readonly inbox: Message[] = [];
   private readonly accepted = new Map<string, Accepted>();
   private readonly attempts = new Map<number, number>();
+  /** Messages a person sent: only these expect an answer, not one agent's note to another. */
+  private readonly fromPeople = new Set<number>();
   private pumping = false;
   private needsPreamble = false;
   awaitingReply = false;
@@ -41,7 +43,10 @@ export class Deliveries {
     return this.inbox.length;
   }
 
-  add(message: Message): void {
+  add(message: Message, fromPerson: boolean): void {
+    if (fromPerson) {
+      this.fromPeople.add(message.seq);
+    }
     this.inbox.push(message);
     void this.pump();
   }
@@ -134,7 +139,9 @@ export class Deliveries {
     }
     if (result.landed !== "rejected") {
       this.needsPreamble = false;
-      this.awaitingReply = true;
+      if (seqs.some((seq) => this.fromPeople.delete(seq))) {
+        this.awaitingReply = true;
+      }
       this.accepted.set(result.inputId, { batch, landed: result.landed });
       this.host.store.journal({ agent: this.host.name, kind: "delivered", seqs, landed: result.landed, inputId: result.inputId, ms: Date.now() - started });
       return true;
@@ -151,6 +158,9 @@ export class Deliveries {
     this.host.finding("delivery_rejected", { seqs, code: result.code, reason: result.reason, attempt });
     if (attempt >= MAX_ATTEMPTS) {
       this.inbox.splice(0, batch.length);
+      for (const seq of seqs) {
+        this.fromPeople.delete(seq);
+      }
       this.host.finding("delivery_dropped", { seqs, note: `rejected ${MAX_ATTEMPTS} times` });
       return true;
     }

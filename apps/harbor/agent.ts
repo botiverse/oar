@@ -78,8 +78,8 @@ export class HarborAgent {
     });
   }
 
-  deliver(message: Message): void {
-    this.deliveries.add(message);
+  deliver(message: Message, fromPerson: boolean): void {
+    this.deliveries.add(message, fromPerson);
   }
 
   /** The agent posted to the channel: whatever it was asked has an answer. */
