@@ -4,7 +4,7 @@
 
 - [Kimi 2.6.2/2.6.3 resume and workspace controls](kimi-mcp-resume/2026-11-17.md): stale model declarations, current MCP execution and version-specific workspace registration expectations; [upstream #5036](https://github.com/MoonshotAI/kimi-code/issues/5036).
 
-- [Kimi read-only refresh](kimi-readonly-refresh/README.md): synthetic rotation loss during skill-query shutdown, native background-refresh switches and Raft lock-disabled controls; [upstream #5034](https://github.com/MoonshotAI/kimi-code/issues/5034).
+- [Kimi read-only refresh](kimi-readonly-refresh/README.md): synthetic rotation loss during skill-query shutdown, native background-refresh switches and Raft lock-disabled controls; [real-service follow-up](kimi-readonly-refresh/real-service-2026-11-18.md) with 3/3 old-path rounds retaining login and reuse/grace unknown; [upstream #5034](https://github.com/MoonshotAI/kimi-code/issues/5034).
 
 - [Kimi first Web startup](kimi-web-startup/README.md): native first-token race, readiness gate, warm bypass and reader deadlines; [upstream #5035](https://github.com/MoonshotAI/kimi-code/issues/5035).
 

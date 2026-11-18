@@ -1,7 +1,7 @@
 # Kimi read-only background refresh
 
-November 17, 2026, Linux x64, Node 24.19.0, native Kimi 2.6.3. A single
-short-lived skills query could leave an expired refresh token on disk after
+November 17, 2026, Linux x64, Node 24.19.0, native Kimi 2.6.3. With a synthetic
+OAuth server, a single short-lived skills query could leave an expired refresh token on disk after
 the server had rotated it. A later usage query then sent the old token and
 native Kimi cleared both access and refresh credentials. OAR now disables
 background model-directory refresh in both read-only Web processes, leaving
@@ -60,9 +60,12 @@ All rows in [`selected.json`](selected.json) correspond to this matrix:
 
 The lock-disabled controls match Raft's usage environment. That setting
 prevents usage-side rotation; it cannot repair an earlier skill-query loss.
-No real account, browser login, model prompt or paid request was used. A
-separate test-account confirmation remains pending; native source establishes
-the rotation design, not the remote service's exact reuse/grace policy.
+These synthetic controls used no real account, browser login, model prompt
+or paid request. The separate [real-service observations](real-service-2026-11-18.md)
+did not reproduce login loss in three old-path rounds. Both protected
+controls preserved login with exactly one usage refresh. The service's
+reuse/grace policy remains unknown, including whether interrupted skills
+requests reached it.
 
 ## Reproduction and regression
 
