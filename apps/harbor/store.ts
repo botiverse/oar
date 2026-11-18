@@ -34,6 +34,13 @@ export interface AgentSpec {
   readonly model?: string;
   readonly effort?: string;
   readonly cwd?: string;
+  /**
+   * Environment for this agent only: passed to its installation probe and its
+   * sessions (e.g. `OAR_OPENCODE_BIN` to pick one of two installs, XDG
+   * directories to keep its data apart). Absent means none is passed, which
+   * every runtime accepts; cursor's in-process mode refuses a session `env`.
+   */
+  readonly env?: Readonly<Record<string, string>>;
 }
 
 export interface AgentState extends AgentSpec {
@@ -146,6 +153,20 @@ export function parseAgentSpec(spec: string): AgentSpec {
     throw new Error(`bad agent spec ${JSON.stringify(spec)}: use name=runtime[:model]`);
   }
   return { name: agentName, runtime, ...(model === "" ? {} : { model }) };
+}
+
+/** `name:KEY=VALUE` from `--agent-env`, applied to the agent of that name. */
+export function parseAgentEnv(entries: readonly string[]): Map<string, Record<string, string>> {
+  const out = new Map<string, Record<string, string>>();
+  for (const entry of entries) {
+    const match = /^([\w-]+):([A-Za-z_][\w]*)=(.*)$/u.exec(entry);
+    if (match === null) {
+      throw new Error(`bad --agent-env ${JSON.stringify(entry)}: use name:KEY=VALUE`);
+    }
+    const [, name = "", key = "", value = ""] = match;
+    out.set(name, { ...out.get(name), [key]: value });
+  }
+  return out;
 }
 
 /** `@name` tokens in a message; `@all` addresses every agent. */

@@ -127,15 +127,16 @@ export class HarborAgent {
 
   private async openSession(resume: string | null): Promise<void> {
     const runtime = allRuntimes.require(this.state.runtime);
-    const installation = await runtime.installation?.();
+    const env = this.state.env;
+    const installation = await runtime.installation?.(env === undefined ? {} : { env });
     if (installation?.kind !== "available") {
       throw new Error(`${this.state.runtime} is not available on this machine (${installation?.kind ?? "no probe"})`);
     }
     mkdirSync(this.cwd, { recursive: true });
     const startedAt = Date.now();
     const options = { ...(this.state.model === undefined ? {} : { model: this.state.model }), ...(this.state.effort === undefined ? {} : { effort: this.state.effort }) };
-    // No `env`: cursor's in-process mode refuses it and codex's login shell reorders PATH, so agents run harbor by absolute path.
-    const session = await runtime.session(installation, { cwd: this.cwd, ...options, ...(resume === null ? {} : { resume }) });
+    // Only the agent's own `env`, never harbor's: cursor's in-process mode refuses one and codex's login shell reorders PATH, so agents run harbor by absolute path.
+    const session = await runtime.session(installation, { cwd: this.cwd, ...options, ...(resume === null ? {} : { resume }), ...(env === undefined ? {} : { env }) });
     const opens = this.state.opens + 1;
     const voyage = `agents/${this.name}/session-${opens}.voyage.jsonl`;
     const recorder = openVoyage(join(this.store.dir, voyage), { runtime: this.state.runtime, ...options, cwd: this.cwd, sessionId: session.id, startedAt, recorder: "oar-harbor" });
