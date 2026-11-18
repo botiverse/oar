@@ -122,7 +122,24 @@ of its own.
 - Tests: `tests/community/cybion/` (the history projection, and a session
   driven against a scripted deployment) run with `OAR_COMMUNITY_TESTS=1`.
   Community tests are outside CI by default, as for every contributor runtime.
-- Not verified live by OAR: no authenticated call has been made from this
-  repository, so the mapping rests on the source above. Unresolved: whether a
-  `blocked` Thread ends its turn as `limit_reached` in every case, and whether
-  the Agent API will expose cancellation.
+- **Wire probe, observed 2026-11-18** (`pnpm tsx
+  experiments/cybion-agent-api-probe.ts`): a whole turn driven by this
+  repository's own adapter over real HTTP against a local server speaking the
+  shapes above — `POST /v1/threads {"title"}` → `GET /{id}/history` →
+  `POST /{id}/inputs {"input"}` → polling `GET /{id}` and `/history` — reported
+  `turn_started`, `user_message`, `text_delta`, `tool_call_ended`, `usage` and
+  a `turn_ended` `completed`, with the Thread's totals (`21`/`6`) and context
+  fullness (`23`) read back. So the client, the polled tracker and the session
+  lifecycle are exercised end to end over a socket, not only against a stubbed
+  `fetch`.
+- **Live deployment handshake, observed 2026-11-18** against
+  `https://cybion.ntnl.io`: `/health` answers `200`; `POST /v1/threads` without
+  a key answers `401 {"error":"Bearer token is required"}`, and with a
+  malformed `cyb_` key `401 {"error":"invalid user credential"}`, which the
+  adapter surfaces verbatim as the session's error. The route, the auth header
+  and the error shape are therefore the real deployment's, not a mock's.
+- **Not verified**: an authenticated turn on a real deployment. No API key was
+  available to this repository, so how a live turn's records map is still
+  established by the source above and by the wire probe's shapes. Unresolved:
+  whether a `blocked` Thread ends its turn as `limit_reached` in every case,
+  and whether the Agent API will expose cancellation.
