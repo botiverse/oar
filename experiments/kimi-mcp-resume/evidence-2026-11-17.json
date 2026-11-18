@@ -1,0 +1,457 @@
+{
+  "date": "2026-11-17",
+  "platform": "linux x64",
+  "node": "24.19.0",
+  "source": {
+    "commit": "b0de2fbd2de04d87689225aafd3912e5d193b62d",
+    "tag": "@moonshot-ai/kimi-code@2.6.3",
+    "npmBundle": "@moonshot-ai/kimi-code@2.6.3/dist/main.mjs"
+  },
+  "selection": "Projected original provider tool declarations, tool-result messages and ACP prompt results. Synthetic credential fingerprints are replaced with a verified match label; session IDs, machine paths and private Web tokens are omitted.",
+  "versions": [
+    {
+      "version": "2.6.2",
+      "facts": [
+        {
+          "label": "omitted-seed",
+          "supplied": [
+            "echo",
+            "remote"
+          ],
+          "tools": [
+            "mcp__echo__echo",
+            "mcp__remote__echo"
+          ],
+          "toolResults": [
+            {
+              "toolCallId": "call_omitted-seed-echo",
+              "content": "echo:omitted-seed-echo via=stdio token=[synthetic marker match]",
+              "credential": "initial marker matched"
+            },
+            {
+              "toolCallId": "call_omitted-seed-remote",
+              "content": "echo:omitted-seed-remote via=http token=[synthetic marker match]",
+              "credential": "initial marker matched"
+            }
+          ],
+          "result": {
+            "stopReason": "end_turn"
+          }
+        },
+        {
+          "label": "omitted-resume",
+          "supplied": "omitted",
+          "tools": [
+            "mcp__echo__echo",
+            "mcp__remote__echo"
+          ],
+          "toolResults": [
+            {
+              "toolCallId": "call_omitted-resume-echo",
+              "content": "<system>ERROR: Tool execution failed.</system>\nTool \"mcp__echo__echo\" not found"
+            },
+            {
+              "toolCallId": "call_omitted-resume-remote",
+              "content": "<system>ERROR: Tool execution failed.</system>\nTool \"mcp__remote__echo\" not found"
+            }
+          ],
+          "result": {
+            "stopReason": "end_turn"
+          }
+        },
+        {
+          "label": "empty-seed",
+          "supplied": [
+            "echo",
+            "remote"
+          ],
+          "tools": [
+            "mcp__echo__echo",
+            "mcp__remote__echo"
+          ],
+          "toolResults": [
+            {
+              "toolCallId": "call_empty-seed-echo",
+              "content": "echo:empty-seed-echo via=stdio token=[synthetic marker match]",
+              "credential": "initial marker matched"
+            },
+            {
+              "toolCallId": "call_empty-seed-remote",
+              "content": "echo:empty-seed-remote via=http token=[synthetic marker match]",
+              "credential": "initial marker matched"
+            }
+          ],
+          "result": {
+            "stopReason": "end_turn"
+          }
+        },
+        {
+          "label": "empty-resume",
+          "supplied": [],
+          "tools": [
+            "mcp__echo__echo",
+            "mcp__remote__echo"
+          ],
+          "toolResults": [
+            {
+              "toolCallId": "call_empty-resume-echo",
+              "content": "<system>ERROR: Tool execution failed.</system>\nTool \"mcp__echo__echo\" not found"
+            },
+            {
+              "toolCallId": "call_empty-resume-remote",
+              "content": "<system>ERROR: Tool execution failed.</system>\nTool \"mcp__remote__echo\" not found"
+            }
+          ],
+          "result": {
+            "stopReason": "end_turn"
+          }
+        },
+        {
+          "label": "same-names-seed",
+          "supplied": [
+            "echo",
+            "remote"
+          ],
+          "tools": [
+            "mcp__echo__echo",
+            "mcp__remote__echo"
+          ],
+          "toolResults": [
+            {
+              "toolCallId": "call_same-names-seed-echo",
+              "content": "echo:same-names-seed-echo via=stdio token=[synthetic marker match]",
+              "credential": "initial marker matched"
+            },
+            {
+              "toolCallId": "call_same-names-seed-remote",
+              "content": "echo:same-names-seed-remote via=http token=[synthetic marker match]",
+              "credential": "initial marker matched"
+            }
+          ],
+          "result": {
+            "stopReason": "end_turn"
+          }
+        },
+        {
+          "label": "same-names-resume",
+          "supplied": [
+            "echo",
+            "remote"
+          ],
+          "tools": [
+            "mcp__echo__echo",
+            "mcp__remote__echo"
+          ],
+          "toolResults": [
+            {
+              "toolCallId": "call_same-names-resume-echo",
+              "content": "echo:same-names-resume-echo via=stdio token=[synthetic marker match]",
+              "credential": "replacement marker matched"
+            },
+            {
+              "toolCallId": "call_same-names-resume-remote",
+              "content": "echo:same-names-resume-remote via=http token=[synthetic marker match]",
+              "credential": "replacement marker matched"
+            }
+          ],
+          "result": {
+            "stopReason": "end_turn"
+          }
+        },
+        {
+          "label": "new-names-seed",
+          "supplied": [
+            "echo",
+            "remote"
+          ],
+          "tools": [
+            "mcp__echo__echo",
+            "mcp__remote__echo"
+          ],
+          "toolResults": [
+            {
+              "toolCallId": "call_new-names-seed-echo",
+              "content": "echo:new-names-seed-echo via=stdio token=[synthetic marker match]",
+              "credential": "initial marker matched"
+            },
+            {
+              "toolCallId": "call_new-names-seed-remote",
+              "content": "echo:new-names-seed-remote via=http token=[synthetic marker match]",
+              "credential": "initial marker matched"
+            }
+          ],
+          "result": {
+            "stopReason": "end_turn"
+          }
+        },
+        {
+          "label": "new-names-resume",
+          "supplied": [
+            "newstdio",
+            "newhttp"
+          ],
+          "tools": [
+            "mcp__echo__echo",
+            "mcp__remote__echo"
+          ],
+          "toolResults": [
+            {
+              "toolCallId": "call_new-names-resume-echo",
+              "content": "<system>ERROR: Tool execution failed.</system>\nTool \"mcp__echo__echo\" not found"
+            },
+            {
+              "toolCallId": "call_new-names-resume-remote",
+              "content": "<system>ERROR: Tool execution failed.</system>\nTool \"mcp__remote__echo\" not found"
+            },
+            {
+              "toolCallId": "call_new-names-resume-newstdio",
+              "content": "echo:new-names-resume-newstdio via=stdio token=[synthetic marker match]",
+              "credential": "replacement marker matched"
+            },
+            {
+              "toolCallId": "call_new-names-resume-newhttp",
+              "content": "echo:new-names-resume-newhttp via=http token=[synthetic marker match]",
+              "credential": "replacement marker matched"
+            }
+          ],
+          "result": {
+            "stopReason": "end_turn"
+          }
+        }
+      ],
+      "storedSyntheticCredentialMatches": 0
+    },
+    {
+      "version": "2.6.3",
+      "facts": [
+        {
+          "label": "omitted-seed",
+          "supplied": [
+            "echo",
+            "remote"
+          ],
+          "tools": [
+            "mcp__echo__echo",
+            "mcp__remote__echo"
+          ],
+          "toolResults": [
+            {
+              "toolCallId": "call_omitted-seed-echo",
+              "content": "echo:omitted-seed-echo via=stdio token=[synthetic marker match]",
+              "credential": "initial marker matched"
+            },
+            {
+              "toolCallId": "call_omitted-seed-remote",
+              "content": "echo:omitted-seed-remote via=http token=[synthetic marker match]",
+              "credential": "initial marker matched"
+            }
+          ],
+          "result": {
+            "stopReason": "end_turn"
+          }
+        },
+        {
+          "label": "omitted-resume",
+          "supplied": "omitted",
+          "tools": [
+            "mcp__echo__echo",
+            "mcp__remote__echo"
+          ],
+          "toolResults": [
+            {
+              "toolCallId": "call_omitted-resume-echo",
+              "content": "<system>ERROR: Tool execution failed.</system>\nTool \"mcp__echo__echo\" not found"
+            },
+            {
+              "toolCallId": "call_omitted-resume-remote",
+              "content": "<system>ERROR: Tool execution failed.</system>\nTool \"mcp__remote__echo\" not found"
+            }
+          ],
+          "result": {
+            "stopReason": "end_turn"
+          }
+        },
+        {
+          "label": "empty-seed",
+          "supplied": [
+            "echo",
+            "remote"
+          ],
+          "tools": [
+            "mcp__echo__echo",
+            "mcp__remote__echo"
+          ],
+          "toolResults": [
+            {
+              "toolCallId": "call_empty-seed-echo",
+              "content": "echo:empty-seed-echo via=stdio token=[synthetic marker match]",
+              "credential": "initial marker matched"
+            },
+            {
+              "toolCallId": "call_empty-seed-remote",
+              "content": "echo:empty-seed-remote via=http token=[synthetic marker match]",
+              "credential": "initial marker matched"
+            }
+          ],
+          "result": {
+            "stopReason": "end_turn"
+          }
+        },
+        {
+          "label": "empty-resume",
+          "supplied": [],
+          "tools": [
+            "mcp__echo__echo",
+            "mcp__remote__echo"
+          ],
+          "toolResults": [
+            {
+              "toolCallId": "call_empty-resume-echo",
+              "content": "<system>ERROR: Tool execution failed.</system>\nTool \"mcp__echo__echo\" not found"
+            },
+            {
+              "toolCallId": "call_empty-resume-remote",
+              "content": "<system>ERROR: Tool execution failed.</system>\nTool \"mcp__remote__echo\" not found"
+            }
+          ],
+          "result": {
+            "stopReason": "end_turn"
+          }
+        },
+        {
+          "label": "same-names-seed",
+          "supplied": [
+            "echo",
+            "remote"
+          ],
+          "tools": [
+            "mcp__echo__echo",
+            "mcp__remote__echo"
+          ],
+          "toolResults": [
+            {
+              "toolCallId": "call_same-names-seed-echo",
+              "content": "echo:same-names-seed-echo via=stdio token=[synthetic marker match]",
+              "credential": "initial marker matched"
+            },
+            {
+              "toolCallId": "call_same-names-seed-remote",
+              "content": "echo:same-names-seed-remote via=http token=[synthetic marker match]",
+              "credential": "initial marker matched"
+            }
+          ],
+          "result": {
+            "stopReason": "end_turn"
+          }
+        },
+        {
+          "label": "same-names-resume",
+          "supplied": [
+            "echo",
+            "remote"
+          ],
+          "tools": [
+            "mcp__echo__echo",
+            "mcp__remote__echo"
+          ],
+          "toolResults": [
+            {
+              "toolCallId": "call_same-names-resume-echo",
+              "content": "echo:same-names-resume-echo via=stdio token=[synthetic marker match]",
+              "credential": "replacement marker matched"
+            },
+            {
+              "toolCallId": "call_same-names-resume-remote",
+              "content": "echo:same-names-resume-remote via=http token=[synthetic marker match]",
+              "credential": "replacement marker matched"
+            }
+          ],
+          "result": {
+            "stopReason": "end_turn"
+          }
+        },
+        {
+          "label": "new-names-seed",
+          "supplied": [
+            "echo",
+            "remote"
+          ],
+          "tools": [
+            "mcp__echo__echo",
+            "mcp__remote__echo"
+          ],
+          "toolResults": [
+            {
+              "toolCallId": "call_new-names-seed-echo",
+              "content": "echo:new-names-seed-echo via=stdio token=[synthetic marker match]",
+              "credential": "initial marker matched"
+            },
+            {
+              "toolCallId": "call_new-names-seed-remote",
+              "content": "echo:new-names-seed-remote via=http token=[synthetic marker match]",
+              "credential": "initial marker matched"
+            }
+          ],
+          "result": {
+            "stopReason": "end_turn"
+          }
+        },
+        {
+          "label": "new-names-resume",
+          "supplied": [
+            "newstdio",
+            "newhttp"
+          ],
+          "tools": [
+            "mcp__echo__echo",
+            "mcp__remote__echo"
+          ],
+          "toolResults": [
+            {
+              "toolCallId": "call_new-names-resume-echo",
+              "content": "<system>ERROR: Tool execution failed.</system>\nTool \"mcp__echo__echo\" not found"
+            },
+            {
+              "toolCallId": "call_new-names-resume-remote",
+              "content": "<system>ERROR: Tool execution failed.</system>\nTool \"mcp__remote__echo\" not found"
+            },
+            {
+              "toolCallId": "call_new-names-resume-newstdio",
+              "content": "echo:new-names-resume-newstdio via=stdio token=[synthetic marker match]",
+              "credential": "replacement marker matched"
+            },
+            {
+              "toolCallId": "call_new-names-resume-newhttp",
+              "content": "echo:new-names-resume-newhttp via=http token=[synthetic marker match]",
+              "credential": "replacement marker matched"
+            }
+          ],
+          "result": {
+            "stopReason": "end_turn"
+          }
+        }
+      ],
+      "storedSyntheticCredentialMatches": 0
+    }
+  ],
+  "workspaceControls": [
+    {
+      "nativeVersion": "2.4.1",
+      "expectedMode": "reuse",
+      "test": "discovery preserves an existing user workspace with the same root",
+      "result": "passed"
+    },
+    {
+      "nativeVersion": "2.6.2",
+      "expectedMode": "fresh",
+      "test": "discovery preserves an existing user workspace with the same root",
+      "result": "passed"
+    },
+    {
+      "nativeVersion": "2.6.3",
+      "expectedMode": "fresh",
+      "test": "discovery preserves an existing user workspace with the same root",
+      "result": "passed"
+    }
+  ]
+}

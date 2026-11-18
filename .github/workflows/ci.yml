@@ -93,7 +93,6 @@ jobs:
         if: always() && !cancelled() && steps.kimi-login-install.outcome == 'success'
         env:
           OAR_TEST: kimi-login
-          OAR_KIMI_WORKSPACE_MODE: reuse
           OAR_TRIAL_RUN_DIR: ${{ github.workspace }}/oar-trial-run
       - uses: actions/upload-artifact@v4
         if: always()
@@ -113,7 +112,6 @@ jobs:
         run: pnpm vitest run sea-trial/vendor/kimi-skills.vendor.test.ts
         env:
           OAR_TEST: kimi-skills
-          OAR_KIMI_WORKSPACE_MODE: fresh
 
       - name: Install pinned agy CLI for native ACP regressions
         id: agy-install

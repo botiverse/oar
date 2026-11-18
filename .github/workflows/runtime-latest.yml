@@ -105,14 +105,12 @@ jobs:
         run: pnpm vitest run sea-trial/vendor/kimi-login.vendor.test.ts sea-trial/vendor/kimi-skills.vendor.test.ts sea-trial/vendor/kimi-expired-usage.vendor.test.ts --reporter default --reporter ./.github/scripts/runtime-candidate-reporter.mjs
         timeout-minutes: 12
         env:
-          OAR_KIMI_WORKSPACE_MODE: reuse
       - name: Kimi fresh workspace skills
         id: kimi_skills
         if: matrix.suite == 'kimi-skills'
         run: pnpm vitest run sea-trial/vendor/kimi-skills.vendor.test.ts --reporter default --reporter ./.github/scripts/runtime-candidate-reporter.mjs
         timeout-minutes: 12
         env:
-          OAR_KIMI_WORKSPACE_MODE: fresh
       - name: Observe Windows Grok behavior processes
         id: grok_behavior
         if: matrix.os == 'windows-latest' && matrix.key == 'grok-aimock'

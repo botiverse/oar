@@ -19,11 +19,11 @@ export function knownCandidateFailure({ key, version, file, name, errors }) {
   if (key === "kimi-aimock" && file === "sea-trial/vendor/mcp-servers-acp.vendor.test.ts" && name === mcpCase
     && isDeepStrictEqual(objectValue(error.expected), { opened: tools, resumedWithout: [] })
     && isDeepStrictEqual(objectValue(error.actual), { opened: tools, resumedWithout: tools })) {
-    return { issue: kimiIssue, signature: "MCP tools retained on resume without servers" };
+    return { issue: kimiIssue, signature: "MCP declarations stale on resume without servers" };
   }
   const workspaceId = /^wm_[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/u;
   if (key === "kimi-login" && file === "sea-trial/vendor/kimi-skills.vendor.test.ts" && name === workspaceCase
     && workspaceId.test(error.expected) && workspaceId.test(error.actual) && error.expected !== error.actual) {
-    return { issue: kimiIssue, signature: "Different workspace ID for the same root" };
+    return { issue: kimiIssue, signature: "Historical reuse expectation with native fresh workspace IDs" };
   }
 }
