@@ -1,4 +1,6 @@
 /* oxlint-disable import/max-dependencies -- Shared ACP cases plus the failure-only Antigravity evidence helper. */
+import assert from "node:assert/strict";
+import { versionAtLeast } from "../../packages/oar/src/shared/update.js";
 import { describe, expect, test } from "vitest";
 import type { InstallationProbe } from "../../packages/oar/src/contracts/installation.js";
 import type { McpServer, Session, StartSession } from "../../packages/oar/src/contracts/session.js";
@@ -147,7 +149,14 @@ for (const acp of cases) {
         if (acp.offered !== undefined) {
           const { offered: tools } = acp;
           const offered = (text: string): readonly string[] => [...new Set(env.raw.filter((request) => JSON.stringify(request.body).includes(text)).flatMap((request) => tools(request)))].toSorted();
-          expect({ opened: offered("call both echo tools"), resumedWithout: offered("just answer") }).toEqual({ opened: [echo, remote], resumedWithout: [] });
+          let retainsRemoved = false;
+          if (acp.id === "kimi-aimock") {
+            const installation = await acp.installation(); assert.equal(installation.kind, "available"); assert.equal(installation.via, "executable");
+            assert.ok(installation.version !== undefined && /^\d+\.\d+\.\d+$/u.test(installation.version), "MCP resume control requires the native version");
+            // https://github.com/MoonshotAI/kimi-code/issues/5036; remove this branch when native declarations follow resume.
+            retainsRemoved = versionAtLeast(installation.version, "2.5.0");
+          }
+          expect({ opened: offered("call both echo tools"), resumedWithout: offered("just answer") }).toEqual({ opened: [echo, remote], resumedWithout: retainsRemoved ? [echo, remote] : [] });
         }
         expect(leakedCredentials(session, resumed)).toEqual([]);
       } finally {

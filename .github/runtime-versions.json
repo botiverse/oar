@@ -92,7 +92,7 @@
     },
     "kimi-aimock": {
       "package": "@moonshot-ai/kimi-code",
-      "version": "2.4.1",
+      "version": "2.6.3",
       "command": "kimi",
       "env": "OAR_KIMI_BIN",
       "platforms": [
@@ -102,8 +102,8 @@
       ],
       "suite": "acp",
       "policy": "helper",
-      "purpose": "ACP and workspace baseline",
-      "evidence": "https://github.com/botiverse/oar/actions/runs/44091499481"
+      "purpose": "ACP baseline with versioned MCP-resume observations",
+      "evidence": "experiments/kimi-mcp-resume/2026-11-17.md"
     },
     "grok-aimock": {
       "package": "@xai-official/grok",
@@ -180,7 +180,7 @@
     },
     "kimi-login": {
       "package": "@moonshot-ai/kimi-code",
-      "version": "2.4.1",
+      "version": "2.6.3",
       "command": "kimi",
       "env": "OAR_KIMI_BIN",
       "platforms": [
@@ -190,8 +190,8 @@
       ],
       "suite": "kimi-login",
       "policy": "helper",
-      "purpose": "Login and reused workspace skills",
-      "evidence": "https://github.com/botiverse/oar/actions/runs/44091499481"
+      "purpose": "Login and workspace preservation",
+      "evidence": "experiments/kimi-mcp-resume/2026-11-17.md"
     },
     "kimi-skills": {
       "package": "@moonshot-ai/kimi-code",
