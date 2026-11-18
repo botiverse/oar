@@ -2,71 +2,18 @@ import { mkdtemp, readdir, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { awaitTurnEnd, claudeRuntime, codexRuntime, type RawEvent, type Runtime, type Session, type SessionOptions } from "../../packages/oar/src/index.js";
+import { awaitTurnEnd, type RawEvent, type Session, type SessionOptions } from "../../packages/oar/src/index.js";
 
-import { viewOf, type ViewTurn } from "../../packages/oar/src/observe/session-view.js";
 import { asRecord } from "../../packages/oar/src/shared/json.js";
 import { removeFixtureDirectory } from "../harness/fixture-directory-cleanup.js";
-import { startClaudeAimock, startCodexAimock, type AimockEnv, type LLMock } from "../harness/aimock.js";
+import type { AimockEnv } from "../harness/aimock.js";
 import { expectAvailable, runTurn } from "./support/asserts.js";
+import { anchors, endedTurns, forkSubjects, historyOf, requestWith, type Turn } from "./support/session-fork.js";
 
 const backend = process.env.OAR_TEST;
 /** The repository's stdio echo MCP server, so a fork carries a `config.mcp_servers` override. */
 const ECHO = { name: "echo", command: process.execPath, args: [path.join(import.meta.dirname, "..", "..", "tests", "fixtures", "echo-mcp-server.mjs")] };
-/**
- * "noted" to everything, except a 400 for a prompt naming FORK-FAIL (a failed
- * turn) and a long shell command for one naming FORK-TOOL (a turn to abort).
- */
-function fixtures(claude: boolean): (mock: LLMock) => void {
-  return (mock) => {
-    mock.onMessage(/FORK-FAIL/u, { status: 400, error: { type: "invalid_request_error", ...(claude ? {} : { code: "invalid_request" }), message: "fork-fail" } });
-    mock.on({ userMessage: /FORK-TOOL/u, hasToolResult: false }, { toolCalls: [{ id: "call-wait", name: claude ? "Bash" : "exec_command", arguments: JSON.stringify(claude ? { command: "for i in $(seq 60); do sleep 1; done" } : { cmd: "for i in $(seq 60); do sleep 1; done" }) }] });
-    mock.onMessage(/[\s\S]*/u, { content: "noted" });
-  };
-}
-const subjects: Readonly<Record<string, { readonly runtime: Runtime; readonly start: () => Promise<AimockEnv> }>> = {
-  "claude-aimock": { runtime: claudeRuntime, start: async () => startClaudeAimock(fixtures(true)) },
-  "codex-aimock": { runtime: codexRuntime, start: async () => startCodexAimock(fixtures(false)) },
-};
-const subject = backend === undefined ? undefined : subjects[backend];
-
-interface Turn { readonly role: string; readonly text: string }
-
-/** The provider request that carried `marker` last (or first): the one the turn prompted with it sent. */
-function requestWith(env: AimockEnv, marker: string, which: "first" | "last" = "last"): unknown {
-  const requests = env.mock.getRequests();
-  const carries = (request: unknown): boolean => JSON.stringify(request).includes(marker);
-  const found = which === "last" ? requests.findLast((request) => carries(request)) : requests.find((request) => carries(request));
-  if (found === undefined) { throw new Error(`no provider request carried ${marker}`); }
-  return found;
-}
-
-function textOf(content: unknown): string {
-  if (typeof content === "string") { return content; }
-  return Array.isArray(content) ? content.map((part) => { const text = asRecord(part)?.text; return typeof text === "string" ? text : ""; }).join("") : "";
-}
-
-/**
- * The conversation a provider request carried before its final user message
- * (the prompt that sent it): every user and assistant message, in order, as
- * the runtime replayed it. System prompts are left out.
- */
-function historyOf(request: unknown): Turn[] {
-  const body = asRecord(asRecord(request)?.body);
-  const messages: unknown[] = Array.isArray(body?.messages) ? body.messages : [];
-  const turns = messages.map((message) => asRecord(message)).flatMap((message) => message?.role === "user" || message?.role === "assistant" ? [{ role: message.role, text: textOf(message.content) }] : []);
-  const last = turns.findLastIndex((turn) => turn.role === "user");
-  return turns.slice(0, last);
-}
-
-/** The root turns' fork anchors, in order, from the session view of its records. */
-function anchors(records: readonly RawEvent[]): (string | undefined)[] {
-  return endedTurns(records).map((turn) => turn.forkAnchor);
-}
-
-function endedTurns(records: readonly RawEvent[]): ViewTurn[] {
-  return viewOf(records).messages.filter((message): message is ViewTurn => message.kind === "turn" && message.outcome !== undefined);
-}
+const subject = backend === undefined ? undefined : forkSubjects[backend];
 
 /** The distinct model and effort reports the runtime made. */
 function settings(records: readonly RawEvent[]): string[] {
@@ -264,13 +211,16 @@ describe.skipIf(subject === undefined)("session fork", () => {
     }
   }, 180_000);
 
-  // [env] codex 0.169.0: thread/fork does not keep the source's model and effort, config override or not.
+  // [env] codex 0.169.0 and 0.169.1: thread/fork does not keep the source's model and effort, with a config override (mcpServers) or without one.
   test.skipIf(backend !== "codex-aimock")("a codex fork runs the configured default model unless model and effort are given", async () => {
     if (reopen === null) { return; }
     const source = await reopen({ model: "gpt-5.2", effort: "high" });
     await expect(runTurn(source, "remember FORK-APPLE")).resolves.toMatchObject({ kind: "completed" });
     await source.dispose();
     expect(settings(source.records())).toEqual(["model gpt-5.2", "effort high"]);
+    const bare = await reopen({ resume: source.id, fork: {} });
+    await bare.dispose();
+    expect(settings(bare.records())).toEqual(["model gpt-5.1"]);
     const plain = await reopen({ resume: source.id, fork: {}, mcpServers: [ECHO] });
     await plain.dispose();
     expect(settings(plain.records())).toEqual(["model gpt-5.1"]);

@@ -25,8 +25,9 @@ const NEEDS: Readonly<Record<string, { readonly since: string; readonly purpose:
 
 /**
  * `thread/fork { lastTurnId }` arrived in codex 0.143.0 (the generated
- * app-server schema of 0.142.5 has no such field, 0.143.0's has). Earlier
- * releases ignore the unknown field and copy the whole thread, so a
+ * app-server schema of 0.142.5 has no such field, 0.143.0's has). An earlier
+ * release is expected to ignore the unknown field and copy the whole thread
+ * (reasoned, not run), so a
  * SessionOptions.fork.through is refused there before the fork is sent: a
  * `runtime_outdated` failure, as is a version codex did not report.
  */

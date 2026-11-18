@@ -1035,8 +1035,10 @@ Which runtimes say which kinds (runtime pages hold the evidence):
 - `turn_ended.forkAnchor?`: on a root turn of a runtime that takes
   `SessionOptions.fork`, the opaque native anchor `fork.through` takes to
   copy the conversation through this turn: claude, the `uuid` of the turn's
-  last root assistant message (absent when it had none, and on an aborted
-  turn); codex, the turn id.
+  last root assistant message (absent when it had none, when that message
+  holds a `tool_use` or a root `tool_result` follows it, as on an
+  `outputSchema` turn ending on its `StructuredOutput` call or an
+  `error_max_turns` stop, and on an aborted turn); codex, the turn id.
   Absent on other runtimes, child turns and older records
   ([forking a session](runtime-matrix.md#forking-a-session)).
 - `turn_ended.inputId?` and `inputIds?`: the shared stream-json fold copies native

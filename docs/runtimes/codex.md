@@ -268,31 +268,40 @@ runtimeWorkspaceRoots?, model?, serviceTier?, approvalPolicy: "never",
 reply's `thread.id` is the new thread and becomes `Session.id` (a reply
 naming the source is refused). `lastTurnId` is `fork.through`, the turn id
 carried as the root `turn_ended.forkAnchor` (and as the records' `spanId`):
-turns after it are not in the copy, and the source is untouched ([env] 0.169.0,
-scripted provider). It arrived in 0.143.0 (the 0.142.5 schema has no such
-field and serde ignores unknown ones), so `through` on an older or
-unreported version is `runtime_outdated` before anything is sent; a whole
-fork works on every release from the login floor. A missing source reads
+turns after it are not in the copy, and the source is untouched ([env] 0.169.0
+and 0.169.1, scripted provider). It arrived in 0.143.0 (the 0.142.5 schema
+has no such field); an older release is expected to ignore it and copy the
+whole thread (reasoned from serde's handling of unknown fields, not run), so
+`through` on an older or unreported version is `runtime_outdated` before
+anything is sent. A fork without `through` is sent the same way on every
+release from the login floor (`thread/fork` is in the 0.118.0 schema), but
+forks were run on 0.169.0 and 0.169.1 only. A missing source reads
 `no rollout found for thread id …` and is `SessionNotFoundError`; an unknown
 turn is `turn not found: <id>` (-32600), kept as codex's words. Unlike a cold
 resume, a fork does not keep the source's model and effort: without `model`
-and `effort` it runs the configured default, with or without a `config`
-override (0.169.0: a `gpt-5.2`/`high` source forked onto `gpt-5.1` with no
-effort). A given effort is set afterwards with `thread/settings/update`; no
+and `effort` it runs the configured default, with a `config` override
+(`mcpServers`) and without one (0.169.0 and 0.169.1: a `gpt-5.2`/`high`
+source forked onto `gpt-5.1` with no effort). A given effort is set afterwards with `thread/settings/update`; no
 `experimentalRawEvents`; `name` is set as on a new thread; when
 `baseInstructions` and `developerInstructions` take effect on a fork is
-untested. Failed and aborted turns carry anchors, and a fork through one
-carries what the source's next prompt carried; copied turns keep their ids,
-so a source anchor also forks the fork. `deferGoalContinuation` is not sent,
-so with `goals: true` an active source goal may start its continuation turn
-as the fork opens (untested). The fork's `tokenUsage.total` includes the source's turns and is
-not re-reported before its first turn (a fork of 1,000 + 1,100 input tokens
+untested. Failed and aborted turns, manual compaction turns and goal
+continuation turns (codex's own, with no client prompt) carry anchors, and a
+fork through one carries what the source's next prompt carried (compaction
+and goal turns: 0.169.1); copied turns keep their ids, so a source anchor
+also forks the fork. Forking a source still open in another live Session
+copies its saved turns and leaves the source running (0.169.1; a source
+mid-turn is untested). `deferGoalContinuation` is not sent, so with
+`goals: true` an active source goal may start its continuation turn as the
+fork opens (untested). The fork's `tokenUsage.total` includes the source's
+turns and is never re-reported (a fork of 1,000 + 1,100 input tokens
 reported 3,400 after its own 1,300), so its baseline stays unknown and its
-`tokens` unreported. `beforeTurnId`, `ephemeral`, `attachToSource` and
+`tokens` are unreported for the whole Session, not only before its first
+turn (two fork turns, 0.169.1). `beforeTurnId`, `ephemeral`, `attachToSource` and
 `path` are not sent
 ([forking a session](../spec/runtime-matrix.md#forking-a-session),
 [unit](../../tests/codex/codex-session-fork.test.ts),
-[vendor](../../sea-trial/vendor/session-fork.vendor.test.ts)).
+[vendor](../../sea-trial/vendor/session-fork.vendor.test.ts),
+[vendor cases](../../sea-trial/vendor/session-fork-cases.vendor.test.ts)).
 
 A thread whose rollout was never written (no turn yet) cannot be resumed
 ([session identity](#matrix-columns), [floors](#resumability-floors)).

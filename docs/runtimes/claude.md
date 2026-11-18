@@ -166,23 +166,40 @@ later under its id). Before the open returns, the private `get_status`
 readback must report that id in its `Session ID` row (claude names its
 session in no other answer at open; the same answer carries the account
 email, so it is not recorded); another id, none, or no answer within 30
-seconds fails the open and stops the process. The first turn's
+seconds fails the open and stops the process, as does a failed write of
+the request. A claude without `get_status` fails the fork open too (2.1.323
+answers an unknown control request with `Unsupported control request
+subtype`, which the open reports; no release without `get_status` was
+run), since `Session.id` could not be confirmed. The first turn's
 `system/init` repeats it as `session_id`. The anchor is the `uuid` of the turn's last root
-assistant message, carried as `turn_ended.forkAnchor`; a failed turn's is
-the synthetic `API Error` message claude saves, and an aborted turn gets
-none (a fork through an interrupted `tool_use` loses the saved interruption
-and claude reports the call's result as an internal error). The copy keeps
+assistant message, carried as `turn_ended.forkAnchor`. A fork through a
+`tool_use` drops the saved `tool_result` and claude answers the call with
+`[Tool result missing due to internal error]`, so a turn gets no anchor
+when that message holds a `tool_use` or a root `tool_result` follows it:
+observed on 2.1.323 for an `outputSchema` turn that completes on its
+`StructuredOutput` call, an `error_max_turns` stop after a tool call, and an
+abort that interrupts a tool call (the saved interruption is lost). An
+aborted turn gets none in any case. An API-error failure's anchor is the
+synthetic `API Error` message claude saves (observed with a 400), and a
+fork through it carries what the source's next prompt carried. A manual
+compaction has no anchor, and after one a fork through an earlier turn
+fails the open with `No message found` (below), while a later turn forks
+normally (2.1.323). The copy keeps
 the source's message uuids, so source anchors also fork the fork. Other
 options follow `resumedSessionOptions`, as on a resume. `--resume-session-at`
 is hidden and verified on 2.1.323 only. An unknown uuid ends
 startup with `result/error_during_execution` and `No message found with
 message.uuid of: <uuid>`, which fails the open with that text. `--name` is
 passed as on a new session (the copy gets the host's name; the source keeps
-its own), and the open reads the usage baseline as a resume does, so token
-totals count the fork's own turns
+its own, observed on 2.1.323 through `session_title_changed`), and the open
+reads the usage baseline as a resume does, so token totals count the fork's
+own turns. Forking a source still open in another live Session copies its
+saved turns and leaves the source running (2.1.323; a source mid-turn is
+untested)
 ([forking a session](../spec/runtime-matrix.md#forking-a-session),
 [unit](../../tests/claude/claude-session-fork.test.ts),
-[vendor](../../sea-trial/vendor/session-fork.vendor.test.ts)).
+[vendor](../../sea-trial/vendor/session-fork.vendor.test.ts),
+[vendor cases](../../sea-trial/vendor/session-fork-cases.vendor.test.ts)).
 
 Session listing, history retrieval, rewind, and reset identity management
 are **not exposed**. Duplicate transcripts and concurrent controllers resuming

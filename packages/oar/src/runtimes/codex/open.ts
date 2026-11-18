@@ -119,12 +119,13 @@ export function codexThreadOpen(options: SessionOptions): { readonly method: Cod
   if (options.fork !== undefined) {
     // SessionOptions.fork: `thread/fork` loads the source from disk and opens
     // a new thread holding a copy of it, through `lastTurnId` inclusive
-    // (codex 0.143.0 and later; older releases ignore the field, so
-    // session.ts refuses `through` there before sending). The reply's thread
-    // is the new one, so Session.id is the fork's. Unlike a cold resume it
-    // does not keep the source's model and effort: without `model` it runs
-    // the configured default, with or without a `config` override ([env]
-    // 0.169.0: a gpt-5.2/high source forked onto gpt-5.1 with no effort).
+    // (codex 0.143.0 and later; an older schema has no such field, which
+    // codex is expected to ignore (reasoned, not run), so session.ts refuses
+    // `through` there before sending). The reply's thread is the new one,
+    // so Session.id is the fork's. Unlike a cold resume it does not keep the
+    // source's model and effort: without `model` it runs the configured
+    // default, with or without a `config` override ([env] 0.169.0 and
+    // 0.169.1: a gpt-5.2/high source forked onto gpt-5.1 with no effort).
     // Effort is set after the reply as on a resume; no `experimentalRawEvents`
     // (not a fork param); no `deferGoalContinuation`.
     const through = options.fork.through;
