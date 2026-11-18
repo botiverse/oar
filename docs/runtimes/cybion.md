@@ -138,8 +138,21 @@ of its own.
   malformed `cyb_` key `401 {"error":"invalid user credential"}`, which the
   adapter surfaces verbatim as the session's error. The route, the auth header
   and the error shape are therefore the real deployment's, not a mock's.
-- **Not verified**: an authenticated turn on a real deployment. No API key was
-  available to this repository, so how a live turn's records map is still
-  established by the source above and by the wire probe's shapes. Unresolved:
-  whether a `blocked` Thread ends its turn as `limit_reached` in every case,
-  and whether the Agent API will expose cancellation.
+- **Live turn, observed 2026-11-18** against `https://cybion.ntnl.io` with an
+  Agent API key: one real turn on a real Thread. `POST /v1/threads` created it,
+  the prompt's input record arrived, and the session reported `turn_started`,
+  `user_message`, `text_delta` (the model's own answer), `usage` and a
+  `turn_ended` `completed`, then went idle with totals
+  `{input: 9916, output: 3, cacheRead: 5248}`. The Thread's history held
+  exactly the kinds the mapping expects: one `input` (string `content`), two
+  `activity` records (`manual_loaded`, which the mapping leaves
+  uninterpreted and records as frames with no events), one `request_tail`
+  activity, and one `response_output` `message` carrying an `output_text`
+  part.
+- **Still unexercised live**: `reasoning` items, `function_call` /
+  `custom_tool_call` items and `tool_output` records — the observed turn
+  answered without tools, so those mappings rest on the source and on the wire
+  probe. Unresolved: whether a `blocked` Thread ends its turn as
+  `limit_reached` in every case, and whether the Agent API will expose
+  cancellation. A session's Thread also outlives it (the Agent API has no
+  route that deletes one): a probe leaves a Thread in its owner's list.
