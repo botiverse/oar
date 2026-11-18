@@ -201,8 +201,9 @@ explain which other observations remain active and why.
 The separate Antigravity file-skill comparison uses 1.5.11 from
 `.github/antigravity-file-skills.json`, after the existing 1.5.0 ACP controls.
 It compares native `/skills` with the local reader across isolated catalog
-fixtures, records three file-read timings per stage, and checks synthetic MCP
-start markers and signed-out reads. Selected results and the repeatable probe
+fixtures on Linux and macOS, records three file-read timings per stage, and
+checks synthetic MCP start markers and signed-out reads. Windows uses a native
+fallback control for metadata, builtin initialization and signed-out refusal. Selected results and the repeatable probe
 are in [the experiment](../experiments/antigravity-file-skills/README.md).
 
 The Antigravity MCP name-clash vendor case retains failure evidence under

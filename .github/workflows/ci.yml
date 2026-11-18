@@ -135,13 +135,13 @@ jobs:
           OAR_TEST: antigravity-aimock
           OAR_TEST_REQUIRE_AVAILABLE: '1'
           OAR_TRIAL_RUN_DIR: ${{ github.workspace }}/oar-trial-run/agy
-      - name: Install agy 1.5.11 for file skill parity
+      - name: Install agy 1.5.11 for skill reader verification
         id: agy-file-skills-install
         if: ${{ !cancelled() }}
         run: node .github/scripts/runtime-install.mjs antigravity-file-skills .github/antigravity-file-skills.json
-      - name: Native agy file skill comparison
+      - name: Native agy skill reader verification
         if: ${{ !cancelled() && steps.agy-file-skills-install.outcome == 'success' }}
-        run: pnpm vitest run sea-trial/vendor/antigravity-file-skills.vendor.test.ts
+        run: pnpm vitest run sea-trial/vendor/antigravity-file-skills.vendor.test.ts sea-trial/vendor/antigravity-windows-skills.vendor.test.ts
         env:
           OAR_TEST: antigravity-file-skills
           OAR_TRIAL_RUN_DIR: ${{ github.workspace }}/oar-trial-run/agy

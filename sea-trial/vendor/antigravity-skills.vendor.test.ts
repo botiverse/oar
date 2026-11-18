@@ -93,7 +93,7 @@ describe.skipIf(process.env.OAR_TEST !== "antigravity-aimock")("Antigravity nati
       await rm(join(f.home, ".gemini"), { recursive: true, force: true });
       const env = overlay(f.nativeEnv); delete env.GEMINI_API_KEY; env.GEMINI_API_KEY = null;
       const result = await antigravityRuntime.skills(installation, { cwd: f.cwd, env });
-      const local = installation.version === "1.5.10" || installation.version === "1.5.11";
+      const local = (process.platform === "linux" || process.platform === "darwin") && (installation.version === "1.5.10" || installation.version === "1.5.11");
       if (local) { expect(result).toMatchObject({ kind: "ok", view: "discovered", partial: true, items: [] }); }
       else { expect(result).toEqual({ kind: "unavailable", code: "not_authenticated", reason: "Sign in to Antigravity to read its skills." }); }
       expect(f.raw).toHaveLength(0);

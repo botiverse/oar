@@ -1,5 +1,8 @@
 # Antigravity file skill discovery
 
+The file reader is enabled only on Linux and macOS. Windows retains the
+existing native query until its directory-link behavior is verified.
+
 On Linux x64, the final isolated controls on CLI 1.5.10 and 1.5.11 returned
 partial inventories of 6, 15, 23, 26, 27 and 30 entries across six stages.
 Every returned entry matches native `/skills`, including complete metadata,
@@ -24,8 +27,7 @@ read; callers supply its versioned snapshot.
   repository, only the requested directory is searched. Global discovery uses
   `.gemini/antigravity-cli`, `.gemini/config`, then `.gemini`.
 - POSIX native working directories resolve links before repository discovery.
-  Windows preserves the supplied short-name spelling (`RUNNER~1`). Manifest
-  containment compares resolved targets but preserves the declared path in
+  Manifest containment compares resolved targets but preserves the declared path in
   returned metadata. A link into the repository is accepted; a link out is
   omitted. Direct discovery follows linked skill directories and preserves
   their path. Global and builtin paths retain the supplied HOME spelling.
@@ -97,9 +99,15 @@ full path equality remains part of every comparison.
 The next Windows run found the inverse short-name mismatch: native retained
 `RUNNER~1` while Node's native realpath returned `runneradmin`. The
 [selected differences](windows-path-failure.json) preserve all six mismatched
-workspace paths. Workspace discovery now preserves Windows cwd spelling;
-manifest containment still resolves both the root and target. Platform CI
-checks that distinction, including the directory-link stage.
+workspace paths. Preserving that spelling passed the first five stages, but
+the junction-cwd stage still failed: native returned 14 entries and the file
+reader returned 27, including workspace entries native omitted. The
+[selected junction sample](windows-junction-failure.json) preserves the full
+native and OAR inventories for that stage. The Windows discovery rule is
+unresolved, so the file reader is disabled there. Windows retains the guarded
+native query; CI verifies its metadata, builtin initialization and signed-out
+refusal. The full differential comparison remains the requirement for enabling
+Windows in a follow-up. Linux and macOS passed at head `52fed5d2`.
 
 The standalone Node comparison also caught an invalid named import from the
 CommonJS YAML package that Vitest's transformation had hidden. The reader uses
@@ -124,4 +132,5 @@ OAR_ANTIGRAVITY_BIN=/path/to/agy OAR_TEST=antigravity-file-skills pnpm vitest ru
 ```
 
 CI installs the separately frozen 1.5.11 archives and runs this comparison on
-Linux, macOS and Windows. The existing 1.5.0 ACP baseline is unchanged.
+Linux and macOS. On Windows it verifies that the same pinned version still
+uses the native query. The existing 1.5.0 ACP baseline is unchanged.

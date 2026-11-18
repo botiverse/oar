@@ -9,7 +9,9 @@ import { skillPathExists as exists, skillJson as json, skillDirectories as direc
 const aliases = [".agent", ".agents", "_agent", "_agents"];
 // Native root-agent mounts, not every directory extracted with the CLI.
 const builtins = ["agy-customizations", "antigravity_guide", "automation", "migrate-agent-settings", "migrate-workflows", "run-workflow"];
-export function hasAntigravityFileSkills(version: string | undefined): boolean { return version === "1.5.10" || version === "1.5.11"; }
+export function hasAntigravityFileSkills(version: string | undefined, platform: NodeJS.Platform = process.platform): boolean {
+  return (platform === "linux" || platform === "darwin") && (version === "1.5.10" || version === "1.5.11");
+}
 async function repositoryDirectory(directory: string, signal: AbortSignal): Promise<boolean> {
   const dot = join(directory, ".git");
   if (await exists(join(dot, "HEAD"))) { return true; }
@@ -53,9 +55,7 @@ async function scanPlugins(items: Map<string, FileSkill>, paths: readonly string
 }
 /** No executable, authentication, MCP, body execution or builtin initialization. */
 export async function readAntigravityFileSkills(home: string, cwd: string, signal: AbortSignal): Promise<{ readonly items: readonly SkillEntry[]; readonly partial: boolean }> {
-  // Native process cwd is physical on POSIX; Windows retains its supplied spelling.
-  const workspace = process.platform === "win32" ? resolve(cwd) : await realpath(cwd);
-  const projects = await workspaces(workspace, signal);
+  const projects = await workspaces(await realpath(cwd), signal);
   const discovery = { home, cwd, root: projects.at(-1) ?? cwd, signal, sources: new Set<string>() };
   const items = new Map<string, FileSkill>();
   const config = await json(join(home, ".gemini/config/config.json"), signal);

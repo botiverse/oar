@@ -5,11 +5,13 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, expect, test, vi } from "vitest";
 import { antigravityRuntime } from "../../packages/oar/src/runtimes/antigravity/index.js";
+import { hasAntigravityFileSkills } from "../../packages/oar/src/runtimes/antigravity/skill-files.js";
 import { antigravitySkillMetadata } from "../../packages/oar/src/runtimes/antigravity/skill-metadata.js";
 
 const mocks = vi.hoisted(() => ({ auth: vi.fn(), run: vi.fn() }));
 vi.mock("../../packages/oar/src/runtimes/antigravity/auth.js", async original => ({ ...await original<object>(), readAntigravityAuthStatus: mocks.auth }));
 vi.mock("../../packages/oar/src/shared/executable/index.js", async original => ({ ...await original<object>(), runExecutable: mocks.run }));
+const fileTest = test.skipIf(process.platform !== "linux" && process.platform !== "darwin");
 const homes: string[] = [];
 const installation = { kind: "available", via: "executable", command: "unused-agy", version: "1.5.11" } as const;
 async function file(path: string, contents: string): Promise<void> { await mkdir(dirname(path), { recursive: true }); await writeFile(path, contents); }
@@ -23,7 +25,7 @@ async function fixture(): Promise<{ home: string; cwd: string; env: Record<strin
 }
 afterEach(async () => { await Promise.all(homes.splice(0).map(async home => rm(home, { recursive: true, force: true }))); vi.resetAllMocks(); });
 
-test.each(["1.5.10", "1.5.11"])("%s reads signed-out files without spawning, authentication or builtin initialization", async version => {
+fileTest.each(["1.5.10", "1.5.11"])("%s reads signed-out files without spawning, authentication or builtin initialization", async version => {
   const f = await fixture();
   await skill(join(f.cwd, ".agents/skills/local"), "local", "description: Visible metadata\ndisable-model-invocation: true\n");
   const result = await antigravityRuntime.skills({ ...installation, version }, f);
@@ -45,7 +47,7 @@ test.each(["1.5.10", "1.5.11"])("%s reads signed-out files without spawning, aut
   expect(mocks.auth).not.toHaveBeenCalled(); expect(mocks.run).not.toHaveBeenCalled();
 });
 
-test.each(["1.5.10", "1.5.11"])("%s omits the uncertain swarm builtin and marks even materialized inventories partial", async version => {
+fileTest.each(["1.5.10", "1.5.11"])("%s omits the uncertain swarm builtin and marks even materialized inventories partial", async version => {
   const f = await fixture();
   for (const name of ["agy-customizations", "antigravity_guide", "automation", "migrate-agent-settings", "migrate-workflows", "run-workflow", "native_swarm"]) {
     await skill(join(f.home, ".gemini/antigravity-cli/builtin/skills", name), name === "native_swarm" ? "swarm" : name);
@@ -59,7 +61,7 @@ test.each(["1.5.10", "1.5.11"])("%s omits the uncertain swarm builtin and marks 
   expect(local.partial).toBe(true);
 });
 
-test("native root and alias precedence, hidden winners and plugin enable overrides", async () => {
+fileTest("native root and alias precedence, hidden winners and plugin enable overrides", async () => {
   const f = await fixture();
   for (const [root, description] of [[join(f.home, "repo/.agent"), "repo"], [join(f.cwd, ".agent"), "cwd"], [join(f.home, ".gemini"), "global"]]) {
     assert.ok(root !== undefined); await skill(join(root, "skills/duplicate"), "duplicate", `description: ${description}\n`);
@@ -87,7 +89,7 @@ test("native root and alias precedence, hidden winners and plugin enable overrid
   `);
 });
 
-test("native content deduplication precedes plugin namespaces, and malformed plugins are omitted", async () => {
+fileTest("native content deduplication precedes plugin namespaces, and malformed plugins are omitted", async () => {
   const f = await fixture();
   for (const name of ["a", "b", "bad"]) {
     const plugin = join(f.cwd, ".agents/plugins", name);
@@ -98,7 +100,7 @@ test("native content deduplication precedes plugin namespaces, and malformed plu
   expect(result.items.map(item => item.name)).toEqual(["a:child"]);
 });
 
-test("manifest paths preserve workspace bounds, explicit nested selection, global base and inheritance cycles", async () => {
+fileTest("manifest paths preserve workspace bounds, explicit nested selection, global base and inheritance cycles", async () => {
   const f = await fixture();
   await skill(join(f.cwd, "extra/deep/child"), "nested");
   await skill(join(f.home, "outside/child"), "outside");
@@ -126,7 +128,7 @@ test.each([
   expect(result === null ? null : { ...result.item, path: undefined }).toEqual(expected === null ? null : { ...expected, path: undefined });
 });
 
-test.each(["1.5.10", "1.5.11"])("%s preserves native paths through cwd, skill and manifest directory links", async version => {
+fileTest.each(["1.5.10", "1.5.11"])("%s preserves native paths through cwd, skill and manifest directory links", async version => {
   const f = await fixture(); const repo = dirname(f.cwd);
   const alias = join(f.home, "cwd-alias"); await symlink(f.cwd, alias, "junction");
   const homeAlias = join(f.home, "home-alias"); await symlink(f.home, homeAlias, "junction");
@@ -145,10 +147,7 @@ test.each(["1.5.10", "1.5.11"])("%s preserves native paths through cwd, skill an
   ] }));
   const result = await antigravityRuntime.skills({ ...installation, version }, { cwd: alias, env: { ...f.env, HOME: homeAlias, USERPROFILE: homeAlias } });
   assert.equal(result.kind, "ok");
-  expect(result.items.map(({ name, path }) => ({ name, path }))).toEqual(process.platform === "win32" ? [
-    { name: "global", path: join(homeAlias, ".gemini/config/skills/global/SKILL.md") },
-    { name: "linked", path: join(alias, ".agents/skills/link/SKILL.md") },
-  ] : [
+  expect(result.items.map(({ name, path }) => ({ name, path }))).toEqual([
     { name: "absolute-alias", path: join(homeAlias, "repo/extra/child/SKILL.md") },
     { name: "global", path: join(homeAlias, ".gemini/config/skills/global/SKILL.md") },
     { name: "inbound", path: join(f.home, "inbound/child/SKILL.md") },
@@ -163,4 +162,11 @@ test("verified local reader preserves custom state refusal", async () => {
   const result = await antigravityRuntime.skills(installation, { ...f, env: { ...f.env, GEMINI_HOME: join(f.home, "other") } });
   expect(result).toMatchObject({ kind: "unsupported", code: "scope_unavailable" });
   expect(mocks.auth).not.toHaveBeenCalled(); expect(mocks.run).not.toHaveBeenCalled();
+});
+
+// The differential evidence only verifies these two operating systems and versions.
+test.each(["linux", "darwin", "win32", "freebsd"] as const)("%s admits only a verified file reader", platform => {
+  for (const version of [undefined, "1.5.0", "1.5.10", "1.5.11", "1.5.12"]) {
+    expect(hasAntigravityFileSkills(version, platform)).toBe((platform === "linux" || platform === "darwin") && (version === "1.5.10" || version === "1.5.11"));
+  }
 });

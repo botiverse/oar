@@ -33,7 +33,7 @@ function catalog(stdout: string): SkillEntry[] {
   return nativeRows(asRecord(command.data)?.skills).map(row => project(row));
 }
 
-/** Verified versions read files; other versions retain the guarded native query. */
+/** Verified Linux/macOS versions read files; other installations retain the native query. */
 export const antigravitySkills: InventoryReader<SkillEntry> = async (installation, options = {}) => {
   if (installation.via !== "executable") { return unsupportedInventory("installation_unsupported", "Antigravity skill discovery requires an executable."); }
   const timeoutMs = options.timeoutMs ?? 15_000;

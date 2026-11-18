@@ -631,17 +631,17 @@ Their old service conclusions do not describe the new CLI adapter.
 
 ## Independent skill discovery
 
-`skills()` reads local metadata directly for CLI **1.5.10 and 1.5.11**.
+`skills()` reads local metadata directly for CLI **1.5.10 and 1.5.11 on Linux
+and macOS**.
 It starts no process, performs no authentication query or network request,
 and works while signed out. The result remains `view: "discovered"`; no skill
-body is returned or executed. Unknown versions retain the guarded native
+body is returned or executed. Windows and unverified versions retain the guarded native
 `agy --output-format json --print=/skills` reader.
 
 The verified file reader follows workspace aliases (`.agent`, `.agents`,
 `_agent`, `_agents`) from the repository root to the requested directory,
 then the global CLI, config and legacy skill directories. Workspace discovery
-uses the physical working directory on POSIX and preserves Windows cwd
-spelling. Manifest containment uses resolved roots and targets while returned
+uses the physical working directory. Manifest containment uses resolved roots and targets while returned
 manifest paths keep their declared spelling. Linked
 skill directories are followed. It reads skill and
 plugin manifests, applies native duplicate precedence and invocation flags,
@@ -661,9 +661,12 @@ The [file-reader comparison](../../experiments/antigravity-file-skills/README.md
 records native 1.5.10/1.5.11 controls for roots, manifests, YAML, plugins,
 duplicates, signed-out reads and MCP startup, plus an unresolved native builtin
 omission observed during development. The separate pinned 1.5.11 CI comparison
-preserves the existing 1.5.0 ACP baseline.
+preserves the existing 1.5.0 ACP baseline. Windows CI asserts the native reader
+and signed-out guard. A Windows junction-cwd comparison exposed different
+workspace discovery; Windows will use the file reader only after that rule
+is measured and the full comparison passes.
 
-For other versions, print mode can initiate login, so OAR first checks
+On Windows and for other versions, print mode can initiate login, so OAR first checks
 `agy models` authentication. Signed-out reads return
 `unavailable/not_authenticated`; unknown authentication returns `query_failed`.
 The authentication and print calls share the query deadline and set
