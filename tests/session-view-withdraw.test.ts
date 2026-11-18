@@ -48,6 +48,7 @@ function outline(view: SessionView): string[] {
         const parts = message.sections.flatMap((section) => section.parts.map((part) => (part.kind === "text" ? part.text : part.kind)));
         return `turn [${parts.join(" | ")}]${message.outcome === undefined ? "" : ` ${message.outcome.kind}`}${index === view.openTurn ? " open" : ""}`;
       }
+      case "activity": return "activity";
       case "notice":
         return `notice ${message.notice.cause}`;
     }

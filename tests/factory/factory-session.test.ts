@@ -1,3 +1,4 @@
+/* oxlint-disable import/max-dependencies -- The native control also verifies its public view. */
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -5,6 +6,7 @@ import { setTimeout as sleep } from "node:timers/promises";
 import { afterEach, expect, it } from "vitest";
 import { eventsOf } from "../../packages/oar/src/observe/events.js";
 import { awaitIdle, awaitTurnEnd } from "../../packages/oar/src/observe/turns.js";
+import { viewOf } from "../../packages/oar/src/observe/session-view.js";
 import { ModelConfirmationError, ResumeCwdError, UnsupportedOptionError, type RawEvent, type Session } from "../../packages/oar/src/contracts/index.js";
 import { createFactorySession } from "../../packages/oar/src/runtimes/factory/session.js";
 import { fakeAgentBinary } from "../fixtures/process-tree.js";
@@ -134,4 +136,19 @@ it("resuming a droid session saved in another directory is a ResumeCwdError nami
   await expect(session("other-cwd", 0, { resume: opened.id })).rejects.toMatchObject({
     constructor: ResumeCwdError, option: "cwd", reason: "other_cwd", sessionId: opened.id, savedCwd: "/saved/elsewhere",
   });
+});
+
+// oxlint-disable-next-line eslint/max-statements -- One native lifecycle and its before/after replay.
+it("native working state adopts only the content after that start", async () => {
+  const opened = await session("content-before-start");
+  await expect.poll(() => events(opened.records()).some(event => event.kind === "turn_ended")).toBe(true);
+  const records = opened.records();
+  const start = records.findIndex(record => eventsOf(record).some(event => event.kind === "turn_active"));
+  const before = viewOf(records.slice(0, start));
+  expect(before.status.kind).toBe("idle");
+  expect(before.messages).toMatchObject([{ kind: "activity", sections: [{ parts: [{ text: "outside" }] }] }]);
+  const view = viewOf(records);
+  expect(view.messages.map(message => message.kind)).toEqual(["activity", "turn"]);
+  expect(view.messages.at(-1)).toMatchObject({ sections: [{ parts: [{ text: "inside" }] }], outcome: { kind: "completed" } });
+  expect(view.status).not.toHaveProperty("activity");
 });

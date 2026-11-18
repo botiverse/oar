@@ -335,6 +335,18 @@ its own) and reads its answer:
 Coverage: [reducer cases](../../tests/withdraw-events.test.ts), one test per
 adapter, and the `session.withdraw-before-dispatch` sea-trial case.
 
+## Activity outside a turn
+
+`ViewMessage` includes `ViewActivity`: `{ kind: "activity", id, sections }`.
+It retains content and lane attribution when no prompt or verified native
+start has opened a turn. It has neither `openedBy` nor an outcome, and
+`SessionView.openTurn` remains `-1`. Hosts switching exhaustively on
+`ViewMessage.kind` must render this member. A new prompt or native start
+opens a separate turn; it does not adopt preceding activity. Late updates
+to a known tool still amend that tool in its original segment. An input
+inside an observed turn seals only its display segment, so subsequent
+content continues that same lifecycle in a new turn segment.
+
 ## Where an input enters the session view
 
 `reduceSessionView` ([chat UI](../design/chat-ui.md)) places each input in

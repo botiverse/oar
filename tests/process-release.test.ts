@@ -185,7 +185,8 @@ test("release leaves tool execution unknown and retains late evidence without re
   expect(a.session.records().slice(cursor).reduce((state, record) => reduceSessionView(state, record), structuredClone(before))).toEqual(after);
   expect(after.status).toEqual({ kind: "idle", released: true, lastTurnOutcome: { kind: "aborted" } });
   expect(after.pendingRequests).toEqual([]);
-  expect(after.messages.filter((message) => message.kind === "turn").map((turn) => turn.outcome)).toEqual([{ kind: "aborted" }, { kind: "completed" }, undefined]);
+  expect(after.messages.filter((message) => message.kind === "turn").map((turn) => turn.outcome)).toEqual([{ kind: "aborted" }, { kind: "completed" }]);
+  expect(after.messages.filter(message => message.kind === "activity")).toHaveLength(2);
   await Promise.all([a.session.dispose(), b.session.dispose()]);
 });
 

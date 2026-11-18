@@ -1,0 +1,892 @@
+[
+  {
+    "sample": "task298-transition-1510-late-cancel",
+    "version": "1.5.10",
+    "mode": "late-cancel",
+    "commandSeconds": 0.7,
+    "firstReadDelayMs": 0,
+    "adoptedAtMs": 1329.086192,
+    "firstReadAtMs": 1330.296789,
+    "readsBeforeHealth": 38,
+    "busyReadCount": 0,
+    "runningReadCount": 0,
+    "witnessedTransition": false,
+    "firstIdleAfterBusyAtMs": null,
+    "summaryChanges": [
+      {
+        "atMs": 1330.296789,
+        "row": null,
+        "error": null
+      },
+      {
+        "atMs": 1580.8657309999999,
+        "row": {
+          "status": "CASCADE_RUN_STATUS_IDLE",
+          "not_fully_idle": 0,
+          "step_count": 6,
+          "last_modified_time": "2026-11-18 15:16:07.959873821+00:00"
+        },
+        "error": null
+      }
+    ],
+    "rootUpdates": [
+      {
+        "atMs": 616.3797609999999,
+        "kind": "tool_call",
+        "status": "in_progress",
+        "text": null
+      },
+      {
+        "atMs": 1137.414632,
+        "kind": "agent_message_chunk",
+        "status": null,
+        "text": "STARTED"
+      },
+      {
+        "atMs": 1329.01203,
+        "kind": "tool_call_update",
+        "status": "completed",
+        "text": null
+      },
+      {
+        "atMs": 1376.48917,
+        "kind": "agent_message_chunk",
+        "status": null,
+        "text": "\n\nFOLLOWUP_FINISHED"
+      },
+      {
+        "atMs": 10697.433916,
+        "kind": "agent_message_chunk",
+        "status": null,
+        "text": "FOLLOWUP_FINISHED"
+      }
+    ],
+    "controls": [
+      {
+        "atMs": 1143.33905,
+        "kind": "session/prompt",
+        "value": {
+          "stopReason": "end_turn"
+        }
+      },
+      {
+        "atMs": 8144.390755,
+        "kind": "late_cancel_sent",
+        "value": null
+      },
+      {
+        "atMs": 10644.171107,
+        "kind": "health_prompt_start",
+        "value": null
+      },
+      {
+        "atMs": 10703.920843,
+        "kind": "session/prompt",
+        "value": {
+          "stopReason": "end_turn"
+        }
+      }
+    ],
+    "source": "artifacts/task298-transition-1510-late-cancel/capture.json"
+  },
+  {
+    "sample": "task298-transition-1510-normal",
+    "version": "1.5.10",
+    "mode": "normal",
+    "commandSeconds": 4,
+    "firstReadDelayMs": 0,
+    "adoptedAtMs": 4625.496349,
+    "firstReadAtMs": 4626.339328,
+    "readsBeforeHealth": 15,
+    "busyReadCount": 4,
+    "runningReadCount": 0,
+    "witnessedTransition": true,
+    "firstIdleAfterBusyAtMs": 5627.129214,
+    "summaryChanges": [
+      {
+        "atMs": 4626.339328,
+        "row": {
+          "status": "CASCADE_RUN_STATUS_IDLE",
+          "not_fully_idle": 1,
+          "step_count": 4,
+          "last_modified_time": "2026-11-18 15:15:44.075991562+00:00"
+        },
+        "error": null
+      },
+      {
+        "atMs": 5627.129214,
+        "row": {
+          "status": "CASCADE_RUN_STATUS_IDLE",
+          "not_fully_idle": 0,
+          "step_count": 6,
+          "last_modified_time": "2026-11-18 15:15:47.592587262+00:00"
+        },
+        "error": null
+      }
+    ],
+    "rootUpdates": [
+      {
+        "atMs": 613.749453,
+        "kind": "tool_call",
+        "status": "in_progress",
+        "text": null
+      },
+      {
+        "atMs": 1148.245617,
+        "kind": "agent_message_chunk",
+        "status": null,
+        "text": "STARTED"
+      },
+      {
+        "atMs": 4625.421928999999,
+        "kind": "tool_call_update",
+        "status": "completed",
+        "text": null
+      },
+      {
+        "atMs": 4664.317212999999,
+        "kind": "agent_message_chunk",
+        "status": null,
+        "text": "\n\nFOLLOWUP_FINISHED"
+      }
+    ],
+    "controls": [
+      {
+        "atMs": 1153.712928,
+        "kind": "session/prompt",
+        "value": {
+          "stopReason": "end_turn"
+        }
+      }
+    ],
+    "source": "artifacts/task298-transition-1510-normal/capture.json"
+  },
+  {
+    "sample": "task298-transition-1510-short-1",
+    "version": "1.5.10",
+    "mode": "normal",
+    "commandSeconds": 0.7,
+    "firstReadDelayMs": 0,
+    "adoptedAtMs": 1307.998275,
+    "firstReadAtMs": 1309.25025,
+    "readsBeforeHealth": 28,
+    "busyReadCount": 0,
+    "runningReadCount": 0,
+    "witnessedTransition": false,
+    "firstIdleAfterBusyAtMs": null,
+    "summaryChanges": [
+      {
+        "atMs": 1309.25025,
+        "row": null,
+        "error": null
+      },
+      {
+        "atMs": 1559.826198,
+        "row": {
+          "status": "CASCADE_RUN_STATUS_IDLE",
+          "not_fully_idle": 0,
+          "step_count": 6,
+          "last_modified_time": "2026-11-18 15:15:14.579628661+00:00"
+        },
+        "error": null
+      }
+    ],
+    "rootUpdates": [
+      {
+        "atMs": 597.185029,
+        "kind": "tool_call",
+        "status": "in_progress",
+        "text": null
+      },
+      {
+        "atMs": 1118.440233,
+        "kind": "agent_message_chunk",
+        "status": null,
+        "text": "STARTED"
+      },
+      {
+        "atMs": 1307.925129,
+        "kind": "tool_call_update",
+        "status": "completed",
+        "text": null
+      },
+      {
+        "atMs": 1351.0986019999998,
+        "kind": "agent_message_chunk",
+        "status": null,
+        "text": "\n\nFOLLOWUP_FINISHED"
+      }
+    ],
+    "controls": [
+      {
+        "atMs": 1127.5160429999999,
+        "kind": "session/prompt",
+        "value": {
+          "stopReason": "end_turn"
+        }
+      }
+    ],
+    "source": "artifacts/task298-transition-1510-short-1/capture.json"
+  },
+  {
+    "sample": "task298-transition-1510-short-2",
+    "version": "1.5.10",
+    "mode": "normal",
+    "commandSeconds": 0.7,
+    "firstReadDelayMs": 0,
+    "adoptedAtMs": 1280.878592,
+    "firstReadAtMs": 1281.982553,
+    "readsBeforeHealth": 28,
+    "busyReadCount": 0,
+    "runningReadCount": 0,
+    "witnessedTransition": false,
+    "firstIdleAfterBusyAtMs": null,
+    "summaryChanges": [
+      {
+        "atMs": 1281.982553,
+        "row": null,
+        "error": null
+      },
+      {
+        "atMs": 1532.940062,
+        "row": {
+          "status": "CASCADE_RUN_STATUS_IDLE",
+          "not_fully_idle": 0,
+          "step_count": 6,
+          "last_modified_time": "2026-11-18 15:15:24.375874924+00:00"
+        },
+        "error": null
+      }
+    ],
+    "rootUpdates": [
+      {
+        "atMs": 568.20643,
+        "kind": "tool_call",
+        "status": "in_progress",
+        "text": null
+      },
+      {
+        "atMs": 1089.937018,
+        "kind": "agent_message_chunk",
+        "status": null,
+        "text": "STARTED"
+      },
+      {
+        "atMs": 1280.82331,
+        "kind": "tool_call_update",
+        "status": "completed",
+        "text": null
+      },
+      {
+        "atMs": 1318.498499,
+        "kind": "agent_message_chunk",
+        "status": null,
+        "text": "\n\nFOLLOWUP_FINISHED"
+      }
+    ],
+    "controls": [
+      {
+        "atMs": 1093.114954,
+        "kind": "session/prompt",
+        "value": {
+          "stopReason": "end_turn"
+        }
+      }
+    ],
+    "source": "artifacts/task298-transition-1510-short-2/capture.json"
+  },
+  {
+    "sample": "task298-transition-1510-short-3",
+    "version": "1.5.10",
+    "mode": "normal",
+    "commandSeconds": 0.7,
+    "firstReadDelayMs": 0,
+    "adoptedAtMs": 1297.49168,
+    "firstReadAtMs": 1298.379065,
+    "readsBeforeHealth": 28,
+    "busyReadCount": 0,
+    "runningReadCount": 0,
+    "witnessedTransition": false,
+    "firstIdleAfterBusyAtMs": null,
+    "summaryChanges": [
+      {
+        "atMs": 1298.379065,
+        "row": null,
+        "error": null
+      },
+      {
+        "atMs": 1549.3871769999998,
+        "row": {
+          "status": "CASCADE_RUN_STATUS_IDLE",
+          "not_fully_idle": 0,
+          "step_count": 6,
+          "last_modified_time": "2026-11-18 15:15:34.217317097+00:00"
+        },
+        "error": null
+      }
+    ],
+    "rootUpdates": [
+      {
+        "atMs": 582.850085,
+        "kind": "tool_call",
+        "status": "in_progress",
+        "text": null
+      },
+      {
+        "atMs": 1106.331679,
+        "kind": "agent_message_chunk",
+        "status": null,
+        "text": "STARTED"
+      },
+      {
+        "atMs": 1297.423757,
+        "kind": "tool_call_update",
+        "status": "completed",
+        "text": null
+      },
+      {
+        "atMs": 1344.144303,
+        "kind": "agent_message_chunk",
+        "status": null,
+        "text": "\n\nFOLLOWUP_FINISHED"
+      }
+    ],
+    "controls": [
+      {
+        "atMs": 1115.263879,
+        "kind": "session/prompt",
+        "value": {
+          "stopReason": "end_turn"
+        }
+      }
+    ],
+    "source": "artifacts/task298-transition-1510-short-3/capture.json"
+  },
+  {
+    "sample": "task298-transition-1510-slow",
+    "version": "1.5.10",
+    "mode": "slow",
+    "commandSeconds": 4,
+    "firstReadDelayMs": 0,
+    "adoptedAtMs": 4636.720504,
+    "firstReadAtMs": 4637.659939,
+    "readsBeforeHealth": 30,
+    "busyReadCount": 20,
+    "runningReadCount": 16,
+    "witnessedTransition": true,
+    "firstIdleAfterBusyAtMs": 9657.34056,
+    "summaryChanges": [
+      {
+        "atMs": 4637.659939,
+        "row": {
+          "status": "CASCADE_RUN_STATUS_IDLE",
+          "not_fully_idle": 1,
+          "step_count": 4,
+          "last_modified_time": "2026-11-18 15:15:53.950013754+00:00"
+        },
+        "error": null
+      },
+      {
+        "atMs": 5640.2817749999995,
+        "row": {
+          "status": "CASCADE_RUN_STATUS_RUNNING",
+          "not_fully_idle": 1,
+          "step_count": 4,
+          "last_modified_time": "2026-11-18 15:15:53.950013754+00:00"
+        },
+        "error": null
+      },
+      {
+        "atMs": 9657.34056,
+        "row": {
+          "status": "CASCADE_RUN_STATUS_IDLE",
+          "not_fully_idle": 0,
+          "step_count": 6,
+          "last_modified_time": "2026-11-18 15:16:01.47583992+00:00"
+        },
+        "error": null
+      }
+    ],
+    "rootUpdates": [
+      {
+        "atMs": 625.1014069999999,
+        "kind": "tool_call",
+        "status": "in_progress",
+        "text": null
+      },
+      {
+        "atMs": 1147.823074,
+        "kind": "agent_message_chunk",
+        "status": null,
+        "text": "STARTED"
+      },
+      {
+        "atMs": 4636.681568,
+        "kind": "tool_call_update",
+        "status": "completed",
+        "text": null
+      },
+      {
+        "atMs": 8673.619337,
+        "kind": "agent_message_chunk",
+        "status": null,
+        "text": "\n\nFOLLOWUP_FINISHED"
+      }
+    ],
+    "controls": [
+      {
+        "atMs": 1153.821039,
+        "kind": "session/prompt",
+        "value": {
+          "stopReason": "end_turn"
+        }
+      }
+    ],
+    "source": "artifacts/task298-transition-1510-slow/capture.json"
+  },
+  {
+    "sample": "task298-transition-1511-late-cancel",
+    "version": "1.5.11",
+    "mode": "late-cancel",
+    "commandSeconds": 0.7,
+    "firstReadDelayMs": 0,
+    "adoptedAtMs": 1342.206204,
+    "firstReadAtMs": 1343.072754,
+    "readsBeforeHealth": 38,
+    "busyReadCount": 0,
+    "runningReadCount": 0,
+    "witnessedTransition": false,
+    "firstIdleAfterBusyAtMs": null,
+    "summaryChanges": [
+      {
+        "atMs": 1343.072754,
+        "row": null,
+        "error": null
+      },
+      {
+        "atMs": 1593.6419859999999,
+        "row": {
+          "status": "CASCADE_RUN_STATUS_IDLE",
+          "not_fully_idle": 0,
+          "step_count": 6,
+          "last_modified_time": "2026-11-18 15:16:08.83887246+00:00"
+        },
+        "error": null
+      }
+    ],
+    "rootUpdates": [
+      {
+        "atMs": 631.009118,
+        "kind": "tool_call",
+        "status": "in_progress",
+        "text": null
+      },
+      {
+        "atMs": 1150.309993,
+        "kind": "agent_message_chunk",
+        "status": null,
+        "text": "STARTED"
+      },
+      {
+        "atMs": 1342.162456,
+        "kind": "tool_call_update",
+        "status": "completed",
+        "text": null
+      },
+      {
+        "atMs": 1378.2242170000002,
+        "kind": "agent_message_chunk",
+        "status": null,
+        "text": "\n\nFOLLOWUP_FINISHED"
+      },
+      {
+        "atMs": 10708.067874999999,
+        "kind": "agent_message_chunk",
+        "status": null,
+        "text": "FOLLOWUP_FINISHED"
+      }
+    ],
+    "controls": [
+      {
+        "atMs": 1155.905447,
+        "kind": "session/prompt",
+        "value": {
+          "stopReason": "end_turn"
+        }
+      },
+      {
+        "atMs": 8158.4596759999995,
+        "kind": "late_cancel_sent",
+        "value": null
+      },
+      {
+        "atMs": 10659.545338999998,
+        "kind": "health_prompt_start",
+        "value": null
+      },
+      {
+        "atMs": 10715.274747,
+        "kind": "session/prompt",
+        "value": {
+          "stopReason": "end_turn"
+        }
+      }
+    ],
+    "source": "artifacts/task298-transition-1511-late-cancel/capture.json"
+  },
+  {
+    "sample": "task298-transition-1511-normal",
+    "version": "1.5.11",
+    "mode": "normal",
+    "commandSeconds": 4,
+    "firstReadDelayMs": 0,
+    "adoptedAtMs": 4625.196503,
+    "firstReadAtMs": 4626.258717000001,
+    "readsBeforeHealth": 15,
+    "busyReadCount": 4,
+    "runningReadCount": 0,
+    "witnessedTransition": true,
+    "firstIdleAfterBusyAtMs": 5628.864608000001,
+    "summaryChanges": [
+      {
+        "atMs": 4626.258717000001,
+        "row": {
+          "status": "CASCADE_RUN_STATUS_IDLE",
+          "not_fully_idle": 1,
+          "step_count": 4,
+          "last_modified_time": "2026-11-18 15:15:44.917303324+00:00"
+        },
+        "error": null
+      },
+      {
+        "atMs": 5628.864608000001,
+        "row": {
+          "status": "CASCADE_RUN_STATUS_IDLE",
+          "not_fully_idle": 0,
+          "step_count": 6,
+          "last_modified_time": "2026-11-18 15:15:48.441347974+00:00"
+        },
+        "error": null
+      }
+    ],
+    "rootUpdates": [
+      {
+        "atMs": 613.424427,
+        "kind": "tool_call",
+        "status": "in_progress",
+        "text": null
+      },
+      {
+        "atMs": 1140.0760970000001,
+        "kind": "agent_message_chunk",
+        "status": null,
+        "text": "STARTED"
+      },
+      {
+        "atMs": 4625.125765000001,
+        "kind": "tool_call_update",
+        "status": "completed",
+        "text": null
+      },
+      {
+        "atMs": 4663.84313,
+        "kind": "agent_message_chunk",
+        "status": null,
+        "text": "\n\nFOLLOWUP_FINISHED"
+      }
+    ],
+    "controls": [
+      {
+        "atMs": 1145.2586190000002,
+        "kind": "session/prompt",
+        "value": {
+          "stopReason": "end_turn"
+        }
+      }
+    ],
+    "source": "artifacts/task298-transition-1511-normal/capture.json"
+  },
+  {
+    "sample": "task298-transition-1511-short-1",
+    "version": "1.5.11",
+    "mode": "normal",
+    "commandSeconds": 0.7,
+    "firstReadDelayMs": 0,
+    "adoptedAtMs": 1341.62235,
+    "firstReadAtMs": 1342.4850040000001,
+    "readsBeforeHealth": 28,
+    "busyReadCount": 0,
+    "runningReadCount": 0,
+    "witnessedTransition": false,
+    "firstIdleAfterBusyAtMs": null,
+    "summaryChanges": [
+      {
+        "atMs": 1342.4850040000001,
+        "row": null,
+        "error": null
+      },
+      {
+        "atMs": 1592.994166,
+        "row": {
+          "status": "CASCADE_RUN_STATUS_IDLE",
+          "not_fully_idle": 0,
+          "step_count": 6,
+          "last_modified_time": "2026-11-18 15:15:15.723670008+00:00"
+        },
+        "error": null
+      }
+    ],
+    "rootUpdates": [
+      {
+        "atMs": 631.108674,
+        "kind": "tool_call",
+        "status": "in_progress",
+        "text": null
+      },
+      {
+        "atMs": 1151.9025189999998,
+        "kind": "agent_message_chunk",
+        "status": null,
+        "text": "STARTED"
+      },
+      {
+        "atMs": 1341.5678039999998,
+        "kind": "tool_call_update",
+        "status": "completed",
+        "text": null
+      },
+      {
+        "atMs": 1374.2791590000002,
+        "kind": "agent_message_chunk",
+        "status": null,
+        "text": "\n\nFOLLOWUP_FINISHED"
+      }
+    ],
+    "controls": [
+      {
+        "atMs": 1157.2920760000002,
+        "kind": "session/prompt",
+        "value": {
+          "stopReason": "end_turn"
+        }
+      }
+    ],
+    "source": "artifacts/task298-transition-1511-short-1/capture.json"
+  },
+  {
+    "sample": "task298-transition-1511-short-2",
+    "version": "1.5.11",
+    "mode": "normal",
+    "commandSeconds": 0.7,
+    "firstReadDelayMs": 0,
+    "adoptedAtMs": 1282.253627,
+    "firstReadAtMs": 1283.1734040000001,
+    "readsBeforeHealth": 28,
+    "busyReadCount": 0,
+    "runningReadCount": 0,
+    "witnessedTransition": false,
+    "firstIdleAfterBusyAtMs": null,
+    "summaryChanges": [
+      {
+        "atMs": 1283.1734040000001,
+        "row": null,
+        "error": null
+      },
+      {
+        "atMs": 1533.934064,
+        "row": {
+          "status": "CASCADE_RUN_STATUS_IDLE",
+          "not_fully_idle": 0,
+          "step_count": 6,
+          "last_modified_time": "2026-11-18 15:15:25.474337441+00:00"
+        },
+        "error": null
+      }
+    ],
+    "rootUpdates": [
+      {
+        "atMs": 571.4653720000001,
+        "kind": "tool_call",
+        "status": "in_progress",
+        "text": null
+      },
+      {
+        "atMs": 1092.8217280000001,
+        "kind": "agent_message_chunk",
+        "status": null,
+        "text": "STARTED"
+      },
+      {
+        "atMs": 1282.209146,
+        "kind": "tool_call_update",
+        "status": "completed",
+        "text": null
+      },
+      {
+        "atMs": 1317.6423,
+        "kind": "agent_message_chunk",
+        "status": null,
+        "text": "\n\nFOLLOWUP_FINISHED"
+      }
+    ],
+    "controls": [
+      {
+        "atMs": 1098.393395,
+        "kind": "session/prompt",
+        "value": {
+          "stopReason": "end_turn"
+        }
+      }
+    ],
+    "source": "artifacts/task298-transition-1511-short-2/capture.json"
+  },
+  {
+    "sample": "task298-transition-1511-short-3",
+    "version": "1.5.11",
+    "mode": "normal",
+    "commandSeconds": 0.7,
+    "firstReadDelayMs": 0,
+    "adoptedAtMs": 1287.17209,
+    "firstReadAtMs": 1287.9754859999998,
+    "readsBeforeHealth": 28,
+    "busyReadCount": 0,
+    "runningReadCount": 0,
+    "witnessedTransition": false,
+    "firstIdleAfterBusyAtMs": null,
+    "summaryChanges": [
+      {
+        "atMs": 1287.9754859999998,
+        "row": null,
+        "error": null
+      },
+      {
+        "atMs": 1538.3307170000003,
+        "row": {
+          "status": "CASCADE_RUN_STATUS_IDLE",
+          "not_fully_idle": 0,
+          "step_count": 6,
+          "last_modified_time": "2026-11-18 15:15:35.312144811+00:00"
+        },
+        "error": null
+      }
+    ],
+    "rootUpdates": [
+      {
+        "atMs": 574.0585669999999,
+        "kind": "tool_call",
+        "status": "in_progress",
+        "text": null
+      },
+      {
+        "atMs": 1096.2832320000002,
+        "kind": "agent_message_chunk",
+        "status": null,
+        "text": "STARTED"
+      },
+      {
+        "atMs": 1287.1239890000002,
+        "kind": "tool_call_update",
+        "status": "completed",
+        "text": null
+      },
+      {
+        "atMs": 1333.1942130000002,
+        "kind": "agent_message_chunk",
+        "status": null,
+        "text": "\n\nFOLLOWUP_FINISHED"
+      }
+    ],
+    "controls": [
+      {
+        "atMs": 1101.8698410000002,
+        "kind": "session/prompt",
+        "value": {
+          "stopReason": "end_turn"
+        }
+      }
+    ],
+    "source": "artifacts/task298-transition-1511-short-3/capture.json"
+  },
+  {
+    "sample": "task298-transition-1511-slow",
+    "version": "1.5.11",
+    "mode": "slow",
+    "commandSeconds": 4,
+    "firstReadDelayMs": 0,
+    "adoptedAtMs": 4634.512859,
+    "firstReadAtMs": 4635.343172,
+    "readsBeforeHealth": 30,
+    "busyReadCount": 20,
+    "runningReadCount": 16,
+    "witnessedTransition": true,
+    "firstIdleAfterBusyAtMs": 9657.02044,
+    "summaryChanges": [
+      {
+        "atMs": 4635.343172,
+        "row": {
+          "status": "CASCADE_RUN_STATUS_IDLE",
+          "not_fully_idle": 1,
+          "step_count": 4,
+          "last_modified_time": "2026-11-18 15:15:54.772570125+00:00"
+        },
+        "error": null
+      },
+      {
+        "atMs": 5635.674256,
+        "row": {
+          "status": "CASCADE_RUN_STATUS_RUNNING",
+          "not_fully_idle": 1,
+          "step_count": 4,
+          "last_modified_time": "2026-11-18 15:15:54.772570125+00:00"
+        },
+        "error": null
+      },
+      {
+        "atMs": 9657.02044,
+        "row": {
+          "status": "CASCADE_RUN_STATUS_IDLE",
+          "not_fully_idle": 0,
+          "step_count": 6,
+          "last_modified_time": "2026-11-18 15:16:02.299923438+00:00"
+        },
+        "error": null
+      }
+    ],
+    "rootUpdates": [
+      {
+        "atMs": 623.1754530000001,
+        "kind": "tool_call",
+        "status": "in_progress",
+        "text": null
+      },
+      {
+        "atMs": 1144.6402209999999,
+        "kind": "agent_message_chunk",
+        "status": null,
+        "text": "STARTED"
+      },
+      {
+        "atMs": 4634.472424,
+        "kind": "tool_call_update",
+        "status": "completed",
+        "text": null
+      },
+      {
+        "atMs": 8671.918237000002,
+        "kind": "agent_message_chunk",
+        "status": null,
+        "text": "\n\nFOLLOWUP_FINISHED"
+      }
+    ],
+    "controls": [
+      {
+        "atMs": 1150.646483,
+        "kind": "session/prompt",
+        "value": {
+          "stopReason": "end_turn"
+        }
+      }
+    ],
+    "source": "artifacts/task298-transition-1511-slow/capture.json"
+  }
+]

@@ -90,3 +90,17 @@ test.each(["claude", "codex", "pi"])("%s native activity preserves an existing p
   `);
   expect(viewOf(kernel.records()).messages.filter((message) => message.kind === "turn")).toHaveLength(1);
 });
+
+// Content preceding the native start stays outside its turn, even on a full replay.
+test.each(["claude", "codex", "pi"])("%s native start does not adopt preceding content", runtime => {
+  const kernel = createSessionKernel("root");
+  kernel.frame({ type: "early", native: {}, events: [{ kind: "text_delta", text: "outside" }] });
+  expect(statusOf(kernel.records(), "root").value.kind).toBe("idle");
+  kernel.frame(nativeStart(runtime));
+  kernel.frame({ type: "inside", native: {}, events: [{ kind: "text_delta", text: "inside" }] });
+  const view = viewOf(kernel.records());
+  expect(view.messages.map(message => message.kind)).toEqual(["activity", "turn"]);
+  expect(view.messages.at(-1)).toMatchObject({ sections: [{ parts: [{ text: "inside" }] }] });
+  expect(view.status.kind).toBe("running");
+  expect(view.status).not.toHaveProperty("activity");
+});

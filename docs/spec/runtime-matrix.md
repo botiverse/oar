@@ -258,7 +258,14 @@ activity keeps its own attribution and never starts the root turn. Other
 adapters do not yet emit `turn_active`. OpenCode 2.3.0 runs a root reply of
 its own after a background child's report, but ACP exposes neither its start
 nor its end, so neither `turn_active` nor `turn_ended` is mapped for it
-([known gap](../runtimes/opencode.md#v2-session-behavior)).
+([known gap](../runtimes/opencode.md#v2-session-behavior)). Antigravity
+1.5.10 and 1.5.11 also deliver unsolicited content without an ACP start/end
+pair ([controls](../../experiments/antigravity-active-turns/README.md)).
+For these and every adapter without a verified lifecycle mapping, content
+stays outside-turn activity, with idle status and no open view turn.
+This states the OAR mapping, not that a runtime cannot expose another native
+lifecycle source. The nine mapped starts above still open real turns;
+preceding activity is never adopted retroactively.
 
 ## Tool outcomes
 

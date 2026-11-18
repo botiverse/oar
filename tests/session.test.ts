@@ -247,10 +247,10 @@ test("reduceStatus: a tool call ending after its turn ended keeps the session id
     event([{ kind: "turn_ended", outcome: { kind: "completed" } }], { receivedAt: 2 }),
     event([{ kind: "tool_call_ended", callId: "bg" }], { receivedAt: 3 }),
   ];
-  expect(statusOf(records).value).toEqual({ kind: "idle", lastTurnOutcome: { kind: "completed" } });
-  expect(reduceStatus(initialStatus, event([{ kind: "tool_call_ended", callId: "bg" }]))).toEqual(initialStatus);
-  // A tool start while idle still adopts a turn the stream did not open.
-  expect(statusOf([...records, event([{ kind: "tool_call_started", callId: "c2", tool: "bash" }], { receivedAt: 4 })]).value.kind).toBe("running");
+  expect(statusOf(records).value).toEqual({ kind: "idle", lastTurnOutcome: { kind: "completed" }, activity: { since: 3, lastEventAt: 3 } });
+  expect(reduceStatus(initialStatus, event([{ kind: "tool_call_ended", callId: "bg" }]))).toEqual({ kind: "idle", activity: { since: 0, lastEventAt: 0 } });
+  // A tool start without a turn start records activity without adopting a turn.
+  expect(statusOf([...records, event([{ kind: "tool_call_started", callId: "c2", tool: "bash" }], { receivedAt: 4 })]).value).toEqual({ kind: "idle", lastTurnOutcome: { kind: "completed" }, activity: { since: 3, lastEventAt: 4 } });
 });
 
 test("coalesceText keeps two assistant messages apart by messageId", () => {
@@ -271,9 +271,9 @@ test("coalesceText keeps two assistant messages apart by messageId", () => {
 test.each(["completed", "aborted", "failed"] satisfies ("completed" | "aborted" | "failed")[])("compaction ending %s outside a turn keeps idle and its last outcome", async (outcome) => {
   const { initialStatus, reduceStatus, statusOf } = await import("../packages/oar/src/observe/agent-status.js");
   const boundary = event([{ kind: "compaction_ended", outcome, trigger: "auto" }]);
-  expect(reduceStatus(initialStatus, boundary)).toEqual(initialStatus);
+  expect(reduceStatus(initialStatus, boundary)).toEqual({ kind: "idle", activity: { since: 0, lastEventAt: 0 } });
   const ended = event([{ kind: "turn_ended", outcome: { kind: "completed" } }]);
   const idle = reduceStatus(initialStatus, ended);
-  expect(reduceStatus(idle, boundary)).toEqual(idle);
-  expect(statusOf([ended, boundary]).value).toEqual(idle);
+  expect(reduceStatus(idle, boundary)).toEqual({ ...idle, activity: { since: 0, lastEventAt: 0 } });
+  expect(statusOf([ended, boundary]).value).toEqual({ ...idle, activity: { since: 0, lastEventAt: 0 } });
 });

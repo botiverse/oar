@@ -7,19 +7,19 @@ import type { ViewPart, ViewSection } from "./session-view.js";
  * or a native tool end time. Inputs may have split the turn into segments;
  * walk back to its prompt, the preceding outcome, or the preceding exit.
  */
-export function endRootTools(draft: Draft, sessionId: string, allTurns = false): void {
+export function endRootTools(draft: Draft, sessionId: string, allActivity = false): void {
   for (let index = draft.messages.length - 1; index >= 0; index -= 1) {
     const message = draft.messages[index];
     if (message?.kind === "notice" && message.notice.cause === "exited") { break; }
-    if (message?.kind !== "turn") { continue; }
+    if (message?.kind !== "turn" && !(allActivity && message?.kind === "activity")) { continue; }
     // The record fold may already have stamped this segment's exit outcome.
-    if (!allTurns && index !== draft.openTurn && message.outcome !== undefined) { break; }
+    if (!allActivity && message.kind === "turn" && index !== draft.openTurn && message.outcome !== undefined) { break; }
     const sections = message.sections.map((section) => endRootSectionTools(section, sessionId));
     if (sections.some((section, s) => section !== message.sections[s])) {
       draft.messages[index] = { ...message, sections };
       if (index === draft.openTurn) { draft.turn = null; }
     }
-    if (!allTurns && message.openedBy !== undefined) { break; }
+    if (!allActivity && message.kind === "turn" && message.openedBy !== undefined) { break; }
   }
 }
 
@@ -89,7 +89,7 @@ export function elidedMark(event: Event): Pick<ToolPart, "elided"> {
 function replaceToolPart(draft: Draft, event: ToolUpdate | ToolInput, next: (part: ToolPart) => ToolPart): boolean {
   for (let m = draft.messages.length - 1; m >= 0; m -= 1) {
     const message = draft.messages[m];
-    if (message?.kind !== "turn") {
+    if (message?.kind !== "turn" && message?.kind !== "activity") {
       continue;
     }
     for (let s = message.sections.length - 1; s >= 0; s -= 1) {

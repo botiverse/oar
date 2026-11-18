@@ -241,15 +241,29 @@ Further rules:
   reconstruct the original key. Split text, tool-input or tool-output deltas are outside
   this guarantee. This rule neither buffers the live stream nor rewrites
   previously delivered fragments.
-- **Native activity can precede this controller.** A runtime frame can report
-  `turn_active` without a prompt request. It adopts an idle root as running,
-  with no invented request id, and preserves the phase of an already running
-  turn. The session view opens at most one turn across a prompt request
-  (`turn_started`) and its native activity report. Only a native completion
-  report supplies `turn_ended`. A `tool_call_ended` does not adopt an idle
-  root either, nor count as native activity for a pending prompt: a call can
-  end after its turn did (Codex reports a background terminal session's
-  completion with no turn open). The event is still recorded and delivered.
+- **Starts establish turns; content alone does not.** A prompt request opens
+  a provisional turn. A verified native `turn_active` can open a turn without
+  inventing a request or input id. The adapter also adopts that operation in
+  its controller, so status, prompt admission and abort refer to the same
+  turn. A native start preserves an already-running turn's phase.
+  Root text, reasoning, tools, retries and automatic-compaction content
+  outside a tracked turn remain recorded and delivered, but leave status
+  idle. Idle status exposes `activity: { since, lastEventAt }`, both epoch
+  milliseconds from the content records' `receivedAt`. The first such
+  record sets `since`; later root content updates `lastEventAt`. Metadata
+  and child content do not set this marker. It records observed activity,
+  not proof that native work is still running, and clears on the next
+  admitted turn start or process exit. A late tool update can still amend
+  its original entry without reopening the ended turn.
+  The session view uses `kind: "activity"` for content with no tracked turn;
+  it has no turn outcome and does not occupy `openTurn`. A later prompt or
+  native start opens a new turn without moving preceding activity into it.
+  A sliced log without its start also produces activity: retain the start
+  or restore the complete reducer checkpoint to recover its live turn.
+  Only a native completion report supplies `turn_ended`; silence is never
+  completion. Outside-turn activity produces no running-turn stall.
+  `abort()` returning `no_active_turn` means no controllable turn was
+  adopted, not that the native process has no background work.
 - **Control never prunes facts.** There is no settled-gate anywhere:
   whatever the runtime said must enter the stream, even if it lands after a
   span has ended.

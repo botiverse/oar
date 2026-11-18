@@ -1,8 +1,8 @@
 /* oxlint-disable eslint/max-lines-per-function, eslint/max-statements -- Each replay is one regression with its complete record assertions. */
 import assert from "node:assert/strict";
-import { setTimeout as delay } from "node:timers/promises";
 import { expect, test } from "vitest";
 import { awaitIdle, promptAndWait, statusOf } from "../../packages/oar/src/observe/index.js";
+import { viewOf } from "../../packages/oar/src/observe/session-view.js";
 import { opencodeBackgroundChildProfile } from "../../packages/oar/src/runtimes/opencode/session.js";
 import { eventsOf, frames, notificationsOf, replay, wireOf, type ReplayedRun, type WireFrame } from "../fixtures/opencode-background-replay.js";
 
@@ -40,7 +40,7 @@ async function ownReply(session: Replayed) {
   return reply;
 }
 
-test("2.3.0 replay: the parent's own reply has no native start or end, so status stays running and a later prompt is still admitted", async () => {
+test("2.3.0 replay: the parent's own reply has no native start or end, so it stays activity and a later prompt is admitted", async () => {
   const { session, cleanup } = await replay(opencodeBackgroundChildProfile, "enabled-followup.json", withFollowUp());
   try {
     const reply = await ownReply(session);
@@ -61,63 +61,34 @@ test("2.3.0 replay: the parent's own reply has no native start or end, so status
       }
     `);
     expect(reply.body.events).toEqual([{ kind: "text_delta", text: "ANSWER_A_child" }]);
-    // The fold adopts it as a running turn with no request or input identity; nothing native ends it.
-    expect(session.status().value).toEqual({ kind: "running", phase: "responding", sinceSeq: reply.seq, lastEventAt: reply.receivedAt });
-    // The wait and a when_idle delivery stay pending through the reply: drain scheduled work, then look.
-    const settled: { afterSeq?: number } = {};
-    const idle = (async () => {
-      const outcome = await awaitIdle(session);
-      settled.afterSeq = session.records().at(-1)?.seq ?? -1;
-      return outcome;
-    })();
-    const whenIdle = session.deliver("ACP_SHARE_A_when_idle", { when: "when_idle" });
-    await delay(50);
-    expect(settled.afterSeq).toBeUndefined();
-    expect(session.records().filter((record) => record.kind === "request" && record.body.kind === "prompt")).toHaveLength(1);
-    // OAR's turn driver has no open turn (no OpenCode profile maps runtime turns), so a prompt is
-    // admitted although status says running: the documented exception to status and admission agreeing.
+    expect(session.status().value).toEqual({ kind: "idle", lastTurnOutcome: { kind: "completed" }, activity: { since: reply.receivedAt, lastEventAt: reply.receivedAt } });
+    expect(viewOf(session.records()).messages.at(-1)).toMatchObject({ kind: "activity" });
+    expect(await awaitIdle(session)).toBeNull();
+    const abort = await session.abort();
+    expect(abort.response.body).toMatchObject({ kind: "rejected", code: "no_active_turn" });
     const before = session.records().length;
     const followUp = await promptAndWait(session, "ACP_SHARE_A_followup");
     expect(followUp.kind).toBe("ended");
-    const request = session.records().slice(before).find((record) => record.kind === "request");
-    assert.ok(request?.kind === "request" && request.body.kind === "prompt");
-    expect(statusOf(session.records().filter((record) => record.seq <= request.seq), "session-1").value.kind).toBe("running");
-    const admitted = session.records().find((record) => record.kind === "response" && record.requestId === request.id);
-    expect(admitted?.kind === "response" ? admitted.body.kind : null).toBe("accepted");
-    // Only the follow-up's own native answer returns the root to idle and settles the idle wait.
-    const end = frames(session.records(), "session-1").find((record) => record.seq > request.seq && record.body.events.some((event) => event.kind === "turn_ended"));
-    assert.ok(end !== undefined);
-    expect(statusOf(session.records().filter((record) => record.seq < end.seq), "session-1").value.kind).toBe("running");
-    expect(await idle).toEqual({ kind: "completed" });
-    expect(settled.afterSeq ?? -1).toBeGreaterThanOrEqual(end.seq);
-    // The when_idle delivery is dispatched only once the follow-up's native end made the root idle.
-    await expect.poll(() => session.records().filter((record) => record.kind === "request" && record.body.kind === "prompt").length).toBe(3);
-    const dispatched = session.records().findLast((record) => record.kind === "request" && record.body.kind === "prompt");
-    assert.ok(dispatched !== undefined);
-    expect(dispatched.seq).toBeGreaterThan(end.seq);
-    void whenIdle;
+    const request = session.records().slice(before).find(record => record.kind === "request" && record.body.kind === "prompt");
+    assert.ok(request?.kind === "request");
+    expect(statusOf(session.records().filter(record => record.seq <= request.seq), "session-1").value.kind).toBe("running");
+    expect(session.status().value).toEqual({ kind: "idle", lastTurnOutcome: { kind: "completed" } });
+    expect(viewOf(session.records()).messages.filter(message => message.kind === "activity")).toHaveLength(1);
   } finally {
     await cleanup();
   }
 });
 
-test("2.3.0 replay: deliver during the parent's own reply sends no steer and queues, and the adapter queue sends it at once because no OAR turn is open", async () => {
+test.each(["when_idle", "now"] as const)("2.3.0 replay: %s delivery during outside-turn activity prompts without a steer or queue", async when => {
   const { session, cleanup } = await replay(opencodeBackgroundChildProfile, "enabled-followup.json", withFollowUp());
   try {
     await ownReply(session);
-    expect(session.status().value.kind).toBe("running");
-    // The recorded initialize advertises `_session/steering`, so the session has `steer`. With no
-    // OAR turn open, deliver's steer is refused `no_active_turn` before any native request.
-    expect(typeof session.steer).toBe("function");
-    const delivered = await session.deliver("ACP_SHARE_A_followup");
-    expect(delivered.landed).toBe("queued");
-    const steer = session.records().find((record) => record.kind === "request" && record.body.kind === "steer");
-    assert.ok(steer?.kind === "request");
-    expect(session.records().find((record) => record.kind === "response" && record.requestId === steer.id)?.body).toMatchObject({ kind: "rejected", code: "no_active_turn" });
-    expect(session.records().some((record) => record.kind === "frame" && record.body.type.startsWith("_session/steering"))).toBe(false);
+    expect(session.status().value.kind).toBe("idle");
+    const delivered = await session.deliver("ACP_SHARE_A_followup", when === "when_idle" ? { when } : {});
+    expect(delivered.landed).toBe("prompted");
+    expect(session.records().some(record => record.kind === "request" && (record.body.kind === "steer" || record.body.kind === "queue"))).toBe(false);
     expect(await awaitIdle(session)).toEqual({ kind: "completed" });
-    const prompts = session.records().flatMap((record) => record.kind === "request" && record.body.kind === "prompt" ? [record.body.carries] : []);
-    expect(prompts).toEqual([undefined, [delivered.inputId]]);
+    expect(session.records().filter(record => record.kind === "request" && record.body.kind === "prompt")).toHaveLength(2);
   } finally {
     await cleanup();
   }

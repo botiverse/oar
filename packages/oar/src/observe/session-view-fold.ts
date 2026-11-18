@@ -101,6 +101,12 @@ interface MutableTurn {
   outcome?: TurnOutcome;
 }
 
+interface MutableActivity {
+  readonly kind: "activity";
+  readonly id: string;
+  sections: ViewSection[];
+}
+
 interface MutableSection {
   readonly sessionId: string;
   readonly agentPath: readonly string[];
@@ -132,6 +138,26 @@ export function turnForWrite(draft: Draft): MutableTurn | null {
   return draft.turn;
 }
 
+/** The current content segment, without creating or adopting a turn. */
+export function contentForWrite(draft: Draft): MutableTurn | MutableActivity | null {
+  if (draft.openTurn !== -1) { return turnForWrite(draft); }
+  const last = draft.messages.at(-1);
+  if (last?.kind !== "activity") { return null; }
+  const clone: MutableActivity = { ...last, sections: [...last.sections] };
+  draft.messages[draft.messages.length - 1] = clone;
+  return clone;
+}
+
+/** Inputs seal display segments without ending the observed lifecycle. */
+function continuesTurn(draft: Draft): boolean {
+  for (let index = draft.messages.length - 1; index >= 0; index -= 1) {
+    const message = draft.messages[index];
+    if (message?.kind === "notice" && (message.notice.cause === "exited" || message.notice.cause === "released")) { return false; }
+    if (message?.kind === "turn") { return message.outcome === undefined; }
+  }
+  return false;
+}
+
 export function beginTurn(draft: Draft, id: string, openedBy?: string): void {
   const turn: MutableTurn = {
     kind: "turn",
@@ -159,7 +185,7 @@ export function sealTurn(draft: Draft): void {
 
 /** The last section of the open turn when it matches the lane, else a new one. */
 function sectionFor(draft: Draft, sessionId: string, agentPath: readonly string[]): MutableSection | null {
-  const turn = turnForWrite(draft);
+  const turn = contentForWrite(draft);
   if (turn === null) {
     return null;
   }
@@ -174,10 +200,13 @@ function sectionFor(draft: Draft, sessionId: string, agentPath: readonly string[
   return created;
 }
 
-/** Open a segment when none is running, then give the event's lane. */
+/** Keep content in its turn, its continued segment, or explicit outside-turn activity. */
 export function laneFor(draft: Draft, event: Event, streamId: string): MutableSection | null {
   if (draft.openTurn === -1) {
-    beginTurn(draft, `turn:${streamId}:${event.sessionId}:${event.seq}`);
+    if (continuesTurn(draft)) { beginTurn(draft, `turn:${streamId}:${event.sessionId}:${event.seq}`); }
+    else if (draft.messages.at(-1)?.kind !== "activity") {
+      draft.messages.push({ kind: "activity", id: `activity:${streamId}:${event.sessionId}:${event.seq}`, sections: [] });
+    }
   }
   return sectionFor(draft, event.sessionId, event.agentPath);
 }
@@ -192,7 +221,7 @@ type AppRequestPart = Extract<ViewPart, { kind: "app_request" }>;
 export function updateRequestPart(draft: Draft, requestId: string, change: (part: AppRequestPart) => AppRequestPart): void {
   for (let m = draft.messages.length - 1; m >= 0; m -= 1) {
     const message = draft.messages[m];
-    if (message?.kind !== "turn") {
+    if (message?.kind !== "turn" && message?.kind !== "activity") {
       continue;
     }
     for (let s = 0; s < message.sections.length; s += 1) {

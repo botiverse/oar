@@ -107,13 +107,14 @@ test("2.3.0 replay: the declared capability delivers background child text and c
       ]
     `);
     // Child records after the parent's end leave the root idle. The root's own later reply
-    // (the parent model answering the native completion report) is a separate native turn
-    // with no ACP end, and only it makes the existing status fold adopt a running turn.
+    // (the parent model answering the native completion report) has no mapped lifecycle.
+    // It remains outside-turn activity without changing the root to running.
     const rootWake = frames(records, "session-1").at(-1);
     assert.ok(rootWake !== undefined && rootWake.seq > completed.seq);
     expect(statusOf(records.filter((record) => record.seq !== rootWake.seq), "session-1").value.kind).toBe("idle");
     expect(statusOf(records, "session-1").value).toEqual(session.status().value);
-    expect(session.status().value.kind).toBe("running");
+    expect(session.status().value.kind).toBe("idle");
+    expect(session.status().value).toHaveProperty("activity");
     const seen: string[] = [];
     session.events((event) => { if (event.sessionId === "session-2" && event.kind === "text_delta") { seen.push(event.text); } }, { cursor: { sessionId: "session-1", afterSeq: -1 } })();
     expect(seen).toEqual(["ANSWER_A_childreply"]);

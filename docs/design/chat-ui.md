@@ -32,7 +32,7 @@ derived from it later if reach ever outranks fidelity.
 `@botiverse/oar/observe` ships the projection; it uses no Node API and no UI
 framework:
 
-- `SessionView`: `messages` (inputs and turn segments, each turn holding per
+- `SessionView`: `messages` (inputs, turn segments and outside-turn activity, each content segment holding per
   lane sections and parts), `pendingInputs` (steered or queued inputs the
   runtime has not taken yet; a withdrawn one leaves it), `openTurn`, `status`, `model`, `effort`,
   `context`, `usage`, `usageByAgent`, `pendingRequests`, `exited`, and the
@@ -57,10 +57,10 @@ stays pure, replayable from a recorded log, and testable without a DOM.
 | `text_delta`, `reasoning` | named text and readable reasoning rejoin their existing part of the same kind, lane and `messageId` anywhere in the current turn segment; sections retain first-appearance order. An input seal prevents joining across segments. Content without `messageId` keeps stream order and can still fragment across interleaved lanes; `redacted` and `empty` reasoning remain separate lifecycle-only parts ([grouping contract](../spec/conversation.md#session-view-message-grouping)) |
 | `tool_call_started` / `input_delta` / `input` / `progress` / `ended` | one tool part per lane and call id, settled where its start landed even after the turn ended; an end without a start still renders. `tool_call_input_delta` appends raw text to `input` and sets `inputPartial: true`; no partial JSON parsing. `tool_call_input` replaces the whole input and removes the flag, leaving its result state alone. An interrupted call may retain partial input. The end copies `content` and `exitCode` as the runtime reported them (absent when it reported none, never derived from `result` or output; a non-zero code leaves `result` alone). `startedAt` / `endedAt` are the `receivedAt` of the start and end records (epoch ms): when OAR observed them, not a time the runtime reported, and only those it saw (a running call has no `endedAt`; an end without a start has no `startedAt`), as `tasksOf` does |
 | `turn_ended` of the root agent in the root session | seals the turn segment and stamps its outcome; unresolved root tools in this turn become `ended`. A child agent's or session's end is a notice and never closes the root turn |
-| `compaction_started` / `ended`, `retry` | notice parts inside the running turn |
+| `compaction_started` / `ended`, `retry` | notice parts in the current turn or outside-turn activity |
 | `app_request` / `app_answered` / `app_request_cancelled` | a `pendingRequests` entry and an actionable part carrying the native body, then settled: answered, or `cancelled` when the runtime withdrew it; the exit empties `pendingRequests`. `appRequestKind(type)` tells an approval, a question and a call the adapter serves itself apart (`unknown` otherwise); `appRequestText(type, body)` gives the words of the ask |
 | `control_rejected` | a rejected prompt removes its empty turn; a rejected steer, queue or abort adds a notice, as does a refused withdraw of an input the view never held |
-| root `exited` | `exited` set and a notice; the record fold closes the running turn as `aborted` after its accepted abort or dispose request, otherwise `failed: runtime_exited`. Flat events alone lack stop acceptance, so do not assign a turn outcome. Both paths mark this turn's unresolved root tools `ended`. Child exits are lane notices only |
+| root `exited` | `exited` set and a notice; the record fold closes the running turn as `aborted` after its accepted abort or dispose request, otherwise `failed: runtime_exited`. Flat events alone lack stop acceptance, so do not assign a turn outcome. Both paths mark unresolved root tools, including outside-turn activity, `ended`. Child exits are lane notices only |
 | `user_message` | folds into the input's observations, never a second bubble. The first echo of a waiting steer or queue moves it from `pendingInputs` into `messages` there and seals the open segment: the input sits where the runtime took it, so replies to earlier input come before it. An unechoed input stays pending; neither a turn end nor text matching places it |
 | `usage`, `model`, `effort` | the matching view fields |
 
@@ -109,9 +109,10 @@ input still held by OAR can be withdrawn, edited or sent now (Commands).
 ## What this position refuses
 
 - **No synthesized boundaries.** A turn opens on its prompt request or on the
-  first event of an adopted turn (queued input, a mid-turn subscriber), the
-  rule `reduceStatus` follows. A tool call's end never adopts one for status:
-  it can arrive after its own turn ended. Sub-agent sections come from observed lanes
+  verified native `turn_active`, the rule `reduceStatus` follows. Bare content
+  becomes an explicit `ViewActivity` (`kind: "activity"`, `id`, `sections`),
+  with no outcome or `openTurn`. Sliced logs need their start or a checkpoint
+  to recover the running turn. A tool update can amend an earlier entry. Sub-agent sections come from observed lanes
   and message IDs, never an invented start event. A steer enters the transcript
   at the runtime's own echo, never at a position guessed from a turn end;
   whether a stream echoes is read off the stream, never off a runtime name.

@@ -61,6 +61,19 @@ Implementation: [profile](../../packages/oar/src/runtimes/antigravity/session.ts
 [turn handling](../../packages/oar/src/shared/acp/turns.ts) and
 [projection](../../packages/oar/src/shared/acp/projection.ts).
 
+## Unsolicited activity in CLI 1.5.10 and 1.5.11
+
+[Isolated local-provider controls](../../experiments/antigravity-active-turns/README.md)
+received background tool completion and subsequent model output after the
+prompt's `end_turn`, with no further ACP lifecycle boundary. OAR retains
+that content as outside-turn activity. Status stays idle with activity
+timestamps, the view opens no turn, and abort returns `no_active_turn`.
+The activity marker is not proof that the native work remains running.
+A 1.5.11 control sent a new prompt during agy's own command: native received
+and followed its new instruction; preceding activity stayed separate.
+Internal database observations remain experimental because short busy
+states can be missed and fully idle alone does not classify the outcome.
+
 ## Known gaps in CLI 1.5.9
 
 The [Linux local-provider experiment](../../experiments/antigravity-native-gaps-2026-11-15/README.md)

@@ -25,6 +25,7 @@ const settings = { modelId: "gpt-6.1-sol", reasoningEffort: "high", autonomyLeve
 let running = null;
 /** A steer that missed its turn's end, waiting to run as its own turn. */
 let missed = null;
+let unsolicited = false;
 
 function endTurn(reason = "completed") {
   if (running === null) { return; }
@@ -114,6 +115,13 @@ input.on("line", (line) => {
       endTurn("cancelled");
       return;
     case "droid.get_context_stats":
+      if (mode === "content-before-start" && !unsolicited) {
+        unsolicited = true;
+        note({ type: "assistant_text_delta", messageId: "outside", blockIndex: 0, textDelta: "outside" });
+        note({ type: "droid_working_state_changed", newState: "streaming_assistant_message" });
+        note({ type: "assistant_text_delta", messageId: "inside", blockIndex: 0, textDelta: "inside" });
+        note({ type: "agent_turn_completed", reason: "completed", turnId: "native" });
+      }
       if (mode === "noisy") { write({ type: "response", id: message.id, error: { code: -32_603, message: "context unavailable" } }); return; }
       reply({ used: 10, remaining: 90, limit: 100, accuracy: "estimated", updatedAt: new Date().toISOString() });
       return;

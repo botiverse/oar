@@ -1,0 +1,398 @@
+{
+  "version": "1.5.11",
+  "promptedAt": 1795016113676,
+  "newInstructionSeen": true,
+  "mainRequests": 4,
+  "beforeStatus": {
+    "kind": "idle",
+    "lastTurnOutcome": {
+      "kind": "completed"
+    },
+    "activity": {
+      "since": 1795016113630,
+      "lastEventAt": 1795016113669
+    }
+  },
+  "beforeKinds": [
+    "input",
+    "turn",
+    "activity"
+  ],
+  "afterKinds": [
+    "input",
+    "turn",
+    "activity",
+    "input",
+    "turn"
+  ],
+  "records": [
+    {
+      "sessionId": "47e52bd1-29e0-42d7-8972-b50383d73c12",
+      "agentPath": [],
+      "seq": 6,
+      "receivedAt": 1795016109558,
+      "kind": "request",
+      "id": "308dc8ec-a549-4974-9b14-397b7f34cdf2",
+      "direction": "toRuntime",
+      "body": {
+        "kind": "prompt",
+        "input": "Start a background command, then report that it started.",
+        "inputId": "90dce9cf-0b3a-4ac8-b2f7-dde446ed42bc"
+      }
+    },
+    {
+      "sessionId": "47e52bd1-29e0-42d7-8972-b50383d73c12",
+      "agentPath": [],
+      "seq": 11,
+      "receivedAt": 1795016109618,
+      "kind": "frame",
+      "body": {
+        "type": "tool_call",
+        "native": {
+          "sessionId": "47e52bd1-29e0-42d7-8972-b50383d73c12",
+          "update": {
+            "sessionUpdate": "tool_call",
+            "toolCallId": "ef5c0784-5546-41b9-abc7-04b4371a1e82",
+            "name": "run_command",
+            "args": {
+              "CommandLine": "sleep 4; echo BACKGROUND_DONE",
+              "WaitMsBeforeAsync": 500,
+              "toolSummary": "Background control"
+            },
+            "status": "in_progress",
+            "kind": "execute",
+            "title": "sleep 4; echo BACKGROUND_DONE",
+            "rawInput": {
+              "CommandLine": "sleep 4; echo BACKGROUND_DONE",
+              "WaitMsBeforeAsync": 500,
+              "toolSummary": "Background control"
+            }
+          }
+        },
+        "events": [
+          {
+            "kind": "tool_call_started",
+            "callId": "ef5c0784-5546-41b9-abc7-04b4371a1e82",
+            "tool": "run_command",
+            "input": "{\"CommandLine\":\"sleep 4; echo BACKGROUND_DONE\",\"WaitMsBeforeAsync\":500,\"toolSummary\":\"Background control\"}"
+          }
+        ]
+      }
+    },
+    {
+      "sessionId": "47e52bd1-29e0-42d7-8972-b50383d73c12",
+      "agentPath": [],
+      "seq": 12,
+      "receivedAt": 1795016110141,
+      "kind": "frame",
+      "body": {
+        "type": "agent_message_chunk",
+        "native": {
+          "sessionId": "47e52bd1-29e0-42d7-8972-b50383d73c12",
+          "update": {
+            "sessionUpdate": "agent_message_chunk",
+            "content": {
+              "type": "text",
+              "text": "BACKGROUND_STARTED"
+            }
+          }
+        },
+        "events": [
+          {
+            "kind": "text_delta",
+            "text": "BACKGROUND_STARTED"
+          }
+        ]
+      }
+    },
+    {
+      "sessionId": "47e52bd1-29e0-42d7-8972-b50383d73c12",
+      "agentPath": [],
+      "seq": 13,
+      "receivedAt": 1795016110148,
+      "kind": "frame",
+      "body": {
+        "type": "session/prompt",
+        "native": {
+          "stopReason": "end_turn"
+        },
+        "events": [
+          {
+            "kind": "turn_ended",
+            "outcome": {
+              "kind": "completed"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "sessionId": "47e52bd1-29e0-42d7-8972-b50383d73c12",
+      "agentPath": [],
+      "seq": 15,
+      "receivedAt": 1795016113630,
+      "kind": "frame",
+      "body": {
+        "type": "tool_call_update",
+        "native": {
+          "sessionId": "47e52bd1-29e0-42d7-8972-b50383d73c12",
+          "update": {
+            "sessionUpdate": "tool_call_update",
+            "toolCallId": "ef5c0784-5546-41b9-abc7-04b4371a1e82",
+            "name": "run_command",
+            "args": {
+              "CommandLine": "sleep 4; echo BACKGROUND_DONE",
+              "WaitMsBeforeAsync": 500,
+              "toolSummary": "Background control"
+            },
+            "status": "completed",
+            "kind": "execute",
+            "title": "sleep 4; echo BACKGROUND_DONE",
+            "rawInput": {
+              "CommandLine": "sleep 4; echo BACKGROUND_DONE",
+              "WaitMsBeforeAsync": 500,
+              "toolSummary": "Background control"
+            },
+            "rawOutput": {
+              "output": "Command exited with code 0.\n\nCommand output:\nBACKGROUND_DONE\r\n",
+              "exit_code": 0
+            },
+            "content": [
+              {
+                "type": "content",
+                "content": {
+                  "type": "text",
+                  "text": "Command exited with code 0.\n\nCommand output:\nBACKGROUND_DONE\r\n"
+                }
+              }
+            ]
+          }
+        },
+        "events": [
+          {
+            "kind": "tool_call_ended",
+            "callId": "ef5c0784-5546-41b9-abc7-04b4371a1e82",
+            "content": [
+              {
+                "type": "text",
+                "text": "Command exited with code 0.\n\nCommand output:\nBACKGROUND_DONE\r\n"
+              }
+            ],
+            "result": "ok",
+            "exitCode": 0
+          }
+        ]
+      }
+    },
+    {
+      "sessionId": "47e52bd1-29e0-42d7-8972-b50383d73c12",
+      "agentPath": [],
+      "seq": 16,
+      "receivedAt": 1795016113665,
+      "kind": "frame",
+      "body": {
+        "type": "agent_message_chunk",
+        "native": {
+          "sessionId": "47e52bd1-29e0-42d7-8972-b50383d73c12",
+          "update": {
+            "sessionUpdate": "agent_message_chunk",
+            "content": {
+              "type": "text",
+              "text": "\n\nOWN_WORK_STARTED"
+            }
+          }
+        },
+        "events": [
+          {
+            "kind": "text_delta",
+            "text": "\n\nOWN_WORK_STARTED"
+          }
+        ]
+      }
+    },
+    {
+      "sessionId": "47e52bd1-29e0-42d7-8972-b50383d73c12",
+      "agentPath": [],
+      "seq": 17,
+      "receivedAt": 1795016113669,
+      "kind": "frame",
+      "body": {
+        "type": "tool_call",
+        "native": {
+          "sessionId": "47e52bd1-29e0-42d7-8972-b50383d73c12",
+          "update": {
+            "sessionUpdate": "tool_call",
+            "toolCallId": "0d7a0ab7-6b75-45d9-8aaa-e5775b9bfea5",
+            "name": "run_command",
+            "args": {
+              "CommandLine": "sleep 8; echo OWN_WORK_DONE",
+              "WaitMsBeforeAsync": 10000,
+              "toolSummary": "Own work control"
+            },
+            "status": "in_progress",
+            "kind": "execute",
+            "title": "sleep 8; echo OWN_WORK_DONE",
+            "rawInput": {
+              "CommandLine": "sleep 8; echo OWN_WORK_DONE",
+              "WaitMsBeforeAsync": 10000,
+              "toolSummary": "Own work control"
+            }
+          }
+        },
+        "events": [
+          {
+            "kind": "tool_call_started",
+            "callId": "0d7a0ab7-6b75-45d9-8aaa-e5775b9bfea5",
+            "tool": "run_command",
+            "input": "{\"CommandLine\":\"sleep 8; echo OWN_WORK_DONE\",\"WaitMsBeforeAsync\":10000,\"toolSummary\":\"Own work control\"}"
+          }
+        ]
+      }
+    },
+    {
+      "sessionId": "47e52bd1-29e0-42d7-8972-b50383d73c12",
+      "agentPath": [],
+      "seq": 18,
+      "receivedAt": 1795016113677,
+      "kind": "request",
+      "id": "4faccca4-78a6-43dd-9051-18269784bee5",
+      "direction": "toRuntime",
+      "body": {
+        "kind": "prompt",
+        "input": "NEW_INSTRUCTION_298: reply with NEW_INSTRUCTION_FOLLOWED",
+        "inputId": "78ea05f3-1180-4fa8-b09c-80ba1b80b75e"
+      }
+    },
+    {
+      "sessionId": "47e52bd1-29e0-42d7-8972-b50383d73c12",
+      "agentPath": [],
+      "seq": 20,
+      "receivedAt": 1795016121685,
+      "kind": "frame",
+      "body": {
+        "type": "tool_call_update",
+        "native": {
+          "sessionId": "47e52bd1-29e0-42d7-8972-b50383d73c12",
+          "update": {
+            "sessionUpdate": "tool_call_update",
+            "toolCallId": "0d7a0ab7-6b75-45d9-8aaa-e5775b9bfea5",
+            "name": "run_command",
+            "args": {
+              "CommandLine": "sleep 8; echo OWN_WORK_DONE",
+              "WaitMsBeforeAsync": 10000,
+              "toolSummary": "Own work control"
+            },
+            "status": "completed",
+            "kind": "execute",
+            "title": "sleep 8; echo OWN_WORK_DONE",
+            "rawInput": {
+              "CommandLine": "sleep 8; echo OWN_WORK_DONE",
+              "WaitMsBeforeAsync": 10000,
+              "toolSummary": "Own work control"
+            },
+            "rawOutput": {
+              "output": "Created At: 2026-11-18T15:35:13Z\nCompleted At: 2026-11-18T15:35:21Z\nCommand exited with code 0.\n\nCommand output:\nOWN_WORK_DONE\r\n",
+              "exit_code": 0
+            },
+            "content": [
+              {
+                "type": "content",
+                "content": {
+                  "type": "text",
+                  "text": "Created At: 2026-11-18T15:35:13Z\nCompleted At: 2026-11-18T15:35:21Z\nCommand exited with code 0.\n\nCommand output:\nOWN_WORK_DONE\r\n"
+                }
+              }
+            ]
+          }
+        },
+        "events": [
+          {
+            "kind": "tool_call_ended",
+            "callId": "0d7a0ab7-6b75-45d9-8aaa-e5775b9bfea5",
+            "content": [
+              {
+                "type": "text",
+                "text": "Created At: 2026-11-18T15:35:13Z\nCompleted At: 2026-11-18T15:35:21Z\nCommand exited with code 0.\n\nCommand output:\nOWN_WORK_DONE\r\n"
+              }
+            ],
+            "result": "ok",
+            "exitCode": 0
+          }
+        ]
+      }
+    },
+    {
+      "sessionId": "47e52bd1-29e0-42d7-8972-b50383d73c12",
+      "agentPath": [],
+      "seq": 21,
+      "receivedAt": 1795016121715,
+      "kind": "frame",
+      "body": {
+        "type": "agent_message_chunk",
+        "native": {
+          "sessionId": "47e52bd1-29e0-42d7-8972-b50383d73c12",
+          "update": {
+            "sessionUpdate": "agent_message_chunk",
+            "content": {
+              "type": "text",
+              "text": "NEW_INSTRUCTION_FOLL"
+            }
+          }
+        },
+        "events": [
+          {
+            "kind": "text_delta",
+            "text": "NEW_INSTRUCTION_FOLL"
+          }
+        ]
+      }
+    },
+    {
+      "sessionId": "47e52bd1-29e0-42d7-8972-b50383d73c12",
+      "agentPath": [],
+      "seq": 22,
+      "receivedAt": 1795016121715,
+      "kind": "frame",
+      "body": {
+        "type": "agent_message_chunk",
+        "native": {
+          "sessionId": "47e52bd1-29e0-42d7-8972-b50383d73c12",
+          "update": {
+            "sessionUpdate": "agent_message_chunk",
+            "content": {
+              "type": "text",
+              "text": "OWED"
+            }
+          }
+        },
+        "events": [
+          {
+            "kind": "text_delta",
+            "text": "OWED"
+          }
+        ]
+      }
+    },
+    {
+      "sessionId": "47e52bd1-29e0-42d7-8972-b50383d73c12",
+      "agentPath": [],
+      "seq": 23,
+      "receivedAt": 1795016121724,
+      "kind": "frame",
+      "body": {
+        "type": "session/prompt",
+        "native": {
+          "stopReason": "end_turn"
+        },
+        "events": [
+          {
+            "kind": "turn_ended",
+            "outcome": {
+              "kind": "completed"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

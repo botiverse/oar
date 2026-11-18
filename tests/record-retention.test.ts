@@ -113,7 +113,7 @@ test("the limit counts UTF-8 bytes, not characters", () => {
 
 test("a session view marks the tool whose input or output was elided", () => {
   const { kernel } = run(10_000, 10);
-  const tool = (seq: number): unknown => viewOf(kernel.records().filter((record) => record.seq === seq)).messages.flatMap((message) => message.kind === "turn" ? message.sections.flatMap((section) => section.parts) : []).find((part) => part.kind === "tool");
+  const tool = (seq: number): unknown => viewOf(kernel.records().filter((record) => record.seq === seq)).messages.flatMap((message) => (message.kind === "turn" || message.kind === "activity") ? message.sections.flatMap((section) => section.parts) : []).find((part) => part.kind === "tool");
   expect(tool(0)).toMatchObject({ callId: "c", elided: true, result: "ok" });
   expect(tool(9)).not.toHaveProperty("elided");
 });

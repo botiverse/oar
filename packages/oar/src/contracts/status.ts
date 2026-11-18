@@ -25,7 +25,9 @@ interface PendingPrompt {
 
 /** Display/query value. Incremental consumers persist the complete `StatusState` from `reduceStatus`, not only these fields. */
 export type AgentStatus = (
-  | { readonly kind: "idle"; readonly lastTurnOutcome?: TurnOutcome; readonly released?: true }
+  | { readonly kind: "idle"; readonly lastTurnOutcome?: TurnOutcome; readonly released?: true;
+      /** Root content observed outside a tracked turn. Unix epoch ms from record envelopes, not proof work is still running. Cleared by the next turn start or runtime exit. */
+      readonly activity?: { readonly since: number; readonly lastEventAt: number } }
   | {
       readonly kind: "running";
       /** seq of the record that opened this running span: a prompt/compact request, or the first event of an adopted turn. */

@@ -105,7 +105,7 @@ function acpCallsFromSnapshot(runtime: "grok" | "kimi" | "opencode", name = `${r
     return { sessionId: "recorded", agentPath: [], seq, receivedAt: 0, kind: "frame", body: { type: String(sessionUpdate), native: raw, events } };
   });
   return viewOf(records).messages
-    .flatMap((message) => (message.kind === "turn" ? message.sections.flatMap((section) => section.parts) : []))
+    .flatMap((message) => ((message.kind === "turn" || message.kind === "activity") ? message.sections.flatMap((section) => section.parts) : []))
     .flatMap((part): AcpCall[] => {
       if (part.kind !== "tool") {
         return [];
