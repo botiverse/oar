@@ -1,0 +1,1088 @@
+{
+  "refreshReplyDelayMs": 600,
+  "rows": [
+    {
+      "mode": "native-skills",
+      "round": 0,
+      "skills": "ok",
+      "usage": {
+        "kind": "reauth_required",
+        "reason": "credentials_rejected"
+      },
+      "beforeUsage": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "submittedGeneration": 0,
+            "expectedGeneration": 0
+          }
+        ],
+        "processCount": 1,
+        "web": [],
+        "credential": {
+          "present": true,
+          "unchanged": true,
+          "fresh": false,
+          "revoked": false,
+          "refreshCurrent": false,
+          "refreshEmpty": false
+        }
+      },
+      "afterUsage": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "submittedGeneration": 0,
+            "expectedGeneration": 0
+          },
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "submittedGeneration": 0,
+            "expectedGeneration": 1,
+            "status": 401
+          }
+        ],
+        "processCount": 3,
+        "web": [
+          {
+            "process": 3,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          }
+        ],
+        "credential": {
+          "present": true,
+          "unchanged": false,
+          "fresh": false,
+          "revoked": true,
+          "refreshCurrent": false,
+          "refreshEmpty": true
+        }
+      }
+    },
+    {
+      "mode": "native-skills",
+      "round": 1,
+      "skills": "ok",
+      "usage": {
+        "kind": "reauth_required",
+        "reason": "credentials_rejected"
+      },
+      "beforeUsage": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "submittedGeneration": 0,
+            "expectedGeneration": 0
+          }
+        ],
+        "processCount": 1,
+        "web": [],
+        "credential": {
+          "present": true,
+          "unchanged": true,
+          "fresh": false,
+          "revoked": false,
+          "refreshCurrent": false,
+          "refreshEmpty": false
+        }
+      },
+      "afterUsage": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "submittedGeneration": 0,
+            "expectedGeneration": 0
+          },
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "submittedGeneration": 0,
+            "expectedGeneration": 1,
+            "status": 401
+          }
+        ],
+        "processCount": 3,
+        "web": [
+          {
+            "process": 3,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          }
+        ],
+        "credential": {
+          "present": true,
+          "unchanged": false,
+          "fresh": false,
+          "revoked": true,
+          "refreshCurrent": false,
+          "refreshEmpty": true
+        }
+      }
+    },
+    {
+      "mode": "native-skills",
+      "round": 2,
+      "skills": "ok",
+      "usage": {
+        "kind": "reauth_required",
+        "reason": "credentials_rejected"
+      },
+      "beforeUsage": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "submittedGeneration": 0,
+            "expectedGeneration": 0
+          }
+        ],
+        "processCount": 1,
+        "web": [],
+        "credential": {
+          "present": true,
+          "unchanged": true,
+          "fresh": false,
+          "revoked": false,
+          "refreshCurrent": false,
+          "refreshEmpty": false
+        }
+      },
+      "afterUsage": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "submittedGeneration": 0,
+            "expectedGeneration": 0
+          },
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "submittedGeneration": 0,
+            "expectedGeneration": 1,
+            "status": 401
+          }
+        ],
+        "processCount": 3,
+        "web": [
+          {
+            "process": 3,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          }
+        ],
+        "credential": {
+          "present": true,
+          "unchanged": false,
+          "fresh": false,
+          "revoked": true,
+          "refreshCurrent": false,
+          "refreshEmpty": true
+        }
+      }
+    },
+    {
+      "mode": "adapter-skills",
+      "round": 0,
+      "skills": "ok",
+      "usage": {
+        "kind": "available",
+        "windows": [
+          {
+            "label": "Weekly limit",
+            "usedRatio": 0.25,
+            "scope": {
+              "kind": "account"
+            },
+            "resetsAt": "2030-01-01T00:00:00.000Z"
+          }
+        ],
+        "rateLimited": false,
+        "displayName": "Fixture",
+        "plan": "Fixture plan"
+      },
+      "beforeUsage": {
+        "calls": [],
+        "processCount": 1,
+        "web": [],
+        "credential": {
+          "present": true,
+          "unchanged": true,
+          "fresh": false,
+          "revoked": false,
+          "refreshCurrent": true,
+          "refreshEmpty": false
+        }
+      },
+      "afterUsage": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "submittedGeneration": 0,
+            "expectedGeneration": 0,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/me",
+            "fresh": true,
+            "status": 200
+          }
+        ],
+        "processCount": 3,
+        "web": [
+          {
+            "process": 3,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          },
+          {
+            "process": 3,
+            "route": "/api/v1/oauth/userinfo",
+            "status": 200
+          }
+        ],
+        "credential": {
+          "present": true,
+          "unchanged": false,
+          "fresh": true,
+          "revoked": false,
+          "refreshCurrent": true,
+          "refreshEmpty": false
+        }
+      }
+    },
+    {
+      "mode": "adapter-skills",
+      "round": 1,
+      "skills": "ok",
+      "usage": {
+        "kind": "available",
+        "windows": [
+          {
+            "label": "Weekly limit",
+            "usedRatio": 0.25,
+            "scope": {
+              "kind": "account"
+            },
+            "resetsAt": "2030-01-01T00:00:00.000Z"
+          }
+        ],
+        "rateLimited": false,
+        "displayName": "Fixture",
+        "plan": "Fixture plan"
+      },
+      "beforeUsage": {
+        "calls": [],
+        "processCount": 1,
+        "web": [],
+        "credential": {
+          "present": true,
+          "unchanged": true,
+          "fresh": false,
+          "revoked": false,
+          "refreshCurrent": true,
+          "refreshEmpty": false
+        }
+      },
+      "afterUsage": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "submittedGeneration": 0,
+            "expectedGeneration": 0,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/me",
+            "fresh": true,
+            "status": 200
+          }
+        ],
+        "processCount": 3,
+        "web": [
+          {
+            "process": 3,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          },
+          {
+            "process": 3,
+            "route": "/api/v1/oauth/userinfo",
+            "status": 200
+          }
+        ],
+        "credential": {
+          "present": true,
+          "unchanged": false,
+          "fresh": true,
+          "revoked": false,
+          "refreshCurrent": true,
+          "refreshEmpty": false
+        }
+      }
+    },
+    {
+      "mode": "adapter-skills",
+      "round": 2,
+      "skills": "ok",
+      "usage": {
+        "kind": "available",
+        "windows": [
+          {
+            "label": "Weekly limit",
+            "usedRatio": 0.25,
+            "scope": {
+              "kind": "account"
+            },
+            "resetsAt": "2030-01-01T00:00:00.000Z"
+          }
+        ],
+        "rateLimited": false,
+        "displayName": "Fixture",
+        "plan": "Fixture plan"
+      },
+      "beforeUsage": {
+        "calls": [],
+        "processCount": 1,
+        "web": [],
+        "credential": {
+          "present": true,
+          "unchanged": true,
+          "fresh": false,
+          "revoked": false,
+          "refreshCurrent": true,
+          "refreshEmpty": false
+        }
+      },
+      "afterUsage": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "submittedGeneration": 0,
+            "expectedGeneration": 0,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/me",
+            "fresh": true,
+            "status": 200
+          }
+        ],
+        "processCount": 3,
+        "web": [
+          {
+            "process": 3,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          },
+          {
+            "process": 3,
+            "route": "/api/v1/oauth/userinfo",
+            "status": 200
+          }
+        ],
+        "credential": {
+          "present": true,
+          "unchanged": false,
+          "fresh": true,
+          "revoked": false,
+          "refreshCurrent": true,
+          "refreshEmpty": false
+        }
+      }
+    },
+    {
+      "mode": "adapter-concurrent",
+      "round": 0,
+      "skills": "ok",
+      "usage": {
+        "kind": "available",
+        "windows": [
+          {
+            "label": "Weekly limit",
+            "usedRatio": 0.25,
+            "scope": {
+              "kind": "account"
+            },
+            "resetsAt": "2030-01-01T00:00:00.000Z"
+          }
+        ],
+        "rateLimited": false,
+        "displayName": "Fixture",
+        "plan": "Fixture plan"
+      },
+      "beforeUsage": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "submittedGeneration": 0,
+            "expectedGeneration": 0,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/me",
+            "fresh": true,
+            "status": 200
+          }
+        ],
+        "processCount": 3,
+        "web": [
+          {
+            "process": 3,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          },
+          {
+            "process": 3,
+            "route": "/api/v1/oauth/userinfo",
+            "status": 200
+          }
+        ],
+        "credential": {
+          "present": true,
+          "unchanged": false,
+          "fresh": true,
+          "revoked": false,
+          "refreshCurrent": true,
+          "refreshEmpty": false
+        }
+      },
+      "afterUsage": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "submittedGeneration": 0,
+            "expectedGeneration": 0,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/me",
+            "fresh": true,
+            "status": 200
+          }
+        ],
+        "processCount": 3,
+        "web": [
+          {
+            "process": 3,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          },
+          {
+            "process": 3,
+            "route": "/api/v1/oauth/userinfo",
+            "status": 200
+          }
+        ],
+        "credential": {
+          "present": true,
+          "unchanged": false,
+          "fresh": true,
+          "revoked": false,
+          "refreshCurrent": true,
+          "refreshEmpty": false
+        }
+      }
+    },
+    {
+      "mode": "adapter-concurrent",
+      "round": 1,
+      "skills": "ok",
+      "usage": {
+        "kind": "available",
+        "windows": [
+          {
+            "label": "Weekly limit",
+            "usedRatio": 0.25,
+            "scope": {
+              "kind": "account"
+            },
+            "resetsAt": "2030-01-01T00:00:00.000Z"
+          }
+        ],
+        "rateLimited": false,
+        "displayName": "Fixture",
+        "plan": "Fixture plan"
+      },
+      "beforeUsage": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "submittedGeneration": 0,
+            "expectedGeneration": 0,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/me",
+            "fresh": true,
+            "status": 200
+          }
+        ],
+        "processCount": 3,
+        "web": [
+          {
+            "process": 3,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          },
+          {
+            "process": 3,
+            "route": "/api/v1/oauth/userinfo",
+            "status": 200
+          }
+        ],
+        "credential": {
+          "present": true,
+          "unchanged": false,
+          "fresh": true,
+          "revoked": false,
+          "refreshCurrent": true,
+          "refreshEmpty": false
+        }
+      },
+      "afterUsage": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "submittedGeneration": 0,
+            "expectedGeneration": 0,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/me",
+            "fresh": true,
+            "status": 200
+          }
+        ],
+        "processCount": 3,
+        "web": [
+          {
+            "process": 3,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          },
+          {
+            "process": 3,
+            "route": "/api/v1/oauth/userinfo",
+            "status": 200
+          }
+        ],
+        "credential": {
+          "present": true,
+          "unchanged": false,
+          "fresh": true,
+          "revoked": false,
+          "refreshCurrent": true,
+          "refreshEmpty": false
+        }
+      }
+    },
+    {
+      "mode": "adapter-concurrent",
+      "round": 2,
+      "skills": "ok",
+      "usage": {
+        "kind": "available",
+        "windows": [
+          {
+            "label": "Weekly limit",
+            "usedRatio": 0.25,
+            "scope": {
+              "kind": "account"
+            },
+            "resetsAt": "2030-01-01T00:00:00.000Z"
+          }
+        ],
+        "rateLimited": false,
+        "displayName": "Fixture",
+        "plan": "Fixture plan"
+      },
+      "beforeUsage": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "submittedGeneration": 0,
+            "expectedGeneration": 0,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/me",
+            "fresh": true,
+            "status": 200
+          }
+        ],
+        "processCount": 3,
+        "web": [
+          {
+            "process": 3,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          },
+          {
+            "process": 3,
+            "route": "/api/v1/oauth/userinfo",
+            "status": 200
+          }
+        ],
+        "credential": {
+          "present": true,
+          "unchanged": false,
+          "fresh": true,
+          "revoked": false,
+          "refreshCurrent": true,
+          "refreshEmpty": false
+        }
+      },
+      "afterUsage": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "submittedGeneration": 0,
+            "expectedGeneration": 0,
+            "status": 200
+          },
+          {
+            "path": "/usages",
+            "fresh": true,
+            "status": 200
+          },
+          {
+            "path": "/me",
+            "fresh": true,
+            "status": 200
+          }
+        ],
+        "processCount": 3,
+        "web": [
+          {
+            "process": 3,
+            "route": "/api/v1/oauth/usage",
+            "status": 200
+          },
+          {
+            "process": 3,
+            "route": "/api/v1/oauth/userinfo",
+            "status": 200
+          }
+        ],
+        "credential": {
+          "present": true,
+          "unchanged": false,
+          "fresh": true,
+          "revoked": false,
+          "refreshCurrent": true,
+          "refreshEmpty": false
+        }
+      }
+    },
+    {
+      "mode": "native-skills-lock-disabled",
+      "round": 0,
+      "skills": "ok",
+      "usage": {
+        "kind": "unavailable",
+        "reason": "access_token_expired"
+      },
+      "beforeUsage": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "submittedGeneration": 0,
+            "expectedGeneration": 0
+          }
+        ],
+        "processCount": 1,
+        "web": [],
+        "credential": {
+          "present": true,
+          "unchanged": true,
+          "fresh": false,
+          "revoked": false,
+          "refreshCurrent": false,
+          "refreshEmpty": false
+        }
+      },
+      "afterUsage": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "submittedGeneration": 0,
+            "expectedGeneration": 0
+          }
+        ],
+        "processCount": 2,
+        "web": [],
+        "credential": {
+          "present": true,
+          "unchanged": true,
+          "fresh": false,
+          "revoked": false,
+          "refreshCurrent": false,
+          "refreshEmpty": false
+        }
+      }
+    },
+    {
+      "mode": "native-skills-lock-disabled",
+      "round": 1,
+      "skills": "ok",
+      "usage": {
+        "kind": "unavailable",
+        "reason": "access_token_expired"
+      },
+      "beforeUsage": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "submittedGeneration": 0,
+            "expectedGeneration": 0
+          }
+        ],
+        "processCount": 1,
+        "web": [],
+        "credential": {
+          "present": true,
+          "unchanged": true,
+          "fresh": false,
+          "revoked": false,
+          "refreshCurrent": false,
+          "refreshEmpty": false
+        }
+      },
+      "afterUsage": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "submittedGeneration": 0,
+            "expectedGeneration": 0
+          }
+        ],
+        "processCount": 2,
+        "web": [],
+        "credential": {
+          "present": true,
+          "unchanged": true,
+          "fresh": false,
+          "revoked": false,
+          "refreshCurrent": false,
+          "refreshEmpty": false
+        }
+      }
+    },
+    {
+      "mode": "native-skills-lock-disabled",
+      "round": 2,
+      "skills": "ok",
+      "usage": {
+        "kind": "unavailable",
+        "reason": "access_token_expired"
+      },
+      "beforeUsage": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "submittedGeneration": 0,
+            "expectedGeneration": 0
+          }
+        ],
+        "processCount": 1,
+        "web": [],
+        "credential": {
+          "present": true,
+          "unchanged": true,
+          "fresh": false,
+          "revoked": false,
+          "refreshCurrent": false,
+          "refreshEmpty": false
+        }
+      },
+      "afterUsage": {
+        "calls": [
+          {
+            "path": "/api/oauth/token",
+            "fresh": false,
+            "submittedGeneration": 0,
+            "expectedGeneration": 0
+          }
+        ],
+        "processCount": 2,
+        "web": [],
+        "credential": {
+          "present": true,
+          "unchanged": true,
+          "fresh": false,
+          "revoked": false,
+          "refreshCurrent": false,
+          "refreshEmpty": false
+        }
+      }
+    },
+    {
+      "mode": "lock-disabled",
+      "round": 0,
+      "usage": {
+        "kind": "unavailable",
+        "reason": "access_token_expired"
+      },
+      "beforeUsage": {
+        "calls": [],
+        "processCount": 0,
+        "web": [],
+        "credential": {
+          "present": true,
+          "unchanged": true,
+          "fresh": false,
+          "revoked": false,
+          "refreshCurrent": true,
+          "refreshEmpty": false
+        }
+      },
+      "afterUsage": {
+        "calls": [],
+        "processCount": 1,
+        "web": [],
+        "credential": {
+          "present": true,
+          "unchanged": true,
+          "fresh": false,
+          "revoked": false,
+          "refreshCurrent": true,
+          "refreshEmpty": false
+        }
+      }
+    },
+    {
+      "mode": "lock-disabled",
+      "round": 1,
+      "usage": {
+        "kind": "unavailable",
+        "reason": "access_token_expired"
+      },
+      "beforeUsage": {
+        "calls": [],
+        "processCount": 0,
+        "web": [],
+        "credential": {
+          "present": true,
+          "unchanged": true,
+          "fresh": false,
+          "revoked": false,
+          "refreshCurrent": true,
+          "refreshEmpty": false
+        }
+      },
+      "afterUsage": {
+        "calls": [],
+        "processCount": 1,
+        "web": [],
+        "credential": {
+          "present": true,
+          "unchanged": true,
+          "fresh": false,
+          "revoked": false,
+          "refreshCurrent": true,
+          "refreshEmpty": false
+        }
+      }
+    },
+    {
+      "mode": "lock-disabled",
+      "round": 2,
+      "usage": {
+        "kind": "unavailable",
+        "reason": "access_token_expired"
+      },
+      "beforeUsage": {
+        "calls": [],
+        "processCount": 0,
+        "web": [],
+        "credential": {
+          "present": true,
+          "unchanged": true,
+          "fresh": false,
+          "revoked": false,
+          "refreshCurrent": true,
+          "refreshEmpty": false
+        }
+      },
+      "afterUsage": {
+        "calls": [],
+        "processCount": 1,
+        "web": [],
+        "credential": {
+          "present": true,
+          "unchanged": true,
+          "fresh": false,
+          "revoked": false,
+          "refreshCurrent": true,
+          "refreshEmpty": false
+        }
+      }
+    },
+    {
+      "mode": "adapter-skills-lock-disabled",
+      "round": 0,
+      "skills": "ok",
+      "usage": {
+        "kind": "unavailable",
+        "reason": "access_token_expired"
+      },
+      "beforeUsage": {
+        "calls": [],
+        "processCount": 1,
+        "web": [],
+        "credential": {
+          "present": true,
+          "unchanged": true,
+          "fresh": false,
+          "revoked": false,
+          "refreshCurrent": true,
+          "refreshEmpty": false
+        }
+      },
+      "afterUsage": {
+        "calls": [],
+        "processCount": 2,
+        "web": [],
+        "credential": {
+          "present": true,
+          "unchanged": true,
+          "fresh": false,
+          "revoked": false,
+          "refreshCurrent": true,
+          "refreshEmpty": false
+        }
+      }
+    },
+    {
+      "mode": "adapter-skills-lock-disabled",
+      "round": 1,
+      "skills": "ok",
+      "usage": {
+        "kind": "unavailable",
+        "reason": "access_token_expired"
+      },
+      "beforeUsage": {
+        "calls": [],
+        "processCount": 1,
+        "web": [],
+        "credential": {
+          "present": true,
+          "unchanged": true,
+          "fresh": false,
+          "revoked": false,
+          "refreshCurrent": true,
+          "refreshEmpty": false
+        }
+      },
+      "afterUsage": {
+        "calls": [],
+        "processCount": 2,
+        "web": [],
+        "credential": {
+          "present": true,
+          "unchanged": true,
+          "fresh": false,
+          "revoked": false,
+          "refreshCurrent": true,
+          "refreshEmpty": false
+        }
+      }
+    },
+    {
+      "mode": "adapter-skills-lock-disabled",
+      "round": 2,
+      "skills": "ok",
+      "usage": {
+        "kind": "unavailable",
+        "reason": "access_token_expired"
+      },
+      "beforeUsage": {
+        "calls": [],
+        "processCount": 1,
+        "web": [],
+        "credential": {
+          "present": true,
+          "unchanged": true,
+          "fresh": false,
+          "revoked": false,
+          "refreshCurrent": true,
+          "refreshEmpty": false
+        }
+      },
+      "afterUsage": {
+        "calls": [],
+        "processCount": 2,
+        "web": [],
+        "credential": {
+          "present": true,
+          "unchanged": true,
+          "fresh": false,
+          "revoked": false,
+          "refreshCurrent": true,
+          "refreshEmpty": false
+        }
+      }
+    }
+  ]
+}

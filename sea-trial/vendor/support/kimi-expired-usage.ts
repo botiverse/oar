@@ -6,36 +6,52 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { asRecord, parseJson } from "../../../packages/oar/src/shared/json.js";
 
+interface RefreshCall { path: string; fresh: boolean; status?: number; submittedGeneration?: number; expectedGeneration?: number }
+
 interface ExpiredUsageFixture {
   readonly dir: string; readonly home: string; readonly file: string; readonly before: string; readonly trace: string;
-  readonly calls: readonly { path: string; fresh: boolean; status?: number }[];
+  readonly calls: readonly RefreshCall[];
   readonly env: Readonly<Record<string, string | null>>;
   observe(): Promise<unknown>;
   dispose(): Promise<void>;
 }
 
-export async function kimiExpiredUsageFixture(mode: "success" | "rejected" | "network" | "hang"): Promise<ExpiredUsageFixture> {
+function refreshValue(value: number): string {
+  if (value === 0) { return "synthetic-refresh"; }
+  return value === 1 ? "synthetic-rotated" : `synthetic-rotated-${String(value)}`;
+}
+
+export async function kimiExpiredUsageFixture(mode: "success" | "rejected" | "network" | "hang", refreshDelayMs = 200): Promise<ExpiredUsageFixture> {
   const dir = await mkdtemp(path.join(tmpdir(), "kimi-usage-native-"));
   const home = path.join(dir, "home"); await mkdir(path.join(home, "credentials"), { recursive: true });
-  const calls: { path: string; fresh: boolean; status?: number }[] = [];
-  let refreshed = false;
+  const calls: RefreshCall[] = [];
+  let generation = 0;
   const server = createServer((request, response) => {
-    const route = request.url ?? "/"; request.resume();
-    const call: { path: string; fresh: boolean; status?: number } = { path: route, fresh: request.headers.authorization === "Bearer synthetic-fresh" };
+    const route = request.url ?? "/";
+    const call: RefreshCall = { path: route, fresh: request.headers.authorization === "Bearer synthetic-fresh" };
     calls.push(call);
     response.once("finish", () => { call.status = response.statusCode; });
     const reply = (status: number, value: unknown): void => { response.writeHead(status, { "Content-Type": "application/json" }); response.end(JSON.stringify(value)); };
-    if (route === "/api/oauth/token") {
-      if (mode === "rejected" || refreshed) { reply(401, { error: "invalid_grant", error_description: "PRIVATE fixture rejection" }); }
-      else if (mode === "network") { request.socket.destroy(); }
-      else if (mode !== "hang") {
-        refreshed = true;
-        setTimeout(() => { reply(200, { access_token: "synthetic-fresh", refresh_token: "synthetic-rotated", expires_in: 900, token_type: "Bearer" }); }, 200);
-      }
-    } else if (route === "/usages") { reply(200, { usages: { limit_7d: { used_ratio: 0.25, reset_time: "2030-01-01T00:00:00Z" } } }); }
-    else if (route === "/me") { reply(200, { user_id: "fixture", nickname: "Fixture", user_level_name: "Fixture plan" }); }
-    else if (route === "/models") { reply(200, { data: [] }); }
-    else { reply(404, {}); }
+    let body = "";
+    request.setEncoding("utf8");
+    request.on("data", (chunk: string) => { body += chunk; });
+    request.on("end", () => {
+      if (route === "/api/oauth/token") {
+        const submitted = new URLSearchParams(body).get("refresh_token");
+        const submittedGeneration = submitted === "synthetic-refresh" ? 0 : (submitted === "synthetic-rotated" ? 1 : Number(submitted?.replace("synthetic-rotated-", "")));
+        call.submittedGeneration = Number.isFinite(submittedGeneration) ? submittedGeneration : -1;
+        call.expectedGeneration = generation;
+        if (mode === "rejected" || submitted !== refreshValue(generation)) { reply(401, { error: "invalid_grant", error_description: "PRIVATE fixture rejection" }); }
+        else if (mode === "network") { request.socket.destroy(); }
+        else if (mode !== "hang") {
+          generation += 1; const refreshedValue = refreshValue(generation);
+          setTimeout(() => { reply(200, { access_token: "synthetic-fresh", refresh_token: refreshedValue, expires_in: 900, token_type: "Bearer" }); }, refreshDelayMs);
+        }
+      } else if (route === "/usages") { reply(200, { usages: { limit_7d: { used_ratio: 0.25, reset_time: "2030-01-01T00:00:00Z" } } }); }
+      else if (route === "/me") { reply(200, { user_id: "fixture", nickname: "Fixture", user_level_name: "Fixture plan" }); }
+      else if (route === "/models") { reply(200, { data: [] }); }
+      else { reply(404, {}); }
+    });
   });
   await new Promise<void>(resolve => { server.listen(0, "127.0.0.1", resolve); });
   const address = server.address(); assert.ok(address !== null && typeof address !== "string");
@@ -75,8 +91,8 @@ http.Server.prototype.emit = function(event, ...args) {
       const webText = await readFile(webTrace, "utf8").catch(() => "");
       const processes = processText.trim().split("\n").filter(Boolean).map(line => asRecord(parseJson(line)));
       const web = webText.trim().split("\n").filter(Boolean).map(line => asRecord(parseJson(line)));
-      return { calls, processCount: processes.length, web: web.map(row => ({ process: processes.findIndex(item => item?.pid === row?.pid) + 1, route: row?.route, status: row?.status })),
-        credential: { present: stored !== null, unchanged: stored === before, fresh: record?.access_token === "synthetic-fresh", revoked: record?.access_token === "" } };
+      return { calls: structuredClone(calls), processCount: processes.length, web: web.map(row => ({ process: processes.findIndex(item => item?.pid === row?.pid) + 1, route: row?.route, status: row?.status })),
+        credential: { present: stored !== null, unchanged: stored === before, fresh: record?.access_token === "synthetic-fresh", revoked: record?.access_token === "", refreshCurrent: record?.refresh_token === refreshValue(generation), refreshEmpty: record?.refresh_token === "" } };
     },
     async dispose(): Promise<void> {
       server.closeAllConnections(); await new Promise<void>(resolve => { server.close(() => { resolve(); }); });

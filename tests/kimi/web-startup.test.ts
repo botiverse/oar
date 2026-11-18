@@ -142,3 +142,15 @@ test("usage and skills share startup ownership and spend one original deadline",
   expect(skillsChild.killed()).toBe(true);
   expect(vi.getTimerCount()).toBe(0);
 });
+
+
+test("read-only Web processes disable both background catalog refresh paths without mutating caller env", async () => {
+  const { env, home } = await setup();
+  const caller = { ...env, KIMI_CODE_MODEL_CATALOG_REFRESH_ON_START: "yes", KIMI_CODE_MODEL_CATALOG_REFRESH_INTERVAL_MS: "10" };
+  const before = { ...caller }; const child = fakeLineProcess();
+  spawn.mockReturnValue(child);
+  const started = startKimiWeb("kimi", caller, signal(), home);
+  await vi.waitFor(() => { expect(spawn).toHaveBeenCalledOnce(); }); ready(child); await started;
+  expect(spawn.mock.calls[0]?.[2]?.env).toStrictEqual({ ...caller, KIMI_CODE_MODEL_CATALOG_REFRESH_ON_START: "0", KIMI_CODE_MODEL_CATALOG_REFRESH_INTERVAL_MS: "0" });
+  expect(caller).toStrictEqual(before); child.kill(); await child.exited;
+});
