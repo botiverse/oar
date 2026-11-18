@@ -1,5 +1,6 @@
 /* oxlint-disable import/no-namespace -- Observe the real process while retaining native behavior. */
 import assert from "node:assert/strict";
+import * as nativeProcess from "node:child_process";
 import { mkdir, mkdtemp, realpath, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve as resolvePath } from "node:path";
@@ -8,6 +9,8 @@ import { describe, expect, test, vi } from "vitest";
 import { opencodeRuntime } from "../../packages/oar/src/runtimes/opencode/index.js";
 import * as executable from "../../packages/oar/src/shared/executable/index.js";
 import { sessionEnvironment } from "../../packages/oar/src/shared/environment.js";
+
+vi.mock("node:child_process", { spy: true });
 
 async function fixture() {
   const root = await mkdtemp(join(tmpdir(), "oar-opencode-skills-"));
@@ -22,7 +25,7 @@ async function fixture() {
   };
   for (const [name, path] of Object.entries(roots)) {
     await mkdir(join(path, name), { recursive: true });
-    await writeFile(join(path, name, "SKILL.md"), `---\nname: ${name}\ndescription: Native fixture ${name}\n---\nPRIVATE SKILL BODY\n`);
+    await writeFile(join(path, name, "SKILL.md"), `---\nname: ${name}\ndescription: Native fixture ${name} ${"d".repeat(16 * 1024)}\n---\nPRIVATE SKILL BODY\n${"x".repeat(48 * 1024)}\n`);
   }
   const malformed = join(roots["project-opencode"], "malformed");
   await mkdir(malformed);
@@ -58,6 +61,7 @@ describe.skipIf(!enabled)("OpenCode native skill discovery", () => {
         await mkdir(plugins, { recursive: true });
         await writeFile(join(plugins, "oar-broken.ts"), 'throw new Error("PRIVATE PLUGIN FAILURE");\nexport default {};\n');
       }
+      const nativeStarts = vi.mocked(nativeProcess.spawn).mock.results.length;
       vi.spyOn(executable, "spawnLineProcess").mockImplementation((...args) => {
         const child = spawn(...args); children.push(child);
         child.onLine(line => { const match = /^server listening on http:\/\/127\.0\.0\.1:([0-9]+)/u.exec(line); if (match?.[1] !== undefined) { ports.push(Number(match[1])); } });
@@ -73,6 +77,7 @@ describe.skipIf(!enabled)("OpenCode native skill discovery", () => {
       if (mode === "success" || mode === "plugin-failure") {
         assert.equal(result.kind, "ok", JSON.stringify(result));
         expect(result.partial).toBe(mode === "plugin-failure"); expect(result.view).toBe("discovered");
+        expect(Buffer.byteLength(JSON.stringify(result.items))).toBeGreaterThan(64 * 1024);
         await Promise.all(Object.entries(f.roots).map(async ([name, path]) => {
           const item = result.items.find(skill => skill.name === name);
           assert.ok(item?.path !== undefined, `Missing native skill ${name}`);
@@ -84,8 +89,10 @@ describe.skipIf(!enabled)("OpenCode native skill discovery", () => {
         expect(JSON.stringify(result)).not.toMatch(/PRIVATE SKILL BODY|PRIVATE PLUGIN FAILURE/u);
         expect(await readFile(join(f.roots["home-claude"], "home-claude", "SKILL.md"), "utf8")).toContain("PRIVATE SKILL BODY");
       } else { expect(result).toMatchObject({ kind: "unavailable", code: mode === "timeout" ? "timeout" : "query_failed" }); }
-      expect(children).toHaveLength(1);
-      for (const child of children) { assert.ok(child.pid !== undefined); expect(() => process.kill(child.pid ?? 0, 0)).toThrow(); }
+      const legacyChildren = vi.mocked(nativeProcess.spawn).mock.results.slice(nativeStarts).flatMap(call => call.type === "return" ? [call.value] : []);
+      const observed = major === 1 ? legacyChildren : children;
+      expect(observed).toHaveLength(1);
+      for (const child of observed) { assert.ok(child.pid !== undefined); expect(() => process.kill(child.pid ?? 0, 0)).toThrow(); }
       if (major === 2) { expect(ports).toHaveLength(1); for (const port of ports) { expect(await portOpen(port)).toBe(false); } }
       const dir = resolvePath(process.env.OAR_TRIAL_RUN_DIR ?? "oar-trial-run", "opencode-skills");
       await mkdir(dir, { recursive: true });

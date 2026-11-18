@@ -1,0 +1,193 @@
+{
+  "date": "2026-11-18",
+  "platform": "Linux x64",
+  "syntheticOnly": true,
+  "native": [
+    {
+      "version": "1.18.30",
+      "platform": "linux",
+      "bodyBytes": 524288,
+      "credentialEnvironmentInherited": false,
+      "samples": [
+        {
+          "attempt": 1,
+          "pipe": {
+            "exitCode": 0,
+            "stdoutBytes": 65536,
+            "stderrBytes": 0,
+            "validJson": false,
+            "items": null
+          },
+          "file": {
+            "exitCode": 0,
+            "stdoutBytes": 541936,
+            "stderrBytes": 0,
+            "validJson": true,
+            "items": 2
+          }
+        },
+        {
+          "attempt": 2,
+          "pipe": {
+            "exitCode": 0,
+            "stdoutBytes": 65536,
+            "stderrBytes": 0,
+            "validJson": false,
+            "items": null
+          },
+          "file": {
+            "exitCode": 0,
+            "stdoutBytes": 541936,
+            "stderrBytes": 0,
+            "validJson": true,
+            "items": 2
+          }
+        },
+        {
+          "attempt": 3,
+          "pipe": {
+            "exitCode": 0,
+            "stdoutBytes": 65536,
+            "stderrBytes": 0,
+            "validJson": false,
+            "items": null
+          },
+          "file": {
+            "exitCode": 0,
+            "stdoutBytes": 541936,
+            "stderrBytes": 0,
+            "validJson": true,
+            "items": 2
+          }
+        }
+      ]
+    },
+    {
+      "version": "1.19.5",
+      "platform": "linux",
+      "bodyBytes": 524288,
+      "credentialEnvironmentInherited": false,
+      "samples": [
+        {
+          "attempt": 1,
+          "pipe": {
+            "exitCode": 0,
+            "stdoutBytes": 131072,
+            "stderrBytes": 0,
+            "validJson": false,
+            "items": null
+          },
+          "file": {
+            "exitCode": 0,
+            "stdoutBytes": 541936,
+            "stderrBytes": 0,
+            "validJson": true,
+            "items": 2
+          }
+        },
+        {
+          "attempt": 2,
+          "pipe": {
+            "exitCode": 0,
+            "stdoutBytes": 131072,
+            "stderrBytes": 0,
+            "validJson": false,
+            "items": null
+          },
+          "file": {
+            "exitCode": 0,
+            "stdoutBytes": 541936,
+            "stderrBytes": 0,
+            "validJson": true,
+            "items": 2
+          }
+        },
+        {
+          "attempt": 3,
+          "pipe": {
+            "exitCode": 0,
+            "stdoutBytes": 131072,
+            "stderrBytes": 0,
+            "validJson": false,
+            "items": null
+          },
+          "file": {
+            "exitCode": 0,
+            "stdoutBytes": 541936,
+            "stderrBytes": 0,
+            "validJson": true,
+            "items": 2
+          }
+        }
+      ]
+    }
+  ],
+  "oarControls": [
+    {
+      "version": "1.18.30",
+      "mode": "success",
+      "kind": "ok",
+      "code": null,
+      "partial": false,
+      "itemCount": 7,
+      "itemJsonBytes": 99827,
+      "processesExited": true,
+      "portsClosed": true
+    },
+    {
+      "version": "1.19.5",
+      "mode": "success",
+      "kind": "ok",
+      "code": null,
+      "partial": false,
+      "itemCount": 7,
+      "itemJsonBytes": 99827,
+      "processesExited": true,
+      "portsClosed": true
+    },
+    {
+      "version": "opencode v2.2.7",
+      "mode": "failure",
+      "kind": "unavailable",
+      "code": "query_failed",
+      "partial": null,
+      "itemCount": 0,
+      "itemJsonBytes": 2,
+      "processesExited": true,
+      "portsClosed": true
+    },
+    {
+      "version": "opencode v2.2.7",
+      "mode": "plugin-failure",
+      "kind": "ok",
+      "code": null,
+      "partial": true,
+      "itemCount": 9,
+      "itemJsonBytes": 100423,
+      "processesExited": true,
+      "portsClosed": true
+    },
+    {
+      "version": "opencode v2.2.7",
+      "mode": "success",
+      "kind": "ok",
+      "code": null,
+      "partial": false,
+      "itemCount": 9,
+      "itemJsonBytes": 100423,
+      "processesExited": true,
+      "portsClosed": true
+    },
+    {
+      "version": "opencode v2.2.7",
+      "mode": "timeout",
+      "kind": "unavailable",
+      "code": "timeout",
+      "partial": null,
+      "itemCount": 0,
+      "itemJsonBytes": 2,
+      "processesExited": true,
+      "portsClosed": true
+    }
+  ]
+}

@@ -1,11 +1,12 @@
 /* oxlint-disable oxc/no-map-spread -- Project only native metadata, never skill bodies or plugin errors. */
 import { randomBytes } from "node:crypto";
-import type { InventoryReader, SkillEntry } from "../../contracts/inventory.js";
+import type { InventoryReader, InventoryResult, SkillEntry } from "../../contracts/inventory.js";
 import { sessionEnvironment } from "../../shared/environment.js";
 import { spawnLineProcess, type LineProcess } from "../../shared/executable/index.js";
-import { asRecord, parseJson, type JsonRecord } from "../../shared/json.js";
+import { asRecord, type JsonRecord } from "../../shared/json.js";
 import { boolField, inventoryOk, inventoryRead, named, nativeRows, textField, unsupportedInventory, workspaceScope } from "../../shared/inventory.js";
 import { serveEnvironment } from "./provider-auth-server.js";
+import { legacySkills } from "./skills-v1.js";
 import { opencodeRelease } from "./version.js";
 import { opencodeSkillScopes } from "./skill-scope.js";
 
@@ -52,14 +53,6 @@ function pluginFailed(plugin: JsonRecord): boolean {
   return status === "failed";
 }
 
-async function legacy(child: LineProcess): Promise<unknown> {
-  let stdout = "";
-  child.stdout.on("data", (chunk: Buffer | string) => { stdout += chunk.toString(); });
-  await child.spawned;
-  if (await child.exited !== 0) { throw new Error("OpenCode skill discovery failed"); }
-  return parseJson(stdout);
-}
-
 async function scopedSkills(value: unknown, major: 1 | 2, cwd: string, env: NodeJS.ProcessEnv): Promise<SkillEntry[]> {
   const classify = await opencodeSkillScopes(cwd, env, major);
   return Promise.all(projectSkills(value, major).map(async skill => ({ ...skill, ...await classify(skill.source === "builtin" ? "<built-in>" : skill.path ?? "") })));
@@ -70,7 +63,7 @@ export const opencodeSkills: InventoryReader<SkillEntry> = async (installation, 
   if (installation.via !== "executable") { return unsupportedInventory("installation_unsupported", "OpenCode skills require an executable"); }
   const scope = workspaceScope(options);
   const controller = new AbortController();
-  const owned: { child?: LineProcess; version?: ReturnType<typeof opencodeRelease> } = {};
+  const owned: { child?: LineProcess; legacy?: Promise<InventoryResult<SkillEntry>>; version?: ReturnType<typeof opencodeRelease> } = {};
   try {
     return await inventoryRead(async () => {
       owned.version = opencodeRelease(installation, { cwd: scope.cwd, signal: controller.signal, ...(options.env === undefined ? {} : { env: options.env }) });
@@ -80,12 +73,15 @@ export const opencodeSkills: InventoryReader<SkillEntry> = async (installation, 
         return { kind: "unsupported", code: "version_unsupported", reason: "OpenCode v2 skills require the verified plugin activation barrier in 2.2.7 or newer", requiredVersion: "2.2.7", ...(installation.version === undefined ? {} : { installedVersion: installation.version }) };
       }
       const env = sessionEnvironment(options.env);
+      if (release.major === 1) {
+        owned.legacy = legacySkills(installation.command, scope, env, controller.signal, async value => { const skills = await scopedSkills(value, 1, scope.cwd, env); return skills; });
+        return owned.legacy;
+      }
       const password = randomBytes(24).toString("base64url");
-      const child = spawnLineProcess(installation.command, release.major === 1 ? ["debug", "skill"] : ["serve", "--hostname", "127.0.0.1", "--port", "0"], {
-        cwd: scope.cwd, env: release.major === 1 ? env : serveEnvironment(env, password), killTree: true, inheritStderr: false,
+      const child = spawnLineProcess(installation.command, ["serve", "--hostname", "127.0.0.1", "--port", "0"], {
+        cwd: scope.cwd, env: serveEnvironment(env, password), killTree: true, inheritStderr: false,
       });
       owned.child = child;
-      if (release.major === 1) { return inventoryOk(scope, "discovered", await scopedSkills(await legacy(child), 1, scope.cwd, env)); }
       const ready = endpoint(child, controller.signal);
       // Observe an early process failure before awaiting startup.
       // oxlint-disable-next-line promise/prefer-await-to-then -- Readiness and process startup can reject independently.
@@ -105,6 +101,7 @@ export const opencodeSkills: InventoryReader<SkillEntry> = async (installation, 
     controller.abort();
     owned.child?.kill();
     await owned.child?.exited;
+    try { await owned.legacy; } catch { /* The bounded read already classified the failure. */ }
     try { await owned.version; } catch { /* The bounded read already classified the failure. */ }
   }
 };
