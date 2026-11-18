@@ -123,7 +123,11 @@ Unit regressions cover those boundaries, independent directories,
 idempotent release, native failure, and 20 seconds queued leaving only
 40 seconds for initialize.
 
-Once OpenCode publishes and verifies the early busy-timeout correction,
-limit the gate to versions below that release. The upstream report is
-prepared; filing through Stamp currently lacks access to anomalyco/opencode.
-Tracking and publication are with the maintainer.
+The report is filed as
+[upstream #64590](https://github.com/anomalyco/opencode/issues/64590). Upstream
+closed it as not planned for v1 and requested the same reproduction on v2
+([reply](https://github.com/anomalyco/opencode/issues/64590#issuecomment-6969503802));
+that closure supplies no verified fix. Once a release addresses the early
+busy-timeout ordering and passes the same recovery controls, limit the gate to
+versions below that fixed release. The separate fresh-database bootstrap failure
+is tracked in [#53879](https://github.com/anomalyco/opencode/issues/53879).

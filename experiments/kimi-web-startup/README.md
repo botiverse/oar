@@ -66,8 +66,9 @@ this gate does not extend process lifetime or serialize entire queries.
 The gate does not coordinate separate OAR host processes or a native process
 started elsewhere. No paid provider, real account, model prompt or login was
 used. These are Linux observations, not Windows/macOS race measurements.
-Remove or restrict the gate once an upstream release fixes first-token
-creation and passes the same before/after controls.
+Remove or restrict the gate once a release fixes first-token creation in
+[upstream #5035](https://github.com/MoonshotAI/kimi-code/issues/5035) and passes
+the same before/after controls. An issue closure alone does not meet that condition.
 
 ## Reproduction and validation
 

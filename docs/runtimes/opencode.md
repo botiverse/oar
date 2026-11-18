@@ -285,8 +285,12 @@ retained WAL produced 5/12 failed starts without the gate and 0/12 with it.
 The waiting process paid a median 1.66 s (1.56 to 2.14 s); all six pairs overlapped
 after initialize. The actual adapter also passed 12/12 recovery opens. These
 Linux observations do not identify the exact failed operation in historical CI.
-Once an upstream release fixes the early busy-timeout ordering, remeasure it
-and restrict this gate to versions below that fixed release.
+The warm-WAL failure is tracked in
+[upstream #64590](https://github.com/anomalyco/opencode/issues/64590), separate
+from the fresh-database failure in #53879. Upstream closed #64590 as not planned
+for v1 and requested a v2 reproduction; that closure is not a verified fix.
+Once a release fixes the early busy-timeout ordering and passes the same
+recovery controls, restrict this gate to versions below that fixed release.
 
 v1 shows startup exits too. In a local Linux x64 run of **1.19.5**
 (2026-10-30, xxwork, fresh isolated HOME/XDG data directory, scripted
