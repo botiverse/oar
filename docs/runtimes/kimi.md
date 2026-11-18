@@ -670,8 +670,20 @@ any http entry. kimi does not hand the server's `instructions` to the model
 (kimi 2.1.1), so guidance the model needs belongs in the tool descriptions.
 `kimiRuntime.mcpToolsListChanged` is `"none"`: after
 `notifications/tools/list_changed` kimi does not list again and its next
-model request offers the opening set (kimi 2.2.0,
-[vendor test](../../sea-trial/vendor/mcp-tools-list-changed.vendor.test.ts)).
+model request offers the opening set (kimi 2.2.0, also checked on 2.6.3 with
+an already discovered catalog;
+[vendor controls](../../sea-trial/vendor/kimi-mcp-catalog.vendor.test.ts)).
+
+Kimi 2.6.0 through 2.6.3 have a separate startup limitation: tools from an MCP
+server that answers its initial `tools/list` slowly can be missing from the
+model-facing catalog for that session, even though native discovery succeeds.
+OAR cannot repair the native snapshot by waiting before the first prompt.
+The same fixed-delay controls pass on 2.4.1, 2.5.2 and 2.5.3. This is tracked
+in [upstream #4904](https://github.com/MoonshotAI/kimi-code/issues/4904), with
+[direct ACP evidence and reproduction](../../experiments/kimi-mcp-startup/README.md).
+CI separates an explicitly prepared native notification control from a cold
+OAR startup control. The latter asserts the observed version boundary; restore
+complete-catalog assertions when a fixed release passes the delayed control.
 
 ### Process ownership, installation, and account usage
 
