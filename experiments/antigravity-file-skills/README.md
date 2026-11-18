@@ -1,15 +1,15 @@
 # Antigravity file skill discovery
 
 On Linux x64, the final isolated controls on CLI 1.5.10 and 1.5.11 matched
-native `/skills` at all five stages: 7, 16, 24, 27 and 28 entries. Each stage
+native `/skills` at all six stages: 7, 16, 24, 27, 28 and 31 entries. Each stage
 compared the complete metadata and ordering on three file reads. No model
 requests were submitted. The selected native frames, OAR results and timings
 are [1.5.10.json](1.5.10.json) and [1.5.11.json](1.5.11.json).
 
 | CLI | File reads | Median | Maximum | Native global MCP child | File reader MCP child |
 | --- | ---: | ---: | ---: | --- | --- |
-| 1.5.10 | 15 | 12.8 ms | 23.3 ms | started | absent |
-| 1.5.11 | 15 | 12.5 ms | 43.9 ms | started | absent |
+| 1.5.10 | 18 | 12.8 ms | 17.5 ms | started | absent |
+| 1.5.11 | 18 | 11.5 ms | 22.4 ms | started | absent |
 
 These are local observations with small synthetic fixtures, not a latency
 bound for large or remote filesystems. `installation()` is outside the timed
@@ -21,6 +21,11 @@ read; callers supply its versioned snapshot.
   repository-root entries winning over the current directory. Without a
   repository, only the requested directory is searched. Global discovery uses
   `.gemini/antigravity-cli`, `.gemini/config`, then `.gemini`.
+- Native resolves the working directory before repository discovery. Manifest
+  containment compares resolved targets but preserves the declared path in
+  returned metadata. A link into the repository is accepted; a link out is
+  omitted. Direct discovery follows linked skill directories and preserves
+  their path. Global and builtin paths retain the supplied HOME spelling.
 - Direct workspace skills precede workspace declarations; global direct skills
   follow them. Global declarations precede builtin mounts. A hidden winner
   shadows lower-priority duplicates before being omitted.
@@ -63,6 +68,21 @@ versions. The cause of that one omission remains unknown; later successes do
 not explain it. The [initial assertion log](initial-omission.log) is retained; the complete
 raw material remains local. CI compares the complete native result without retries or removing
 `swarm` from either side.
+
+## macOS path regression
+
+The first macOS CI comparison failed at the roots stage: native returned six
+workspace paths below `/private/var/...`, while OAR returned `/var/...`.
+Global and builtin paths matched. The [selected differences](macos-path-failure.json)
+retain that failed result. Linux symlink fixtures on both verified versions
+reproduced the physical working-directory behavior and confirmed the manifest
+and linked-directory rules above. The file reader now applies those rules;
+full path equality remains part of every comparison.
+
+The standalone Node comparison also caught an invalid named import from the
+CommonJS YAML package that Vitest's transformation had hidden. The reader uses
+the package's default export, and the CI vendor case launches the comparison
+through Node's module loader so this boundary is tested as well.
 
 ## Reproduce
 

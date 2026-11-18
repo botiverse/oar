@@ -1,0 +1,44 @@
+{
+  "version": "1.5.11",
+  "platform": "macos-latest",
+  "head": "06f94947532f788127b1ac228d808c5fd0f32097",
+  "job": "https://github.com/botiverse/oar/actions/runs/44292862926/job/134762224989",
+  "differences": [
+    {
+      "case": "roots",
+      "name": "duplicate",
+      "nativePath": "/private<home>/repo/.agents/skills/duplicate/SKILL.md",
+      "filePath": "<home>/repo/.agents/skills/duplicate/SKILL.md"
+    },
+    {
+      "case": "roots",
+      "name": "root-0",
+      "nativePath": "/private<home>/repo/sub/.agent/skills/root-0/SKILL.md",
+      "filePath": "<home>/repo/sub/.agent/skills/root-0/SKILL.md"
+    },
+    {
+      "case": "roots",
+      "name": "root-1",
+      "nativePath": "/private<home>/repo/sub/.agents/skills/root-1/SKILL.md",
+      "filePath": "<home>/repo/sub/.agents/skills/root-1/SKILL.md"
+    },
+    {
+      "case": "roots",
+      "name": "root-2",
+      "nativePath": "/private<home>/repo/sub/_agent/skills/root-2/SKILL.md",
+      "filePath": "<home>/repo/sub/_agent/skills/root-2/SKILL.md"
+    },
+    {
+      "case": "roots",
+      "name": "root-3",
+      "nativePath": "/private<home>/repo/sub/_agents/skills/root-3/SKILL.md",
+      "filePath": "<home>/repo/sub/_agents/skills/root-3/SKILL.md"
+    },
+    {
+      "case": "roots",
+      "name": "root-4",
+      "nativePath": "/private<home>/repo/.agents/skills/root-4/SKILL.md",
+      "filePath": "<home>/repo/.agents/skills/root-4/SKILL.md"
+    }
+  ]
+}

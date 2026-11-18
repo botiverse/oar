@@ -1,5 +1,5 @@
 /* oxlint-disable no-await-in-loop -- Preserve native entry and inheritance precedence. */
-import { readFile, readdir, stat } from "node:fs/promises";
+import { readFile, readdir, realpath, stat } from "node:fs/promises";
 import { basename, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { asRecord, parseJson, type JsonRecord } from "../../shared/json.js";
 
@@ -14,7 +14,13 @@ export async function skillDirectories(path: string, signal: AbortSignal): Promi
   signal.throwIfAborted();
   try {
     const entries = await readdir(path, { withFileTypes: true });
-    return entries.filter(entry => entry.isDirectory()).map(entry => join(path, entry.name)).toSorted();
+    const result: string[] = [];
+    for (const entry of entries) {
+      const child = join(path, entry.name);
+      if (entry.isDirectory() || (entry.isSymbolicLink() && await stat(child).then(value => value.isDirectory(), () => false))) { result.push(child); }
+      signal.throwIfAborted();
+    }
+    return result.toSorted();
   } catch { signal.throwIfAborted(); return []; }
 }
 export interface ManifestScope { readonly base: string; readonly projectRoot?: string; readonly signal: AbortSignal }
@@ -22,7 +28,9 @@ async function declaredPath(value: string, scope: ManifestScope): Promise<string
   const local = resolve(scope.base, value);
   if (scope.projectRoot === undefined) { return local; }
   const path = await skillPathExists(local) ? local : resolve(scope.projectRoot, value);
-  const within = relative(scope.projectRoot, path);
+  const resolved = await realpath(path).catch(() => null);
+  if (resolved === null) { return null; }
+  const within = relative(scope.projectRoot, resolved);
   return within === ".." || within.startsWith(`..${sep}`) || isAbsolute(within) ? null : path;
 }
 function strings(value: unknown): string[] {

@@ -1,6 +1,6 @@
 /* oxlint-disable max-statements, max-lines-per-function, no-await-in-loop, oxc/no-map-spread -- A sequential native differential control preserves startup and precedence evidence. */
 import assert from "node:assert/strict";
-import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, symlink, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import type { SkillEntry } from "../../../packages/oar/src/contracts/inventory.js";
 import { antigravityRuntime } from "../../../packages/oar/src/runtimes/antigravity/index.js";
@@ -34,12 +34,13 @@ export async function compareAntigravityFileSkills(output: string): Promise<void
     DBUS_SESSION_BUS_ADDRESS: `unix:path=${join(home, "no-bus")}`, HTTP_PROXY: "http://127.0.0.1:9", HTTPS_PROXY: "http://127.0.0.1:9", ALL_PROXY: "http://127.0.0.1:9", NO_PROXY: "127.0.0.1,localhost" };
   const env: Record<string, string | null> = { ...Object.fromEntries(Object.keys(process.env).map(key => [key, null])), ...Object.fromEntries(Object.entries(nativeEnv).filter((entry): entry is [string, string] => typeof entry[1] === "string")) };
   const observations: unknown[] = [];
+  let queryCwd = cwd;
   try {
     const cold = await antigravityRuntime.skills(installation, { cwd, env });
     assert.equal(cold.kind, "ok"); assert.equal(cold.partial, true); assert.equal(cold.items.length, 0);
     observations.push({ case: "before-native-startup", result: cold, command: installation.command });
     const git = await runExecutable("git", ["init", dirname(cwd)], { env: nativeEnv }); assert.ok(git.ok);
-    for (const stage of ["builtins", "roots", "flags-plugins", "manifests", "global-manifests"] ) {
+    for (const stage of ["builtins", "roots", "flags-plugins", "manifests", "global-manifests", "symlinks"] ) {
       if (stage === "roots") {
         const roots = [join(cwd, ".agent"), join(cwd, ".agents"), join(cwd, "_agent"), join(cwd, "_agents"), join(dirname(cwd), ".agents"),
           join(home, ".gemini/antigravity-cli"), join(home, ".gemini/config"), join(home, ".gemini")];
@@ -90,7 +91,22 @@ export async function compareAntigravityFileSkills(output: string): Promise<void
         await skill(join(home, "outside/child"), "outside-project", "ignored workspace escape");
         await file(join(cwd, ".agent/skills.json"), JSON.stringify({ entries: [{ path: join(home, "outside") }] }));
       }
-      const native = await runExecutable(installation.command, ["--output-format", "json", "--print=/skills"], { cwd, env: nativeEnv, timeoutMs: 15_000 });
+      if (stage === "symlinks") {
+        const repo = dirname(cwd); const homeAlias = join(home, "home-alias");
+        await symlink(home, homeAlias, "junction");
+        queryCwd = join(home, "cwd-alias"); await symlink(cwd, queryCwd, "junction");
+        await skill(join(repo, "direct/child"), "linked-direct", "linked skill directory");
+        await symlink(join(repo, "direct/child"), join(cwd, ".agents/skills/link"), "junction");
+        await skill(join(repo, "alias-extra/child"), "absolute-alias", "declared alias retained");
+        await skill(join(home, "outside-link/child"), "outbound-link", "outside target omitted");
+        await skill(join(repo, "inside-link/child"), "inbound-link", "inside target allowed");
+        await symlink(join(home, "outside-link"), join(repo, "outbound"), "junction");
+        await symlink(join(repo, "inside-link"), join(home, "inbound"), "junction");
+        await file(join(cwd, ".agent/skills.json"), JSON.stringify({ entries: [
+          { path: join(homeAlias, "repo/alias-extra") }, { path: join(repo, "outbound") }, { path: join(home, "inbound") },
+        ] }));
+      }
+      const native = await runExecutable(installation.command, ["--output-format", "json", "--print=/skills"], { cwd: queryCwd, env: nativeEnv, timeoutMs: 15_000 });
       assert.ok(native.ok, native.stderr);
       const payload = asRecord(parseJson(native.stdout)); assert.ok(payload); const command = asRecord(payload.command); assert.ok(command);
       assert.equal(payload.conversation_id, ""); assert.equal(payload.num_turns, 0); assert.equal(command.name, "skills");
@@ -98,7 +114,7 @@ export async function compareAntigravityFileSkills(output: string): Promise<void
       observations.push({ case: stage, nativeRaw: native, config: await readFile(join(home, ".gemini/config/config.json"), "utf8").catch(() => null) });
       const timings: number[] = [];
       for (let round = 0; round < 3; round += 1) {
-        const started = performance.now(); const result: Awaited<ReturnType<typeof antigravityRuntime.skills>> = await antigravityRuntime.skills(installation, { cwd, env }); timings.push(performance.now() - started);
+        const started = performance.now(); const result: Awaited<ReturnType<typeof antigravityRuntime.skills>> = await antigravityRuntime.skills(installation, { cwd: queryCwd, env }); timings.push(performance.now() - started);
         observations.push({ case: stage, round, result, native: expected });
         assert.equal(result.kind, "ok"); assert.equal(result.view, "discovered"); assert.equal(result.partial, false); assert.deepEqual(result.items, expected);
       }

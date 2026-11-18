@@ -639,7 +639,10 @@ body is returned or executed. Unknown versions retain the guarded native
 
 The verified file reader follows workspace aliases (`.agent`, `.agents`,
 `_agent`, `_agents`) from the repository root to the requested directory,
-then the global CLI, config and legacy skill directories. It reads skill and
+then the global CLI, config and legacy skill directories. Workspace discovery
+starts from the resolved working directory; manifest containment uses resolved
+targets while returned manifest paths keep their declared spelling. Linked
+skill directories are followed. It reads skill and
 plugin manifests, applies native duplicate precedence and invocation flags,
 and includes only the native builtin mounts already materialized on disk.
 `disable-slash-command: true` winners are omitted, while

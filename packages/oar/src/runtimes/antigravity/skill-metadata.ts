@@ -1,8 +1,10 @@
 import { readFile } from "node:fs/promises";
 import { basename, dirname } from "node:path";
-import { safeLoad, FAILSAFE_SCHEMA, DEFAULT_SAFE_SCHEMA, Schema, Type } from "js-yaml";
+import yaml from "js-yaml";
 import type { SkillEntry } from "../../contracts/inventory.js";
 import { asRecord } from "../../shared/json.js";
+
+const { safeLoad, FAILSAFE_SCHEMA, DEFAULT_SAFE_SCHEMA, Schema, Type } = yaml;
 
 // yaml.v3 accepts YAML 1.1 boolean spellings for typed bool fields, including flow mappings.
 const typedSchema = new Schema({ include: [DEFAULT_SAFE_SCHEMA], implicit: [new Type("tag:yaml.org,2002:bool", {

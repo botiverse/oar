@@ -1,6 +1,6 @@
 /* oxlint-disable no-await-in-loop, max-statements, oxc/no-map-spread -- Each fixture encodes native ordering and duplicate precedence. */
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, realpath, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, expect, test, vi } from "vitest";
@@ -15,7 +15,8 @@ const installation = { kind: "available", via: "executable", command: "unused-ag
 async function file(path: string, contents: string): Promise<void> { await mkdir(dirname(path), { recursive: true }); await writeFile(path, contents); }
 async function skill(dir: string, name: string, extra = ""): Promise<void> { await file(join(dir, "SKILL.md"), `---\nname: ${name}\n${extra}---\nPRIVATE BODY\n`); }
 async function fixture(): Promise<{ home: string; cwd: string; env: Record<string, string | null> }> {
-  const home = await mkdtemp(join(tmpdir(), "oar-agy-files-")); homes.push(home);
+  const temporary = await mkdtemp(join(tmpdir(), "oar-agy-files-"));
+  const home = await realpath(temporary); homes.push(home);
   const cwd = join(home, "repo/sub"); await mkdir(cwd, { recursive: true });
   await file(join(home, "repo/.git/HEAD"), "ref: refs/heads/main\n");
   return { home, cwd, env: { HOME: home, USERPROFILE: home, GEMINI_HOME: null, GEMINI_API_KEY: null } };
@@ -109,6 +110,35 @@ test.each([
   const f = await fixture(); const path = join(f.cwd, "folder/SKILL.md"); await file(path, `---\n${header}\n---\nPRIVATE BODY\n`);
   const result = await antigravitySkillMetadata(path, AbortSignal.timeout(1000));
   expect(result === null ? null : { ...result.item, path: undefined }).toEqual(expected === null ? null : { ...expected, path: undefined });
+});
+
+test.each(["1.5.10", "1.5.11"])("%s preserves native paths through cwd, skill and manifest directory links", async version => {
+  const f = await fixture(); const repo = dirname(f.cwd);
+  const alias = join(f.home, "cwd-alias"); await symlink(f.cwd, alias, "junction");
+  const homeAlias = join(f.home, "home-alias"); await symlink(f.home, homeAlias, "junction");
+  await skill(join(repo, ".agents/skills/parent"), "parent");
+  await skill(join(repo, "direct/child"), "linked");
+  await mkdir(join(f.cwd, ".agents/skills"), { recursive: true });
+  await symlink(join(repo, "direct/child"), join(f.cwd, ".agents/skills/link"), "junction");
+  await skill(join(repo, "extra/child"), "absolute-alias");
+  await skill(join(f.home, "outside/child"), "outside");
+  await skill(join(repo, "inside/child"), "inbound");
+  await symlink(join(f.home, "outside"), join(repo, "outbound"), "junction");
+  await symlink(join(repo, "inside"), join(f.home, "inbound"), "junction");
+  await skill(join(f.home, ".gemini/config/skills/global"), "global");
+  await file(join(f.cwd, ".agents/skills.json"), JSON.stringify({ entries: [
+    { path: join(homeAlias, "repo/extra") }, { path: join(repo, "outbound") }, { path: join(f.home, "inbound") },
+  ] }));
+  const result = await antigravityRuntime.skills({ ...installation, version }, { cwd: alias, env: { ...f.env, HOME: homeAlias, USERPROFILE: homeAlias } });
+  assert.equal(result.kind, "ok");
+  expect(result.items.map(({ name, path }) => ({ name, path }))).toEqual([
+    { name: "absolute-alias", path: join(homeAlias, "repo/extra/child/SKILL.md") },
+    { name: "global", path: join(homeAlias, ".gemini/config/skills/global/SKILL.md") },
+    { name: "inbound", path: join(f.home, "inbound/child/SKILL.md") },
+    { name: "linked", path: join(f.cwd, ".agents/skills/link/SKILL.md") },
+    { name: "parent", path: join(repo, ".agents/skills/parent/SKILL.md") },
+  ]);
+  expect(mocks.auth).not.toHaveBeenCalled(); expect(mocks.run).not.toHaveBeenCalled();
 });
 
 test("verified local reader preserves custom state refusal", async () => {

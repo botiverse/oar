@@ -1,5 +1,5 @@
 /* oxlint-disable no-await-in-loop -- Native discovery precedence is sequential; higher-priority names win. */
-import { readFile } from "node:fs/promises";
+import { readFile, realpath } from "node:fs/promises";
 import { basename, dirname, join, resolve } from "node:path";
 import type { SkillEntry } from "../../contracts/inventory.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
@@ -53,7 +53,7 @@ async function scanPlugins(items: Map<string, FileSkill>, paths: readonly string
 }
 /** No executable, authentication, MCP, body execution or builtin initialization. */
 export async function readAntigravityFileSkills(home: string, cwd: string, signal: AbortSignal): Promise<{ readonly items: readonly SkillEntry[]; readonly partial: boolean }> {
-  const projects = await workspaces(cwd, signal);
+  const projects = await workspaces(await realpath(cwd), signal);
   const discovery = { home, cwd, root: projects.at(-1) ?? cwd, signal, sources: new Set<string>() };
   const items = new Map<string, FileSkill>();
   const config = await json(join(home, ".gemini/config/config.json"), signal);
