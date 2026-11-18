@@ -53,6 +53,7 @@ async function scanPlugins(items: Map<string, FileSkill>, paths: readonly string
     }
   }
 }
+function invocableSkill(skill: FileSkill): SkillEntry { return { ...skill.item, userInvocable: true }; }
 /** No executable, authentication, MCP, body execution or builtin initialization. */
 export async function readAntigravityFileSkills(home: string, cwd: string, signal: AbortSignal): Promise<{ readonly items: readonly SkillEntry[]; readonly partial: boolean }> {
   const projects = await workspaces(await realpath(cwd), signal);
@@ -93,5 +94,6 @@ export async function readAntigravityFileSkills(home: string, cwd: string, signa
     if (skill !== null) { add(items, { ...skill, item: { ...skill.item, scope: "builtin" } }, discovery); }
   }
   signal.throwIfAborted();
-  return { items: [...items.values()].filter(skill => !skill.hidden).map(skill => skill.item).toSorted((a, b) => a.name < b.name ? -1 : (a.name > b.name ? 1 : 0)), partial };
+  // Match the native slash-command catalog after hidden winners have been removed.
+  return { items: [...items.values()].filter(skill => !skill.hidden).map(skill => invocableSkill(skill)).toSorted((a, b) => a.name < b.name ? -1 : (a.name > b.name ? 1 : 0)), partial };
 }

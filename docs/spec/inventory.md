@@ -78,6 +78,10 @@ See [adapter version requirements](orientation.md#adapter-version-requirements).
 | `mcp-only` | MCP tools only; built-in and other extension tools are not included |
 
 `partial:true` signals a native discovery error or pending/failed MCP startup.
+Claude also marks its skill inventory partial when the context list reports
+`includedSkills < totalSkills`. Antigravity's verified file reader always
+marks its inventory partial because the conditional `native_swarm` mount is
+omitted; other skills named `swarm` remain eligible.
 Cursor directory discovery also marks unreadable or malformed metadata and
 unavailable nested discovery partial.
 DSH maps its native snapshot `complete` to `partial:!complete`, including
@@ -98,17 +102,23 @@ manufactures parameter schemas. A tool can reference its server through
 
 ## Skill provenance
 
-`SkillEntry.source` keeps the native source string. Optional `scope` provides
-one shared category: `builtin`, `user`, `project`, `managed` or `other`.
+`SkillEntry.source` keeps the native source string when one is reported.
+Claude's command-only skill entries are an exception: they carry `scope` but
+no `source` or `path`. Optional `scope` provides one shared category: `builtin`,
+`user`, `project`, `managed` or `other`.
 **An absent scope means unknown.** A recognized source that does not fit the
 first four categories is `other`; an unrecognized or missing source is omitted.
 Optional `plugin` preserves a native plugin or package identifier independently
 of scope. Optional `userInvocable` says whether a person can run the skill
 directly (a slash command), from native invocation metadata or a verified
-command catalog; absent means not reported. Claude, Grok, Factory, Qwen, DSH,
-Devin and Pi SDK/RPC report it where their native source establishes
-it. Qwen can report false while leaving true absent. Antigravity, Codex, Cursor,
-Kimi and OpenCode v1/v2 currently leave it absent. Enabled and model invocation flags
+command catalog. Absent means the native source does not establish it; `false`
+means native metadata explicitly disallows direct invocation or a verified
+command catalog does not offer the skill. Claude, Grok, Factory, Qwen, DSH,
+Devin, Antigravity and Pi SDK/RPC report it where their native source establishes
+it. Qwen can report false while leaving true absent. Antigravity reports true
+for every listed skill: its native catalog and verified file reader exclude
+`disable-slash-command: true` winners instead of returning false entries.
+Codex, Cursor, Kimi and OpenCode v1/v2 currently leave it absent. Enabled and model invocation flags
 do not substitute for it. [Pinned native controls](../../experiments/skill-invocability/README.md). A plugin skill can still be user-, project- or managed-scoped when
 the native catalog says so. A plugin identity alone does not establish scope.
 
@@ -157,12 +167,27 @@ absent; their absence does not make the returned catalog partial.
 Neither path executes a command or observes an existing session's later changes.
 
 Claude lists `initialize.commands`, including native aliases and argument
-hints. Claude's `skills()` reads the same array in the same process to add each
-skill's `description` and `userInvocable` (see the Claude runtime page). An explicit native `builtin: true` becomes `source: "builtin"`;
-other provenance stays absent. The native catalog can contain skill-backed
-commands also represented by `skills()`, so hosts merging the catalogs
-should avoid duplicate picker entries. Account data from initialize is
-never part of the inventory result.
+hints. An explicit native `builtin: true` becomes `source: "builtin"`;
+other command provenance stays absent. Its `skills()` joins this array with
+context skill entries in the same process. A description is added only from
+a usable, uniquely named command with a string description, and an empty result
+is omitted. A builtin command never supplies a description for a non-builtin
+skill. A skill whose name appears in the command catalog gets
+`userInvocable: true`; when absent, only verified user, project and local
+settings sources get `false`. Other sources absent from that catalog stay
+unknown.
+
+`skills()` also adds hidden entries missing from the context list: uniquely
+named, non-builtin commands whose string description carries a verified native
+user or project scope label. These entries have `scope` and
+`userInvocable: true`, but no `source`, `path` or model-invocation claim.
+Builtin commands are skipped when adding these entries. Scope labels are
+removed only when they name the entry's own scope. See the
+[Claude runtime page](../runtimes/claude.md).
+
+The command catalog can contain skill-backed commands also represented by
+`skills()`, so hosts merging the catalogs should avoid duplicate picker
+entries. Account data from initialize is never part of the inventory result.
 
 A catalog describes native discovery, not a promise that each command starts
 a model turn or works without interactive UI. The reader never executes a
@@ -182,7 +207,7 @@ ACP session's `available_commands_update` is not an independent query.
 | Cursor | Measured SDK user/project directory discovery | Unsupported | Unsupported | Unsupported |
 | Devin | Native `skills list --json`; can attempt network and write native state | Unsupported | Unsupported | Unsupported |
 | DSH | Native global `skills.snapshot({cwd})` through its bridge; native profile/plugin startup costs | Unsupported | Unsupported | Unsupported |
-| Antigravity | Native JSON print `/skills`, guarded by `agy models`; native startup can write state and use network | Unsupported | Unsupported | Unsupported |
+| Antigravity | Verified local metadata on Linux/macOS 1.5.10/1.5.11, with no process or network; Windows and other versions use native JSON print `/skills`, guarded by `agy models`, whose startup can write state and use network | Unsupported | Unsupported | Unsupported |
 | Factory | Native `droid.list_skills` before session initialization; native startup costs | Unsupported | Unsupported | Unsupported |
 | Qwen | Native `qwen/status/workspace/skills`; starts an ACP process in the requested cwd, without a session or prompt | Unsupported | Unsupported | Unsupported |
 | Pi Durable | Host-provided skill directories; no OAR native catalog reader (`unsupported`) | Unsupported | Unsupported | Unsupported |

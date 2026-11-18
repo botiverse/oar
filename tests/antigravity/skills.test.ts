@@ -19,8 +19,8 @@ test("native skill metadata preserves builtin provenance and invocation flags wi
     { name: "user", builtin: false, model_invocable: false, plugin: "native-plugin" }, { name: "unknown" }]);
   const result = await antigravityRuntime.skills(installation, { cwd: "/project", env: { GEMINI_HOME: null, AGY_CLI_DISABLE_AUTO_UPDATE: "false" } });
   expect(result).toMatchObject({ kind: "ok", view: "discovered", partial: false, scope: { kind: "workspace", cwd: resolve("/project") }, items: [
-    { name: "builtin", description: "native", path: "/built/SKILL.md", scope: "builtin", disableModelInvocation: false },
-    { name: "user", plugin: "native-plugin", disableModelInvocation: true }, { name: "unknown" },
+    { name: "builtin", description: "native", path: "/built/SKILL.md", scope: "builtin", userInvocable: true, disableModelInvocation: false },
+    { name: "user", plugin: "native-plugin", userInvocable: true, disableModelInvocation: true }, { name: "unknown", userInvocable: true },
   ] });
   expect(JSON.stringify(result)).not.toContain("PRIVATE_BODY");
   expect(mocks.run.mock.calls[0]?.slice(0, 2)).toEqual(["agy", ["--output-format", "json", "--print=/skills"]]);
@@ -81,7 +81,7 @@ test.each([0, -1, Infinity, NaN])("invalid deadline is rejected before native wo
 test.skipIf(process.platform !== "win32").each(["1.5.10", "1.5.11"])("Windows %s retains the native skill query", async version => {
   serve([{ name: "native-only", model_invocable: true }]);
   const result = await antigravityRuntime.skills({ ...installation, version }, { env: { GEMINI_HOME: null } });
-  expect(result).toMatchObject({ kind: "ok", partial: false, items: [{ name: "native-only", disableModelInvocation: false }] });
+  expect(result).toMatchObject({ kind: "ok", partial: false, items: [{ name: "native-only", userInvocable: true, disableModelInvocation: false }] });
   expect(mocks.auth).toHaveBeenCalledOnce();
   expect(mocks.run.mock.calls[0]?.slice(0, 2)).toEqual(["agy", ["--output-format", "json", "--print=/skills"]]);
 });

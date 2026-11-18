@@ -38,6 +38,7 @@ fileTest.each(["1.5.10", "1.5.11"])("%s reads signed-out files without spawning,
           "disableModelInvocation": true,
           "name": "local",
           "path": "<home>/repo/sub/.agents/skills/local/SKILL.md",
+          "userInvocable": true,
         },
       ],
       "partial": true,
@@ -57,7 +58,7 @@ fileTest.each(["1.5.10", "1.5.11"])("%s omits the uncertain swarm builtin and ma
   expect(result.items.map(item => item.name)).toEqual(["agy-customizations", "antigravity_guide", "automation", "migrate-agent-settings", "migrate-workflows", "run-workflow"]);
   await skill(join(f.cwd, ".agents/skills/swarm"), "swarm", "description: Local skill, not the uncertain builtin\n");
   const local = await antigravityRuntime.skills({ ...installation, version }, f); assert.equal(local.kind, "ok");
-  expect(local.items.find(item => item.name === "swarm")).toEqual({ name: "swarm", description: "Local skill, not the uncertain builtin", path: join(f.cwd, ".agents/skills/swarm/SKILL.md"), disableModelInvocation: false });
+  expect(local.items.find(item => item.name === "swarm")).toEqual({ name: "swarm", description: "Local skill, not the uncertain builtin", path: join(f.cwd, ".agents/skills/swarm/SKILL.md"), userInvocable: true, disableModelInvocation: false });
   expect(local.partial).toBe(true);
 });
 
@@ -73,6 +74,7 @@ fileTest("native root and alias precedence, hidden winners and plugin enable ove
   await skill(join(plugin, "skills/child"), "child");
   await file(join(f.home, ".gemini/config/config.json"), JSON.stringify({ plugins: { identity: { enabled: true } } }));
   const result = await antigravityRuntime.skills(installation, f); assert.equal(result.kind, "ok");
+  expect(result.items.every(item => item.userInvocable === true)).toBe(true);
   expect(result.items.map(({ name, description, plugin: owner }) => ({ name, description, plugin: owner }))).toMatchInlineSnapshot(`
     [
       {

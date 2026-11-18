@@ -14,7 +14,7 @@ absence, are retained in [native-observations.json](native-observations.json).
 | DSH 0.2.1-rc.5 | `skills.snapshot`, `invocation.userInvocable` | Copy boolean independently of model invocation |
 | Devin 3000.12.57 (`96542e930752`) | `skills list --json`, `triggers` | A present list containing `user` gives true; a present list without it gives false; missing list stays unknown |
 | Pi SDK and RPC 1.5.2 | Loaded SDK skills and RPC `get_commands`, `source: "skill"` | Every loaded skill has a `/skill:name` command and reports true |
-| Antigravity 1.5.0 | `/skills` catalog omits `disable-slash-command: true` | Mapping remains absent here; follow-up will cover both the native query and verified file reader |
+| Antigravity 1.5.0 and 1.5.11 | `/skills` catalog omits `disable-slash-command: true`; verified files preserve that filtering | Every listed entry reports true on both reader paths; hidden skills stay absent |
 | Codex 0.169.0 | App-server `skills/list` | No direct-invocation metadata, even for true/false frontmatter controls; omitted |
 | Cursor SDK 1.4.1 | Copied SDK's unchanged skill-discovery implementation and native `toJson()` | No direct-invocation metadata for true/false controls; omitted |
 | Kimi 2.4.1 and 2.6.2 | Native Web workspace skill catalog | No direct-invocation metadata; `disable_model_invocation` is separate; omitted |
@@ -45,9 +45,13 @@ by native, so OAR does not fill it in. Pi's native loader ignores
 are still offered by `get_commands`, including with `enableSkillCommands`
 disabled. Pi's SDK command expansion also resolves every loaded skill by name;
 that setting does not remove them from the RPC catalog. Antigravity's negative
-control is omission from the native catalog. Its mapping is deferred until the
-[file-reader change](https://github.com/botiverse/oar/pull/937) merges, so this
-change does not depend on that implementation.
+control is omission from the native catalog. Its follow-up maps both the
+1.5.0 native fallback and the verified local reader, with fresh 1.5.11 Linux
+comparisons. [Selected native and OAR observations](antigravity-observations.json)
+retain both positive and omitted controls. The file reader remains limited to
+Linux/macOS 1.5.10 and 1.5.11 and stays partial because `native_swarm` is omitted;
+Windows retains the native query. Windows CI checks both a listed model-hidden
+skill and an omitted slash-command-disabled skill on 1.5.11.
 
 The Devin source binary was recovered from a retained official archive after
 the original download URL returned HTTP 403. The archive SHA-256 is
@@ -83,7 +87,8 @@ OAR_TEST=dsh-aimock OAR_DSH_BIN=/absolute/dsh pnpm vitest run sea-trial/vendor/d
 OAR_TEST=devin-skills OAR_DEVIN_BIN=/absolute/devin pnpm vitest run sea-trial/vendor/devin-skills.vendor.test.ts
 OAR_TEST=pi-rpc-aimock pnpm vitest run sea-trial/vendor/pi-rpc-readers.vendor.test.ts
 OAR_TEST=cursor-skills pnpm vitest run sea-trial/vendor/cursor-skills.vendor.test.ts
-OAR_TEST=antigravity-aimock OAR_ANTIGRAVITY_BIN=/absolute/agy pnpm vitest run sea-trial/vendor/antigravity-skills.vendor.test.ts
+OAR_TEST=antigravity-aimock OAR_ANTIGRAVITY_BIN=/absolute/agy-1.5.0 pnpm vitest run sea-trial/vendor/antigravity-skills.vendor.test.ts
+OAR_TEST=antigravity-file-skills OAR_ANTIGRAVITY_BIN=/absolute/agy-1.5.11 pnpm vitest run sea-trial/vendor/antigravity-file-skills.vendor.test.ts sea-trial/vendor/antigravity-windows-skills.vendor.test.ts
 ```
 
 Cursor's observer records the native field names alongside its existing parity

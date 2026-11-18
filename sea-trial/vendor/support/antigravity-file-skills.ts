@@ -17,7 +17,7 @@ async function skill(path: string, name: string, description: string, flags = ""
 function project(value: unknown): SkillEntry[] {
   return nativeRows(value).map(row => {
     assert.equal(typeof row.name, "string"); assert.equal(typeof row.path, "string");
-    return { name: String(row.name), path: String(row.path), ...(typeof row.description === "string" ? { description: row.description } : {}),
+    return { name: String(row.name), userInvocable: true, path: String(row.path), ...(typeof row.description === "string" ? { description: row.description } : {}),
       ...(typeof row.plugin === "string" ? { plugin: row.plugin } : {}), ...(row.builtin === true ? { scope: "builtin" } : {}), disableModelInvocation: row.model_invocable === false };
   });
 }
@@ -111,6 +111,10 @@ export async function compareAntigravityFileSkills(output: string): Promise<void
       const payload = asRecord(parseJson(native.stdout)); assert.ok(payload); const command = asRecord(payload.command); assert.ok(command);
       assert.equal(payload.conversation_id, ""); assert.equal(payload.num_turns, 0); assert.equal(command.name, "skills");
       const expected = project(asRecord(command.data)?.skills);
+      if (stage === "flags-plugins") {
+        assert.ok(!expected.some(item => item.name === "hidden"), "Native omits the slash-command-disabled fixture");
+        assert.ok(expected.some(item => item.name === "manual" && item.disableModelInvocation === true), "Model-hidden skills remain directly invocable");
+      }
       observations.push({ case: stage, nativeRaw: native, config: await readFile(join(home, ".gemini/config/config.json"), "utf8").catch(() => null) });
       const timings: number[] = [];
       for (let round = 0; round < 3; round += 1) {
