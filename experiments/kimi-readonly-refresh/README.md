@@ -77,7 +77,47 @@ vendor regression explicitly enables both background paths in the input,
 requires skill discovery to make no provider request or credential change,
 then verifies normal usage refresh and unchanged user configuration.
 
-This change prevents unrelated background rotation. An explicit usage refresh
-can still be interrupted by a timeout or cleanup. Native graceful shutdown
-and cancellation during a refresh require their own measurements; these
-results do not promise that interrupted writes are safe.
+This change prevents unrelated background rotation. Explicit refresh during
+shutdown has the additional measurements below; neither change promises that
+interrupted writes are safe.
+
+## Native shutdown and deadlines
+
+For a ready Web process OAR captures descendant ownership, sends authenticated
+`POST /api/v1/shutdown`, and awaits actual exit. Native
+[`shutdown.ts`](https://github.com/MoonshotAI/kimi-code/blob/b0de2fbd2de04d87689225aafd3912e5d193b62d/packages/kap-server/src/routes/shutdown.ts)
+schedules server shutdown after replying; its acknowledgement alone does not
+establish exit or persistence. Cleanup uses its own signal after the query's
+signal has been cancelled. Before readiness, startup failure retains the
+existing process cleanup. Failed shutdown and grace expiry fall back to the
+existing bounded process-tree termination.
+
+The grace is two seconds for the shutdown request and exit together. The
+initial 600 ms delayed-refresh controls exited naturally in 693 to 709 ms;
+two seconds gives that observed interval headroom. This is a measured local
+choice, not a limit on real OAuth response latency. The account-usage and
+skills answer deadlines include startup, requests and awaited cleanup. At
+expiry the caller receives its existing timeout outcome immediately, while
+owned cleanup continues; it does not kill a ready process merely to answer.
+
+[`shutdown.ts`](shutdown.ts) and [`shutdown-selected.json`](shutdown-selected.json)
+retain all three rounds of each control on native 2.6.3:
+
+| After a refresh is accepted | Observed outcome |
+| --- | --- |
+| Cancel then immediate termination | 3/3 leave the old credential generation on disk; exit code 0 does not mean persistence |
+| Cancel then actual OAR native shutdown | 3/3 save the replacement, exit naturally; cleanup after the cancelled answer takes 707 to 741 ms |
+| 50 ms query deadline then actual OAR native shutdown | Caller answers in 51 to 52 ms, without killing; 3/3 save the replacement and finish cleanup 674 to 743 ms later |
+| 50 ms deadline with a four-second refresh reply | Caller answers in 51 to 52 ms; 3/3 hit the two-second grace and finish fallback cleanup in 2036 to 2041 ms, leaving the old generation |
+
+These timings deliberately use a local delayed reply. The first three paths
+use 600 ms; the last exceeds the grace. All processes exited, and there was
+no retry. The deadline probe uses the same query-deadline owner and actual
+startup/shutdown helpers; unit regressions separately pin both public reader
+paths' exact deadlines, no early kill, and bounded cleanup. A native crash,
+early native exit or failed shutdown may still lose a replacement even within
+the grace. The server's real reuse/grace policy remains unmeasured.
+
+```sh
+pnpm tsx experiments/kimi-readonly-refresh/shutdown.ts /absolute/path/to/kimi /tmp/kimi-shutdown.json
+```

@@ -116,7 +116,11 @@ describe.skipIf(!["kimi-skills", "kimi-login"].includes(process.env.OAR_TEST ?? 
         ]));
         expect(await readFile(join(f.data, "config.toml"), "utf8")).toBe(f.config);
       } else { expect(result).toMatchObject({ kind: "unavailable", code: mode === "timeout" ? "timeout" : "query_failed" }); }
-      await assertStopped(f.trace);
+      // The answer owns the query deadline; native shutdown and bounded kill
+      // continue afterward. Retain the same process and listener assertions.
+      await (mode === "timeout"
+        ? vi.waitFor(async () => { await assertStopped(f.trace); }, { timeout: 15_000, interval: 100 })
+        : assertStopped(f.trace));
     } finally {
       vi.restoreAllMocks();
       await rm(f.root, { recursive: true, force: true });

@@ -131,7 +131,10 @@ test("usage and skills share startup ownership and spend one original deadline",
   const auth = { home, credentialPath: join(home, "credentials.json"), baseUrl: "http://localhost", oauthHost: "http://localhost", storage: "file", storageName: "synthetic" } as const;
   const usageChild = fakeLineProcess(); const skillsChild = fakeLineProcess();
   spawn.mockReturnValueOnce(usageChild).mockReturnValueOnce(skillsChild);
-  vi.stubGlobal("fetch", vi.fn(async () => Response.json({ code: 0, data: { kind: "ok", quota: { usages: { limit7d: { usedRatio: 0.5 } } } } })));
+  vi.stubGlobal("fetch", vi.fn(async (url: string) => {
+    if (url.endsWith("/shutdown")) { usageChild.end(0); }
+    return Response.json({ code: 0, data: { kind: "ok", quota: { usages: { limit7d: { usedRatio: 0.5 } } } } });
+  }));
   const usage = kimiNativeUsage("kimi", auth, env, Date.now() + 100);
   const skills = kimiSkills(installation, { env, cwd: home, timeoutMs: 50 });
   await vi.advanceTimersByTimeAsync(30); expect(spawn).toHaveBeenCalledTimes(1);
@@ -153,4 +156,32 @@ test("read-only Web processes disable both background catalog refresh paths with
   await vi.waitFor(() => { expect(spawn).toHaveBeenCalledOnce(); }); ready(child); await started;
   expect(spawn.mock.calls[0]?.[2]?.env).toStrictEqual({ ...caller, KIMI_CODE_MODEL_CATALOG_REFRESH_ON_START: "0", KIMI_CODE_MODEL_CATALOG_REFRESH_INTERVAL_MS: "0" });
   expect(caller).toStrictEqual(before); child.kill(); await child.exited;
+});
+
+// oxlint-disable-next-line max-statements -- Observe each deadline and cleanup boundary on one virtual clock.
+test.each(["usage", "skills"])("%s returns at its deadline while native shutdown keeps a bounded grace period", async kind => {
+  vi.useFakeTimers(); const { env, home } = await setup(); const child = fakeLineProcess(); spawn.mockReturnValue(child);
+  const auth = { home, credentialPath: join(home, "credentials.json"), baseUrl: "http://localhost", oauthHost: "http://localhost", storage: "file", storageName: "synthetic" } as const;
+  const calls: string[] = [];
+  vi.stubGlobal("fetch", vi.fn(async (url: string, init?: RequestInit) => {
+    calls.push(new URL(url).pathname);
+    const querySignal = init?.signal; expect(querySignal?.aborted).toBe(false);
+    if (url.endsWith("/shutdown")) { return Response.json({ code: 0, data: {} }); }
+    const { promise, reject } = Promise.withResolvers<Response>();
+    querySignal?.addEventListener("abort", () => { reject(new Error("private request failure")); }, { once: true }); return promise;
+  }));
+  const usage = async (): Promise<unknown> => {
+    try { return await kimiNativeUsage("kimi", auth, env, Date.now() + 50); }
+    catch (error) { return error instanceof Error ? error.message : "unexpected"; }
+  };
+  const pending = kind === "usage"
+    ? usage()
+    : kimiSkills(installation, { env, cwd: home, timeoutMs: 50 });
+  await vi.advanceTimersByTimeAsync(0); ready(child);
+  await vi.advanceTimersByTimeAsync(50);
+  await (kind === "usage" ? expect(pending).resolves.toBe("Kimi account usage timed out") : expect(pending).resolves.toMatchObject({ kind: "unavailable", code: "timeout" }));
+  expect(calls.at(-1)).toBe("/api/v1/shutdown"); expect(child.killed()).toBe(false);
+  await vi.advanceTimersByTimeAsync(1999); expect(child.killed()).toBe(false);
+  await vi.advanceTimersByTimeAsync(1); expect(child.killed()).toBe(true); await child.exited;
+  expect(vi.getTimerCount()).toBe(0);
 });

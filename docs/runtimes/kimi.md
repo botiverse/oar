@@ -74,9 +74,9 @@ every agent in the native session. OAR uses `kimi acp`.
 reader's directory and environment. It lists existing workspace IDs before
 registering the requested root, reads `/api/v1/workspaces/{id}/skills` and
 unregisters the returned ID only if it was absent from that list. A reused
-registration is retained. It then stops the process tree. It creates no session and submits no prompt. Success,
-error and timeout all wait for process cleanup; the default read deadline is
-15 seconds. The reader never forwards native stdout/stderr, follows redirects
+registration is retained. It then requests native shutdown and waits for exit.
+It creates no session and submits no prompt. The default read deadline is
+15 seconds; a timeout returns immediately while owned cleanup continues. The reader never forwards native stdout/stderr, follows redirects
 or returns the private startup bearer token.
 
 The result preserves native name, description, source, path and
@@ -771,9 +771,26 @@ Kimi may clear both credentials after rejection. In synthetic 2.6.3 controls,
 this happened in 3/3 sequential reads; the actual adapter with the switches
 passed 3/3 sequential and 3/3 concurrent reads. Disabling the OAuth lock only
 for a later usage read avoids another refresh but cannot recover a token lost
-by earlier skill discovery. This fix does not guarantee credential preservation
-when an explicit usage refresh is interrupted, and does not change session
-processes or native processes started by other hosts.
+by earlier skill discovery. This fix does not change session processes or native processes started by
+other hosts.
+
+Once a Web process is ready, both readers send authenticated native
+`POST /api/v1/shutdown` with a fresh cleanup signal and await actual exit.
+Descendant ownership is captured before this request. A cancelled query
+cannot abort its own cleanup request. Usage rejects and skills return their
+timeout result at the original deadline; owned shutdown continues in the
+background. Startup failures before readiness retain bounded process cleanup.
+
+The native shutdown request and exit have a separate two-second grace period.
+The initial 2.6.3 cancellation control saved a 600 ms delayed synthetic refresh
+and exited in 693 to 709 ms; two seconds gives that measured path headroom.
+A failed request or grace expiry invokes the existing process-tree cleanup
+and its escalation bounds. This is not a remote-service latency guarantee:
+when a synthetic refresh reply took four seconds, the two-second grace expired
+and the replacement was still lost. A native crash, early exit or failed
+shutdown can also interrupt persistence within the grace period. No result
+asserts credential safety from a timer or an exit code alone.
+[Cancellation, deadlines and retained states](../../experiments/kimi-readonly-refresh/README.md#native-shutdown-and-deadlines).
 
 Profile identity remains best effort: plan, email and nickname are projected
 without phone/account IDs. Phone sign-ins may expose a display name without
