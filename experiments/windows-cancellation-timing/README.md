@@ -143,6 +143,9 @@ Windows timeout evidence to the native cleanup controls. It preserves the
 one-second cancellation budget and distinguishes unverified cleanup from
 actual descendant reclamation.
 
+[Shell and Pi child-startup observations](child-startup.md) track three separate
+Windows failures with per-child diagnostics and unchanged assertions/deadlines.
+
 ## Startup refusals with cleanup evidence (2026-11-18)
 
 The Windows main run after PR #944 failed two native-refusal controls:

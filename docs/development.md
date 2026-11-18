@@ -126,6 +126,14 @@ unverified Windows exit is accepted only with that operation's recorded
 snapshot timeout and matching warning; actual roots must still exit.
 [Assertion audit](../experiments/windows-cancellation-timing/assertion-audit.md).
 
+The shell-hook, Pi bash environment and Pi key-command controls also retain
+bounded child-process observations in that directory. The test-owned observer
+records stage markers, process start/result, elapsed time and allowlisted error
+reasons before the native Pi resolver discards a failure. It never records
+arguments, environment, paths, output or original error text, and restores the
+Node builtin bindings after each test. Missing completion or dropped events
+remain evidence gaps. See [the three unresolved Windows controls](../experiments/windows-cancellation-timing/child-startup.md).
+
 ### Behavior: does the public contract still hold?
 
 One suite in `sea-trial/cases/`, run against interchangeable backends that
