@@ -1,4 +1,5 @@
-import { readdirSync, readlinkSync } from "node:fs";
+import { lstatSync, readdirSync, readlinkSync } from "node:fs";
+import { join } from "node:path";
 import type { Session } from "../../packages/oar/src/index.js";
 import type { AgentState, Message } from "./store.js";
 
@@ -112,4 +113,32 @@ export function statusLine(input: StatusInput, now: number): AgentStatusLine {
     sessionId: input.state.sessionId ?? null,
     opens: input.state.opens,
   };
+}
+
+/** Bytes under `dir`, not following symlinks; unreadable entries count as zero. */
+export function directoryBytes(dir: string): number {
+  let total = 0;
+  const stack = [dir];
+  for (let next = stack.pop(); next !== undefined; next = stack.pop()) {
+    let entries: string[] = [];
+    try {
+      entries = readdirSync(next);
+    } catch {
+      continue;
+    }
+    for (const entry of entries) {
+      const file = join(next, entry);
+      try {
+        const stat = lstatSync(file);
+        if (stat.isDirectory()) {
+          stack.push(file);
+        } else {
+          total += stat.size;
+        }
+      } catch {
+        // gone while counting
+      }
+    }
+  }
+  return total;
 }

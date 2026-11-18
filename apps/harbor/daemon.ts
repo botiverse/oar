@@ -3,7 +3,8 @@ import { chmodSync, mkdirSync, openSync, rmSync, writeFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { join, resolve as resolvePath } from "node:path";
 import { HarborAgent } from "./agent.js";
-import { daemonInfo, mentionsIn, parseAgentSpec, Store, type AgentState } from "./store.js";
+import { daemonInfo, mentionsIn, parseAgentEnv, parseAgentSpec, Store, type AgentState } from "./store.js";
+import { directoryBytes } from "./support.js";
 
 const HERE = import.meta.dirname;
 const TSX = resolvePath(HERE, "../../node_modules/.bin/tsx");
@@ -27,7 +28,18 @@ export function asRecord(value: unknown): Body {
  * state.json are reopened with their recorded sessions, so `up` after a crash
  * or `down` is itself a resume test.
  */
-export async function up(dir: string, specs: readonly string[], stallMs: number): Promise<void> {
+export interface UpOptions {
+  readonly stallMs: number;
+  /** `name:KEY=VALUE` entries: environment for one agent (its probe and sessions). */
+  readonly agentEnv: readonly string[];
+  /** Stop on its own after this long (the run's deadline). */
+  readonly forMs?: number;
+  /** Stop when the run directory grows past this many bytes. */
+  readonly maxBytes?: number;
+}
+
+export async function up(dir: string, specs: readonly string[], upOptions: UpOptions): Promise<void> {
+  const { stallMs } = upOptions;
   if (daemonInfo(dir) !== null) {
     throw new Error(`a harbor daemon already runs for ${dir}`);
   }
@@ -38,6 +50,14 @@ export async function up(dir: string, specs: readonly string[], stallMs: number)
     if (!states.some((state) => state.name === spec.name)) {
       states.push({ ...spec, opens: 0 });
     }
+  }
+  for (const [name, env] of parseAgentEnv(upOptions.agentEnv)) {
+    const index = states.findIndex((state) => state.name === name);
+    const state = states[index];
+    if (state === undefined) {
+      throw new Error(`--agent-env names no agent ${name}`);
+    }
+    states[index] = { ...state, env: { ...state.env, ...env } };
   }
   if (states.length === 0) {
     throw new Error("no agents: pass --agent name=runtime[:model]");
@@ -53,10 +73,23 @@ export async function up(dir: string, specs: readonly string[], stallMs: number)
     void openReporting(agent);
   };
   let stopping = false;
+  const startedAt = Date.now();
+  let lastSizeCheck = 0;
   const watchdog = setInterval(() => {
     const now = Date.now();
     for (const agent of agents.values()) {
       agent.tick(now);
+    }
+    if (upOptions.forMs !== undefined && now - startedAt >= upOptions.forMs) {
+      store.journal({ kind: "limit", limit: "deadline", forMs: upOptions.forMs });
+      void stop();
+    } else if (upOptions.maxBytes !== undefined && now - lastSizeCheck >= 300_000) {
+      lastSizeCheck = now;
+      const bytes = directoryBytes(dir);
+      if (bytes > upOptions.maxBytes) {
+        store.journal({ kind: "limit", limit: "disk", bytes, maxBytes: upOptions.maxBytes });
+        void stop();
+      }
     }
   }, 15_000);
   const server = createServer((request, response) => {

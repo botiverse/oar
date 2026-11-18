@@ -6,7 +6,8 @@ import { runDir, Store } from "./store.js";
 
 const USAGE = `harbor: a small Raft-like channel for long OAR runs with real agents
 
-  harbor up --agent <name=runtime[:model]> ... [--stall-min 10] [--detach]
+  harbor up --agent <name=runtime[:model]> ... [--agent-env name:KEY=VALUE ...]
+            [--stall-min 10] [--for HOURS] [--max-disk-gb N] [--detach]
   harbor add <name=runtime[:model]>        add an agent to the running daemon
   harbor send [text]                        post (stdin when no text); @name routes, @all reaches everyone
   harbor read [--after N] [--limit 20]      channel messages
@@ -25,6 +26,9 @@ const OPTIONS = {
   dir: { type: "string" },
   agent: { type: "string", multiple: true },
   "stall-min": { type: "string" },
+  "agent-env": { type: "string", multiple: true },
+  for: { type: "string" },
+  "max-disk-gb": { type: "string" },
   detach: { type: "boolean" },
   from: { type: "string" },
   after: { type: "string" },
@@ -47,7 +51,12 @@ async function main(argv: readonly string[]): Promise<void> {
       detach(dir, rest);
       return;
     }
-    await up(dir, values.agent ?? [], Number(values["stall-min"] ?? "10") * 60_000);
+    await up(dir, values.agent ?? [], {
+      stallMs: Number(values["stall-min"] ?? "10") * 60_000,
+      agentEnv: values["agent-env"] ?? [],
+      ...(values.for === undefined ? {} : { forMs: Number(values.for) * 3_600_000 }),
+      ...(values["max-disk-gb"] === undefined ? {} : { maxBytes: Number(values["max-disk-gb"]) * 1024 ** 3 }),
+    });
   } else if (command === "add") {
     console.log(JSON.stringify(await call(dir, "/add", { spec: positionals[0] })));
   } else if (command === "send") {

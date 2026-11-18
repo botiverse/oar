@@ -16,6 +16,14 @@ pnpm harbor restart claude   # dispose and resume, as a host restart would
 pnpm harbor down
 ```
 
+Per-agent environment (`--agent-env name:KEY=VALUE`, repeatable) reaches that
+agent's installation probe and sessions only: point two agents at two installs
+of one runtime with `OAR_OPENCODE_BIN`, or give each its own `XDG_DATA_HOME`.
+Cursor's in-process mode refuses a session environment, so leave it unset there.
+`--for HOURS` stops the run at its deadline and `--max-disk-gb N` stops it when
+the run directory grows past N GiB (checked every 5 minutes); both are
+journaled as `limit`.
+
 `--dir` (or `HARBOR_DIR`) selects the run directory, default
 `~/.oar-harbor/default`, outside any repository so agents do not inherit a
 checkout's instructions. `up` on an existing run reopens every agent with its
