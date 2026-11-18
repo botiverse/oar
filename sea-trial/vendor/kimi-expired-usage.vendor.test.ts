@@ -28,6 +28,17 @@ async function stopped(trace: string): Promise<void> {
   }
 }
 describe.skipIf(process.env.OAR_TEST !== "kimi-login")("Kimi native expired-token usage", () => {
+  test.skipIf(windows)("native empty quota preserves refreshed login and returns quota_unavailable", { timeout: 60_000 }, async () => {
+    const f = await kimiExpiredUsageFixture("empty");
+    try {
+      await expect(kimiRuntime.accountUsage(installation, { env: f.env, timeoutMs: 30_000 }))
+        .resolves.toEqual({ kind: "unsupported", reason: "quota_unavailable" });
+      expect(f.calls.filter(call => call.path === "/api/oauth/token")).toHaveLength(1);
+      expect(f.calls.filter(call => call.path === "/usages")).toEqual([{ path: "/usages", fresh: true, status: 200 }]);
+      expect(f.calls.some(call => call.path === "/me")).toBe(false);
+      expect(await f.observe()).toMatchObject({ credential: { fresh: true, revoked: false, refreshCurrent: true, refreshEmpty: false } });
+    } finally { await stopped(f.trace); await f.dispose(); }
+  });
   test.each([1, 2])("%s concurrent readers leave credential refresh to native locking", { timeout: 60_000 }, async count => {
     const f = await kimiExpiredUsageFixture("success");
     const pending = Array.from({ length: count }, async () => kimiRuntime.accountUsage(installation, { env: f.env, timeoutMs: 30_000 }));

@@ -9,7 +9,11 @@ const wallet = {
   monthlyUsed: { priceInCents: "50" },
 };
 
-test.each([undefined, null, [], "broken", {}, { usage: {} }])("Kimi refuses a quota response with no usable windows (%#)", (payload) => {
+test.each([{}, { usages: {} }, { limits: [] }, { usages: {}, limits: [] }])("Kimi no-data quota is unsupported, not zero usage (%#)", payload => {
+  expect(projectKimiUsage(payload)).toEqual({ kind: "unsupported", reason: "quota_unavailable" });
+});
+
+test.each([undefined, null, [], "broken", { usage: {} }, { limits: [{}] }, { usages: null }, { usages: [] }, { usages: { limit_7d: { used_ratio: "broken" } } }])("Kimi refuses a malformed quota response with no usable windows (%#)", (payload) => {
   expect(() => projectKimiUsage(payload)).toThrow(/Kimi usage response/u);
 });
 

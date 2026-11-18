@@ -14,6 +14,9 @@ const buckets = { limit5h: "5h limit", limit7d: "Weekly limit", monthTotal: "Mon
 /** These ratios and cents have already been parsed by Kimi's managed-usage service. */
 export function projectKimiNativeUsage(quota: JsonRecord): AccountUsageSnapshot {
   const usages = asRecord(quota.usages);
+  if (quota.usages === undefined || (usages !== null && Object.keys(usages).length === 0)) {
+    return { kind: "unsupported", reason: "quota_unavailable" };
+  }
   const windows: AccountUsageWindow[] = [];
   for (const [key, label] of Object.entries(buckets)) {
     const row = asRecord(usages?.[key]);
@@ -52,10 +55,11 @@ export async function kimiNativeUsage(command: string, auth: KimiAuthContext, en
       const quota = asRecord(payload.quota);
       if (payload.kind !== "ok" || quota === null) { throw new Error("Kimi native usage response is malformed"); }
       const result = projectKimiNativeUsage(quota);
+      if (result.kind !== "available") { return result; }
       // Profile lookup is best effort and uses the same native refresh owner.
       const profile = await kimiWebRequest(web, signal, "/oauth/userinfo").catch(() => null);
       const user = profile?.kind === "ok" ? asRecord(profile.userInfo) : null;
-      if (result.kind !== "available" || user === null) { return result; }
+      if (user === null) { return result; }
       return { ...result, ...(typeof user.email === "string" && user.email.length > 0 ? { email: user.email } : {}),
         ...(typeof user.nickname === "string" && user.nickname.length > 0 ? { displayName: user.nickname } : {}),
         ...(typeof user.userLevelName === "string" && user.userLevelName.length > 0 ? { plan: user.userLevelName } : {}) };

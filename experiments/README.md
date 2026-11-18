@@ -1,5 +1,7 @@
 # experiments
 
+- [Kimi empty quota response](kimi-empty-quota/README.md): native no-data display and `quota_unavailable`, without inferring account plan or zero usage.
+
 - [Kimi 2.6.2/2.6.3 resume and workspace controls](kimi-mcp-resume/2026-11-17.md): stale model declarations, current MCP execution and version-specific workspace registration expectations; [upstream #5036](https://github.com/MoonshotAI/kimi-code/issues/5036).
 
 - [Kimi read-only refresh](kimi-readonly-refresh/README.md): synthetic rotation loss during skill-query shutdown, native background-refresh switches and Raft lock-disabled controls; [upstream #5034](https://github.com/MoonshotAI/kimi-code/issues/5034).

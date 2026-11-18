@@ -715,7 +715,16 @@ best-effort `/api/v1/oauth/userinfo`. Kimi calls its own `ensureFresh`, locks
 its credential slot, re-reads it under the lock and performs any refresh and
 credential writes. OAR never rotates or writes these credentials. The native
 quota response supplies five-hour, weekly and monthly ratios and Extra Usage
-headroom. Empty or malformed quota data rejects rather than reporting zero.
+headroom. Absent or empty quota data returns `unsupported/quota_unavailable`,
+matching native Kimi's normal "No usage data available." display in
+[`buildManagedUsageSection`](https://github.com/MoonshotAI/kimi-code/blob/b0de2fbd2de04d87689225aafd3912e5d193b62d/apps/kimi-code/src/tui/components/messages/usage-panel.ts#L117).
+This means no quota configuration was exposed, not zero usage or a particular
+account plan. A present nonempty quota object with no usable rows still
+rejects. The direct reader preserves its existing `usage`/`limits` format;
+malformed present legacy rows also reject. The
+[native empty-response observation](../../experiments/kimi-empty-quota/README.md)
+records the same account's successful response and TUI display without
+account identifiers or response values.
 
 Kimi deliberately skips this lock on Windows and when
 `KIMI_DISABLE_OAUTH_LOCK=1`. OAR does not launch the refreshing Web path in
