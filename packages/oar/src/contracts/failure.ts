@@ -62,7 +62,8 @@ export type FailedTurn =
     readonly status?: number;
     /**
      * When the limit resets, where the runtime reports that time for this
-     * failure (claude's subscription limits or Codex's preserved provider body;
+     * failure (claude's subscription limits, Codex's preserved provider body
+     * or attributable current-turn exhausted window;
      * docs/spec/runtime-matrix.md#when-a-limit-resets).
      * Absent otherwise, never derived from an account-usage read or the
      * runtime's prose. It is the runtime's last report, which may be older

@@ -19,6 +19,23 @@
       "usageAfter": null,
       "notifications": [
         {
+          "method": "turn/started",
+          "params": {
+            "threadId": "01a1efa1-20cf-7e50-8f6b-e4e6228f51a6",
+            "turn": {
+              "id": "01a1efa1-20ea-74d1-9bf2-b83fc52e73bc",
+              "rootTurnId": "01a1efa1-20ea-74d1-9bf2-b83fc52e73bc",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "inProgress",
+              "error": null,
+              "startedAt": 1795021676,
+              "completedAt": null,
+              "durationMs": null
+            }
+          }
+        },
+        {
           "method": "account/rateLimits/updated",
           "params": {
             "rateLimits": {
@@ -94,6 +111,23 @@
       "usageBefore": null,
       "usageAfter": null,
       "notifications": [
+        {
+          "method": "turn/started",
+          "params": {
+            "threadId": "01a1efa1-22d6-7ac2-b5b9-b5c7f8e167e3",
+            "turn": {
+              "id": "01a1efa1-22eb-7b13-bd8f-d02a28ad1115",
+              "rootTurnId": "01a1efa1-22eb-7b13-bd8f-d02a28ad1115",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "inProgress",
+              "error": null,
+              "startedAt": 1795021677,
+              "completedAt": null,
+              "durationMs": null
+            }
+          }
+        },
         {
           "method": "account/rateLimits/updated",
           "params": {
@@ -171,6 +205,23 @@
       "usageAfter": null,
       "notifications": [
         {
+          "method": "turn/started",
+          "params": {
+            "threadId": "01a1efa1-24c9-75b3-9b05-3b4dade3baec",
+            "turn": {
+              "id": "01a1efa1-24dd-7a23-b5dd-32ddb83baecd",
+              "rootTurnId": "01a1efa1-24dd-7a23-b5dd-32ddb83baecd",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "inProgress",
+              "error": null,
+              "startedAt": 1795021677,
+              "completedAt": null,
+              "durationMs": null
+            }
+          }
+        },
+        {
           "method": "account/rateLimits/updated",
           "params": {
             "rateLimits": {
@@ -246,6 +297,23 @@
       "usageBefore": null,
       "usageAfter": null,
       "notifications": [
+        {
+          "method": "turn/started",
+          "params": {
+            "threadId": "01a1efa1-26d2-7093-aa3b-e60eece1439b",
+            "turn": {
+              "id": "01a1efa1-26ed-70c0-9106-4b6659bcca74",
+              "rootTurnId": "01a1efa1-26ed-70c0-9106-4b6659bcca74",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "inProgress",
+              "error": null,
+              "startedAt": 1795021678,
+              "completedAt": null,
+              "durationMs": null
+            }
+          }
+        },
         {
           "method": "account/rateLimits/updated",
           "params": {
@@ -323,6 +391,23 @@
       "usageAfter": null,
       "notifications": [
         {
+          "method": "turn/started",
+          "params": {
+            "threadId": "01a1efa1-291d-76d1-835a-2c07b1523ec6",
+            "turn": {
+              "id": "01a1efa1-2931-7cb0-98d3-6e9ac83bcf5d",
+              "rootTurnId": "01a1efa1-2931-7cb0-98d3-6e9ac83bcf5d",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "inProgress",
+              "error": null,
+              "startedAt": 1795021678,
+              "completedAt": null,
+              "durationMs": null
+            }
+          }
+        },
+        {
           "method": "error",
           "params": {
             "error": {
@@ -381,6 +466,23 @@
       "usageBefore": null,
       "usageAfter": null,
       "notifications": [
+        {
+          "method": "turn/started",
+          "params": {
+            "threadId": "01a1efa1-2b21-7f22-9b2f-c2d3616c6481",
+            "turn": {
+              "id": "01a1efa1-2b35-7683-8b65-2e24da46422c",
+              "rootTurnId": "01a1efa1-2b35-7683-8b65-2e24da46422c",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "inProgress",
+              "error": null,
+              "startedAt": 1795021679,
+              "completedAt": null,
+              "durationMs": null
+            }
+          }
+        },
         {
           "method": "error",
           "params": {
@@ -518,6 +620,23 @@
         "rateLimitUpsell": null
       },
       "notifications": [
+        {
+          "method": "turn/started",
+          "params": {
+            "threadId": "01a1efa1-2d2f-7040-97a5-203d2a118838",
+            "turn": {
+              "id": "01a1efa1-2d4d-78d1-9abc-c9a228d09197",
+              "rootTurnId": "01a1efa1-2d4d-78d1-9abc-c9a228d09197",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "inProgress",
+              "error": null,
+              "startedAt": 1795021679,
+              "completedAt": null,
+              "durationMs": null
+            }
+          }
+        },
         {
           "method": "account/rateLimits/updated",
           "params": {
@@ -677,6 +796,23 @@
       },
       "notifications": [
         {
+          "method": "turn/started",
+          "params": {
+            "threadId": "01a1efa1-2f8a-7961-9710-9aaddeb09bcd",
+            "turn": {
+              "id": "01a1efa1-2fa4-7b51-9ed5-169e5a7448c6",
+              "rootTurnId": "01a1efa1-2fa4-7b51-9ed5-169e5a7448c6",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "inProgress",
+              "error": null,
+              "startedAt": 1795021680,
+              "completedAt": null,
+              "durationMs": null
+            }
+          }
+        },
+        {
           "method": "account/rateLimits/updated",
           "params": {
             "rateLimits": {
@@ -753,6 +889,23 @@
       "usageAfter": null,
       "notifications": [
         {
+          "method": "turn/started",
+          "params": {
+            "threadId": "01a1efa1-31a9-7330-8321-2ff1e88d8de0",
+            "turn": {
+              "id": "01a1efa1-31bc-75d0-9a46-44b6dd41c09a",
+              "rootTurnId": "01a1efa1-31bc-75d0-9a46-44b6dd41c09a",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "inProgress",
+              "error": null,
+              "startedAt": 1795021681,
+              "completedAt": null,
+              "durationMs": null
+            }
+          }
+        },
+        {
           "method": "account/rateLimits/updated",
           "params": {
             "rateLimits": {
@@ -783,6 +936,23 @@
               "startedAt": 1795021681,
               "completedAt": 1795021681,
               "durationMs": 99
+            }
+          }
+        },
+        {
+          "method": "turn/started",
+          "params": {
+            "threadId": "01a1efa1-31a9-7330-8321-2ff1e88d8de0",
+            "turn": {
+              "id": "01a1efa1-3229-7f10-8355-0d8fbfea78ff",
+              "rootTurnId": "01a1efa1-3229-7f10-8355-0d8fbfea78ff",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "inProgress",
+              "error": null,
+              "startedAt": 1795021681,
+              "completedAt": null,
+              "durationMs": null
             }
           }
         },
@@ -846,6 +1016,23 @@
       "usageAfter": null,
       "notifications": [
         {
+          "method": "turn/started",
+          "params": {
+            "threadId": "01a1efa1-33bd-7231-ae2b-90d1aeef4ad0",
+            "turn": {
+              "id": "01a1efa1-33d3-7d43-a94d-3f8d86d9d112",
+              "rootTurnId": "01a1efa1-33d3-7d43-a94d-3f8d86d9d112",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "inProgress",
+              "error": null,
+              "startedAt": 1795021681,
+              "completedAt": null,
+              "durationMs": null
+            }
+          }
+        },
+        {
           "method": "account/rateLimits/updated",
           "params": {
             "rateLimits": {
@@ -880,6 +1067,23 @@
               "startedAt": 1795021681,
               "completedAt": 1795021681,
               "durationMs": 104
+            }
+          }
+        },
+        {
+          "method": "turn/started",
+          "params": {
+            "threadId": "01a1efa1-33bd-7231-ae2b-90d1aeef4ad0",
+            "turn": {
+              "id": "01a1efa1-3444-7bd2-93f3-f8092348c30c",
+              "rootTurnId": "01a1efa1-3444-7bd2-93f3-f8092348c30c",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "inProgress",
+              "error": null,
+              "startedAt": 1795021681,
+              "completedAt": null,
+              "durationMs": null
             }
           }
         },
@@ -939,6 +1143,23 @@
       "usageAfter": null,
       "notifications": [
         {
+          "method": "turn/started",
+          "params": {
+            "threadId": "01a1efa1-35d8-7862-ac45-d21b450c43c0",
+            "turn": {
+              "id": "01a1efa1-35ed-7851-b19c-d4be7ff44c35",
+              "rootTurnId": "01a1efa1-35ed-7851-b19c-d4be7ff44c35",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "inProgress",
+              "error": null,
+              "startedAt": 1795021682,
+              "completedAt": null,
+              "durationMs": null
+            }
+          }
+        },
+        {
           "method": "account/rateLimits/updated",
           "params": {
             "rateLimits": {
@@ -969,6 +1190,23 @@
               "startedAt": 1795021682,
               "completedAt": 1795021682,
               "durationMs": 110
+            }
+          }
+        },
+        {
+          "method": "turn/started",
+          "params": {
+            "threadId": "01a1efa1-35d8-7862-ac45-d21b450c43c0",
+            "turn": {
+              "id": "01a1efa1-3666-7731-96c2-3a7156617dbf",
+              "rootTurnId": "01a1efa1-3666-7731-96c2-3a7156617dbf",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "inProgress",
+              "error": null,
+              "startedAt": 1795021682,
+              "completedAt": null,
+              "durationMs": null
             }
           }
         },
@@ -1032,6 +1270,23 @@
       "usageAfter": null,
       "notifications": [
         {
+          "method": "turn/started",
+          "params": {
+            "threadId": "01a1efa1-37f9-77c3-9087-ee4ae9d7b3a2",
+            "turn": {
+              "id": "01a1efa1-380e-7503-b2ef-fc8802648ebf",
+              "rootTurnId": "01a1efa1-380e-7503-b2ef-fc8802648ebf",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "inProgress",
+              "error": null,
+              "startedAt": 1795021682,
+              "completedAt": null,
+              "durationMs": null
+            }
+          }
+        },
+        {
           "method": "account/rateLimits/updated",
           "params": {
             "rateLimits": {
@@ -1066,6 +1321,23 @@
               "startedAt": 1795021682,
               "completedAt": 1795021682,
               "durationMs": 115
+            }
+          }
+        },
+        {
+          "method": "turn/started",
+          "params": {
+            "threadId": "01a1efa1-37f9-77c3-9087-ee4ae9d7b3a2",
+            "turn": {
+              "id": "01a1efa1-388a-7283-b9f0-f077dd823371",
+              "rootTurnId": "01a1efa1-388a-7283-b9f0-f077dd823371",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "inProgress",
+              "error": null,
+              "startedAt": 1795021682,
+              "completedAt": null,
+              "durationMs": null
             }
           }
         },
@@ -1125,6 +1397,23 @@
       "usageAfter": null,
       "notifications": [
         {
+          "method": "turn/started",
+          "params": {
+            "threadId": "01a1efa1-3a19-7c01-bdd1-90a823c329d9",
+            "turn": {
+              "id": "01a1efa1-3a31-7512-8701-6634e72af925",
+              "rootTurnId": "01a1efa1-3a31-7512-8701-6634e72af925",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "inProgress",
+              "error": null,
+              "startedAt": 1795021683,
+              "completedAt": null,
+              "durationMs": null
+            }
+          }
+        },
+        {
           "method": "account/rateLimits/updated",
           "params": {
             "rateLimits": {
@@ -1155,6 +1444,23 @@
               "startedAt": 1795021683,
               "completedAt": 1795021683,
               "durationMs": 98
+            }
+          }
+        },
+        {
+          "method": "turn/started",
+          "params": {
+            "threadId": "01a1efa1-3a19-7c01-bdd1-90a823c329d9",
+            "turn": {
+              "id": "01a1efa1-3a9c-70e1-a44b-eae8f1244342",
+              "rootTurnId": "01a1efa1-3a9c-70e1-a44b-eae8f1244342",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "inProgress",
+              "error": null,
+              "startedAt": 1795021683,
+              "completedAt": null,
+              "durationMs": null
             }
           }
         },
@@ -1218,6 +1524,23 @@
       "usageAfter": null,
       "notifications": [
         {
+          "method": "turn/started",
+          "params": {
+            "threadId": "01a1efa1-3c68-7e41-b7dd-2ff6372384f1",
+            "turn": {
+              "id": "01a1efa1-3c7b-7583-98ad-15cb16ab2dc7",
+              "rootTurnId": "01a1efa1-3c7b-7583-98ad-15cb16ab2dc7",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "inProgress",
+              "error": null,
+              "startedAt": 1795021683,
+              "completedAt": null,
+              "durationMs": null
+            }
+          }
+        },
+        {
           "method": "account/rateLimits/updated",
           "params": {
             "rateLimits": {
@@ -1252,6 +1575,23 @@
               "startedAt": 1795021683,
               "completedAt": 1795021683,
               "durationMs": 101
+            }
+          }
+        },
+        {
+          "method": "turn/started",
+          "params": {
+            "threadId": "01a1efa1-3c68-7e41-b7dd-2ff6372384f1",
+            "turn": {
+              "id": "01a1efa1-3ce9-7870-be79-563a36a6202f",
+              "rootTurnId": "01a1efa1-3ce9-7870-be79-563a36a6202f",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "inProgress",
+              "error": null,
+              "startedAt": 1795021683,
+              "completedAt": null,
+              "durationMs": null
             }
           }
         },
@@ -1393,6 +1733,23 @@
       },
       "notifications": [
         {
+          "method": "turn/started",
+          "params": {
+            "threadId": "01a1efa1-3e98-7ac0-869f-80a3a1eac989",
+            "turn": {
+              "id": "01a1efa1-3eb7-7020-9f36-a3dd7383c0b0",
+              "rootTurnId": "01a1efa1-3eb7-7020-9f36-a3dd7383c0b0",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "inProgress",
+              "error": null,
+              "startedAt": 1795021684,
+              "completedAt": null,
+              "durationMs": null
+            }
+          }
+        },
+        {
           "method": "account/rateLimits/updated",
           "params": {
             "rateLimits": {
@@ -1427,6 +1784,23 @@
               "startedAt": 1795021684,
               "completedAt": 1795021684,
               "durationMs": 121
+            }
+          }
+        },
+        {
+          "method": "turn/started",
+          "params": {
+            "threadId": "01a1efa1-3e98-7ac0-869f-80a3a1eac989",
+            "turn": {
+              "id": "01a1efa1-3f39-7980-aa1f-efe2f0fbf1f1",
+              "rootTurnId": "01a1efa1-3f39-7980-aa1f-efe2f0fbf1f1",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "inProgress",
+              "error": null,
+              "startedAt": 1795021684,
+              "completedAt": null,
+              "durationMs": null
             }
           }
         },
@@ -1568,6 +1942,23 @@
       },
       "notifications": [
         {
+          "method": "turn/started",
+          "params": {
+            "threadId": "01a1efa1-4109-7b10-a720-90a300aa8e37",
+            "turn": {
+              "id": "01a1efa1-4122-7a53-9c0b-5ffda961768e",
+              "rootTurnId": "01a1efa1-4122-7a53-9c0b-5ffda961768e",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "inProgress",
+              "error": null,
+              "startedAt": 1795021685,
+              "completedAt": null,
+              "durationMs": null
+            }
+          }
+        },
+        {
           "method": "account/rateLimits/updated",
           "params": {
             "rateLimits": {
@@ -1606,6 +1997,23 @@
           }
         },
         {
+          "method": "turn/started",
+          "params": {
+            "threadId": "01a1efa1-4109-7b10-a720-90a300aa8e37",
+            "turn": {
+              "id": "01a1efa1-41a8-7e43-b068-ee305e27475d",
+              "rootTurnId": "01a1efa1-41a8-7e43-b068-ee305e27475d",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "inProgress",
+              "error": null,
+              "startedAt": 1795021685,
+              "completedAt": null,
+              "durationMs": null
+            }
+          }
+        },
+        {
           "method": "error",
           "params": {
             "error": {
@@ -1638,6 +2046,2056 @@
               "startedAt": 1795021685,
               "completedAt": 1795021685,
               "durationMs": 51
+            }
+          }
+        }
+      ]
+    },
+    {
+      "path": "normal",
+      "mode": "http-body",
+      "account": false,
+      "version": "0.169.1",
+      "providerError": {
+        "type": "usage_limit_reached",
+        "code": "usage_limit_reached",
+        "message": "You've hit your usage limit. Try again at 9:00 PM.",
+        "plan_type": "pro",
+        "resets_at": 1900000000,
+        "limit_window_minutes": 300
+      },
+      "responseHeaders": {},
+      "usageBefore": null,
+      "usageAfter": null,
+      "notifications": [
+        {
+          "method": "turn/started",
+          "params": {
+            "threadId": "01a1efa9-5291-7432-8c36-fc6e74a55c44",
+            "turn": {
+              "id": "01a1efa9-52a9-73c1-9b6a-a56092d4603b",
+              "rootTurnId": "01a1efa9-52a9-73c1-9b6a-a56092d4603b",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "inProgress",
+              "error": null,
+              "startedAt": 1795022213,
+              "completedAt": null,
+              "durationMs": null
+            }
+          }
+        },
+        {
+          "method": "account/rateLimits/updated",
+          "params": {
+            "rateLimits": {
+              "limitId": "codex",
+              "limitName": null,
+              "normalModelSlug": null,
+              "primary": null,
+              "secondary": null,
+              "credits": null,
+              "individualLimit": null,
+              "spendControlReached": null,
+              "planType": null,
+              "rateLimitReachedType": null
+            }
+          }
+        },
+        {
+          "method": "error",
+          "params": {
+            "error": {
+              "message": "You\u2019ve hit your usage limit. Visit https://chatgpt.com/settings/usage to purchase more credits or try again at Mar 17th, 2030 5:46 PM.",
+              "codexErrorInfo": "usageLimitExceeded",
+              "additionalDetails": null,
+              "misalignment": null
+            },
+            "willRetry": false,
+            "threadId": "01a1efa9-5291-7432-8c36-fc6e74a55c44",
+            "turnId": "01a1efa9-52a9-73c1-9b6a-a56092d4603b"
+          }
+        },
+        {
+          "method": "turn/completed",
+          "params": {
+            "threadId": "01a1efa9-5291-7432-8c36-fc6e74a55c44",
+            "turn": {
+              "id": "01a1efa9-52a9-73c1-9b6a-a56092d4603b",
+              "rootTurnId": "01a1efa9-52a9-73c1-9b6a-a56092d4603b",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "failed",
+              "error": {
+                "message": "You\u2019ve hit your usage limit. Visit https://chatgpt.com/settings/usage to purchase more credits or try again at Mar 17th, 2030 5:46 PM.",
+                "codexErrorInfo": "usageLimitExceeded",
+                "additionalDetails": null,
+                "misalignment": null
+              },
+              "startedAt": 1795022213,
+              "completedAt": 1795022213,
+              "durationMs": 107
+            }
+          }
+        }
+      ]
+    },
+    {
+      "path": "normal",
+      "mode": "http-headers",
+      "account": false,
+      "version": "0.169.1",
+      "providerError": {
+        "type": "usage_limit_reached",
+        "code": "usage_limit_reached",
+        "message": "You've hit your usage limit. Try again at 9:00 PM.",
+        "plan_type": "pro",
+        "resets_at": 1900000000,
+        "limit_window_minutes": 300
+      },
+      "responseHeaders": {
+        "x-codex-primary-used-percent": "100",
+        "x-codex-primary-window-minutes": "300",
+        "x-codex-primary-reset-at": "1900000000"
+      },
+      "usageBefore": null,
+      "usageAfter": null,
+      "notifications": [
+        {
+          "method": "turn/started",
+          "params": {
+            "threadId": "01a1efa9-54b9-7c10-9764-b97b04c228b8",
+            "turn": {
+              "id": "01a1efa9-54cd-72a1-a581-22067ae67fc7",
+              "rootTurnId": "01a1efa9-54cd-72a1-a581-22067ae67fc7",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "inProgress",
+              "error": null,
+              "startedAt": 1795022214,
+              "completedAt": null,
+              "durationMs": null
+            }
+          }
+        },
+        {
+          "method": "account/rateLimits/updated",
+          "params": {
+            "rateLimits": {
+              "limitId": "codex",
+              "limitName": null,
+              "normalModelSlug": null,
+              "primary": {
+                "usedPercent": 100,
+                "windowDurationMins": 300,
+                "resetsAt": 1900000000
+              },
+              "secondary": null,
+              "credits": null,
+              "individualLimit": null,
+              "spendControlReached": null,
+              "planType": null,
+              "rateLimitReachedType": null
+            }
+          }
+        },
+        {
+          "method": "error",
+          "params": {
+            "error": {
+              "message": "You\u2019ve hit your usage limit. Visit https://chatgpt.com/settings/usage to purchase more credits or try again at Mar 17th, 2030 5:46 PM.",
+              "codexErrorInfo": "usageLimitExceeded",
+              "additionalDetails": null,
+              "misalignment": null
+            },
+            "willRetry": false,
+            "threadId": "01a1efa9-54b9-7c10-9764-b97b04c228b8",
+            "turnId": "01a1efa9-54cd-72a1-a581-22067ae67fc7"
+          }
+        },
+        {
+          "method": "turn/completed",
+          "params": {
+            "threadId": "01a1efa9-54b9-7c10-9764-b97b04c228b8",
+            "turn": {
+              "id": "01a1efa9-54cd-72a1-a581-22067ae67fc7",
+              "rootTurnId": "01a1efa9-54cd-72a1-a581-22067ae67fc7",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "failed",
+              "error": {
+                "message": "You\u2019ve hit your usage limit. Visit https://chatgpt.com/settings/usage to purchase more credits or try again at Mar 17th, 2030 5:46 PM.",
+                "codexErrorInfo": "usageLimitExceeded",
+                "additionalDetails": null,
+                "misalignment": null
+              },
+              "startedAt": 1795022214,
+              "completedAt": 1795022214,
+              "durationMs": 102
+            }
+          }
+        }
+      ]
+    },
+    {
+      "path": "normal",
+      "mode": "sse-body",
+      "account": false,
+      "version": "0.169.1",
+      "providerError": {
+        "type": "usage_limit_reached",
+        "code": "usage_limit_reached",
+        "message": "You've hit your usage limit. Try again at 9:00 PM.",
+        "plan_type": "pro",
+        "resets_at": 1900000000,
+        "limit_window_minutes": 300
+      },
+      "responseHeaders": {},
+      "usageBefore": null,
+      "usageAfter": null,
+      "notifications": [
+        {
+          "method": "turn/started",
+          "params": {
+            "threadId": "01a1efa9-56c8-7d82-9dec-a4d353a26616",
+            "turn": {
+              "id": "01a1efa9-56dd-7ff2-b773-4c44c4e44fd0",
+              "rootTurnId": "01a1efa9-56dd-7ff2-b773-4c44c4e44fd0",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "inProgress",
+              "error": null,
+              "startedAt": 1795022214,
+              "completedAt": null,
+              "durationMs": null
+            }
+          }
+        },
+        {
+          "method": "account/rateLimits/updated",
+          "params": {
+            "rateLimits": {
+              "limitId": "codex",
+              "limitName": null,
+              "normalModelSlug": null,
+              "primary": null,
+              "secondary": null,
+              "credits": null,
+              "individualLimit": null,
+              "spendControlReached": null,
+              "planType": null,
+              "rateLimitReachedType": null
+            }
+          }
+        },
+        {
+          "method": "error",
+          "params": {
+            "error": {
+              "message": "stream disconnected before completion: You've hit your usage limit. Try again at 9:00 PM.",
+              "codexErrorInfo": "other",
+              "additionalDetails": null,
+              "misalignment": null
+            },
+            "willRetry": false,
+            "threadId": "01a1efa9-56c8-7d82-9dec-a4d353a26616",
+            "turnId": "01a1efa9-56dd-7ff2-b773-4c44c4e44fd0"
+          }
+        },
+        {
+          "method": "turn/completed",
+          "params": {
+            "threadId": "01a1efa9-56c8-7d82-9dec-a4d353a26616",
+            "turn": {
+              "id": "01a1efa9-56dd-7ff2-b773-4c44c4e44fd0",
+              "rootTurnId": "01a1efa9-56dd-7ff2-b773-4c44c4e44fd0",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "failed",
+              "error": {
+                "message": "stream disconnected before completion: You've hit your usage limit. Try again at 9:00 PM.",
+                "codexErrorInfo": "other",
+                "additionalDetails": null,
+                "misalignment": null
+              },
+              "startedAt": 1795022214,
+              "completedAt": 1795022214,
+              "durationMs": 100
+            }
+          }
+        }
+      ]
+    },
+    {
+      "path": "normal",
+      "mode": "sse-headers",
+      "account": false,
+      "version": "0.169.1",
+      "providerError": {
+        "type": "usage_limit_reached",
+        "code": "usage_limit_reached",
+        "message": "You've hit your usage limit. Try again at 9:00 PM.",
+        "plan_type": "pro",
+        "resets_at": 1900000000,
+        "limit_window_minutes": 300
+      },
+      "responseHeaders": {
+        "x-codex-primary-used-percent": "100",
+        "x-codex-primary-window-minutes": "300",
+        "x-codex-primary-reset-at": "1900000000"
+      },
+      "usageBefore": null,
+      "usageAfter": null,
+      "notifications": [
+        {
+          "method": "turn/started",
+          "params": {
+            "threadId": "01a1efa9-58dd-7bb2-9afc-a82564cbea54",
+            "turn": {
+              "id": "01a1efa9-58f3-7220-ad07-d4b58596c3d3",
+              "rootTurnId": "01a1efa9-58f3-7220-ad07-d4b58596c3d3",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "inProgress",
+              "error": null,
+              "startedAt": 1795022215,
+              "completedAt": null,
+              "durationMs": null
+            }
+          }
+        },
+        {
+          "method": "account/rateLimits/updated",
+          "params": {
+            "rateLimits": {
+              "limitId": "codex",
+              "limitName": null,
+              "normalModelSlug": null,
+              "primary": {
+                "usedPercent": 100,
+                "windowDurationMins": 300,
+                "resetsAt": 1900000000
+              },
+              "secondary": null,
+              "credits": null,
+              "individualLimit": null,
+              "spendControlReached": null,
+              "planType": null,
+              "rateLimitReachedType": null
+            }
+          }
+        },
+        {
+          "method": "error",
+          "params": {
+            "error": {
+              "message": "stream disconnected before completion: You've hit your usage limit. Try again at 9:00 PM.",
+              "codexErrorInfo": "other",
+              "additionalDetails": null,
+              "misalignment": null
+            },
+            "willRetry": false,
+            "threadId": "01a1efa9-58dd-7bb2-9afc-a82564cbea54",
+            "turnId": "01a1efa9-58f3-7220-ad07-d4b58596c3d3"
+          }
+        },
+        {
+          "method": "turn/completed",
+          "params": {
+            "threadId": "01a1efa9-58dd-7bb2-9afc-a82564cbea54",
+            "turn": {
+              "id": "01a1efa9-58f3-7220-ad07-d4b58596c3d3",
+              "rootTurnId": "01a1efa9-58f3-7220-ad07-d4b58596c3d3",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "failed",
+              "error": {
+                "message": "stream disconnected before completion: You've hit your usage limit. Try again at 9:00 PM.",
+                "codexErrorInfo": "other",
+                "additionalDetails": null,
+                "misalignment": null
+              },
+              "startedAt": 1795022215,
+              "completedAt": 1795022215,
+              "durationMs": 107
+            }
+          }
+        }
+      ]
+    },
+    {
+      "path": "normal",
+      "mode": "http400-body",
+      "account": false,
+      "version": "0.169.1",
+      "providerError": {
+        "type": "usage_limit_reached",
+        "code": "usage_limit_reached",
+        "message": "You've hit your usage limit. Try again at 9:00 PM.",
+        "plan_type": "pro",
+        "resets_at": 1900000000,
+        "limit_window_minutes": 300
+      },
+      "responseHeaders": {},
+      "usageBefore": null,
+      "usageAfter": null,
+      "notifications": [
+        {
+          "method": "turn/started",
+          "params": {
+            "threadId": "01a1efa9-5ae0-78f1-b638-5bc6e307001b",
+            "turn": {
+              "id": "01a1efa9-5af7-7663-9fb3-3bc98046d583",
+              "rootTurnId": "01a1efa9-5af7-7663-9fb3-3bc98046d583",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "inProgress",
+              "error": null,
+              "startedAt": 1795022215,
+              "completedAt": null,
+              "durationMs": null
+            }
+          }
+        },
+        {
+          "method": "error",
+          "params": {
+            "error": {
+              "message": "{\"error\":{\"type\":\"usage_limit_reached\",\"code\":\"usage_limit_reached\",\"message\":\"You've hit your usage limit. Try again at 9:00 PM.\",\"plan_type\":\"pro\",\"resets_at\":1900000000,\"limit_window_minutes\":300}}",
+              "codexErrorInfo": "other",
+              "additionalDetails": null,
+              "misalignment": null
+            },
+            "willRetry": false,
+            "threadId": "01a1efa9-5ae0-78f1-b638-5bc6e307001b",
+            "turnId": "01a1efa9-5af7-7663-9fb3-3bc98046d583"
+          }
+        },
+        {
+          "method": "turn/completed",
+          "params": {
+            "threadId": "01a1efa9-5ae0-78f1-b638-5bc6e307001b",
+            "turn": {
+              "id": "01a1efa9-5af7-7663-9fb3-3bc98046d583",
+              "rootTurnId": "01a1efa9-5af7-7663-9fb3-3bc98046d583",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "failed",
+              "error": {
+                "message": "{\"error\":{\"type\":\"usage_limit_reached\",\"code\":\"usage_limit_reached\",\"message\":\"You've hit your usage limit. Try again at 9:00 PM.\",\"plan_type\":\"pro\",\"resets_at\":1900000000,\"limit_window_minutes\":300}}",
+                "codexErrorInfo": "other",
+                "additionalDetails": null,
+                "misalignment": null
+              },
+              "startedAt": 1795022215,
+              "completedAt": 1795022216,
+              "durationMs": 99
+            }
+          }
+        }
+      ]
+    },
+    {
+      "path": "normal",
+      "mode": "http400-headers",
+      "account": false,
+      "version": "0.169.1",
+      "providerError": {
+        "type": "usage_limit_reached",
+        "code": "usage_limit_reached",
+        "message": "You've hit your usage limit. Try again at 9:00 PM.",
+        "plan_type": "pro",
+        "resets_at": 1900000000,
+        "limit_window_minutes": 300
+      },
+      "responseHeaders": {
+        "x-codex-primary-used-percent": "100",
+        "x-codex-primary-window-minutes": "300",
+        "x-codex-primary-reset-at": "1900000000"
+      },
+      "usageBefore": null,
+      "usageAfter": null,
+      "notifications": [
+        {
+          "method": "turn/started",
+          "params": {
+            "threadId": "01a1efa9-5cee-7801-a73b-6f335f15543b",
+            "turn": {
+              "id": "01a1efa9-5d06-7650-b409-b61c836b7222",
+              "rootTurnId": "01a1efa9-5d06-7650-b409-b61c836b7222",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "inProgress",
+              "error": null,
+              "startedAt": 1795022216,
+              "completedAt": null,
+              "durationMs": null
+            }
+          }
+        },
+        {
+          "method": "error",
+          "params": {
+            "error": {
+              "message": "{\"error\":{\"type\":\"usage_limit_reached\",\"code\":\"usage_limit_reached\",\"message\":\"You've hit your usage limit. Try again at 9:00 PM.\",\"plan_type\":\"pro\",\"resets_at\":1900000000,\"limit_window_minutes\":300}}",
+              "codexErrorInfo": "other",
+              "additionalDetails": null,
+              "misalignment": null
+            },
+            "willRetry": false,
+            "threadId": "01a1efa9-5cee-7801-a73b-6f335f15543b",
+            "turnId": "01a1efa9-5d06-7650-b409-b61c836b7222"
+          }
+        },
+        {
+          "method": "turn/completed",
+          "params": {
+            "threadId": "01a1efa9-5cee-7801-a73b-6f335f15543b",
+            "turn": {
+              "id": "01a1efa9-5d06-7650-b409-b61c836b7222",
+              "rootTurnId": "01a1efa9-5d06-7650-b409-b61c836b7222",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "failed",
+              "error": {
+                "message": "{\"error\":{\"type\":\"usage_limit_reached\",\"code\":\"usage_limit_reached\",\"message\":\"You've hit your usage limit. Try again at 9:00 PM.\",\"plan_type\":\"pro\",\"resets_at\":1900000000,\"limit_window_minutes\":300}}",
+                "codexErrorInfo": "other",
+                "additionalDetails": null,
+                "misalignment": null
+              },
+              "startedAt": 1795022216,
+              "completedAt": 1795022216,
+              "durationMs": 94
+            }
+          }
+        }
+      ]
+    },
+    {
+      "path": "normal",
+      "mode": "http-headers",
+      "account": true,
+      "version": "0.169.1",
+      "providerError": {
+        "type": "usage_limit_reached",
+        "code": "usage_limit_reached",
+        "message": "You've hit your usage limit. Try again at 9:00 PM.",
+        "plan_type": "pro",
+        "resets_at": 1900000000,
+        "limit_window_minutes": 300
+      },
+      "responseHeaders": {
+        "x-codex-primary-used-percent": "100",
+        "x-codex-primary-window-minutes": "300",
+        "x-codex-primary-reset-at": "1900000000"
+      },
+      "usageBefore": {
+        "ordinaryUsageAllowed": null,
+        "rateLimits": {
+          "limitId": "codex",
+          "limitName": null,
+          "normalModelSlug": null,
+          "primary": {
+            "usedPercent": 25,
+            "windowDurationMins": 300,
+            "resetsAt": 1899996400
+          },
+          "secondary": null,
+          "credits": null,
+          "individualLimit": null,
+          "spendControlReached": null,
+          "planType": "pro",
+          "rateLimitReachedType": null
+        },
+        "rateLimitsByLimitId": {
+          "codex": {
+            "limitId": "codex",
+            "limitName": null,
+            "normalModelSlug": null,
+            "primary": {
+              "usedPercent": 25,
+              "windowDurationMins": 300,
+              "resetsAt": 1899996400
+            },
+            "secondary": null,
+            "credits": null,
+            "individualLimit": null,
+            "spendControlReached": null,
+            "planType": "pro",
+            "rateLimitReachedType": null
+          }
+        },
+        "rateLimitResetCredits": null,
+        "accountId": null,
+        "rateLimitUpsell": null
+      },
+      "usageAfter": {
+        "ordinaryUsageAllowed": null,
+        "rateLimits": {
+          "limitId": "codex",
+          "limitName": null,
+          "normalModelSlug": null,
+          "primary": {
+            "usedPercent": 100,
+            "windowDurationMins": 300,
+            "resetsAt": 1900000000
+          },
+          "secondary": null,
+          "credits": null,
+          "individualLimit": null,
+          "spendControlReached": null,
+          "planType": "pro",
+          "rateLimitReachedType": null
+        },
+        "rateLimitsByLimitId": {
+          "codex": {
+            "limitId": "codex",
+            "limitName": null,
+            "normalModelSlug": null,
+            "primary": {
+              "usedPercent": 100,
+              "windowDurationMins": 300,
+              "resetsAt": 1900000000
+            },
+            "secondary": null,
+            "credits": null,
+            "individualLimit": null,
+            "spendControlReached": null,
+            "planType": "pro",
+            "rateLimitReachedType": null
+          }
+        },
+        "rateLimitResetCredits": null,
+        "accountId": null,
+        "rateLimitUpsell": null
+      },
+      "notifications": [
+        {
+          "method": "turn/started",
+          "params": {
+            "threadId": "01a1efa9-5f12-7db3-878a-b60f0df56c1b",
+            "turn": {
+              "id": "01a1efa9-5f35-78e3-ace1-3afa298a14ba",
+              "rootTurnId": "01a1efa9-5f35-78e3-ace1-3afa298a14ba",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "inProgress",
+              "error": null,
+              "startedAt": 1795022217,
+              "completedAt": null,
+              "durationMs": null
+            }
+          }
+        },
+        {
+          "method": "account/rateLimits/updated",
+          "params": {
+            "rateLimits": {
+              "limitId": "codex",
+              "limitName": null,
+              "normalModelSlug": null,
+              "primary": {
+                "usedPercent": 100,
+                "windowDurationMins": 300,
+                "resetsAt": 1900000000
+              },
+              "secondary": null,
+              "credits": null,
+              "individualLimit": null,
+              "spendControlReached": null,
+              "planType": null,
+              "rateLimitReachedType": null
+            }
+          }
+        },
+        {
+          "method": "error",
+          "params": {
+            "error": {
+              "message": "You\u2019ve hit your usage limit. Visit https://chatgpt.com/settings/usage to purchase more credits or try again at Mar 17th, 2030 5:46 PM.",
+              "codexErrorInfo": "usageLimitExceeded",
+              "additionalDetails": null,
+              "misalignment": null
+            },
+            "willRetry": false,
+            "threadId": "01a1efa9-5f12-7db3-878a-b60f0df56c1b",
+            "turnId": "01a1efa9-5f35-78e3-ace1-3afa298a14ba"
+          }
+        },
+        {
+          "method": "turn/completed",
+          "params": {
+            "threadId": "01a1efa9-5f12-7db3-878a-b60f0df56c1b",
+            "turn": {
+              "id": "01a1efa9-5f35-78e3-ace1-3afa298a14ba",
+              "rootTurnId": "01a1efa9-5f35-78e3-ace1-3afa298a14ba",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "failed",
+              "error": {
+                "message": "You\u2019ve hit your usage limit. Visit https://chatgpt.com/settings/usage to purchase more credits or try again at Mar 17th, 2030 5:46 PM.",
+                "codexErrorInfo": "usageLimitExceeded",
+                "additionalDetails": null,
+                "misalignment": null
+              },
+              "startedAt": 1795022217,
+              "completedAt": 1795022217,
+              "durationMs": 130
+            }
+          }
+        }
+      ]
+    },
+    {
+      "path": "normal",
+      "mode": "sse-headers",
+      "account": true,
+      "version": "0.169.1",
+      "providerError": {
+        "type": "usage_limit_reached",
+        "code": "usage_limit_reached",
+        "message": "You've hit your usage limit. Try again at 9:00 PM.",
+        "plan_type": "pro",
+        "resets_at": 1900000000,
+        "limit_window_minutes": 300
+      },
+      "responseHeaders": {
+        "x-codex-primary-used-percent": "100",
+        "x-codex-primary-window-minutes": "300",
+        "x-codex-primary-reset-at": "1900000000"
+      },
+      "usageBefore": {
+        "ordinaryUsageAllowed": null,
+        "rateLimits": {
+          "limitId": "codex",
+          "limitName": null,
+          "normalModelSlug": null,
+          "primary": {
+            "usedPercent": 25,
+            "windowDurationMins": 300,
+            "resetsAt": 1899996400
+          },
+          "secondary": null,
+          "credits": null,
+          "individualLimit": null,
+          "spendControlReached": null,
+          "planType": "pro",
+          "rateLimitReachedType": null
+        },
+        "rateLimitsByLimitId": {
+          "codex": {
+            "limitId": "codex",
+            "limitName": null,
+            "normalModelSlug": null,
+            "primary": {
+              "usedPercent": 25,
+              "windowDurationMins": 300,
+              "resetsAt": 1899996400
+            },
+            "secondary": null,
+            "credits": null,
+            "individualLimit": null,
+            "spendControlReached": null,
+            "planType": "pro",
+            "rateLimitReachedType": null
+          }
+        },
+        "rateLimitResetCredits": null,
+        "accountId": null,
+        "rateLimitUpsell": null
+      },
+      "usageAfter": {
+        "ordinaryUsageAllowed": null,
+        "rateLimits": {
+          "limitId": "codex",
+          "limitName": null,
+          "normalModelSlug": null,
+          "primary": {
+            "usedPercent": 100,
+            "windowDurationMins": 300,
+            "resetsAt": 1900000000
+          },
+          "secondary": null,
+          "credits": null,
+          "individualLimit": null,
+          "spendControlReached": null,
+          "planType": "pro",
+          "rateLimitReachedType": null
+        },
+        "rateLimitsByLimitId": {
+          "codex": {
+            "limitId": "codex",
+            "limitName": null,
+            "normalModelSlug": null,
+            "primary": {
+              "usedPercent": 100,
+              "windowDurationMins": 300,
+              "resetsAt": 1900000000
+            },
+            "secondary": null,
+            "credits": null,
+            "individualLimit": null,
+            "spendControlReached": null,
+            "planType": "pro",
+            "rateLimitReachedType": null
+          }
+        },
+        "rateLimitResetCredits": null,
+        "accountId": null,
+        "rateLimitUpsell": null
+      },
+      "notifications": [
+        {
+          "method": "turn/started",
+          "params": {
+            "threadId": "01a1efa9-6157-7201-8e29-8d1b81a6b0a8",
+            "turn": {
+              "id": "01a1efa9-6172-74e0-9f88-2a6e2d4a7f58",
+              "rootTurnId": "01a1efa9-6172-74e0-9f88-2a6e2d4a7f58",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "inProgress",
+              "error": null,
+              "startedAt": 1795022217,
+              "completedAt": null,
+              "durationMs": null
+            }
+          }
+        },
+        {
+          "method": "account/rateLimits/updated",
+          "params": {
+            "rateLimits": {
+              "limitId": "codex",
+              "limitName": null,
+              "normalModelSlug": null,
+              "primary": {
+                "usedPercent": 100,
+                "windowDurationMins": 300,
+                "resetsAt": 1900000000
+              },
+              "secondary": null,
+              "credits": null,
+              "individualLimit": null,
+              "spendControlReached": null,
+              "planType": null,
+              "rateLimitReachedType": null
+            }
+          }
+        },
+        {
+          "method": "error",
+          "params": {
+            "error": {
+              "message": "stream disconnected before completion: You've hit your usage limit. Try again at 9:00 PM.",
+              "codexErrorInfo": "other",
+              "additionalDetails": null,
+              "misalignment": null
+            },
+            "willRetry": false,
+            "threadId": "01a1efa9-6157-7201-8e29-8d1b81a6b0a8",
+            "turnId": "01a1efa9-6172-74e0-9f88-2a6e2d4a7f58"
+          }
+        },
+        {
+          "method": "turn/completed",
+          "params": {
+            "threadId": "01a1efa9-6157-7201-8e29-8d1b81a6b0a8",
+            "turn": {
+              "id": "01a1efa9-6172-74e0-9f88-2a6e2d4a7f58",
+              "rootTurnId": "01a1efa9-6172-74e0-9f88-2a6e2d4a7f58",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "failed",
+              "error": {
+                "message": "stream disconnected before completion: You've hit your usage limit. Try again at 9:00 PM.",
+                "codexErrorInfo": "other",
+                "additionalDetails": null,
+                "misalignment": null
+              },
+              "startedAt": 1795022217,
+              "completedAt": 1795022217,
+              "durationMs": 130
+            }
+          }
+        }
+      ]
+    },
+    {
+      "path": "compact",
+      "mode": "http-body",
+      "account": false,
+      "version": "0.169.1",
+      "providerError": {
+        "type": "usage_limit_reached",
+        "code": "usage_limit_reached",
+        "message": "You've hit your usage limit. Try again at 9:00 PM.",
+        "plan_type": "pro",
+        "resets_at": 1900000000,
+        "limit_window_minutes": 300
+      },
+      "responseHeaders": {},
+      "usageBefore": null,
+      "usageAfter": null,
+      "notifications": [
+        {
+          "method": "turn/started",
+          "params": {
+            "threadId": "01a1efa9-63a4-7080-8731-c2119960824b",
+            "turn": {
+              "id": "01a1efa9-63bb-78e3-8ed1-7d43fdb9059a",
+              "rootTurnId": "01a1efa9-63bb-78e3-8ed1-7d43fdb9059a",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "inProgress",
+              "error": null,
+              "startedAt": 1795022218,
+              "completedAt": null,
+              "durationMs": null
+            }
+          }
+        },
+        {
+          "method": "account/rateLimits/updated",
+          "params": {
+            "rateLimits": {
+              "limitId": "codex",
+              "limitName": null,
+              "normalModelSlug": null,
+              "primary": null,
+              "secondary": null,
+              "credits": null,
+              "individualLimit": null,
+              "spendControlReached": null,
+              "planType": null,
+              "rateLimitReachedType": null
+            }
+          }
+        },
+        {
+          "method": "turn/completed",
+          "params": {
+            "threadId": "01a1efa9-63a4-7080-8731-c2119960824b",
+            "turn": {
+              "id": "01a1efa9-63bb-78e3-8ed1-7d43fdb9059a",
+              "rootTurnId": "01a1efa9-63bb-78e3-8ed1-7d43fdb9059a",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "completed",
+              "error": null,
+              "startedAt": 1795022218,
+              "completedAt": 1795022218,
+              "durationMs": 103
+            }
+          }
+        },
+        {
+          "method": "turn/started",
+          "params": {
+            "threadId": "01a1efa9-63a4-7080-8731-c2119960824b",
+            "turn": {
+              "id": "01a1efa9-642c-7d30-924e-4652e5a7c553",
+              "rootTurnId": "01a1efa9-642c-7d30-924e-4652e5a7c553",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "inProgress",
+              "error": null,
+              "startedAt": 1795022218,
+              "completedAt": null,
+              "durationMs": null
+            }
+          }
+        },
+        {
+          "method": "error",
+          "params": {
+            "error": {
+              "message": "Error running remote compact task: You\u2019ve hit your usage limit. Visit https://chatgpt.com/settings/usage to purchase more credits or try again at Mar 17th, 2030 5:46 PM.",
+              "codexErrorInfo": "usageLimitExceeded",
+              "additionalDetails": null,
+              "misalignment": null
+            },
+            "willRetry": false,
+            "threadId": "01a1efa9-63a4-7080-8731-c2119960824b",
+            "turnId": "01a1efa9-642c-7d30-924e-4652e5a7c553"
+          }
+        },
+        {
+          "method": "turn/completed",
+          "params": {
+            "threadId": "01a1efa9-63a4-7080-8731-c2119960824b",
+            "turn": {
+              "id": "01a1efa9-642c-7d30-924e-4652e5a7c553",
+              "rootTurnId": "01a1efa9-642c-7d30-924e-4652e5a7c553",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "failed",
+              "error": {
+                "message": "Error running remote compact task: You\u2019ve hit your usage limit. Visit https://chatgpt.com/settings/usage to purchase more credits or try again at Mar 17th, 2030 5:46 PM.",
+                "codexErrorInfo": "usageLimitExceeded",
+                "additionalDetails": null,
+                "misalignment": null
+              },
+              "startedAt": 1795022218,
+              "completedAt": 1795022218,
+              "durationMs": 21
+            }
+          }
+        }
+      ]
+    },
+    {
+      "path": "compact",
+      "mode": "http-headers",
+      "account": false,
+      "version": "0.169.1",
+      "providerError": {
+        "type": "usage_limit_reached",
+        "code": "usage_limit_reached",
+        "message": "You've hit your usage limit. Try again at 9:00 PM.",
+        "plan_type": "pro",
+        "resets_at": 1900000000,
+        "limit_window_minutes": 300
+      },
+      "responseHeaders": {
+        "x-codex-primary-used-percent": "100",
+        "x-codex-primary-window-minutes": "300",
+        "x-codex-primary-reset-at": "1900000000"
+      },
+      "usageBefore": null,
+      "usageAfter": null,
+      "notifications": [
+        {
+          "method": "turn/started",
+          "params": {
+            "threadId": "01a1efa9-65c4-7da2-9edc-f9a5556b1cf0",
+            "turn": {
+              "id": "01a1efa9-65de-7f51-9736-12c67bf8f8ed",
+              "rootTurnId": "01a1efa9-65de-7f51-9736-12c67bf8f8ed",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "inProgress",
+              "error": null,
+              "startedAt": 1795022218,
+              "completedAt": null,
+              "durationMs": null
+            }
+          }
+        },
+        {
+          "method": "account/rateLimits/updated",
+          "params": {
+            "rateLimits": {
+              "limitId": "codex",
+              "limitName": null,
+              "normalModelSlug": null,
+              "primary": {
+                "usedPercent": 25,
+                "windowDurationMins": 300,
+                "resetsAt": 1899996400
+              },
+              "secondary": null,
+              "credits": null,
+              "individualLimit": null,
+              "spendControlReached": null,
+              "planType": null,
+              "rateLimitReachedType": null
+            }
+          }
+        },
+        {
+          "method": "turn/completed",
+          "params": {
+            "threadId": "01a1efa9-65c4-7da2-9edc-f9a5556b1cf0",
+            "turn": {
+              "id": "01a1efa9-65de-7f51-9736-12c67bf8f8ed",
+              "rootTurnId": "01a1efa9-65de-7f51-9736-12c67bf8f8ed",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "completed",
+              "error": null,
+              "startedAt": 1795022218,
+              "completedAt": 1795022218,
+              "durationMs": 102
+            }
+          }
+        },
+        {
+          "method": "turn/started",
+          "params": {
+            "threadId": "01a1efa9-65c4-7da2-9edc-f9a5556b1cf0",
+            "turn": {
+              "id": "01a1efa9-664e-7e53-98ac-977ca5b34076",
+              "rootTurnId": "01a1efa9-664e-7e53-98ac-977ca5b34076",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "inProgress",
+              "error": null,
+              "startedAt": 1795022218,
+              "completedAt": null,
+              "durationMs": null
+            }
+          }
+        },
+        {
+          "method": "error",
+          "params": {
+            "error": {
+              "message": "Error running remote compact task: You\u2019ve hit your usage limit. Visit https://chatgpt.com/settings/usage to purchase more credits or try again at Mar 17th, 2030 5:46 PM.",
+              "codexErrorInfo": "usageLimitExceeded",
+              "additionalDetails": null,
+              "misalignment": null
+            },
+            "willRetry": false,
+            "threadId": "01a1efa9-65c4-7da2-9edc-f9a5556b1cf0",
+            "turnId": "01a1efa9-664e-7e53-98ac-977ca5b34076"
+          }
+        },
+        {
+          "method": "turn/completed",
+          "params": {
+            "threadId": "01a1efa9-65c4-7da2-9edc-f9a5556b1cf0",
+            "turn": {
+              "id": "01a1efa9-664e-7e53-98ac-977ca5b34076",
+              "rootTurnId": "01a1efa9-664e-7e53-98ac-977ca5b34076",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "failed",
+              "error": {
+                "message": "Error running remote compact task: You\u2019ve hit your usage limit. Visit https://chatgpt.com/settings/usage to purchase more credits or try again at Mar 17th, 2030 5:46 PM.",
+                "codexErrorInfo": "usageLimitExceeded",
+                "additionalDetails": null,
+                "misalignment": null
+              },
+              "startedAt": 1795022218,
+              "completedAt": 1795022218,
+              "durationMs": 22
+            }
+          }
+        }
+      ]
+    },
+    {
+      "path": "compact",
+      "mode": "sse-body",
+      "account": false,
+      "version": "0.169.1",
+      "providerError": {
+        "type": "usage_limit_reached",
+        "code": "usage_limit_reached",
+        "message": "You've hit your usage limit. Try again at 9:00 PM.",
+        "plan_type": "pro",
+        "resets_at": 1900000000,
+        "limit_window_minutes": 300
+      },
+      "responseHeaders": {},
+      "usageBefore": null,
+      "usageAfter": null,
+      "notifications": [
+        {
+          "method": "turn/started",
+          "params": {
+            "threadId": "01a1efa9-67fe-7a42-8240-b95906d6f19f",
+            "turn": {
+              "id": "01a1efa9-6813-7612-894a-464ba1a256c5",
+              "rootTurnId": "01a1efa9-6813-7612-894a-464ba1a256c5",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "inProgress",
+              "error": null,
+              "startedAt": 1795022219,
+              "completedAt": null,
+              "durationMs": null
+            }
+          }
+        },
+        {
+          "method": "account/rateLimits/updated",
+          "params": {
+            "rateLimits": {
+              "limitId": "codex",
+              "limitName": null,
+              "normalModelSlug": null,
+              "primary": null,
+              "secondary": null,
+              "credits": null,
+              "individualLimit": null,
+              "spendControlReached": null,
+              "planType": null,
+              "rateLimitReachedType": null
+            }
+          }
+        },
+        {
+          "method": "turn/completed",
+          "params": {
+            "threadId": "01a1efa9-67fe-7a42-8240-b95906d6f19f",
+            "turn": {
+              "id": "01a1efa9-6813-7612-894a-464ba1a256c5",
+              "rootTurnId": "01a1efa9-6813-7612-894a-464ba1a256c5",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "completed",
+              "error": null,
+              "startedAt": 1795022219,
+              "completedAt": 1795022219,
+              "durationMs": 107
+            }
+          }
+        },
+        {
+          "method": "turn/started",
+          "params": {
+            "threadId": "01a1efa9-67fe-7a42-8240-b95906d6f19f",
+            "turn": {
+              "id": "01a1efa9-6889-7d82-9314-9ed2e8952880",
+              "rootTurnId": "01a1efa9-6889-7d82-9314-9ed2e8952880",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "inProgress",
+              "error": null,
+              "startedAt": 1795022219,
+              "completedAt": null,
+              "durationMs": null
+            }
+          }
+        },
+        {
+          "method": "error",
+          "params": {
+            "error": {
+              "message": "Error running remote compact task: stream disconnected before completion: You've hit your usage limit. Try again at 9:00 PM.",
+              "codexErrorInfo": "other",
+              "additionalDetails": null,
+              "misalignment": null
+            },
+            "willRetry": false,
+            "threadId": "01a1efa9-67fe-7a42-8240-b95906d6f19f",
+            "turnId": "01a1efa9-6889-7d82-9314-9ed2e8952880"
+          }
+        },
+        {
+          "method": "turn/completed",
+          "params": {
+            "threadId": "01a1efa9-67fe-7a42-8240-b95906d6f19f",
+            "turn": {
+              "id": "01a1efa9-6889-7d82-9314-9ed2e8952880",
+              "rootTurnId": "01a1efa9-6889-7d82-9314-9ed2e8952880",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "failed",
+              "error": {
+                "message": "Error running remote compact task: stream disconnected before completion: You've hit your usage limit. Try again at 9:00 PM.",
+                "codexErrorInfo": "other",
+                "additionalDetails": null,
+                "misalignment": null
+              },
+              "startedAt": 1795022219,
+              "completedAt": 1795022219,
+              "durationMs": 21
+            }
+          }
+        }
+      ]
+    },
+    {
+      "path": "compact",
+      "mode": "sse-headers",
+      "account": false,
+      "version": "0.169.1",
+      "providerError": {
+        "type": "usage_limit_reached",
+        "code": "usage_limit_reached",
+        "message": "You've hit your usage limit. Try again at 9:00 PM.",
+        "plan_type": "pro",
+        "resets_at": 1900000000,
+        "limit_window_minutes": 300
+      },
+      "responseHeaders": {
+        "x-codex-primary-used-percent": "100",
+        "x-codex-primary-window-minutes": "300",
+        "x-codex-primary-reset-at": "1900000000"
+      },
+      "usageBefore": null,
+      "usageAfter": null,
+      "notifications": [
+        {
+          "method": "turn/started",
+          "params": {
+            "threadId": "01a1efa9-6a3e-7091-b75e-c0f60f9e6a3c",
+            "turn": {
+              "id": "01a1efa9-6a53-7313-a0ff-5e5d4df3247c",
+              "rootTurnId": "01a1efa9-6a53-7313-a0ff-5e5d4df3247c",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "inProgress",
+              "error": null,
+              "startedAt": 1795022219,
+              "completedAt": null,
+              "durationMs": null
+            }
+          }
+        },
+        {
+          "method": "account/rateLimits/updated",
+          "params": {
+            "rateLimits": {
+              "limitId": "codex",
+              "limitName": null,
+              "normalModelSlug": null,
+              "primary": {
+                "usedPercent": 25,
+                "windowDurationMins": 300,
+                "resetsAt": 1899996400
+              },
+              "secondary": null,
+              "credits": null,
+              "individualLimit": null,
+              "spendControlReached": null,
+              "planType": null,
+              "rateLimitReachedType": null
+            }
+          }
+        },
+        {
+          "method": "turn/completed",
+          "params": {
+            "threadId": "01a1efa9-6a3e-7091-b75e-c0f60f9e6a3c",
+            "turn": {
+              "id": "01a1efa9-6a53-7313-a0ff-5e5d4df3247c",
+              "rootTurnId": "01a1efa9-6a53-7313-a0ff-5e5d4df3247c",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "completed",
+              "error": null,
+              "startedAt": 1795022219,
+              "completedAt": 1795022219,
+              "durationMs": 111
+            }
+          }
+        },
+        {
+          "method": "turn/started",
+          "params": {
+            "threadId": "01a1efa9-6a3e-7091-b75e-c0f60f9e6a3c",
+            "turn": {
+              "id": "01a1efa9-6aca-7aa1-b42d-06deab3d71bd",
+              "rootTurnId": "01a1efa9-6aca-7aa1-b42d-06deab3d71bd",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "inProgress",
+              "error": null,
+              "startedAt": 1795022219,
+              "completedAt": null,
+              "durationMs": null
+            }
+          }
+        },
+        {
+          "method": "error",
+          "params": {
+            "error": {
+              "message": "Error running remote compact task: stream disconnected before completion: You've hit your usage limit. Try again at 9:00 PM.",
+              "codexErrorInfo": "other",
+              "additionalDetails": null,
+              "misalignment": null
+            },
+            "willRetry": false,
+            "threadId": "01a1efa9-6a3e-7091-b75e-c0f60f9e6a3c",
+            "turnId": "01a1efa9-6aca-7aa1-b42d-06deab3d71bd"
+          }
+        },
+        {
+          "method": "turn/completed",
+          "params": {
+            "threadId": "01a1efa9-6a3e-7091-b75e-c0f60f9e6a3c",
+            "turn": {
+              "id": "01a1efa9-6aca-7aa1-b42d-06deab3d71bd",
+              "rootTurnId": "01a1efa9-6aca-7aa1-b42d-06deab3d71bd",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "failed",
+              "error": {
+                "message": "Error running remote compact task: stream disconnected before completion: You've hit your usage limit. Try again at 9:00 PM.",
+                "codexErrorInfo": "other",
+                "additionalDetails": null,
+                "misalignment": null
+              },
+              "startedAt": 1795022219,
+              "completedAt": 1795022220,
+              "durationMs": 20
+            }
+          }
+        }
+      ]
+    },
+    {
+      "path": "compact",
+      "mode": "http400-body",
+      "account": false,
+      "version": "0.169.1",
+      "providerError": {
+        "type": "usage_limit_reached",
+        "code": "usage_limit_reached",
+        "message": "You've hit your usage limit. Try again at 9:00 PM.",
+        "plan_type": "pro",
+        "resets_at": 1900000000,
+        "limit_window_minutes": 300
+      },
+      "responseHeaders": {},
+      "usageBefore": null,
+      "usageAfter": null,
+      "notifications": [
+        {
+          "method": "turn/started",
+          "params": {
+            "threadId": "01a1efa9-6c67-7450-b976-1e920a357dec",
+            "turn": {
+              "id": "01a1efa9-6c7d-73a1-beb5-db8a908f186e",
+              "rootTurnId": "01a1efa9-6c7d-73a1-beb5-db8a908f186e",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "inProgress",
+              "error": null,
+              "startedAt": 1795022220,
+              "completedAt": null,
+              "durationMs": null
+            }
+          }
+        },
+        {
+          "method": "account/rateLimits/updated",
+          "params": {
+            "rateLimits": {
+              "limitId": "codex",
+              "limitName": null,
+              "normalModelSlug": null,
+              "primary": null,
+              "secondary": null,
+              "credits": null,
+              "individualLimit": null,
+              "spendControlReached": null,
+              "planType": null,
+              "rateLimitReachedType": null
+            }
+          }
+        },
+        {
+          "method": "turn/completed",
+          "params": {
+            "threadId": "01a1efa9-6c67-7450-b976-1e920a357dec",
+            "turn": {
+              "id": "01a1efa9-6c7d-73a1-beb5-db8a908f186e",
+              "rootTurnId": "01a1efa9-6c7d-73a1-beb5-db8a908f186e",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "completed",
+              "error": null,
+              "startedAt": 1795022220,
+              "completedAt": 1795022220,
+              "durationMs": 101
+            }
+          }
+        },
+        {
+          "method": "turn/started",
+          "params": {
+            "threadId": "01a1efa9-6c67-7450-b976-1e920a357dec",
+            "turn": {
+              "id": "01a1efa9-6ceb-7212-8cce-edfb7324a675",
+              "rootTurnId": "01a1efa9-6ceb-7212-8cce-edfb7324a675",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "inProgress",
+              "error": null,
+              "startedAt": 1795022220,
+              "completedAt": null,
+              "durationMs": null
+            }
+          }
+        },
+        {
+          "method": "error",
+          "params": {
+            "error": {
+              "message": "Error running remote compact task: {\"error\":{\"type\":\"usage_limit_reached\",\"code\":\"usage_limit_reached\",\"message\":\"You've hit your usage limit. Try again at 9:00 PM.\",\"plan_type\":\"pro\",\"resets_at\":1900000000,\"limit_window_minutes\":300}}",
+              "codexErrorInfo": "other",
+              "additionalDetails": null,
+              "misalignment": null
+            },
+            "willRetry": false,
+            "threadId": "01a1efa9-6c67-7450-b976-1e920a357dec",
+            "turnId": "01a1efa9-6ceb-7212-8cce-edfb7324a675"
+          }
+        },
+        {
+          "method": "turn/completed",
+          "params": {
+            "threadId": "01a1efa9-6c67-7450-b976-1e920a357dec",
+            "turn": {
+              "id": "01a1efa9-6ceb-7212-8cce-edfb7324a675",
+              "rootTurnId": "01a1efa9-6ceb-7212-8cce-edfb7324a675",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "failed",
+              "error": {
+                "message": "Error running remote compact task: {\"error\":{\"type\":\"usage_limit_reached\",\"code\":\"usage_limit_reached\",\"message\":\"You've hit your usage limit. Try again at 9:00 PM.\",\"plan_type\":\"pro\",\"resets_at\":1900000000,\"limit_window_minutes\":300}}",
+                "codexErrorInfo": "other",
+                "additionalDetails": null,
+                "misalignment": null
+              },
+              "startedAt": 1795022220,
+              "completedAt": 1795022220,
+              "durationMs": 25
+            }
+          }
+        }
+      ]
+    },
+    {
+      "path": "compact",
+      "mode": "http400-headers",
+      "account": false,
+      "version": "0.169.1",
+      "providerError": {
+        "type": "usage_limit_reached",
+        "code": "usage_limit_reached",
+        "message": "You've hit your usage limit. Try again at 9:00 PM.",
+        "plan_type": "pro",
+        "resets_at": 1900000000,
+        "limit_window_minutes": 300
+      },
+      "responseHeaders": {
+        "x-codex-primary-used-percent": "100",
+        "x-codex-primary-window-minutes": "300",
+        "x-codex-primary-reset-at": "1900000000"
+      },
+      "usageBefore": null,
+      "usageAfter": null,
+      "notifications": [
+        {
+          "method": "turn/started",
+          "params": {
+            "threadId": "01a1efa9-6e85-75d2-96ec-5ee27de05833",
+            "turn": {
+              "id": "01a1efa9-6e9b-73e1-979e-ce055cbe1b31",
+              "rootTurnId": "01a1efa9-6e9b-73e1-979e-ce055cbe1b31",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "inProgress",
+              "error": null,
+              "startedAt": 1795022220,
+              "completedAt": null,
+              "durationMs": null
+            }
+          }
+        },
+        {
+          "method": "account/rateLimits/updated",
+          "params": {
+            "rateLimits": {
+              "limitId": "codex",
+              "limitName": null,
+              "normalModelSlug": null,
+              "primary": {
+                "usedPercent": 25,
+                "windowDurationMins": 300,
+                "resetsAt": 1899996400
+              },
+              "secondary": null,
+              "credits": null,
+              "individualLimit": null,
+              "spendControlReached": null,
+              "planType": null,
+              "rateLimitReachedType": null
+            }
+          }
+        },
+        {
+          "method": "turn/completed",
+          "params": {
+            "threadId": "01a1efa9-6e85-75d2-96ec-5ee27de05833",
+            "turn": {
+              "id": "01a1efa9-6e9b-73e1-979e-ce055cbe1b31",
+              "rootTurnId": "01a1efa9-6e9b-73e1-979e-ce055cbe1b31",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "completed",
+              "error": null,
+              "startedAt": 1795022220,
+              "completedAt": 1795022221,
+              "durationMs": 108
+            }
+          }
+        },
+        {
+          "method": "turn/started",
+          "params": {
+            "threadId": "01a1efa9-6e85-75d2-96ec-5ee27de05833",
+            "turn": {
+              "id": "01a1efa9-6f10-7ab0-940f-ee375cefbef3",
+              "rootTurnId": "01a1efa9-6f10-7ab0-940f-ee375cefbef3",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "inProgress",
+              "error": null,
+              "startedAt": 1795022221,
+              "completedAt": null,
+              "durationMs": null
+            }
+          }
+        },
+        {
+          "method": "error",
+          "params": {
+            "error": {
+              "message": "Error running remote compact task: {\"error\":{\"type\":\"usage_limit_reached\",\"code\":\"usage_limit_reached\",\"message\":\"You've hit your usage limit. Try again at 9:00 PM.\",\"plan_type\":\"pro\",\"resets_at\":1900000000,\"limit_window_minutes\":300}}",
+              "codexErrorInfo": "other",
+              "additionalDetails": null,
+              "misalignment": null
+            },
+            "willRetry": false,
+            "threadId": "01a1efa9-6e85-75d2-96ec-5ee27de05833",
+            "turnId": "01a1efa9-6f10-7ab0-940f-ee375cefbef3"
+          }
+        },
+        {
+          "method": "turn/completed",
+          "params": {
+            "threadId": "01a1efa9-6e85-75d2-96ec-5ee27de05833",
+            "turn": {
+              "id": "01a1efa9-6f10-7ab0-940f-ee375cefbef3",
+              "rootTurnId": "01a1efa9-6f10-7ab0-940f-ee375cefbef3",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "failed",
+              "error": {
+                "message": "Error running remote compact task: {\"error\":{\"type\":\"usage_limit_reached\",\"code\":\"usage_limit_reached\",\"message\":\"You've hit your usage limit. Try again at 9:00 PM.\",\"plan_type\":\"pro\",\"resets_at\":1900000000,\"limit_window_minutes\":300}}",
+                "codexErrorInfo": "other",
+                "additionalDetails": null,
+                "misalignment": null
+              },
+              "startedAt": 1795022221,
+              "completedAt": 1795022221,
+              "durationMs": 31
+            }
+          }
+        }
+      ]
+    },
+    {
+      "path": "compact",
+      "mode": "http-headers",
+      "account": true,
+      "version": "0.169.1",
+      "providerError": {
+        "type": "usage_limit_reached",
+        "code": "usage_limit_reached",
+        "message": "You've hit your usage limit. Try again at 9:00 PM.",
+        "plan_type": "pro",
+        "resets_at": 1900000000,
+        "limit_window_minutes": 300
+      },
+      "responseHeaders": {
+        "x-codex-primary-used-percent": "100",
+        "x-codex-primary-window-minutes": "300",
+        "x-codex-primary-reset-at": "1900000000"
+      },
+      "usageBefore": {
+        "ordinaryUsageAllowed": null,
+        "rateLimits": {
+          "limitId": "codex",
+          "limitName": null,
+          "normalModelSlug": null,
+          "primary": {
+            "usedPercent": 25,
+            "windowDurationMins": 300,
+            "resetsAt": 1899996400
+          },
+          "secondary": null,
+          "credits": null,
+          "individualLimit": null,
+          "spendControlReached": null,
+          "planType": "pro",
+          "rateLimitReachedType": null
+        },
+        "rateLimitsByLimitId": {
+          "codex": {
+            "limitId": "codex",
+            "limitName": null,
+            "normalModelSlug": null,
+            "primary": {
+              "usedPercent": 25,
+              "windowDurationMins": 300,
+              "resetsAt": 1899996400
+            },
+            "secondary": null,
+            "credits": null,
+            "individualLimit": null,
+            "spendControlReached": null,
+            "planType": "pro",
+            "rateLimitReachedType": null
+          }
+        },
+        "rateLimitResetCredits": null,
+        "accountId": null,
+        "rateLimitUpsell": null
+      },
+      "usageAfter": {
+        "ordinaryUsageAllowed": null,
+        "rateLimits": {
+          "limitId": "codex",
+          "limitName": null,
+          "normalModelSlug": null,
+          "primary": {
+            "usedPercent": 100,
+            "windowDurationMins": 300,
+            "resetsAt": 1900000000
+          },
+          "secondary": null,
+          "credits": null,
+          "individualLimit": null,
+          "spendControlReached": null,
+          "planType": "pro",
+          "rateLimitReachedType": null
+        },
+        "rateLimitsByLimitId": {
+          "codex": {
+            "limitId": "codex",
+            "limitName": null,
+            "normalModelSlug": null,
+            "primary": {
+              "usedPercent": 100,
+              "windowDurationMins": 300,
+              "resetsAt": 1900000000
+            },
+            "secondary": null,
+            "credits": null,
+            "individualLimit": null,
+            "spendControlReached": null,
+            "planType": "pro",
+            "rateLimitReachedType": null
+          }
+        },
+        "rateLimitResetCredits": null,
+        "accountId": null,
+        "rateLimitUpsell": null
+      },
+      "notifications": [
+        {
+          "method": "turn/started",
+          "params": {
+            "threadId": "01a1efa9-70e4-7440-9dfb-77debff1bd94",
+            "turn": {
+              "id": "01a1efa9-710b-7aa2-832b-c7a9381ec417",
+              "rootTurnId": "01a1efa9-710b-7aa2-832b-c7a9381ec417",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "inProgress",
+              "error": null,
+              "startedAt": 1795022221,
+              "completedAt": null,
+              "durationMs": null
+            }
+          }
+        },
+        {
+          "method": "account/rateLimits/updated",
+          "params": {
+            "rateLimits": {
+              "limitId": "codex",
+              "limitName": null,
+              "normalModelSlug": null,
+              "primary": {
+                "usedPercent": 25,
+                "windowDurationMins": 300,
+                "resetsAt": 1899996400
+              },
+              "secondary": null,
+              "credits": null,
+              "individualLimit": null,
+              "spendControlReached": null,
+              "planType": null,
+              "rateLimitReachedType": null
+            }
+          }
+        },
+        {
+          "method": "turn/completed",
+          "params": {
+            "threadId": "01a1efa9-70e4-7440-9dfb-77debff1bd94",
+            "turn": {
+              "id": "01a1efa9-710b-7aa2-832b-c7a9381ec417",
+              "rootTurnId": "01a1efa9-710b-7aa2-832b-c7a9381ec417",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "completed",
+              "error": null,
+              "startedAt": 1795022221,
+              "completedAt": 1795022221,
+              "durationMs": 133
+            }
+          }
+        },
+        {
+          "method": "turn/started",
+          "params": {
+            "threadId": "01a1efa9-70e4-7440-9dfb-77debff1bd94",
+            "turn": {
+              "id": "01a1efa9-719a-7992-bd10-409d640ff4f9",
+              "rootTurnId": "01a1efa9-719a-7992-bd10-409d640ff4f9",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "inProgress",
+              "error": null,
+              "startedAt": 1795022221,
+              "completedAt": null,
+              "durationMs": null
+            }
+          }
+        },
+        {
+          "method": "error",
+          "params": {
+            "error": {
+              "message": "Error running remote compact task: You\u2019ve hit your usage limit. Visit https://chatgpt.com/settings/usage to purchase more credits or try again at Mar 17th, 2030 5:46 PM.",
+              "codexErrorInfo": "usageLimitExceeded",
+              "additionalDetails": null,
+              "misalignment": null
+            },
+            "willRetry": false,
+            "threadId": "01a1efa9-70e4-7440-9dfb-77debff1bd94",
+            "turnId": "01a1efa9-719a-7992-bd10-409d640ff4f9"
+          }
+        },
+        {
+          "method": "turn/completed",
+          "params": {
+            "threadId": "01a1efa9-70e4-7440-9dfb-77debff1bd94",
+            "turn": {
+              "id": "01a1efa9-719a-7992-bd10-409d640ff4f9",
+              "rootTurnId": "01a1efa9-719a-7992-bd10-409d640ff4f9",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "failed",
+              "error": {
+                "message": "Error running remote compact task: You\u2019ve hit your usage limit. Visit https://chatgpt.com/settings/usage to purchase more credits or try again at Mar 17th, 2030 5:46 PM.",
+                "codexErrorInfo": "usageLimitExceeded",
+                "additionalDetails": null,
+                "misalignment": null
+              },
+              "startedAt": 1795022221,
+              "completedAt": 1795022221,
+              "durationMs": 61
+            }
+          }
+        }
+      ]
+    },
+    {
+      "path": "compact",
+      "mode": "sse-headers",
+      "account": true,
+      "version": "0.169.1",
+      "providerError": {
+        "type": "usage_limit_reached",
+        "code": "usage_limit_reached",
+        "message": "You've hit your usage limit. Try again at 9:00 PM.",
+        "plan_type": "pro",
+        "resets_at": 1900000000,
+        "limit_window_minutes": 300
+      },
+      "responseHeaders": {
+        "x-codex-primary-used-percent": "100",
+        "x-codex-primary-window-minutes": "300",
+        "x-codex-primary-reset-at": "1900000000"
+      },
+      "usageBefore": {
+        "ordinaryUsageAllowed": null,
+        "rateLimits": {
+          "limitId": "codex",
+          "limitName": null,
+          "normalModelSlug": null,
+          "primary": {
+            "usedPercent": 25,
+            "windowDurationMins": 300,
+            "resetsAt": 1899996400
+          },
+          "secondary": null,
+          "credits": null,
+          "individualLimit": null,
+          "spendControlReached": null,
+          "planType": "pro",
+          "rateLimitReachedType": null
+        },
+        "rateLimitsByLimitId": {
+          "codex": {
+            "limitId": "codex",
+            "limitName": null,
+            "normalModelSlug": null,
+            "primary": {
+              "usedPercent": 25,
+              "windowDurationMins": 300,
+              "resetsAt": 1899996400
+            },
+            "secondary": null,
+            "credits": null,
+            "individualLimit": null,
+            "spendControlReached": null,
+            "planType": "pro",
+            "rateLimitReachedType": null
+          }
+        },
+        "rateLimitResetCredits": null,
+        "accountId": null,
+        "rateLimitUpsell": null
+      },
+      "usageAfter": {
+        "ordinaryUsageAllowed": null,
+        "rateLimits": {
+          "limitId": "codex",
+          "limitName": null,
+          "normalModelSlug": null,
+          "primary": {
+            "usedPercent": 100,
+            "windowDurationMins": 300,
+            "resetsAt": 1900000000
+          },
+          "secondary": null,
+          "credits": null,
+          "individualLimit": null,
+          "spendControlReached": null,
+          "planType": "pro",
+          "rateLimitReachedType": null
+        },
+        "rateLimitsByLimitId": {
+          "codex": {
+            "limitId": "codex",
+            "limitName": null,
+            "normalModelSlug": null,
+            "primary": {
+              "usedPercent": 100,
+              "windowDurationMins": 300,
+              "resetsAt": 1900000000
+            },
+            "secondary": null,
+            "credits": null,
+            "individualLimit": null,
+            "spendControlReached": null,
+            "planType": "pro",
+            "rateLimitReachedType": null
+          }
+        },
+        "rateLimitResetCredits": null,
+        "accountId": null,
+        "rateLimitUpsell": null
+      },
+      "notifications": [
+        {
+          "method": "turn/started",
+          "params": {
+            "threadId": "01a1efa9-738b-78f3-801b-acc7e719ff6b",
+            "turn": {
+              "id": "01a1efa9-73ae-7772-b203-39f4c8de1550",
+              "rootTurnId": "01a1efa9-73ae-7772-b203-39f4c8de1550",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "inProgress",
+              "error": null,
+              "startedAt": 1795022222,
+              "completedAt": null,
+              "durationMs": null
+            }
+          }
+        },
+        {
+          "method": "account/rateLimits/updated",
+          "params": {
+            "rateLimits": {
+              "limitId": "codex",
+              "limitName": null,
+              "normalModelSlug": null,
+              "primary": {
+                "usedPercent": 25,
+                "windowDurationMins": 300,
+                "resetsAt": 1899996400
+              },
+              "secondary": null,
+              "credits": null,
+              "individualLimit": null,
+              "spendControlReached": null,
+              "planType": null,
+              "rateLimitReachedType": null
+            }
+          }
+        },
+        {
+          "method": "turn/completed",
+          "params": {
+            "threadId": "01a1efa9-738b-78f3-801b-acc7e719ff6b",
+            "turn": {
+              "id": "01a1efa9-73ae-7772-b203-39f4c8de1550",
+              "rootTurnId": "01a1efa9-73ae-7772-b203-39f4c8de1550",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "completed",
+              "error": null,
+              "startedAt": 1795022222,
+              "completedAt": 1795022222,
+              "durationMs": 120
+            }
+          }
+        },
+        {
+          "method": "turn/started",
+          "params": {
+            "threadId": "01a1efa9-738b-78f3-801b-acc7e719ff6b",
+            "turn": {
+              "id": "01a1efa9-7431-77d0-a00b-9f19e6c5973a",
+              "rootTurnId": "01a1efa9-7431-77d0-a00b-9f19e6c5973a",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "inProgress",
+              "error": null,
+              "startedAt": 1795022222,
+              "completedAt": null,
+              "durationMs": null
+            }
+          }
+        },
+        {
+          "method": "error",
+          "params": {
+            "error": {
+              "message": "Error running remote compact task: stream disconnected before completion: You've hit your usage limit. Try again at 9:00 PM.",
+              "codexErrorInfo": "other",
+              "additionalDetails": null,
+              "misalignment": null
+            },
+            "willRetry": false,
+            "threadId": "01a1efa9-738b-78f3-801b-acc7e719ff6b",
+            "turnId": "01a1efa9-7431-77d0-a00b-9f19e6c5973a"
+          }
+        },
+        {
+          "method": "turn/completed",
+          "params": {
+            "threadId": "01a1efa9-738b-78f3-801b-acc7e719ff6b",
+            "turn": {
+              "id": "01a1efa9-7431-77d0-a00b-9f19e6c5973a",
+              "rootTurnId": "01a1efa9-7431-77d0-a00b-9f19e6c5973a",
+              "items": [],
+              "itemsView": "notLoaded",
+              "status": "failed",
+              "error": {
+                "message": "Error running remote compact task: stream disconnected before completion: You've hit your usage limit. Try again at 9:00 PM.",
+                "codexErrorInfo": "other",
+                "additionalDetails": null,
+                "misalignment": null
+              },
+              "startedAt": 1795022222,
+              "completedAt": 1795022222,
+              "durationMs": 54
             }
           }
         }

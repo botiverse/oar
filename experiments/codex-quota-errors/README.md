@@ -1,6 +1,6 @@
 # Codex structured quota errors
 
-Codex 0.169.0 on Linux x64 preserves a provider's HTTP-400 JSON error body,
+Codex 0.169.0 and 0.169.1 on Linux x64 preserves a provider's HTTP-400 JSON error body,
 but discards the same error's structure in a streamed `response.failed`.
 Remote compaction also omits the failure response's rate-limit update.
 All observations below use isolated synthetic homes and loopback servers;
@@ -36,10 +36,10 @@ supplies 25% and `1899996400`, making a stale snapshot distinguishable.
 `error.error` and the failed `turn/completed.turn.error` agree in every
 control. Both contain `message`, `codexErrorInfo`, `additionalDetails: null`
 and `misalignment: null`; neither has a structured reset outside the
-preserved HTTP-400 body. The sixteen controls and their selected native
+preserved HTTP-400 body. The sixteen controls per version and their selected native
 frames are in [selected.json](selected.json).
 
-Four additional rows in that file use a synthetic ChatGPT account and a
+Four rows per version in that file use a synthetic ChatGPT account and a
 separate usage endpoint. For normal/compact and HTTP-429/streamed failures,
 `account/rateLimits/read` returns 25% / `1899996400` before failure and
 100% / `1900000000` afterward. The backend changes only when it serves the
@@ -58,16 +58,28 @@ reason. Invalid or absent reset fields remain absent.
 
 Streamed usage-limit failures stay `unknown`; OAR does not classify the
 English sentence or parse its local time. Named `usageLimitExceeded`
-continues to mean `quota`, without a reset when its error has no structured
-reset. Rate-limit notifications and separate account reads do not supply
-`FailedTurn.resetsAt`. Hosts can read `accountUsage()` after a failure and
-make their own decision using its separately reported windows.
+continues to mean `quota`. Its error has no reset field, but the normal
+HTTP-429 path emits a `limitId: codex` account notification before failure.
+OAR reads its exhausted primary/secondary windows only during the current
+observed root turn. It attaches a reset only when every exhausted window
+has the same valid reset. Missing or conflicting resets remain absent.
+
+OAR owns one app-server per session, but these account notifications have
+no thread or turn ID. The projection clears them at turn boundaries and
+when compaction starts, freezes the snapshot at the terminal error, and
+disables attribution for the session once another thread or collaboration
+item appears. Child-thread failures never borrow the root snapshot. A
+full window cannot classify an `other` error. Remote compaction's dropped
+update therefore supplies no reset; hosts can read `accountUsage()` after
+a failure and decide using its separately reported windows.
 
 [Replay controls](../../tests/codex/quota-errors.test.ts) exercise the actual
 projection with all recorded error and rate-limit notifications, the four
 live-read responses through the account-usage projection, and malformed
-body/reset controls. Raft's exact production Codex version was not yet
-provided for this run; no cross-version result is claimed.
+body/reset controls. Separate tests cover prior turns, idle/late updates,
+compaction, child activity, mismatched turn IDs and conflicting windows.
+The CI pin 0.169.0 and production-range endpoint 0.169.1 agree in all sixteen
+controls. Other versions in the reported production range were not tested.
 
 ## Reproduce
 

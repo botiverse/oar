@@ -21,14 +21,14 @@ function replay(row: typeof evidence.rows[number]): TurnOutcome | undefined {
   return outcomes.at(-1);
 }
 
-// Native Codex 0.169.0, loopback provider. Preserve all error and rate-limit fields
+// Native Codex 0.169.0 and 0.169.1, loopback provider. Preserve all error and rate-limit fields
 // so the stream-loss and stale-compaction cases cannot acquire an inferred reset.
-test.each(evidence.rows)("native $path $mode account=$account", (row) => {
+test.each(evidence.rows)("native $version $path $mode account=$account", (row) => {
   const error = row.notifications.find(n => n.method === "error");
   const failure = replay(row);
   const structuredBody = row.mode.startsWith("http400");
   expect(failure).toMatchObject({ kind: "failed", failure: row.mode.startsWith("sse") ? "unknown" : "quota" });
-  if (structuredBody) { expect(failure).toHaveProperty("resetsAt", "2030-03-17T17:46:40.000Z"); }
+  if (structuredBody || (row.path === "normal" && row.mode === "http-headers")) { expect(failure).toHaveProperty("resetsAt", "2030-03-17T17:46:40.000Z"); }
   else { expect(failure).not.toHaveProperty("resetsAt"); }
   // Both native surfaces carry the same error, including compaction's prefix.
   const completed = row.notifications.findLast(n => n.method === "turn/completed");

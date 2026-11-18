@@ -8,6 +8,7 @@ import type {
   TurnOutcome,
 } from "../../contracts/session.js";
 import { codexFailure } from "./failure.js";
+import { codexQuotaResetForTurn, emptyCodexQuotaReset, nextCodexQuotaReset, type CodexQuotaReset } from "./quota-reset.js";
 import { foldCodexMessages, type CodexMessages } from "./messages.js";
 import { asRecord, type JsonRecord } from "../../shared/json.js";
 import { noTokens } from "../../shared/token-totals.js";
@@ -51,6 +52,7 @@ export type ProjectionCommand =
  */
 export interface CodexProjectionState {
   readonly rootThreadId: string;
+  readonly quotaReset: CodexQuotaReset;
   /** Native message phases and text already streamed, scoped to their owning thread and turn. */
   readonly messages: CodexMessages;
   /** Accepted steers and native echoes, keyed by the turn that owns them. */
@@ -73,7 +75,7 @@ export interface CodexProjectionState {
 
 /** The projection of a Session opened by `opened`: a resume awaits codex's re-reported token total. */
 export function initialCodexProjection(rootThreadId: string, opened: CodexOpenMethod = "thread/start"): CodexProjectionState {
-  return { inputs: new Map(), messages: new Map(), rootThreadId, lastErrorDetail: null, retries: new Map(), compacting: false, subagents: new Map(), tokenBaseline: initialTokenBaseline(opened === "thread/resume") };
+  return { inputs: new Map(), messages: new Map(), rootThreadId, quotaReset: emptyCodexQuotaReset, lastErrorDetail: null, retries: new Map(), compacting: false, subagents: new Map(), tokenBaseline: initialTokenBaseline(opened === "thread/resume") };
 }
 
 const COMPACTION_ITEM_TYPE = "contextCompaction";
@@ -85,7 +87,7 @@ function isCompactionItem(params: JsonRecord): boolean {
 // The runtime's own status is the truth: an interrupt that landed reports
 // "interrupted"; one that lost the race to completion reports "completed".
 // A failure is classified from the turn's own error (failure.ts).
-function outcomeFromTurn(state: CodexProjectionState, turn: JsonRecord | null): TurnOutcome {
+function outcomeFromTurn(state: CodexProjectionState, reporter: string, turn: JsonRecord | null): TurnOutcome {
   const status = turn?.status;
   switch (status) {
     case "interrupted":
@@ -95,7 +97,9 @@ function outcomeFromTurn(state: CodexProjectionState, turn: JsonRecord | null): 
     default: {
       const word = typeof status === "string" ? status : "unknown";
       const reason = state.lastErrorDetail === null ? word : `${word}: ${state.lastErrorDetail}`;
-      return codexFailure(reason, turn?.error);
+      const failure = codexFailure(reason, turn?.error);
+      const resetsAt = codexQuotaResetForTurn(state.quotaReset, reporter, state.rootThreadId, turn);
+      return failure.failure === "quota" && failure.resetsAt === undefined && resetsAt !== null ? { ...failure, resetsAt } : failure;
     }
   }
 }
@@ -231,7 +235,7 @@ function viewsFor(state: CodexProjectionState, reporter: string, method: string,
       return toolViews(method, item);
     }
     case "turn/completed":
-      return [{ kind: "turn_ended", outcome: outcomeFromTurn(state, asRecord(params.turn)) }];
+      return [{ kind: "turn_ended", outcome: outcomeFromTurn(state, reporter, asRecord(params.turn)) }];
     case "thread/tokenUsage/updated":
       return codexUsageViews(params, reporter === state.rootThreadId ? baselineTokens(state.tokenBaseline) : noTokens);
     case "thread/settings/updated":
@@ -264,11 +268,11 @@ export function foldCodexNotification(
     ? collabEdges(state, threadId, asRecord(params.item)).map((edge): ProjectionCommand => ({ kind: "link", edge }))
     : [];
 
-  let next = state;
+  let next = { ...state, quotaReset: nextCodexQuotaReset(state.quotaReset, state.rootThreadId, method, params) };
   if (method === "error") {
     const combined = errorDetail(params);
     if (combined.length > 0) {
-      next = { ...state, lastErrorDetail: combined };
+      next = { ...next, lastErrorDetail: combined };
     }
     if (params.willRetry === true) {
       next = { ...next, retries: new Map(next.retries).set(threadId, (next.retries.get(threadId) ?? 0) + 1) };
@@ -276,11 +280,11 @@ export function foldCodexNotification(
   } else if (method === "turn/completed") {
     const retries = new Map(state.retries);
     retries.delete(threadId);
-    next = { ...state, retries, ...(threadId === state.rootThreadId ? { lastErrorDetail: null } : {}) };
+    next = { ...next, retries, ...(threadId === state.rootThreadId ? { lastErrorDetail: null } : {}) };
   } else if (threadId === state.rootThreadId && isCompactionItem(params) && (method === "item/started" || method === "item/completed")) {
-    next = { ...state, compacting: method === "item/started" };
+    next = { ...next, compacting: method === "item/started" };
   } else if (method === "thread/compacted" && threadId === state.rootThreadId) {
-    next = { ...state, compacting: false };
+    next = { ...next, compacting: false };
   }
   const subagents = withStartedChild(next.subagents, threadId, asRecord(params.item));
   if (subagents !== next.subagents) {
