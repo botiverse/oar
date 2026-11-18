@@ -1,15 +1,15 @@
 # experiments
 
-- [Kimi 2.6.2/2.6.3 resume and workspace controls](kimi-mcp-resume/2026-11-17.md): stale model declarations, current MCP execution and version-specific workspace registration expectations.
+- [Kimi 2.6.2/2.6.3 resume and workspace controls](kimi-mcp-resume/2026-11-17.md): stale model declarations, current MCP execution and version-specific workspace registration expectations; [upstream #5036](https://github.com/MoonshotAI/kimi-code/issues/5036).
 
-- [Kimi read-only refresh](kimi-readonly-refresh/README.md): synthetic rotation loss during skill-query shutdown, native background-refresh switches and Raft lock-disabled controls.
+- [Kimi read-only refresh](kimi-readonly-refresh/README.md): synthetic rotation loss during skill-query shutdown, native background-refresh switches and Raft lock-disabled controls; [upstream #5034](https://github.com/MoonshotAI/kimi-code/issues/5034).
 
-- [Kimi first Web startup](kimi-web-startup/README.md): native first-token race, readiness gate, warm bypass and reader deadlines.
+- [Kimi first Web startup](kimi-web-startup/README.md): native first-token race, readiness gate, warm bypass and reader deadlines; [upstream #5035](https://github.com/MoonshotAI/kimi-code/issues/5035).
 
 - [Runtime version check: 2026-11-17](runtime-version-checks/2026-11-17.md): changed releases, complete CI failure observations, Cursor loader follow-up and the Qoder replay boundary.
 - [Cursor SDK 1.4.1 acceptance](cursor-sdk-1.4.1/README.md): full live session battery, native tool denial and offline login/configuration/skills checks.
 
-- [OpenCode warm WAL recovery](opencode-database-lock/README.md): native lock traces, timeout-order counterfactual and bounded per-data-directory ACP startup gate.
+- [OpenCode warm WAL recovery](opencode-database-lock/README.md): native lock traces, timeout-order counterfactual and bounded per-data-directory ACP startup gate; [upstream #64590](https://github.com/anomalyco/opencode/issues/64590).
 
 - [Qwen workspace skill catalog](qwen-skills/README.md): unsigned ACP metadata, native provenance and disabled flags, settings migration and query cleanup.
 - [Qoder skill catalog ambiguity](qoder-skills/README.md): unescaped descriptions can print apparent catalog entries, so independent discovery remains unsupported.

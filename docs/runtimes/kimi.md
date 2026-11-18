@@ -33,7 +33,8 @@ local OAuth/login regressions pass; one of fourteen native vendor cases fails:
 a fresh-process resume without MCP configuration still advertises the
 initial stdio and HTTP tool declarations
 ([session MCP servers](#session-mcp-servers)). That case passes on 2.4.1,
-which stays the CI pin until an upstream fix passes the same controls
+which stays the CI pin until a release addressing
+[upstream #5036](https://github.com/MoonshotAI/kimi-code/issues/5036) passes the same controls
 ([results and limits](../../experiments/runtime-version-checks/2026-11-13.md#kimi-262)).
 A November 17 direct native comparison confirms the same declaration/execution
 mismatch on **2.6.2 and 2.6.3**, with current connections and stale advertised
@@ -638,6 +639,10 @@ The full four-variant direct native probe also reproduces on **2.6.2 and
 catalog. Same-name replacements use the new configuration. This can send
 the model toward removed tools while hiding newly supplied tools
 ([November 17 evidence and source](../../experiments/kimi-mcp-resume/2026-11-17.md)).
+Tracked in [upstream #5036](https://github.com/MoonshotAI/kimi-code/issues/5036)
+and [OAR #899](https://github.com/botiverse/oar/issues/899). Keep the MCP assertion
+and accepted pin unchanged until a fixed native release passes the omitted,
+empty, same-name and renamed controls with declarations matching execution.
 
 The credentials reach kimi only in the open request's params, which OAR does
 not record (it records the answers, every `session/update` and vendor
@@ -751,8 +756,9 @@ gate, but other host processes are outside its scope. Native 2.4.1 and 2.6.3
 controlled first-creation races produced 3/6 HTTP 401 failures without a
 gate and 0/6 with startup coordination. The current actual usage adapter
 also passed 6/6 reads. This does not identify the original macOS CI failure
-or solve background OAuth refresh shutdown. Once an upstream release fixes
-first-token creation, remeasure and restrict or remove this gate.
+or solve background OAuth refresh shutdown. Once a release fixes first-token
+creation in [upstream #5035](https://github.com/MoonshotAI/kimi-code/issues/5035)
+and passes the same before/after controls, restrict or remove this gate.
 [Reproduction, warm controls and timing](../../experiments/kimi-web-startup/README.md).
 
 Both read-only Web entrypoints set
@@ -773,6 +779,12 @@ passed 3/3 sequential and 3/3 concurrent reads. Disabling the OAuth lock only
 for a later usage read avoids another refresh but cannot recover a token lost
 by earlier skill discovery. This fix does not change session processes or native processes started by
 other hosts.
+The lifecycle loss is tracked in
+[upstream #5034](https://github.com/MoonshotAI/kimi-code/issues/5034). Reconsider
+the background-refresh overrides only after a native release addressing it
+passes the sequential, concurrent and interrupted-refresh controls with native
+defaults. Native shutdown and the bounded cleanup described below remain
+necessary; an issue closure alone does not establish safe persistence.
 
 Once a Web process is ready, both readers send authenticated native
 `POST /api/v1/shutdown` with a fresh cleanup signal and await actual exit.

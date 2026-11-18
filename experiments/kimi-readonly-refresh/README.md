@@ -6,6 +6,8 @@ the server had rotated it. A later usage query then sent the old token and
 native Kimi cleared both access and refresh credentials. OAR now disables
 background model-directory refresh in both read-only Web processes, leaving
 explicit account-usage refresh enabled.
+Tracked in [upstream #5034](https://github.com/MoonshotAI/kimi-code/issues/5034),
+separate from the [first-Web-token race](../kimi-web-startup/README.md).
 
 ## Native lifecycle and scope
 
@@ -80,6 +82,12 @@ then verifies normal usage refresh and unchanged user configuration.
 This change prevents unrelated background rotation. Explicit refresh during
 shutdown has the additional measurements below; neither change promises that
 interrupted writes are safe.
+
+Reconsider the background-refresh overrides only after a native release
+addressing [#5034](https://github.com/MoonshotAI/kimi-code/issues/5034) passes
+the same sequential, concurrent and interrupted-refresh controls with native
+defaults. An issue closure is not persistence evidence. The native shutdown
+path and bounded cleanup below remain necessary.
 
 ## Native shutdown and deadlines
 
