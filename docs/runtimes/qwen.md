@@ -270,6 +270,38 @@ context occupancy; neither is a baseline. The raw native totals remain in the
 record stream. The first resumed result is not subtracted as a baseline,
 because that would lose the first new turn's spend.
 
+### Current context
+
+When initialization advertises `can_get_context_usage`, OAR sends
+`get_context_usage` with `show_details: false` after each non-aborted root
+`result`, before emitting `turn_ended` or writing the next queued prompt.
+The native request and correlated response are recorded. The response supplies
+`usage.context`, folded by `contextUsage()`, on fresh and resumed sessions.
+It is separate from the cumulative session total above.
+
+`totalTokens` is used only when native `isEstimated` is false;
+`contextWindowSize` supplies the window and their ratio supplies percent.
+A native estimated or missing count becomes `tokens: null`, with a known
+window preserved. In particular, native zero with `isEstimated: true`
+before the first model response is unknown, not an empty context.
+OAR does not sum Qwen's estimated category breakdown or cumulative input.
+
+The optional readback is bounded at one second. A missing capability,
+refusal, malformed reply, timeout, abort or process exit supplies no new
+context count. `contextUsage()` retains its last recorded reading, or null
+if none exists; late replies are retained as raw frames without updating
+context for a later turn. A timed-out readback can leave the previous turn's
+value, so the reading is last known and can lag a turn. Disposal resolves a
+pending readback.
+
+Qwen 0.28.0 returned measured last-prompt counts on two fresh turns and one
+resumed turn. Each post-turn query took 2 to 15 ms and made no provider
+request. Its source reads local chat/telemetry state. The same adapter control
+passes on the CI-pinned 0.27.4; this change does not alter CI runtime versions.
+See [native frames, cost and reproduction](../../experiments/qwen-native/context-usage-2026-11-18.md).
+
+### Turn work and failures
+
 With Qwen 0.26.5 and a scripted provider, each completed ordinary turn also
 made a managed-memory extraction request carrying conversation history,
 after the main reply but before the native `result`. Empty sessions and a
@@ -289,8 +321,7 @@ configuration or provider ([timing and usage controls](../../experiments/qwen-na
 A native result error retains its original message. Unclassified execution
 failures remain `unknown`; `error_max_turns` is `limit_reached`, and a result
 following an OAR abort is `aborted`. No authentication or quota cause is inferred
-from arbitrary text. Native context and compaction readbacks are not projected
-into `contextUsage()` in this adapter.
+from arbitrary text.
 
 Qwen 0.26.5 stream-json exposes manual compression status as assistant text,
 so it also appears in OAR's `text_delta`. There is no structural origin field
