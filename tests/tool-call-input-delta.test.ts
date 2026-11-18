@@ -6,7 +6,7 @@ import { statusOf } from "../packages/oar/src/observe/agent-status.js";
 import { initialSessionView, reduceSessionView, viewOf, type SessionView } from "../packages/oar/src/observe/session-view.js";
 
 function tools(view: SessionView) {
-  return view.messages.flatMap((message) => message.kind === "turn" ? message.sections.flatMap((section) => section.parts.flatMap((part) => part.kind === "tool" ? [{ sessionId: section.sessionId, agentPath: section.agentPath, ...part }] : [])) : []);
+  return view.messages.flatMap((message) => (message.kind === "turn" || message.kind === "activity") ? message.sections.flatMap((section) => section.parts.flatMap((part) => part.kind === "tool" ? [{ sessionId: section.sessionId, agentPath: section.agentPath, ...part }] : [])) : []);
 }
 
 function fixture() {
@@ -19,6 +19,7 @@ function fixture() {
 
 test("tool arguments append verbatim in live and replay views, then complete input replaces them", () => {
   const { kernel, live, push } = fixture();
+  push({ kind: "turn_active" });
   push({ kind: "tool_call_started", callId: "call", tool: "show_widget" });
   const pieces = ['{"widget_code":"', String.raw`<svg title=\"你好`, String.raw`\">`, String.raw`\n`, '</svg>"}'];
   let accumulated = "";
@@ -53,6 +54,7 @@ test("a delta without a start renders unknown tool input, including an empty fra
 
 test("interleaved inputs keep their session and agent lane; late input never reopens an ended call", () => {
   const { kernel, live, push } = fixture();
+  push({ kind: "turn_active" });
   const lanes = [{}, { agentPath: ["child"] }, { sessionId: "other" }];
   for (const scope of lanes) { push({ kind: "tool_call_started", callId: "same", tool: "echo" }, scope); }
   for (const [index, scope] of lanes.entries()) { push({ kind: "tool_call_input_delta", callId: "same", delta: String(index) }, scope); }
@@ -69,6 +71,7 @@ test("interleaved inputs keep their session and agent lane; late input never reo
 
 test("the tool phase says writing while its arguments stream, and running once they are complete (#314)", () => {
   const { kernel, push } = fixture();
+  push({ kind: "turn_active" });
   const phase = (): unknown => { const status = statusOf(kernel.records()).value; return status.kind === "running" ? status.phase : status.kind; };
   push({ kind: "tool_call_started", callId: "call", tool: "show_widget" });
   expect(phase()).toEqual({ tool: "show_widget", callId: "call" });

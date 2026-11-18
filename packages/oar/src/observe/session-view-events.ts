@@ -3,6 +3,7 @@ import { foldSessionTokens } from "./usage-totals.js";
 import type { Event, RawEvent } from "../contracts/session.js";
 import {
   beginTurn,
+  contentForWrite,
   laneFor,
   markRequestAnswered,
   markRequestCancelled,
@@ -11,7 +12,6 @@ import {
   sameLane,
   sealTurn,
   stampTurnOutcome,
-  turnForWrite,
   updateRequestPart,
   type Draft,
 } from "./session-view-fold.js";
@@ -191,7 +191,7 @@ export function foldEvent(draft: Draft, event: Event, streamId: string, openedBy
         return;
       }
       // A released turn can still have unresolved tools before the current segment.
-      endRootTools(draft, scope, draft.released);
+      endRootTools(draft, scope, true);
       // Whoever asked is gone with the process: nobody is waited on any more.
       draft.pendingRequests.splice(0);
       draft.exited = { code: event.code };
@@ -244,7 +244,7 @@ function appendMessageText(draft: Draft, event: Extract<Event, { kind: "text_del
   if (event.messageId === undefined || (event.kind === "reasoning" && event.content.kind !== "text")) {
     return false;
   }
-  const turn = turnForWrite(draft);
+  const turn = contentForWrite(draft);
   if (turn === null) { return false; }
   for (let s = turn.sections.length - 1; s >= 0; s -= 1) {
     const section = turn.sections[s];

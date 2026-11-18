@@ -481,29 +481,21 @@ covers 2.0.27.
   forwards only the translated updates. The root `session.execution.*`
   terminal in `translate.ts` `rootEvent` produces no ACP output, and
   `sendUsageUpdate` runs only when a prompt settles. OAR therefore records
-  each frame verbatim and adds no turn boundary. The status fold adopts the
-  reply as a running turn with no `requestId` or `inputId` (`sinceSeq` is
-  the reply's first frame, `lastEventAt` its latest). That status stays
-  `running` until a later native end, which in practice is the answer to
-  the next host prompt. Consequences: `awaitIdle` and
-  `deliver({ when: "when_idle" })` wait until that answer; `observeStalls`
-  reports the silence. No OpenCode profile maps runtime turns, so OAR's
-  turn driver has no open turn: `prompt()` is admitted although status
-  says `running`, and `deliver()` lands `queued` but the adapter queue
-  sends it at once. This is a
-  [documented exception](../spec/manual-compaction.md#ownership-records-and-state)
-  to status and prompt admission agreeing. OAR does not settle the reply
-  after silence or a deadline. Per the source, OpenCode submits every
-  prompt with `delivery: "steer"`; if the reply is still running, the
-  prompt joins it and is answered when that native execution ends (not
-  exercised natively). A native 2.3.0 control, with and without the
-  capability, sent a follow-up after the reply: it ended and status
-  returned to `idle`. The replay in
-  [`background-own-reply.test.ts`](../../tests/opencode/background-own-reply.test.ts)
-  pins this from the recorded wire (including a pending `awaitIdle` and a
-  `when_idle` delivery dispatched only after the follow-up's native end), with a synthetic answer to the
-  follow-up. Closing the gap needs a native end report for runtime-started
-  root turns.
+  each frame verbatim and adds no turn boundary. The status fold keeps
+  `idle` with the optional activity timestamps, and the view retains the
+  reply in an activity segment. `awaitIdle` returns without waiting for
+  this untracked work; `observeStalls` reports no running-turn stall.
+  `prompt()` and `deliver()` can submit a new prompt, while `abort()`
+  returns `no_active_turn`. These observations do not establish whether
+  native work has finished. Per the source, OpenCode submits every prompt
+  with `delivery: "steer"`; if its own reply is still running, the prompt
+  joins it and is answered when that execution ends (not exercised
+  natively). A native 2.3.0 control, with and without the capability, sent a
+  follow-up after the reply: it ended and status returned to `idle`.
+  The [wire replay](../../tests/opencode/background-own-reply.test.ts)
+  preserves the outside-turn reply and checks idle, abort and delivery,
+  using a synthetic answer for the follow-up. Native start and end evidence
+  are still needed before adopting runtime-started root turns.
 - **Tool names:** `shell` is a command with its reported `command` input;
   v1 `bash` remains supported. `subagent` classifies as `subagent`, with
   its `description` as the detail. Code Mode `execute` retains its name and

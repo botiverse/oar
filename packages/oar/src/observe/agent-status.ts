@@ -1,19 +1,13 @@
 import { dispatchStatus, isHeldOvertake, reduceAdapterQueue } from "./adapter-queue.js";
 import { reduceInputAdmission } from "./input-admission.js";
 import type { AgentStatus, QueryResult, RawEvent, RunningPhase, RuntimeEventBody } from "../contracts/session.js";
-
 import { exitTurnOutcome, releaseTurnOutcome, reduceTurnStop } from "./turn-stop.js";
-
 import { initialStatus, statusValue, type StatusState } from "./status-state.js";
 
 export { initialStatus, statusValue, type StatusState } from "./status-state.js";
 export type { AgentStatus, RunningPhase } from "../contracts/session.js";
-
 /**
- * status = fold(records). The reducer is pure (no clock, no IO), so status
- * is replayable from any record log and snapshot-testable. Time-qualified
- * judgments (stalled) are deliberately OUTSIDE the ontology: they are
- * fold(records) × clock, provided by `stallOf` next to it.
+ * Replayable status = fold(records); `stallOf` adds time-qualified stall judgments.
  *
  * Scope: the ROOT AGENT of ONE SESSION. Pass the session id so a derived
  * child session's records (codex child threads, grok child sessions carry
@@ -24,29 +18,24 @@ export type { AgentStatus, RunningPhase } from "../contracts/session.js";
  * to the session (child agents, child sessions, frames oar read nothing from), because a
  * delegated sub-agent working is not a stalled root.
  *
- * Transition table:
+ * Transition table (content rows change phase only while running; while
+ * idle they update the optional activity timestamps):
  *   request prompt (toRuntime)        → running/waiting_model (provisional request-based start)
  *   response rejected → that request  → idle again (the turn never began)
  *   event input_queued                → arm pending input; visible status is unchanged
  *   event turn_active                 → running at its native start; pending inputId must match
- *   event reasoning                   → running/thinking
- *   event text_delta                  → running/responding
- *   event tool_call_started           → running/{tool, callId}
- *   event tool_call_ended             → running/waiting_model   (the model consumes the result next); idle stays idle
- *   event tool_call_progress          → running, phase unchanged (the clock moves)
- *   event tool_call_input_delta       → running/{tool, callId, writing} for that call's tool phase
- *   event tool_call_input             → running/{tool, callId} (arguments complete; the clock moves)
- *   event compaction_started          → running/compacting
- *   event compaction_ended           → running/waiting_model only if already running; idle stays idle
- *   event retry                      → running/waiting_model
+ *   reasoning / text / tool start     → thinking / responding / tool phase
+ *   tool end / retry / compaction end → waiting_model; idle records activity
+ *   tool progress / input             → update the current tool phase and clock
+ *   compaction start                  → compacting only inside an existing turn
  *   event turn_ended                  → idle{lastTurnOutcome}   (the runtime's own completion)
  *   accepted abort / request dispose  → retain stop evidence for this turn
  *   response exited                   → idle{aborted} after accepted abort / dispose
  *                                     → idle{failed runtime_exited} otherwise
  *   response released                 → idle/released, retaining the stop-based outcome
  *   later facts after release         → retain idle/released; native facts remain in the log
- * The fold is total: a turn start or turn content while idle adopts that turn (a consumer
- * may subscribe mid-turn, and a queued input runs as a turn with no request).
+ * Only a prompt, admitted manual compaction or native turn start adopts a turn. Content while idle records
+ * outside-turn activity; a sliced stream needs its preceding start or checkpoint.
  */
 
 function compactionIdle(previous: StatusState): StatusState {
@@ -80,6 +69,17 @@ function running(previous: StatusState, record: RawEvent, phase: RunningPhase): 
     phase: previous.kind === "running" && previous.compaction !== undefined ? "compacting" : phase,
     lastEventAt: record.receivedAt,
   };
+}
+
+/** Content proves activity, not an open turn. */
+function content(previous: StatusState, record: RawEvent, phase: RunningPhase): StatusState {
+  return previous.kind === "running" ? running(previous, record, phase) : activity(previous, record);
+}
+
+function activity(previous: StatusState, record: RawEvent): StatusState {
+  return previous.kind === "idle"
+    ? { ...previous, activity: { since: previous.activity?.since ?? record.receivedAt, lastEventAt: record.receivedAt } }
+    : previous;
 }
 
 /** Fold one record using the complete previous checkpoint; preserve every returned field. */
@@ -191,15 +191,15 @@ function reduceEvent(previous: StatusState, record: RawEvent, event: RuntimeEven
       }
       return previous.kind === "running" ? { ...previous, lastEventAt: record.receivedAt } : running(previous, record, "waiting_model");
     case "reasoning":
-      return running(previous, record, "thinking");
+      return content(previous, record, "thinking");
     case "text_delta":
-      return running(previous, record, "responding");
+      return content(previous, record, "responding");
     case "tool_call_started":
-      return running(previous, record, { tool: event.tool, callId: event.callId });
+      return content(previous, record, { tool: event.tool, callId: event.callId });
     case "tool_call_ended": // can arrive after its turn ended (codex background terminals): no turn to adopt
-      return previous.kind === "running" ? running(previous, record, "waiting_model") : previous;
+      return content(previous, record, "waiting_model");
     case "retry":
-      return running(previous, record, "waiting_model");
+      return content(previous, record, "waiting_model");
     case "compaction_ended":
       if (previous.compactionState?.settledBy === "native_response") { return previous; }
       if (previous.kind === "running" && previous.compaction !== undefined && event.trigger !== undefined && event.trigger !== "manual") { return previous; }
@@ -208,7 +208,7 @@ function reduceEvent(previous: StatusState, record: RawEvent, event: RuntimeEven
         return event.requestId === previous.compaction.requestId ? compactionIdle(previous) : previous;
       }
       if (previous.kind === "running" && previous.compaction !== undefined && previous.compactionState?.nativeTurn !== true) { return previous.compaction.started === true ? compactionIdle(previous) : previous; }
-      return previous.kind === "running" ? running(previous, record, "waiting_model") : previous;
+      return content(previous, record, "waiting_model");
     case "compaction_started":
       if (previous.kind === "running" && previous.compaction !== undefined && previous.compactionState?.compactionId !== undefined && event.compactionId !== previous.compactionState.compactionId) { return previous; }
       if (previous.kind === "running" && previous.compaction !== undefined && previous.compactionState?.spanId !== undefined && record.spanId !== previous.compactionState.spanId) { return previous; }
@@ -218,10 +218,10 @@ function reduceEvent(previous: StatusState, record: RawEvent, event: RuntimeEven
             ...(event.compactionId === undefined ? {} : { compactionId: previous.compactionState?.compactionId ?? event.compactionId }),
             ...(record.spanId === undefined ? {} : { nativeTurn: true, spanId: record.spanId }) }, lastEventAt: record.receivedAt };
       }
-      return running(previous, record, "compacting");
+      return content(previous, record, "compacting");
     case "tool_call_input_delta":
     case "tool_call_input": {
-      if (previous.kind !== "running") { return previous; }
+      if (previous.kind !== "running") { return activity(previous, record); }
       const { phase } = previous;
       // Only the current call's phase changes: writing while its arguments stream, running once they are complete.
       if (typeof phase === "object" && phase.callId === event.callId) {
@@ -230,7 +230,7 @@ function reduceEvent(previous: StatusState, record: RawEvent, event: RuntimeEven
       return { ...previous, lastEventAt: record.receivedAt };
     }
     case "tool_call_progress":
-      return previous.kind === "running" ? { ...previous, lastEventAt: record.receivedAt } : previous;
+      return previous.kind === "running" ? { ...previous, lastEventAt: record.receivedAt } : activity(previous, record);
     case "turn_ended":
       if (previous.compactionState?.settledBy === "native_response") { return previous; }
       if (previous.kind === "running" && previous.compaction !== undefined
@@ -238,7 +238,7 @@ function reduceEvent(previous: StatusState, record: RawEvent, event: RuntimeEven
           || (previous.compactionState?.spanId !== undefined && record.spanId !== previous.compactionState.spanId))) { return previous; }
       if (previous.kind === "running" && previous.compaction !== undefined && previous.compactionState?.nativeTurn !== true) { return previous; }
       return previous.pendingPrompt === undefined
-        ? { kind: "idle", lastTurnOutcome: event.outcome }
+        ? { kind: "idle", lastTurnOutcome: event.outcome, ...(previous.kind === "idle" && previous.activity !== undefined ? { activity: previous.activity } : {}) }
         : waitingForPrompt(previous.pendingPrompt, record, true);
     case "task_started":
     case "task_updated":

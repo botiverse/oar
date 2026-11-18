@@ -65,6 +65,7 @@ function outline(view: SessionView): string[] {
           `turn${message.outcome === undefined ? "" : ` (${message.outcome.kind})`}`,
           ...message.sections.flatMap((section) => section.parts.map((part) => `  ${partLine(part)}`)),
         ];
+      case "activity": return "activity";
       case "notice":
         return [`notice ${message.notice.cause}`];
     }

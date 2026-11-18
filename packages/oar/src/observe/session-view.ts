@@ -27,28 +27,26 @@ import { deferWaitingInputs, foldInputUpdate, turnOpenedBy, upsertInput } from "
 import { foldEvent, recordFacts } from "./session-view-events.js";
 import { upgradeLegacyEvent } from "./legacy.js";
 /**
- * The chat-UI projection: grouped messages, agent status, model/usage/context
- * and runtime requests awaiting answers. Pure over the record stream
- * (docs/design/chat-ui.md): replayable from a log, no clock, no IO.
+ * Pure chat-UI projection over records (docs/design/chat-ui.md): messages,
+ * status, usage, settings and pending requests. Replayable, no clock or IO.
  *
  * Grouping rules, all derived never synthesized:
- * - A TURN is a display segment: it opens on its prompt request or on the
- *   first turn-content event while none is open (adopted: queued input
- *   consumed, mid-turn subscriber, replay slice). A conflicting native start after queue evidence, a dropped input or a rejected prompt
+ * - A TURN is a display segment: it opens on its prompt request or a
+ *   verified native turn_active. Content alone never opens a turn. A
+ *   conflicting native start after queue evidence, a dropped input or a rejected prompt
  *   removes its empty provisional turn. Queue evidence alone changes no layout.
  *   `turn_ended` of the ROOT session stamps the open segment; an input
  *   entering mid-turn seals the current segment so seq order stays the
  *   render order, and later content opens a new segment.
- * - An INPUT enters where the runtime took it. A prompt enters at its
- *   request provisionally; native queue evidence arms attribution, and a
- *   conflicting turn moves it to pending until its matching native turn start. A steer or queue enters at its first native
- *   echo (`user_message` with its `inputId`) when the stream echoes input
- *   ids at all, which it shows by having echoed one before (codex, claude);
- *   until then it waits in `pendingInputs`. On a stream that never echoed
- *   one (pi, cursor, ACP runtimes) it enters at its request, the best fact known. A
- *   refused input enters where it was refused; a retry of it that must wait
- *   for its echo takes it back out. A dropped input enters at its discard/exit; a withdrawn input leaves `pendingInputs`
- *   and `messages`; the segment its request sealed stays sealed.
+ * - ACTIVITY holds content outside a tracked turn, including sliced logs
+ *   without a preceding start or checkpoint. It retains lanes and tools but
+ *   has no outcome and never occupies openTurn. A later start opens a new
+ *   turn without moving preceding activity into it.
+ * - An INPUT enters where the runtime took it (docs/spec/conversation.md).
+ *   Prompts enter provisionally at their request; queue evidence and native
+ *   starts correct attribution. Echoed input ids place steering at its echo;
+ *   streams without them place it at its request. Refusal, withdrawal and
+ *   retry preserve their recorded order without inventing a second bubble.
  * - A SECTION groups one lane (`sessionId`, `agentPath`), in first-appearance
  *   order. Named text and readable reasoning rejoin the same kind/messageId
  *   part anywhere in that lane's current segment, never across an input seal.
@@ -84,7 +82,6 @@ export type ViewNotice =
   | { readonly cause: "child_turn_ended"; readonly outcome: TurnOutcome }
   | { readonly cause: "released"; readonly reason: "abort_fallback" | "dispose" }
   | { readonly cause: "exited"; readonly code: number | null };
-
 export type ViewPart =
   /** One assistant message's text; `messageId` when the runtime named the message (`text_delta.messageId`). */
   | { readonly kind: "text"; readonly text: string; readonly messageId?: string }
@@ -134,7 +131,6 @@ export interface ViewSection {
   readonly agentPath: readonly string[];
   readonly parts: readonly ViewPart[];
 }
-
 export interface ViewTurn {
   readonly kind: "turn";
   readonly id: string;
@@ -144,12 +140,17 @@ export interface ViewTurn {
   /** The native turn end or record-derived exit outcome. Absent on intermediate sealed segments. */
   readonly outcome?: TurnOutcome;
 }
-
+/** Native content outside a tracked turn. It has no turn outcome and never occupies openTurn. */
+export interface ViewActivity {
+  readonly kind: "activity";
+  readonly id: string;
+  readonly sections: readonly ViewSection[];
+}
 export type ViewMessage =
   | { readonly kind: "input"; readonly id: string; readonly input: ConversationInput }
   | ViewTurn
+  | ViewActivity
   | { readonly kind: "notice"; readonly id: string; readonly notice: ViewNotice };
-
 /** A runtime→app request nobody has answered and the runtime has not withdrawn. */
 export interface PendingRequest {
   readonly requestId: string;
@@ -160,7 +161,6 @@ export interface PendingRequest {
   /** The `toApp` request body verbatim; undefined when folded from flat events. */
   readonly body?: unknown;
 }
-
 export interface AgentTokens { readonly agentPath: readonly string[]; readonly tokens: TokenTotals }
 
 export interface SessionView {

@@ -61,6 +61,7 @@ function outline(view: SessionView): string[] {
         const parts = message.sections.flatMap((section) => section.parts.map((part) => (part.kind === "text" ? part.text : part.kind)));
         return `turn [${parts.join(" | ")}]${message.outcome === undefined ? "" : ` ${message.outcome.kind}`}`;
       }
+      case "activity": return "activity";
       case "notice":
         return `notice ${message.notice.cause}`;
     }
@@ -159,8 +160,9 @@ test("a queued input waits for the turn that takes it; its echo comes before tha
     ended(7),
     // The runtime drains its queue into a turn of its own: no prompt request.
     echo(8, "q1"),
-    text(9, "on q1"),
-    ended(10),
+    frame(9, [{ kind: "turn_active", inputId: "input-q1" }]),
+    text(10, "on q1"),
+    ended(11),
   ]);
   expect(outline(view)).toEqual([
     "input input r1 (accepted)",
@@ -228,7 +230,7 @@ test("exit drops pending input; a resumed echo supplies the missing evidence wit
   }
   expect(view.pendingInputs).toEqual([]);
   expect(view.messages.find((message) => message.kind === "input" && message.input.inputId === "input-s1")).toMatchObject({ input: { state: "dropped", reason: "runtime_exited" } });
-  for (const record of [echo(0, "s1"), text(1, "resumed on s1"), ended(2)]) {
+  for (const record of [echo(0, "s1"), frame(1, [{ kind: "turn_active" }]), text(2, "resumed on s1"), ended(3)]) {
     view = reduceSessionView(view, record, "b");
   }
   expect(outline(view)).toEqual([

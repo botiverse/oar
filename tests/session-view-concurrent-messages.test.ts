@@ -259,11 +259,13 @@ test("incremental updates preserve earlier views and equal replay, including rep
 
 test("the flat-event fold also joins named messages and does not cross a turn end", () => {
   const events = [
-    { ...root, seq: 0, kind: "text_delta", text: "A1", messageId: "a" },
-    { ...root, ...childAgent, seq: 1, kind: "text_delta", text: "B1", messageId: "b" },
-    { ...root, seq: 2, kind: "text_delta", text: "A2", messageId: "a" },
-    { ...root, seq: 3, kind: "turn_ended", outcome: { kind: "completed" } },
-    { ...root, seq: 4, kind: "text_delta", text: "new turn", messageId: "a" },
+    { ...root, seq: 0, kind: "turn_active" },
+    { ...root, seq: 1, kind: "text_delta", text: "A1", messageId: "a" },
+    { ...root, ...childAgent, seq: 2, kind: "text_delta", text: "B1", messageId: "b" },
+    { ...root, seq: 3, kind: "text_delta", text: "A2", messageId: "a" },
+    { ...root, seq: 4, kind: "turn_ended", outcome: { kind: "completed" } },
+    { ...root, seq: 5, kind: "turn_active" },
+    { ...root, seq: 6, kind: "text_delta", text: "new turn", messageId: "a" },
   ] as const;
   const view = events.reduce((state, event) => reduceSessionViewEvent(state, event), initialSessionView());
   expect(partsBySection(view)).toMatchInlineSnapshot(`

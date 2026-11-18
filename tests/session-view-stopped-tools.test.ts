@@ -147,10 +147,11 @@ test("ending a new prompt only ends that prompt's tools", () => {
 
 test.each(["turn_ended", "exited"] as const)("flat %s events also end root tools without inventing their result", (kind) => {
   const env = { sessionId: "root", agentPath: [], receivedAt: 1 };
-  const started = reduceSessionViewEvent(initialSessionView(), { ...env, seq: 0, kind: "tool_call_started", callId: "call", tool: "Bash" });
+  const turn = reduceSessionViewEvent(initialSessionView(), { ...env, seq: 0, kind: "turn_active" });
+  const started = reduceSessionViewEvent(turn, { ...env, seq: 1, kind: "tool_call_started", callId: "call", tool: "Bash" });
   const ended = reduceSessionViewEvent(started, kind === "exited"
-    ? { ...env, seq: 1, kind, code: null }
-    : { ...env, seq: 1, kind, outcome: { kind: "completed" } });
+    ? { ...env, seq: 2, kind, code: null }
+    : { ...env, seq: 2, kind, outcome: { kind: "completed" } });
   expect(toolsIn(ended)[0]).toMatchInlineSnapshot(`
     {
       "agentPath": [],

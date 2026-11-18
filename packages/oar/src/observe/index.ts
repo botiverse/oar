@@ -41,6 +41,7 @@ export type {
   SessionView,
   ViewMessage,
   ViewTurn,
+  ViewActivity,
   ViewSection,
   ViewPart,
   ViewNotice,

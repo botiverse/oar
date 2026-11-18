@@ -7,7 +7,7 @@ import { createSessionKernel } from "../packages/oar/src/shared/session-kernel.j
 import { initialSessionView, reduceSessionView, viewOf, type SessionView } from "../packages/oar/src/observe/session-view.js";
 
 function tools(view: SessionView) {
-  return view.messages.flatMap((message) => message.kind === "turn" ? message.sections.flatMap((section) => section.parts.flatMap((part) => part.kind === "tool" ? [{ sessionId: section.sessionId, agentPath: section.agentPath, ...part }] : [])) : []);
+  return view.messages.flatMap((message) => (message.kind === "turn" || message.kind === "activity") ? message.sections.flatMap((section) => section.parts.flatMap((part) => part.kind === "tool" ? [{ sessionId: section.sessionId, agentPath: section.agentPath, ...part }] : [])) : []);
 }
 
 afterEach(() => { vi.useRealTimers(); });
@@ -109,6 +109,7 @@ test("late deltas keep their ended tool and lane, without reopening it or append
   vi.useFakeTimers({ now: 0 });
   const kernel = createSessionKernel("root");
   const push = (event: RuntimeEventBody, sessionId = "root"): RawEvent => kernel.frame({ type: "native", native: event, events: [event] }, { sessionId });
+  push({ kind: "turn_active" });
   push({ kind: "tool_call_started", callId: "same", tool: "shell" });
   push({ kind: "tool_call_progress", callId: "same", outputDelta: "root-1" });
   push({ kind: "tool_call_started", callId: "same", tool: "shell" }, "child");

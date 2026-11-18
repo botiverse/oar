@@ -29,6 +29,10 @@ export function renderView(view: SessionView, container: HTMLElement): void {
     switch (message.kind) {
       case "input": article.append(text("h2", "You"), text("p", message.input.input)); break;
       case "notice": article.append(text("p", noticeText(message.notice), "notice")); break;
+      case "activity":
+        article.append(text("h2", "Activity outside a turn"));
+        for (const section of message.sections) { article.append(...section.parts.map(partElement)); }
+        break;
       case "turn":
         article.append(text("h2", "Assistant"));
         for (const section of message.sections) { article.append(...section.parts.map(partElement)); }

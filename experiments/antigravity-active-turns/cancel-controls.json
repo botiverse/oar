@@ -1,0 +1,332 @@
+[
+  {
+    "version": "1.5.10",
+    "source": "artifacts/task298-cancel-health-1510",
+    "controls": [
+      {
+        "atMs": 1213.3695950000001,
+        "kind": "session/prompt",
+        "value": {
+          "stopReason": "end_turn"
+        }
+      },
+      {
+        "atMs": 4755.792841,
+        "kind": "cancel_sent",
+        "value": null
+      },
+      {
+        "atMs": 7304.263484,
+        "kind": "session/prompt",
+        "value": {
+          "stopReason": "end_turn"
+        }
+      }
+    ],
+    "summaryRows": [
+      {
+        "atMs": 1457.56494140625,
+        "row": {
+          "status": "CASCADE_RUN_STATUS_IDLE",
+          "not_fully_idle": 1,
+          "step_count": 4,
+          "last_modified_time": "2026-11-18 15:08:02.181220258+00:00"
+        }
+      },
+      {
+        "atMs": 5459.09130859375,
+        "row": {
+          "status": "CASCADE_RUN_STATUS_IDLE",
+          "not_fully_idle": 0,
+          "step_count": 7,
+          "last_modified_time": "2026-11-18 15:08:05.732438659+00:00"
+        }
+      },
+      {
+        "atMs": 7466.5859375,
+        "row": {
+          "status": "CASCADE_RUN_STATUS_IDLE",
+          "not_fully_idle": 0,
+          "step_count": 9,
+          "last_modified_time": "2026-11-18 15:08:08.272518308+00:00"
+        }
+      }
+    ],
+    "toolStates": [
+      {
+        "atMs": 686.340356,
+        "update": {
+          "sessionUpdate": "tool_call",
+          "toolCallId": "9ed82ff5-1d41-48a0-a2c5-93e804595501",
+          "name": "run_command",
+          "args": {
+            "CommandLine": "sleep 4; echo FINISHED",
+            "WaitMsBeforeAsync": 500,
+            "toolSummary": "Background completion control"
+          },
+          "status": "in_progress",
+          "kind": "execute",
+          "title": "sleep 4; echo FINISHED",
+          "rawInput": {
+            "CommandLine": "sleep 4; echo FINISHED",
+            "WaitMsBeforeAsync": 500,
+            "toolSummary": "Background completion control"
+          }
+        }
+      },
+      {
+        "atMs": 4696.522011,
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "9ed82ff5-1d41-48a0-a2c5-93e804595501",
+          "name": "run_command",
+          "args": {
+            "CommandLine": "sleep 4; echo FINISHED",
+            "WaitMsBeforeAsync": 500,
+            "toolSummary": "Background completion control"
+          },
+          "status": "completed",
+          "kind": "execute",
+          "title": "sleep 4; echo FINISHED",
+          "rawInput": {
+            "CommandLine": "sleep 4; echo FINISHED",
+            "WaitMsBeforeAsync": 500,
+            "toolSummary": "Background completion control"
+          },
+          "rawOutput": {
+            "output": "Command exited with code 0.\n\nCommand output:\nFINISHED\r\n",
+            "exit_code": 0
+          },
+          "content": [
+            {
+              "type": "content",
+              "content": {
+                "type": "text",
+                "text": "Command exited with code 0.\n\nCommand output:\nFINISHED\r\n"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "atMs": 4742.656852,
+        "update": {
+          "sessionUpdate": "tool_call",
+          "toolCallId": "217d19c2-8dd1-4850-a189-670576e533f9",
+          "name": "run_command",
+          "args": {
+            "CommandLine": "sleep 20; echo SHOULD_NOT_FINISH",
+            "WaitMsBeforeAsync": 10000,
+            "toolSummary": "Unprompted cancellation control"
+          },
+          "status": "in_progress",
+          "kind": "execute",
+          "title": "sleep 20; echo SHOULD_NOT_FINISH",
+          "rawInput": {
+            "CommandLine": "sleep 20; echo SHOULD_NOT_FINISH",
+            "WaitMsBeforeAsync": 10000,
+            "toolSummary": "Unprompted cancellation control"
+          }
+        }
+      },
+      {
+        "atMs": 4760.807982,
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "217d19c2-8dd1-4850-a189-670576e533f9",
+          "name": "run_command",
+          "args": {
+            "CommandLine": "sleep 20; echo SHOULD_NOT_FINISH",
+            "WaitMsBeforeAsync": 10000,
+            "toolSummary": "Unprompted cancellation control"
+          },
+          "status": "failed",
+          "kind": "execute",
+          "title": "sleep 20; echo SHOULD_NOT_FINISH",
+          "rawInput": {
+            "CommandLine": "sleep 20; echo SHOULD_NOT_FINISH",
+            "WaitMsBeforeAsync": 10000,
+            "toolSummary": "Unprompted cancellation control"
+          },
+          "rawOutput": {
+            "output": ""
+          },
+          "content": [
+            {
+              "type": "content",
+              "content": {
+                "type": "text",
+                "text": ""
+              }
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "version": "1.5.11",
+    "source": "artifacts/task298-cancel-health-1511",
+    "controls": [
+      {
+        "atMs": 1220.260616,
+        "kind": "session/prompt",
+        "value": {
+          "stopReason": "end_turn"
+        }
+      },
+      {
+        "atMs": 4755.245301999999,
+        "kind": "cancel_sent",
+        "value": null
+      },
+      {
+        "atMs": 7311.590337,
+        "kind": "session/prompt",
+        "value": {
+          "stopReason": "end_turn"
+        }
+      }
+    ],
+    "summaryRows": [
+      {
+        "atMs": 1495.8994140625,
+        "row": {
+          "status": "CASCADE_RUN_STATUS_IDLE",
+          "not_fully_idle": 1,
+          "step_count": 4,
+          "last_modified_time": "2026-11-18 15:08:02.167557534+00:00"
+        }
+      },
+      {
+        "atMs": 5504.068359375,
+        "row": {
+          "status": "CASCADE_RUN_STATUS_IDLE",
+          "not_fully_idle": 0,
+          "step_count": 7,
+          "last_modified_time": "2026-11-18 15:08:05.714714895+00:00"
+        }
+      },
+      {
+        "atMs": 7501.845947265625,
+        "row": {
+          "status": "CASCADE_RUN_STATUS_IDLE",
+          "not_fully_idle": 0,
+          "step_count": 9,
+          "last_modified_time": "2026-11-18 15:08:08.262394952+00:00"
+        }
+      }
+    ],
+    "toolStates": [
+      {
+        "atMs": 688.8502640000002,
+        "update": {
+          "sessionUpdate": "tool_call",
+          "toolCallId": "ac2a79ea-7c08-4e87-989f-58f18dc59c91",
+          "name": "run_command",
+          "args": {
+            "CommandLine": "sleep 4; echo FINISHED",
+            "WaitMsBeforeAsync": 500,
+            "toolSummary": "Background completion control"
+          },
+          "status": "in_progress",
+          "kind": "execute",
+          "title": "sleep 4; echo FINISHED",
+          "rawInput": {
+            "CommandLine": "sleep 4; echo FINISHED",
+            "WaitMsBeforeAsync": 500,
+            "toolSummary": "Background completion control"
+          }
+        }
+      },
+      {
+        "atMs": 4700.338884999999,
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "ac2a79ea-7c08-4e87-989f-58f18dc59c91",
+          "name": "run_command",
+          "args": {
+            "CommandLine": "sleep 4; echo FINISHED",
+            "WaitMsBeforeAsync": 500,
+            "toolSummary": "Background completion control"
+          },
+          "status": "completed",
+          "kind": "execute",
+          "title": "sleep 4; echo FINISHED",
+          "rawInput": {
+            "CommandLine": "sleep 4; echo FINISHED",
+            "WaitMsBeforeAsync": 500,
+            "toolSummary": "Background completion control"
+          },
+          "rawOutput": {
+            "output": "Command exited with code 0.\n\nCommand output:\nFINISHED\r\n",
+            "exit_code": 0
+          },
+          "content": [
+            {
+              "type": "content",
+              "content": {
+                "type": "text",
+                "text": "Command exited with code 0.\n\nCommand output:\nFINISHED\r\n"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "atMs": 4743.494532000001,
+        "update": {
+          "sessionUpdate": "tool_call",
+          "toolCallId": "00ff632d-0eff-4d36-8f43-442b449521e3",
+          "name": "run_command",
+          "args": {
+            "CommandLine": "sleep 20; echo SHOULD_NOT_FINISH",
+            "WaitMsBeforeAsync": 10000,
+            "toolSummary": "Unprompted cancellation control"
+          },
+          "status": "in_progress",
+          "kind": "execute",
+          "title": "sleep 20; echo SHOULD_NOT_FINISH",
+          "rawInput": {
+            "CommandLine": "sleep 20; echo SHOULD_NOT_FINISH",
+            "WaitMsBeforeAsync": 10000,
+            "toolSummary": "Unprompted cancellation control"
+          }
+        }
+      },
+      {
+        "atMs": 4758.217406,
+        "update": {
+          "sessionUpdate": "tool_call_update",
+          "toolCallId": "00ff632d-0eff-4d36-8f43-442b449521e3",
+          "name": "run_command",
+          "args": {
+            "CommandLine": "sleep 20; echo SHOULD_NOT_FINISH",
+            "WaitMsBeforeAsync": 10000,
+            "toolSummary": "Unprompted cancellation control"
+          },
+          "status": "failed",
+          "kind": "execute",
+          "title": "sleep 20; echo SHOULD_NOT_FINISH",
+          "rawInput": {
+            "CommandLine": "sleep 20; echo SHOULD_NOT_FINISH",
+            "WaitMsBeforeAsync": 10000,
+            "toolSummary": "Unprompted cancellation control"
+          },
+          "rawOutput": {
+            "output": ""
+          },
+          "content": [
+            {
+              "type": "content",
+              "content": {
+                "type": "text",
+                "text": ""
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+]
