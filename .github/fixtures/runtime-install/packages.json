@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "fixtures": {
+    "matching": {
+      "source": {
+        "package.json": "{\"name\":\"oar-ci-fixture\",\"version\":\"1.2.3\",\"bin\":{\"oar-ci-fixture\":\"cli.cjs\"}}",
+        "cli.cjs": "#!/usr/bin/env node\nconsole.log(\"1.2.3\");\n"
+      },
+      "integrity": "sha512-j9OUAcUoZl5D42WXoC0uTrVS+oZdHr5wxG1B1fs/niC7WPQh5o0bDxodZ/xLnVEGMd7cGxyeRH1aQCKuMIREmg==",
+      "tarballBase64": "H4sIAAAAAAAC/+3VwQoCIRCAYc89hU2XgnLHdjXYnsbMwtp00TaC6N2j8BR1a4PC7zIgHvTwa6v0Xm1NoRvL9C6SPiDiQgj6av1BzCkphUTOpcSKEuQoSqQEyRd08agCQfzAJRHvh07zR4yGRRdDsbKuMO5EnV+bgfYu+sawxm/HwNmclTBZDkj2h9rUf5psF73roX9ZVW/751w+98/FfX/uv38XcOpgoAavwkzb2caej10wMIWTCdF6B3V6Aqawsg7qy/POGtLfAddr7inLsuxX3ADE0EIPAAwAAA=="
+    },
+    "mismatching": {
+      "source": {
+        "package.json": "{\"name\":\"oar-ci-fixture\",\"version\":\"1.2.3\",\"bin\":{\"oar-ci-fixture\":\"cli.cjs\"}}",
+        "cli.cjs": "#!/usr/bin/env node\nconsole.log(\"9.8.7\");\n"
+      },
+      "integrity": "sha512-kWGvk9kpHiu+tZ+tulbvqDtIC6o33mHFLNpAxZVF8/bbCoHTbExDcob6/lqCt6RMq2iNwAtPZUhLyFVbnhHhHA==",
+      "tarballBase64": "H4sIAAAAAAAC/+3VwQoCIRCAYc89hU2XgnLHdrXansbMwm3T0DaC6N2j2FPUrQ0Kv8uAzEEPPx6U3qmtyXRtma4i6QIizoSgr84fxJSSXEjkXEosKEGOIkdKkHxBE48qEMQPPBLxful2/ohBP2tiyFbWZcadqPNr09PeRV8bVvvtEBZszmYwWvZI8ocObf/tZFX0roP+ZVG87Z9z+dw/F/f91H/3LuDU3kAJXoWJtpONPR+bYGAMJxOi9Q5K4GzKchjDyjooL8+bJbR/B1yvqackSZJfcQM504yMAAwAAA=="
+    }
+  }
+}
