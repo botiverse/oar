@@ -93,3 +93,42 @@ The reader preserves that native string. The vendor test now compares native
 and fixture paths through filesystem `realpath`, keeping identity assertions
 and all cleanup checks. This is a test correction, not a native retry or a
 change to returned paths. The original failed run remains visible in CI.
+
+## V1 stdout drain
+
+On November 18, 2026, three pipe/file pairs on each isolated Linux x64 install
+reproduced successful native exits with incomplete piped JSON. One synthetic
+user skill with a 512 KiB body was sufficient in an empty working directory.
+Every sample exited 0 with zero stderr bytes.
+
+| Version | Pipe bytes, invalid JSON | File bytes, valid JSON | Samples per capture |
+| --- | ---: | ---: | ---: |
+| 1.18.30 | 65,536 | 541,936 | 3 |
+| 1.19.5 | 131,072 | 541,936 | 3 |
+
+The v1 reader now supplies an open regular file as stdout, waits for native
+completion, then parses the file. The file and its private directory are
+removed on success, failure and timeout. Native failure reasons retain a
+bounded, redacted first stderr line and exit status. Invalid or empty output
+is reported without exposing catalog contents.
+
+The [standalone reproduction](v1-stdout.py) reports only sizes and status:
+
+```sh
+python3 experiments/opencode-skills/v1-stdout.py /absolute/path/to/opencode
+```
+
+[Selected results](stdout-selected.json) also record successful OAR discovery
+on both v1 versions with over 64 KiB of projected metadata. The v2.2.7 HTTP
+reader returned the same six fixture skills in a catalog over 64 KiB; success,
+transport failure, deadline and plugin-failure controls all reclaimed the
+owned process and port. The change does not alter that HTTP reader.
+
+Upstream [#64635](https://github.com/anomalyco/opencode/issues/64635) retains
+these versioned controls and references the earlier stale-closed
+[#26399](https://github.com/anomalyco/opencode/issues/26399). Remove the v1 file
+capture at the first published v1 release where repeated pipe/file comparisons
+match and return valid JSON on the supported systems, once that release is the
+supported version floor.
+An issue closure or a small-catalog success alone does not establish that
+large stdout writes drain before exit.

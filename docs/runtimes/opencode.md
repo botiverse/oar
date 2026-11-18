@@ -1363,6 +1363,13 @@ when querying that version's catalog. See
 ## Independent skill discovery
 
 `skills()` runs v1 `debug skill`, or starts an owned v2 loopback HTTP service.
+V1 stdout goes to a private temporary file descriptor, which OAR reads after
+native exit and removes before returning. Both 1.18.30 and pinned 1.19.5 can
+exit successfully before a large piped catalog finishes writing. The file
+capture preserves those bytes; it does not replace native skill discovery.
+Tracked upstream in [#64635](https://github.com/anomalyco/opencode/issues/64635).
+See the [pipe/file controls and removal condition](../../experiments/opencode-skills/README.md#v1-stdout-drain).
+
 The v2 reader first calls `provider.list`, whose verified 2.2.7/2.3.0 implementation
 waits for plugin activation, then reads plugin states and `skill.list`. The
 skill endpoint alone can return a successful empty list before registration
@@ -1380,6 +1387,10 @@ provider or skill list. V2 failed plugins mark the result partial; activation
 failures, malformed responses and failed processes are unavailable. Malformed
 files skipped by native discovery remain absent; this catalog is not a disk
 validation report. V1 offers no plugin failure diagnostics.
+V1 `query_failed` reasons retain the exit status and the first nonblank stderr
+line, redacted before truncation to 500 characters. Invalid catalog output
+reports its byte count and possible truncation; empty output is identified
+separately. No stdout content or skill body is included in a failure reason.
 
 The reader creates no session, prompt or persistent service registration.
 Native startup still loads workspace plugins and can write native databases,

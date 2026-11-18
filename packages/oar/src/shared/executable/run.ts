@@ -16,6 +16,8 @@ export interface ExecutableRunOptions {
   readonly cwd?: string;
   readonly env?: NodeJS.ProcessEnv;
   readonly timeoutMs?: number;
+  /** Redirect stdout to a caller-owned file descriptor; stdout in the result is empty. */
+  readonly stdoutFd?: number;
   /** Stops the command; the result is then a failure with no exit code. */
   readonly signal?: AbortSignal;
 }
@@ -74,7 +76,7 @@ export const runExecutable: ExecutableRunner = async (executable, args, options 
       const target = windowsSpawnTarget(executable, args, options);
       const child = spawnChecked(() => spawn(target.command, [...target.args], {
         cwd: options.cwd, env: options.env,
-        stdio: ["pipe", "pipe", "pipe"],
+        stdio: ["pipe", options.stdoutFd ?? "pipe", "pipe"],
         detached: OWN_PROCESS_GROUP,
         windowsVerbatimArguments: target.windowsVerbatimArguments === true,
         windowsHide: true,
@@ -103,8 +105,8 @@ export const runExecutable: ExecutableRunner = async (executable, args, options 
         }
         return next;
       };
-      child.stdout.on("data", (chunk: Buffer) => { stdout = append(stdout, chunk, "stdout"); });
-      child.stderr.on("data", (chunk: Buffer) => { stderr = append(stderr, chunk, "stderr"); });
+      child.stdout?.on("data", (chunk: Buffer) => { stdout = append(stdout, chunk, "stdout"); });
+      child.stderr?.on("data", (chunk: Buffer) => { stderr = append(stderr, chunk, "stderr"); });
       child.once("error", (error) => { failure ??= nativeError(error); });
       child.once("exit", (exitCode, signal) => {
         exitObservation = { at: new Date().toISOString(), elapsedMs: performance.now() - startedAt, exitCode, signal };

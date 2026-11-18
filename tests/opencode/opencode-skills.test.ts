@@ -1,3 +1,4 @@
+import { fstatSync, writeSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -5,13 +6,13 @@ import { join, resolve } from "node:path";
 import { afterEach, expect, test, vi } from "vitest";
 import { opencodeRuntime } from "../../packages/oar/src/runtimes/opencode/index.js";
 import { fakeLineProcess, type FakeLineProcess } from "../fixtures/fake-line-process.js";
-import type { LineProcessOptions } from "../../packages/oar/src/shared/executable/index.js";
+import type { ExecutableRunner, LineProcessOptions } from "../../packages/oar/src/shared/executable/index.js";
 import { readerEnvironment, expectReaderEnvironment } from "../fixtures/reader-environment.js";
 
 const spawn = vi.hoisted(() => vi.fn<(command: string, args: readonly string[], options?: LineProcessOptions) => FakeLineProcess>());
 vi.mock("../../packages/oar/src/shared/executable/index.js", async (original) => ({ ...await original<object>(), spawnLineProcess: spawn }));
 const installation = { kind: "available", via: "executable", command: "opencode", version: "opencode v2.3.0" } as const;
-const versionRun = vi.hoisted(() => vi.fn());
+const versionRun = vi.hoisted(() => vi.fn<ExecutableRunner>());
 vi.mock("../../packages/oar/src/shared/executable/run.js", () => ({ runExecutable: versionRun }));
 const paths: string[] = [];
 let fake = fakeLineProcess();
@@ -80,14 +81,16 @@ test("timeout aborts native requests and waits for process exit", async () => {
 });
 
 test("v1 debug skill returns native metadata and builtin provenance", async () => {
-  fake = fakeLineProcess();
-  spawn.mockImplementation(() => {
-    queueMicrotask(() => { fake.emit(JSON.stringify([{ name: "builtin", location: "<built-in>", content: "body" }, { name: "shared", location: "/home/.claude/skills/shared/SKILL.md" }])); fake.end(0); });
-    return fake;
+  versionRun.mockImplementation(async (_command, _args, options) => {
+    if (options?.stdoutFd === undefined) { throw new Error("Missing output file"); }
+    writeSync(options.stdoutFd, JSON.stringify([{ name: "builtin", location: "<built-in>", content: "body" }, { name: "shared", location: "/home/.claude/skills/shared/SKILL.md" }]));
+    return { ok: true, exitCode: null, stderr: "", stdout: "" };
   });
-  const result = await opencodeRuntime.skills({ ...installation, version: "1.19.5" }, { cwd: "/project" });
+  const result = await opencodeRuntime.skills({ ...installation, version: "1.18.30" }, { cwd: "/project", env: readerEnvironment() });
   expect(result).toMatchObject({ kind: "ok", view: "discovered", items: [{ name: "builtin", source: "builtin" }, { name: "shared", path: "/home/.claude/skills/shared/SKILL.md" }] });
-  expect(spawn.mock.calls[0]?.[1]).toEqual(["debug", "skill"]);
+  expect(versionRun.mock.calls[0]?.[1]).toEqual(["debug", "skill"]);
+  expectReaderEnvironment(versionRun.mock.calls[0]?.[2]?.env);
+  expect(spawn).not.toHaveBeenCalled();
 });
 
 test("a v2 version before the verified activation API is explicitly unsupported", async () => {
@@ -96,27 +99,46 @@ test("a v2 version before the verified activation API is explicitly unsupported"
 });
 
 
-test.each([{ payload: "not json", code: 0 }, { payload: "[]", code: 1 }])("v1 invalid output or process failure is unavailable: $code", async ({ payload, code }) => {
-  fake = fakeLineProcess();
-  spawn.mockImplementation(() => { queueMicrotask(() => { fake.emit(payload); fake.end(code); }); return fake; });
-  await expect(opencodeRuntime.skills({ ...installation, version: "1.19.5" })).resolves.toMatchObject({ kind: "unavailable", code: "query_failed" });
-  expect(fake.killed()).toBe(true);
+test.each([{ payload: "not json", code: 0, reason: "OpenCode skill discovery failed (exit 0; output was not valid JSON or a skill catalog (8 bytes, truncated?))" }, { payload: "", code: 0, reason: "OpenCode skill discovery failed (exit 0; no output)" }, { payload: "[]", code: 1, reason: "OpenCode skill discovery failed (exit 1)" }])("v1 invalid output or process failure is unavailable: $code", async ({ payload, code, reason }) => {
+  versionRun.mockImplementation(async (_command, _args, options) => {
+    if (options?.stdoutFd === undefined) { throw new Error("Missing output file"); }
+    writeSync(options.stdoutFd, payload);
+    return { ok: code === 0, exitCode: code === 0 ? null : code, stdout: "", stderr: "" };
+  });
+  await expect(opencodeRuntime.skills({ ...installation, version: "1.19.5" })).resolves.toEqual({ kind: "unavailable", code: "query_failed", reason });
+  const fd = versionRun.mock.calls[0]?.[2]?.stdoutFd;
+  expect(fd).toBeTypeOf("number");
+  expect(() => fstatSync(fd ?? -1)).toThrow();
 });
 
-test("v1 startup timeout kills its process", async () => {
-  vi.useFakeTimers(); fake = fakeLineProcess(); spawn.mockReturnValue(fake);
-  const reading = opencodeRuntime.skills({ ...installation, version: "1.19.5" }, { timeoutMs: 25 });
+// oxlint-disable-next-line max-statements -- Observe deadline, abort and delayed process disposal together.
+test("v1 startup timeout cancels and waits for its process", async () => {
+  vi.useFakeTimers();
+  const pending = Promise.withResolvers<Awaited<ReturnType<ExecutableRunner>>>();
+  const state = { aborted: false, returned: false };
+  const entered = Promise.withResolvers<void>();
+  versionRun.mockImplementation(async (_command, _args, options) => {
+    if (options?.signal === undefined) { throw new Error("Missing signal"); }
+    options.signal.addEventListener("abort", () => { state.aborted = true; }, { once: true });
+    entered.resolve();
+    return pending.promise;
+  });
+  const reading = opencodeRuntime.skills({ ...installation, version: "1.18.30" }, { timeoutMs: 25 });
+  const observed = (async () => { await reading; state.returned = true; })();
+  await entered.promise;
   await vi.advanceTimersByTimeAsync(25);
+  expect(state).toEqual({ aborted: true, returned: false });
+  pending.resolve({ ok: false, exitCode: null, stderr: "", stdout: "" });
   await expect(reading).resolves.toMatchObject({ kind: "unavailable", code: "timeout" });
-  expect(fake.killed()).toBe(true);
+  await observed;
 });
-
 
 test("the deadline also cancels and settles version detection before any inventory launch", async () => {
   vi.useFakeTimers();
   const observation = { stopped: false };
-  versionRun.mockImplementation(async (_command: string, _args: string[], options: { signal: AbortSignal }) => {
-    const pending = Promise.withResolvers<unknown>();
+  versionRun.mockImplementation(async (_command, _args, options) => {
+    if (options?.signal === undefined) { throw new Error("Missing signal"); }
+    const pending = Promise.withResolvers<Awaited<ReturnType<ExecutableRunner>>>();
     options.signal.addEventListener("abort", () => { observation.stopped = true; pending.resolve({ ok: false, exitCode: null, stdout: "", stderr: "" }); }, { once: true });
     return pending.promise;
   });
