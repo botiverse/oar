@@ -566,7 +566,9 @@ The result is `view: "discovered"`. Native `level` remains `source`; bundled,
 user and project map to the corresponding shared scopes. Extensions map to
 `other`, with native `extensionName` in `plugin`; unknown levels leave scope
 absent. Paths, enabled state and model-invocation flags come from native
-metadata. Bodies are never returned. Uninitialized, malformed or failed queries
+metadata. Native `userInvocable` is copied only when boolean: 0.27.4 reports
+false for hidden entries but omits the field for both default and explicit true
+frontmatter. OAR preserves that absence. Bodies are never returned. Uninitialized, malformed or failed queries
 are unavailable; a missing native method is unsupported. Only native discovery
 errors make an otherwise initialized catalog partial.
 

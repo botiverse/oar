@@ -505,7 +505,8 @@ records the version and source checked.
 barrier in a short-lived process launched like a session. It creates no agent
 and submits no prompt. The result is `discovered`, with `partial:!complete`;
 provider failures preserve valid entries, while files the native loader rejects
-remain absent. Source, optional path and model invocation policy are projected
+remain absent. Native `invocation.userInvocable` is copied only when boolean.
+Source, optional path and model invocation policy are projected
 without bodies or diagnostics. Known user/project/bundled sources map to the
 shared scope; provider labels do not establish plugin identity.
 

@@ -53,7 +53,7 @@ test("Pi independently discovers skills, retaining invocation restrictions and d
   const result = await piSkills(bundled, { cwd: "/project-b" });
   expect(result).toMatchObject({
     kind: "ok", partial: true, view: "discovered", scope: { kind: "workspace", cwd },
-    items: [{ name: "review", description: "Review", path: "/skills/review", source: "local", scope: "project", disableModelInvocation: true }],
+    items: [{ name: "review", description: "Review", path: "/skills/review", source: "local", scope: "project", userInvocable: true, disableModelInvocation: true }],
   });
   expect(sdk.createAgentSessionServices.mock.calls[0]?.[0]).toMatchObject({ cwd, agentDir: "/fake/agent", settingsManager: { cwd } });
   // pi's theme from that directory's settings, before extensions load, without the watcher.

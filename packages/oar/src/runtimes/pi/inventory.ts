@@ -19,9 +19,10 @@ function piInventories(session: AgentSession, scope: InventoryScope): PiReaders 
   return {
     skills: () => {
       const result = session.resourceLoader.getSkills();
+      // Pi exposes every loaded skill through its native /skill:name command catalog.
       const items: SkillEntry[] = result.skills.map((skill) => ({
         name: skill.name, description: skill.description, path: skill.filePath,
-        disableModelInvocation: skill.disableModelInvocation, ...piSkillProvenance(skill.sourceInfo),
+        userInvocable: true, disableModelInvocation: skill.disableModelInvocation, ...piSkillProvenance(skill.sourceInfo),
       }));
       return inventoryOk(scope, "discovered", items, result.diagnostics.length > 0);
     },

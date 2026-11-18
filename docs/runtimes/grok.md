@@ -1149,4 +1149,5 @@ parent cancellation is a different operation and is not used as a substitute.
 Skill `scope` maps bundled → builtin, user/project unchanged and
 server/plugin/configToml → other. Tagged plugin `plugin_name` is retained as
 `plugin`; raw source type and path remain unchanged. Unknown source types do
-not gain a scope. See [skill provenance](../spec/inventory.md#skill-provenance).
+not gain a scope. Native `userInvocable` booleans are preserved, including false;
+missing flags remain absent. See [skill provenance](../spec/inventory.md#skill-provenance).

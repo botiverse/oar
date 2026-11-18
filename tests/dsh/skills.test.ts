@@ -14,7 +14,7 @@ afterAll(() => { rmSync(cwd, { recursive: true, force: true, maxRetries: 10, ret
 test("skills uses the native bridge with the requested cwd and environment, without copying bodies", async () => {
   const result = await dshRuntime.skills(installation, { cwd, env: { OAR_SKILL_DESCRIPTION: "native description", FAKE_DSH_MISSING: "create,resume" } });
   expect(result).toMatchObject({ kind: "ok", scope: { kind: "workspace", cwd }, view: "discovered", partial: false,
-    items: [{ name: "fixture", path: cwd, source: "project-dsh", scope: "project", description: "native description", disableModelInvocation: true }] });
+    items: [{ name: "fixture", path: cwd, source: "project-dsh", scope: "project", description: "native description", userInvocable: true, disableModelInvocation: true }] });
   expect(JSON.stringify(result)).not.toContain("PRIVATE_SKILL_BODY");
   if (result.kind === "ok") { expect(result.items[0]).not.toHaveProperty("plugin"); }
 });
@@ -56,4 +56,14 @@ test("unreadable or below-floor versions and bundled installation are refused", 
   await expect(dshRuntime.skills({ ...installation, version: "0.2.1-rc.4" }, { cwd })).resolves.toMatchObject({ kind: "unsupported", code: "version_unsupported" });
   await expect(dshRuntime.skills({ ...installation, version: "nightly" }, { cwd })).resolves.toMatchObject({ kind: "unsupported", code: "version_unsupported" });
   await expect(dshRuntime.skills({ kind: "available", via: "bundled" }, { cwd })).resolves.toMatchObject({ kind: "unsupported", code: "installation_unsupported" });
+});
+
+test("DSH preserves user invocation independently of model invocation and missing metadata", async () => {
+  const skills = [{ name: "hidden", invocation: { userInvocable: false, modelInvocable: true } },
+    { name: "manual", invocation: { userInvocable: true, modelInvocable: false } },
+    { name: "absent" }, { name: "invalid", invocation: { userInvocable: "false" } }];
+  const result = await dshRuntime.skills(installation, { cwd, env: { FAKE_DSH_SKILLS: JSON.stringify({ skills, complete: true }) } });
+  assert.equal(result.kind, "ok");
+  expect(result.items).toEqual([{ name: "hidden", userInvocable: false, disableModelInvocation: false },
+    { name: "manual", userInvocable: true, disableModelInvocation: true }, { name: "absent" }, { name: "invalid" }]);
 });

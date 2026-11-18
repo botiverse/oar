@@ -1,3 +1,4 @@
+/* oxlint-disable oxc/no-map-spread -- Compare native metadata without modifying its catalog. */
 /* oxlint-disable max-statements, max-lines-per-function -- One isolated fixture compares the native catalog, public projection and side effects. */
 import assert from "node:assert/strict";
 import { mkdir, readFile, readdir, realpath, writeFile } from "node:fs/promises";
@@ -38,7 +39,7 @@ describe.skipIf(process.env.OAR_TEST !== "qwen-aimock")("Qwen native workspace s
       const home = path.dirname(f.cwd);
       await mkdir(path.join(f.cwd, ".git"));
       const files = [
-        await skill(path.join(home, ".qwen/skills"), "user-marker", "User metadata"),
+        await skill(path.join(home, ".qwen/skills"), "user-marker", "User metadata", "user-invocable: true\n"),
         await skill(path.join(home, ".agents/skills"), "user-compat", "User compatibility metadata"),
         await skill(path.join(home, ".qwen/skills"), "precedence", "User loses"),
         await skill(path.join(f.cwd, ".qwen/skills"), "precedence", "Project wins"),
@@ -68,7 +69,7 @@ describe.skipIf(process.env.OAR_TEST !== "qwen-aimock")("Qwen native workspace s
       const scopes: Record<string, string> = { bundled: "builtin", project: "project", user: "user", extension: "other" };
       expect(result.items).toEqual(rows.map(row => ({ name: row.name, description: row.description, path: row.installedPath, source: row.level,
         ...(typeof row.level === "string" && scopes[row.level] !== undefined ? { scope: scopes[row.level] } : {}),
-        ...(row.extensionName === undefined ? {} : { plugin: row.extensionName }), enabled: row.status === "ok", disableModelInvocation: row.modelInvocable === false })));
+        ...(row.extensionName === undefined ? {} : { plugin: row.extensionName }), enabled: row.status === "ok", userInvocable: typeof row.userInvocable === "boolean" ? row.userInvocable : undefined, disableModelInvocation: row.modelInvocable === false })));
       expect(result.partial).toBe(false);
       expect(result.view).toBe("discovered");
       expect(result.items.map(row => row.name)).toEqual(expect.arrayContaining(["user-marker", "user-compat", "project-compat", "hidden-marker", "disabled-marker", "no-model-marker"]));
@@ -76,7 +77,8 @@ describe.skipIf(process.env.OAR_TEST !== "qwen-aimock")("Qwen native workspace s
       expect(result.items.find(row => row.name === "disabled-marker")).toMatchObject({ enabled: false });
       expect(result.items.find(row => row.name === "no-model-marker")).toMatchObject({ disableModelInvocation: true });
       expect(result.items.some(row => row.scope === "builtin")).toBe(true);
-      expect(rows.find(row => row.name === "hidden-marker")?.userInvocable).toBe(false);
+      expect(result.items.find(row => row.name === "hidden-marker")?.userInvocable).toBe(false);
+      expect(result.items.find(row => row.name === "user-marker")).not.toHaveProperty("userInvocable");
       for (const [name, file] of [["user-marker", files[0]], ["precedence", files[3]]] as const) {
         assert.ok(file !== undefined); const reported: string | undefined = result.items.find(row => row.name === name)?.path; assert.ok(reported !== undefined);
         expect(await realpath(reported)).toBe(await realpath(file));

@@ -1,5 +1,7 @@
 # experiments
 
+- [Skill invocation metadata across runtimes](skill-invocability/README.md): pinned native flags, command catalogs and preserved unknowns.
+
 - [Claude skill catalog](claude-skill-catalog-2026-11-18.md): context skills joined with initialize commands for descriptions and `userInvocable`; legacy commands are skills; model-hidden skills only appear as commands.
 
 - [Qwen current context](qwen-native/context-usage-2026-11-18.md): native post-turn and resumed counts, local readback cost and unknown pre-turn zero.

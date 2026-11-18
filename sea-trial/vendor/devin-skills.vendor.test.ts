@@ -28,7 +28,7 @@ describe.skipIf(process.env.OAR_TEST !== "devin-skills")("Devin native skill cat
       const native = await runExecutable(command, ["skills", "list", "--json"], { cwd: f.cwd, env: f.env });
       assert.ok(native.ok);
       const rows = nativeRows(parseJson(native.stdout));
-      expect(rows).toHaveLength(11);
+      expect(rows).toHaveLength(12);
       expect(rows.some(row => row.name === "broken-yaml")).toBe(false);
       expect(rows.every(row => JSON.stringify(row.errors) === "[]" && JSON.stringify(row.warnings) === "[]")).toBe(true);
       const removed = Object.fromEntries(Object.keys(process.env).map(key => [key, null]));
@@ -37,13 +37,13 @@ describe.skipIf(process.env.OAR_TEST !== "devin-skills")("Devin native skill cat
       assert.equal(discovered.kind, "ok", JSON.stringify(discovered));
       const expected = rows.map(row => {
         assert.ok(Array.isArray(row.triggers));
-        return { name: row.name, description: row.description, source: row.provider, path: row.base_dir === "" ? undefined : row.base_dir, scope: row.provider === "Builtin" ? "builtin" : undefined, disableModelInvocation: !row.triggers.includes("model") };
+        return { name: row.name, description: row.description, source: row.provider, path: row.base_dir === "" ? undefined : row.base_dir, scope: row.provider === "Builtin" ? "builtin" : undefined, userInvocable: row.triggers.includes("user"), disableModelInvocation: !row.triggers.includes("model") };
       });
       expect(discovered.items).toEqual(expected);
       expect(discovered.view).toBe("discovered");
       expect(discovered.partial).toBe(false);
       expect(discovered.items.filter(item => item.scope === "builtin")).toHaveLength(3);
-      expect(discovered.items.filter(item => item.source === "Devin" && item.scope === undefined)).toHaveLength(4);
+      expect(discovered.items.filter(item => item.source === "Devin" && item.scope === undefined)).toHaveLength(5);
       expect(JSON.stringify(discovered)).not.toContain("PRIVATE SKILL BODY");
       expect(await readFile(f.config, "utf8")).toBe(f.configText);
       const files = await readdir(f.root, { recursive: true });

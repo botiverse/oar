@@ -30,8 +30,8 @@ test("Factory queries metadata before a session and preserves native provenance 
   const result = await factoryRuntime.skills(installation, { cwd: "/project", env: readerEnvironment() });
   expect(result).toMatchObject({ kind: "ok", view: "discovered", partial: false, scope: { cwd: resolve("/project") }, items: [
     { name: "builtin", path: "builtin:example", source: "builtin", scope: "builtin" },
-    { name: "personal", description: "fixture", source: "personal", scope: "user", enabled: false },
-    { name: "project", source: "project", scope: "project", enabled: true },
+    { name: "personal", description: "fixture", source: "personal", scope: "user", enabled: false, userInvocable: true },
+    { name: "project", source: "project", scope: "project", enabled: true, userInvocable: false },
     { name: "plugin", source: "personal", scope: "user", plugin: "example@marketplace" },
     { name: "auto", source: "automation", scope: "other" }, { name: "future", source: "future" }, { name: "unknown" },
   ] });
@@ -88,4 +88,11 @@ test.each([0, -1, Infinity, NaN])("invalid Factory deadline refuses before spawn
 test("Factory requires an executable", async () => {
   await expect(factoryRuntime.skills({ kind: "available", via: "bundled" })).resolves.toMatchObject({ kind: "unsupported", code: "installation_unsupported" });
   expect(spawn).not.toHaveBeenCalled();
+});
+
+test("Factory leaves absent and malformed invocation flags unknown", async () => {
+  serve({ skills: [{ name: "absent" }, { name: "invalid", userInvocable: "false" }] });
+  const result = await factoryRuntime.skills(installation);
+  expect(result).toMatchObject({ kind: "ok" });
+  if (result.kind === "ok") { expect(result.items).toEqual([{ name: "absent" }, { name: "invalid" }]); }
 });

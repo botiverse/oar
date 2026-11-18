@@ -18,6 +18,9 @@ export async function populateDshSkills(f: DshFixture): Promise<Readonly<Record<
     await mkdir(directory, { recursive: true });
     await writeFile(path.join(directory, "SKILL.md"), `---\nname: ${String(name)}\ndescription: ${String(name)} fixture\ndisable-model-invocation: true\n---\nPRIVATE SKILL BODY\n`);
   }));
+  const hidden = path.join(cwd, ".dsh", "skills", "hidden-fixture");
+  await mkdir(hidden, { recursive: true });
+  await writeFile(path.join(hidden, "SKILL.md"), "---\nname: hidden-fixture\ndescription: Hidden fixture\nuser-invocable: false\n---\nPRIVATE SKILL BODY\n");
   await writeFile(path.join(f.aimock.home, "skills", "malformed.md"), "---\nname: [invalid\n---\nPRIVATE BAD BODY\n");
   return { ...f.aimock.env, DSH_AGENTS_HOME: agents, DSH_BUNDLED_SKILL_DIR: bundled };
 }

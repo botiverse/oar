@@ -29,6 +29,7 @@ export async function populateDevinSkills(f: Awaited<ReturnType<typeof devinSkil
   await Promise.all(roots.map(async ([base, path, name]) => {
     await writeSkill(join(base, path, name), `name: ${name}\ndescription: Synthetic ${name} metadata\ntriggers: [user]`);
   }));
+  await writeSkill(join(f.cwd, ".devin/skills/model-only"), "name: model-only\ndescription: Model-only fixture\ntriggers: [model]");
   await writeSkill(join(f.cwd, ".devin/skills/broken-yaml"), "name: [invalid");
 }
 

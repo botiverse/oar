@@ -24,6 +24,8 @@ export async function cursorSkillsFixture(git = false) {
     ".cursor/skills/ide-only": "description: ide\nmetadata:\n  surfaces: [ide]",
     ".cursor/skills/long-description": `description: "${"A".repeat(1535)}😀end"`,
     ".cursor/skills/sdk-only": "description: sdk\nmetadata:\n  surfaces: sdk",
+    ".cursor/skills/not-invocable": "description: invocation control\nuser-invocable: false",
+    ".cursor/skills/invocable": "description: invocation control\nuser-invocable: true",
     ".cursor/skills/disabled": "disable-model-invocation: true",
     ".cursor/skills/duplicate": "description: cursor duplicate",
     ".claude/skills/duplicate": "description: claude duplicate",

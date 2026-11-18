@@ -21,7 +21,7 @@ export function piRpcCommands(commands: readonly RpcSlashCommand[]): CommandEntr
 
 export function piRpcSkills(commands: readonly RpcSlashCommand[]): SkillEntry[] {
   return commands.filter((command) => command.source === "skill").map((command) => ({
-    name: command.name.replace(/^skill:/u, ""),
+    name: command.name.replace(/^skill:/u, ""), userInvocable: true,
     path: command.sourceInfo.path, ...piSkillProvenance(command.sourceInfo),
     ...(command.description === undefined ? {} : { description: command.description }),
   }));

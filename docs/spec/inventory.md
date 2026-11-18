@@ -104,8 +104,12 @@ one shared category: `builtin`, `user`, `project`, `managed` or `other`.
 first four categories is `other`; an unrecognized or missing source is omitted.
 Optional `plugin` preserves a native plugin or package identifier independently
 of scope. Optional `userInvocable` says whether a person can run the skill
-directly (a slash command), from the runtime's own command catalog; absent
-means not reported (Claude only, see its runtime page). A plugin skill can still be user-, project- or managed-scoped when
+directly (a slash command), from native invocation metadata or a verified
+command catalog; absent means not reported. Claude, Grok, Factory, Qwen, DSH,
+Devin and Pi SDK/RPC report it where their native source establishes
+it. Qwen can report false while leaving true absent. Antigravity, Codex, Cursor,
+Kimi and OpenCode v1/v2 currently leave it absent. Enabled and model invocation flags
+do not substitute for it. [Pinned native controls](../../experiments/skill-invocability/README.md). A plugin skill can still be user-, project- or managed-scoped when
 the native catalog says so. A plugin identity alone does not establish scope.
 
 | Runtime | Native provenance → shared `scope` | `plugin` |

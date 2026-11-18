@@ -54,7 +54,7 @@ test.skipIf(process.env.OAR_TEST !== "factory-aimock")("Factory native skill met
       const rows = nativeRows(before.skills);
       expect(rows.some(row => row.content !== undefined || row.resources !== undefined)).toBe(false);
       const scopes: Readonly<Record<string, string>> = { personal: "user", project: "project", builtin: "builtin", automation: "other" };
-      expect(result.items).toEqual(rows.map(row => ({ name: row.name, description: row.description, path: row.filePath, source: row.location, scope: typeof row.location === "string" ? scopes[row.location] : undefined, plugin: row.pluginId, enabled: row.enabled })));
+      expect(result.items).toEqual(rows.map(row => ({ name: row.name, description: row.description, path: row.filePath, source: row.location, scope: typeof row.location === "string" ? scopes[row.location] : undefined, plugin: row.pluginId, enabled: row.enabled, userInvocable: row.userInvocable })));
       await native.request("droid.initialize_session", { cwd: provider.cwd, machineId: "oar-synthetic-skills" });
       const after = await native.request("droid.list_skills", { includeContent: false });
       expect(after).toEqual(before);

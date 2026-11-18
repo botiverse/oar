@@ -3,7 +3,7 @@ import { sessionEnvironment } from "../../shared/environment.js";
 import type { InventoryReader, InventoryResult, McpServerEntry, SkillEntry } from "../../contracts/inventory.js";
 import { spawnLineProcess } from "../../shared/executable/index.js";
 import { asRecord, parseJson, type JsonRecord } from "../../shared/json.js";
-import { inventoryOk, inventoryRead, named, nativeRows, skillScope, textField, unsupportedInventory, workspaceScope } from "../../shared/inventory.js";
+import { boolField, inventoryOk, inventoryRead, named, nativeRows, skillScope, textField, unsupportedInventory, workspaceScope } from "../../shared/inventory.js";
 
 export function projectGrokSkills(payload: JsonRecord): SkillEntry[] {
   return nativeRows(payload.skills).map((skill) => ({
@@ -12,6 +12,7 @@ export function projectGrokSkills(payload: JsonRecord): SkillEntry[] {
     ...skillScope(typeof skill.source === "string" ? skill.source : asRecord(skill.source)?.type, { bundled: "builtin", user: "user", project: "project", server: "other", plugin: "other", configToml: "other" }),
     ...textField("plugin", asRecord(skill.source)?.plugin_name),
     ...textField("path", asRecord(skill.source)?.path),
+    ...boolField("userInvocable", skill.userInvocable),
   }));
 }
 export function projectGrokServers(payload: JsonRecord): McpServerEntry[] {

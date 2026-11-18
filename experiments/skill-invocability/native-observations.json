@@ -1,0 +1,974 @@
+{
+  "date": "2026-11-18",
+  "platform": "linux-x64",
+  "controls": [
+    {
+      "runtime": "codex",
+      "version": "codex-cli 0.169.0",
+      "fixtures": {
+        "oar-invocability-default": "",
+        "oar-invocability-enabled": "user-invocable: true\n",
+        "oar-invocability-hidden": "user-invocable: false\n",
+        "oar-invocability-manual": "disable-model-invocation: true\n"
+      },
+      "catalogCount": 9,
+      "selected": [
+        {
+          "name": "oar-invocability-default",
+          "fields": [
+            "description",
+            "enabled",
+            "name",
+            "path",
+            "pluginId",
+            "scope"
+          ],
+          "enabled": true
+        },
+        {
+          "name": "oar-invocability-enabled",
+          "fields": [
+            "description",
+            "enabled",
+            "name",
+            "path",
+            "pluginId",
+            "scope"
+          ],
+          "enabled": true
+        },
+        {
+          "name": "oar-invocability-hidden",
+          "fields": [
+            "description",
+            "enabled",
+            "name",
+            "path",
+            "pluginId",
+            "scope"
+          ],
+          "enabled": true
+        },
+        {
+          "name": "oar-invocability-manual",
+          "fields": [
+            "description",
+            "enabled",
+            "name",
+            "path",
+            "pluginId",
+            "scope"
+          ],
+          "enabled": true
+        }
+      ]
+    },
+    {
+      "runtime": "grok",
+      "version": "grok 1.0.70 (f50904eaee6c)",
+      "fixtures": {
+        "oar-invocability-default": "",
+        "oar-invocability-enabled": "user-invocable: true\n",
+        "oar-invocability-hidden": "user-invocable: false\n",
+        "oar-invocability-manual": "disable-model-invocation: true\n"
+      },
+      "catalogCount": 4,
+      "selected": [
+        {
+          "name": "oar-invocability-default",
+          "fields": [
+            "description",
+            "name",
+            "source",
+            "userInvocable"
+          ],
+          "userInvocable": true
+        },
+        {
+          "name": "oar-invocability-enabled",
+          "fields": [
+            "description",
+            "name",
+            "source",
+            "userInvocable"
+          ],
+          "userInvocable": true
+        },
+        {
+          "name": "oar-invocability-hidden",
+          "fields": [
+            "description",
+            "name",
+            "source",
+            "userInvocable"
+          ],
+          "userInvocable": false
+        },
+        {
+          "name": "oar-invocability-manual",
+          "fields": [
+            "description",
+            "name",
+            "source",
+            "userInvocable"
+          ],
+          "userInvocable": true
+        }
+      ]
+    },
+    {
+      "runtime": "kimi",
+      "version": "2.6.2",
+      "fixtures": {
+        "oar-default": "",
+        "oar-hidden": "user-invocable: false\n",
+        "oar-invocable": "user-invocable: true\n",
+        "oar-manual": "disable-model-invocation: true\n"
+      },
+      "selected": [
+        {
+          "name": "oar-default",
+          "fields": [
+            "description",
+            "name",
+            "path",
+            "source",
+            "workspace_dir"
+          ]
+        },
+        {
+          "name": "oar-hidden",
+          "fields": [
+            "description",
+            "name",
+            "path",
+            "source",
+            "workspace_dir"
+          ]
+        },
+        {
+          "name": "oar-invocable",
+          "fields": [
+            "description",
+            "name",
+            "path",
+            "source",
+            "workspace_dir"
+          ]
+        },
+        {
+          "name": "oar-manual",
+          "fields": [
+            "description",
+            "disable_model_invocation",
+            "name",
+            "path",
+            "source",
+            "workspace_dir"
+          ],
+          "disable_model_invocation": true
+        }
+      ],
+      "catalogCount": 13
+    },
+    {
+      "runtime": "kimi",
+      "version": "2.4.1",
+      "fixtures": {
+        "oar-default": "",
+        "oar-hidden": "user-invocable: false\n",
+        "oar-invocable": "user-invocable: true\n",
+        "oar-manual": "disable-model-invocation: true\n"
+      },
+      "selected": [
+        {
+          "name": "oar-default",
+          "fields": [
+            "description",
+            "name",
+            "path",
+            "source"
+          ]
+        },
+        {
+          "name": "oar-hidden",
+          "fields": [
+            "description",
+            "name",
+            "path",
+            "source"
+          ]
+        },
+        {
+          "name": "oar-invocable",
+          "fields": [
+            "description",
+            "name",
+            "path",
+            "source"
+          ]
+        },
+        {
+          "name": "oar-manual",
+          "fields": [
+            "description",
+            "disable_model_invocation",
+            "name",
+            "path",
+            "source"
+          ],
+          "disable_model_invocation": true
+        }
+      ],
+      "catalogCount": 13
+    },
+    {
+      "runtime": "opencode-v1",
+      "version": "1.19.5",
+      "fixtures": {
+        "oar-default": "",
+        "oar-hidden": "user-invocable: false\n",
+        "oar-invocable": "user-invocable: true\n",
+        "oar-manual": "disable-model-invocation: true\n"
+      },
+      "selected": [
+        {
+          "name": "oar-manual",
+          "fields": [
+            "content",
+            "description",
+            "location",
+            "name"
+          ]
+        },
+        {
+          "name": "oar-invocable",
+          "fields": [
+            "content",
+            "description",
+            "location",
+            "name"
+          ]
+        },
+        {
+          "name": "oar-default",
+          "fields": [
+            "content",
+            "description",
+            "location",
+            "name"
+          ]
+        },
+        {
+          "name": "oar-hidden",
+          "fields": [
+            "content",
+            "description",
+            "location",
+            "name"
+          ]
+        }
+      ],
+      "catalogCount": 5
+    },
+    {
+      "runtime": "opencode-v2",
+      "version": "opencode v2.2.7",
+      "fixtures": {
+        "oar-default": "",
+        "oar-hidden": "user-invocable: false\n",
+        "oar-invocable": "user-invocable: true\n",
+        "oar-manual": "disable-model-invocation: true\n"
+      },
+      "selected": [
+        {
+          "name": "oar-default",
+          "fields": [
+            "content",
+            "description",
+            "id",
+            "name",
+            "path"
+          ]
+        },
+        {
+          "name": "oar-hidden",
+          "fields": [
+            "content",
+            "description",
+            "id",
+            "name",
+            "path"
+          ]
+        },
+        {
+          "name": "oar-invocable",
+          "fields": [
+            "content",
+            "description",
+            "id",
+            "name",
+            "path"
+          ]
+        },
+        {
+          "name": "oar-manual",
+          "fields": [
+            "autoinvoke",
+            "content",
+            "description",
+            "id",
+            "name",
+            "path"
+          ],
+          "autoinvoke": false
+        }
+      ],
+      "catalogCount": 7
+    },
+    {
+      "version": "1.5.2",
+      "fixtures": {
+        "oar-default": "",
+        "oar-hidden": "user-invocable: false\n",
+        "oar-invocable": "user-invocable: true\n",
+        "oar-manual": "disable-model-invocation: true\n"
+      },
+      "sdk": [
+        {
+          "name": "oar-default",
+          "fields": [
+            "baseDir",
+            "description",
+            "disableModelInvocation",
+            "filePath",
+            "name",
+            "sourceInfo"
+          ],
+          "disableModelInvocation": false
+        },
+        {
+          "name": "oar-hidden",
+          "fields": [
+            "baseDir",
+            "description",
+            "disableModelInvocation",
+            "filePath",
+            "name",
+            "sourceInfo"
+          ],
+          "disableModelInvocation": false
+        },
+        {
+          "name": "oar-invocable",
+          "fields": [
+            "baseDir",
+            "description",
+            "disableModelInvocation",
+            "filePath",
+            "name",
+            "sourceInfo"
+          ],
+          "disableModelInvocation": false
+        },
+        {
+          "name": "oar-manual",
+          "fields": [
+            "baseDir",
+            "description",
+            "disableModelInvocation",
+            "filePath",
+            "name",
+            "sourceInfo"
+          ],
+          "disableModelInvocation": true
+        }
+      ],
+      "rpc": [
+        {
+          "enableSkillCommands": true,
+          "commands": [
+            {
+              "name": "skill:oar-default",
+              "source": "skill",
+              "fields": [
+                "description",
+                "name",
+                "source",
+                "sourceInfo"
+              ]
+            },
+            {
+              "name": "skill:oar-hidden",
+              "source": "skill",
+              "fields": [
+                "description",
+                "name",
+                "source",
+                "sourceInfo"
+              ]
+            },
+            {
+              "name": "skill:oar-invocable",
+              "source": "skill",
+              "fields": [
+                "description",
+                "name",
+                "source",
+                "sourceInfo"
+              ]
+            },
+            {
+              "name": "skill:oar-manual",
+              "source": "skill",
+              "fields": [
+                "description",
+                "name",
+                "source",
+                "sourceInfo"
+              ]
+            }
+          ]
+        },
+        {
+          "enableSkillCommands": false,
+          "commands": [
+            {
+              "name": "skill:oar-default",
+              "source": "skill",
+              "fields": [
+                "description",
+                "name",
+                "source",
+                "sourceInfo"
+              ]
+            },
+            {
+              "name": "skill:oar-hidden",
+              "source": "skill",
+              "fields": [
+                "description",
+                "name",
+                "source",
+                "sourceInfo"
+              ]
+            },
+            {
+              "name": "skill:oar-invocable",
+              "source": "skill",
+              "fields": [
+                "description",
+                "name",
+                "source",
+                "sourceInfo"
+              ]
+            },
+            {
+              "name": "skill:oar-manual",
+              "source": "skill",
+              "fields": [
+                "description",
+                "name",
+                "source",
+                "sourceInfo"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "runtime": "factory",
+      "version": "1.12.1",
+      "selected": [
+        {
+          "name": "oar-hidden",
+          "fields": [
+            "description",
+            "enabled",
+            "filePath",
+            "location",
+            "name",
+            "userInvocable"
+          ],
+          "userInvocable": false,
+          "enabled": true
+        },
+        {
+          "name": "oar-manual",
+          "fields": [
+            "description",
+            "enabled",
+            "filePath",
+            "location",
+            "name",
+            "userInvocable"
+          ],
+          "userInvocable": true,
+          "enabled": true
+        },
+        {
+          "name": "oar-project",
+          "fields": [
+            "description",
+            "enabled",
+            "filePath",
+            "location",
+            "name",
+            "userInvocable"
+          ],
+          "userInvocable": true,
+          "enabled": true
+        },
+        {
+          "name": "oar-user",
+          "fields": [
+            "description",
+            "disabledBy",
+            "enabled",
+            "filePath",
+            "location",
+            "name",
+            "userInvocable"
+          ],
+          "userInvocable": true,
+          "enabled": false
+        }
+      ],
+      "catalogCount": 25
+    },
+    {
+      "runtime": "dsh",
+      "version": "0.2.1-rc.5",
+      "selected": [
+        {
+          "name": "hidden-fixture",
+          "fields": [
+            "description",
+            "invocation",
+            "name",
+            "path",
+            "provider",
+            "resourceBase",
+            "source"
+          ],
+          "invocation": {
+            "modelInvocable": true,
+            "userInvocable": false
+          }
+        },
+        {
+          "name": "project-agents",
+          "fields": [
+            "description",
+            "invocation",
+            "name",
+            "path",
+            "provider",
+            "resourceBase",
+            "source"
+          ],
+          "invocation": {
+            "modelInvocable": false,
+            "userInvocable": true
+          }
+        },
+        {
+          "name": "project-dsh",
+          "fields": [
+            "description",
+            "invocation",
+            "name",
+            "path",
+            "provider",
+            "resourceBase",
+            "source"
+          ],
+          "invocation": {
+            "modelInvocable": false,
+            "userInvocable": true
+          }
+        },
+        {
+          "name": "user-agents",
+          "fields": [
+            "description",
+            "invocation",
+            "name",
+            "path",
+            "provider",
+            "resourceBase",
+            "source"
+          ],
+          "invocation": {
+            "modelInvocable": false,
+            "userInvocable": true
+          }
+        },
+        {
+          "name": "user-dsh",
+          "fields": [
+            "description",
+            "invocation",
+            "name",
+            "path",
+            "provider",
+            "resourceBase",
+            "source"
+          ],
+          "invocation": {
+            "modelInvocable": false,
+            "userInvocable": true
+          }
+        }
+      ],
+      "catalogCount": 6
+    },
+    {
+      "runtime": "devin",
+      "version": "devin 3000.12.57 (96542e930752)",
+      "selected": [
+        {
+          "name": "user-agents",
+          "fields": [
+            "base_dir",
+            "description",
+            "display_name",
+            "errors",
+            "name",
+            "provider",
+            "triggers",
+            "warnings"
+          ],
+          "triggers": [
+            "user"
+          ]
+        },
+        {
+          "name": "user-claude",
+          "fields": [
+            "base_dir",
+            "description",
+            "display_name",
+            "errors",
+            "name",
+            "provider",
+            "triggers",
+            "warnings"
+          ],
+          "triggers": [
+            "user"
+          ]
+        },
+        {
+          "name": "user-windsurf",
+          "fields": [
+            "base_dir",
+            "description",
+            "display_name",
+            "errors",
+            "name",
+            "provider",
+            "triggers",
+            "warnings"
+          ],
+          "triggers": [
+            "user"
+          ]
+        },
+        {
+          "name": "user-devin",
+          "fields": [
+            "base_dir",
+            "description",
+            "display_name",
+            "errors",
+            "name",
+            "provider",
+            "triggers",
+            "warnings"
+          ],
+          "triggers": [
+            "user"
+          ]
+        },
+        {
+          "name": "project-agents",
+          "fields": [
+            "base_dir",
+            "description",
+            "display_name",
+            "errors",
+            "name",
+            "provider",
+            "triggers",
+            "warnings"
+          ],
+          "triggers": [
+            "user"
+          ]
+        },
+        {
+          "name": "project-claude",
+          "fields": [
+            "base_dir",
+            "description",
+            "display_name",
+            "errors",
+            "name",
+            "provider",
+            "triggers",
+            "warnings"
+          ],
+          "triggers": [
+            "user"
+          ]
+        },
+        {
+          "name": "model-only",
+          "fields": [
+            "base_dir",
+            "description",
+            "display_name",
+            "errors",
+            "name",
+            "provider",
+            "triggers",
+            "warnings"
+          ],
+          "triggers": [
+            "model"
+          ]
+        },
+        {
+          "name": "project-devin",
+          "fields": [
+            "base_dir",
+            "description",
+            "display_name",
+            "errors",
+            "name",
+            "provider",
+            "triggers",
+            "warnings"
+          ],
+          "triggers": [
+            "user"
+          ]
+        },
+        {
+          "name": "project-windsurf",
+          "fields": [
+            "base_dir",
+            "description",
+            "display_name",
+            "errors",
+            "name",
+            "provider",
+            "triggers",
+            "warnings"
+          ],
+          "triggers": [
+            "user"
+          ]
+        }
+      ],
+      "catalogCount": 12
+    },
+    {
+      "runtime": "antigravity",
+      "version": "1.5.0",
+      "selected": [
+        {
+          "name": "oar-cli",
+          "fields": [
+            "builtin",
+            "description",
+            "model_invocable",
+            "name",
+            "path"
+          ],
+          "model_invocable": true
+        },
+        {
+          "name": "oar-manual",
+          "fields": [
+            "builtin",
+            "description",
+            "model_invocable",
+            "name",
+            "path"
+          ],
+          "model_invocable": false
+        },
+        {
+          "name": "oar-personal",
+          "fields": [
+            "builtin",
+            "description",
+            "model_invocable",
+            "name",
+            "path"
+          ],
+          "model_invocable": true
+        },
+        {
+          "name": "oar-plugin:child",
+          "fields": [
+            "builtin",
+            "description",
+            "model_invocable",
+            "name",
+            "path",
+            "plugin"
+          ],
+          "model_invocable": true
+        },
+        {
+          "name": "oar-shared",
+          "fields": [
+            "builtin",
+            "description",
+            "model_invocable",
+            "name",
+            "path"
+          ],
+          "model_invocable": true
+        },
+        {
+          "name": "oar-workspace",
+          "fields": [
+            "builtin",
+            "description",
+            "model_invocable",
+            "name",
+            "path"
+          ],
+          "model_invocable": true
+        }
+      ],
+      "catalogCount": 11
+    },
+    {
+      "runtime": "qwen",
+      "version": "0.27.4",
+      "explicitTrueOmitted": true,
+      "selected": [
+        {
+          "name": "disabled-marker",
+          "fields": [
+            "description",
+            "disabledReason",
+            "installedPath",
+            "kind",
+            "level",
+            "lockedScope",
+            "modelInvocable",
+            "name",
+            "status"
+          ],
+          "modelInvocable": true,
+          "status": "disabled"
+        },
+        {
+          "name": "hidden-marker",
+          "fields": [
+            "description",
+            "installedPath",
+            "kind",
+            "level",
+            "modelInvocable",
+            "name",
+            "status",
+            "userInvocable"
+          ],
+          "userInvocable": false,
+          "modelInvocable": true,
+          "status": "ok"
+        },
+        {
+          "name": "no-model-marker",
+          "fields": [
+            "description",
+            "installedPath",
+            "kind",
+            "level",
+            "modelInvocable",
+            "name",
+            "status"
+          ],
+          "modelInvocable": false,
+          "status": "ok"
+        },
+        {
+          "name": "user-compat",
+          "fields": [
+            "description",
+            "installedPath",
+            "kind",
+            "level",
+            "modelInvocable",
+            "name",
+            "status"
+          ],
+          "modelInvocable": true,
+          "status": "ok"
+        },
+        {
+          "name": "user-marker",
+          "fields": [
+            "description",
+            "installedPath",
+            "kind",
+            "level",
+            "modelInvocable",
+            "name",
+            "status"
+          ],
+          "modelInvocable": true,
+          "status": "ok"
+        }
+      ]
+    },
+    {
+      "runtime": "cursor",
+      "version": "1.4.1",
+      "sourceSha256": "442a4b8a9ac1983c9d5836c782b9cdf70458d4c484ac1efd7aac50c0830b720b",
+      "blockedConnections": 4,
+      "selected": [
+        {
+          "fixture": "disabled",
+          "fields": [
+            "content",
+            "disableModelInvocation",
+            "fullPath"
+          ]
+        },
+        {
+          "fixture": "invocable",
+          "fields": [
+            "content",
+            "description",
+            "fullPath"
+          ]
+        },
+        {
+          "fixture": "not-invocable",
+          "fields": [
+            "content",
+            "description",
+            "fullPath"
+          ]
+        },
+        {
+          "fixture": "project-cursor",
+          "fields": [
+            "content",
+            "description",
+            "fullPath"
+          ]
+        }
+      ]
+    }
+  ]
+}
