@@ -1,0 +1,56 @@
+{
+  "failure": {
+    "platform": "macOS",
+    "version": "1.5.11",
+    "run": 44341885946,
+    "job": 134948035070,
+    "artifact": 14445909351,
+    "assertion": {
+      "source": "sea-trial/vendor/support/antigravity-skill-mcp.ts:28",
+      "expected": true,
+      "actual": false
+    },
+    "interpretation": "The preceding native-success assertion passed; the global marker was absent when read. This does not establish whether native skipped the child or exited before its marker write."
+  },
+  "correctedControl": {
+    "platform": "Linux x64",
+    "version": "1.5.11",
+    "modelRequests": 0,
+    "observations": [
+      {
+        "case": "mcp-marker-control",
+        "direct": {
+          "ok": true,
+          "stdout": "",
+          "stderr": "",
+          "exitCode": null
+        },
+        "directStarted": true
+      },
+      {
+        "case": "mcp-native-start",
+        "scope": "workspace",
+        "nativeStarted": false
+      },
+      {
+        "case": "mcp-start",
+        "scope": "workspace",
+        "nativeStarted": false,
+        "nativeStartedAfterFile": false,
+        "fileStarted": false
+      },
+      {
+        "case": "mcp-native-start",
+        "scope": "global",
+        "nativeStarted": true
+      },
+      {
+        "case": "mcp-start",
+        "scope": "global",
+        "nativeStarted": true,
+        "nativeStartedAfterFile": true,
+        "fileStarted": false
+      }
+    ]
+  }
+}

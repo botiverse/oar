@@ -63,9 +63,26 @@ replacement won over the builtin in both selected controls.
 ## MCP startup and an unresolved sample
 
 The probe configures only a synthetic local JSON-RPC server that writes a
-start marker. Native `/skills` started the globally configured child on both
-versions; the workspace-only marker remained absent. The file reader never
+start marker. In the selected Linux samples, native `/skills` started the globally
+configured child on both versions; the workspace-only marker remained absent. The file reader never
 started either marker. No Raft configuration, token or real account was used.
+
+A later [macOS 1.5.11 run](https://github.com/botiverse/oar/actions/runs/44341885946/job/134948035070)
+finished native `/skills` successfully with the global marker absent. Its
+[retained artifact](https://github.com/botiverse/oar/actions/runs/44341885946/artifacts/14445909351)
+does not establish whether native skipped the child or exited before the child
+wrote the marker. The [selected assertion and corrected Linux control](mcp-marker-control.json)
+retain that boundary and the new detector result. Native startup is therefore recorded in both scopes, not
+required as a detector control. The probe validates the detector by running the
+same marker script directly once; only after writing its marker does that
+control exit instead of serving JSON-RPC. Both file-reader scopes still require
+`fileStarted === false`. Each scope rewrites its MCP configuration to a separate
+file-reader marker before that phase, so a late native child cannot mark the
+file-reader's path. The native marker is observed again after the file read.
+Marker observations are retained even if the negative assertion fails. A
+deterministic synthetic control writes the native marker during the file phase
+and verifies that it passes; writing the file marker instead still fails and
+retains that observation. No wait, retry or product behavior changed.
 
 The first local omission and a later Linux CI failure both reported six native
 builtins, omitting `swarm`, while its materialized file was readable. The CI
