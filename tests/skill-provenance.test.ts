@@ -64,13 +64,15 @@ test("Pi RPC retains package identity independently of user, project and tempora
 });
 
 test("Claude catalog joins native descriptions and invocability and keeps model-hidden labeled commands", () => {
-  const context = { skills: { totalSkills: 6, includedSkills: 6, skillFrontmatter: [
+  const context = { skills: { totalSkills: 8, includedSkills: 8, skillFrontmatter: [
     { name: "deploy", source: "projectSettings", path: "/w/.claude/commands/deploy.md" },
     { name: "user-skill", source: "userSettings", path: "/h/.claude/skills/user-skill/SKILL.md" },
     { name: "dataviz", source: "syncedSkills" },
     { name: "review", source: "projectSettings" },
     { name: "twice", source: "userSettings" },
     { name: "local-skill", source: "localSettings" },
+    { name: "same", source: "projectSettings", path: "/w/.claude/skills/a/SKILL.md" },
+    { name: "same", source: "projectSettings", path: "/w/.claude/skills/b/SKILL.md" },
   ] } };
   const initialized = { commands: [
     { name: "deploy", description: "Deploy it (project)", argumentHint: "env" },
@@ -78,6 +80,7 @@ test("Claude catalog joins native descriptions and invocability and keeps model-
     { name: "review", description: "Built-in review", builtin: true },
     { name: "hidden-skill", description: "Hidden one (project)" },
     { name: "ucmd", description: "User cmd (user)" },
+    { name: "same", description: "Only one of the two (project)" },
     { name: "twice", description: "A (user)" },
     { name: "twice", description: "B (user)" },
     { name: "mcp-prompt", description: "From a server" },
@@ -97,6 +100,9 @@ test("Claude catalog joins native descriptions and invocability and keeps model-
     { name: "twice", source: "userSettings", scope: "user" },
     // Local settings were not verified, so absence claims nothing.
     { name: "local-skill", source: "localSettings", scope: "project" },
+    // Two skills share a name; the one command cannot be told apart, so neither joins it.
+    { name: "same", source: "projectSettings", scope: "project", path: "/w/.claude/skills/a/SKILL.md" },
+    { name: "same", source: "projectSettings", scope: "project", path: "/w/.claude/skills/b/SKILL.md" },
     { name: "hidden-skill", description: "Hidden one", scope: "project", userInvocable: true },
     { name: "ucmd", description: "User cmd", scope: "user", userInvocable: true },
   ] });

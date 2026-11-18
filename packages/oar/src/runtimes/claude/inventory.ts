@@ -57,8 +57,8 @@ function commandsByName(value: unknown): Map<string, JsonRecord | null> | null {
  * `.claude/commands` files, which Claude loads as skills) joined by name with
  * `initialize.commands` (description, and whether a person can run it).
  * A builtin command never describes a non-builtin skill of the same name.
- * `userInvocable: true` needs this skill's own command; a duplicate name or a
- * builtin of the same name leaves it unknown. `userInvocable: false` is claimed
+ * `userInvocable: true` needs this skill's own command; a name listed twice
+ * (in either list) or a builtin of the same name leaves it unknown. `userInvocable: false` is claimed
  * only for sources where absence was verified to mean that (user, project).
  * A skill hidden from the model (`disable-model-invocation`) appears only as
  * a command; it is added when Claude's own description label names its scope,
@@ -74,7 +74,13 @@ export function projectClaudeSkillCatalog(context: JsonRecord, initialized: Json
     return { items: skills, partial: omitted };
   }
   const known = new Set(skills.map((skill) => skill.name));
+  // Two context entries can share a name (two skill directories with one
+  // frontmatter name); a command of that name belongs to at most one of them.
+  const shared = new Set(skills.filter((skill, index) => skills.findIndex((other) => other.name === skill.name) !== index).map((skill) => skill.name));
   const joined = skills.map((skill): SkillEntry => {
+    if (shared.has(skill.name)) {
+      return skill;
+    }
     const command = commands.get(skill.name);
     const usable = command !== undefined && command !== null && (command.builtin !== true || skill.scope === "builtin") ? command : undefined;
     const description = typeof usable?.description === "string" ? unlabeled(usable.description, skill.scope) : "";

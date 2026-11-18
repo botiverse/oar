@@ -946,8 +946,9 @@ supplies what the context list lacks: a skill's `description` (Claude appends
 naming the entry's own scope) and `userInvocable: true` when Claude lists the
 skill's own command. A builtin command never describes a non-builtin skill of
 the same name and does not make it invocable: `/name` runs the builtin there.
-A name listed twice joins nothing, so its description and `userInvocable` stay
-unknown. `userInvocable: false` is claimed only for user and project settings
+A name listed twice, in the commands or in the context list (two skill
+directories can declare one frontmatter name), joins nothing, so its
+description and `userInvocable` stay unknown. `userInvocable: false` is claimed only for user and project settings
 skills, where a skill with `user-invocable: false` was verified to be absent
 from the commands; local settings and other sources not listed stay unknown.
 A command that is labeled with a user or project scope, is not builtin, and is
