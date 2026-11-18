@@ -13,6 +13,7 @@
   "include": [
     "packages/oar/src",
     "apps/arena",
+    "apps/harbor",
     "sea-trial",
     "experiments",
     "tests",
