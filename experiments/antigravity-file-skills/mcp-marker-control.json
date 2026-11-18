@@ -36,6 +36,7 @@
         "case": "mcp-start",
         "scope": "workspace",
         "nativeStarted": false,
+        "nativeStartedAfterFile": false,
         "fileStarted": false
       },
       {
@@ -47,6 +48,7 @@
         "case": "mcp-start",
         "scope": "global",
         "nativeStarted": true,
+        "nativeStartedAfterFile": true,
         "fileStarted": false
       }
     ]

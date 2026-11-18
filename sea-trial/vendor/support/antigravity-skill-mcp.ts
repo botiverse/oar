@@ -1,4 +1,4 @@
-/* oxlint-disable no-await-in-loop -- Sequential native startup controls own one marker. */
+/* oxlint-disable no-await-in-loop -- Sequential native startup controls own separate markers per phase. */
 import assert from "node:assert/strict";
 import { access, mkdir, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
@@ -10,7 +10,7 @@ async function exists(path: string): Promise<boolean> { try { await access(path)
 /** A local JSON-RPC server with a start marker; no Raft configuration or credential. */
 export async function antigravitySkillMcpControl(installation: AvailableInstallation & { via: "executable" }, home: string, cwd: string, nativeEnv: NodeJS.ProcessEnv, env: Record<string, string | null>, observations: unknown[]): Promise<void> {
   const script = join(home, "mcp.cjs");
-  const marker = join(home, "mcp-started");
+  const marker = join(home, "mcp-marker-control");
   await writeFile(script, `const fs=require('node:fs');fs.writeFileSync(process.argv[2],'started');
 if(process.argv[3]==='--marker-only')process.exit(0);
 require('node:readline').createInterface({input:process.stdin}).on('line',line=>{
@@ -25,18 +25,22 @@ process.stdout.write(JSON.stringify({jsonrpc:'2.0',id:q.id,result})+'\\n');});\n
   assert.equal(directStarted, true);
   for (const scope of ["workspace", "global"]) {
     const config = scope === "workspace" ? join(cwd, ".agents/mcp_config.json") : join(home, ".gemini/config/mcp_config.json");
+    const nativeMarker = join(home, `mcp-started-native-${scope}`);
+    const fileMarker = join(home, `mcp-started-file-${scope}`);
     await mkdir(dirname(config), { recursive: true });
-    await writeFile(config, JSON.stringify({ mcpServers: { marker: { command: process.execPath, args: [script, marker] } } }));
-    await rm(marker, { force: true });
+    await writeFile(config, JSON.stringify({ mcpServers: { marker: { command: process.execPath, args: [script, nativeMarker] } } }));
+    await rm(nativeMarker, { force: true });
     const native = await runExecutable(installation.command, ["--output-format", "json", "--print=/skills"], { cwd, env: nativeEnv });
     assert.ok(native.ok, JSON.stringify(native));
-    const nativeStarted = await exists(marker);
+    const nativeStarted = await exists(nativeMarker);
     observations.push({ case: "mcp-native-start", scope, nativeStarted });
-    await rm(marker, { force: true });
+    await writeFile(config, JSON.stringify({ mcpServers: { marker: { command: process.execPath, args: [script, fileMarker] } } }));
+    await rm(fileMarker, { force: true });
     const files = await antigravityRuntime.skills(installation, { cwd, env });
     assert.equal(files.kind, "ok");
-    const fileStarted = await exists(marker);
-    observations.push({ case: "mcp-start", scope, nativeStarted, fileStarted });
+    const fileStarted = await exists(fileMarker);
+    const nativeStartedAfterFile = await exists(nativeMarker);
+    observations.push({ case: "mcp-start", scope, nativeStarted, nativeStartedAfterFile, fileStarted });
     assert.equal(fileStarted, false);
     await rm(config);
   }

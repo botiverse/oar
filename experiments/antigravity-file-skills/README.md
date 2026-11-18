@@ -76,8 +76,13 @@ retain that boundary and the new detector result. Native startup is therefore re
 required as a detector control. The probe validates the detector by running the
 same marker script directly once; only after writing its marker does that
 control exit instead of serving JSON-RPC. Both file-reader scopes still require
-`fileStarted === false`. Marker observations are retained even if that assertion
-fails. No wait, retry or product behavior changed.
+`fileStarted === false`. Each scope rewrites its MCP configuration to a separate
+file-reader marker before that phase, so a late native child cannot mark the
+file-reader's path. The native marker is observed again after the file read.
+Marker observations are retained even if the negative assertion fails. A
+deterministic synthetic control writes the native marker during the file phase
+and verifies that it passes; writing the file marker instead still fails and
+retains that observation. No wait, retry or product behavior changed.
 
 The first local omission and a later Linux CI failure both reported six native
 builtins, omitting `swarm`, while its materialized file was readable. The CI
