@@ -28,11 +28,12 @@ with an API key (`Authorization: Bearer cyb_<user id>_<secret>`):
 | `GET /v1/threads/{id}/response` | The latest inference's response snapshot (output items, usage, completion). |
 | `POST /v1/threads/{id}/inputs` | Hand one input to the Thread; answers `{thread_id, record_idx, status}`, where `record_idx` is the record the input occupies. Takes `images` as png/jpeg/webp/gif base64 data URLs. |
 | `POST /v1/threads/{id}/context` | Append background the integration already holds; starts no turn. |
+| `POST /api/threads/{id}/cancel` | Stop the Thread's turn, answered with the stopped Thread. Cybion's own UI calls it, and an API key authenticates on that router too. |
 
-What the same deployment exposes to its own browser UI but **not** to an API
-key: turn cancellation (`POST /api/threads/{id}/cancel`), Thread editing
-(model, effort, budget), model listing and account usage. Those are missing
-from `external_api` rather than unavailable in Cybion.
+The `/api` router is not closed to an API key: it authenticates the same bearer
+credential, which is how `abort` reaches `cancel`. What OAR does not use is the
+rest of it — Thread editing (model, effort, budget), model listing and account
+usage have no OAR member to carry them.
 
 ## High-level mapping to OAR
 
@@ -47,7 +48,7 @@ from `external_api` rather than unavailable in Cybion.
 | `text_delta`, `reasoning`, `tool_call_started`, `tool_call_ended` | One history record each: a `message` item, a `reasoning` item, a function/custom-tool call, its `tool_output`. |
 | `user_message` | The Thread's own `input` record (evidence `conversation`). |
 | `usage` | The Thread's totals less the ones it carried when the session opened, plus `context_tokens` as context fullness. |
-| `abort` | **Refused**: no route exists (see above). |
+| `abort` | `POST /api/threads/{id}/cancel`; the turn then ends through the Thread's own `stopped` status. |
 | `dispose` | Records the release; the Thread outlives the session by design. |
 
 ## Capability details
@@ -72,10 +73,11 @@ browser's Thread, so a queued input would become a second turn the status
 cannot tell from this one. `queue` is therefore held by the adapter and sent
 when the Thread idles; `withdraw` exists for the same reason.
 
-`abort` has no native route and answers `unsupported` while a turn runs
-(`no_active_turn` when none does). A host that needs to stop a turn does it in
-Cybion's own UI. Adding `POST /v1/threads/{id}/cancel` to the Agent API is the
-change that would make `abort` real here.
+`abort` calls `POST /api/threads/{id}/cancel`, the route Cybion's own UI uses;
+it answers the stopped Thread, and the turn ends through that Thread's own
+`stopped` status, so OAR reports `aborted` from the status and not from the
+answer. Only a turn the tracker follows can be aborted: with nothing running,
+the answer is `no_active_turn`.
 
 ### Events, history and children
 
@@ -117,10 +119,6 @@ of its own.
 
 ## Known gaps
 
-- **No cancellation.** `abort` answers `unsupported` while a turn runs: the
-  Agent API has no cancel route, and the browser route an API key cannot reach.
-  A host stops a Thread in Cybion's own UI instead. Until that changes, this
-  runtime suits work that runs to completion, not work a host may need to stop.
 - **Polling, not streaming.** Text arrives at poll granularity (250 ms, backing
   off to 2 s), so a UI shows it in chunks rather than as a token stream, and a
   turn's end is observed a poll or two late.
@@ -192,6 +190,11 @@ of its own.
     id, model and effort, and its prompt ran in the same conversation.
 
   Usage across those turns read `{input: 78598, output: 647, cacheRead: 59392}`.
+- **Cancellation, observed 2026-11-18** on the same deployment: `POST
+  /api/threads/{id}/cancel` with an API key turned a `running`/`running`
+  Thread into `idle`/`stopped` in one answer, and an earlier `GET` on the same
+  path answered `405` where `/v1/.../cancel` answered `404 route not found` —
+  the route exists on the `/api` router only.
 - **Unresolved**: what a `blocked` Thread's end means (the mapping reports
   `unknown` rather than guessing a limit), and whether the Agent API will expose
   cancellation. A Thread also outlives its session — the Agent API has no route

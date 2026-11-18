@@ -6,7 +6,7 @@ import { inputImagesRefusal, withInputImages } from "../../shared/input-images.j
 import { sealSession } from "../../shared/seal-session.js";
 import { createSessionKernel } from "../../shared/session-kernel.js";
 import { refuseSessionOptions } from "../../shared/session-options.js";
-import { acceptedRecordOf, lastRecordOf, openThread, refusalOf, submitInput } from "./thread.js";
+import { acceptedRecordOf, cancelThread, lastRecordOf, openThread, refusalOf, submitInput } from "./thread.js";
 import { createThreadTracker, type ThreadTracker } from "./tracker.js";
 
 /*
@@ -21,9 +21,9 @@ import { createThreadTracker, type ThreadTracker } from "./tracker.js";
  *   request carrying the held input's identity, as the record-stream spec
  *   requires, so a held input starts a turn like any other and no prompt
  *   overtakes it (`docs/spec/record-stream.md`, adapter-held queue records).
- * - abort: refused. The Agent API has no route that cancels a turn; a Thread
- *   is stopped from Cybion's own UI (`POST /api/threads/{id}/cancel`), which
- *   an API key cannot reach. Nothing here guesses at one.
+ * - abort: `POST /api/threads/{id}/cancel`, the route Cybion's own UI uses: an
+ *   API key authenticates on that router too, and Cybion answers the stopped
+ *   Thread. The turn then ends through the Thread's `stopped` status.
  * - dispose: the Thread outlives the session by design (it is resumable), so
  *   releasing it records the release and stops nothing on Cybion's side.
  */
@@ -44,7 +44,7 @@ export const cybionRefusedSessionOptions: RefusedSessionOptions = {
   outputSchema: "Cybion's Agent API has no per-Thread structured output setting",
   userConfiguration: "A Cybion Thread always runs with its owner's configuration, which cannot be excluded",
   goals: "Cybion's Agent API exposes no structured goal controls",
-  endTurnProcessesOnAbort: "Cybion's Agent API exposes no turn cancellation at all",
+  endTurnProcessesOnAbort: "Cybion cancels a turn, but exposes no per-turn control over the processes it started",
 };
 
 interface Held {
@@ -208,10 +208,11 @@ export function cybionSessionWith(client: Parameters<typeof openThread>[0]): Sta
       },
       withdraw: withdrawControl(kernel, held),
       abort: async (): Promise<ControlResult> => {
-        const result = await kernel.control({ kind: "abort" }, (): ResponseBody => (
-          tracker.busy()
-            ? { kind: "rejected", code: "unsupported", reason: "Cybion's Agent API exposes no route that cancels a running turn; stop the Thread from Cybion's own UI" }
-            : { kind: "rejected", code: "no_active_turn", reason: "no active turn" }
+        // `POST /api/threads/{id}/cancel` stops the turn; an API key reaches it,
+        // because that router authenticates the same bearer credential. The turn
+        // then ends through the Thread's own `stopped` status, not here.
+        const result = await kernel.control({ kind: "abort" }, async (): Promise<ResponseBody> => (
+          tracker.busy() ? await cancelThread(client, thread.id) : { kind: "rejected", code: "no_active_turn", reason: "no active turn" }
         ));
         return result;
       },

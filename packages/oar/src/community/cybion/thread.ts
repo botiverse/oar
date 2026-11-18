@@ -168,6 +168,21 @@ export async function submitInput(client: CybionClient, threadId: string, input:
   return reply.body;
 }
 
+/**
+ * Stop the Thread's turn. Cybion answers the Thread it stopped (`status: idle`,
+ * `display_status: stopped`), or a refusal/404 the caller reads as one.
+ */
+export async function cancelThread(client: CybionClient, threadId: string): Promise<ResponseBody> {
+  const reply = await client.call("POST", `/api/threads/${encodeURIComponent(threadId)}/cancel`, {});
+  if (reply.status >= 200 && reply.status < 300) {
+    return { kind: "accepted", native: reply.body };
+  }
+  if (reply.status === 404) {
+    return { kind: "rejected", code: "session_not_found", reason: replyMessage(reply), native: reply.body };
+  }
+  return { kind: "rejected", code: reply.status < 500 && reply.status >= 400 ? "runtime_refused" : "error", reason: replyMessage(reply), native: reply.body };
+}
+
 /** The record Cybion says an accepted input occupies; null when it named none. */
 export function acceptedRecordOf(answer: unknown): number | null {
   const index = asRecord(answer)?.record_idx;

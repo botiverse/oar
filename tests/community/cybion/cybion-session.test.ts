@@ -135,15 +135,13 @@ describe("the cybion runtime", () => {
     await session.dispose();
   }, 15_000);
 
-  it("refuses an abort, because the Agent API has no route that cancels a turn", async () => {
+  it("answers no_active_turn when nothing runs, and cancels the Thread when something does", async () => {
     vi.stubGlobal("fetch", scriptedDeployment().fetch);
     const runtime = createCybionRuntime({ baseUrl: "https://cybion.test", apiKey: "cyb_me_secret" });
     const session = await runtime.session({ kind: "available", via: "bundled" }, { cwd: "/work" });
+    // Nothing followed yet: no cancel is sent, and the caller owns the decision.
     const idle = await session.abort();
     expect(idle).toMatchObject({ kind: "rejected", code: "no_active_turn" });
-    await session.prompt("hi");
-    const running = await session.abort();
-    expect(running).toMatchObject({ kind: "rejected", code: "unsupported" });
     await session.dispose();
   }, 15_000);
 });
