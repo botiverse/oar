@@ -39,7 +39,9 @@ count, falling back to local telemetry when no active chat exists. A missing
 positive count sets `isEstimated`; the chat can also mark its count estimated.
 The category breakdown uses local estimates and is not OAR's total.
 
-No provider request occurred during any of the four measured queries.
+No provider request occurred during any of the four measured queries. This
+observation does not imply that unrelated background requests cannot overlap
+a later readback; see the attribution control below.
 The post-turn timings exclude native startup and model execution. These are
 Linux measurements, not a latency guarantee for all platforms. OAR gives the
 optional query a one-second bound and records a rejection when no reply arrives.
@@ -78,8 +80,69 @@ OAR_TEST=qwen-aimock OAR_QWEN_BIN=/absolute/path/to/qwen \
 This creates a local provider and isolated native configuration, executes two
 fresh turns and one resumed turn, compares projected context with native
 responses, checks ordering before turn end and requires zero provider requests
-during each query. Failures retain records and observed query costs in
-`oar-trial-run/qwen-vendor/context.json`.
+during each query. This cost control disables native managed-memory extraction
+in its isolated fixture with `memory.enableManagedAutoMemory: false`; ordinary
+OAR sessions and other vendor cases keep their normal configuration. It also
+requires exactly three provider requests across the three root turns. Failures
+retain both sessions, query costs with provider-array boundaries, and all
+provider bodies in `oar-trial-run/qwen-vendor/context.json`.
 
 The additional pre-prompt sample initialized a separate empty process and
 issued the same query before sending any user frame. It used no model request.
+
+## Background request attribution
+
+Release PR #928 failed the original cost assertion on Qwen 0.27.4:
+one provider request arrived during its first 13 ms query and another during
+its resumed 11 ms query. CI retained the query costs but omitted provider
+bodies and resumed records, so those exact requests cannot be recovered.
+
+A fresh reproduction with four independent fresh/resume pairs captured the
+same failure once among twelve queries: a native managed-memory extraction
+request arrived during a 23 ms context readback. Its last user message asks
+Qwen to scan recent conversation history and update managed memory, rather
+than to calculate context. The [selected evidence](context-cost-2026-11-18.json)
+retains that request, its correlated context reply, the CI costs and controls.
+
+| Native control | Root turns | Total provider requests | Memory requests | Context queries |
+| --- | ---: | ---: | ---: | ---: |
+| 0.27.4, default memory | 3 | 6 | 3 | 3 |
+| 0.27.4, no context query | 3 | 6 | 3 | 0 |
+| 0.27.4, managed memory disabled | 3 | 3 | 0 | 3 |
+| 0.28.0, default memory | 3 | 6 | 3 | 3 |
+
+In the 0.27.4 published bundle, `chunk-WG5L7ABP.js` schedules
+`runManagedAutoMemoryBackgroundTasks` from normal model-turn completion;
+`scheduleExtract` calls `runAutoMemoryExtractionByAgent`. This path does not
+require a context query. `session-SKSTYW3C.js` handles `get_context_usage` with
+local `collectContextData` from `chunk-UZO6QRXO.js`, reading the active chat,
+local telemetry, tool declarations and skills. The native settings loader in
+`chunk-G5CGBAH3.js` honors `memory.enableManagedAutoMemory: false`.
+
+The no-query control also observed a memory request arriving after its first
+native result, proving that this timing does not require a readback.
+
+The faulty assertion attributed every HTTP request in a time interval to the
+readback. Isolating native memory work keeps the zero-request assertion and
+adds a whole-run count, so a delayed unexpected request also fails. This is a
+test-fixture change, not a product setting or a removal of the cost check.
+Default sessions can still perform background memory work alongside local
+context readback. The older 0.26.5 observation that memory finished before
+`result` is not an ordering guarantee for current Qwen.
+
+Run the native controls with the selected executable. Each invocation makes
+two fresh turns and one resumed turn against a local scripted provider:
+
+```sh
+OAR_QWEN_BIN=/absolute/path/to/qwen pnpm tsx \
+  experiments/qwen-native/context-cost.ts oar-trial-run/context-query query
+OAR_QWEN_BIN=/absolute/path/to/qwen pnpm tsx \
+  experiments/qwen-native/context-cost.ts oar-trial-run/context-no-query no-query
+OAR_QWEN_BIN=/absolute/path/to/qwen pnpm tsx \
+  experiments/qwen-native/context-cost.ts oar-trial-run/context-memory-off memory-off
+```
+
+Each directory keeps `raw.json` with native frames, query boundaries and
+provider bodies. The no-query control observes 200 ms after each native result;
+that interval is a control observation, not an assertion that background work
+has finished. Overlap depends on scheduling and need not recur in every run.

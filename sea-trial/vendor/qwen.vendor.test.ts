@@ -73,22 +73,30 @@ describe.skipIf(process.env.OAR_TEST !== "qwen-aimock")("Qwen stream-json 0.26.0
 
   test("fresh and resumed context is native last-prompt usage, independent of cumulative totals", async () => {
     const env = await startQwenAimock();
+    const settingsPath = path.join(env.env.HOME ?? "", ".qwen", "settings.json");
+    const settings = asRecord(JSON.parse(await readFile(settingsPath, "utf8")));
+    // Native turn completion schedules unrelated memory extraction. Isolate
+    // readback cost with Qwen's own setting, without changing normal sessions.
+    await writeFile(settingsPath, JSON.stringify({ ...settings, memory: { enableManagedAutoMemory: false } }));
+    const sessions: Session[] = [];
     try {
       const first = await open(env);
+      sessions.push(first);
       const id = first.id;
       let oldInput = 0;
       const queryCounts = new Map<string, number>();
-      const costs: { elapsedMs: number; providerRequests: number }[] = [];
+      const costs: { requestId: string; elapsedMs: number; providerRequests: number; requestStart: number; requestEnd: number }[] = [];
       const observe = (session: Session) => session.rawEvents(record => {
         if (record.kind === "request" && record.body.kind === "native" && record.body.type === "get_context_usage") { queryCounts.set(record.id, env.raw.length); }
         if (record.kind !== "frame" || record.body.responseTo === undefined || !queryCounts.has(record.body.responseTo)) { return; }
         const request = session.records().find(candidate => candidate.kind === "request" && candidate.id === record.body.responseTo);
-        costs.push({ elapsedMs: record.receivedAt - (request?.receivedAt ?? record.receivedAt), providerRequests: env.raw.length - (queryCounts.get(record.body.responseTo) ?? 0) });
+        const requestStart = queryCounts.get(record.body.responseTo) ?? 0;
+        costs.push({ requestId: record.body.responseTo, elapsedMs: record.receivedAt - (request?.receivedAt ?? record.receivedAt), providerRequests: env.raw.length - requestStart, requestStart, requestEnd: env.raw.length });
       });
       observe(first);
       onTestFailed(async () => {
         await mkdir("oar-trial-run/qwen-vendor", { recursive: true });
-        await writeFile("oar-trial-run/qwen-vendor/context.json", JSON.stringify({ records: first.records(), costs }, null, 2));
+        await writeFile("oar-trial-run/qwen-vendor/context.json", JSON.stringify({ records: sessions.map(session => session.records()), costs, providerRequests: env.raw }, null, 2));
       });
       try {
         expect(first.effort().value).toBeNull();
@@ -106,6 +114,7 @@ describe.skipIf(process.env.OAR_TEST !== "qwen-aimock")("Qwen stream-json 0.26.0
         expect(first.records().filter((row) => row.kind === "frame" && row.body.type === "command_lifecycle")).toEqual([]);
       } finally { await first.dispose(); }
       const resumed = await open(env, { resume: id });
+      sessions.push(resumed);
       observe(resumed);
       try {
         expect(resumed.id).toBe(id);
@@ -114,9 +123,10 @@ describe.skipIf(process.env.OAR_TEST !== "qwen-aimock")("Qwen stream-json 0.26.0
         expect(resumed.usage().value.total).toBeNull();
         checkContext(resumed, 1);
         expect(costs).toHaveLength(3);
-        expect(costs.every(cost => cost.providerRequests === 0)).toBe(true);
+        expect(costs.map(cost => cost.providerRequests)).toEqual([0, 0, 0]);
         expect(JSON.stringify(env.raw.at(-1)?.body)).toContain("historical_marker");
       } finally { await resumed.dispose(); }
+      expect(env.raw).toHaveLength(3);
     } finally { await env.stop(); }
   }, 90_000);
 

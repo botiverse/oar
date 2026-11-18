@@ -1,0 +1,209 @@
+{
+  "scope": "Linux x64, native Qwen with local scripted provider; no real account. Original CI omitted provider bodies, so its exact calls cannot be recovered. Fresh reproduction identifies the same overlap failure.",
+  "failedCi": {
+    "run": 44278926953,
+    "job": 134714215510,
+    "costs": [
+      {
+        "elapsedMs": 13,
+        "providerRequests": 1
+      },
+      {
+        "elapsedMs": 2,
+        "providerRequests": 0
+      },
+      {
+        "elapsedMs": 11,
+        "providerRequests": 1
+      }
+    ]
+  },
+  "adapterReproduction": {
+    "version": "0.27.4",
+    "independentFreshResumePairs": 4,
+    "queries": 12,
+    "overlappingQueries": 1,
+    "cost": {
+      "session": 1,
+      "request": "qwen-context-82603507-ed76-47aa-b633-d905bc7aa31d",
+      "elapsedMs": 23,
+      "requestStart": 1,
+      "requestEnd": 2
+    },
+    "overlappingRequest": {
+      "path": "/v1/chat/completions",
+      "model": "gpt-5.1",
+      "lastUserMessage": {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "Managed memory has TWO directories. Choose which one to write each memory into using the per-type `<scope>` guidance in your system instructions:\n- USER memory (cross-project, durable knowledge about who the user is): `<isolated-home>/.qwen/memories`\n- PROJECT memory (this project only): `<isolated-home>/.qwen/projects/-tmp/memory`\n\nScan the recent conversation history in your context and update durable managed memory in whichever directory each memory belongs.\n\nToday's date is Wednesday, November 18, 2026 \u2014 use it to turn any relative date in the history into an absolute one before saving.\n\nAvailable tools in this run: `read_file`, `grep_search`, `glob`, and `write_file`/`edit` for paths inside EITHER managed memory directory above.\n- Do not use any other tools.\n- You have a limited turn budget. `edit` requires a prior `read_file` of the same file, so the efficient strategy is: first issue all reads in parallel for every file you might update; then issue all `write_file`/`edit` calls in parallel. Do not interleave reads and writes across multiple turns.\n- You MUST only use content from the recent conversation history in your context plus the current managed memory files.\n- Do not inspect repository code, git history, or unrelated files.\n- Treat files under the top-level `pinned/` directory in either managed memory root as protected read-only records. You may read them to avoid duplicates, but never modify, overwrite, rename, merge into, or delete them, and do not intentionally remove their valid entries from `MEMORY.md`.\n- Prefer updating an existing writable memory file over creating a duplicate. Check both directories for an existing entry before creating a new one.\n- Keep one durable memory per file under `user/`, `feedback/`, `project/`, or `reference/` inside the chosen directory.\n\n## How to save memories\n\n**Step 1** \u2014 write or update the memory file itself, in the directory chosen by the type `<scope>`, using the required frontmatter format.\n**Step 2** \u2014 update the `MEMORY.md` in the SAME directory where you wrote the file (`<isolated-home>/.qwen/memories/MEMORY.md` for USER memory, `<isolated-home>/.qwen/projects/-tmp/memory/MEMORY.md` for PROJECT memory). The index is one line per entry: `- [Title](relative/path.md) \u2014 one-line hook`. Never write memory content directly into the index.\n- If you create or delete a memory file, also update the managed memory index in the SAME directory.\n- If nothing durable should be saved, make no file changes.\n\n## Existing memory files (across both directories)\n\n(none yet)\n\n## Existing keyword vocabulary\n\nPrefer reusing these canonical retrieval terms or short phrases when they match the memory meaning. Create a new discriminative term or phrase when none fits."
+          }
+        ]
+      }
+    },
+    "contextReply": {
+      "type": "control_response",
+      "response": {
+        "subtype": "success",
+        "request_id": "qwen-context-82603507-ed76-47aa-b633-d905bc7aa31d",
+        "response": {
+          "subtype": "get_context_usage",
+          "modelName": "gpt-5.1",
+          "totalTokens": 8761,
+          "contextWindowSize": 272000,
+          "breakdown": {
+            "systemPrompt": 4621,
+            "builtinTools": 5125,
+            "mcpTools": 0,
+            "instructionFiles": 211,
+            "memoryFiles": 1250,
+            "skills": 2331,
+            "startupContext": 930,
+            "messages": 6,
+            "cachedTokens": 0,
+            "freeSpace": 222439,
+            "autocompactBuffer": 40800,
+            "thresholds": {
+              "warn": 211200,
+              "auto": 231200,
+              "hard": 249000,
+              "effectiveWindow": 252000
+            },
+            "currentTier": "safe"
+          },
+          "builtinTools": [],
+          "mcpTools": [],
+          "instructionFiles": [],
+          "memoryFiles": [],
+          "skills": [],
+          "isEstimated": false,
+          "showDetails": false
+        }
+      }
+    }
+  },
+  "nativeControls": [
+    {
+      "version": "0.27.4",
+      "mode": "query",
+      "rootTurns": 3,
+      "providerRequests": 6,
+      "managedMemoryRequests": 3,
+      "samples": [
+        {
+          "resume": false,
+          "index": 0,
+          "elapsedMs": 14.478557999999794,
+          "requestStart": 2,
+          "requestEnd": 2
+        },
+        {
+          "resume": false,
+          "index": 1,
+          "elapsedMs": 4.071810999999798,
+          "requestStart": 4,
+          "requestEnd": 4
+        },
+        {
+          "resume": true,
+          "index": 0,
+          "elapsedMs": 15.441291000001002,
+          "requestStart": 6,
+          "requestEnd": 6
+        }
+      ]
+    },
+    {
+      "version": "0.27.4",
+      "mode": "no-query",
+      "rootTurns": 3,
+      "providerRequests": 6,
+      "managedMemoryRequests": 3,
+      "samples": [
+        {
+          "resume": false,
+          "index": 0,
+          "elapsedMs": 200.06077199999982,
+          "requestStart": 1,
+          "requestEnd": 2
+        },
+        {
+          "resume": false,
+          "index": 1,
+          "elapsedMs": 200.10182199999963,
+          "requestStart": 4,
+          "requestEnd": 4
+        },
+        {
+          "resume": true,
+          "index": 0,
+          "elapsedMs": 200.50767799999994,
+          "requestStart": 6,
+          "requestEnd": 6
+        }
+      ]
+    },
+    {
+      "version": "0.27.4",
+      "mode": "memory-off",
+      "rootTurns": 3,
+      "providerRequests": 3,
+      "managedMemoryRequests": 0,
+      "samples": [
+        {
+          "resume": false,
+          "index": 0,
+          "elapsedMs": 15.841005000000223,
+          "requestStart": 1,
+          "requestEnd": 1
+        },
+        {
+          "resume": false,
+          "index": 1,
+          "elapsedMs": 2.263133999999809,
+          "requestStart": 2,
+          "requestEnd": 2
+        },
+        {
+          "resume": true,
+          "index": 0,
+          "elapsedMs": 16.449666999998954,
+          "requestStart": 3,
+          "requestEnd": 3
+        }
+      ]
+    },
+    {
+      "version": "0.28.0",
+      "mode": "query",
+      "rootTurns": 3,
+      "providerRequests": 6,
+      "managedMemoryRequests": 3,
+      "samples": [
+        {
+          "resume": false,
+          "index": 0,
+          "elapsedMs": 19.3668889999999,
+          "requestStart": 2,
+          "requestEnd": 2
+        },
+        {
+          "resume": false,
+          "index": 1,
+          "elapsedMs": 3.3988140000001295,
+          "requestStart": 4,
+          "requestEnd": 4
+        },
+        {
+          "resume": true,
+          "index": 0,
+          "elapsedMs": 15.298971000000165,
+          "requestStart": 6,
+          "requestEnd": 6
+        }
+      ]
+    }
+  ]
+}

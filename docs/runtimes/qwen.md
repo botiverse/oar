@@ -295,9 +295,12 @@ value, so the reading is last known and can lag a turn. Disposal resolves a
 pending readback.
 
 Qwen 0.28.0 returned measured last-prompt counts on two fresh turns and one
-resumed turn. Each post-turn query took 2 to 15 ms and made no provider
-request. Its source reads local chat/telemetry state. The same adapter control
-passes on the CI-pinned 0.27.4; this change does not alter CI runtime versions.
+resumed turn. Each measured post-turn query took 2 to 15 ms with no provider
+request observed during its window. Its source reads local chat/telemetry
+state. Native managed-memory extraction can independently overlap a readback;
+the cost regression disables that background feature only in its isolated
+fixture and requires exactly one provider request per root turn. The same
+adapter control passes on the CI-pinned 0.27.4; CI runtime versions are unchanged.
 See [native frames, cost and reproduction](../../experiments/qwen-native/context-usage-2026-11-18.md).
 
 ### Turn work and failures
@@ -317,6 +320,10 @@ shutdown path: there is no native `result` or complete OAR usage for that turn,
 and a raw assistant frame's partial usage is not the full turn's spend. These
 are Linux observations with synthetic replies, not claims about every memory
 configuration or provider ([timing and usage controls](../../experiments/qwen-native/memory-2026-11-02.md)).
+On 0.27.4, extraction can start after native `result` and overlap context
+readback. The 0.26.5 completion and usage timing above is version-specific;
+current native results must not be treated as proof that all background
+memory work has settled ([current controls](../../experiments/qwen-native/context-usage-2026-11-18.md#background-request-attribution)).
 
 A native result error retains its original message. Unclassified execution
 failures remain `unknown`; `error_max_turns` is `limit_reached`, and a result
