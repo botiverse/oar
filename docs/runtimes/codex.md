@@ -593,9 +593,12 @@ group. Limits:
 The outcome is the `cleanup` response on the abort request
 ([shape](../spec/record-stream.md#the-rules)). `completed {signalled}` counts the
 kills actually sent; `failed {reason}` says why not all could be, with `signalled`
-when a refused signal left only some sent. It is recorded after the turn's end
-frame, by a read that can take a moment, so a host that needs the processes gone
-waits for that response, not for the turn end. A later prompt is not held for it.
+when a failed signal left only some sent. A process OAR may not signal (`EPERM`:
+another user's, as under a `sudo -u` wrapper) is not a failure: it is counted in
+`foreign`, present when nonzero, and may still be running. It is recorded after
+the turn's end frame, by a read that can take a moment, so a host that needs the
+processes gone waits for that response, not for the turn end, and checks that
+it has no `foreign`: OAR could not end those. A later prompt is not held for it.
 
 **Verified:** on Linux x64 with codex 0.163.0 and 0.166.0
 ([native test](../../sea-trial/vendor/codex-abort-processes.vendor.test.ts)):

@@ -3,7 +3,7 @@ import { observeProcessTableAsync, processTableSource } from "./process-table-as
 import { observeProcessTableWithin } from "./process-table-budget.js";
 import type { Observation, Phase, ProcessCleanupDiagnostics } from "./process-cleanup-diagnostics.js";
 
-export { appendCleanupFailure, cleanupFailureReason, type ProcessCleanupDiagnostics } from "./process-cleanup-diagnostics.js";
+export { appendCleanupFailure, cleanupFailureReason, withHeldPipes, type HeldPipe, type HeldPipes, type ProcessCleanupDiagnostics } from "./process-cleanup-diagnostics.js";
 
 interface Snapshot { readonly table: ProcessTable; readonly source: ProcessTableSource; }
 

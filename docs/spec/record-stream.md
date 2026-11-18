@@ -366,9 +366,15 @@ Further rules:
   likewise read from `records()` or `rawEvents`, not `events()`. `completed`
   carries `signalled`: how many processes passed the identity check and were
   actually sent the kill (not that each has exited; zero is valid, as when
-  each had already gone). `failed` says why not every target could be
-  signalled. If a signal was refused (`EPERM`), `reason` gives how many and the
-  native code, and `signalled` is present when others were sent. Otherwise
+  each had already gone). A process the system refuses to let OAR signal
+  (`EPERM`: another user's, as under a `sudo -u` wrapper) is not OAR's to
+  stop and not a failure: it is counted in `foreign` (present when nonzero,
+  on `completed` and `failed`), and it may still be running. One in a group
+  whose group signal reached another member counts as signalled instead, as
+  any member of that group does. `failed` says why not every
+  target could be signalled. If a signal failed with another native code,
+  `reason` gives how many and the code, and `signalled` is present when
+  others were sent. Otherwise
   nothing was signalled, because the baseline or snapshot read failed or had
   not finished; the turn had no baseline because `prompt` did not start it (a
   drained queue, a goal continuation, a compaction); the fresh read failed;
@@ -417,7 +423,38 @@ Further rules:
   start cleanup: the agent can finish native shutdown after closing stdout.
   If it stays alive, host disposal still performs the normal cleanup.
   The final `exited` notification is still emitted exactly once after cleanup;
-  it may follow the native exit by an asynchronous cleanup phase. Cleanup
+  it may follow the native exit by an asynchronous cleanup phase.
+- **A process left holding the output pipes never holds up the exit.** After
+  the root's native exit and its cleanup, OAR waits at most 2 s for the root's
+  stdout, stderr and private pipe to close (POSIX). A process the root left
+  can hold them as long as it lives: a background job, or, under a `sudo -u`
+  wrapper, the worker's tree that a signal to sudo orphaned and OAR may not
+  signal. Past that limit OAR closes its end of each pipe it is still reading:
+  read to its end, such a pipe is open only because some process holds it,
+  whether or not one can be named. A pipe holding data its reader has not
+  taken yet (paused, or a `for await` reader still busy) is left to that
+  reader; once it has taken the data, the pipe is closed like the others if
+  still open, and joins `cleanup.heldPipes`. A reader that never takes it
+  keeps the pipe open. `exited.reason` and
+  `cleanup.heldPipes` name the pipes closed and the processes then still in
+  the root's process group, which may hold them; a holder outside the group
+  (another user's tree that left it, a tool in a session of its own) is not
+  seen, and the holders are then empty. Whatever is written to a closed pipe
+  afterwards is lost (the writer gets `EPIPE` or `SIGPIPE`, and may exit for
+  it), so the output read may be incomplete. OAR does not signal the holders
+  for this. For the host-exit hook it keeps each of those group members by
+  identity (pid and start time) and signals only those the process table
+  then shows as the same process; it no longer signals the root's group by
+  number, which a later process may have reused. When the table could not be
+  read, cleanup is `unverified`, keeps that read, and nothing is kept for
+  the hook. One-shot commands (probes) bound the same wait: without a
+  deadline, 2 s after the exit; once stopped (a deadline or a cancellation),
+  2 s after the SIGKILL escalation has been sent. That only bounds the wait:
+  a command whose pipes close (it and its tools exited on the SIGTERM)
+  returns at once, not after the kill grace. When OAR closed a
+  command's pipes its result is not `ok`: it fails with `OUTPUT_INCOMPLETE`
+  and carries `heldPipes`. On Windows sessions resolve `exited` without
+  waiting for the pipes, as before, and one-shot commands wait for them. Cleanup
   completion means the owned signalling actions have finished, not that the
   operating system has finished terminating or reaping every descendant.
   Failed asynchronous observations settle as cleanup diagnostics, not unhandled

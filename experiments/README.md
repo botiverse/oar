@@ -1,5 +1,7 @@
 # experiments
 
+- [Process-tree kill across a user boundary](cross-user-kill/README.md): under a `sudo -u` wrapper the worker's processes answer OAR's signals with EPERM and an orphan holds the runtime's pipes; EPERM is now not a failure and the pipe wait is bounded, with the holders reported.
+
 - [Kimi startup MCP catalog](kimi-mcp-startup/README.md): 2.6.0 discovery race, fixed-delay version controls, and independent native notification preparation; upstream #4904.
 
 - [Skill invocation metadata across runtimes](skill-invocability/README.md): pinned native flags, command catalogs and preserved unknowns.

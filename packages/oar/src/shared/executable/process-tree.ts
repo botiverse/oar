@@ -223,12 +223,14 @@ export function descendantsOf(table: ProcessTable, pid: number, source: ProcessT
   return found;
 }
 
-/** What one round of signals did. `failed` counts processes a signal could not reach while they ran; a process already gone is neither. */
+/** What one round of signals did. `failed` counts processes a signal could not reach while they ran; a process already gone is neither, nor is one in `foreign`. */
 export interface SignalReport {
   /** False when `table` does not show the host: nothing is signalled without its group to protect. */
   readonly hostIdentified: boolean;
   readonly signalled: number;
   readonly failed: number;
+  /** Processes OAR may not signal (EPERM), another user's (a `sudo -u` wrapper's tree): not OAR's to stop, so not a failed cleanup. */
+  readonly foreign: number;
   /** Bounded native error codes behind `failed`. */
   readonly codes: readonly string[];
 }
@@ -247,7 +249,7 @@ function signalCode(error: unknown): string {
  */
 export function signalEntries(entries: Iterable<ProcessEntry>, table: ProcessTable, mayKillGroup: (group: number) => boolean = () => true, signal: NodeJS.Signals = "SIGKILL"): SignalReport {
   const hostGroup = table.get(process.pid)?.pgid;
-  if (hostGroup === undefined) { return { hostIdentified: false, signalled: 0, failed: 0, codes: [] }; }
+  if (hostGroup === undefined) { return { hostIdentified: false, signalled: 0, failed: 0, foreign: 0, codes: [] }; }
   const groups = new Set<number>();
   const pids = new Map<number, number>();
   for (const entry of entries) {
@@ -266,11 +268,12 @@ export function signalEntries(entries: Iterable<ProcessEntry>, table: ProcessTab
       process.kill(-group, signal);
       reached.add(group);
     } catch {
-      // The group emptied meanwhile, or is out of reach: each member's own signal settles it.
+      // The group emptied meanwhile, or none of it is OAR's (EPERM): each member's own signal settles it.
     }
   }
   let signalled = 0;
   let failed = 0;
+  let foreign = 0;
   const codes = new Set<string>();
   for (const [pid, group] of pids) {
     try {
@@ -280,10 +283,11 @@ export function signalEntries(entries: Iterable<ProcessEntry>, table: ProcessTab
       const code = signalCode(error);
       // Its group's signal may already have reaped it.
       if (reached.has(group)) { signalled += 1; }
+      else if (code === "EPERM") { foreign += 1; }
       else if (code !== "ESRCH") { failed += 1; codes.add(code); }
     }
   }
-  return { hostIdentified: true, signalled, failed, codes: [...codes] };
+  return { hostIdentified: true, signalled, failed, foreign, codes: [...codes] };
 }
 
 /** `signalEntries` for callers with no record to keep: a process that is gone or out of reach is left to the exit diagnostics. */
