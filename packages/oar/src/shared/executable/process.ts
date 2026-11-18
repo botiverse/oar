@@ -54,7 +54,9 @@ export interface LineProcess {
    * It then waits at most PIPE_CLOSE_MS (pipe-close.ts) for the output
    * pipes: past that OAR closes its end of each one still held, and reports
    * the closed pipes and the holders it saw in `diagnostics().cleanup.heldPipes`
-   * and the exit reason. What is written to them afterwards is lost.
+   * and the exit reason (a pipe left to its reader's unread data and closed
+   * after this resolves joins only the former). What is written to them
+   * afterwards is lost.
    */
   readonly exited: Promise<number | null>;
   readonly stdin: Writable;
