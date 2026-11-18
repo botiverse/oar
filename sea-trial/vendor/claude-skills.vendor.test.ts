@@ -36,6 +36,9 @@ test.skipIf(process.env.OAR_TEST !== "claude-aimock")("Claude skills join contex
     await mkdir(join(cwd, ".claude", "commands"), { recursive: true });
     await writeFile(join(cwd, ".claude", "commands", "oar-cross.md"), "---\ndescription: Legacy cross\nuser-invocable: false\n---\nPRIVATE COMMAND BODY\n");
     await skill(cwd, "oar-cross", "name: oar-cross\ndescription: Skill cross\ndisable-model-invocation: true");
+    // The same collision with identical descriptions: only the file's own user-invocable: false tells them apart.
+    await writeFile(join(cwd, ".claude", "commands", "oar-twin.md"), "---\ndescription: Twin\nuser-invocable: false\n---\nPRIVATE COMMAND BODY\n");
+    await skill(cwd, "oar-twin", "name: oar-twin\ndescription: Twin\ndisable-model-invocation: true");
     vi.stubEnv("CLAUDE_CONFIG_DIR", join(root, "config"));
     vi.stubEnv("ANTHROPIC_API_KEY", undefined);
     vi.stubEnv("CLAUDE_CODE_OAUTH_TOKEN", undefined);
@@ -62,7 +65,7 @@ test.skipIf(process.env.OAR_TEST !== "claude-aimock")("Claude skills join contex
       assert.notEqual(entry.userInvocable, true, JSON.stringify(ours));
       assert.notEqual(entry.description, "Pair B", JSON.stringify(ours));
     }
-    for (const name of ["oar-cross-scope", "oar-cross"]) {
+    for (const name of ["oar-cross-scope", "oar-cross", "oar-twin"]) {
       for (const entry of byName(name).filter((row) => row.source !== undefined)) {
         assert.notEqual(entry.userInvocable, true, JSON.stringify(ours));
       }

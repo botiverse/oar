@@ -950,9 +950,13 @@ context list, so a command can belong to a file OAR cannot see. A file-backed
 skill therefore joins a command only when the label names the skill's scope,
 the alias names the skill's file (Claude lists a directory named differently
 from its frontmatter `name` as the alias; without an alias the file must have
-the skill's own name), and the file's own frontmatter `description` equals the
-command's. OAR reads only that field, from the path Claude reported, and only
-for skills that share a name with a command. Otherwise nothing is claimed
+the skill's own name), the file's own frontmatter `description` equals the
+command's, and the file does not declare `user-invocable: false`. Claude lists
+every user-invocable file as its own command, so two runnable files of one name
+appear as two commands and join nothing; a single matching command therefore
+belongs to the visible file unless that file declares itself not invocable.
+OAR reads only those two fields, from the path Claude reported, and only for
+skills that share a name with a command. Otherwise nothing is claimed
 (2.1.322, 2.1.326). A builtin command never describes a non-builtin skill of
 the same name and does not make it invocable: `/name` runs the builtin there.
 A name listed twice, in the commands or in the context list (two skill
