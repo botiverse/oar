@@ -60,6 +60,26 @@ installer behaved when run.
   everything it started, in the host environment minus package script
   markers. It never uses sudo and involves no credentials.
 
+**Probe cost.** `installation()` locates the executable without starting
+anything, then runs the runtime's readiness check (when it has one) and
+`--version`. That run is remembered for the life of the process while the
+resolved file keeps its identity (real path, inode, size, modification and
+change times) and the probe's environment is the same, so a host that probes often (before every
+usage read or inventory) pays the start once: on 2026-11-18, CodeBuddy's probe
+took about 3.6 s and Kimi's about 1.7 s per call on a real machine. Upgrades by
+npm, uv, Homebrew, the vendor installer or a staged self-update replace that
+file, so the next probe runs again; OAR's own `install()` and `upgrade()` clear
+the memory too. Not remembered: version-manager shims (a `shims` directory,
+Volta's `bin` directory, or a resolved `volta-shim`, `mise`, `rtx` or `asdf`
+binary), whose file stays the same while the tool behind it changes; a
+`not_found` result; a failed readiness check or a missing version; and probes
+with a custom version reader (devin, antigravity). Two cases can report a
+stale version: a launcher that is neither recognized nor rewritten on upgrade
+(an `OAR_*_BIN` pointing at a wrapper script, an editable `pip install -e`)
+until the host restarts or calls `install()`/`upgrade()`; and kimi's staged
+native update, which kimi swaps in at its next start, until a session or
+usage read starts it.
+
 A located executable whose version is refused returns
 `VersionUnsupportedInstallation`: `kind: "unsupported"`,
 `code: "version_unsupported"`, `via: "executable"`, `command`, `reason`, and

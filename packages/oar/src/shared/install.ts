@@ -13,6 +13,7 @@ import type {
 import type { AvailableInstallation, InstallationProbe, InstallationSnapshot } from "../contracts/installation.js";
 import { isolatedOutput, resolveExecutable, runIsolated } from "./executable/index.js";
 import { updaterEnv } from "./update.js";
+import { clearInstallationCache } from "./installation.js";
 
 const INSTALL_TIMEOUT_MS = 600_000;
 
@@ -197,6 +198,7 @@ async function runSteps(steps: readonly InstallStep[], timeoutMs: number): Promi
 }
 
 async function probeAfter(probe: InstallationProbe): Promise<{ readonly snapshot?: InstallationSnapshot; readonly note: string }> {
+  clearInstallationCache();
   try {
     return { snapshot: await probe(), note: "" };
   } catch (error) {

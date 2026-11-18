@@ -2,10 +2,11 @@ import { afterEach, expect, test, vi } from "vitest";
 import type { ExecutableRunner } from "../../packages/oar/src/shared/executable/run.js";
 import { qoderInstallation } from "../../packages/oar/src/runtimes/qoder/installation.js";
 import { qoderRuntime } from "../../packages/oar/src/runtimes/qoder/index.js";
+import { clearInstallationCache } from "../../packages/oar/src/shared/installation.js";
 
 const runExecutable = vi.hoisted(() => vi.fn<ExecutableRunner>());
 vi.mock("../../packages/oar/src/shared/executable/run.js", () => ({ runExecutable }));
-afterEach(() => { runExecutable.mockReset(); vi.unstubAllEnvs(); });
+afterEach(() => { runExecutable.mockReset(); vi.unstubAllEnvs(); clearInstallationCache(); });
 
 test("installation uses one lightweight version query without starting help", async () => {
   vi.stubEnv("OAR_QODER_BIN", process.execPath);
