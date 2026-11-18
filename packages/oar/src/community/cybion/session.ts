@@ -1,5 +1,6 @@
 import type { RefusedSessionOptions } from "../../contracts/runtime.js";
 import type { ControlResult, InputOptions, PromptOptions, ResponseBody, Session, StartSession } from "../../contracts/session.js";
+import type { RuntimeEventBody } from "../../contracts/records.js";
 import { withdrawControl } from "../../shared/held-input.js";
 import { inputImagesRefusal, withInputImages } from "../../shared/input-images.js";
 import { sealSession } from "../../shared/seal-session.js";
@@ -16,9 +17,10 @@ import { createThreadTracker, type ThreadTracker } from "./tracker.js";
  *   /v1/threads/{id}`), so Session.id is the Thread id and a session opened
  *   later with `resume` is the same conversation.
  * - prompt: `POST /v1/threads/{id}/inputs`, then tracker.ts follows the turn.
- * - queue: held here and sent when the Thread goes idle; the Agent API takes
- *   one input at a time, and a second input while one runs would be a turn of
- *   its own that the Thread's status cannot tell from this one.
+ * - queue: held here with `queued: "adapter"`; at dispatch it records a prompt
+ *   request carrying the held input's identity, as the record-stream spec
+ *   requires, so a held input starts a turn like any other and no prompt
+ *   overtakes it (`docs/spec/record-stream.md`, adapter-held queue records).
  * - abort: refused. The Agent API has no route that cancels a turn; a Thread
  *   is stopped from Cybion's own UI (`POST /api/threads/{id}/cancel`), which
  *   an API key cannot reach. Nothing here guesses at one.
@@ -47,7 +49,7 @@ export const cybionRefusedSessionOptions: RefusedSessionOptions = {
 
 interface Held {
   readonly input: string;
-  readonly inputId?: string | undefined;
+  readonly inputId: string;
   readonly images?: InputOptions["images"];
 }
 
@@ -63,11 +65,22 @@ export function cybionSessionWith(client: Parameters<typeof openThread>[0]): Sta
     refuseSessionOptions(cybionRefusedSessionOptions, options);
     const thread = await openThread(client, options);
     const kernel = createSessionKernel(thread.id);
+    // The Thread's own report, read at open rather than echoed from the request.
+    const opening: RuntimeEventBody[] = [
+      ...(thread.model === null ? [] : [{ kind: "model" as const, model: thread.model }]),
+      ...(thread.effort === null ? [] : [{ kind: "effort" as const, effort: thread.effort }]),
+    ];
+    kernel.frame({ type: "thread/opened", native: thread.native, events: opening });
+
     const held: Held[] = [];
     let disposed = false;
+    let draining = false;
     const capabilities = { queue: { durable: false }, attribution: "none", images: true } as const;
 
-    const send = async (input: string, images: InputOptions["images"]): Promise<ResponseBody> => {
+    /** Whether the Thread has work of this session's: a running turn, or an input waiting to be sent. */
+    const occupied = (): boolean => tracker.busy() || held.length > 0;
+
+    const attempt = async (input: string, images: InputOptions["images"]): Promise<ResponseBody> => {
       const refused = inputImagesRefusal(capabilities, images);
       if (refused !== null) {
         return refused;
@@ -76,12 +89,64 @@ export function cybionSessionWith(client: Parameters<typeof openThread>[0]): Sta
         try {
           const answer = await submitInput(client, thread.id, input, loaded.map((image) => `data:${image.mediaType};base64,${image.data}`));
           tracker.follow(acceptedRecordOf(answer));
-          return { kind: "accepted", native: answer };
+          return { kind: "accepted" as const, native: answer };
         } catch (error) {
           return refusalOf(error);
         }
       });
       return outcome;
+    };
+
+    /**
+     * Send one held input and record its dispatch as a prompt, so the turn it
+     * starts is in the stream like any other. A refusal the Thread reports
+     * hands the input back to the caller as `input_dropped`.
+     */
+    const dispatch = async (entry: Held): Promise<ControlResult> => {
+      const result = await kernel.control(
+        // The dispatch prompt is its own control identity; the held input it
+        // sends is named by `carries` alone (a prompt whose own inputId is the
+        // carried one is not a dispatch).
+        { kind: "prompt", input: entry.input, carries: [entry.inputId], ...(entry.images === undefined ? {} : { images: entry.images }) },
+        async (request): Promise<ResponseBody> => {
+          const outcome = await attempt(entry.input, entry.images);
+          if (outcome.kind === "rejected") {
+            const dropped: RuntimeEventBody = {
+              kind: "input_dropped",
+              reason: "runtime_refused",
+              message: outcome.reason,
+              requestId: request.id,
+              ...(outcome.failure === undefined ? {} : { failure: outcome.failure }),
+            };
+            kernel.frame({ type: "cybion/send_rejected", native: outcome.native ?? null, events: [dropped] });
+          }
+          return outcome;
+        },
+      );
+      return result;
+    };
+
+    const drain = async (): Promise<void> => {
+      if (disposed || draining) {
+        return;
+      }
+      const next = held[0];
+      if (next === undefined || tracker.busy()) {
+        return;
+      }
+      draining = true;
+      held.shift();
+      try {
+        const result = await dispatch(next);
+        if (result.response.body.kind !== "accepted") {
+          // The send failed: the next held input still gets its own turn.
+          queueMicrotask(() => {
+            void drain();
+          });
+        }
+      } finally {
+        draining = false;
+      }
     };
 
     const tracker: ThreadTracker = createThreadTracker({
@@ -92,12 +157,8 @@ export function cybionSessionWith(client: Parameters<typeof openThread>[0]): Sta
       // are not replayed, so a resumed session starts at its own next turn.
       seen: await lastRecordOf(client, thread.id),
       onIdle: () => {
-        const next = disposed ? undefined : held.shift();
-        if (next !== undefined) {
-          void send(next.input, next.images);
-        }
+        void drain();
       },
-      onUnreachable: null,
     });
 
     const session: Session = sealSession({
@@ -106,31 +167,32 @@ export function cybionSessionWith(client: Parameters<typeof openThread>[0]): Sta
       prompt: async (input: string, inputOptions?: PromptOptions): Promise<ControlResult> => {
         // Busy is the status fold's word as the request is recorded (`control()`
         // records it synchronously), so the contract's invariant holds by
-        // construction: a prompt sent while the Thread runs is refused, and one
-        // sent while it idles is never refused `busy`.
-        const running = session.status().value.kind === "running";
+        // construction. A held input also counts: the spec forbids a prompt
+        // overtaking input OAR already accepted.
+        const busy = occupied();
         const result = await kernel.control({ kind: "prompt", input, ...inputOptions }, async (): Promise<ResponseBody> => {
-          if (running) {
+          if (busy) {
             return { kind: "rejected", code: "busy", reason: "busy" };
           }
-          const outcome = await send(input, inputOptions?.images);
+          const outcome = await attempt(input, inputOptions?.images);
           return outcome;
         });
         return result;
       },
       queue: async (input: string, inputOptions?: InputOptions): Promise<ControlResult> => {
-        const result = await kernel.control({ kind: "queue", input, ...inputOptions }, async (): Promise<ResponseBody> => {
+        // The queue record must name the input it holds: the dispatch prompt that
+        // later carries it is checked against this request's `inputId`, so one is
+        // made when the caller gave none.
+        const inputId = inputOptions?.inputId ?? globalThis.crypto.randomUUID();
+        const result = await kernel.control({ kind: "queue", input, ...inputOptions, inputId }, (): ResponseBody => {
           const refused = inputImagesRefusal(capabilities, inputOptions?.images);
           if (refused !== null) {
             return refused;
           }
-          if (tracker.busy()) {
-            held.push({ input, inputId: inputOptions?.inputId, images: inputOptions?.images });
-            return { kind: "accepted" };
-          }
-          const outcome = await send(input, inputOptions?.images);
-          return outcome;
+          held.push({ input, inputId, images: inputOptions?.images });
+          return { kind: "accepted", queued: "adapter" };
         });
+        void drain();
         return result;
       },
       withdraw: withdrawControl(kernel, held),

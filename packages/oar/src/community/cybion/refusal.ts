@@ -20,10 +20,12 @@ export class CybionRefusalError extends Error {
   override readonly name = "CybionRefusalError";
   readonly native: unknown;
   readonly refused: boolean;
+  readonly status: number;
 
   constructor(reply: CybionReply) {
     super(replyMessage(reply));
     this.native = reply.body;
     this.refused = reply.status >= 400 && reply.status < 500;
+    this.status = reply.status;
   }
 }

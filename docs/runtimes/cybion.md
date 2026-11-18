@@ -113,6 +113,28 @@ deployment URL and API key are constructor inputs
 (`createCybionRuntime({baseUrl, apiKey})`), so the adapter holds no credential
 of its own.
 
+## Known gaps
+
+- **No cancellation.** `abort` answers `unsupported` while a turn runs: the
+  Agent API has no cancel route, and the browser route an API key cannot reach.
+  A host stops a Thread in Cybion's own UI instead. Until that changes, this
+  runtime suits work that runs to completion, not work a host may need to stop.
+- **Polling, not streaming.** Text arrives at poll granularity (250 ms, backing
+  off to 2 s), so a UI shows it in chunks rather than as a token stream, and a
+  turn's end is observed a poll or two late.
+- **Every poll reads the whole history.** `/history` on the Agent API takes no
+  `after` or index parameter, so each poll of a long Thread reads everything it
+  holds. That is fine for tens of records and wasteful for thousands; the cost
+  is the deployment's bandwidth, never model tokens.
+- **A resumed session does not replay the Thread's earlier records.** The stream
+  starts at the resumed session's own first turn, so `reduceConversation` over
+  it shows only what that process observed.
+- **No model list, account usage or inventories.** The Agent API exposes none of
+  them, so `listModels`, `accountUsage` and the four inventories answer
+  `unsupported`.
+- **Images travel inline.** `InputOptions.images` are read from this machine and
+  sent as png/jpeg/webp/gif data URLs, within Cybion's count and size limits.
+
 ## Evidence and verification
 
 - Native source: Cybion's `src/cloud.rs`, the `external_api` router
@@ -149,10 +171,19 @@ of its own.
   uninterpreted and records as frames with no events), one `request_tail`
   activity, and one `response_output` `message` carrying an `output_text`
   part.
-- **Still unexercised live**: `reasoning` items, `function_call` /
-  `custom_tool_call` items and `tool_output` records — the observed turn
-  answered without tools, so those mappings rest on the source and on the wire
-  probe. Unresolved: whether a `blocked` Thread ends its turn as
-  `limit_reached` in every case, and whether the Agent API will expose
-  cancellation. A session's Thread also outlives it (the Agent API has no
-  route that deletes one): a probe leaves a Thread in its owner's list.
+- **Live turns with tools, a queued input and a resume, observed 2026-11-18**
+  on Cybion `0.6.108` at `https://cybion.ntnl.io` (that deployment's version,
+  from `GET /api/config`), Thread `01a1f066-4924-7d40-861d-83e5ca373ed6`:
+  - a turn that called a Worker tool reported `reasoning`,
+    `tool_call_started` / `tool_call_ended` pairs and the model's own answer,
+    then `turn_ended` `completed`;
+  - an input queued while a turn ran was dispatched as a prompt of its own and
+    ran its own turn, so three inputs produced three `turn_started` events;
+  - a second session opened with `resume` on the same Thread reported the same
+    id, model and effort, and its prompt ran in the same conversation.
+
+  Usage across those turns read `{input: 78598, output: 647, cacheRead: 59392}`.
+- **Unresolved**: what a `blocked` Thread's end means (the mapping reports
+  `unknown` rather than guessing a limit), and whether the Agent API will expose
+  cancellation. A Thread also outlives its session — the Agent API has no route
+  that deletes one — so a probe leaves a Thread in its owner's list.

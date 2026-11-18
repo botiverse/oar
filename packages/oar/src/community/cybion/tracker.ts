@@ -11,23 +11,32 @@ const POLL_FIRST_MS = 250;
 const POLL_MAX_MS = 2000;
 /** Quiet polls after the Thread stopped running, before its turn is read as ended. */
 const QUIET_POLLS = 2;
-/** Polls a freshly accepted input gets to make the Thread run before its absent record decides. */
-const START_POLLS = 8;
-/** Consecutive failed reads after which an attached deployment is taken for gone. */
+/**
+ * Polls an accepted input gets to make the Thread `running` before its turn is
+ * read as never started. Cybion answers `POST /inputs` with the record the
+ * input occupies, not with a settled `running` status: the Thread may sit
+ * `idle` while it waits for a Worker, so the guard is generous.
+ */
+const START_POLLS = 60;
+/** Consecutive failed reads after which one turn is given up as unreachable. */
 const UNREACHABLE_AFTER = 8;
 
 interface Turn {
   readonly ended: PromiseWithResolvers<void>;
-  /** The last history record this process recorded for this turn. */
-  seen: number;
-  /** The Thread was observed running, or a record appeared: this turn did work. */
+  /**
+   * Records with an id past this one prove the Thread did work for this turn.
+   * An input's own record sits AT it: recording the input is not the Thread
+   * running, so it never counts as work.
+   */
+  readonly after: number;
+  /** The Thread was observed running, or wrote a record after the input. */
   worked: boolean;
   quiet: number;
   startPolls: number;
 }
 
 export interface ThreadTracker {
-  /** A turn runs in the Thread, or one waits behind it. */
+  /** A turn runs in the Thread, or one is being dispatched. */
   busy(): boolean;
   /** Follow the turn an accepted input started, whose own record is `recordIdx`. */
   follow(recordIdx: number | null): void;
@@ -41,12 +50,16 @@ export interface TrackerOptions {
   readonly client: CybionClient;
   readonly kernel: SessionKernel;
   readonly thread: CybionThread;
-  /** The last history record this process already recorded, so a turn frames only its own. */
+  /** The last history record this process already recorded, so a turn frames only what is new. */
   readonly seen: number;
-  /** Called after a turn ended with nothing left running. */
+  /** Called after a turn ended with the Thread idle and nothing given up. */
   readonly onIdle: () => void;
-  /** Called when the deployment stops answering. */
-  readonly onUnreachable: (() => void) | null;
+  /**
+   * How the next poll is spaced. The default is a real timer that does not hold
+   * the host process open; a test passes its own so a poll happens when the
+   * test says so.
+   */
+  readonly wait?: (ms: number) => Promise<void>;
 }
 
 /** The Thread's totals less the ones it already carried when this session opened. */
@@ -85,7 +98,7 @@ function outcomeOf(thread: CybionThread): TurnOutcome {
     return { kind: "failed", failure: "unknown", reason: "the Cybion Thread failed; its own history holds the reason" };
   }
   if (thread.displayStatus === "blocked") {
-    return { kind: "failed", failure: "limit_reached", reason: "the Cybion Thread is blocked on its owner" };
+    return { kind: "failed", failure: "unknown", reason: "the Cybion Thread is blocked on its owner" };
   }
   return { kind: "completed" };
 }
@@ -97,18 +110,30 @@ function outcomeOf(thread: CybionThread): TurnOutcome {
  *
  * - Every history record past the ones this process already recorded becomes
  *   one frame carrying the record verbatim and the events read out of it
- *   (projection.ts). The history is append-only, so no record repeats.
+ *   (projection.ts). The cursor only ever moves forward, so a record written
+ *   between two turns is framed by the next turn's polls rather than skipped,
+ *   and nothing is framed twice.
  * - The Thread's own status says when the turn ended: `running` while it
- *   works, then a refined idle word (`completed`, `stopped`, `blocked`).
- *   The end is read only after two quiet polls, so a status write that lands
- *   a moment after the last record is not mistaken for a finished turn.
+ *   works, then a refined idle word (`completed`, `stopped`, `blocked`). The
+ *   end is read only after two quiet polls, so a status write that lands a
+ *   moment after the last record is not mistaken for a finished turn.
+ * - A turn counts as work only once the Thread reports `running` or writes a
+ *   record after the input. The input's own record does not count: an idle
+ *   status left over from the previous turn would otherwise end this one
+ *   before it began.
  * - Token totals are Cybion's own Thread totals, reported as the session's
  *   running total (what the Thread spent, less what it carried when the
  *   session opened), so no turn is counted twice.
+ * - A deployment that stops answering ends the turn as a failed one and
+ *   leaves the session usable: nothing here claims a process exited, because
+ *   the Thread keeps existing on Cybion's side.
  */
 export function createThreadTracker(options: TrackerOptions): ThreadTracker {
   const { client, kernel, thread } = options;
   const opened = thread.usage;
+  const wait: (ms: number) => Promise<void> = options.wait ?? (async (ms) => {
+    await delay(ms, undefined, { ref: false });
+  });
   let turn: Turn | null = null;
   let closed = false;
   let pumping = false;
@@ -142,18 +167,22 @@ export function createThreadTracker(options: TrackerOptions): ThreadTracker {
 
   const record = (current: Turn, history: readonly CybionHistoryRecord[]): void => {
     for (const entry of history) {
-      if (entry.id <= current.seen) {
+      if (entry.id <= seen) {
         continue;
       }
-      current.seen = entry.id;
-      seen = Math.max(seen, entry.id);
-      current.worked = true;
-      current.quiet = 0;
+      seen = entry.id;
+      if (entry.id > current.after) {
+        current.worked = true;
+        current.quiet = 0;
+      }
       kernel.frame({ type: frameTypeOf(entry), native: entry.native, events: eventsOfHistory(entry) });
     }
   };
 
-  const finish = (current: Turn, now: CybionThread | null, outcome: TurnOutcome): void => {
+  /** This turn is no longer the one being followed, or the session was released. */
+  const abandoned = (current: Turn): boolean => closed || turn !== current;
+
+  const finish = (current: Turn, now: CybionThread | null, outcome: TurnOutcome, idle: boolean): void => {
     const ending: RuntimeEventBody = { kind: "turn_ended", outcome };
     if (now === null) {
       kernel.frame({ type: "thread/lost", native: null, events: [ending] });
@@ -162,36 +191,34 @@ export function createThreadTracker(options: TrackerOptions): ThreadTracker {
     }
     turn = null;
     current.ended.resolve();
-    options.onIdle();
+    if (idle && !closed) {
+      options.onIdle();
+    }
   };
 
   const step = async (current: Turn): Promise<void> => {
     const now = await readThread(client, thread.id);
+    if (abandoned(current)) {
+      return;
+    }
     record(current, await readHistory(client, thread.id));
+    if (abandoned(current)) {
+      return;
+    }
     emitUsage(now);
     observe(current, now);
     if (!current.worked && current.startPolls >= START_POLLS) {
-      finish(current, null, { kind: "failed", failure: "unknown", reason: "Cybion accepted the input but the Thread neither ran nor recorded it" });
+      finish(current, null, { kind: "failed", failure: "unknown", reason: "Cybion recorded the input but the Thread never ran a turn" }, true);
       return;
     }
     if (current.worked && now.status !== "running" && current.quiet >= QUIET_POLLS) {
-      finish(current, now, outcomeOf(now));
+      finish(current, now, outcomeOf(now), true);
     }
-  };
-
-  const lose = (current: Turn): void => {
-    // The deployment stopped answering: the stream says so once, and the turn
-    // ends as a runtime exit. The Thread itself may still run there.
-    if (kernel.unreachable() === null) {
-      kernel.respond("", { kind: "exited", code: null });
-    }
-    options.onUnreachable?.();
-    finish(current, null, { kind: "failed", failure: "runtime_exited", reason: "Cybion stopped answering; the Thread may still be running there" });
   };
 
   const pump = async (): Promise<void> => {
     pumping = true;
-    let wait = POLL_FIRST_MS;
+    let backoff = POLL_FIRST_MS;
     let failures = 0;
     try {
       for (let first = true; ; first = false) {
@@ -200,16 +227,20 @@ export function createThreadTracker(options: TrackerOptions): ThreadTracker {
           break;
         }
         if (!first) {
-          await delay(wait);
-          wait = Math.min(POLL_MAX_MS, Math.round(wait * 1.5));
+          await wait(backoff);
+          backoff = Math.min(POLL_MAX_MS, Math.round(backoff * 1.5));
         }
         try {
           await step(current);
           failures = 0;
         } catch {
           failures += 1;
-          if (failures >= UNREACHABLE_AFTER) {
-            lose(current);
+          if (failures >= UNREACHABLE_AFTER && turn === current) {
+            // The deployment stopped answering. Nothing exited — the Thread still
+            // runs on Cybion's side — so the turn fails and the session stays
+            // usable, and a held input waits rather than starting a turn nobody
+            // is watching.
+            finish(current, null, { kind: "failed", failure: "unknown", reason: "Cybion stopped answering; the Thread may still be running there" }, false);
           }
         }
       }
@@ -224,9 +255,14 @@ export function createThreadTracker(options: TrackerOptions): ThreadTracker {
       if (closed) {
         return;
       }
-      const base = recordIdx === null ? seen : Math.max(seen, recordIdx - 1);
       const replaced = turn;
-      turn = { ended: Promise.withResolvers<void>(), seen: base, worked: false, quiet: 0, startPolls: 0 };
+      turn = {
+        ended: Promise.withResolvers<void>(),
+        after: recordIdx ?? seen,
+        worked: false,
+        quiet: 0,
+        startPolls: 0,
+      };
       replaced?.ended.resolve();
       if (!pumping) {
         void pump();
@@ -237,7 +273,7 @@ export function createThreadTracker(options: TrackerOptions): ThreadTracker {
       if (current === null) {
         return;
       }
-      await Promise.race([current.ended.promise, delay(ms)]);
+      await Promise.race([current.ended.promise, wait(ms)]);
     },
     close: () => {
       closed = true;

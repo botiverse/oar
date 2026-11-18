@@ -1,8 +1,10 @@
 import { UnsupportedOptionError } from "../../contracts/errors.js";
+import type { FailureClass } from "../../contracts/failure.js";
+import { SessionNotFoundError } from "../../contracts/session-not-found-error.js";
 import type { ResponseBody, SessionOptions } from "../../contracts/session.js";
 import { asNumber, asRecord, asRecordList, type JsonRecord } from "../../shared/json.js";
 import { errorText, type CybionClient } from "./client.js";
-import { CybionRefusalError } from "./refusal.js";
+import { CybionRefusalError, replyMessage } from "./refusal.js";
 
 /** The parts of a Cybion Thread (`ThreadView`) this adapter reads. */
 export interface CybionThread {
@@ -113,9 +115,14 @@ export async function lastRecordOf(client: CybionClient, threadId: string): Prom
  */
 export async function openThread(client: CybionClient, options: SessionOptions): Promise<CybionThread> {
   if (options.resume !== undefined) {
-    const resumed = await readThread(client, options.resume).catch((error: unknown) => {
-      throw new Error(`Cybion has no Thread ${options.resume} to resume: ${String(error)}`);
-    });
+    const reply = await client.call("GET", `/v1/threads/${encodeURIComponent(options.resume)}`);
+    if (reply.status === 404) {
+      throw new SessionNotFoundError(options.resume, `Cybion has no Thread ${options.resume} to resume`, { method: "GET /v1/threads/{id}", native: { error: errorText(reply.body) } });
+    }
+    if (reply.status < 200 || reply.status >= 300) {
+      throw new Error(`cybion GET /v1/threads/${options.resume} answered ${String(reply.status)}: ${replyMessage(reply)}`);
+    }
+    const resumed = threadOf(reply.body);
     if (options.model !== undefined && resumed.model !== null && options.model !== resumed.model) {
       throw new UnsupportedOptionError("model", `Cybion's Agent API has no route that changes a Thread's model, and Thread ${resumed.id} runs ${resumed.model}`);
     }
@@ -133,7 +140,16 @@ export async function openThread(client: CybionClient, options: SessionOptions):
     const detail = errorText(created.body);
     throw new Error(`cybion POST /v1/threads answered ${String(created.status)}: ${detail ?? "no detail"}`);
   }
-  return threadOf(created.body);
+  const thread = threadOf(created.body);
+  // A requested model is never silently substituted: the Thread reports the one
+  // it runs, so a substitution fails the open instead of the first turn.
+  if (options.model !== undefined && thread.model !== null && thread.model !== options.model) {
+    throw new Error(`Cybion created Thread ${thread.id} with model ${thread.model}, not the requested ${options.model}`);
+  }
+  if (options.effort !== undefined && thread.effort !== null && thread.effort !== options.effort) {
+    throw new Error(`Cybion created Thread ${thread.id} at reasoning effort ${thread.effort}, not the requested ${options.effort}`);
+  }
+  return thread;
 }
 
 /**
@@ -152,22 +168,44 @@ export async function submitInput(client: CybionClient, threadId: string, input:
   return reply.body;
 }
 
-/** Append background an integration already holds; it starts no turn. */
-export async function appendContext(client: CybionClient, threadId: string, content: string): Promise<void> {
-  await client.expect("POST", `/v1/threads/${encodeURIComponent(threadId)}/context`, { content });
-}
-
 /** The record Cybion says an accepted input occupies; null when it named none. */
 export function acceptedRecordOf(answer: unknown): number | null {
   const index = asRecord(answer)?.record_idx;
   return asNumber(index);
 }
 
-/** What one failed delivery attempt means to the caller: a refusal, or a transport error. */
+/** The failure class a status names, for the ones Cybion makes plain. */
+function failureOf(status: number): FailureClass | undefined {
+  if (status === 401 || status === 403) {
+    return "auth";
+  }
+  if (status === 429) {
+    return "rate_limited";
+  }
+  return undefined;
+}
+
+/**
+ * What one failed delivery attempt means to the caller, read from the status
+ * Cybion answered: a rejected credential is an `auth` failure, a throttle a
+ * `rate_limited` one, a 5xx a provider-side `error`. A transport failure keeps
+ * the exception's own words and no class, because nothing answered.
+ */
 export function refusalOf(error: unknown): ResponseBody {
-  return error instanceof CybionRefusalError
-    ? { kind: "rejected", code: error.refused ? "runtime_refused" : "error", reason: error.message, native: error.native }
-    : { kind: "rejected", code: "error", reason: String(error) };
+  if (!(error instanceof CybionRefusalError)) {
+    return { kind: "rejected", code: "error", reason: String(error) };
+  }
+  if (error.status >= 500) {
+    return { kind: "rejected", code: "error", reason: error.message, failure: "provider", native: error.native };
+  }
+  const failure = failureOf(error.status);
+  return {
+    kind: "rejected",
+    code: error.refused ? "runtime_refused" : "error",
+    reason: error.message,
+    ...(failure === undefined ? {} : { failure }),
+    native: error.native,
+  };
 }
 
 /** Every `output_text` of one `response_output` message, in the item's own order. */
