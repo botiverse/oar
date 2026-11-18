@@ -1,0 +1,74 @@
+name: Antigravity readiness evidence
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/antigravity-readiness.yml'
+      - 'experiments/antigravity-readiness/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  observe:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        version: ['1.5.10', '1.5.11']
+        include:
+          - version: '1.5.10'
+            key: antigravity-1-5-10
+          - version: '1.5.11'
+            key: antigravity-1-5-11
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 50
+    env:
+      OAR_TEST: antigravity-aimock
+      OAR_TEST_REQUIRE_AVAILABLE: '1'
+      OAR_TEST_CONCURRENCY: '2'
+      OAR_TRIAL_RUN_DIR: ${{ github.workspace }}/oar-trial-run/antigravity-readiness
+      OAR_READINESS_VERSION: ${{ matrix.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install exact native archive and verify its version
+        id: install
+        run: node .github/scripts/runtime-install.mjs '${{ matrix.key }}' experiments/antigravity-readiness/versions.json
+      - name: Full behavior suite
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm run sea-trial
+        timeout-minutes: 12
+      - name: Full vendor suite
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm vitest run sea-trial/vendor --maxWorkers 2
+        timeout-minutes: 12
+      - name: Native queries, paths and dispose identities
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm tsx experiments/antigravity-readiness/probe.ts
+        timeout-minutes: 8
+      - name: Repeat the startup MCP collision control
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: node --import tsx experiments/antigravity-readiness/repeat-mcp.ts
+        timeout-minutes: 10
+      - name: Explicit Windows native skill fallback
+        if: ${{ !cancelled() && steps.install.outcome == 'success' && runner.os == 'Windows' && matrix.version == '1.5.11' }}
+        run: pnpm vitest run sea-trial/vendor/antigravity-windows-skills.vendor.test.ts
+        timeout-minutes: 3
+        env:
+          OAR_TEST: antigravity-file-skills
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: antigravity-readiness-${{ matrix.version }}-${{ matrix.os }}
+          path: oar-trial-run/antigravity-readiness
+          if-no-files-found: error
+          retention-days: 14
