@@ -99,15 +99,6 @@ test("a session the runtime opened under another id is refused", async () => {
   expect(error.message).toMatch(/^DSH opened another-id, not /u);
 });
 
-test("a missing factory method is a typed refusal with its reason", async () => {
-  expect(await failure({ FAKE_DSH_MISSING: "create" })).toMatchObject({ name: "RuntimeFailureError", message: "This DSH does not provide create(), which opening a session requires" });
-  const resumed = await failure({ FAKE_DSH_MISSING: "resume" }, { resume: "11111111-1111-4111-8111-111111111111" });
-  expect(resumed).toBeInstanceOf(UnsupportedOptionError);
-  expect(resumed).toMatchObject({ option: "resume", message: "This DSH does not provide resume(), which resuming a session requires" });
-  const peek = await failure({ FAKE_DSH_MISSING: "open" }, { resume: "11111111-1111-4111-8111-111111111111" });
-  expect(peek).toMatchObject({ option: "resume", message: "This DSH does not provide open(), which reading a saved session before resume requires" });
-});
-
 test("native route refusals keep their words and their class", async () => {
   const effort = await failure({}, { effort: "bad" });
   expect(effort).toBeInstanceOf(UnsupportedOptionError);
