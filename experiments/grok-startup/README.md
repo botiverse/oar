@@ -455,3 +455,31 @@ and close records, and no matching captured process identity remaining.
 The eight regression tests and full check passed (4,641 tests and 19 mock
 behavior cases). This does not claim a new native Windows result or explain
 the original diagnostic cleanup failure.
+
+## Windows materialization is per installation home
+
+November 18 follow-up, Grok 1.0.70 (`f50904eaee6c`), Node 24.22.2. The npm
+launcher is not decompressing its 176,000,000-byte executable on every start.
+The published `grok-bootstrap.js` (SHA256 `15abbdc3e34d3c1e53b71def7f9c59f22bd793c51c5f6f88c645103742cc544e`)
+first uses an existing canonical executable in `GROK_HOME/bin`; materialization
+is a fallback when that executable is absent. It also reuses an existing
+versioned binary. A fresh installation home pays that cost again.
+
+The retained Windows controls in [run 43713696861](https://github.com/botiverse/oar/actions/runs/43713696861)
+use the same launcher hash. The first `node-launcher` start in its isolated
+home reads 50,686,299 compressed bytes, decompresses to 176,000,000 bytes,
+writes a temporary binary, renames it and copies it to the canonical path.
+The next start in the same home records only the native spawn, with no read,
+decompression, write or copy phase. This establishes first-home behavior for
+the tested version, not a guarantee that a deleted or unusable cache can never
+trigger the fallback again.
+
+[Run 44284023327, job 134731879687](https://github.com/botiverse/oar/actions/runs/44284023327/job/134731879687)
+preserves a new-home failure at that write stage: decompression finished in
+724 ms, then `write_started` had no matching finish before the diagnostic's
+15-second deadline. No stdout or stderr appeared. At 20.733 seconds, after
+`taskkill` reported success, the root PID and its original start identity were
+still present. The diagnostic correctly retained this outcome and failed.
+The write and termination stall causes remain unknown. All 46 actual suite
+processes received initialize replies, the slowest at 24.416 seconds; this
+sample does not change the separate 60-second product initialize deadline.
