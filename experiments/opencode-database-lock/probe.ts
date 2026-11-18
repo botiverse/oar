@@ -1,11 +1,12 @@
+import { acquireOpenCodeStartup } from "../../packages/oar/src/runtimes/opencode/startup-gate.js";
 import type { Observation } from "./observation.js";
-/** Direct native ACP startup controls, no OAR adapter, login, prompt or retries. */
+/** Native ACP startup controls with optional OAR gate/adapter, no login, prompt or retries. */
 /* oxlint-disable eslint/no-await-in-loop, eslint/no-continue, eslint/max-depth -- Sequential starts and rounds are experimental controls. */
 /* oxlint-disable promise/avoid-new -- Bridge native process and HTTP lifecycle callbacks. */
 import { asRecord, parseJson } from "../../packages/oar/src/shared/json.js";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, stat, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import path from "node:path";
 import { createInterface } from "node:readline";
@@ -14,6 +15,8 @@ const [binary, destination = "oar-trial-run/opencode-database-lock", roundsText 
 assert.ok(binary !== undefined && path.isAbsolute(binary), "Provide an absolute OpenCode executable");
 assert.notEqual(process.platform, "win32", "This probe owns POSIX process groups");
 const command = binary;
+// v1 accepts DEBUG; v2 requires debug. This changes logging only.
+const nativeArgs = ["acp", "--print-logs", "--log-level", process.env.OAR_LOCK_LOG_LEVEL ?? "DEBUG"];
 const rounds = Number(roundsText);
 assert.ok(Number.isInteger(rounds) && rounds > 0 && rounds <= 100, "Rounds must be 1..100");
 const output = path.resolve(destination);
@@ -58,14 +61,17 @@ async function acquireStartup(directory: string): Promise<() => void> {
   return next.resolve;
 }
 
+function noGate(): void {}
 
-async function sample(name: string, env: NodeJS.ProcessEnv, guarded = false): Promise<Observation> {
+async function sample(name: string, env: NodeJS.ProcessEnv, gate: "none" | "probe" | "oar" = "none"): Promise<Observation> {
   const began = performance.now();
-  const row: Observation = { name, startedAtMs: began, guarded, initialized: false, opened: false, startedAt: new Date().toISOString(), elapsedMs: 0, exitCode: null, signal: null };
+  const row: Observation = { name, startedAtMs: began, guarded: gate !== "none", gate, initialized: false, opened: false, startedAt: new Date().toISOString(), elapsedMs: 0, exitCode: null, signal: null };
   const data = env.XDG_DATA_HOME; assert.ok(data !== undefined);
-  let release = guarded ? await acquireStartup(data) : (): void => {};
+  const cwd = env.HOME; assert.ok(cwd !== undefined);
+  let release = noGate;
+  if (gate === "oar") { release = await acquireOpenCodeStartup({ cwd, env: { HOME: cwd, XDG_DATA_HOME: data } }); }
+  else if (gate === "probe") { release = await acquireStartup(data); }
   row.queueMs = performance.now() - began;
-  const nativeArgs = ["acp", "--print-logs", "--log-level", "DEBUG"];
   const trace = process.env.OAR_LOCK_STRACE === "1";
   const args = trace ? ["-f", "-ttt", "-yy", "-e", "trace=fcntl,openat,close,unlink", "-o", path.join(output, `${name}.strace`), command, ...nativeArgs] : nativeArgs;
   const child = spawn(trace ? "/usr/bin/strace" : command, args, { cwd: env.HOME, env, detached: true, stdio: ["pipe", "pipe", "pipe"] });
@@ -114,7 +120,7 @@ async function sample(name: string, env: NodeJS.ProcessEnv, guarded = false): Pr
     const initialized = await rpc("initialize", { protocolVersion: 1, clientCapabilities: {}, clientInfo: { name: "oar-lock-probe", version: "1" } });
     row.initialized = true;
     row.initializeMs = performance.now() - began;
-    release(); release = (): void => {};
+    release(); release = noGate;
     const agent = asRecord(initialized.agentInfo);
     if (typeof agent?.version === "string") { row.version = agent.version; }
     await rpc("session/new", { cwd: env.HOME, mcpServers: [] });
@@ -145,24 +151,33 @@ try {
   for (const [i, env] of separate.entries()) { results.push(await sample(`warmup-separate-${String(i)}`, env)); }
   assert.ok(results.every(result => result.opened), "Preparation failed; cannot label later starts warm");
   const version = results[0]?.version; assert.ok(version !== undefined);
-  for (const mode of ["shared", "separate", "serial", "recovery", "guarded", "adapter"] as const) {
+  for (const mode of ["shared", "separate", "serial", "recovery", "guarded", "adapter", "cold", "cold-gated", "cold-adapter"] as const) {
     if (!selection.split(",").includes(mode)) { continue; }
+    let gate: "none" | "probe" | "oar" = "none";
+    if (mode === "cold-gated") { gate = "oar"; }
+    else if (mode === "guarded") { gate = "probe"; }
     for (let round = 0; round < rounds; round++) {
-      const names = [0, 1].map(i => `${mode}-${String(round)}-${String(i)}`);
+      const cold = mode.startsWith("cold");
+      const names = (cold ? [0, 1, 2, 3] : [0, 1]).map(i => `${mode}-${String(round)}-${String(i)}`);
+      const roundEnv = cold ? await environment(`${mode}-${String(round)}`) : shared;
+      if (cold) {
+        const root = roundEnv.XDG_DATA_HOME; assert.ok(root !== undefined);
+        await assert.rejects(stat(path.join(root, "opencode")), { code: "ENOENT" }, "Cold data directory must not exist before the concurrent starts");
+      }
       if ((mode === "recovery" || mode === "guarded" || mode === "adapter")) {
         const writer = spawn("python3", ["-c", "import sqlite3,os,sys; c=sqlite3.connect(sys.argv[1]); c.execute('PRAGMA wal_autocheckpoint=0'); c.execute('CREATE TABLE IF NOT EXISTS oar_probe (v BLOB)'); c.execute('DELETE FROM oar_probe'); c.execute('INSERT INTO oar_probe VALUES (zeroblob(67108864))'); c.commit(); os._exit(0)", path.join(data, "opencode", "opencode.db")], { stdio: ["ignore", "ignore", "inherit"] });
         await new Promise<void>((resolve, reject) => { writer.on("error", reject); writer.on("exit", code => { if (code === 0) { resolve(); } else { reject(new Error(`Writer exit ${String(code)}`)); } }); });
       }
-      if (mode === "adapter") {
+      if (mode === "adapter" || mode === "cold-adapter") {
         const { adapterSample } = await import("./adapter.js");
-        results.push(...await Promise.all(names.map(async name => { const result = await adapterSample({ command, version, env: shared, name, output }); return result; })));
+        results.push(...await Promise.all(names.map(async name => { const result = await adapterSample({ command, version, env: roundEnv, name, output }); return result; })));
       } else if (mode === "serial") {
         for (const name of names) { results.push(await sample(name, shared)); }
-      } else { results.push(...await Promise.all(names.map(async (name, i) => { const env = mode === "separate" ? separate[i] : shared; assert.ok(env !== undefined); const result = await sample(name, env, mode === "guarded"); return result; }))); }
+      } else { results.push(...await Promise.all(names.map(async (name, i) => { const env = mode === "separate" ? separate[i] : roundEnv; assert.ok(env !== undefined); const result = await sample(name, env, gate); return result; }))); }
     }
   }
 } finally {
   await new Promise<void>((resolve, reject) => { server.close(error => { if (error) { reject(error); } else { resolve(); } }); });
-  await writeFile(path.join(output, "report.json"), `${JSON.stringify({ platform: process.platform, node: process.version, command, rounds, shutdown, selection, providerRequests, results }, null, 2)}\n`);
+  await writeFile(path.join(output, "report.json"), `${JSON.stringify({ platform: process.platform, node: process.version, command, nativeArgs, rounds, shutdown, selection, providerRequests, results }, null, 2)}\n`);
 }
 process.exitCode = providerRequests.length > 0 || results.some(result => !result.opened || (result.adapter === true ? result.cleanup !== true : result.exitCode !== 0 && !(shutdown === "term" && result.signal === "SIGTERM"))) ? 1 : 0;

@@ -253,6 +253,7 @@ a fresh database; ACP opens go through OAR.
 
 | Version | Failed | Succeeded | Evidence |
 | --- | --- | --- | --- |
+| 2.3.0, November 18 | 9 of 24 concurrent native ACP first starts (`table account_state already exists`) | 24/24 with OAR's startup gate; 24/24 through the full adapter | [Fresh-database comparison](../../experiments/opencode-database-lock/v2-2026-11-18.md#fresh-database-controls) |
 | 2.3.0 | 3 of 4 concurrent native first starts (table-creation conflict) | 2 serial and 4 prepared native starts; both cold and both prepared ACP opens | [November 13](../../experiments/runtime-version-checks/2026-11-13.md#opencode-230) |
 | 2.2.7 | 1 of 4 concurrent native starts (`table account_state already exists`); 1 of 2 cold ACP opens, with only a readiness error | 2 serial and 4 concurrent native starts after initialization; both prepared ACP opens | [November 10](../../experiments/runtime-version-checks/2026-11-10.md#opencode-227) |
 | 2.2.6 | 1 of 2 concurrent fresh-database ACP opens exited before readiness; stderr says `Standalone server exited before reporting readiness`, with no native SQLite error, so this sample does not establish the same cause | both ACP opens after serial initialization | [November 7](../../experiments/runtime-version-checks/2026-11-07.md#opencode-226) |
@@ -289,8 +290,18 @@ The warm-WAL failure is tracked in
 [upstream #64590](https://github.com/anomalyco/opencode/issues/64590), separate
 from the fresh-database failure in #53879. Upstream closed #64590 as not planned
 for v1 and requested a v2 reproduction; that closure is not a verified fix.
-Once a release fixes the early busy-timeout ordering and passes the same
-recovery controls, restrict this gate to versions below that fixed release.
+The [v2 comparison](../../experiments/opencode-database-lock/v2-2026-11-18.md)
+found no warm-WAL failures on unmodified 2.3.0: 12/12 ungated starts passed,
+as did 12/12 under strace with recorded lock contention. Its Effect SQLite
+driver installs a five-second busy timeout before its first WAL pragma.
+The same trigger still failed 2/12 starts on v1.19.5.
+
+The v1 gate remains tied to #64590: remove it only for a release that fixes
+the early busy-timeout ordering and passes the recovery controls. The v2 gate
+remains for #53879, because fresh-database starts failed 9/24 without it and
+passed 24/24 with it. Remove the v2 gate only after an upstream fixed release
+passes the same fresh-database concurrent starts without serialization. A
+passing warm-WAL control or either issue's closure alone is insufficient.
 
 v1 shows startup exits too. In a local Linux x64 run of **1.19.5**
 (2026-10-30, xxwork, fresh isolated HOME/XDG data directory, scripted

@@ -42,9 +42,10 @@ function ownership(directory: string, waiters: Waiter[]): () => void {
 }
 
 /**
- * Only ACP startup is serialized, in this OAR process. Native WAL recovery can
- * fail before OpenCode installs its SQLite busy timeout. No failed start retries.
- * Narrow this gate to affected versions once an upstream fixed release is measured.
+ * Only ACP startup is serialized, in this OAR process. v1 can fail during WAL
+ * recovery before installing its busy timeout (#64590); v2 protects that pragma
+ * but still races during fresh schema creation (#53879). No failed start retries.
+ * Remove each release line's gate only after its corresponding native controls pass.
  */
 // oxlint-disable-next-line typescript/promise-function-async -- The uncontended path owns the lock synchronously; waiters resolve on release or cancellation.
 export function acquireOpenCodeStartup(options: SessionOptions, timeoutMs = 60_000, signal?: AbortSignal): Promise<() => void> {

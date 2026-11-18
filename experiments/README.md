@@ -9,7 +9,7 @@
 - [Runtime version check: 2026-11-17](runtime-version-checks/2026-11-17.md): changed releases, complete CI failure observations, Cursor loader follow-up and the Qoder replay boundary.
 - [Cursor SDK 1.4.1 acceptance](cursor-sdk-1.4.1/README.md): full live session battery, native tool denial and offline login/configuration/skills checks.
 
-- [OpenCode warm WAL recovery](opencode-database-lock/README.md): native lock traces, timeout-order counterfactual and bounded per-data-directory ACP startup gate; [upstream #64590](https://github.com/anomalyco/opencode/issues/64590).
+- [OpenCode warm WAL recovery](opencode-database-lock/README.md): native lock traces, timeout-order counterfactual and bounded per-data-directory ACP startup gate; [v2 WAL and fresh-database comparison](opencode-database-lock/v2-2026-11-18.md) keeps the v2 gate for #53879; [upstream #64590](https://github.com/anomalyco/opencode/issues/64590).
 
 - [Qwen workspace skill catalog](qwen-skills/README.md): unsigned ACP metadata, native provenance and disabled flags, settings migration and query cleanup.
 - [Qoder skill catalog ambiguity](qoder-skills/README.md): unescaped descriptions can print apparent catalog entries, so independent discovery remains unsupported.
