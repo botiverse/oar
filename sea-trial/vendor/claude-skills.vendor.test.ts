@@ -28,6 +28,14 @@ test.skipIf(process.env.OAR_TEST !== "claude-aimock")("Claude skills join contex
     // The visible sibling is not runnable; the runnable one is hidden from the model.
     await skill(cwd, "oar-pair-a", "name: oar-pair\ndescription: Pair A\nuser-invocable: false");
     await skill(cwd, "oar-pair-b", "name: oar-pair\ndescription: Pair B\ndisable-model-invocation: true");
+    // Lookout's counterexamples: a visible non-runnable skill and a model-hidden runnable file of the same name,
+    // across scopes (user skill) and within the project (legacy command file versus skill directory).
+    await skill(cwd, "oar-cross-scope", "name: oar-cross-scope\ndescription: Project cross scope\nuser-invocable: false");
+    await mkdir(join(root, "config", "skills", "oar-cross-scope"), { recursive: true });
+    await writeFile(join(root, "config", "skills", "oar-cross-scope", "SKILL.md"), "---\nname: oar-cross-scope\ndescription: User cross scope\ndisable-model-invocation: true\n---\nPRIVATE SKILL BODY\n");
+    await mkdir(join(cwd, ".claude", "commands"), { recursive: true });
+    await writeFile(join(cwd, ".claude", "commands", "oar-cross.md"), "---\ndescription: Legacy cross\nuser-invocable: false\n---\nPRIVATE COMMAND BODY\n");
+    await skill(cwd, "oar-cross", "name: oar-cross\ndescription: Skill cross\ndisable-model-invocation: true");
     vi.stubEnv("CLAUDE_CONFIG_DIR", join(root, "config"));
     vi.stubEnv("ANTHROPIC_API_KEY", undefined);
     vi.stubEnv("CLAUDE_CODE_OAUTH_TOKEN", undefined);
@@ -53,6 +61,11 @@ test.skipIf(process.env.OAR_TEST !== "claude-aimock")("Claude skills join contex
     for (const entry of byName("oar-pair")) {
       assert.notEqual(entry.userInvocable, true, JSON.stringify(ours));
       assert.notEqual(entry.description, "Pair B", JSON.stringify(ours));
+    }
+    for (const name of ["oar-cross-scope", "oar-cross"]) {
+      for (const entry of byName(name).filter((row) => row.source !== undefined)) {
+        assert.notEqual(entry.userInvocable, true, JSON.stringify(ours));
+      }
     }
     const same = byName("oar-same");
     assert.ok(same.length > 0, JSON.stringify(ours));

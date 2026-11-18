@@ -6,6 +6,7 @@ import { spawnLineProcess } from "../../shared/executable/index.js";
 import { asRecord, parseJson, type JsonRecord } from "../../shared/json.js";
 import { inventoryOk, inventoryRead, named, nativeRows, skillScope, textField, unsupportedInventory, workspaceScope, type NativeInventoryRequest } from "../../shared/inventory.js";
 import { claudeEnv } from "./environment.js";
+import { frontmatterDescription } from "./skill-file.js";
 
 const CLAUDE_SKILL_SOURCES = { "built-in": "builtin", userSettings: "user", projectSettings: "project", localSettings: "project", policySettings: "managed", plugin: "other", flagSettings: "other", memoryStore: "other", syncedSkills: "other" } as const;
 
@@ -42,11 +43,33 @@ function fileStem(path: string): string {
   return file === "SKILL.md" ? parts.at(-2) ?? "" : file.replace(/\.md$/u, "");
 }
 
-/** Whether this command is the skill's own: its alias, or its name when it has none, names the skill's file. */
-function ownCommand(skill: SkillEntry, command: JsonRecord): boolean {
+/** The scope a command's description label names, if any. */
+function labelScope(description: unknown): "project" | "user" | undefined {
+  if (typeof description !== "string") { return undefined; }
+  if (description.endsWith(CLAUDE_COMMAND_LABELS.project)) { return "project"; }
+  return description.endsWith(CLAUDE_COMMAND_LABELS.user) ? "user" : undefined;
+}
+
+/**
+ * Whether this command is the skill's own. Claude identifies a command only by
+ * name, alias and a scope label, and a model-hidden file of the same name is
+ * absent from the context list, so a name can belong to a file OAR cannot see.
+ * A file-backed skill joins its command only when the label names the skill's
+ * scope, the alias (or, without one, the name) names the skill's file, and the
+ * file's own frontmatter description is the command's description.
+ */
+function ownCommand(skill: SkillEntry, command: JsonRecord, fileDescriptions: ReadonlyMap<string, string>): boolean {
   const aliases = Array.isArray(command.aliases) ? command.aliases.filter((alias): alias is string => typeof alias === "string") : [];
   if (skill.path === undefined) {
     return aliases.length === 0;
+  }
+  const label = labelScope(command.description);
+  if (label !== undefined && label !== skill.scope) {
+    return false;
+  }
+  const declared = fileDescriptions.get(skill.path);
+  if (typeof command.description !== "string" || declared === undefined || unlabeled(command.description, skill.scope) !== declared) {
+    return false;
   }
   const stem = fileStem(skill.path);
   // A plugin skill's name carries its plugin as a `plugin:` prefix.
@@ -87,7 +110,7 @@ function commandsByName(value: unknown): Map<string, JsonRecord | null> | null {
  * with no `source` (the native string is not reported) and no model claim.
  * The result is partial when the context list says it left skills out.
  */
-export function projectClaudeSkillCatalog(context: JsonRecord, initialized: JsonRecord): { readonly items: SkillEntry[]; readonly partial: boolean } {
+export function projectClaudeSkillCatalog(context: JsonRecord, initialized: JsonRecord, fileDescriptions: ReadonlyMap<string, string> = new Map()): { readonly items: SkillEntry[]; readonly partial: boolean } {
   const skills = projectClaudeSkills(context);
   const counts = asRecord(context.skills);
   const omitted = typeof counts?.totalSkills === "number" && typeof counts.includedSkills === "number" && counts.includedSkills < counts.totalSkills;
@@ -104,7 +127,7 @@ export function projectClaudeSkillCatalog(context: JsonRecord, initialized: Json
       return skill;
     }
     const command = commands.get(skill.name);
-    const usable = command !== undefined && command !== null && (command.builtin === true ? skill.scope === "builtin" : ownCommand(skill, command)) ? command : undefined;
+    const usable = command !== undefined && command !== null && (command.builtin === true ? skill.scope === "builtin" : ownCommand(skill, command, fileDescriptions)) ? command : undefined;
     const description = typeof usable?.description === "string" ? unlabeled(usable.description, skill.scope) : "";
     // Only this skill's own command makes it runnable. A duplicate name or a
     // builtin of the same name runs something else, so the answer is unknown.
@@ -233,9 +256,20 @@ async function readServers(request: NativeInventoryRequest): Promise<JsonRecord[
 function partial(servers: readonly JsonRecord[]): boolean {
   return servers.some((server) => server.status === "pending" || server.status === "failed");
 }
+/** Frontmatter descriptions of the context's skill files that share a name with a command; unreadable files are absent. */
+async function claudeFileDescriptions(context: JsonRecord, initialized: JsonRecord): Promise<Map<string, string>> {
+  const names = new Set(nativeRows(initialized.commands).map((command) => command.name).filter((name): name is string => typeof name === "string"));
+  const paths = projectClaudeSkills(context).filter((skill) => names.has(skill.name) && skill.path !== undefined).map((skill) => skill.path ?? "");
+  const entries = await Promise.all(paths.map(async (path): Promise<[string, string] | null> => {
+    const description = await frontmatterDescription(path);
+    return description === null ? null : [path, description];
+  }));
+  return new Map(entries.filter((entry): entry is [string, string] => entry !== null));
+}
+
 export const claudeSkills = reader(async (request, scope, initialized) => {
   const payload = await request("get_context_usage", { detail: "summary" });
-  const catalog = projectClaudeSkillCatalog(payload, initialized);
+  const catalog = projectClaudeSkillCatalog(payload, initialized, await claudeFileDescriptions(payload, initialized));
   return inventoryOk(scope, "discovered", catalog.items, catalog.partial);
 });
 export const claudeCommands = reader((_request, scope, initialized) =>

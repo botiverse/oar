@@ -87,7 +87,9 @@ test("Claude catalog joins native descriptions and invocability and keeps model-
     { name: "init", description: "Initialize", builtin: true },
     "not a row",
   ] };
-  expect(projectClaudeSkillCatalog(context, initialized)).toEqual({ partial: false, items: [
+  // Frontmatter descriptions OAR read from each file; deploy's file matches its command.
+  const files = new Map([["/w/.claude/commands/deploy.md", "Deploy it"], ["/h/.claude/skills/user-skill/SKILL.md", "User skill"]]);
+  expect(projectClaudeSkillCatalog(context, initialized, files)).toEqual({ partial: false, items: [
     { name: "deploy", source: "projectSettings", scope: "project", path: "/w/.claude/commands/deploy.md", description: "Deploy it", userInvocable: true },
     // user-invocable: false in its frontmatter, so Claude does not list it as a command.
     { name: "user-skill", source: "userSettings", scope: "user", path: "/h/.claude/skills/user-skill/SKILL.md", userInvocable: false },
@@ -120,13 +122,38 @@ test("Claude catalog joins a command only to the skill file it came from", () =>
     { name: "pair", description: "Pair B (project)", aliases: ["pair-b"] },
     { name: "tool:lint", description: "Lint it" },
   ] };
-  expect(projectClaudeSkillCatalog(context, initialized).items).toEqual([
+  const files = new Map([
+    ["/w/.claude/skills/other-dir/SKILL.md", "Dir differs"],
+    ["/w/.claude/skills/pair-a/SKILL.md", "Pair A"],
+    ["/p/tool/skills/lint/SKILL.md", "Lint it"],
+  ]);
+  expect(projectClaudeSkillCatalog(context, initialized, files).items).toEqual([
     // A directory named differently from its skill is listed as the command's alias.
     { name: "renamed", source: "projectSettings", scope: "project", path: "/w/.claude/skills/other-dir/SKILL.md", description: "Dir differs", userInvocable: true },
     // The alias names another directory: not this skill's command, so nothing is known.
     { name: "pair", source: "projectSettings", scope: "project", path: "/w/.claude/skills/pair-a/SKILL.md" },
     // A plugin skill's name carries its plugin prefix; the file is still lint.
     { name: "tool:lint", source: "plugin", scope: "other", plugin: "tool", path: "/p/tool/skills/lint/SKILL.md", description: "Lint it", userInvocable: true },
+  ]);
+});
+
+test("Claude catalog joins nothing when an unseen same-name file could own the command", () => {
+  const context = { skills: { totalSkills: 2, includedSkills: 2, skillFrontmatter: [
+    // Visible, not runnable; a model-hidden user skill of the same name owns the command.
+    { name: "cross-scope", source: "projectSettings", path: "/w/.claude/skills/cross-scope/SKILL.md" },
+    // A legacy command file, not runnable; the hidden skills/cross/SKILL.md owns the command.
+    { name: "cross", source: "projectSettings", path: "/w/.claude/commands/cross.md" },
+  ] } };
+  const initialized = { commands: [
+    { name: "cross-scope", description: "Hidden user skill (user)" },
+    { name: "cross", description: "Hidden project skill (project)" },
+  ] };
+  const files = new Map([["/w/.claude/skills/cross-scope/SKILL.md", "Hidden user skill"], ["/w/.claude/commands/cross.md", "Legacy cross"]]);
+  expect(projectClaudeSkillCatalog(context, initialized, files).items).toEqual([
+    // The label names another scope.
+    { name: "cross-scope", source: "projectSettings", scope: "project", path: "/w/.claude/skills/cross-scope/SKILL.md" },
+    // The file's own description is not the command's.
+    { name: "cross", source: "projectSettings", scope: "project", path: "/w/.claude/commands/cross.md" },
   ]);
 });
 
