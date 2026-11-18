@@ -710,21 +710,25 @@ non-interactive upgrade, so `upgrade` answers `unsupported`
 
 [Account usage](../../packages/oar/src/runtimes/kimi/account-usage.ts)
 resolves the managed `kimi-code` provider through `kimi provider list --json`
-(honouring `KIMI_CODE_BASE_URL`, `KIMI_CODE_OAUTH_HOST`, `KIMI_CODE_HOME`;
-no such provider is `unsupported/auth_configuration_unavailable`, non-file
-credential storage `unsupported/unsupported_auth_storage`, a run that times
-out rejects). On Linux and macOS, with native OAuth locking enabled, it starts
-an owned loopback Kimi Web service and reads `/api/v1/oauth/usage` and the
-best-effort `/api/v1/oauth/userinfo`. Kimi calls its own `ensureFresh`, locks
+(honouring `KIMI_CODE_BASE_URL`, `KIMI_CODE_OAUTH_HOST`, `KIMI_CODE_HOME`).
+A nonzero provider-list exit or a response without the managed provider
+returns `unsupported/auth_configuration_unavailable`; non-file credential
+storage returns `unsupported/unsupported_auth_storage`. A timeout, failed
+spawn or signal exit rejects. On Linux and macOS, with native OAuth locking
+enabled, it starts an owned loopback Kimi Web service and reads
+`/api/v1/oauth/usage` and the best-effort `/api/v1/oauth/userinfo`.
+Kimi calls its own `ensureFresh`, locks
 its credential slot, re-reads it under the lock and performs any refresh and
 credential writes. OAR never rotates or writes these credentials. The native
 quota response supplies five-hour, weekly and monthly ratios and Extra Usage
-headroom. Absent or empty quota data returns `unsupported/quota_unavailable`,
+headroom. A native `quota` object whose `usages` field is absent or an empty
+object returns `unsupported/quota_unavailable`,
 matching native Kimi's normal "No usage data available." display in
 [`buildManagedUsageSection`](https://github.com/MoonshotAI/kimi-code/blob/b0de2fbd2de04d87689225aafd3912e5d193b62d/apps/kimi-code/src/tui/components/messages/usage-panel.ts#L117).
 This means no quota configuration was exposed, not zero usage or a particular
-account plan. A present nonempty quota object with no usable rows still
-rejects. The direct reader preserves its existing `usage`/`limits` format;
+account plan. A missing or non-object `quota` value rejects as malformed;
+other `usages` values with no usable rows also reject.
+The direct reader preserves its existing `usage`/`limits` format;
 malformed present legacy rows also reject. The
 [native empty-response observation](../../experiments/kimi-empty-quota/README.md)
 records the same account's successful response and TUI display without
