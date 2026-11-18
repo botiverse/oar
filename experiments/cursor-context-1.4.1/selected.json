@@ -1,0 +1,100 @@
+{
+  "sdk": "@cursor/sdk 1.4.1",
+  "sourceDate": "2026-11-17",
+  "collection": "Previously authorized live acceptance, read-only analysis; no new account requests",
+  "cases": [
+    {
+      "scenario": "tool-detail",
+      "events": [
+        {
+          "seq": 81,
+          "agentDepth": 0,
+          "nativeType": "model-call-completed",
+          "usage": {
+            "inputTokens": 13465,
+            "outputTokens": 78,
+            "cacheReadTokens": 0,
+            "cacheWriteTokens": 0,
+            "reasoningTokens": 20
+          }
+        },
+        {
+          "seq": 99,
+          "agentDepth": 0,
+          "nativeType": "model-call-completed",
+          "usage": {
+            "inputTokens": 13595,
+            "outputTokens": 11,
+            "cacheReadTokens": 12800,
+            "cacheWriteTokens": 0
+          }
+        },
+        {
+          "seq": 101,
+          "agentDepth": 0,
+          "nativeType": "turn-ended",
+          "usage": {
+            "inputTokens": 27060,
+            "outputTokens": 89,
+            "cacheReadTokens": 12800,
+            "cacheWriteTokens": 0,
+            "reasoningTokens": 20
+          }
+        }
+      ]
+    },
+    {
+      "scenario": "resume",
+      "events": [
+        {
+          "seq": 8,
+          "agentDepth": 0,
+          "nativeType": "model-call-completed",
+          "usage": {
+            "inputTokens": 13456,
+            "outputTokens": 34,
+            "cacheReadTokens": 12800,
+            "cacheWriteTokens": 0,
+            "reasoningTokens": 27
+          }
+        },
+        {
+          "seq": 10,
+          "agentDepth": 0,
+          "nativeType": "turn-ended",
+          "usage": {
+            "inputTokens": 13456,
+            "outputTokens": 34,
+            "cacheReadTokens": 12800,
+            "cacheWriteTokens": 0,
+            "reasoningTokens": 27
+          }
+        },
+        {
+          "seq": 15,
+          "agentDepth": 0,
+          "nativeType": "model-call-completed",
+          "usage": {
+            "inputTokens": 13542,
+            "outputTokens": 39,
+            "cacheReadTokens": 12800,
+            "cacheWriteTokens": 0,
+            "reasoningTokens": 29
+          }
+        },
+        {
+          "seq": 17,
+          "agentDepth": 0,
+          "nativeType": "turn-ended",
+          "usage": {
+            "inputTokens": 13542,
+            "outputTokens": 39,
+            "cacheReadTokens": 12800,
+            "cacheWriteTokens": 0,
+            "reasoningTokens": 29
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -625,15 +625,32 @@ update reports a child's own tokens, and whether the run's figure includes a
 child's is unverified. `token-delta`, `thinking-completed`,
 `partial-tool-call` (a call's arguments while they stream),
 `tool-requests-listed`, `step-started`, `step-completed` and
-`shell-output-delta` are recorded with no events. No update reports context
-occupancy, so `contextUsage()` stays empty.
+`shell-output-delta` are recorded with no events.
+
+**Current context (SDK 1.4.1):** `model-call-completed.usage.inputTokens` is
+one model call's full prompt, with cache reads and writes already included.
+OAR projects it directly into `usage.context.tokens`; successive calls replace
+that reading rather than adding to it. `contextWindow` and `percent` remain
+null because this update supplies neither. Spend still comes only from
+`turn-ended` totals, so the per-call frame does not charge the same work again.
+Missing or malformed input counts add no reading; a native zero is preserved.
+The SDK filters this update out of nested task updates, so it supplies no
+child context count. See [source and retained native samples](../../experiments/cursor-context-1.4.1/README.md).
+
+`contextUsage()` is the latest observed model-input count, not a count of local
+messages added since that call. It begins null on each open, including resume.
+A completed compaction makes the count unknown until a later observed
+`model-call-completed` supplies it. No current occupancy is derived from
+`run.wait()`, `run.usage`, `run.stream()` usage messages or `agent.getUsage()`;
+those are turn or accumulated usage.
 
 **Compaction (SDK 1.2.0):** OAR concurrently drains `run.stream()` for the
 summary statuses `onDelta` omits, retaining each message verbatim as a
 `cursor/stream/<type>` frame. A summary's `running` status becomes
 `compaction_started`, `completed` becomes `compaction_ended: completed`, and
 `error` becomes `compaction_ended: failed`; unknown summary statuses stay
-raw. Other stream messages add no events, so text, tools and usage are
+raw. Completed summaries also invalidate the previous context count. Other
+stream messages add no events, so text, tools and spend are
 counted once, through `onDelta`. No trigger or failure reason is reported.
 `fallback` stays native and means a trimmed transcript was saved [src]; it
 still counts as completed compaction. Cancellation can end the run with only

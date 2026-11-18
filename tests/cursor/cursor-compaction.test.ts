@@ -27,7 +27,8 @@ test.each([
   const frames = session.records().flatMap((record) => record.kind === "frame" && record.body.type === "cursor/stream/summary" ? [record.body] : []);
   expect(frames).toEqual([
     { type: "cursor/stream/summary", native: started, events: [{ kind: "compaction_started" }] },
-    { type: "cursor/stream/summary", native: ended, events: [{ kind: "compaction_ended", outcome }] },
+    { type: "cursor/stream/summary", native: ended, events: [{ kind: "compaction_ended", outcome },
+      ...(outcome === "completed" ? [{ kind: "usage", usage: { context: { tokens: null, contextWindow: null, percent: null } } }] : [])] },
   ]);
   expect(run.streamDrained).toBe(true);
   await session.dispose();
