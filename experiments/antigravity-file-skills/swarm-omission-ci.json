@@ -1,0 +1,137 @@
+{
+  "version": "1.5.11",
+  "head": "63f547482f83ae7f7f88a085ae25b3adf5d8cfa7",
+  "job": "https://github.com/botiverse/oar/actions/runs/44296496513/job/134774773483",
+  "modelRequests": 0,
+  "native": {
+    "conversation_id": "",
+    "status": "SUCCESS",
+    "response": "agy-customizations\tComprehensive guide and reference for the Antigravity Customization System. Use to explain how customizations work, their loading priority, discovery mechanisms, and to guide the creation of skills, rules, plugins, hooks, and MCP servers.\nantigravity-guide\tProvides a comprehensive guide, quick reference, and sitemap for Google Antigravity (AGY), including the Antigravity CLI (agy), Antigravity 2.0, Antigravity IDE, Python SDK, slash commands, keybindings, and customizations (skills, rules, MCP, sidecars). Activate this skill when the user asks questions about how to use, configure, or customize Antigravity, AGY, the agy CLI, the Antigravity IDE, or Antigravity 2.0.\nautomation\tInteractive guide to design and create a scheduled background automation. Use this skill when the user wants to create an automated or recurring scheduled task (e.g. \"summarize my emails every morning\", \"every Monday send me a to-do list\"). Also triggered by the /automation slash command.\nmigrate-agent-settings\tMigrates the user's MCP servers, skills, slash commands, subagents, and instruction files from other coding agents (Claude Code, Codex, Cursor, Gemini CLI) into one new Antigravity plugin. Use when the user wants to bring over, import, or migrate their setup or config from another agent or tool. Don't use for installing Marketplace plugins or authoring a new plugin from scratch (use the plugin skill).\nmigrate-workflows\tAutomatically migrate legacy workflows to modern skills across global and workspace configurations. Scans for existing workflows, creates target SKILL.md files, and safely archives old workflow files.\nrun-workflow\tHow to write and run a dynamic workflow script with the `run_workflow` tool: a Python script that orchestrates many agents with `agent`, `parallel`, `pipeline`, and `phase`. Use when a task splits into many independent or staged pieces of agent work (fan out over files, modules, bugs, or review angles, then aggregate), or when the user asks for a workflow. Don't use for a single delegated task (use a subagent) or for legacy workflow files (see migrate-workflows).\n",
+    "duration_seconds": 0,
+    "num_turns": 0,
+    "usage": {
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "thinking_tokens": 0,
+      "cache_read_tokens": 0,
+      "total_tokens": 0
+    },
+    "command": {
+      "name": "skills",
+      "data": {
+        "skills": [
+          {
+            "name": "agy-customizations",
+            "description": "Comprehensive guide and reference for the Antigravity Customization System. Use to explain how customizations work, their loading priority, discovery mechanisms, and to guide the creation of skills, rules, plugins, hooks, and MCP servers.",
+            "path": "<home>/.gemini/antigravity-cli/builtin/skills/agy-customizations/SKILL.md",
+            "builtin": true,
+            "model_invocable": true
+          },
+          {
+            "name": "antigravity-guide",
+            "description": "Provides a comprehensive guide, quick reference, and sitemap for Google Antigravity (AGY), including the Antigravity CLI (agy), Antigravity 2.0, Antigravity IDE, Python SDK, slash commands, keybindings, and customizations (skills, rules, MCP, sidecars). Activate this skill when the user asks questions about how to use, configure, or customize Antigravity, AGY, the agy CLI, the Antigravity IDE, or Antigravity 2.0.",
+            "path": "<home>/.gemini/antigravity-cli/builtin/skills/antigravity_guide/SKILL.md",
+            "builtin": true,
+            "model_invocable": true
+          },
+          {
+            "name": "automation",
+            "description": "Interactive guide to design and create a scheduled background automation. Use this skill when the user wants to create an automated or recurring scheduled task (e.g. \"summarize my emails every morning\", \"every Monday send me a to-do list\"). Also triggered by the /automation slash command.",
+            "path": "<home>/.gemini/antigravity-cli/builtin/skills/automation/SKILL.md",
+            "builtin": true,
+            "model_invocable": true
+          },
+          {
+            "name": "migrate-agent-settings",
+            "description": "Migrates the user's MCP servers, skills, slash commands, subagents, and instruction files from other coding agents (Claude Code, Codex, Cursor, Gemini CLI) into one new Antigravity plugin. Use when the user wants to bring over, import, or migrate their setup or config from another agent or tool. Don't use for installing Marketplace plugins or authoring a new plugin from scratch (use the plugin skill).",
+            "path": "<home>/.gemini/antigravity-cli/builtin/skills/migrate-agent-settings/SKILL.md",
+            "builtin": true,
+            "model_invocable": true
+          },
+          {
+            "name": "migrate-workflows",
+            "description": "Automatically migrate legacy workflows to modern skills across global and workspace configurations. Scans for existing workflows, creates target SKILL.md files, and safely archives old workflow files.",
+            "path": "<home>/.gemini/antigravity-cli/builtin/skills/migrate-workflows/SKILL.md",
+            "builtin": true,
+            "model_invocable": true
+          },
+          {
+            "name": "run-workflow",
+            "description": "How to write and run a dynamic workflow script with the `run_workflow` tool: a Python script that orchestrates many agents with `agent`, `parallel`, `pipeline`, and `phase`. Use when a task splits into many independent or staged pieces of agent work (fan out over files, modules, bugs, or review angles, then aggregate), or when the user asks for a workflow. Don't use for a single delegated task (use a subagent) or for legacy workflow files (see migrate-workflows).",
+            "path": "<home>/.gemini/antigravity-cli/builtin/skills/run-workflow/SKILL.md",
+            "builtin": true,
+            "model_invocable": true
+          }
+        ]
+      }
+    }
+  },
+  "config": {
+    "plugins": {
+      "swarm": {
+        "enabled": true
+      }
+    }
+  },
+  "oar": {
+    "kind": "ok",
+    "scope": {
+      "kind": "workspace",
+      "cwd": "<home>/repo/sub"
+    },
+    "observedAt": "2026-11-18T11:45:55.815Z",
+    "view": "discovered",
+    "items": [
+      {
+        "name": "agy-customizations",
+        "path": "<home>/.gemini/antigravity-cli/builtin/skills/agy-customizations/SKILL.md",
+        "description": "Comprehensive guide and reference for the Antigravity Customization System. Use to explain how customizations work, their loading priority, discovery mechanisms, and to guide the creation of skills, rules, plugins, hooks, and MCP servers.",
+        "disableModelInvocation": false,
+        "scope": "builtin"
+      },
+      {
+        "name": "antigravity-guide",
+        "path": "<home>/.gemini/antigravity-cli/builtin/skills/antigravity_guide/SKILL.md",
+        "description": "Provides a comprehensive guide, quick reference, and sitemap for Google Antigravity (AGY), including the Antigravity CLI (agy), Antigravity 2.0, Antigravity IDE, Python SDK, slash commands, keybindings, and customizations (skills, rules, MCP, sidecars). Activate this skill when the user asks questions about how to use, configure, or customize Antigravity, AGY, the agy CLI, the Antigravity IDE, or Antigravity 2.0.",
+        "disableModelInvocation": false,
+        "scope": "builtin"
+      },
+      {
+        "name": "automation",
+        "path": "<home>/.gemini/antigravity-cli/builtin/skills/automation/SKILL.md",
+        "description": "Interactive guide to design and create a scheduled background automation. Use this skill when the user wants to create an automated or recurring scheduled task (e.g. \"summarize my emails every morning\", \"every Monday send me a to-do list\"). Also triggered by the /automation slash command.",
+        "disableModelInvocation": false,
+        "scope": "builtin"
+      },
+      {
+        "name": "migrate-agent-settings",
+        "path": "<home>/.gemini/antigravity-cli/builtin/skills/migrate-agent-settings/SKILL.md",
+        "description": "Migrates the user's MCP servers, skills, slash commands, subagents, and instruction files from other coding agents (Claude Code, Codex, Cursor, Gemini CLI) into one new Antigravity plugin. Use when the user wants to bring over, import, or migrate their setup or config from another agent or tool. Don't use for installing Marketplace plugins or authoring a new plugin from scratch (use the plugin skill).",
+        "disableModelInvocation": false,
+        "scope": "builtin"
+      },
+      {
+        "name": "migrate-workflows",
+        "path": "<home>/.gemini/antigravity-cli/builtin/skills/migrate-workflows/SKILL.md",
+        "description": "Automatically migrate legacy workflows to modern skills across global and workspace configurations. Scans for existing workflows, creates target SKILL.md files, and safely archives old workflow files.",
+        "disableModelInvocation": false,
+        "scope": "builtin"
+      },
+      {
+        "name": "run-workflow",
+        "path": "<home>/.gemini/antigravity-cli/builtin/skills/run-workflow/SKILL.md",
+        "description": "How to write and run a dynamic workflow script with the `run_workflow` tool: a Python script that orchestrates many agents with `agent`, `parallel`, `pipeline`, and `phase`. Use when a task splits into many independent or staged pieces of agent work (fan out over files, modules, bugs, or review angles, then aggregate), or when the user asks for a workflow. Don't use for a single delegated task (use a subagent) or for legacy workflow files (see migrate-workflows).",
+        "disableModelInvocation": false,
+        "scope": "builtin"
+      },
+      {
+        "name": "swarm",
+        "path": "<home>/.gemini/antigravity-cli/builtin/skills/native_swarm/SKILL.md",
+        "description": "(Preview & Quota Heavy) Run a swarm: several agents working in parallel on one task, each in its own conversation, collaborating through a shared message board. Use when the work splits into pieces that can be done at the same time, or when a second pair of eyes should check the first pair's work.",
+        "disableModelInvocation": false,
+        "scope": "builtin"
+      }
+    ],
+    "partial": false
+  }
+}

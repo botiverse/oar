@@ -1,0 +1,98 @@
+{
+  "version": "1.5.11",
+  "head": "63f547482f83ae7f7f88a085ae25b3adf5d8cfa7",
+  "job": "https://github.com/botiverse/oar/actions/runs/44296496513/job/134774773724",
+  "pathPlaceholder": "<home> preserves the supplied short path C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\oar-antigravity-aimock-WggFKa\\home",
+  "differences": [
+    {
+      "name": "duplicate",
+      "native": {
+        "name": "duplicate",
+        "path": "<home>\\repo\\.agents\\skills\\duplicate\\SKILL.md",
+        "description": "priority 4",
+        "disableModelInvocation": false
+      },
+      "oar": {
+        "name": "duplicate",
+        "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\oar-antigravity-aimock-WggFKa\\home\\repo\\.agents\\skills\\duplicate\\SKILL.md",
+        "description": "priority 4",
+        "disableModelInvocation": false
+      }
+    },
+    {
+      "name": "root-0",
+      "native": {
+        "name": "root-0",
+        "path": "<home>\\repo\\sub\\.agent\\skills\\root-0\\SKILL.md",
+        "description": "root 0",
+        "disableModelInvocation": false
+      },
+      "oar": {
+        "name": "root-0",
+        "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\oar-antigravity-aimock-WggFKa\\home\\repo\\sub\\.agent\\skills\\root-0\\SKILL.md",
+        "description": "root 0",
+        "disableModelInvocation": false
+      }
+    },
+    {
+      "name": "root-1",
+      "native": {
+        "name": "root-1",
+        "path": "<home>\\repo\\sub\\.agents\\skills\\root-1\\SKILL.md",
+        "description": "root 1",
+        "disableModelInvocation": false
+      },
+      "oar": {
+        "name": "root-1",
+        "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\oar-antigravity-aimock-WggFKa\\home\\repo\\sub\\.agents\\skills\\root-1\\SKILL.md",
+        "description": "root 1",
+        "disableModelInvocation": false
+      }
+    },
+    {
+      "name": "root-2",
+      "native": {
+        "name": "root-2",
+        "path": "<home>\\repo\\sub\\_agent\\skills\\root-2\\SKILL.md",
+        "description": "root 2",
+        "disableModelInvocation": false
+      },
+      "oar": {
+        "name": "root-2",
+        "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\oar-antigravity-aimock-WggFKa\\home\\repo\\sub\\_agent\\skills\\root-2\\SKILL.md",
+        "description": "root 2",
+        "disableModelInvocation": false
+      }
+    },
+    {
+      "name": "root-3",
+      "native": {
+        "name": "root-3",
+        "path": "<home>\\repo\\sub\\_agents\\skills\\root-3\\SKILL.md",
+        "description": "root 3",
+        "disableModelInvocation": false
+      },
+      "oar": {
+        "name": "root-3",
+        "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\oar-antigravity-aimock-WggFKa\\home\\repo\\sub\\_agents\\skills\\root-3\\SKILL.md",
+        "description": "root 3",
+        "disableModelInvocation": false
+      }
+    },
+    {
+      "name": "root-4",
+      "native": {
+        "name": "root-4",
+        "path": "<home>\\repo\\.agents\\skills\\root-4\\SKILL.md",
+        "description": "root 4",
+        "disableModelInvocation": false
+      },
+      "oar": {
+        "name": "root-4",
+        "path": "C:\\Users\\runneradmin\\AppData\\Local\\Temp\\oar-antigravity-aimock-WggFKa\\home\\repo\\.agents\\skills\\root-4\\SKILL.md",
+        "description": "root 4",
+        "disableModelInvocation": false
+      }
+    }
+  ]
+}

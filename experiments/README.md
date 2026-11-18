@@ -4,6 +4,8 @@
 
 - [Claude skill catalog](claude-skill-catalog-2026-11-18.md): context skills joined with initialize commands for descriptions and `userInvocable`; legacy commands are skills; model-hidden skills only appear as commands.
 
+- [Antigravity file skill discovery](antigravity-file-skills/README.md): native 1.5.10/1.5.11 catalog comparisons, precedence, signed-out reads and synthetic MCP startup controls.
+
 - [Qwen current context](qwen-native/context-usage-2026-11-18.md): native post-turn and resumed counts, local readback cost and unknown pre-turn zero.
 
 - [Cursor per-call context](cursor-context-1.4.1/README.md): SDK 1.4.1 native model-call input, inclusive cache counts and unchanged turn spend.

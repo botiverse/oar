@@ -1,4 +1,7 @@
+/* oxlint-disable import/max-dependencies -- File and native readers share the same scope and deadline guards. */
 import type { InventoryReader, SkillEntry } from "../../contracts/inventory.js";
+import { environmentHome } from "../../shared/environment-home.js";
+import { hasAntigravityFileSkills, readAntigravityFileSkills } from "./skill-files.js";
 import { remainingMs } from "../../shared/deadline.js";
 import { sessionEnvironment } from "../../shared/environment.js";
 import { runExecutable } from "../../shared/executable/index.js";
@@ -30,7 +33,7 @@ function catalog(stdout: string): SkillEntry[] {
   return nativeRows(asRecord(command.data)?.skills).map(row => project(row));
 }
 
-/** Native read-only slash command, guarded against login and automatic installation changes. */
+/** Verified Linux/macOS versions read files; other installations retain the native query. */
 export const antigravitySkills: InventoryReader<SkillEntry> = async (installation, options = {}) => {
   if (installation.via !== "executable") { return unsupportedInventory("installation_unsupported", "Antigravity skill discovery requires an executable."); }
   const timeoutMs = options.timeoutMs ?? 15_000;
@@ -45,6 +48,10 @@ export const antigravitySkills: InventoryReader<SkillEntry> = async (installatio
   const deadline = Date.now() + timeoutMs;
   try {
     return await withQueryDeadline("Antigravity skills", timeoutMs, async signal => {
+      if (hasAntigravityFileSkills(installation.version)) {
+        const files = await readAntigravityFileSkills(environmentHome(env), scope.cwd, signal);
+        return inventoryOk(scope, "discovered", files.items, files.partial);
+      }
       const version = await antigravityVersionPreflight(installation, env, { timeoutMs: remainingMs(deadline, "Antigravity skills"), signal });
       if (version.kind === "unsupported") { return version; }
       const auth = await readAntigravityAuthStatus(installation, { env: overlay, timeoutMs: remainingMs(deadline, "Antigravity skills"), signal });

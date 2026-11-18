@@ -86,19 +86,24 @@ describe.skipIf(process.env.OAR_TEST !== "antigravity-aimock")("Antigravity nati
     }
   });
 
-  test("no login refuses before print-mode login, without saving a conversation", { timeout: 30_000 }, async () => {
-    const installation = await antigravityRuntime.installation(); assert.equal(installation.kind, "available");
+  test("signed-out discovery follows the versioned reader without saving a conversation", { timeout: 30_000 }, async () => {
+    const installation = await antigravityRuntime.installation(); assert.equal(installation.kind, "available"); assert.equal(installation.via, "executable");
     const f = await fixture();
     try {
       await rm(join(f.home, ".gemini"), { recursive: true, force: true });
       const env = overlay(f.nativeEnv); delete env.GEMINI_API_KEY; env.GEMINI_API_KEY = null;
       const result = await antigravityRuntime.skills(installation, { cwd: f.cwd, env });
-      expect(result).toEqual({ kind: "unavailable", code: "not_authenticated", reason: "Sign in to Antigravity to read its skills." });
+      const local = (process.platform === "linux" || process.platform === "darwin") && (installation.version === "1.5.10" || installation.version === "1.5.11");
+      if (local) { expect(result).toMatchObject({ kind: "ok", view: "discovered", partial: true, items: [] }); }
+      else { expect(result).toEqual({ kind: "unavailable", code: "not_authenticated", reason: "Sign in to Antigravity to read its skills." }); }
       expect(f.raw).toHaveLength(0);
       const files = await readdir(f.home, { recursive: true });
       expect(files.filter(file => /(?:^|[/\\])conversations[/\\]|oauth|credential/u.test(file))).toEqual([]);
-      const db = new DatabaseSync(join(f.home, ".gemini/antigravity-cli/conversation_summaries.db"), { readOnly: true });
-      try { expect(db.prepare("SELECT count(*) AS count FROM conversation_summaries").get()?.count).toBe(0); } finally { db.close(); }
+      if (local) { expect(files).toEqual(["project"]); }
+      else {
+        const db = new DatabaseSync(join(f.home, ".gemini/antigravity-cli/conversation_summaries.db"), { readOnly: true });
+        try { expect(db.prepare("SELECT count(*) AS count FROM conversation_summaries").get()?.count).toBe(0); } finally { db.close(); }
+      }
       const output = resolve(process.env.OAR_TRIAL_RUN_DIR ?? "oar-trial-run", "antigravity-skills", "signed-out.json");
       await mkdir(dirname(output), { recursive: true });
       await writeFile(output, JSON.stringify({ result, files, modelRequests: f.raw.length }, null, 2));

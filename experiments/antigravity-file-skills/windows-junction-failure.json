@@ -1,0 +1,282 @@
+{
+  "version": "1.5.11",
+  "head": "52fed5d207faa144ff4df39954ef753e17dea6f3",
+  "job": "https://github.com/botiverse/oar/actions/runs/44299851679/job/134786444608",
+  "case": "junction cwd",
+  "modelRequests": 0,
+  "native": [
+    {
+      "name": "agy-customizations",
+      "path": "<home>\\.gemini\\antigravity-cli\\builtin\\skills\\agy-customizations\\SKILL.md",
+      "description": "Comprehensive guide and reference for the Antigravity Customization System. Use to explain how customizations work, their loading priority, discovery mechanisms, and to guide the creation of skills, rules, plugins, hooks, and MCP servers.",
+      "scope": "builtin",
+      "disableModelInvocation": false
+    },
+    {
+      "name": "antigravity-guide",
+      "path": "<home>\\.gemini\\antigravity-cli\\builtin\\skills\\antigravity_guide\\SKILL.md",
+      "description": "Provides a comprehensive guide, quick reference, and sitemap for Google Antigravity (AGY), including the Antigravity CLI (agy), Antigravity 2.0, Antigravity IDE, Python SDK, slash commands, keybindings, and customizations (skills, rules, MCP, sidecars). Activate this skill when the user asks questions about how to use, configure, or customize Antigravity, AGY, the agy CLI, the Antigravity IDE, or Antigravity 2.0.",
+      "scope": "builtin",
+      "disableModelInvocation": false
+    },
+    {
+      "name": "automation",
+      "path": "<home>\\.gemini\\antigravity-cli\\builtin\\skills\\automation\\SKILL.md",
+      "description": "Interactive guide to design and create a scheduled background automation. Use this skill when the user wants to create an automated or recurring scheduled task (e.g. \"summarize my emails every morning\", \"every Monday send me a to-do list\"). Also triggered by the /automation slash command.",
+      "scope": "builtin",
+      "disableModelInvocation": false
+    },
+    {
+      "name": "duplicate",
+      "path": "<home>\\.gemini\\antigravity-cli\\skills\\duplicate\\SKILL.md",
+      "description": "priority 5",
+      "disableModelInvocation": false
+    },
+    {
+      "name": "global-declared",
+      "path": "<home>\\.gemini\\config\\declared\\child\\SKILL.md",
+      "description": "config-relative",
+      "disableModelInvocation": false
+    },
+    {
+      "name": "migrate-agent-settings",
+      "path": "<home>\\.gemini\\antigravity-cli\\builtin\\skills\\migrate-agent-settings\\SKILL.md",
+      "description": "Migrates the user's MCP servers, skills, slash commands, subagents, and instruction files from other coding agents (Claude Code, Codex, Cursor, Gemini CLI) into one new Antigravity plugin. Use when the user wants to bring over, import, or migrate their setup or config from another agent or tool. Don't use for installing Marketplace plugins or authoring a new plugin from scratch (use the plugin skill).",
+      "scope": "builtin",
+      "disableModelInvocation": false
+    },
+    {
+      "name": "migrate-workflows",
+      "path": "<home>\\.gemini\\antigravity-cli\\builtin\\skills\\migrate-workflows\\SKILL.md",
+      "description": "Automatically migrate legacy workflows to modern skills across global and workspace configurations. Scans for existing workflows, creates target SKILL.md files, and safely archives old workflow files.",
+      "scope": "builtin",
+      "disableModelInvocation": false
+    },
+    {
+      "name": "plugin-0:child",
+      "path": "<home>\\.gemini\\config\\plugins\\plugin-0\\skills\\child\\SKILL.md",
+      "description": "plugin 0",
+      "plugin": "Display 0",
+      "disableModelInvocation": false
+    },
+    {
+      "name": "plugin-1:child",
+      "path": "<home>\\.gemini\\antigravity-cli\\plugins\\plugin-1\\skills\\child\\SKILL.md",
+      "description": "plugin 1",
+      "plugin": "Display 1",
+      "disableModelInvocation": false
+    },
+    {
+      "name": "root-5",
+      "path": "<home>\\.gemini\\antigravity-cli\\skills\\root-5\\SKILL.md",
+      "description": "root 5",
+      "disableModelInvocation": false
+    },
+    {
+      "name": "root-6",
+      "path": "<home>\\.gemini\\config\\skills\\root-6\\SKILL.md",
+      "description": "root 6",
+      "disableModelInvocation": false
+    },
+    {
+      "name": "root-7",
+      "path": "<home>\\.gemini\\skills\\root-7\\SKILL.md",
+      "description": "root 7",
+      "disableModelInvocation": false
+    },
+    {
+      "name": "run-workflow",
+      "path": "<home>\\.gemini\\config\\declared\\builtin-shadow\\SKILL.md",
+      "description": "native declared override",
+      "disableModelInvocation": false
+    },
+    {
+      "name": "swarm",
+      "path": "<home>\\.gemini\\antigravity-cli\\builtin\\skills\\native_swarm\\SKILL.md",
+      "description": "(Preview & Quota Heavy) Run a swarm: several agents working in parallel on one task, each in its own conversation, collaborating through a shared message board. Use when the work splits into pieces that can be done at the same time, or when a second pair of eyes should check the first pair's work.",
+      "scope": "builtin",
+      "disableModelInvocation": false
+    }
+  ],
+  "result": {
+    "kind": "ok",
+    "scope": {
+      "kind": "workspace",
+      "cwd": "<home>\\cwd-alias"
+    },
+    "observedAt": "2026-11-18T12:16:51.087Z",
+    "view": "discovered",
+    "items": [
+      {
+        "name": "1.0",
+        "path": "<home>\\cwd-alias\\.agents\\skills\\scalar\\SKILL.md",
+        "description": "2026-11-18",
+        "disableModelInvocation": false
+      },
+      {
+        "name": "agy-customizations",
+        "path": "<home>\\.gemini\\antigravity-cli\\builtin\\skills\\agy-customizations\\SKILL.md",
+        "description": "Comprehensive guide and reference for the Antigravity Customization System. Use to explain how customizations work, their loading priority, discovery mechanisms, and to guide the creation of skills, rules, plugins, hooks, and MCP servers.",
+        "disableModelInvocation": false,
+        "scope": "builtin"
+      },
+      {
+        "name": "antigravity-guide",
+        "path": "<home>\\.gemini\\antigravity-cli\\builtin\\skills\\antigravity_guide\\SKILL.md",
+        "description": "Provides a comprehensive guide, quick reference, and sitemap for Google Antigravity (AGY), including the Antigravity CLI (agy), Antigravity 2.0, Antigravity IDE, Python SDK, slash commands, keybindings, and customizations (skills, rules, MCP, sidecars). Activate this skill when the user asks questions about how to use, configure, or customize Antigravity, AGY, the agy CLI, the Antigravity IDE, or Antigravity 2.0.",
+        "disableModelInvocation": false,
+        "scope": "builtin"
+      },
+      {
+        "name": "automation",
+        "path": "<home>\\.gemini\\antigravity-cli\\builtin\\skills\\automation\\SKILL.md",
+        "description": "Interactive guide to design and create a scheduled background automation. Use this skill when the user wants to create an automated or recurring scheduled task (e.g. \"summarize my emails every morning\", \"every Monday send me a to-do list\"). Also triggered by the /automation slash command.",
+        "disableModelInvocation": false,
+        "scope": "builtin"
+      },
+      {
+        "name": "copied:child",
+        "path": "<home>\\cwd-alias\\.agents\\plugins\\copied\\skills\\child\\SKILL.md",
+        "description": "plugin 0",
+        "disableModelInvocation": false,
+        "plugin": "Copied"
+      },
+      {
+        "name": "deep",
+        "path": "<home>\\cwd-alias\\extra\\deep\\child\\SKILL.md",
+        "description": "explicit nested",
+        "disableModelInvocation": false
+      },
+      {
+        "name": "duplicate",
+        "path": "<home>\\cwd-alias\\.agent\\skills\\duplicate\\SKILL.md",
+        "description": "priority 0",
+        "disableModelInvocation": false
+      },
+      {
+        "name": "fallback",
+        "path": "<home>\\cwd-alias\\.agents\\skills\\fallback\\SKILL.md",
+        "description": "fallback name",
+        "disableModelInvocation": false
+      },
+      {
+        "name": "folded",
+        "path": "<home>\\cwd-alias\\.agents\\skills\\folded\\SKILL.md",
+        "description": "first line second line",
+        "disableModelInvocation": false
+      },
+      {
+        "name": "global-declared",
+        "path": "<home>\\.gemini\\config\\declared\\child\\SKILL.md",
+        "description": "config-relative",
+        "disableModelInvocation": false
+      },
+      {
+        "name": "inherited",
+        "path": "<home>\\cwd-alias\\inherited\\child\\SKILL.md",
+        "description": "inherited",
+        "disableModelInvocation": false
+      },
+      {
+        "name": "linked-direct",
+        "path": "<home>\\cwd-alias\\.agents\\skills\\link\\SKILL.md",
+        "description": "linked skill directory",
+        "disableModelInvocation": false
+      },
+      {
+        "name": "manifest",
+        "path": "<home>\\cwd-alias\\extra\\included\\SKILL.md",
+        "description": "declared",
+        "disableModelInvocation": false
+      },
+      {
+        "name": "manual",
+        "path": "<home>\\cwd-alias\\.agents\\skills\\manual\\SKILL.md",
+        "description": "manual",
+        "disableModelInvocation": true
+      },
+      {
+        "name": "migrate-agent-settings",
+        "path": "<home>\\.gemini\\antigravity-cli\\builtin\\skills\\migrate-agent-settings\\SKILL.md",
+        "description": "Migrates the user's MCP servers, skills, slash commands, subagents, and instruction files from other coding agents (Claude Code, Codex, Cursor, Gemini CLI) into one new Antigravity plugin. Use when the user wants to bring over, import, or migrate their setup or config from another agent or tool. Don't use for installing Marketplace plugins or authoring a new plugin from scratch (use the plugin skill).",
+        "disableModelInvocation": false,
+        "scope": "builtin"
+      },
+      {
+        "name": "migrate-workflows",
+        "path": "<home>\\.gemini\\antigravity-cli\\builtin\\skills\\migrate-workflows\\SKILL.md",
+        "description": "Automatically migrate legacy workflows to modern skills across global and workspace configurations. Scans for existing workflows, creates target SKILL.md files, and safely archives old workflow files.",
+        "disableModelInvocation": false,
+        "scope": "builtin"
+      },
+      {
+        "name": "plugin-1:child",
+        "path": "<home>\\.gemini\\antigravity-cli\\plugins\\plugin-1\\skills\\child\\SKILL.md",
+        "description": "plugin 1",
+        "disableModelInvocation": false,
+        "plugin": "Display 1"
+      },
+      {
+        "name": "plugin-2:child",
+        "path": "<home>\\cwd-alias\\.agents\\plugins\\plugin-2\\skills\\child\\SKILL.md",
+        "description": "plugin 2",
+        "disableModelInvocation": false,
+        "plugin": "Display 2"
+      },
+      {
+        "name": "root-0",
+        "path": "<home>\\cwd-alias\\.agent\\skills\\root-0\\SKILL.md",
+        "description": "root 0",
+        "disableModelInvocation": false
+      },
+      {
+        "name": "root-1",
+        "path": "<home>\\cwd-alias\\.agents\\skills\\root-1\\SKILL.md",
+        "description": "root 1",
+        "disableModelInvocation": false
+      },
+      {
+        "name": "root-2",
+        "path": "<home>\\cwd-alias\\_agent\\skills\\root-2\\SKILL.md",
+        "description": "root 2",
+        "disableModelInvocation": false
+      },
+      {
+        "name": "root-3",
+        "path": "<home>\\cwd-alias\\_agents\\skills\\root-3\\SKILL.md",
+        "description": "root 3",
+        "disableModelInvocation": false
+      },
+      {
+        "name": "root-5",
+        "path": "<home>\\.gemini\\antigravity-cli\\skills\\root-5\\SKILL.md",
+        "description": "root 5",
+        "disableModelInvocation": false
+      },
+      {
+        "name": "root-6",
+        "path": "<home>\\.gemini\\config\\skills\\root-6\\SKILL.md",
+        "description": "root 6",
+        "disableModelInvocation": false
+      },
+      {
+        "name": "root-7",
+        "path": "<home>\\.gemini\\skills\\root-7\\SKILL.md",
+        "description": "root 7",
+        "disableModelInvocation": false
+      },
+      {
+        "name": "run-workflow",
+        "path": "<home>\\.gemini\\config\\declared\\builtin-shadow\\SKILL.md",
+        "description": "native declared override",
+        "disableModelInvocation": false
+      },
+      {
+        "name": "yaml-flow",
+        "path": "<home>\\cwd-alias\\.agents\\skills\\flow\\SKILL.md",
+        "disableModelInvocation": true
+      }
+    ],
+    "partial": true
+  }
+}

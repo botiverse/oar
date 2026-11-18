@@ -631,41 +631,55 @@ Their old service conclusions do not describe the new CLI adapter.
 
 ## Independent skill discovery
 
-`skills()` uses `agy --output-format json --print=/skills`, verified on
-1.5.0 and 1.5.10. The native result has `status: "SUCCESS"`, an empty
-`conversation_id`, `num_turns: 0` and `command.data.skills`. OAR checks that
-shape and maps only metadata: name, description, path, explicit plugin,
-`builtin: true` to `scope: "builtin"`, and the inverse of `model_invocable`.
-Other scope stays unknown. No skill body is returned or executed by OAR.
+`skills()` reads local metadata directly for CLI **1.5.10 and 1.5.11 on Linux
+and macOS**.
+It starts no process, performs no authentication query or network request,
+and works while signed out. The result remains `view: "discovered"`; no skill
+body is returned or executed. Windows and unverified versions retain the guarded native
+`agy --output-format json --print=/skills` reader.
 
-This is the CLI's disclosed catalog (`view: "discovered", partial: false`),
-not all files on disk or a live model's context. Native
-`disable-slash-command: true` entries are omitted; entries with
-`disable-model-invocation: true` remain with that flag. A malformed response
-fails the query rather than becoming an empty list. OAR does not scan fallback
-roots or parse a plugin name out of a skill name.
+The verified file reader follows workspace aliases (`.agent`, `.agents`,
+`_agent`, `_agents`) from the repository root to the requested directory,
+then the global CLI, config and legacy skill directories. Workspace discovery
+uses the physical working directory. Manifest containment uses resolved roots and targets while returned
+manifest paths keep their declared spelling. Linked
+skill directories are followed. It reads skill and
+plugin manifests, applies native duplicate precedence and invocation flags,
+and includes only the native builtin mounts already materialized on disk.
+`disable-slash-command: true` winners are omitted, while
+`disable-model-invocation: true` entries remain with that flag. Plugin names
+come from their manifests; other scope stays unknown. Missing builtin files
+are not initialized or repaired. The file reader always returns `partial: true`
+because it omits the conditional `native_swarm` builtin: native sometimes
+omits that mount even while its file exists and saved plugin settings agree.
+Other discovered skills named `swarm` remain visible. The mount will be added
+only after its native selection rule is verified.
+A custom `GEMINI_HOME` that differs from the effective home's `.gemini` remains
+`unsupported/scope_unavailable`.
 
-Print mode can initiate login when signed out, so the reader first uses the
-existing `agy models` authentication check. A native signed-out refusal becomes
-`{ kind: "unavailable", code: "not_authenticated", reason: "Sign in to Antigravity to read its skills." }`.
-An unknown status remains `query_failed`, without entering print mode. Both
-steps share the caller's deadline. A custom GEMINI_HOME that differs from the
-effective home's `.gemini` is `unsupported/scope_unavailable`, because this
-print command cannot select that directory.
+The [file-reader comparison](../../experiments/antigravity-file-skills/README.md)
+records native 1.5.10/1.5.11 controls for roots, manifests, YAML, plugins,
+duplicates, signed-out reads and MCP startup, plus an unresolved native builtin
+omission observed during development. The separate pinned 1.5.11 CI comparison
+preserves the existing 1.5.0 ACP baseline. Windows CI asserts the native reader
+and signed-out guard. A Windows junction-cwd comparison exposed different
+workspace discovery; Windows will use the file reader only after that rule
+is measured and the full comparison passes.
 
-The reader sets `AGY_CLI_DISABLE_AUTO_UPDATE=true` for its own child processes;
-`1` does not disable the native updater. Session behavior and the host's
-environment stay unchanged. This avoids a metadata read replacing the selected
-executable. It does not make native startup free of side effects: the measured
-CLI initializes builtin skill files, logs and an empty history database, and
-can reformat settings without changing their values. With the synthetic model
-provider, it made no model requests or saved conversations, but still resolved
-`play.googleapis.com` and attempted HTTPS. A real account's authentication
-query may also access account services. The reader is not a no-network local
-operation. `orient({include:["customization"]})` explicitly opts into these
-costs, including at local depth.
+On Windows and for other versions, print mode can initiate login, so OAR first checks
+`agy models` authentication. Signed-out reads return
+`unavailable/not_authenticated`; unknown authentication returns `query_failed`.
+The authentication and print calls share the query deadline and set
+`AGY_CLI_DISABLE_AUTO_UPDATE=true` (`1` does not disable the native updater).
+OAR validates the native success envelope, empty conversation ID, zero turns
+and command name before mapping metadata. Malformed output fails the query.
 
-[Reproduction and selected evidence](../../experiments/antigravity-skills/README.md)
-include the signed-out guard, native catalog comparison, binary fingerprints,
-history table counts and limits of the observations. Commands, tools and MCP
-inventories remain unsupported on this adapter.
+That native fallback can initialize builtin files, logs and an empty history
+database, reformat settings, access the network and start configured MCP
+servers. With isolated synthetic configurations, both 1.5.10 and 1.5.11 started
+a global MCP child during `/skills`; the workspace-only marker was not started.
+Neither file reader started either marker. These observations do not establish
+the behavior of every MCP configuration or other CLI versions.
+[Earlier native-query evidence](../../experiments/antigravity-skills/README.md)
+retains the signed-out guard, history and network controls. Commands, tools and
+MCP inventories remain unsupported on this adapter.
