@@ -176,6 +176,15 @@ observed (`timeout`, `failed` or `machine_offline`), plus any bundled list
 it supplies. The historical `toModelListing` mapper and `ListingFailure`
 type are internal reference code, not public exports.
 
+`ModelEntry.serviceTiers` keeps the native tier IDs. The optional
+`serviceTierDetails` array has `{ id, displayName?, description? }` entries
+in the same order, with native labels and descriptions only. Missing text
+stays absent; OAR invents no labels or tier entries. Codex supplies these
+details from `model/list`; other runtimes leave the field absent. An empty
+native Codex tier menu produces two empty arrays, while an unreported menu
+leaves both absent. Tier selection is defined in
+[service tiers](runtime-matrix.md#service-tiers).
+
 | outcome | status | options |
 |---|---|---|
 | `ok` with models | `live` | the models |

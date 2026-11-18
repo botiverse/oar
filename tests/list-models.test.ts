@@ -36,12 +36,14 @@ test("codex model/list keeps native ids and service tiers, drops hidden entries"
   expect(projectCodexModels({ data: [
     { id: "picker-id", model: "gpt-5.5", displayName: " GPT 5.5 ", defaultReasoningEffort: "medium",
       supportedReasoningEfforts: [{ reasoningEffort: "low" }, { reasoningEffort: "high" }],
-      serviceTiers: [{ id: "priority", name: "Fast" }, { id: "flex" }, {}], defaultServiceTier: "flex", additionalSpeedTiers: ["wrong"] },
+      serviceTiers: [{ id: "priority", name: "Fast" }, { id: "flex", name: " ", description: null }, {},
+        { id: "priority", name: "Duplicate" }], defaultServiceTier: "flex", additionalSpeedTiers: ["wrong"] },
     { model: "hidden", hidden: true }, { displayName: "no model" }, { model: "bare", isDefault: true },
     { model: "standard", serviceTiers: [], defaultServiceTier: null, isDefault: false },
-  ] })).toEqual([
-    { id: "gpt-5.5", displayName: "GPT 5.5", effortLevels: ["low", "high"], defaultEffort: "medium", serviceTiers: ["priority", "flex"], defaultServiceTier: "flex" },
-    { id: "bare", default: true }, { id: "standard", serviceTiers: [] },
+  ] })).toStrictEqual([
+    { id: "gpt-5.5", displayName: "GPT 5.5", effortLevels: ["low", "high"], defaultEffort: "medium", serviceTiers: ["priority", "flex"],
+      serviceTierDetails: [{ id: "priority", displayName: "Fast" }, { id: "flex" }], defaultServiceTier: "flex" },
+    { id: "bare", default: true }, { id: "standard", serviceTiers: [], serviceTierDetails: [] },
   ]);
   expect(projectCodexModels(null)).toEqual([]);
 });

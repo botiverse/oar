@@ -895,6 +895,13 @@ was incomplete and does not justify refusing an append on resume.
 paginates `model/list`. `model` is the selectable identity, `displayName` is
 presentation, hidden entries are omitted, and reasoning levels plus
 `serviceTiers[].id` / `defaultServiceTier` come from that same native picker.
+OAR also reports `serviceTierDetails` in the same order as `serviceTiers`,
+mapping each native tier's `name` to `displayName` and retaining its
+`description`. Missing text stays absent. Duplicate IDs retain the first
+entry, matching the existing ID menu. A
+[synthetic two-tier response](../../tests/codex/codex-list-models.test.ts)
+covers `priority` and `ultrafast`, including an absent description; it does
+not claim either tier is available to a particular account.
 It does not read deprecated `additionalSpeedTiers`. No tier is invented for
 `default`: that is the separate explicit opt-out. The entry marked `default`
 is the model a session with no `model` runs on: the one codex's
