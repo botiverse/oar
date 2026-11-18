@@ -1,5 +1,7 @@
 # experiments
 
+- [Kimi startup MCP catalog](kimi-mcp-startup/README.md): 2.6.0 discovery race, fixed-delay version controls, and independent native notification preparation; upstream #4904.
+
 - [Skill invocation metadata across runtimes](skill-invocability/README.md): pinned native flags, command catalogs and preserved unknowns.
 
 - [Claude skill catalog](claude-skill-catalog-2026-11-18.md): context skills joined with initialize commands for descriptions and `userInvocable`; legacy commands are skills; model-hidden skills only appear as commands.

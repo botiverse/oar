@@ -84,7 +84,7 @@ export interface ToolsListChangedRun {
  * bearer token, so the session's entry carries no `headers` (antigravity
  * refuses entries with credentials).
  */
-export async function loggingProxy(served: ServedMcpTools, log: string[]): Promise<{ readonly url: string; close(): Promise<void> }> {
+export async function loggingProxy(served: ServedMcpTools, log: string[], beforeListResponse?: () => Promise<void>): Promise<{ readonly url: string; close(): Promise<void> }> {
   const target = new URL(served.server.url);
   const proxy = createServer((incoming, outgoing) => {
     const chunks: Buffer[] = [];
@@ -98,8 +98,21 @@ export async function loggingProxy(served: ServedMcpTools, log: string[]): Promi
         log.push(`${String(incoming.method)} stream`);
       }
       const forward = httpRequest({ host: target.hostname, port: target.port, path: target.pathname, method: incoming.method, headers: { ...incoming.headers, authorization: served.server.headers?.Authorization ?? "" } }, (answer) => {
-        outgoing.writeHead(answer.statusCode ?? 502, answer.headers);
-        answer.pipe(outgoing);
+        if (beforeListResponse !== undefined && /"method"\s*:\s*"tools\/list"/u.test(body.toString("utf8"))) {
+          const response: Buffer[] = [];
+          answer.on("data", (chunk: Buffer) => { response.push(chunk); });
+          const sendResponse = async (): Promise<void> => {
+            try {
+              await beforeListResponse();
+              outgoing.writeHead(answer.statusCode ?? 502, answer.headers);
+              outgoing.end(Buffer.concat(response));
+            } catch { outgoing.destroy(); }
+          };
+          answer.on("end", () => { void sendResponse(); });
+        } else {
+          outgoing.writeHead(answer.statusCode ?? 502, answer.headers);
+          answer.pipe(outgoing);
+        }
       });
       forward.on("error", () => { outgoing.destroy(); });
       outgoing.on("close", () => { forward.destroy(); });

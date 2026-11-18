@@ -2,7 +2,7 @@ import { piTestRuntime } from "./support/pi-runtime.js";
 import type { LLMock } from "@copilotkit/aimock";
 import { describe, expect, test } from "vitest";
 import { startClaudeAimock, startCodexAimock, startPiAimock, type AimockEnv } from "../harness/aimock.js";
-import { startOpencodeGitFixture, startAntigravityAimock, startGrokAimock, startKimiAimock } from "../harness/aimock-acp.js";
+import { startOpencodeGitFixture, startAntigravityAimock, startGrokAimock } from "../harness/aimock-acp.js";
 import { allRuntimes } from "../harness/runtimes.js";
 import { runtimeUnderTest } from "../harness/subject.js";
 import { loadClaudeProbeTools, modelView, runToolsListChanged } from "./support/tools-list-changed.js";
@@ -20,7 +20,8 @@ import { loadClaudeProbeTools, modelView, runToolsListChanged } from "./support/
 
 const replyOk = (mock: LLMock): void => { mock.onMessage(/[\s\S]*/u, { content: "ok" }); };
 
-// CI runs claude, codex, pi, OpenCode v1, kimi and grok with local scripted providers.
+// CI runs claude, codex, pi, OpenCode v1 and grok here.
+// Kimi uses its prepared native catalog control in kimi-mcp-catalog.vendor.test.ts.
 // Antigravity runs locally with the same declaration assertion.
 const backends: readonly { readonly id: string; readonly runtime: string; readonly start: () => Promise<AimockEnv> }[] = [
   { id: "antigravity-aimock", runtime: "antigravity", start: async () => startAntigravityAimock(replyOk) },
@@ -29,7 +30,6 @@ const backends: readonly { readonly id: string; readonly runtime: string; readon
   { id: "pi-aimock", runtime: "pi", start: async () => startPiAimock(replyOk, { captureRaw: true }) },
   { id: "pi-rpc-aimock", runtime: "pi", start: async () => startPiAimock(replyOk, { captureRaw: true }) },
   { id: "opencode-aimock", runtime: "opencode", start: async () => startOpencodeGitFixture(replyOk) },
-  { id: "kimi-aimock", runtime: "kimi", start: async () => startKimiAimock(replyOk) },
   { id: "grok-aimock", runtime: "grok", start: async () => startGrokAimock(replyOk) },
 ];
 

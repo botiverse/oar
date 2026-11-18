@@ -1,0 +1,2021 @@
+{
+  "platform": "linux x64",
+  "node": "24.19.0",
+  "date": "2026-11-18",
+  "rows": [
+    {
+      "version": "2.4.1",
+      "mode": "cold-native",
+      "delayMs": 0,
+      "preparation": [],
+      "turns": [
+        [
+          [
+            "oar_probe_alpha"
+          ]
+        ],
+        [
+          [
+            "oar_probe_alpha"
+          ]
+        ]
+      ],
+      "marksMs": [
+        {
+          "at": 0,
+          "kind": "open-start"
+        },
+        {
+          "at": 1580,
+          "kind": "request",
+          "method": "initialize"
+        },
+        {
+          "at": 1601,
+          "kind": "request",
+          "method": "notifications/initialized"
+        },
+        {
+          "at": 1607,
+          "kind": "request",
+          "method": "GET"
+        },
+        {
+          "at": 1607,
+          "kind": "request",
+          "method": "tools/list"
+        },
+        {
+          "at": 1610,
+          "kind": "list-response-held"
+        },
+        {
+          "at": 1611,
+          "kind": "list-response-released"
+        },
+        {
+          "at": 1750,
+          "kind": "opened"
+        },
+        {
+          "at": 3891,
+          "kind": "first-done"
+        },
+        {
+          "at": 3891,
+          "kind": "setTools"
+        },
+        {
+          "at": 4930,
+          "kind": "second-done"
+        }
+      ]
+    },
+    {
+      "version": "2.4.1",
+      "mode": "cold-native",
+      "delayMs": 1000,
+      "preparation": [],
+      "turns": [
+        [
+          [
+            "oar_probe_alpha"
+          ]
+        ],
+        [
+          [
+            "oar_probe_alpha"
+          ]
+        ]
+      ],
+      "marksMs": [
+        {
+          "at": 0,
+          "kind": "open-start"
+        },
+        {
+          "at": 1573,
+          "kind": "request",
+          "method": "initialize"
+        },
+        {
+          "at": 1587,
+          "kind": "request",
+          "method": "notifications/initialized"
+        },
+        {
+          "at": 1592,
+          "kind": "request",
+          "method": "GET"
+        },
+        {
+          "at": 1592,
+          "kind": "request",
+          "method": "tools/list"
+        },
+        {
+          "at": 1595,
+          "kind": "list-response-held"
+        },
+        {
+          "at": 1711,
+          "kind": "opened"
+        },
+        {
+          "at": 2595,
+          "kind": "list-response-released"
+        },
+        {
+          "at": 3808,
+          "kind": "first-done"
+        },
+        {
+          "at": 3808,
+          "kind": "setTools"
+        },
+        {
+          "at": 4850,
+          "kind": "second-done"
+        }
+      ]
+    },
+    {
+      "version": "2.4.1",
+      "mode": "cold-native",
+      "delayMs": 1000,
+      "preparation": [],
+      "turns": [
+        [
+          [
+            "oar_probe_alpha"
+          ]
+        ],
+        [
+          [
+            "oar_probe_alpha"
+          ]
+        ]
+      ],
+      "marksMs": [
+        {
+          "at": 0,
+          "kind": "open-start"
+        },
+        {
+          "at": 1604,
+          "kind": "request",
+          "method": "initialize"
+        },
+        {
+          "at": 1618,
+          "kind": "request",
+          "method": "notifications/initialized"
+        },
+        {
+          "at": 1623,
+          "kind": "request",
+          "method": "GET"
+        },
+        {
+          "at": 1624,
+          "kind": "request",
+          "method": "tools/list"
+        },
+        {
+          "at": 1625,
+          "kind": "list-response-held"
+        },
+        {
+          "at": 1751,
+          "kind": "opened"
+        },
+        {
+          "at": 2626,
+          "kind": "list-response-released"
+        },
+        {
+          "at": 3891,
+          "kind": "first-done"
+        },
+        {
+          "at": 3891,
+          "kind": "setTools"
+        },
+        {
+          "at": 4935,
+          "kind": "second-done"
+        }
+      ]
+    },
+    {
+      "version": "2.5.2",
+      "mode": "cold-native",
+      "delayMs": 0,
+      "preparation": [],
+      "turns": [
+        [
+          [
+            "oar_probe_alpha"
+          ]
+        ],
+        [
+          [
+            "oar_probe_alpha"
+          ]
+        ]
+      ],
+      "marksMs": [
+        {
+          "at": 0,
+          "kind": "open-start"
+        },
+        {
+          "at": 1709,
+          "kind": "request",
+          "method": "initialize"
+        },
+        {
+          "at": 1730,
+          "kind": "request",
+          "method": "notifications/initialized"
+        },
+        {
+          "at": 1736,
+          "kind": "request",
+          "method": "GET"
+        },
+        {
+          "at": 1736,
+          "kind": "request",
+          "method": "tools/list"
+        },
+        {
+          "at": 1739,
+          "kind": "list-response-held"
+        },
+        {
+          "at": 1740,
+          "kind": "list-response-released"
+        },
+        {
+          "at": 1879,
+          "kind": "opened"
+        },
+        {
+          "at": 4026,
+          "kind": "first-done"
+        },
+        {
+          "at": 4027,
+          "kind": "setTools"
+        },
+        {
+          "at": 5076,
+          "kind": "second-done"
+        }
+      ]
+    },
+    {
+      "version": "2.5.2",
+      "mode": "cold-native",
+      "delayMs": 1000,
+      "preparation": [],
+      "turns": [
+        [
+          [
+            "oar_probe_alpha"
+          ]
+        ],
+        [
+          [
+            "oar_probe_alpha"
+          ]
+        ]
+      ],
+      "marksMs": [
+        {
+          "at": 0,
+          "kind": "open-start"
+        },
+        {
+          "at": 1656,
+          "kind": "request",
+          "method": "initialize"
+        },
+        {
+          "at": 1674,
+          "kind": "request",
+          "method": "notifications/initialized"
+        },
+        {
+          "at": 1681,
+          "kind": "request",
+          "method": "GET"
+        },
+        {
+          "at": 1682,
+          "kind": "request",
+          "method": "tools/list"
+        },
+        {
+          "at": 1684,
+          "kind": "list-response-held"
+        },
+        {
+          "at": 1836,
+          "kind": "opened"
+        },
+        {
+          "at": 2684,
+          "kind": "list-response-released"
+        },
+        {
+          "at": 3984,
+          "kind": "first-done"
+        },
+        {
+          "at": 3984,
+          "kind": "setTools"
+        },
+        {
+          "at": 5035,
+          "kind": "second-done"
+        }
+      ]
+    },
+    {
+      "version": "2.5.2",
+      "mode": "cold-native",
+      "delayMs": 1000,
+      "preparation": [],
+      "turns": [
+        [
+          [
+            "oar_probe_alpha"
+          ]
+        ],
+        [
+          [
+            "oar_probe_alpha"
+          ]
+        ]
+      ],
+      "marksMs": [
+        {
+          "at": 0,
+          "kind": "open-start"
+        },
+        {
+          "at": 1671,
+          "kind": "request",
+          "method": "initialize"
+        },
+        {
+          "at": 1687,
+          "kind": "request",
+          "method": "notifications/initialized"
+        },
+        {
+          "at": 1692,
+          "kind": "request",
+          "method": "GET"
+        },
+        {
+          "at": 1693,
+          "kind": "request",
+          "method": "tools/list"
+        },
+        {
+          "at": 1694,
+          "kind": "list-response-held"
+        },
+        {
+          "at": 1831,
+          "kind": "opened"
+        },
+        {
+          "at": 2695,
+          "kind": "list-response-released"
+        },
+        {
+          "at": 3962,
+          "kind": "first-done"
+        },
+        {
+          "at": 3962,
+          "kind": "setTools"
+        },
+        {
+          "at": 5013,
+          "kind": "second-done"
+        }
+      ]
+    },
+    {
+      "version": "2.5.3",
+      "mode": "cold-native",
+      "delayMs": 0,
+      "preparation": [],
+      "turns": [
+        [
+          [
+            "oar_probe_alpha"
+          ]
+        ],
+        [
+          [
+            "oar_probe_alpha"
+          ]
+        ]
+      ],
+      "marksMs": [
+        {
+          "at": 0,
+          "kind": "open-start"
+        },
+        {
+          "at": 1637,
+          "kind": "request",
+          "method": "initialize"
+        },
+        {
+          "at": 1662,
+          "kind": "request",
+          "method": "notifications/initialized"
+        },
+        {
+          "at": 1670,
+          "kind": "request",
+          "method": "GET"
+        },
+        {
+          "at": 1671,
+          "kind": "request",
+          "method": "tools/list"
+        },
+        {
+          "at": 1678,
+          "kind": "list-response-held"
+        },
+        {
+          "at": 1680,
+          "kind": "list-response-released"
+        },
+        {
+          "at": 1858,
+          "kind": "opened"
+        },
+        {
+          "at": 3989,
+          "kind": "first-done"
+        },
+        {
+          "at": 3989,
+          "kind": "setTools"
+        },
+        {
+          "at": 5049,
+          "kind": "second-done"
+        }
+      ]
+    },
+    {
+      "version": "2.5.3",
+      "mode": "cold-native",
+      "delayMs": 1000,
+      "preparation": [],
+      "turns": [
+        [
+          [
+            "oar_probe_alpha"
+          ]
+        ],
+        [
+          [
+            "oar_probe_alpha"
+          ]
+        ]
+      ],
+      "marksMs": [
+        {
+          "at": 0,
+          "kind": "open-start"
+        },
+        {
+          "at": 1724,
+          "kind": "request",
+          "method": "initialize"
+        },
+        {
+          "at": 1742,
+          "kind": "request",
+          "method": "notifications/initialized"
+        },
+        {
+          "at": 1747,
+          "kind": "request",
+          "method": "GET"
+        },
+        {
+          "at": 1748,
+          "kind": "request",
+          "method": "tools/list"
+        },
+        {
+          "at": 1750,
+          "kind": "list-response-held"
+        },
+        {
+          "at": 1891,
+          "kind": "opened"
+        },
+        {
+          "at": 2751,
+          "kind": "list-response-released"
+        },
+        {
+          "at": 4041,
+          "kind": "first-done"
+        },
+        {
+          "at": 4041,
+          "kind": "setTools"
+        },
+        {
+          "at": 5091,
+          "kind": "second-done"
+        }
+      ]
+    },
+    {
+      "version": "2.5.3",
+      "mode": "cold-native",
+      "delayMs": 1000,
+      "preparation": [],
+      "turns": [
+        [
+          [
+            "oar_probe_alpha"
+          ]
+        ],
+        [
+          [
+            "oar_probe_alpha"
+          ]
+        ]
+      ],
+      "marksMs": [
+        {
+          "at": 0,
+          "kind": "open-start"
+        },
+        {
+          "at": 1715,
+          "kind": "request",
+          "method": "initialize"
+        },
+        {
+          "at": 1730,
+          "kind": "request",
+          "method": "notifications/initialized"
+        },
+        {
+          "at": 1736,
+          "kind": "request",
+          "method": "GET"
+        },
+        {
+          "at": 1737,
+          "kind": "request",
+          "method": "tools/list"
+        },
+        {
+          "at": 1738,
+          "kind": "list-response-held"
+        },
+        {
+          "at": 1876,
+          "kind": "opened"
+        },
+        {
+          "at": 2740,
+          "kind": "list-response-released"
+        },
+        {
+          "at": 3985,
+          "kind": "first-done"
+        },
+        {
+          "at": 3985,
+          "kind": "setTools"
+        },
+        {
+          "at": 5036,
+          "kind": "second-done"
+        }
+      ]
+    },
+    {
+      "version": "2.6.0",
+      "mode": "cold-native",
+      "delayMs": 0,
+      "preparation": [],
+      "turns": [
+        [
+          [
+            "oar_probe_alpha"
+          ]
+        ],
+        [
+          [
+            "oar_probe_alpha"
+          ]
+        ]
+      ],
+      "marksMs": [
+        {
+          "at": 0,
+          "kind": "open-start"
+        },
+        {
+          "at": 1576,
+          "kind": "request",
+          "method": "initialize"
+        },
+        {
+          "at": 1597,
+          "kind": "request",
+          "method": "notifications/initialized"
+        },
+        {
+          "at": 1605,
+          "kind": "request",
+          "method": "GET"
+        },
+        {
+          "at": 1606,
+          "kind": "request",
+          "method": "tools/list"
+        },
+        {
+          "at": 1608,
+          "kind": "list-response-held"
+        },
+        {
+          "at": 1610,
+          "kind": "list-response-released"
+        },
+        {
+          "at": 1769,
+          "kind": "opened"
+        },
+        {
+          "at": 3904,
+          "kind": "first-done"
+        },
+        {
+          "at": 3905,
+          "kind": "setTools"
+        },
+        {
+          "at": 4959,
+          "kind": "second-done"
+        }
+      ]
+    },
+    {
+      "version": "2.6.0",
+      "mode": "cold-native",
+      "delayMs": 1000,
+      "preparation": [],
+      "turns": [
+        [
+          []
+        ],
+        [
+          []
+        ]
+      ],
+      "marksMs": [
+        {
+          "at": 0,
+          "kind": "open-start"
+        },
+        {
+          "at": 1756,
+          "kind": "request",
+          "method": "initialize"
+        },
+        {
+          "at": 1771,
+          "kind": "request",
+          "method": "notifications/initialized"
+        },
+        {
+          "at": 1779,
+          "kind": "request",
+          "method": "GET"
+        },
+        {
+          "at": 1779,
+          "kind": "request",
+          "method": "tools/list"
+        },
+        {
+          "at": 1781,
+          "kind": "list-response-held"
+        },
+        {
+          "at": 1926,
+          "kind": "opened"
+        },
+        {
+          "at": 2781,
+          "kind": "list-response-released"
+        },
+        {
+          "at": 4056,
+          "kind": "first-done"
+        },
+        {
+          "at": 4056,
+          "kind": "setTools"
+        },
+        {
+          "at": 5101,
+          "kind": "second-done"
+        }
+      ]
+    },
+    {
+      "version": "2.6.0",
+      "mode": "cold-native",
+      "delayMs": 1000,
+      "preparation": [],
+      "turns": [
+        [
+          []
+        ],
+        [
+          []
+        ]
+      ],
+      "marksMs": [
+        {
+          "at": 0,
+          "kind": "open-start"
+        },
+        {
+          "at": 1811,
+          "kind": "request",
+          "method": "initialize"
+        },
+        {
+          "at": 1829,
+          "kind": "request",
+          "method": "notifications/initialized"
+        },
+        {
+          "at": 1836,
+          "kind": "request",
+          "method": "GET"
+        },
+        {
+          "at": 1837,
+          "kind": "request",
+          "method": "tools/list"
+        },
+        {
+          "at": 1839,
+          "kind": "list-response-held"
+        },
+        {
+          "at": 2007,
+          "kind": "opened"
+        },
+        {
+          "at": 2839,
+          "kind": "list-response-released"
+        },
+        {
+          "at": 4138,
+          "kind": "first-done"
+        },
+        {
+          "at": 4138,
+          "kind": "setTools"
+        },
+        {
+          "at": 5182,
+          "kind": "second-done"
+        }
+      ]
+    },
+    {
+      "version": "2.6.3",
+      "mode": "cold-native",
+      "delayMs": 0,
+      "preparation": [],
+      "turns": [
+        [
+          [
+            "oar_probe_alpha"
+          ]
+        ],
+        [
+          [
+            "oar_probe_alpha"
+          ]
+        ]
+      ],
+      "marksMs": [
+        {
+          "at": 0,
+          "kind": "open-start"
+        },
+        {
+          "at": 1599,
+          "kind": "request",
+          "method": "initialize"
+        },
+        {
+          "at": 1621,
+          "kind": "request",
+          "method": "notifications/initialized"
+        },
+        {
+          "at": 1628,
+          "kind": "request",
+          "method": "GET"
+        },
+        {
+          "at": 1629,
+          "kind": "request",
+          "method": "tools/list"
+        },
+        {
+          "at": 1631,
+          "kind": "list-response-held"
+        },
+        {
+          "at": 1632,
+          "kind": "list-response-released"
+        },
+        {
+          "at": 1776,
+          "kind": "opened"
+        },
+        {
+          "at": 3922,
+          "kind": "first-done"
+        },
+        {
+          "at": 3923,
+          "kind": "setTools"
+        },
+        {
+          "at": 4972,
+          "kind": "second-done"
+        }
+      ]
+    },
+    {
+      "version": "2.6.3",
+      "mode": "cold-native",
+      "delayMs": 1000,
+      "preparation": [],
+      "turns": [
+        [
+          []
+        ],
+        [
+          []
+        ]
+      ],
+      "marksMs": [
+        {
+          "at": 0,
+          "kind": "open-start"
+        },
+        {
+          "at": 1657,
+          "kind": "request",
+          "method": "initialize"
+        },
+        {
+          "at": 1673,
+          "kind": "request",
+          "method": "notifications/initialized"
+        },
+        {
+          "at": 1679,
+          "kind": "request",
+          "method": "GET"
+        },
+        {
+          "at": 1680,
+          "kind": "request",
+          "method": "tools/list"
+        },
+        {
+          "at": 1682,
+          "kind": "list-response-held"
+        },
+        {
+          "at": 1822,
+          "kind": "opened"
+        },
+        {
+          "at": 2682,
+          "kind": "list-response-released"
+        },
+        {
+          "at": 3952,
+          "kind": "first-done"
+        },
+        {
+          "at": 3952,
+          "kind": "setTools"
+        },
+        {
+          "at": 5005,
+          "kind": "second-done"
+        }
+      ]
+    },
+    {
+      "version": "2.6.3",
+      "mode": "cold-native",
+      "delayMs": 1000,
+      "preparation": [],
+      "turns": [
+        [
+          []
+        ],
+        [
+          []
+        ]
+      ],
+      "marksMs": [
+        {
+          "at": 0,
+          "kind": "open-start"
+        },
+        {
+          "at": 1666,
+          "kind": "request",
+          "method": "initialize"
+        },
+        {
+          "at": 1682,
+          "kind": "request",
+          "method": "notifications/initialized"
+        },
+        {
+          "at": 1688,
+          "kind": "request",
+          "method": "GET"
+        },
+        {
+          "at": 1689,
+          "kind": "request",
+          "method": "tools/list"
+        },
+        {
+          "at": 1691,
+          "kind": "list-response-held"
+        },
+        {
+          "at": 1833,
+          "kind": "opened"
+        },
+        {
+          "at": 2691,
+          "kind": "list-response-released"
+        },
+        {
+          "at": 3966,
+          "kind": "first-done"
+        },
+        {
+          "at": 3966,
+          "kind": "setTools"
+        },
+        {
+          "at": 5018,
+          "kind": "second-done"
+        }
+      ]
+    },
+    {
+      "version": "2.6.3",
+      "mode": "cold-native",
+      "delayMs": 1000,
+      "preparation": [],
+      "turns": [
+        [
+          []
+        ],
+        [
+          []
+        ]
+      ],
+      "marksMs": [
+        {
+          "at": 0,
+          "kind": "open-start"
+        },
+        {
+          "at": 1725,
+          "kind": "request",
+          "method": "initialize"
+        },
+        {
+          "at": 1743,
+          "kind": "request",
+          "method": "notifications/initialized"
+        },
+        {
+          "at": 1750,
+          "kind": "request",
+          "method": "GET"
+        },
+        {
+          "at": 1751,
+          "kind": "request",
+          "method": "tools/list"
+        },
+        {
+          "at": 1752,
+          "kind": "list-response-held"
+        },
+        {
+          "at": 1898,
+          "kind": "opened"
+        },
+        {
+          "at": 2752,
+          "kind": "list-response-released"
+        },
+        {
+          "at": 4042,
+          "kind": "first-done"
+        },
+        {
+          "at": 4042,
+          "kind": "setTools"
+        },
+        {
+          "at": 5090,
+          "kind": "second-done"
+        }
+      ]
+    },
+    {
+      "version": "2.6.3",
+      "mode": "cold-oar",
+      "delayMs": 0,
+      "preparation": [],
+      "turns": [
+        [
+          [
+            "oar_probe_alpha"
+          ]
+        ],
+        [
+          [
+            "oar_probe_alpha"
+          ]
+        ]
+      ],
+      "marksMs": [
+        {
+          "at": 0,
+          "kind": "open-start"
+        },
+        {
+          "at": 1923,
+          "kind": "request",
+          "method": "initialize"
+        },
+        {
+          "at": 1945,
+          "kind": "request",
+          "method": "notifications/initialized"
+        },
+        {
+          "at": 1950,
+          "kind": "request",
+          "method": "GET"
+        },
+        {
+          "at": 1951,
+          "kind": "request",
+          "method": "tools/list"
+        },
+        {
+          "at": 1954,
+          "kind": "list-response-held"
+        },
+        {
+          "at": 1955,
+          "kind": "list-response-released"
+        },
+        {
+          "at": 2107,
+          "kind": "opened"
+        },
+        {
+          "at": 2242,
+          "kind": "first-done"
+        },
+        {
+          "at": 2243,
+          "kind": "setTools"
+        },
+        {
+          "at": 3289,
+          "kind": "second-done"
+        }
+      ]
+    },
+    {
+      "version": "2.6.3",
+      "mode": "cold-oar",
+      "delayMs": 100,
+      "preparation": [],
+      "turns": [
+        [
+          []
+        ],
+        [
+          []
+        ]
+      ],
+      "marksMs": [
+        {
+          "at": 0,
+          "kind": "open-start"
+        },
+        {
+          "at": 1623,
+          "kind": "request",
+          "method": "initialize"
+        },
+        {
+          "at": 1640,
+          "kind": "request",
+          "method": "notifications/initialized"
+        },
+        {
+          "at": 1646,
+          "kind": "request",
+          "method": "GET"
+        },
+        {
+          "at": 1647,
+          "kind": "request",
+          "method": "tools/list"
+        },
+        {
+          "at": 1649,
+          "kind": "list-response-held"
+        },
+        {
+          "at": 1750,
+          "kind": "list-response-released"
+        },
+        {
+          "at": 1818,
+          "kind": "opened"
+        },
+        {
+          "at": 1944,
+          "kind": "first-done"
+        },
+        {
+          "at": 1944,
+          "kind": "setTools"
+        },
+        {
+          "at": 2997,
+          "kind": "second-done"
+        }
+      ]
+    },
+    {
+      "version": "2.6.3",
+      "mode": "cold-oar",
+      "delayMs": 1000,
+      "preparation": [],
+      "turns": [
+        [
+          []
+        ],
+        [
+          []
+        ]
+      ],
+      "marksMs": [
+        {
+          "at": 0,
+          "kind": "open-start"
+        },
+        {
+          "at": 1701,
+          "kind": "request",
+          "method": "initialize"
+        },
+        {
+          "at": 1719,
+          "kind": "request",
+          "method": "notifications/initialized"
+        },
+        {
+          "at": 1725,
+          "kind": "request",
+          "method": "GET"
+        },
+        {
+          "at": 1726,
+          "kind": "request",
+          "method": "tools/list"
+        },
+        {
+          "at": 1728,
+          "kind": "list-response-held"
+        },
+        {
+          "at": 1887,
+          "kind": "opened"
+        },
+        {
+          "at": 2728,
+          "kind": "list-response-released"
+        },
+        {
+          "at": 2810,
+          "kind": "first-done"
+        },
+        {
+          "at": 2810,
+          "kind": "setTools"
+        },
+        {
+          "at": 3862,
+          "kind": "second-done"
+        }
+      ]
+    },
+    {
+      "version": "2.6.3",
+      "mode": "cold-oar",
+      "delayMs": 3000,
+      "preparation": [],
+      "turns": [
+        [
+          []
+        ],
+        [
+          []
+        ]
+      ],
+      "marksMs": [
+        {
+          "at": 0,
+          "kind": "open-start"
+        },
+        {
+          "at": 1788,
+          "kind": "request",
+          "method": "initialize"
+        },
+        {
+          "at": 1815,
+          "kind": "request",
+          "method": "notifications/initialized"
+        },
+        {
+          "at": 1822,
+          "kind": "request",
+          "method": "GET"
+        },
+        {
+          "at": 1823,
+          "kind": "request",
+          "method": "tools/list"
+        },
+        {
+          "at": 1824,
+          "kind": "list-response-held"
+        },
+        {
+          "at": 1979,
+          "kind": "opened"
+        },
+        {
+          "at": 4824,
+          "kind": "list-response-released"
+        },
+        {
+          "at": 4904,
+          "kind": "first-done"
+        },
+        {
+          "at": 4904,
+          "kind": "setTools"
+        },
+        {
+          "at": 5953,
+          "kind": "second-done"
+        }
+      ]
+    },
+    {
+      "version": "2.6.3",
+      "mode": "cold-oar",
+      "delayMs": 0,
+      "preparation": [],
+      "turns": [
+        [
+          [
+            "oar_probe_alpha"
+          ]
+        ],
+        [
+          [
+            "oar_probe_alpha"
+          ]
+        ]
+      ],
+      "marksMs": [
+        {
+          "at": 0,
+          "kind": "open-start"
+        },
+        {
+          "at": 1680,
+          "kind": "request",
+          "method": "initialize"
+        },
+        {
+          "at": 1696,
+          "kind": "request",
+          "method": "notifications/initialized"
+        },
+        {
+          "at": 1702,
+          "kind": "request",
+          "method": "GET"
+        },
+        {
+          "at": 1703,
+          "kind": "request",
+          "method": "tools/list"
+        },
+        {
+          "at": 1704,
+          "kind": "list-response-held"
+        },
+        {
+          "at": 1705,
+          "kind": "list-response-released"
+        },
+        {
+          "at": 1861,
+          "kind": "opened"
+        },
+        {
+          "at": 1995,
+          "kind": "first-done"
+        },
+        {
+          "at": 1995,
+          "kind": "setTools"
+        },
+        {
+          "at": 3041,
+          "kind": "second-done"
+        }
+      ]
+    },
+    {
+      "version": "2.6.3",
+      "mode": "cold-oar",
+      "delayMs": 0,
+      "preparation": [],
+      "turns": [
+        [
+          [
+            "oar_probe_alpha"
+          ]
+        ],
+        [
+          [
+            "oar_probe_alpha"
+          ]
+        ]
+      ],
+      "marksMs": [
+        {
+          "at": 0,
+          "kind": "open-start"
+        },
+        {
+          "at": 1691,
+          "kind": "request",
+          "method": "initialize"
+        },
+        {
+          "at": 1706,
+          "kind": "request",
+          "method": "notifications/initialized"
+        },
+        {
+          "at": 1714,
+          "kind": "request",
+          "method": "GET"
+        },
+        {
+          "at": 1715,
+          "kind": "request",
+          "method": "tools/list"
+        },
+        {
+          "at": 1716,
+          "kind": "list-response-held"
+        },
+        {
+          "at": 1717,
+          "kind": "list-response-released"
+        },
+        {
+          "at": 1884,
+          "kind": "opened"
+        },
+        {
+          "at": 2019,
+          "kind": "first-done"
+        },
+        {
+          "at": 2019,
+          "kind": "setTools"
+        },
+        {
+          "at": 3067,
+          "kind": "second-done"
+        }
+      ]
+    },
+    {
+      "version": "2.6.3",
+      "mode": "prepared-native",
+      "delayMs": 0,
+      "preparation": [
+        [
+          "oar_probe_alpha"
+        ]
+      ],
+      "turns": [
+        [
+          [
+            "oar_probe_alpha"
+          ]
+        ],
+        [
+          [
+            "oar_probe_alpha"
+          ]
+        ]
+      ],
+      "marksMs": [
+        {
+          "at": 0,
+          "kind": "open-start"
+        },
+        {
+          "at": 1615,
+          "kind": "request",
+          "method": "initialize"
+        },
+        {
+          "at": 1638,
+          "kind": "request",
+          "method": "notifications/initialized"
+        },
+        {
+          "at": 1645,
+          "kind": "request",
+          "method": "GET"
+        },
+        {
+          "at": 1647,
+          "kind": "request",
+          "method": "tools/list"
+        },
+        {
+          "at": 1649,
+          "kind": "list-response-held"
+        },
+        {
+          "at": 1651,
+          "kind": "list-response-released"
+        },
+        {
+          "at": 2032,
+          "kind": "opened"
+        },
+        {
+          "at": 4078,
+          "kind": "first-done"
+        },
+        {
+          "at": 4078,
+          "kind": "setTools"
+        },
+        {
+          "at": 5122,
+          "kind": "second-done"
+        }
+      ]
+    },
+    {
+      "version": "2.6.3",
+      "mode": "prepared-native",
+      "delayMs": 1000,
+      "preparation": [
+        []
+      ],
+      "turns": [
+        [
+          [
+            "oar_probe_alpha"
+          ]
+        ],
+        [
+          [
+            "oar_probe_alpha"
+          ]
+        ]
+      ],
+      "marksMs": [
+        {
+          "at": 0,
+          "kind": "open-start"
+        },
+        {
+          "at": 1761,
+          "kind": "request",
+          "method": "initialize"
+        },
+        {
+          "at": 1777,
+          "kind": "request",
+          "method": "notifications/initialized"
+        },
+        {
+          "at": 1783,
+          "kind": "request",
+          "method": "GET"
+        },
+        {
+          "at": 1784,
+          "kind": "request",
+          "method": "tools/list"
+        },
+        {
+          "at": 1785,
+          "kind": "list-response-held"
+        },
+        {
+          "at": 2786,
+          "kind": "list-response-released"
+        },
+        {
+          "at": 2986,
+          "kind": "opened"
+        },
+        {
+          "at": 5033,
+          "kind": "first-done"
+        },
+        {
+          "at": 5033,
+          "kind": "setTools"
+        },
+        {
+          "at": 6078,
+          "kind": "second-done"
+        }
+      ]
+    },
+    {
+      "version": "2.6.3",
+      "mode": "prepared-native",
+      "delayMs": 1000,
+      "preparation": [
+        []
+      ],
+      "turns": [
+        [
+          [
+            "oar_probe_alpha"
+          ]
+        ],
+        [
+          [
+            "oar_probe_alpha"
+          ]
+        ]
+      ],
+      "marksMs": [
+        {
+          "at": 0,
+          "kind": "open-start"
+        },
+        {
+          "at": 1645,
+          "kind": "request",
+          "method": "initialize"
+        },
+        {
+          "at": 1660,
+          "kind": "request",
+          "method": "notifications/initialized"
+        },
+        {
+          "at": 1667,
+          "kind": "request",
+          "method": "GET"
+        },
+        {
+          "at": 1668,
+          "kind": "request",
+          "method": "tools/list"
+        },
+        {
+          "at": 1669,
+          "kind": "list-response-held"
+        },
+        {
+          "at": 2669,
+          "kind": "list-response-released"
+        },
+        {
+          "at": 2881,
+          "kind": "opened"
+        },
+        {
+          "at": 4929,
+          "kind": "first-done"
+        },
+        {
+          "at": 4929,
+          "kind": "setTools"
+        },
+        {
+          "at": 5972,
+          "kind": "second-done"
+        }
+      ]
+    },
+    {
+      "version": "2.6.1",
+      "mode": "cold-native",
+      "delayMs": 0,
+      "preparation": [],
+      "turns": [
+        [
+          [
+            "oar_probe_alpha"
+          ]
+        ],
+        [
+          [
+            "oar_probe_alpha"
+          ]
+        ]
+      ],
+      "log": [
+        "initialize",
+        "notifications/initialized",
+        "GET stream",
+        "tools/list",
+        "setTools"
+      ],
+      "relisted": false,
+      "marksMs": [
+        {
+          "event": "list_response_ready",
+          "at": 0.0
+        },
+        {
+          "event": "list_response_released",
+          "at": 0.01
+        },
+        {
+          "event": "opened",
+          "at": 161.05
+        },
+        {
+          "event": "first_prompt",
+          "at": 2163.45
+        },
+        {
+          "event": "second_done",
+          "at": 12407.78
+        }
+      ]
+    },
+    {
+      "version": "2.6.1",
+      "mode": "cold-native",
+      "delayMs": 1000,
+      "preparation": [],
+      "turns": [
+        [
+          []
+        ],
+        [
+          []
+        ]
+      ],
+      "log": [
+        "initialize",
+        "notifications/initialized",
+        "GET stream",
+        "tools/list",
+        "setTools"
+      ],
+      "relisted": false,
+      "marksMs": [
+        {
+          "event": "list_response_ready",
+          "at": 0.0
+        },
+        {
+          "event": "opened",
+          "at": 152.08
+        },
+        {
+          "event": "list_response_released",
+          "at": 1000.64
+        },
+        {
+          "event": "first_prompt",
+          "at": 3000.77
+        },
+        {
+          "event": "second_done",
+          "at": 13220.18
+        }
+      ]
+    },
+    {
+      "version": "2.6.1",
+      "mode": "prepared-native",
+      "delayMs": 0,
+      "preparation": [
+        [
+          "oar_probe_alpha"
+        ]
+      ],
+      "turns": [
+        [
+          [
+            "oar_probe_alpha"
+          ]
+        ],
+        [
+          [
+            "oar_probe_alpha"
+          ]
+        ]
+      ],
+      "log": [
+        "initialize",
+        "notifications/initialized",
+        "GET stream",
+        "tools/list",
+        "setTools"
+      ],
+      "relisted": false,
+      "marksMs": [
+        {
+          "event": "list_response_ready",
+          "at": 0.0
+        },
+        {
+          "event": "list_response_released",
+          "at": 0.0
+        },
+        {
+          "event": "preparation_done",
+          "at": 301.58
+        },
+        {
+          "event": "opened",
+          "at": 402.05
+        },
+        {
+          "event": "first_prompt",
+          "at": 402.08
+        },
+        {
+          "event": "second_done",
+          "at": 10491.97
+        }
+      ]
+    },
+    {
+      "version": "2.6.2",
+      "mode": "cold-native",
+      "delayMs": 0,
+      "preparation": [],
+      "turns": [
+        [
+          [
+            "oar_probe_alpha"
+          ]
+        ],
+        [
+          [
+            "oar_probe_alpha"
+          ]
+        ]
+      ],
+      "log": [
+        "initialize",
+        "notifications/initialized",
+        "GET stream",
+        "tools/list",
+        "setTools"
+      ],
+      "relisted": false,
+      "marksMs": [
+        {
+          "event": "list_response_ready",
+          "at": 0.0
+        },
+        {
+          "event": "list_response_released",
+          "at": 0.01
+        },
+        {
+          "event": "opened",
+          "at": 180.31
+        },
+        {
+          "event": "first_prompt",
+          "at": 2183.16
+        },
+        {
+          "event": "second_done",
+          "at": 12387.17
+        }
+      ]
+    },
+    {
+      "version": "2.6.2",
+      "mode": "cold-native",
+      "delayMs": 1000,
+      "preparation": [],
+      "turns": [
+        [
+          []
+        ],
+        [
+          []
+        ]
+      ],
+      "log": [
+        "initialize",
+        "notifications/initialized",
+        "GET stream",
+        "tools/list",
+        "setTools"
+      ],
+      "relisted": false,
+      "marksMs": [
+        {
+          "event": "list_response_ready",
+          "at": 0.0
+        },
+        {
+          "event": "opened",
+          "at": 156.22
+        },
+        {
+          "event": "list_response_released",
+          "at": 1000.62
+        },
+        {
+          "event": "first_prompt",
+          "at": 3000.23
+        },
+        {
+          "event": "second_done",
+          "at": 13179.68
+        }
+      ]
+    },
+    {
+      "version": "2.6.2",
+      "mode": "prepared-native",
+      "delayMs": 0,
+      "preparation": [
+        [
+          "oar_probe_alpha"
+        ]
+      ],
+      "turns": [
+        [
+          [
+            "oar_probe_alpha"
+          ]
+        ],
+        [
+          [
+            "oar_probe_alpha"
+          ]
+        ]
+      ],
+      "log": [
+        "initialize",
+        "notifications/initialized",
+        "GET stream",
+        "tools/list",
+        "setTools"
+      ],
+      "relisted": false,
+      "marksMs": [
+        {
+          "event": "list_response_ready",
+          "at": 0.0
+        },
+        {
+          "event": "list_response_released",
+          "at": 0.0
+        },
+        {
+          "event": "preparation_done",
+          "at": 287.53
+        },
+        {
+          "event": "opened",
+          "at": 400.64
+        },
+        {
+          "event": "first_prompt",
+          "at": 400.66
+        },
+        {
+          "event": "second_done",
+          "at": 10500.53
+        }
+      ]
+    }
+  ],
+  "selectedNativeEvents": {
+    "selection": "2.6.3 cold OAR, 1000 ms; only probe entries retained from tools, nonessential hash omitted",
+    "events": [
+      {
+        "type": "mcp.tools_discovered",
+        "agentId": "main",
+        "serverName": "probe",
+        "enabledNames": [
+          "oar_probe_alpha"
+        ],
+        "time": 1795011929643,
+        "tools": [
+          {
+            "name": "oar_probe_alpha",
+            "description": "oar_probe_alpha",
+            "inputSchema": {
+              "type": "object",
+              "properties": {}
+            }
+          }
+        ]
+      },
+      {
+        "type": "tool_select.initialized",
+        "agentId": "main",
+        "time": 1795011929664,
+        "tools": [
+          {
+            "name": "mcp__probe__oar_probe_alpha",
+            "description": "oar_probe_alpha",
+            "parameters": {
+              "type": "object",
+              "properties": {}
+            },
+            "source": "mcp",
+            "disclosure": "inline",
+            "origin": "initial"
+          }
+        ]
+      }
+    ]
+  }
+}
