@@ -43,6 +43,7 @@ usage have no OAR member to carry them.
 | `SessionOptions.name` | The Thread title at creation. |
 | `SessionOptions.model` / `effort` | `model` / `reasoning_effort` at creation. |
 | `prompt` | `POST /v1/threads/{id}/inputs`, then the Thread is followed by polling. |
+| `steer` | The same `POST /v1/threads/{id}/inputs` while a turn runs: Cybion cancels the request in flight and appends the input to that turn, which stays `running` and ends once. |
 | `queue` / `withdraw` | Held by the adapter (`queue.durable: false`); sent when the Thread goes idle. |
 | `turn_ended` | The Thread's own `status` leaving `running`, read after two quiet polls. |
 | `text_delta`, `reasoning`, `tool_call_started`, `tool_call_ended` | One history record each: a `message` item, a `reasoning` item, a function/custom-tool call, its `tool_output`. |
@@ -67,11 +68,28 @@ Thread; a value that differs from the stored one on resume is refused with an
 One turn at a time: `prompt` is rejected `busy` while the status fold says
 running, while a turn is followed, while input is held for a later turn, and
 while a held input's dispatch is in flight — the tracker alone would be too
-late, because it learns of a turn only once `/inputs` answers. `steer` is absent —
-Cybion's Agent API takes no mid-turn input, and its own queue belongs to the
-browser's Thread, so a queued input would become a second turn the status
-cannot tell from this one. `queue` is therefore held by the adapter and sent
-when the Thread idles; `withdraw` exists for the same reason.
+late, because it learns of a turn only once `/inputs` answers. `queue` is held
+by the adapter and sent when the Thread idles, and `withdraw` exists for the
+same reason: Cybion's own queue belongs to the browser's Thread, so a queued
+input there would become a second turn the status cannot tell from this one.
+
+`steer` is native, and it is the same route: an input written while a turn runs
+is **superseded into that turn**. Cybion cancels the request in flight — the
+Worker tool call, the inference request — writes the cancelled request's late
+output as an `activity` record, and re-enters the loop with the new input; the
+Thread never leaves `running`, so one `turn_ended` covers both inputs. The
+adapter therefore sends the input and leaves the followed turn alone instead of
+starting another one. Only a turn that ended just before the write landed
+leaves the input starting a turn of its own, which the tracker then follows.
+With nothing running, `steer` answers `no_active_turn` rather than queueing.
+
+Two consequences the stream shows honestly:
+
+- The input the steer superseded is not dropped: its own `input` record stays in
+  the history and the model's next inference reads it, in the same turn.
+- A tool call cancelled this way gets **no** `tool_output` record, so the stream
+  holds a `tool_call_started` with no `tool_call_ended`. OAR reports what
+  Cybion wrote and does not invent an end.
 
 `abort` calls `POST /api/threads/{id}/cancel`, the route Cybion's own UI uses;
 it answers the stopped Thread, and the turn ends through that Thread's own
@@ -139,6 +157,12 @@ of its own.
   The started-guard waits 60 polls, and the backoff is capped at 2 s. Until it
   gives up, the status fold says running, so `abort` answers `unsupported` and a
   prompt answers `busy`.
+- **A superseded tool call ends nowhere in the stream.** Cybion cancels the
+  Worker call and writes no record for it, so the `tool_call_started` of a call
+  a steer cancelled stays open in the record stream.
+- **A steer that arrives after the turn ended starts a turn of its own.**
+  Cybion takes the input either way; the adapter then follows that turn, so the
+  turn is not lost, but the caller asked to steer and got a new turn.
 - **Images travel inline.** `InputOptions.images` are read from this machine and
   sent as png/jpeg/webp/gif data URLs, within Cybion's count and size limits.
 
@@ -195,7 +219,17 @@ of its own.
   Thread into `idle`/`stopped` in one answer, and an earlier `GET` on the same
   path answered `405` where `/v1/.../cancel` answered `404 route not found` —
   the route exists on the `/api` router only.
+- **Mid-turn input, observed 2026-11-18** on Cybion `0.6.108` at
+  `https://cybion.ntnl.io`, Thread `01a1f0b1-745a-7e33-8b87-516f8c936cfd`: a
+  turn running a `bash sleep 40` tool call took a second input at the API. The
+  Thread's status stayed `running` from that write to the end — the timeline
+  read `running` before the write and `idle`/`completed` after it, with no
+  return to `idle` in between — and the history shows the shape the mapping
+  claims: `input` (the prompt), the reasoning and function-call items, the
+  `input` of the steer, then one `response_output` `message` answering the
+  steer. The in-flight `bash` call got no `tool_output`. So one turn, one end,
+  and the superseded output is not in the conversation as text.
 - **Unresolved**: what a `blocked` Thread's end means (the mapping reports
-  `unknown` rather than guessing a limit), and whether the Agent API will expose
-  cancellation. A Thread also outlives its session — the Agent API has no route
-  that deletes one — so a probe leaves a Thread in its owner's list.
+  `unknown` rather than guessing a limit). A Thread also outlives its session —
+  the Agent API has no route that deletes one — so a probe leaves a Thread in
+  its owner's list.

@@ -102,7 +102,7 @@ describe("the cybion runtime", () => {
     const runtime = createCybionRuntime({ baseUrl: "https://cybion.test", apiKey: "cyb_me_secret" });
     const installation = await runtime.installation?.();
     expect(installation).toEqual({ kind: "available", via: "bundled" });
-    expect(runtime.sessionCapabilities?.({ kind: "available", via: "bundled" })).toEqual({ steer: false, images: true });
+    expect(runtime.sessionCapabilities?.({ kind: "available", via: "bundled" })).toEqual({ steer: true, images: true });
     expect(runtime.refusedSessionOptions?.systemPrompt).toBeDefined();
   });
 
@@ -111,7 +111,7 @@ describe("the cybion runtime", () => {
     const runtime = createCybionRuntime({ baseUrl: "https://cybion.test", apiKey: "cyb_me_secret" });
     const session = await runtime.session({ kind: "available", via: "bundled" }, { cwd: "/work" });
     expect(session.id).toBe("t1");
-    expect(session.steer).toBeUndefined();
+    expect(session.steer).toBeDefined();
 
     const events = await drive(session, async () => {
       const outcome = await session.prompt("hi");

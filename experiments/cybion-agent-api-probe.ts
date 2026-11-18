@@ -11,15 +11,16 @@
  *    reported.
  * 2. **Live probe** (needs a deployment): with `CYBION_BASE_URL` and
  *    `CYBION_API_KEY` (`cyb_<user id>_<secret>`), real turns on a real Thread:
- *    one that calls a tool, one input queued while that turn runs, and a
- *    resumed session on the same Thread.
+ *    one that calls a tool, one steered mid-turn, one input queued while a turn
+ *    runs, and a resumed session on the same Thread.
  *
  *   pnpm tsx experiments/cybion-agent-api-probe.ts
  *   CYBION_BASE_URL=https://cybion.ntnl.io CYBION_API_KEY=cyb_... pnpm tsx experiments/cybion-agent-api-probe.ts
  *
  * OBSERVED (2026-11-18, Cybion 0.6.108 at cybion.ntnl.io): a tool-calling turn
  * reported `reasoning`, `tool_call_started` / `tool_call_ended` pairs and the
- * tool's own output as the answer; an input queued while a turn ran was
+ * tool's own output as the answer; an input steered into a running turn landed
+ * in that same turn, which ended once; an input queued while a turn ran was
  * dispatched as a prompt of its own (three inputs, three `turn_started`); a
  * resumed session reported the same Thread id, model and effort.
  */
@@ -194,6 +195,19 @@ async function liveProbe(baseUrl: string, apiKey: string): Promise<void> {
   await waitFor(() => first.status().value.kind === "idle", TURN_BUDGET_MS, "the tool-calling turn never ended");
   console.log(`tool turn            ${kindsOf(events)}`);
   console.log(`tool turn text       ${JSON.stringify(textOf(events).slice(0, 120))}`);
+
+  // A steer lands in the turn that runs: the Thread keeps running, and the turn
+  // ends once, so the count of ended turns grows by one and started by none.
+  const endedBefore = events.filter((event) => event.kind === "turn_ended").length;
+  const startedBefore = events.filter((event) => event.kind === "turn_started").length;
+  await first.prompt("Use the bash tool to run exactly `sleep 45` on my device, then reply DONE-SLEEP.");
+  await waitFor(() => first.status().value.kind === "running", TURN_BUDGET_MS, "the long turn never started");
+  const steered = await first.steer("Stop waiting for that command and reply with the single word: pong.");
+  console.log(`steer                ${steered.kind} status=${first.status().value.kind}`);
+  await waitFor(() => first.status().value.kind === "idle", TURN_BUDGET_MS, "the steered turn never ended");
+  const endedAfter = events.filter((event) => event.kind === "turn_ended").length;
+  const startedAfter = events.filter((event) => event.kind === "turn_started").length;
+  console.log(`steer turn           ended+${String(endedAfter - endedBefore)} started+${String(startedAfter - startedBefore)} text=${JSON.stringify(textOf(events).slice(-60))}`);
 
   await first.prompt("List the files in the current directory with the bash tool, then summarise them in one line.");
   const queued = await first.queue("Finally, reply with the single word: pong.");

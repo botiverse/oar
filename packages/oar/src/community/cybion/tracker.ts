@@ -4,6 +4,7 @@ import type { SessionKernel } from "../../shared/session-kernel.js";
 import type { CybionClient } from "./client.js";
 import { eventsOfHistory, frameTypeOf } from "./projection.js";
 import { readHistory, readThread, type CybionHistoryRecord, type CybionThread, type CybionUsage } from "./thread.js";
+import { outcomeOf, sameUsage, totalsSince } from "./tracker-facts.js";
 
 /** First wait between polls of a running Thread. */
 const POLL_FIRST_MS = 250;
@@ -26,9 +27,10 @@ interface Turn {
   /**
    * Records with an id past this one prove the Thread did work for this turn.
    * An input's own record sits AT it: recording the input is not the Thread
-   * running, so it never counts as work.
+   * running, so it never counts as work. A steer moves it forward — the input
+   * it wrote belongs to this turn, so the records it draws belong here too.
    */
-  readonly after: number;
+  after: number;
   /** The Thread was observed running, or wrote a record after the input. */
   worked: boolean;
   quiet: number;
@@ -40,6 +42,13 @@ export interface ThreadTracker {
   busy(): boolean;
   /** Follow the turn an accepted input started, whose own record is `recordIdx`. */
   follow(recordIdx: number | null): void;
+  /**
+   * Record an accepted steer, whose own record is `recordIdx`. Cybion appends
+   * the input to the turn that runs, so the turn this tracker follows is still
+   * the same one and must not be replaced; only a turn that had already ended
+   * leaves the input starting one of its own.
+   */
+  steer(recordIdx: number | null): void;
   /** Resolves when the turn followed now has ended, or after `ms`. */
   settle(ms: number): Promise<void>;
   /** Stop following; nothing more is recorded. */
@@ -68,19 +77,6 @@ export interface TrackerOptions {
   readonly wait?: (ms: number) => Promise<void>;
 }
 
-/** The Thread's totals less the ones it already carried when this session opened. */
-function totalsSince(now: CybionUsage, opened: CybionUsage): CybionUsage {
-  return {
-    input: Math.max(0, now.input - opened.input),
-    output: Math.max(0, now.output - opened.output),
-    cacheRead: Math.max(0, now.cacheRead - opened.cacheRead),
-  };
-}
-
-function sameUsage(left: CybionUsage, right: CybionUsage): boolean {
-  return left.input === right.input && left.output === right.output && left.cacheRead === right.cacheRead;
-}
-
 /** What one poll of the Thread says about the turn: running, quiet, or not yet started. */
 function observe(current: Turn, now: CybionThread): void {
   if (now.status === "running") {
@@ -93,20 +89,6 @@ function observe(current: Turn, now: CybionThread): void {
     return;
   }
   current.startPolls += 1;
-}
-
-/** How a Thread that stopped running ended, from Cybion's own status words. */
-function outcomeOf(thread: CybionThread): TurnOutcome {
-  if (thread.displayStatus === "stopped") {
-    return { kind: "aborted" };
-  }
-  if (thread.status === "failed") {
-    return { kind: "failed", failure: "unknown", reason: "the Cybion Thread failed; its own history holds the reason" };
-  }
-  if (thread.displayStatus === "blocked") {
-    return { kind: "failed", failure: "unknown", reason: "the Cybion Thread is blocked on its owner" };
-  }
-  return { kind: "completed" };
 }
 
 /**
@@ -142,6 +124,8 @@ export function createThreadTracker(options: TrackerOptions): ThreadTracker {
   });
   let turn: Turn | null = null;
   let closed = false;
+  /** Steers accepted so far: a status read older than one does not end the turn. */
+  let steers = 0;
   let pumping = false;
   let seen = options.seen;
   let reported: CybionUsage | null = null;
@@ -203,6 +187,7 @@ export function createThreadTracker(options: TrackerOptions): ThreadTracker {
   };
 
   const step = async (current: Turn): Promise<void> => {
+    const steersBefore = steers;
     const now = await readThread(client, thread.id);
     if (abandoned(current)) {
       return;
@@ -220,6 +205,12 @@ export function createThreadTracker(options: TrackerOptions): ThreadTracker {
       return;
     }
     if (current.worked && now.status !== "running" && current.quiet >= QUIET_POLLS) {
+      if (steers !== steersBefore) {
+        // A steer landed while this step was reading: the status it read may
+        // predate the write, and Cybion keeps the Thread `running` for the input
+        // it just took in. Read again instead of ending a turn that continues.
+        return;
+      }
       finish(current, now, outcomeOf(now), true);
     }
   };
@@ -258,24 +249,39 @@ export function createThreadTracker(options: TrackerOptions): ThreadTracker {
     }
   };
 
+  const followTurn = (recordIdx: number | null): void => {
+    if (closed) {
+      return;
+    }
+    const replaced = turn;
+    turn = {
+      ended: Promise.withResolvers<void>(),
+      after: recordIdx ?? seen,
+      worked: false,
+      quiet: 0,
+      startPolls: 0,
+    };
+    replaced?.ended.resolve();
+    if (!pumping) {
+      void pump();
+    }
+  };
+
   return {
     busy: () => turn !== null,
-    follow: (recordIdx) => {
-      if (closed) {
+    follow: followTurn,
+    steer: (recordIdx) => {
+      steers += 1;
+      const current = turn;
+      if (current === null) {
+        // The turn ended before the input landed, so Cybion started one for this
+        // input alone; nothing else is watching it, so follow it here.
+        followTurn(recordIdx);
         return;
       }
-      const replaced = turn;
-      turn = {
-        ended: Promise.withResolvers<void>(),
-        after: recordIdx ?? seen,
-        worked: false,
-        quiet: 0,
-        startPolls: 0,
-      };
-      replaced?.ended.resolve();
-      if (!pumping) {
-        void pump();
-      }
+      // Records past the steer are this turn's own work too, and the turn keeps
+      // its identity: the same `ended` promise, the same cursor, one `turn_ended`.
+      current.after = Math.max(current.after, recordIdx ?? current.after);
     },
     settle: async (ms) => {
       const current = turn;

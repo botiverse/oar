@@ -17,6 +17,10 @@ import { createThreadTracker, type ThreadTracker } from "./tracker.js";
  *   /v1/threads/{id}`), so Session.id is the Thread id and a session opened
  *   later with `resume` is the same conversation.
  * - prompt: `POST /v1/threads/{id}/inputs`, then tracker.ts follows the turn.
+ * - steer: the same route while the turn runs. Cybion cancels what is in flight
+ *   (a tool call, an inference request) and keeps the Thread `running` with the
+ *   input appended to the same turn, so that turn still ends once — no
+ *   `follow()` here, or the turn would be replaced instead of continued.
  * - queue: held here with `queued: "adapter"`; at dispatch it records a prompt
  *   request carrying the held input's identity, as the record-stream spec
  *   requires, so a held input starts a turn like any other and no prompt
@@ -80,7 +84,12 @@ export function cybionSessionWith(client: Parameters<typeof openThread>[0]): Sta
     /** Whether the Thread has work of this session's: a running turn, or input waiting to be sent. */
     const occupied = (): boolean => tracker.busy() || held.length > 0;
 
-    const attempt = async (input: string, images: InputOptions["images"]): Promise<ResponseBody> => {
+    /**
+     * Hand one input to the Thread. A prompt starts the turn this session
+     * follows; a steer must leave the following alone, because Cybion appends
+     * its input to the running turn and that turn has to end once (`steer`).
+     */
+    const send = async (input: string, images: InputOptions["images"], startsTurn: boolean): Promise<ResponseBody> => {
       const refused = inputImagesRefusal(capabilities, images);
       if (refused !== null) {
         return refused;
@@ -88,7 +97,9 @@ export function cybionSessionWith(client: Parameters<typeof openThread>[0]): Sta
       const outcome = await withInputImages(capabilities, images, async (loaded) => {
         try {
           const answer = await submitInput(client, thread.id, input, loaded.map((image) => `data:${image.mediaType};base64,${image.data}`));
-          tracker.follow(acceptedRecordOf(answer));
+          if (startsTurn) {
+            tracker.follow(acceptedRecordOf(answer));
+          }
           return { kind: "accepted" as const, native: answer };
         } catch (error) {
           return refusalOf(error);
@@ -109,7 +120,7 @@ export function cybionSessionWith(client: Parameters<typeof openThread>[0]): Sta
         // carried one is not a dispatch).
         { kind: "prompt", input: entry.input, carries: [entry.inputId], ...(entry.images === undefined ? {} : { images: entry.images }) },
         async (request): Promise<ResponseBody> => {
-          const outcome = await attempt(entry.input, entry.images);
+          const outcome = await send(entry.input, entry.images, true);
           // Only an answer from Cybion hands a held input back: a write that never
           // reached it, or an image refused before sending, is not the runtime
           // dropping an input it accepted.
@@ -185,7 +196,25 @@ export function cybionSessionWith(client: Parameters<typeof openThread>[0]): Sta
           if (busy) {
             return { kind: "rejected", code: "busy", reason: "busy" };
           }
-          const outcome = await attempt(input, inputOptions?.images);
+          const outcome = await send(input, inputOptions?.images, true);
+          return outcome;
+        });
+        return result;
+      },
+      steer: async (input: string, inputOptions?: InputOptions): Promise<ControlResult> => {
+        const result = await kernel.control({ kind: "steer", input, ...inputOptions }, async (): Promise<ResponseBody> => {
+          if (!tracker.busy()) {
+            return { kind: "rejected", code: "no_active_turn", reason: "not_steerable: no active turn" };
+          }
+          const outcome = await send(input, inputOptions?.images, false);
+          // Cybion takes the input into the running turn: the request in flight is
+          // cancelled, the Thread stays `running`, and the turn this tracker follows
+          // continues and ends once, after this input — so the following is not
+          // replaced. Only a turn that had already ended leaves the input starting
+          // one of its own, which the tracker then follows.
+          if (outcome.kind === "accepted") {
+            tracker.steer(acceptedRecordOf(outcome.native));
+          }
           return outcome;
         });
         return result;
@@ -211,9 +240,13 @@ export function cybionSessionWith(client: Parameters<typeof openThread>[0]): Sta
         // `POST /api/threads/{id}/cancel` stops the turn; an API key reaches it,
         // because that router authenticates the same bearer credential. The turn
         // then ends through the Thread's own `stopped` status, not here.
-        const result = await kernel.control({ kind: "abort" }, async (): Promise<ResponseBody> => (
-          tracker.busy() ? await cancelThread(client, thread.id) : { kind: "rejected", code: "no_active_turn", reason: "no active turn" }
-        ));
+        const result = await kernel.control({ kind: "abort" }, async (): Promise<ResponseBody> => {
+          if (!tracker.busy()) {
+            return { kind: "rejected", code: "no_active_turn", reason: "no active turn" };
+          }
+          const stopped = await cancelThread(client, thread.id);
+          return stopped;
+        });
         return result;
       },
       rawEvents: (observer, cursor) => kernel.rawEvents(observer, cursor),
