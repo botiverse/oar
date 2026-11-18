@@ -480,19 +480,33 @@ test("an abort still observing when its turn ends and a new one begins is refuse
   expect(old.complete).toHaveBeenCalled();
 });
 
-test("every signal refused is reported as failed, with nothing claimed sent", async () => {
-  kill.mockImplementation(() => { throw Object.assign(new Error("operation not permitted"), { code: "EPERM" }); });
+test("every signal that fails is reported as failed, with nothing claimed sent", async () => {
+  kill.mockImplementation(() => { throw Object.assign(new Error("invalid argument"), { code: "EINVAL" }); });
   const fake = appServer();
   scriptReads(BASELINE, SNAPSHOT);
   vi.spyOn(fake, "observeCancellation").mockResolvedValue(staged(SNAPSHOT));
   const session = await promptedSession(fake);
   await session.abort();
   const cleanup = await cleanupOf(session);
-  expect(cleanup).toMatchObject({ result: { kind: "failed", reason: "2 of 2 processes could not be signalled: EPERM" } });
+  expect(cleanup).toMatchObject({ result: { kind: "failed", reason: "2 of 2 processes could not be signalled: EINVAL" } });
   expect(cleanup).not.toHaveProperty("result.signalled");
 });
 
-test("some signals refused reports how many were sent and how many were not", async () => {
+test("some signals failing reports how many were sent and how many were not", async () => {
+  kill.mockImplementation((pid) => {
+    if (Math.abs(pid) === COMMAND) { throw Object.assign(new Error("invalid argument"), { code: "EINVAL" }); }
+    return true;
+  });
+  const fake = appServer();
+  scriptReads(BASELINE, SNAPSHOT);
+  vi.spyOn(fake, "observeCancellation").mockResolvedValue(staged(SNAPSHOT));
+  const session = await promptedSession(fake);
+  await session.abort();
+  expect(await cleanupOf(session)).toMatchObject({ result: { kind: "failed", reason: "1 of 2 processes could not be signalled: EINVAL", signalled: 1 } });
+});
+
+// A `sudo -u` wrapper's tree is the worker user's: OAR may not signal it, and it is not OAR's to stop.
+test("processes the system refuses OAR to signal (EPERM, another user's) are counted as foreign, not as a failure", async () => {
   kill.mockImplementation((pid) => {
     if (Math.abs(pid) === COMMAND) { throw Object.assign(new Error("operation not permitted"), { code: "EPERM" }); }
     return true;
@@ -502,7 +516,18 @@ test("some signals refused reports how many were sent and how many were not", as
   vi.spyOn(fake, "observeCancellation").mockResolvedValue(staged(SNAPSHOT));
   const session = await promptedSession(fake);
   await session.abort();
-  expect(await cleanupOf(session)).toMatchObject({ result: { kind: "failed", reason: "1 of 2 processes could not be signalled: EPERM", signalled: 1 } });
+  expect(await cleanupOf(session)).toMatchObject({ result: { kind: "completed", signalled: 1, foreign: 1 } });
+});
+
+// Review B4: under sudo every turn process answers EPERM; `completed {signalled: 0}` alone would read as "all already gone".
+test("a cleanup where every signal is refused (EPERM) says how many processes were another user's", async () => {
+  kill.mockImplementation(() => { throw Object.assign(new Error("operation not permitted"), { code: "EPERM" }); });
+  const fake = appServer();
+  scriptReads(BASELINE, SNAPSHOT);
+  vi.spyOn(fake, "observeCancellation").mockResolvedValue(staged(SNAPSHOT));
+  const session = await promptedSession(fake);
+  await session.abort();
+  expect(await cleanupOf(session)).toMatchObject({ result: { kind: "completed", signalled: 0, foreign: 2 } });
 });
 
 test("processes already gone are neither sent a signal nor a failure", async () => {
@@ -520,7 +545,7 @@ test("a process its group's signal reached counts as sent though its own signal 
     if (pid === COMMAND) { throw Object.assign(new Error("no such process"), { code: "ESRCH" }); }
     return true;
   });
-  expect(endTurnEntries(ROOT, [command], reading(root, native).table, reading(root, native, command))).toEqual({ hostIdentified: true, signalled: 1, failed: 0, codes: [] });
+  expect(endTurnEntries(ROOT, [command], reading(root, native).table, reading(root, native, command))).toEqual({ hostIdentified: true, signalled: 1, failed: 0, foreign: 0, codes: [] });
 });
 
 test("a table without the host signals nothing and reports nothing sent", async () => {

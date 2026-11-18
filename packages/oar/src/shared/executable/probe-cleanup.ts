@@ -4,10 +4,15 @@ import { observeProcessTableWithin } from "./process-table-budget.js";
 import { descendantsOf, signalEntries, type ProcessEntry, type ProcessTableObservation } from "./process-tree.js";
 import type { Observation, ProcessCleanupDiagnostics } from "./process-cleanup-diagnostics.js";
 
-/** Stop a POSIX probe without tying descendant ownership to its output pipes. */
-export function stopProbe(child: ChildProcess, graceMs: number): void {
+/**
+ * Stop a POSIX probe without tying descendant ownership to its output pipes.
+ * Resolves once the SIGKILL escalation has been sent (or found nothing to
+ * send): what still holds the pipes then is out of OAR's reach.
+ */
+export async function stopProbe(child: ChildProcess, graceMs: number): Promise<void> {
   const pid = child.pid;
   if (pid === undefined) { return; }
+  const { promise: forced, resolve: escalated } = Promise.withResolvers<void>();
   let closed = false;
   let captured = false;
   let owned: readonly ProcessEntry[] = [];
@@ -52,15 +57,19 @@ export function stopProbe(child: ChildProcess, graceMs: number): void {
   const forget = trackPendingCleanup(read => force(read()));
   const escalate = async (): Promise<void> => {
     try { force(await observeProcessTableWithin(5000, undefined, { background: true })); }
-    finally { forget(); }
+    finally { forget(); escalated(); }
   };
   void (async (): Promise<void> => {
-    const before = await observeProcessTableWithin(5000, undefined, { background: true });
-    record(before, "before_cancel");
-    remember(before);
-    if (before.ok) { signalEntries(owned, before.table, () => true, "SIGTERM"); }
-    else if (alive()) { child.kill("SIGTERM"); }
-    const escalation = setTimeout(() => { void escalate(); }, graceMs);
-    escalation.unref();
+    try {
+      const before = await observeProcessTableWithin(5000, undefined, { background: true });
+      record(before, "before_cancel");
+      remember(before);
+      if (before.ok) { signalEntries(owned, before.table, () => true, "SIGTERM"); }
+      else if (alive()) { child.kill("SIGTERM"); }
+    } finally {
+      const escalation = setTimeout(() => { void escalate(); }, graceMs);
+      escalation.unref();
+    }
   })();
+  await forced;
 }

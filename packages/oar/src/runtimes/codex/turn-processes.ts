@@ -100,9 +100,11 @@ function usableReadings(evidence: AbortEvidence, root: number | undefined): Read
 /** What a round of signals amounts to: a signal that was not sent is never reported as sent. */
 function cleanupOf(report: SignalReport): SessionCleanup {
   if (!report.hostIdentified) { return { kind: "failed", reason: "the host is not in the revalidating process table, so nothing was signalled" }; }
-  if (report.failed === 0) { return { kind: "completed", signalled: report.signalled }; }
+  // Processes OAR may not signal (another user's) are named, never folded into "all were signalled".
+  const foreign = report.foreign === 0 ? {} : { foreign: report.foreign };
+  if (report.failed === 0) { return { kind: "completed", signalled: report.signalled, ...foreign }; }
   const reason = `${String(report.failed)} of ${String(report.failed + report.signalled)} processes could not be signalled: ${report.codes.join(", ")}`;
-  return { kind: "failed", reason, ...(report.signalled === 0 ? {} : { signalled: report.signalled }) };
+  return { kind: "failed", reason, ...(report.signalled === 0 ? {} : { signalled: report.signalled }), ...foreign };
 }
 
 /** End an attempt and return its evidence, if an interrupt stands. */

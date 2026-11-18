@@ -2,9 +2,16 @@ import { spawn } from "node:child_process";
 import { killGraceMs, killProcessTree, OWN_PROCESS_GROUP, signalProcessGroup, trackOwnedProcess } from "./process.js";
 import { nativeError, spawnChecked, stderrTail, type ProcessDiagnostics, type ProcessExitObservation, type ProcessTimeoutObservation } from "./diagnostics.js";
 import { stopProbe } from "./probe-cleanup.js";
+import { closePipesAfterExit } from "./pipe-close.js";
+import { withHeldPipes, type HeldPipes } from "./process-cleanup.js";
 import { windowsSpawnTarget } from "./windows-shim.js";
 
 export interface ExecutableResult {
+  /**
+   * False also when OAR closed its end of the output pipes while processes
+   * the command left still held them (`diagnostics.cleanup.heldPipes`):
+   * the output may then be incomplete.
+   */
   readonly ok: boolean;
   readonly stdout: string;
   readonly stderr: string;
@@ -46,7 +53,14 @@ export const runExecutable: ExecutableRunner = async (executable, args, options 
     let stopped = false;
     let timer: NodeJS.Timeout | null = null;
     let escalation: NodeJS.Timeout | null = null;
+    let settled = false;
+    let settlingPipes = false;
+    let heldPipes: HeldPipes | null = null;
+    /** Settles once a stop's SIGKILL has been sent: the bounded wait for the pipes starts there. */
+    let stopping: Promise<void> | null = null;
     const complete = (code: number | null, signal: NodeJS.Signals | null): void => {
+      if (settled) { return; }
+      settled = true;
       clearTimeout(timer ?? undefined);
       clearTimeout(escalation ?? undefined);
       options.signal?.removeEventListener("abort", onAbort);
@@ -59,9 +73,21 @@ export const runExecutable: ExecutableRunner = async (executable, args, options 
           ...(timedOut ? { timeoutMs } : {}),
           ...(timeoutObservation === null ? {} : { timeoutObservation }),
           ...(failure === null ? {} : { error: failure }),
+          ...(heldPipes === null ? {} : { cleanup: withHeldPipes(undefined, heldPipes) }),
         } }),
       });
     };
+    /*
+     * Once the command has exited, its output pipes close when what it
+     * started lets go of them. Without a deadline, or once it is stopped
+     * (the stop may be unable to reach them: another user's processes), that
+     * wait is bounded, from the exit or from the stop's SIGKILL: past it OAR
+     * closes its end, and the result fails as possibly incomplete, naming
+     * the holders. It only bounds: `close` (every pipe at EOF) completes the
+     * result at any time, so a stopped command that exits with its tools
+     * returns at once, not after the kill grace.
+     */
+    let settlePipes: (() => void) | null = null;
     let stop: (() => void) | null = null;
     const onAbort = (): void => {
       failure ??= { code: "ABORT_ERR", message: "The operation was aborted" };
@@ -93,8 +119,9 @@ export const runExecutable: ExecutableRunner = async (executable, args, options 
           escalation = setTimeout(() => { signalProcessGroup(child, "SIGKILL"); }, killGraceMs());
           escalation.unref();
         } else {
-          stopProbe(child, killGraceMs());
+          stopping = stopProbe(child, killGraceMs());
         }
+        settlePipes?.();
       };
       const append = (output: Buffer, chunk: Buffer, stream: string): Buffer => {
         const remaining = OUTPUT_LIMIT - output.length;
@@ -108,9 +135,37 @@ export const runExecutable: ExecutableRunner = async (executable, args, options 
       child.stdout?.on("data", (chunk: Buffer) => { stdout = append(stdout, chunk, "stdout"); });
       child.stderr?.on("data", (chunk: Buffer) => { stderr = append(stderr, chunk, "stderr"); });
       child.once("error", (error) => { failure ??= nativeError(error); });
+      settlePipes = (): void => {
+        if (settlingPipes || exitObservation === null || !stopped && timeoutMs > 0) { return; }
+        settlingPipes = true;
+        const exit = exitObservation;
+        void (async (): Promise<void> => {
+          try {
+            // Before the SIGKILL, a holder may be the command's own tool about to be killed: not a holder to report.
+            // While this waits, the pipes it would close are open handles that keep the event loop alive;
+            // once they close, `close` has already completed the result without it.
+            if (stopping !== null) { await stopping; }
+            if (settled) { return; }
+            heldPipes = await closePipesAfterExit(child, [{ name: "stdout", stream: child.stdout }, { name: "stderr", stream: child.stderr }]) ?? null;
+            // Had `close` come meanwhile, the result is complete already and this does nothing.
+            if (heldPipes === null) { return; }
+            failure ??= { code: "OUTPUT_INCOMPLETE", message: "OAR closed its end of the output pipes while other processes still held them; the output may be incomplete" };
+            complete(exit.exitCode, exit.signal);
+          } catch (error) {
+            // A failed wait must neither hang the result nor leave the pipes open.
+            failure ??= error instanceof Error ? nativeError(error) : { message: String(error) };
+            child.stdout?.destroy();
+            child.stderr?.destroy();
+            complete(exit.exitCode, exit.signal);
+          }
+        })();
+      };
       child.once("exit", (exitCode, signal) => {
         exitObservation = { at: new Date().toISOString(), elapsedMs: performance.now() - startedAt, exitCode, signal };
+        settlePipes?.();
       });
+      // Every pipe at EOF: the result is complete, whether or not the bounded wait above is still running.
+      // (OAR's own closing of held pipes reaches `close` only after that wait has recorded them.)
       child.once("close", (code, signal) => { closeObserved = true; complete(code, signal); });
       if (timeoutMs > 0) {
         timer = setTimeout(() => {

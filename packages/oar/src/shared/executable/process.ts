@@ -4,6 +4,8 @@ import { Duplex, type Readable, type Writable } from "node:stream";
 import { StringDecoder } from "node:string_decoder";
 import { nativeError, spawnChecked, spawnFailure, StderrTail, type ProcessDiagnostics } from "./diagnostics.js";
 import { trackOwnedProcess } from "./ownership.js";
+import { closePipesAfterExit, mergeHeldPipes } from "./pipe-close.js";
+import { cleanupFailureReason, withHeldPipes, type HeldPipes, type ProcessCleanupDiagnostics } from "./process-cleanup.js";
 import { treeResourcesReader } from "./process-resources.js";
 import type { CancellationObservation } from "./process-cancellation.js";
 import { processShutdown } from "./process-shutdown.js";
@@ -49,6 +51,10 @@ export interface LineProcess {
    * Resolves when the process is truly gone and its state has been released.
    * After `kill()`, it includes bounded observations around the SIGKILL
    * escalation and any asynchronous descendant cleanup after native exit.
+   * It then waits at most PIPE_CLOSE_MS (pipe-close.ts) for the output
+   * pipes: past that OAR closes its end of each one still held, and reports
+   * the closed pipes and the holders it saw in `diagnostics().cleanup.heldPipes`
+   * and the exit reason. What is written to them afterwards is lost.
    */
   readonly exited: Promise<number | null>;
   readonly stdin: Writable;
@@ -127,13 +133,25 @@ export function spawnLineProcess(
   let exitSignal: NodeJS.Signals | null = null;
   let spawnError: ProcessDiagnostics["error"] = undefined;
   let preparationAfterCleanup: ProcessTablePreparation | undefined = undefined;
+  let heldPipes: HeldPipes | undefined = undefined;
   const shutdown = processShutdown(child, options);
+  const cleanupDiagnostics = (): ProcessCleanupDiagnostics | undefined => withHeldPipes(shutdown.diagnostics(), heldPipes);
+  const reason = (): string | undefined => cleanupFailureReason(cleanupDiagnostics());
   const { promise: spawned, resolve: spawnOk, reject: spawnFailed } = Promise.withResolvers<void>();
   const exited = (async (): Promise<number | null> => {
     await shutdown.finished;
     if (shutdown.diagnostics() !== undefined) { preparationAfterCleanup = processTablePreparation(); }
+    // What the root left can hold its pipes for as long as it lives (another user's processes too): bounded.
+    try {
+      // A pipe left to its reader's unread data and closed later joins the report `diagnostics()` gives from then on.
+      const later = (held: HeldPipes): void => { heldPipes = mergeHeldPipes(heldPipes, held); };
+      const held = await closePipesAfterExit(child, [{ name: "stdout", stream: child.stdout }, { name: "stderr", stream: child.stderr }, { name: "extra", stream: child.stdio[3] }], undefined, later);
+      heldPipes = mergeHeldPipes(heldPipes, held);
+    } catch {
+      // It reports its own failures; whatever escapes must not keep the exit from being reported.
+    }
     finalized = true;
-    for (const handler of exitHandlers) { handler(exitCode, shutdown.reason()); }
+    for (const handler of exitHandlers) { handler(exitCode, reason()); }
     return exitCode;
   })();
   child.once("spawn", () => {
@@ -186,7 +204,7 @@ export function spawnLineProcess(
     observeCancellation: async () => { const observation = await shutdown.observeCancellation(); return observation; },
     ...(child.stdio[3] instanceof Duplex ? { extraPipe: child.stdio[3] } : {}),
     diagnostics: () => {
-      const cleanup = shutdown.diagnostics();
+      const cleanup = cleanupDiagnostics();
       return { exitCode, signal: exitSignal, stderr: stderr.text(),
         ...(spawnError === undefined ? {} : { error: spawnError }),
         ...(cleanup === undefined ? {} : { cleanup: { ...cleanup,
@@ -206,7 +224,7 @@ export function spawnLineProcess(
     onExit(handler) {
       if (finalized) {
         queueMicrotask(() => {
-          handler(exitCode, shutdown.reason());
+          handler(exitCode, reason());
         });
       } else {
         exitHandlers.push(handler);

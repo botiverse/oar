@@ -29,8 +29,11 @@ export type RuntimePlacementOptions = {
  * passed the start-identity check and were actually sent the kill, which does
  * not report that each has exited. It is always present on `completed` there,
  * and on `failed` only when some were signalled before others could not be.
+ * `foreign`, present when nonzero, counts the turn's processes the system
+ * refused to let OAR signal (EPERM: another user's, as under a `sudo -u`
+ * wrapper). They are not a failure, and they may still be running.
  */
-export type SessionCleanup = { readonly kind: "completed"; readonly signalled?: number } | { readonly kind: "failed"; readonly reason: string; readonly signalled?: number };
+export type SessionCleanup = { readonly kind: "completed"; readonly signalled?: number; readonly foreign?: number } | { readonly kind: "failed"; readonly reason: string; readonly signalled?: number; readonly foreign?: number };
 
 /** OAR gave up control, not evidence of native completion or process death. */
 export interface SessionRelease {
