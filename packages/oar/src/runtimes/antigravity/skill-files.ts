@@ -8,7 +8,7 @@ import { skillPathExists as exists, skillJson as json, skillDirectories as direc
 
 const aliases = [".agent", ".agents", "_agent", "_agents"];
 // Native root-agent mounts, not every directory extracted with the CLI.
-const builtins = ["agy-customizations", "antigravity_guide", "automation", "migrate-agent-settings", "migrate-workflows", "run-workflow", "native_swarm"];
+const builtins = ["agy-customizations", "antigravity_guide", "automation", "migrate-agent-settings", "migrate-workflows", "run-workflow"];
 export function hasAntigravityFileSkills(version: string | undefined): boolean { return version === "1.5.10" || version === "1.5.11"; }
 async function repositoryDirectory(directory: string, signal: AbortSignal): Promise<boolean> {
   const dot = join(directory, ".git");
@@ -53,7 +53,9 @@ async function scanPlugins(items: Map<string, FileSkill>, paths: readonly string
 }
 /** No executable, authentication, MCP, body execution or builtin initialization. */
 export async function readAntigravityFileSkills(home: string, cwd: string, signal: AbortSignal): Promise<{ readonly items: readonly SkillEntry[]; readonly partial: boolean }> {
-  const projects = await workspaces(await realpath(cwd), signal);
+  // Native process cwd is physical on POSIX; Windows retains its supplied spelling.
+  const workspace = process.platform === "win32" ? resolve(cwd) : await realpath(cwd);
+  const projects = await workspaces(workspace, signal);
   const discovery = { home, cwd, root: projects.at(-1) ?? cwd, signal, sources: new Set<string>() };
   const items = new Map<string, FileSkill>();
   const config = await json(join(home, ".gemini/config/config.json"), signal);
@@ -83,11 +85,12 @@ export async function readAntigravityFileSkills(home: string, cwd: string, signa
     const paths = await manifest(path, globalScope);
     await (kind === "skills" ? scanSkills(items, paths, discovery) : scanPlugins(items, paths, enabled, discovery));
   }
-  let partial = false;
+  // native_swarm is conditionally mounted even with identical saved settings.
+  // Omit that unverified builtin and report an incomplete inventory.
+  const partial = true;
   for (const name of builtins) {
     const skill = await antigravitySkillMetadata(join(home, ".gemini/antigravity-cli/builtin/skills", name, "SKILL.md"), signal);
-    if (skill === null) { partial = true; }
-    else { add(items, { ...skill, item: { ...skill.item, scope: "builtin" } }, discovery); }
+    if (skill !== null) { add(items, { ...skill, item: { ...skill.item, scope: "builtin" } }, discovery); }
   }
   signal.throwIfAborted();
   return { items: [...items.values()].filter(skill => !skill.hidden).map(skill => skill.item).toSorted((a, b) => a.name < b.name ? -1 : (a.name > b.name ? 1 : 0)), partial };

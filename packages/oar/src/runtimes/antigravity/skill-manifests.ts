@@ -30,7 +30,8 @@ async function declaredPath(value: string, scope: ManifestScope): Promise<string
   const path = await skillPathExists(local) ? local : resolve(scope.projectRoot, value);
   const resolved = await realpath(path).catch(() => null);
   if (resolved === null) { return null; }
-  const within = relative(scope.projectRoot, resolved);
+  const root = await realpath(scope.projectRoot);
+  const within = relative(root, resolved);
   return within === ".." || within.startsWith(`..${sep}`) || isAbsolute(within) ? null : path;
 }
 function strings(value: unknown): string[] {

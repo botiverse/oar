@@ -640,15 +640,20 @@ body is returned or executed. Unknown versions retain the guarded native
 The verified file reader follows workspace aliases (`.agent`, `.agents`,
 `_agent`, `_agents`) from the repository root to the requested directory,
 then the global CLI, config and legacy skill directories. Workspace discovery
-starts from the resolved working directory; manifest containment uses resolved
-targets while returned manifest paths keep their declared spelling. Linked
+uses the physical working directory on POSIX and preserves Windows cwd
+spelling. Manifest containment uses resolved roots and targets while returned
+manifest paths keep their declared spelling. Linked
 skill directories are followed. It reads skill and
 plugin manifests, applies native duplicate precedence and invocation flags,
 and includes only the native builtin mounts already materialized on disk.
 `disable-slash-command: true` winners are omitted, while
 `disable-model-invocation: true` entries remain with that flag. Plugin names
 come from their manifests; other scope stays unknown. Missing builtin files
-make the result `partial: true`; this reader never initializes or repairs them.
+are not initialized or repaired. The file reader always returns `partial: true`
+because it omits the conditional `native_swarm` builtin: native sometimes
+omits that mount even while its file exists and saved plugin settings agree.
+Other discovered skills named `swarm` remain visible. The mount will be added
+only after its native selection rule is verified.
 A custom `GEMINI_HOME` that differs from the effective home's `.gemini` remains
 `unsupported/scope_unavailable`.
 

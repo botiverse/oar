@@ -45,6 +45,20 @@ test.each(["1.5.10", "1.5.11"])("%s reads signed-out files without spawning, aut
   expect(mocks.auth).not.toHaveBeenCalled(); expect(mocks.run).not.toHaveBeenCalled();
 });
 
+test.each(["1.5.10", "1.5.11"])("%s omits the uncertain swarm builtin and marks even materialized inventories partial", async version => {
+  const f = await fixture();
+  for (const name of ["agy-customizations", "antigravity_guide", "automation", "migrate-agent-settings", "migrate-workflows", "run-workflow", "native_swarm"]) {
+    await skill(join(f.home, ".gemini/antigravity-cli/builtin/skills", name), name === "native_swarm" ? "swarm" : name);
+  }
+  const result = await antigravityRuntime.skills({ ...installation, version }, f); assert.equal(result.kind, "ok");
+  expect(result.partial).toBe(true);
+  expect(result.items.map(item => item.name)).toEqual(["agy-customizations", "antigravity_guide", "automation", "migrate-agent-settings", "migrate-workflows", "run-workflow"]);
+  await skill(join(f.cwd, ".agents/skills/swarm"), "swarm", "description: Local skill, not the uncertain builtin\n");
+  const local = await antigravityRuntime.skills({ ...installation, version }, f); assert.equal(local.kind, "ok");
+  expect(local.items.find(item => item.name === "swarm")).toEqual({ name: "swarm", description: "Local skill, not the uncertain builtin", path: join(f.cwd, ".agents/skills/swarm/SKILL.md"), disableModelInvocation: false });
+  expect(local.partial).toBe(true);
+});
+
 test("native root and alias precedence, hidden winners and plugin enable overrides", async () => {
   const f = await fixture();
   for (const [root, description] of [[join(f.home, "repo/.agent"), "repo"], [join(f.cwd, ".agent"), "cwd"], [join(f.home, ".gemini"), "global"]]) {
@@ -131,7 +145,10 @@ test.each(["1.5.10", "1.5.11"])("%s preserves native paths through cwd, skill an
   ] }));
   const result = await antigravityRuntime.skills({ ...installation, version }, { cwd: alias, env: { ...f.env, HOME: homeAlias, USERPROFILE: homeAlias } });
   assert.equal(result.kind, "ok");
-  expect(result.items.map(({ name, path }) => ({ name, path }))).toEqual([
+  expect(result.items.map(({ name, path }) => ({ name, path }))).toEqual(process.platform === "win32" ? [
+    { name: "global", path: join(homeAlias, ".gemini/config/skills/global/SKILL.md") },
+    { name: "linked", path: join(alias, ".agents/skills/link/SKILL.md") },
+  ] : [
     { name: "absolute-alias", path: join(homeAlias, "repo/extra/child/SKILL.md") },
     { name: "global", path: join(homeAlias, ".gemini/config/skills/global/SKILL.md") },
     { name: "inbound", path: join(f.home, "inbound/child/SKILL.md") },

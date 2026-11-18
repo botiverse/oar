@@ -8,7 +8,7 @@
       "kind": "workspace",
       "cwd": "<home>/repo/sub"
     },
-    "observedAt": "2026-11-18T11:32:43.732Z",
+    "observedAt": "2026-11-18T11:49:21.457Z",
     "view": "discovered",
     "items": [],
     "partial": true
@@ -92,7 +92,7 @@
           "kind": "workspace",
           "cwd": "<home>/repo/sub"
         },
-        "observedAt": "2026-11-18T11:32:44.138Z",
+        "observedAt": "2026-11-18T11:49:21.933Z",
         "view": "discovered",
         "items": [
           {
@@ -136,21 +136,14 @@
             "description": "How to write and run a dynamic workflow script with the `run_workflow` tool: a Python script that orchestrates many agents with `agent`, `parallel`, `pipeline`, and `phase`. Use when a task splits into many independent or staged pieces of agent work (fan out over files, modules, bugs, or review angles, then aggregate), or when the user asks for a workflow. Don't use for a single delegated task (use a subagent) or for legacy workflow files (see migrate-workflows).",
             "disableModelInvocation": false,
             "scope": "builtin"
-          },
-          {
-            "name": "swarm",
-            "path": "<home>/.gemini/antigravity-cli/builtin/skills/native_swarm/SKILL.md",
-            "description": "(Preview & Quota Heavy) Run a swarm: several agents working in parallel on one task, each in its own conversation, collaborating through a shared message board. Use when the work splits into pieces that can be done at the same time, or when a second pair of eyes should check the first pair's work.",
-            "disableModelInvocation": false,
-            "scope": "builtin"
           }
         ],
-        "partial": false
+        "partial": true
       },
       "timingsMs": [
-        11.904520000000048,
-        6.199429999999893,
-        5.55658799999992
+        21.922748000000183,
+        10.517958000000135,
+        7.256135000000086
       ]
     },
     {
@@ -294,7 +287,7 @@
           "kind": "workspace",
           "cwd": "<home>/repo/sub"
         },
-        "observedAt": "2026-11-18T11:32:44.509Z",
+        "observedAt": "2026-11-18T11:49:22.409Z",
         "view": "discovered",
         "items": [
           {
@@ -392,21 +385,14 @@
             "description": "How to write and run a dynamic workflow script with the `run_workflow` tool: a Python script that orchestrates many agents with `agent`, `parallel`, `pipeline`, and `phase`. Use when a task splits into many independent or staged pieces of agent work (fan out over files, modules, bugs, or review angles, then aggregate), or when the user asks for a workflow. Don't use for a single delegated task (use a subagent) or for legacy workflow files (see migrate-workflows).",
             "disableModelInvocation": false,
             "scope": "builtin"
-          },
-          {
-            "name": "swarm",
-            "path": "<home>/.gemini/antigravity-cli/builtin/skills/native_swarm/SKILL.md",
-            "description": "(Preview & Quota Heavy) Run a swarm: several agents working in parallel on one task, each in its own conversation, collaborating through a shared message board. Use when the work splits into pieces that can be done at the same time, or when a second pair of eyes should check the first pair's work.",
-            "disableModelInvocation": false,
-            "scope": "builtin"
           }
         ],
-        "partial": false
+        "partial": true
       },
       "timingsMs": [
-        11.112501000000066,
-        8.098355999999967,
-        7.2295080000001235
+        56.79986699999995,
+        10.644829999999956,
+        18.049229000000196
       ]
     },
     {
@@ -608,7 +594,7 @@
           "kind": "workspace",
           "cwd": "<home>/repo/sub"
         },
-        "observedAt": "2026-11-18T11:32:44.869Z",
+        "observedAt": "2026-11-18T11:49:22.982Z",
         "view": "discovered",
         "items": [
           {
@@ -753,24 +739,17 @@
             "scope": "builtin"
           },
           {
-            "name": "swarm",
-            "path": "<home>/.gemini/antigravity-cli/builtin/skills/native_swarm/SKILL.md",
-            "description": "(Preview & Quota Heavy) Run a swarm: several agents working in parallel on one task, each in its own conversation, collaborating through a shared message board. Use when the work splits into pieces that can be done at the same time, or when a second pair of eyes should check the first pair's work.",
-            "disableModelInvocation": false,
-            "scope": "builtin"
-          },
-          {
             "name": "yaml-flow",
             "path": "<home>/repo/sub/.agents/skills/flow/SKILL.md",
             "disableModelInvocation": true
           }
         ],
-        "partial": false
+        "partial": true
       },
       "timingsMs": [
-        15.258092000000033,
-        18.23133400000006,
-        22.426218999999946
+        43.25024200000007,
+        21.62452099999973,
+        14.166449000000284
       ]
     },
     {
@@ -993,7 +972,7 @@
           "kind": "workspace",
           "cwd": "<home>/repo/sub"
         },
-        "observedAt": "2026-11-18T11:32:45.194Z",
+        "observedAt": "2026-11-18T11:49:23.509Z",
         "view": "discovered",
         "items": [
           {
@@ -1156,24 +1135,17 @@
             "scope": "builtin"
           },
           {
-            "name": "swarm",
-            "path": "<home>/.gemini/antigravity-cli/builtin/skills/native_swarm/SKILL.md",
-            "description": "(Preview & Quota Heavy) Run a swarm: several agents working in parallel on one task, each in its own conversation, collaborating through a shared message board. Use when the work splits into pieces that can be done at the same time, or when a second pair of eyes should check the first pair's work.",
-            "disableModelInvocation": false,
-            "scope": "builtin"
-          },
-          {
             "name": "yaml-flow",
             "path": "<home>/repo/sub/.agents/skills/flow/SKILL.md",
             "disableModelInvocation": true
           }
         ],
-        "partial": false
+        "partial": true
       },
       "timingsMs": [
-        13.630055000000084,
-        11.648775000000114,
-        10.769177000000127
+        64.66534600000023,
+        83.36312500000031,
+        49.3666290000001
       ]
     },
     {
@@ -1403,7 +1375,7 @@
           "kind": "workspace",
           "cwd": "<home>/repo/sub"
         },
-        "observedAt": "2026-11-18T11:32:45.549Z",
+        "observedAt": "2026-11-18T11:49:24.174Z",
         "view": "discovered",
         "items": [
           {
@@ -1571,24 +1543,17 @@
             "disableModelInvocation": false
           },
           {
-            "name": "swarm",
-            "path": "<home>/.gemini/antigravity-cli/builtin/skills/native_swarm/SKILL.md",
-            "description": "(Preview & Quota Heavy) Run a swarm: several agents working in parallel on one task, each in its own conversation, collaborating through a shared message board. Use when the work splits into pieces that can be done at the same time, or when a second pair of eyes should check the first pair's work.",
-            "disableModelInvocation": false,
-            "scope": "builtin"
-          },
-          {
             "name": "yaml-flow",
             "path": "<home>/repo/sub/.agents/skills/flow/SKILL.md",
             "disableModelInvocation": true
           }
         ],
-        "partial": false
+        "partial": true
       },
       "timingsMs": [
-        11.766563000000133,
-        11.409891999999672,
-        11.165281999999934
+        43.41782999999987,
+        22.977478000000247,
+        36.855307000000266
       ]
     },
     {
@@ -1839,7 +1804,7 @@
           "kind": "workspace",
           "cwd": "<home>/cwd-alias"
         },
-        "observedAt": "2026-11-18T11:32:45.860Z",
+        "observedAt": "2026-11-18T11:49:24.772Z",
         "view": "discovered",
         "items": [
           {
@@ -2025,24 +1990,17 @@
             "disableModelInvocation": false
           },
           {
-            "name": "swarm",
-            "path": "<home>/.gemini/antigravity-cli/builtin/skills/native_swarm/SKILL.md",
-            "description": "(Preview & Quota Heavy) Run a swarm: several agents working in parallel on one task, each in its own conversation, collaborating through a shared message board. Use when the work splits into pieces that can be done at the same time, or when a second pair of eyes should check the first pair's work.",
-            "disableModelInvocation": false,
-            "scope": "builtin"
-          },
-          {
             "name": "yaml-flow",
             "path": "<home>/repo/sub/.agents/skills/flow/SKILL.md",
             "disableModelInvocation": true
           }
         ],
-        "partial": false
+        "partial": true
       },
       "timingsMs": [
-        14.111051999999745,
-        10.704749999999876,
-        11.670861000000059
+        34.77068999999938,
+        31.626703999999336,
+        27.40366399999948
       ]
     }
   ],
@@ -2066,7 +2024,7 @@
       "kind": "workspace",
       "cwd": "<home>/repo/sub"
     },
-    "observedAt": "2026-11-18T11:32:47.121Z",
+    "observedAt": "2026-11-18T11:49:27.256Z",
     "view": "discovered",
     "items": [
       {
@@ -2252,18 +2210,11 @@
         "disableModelInvocation": false
       },
       {
-        "name": "swarm",
-        "path": "<home>/.gemini/antigravity-cli/builtin/skills/native_swarm/SKILL.md",
-        "description": "(Preview & Quota Heavy) Run a swarm: several agents working in parallel on one task, each in its own conversation, collaborating through a shared message board. Use when the work splits into pieces that can be done at the same time, or when a second pair of eyes should check the first pair's work.",
-        "disableModelInvocation": false,
-        "scope": "builtin"
-      },
-      {
         "name": "yaml-flow",
         "path": "<home>/repo/sub/.agents/skills/flow/SKILL.md",
         "disableModelInvocation": true
       }
     ],
-    "partial": false
+    "partial": true
   }
 }

@@ -116,7 +116,10 @@ export async function compareAntigravityFileSkills(output: string): Promise<void
       for (let round = 0; round < 3; round += 1) {
         const started = performance.now(); const result: Awaited<ReturnType<typeof antigravityRuntime.skills>> = await antigravityRuntime.skills(installation, { cwd: queryCwd, env }); timings.push(performance.now() - started);
         observations.push({ case: stage, round, result, native: expected });
-        assert.equal(result.kind, "ok"); assert.equal(result.view, "discovered"); assert.equal(result.partial, false); assert.deepEqual(result.items, expected);
+        assert.equal(result.kind, "ok"); assert.equal(result.view, "discovered"); assert.equal(result.partial, true);
+        // Only the unverified builtin mount may be absent; local skills named swarm still compare.
+        const verified: readonly SkillEntry[] = expected.filter(item => !(item.scope === "builtin" && item.path === join(home, ".gemini/antigravity-cli/builtin/skills/native_swarm/SKILL.md")));
+        assert.deepEqual(result.items, verified);
       }
       observations.push({ case: stage, timingsMs: timings });
     }
