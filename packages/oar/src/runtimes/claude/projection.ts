@@ -10,6 +10,7 @@ import { claudeTaskViews } from "./tasks.js";
 import { foldStreamJsonStdout, type ProjectionCommand } from "../../shared/stream-json/projection.js";
 import { initialStreamJsonProjection, streamJsonAbortRequested, type StreamJsonProjectionState } from "../../shared/stream-json/state.js";
 import type { StreamJsonProjectionProfile } from "../../shared/stream-json/profile.js";
+import { contentBlocks } from "../../shared/stream-json/content.js";
 
 export type { ProjectionCommand } from "../../shared/stream-json/projection.js";
 
@@ -22,14 +23,18 @@ export interface ClaudeProjectionState extends StreamJsonProjectionState {
   readonly failureCategory: string | null;
   readonly limitResetsAt: UtcInstant | null;
   /**
-   * The `uuid` of the latest root assistant message since the last root
-   * result: the turn's fork anchor (`--resume-session-at`, launch.ts),
-   * stamped on its `turn_ended` and cleared there. A failed turn's is the
-   * synthetic `API Error` message claude saves under that uuid; a fork
-   * through it carries the source's history. An aborted turn gets none
-   * ([env] 2.1.323: a fork through the tool_use an abort interrupted drops
-   * the saved interruption, and claude answers the dangling call with
-   * `[Tool result missing due to internal error]` instead).
+   * The turn's fork anchor (`--resume-session-at`, launch.ts), stamped on its
+   * `turn_ended` and cleared there: the `uuid` of the latest root assistant
+   * message since the last root result, or null when that message holds a
+   * `tool_use` block or a root `tool_result` followed it. A fork through a
+   * `tool_use` drops the saved `tool_result`, and claude answers the call
+   * with `[Tool result missing due to internal error]` instead ([env]
+   * 2.1.323: the aborted turn's interrupted call, an `outputSchema` turn's
+   * `StructuredOutput` call, an `error_max_turns` turn's last tool call;
+   * sea-trial/vendor/session-fork-cases.vendor.test.ts). An aborted turn
+   * gets none either. An API-error failure's anchor is the synthetic
+   * `API Error` message claude saves under that uuid; a fork through it
+   * carries the source's history.
    */
   readonly lastAssistantUuid: string | null;
 }
@@ -102,11 +107,18 @@ function accumulate(state: ClaudeProjectionState, agentPath: readonly string[], 
   return { state: { ...state, tokens: next }, tokens };
 }
 
+/** The anchor after a root assistant message: none past a `tool_use` (ClaudeProjectionState.lastAssistantUuid), else its uuid. */
+function assistantAnchor(previous: string | null, message: JsonRecord): string | null {
+  if (contentBlocks(message).some((block) => block.type === "tool_use")) { return null; }
+  return typeof message.uuid === "string" && message.uuid.length > 0 ? message.uuid : previous;
+}
+
 export const claudeProjectionProfile: StreamJsonProjectionProfile<ClaudeProjectionState> = {
   name: "claude",
   duplicateReason: "claude ignored the input: its inputId was already used in this session",
   assistant: (state, message, root) => root ? { ...state, failureCategory: typeof message.error === "string" ? message.error : state.failureCategory, context: claudeContextSent(state.context, message),
-    lastAssistantUuid: typeof message.uuid === "string" && message.uuid.length > 0 ? message.uuid : state.lastAssistantUuid } : state,
+    lastAssistantUuid: assistantAnchor(state.lastAssistantUuid, message) } : state,
+  user: (state, message, root) => root && state.lastAssistantUuid !== null && contentBlocks(message).some((block) => block.type === "tool_result") ? { ...state, lastAssistantUuid: null } : state,
   result: (state, message, agentPath) => {
     const accumulated = accumulate(state, agentPath, message);
     const running = foldModelUsage(state.modelUsage, message);

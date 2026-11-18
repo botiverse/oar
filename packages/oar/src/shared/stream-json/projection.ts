@@ -73,7 +73,7 @@ export function foldStreamJsonStdout<S extends StreamJsonProjectionState>(
       }
       const duplicate = message.isReplay === true && typeof message.uuid === "string"
         ? streamJsonDuplicateInput(state, message.uuid, agentPath.length === 0, profile.duplicateReason) : { state, events: [] };
-      return event({ events: [...views, ...duplicate.events] }, duplicate.state);
+      return event({ events: [...views, ...duplicate.events] }, profile.user?.(duplicate.state, message, agentPath.length === 0) ?? duplicate.state);
     }
     case "result": {
       const result = profile.result(state, message, agentPath);

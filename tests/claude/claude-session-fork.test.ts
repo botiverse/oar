@@ -170,3 +170,30 @@ test("a failed turn's synthetic error message is its anchor; an aborted turn nam
   expect(ended).toEqual([expect.objectContaining({ outcome: { kind: "aborted" } })]);
   expect(ended[0]).not.toHaveProperty("forkAnchor");
 });
+
+const toolUse = (uuid: string, name: string): JsonRecord => ({ type: "assistant", uuid, parent_tool_use_id: null, message: { id: `msg-${uuid}`, role: "assistant", content: [{ type: "tool_use", id: `call-${uuid}`, name, input: {} }] } });
+const toolResult = (uuid: string, call: string, parent: string | null = null): JsonRecord => ({ type: "user", uuid, parent_tool_use_id: parent, message: { role: "user", content: [{ type: "tool_result", tool_use_id: call, content: "done" }] } });
+
+// [env] claude 2.1.323 (sea-trial/vendor/session-fork-cases.vendor.test.ts): a fork through a
+// tool_use drops its saved tool_result, so such a turn names no anchor.
+test.each([
+  ["an outputSchema turn completed on its StructuredOutput call", [toolUse("so", "StructuredOutput"), toolResult("so-result", "call-so"), { ...result(), stop_reason: "tool_use", structured_output: { answer: 4 } }], "completed"],
+  ["an error_max_turns turn failed after a tool call", [toolUse("bash", "Bash"), toolResult("bash-result", "call-bash"), { ...result(), subtype: "error_max_turns", is_error: true }], "failed"],
+  ["an error_max_structured_output_retries turn", [toolUse("so", "StructuredOutput"), toolResult("so-result", "call-so"), { ...result(), subtype: "error_max_structured_output_retries", is_error: true }], "failed"],
+])("%s names no anchor", (_case, frames, kind) => {
+  const ended = fold([{ type: "system", subtype: "init", session_id: "s" }, assistant("text-before"), ...frames]);
+  expect(ended.map((event) => asRecord(event.outcome)?.kind)).toEqual([kind]);
+  expect(ended[0]).not.toHaveProperty("forkAnchor");
+});
+
+test("a turn that ends on text after its tool round is anchored on that text; a root tool_result after text clears it; a subagent's does not", () => {
+  const ended = fold([
+    { type: "system", subtype: "init", session_id: "s" },
+    toolUse("bash", "Bash"), toolResult("bash-result", "call-bash"), assistant("after-tools"), result(),
+    { type: "system", subtype: "init", session_id: "s" },
+    assistant("text"), toolResult("late-result", "call-x"), result(),
+    { type: "system", subtype: "init", session_id: "s" },
+    assistant("root-text"), toolResult("child-result", "call-y", "task-1"), result(),
+  ]);
+  expect(ended.map((event) => event.forkAnchor)).toEqual(["after-tools", undefined, "root-text"]);
+});

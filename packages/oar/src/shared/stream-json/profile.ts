@@ -25,6 +25,8 @@ export interface StreamJsonProjectionProfile<S extends StreamJsonProjectionState
   /** The next single-block assistant is the completed block's snapshot, even with a new id. */
   readonly assistantFollowsBlockStop?: boolean;
   readonly assistant: (state: S, message: JsonRecord, root: boolean) => S;
+  /** A `user` frame (tool results, replayed prompts), after the shared fold read it; absent leaves the state as is. */
+  readonly user?: (state: S, message: JsonRecord, root: boolean) => S;
   readonly result: (state: S, message: JsonRecord, agentPath: readonly string[]) => {
     readonly state: S;
     readonly outcome: TurnOutcome;
